@@ -46,6 +46,12 @@ $ConclusionsPath = Join-Path $EstructuralsDir '0 CONCLUSIONS.docx'
 # Ruta de sortida principal (xarxa). Si no es accessible, cau a una carpeta
 # local 'Informes generats' al costat del .ps1.
 $OutputDir       = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\0_Plantilles\Powershell\Informes generats'
+# Directori de bases de dades d'activitats (Excel). El nom del fitxer ha de
+# seguir el patro "YYYY-MM-DD ACTIVITATS.xls" o ".xlsx".
+$ActivitatsDir   = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\2_Controls Excels'
+# Quantes conclusions del final del fitxer 0 CONCLUSIONS.docx s'inclouen
+# sempre al document final (no apareixen al Pas 5).
+$AlwaysConclusionsCount = 2
 
 # ----------------------------------------------------------------------------
 # Word COM helpers
@@ -64,6 +70,101 @@ function Close-WordApp($word) {
     if ($null -ne $word) {
         try { $word.Quit() } catch { }
         [System.Runtime.InteropServices.Marshal]::ReleaseComObject($word) | Out-Null
+    }
+}
+
+# ----------------------------------------------------------------------------
+# Activitats Excel database
+# ----------------------------------------------------------------------------
+function Find-LatestActivitatsExcel {
+    if (-not (Test-Path -LiteralPath $ActivitatsDir)) { return $null }
+    $regex = '^(\d{4}-\d{2}-\d{2})\s+ACTIVITATS\.(xls|xlsx)$'
+    $candidates = Get-ChildItem -LiteralPath $ActivitatsDir -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -match $regex } |
+        ForEach-Object {
+            if ($_.Name -match $regex) {
+                [pscustomobject]@{
+                    File = $_
+                    Date = [datetime]::ParseExact($Matches[1], 'yyyy-MM-dd', $null)
+                }
+            }
+        } | Sort-Object Date -Descending
+    if ($candidates.Count -eq 0) { return $null }
+    return $candidates[0]
+}
+
+# Cerca una activitat pel seu ID a la fulla "Estes" del fitxer Excel.
+# Retorna un hashtable amb TITULAR, ADRECA, ACTIVITAT o $null si no es troba.
+function Get-ActivitatByID($excelFile, $idGia) {
+    $excel = New-Object -ComObject Excel.Application
+    $excel.Visible = $false
+    $excel.DisplayAlerts = $false
+    try {
+        $wb = $excel.Workbooks.Open($excelFile.FullName, 0, $true)  # ReadOnly
+        try {
+            $sh = $null
+            foreach ($s in $wb.Sheets) {
+                # Comparacio tolerant a accents/case ("Estes", "Estès", "ESTES").
+                $n = ($s.Name -replace '[èéÈÉ]','e').ToLower()
+                if ($n -eq 'estes') { $sh = $s; break }
+            }
+            if ($null -eq $sh) {
+                throw "No s'ha trobat la fulla 'Estes' al fitxer Excel."
+            }
+            $used = $sh.UsedRange
+            $data = $used.Value2
+            if ($null -eq $data) { return $null }
+            # Columnes Excel (1-based) segons la convencio del fitxer:
+            #   1  = ID Activitat
+            #   10 = Rao social
+            #   48 = Emp. Tipus via
+            #   49 = Emp. Carrer
+            #   50 = Emp. Numero
+            #   52 = Emp. Lletra
+            #   55 = Emp. Pis
+            #   56 = Emp. Porta
+            #   94 = Activitat principal
+            $rows = $data.GetLength(0)
+            $idTarget = [string]$idGia
+            for ($r = 2; $r -le $rows; $r++) {
+                $cell = $data[$r, 1]
+                if ($null -eq $cell) { continue }
+                # ID pot ser numeric o string; normalitzem.
+                $id = if ($cell -is [double]) {
+                    if ([math]::Floor($cell) -eq $cell) { [string][int]$cell } else { [string]$cell }
+                } else { [string]$cell }
+                if ($id -eq $idTarget) {
+                    $get = {
+                        param($c)
+                        $v = $data[$r, $c]
+                        if ($null -eq $v) { return '' }
+                        return ([string]$v).Trim()
+                    }
+                    $tipusVia = & $get 48
+                    $carrer   = & $get 49
+                    $numero   = & $get 50
+                    $lletra   = & $get 52
+                    $pis      = & $get 55
+                    $porta    = & $get 56
+                    $rao      = & $get 10
+                    $actPrin  = & $get 94
+                    $parts = @($tipusVia, $carrer, $numero, $lletra, $pis, $porta) |
+                        Where-Object { $_ -and $_.Trim() -ne '' }
+                    $adreca = ($parts -join ' ') + ', CORNELLÀ DE LLOBREGAT'
+                    return @{
+                        TITULAR   = $rao
+                        ADRECA    = $adreca
+                        ACTIVITAT = $actPrin
+                    }
+                }
+            }
+            return $null
+        } finally {
+            $wb.Close($false)
+        }
+    } finally {
+        try { $excel.Quit() } catch { }
+        [System.Runtime.InteropServices.Marshal]::ReleaseComObject($excel) | Out-Null
     }
 }
 
@@ -129,62 +230,101 @@ function Select-Cataleg {
 # Step 2 - Header data
 # ----------------------------------------------------------------------------
 function Get-HeaderData {
+    $latest = Find-LatestActivitatsExcel
+    if ($null -eq $latest) {
+        [System.Windows.Forms.MessageBox]::Show(
+            "No s'ha trobat cap fitxer 'YYYY-MM-DD ACTIVITATS.xls' a:`n$ActivitatsDir",
+            'Base de dades no trobada', 'OK', 'Error') | Out-Null
+        exit 1
+    }
+
     $form = New-Object System.Windows.Forms.Form
     $form.Text = 'Pas 2 - Dades de la capcalera'
-    $form.Size = New-Object System.Drawing.Size(560, 540)
+    $form.Size = New-Object System.Drawing.Size(620, 360)
     $form.StartPosition = 'CenterScreen'
+    $form.FormBorderStyle = 'FixedDialog'
+    $form.MaximizeBox = $false
+
+    $lblBd = New-Object System.Windows.Forms.Label
+    $lblBd.Text = "Base de dades d'activitats: $($latest.File.Name)  (data: $($latest.Date.ToString('yyyy-MM-dd')))"
+    $lblBd.Location = New-Object System.Drawing.Point(15, 12)
+    $lblBd.Size = New-Object System.Drawing.Size(580, 22)
+    $lblBd.ForeColor = [System.Drawing.Color]::DarkBlue
+    $form.Controls.Add($lblBd)
 
     $fields = [ordered]@{
-        'ID_GIA'       = 'ID GIA'
-        'EXP_NUM'      = 'Numero d''expedient'
-        'ADRECA'       = 'Adreca'
-        'ACTIVITAT'    = 'Activitat'
-        'PETICIONARI'  = 'Peticionari'
-        'DATA'         = 'Data (dd/mm/aaaa)'
-        'DECISIO'      = 'Decisio / Resolucio'
-        'TECNIC'       = 'Tecnic redactor'
+        'ID_GIA'         = 'ID GIA'
+        'EXP_NUM'        = "Numero d'expedient"
+        'NUM_ANOTACIO'   = "Num. d'anotacio (Objecte)"
+        'DATA_ANOTACIO'  = "Data d'anotacio (dd/mm/aaaa)"
     }
 
     $controls = @{}
-    $y = 20
+    $y = 50
     foreach ($key in $fields.Keys) {
         $lbl = New-Object System.Windows.Forms.Label
         $lbl.Text = $fields[$key]
         $lbl.Location = New-Object System.Drawing.Point(15, $y)
-        $lbl.Size = New-Object System.Drawing.Size(170, 22)
+        $lbl.Size = New-Object System.Drawing.Size(220, 22)
         $form.Controls.Add($lbl)
 
         $tb = New-Object System.Windows.Forms.TextBox
-        $tb.Location = New-Object System.Drawing.Point(190, ($y - 2))
-        $tb.Size = New-Object System.Drawing.Size(340, 22)
+        $tb.Location = New-Object System.Drawing.Point(240, ($y - 2))
+        $tb.Size = New-Object System.Drawing.Size(350, 22)
         $form.Controls.Add($tb)
         $controls[$key] = $tb
         $y += 38
     }
-    # Default the date to today
-    $controls['DATA'].Text = (Get-Date).ToString('dd/MM/yyyy')
 
+    # Botons
     $ok = New-Object System.Windows.Forms.Button
     $ok.Text = 'Seguent'
-    $ok.Location = New-Object System.Drawing.Point(360, ($y + 10))
-    $ok.Size = New-Object System.Drawing.Size(80, 28)
-    $ok.DialogResult = 'OK'
+    $ok.Location = New-Object System.Drawing.Point(410, ($y + 10))
+    $ok.Size = New-Object System.Drawing.Size(90, 28)
     $form.AcceptButton = $ok
     $form.Controls.Add($ok)
 
     $cancel = New-Object System.Windows.Forms.Button
     $cancel.Text = 'Cancel'
-    $cancel.Location = New-Object System.Drawing.Point(450, ($y + 10))
+    $cancel.Location = New-Object System.Drawing.Point(510, ($y + 10))
     $cancel.Size = New-Object System.Drawing.Size(80, 28)
     $cancel.DialogResult = 'Cancel'
     $form.CancelButton = $cancel
     $form.Controls.Add($cancel)
 
-    if ($form.ShowDialog() -ne 'OK') { exit 0 }
+    # Validacio: cercar a l'Excel quan es prem "Seguent". Si no troba l'ID,
+    # mostrar error i mantenir el form obert.
+    $script:_headerData = $null
+    $ok.add_Click({
+        $idGia = $controls['ID_GIA'].Text.Trim()
+        if ([string]::IsNullOrWhiteSpace($idGia)) {
+            [System.Windows.Forms.MessageBox]::Show("Has d'introduir un ID GIA.",'Falten dades','OK','Warning') | Out-Null
+            return
+        }
+        try {
+            $act = Get-ActivitatByID -excelFile $latest.File -idGia $idGia
+        } catch {
+            [System.Windows.Forms.MessageBox]::Show("Error llegint l'Excel:`n$($_.Exception.Message)",'Error','OK','Error') | Out-Null
+            return
+        }
+        if ($null -eq $act) {
+            [System.Windows.Forms.MessageBox]::Show(
+                "L'ID GIA '$idGia' no s'ha trobat a la base de dades`n($($latest.File.Name)).",
+                'Activitat no trobada', 'OK', 'Error') | Out-Null
+            return
+        }
+        $data = @{}
+        foreach ($k in $fields.Keys) { $data[$k] = $controls[$k].Text.Trim() }
+        $data['TITULAR']   = $act['TITULAR']
+        $data['ADRECA']    = $act['ADRECA']
+        $data['ACTIVITAT'] = $act['ACTIVITAT']
+        $script:_headerData = $data
+        $form.DialogResult = 'OK'
+        $form.Close()
+    })
 
-    $data = @{}
-    foreach ($key in $fields.Keys) { $data[$key] = $controls[$key].Text }
-    return $data
+    if ($form.ShowDialog() -ne 'OK') { exit 0 }
+    return $script:_headerData
 }
 
 # ----------------------------------------------------------------------------
@@ -271,14 +411,16 @@ function Parse-Cataleg($word, $path) {
 function Select-Items($sections) {
     $form = New-Object System.Windows.Forms.Form
     $form.Text = 'Pas 3 - Seleccio de deficiencies'
-    $form.Size = New-Object System.Drawing.Size(760, 640)
+    $form.Size = New-Object System.Drawing.Size(1100, 720)
     $form.StartPosition = 'CenterScreen'
 
     $tv = New-Object System.Windows.Forms.TreeView
     $tv.Location = New-Object System.Drawing.Point(10, 10)
-    $tv.Size = New-Object System.Drawing.Size(720, 540)
+    $tv.Size = New-Object System.Drawing.Size(1060, 620)
     $tv.CheckBoxes = $true
     $tv.HideSelection = $false
+    $tv.ShowNodeToolTips = $true
+    $tv.Anchor = 'Top, Bottom, Left, Right'
     $form.Controls.Add($tv)
 
     foreach ($sec in $sections) {
@@ -317,17 +459,19 @@ function Select-Items($sections) {
 
     $ok = New-Object System.Windows.Forms.Button
     $ok.Text = 'Seguent'
-    $ok.Location = New-Object System.Drawing.Point(560, 560)
+    $ok.Location = New-Object System.Drawing.Point(890, 640)
     $ok.Size = New-Object System.Drawing.Size(80, 28)
     $ok.DialogResult = 'OK'
+    $ok.Anchor = 'Bottom, Right'
     $form.AcceptButton = $ok
     $form.Controls.Add($ok)
 
     $cancel = New-Object System.Windows.Forms.Button
     $cancel.Text = 'Cancel'
-    $cancel.Location = New-Object System.Drawing.Point(650, 560)
+    $cancel.Location = New-Object System.Drawing.Point(980, 640)
     $cancel.Size = New-Object System.Drawing.Size(80, 28)
     $cancel.DialogResult = 'Cancel'
+    $cancel.Anchor = 'Bottom, Right'
     $form.CancelButton = $cancel
     $form.Controls.Add($cancel)
 
@@ -475,7 +619,12 @@ function Apply-Fields($text, $fields) {
 # Step 5 - Conclusions
 # ----------------------------------------------------------------------------
 function Read-Conclusions($word, $path) {
-    if (-not (Test-Path -LiteralPath $path)) { return @() }
+    # Retorna un PSCustomObject amb dues llistes:
+    #   Selectable : els paragrafs que apareixen al Pas 5 com a checkboxes.
+    #   Always     : els darrers $AlwaysConclusionsCount paragrafs, que
+    #                s'inclouen sempre al document final sense preguntar.
+    $empty = [pscustomobject]@{ Selectable = @(); Always = @() }
+    if (-not (Test-Path -LiteralPath $path)) { return $empty }
     $doc = $word.Documents.Open($path, $false, $true)
     try {
         $list = New-Object System.Collections.ArrayList
@@ -483,7 +632,17 @@ function Read-Conclusions($word, $path) {
             $t = $p.Range.Text.TrimEnd("`r","`n","`a"," ")
             if (-not [string]::IsNullOrWhiteSpace($t)) { [void]$list.Add($t) }
         }
-        return ,$list.ToArray()
+        $n = $list.Count
+        $alwaysN = [Math]::Min($AlwaysConclusionsCount, $n)
+        $selectable = @()
+        $always = @()
+        if ($alwaysN -gt 0) {
+            $selectable = $list.GetRange(0, $n - $alwaysN).ToArray()
+            $always     = $list.GetRange($n - $alwaysN, $alwaysN).ToArray()
+        } else {
+            $selectable = $list.ToArray()
+        }
+        return [pscustomobject]@{ Selectable = $selectable; Always = $always }
     } finally {
         $doc.Close($false)
     }
@@ -552,15 +711,18 @@ function Select-Conclusions($conclusions) {
 # Step 6 - Compose final document
 # ----------------------------------------------------------------------------
 function Apply-HeaderReplacements($doc, $header) {
+    # Substituim els placeholders <<NOM>> de la capcalera pels valors del Pas 2.
+    # Els placeholders disponibles (segons 0 CAPCALERA.docx) son:
+    #   <<ID_GIA>> <<EXP_NUM>> <<ADRECA>> <<ACTIVITAT>> <<TITULAR>>
+    #   <<NUM_ANOTACIO>> <<DATA_ANOTACIO>>
     $map = @{
-        '<<ID_GIA>>'      = $header['ID_GIA']
-        '<<EXP_NUM>>'     = $header['EXP_NUM']
-        '<<ADRECA>>'      = $header['ADRECA']
-        '<<ACTIVITAT>>'   = $header['ACTIVITAT']
-        '<<PETICIONARI>>' = $header['PETICIONARI']
-        '<<DATA>>'        = $header['DATA']
-        '<<DECISIO>>'     = $header['DECISIO']
-        '<<TECNIC>>'      = $header['TECNIC']
+        '<<ID_GIA>>'        = $header['ID_GIA']
+        '<<EXP_NUM>>'       = $header['EXP_NUM']
+        '<<ADRECA>>'        = $header['ADRECA']
+        '<<ACTIVITAT>>'     = $header['ACTIVITAT']
+        '<<TITULAR>>'       = $header['TITULAR']
+        '<<NUM_ANOTACIO>>'  = $header['NUM_ANOTACIO']
+        '<<DATA_ANOTACIO>>' = $header['DATA_ANOTACIO']
     }
     foreach ($k in $map.Keys) {
         $find = $doc.Content.Find
@@ -575,7 +737,7 @@ function Apply-HeaderReplacements($doc, $header) {
     }
 }
 
-function Build-Document($word, $header, $selectedSections, $fields, $conclusions, $catalegName) {
+function Build-Document($word, $header, $selectedSections, $fields, $conclusions, $alwaysConclusions, $catalegName) {
     # Nom del fitxer: YYYY-MM-DD_<TipusCataleg>_GIA <id_gia>.docx
     #   <TipusCataleg> = BaseName del cataleg amb la primera lletra en
     #                    majuscula i la resta en minuscules (REQ1 -> Req1).
@@ -621,22 +783,63 @@ function Build-Document($word, $header, $selectedSections, $fields, $conclusions
 
     Apply-HeaderReplacements -doc $doc -header $header
 
-    # Activem el document i fem servir Selection (mes robust que Range
-    # per inserir paragrafs amb estils) per anar al final i escriure.
+    # Activem el document i fem servir Selection per inserir text al final.
+    # Apliquem el format de caracter directament (no estils de paragraf) per
+    # evitar herencies inesperades.
     $doc.Activate()
     $sel = $word.Selection
     $sel.EndKey(6) | Out-Null  # wdStory = 6
 
-    $writeParagraph = {
-        param($text, $styleName)
+    # Helpers d'escriptura. Tots netegen el format abans d'escriure.
+    $resetCharFormat = {
+        $sel.Font.Bold = 0
+        $sel.Font.Italic = 0
+        $sel.Font.Underline = 0  # wdUnderlineNone
+    }
+
+    $writeSection = {
+        param($text)
         $sel.TypeParagraph()
-        try { $sel.set_Style($styleName) } catch { }
-        if ($text) { $sel.TypeText([string]$text) }
+        & $resetCharFormat
+        $sel.Font.Bold = 1
+        $sel.Font.Size = 13
+        $sel.TypeText([string]$text)
+        $sel.Font.Bold = 0
+        $sel.Font.Size = 11
+    }
+
+    $writeItem = {
+        param($num, $text)
+        $sel.TypeParagraph()
+        & $resetCharFormat
+        # "N. " sempre normal.
+        $sel.TypeText("$num. ")
+        # Detectem la part inicial fins al primer ". " per subratllar-la
+        # (etiqueta de la deficiencia, p. ex. "Sanitat.", "Vector Aigua (ACA).").
+        # Nomes ho fem si l'etiqueta es prou curta (sembla un titol).
+        $dotIdx = $text.IndexOf('. ')
+        if ($dotIdx -gt 0 -and $dotIdx -le 80) {
+            $head = $text.Substring(0, $dotIdx + 1)   # incloent el punt
+            $rest = $text.Substring($dotIdx + 1)      # comenca amb espai
+            $sel.Font.Underline = 1   # wdUnderlineSingle
+            $sel.TypeText($head)
+            $sel.Font.Underline = 0
+            $sel.TypeText($rest)
+        } else {
+            $sel.TypeText([string]$text)
+        }
+    }
+
+    $writeNormal = {
+        param($text)
+        $sel.TypeParagraph()
+        & $resetCharFormat
+        $sel.TypeText([string]$text)
     }
 
     $globalCounter = 0
     foreach ($sec in $selectedSections) {
-        & $writeParagraph $sec.Title 'Heading 1'
+        & $writeSection $sec.Title
 
         foreach ($it in $sec.Items) {
             $itemTexts = New-Object System.Collections.ArrayList
@@ -652,21 +855,20 @@ function Build-Document($word, $header, $selectedSections, $fields, $conclusions
                 $globalCounter++
                 $resolved = Apply-Fields -text $txt -fields $fields
                 $parts = $resolved -split "`v"
-                $first = $parts[0]
-                & $writeParagraph ("{0}. {1}" -f $globalCounter, $first) 'Normal'
+                & $writeItem $globalCounter $parts[0]
                 for ($i = 1; $i -lt $parts.Count; $i++) {
                     if ([string]::IsNullOrWhiteSpace($parts[$i])) { continue }
-                    & $writeParagraph $parts[$i] 'Normal'
+                    & $writeNormal $parts[$i]
                 }
             }
         }
     }
 
-    if ($conclusions.Count -gt 0) {
-        & $writeParagraph 'Conclusions' 'Heading 1'
-        foreach ($c in $conclusions) {
-            & $writeParagraph $c 'Normal'
-        }
+    $hasConcl = ($conclusions.Count -gt 0) -or ($alwaysConclusions.Count -gt 0)
+    if ($hasConcl) {
+        & $writeSection 'Conclusions'
+        foreach ($c in $conclusions)        { & $writeNormal $c }
+        foreach ($c in $alwaysConclusions)  { & $writeNormal $c }
     }
 
     $doc.Save()
@@ -702,11 +904,12 @@ function Main {
         $fields       = Get-FieldsFromSelection $selected
         $fields       = Prompt-Fields $fields
         $conclusionsAll = Read-Conclusions -word $word -path $ConclusionsPath
-        $conclusions  = Select-Conclusions $conclusionsAll
+        $conclusions  = Select-Conclusions $conclusionsAll.Selectable
         $outPath      = Build-Document -word $word -header $header `
                                        -selectedSections $selected `
                                        -fields $fields `
                                        -conclusions $conclusions `
+                                       -alwaysConclusions $conclusionsAll.Always `
                                        -catalegName $cataleg.BaseName
 
         [System.Windows.Forms.MessageBox]::Show(
