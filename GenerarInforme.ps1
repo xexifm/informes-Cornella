@@ -54,6 +54,9 @@ function New-WordApp {
     $w = New-Object -ComObject Word.Application
     $w.Visible = $false
     $w.DisplayAlerts = 0  # wdAlertsNone
+    # Evita que Word obri els fitxers de xarxa en "Vista protegida", que
+    # bloqueja InsertParagraphAfter i altres operacions de modificacio.
+    try { $w.AutomationSecurity = 1 } catch { }  # msoAutomationSecurityLow
     return $w
 }
 
@@ -602,75 +605,81 @@ function Build-Document($word, $header, $selectedSections, $fields, $conclusions
     }
     $outPath = Join-Path $targetDir $fileName
 
-    # Copiem la CAPCALERA en el fitxer de destinacio per no tocar mai l'original.
-    Copy-Item -LiteralPath $HeaderPath -Destination $outPath -Force
-    $doc = $word.Documents.Open($outPath, $false, $false)
+    # Treballem amb una copia LOCAL (a %TEMP%) per evitar que Word obri el
+    # fitxer en "Vista protegida" quan el desti es una unitat de xarxa.
+    # En acabar, movem el fitxer final al directori de sortida.
+    $tempPath = Join-Path $env:TEMP $fileName
+    Copy-Item -LiteralPath $HeaderPath -Destination $tempPath -Force
+    $doc = $word.Documents.Open($tempPath, $false, $false)
+
+    # Si malgrat tot s'ha obert en mode protegit, sortim-ne.
+    try {
+        if ($doc.ProtectedViewWindow -ne $null) {
+            $doc = $doc.ProtectedViewWindow.Edit()
+        }
+    } catch { }
+
     Apply-HeaderReplacements -doc $doc -header $header
 
-    # Inserim el contingut al final.
-    $end = $doc.Content
-    $end.Collapse(0)  # wdCollapseEnd
+    # Activem el document i fem servir Selection (mes robust que Range
+    # per inserir paragrafs amb estils) per anar al final i escriure.
+    $doc.Activate()
+    $sel = $word.Selection
+    $sel.EndKey(6) | Out-Null  # wdStory = 6
+
+    $writeParagraph = {
+        param($text, $styleName)
+        $sel.TypeParagraph()
+        try { $sel.set_Style($styleName) } catch { }
+        if ($text) { $sel.TypeText([string]$text) }
+    }
 
     $globalCounter = 0
     foreach ($sec in $selectedSections) {
-        # Titol de seccio
-        $end.InsertParagraphAfter()
-        $end.Collapse(0)
-        $end.Text = $sec.Title
-        try { $end.set_Style('Heading 1') } catch { $end.Bold = $true }
-        $end.Collapse(0)
-        $end.InsertParagraphAfter(); $end.Collapse(0)
+        & $writeParagraph $sec.Title 'Heading 1'
 
         foreach ($it in $sec.Items) {
-            # Item pare (si l'usuari l'ha marcat com a selected, o si te fills seleccionats)
             $itemTexts = New-Object System.Collections.ArrayList
             if ($it.Selected) {
-                $body = ($it.BodyLines -join "`r")
+                $body = ($it.BodyLines -join "`v")
                 [void]$itemTexts.Add($body)
             }
             foreach ($ch in $it.Children) {
-                $cbody = ($ch.BodyLines -join "`r")
+                $cbody = ($ch.BodyLines -join "`v")
                 [void]$itemTexts.Add($cbody)
             }
             foreach ($txt in $itemTexts) {
                 $globalCounter++
                 $resolved = Apply-Fields -text $txt -fields $fields
-                # Si el text ja conte salts de linia interns, el primer es el cos
-                # i la resta (URL, p.ex.) van com a paragrafs nous sense numero.
-                $parts = $resolved -split "`r"
+                $parts = $resolved -split "`v"
                 $first = $parts[0]
-                $end.Text = "{0}. {1}" -f $globalCounter, $first
-                try { $end.set_Style('Normal') } catch { }
-                $end.Bold = $false
-                $end.Collapse(0)
-                $end.InsertParagraphAfter(); $end.Collapse(0)
+                & $writeParagraph ("{0}. {1}" -f $globalCounter, $first) 'Normal'
                 for ($i = 1; $i -lt $parts.Count; $i++) {
                     if ([string]::IsNullOrWhiteSpace($parts[$i])) { continue }
-                    $end.Text = $parts[$i]
-                    try { $end.set_Style('Normal') } catch { }
-                    $end.Collapse(0)
-                    $end.InsertParagraphAfter(); $end.Collapse(0)
+                    & $writeParagraph $parts[$i] 'Normal'
                 }
             }
         }
     }
 
     if ($conclusions.Count -gt 0) {
-        $end.InsertParagraphAfter(); $end.Collapse(0)
-        $end.Text = 'Conclusions'
-        try { $end.set_Style('Heading 1') } catch { $end.Bold = $true }
-        $end.Collapse(0)
-        $end.InsertParagraphAfter(); $end.Collapse(0)
+        & $writeParagraph 'Conclusions' 'Heading 1'
         foreach ($c in $conclusions) {
-            $end.Text = $c
-            try { $end.set_Style('Normal') } catch { }
-            $end.Collapse(0)
-            $end.InsertParagraphAfter(); $end.Collapse(0)
+            & $writeParagraph $c 'Normal'
         }
     }
 
     $doc.Save()
     $doc.Close($false)
+
+    # Movem el fitxer al desti final (xarxa o local segons disponibilitat).
+    try {
+        Move-Item -LiteralPath $tempPath -Destination $outPath -Force
+    } catch {
+        # Si no podem moure (xarxa caiguda), deixem el fitxer al TEMP i
+        # informem-ne tornant aquesta ruta.
+        return $tempPath
+    }
     return $outPath
 }
 
