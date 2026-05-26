@@ -790,7 +790,7 @@ function Build-Document($word, $header, $selectedSections, $fields, $conclusions
     $sel = $word.Selection
     $sel.EndKey(6) | Out-Null  # wdStory = 6
 
-    # Helpers d'escriptura. Tots netegen el format abans d'escriure.
+    # ----- Helpers de format -----
     $resetCharFormat = {
         $sel.Font.Bold = 0
         $sel.Font.Italic = 0
@@ -801,74 +801,152 @@ function Build-Document($word, $header, $selectedSections, $fields, $conclusions
         param($text)
         $sel.TypeParagraph()
         & $resetCharFormat
+        $sel.ParagraphFormat.LeftIndent = 0
         $sel.Font.Bold = 1
-        $sel.Font.Size = 13
         $sel.TypeText([string]$text)
         $sel.Font.Bold = 0
-        $sel.Font.Size = 11
+    }
+
+    $writeSubsection = {
+        param($text)
+        $sel.TypeParagraph()
+        & $resetCharFormat
+        $sel.ParagraphFormat.LeftIndent = 0
+        $sel.Font.Underline = 1   # wdUnderlineSingle
+        $sel.TypeText([string]$text)
+        $sel.Font.Underline = 0
+    }
+
+    # Escriu un fragment de text aplicant cursiva a les referencies legals.
+    # Captura nomes la cita curta: "Tipus N/YYYY, de XX d[e'] mes [de YYYY]".
+    # Per ampliar la cursiva fins a la descripcio ("...pel qual s'aprova..."),
+    # l'usuari pot editar manualment el document final.
+    $legalRegex = [regex]'(?:DECRET LEGISLATIU|DECRETO LEGISLATIVO|Decret Llei|Decreto Ley|Real Decreto|REAL DECRETO|Reial Decret|Decreto|Decret|DECRET|Llei|LLEI|Ley|LEY|Reglamento|REGLAMENTO|Reglament|REGLAMENT)\s+\d+/\d+(?:,\s+de(?:l)?\s+\d+\s+d[e''’`]\s*[A-Za-zÀ-ÿ]+(?:\s+de\s+\d+)?)?'
+    $writeTextWithItalic = {
+        param($text)
+        $lastIdx = 0
+        foreach ($m in $legalRegex.Matches($text)) {
+            if ($m.Index -gt $lastIdx) {
+                $sel.Font.Italic = 0
+                $sel.TypeText($text.Substring($lastIdx, $m.Index - $lastIdx))
+            }
+            $sel.Font.Italic = 1
+            $sel.TypeText($m.Value)
+            $sel.Font.Italic = 0
+            $lastIdx = $m.Index + $m.Length
+        }
+        if ($lastIdx -lt $text.Length) {
+            $sel.TypeText($text.Substring($lastIdx))
+        }
     }
 
     $writeItem = {
         param($num, $text)
         $sel.TypeParagraph()
         & $resetCharFormat
-        # "N. " sempre normal.
+        $sel.ParagraphFormat.LeftIndent = 18  # ~0.25 inch de sangria
+        # Numero en negreta
+        $sel.Font.Bold = 1
         $sel.TypeText("$num. ")
-        # Detectem la part inicial fins al primer ". " per subratllar-la
-        # (etiqueta de la deficiencia, p. ex. "Sanitat.", "Vector Aigua (ACA).").
-        # Nomes ho fem si l'etiqueta es prou curta (sembla un titol).
-        $dotIdx = $text.IndexOf('. ')
-        if ($dotIdx -gt 0 -and $dotIdx -le 80) {
-            $head = $text.Substring(0, $dotIdx + 1)   # incloent el punt
-            $rest = $text.Substring($dotIdx + 1)      # comenca amb espai
-            $sel.Font.Underline = 1   # wdUnderlineSingle
-            $sel.TypeText($head)
-            $sel.Font.Underline = 0
-            $sel.TypeText($rest)
-        } else {
-            $sel.TypeText([string]$text)
-        }
+        $sel.Font.Bold = 0
+        & $writeTextWithItalic $text
     }
 
-    $writeNormal = {
+    # Linies addicionals d'un item: text normal amb sangria. Sense numero.
+    $writeBody = {
         param($text)
         $sel.TypeParagraph()
         & $resetCharFormat
-        $sel.TypeText([string]$text)
+        $sel.ParagraphFormat.LeftIndent = 18
+        & $writeTextWithItalic $text
     }
 
+    # Insereix un URL com a hyperlink real (clicable).
+    $writeUrl = {
+        param($url)
+        $sel.TypeParagraph()
+        & $resetCharFormat
+        $sel.ParagraphFormat.LeftIndent = 18
+        $startPos = $sel.Range.Start
+        $sel.TypeText([string]$url)
+        $endPos = $sel.Range.End
+        try {
+            $hlRange = $doc.Range($startPos, $endPos)
+            $doc.Hyperlinks.Add($hlRange, $url) | Out-Null
+        } catch { }
+    }
+
+    # Conclusio: text normal sense sangria.
+    $writeConclusion = {
+        param($text)
+        $sel.TypeParagraph()
+        & $resetCharFormat
+        $sel.ParagraphFormat.LeftIndent = 0
+        & $writeTextWithItalic $text
+    }
+
+    # ----- Logica d'escriptura -----
     $globalCounter = 0
+    $lastSectionName = $null
     foreach ($sec in $selectedSections) {
-        & $writeSection $sec.Title
+        # Si el titol te " - ", el partim en seccio + subseccio. Si la
+        # seccio coincideix amb l'anterior, no la repetim.
+        $parts = $sec.Title -split ' - ', 2
+        if ($parts.Count -eq 2) {
+            $secName = $parts[0].Trim()
+            $subName = $parts[1].Trim()
+            if ($secName -ne $lastSectionName) {
+                & $writeSection $secName
+                $lastSectionName = $secName
+            }
+            & $writeSubsection $subName
+        } else {
+            & $writeSection $sec.Title
+            $lastSectionName = $sec.Title
+        }
+
+        # Funcio interna per emetre les linies addicionals d'un body
+        # (URLs com a hyperlinks, altres com a text normal amb sangria).
+        $emitExtras = {
+            param($lines)
+            for ($i = 1; $i -lt $lines.Count; $i++) {
+                $line = $lines[$i].Trim()
+                if ([string]::IsNullOrWhiteSpace($line)) { continue }
+                if ($line -match '^https?://') { & $writeUrl $line } else { & $writeBody $line }
+            }
+        }
 
         foreach ($it in $sec.Items) {
-            $itemTexts = New-Object System.Collections.ArrayList
-            if ($it.Selected) {
-                $body = ($it.BodyLines -join "`v")
-                [void]$itemTexts.Add($body)
-            }
-            foreach ($ch in $it.Children) {
-                $cbody = ($ch.BodyLines -join "`v")
-                [void]$itemTexts.Add($cbody)
-            }
-            foreach ($txt in $itemTexts) {
-                $globalCounter++
-                $resolved = Apply-Fields -text $txt -fields $fields
-                $parts = $resolved -split "`v"
-                & $writeItem $globalCounter $parts[0]
-                for ($i = 1; $i -lt $parts.Count; $i++) {
-                    if ([string]::IsNullOrWhiteSpace($parts[$i])) { continue }
-                    & $writeNormal $parts[$i]
+            $childrenSelected = ($it.Children.Count -gt 0)
+            $itemLines = @($it.BodyLines | ForEach-Object { Apply-Fields -text $_ -fields $fields })
+
+            if ($childrenSelected) {
+                # El cos del pare es text de transicio (sense numero).
+                if ($it.Selected -and $itemLines.Count -gt 0) {
+                    foreach ($bp in $itemLines) {
+                        if ([string]::IsNullOrWhiteSpace($bp)) { continue }
+                        if ($bp -match '^https?://') { & $writeUrl $bp } else { & $writeBody $bp }
+                    }
                 }
+                foreach ($ch in $it.Children) {
+                    $cLines = @($ch.BodyLines | ForEach-Object { Apply-Fields -text $_ -fields $fields })
+                    if ($cLines.Count -eq 0) { continue }
+                    $globalCounter++
+                    & $writeItem $globalCounter $cLines[0]
+                    & $emitExtras $cLines
+                }
+            } elseif ($it.Selected -and $itemLines.Count -gt 0) {
+                $globalCounter++
+                & $writeItem $globalCounter $itemLines[0]
+                & $emitExtras $itemLines
             }
         }
     }
 
     $hasConcl = ($conclusions.Count -gt 0) -or ($alwaysConclusions.Count -gt 0)
     if ($hasConcl) {
-        & $writeSection 'Conclusions'
-        foreach ($c in $conclusions)        { & $writeNormal $c }
-        foreach ($c in $alwaysConclusions)  { & $writeNormal $c }
+        foreach ($c in $conclusions)        { & $writeConclusion $c }
+        foreach ($c in $alwaysConclusions)  { & $writeConclusion $c }
     }
 
     $doc.Save()
