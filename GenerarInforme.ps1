@@ -93,7 +93,7 @@ function Find-LatestActivitatsExcel {
     return $candidates[0]
 }
 
-# Cerca una activitat pel seu ID a la fulla "Estes" del fitxer Excel.
+# Cerca una activitat pel seu ID a la fulla "Estes"/"Estès" del fitxer Excel.
 # Retorna un hashtable amb TITULAR, ADRECA, ACTIVITAT o $null si no es troba.
 function Get-ActivitatByID($excelFile, $idGia) {
     $excel = New-Object -ComObject Excel.Application
@@ -102,14 +102,18 @@ function Get-ActivitatByID($excelFile, $idGia) {
     try {
         $wb = $excel.Workbooks.Open($excelFile.FullName, 0, $true)  # ReadOnly
         try {
+            # Normalitza el nom de la fulla per acceptar variants com "Estes",
+            # "Estès" (precompost), o "Estès" (descompost amb caracter combinant).
             $sh = $null
+            $sheetNames = @()
             foreach ($s in $wb.Sheets) {
-                # Comparacio tolerant a accents/case ("Estes", "Estès", "ESTES").
-                $n = ($s.Name -replace '[èéÈÉ]','e').ToLower()
+                $sheetNames += $s.Name
+                $n = $s.Name.Normalize([System.Text.NormalizationForm]::FormD)
+                $n = ($n -replace '\p{Mn}','').ToLower().Trim()
                 if ($n -eq 'estes') { $sh = $s; break }
             }
             if ($null -eq $sh) {
-                throw "No s'ha trobat la fulla 'Estes' al fitxer Excel."
+                throw "No s'ha trobat la fulla 'Estes'/'Estès' al fitxer Excel. Fulles disponibles: $($sheetNames -join ', ')"
             }
             $used = $sh.UsedRange
             $data = $used.Value2
@@ -240,7 +244,7 @@ function Get-HeaderData {
 
     $form = New-Object System.Windows.Forms.Form
     $form.Text = 'Pas 2 - Dades de la capcalera'
-    $form.Size = New-Object System.Drawing.Size(620, 360)
+    $form.Size = New-Object System.Drawing.Size(720, 480)
     $form.StartPosition = 'CenterScreen'
     $form.FormBorderStyle = 'FixedDialog'
     $form.MaximizeBox = $false
@@ -248,52 +252,92 @@ function Get-HeaderData {
     $lblBd = New-Object System.Windows.Forms.Label
     $lblBd.Text = "Base de dades d'activitats: $($latest.File.Name)  (data: $($latest.Date.ToString('yyyy-MM-dd')))"
     $lblBd.Location = New-Object System.Drawing.Point(15, 12)
-    $lblBd.Size = New-Object System.Drawing.Size(580, 22)
+    $lblBd.Size = New-Object System.Drawing.Size(680, 22)
     $lblBd.ForeColor = [System.Drawing.Color]::DarkBlue
     $form.Controls.Add($lblBd)
 
-    $fields = [ordered]@{
-        'ID_GIA'         = 'ID GIA'
-        'EXP_NUM'        = "Numero d'expedient"
-        'NUM_ANOTACIO'   = "Num. d'anotacio (Objecte)"
-        'DATA_ANOTACIO'  = "Data d'anotacio (dd/mm/aaaa)"
-    }
-
+    # Helper per afegir una fila etiqueta + TextBox. Guarda el TextBox a
+    # $controls[$key]. Suprimim qualsevol output al pipeline.
     $controls = @{}
-    $y = 50
-    foreach ($key in $fields.Keys) {
+    $addRow = {
+        param($label, $y, $tbWidth, $key)
         $lbl = New-Object System.Windows.Forms.Label
-        $lbl.Text = $fields[$key]
+        $lbl.Text = $label
         $lbl.Location = New-Object System.Drawing.Point(15, $y)
-        $lbl.Size = New-Object System.Drawing.Size(220, 22)
-        $form.Controls.Add($lbl)
+        $lbl.Size = New-Object System.Drawing.Size(200, 22)
+        [void]$form.Controls.Add($lbl)
 
         $tb = New-Object System.Windows.Forms.TextBox
-        $tb.Location = New-Object System.Drawing.Point(240, ($y - 2))
-        $tb.Size = New-Object System.Drawing.Size(350, 22)
-        $form.Controls.Add($tb)
+        $tb.Location = New-Object System.Drawing.Point(220, ($y - 2))
+        $tb.Size = New-Object System.Drawing.Size($tbWidth, 22)
+        [void]$form.Controls.Add($tb)
         $controls[$key] = $tb
-        $y += 38
     }
+
+    $y = 50
+    # 1) ID GIA + boto "Cercar"
+    & $addRow 'ID GIA' $y 380 'ID_GIA'
+    $btnSearch = New-Object System.Windows.Forms.Button
+    $btnSearch.Text = 'Cercar'
+    $btnSearch.Location = New-Object System.Drawing.Point(605, ($y - 3))
+    $btnSearch.Size = New-Object System.Drawing.Size(80, 26)
+    [void]$form.Controls.Add($btnSearch)
+    $y += 38
+
+    & $addRow "Num. d'expedient"             $y 460 'EXP_NUM';      $y += 38
+    & $addRow 'Titular (autom., editable)'   $y 460 'TITULAR';      $y += 38
+    & $addRow 'Adreca (autom., editable)'    $y 460 'ADRECA';       $y += 38
+    & $addRow 'Activitat (autom., editable)' $y 460 'ACTIVITAT';    $y += 38
+    & $addRow "Num. d'anotacio (Objecte)"    $y 460 'NUM_ANOTACIO'; $y += 38
+    & $addRow "Data d'anotacio (dd/mm/aaaa)" $y 460 'DATA_ANOTACIO';$y += 50
 
     # Botons
     $ok = New-Object System.Windows.Forms.Button
     $ok.Text = 'Seguent'
-    $ok.Location = New-Object System.Drawing.Point(410, ($y + 10))
+    $ok.Location = New-Object System.Drawing.Point(505, $y)
     $ok.Size = New-Object System.Drawing.Size(90, 28)
     $form.AcceptButton = $ok
-    $form.Controls.Add($ok)
+    [void]$form.Controls.Add($ok)
 
     $cancel = New-Object System.Windows.Forms.Button
     $cancel.Text = 'Cancel'
-    $cancel.Location = New-Object System.Drawing.Point(510, ($y + 10))
+    $cancel.Location = New-Object System.Drawing.Point(605, $y)
     $cancel.Size = New-Object System.Drawing.Size(80, 28)
     $cancel.DialogResult = 'Cancel'
     $form.CancelButton = $cancel
-    $form.Controls.Add($cancel)
+    [void]$form.Controls.Add($cancel)
 
-    # Validacio: cercar a l'Excel quan es prem "Seguent". Si no troba l'ID,
-    # mostrar error i mantenir el form obert.
+    # Cercar a l'Excel pel ID GIA i omplir els 3 camps autom.
+    $doSearch = {
+        $idGia = $controls['ID_GIA'].Text.Trim()
+        if ([string]::IsNullOrWhiteSpace($idGia)) {
+            [System.Windows.Forms.MessageBox]::Show("Has d'introduir un ID GIA.",'Falta ID GIA','OK','Warning') | Out-Null
+            return $false
+        }
+        try {
+            $act = Get-ActivitatByID -excelFile $latest.File -idGia $idGia
+        } catch {
+            [System.Windows.Forms.MessageBox]::Show("Error llegint l'Excel:`n$($_.Exception.Message)",'Error','OK','Error') | Out-Null
+            return $false
+        }
+        if ($null -eq $act) {
+            [System.Windows.Forms.MessageBox]::Show(
+                "L'ID GIA '$idGia' no s'ha trobat a la base de dades`n($($latest.File.Name)).",
+                'Activitat no trobada', 'OK', 'Error') | Out-Null
+            $controls['TITULAR'].Text = ''
+            $controls['ADRECA'].Text = ''
+            $controls['ACTIVITAT'].Text = ''
+            return $false
+        }
+        $controls['TITULAR'].Text   = $act['TITULAR']
+        $controls['ADRECA'].Text    = $act['ADRECA']
+        $controls['ACTIVITAT'].Text = $act['ACTIVITAT']
+        return $true
+    }
+
+    $btnSearch.add_Click({ [void](& $doSearch) })
+
+    # Validacio al "Seguent": ID GIA i 3 camps autom. han de tenir valor.
     $script:_headerData = $null
     $ok.add_Click({
         $idGia = $controls['ID_GIA'].Text.Trim()
@@ -301,23 +345,20 @@ function Get-HeaderData {
             [System.Windows.Forms.MessageBox]::Show("Has d'introduir un ID GIA.",'Falten dades','OK','Warning') | Out-Null
             return
         }
-        try {
-            $act = Get-ActivitatByID -excelFile $latest.File -idGia $idGia
-        } catch {
-            [System.Windows.Forms.MessageBox]::Show("Error llegint l'Excel:`n$($_.Exception.Message)",'Error','OK','Error') | Out-Null
-            return
-        }
-        if ($null -eq $act) {
-            [System.Windows.Forms.MessageBox]::Show(
-                "L'ID GIA '$idGia' no s'ha trobat a la base de dades`n($($latest.File.Name)).",
-                'Activitat no trobada', 'OK', 'Error') | Out-Null
-            return
+        if ([string]::IsNullOrWhiteSpace($controls['TITULAR'].Text) -or
+            [string]::IsNullOrWhiteSpace($controls['ADRECA'].Text) -or
+            [string]::IsNullOrWhiteSpace($controls['ACTIVITAT'].Text)) {
+            # Cercar automaticament si encara no s'ha fet
+            if (-not (& $doSearch)) { return }
         }
         $data = @{}
-        foreach ($k in $fields.Keys) { $data[$k] = $controls[$k].Text.Trim() }
-        $data['TITULAR']   = $act['TITULAR']
-        $data['ADRECA']    = $act['ADRECA']
-        $data['ACTIVITAT'] = $act['ACTIVITAT']
+        $data['ID_GIA']        = $controls['ID_GIA'].Text.Trim()
+        $data['EXP_NUM']       = $controls['EXP_NUM'].Text.Trim()
+        $data['TITULAR']       = $controls['TITULAR'].Text.Trim()
+        $data['ADRECA']        = $controls['ADRECA'].Text.Trim()
+        $data['ACTIVITAT']     = $controls['ACTIVITAT'].Text.Trim()
+        $data['NUM_ANOTACIO']  = $controls['NUM_ANOTACIO'].Text.Trim()
+        $data['DATA_ANOTACIO'] = $controls['DATA_ANOTACIO'].Text.Trim()
         $script:_headerData = $data
         $form.DialogResult = 'OK'
         $form.Close()
