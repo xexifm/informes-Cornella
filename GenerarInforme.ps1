@@ -43,6 +43,9 @@ $ScriptRoot      = Split-Path -Parent $MyInvocation.MyCommand.Path
 $EstructuralsDir = Join-Path $ScriptRoot 'ESTRUCTURALS'
 $HeaderPath      = Join-Path $EstructuralsDir '0 CAPCALERA.docx'
 $ConclusionsPath = Join-Path $EstructuralsDir '0 CONCLUSIONS.docx'
+# Ruta de sortida principal (xarxa). Si no es accessible, cau a una carpeta
+# local 'Informes generats' al costat del .ps1.
+$OutputDir       = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\0_Plantilles\Powershell\Informes generats'
 
 # ----------------------------------------------------------------------------
 # Word COM helpers
@@ -569,17 +572,38 @@ function Apply-HeaderReplacements($doc, $header) {
     }
 }
 
-function Build-Document($word, $header, $selectedSections, $fields, $conclusions) {
-    # Determinem el cami de sortida i copiem la CAPCALERA en aquell fitxer,
-    # per no tocar mai l'original.
-    $safeAct = ($header['ACTIVITAT'] -replace '[\\/:*?"<>|]','_').Trim()
-    if (-not $safeAct) { $safeAct = 'Informe' }
-    $stamp = (Get-Date).ToString('yyyyMMdd-HHmm')
-    $outDir = Join-Path $ScriptRoot 'Informes generats'
-    if (-not (Test-Path $outDir)) { New-Item -ItemType Directory -Path $outDir | Out-Null }
-    $outPath = Join-Path $outDir ("Informe - {0} - {1}.docx" -f $safeAct, $stamp)
-    Copy-Item -LiteralPath $HeaderPath -Destination $outPath -Force
+function Build-Document($word, $header, $selectedSections, $fields, $conclusions, $catalegName) {
+    # Nom del fitxer: YYYY-MM-DD_<TipusCataleg>_GIA <id_gia>.docx
+    #   <TipusCataleg> = BaseName del cataleg amb la primera lletra en
+    #                    majuscula i la resta en minuscules (REQ1 -> Req1).
+    $today = (Get-Date).ToString('yyyy-MM-dd')
+    $cat   = $catalegName
+    if ($cat) {
+        $cat = $cat.Substring(0,1).ToUpper() + $cat.Substring(1).ToLower()
+    } else {
+        $cat = 'Informe'
+    }
+    $gia = $header['ID_GIA']
+    if ([string]::IsNullOrWhiteSpace($gia)) { $gia = 's_n' }
+    $gia = ($gia -replace '[\\/:*?"<>|]','_').Trim()
+    $fileName = "{0}_{1}_GIA {2}.docx" -f $today, $cat, $gia
 
+    # Triem el directori: el principal si es accessible, si no la carpeta local.
+    $targetDir = $OutputDir
+    try {
+        if (-not (Test-Path -LiteralPath $targetDir)) {
+            New-Item -ItemType Directory -Path $targetDir -Force -ErrorAction Stop | Out-Null
+        }
+    } catch {
+        $targetDir = Join-Path $ScriptRoot 'Informes generats'
+        if (-not (Test-Path -LiteralPath $targetDir)) {
+            New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
+        }
+    }
+    $outPath = Join-Path $targetDir $fileName
+
+    # Copiem la CAPCALERA en el fitxer de destinacio per no tocar mai l'original.
+    Copy-Item -LiteralPath $HeaderPath -Destination $outPath -Force
     $doc = $word.Documents.Open($outPath, $false, $false)
     Apply-HeaderReplacements -doc $doc -header $header
 
@@ -673,7 +697,8 @@ function Main {
         $outPath      = Build-Document -word $word -header $header `
                                        -selectedSections $selected `
                                        -fields $fields `
-                                       -conclusions $conclusions
+                                       -conclusions $conclusions `
+                                       -catalegName $cataleg.BaseName
 
         [System.Windows.Forms.MessageBox]::Show(
             "Informe generat:`n$outPath",

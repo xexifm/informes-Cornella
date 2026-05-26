@@ -68,15 +68,62 @@ Tots els ítems seleccionats (pares i fills) es numeren **globalment**
 1, 2, 3, … al document final, agrupats per secció. Els títols de
 secció apareixen abans del seu grup d'ítems com a Heading 1.
 
+## Sortida
+
+Per defecte els informes es desen a:
+
+```
+I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\0_Plantilles\Powershell\Informes generats
+```
+
+amb format de nom `YYYY-MM-DD_<Cataleg>_GIA <id>.docx`, on `<Cataleg>` és
+el nom base del fitxer triat al Pas 1 amb la primera lletra en majúscula
+(p. ex. `REQ1.docx` → `Req1`). Exemple:
+
+```
+2026-05-26_Req1_GIA 1000.docx
+```
+
+Si la unitat `I:` no és accessible (script executat fora de la xarxa
+municipal), el fitxer cau automàticament a una carpeta `Informes generats`
+al costat del `.ps1`.
+
 ## Estat actual
 
-REQ1.docx conté **3 seccions** com a mostra inicial:
+REQ1.docx conté **21 seccions** amb 131 ítems pare i 92 sub-ítems. Inclou
+totes les seccions del catàleg original:
 
-1. Autoritzacions / Informes preceptius (19 ítems, alguns amb fills)
-2. Pla d'Autoprotecció (1 ítem)
-3. Controls inicials (3 ítems)
+| Bloc                                          | Ítems | Fills |
+|-----------------------------------------------|------:|------:|
+| Autoritzacions / Informes preceptius          | 19    | 9     |
+| Pla d'Autoprotecció                           | 1     | 0     |
+| Controls inicials                             | 3     | 2     |
+| Controls periòdics                            | 7     | 2     |
+| Instal·lacions — Legalitzacions               | 2     | 18    |
+| Instal·lacions — Inspeccions inicials         | 5     | 0     |
+| Instal·lacions — Inspeccions periòdiques      | 14    | 0     |
+| Registres                                     | 19    | 0     |
+| Incendis — Evacuació                          | 1     | 0     |
+| Incendis — Documentació (ITC SP)              | 5     | 8     |
+| Incendis — RIPCI                              | 14    | 0     |
+| Incendis — CTE DB SI                          | 6     | 21    |
+| Projecte                                      | 3     | 0     |
+| Activitat                                     | 8     | 0     |
+| Restauració — Cuina i extracció de fums       | 9     | 0     |
+| Denúncia soroll                               | 2     | 0     |
+| Denúncia calor                                | 1     | 0     |
+| Denúncia accessibilitat                       | 1     | 0     |
+| Denúncia emmagatzematge material exterior     | 2     | 8     |
+| Documentació / Rètols                         | 3     | 24    |
+| Accessibilitat                                | 6     | 0     |
 
-Falten per afegir les seccions: Controls periòdics, Instal·lacions,
-Registres, Incendis (constructiu), Projecte, Activitat, Restauració,
-Cuina, Denúncies (soroll/calor/accessibilitat/emmagatzematge),
-Documentació/Rètols i Accessibilitat.
+**Placeholders únics:** 18. `Grup CAPCA` i `Òrgan homologació PAU` són
+els únics que es reutilitzen en més d'un ítem (es demanen una sola
+vegada).
+
+**Agrupacions naturals creades:** Les seccions originals
+"Instal·lacions" i "Incendis" del REQ1 contenien blocs molt grans amb
+subepígrafs implícits; s'han partit en 3 i 4 seccions respectivament
+per facilitar la selecció al TreeView. La secció "RESTAURACIÓ" del
+document original (només títol) s'ha fusionat amb "Cuina — Extracció
+de fums".
