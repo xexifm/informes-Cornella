@@ -817,29 +817,6 @@ function Build-Document($word, $header, $selectedSections, $fields, $conclusions
         $sel.Font.Underline = 0
     }
 
-    # Escriu un fragment de text aplicant cursiva a les referencies legals.
-    # Captura nomes la cita curta: "Tipus N/YYYY, de XX d[e'] mes [de YYYY]".
-    # Per ampliar la cursiva fins a la descripcio ("...pel qual s'aprova..."),
-    # l'usuari pot editar manualment el document final.
-    $legalRegex = [regex]'(?:DECRET LEGISLATIU|DECRETO LEGISLATIVO|Decret Llei|Decreto Ley|Real Decreto|REAL DECRETO|Reial Decret|Decreto|Decret|DECRET|Llei|LLEI|Ley|LEY|Reglamento|REGLAMENTO|Reglament|REGLAMENT)\s+\d+/\d+(?:,\s+de(?:l)?\s+\d+\s+d[e''’`]\s*[A-Za-zÀ-ÿ]+(?:\s+de\s+\d+)?)?'
-    $writeTextWithItalic = {
-        param($text)
-        $lastIdx = 0
-        foreach ($m in $legalRegex.Matches($text)) {
-            if ($m.Index -gt $lastIdx) {
-                $sel.Font.Italic = 0
-                $sel.TypeText($text.Substring($lastIdx, $m.Index - $lastIdx))
-            }
-            $sel.Font.Italic = 1
-            $sel.TypeText($m.Value)
-            $sel.Font.Italic = 0
-            $lastIdx = $m.Index + $m.Length
-        }
-        if ($lastIdx -lt $text.Length) {
-            $sel.TypeText($text.Substring($lastIdx))
-        }
-    }
-
     $writeItem = {
         param($num, $text)
         $sel.TypeParagraph()
@@ -849,7 +826,7 @@ function Build-Document($word, $header, $selectedSections, $fields, $conclusions
         $sel.Font.Bold = 1
         $sel.TypeText("$num. ")
         $sel.Font.Bold = 0
-        & $writeTextWithItalic $text
+        $sel.TypeText([string]$text)
     }
 
     # Linies addicionals d'un item: text normal amb sangria. Sense numero.
@@ -858,7 +835,7 @@ function Build-Document($word, $header, $selectedSections, $fields, $conclusions
         $sel.TypeParagraph()
         & $resetCharFormat
         $sel.ParagraphFormat.LeftIndent = 18
-        & $writeTextWithItalic $text
+        $sel.TypeText([string]$text)
     }
 
     # Insereix un URL com a hyperlink real (clicable).
@@ -882,7 +859,7 @@ function Build-Document($word, $header, $selectedSections, $fields, $conclusions
         $sel.TypeParagraph()
         & $resetCharFormat
         $sel.ParagraphFormat.LeftIndent = 0
-        & $writeTextWithItalic $text
+        $sel.TypeText([string]$text)
     }
 
     # ----- Logica d'escriptura -----

@@ -7,13 +7,17 @@ d'activitat de l'Ajuntament de Cornellà.
 
 ```
 informes-Cornella/
-├── GenerarInforme.ps1            ← script principal
-├── ESTRUCTURALS/
-│   ├── 0 CAPCALERA.docx          ← capçalera fixa (placeholders <<NOM>>)
-│   ├── 0 CONCLUSIONS.docx        ← un paràgraf per conclusió alternativa
-│   └── REQ1.docx                 ← catàleg de deficiències (mostra 3 seccions)
-└── Informes generats/            ← s'autogenera; els .docx finals hi van
+├── GenerarInforme.bat            ← doble clic per executar
+├── GenerarInforme.ps1            ← script principal (cridat pel .bat)
+└── ESTRUCTURALS/
+    ├── 0 CAPCALERA.docx          ← capçalera fixa (placeholders <<NOM>>)
+    ├── 0 CONCLUSIONS.docx        ← un paràgraf per conclusió alternativa
+    └── REQ1.docx                 ← catàleg de deficiències
 ```
+
+Per executar: **doble clic a `GenerarInforme.bat`**. El .bat obre PowerShell
+amb la política d'execució correcta i llança el script. Si vols posar una
+drecera a l'escriptori, fes-la sobre el .bat (no sobre el .ps1).
 
 Els .docx d'`ESTRUCTURALS/` que comencen per `0 ` són fixos. Tots els
 altres es consideren **catàlegs** i apareixen al Pas 1 si n'hi ha més
