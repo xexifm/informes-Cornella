@@ -377,11 +377,24 @@ function Get-HeaderData {
 # Step 3 - Parse cataleg (Heading 1 / Heading 2 / Normal)
 # ----------------------------------------------------------------------------
 function Parse-Cataleg($word, $path) {
+    # Retorna un PSCustomObject amb:
+    #   IntroText : la frase introductoria del cataleg (primer paragraf Normal
+    #               abans de la primera seccio). Apareix sempre al document.
+    #   Sections  : llista de seccions. Cada seccio te:
+    #                 Title : titol Heading 1.
+    #                 Items : llista plana d'elements del catalog. Cada element
+    #                         te un camp Kind:
+    #                           'item'       (Heading 2 sense prefix)
+    #                           'subsection' (Heading 2 ::SUB::)
+    #                           'intro'      (Heading 2 ::INTRO::)
+    #                         Els items poden tenir Children (Heading 2 ::CHILD::).
     $doc = $word.Documents.Open($path, $false, $true)  # ReadOnly
     try {
-        $sections = New-Object System.Collections.ArrayList
+        $sections      = New-Object System.Collections.ArrayList
+        $introText     = ''
         $currentSection = $null
-        $currentItem    = $null
+        $lastItem      = $null   # darrer Heading 2 'item' (per associar fills)
+        $lastH2        = $null   # darrer Heading 2 sigui del tipus que sigui
 
         foreach ($p in $doc.Paragraphs) {
             $text = $p.Range.Text.TrimEnd("`r","`n","`a"," ")
@@ -389,7 +402,6 @@ function Parse-Cataleg($word, $path) {
 
             $styleName = ''
             try { $styleName = $p.Style.NameLocal } catch { }
-            # Acceptem tant noms anglesos com locals (Titol 1, Titulo 1).
             $isH1 = ($styleName -match '^(Heading 1|Titol 1|Titulo 1|T.tulo 1)$')
             $isH2 = ($styleName -match '^(Heading 2|Titol 2|Titulo 2|T.tulo 2)$')
 
@@ -399,52 +411,59 @@ function Parse-Cataleg($word, $path) {
                     Items = New-Object System.Collections.ArrayList
                 }
                 [void]$sections.Add($currentSection)
-                $currentItem = $null
+                $lastItem = $null
+                $lastH2   = $null
                 continue
             }
 
             if ($isH2) {
                 if ($null -eq $currentSection) {
-                    # Heading 2 sense seccio: creem una de generica.
                     $currentSection = [pscustomobject]@{
                         Title = '(Sense seccio)'
                         Items = New-Object System.Collections.ArrayList
                     }
                     [void]$sections.Add($currentSection)
                 }
-                $isChild = $false
+                $kind = 'item'
                 $short = $text
-                if ($short -like '::CHILD::*') {
-                    $isChild = $true
-                    $short = $short.Substring('::CHILD::'.Length).Trim()
-                }
-                $newItem = [pscustomobject]@{
-                    Short    = $short
+                if     ($short -like '::CHILD::*') { $kind = 'child';      $short = $short.Substring('::CHILD::'.Length).Trim() }
+                elseif ($short -like '::SUB::*')   { $kind = 'subsection'; $short = $short.Substring('::SUB::'.Length).Trim() }
+                elseif ($short -like '::INTRO::*') { $kind = 'intro';      $short = $short.Substring('::INTRO::'.Length).Trim() }
+
+                $newEl = [pscustomobject]@{
+                    Kind      = $kind
+                    Short     = $short
                     BodyLines = New-Object System.Collections.ArrayList
-                    Children = New-Object System.Collections.ArrayList
-                    IsChild  = $isChild
+                    Children  = New-Object System.Collections.ArrayList
                 }
-                if ($isChild -and $null -ne $currentItem) {
-                    [void]$currentItem.Children.Add($newItem)
+
+                if ($kind -eq 'child' -and $null -ne $lastItem) {
+                    [void]$lastItem.Children.Add($newEl)
                 } else {
-                    [void]$currentSection.Items.Add($newItem)
-                    $currentItem = $newItem
+                    [void]$currentSection.Items.Add($newEl)
+                    if ($kind -eq 'item')        { $lastItem = $newEl }
+                    elseif ($kind -eq 'subsection') { $lastItem = $null }
                 }
+                $lastH2 = $newEl
                 continue
             }
 
-            # Normal / body: l'afegim a l'item actiu (pare o ultim fill).
-            $target = $null
-            if ($null -ne $currentItem) {
-                if ($currentItem.Children.Count -gt 0) {
-                    $target = $currentItem.Children[$currentItem.Children.Count - 1]
-                } else {
-                    $target = $currentItem
+            # Paragraf Normal: l'afegim al BodyLines de l'element actiu.
+            if ($null -eq $lastH2) {
+                # Encara no hem trobat cap Heading 2. Si tampoc hi ha
+                # seccio, es el text introductori del cataleg.
+                if ($null -eq $currentSection -and [string]::IsNullOrWhiteSpace($introText)) {
+                    $introText = $text
                 }
+                continue
             }
-            if ($null -ne $target) { [void]$target.BodyLines.Add($text) }
+            $target = $lastH2
+            if ($lastH2.Kind -eq 'item' -and $lastH2.Children.Count -gt 0) {
+                $target = $lastH2.Children[$lastH2.Children.Count - 1]
+            }
+            [void]$target.BodyLines.Add($text)
         }
-        return $sections
+        return [pscustomobject]@{ IntroText = $introText; Sections = $sections }
     }
     finally {
         $doc.Close($false)
@@ -474,33 +493,53 @@ function Select-Items($sections) {
         $secNode.Tag = @{ Kind = 'Section'; Ref = $sec }
         $secNode.NodeFont = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
         [void]$tv.Nodes.Add($secNode)
-        foreach ($it in $sec.Items) {
-            $itNode = New-Object System.Windows.Forms.TreeNode($it.Short)
-            $itNode.Tag = @{ Kind = 'Item'; Ref = $it }
-            [void]$secNode.Nodes.Add($itNode)
-            foreach ($ch in $it.Children) {
+
+        # Recorrem els elements de la seccio. Items van a sota del seu
+        # contenidor actual (la seccio o l'ultima subseccio creada).
+        # Els intros no apareixen al TreeView; els reasocia el Build-Document
+        # basat en l'ordre.
+        $currentContainer = $secNode
+        foreach ($el in $sec.Items) {
+            if ($el.Kind -eq 'subsection') {
+                $subNode = New-Object System.Windows.Forms.TreeNode($el.Short)
+                $subNode.Tag = @{ Kind = 'Subsection'; Ref = $el }
+                $subNode.NodeFont = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Underline)
+                [void]$secNode.Nodes.Add($subNode)
+                $currentContainer = $subNode
+                continue
+            }
+            if ($el.Kind -eq 'intro') {
+                # No es mostra al TreeView. El Build-Document el processa
+                # pel seu ordre dins de la seccio.
+                continue
+            }
+            # Kind == 'item'
+            $itNode = New-Object System.Windows.Forms.TreeNode($el.Short)
+            $itNode.Tag = @{ Kind = 'Item'; Ref = $el }
+            [void]$currentContainer.Nodes.Add($itNode)
+            foreach ($ch in $el.Children) {
                 $chNode = New-Object System.Windows.Forms.TreeNode($ch.Short)
-                $chNode.Tag = @{ Kind = 'Child'; Ref = $ch; Parent = $it }
+                $chNode.Tag = @{ Kind = 'Child'; Ref = $ch; Parent = $el }
                 [void]$itNode.Nodes.Add($chNode)
             }
         }
         $secNode.Expand()
     }
 
-    # Propagation: marcar una seccio marca tots els seus items; marcar un
-    # item marca els seus fills. (Senzill i previsible.)
+    # Propagacio recursiva: marcar un node marca tots els descendents.
+    $script:_propagating = $false
+    $propagate = {
+        param($node)
+        foreach ($c in $node.Nodes) {
+            $c.Checked = $node.Checked
+            & $propagate $c
+        }
+    }
     $tv.add_AfterCheck({
         param($sender, $e)
         if ($script:_propagating) { return }
         $script:_propagating = $true
-        try {
-            foreach ($child in $e.Node.Nodes) {
-                $child.Checked = $e.Node.Checked
-                foreach ($gc in $child.Nodes) { $gc.Checked = $e.Node.Checked }
-            }
-        } finally {
-            $script:_propagating = $false
-        }
+        try { & $propagate $e.Node } finally { $script:_propagating = $false }
     })
 
     $ok = New-Object System.Windows.Forms.Button
@@ -523,31 +562,83 @@ function Select-Items($sections) {
 
     if ($form.ShowDialog() -ne 'OK') { exit 0 }
 
-    # Construim la llista de seccions escollides amb nomes els items marcats.
+    # Recollim els shorts marcats. Despres reconstruim els elements en ordre
+    # del data original (manten l'ordre de subseccions, intros i items).
+    $selectedItems = New-Object System.Collections.Generic.HashSet[string]
+    $selectedChildren = @{}  # short_item -> HashSet[short_child]
+
+    foreach ($secNode in $tv.Nodes) {
+        foreach ($node in $secNode.Nodes) {
+            $kind = $node.Tag.Kind
+            if ($kind -eq 'Subsection') {
+                foreach ($itNode in $node.Nodes) {
+                    $itShort = $itNode.Tag.Ref.Short
+                    if ($itNode.Checked) { [void]$selectedItems.Add($itShort) }
+                    foreach ($chNode in $itNode.Nodes) {
+                        if ($chNode.Checked) {
+                            if (-not $selectedChildren.ContainsKey($itShort)) {
+                                $selectedChildren[$itShort] = New-Object System.Collections.Generic.HashSet[string]
+                            }
+                            [void]$selectedChildren[$itShort].Add($chNode.Tag.Ref.Short)
+                        }
+                    }
+                }
+            } elseif ($kind -eq 'Item') {
+                $itShort = $node.Tag.Ref.Short
+                if ($node.Checked) { [void]$selectedItems.Add($itShort) }
+                foreach ($chNode in $node.Nodes) {
+                    if ($chNode.Checked) {
+                        if (-not $selectedChildren.ContainsKey($itShort)) {
+                            $selectedChildren[$itShort] = New-Object System.Collections.Generic.HashSet[string]
+                        }
+                        [void]$selectedChildren[$itShort].Add($chNode.Tag.Ref.Short)
+                    }
+                }
+            }
+        }
+    }
+
+    # Construim el resultat en ordre del data, preservant subseccions/intros.
     $result = New-Object System.Collections.ArrayList
     foreach ($secNode in $tv.Nodes) {
         $secData = $secNode.Tag.Ref
-        $chosenItems = New-Object System.Collections.ArrayList
-        foreach ($itNode in $secNode.Nodes) {
-            $it = $itNode.Tag.Ref
-            $chosenChildren = New-Object System.Collections.ArrayList
-            foreach ($chNode in $itNode.Nodes) {
-                if ($chNode.Checked) { [void]$chosenChildren.Add($chNode.Tag.Ref) }
+        $chosen = New-Object System.Collections.ArrayList
+        foreach ($el in $secData.Items) {
+            if ($el.Kind -in 'subsection','intro') {
+                [void]$chosen.Add([pscustomobject]@{
+                    Kind      = $el.Kind
+                    Short     = $el.Short
+                    BodyLines = $el.BodyLines
+                    Children  = @()
+                    Selected  = $false
+                })
+                continue
             }
-            $itemSelected = $itNode.Checked -or ($chosenChildren.Count -gt 0)
-            if ($itemSelected) {
-                [void]$chosenItems.Add([pscustomobject]@{
-                    Short     = $it.Short
-                    BodyLines = $it.BodyLines
+            $isSel = $selectedItems.Contains($el.Short)
+            $chosenChildren = New-Object System.Collections.ArrayList
+            if ($selectedChildren.ContainsKey($el.Short)) {
+                $set = $selectedChildren[$el.Short]
+                foreach ($ch in $el.Children) {
+                    if ($set.Contains($ch.Short)) { [void]$chosenChildren.Add($ch) }
+                }
+            }
+            if ($isSel -or $chosenChildren.Count -gt 0) {
+                [void]$chosen.Add([pscustomobject]@{
+                    Kind      = 'item'
+                    Short     = $el.Short
+                    BodyLines = $el.BodyLines
                     Children  = $chosenChildren
-                    Selected  = [bool]$itNode.Checked
+                    Selected  = [bool]$isSel
                 })
             }
         }
-        if ($chosenItems.Count -gt 0) {
+        # Nomes incloem la seccio si te al menys un 'item' real seleccionat.
+        $hasRealItem = $false
+        foreach ($x in $chosen) { if ($x.Kind -eq 'item') { $hasRealItem = $true; break } }
+        if ($hasRealItem) {
             [void]$result.Add([pscustomobject]@{
                 Title = $secData.Title
-                Items = $chosenItems
+                Items = $chosen
             })
         }
     }
@@ -783,7 +874,7 @@ function Apply-HeaderReplacements($doc, $header) {
     }
 }
 
-function Build-Document($word, $header, $selectedSections, $fields, $conclusions, $alwaysConclusions, $catalegName) {
+function Build-Document($word, $header, $selectedSections, $fields, $conclusions, $alwaysConclusions, $catalegName, $introText) {
     # Nom del fitxer: YYYY-MM-DD_<TipusCataleg>_GIA <id_gia>.docx
     #   <TipusCataleg> = BaseName del cataleg amb la primera lletra en
     #                    majuscula i la resta en minuscules (REQ1 -> Req1).
@@ -834,9 +925,21 @@ function Build-Document($word, $header, $selectedSections, $fields, $conclusions
     $sel = $word.Selection
     [void]$sel.EndKey(6)  # wdStory = 6
 
-    # Logica d'escriptura. Les funcions Format-X venen de Format.ps1.
-    $globalItemCounter = 0
+    # Frase introductoria del cataleg (paragraf 0 del REQ1.docx). Apareix
+    # sempre, abans de qualsevol seccio.
+    if (-not [string]::IsNullOrWhiteSpace($introText)) {
+        Format-Body $sel $introText
+        if ($Script:ReportFormatConfig.SpacerAfterIntroParagraph) { Format-Spacer $sel }
+    }
+
+    # Helpers d'escriptura
+    $cfg = $Script:ReportFormatConfig
     $lastSectionName = $null
+
+    $resolveLines = {
+        param($lines)
+        return @($lines | ForEach-Object { Apply-Fields -text $_ -fields $fields })
+    }
 
     $emitExtras = {
         param($lines, $isChild)
@@ -851,62 +954,90 @@ function Build-Document($word, $header, $selectedSections, $fields, $conclusions
         }
     }
 
+    $emitIntro = {
+        param($introEl)
+        $lines = & $resolveLines $introEl.BodyLines
+        foreach ($bp in $lines) {
+            if ([string]::IsNullOrWhiteSpace($bp)) { continue }
+            if ($bp -match '^https?://') { Format-Url $sel $bp } else { Format-Body $sel $bp }
+        }
+        if ($cfg.SpacerAfterIntro) { Format-Spacer $sel }
+    }
+
+    $emitItem = {
+        param($it)
+        $itemLines = & $resolveLines $it.BodyLines
+        $hasChildren = ($it.Children.Count -gt 0)
+        $itemWritten = $false
+
+        if ($it.Selected -or $hasChildren) {
+            if ($itemLines.Count -gt 0) {
+                $script:_buildGlobal++
+                Format-Item $sel "$($script:_buildGlobal)." $itemLines[0]
+                & $emitExtras $itemLines $false
+                $itemWritten = $true
+            }
+        }
+        if ($hasChildren) {
+            $subCounter = 0
+            foreach ($ch in $it.Children) {
+                $childLines = & $resolveLines $ch.BodyLines
+                if ($childLines.Count -eq 0) { continue }
+                $subCounter++
+                if (-not $itemWritten) {
+                    $script:_buildGlobal++
+                    $itemWritten = $true
+                }
+                Format-Item $sel "$($script:_buildGlobal).$subCounter." $childLines[0] -IsChild
+                & $emitExtras $childLines $true
+            }
+        }
+        if ($itemWritten -and $cfg.SpacerAfterItem) { Format-Spacer $sel }
+    }
+
+    $script:_buildGlobal = 0
+
     foreach ($sec in $selectedSections) {
-        # Si el titol te " - ", el partim en seccio + subseccio. Si la
-        # seccio coincideix amb l'anterior, no la repetim.
+        # Seccio (amb posible particio per " - " per compatibilitat amb la
+        # convencio antiga de noms compostos).
         $parts = $sec.Title -split ' - ', 2
         if ($parts.Count -eq 2) {
             $secName = $parts[0].Trim()
             $subName = $parts[1].Trim()
             if ($secName -ne $lastSectionName) {
                 Format-Section $sel $secName
+                if ($cfg.SpacerAfterSection) { Format-Spacer $sel }
                 $lastSectionName = $secName
             }
             Format-Subsection $sel $subName
+            if ($cfg.SpacerAfterSubsection) { Format-Spacer $sel }
         } else {
             Format-Section $sel $sec.Title
+            if ($cfg.SpacerAfterSection) { Format-Spacer $sel }
             $lastSectionName = $sec.Title
         }
 
-        foreach ($it in $sec.Items) {
-            $itemLines = @($it.BodyLines | ForEach-Object { Apply-Fields -text $_ -fields $fields })
-            $hasChildren = ($it.Children.Count -gt 0)
-            $itemWritten = $false
-
-            # Item pare numerat (sempre que tinguem cos o sigui un atomic
-            # seleccionat). Si nomes hi ha fills i el pare no esta seleccionat
-            # i no te cos, no escrivim res pel pare.
-            if ($it.Selected -or $hasChildren) {
-                if ($itemLines.Count -gt 0) {
-                    $globalItemCounter++
-                    Format-Item $sel "$globalItemCounter." $itemLines[0]
-                    & $emitExtras $itemLines $false
-                    $itemWritten = $true
-                }
+        # Processem els elements de la seccio en ordre, gestionant intros
+        # "pendents" (s'imprimeixen just abans del primer item seleccionat
+        # que els segueix; si no hi ha cap, no s'imprimeixen).
+        $pendingIntro = $null
+        foreach ($el in $sec.Items) {
+            if ($el.Kind -eq 'subsection') {
+                Format-Subsection $sel $el.Short
+                if ($cfg.SpacerAfterSubsection) { Format-Spacer $sel }
+                $pendingIntro = $null
+                continue
             }
-
-            if ($hasChildren) {
-                $subCounter = 0
-                foreach ($ch in $it.Children) {
-                    $childLines = @($ch.BodyLines | ForEach-Object { Apply-Fields -text $_ -fields $fields })
-                    if ($childLines.Count -eq 0) { continue }
-                    $subCounter++
-                    if (-not $itemWritten) {
-                        # Cas estrany: fills sense pare escrit. Garantitzem
-                        # que el comptador global avanci almenys un cop per
-                        # tenir una numeracio coherent.
-                        $globalItemCounter++
-                        $itemWritten = $true
-                    }
-                    Format-Item $sel "$globalItemCounter.$subCounter." $childLines[0] -IsChild
-                    & $emitExtras $childLines $true
-                }
+            if ($el.Kind -eq 'intro') {
+                $pendingIntro = $el
+                continue
             }
-
-            # Espai despres de l'item complet (incloent els seus fills).
-            if ($itemWritten -and $Script:ReportFormatConfig.SpacerAfterItem) {
-                Format-Spacer $sel
+            # Kind == 'item'
+            if ($null -ne $pendingIntro) {
+                & $emitIntro $pendingIntro
+                $pendingIntro = $null
             }
+            & $emitItem $el
         }
     }
 
@@ -954,8 +1085,8 @@ function Main {
 
     $word = New-WordApp
     try {
-        $sections     = Parse-Cataleg -word $word -path $cataleg.FullName
-        $selected     = Select-Items $sections
+        $parsed       = Parse-Cataleg -word $word -path $cataleg.FullName
+        $selected     = Select-Items $parsed.Sections
         $fields       = Get-FieldsFromSelection $selected
         $fields       = Prompt-Fields $fields
         $conclusionsAll = Read-Conclusions -word $word -path $ConclusionsPath
@@ -965,7 +1096,8 @@ function Main {
                                        -fields $fields `
                                        -conclusions $conclusions `
                                        -alwaysConclusions $conclusionsAll.Always `
-                                       -catalegName $cataleg.BaseName
+                                       -catalegName $cataleg.BaseName `
+                                       -introText $parsed.IntroText
 
         [System.Windows.Forms.MessageBox]::Show(
             "Informe generat:`n$outPath",

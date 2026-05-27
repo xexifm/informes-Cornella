@@ -47,8 +47,12 @@ $Script:ReportFormatConfig = @{
     ChildIndentCm        = 1
     ConclusionIndentCm   = 0
 
-    # Espaiat
-    SpacerAfterItem               = $true
+    # Espaiat (linia buida entre elements)
+    SpacerAfterIntroParagraph     = $true   # despres de la frase intro del cataleg
+    SpacerAfterSection            = $true   # entre seccio i el que ve a sota
+    SpacerAfterSubsection         = $true   # entre subseccio i el que ve a sota
+    SpacerAfterIntro              = $true   # entre intro i el primer item
+    SpacerAfterItem               = $true   # despres de cada item complet
     SpacerBeforeConclusionsBlock  = $true
     SpacerBetweenConclusions      = $true
 }
