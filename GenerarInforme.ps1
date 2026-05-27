@@ -20,6 +20,18 @@
          - Conclusions seleccionades.
 
 .NOTES
+  Configuracio: les rutes i constants es defineixen al fitxer config.ps1
+  (opcional) al costat del .ps1; si no existeix, s'usen els valors per
+  defecte definits a sota.
+
+  Persistencia: despres de cada pas, l'estat es guarda a
+  %LOCALAPPDATA%\InformesCornella\session.json. Si en arrencar es
+  detecta una sessio anterior, el script pregunta si es vol recuperar.
+
+  Cache: el resultat del parseig del cataleg .docx es guarda a
+  %LOCALAPPDATA%\InformesCornella\cache\<basename>.json amb un hash
+  del fitxer com a clau de validesa.
+
   Convencions del cataleg (REQ1.docx i seguents):
     - Heading 1  -> titol de seccio.
     - Heading 2  -> nom curt de l'item (per al TreeView). Si comenca per
@@ -45,18 +57,38 @@ $ScriptRoot      = Split-Path -Parent $MyInvocation.MyCommand.Path
 # Format-Item, etc. i $ReportFormatConfig. Reutilitzable per altres tipus
 # d'informes.
 . (Join-Path $ScriptRoot 'Format.ps1')
+
 $EstructuralsDir = Join-Path $ScriptRoot 'ESTRUCTURALS'
 $HeaderPath      = Join-Path $EstructuralsDir '0 CAPCALERA.docx'
 $ConclusionsPath = Join-Path $EstructuralsDir '0 CONCLUSIONS.docx'
-# Ruta de sortida principal (xarxa). Si no es accessible, cau a una carpeta
-# local 'Informes generats' al costat del .ps1.
-$OutputDir       = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\0_Plantilles\Powershell\Informes generats'
-# Directori de bases de dades d'activitats (Excel). El nom del fitxer ha de
-# seguir el patro "YYYY-MM-DD ACTIVITATS.xls" o ".xlsx".
-$ActivitatsDir   = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\2_Controls Excels'
-# Quantes conclusions del final del fitxer 0 CONCLUSIONS.docx s'inclouen
-# sempre al document final (no apareixen al Pas 5).
+
+# ----------------------------------------------------------------------------
+# Configuracio per defecte. Es pot sobreescriure des de config.ps1 (opcional)
+# al costat del .ps1.
+# ----------------------------------------------------------------------------
+$OutputDir              = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\0_Plantilles\Powershell\Informes generats'
+$ActivitatsDir          = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\2_Controls Excels'
 $AlwaysConclusionsCount = 2
+
+$configPath = Join-Path $ScriptRoot 'config.ps1'
+if (Test-Path -LiteralPath $configPath) {
+    . $configPath
+}
+
+# Estat persistent (sessio + cache de cataleg). Es guarda a
+# %LOCALAPPDATA% per no embrutar el repositori i no haver de tocar .gitignore.
+$AppDataDir  = Join-Path $env:LOCALAPPDATA 'InformesCornella'
+$SessionPath = Join-Path $AppDataDir 'session.json'
+$CacheDir    = Join-Path $AppDataDir 'cache'
+
+function Ensure-AppDataDir {
+    if (-not (Test-Path -LiteralPath $AppDataDir)) {
+        New-Item -ItemType Directory -Path $AppDataDir -Force | Out-Null
+    }
+    if (-not (Test-Path -LiteralPath $CacheDir)) {
+        New-Item -ItemType Directory -Path $CacheDir -Force | Out-Null
+    }
+}
 
 # ----------------------------------------------------------------------------
 # Word COM helpers
@@ -79,8 +111,74 @@ function Close-WordApp($word) {
 }
 
 # ----------------------------------------------------------------------------
-# Activitats Excel database
+# Persistencia de sessio
 # ----------------------------------------------------------------------------
+# Format del session.json (versio 1):
+#   {
+#     "Version": 1,
+#     "Timestamp": "<ISO 8601>",
+#     "CatalegBaseName": "REQ1",
+#     "Header": { "ID_GIA": "...", ... },
+#     "SelectedKeys": [ "SectionTitle::ItemShort", ... ],
+#     "FieldValues":  { "nom": "valor", ... },
+#     "ConclusionTexts": [ "text1", ... ]
+#   }
+# Cada camp es opcional: nomes hi son els passos completats.
+
+function Save-Session($state) {
+    try {
+        Ensure-AppDataDir
+        $state.Version   = 1
+        $state.Timestamp = (Get-Date).ToString('o')
+        ($state | ConvertTo-Json -Depth 10) | Set-Content -LiteralPath $SessionPath -Encoding UTF8
+    } catch {
+        # Si no podem desar la sessio, no es un error fatal. Continuem en silenci.
+    }
+}
+
+function Load-Session {
+    if (-not (Test-Path -LiteralPath $SessionPath)) { return $null }
+    try {
+        $raw = Get-Content -LiteralPath $SessionPath -Raw -Encoding UTF8
+        if ([string]::IsNullOrWhiteSpace($raw)) { return $null }
+        return ($raw | ConvertFrom-Json)
+    } catch {
+        return $null
+    }
+}
+
+function Clear-Session {
+    if (Test-Path -LiteralPath $SessionPath) {
+        try { Remove-Item -LiteralPath $SessionPath -Force } catch { }
+    }
+}
+
+# Construeix la clau "Seccio::Item" o "Seccio::Item::Fill" usada per
+# identificar de manera unica un element seleccionat al Pas 3.
+function _ItemKey($sectionTitle, $itemShort, $childShort = $null) {
+    if ($childShort) { return "$sectionTitle::$itemShort::$childShort" }
+    return "$sectionTitle::$itemShort"
+}
+
+# ----------------------------------------------------------------------------
+# Activitats Excel database - precarrega + validacio
+# ----------------------------------------------------------------------------
+# Mapeig de columnes Excel (1-based) per la fulla "Estes"/"Estès" del fitxer
+# YYYY-MM-DD ACTIVITATS.xls. Es valida pel text de capcalera (fila 1); si no
+# es troba el text esperat, es continua amb l'index per defecte pero
+# s'afegeix un avis a $script:_activitatsWarnings.
+$Script:ActivitatsColumns = @(
+    @{ Key='ID';        Col=1;  HeaderHint='ID Activitat' }
+    @{ Key='TITULAR';   Col=10; HeaderHint='Rao social' }
+    @{ Key='TIPUS_VIA'; Col=48; HeaderHint='Tipus via' }
+    @{ Key='CARRER';    Col=49; HeaderHint='Carrer' }
+    @{ Key='NUMERO';    Col=50; HeaderHint='Numero' }
+    @{ Key='LLETRA';    Col=52; HeaderHint='Lletra' }
+    @{ Key='PIS';       Col=55; HeaderHint='Pis' }
+    @{ Key='PORTA';     Col=56; HeaderHint='Porta' }
+    @{ Key='ACTIVITAT'; Col=94; HeaderHint='Activitat principal' }
+)
+
 function Find-LatestActivitatsExcel {
     if (-not (Test-Path -LiteralPath $ActivitatsDir)) { return $null }
     $regex = '^(\d{4}-\d{2}-\d{2})\s+ACTIVITATS\.(xls|xlsx)$'
@@ -98,76 +196,111 @@ function Find-LatestActivitatsExcel {
     return $candidates[0]
 }
 
-# Cerca una activitat pel seu ID a la fulla "Estes"/"Estès" del fitxer Excel.
-# Retorna un hashtable amb TITULAR, ADRECA, ACTIVITAT o $null si no es troba.
-function Get-ActivitatByID($excelFile, $idGia) {
+# Normalitza un text Unicode (sense diacritics, minuscules) per a comparacio.
+function _NormalizeText($s) {
+    if ($null -eq $s) { return '' }
+    $t = ([string]$s).Normalize([System.Text.NormalizationForm]::FormD)
+    return (($t -replace '\p{Mn}','').ToLower().Trim())
+}
+
+# Localitza la fulla "Estes"/"Estès" del workbook acceptant variants Unicode.
+function _FindEstesSheet($wb) {
+    $sheetNames = @()
+    foreach ($s in $wb.Sheets) {
+        $sheetNames += $s.Name
+        if ((_NormalizeText $s.Name) -eq 'estes') { return @{ Sheet=$s; Names=$sheetNames } }
+    }
+    return @{ Sheet=$null; Names=$sheetNames }
+}
+
+# Valida la fila de capcalera comparant els textos esperats. Retorna una
+# llista (potser buida) d'avisos en text per mostrar a l'usuari.
+function _ValidateActivitatsHeaders($data, $rows, $cols) {
+    $warnings = New-Object System.Collections.ArrayList
+    if ($rows -lt 1) { return $warnings }
+    foreach ($col in $Script:ActivitatsColumns) {
+        $idx  = $col.Col
+        if ($idx -lt 1 -or $idx -gt $cols) {
+            [void]$warnings.Add("Columna $idx fora de rang per a '$($col.Key)' (Excel te $cols columnes).")
+            continue
+        }
+        $cell = $data[1, $idx]
+        $cellN = _NormalizeText $cell
+        $hintN = _NormalizeText $col.HeaderHint
+        if ([string]::IsNullOrWhiteSpace($cellN) -or -not $cellN.Contains($hintN.Split(' ')[0])) {
+            [void]$warnings.Add("La columna $idx esperava '$($col.HeaderHint)' pero te '$cell'.")
+        }
+    }
+    return $warnings
+}
+
+# Precarrega TOTES les activitats de l'Excel en una hashtable indexada per ID.
+# Es crida una sola vegada al comencar el Pas 2; despres les cerques son
+# instantanies (no calen mes obertures d'Excel encara que l'usuari premi
+# "Cercar" diverses vegades).
+#
+# Retorna un PSCustomObject amb:
+#   File        : System.IO.FileInfo del fitxer Excel
+#   Date        : data del fitxer (parsejada del nom)
+#   ById        : hashtable [string ID] -> hashtable @{ TITULAR; ADRECA; ACTIVITAT }
+#   Warnings    : llista de cadenes amb avisos de validacio de columnes
+function Initialize-ActivitatsCache($excelFile) {
     $excel = New-Object -ComObject Excel.Application
     $excel.Visible = $false
     $excel.DisplayAlerts = $false
     try {
         $wb = $excel.Workbooks.Open($excelFile.FullName, 0, $true)  # ReadOnly
         try {
-            # Normalitza el nom de la fulla per acceptar variants com "Estes",
-            # "Estès" (precompost), o "Estès" (descompost amb caracter combinant).
-            $sh = $null
-            $sheetNames = @()
-            foreach ($s in $wb.Sheets) {
-                $sheetNames += $s.Name
-                $n = $s.Name.Normalize([System.Text.NormalizationForm]::FormD)
-                $n = ($n -replace '\p{Mn}','').ToLower().Trim()
-                if ($n -eq 'estes') { $sh = $s; break }
-            }
+            $found = _FindEstesSheet $wb
+            $sh = $found.Sheet
             if ($null -eq $sh) {
-                throw "No s'ha trobat la fulla 'Estes'/'Estès' al fitxer Excel. Fulles disponibles: $($sheetNames -join ', ')"
+                throw "No s'ha trobat la fulla 'Estes'/'Estès' al fitxer Excel. Fulles disponibles: $($found.Names -join ', ')"
             }
             $used = $sh.UsedRange
             $data = $used.Value2
-            if ($null -eq $data) { return $null }
-            # Columnes Excel (1-based) segons la convencio del fitxer:
-            #   1  = ID Activitat
-            #   10 = Rao social
-            #   48 = Emp. Tipus via
-            #   49 = Emp. Carrer
-            #   50 = Emp. Numero
-            #   52 = Emp. Lletra
-            #   55 = Emp. Pis
-            #   56 = Emp. Porta
-            #   94 = Activitat principal
+            if ($null -eq $data) {
+                return [pscustomobject]@{ ById = @{}; Warnings = @("L'Excel sembla buit.") }
+            }
             $rows = $data.GetLength(0)
-            $idTarget = [string]$idGia
+            $cols = $data.GetLength(1)
+
+            $warnings = _ValidateActivitatsHeaders $data $rows $cols
+
+            # Index per ID (columna 1).
+            $byId = @{}
+            $get = {
+                param($r, $c)
+                if ($c -lt 1 -or $c -gt $cols) { return '' }
+                $v = $data[$r, $c]
+                if ($null -eq $v) { return '' }
+                return ([string]$v).Trim()
+            }
             for ($r = 2; $r -le $rows; $r++) {
                 $cell = $data[$r, 1]
                 if ($null -eq $cell) { continue }
-                # ID pot ser numeric o string; normalitzem.
                 $id = if ($cell -is [double]) {
                     if ([math]::Floor($cell) -eq $cell) { [string][int]$cell } else { [string]$cell }
                 } else { [string]$cell }
-                if ($id -eq $idTarget) {
-                    $get = {
-                        param($c)
-                        $v = $data[$r, $c]
-                        if ($null -eq $v) { return '' }
-                        return ([string]$v).Trim()
-                    }
-                    $tipusVia = & $get 48
-                    $carrer   = & $get 49
-                    $numero   = & $get 50
-                    $lletra   = & $get 52
-                    $pis      = & $get 55
-                    $porta    = & $get 56
-                    $rao      = & $get 10
-                    $actPrin  = & $get 94
-                    $parts = @($tipusVia, $carrer, $numero, $lletra, $pis, $porta) |
-                        Where-Object { $_ -and $_.Trim() -ne '' }
-                    $adreca = ($parts -join ' ') + ', CORNELLÀ DE LLOBREGAT'
-                    return @{
-                        TITULAR   = $rao
-                        ADRECA    = $adreca
-                        ACTIVITAT = $actPrin
-                    }
+                if ([string]::IsNullOrWhiteSpace($id)) { continue }
+
+                $tipusVia = & $get $r 48
+                $carrer   = & $get $r 49
+                $numero   = & $get $r 50
+                $lletra   = & $get $r 52
+                $pis      = & $get $r 55
+                $porta    = & $get $r 56
+                $rao      = & $get $r 10
+                $actPrin  = & $get $r 94
+                $parts = @($tipusVia, $carrer, $numero, $lletra, $pis, $porta) |
+                    Where-Object { $_ -and $_.Trim() -ne '' }
+                $adreca = ($parts -join ' ') + ', CORNELLÀ DE LLOBREGAT'
+                $byId[$id] = @{
+                    TITULAR   = $rao
+                    ADRECA    = $adreca
+                    ACTIVITAT = $actPrin
                 }
             }
-            return $null
+            return [pscustomobject]@{ ById = $byId; Warnings = $warnings.ToArray() }
         } finally {
             $wb.Close($false)
         }
@@ -175,6 +308,14 @@ function Get-ActivitatByID($excelFile, $idGia) {
         try { $excel.Quit() } catch { }
         [System.Runtime.InteropServices.Marshal]::ReleaseComObject($excel) | Out-Null
     }
+}
+
+# Cerca una activitat per ID al cache precarregat. Retorna $null si no es troba.
+function Get-ActivitatFromCache($cache, $idGia) {
+    if ($null -eq $cache -or $null -eq $cache.ById) { return $null }
+    $key = [string]$idGia
+    if ($cache.ById.ContainsKey($key)) { return $cache.ById[$key] }
+    return $null
 }
 
 # ----------------------------------------------------------------------------
@@ -188,6 +329,7 @@ function Get-Catalegs {
 }
 
 function Select-Cataleg {
+    param($preloadBaseName = $null)
     $catalegs = @(Get-Catalegs)
     if ($catalegs.Count -eq 0) {
         [System.Windows.Forms.MessageBox]::Show(
@@ -213,6 +355,11 @@ function Select-Cataleg {
     $list.Size = New-Object System.Drawing.Size(450, 180)
     foreach ($c in $catalegs) { [void]$list.Items.Add($c.BaseName) }
     $list.SelectedIndex = 0
+    if ($preloadBaseName) {
+        for ($i = 0; $i -lt $catalegs.Count; $i++) {
+            if ($catalegs[$i].BaseName -eq $preloadBaseName) { $list.SelectedIndex = $i; break }
+        }
+    }
     $form.Controls.Add($list)
 
     $ok = New-Object System.Windows.Forms.Button
@@ -236,17 +383,12 @@ function Select-Cataleg {
 }
 
 # ----------------------------------------------------------------------------
-# Step 2 - Header data
+# Step 2 - Header data (formulari + precarrega Excel)
 # ----------------------------------------------------------------------------
-function Get-HeaderData {
-    $latest = Find-LatestActivitatsExcel
-    if ($null -eq $latest) {
-        [System.Windows.Forms.MessageBox]::Show(
-            "No s'ha trobat cap fitxer 'YYYY-MM-DD ACTIVITATS.xls' a:`n$ActivitatsDir",
-            'Base de dades no trobada', 'OK', 'Error') | Out-Null
-        exit 1
-    }
-
+# Construeix el formulari de capcalera (controls + botons), retorna la
+# tupla amb el formulari, el diccionari de controls i el boto Cercar perque
+# Get-HeaderData hi puga lligar la logica de cerca i validacio.
+function _BuildHeaderForm($excelFileLabel) {
     $form = New-Object System.Windows.Forms.Form
     $form.Text = 'Pas 2 - Dades de la capcalera'
     $form.Size = New-Object System.Drawing.Size(720, 480)
@@ -255,14 +397,12 @@ function Get-HeaderData {
     $form.MaximizeBox = $false
 
     $lblBd = New-Object System.Windows.Forms.Label
-    $lblBd.Text = "Base de dades d'activitats: $($latest.File.Name)  (data: $($latest.Date.ToString('yyyy-MM-dd')))"
+    $lblBd.Text = $excelFileLabel
     $lblBd.Location = New-Object System.Drawing.Point(15, 12)
     $lblBd.Size = New-Object System.Drawing.Size(680, 22)
     $lblBd.ForeColor = [System.Drawing.Color]::DarkBlue
     $form.Controls.Add($lblBd)
 
-    # Helper per afegir una fila etiqueta + TextBox. Guarda el TextBox a
-    # $controls[$key]. Suprimim qualsevol output al pipeline.
     $controls = @{}
     $addRow = {
         param($label, $y, $tbWidth, $key)
@@ -280,7 +420,6 @@ function Get-HeaderData {
     }
 
     $y = 50
-    # 1) ID GIA + boto "Cercar"
     & $addRow 'ID GIA' $y 380 'ID_GIA'
     $btnSearch = New-Object System.Windows.Forms.Button
     $btnSearch.Text = 'Cercar'
@@ -296,7 +435,6 @@ function Get-HeaderData {
     & $addRow "Num. d'anotacio (Objecte)"    $y 460 'NUM_ANOTACIO'; $y += 38
     & $addRow "Data d'anotacio (dd/mm/aaaa)" $y 460 'DATA_ANOTACIO';$y += 50
 
-    # Botons
     $ok = New-Object System.Windows.Forms.Button
     $ok.Text = 'Seguent'
     $ok.Location = New-Object System.Drawing.Point(505, $y)
@@ -312,19 +450,73 @@ function Get-HeaderData {
     $form.CancelButton = $cancel
     [void]$form.Controls.Add($cancel)
 
-    # Cercar a l'Excel pel ID GIA i omplir els 3 camps autom.
+    return @{ Form=$form; Controls=$controls; BtnSearch=$btnSearch; BtnOk=$ok }
+}
+
+# Llegeix els valors dels controls i retorna un hashtable amb la capcalera.
+function _ReadHeaderControls($controls) {
+    @{
+        ID_GIA        = $controls['ID_GIA'].Text.Trim()
+        EXP_NUM       = $controls['EXP_NUM'].Text.Trim()
+        TITULAR       = $controls['TITULAR'].Text.Trim()
+        ADRECA        = $controls['ADRECA'].Text.Trim()
+        ACTIVITAT     = $controls['ACTIVITAT'].Text.Trim()
+        NUM_ANOTACIO  = $controls['NUM_ANOTACIO'].Text.Trim()
+        DATA_ANOTACIO = $controls['DATA_ANOTACIO'].Text.Trim()
+    }
+}
+
+# Precarrega valors d'una capcalera anterior als controls del formulari.
+function _PreloadHeaderControls($controls, $preload) {
+    if ($null -eq $preload) { return }
+    foreach ($k in 'ID_GIA','EXP_NUM','TITULAR','ADRECA','ACTIVITAT','NUM_ANOTACIO','DATA_ANOTACIO') {
+        if ($preload.PSObject.Properties.Name -contains $k -and $null -ne $preload.$k) {
+            $controls[$k].Text = [string]$preload.$k
+        }
+    }
+}
+
+function Get-HeaderData {
+    param($preload = $null)
+
+    $latest = Find-LatestActivitatsExcel
+    if ($null -eq $latest) {
+        [System.Windows.Forms.MessageBox]::Show(
+            "No s'ha trobat cap fitxer 'YYYY-MM-DD ACTIVITATS.xls' a:`n$ActivitatsDir",
+            'Base de dades no trobada', 'OK', 'Error') | Out-Null
+        exit 1
+    }
+
+    # Precarrega TOTA la base de dades a memoria una sola vegada. A partir
+    # d'aqui les cerques son immediates (no cal reobrir Excel).
+    try {
+        $actCache = Initialize-ActivitatsCache -excelFile $latest.File
+    } catch {
+        [System.Windows.Forms.MessageBox]::Show("Error llegint l'Excel:`n$($_.Exception.Message)",'Error','OK','Error') | Out-Null
+        exit 1
+    }
+    if ($actCache.Warnings -and $actCache.Warnings.Count -gt 0) {
+        $msg = "Avisos de validacio de l'Excel (l'auto-fill podria fallar):`n`n" + ($actCache.Warnings -join "`n")
+        [System.Windows.Forms.MessageBox]::Show($msg,'Avisos','OK','Warning') | Out-Null
+    }
+
+    $label = "Base de dades d'activitats: $($latest.File.Name)  (data: $($latest.Date.ToString('yyyy-MM-dd'))) - $($actCache.ById.Count) activitats carregades"
+    $f = _BuildHeaderForm $label
+    $form      = $f.Form
+    $controls  = $f.Controls
+    $btnSearch = $f.BtnSearch
+    $ok        = $f.BtnOk
+
+    _PreloadHeaderControls $controls $preload
+
+    # Cerca per ID GIA: instantania des del cache. Omple els 3 camps autom.
     $doSearch = {
         $idGia = $controls['ID_GIA'].Text.Trim()
         if ([string]::IsNullOrWhiteSpace($idGia)) {
             [System.Windows.Forms.MessageBox]::Show("Has d'introduir un ID GIA.",'Falta ID GIA','OK','Warning') | Out-Null
             return $false
         }
-        try {
-            $act = Get-ActivitatByID -excelFile $latest.File -idGia $idGia
-        } catch {
-            [System.Windows.Forms.MessageBox]::Show("Error llegint l'Excel:`n$($_.Exception.Message)",'Error','OK','Error') | Out-Null
-            return $false
-        }
+        $act = Get-ActivitatFromCache $actCache $idGia
         if ($null -eq $act) {
             [System.Windows.Forms.MessageBox]::Show(
                 "L'ID GIA '$idGia' no s'ha trobat a la base de dades`n($($latest.File.Name)).",
@@ -342,7 +534,6 @@ function Get-HeaderData {
 
     $btnSearch.add_Click({ [void](& $doSearch) })
 
-    # Validacio al "Seguent": ID GIA i 3 camps autom. han de tenir valor.
     $script:_headerData = $null
     $ok.add_Click({
         $idGia = $controls['ID_GIA'].Text.Trim()
@@ -353,18 +544,9 @@ function Get-HeaderData {
         if ([string]::IsNullOrWhiteSpace($controls['TITULAR'].Text) -or
             [string]::IsNullOrWhiteSpace($controls['ADRECA'].Text) -or
             [string]::IsNullOrWhiteSpace($controls['ACTIVITAT'].Text)) {
-            # Cercar automaticament si encara no s'ha fet
             if (-not (& $doSearch)) { return }
         }
-        $data = @{}
-        $data['ID_GIA']        = $controls['ID_GIA'].Text.Trim()
-        $data['EXP_NUM']       = $controls['EXP_NUM'].Text.Trim()
-        $data['TITULAR']       = $controls['TITULAR'].Text.Trim()
-        $data['ADRECA']        = $controls['ADRECA'].Text.Trim()
-        $data['ACTIVITAT']     = $controls['ACTIVITAT'].Text.Trim()
-        $data['NUM_ANOTACIO']  = $controls['NUM_ANOTACIO'].Text.Trim()
-        $data['DATA_ANOTACIO'] = $controls['DATA_ANOTACIO'].Text.Trim()
-        $script:_headerData = $data
+        $script:_headerData = _ReadHeaderControls $controls
         $form.DialogResult = 'OK'
         $form.Close()
     })
@@ -374,8 +556,51 @@ function Get-HeaderData {
 }
 
 # ----------------------------------------------------------------------------
-# Step 3 - Parse cataleg (Heading 1 / Heading 2 / Normal)
+# Step 3 - Parse cataleg + cache per hash
 # ----------------------------------------------------------------------------
+function _SHA256OfFile($path) {
+    $alg = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $stream = [System.IO.File]::OpenRead($path)
+        try { return ([System.BitConverter]::ToString($alg.ComputeHash($stream))).Replace('-','') }
+        finally { $stream.Dispose() }
+    } finally { $alg.Dispose() }
+}
+
+# Pas 3 (parseig pur, sense UI) amb cache en disc. Si el .docx no ha canviat
+# des de l'ultim parseig, retorna el resultat cachejat sense obrir Word.
+# El cache es a %LOCALAPPDATA%\InformesCornella\cache\<basename>.json.
+function Get-ParsedCataleg($word, $path) {
+    Ensure-AppDataDir
+    $baseName  = [System.IO.Path]::GetFileNameWithoutExtension($path)
+    $hash      = _SHA256OfFile $path
+    $cacheFile = Join-Path $CacheDir "$baseName.json"
+
+    if (Test-Path -LiteralPath $cacheFile) {
+        try {
+            $cached = Get-Content -LiteralPath $cacheFile -Raw -Encoding UTF8 | ConvertFrom-Json
+            if ($cached.Hash -eq $hash -and $null -ne $cached.Parsed) {
+                return $cached.Parsed
+            }
+        } catch {
+            # Cache corrupte: ignorem i re-parsegem.
+        }
+    }
+
+    $parsed = Parse-Cataleg -word $word -path $path
+    try {
+        $payload = [pscustomobject]@{
+            Hash      = $hash
+            CachedAt  = (Get-Date).ToString('o')
+            Parsed    = $parsed
+        }
+        ($payload | ConvertTo-Json -Depth 12) | Set-Content -LiteralPath $cacheFile -Encoding UTF8
+    } catch {
+        # Si no podem escriure cache, no es un error fatal.
+    }
+    return $parsed
+}
+
 function Parse-Cataleg($word, $path) {
     # Retorna un PSCustomObject amb:
     #   IntroText : la frase introductoria del cataleg (primer paragraf Normal
@@ -450,8 +675,6 @@ function Parse-Cataleg($word, $path) {
 
             # Paragraf Normal: l'afegim al BodyLines de l'element actiu.
             if ($null -eq $lastH2) {
-                # Encara no hem trobat cap Heading 2. Si tampoc hi ha
-                # seccio, es el text introductori del cataleg.
                 if ($null -eq $currentSection -and [string]::IsNullOrWhiteSpace($introText)) {
                     $introText = $text
                 }
@@ -471,60 +694,174 @@ function Parse-Cataleg($word, $path) {
 }
 
 # ----------------------------------------------------------------------------
-# Step 3 (UI) - TreeView with checkboxes
+# Step 3 (UI) - TreeView amb filtre + checkboxes
 # ----------------------------------------------------------------------------
-function Select-Items($sections) {
+# Helpers per al filtre del TreeView. Es manté l'estructura $sections a part i
+# es reconstrueix el tree quan canvia el filtre, preservant els check states.
+
+function _TextMatches($text, $needle) {
+    if ([string]::IsNullOrEmpty($needle)) { return $true }
+    if ($null -eq $text) { return $false }
+    return $text.ToLower().Contains($needle.ToLower())
+}
+
+# Reconstrueix el TreeView segons el text de filtre. Preserva check states
+# (passats en una hashtable [key] -> bool) i els actualitza durant la construccio.
+# Bloquegem la propagacio automatica de check durant el rebuild perque
+# marcar nodes programmaticament dispara l'event AfterCheck.
+function _RebuildTree($tv, $sections, $needle, $checkStates) {
+    $tv.BeginUpdate()
+    $script:_propagating = $true
+    try {
+        $tv.Nodes.Clear()
+        foreach ($sec in $sections) {
+            $secMatches = _TextMatches $sec.Title $needle
+
+            # Recollim items/children que cal mostrar
+            $itemNodesToAdd = New-Object System.Collections.ArrayList
+            $currentContainer = $null
+            foreach ($el in $sec.Items) {
+                if ($el.Kind -eq 'subsection') {
+                    $subShow = $secMatches -or (_TextMatches $el.Short $needle)
+                    $itemNodesToAdd.Add(@{ Kind='Subsection'; El=$el; ChildShows=@(); ShowMe=$subShow }) | Out-Null
+                    continue
+                }
+                if ($el.Kind -eq 'intro') { continue }  # mai al TreeView
+
+                $itemMatches = _TextMatches $el.Short $needle
+                $matchedChildren = New-Object System.Collections.ArrayList
+                foreach ($ch in $el.Children) {
+                    if ($secMatches -or $itemMatches -or (_TextMatches $ch.Short $needle)) {
+                        [void]$matchedChildren.Add($ch)
+                    }
+                }
+                $showItem = $secMatches -or $itemMatches -or ($matchedChildren.Count -gt 0)
+                if ($showItem) {
+                    $itemNodesToAdd.Add(@{ Kind='Item'; El=$el; ChildShows=$matchedChildren; ShowMe=$true }) | Out-Null
+                }
+            }
+
+            # Si el filtre no es buit i no hi ha cap item/subsection visible,
+            # ometem la seccio del tot (tret que el titol de la seccio matchi).
+            $anyChild = $false
+            foreach ($n in $itemNodesToAdd) { if ($n.ShowMe) { $anyChild = $true; break } }
+            if (-not $secMatches -and -not $anyChild) { continue }
+
+            $secNode = New-Object System.Windows.Forms.TreeNode($sec.Title)
+            $secNode.Tag = @{ Kind = 'Section'; Ref = $sec; Key = $sec.Title }
+            $secNode.NodeFont = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
+            $stKey = "SECT::$($sec.Title)"
+            if ($checkStates.ContainsKey($stKey)) { $secNode.Checked = $checkStates[$stKey] }
+            [void]$tv.Nodes.Add($secNode)
+
+            $container = $secNode
+            foreach ($n in $itemNodesToAdd) {
+                if (-not $n.ShowMe) { continue }
+                if ($n.Kind -eq 'Subsection') {
+                    $subNode = New-Object System.Windows.Forms.TreeNode($n.El.Short)
+                    $subNode.Tag = @{ Kind = 'Subsection'; Ref = $n.El }
+                    $subNode.NodeFont = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Underline)
+                    [void]$secNode.Nodes.Add($subNode)
+                    $container = $subNode
+                    continue
+                }
+                # Item
+                $itNode = New-Object System.Windows.Forms.TreeNode($n.El.Short)
+                $itNode.Tag = @{ Kind = 'Item'; Ref = $n.El; SectionTitle = $sec.Title }
+                $itKey = (_ItemKey $sec.Title $n.El.Short)
+                if ($checkStates.ContainsKey($itKey)) { $itNode.Checked = $checkStates[$itKey] }
+                [void]$container.Nodes.Add($itNode)
+                foreach ($ch in $n.ChildShows) {
+                    $chNode = New-Object System.Windows.Forms.TreeNode($ch.Short)
+                    $chNode.Tag = @{ Kind = 'Child'; Ref = $ch; SectionTitle = $sec.Title; ParentShort = $n.El.Short }
+                    $chKey = (_ItemKey $sec.Title $n.El.Short $ch.Short)
+                    if ($checkStates.ContainsKey($chKey)) { $chNode.Checked = $checkStates[$chKey] }
+                    [void]$itNode.Nodes.Add($chNode)
+                }
+            }
+            $secNode.ExpandAll()
+        }
+    } finally {
+        $script:_propagating = $false
+        $tv.EndUpdate()
+    }
+}
+
+# Recorre el TreeView i llegeix tots els check states en una hashtable.
+function _CollectCheckStates($tv, $checkStates) {
+    foreach ($secNode in $tv.Nodes) {
+        $secTitle = $secNode.Tag.Ref.Title
+        $checkStates["SECT::$secTitle"] = [bool]$secNode.Checked
+        foreach ($node in $secNode.Nodes) {
+            $kind = $node.Tag.Kind
+            if ($kind -eq 'Subsection') {
+                foreach ($itNode in $node.Nodes) {
+                    $itShort = $itNode.Tag.Ref.Short
+                    $checkStates[(_ItemKey $secTitle $itShort)] = [bool]$itNode.Checked
+                    foreach ($chNode in $itNode.Nodes) {
+                        $checkStates[(_ItemKey $secTitle $itShort $chNode.Tag.Ref.Short)] = [bool]$chNode.Checked
+                    }
+                }
+            } elseif ($kind -eq 'Item') {
+                $itShort = $node.Tag.Ref.Short
+                $checkStates[(_ItemKey $secTitle $itShort)] = [bool]$node.Checked
+                foreach ($chNode in $node.Nodes) {
+                    $checkStates[(_ItemKey $secTitle $itShort $chNode.Tag.Ref.Short)] = [bool]$chNode.Checked
+                }
+            }
+        }
+    }
+}
+
+function Select-Items {
+    param($sections, $preloadSelectedKeys = $null)
+
     $form = New-Object System.Windows.Forms.Form
     $form.Text = 'Pas 3 - Seleccio de deficiencies'
     $form.Size = New-Object System.Drawing.Size(1100, 720)
     $form.StartPosition = 'CenterScreen'
 
+    # Filtre (textbox al capdamunt). Cada vegada que canvia, es reconstrueix
+    # el TreeView amb nomes les coincidencies. Els check states es preserven.
+    $lblFilter = New-Object System.Windows.Forms.Label
+    $lblFilter.Text = 'Filtre:'
+    $lblFilter.Location = New-Object System.Drawing.Point(10, 14)
+    $lblFilter.AutoSize = $true
+    $form.Controls.Add($lblFilter)
+
+    $tbFilter = New-Object System.Windows.Forms.TextBox
+    $tbFilter.Location = New-Object System.Drawing.Point(60, 10)
+    $tbFilter.Size = New-Object System.Drawing.Size(400, 22)
+    $tbFilter.Anchor = 'Top, Left'
+    $form.Controls.Add($tbFilter)
+
+    $btnClear = New-Object System.Windows.Forms.Button
+    $btnClear.Text = 'Esborra'
+    $btnClear.Location = New-Object System.Drawing.Point(465, 9)
+    $btnClear.Size = New-Object System.Drawing.Size(70, 24)
+    $btnClear.add_Click({ $tbFilter.Text = '' })
+    $form.Controls.Add($btnClear)
+
     $tv = New-Object System.Windows.Forms.TreeView
-    $tv.Location = New-Object System.Drawing.Point(10, 10)
-    $tv.Size = New-Object System.Drawing.Size(1060, 620)
+    $tv.Location = New-Object System.Drawing.Point(10, 40)
+    $tv.Size = New-Object System.Drawing.Size(1060, 590)
     $tv.CheckBoxes = $true
     $tv.HideSelection = $false
     $tv.ShowNodeToolTips = $true
     $tv.Anchor = 'Top, Bottom, Left, Right'
     $form.Controls.Add($tv)
 
-    foreach ($sec in $sections) {
-        $secNode = New-Object System.Windows.Forms.TreeNode($sec.Title)
-        $secNode.Tag = @{ Kind = 'Section'; Ref = $sec }
-        $secNode.NodeFont = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
-        [void]$tv.Nodes.Add($secNode)
-
-        # Recorrem els elements de la seccio. Items van a sota del seu
-        # contenidor actual (la seccio o l'ultima subseccio creada).
-        # Els intros no apareixen al TreeView; els reasocia el Build-Document
-        # basat en l'ordre.
-        $currentContainer = $secNode
-        foreach ($el in $sec.Items) {
-            if ($el.Kind -eq 'subsection') {
-                $subNode = New-Object System.Windows.Forms.TreeNode($el.Short)
-                $subNode.Tag = @{ Kind = 'Subsection'; Ref = $el }
-                $subNode.NodeFont = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Underline)
-                [void]$secNode.Nodes.Add($subNode)
-                $currentContainer = $subNode
-                continue
-            }
-            if ($el.Kind -eq 'intro') {
-                # No es mostra al TreeView. El Build-Document el processa
-                # pel seu ordre dins de la seccio.
-                continue
-            }
-            # Kind == 'item'
-            $itNode = New-Object System.Windows.Forms.TreeNode($el.Short)
-            $itNode.Tag = @{ Kind = 'Item'; Ref = $el }
-            [void]$currentContainer.Nodes.Add($itNode)
-            foreach ($ch in $el.Children) {
-                $chNode = New-Object System.Windows.Forms.TreeNode($ch.Short)
-                $chNode.Tag = @{ Kind = 'Child'; Ref = $ch; Parent = $el }
-                [void]$itNode.Nodes.Add($chNode)
-            }
+    # Estats de check persistents entre rebuilds. Inicialitzat des de session.
+    $checkStates = @{}
+    if ($preloadSelectedKeys) {
+        foreach ($k in $preloadSelectedKeys) {
+            if ([string]::IsNullOrWhiteSpace($k)) { continue }
+            $checkStates[[string]$k] = $true
         }
-        $secNode.Expand()
     }
+
+    # Build inicial sense filtre
+    _RebuildTree $tv $sections '' $checkStates
 
     # Propagacio recursiva: marcar un node marca tots els descendents.
     $script:_propagating = $false
@@ -540,6 +877,14 @@ function Select-Items($sections) {
         if ($script:_propagating) { return }
         $script:_propagating = $true
         try { & $propagate $e.Node } finally { $script:_propagating = $false }
+    })
+
+    # Refilter en temps real (debouncing simple: rebuild a cada keystroke;
+    # amb 131 items va fluid)
+    $tbFilter.add_TextChanged({
+        # Guardem l'estat actual ABANS de reconstruir
+        _CollectCheckStates $tv $checkStates
+        _RebuildTree $tv $sections $tbFilter.Text $checkStates
     })
 
     $ok = New-Object System.Windows.Forms.Button
@@ -562,48 +907,15 @@ function Select-Items($sections) {
 
     if ($form.ShowDialog() -ne 'OK') { exit 0 }
 
-    # Recollim els shorts marcats. Despres reconstruim els elements en ordre
-    # del data original (manten l'ordre de subseccions, intros i items).
-    $selectedItems = New-Object System.Collections.Generic.HashSet[string]
-    $selectedChildren = @{}  # short_item -> HashSet[short_child]
-
-    foreach ($secNode in $tv.Nodes) {
-        foreach ($node in $secNode.Nodes) {
-            $kind = $node.Tag.Kind
-            if ($kind -eq 'Subsection') {
-                foreach ($itNode in $node.Nodes) {
-                    $itShort = $itNode.Tag.Ref.Short
-                    if ($itNode.Checked) { [void]$selectedItems.Add($itShort) }
-                    foreach ($chNode in $itNode.Nodes) {
-                        if ($chNode.Checked) {
-                            if (-not $selectedChildren.ContainsKey($itShort)) {
-                                $selectedChildren[$itShort] = New-Object System.Collections.Generic.HashSet[string]
-                            }
-                            [void]$selectedChildren[$itShort].Add($chNode.Tag.Ref.Short)
-                        }
-                    }
-                }
-            } elseif ($kind -eq 'Item') {
-                $itShort = $node.Tag.Ref.Short
-                if ($node.Checked) { [void]$selectedItems.Add($itShort) }
-                foreach ($chNode in $node.Nodes) {
-                    if ($chNode.Checked) {
-                        if (-not $selectedChildren.ContainsKey($itShort)) {
-                            $selectedChildren[$itShort] = New-Object System.Collections.Generic.HashSet[string]
-                        }
-                        [void]$selectedChildren[$itShort].Add($chNode.Tag.Ref.Short)
-                    }
-                }
-            }
-        }
-    }
+    # Recollim l'estat final i el barregem amb el que tenim memoritzat per
+    # items que ara mateix no es mostren (perque hi hagi filtre actiu).
+    _CollectCheckStates $tv $checkStates
 
     # Construim el resultat en ordre del data, preservant subseccions/intros.
     $result = New-Object System.Collections.ArrayList
-    foreach ($secNode in $tv.Nodes) {
-        $secData = $secNode.Tag.Ref
+    foreach ($sec in $sections) {
         $chosen = New-Object System.Collections.ArrayList
-        foreach ($el in $secData.Items) {
+        foreach ($el in $sec.Items) {
             if ($el.Kind -in 'subsection','intro') {
                 [void]$chosen.Add([pscustomobject]@{
                     Kind      = $el.Kind
@@ -614,12 +926,13 @@ function Select-Items($sections) {
                 })
                 continue
             }
-            $isSel = $selectedItems.Contains($el.Short)
+            $itKey = (_ItemKey $sec.Title $el.Short)
+            $isSel = $checkStates.ContainsKey($itKey) -and $checkStates[$itKey]
             $chosenChildren = New-Object System.Collections.ArrayList
-            if ($selectedChildren.ContainsKey($el.Short)) {
-                $set = $selectedChildren[$el.Short]
-                foreach ($ch in $el.Children) {
-                    if ($set.Contains($ch.Short)) { [void]$chosenChildren.Add($ch) }
+            foreach ($ch in $el.Children) {
+                $chKey = (_ItemKey $sec.Title $el.Short $ch.Short)
+                if ($checkStates.ContainsKey($chKey) -and $checkStates[$chKey]) {
+                    [void]$chosenChildren.Add($ch)
                 }
             }
             if ($isSel -or $chosenChildren.Count -gt 0) {
@@ -632,12 +945,11 @@ function Select-Items($sections) {
                 })
             }
         }
-        # Nomes incloem la seccio si te al menys un 'item' real seleccionat.
         $hasRealItem = $false
         foreach ($x in $chosen) { if ($x.Kind -eq 'item') { $hasRealItem = $true; break } }
         if ($hasRealItem) {
             [void]$result.Add([pscustomobject]@{
-                Title = $secData.Title
+                Title = $sec.Title
                 Items = $chosen
             })
         }
@@ -649,19 +961,36 @@ function Select-Items($sections) {
     return $result
 }
 
+# Extreu les claus "Seccio::Item[::Fill]" del resultat de Select-Items, per
+# desar-les a la sessio.
+function Get-SelectedKeysFromResult($selectedSections) {
+    $keys = New-Object System.Collections.ArrayList
+    foreach ($sec in $selectedSections) {
+        foreach ($it in $sec.Items) {
+            if ($it.Kind -ne 'item') { continue }
+            if ($it.Selected) { [void]$keys.Add((_ItemKey $sec.Title $it.Short)) }
+            foreach ($ch in $it.Children) {
+                [void]$keys.Add((_ItemKey $sec.Title $it.Short $ch.Short))
+            }
+        }
+    }
+    return $keys.ToArray()
+}
+
 # ----------------------------------------------------------------------------
 # Step 4 - Field placeholders [CAMP: nom (hint)]
 # ----------------------------------------------------------------------------
+$Script:CampRegex = [regex]'\[CAMP:\s*([^\]]+?)\s*\]'
+
 function Get-FieldsFromSelection($selectedSections) {
     $fields = [ordered]@{}
-    $regex = [regex]'\[CAMP:\s*([^\]]+?)\s*\]'
     foreach ($sec in $selectedSections) {
         foreach ($it in $sec.Items) {
             $allText = ($it.BodyLines -join ' ')
             foreach ($ch in $it.Children) {
                 $allText += ' ' + ($ch.BodyLines -join ' ')
             }
-            foreach ($m in $regex.Matches($allText)) {
+            foreach ($m in $Script:CampRegex.Matches($allText)) {
                 $raw = $m.Groups[1].Value.Trim()
                 $name = $raw
                 $hint = ''
@@ -679,8 +1008,22 @@ function Get-FieldsFromSelection($selectedSections) {
     return $fields
 }
 
-function Prompt-Fields($fields) {
+function Prompt-Fields {
+    param($fields, $preloadValues = $null)
     if ($fields.Count -eq 0) { return $fields }
+
+    # Precarrega valors anteriors (per nom de camp)
+    if ($preloadValues) {
+        foreach ($name in $fields.Keys) {
+            $v = $null
+            if ($preloadValues -is [hashtable] -and $preloadValues.ContainsKey($name)) {
+                $v = $preloadValues[$name]
+            } elseif ($preloadValues -is [psobject] -and ($preloadValues.PSObject.Properties.Name -contains $name)) {
+                $v = $preloadValues.$name
+            }
+            if ($null -ne $v) { $fields[$name].Value = [string]$v }
+        }
+    }
 
     $form = New-Object System.Windows.Forms.Form
     $form.Text = 'Pas 4 - Omplir camps'
@@ -711,6 +1054,7 @@ function Prompt-Fields($fields) {
         $tb = New-Object System.Windows.Forms.TextBox
         $tb.Location = New-Object System.Drawing.Point(15, $y)
         $tb.Size = New-Object System.Drawing.Size(520, 22)
+        $tb.Text = $f.Value
         $form.Controls.Add($tb)
         $textboxes[$name] = $tb
         $y += 32
@@ -740,8 +1084,7 @@ function Prompt-Fields($fields) {
 }
 
 function Apply-Fields($text, $fields) {
-    $regex = [regex]'\[CAMP:\s*([^\]]+?)\s*\]'
-    return $regex.Replace($text, {
+    return $Script:CampRegex.Replace($text, {
         param($m)
         $raw = $m.Groups[1].Value.Trim()
         $name = $raw
@@ -750,6 +1093,13 @@ function Apply-Fields($text, $fields) {
         if ($fields.Contains($name)) { return $fields[$name].Value }
         return ''
     })
+}
+
+# Extreu els valors dels camps en un hashtable simple per a la sessio.
+function Get-FieldValuesForSession($fields) {
+    $h = @{}
+    foreach ($name in $fields.Keys) { $h[$name] = $fields[$name].Value }
+    return $h
 }
 
 # ----------------------------------------------------------------------------
@@ -785,8 +1135,13 @@ function Read-Conclusions($word, $path) {
     }
 }
 
-function Select-Conclusions($conclusions) {
+function Select-Conclusions {
+    param($conclusions, $preloadTexts = $null)
     if ($conclusions.Count -eq 0) { return @() }
+
+    # Convertim preloadTexts a un HashSet per a comparacio rapida.
+    $preloadSet = New-Object System.Collections.Generic.HashSet[string]
+    if ($preloadTexts) { foreach ($t in $preloadTexts) { [void]$preloadSet.Add([string]$t) } }
 
     $form = New-Object System.Windows.Forms.Form
     $form.Text = 'Pas 5 - Conclusions'
@@ -814,6 +1169,7 @@ function Select-Conclusions($conclusions) {
         $cb.Location = New-Object System.Drawing.Point(5, $y)
         $cb.Size = New-Object System.Drawing.Size(700, 60)
         $cb.AutoSize = $false
+        if ($preloadSet.Contains([string]$conclusions[$i])) { $cb.Checked = $true }
         $panel.Controls.Add($cb)
         $checks += $cb
         $y += 65
@@ -849,9 +1205,6 @@ function Select-Conclusions($conclusions) {
 # ----------------------------------------------------------------------------
 function Apply-HeaderReplacements($doc, $header) {
     # Substituim els placeholders <<NOM>> de la capcalera pels valors del Pas 2.
-    # Els placeholders disponibles (segons 0 CAPCALERA.docx) son:
-    #   <<ID_GIA>> <<EXP_NUM>> <<ADRECA>> <<ACTIVITAT>> <<TITULAR>>
-    #   <<NUM_ANOTACIO>> <<DATA_ANOTACIO>>
     $map = @{
         '<<ID_GIA>>'        = $header['ID_GIA']
         '<<EXP_NUM>>'       = $header['EXP_NUM']
@@ -868,78 +1221,64 @@ function Apply-HeaderReplacements($doc, $header) {
         $find.Text = $k
         $find.Replacement.Text = [string]$map[$k]
         $find.Forward = $true
-        $find.Wrap = 1  # wdFindContinue
+        $find.Wrap = 1
         $find.MatchCase = $false
         $find.Execute([ref]$k, $false, $false, $false, $false, $false, $true, 1, $false, [string]$map[$k], 2) | Out-Null
     }
 }
 
-function Build-Document($word, $header, $selectedSections, $fields, $conclusions, $alwaysConclusions, $catalegName, $introText) {
-    # Nom del fitxer: YYYY-MM-DD_<TipusCataleg>_GIA <id_gia>.docx
-    #   <TipusCataleg> = BaseName del cataleg amb la primera lletra en
-    #                    majuscula i la resta en minuscules (REQ1 -> Req1).
+# Calcula el nom de fitxer de sortida: YYYY-MM-DD_<TipusCataleg>_GIA <id>.docx
+function _GetOutputFileName($catalegName, $gia) {
     $today = (Get-Date).ToString('yyyy-MM-dd')
     $cat   = $catalegName
-    if ($cat) {
-        $cat = $cat.Substring(0,1).ToUpper() + $cat.Substring(1).ToLower()
-    } else {
-        $cat = 'Informe'
-    }
-    $gia = $header['ID_GIA']
+    if ($cat) { $cat = $cat.Substring(0,1).ToUpper() + $cat.Substring(1).ToLower() }
+    else      { $cat = 'Informe' }
     if ([string]::IsNullOrWhiteSpace($gia)) { $gia = 's_n' }
     $gia = ($gia -replace '[\\/:*?"<>|]','_').Trim()
-    $fileName = "{0}_{1}_GIA {2}.docx" -f $today, $cat, $gia
+    return ("{0}_{1}_GIA {2}.docx" -f $today, $cat, $gia)
+}
 
-    # Triem el directori: el principal si es accessible, si no la carpeta local.
+# Determina el directori de sortida: l'$OutputDir si es accessible, en cas
+# contrari una subcarpeta 'Informes generats' al costat del .ps1.
+function _ResolveOutputDir {
     $targetDir = $OutputDir
     try {
         if (-not (Test-Path -LiteralPath $targetDir)) {
             New-Item -ItemType Directory -Path $targetDir -Force -ErrorAction Stop | Out-Null
         }
+        return $targetDir
     } catch {
-        $targetDir = Join-Path $ScriptRoot 'Informes generats'
-        if (-not (Test-Path -LiteralPath $targetDir)) {
-            New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
+        $local = Join-Path $ScriptRoot 'Informes generats'
+        if (-not (Test-Path -LiteralPath $local)) {
+            New-Item -ItemType Directory -Path $local -Force | Out-Null
         }
+        return $local
     }
-    $outPath = Join-Path $targetDir $fileName
+}
 
-    # Treballem amb una copia LOCAL (a %TEMP%) per evitar que Word obri el
-    # fitxer en "Vista protegida" quan el desti es una unitat de xarxa.
-    # En acabar, movem el fitxer final al directori de sortida.
-    $tempPath = Join-Path $env:TEMP $fileName
+# Obre el document Word a partir d'una copia LOCAL de la capcalera (per
+# evitar la "Vista protegida" en unitats de xarxa). Retorna el doc obert i
+# la ruta temporal.
+function _OpenOutputDocument($word, $tempPath) {
     Copy-Item -LiteralPath $HeaderPath -Destination $tempPath -Force
     $doc = $word.Documents.Open($tempPath, $false, $false)
-
-    # Si malgrat tot s'ha obert en mode protegit, sortim-ne.
     try {
         if ($doc.ProtectedViewWindow -ne $null) {
             $doc = $doc.ProtectedViewWindow.Edit()
         }
     } catch { }
+    return $doc
+}
 
-    Apply-HeaderReplacements -doc $doc -header $header
-
-    # Activem el document i fem servir Selection per inserir text al final.
-    $doc.Activate()
-    $sel = $word.Selection
-    [void]$sel.EndKey(6)  # wdStory = 6
-
-    # Frase introductoria del cataleg (paragraf 0 del REQ1.docx). Apareix
-    # sempre, abans de qualsevol seccio.
+# Escriu el cos del document (intro del cataleg + seccions amb items numerats).
+# Retorna el comptador global utilitzat per a la numeracio.
+function _WriteCatalegBody($sel, $cfg, $selectedSections, $fields, $introText) {
     if (-not [string]::IsNullOrWhiteSpace($introText)) {
         Format-Body $sel $introText
-        if ($Script:ReportFormatConfig.SpacerAfterIntroParagraph) { Format-Spacer $sel }
+        if ($cfg.SpacerAfterIntroParagraph) { Format-Spacer $sel }
     }
 
-    # Helpers d'escriptura
-    $cfg = $Script:ReportFormatConfig
-    $lastSectionName = $null
-
-    # Aplica Apply-Fields a cada linia del body. Retorna SEMPRE un array
-    # (encara que tingui 0 o 1 elements) per evitar el desempaquetat
-    # automatic de PowerShell que convertia $lines[0] en el primer
-    # caracter de l'unica linia.
+    # Resol [CAMP: ...] a cada linia. Retorna SEMPRE un array.
     $resolveLines = {
         param($lines)
         $arr = New-Object System.Collections.ArrayList
@@ -1004,10 +1343,9 @@ function Build-Document($word, $header, $selectedSections, $fields, $conclusions
     }
 
     $script:_buildGlobal = 0
+    $lastSectionName = $null
 
     foreach ($sec in $selectedSections) {
-        # Seccio (amb posible particio per " - " per compatibilitat amb la
-        # convencio antiga de noms compostos).
         $parts = $sec.Title -split ' - ', 2
         if ($parts.Count -eq 2) {
             $secName = $parts[0].Trim()
@@ -1025,9 +1363,6 @@ function Build-Document($word, $header, $selectedSections, $fields, $conclusions
             $lastSectionName = $sec.Title
         }
 
-        # Processem els elements de la seccio en ordre, gestionant intros
-        # "pendents" (s'imprimeixen just abans del primer item seleccionat
-        # que els segueix; si no hi ha cap, no s'imprimeixen).
         $pendingIntro = $null
         foreach ($el in $sec.Items) {
             if ($el.Kind -eq 'subsection') {
@@ -1040,7 +1375,6 @@ function Build-Document($word, $header, $selectedSections, $fields, $conclusions
                 $pendingIntro = $el
                 continue
             }
-            # Kind == 'item'
             if ($null -ne $pendingIntro) {
                 & $emitIntro $pendingIntro
                 $pendingIntro = $null
@@ -1048,22 +1382,42 @@ function Build-Document($word, $header, $selectedSections, $fields, $conclusions
             & $emitItem $el
         }
     }
+}
 
+# Escriu el bloc de conclusions (les triades + les "sempre incloses").
+function _WriteConclusionsBlock($sel, $cfg, $conclusions, $alwaysConclusions) {
     $hasConcl = ($conclusions.Count -gt 0) -or ($alwaysConclusions.Count -gt 0)
-    if ($hasConcl) {
-        if ($Script:ReportFormatConfig.SpacerBeforeConclusionsBlock) {
+    if (-not $hasConcl) { return }
+    if ($cfg.SpacerBeforeConclusionsBlock) { Format-Spacer $sel }
+    $allConcl = @($conclusions) + @($alwaysConclusions)
+    $totalC = $allConcl.Count
+    for ($i = 0; $i -lt $totalC; $i++) {
+        Format-Conclusion $sel $allConcl[$i]
+        if ($cfg.SpacerBetweenConclusions -and $i -lt ($totalC - 1)) {
             Format-Spacer $sel
         }
-        $allConcl = @($conclusions) + @($alwaysConclusions)
-        $totalC = $allConcl.Count
-        for ($i = 0; $i -lt $totalC; $i++) {
-            Format-Conclusion $sel $allConcl[$i]
-            # Espai entre conclusions (i abans de l'ultima): tret de l'ultima.
-            if ($Script:ReportFormatConfig.SpacerBetweenConclusions -and $i -lt ($totalC - 1)) {
-                Format-Spacer $sel
-            }
-        }
     }
+}
+
+function Build-Document($word, $header, $selectedSections, $fields, $conclusions, $alwaysConclusions, $catalegName, $introText) {
+    $fileName  = _GetOutputFileName $catalegName $header['ID_GIA']
+    $targetDir = _ResolveOutputDir
+    $outPath   = Join-Path $targetDir $fileName
+
+    # Treballem amb una copia LOCAL (a %TEMP%) per evitar que Word obri el
+    # fitxer en "Vista protegida" quan el desti es una unitat de xarxa.
+    $tempPath = Join-Path $env:TEMP $fileName
+    $doc = _OpenOutputDocument $word $tempPath
+
+    Apply-HeaderReplacements -doc $doc -header $header
+
+    $doc.Activate()
+    $sel = $word.Selection
+    [void]$sel.EndKey(6)  # wdStory = 6
+
+    $cfg = $Script:ReportFormatConfig
+    _WriteCatalegBody $sel $cfg $selectedSections $fields $introText
+    _WriteConclusionsBlock $sel $cfg $conclusions $alwaysConclusions
 
     $doc.Save()
     $doc.Close($false)
@@ -1072,8 +1426,6 @@ function Build-Document($word, $header, $selectedSections, $fields, $conclusions
     try {
         Move-Item -LiteralPath $tempPath -Destination $outPath -Force
     } catch {
-        # Si no podem moure (xarxa caiguda), deixem el fitxer al TEMP i
-        # informem-ne tornant aquesta ruta.
         return $tempPath
     }
     return $outPath
@@ -1088,17 +1440,53 @@ function Main {
         exit 1
     }
 
-    $cataleg = Select-Cataleg
-    $header  = Get-HeaderData
+    # Sessio anterior? Si existeix, ofereix recuperar les dades.
+    $preload = $null
+    $prevSession = Load-Session
+    if ($null -ne $prevSession) {
+        $ts = if ($prevSession.Timestamp) { $prevSession.Timestamp } else { '(sense data)' }
+        $r = [System.Windows.Forms.MessageBox]::Show(
+            "S'ha detectat una sessio anterior ($ts) que potser no es va completar.`n`nVols precarregar les seves dades als formularis?",
+            'Recuperar sessio anterior', 'YesNo', 'Question')
+        if ($r -eq 'Yes') { $preload = $prevSession }
+    }
+
+    # Estat acumulat que es va desant despres de cada pas.
+    $sessionState = [ordered]@{
+        Version         = 1
+        Timestamp       = (Get-Date).ToString('o')
+        CatalegBaseName = $null
+        Header          = $null
+        SelectedKeys    = $null
+        FieldValues     = $null
+        ConclusionTexts = $null
+    }
+
+    $cataleg = Select-Cataleg -preloadBaseName ($preload.CatalegBaseName)
+    $sessionState.CatalegBaseName = $cataleg.BaseName
+    Save-Session $sessionState
+
+    $header = Get-HeaderData -preload ($preload.Header)
+    $sessionState.Header = $header
+    Save-Session $sessionState
 
     $word = New-WordApp
     try {
-        $parsed       = Parse-Cataleg -word $word -path $cataleg.FullName
-        $selected     = Select-Items $parsed.Sections
+        $parsed       = Get-ParsedCataleg -word $word -path $cataleg.FullName
+        $selected     = Select-Items -sections $parsed.Sections -preloadSelectedKeys ($preload.SelectedKeys)
+        $sessionState.SelectedKeys = Get-SelectedKeysFromResult $selected
+        Save-Session $sessionState
+
         $fields       = Get-FieldsFromSelection $selected
-        $fields       = Prompt-Fields $fields
+        $fields       = Prompt-Fields -fields $fields -preloadValues ($preload.FieldValues)
+        $sessionState.FieldValues = Get-FieldValuesForSession $fields
+        Save-Session $sessionState
+
         $conclusionsAll = Read-Conclusions -word $word -path $ConclusionsPath
-        $conclusions  = Select-Conclusions $conclusionsAll.Selectable
+        $conclusions  = Select-Conclusions -conclusions $conclusionsAll.Selectable -preloadTexts ($preload.ConclusionTexts)
+        $sessionState.ConclusionTexts = @($conclusions)
+        Save-Session $sessionState
+
         $outPath      = Build-Document -word $word -header $header `
                                        -selectedSections $selected `
                                        -fields $fields `
@@ -1106,6 +1494,9 @@ function Main {
                                        -alwaysConclusions $conclusionsAll.Always `
                                        -catalegName $cataleg.BaseName `
                                        -introText $parsed.IntroText
+
+        # Generacio completada: ja no necessitem la sessio anterior.
+        Clear-Session
 
         [System.Windows.Forms.MessageBox]::Show(
             "Informe generat:`n$outPath",

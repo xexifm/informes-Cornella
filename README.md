@@ -9,11 +9,16 @@ d'activitat de l'Ajuntament de Cornellà.
 informes-Cornella/
 ├── GenerarInforme.bat            ← doble clic per executar
 ├── GenerarInforme.ps1            ← script principal (cridat pel .bat)
+├── Format.ps1                    ← funcions de format del document Word
+├── config.ps1                    ← (opcional) sobreescriu rutes/constants
 └── ESTRUCTURALS/
     ├── 0 CAPCALERA.docx          ← capçalera fixa (placeholders <<NOM>>)
     ├── 0 CONCLUSIONS.docx        ← un paràgraf per conclusió alternativa
     └── REQ1.docx                 ← catàleg de deficiències
 ```
+
+Estat persistent (sessió i cache de catàleg) es guarda a
+`%LOCALAPPDATA%\InformesCornella\` perquè no embruti el repositori.
 
 Per executar: **doble clic a `GenerarInforme.bat`**. El .bat obre PowerShell
 amb la política d'execució correcta i llança el script. Si vols posar una
@@ -91,6 +96,46 @@ el nom base del fitxer triat al Pas 1 amb la primera lletra en majúscula
 Si la unitat `I:` no és accessible (script executat fora de la xarxa
 municipal), el fitxer cau automàticament a una carpeta `Informes generats`
 al costat del `.ps1`.
+
+## Configuració local (`config.ps1`)
+
+Si vols sobreescriure les rutes per defecte (per exemple en un altre PC
+o sense unitat de xarxa), crea o edita `config.ps1` al costat del `.ps1`
+i posa-hi els valors que vulguis sobreescriure:
+
+```powershell
+$OutputDir              = 'D:\Informes\Sortida'
+$ActivitatsDir          = 'D:\Informes\Excels'
+$AlwaysConclusionsCount = 2
+```
+
+El fitxer és opcional. Si no existeix, s'usen els valors per defecte del
+`GenerarInforme.ps1`.
+
+## Recuperació de sessió
+
+Després de cada pas, l'estat s'auto-desa a
+`%LOCALAPPDATA%\InformesCornella\session.json`. Si la propera execució
+detecta una sessió que no es va completar, pregunta si vols
+**precarregar les dades** als formularis. Quan la generació acaba amb
+èxit, la sessió es neteja.
+
+Útil quan caduca la connexió, et confons al pas 5 i vols repetir, o
+generes diversos informes amb capçalera similar.
+
+## Cache del catàleg
+
+El parseig del `.docx` del catàleg es cacheja a
+`%LOCALAPPDATA%\InformesCornella\cache\<NomCataleg>.json` amb un hash
+SHA-256 del fitxer com a clau. Si el `.docx` no ha canviat, el catàleg
+no es torna a parsejar (estalvia entre 1 i 2 segons per execució).
+
+## Filtre al Pas 3
+
+Hi ha una caixa de **filtre** sobre el TreeView del Pas 3: a mesura que
+escrius, només es mostren les deficiències que contenen el text (a títol
+de secció, ítem o sub-ítem). Els checks marcats es preserven encara que
+canviïs el filtre.
 
 ## Estat actual
 
