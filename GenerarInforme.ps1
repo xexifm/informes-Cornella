@@ -40,6 +40,11 @@ Add-Type -AssemblyName System.Drawing
 [System.Windows.Forms.Application]::EnableVisualStyles()
 
 $ScriptRoot      = Split-Path -Parent $MyInvocation.MyCommand.Path
+
+# Carreguem el modul de format (Format.ps1). Conte les funcions Format-Section,
+# Format-Item, etc. i $ReportFormatConfig. Reutilitzable per altres tipus
+# d'informes.
+. (Join-Path $ScriptRoot 'Format.ps1')
 $EstructuralsDir = Join-Path $ScriptRoot 'ESTRUCTURALS'
 $HeaderPath      = Join-Path $EstructuralsDir '0 CAPCALERA.docx'
 $ConclusionsPath = Join-Path $EstructuralsDir '0 CONCLUSIONS.docx'
@@ -825,87 +830,27 @@ function Build-Document($word, $header, $selectedSections, $fields, $conclusions
     Apply-HeaderReplacements -doc $doc -header $header
 
     # Activem el document i fem servir Selection per inserir text al final.
-    # Apliquem el format de caracter directament (no estils de paragraf) per
-    # evitar herencies inesperades.
     $doc.Activate()
     $sel = $word.Selection
-    $sel.EndKey(6) | Out-Null  # wdStory = 6
+    [void]$sel.EndKey(6)  # wdStory = 6
 
-    # ----- Helpers de format -----
-    $resetCharFormat = {
-        $sel.Font.Bold = 0
-        $sel.Font.Italic = 0
-        $sel.Font.Underline = 0  # wdUnderlineNone
-    }
-
-    $writeSection = {
-        param($text)
-        $sel.TypeParagraph()
-        & $resetCharFormat
-        $sel.ParagraphFormat.LeftIndent = 0
-        $sel.Font.Bold = 1
-        $sel.TypeText([string]$text)
-        $sel.Font.Bold = 0
-    }
-
-    $writeSubsection = {
-        param($text)
-        $sel.TypeParagraph()
-        & $resetCharFormat
-        $sel.ParagraphFormat.LeftIndent = 0
-        $sel.Font.Underline = 1   # wdUnderlineSingle
-        $sel.TypeText([string]$text)
-        $sel.Font.Underline = 0
-    }
-
-    $writeItem = {
-        param($num, $text)
-        $sel.TypeParagraph()
-        & $resetCharFormat
-        $sel.ParagraphFormat.LeftIndent = 18  # ~0.25 inch de sangria
-        # Numero en negreta
-        $sel.Font.Bold = 1
-        $sel.TypeText("$num. ")
-        $sel.Font.Bold = 0
-        $sel.TypeText([string]$text)
-    }
-
-    # Linies addicionals d'un item: text normal amb sangria. Sense numero.
-    $writeBody = {
-        param($text)
-        $sel.TypeParagraph()
-        & $resetCharFormat
-        $sel.ParagraphFormat.LeftIndent = 18
-        $sel.TypeText([string]$text)
-    }
-
-    # Insereix un URL com a hyperlink real (clicable).
-    $writeUrl = {
-        param($url)
-        $sel.TypeParagraph()
-        & $resetCharFormat
-        $sel.ParagraphFormat.LeftIndent = 18
-        $startPos = $sel.Range.Start
-        $sel.TypeText([string]$url)
-        $endPos = $sel.Range.End
-        try {
-            $hlRange = $doc.Range($startPos, $endPos)
-            $doc.Hyperlinks.Add($hlRange, $url) | Out-Null
-        } catch { }
-    }
-
-    # Conclusio: text normal sense sangria.
-    $writeConclusion = {
-        param($text)
-        $sel.TypeParagraph()
-        & $resetCharFormat
-        $sel.ParagraphFormat.LeftIndent = 0
-        $sel.TypeText([string]$text)
-    }
-
-    # ----- Logica d'escriptura -----
-    $globalCounter = 0
+    # Logica d'escriptura. Les funcions Format-X venen de Format.ps1.
+    $globalItemCounter = 0
     $lastSectionName = $null
+
+    $emitExtras = {
+        param($lines, $isChild)
+        for ($i = 1; $i -lt $lines.Count; $i++) {
+            $line = $lines[$i].Trim()
+            if ([string]::IsNullOrWhiteSpace($line)) { continue }
+            if ($line -match '^https?://') {
+                if ($isChild) { Format-Url $sel $line -IsChild } else { Format-Url $sel $line }
+            } else {
+                if ($isChild) { Format-Body $sel $line -IsChild } else { Format-Body $sel $line }
+            }
+        }
+    }
+
     foreach ($sec in $selectedSections) {
         # Si el titol te " - ", el partim en seccio + subseccio. Si la
         # seccio coincideix amb l'anterior, no la repetim.
@@ -914,57 +859,71 @@ function Build-Document($word, $header, $selectedSections, $fields, $conclusions
             $secName = $parts[0].Trim()
             $subName = $parts[1].Trim()
             if ($secName -ne $lastSectionName) {
-                & $writeSection $secName
+                Format-Section $sel $secName
                 $lastSectionName = $secName
             }
-            & $writeSubsection $subName
+            Format-Subsection $sel $subName
         } else {
-            & $writeSection $sec.Title
+            Format-Section $sel $sec.Title
             $lastSectionName = $sec.Title
         }
 
-        # Funcio interna per emetre les linies addicionals d'un body
-        # (URLs com a hyperlinks, altres com a text normal amb sangria).
-        $emitExtras = {
-            param($lines)
-            for ($i = 1; $i -lt $lines.Count; $i++) {
-                $line = $lines[$i].Trim()
-                if ([string]::IsNullOrWhiteSpace($line)) { continue }
-                if ($line -match '^https?://') { & $writeUrl $line } else { & $writeBody $line }
-            }
-        }
-
         foreach ($it in $sec.Items) {
-            $childrenSelected = ($it.Children.Count -gt 0)
             $itemLines = @($it.BodyLines | ForEach-Object { Apply-Fields -text $_ -fields $fields })
+            $hasChildren = ($it.Children.Count -gt 0)
+            $itemWritten = $false
 
-            if ($childrenSelected) {
-                # El cos del pare es text de transicio (sense numero).
-                if ($it.Selected -and $itemLines.Count -gt 0) {
-                    foreach ($bp in $itemLines) {
-                        if ([string]::IsNullOrWhiteSpace($bp)) { continue }
-                        if ($bp -match '^https?://') { & $writeUrl $bp } else { & $writeBody $bp }
-                    }
+            # Item pare numerat (sempre que tinguem cos o sigui un atomic
+            # seleccionat). Si nomes hi ha fills i el pare no esta seleccionat
+            # i no te cos, no escrivim res pel pare.
+            if ($it.Selected -or $hasChildren) {
+                if ($itemLines.Count -gt 0) {
+                    $globalItemCounter++
+                    Format-Item $sel "$globalItemCounter." $itemLines[0]
+                    & $emitExtras $itemLines $false
+                    $itemWritten = $true
                 }
+            }
+
+            if ($hasChildren) {
+                $subCounter = 0
                 foreach ($ch in $it.Children) {
-                    $cLines = @($ch.BodyLines | ForEach-Object { Apply-Fields -text $_ -fields $fields })
-                    if ($cLines.Count -eq 0) { continue }
-                    $globalCounter++
-                    & $writeItem $globalCounter $cLines[0]
-                    & $emitExtras $cLines
+                    $childLines = @($ch.BodyLines | ForEach-Object { Apply-Fields -text $_ -fields $fields })
+                    if ($childLines.Count -eq 0) { continue }
+                    $subCounter++
+                    if (-not $itemWritten) {
+                        # Cas estrany: fills sense pare escrit. Garantitzem
+                        # que el comptador global avanci almenys un cop per
+                        # tenir una numeracio coherent.
+                        $globalItemCounter++
+                        $itemWritten = $true
+                    }
+                    Format-Item $sel "$globalItemCounter.$subCounter." $childLines[0] -IsChild
+                    & $emitExtras $childLines $true
                 }
-            } elseif ($it.Selected -and $itemLines.Count -gt 0) {
-                $globalCounter++
-                & $writeItem $globalCounter $itemLines[0]
-                & $emitExtras $itemLines
+            }
+
+            # Espai despres de l'item complet (incloent els seus fills).
+            if ($itemWritten -and $Script:ReportFormatConfig.SpacerAfterItem) {
+                Format-Spacer $sel
             }
         }
     }
 
     $hasConcl = ($conclusions.Count -gt 0) -or ($alwaysConclusions.Count -gt 0)
     if ($hasConcl) {
-        foreach ($c in $conclusions)        { & $writeConclusion $c }
-        foreach ($c in $alwaysConclusions)  { & $writeConclusion $c }
+        if ($Script:ReportFormatConfig.SpacerBeforeConclusionsBlock) {
+            Format-Spacer $sel
+        }
+        $allConcl = @($conclusions) + @($alwaysConclusions)
+        $totalC = $allConcl.Count
+        for ($i = 0; $i -lt $totalC; $i++) {
+            Format-Conclusion $sel $allConcl[$i]
+            # Espai entre conclusions (i abans de l'ultima): tret de l'ultima.
+            if ($Script:ReportFormatConfig.SpacerBetweenConclusions -and $i -lt ($totalC - 1)) {
+                Format-Spacer $sel
+            }
+        }
     }
 
     $doc.Save()
