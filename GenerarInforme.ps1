@@ -936,9 +936,17 @@ function Build-Document($word, $header, $selectedSections, $fields, $conclusions
     $cfg = $Script:ReportFormatConfig
     $lastSectionName = $null
 
+    # Aplica Apply-Fields a cada linia del body. Retorna SEMPRE un array
+    # (encara que tingui 0 o 1 elements) per evitar el desempaquetat
+    # automatic de PowerShell que convertia $lines[0] en el primer
+    # caracter de l'unica linia.
     $resolveLines = {
         param($lines)
-        return @($lines | ForEach-Object { Apply-Fields -text $_ -fields $fields })
+        $arr = New-Object System.Collections.ArrayList
+        foreach ($ln in $lines) {
+            [void]$arr.Add( (Apply-Fields -text $ln -fields $fields) )
+        }
+        return ,@($arr.ToArray())
     }
 
     $emitExtras = {
@@ -956,7 +964,7 @@ function Build-Document($word, $header, $selectedSections, $fields, $conclusions
 
     $emitIntro = {
         param($introEl)
-        $lines = & $resolveLines $introEl.BodyLines
+        $lines = @(& $resolveLines $introEl.BodyLines)
         foreach ($bp in $lines) {
             if ([string]::IsNullOrWhiteSpace($bp)) { continue }
             if ($bp -match '^https?://') { Format-Url $sel $bp } else { Format-Body $sel $bp }
@@ -966,7 +974,7 @@ function Build-Document($word, $header, $selectedSections, $fields, $conclusions
 
     $emitItem = {
         param($it)
-        $itemLines = & $resolveLines $it.BodyLines
+        $itemLines = @(& $resolveLines $it.BodyLines)
         $hasChildren = ($it.Children.Count -gt 0)
         $itemWritten = $false
 
@@ -981,7 +989,7 @@ function Build-Document($word, $header, $selectedSections, $fields, $conclusions
         if ($hasChildren) {
             $subCounter = 0
             foreach ($ch in $it.Children) {
-                $childLines = & $resolveLines $ch.BodyLines
+                $childLines = @(& $resolveLines $ch.BodyLines)
                 if ($childLines.Count -eq 0) { continue }
                 $subCounter++
                 if (-not $itemWritten) {
