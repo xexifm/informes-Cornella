@@ -75,18 +75,14 @@ if (Test-Path -LiteralPath $configPath) {
     . $configPath
 }
 
-# Estat persistent (sessio + cache de cataleg). Es guarda a
-# %LOCALAPPDATA% per no embrutar el repositori i no haver de tocar .gitignore.
+# Estat persistent (sessio). Es guarda a %LOCALAPPDATA% per no embrutar el
+# repositori i no haver de tocar .gitignore.
 $AppDataDir  = Join-Path $env:LOCALAPPDATA 'InformesCornella'
 $SessionPath = Join-Path $AppDataDir 'session.json'
-$CacheDir    = Join-Path $AppDataDir 'cache'
 
 function Ensure-AppDataDir {
     if (-not (Test-Path -LiteralPath $AppDataDir)) {
         New-Item -ItemType Directory -Path $AppDataDir -Force | Out-Null
-    }
-    if (-not (Test-Path -LiteralPath $CacheDir)) {
-        New-Item -ItemType Directory -Path $CacheDir -Force | Out-Null
     }
 }
 
@@ -293,7 +289,12 @@ function Initialize-ActivitatsCache($excelFile) {
                 $actPrin  = & $get $r 94
                 $parts = @($tipusVia, $carrer, $numero, $lletra, $pis, $porta) |
                     Where-Object { $_ -and $_.Trim() -ne '' }
-                $adreca = ($parts -join ' ') + ', CORNELLÀ DE LLOBREGAT'
+                # Construim l'accent amb el codepoint Unicode explicit (U+00C0,
+                # 'A' amb accent greu) per evitar que la lletra accentuada del
+                # literal es corrompi segons l'encoding amb que PowerShell 5.1
+                # llegeix aquest fitxer (sortia "CORNELLÃ€").
+                $ciutat = "CORNELL$([char]0x00C0) DE LLOBREGAT"
+                $adreca = ($parts -join ' ') + ", $ciutat"
                 $byId[$id] = @{
                     TITULAR   = $rao
                     ADRECA    = $adreca
@@ -556,49 +557,16 @@ function Get-HeaderData {
 }
 
 # ----------------------------------------------------------------------------
-# Step 3 - Parse cataleg + cache per hash
+# Step 3 - Parse cataleg
 # ----------------------------------------------------------------------------
-function _SHA256OfFile($path) {
-    $alg = [System.Security.Cryptography.SHA256]::Create()
-    try {
-        $stream = [System.IO.File]::OpenRead($path)
-        try { return ([System.BitConverter]::ToString($alg.ComputeHash($stream))).Replace('-','') }
-        finally { $stream.Dispose() }
-    } finally { $alg.Dispose() }
-}
-
-# Pas 3 (parseig pur, sense UI) amb cache en disc. Si el .docx no ha canviat
-# des de l'ultim parseig, retorna el resultat cachejat sense obrir Word.
-# El cache es a %LOCALAPPDATA%\InformesCornella\cache\<basename>.json.
+# NOTA: es va provar una cache en disc del resultat del parseig (JSON), pero
+# el round-trip ConvertTo-Json/ConvertFrom-Json no preserva de manera fiable
+# l'estructura niada (BodyLines/Children), cosa que trencava el format dels
+# enllacos al document final. El parseig d'un .docx triga molt poc, aixi que
+# es fa sempre en fresc. Si en el futur es vol cachejar, cal fer-ho amb
+# Export-Clixml/Import-Clixml (preserva tipus i arrays), no amb JSON.
 function Get-ParsedCataleg($word, $path) {
-    Ensure-AppDataDir
-    $baseName  = [System.IO.Path]::GetFileNameWithoutExtension($path)
-    $hash      = _SHA256OfFile $path
-    $cacheFile = Join-Path $CacheDir "$baseName.json"
-
-    if (Test-Path -LiteralPath $cacheFile) {
-        try {
-            $cached = Get-Content -LiteralPath $cacheFile -Raw -Encoding UTF8 | ConvertFrom-Json
-            if ($cached.Hash -eq $hash -and $null -ne $cached.Parsed) {
-                return $cached.Parsed
-            }
-        } catch {
-            # Cache corrupte: ignorem i re-parsegem.
-        }
-    }
-
-    $parsed = Parse-Cataleg -word $word -path $path
-    try {
-        $payload = [pscustomobject]@{
-            Hash      = $hash
-            CachedAt  = (Get-Date).ToString('o')
-            Parsed    = $parsed
-        }
-        ($payload | ConvertTo-Json -Depth 12) | Set-Content -LiteralPath $cacheFile -Encoding UTF8
-    } catch {
-        # Si no podem escriure cache, no es un error fatal.
-    }
-    return $parsed
+    return (Parse-Cataleg -word $word -path $path)
 }
 
 function Parse-Cataleg($word, $path) {

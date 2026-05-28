@@ -17,8 +17,8 @@ informes-Cornella/
     └── REQ1.docx                 ← catàleg de deficiències
 ```
 
-Estat persistent (sessió i cache de catàleg) es guarda a
-`%LOCALAPPDATA%\InformesCornella\` perquè no embruti el repositori.
+L'estat de sessió es guarda a `%LOCALAPPDATA%\InformesCornella\`
+perquè no embruti el repositori.
 
 Per executar: **doble clic a `GenerarInforme.bat`**. El .bat obre PowerShell
 amb la política d'execució correcta i llança el script. Si vols posar una
@@ -122,13 +122,6 @@ detecta una sessió que no es va completar, pregunta si vols
 
 Útil quan caduca la connexió, et confons al pas 5 i vols repetir, o
 generes diversos informes amb capçalera similar.
-
-## Cache del catàleg
-
-El parseig del `.docx` del catàleg es cacheja a
-`%LOCALAPPDATA%\InformesCornella\cache\<NomCataleg>.json` amb un hash
-SHA-256 del fitxer com a clau. Si el `.docx` no ha canviat, el catàleg
-no es torna a parsejar (estalvia entre 1 i 2 segons per execució).
 
 ## Filtre al Pas 3
 
