@@ -1181,6 +1181,24 @@ function Get-FieldValuesForSession($fields) {
     return $h
 }
 
+# Separa el text d'una linia dels URLs que pugui contenir. Retorna:
+#   @{ Text = '<tot el que hi ha abans del primer URL>'; Urls = @(url1, url2...) }
+# Aixi, encara que al cataleg l'enllac estigui enganxat al text de l'item
+# (p. ex. "Instal.lacio de baixa tensio https://..."), l'enllac s'emet en un
+# paragraf propi com a hipervincle, ben diferenciat del text.
+function _SplitTextAndUrls($line) {
+    if ([string]::IsNullOrWhiteSpace($line)) { return @{ Text=''; Urls=@() } }
+    $m = [regex]::Match($line, 'https?://')
+    if (-not $m.Success) { return @{ Text = $line.Trim(); Urls=@() } }
+    $text = $line.Substring(0, $m.Index).Trim()
+    $rest = $line.Substring($m.Index)
+    $urls = @()
+    foreach ($tok in ($rest -split '\s+')) {
+        if ($tok -match '^https?://') { $urls += $tok }
+    }
+    return @{ Text = $text; Urls = $urls }
+}
+
 # ----------------------------------------------------------------------------
 # Step 5 - Conclusions
 # ----------------------------------------------------------------------------
@@ -1368,26 +1386,31 @@ function _WriteCatalegBody($sel, $cfg, $selectedSections, $fields, $introText) {
         return ,@($arr.ToArray())
     }
 
+    # Emet una linia separant text i URLs: el text (si n'hi ha) va com a cos i
+    # cada URL com a hipervincle en paragraf propi.
+    $emitLine = {
+        param($line, $isChild)
+        if ([string]::IsNullOrWhiteSpace($line)) { return }
+        $parts = _SplitTextAndUrls $line
+        if (-not [string]::IsNullOrWhiteSpace($parts.Text)) {
+            if ($isChild) { Format-Body $sel $parts.Text -IsChild } else { Format-Body $sel $parts.Text }
+        }
+        foreach ($u in $parts.Urls) {
+            if ($isChild) { Format-Url $sel $u -IsChild } else { Format-Url $sel $u }
+        }
+    }
+
     $emitExtras = {
         param($lines, $isChild)
         for ($i = 1; $i -lt $lines.Count; $i++) {
-            $line = $lines[$i].Trim()
-            if ([string]::IsNullOrWhiteSpace($line)) { continue }
-            if ($line -match '^https?://') {
-                if ($isChild) { Format-Url $sel $line -IsChild } else { Format-Url $sel $line }
-            } else {
-                if ($isChild) { Format-Body $sel $line -IsChild } else { Format-Body $sel $line }
-            }
+            & $emitLine $lines[$i] $isChild
         }
     }
 
     $emitIntro = {
         param($introEl)
         $lines = @(& $resolveLines $introEl.BodyLines)
-        foreach ($bp in $lines) {
-            if ([string]::IsNullOrWhiteSpace($bp)) { continue }
-            if ($bp -match '^https?://') { Format-Url $sel $bp } else { Format-Body $sel $bp }
-        }
+        foreach ($bp in $lines) { & $emitLine $bp $false }
         if ($cfg.SpacerAfterIntro) { Format-Spacer $sel }
     }
 
@@ -1400,7 +1423,10 @@ function _WriteCatalegBody($sel, $cfg, $selectedSections, $fields, $introText) {
         if ($it.Selected -or $hasChildren) {
             if ($itemLines.Count -gt 0) {
                 $script:_buildGlobal++
-                Format-Item $sel "$($script:_buildGlobal)." $itemLines[0]
+                # Separem un possible URL enganxat al text principal de l'item.
+                $p0 = _SplitTextAndUrls $itemLines[0]
+                Format-Item $sel "$($script:_buildGlobal)." $p0.Text
+                foreach ($u in $p0.Urls) { Format-Url $sel $u }
                 & $emitExtras $itemLines $false
                 $itemWritten = $true
             }
@@ -1415,7 +1441,9 @@ function _WriteCatalegBody($sel, $cfg, $selectedSections, $fields, $introText) {
                     $script:_buildGlobal++
                     $itemWritten = $true
                 }
-                Format-Item $sel "$($script:_buildGlobal).$subCounter." $childLines[0] -IsChild
+                $pc = _SplitTextAndUrls $childLines[0]
+                Format-Item $sel "$($script:_buildGlobal).$subCounter." $pc.Text -IsChild
+                foreach ($u in $pc.Urls) { Format-Url $sel $u -IsChild }
                 & $emitExtras $childLines $true
             }
         }

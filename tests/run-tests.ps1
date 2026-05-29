@@ -98,6 +98,21 @@ $fields['Grup CAPCA'].Value = 'ABC'
 $fields['Organ'].Value = 'XYZ'
 AssertEq (Apply-Fields 'a [CAMP: Grup CAPCA] b [CAMP: Organ (ajuda)] c' $fields) 'a ABC b XYZ c' 'Apply-Fields substitueix pels valors'
 
+Write-Host "`n--- _SplitTextAndUrls (separar enllac del text de l'item) ---"
+$r1 = _SplitTextAndUrls 'Instal·lacio de baixa tensio https://canalempresa.gencat.cat/baixa/'
+AssertEq $r1.Text 'Instal·lacio de baixa tensio' '_SplitTextAndUrls separa el text'
+AssertEq $r1.Urls.Count 1                         '_SplitTextAndUrls detecta 1 URL'
+AssertEq $r1.Urls[0] 'https://canalempresa.gencat.cat/baixa/' '_SplitTextAndUrls captura l URL'
+$r2 = _SplitTextAndUrls 'Text sense cap enllac'
+AssertEq $r2.Text 'Text sense cap enllac'          '_SplitTextAndUrls sense URL -> tot text'
+AssertEq $r2.Urls.Count 0                          '_SplitTextAndUrls sense URL -> 0 urls'
+$r3 = _SplitTextAndUrls 'https://nomes.url/aqui'
+AssertEq $r3.Text ''                               '_SplitTextAndUrls nomes URL -> text buit'
+AssertEq $r3.Urls.Count 1                          '_SplitTextAndUrls nomes URL -> 1 url'
+$r4 = _SplitTextAndUrls 'Veure http://a.cat/x i http://b.cat/y'
+AssertEq $r4.Text 'Veure'                          '_SplitTextAndUrls text abans de diversos URLs'
+AssertEq $r4.Urls.Count 2                          '_SplitTextAndUrls detecta 2 URLs'
+
 $summaryColor = if ($script:fail -eq 0) { 'Green' } else { 'Red' }
 Write-Host "`n========================================"
 Write-Host ("RESULTAT: {0} OK, {1} FAIL" -f $script:pass, $script:fail) -ForegroundColor $summaryColor
