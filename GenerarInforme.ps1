@@ -75,10 +75,11 @@ if (Test-Path -LiteralPath $configPath) {
     . $configPath
 }
 
-# Estat persistent (sessio). Es guarda a %LOCALAPPDATA% per no embrutar el
-# repositori i no haver de tocar .gitignore.
-$AppDataDir  = Join-Path $env:LOCALAPPDATA 'InformesCornella'
-$SessionPath = Join-Path $AppDataDir 'session.json'
+# Estat persistent. Es guarda a %LOCALAPPDATA% per no embrutar el repositori
+# i no haver de tocar .gitignore. lastreport.json conte les dades de l'ULTIM
+# informe generat amb exit, per poder-lo replicar des del Pas 2.
+$AppDataDir     = Join-Path $env:LOCALAPPDATA 'InformesCornella'
+$LastReportPath = Join-Path $AppDataDir 'lastreport.json'
 
 function Ensure-AppDataDir {
     if (-not (Test-Path -LiteralPath $AppDataDir)) {
@@ -107,9 +108,9 @@ function Close-WordApp($word) {
 }
 
 # ----------------------------------------------------------------------------
-# Persistencia de sessio
+# Persistencia de l'ultim informe (per replicar-lo)
 # ----------------------------------------------------------------------------
-# Format del session.json (versio 1):
+# Format del lastreport.json (versio 1):
 #   {
 #     "Version": 1,
 #     "Timestamp": "<ISO 8601>",
@@ -119,33 +120,26 @@ function Close-WordApp($word) {
 #     "FieldValues":  { "nom": "valor", ... },
 #     "ConclusionTexts": [ "text1", ... ]
 #   }
-# Cada camp es opcional: nomes hi son els passos completats.
 
-function Save-Session($state) {
+function Save-LastReport($state) {
     try {
         Ensure-AppDataDir
         $state.Version   = 1
         $state.Timestamp = (Get-Date).ToString('o')
-        ($state | ConvertTo-Json -Depth 10) | Set-Content -LiteralPath $SessionPath -Encoding UTF8
+        ($state | ConvertTo-Json -Depth 10) | Set-Content -LiteralPath $LastReportPath -Encoding UTF8
     } catch {
-        # Si no podem desar la sessio, no es un error fatal. Continuem en silenci.
+        # Si no podem desar, no es un error fatal. Continuem en silenci.
     }
 }
 
-function Load-Session {
-    if (-not (Test-Path -LiteralPath $SessionPath)) { return $null }
+function Load-LastReport {
+    if (-not (Test-Path -LiteralPath $LastReportPath)) { return $null }
     try {
-        $raw = Get-Content -LiteralPath $SessionPath -Raw -Encoding UTF8
+        $raw = Get-Content -LiteralPath $LastReportPath -Raw -Encoding UTF8
         if ([string]::IsNullOrWhiteSpace($raw)) { return $null }
         return ($raw | ConvertFrom-Json)
     } catch {
         return $null
-    }
-}
-
-function Clear-Session {
-    if (Test-Path -LiteralPath $SessionPath) {
-        try { Remove-Item -LiteralPath $SessionPath -Force } catch { }
     }
 }
 
@@ -403,7 +397,7 @@ function Select-Cataleg {
             'Error', 'OK', 'Error') | Out-Null
         exit 1
     }
-    if ($catalegs.Count -eq 1) { return $catalegs[0] }
+    if ($catalegs.Count -eq 1) { return [pscustomobject]@{ Nav='next'; Data=$catalegs[0] } }
 
     $form = New-Object System.Windows.Forms.Form
     $form.Text = 'Pas 1 - Tipus d''informe'
@@ -436,16 +430,10 @@ function Select-Cataleg {
     $form.AcceptButton = $ok
     $form.Controls.Add($ok)
 
-    $cancel = New-Object System.Windows.Forms.Button
-    $cancel.Text = 'Cancel'
-    $cancel.Location = New-Object System.Drawing.Point(380, 240)
-    $cancel.Size = New-Object System.Drawing.Size(80, 28)
-    $cancel.DialogResult = 'Cancel'
-    $form.CancelButton = $cancel
-    $form.Controls.Add($cancel)
-
+    # No hi ha boto Cancel ni Enrere: el Pas 1 es el primer. Tancar la
+    # finestra (X) avorta el programa.
     if ($form.ShowDialog() -ne 'OK') { exit 0 }
-    return $catalegs[$list.SelectedIndex]
+    return [pscustomobject]@{ Nav='next'; Data=$catalegs[$list.SelectedIndex] }
 }
 
 # ----------------------------------------------------------------------------
@@ -501,22 +489,27 @@ function _BuildHeaderForm($excelFileLabel) {
     & $addRow "Num. d'anotacio (autom., editable)"    $y 460 'NUM_ANOTACIO'; $y += 38
     & $addRow "Data d'anotacio (autom., editable)"    $y 460 'DATA_ANOTACIO';$y += 50
 
+    $back = New-Object System.Windows.Forms.Button
+    $back.Text = 'Enrere'
+    $back.Location = New-Object System.Drawing.Point(15, $y)
+    $back.Size = New-Object System.Drawing.Size(90, 28)
+    $back.DialogResult = 'Retry'
+    [void]$form.Controls.Add($back)
+
+    $recover = New-Object System.Windows.Forms.Button
+    $recover.Text = "Recuperar dades ultim informe"
+    $recover.Location = New-Object System.Drawing.Point(115, $y)
+    $recover.Size = New-Object System.Drawing.Size(250, 28)
+    [void]$form.Controls.Add($recover)
+
     $ok = New-Object System.Windows.Forms.Button
     $ok.Text = 'Seguent'
-    $ok.Location = New-Object System.Drawing.Point(505, $y)
+    $ok.Location = New-Object System.Drawing.Point(595, $y)
     $ok.Size = New-Object System.Drawing.Size(90, 28)
     $form.AcceptButton = $ok
     [void]$form.Controls.Add($ok)
 
-    $cancel = New-Object System.Windows.Forms.Button
-    $cancel.Text = 'Cancel'
-    $cancel.Location = New-Object System.Drawing.Point(605, $y)
-    $cancel.Size = New-Object System.Drawing.Size(80, 28)
-    $cancel.DialogResult = 'Cancel'
-    $form.CancelButton = $cancel
-    [void]$form.Controls.Add($cancel)
-
-    return @{ Form=$form; Controls=$controls; BtnSearch=$btnSearch; BtnOk=$ok }
+    return @{ Form=$form; Controls=$controls; BtnSearch=$btnSearch; BtnOk=$ok; BtnBack=$back; BtnRecover=$recover }
 }
 
 # Llegeix els valors dels controls i retorna un hashtable amb la capcalera.
@@ -533,12 +526,18 @@ function _ReadHeaderControls($controls) {
 }
 
 # Precarrega valors d'una capcalera anterior als controls del formulari.
+# $preload pot ser un hashtable (navegacio en memoria) o un PSCustomObject
+# (dades de l'ultim informe llegides de JSON).
 function _PreloadHeaderControls($controls, $preload) {
     if ($null -eq $preload) { return }
     foreach ($k in 'ID_GIA','EXP_NUM','TITULAR','ADRECA','ACTIVITAT','NUM_ANOTACIO','DATA_ANOTACIO') {
-        if ($preload.PSObject.Properties.Name -contains $k -and $null -ne $preload.$k) {
-            $controls[$k].Text = [string]$preload.$k
+        $v = $null
+        if ($preload -is [System.Collections.IDictionary]) {
+            if ($preload.Contains($k)) { $v = $preload[$k] }
+        } elseif ($preload.PSObject.Properties.Name -contains $k) {
+            $v = $preload.$k
         }
+        if ($null -ne $v) { $controls[$k].Text = [string]$v }
     }
 }
 
@@ -568,12 +567,31 @@ function Get-HeaderData {
 
     $label = "Base de dades d'activitats: $($latest.File.Name)  (data: $($latest.Date.ToString('yyyy-MM-dd'))) - $($actCache.ById.Count) activitats carregades"
     $f = _BuildHeaderForm $label
-    $form      = $f.Form
-    $controls  = $f.Controls
-    $btnSearch = $f.BtnSearch
-    $ok        = $f.BtnOk
+    $form       = $f.Form
+    $controls   = $f.Controls
+    $btnSearch  = $f.BtnSearch
+    $ok         = $f.BtnOk
+    $btnRecover = $f.BtnRecover
 
     _PreloadHeaderControls $controls $preload
+
+    # Boto "Recuperar dades ultim informe": carrega les dades de l'ultim
+    # informe generat amb exit i les deixa als formularis perque l'usuari
+    # les revisi/modifiqui pas per pas. La resta de passos (seleccio, camps,
+    # conclusions) es precarreguen via $script:_recoveredReport, que Main llegeix.
+    $script:_recoveredReport = $null
+    $btnRecover.add_Click({
+        $rep = Load-LastReport
+        if ($null -eq $rep) {
+            [System.Windows.Forms.MessageBox]::Show("No hi ha cap informe anterior desat.",'Sense dades','OK','Information') | Out-Null
+            return
+        }
+        if ($rep.Header) { _PreloadHeaderControls $controls $rep.Header }
+        $script:_recoveredReport = $rep
+        [System.Windows.Forms.MessageBox]::Show(
+            "Dades de l'ultim informe carregades.`n`nRevisa-les i modifica el que calgui (per exemple, canvia l'ID GIA i prem 'Cercar' per a una activitat nova). En continuar, els passos seguents tambe sortiran precarregats.",
+            'Recuperat', 'OK', 'Information') | Out-Null
+    })
 
     # Cerca per ID GIA: instantania des del cache. Omple els camps automatics.
     $doSearch = {
@@ -617,8 +635,10 @@ function Get-HeaderData {
         $form.Close()
     })
 
-    if ($form.ShowDialog() -ne 'OK') { exit 0 }
-    return $script:_headerData
+    $res = $form.ShowDialog()
+    if ($res -eq 'Retry') { return [pscustomobject]@{ Nav='back' } }
+    if ($res -ne 'OK')    { exit 0 }
+    return [pscustomobject]@{ Nav='next'; Data=$script:_headerData; Recovered=$script:_recoveredReport }
 }
 
 # ----------------------------------------------------------------------------
@@ -928,25 +948,26 @@ function Select-Items {
         _RebuildTree $tv $sections $tbFilter.Text $checkStates
     })
 
+    $back = New-Object System.Windows.Forms.Button
+    $back.Text = 'Enrere'
+    $back.Location = New-Object System.Drawing.Point(10, 640)
+    $back.Size = New-Object System.Drawing.Size(90, 28)
+    $back.DialogResult = 'Retry'
+    $back.Anchor = 'Bottom, Left'
+    $form.Controls.Add($back)
+
     $ok = New-Object System.Windows.Forms.Button
     $ok.Text = 'Seguent'
-    $ok.Location = New-Object System.Drawing.Point(890, 640)
+    $ok.Location = New-Object System.Drawing.Point(980, 640)
     $ok.Size = New-Object System.Drawing.Size(80, 28)
     $ok.DialogResult = 'OK'
     $ok.Anchor = 'Bottom, Right'
     $form.AcceptButton = $ok
     $form.Controls.Add($ok)
 
-    $cancel = New-Object System.Windows.Forms.Button
-    $cancel.Text = 'Cancel'
-    $cancel.Location = New-Object System.Drawing.Point(980, 640)
-    $cancel.Size = New-Object System.Drawing.Size(80, 28)
-    $cancel.DialogResult = 'Cancel'
-    $cancel.Anchor = 'Bottom, Right'
-    $form.CancelButton = $cancel
-    $form.Controls.Add($cancel)
-
-    if ($form.ShowDialog() -ne 'OK') { exit 0 }
+    $res = $form.ShowDialog()
+    if ($res -eq 'Retry') { return [pscustomobject]@{ Nav='back' } }
+    if ($res -ne 'OK')    { exit 0 }
 
     # Recollim l'estat final i el barregem amb el que tenim memoritzat per
     # items que ara mateix no es mostren (perque hi hagi filtre actiu).
@@ -997,9 +1018,9 @@ function Select-Items {
     }
     if ($result.Count -eq 0) {
         [System.Windows.Forms.MessageBox]::Show('No s''ha seleccionat cap deficiencia.','Avis','OK','Warning') | Out-Null
-        exit 0
+        return [pscustomobject]@{ Nav='stay' }   # es torna a mostrar el Pas 3
     }
-    return $result
+    return [pscustomobject]@{ Nav='next'; Data=$result }
 }
 
 # Extreu les claus "Seccio::Item[::Fill]" del resultat de Select-Items, per
@@ -1051,7 +1072,7 @@ function Get-FieldsFromSelection($selectedSections) {
 
 function Prompt-Fields {
     param($fields, $preloadValues = $null)
-    if ($fields.Count -eq 0) { return $fields }
+    if ($fields.Count -eq 0) { return [pscustomobject]@{ Nav='next'; Data=$fields } }
 
     # Precarrega valors anteriors (per nom de camp)
     if ($preloadValues) {
@@ -1103,25 +1124,26 @@ function Prompt-Fields {
 
     $form.ClientSize = New-Object System.Drawing.Size(560, [Math]::Min(640, ($y + 70)))
 
+    $back = New-Object System.Windows.Forms.Button
+    $back.Text = 'Enrere'
+    $back.Location = New-Object System.Drawing.Point(15, $y)
+    $back.Size = New-Object System.Drawing.Size(90, 28)
+    $back.DialogResult = 'Retry'
+    $form.Controls.Add($back)
+
     $ok = New-Object System.Windows.Forms.Button
     $ok.Text = 'Seguent'
-    $ok.Location = New-Object System.Drawing.Point(360, $y)
+    $ok.Location = New-Object System.Drawing.Point(450, $y)
     $ok.Size = New-Object System.Drawing.Size(80, 28)
     $ok.DialogResult = 'OK'
     $form.AcceptButton = $ok
     $form.Controls.Add($ok)
 
-    $cancel = New-Object System.Windows.Forms.Button
-    $cancel.Text = 'Cancel'
-    $cancel.Location = New-Object System.Drawing.Point(450, $y)
-    $cancel.Size = New-Object System.Drawing.Size(80, 28)
-    $cancel.DialogResult = 'Cancel'
-    $form.CancelButton = $cancel
-    $form.Controls.Add($cancel)
-
-    if ($form.ShowDialog() -ne 'OK') { exit 0 }
+    $res = $form.ShowDialog()
+    if ($res -eq 'Retry') { return [pscustomobject]@{ Nav='back' } }
+    if ($res -ne 'OK')    { exit 0 }
     foreach ($name in $fields.Keys) { $fields[$name].Value = $textboxes[$name].Text }
-    return $fields
+    return [pscustomobject]@{ Nav='next'; Data=$fields }
 }
 
 function Apply-Fields($text, $fields) {
@@ -1178,7 +1200,7 @@ function Read-Conclusions($word, $path) {
 
 function Select-Conclusions {
     param($conclusions, $preloadTexts = $null)
-    if ($conclusions.Count -eq 0) { return @() }
+    if ($conclusions.Count -eq 0) { return [pscustomobject]@{ Nav='next'; Data=@() } }
 
     # Convertim preloadTexts a un HashSet per a comparacio rapida.
     $preloadSet = New-Object System.Collections.Generic.HashSet[string]
@@ -1216,29 +1238,30 @@ function Select-Conclusions {
         $y += 65
     }
 
+    $back = New-Object System.Windows.Forms.Button
+    $back.Text = 'Enrere'
+    $back.Location = New-Object System.Drawing.Point(15, 480)
+    $back.Size = New-Object System.Drawing.Size(90, 28)
+    $back.DialogResult = 'Retry'
+    $form.Controls.Add($back)
+
     $ok = New-Object System.Windows.Forms.Button
     $ok.Text = 'Generar'
-    $ok.Location = New-Object System.Drawing.Point(570, 480)
-    $ok.Size = New-Object System.Drawing.Size(80, 28)
+    $ok.Location = New-Object System.Drawing.Point(655, 480)
+    $ok.Size = New-Object System.Drawing.Size(90, 28)
     $ok.DialogResult = 'OK'
     $form.AcceptButton = $ok
     $form.Controls.Add($ok)
 
-    $cancel = New-Object System.Windows.Forms.Button
-    $cancel.Text = 'Cancel'
-    $cancel.Location = New-Object System.Drawing.Point(660, 480)
-    $cancel.Size = New-Object System.Drawing.Size(80, 28)
-    $cancel.DialogResult = 'Cancel'
-    $form.CancelButton = $cancel
-    $form.Controls.Add($cancel)
-
-    if ($form.ShowDialog() -ne 'OK') { exit 0 }
+    $res = $form.ShowDialog()
+    if ($res -eq 'Retry') { return [pscustomobject]@{ Nav='back' } }
+    if ($res -ne 'OK')    { exit 0 }
 
     $selected = New-Object System.Collections.ArrayList
     for ($i = 0; $i -lt $checks.Count; $i++) {
         if ($checks[$i].Checked) { [void]$selected.Add($conclusions[$i]) }
     }
-    return ,$selected.ToArray()
+    return [pscustomobject]@{ Nav='next'; Data=(,$selected.ToArray()) }
 }
 
 # ----------------------------------------------------------------------------
@@ -1481,71 +1504,123 @@ function Main {
         exit 1
     }
 
-    # Sessio anterior? Si existeix, ofereix recuperar les dades.
-    $preload = $null
-    $prevSession = Load-Session
-    if ($null -ne $prevSession) {
-        $ts = if ($prevSession.Timestamp) { $prevSession.Timestamp } else { '(sense data)' }
-        $r = [System.Windows.Forms.MessageBox]::Show(
-            "S'ha detectat una sessio anterior ($ts) que potser no es va completar.`n`nVols precarregar les seves dades als formularis?",
-            'Recuperar sessio anterior', 'YesNo', 'Question')
-        if ($r -eq 'Yes') { $preload = $prevSession }
-    }
-
-    # Estat acumulat que es va desant despres de cada pas.
-    $sessionState = [ordered]@{
-        Version         = 1
-        Timestamp       = (Get-Date).ToString('o')
-        CatalegBaseName = $null
-        Header          = $null
-        SelectedKeys    = $null
-        FieldValues     = $null
-        ConclusionTexts = $null
-    }
-
-    $cataleg = Select-Cataleg -preloadBaseName ($preload.CatalegBaseName)
-    $sessionState.CatalegBaseName = $cataleg.BaseName
-    Save-Session $sessionState
-
-    $header = Get-HeaderData -preload ($preload.Header)
-    $sessionState.Header = $header
-    Save-Session $sessionState
+    # Assistent navegable. Cada pas (dialeg) retorna un objecte amb:
+    #   Nav  = 'next' | 'back' | 'stay'
+    #   Data = el resultat del pas (si 'next')
+    # Tancar la finestra (X) avorta el programa (exit 0). El boto "Enrere"
+    # retorna 'back' i Main torna al pas anterior conservant les dades ja
+    # introduides (es passen com a precarrega).
+    #
+    # $st  : dades confirmades de cada pas (es mantenen en memoria al navegar).
+    # $pre : precarregues per a cada pas (de l'estat o de "Recuperar ultim").
+    $st  = @{ Cataleg=$null; Parsed=$null; Header=$null; Selected=$null; Fields=$null; ConclAll=$null; Conclusions=$null }
+    $pre = @{ Cat=$null; Header=$null; Keys=$null; Fields=$null; Concl=$null }
 
     $word = New-WordApp
     try {
-        $parsed       = Get-ParsedCataleg -word $word -path $cataleg.FullName
-        $selected     = Select-Items -sections $parsed.Sections -preloadSelectedKeys ($preload.SelectedKeys)
-        $sessionState.SelectedKeys = Get-SelectedKeysFromResult $selected
-        Save-Session $sessionState
+        $step = 1
+        $dir  = 'fwd'
+        while ($step -ge 1 -and $step -le 6) {
+            switch ($step) {
 
-        $fields       = Get-FieldsFromSelection $selected
-        $fields       = Prompt-Fields -fields $fields -preloadValues ($preload.FieldValues)
-        $sessionState.FieldValues = Get-FieldValuesForSession $fields
-        Save-Session $sessionState
+                1 {
+                    $r = Select-Cataleg -preloadBaseName $pre.Cat
+                    # El Pas 1 no te 'back'; nomes 'next' o tancar (exit dins la funcio).
+                    $st.Cataleg = $r.Data
+                    $st.Parsed  = Get-ParsedCataleg -word $word -path $st.Cataleg.FullName
+                    $pre.Cat    = $st.Cataleg.BaseName
+                    $step = 2; $dir = 'fwd'
+                }
 
-        $conclusionsAll = Read-Conclusions -word $word -path $ConclusionsPath
-        $conclusions  = Select-Conclusions -conclusions $conclusionsAll.Selectable -preloadTexts ($preload.ConclusionTexts)
-        $sessionState.ConclusionTexts = @($conclusions)
-        Save-Session $sessionState
+                2 {
+                    $r = Get-HeaderData -preload $pre.Header
+                    if ($r.Nav -eq 'back') { exit 0 }   # enrere des del Pas 2 = sortir
+                    else {
+                        $st.Header  = $r.Data
+                        $pre.Header = $r.Data
+                        if ($r.Recovered) {
+                            # "Recuperar dades ultim informe": precarreguem la
+                            # resta de passos amb les dades de l'ultim informe.
+                            $pre.Keys   = $r.Recovered.SelectedKeys
+                            $pre.Fields = $r.Recovered.FieldValues
+                            $pre.Concl  = $r.Recovered.ConclusionTexts
+                        }
+                        $step = 3; $dir = 'fwd'
+                    }
+                }
 
-        $outPath      = Build-Document -word $word -header $header `
-                                       -selectedSections $selected `
-                                       -fields $fields `
-                                       -conclusions $conclusions `
-                                       -alwaysConclusions $conclusionsAll.Always `
-                                       -catalegName $cataleg.BaseName `
-                                       -introText $parsed.IntroText
+                3 {
+                    $r = Select-Items -sections $st.Parsed.Sections -preloadSelectedKeys $pre.Keys
+                    if     ($r.Nav -eq 'back') { $step = 2; $dir = 'back' }
+                    elseif ($r.Nav -eq 'stay') { }   # cap seleccio: es torna a mostrar
+                    else {
+                        $st.Selected = $r.Data
+                        $pre.Keys    = Get-SelectedKeysFromResult $st.Selected
+                        $step = 4; $dir = 'fwd'
+                    }
+                }
 
-        # Generacio completada: ja no necessitem la sessio anterior.
-        Clear-Session
+                4 {
+                    $fields = Get-FieldsFromSelection $st.Selected
+                    if ($fields.Count -eq 0) {
+                        # No hi ha camps [CAMP:...]; saltem el pas segons la direccio.
+                        $st.Fields = $fields
+                        if ($dir -eq 'back') { $step = 3 } else { $step = 5 }
+                    } else {
+                        $r = Prompt-Fields -fields $fields -preloadValues $pre.Fields
+                        if ($r.Nav -eq 'back') { $step = 3; $dir = 'back' }
+                        else {
+                            $st.Fields  = $r.Data
+                            $pre.Fields = Get-FieldValuesForSession $st.Fields
+                            $step = 5; $dir = 'fwd'
+                        }
+                    }
+                }
 
-        [System.Windows.Forms.MessageBox]::Show(
-            "Informe generat:`n$outPath",
-            'Finalitzat', 'OK', 'Information') | Out-Null
+                5 {
+                    if ($null -eq $st.ConclAll) {
+                        $st.ConclAll = Read-Conclusions -word $word -path $ConclusionsPath
+                    }
+                    $r = Select-Conclusions -conclusions $st.ConclAll.Selectable -preloadTexts $pre.Concl
+                    if ($r.Nav -eq 'back') { $step = 4; $dir = 'back' }
+                    else {
+                        $st.Conclusions = $r.Data
+                        $pre.Concl      = @($st.Conclusions)
+                        $step = 6; $dir = 'fwd'
+                    }
+                }
 
-        # Obrim Word en primer pla per a l'usuari
-        $word.Visible = $true
-        $word.Documents.Open($outPath) | Out-Null
+                6 {
+                    $outPath = Build-Document -word $word -header $st.Header `
+                                              -selectedSections $st.Selected `
+                                              -fields $st.Fields `
+                                              -conclusions $st.Conclusions `
+                                              -alwaysConclusions $st.ConclAll.Always `
+                                              -catalegName $st.Cataleg.BaseName `
+                                              -introText $st.Parsed.IntroText
+
+                    # Desem les dades per poder replicar aquest informe mes endavant.
+                    Save-LastReport ([ordered]@{
+                        Version         = 1
+                        Timestamp       = (Get-Date).ToString('o')
+                        CatalegBaseName = $st.Cataleg.BaseName
+                        Header          = $st.Header
+                        SelectedKeys    = (Get-SelectedKeysFromResult $st.Selected)
+                        FieldValues     = (Get-FieldValuesForSession $st.Fields)
+                        ConclusionTexts = @($st.Conclusions)
+                    })
+
+                    [System.Windows.Forms.MessageBox]::Show(
+                        "Informe generat:`n$outPath",
+                        'Finalitzat', 'OK', 'Information') | Out-Null
+
+                    # Obrim Word en primer pla per a l'usuari
+                    $word.Visible = $true
+                    $word.Documents.Open($outPath) | Out-Null
+                    $step = 99   # surt del bucle
+                }
+            }
+        }
     }
     catch {
         [System.Windows.Forms.MessageBox]::Show("Error: $($_.Exception.Message)",'Error','OK','Error') | Out-Null

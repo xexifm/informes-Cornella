@@ -17,8 +17,8 @@ informes-Cornella/
     └── REQ1.docx                 ← catàleg de deficiències
 ```
 
-L'estat de sessió es guarda a `%LOCALAPPDATA%\InformesCornella\`
-perquè no embruti el repositori.
+Les dades de l'últim informe (per replicar-lo) es guarden a
+`%LOCALAPPDATA%\InformesCornella\` perquè no embrutin el repositori.
 
 Per executar: **doble clic a `GenerarInforme.bat`**. El .bat obre PowerShell
 amb la política d'execució correcta i llança el script. Si vols posar una
@@ -112,16 +112,22 @@ $AlwaysConclusionsCount = 2
 El fitxer és opcional. Si no existeix, s'usen els valors per defecte del
 `GenerarInforme.ps1`.
 
-## Recuperació de sessió
+## Navegació de l'assistent (Enrere / Recuperar)
 
-Després de cada pas, l'estat s'auto-desa a
-`%LOCALAPPDATA%\InformesCornella\session.json`. Si la propera execució
-detecta una sessió que no es va completar, pregunta si vols
-**precarregar les dades** als formularis. Quan la generació acaba amb
-èxit, la sessió es neteja.
+El flux és un assistent de passos navegable:
 
-Útil quan caduca la connexió, et confons al pas 5 i vols repetir, o
-generes diversos informes amb capçalera similar.
+- **Enrere**: cada pas (excepte el Pas 1) té un botó **Enrere** per tornar
+  al pas anterior i modificar el que calgui. Les dades ja introduïdes es
+  conserven en tornar endavant.
+- **Recuperar dades últim informe** (botó al Pas 2): carrega les dades de
+  l'**últim informe generat amb èxit** (capçalera, deficiències, camps i
+  conclusions) per replicar-lo. Pots revisar-les i modificar-les pas per
+  pas — per exemple, canviar l'ID GIA i prémer "Cercar" per a una activitat
+  nova mantenint la mateixa selecció de deficiències.
+- **Tancar**: no hi ha botó "Cancel·lar"; per sortir, tanca la finestra.
+
+Les dades de l'últim informe es desen a
+`%LOCALAPPDATA%\InformesCornella\lastreport.json` en generar amb èxit.
 
 ## Filtre al Pas 3
 
