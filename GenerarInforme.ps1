@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 <#
 .SYNOPSIS
   Generador d'informes de l'Ajuntament de Cornella.
@@ -199,6 +199,52 @@ function _NormalizeText($s) {
     return (($t -replace '\p{Mn}','').ToLower().Trim())
 }
 
+# Cerca l'index (1-based) de la columna a la fila de capcalera (fila 1) el text
+# de la qual conte TOTS els termes de $mustContain i CAP dels de $mustNotContain
+# (comparacio normalitzada: minuscules, sense accents). Retorna 0 si no es troba.
+function _FindColIndex($data, $cols, [string[]]$mustContain, [string[]]$mustNotContain) {
+    for ($c = 1; $c -le $cols; $c++) {
+        $h = _NormalizeText $data[1, $c]
+        if ([string]::IsNullOrWhiteSpace($h)) { continue }
+        $ok = $true
+        foreach ($m in $mustContain) {
+            if (-not $h.Contains((_NormalizeText $m))) { $ok = $false; break }
+        }
+        if ($ok -and $null -ne $mustNotContain) {
+            foreach ($m in $mustNotContain) {
+                if ($h.Contains((_NormalizeText $m))) { $ok = $false; break }
+            }
+        }
+        if ($ok) { return $c }
+    }
+    return 0
+}
+
+# Converteix un valor de cel·la a text. Els enters d'Excel arriben com a double;
+# els mostrem sense decimals ni notacio cientifica.
+function _CellToString($v) {
+    if ($null -eq $v) { return '' }
+    if ($v -is [double]) {
+        if ([math]::Floor($v) -eq $v) { return [string][int64]$v }
+        return [string]$v
+    }
+    return ([string]$v).Trim()
+}
+
+# Formata una cel·la de data a "dd/MM/yyyy" descartant l'hora. A l'Excel les
+# dates arriben com a double (numero de serie OLE); tambe acceptem text.
+function _FormatDateOnly($v) {
+    if ($null -eq $v) { return '' }
+    if ($v -is [double]) {
+        try { return ([DateTime]::FromOADate($v)).ToString('dd/MM/yyyy') } catch { return '' }
+    }
+    $s = ([string]$v).Trim()
+    if ([string]::IsNullOrWhiteSpace($s)) { return '' }
+    $dt = [datetime]::MinValue
+    if ([datetime]::TryParse($s, [ref]$dt)) { return $dt.ToString('dd/MM/yyyy') }
+    return $s.Split(' ')[0]  # si no es pot parsejar, agafem la part abans de l'hora
+}
+
 # Localitza la fulla "Estes"/"Estès" del workbook acceptant variants Unicode.
 function _FindEstesSheet($wb) {
     $sheetNames = @()
@@ -238,7 +284,8 @@ function _ValidateActivitatsHeaders($data, $rows, $cols) {
 # Retorna un PSCustomObject amb:
 #   File        : System.IO.FileInfo del fitxer Excel
 #   Date        : data del fitxer (parsejada del nom)
-#   ById        : hashtable [string ID] -> hashtable @{ TITULAR; ADRECA; ACTIVITAT }
+#   ById        : hashtable [string ID] -> hashtable amb TITULAR, ADRECA,
+#                 ACTIVITAT, EXP_NUM, NUM_ANOTACIO, DATA_ANOTACIO
 #   Warnings    : llista de cadenes amb avisos de validacio de columnes
 function Initialize-ActivitatsCache($excelFile) {
     $excel = New-Object -ComObject Excel.Application
@@ -261,6 +308,16 @@ function Initialize-ActivitatsCache($excelFile) {
             $cols = $data.GetLength(1)
 
             $warnings = _ValidateActivitatsHeaders $data $rows $cols
+
+            # Columnes localitzades pel TEXT de la capcalera (mes robust que un
+            # index fix). Si l'Excel canvia l'ordre de columnes, segueix
+            # funcionant mentre el nom es mantingui.
+            $colExp  = _FindColIndex $data $cols @('expedient') $null
+            $colNum  = _FindColIndex $data $cols @('registre','entrada') @('data')
+            $colData = _FindColIndex $data $cols @('data','registre','entrada') $null
+            if ($colExp  -eq 0) { [void]$warnings.Add("No s'ha trobat la columna 'Num. expedient'.") }
+            if ($colNum  -eq 0) { [void]$warnings.Add("No s'ha trobat la columna 'Num. registre entrada'.") }
+            if ($colData -eq 0) { [void]$warnings.Add("No s'ha trobat la columna 'Data registre entrada'.") }
 
             # Index per ID (columna 1).
             $byId = @{}
@@ -295,10 +352,18 @@ function Initialize-ActivitatsCache($excelFile) {
                 # llegeix aquest fitxer (sortia "CORNELLÃ€").
                 $ciutat = "CORNELL$([char]0x00C0) DE LLOBREGAT"
                 $adreca = ($parts -join ' ') + ", $ciutat"
+
+                $expNum = if ($colExp  -gt 0) { _CellToString  $data[$r, $colExp] }  else { '' }
+                $numAno = if ($colNum  -gt 0) { _CellToString  $data[$r, $colNum] }  else { '' }
+                $datAno = if ($colData -gt 0) { _FormatDateOnly $data[$r, $colData] } else { '' }
+
                 $byId[$id] = @{
-                    TITULAR   = $rao
-                    ADRECA    = $adreca
-                    ACTIVITAT = $actPrin
+                    TITULAR       = $rao
+                    ADRECA        = $adreca
+                    ACTIVITAT     = $actPrin
+                    EXP_NUM       = $expNum
+                    NUM_ANOTACIO  = $numAno
+                    DATA_ANOTACIO = $datAno
                 }
             }
             return [pscustomobject]@{ ById = $byId; Warnings = $warnings.ToArray() }
@@ -429,12 +494,12 @@ function _BuildHeaderForm($excelFileLabel) {
     [void]$form.Controls.Add($btnSearch)
     $y += 38
 
-    & $addRow "Num. d'expedient"             $y 460 'EXP_NUM';      $y += 38
-    & $addRow 'Titular (autom., editable)'   $y 460 'TITULAR';      $y += 38
-    & $addRow 'Adreca (autom., editable)'    $y 460 'ADRECA';       $y += 38
-    & $addRow 'Activitat (autom., editable)' $y 460 'ACTIVITAT';    $y += 38
-    & $addRow "Num. d'anotacio (Objecte)"    $y 460 'NUM_ANOTACIO'; $y += 38
-    & $addRow "Data d'anotacio (dd/mm/aaaa)" $y 460 'DATA_ANOTACIO';$y += 50
+    & $addRow "Num. d'expedient (autom., editable)"   $y 460 'EXP_NUM';      $y += 38
+    & $addRow 'Titular (autom., editable)'            $y 460 'TITULAR';      $y += 38
+    & $addRow 'Adreca (autom., editable)'             $y 460 'ADRECA';       $y += 38
+    & $addRow 'Activitat (autom., editable)'          $y 460 'ACTIVITAT';    $y += 38
+    & $addRow "Num. d'anotacio (autom., editable)"    $y 460 'NUM_ANOTACIO'; $y += 38
+    & $addRow "Data d'anotacio (autom., editable)"    $y 460 'DATA_ANOTACIO';$y += 50
 
     $ok = New-Object System.Windows.Forms.Button
     $ok.Text = 'Seguent'
@@ -510,7 +575,7 @@ function Get-HeaderData {
 
     _PreloadHeaderControls $controls $preload
 
-    # Cerca per ID GIA: instantania des del cache. Omple els 3 camps autom.
+    # Cerca per ID GIA: instantania des del cache. Omple els camps automatics.
     $doSearch = {
         $idGia = $controls['ID_GIA'].Text.Trim()
         if ([string]::IsNullOrWhiteSpace($idGia)) {
@@ -522,14 +587,14 @@ function Get-HeaderData {
             [System.Windows.Forms.MessageBox]::Show(
                 "L'ID GIA '$idGia' no s'ha trobat a la base de dades`n($($latest.File.Name)).",
                 'Activitat no trobada', 'OK', 'Error') | Out-Null
-            $controls['TITULAR'].Text = ''
-            $controls['ADRECA'].Text = ''
-            $controls['ACTIVITAT'].Text = ''
+            foreach ($k in 'TITULAR','ADRECA','ACTIVITAT','EXP_NUM','NUM_ANOTACIO','DATA_ANOTACIO') {
+                $controls[$k].Text = ''
+            }
             return $false
         }
-        $controls['TITULAR'].Text   = $act['TITULAR']
-        $controls['ADRECA'].Text    = $act['ADRECA']
-        $controls['ACTIVITAT'].Text = $act['ACTIVITAT']
+        foreach ($k in 'TITULAR','ADRECA','ACTIVITAT','EXP_NUM','NUM_ANOTACIO','DATA_ANOTACIO') {
+            if ($act.ContainsKey($k)) { $controls[$k].Text = [string]$act[$k] }
+        }
         return $true
     }
 
@@ -733,15 +798,19 @@ function _RebuildTree($tv, $sections, $needle, $checkStates) {
                     $container = $subNode
                     continue
                 }
-                # Item
+                # Item. NodeFont explicit (regular) perque el font base del
+                # TreeView es negreta (vegeu nota a Select-Items) i no volem
+                # que els items surtin en negreta ni que es retallin.
                 $itNode = New-Object System.Windows.Forms.TreeNode($n.El.Short)
                 $itNode.Tag = @{ Kind = 'Item'; Ref = $n.El; SectionTitle = $sec.Title }
+                $itNode.NodeFont = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Regular)
                 $itKey = (_ItemKey $sec.Title $n.El.Short)
                 if ($checkStates.ContainsKey($itKey)) { $itNode.Checked = $checkStates[$itKey] }
                 [void]$container.Nodes.Add($itNode)
                 foreach ($ch in $n.ChildShows) {
                     $chNode = New-Object System.Windows.Forms.TreeNode($ch.Short)
                     $chNode.Tag = @{ Kind = 'Child'; Ref = $ch; SectionTitle = $sec.Title; ParentShort = $n.El.Short }
+                    $chNode.NodeFont = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Regular)
                     $chKey = (_ItemKey $sec.Title $n.El.Short $ch.Short)
                     if ($checkStates.ContainsKey($chKey)) { $chNode.Checked = $checkStates[$chKey] }
                     [void]$itNode.Nodes.Add($chNode)
@@ -817,6 +886,10 @@ function Select-Items {
     $tv.HideSelection = $false
     $tv.ShowNodeToolTips = $true
     $tv.Anchor = 'Top, Bottom, Left, Right'
+    # El font base es la negreta mes ampla que faran servir les seccions. Aixo
+    # evita el bug de WinForms en que un node amb NodeFont mes ample que el
+    # font del control surt retallat. Items i fills posen NodeFont regular.
+    $tv.Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
     $form.Controls.Add($tv)
 
     # Estats de check persistents entre rebuilds. Inicialitzat des de session.
