@@ -113,6 +113,34 @@ $r4 = _SplitTextAndUrls 'Veure http://a.cat/x i http://b.cat/y'
 AssertEq $r4.Text 'Veure'                          '_SplitTextAndUrls text abans de diversos URLs'
 AssertEq $r4.Urls.Count 2                          '_SplitTextAndUrls detecta 2 URLs'
 
+Write-Host "`n--- Regressio: text de l'item i URL en paragrafs separats (build emit) ---"
+# Estubem les funcions Format (de Word) per capturar que reben, sense COM.
+$global:emitCalls = New-Object System.Collections.ArrayList
+function Format-Section    { param($s,$t) [void]$global:emitCalls.Add("SECT|$t") }
+function Format-Subsection { param($s,$t) [void]$global:emitCalls.Add("SUB|$t") }
+function Format-Item       { param($s,$n,$t,[switch]$IsChild) [void]$global:emitCalls.Add("ITEM|$n|$t") }
+function Format-Body       { param($s,$t,[switch]$IsChild) [void]$global:emitCalls.Add("BODY|$t") }
+function Format-Url        { param($s,$u,[switch]$IsChild) [void]$global:emitCalls.Add("URL|$u") }
+function Format-Spacer     { param($s) }
+function Format-Conclusion { param($s,$t) }
+$sel = [pscustomobject]@{}
+$cfg = $Script:ReportFormatConfig
+# Item amb el text i l'URL en linies SEPARADES (estructura real del REQ1).
+$secs = @(
+  [pscustomobject]@{ Title='Instal·lacions'; Items=@(
+     [pscustomobject]@{ Kind='item'; Short='bt'; Selected=$true; Children=@();
+        BodyLines=@('Instal·lació de baixa tensió','https://exemple.cat/baixa') }
+  )}
+)
+$fbuild = Get-FieldsFromSelection $secs
+$threw = $false
+try { _WriteCatalegBody $sel $cfg $secs $fbuild '' } catch { $threw = $true; Write-Host "    EXCEPCIO: $($_.Exception.Message)" -ForegroundColor Red }
+Assert (-not $threw) '_WriteCatalegBody no llanca excepcio (Substring) amb text+URL separats'
+$itemCall = $global:emitCalls | Where-Object { $_ -like 'ITEM|*' } | Select-Object -First 1
+$urlCall  = $global:emitCalls | Where-Object { $_ -like 'URL|*' }  | Select-Object -First 1
+AssertEq $itemCall 'ITEM|1.|Instal·lació de baixa tensió' "Format-Item rep nomes el text de l'item (sense URL)"
+AssertEq $urlCall  'URL|https://exemple.cat/baixa'        "Format-Url rep l'URL en paragraf propi"
+
 $summaryColor = if ($script:fail -eq 0) { 'Green' } else { 'Red' }
 Write-Host "`n========================================"
 Write-Host ("RESULTAT: {0} OK, {1} FAIL" -f $script:pass, $script:fail) -ForegroundColor $summaryColor

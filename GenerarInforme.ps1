@@ -1376,14 +1376,17 @@ function _WriteCatalegBody($sel, $cfg, $selectedSections, $fields, $introText) {
         if ($cfg.SpacerAfterIntroParagraph) { Format-Spacer $sel }
     }
 
-    # Resol [CAMP: ...] a cada linia. Retorna SEMPRE un array.
+    # Resol [CAMP: ...] a cada linia i EMET cada linia resolta al pipeline.
+    # Els cridadors fan servir @(& $resolveLines ...) per recollir un array
+    # PLA de cadenes. (No retornem ,@(...): combinat amb el @() del cridador
+    # provocava un doble embolcall on $itemLines[0] era TOT l'array de linies
+    # en comptes de la primera linia -> trencava la separacio text/URL i feia
+    # petar Substring.)
     $resolveLines = {
         param($lines)
-        $arr = New-Object System.Collections.ArrayList
         foreach ($ln in $lines) {
-            [void]$arr.Add( (Apply-Fields -text $ln -fields $fields) )
+            [string](Apply-Fields -text $ln -fields $fields)
         }
-        return ,@($arr.ToArray())
     }
 
     # Emet una linia separant text i URLs: el text (si n'hi ha) va com a cos i
