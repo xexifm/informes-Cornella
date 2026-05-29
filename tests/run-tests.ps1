@@ -141,6 +141,28 @@ $urlCall  = $global:emitCalls | Where-Object { $_ -like 'URL|*' }  | Select-Obje
 AssertEq $itemCall 'ITEM|1.|Instal·lació de baixa tensió' "Format-Item rep nomes el text de l'item (sense URL)"
 AssertEq $urlCall  'URL|https://exemple.cat/baixa'        "Format-Url rep l'URL en paragraf propi"
 
+Write-Host "`n--- [OPCIO: ...] desplegables ---"
+$op = _ParseOpcio "Destinatari | a l'ajuntament (Annex II) | a l'ACA"
+AssertEq $op.Name 'Destinatari'                       '_ParseOpcio extreu el nom'
+AssertEq $op.Options.Count 2                          '_ParseOpcio extreu 2 opcions'
+AssertEq $op.Options[0] "a l'ajuntament (Annex II)"   '_ParseOpcio opcio 1 (amb parentesis)'
+AssertEq $op.Options[1] "a l'ACA"                      '_ParseOpcio opcio 2'
+
+$secO = [pscustomobject]@{
+    Title = 'Sec'
+    Items = @(
+        [pscustomobject]@{ Kind='item'; Short='it'; Selected=$true; Children=@();
+            BodyLines=@('Presentar projecte [OPCIO: Destinatari | ajuntament | ACA] amb el contingut.') }
+    )
+}
+$fo = Get-FieldsFromSelection @($secO)
+Assert ($fo.Contains('Destinatari'))                 'Get-FieldsFromSelection detecta el desplegable'
+AssertEq $fo['Destinatari'].Type 'choice'            'El camp es de tipus choice'
+AssertEq $fo['Destinatari'].Options.Count 2          'El desplegable te 2 opcions'
+AssertEq $fo['Destinatari'].Value 'ajuntament'       'Per defecte tria la primera opcio'
+$fo['Destinatari'].Value = 'ACA'
+AssertEq (Apply-Fields 'Presentar projecte [OPCIO: Destinatari | ajuntament | ACA] amb el contingut.' $fo) 'Presentar projecte ACA amb el contingut.' 'Apply-Fields substitueix el desplegable per l opcio triada'
+
 $summaryColor = if ($script:fail -eq 0) { 'Green' } else { 'Red' }
 Write-Host "`n========================================"
 Write-Host ("RESULTAT: {0} OK, {1} FAIL" -f $script:pass, $script:fail) -ForegroundColor $summaryColor

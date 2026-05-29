@@ -1056,9 +1056,26 @@ function Get-SelectedKeysFromResult($selectedSections) {
 }
 
 # ----------------------------------------------------------------------------
-# Step 4 - Field placeholders [CAMP: nom (hint)]
+# Step 4 - Field placeholders
+#   [CAMP: nom]                  -> camp de text lliure
+#   [CAMP: nom (hint)]           -> camp de text amb ajuda
+#   [OPCIO: nom | A | B | C]     -> desplegable; l'usuari tria A, B o C i el
+#                                   text triat substitueix el placeholder
 # ----------------------------------------------------------------------------
-$Script:CampRegex = [regex]'\[CAMP:\s*([^\]]+?)\s*\]'
+$Script:CampRegex  = [regex]'\[CAMP:\s*([^\]]+?)\s*\]'
+$Script:OpcioRegex = [regex]'\[OPCIO:\s*([^\]]+?)\s*\]'
+
+# Analitza el contingut d'un [OPCIO: ...]: "nom | A | B" -> nom + opcions.
+function _ParseOpcio($raw) {
+    $segs = $raw -split '\|'
+    $name = $segs[0].Trim()
+    $opts = @()
+    for ($i = 1; $i -lt $segs.Count; $i++) {
+        $o = $segs[$i].Trim()
+        if ($o -ne '') { $opts += $o }
+    }
+    return @{ Name = $name; Options = $opts }
+}
 
 function Get-FieldsFromSelection($selectedSections) {
     $fields = [ordered]@{}
@@ -1068,6 +1085,7 @@ function Get-FieldsFromSelection($selectedSections) {
             foreach ($ch in $it.Children) {
                 $allText += ' ' + ($ch.BodyLines -join ' ')
             }
+            # Camps de text [CAMP: ...]
             foreach ($m in $Script:CampRegex.Matches($allText)) {
                 $raw = $m.Groups[1].Value.Trim()
                 $name = $raw
@@ -1078,7 +1096,17 @@ function Get-FieldsFromSelection($selectedSections) {
                     $hint = $raw.Substring($parenIdx).Trim().TrimStart('(').TrimEnd(')')
                 }
                 if (-not $fields.Contains($name)) {
-                    $fields[$name] = [pscustomobject]@{ Name = $name; Hint = $hint; Value = '' }
+                    $fields[$name] = [pscustomobject]@{ Name = $name; Type = 'text'; Hint = $hint; Options = @(); Value = '' }
+                }
+            }
+            # Desplegables [OPCIO: nom | A | B]
+            foreach ($m in $Script:OpcioRegex.Matches($allText)) {
+                $parsed = _ParseOpcio $m.Groups[1].Value
+                $name = $parsed.Name
+                if ([string]::IsNullOrWhiteSpace($name)) { continue }
+                if (-not $fields.Contains($name)) {
+                    $val = if ($parsed.Options.Count -gt 0) { [string]$parsed.Options[0] } else { '' }
+                    $fields[$name] = [pscustomobject]@{ Name = $name; Type = 'choice'; Hint = ''; Options = $parsed.Options; Value = $val }
                 }
             }
         }
@@ -1094,7 +1122,7 @@ function Prompt-Fields {
     if ($preloadValues) {
         foreach ($name in $fields.Keys) {
             $v = $null
-            if ($preloadValues -is [hashtable] -and $preloadValues.ContainsKey($name)) {
+            if ($preloadValues -is [System.Collections.IDictionary] -and $preloadValues.Contains($name)) {
                 $v = $preloadValues[$name]
             } elseif ($preloadValues -is [psobject] -and ($preloadValues.PSObject.Properties.Name -contains $name)) {
                 $v = $preloadValues.$name
@@ -1109,13 +1137,13 @@ function Prompt-Fields {
     $form.AutoScroll = $true
 
     $y = 15
-    $textboxes = @{}
+    $inputs = @{}   # nom -> control (TextBox o ComboBox)
     foreach ($name in $fields.Keys) {
         $f = $fields[$name]
         $lbl = New-Object System.Windows.Forms.Label
         $lbl.Text = $name
         $lbl.Location = New-Object System.Drawing.Point(15, $y)
-        $lbl.Size = New-Object System.Drawing.Size(220, 22)
+        $lbl.Size = New-Object System.Drawing.Size(520, 22)
         $lbl.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
         $form.Controls.Add($lbl)
         $y += 22
@@ -1129,12 +1157,27 @@ function Prompt-Fields {
             $form.Controls.Add($hintLbl)
             $y += 18
         }
-        $tb = New-Object System.Windows.Forms.TextBox
-        $tb.Location = New-Object System.Drawing.Point(15, $y)
-        $tb.Size = New-Object System.Drawing.Size(520, 22)
-        $tb.Text = $f.Value
-        $form.Controls.Add($tb)
-        $textboxes[$name] = $tb
+
+        if ($f.Type -eq 'choice') {
+            # Desplegable (l'usuari nomes pot triar de la llista)
+            $cb = New-Object System.Windows.Forms.ComboBox
+            $cb.Location = New-Object System.Drawing.Point(15, $y)
+            $cb.Size = New-Object System.Drawing.Size(520, 24)
+            $cb.DropDownStyle = 'DropDownList'
+            foreach ($o in $f.Options) { [void]$cb.Items.Add($o) }
+            $idx = if ($f.Value) { $cb.Items.IndexOf([string]$f.Value) } else { -1 }
+            if ($idx -lt 0 -and $cb.Items.Count -gt 0) { $idx = 0 }
+            if ($idx -ge 0) { $cb.SelectedIndex = $idx }
+            $form.Controls.Add($cb)
+            $inputs[$name] = $cb
+        } else {
+            $tb = New-Object System.Windows.Forms.TextBox
+            $tb.Location = New-Object System.Drawing.Point(15, $y)
+            $tb.Size = New-Object System.Drawing.Size(520, 22)
+            $tb.Text = $f.Value
+            $form.Controls.Add($tb)
+            $inputs[$name] = $tb
+        }
         $y += 32
     }
 
@@ -1158,20 +1201,35 @@ function Prompt-Fields {
     $res = $form.ShowDialog()
     if ($res -eq 'Retry') { return [pscustomobject]@{ Nav='back' } }
     if ($res -ne 'OK')    { exit 0 }
-    foreach ($name in $fields.Keys) { $fields[$name].Value = $textboxes[$name].Text }
+    foreach ($name in $fields.Keys) {
+        $ctrl = $inputs[$name]
+        if ($fields[$name].Type -eq 'choice') {
+            $fields[$name].Value = if ($null -ne $ctrl.SelectedItem) { [string]$ctrl.SelectedItem } else { '' }
+        } else {
+            $fields[$name].Value = $ctrl.Text
+        }
+    }
     return [pscustomobject]@{ Nav='next'; Data=$fields }
 }
 
 function Apply-Fields($text, $fields) {
-    return $Script:CampRegex.Replace($text, {
+    # Primer els desplegables [OPCIO: nom | ...] i despres els [CAMP: ...].
+    $out = $Script:OpcioRegex.Replace($text, {
+        param($m)
+        $name = (_ParseOpcio $m.Groups[1].Value).Name
+        if ($fields.Contains($name)) { return [string]$fields[$name].Value }
+        return ''
+    })
+    $out = $Script:CampRegex.Replace($out, {
         param($m)
         $raw = $m.Groups[1].Value.Trim()
         $name = $raw
         $parenIdx = $raw.IndexOf('(')
         if ($parenIdx -ge 0) { $name = $raw.Substring(0, $parenIdx).Trim() }
-        if ($fields.Contains($name)) { return $fields[$name].Value }
+        if ($fields.Contains($name)) { return [string]$fields[$name].Value }
         return ''
     })
+    return $out
 }
 
 # Extreu els valors dels camps en un hashtable simple per a la sessio.
