@@ -301,7 +301,14 @@ function Initialize-ActivitatsCache($excelFile) {
             $rows = $data.GetLength(0)
             $cols = $data.GetLength(1)
 
-            $warnings = _ValidateActivitatsHeaders $data $rows $cols
+            # Avisos de validacio. Construim un ArrayList REAL aqui (no podem
+            # assignar directament el retorn de _ValidateActivitatsHeaders: en
+            # retornar un ArrayList, PowerShell el desempaqueta i, si es buit,
+            # $warnings quedaria $null i $warnings.Add()/.ToArray() petarien).
+            $warnings = New-Object System.Collections.ArrayList
+            foreach ($w in (_ValidateActivitatsHeaders $data $rows $cols)) {
+                if ($null -ne $w) { [void]$warnings.Add($w) }
+            }
 
             # Columnes localitzades pel TEXT de la capcalera (mes robust que un
             # index fix). Si l'Excel canvia l'ordre de columnes, segueix
