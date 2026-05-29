@@ -47,9 +47,18 @@
 #>
 
 $ErrorActionPreference = 'Stop'
-Add-Type -AssemblyName System.Windows.Forms
-Add-Type -AssemblyName System.Drawing
-[System.Windows.Forms.Application]::EnableVisualStyles()
+
+# Mode "headless" per a proves automatiques: si la variable d'entorn
+# GENINFORME_TEST esta definida, NO carreguem WinForms ni executem el
+# programa (Main). Aixo permet carregar (dot-source) el script en un Linux
+# sense Windows/Office per provar les funcions pures. En us normal (sense la
+# variable) el comportament es identic al d'abans.
+$Script:HeadlessTest = [bool]$env:GENINFORME_TEST
+if (-not $Script:HeadlessTest) {
+    Add-Type -AssemblyName System.Windows.Forms
+    Add-Type -AssemblyName System.Drawing
+    [System.Windows.Forms.Application]::EnableVisualStyles()
+}
 
 $ScriptRoot      = Split-Path -Parent $MyInvocation.MyCommand.Path
 
@@ -1638,4 +1647,4 @@ function Main {
     }
 }
 
-Main
+if (-not $Script:HeadlessTest) { Main }
