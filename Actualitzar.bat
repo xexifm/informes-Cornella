@@ -1,8 +1,13 @@
 @echo off
-REM Actualitza el programa a l'ultima versio de la branca estable "main".
+REM Actualitza el generador d'informes Cornella.
+REM - Si tens canvis locals a ESTRUCTURALS\*.docx (plantilles), els puja a GitHub.
+REM - Si tens canvis a codi (.ps1, .bat) els guarda al stash com a copia de
+REM   seguretat i continua. No es perden mai.
+REM - Sempre acaba a 'main' amb l'ultim commit i mostra resultat.
+REM
 REM Doble clic per executar.
 
-setlocal
+setlocal EnableDelayedExpansion
 title Actualitzar generador d'informes Cornella
 cd /d "%~dp0"
 
@@ -11,7 +16,19 @@ git branch --show-current
 git log -1 --format="%%h  %%s"
 echo.
 
-echo Fetching...
+REM --- 0. Detectar fitxers de bloqueig de Word/Excel ---
+dir /b "ESTRUCTURALS\~$*" >nul 2>&1
+if not errorlevel 1 (
+    echo.
+    echo  Hi ha plantilles obertes al Word ESTRUCTURALS\~$*  .
+    echo    Tanca el Word i torna a executar Actualitzar.bat.
+    echo.
+    pause
+    exit /b 1
+)
+
+REM --- 1. Fetch ---
+echo Connectant a GitHub...
 git fetch origin
 if errorlevel 1 (
     echo.
@@ -20,8 +37,23 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM Si hi ha canvis locals, els guardem en un stash de seguretat per
-REM no perdre'ls i poder fer pull sense conflictes.
+REM --- 2. Hi ha canvis a ESTRUCTURALS\*.docx ? Si si, els pugem ---
+REM    (codi ps1/bat NO el pujem mai des d'aqui: el toca Claude o tu via PR)
+set "PLANTILLES_CANVIADES=0"
+for /f "delims=" %%f in ('git status --porcelain ESTRUCTURALS ^| findstr /R "\.docx$"') do (
+    set "PLANTILLES_CANVIADES=1"
+)
+
+if "%PLANTILLES_CANVIADES%"=="1" (
+    echo Detectats canvis locals a ESTRUCTURALS\*.docx. Els pujo a GitHub...
+    git add "ESTRUCTURALS/*.docx"
+    git -c user.name="Generador d'informes" -c user.email="generador@local" commit -m "Plantilles ESTRUCTURALS actualitzades des de Actualitzar.bat"
+    if errorlevel 1 (
+        echo  No hi havia res a commitejar a ESTRUCTURALS o el commit ha fallat. Continuo.
+    )
+)
+
+REM --- 3. Si queden ALTRES canvis (codi), els guardem al stash ---
 set "STASHED=0"
 git diff --quiet
 if errorlevel 1 set "STASHED=1"
@@ -29,7 +61,7 @@ git diff --cached --quiet
 if errorlevel 1 set "STASHED=1"
 
 if "%STASHED%"=="1" (
-    echo Detectats canvis locals: els guardo com a copia de seguretat (stash)...
+    echo Hi ha canvis locals a fitxers de codi. Els guardo al stash com a copia de seguretat...
     git stash push -u -m "Auto-stash per Actualitzar.bat"
     if errorlevel 1 (
         echo ERROR: no s'ha pogut fer stash. Avorto.
@@ -38,6 +70,7 @@ if "%STASHED%"=="1" (
     )
 )
 
+REM --- 4. Anar a main i actualitzar ---
 git checkout main
 if errorlevel 1 (
     echo.
@@ -47,12 +80,29 @@ if errorlevel 1 (
     exit /b 1
 )
 
+REM Primer intentem fast-forward. Si tenim un commit local de plantilles
+REM i el remot tambe ha avancat, fem rebase per integrar-ho ordenadament.
 git pull --ff-only origin main
 if errorlevel 1 (
-    echo.
-    echo ERROR: 'git pull' ha fallat. Mira el missatge anterior.
-    pause
-    exit /b 1
+    echo Fast-forward no possible (la branca local i la remota han divergit^).
+    echo Faig rebase per integrar els canvis...
+    git pull --rebase origin main
+    if errorlevel 1 (
+        echo.
+        echo ERROR: rebase ha fallat. Probablement hi ha un conflicte.
+        echo   Executa  git status  per veure-ho. Si vols avortar:  git rebase --abort
+        pause
+        exit /b 1
+    )
+)
+
+REM --- 5. Si abans hem commitejat plantilles, pugem-les ---
+if "%PLANTILLES_CANVIADES%"=="1" (
+    echo Pujant les plantilles a GitHub...
+    git push origin main
+    if errorlevel 1 (
+        echo  No s'han pogut pujar les plantilles. Es queden en local fins la propera.
+    )
 )
 
 echo.
@@ -62,13 +112,12 @@ git log -1 --format="%%h  %%s"
 
 if "%STASHED%"=="1" (
     echo.
-    echo NOTA: els teus canvis locals han quedat guardats al stash.
-    echo   - Per recuperar-los:    git stash pop
-    echo   - Per veure'ls:         git stash list
-    echo   - Per descartar-los:    git stash drop
-    echo   En molts casos no cal fer res; el stash es una xarxa de seguretat.
+    echo NOTA: hi havia canvis locals a fitxers de codi: estan al stash.
+    echo   Per recuperar:    git stash pop
+    echo   Per veure:        git stash list
+    echo   Per descartar:    git stash drop
 )
 
 echo.
-echo Fet. Ja tens l'ultima versio.
+echo Fet.
 pause

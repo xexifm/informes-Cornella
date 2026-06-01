@@ -1443,6 +1443,27 @@ function _GetOutputFileName($catalegName, $gia) {
     return ("{0}_{1}_GIA {2}.docx" -f $today, $cat, $gia)
 }
 
+# A partir del nom base, retorna la ruta a $targetDir que no col·lisioni amb
+# cap fitxer existent. Si el primer ja existeix, prova "_2", "_3"... fins
+# trobar-ne un de lliure. Aixi pots fer diversos informes del mateix GIA el
+# mateix dia sense haver de tancar Word ni renombrar res manualment.
+#
+# Ex.: "2026-05-29_Req1_GIA 1379.docx" existeix
+#      -> torna "2026-05-29_Req1_GIA 1379_2.docx"
+function _GetUniqueOutputPath($targetDir, $baseFileName) {
+    $candidate = Join-Path $targetDir $baseFileName
+    if (-not (Test-Path -LiteralPath $candidate)) { return $candidate }
+    $stem = [System.IO.Path]::GetFileNameWithoutExtension($baseFileName)
+    $ext  = [System.IO.Path]::GetExtension($baseFileName)
+    for ($i = 2; $i -lt 1000; $i++) {
+        $candidate = Join-Path $targetDir ("{0}_{1}{2}" -f $stem, $i, $ext)
+        if (-not (Test-Path -LiteralPath $candidate)) { return $candidate }
+    }
+    # Si arribem aqui es que hi ha mes de 999 informes pel mateix GIA i dia;
+    # cas extrem, retornem un nom amb timestamp.
+    return Join-Path $targetDir ("{0}_{1}{2}" -f $stem, (Get-Date -Format 'HHmmss'), $ext)
+}
+
 # Determina el directori de sortida: l'$OutputDir si es accessible, en cas
 # contrari una subcarpeta 'Informes generats' al costat del .ps1.
 function _ResolveOutputDir {
@@ -1618,12 +1639,17 @@ function _WriteConclusionsBlock($sel, $cfg, $conclusions, $alwaysConclusions) {
 }
 
 function Build-Document($word, $header, $selectedSections, $fields, $conclusions, $alwaysConclusions, $catalegName, $introText) {
-    $fileName  = _GetOutputFileName $catalegName $header['ID_GIA']
+    $baseName  = _GetOutputFileName $catalegName $header['ID_GIA']
     $targetDir = _ResolveOutputDir
-    $outPath   = Join-Path $targetDir $fileName
+    # Triem el primer nom lliure al directori de sortida (afegim _2, _3...
+    # si ja existeix). Aixi pots generar diversos informes del mateix dia/GIA
+    # sense que cap es sobreescrigui.
+    $outPath  = _GetUniqueOutputPath $targetDir $baseName
+    $fileName = [System.IO.Path]::GetFileName($outPath)
 
     # Treballem amb una copia LOCAL (a %TEMP%) per evitar que Word obri el
     # fitxer en "Vista protegida" quan el desti es una unitat de xarxa.
+    # El temp porta el mateix nom (ja unic) que el desti final.
     $tempPath = Join-Path $env:TEMP $fileName
     $doc = _OpenOutputDocument $word $tempPath
 
