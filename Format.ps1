@@ -54,7 +54,11 @@ $Script:ReportFormatConfig = @{
     SpacerAfterIntro              = $true   # entre intro i el primer item
     SpacerAfterItem               = $true   # despres de cada item complet
     SpacerBeforeConclusionsBlock  = $true
-    SpacerBetweenConclusions      = $true
+
+    # Separacio entre conclusions: en lloc d'inserir paragrafs buits
+    # (que el Word pot col·lapsar visualment), apliquem "Space After"
+    # propi a cada conclusio. Mes robust i sempre visible.
+    ConclusionSpaceAfterPt        = 12      # punts despres de cada conclusio (0 = enganxades)
 }
 
 function _CmToPoints { param([double]$cm) return ($cm * 28.346456692913385) }
@@ -145,5 +149,10 @@ function Format-Conclusion {
     [void]$sel.TypeParagraph()
     _Reset-Char $sel
     _Apply-Indent $sel $Script:ReportFormatConfig.ConclusionIndentCm
+    # "Space After" propi del paragraf (en punts). Es robust a la
+    # compactacio visual del Word que feia que els paragrafs buits no
+    # es veiessin entre conclusions.
+    $sa = [double]$Script:ReportFormatConfig.ConclusionSpaceAfterPt
+    try { $sel.ParagraphFormat.SpaceAfter = $sa } catch { }
     if ($text) { $sel.TypeText($text) }
 }

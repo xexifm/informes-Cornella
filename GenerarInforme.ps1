@@ -1605,17 +1605,15 @@ function _WriteCatalegBody($sel, $cfg, $selectedSections, $fields, $introText) {
 }
 
 # Escriu el bloc de conclusions (les triades + les "sempre incloses").
+# La separacio entre conclusions ja la posa Format-Conclusion via SpaceAfter
+# (ConclusionSpaceAfterPt), aixi que aqui no hi fa falta un Spacer entre.
 function _WriteConclusionsBlock($sel, $cfg, $conclusions, $alwaysConclusions) {
     $hasConcl = ($conclusions.Count -gt 0) -or ($alwaysConclusions.Count -gt 0)
     if (-not $hasConcl) { return }
     if ($cfg.SpacerBeforeConclusionsBlock) { Format-Spacer $sel }
     $allConcl = @($conclusions) + @($alwaysConclusions)
-    $totalC = $allConcl.Count
-    for ($i = 0; $i -lt $totalC; $i++) {
-        Format-Conclusion $sel $allConcl[$i]
-        if ($cfg.SpacerBetweenConclusions -and $i -lt ($totalC - 1)) {
-            Format-Spacer $sel
-        }
+    foreach ($c in $allConcl) {
+        Format-Conclusion $sel $c
     }
 }
 
