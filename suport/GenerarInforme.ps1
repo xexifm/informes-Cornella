@@ -188,10 +188,19 @@ $Script:ActivitatsColumns = @(
     @{ Key='ACTIVITAT'; Col=94; HeaderHint='Activitat principal' }
 )
 
-function Find-LatestActivitatsExcel {
-    if (-not (Test-Path -LiteralPath $ActivitatsDir)) { return $null }
+# Ruta de la base de dades LOCAL al clone. Si l'usuari executa el programa
+# fora de la xarxa de la feina, pot copiar una "YYYY-MM-DD ACTIVITATS.xls"
+# a aquesta carpeta i el programa la fara servir com a fallback. La carpeta
+# es queda al clone (existeix amb un .gitkeep); els .xls/.xlsx de dins NO
+# es pugen (estan al .gitignore).
+$LocalActivitatsDir = Join-Path $RepoRoot 'BASE DE DADES ACTIVITATS'
+
+# Cerca el fitxer 'YYYY-MM-DD ACTIVITATS.xls/xlsx' mes recent en una carpeta.
+# Retorna $null si no se'n troba cap.
+function _FindLatestActivitatsIn($dir) {
+    if ([string]::IsNullOrWhiteSpace($dir) -or -not (Test-Path -LiteralPath $dir)) { return $null }
     $regex = '^(\d{4}-\d{2}-\d{2})\s+ACTIVITATS\.(xls|xlsx)$'
-    $candidates = Get-ChildItem -LiteralPath $ActivitatsDir -File -ErrorAction SilentlyContinue |
+    $candidates = Get-ChildItem -LiteralPath $dir -File -ErrorAction SilentlyContinue |
         Where-Object { $_.Name -match $regex } |
         ForEach-Object {
             if ($_.Name -match $regex) {
@@ -203,6 +212,28 @@ function Find-LatestActivitatsExcel {
         } | Sort-Object Date -Descending
     if ($candidates.Count -eq 0) { return $null }
     return $candidates[0]
+}
+
+# Cerca la base de dades en dues ubicacions, en ordre:
+#   1. $ActivitatsDir  (xarxa de la feina)
+#   2. $LocalActivitatsDir  (carpeta local del clone, fallback per a fora feina)
+# Retorna un PSCustomObject amb:
+#   File   : System.IO.FileInfo
+#   Date   : data parsejada del nom
+#   Source : 'primary' (xarxa) o 'fallback' (local del clone)
+# Si no se'n troba a cap, retorna $null.
+function Find-LatestActivitatsExcel {
+    $r = _FindLatestActivitatsIn $ActivitatsDir
+    if ($null -ne $r) {
+        Add-Member -InputObject $r -NotePropertyName Source -NotePropertyValue 'primary' -Force
+        return $r
+    }
+    $r = _FindLatestActivitatsIn $LocalActivitatsDir
+    if ($null -ne $r) {
+        Add-Member -InputObject $r -NotePropertyName Source -NotePropertyValue 'fallback' -Force
+        return $r
+    }
+    return $null
 }
 
 # Normalitza un text Unicode (sense diacritics, minuscules) per a comparacio.
@@ -468,7 +499,11 @@ function Select-Cataleg {
 # Construeix el formulari de capcalera (controls + botons), retorna la
 # tupla amb el formulari, el diccionari de controls i el boto Cercar perque
 # Get-HeaderData hi puga lligar la logica de cerca i validacio.
-function _BuildHeaderForm($excelFileLabel) {
+function _BuildHeaderForm($excelInfo) {
+    # $excelInfo: hashtable amb claus Text (string) i Source ('primary'|'fallback').
+    # Quan es 'fallback', el rotul es taronja i porta el text "[FALLBACK LOCAL]"
+    # davant perque l'usuari sapiga que NO esta usant la base de dades oficial
+    # de la xarxa.
     $form = New-Object System.Windows.Forms.Form
     $form.Text = 'Pas 2 - Dades de la capcalera'
     $form.Size = New-Object System.Drawing.Size(720, 480)
@@ -477,10 +512,16 @@ function _BuildHeaderForm($excelFileLabel) {
     $form.MaximizeBox = $false
 
     $lblBd = New-Object System.Windows.Forms.Label
-    $lblBd.Text = $excelFileLabel
     $lblBd.Location = New-Object System.Drawing.Point(15, 12)
     $lblBd.Size = New-Object System.Drawing.Size(680, 22)
-    $lblBd.ForeColor = [System.Drawing.Color]::DarkBlue
+    if ($excelInfo.Source -eq 'fallback') {
+        $lblBd.Text = "[FALLBACK LOCAL]  " + $excelInfo.Text
+        $lblBd.ForeColor = [System.Drawing.Color]::DarkOrange
+        $lblBd.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
+    } else {
+        $lblBd.Text = $excelInfo.Text
+        $lblBd.ForeColor = [System.Drawing.Color]::DarkBlue
+    }
     $form.Controls.Add($lblBd)
 
     $controls = @{}
@@ -573,9 +614,22 @@ function Get-HeaderData {
     $latest = Find-LatestActivitatsExcel
     if ($null -eq $latest) {
         [System.Windows.Forms.MessageBox]::Show(
-            "No s'ha trobat cap fitxer 'YYYY-MM-DD ACTIVITATS.xls' a:`n$ActivitatsDir",
+            "No s'ha trobat cap fitxer 'YYYY-MM-DD ACTIVITATS.xls/xlsx' a cap de les ubicacions:`n`n" +
+            "  1. $ActivitatsDir`n" +
+            "  2. $LocalActivitatsDir  (fallback local)`n`n" +
+            "Si estas fora de la feina, copia una base de dades a la carpeta`n" +
+            "'BASE DE DADES ACTIVITATS' dins de la carpeta del programa.",
             'Base de dades no trobada', 'OK', 'Error') | Out-Null
         exit 1
+    }
+    if ($latest.Source -eq 'fallback') {
+        # Avis explicit en obrir el Pas 2 perque l'usuari sapiga que esta
+        # treballant amb una copia local i no amb la xarxa de la feina.
+        [System.Windows.Forms.MessageBox]::Show(
+            "No s'ha trobat la base de dades a la xarxa.`n`n" +
+            "S'usa la copia LOCAL del clone:`n  $($latest.File.FullName)`n`n" +
+            "Comprova que sigui prou recent.",
+            'Base de dades: copia local (fallback)', 'OK', 'Warning') | Out-Null
     }
 
     # Precarrega TOTA la base de dades a memoria una sola vegada. A partir
@@ -591,8 +645,8 @@ function Get-HeaderData {
         [System.Windows.Forms.MessageBox]::Show($msg,'Avisos','OK','Warning') | Out-Null
     }
 
-    $label = "Base de dades d'activitats: $($latest.File.Name)  (data: $($latest.Date.ToString('yyyy-MM-dd'))) - $($actCache.ById.Count) activitats carregades"
-    $f = _BuildHeaderForm $label
+    $labelText = "Base de dades d'activitats: $($latest.File.Name)  (data: $($latest.Date.ToString('yyyy-MM-dd'))) - $($actCache.ById.Count) activitats carregades"
+    $f = _BuildHeaderForm @{ Text = $labelText; Source = $latest.Source }
     $form       = $f.Form
     $controls   = $f.Controls
     $btnSearch  = $f.BtnSearch

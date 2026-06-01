@@ -315,6 +315,46 @@ $global:typed.Clear()
 Type-RichText $selMock ''
 AssertEq $global:typed.Count 0 'Type-RichText: text buit no fa res'
 
+Write-Host "`n--- Find-LatestActivitatsExcel (primary -> fallback local) ---"
+$tmpRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("xlsdb_" + [Guid]::NewGuid().ToString('N'))
+$tmpPrimary  = Join-Path $tmpRoot 'primary'
+$tmpFallback = Join-Path $tmpRoot 'fallback'
+New-Item -ItemType Directory -Path $tmpPrimary, $tmpFallback | Out-Null
+try {
+    # Sobreescrivim les variables que llegeix Find-LatestActivitatsExcel
+    $savedAD = $ActivitatsDir
+    $savedLD = $LocalActivitatsDir
+    Set-Variable -Name ActivitatsDir      -Value $tmpPrimary  -Scope Script
+    Set-Variable -Name LocalActivitatsDir -Value $tmpFallback -Scope Script
+
+    # Cas A: cap fitxer enlloc
+    Assert ($null -eq (Find-LatestActivitatsExcel)) 'A: cap fitxer enlloc -> null'
+
+    # Cas B: nomes al fallback -> Source=fallback
+    Set-Content -LiteralPath (Join-Path $tmpFallback '2023-01-15 ACTIVITATS.xlsx') -Value 'x'
+    $rB = Find-LatestActivitatsExcel
+    Assert ($null -ne $rB)               'B: trobat (fallback)'
+    AssertEq $rB.Source 'fallback'       'B: Source = fallback'
+    AssertEq $rB.File.Name '2023-01-15 ACTIVITATS.xlsx' 'B: fitxer correcte'
+
+    # Cas C: hi ha al primary (encara que el fallback tambe en tingui) -> primary guanya
+    Set-Content -LiteralPath (Join-Path $tmpPrimary '2024-03-20 ACTIVITATS.xls') -Value 'x'
+    Set-Content -LiteralPath (Join-Path $tmpPrimary '2024-08-01 ACTIVITATS.xlsx') -Value 'x'
+    $rC = Find-LatestActivitatsExcel
+    AssertEq $rC.Source 'primary'                       'C: primary guanya sobre fallback'
+    AssertEq $rC.File.Name '2024-08-01 ACTIVITATS.xlsx' 'C: agafa el mes recent del primary'
+
+    # Cas D: primary inaccessible -> cau al fallback
+    Remove-Item -LiteralPath $tmpPrimary -Recurse -Force
+    $rD = Find-LatestActivitatsExcel
+    AssertEq $rD.Source 'fallback'  'D: primary no existeix -> fallback'
+
+    Set-Variable -Name ActivitatsDir      -Value $savedAD -Scope Script
+    Set-Variable -Name LocalActivitatsDir -Value $savedLD -Scope Script
+} finally {
+    Remove-Item -LiteralPath $tmpRoot -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 $summaryColor = if ($script:fail -eq 0) { 'Green' } else { 'Red' }
 Write-Host "`n========================================"
 Write-Host ("RESULTAT: {0} OK, {1} FAIL" -f $script:pass, $script:fail) -ForegroundColor $summaryColor

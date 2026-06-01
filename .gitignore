@@ -9,3 +9,9 @@ Desktop.ini
 
 # Carpetes locals d'informes generats (fallback quan la I: no es accessible).
 Informes generats/
+
+# Base de dades d'activitats LOCAL (fallback per a us fora de la feina).
+# La carpeta es mante al repo (amb un README.txt); els .xls/.xlsx de
+# dins NO es pugen.
+BASE DE DADES ACTIVITATS/*.xls
+BASE DE DADES ACTIVITATS/*.xlsx

@@ -15,6 +15,7 @@ informes-Cornella/
 │   ├── 0 CAPCALERA.docx           ← capçalera fixa de l'informe
 │   ├── 0 CONCLUSIONS.docx         ← conclusions triables + fixes
 │   └── REQ1.docx                  ← catàleg de deficiències
+├── BASE DE DADES ACTIVITATS/      ← (fallback local) copia local de l'Excel quan no hi ha xarxa
 ├── Informes generats/             ← (local, gitignored) on cauen els .docx generats
 └── suport/                        ← codi del programa, no cal tocar-lo
     ├── GenerarInforme.ps1
@@ -27,7 +28,10 @@ informes-Cornella/
 
 **Pots moure la carpeta `informes-Cornella` on vulguis dins del PC**:
 tot és relatiu. L'única ruta absoluta del programa és la **base de dades
-d'activitats** (`I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\2_Controls Excels`).
+d'activitats** a la xarxa de la feina
+(`I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\2_Controls Excels`).
+Si executes el programa fora de la feina i la xarxa no és accessible,
+mira el [capítol 6: ús fora de la feina](#6-ús-fora-de-la-feina-fallback-local).
 
 ---
 
@@ -204,7 +208,45 @@ ConclusionSpaceAfterPt = 12     # prova 18 si vols més espai
 
 ---
 
-## 6. Capçalera (`0 CAPCALERA.docx`)
+## 6. Ús fora de la feina (fallback local)
+
+Quan executes el programa **fora de la xarxa de la feina** (la unitat
+`I:` no és accessible), el programa fa servir la carpeta
+**`BASE DE DADES ACTIVITATS/`** dins de `informes-Cornella` com a font
+alternativa de la base de dades.
+
+### Com fer-ho servir
+1. A l'oficina, copia el fitxer `YYYY-MM-DD ACTIVITATS.xls` o `.xlsx`
+   més recent dins de `informes-Cornella/BASE DE DADES ACTIVITATS/`.
+2. Al PC de fora, executa `GenerarInforme.bat` normalment.
+
+### Ordre de cerca
+El programa busca la base de dades en aquest ordre:
+1. **Xarxa de la feina** (`$ActivitatsDir`, ruta `I:\...`).
+2. **Fallback local** (`BASE DE DADES ACTIVITATS/` del clone).
+
+Si el primer és accessible, sempre s'usa la xarxa. Si no, cau al local.
+
+### Com sé quina s'està fent servir
+Al **Pas 2** ho indica clarament a l'etiqueta superior:
+- **Normal (blau)**: `Base de dades d'activitats: 2026-05-29 ACTIVITATS.xlsx ...`
+- **Fallback (taronja, negreta)**: `[FALLBACK LOCAL]  Base de dades d'activitats: ...`
+
+A més, en obrir el Pas 2 amb fallback surt un avís emergent recordant
+de comprovar que la còpia local sigui prou recent.
+
+### Notes
+- Els fitxers `.xls` / `.xlsx` dins de `BASE DE DADES ACTIVITATS/` **no**
+  es pugen a GitHub (estan al `.gitignore`). Es queden només al teu PC.
+- Si vols actualitzar la còpia local, simplement copia el fitxer més
+  recent a la carpeta i esborra els antics (o deixa'ls: el programa
+  agafa el de data més recent per nom).
+- Si executes el programa **sense xarxa i sense còpia local**, el
+  programa s'atura amb un missatge explicant les dues ubicacions.
+
+---
+
+## 7. Capçalera (`0 CAPCALERA.docx`)
 
 Placeholders amb format `<<NOM>>` que el programa substitueix amb els
 valors del Pas 2:
@@ -225,7 +267,7 @@ manualment després de la cerca.
 
 ---
 
-## 7. Afegir un catàleg nou
+## 8. Afegir un catàleg nou
 
 Posa un altre `.docx` a `ESTRUCTURALS/` (per ex. `REQ2.docx`) amb la
 mateixa estructura del REQ1. **No pot començar per `0 `** (aquests són
@@ -234,7 +276,7 @@ el Pas 1 et deixarà triar.
 
 ---
 
-## 8. Configuració local (`suport/config.ps1`)
+## 9. Configuració local (`suport/config.ps1`)
 
 Fitxer **opcional** per personalitzar rutes/constants només al teu PC.
 Si no existeix s'usen els valors per defecte. Variables disponibles:
@@ -247,7 +289,7 @@ $AlwaysConclusionsCount = 2        # (obsolet, ara s'usa ::SEMPRE::)
 
 ---
 
-## 9. Resolució de problemes
+## 10. Resolució de problemes
 
 ### "Word obert: tanca'l"
 Tens una plantilla oberta (`~$ESTRUCTURALS\...`). Tanca el Word i torna
@@ -276,7 +318,7 @@ git stash drop      # esborrar-lo
 
 ---
 
-## 10. Per a desenvolupadors
+## 11. Per a desenvolupadors
 
 ### Estructura tècnica
 - **Mode headless** (`$env:GENINFORME_TEST = '1'`): el script només
