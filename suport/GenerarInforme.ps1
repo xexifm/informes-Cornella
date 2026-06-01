@@ -72,6 +72,12 @@ $RepoRoot        = Split-Path -Parent $ScriptRoot
 # d'informes.
 . (Join-Path $ScriptRoot 'Format.ps1')
 
+# Carreguem el modul de seguiment (Seguiment.ps1). Conte el mode "Informe de
+# seguiment" (afegir anotacions de resolucio sobre un informe anterior). Es
+# carrega tambe en mode headless perque les seves funcions pures es puguin
+# provar des dels tests.
+. (Join-Path $ScriptRoot 'Seguiment.ps1')
+
 # ESTRUCTURALS viu a l'arrel del clone (al costat dels .bat), no dins
 # de suport/, per facilitar que l'usuari edita les plantilles.
 $EstructuralsDir = Join-Path $RepoRoot 'ESTRUCTURALS'
@@ -88,6 +94,15 @@ $ConclusionsPath = Join-Path $EstructuralsDir '0 CONCLUSIONS.docx'
 $OutputDir              = Join-Path $RepoRoot 'Informes generats'
 $ActivitatsDir          = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\2_Controls Excels'
 $AlwaysConclusionsCount = 2
+
+# Mode "Informe de seguiment": frases que marquen l'inici del bloc de
+# conclusions a esborrar de l'informe anterior. La deteccio es insensible a
+# accents/majuscules. Es pot sobreescriure des de config.ps1.
+$SeguimentConclusionPhrases = @(
+    "Vist l'anterior",
+    'Ho poso al seu coneixement',
+    'Cornella de Llobregat,'
+)
 
 $configPath = Join-Path $ScriptRoot 'config.ps1'
 if (Test-Path -LiteralPath $configPath) {
@@ -1856,6 +1871,15 @@ function Main {
     if (-not (Test-Path $HeaderPath)) {
         [System.Windows.Forms.MessageBox]::Show("No s'ha trobat $HeaderPath",'Error','OK','Error') | Out-Null
         exit 1
+    }
+
+    # Pas 0: tria de mode. "seguiment" es un flux autonom (Seguiment.ps1) que
+    # gestiona la seva propia app de Word; el wizard de 6 passos de sota queda
+    # intacte per al mode "nou".
+    $mode = Select-Mode
+    if ($mode -eq 'seguiment') {
+        Invoke-SeguimentFlow
+        return
     }
 
     # Assistent navegable. Cada pas (dialeg) retorna un objecte amb:

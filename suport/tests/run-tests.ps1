@@ -355,6 +355,87 @@ try {
     Remove-Item -LiteralPath $tmpRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
 
+Write-Host "`n--- Seguiment: _ClassifyParagraph ---"
+$cReq = _ClassifyParagraph '1. Baixa tensio. Cal legalitzar.' ''
+AssertEq $cReq.Kind 'requirement'      '_ClassifyParagraph requeriment literal -> requirement'
+AssertEq $cReq.Number 1                '_ClassifyParagraph captura el numero del requeriment'
+Assert (-not $cReq.ViaList)            '_ClassifyParagraph requeriment literal: ViaList=false'
+$cAnn = _ClassifyParagraph "01/06/2026: No s'entrega." ''
+AssertEq $cAnn.Kind 'annotation'       '_ClassifyParagraph anotacio datada -> annotation'
+AssertEq $cAnn.Date '01/06/2026'       '_ClassifyParagraph normalitza la data'
+$cAnn2 = _ClassifyParagraph '3/6/2026: ok' ''
+AssertEq $cAnn2.Date '03/06/2026'      '_ClassifyParagraph normalitza data d/M -> dd/MM'
+$cOther = _ClassifyParagraph 'Text qualsevol sense numero' ''
+AssertEq $cOther.Kind 'other'          '_ClassifyParagraph text normal -> other'
+$cList = _ClassifyParagraph 'Baixa tensio sense numero literal' '1.'
+AssertEq $cList.Kind 'requirement'     '_ClassifyParagraph auto-numerat per ListString -> requirement'
+AssertEq $cList.Number 1               '_ClassifyParagraph ListString aporta el numero'
+Assert ($cList.ViaList)                '_ClassifyParagraph auto-numerat: ViaList=true'
+
+Write-Host "`n--- Seguiment: _InferResolvedFromBold / _ShouldBeBold ---"
+Assert (_InferResolvedFromBold 0)          '_InferResolvedFromBold 0 (res negreta) -> resolt'
+Assert (-not (_InferResolvedFromBold -1))  '_InferResolvedFromBold -1 (tot negreta) -> pendent'
+Assert (-not (_InferResolvedFromBold 9999999)) '_InferResolvedFromBold 9999999 (mixt) -> pendent'
+Assert (_ShouldBeBold $false)              '_ShouldBeBold: no resolt -> negreta'
+Assert (-not (_ShouldBeBold $true))        '_ShouldBeBold: resolt -> sense negreta'
+
+Write-Host "`n--- Seguiment: _FindConclusionStartIndex ---"
+$pt = @(
+    '1. Baixa tensio. Vist l anterior cal aportar.',  # frase DINS un requeriment (no ha de disparar)
+    '01/06/2026: No s entrega.',
+    "Vist l'anterior, cal requerir l'esmena.",          # inici real de conclusions (paragraf 3)
+    'Ho poso al seu coneixement als efectes oportuns,',
+    'Cornella de Llobregat,'
+)
+AssertEq (_FindConclusionStartIndex $pt 1 $SeguimentConclusionPhrases) 3 '_FindConclusionStartIndex ancora despres de l ultim requeriment'
+$ptAcc = @('1. req', "CORNELLÀ DE LLOBREGAT,")
+AssertEq (_FindConclusionStartIndex $ptAcc 1 @('Cornella de Llobregat,')) 2 '_FindConclusionStartIndex insensible a accents/majuscules'
+$ptNone = @('1. req', 'res a veure aqui')
+AssertEq (_FindConclusionStartIndex $ptNone 1 $SeguimentConclusionPhrases) -1 '_FindConclusionStartIndex sense frase -> -1'
+
+Write-Host "`n--- Seguiment: _ValidateRoundDate ---"
+$vd1 = _ValidateRoundDate '01/06/2026'
+Assert $vd1.Ok                              '_ValidateRoundDate data valida -> Ok'
+AssertEq $vd1.Normalized '01/06/2026'       '_ValidateRoundDate conserva la data valida'
+$vd2 = _ValidateRoundDate '3/6/2026'
+AssertEq $vd2.Normalized '03/06/2026'       '_ValidateRoundDate normalitza d/M/yyyy'
+$vd3 = _ValidateRoundDate '32/13/2026'
+Assert (-not $vd3.Ok)                       '_ValidateRoundDate data impossible -> no Ok'
+$vd4 = _ValidateRoundDate ''
+Assert $vd4.Ok                              '_ValidateRoundDate buit -> Ok (avui)'
+Assert ($vd4.Normalized -match '^\d{2}/\d{2}/\d{4}$') '_ValidateRoundDate buit -> forma dd/MM/yyyy'
+
+Write-Host "`n--- Seguiment: _FormatAnnotationLine ---"
+AssertEq (_FormatAnnotationLine '01/06/2026' "No s'entrega.") "01/06/2026: No s'entrega." '_FormatAnnotationLine compon "data: comentari"'
+AssertEq (_FormatAnnotationLine '01/06/2026' '  espais  ') '01/06/2026: espais' '_FormatAnnotationLine fa trim del comentari'
+
+Write-Host "`n--- Seguiment: _SeguimentOutputName ---"
+$d = [datetime]'2026-06-05'
+AssertEq (_SeguimentOutputName '2026-05-29_Req1_GIA 1379' $d) '2026-06-05_Req1_GIA 1379_SEG.docx' '_SeguimentOutputName esquema programa -> _SEG amb GIA preservat'
+AssertEq (_SeguimentOutputName '2026-05-29_Req1_GIA 1379_SEG' $d) '2026-06-05_Req1_GIA 1379_SEG.docx' '_SeguimentOutputName re-seguiment no duplica _SEG'
+AssertEq (_SeguimentOutputName 'Informe antic fet a ma' $d) '2026-06-05_Seguiment_Informe antic fet a ma.docx' '_SeguimentOutputName font feta a ma -> prefix Seguiment'
+AssertEq (_SeguimentOutputName 'a/b:c' $d) '2026-06-05_Seguiment_a_b_c.docx' '_SeguimentOutputName saneja caracters il-legals'
+
+Write-Host "`n--- Seguiment: _BuildSeguimentModel ---"
+$recs = @(
+    [pscustomobject]@{ Index=1; Text='Capcalera intro';                 ListString=''; Bold=0 }
+    [pscustomobject]@{ Index=2; Text='1. Baixa tensio. Cal legalitzar.'; ListString=''; Bold=9999999 }
+    [pscustomobject]@{ Index=3; Text='01/06/2026: No s entrega.';        ListString=''; Bold=-1 }
+    [pscustomobject]@{ Index=4; Text='03/06/2026: Falten dades.';        ListString=''; Bold=-1 }
+    [pscustomobject]@{ Index=5; Text='2. Alta tensio. Cal projecte.';    ListString=''; Bold=0 }
+    [pscustomobject]@{ Index=6; Text="Vist l'anterior, cal requerir.";   ListString=''; Bold=0 }
+)
+$model = _BuildSeguimentModel $recs
+AssertEq $model.Requirements.Count 2          '_BuildSeguimentModel detecta 2 requeriments'
+AssertEq $model.LastReqParaIndex 5            '_BuildSeguimentModel ultim requeriment a l index 5'
+AssertEq $model.Requirements[0].ParaIndex 2   '_BuildSeguimentModel req1 a l index 2'
+AssertEq $model.Requirements[0].Annotations.Count 2 '_BuildSeguimentModel req1 amb 2 anotacions'
+AssertEq $model.Requirements[0].Annotations[1].ParaIndex 4 '_BuildSeguimentModel anotacio 2 del req1 a l index 4'
+Assert (-not $model.Requirements[0].WasResolved) '_BuildSeguimentModel req1 (bold mixt) -> pendent'
+Assert ($model.Requirements[1].WasResolved)      '_BuildSeguimentModel req2 (bold 0) -> resolt'
+$startC = _FindConclusionStartIndex (@($recs | ForEach-Object { $_.Text })) $model.LastReqParaIndex $SeguimentConclusionPhrases
+AssertEq $startC 6                            '_BuildSeguimentModel + deteccio: conclusions a l index 6'
+
 $summaryColor = if ($script:fail -eq 0) { 'Green' } else { 'Red' }
 Write-Host "`n========================================"
 Write-Host ("RESULTAT: {0} OK, {1} FAIL" -f $script:pass, $script:fail) -ForegroundColor $summaryColor
