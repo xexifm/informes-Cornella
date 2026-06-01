@@ -1,0 +1,11 @@
+# Fitxers de bloqueig temporals de Word/Excel (apareixen quan el fitxer
+# esta obert; desapareixen en tancar-lo). Mai s'han de versionar.
+~$*
+
+# Cache de miniatures del Windows Explorer.
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Carpetes locals d'informes generats (fallback quan la I: no es accessible).
+Informes generats/
