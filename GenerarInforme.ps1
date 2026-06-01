@@ -666,6 +666,26 @@ function Get-HeaderData {
 # enllacos al document final. El parseig d'un .docx triga molt poc, aixi que
 # es fa sempre en fresc. Si en el futur es vol cachejar, cal fer-ho amb
 # Export-Clixml/Import-Clixml (preserva tipus i arrays), no amb JSON.
+# Cert si $styleName encaixa amb "Heading N" (N=1 o 2) en qualsevol de les
+# variants que escupen els Word EN/CA/ES, incloent les variants compactades
+# 'Ttulo1' / 'Ttulo 1' que apareixen amb el Word castella d'algunes versions.
+function Test-StyleMatch([string]$styleName, [int]$level) {
+    if ([string]::IsNullOrWhiteSpace($styleName)) { return $false }
+    # Normalitzem: minuscules, treiem accents i caracters no alfanumerics
+    # (espais, guions, etc.), aixi 'Título 1', 'Titol 1' i 'Ttulo1' col·lapsen.
+    $n = (_NormalizeText $styleName) -replace '[^a-z0-9]',''
+    $patterns = @(
+        "heading$level",
+        "titulo$level",
+        "titol$level",
+        "ttulo$level"     # variant que apareix per a 'Ttulo1' (sense accent ni espai)
+    )
+    foreach ($pat in $patterns) {
+        if ($n -eq $pat) { return $true }
+    }
+    return $false
+}
+
 function Get-ParsedCataleg($word, $path) {
     return (Parse-Cataleg -word $word -path $path)
 }
@@ -682,6 +702,14 @@ function Parse-Cataleg($word, $path) {
     #                           'subsection' (Heading 2 ::SUB::)
     #                           'intro'      (Heading 2 ::INTRO::)
     #                         Els items poden tenir Children (Heading 2 ::CHILD::).
+    #
+    # Estils Word reconeguts (NameLocal segons l'idioma del Word de l'usuari):
+    #   Heading 1, Titol 1, Titulo 1, Tisingleitulo 1 (placeholder per a accents):
+    #   en realitat: 'Titulo 1', 'Título 1', 'Titol 1', 'Títol 1' i la variant
+    #   compactada 'Ttulo1' / 'Ttulo 1' que apareix amb alguns Word castellans.
+    #
+    # Estil 'Cita' (o 'Cite'/'Quote' en angles, 'Cita' en castella/catala) es
+    # tracta com a paragraf d'URL: el text es l'enllac.
     $doc = $word.Documents.Open($path, $false, $true)  # ReadOnly
     try {
         $sections      = New-Object System.Collections.ArrayList
@@ -696,8 +724,13 @@ function Parse-Cataleg($word, $path) {
 
             $styleName = ''
             try { $styleName = $p.Style.NameLocal } catch { }
-            $isH1 = ($styleName -match '^(Heading 1|Titol 1|Titulo 1|T.tulo 1)$')
-            $isH2 = ($styleName -match '^(Heading 2|Titol 2|Titulo 2|T.tulo 2)$')
+            # Acceptem: amb/sense espai, amb/sense accent, i diversos idiomes.
+            #   "Heading 1"  (en),  "Titol 1"/"Titulo 1" (ca/es),
+            #   "Titulo 1" amb i sense espai/accent,
+            #   "Ttulo1" i "Ttulo 1" (com els desa el Word castella en alguns casos).
+            $isH1 = (Test-StyleMatch $styleName 1)
+            $isH2 = (Test-StyleMatch $styleName 2)
+            $isCita = ($styleName -match '^(Cita|Cite|Quote|Cita destacada|Quote intense)$')
 
             if ($isH1) {
                 $currentSection = [pscustomobject]@{
@@ -742,10 +775,16 @@ function Parse-Cataleg($word, $path) {
                 continue
             }
 
-            # Paragraf Normal: l'afegim al BodyLines de l'element actiu.
+            # Paragraf Normal o Cita: l'afegim al BodyLines de l'element actiu.
+            # Si l'estil es Cita, marquem el text amb un prefix intern [[URL]]
+            # perque l'emissor (_SplitTextAndUrls) el tracti SEMPRE com a URL
+            # (i no com a text), encara que no comenci per "http". Aixo permet
+            # a l'usuari marcar enllacos al Word de manera explicita per estil,
+            # sense dependre de regex sobre el contingut.
+            $textToAdd = if ($isCita) { '[[URL]] ' + $text } else { $text }
             if ($null -eq $lastH2) {
                 if ($null -eq $currentSection -and [string]::IsNullOrWhiteSpace($introText)) {
-                    $introText = $text
+                    $introText = $textToAdd
                 }
                 continue
             }
@@ -753,7 +792,7 @@ function Parse-Cataleg($word, $path) {
             if ($lastH2.Kind -eq 'item' -and $lastH2.Children.Count -gt 0) {
                 $target = $lastH2.Children[$lastH2.Children.Count - 1]
             }
-            [void]$target.BodyLines.Add($text)
+            [void]$target.BodyLines.Add($textToAdd)
         }
         return [pscustomobject]@{ IntroText = $introText; Sections = $sections }
     }
@@ -1241,11 +1280,21 @@ function Get-FieldValuesForSession($fields) {
 
 # Separa el text d'una linia dels URLs que pugui contenir. Retorna:
 #   @{ Text = '<tot el que hi ha abans del primer URL>'; Urls = @(url1, url2...) }
-# Aixi, encara que al cataleg l'enllac estigui enganxat al text de l'item
-# (p. ex. "Instal.lacio de baixa tensio https://..."), l'enllac s'emet en un
-# paragraf propi com a hipervincle, ben diferenciat del text.
+#
+# Hi ha dues fonts d'URLs reconegudes:
+#   1. Prefix intern '[[URL]] ': el ha posat Parse-Cataleg quan el paragraf
+#      del .docx te estil 'Cita' (manera explicita, recomanada al cataleg
+#      modern). En aquest cas tota la linia es l'URL.
+#   2. Deteccio per contingut: qualsevol token que comenci per 'http://' o
+#      'https://' (retrocompatible amb cataleg vell).
 function _SplitTextAndUrls($line) {
     if ([string]::IsNullOrWhiteSpace($line)) { return @{ Text=''; Urls=@() } }
+    # Cas 1: estil Cita marcat per Parse-Cataleg.
+    if ($line.StartsWith('[[URL]] ')) {
+        $url = $line.Substring('[[URL]] '.Length).Trim()
+        return @{ Text=''; Urls=@($url) }
+    }
+    # Cas 2: deteccio per contingut.
     $m = [regex]::Match($line, 'https?://')
     if (-not $m.Success) { return @{ Text = $line.Trim(); Urls=@() } }
     $text = $line.Substring(0, $m.Index).Trim()

@@ -163,6 +163,33 @@ AssertEq $fo['Destinatari'].Value 'ajuntament'       'Per defecte tria la primer
 $fo['Destinatari'].Value = 'ACA'
 AssertEq (Apply-Fields 'Presentar projecte [OPCIO: Destinatari | ajuntament | ACA] amb el contingut.' $fo) 'Presentar projecte ACA amb el contingut.' 'Apply-Fields substitueix el desplegable per l opcio triada'
 
+Write-Host "`n--- Test-StyleMatch (variants d'estil Word EN/CA/ES) ---"
+foreach ($s in 'Heading 1','Titulo 1','Título 1','Titol 1','Títol 1','Ttulo1','Ttulo 1','TÍTULO 1') {
+    Assert (Test-StyleMatch $s 1) ("Test-StyleMatch nivell 1: '$s' -> true")
+}
+foreach ($s in 'Heading 2','Titulo 2','Título 2','Ttulo2','Ttulo 2') {
+    Assert (Test-StyleMatch $s 2) ("Test-StyleMatch nivell 2: '$s' -> true")
+}
+Assert (-not (Test-StyleMatch 'Normal' 1))    "Test-StyleMatch 'Normal' nivell 1 -> false"
+Assert (-not (Test-StyleMatch 'Cita' 1))      "Test-StyleMatch 'Cita' nivell 1 -> false"
+Assert (-not (Test-StyleMatch 'Titulo 1' 2))  "Test-StyleMatch 'Titulo 1' nivell 2 -> false"
+Assert (-not (Test-StyleMatch $null 1))       "Test-StyleMatch null -> false"
+Assert (-not (Test-StyleMatch '' 1))          "Test-StyleMatch buit -> false"
+
+Write-Host "`n--- _SplitTextAndUrls amb marcador [[URL]] (estil Cita) ---"
+$cita1 = _SplitTextAndUrls '[[URL]] https://example.com/path'
+AssertEq $cita1.Text ''                                '[[URL]] tota la linia es URL: Text buit'
+AssertEq $cita1.Urls.Count 1                           '[[URL]] genera 1 url'
+AssertEq $cita1.Urls[0] 'https://example.com/path'     '[[URL]] captura l URL'
+# Sense http (per quan l'usuari posi un text amb estil Cita): tambe ha de funcionar
+$cita2 = _SplitTextAndUrls '[[URL]] www.exemple.cat'
+AssertEq $cita2.Urls.Count 1                           '[[URL]] tambe accepta www sense http'
+AssertEq $cita2.Urls[0] 'www.exemple.cat'              '[[URL]] captura www correctament'
+# Cas retrocompatible: sense marcador, http al mig (continua funcionant)
+$noflag = _SplitTextAndUrls 'Veure https://x.cat/y al web'
+AssertEq $noflag.Text 'Veure'                          'Sense [[URL]]: text abans de http (retrocompatibilitat)'
+AssertEq $noflag.Urls.Count 1                          'Sense [[URL]]: 1 url detectada per contingut'
+
 $summaryColor = if ($script:fail -eq 0) { 'Green' } else { 'Red' }
 Write-Host "`n========================================"
 Write-Host ("RESULTAT: {0} OK, {1} FAIL" -f $script:pass, $script:fail) -ForegroundColor $summaryColor
