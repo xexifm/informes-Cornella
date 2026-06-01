@@ -53,6 +53,50 @@ Els botons **Enrere** dels passos 2-5 permeten tornar enrere conservant les
 dades. Hi ha també un botó **Recuperar dades últim informe** al pas 2 per
 clonar l'informe anterior i tirar pas a pas.
 
+> En obrir `GenerarInforme.bat` surt primer una pantalla per triar entre
+> **Generar informe nou** (els 6 passos d'aquí) i **Fer seguiment d'un
+> informe existent** (vegeu a sota).
+
+### Fer el seguiment d'un informe
+
+Serveix per indicar, sobre un informe ja emès, si l'activitat ha **resolt o
+no** cada requeriment. És **iteratiu**: si una activitat entrega diverses
+vegades, sota cada punt s'hi acumulen línies datades:
+
+```
+1. Baixa tensió. S'ha d'entregar la legalització.
+01/06/2026: No s'entrega.
+03/06/2026: S'entrega però falten dades.
+05/06/2026: S'entrega correctament.
+```
+
+A la pantalla inicial tria **Fer seguiment d'un informe existent**. Després:
+
+| Pas | Què fa |
+|-----|--------|
+| 1 | Tries l'informe anterior (`.docx`). Pot ser fet amb el programa o a mà, sempre que tingui requeriments enumerats (`1.`, `2.`…). |
+| 2 | El programa detecta el bloc de conclusions antic i **et mostra què esborrarà** perquè ho confirmis (o ho ajustis a mà si és un informe atípic). |
+| 3 | Escrius la **data** d'aquesta entrega (per defecte, avui). |
+| 4 | Per cada requeriment: escrius el **comentari** i marques **Resolt** si ha quedat resolt. Es veu l'historial d'anotacions anteriors. |
+| 5 | Tries les **conclusions** noves (com a l'informe normal) i omples els camps que calguin. |
+| 6 | Es genera un `.docx` nou (sufix `_SEG`) i s'obre amb Word. |
+
+**Què fa exactament:**
+- **No toca** la capçalera ni el text dels requeriments de l'informe anterior.
+- **Esborra** les conclusions antigues (el que va després de l'últim punt
+  enumerat, normalment des de *"Vist l'anterior…"* fins a *"Cornellà de
+  Llobregat,"*) i hi posa les noves que triïs.
+- Sota cada requeriment afegeix la línia `data: comentari`.
+- **Negreta dinàmica**: mentre un requeriment NO estigui resolt, el punt i les
+  seves anotacions van en **negreta**; quan el marques com a resolt, deixen
+  d'anar-hi. Així, d'una ullada, el que és en negreta és el que encara falta.
+
+El resultat torna a ser un "informe anterior" vàlid: pots tornar-hi a passar el
+seguiment a la ronda següent i s'hi afegirà una línia nova sense duplicar res.
+
+Les frases que marquen on comencen les conclusions a esborrar es poden
+personalitzar a `suport/config.ps1` (`$SeguimentConclusionPhrases`).
+
 ### Actualitzar el programa
 **Doble clic a `Actualitzar.bat`**. Fa el següent:
 

@@ -21,3 +21,14 @@ $ActivitatsDir = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\2_Contro
 # conclusions del final del fitxer 0 CONCLUSIONS.docx s'inclouen sempre
 # al document final. Avui els paragrafs fixos es marquen amb '::SEMPRE::'.
 $AlwaysConclusionsCount = 2
+
+# Mode "Informe de seguiment": frases que marquen on comenca el bloc de
+# conclusions de l'informe anterior (es a dir, on s'ha de tallar i esborrar).
+# La comparacio es insensible a accents/majuscules. Descomenta per
+# personalitzar-ho si els teus informes antics fan servir un altre tancament:
+#
+# $SeguimentConclusionPhrases = @(
+#     "Vist l'anterior",
+#     'Ho poso al seu coneixement',
+#     'Cornella de Llobregat,'
+# )
