@@ -105,7 +105,7 @@ function Format-Item {
     $sel.Font.Bold = 1
     $sel.TypeText("$number ")
     $sel.Font.Bold = 0
-    if ($text) { $sel.TypeText($text) }
+    if ($text) { Type-RichText $sel $text }
 }
 
 function Format-Body {
@@ -115,7 +115,7 @@ function Format-Body {
     $indent = if ($IsChild) { $Script:ReportFormatConfig.ChildIndentCm }
               else          { $Script:ReportFormatConfig.ItemIndentCm }
     _Apply-Indent $sel $indent
-    if ($text) { $sel.TypeText($text) }
+    if ($text) { Type-RichText $sel $text }
 }
 
 function Format-Url {
@@ -154,5 +154,51 @@ function Format-Conclusion {
     # es veiessin entre conclusions.
     $sa = [double]$Script:ReportFormatConfig.ConclusionSpaceAfterPt
     try { $sel.ParagraphFormat.SpaceAfter = $sa } catch { }
+    if ($text) { Type-RichText $sel $text }
+}
+
+# Titol del bloc de conclusions: text centrat i en negreta.
+function Format-ConclusionHeader {
+    param($sel, [string]$text)
+    [void]$sel.TypeParagraph()
+    _Reset-Char $sel
+    _Apply-Indent $sel 0
+    try { $sel.ParagraphFormat.Alignment = 1 } catch { }   # 1 = wdAlignParagraphCenter
+    try { $sel.ParagraphFormat.SpaceAfter = 12 } catch { }
+    $sel.Font.Bold = 1
     if ($text) { $sel.TypeText($text) }
+    $sel.Font.Bold = 0
+    try { $sel.ParagraphFormat.Alignment = 3 } catch { }   # 3 = wdAlignParagraphJustify (per defecte)
+}
+
+# Type-RichText: escriu text al document interpretant marcadors inline:
+#   **negreta**   -> text en negreta
+#   //cursiva//   -> text en cursiva
+# La resta s'escriu normal. Es respecta el format de paragraf actual.
+function Type-RichText {
+    param($sel, [string]$text)
+    if ([string]::IsNullOrEmpty($text)) { return }
+    # Regex: captura segments alternatius (text normal o marcat).
+    # Es no-greedy per als marcadors.
+    $pattern = '\*\*(.+?)\*\*|//(.+?)//'
+    $rx = [regex]$pattern
+    $pos = 0
+    foreach ($m in $rx.Matches($text)) {
+        if ($m.Index -gt $pos) {
+            $sel.TypeText($text.Substring($pos, $m.Index - $pos))
+        }
+        if ($m.Groups[1].Success) {
+            $sel.Font.Bold = 1
+            $sel.TypeText($m.Groups[1].Value)
+            $sel.Font.Bold = 0
+        } elseif ($m.Groups[2].Success) {
+            $sel.Font.Italic = 1
+            $sel.TypeText($m.Groups[2].Value)
+            $sel.Font.Italic = 0
+        }
+        $pos = $m.Index + $m.Length
+    }
+    if ($pos -lt $text.Length) {
+        $sel.TypeText($text.Substring($pos))
+    }
 }

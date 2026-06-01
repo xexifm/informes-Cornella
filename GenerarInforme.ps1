@@ -1116,6 +1116,33 @@ function _ParseOpcio($raw) {
     return @{ Name = $name; Options = $opts }
 }
 
+# Detecta [CAMP: ...] i [OPCIO: ...] dins $allText i els afegeix a $fields
+# (sense duplicar). Modifica $fields in-place.
+function _AddFieldsFromText($fields, $allText) {
+    foreach ($m in $Script:CampRegex.Matches($allText)) {
+        $raw = $m.Groups[1].Value.Trim()
+        $name = $raw
+        $hint = ''
+        $parenIdx = $raw.IndexOf('(')
+        if ($parenIdx -ge 0) {
+            $name = $raw.Substring(0, $parenIdx).Trim()
+            $hint = $raw.Substring($parenIdx).Trim().TrimStart('(').TrimEnd(')')
+        }
+        if (-not $fields.Contains($name)) {
+            $fields[$name] = [pscustomobject]@{ Name=$name; Type='text'; Hint=$hint; Options=@(); Value='' }
+        }
+    }
+    foreach ($m in $Script:OpcioRegex.Matches($allText)) {
+        $parsed = _ParseOpcio $m.Groups[1].Value
+        $name = $parsed.Name
+        if ([string]::IsNullOrWhiteSpace($name)) { continue }
+        if (-not $fields.Contains($name)) {
+            $val = if ($parsed.Options.Count -gt 0) { [string]$parsed.Options[0] } else { '' }
+            $fields[$name] = [pscustomobject]@{ Name=$name; Type='choice'; Hint=''; Options=$parsed.Options; Value=$val }
+        }
+    }
+}
+
 function Get-FieldsFromSelection($selectedSections) {
     $fields = [ordered]@{}
     foreach ($sec in $selectedSections) {
@@ -1124,33 +1151,23 @@ function Get-FieldsFromSelection($selectedSections) {
             foreach ($ch in $it.Children) {
                 $allText += ' ' + ($ch.BodyLines -join ' ')
             }
-            # Camps de text [CAMP: ...]
-            foreach ($m in $Script:CampRegex.Matches($allText)) {
-                $raw = $m.Groups[1].Value.Trim()
-                $name = $raw
-                $hint = ''
-                $parenIdx = $raw.IndexOf('(')
-                if ($parenIdx -ge 0) {
-                    $name = $raw.Substring(0, $parenIdx).Trim()
-                    $hint = $raw.Substring($parenIdx).Trim().TrimStart('(').TrimEnd(')')
-                }
-                if (-not $fields.Contains($name)) {
-                    $fields[$name] = [pscustomobject]@{ Name = $name; Type = 'text'; Hint = $hint; Options = @(); Value = '' }
-                }
-            }
-            # Desplegables [OPCIO: nom | A | B]
-            foreach ($m in $Script:OpcioRegex.Matches($allText)) {
-                $parsed = _ParseOpcio $m.Groups[1].Value
-                $name = $parsed.Name
-                if ([string]::IsNullOrWhiteSpace($name)) { continue }
-                if (-not $fields.Contains($name)) {
-                    $val = if ($parsed.Options.Count -gt 0) { [string]$parsed.Options[0] } else { '' }
-                    $fields[$name] = [pscustomobject]@{ Name = $name; Type = 'choice'; Hint = ''; Options = $parsed.Options; Value = $val }
-                }
-            }
+            _AddFieldsFromText $fields $allText
         }
     }
     return $fields
+}
+
+# Afegeix els camps detectats a les conclusions TRIADES i les SEMPRE al
+# diccionari $fields existent. Aixi al Pas 4 surten alhora els del REQ1
+# i els del CONCLUSIONS.
+function Add-FieldsFromConclusions($fields, $selectedConcl, $alwaysConcl) {
+    foreach ($c in $selectedConcl) {
+        $body = if ($c -is [string]) { $c } else { [string]$c.Body }
+        _AddFieldsFromText $fields $body
+    }
+    foreach ($a in $alwaysConcl) {
+        _AddFieldsFromText $fields ([string]$a)
+    }
 }
 
 function Prompt-Fields {
@@ -1310,42 +1327,106 @@ function _SplitTextAndUrls($line) {
 # Step 5 - Conclusions
 # ----------------------------------------------------------------------------
 function Read-Conclusions($word, $path) {
-    # Retorna un PSCustomObject amb dues llistes:
-    #   Selectable : els paragrafs que apareixen al Pas 5 com a checkboxes.
-    #   Always     : els darrers $AlwaysConclusionsCount paragrafs, que
-    #                s'inclouen sempre al document final sense preguntar.
-    $empty = [pscustomobject]@{ Selectable = @(); Always = @() }
+    # Llegeix el fitxer 0 CONCLUSIONS.docx i retorna un PSCustomObject amb:
+    #
+    #   HeaderText       : text del titol del document (sol ser 'CONCLUSIONS'),
+    #                      llegit del primer paragraf centrat-negreta. '' si no n'hi ha.
+    #   Selectable       : llista d'objectes triables al Pas 5. Cada element:
+    #                        Title : el titol curt (Ttulo1) que es mostra a la
+    #                                checkbox del Pas 5.
+    #                        Body  : el text complet del cos (paragraf Normal
+    #                                que segueix al Ttulo1) que s'imprimeix
+    #                                si l'usuari el tria.
+    #   Always           : llista de cadenes amb les frases fixes. Son els
+    #                      paragrafs Normal que comencen amb '::SEMPRE:: '
+    #                      (s'inclouen sempre al final del document, sense
+    #                      passar pel Pas 5). El prefix s'elimina.
+    #
+    # NOTES sobre el format esperat de 0 CONCLUSIONS.docx:
+    #   - Primer paragraf (opcional): titol del bloc (centrat-negreta).
+    #   - Per cada conclusio triable: un paragraf Ttulo1 (titol curt) + un
+    #     paragraf Normal (cos).
+    #   - Frases fixes (al final, sempre): paragrafs Normal que comencen amb
+    #     '::SEMPRE:: '. S'imprimeixen en l'ordre del fitxer.
+    $empty = [pscustomobject]@{ HeaderText=''; Selectable=@(); Always=@() }
     if (-not (Test-Path -LiteralPath $path)) { return $empty }
+
     $doc = $word.Documents.Open($path, $false, $true)
     try {
-        $list = New-Object System.Collections.ArrayList
+        $headerText = ''
+        $selectable = New-Object System.Collections.ArrayList
+        $always     = New-Object System.Collections.ArrayList
+        $pendingTitle = $null   # ultim Ttulo1 vist (esperant cos Normal)
+        $isFirstPara  = $true
+
         foreach ($p in $doc.Paragraphs) {
-            $t = $p.Range.Text.TrimEnd("`r","`n","`a"," ")
-            if (-not [string]::IsNullOrWhiteSpace($t)) { [void]$list.Add($t) }
+            $text = $p.Range.Text.TrimEnd("`r","`n","`a"," ")
+            if ([string]::IsNullOrWhiteSpace($text)) { continue }
+
+            $styleName = ''
+            try { $styleName = $p.Style.NameLocal } catch { }
+            $isH1 = Test-StyleMatch $styleName 1
+
+            # Titol del bloc: primer paragraf no buit, centrat (-jc center)
+            # i amb estil Normal. Es queda nomes per ser emes per
+            # _WriteConclusionsBlock.
+            if ($isFirstPara -and -not $isH1) {
+                $isFirstPara = $false
+                $jc = ''
+                try { $jc = [string]$p.Format.Alignment } catch { }
+                # wdAlignParagraphCenter = 1
+                if ($jc -eq '1' -or $jc -eq 'wdAlignParagraphCenter') {
+                    $headerText = $text
+                    continue
+                }
+            }
+            $isFirstPara = $false
+
+            if ($isH1) {
+                # Nou titol de conclusio. Si l'anterior queda sense cos, l'ignorem.
+                $pendingTitle = $text
+                continue
+            }
+
+            # Paragraf Normal:
+            if ($text.StartsWith('::SEMPRE::')) {
+                $stripped = $text.Substring('::SEMPRE::'.Length).Trim()
+                [void]$always.Add($stripped)
+                $pendingTitle = $null
+                continue
+            }
+
+            if ($null -ne $pendingTitle) {
+                # Cos de la conclusio precedida pel Ttulo1.
+                [void]$selectable.Add([pscustomobject]@{
+                    Title = $pendingTitle
+                    Body  = $text
+                })
+                $pendingTitle = $null
+            }
+            # Si no hi havia titol pendent ni '::SEMPRE::', ignorem (text
+            # de transicio sense rol clar).
         }
-        $n = $list.Count
-        $alwaysN = [Math]::Min($AlwaysConclusionsCount, $n)
-        $selectable = @()
-        $always = @()
-        if ($alwaysN -gt 0) {
-            $selectable = $list.GetRange(0, $n - $alwaysN).ToArray()
-            $always     = $list.GetRange($n - $alwaysN, $alwaysN).ToArray()
-        } else {
-            $selectable = $list.ToArray()
+
+        return [pscustomobject]@{
+            HeaderText = $headerText
+            Selectable = $selectable.ToArray()
+            Always     = $always.ToArray()
         }
-        return [pscustomobject]@{ Selectable = $selectable; Always = $always }
     } finally {
         $doc.Close($false)
     }
 }
 
 function Select-Conclusions {
-    param($conclusions, $preloadTexts = $null)
+    # $conclusions : array d'objectes {Title, Body} (de Read-Conclusions).
+    # $preloadTitles : array de titols (string) preseleccionats (sessio anterior).
+    param($conclusions, $preloadTitles = $null)
     if ($conclusions.Count -eq 0) { return [pscustomobject]@{ Nav='next'; Data=@() } }
 
-    # Convertim preloadTexts a un HashSet per a comparacio rapida.
+    # Convertim preloadTitles a un HashSet per a comparacio rapida.
     $preloadSet = New-Object System.Collections.Generic.HashSet[string]
-    if ($preloadTexts) { foreach ($t in $preloadTexts) { [void]$preloadSet.Add([string]$t) } }
+    if ($preloadTitles) { foreach ($t in $preloadTitles) { [void]$preloadSet.Add([string]$t) } }
 
     $form = New-Object System.Windows.Forms.Form
     $form.Text = 'Pas 5 - Conclusions'
@@ -1368,15 +1449,22 @@ function Select-Conclusions {
     $checks = @()
     $y = 5
     for ($i = 0; $i -lt $conclusions.Count; $i++) {
+        $c = $conclusions[$i]
         $cb = New-Object System.Windows.Forms.CheckBox
-        $cb.Text = $conclusions[$i]
+        $cb.Text = $c.Title    # nomes el titol curt, mes llegible
         $cb.Location = New-Object System.Drawing.Point(5, $y)
-        $cb.Size = New-Object System.Drawing.Size(700, 60)
+        $cb.Size = New-Object System.Drawing.Size(700, 28)
         $cb.AutoSize = $false
-        if ($preloadSet.Contains([string]$conclusions[$i])) { $cb.Checked = $true }
+        $cb.Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
+        $cb.Tag = $c
+        # Tooltip: cos sencer per veure'l sense haver de tornar al Word
+        $tt = New-Object System.Windows.Forms.ToolTip
+        $tt.AutoPopDelay = 30000
+        $tt.SetToolTip($cb, [string]$c.Body)
+        if ($preloadSet.Contains([string]$c.Title)) { $cb.Checked = $true }
         $panel.Controls.Add($cb)
         $checks += $cb
-        $y += 65
+        $y += 34
     }
 
     $back = New-Object System.Windows.Forms.Button
@@ -1398,9 +1486,11 @@ function Select-Conclusions {
     if ($res -eq 'Retry') { return [pscustomobject]@{ Nav='back' } }
     if ($res -ne 'OK')    { exit 0 }
 
+    # Retornem els objectes triats (no nomes el text), per preservar
+    # Title i Body per al desat de sessio i l'emissio al document.
     $selected = New-Object System.Collections.ArrayList
     for ($i = 0; $i -lt $checks.Count; $i++) {
-        if ($checks[$i].Checked) { [void]$selected.Add($conclusions[$i]) }
+        if ($checks[$i].Checked) { [void]$selected.Add($checks[$i].Tag) }
     }
     return [pscustomobject]@{ Nav='next'; Data=(,$selected.ToArray()) }
 }
@@ -1625,20 +1715,39 @@ function _WriteCatalegBody($sel, $cfg, $selectedSections, $fields, $introText) {
     }
 }
 
-# Escriu el bloc de conclusions (les triades + les "sempre incloses").
-# La separacio entre conclusions ja la posa Format-Conclusion via SpaceAfter
+# Escriu el bloc de conclusions:
+#   - $headerText : titol del bloc (sol ser 'CONCLUSIONS'), centrat-negreta.
+#                   '' = no s'emet.
+#   - $conclusions : array d'objectes {Title; Body} de les conclusions
+#                    TRIADES al Pas 5. Es emet el seu Body.
+#   - $alwaysConclusions : array de cadenes ja sense el prefix '::SEMPRE::'
+#                          que s'emeten sempre, despres de les triades.
+#   - $fields : per resoldre [CAMP:] i [OPCIO:] dins els textos.
+# La separacio entre conclusions la posa Format-Conclusion via SpaceAfter
 # (ConclusionSpaceAfterPt), aixi que aqui no hi fa falta un Spacer entre.
-function _WriteConclusionsBlock($sel, $cfg, $conclusions, $alwaysConclusions) {
-    $hasConcl = ($conclusions.Count -gt 0) -or ($alwaysConclusions.Count -gt 0)
-    if (-not $hasConcl) { return }
+function _WriteConclusionsBlock($sel, $cfg, $headerText, $conclusions, $alwaysConclusions, $fields) {
+    $hasBody = ($conclusions.Count -gt 0) -or ($alwaysConclusions.Count -gt 0)
+    $hasHead = -not [string]::IsNullOrWhiteSpace($headerText)
+    if (-not $hasBody -and -not $hasHead) { return }
+
     if ($cfg.SpacerBeforeConclusionsBlock) { Format-Spacer $sel }
-    $allConcl = @($conclusions) + @($alwaysConclusions)
-    foreach ($c in $allConcl) {
-        Format-Conclusion $sel $c
+
+    if ($hasHead) {
+        Format-ConclusionHeader $sel $headerText
+    }
+
+    foreach ($c in $conclusions) {
+        $txt = if ($c -is [string]) { $c } else { [string]$c.Body }
+        $resolved = Apply-Fields -text $txt -fields $fields
+        Format-Conclusion $sel $resolved
+    }
+    foreach ($a in $alwaysConclusions) {
+        $resolved = Apply-Fields -text ([string]$a) -fields $fields
+        Format-Conclusion $sel $resolved
     }
 }
 
-function Build-Document($word, $header, $selectedSections, $fields, $conclusions, $alwaysConclusions, $catalegName, $introText) {
+function Build-Document($word, $header, $selectedSections, $fields, $conclusions, $alwaysConclusions, $catalegName, $introText, $conclusionsHeaderText) {
     $baseName  = _GetOutputFileName $catalegName $header['ID_GIA']
     $targetDir = _ResolveOutputDir
     # Triem el primer nom lliure al directori de sortida (afegim _2, _3...
@@ -1661,7 +1770,7 @@ function Build-Document($word, $header, $selectedSections, $fields, $conclusions
 
     $cfg = $Script:ReportFormatConfig
     _WriteCatalegBody $sel $cfg $selectedSections $fields $introText
-    _WriteConclusionsBlock $sel $cfg $conclusions $alwaysConclusions
+    _WriteConclusionsBlock $sel $cfg $conclusionsHeaderText $conclusions $alwaysConclusions $fields
 
     $doc.Save()
     $doc.Close($false)
@@ -1740,33 +1849,47 @@ function Main {
                     }
                 }
 
+                # Ordre: Pas 4 = CONCLUSIONS (abans dels camps), Pas 5 = CAMPS.
+                # Es necessari perque les conclusions poden contenir [CAMP:] /
+                # [OPCIO:]. Cal triar conclusions PRIMER per saber quins camps
+                # cal demanar.
                 4 {
-                    $fields = Get-FieldsFromSelection $st.Selected
-                    if ($fields.Count -eq 0) {
-                        # No hi ha camps [CAMP:...]; saltem el pas segons la direccio.
-                        $st.Fields = $fields
+                    if ($null -eq $st.ConclAll) {
+                        $st.ConclAll = Read-Conclusions -word $word -path $ConclusionsPath
+                    }
+                    if ($st.ConclAll.Selectable.Count -eq 0) {
+                        # No hi ha conclusions triables: saltem el pas.
+                        $st.Conclusions = @()
                         if ($dir -eq 'back') { $step = 3 } else { $step = 5 }
                     } else {
-                        $r = Prompt-Fields -fields $fields -preloadValues $pre.Fields
+                        $r = Select-Conclusions -conclusions $st.ConclAll.Selectable -preloadTitles $pre.Concl
                         if ($r.Nav -eq 'back') { $step = 3; $dir = 'back' }
                         else {
-                            $st.Fields  = $r.Data
-                            $pre.Fields = Get-FieldValuesForSession $st.Fields
+                            $st.Conclusions = $r.Data
+                            # $pre.Concl guarda nomes els TITOLS per a la
+                            # precarrega de la propera vegada.
+                            $pre.Concl = @($st.Conclusions | ForEach-Object { $_.Title })
                             $step = 5; $dir = 'fwd'
                         }
                     }
                 }
 
                 5 {
-                    if ($null -eq $st.ConclAll) {
-                        $st.ConclAll = Read-Conclusions -word $word -path $ConclusionsPath
-                    }
-                    $r = Select-Conclusions -conclusions $st.ConclAll.Selectable -preloadTexts $pre.Concl
-                    if ($r.Nav -eq 'back') { $step = 4; $dir = 'back' }
-                    else {
-                        $st.Conclusions = $r.Data
-                        $pre.Concl      = @($st.Conclusions)
-                        $step = 6; $dir = 'fwd'
+                    # Camps: detectem [CAMP:] / [OPCIO:] tant al REQ1 (items
+                    # seleccionats) com a les conclusions triades i fixes.
+                    $fields = Get-FieldsFromSelection $st.Selected
+                    Add-FieldsFromConclusions $fields $st.Conclusions $st.ConclAll.Always
+                    if ($fields.Count -eq 0) {
+                        $st.Fields = $fields
+                        if ($dir -eq 'back') { $step = 4 } else { $step = 6 }
+                    } else {
+                        $r = Prompt-Fields -fields $fields -preloadValues $pre.Fields
+                        if ($r.Nav -eq 'back') { $step = 4; $dir = 'back' }
+                        else {
+                            $st.Fields  = $r.Data
+                            $pre.Fields = Get-FieldValuesForSession $st.Fields
+                            $step = 6; $dir = 'fwd'
+                        }
                     }
                 }
 
@@ -1777,9 +1900,12 @@ function Main {
                                               -conclusions $st.Conclusions `
                                               -alwaysConclusions $st.ConclAll.Always `
                                               -catalegName $st.Cataleg.BaseName `
-                                              -introText $st.Parsed.IntroText
+                                              -introText $st.Parsed.IntroText `
+                                              -conclusionsHeaderText $st.ConclAll.HeaderText
 
                     # Desem les dades per poder replicar aquest informe mes endavant.
+                    # Per a 'ConclusionTexts' guardem els TITOLS triats (es el que
+                    # fa servir Select-Conclusions per precarregar).
                     Save-LastReport ([ordered]@{
                         Version         = 1
                         Timestamp       = (Get-Date).ToString('o')
@@ -1787,7 +1913,7 @@ function Main {
                         Header          = $st.Header
                         SelectedKeys    = (Get-SelectedKeysFromResult $st.Selected)
                         FieldValues     = (Get-FieldValuesForSession $st.Fields)
-                        ConclusionTexts = @($st.Conclusions)
+                        ConclusionTexts = @($st.Conclusions | ForEach-Object { $_.Title })
                     })
 
                     [System.Windows.Forms.MessageBox]::Show(

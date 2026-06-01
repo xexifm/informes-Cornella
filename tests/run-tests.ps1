@@ -258,6 +258,63 @@ try {
     Remove-Item -LiteralPath $tmpDir -Recurse -Force -ErrorAction SilentlyContinue
 }
 
+Write-Host "`n--- Camps detectats a conclusions (Add-FieldsFromConclusions) ---"
+$fc = [ordered]@{}
+$selectedConcl = @(
+    [pscustomobject]@{ Title='C1'; Body='Termini [OPCIO: Mesos | un | dos] segons cas.' }
+)
+$alwaysConcl = @('Ho poso al seu coneixement. [CAMP: lloc]')
+Add-FieldsFromConclusions $fc $selectedConcl $alwaysConcl
+AssertEq $fc.Count 2                       'Detectats 2 camps a les conclusions (OPCIO + CAMP)'
+Assert ($fc.Contains('Mesos'))             "Detectat l'OPCIO 'Mesos'"
+AssertEq $fc['Mesos'].Type 'choice'        "'Mesos' es desplegable"
+AssertEq $fc['Mesos'].Options.Count 2      "'Mesos' te 2 opcions"
+Assert ($fc.Contains('lloc'))              "Detectat el CAMP 'lloc'"
+AssertEq $fc['lloc'].Type 'text'           "'lloc' es camp de text"
+
+# Tambe ha de fer servir el cos ($c.Body) i no el titol
+$fc2 = [ordered]@{}
+Add-FieldsFromConclusions $fc2 @([pscustomobject]@{ Title='[CAMP: NoVull]'; Body='Cap camp aqui.' }) @()
+AssertEq $fc2.Count 0                      "Add-FieldsFromConclusions IGNORA el Title (nomes mira Body)"
+
+Write-Host "`n--- Type-RichText (negreta **text** i cursiva //text//) ---"
+# Mock minim de $sel per capturar el que es teclejaria
+$global:typed = New-Object System.Collections.ArrayList
+$selMock = New-Object PSObject -Property @{
+    Font = New-Object PSObject -Property @{ Bold = 0; Italic = 0 }
+}
+Add-Member -InputObject $selMock -MemberType ScriptMethod -Name TypeText -Value {
+    param($t)
+    $b = if ($this.Font.Bold -eq 1) { 'B' } else { '-' }
+    $i = if ($this.Font.Italic -eq 1) { 'I' } else { '-' }
+    [void]$global:typed.Add(("{0}{1}:{2}" -f $b, $i, $t))
+}
+
+# Cas 1: tot text normal
+$global:typed.Clear()
+Type-RichText $selMock 'text normal'
+AssertEq ($global:typed -join '|') '--:text normal' 'Type-RichText: text normal'
+
+# Cas 2: negreta entremig
+$global:typed.Clear()
+Type-RichText $selMock 'abans **negreta** despres'
+AssertEq ($global:typed -join '|') '--:abans |B-:negreta|--: despres' 'Type-RichText: negreta entremig'
+
+# Cas 3: cursiva al final
+$global:typed.Clear()
+Type-RichText $selMock 'abans //cursiva//'
+AssertEq ($global:typed -join '|') '--:abans |-I:cursiva' 'Type-RichText: cursiva al final'
+
+# Cas 4: barreja
+$global:typed.Clear()
+Type-RichText $selMock '**neg** mig //cur//'
+AssertEq ($global:typed -join '|') 'B-:neg|--: mig |-I:cur' 'Type-RichText: barreja de negreta i cursiva'
+
+# Cas 5: cap marcador, text buit
+$global:typed.Clear()
+Type-RichText $selMock ''
+AssertEq $global:typed.Count 0 'Type-RichText: text buit no fa res'
+
 $summaryColor = if ($script:fail -eq 0) { 'Green' } else { 'Red' }
 Write-Host "`n========================================"
 Write-Host ("RESULTAT: {0} OK, {1} FAIL" -f $script:pass, $script:fail) -ForegroundColor $summaryColor
