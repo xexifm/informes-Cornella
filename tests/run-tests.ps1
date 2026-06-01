@@ -190,6 +190,54 @@ $noflag = _SplitTextAndUrls 'Veure https://x.cat/y al web'
 AssertEq $noflag.Text 'Veure'                          'Sense [[URL]]: text abans de http (retrocompatibilitat)'
 AssertEq $noflag.Urls.Count 1                          'Sense [[URL]]: 1 url detectada per contingut'
 
+Write-Host "`n--- Fills sense numeracio (build emit) ---"
+$global:emitCalls = New-Object System.Collections.ArrayList
+function Format-Section    { param($s,$t) [void]$global:emitCalls.Add("SECT|$t") }
+function Format-Subsection { param($s,$t) [void]$global:emitCalls.Add("SUB|$t") }
+function Format-Item       { param($s,$n,$t,[switch]$IsChild) [void]$global:emitCalls.Add("ITEM|$n|$t" + $(if($IsChild){' (fill)'}else{''})) }
+function Format-Body       { param($s,$t,[switch]$IsChild) [void]$global:emitCalls.Add('BODY' + $(if($IsChild){'/CH'}else{''}) + "|$t") }
+function Format-Url        { param($s,$u,[switch]$IsChild) [void]$global:emitCalls.Add('URL'  + $(if($IsChild){'/CH'}else{''}) + "|$u") }
+function Format-Spacer     { param($s) }
+function Format-Conclusion { param($s,$t) [void]$global:emitCalls.Add("CONCL|$t") }
+
+$sec3 = [pscustomobject]@{ Title='X'; Items=@(
+  [pscustomobject]@{ Kind='item'; Short='pare'; Selected=$true;
+    BodyLines=@('Text pare.');
+    Children=@(
+      [pscustomobject]@{ Kind='child'; Short='f1'; BodyLines=@('Fill A.'); Children=@() }
+      [pscustomobject]@{ Kind='child'; Short='f2'; BodyLines=@('Fill B.'); Children=@() }
+    )
+  }
+)}
+$f3 = Get-FieldsFromSelection @($sec3)
+$global:emitCalls.Clear()
+_WriteCatalegBody ([pscustomobject]@{}) $Script:ReportFormatConfig @($sec3) $f3 ''
+$itemCalls = @($global:emitCalls | Where-Object { $_ -like 'ITEM|*' })
+$bodyChildCalls = @($global:emitCalls | Where-Object { $_ -like 'BODY/CH|*' })
+AssertEq $itemCalls.Count 1                "Nomes 1 ITEM (el pare); cap ITEM per als fills"
+AssertEq $bodyChildCalls.Count 2           "Els 2 fills surten com a BODY amb sagnia de fill"
+AssertEq $bodyChildCalls[0] 'BODY/CH|Fill A.' "Primer fill: text sense numero"
+AssertEq $bodyChildCalls[1] 'BODY/CH|Fill B.' "Segon fill: text sense numero"
+# Cap fill ha de tenir patro de numeracio "X.Y."
+$childHasNum = @($global:emitCalls | Where-Object { $_ -match 'ITEM\|\d+\.\d+\.' }).Count
+AssertEq $childHasNum 0                    "Cap fill amb numeracio jerarquica (X.Y.)"
+
+Write-Host "`n--- OPCIO se substitueix dins emit (regressio) ---"
+$global:emitCalls.Clear()
+$secO = [pscustomobject]@{ Title='Y'; Items=@(
+  [pscustomobject]@{ Kind='item'; Short='it'; Selected=$true; Children=@();
+    BodyLines=@('Presentar a [OPCIO: Lloc | ajuntament | ACA] amb el contingut.')
+  }
+)}
+$fO = Get-FieldsFromSelection @($secO)
+$fO['Lloc'].Value = 'ACA'
+_WriteCatalegBody ([pscustomobject]@{}) $Script:ReportFormatConfig @($secO) $fO ''
+$itemCalls = @($global:emitCalls | Where-Object { $_ -like 'ITEM|*' })
+$itemTxt = [string]$itemCalls[0]
+Assert ($itemTxt -notmatch '\[OPCIO:')        "L'OPCIO NO ha de quedar literal al text de l'item"
+Assert ($itemTxt.Contains('ACA'))             "El valor triat (ACA) apareix al text de l'item"
+Assert ($itemTxt.Contains('Presentar a ACA')) "L'OPCIO substituit forma una frase coherent"
+
 $summaryColor = if ($script:fail -eq 0) { 'Green' } else { 'Red' }
 Write-Host "`n========================================"
 Write-Host ("RESULTAT: {0} OK, {1} FAIL" -f $script:pass, $script:fail) -ForegroundColor $summaryColor

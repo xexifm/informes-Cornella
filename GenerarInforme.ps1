@@ -1542,17 +1542,19 @@ function _WriteCatalegBody($sel, $cfg, $selectedSections, $fields, $introText) {
             }
         }
         if ($hasChildren) {
-            $subCounter = 0
             foreach ($ch in $it.Children) {
                 $childLines = @(& $resolveLines $ch.BodyLines)
                 if ($childLines.Count -eq 0) { continue }
-                $subCounter++
                 if (-not $itemWritten) {
                     $script:_buildGlobal++
                     $itemWritten = $true
                 }
+                # Els fills NO es numeren: s'emeten com a paragraf de cos
+                # amb la sagnia de fill (ChildIndentCm).
                 $pc = _SplitTextAndUrls $childLines[0]
-                Format-Item $sel "$($script:_buildGlobal).$subCounter." $pc.Text -IsChild
+                if (-not [string]::IsNullOrWhiteSpace($pc.Text)) {
+                    Format-Body $sel $pc.Text -IsChild
+                }
                 foreach ($u in $pc.Urls) { Format-Url $sel $u -IsChild }
                 & $emitExtras $childLines $true
             }
