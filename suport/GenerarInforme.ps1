@@ -61,21 +61,31 @@ if (-not $Script:HeadlessTest) {
 }
 
 $ScriptRoot      = Split-Path -Parent $MyInvocation.MyCommand.Path
+# Arrel del clone (un nivell amunt: suport/.. = informes-Cornella/).
+# Aixi pots moure la carpeta informes-Cornella on vulguis i tot segueix
+# funcionant; nomes la base de dades d'activitats (ActivitatsDir) es una
+# ruta absoluta externa que no es mou.
+$RepoRoot        = Split-Path -Parent $ScriptRoot
 
 # Carreguem el modul de format (Format.ps1). Conte les funcions Format-Section,
 # Format-Item, etc. i $ReportFormatConfig. Reutilitzable per altres tipus
 # d'informes.
 . (Join-Path $ScriptRoot 'Format.ps1')
 
-$EstructuralsDir = Join-Path $ScriptRoot 'ESTRUCTURALS'
+# ESTRUCTURALS viu a l'arrel del clone (al costat dels .bat), no dins
+# de suport/, per facilitar que l'usuari edita les plantilles.
+$EstructuralsDir = Join-Path $RepoRoot 'ESTRUCTURALS'
 $HeaderPath      = Join-Path $EstructuralsDir '0 CAPCALERA.docx'
 $ConclusionsPath = Join-Path $EstructuralsDir '0 CONCLUSIONS.docx'
 
 # ----------------------------------------------------------------------------
 # Configuracio per defecte. Es pot sobreescriure des de config.ps1 (opcional)
-# al costat del .ps1.
+# al costat del .ps1 (dins de suport/).
 # ----------------------------------------------------------------------------
-$OutputDir              = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\0_Plantilles\Powershell\Informes generats'
+# OutputDir per defecte: 'Informes generats' AL COSTAT DEL CLONE (no dins
+# de suport/), per quedar al nivell que l'usuari veu i pot obrir amb el
+# Word sense entrar a carpetes internes. El .gitignore l'exclou.
+$OutputDir              = Join-Path $RepoRoot 'Informes generats'
 $ActivitatsDir          = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\2_Controls Excels'
 $AlwaysConclusionsCount = 2
 
@@ -1555,7 +1565,8 @@ function _GetUniqueOutputPath($targetDir, $baseFileName) {
 }
 
 # Determina el directori de sortida: l'$OutputDir si es accessible, en cas
-# contrari una subcarpeta 'Informes generats' al costat del .ps1.
+# contrari una subcarpeta 'Informes generats' a l'arrel del clone (al
+# costat dels .bat).
 function _ResolveOutputDir {
     $targetDir = $OutputDir
     try {
@@ -1564,7 +1575,7 @@ function _ResolveOutputDir {
         }
         return $targetDir
     } catch {
-        $local = Join-Path $ScriptRoot 'Informes generats'
+        $local = Join-Path $RepoRoot 'Informes generats'
         if (-not (Test-Path -LiteralPath $local)) {
             New-Item -ItemType Directory -Path $local -Force | Out-Null
         }
