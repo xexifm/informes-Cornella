@@ -226,7 +226,19 @@ function _CollectParaRecords($doc) {
 # Retorna { Doc; TempPath; Model; ParaTexts; Records }. El document queda OBERT
 # (s'editara mes tard a Apply-Seguiment).
 function Read-PreviousReport($word, $path) {
-    $tempPath = Join-Path $env:TEMP ('SEG_' + [System.IO.Path]::GetFileName($path))
+    # Nom temporal UNIC per execucio: aixi mai xoquem amb una copia anterior que
+    # hagi quedat bloquejada per un proces de Word d'un intent fallit previ
+    # (causa de "el proceso no puede obtener acceso al archivo ... en otro proceso").
+    $tempName = 'SEG_' + ([Guid]::NewGuid().ToString('N').Substring(0,8)) + '_' + [System.IO.Path]::GetFileName($path)
+    $tempPath = Join-Path $env:TEMP $tempName
+
+    # Neteja best-effort de copies temporals antigues (les que no estiguin
+    # bloquejades). No es critic si en queda alguna.
+    try {
+        Get-ChildItem -LiteralPath $env:TEMP -Filter 'SEG_*.docx' -File -ErrorAction SilentlyContinue |
+            ForEach-Object { try { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction Stop } catch { } }
+    } catch { }
+
     Copy-Item -LiteralPath $path -Destination $tempPath -Force
 
     # L'informe sovint ve de la unitat de xarxa (I:\...). La copia local pot
@@ -441,73 +453,22 @@ function Select-PreviousReport {
     return $dlg.FileName
 }
 
-# Confirma l'esborrat del bloc de conclusions. Mostra el bloc detectat; permet
-# ajustar manualment (informes fets a ma) o no esborrar res.
-# Retorna { StartIndex } amb StartIndex 1-based, o -1 per no esborrar; $null si
-# l'usuari cancel·la tot el flux.
+# Tria del bloc de conclusions a esborrar. SEMPRE mostra el selector MANUAL
+# (preferencia de l'usuari): es llisten els paragrafs a partir de l'ultim
+# requeriment enumerat i l'usuari tria el primer a esborrar. Si la deteccio
+# automatica ha trobat un punt d'inici, es preselecciona com a ajuda.
+# Retorna { StartIndex } (1-based, o -1 per no esborrar); $null si cancel·la.
 function Confirm-ConclusionDeletion {
     param($paraTexts, [int]$lastReqEndIndex, [int]$detectedStart)
-
-    if ($detectedStart -ge 1) {
-        $lines = @()
-        for ($i = $detectedStart; $i -le $paraTexts.Count; $i++) {
-            $tx = [string]$paraTexts[$i - 1]
-            if (-not [string]::IsNullOrWhiteSpace($tx)) { $lines += $tx }
-        }
-        $preview = ($lines -join "`r`n")
-
-        $form = New-Object System.Windows.Forms.Form
-        $form.Text = 'Conclusions a esborrar'
-        $form.Size = New-Object System.Drawing.Size(720, 480)
-        $form.StartPosition = 'CenterScreen'
-
-        $lbl = New-Object System.Windows.Forms.Label
-        $lbl.Text = "S'esborrara aquest bloc de conclusions abans d'afegir-ne de noves:"
-        $lbl.Location = New-Object System.Drawing.Point(15, 10)
-        $lbl.AutoSize = $true
-        $form.Controls.Add($lbl)
-
-        $tb = New-Object System.Windows.Forms.TextBox
-        $tb.Multiline = $true
-        $tb.ReadOnly = $true
-        $tb.ScrollBars = 'Vertical'
-        $tb.Location = New-Object System.Drawing.Point(15, 35)
-        $tb.Size = New-Object System.Drawing.Size(680, 360)
-        $tb.Text = $preview
-        $form.Controls.Add($tb)
-
-        $btnOk = New-Object System.Windows.Forms.Button
-        $btnOk.Text = 'Esborrar i continuar'
-        $btnOk.Location = New-Object System.Drawing.Point(15, 405)
-        $btnOk.Size = New-Object System.Drawing.Size(160, 30)
-        $btnOk.DialogResult = 'OK'
-        $form.Controls.Add($btnOk)
-
-        $btnAdj = New-Object System.Windows.Forms.Button
-        $btnAdj.Text = 'Ajustar manualment'
-        $btnAdj.Location = New-Object System.Drawing.Point(185, 405)
-        $btnAdj.Size = New-Object System.Drawing.Size(160, 30)
-        $btnAdj.DialogResult = 'Retry'
-        $form.Controls.Add($btnAdj)
-
-        $form.AcceptButton = $btnOk
-        $res = $form.ShowDialog()
-        if ($res -eq 'OK')    { return [pscustomobject]@{ StartIndex = $detectedStart } }
-        if ($res -eq 'Retry') { return (Select-ConclusionCutManually -paraTexts $paraTexts -lastReqEndIndex $lastReqEndIndex) }
-        return $null
-    }
-
-    # No s'ha detectat cap bloc conegut: avisem i passem al selector manual.
-    [System.Windows.Forms.MessageBox]::Show(
-        "No s'ha detectat cap bloc de conclusions conegut. Tria manualment a partir d'on s'ha d'esborrar.",
-        'Seguiment', 'OK', 'Information') | Out-Null
-    return (Select-ConclusionCutManually -paraTexts $paraTexts -lastReqEndIndex $lastReqEndIndex)
+    return (Select-ConclusionCutManually -paraTexts $paraTexts -lastReqEndIndex $lastReqEndIndex -preselectIndex $detectedStart)
 }
 
-# Selector manual del primer paragraf a esborrar (per a informes atipics).
+# Selector manual del primer paragraf a esborrar. Llista els paragrafs a partir
+# de l'ultim requeriment enumerat. $preselectIndex (1-based) es el paragraf
+# preseleccionat (de la deteccio automatica), o -1 si no n'hi ha.
 # Retorna { StartIndex } o { StartIndex = -1 } (no esborrar res); $null si cancel·la.
 function Select-ConclusionCutManually {
-    param($paraTexts, [int]$lastReqEndIndex)
+    param($paraTexts, [int]$lastReqEndIndex, [int]$preselectIndex = -1)
 
     $form = New-Object System.Windows.Forms.Form
     $form.Text = 'Tria el primer paragraf a esborrar'
@@ -534,7 +495,15 @@ function Select-ConclusionCutManually {
         [void]$list.Items.Add(('#{0}: {1}' -f $i, $disp))
         $map += $i
     }
-    $list.SelectedIndex = if ($list.Items.Count -gt 1) { 1 } else { 0 }
+    # Per defecte, el primer paragraf real; pero si hi ha un punt detectat, el
+    # preseleccionem.
+    $selPos = if ($list.Items.Count -gt 1) { 1 } else { 0 }
+    if ($preselectIndex -ge 1) {
+        for ($j = 0; $j -lt $map.Count; $j++) {
+            if ($map[$j] -eq $preselectIndex) { $selPos = $j; break }
+        }
+    }
+    $list.SelectedIndex = $selPos
     $form.Controls.Add($list)
 
     $btnOk = New-Object System.Windows.Forms.Button
