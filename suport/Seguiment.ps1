@@ -251,26 +251,49 @@ function Read-PreviousReport($word, $path) {
 
     # Obrim explicitament en mode NO nomes-lectura.
     #   Open(FileName, ConfirmConversions, ReadOnly, AddToRecentFiles, ...)
-    $doc = $word.Documents.Open($tempPath, $false, $false)
+    $doc = $null
+    try { $doc = $word.Documents.Open($tempPath, $false, $false) } catch { }
 
-    # Si tot i aixi s'ha obert en vista protegida, passem a edicio.
+    # Vista protegida: si el fitxer ha anat a ProtectedViewWindows (en lloc de
+    # Documents), el passem a edicio. Treballem amb una instancia NOVA de Word,
+    # aixi que qualsevol finestra protegida es la que acabem d'obrir.
     try {
-        if ($doc.ProtectedViewWindow -ne $null) { $doc = $doc.ProtectedViewWindow.Edit() }
+        if ($word.ProtectedViewWindows.Count -gt 0) {
+            $doc = $word.ProtectedViewWindows.Item(1).Edit()
+        }
     } catch { }
+    try { if ($null -ne $doc -and $doc.ProtectedViewWindow -ne $null) { $doc = $doc.ProtectedViewWindow.Edit() } } catch { }
 
-    # Si el document porta proteccio d'edicio (formularis / nomes-lectura sense
-    # contrasenya), la traiem perque es pugui editar. Si te contrasenya,
-    # Unprotect falla i ho deixem com esta (es detectara mes avall).
-    try { if ($doc.ProtectionType -ne -1) { $doc.Unprotect() } } catch { }
+    if ($null -eq $doc) {
+        throw "No s'ha pogut obrir l'informe per editar-lo (possible vista protegida no resolta)."
+    }
 
-    # Ultim recurs: si encara es nomes-lectura, ho diem clarament en lloc de
-    # petar a mitja edicio.
-    $isReadOnly = $false
-    try { $isReadOnly = [bool]$doc.ReadOnly } catch { }
-    if ($isReadOnly) {
-        throw ("El document s'ha obert en mode nomes-lectura i no es pot editar. " +
-               "Comprova que el fitxer no estigui obert en una altra finestra del Word " +
-               "ni marcat com a nomes-lectura, i torna-ho a provar.")
+    # Treure qualsevol cosa que bloquegi l'edicio:
+    try { if ($doc.ProtectionType -ne -1) { $doc.Unprotect() } } catch { }  # Restringir edicio (sense contrasenya)
+    try { $doc.Final = $false } catch { }                                   # "Marcar como final"
+    try { $doc.ReadOnlyRecommended = $false } catch { }                     # "Se recomienda solo lectura"
+
+    # Prova REAL d'editabilitat: inserim i esborrem un caracter invisible. Si
+    # falla, el document encara esta bloquejat (restringit amb contrasenya,
+    # vista protegida, etc.). Avortem AQUI amb un diagnostic clar (abans de fer
+    # passar l'usuari per tots els passos).
+    $editable = $true
+    try {
+        $probe = $doc.Content
+        $probe.Collapse(1)                  # 1 = wdCollapseStart
+        $probe.InsertAfter([char]0x200B)    # espai d'amplada zero
+        $probe.Delete()                     # el treiem (net)
+    } catch {
+        $editable = $false
+    }
+    if (-not $editable) {
+        $ro  = '?'; try { $ro  = [string]$doc.ReadOnly } catch { }
+        $pt  = '?'; try { $pt  = [string]$doc.ProtectionType } catch { }
+        $fin = '?'; try { $fin = [string]$doc.Final } catch { }
+        throw ("No es pot editar l'informe (ReadOnly=$ro, ProtectionType=$pt, Final=$fin). " +
+               "Obre l'informe original al Word i treu el bloqueig d'edicio: a 'Revisar > " +
+               "Restringir edicion' fes 'Suspender la proteccion', i a 'Archivo > Informacion' " +
+               "treu 'Marcar como final'. Desa'l i torna-ho a provar.")
     }
 
     $records   = _CollectParaRecords $doc
@@ -693,6 +716,7 @@ function Invoke-SeguimentFlow {
     }
 
     $word = New-WordApp
+    $prev = $null
     try {
         $prev = Read-PreviousReport -word $word -path $sourcePath
         if ($prev.Model.Requirements.Count -eq 0) {
@@ -774,6 +798,15 @@ function Invoke-SeguimentFlow {
         throw
     }
     finally {
+        # Tanca el document d'origen sense demanar de desar (evita el dialeg
+        # "Desea guardar los cambios en SEG_...docx"). Si ja s'havia tancat al
+        # final (cas d'exit), aixo simplement falla en silenci.
+        try {
+            if ($null -ne $prev -and $null -ne $prev.Doc) {
+                $prev.Doc.Saved = $true
+                $prev.Doc.Close(0)   # 0 = wdDoNotSaveChanges
+            }
+        } catch { }
         if (-not $word.Visible) { Close-WordApp $word }
     }
 }
