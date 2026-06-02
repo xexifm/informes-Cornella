@@ -273,32 +273,40 @@ function Read-PreviousReport($word, $path) {
     try { $doc.Final = $false } catch { }                                   # "Marcar como final"
     try { $doc.ReadOnlyRecommended = $false } catch { }                     # "Se recomienda solo lectura"
 
-    # Prova REAL d'editabilitat: inserim i esborrem un caracter invisible. Si
-    # falla, el document encara esta bloquejat (restringit amb contrasenya,
-    # vista protegida, etc.). Avortem AQUI amb un diagnostic clar (abans de fer
-    # passar l'usuari per tots els passos).
-    $editable = $true
-    try {
-        $probe = $doc.Content
-        $probe.Collapse(1)                  # 1 = wdCollapseStart
-        $probe.InsertAfter([char]0x200B)    # espai d'amplada zero
-        $probe.Delete()                     # el treiem (net)
-    } catch {
-        $editable = $false
-    }
-    if (-not $editable) {
-        $ro  = '?'; try { $ro  = [string]$doc.ReadOnly } catch { }
-        $pt  = '?'; try { $pt  = [string]$doc.ProtectionType } catch { }
-        $fin = '?'; try { $fin = [string]$doc.Final } catch { }
-        throw ("No es pot editar l'informe (ReadOnly=$ro, ProtectionType=$pt, Final=$fin). " +
-               "Obre l'informe original al Word i treu el bloqueig d'edicio: a 'Revisar > " +
-               "Restringir edicion' fes 'Suspender la proteccion', i a 'Archivo > Informacion' " +
-               "treu 'Marcar como final'. Desa'l i torna-ho a provar.")
-    }
-
     $records   = _CollectParaRecords $doc
     $model     = _BuildSeguimentModel $records
     $paraTexts = @($records | ForEach-Object { $_.Text })
+
+    # Prova REAL d'editabilitat AL LLOC ON EDITAREM: inserim un paragraf temporal
+    # despres de l'ultim requeriment (amb el mateix mecanisme que far servir
+    # Apply-Seguiment) i el tornem a treure. Si falla, el document esta bloquejat
+    # en aquella zona (proteccio amb contrasenya, regio de nomes-lectura, vista
+    # protegida...). Avortem AQUI amb un diagnostic clar, abans de fer passar
+    # l'usuari per tots els passos.
+    if ($model.Requirements.Count -gt 0) {
+        $editable = $true
+        $errMsg = ''
+        try {
+            $pIdx = [int]$model.Requirements[$model.Requirements.Count - 1].ParaIndex
+            $pr = $doc.Paragraphs.Item($pIdx).Range
+            $pr.Collapse(0)                 # 0 = wdCollapseEnd
+            $pr.InsertAfter("X`r")          # paragraf temporal
+            $doc.Paragraphs.Item($pIdx + 1).Range.Delete()   # el treiem (net)
+        } catch {
+            $editable = $false
+            $errMsg = $_.Exception.Message
+        }
+        if (-not $editable) {
+            $ro  = '?'; try { $ro  = [string]$doc.ReadOnly } catch { }
+            $pt  = '?'; try { $pt  = [string]$doc.ProtectionType } catch { }
+            $fin = '?'; try { $fin = [string]$doc.Final } catch { }
+            throw ("No es pot editar l'informe (ReadOnly=$ro, ProtectionType=$pt, Final=$fin). " +
+                   "Detall: $errMsg. " +
+                   "Obre l'informe original al Word i treu el bloqueig d'edicio: a 'Revisar > " +
+                   "Restringir edicion' fes 'Suspender la proteccion', i a 'Archivo > Informacion' " +
+                   "treu 'Marcar como final'. Desa'l i torna-ho a provar.")
+        }
+    }
     return [pscustomobject]@{
         Doc       = $doc
         TempPath  = $tempPath
@@ -355,17 +363,19 @@ function Apply-Seguiment {
                 [int]$req.ParaIndex
             }
 
-            # Insercio: afegim un paragraf buit despres de l'ancora i hi
-            # escrivim el text. Tot amb metodes de Range (sense $doc.Range(a,b),
-            # que en alguns equips llanca "conversio no valida").
-            $anchorRange = $doc.Paragraphs.Item($anchorIdx).Range
-            [void]$anchorRange.InsertParagraphAfter()
-
-            # El nou paragraf es ara el seguent (anchorIdx + 1). Hi escrivim el
-            # text abans de la seva marca de paragraf.
-            $np2 = $doc.Paragraphs.Item($anchorIdx + 1)
+            # Insercio: col·loquem un punt al final del paragraf ancora i hi
+            # escrivim "text + marca de paragraf" amb InsertAfter. Fem servir
+            # aquest mecanisme (Collapse + InsertAfter) en lloc de
+            # InsertParagraphAfter perque, en alguns documents, InsertParagraphAfter
+            # falla amb "este comando no esta disponible para la lectura" mentre
+            # que InsertAfter funciona.
             $line = _FormatAnnotationLine $dateStr $comment
-            $np2.Range.InsertBefore($line)
+            $rng = $doc.Paragraphs.Item($anchorIdx).Range
+            $rng.Collapse(0)                 # 0 = wdCollapseEnd
+            $rng.InsertAfter($line + "`r")
+
+            # El nou paragraf es ara el seguent (anchorIdx + 1).
+            $np2 = $doc.Paragraphs.Item($anchorIdx + 1)
             $r2  = $np2.Range
             # Evitar que l'anotacio hereti la numeracio de llista del requeriment.
             try { [void]$r2.ListFormat.RemoveNumbers() } catch { }
