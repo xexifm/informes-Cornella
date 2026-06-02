@@ -375,16 +375,25 @@ function Apply-Seguiment {
                 [int]$req.ParaIndex
             }
 
-            # Insercio: col·loquem un punt al final del paragraf ancora i hi
-            # escrivim "text + marca de paragraf" amb InsertAfter. Fem servir
-            # aquest mecanisme (Collapse + InsertAfter) en lloc de
-            # InsertParagraphAfter perque, en alguns documents, InsertParagraphAfter
-            # falla amb "este comando no esta disponible para la lectura" mentre
-            # que InsertAfter funciona.
+            # Insercio del nou paragraf d'anotacio despres de l'ancora.
+            #   - Si HI HA contingut despres de l'ancora (no es l'ultim paragraf):
+            #     Collapse(wdCollapseEnd) + InsertAfter. Mecanisme provat.
+            #   - Si l'ancora ES l'ultim paragraf del document (cas tipic despres
+            #     d'esborrar les conclusions): NO es pot inserir despres de la
+            #     marca final de paragraf (dona "este comando no esta disponible
+            #     para la lectura"). Afegim al final via Selection (EndKey +
+            #     TypeParagraph + TypeText), el metode fiable del generador.
             $line = _FormatAnnotationLine $dateStr $comment
-            $rng = $doc.Paragraphs.Item($anchorIdx).Range
-            $rng.Collapse(0)                 # 0 = wdCollapseEnd
-            $rng.InsertAfter($line + "`r")
+            if ($anchorIdx -lt $doc.Paragraphs.Count) {
+                $rng = $doc.Paragraphs.Item($anchorIdx).Range
+                $rng.Collapse(0)                 # 0 = wdCollapseEnd
+                $rng.InsertAfter($line + "`r")
+            } else {
+                $sel = $word.Selection
+                [void]$sel.EndKey(6)             # 6 = wdStory (final del document)
+                $sel.TypeParagraph()
+                $sel.TypeText($line)
+            }
 
             # El nou paragraf es ara el seguent (anchorIdx + 1).
             $np2 = $doc.Paragraphs.Item($anchorIdx + 1)
