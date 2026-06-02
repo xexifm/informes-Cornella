@@ -598,6 +598,52 @@ if (Test-Path $conc) {
 } else {
     Write-Host '  (omes: no s ha trobat 0 CONCLUSIONS.docx)'
 }
+Write-Host "`n--- Format-Section: MAJUSCULES sense negreta ---"
+# Re-carreguem Format.ps1 perque tests anteriors han estubat Format-Section.
+. (Join-Path (Split-Path -Parent $PSScriptRoot) 'Format.ps1')
+# Estubem $sel amb totes les propietats que _Reset-Char i _Apply-Indent toquen.
+$global:secOps = New-Object System.Collections.ArrayList
+$selSec = New-Object PSObject -Property @{
+    Font = New-Object PSObject -Property @{ Bold = 0; Italic = 0; Underline = 0; Size = 11 }
+    ParagraphFormat = New-Object PSObject -Property @{
+        LeftIndent = 0; FirstLineIndent = 0; Alignment = 3; SpaceAfter = 0
+    }
+}
+Add-Member -InputObject $selSec -MemberType ScriptMethod -Name TypeParagraph -Value {}
+Add-Member -InputObject $selSec -MemberType ScriptMethod -Name TypeText -Value {
+    param($t)
+    $b = if ($this.Font.Bold -eq 1) { 'B' } else { '-' }
+    [void]$global:secOps.Add(("{0}:{1}" -f $b, $t))
+}
+Format-Section $selSec 'Instal·lacions'
+AssertEq $global:secOps.Count 1                          'Format-Section: 1 sola crida a TypeText'
+AssertEq $global:secOps[0]    '-:INSTAL·LACIONS'         'Format-Section: text en MAJUSCULES, SENSE negreta'
+
+Write-Host "`n--- _GetItemTooltip (text per al tooltip del Pas 3 sense enllacos) ---"
+$el1 = [pscustomobject]@{ BodyLines = @(
+    'Instal·lacio de baixa tensio. Veure document.',
+    '[[URL]] https://canalempresa.gencat.cat/...'
+)}
+AssertEq (_GetItemTooltip $el1) 'Instal·lacio de baixa tensio. Veure document.' '_GetItemTooltip: descarta linies [[URL]]'
+
+$el2 = [pscustomobject]@{ BodyLines = @(
+    'Text principal.',
+    'https://example.com/url',
+    'Comentari extra.'
+)}
+$tip2 = _GetItemTooltip $el2
+Assert ($tip2.Contains('Text principal.'))   '_GetItemTooltip: conserva el text principal'
+Assert ($tip2.Contains('Comentari extra.'))  '_GetItemTooltip: conserva text extra (no-URL)'
+Assert (-not $tip2.Contains('http'))         '_GetItemTooltip: descarta linies URL-only'
+
+$el3 = [pscustomobject]@{ BodyLines = @('Mirar https://x.cat/y al final.') }
+$tip3 = _GetItemTooltip $el3
+AssertEq $tip3 'Mirar'                       '_GetItemTooltip: linies mixtes -> nomes la part de text'
+
+$el4 = [pscustomobject]@{ BodyLines = @() }
+AssertEq (_GetItemTooltip $el4) ''           '_GetItemTooltip: cap linia -> buit'
+
+AssertEq (_GetItemTooltip $null) ''          '_GetItemTooltip: null -> buit'
 
 $summaryColor = if ($script:fail -eq 0) { 'Green' } else { 'Red' }
 Write-Host "`n========================================"

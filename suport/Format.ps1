@@ -15,7 +15,7 @@
   d'informe).
 
   Punts d'entrada principals:
-    Format-Section $sel "..."        -> titol de seccio (negreta)
+    Format-Section $sel "..."        -> titol de seccio (MAJUSCULES, sense negreta)
     Format-Subsection $sel "..."     -> subseccio (subratllat)
     Format-Item $sel "1." "..."      -> item numerat (numero en negreta + text)
     Format-Item $sel "1.1." "..." -IsChild   -> sub-item amb sangria
@@ -80,9 +80,8 @@ function Format-Section {
     [void]$sel.TypeParagraph()
     _Reset-Char $sel
     _Apply-Indent $sel $Script:ReportFormatConfig.SectionIndentCm
-    $sel.Font.Bold = 1
-    $sel.TypeText([string]$text)
-    $sel.Font.Bold = 0
+    # Seccions: sense negreta, en MAJUSCULES.
+    if ($text) { $sel.TypeText(([string]$text).ToUpper()) }
 }
 
 function Format-Subsection {
@@ -149,6 +148,9 @@ function Format-Conclusion {
     [void]$sel.TypeParagraph()
     _Reset-Char $sel
     _Apply-Indent $sel $Script:ReportFormatConfig.ConclusionIndentCm
+    # Alignment explicit per no heretar el "center" que deixa el
+    # Format-ConclusionHeader (CONCLUSIONS centrat). Volem justified.
+    try { $sel.ParagraphFormat.Alignment = 3 } catch { }   # 3 = wdAlignParagraphJustify
     # "Space After" propi del paragraf (en punts). Es robust a la
     # compactacio visual del Word que feia que els paragrafs buits no
     # es veiessin entre conclusions.
@@ -158,6 +160,9 @@ function Format-Conclusion {
 }
 
 # Titol del bloc de conclusions: text centrat i en negreta.
+# NO fem reset d'alignment al final (anava AL MATEIX paragraf i feia que
+# 'CONCLUSIONS' sortis alineat a l'esquerra). En lloc d'aixo, Format-Conclusion
+# i la resta de Format-* es defineixen amb el seu Alignment explicit.
 function Format-ConclusionHeader {
     param($sel, [string]$text)
     [void]$sel.TypeParagraph()
@@ -168,7 +173,6 @@ function Format-ConclusionHeader {
     $sel.Font.Bold = 1
     if ($text) { $sel.TypeText($text) }
     $sel.Font.Bold = 0
-    try { $sel.ParagraphFormat.Alignment = 3 } catch { }   # 3 = wdAlignParagraphJustify (per defecte)
 }
 
 # Type-RichText: escriu text al document interpretant marcadors inline:

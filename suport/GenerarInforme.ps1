@@ -896,6 +896,30 @@ function _TextMatches($text, $needle) {
 # (passats en una hashtable [key] -> bool) i els actualitza durant la construccio.
 # Bloquegem la propagacio automatica de check durant el rebuild perque
 # marcar nodes programmaticament dispara l'event AfterCheck.
+# Construeix el text del tooltip d'un item (o fill) del TreeView del Pas 3:
+# concatena les BodyLines descartant els enllacos (URL-only i URLs incrustats)
+# perque l'usuari pugui veure el text de l'item en passar el ratolí. Aplica
+# una mica de neteja per fer-lo llegible i el limita a 600 caracters per
+# evitar tooltips desmesurats.
+function _GetItemTooltip($el) {
+    if ($null -eq $el -or $null -eq $el.BodyLines) { return '' }
+    $parts = New-Object System.Collections.ArrayList
+    foreach ($ln in $el.BodyLines) {
+        $s = [string]$ln
+        if ([string]::IsNullOrWhiteSpace($s)) { continue }
+        # Linies marcades per Cita: tota la linia es URL.
+        if ($s.StartsWith('[[URL]] ')) { continue }
+        # Linies que son nomes URL.
+        if ($s.Trim() -match '^https?://') { continue }
+        # Linia mixta: extreu nomes el text (descarta URLs incrustats).
+        $p = _SplitTextAndUrls $s
+        if (-not [string]::IsNullOrWhiteSpace($p.Text)) { [void]$parts.Add($p.Text) }
+    }
+    $tip = ($parts -join [Environment]::NewLine)
+    if ($tip.Length -gt 600) { $tip = $tip.Substring(0, 600) + '...' }
+    return $tip
+}
+
 function _RebuildTree($tv, $sections, $needle, $checkStates) {
     $tv.BeginUpdate()
     $script:_propagating = $true
@@ -958,6 +982,7 @@ function _RebuildTree($tv, $sections, $needle, $checkStates) {
                 $itNode = New-Object System.Windows.Forms.TreeNode($n.El.Short)
                 $itNode.Tag = @{ Kind = 'Item'; Ref = $n.El; SectionTitle = $sec.Title }
                 $itNode.NodeFont = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Regular)
+                $itNode.ToolTipText = _GetItemTooltip $n.El
                 $itKey = (_ItemKey $sec.Title $n.El.Short)
                 if ($checkStates.ContainsKey($itKey)) { $itNode.Checked = $checkStates[$itKey] }
                 [void]$container.Nodes.Add($itNode)
@@ -965,6 +990,7 @@ function _RebuildTree($tv, $sections, $needle, $checkStates) {
                     $chNode = New-Object System.Windows.Forms.TreeNode($ch.Short)
                     $chNode.Tag = @{ Kind = 'Child'; Ref = $ch; SectionTitle = $sec.Title; ParentShort = $n.El.Short }
                     $chNode.NodeFont = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Regular)
+                    $chNode.ToolTipText = _GetItemTooltip $ch
                     $chKey = (_ItemKey $sec.Title $n.El.Short $ch.Short)
                     if ($checkStates.ContainsKey($chKey)) { $chNode.Checked = $checkStates[$chKey] }
                     [void]$itNode.Nodes.Add($chNode)
