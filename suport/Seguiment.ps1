@@ -45,6 +45,15 @@
 # Espai de noms WordprocessingML.
 $Script:WNS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
 
+# Format del text afegit pel seguiment (anotacions i conclusions): ha de ser
+# com l'estil Normal de REQ1 -> Bookman Old Style 11, justificat.
+$Script:SeguimentFontName     = 'Bookman Old Style'
+$Script:SeguimentFontHalfPt   = '22'   # 22 mig-punts = 11 pt
+
+# Frases per defecte del comentari segons la casella "Resolt" (editables).
+$Script:SeguimentPhraseResolt   = "S'aporta."
+$Script:SeguimentPhraseNoResolt = "No s'aporta."
+
 # ----------------------------------------------------------------------------
 # Expressions regulars (a nivell de script: definides en carregar el fitxer).
 # ----------------------------------------------------------------------------
@@ -187,19 +196,22 @@ function _FormatAnnotationLine($dateStr, $comment) {
     return ('{0}: {1}' -f $dateStr, $c)
 }
 
-# Nom del fitxer de sortida del seguiment.
-#   - Font amb l'esquema del programa "YYYY-MM-DD_<Cat>_GIA <id>" ->
-#     "<data>_<Cat>_GIA <id>_SEG.docx" (preservant Cat i GIA; sense duplicar _SEG).
-#   - Font feta a ma -> "<data>_Seguiment_<nom>.docx".
+# Nom del fitxer de sortida del seguiment. La DATA es la d'AVUI (el dia que es
+# genera l'informe), no la de l'anotacio.
+#   - Font amb l'esquema del programa "..._<Pre><N>_GIA <id>" -> s'incrementa el
+#     numero del cataleg: "Req1" -> "<avui>_Req2_GIA <id>.docx", "Req2"->"Req3"...
+#     (la primera ronda parteix del requeriment Req1; cada seguiment puja un nº).
+#   - Font feta a ma -> "<avui>_Seguiment_<nom>.docx".
 # Sempre s'ha de passar el resultat per _GetUniqueOutputPath (afegeix _2, _3...).
-function _SeguimentOutputName([string]$sourceBaseName, [datetime]$roundDate) {
-    $day = $roundDate.ToString('yyyy-MM-dd')
-    $rx  = [regex]'^\d{4}-\d{2}-\d{2}_(.+?)_GIA\s+(\d+|s_n)'
+function _SeguimentOutputName([string]$sourceBaseName, [datetime]$today) {
+    $day = $today.ToString('yyyy-MM-dd')
+    $rx  = [regex]'_(?<pre>[A-Za-z]+)(?<n>\d+)_GIA[\s_]+(?<gia>\d+|s_n)'
     $m   = $rx.Match([string]$sourceBaseName)
     if ($m.Success) {
-        $cat = $m.Groups[1].Value
-        $gia = $m.Groups[2].Value
-        return ('{0}_{1}_GIA {2}_SEG.docx' -f $day, $cat, $gia)
+        $pre = $m.Groups['pre'].Value
+        $n   = [int]$m.Groups['n'].Value + 1
+        $gia = $m.Groups['gia'].Value
+        return ('{0}_{1}{2}_GIA {3}.docx' -f $day, $pre, $n, $gia)
     }
     $safe = (([string]$sourceBaseName) -replace '[\\/:*?"<>|]','_').Trim()
     if ([string]::IsNullOrWhiteSpace($safe)) { $safe = 'informe' }
@@ -328,8 +340,29 @@ function _CollectParaRecordsXml($bodyParas, $ns) {
     return $records.ToArray()
 }
 
-# Posa/treu negreta a TOTS els runs amb text d'un paragraf.
-#   $boldOn = $true  -> afegeix <w:b/> i <w:bCs/>
+# Afegeix la font del cos (Bookman Old Style 11) a un <w:rPr>. L'ordre dins rPr
+# (rFonts abans de sz) es respecta perque despres _SetParagraphBoldXml insereix
+# b/bCs JUST despres de rFonts (ordre valid de CT_RPr).
+function _ApplyBodyFontXml($xml, $rPr) {
+    $w = $Script:WNS
+    $rf = $xml.CreateElement('w','rFonts',$w)
+    [void]$rf.SetAttribute('ascii',$w,$Script:SeguimentFontName)
+    [void]$rf.SetAttribute('hAnsi',$w,$Script:SeguimentFontName)
+    [void]$rf.SetAttribute('cs',$w,$Script:SeguimentFontName)
+    [void]$rPr.AppendChild($rf)
+    $sz   = $xml.CreateElement('w','sz',$w);   [void]$sz.SetAttribute('val',$w,$Script:SeguimentFontHalfPt);   [void]$rPr.AppendChild($sz)
+    $szCs = $xml.CreateElement('w','szCs',$w); [void]$szCs.SetAttribute('val',$w,$Script:SeguimentFontHalfPt); [void]$rPr.AppendChild($szCs)
+}
+
+# Un paragraf es d'enllac (URL) si conte un <w:hyperlink> o el text es una URL.
+function _IsUrlParagraphXml($p, $ns) {
+    if ($null -ne $p.SelectSingleNode('.//w:hyperlink', $ns)) { return $true }
+    return ((_ParagraphTextXml $p $ns).Trim() -match '^https?://')
+}
+
+# Posa/treu negreta a TOTS els runs amb text d'un paragraf, mantenint l'ordre
+# valid de CT_RPr (b/bCs just despres de rStyle/rFonts).
+#   $boldOn = $true  -> <w:b/> i <w:bCs/>
 #   $boldOn = $false -> <w:b w:val="false"/> i <w:bCs w:val="false"/> (anul·la
 #                       fins i tot la negreta que ja portava, p.ex. el "N.").
 function _SetParagraphBoldXml($xmlInfo, $p, [bool]$boldOn) {
@@ -341,41 +374,101 @@ function _SetParagraphBoldXml($xmlInfo, $p, [bool]$boldOn) {
             $rPr = $xml.CreateElement('w','rPr',$w)
             [void]$r.PrependChild($rPr)
         }
-        $b   = $rPr.SelectSingleNode('w:b', $ns)
-        $bCs = $rPr.SelectSingleNode('w:bCs', $ns)
-        if ($boldOn) {
-            if ($null -eq $b)   { [void]$rPr.AppendChild($xml.CreateElement('w','b',$w)) }   else { $b.RemoveAttribute('val', $w) }
-            if ($null -eq $bCs) { [void]$rPr.AppendChild($xml.CreateElement('w','bCs',$w)) } else { $bCs.RemoveAttribute('val', $w) }
-        } else {
-            if ($null -eq $b)   { $b   = $xml.CreateElement('w','b',$w);   [void]$rPr.AppendChild($b) }
-            if ($null -eq $bCs) { $bCs = $xml.CreateElement('w','bCs',$w); [void]$rPr.AppendChild($bCs) }
+        # Treure b/bCs existents per reinserir-los en la posicio correcta.
+        foreach ($old in @($rPr.SelectNodes('w:b', $ns)) + @($rPr.SelectNodes('w:bCs', $ns))) {
+            [void]$rPr.RemoveChild($old)
+        }
+        $b   = $xml.CreateElement('w','b',$w)
+        $bCs = $xml.CreateElement('w','bCs',$w)
+        if (-not $boldOn) {
             [void]$b.SetAttribute('val', $w, 'false')
             [void]$bCs.SetAttribute('val', $w, 'false')
+        }
+        $anchor = $null
+        foreach ($name in 'w:rFonts','w:rStyle') {
+            $x = $rPr.SelectSingleNode($name, $ns)
+            if ($null -ne $x) { $anchor = $x; break }
+        }
+        if ($null -ne $anchor) {
+            [void]$rPr.InsertAfter($bCs, $anchor)
+            [void]$rPr.InsertAfter($b, $anchor)   # queda: anchor, b, bCs
+        } else {
+            [void]$rPr.PrependChild($bCs)
+            [void]$rPr.PrependChild($b)
         }
     }
 }
 
 # Crea un <w:p> d'anotacio clonant el pPr del requeriment (estil/sagnat) pero
-# sense numeracio ni rPr de marca, amb un run amb el text.
+# FORCANT numId=0 (sense numeracio), amb un run en Bookman Old Style 11.
 function _MakeAnnotationParagraphXml($xmlInfo, $reqNode, $line) {
     $xml = $xmlInfo.Xml; $ns = $xmlInfo.Ns; $w = $Script:WNS
     $p = $xml.CreateElement('w','p',$w)
     $reqPPr = $reqNode.SelectSingleNode('w:pPr', $ns)
     if ($null -ne $reqPPr) {
         $pPr = $reqPPr.CloneNode($true)
-        $numPr = $pPr.SelectSingleNode('w:numPr', $ns)
-        if ($null -ne $numPr) { [void]$pPr.RemoveChild($numPr) }
         $pmRPr = $pPr.SelectSingleNode('w:rPr', $ns)   # format de la marca de paragraf
         if ($null -ne $pmRPr) { [void]$pPr.RemoveChild($pmRPr) }
+        # FORCAR numId=0 perque NO s'enumeri (mantenint l'estil de llista, que
+        # aporta la sagnia per alinear l'anotacio sota el requeriment).
+        $numPr = $pPr.SelectSingleNode('w:numPr', $ns)
+        if ($null -eq $numPr) {
+            $numPr = $xml.CreateElement('w','numPr',$w)
+            $ilvl = $xml.CreateElement('w','ilvl',$w);  [void]$ilvl.SetAttribute('val',$w,'0'); [void]$numPr.AppendChild($ilvl)
+            $nid  = $xml.CreateElement('w','numId',$w); [void]$nid.SetAttribute('val',$w,'0');  [void]$numPr.AppendChild($nid)
+            $pStyle = $pPr.SelectSingleNode('w:pStyle', $ns)
+            if ($null -ne $pStyle) { [void]$pPr.InsertAfter($numPr, $pStyle) } else { [void]$pPr.PrependChild($numPr) }
+        } else {
+            $nid = $numPr.SelectSingleNode('w:numId', $ns)
+            if ($null -eq $nid) { $nid = $xml.CreateElement('w','numId',$w); [void]$numPr.AppendChild($nid) }
+            [void]$nid.SetAttribute('val', $w, '0')
+        }
         [void]$p.AppendChild($pPr)
     }
     $r = $xml.CreateElement('w','r',$w)
+    $rPr = $xml.CreateElement('w','rPr',$w)
+    _ApplyBodyFontXml $xml $rPr
+    [void]$r.AppendChild($rPr)
     $t = $xml.CreateElement('w','t',$w)
     $xsp=$xml.CreateAttribute('xml','space','http://www.w3.org/XML/1998/namespace'); $xsp.Value='preserve'; [void]$t.Attributes.Append($xsp)
     $t.InnerText = [string]$line
     [void]$r.AppendChild($t)
     [void]$p.AppendChild($r)
     return ,$p   # ,: el node <w:p> es IEnumerable; evitem que s'enumeri
+}
+
+# Calcula, per cada requeriment, el seu BLOC (del seu paragraf fins abans del
+# requeriment seguent o del bloc de conclusions). Retorna, per cada requeriment:
+#   AnchorNode   : ultim paragraf NO buit del bloc (on inserir la nova anotacio,
+#                  "a sota de tot": despres del cos, l'enllac i anotacions previes).
+#   ContentNodes : paragrafs NO buits i NO d'enllac (els que s'han de posar en
+#                  negreta quan el requeriment esta pendent). L'enllac mai.
+function _SeguimentBlocksXml($bodyParas, $model, [int]$conclusionStartIndex, $ns) {
+    $reqs = $model.Requirements
+    $blocks = New-Object System.Collections.ArrayList
+    for ($k = 0; $k -lt $reqs.Count; $k++) {
+        $startIdx = [int]$reqs[$k].ParaIndex                      # 1-based
+        if ($k -lt $reqs.Count - 1)            { $endIdx = [int]$reqs[$k+1].ParaIndex - 1 }
+        elseif ($conclusionStartIndex -ge 1)   { $endIdx = $conclusionStartIndex - 1 }
+        else                                   { $endIdx = $bodyParas.Count }
+        if ($endIdx -lt $startIdx) { $endIdx = $startIdx }
+
+        $anchor  = $bodyParas[$startIdx - 1]
+        $content = New-Object System.Collections.ArrayList
+        for ($i = $startIdx; $i -le $endIdx; $i++) {
+            $node = $bodyParas[$i - 1]
+            if ([string]::IsNullOrWhiteSpace((_ParagraphTextXml $node $ns))) { continue }
+            $anchor = $node                                       # ultim no buit
+            if (-not (_IsUrlParagraphXml $node $ns)) { [void]$content.Add($node) }
+        }
+        [void]$blocks.Add([pscustomobject]@{
+            ReqIndex     = $k
+            ReqNode      = $bodyParas[$startIdx - 1]
+            AnchorNode   = $anchor
+            ContentNodes = $content.ToArray()
+        })
+    }
+    return $blocks.ToArray()
 }
 
 # Runs <w:r> a partir d'un text interpretant **negreta** i //cursiva//.
@@ -386,12 +479,11 @@ function _RichTextRunsXml($xmlInfo, $text) {
         param($segment, $bold, $italic)
         if ([string]::IsNullOrEmpty($segment)) { return }
         $r = $xml.CreateElement('w','r',$w)
-        if ($bold -or $italic) {
-            $rPr = $xml.CreateElement('w','rPr',$w)
-            if ($bold)   { [void]$rPr.AppendChild($xml.CreateElement('w','b',$w)) }
-            if ($italic) { [void]$rPr.AppendChild($xml.CreateElement('w','i',$w)) }
-            [void]$r.AppendChild($rPr)
-        }
+        $rPr = $xml.CreateElement('w','rPr',$w)
+        _ApplyBodyFontXml $xml $rPr
+        if ($bold)   { [void]$rPr.AppendChild($xml.CreateElement('w','b',$w)) }
+        if ($italic) { [void]$rPr.AppendChild($xml.CreateElement('w','i',$w)) }
+        [void]$r.AppendChild($rPr)
         $t = $xml.CreateElement('w','t',$w)
         $xsp=$xml.CreateAttribute('xml','space','http://www.w3.org/XML/1998/namespace'); $xsp.Value='preserve'; [void]$t.Attributes.Append($xsp)
         $t.InnerText = $segment
@@ -420,10 +512,17 @@ function _MakeConclusionParagraphXml($xmlInfo, $text, [bool]$centeredBold) {
         $jc = $xml.CreateElement('w','jc',$w); [void]$jc.SetAttribute('val',$w,'center'); [void]$pPr.AppendChild($jc)
         [void]$p.AppendChild($pPr)
         $r = $xml.CreateElement('w','r',$w)
-        $rPr = $xml.CreateElement('w','rPr',$w); [void]$rPr.AppendChild($xml.CreateElement('w','b',$w)); [void]$r.AppendChild($rPr)
+        $rPr = $xml.CreateElement('w','rPr',$w)
+        _ApplyBodyFontXml $xml $rPr
+        [void]$rPr.AppendChild($xml.CreateElement('w','b',$w))
+        [void]$r.AppendChild($rPr)
         $t = $xml.CreateElement('w','t',$w); $xsp=$xml.CreateAttribute('xml','space','http://www.w3.org/XML/1998/namespace'); $xsp.Value='preserve'; [void]$t.Attributes.Append($xsp); $t.InnerText = [string]$text
         [void]$r.AppendChild($t); [void]$p.AppendChild($r)
     } else {
+        # Paragraf de conclusio: justificat (com l'estil Normal de REQ1).
+        $pPr = $xml.CreateElement('w','pPr',$w)
+        $jc = $xml.CreateElement('w','jc',$w); [void]$jc.SetAttribute('val',$w,'both'); [void]$pPr.AppendChild($jc)
+        [void]$p.AppendChild($pPr)
         foreach ($r in (_RichTextRunsXml $xmlInfo $text)) { [void]$p.AppendChild($r) }
     }
     return ,$p
@@ -519,6 +618,9 @@ function _ApplySeguimentTransform {
         $conclHeaderText, $selectedConclusions, $alwaysConclusions, $fields
     )
 
+    # Calculem els blocs ABANS de tocar res (anclatge i nodes de contingut).
+    $blocks = @(_SeguimentBlocksXml $bodyParas $model $conclusionStartIndex $xmlInfo.Ns)
+
     # (1) Esborrar el bloc de conclusions (nodes <w:p> des del cut fins al final).
     # El <w:sectPr> (fill del body, no es <w:p>) es preserva automaticament.
     if ($conclusionStartIndex -ge 1) {
@@ -528,28 +630,25 @@ function _ApplySeguimentTransform {
         }
     }
 
-    # (2) Per cada requeriment: inserir la nova anotacio (si hi ha comentari) i
-    # recalcular la negreta de tota la columna (requeriment + anotacions).
-    for ($k = 0; $k -lt $model.Requirements.Count; $k++) {
-        $req = $model.Requirements[$k]
+    # (2) Per cada requeriment: inserir la nova anotacio A SOTA DE TOT (despres
+    # del cos, l'enllac i les anotacions previes) i recalcular la negreta de
+    # totes les linies de contingut del bloc (mai l'enllac).
+    for ($k = 0; $k -lt $blocks.Count; $k++) {
+        $b   = $blocks[$k]
         $dec = $decisions[$k]
-        $reqNode = $bodyParas[$req.ParaIndex - 1]
-
-        $annotNodes = New-Object System.Collections.ArrayList
-        foreach ($a in $req.Annotations) { [void]$annotNodes.Add($bodyParas[$a.ParaIndex - 1]) }
+        $contentNodes = New-Object System.Collections.ArrayList
+        foreach ($n in $b.ContentNodes) { [void]$contentNodes.Add($n) }
 
         $comment = [string]$dec.NewComment
         if (-not [string]::IsNullOrWhiteSpace($comment)) {
             $line = _FormatAnnotationLine $dateStr $comment
-            $newP = _MakeAnnotationParagraphXml $xmlInfo $reqNode $line
-            $anchor = if ($annotNodes.Count -gt 0) { $annotNodes[$annotNodes.Count - 1] } else { $reqNode }
-            [void]$xmlInfo.Body.InsertAfter($newP, $anchor)
-            [void]$annotNodes.Add($newP)
+            $newP = _MakeAnnotationParagraphXml $xmlInfo $b.ReqNode $line
+            [void]$xmlInfo.Body.InsertAfter($newP, $b.AnchorNode)
+            [void]$contentNodes.Add($newP)
         }
 
         $boldOn = (_ShouldBeBold $dec.Resolved)
-        _SetParagraphBoldXml $xmlInfo $reqNode $boldOn
-        foreach ($n in $annotNodes) { _SetParagraphBoldXml $xmlInfo $n $boldOn }
+        foreach ($n in $contentNodes) { _SetParagraphBoldXml $xmlInfo $n $boldOn }
     }
 
     # (3) Afegir les conclusions noves al final.
@@ -571,7 +670,8 @@ function Apply-SeguimentXml {
         -conclHeaderText $conclHeaderText -selectedConclusions $selectedConclusions `
         -alwaysConclusions $alwaysConclusions -fields $fields
 
-    $outName   = _SeguimentOutputName $sourceBaseName $roundDate
+    # La data del nom es la d'AVUI (dia de generacio), no la de l'anotacio.
+    $outName   = _SeguimentOutputName $sourceBaseName (Get-Date)
     $targetDir = _ResolveOutputDir
     $outPath   = _GetUniqueOutputPath $targetDir $outName
     _SaveDocxXml $xmlInfo $srcPath $outPath
@@ -813,6 +913,19 @@ function Prompt-SeguimentComments {
         $panel.Controls.Add($cb)
         $y += 30
 
+        # Comentari per defecte segons "Resolt": "S'aporta." / "No s'aporta.".
+        $tb.Text = if ($cb.Checked) { $Script:SeguimentPhraseResolt } else { $Script:SeguimentPhraseNoResolt }
+        # En canviar la casella, si el comentari encara es una frase automatica
+        # (o buit), el commutem; si l'usuari l'ha editat, el respectem.
+        $cb.Tag = $tb
+        $cb.Add_CheckedChanged({
+            $box = $this.Tag
+            $cur = ([string]$box.Text).Trim()
+            if ($cur -eq '' -or $cur -eq $Script:SeguimentPhraseResolt -or $cur -eq $Script:SeguimentPhraseNoResolt) {
+                $box.Text = if ($this.Checked) { $Script:SeguimentPhraseResolt } else { $Script:SeguimentPhraseNoResolt }
+            }
+        })
+
         # Separador visual
         $sep = New-Object System.Windows.Forms.Label
         $sep.BorderStyle = 'Fixed3D'
@@ -821,10 +934,10 @@ function Prompt-SeguimentComments {
         $panel.Controls.Add($sep)
         $y += 12
 
-        # Precarrega (tornar enrere)
+        # Precarrega (tornar enrere): restaura casella i, despres, el text guardat.
         if ($null -ne $preload -and $i -lt $preload.Count) {
-            $tb.Text    = [string]$preload[$i].NewComment
             $cb.Checked = [bool]$preload[$i].Resolved
+            $tb.Text    = [string]$preload[$i].NewComment
         }
 
         $rows += [pscustomobject]@{ Comment=$tb; Resolved=$cb }

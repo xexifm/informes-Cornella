@@ -75,27 +75,37 @@ A la pantalla inicial tria **Fer seguiment d'un informe existent**. Després:
 | Pas | Què fa |
 |-----|--------|
 | 1 | Tries l'informe anterior (`.docx`). Pot ser fet amb el programa o a mà, sempre que tingui requeriments enumerats (`1.`, `2.`…). |
-| 2 | El programa detecta el bloc de conclusions antic i **et mostra què esborrarà** perquè ho confirmis (o ho ajustis a mà si és un informe atípic). |
+| 2 | Tries el **primer paràgraf de conclusions a esborrar** (et llista els paràgrafs a partir de l'últim punt; el detectat ve preseleccionat). |
 | 3 | Escrius la **data** d'aquesta entrega (per defecte, avui). |
-| 4 | Per cada requeriment: escrius el **comentari** i marques **Resolt** si ha quedat resolt. Es veu l'historial d'anotacions anteriors. |
+| 4 | Per cada requeriment: **comentari** (per defecte *"No s'aporta."*, o *"S'aporta."* si marques **Resolt**; editable) i casella **Resolt**. Es veu l'historial. |
 | 5 | Tries les **conclusions** noves (com a l'informe normal) i omples els camps que calguin. |
-| 6 | Es genera un `.docx` nou (sufix `_SEG`) i s'obre amb Word. |
+| 6 | Es genera un `.docx` nou i s'obre amb Word. |
 
 **Què fa exactament:**
 - **No toca** la capçalera ni el text dels requeriments de l'informe anterior.
 - **Esborra** les conclusions antigues (el que va després de l'últim punt
   enumerat, normalment des de *"Vist l'anterior…"* fins a *"Cornellà de
   Llobregat,"*) i hi posa les noves que triïs.
-- Sota cada requeriment afegeix la línia `data: comentari`.
-- **Negreta dinàmica**: mentre un requeriment NO estigui resolt, el punt i les
-  seves anotacions van en **negreta**; quan el marques com a resolt, deixen
-  d'anar-hi. Així, d'una ullada, el que és en negreta és el que encara falta.
+- Sota cada requeriment, **a sota de tot** (després del cos i de l'enllaç),
+  afegeix la línia `data: comentari`. Si no es marca *Resolt*, el comentari per
+  defecte és *"No s'aporta."*; si es marca, *"S'aporta."* (sempre editable).
+- **Negreta dinàmica**: mentre un requeriment NO estigui resolt, **totes** les
+  seves línies (punt + sub-línies + anotacions) van en **negreta** —menys
+  l'enllaç, que mai—; quan el marques com a resolt, deixen d'anar-hi.
+- El text afegit (anotacions i conclusions) surt en **Bookman Old Style 11**
+  justificat.
 
 El resultat torna a ser un "informe anterior" vàlid: pots tornar-hi a passar el
 seguiment a la ronda següent i s'hi afegirà una línia nova sense duplicar res.
 
-Les frases que marquen on comencen les conclusions a esborrar es poden
-personalitzar a `suport/config.ps1` (`$SeguimentConclusionPhrases`).
+**Nom del fitxer:** el seguiment **incrementa el número** del catàleg amb la data
+d'avui: d'un `..._Req1_GIA <id>` en surt `<avui>_Req2_GIA <id>.docx`; el següent,
+`Req3`, etc. Si en generes dos el mateix dia, el segon porta `_2`.
+
+**Tècnic:** el seguiment edita el `.docx` directament (XML intern, sense Word);
+Word només s'obre al final per ensenyar-te el resultat. Les frases que marquen
+on comencen les conclusions a esborrar es poden personalitzar a
+`suport/config.ps1` (`$SeguimentConclusionPhrases`).
 
 ### Actualitzar el programa
 **Doble clic a `Actualitzar.bat`**. Fa el següent:

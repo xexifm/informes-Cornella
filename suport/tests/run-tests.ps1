@@ -450,8 +450,9 @@ AssertEq (_FormatAnnotationLine '01/06/2026' '  espais  ') '01/06/2026: espais' 
 
 Write-Host "`n--- Seguiment: _SeguimentOutputName ---"
 $d = [datetime]'2026-06-05'
-AssertEq (_SeguimentOutputName '2026-05-29_Req1_GIA 1379' $d) '2026-06-05_Req1_GIA 1379_SEG.docx' '_SeguimentOutputName esquema programa -> _SEG amb GIA preservat'
-AssertEq (_SeguimentOutputName '2026-05-29_Req1_GIA 1379_SEG' $d) '2026-06-05_Req1_GIA 1379_SEG.docx' '_SeguimentOutputName re-seguiment no duplica _SEG'
+AssertEq (_SeguimentOutputName '2026-05-29_Req1_GIA 1379' $d) '2026-06-05_Req2_GIA 1379.docx' '_SeguimentOutputName Req1 -> Req2, data avui'
+AssertEq (_SeguimentOutputName '2026-06-05_Req2_GIA 1379' $d) '2026-06-05_Req3_GIA 1379.docx' '_SeguimentOutputName Req2 -> Req3'
+AssertEq (_SeguimentOutputName '2026-05-29_Req1_GIA 1379_SEG' $d) '2026-06-05_Req2_GIA 1379.docx' '_SeguimentOutputName ignora sufix _SEG vell -> Req2'
 AssertEq (_SeguimentOutputName 'Informe antic fet a ma' $d) '2026-06-05_Seguiment_Informe antic fet a ma.docx' '_SeguimentOutputName font feta a ma -> prefix Seguiment'
 AssertEq (_SeguimentOutputName 'a/b:c' $d) '2026-06-05_Seguiment_a_b_c.docx' '_SeguimentOutputName saneja caracters il-legals'
 
@@ -530,41 +531,85 @@ $bOff = $bp[0].SelectSingleNode('w:r/w:rPr/w:b', $xi.Ns)
 AssertEq ($bOff.GetAttribute('val',$W)) 'false' '_SetParagraphBoldXml off: <w:b w:val="false">'
 AssertEq (_ParagraphBoldStateXml $bp[0] $xi.Ns) 0 '_SetParagraphBoldXml off: sense negreta (0)'
 
-Write-Host "`n--- Seguiment XML: transformacio completa ---"
-$xi2 = New-XmlInfoFromString $docStr
+Write-Host "`n--- Seguiment XML: transformacio completa (blocs amb sub-linies i enllac) ---"
+# Doc amb: req1 + sub-linia + enllac, req2, i bloc de conclusions.
+$docStr2 = @"
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="$W"><w:body>
+<w:p><w:r><w:t>Capcalera</w:t></w:r></w:p>
+<w:p><w:pPr><w:pStyle w:val="Prrafodelista"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="0"/></w:numPr></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">1. </w:t></w:r><w:r><w:t>Baixa tensio.</w:t></w:r></w:p>
+<w:p><w:pPr><w:pStyle w:val="Prrafodelista"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="0"/></w:numPr></w:pPr><w:r><w:t>- Subdocument A</w:t></w:r></w:p>
+<w:p><w:r><w:t>https://exemple.cat/x</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">2. </w:t></w:r><w:r><w:t>Alta tensio.</w:t></w:r></w:p>
+<w:p><w:r><w:t>Vist l anterior, cal requerir.</w:t></w:r></w:p>
+<w:p><w:r><w:t>Ho poso al seu coneixement.</w:t></w:r></w:p>
+<w:sectPr><w:pgSz w:w="11906" w:h="16838"/></w:sectPr>
+</w:body></w:document>
+"@
+$xi2 = New-XmlInfoFromString $docStr2
 $bp2 = @(_BodyParagraphsXml $xi2)
 $model2 = _BuildSeguimentModel (_CollectParaRecordsXml $bp2 $xi2.Ns)
+AssertEq $model2.Requirements.Count 2 'Transform: 2 requeriments (req1 amb sub-linia i enllac)'
+# Deteccio URL
+Assert (_IsUrlParagraphXml $bp2[3] $xi2.Ns)        '_IsUrlParagraphXml: el paragraf de l enllac -> true'
+Assert (-not (_IsUrlParagraphXml $bp2[1] $xi2.Ns)) '_IsUrlParagraphXml: el requeriment -> false'
+
 $dec = @(
-    [pscustomobject]@{ Resolved=$false; NewComment='No s entrega.' },
-    [pscustomobject]@{ Resolved=$true;  NewComment='S entrega correctament.' }
+    [pscustomobject]@{ Resolved=$false; NewComment="No s'aporta." },
+    [pscustomobject]@{ Resolved=$true;  NewComment="S'aporta." }
 )
 $flds = [ordered]@{}; $flds['lloc'] = [pscustomobject]@{ Type='text'; Value='Cornella'; Hint=$null; Options=$null }
 $concl = @([pscustomobject]@{ Title='C'; Body='Cos **negreta** aqui.' })
 $always = @('Ho poso, [CAMP: lloc].')
-_ApplySeguimentTransform -xmlInfo $xi2 -bodyParas $bp2 -model $model2 -conclusionStartIndex 4 `
-    -decisions $dec -dateStr '01/06/2026' -conclHeaderText 'CONCLUSIONS' `
+_ApplySeguimentTransform -xmlInfo $xi2 -bodyParas $bp2 -model $model2 -conclusionStartIndex 6 `
+    -decisions $dec -dateStr '04/06/2026' -conclHeaderText 'CONCLUSIONS' `
     -selectedConclusions $concl -alwaysConclusions $always -fields $flds
-$after = @(_BodyParagraphsXml $xi2 | ForEach-Object { [pscustomobject]@{ T=(_ParagraphTextXml $_ $xi2.Ns); B=(_ParagraphBoldStateXml $_ $xi2.Ns) } })
+$afterN = @(_BodyParagraphsXml $xi2)
+$after = @($afterN | ForEach-Object { [pscustomobject]@{ T=(_ParagraphTextXml $_ $xi2.Ns); B=(_ParagraphBoldStateXml $_ $xi2.Ns) } })
 $texts = @($after | ForEach-Object { $_.T })
-Assert ($texts -contains '01/06/2026: No s entrega.')        'Transform: anotacio del req1 inserida'
-Assert ($texts -contains '01/06/2026: S entrega correctament.') 'Transform: anotacio del req2 inserida'
+
+Assert ($texts -contains "04/06/2026: No s'aporta.")          'Transform: anotacio del req1 inserida'
+Assert ($texts -contains "04/06/2026: S'aporta.")             'Transform: anotacio del req2 inserida'
 Assert (-not ($texts -contains 'Vist l anterior, cal requerir.')) 'Transform: conclusio antiga esborrada'
 Assert ($texts -contains 'CONCLUSIONS')                       'Transform: titol de conclusions afegit'
 Assert ($texts -contains 'Ho poso, Cornella.')               'Transform: [CAMP: lloc] resolt a "Cornella"'
-# req1 (index del text "1.\tBaixa tensio.") i la seva anotacio: en negreta
-$idxReq1 = [array]::IndexOf($texts, "1.`tBaixa tensio.")
-AssertEq $after[$idxReq1].B (-1)     'Transform: req1 pendent -> tot negreta'
-AssertEq $after[$idxReq1 + 1].B (-1) 'Transform: anotacio de req1 -> negreta'
+
+# PUNT 1: l'anotacio del req1 va A SOTA DE TOT (despres de l enllac)
+$idxUrl   = [array]::IndexOf($texts, 'https://exemple.cat/x')
+$idxAnnot1 = [array]::IndexOf($texts, "04/06/2026: No s'aporta.")
+Assert ($idxAnnot1 -gt $idxUrl) 'Transform (punt 1): l anotacio va despres de l enllac'
+
+# PUNT 5: negreta a req1 + sub-linia, MAI a l enllac
+$idxReq1 = [array]::IndexOf($texts, '1. Baixa tensio.')
+$idxSub  = [array]::IndexOf($texts, '- Subdocument A')
+AssertEq $after[$idxReq1].B (-1) 'Transform (punt 5): req1 pendent en negreta'
+AssertEq $after[$idxSub].B  (-1) 'Transform (punt 5): la sub-linia tambe en negreta'
+AssertEq $after[$idxUrl].B    0  'Transform (punt 5): l enllac MAI en negreta'
+AssertEq $after[$idxAnnot1].B (-1) 'Transform: anotacio de req1 en negreta'
+
+# req2 resolt -> res en negreta
 $idxReq2 = [array]::IndexOf($texts, '2. Alta tensio.')
-AssertEq $after[$idxReq2].B 0        'Transform: req2 resolt -> sense negreta'
-AssertEq $after[$idxReq2 + 1].B 0    'Transform: anotacio de req2 -> sense negreta'
-# **negreta** inline a la conclusio -> el paragraf "Cos negreta aqui." es mixt
+$idxAnnot2 = [array]::IndexOf($texts, "04/06/2026: S'aporta.")
+AssertEq $after[$idxReq2].B 0    'Transform: req2 resolt -> sense negreta'
+AssertEq $after[$idxAnnot2].B 0  'Transform: anotacio de req2 -> sense negreta'
+
+# PUNT 2: l anotacio NO s ha d enumerar -> numPr amb numId=0
+$annotNode = $afterN[$idxAnnot1]
+$nid = $annotNode.SelectSingleNode('w:pPr/w:numPr/w:numId', $xi2.Ns)
+Assert ($null -ne $nid -and $nid.GetAttribute('val',$W) -eq '0') 'Transform (punt 2): l anotacio te numId=0 (sense numeracio)'
+
+# PUNT 6: font Bookman Old Style a l anotacio i a la conclusio
+$annFont = $annotNode.SelectSingleNode('w:r/w:rPr/w:rFonts', $xi2.Ns)
+Assert ($null -ne $annFont -and $annFont.GetAttribute('ascii',$W) -eq 'Bookman Old Style') 'Transform (punt 6): anotacio en Bookman Old Style'
 $idxConcl = [array]::IndexOf($texts, 'Cos negreta aqui.')
-Assert ($idxConcl -ge 0)             'Transform: conclusio nova present (markdown processat)'
-AssertEq $after[$idxConcl].B 9999999 'Transform: **negreta** inline -> run en negreta (mixt)'
-# sectPr preservat
+Assert ($idxConcl -ge 0) 'Transform: conclusio nova present (markdown processat)'
+$concFont = $afterN[$idxConcl].SelectSingleNode('w:r/w:rPr/w:rFonts', $xi2.Ns)
+Assert ($null -ne $concFont -and $concFont.GetAttribute('ascii',$W) -eq 'Bookman Old Style') 'Transform (punt 6): conclusio en Bookman Old Style'
+$concJc = $afterN[$idxConcl].SelectSingleNode('w:pPr/w:jc', $xi2.Ns)
+Assert ($null -ne $concJc -and $concJc.GetAttribute('val',$W) -eq 'both') 'Transform (punt 6): conclusio justificada'
+
+# sectPr preservat + XML estrictament valid (com l obre el Word)
 Assert ($null -ne $xi2.Body.SelectSingleNode('w:sectPr', $xi2.Ns)) 'Transform: <w:sectPr> preservat'
-# El XML resultant ha de ser ESTRICTAMENT valid (com l'obre el Word)
 $swT = New-Object System.IO.StringWriter; $xi2.Xml.Save($swT)
 Assert (Test-StrictXml $swT.ToString()) 'Transform: el document.xml resultant es estrictament valid (Word)'
 
