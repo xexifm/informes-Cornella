@@ -1774,17 +1774,29 @@ function _WriteCatalegBody($sel, $cfg, $selectedSections, $fields, $introText) {
             $lastSectionName = $sec.Title
         }
 
+        # Les subseccions i les intros s'emeten "tard": nomes quan ve un
+        # item REAL que les segueix. Si una secció conté 3 ::SUB:: pero
+        # nomes s'ha triat un ítem que viu a la 3a subsecció, només
+        # surten el títol de la secció i la 3a subsecció (no les 2
+        # anteriors buides). Una nova subsecció sobreescriu la pendent.
+        $pendingSubsection = $null
         $pendingIntro = $null
         foreach ($el in $sec.Items) {
             if ($el.Kind -eq 'subsection') {
-                Format-Subsection $sel $el.Short
-                if ($cfg.SpacerAfterSubsection) { Format-Spacer $sel }
-                $pendingIntro = $null
+                $pendingSubsection = $el
+                $pendingIntro = $null   # una nova subseccio invalida l'intro pendent
                 continue
             }
             if ($el.Kind -eq 'intro') {
                 $pendingIntro = $el
                 continue
+            }
+            # Item real: emetem primer la subseccio pendent (si en hi ha),
+            # despres l'intro pendent, i finalment l'item.
+            if ($null -ne $pendingSubsection) {
+                Format-Subsection $sel $pendingSubsection.Short
+                if ($cfg.SpacerAfterSubsection) { Format-Spacer $sel }
+                $pendingSubsection = $null
             }
             if ($null -ne $pendingIntro) {
                 & $emitIntro $pendingIntro

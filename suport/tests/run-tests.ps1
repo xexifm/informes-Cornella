@@ -238,6 +238,45 @@ Assert ($itemTxt -notmatch '\[OPCIO:')        "L'OPCIO NO ha de quedar literal a
 Assert ($itemTxt.Contains('ACA'))             "El valor triat (ACA) apareix al text de l'item"
 Assert ($itemTxt.Contains('Presentar a ACA')) "L'OPCIO substituit forma una frase coherent"
 
+Write-Host "`n--- Subseccions buides NO s'emeten (regressio) ---"
+# Cas real: secció "Instal·lacions" amb 3 ::SUB:: (Legalitzacions,
+# Inspeccions inicials, Inspeccions periòdiques). L'usuari només
+# selecciona 1 item sota "Inspeccions periòdiques". Han de sortir:
+#   SECT "Instal·lacions"
+#   SUB  "Inspeccions periòdiques"
+#   ITEM "PCI..."
+# NO han de sortir "Legalitzacions" ni "Inspeccions inicials".
+$global:emitCalls = New-Object System.Collections.ArrayList
+$secSub = [pscustomobject]@{ Title='Instal·lacions'; Items=@(
+  [pscustomobject]@{ Kind='subsection'; Short='Legalitzacions';        BodyLines=@(); Children=@(); Selected=$false }
+  [pscustomobject]@{ Kind='subsection'; Short='Inspeccions inicials';  BodyLines=@(); Children=@(); Selected=$false }
+  [pscustomobject]@{ Kind='subsection'; Short='Inspeccions periòdiques'; BodyLines=@(); Children=@(); Selected=$false }
+  [pscustomobject]@{ Kind='item'; Short='PCI'; Selected=$true; Children=@();
+    BodyLines=@('PCI. Real Decreto 513/2017.')
+  }
+)}
+_WriteCatalegBody ([pscustomobject]@{}) $Script:ReportFormatConfig @($secSub) ([ordered]@{}) ''
+$subCalls = @($global:emitCalls | Where-Object { $_ -like 'SUB|*' })
+AssertEq $subCalls.Count 1                              'Nomes 1 subseccio emesa (la de l item triat)'
+AssertEq $subCalls[0]    'SUB|Inspeccions periòdiques' 'La subseccio emesa es la correcta'
+Assert (-not ($subCalls -contains 'SUB|Legalitzacions'))       'Legalitzacions NO surt (no te items triats)'
+Assert (-not ($subCalls -contains 'SUB|Inspeccions inicials')) 'Inspeccions inicials NO surt'
+
+# Segon cas: 2 subseccions diferents, cada una amb un item triat.
+# Han de sortir TOTES DUES (i en l'ordre correcte).
+$global:emitCalls.Clear()
+$secMix = [pscustomobject]@{ Title='Instal·lacions'; Items=@(
+  [pscustomobject]@{ Kind='subsection'; Short='Legalitzacions';        BodyLines=@(); Children=@(); Selected=$false }
+  [pscustomobject]@{ Kind='item'; Short='A'; Selected=$true; Children=@(); BodyLines=@('Text A.') }
+  [pscustomobject]@{ Kind='subsection'; Short='Inspeccions periòdiques'; BodyLines=@(); Children=@(); Selected=$false }
+  [pscustomobject]@{ Kind='item'; Short='B'; Selected=$true; Children=@(); BodyLines=@('Text B.') }
+)}
+_WriteCatalegBody ([pscustomobject]@{}) $Script:ReportFormatConfig @($secMix) ([ordered]@{}) ''
+$subCalls2 = @($global:emitCalls | Where-Object { $_ -like 'SUB|*' })
+AssertEq $subCalls2.Count 2                          'Les 2 subseccions amb items triats SI surten'
+AssertEq $subCalls2[0] 'SUB|Legalitzacions'          'Primera subseccio en l ordre del doc'
+AssertEq $subCalls2[1] 'SUB|Inspeccions periòdiques' 'Segona subseccio en l ordre del doc'
+
 Write-Host "`n--- _GetUniqueOutputPath (sufixos _2, _3 quan ja existeix) ---"
 $tmpDir = Join-Path ([System.IO.Path]::GetTempPath()) ("uniquetest_" + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $tmpDir | Out-Null
