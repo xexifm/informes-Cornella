@@ -259,89 +259,103 @@ function Apply-Seguiment {
         [string]$sourceBaseName, [datetime]$roundDate
     )
 
-    # (1) Esborrar PRIMER el bloc de conclusions antic (de l'inici detectat fins
-    # al final de la historia). Aixi els indexs de requeriments/anotacions (tots
-    # anteriors) no es veuen afectats.
-    if ($conclusionStartIndex -ge 1) {
-        $startPara   = $doc.Paragraphs.Item($conclusionStartIndex)
-        $startOffset = $startPara.Range.Start
-        $rng = $doc.Range($startOffset, $doc.Content.End)
-        [void]$rng.Delete()
-    }
-
-    # (2) Inserir anotacions de BAIX A DALT, perque les insercions no invalidin
-    # els indexs dels requeriments encara no processats (els que tenen index mes
-    # petit). L'ancora es l'ultima anotacio existent del requeriment, o el propi
-    # paragraf del requeriment si encara no en te cap.
-    for ($k = $model.Requirements.Count - 1; $k -ge 0; $k--) {
-        $req     = $model.Requirements[$k]
-        $dec     = $decisions[$k]
-        $comment = [string]$dec.NewComment
-        if ([string]::IsNullOrWhiteSpace($comment)) { continue }
-
-        $anchorIdx = if ($req.Annotations.Count -gt 0) {
-            [int]$req.Annotations[$req.Annotations.Count - 1].ParaIndex
-        } else {
-            [int]$req.ParaIndex
-        }
-
-        $anchorRange = $doc.Paragraphs.Item($anchorIdx).Range
-        [void]$anchorRange.InsertParagraphAfter()
-
-        $np  = $doc.Paragraphs.Item($anchorIdx + 1)
-        $npr = $np.Range
-        # Evitar que l'anotacio hereti la numeracio de llista del requeriment.
-        try { [void]$npr.ListFormat.RemoveNumbers() } catch { }
-        # Escriure el text abans de la marca de paragraf.
-        $line = _FormatAnnotationLine $dateStr $comment
-        $npr.InsertBefore($line)
-
-        # Format de l'anotacio (la negreta es recalcula despres, a (3)).
-        $np2 = $doc.Paragraphs.Item($anchorIdx + 1)
-        $r2  = $np2.Range
-        $r2.Font.Bold      = 0
-        $r2.Font.Italic    = 0
-        $r2.Font.Underline = 0
-        $r2.Font.Size      = $Script:ReportFormatConfig.BodyFontSize
-        try { $np2.Format.LeftIndent = $doc.Paragraphs.Item($req.ParaIndex).Format.LeftIndent } catch { }
-    }
-
-    # (3) Recalcular la negreta de tota la "columna" de cada requeriment segons
-    # l'estat ACTUAL (re-escanegem perque els indexs han canviat amb les
-    # insercions). Pendents -> negreta; resolts -> sense negreta.
-    $records2 = _CollectParaRecords $doc
-    $model2   = _BuildSeguimentModel $records2
-    $n = [Math]::Min($model2.Requirements.Count, $decisions.Count)
-    for ($k = 0; $k -lt $n; $k++) {
-        $req2 = $model2.Requirements[$k]
-        $bold = if (_ShouldBeBold $decisions[$k].Resolved) { 1 } else { 0 }
-        $doc.Paragraphs.Item($req2.ParaIndex).Range.Font.Bold = $bold
-        foreach ($a in $req2.Annotations) {
-            $doc.Paragraphs.Item($a.ParaIndex).Range.Font.Bold = $bold
-        }
-    }
-
-    # (4) Afegir les conclusions noves al final de la historia (reutilitza el
-    # mateix escriptor que el generador). Cal fer-ho amb Selection, despres de
-    # totes les edicions amb Range.
-    $doc.Activate()
-    $sel = $word.Selection
-    [void]$sel.EndKey(6)  # wdStory = 6
-    _WriteConclusionsBlock $sel $Script:ReportFormatConfig $conclHeaderText $selectedConclusions $alwaysConclusions $fields
-
-    # (5) Desar i moure al directori de sortida amb nom unic.
-    $outName   = _SeguimentOutputName $sourceBaseName $roundDate
-    $targetDir = _ResolveOutputDir
-    $outPath   = _GetUniqueOutputPath $targetDir $outName
-
-    $doc.Save()
-    $doc.Close($false)
+    # Cada fase es marca a $phase: si una crida COM falla, reportem en quina
+    # fase ha estat (ajuda a diagnosticar errors com "conversio no valida").
+    $phase = 'inici'
     try {
-        Move-Item -LiteralPath $tempPath -Destination $outPath -Force
-    } catch {
-        return $tempPath
+        # (1) Esborrar PRIMER el bloc de conclusions antic (de l'inici detectat
+        # fins al final de la historia). Aixi els indexs de requeriments i
+        # anotacions (tots anteriors) no es veuen afectats. Fem servir
+        # l'assignacio de Range.End (mes robusta que $doc.Range(start,end), que
+        # en alguns equips llanca "conversio no valida").
+        $phase = 'esborrar conclusions antigues'
+        if ($conclusionStartIndex -ge 1) {
+            $rng = $doc.Paragraphs.Item($conclusionStartIndex).Range
+            $rng.End = $doc.Content.End
+            [void]$rng.Delete()
+        }
+
+        # (2) Inserir anotacions de BAIX A DALT, perque les insercions no
+        # invalidin els indexs dels requeriments encara no processats (els que
+        # tenen index mes petit). L'ancora es l'ultima anotacio existent del
+        # requeriment, o el propi paragraf del requeriment si encara no en te cap.
+        $phase = 'inserir anotacions'
+        for ($k = $model.Requirements.Count - 1; $k -ge 0; $k--) {
+            $req     = $model.Requirements[$k]
+            $dec     = $decisions[$k]
+            $comment = [string]$dec.NewComment
+            if ([string]::IsNullOrWhiteSpace($comment)) { continue }
+
+            $anchorIdx = if ($req.Annotations.Count -gt 0) {
+                [int]$req.Annotations[$req.Annotations.Count - 1].ParaIndex
+            } else {
+                [int]$req.ParaIndex
+            }
+
+            # Insercio: afegim un paragraf buit despres de l'ancora i hi
+            # escrivim el text. Tot amb metodes de Range (sense $doc.Range(a,b),
+            # que en alguns equips llanca "conversio no valida").
+            $anchorRange = $doc.Paragraphs.Item($anchorIdx).Range
+            [void]$anchorRange.InsertParagraphAfter()
+
+            # El nou paragraf es ara el seguent (anchorIdx + 1). Hi escrivim el
+            # text abans de la seva marca de paragraf.
+            $np2 = $doc.Paragraphs.Item($anchorIdx + 1)
+            $line = _FormatAnnotationLine $dateStr $comment
+            $np2.Range.InsertBefore($line)
+            $r2  = $np2.Range
+            # Evitar que l'anotacio hereti la numeracio de llista del requeriment.
+            try { [void]$r2.ListFormat.RemoveNumbers() } catch { }
+            try { $r2.Font.Bold      = 0 } catch { }
+            try { $r2.Font.Italic    = 0 } catch { }
+            try { $r2.Font.Underline = 0 } catch { }
+            try { $r2.Font.Size      = $Script:ReportFormatConfig.BodyFontSize } catch { }
+            try { $np2.Range.ParagraphFormat.LeftIndent = $doc.Paragraphs.Item($req.ParaIndex).Range.ParagraphFormat.LeftIndent } catch { }
+        }
+
+        # (3) Recalcular la negreta de tota la "columna" de cada requeriment
+        # segons l'estat ACTUAL (re-escanegem perque els indexs han canviat amb
+        # les insercions). Pendents -> negreta; resolts -> sense negreta.
+        $phase = 'recalcular negreta'
+        $records2 = _CollectParaRecords $doc
+        $model2   = _BuildSeguimentModel $records2
+        $n = [Math]::Min($model2.Requirements.Count, $decisions.Count)
+        for ($k = 0; $k -lt $n; $k++) {
+            $req2 = $model2.Requirements[$k]
+            $bold = if (_ShouldBeBold $decisions[$k].Resolved) { 1 } else { 0 }
+            try { $doc.Paragraphs.Item($req2.ParaIndex).Range.Font.Bold = $bold } catch { }
+            foreach ($a in $req2.Annotations) {
+                try { $doc.Paragraphs.Item($a.ParaIndex).Range.Font.Bold = $bold } catch { }
+            }
+        }
+
+        # (4) Afegir les conclusions noves al final de la historia (reutilitza el
+        # mateix escriptor que el generador). Cal fer-ho amb Selection, despres
+        # de totes les edicions amb Range.
+        $phase = 'escriure conclusions'
+        $doc.Activate()
+        $sel = $word.Selection
+        [void]$sel.EndKey(6)  # wdStory = 6
+        _WriteConclusionsBlock $sel $Script:ReportFormatConfig $conclHeaderText $selectedConclusions $alwaysConclusions $fields
+
+        # (5) Desar i moure al directori de sortida amb nom unic.
+        $phase = 'desar'
+        $outName   = _SeguimentOutputName $sourceBaseName $roundDate
+        $targetDir = _ResolveOutputDir
+        $outPath   = _GetUniqueOutputPath $targetDir $outName
+
+        $doc.Save()
+        $doc.Close($false)
+        try {
+            Move-Item -LiteralPath $tempPath -Destination $outPath -Force
+        } catch {
+            return $tempPath
+        }
+        return $outPath
     }
-    return $outPath
+    catch {
+        throw ("[fase: {0}] {1}" -f $phase, $_.Exception.Message)
+    }
 }
 
 # ----------------------------------------------------------------------------
