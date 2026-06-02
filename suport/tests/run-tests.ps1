@@ -484,6 +484,17 @@ function New-XmlInfoFromString($xmlText) {
     $ns = _NewWordNsMgr $xml
     return [pscustomobject]@{ Path=''; Xml=$xml; Ns=$ns; Body=$xml.SelectSingleNode('//w:body',$ns) }
 }
+# Validacio ESTRICTA (com fa el Word, no com el XmlDocument tolerant): parseig
+# complet amb XmlReader + cap prefix il-legal per al namespace XML reservat.
+function Test-StrictXml([string]$xmlText) {
+    if ([regex]::Matches($xmlText, 'xmlns:\w+="http://www\.w3\.org/XML/1998/namespace"').Count -gt 0) { return $false }
+    try {
+        $rd = [System.Xml.XmlReader]::Create((New-Object System.IO.StringReader($xmlText)))
+        while ($rd.Read()) { }
+        $rd.Close()
+        return $true
+    } catch { return $false }
+}
 $docStr = @"
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="$W"><w:body>
@@ -553,6 +564,9 @@ Assert ($idxConcl -ge 0)             'Transform: conclusio nova present (markdow
 AssertEq $after[$idxConcl].B 9999999 'Transform: **negreta** inline -> run en negreta (mixt)'
 # sectPr preservat
 Assert ($null -ne $xi2.Body.SelectSingleNode('w:sectPr', $xi2.Ns)) 'Transform: <w:sectPr> preservat'
+# El XML resultant ha de ser ESTRICTAMENT valid (com l'obre el Word)
+$swT = New-Object System.IO.StringWriter; $xi2.Xml.Save($swT)
+Assert (Test-StrictXml $swT.ToString()) 'Transform: el document.xml resultant es estrictament valid (Word)'
 
 Write-Host "`n--- Seguiment XML: round-trip sobre .docx real + Read-ConclusionsXml ---"
 $estr = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'ESTRUCTURALS'
@@ -569,6 +583,9 @@ if (Test-Path $cap) {
     $rtTexts = @(_BodyParagraphsXml $xiR2 | ForEach-Object { _ParagraphTextXml $_ $xiR2.Ns })
     Assert ([bool]($rtTexts -match 'PROVA_RT')) 'Round-trip: el paragraf inserit hi es despres de reobrir'
     AssertEq $xiR2.Body.LastChild.LocalName 'sectPr' 'Round-trip: <w:sectPr> segueix sent l ultim fill'
+    # El document.xml desat ha de passar el parseig ESTRICTE (com el Word).
+    $savedXmlText = _ReadDocxPartText $outRt 'word/document.xml'
+    Assert (Test-StrictXml $savedXmlText) 'Round-trip: el document.xml desat es estrictament valid (Word)'
     Remove-Item -LiteralPath $outRt -Force -ErrorAction SilentlyContinue
 } else {
     Write-Host '  (omes: no s ha trobat 0 CAPCALERA.docx)'

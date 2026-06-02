@@ -371,7 +371,7 @@ function _MakeAnnotationParagraphXml($xmlInfo, $reqNode, $line) {
     }
     $r = $xml.CreateElement('w','r',$w)
     $t = $xml.CreateElement('w','t',$w)
-    [void]$t.SetAttribute('space','http://www.w3.org/XML/1998/namespace','preserve')
+    $xsp=$xml.CreateAttribute('xml','space','http://www.w3.org/XML/1998/namespace'); $xsp.Value='preserve'; [void]$t.Attributes.Append($xsp)
     $t.InnerText = [string]$line
     [void]$r.AppendChild($t)
     [void]$p.AppendChild($r)
@@ -393,7 +393,7 @@ function _RichTextRunsXml($xmlInfo, $text) {
             [void]$r.AppendChild($rPr)
         }
         $t = $xml.CreateElement('w','t',$w)
-        [void]$t.SetAttribute('space','http://www.w3.org/XML/1998/namespace','preserve')
+        $xsp=$xml.CreateAttribute('xml','space','http://www.w3.org/XML/1998/namespace'); $xsp.Value='preserve'; [void]$t.Attributes.Append($xsp)
         $t.InnerText = $segment
         [void]$r.AppendChild($t)
         [void]$runs.Add($r)
@@ -421,7 +421,7 @@ function _MakeConclusionParagraphXml($xmlInfo, $text, [bool]$centeredBold) {
         [void]$p.AppendChild($pPr)
         $r = $xml.CreateElement('w','r',$w)
         $rPr = $xml.CreateElement('w','rPr',$w); [void]$rPr.AppendChild($xml.CreateElement('w','b',$w)); [void]$r.AppendChild($rPr)
-        $t = $xml.CreateElement('w','t',$w); [void]$t.SetAttribute('space','http://www.w3.org/XML/1998/namespace','preserve'); $t.InnerText = [string]$text
+        $t = $xml.CreateElement('w','t',$w); $xsp=$xml.CreateAttribute('xml','space','http://www.w3.org/XML/1998/namespace'); $xsp.Value='preserve'; [void]$t.Attributes.Append($xsp); $t.InnerText = [string]$text
         [void]$r.AppendChild($t); [void]$p.AppendChild($r)
     } else {
         foreach ($r in (_RichTextRunsXml $xmlInfo $text)) { [void]$p.AppendChild($r) }
