@@ -475,6 +475,113 @@ Assert ($model.Requirements[1].WasResolved)      '_BuildSeguimentModel req2 (bol
 $startC = _FindConclusionStartIndex (@($recs | ForEach-Object { $_.Text })) $model.LastReqParaIndex $SeguimentConclusionPhrases
 AssertEq $startC 6                            '_BuildSeguimentModel + deteccio: conclusions a l index 6'
 
+Write-Host "`n--- Seguiment XML: helpers de lectura (text, negreta, body) ---"
+$W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
+function New-XmlInfoFromString($xmlText) {
+    $xml = New-Object System.Xml.XmlDocument
+    $xml.PreserveWhitespace = $true
+    $xml.LoadXml($xmlText)
+    $ns = _NewWordNsMgr $xml
+    return [pscustomobject]@{ Path=''; Xml=$xml; Ns=$ns; Body=$xml.SelectSingleNode('//w:body',$ns) }
+}
+$docStr = @"
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="$W"><w:body>
+<w:p><w:r><w:t>Capcalera</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">1.</w:t></w:r><w:r><w:tab/><w:t>Baixa tensio.</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">2. </w:t></w:r><w:r><w:t>Alta tensio.</w:t></w:r></w:p>
+<w:p><w:r><w:t>Vist l anterior, cal requerir.</w:t></w:r></w:p>
+<w:p><w:r><w:t>Ho poso al seu coneixement.</w:t></w:r></w:p>
+<w:sectPr><w:pgSz w:w="11906" w:h="16838"/></w:sectPr>
+</w:body></w:document>
+"@
+$xi = New-XmlInfoFromString $docStr
+$bp = @(_BodyParagraphsXml $xi)
+AssertEq $bp.Count 5                            'Seguiment XML: 5 paragrafs directes al body (taules/sectPr fora)'
+AssertEq (_ParagraphTextXml $bp[1] $xi.Ns) "1.`tBaixa tensio." 'Seguiment XML: _ParagraphTextXml inclou el tab entre numero i text'
+AssertEq (_ParagraphBoldStateXml $bp[0] $xi.Ns) 0      'Seguiment XML: paragraf sense negreta -> 0'
+AssertEq (_ParagraphBoldStateXml $bp[1] $xi.Ns) 9999999 'Seguiment XML: numero negreta + text no -> mixt (9999999)'
+
+Write-Host "`n--- Seguiment XML: model + deteccio de conclusions ---"
+$records = _CollectParaRecordsXml $bp $xi.Ns
+$model   = _BuildSeguimentModel $records
+AssertEq $model.Requirements.Count 2     'Seguiment XML: 2 requeriments detectats (amb tab i amb espai)'
+AssertEq $model.LastReqParaIndex 3       'Seguiment XML: ultim requeriment a l index 3'
+$paraTexts = @($records | ForEach-Object { $_.Text })
+AssertEq (_FindConclusionStartIndex $paraTexts $model.LastReqParaIndex @("Vist l anterior","Ho poso al seu coneixement")) 4 'Seguiment XML: conclusions detectades a l index 4'
+
+Write-Host "`n--- Seguiment XML: _SetParagraphBoldXml on/off ---"
+_SetParagraphBoldXml $xi $bp[0] $true
+Assert ($null -ne $bp[0].SelectSingleNode('w:r/w:rPr/w:b', $xi.Ns)) '_SetParagraphBoldXml on: afegeix <w:b>'
+AssertEq (_ParagraphBoldStateXml $bp[0] $xi.Ns) (-1) '_SetParagraphBoldXml on: tot negreta (-1)'
+_SetParagraphBoldXml $xi $bp[0] $false
+$bOff = $bp[0].SelectSingleNode('w:r/w:rPr/w:b', $xi.Ns)
+AssertEq ($bOff.GetAttribute('val',$W)) 'false' '_SetParagraphBoldXml off: <w:b w:val="false">'
+AssertEq (_ParagraphBoldStateXml $bp[0] $xi.Ns) 0 '_SetParagraphBoldXml off: sense negreta (0)'
+
+Write-Host "`n--- Seguiment XML: transformacio completa ---"
+$xi2 = New-XmlInfoFromString $docStr
+$bp2 = @(_BodyParagraphsXml $xi2)
+$model2 = _BuildSeguimentModel (_CollectParaRecordsXml $bp2 $xi2.Ns)
+$dec = @(
+    [pscustomobject]@{ Resolved=$false; NewComment='No s entrega.' },
+    [pscustomobject]@{ Resolved=$true;  NewComment='S entrega correctament.' }
+)
+$flds = [ordered]@{}; $flds['lloc'] = [pscustomobject]@{ Type='text'; Value='Cornella'; Hint=$null; Options=$null }
+$concl = @([pscustomobject]@{ Title='C'; Body='Cos **negreta** aqui.' })
+$always = @('Ho poso, [CAMP: lloc].')
+_ApplySeguimentTransform -xmlInfo $xi2 -bodyParas $bp2 -model $model2 -conclusionStartIndex 4 `
+    -decisions $dec -dateStr '01/06/2026' -conclHeaderText 'CONCLUSIONS' `
+    -selectedConclusions $concl -alwaysConclusions $always -fields $flds
+$after = @(_BodyParagraphsXml $xi2 | ForEach-Object { [pscustomobject]@{ T=(_ParagraphTextXml $_ $xi2.Ns); B=(_ParagraphBoldStateXml $_ $xi2.Ns) } })
+$texts = @($after | ForEach-Object { $_.T })
+Assert ($texts -contains '01/06/2026: No s entrega.')        'Transform: anotacio del req1 inserida'
+Assert ($texts -contains '01/06/2026: S entrega correctament.') 'Transform: anotacio del req2 inserida'
+Assert (-not ($texts -contains 'Vist l anterior, cal requerir.')) 'Transform: conclusio antiga esborrada'
+Assert ($texts -contains 'CONCLUSIONS')                       'Transform: titol de conclusions afegit'
+Assert ($texts -contains 'Ho poso, Cornella.')               'Transform: [CAMP: lloc] resolt a "Cornella"'
+# req1 (index del text "1.\tBaixa tensio.") i la seva anotacio: en negreta
+$idxReq1 = [array]::IndexOf($texts, "1.`tBaixa tensio.")
+AssertEq $after[$idxReq1].B (-1)     'Transform: req1 pendent -> tot negreta'
+AssertEq $after[$idxReq1 + 1].B (-1) 'Transform: anotacio de req1 -> negreta'
+$idxReq2 = [array]::IndexOf($texts, '2. Alta tensio.')
+AssertEq $after[$idxReq2].B 0        'Transform: req2 resolt -> sense negreta'
+AssertEq $after[$idxReq2 + 1].B 0    'Transform: anotacio de req2 -> sense negreta'
+# **negreta** inline a la conclusio -> el paragraf "Cos negreta aqui." es mixt
+$idxConcl = [array]::IndexOf($texts, 'Cos negreta aqui.')
+Assert ($idxConcl -ge 0)             'Transform: conclusio nova present (markdown processat)'
+AssertEq $after[$idxConcl].B 9999999 'Transform: **negreta** inline -> run en negreta (mixt)'
+# sectPr preservat
+Assert ($null -ne $xi2.Body.SelectSingleNode('w:sectPr', $xi2.Ns)) 'Transform: <w:sectPr> preservat'
+
+Write-Host "`n--- Seguiment XML: round-trip sobre .docx real + Read-ConclusionsXml ---"
+$estr = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'ESTRUCTURALS'
+$cap  = Join-Path $estr '0 CAPCALERA.docx'
+$conc = Join-Path $estr '0 CONCLUSIONS.docx'
+if (Test-Path $cap) {
+    $xiR = _LoadDocxXml $cap
+    $sect = $xiR.Body.SelectSingleNode('w:sectPr', $xiR.Ns)
+    [void]$xiR.Body.InsertBefore((_MakeConclusionParagraphXml $xiR 'PROVA_RT' $false), $sect)
+    $outRt = Join-Path ([System.IO.Path]::GetTempPath()) ('rt_' + [Guid]::NewGuid().ToString('N') + '.docx')
+    _SaveDocxXml $xiR $cap $outRt
+    Assert (Test-Path $outRt) 'Round-trip: el .docx s ha desat'
+    $xiR2 = _LoadDocxXml $outRt
+    $rtTexts = @(_BodyParagraphsXml $xiR2 | ForEach-Object { _ParagraphTextXml $_ $xiR2.Ns })
+    Assert ([bool]($rtTexts -match 'PROVA_RT')) 'Round-trip: el paragraf inserit hi es despres de reobrir'
+    AssertEq $xiR2.Body.LastChild.LocalName 'sectPr' 'Round-trip: <w:sectPr> segueix sent l ultim fill'
+    Remove-Item -LiteralPath $outRt -Force -ErrorAction SilentlyContinue
+} else {
+    Write-Host '  (omes: no s ha trobat 0 CAPCALERA.docx)'
+}
+if (Test-Path $conc) {
+    $cx = Read-ConclusionsXml $conc
+    AssertEq $cx.HeaderText 'CONCLUSIONS' 'Read-ConclusionsXml: HeaderText = CONCLUSIONS'
+    Assert ($cx.Selectable.Count -ge 1)   'Read-ConclusionsXml: hi ha conclusions triables'
+    Assert ($cx.Always.Count -ge 1)       'Read-ConclusionsXml: hi ha frases ::SEMPRE::'
+} else {
+    Write-Host '  (omes: no s ha trobat 0 CONCLUSIONS.docx)'
+}
+
 $summaryColor = if ($script:fail -eq 0) { 'Green' } else { 'Red' }
 Write-Host "`n========================================"
 Write-Host ("RESULTAT: {0} OK, {1} FAIL" -f $script:pass, $script:fail) -ForegroundColor $summaryColor

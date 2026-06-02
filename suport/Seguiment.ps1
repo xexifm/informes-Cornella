@@ -7,19 +7,25 @@
 
 .DESCRIPTION
   Es un mode alternatiu del programa (es tria a la pantalla inicial). NO
-  regenera l'informe: treballa sobre una COPIA del .docx i nomes
+  regenera l'informe: edita una COPIA del .docx i nomes
   insereix/esborra/formata, de manera que es preserva exactament la capcalera,
   el text dels requeriments i el format (tambe d'informes fets a ma).
 
+  L'EDICIO es fa manipulant directament el XML intern del .docx (un .docx es un
+  ZIP amb word/document.xml). NO es fa servir Word per editar: aixi s'eviten
+  tots els problemes de Word COM (mode lectura, nomes-lectura, vista protegida,
+  document actiu, marca final de paragraf...). Word nomes s'invoca, opcionalment,
+  al final per OBRIR el resultat (via Invoke-Item, l'app per defecte del SO).
+
   Flux (Invoke-SeguimentFlow):
     1. Triar l'informe anterior (.docx).
-    2. Llegir-lo i modelar requeriments + anotacions existents.
-    3. Confirmar l'esborrat del bloc de conclusions antic (amb preview).
+    2. Llegir-lo (XML) i modelar requeriments + anotacions existents.
+    3. Triar el primer paragraf de conclusions a esborrar (manual).
     4. Introduir la data de la ronda (per defecte, avui).
     5. Per cada requeriment: comentari nou + checkbox "Resolt".
-    6. Triar conclusions (reutilitza 0 CONCLUSIONS.docx) i omplir camps.
-    7. Aplicar sobre la copia: esborrar conclusions -> inserir anotacions
-       (de baix a dalt) -> recalcular negreta -> afegir conclusions -> desar.
+    6. Triar conclusions (de 0 CONCLUSIONS.docx) i omplir camps.
+    7. Editar el XML: esborrar conclusions -> inserir anotacions -> recalcular
+       negreta -> afegir conclusions -> desar a un .docx nou.
 
   Iteratiu: tornar a passar-lo sobre un informe de seguiment AFEGEIX una linia
   nova sota cada requeriment (no duplica). La negreta es dinamica: mentre un
@@ -28,14 +34,16 @@
 
 .NOTES
   Aquest fitxer es carrega via dot-source des de GenerarInforme.ps1 (tambe en
-  mode headless de proves). Les funcions pures (sense COM/WinForms) son
-  testejables a Linux; les funcions COM/WinForms nomes s'executen a Windows.
+  mode headless de proves). Les funcions pures i les de manipulacio XML son
+  testejables a Linux (sense Word); nomes els dialegs WinForms necessiten Windows.
 
-  Reutilitza de GenerarInforme.ps1: New-WordApp, Close-WordApp, _NormalizeText,
-  Read-Conclusions, Select-Conclusions, Add-FieldsFromConclusions, Prompt-Fields,
-  _WriteConclusionsBlock, _ResolveOutputDir, _GetUniqueOutputPath; i de
-  Format.ps1: $ReportFormatConfig.
+  Reutilitza de GenerarInforme.ps1: _NormalizeText, Test-StyleMatch,
+  Add-FieldsFromConclusions, Apply-Fields, Prompt-Fields, Select-Conclusions,
+  _ResolveOutputDir, _GetUniqueOutputPath.
 #>
+
+# Espai de noms WordprocessingML.
+$Script:WNS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
 
 # ----------------------------------------------------------------------------
 # Expressions regulars (a nivell de script: definides en carregar el fitxer).
@@ -80,10 +88,10 @@ function _ClassifyParagraph([string]$text, [string]$listString) {
     return [pscustomobject]@{ Kind='other'; Number=$null; Date=$null; ViaList=$false }
 }
 
-# Decideix l'estat "resolt" a partir del valor Font.Bold del Word:
+# Decideix l'estat "resolt" a partir d'un valor de negreta estil Word.Font.Bold:
 #   -1       = tot en negreta  -> pendent  (NO resolt)
 #    0       = res en negreta   -> resolt
-#    9999999 = mixt (wdUndefined, p.ex. el "N." en negreta i el text no)
+#    9999999 = mixt (p.ex. el "N." en negreta i el text no)
 #              -> el tractem com a pendent (NO resolt), que es el cas de
 #                 l'informe original acabat de generar.
 function _InferResolvedFromBold($boldValue) {
@@ -96,8 +104,7 @@ function _ShouldBeBold($resolved) {
 }
 
 # Munta el model ordenat de requeriments-amb-anotacions a partir d'un array de
-# registres de paragraf { Index; Text; ListString; Bold }. Funcio PURA: el
-# lector COM nomes recull els registres i crida aqui.
+# registres de paragraf { Index; Text; ListString; Bold }. Funcio PURA.
 function _BuildSeguimentModel($paraRecords) {
     $reqs       = New-Object System.Collections.ArrayList
     $current    = $null
@@ -200,256 +207,375 @@ function _SeguimentOutputName([string]$sourceBaseName, [datetime]$roundDate) {
 }
 
 # ----------------------------------------------------------------------------
-# CAPA COM - lectura i edicio del .docx (nomes Windows + Word)
+# CAPA XML - lectura i edicio del .docx SENSE Word (ZIP + WordprocessingML)
+# Testejable a Linux.
 # ----------------------------------------------------------------------------
 
-# Recull els registres de paragraf del document obert (1-based, alineat amb
-# $doc.Paragraphs.Item($i)).
-function _CollectParaRecords($doc) {
+function _NewWordNsMgr($xml) {
+    $ns = New-Object System.Xml.XmlNamespaceManager($xml.NameTable)
+    $ns.AddNamespace('w', $Script:WNS)
+    # ,$ns: l'XmlNamespaceManager es IEnumerable; sense la coma, PowerShell
+    # l'enumeraria i retornaria un array de prefixos en lloc del gestor.
+    return ,$ns
+}
+
+# Llegeix word/document.xml d'un .docx i retorna el seu text (UTF-8).
+function _ReadDocxPartText($docxPath, $partName) {
+    Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction SilentlyContinue | Out-Null
+    $zip = [System.IO.Compression.ZipFile]::OpenRead($docxPath)
+    try {
+        $entry = $zip.GetEntry($partName)
+        if ($null -eq $entry) { return $null }
+        $sr = New-Object System.IO.StreamReader($entry.Open(), [System.Text.Encoding]::UTF8)
+        try { return $sr.ReadToEnd() } finally { $sr.Close() }
+    } finally { $zip.Dispose() }
+}
+
+# Carrega word/document.xml com a XmlDocument. Retorna { Path; Xml; Ns; Body }.
+function _LoadDocxXml($docxPath) {
+    $text = _ReadDocxPartText $docxPath 'word/document.xml'
+    if ($null -eq $text) { throw "El fitxer no sembla un .docx valid (falta word/document.xml)." }
+    $xml = New-Object System.Xml.XmlDocument
+    $xml.PreserveWhitespace = $true
+    $xml.LoadXml($text)
+    $ns = _NewWordNsMgr $xml
+    $body = $xml.SelectSingleNode('//w:body', $ns)
+    if ($null -eq $body) { throw "document.xml sense <w:body>." }
+    return [pscustomobject]@{ Path=$docxPath; Xml=$xml; Ns=$ns; Body=$body }
+}
+
+# Desa: copia el .docx origen a $outPath i hi reescriu word/document.xml.
+# La resta de parts (estils, capcalera, rels...) queden intactes.
+function _SaveDocxXml($xmlInfo, $srcPath, $outPath) {
+    Copy-Item -LiteralPath $srcPath -Destination $outPath -Force
+    try { (Get-Item -LiteralPath $outPath).IsReadOnly = $false } catch { }
+    Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction SilentlyContinue | Out-Null
+    $zip = [System.IO.Compression.ZipFile]::Open($outPath, [System.IO.Compression.ZipArchiveMode]::Update)
+    try {
+        $entry = $zip.GetEntry('word/document.xml')
+        if ($null -eq $entry) { $entry = $zip.CreateEntry('word/document.xml') }
+        $stream = $entry.Open()
+        try {
+            $stream.SetLength(0)
+            $xmlInfo.Xml.Save($stream)
+        } finally { $stream.Close() }
+    } finally { $zip.Dispose() }
+}
+
+# Paragrafs <w:p> que son fills DIRECTES del <w:body> (en ordre). Els paragrafs
+# dins de taules (capcalera) NO hi son: queden fora de la deteccio, com volem.
+function _BodyParagraphsXml($xmlInfo) {
+    $list = New-Object System.Collections.ArrayList
+    foreach ($child in $xmlInfo.Body.ChildNodes) {
+        if ($child.LocalName -eq 'p' -and $child.NamespaceURI -eq $Script:WNS) {
+            [void]$list.Add($child)
+        }
+    }
+    return $list.ToArray()
+}
+
+# Text d'un paragraf: concatena w:t, tabula w:tab i tracta w:br com a espai,
+# en ORDRE de document (important per a "1.<tab>text" -> "1.\ttext").
+function _ParagraphTextXml($p, $ns) {
+    $sb = New-Object System.Text.StringBuilder
+    foreach ($n in $p.SelectNodes('.//w:t | .//w:tab | .//w:br', $ns)) {
+        switch ($n.LocalName) {
+            't'   { [void]$sb.Append($n.InnerText) }
+            'tab' { [void]$sb.Append("`t") }
+            'br'  { [void]$sb.Append(' ') }
+        }
+    }
+    return $sb.ToString()
+}
+
+# Un run <w:r> esta en negreta? (w:rPr/w:b sense val o amb val != 0/false).
+function _RunIsBoldXml($r, $ns) {
+    $b = $r.SelectSingleNode('w:rPr/w:b', $ns)
+    if ($null -eq $b) { return $false }
+    $val = $b.GetAttribute('val', $Script:WNS)
+    if ([string]::IsNullOrEmpty($val)) { return $true }
+    return ($val -ne '0' -and $val -ne 'false')
+}
+
+# Estat de negreta del paragraf, en l'estil Word.Font.Bold:
+#   0 (cap run de text en negreta) / -1 (tots) / 9999999 (mixt).
+function _ParagraphBoldStateXml($p, $ns) {
+    $withText = New-Object System.Collections.ArrayList
+    foreach ($r in $p.SelectNodes('w:r', $ns)) {
+        $t = $r.SelectSingleNode('w:t', $ns)
+        if ($null -ne $t -and -not [string]::IsNullOrEmpty($t.InnerText)) { [void]$withText.Add($r) }
+    }
+    if ($withText.Count -eq 0) { return 0 }
+    $bold = 0
+    foreach ($r in $withText) { if (_RunIsBoldXml $r $ns) { $bold++ } }
+    if ($bold -eq 0) { return 0 }
+    if ($bold -eq $withText.Count) { return -1 }
+    return 9999999
+}
+
+# Registres { Index; Text; ListString; Bold } a partir dels paragrafs del body.
+function _CollectParaRecordsXml($bodyParas, $ns) {
     $records = New-Object System.Collections.ArrayList
-    $i = 0
-    foreach ($p in $doc.Paragraphs) {
-        $i++
-        $text = ''
-        try { $text = [string]$p.Range.Text } catch { }
-        $text = $text.TrimEnd("`r","`n","`a"," ")
-        $ls = ''
-        try { $ls = [string]$p.Range.ListFormat.ListString } catch { }
-        $bold = $null
-        try { $bold = $p.Range.Font.Bold } catch { }
-        [void]$records.Add([pscustomobject]@{ Index=$i; Text=$text; ListString=$ls; Bold=$bold })
+    for ($i = 0; $i -lt $bodyParas.Count; $i++) {
+        $p = $bodyParas[$i]
+        [void]$records.Add([pscustomobject]@{
+            Index      = ($i + 1)
+            Text       = (_ParagraphTextXml $p $ns)
+            ListString = ''
+            Bold       = (_ParagraphBoldStateXml $p $ns)
+        })
     }
     return $records.ToArray()
 }
 
-# Obre una COPIA local (TEMP) de l'informe anterior i en construeix el model.
-# Retorna { Doc; TempPath; Model; ParaTexts; Records }. El document queda OBERT
-# (s'editara mes tard a Apply-Seguiment).
-function Read-PreviousReport($word, $path) {
-    # Nom temporal UNIC per execucio: aixi mai xoquem amb una copia anterior que
-    # hagi quedat bloquejada per un proces de Word d'un intent fallit previ
-    # (causa de "el proceso no puede obtener acceso al archivo ... en otro proceso").
-    $tempName = 'SEG_' + ([Guid]::NewGuid().ToString('N').Substring(0,8)) + '_' + [System.IO.Path]::GetFileName($path)
-    $tempPath = Join-Path $env:TEMP $tempName
-
-    # Neteja best-effort de copies temporals antigues (les que no estiguin
-    # bloquejades). No es critic si en queda alguna.
-    try {
-        Get-ChildItem -LiteralPath $env:TEMP -Filter 'SEG_*.docx' -File -ErrorAction SilentlyContinue |
-            ForEach-Object { try { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction Stop } catch { } }
-    } catch { }
-
-    Copy-Item -LiteralPath $path -Destination $tempPath -Force
-
-    # L'informe sovint ve de la unitat de xarxa (I:\...). La copia local pot
-    # heretar l'atribut de NOMES-LECTURA i la "marca web" (Mark of the Web),
-    # que fan que el Word l'obri en mode protegit / nomes-lectura i, llavors,
-    # les insercions fallen amb "este comando no esta disponible para la
-    # lectura". Ho neutralitzem ABANS d'obrir.
-    try { (Get-Item -LiteralPath $tempPath).IsReadOnly = $false } catch { }
-    try { Unblock-File -LiteralPath $tempPath } catch { }
-
-    # Obrim explicitament en mode NO nomes-lectura.
-    #   Open(FileName, ConfirmConversions, ReadOnly, AddToRecentFiles, ...)
-    $doc = $null
-    try { $doc = $word.Documents.Open($tempPath, $false, $false) } catch { }
-
-    # Vista protegida: si el fitxer ha anat a ProtectedViewWindows (en lloc de
-    # Documents), el passem a edicio. Treballem amb una instancia NOVA de Word,
-    # aixi que qualsevol finestra protegida es la que acabem d'obrir.
-    try {
-        if ($word.ProtectedViewWindows.Count -gt 0) {
-            $doc = $word.ProtectedViewWindows.Item(1).Edit()
+# Posa/treu negreta a TOTS els runs amb text d'un paragraf.
+#   $boldOn = $true  -> afegeix <w:b/> i <w:bCs/>
+#   $boldOn = $false -> <w:b w:val="false"/> i <w:bCs w:val="false"/> (anul·la
+#                       fins i tot la negreta que ja portava, p.ex. el "N.").
+function _SetParagraphBoldXml($xmlInfo, $p, [bool]$boldOn) {
+    $xml = $xmlInfo.Xml; $ns = $xmlInfo.Ns; $w = $Script:WNS
+    foreach ($r in $p.SelectNodes('w:r', $ns)) {
+        if ($null -eq $r.SelectSingleNode('w:t', $ns)) { continue }
+        $rPr = $r.SelectSingleNode('w:rPr', $ns)
+        if ($null -eq $rPr) {
+            $rPr = $xml.CreateElement('w','rPr',$w)
+            [void]$r.PrependChild($rPr)
         }
-    } catch { }
-    try { if ($null -ne $doc -and $doc.ProtectedViewWindow -ne $null) { $doc = $doc.ProtectedViewWindow.Edit() } } catch { }
-
-    if ($null -eq $doc) {
-        throw "No s'ha pogut obrir l'informe per editar-lo (possible vista protegida no resolta)."
-    }
-
-    # Treure qualsevol cosa que bloquegi l'edicio:
-    try { if ($doc.ProtectionType -ne -1) { $doc.Unprotect() } } catch { }  # Restringir edicio (sense contrasenya)
-    try { $doc.Final = $false } catch { }                                   # "Marcar como final"
-    try { $doc.ReadOnlyRecommended = $false } catch { }                     # "Se recomienda solo lectura"
-
-    $records   = _CollectParaRecords $doc
-    $model     = _BuildSeguimentModel $records
-    $paraTexts = @($records | ForEach-Object { $_.Text })
-
-    # Prova REAL d'editabilitat AL LLOC ON EDITAREM: inserim un paragraf temporal
-    # despres de l'ultim requeriment (amb el mateix mecanisme que far servir
-    # Apply-Seguiment) i el tornem a treure. Si falla, el document esta bloquejat
-    # en aquella zona (proteccio amb contrasenya, regio de nomes-lectura, vista
-    # protegida...). Avortem AQUI amb un diagnostic clar, abans de fer passar
-    # l'usuari per tots els passos.
-    if ($model.Requirements.Count -gt 0) {
-        $editable = $true
-        $errMsg = ''
-        try {
-            $pIdx = [int]$model.Requirements[$model.Requirements.Count - 1].ParaIndex
-            $pr = $doc.Paragraphs.Item($pIdx).Range
-            $pr.Collapse(0)                 # 0 = wdCollapseEnd
-            $pr.InsertAfter("X`r")          # paragraf temporal
-            $doc.Paragraphs.Item($pIdx + 1).Range.Delete()   # el treiem (net)
-        } catch {
-            $editable = $false
-            $errMsg = $_.Exception.Message
+        $b   = $rPr.SelectSingleNode('w:b', $ns)
+        $bCs = $rPr.SelectSingleNode('w:bCs', $ns)
+        if ($boldOn) {
+            if ($null -eq $b)   { [void]$rPr.AppendChild($xml.CreateElement('w','b',$w)) }   else { $b.RemoveAttribute('val', $w) }
+            if ($null -eq $bCs) { [void]$rPr.AppendChild($xml.CreateElement('w','bCs',$w)) } else { $bCs.RemoveAttribute('val', $w) }
+        } else {
+            if ($null -eq $b)   { $b   = $xml.CreateElement('w','b',$w);   [void]$rPr.AppendChild($b) }
+            if ($null -eq $bCs) { $bCs = $xml.CreateElement('w','bCs',$w); [void]$rPr.AppendChild($bCs) }
+            [void]$b.SetAttribute('val', $w, 'false')
+            [void]$bCs.SetAttribute('val', $w, 'false')
         }
-        if (-not $editable) {
-            $ro  = '?'; try { $ro  = [string]$doc.ReadOnly } catch { }
-            $pt  = '?'; try { $pt  = [string]$doc.ProtectionType } catch { }
-            $fin = '?'; try { $fin = [string]$doc.Final } catch { }
-            throw ("No es pot editar l'informe (ReadOnly=$ro, ProtectionType=$pt, Final=$fin). " +
-                   "Detall: $errMsg. " +
-                   "Obre l'informe original al Word i treu el bloqueig d'edicio: a 'Revisar > " +
-                   "Restringir edicion' fes 'Suspender la proteccion', i a 'Archivo > Informacion' " +
-                   "treu 'Marcar como final'. Desa'l i torna-ho a provar.")
-        }
-    }
-    return [pscustomobject]@{
-        Doc       = $doc
-        TempPath  = $tempPath
-        Model     = $model
-        ParaTexts = $paraTexts
-        Records   = $records
     }
 }
 
-# Aplica el seguiment sobre el document ja obert i el desa al directori de
-# sortida. Retorna la ruta final.
-#   $decisions : array alineat amb $model.Requirements; cada element
-#                { Resolved; NewComment }.
-#   $conclusionStartIndex : index 1-based del primer paragraf de conclusions a
-#                esborrar, o -1 / 0 per no esborrar res.
-function Apply-Seguiment {
+# Crea un <w:p> d'anotacio clonant el pPr del requeriment (estil/sagnat) pero
+# sense numeracio ni rPr de marca, amb un run amb el text.
+function _MakeAnnotationParagraphXml($xmlInfo, $reqNode, $line) {
+    $xml = $xmlInfo.Xml; $ns = $xmlInfo.Ns; $w = $Script:WNS
+    $p = $xml.CreateElement('w','p',$w)
+    $reqPPr = $reqNode.SelectSingleNode('w:pPr', $ns)
+    if ($null -ne $reqPPr) {
+        $pPr = $reqPPr.CloneNode($true)
+        $numPr = $pPr.SelectSingleNode('w:numPr', $ns)
+        if ($null -ne $numPr) { [void]$pPr.RemoveChild($numPr) }
+        $pmRPr = $pPr.SelectSingleNode('w:rPr', $ns)   # format de la marca de paragraf
+        if ($null -ne $pmRPr) { [void]$pPr.RemoveChild($pmRPr) }
+        [void]$p.AppendChild($pPr)
+    }
+    $r = $xml.CreateElement('w','r',$w)
+    $t = $xml.CreateElement('w','t',$w)
+    [void]$t.SetAttribute('space','http://www.w3.org/XML/1998/namespace','preserve')
+    $t.InnerText = [string]$line
+    [void]$r.AppendChild($t)
+    [void]$p.AppendChild($r)
+    return ,$p   # ,: el node <w:p> es IEnumerable; evitem que s'enumeri
+}
+
+# Runs <w:r> a partir d'un text interpretant **negreta** i //cursiva//.
+function _RichTextRunsXml($xmlInfo, $text) {
+    $xml = $xmlInfo.Xml; $w = $Script:WNS
+    $runs = New-Object System.Collections.ArrayList
+    $make = {
+        param($segment, $bold, $italic)
+        if ([string]::IsNullOrEmpty($segment)) { return }
+        $r = $xml.CreateElement('w','r',$w)
+        if ($bold -or $italic) {
+            $rPr = $xml.CreateElement('w','rPr',$w)
+            if ($bold)   { [void]$rPr.AppendChild($xml.CreateElement('w','b',$w)) }
+            if ($italic) { [void]$rPr.AppendChild($xml.CreateElement('w','i',$w)) }
+            [void]$r.AppendChild($rPr)
+        }
+        $t = $xml.CreateElement('w','t',$w)
+        [void]$t.SetAttribute('space','http://www.w3.org/XML/1998/namespace','preserve')
+        $t.InnerText = $segment
+        [void]$r.AppendChild($t)
+        [void]$runs.Add($r)
+    }
+    $rx = [regex]'\*\*(.+?)\*\*|//(.+?)//'
+    $pos = 0
+    foreach ($m in $rx.Matches([string]$text)) {
+        if ($m.Index -gt $pos) { & $make ([string]$text).Substring($pos, $m.Index - $pos) $false $false }
+        if     ($m.Groups[1].Success) { & $make $m.Groups[1].Value $true  $false }
+        elseif ($m.Groups[2].Success) { & $make $m.Groups[2].Value $false $true  }
+        $pos = $m.Index + $m.Length
+    }
+    if ($pos -lt ([string]$text).Length) { & $make ([string]$text).Substring($pos) $false $false }
+    return ,($runs.ToArray())
+}
+
+# Crea un <w:p> per a una conclusio. Si $centeredBold, centrat i en negreta
+# (titol del bloc); si no, text normal amb **negreta**/​//cursiva// inline.
+function _MakeConclusionParagraphXml($xmlInfo, $text, [bool]$centeredBold) {
+    $xml = $xmlInfo.Xml; $w = $Script:WNS
+    $p = $xml.CreateElement('w','p',$w)
+    if ($centeredBold) {
+        $pPr = $xml.CreateElement('w','pPr',$w)
+        $jc = $xml.CreateElement('w','jc',$w); [void]$jc.SetAttribute('val',$w,'center'); [void]$pPr.AppendChild($jc)
+        [void]$p.AppendChild($pPr)
+        $r = $xml.CreateElement('w','r',$w)
+        $rPr = $xml.CreateElement('w','rPr',$w); [void]$rPr.AppendChild($xml.CreateElement('w','b',$w)); [void]$r.AppendChild($rPr)
+        $t = $xml.CreateElement('w','t',$w); [void]$t.SetAttribute('space','http://www.w3.org/XML/1998/namespace','preserve'); $t.InnerText = [string]$text
+        [void]$r.AppendChild($t); [void]$p.AppendChild($r)
+    } else {
+        foreach ($r in (_RichTextRunsXml $xmlInfo $text)) { [void]$p.AppendChild($r) }
+    }
+    return ,$p
+}
+
+# Afegeix els paragrafs de conclusions al final del cos, JUST ABANS del
+# <w:sectPr> (si existeix), resolent [CAMP:]/[OPCIO:] amb Apply-Fields.
+function _AppendConclusionParagraphsXml($xmlInfo, $headerText, $conclusions, $always, $fields) {
+    $ns = $xmlInfo.Ns; $body = $xmlInfo.Body
+    $sectPr = $body.SelectSingleNode('w:sectPr', $ns)
+    $append = {
+        param($node)
+        if ($null -ne $sectPr) { [void]$body.InsertBefore($node, $sectPr) }
+        else                   { [void]$body.AppendChild($node) }
+    }
+    if (-not [string]::IsNullOrWhiteSpace($headerText)) {
+        & $append (_MakeConclusionParagraphXml $xmlInfo $headerText $true)
+    }
+    foreach ($c in $conclusions) {
+        $txt = if ($c -is [string]) { $c } else { [string]$c.Body }
+        $resolved = Apply-Fields -text $txt -fields $fields
+        & $append (_MakeConclusionParagraphXml $xmlInfo $resolved $false)
+    }
+    foreach ($a in $always) {
+        $resolved = Apply-Fields -text ([string]$a) -fields $fields
+        & $append (_MakeConclusionParagraphXml $xmlInfo $resolved $false)
+    }
+}
+
+# Llegeix 0 CONCLUSIONS.docx via XML (equivalent a Read-Conclusions pero sense
+# Word). Retorna { HeaderText; Selectable=@({Title;Body}); Always }.
+function Read-ConclusionsXml($path) {
+    $empty = [pscustomobject]@{ HeaderText=''; Selectable=@(); Always=@() }
+    if (-not (Test-Path -LiteralPath $path)) { return $empty }
+
+    $xmlInfo   = _LoadDocxXml $path
+    $ns        = $xmlInfo.Ns
+    $bodyParas = @(_BodyParagraphsXml $xmlInfo)
+
+    $headerText   = ''
+    $selectable   = New-Object System.Collections.ArrayList
+    $always       = New-Object System.Collections.ArrayList
+    $pendingTitle = $null
+    $isFirst      = $true
+
+    foreach ($p in $bodyParas) {
+        $text = (_ParagraphTextXml $p $ns).TrimEnd("`r","`n","`t"," ")
+        if ([string]::IsNullOrWhiteSpace($text)) { continue }
+
+        $styleVal = ''
+        $pStyle = $p.SelectSingleNode('w:pPr/w:pStyle', $ns)
+        if ($null -ne $pStyle) { $styleVal = $pStyle.GetAttribute('val', $Script:WNS) }
+        $isH1 = Test-StyleMatch $styleVal 1
+
+        if ($isFirst -and -not $isH1) {
+            $isFirst = $false
+            $jc = $p.SelectSingleNode('w:pPr/w:jc', $ns)
+            $centered = ($null -ne $jc -and $jc.GetAttribute('val', $Script:WNS) -eq 'center')
+            if ($centered) { $headerText = $text; continue }
+        }
+        $isFirst = $false
+
+        if ($isH1) { $pendingTitle = $text; continue }
+
+        if ($text.StartsWith('::SEMPRE::')) {
+            [void]$always.Add($text.Substring('::SEMPRE::'.Length).Trim())
+            $pendingTitle = $null
+            continue
+        }
+        if ($null -ne $pendingTitle) {
+            [void]$selectable.Add([pscustomobject]@{ Title=$pendingTitle; Body=$text })
+            $pendingTitle = $null
+        }
+    }
+
+    return [pscustomobject]@{
+        HeaderText = $headerText
+        Selectable = $selectable.ToArray()
+        Always     = $always.ToArray()
+    }
+}
+
+# Transforma el XML carregat (en memoria, sense E/S): esborra conclusions,
+# insereix anotacions, recalcula negreta i afegeix les conclusions noves.
+# Treballa amb REFERENCIES A NODES (no indexs): inserir/esborrar no invalida res.
+#   $bodyParas : array de nodes <w:p> (1-based via index) del moment de la lectura.
+#   $decisions : array alineat amb $model.Requirements; { Resolved; NewComment }.
+#   $conclusionStartIndex : index 1-based del primer paragraf a esborrar, o -1.
+function _ApplySeguimentTransform {
     param(
-        $word, $doc, $tempPath, $model, [int]$conclusionStartIndex,
+        $xmlInfo, $bodyParas, $model, [int]$conclusionStartIndex,
         $decisions, $dateStr,
-        $conclHeaderText, $selectedConclusions, $alwaysConclusions, $fields,
-        [string]$sourceBaseName, [datetime]$roundDate
+        $conclHeaderText, $selectedConclusions, $alwaysConclusions, $fields
     )
 
-    # Cada fase es marca a $phase: si una crida COM falla, reportem en quina
-    # fase ha estat (ajuda a diagnosticar errors com "conversio no valida").
-    $phase = 'inici'
-    try {
-        # IMPORTANT: activem (i fem visible) el document ABANS d'editar res.
-        # Entre la lectura de l'informe i aquest punt, el programa ha obert i
-        # tancat 0 CONCLUSIONS.docx per llegir les conclusions; aixo deixa el
-        # NOSTRE document com a NO actiu. En mode invisible, Word no deixa editar
-        # un document que no es l'actiu i dona "este comando no esta disponible
-        # para la lectura". Activar-lo (i fer Word visible) ho resol. Es el que
-        # fa el generador normal abans d'escriure.
-        $phase = 'activar document'
-        try { $word.Visible = $true } catch { }
-        try { $word.Activate() } catch { }
-        $doc.Activate()
-
-        # (1) Esborrar PRIMER el bloc de conclusions antic (de l'inici detectat
-        # fins al final de la historia). Aixi els indexs de requeriments i
-        # anotacions (tots anteriors) no es veuen afectats. Fem servir
-        # l'assignacio de Range.End (mes robusta que $doc.Range(start,end), que
-        # en alguns equips llanca "conversio no valida").
-        $phase = 'esborrar conclusions antigues'
-        if ($conclusionStartIndex -ge 1) {
-            $rng = $doc.Paragraphs.Item($conclusionStartIndex).Range
-            $rng.End = $doc.Content.End
-            [void]$rng.Delete()
+    # (1) Esborrar el bloc de conclusions (nodes <w:p> des del cut fins al final).
+    # El <w:sectPr> (fill del body, no es <w:p>) es preserva automaticament.
+    if ($conclusionStartIndex -ge 1) {
+        for ($i = $bodyParas.Count - 1; $i -ge ($conclusionStartIndex - 1); $i--) {
+            $node = $bodyParas[$i]
+            if ($null -ne $node.ParentNode) { [void]$node.ParentNode.RemoveChild($node) }
         }
+    }
 
-        # (2) Inserir anotacions de BAIX A DALT, perque les insercions no
-        # invalidin els indexs dels requeriments encara no processats (els que
-        # tenen index mes petit). L'ancora es l'ultima anotacio existent del
-        # requeriment, o el propi paragraf del requeriment si encara no en te cap.
-        $phase = 'inserir anotacions'
-        for ($k = $model.Requirements.Count - 1; $k -ge 0; $k--) {
-            $req     = $model.Requirements[$k]
-            $dec     = $decisions[$k]
-            $comment = [string]$dec.NewComment
-            if ([string]::IsNullOrWhiteSpace($comment)) { continue }
+    # (2) Per cada requeriment: inserir la nova anotacio (si hi ha comentari) i
+    # recalcular la negreta de tota la columna (requeriment + anotacions).
+    for ($k = 0; $k -lt $model.Requirements.Count; $k++) {
+        $req = $model.Requirements[$k]
+        $dec = $decisions[$k]
+        $reqNode = $bodyParas[$req.ParaIndex - 1]
 
-            $anchorIdx = if ($req.Annotations.Count -gt 0) {
-                [int]$req.Annotations[$req.Annotations.Count - 1].ParaIndex
-            } else {
-                [int]$req.ParaIndex
-            }
+        $annotNodes = New-Object System.Collections.ArrayList
+        foreach ($a in $req.Annotations) { [void]$annotNodes.Add($bodyParas[$a.ParaIndex - 1]) }
 
-            # Insercio del nou paragraf d'anotacio despres de l'ancora.
-            #   - Si HI HA contingut despres de l'ancora (no es l'ultim paragraf):
-            #     Collapse(wdCollapseEnd) + InsertAfter. Mecanisme provat.
-            #   - Si l'ancora ES l'ultim paragraf del document (cas tipic despres
-            #     d'esborrar les conclusions): NO es pot inserir despres de la
-            #     marca final de paragraf (dona "este comando no esta disponible
-            #     para la lectura"). Afegim al final via Selection (EndKey +
-            #     TypeParagraph + TypeText), el metode fiable del generador.
+        $comment = [string]$dec.NewComment
+        if (-not [string]::IsNullOrWhiteSpace($comment)) {
             $line = _FormatAnnotationLine $dateStr $comment
-            if ($anchorIdx -lt $doc.Paragraphs.Count) {
-                $rng = $doc.Paragraphs.Item($anchorIdx).Range
-                $rng.Collapse(0)                 # 0 = wdCollapseEnd
-                $rng.InsertAfter($line + "`r")
-            } else {
-                $sel = $word.Selection
-                [void]$sel.EndKey(6)             # 6 = wdStory (final del document)
-                $sel.TypeParagraph()
-                $sel.TypeText($line)
-            }
-
-            # El nou paragraf es ara el seguent (anchorIdx + 1).
-            $np2 = $doc.Paragraphs.Item($anchorIdx + 1)
-            $r2  = $np2.Range
-            # Evitar que l'anotacio hereti la numeracio de llista del requeriment.
-            try { [void]$r2.ListFormat.RemoveNumbers() } catch { }
-            try { $r2.Font.Bold      = 0 } catch { }
-            try { $r2.Font.Italic    = 0 } catch { }
-            try { $r2.Font.Underline = 0 } catch { }
-            try { $r2.Font.Size      = $Script:ReportFormatConfig.BodyFontSize } catch { }
-            try { $np2.Range.ParagraphFormat.LeftIndent = $doc.Paragraphs.Item($req.ParaIndex).Range.ParagraphFormat.LeftIndent } catch { }
+            $newP = _MakeAnnotationParagraphXml $xmlInfo $reqNode $line
+            $anchor = if ($annotNodes.Count -gt 0) { $annotNodes[$annotNodes.Count - 1] } else { $reqNode }
+            [void]$xmlInfo.Body.InsertAfter($newP, $anchor)
+            [void]$annotNodes.Add($newP)
         }
 
-        # (3) Recalcular la negreta de tota la "columna" de cada requeriment
-        # segons l'estat ACTUAL (re-escanegem perque els indexs han canviat amb
-        # les insercions). Pendents -> negreta; resolts -> sense negreta.
-        $phase = 'recalcular negreta'
-        $records2 = _CollectParaRecords $doc
-        $model2   = _BuildSeguimentModel $records2
-        $n = [Math]::Min($model2.Requirements.Count, $decisions.Count)
-        for ($k = 0; $k -lt $n; $k++) {
-            $req2 = $model2.Requirements[$k]
-            $bold = if (_ShouldBeBold $decisions[$k].Resolved) { 1 } else { 0 }
-            try { $doc.Paragraphs.Item($req2.ParaIndex).Range.Font.Bold = $bold } catch { }
-            foreach ($a in $req2.Annotations) {
-                try { $doc.Paragraphs.Item($a.ParaIndex).Range.Font.Bold = $bold } catch { }
-            }
-        }
-
-        # (4) Afegir les conclusions noves al final de la historia (reutilitza el
-        # mateix escriptor que el generador). Cal fer-ho amb Selection, despres
-        # de totes les edicions amb Range.
-        $phase = 'escriure conclusions'
-        $doc.Activate()
-        $sel = $word.Selection
-        [void]$sel.EndKey(6)  # wdStory = 6
-        _WriteConclusionsBlock $sel $Script:ReportFormatConfig $conclHeaderText $selectedConclusions $alwaysConclusions $fields
-
-        # (5) Desar i moure al directori de sortida amb nom unic.
-        $phase = 'desar'
-        $outName   = _SeguimentOutputName $sourceBaseName $roundDate
-        $targetDir = _ResolveOutputDir
-        $outPath   = _GetUniqueOutputPath $targetDir $outName
-
-        $doc.Save()
-        $doc.Close($false)
-        try {
-            Move-Item -LiteralPath $tempPath -Destination $outPath -Force
-        } catch {
-            return $tempPath
-        }
-        return $outPath
+        $boldOn = (_ShouldBeBold $dec.Resolved)
+        _SetParagraphBoldXml $xmlInfo $reqNode $boldOn
+        foreach ($n in $annotNodes) { _SetParagraphBoldXml $xmlInfo $n $boldOn }
     }
-    catch {
-        throw ("[fase: {0}] {1}" -f $phase, $_.Exception.Message)
-    }
+
+    # (3) Afegir les conclusions noves al final.
+    _AppendConclusionParagraphsXml $xmlInfo $conclHeaderText $selectedConclusions $alwaysConclusions $fields
+}
+
+# Aplica tot el seguiment sobre el XML carregat i el desa a un fitxer nou.
+# Retorna la ruta final.
+function Apply-SeguimentXml {
+    param(
+        $xmlInfo, $bodyParas, $model, [int]$conclusionStartIndex,
+        $decisions, $dateStr,
+        $conclHeaderText, $selectedConclusions, $alwaysConclusions, $fields,
+        $srcPath, [string]$sourceBaseName, [datetime]$roundDate
+    )
+
+    _ApplySeguimentTransform -xmlInfo $xmlInfo -bodyParas $bodyParas -model $model `
+        -conclusionStartIndex $conclusionStartIndex -decisions $decisions -dateStr $dateStr `
+        -conclHeaderText $conclHeaderText -selectedConclusions $selectedConclusions `
+        -alwaysConclusions $alwaysConclusions -fields $fields
+
+    $outName   = _SeguimentOutputName $sourceBaseName $roundDate
+    $targetDir = _ResolveOutputDir
+    $outPath   = _GetUniqueOutputPath $targetDir $outName
+    _SaveDocxXml $xmlInfo $srcPath $outPath
+    return $outPath
 }
 
 # ----------------------------------------------------------------------------
@@ -734,7 +860,7 @@ function Prompt-SeguimentComments {
 }
 
 # ----------------------------------------------------------------------------
-# Orquestrador del flux de seguiment.
+# Orquestrador del flux de seguiment (SENSE Word per editar).
 # ----------------------------------------------------------------------------
 function Invoke-SeguimentFlow {
     $sourcePath = Select-PreviousReport
@@ -746,23 +872,26 @@ function Invoke-SeguimentFlow {
         @("Vist l'anterior", 'Ho poso al seu coneixement', 'Cornella de Llobregat,')
     }
 
-    $word = New-WordApp
-    $prev = $null
     try {
-        $prev = Read-PreviousReport -word $word -path $sourcePath
-        if ($prev.Model.Requirements.Count -eq 0) {
+        $xmlInfo   = _LoadDocxXml $sourcePath
+        $bodyParas = @(_BodyParagraphsXml $xmlInfo)
+        $records   = @(_CollectParaRecordsXml $bodyParas $xmlInfo.Ns)
+        $model     = _BuildSeguimentModel $records
+        $paraTexts = @($records | ForEach-Object { $_.Text })
+
+        if ($model.Requirements.Count -eq 0) {
             [System.Windows.Forms.MessageBox]::Show(
                 "No s'han trobat requeriments numerats (1., 2., 3...) en aquest document.",
                 'Seguiment', 'OK', 'Warning') | Out-Null
             return
         }
 
-        $detected = _FindConclusionStartIndex $prev.ParaTexts $prev.Model.LastReqParaIndex $phrases
-        $cut = Confirm-ConclusionDeletion -paraTexts $prev.ParaTexts -lastReqEndIndex $prev.Model.LastReqParaIndex -detectedStart $detected
+        $detected = _FindConclusionStartIndex $paraTexts $model.LastReqParaIndex $phrases
+        $cut = Confirm-ConclusionDeletion -paraTexts $paraTexts -lastReqEndIndex $model.LastReqParaIndex -detectedStart $detected
         if ($null -eq $cut) { return }
         $conclusionStartIndex = [int]$cut.StartIndex
 
-        $conclAll = Read-Conclusions -word $word -path $ConclusionsPath
+        $conclAll = Read-ConclusionsXml $ConclusionsPath
 
         # Maquina de passos: 1=data, 2=comentaris, 3=conclusions, 4=camps. 5=fi.
         $st  = @{ Date=$null; Decisions=$null; Conclusions=@(); Fields=$null }
@@ -776,7 +905,7 @@ function Invoke-SeguimentFlow {
                     $st.Date = $r.Data; $pre.Date = $r.Data; $step = 2
                 }
                 2 {
-                    $r = Prompt-SeguimentComments -requirements $prev.Model.Requirements -dateStr $st.Date -preload $st.Decisions
+                    $r = Prompt-SeguimentComments -requirements $model.Requirements -dateStr $st.Date -preload $st.Decisions
                     if ($r.Nav -eq 'back') { $step = 1 }
                     else { $st.Decisions = $r.Data; $step = 3 }
                 }
@@ -811,33 +940,21 @@ function Invoke-SeguimentFlow {
         $roundDt    = [datetime]::ParseExact($st.Date, 'dd/MM/yyyy', [System.Globalization.CultureInfo]::InvariantCulture)
         $sourceBase = [System.IO.Path]::GetFileNameWithoutExtension($sourcePath)
 
-        $outPath = Apply-Seguiment -word $word -doc $prev.Doc -tempPath $prev.TempPath `
-                       -model $prev.Model -conclusionStartIndex $conclusionStartIndex `
+        $outPath = Apply-SeguimentXml -xmlInfo $xmlInfo -bodyParas $bodyParas -model $model `
+                       -conclusionStartIndex $conclusionStartIndex `
                        -decisions $st.Decisions -dateStr $st.Date `
                        -conclHeaderText $conclAll.HeaderText -selectedConclusions $st.Conclusions `
                        -alwaysConclusions $conclAll.Always -fields $st.Fields `
-                       -sourceBaseName $sourceBase -roundDate $roundDt
+                       -srcPath $sourcePath -sourceBaseName $sourceBase -roundDate $roundDt
 
         [System.Windows.Forms.MessageBox]::Show(
             "Informe de seguiment generat:`n$outPath", 'Finalitzat', 'OK', 'Information') | Out-Null
 
-        $word.Visible = $true
-        $word.Documents.Open($outPath) | Out-Null
+        # Obrir el resultat amb l'app per defecte (Word), sense COM.
+        try { Invoke-Item -LiteralPath $outPath } catch { }
     }
     catch {
         [System.Windows.Forms.MessageBox]::Show("Error: $($_.Exception.Message)", 'Error', 'OK', 'Error') | Out-Null
         throw
-    }
-    finally {
-        # Tanca el document d'origen sense demanar de desar (evita el dialeg
-        # "Desea guardar los cambios en SEG_...docx"). Si ja s'havia tancat al
-        # final (cas d'exit), aixo simplement falla en silenci.
-        try {
-            if ($null -ne $prev -and $null -ne $prev.Doc) {
-                $prev.Doc.Saved = $true
-                $prev.Doc.Close(0)   # 0 = wdDoNotSaveChanges
-            }
-        } catch { }
-        if (-not $word.Visible) { Close-WordApp $word }
     }
 }

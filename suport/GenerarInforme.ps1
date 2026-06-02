@@ -1886,8 +1886,8 @@ function Main {
     }
 
     # Pas 0: tria de mode. "seguiment" es un flux autonom (Seguiment.ps1) que
-    # gestiona la seva propia app de Word; el wizard de 6 passos de sota queda
-    # intacte per al mode "nou".
+    # edita el .docx directament (XML, sense Word); el wizard de 6 passos de
+    # sota queda intacte per al mode "nou".
     $mode = Select-Mode
     if ($mode -eq 'seguiment') {
         Invoke-SeguimentFlow
