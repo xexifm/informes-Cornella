@@ -228,10 +228,38 @@ function _CollectParaRecords($doc) {
 function Read-PreviousReport($word, $path) {
     $tempPath = Join-Path $env:TEMP ('SEG_' + [System.IO.Path]::GetFileName($path))
     Copy-Item -LiteralPath $path -Destination $tempPath -Force
+
+    # L'informe sovint ve de la unitat de xarxa (I:\...). La copia local pot
+    # heretar l'atribut de NOMES-LECTURA i la "marca web" (Mark of the Web),
+    # que fan que el Word l'obri en mode protegit / nomes-lectura i, llavors,
+    # les insercions fallen amb "este comando no esta disponible para la
+    # lectura". Ho neutralitzem ABANS d'obrir.
+    try { (Get-Item -LiteralPath $tempPath).IsReadOnly = $false } catch { }
+    try { Unblock-File -LiteralPath $tempPath } catch { }
+
+    # Obrim explicitament en mode NO nomes-lectura.
+    #   Open(FileName, ConfirmConversions, ReadOnly, AddToRecentFiles, ...)
     $doc = $word.Documents.Open($tempPath, $false, $false)
+
+    # Si tot i aixi s'ha obert en vista protegida, passem a edicio.
     try {
         if ($doc.ProtectedViewWindow -ne $null) { $doc = $doc.ProtectedViewWindow.Edit() }
     } catch { }
+
+    # Si el document porta proteccio d'edicio (formularis / nomes-lectura sense
+    # contrasenya), la traiem perque es pugui editar. Si te contrasenya,
+    # Unprotect falla i ho deixem com esta (es detectara mes avall).
+    try { if ($doc.ProtectionType -ne -1) { $doc.Unprotect() } } catch { }
+
+    # Ultim recurs: si encara es nomes-lectura, ho diem clarament en lloc de
+    # petar a mitja edicio.
+    $isReadOnly = $false
+    try { $isReadOnly = [bool]$doc.ReadOnly } catch { }
+    if ($isReadOnly) {
+        throw ("El document s'ha obert en mode nomes-lectura i no es pot editar. " +
+               "Comprova que el fitxer no estigui obert en una altra finestra del Word " +
+               "ni marcat com a nomes-lectura, i torna-ho a provar.")
+    }
 
     $records   = _CollectParaRecords $doc
     $model     = _BuildSeguimentModel $records
