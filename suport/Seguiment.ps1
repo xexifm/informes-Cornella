@@ -334,6 +334,18 @@ function Apply-Seguiment {
     # fase ha estat (ajuda a diagnosticar errors com "conversio no valida").
     $phase = 'inici'
     try {
+        # IMPORTANT: activem (i fem visible) el document ABANS d'editar res.
+        # Entre la lectura de l'informe i aquest punt, el programa ha obert i
+        # tancat 0 CONCLUSIONS.docx per llegir les conclusions; aixo deixa el
+        # NOSTRE document com a NO actiu. En mode invisible, Word no deixa editar
+        # un document que no es l'actiu i dona "este comando no esta disponible
+        # para la lectura". Activar-lo (i fer Word visible) ho resol. Es el que
+        # fa el generador normal abans d'escriure.
+        $phase = 'activar document'
+        try { $word.Visible = $true } catch { }
+        try { $word.Activate() } catch { }
+        $doc.Activate()
+
         # (1) Esborrar PRIMER el bloc de conclusions antic (de l'inici detectat
         # fins al final de la historia). Aixi els indexs de requeriments i
         # anotacions (tots anteriors) no es veuen afectats. Fem servir
