@@ -4,6 +4,10 @@
 - L'usuari executa el programa des d'un **clone de git local** al seu PC.
 - Per actualitzar fa doble clic a **`Actualitzar.bat`** (fa `git pull` de
   `main`); per executar el programa fa doble clic a **`GenerarInforme.bat`**.
+- Per instal·lar en una **màquina nova** hi ha **`suport/Instalar.bat`**:
+  instal·la Git (winget o descàrrega directa), clona el repo a `main` (o
+  converteix un ZIP extret en clone), i deixa el programa operatiu. La URL
+  pública del repo està fixada al `.bat`: `https://github.com/xexifm/informes-cornella`.
 - La branca **estable i de desplegament és `main`**. El clone de l'usuari
   segueix `main`, i `main` és la branca per defecte del repositori.
 

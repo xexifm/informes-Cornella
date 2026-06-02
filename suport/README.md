@@ -18,6 +18,7 @@ informes-Cornella/
 ├── BASE DE DADES ACTIVITATS/      ← (fallback local) copia local de l'Excel quan no hi ha xarxa
 ├── Informes generats/             ← (local, gitignored) on cauen els .docx generats
 └── suport/                        ← codi del programa, no cal tocar-lo
+    ├── Instalar.bat               ← instal·lar en una màquina nova (vegeu cap. 2)
     ├── GenerarInforme.ps1
     ├── Format.ps1
     ├── config.ps1                 ← (opcional) sobreescriu rutes locals
@@ -31,11 +32,55 @@ tot és relatiu. L'única ruta absoluta del programa és la **base de dades
 d'activitats** a la xarxa de la feina
 (`I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\2_Controls Excels`).
 Si executes el programa fora de la feina i la xarxa no és accessible,
-mira el [capítol 6: ús fora de la feina](#6-ús-fora-de-la-feina-fallback-local).
+mira el [capítol 7: ús fora de la feina](#7-ús-fora-de-la-feina-fallback-local).
 
 ---
 
-## 2. Ús diari
+## 2. Instal·lació en una màquina nova
+
+Per posar el programa en marxa en un ordinador **nou i net** (per exemple, el
+de casa) hi ha el fitxer **`suport/Instalar.bat`**. Fa tot el necessari de
+manera automàtica.
+
+### Què fa
+1. **Instal·la Git** si no hi és (primer prova `winget`; si no, descarrega
+   l'instal·lador oficial de Git per a Windows i l'instal·la en silenci).
+2. **Baixa el programa** de GitHub a la branca `main`.
+3. Et deixa a punt per fer servir `GenerarInforme.bat` i `Actualitzar.bat`.
+
+### Com fer-ho servir — dues maneres
+**(a) Des del ZIP de GitHub**
+1. A GitHub, botó verd **Code → Download ZIP**.
+2. Extreu el ZIP on vulguis.
+3. Entra a la carpeta `suport/` i fes doble clic a **`Instalar.bat`**.
+   Convertirà la carpeta extreta en un clone operatiu seguint `main`.
+
+**(b) Enviant només el `.bat`**
+1. Envia a algú el fitxer **`Instalar.bat`** (és autònom: porta dins la
+   direcció de GitHub).
+2. Que el posi en una carpeta buida i hi faci doble clic.
+   Es descarregarà tot el programa a una carpeta `informes-Cornella`.
+
+### Què NO instal·la (ho has de tenir tu)
+- **Microsoft Word i Excel**: el programa els necessita i **no** es poden
+  instal·lar automàticament (llicència). El `.bat` avisa si no detecta Word.
+- **PowerShell**: no cal; Windows ja porta Windows PowerShell 5.1, i el
+  programa s'executa amb `-ExecutionPolicy Bypass` (no cal tocar polítiques).
+
+### Notes
+- A casa, **sense haver iniciat sessió a GitHub**, pots **baixar i
+  actualitzar** el programa (el repositori és públic), però **no pujar**
+  plantilles. Si edites plantilles a `ESTRUCTURALS/` i executes
+  `Actualitzar.bat`, l'intent de pujar fallarà sense trencar res (els canvis
+  es queden al teu PC). Per poder pujar des de casa caldria configurar el
+  login de GitHub (fora de l'abast de l'instal·lador).
+- Si l'empresa imposa una **política d'execució de PowerShell per GPO**, el
+  `-ExecutionPolicy Bypass` s'ignora. És poc habitual en equips de casa i no
+  es pot sobreescriure des d'un `.bat`.
+
+---
+
+## 3. Ús diari
 
 ### Generar un informe
 **Doble clic a `GenerarInforme.bat`**. Et guia per 6 passos:
@@ -118,7 +163,7 @@ on comencen les conclusions a esborrar es poden personalitzar a
 
 ---
 
-## 3. Sortida
+## 4. Sortida
 
 Els informes es desen per defecte a `Informes generats/` (a l'arrel del
 clone). Aquesta carpeta està **ignorada per git**: viu només al teu PC.
@@ -137,7 +182,7 @@ $OutputDir = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\0_Plantilles
 
 ---
 
-## 4. Editar el catàleg de deficiències (`REQ1.docx`)
+## 5. Editar el catàleg de deficiències (`REQ1.docx`)
 
 El programa llegeix `REQ1.docx` **paràgraf a paràgraf** segons l'**estil
 del paràgraf** (no segons aparença visual). Selecciona el paràgraf i a
@@ -222,7 +267,7 @@ Memòria tècnica signada per **tècnic competent**.
 
 ---
 
-## 5. Editar les conclusions (`0 CONCLUSIONS.docx`)
+## 6. Editar les conclusions (`0 CONCLUSIONS.docx`)
 
 Estructura del fitxer:
 
@@ -262,7 +307,7 @@ ConclusionSpaceAfterPt = 12     # prova 18 si vols més espai
 
 ---
 
-## 6. Ús fora de la feina (fallback local)
+## 7. Ús fora de la feina (fallback local)
 
 Quan executes el programa **fora de la xarxa de la feina** (la unitat
 `I:` no és accessible), el programa fa servir la carpeta
@@ -300,7 +345,7 @@ de comprovar que la còpia local sigui prou recent.
 
 ---
 
-## 7. Capçalera (`0 CAPCALERA.docx`)
+## 8. Capçalera (`0 CAPCALERA.docx`)
 
 Placeholders amb format `<<NOM>>` que el programa substitueix amb els
 valors del Pas 2:
@@ -321,7 +366,7 @@ manualment després de la cerca.
 
 ---
 
-## 8. Afegir un catàleg nou
+## 9. Afegir un catàleg nou
 
 Posa un altre `.docx` a `ESTRUCTURALS/` (per ex. `REQ2.docx`) amb la
 mateixa estructura del REQ1. **No pot començar per `0 `** (aquests són
@@ -330,7 +375,7 @@ el Pas 1 et deixarà triar.
 
 ---
 
-## 9. Configuració local (`suport/config.ps1`)
+## 10. Configuració local (`suport/config.ps1`)
 
 Fitxer **opcional** per personalitzar rutes/constants només al teu PC.
 Si no existeix s'usen els valors per defecte. Variables disponibles:
@@ -343,7 +388,7 @@ $AlwaysConclusionsCount = 2        # (obsolet, ara s'usa ::SEMPRE::)
 
 ---
 
-## 10. Resolució de problemes
+## 11. Resolució de problemes
 
 ### "Word obert: tanca'l"
 Tens una plantilla oberta (`~$ESTRUCTURALS\...`). Tanca el Word i torna
@@ -372,7 +417,7 @@ git stash drop      # esborrar-lo
 
 ---
 
-## 11. Per a desenvolupadors
+## 12. Per a desenvolupadors
 
 ### Estructura tècnica
 - **Mode headless** (`$env:GENINFORME_TEST = '1'`): el script només
