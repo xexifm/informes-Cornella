@@ -401,9 +401,11 @@ function _SetParagraphBoldXml($xmlInfo, $p, [bool]$boldOn) {
 
 # Crea un <w:p> d'anotacio clonant el pPr del requeriment (estil/sagnat) pero
 # FORCANT numId=0 (sense numeracio), amb un run en Bookman Old Style 11.
-function _MakeAnnotationParagraphXml($xmlInfo, $reqNode, $line) {
+# Si $spaceBefore, afegeix un espai a sobre (separacio amb el cos de l'item).
+function _MakeAnnotationParagraphXml($xmlInfo, $reqNode, $line, [bool]$spaceBefore = $false) {
     $xml = $xmlInfo.Xml; $ns = $xmlInfo.Ns; $w = $Script:WNS
     $p = $xml.CreateElement('w','p',$w)
+    $pPr = $null
     $reqPPr = $reqNode.SelectSingleNode('w:pPr', $ns)
     if ($null -ne $reqPPr) {
         $pPr = $reqPPr.CloneNode($true)
@@ -423,8 +425,21 @@ function _MakeAnnotationParagraphXml($xmlInfo, $reqNode, $line) {
             if ($null -eq $nid) { $nid = $xml.CreateElement('w','numId',$w); [void]$numPr.AppendChild($nid) }
             [void]$nid.SetAttribute('val', $w, '0')
         }
-        [void]$p.AppendChild($pPr)
+    } else {
+        $pPr = $xml.CreateElement('w','pPr',$w)
     }
+    # Espai a sobre (separacio visual amb el cos de l'item). Es fa amb spacing
+    # (no amb un paragraf buit) per no trencar la deteccio de fi de cos.
+    if ($spaceBefore) {
+        $sp = $pPr.SelectSingleNode('w:spacing', $ns)
+        if ($null -eq $sp) {
+            $sp = $xml.CreateElement('w','spacing',$w)
+            $numPr2 = $pPr.SelectSingleNode('w:numPr', $ns)
+            if ($null -ne $numPr2) { [void]$pPr.InsertAfter($sp, $numPr2) } else { [void]$pPr.AppendChild($sp) }
+        }
+        [void]$sp.SetAttribute('before', $w, '200')
+    }
+    [void]$p.AppendChild($pPr)
     $r = $xml.CreateElement('w','r',$w)
     $rPr = $xml.CreateElement('w','rPr',$w)
     _ApplyBodyFontXml $xml $rPr
@@ -437,35 +452,56 @@ function _MakeAnnotationParagraphXml($xmlInfo, $reqNode, $line) {
     return ,$p   # ,: el node <w:p> es IEnumerable; evitem que s'enumeri
 }
 
-# Calcula, per cada requeriment, el seu BLOC (del seu paragraf fins abans del
-# requeriment seguent o del bloc de conclusions). Retorna, per cada requeriment:
-#   AnchorNode   : ultim paragraf NO buit del bloc (on inserir la nova anotacio,
-#                  "a sota de tot": despres del cos, l'enllac i anotacions previes).
-#   ContentNodes : paragrafs NO buits i NO d'enllac (els que s'han de posar en
-#                  negreta quan el requeriment esta pendent). L'enllac mai.
+# Un paragraf es una SUBSECCIO si te algun run subratllat (Format-Subsection).
+# El subratllat es un senyal estable: el seguiment no l'afegeix ni el treu mai.
+function _IsSubsectionXml($p, $ns) {
+    $u = $p.SelectSingleNode('.//w:rPr/w:u', $ns)
+    if ($null -eq $u) { return $false }
+    return ($u.GetAttribute('val', $Script:WNS) -ne 'none')
+}
+
+# Calcula, per cada requeriment, el seu BLOC = el requeriment + el seu cos
+# (sub-linies, enllac, anotacions previes) que el segueixen de manera CONSECUTIVA
+# sense paragraf buit. El cos d'un item acaba al PRIMER paragraf buit (l'espaiador
+# que el generador posa despres de cada item), o a una subseccio (subratllat) o al
+# requeriment seguent. Aixi NO s'inclouen seccions/subseccions (que venen despres
+# de l'espaiador). Retorna, per requeriment:
+#   ReqNode            : el paragraf del requeriment.
+#   AnchorNode         : ultim paragraf NO buit del cos (on inserir la nova anotacio,
+#                        "a sota de tot": despres del cos, l'enllac i anotacions previes).
+#   AnchorIsAnnotation : si l'ancora ja es una anotacio datada (re-seguiment).
+#   ContentNodes       : paragrafs a posar en negreta si pendent (requeriment +
+#                        sub-linies + anotacions). MAI l'enllac.
 function _SeguimentBlocksXml($bodyParas, $model, [int]$conclusionStartIndex, $ns) {
     $reqs = $model.Requirements
+    $hardEnd = if ($conclusionStartIndex -ge 1) { $conclusionStartIndex - 1 } else { $bodyParas.Count }
     $blocks = New-Object System.Collections.ArrayList
     for ($k = 0; $k -lt $reqs.Count; $k++) {
         $startIdx = [int]$reqs[$k].ParaIndex                      # 1-based
-        if ($k -lt $reqs.Count - 1)            { $endIdx = [int]$reqs[$k+1].ParaIndex - 1 }
-        elseif ($conclusionStartIndex -ge 1)   { $endIdx = $conclusionStartIndex - 1 }
-        else                                   { $endIdx = $bodyParas.Count }
-        if ($endIdx -lt $startIdx) { $endIdx = $startIdx }
+        $nextReq  = if ($k -lt $reqs.Count - 1) { [int]$reqs[$k+1].ParaIndex } else { [int]::MaxValue }
 
-        $anchor  = $bodyParas[$startIdx - 1]
+        $reqNode = $bodyParas[$startIdx - 1]
+        $anchor  = $reqNode
         $content = New-Object System.Collections.ArrayList
-        for ($i = $startIdx; $i -le $endIdx; $i++) {
+        [void]$content.Add($reqNode)                              # el requeriment sempre (per la negreta)
+
+        for ($i = $startIdx + 1; ($i -le $hardEnd) -and ($i -lt $nextReq); $i++) {
             $node = $bodyParas[$i - 1]
-            if ([string]::IsNullOrWhiteSpace((_ParagraphTextXml $node $ns))) { continue }
-            $anchor = $node                                       # ultim no buit
+            $txt  = (_ParagraphTextXml $node $ns)
+            if ([string]::IsNullOrWhiteSpace($txt))           { break }   # espaiador -> fi del cos
+            if ($Script:SeguimentReqRegex.IsMatch($txt.Trim())) { break } # seguent requeriment
+            if (_IsSubsectionXml $node $ns)                   { break }   # subseccio
+            $anchor = $node                                                # ultim no buit del cos
             if (-not (_IsUrlParagraphXml $node $ns)) { [void]$content.Add($node) }
         }
+
+        $anchorIsAnnot = $Script:SeguimentAnnotRegex.IsMatch((_ParagraphTextXml $anchor $ns).Trim())
         [void]$blocks.Add([pscustomobject]@{
-            ReqIndex     = $k
-            ReqNode      = $bodyParas[$startIdx - 1]
-            AnchorNode   = $anchor
-            ContentNodes = $content.ToArray()
+            ReqIndex           = $k
+            ReqNode            = $reqNode
+            AnchorNode         = $anchor
+            AnchorIsAnnotation = $anchorIsAnnot
+            ContentNodes       = $content.ToArray()
         })
     }
     return $blocks.ToArray()
@@ -642,7 +678,10 @@ function _ApplySeguimentTransform {
         $comment = [string]$dec.NewComment
         if (-not [string]::IsNullOrWhiteSpace($comment)) {
             $line = _FormatAnnotationLine $dateStr $comment
-            $newP = _MakeAnnotationParagraphXml $xmlInfo $b.ReqNode $line
+            # Espai a sobre nomes si l'ancora NO es ja una anotacio (es a dir,
+            # quan es la PRIMERA anotacio: separa del cos/enllac). En re-seguiment
+            # les anotacions queden apilades sense espai entre elles.
+            $newP = _MakeAnnotationParagraphXml $xmlInfo $b.ReqNode $line (-not $b.AnchorIsAnnotation)
             [void]$xmlInfo.Body.InsertAfter($newP, $b.AnchorNode)
             [void]$contentNodes.Add($newP)
         }

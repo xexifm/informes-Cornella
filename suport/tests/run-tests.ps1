@@ -531,8 +531,9 @@ $bOff = $bp[0].SelectSingleNode('w:r/w:rPr/w:b', $xi.Ns)
 AssertEq ($bOff.GetAttribute('val',$W)) 'false' '_SetParagraphBoldXml off: <w:b w:val="false">'
 AssertEq (_ParagraphBoldStateXml $bp[0] $xi.Ns) 0 '_SetParagraphBoldXml off: sense negreta (0)'
 
-Write-Host "`n--- Seguiment XML: transformacio completa (blocs amb sub-linies i enllac) ---"
-# Doc amb: req1 + sub-linia + enllac, req2, i bloc de conclusions.
+Write-Host "`n--- Seguiment XML: transformacio completa (blocs, seccions i subseccions) ---"
+# Doc realista: req1 + sub-linia + enllac, ESPAIADOR, SECCIO (negreta), ESPAIADOR,
+# SUBSECCIO (subratllat), ESPAIADOR, req2, i bloc de conclusions.
 $docStr2 = @"
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="$W"><w:body>
@@ -540,6 +541,11 @@ $docStr2 = @"
 <w:p><w:pPr><w:pStyle w:val="Prrafodelista"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="0"/></w:numPr></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">1. </w:t></w:r><w:r><w:t>Baixa tensio.</w:t></w:r></w:p>
 <w:p><w:pPr><w:pStyle w:val="Prrafodelista"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="0"/></w:numPr></w:pPr><w:r><w:t>- Subdocument A</w:t></w:r></w:p>
 <w:p><w:r><w:t>https://exemple.cat/x</w:t></w:r></w:p>
+<w:p/>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Instal·lacions</w:t></w:r></w:p>
+<w:p/>
+<w:p><w:r><w:rPr><w:u w:val="single"/></w:rPr><w:t>Inspeccions inicials</w:t></w:r></w:p>
+<w:p/>
 <w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">2. </w:t></w:r><w:r><w:t>Alta tensio.</w:t></w:r></w:p>
 <w:p><w:r><w:t>Vist l anterior, cal requerir.</w:t></w:r></w:p>
 <w:p><w:r><w:t>Ho poso al seu coneixement.</w:t></w:r></w:p>
@@ -549,10 +555,11 @@ $docStr2 = @"
 $xi2 = New-XmlInfoFromString $docStr2
 $bp2 = @(_BodyParagraphsXml $xi2)
 $model2 = _BuildSeguimentModel (_CollectParaRecordsXml $bp2 $xi2.Ns)
-AssertEq $model2.Requirements.Count 2 'Transform: 2 requeriments (req1 amb sub-linia i enllac)'
-# Deteccio URL
+AssertEq $model2.Requirements.Count 2 'Transform: 2 requeriments detectats'
 Assert (_IsUrlParagraphXml $bp2[3] $xi2.Ns)        '_IsUrlParagraphXml: el paragraf de l enllac -> true'
 Assert (-not (_IsUrlParagraphXml $bp2[1] $xi2.Ns)) '_IsUrlParagraphXml: el requeriment -> false'
+Assert (_IsSubsectionXml $bp2[7] $xi2.Ns)          '_IsSubsectionXml: subseccio subratllada -> true'
+Assert (-not (_IsSubsectionXml $bp2[5] $xi2.Ns))   '_IsSubsectionXml: seccio (negreta) -> false'
 
 $dec = @(
     [pscustomobject]@{ Resolved=$false; NewComment="No s'aporta." },
@@ -561,7 +568,7 @@ $dec = @(
 $flds = [ordered]@{}; $flds['lloc'] = [pscustomobject]@{ Type='text'; Value='Cornella'; Hint=$null; Options=$null }
 $concl = @([pscustomobject]@{ Title='C'; Body='Cos **negreta** aqui.' })
 $always = @('Ho poso, [CAMP: lloc].')
-_ApplySeguimentTransform -xmlInfo $xi2 -bodyParas $bp2 -model $model2 -conclusionStartIndex 6 `
+_ApplySeguimentTransform -xmlInfo $xi2 -bodyParas $bp2 -model $model2 -conclusionStartIndex 11 `
     -decisions $dec -dateStr '04/06/2026' -conclHeaderText 'CONCLUSIONS' `
     -selectedConclusions $concl -alwaysConclusions $always -fields $flds
 $afterN = @(_BodyParagraphsXml $xi2)
@@ -574,10 +581,17 @@ Assert (-not ($texts -contains 'Vist l anterior, cal requerir.')) 'Transform: co
 Assert ($texts -contains 'CONCLUSIONS')                       'Transform: titol de conclusions afegit'
 Assert ($texts -contains 'Ho poso, Cornella.')               'Transform: [CAMP: lloc] resolt a "Cornella"'
 
-# PUNT 1: l'anotacio del req1 va A SOTA DE TOT (despres de l enllac)
-$idxUrl   = [array]::IndexOf($texts, 'https://exemple.cat/x')
+# PUNT 1: l'anotacio del req1 va despres de l enllac i ABANS de la seccio
+$idxUrl    = [array]::IndexOf($texts, 'https://exemple.cat/x')
 $idxAnnot1 = [array]::IndexOf($texts, "04/06/2026: No s'aporta.")
-Assert ($idxAnnot1 -gt $idxUrl) 'Transform (punt 1): l anotacio va despres de l enllac'
+$idxSecc   = [array]::IndexOf($texts, 'Instal·lacions')
+$idxSubs   = [array]::IndexOf($texts, 'Inspeccions inicials')
+Assert ($idxAnnot1 -gt $idxUrl)  'Transform (punt 1): l anotacio va despres de l enllac'
+Assert ($idxAnnot1 -lt $idxSecc) 'Transform (punt 1): l anotacio va ABANS de la seccio (no la traspassa)'
+
+# La SECCIO i la SUBSECCIO NO s han de tocar (segueixen negreta/subratllat)
+AssertEq $after[$idxSecc].B (-1)                   'Transform: la seccio segueix en negreta (no es modifica)'
+Assert (_IsSubsectionXml $afterN[$idxSubs] $xi2.Ns) 'Transform: la subseccio segueix subratllada (no es modifica)'
 
 # PUNT 5: negreta a req1 + sub-linia, MAI a l enllac
 $idxReq1 = [array]::IndexOf($texts, '1. Baixa tensio.')
@@ -597,6 +611,10 @@ AssertEq $after[$idxAnnot2].B 0  'Transform: anotacio de req2 -> sense negreta'
 $annotNode = $afterN[$idxAnnot1]
 $nid = $annotNode.SelectSingleNode('w:pPr/w:numPr/w:numId', $xi2.Ns)
 Assert ($null -ne $nid -and $nid.GetAttribute('val',$W) -eq '0') 'Transform (punt 2): l anotacio te numId=0 (sense numeracio)'
+
+# Espai a sobre de la primera anotacio (separacio amb el cos)
+$sp = $annotNode.SelectSingleNode('w:pPr/w:spacing', $xi2.Ns)
+Assert ($null -ne $sp -and [int]$sp.GetAttribute('before',$W) -gt 0) 'Transform: la primera anotacio te espai a sobre'
 
 # PUNT 6: font Bookman Old Style a l anotacio i a la conclusio
 $annFont = $annotNode.SelectSingleNode('w:r/w:rPr/w:rFonts', $xi2.Ns)
