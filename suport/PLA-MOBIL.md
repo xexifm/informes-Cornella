@@ -5,7 +5,33 @@
 > **requeriments per correu** a un destinatari, i fer que el **.docx complet**
 > es generi sol al PC perquè estigui a punt quan hi arribis.
 >
-> Estat: **pla per revisar**. Encara no s'ha implementat res.
+> Estat: **IMPLEMENTAT** (pendent de prova real al PC). Vegeu la guia de posada
+> en marxa a **`suport/DESPLEGAMENT-MOBIL.md`**.
+
+## Decisió presa
+
+- **Transport i dades personals → Google Drive privat.** Les plantilles
+  (REQ/conclusions/capçalera, sense dades personals) van al **GitHub públic**
+  (GitHub Pages, carpeta `/docs`); les **activitats** (noms i adreces per ID
+  GIA) van **només** a una carpeta privada de Google Drive. El repositori es
+  manté **públic**, així `Instalar.bat`/`Actualitzar.bat` i Pages segueixen
+  funcionant sense friccions.
+- **Capçalera:** el PC exporta a Drive només els camps de capçalera per ID GIA
+  cada cop que genera un informe; el mòbil els llegeix per auto-emplenar. Si el
+  mòbil només envia l'ID GIA, el **PC completa la capçalera** en generar.
+- **Auto-actualització:** `Actualitzar.bat` regenera i puja les dades del web
+  quan canvies plantilles; el mòbil sempre està al dia sense gestió manual.
+
+## On ha quedat cada peça
+
+| Peça | Fitxer(s) |
+|---|---|
+| Mode "des de paquet" | `suport/GenerarInforme.ps1` (`-DesDePaquet`, `Invoke-GenerateFromPaquet`) |
+| Reconstrucció (proves) | `suport/tests/run-tests.ps1` (`Build-*FromKeys/Titles/Paquet`) |
+| Export plantilles + activitats | `suport/ExportaDades.ps1` |
+| Vigilant | `suport/Vigilant.ps1`, `Vigilant.bat` |
+| Web del mòbil | `docs/` (`index.html`, `app.js`, `drive.js`, `config.js`, `estil.css`) |
+| Auto-update | `Actualitzar.bat`, hook a `GenerarInforme.ps1` (Pas 2) |
 
 ---
 
