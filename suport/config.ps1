@@ -17,6 +17,16 @@
 # fitxer ha de seguir el nom "YYYY-MM-DD ACTIVITATS.xls" o ".xlsx".
 $ActivitatsDir = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\2_Controls Excels'
 
+# Mobil (Google Drive). Carpeta sincronitzada al PC amb el Google Drive
+# d'escriptori, on:
+#   - el vigilant (Vigilant.bat) llegeix els paquets que arriben del mobil, i
+#   - s'hi exporta la base de dades d'activitats per al mobil (carpeta PRIVADA).
+# El default apunta a "%USERPROFILE%\Google Drive\Informes-Cornella". Si el teu
+# Drive d'escriptori esta en una altra ruta (per exemple amb la lletra G:),
+# descomenta i ajusta. Es creen soles les subcarpetes Entrada/Processats/Dades.
+#
+# $DriveBaseDir = 'G:\El meu Drive\Informes-Cornella'
+
 # (Obsolet pero conservat per compatibilitat amb el codi vell.) Quantes
 # conclusions del final del fitxer 0 CONCLUSIONS.docx s'inclouen sempre
 # al document final. Avui els paragrafs fixos es marquen amb '::SEMPRE::'.

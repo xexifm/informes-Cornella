@@ -104,6 +104,21 @@ $OutputDir              = Join-Path $RepoRoot 'Informes generats'
 $ActivitatsDir          = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\2_Controls Excels'
 $AlwaysConclusionsCount = 2
 
+# Mobil (Google Drive). Carpeta sincronitzada al PC amb el Google Drive
+# d'escriptori. Conte tres subcarpetes:
+#   Entrada/    -> paquets JSON que arriben del mobil (els llegeix Vigilant.ps1)
+#   Processats/ -> paquets ja generats (s'hi mouen despres)
+#   Dades/      -> base de dades d'activitats per al mobil (PRIVADA: noms i
+#                  adreces de ciutadans NO van mai al GitHub public)
+# El default apunta a la ubicacio tipica del Drive d'escriptori. Es pot
+# sobreescriure $DriveBaseDir a config.ps1. El guard de $env:USERPROFILE evita
+# que el dot-source falli en entorns sense aquesta variable (tests a Linux).
+$DriveBaseDir = if ($env:USERPROFILE) {
+    Join-Path $env:USERPROFILE (Join-Path 'Google Drive' 'Informes-Cornella')
+} else {
+    Join-Path $RepoRoot 'Drive-Local'
+}
+
 # Mode "Informe de seguiment": frases que marquen l'inici del bloc de
 # conclusions a esborrar de l'informe anterior. La deteccio es insensible a
 # accents/majuscules. Es pot sobreescriure des de config.ps1.
@@ -117,6 +132,12 @@ $configPath = Join-Path $ScriptRoot 'config.ps1'
 if (Test-Path -LiteralPath $configPath) {
     . $configPath
 }
+
+# Subcarpetes de Drive derivades de $DriveBaseDir (despres del config, perque
+# n'hi hagi prou amb sobreescriure $DriveBaseDir a config.ps1).
+$DriveEntradaDir    = Join-Path $DriveBaseDir 'Entrada'
+$DriveProcessatsDir = Join-Path $DriveBaseDir 'Processats'
+$DriveDadesDir      = Join-Path $DriveBaseDir 'Dades'
 
 # Estat persistent. Es guarda a %LOCALAPPDATA% per no embrutar el repositori
 # i no haver de tocar .gitignore. lastreport.json conte les dades de l'ULTIM
@@ -459,6 +480,32 @@ function Get-ActivitatFromCache($cache, $idGia) {
     return $null
 }
 
+# Exporta la base de dades d'activitats (nomes els camps de capcalera, per ID
+# GIA) a un JSON dins la carpeta PRIVADA de Drive, perque el mobil pugui
+# auto-emplenar la capcalera. Aquestes dades son personals i NO van mai al
+# GitHub public: nomes a Drive (compte privat de l'usuari). Es fail-safe:
+# qualsevol error es registra i es retorna $false sense interrompre el flux.
+function Export-ActivitatsToDrive($cache, $latest) {
+    try {
+        if ($null -eq $cache -or $null -eq $cache.ById) { return $false }
+        if (-not (Test-Path -LiteralPath $DriveDadesDir)) {
+            New-Item -ItemType Directory -Path $DriveDadesDir -Force | Out-Null
+        }
+        $payload = [ordered]@{
+            GeneratedAt = (Get-Date).ToString('o')
+            Source      = if ($latest) { $latest.File.Name } else { '' }
+            Count       = $cache.ById.Count
+            ById        = $cache.ById
+        }
+        $outFile = Join-Path $DriveDadesDir 'activitats.json'
+        ($payload | ConvertTo-Json -Depth 6) | Set-Content -LiteralPath $outFile -Encoding UTF8
+        return $true
+    } catch {
+        Write-Host "Avis: no s'ha pogut exportar les activitats a Drive ($($_.Exception.Message))."
+        return $false
+    }
+}
+
 # ----------------------------------------------------------------------------
 # Step 1 - Cataleg picker
 # ----------------------------------------------------------------------------
@@ -668,6 +715,12 @@ function Get-HeaderData {
         $msg = "Avisos de validacio de l'Excel (l'auto-fill podria fallar):`n`n" + ($actCache.Warnings -join "`n")
         [System.Windows.Forms.MessageBox]::Show($msg,'Avisos','OK','Warning') | Out-Null
     }
+
+    # Mobil: refresquem la copia d'activitats per al mobil (a Drive privat) cada
+    # cop que s'obre el Pas 2, aprofitant que la cache ja esta carregada. Aixi
+    # el mobil sempre te les dades al dia sense cap gestio manual. Silenciosa i
+    # fail-safe: si Drive no esta configurat, no passa res.
+    [void](Export-ActivitatsToDrive $actCache $latest)
 
     $labelText = "Base de dades d'activitats: $($latest.File.Name)  (data: $($latest.Date.ToString('yyyy-MM-dd'))) - $($actCache.ById.Count) activitats carregades"
     $f = _BuildHeaderForm @{ Text = $labelText; Source = $latest.Source }
