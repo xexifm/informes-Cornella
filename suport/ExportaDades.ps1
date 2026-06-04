@@ -7,20 +7,20 @@
 .DESCRIPTION
   Genera dos tipus de sortida, separades per sensibilitat:
 
-  1. PLANTILLES (NO contenen dades personals) -> suport/web/dades/*.json
+  1. PLANTILLES (NO contenen dades personals) -> docs/dades/*.json
        - cataleg-<BaseName>.json  (un per cada REQ*.docx d'ESTRUCTURALS)
        - conclusions.json
        - capcalera.json           (placeholders <<...>> detectats)
        - manifest.json            (llista de catalegs + data de generacio)
-     Aquests fitxers SI es pugen al GitHub public (els serveix GitHub Pages al
-     mobil). Els refresca i puja Actualitzar.bat.
+     Aquests fitxers SI es pugen al GitHub public (GitHub Pages els serveix al
+     mobil des de la carpeta /docs). Els refresca i puja Actualitzar.bat.
 
   2. ACTIVITATS (dades personals: noms i adreces) -> $DriveDadesDir\activitats.json
      NOMES els camps de capcalera per ID GIA. Van a la carpeta PRIVADA de Google
      Drive. NO es pugen MAI al GitHub public.
 
 .PARAMETER Plantilles
-  Exporta nomes les plantilles (REQ/conclusions/capcalera) a web/dades.
+  Exporta nomes les plantilles (REQ/conclusions/capcalera) a docs/dades.
 
 .PARAMETER Activitats
   Exporta nomes la base de dades d'activitats a Drive.
@@ -53,7 +53,9 @@ if (-not $Plantilles -and -not $Activitats) {
     $Activitats = $true
 }
 
-$WebDadesDir = Join-Path $ScriptRoot (Join-Path 'web' 'dades')
+# Les dades del mobil viuen a docs/dades (GitHub Pages les serveix des de
+# /docs). $RepoRoot el defineix GenerarInforme.ps1 (arrel del clone).
+$WebDadesDir = Join-Path $RepoRoot (Join-Path 'docs' 'dades')
 
 # Converteix un element del cataleg (de Parse-Cataleg) en un objecte
 # JSON-friendly (arrays plans en lloc d'ArrayList), preservant
