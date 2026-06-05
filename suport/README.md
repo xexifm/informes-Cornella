@@ -440,3 +440,23 @@ git stash drop      # esborrar-lo
 Si l'usuari ha editat plantilles localment, el `.bat` les commiteja
 amb autoria genèrica i les puja a `main`. **No** puja codi (`.ps1` /
 `.bat`): aquest el toca només la sessió de Claude.
+
+---
+
+## 13. Preparar informes des del mòbil
+
+Pots **preparar** un informe des del mòbil (triar deficiències, conclusions i
+camps), **enviar els requeriments per correu** a un destinatari, i fer que el
+**`.docx` complet es generi sol al PC** perquè estigui a punt quan hi arribis.
+
+- El mòbil obre un **formulari web** (GitHub Pages, carpeta `docs/`).
+- El mòbil prepara un **paquet JSON**, el deixa a una carpeta privada de
+  **Google Drive**, i el PC el converteix en `.docx` amb **`Vigilant.bat`**
+  (mode `GenerarInforme.ps1 -DesDePaquet`).
+- Les **dades d'activitats** (noms/adreces) **no surten** mai al GitHub públic:
+  van només a Drive privat. Les plantilles (sense dades personals) sí que es
+  publiquen, per servir el formulari.
+- Tot s'actualitza sol: `Actualitzar.bat` refresca les dades del web quan
+  canvies plantilles; generar al PC refresca les activitats a Drive.
+
+Posada en marxa pas a pas: **`suport/DESPLEGAMENT-MOBIL.md`**.

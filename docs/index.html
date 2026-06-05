@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Informes Cornellà — mòbil</title>
+  <link rel="stylesheet" href="estil.css">
+</head>
+<body>
+  <header>
+    <h1>Informes Cornellà</h1>
+    <div id="estat-drive" class="estat estat-off">Drive: no connectat</div>
+  </header>
+
+  <main id="app">
+    <!-- Indicador de càrrega / errors de dades -->
+    <div id="carregant" class="card">Carregant dades…</div>
+
+    <!-- Pas 1: catàleg -->
+    <section id="pas-cataleg" class="pas card ocult">
+      <h2>1 · Tipus d'informe</h2>
+      <label for="sel-cataleg">Catàleg de deficiències</label>
+      <select id="sel-cataleg"></select>
+    </section>
+
+    <!-- Pas 2: capçalera -->
+    <section id="pas-capcalera" class="pas card ocult">
+      <h2>2 · Dades de la capçalera</h2>
+      <label for="in-gia">ID GIA <span class="req">*</span></label>
+      <div class="fila">
+        <input id="in-gia" type="text" inputmode="numeric" placeholder="p. ex. 1379">
+        <button id="btn-cercar" type="button" class="secundari">Cercar</button>
+      </div>
+      <p id="msg-cerca" class="ajuda"></p>
+
+      <details id="det-capcalera">
+        <summary>Dades de l'activitat (opcional: les omple el PC)</summary>
+        <div id="camps-capcalera"></div>
+      </details>
+    </section>
+
+    <!-- Pas 3: deficiències -->
+    <section id="pas-deficiencies" class="pas card ocult">
+      <h2>3 · Deficiències</h2>
+      <input id="filtre-def" type="search" placeholder="Filtra…" class="filtre">
+      <div id="arbre-def" class="arbre"></div>
+    </section>
+
+    <!-- Pas 4: conclusions -->
+    <section id="pas-conclusions" class="pas card ocult">
+      <h2>4 · Conclusions</h2>
+      <div id="llista-concl"></div>
+    </section>
+
+    <!-- Pas 5: camps -->
+    <section id="pas-camps" class="pas card ocult">
+      <h2>5 · Camps a omplir</h2>
+      <div id="llista-camps"></div>
+      <p id="sense-camps" class="ajuda ocult">No hi ha camps a omplir per a aquesta selecció.</p>
+    </section>
+
+    <!-- Pas 6: final -->
+    <section id="pas-final" class="pas card ocult">
+      <h2>6 · Enviar i preparar</h2>
+
+      <h3>Requeriments (es poden enviar per correu)</h3>
+      <label for="in-destinatari">Destinatari del correu</label>
+      <input id="in-destinatari" type="email" placeholder="nom@exemple.cat">
+      <textarea id="prev-requeriments" rows="10" readonly></textarea>
+      <button id="btn-email" type="button" class="principal">Enviar requeriments per correu</button>
+
+      <h3>Generar l'informe complet al PC</h3>
+      <p class="ajuda">El .docx complet es generarà al PC quan hi arribis. El document sencer no surt mai del PC.</p>
+      <button id="btn-enviar-pc" type="button" class="principal">Preparar informe al PC</button>
+      <button id="btn-baixar" type="button" class="secundari">Baixar paquet (manual)</button>
+      <p id="msg-final" class="ajuda"></p>
+    </section>
+  </main>
+
+  <!-- Navegació -->
+  <nav id="navegacio" class="nav ocult">
+    <button id="btn-enrere" type="button" class="secundari">Enrere</button>
+    <span id="pas-indicador"></span>
+    <button id="btn-seguent" type="button" class="principal">Següent</button>
+  </nav>
+
+  <!-- La biblioteca de Google només es carrega si hi ha CLIENT_ID configurat. -->
+  <script src="config.js"></script>
+  <script src="drive.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

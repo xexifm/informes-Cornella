@@ -1,0 +1,118 @@
+:root {
+  --blau: #1b5e9b;
+  --blau-fosc: #134672;
+  --gris: #f4f6f8;
+  --vora: #d4d9de;
+  --text: #1d2733;
+  --verd: #2e7d32;
+  --taronja: #c2570a;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--text);
+  background: var(--gris);
+  padding-bottom: 80px; /* espai per a la barra de navegació */
+}
+
+header {
+  background: var(--blau);
+  color: #fff;
+  padding: 12px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+header h1 { font-size: 18px; margin: 0; }
+
+.estat { font-size: 12px; padding: 3px 8px; border-radius: 10px; }
+.estat-off { background: rgba(255,255,255,.2); }
+.estat-on { background: var(--verd); }
+
+main { padding: 12px; max-width: 720px; margin: 0 auto; }
+
+.card {
+  background: #fff;
+  border: 1px solid var(--vora);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+h2 { font-size: 17px; margin: 0 0 12px; color: var(--blau-fosc); }
+h3 { font-size: 15px; margin: 18px 0 8px; }
+
+label { display: block; font-weight: 600; font-size: 14px; margin: 10px 0 4px; }
+.req { color: #c00; }
+.ajuda { color: #667; font-size: 13px; margin: 6px 0; }
+
+input, select, textarea, button {
+  font-size: 16px; /* >=16px evita el zoom automàtic a iOS */
+  font-family: inherit;
+}
+input[type=text], input[type=email], input[type=search], select, textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--vora);
+  border-radius: 8px;
+  background: #fff;
+}
+textarea { resize: vertical; }
+
+.fila { display: flex; gap: 8px; }
+.fila input { flex: 1; }
+
+.filtre { margin-bottom: 10px; }
+
+button {
+  padding: 11px 16px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-weight: 600;
+}
+.principal { background: var(--blau); color: #fff; }
+.principal:active { background: var(--blau-fosc); }
+.secundari { background: #fff; color: var(--blau); border-color: var(--blau); }
+button:disabled { opacity: .5; cursor: default; }
+
+.pas h3:first-of-type { margin-top: 0; }
+.pas button.principal, .pas button.secundari { margin-top: 10px; width: 100%; }
+
+/* Arbre de deficiències */
+.arbre { max-height: 60vh; overflow-y: auto; }
+.seccio { font-weight: 700; color: var(--blau-fosc); margin: 14px 0 4px; }
+.subseccio { font-weight: 600; text-decoration: underline; margin: 10px 0 2px; }
+.item, .fill { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; }
+.fill { margin-left: 26px; }
+.item label, .fill label { font-weight: 400; margin: 0; }
+.item input[type=checkbox], .fill input[type=checkbox] {
+  width: 22px; height: 22px; margin-top: 1px; flex: 0 0 auto;
+}
+.preview { color: #667; font-size: 12px; display: block; }
+
+/* Conclusions i camps */
+.concl { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--gris); }
+.concl input[type=checkbox] { width: 22px; height: 22px; flex: 0 0 auto; }
+.concl .cos { font-size: 13px; color: #667; }
+.camp { margin-bottom: 14px; }
+
+/* Navegació inferior fixa */
+.nav {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: #fff; border-top: 1px solid var(--vora);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px; gap: 10px;
+}
+.nav button { min-width: 110px; }
+#pas-indicador { font-size: 13px; color: #667; }
+
+.ocult { display: none !important; }
+
+.error { color: #c00; }

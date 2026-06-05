@@ -45,11 +45,17 @@ for /f "delims=" %%f in ('git status --porcelain ESTRUCTURALS ^| findstr /R "\.d
 )
 
 if "%PLANTILLES_CANVIADES%"=="1" (
-    echo Detectats canvis locals a ESTRUCTURALS\*.docx. Els pujo a GitHub...
-    git add "ESTRUCTURALS/*.docx"
-    git -c user.name="Generador d'informes" -c user.email="generador@local" commit -m "Plantilles ESTRUCTURALS actualitzades des de Actualitzar.bat"
+    echo Detectats canvis locals a ESTRUCTURALS\*.docx.
+    echo Regenerant les dades del mobil ^(docs\dades^) des de les plantilles...
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0suport\ExportaDades.ps1" -Plantilles
     if errorlevel 1 (
-        echo  No hi havia res a commitejar a ESTRUCTURALS o el commit ha fallat. Continuo.
+        echo  Avis: no s'han pogut regenerar les dades del mobil ^(Word obert o no instal·lat?^). Continuo igualment.
+    )
+    echo Pujant plantilles i dades del mobil a GitHub...
+    git add "ESTRUCTURALS/*.docx" "docs/dades/*.json"
+    git -c user.name="Generador d'informes" -c user.email="generador@local" commit -m "Plantilles + dades del mobil actualitzades des de Actualitzar.bat"
+    if errorlevel 1 (
+        echo  No hi havia res a commitejar o el commit ha fallat. Continuo.
     )
 )
 

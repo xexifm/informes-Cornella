@@ -708,6 +708,83 @@ AssertEq (_GetItemTooltip $el4) ''           '_GetItemTooltip: cap linia -> buit
 
 AssertEq (_GetItemTooltip $null) ''          '_GetItemTooltip: null -> buit'
 
+Write-Host "`n--- Mode paquet: Build-SelectionFromKeys (reconstruir Pas 3 sense UI) ---"
+# Cataleg de prova amb 2 seccions, items, un fill i una subseccio.
+$secA = [pscustomobject]@{ Title='Instal·lacions'; Items=(New-Object System.Collections.ArrayList) }
+[void]$secA.Items.Add([pscustomobject]@{ Kind='subsection'; Short='Legalitzacions'; BodyLines=@(); Children=@() })
+$itBT = [pscustomobject]@{ Kind='item'; Short='Baixa tensio'; BodyLines=@('Cal legalitzar.'); Children=(New-Object System.Collections.ArrayList) }
+[void]$itBT.Children.Add([pscustomobject]@{ Kind='child'; Short='Memoria'; BodyLines=@('Memoria tecnica.'); Children=@() })
+[void]$secA.Items.Add($itBT)
+[void]$secA.Items.Add([pscustomobject]@{ Kind='item'; Short='Gas'; BodyLines=@('Revisar gas.'); Children=(New-Object System.Collections.ArrayList) })
+$secB = [pscustomobject]@{ Title='Sanitat'; Items=(New-Object System.Collections.ArrayList) }
+[void]$secB.Items.Add([pscustomobject]@{ Kind='item'; Short='Aigua'; BodyLines=@('Potabilitat.'); Children=(New-Object System.Collections.ArrayList) })
+$sectionsTest = @($secA, $secB)
+
+# Selecciono nomes "Baixa tensio" i "Aigua" (no "Gas").
+$sel = Build-SelectionFromKeys $sectionsTest @('Instal·lacions::Baixa tensio','Sanitat::Aigua')
+AssertEq $sel.Count 2                                    'Build-SelectionFromKeys: 2 seccions amb items reals'
+AssertEq $sel[0].Title 'Instal·lacions'                 'Build-SelectionFromKeys: 1a seccio'
+# La subseccio es conserva sempre; despres l'item seleccionat.
+$itemsA = @($sel[0].Items | Where-Object { $_.Kind -eq 'item' })
+AssertEq $itemsA.Count 1                                 'Build-SelectionFromKeys: nomes 1 item triat a la seccio A'
+AssertEq $itemsA[0].Short 'Baixa tensio'                'Build-SelectionFromKeys: item correcte'
+$hasSub = @($sel[0].Items | Where-Object { $_.Kind -eq 'subsection' }).Count
+AssertEq $hasSub 1                                       'Build-SelectionFromKeys: la subseccio es conserva'
+
+# Round-trip: les claus del resultat coincideixen amb les demanades (mes el fill, que no vam triar -> no hi es).
+$keys = Get-SelectedKeysFromResult $sel
+Assert ($keys -contains 'Instal·lacions::Baixa tensio') 'Build-SelectionFromKeys: round-trip conté l''item'
+Assert ($keys -contains 'Sanitat::Aigua')               'Build-SelectionFromKeys: round-trip conté l''altre item'
+Assert (-not ($keys -contains 'Instal·lacions::Gas'))   'Build-SelectionFromKeys: NO conté l''item no triat'
+
+# Si nomes triem el fill, l'item pare s'inclou (Selected=$false) per portar-lo.
+$selChild = Build-SelectionFromKeys $sectionsTest @('Instal·lacions::Baixa tensio::Memoria')
+$itemsChild = @($selChild[0].Items | Where-Object { $_.Kind -eq 'item' })
+AssertEq $itemsChild.Count 1                             'Build-SelectionFromKeys: nomes fill -> pare inclos'
+AssertEq ([bool]$itemsChild[0].Selected) $false         'Build-SelectionFromKeys: pare amb Selected=false'
+AssertEq $itemsChild[0].Children.Count 1                'Build-SelectionFromKeys: el fill triat hi es'
+
+# Cap clau -> cap seccio.
+$selNone = Build-SelectionFromKeys $sectionsTest @()
+AssertEq $selNone.Count 0                                'Build-SelectionFromKeys: cap clau -> resultat buit'
+
+Write-Host "`n--- Mode paquet: Build-ConclusionsFromTitles ---"
+$selectable = @(
+    [pscustomobject]@{ Title='Terrassa projecte'; Body='La terrassa...' },
+    [pscustomobject]@{ Title='Requeriment';        Body='Vist l''anterior...' },
+    [pscustomobject]@{ Title='Arxiu';              Body='S''arxiva...' }
+)
+$concl = Build-ConclusionsFromTitles $selectable @('Requeriment','Terrassa projecte')
+AssertEq $concl.Count 2                                  'Build-ConclusionsFromTitles: 2 triades'
+# Es preserva l'ordre del FITXER (selectable), no l'ordre dels titols demanats.
+AssertEq $concl[0].Title 'Terrassa projecte'            'Build-ConclusionsFromTitles: ordre del fitxer (1)'
+AssertEq $concl[1].Title 'Requeriment'                  'Build-ConclusionsFromTitles: ordre del fitxer (2)'
+AssertEq $concl[0].Body 'La terrassa...'                'Build-ConclusionsFromTitles: conserva el Body'
+AssertEq (Build-ConclusionsFromTitles $selectable @()).Count 0 'Build-ConclusionsFromTitles: cap titol -> buit'
+
+Write-Host "`n--- Mode paquet: Build-FieldsFromPaquet (camps + valors) ---"
+# Item amb un [CAMP:] i un [OPCIO:]; conclusio amb un altre [CAMP:].
+$secF = [pscustomobject]@{ Title='S'; Items=(New-Object System.Collections.ArrayList) }
+[void]$secF.Items.Add([pscustomobject]@{ Kind='item'; Short='X';
+    BodyLines=@('Cal aportar el [CAMP: certificat] [OPCIO: Termini | 1 mes | 3 mesos].'); Children=@() })
+$selF = @($secF)
+$conclF = @([pscustomobject]@{ Title='C'; Body='Signat per [CAMP: tecnic].' })
+# Valors com a hashtable (cas Vigilant) i deixant un camp sense valor (->default).
+$fv = @{ 'certificat'='ISO-9001'; 'tecnic'='Joan' }
+$fields = Build-FieldsFromPaquet $selF $conclF @() $fv
+Assert ($fields.Contains('certificat'))                 'Build-FieldsFromPaquet: detecta CAMP del REQ'
+Assert ($fields.Contains('Termini'))                    'Build-FieldsFromPaquet: detecta OPCIO del REQ'
+Assert ($fields.Contains('tecnic'))                     'Build-FieldsFromPaquet: detecta CAMP de la conclusio'
+AssertEq $fields['certificat'].Value 'ISO-9001'         'Build-FieldsFromPaquet: aplica valor de text'
+AssertEq $fields['tecnic'].Value 'Joan'                 'Build-FieldsFromPaquet: aplica valor de conclusio'
+AssertEq $fields['Termini'].Value '1 mes'               'Build-FieldsFromPaquet: OPCIO sense valor -> 1a opcio'
+
+# Tambe ha d'acceptar un PSCustomObject (cas ConvertFrom-Json del paquet real).
+$fvObj = [pscustomobject]@{ certificat='X'; tecnic='Y'; Termini='3 mesos' }
+$fields2 = Build-FieldsFromPaquet $selF $conclF @() $fvObj
+AssertEq $fields2['certificat'].Value 'X'               'Build-FieldsFromPaquet: valors des de PSCustomObject'
+AssertEq $fields2['Termini'].Value '3 mesos'            'Build-FieldsFromPaquet: OPCIO amb valor del paquet'
+
 $summaryColor = if ($script:fail -eq 0) { 'Green' } else { 'Red' }
 Write-Host "`n========================================"
 Write-Host ("RESULTAT: {0} OK, {1} FAIL" -f $script:pass, $script:fail) -ForegroundColor $summaryColor
