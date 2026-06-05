@@ -1,11 +1,11 @@
 :root {
-  /* Colors corporatius (aproximació de Cornellà — confirma'm els exactes o
-     puja el logo i els ajusto). Tot passa per variables, així canviar-los és
-     trivial. */
-  --brand: #1d7a46;          /* verd corporatiu */
-  --brand-dark: #14633a;
-  --brand-soft: #e8f3ec;
-  --accent: #c98a00;
+  /* Colors corporatius de l'Ajuntament de Cornellà de Llobregat, extrets del
+     logo: granat heràldic de l'escut + grisos del text. */
+  --brand: #A6192E;          /* granat corporatiu (escut) */
+  --brand-dark: #821526;     /* granat fosc (pulsacions) */
+  --brand-soft: #f7e7ea;     /* tint clar per a fons/ressaltats */
+  --ink: #4D4D4F;            /* gris fosc dels títols (text del logo) */
+  --ink-soft: #6E6E6E;       /* gris mitjà */
   --gris: #f4f6f8;
   --vora: #d4d9de;
   --text: #1d2733;
@@ -24,9 +24,9 @@ body {
 }
 
 header {
-  background: var(--brand);
-  color: #fff;
-  padding: 10px 16px;
+  background: #fff;
+  color: var(--ink);
+  padding: 8px 16px;
   position: sticky;
   top: 0;
   z-index: 10;
@@ -34,15 +34,16 @@ header {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  box-shadow: 0 2px 6px rgba(0,0,0,.15);
+  border-bottom: 3px solid var(--brand);
+  box-shadow: 0 2px 6px rgba(0,0,0,.08);
 }
 .marca { display: flex; align-items: center; gap: 10px; min-width: 0; }
-#logo { height: 34px; width: auto; display: block; background: #fff; border-radius: 6px; padding: 2px 4px; }
-header h1 { font-size: 18px; margin: 0; font-weight: 700; white-space: nowrap; }
+#logo { height: 40px; width: auto; display: block; }
+header h1 { font-size: 17px; margin: 0; font-weight: 700; white-space: nowrap; color: var(--ink); }
 
 .estat { font-size: 12px; padding: 3px 8px; border-radius: 10px; white-space: nowrap; }
-.estat-off { background: rgba(255,255,255,.22); }
-.estat-on { background: var(--verd-ok); }
+.estat-off { background: var(--gris); color: var(--ink-soft); border: 1px solid var(--vora); }
+.estat-on { background: var(--verd-ok); color: #fff; }
 
 main { padding: 12px; max-width: 720px; margin: 0 auto; }
 
