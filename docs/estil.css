@@ -1,11 +1,11 @@
 :root {
   /* Colors corporatius de l'Ajuntament de Cornellà de Llobregat, extrets del
      logo: granat heràldic de l'escut + grisos del text. */
-  --brand: #A6192E;          /* granat corporatiu (escut) */
-  --brand-dark: #821526;     /* granat fosc (pulsacions) */
+  --brand: #a61a2f;          /* granat corporatiu (escut) */
+  --brand-dark: #8a1426;     /* granat fosc (pulsacions) */
   --brand-soft: #f7e7ea;     /* tint clar per a fons/ressaltats */
-  --ink: #4D4D4F;            /* gris fosc dels títols (text del logo) */
-  --ink-soft: #6E6E6E;       /* gris mitjà */
+  --ink: #575756;            /* gris corporatiu del text del logo */
+  --ink-soft: #6f6f6e;       /* gris mitjà */
   --gris: #f4f6f8;
   --vora: #d4d9de;
   --text: #1d2733;
@@ -38,8 +38,11 @@ header {
   box-shadow: 0 2px 6px rgba(0,0,0,.08);
 }
 .marca { display: flex; align-items: center; gap: 10px; min-width: 0; }
-#logo { height: 40px; width: auto; display: block; }
-header h1 { font-size: 17px; margin: 0; font-weight: 700; white-space: nowrap; color: var(--ink); }
+#logo { height: 30px; width: auto; display: block; flex: 0 1 auto; max-width: 60vw; }
+.subtitol {
+  font-size: 14px; font-weight: 600; color: var(--ink-soft);
+  border-left: 1px solid var(--vora); padding-left: 10px; white-space: nowrap;
+}
 
 .estat { font-size: 12px; padding: 3px 8px; border-radius: 10px; white-space: nowrap; }
 .estat-off { background: var(--gris); color: var(--ink-soft); border: 1px solid var(--vora); }
