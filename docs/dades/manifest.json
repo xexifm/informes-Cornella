@@ -1,0 +1,6 @@
+{
+  "GeneratedAt": "2026-06-05T00:00:00",
+  "Catalegs": ["REQ-DEMO"],
+  "HeaderFields": ["ID_GIA", "EXP_NUM", "TITULAR", "ADRECA", "ACTIVITAT", "NUM_ANOTACIO", "DATA_ANOTACIO"],
+  "_NOTA": "Dades de DEMOSTRACIO per veure el web. El PC les substituira per les reals en executar ExportaDades.ps1."
+}

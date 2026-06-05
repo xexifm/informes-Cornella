@@ -1,0 +1,17 @@
+{
+  "HeaderText": "CONCLUSIONS",
+  "Selectable": [
+    {
+      "Title": "Requeriment (DEMO)",
+      "Body": "Vist l'anterior, cal requerir a la titularitat que esmeni les deficiències detectades en el termini de [OPCIO: Termini esmena | 1 mes | 3 mesos]."
+    },
+    {
+      "Title": "Arxiu (DEMO)",
+      "Body": "Atès que no s'han esmenat les deficiències, es proposa l'arxiu de l'expedient."
+    }
+  ],
+  "Always": [
+    "Ho poso al seu coneixement als efectes oportuns.",
+    "Cornellà de Llobregat,"
+  ]
+}
