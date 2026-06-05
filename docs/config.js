@@ -1,32 +1,27 @@
 // Configuracio del formulari del mobil.
 // -----------------------------------------------------------------------------
-// Aquest fitxer NO conte dades personals: nomes identificadors de Google i el
+// Aquest fitxer NO conte dades personals: nomes identificadors de serveis i el
 // correu del destinatari per defecte. Es pot pujar al GitHub public sense
-// problema. Edita'l amb les teves dades seguint la guia DESPLEGAMENT-MOBIL.md.
-//
-// El formulari FUNCIONA encara que deixis tot aixo buit: en aquest cas no es
-// connectara a Google Drive (no auto-emplenara la capcalera ni pujara el
-// paquet sol), pero podras omplir la capcalera a ma i DESCARREGAR el paquet
-// per deixar-lo tu a la carpeta de Drive. Omple-ho per tenir-ho automatic.
+// problema. Edita'l seguint la guia DESPLEGAMENT-MOBIL.md.
 
 window.CONFIG = {
-  // ID de client OAuth de Google (tipus "Aplicacio web"), creat a Google Cloud
-  // Console. Acaba en ".apps.googleusercontent.com". Buit = Drive desactivat.
+  // ----- Google Drive (auto-emplenar capçalera + enviar el paquet al PC) -----
+  // ID de client OAuth de Google (tipus "Aplicacio web"). Buit = Drive
+  // desactivat (capçalera a mà i botó "Baixar paquet").
   GOOGLE_CLIENT_ID: "",
+  DRIVE_ENTRADA_FOLDER_ID: "",   // carpeta on el mobil deixa els paquets
+  DRIVE_DADES_FOLDER_ID: "",     // carpeta on el PC deixa activitats.json
 
-  // ID de la carpeta de Drive "Entrada" (on el mobil deixa els paquets i el
-  // vigilant del PC els recull). El treus de la URL de la carpeta a Drive:
-  // https://drive.google.com/drive/folders/<AIXO_ES_L_ID>
-  DRIVE_ENTRADA_FOLDER_ID: "",
+  // ----- Correu (enviar els requeriments amb un sol clic, sense obrir res) ----
+  // S'usa EmailJS (https://www.emailjs.com), gratuit per a poc volum. Crea un
+  // compte, connecta-hi el teu correu (Gmail...) -> aquesta sera l'adreça DES DE
+  // la qual s'envia-, crea una plantilla amb les variables {{to_email}},
+  // {{subject}} i {{message}}, i posa aqui les tres claus. Si les deixes buides,
+  // el boto fa el comportament antic (obre l'app de correu).
+  EMAILJS_PUBLIC_KEY: "",
+  EMAILJS_SERVICE_ID: "",
+  EMAILJS_TEMPLATE_ID: "",
 
-  // ID de la carpeta de Drive "Dades" (on el PC exporta activitats.json amb la
-  // base de dades per auto-emplenar la capcalera). Mateixa manera de treure'l.
-  DRIVE_DADES_FOLDER_ID: "",
-
-  // Destinatari per defecte del correu amb els requeriments (es pot canviar al
-  // formulari abans d'enviar). Pots deixar-lo buit.
-  EMAIL_DESTINATARI: "",
-
-  // Prefix de l'assumpte del correu. Se li afegeix l'ID GIA.
-  EMAIL_ASSUMPTE_PREFIX: "Requeriments activitat GIA"
+  // Destinatari per defecte del correu (es pot canviar al formulari).
+  EMAIL_DESTINATARI: ""
 };

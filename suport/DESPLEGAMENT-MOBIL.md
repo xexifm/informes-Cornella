@@ -120,6 +120,55 @@ el tens a `Informes generats/`.
 
 ---
 
+## E · Enviar els requeriments amb un sol clic (EmailJS)
+
+Perquè el botó **Enviar requeriments per correu** enviï sol (sense obrir cap
+app), s'usa **EmailJS** (gratuït per a poc volum):
+
+1. Crea un compte a **https://www.emailjs.com**.
+2. **Email Services → Add Service**: connecta el teu correu (p. ex. Gmail).
+   Aquesta serà **l'adreça des de la qual s'envia**.
+3. **Email Templates → Create Template** amb aquestes variables al cos:
+   - Camp **To**: `{{to_email}}`
+   - Camp **Subject**: `{{subject}}`
+   - Cos del missatge: `{{message}}`
+4. A **Account → API Keys** copia la **Public Key**, i anota el **Service ID**
+   i el **Template ID**.
+5. Omple'ls a **`docs/config.js`**:
+   ```js
+   EMAILJS_PUBLIC_KEY:  "...",
+   EMAILJS_SERVICE_ID:  "...",
+   EMAILJS_TEMPLATE_ID: "...",
+   EMAIL_DESTINATARI:   "destinatari@exemple.cat"
+   ```
+6. (Recomanat) Al panell d'EmailJS, restringeix l'enviament al teu domini de
+   Pages per evitar que algú altre faci servir la teva quota.
+
+L'assumpte del correu surt sempre com **`GIA <id> Requeriments`**. Si no
+configures EmailJS, el botó torna al comportament d'obrir l'app de correu.
+
+## F · Logo i colors de l'Ajuntament
+
+- **Logo:** posa el fitxer del logo a **`docs/img/logo.png`** (o `.svg` canviant
+  el `src` a `index.html`). Si no n'hi ha, simplement no es mostra.
+- **Colors:** són variables CSS a dalt de **`docs/estil.css`** (`--brand`,
+  `--brand-dark`...). Ara hi ha un verd corporatiu **aproximat**; passa'm els
+  codis hex exactes (o el logo) i els deixo idèntics als de cornella.cat.
+
+## Qui pot accedir al web?
+
+El web és a **GitHub Pages**, o sigui **públic**: qualsevol que tingui l'enllaç
+el pot obrir. Però:
+- **No conté dades personals** (només plantilles).
+- **Cercar** (dades d'activitats) necessita el **teu** compte de Google: un
+  estrany no hi té accés.
+- **Preparar informe al PC** puja a **el teu** Drive: un estrany no hi pot
+  escriure.
+
+És a dir, el formulari és visible, però les dades i el teu PC queden protegits.
+Si vols, et puc afegir un **PIN senzill** d'entrada (dissuasiu, no una seguretat
+forta) o moure-ho a un allotjament amb contrasenya.
+
 ## Mode sense Drive (fallback)
 
 Si encara no has fet el bloc C, el web funciona igual però:

@@ -1,11 +1,16 @@
 :root {
-  --blau: #1b5e9b;
-  --blau-fosc: #134672;
+  /* Colors corporatius (aproximació de Cornellà — confirma'm els exactes o
+     puja el logo i els ajusto). Tot passa per variables, així canviar-los és
+     trivial. */
+  --brand: #1d7a46;          /* verd corporatiu */
+  --brand-dark: #14633a;
+  --brand-soft: #e8f3ec;
+  --accent: #c98a00;
   --gris: #f4f6f8;
   --vora: #d4d9de;
   --text: #1d2733;
-  --verd: #2e7d32;
-  --taronja: #c2570a;
+  --verd-ok: #2e7d32;
+  --error: #c0392b;
 }
 
 * { box-sizing: border-box; }
@@ -15,47 +20,52 @@ body {
   font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
   color: var(--text);
   background: var(--gris);
-  padding-bottom: 80px; /* espai per a la barra de navegació */
+  padding-bottom: 84px; /* espai per a la barra de navegació */
 }
 
 header {
-  background: var(--blau);
+  background: var(--brand);
   color: #fff;
-  padding: 12px 16px;
+  padding: 10px 16px;
   position: sticky;
   top: 0;
   z-index: 10;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,.15);
 }
-header h1 { font-size: 18px; margin: 0; }
+.marca { display: flex; align-items: center; gap: 10px; min-width: 0; }
+#logo { height: 34px; width: auto; display: block; background: #fff; border-radius: 6px; padding: 2px 4px; }
+header h1 { font-size: 18px; margin: 0; font-weight: 700; white-space: nowrap; }
 
-.estat { font-size: 12px; padding: 3px 8px; border-radius: 10px; }
-.estat-off { background: rgba(255,255,255,.2); }
-.estat-on { background: var(--verd); }
+.estat { font-size: 12px; padding: 3px 8px; border-radius: 10px; white-space: nowrap; }
+.estat-off { background: rgba(255,255,255,.22); }
+.estat-on { background: var(--verd-ok); }
 
 main { padding: 12px; max-width: 720px; margin: 0 auto; }
 
 .card {
   background: #fff;
   border: 1px solid var(--vora);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 16px;
   margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
 }
 
-h2 { font-size: 17px; margin: 0 0 12px; color: var(--blau-fosc); }
-h3 { font-size: 15px; margin: 18px 0 8px; }
+h2 {
+  font-size: 17px; margin: 0 0 14px; color: var(--brand-dark);
+  padding-bottom: 8px; border-bottom: 2px solid var(--brand-soft);
+}
+h3 { font-size: 15px; margin: 18px 0 8px; color: var(--brand-dark); }
 
 label { display: block; font-weight: 600; font-size: 14px; margin: 10px 0 4px; }
-.req { color: #c00; }
+.req { color: var(--error); }
 .ajuda { color: #667; font-size: 13px; margin: 6px 0; }
 
-input, select, textarea, button {
-  font-size: 16px; /* >=16px evita el zoom automàtic a iOS */
-  font-family: inherit;
-}
+input, select, textarea, button { font-size: 16px; font-family: inherit; } /* >=16px evita zoom a iOS */
 input[type=text], input[type=email], input[type=search], select, textarea {
   width: 100%;
   padding: 10px;
@@ -63,10 +73,14 @@ input[type=text], input[type=email], input[type=search], select, textarea {
   border-radius: 8px;
   background: #fff;
 }
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft);
+}
 textarea { resize: vertical; }
 
-.fila { display: flex; gap: 8px; }
-.fila input { flex: 1; }
+.fila { display: flex; gap: 8px; align-items: stretch; }
+.fila input { flex: 1 1 auto; min-width: 0; }     /* el número sempre visible */
+.fila button { flex: 0 0 auto; width: auto; white-space: nowrap; }
 
 .filtre { margin-bottom: 10px; }
 
@@ -77,29 +91,30 @@ button {
   cursor: pointer;
   font-weight: 600;
 }
-.principal { background: var(--blau); color: #fff; }
-.principal:active { background: var(--blau-fosc); }
-.secundari { background: #fff; color: var(--blau); border-color: var(--blau); }
+.principal { background: var(--brand); color: #fff; }
+.principal:active { background: var(--brand-dark); }
+.secundari { background: #fff; color: var(--brand); border-color: var(--brand); }
 button:disabled { opacity: .5; cursor: default; }
 
-.pas h3:first-of-type { margin-top: 0; }
-.pas button.principal, .pas button.secundari { margin-top: 10px; width: 100%; }
+/* Botons d'acció amples NOMÉS quan són d'amplada completa del pas (no els de
+   dins d'una .fila, que han de quedar petits al costat de l'input). */
+.pas > button.principal, .pas > button.secundari { width: 100%; margin-top: 10px; }
 
 /* Arbre de deficiències */
 .arbre { max-height: 60vh; overflow-y: auto; }
-.seccio { font-weight: 700; color: var(--blau-fosc); margin: 14px 0 4px; }
+.seccio { font-weight: 700; color: var(--brand-dark); margin: 14px 0 4px; }
 .subseccio { font-weight: 600; text-decoration: underline; margin: 10px 0 2px; }
 .item, .fill { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; }
 .fill { margin-left: 26px; }
 .item label, .fill label { font-weight: 400; margin: 0; }
 .item input[type=checkbox], .fill input[type=checkbox] {
-  width: 22px; height: 22px; margin-top: 1px; flex: 0 0 auto;
+  width: 22px; height: 22px; margin-top: 1px; flex: 0 0 auto; accent-color: var(--brand);
 }
 .preview { color: #667; font-size: 12px; display: block; }
 
 /* Conclusions i camps */
 .concl { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--gris); }
-.concl input[type=checkbox] { width: 22px; height: 22px; flex: 0 0 auto; }
+.concl input[type=checkbox] { width: 22px; height: 22px; flex: 0 0 auto; accent-color: var(--brand); }
 .concl .cos { font-size: 13px; color: #667; }
 .camp { margin-bottom: 14px; }
 
@@ -109,10 +124,10 @@ button:disabled { opacity: .5; cursor: default; }
   background: #fff; border-top: 1px solid var(--vora);
   display: flex; align-items: center; justify-content: space-between;
   padding: 10px 16px; gap: 10px;
+  box-shadow: 0 -2px 6px rgba(0,0,0,.06);
 }
 .nav button { min-width: 110px; }
 #pas-indicador { font-size: 13px; color: #667; }
 
 .ocult { display: none !important; }
-
-.error { color: #c00; }
+.error { color: var(--error); }

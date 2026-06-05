@@ -1,0 +1,11 @@
+{
+  "GeneratedAt": "2026-06-05T00:00:00",
+  "Source": "DEMO",
+  "Count": 3,
+  "_NOTA": "Dades FALSES de demostracio per provar el boto Cercar. En produccio, les activitats reals NO son aqui: van per Google Drive privat. Aquest fitxer no s'usa quan Drive esta configurat.",
+  "ById": {
+    "1001": { "TITULAR": "Forn de Pa Exemple SL", "ADRECA": "CARRER FALS 1, CORNELLÀ DE LLOBREGAT", "ACTIVITAT": "Fleca amb degustació", "EXP_NUM": "2026/0001", "NUM_ANOTACIO": "E-1001", "DATA_ANOTACIO": "01/06/2026" },
+    "1002": { "TITULAR": "Bar Prova SCP", "ADRECA": "AVINGUDA DEMO 22 BAIXOS, CORNELLÀ DE LLOBREGAT", "ACTIVITAT": "Bar restaurant", "EXP_NUM": "2026/0002", "NUM_ANOTACIO": "E-1002", "DATA_ANOTACIO": "02/06/2026" },
+    "1003": { "TITULAR": "Tallers Mostra SA", "ADRECA": "CARRER EXEMPLE 5 NAU 3, CORNELLÀ DE LLOBREGAT", "ACTIVITAT": "Taller mecànic", "EXP_NUM": "2026/0003", "NUM_ANOTACIO": "E-1003", "DATA_ANOTACIO": "03/06/2026" }
+  }
+}

@@ -8,7 +8,10 @@
 </head>
 <body>
   <header>
-    <h1>Informes Cornellà</h1>
+    <div class="marca">
+      <img id="logo" src="img/logo.png" alt="" onerror="this.style.display='none'">
+      <h1>Informes Cornellà</h1>
+    </div>
     <div id="estat-drive" class="estat estat-off">Drive: no connectat</div>
   </header>
 
@@ -68,6 +71,7 @@
       <input id="in-destinatari" type="email" placeholder="nom@exemple.cat">
       <textarea id="prev-requeriments" rows="10" readonly></textarea>
       <button id="btn-email" type="button" class="principal">Enviar requeriments per correu</button>
+      <p id="msg-email" class="ajuda"></p>
 
       <h3>Generar l'informe complet al PC</h3>
       <p class="ajuda">El .docx complet es generarà al PC quan hi arribis. El document sencer no surt mai del PC.</p>
@@ -87,6 +91,7 @@
   <!-- La biblioteca de Google només es carrega si hi ha CLIENT_ID configurat. -->
   <script src="config.js"></script>
   <script src="drive.js"></script>
+  <script src="email.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

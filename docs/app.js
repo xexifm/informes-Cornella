@@ -258,14 +258,36 @@
     $("btn-cercar").addEventListener("click", cercarActivitat);
   }
 
+  function omplirCapcalera(act) {
+    HEADER_KEYS.forEach(function (k) {
+      if (k === "ID_GIA") return;
+      if (act[k] !== undefined) {
+        estat.header[k] = act[k];
+        var inp = $("hdr-" + k);
+        if (inp) inp.value = act[k];
+      }
+    });
+    $("det-capcalera").open = true;
+  }
+
   function cercarActivitat() {
     var gia = $("in-gia").value.trim();
     var msg = $("msg-cerca");
     if (!gia) { msg.textContent = "Escriu un ID GIA."; return; }
+
     if (!window.Drive || !Drive.disponible()) {
-      msg.textContent = "Drive no configurat: omple les dades a mà (o el PC les omplirà en generar).";
+      // Sense Drive: provem el fitxer local de DEMO (activitats falses).
+      carregarJson("dades/activitats.json").then(function (data) {
+        var act = ((data && data.ById) || {})[gia];
+        if (!act) { msg.textContent = "(Demo) Prova amb 1001, 1002 o 1003 — o omple les dades a mà."; return; }
+        omplirCapcalera(act);
+        msg.textContent = "(Demo) Dades de prova carregades.";
+      }).catch(function () {
+        msg.textContent = "Drive no configurat: omple les dades a mà (o el PC les omplirà en generar).";
+      });
       return;
     }
+
     msg.textContent = "Connectant amb Drive…";
     var pas = Drive.connectat() ? Promise.resolve() : Drive.connectar();
     pas.then(function () {
@@ -273,18 +295,9 @@
       msg.textContent = "Cercant…";
       return Drive.llegirActivitats();
     }).then(function (data) {
-      var byId = (data && data.ById) || {};
-      var act = byId[gia];
+      var act = ((data && data.ById) || {})[gia];
       if (!act) { msg.textContent = "L'ID GIA " + gia + " no s'ha trobat a la base de dades."; return; }
-      HEADER_KEYS.forEach(function (k) {
-        if (k === "ID_GIA") return;
-        if (act[k] !== undefined) {
-          estat.header[k] = act[k];
-          var inp = $("hdr-" + k);
-          if (inp) inp.value = act[k];
-        }
-      });
-      $("det-capcalera").open = true;
+      omplirCapcalera(act);
       msg.textContent = "Dades trobades (" + (data.Source || "") + ").";
     }).catch(function (e) {
       msg.innerHTML = '<span class="error">' + e.message + "</span>";
@@ -482,17 +495,29 @@
   }
 
   function assumpte() {
-    var prefix = (window.CONFIG && CONFIG.EMAIL_ASSUMPTE_PREFIX) || "Requeriments activitat GIA";
-    return prefix + " " + (estat.header.ID_GIA || "");
+    return "GIA " + (estat.header.ID_GIA || "") + " Requeriments";
   }
 
   function enviarEmail() {
     var dest = $("in-destinatari").value.trim();
     var cos = $("prev-requeriments").value;
-    var url = "mailto:" + encodeURIComponent(dest) +
-      "?subject=" + encodeURIComponent(assumpte()) +
-      "&body=" + encodeURIComponent(cos);
-    window.location.href = url;
+    var subj = assumpte();
+    var msg = $("msg-email");
+    if (!dest) { msg.innerHTML = '<span class="error">Indica un destinatari.</span>'; return; }
+    if (window.Mail && Mail.configurat()) {
+      // Enviament automàtic (un sol clic, sense obrir cap app).
+      msg.textContent = "Enviant…";
+      $("btn-email").disabled = true;
+      Mail.enviar(dest, subj, cos).then(function () {
+        msg.innerHTML = "✅ Correu enviat a " + dest + ".";
+      }).catch(function (e) {
+        msg.innerHTML = '<span class="error">No s\'ha pogut enviar: ' + e.message + "</span>";
+      }).then(function () { $("btn-email").disabled = false; });
+    } else {
+      // Sense EmailJS configurat: obrim l'app de correu (comportament antic).
+      window.location.href = "mailto:" + encodeURIComponent(dest) +
+        "?subject=" + encodeURIComponent(subj) + "&body=" + encodeURIComponent(cos);
+    }
   }
 
   function construirPaquet() {
