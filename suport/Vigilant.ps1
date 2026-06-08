@@ -86,12 +86,17 @@ function Process-PendingApi {
         Write-Host ("[{0}] Paquet detectat (Drive): {1}" -f (Get-Date -Format 'HH:mm:ss'), $f.Name)
         $tmp = Join-Path $env:TEMP ("paquet_" + [guid]::NewGuid().ToString() + ".json")
         try {
+            Write-Host "   1/3 Baixant el paquet de Drive..."
             $content = Get-DriveFileText $f.Id
             Set-Content -LiteralPath $tmp -Value $content -Encoding UTF8
+
+            Write-Host "   2/3 Generant l'informe..."
             & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $GenerarPs1 -DesDePaquet $tmp
-            if ($LASTEXITCODE -ne 0) { throw "GenerarInforme.ps1 ha retornat codi $LASTEXITCODE" }
+            if ($LASTEXITCODE -ne 0) { throw "GenerarInforme.ps1 ha retornat codi $LASTEXITCODE (mira la finestra del generador)" }
+
+            Write-Host "   3/3 Movent el paquet a Processats..."
             Move-DriveFile $f.Id $DriveProcessatsId $DriveEntradaId
-            Write-Host ("[{0}] OK. Paquet mogut a Processats (Drive)." -f (Get-Date -Format 'HH:mm:ss')) -ForegroundColor Green
+            Write-Host ("[{0}] OK. Informe generat i paquet mogut a Processats." -f (Get-Date -Format 'HH:mm:ss')) -ForegroundColor Green
         } catch {
             Write-Host ("[{0}] ERROR amb {1}: {2}" -f (Get-Date -Format 'HH:mm:ss'), $f.Name, $_.Exception.Message) -ForegroundColor Red
             # El movem a Processats igualment perque no es reintenti en bucle.

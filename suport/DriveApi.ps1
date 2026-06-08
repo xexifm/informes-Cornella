@@ -119,14 +119,38 @@ function Get-DriveChildren($parentId, [string]$extension = $null) {
 
 # Descarrega el contingut (text) d'un fitxer pel seu id.
 function Get-DriveFileText($id) {
-    $uri = "https://www.googleapis.com/drive/v3/files/$id?alt=media"
-    $resp = Invoke-WebRequest -Uri $uri -Headers (_DriveAuthHeader) -UseBasicParsing
-    return [string]$resp.Content
+    $uri = "https://www.googleapis.com/drive/v3/files/$id?alt=media&supportsAllDrives=true"
+    try {
+        $resp = Invoke-WebRequest -Uri $uri -Headers (_DriveAuthHeader) -UseBasicParsing
+        return [string]$resp.Content
+    } catch {
+        throw "Baixant el paquet (id $id): $(Get-DriveHttpErrorBody $_)"
+    }
 }
 
 # Mou un fitxer d'una carpeta a una altra (canvia el pare).
 function Move-DriveFile($id, $newParentId, $oldParentId) {
-    $uri = "https://www.googleapis.com/drive/v3/files/$id?fields=id,parents&addParents=$newParentId"
+    $uri = "https://www.googleapis.com/drive/v3/files/$id`?fields=id,parents&supportsAllDrives=true&addParents=$newParentId"
     if ($oldParentId) { $uri += "&removeParents=$oldParentId" }
-    Invoke-RestMethod -Method Patch -Uri $uri -Headers (_DriveAuthHeader) | Out-Null
+    try {
+        Invoke-RestMethod -Method Patch -Uri $uri -Headers (_DriveAuthHeader) | Out-Null
+    } catch {
+        throw "Movent a Processats (id $id, addParents $newParentId): $(Get-DriveHttpErrorBody $_)"
+    }
+}
+
+# Extreu el cos de la resposta d'un error HTTP (Drive hi posa el motiu real,
+# p. ex. 'File not found' o 'insufficientPermissions'). Si no es pot, torna el
+# missatge generic.
+function Get-DriveHttpErrorBody($err) {
+    $msg = $err.Exception.Message
+    try {
+        $resp = $err.Exception.Response
+        if ($resp) {
+            $reader = New-Object System.IO.StreamReader($resp.GetResponseStream())
+            $body = $reader.ReadToEnd()
+            if ($body) { $msg = "$msg | $body" }
+        }
+    } catch { }
+    return $msg
 }
