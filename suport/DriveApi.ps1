@@ -87,18 +87,24 @@ function Save-DriveJson($name, $parentId, $jsonString) {
     if (-not $parentId) { throw "Falta l'ID de la carpeta de Drive (revisa config.ps1)." }
     $existing = Find-DriveFileId $name $parentId
     $headers = _DriveAuthHeader
+    # Enviem SEMPRE el cos com a bytes UTF-8 explicits. (PowerShell 5.1, amb un
+    # -Body de tipus string, l'envia com a ISO-8859-1 i corromp els accents:
+    # 'CORNELLÀ' sortia 'CORNELL?'.)
+    $utf8 = New-Object System.Text.UTF8Encoding($false)
     if ($existing) {
         # Actualitza el contingut (mèdia) del fitxer existent.
         $uri = "https://www.googleapis.com/upload/drive/v3/files/" + [uri]::EscapeDataString([string]$existing) + "?uploadType=media"
-        Invoke-RestMethod -Method Patch -Uri $uri -Headers $headers -ContentType 'application/json; charset=UTF-8' -Body $jsonString | Out-Null
+        $bodyBytes = $utf8.GetBytes($jsonString)
+        Invoke-RestMethod -Method Patch -Uri $uri -Headers $headers -ContentType 'application/json; charset=UTF-8' -Body $bodyBytes | Out-Null
         return $existing
     } else {
         # Crea un fitxer nou (multipart: metadades + contingut).
         $boundary = [guid]::NewGuid().ToString()
         $meta = @{ name = $name; parents = @($parentId) } | ConvertTo-Json -Compress
         $body = "--$boundary`r`nContent-Type: application/json; charset=UTF-8`r`n`r`n$meta`r`n--$boundary`r`nContent-Type: application/json; charset=UTF-8`r`n`r`n$jsonString`r`n--$boundary--"
+        $bodyBytes = $utf8.GetBytes($body)
         $uri = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id"
-        $r = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -ContentType "multipart/related; boundary=$boundary" -Body $body
+        $r = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -ContentType "multipart/related; boundary=$boundary" -Body $bodyBytes
         return $r.id
     }
 }
@@ -125,7 +131,12 @@ function Get-DriveFileText($id) {
     $uri = "https://www.googleapis.com/drive/v3/files/" + $encId + "?alt=media"
     try {
         $resp = Invoke-WebRequest -Uri $uri -Headers (_DriveAuthHeader) -UseBasicParsing
-        return [string]$resp.Content
+        # Descodifiquem SEMPRE com a UTF-8 a partir dels bytes crus. (PowerShell
+        # 5.1, si la resposta no porta charset, descodifica .Content com a
+        # ISO-8859-1 i corromp els accents: les claus amb ç/ò/·/... no casaven
+        # amb el cataleg i els items es perdien.)
+        $bytes = $resp.RawContentStream.ToArray()
+        return [System.Text.Encoding]::UTF8.GetString($bytes)
     } catch {
         throw "Baixant (URL: $uri): $(Get-DriveHttpErrorBody $_)"
     }

@@ -248,6 +248,95 @@
     return L.join("\n");
   }
 
+  // ------- Versió HTML del correu (per a EmailJS i la previsualització) --------
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  // **negreta** -> <b>, //cursiva// -> <i> (després d'escapar l'HTML).
+  function mdHtml(s) {
+    return esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\/\/(.+?)\/\//g, "<i>$1</i>");
+  }
+  function urlHtml(u, ml) {
+    var m = ml ? (' style="margin-left:' + ml + 'px"') : '';
+    return '<div' + m + '><a href="' + esc(u) + '">' + esc(u) + '</a></div>';
+  }
+
+  // Requeriments en HTML (mateixa estructura que buildRequirementsList, però amb
+  // format: seccions en negreta, SUBSECCIONS SUBRATLLADES, negreta/cursiva i
+  // enllaços, per assemblar-se a l'informe de Word).
+  function buildRequirementsHTML(selSections, values) {
+    var H = [];
+    var n = 0, lastSection = null;
+    selSections.forEach(function (sec) {
+      var idx = sec.Title.indexOf(" - ");
+      var secName = idx >= 0 ? sec.Title.substring(0, idx).trim() : sec.Title.trim();
+      var subT = idx >= 0 ? sec.Title.substring(idx + 3).trim() : null;
+      if (secName !== lastSection) {
+        H.push('<div style="font-weight:bold;margin-top:12px">' + esc(secName.toUpperCase()) + '</div>');
+        lastSection = secName;
+      }
+      if (subT) H.push('<div style="text-decoration:underline;margin-top:4px">' + esc(subT) + '</div>');
+
+      var pendingSub = null, pendingIntro = null;
+      sec.Items.forEach(function (el) {
+        if (el.Kind === "subsection") { pendingSub = el; pendingIntro = null; return; }
+        if (el.Kind === "intro") { pendingIntro = el; return; }
+        var itemLines = asArray(el.BodyLines).map(function (l) { return applyFields(l, values); });
+        var hasChildren = !!(el.Children && el.Children.length > 0);
+        if (!(el.Selected || hasChildren)) return;
+        if (pendingSub) { H.push('<div style="text-decoration:underline;margin-top:4px">' + esc(stripMarkers(pendingSub.Short)) + '</div>'); pendingSub = null; }
+        if (pendingIntro) {
+          asArray(pendingIntro.BodyLines).forEach(function (l) {
+            var s = splitTextAndUrls(applyFields(l, values));
+            if (s.text) H.push('<div>' + mdHtml(s.text) + '</div>');
+            s.urls.forEach(function (u) { H.push(urlHtml(u)); });
+          });
+          pendingIntro = null;
+        }
+        var itemWritten = false;
+        if (itemLines.length > 0) {
+          n++;
+          var p0 = splitTextAndUrls(itemLines[0]);
+          H.push('<div style="margin-top:6px">' + n + '. ' + mdHtml(p0.text) + '</div>');
+          p0.urls.forEach(function (u) { H.push(urlHtml(u, 18)); });
+          for (var i = 1; i < itemLines.length; i++) {
+            var s = splitTextAndUrls(itemLines[i]);
+            if (s.text) H.push('<div style="margin-left:18px">' + mdHtml(s.text) + '</div>');
+            s.urls.forEach(function (u) { H.push(urlHtml(u, 18)); });
+          }
+          itemWritten = true;
+        }
+        if (hasChildren) {
+          el.Children.forEach(function (ch) {
+            var cl = asArray(ch.BodyLines).map(function (l) { return applyFields(l, values); });
+            if (!cl.length) return;
+            if (!itemWritten) { n++; itemWritten = true; }
+            cl.forEach(function (cx) {
+              var s = splitTextAndUrls(cx);
+              if (s.text) H.push('<div style="margin-left:24px">- ' + mdHtml(s.text) + '</div>');
+              s.urls.forEach(function (u) { H.push(urlHtml(u, 24)); });
+            });
+          });
+        }
+      });
+    });
+    return H.join("\n");
+  }
+
+  function buildEmailHTML(selSections, values) {
+    var h = estat.header || {};
+    var H = [];
+    H.push('<div>ID GIA: ' + esc(h.ID_GIA || "") + '</div>');
+    H.push('<div>Adreça: ' + esc(h.ADRECA || "") + '</div>');
+    H.push('<div>Activitat: ' + esc(h.ACTIVITAT || "") + '</div>');
+    H.push('<div>Titular: ' + esc(h.TITULAR || "") + '</div>');
+    H.push('<div style="margin-top:10px">Aquestes són les deficiències que s\'han detectat a la visita de l\'activitat per part de l\'Ajuntament el dia ' + avuiDDMMYYYY() + ' i que s\'han d\'esmenar:</div>');
+    H.push(buildRequirementsHTML(selSections, values));
+    H.push('<hr style="margin-top:14px">');
+    H.push(AVIS_MULTI.map(function (a) { return '<div style="margin-bottom:8px;color:#444">' + esc(a) + '</div>'; }).join(""));
+    return '<div style="font-family:Calibri,Arial,sans-serif;font-size:14px;line-height:1.4">' + H.join("\n") + '</div>';
+  }
+
   // ------- Estat de l'aplicació ----------------------------------------------
 
   var manifest = null, conclusions = null, capcalera = null;
@@ -349,6 +438,8 @@
     $("tit-rao").textContent = act.TITULAR || "—";
     $("tit-mobil").textContent = act.MOBIL || "—";
     $("tit-email").textContent = act.EMAIL || "—";
+    estat.header.MOBIL = act.MOBIL || "";
+    estat.header.EMAIL = act.EMAIL || "";
     $("chk-titular").checked = false;
     $("det-capcalera").open = true;
   }
@@ -603,8 +694,13 @@
     return carregarCataleg().then(function (catalog) {
       recollirKeysDelDOM();
       var selSections = reconstructSelection(catalog, estat.keys);
-      $("prev-requeriments").value = buildEmailBody(selSections, estat.fieldValues);
-      if (!$("in-destinatari").value && window.CONFIG) $("in-destinatari").value = CONFIG.EMAIL_DESTINATARI || "";
+      estat.emailHTML = buildEmailHTML(selSections, estat.fieldValues);
+      estat.emailText = buildEmailBody(selSections, estat.fieldValues);
+      $("prev-requeriments").innerHTML = estat.emailHTML;
+      // Destinatari per defecte: l'e-mail del titular (Raó soc. E-mail), editable.
+      if (!$("in-destinatari").value) {
+        $("in-destinatari").value = estat.header.EMAIL || ((window.CONFIG && CONFIG.EMAIL_DESTINATARI) || "");
+      }
     });
   }
 
@@ -614,23 +710,23 @@
 
   function enviarEmail() {
     var dest = $("in-destinatari").value.trim();
-    var cos = $("prev-requeriments").value;
     var subj = assumpte();
     var msg = $("msg-email");
     if (!dest) { msg.innerHTML = '<span class="error">Indica un destinatari.</span>'; return; }
     if (window.Mail && Mail.configurat()) {
-      // Enviament automàtic (un sol clic, sense obrir cap app).
+      // Enviament automàtic (un sol clic): enviem la versió HTML amb format.
       msg.textContent = "Enviant…";
       $("btn-email").disabled = true;
-      Mail.enviar(dest, subj, cos).then(function () {
+      Mail.enviar(dest, subj, estat.emailHTML || "").then(function () {
         msg.innerHTML = "✅ Correu enviat a " + dest + ".";
       }).catch(function (e) {
         msg.innerHTML = '<span class="error">No s\'ha pogut enviar: ' + e.message + "</span>";
       }).then(function () { $("btn-email").disabled = false; });
     } else {
-      // Sense EmailJS configurat: obrim l'app de correu (comportament antic).
+      // Sense EmailJS: obrim l'app de correu amb la versió en text (mailto no
+      // admet HTML). Per tenir el format (subratllat/negreta) cal EmailJS.
       window.location.href = "mailto:" + encodeURIComponent(dest) +
-        "?subject=" + encodeURIComponent(subj) + "&body=" + encodeURIComponent(cos);
+        "?subject=" + encodeURIComponent(subj) + "&body=" + encodeURIComponent(estat.emailText || "");
     }
   }
 

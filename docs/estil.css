@@ -82,6 +82,14 @@ input:focus, select:focus, textarea:focus {
 }
 textarea { resize: vertical; }
 
+/* Previsualització del correu (HTML amb format) */
+.preview-box {
+  border: 1px solid var(--vora); border-radius: 8px; padding: 12px;
+  background: #fff; max-height: 50vh; overflow-y: auto;
+  font-size: 13px; line-height: 1.4; word-wrap: break-word;
+}
+.preview-box a { color: var(--brand); }
+
 .fila { display: flex; gap: 8px; align-items: stretch; }
 .fila input { flex: 1 1 auto; min-width: 0; }     /* el número sempre visible */
 .fila button { flex: 0 0 auto; width: auto; white-space: nowrap; }

@@ -136,7 +136,9 @@ app), s'usa **EmailJS** (gratuït per a poc volum):
 3. **Email Templates → Create Template** amb aquestes variables al cos:
    - Camp **To**: `{{to_email}}`
    - Camp **Subject**: `{{subject}}`
-   - Cos del missatge: `{{message}}`
+   - Cos del missatge: `{{{message}}}` ← **amb TRES claus** (el correu s'envia
+     en **HTML**, amb subseccions subratllades, negretes, etc.). Si poses només
+     `{{message}}` (dues claus), es veuran les etiquetes HTML com a text.
 4. A **Account → API Keys** copia la **Public Key**, i anota el **Service ID**
    i el **Template ID**.
 5. Omple'ls a **`docs/config.js`**:
