@@ -136,39 +136,116 @@
     return { fields: fields, order: order };
   }
 
-  // Text dels requeriments per al correu (numerats globalment, com el document).
-  function buildRequirementsText(selSections, values) {
+  // Treu els marcadors de negreta/cursiva (en text pla del correu no es poden
+  // representar, així que es mostren sense els símbols **...** i //...//).
+  function stripMarkers(t) {
+    if (!t) return "";
+    return String(t).replace(/\*\*(.+?)\*\*/g, "$1").replace(/\/\/(.+?)\/\//g, "$1");
+  }
+
+  // Llista de requeriments numerada, PORTADA FIDELMENT de _WriteCatalegBody del
+  // PC (mateixa numeració global, subseccions emeses només quan les segueix un
+  // ítem real, fills sagnats sense numerar, separació text/URL). Així el correu
+  // coincideix amb l'informe generat.
+  function buildRequirementsList(selSections, values) {
     var lines = [];
     var n = 0;
+    var lastSection = null;
     selSections.forEach(function (sec) {
-      lines.push("");
-      lines.push(sec.Title.toUpperCase());
-      sec.Items.forEach(function (it) {
-        if (it.Kind !== "item") {
-          if (it.Kind === "subsection") lines.push("— " + it.Short + " —");
-          return;
-        }
-        n++;
-        var parts = [];
-        var urls = [];
-        it.BodyLines.forEach(function (ln) {
-          var s = splitTextAndUrls(applyFields(ln, values));
-          if (s.text) parts.push(s.text);
-          urls = urls.concat(s.urls);
-        });
-        lines.push(n + ". " + parts.join(" "));
-        urls.forEach(function (u) { lines.push("   " + u); });
-        (it.Children || []).forEach(function (ch) {
-          var cp = [];
-          ch.BodyLines.forEach(function (ln) {
-            var s = splitTextAndUrls(applyFields(ln, values));
-            if (s.text) cp.push(s.text);
+      // Secció / subsecció derivada del títol amb " - " (com fa el PC).
+      var idx = sec.Title.indexOf(" - ");
+      var secName, subFromTitle = null;
+      if (idx >= 0) { secName = sec.Title.substring(0, idx).trim(); subFromTitle = sec.Title.substring(idx + 3).trim(); }
+      else secName = sec.Title.trim();
+      if (secName !== lastSection) {
+        lines.push("");
+        lines.push(secName.toUpperCase());
+        lastSection = secName;
+      }
+      if (subFromTitle) lines.push(subFromTitle);
+
+      var pendingSub = null, pendingIntro = null;
+      sec.Items.forEach(function (el) {
+        if (el.Kind === "subsection") { pendingSub = el; pendingIntro = null; return; }
+        if (el.Kind === "intro") { pendingIntro = el; return; }
+
+        var itemLines = asArray(el.BodyLines).map(function (l) { return applyFields(l, values); });
+        var hasChildren = !!(el.Children && el.Children.length > 0);
+        if (!(el.Selected || hasChildren)) return;   // res a emetre per a aquest ítem
+
+        // Subsecció/intro pendents: només quan ve un ítem real.
+        if (pendingSub) { lines.push("· " + stripMarkers(pendingSub.Short)); pendingSub = null; }
+        if (pendingIntro) {
+          asArray(pendingIntro.BodyLines).forEach(function (l) {
+            var s = splitTextAndUrls(applyFields(l, values));
+            if (s.text) lines.push(stripMarkers(s.text));
+            s.urls.forEach(function (u) { lines.push("   " + u); });
           });
-          if (cp.length) lines.push("   - " + cp.join(" "));
-        });
+          pendingIntro = null;
+        }
+
+        var itemWritten = false;
+        if (itemLines.length > 0) {
+          n++;
+          var p0 = splitTextAndUrls(itemLines[0]);
+          lines.push(n + ". " + stripMarkers(p0.text));
+          p0.urls.forEach(function (u) { lines.push("   " + u); });
+          for (var i = 1; i < itemLines.length; i++) {
+            var s = splitTextAndUrls(itemLines[i]);
+            if (s.text) lines.push("   " + stripMarkers(s.text));
+            s.urls.forEach(function (u) { lines.push("   " + u); });
+          }
+          itemWritten = true;
+        }
+        if (hasChildren) {
+          el.Children.forEach(function (ch) {
+            var childLines = asArray(ch.BodyLines).map(function (l) { return applyFields(l, values); });
+            if (!childLines.length) return;
+            if (!itemWritten) { n++; itemWritten = true; }
+            for (var j = 0; j < childLines.length; j++) {
+              var s = splitTextAndUrls(childLines[j]);
+              if (s.text) lines.push("   - " + stripMarkers(s.text));
+              s.urls.forEach(function (u) { lines.push("     " + u); });
+            }
+          });
+        }
       });
     });
     return lines.join("\n").trim();
+  }
+
+  function avuiDDMMYYYY() {
+    var d = new Date();
+    function p(x) { return (x < 10 ? "0" : "") + x; }
+    return p(d.getDate()) + "/" + p(d.getMonth() + 1) + "/" + d.getFullYear();
+  }
+
+  // Avís d'inici en 5 idiomes (CA, ES, EN, AR, ZH).
+  var AVIS_MULTI = [
+    "IMPORTANT: aquest és un correu automàtic i no s'admeten respostes. Per a qualsevol consulta podeu adreçar-vos al Departament d'Activitats de l'Ajuntament de Cornellà de Llobregat (Carrer de l'Energia, 97) o trucar al 93 377 02 12, extensió 1227.",
+    "IMPORTANTE: este es un correo automático y no se admiten respuestas. Para cualquier consulta pueden dirigirse al Departamento de Actividades del Ayuntamiento de Cornellà de Llobregat (Calle de l'Energia, 97) o llamar al 93 377 02 12, extensión 1227.",
+    "IMPORTANT: this is an automated email and replies are not accepted. For any enquiries, please contact the Activities Department of Cornellà de Llobregat Town Council (Carrer de l'Energia, 97) or call +34 93 377 02 12, extension 1227.",
+    "هام: هذه رسالة إلكترونية آلية ولا تُقبل الردود عليها. لأي استفسار، يُرجى التواصل مع قسم الأنشطة في بلدية كورنيا دي يوبريغات (Carrer de l'Energia, 97) أو الاتصال على الرقم 93 377 02 12 التحويلة 1227.",
+    "重要提示：本邮件为系统自动发送，恕不接受回复。如有任何疑问，请联系科尔内利亚-德略夫雷加特市政府活动部门（Carrer de l'Energia, 97），或拨打电话 93 377 02 12 转 1227。"
+  ];
+
+  // Cos complet del correu: avís multilingüe + capçalera + frase + requeriments.
+  function buildEmailBody(selSections, values) {
+    var h = estat.header || {};
+    var L = [];
+    L.push(AVIS_MULTI.join("\n\n"));
+    L.push("");
+    L.push("__________________________________________");
+    L.push("");
+    L.push("ID GIA: " + (h.ID_GIA || ""));
+    L.push("Adreça: " + (h.ADRECA || ""));
+    L.push("Activitat: " + (h.ACTIVITAT || ""));
+    L.push("Titular: " + (h.TITULAR || ""));
+    L.push("");
+    L.push("Aquestes són les deficiències que s'han detectat a la visita de l'activitat per part de l'Ajuntament el dia " + avuiDDMMYYYY() + " i que s'han d'esmenar:");
+    L.push("");
+    L.push(buildRequirementsList(selSections, values));
+    return L.join("\n");
   }
 
   // ------- Estat de l'aplicació ----------------------------------------------
@@ -355,30 +432,59 @@
   }
 
   function filaCheckbox(key, etiqueta, el, classe) {
-    var wrap = document.createElement("div");
+    // La fila SENCERA és un <label> amb l'<input> a dins: així tocar qualsevol
+    // punt de la fila marca/desmarca de manera fiable, sense dependre de cap
+    // id/for (les claus tenen espais i símbols que feien fallar l'associació).
+    var wrap = document.createElement("label");
     wrap.className = classe;
     wrap.dataset.text = (etiqueta || "").toLowerCase();
     var cb = document.createElement("input");
     cb.type = "checkbox";
-    cb.id = "cb-" + key;
+    cb.dataset.key = key;
     cb.checked = estat.keys.has(key);
     cb.addEventListener("change", function () {
       if (cb.checked) estat.keys.add(key); else estat.keys.delete(key);
     });
-    var lbl = document.createElement("label");
-    lbl.setAttribute("for", cb.id);
-    lbl.textContent = etiqueta;
-    // previsualització breu (primera línia de text, sense aplicar camps)
+    var txt = document.createElement("span");
+    txt.className = "etq";
+    txt.textContent = etiqueta;
     var prev = primeraLiniaText(el);
     if (prev) {
       var sp = document.createElement("span");
       sp.className = "preview";
       sp.textContent = prev;
-      lbl.appendChild(sp);
+      txt.appendChild(sp);
     }
     wrap.appendChild(cb);
-    wrap.appendChild(lbl);
+    wrap.appendChild(txt);
     return { wrap: wrap, cb: cb };
+  }
+
+  // Reconstrueix estat.keys a partir de les caselles realment marcades al DOM.
+  // És la font de veritat abans de generar camps, correu o paquet, de manera
+  // que SelectedKeys, el correu i l'informe sempre coincideixen.
+  function recollirKeysDelDOM() {
+    var cont = $("arbre-def");
+    if (!cont) return;
+    var boxes = cont.querySelectorAll("input[type=checkbox]");
+    if (!boxes.length) return; // l'arbre encara no s'ha construït: no toquem res
+    var s = new Set();
+    [].forEach.call(boxes, function (cb) {
+      if (cb.checked && cb.dataset.key) s.add(cb.dataset.key);
+    });
+    estat.keys = s;
+  }
+
+  function recollirConclTitlesDelDOM() {
+    var cont = $("llista-concl");
+    if (!cont) return;
+    var boxes = cont.querySelectorAll("input[type=checkbox]");
+    if (!boxes.length) return;
+    var s = new Set();
+    [].forEach.call(boxes, function (cb) {
+      if (cb.checked && cb.dataset.title) s.add(cb.dataset.title);
+    });
+    estat.conclTitles = s;
   }
 
   function primeraLiniaText(el) {
@@ -406,23 +512,23 @@
     var sel = asArray(conclusions.Selectable);
     if (!sel.length) { cont.innerHTML = '<p class="ajuda">No hi ha conclusions triables.</p>'; return; }
     sel.forEach(function (c) {
-      var wrap = document.createElement("div");
+      var wrap = document.createElement("label");   // fila sencera clicable
       wrap.className = "concl";
       var cb = document.createElement("input");
       cb.type = "checkbox";
-      cb.id = "cc-" + c.Title;
+      cb.dataset.title = c.Title;
       cb.checked = estat.conclTitles.has(c.Title);
       cb.addEventListener("change", function () {
         if (cb.checked) estat.conclTitles.add(c.Title); else estat.conclTitles.delete(c.Title);
       });
       var div = document.createElement("div");
-      var lbl = document.createElement("label");
-      lbl.setAttribute("for", cb.id);
-      lbl.textContent = c.Title;
+      var tit = document.createElement("div");
+      tit.className = "etq";
+      tit.textContent = c.Title;
       var cos = document.createElement("div");
       cos.className = "cos";
-      cos.textContent = c.Body;
-      div.appendChild(lbl);
+      cos.textContent = stripMarkers(c.Body);
+      div.appendChild(tit);
       div.appendChild(cos);
       wrap.appendChild(cb);
       wrap.appendChild(div);
@@ -433,6 +539,8 @@
   // ------- Pas 5: camps -------------------------------------------------------
   function muntarCamps() {
     return carregarCataleg().then(function (catalog) {
+      recollirKeysDelDOM();
+      recollirConclTitlesDelDOM();
       var selSections = reconstructSelection(catalog, estat.keys);
       var conclSel = asArray(conclusions.Selectable).filter(function (c) { return estat.conclTitles.has(c.Title); });
       var always = asArray(conclusions.Always);
@@ -487,9 +595,9 @@
   // ------- Pas 6: final -------------------------------------------------------
   function muntarFinal() {
     return carregarCataleg().then(function (catalog) {
+      recollirKeysDelDOM();
       var selSections = reconstructSelection(catalog, estat.keys);
-      var text = buildRequirementsText(selSections, estat.fieldValues);
-      $("prev-requeriments").value = text;
+      $("prev-requeriments").value = buildEmailBody(selSections, estat.fieldValues);
       if (!$("in-destinatari").value && window.CONFIG) $("in-destinatari").value = CONFIG.EMAIL_DESTINATARI || "";
     });
   }
@@ -521,6 +629,8 @@
   }
 
   function construirPaquet() {
+    recollirKeysDelDOM();
+    recollirConclTitlesDelDOM();
     var header = {};
     HEADER_KEYS.forEach(function (k) { header[k] = estat.header[k] || ""; });
     return {
@@ -609,9 +719,12 @@
       $("msg-cerca").innerHTML = '<span class="error">Cal un ID GIA.</span>';
       return false;
     }
-    if (p === "deficiencies" && estat.keys.size === 0) {
-      alert("Selecciona almenys una deficiència.");
-      return false;
+    if (p === "deficiencies") {
+      recollirKeysDelDOM();
+      if (estat.keys.size === 0) {
+        alert("Selecciona almenys una deficiència.");
+        return false;
+      }
     }
     return true;
   }

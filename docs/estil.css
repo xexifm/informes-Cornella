@@ -108,17 +108,18 @@ button:disabled { opacity: .5; cursor: default; }
 .arbre { max-height: 60vh; overflow-y: auto; }
 .seccio { font-weight: 700; color: var(--brand-dark); margin: 14px 0 4px; }
 .subseccio { font-weight: 600; text-decoration: underline; margin: 10px 0 2px; }
-.item, .fill { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; }
+.item, .fill { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; cursor: pointer; }
 .fill { margin-left: 26px; }
-.item label, .fill label { font-weight: 400; margin: 0; }
+.item .etq, .fill .etq { font-weight: 400; margin: 0; flex: 1; }
 .item input[type=checkbox], .fill input[type=checkbox] {
-  width: 22px; height: 22px; margin-top: 1px; flex: 0 0 auto; accent-color: var(--brand);
+  width: 24px; height: 24px; margin-top: 1px; flex: 0 0 auto; accent-color: var(--brand);
 }
 .preview { color: #667; font-size: 12px; display: block; }
 
 /* Conclusions i camps */
-.concl { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--gris); }
-.concl input[type=checkbox] { width: 22px; height: 22px; flex: 0 0 auto; accent-color: var(--brand); }
+.concl { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--gris); cursor: pointer; }
+.concl input[type=checkbox] { width: 24px; height: 24px; flex: 0 0 auto; accent-color: var(--brand); }
+.concl .etq { font-weight: 600; }
 .concl .cos { font-size: 13px; color: #667; }
 .camp { margin-bottom: 14px; }
 
