@@ -19,6 +19,13 @@
     powershell -ExecutionPolicy Bypass -File suport\Authorize-Drive.ps1
 #>
 
+param(
+    # Opcionals: si algun dia regeneres el client/secret, els pots passar aqui
+    # sense tocar el codi. Si no, s'usen els valors configurats a sota.
+    [string]$ClientId,
+    [string]$ClientSecret
+)
+
 $ErrorActionPreference = 'Stop'
 $ScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 . (Join-Path $ScriptRoot 'DriveApi.ps1')
@@ -26,16 +33,24 @@ $ScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 try { [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12 } catch { }
 
 Write-Host "=== Autoritzar el PC a Google Drive ===" -ForegroundColor Cyan
-Write-Host "Necessites un client OAuth de tipus 'Aplicacio d'escriptori' creat"
-Write-Host "a Google Cloud Console (mateix projecte que el del mobil)."
-Write-Host ""
 
-$clientId     = Read-Host "Enganxa el Client ID (acaba en .apps.googleusercontent.com)"
-$clientSecret = Read-Host "Enganxa el Client Secret"
+# El Client ID NO es secret: el deixem posat perque no l'hagis d'escriure.
+# El Secret (GOCSPX-...) SI que ho es, i GitHub no deixa pujar-lo al repo, aixi
+# que el demanem una sola vegada (un sol "enganxa"). Despres ja no cal mai mes.
+$DEF_CLIENT_ID = '464628466232-fs34gc9vkhrssjnd73t9rplb5bn8lib1.apps.googleusercontent.com'
+
+$clientId     = if ($ClientId) { $ClientId } else { $DEF_CLIENT_ID }
+$clientSecret = $ClientSecret
+if ([string]::IsNullOrWhiteSpace($clientSecret)) {
+    Write-Host "El Client ID ja esta posat. Nomes falta el Secret del client d'escriptori." -ForegroundColor Yellow
+    Write-Host "(El trobes a Cloud Console > Credencials > el teu client d'escriptori; comenca per GOCSPX-)"
+    $clientSecret = Read-Host "Enganxa el Client Secret i prem Enter"
+}
 if ([string]::IsNullOrWhiteSpace($clientId) -or [string]::IsNullOrWhiteSpace($clientSecret)) {
-    Write-Host "Falten dades. Avorto." -ForegroundColor Red
+    Write-Host "Falta el Secret. Avorto." -ForegroundColor Red
     exit 1
 }
+Write-Host ""
 
 # 1) Servidor local temporal (loopback) per rebre el codi. TcpListener a
 #    127.0.0.1 no necessita permisos d'administrador.
