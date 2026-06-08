@@ -49,16 +49,21 @@ Informes-Cornella/
 De cada carpeta, obre-la al navegador i copia l'**ID** de la URL
 (`.../folders/`**`AQUEST_TROS`**). Necessitaràs el d'**Entrada** i el de **Dades**.
 
-### B.2 Drive d'escriptori al PC
-Instal·la **Google Drive per a escriptori** al PC i inicia sessió, de manera
-que la carpeta `Informes-Cornella` aparegui com una carpeta local (p. ex.
-`G:\El meu Drive\Informes-Cornella` o `%USERPROFILE%\Google Drive\...`).
+### B.2 Com accedeix el PC a Drive — dues variants
 
-Si la ruta **no** és `%USERPROFILE%\Google Drive\Informes-Cornella`, posa la
-teva a `suport/config.ps1`:
+**Variant 1 — amb Google Drive d'escriptori** (la més senzilla):
+Instal·la **Google Drive per a escriptori** al PC i inicia sessió, de manera
+que la carpeta `Informes-Cornella` aparegui com una carpeta local. Si la ruta
+**no** és `%USERPROFILE%\Google Drive\Informes-Cornella`, posa la teva a
+`suport/config.ps1`:
 ```powershell
 $DriveBaseDir = 'G:\El meu Drive\Informes-Cornella'
 ```
+
+**Variant 2 — SENSE Drive d'escriptori (per API)**, si no el pots instal·lar:
+el PC parla amb Drive per HTTPS. Necessites també l'**ID de la carpeta
+Processats** (a més d'Entrada i Dades) i fer la configuració del **bloc G**.
+Comprova abans que la xarxa deixa sortir cap a Google amb el test del bloc G.
 
 ---
 
@@ -168,6 +173,40 @@ el pot obrir. Però:
 És a dir, el formulari és visible, però les dades i el teu PC queden protegits.
 Si vols, et puc afegir un **PIN senzill** d'entrada (dissuasiu, no una seguretat
 forta) o moure-ho a un allotjament amb contrasenya.
+
+## G · PC sense Google Drive d'escriptori (accés per API)
+
+Si no pots instal·lar Drive d'escriptori, el PC accedeix a Drive per API.
+
+**G.1 — Comprova que la xarxa deixa sortir cap a Google.** A PowerShell:
+```powershell
+$urls="https://www.googleapis.com/discovery/v1/apis","https://oauth2.googleapis.com/tokeninfo","https://www.googleapis.com/drive/v3/about"
+foreach($u in $urls){try{$r=Invoke-WebRequest $u -UseBasicParsing -TimeoutSec 15;"ACCESSIBLE $($r.StatusCode)  $u"}catch{$x=$_.Exception.Response;if($x){"ACCESSIBLE $([int]$x.StatusCode)  $u"}else{"BLOQUEJAT  $u"}}}
+```
+Si surten **ACCESSIBLE**, endavant. Si surt **BLOQUEJAT**, usa un PC amb Drive d'escriptori.
+
+**G.2 — Crea un segon client OAuth, de tipus *Aplicació d'escriptori*** (mateix
+projecte de Google Cloud que el del mòbil): **Credencials → Crea credencials →
+ID de client OAuth → Aplicació d'escriptori**. Apunta el **Client ID** i el
+**Client Secret**.
+
+**G.3 — Posa els IDs de les tres carpetes** a `suport/config.ps1`:
+```powershell
+$DriveEntradaId    = '<ID carpeta Entrada>'
+$DriveProcessatsId = '<ID carpeta Processats>'
+$DriveDadesId      = '<ID carpeta Dades>'
+```
+
+**G.4 — Autoritza el PC una sola vegada:**
+```
+powershell -ExecutionPolicy Bypass -File suport\Authorize-Drive.ps1
+```
+Enganxa el Client ID i el Secret, autoritza al navegador amb el teu compte i
+ja està. Les credencials queden a `%LOCALAPPDATA%\InformesCornella\` (mai al repo).
+
+A partir d'aquí, `ExportaDades.ps1` puja `activitats.json` a Drive per API i
+`Vigilant.bat` recull els paquets de Drive per API automàticament. No cal
+carpeta sincronitzada.
 
 ## Mode sense Drive (fallback)
 

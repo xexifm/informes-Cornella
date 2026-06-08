@@ -87,6 +87,11 @@ $RepoRoot        = Split-Path -Parent $ScriptRoot
 # provar des dels tests.
 . (Join-Path $ScriptRoot 'Seguiment.ps1')
 
+# Client de Google Drive per API (per al mode mobil SENSE Drive d'escriptori).
+# Nomes defineix funcions; no fa res en carregar-se. Les credencials viuen a
+# %LOCALAPPDATA% (fora del repo) i les posa Authorize-Drive.ps1.
+. (Join-Path $ScriptRoot 'DriveApi.ps1')
+
 # ESTRUCTURALS viu a l'arrel del clone (al costat dels .bat), no dins
 # de suport/, per facilitar que l'usuari edita les plantilles.
 $EstructuralsDir = Join-Path $RepoRoot 'ESTRUCTURALS'
@@ -118,6 +123,14 @@ $DriveBaseDir = if ($env:USERPROFILE) {
 } else {
     Join-Path $RepoRoot 'Drive-Local'
 }
+
+# Mode mobil SENSE Drive d'escriptori (accés a Drive per API). IDs de les
+# carpetes de Drive (es treuen de la URL de cada carpeta). Si estan buits i no
+# hi ha credencials (Authorize-Drive.ps1), s'usa el mode de carpeta local de
+# dalt. Es poden sobreescriure a config.ps1.
+$DriveEntradaId    = ''
+$DriveProcessatsId = ''
+$DriveDadesId      = ''
 
 # Mode "Informe de seguiment": frases que marquen l'inici del bloc de
 # conclusions a esborrar de l'informe anterior. La deteccio es insensible a
@@ -488,17 +501,31 @@ function Get-ActivitatFromCache($cache, $idGia) {
 function Export-ActivitatsToDrive($cache, $latest) {
     try {
         if ($null -eq $cache -or $null -eq $cache.ById) { return $false }
-        if (-not (Test-Path -LiteralPath $DriveDadesDir)) {
-            New-Item -ItemType Directory -Path $DriveDadesDir -Force | Out-Null
-        }
         $payload = [ordered]@{
             GeneratedAt = (Get-Date).ToString('o')
             Source      = if ($latest) { $latest.File.Name } else { '' }
             Count       = $cache.ById.Count
             ById        = $cache.ById
         }
+        $json = ($payload | ConvertTo-Json -Depth 6)
+
+        # Mode API (sense Drive d'escriptori): pugem activitats.json directament
+        # a la carpeta Dades de Drive. Si no hi ha credencials, caiem al mode de
+        # carpeta local sincronitzada.
+        if (Test-DriveApiConfigured) {
+            if (-not $DriveDadesId) {
+                Write-Host "Avis: hi ha credencials de Drive pero falta \$DriveDadesId a config.ps1. No s'exporten activitats."
+                return $false
+            }
+            Save-DriveJson 'activitats.json' $DriveDadesId $json | Out-Null
+            return $true
+        }
+
+        if (-not (Test-Path -LiteralPath $DriveDadesDir)) {
+            New-Item -ItemType Directory -Path $DriveDadesDir -Force | Out-Null
+        }
         $outFile = Join-Path $DriveDadesDir 'activitats.json'
-        ($payload | ConvertTo-Json -Depth 6) | Set-Content -LiteralPath $outFile -Encoding UTF8
+        $json | Set-Content -LiteralPath $outFile -Encoding UTF8
         return $true
     } catch {
         Write-Host "Avis: no s'ha pogut exportar les activitats a Drive ($($_.Exception.Message))."

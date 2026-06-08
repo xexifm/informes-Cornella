@@ -74,16 +74,58 @@ function Process-Pending {
     }
 }
 
+# Mode API (mobil SENSE Drive d'escriptori): recull els paquets directament de
+# la carpeta Entrada de Drive, els genera i els mou a Processats.
+function Process-PendingApi {
+    if (-not $DriveEntradaId -or -not $DriveProcessatsId) {
+        Write-Host "Falten \$DriveEntradaId/\$DriveProcessatsId a config.ps1." -ForegroundColor Red
+        return
+    }
+    $pending = Get-DriveChildren $DriveEntradaId '.json'
+    foreach ($f in $pending) {
+        Write-Host ("[{0}] Paquet detectat (Drive): {1}" -f (Get-Date -Format 'HH:mm:ss'), $f.Name)
+        $tmp = Join-Path $env:TEMP ("paquet_" + [guid]::NewGuid().ToString() + ".json")
+        try {
+            $content = Get-DriveFileText $f.Id
+            Set-Content -LiteralPath $tmp -Value $content -Encoding UTF8
+            & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $GenerarPs1 -DesDePaquet $tmp
+            if ($LASTEXITCODE -ne 0) { throw "GenerarInforme.ps1 ha retornat codi $LASTEXITCODE" }
+            Move-DriveFile $f.Id $DriveProcessatsId $DriveEntradaId
+            Write-Host ("[{0}] OK. Paquet mogut a Processats (Drive)." -f (Get-Date -Format 'HH:mm:ss')) -ForegroundColor Green
+        } catch {
+            Write-Host ("[{0}] ERROR amb {1}: {2}" -f (Get-Date -Format 'HH:mm:ss'), $f.Name, $_.Exception.Message) -ForegroundColor Red
+            # El movem a Processats igualment perque no es reintenti en bucle.
+            try { Move-DriveFile $f.Id $DriveProcessatsId $DriveEntradaId } catch { }
+        } finally {
+            if (Test-Path -LiteralPath $tmp) { Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue }
+        }
+    }
+}
+
+$UsaApi = Test-DriveApiConfigured
+
 Write-Host "Vigilant d'informes Cornella"
-Write-Host "  Entrada:    $DriveEntradaDir"
-Write-Host "  Processats: $DriveProcessatsDir"
+if ($UsaApi) {
+    Write-Host "  Mode:       Google Drive per API (sense Drive d'escriptori)"
+    Write-Host "  Entrada:    carpeta Drive $DriveEntradaId"
+    Write-Host "  Processats: carpeta Drive $DriveProcessatsId"
+} else {
+    Write-Host "  Mode:       carpeta local de Drive d'escriptori"
+    Write-Host "  Entrada:    $DriveEntradaDir"
+    Write-Host "  Processats: $DriveProcessatsDir"
+}
+
+function Process-All {
+    if ($UsaApi) { Process-PendingApi } else { Process-Pending }
+}
+
 if ($Once) {
-    Process-Pending
+    Process-All
     Write-Host "Fet (mode -Once)."
     return
 }
 Write-Host ("Vigilant cada {0}s. Tanca la finestra per aturar." -f $IntervalSec)
 while ($true) {
-    try { Process-Pending } catch { Write-Host "Error al cicle: $($_.Exception.Message)" -ForegroundColor Red }
+    try { Process-All } catch { Write-Host "Error al cicle: $($_.Exception.Message)" -ForegroundColor Red }
     Start-Sleep -Seconds $IntervalSec
 }
