@@ -18,9 +18,9 @@ window.CONFIG = {
   // la qual s'envia-, crea una plantilla amb les variables {{to_email}},
   // {{subject}} i {{message}}, i posa aqui les tres claus. Si les deixes buides,
   // el boto fa el comportament antic (obre l'app de correu).
-  EMAILJS_PUBLIC_KEY: "",
+  EMAILJS_PUBLIC_KEY: "ySQ5MNJ4QdJNBIpoG",
   EMAILJS_SERVICE_ID: "",
-  EMAILJS_TEMPLATE_ID: "",
+  EMAILJS_TEMPLATE_ID: "template_yxi61y7",
 
   // Destinatari per defecte del correu (es pot canviar al formulari).
   EMAIL_DESTINATARI: ""
