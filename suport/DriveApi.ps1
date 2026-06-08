@@ -89,7 +89,7 @@ function Save-DriveJson($name, $parentId, $jsonString) {
     $headers = _DriveAuthHeader
     if ($existing) {
         # Actualitza el contingut (mèdia) del fitxer existent.
-        $uri = "https://www.googleapis.com/upload/drive/v3/files/$existing?uploadType=media"
+        $uri = "https://www.googleapis.com/upload/drive/v3/files/" + [uri]::EscapeDataString([string]$existing) + "?uploadType=media"
         Invoke-RestMethod -Method Patch -Uri $uri -Headers $headers -ContentType 'application/json; charset=UTF-8' -Body $jsonString | Out-Null
         return $existing
     } else {
@@ -117,25 +117,29 @@ function Get-DriveChildren($parentId, [string]$extension = $null) {
     return $out
 }
 
-# Descarrega el contingut (text) d'un fitxer pel seu id.
+# Descarrega el contingut (text) d'un fitxer pel seu id. Construim la URL per
+# concatenacio (no per interpolacio) perque el separador '?' no s'enganxi mai a
+# l'id.
 function Get-DriveFileText($id) {
-    $uri = "https://www.googleapis.com/drive/v3/files/$id?alt=media&supportsAllDrives=true"
+    $encId = [uri]::EscapeDataString([string]$id)
+    $uri = "https://www.googleapis.com/drive/v3/files/" + $encId + "?alt=media"
     try {
         $resp = Invoke-WebRequest -Uri $uri -Headers (_DriveAuthHeader) -UseBasicParsing
         return [string]$resp.Content
     } catch {
-        throw "Baixant el paquet (id $id): $(Get-DriveHttpErrorBody $_)"
+        throw "Baixant (URL: $uri): $(Get-DriveHttpErrorBody $_)"
     }
 }
 
 # Mou un fitxer d'una carpeta a una altra (canvia el pare).
 function Move-DriveFile($id, $newParentId, $oldParentId) {
-    $uri = "https://www.googleapis.com/drive/v3/files/$id`?fields=id,parents&supportsAllDrives=true&addParents=$newParentId"
-    if ($oldParentId) { $uri += "&removeParents=$oldParentId" }
+    $encId = [uri]::EscapeDataString([string]$id)
+    $uri = "https://www.googleapis.com/drive/v3/files/" + $encId + "?fields=id,parents&addParents=" + $newParentId
+    if ($oldParentId) { $uri += "&removeParents=" + $oldParentId }
     try {
         Invoke-RestMethod -Method Patch -Uri $uri -Headers (_DriveAuthHeader) | Out-Null
     } catch {
-        throw "Movent a Processats (id $id, addParents $newParentId): $(Get-DriveHttpErrorBody $_)"
+        throw "Movent (URL: $uri): $(Get-DriveHttpErrorBody $_)"
     }
 }
 
