@@ -33,7 +33,8 @@
       return emailjs.send(CONFIG.EMAILJS_SERVICE_ID, CONFIG.EMAILJS_TEMPLATE_ID, {
         to_email: dest,
         subject: assumpte,
-        message: missatge
+        message: missatge,
+        name: (CONFIG.EMAIL_FROM_NAME || "Ajuntament de Cornellà de Llobregat")
       });
     });
   }

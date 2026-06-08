@@ -19,9 +19,13 @@ window.CONFIG = {
   // {{subject}} i {{message}}, i posa aqui les tres claus. Si les deixes buides,
   // el boto fa el comportament antic (obre l'app de correu).
   EMAILJS_PUBLIC_KEY: "ySQ5MNJ4QdJNBIpoG",
-  EMAILJS_SERVICE_ID: "",
+  EMAILJS_SERVICE_ID: "service_xzjkbnq",
   EMAILJS_TEMPLATE_ID: "template_yxi61y7",
 
-  // Destinatari per defecte del correu (es pot canviar al formulari).
+  // Nom del remitent (camp {{name}} de la plantilla d'EmailJS).
+  EMAIL_FROM_NAME: "Ajuntament de Cornellà de Llobregat - Activitats",
+
+  // Destinatari per defecte del correu (es pot canviar al formulari). Per
+  // defecte ja s'agafa l'e-mail del titular; això és només un fallback.
   EMAIL_DESTINATARI: ""
 };
