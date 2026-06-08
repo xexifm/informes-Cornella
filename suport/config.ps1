@@ -28,13 +28,11 @@ $ActivitatsDir = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\2_Contro
 # $DriveBaseDir = 'G:\El meu Drive\Informes-Cornella'
 
 # Mode mobil SENSE Google Drive d'escriptori (accés a Drive per API).
-# Si fas servir aquesta variant, posa aquí els IDs de les carpetes de Drive
-# (es treuen de la URL de cada carpeta: .../folders/<AIXÒ>). Les credencials
-# (secretes) NO van aquí: les desa Authorize-Drive.ps1 a %LOCALAPPDATA%.
-#
-# $DriveEntradaId    = ''   # carpeta on arriben els paquets del mòbil
-# $DriveProcessatsId = ''   # carpeta on es mouen un cop generats
-# $DriveDadesId      = ''   # carpeta on es puja activitats.json
+# IDs de les carpetes de Drive (es treuen de la URL: .../folders/<AIXÒ>). Les
+# credencials (secretes) NO van aquí: les desa Authorize-Drive.ps1 a %LOCALAPPDATA%.
+$DriveEntradaId    = '1EZteYidosVE8iJeli4tNdRg6WxzOk5fn'   # carpeta on arriben els paquets del mòbil
+$DriveProcessatsId = '131iyeU0B9eWgDA8E6ncxixNFwx5Yz68X'   # carpeta on es mouen un cop generats
+$DriveDadesId      = '1bRof2NwgLYKpzvUD0aGximQzZQkv73od'   # carpeta on es puja activitats.json
 
 # (Obsolet pero conservat per compatibilitat amb el codi vell.) Quantes
 # conclusions del final del fitxer 0 CONCLUSIONS.docx s'inclouen sempre
