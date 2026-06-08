@@ -8,9 +8,9 @@ window.CONFIG = {
   // ----- Google Drive (auto-emplenar capçalera + enviar el paquet al PC) -----
   // ID de client OAuth de Google (tipus "Aplicacio web"). Buit = Drive
   // desactivat (capçalera a mà i botó "Baixar paquet").
-  GOOGLE_CLIENT_ID: "",
-  DRIVE_ENTRADA_FOLDER_ID: "",   // carpeta on el mobil deixa els paquets
-  DRIVE_DADES_FOLDER_ID: "",     // carpeta on el PC deixa activitats.json
+  GOOGLE_CLIENT_ID: "464628466232-k2l3frmi7r5aav82psjrlfltv68bqvmt.apps.googleusercontent.com",
+  DRIVE_ENTRADA_FOLDER_ID: "1EZteYidosVE8iJeli4tNdRg6WxzOk5fn",   // carpeta on el mobil deixa els paquets
+  DRIVE_DADES_FOLDER_ID: "1bRof2NwgLYKpzvUD0aGximQzZQkv73od",     // carpeta on el PC deixa activitats.json
 
   // ----- Correu (enviar els requeriments amb un sol clic, sense obrir res) ----
   // S'usa EmailJS (https://www.emailjs.com), gratuit per a poc volum. Crea un
