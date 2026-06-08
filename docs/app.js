@@ -220,23 +220,19 @@
     return p(d.getDate()) + "/" + p(d.getMonth() + 1) + "/" + d.getFullYear();
   }
 
-  // Avís d'inici en 5 idiomes (CA, ES, EN, AR, ZH).
+  // Avís FINAL en 5 idiomes (CA, ES, EN, AR, ZH): automàtic + no definitiu/oficial.
   var AVIS_MULTI = [
-    "IMPORTANT: aquest és un correu automàtic i no s'admeten respostes. Per a qualsevol consulta podeu adreçar-vos al Departament d'Activitats de l'Ajuntament de Cornellà de Llobregat (Carrer de l'Energia, 97) o trucar al 93 377 02 12, extensió 1227.",
-    "IMPORTANTE: este es un correo automático y no se admiten respuestas. Para cualquier consulta pueden dirigirse al Departamento de Actividades del Ayuntamiento de Cornellà de Llobregat (Calle de l'Energia, 97) o llamar al 93 377 02 12, extensión 1227.",
-    "IMPORTANT: this is an automated email and replies are not accepted. For any enquiries, please contact the Activities Department of Cornellà de Llobregat Town Council (Carrer de l'Energia, 97) or call +34 93 377 02 12, extension 1227.",
-    "هام: هذه رسالة إلكترونية آلية ولا تُقبل الردود عليها. لأي استفسار، يُرجى التواصل مع قسم الأنشطة في بلدية كورنيا دي يوبريغات (Carrer de l'Energia, 97) أو الاتصال على الرقم 93 377 02 12 التحويلة 1227.",
-    "重要提示：本邮件为系统自动发送，恕不接受回复。如有任何疑问，请联系科尔内利亚-德略夫雷加特市政府活动部门（Carrer de l'Energia, 97），或拨打电话 93 377 02 12 转 1227。"
+    "IMPORTANT: aquest és un correu automàtic i no s'admeten respostes. Aquest llistat NO és definitiu ni oficial i pot variar respecte del requeriment oficial que rebreu properament. Per a qualsevol consulta podeu adreçar-vos al Departament d'Activitats de l'Ajuntament de Cornellà de Llobregat (Carrer de l'Energia, 97) o trucar al 93 377 02 12, extensió 1227.",
+    "IMPORTANTE: este es un correo automático y no se admiten respuestas. Este listado NO es definitivo ni oficial y puede variar respecto del requerimiento oficial que recibirá próximamente. Para cualquier consulta puede dirigirse al Departamento de Actividades del Ayuntamiento de Cornellà de Llobregat (Calle de l'Energia, 97) o llamar al 93 377 02 12, extensión 1227.",
+    "IMPORTANT: this is an automated email and replies are not accepted. This list is NOT final or official and may change with respect to the official requirement you will receive shortly. For any enquiries, please contact the Activities Department of Cornellà de Llobregat Town Council (Carrer de l'Energia, 97) or call +34 93 377 02 12, extension 1227.",
+    "هام: هذه رسالة إلكترونية آلية ولا تُقبل الردود عليها. هذه القائمة ليست نهائية ولا رسمية وقد تتغيّر مقارنةً بالطلب الرسمي الذي ستتلقونه قريباً. لأي استفسار، يُرجى التواصل مع قسم الأنشطة في بلدية كورنيا دي يوبريغات (Carrer de l'Energia, 97) أو الاتصال على الرقم 93 377 02 12 التحويلة 1227.",
+    "重要提示：本邮件为系统自动发送，恕不接受回复。此清单并非最终版本，也不具官方效力，可能与您即将收到的正式要求有所不同。如有任何疑问，请联系科尔内利亚-德略夫雷加特市政府活动部门（Carrer de l'Energia, 97），或拨打电话 93 377 02 12 转 1227。"
   ];
 
-  // Cos complet del correu: avís multilingüe + capçalera + frase + requeriments.
+  // Cos complet del correu: capçalera + frase + requeriments + avís final.
   function buildEmailBody(selSections, values) {
     var h = estat.header || {};
     var L = [];
-    L.push(AVIS_MULTI.join("\n\n"));
-    L.push("");
-    L.push("__________________________________________");
-    L.push("");
     L.push("ID GIA: " + (h.ID_GIA || ""));
     L.push("Adreça: " + (h.ADRECA || ""));
     L.push("Activitat: " + (h.ACTIVITAT || ""));
@@ -245,6 +241,10 @@
     L.push("Aquestes són les deficiències que s'han detectat a la visita de l'activitat per part de l'Ajuntament el dia " + avuiDDMMYYYY() + " i que s'han d'esmenar:");
     L.push("");
     L.push(buildRequirementsList(selSections, values));
+    L.push("");
+    L.push("__________________________________________");
+    L.push("");
+    L.push(AVIS_MULTI.join("\n\n"));
     return L.join("\n");
   }
 
@@ -344,6 +344,12 @@
         if (inp) inp.value = act[k];
       }
     });
+    // Dades del titular (només a l'app, per confirmar-les). Es desmarca la
+    // casella perquè s'hagin de tornar a confirmar amb cada cerca nova.
+    $("tit-rao").textContent = act.TITULAR || "—";
+    $("tit-mobil").textContent = act.MOBIL || "—";
+    $("tit-email").textContent = act.EMAIL || "—";
+    $("chk-titular").checked = false;
     $("det-capcalera").open = true;
   }
 
@@ -694,7 +700,30 @@
     }
     $("btn-email").addEventListener("click", enviarEmail);
     $("btn-enviar-pc").addEventListener("click", enviarAlPc);
-    $("btn-baixar").addEventListener("click", function () { baixarPaquet(); });
+  }
+
+  // Reinicia el formulari per fer un informe nou i torna a l'inici.
+  function reinici() {
+    estat.keys = new Set();
+    estat.conclTitles = new Set();
+    estat.fieldValues = {};
+    estat.fieldOrder = [];
+    estat.fieldDefs = {};
+    estat.header = {};
+    $("in-gia").value = "";
+    $("msg-cerca").textContent = "";
+    $("msg-final").textContent = "";
+    $("msg-email").textContent = "";
+    $("prev-requeriments").value = "";
+    $("chk-titular").checked = false;
+    $("tit-rao").textContent = "—";
+    $("tit-mobil").textContent = "—";
+    $("tit-email").textContent = "—";
+    [].forEach.call($("camps-capcalera").querySelectorAll("input"), function (i) { i.value = ""; });
+    $("arbre-def").innerHTML = "";
+    $("llista-concl").innerHTML = "";
+    anarA(0);
+    window.scrollTo(0, 0);
   }
 
   // ------- Navegació ----------------------------------------------------------
@@ -715,9 +744,15 @@
 
   function validarPas() {
     var p = PASSOS[passActual];
-    if (p === "capcalera" && !$("in-gia").value.trim()) {
-      $("msg-cerca").innerHTML = '<span class="error">Cal un ID GIA.</span>';
-      return false;
+    if (p === "capcalera") {
+      if (!$("in-gia").value.trim()) {
+        $("msg-cerca").innerHTML = '<span class="error">Cal un ID GIA.</span>';
+        return false;
+      }
+      if (!$("chk-titular").checked) {
+        $("msg-cerca").innerHTML = '<span class="error">Has de confirmar les dades del titular.</span>';
+        return false;
+      }
     }
     if (p === "deficiencies") {
       recollirKeysDelDOM();
@@ -732,7 +767,7 @@
   function seguent() {
     if (!validarPas()) return;
     var seg = passActual + 1;
-    if (seg >= PASSOS.length) { return; } // ja al final
+    if (seg >= PASSOS.length) { reinici(); return; } // "Fet": torna a l'inici
     // accions de preparació en entrar a certs passos
     var entrar = PASSOS[seg];
     var prep = Promise.resolve();

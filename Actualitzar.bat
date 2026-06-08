@@ -111,6 +111,17 @@ if "%PLANTILLES_CANVIADES%"=="1" (
     )
 )
 
+REM --- 6. Refrescar la base de dades d'activitats al Drive (per al mobil) ---
+REM    Agafa l'Excel mes recent (xarxa I: si hi ets, o la carpeta local
+REM    BASE DE DADES ACTIVITATS) i el puja a Drive. Necessita haver autoritzat
+REM    el PC (Authorize-Drive.bat) i tenir Excel. Es fail-safe: si no pot, avisa.
+echo.
+echo Refrescant la base de dades d'activitats al Drive (per al mobil)...
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0suport\ExportaDades.ps1" -Activitats
+if errorlevel 1 (
+    echo  Avis: no s'han pogut refrescar les activitats al Drive. Continuo.
+)
+
 echo.
 echo === Estat DESPRES ===
 git branch --show-current

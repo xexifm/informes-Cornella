@@ -452,6 +452,8 @@ function Initialize-ActivitatsCache($excelFile) {
                 $pis      = & $get $r 55
                 $porta    = & $get $r 56
                 $rao      = & $get $r 10
+                $raoMobil = & $get $r 23
+                $raoEmail = & $get $r 25
                 $actPrin  = & $get $r 94
                 $parts = @($tipusVia, $carrer, $numero, $lletra, $pis, $porta) |
                     Where-Object { $_ -and $_.Trim() -ne '' }
@@ -468,6 +470,8 @@ function Initialize-ActivitatsCache($excelFile) {
 
                 $byId[$id] = @{
                     TITULAR       = $rao
+                    MOBIL         = $raoMobil
+                    EMAIL         = $raoEmail
                     ADRECA        = $adreca
                     ACTIVITAT     = $actPrin
                     EXP_NUM       = $expNum
