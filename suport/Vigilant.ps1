@@ -107,6 +107,24 @@ function Process-PendingApi {
     }
 }
 
+# Comprovacio inicial: si hi ha carpetes de Drive configurades (mode API) pero
+# aquest PC encara NO esta autoritzat, llancem l'autorització abans de comencar.
+# Aixi, en un PC nou, el Vigilant et demana el Secret un sol cop i continua.
+if ($DriveEntradaId -and -not (Test-DriveApiConfigured)) {
+    Write-Host ""
+    Write-Host "Aquest PC encara NO esta autoritzat a Google Drive." -ForegroundColor Yellow
+    Write-Host "Iniciem l'autoritzacio (et demanara el Secret un sol cop i s'obrira el navegador)..." -ForegroundColor Yellow
+    Write-Host ""
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $ScriptRoot 'Authorize-Drive.ps1')
+    Write-Host ""
+    if (Test-DriveApiConfigured) {
+        Write-Host "Autoritzacio correcta. Continuem amb el vigilant." -ForegroundColor Green
+    } else {
+        Write-Host "No s'ha completat l'autoritzacio. El vigilant treballara en mode carpeta local." -ForegroundColor Yellow
+    }
+    Write-Host ""
+}
+
 $UsaApi = Test-DriveApiConfigured
 
 Write-Host "Vigilant d'informes Cornella"
