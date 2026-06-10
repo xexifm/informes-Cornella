@@ -463,7 +463,8 @@ $recs = @(
     [pscustomobject]@{ Index=3; Text='01/06/2026: No s entrega.';        ListString=''; Bold=-1 }
     [pscustomobject]@{ Index=4; Text='03/06/2026: Falten dades.';        ListString=''; Bold=-1 }
     [pscustomobject]@{ Index=5; Text='2. Alta tensio. Cal projecte.';    ListString=''; Bold=0 }
-    [pscustomobject]@{ Index=6; Text="Vist l'anterior, cal requerir.";   ListString=''; Bold=0 }
+    [pscustomobject]@{ Index=6; Text='05/06/2026: S aporta.';            ListString=''; Bold=0 }
+    [pscustomobject]@{ Index=7; Text="Vist l'anterior, cal requerir.";   ListString=''; Bold=0 }
 )
 $model = _BuildSeguimentModel $recs
 AssertEq $model.Requirements.Count 2          '_BuildSeguimentModel detecta 2 requeriments'
@@ -471,19 +472,26 @@ AssertEq $model.LastReqParaIndex 5            '_BuildSeguimentModel ultim requer
 AssertEq $model.Requirements[0].ParaIndex 2   '_BuildSeguimentModel req1 a l index 2'
 AssertEq $model.Requirements[0].Annotations.Count 2 '_BuildSeguimentModel req1 amb 2 anotacions'
 AssertEq $model.Requirements[0].Annotations[1].ParaIndex 4 '_BuildSeguimentModel anotacio 2 del req1 a l index 4'
-Assert (-not $model.Requirements[0].WasResolved) '_BuildSeguimentModel req1 (bold mixt) -> pendent'
-Assert ($model.Requirements[1].WasResolved)      '_BuildSeguimentModel req2 (bold 0) -> resolt'
+Assert (-not $model.Requirements[0].WasResolved) '_BuildSeguimentModel req1 (bold mixt, amb anotacions) -> pendent'
+Assert ($model.Requirements[1].WasResolved)      '_BuildSeguimentModel req2 (bold 0, amb anotacio) -> resolt'
 $startC = _FindConclusionStartIndex (@($recs | ForEach-Object { $_.Text })) $model.LastReqParaIndex $SeguimentConclusionPhrases
-AssertEq $startC 6                            '_BuildSeguimentModel + deteccio: conclusions a l index 6'
+AssertEq $startC 7                            '_BuildSeguimentModel + deteccio: conclusions a l index 7'
+
+# Requeriment FRESC (sense anotacions) -> pendent encara que bold=0
+$recsFresh = @(
+    [pscustomobject]@{ Index=1; Text='1. Cal aportar X.'; ListString=''; Bold=0 }
+)
+$mFresh = _BuildSeguimentModel $recsFresh
+Assert (-not $mFresh.Requirements[0].WasResolved) '_BuildSeguimentModel requeriment fresc (sense anotacions) -> pendent'
 
 Write-Host "`n--- Seguiment XML: helpers de lectura (text, negreta, body) ---"
 $W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
-function New-XmlInfoFromString($xmlText) {
+function New-XmlInfoFromString($xmlText, $numFmt=@{}, $styleNum=@{}) {
     $xml = New-Object System.Xml.XmlDocument
     $xml.PreserveWhitespace = $true
     $xml.LoadXml($xmlText)
     $ns = _NewWordNsMgr $xml
-    return [pscustomobject]@{ Path=''; Xml=$xml; Ns=$ns; Body=$xml.SelectSingleNode('//w:body',$ns) }
+    return [pscustomobject]@{ Path=''; Xml=$xml; Ns=$ns; Body=$xml.SelectSingleNode('//w:body',$ns); NumFmt=$numFmt; StyleNum=$styleNum }
 }
 # Validacio ESTRICTA (com fa el Word, no com el XmlDocument tolerant): parseig
 # complet amb XmlReader + cap prefix il-legal per al namespace XML reservat.
@@ -515,7 +523,7 @@ AssertEq (_ParagraphBoldStateXml $bp[0] $xi.Ns) 0      'Seguiment XML: paragraf 
 AssertEq (_ParagraphBoldStateXml $bp[1] $xi.Ns) 9999999 'Seguiment XML: numero negreta + text no -> mixt (9999999)'
 
 Write-Host "`n--- Seguiment XML: model + deteccio de conclusions ---"
-$records = _CollectParaRecordsXml $bp $xi.Ns
+$records = _CollectParaRecordsXml $xi $bp
 $model   = _BuildSeguimentModel $records
 AssertEq $model.Requirements.Count 2     'Seguiment XML: 2 requeriments detectats (amb tab i amb espai)'
 AssertEq $model.LastReqParaIndex 3       'Seguiment XML: ultim requeriment a l index 3'
@@ -554,7 +562,7 @@ $docStr2 = @"
 "@
 $xi2 = New-XmlInfoFromString $docStr2
 $bp2 = @(_BodyParagraphsXml $xi2)
-$model2 = _BuildSeguimentModel (_CollectParaRecordsXml $bp2 $xi2.Ns)
+$model2 = _BuildSeguimentModel (_CollectParaRecordsXml $xi2 $bp2)
 AssertEq $model2.Requirements.Count 2 'Transform: 2 requeriments detectats'
 Assert (_IsUrlParagraphXml $bp2[3] $xi2.Ns)        '_IsUrlParagraphXml: el paragraf de l enllac -> true'
 Assert (-not (_IsUrlParagraphXml $bp2[1] $xi2.Ns)) '_IsUrlParagraphXml: el requeriment -> false'
@@ -630,6 +638,34 @@ Assert ($null -ne $concJc -and $concJc.GetAttribute('val',$W) -eq 'both') 'Trans
 Assert ($null -ne $xi2.Body.SelectSingleNode('w:sectPr', $xi2.Ns)) 'Transform: <w:sectPr> preservat'
 $swT = New-Object System.IO.StringWriter; $xi2.Xml.Save($swT)
 Assert (Test-StrictXml $swT.ToString()) 'Transform: el document.xml resultant es estrictament valid (Word)'
+
+Write-Host "`n--- Seguiment XML: numeracio AUTOMATICA del Word (numId via estil) ---"
+# Requeriments sense numero al text: la numeracio ve de l'estil (numId=5 decimal),
+# com als informes fets amb numeracio automatica del Word.
+$numFmt   = @{ '5' = 'decimal'; '3' = 'bullet' }
+$styleNum = @{ 'Prrafodelista' = @{ NumId='5'; Ilvl=0 } }
+$docAuto = @"
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="$W"><w:body>
+<w:p><w:pPr><w:pStyle w:val="Prrafodelista"/></w:pPr><w:r><w:t>Vector Aigua. Cal aportar X.</w:t></w:r></w:p>
+<w:p><w:pPr><w:pStyle w:val="Prrafodelista"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="0"/></w:numPr></w:pPr><w:r><w:t>https://exemple.cat/aigua</w:t></w:r></w:p>
+<w:p/>
+<w:p><w:pPr><w:pStyle w:val="Prrafodelista"/></w:pPr><w:r><w:t>Vector Residus. Cal aportar Y.</w:t></w:r></w:p>
+<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="3"/></w:numPr></w:pPr><w:r><w:t>Un bullet, no requeriment.</w:t></w:r></w:p>
+<w:sectPr/>
+</w:body></w:document>
+"@
+$xiA = New-XmlInfoFromString $docAuto $numFmt $styleNum
+$bpA = @(_BodyParagraphsXml $xiA)
+$recA = @(_CollectParaRecordsXml $xiA $bpA)
+AssertEq $recA[0].ListString '1.' 'Auto-num: requeriment 1 detectat via estil (ListString=1.)'
+AssertEq $recA[1].ListString ''   'Auto-num: URL amb numId=0 -> no numerat'
+AssertEq $recA[3].ListString '2.' 'Auto-num: requeriment 2 detectat (ListString=2.)'
+AssertEq $recA[4].ListString ''   'Auto-num: bullet (numId=3) -> NO es requeriment'
+$modelA = _BuildSeguimentModel $recA
+AssertEq $modelA.Requirements.Count 2 'Auto-num: 2 requeriments detectats per numeracio d estil'
+AssertEq $modelA.Requirements[0].Text 'Vector Aigua. Cal aportar X.' 'Auto-num: text del requeriment 1'
+Assert (-not $modelA.Requirements[0].WasResolved) 'Auto-num: requeriment fresc (sense anotacions) -> pendent per defecte'
 
 Write-Host "`n--- Seguiment XML: round-trip sobre .docx real + Read-ConclusionsXml ---"
 $estr = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'ESTRUCTURALS'

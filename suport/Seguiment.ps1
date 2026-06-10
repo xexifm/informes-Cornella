@@ -142,6 +142,13 @@ function _BuildSeguimentModel($paraRecords) {
         }
         # 'other' (cos, URL, intro, capcalera, conclusions...) s'ignora al model.
     }
+    # WasResolved (per defecte de la casella "Resolt"): si el requeriment NO te
+    # cap anotacio previa, es la PRIMERA ronda -> pendent (no resolt). Si en te,
+    # ho inferim de la negreta (que el seguiment recalcula cada ronda). Aixi els
+    # informes acabats de generar (literals o auto-numerats) surten pendents.
+    foreach ($req in $reqs) {
+        if ($req.Annotations.Count -eq 0) { $req.WasResolved = $false }
+    }
     return [pscustomobject]@{
         Requirements     = $reqs.ToArray()
         LastReqParaIndex = $lastReqIdx
@@ -243,7 +250,79 @@ function _ReadDocxPartText($docxPath, $partName) {
     } finally { $zip.Dispose() }
 }
 
-# Carrega word/document.xml com a XmlDocument. Retorna { Path; Xml; Ns; Body }.
+# numbering.xml: mapa numId -> format del nivell 0 (decimal, bullet, lowerLetter...).
+function _BuildNumFmtMap($docxPath) {
+    $map = @{}
+    $txt = _ReadDocxPartText $docxPath 'word/numbering.xml'
+    if ($null -eq $txt) { return $map }
+    try {
+        $xml = New-Object System.Xml.XmlDocument; $xml.PreserveWhitespace = $true; $xml.LoadXml($txt)
+        $ns = _NewWordNsMgr $xml
+        $absFmt = @{}
+        foreach ($abs in $xml.SelectNodes('//w:abstractNum', $ns)) {
+            $aid = $abs.GetAttribute('abstractNumId', $Script:WNS)
+            foreach ($lvl in $abs.SelectNodes('w:lvl', $ns)) {
+                if ($lvl.GetAttribute('ilvl', $Script:WNS) -eq '0') {
+                    $fmtEl = $lvl.SelectSingleNode('w:numFmt', $ns)
+                    if ($null -ne $fmtEl) { $absFmt[$aid] = $fmtEl.GetAttribute('val', $Script:WNS) }
+                    break
+                }
+            }
+        }
+        foreach ($num in $xml.SelectNodes('//w:num', $ns)) {
+            $nid = $num.GetAttribute('numId', $Script:WNS)
+            $aidEl = $num.SelectSingleNode('w:abstractNumId', $ns)
+            if ($null -ne $aidEl) {
+                $aid = $aidEl.GetAttribute('val', $Script:WNS)
+                if ($absFmt.ContainsKey($aid)) { $map[$nid] = $absFmt[$aid] }
+            }
+        }
+    } catch { }
+    return $map
+}
+
+# styles.xml: mapa styleId -> { NumId; Ilvl } efectiu (numeracio que aporta
+# l'estil, seguint la cadena basedOn). Es el cas dels informes on el numero del
+# requeriment ve de l'estil "Prrafodelista" (List Paragraph) i no del paragraf.
+function _BuildStyleNumMap($docxPath) {
+    $map = @{}
+    $txt = _ReadDocxPartText $docxPath 'word/styles.xml'
+    if ($null -eq $txt) { return $map }
+    try {
+        $xml = New-Object System.Xml.XmlDocument; $xml.PreserveWhitespace = $true; $xml.LoadXml($txt)
+        $ns = _NewWordNsMgr $xml
+        $direct = @{}; $basedOn = @{}
+        foreach ($st in $xml.SelectNodes('//w:style', $ns)) {
+            $sid = $st.GetAttribute('styleId', $Script:WNS)
+            if ([string]::IsNullOrEmpty($sid)) { continue }
+            $np = $st.SelectSingleNode('w:pPr/w:numPr', $ns)
+            if ($null -ne $np) {
+                $nidEl  = $np.SelectSingleNode('w:numId', $ns)
+                $ilvlEl = $np.SelectSingleNode('w:ilvl', $ns)
+                $nid  = if ($null -ne $nidEl)  { $nidEl.GetAttribute('val', $Script:WNS) } else { '0' }
+                $ilvl = if ($null -ne $ilvlEl) { [int]$ilvlEl.GetAttribute('val', $Script:WNS) } else { 0 }
+                $direct[$sid] = @{ NumId = $nid; Ilvl = $ilvl }
+            }
+            $boEl = $st.SelectSingleNode('w:basedOn', $ns)
+            if ($null -ne $boEl) { $basedOn[$sid] = $boEl.GetAttribute('val', $Script:WNS) }
+        }
+        $allIds = New-Object System.Collections.Generic.HashSet[string]
+        foreach ($k in $direct.Keys)  { [void]$allIds.Add($k) }
+        foreach ($k in $basedOn.Keys) { [void]$allIds.Add($k) }
+        foreach ($sid in $allIds) {
+            $cur = $sid; $depth = 0
+            while ($null -ne $cur -and $cur -ne '' -and $depth -lt 10) {
+                if ($direct.ContainsKey($cur)) { $map[$sid] = $direct[$cur]; break }
+                $cur = if ($basedOn.ContainsKey($cur)) { $basedOn[$cur] } else { $null }
+                $depth++
+            }
+        }
+    } catch { }
+    return $map
+}
+
+# Carrega word/document.xml com a XmlDocument. Retorna { Path; Xml; Ns; Body;
+# NumFmt; StyleNum } (els dos darrers per resoldre la numeracio automatica).
 function _LoadDocxXml($docxPath) {
     $text = _ReadDocxPartText $docxPath 'word/document.xml'
     if ($null -eq $text) { throw "El fitxer no sembla un .docx valid (falta word/document.xml)." }
@@ -253,7 +332,14 @@ function _LoadDocxXml($docxPath) {
     $ns = _NewWordNsMgr $xml
     $body = $xml.SelectSingleNode('//w:body', $ns)
     if ($null -eq $body) { throw "document.xml sense <w:body>." }
-    return [pscustomobject]@{ Path=$docxPath; Xml=$xml; Ns=$ns; Body=$body }
+    return [pscustomobject]@{
+        Path     = $docxPath
+        Xml      = $xml
+        Ns       = $ns
+        Body     = $body
+        NumFmt   = (_BuildNumFmtMap $docxPath)
+        StyleNum = (_BuildStyleNumMap $docxPath)
+    }
 }
 
 # Desa: copia el .docx origen a $outPath i hi reescriu word/document.xml.
@@ -325,15 +411,53 @@ function _ParagraphBoldStateXml($p, $ns) {
     return 9999999
 }
 
+# Numeracio EFECTIVA d'un paragraf: { NumId; Ilvl }. Prioritat: numPr en linia
+# al paragraf; si no n'hi ha, el numPr que aporti el seu estil (pStyle). numId='0'
+# vol dir "sense numeracio". $styleNumMap pot ser $null (documents sintetics).
+function _EffectiveListInfo($p, $ns, $styleNumMap) {
+    $inline = $p.SelectSingleNode('w:pPr/w:numPr', $ns)
+    if ($null -ne $inline) {
+        $nidEl  = $inline.SelectSingleNode('w:numId', $ns)
+        $ilvlEl = $inline.SelectSingleNode('w:ilvl', $ns)
+        $nid  = if ($null -ne $nidEl)  { $nidEl.GetAttribute('val', $Script:WNS) } else { '0' }
+        $ilvl = if ($null -ne $ilvlEl) { [int]$ilvlEl.GetAttribute('val', $Script:WNS) } else { 0 }
+        return @{ NumId = $nid; Ilvl = $ilvl }
+    }
+    $pStyleEl = $p.SelectSingleNode('w:pPr/w:pStyle', $ns)
+    if ($null -ne $pStyleEl -and $null -ne $styleNumMap) {
+        $sid = $pStyleEl.GetAttribute('val', $Script:WNS)
+        if ($styleNumMap.ContainsKey($sid)) { return $styleNumMap[$sid] }
+    }
+    return @{ NumId = '0'; Ilvl = 0 }
+}
+
 # Registres { Index; Text; ListString; Bold } a partir dels paragrafs del body.
-function _CollectParaRecordsXml($bodyParas, $ns) {
+# Per a la numeracio AUTOMATICA del Word (numero no escrit al text, sino aportat
+# pel numPr del paragraf o del seu estil), es detecta una llista DECIMAL de
+# nivell 0 i s'omple ListString amb el numero corresponent ("1.", "2."...), de
+# manera que _ClassifyParagraph el tracti com a requeriment igual que si el
+# numero fos text literal.
+function _CollectParaRecordsXml($xmlInfo, $bodyParas) {
+    $ns        = $xmlInfo.Ns
+    $numFmt    = $xmlInfo.NumFmt
+    $styleNum  = $xmlInfo.StyleNum
     $records = New-Object System.Collections.ArrayList
+    $autoCounter = 0
     for ($i = 0; $i -lt $bodyParas.Count; $i++) {
         $p = $bodyParas[$i]
+        $listStr = ''
+        $li = _EffectiveListInfo $p $ns $styleNum
+        if ($li.NumId -ne '0' -and $li.Ilvl -eq 0) {
+            $fmt = if ($null -ne $numFmt -and $numFmt.ContainsKey($li.NumId)) { $numFmt[$li.NumId] } else { 'decimal' }
+            if ($fmt -eq 'decimal') {
+                $autoCounter++
+                $listStr = "$autoCounter."
+            }
+        }
         [void]$records.Add([pscustomobject]@{
             Index      = ($i + 1)
             Text       = (_ParagraphTextXml $p $ns)
-            ListString = ''
+            ListString = $listStr
             Bold       = (_ParagraphBoldStateXml $p $ns)
         })
     }
@@ -1027,7 +1151,7 @@ function Invoke-SeguimentFlow {
     try {
         $xmlInfo   = _LoadDocxXml $sourcePath
         $bodyParas = @(_BodyParagraphsXml $xmlInfo)
-        $records   = @(_CollectParaRecordsXml $bodyParas $xmlInfo.Ns)
+        $records   = @(_CollectParaRecordsXml $xmlInfo $bodyParas)
         $model     = _BuildSeguimentModel $records
         $paraTexts = @($records | ForEach-Object { $_.Text })
 
