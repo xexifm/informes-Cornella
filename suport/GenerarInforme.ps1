@@ -497,17 +497,37 @@ function Get-ActivitatFromCache($cache, $idGia) {
     return $null
 }
 
+# Treu la data (yyyy-MM-dd) d'un objecte activitats.json ja existent: prefereix
+# el camp SourceDate i, si no hi es (versions antigues), la treu del nom Source.
+# Retorna [datetime]::MinValue si no en pot deduir cap.
+function _ParseActivitatsDate($obj) {
+    if ($null -eq $obj) { return [datetime]::MinValue }
+    $d = [datetime]::MinValue
+    if ($obj.SourceDate -and [datetime]::TryParseExact([string]$obj.SourceDate, 'yyyy-MM-dd', $null, [System.Globalization.DateTimeStyles]::None, [ref]$d)) {
+        return $d
+    }
+    if ($obj.Source -and ([string]$obj.Source) -match '(\d{4}-\d{2}-\d{2})') {
+        if ([datetime]::TryParseExact($matches[1], 'yyyy-MM-dd', $null, [System.Globalization.DateTimeStyles]::None, [ref]$d)) { return $d }
+    }
+    return [datetime]::MinValue
+}
+
 # Exporta la base de dades d'activitats (nomes els camps de capcalera, per ID
 # GIA) a un JSON dins la carpeta PRIVADA de Drive, perque el mobil pugui
 # auto-emplenar la capcalera. Aquestes dades son personals i NO van mai al
 # GitHub public: nomes a Drive (compte privat de l'usuari). Es fail-safe:
 # qualsevol error es registra i es retorna $false sense interrompre el flux.
+#
+# IMPORTANT: NO sobreescriu la base del Drive si la que ja hi ha es MES NOVA
+# (pujada des d'un altre PC). Compara per data del nom del fitxer Excel.
 function Export-ActivitatsToDrive($cache, $latest) {
     try {
         if ($null -eq $cache -or $null -eq $cache.ById) { return $false }
+        $localDate = if ($latest -and $latest.Date) { $latest.Date } else { [datetime]::MinValue }
         $payload = [ordered]@{
             GeneratedAt = (Get-Date).ToString('o')
             Source      = if ($latest) { $latest.File.Name } else { '' }
+            SourceDate  = $localDate.ToString('yyyy-MM-dd')
             Count       = $cache.ById.Count
             ById        = $cache.ById
         }
@@ -521,6 +541,18 @@ function Export-ActivitatsToDrive($cache, $latest) {
                 Write-Host "Avis: hi ha credencials de Drive pero falta \$DriveDadesId a config.ps1. No s'exporten activitats."
                 return $false
             }
+            # No sobreescriure una base MES NOVA ja present al Drive.
+            try {
+                $existingId = Find-DriveFileId 'activitats.json' $DriveDadesId
+                if ($existingId) {
+                    $existing = (Get-DriveFileText $existingId) | ConvertFrom-Json
+                    $existingDate = _ParseActivitatsDate $existing
+                    if ($existingDate -gt $localDate) {
+                        Write-Host ("  El Drive ja te una base mes nova ({0}) que la local ({1}); no la sobreescric." -f $existingDate.ToString('yyyy-MM-dd'), $localDate.ToString('yyyy-MM-dd'))
+                        return $true
+                    }
+                }
+            } catch { }   # si no es pot comprovar, continuem i pugem
             Save-DriveJson 'activitats.json' $DriveDadesId $json | Out-Null
             return $true
         }
@@ -529,6 +561,17 @@ function Export-ActivitatsToDrive($cache, $latest) {
             New-Item -ItemType Directory -Path $DriveDadesDir -Force | Out-Null
         }
         $outFile = Join-Path $DriveDadesDir 'activitats.json'
+        # Mateixa proteccio en mode carpeta local.
+        if (Test-Path -LiteralPath $outFile) {
+            try {
+                $existing = (Get-Content -LiteralPath $outFile -Raw -Encoding UTF8) | ConvertFrom-Json
+                $existingDate = _ParseActivitatsDate $existing
+                if ($existingDate -gt $localDate) {
+                    Write-Host ("  La copia del Drive ja te una base mes nova ({0}) que la local ({1}); no la sobreescric." -f $existingDate.ToString('yyyy-MM-dd'), $localDate.ToString('yyyy-MM-dd'))
+                    return $true
+                }
+            } catch { }
+        }
         $json | Set-Content -LiteralPath $outFile -Encoding UTF8
         return $true
     } catch {
