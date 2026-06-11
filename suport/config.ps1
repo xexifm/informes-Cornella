@@ -17,6 +17,20 @@
 # fitxer ha de seguir el nom "YYYY-MM-DD ACTIVITATS.xls" o ".xlsx".
 $ActivitatsDir = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\2_Controls Excels'
 
+# --- Planificador de rutes (Ruta.bat) -------------------------------------
+# Servidor de rutes OSRM que calcula la ruta circular mes rapida. Per defecte
+# s'usa el servidor public de demostracio. NOMES s'hi envien coordenades
+# (mai noms ni adreces). Si tens un OSRM propi (per privacitat o per anar
+# sense internet), posa la seva URL base aqui. Si el deixes buit o no hi ha
+# xarxa, el programa calcula una ruta aproximada en linia recta.
+#
+# $OsrmBaseUrl = 'http://localhost:5000'
+#
+# Carpeta on es desen els mapes de ruta generats (HTML que pots imprimir a
+# PDF). Per defecte 'Rutes generades' a l'arrel del clone (ignorada per git).
+#
+# $RutesOutputDir = 'D:\Rutes'
+
 # Mobil (Google Drive). Carpeta sincronitzada al PC amb el Google Drive
 # d'escriptori, on:
 #   - el vigilant (Vigilant.bat) llegeix els paquets que arriben del mobil, i

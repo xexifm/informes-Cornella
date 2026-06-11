@@ -10,6 +10,10 @@ Desktop.ini
 # Carpetes locals d'informes generats (fallback quan la I: no es accessible).
 Informes generats/
 
+# Mapes de ruta generats pel planificador (Ruta.bat). Son HTML locals que
+# l'usuari imprimeix a PDF; no s'han de versionar.
+Rutes generades/
+
 # Base de dades d'activitats LOCAL (fallback per a us fora de la feina).
 # La carpeta es mante al repo (amb un README.txt); els .xls/.xlsx de
 # dins NO es pugen.

@@ -9,23 +9,32 @@ d'activitat de l'Ajuntament de Cornellà.
 
 ```
 informes-Cornella/
-├── Actualitzar.bat               ← doble clic per actualitzar el programa
 ├── GenerarInforme.bat            ← doble clic per generar un informe
+├── Ruta.bat                      ← doble clic per planificar una ruta d'inspecció
+├── Vigilant.bat                  ← genera sol els informes que arriben del mòbil
+├── Actualitzar.bat               ← doble clic per actualitzar el programa
+├── ESTRUCTURA.md                  ← MAPA: quins fitxers fa servir cada executable
 ├── ESTRUCTURALS/                  ← plantilles del programa (les pots editar al Word)
 │   ├── 0 CAPCALERA.docx           ← capçalera fixa de l'informe
 │   ├── 0 CONCLUSIONS.docx         ← conclusions triables + fixes
 │   └── REQ1.docx                  ← catàleg de deficiències
 ├── BASE DE DADES ACTIVITATS/      ← (fallback local) copia local de l'Excel quan no hi ha xarxa
 ├── Informes generats/             ← (local, gitignored) on cauen els .docx generats
+├── Rutes generades/               ← (local, gitignored) on cauen els mapes de ruta HTML
 └── suport/                        ← codi del programa, no cal tocar-lo
     ├── Instalar.bat               ← instal·lar en una màquina nova (vegeu cap. 2)
-    ├── GenerarInforme.ps1
-    ├── Format.ps1
+    ├── GenerarInforme.ps1         ← nucli (generador d'informes)
+    ├── Ruta.ps1                   ← planificador de rutes (independent)
+    ├── Format.ps1 · Seguiment.ps1 · DriveApi.ps1 · Vigilant.ps1 · ExportaDades.ps1
     ├── config.ps1                 ← (opcional) sobreescriu rutes locals
-    ├── tests/run-tests.ps1        ← proves automàtiques
+    ├── tests/run-tests.ps1        ← proves del generador
+    ├── tests/run-tests-ruta.ps1   ← proves del planificador de rutes
     ├── README.md                  ← aquest document
     └── CLAUDE.md                  ← notes per a sessions amb Claude
 ```
+
+> Per saber **quins fitxers pertanyen a cada executable**, mira
+> **`ESTRUCTURA.md`** a l'arrel: hi ha una taula amb el mapa complet.
 
 **Pots moure la carpeta `informes-Cornella` on vulguis dins del PC**:
 tot és relatiu. L'única ruta absoluta del programa és la **base de dades
@@ -151,6 +160,36 @@ d'avui: d'un `..._Req1_GIA <id>` en surt `<avui>_Req2_GIA <id>.docx`; el següen
 Word només s'obre al final per ensenyar-te el resultat. Les frases que marquen
 on comencen les conclusions a esborrar es poden personalitzar a
 `suport/config.ps1` (`$SeguimentConclusionPhrases`).
+
+### Planificar una ruta d'inspecció
+**Doble clic a `Ruta.bat`**. Serveix per visitar diverses activitats en un
+sol viatge amb el camí més curt. Fa el següent:
+
+1. Surt una finestra: **escriu o enganxa els ID Activitat** a visitar
+   (separats per espais, comes o salts de línia). Exemple: `1429 1428 1427`.
+2. El programa busca cada ID a la base de dades (fulla **"Estès"**) i agafa:
+   - les coordenades **"UTM X"** i **"UTM Y"** per situar-les al mapa, i
+   - l'adreça de l'emplaçament (**"Emp. Tipus via" + "Emp. Carrer" +
+     "Emp. Número" + "Emp. Lletra"**) per identificar-les.
+3. Calcula la **ruta circular més ràpida** que les visita totes i torna al
+   punt de partida (la primera activitat de la llista). Per defecte fa servir
+   el servei de rutes per carretera **OSRM**; si no hi ha internet, fa una
+   **ruta aproximada en línia recta**.
+4. Obre un **mapa** (al navegador) amb cada parada **numerada per ordre de
+   visita** (la 1 en verd és l'inici), un panell lateral amb la llista
+   ordenada (núm. · ID · adreça) i la distància/temps totals.
+5. Botó **"Imprimir / Desar com a PDF"**: imprimeix amb *Microsoft Print to
+   PDF* (o *Desar com a PDF*) per tenir la ruta en PDF.
+
+Els mapes es desen a `Rutes generades/` (a l'arrel del clone, ignorada per
+git). Detalls:
+- **Privacitat**: al servei de rutes només s'hi envien **coordenades**, mai
+  noms ni adreces. Si vols anar sense internet o amb un servidor propi,
+  configura `$OsrmBaseUrl` a `suport/config.ps1` (vegeu cap. 10).
+- Si algun ID no existeix o no té coordenades UTM, el programa t'avisa i
+  continua amb la resta (sempre que en quedin per situar).
+- És un programa **independent**: només necessita la base de dades d'Excel
+  (xarxa de la feina o còpia local), com el generador.
 
 ### Actualitzar el programa
 **Doble clic a `Actualitzar.bat`**. Fa el següent:
@@ -381,9 +420,13 @@ Fitxer **opcional** per personalitzar rutes/constants només al teu PC.
 Si no existeix s'usen els valors per defecte. Variables disponibles:
 
 ```powershell
-$OutputDir              = '...'    # ruta on desar els informes
+$OutputDir              = '...'    # ruta on desar els informes (.docx)
 $ActivitatsDir          = '...'    # carpeta on viu l'Excel d'activitats
 $AlwaysConclusionsCount = 2        # (obsolet, ara s'usa ::SEMPRE::)
+
+# Planificador de rutes (Ruta.bat):
+$OsrmBaseUrl            = '...'    # servidor de rutes OSRM (buit = ruta recta)
+$RutesOutputDir         = '...'    # ruta on desar els mapes de ruta (HTML)
 ```
 
 ---
