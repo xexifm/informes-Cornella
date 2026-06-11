@@ -28,8 +28,8 @@
 |---|---|
 | Mode "des de paquet" | `suport/GenerarInforme.ps1` (`-DesDePaquet`, `Invoke-GenerateFromPaquet`) |
 | Reconstrucció (proves) | `suport/tests/run-tests.ps1` (`Build-*FromKeys/Titles/Paquet`) |
-| Export plantilles + activitats | `suport/ExportaDades.ps1` |
-| Vigilant | `suport/Vigilant.ps1`, `Vigilant.bat` |
+| Export plantilles + activitats | `suport/mobil/ExportaDades.ps1` |
+| Vigilant | `suport/mobil/Vigilant.ps1`, `Vigilant.bat` |
 | Web del mòbil | `docs/` (`index.html`, `app.js`, `drive.js`, `config.js`, `estil.css`) |
 | Auto-update | `Actualitzar.bat`, hook a `GenerarInforme.ps1` (Pas 2) |
 
@@ -203,7 +203,7 @@ EmailJS si vols enviament automàtic o cossos llargs.
 (p. ex. `Informes-Cornella/Entrada/`) via l'API de Google Drive (login Google
 des del mòbil; encaixa amb el teu Gmail).
 
-**Fitxer nou al PC:** `suport/Vigilant.ps1` (+ `Vigilant.bat` per arrencar-lo).
+**Fitxer nou al PC:** `suport/mobil/Vigilant.ps1` (+ `Vigilant.bat` per arrencar-lo).
 Un procés que:
 1. Vigila la carpeta de Drive sincronitzada al PC (Drive d'escriptori).
 2. En detectar un `paquet.json` nou, crida `GenerarInforme.ps1 -DesDePaquet ...`.

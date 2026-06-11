@@ -16,7 +16,7 @@
   vigilant i l'exportació d'activitats accedeixen a Drive sols.
 
   Doble clic NO; executa des de PowerShell:
-    powershell -ExecutionPolicy Bypass -File suport\Authorize-Drive.ps1
+    powershell -ExecutionPolicy Bypass -File suport\mobil\Authorize-Drive.ps1
 #>
 
 param(
@@ -28,7 +28,10 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $ScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-. (Join-Path $ScriptRoot 'DriveApi.ps1')
+# Aquest script viu a suport/mobil/. DriveApi.ps1 (mòdul compartit) viu a
+# suport/, que es el directori pare.
+$SuportDir  = Split-Path -Parent $ScriptRoot
+. (Join-Path $SuportDir 'DriveApi.ps1')
 
 try { [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12 } catch { }
 

@@ -40,12 +40,16 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $ScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+# Aquest script viu a suport/mobil/. El motor compartit (GenerarInforme.ps1)
+# viu a suport/, que es el directori pare.
+$SuportDir  = Split-Path -Parent $ScriptRoot
 
 # Carreguem GenerarInforme.ps1 en mode headless: defineix les funcions i les
 # rutes ($EstructuralsDir, $ConclusionsPath, $HeaderPath, $DriveDadesDir...)
-# sense obrir cap finestra ni executar Main.
+# sense obrir cap finestra ni executar Main. $RepoRoot el defineix
+# GenerarInforme.ps1 (arrel del clone), aixi que $WebDadesDir surt correcte.
 $env:GENINFORME_TEST = '1'
-. (Join-Path $ScriptRoot 'GenerarInforme.ps1')
+. (Join-Path $SuportDir 'GenerarInforme.ps1')
 
 # Si no s'especifica res, fem totes dues exportacions.
 if (-not $Plantilles -and -not $Activitats) {

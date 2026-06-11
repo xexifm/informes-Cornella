@@ -32,8 +32,10 @@ if (-not $Script:HeadlessTest) {
 }
 
 $ScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-# Arrel del clone (un nivell amunt: suport/.. = informes-Cornella/).
-$RepoRoot   = Split-Path -Parent $ScriptRoot
+# Aquest script viu a suport/rutes/. La carpeta de codi compartit (config.ps1)
+# es el pare; l'arrel del clone es dos nivells amunt (suport/rutes/../.. ).
+$SuportDir  = Split-Path -Parent $ScriptRoot          # suport/
+$RepoRoot   = Split-Path -Parent $SuportDir           # informes-Cornella/
 
 # ----------------------------------------------------------------------------
 # Configuracio per defecte (sobreescriptible des de suport/config.ps1).
@@ -61,8 +63,8 @@ $OsrmBaseUrl   = 'https://router.project-osrm.org'
 $RutaOrigenUtmX = 424456.0   # Carrer Energia 97
 $RutaOrigenUtmY = 4578205.0  # Carrer Energia 97
 
-# config.ps1 viu al costat d'aquest .ps1 (dins de suport/). Opcional.
-$configPath = Join-Path $ScriptRoot 'config.ps1'
+# config.ps1 viu a suport/ (la carpeta de codi compartit). Opcional.
+$configPath = Join-Path $SuportDir 'config.ps1'
 if (Test-Path -LiteralPath $configPath) {
     . $configPath
 }

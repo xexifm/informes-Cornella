@@ -47,7 +47,7 @@ for /f "delims=" %%f in ('git status --porcelain ESTRUCTURALS ^| findstr /R "\.d
 if "%PLANTILLES_CANVIADES%"=="1" (
     echo Detectats canvis locals a ESTRUCTURALS\*.docx.
     echo Regenerant les dades del mobil ^(docs\dades^) des de les plantilles...
-    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0suport\ExportaDades.ps1" -Plantilles
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0suport\mobil\ExportaDades.ps1" -Plantilles
     if errorlevel 1 (
         echo  Avis: no s'han pogut regenerar les dades del mobil ^(Word obert o no instal·lat?^). Continuo igualment.
     )
@@ -117,7 +117,7 @@ REM    BASE DE DADES ACTIVITATS) i el puja a Drive. Necessita haver autoritzat
 REM    el PC (Authorize-Drive.bat) i tenir Excel. Es fail-safe: si no pot, avisa.
 echo.
 echo Refrescant la base de dades d'activitats al Drive (per al mobil)...
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0suport\ExportaDades.ps1" -Activitats
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0suport\mobil\ExportaDades.ps1" -Activitats
 if errorlevel 1 (
     echo  Avis: no s'han pogut refrescar les activitats al Drive. Continuo.
 )

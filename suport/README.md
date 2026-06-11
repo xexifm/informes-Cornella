@@ -22,13 +22,17 @@ informes-Cornella/
 ├── Informes generats/             ← (local, gitignored) on cauen els .docx generats
 ├── Rutes generades/               ← (local, gitignored) on cauen els mapes de ruta HTML
 └── suport/                        ← codi del programa, no cal tocar-lo
-    ├── Instalar.bat               ← instal·lar en una màquina nova (vegeu cap. 2)
-    ├── GenerarInforme.ps1         ← nucli (generador d'informes)
-    ├── Ruta.ps1                   ← planificador de rutes (independent)
-    ├── Format.ps1 · Seguiment.ps1 · DriveApi.ps1 · Vigilant.ps1 · ExportaDades.ps1
+    ├── GenerarInforme.ps1         ← MOTOR + entrada de GenerarInforme.bat
+    ├── Format.ps1 · Seguiment.ps1 · DriveApi.ps1   ← mòduls del motor
     ├── config.ps1                 ← (opcional) sobreescriu rutes locals
-    ├── tests/run-tests.ps1        ← proves del generador
-    ├── tests/run-tests-ruta.ps1   ← proves del planificador de rutes
+    ├── Instalar.bat               ← instal·lar en una màquina nova (vegeu cap. 2)
+    ├── rutes/Ruta.ps1             ← planificador de rutes (entrada de Ruta.bat)
+    ├── mobil/                     ← integració mòbil/Drive
+    │   ├── Vigilant.ps1           ← entrada de Vigilant.bat
+    │   ├── ExportaDades.ps1       ← el crida Actualitzar.bat (exporta dades)
+    │   └── Authorize-Drive.ps1    ← autoritza el PC a Google Drive
+    ├── tests/                     ← proves (run-tests.ps1, run-tests-ruta.ps1)
+    ├── documentacio/              ← guies (PLA-MOBIL.md, DESPLEGAMENT-MOBIL.md)
     ├── README.md                  ← aquest document
     └── CLAUDE.md                  ← notes per a sessions amb Claude
 ```
@@ -506,4 +510,4 @@ camps), **enviar els requeriments per correu** a un destinatari, i fer que el
 - Tot s'actualitza sol: `Actualitzar.bat` refresca les dades del web quan
   canvies plantilles; generar al PC refresca les activitats a Drive.
 
-Posada en marxa pas a pas: **`suport/DESPLEGAMENT-MOBIL.md`**.
+Posada en marxa pas a pas: **`suport/documentacio/DESPLEGAMENT-MOBIL.md`**.

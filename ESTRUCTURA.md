@@ -3,14 +3,17 @@
 Aquest document és el **mapa** del repositori: et diu quins fitxers fa servir
 cada programa (cada `.bat` que pots clicar) i quins són compartits.
 
-> **Per què no hi ha una carpeta per a cada executable?**
-> Perquè els programes **comparteixen un nucli**: `suport/GenerarInforme.ps1`
-> és alhora el generador d'informes *i* el motor que reutilitzen el vigilant i
-> l'exportador de dades. A més, els scripts deriven l'arrel del clone
-> (`$RepoRoot`) suposant que viuen exactament a `suport/`. Moure'ls trencaria
-> les rutes de `ESTRUCTURALS/`, `BASE DE DADES ACTIVITATS/` i `docs/`. Per
-> això es manté **una sola carpeta de codi (`suport/`)** i s'organitza la
-> claredat amb aquest mapa.
+## Idea general
+
+- **A l'arrel** hi ha els `.bat` que cliques i les carpetes de dades.
+- **`suport/`** conté el **motor compartit** (el codi que reutilitzen diversos
+  programes) i, en **subcarpetes**, els scripts propis de cada programa.
+
+> **Per què el motor és a `suport/` i no dins d'una carpeta per executable?**
+> Perquè `GenerarInforme.ps1` (+ els seus mòduls) és alhora el **generador
+> d'informes** *i* el motor que reutilitzen el **vigilant** i l'**exportador**.
+> No pertany a un sol executable: és compartit. Per això viu a l'arrel de
+> `suport/` i els programes que el fan servir són a subcarpetes.
 
 ---
 
@@ -27,55 +30,76 @@ cada programa (cada `.bat` que pots clicar) i quins són compartits.
 | `Informes generats/`        | Sortida `.docx` (local, ignorada per git).                    |
 | `Rutes generades/`          | Sortida dels mapes de ruta HTML (local, ignorada per git).    |
 | `docs/`                     | Formulari web del mòbil (GitHub Pages).                        |
-| `suport/`                   | Tot el codi (PowerShell) + documentació + proves.             |
+| `suport/`                   | Codi: motor compartit + scripts de cada programa + proves.    |
 
 ---
 
-## Quins fitxers de `suport/` fa servir cada executable
+## Dins de `suport/`
 
-Llegenda: **●** = punt d'entrada (el que llança el `.bat`) · **○** = el carrega (dot-source) · **·** = el pot fer servir.
+```
+suport/
+├── GenerarInforme.ps1     ← MOTOR + punt d'entrada de GenerarInforme.bat
+├── Format.ps1             ← mòdul del motor (format del .docx)
+├── Seguiment.ps1          ← mòdul del motor (informes de seguiment)
+├── DriveApi.ps1           ← mòdul compartit (accés a Google Drive)
+├── config.ps1             ← la TEVA configuració local (rutes, OSRM…)
+├── Instalar.bat           ← instal·lador per a una màquina nova
+│
+├── rutes/                 ← PROGRAMA: planificador de rutes
+│   └── Ruta.ps1               (entrada de Ruta.bat — independent del motor)
+│
+├── mobil/                 ← PROGRAMA(es): integració amb el mòbil/Drive
+│   ├── Vigilant.ps1           (entrada de Vigilant.bat)
+│   ├── ExportaDades.ps1       (el crida Actualitzar.bat per exportar dades)
+│   └── Authorize-Drive.ps1    (autoritza el PC a Google Drive, un sol cop)
+│
+├── tests/                 ← proves automàtiques
+│   ├── run-tests.ps1          (motor / generador d'informes)
+│   └── run-tests-ruta.ps1     (planificador de rutes)
+│
+└── documentacio/          ← guies tècniques
+    ├── PLA-MOBIL.md
+    └── DESPLEGAMENT-MOBIL.md
+```
 
-| Fitxer de `suport/`     | GenerarInforme | **Ruta** | Vigilant | Actualitzar | Instalar |
-|-------------------------|:--------------:|:--------:|:--------:|:-----------:|:--------:|
-| `GenerarInforme.ps1`    | ●              |          | ○        | ○           |          |
-| `Format.ps1`            | ○              |          | ○        | ○           |          |
-| `Seguiment.ps1`         | ○              |          | ○        | ○           |          |
-| `DriveApi.ps1`          | ○              |          | ○        | ○           |          |
-| `Authorize-Drive.ps1`   |                |          | ·        |             |          |
-| `Vigilant.ps1`          |                |          | ●        |             |          |
-| `ExportaDades.ps1`      |                |          |          | ● (○ del nucli) |      |
-| **`Ruta.ps1`**          |                | **●**    |          |             |          |
-| `Instalar.bat`          |                |          |          |             | ●        |
-| `config.ps1`            | ·              | ·        | ·        | ·           |          |
-| `tests/`                | proves         | proves   |          |             |          |
-
-**Notes**
-- **`Ruta.ps1` és independent**: l'única cosa que comparteix amb la resta és
-  `config.ps1` (rutes i servidor de rutes opcional). No depèn de Word ni del
-  nucli del generador. Per això té la seva pròpia lògica de lectura d'Excel.
-- **El nucli compartit** és `GenerarInforme.ps1` + `Format.ps1` +
-  `Seguiment.ps1` + `DriveApi.ps1`. Qualsevol canvi aquí afecta el generador,
-  el vigilant i l'exportador alhora.
-- **`config.ps1`** (opcional, no es versiona si conté rutes locals) el
-  llegeixen tots els programes que el tenen al costat.
+> `README.md` i `CLAUDE.md` es queden a `suport/` (manual i notes de
+> manteniment).
 
 ---
 
-## Documentació (a `suport/`)
+## Quins fitxers fa servir cada executable
 
-| Fitxer                   | Tema                                                        |
-|--------------------------|-------------------------------------------------------------|
-| `README.md`              | Manual d'usuari complet.                                     |
-| `ESTRUCTURA.md` (arrel)  | Aquest mapa.                                                 |
-| `PLA-MOBIL.md`           | Disseny del flux des del mòbil.                              |
-| `DESPLEGAMENT-MOBIL.md`  | Posada en marxa del mòbil pas a pas.                         |
-| `CLAUDE.md`              | Notes per a sessions amb Claude (manteniment).              |
+Llegenda: **●** = punt d'entrada · **○** = el carrega (dot-source) · **·** = el pot fer servir.
+
+| Fitxer                            | GenerarInforme | **Ruta** | Vigilant | Actualitzar |
+|-----------------------------------|:--------------:|:--------:|:--------:|:-----------:|
+| `GenerarInforme.ps1`              | ●              |          | ○        | ○           |
+| `Format.ps1`                      | ○              |          | ○        | ○           |
+| `Seguiment.ps1`                   | ○              |          | ○        | ○           |
+| `DriveApi.ps1`                    | ○              |          | ○        | ○           |
+| `config.ps1`                      | ·              | ·        | ·        | ·           |
+| `rutes/Ruta.ps1`                  |                | **●**    |          |             |
+| `mobil/Vigilant.ps1`              |                |          | ●        |             |
+| `mobil/ExportaDades.ps1`          |                |          |          | ● (○ motor) |
+| `mobil/Authorize-Drive.ps1`       |                |          | ·        |             |
+
+**Com es troben els fitxers entre ells**
+- Cada script calcula la seva ubicació (`$ScriptRoot`) i, si cal, puja al
+  directori `suport/` (`$SuportDir`) per carregar el motor o `config.ps1`.
+  Així el motor pot viure a `suport/` i els programes a subcarpetes sense
+  rutes fràgils.
+- **`rutes/Ruta.ps1` és independent**: només llegeix `config.ps1` (no carrega
+  el motor; no necessita Word).
+- **El motor compartit** és `GenerarInforme.ps1` + `Format.ps1` +
+  `Seguiment.ps1` + `DriveApi.ps1`. Un canvi aquí afecta el generador, el
+  vigilant i l'exportador alhora.
 
 ---
 
 ## Proves
 
 ```
-pwsh -File suport/tests/run-tests.ps1        # nucli del generador d'informes
-pwsh -File suport/tests/run-tests-ruta.ps1   # planificador de rutes (Ruta.ps1)
+pwsh -File suport/tests/run-tests.ps1        # motor / generador d'informes
+pwsh -File suport/tests/run-tests-ruta.ps1   # planificador de rutes
 ```
+(en un Windows sense PowerShell 7, fes servir `powershell` en lloc de `pwsh`.)

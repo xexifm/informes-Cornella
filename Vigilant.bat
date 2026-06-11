@@ -6,7 +6,7 @@ REM Doble clic per executar.
 title Vigilant d'informes Cornella
 cd /d "%~dp0"
 
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0suport\Vigilant.ps1"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0suport\mobil\Vigilant.ps1"
 
 if errorlevel 1 (
     echo.

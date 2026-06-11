@@ -15,8 +15,8 @@ els blocs en ordre. Un cop fet, no hauràs de tornar-hi: tot s'actualitza sol.
 | Peça | On | Què fa |
 |---|---|---|
 | Mode `-DesDePaquet` | `suport/GenerarInforme.ps1` | Genera el `.docx` des d'un paquet JSON, sense l'assistent. |
-| `ExportaDades.ps1` | `suport/` | Exporta plantilles → `docs/dades/*.json` (web) i activitats → Drive privat. |
-| `Vigilant.ps1` + `Vigilant.bat` | `suport/` i arrel | Vigila la carpeta Entrada de Drive i genera els informes que arriben del mòbil. |
+| `ExportaDades.ps1` | `suport/mobil/` | Exporta plantilles → `docs/dades/*.json` (web) i activitats → Drive privat. |
+| `Vigilant.ps1` + `Vigilant.bat` | `suport/mobil/` i arrel | Vigila la carpeta Entrada de Drive i genera els informes que arriben del mòbil. |
 | Web del mòbil | `docs/` | Formulari responsive (GitHub Pages): selecció + correu de requeriments + paquet a Drive. |
 | `Actualitzar.bat` | arrel | Ara també regenera i puja les dades del mòbil quan canvies plantilles. |
 | Auto-export d'activitats | `GenerarInforme.ps1` (Pas 2) | Cada cop que generes al PC, refresca `activitats.json` a Drive. |
@@ -96,7 +96,7 @@ Comprova abans que la xarxa deixa sortir cap a Google amb el test del bloc G.
 
 1. **Exporta-ho tot un cop** (genera les dades del web i puja les d'activitats a Drive):
    ```
-   powershell -ExecutionPolicy Bypass -File suport\ExportaDades.ps1
+   powershell -ExecutionPolicy Bypass -File suport\mobil\ExportaDades.ps1
    ```
    - Crea `docs/dades/*.json`. **Puja'ls** (via `Actualitzar.bat` editant
      qualsevol plantilla, o per PR) perquè GitHub Pages els serveixi.
@@ -201,7 +201,7 @@ $DriveDadesId      = '<ID carpeta Dades>'
 
 **G.4 — Autoritza el PC una sola vegada:**
 ```
-powershell -ExecutionPolicy Bypass -File suport\Authorize-Drive.ps1
+powershell -ExecutionPolicy Bypass -File suport\mobil\Authorize-Drive.ps1
 ```
 Enganxa el Client ID i el Secret, autoritza al navegador amb el teu compte i
 ja està. Les credencials queden a `%LOCALAPPDATA%\InformesCornella\` (mai al repo).

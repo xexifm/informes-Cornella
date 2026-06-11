@@ -11,7 +11,7 @@
 $ErrorActionPreference = 'Stop'
 $env:RUTA_TEST = '1'   # mode headless: nomes defineix funcions, no obre res
 
-$scriptPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'Ruta.ps1'
+$scriptPath = Join-Path (Split-Path -Parent $PSScriptRoot) (Join-Path 'rutes' 'Ruta.ps1')
 . $scriptPath
 
 $script:pass = 0
