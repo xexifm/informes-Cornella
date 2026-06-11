@@ -448,16 +448,45 @@ $rows
   }).addTo(map);
 
   var bounds = [];
-  stops.forEach(function (s) {
+
+  // Si dues o mes parades comparteixen EXACTAMENT les mateixes coordenades a
+  // l'Excel (passa quan dues fitxes apunten al mateix punt), els marcadors
+  // queden l'un sobre l'altre i nomes en veurem un. Els separem visualment
+  // en cercle (~12 m) NOMES a la icona; la posicio real (popup, route line)
+  // no canvia.
+  var FAN_RADIUS_M = 12;
+  var groups = {};
+  stops.forEach(function (s, i) {
+    var key = s.lat.toFixed(5) + ',' + s.lon.toFixed(5);
+    (groups[key] = groups[key] || []).push(i);
+  });
+  function fanOffset(centerLat, k, n) {
+    if (n <= 1) return [0, 0];
+    var ang = (2 * Math.PI * k) / n;
+    var dLat = (FAN_RADIUS_M / 111320) * Math.sin(ang);
+    var dLon = (FAN_RADIUS_M / (111320 * Math.cos(centerLat * Math.PI / 180))) * Math.cos(ang);
+    return [dLat, dLon];
+  }
+
+  stops.forEach(function (s, i) {
     var isStart = (s.order === 1);
     var icon = L.divIcon({
       className: '', html: '<div class="marker-num' + (isStart ? ' marker-start' : '') + '">' + s.order + '</div>',
       iconSize: [26, 26], iconAnchor: [13, 13]
     });
     var addr = s.address && s.address.length ? s.address : '(sense adreca)';
-    L.marker([s.lat, s.lon], { icon: icon })
+    var key = s.lat.toFixed(5) + ',' + s.lon.toFixed(5);
+    var grp = groups[key];
+    var k = grp.indexOf(i);
+    var off = fanOffset(s.lat, k, grp.length);
+    var displayLat = s.lat + off[0];
+    var displayLon = s.lon + off[1];
+    var note = grp.length > 1
+      ? "<br><i>(parades superposades a l'Excel: mateixes coordenades. Marcador desplacat per veure-les totes.)</i>"
+      : '';
+    L.marker([displayLat, displayLon], { icon: icon })
      .addTo(map)
-     .bindPopup('<b>Parada ' + s.order + '</b><br>ID ' + s.id + '<br>' + addr);
+     .bindPopup('<b>Parada ' + s.order + '</b><br>ID ' + s.id + '<br>' + addr + note);
     bounds.push([s.lat, s.lon]);
   });
 
