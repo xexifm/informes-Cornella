@@ -79,6 +79,23 @@ $pos = @{}; for ($i=0;$i -lt $ord.Count;$i++){ $pos[$ord[$i]] = $i }
 $neigh = @($ord[($pos[0]+1)%4], $ord[($pos[0]+3)%4]) | Sort-Object
 Assert (($neigh -join ',') -eq '1,3') 'el punt 0 limita amb 1 i 3 (perimetre, no diagonal)'
 
+Write-Host "`n--- Get-NearestPointIndex / Set-StartNearest (sortida des de la base) ---"
+$pts = @(
+    [pscustomobject]@{ Id='A'; Lat=41.300; Lon=2.000 }
+    [pscustomobject]@{ Id='B'; Lat=41.352; Lon=2.097 }   # ~Carrer Energia 97
+    [pscustomobject]@{ Id='C'; Lat=41.380; Lon=2.050 }
+)
+# Origen = Carrer Energia 97 (lat/lon derivat de l'UTM 424456,4578205).
+$oLat = 41.351804; $oLon = 2.096944
+AssertEq (Get-NearestPointIndex $pts $oLat $oLon) 1 'el mes proper a Energia 97 es B (index 1)'
+AssertEq (Get-NearestPointIndex @() $oLat $oLon) -1 'llista buida -> -1'
+$re = Set-StartNearest $pts $oLat $oLon
+AssertEq $re[0].Id 'B' 'Set-StartNearest posa B (mes proper) el primer'
+AssertEq @($re).Count 3 'Set-StartNearest no perd punts'
+AssertEq (($re | ForEach-Object { $_.Id }) -join '') 'BAC' 'conserva l ordre relatiu de la resta'
+$one = @([pscustomobject]@{ Id='X'; Lat=41.3; Lon=2.0 })
+AssertEq (Set-StartNearest $one $oLat $oLon)[0].Id 'X' 'amb 1 punt el deixa igual'
+
 Write-Host "`n--- ConvertFrom-OsrmTrip ---"
 $resp = [pscustomobject]@{
     code = 'Ok'

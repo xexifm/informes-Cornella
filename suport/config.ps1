@@ -30,6 +30,15 @@ $ActivitatsDir = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\2_Contro
 # PDF). Per defecte 'Rutes generades' a l'arrel del clone (ignorada per git).
 #
 # $RutesOutputDir = 'D:\Rutes'
+#
+# Base de sortida: la ruta comenca SEMPRE per l'activitat mes propera a aquest
+# punt (i hi torna al final). Per defecte Carrer de l'Energia, 97 (Cornella),
+# en coordenades UTM (mateix sistema que la base de dades). Per canviar la
+# base, descomenta i posa unes altres coordenades. Posa-les a 0 si vols que la
+# ruta comenci per la primera activitat que escriguis a la llista.
+#
+# $RutaOrigenUtmX = 424456
+# $RutaOrigenUtmY = 4578205
 
 # Mobil (Google Drive). Carpeta sincronitzada al PC amb el Google Drive
 # d'escriptori, on:

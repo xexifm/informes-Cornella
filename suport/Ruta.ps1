@@ -52,6 +52,15 @@ $RutesOutputDir = Join-Path $RepoRoot 'Rutes generades'
 # Si el deixes buit ('') o no hi ha xarxa, s'usa una ruta aproximada local.
 $OsrmBaseUrl   = 'https://router.project-osrm.org'
 
+# Punt de SORTIDA de la ruta (la base des d'on surts). La ruta comencara
+# SEMPRE per l'activitat mes propera a aquest punt (i hi tornara al final).
+# Per defecte: Carrer de l'Energia, 97 (Cornella de Llobregat), en coordenades
+# UTM (mateix sistema que la base de dades: ETRS89/31N). Per canviar la base,
+# posa unes altres coordenades a config.ps1. Si les deixes a 0 (o buides), la
+# ruta comenca per la primera activitat que escriguis a la llista.
+$RutaOrigenUtmX = 424456.0   # Carrer Energia 97
+$RutaOrigenUtmY = 4578205.0  # Carrer Energia 97
+
 # config.ps1 viu al costat d'aquest .ps1 (dins de suport/). Opcional.
 $configPath = Join-Path $ScriptRoot 'config.ps1'
 if (Test-Path -LiteralPath $configPath) {
@@ -202,6 +211,35 @@ function Get-HaversineMeters([double]$lat1, [double]$lon1, [double]$lat2, [doubl
     $s = [math]::Sin($dLat/2)*[math]::Sin($dLat/2) +
          [math]::Cos($lat1*$toRad)*[math]::Cos($lat2*$toRad)*[math]::Sin($dLon/2)*[math]::Sin($dLon/2)
     return $R * 2 * [math]::Atan2([math]::Sqrt($s), [math]::Sqrt(1-$s))
+}
+
+# Retorna l'index del punt (llista d'objectes {Lat,Lon}) mes proper a una
+# coordenada origen (lat/lon). -1 si la llista es buida.
+function Get-NearestPointIndex($points, [double]$originLat, [double]$originLon) {
+    $n = @($points).Count
+    if ($n -eq 0) { return -1 }
+    $best = -1; $bestD = [double]::MaxValue
+    for ($i = 0; $i -lt $n; $i++) {
+        $d = Get-HaversineMeters $originLat $originLon $points[$i].Lat $points[$i].Lon
+        if ($d -lt $bestD) { $bestD = $d; $best = $i }
+    }
+    return $best
+}
+
+# Reordena la llista de punts perque el mes proper a l'origen quedi el PRIMER
+# (la resta conserva l'ordre relatiu). Aixi la ruta circular comenca i acaba
+# a prop de la base. Retorna una nova llista (array). Si no hi ha origen valid
+# o la llista te menys de 2 punts, la retorna sense canvis.
+function Set-StartNearest($points, $originLat, $originLon) {
+    $arr = @($points)
+    if ($arr.Count -lt 2 -or $null -eq $originLat -or $null -eq $originLon) { return $arr }
+    $idx = Get-NearestPointIndex $arr ([double]$originLat) ([double]$originLon)
+    if ($idx -le 0) { return $arr }   # ja es el primer o no trobat
+    $new = @($arr[$idx])
+    for ($i = 0; $i -lt $arr.Count; $i++) {
+        if ($i -ne $idx) { $new += $arr[$i] }
+    }
+    return $new
 }
 
 # Resol una aproximacio del TSP circular (veí mes proper + millora 2-opt)
@@ -667,6 +705,19 @@ function Invoke-RutaMain {
     if (@($points).Count -eq 0) {
         Show-Info ("No s'ha pogut situar cap activitat al mapa.`n`n" + ($warns -join "`n")) 'Rutes' 'Warning'
         return
+    }
+
+    # 5b. La ruta ha de comencar per l'activitat mes propera a la base
+    # (per defecte Carrer Energia 97). Reordenem perque quedi la primera; com
+    # que tant OSRM (source=first) com el TSP local comencen pel punt 0, amb
+    # aixo n'hi ha prou.
+    $oX = ConvertTo-UtmNumber $RutaOrigenUtmX
+    $oY = ConvertTo-UtmNumber $RutaOrigenUtmY
+    if ($null -ne $oX -and $null -ne $oY -and $oX -ne 0 -and $oY -ne 0) {
+        $origin = Convert-UtmToLatLon $oX $oY 31 $true
+        $reordered = Set-StartNearest $points $origin.Lat $origin.Lon
+        $points = New-Object System.Collections.ArrayList
+        foreach ($p in $reordered) { [void]$points.Add($p) }
     }
 
     # 6. Calcular la ruta circular.

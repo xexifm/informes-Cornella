@@ -172,9 +172,10 @@ sol viatge amb el camí més curt. Fa el següent:
    - l'adreça de l'emplaçament (**"Emp. Tipus via" + "Emp. Carrer" +
      "Emp. Número" + "Emp. Lletra"**) per identificar-les.
 3. Calcula la **ruta circular més ràpida** que les visita totes i torna al
-   punt de partida (la primera activitat de la llista). Per defecte fa servir
-   el servei de rutes per carretera **OSRM**; si no hi ha internet, fa una
-   **ruta aproximada en línia recta**.
+   punt de partida. La ruta **comença sempre per l'activitat més propera a la
+   base** (per defecte **Carrer de l'Energia, 97**) i hi torna al final.
+   Per defecte fa servir el servei de rutes per carretera **OSRM**; si no hi
+   ha internet, fa una **ruta aproximada en línia recta**.
 4. Obre un **mapa** (al navegador) amb cada parada **numerada per ordre de
    visita** (la 1 en verd és l'inici), un panell lateral amb la llista
    ordenada (núm. · ID · adreça) i la distància/temps totals.
@@ -427,6 +428,9 @@ $AlwaysConclusionsCount = 2        # (obsolet, ara s'usa ::SEMPRE::)
 # Planificador de rutes (Ruta.bat):
 $OsrmBaseUrl            = '...'    # servidor de rutes OSRM (buit = ruta recta)
 $RutesOutputDir         = '...'    # ruta on desar els mapes de ruta (HTML)
+$RutaOrigenUtmX         = 424456   # base de sortida (UTM X). Per defecte
+$RutaOrigenUtmY         = 4578205  #   Carrer Energia 97. La ruta comenca per
+                                   #   l'activitat mes propera a aquest punt.
 ```
 
 ---
