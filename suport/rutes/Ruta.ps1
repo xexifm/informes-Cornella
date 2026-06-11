@@ -406,11 +406,26 @@ function Build-RouteHtml($stops, $geometry, [double]$distanceM, [double]$duratio
                 width: 26px; height: 26px; line-height: 22px; text-align: center; font-weight: bold;
                 box-shadow: 0 1px 4px rgba(0,0,0,.4); font-size: 13px; }
   .marker-start { background: #1e8449; }
+  /* Forcem que els colors de fons (capcalera blava, badges vermells, etc.) i
+     les imatges (tiles del mapa) NO es perdin en imprimir. Sense aixo, la
+     majoria de navegadors imprimeixen el fons en blanc per defecte. */
+  body, #top, td.num, tr td.num, .marker-num, .marker-start, th, .leaflet-tile,
+  .leaflet-marker-icon, button {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+  @page { size: A4 landscape; margin: 8mm; }
   @media print {
+    /* Amaguem nomes el que NO es part del mapa (barra de boto, controls de
+       zoom de Leaflet i atribucio). NO toquem mides del mapa ni del panell
+       lateral: aixi s'imprimeix EXACTAMENT el que veus en pantalla
+       (mateix zoom, centre i layout). */
     #bar, .leaflet-control-zoom, .leaflet-control-attribution { display: none !important; }
-    #wrap { height: 540px; }
-    #side { width: 300px; }
-    @page { size: A4 landscape; margin: 10mm; }
+    html, body { background: #fff; }
+    /* El panell lateral pot tenir scroll en pantalla; en imprimir el
+       desplegem perque es vegi sencer al costat del mapa. */
+    #side { overflow: visible !important; }
   }
 </style>
 </head>
@@ -435,7 +450,7 @@ $rows
 </div>
 <div id="bar">
   <button onclick="window.print()">&#128424;&#65039; Imprimir / Desar com a PDF</button>
-  <span style="font-size:12px;color:#555;">Al dialeg d'impressio tria "Desar com a PDF" / "Microsoft Print to PDF".</span>
+  <span style="font-size:12px;color:#555;">Al dialeg: orientacio <b>Horitzontal</b>, marca <b>Grafics de fons</b> (perque s'imprimeixin els colors) i tria <b>Desar com a PDF</b> / <b>Microsoft Print to PDF</b>.</span>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -499,6 +514,35 @@ $rows
     map.fitBounds(L.latLngBounds(bounds).pad(0.15));
   } else {
     map.setView([41.355, 2.073], 14);
+  }
+
+  // Quan l'usuari imprimeix, el navegador canvia mides de la pagina (fora
+  // del viewport en pantalla -> caixa de pagina A4). Leaflet, sense ajuda,
+  // veu el canvi de mida i recalcula tiles, sovint quedant-se en gris o
+  // perdent el centre. Aixi que: desem el centre/zoom actuals abans
+  // d'imprimir, deixem que Leaflet refaci el layout (invalidateSize) i
+  // tornem a centrar EXACTAMENT en el mateix punt amb el mateix zoom. Tot
+  // sincron i sense animacio per garantir que el snapshot d'impressio veu
+  // el mapa quiet i complet. Despres restaurem.
+  var _savedView = null;
+  function _fixMapForPrint() {
+    _savedView = { center: map.getCenter(), zoom: map.getZoom() };
+    map.invalidateSize(false);
+    map.setView(_savedView.center, _savedView.zoom, { animate: false });
+  }
+  function _restoreMapAfterPrint() {
+    map.invalidateSize(false);
+    if (_savedView) map.setView(_savedView.center, _savedView.zoom, { animate: false });
+  }
+  window.addEventListener('beforeprint', _fixMapForPrint);
+  window.addEventListener('afterprint',  _restoreMapAfterPrint);
+  // matchMedia complementa beforeprint/afterprint en alguns navegadors
+  // (Safari historicament, i com a xarxa de seguretat per a Chrome/Edge).
+  if (window.matchMedia) {
+    var mql = window.matchMedia('print');
+    var mqlHandler = function (e) { if (e.matches) _fixMapForPrint(); else _restoreMapAfterPrint(); };
+    if (mql.addEventListener) mql.addEventListener('change', mqlHandler);
+    else if (mql.addListener) mql.addListener(mqlHandler);
   }
 </script>
 </body>
