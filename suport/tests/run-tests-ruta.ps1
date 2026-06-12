@@ -116,6 +116,16 @@ Assert ($htmlB -match 'marker-base')         'CSS .marker-base present per al pu
 Assert ($htmlB -match "id.{0,3}:.{0,3}.BASE.") 'JSON stops conte id=BASE'
 Assert ($htmlB -match 'order.{0,3}:.{0,3}0,') 'JSON stops conte order=0'
 
+Write-Host "`n--- Signatures de l UI (Show-IdInputForm + Show-WarningsDialog) ---"
+$idfParams = (Get-Command Show-IdInputForm).Parameters.Keys
+Assert ($idfParams -contains 'initialText')         'Show-IdInputForm accepta initialText (per pre-omplir en re-editar)'
+Assert ($idfParams -contains 'startFromBaseDefault') 'Show-IdInputForm encara accepta startFromBaseDefault'
+Assert ((Get-Command Show-WarningsDialog) -ne $null) 'Show-WarningsDialog esta definida'
+$wdParams = (Get-Command Show-WarningsDialog).Parameters.Keys
+Assert ($wdParams -contains 'warnings')             'Show-WarningsDialog accepta warnings'
+Assert ($wdParams -contains 'resolvedCount')        'Show-WarningsDialog accepta resolvedCount'
+Assert ($wdParams -contains 'totalIds')             'Show-WarningsDialog accepta totalIds'
+
 Write-Host "`n--- ConvertFrom-OsrmTrip ---"
 $resp = [pscustomobject]@{
     code = 'Ok'

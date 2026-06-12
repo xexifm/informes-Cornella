@@ -707,7 +707,7 @@ function Invoke-OsrmTrip($points) {
 
 # Finestra per escriure/enganxar la llista d'IDs. Retorna l'array d'IDs o
 # $null si l'usuari cancel·la.
-function Show-IdInputForm([string]$dbLabel, [string]$baseLabel, [bool]$startFromBaseDefault) {
+function Show-IdInputForm([string]$dbLabel, [string]$baseLabel, [bool]$startFromBaseDefault, [string]$initialText = '') {
     $form = New-Object System.Windows.Forms.Form
     $form.Text = "Planificador de rutes d'inspeccio"
     $form.Size = New-Object System.Drawing.Size(520, 470)
@@ -736,6 +736,7 @@ function Show-IdInputForm([string]$dbLabel, [string]$baseLabel, [bool]$startFrom
     $txt.Size = New-Object System.Drawing.Size(480, 250)
     $txt.Location = New-Object System.Drawing.Point(15, 78)
     $txt.Font = New-Object System.Drawing.Font('Consolas', 11)
+    if ($initialText) { $txt.Text = $initialText }
     $form.Controls.Add($txt)
 
     # Casella: sortir des de la BASE (i tornar-hi). Per defecte marcada.
@@ -785,6 +786,88 @@ function Show-Info([string]$msg, [string]$title = 'Rutes', [string]$icon = 'Info
     [System.Windows.Forms.MessageBox]::Show($msg, $title, 'OK', $icon) | Out-Null
 }
 
+# Diàleg que ensenya els avisos detectats (IDs que no es troben, sense
+# coordenades, etc.) ABANS de generar la ruta. Permet:
+#   - Continuar amb les activitats resoltes (si n'hi ha cap)
+#   - Editar la llista (tornar al formulari, amb el text intacte)
+#   - Cancel·lar
+# Retorna 'continue', 'edit' o 'cancel'.
+function Show-WarningsDialog($warnings, [int]$resolvedCount, [int]$totalIds) {
+    $form = New-Object System.Windows.Forms.Form
+    $form.Text = "Avisos abans de generar la ruta"
+    $form.Size = New-Object System.Drawing.Size(560, 380)
+    $form.StartPosition = 'CenterScreen'
+    $form.FormBorderStyle = 'FixedDialog'
+    $form.MaximizeBox = $false; $form.MinimizeBox = $false
+
+    $lblTitle = New-Object System.Windows.Forms.Label
+    $lblTitle.Text = "S'han detectat avisos a la llista d'activitats:"
+    $lblTitle.AutoSize = $false
+    $lblTitle.Size = New-Object System.Drawing.Size(520, 22)
+    $lblTitle.Location = New-Object System.Drawing.Point(15, 12)
+    $lblTitle.Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
+    $form.Controls.Add($lblTitle)
+
+    $txt = New-Object System.Windows.Forms.TextBox
+    $txt.Multiline = $true
+    $txt.ReadOnly = $true
+    $txt.ScrollBars = 'Vertical'
+    $txt.Size = New-Object System.Drawing.Size(520, 180)
+    $txt.Location = New-Object System.Drawing.Point(15, 40)
+    $txt.Font = New-Object System.Drawing.Font('Consolas', 10)
+    $txt.Text = ($warnings -join "`r`n")
+    $form.Controls.Add($txt)
+
+    $lblCount = New-Object System.Windows.Forms.Label
+    $lblCount.AutoSize = $false
+    $lblCount.Size = New-Object System.Drawing.Size(520, 36)
+    $lblCount.Location = New-Object System.Drawing.Point(15, 226)
+    $unresolved = $totalIds - $resolvedCount
+    if ($resolvedCount -eq 0) {
+        $lblCount.Text = "Cap activitat ($totalIds) no es pot situar al mapa. Edita la llista per continuar."
+        $lblCount.ForeColor = [System.Drawing.Color]::FromArgb(170, 30, 30)
+    } else {
+        $lblCount.Text = "Es poden situar $resolvedCount de $totalIds activitats. Si continues, $unresolved quedaran fora de la ruta."
+        $lblCount.ForeColor = [System.Drawing.Color]::FromArgb(20, 54, 92)
+    }
+    $form.Controls.Add($lblCount)
+
+    # Mida i ordre: Continuar (recomanat si hi ha activitats resoltes) | Editar | Cancel·lar
+    $btnContinue = New-Object System.Windows.Forms.Button
+    $btnContinue.Text = if ($resolvedCount -gt 0) { "Continuar amb $resolvedCount activitat(s)" } else { "Continuar" }
+    $btnContinue.Size = New-Object System.Drawing.Size(220, 32)
+    $btnContinue.Location = New-Object System.Drawing.Point(15, 280)
+    $btnContinue.Enabled = ($resolvedCount -gt 0)
+    $btnContinue.Tag = 'continue'
+    $form.Controls.Add($btnContinue)
+    if ($resolvedCount -gt 0) { $form.AcceptButton = $btnContinue }
+
+    $btnEdit = New-Object System.Windows.Forms.Button
+    $btnEdit.Text = 'Editar la llista'
+    $btnEdit.Size = New-Object System.Drawing.Size(140, 32)
+    $btnEdit.Location = New-Object System.Drawing.Point(245, 280)
+    $btnEdit.Tag = 'edit'
+    $form.Controls.Add($btnEdit)
+    if ($resolvedCount -eq 0) { $form.AcceptButton = $btnEdit }
+
+    $btnCancel = New-Object System.Windows.Forms.Button
+    $btnCancel.Text = 'Cancel·lar'
+    $btnCancel.Size = New-Object System.Drawing.Size(120, 32)
+    $btnCancel.Location = New-Object System.Drawing.Point(395, 280)
+    $btnCancel.Tag = 'cancel'
+    $form.Controls.Add($btnCancel)
+    $form.CancelButton = $btnCancel
+
+    $script:_warnChoice = 'cancel'
+    $handler = { $script:_warnChoice = $this.Tag; $form.Close() }.GetNewClosure()
+    $btnContinue.Add_Click($handler)
+    $btnEdit.Add_Click($handler)
+    $btnCancel.Add_Click($handler)
+
+    [void]$form.ShowDialog()
+    return [string]$script:_warnChoice
+}
+
 # ============================================================================
 # MAIN
 # ============================================================================
@@ -805,17 +888,8 @@ function Invoke-RutaMain {
         "Base de dades: $($xls.File.Name)"
     }
 
-    # 2. Demanar la llista d'IDs + opcio de sortir des de la BASE.
-    $formResult = Show-IdInputForm $dbLabel $RutaOrigenLabel ([bool]$RutaSortirDesDeBaseDefault)
-    if ($null -eq $formResult) { return }
-    $ids           = $formResult.Ids
-    $startFromBase = [bool]$formResult.StartFromBase
-    if (@($ids).Count -eq 0) {
-        Show-Info "No has indicat cap ID Activitat." 'Rutes' 'Warning'
-        return
-    }
-
-    # 3. Llegir l'Excel.
+    # 3. Llegir l'Excel un sol cop (l'usuari potser haura d'editar diverses
+    # vegades la llista d'activitats).
     try {
         $byId = Read-ActivitatsForRoute $xls.File
     } catch {
@@ -823,33 +897,61 @@ function Invoke-RutaMain {
         return
     }
 
-    # 4. Resoldre cada ID -> punt amb coordenades.
-    $points = New-Object System.Collections.ArrayList
-    $missing = @()
-    $noCoords = @()
-    foreach ($id in $ids) {
-        if (-not $byId.ContainsKey($id)) { $missing += $id; continue }
-        $rec = $byId[$id]
-        $x = ConvertTo-UtmNumber $rec.UtmX
-        $y = ConvertTo-UtmNumber $rec.UtmY
-        if ($null -eq $x -or $null -eq $y) { $noCoords += $id; continue }
-        $ll = Convert-UtmToLatLon $x $y 31 $true
-        [void]$points.Add([pscustomobject]@{
-            Id      = $id
-            Address = (Format-EmpAddress $rec.TipusVia $rec.Carrer $rec.Numero $rec.Lletra)
-            Lat     = $ll.Lat
-            Lon     = $ll.Lon
-        })
+    # 2 + 4 + 5 (bucle): demanem la llista, resolem les coordenades, i si hi ha
+    # avisos els ensenyem ABANS de generar la ruta. L'usuari pot decidir:
+    #   continue -> tirem endavant amb les activitats resoltes
+    #   edit     -> tornem al formulari amb el text intacte
+    #   cancel   -> sortim
+    $initialText   = ''
+    $points        = $null
+    $warns         = @()
+    $startFromBase = $false
+    $done          = $false
+    while (-not $done) {
+        $formResult = Show-IdInputForm $dbLabel $RutaOrigenLabel ([bool]$RutaSortirDesDeBaseDefault) $initialText
+        if ($null -eq $formResult) { return }
+        $ids           = $formResult.Ids
+        $startFromBase = [bool]$formResult.StartFromBase
+        $initialText   = ($ids -join ' ')   # preservem per si torna a editar
+        if (@($ids).Count -eq 0) {
+            Show-Info "No has indicat cap ID Activitat." 'Rutes' 'Warning'
+            continue
+        }
+
+        # Resolem cada ID -> punt amb coordenades; acumulem els problemes.
+        $points   = New-Object System.Collections.ArrayList
+        $missing  = @()
+        $noCoords = @()
+        foreach ($id in $ids) {
+            if (-not $byId.ContainsKey($id)) { $missing += $id; continue }
+            $rec = $byId[$id]
+            $x = ConvertTo-UtmNumber $rec.UtmX
+            $y = ConvertTo-UtmNumber $rec.UtmY
+            if ($null -eq $x -or $null -eq $y) { $noCoords += $id; continue }
+            $ll = Convert-UtmToLatLon $x $y 31 $true
+            [void]$points.Add([pscustomobject]@{
+                Id      = $id
+                Address = (Format-EmpAddress $rec.TipusVia $rec.Carrer $rec.Numero $rec.Lletra)
+                Lat     = $ll.Lat
+                Lon     = $ll.Lon
+            })
+        }
+        $warns = @()
+        if (@($missing).Count -gt 0)  { $warns += "No trobats a la base de dades: $($missing -join ', ')" }
+        if (@($noCoords).Count -gt 0) { $warns += "Sense coordenades UTM (no es poden situar): $($noCoords -join ', ')" }
+
+        if (@($warns).Count -eq 0) {
+            $done = $true   # tot net, fora del bucle
+            continue
+        }
+
+        $choice = Show-WarningsDialog $warns @($points).Count @($ids).Count
+        if     ($choice -eq 'continue') { $done = $true }    # segueix amb el que hi ha
+        elseif ($choice -eq 'edit')     { }                  # re-itera (mostra el formulari)
+        else                            { return }           # cancel·la o tanca el dialeg
     }
 
-    # 5. Avisar de problemes.
-    $warns = @()
-    if (@($missing).Count -gt 0)  { $warns += "No trobats a la base de dades: $($missing -join ', ')" }
-    if (@($noCoords).Count -gt 0) { $warns += "Sense coordenades UTM (no es poden situar): $($noCoords -join ', ')" }
-    if (@($points).Count -eq 0) {
-        Show-Info ("No s'ha pogut situar cap activitat al mapa.`n`n" + ($warns -join "`n")) 'Rutes' 'Warning'
-        return
-    }
+    if ($null -eq $points -or @($points).Count -eq 0) { return }
 
     # 5b. Tractem la BASE de sortida (per defecte Carrer Energia 97). Dues
     # opcions:
@@ -943,14 +1045,14 @@ function Invoke-RutaMain {
     # 9. Obrir al navegador.
     Start-Process $outPath
 
-    # 10. Resum.
+    # 10. Resum. Els avisos (IDs no trobats, etc.) ja els ha vist l'usuari
+    # abans de generar; aqui posem nomes informacio de la ruta.
     $summary = "Ruta generada amb $(@($stops).Count) parada(es)."
     if ($mode -eq 'xarxa') {
         $summary += "`nDistancia: $([math]::Round($distanceM/1000.0,1)) km, temps aprox. $([math]::Round($durationS/60.0)) min."
     } elseif ($mode -eq 'aproximada') {
         $summary += "`n(Ruta aproximada en linia recta: sense connexio al servidor de rutes.)"
     }
-    if (@($warns).Count -gt 0) { $summary += "`n`nAvisos:`n" + ($warns -join "`n") }
     $summary += "`n`nFitxer: $outPath`nObre'l i fes 'Imprimir / Desar com a PDF' per tenir-la en PDF."
     Show-Info $summary 'Ruta generada' 'Information'
 }
