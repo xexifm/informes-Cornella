@@ -451,15 +451,6 @@ function Build-RouteHtml($stops, $geometry, [double]$distanceM, [double]$duratio
     /* El panell lateral pot tenir scroll en pantalla; en imprimir el
        desplegem perque es vegi sencer al costat del mapa. */
     #side { overflow: visible !important; }
-    /* Garanteix que el mapa NO es col·lapsi a 0 mai (era el motiu pel
-       qual desapareixia: en alguns navegadors la combinacio de flex +
-       canvi de viewport portava el contenidor a una altura nul·la abans
-       que Leaflet redibuixes els tiles). */
-    #wrap { min-height: 160mm !important; height: auto !important; }
-    #map  { min-height: 150mm !important; min-width: 140mm !important; }
-    /* Les tiles del mapa SON imatges: cal forçar-ne la impressio (algun
-       navegador les considera background-images i no les imprimeix). */
-    .leaflet-tile { opacity: 1 !important; }
   }
 </style>
 </head>
@@ -483,7 +474,7 @@ $rows
   </div>
 </div>
 <div id="bar">
-  <button id="btnPrint">&#128424;&#65039; Imprimir / Desar com a PDF</button>
+  <button onclick="window.print()">&#128424;&#65039; Imprimir / Desar com a PDF</button>
   <span style="font-size:12px;color:#555;">Al dialeg: orientacio <b>Horitzontal</b>, marca <b>Grafics de fons</b> (perque s'imprimeixin els colors) i tria <b>Desar com a PDF</b> / <b>Microsoft Print to PDF</b>.</span>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
@@ -499,16 +490,8 @@ $rows
     zoomDelta: 0.5,
     wheelPxPerZoomLevel: 120
   });
-  // keepBuffer alt + updateWhenIdle:false fan que Leaflet tingui sempre
-  // tiles precarregats al voltant de la zona visible. Aixi, quan el
-  // contenidor canvia de mida (per ex. al passar a impressio), no queda
-  // cap regio del mapa sense pintar mentre arriben els tiles nous.
-  var tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; OpenStreetMap',
-    keepBuffer: 8,
-    updateWhenIdle: false,
-    crossOrigin: true
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: '&copy; OpenStreetMap'
   }).addTo(map);
 
   var bounds = [];
@@ -574,54 +557,29 @@ $rows
     map.setView([41.355, 2.073], 14);
   }
 
-  // Imprimir EXACTAMENT el que es veu: en passar de pantalla a A4 la caixa
-  // del mapa canvia de mida (i sovint d'aspect-ratio). Si preservessim
-  // nomes "centre + zoom", la mateixa zona apareixeria desplacada (el que
-  // l'usuari veia a l'esquerra/dreta queda fora del nou tall). Aixi que
-  // preservem els BOUNDS (l'area geografica visible) i fem fitBounds a la
-  // nova mida: aixi la mateixa zona segueix sent visible, encara que el
-  // zoom resultant variï una mica.
-  //
-  // Bug que arreglem aqui: si el snapshot d'impressio es feia immediatament
-  // (i Leaflet encara no havia tornat a calcular tiles per la nova mida),
-  // el mapa sortia en BLANC. La solucio:
-  //   a) Capturem els bounds en CLICAR el boto (no en 'beforeprint'),
-  //      perque sigui exactament el que l'usuari acaba de veure.
-  //   b) Forcem invalidateSize + fitBounds + redraw del tileLayer.
-  //   c) Donem ~120 ms perque arribin els tiles abans de cridar
-  //      window.print() (Chrome/Edge llavors fan el snapshot amb el mapa
-  //      ja pintat). Amb keepBuffer:8 al tileLayer, la majoria ja estan
-  //      en memoria.
-  var _savedBounds = null;
-  function _refitMapToSavedBounds() {
-    if (!_savedBounds) return;
+  // En imprimir, el navegador canvia la mida de la pagina (viewport de
+  // pantalla -> caixa A4). Desem el centre/zoom actuals abans d'imprimir,
+  // deixem que Leaflet refaci el layout (invalidateSize) i tornem a centrar
+  // en el mateix punt amb el mateix zoom, sense animacio. Es el comportament
+  // que mostra el mapa de forma fiable (pot quedar lleugerament descentrat
+  // segons la relacio d'aspecte, pero SEMPRE es veu).
+  var _savedView = null;
+  function _fixMapForPrint() {
+    _savedView = { center: map.getCenter(), zoom: map.getZoom() };
     map.invalidateSize(false);
-    map.fitBounds(_savedBounds, { animate: false, padding: [5, 5] });
-    if (tileLayer && tileLayer.redraw) tileLayer.redraw();
+    map.setView(_savedView.center, _savedView.zoom, { animate: false });
   }
   function _restoreMapAfterPrint() {
-    var b = _savedBounds; _savedBounds = null;
     map.invalidateSize(false);
-    if (b) map.fitBounds(b, { animate: false, padding: [5, 5] });
+    if (_savedView) map.setView(_savedView.center, _savedView.zoom, { animate: false });
   }
-  // Capturem els bounds JA en el moment del clic, abans del print().
-  document.getElementById('btnPrint').addEventListener('click', function () {
-    _savedBounds = map.getBounds();
-    tileLayer.redraw();   // demana tiles per la zona visible YA
-    // Petit retard perque Leaflet acabi de dibuixar + arribin tiles.
-    setTimeout(function () { window.print(); }, 120);
-  });
-  // beforeprint i matchMedia('print') ens donen 2 oportunitats mes:
-  // el navegador encara no ha fet el snapshot, i el layout d'A4 ja esta
-  // aplicat. Forcem el refit perque la mida nova quedi ben dibuixada.
-  window.addEventListener('beforeprint', _refitMapToSavedBounds);
+  window.addEventListener('beforeprint', _fixMapForPrint);
   window.addEventListener('afterprint',  _restoreMapAfterPrint);
+  // matchMedia complementa beforeprint/afterprint en alguns navegadors
+  // (Safari historicament, i com a xarxa de seguretat per a Chrome/Edge).
   if (window.matchMedia) {
     var mql = window.matchMedia('print');
-    var mqlHandler = function (e) {
-      if (e.matches) _refitMapToSavedBounds();
-      else _restoreMapAfterPrint();
-    };
+    var mqlHandler = function (e) { if (e.matches) _fixMapForPrint(); else _restoreMapAfterPrint(); };
     if (mql.addEventListener) mql.addEventListener('change', mqlHandler);
     else if (mql.addListener) mql.addListener(mqlHandler);
   }
