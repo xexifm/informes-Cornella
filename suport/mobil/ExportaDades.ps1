@@ -162,6 +162,19 @@ function Export-ActivitatsCmd {
         Write-Host "  (cap Excel d'activitats trobat; ometo l'exportacio d'activitats)"
         return
     }
+
+    # Comprovacio RAPIDA abans d'obrir l'Excel (que es la part lenta): si el
+    # Drive ja te una base d'activitats amb la mateixa data (o mes nova), no
+    # cal exportar res. Aixi Actualitzar.bat no triga obrint l'Excel ni pujant
+    # un fitxer identic cada vegada. Nomes exportem si la base local es MES NOVA.
+    $localDate = if ($latest.Date) { $latest.Date } else { [datetime]::MinValue }
+    $driveDate = Get-DriveActivitatsDate
+    if (-not (Test-ShouldExportActivitats $localDate $driveDate)) {
+        Write-Host ("  El Drive ja esta al dia ({0}); ometo l'exportacio (la base local es {1})." -f $driveDate.ToString('yyyy-MM-dd'), $localDate.ToString('yyyy-MM-dd'))
+        return
+    }
+
+    Write-Host ("  La base local ({0}) es mes nova que la del Drive ({1}); exporto..." -f $localDate.ToString('yyyy-MM-dd'), $(if ($driveDate -le [datetime]::MinValue) { 'cap' } else { $driveDate.ToString('yyyy-MM-dd') }))
     $cache = Initialize-ActivitatsCache -excelFile $latest.File
     $ok = Export-ActivitatsToDrive $cache $latest
     if ($ok) {

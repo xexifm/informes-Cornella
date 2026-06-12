@@ -47,6 +47,22 @@ $d2 = _FormatDateOnly '15/03/2023 9:30:00'
 Assert ($d2 -match '^\d{2}/\d{2}/\d{4}$') "_FormatDateOnly text amb hora -> nomes data (obtingut '$d2')"
 AssertEq (_FormatDateOnly $null)             ''                '_FormatDateOnly null -> buit'
 
+Write-Host "`n--- _ParseActivitatsDate (data de l'activitats.json del Drive) ---"
+$pd1 = _ParseActivitatsDate ([pscustomobject]@{ SourceDate = '2026-06-01' })
+AssertEq ($pd1.ToString('yyyy-MM-dd')) '2026-06-01' '_ParseActivitatsDate llegeix SourceDate'
+$pd2 = _ParseActivitatsDate ([pscustomobject]@{ Source = '2026-05-29 ACTIVITATS.xlsx' })
+AssertEq ($pd2.ToString('yyyy-MM-dd')) '2026-05-29' '_ParseActivitatsDate fallback al nom Source'
+Assert ((_ParseActivitatsDate ([pscustomobject]@{ x = 1 })) -eq [datetime]::MinValue) '_ParseActivitatsDate sense data -> MinValue'
+Assert ((_ParseActivitatsDate $null) -eq [datetime]::MinValue) '_ParseActivitatsDate null -> MinValue'
+
+Write-Host "`n--- Test-ShouldExportActivitats (skip si el Drive ja esta al dia) ---"
+$dLocal = [datetime]'2026-06-01'
+Assert (-not (Test-ShouldExportActivitats $dLocal ([datetime]'2026-06-01'))) 'mateixa data -> NO exporta (skip)'
+Assert (-not (Test-ShouldExportActivitats $dLocal ([datetime]'2026-06-05'))) 'Drive mes nou -> NO exporta'
+Assert (Test-ShouldExportActivitats $dLocal ([datetime]'2026-05-20'))        'local mes nova -> exporta'
+Assert (Test-ShouldExportActivitats $dLocal ([datetime]::MinValue))          'Drive sense base -> exporta'
+Assert (Test-ShouldExportActivitats ([datetime]::MinValue) ([datetime]'2026-06-01')) 'sense data local fiable -> exporta (per seguretat)'
+
 Write-Host "`n--- _ItemKey ---"
 AssertEq (_ItemKey 'Sec' 'Item')             'Sec::Item'       '_ItemKey 2 parts'
 AssertEq (_ItemKey 'Sec' 'Item' 'Fill')      'Sec::Item::Fill' '_ItemKey 3 parts'

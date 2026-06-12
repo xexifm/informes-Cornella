@@ -512,6 +512,42 @@ function _ParseActivitatsDate($obj) {
     return [datetime]::MinValue
 }
 
+# Decideix si cal exportar la base d'activitats al Drive. Nomes cal si la base
+# LOCAL es MES NOVA que la que ja hi ha al Drive. Si tenen la mateixa data (o
+# la del Drive es mes nova), NO cal: ens estalviem obrir l'Excel i pujar un
+# fitxer identic. Funcio pura (provable).
+#   $localDate    : data del fitxer Excel local (del nom YYYY-MM-DD).
+#   $existingDate : data de l'activitats.json que ja hi ha al Drive.
+function Test-ShouldExportActivitats([datetime]$localDate, [datetime]$existingDate) {
+    # Si no tenim una data local fiable, exportem (no podem decidir res).
+    if ($localDate -le [datetime]::MinValue) { return $true }
+    return ($localDate -gt $existingDate)
+}
+
+# Llegeix la data (SourceDate) de l'activitats.json que ja hi ha al Drive,
+# SENSE obrir l'Excel. Funciona tant en mode API com en mode carpeta local
+# sincronitzada. Retorna [datetime]::MinValue si no n'hi ha o no es pot llegir
+# (es fail-safe: qualsevol error -> MinValue, que fa que s'exporti).
+function Get-DriveActivitatsDate {
+    try {
+        if (Test-DriveApiConfigured) {
+            if (-not $DriveDadesId) { return [datetime]::MinValue }
+            $existingId = Find-DriveFileId 'activitats.json' $DriveDadesId
+            if (-not $existingId) { return [datetime]::MinValue }
+            $existing = (Get-DriveFileText $existingId) | ConvertFrom-Json
+            return _ParseActivitatsDate $existing
+        }
+        $outFile = Join-Path $DriveDadesDir 'activitats.json'
+        if (Test-Path -LiteralPath $outFile) {
+            $existing = (Get-Content -LiteralPath $outFile -Raw -Encoding UTF8) | ConvertFrom-Json
+            return _ParseActivitatsDate $existing
+        }
+        return [datetime]::MinValue
+    } catch {
+        return [datetime]::MinValue
+    }
+}
+
 # Exporta la base de dades d'activitats (nomes els camps de capcalera, per ID
 # GIA) a un JSON dins la carpeta PRIVADA de Drive, perque el mobil pugui
 # auto-emplenar la capcalera. Aquestes dades son personals i NO van mai al
@@ -524,6 +560,17 @@ function Export-ActivitatsToDrive($cache, $latest) {
     try {
         if ($null -eq $cache -or $null -eq $cache.ById) { return $false }
         $localDate = if ($latest -and $latest.Date) { $latest.Date } else { [datetime]::MinValue }
+
+        # No tornar a exportar si el Drive ja te una base amb la MATEIXA data
+        # (o mes nova, pujada des d'un altre PC). Aixi no es sobreescriu una
+        # versio mes nova ni es perd temps pujant una d'identica. La data del
+        # Drive es llegeix del propi activitats.json (camp SourceDate).
+        $existingDate = Get-DriveActivitatsDate
+        if (-not (Test-ShouldExportActivitats $localDate $existingDate)) {
+            Write-Host ("  El Drive ja esta al dia ({0}); no cal tornar a exportar (local {1})." -f $existingDate.ToString('yyyy-MM-dd'), $localDate.ToString('yyyy-MM-dd'))
+            return $true
+        }
+
         $payload = [ordered]@{
             GeneratedAt = (Get-Date).ToString('o')
             Source      = if ($latest) { $latest.File.Name } else { '' }
@@ -541,18 +588,6 @@ function Export-ActivitatsToDrive($cache, $latest) {
                 Write-Host "Avis: hi ha credencials de Drive pero falta \$DriveDadesId a config.ps1. No s'exporten activitats."
                 return $false
             }
-            # No sobreescriure una base MES NOVA ja present al Drive.
-            try {
-                $existingId = Find-DriveFileId 'activitats.json' $DriveDadesId
-                if ($existingId) {
-                    $existing = (Get-DriveFileText $existingId) | ConvertFrom-Json
-                    $existingDate = _ParseActivitatsDate $existing
-                    if ($existingDate -gt $localDate) {
-                        Write-Host ("  El Drive ja te una base mes nova ({0}) que la local ({1}); no la sobreescric." -f $existingDate.ToString('yyyy-MM-dd'), $localDate.ToString('yyyy-MM-dd'))
-                        return $true
-                    }
-                }
-            } catch { }   # si no es pot comprovar, continuem i pugem
             Save-DriveJson 'activitats.json' $DriveDadesId $json | Out-Null
             return $true
         }
@@ -561,17 +596,6 @@ function Export-ActivitatsToDrive($cache, $latest) {
             New-Item -ItemType Directory -Path $DriveDadesDir -Force | Out-Null
         }
         $outFile = Join-Path $DriveDadesDir 'activitats.json'
-        # Mateixa proteccio en mode carpeta local.
-        if (Test-Path -LiteralPath $outFile) {
-            try {
-                $existing = (Get-Content -LiteralPath $outFile -Raw -Encoding UTF8) | ConvertFrom-Json
-                $existingDate = _ParseActivitatsDate $existing
-                if ($existingDate -gt $localDate) {
-                    Write-Host ("  La copia del Drive ja te una base mes nova ({0}) que la local ({1}); no la sobreescric." -f $existingDate.ToString('yyyy-MM-dd'), $localDate.ToString('yyyy-MM-dd'))
-                    return $true
-                }
-            } catch { }
-        }
         $json | Set-Content -LiteralPath $outFile -Encoding UTF8
         return $true
     } catch {
