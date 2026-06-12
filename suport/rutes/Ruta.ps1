@@ -62,6 +62,12 @@ $OsrmBaseUrl   = 'https://router.project-osrm.org'
 # ruta comenca per la primera activitat que escriguis a la llista.
 $RutaOrigenUtmX = 424456.0   # Carrer Energia 97
 $RutaOrigenUtmY = 4578205.0  # Carrer Energia 97
+# Etiqueta que apareix a la "Parada 0" de la ruta quan surts des de la base.
+$RutaOrigenLabel = "Carrer de l'Energia, 97"
+# Per defecte la casella "Sortir des de la BASE i tornar-hi" surt MARCADA
+# (la ruta comenca i acaba literalment a $RutaOrigen). Si la desmarques (o
+# poses $false aqui), la ruta comenca per l'activitat mes propera a la base.
+$RutaSortirDesDeBaseDefault = $true
 
 # config.ps1 viu a suport/ (la carpeta de codi compartit). Opcional.
 $configPath = Join-Path $SuportDir 'config.ps1'
@@ -228,6 +234,21 @@ function Get-NearestPointIndex($points, [double]$originLat, [double]$originLon) 
     return $best
 }
 
+# Crea el punt sintetic que representa la BASE de sortida (per defecte
+# Carrer Energia 97). Aquest punt te Id='BASE' i el detectem mes endavant
+# al renderitzar el mapa per pintar-lo amb un color diferent. Es tracta com
+# qualsevol altra parada per OSRM i pel TSP local; com que es el primer punt,
+# tant 'source=first' (OSRM) com el TSP local el deixen com a inici. La ruta
+# circular hi tornara al final.
+function New-BaseStop([double]$lat, [double]$lon, [string]$label) {
+    return [pscustomobject]@{
+        Id      = 'BASE'
+        Address = $label
+        Lat     = $lat
+        Lon     = $lon
+    }
+}
+
 # Reordena la llista de punts perque el mes proper a l'origen quedi el PRIMER
 # (la resta conserva l'ordre relatiu). Aixi la ruta circular comenca i acaba
 # a prop de la base. Retorna una nova llista (array). Si no hi ha origen valid
@@ -368,7 +389,8 @@ function Build-RouteHtml($stops, $geometry, [double]$distanceM, [double]$duratio
     foreach ($s in $stops) {
         $addr = _HtmlEncode $s.Address
         if ([string]::IsNullOrWhiteSpace($addr)) { $addr = '<i>(sense adreca)</i>' }
-        $rows += "<tr><td class='num'>$($s.Order)</td><td class='id'>$(_HtmlEncode ([string]$s.Id))</td><td>$addr</td></tr>`n"
+        $rowClass = if ([string]$s.Id -eq 'BASE') { " class='base'" } else { '' }
+        $rows += "<tr$rowClass><td class='num'>$($s.Order)</td><td class='id'>$(_HtmlEncode ([string]$s.Id))</td><td>$addr</td></tr>`n"
     }
 
     $today = (Get-Date).ToString('dd/MM/yyyy HH:mm')
@@ -398,6 +420,8 @@ function Build-RouteHtml($stops, $geometry, [double]$distanceM, [double]$duratio
   th { background: #f3f5f8; position: sticky; top: 0; }
   td.num { font-weight: bold; color: #fff; }
   tr td.num { background: #c0392b; text-align: center; width: 30px; border-radius: 0; }
+  tr.base td.num { background: #14365c; }  /* fila de la BASE (Parada 0) en blau */
+  tr.base td.id { color: #14365c; font-weight: bold; }
   td.id { font-family: Consolas, monospace; color: #14365c; white-space: nowrap; }
   #bar { padding: 8px 16px; border-top: 1px solid #ddd; display: flex; gap: 10px; align-items: center; }
   button { background: #14365c; color: #fff; border: 0; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 14px; }
@@ -406,6 +430,7 @@ function Build-RouteHtml($stops, $geometry, [double]$distanceM, [double]$duratio
                 width: 26px; height: 26px; line-height: 22px; text-align: center; font-weight: bold;
                 box-shadow: 0 1px 4px rgba(0,0,0,.4); font-size: 13px; }
   .marker-start { background: #1e8449; }
+  .marker-base  { background: #14365c; }   /* punt 0 = BASE de sortida (blau) */
   /* Forcem que els colors de fons (capcalera blava, badges vermells, etc.) i
      les imatges (tiles del mapa) NO es perdin en imprimir. Sense aixo, la
      majoria de navegadors imprimeixen el fons en blanc per defecte. */
@@ -457,7 +482,14 @@ $rows
 <script>
   var stops = $stopsJson;
   var routeGeom = $geomJson;
-  var map = L.map('map');
+  // Zoom sensible: zoomSnap/zoomDelta fraccionaris permeten passos petits,
+  // wheelPxPerZoomLevel alt fa que la roda del ratoli no salti d'un nivell
+  // sencer cada vegada. Asi el zoom es mes suau i pots afinar la vista.
+  var map = L.map('map', {
+    zoomSnap: 0.25,
+    zoomDelta: 0.5,
+    wheelPxPerZoomLevel: 120
+  });
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19, attribution: '&copy; OpenStreetMap'
   }).addTo(map);
@@ -483,10 +515,16 @@ $rows
     return [dLat, dLon];
   }
 
+  // Hi ha BASE (sortida)? Si si, no marquem cap activitat com a "start"
+  // verd; el blau de la BASE ja indica clarament l'inici/final del cicle.
+  var hasBase = stops.some(function (s) { return s.id === 'BASE'; });
+
   stops.forEach(function (s, i) {
-    var isStart = (s.order === 1);
+    var isBase  = (s.id === 'BASE');
+    var isStart = (!hasBase) && (s.order === 1);
+    var cls = 'marker-num' + (isBase ? ' marker-base' : (isStart ? ' marker-start' : ''));
     var icon = L.divIcon({
-      className: '', html: '<div class="marker-num' + (isStart ? ' marker-start' : '') + '">' + s.order + '</div>',
+      className: '', html: '<div class="' + cls + '">' + s.order + '</div>',
       iconSize: [26, 26], iconAnchor: [13, 13]
     });
     var addr = s.address && s.address.length ? s.address : '(sense adreca)';
@@ -499,9 +537,12 @@ $rows
     var note = grp.length > 1
       ? "<br><i>(parades superposades a l'Excel: mateixes coordenades. Marcador desplacat per veure-les totes.)</i>"
       : '';
+    var title = isBase
+      ? '<b>BASE</b> &mdash; punt 0 (sortida i tornada)'
+      : '<b>Parada ' + s.order + '</b><br>ID ' + s.id;
     L.marker([displayLat, displayLon], { icon: icon })
      .addTo(map)
-     .bindPopup('<b>Parada ' + s.order + '</b><br>ID ' + s.id + '<br>' + addr + note);
+     .bindPopup(title + '<br>' + addr + note);
     bounds.push([s.lat, s.lon]);
   });
 
@@ -516,28 +557,32 @@ $rows
     map.setView([41.355, 2.073], 14);
   }
 
-  // Quan l'usuari imprimeix, el navegador canvia mides de la pagina (fora
-  // del viewport en pantalla -> caixa de pagina A4). Leaflet, sense ajuda,
-  // veu el canvi de mida i recalcula tiles, sovint quedant-se en gris o
-  // perdent el centre. Aixi que: desem el centre/zoom actuals abans
-  // d'imprimir, deixem que Leaflet refaci el layout (invalidateSize) i
-  // tornem a centrar EXACTAMENT en el mateix punt amb el mateix zoom. Tot
-  // sincron i sense animacio per garantir que el snapshot d'impressio veu
-  // el mapa quiet i complet. Despres restaurem.
-  var _savedView = null;
+  // Imprimir EXACTAMENT el que es veu: en passar de pantalla a A4 la caixa
+  // del mapa canvia de mida (i sovint d'aspect-ratio). Si preservessim
+  // nomes "centre + zoom", la mateixa zona apareixeria desplacada (el que
+  // l'usuari veia a l'esquerra/dreta queda fora del nou tall). Aixi que
+  // preservem els BOUNDS (l'area geografica visible) i fem fitBounds a la
+  // nova mida: aixi la mateixa zona segueix sent visible, encara que el
+  // zoom resultant variï una mica. Es desen NOMES un cop (el primer trigger),
+  // perque a la 2a crida la mida ja ha canviat i getBounds donaria valors
+  // diferents.
+  var _savedBounds = null;
   function _fixMapForPrint() {
-    _savedView = { center: map.getCenter(), zoom: map.getZoom() };
+    if (!_savedBounds) _savedBounds = map.getBounds();
     map.invalidateSize(false);
-    map.setView(_savedView.center, _savedView.zoom, { animate: false });
+    map.fitBounds(_savedBounds, { animate: false, padding: [5, 5] });
   }
   function _restoreMapAfterPrint() {
+    var b = _savedBounds; _savedBounds = null;
     map.invalidateSize(false);
-    if (_savedView) map.setView(_savedView.center, _savedView.zoom, { animate: false });
+    if (b) map.fitBounds(b, { animate: false, padding: [5, 5] });
   }
   window.addEventListener('beforeprint', _fixMapForPrint);
   window.addEventListener('afterprint',  _restoreMapAfterPrint);
   // matchMedia complementa beforeprint/afterprint en alguns navegadors
-  // (Safari historicament, i com a xarxa de seguretat per a Chrome/Edge).
+  // (Safari historicament, i com a xarxa de seguretat per a Chrome/Edge):
+  // fa de 2n disparador despres del reflow de pagina, on les mides ja son
+  // les definitives d'A4 i el fitBounds queda perfecte.
   if (window.matchMedia) {
     var mql = window.matchMedia('print');
     var mqlHandler = function (e) { if (e.matches) _fixMapForPrint(); else _restoreMapAfterPrint(); };
@@ -662,10 +707,10 @@ function Invoke-OsrmTrip($points) {
 
 # Finestra per escriure/enganxar la llista d'IDs. Retorna l'array d'IDs o
 # $null si l'usuari cancel·la.
-function Show-IdInputForm([string]$dbLabel) {
+function Show-IdInputForm([string]$dbLabel, [string]$baseLabel, [bool]$startFromBaseDefault) {
     $form = New-Object System.Windows.Forms.Form
     $form.Text = "Planificador de rutes d'inspeccio"
-    $form.Size = New-Object System.Drawing.Size(520, 420)
+    $form.Size = New-Object System.Drawing.Size(520, 470)
     $form.StartPosition = 'CenterScreen'
     $form.FormBorderStyle = 'FixedDialog'
     $form.MaximizeBox = $false; $form.MinimizeBox = $false
@@ -693,10 +738,29 @@ function Show-IdInputForm([string]$dbLabel) {
     $txt.Font = New-Object System.Drawing.Font('Consolas', 11)
     $form.Controls.Add($txt)
 
+    # Casella: sortir des de la BASE (i tornar-hi). Per defecte marcada.
+    # Si NO esta marcada, el primer punt de la ruta sera l'activitat mes
+    # propera a la base (comportament anterior).
+    $chkBase = New-Object System.Windows.Forms.CheckBox
+    $chkBase.Text = "Sortir des de la BASE ($baseLabel) i tornar-hi"
+    $chkBase.AutoSize = $false
+    $chkBase.Size = New-Object System.Drawing.Size(480, 22)
+    $chkBase.Location = New-Object System.Drawing.Point(15, 338)
+    $chkBase.Checked = $startFromBaseDefault
+    $form.Controls.Add($chkBase)
+
+    $lblHint = New-Object System.Windows.Forms.Label
+    $lblHint.Text = "Si la desmarques: el primer punt sera l'activitat mes propera a la base, pero la ruta NO comencara expressament des d'alla."
+    $lblHint.AutoSize = $false
+    $lblHint.Size = New-Object System.Drawing.Size(480, 32)
+    $lblHint.Location = New-Object System.Drawing.Point(35, 360)
+    $lblHint.ForeColor = [System.Drawing.Color]::FromArgb(90, 90, 90)
+    $form.Controls.Add($lblHint)
+
     $btnOk = New-Object System.Windows.Forms.Button
     $btnOk.Text = 'Generar ruta'
     $btnOk.Size = New-Object System.Drawing.Size(120, 32)
-    $btnOk.Location = New-Object System.Drawing.Point(255, 338)
+    $btnOk.Location = New-Object System.Drawing.Point(255, 396)
     $btnOk.DialogResult = [System.Windows.Forms.DialogResult]::OK
     $form.Controls.Add($btnOk)
     $form.AcceptButton = $btnOk
@@ -704,14 +768,17 @@ function Show-IdInputForm([string]$dbLabel) {
     $btnCancel = New-Object System.Windows.Forms.Button
     $btnCancel.Text = 'Cancel·lar'
     $btnCancel.Size = New-Object System.Drawing.Size(120, 32)
-    $btnCancel.Location = New-Object System.Drawing.Point(380, 338)
+    $btnCancel.Location = New-Object System.Drawing.Point(380, 396)
     $btnCancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
     $form.Controls.Add($btnCancel)
     $form.CancelButton = $btnCancel
 
     $result = $form.ShowDialog()
     if ($result -ne [System.Windows.Forms.DialogResult]::OK) { return $null }
-    return ConvertFrom-IdList $txt.Text
+    return [pscustomobject]@{
+        Ids           = ConvertFrom-IdList $txt.Text
+        StartFromBase = [bool]$chkBase.Checked
+    }
 }
 
 function Show-Info([string]$msg, [string]$title = 'Rutes', [string]$icon = 'Information') {
@@ -738,9 +805,11 @@ function Invoke-RutaMain {
         "Base de dades: $($xls.File.Name)"
     }
 
-    # 2. Demanar la llista d'IDs.
-    $ids = Show-IdInputForm $dbLabel
-    if ($null -eq $ids) { return }
+    # 2. Demanar la llista d'IDs + opcio de sortir des de la BASE.
+    $formResult = Show-IdInputForm $dbLabel $RutaOrigenLabel ([bool]$RutaSortirDesDeBaseDefault)
+    if ($null -eq $formResult) { return }
+    $ids           = $formResult.Ids
+    $startFromBase = [bool]$formResult.StartFromBase
     if (@($ids).Count -eq 0) {
         Show-Info "No has indicat cap ID Activitat." 'Rutes' 'Warning'
         return
@@ -782,17 +851,31 @@ function Invoke-RutaMain {
         return
     }
 
-    # 5b. La ruta ha de comencar per l'activitat mes propera a la base
-    # (per defecte Carrer Energia 97). Reordenem perque quedi la primera; com
-    # que tant OSRM (source=first) com el TSP local comencen pel punt 0, amb
-    # aixo n'hi ha prou.
+    # 5b. Tractem la BASE de sortida (per defecte Carrer Energia 97). Dues
+    # opcions:
+    #   (a) $startFromBase = $true  -> afegim un punt sintetic 'BASE' com a
+    #       primer punt. Tant OSRM (source=first) com el TSP local arrenquen
+    #       pel punt 0, aixi que la ruta comenca i acaba LITERALMENT a la
+    #       base. Es el cas per defecte.
+    #   (b) $startFromBase = $false -> nomes reordenem: el primer punt es
+    #       l'activitat mes propera a la base, pero no s'hi surt expressament.
     $oX = ConvertTo-UtmNumber $RutaOrigenUtmX
     $oY = ConvertTo-UtmNumber $RutaOrigenUtmY
+    $hasBase = $false
     if ($null -ne $oX -and $null -ne $oY -and $oX -ne 0 -and $oY -ne 0) {
         $origin = Convert-UtmToLatLon $oX $oY 31 $true
-        $reordered = Set-StartNearest $points $origin.Lat $origin.Lon
-        $points = New-Object System.Collections.ArrayList
-        foreach ($p in $reordered) { [void]$points.Add($p) }
+        if ($startFromBase) {
+            $base = New-BaseStop $origin.Lat $origin.Lon $RutaOrigenLabel
+            $newPoints = New-Object System.Collections.ArrayList
+            [void]$newPoints.Add($base)
+            foreach ($p in $points) { [void]$newPoints.Add($p) }
+            $points = $newPoints
+            $hasBase = $true
+        } else {
+            $reordered = Set-StartNearest $points $origin.Lat $origin.Lon
+            $points = New-Object System.Collections.ArrayList
+            foreach ($p in $reordered) { [void]$points.Add($p) }
+        }
     }
 
     # 6. Calcular la ruta circular.
@@ -831,9 +914,10 @@ function Invoke-RutaMain {
         }
     }
 
-    # 7. Muntar la llista ordenada de parades (Order 1..n).
+    # 7. Muntar la llista ordenada de parades. Si hi ha BASE, es 'Parada 0'
+    # i les activitats van 1..N. Si no, comencem a 1 com sempre.
     $stops = New-Object System.Collections.ArrayList
-    $n = 1
+    $n = if ($hasBase) { 0 } else { 1 }
     foreach ($idx in $ordered) {
         $p = $points[$idx]
         [void]$stops.Add([pscustomobject]@{

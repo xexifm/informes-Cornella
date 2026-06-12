@@ -39,6 +39,15 @@ $ActivitatsDir = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\2_Contro
 #
 # $RutaOrigenUtmX = 424456
 # $RutaOrigenUtmY = 4578205
+#
+# Etiqueta de la base (apareix a la "Parada 0" del mapa quan surts d'allà):
+# $RutaOrigenLabel = "Carrer de l'Energia, 97"
+#
+# Per defecte la casella "Sortir des de la BASE i tornar-hi" del formulari
+# surt MARCADA. Posa $false aquí si vols que surti desmarcada per defecte
+# (la ruta començarà per l'activitat més propera a la base, sense passar
+# expressament per la base).
+# $RutaSortirDesDeBaseDefault = $false
 
 # Mobil (Google Drive). Carpeta sincronitzada al PC amb el Google Drive
 # d'escriptori, on:

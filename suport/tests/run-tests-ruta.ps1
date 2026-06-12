@@ -96,6 +96,26 @@ AssertEq (($re | ForEach-Object { $_.Id }) -join '') 'BAC' 'conserva l ordre rel
 $one = @([pscustomobject]@{ Id='X'; Lat=41.3; Lon=2.0 })
 AssertEq (Set-StartNearest $one $oLat $oLon)[0].Id 'X' 'amb 1 punt el deixa igual'
 
+Write-Host "`n--- New-BaseStop (punt sintetic de la BASE) ---"
+$base = New-BaseStop 41.352 2.0966 "Carrer de l'Energia, 97"
+AssertEq $base.Id      'BASE'                       'Id = BASE'
+AssertEq $base.Address "Carrer de l'Energia, 97"    'Address conserva l etiqueta'
+AssertEq ([string]$base.Lat) '41.352'               'Lat coincideix'
+AssertEq ([string]$base.Lon) '2.0966'               'Lon coincideix'
+
+Write-Host "`n--- Build-RouteHtml amb BASE com a Parada 0 ---"
+$stopsB = @(
+    [pscustomobject]@{ Order=0; Id='BASE'; Address="Carrer de l'Energia, 97"; Lat=41.352; Lon=2.0966 }
+    [pscustomobject]@{ Order=1; Id='1429'; Address='AV BAIX LLOBREGAT S/N';   Lat=41.347; Lon=2.077 }
+    [pscustomobject]@{ Order=2; Id='1427'; Address='C QUINTANA I MILLAS 7 9'; Lat=41.356; Lon=2.081 }
+)
+$htmlB = Build-RouteHtml $stopsB @( ,@(41.352,2.0966), ,@(41.347,2.077) ) 5000 600 'xarxa' '2026-06-11 ACTIVITATS.xlsx'
+Assert ($htmlB -match "tr class='base'")     'fila de la BASE marcada amb class=base'
+Assert ($htmlB -match '>BASE<')              'cel·la ID amb el text BASE'
+Assert ($htmlB -match 'marker-base')         'CSS .marker-base present per al punt 0'
+Assert ($htmlB -match "id.{0,3}:.{0,3}.BASE.") 'JSON stops conte id=BASE'
+Assert ($htmlB -match 'order.{0,3}:.{0,3}0,') 'JSON stops conte order=0'
+
 Write-Host "`n--- ConvertFrom-OsrmTrip ---"
 $resp = [pscustomobject]@{
     code = 'Ok'
