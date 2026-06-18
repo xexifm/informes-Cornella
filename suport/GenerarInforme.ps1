@@ -168,7 +168,26 @@ function Ensure-AppDataDir {
 # Word COM helpers
 # ----------------------------------------------------------------------------
 function New-WordApp {
-    $w = New-Object -ComObject Word.Application
+    # Crea la instancia de Word. En alguns equips (Word no instal-lat, primera
+    # execucio pendent, activacio, o COM trencat) New-Object pot FALLAR o
+    # retornar $null sense llançar excepcio. Ho detectem aqui i donem un
+    # missatge clar, en lloc de petar 800 linies mes avall amb un
+    # "metode sobre NULL" criptic.
+    $w = $null
+    try { $w = New-Object -ComObject Word.Application } catch { $w = $null }
+    if ($null -eq $w) {
+        [System.Windows.Forms.MessageBox]::Show(
+            "No s'ha pogut iniciar Microsoft Word." + [Environment]::NewLine + [Environment]::NewLine +
+            "Comprova que:" + [Environment]::NewLine +
+            "  - Word estigui instal-lat en aquest equip." + [Environment]::NewLine +
+            "  - L'hagis obert almenys un cop (per completar la primera" + [Environment]::NewLine +
+            "    configuracio i l'activacio)." + [Environment]::NewLine +
+            "  - No quedi cap finestra de Word bloquejada o demanant accio" + [Environment]::NewLine +
+            "    (tanca-les des del Gestor de tasques si cal)." + [Environment]::NewLine + [Environment]::NewLine +
+            "Aquest programa necessita Microsoft Word per generar els informes.",
+            'Microsoft Word no disponible', 'OK', 'Error') | Out-Null
+        exit 1
+    }
     $w.Visible = $false
     $w.DisplayAlerts = 0  # wdAlertsNone
     # Evita que Word obri els fitxers de xarxa en "Vista protegida", que
@@ -390,7 +409,14 @@ function _ValidateActivitatsHeaders($data, $rows, $cols) {
 #                 ACTIVITAT, EXP_NUM, NUM_ANOTACIO, DATA_ANOTACIO
 #   Warnings    : llista de cadenes amb avisos de validacio de columnes
 function Initialize-ActivitatsCache($excelFile) {
-    $excel = New-Object -ComObject Excel.Application
+    # Igual que amb Word: si Excel no esta disponible, New-Object pot fallar o
+    # retornar $null. Donem un missatge clar (aquest error es propaga a
+    # Get-HeaderData, que ja mostra "Error llegint l'Excel").
+    $excel = $null
+    try { $excel = New-Object -ComObject Excel.Application } catch { $excel = $null }
+    if ($null -eq $excel) {
+        throw "No s'ha pogut iniciar Microsoft Excel. Comprova que estigui instal-lat i obert almenys un cop."
+    }
     $excel.Visible = $false
     $excel.DisplayAlerts = $false
     try {
