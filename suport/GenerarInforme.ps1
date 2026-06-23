@@ -979,6 +979,11 @@ function Parse-Cataleg($word, $path) {
     try {
         $sections      = New-Object System.Collections.ArrayList
         $introText     = ''
+        # Paragrafs Normal/Cita que apareixen ABANS de qualsevol seccio (sense
+        # cap Heading). En un cataleg normal nomes hi ha la frase introductoria;
+        # en un informe de "cos fix" (com TERMINI.docx, sense Headings) son TOT
+        # el cos del document.
+        $fixedBodyLines = New-Object System.Collections.ArrayList
         $currentSection = $null
         $lastItem      = $null   # darrer Heading 2 'item' (per associar fills)
         $lastH2        = $null   # darrer Heading 2 sigui del tipus que sigui
@@ -1048,8 +1053,9 @@ function Parse-Cataleg($word, $path) {
             # sense dependre de regex sobre el contingut.
             $textToAdd = if ($isCita) { '[[URL]] ' + $text } else { $text }
             if ($null -eq $lastH2) {
-                if ($null -eq $currentSection -and [string]::IsNullOrWhiteSpace($introText)) {
-                    $introText = $textToAdd
+                if ($null -eq $currentSection) {
+                    [void]$fixedBodyLines.Add($textToAdd)
+                    if ([string]::IsNullOrWhiteSpace($introText)) { $introText = $textToAdd }
                 }
                 continue
             }
@@ -1059,7 +1065,16 @@ function Parse-Cataleg($word, $path) {
             }
             [void]$target.BodyLines.Add($textToAdd)
         }
-        return [pscustomobject]@{ IntroText = $introText; Sections = $sections }
+        # IsFixedBody: el document no te cap seccio (cap Heading). En aquest cas
+        # no hi ha deficiencies a triar; el cos de l'informe son directament els
+        # paragrafs Normal/Cita ($fixedBodyLines). S'usa per a informes de text
+        # fix com TERMINI.docx.
+        return [pscustomobject]@{
+            IntroText      = $introText
+            Sections       = $sections
+            IsFixedBody    = ($sections.Count -eq 0)
+            FixedBodyLines = $fixedBodyLines.ToArray()
+        }
     }
     finally {
         $doc.Close($false)
@@ -1617,37 +1632,49 @@ function _SplitTextAndUrls($line) {
 # ----------------------------------------------------------------------------
 # Step 5 - Conclusions
 # ----------------------------------------------------------------------------
-function Read-Conclusions($word, $path) {
+function Read-Conclusions($word, $path, $reportType = $null) {
     # Llegeix el fitxer 0 CONCLUSIONS.docx i retorna un PSCustomObject amb:
     #
     #   HeaderText       : text del titol del document (sol ser 'CONCLUSIONS'),
     #                      llegit del primer paragraf centrat-negreta. '' si no n'hi ha.
     #   Selectable       : llista d'objectes triables al Pas 5. Cada element:
-    #                        Title : el titol curt (Ttulo1) que es mostra a la
+    #                        Title : el titol curt (Ttulo2) que es mostra a la
     #                                checkbox del Pas 5.
     #                        Body  : el text complet del cos (paragraf Normal
-    #                                que segueix al Ttulo1) que s'imprimeix
+    #                                que segueix al Ttulo2) que s'imprimeix
     #                                si l'usuari el tria.
     #   Always           : llista de cadenes amb les frases fixes. Son els
     #                      paragrafs Normal que comencen amb '::SEMPRE:: '
     #                      (s'inclouen sempre al final del document, sense
     #                      passar pel Pas 5). El prefix s'elimina.
     #
+    # Les conclusions depenen del TIPUS D'INFORME. El fitxer s'organitza en grups
+    # (un per tipus d'informe) i $reportType (el BaseName del cataleg: 'REQ1',
+    # 'TERMINI'...) selecciona quin grup es retorna a Selectable:
+    #   - $reportType buit/null  -> es retornen TOTES les conclusions de tots els
+    #                               grups (comportament per a l'export del mobil i
+    #                               compatibilitat).
+    #   - $reportType definit     -> nomes les conclusions del grup que hi coincideix.
+    #
     # NOTES sobre el format esperat de 0 CONCLUSIONS.docx:
     #   - Primer paragraf (opcional): titol del bloc (centrat-negreta).
-    #   - Per cada conclusio triable: un paragraf Ttulo1 (titol curt) + un
-    #     paragraf Normal (cos).
-    #   - Frases fixes (al final, sempre): paragrafs Normal que comencen amb
-    #     '::SEMPRE:: '. S'imprimeixen en l'ordre del fitxer.
+    #   - Ttulo1 (Heading 1): titol del GRUP = tipus d'informe ('REQ1', 'TERMINI').
+    #   - Per cada conclusio triable del grup: un paragraf Ttulo2 (Heading 2,
+    #     titol curt) + un paragraf Normal (cos).
+    #   - Frases fixes (sempre, per a qualsevol tipus): paragrafs Normal que
+    #     comencen amb '::SEMPRE:: '. S'imprimeixen en l'ordre del fitxer.
     $empty = [pscustomobject]@{ HeaderText=''; Selectable=@(); Always=@() }
     if (-not (Test-Path -LiteralPath $path)) { return $empty }
+
+    $wantType = if ([string]::IsNullOrWhiteSpace($reportType)) { '' } else { _NormalizeText $reportType }
 
     $doc = $word.Documents.Open($path, $false, $true)
     try {
         $headerText = ''
         $selectable = New-Object System.Collections.ArrayList
         $always     = New-Object System.Collections.ArrayList
-        $pendingTitle = $null   # ultim Ttulo1 vist (esperant cos Normal)
+        $pendingTitle = $null   # ultim Ttulo2 vist (esperant cos Normal)
+        $inGroup      = ($wantType -eq '')   # dins del grup demanat (o tots si buit)
         $isFirstPara  = $true
 
         foreach ($p in $doc.Paragraphs) {
@@ -1657,11 +1684,12 @@ function Read-Conclusions($word, $path) {
             $styleName = ''
             try { $styleName = $p.Style.NameLocal } catch { }
             $isH1 = Test-StyleMatch $styleName 1
+            $isH2 = Test-StyleMatch $styleName 2
 
             # Titol del bloc: primer paragraf no buit, centrat (-jc center)
             # i amb estil Normal. Es queda nomes per ser emes per
             # _WriteConclusionsBlock.
-            if ($isFirstPara -and -not $isH1) {
+            if ($isFirstPara -and -not $isH1 -and -not $isH2) {
                 $isFirstPara = $false
                 $jc = ''
                 try { $jc = [string]$p.Format.Alignment } catch { }
@@ -1674,6 +1702,14 @@ function Read-Conclusions($word, $path) {
             $isFirstPara = $false
 
             if ($isH1) {
+                # Nou grup (tipus d'informe). Decidim si les conclusions que venen
+                # ara pertanyen al tipus demanat.
+                $inGroup = ($wantType -eq '') -or ((_NormalizeText $text) -eq $wantType)
+                $pendingTitle = $null
+                continue
+            }
+
+            if ($isH2) {
                 # Nou titol de conclusio. Si l'anterior queda sense cos, l'ignorem.
                 $pendingTitle = $text
                 continue
@@ -1688,11 +1724,14 @@ function Read-Conclusions($word, $path) {
             }
 
             if ($null -ne $pendingTitle) {
-                # Cos de la conclusio precedida pel Ttulo1.
-                [void]$selectable.Add([pscustomobject]@{
-                    Title = $pendingTitle
-                    Body  = $text
-                })
+                # Cos de la conclusio precedida pel Ttulo2. Nomes l'afegim si
+                # pertany al grup (tipus d'informe) demanat.
+                if ($inGroup) {
+                    [void]$selectable.Add([pscustomobject]@{
+                        Title = $pendingTitle
+                        Body  = $text
+                    })
+                }
                 $pendingTitle = $null
             }
             # Si no hi havia titol pendent ni '::SEMPRE::', ignorem (text
@@ -1880,7 +1919,23 @@ function _OpenOutputDocument($word, $tempPath) {
 
 # Escriu el cos del document (intro del cataleg + seccions amb items numerats).
 # Retorna el comptador global utilitzat per a la numeracio.
-function _WriteCatalegBody($sel, $cfg, $selectedSections, $fields, $introText) {
+function _WriteCatalegBody($sel, $cfg, $selectedSections, $fields, $introText, $isFixedBody = $false, $fixedBodyLines = @()) {
+    # Informe de cos fix (p.ex. TERMINI.docx): no hi ha seccions ni items a
+    # numerar; el cos son directament els paragrafs del document, amb els camps
+    # [CAMP:]/[OPCIO:] resolts i separant text/URLs com a la resta del motor.
+    if ($isFixedBody) {
+        $lines = @($fixedBodyLines)
+        for ($i = 0; $i -lt $lines.Count; $i++) {
+            $resolved = [string](Apply-Fields -text $lines[$i] -fields $fields)
+            if ([string]::IsNullOrWhiteSpace($resolved)) { continue }
+            $parts = _SplitTextAndUrls $resolved
+            if (-not [string]::IsNullOrWhiteSpace($parts.Text)) { Format-Body $sel $parts.Text }
+            foreach ($u in $parts.Urls) { Format-Url $sel $u }
+            if ($i -lt ($lines.Count - 1)) { Format-Spacer $sel }
+        }
+        return
+    }
+
     if (-not [string]::IsNullOrWhiteSpace($introText)) {
         Format-Body $sel $introText
         if ($cfg.SpacerAfterIntroParagraph) { Format-Spacer $sel }
@@ -2051,7 +2106,7 @@ function _WriteConclusionsBlock($sel, $cfg, $headerText, $conclusions, $alwaysCo
     }
 }
 
-function Build-Document($word, $header, $selectedSections, $fields, $conclusions, $alwaysConclusions, $catalegName, $introText, $conclusionsHeaderText) {
+function Build-Document($word, $header, $selectedSections, $fields, $conclusions, $alwaysConclusions, $catalegName, $introText, $conclusionsHeaderText, $isFixedBody = $false, $fixedBodyLines = @()) {
     $baseName  = _GetOutputFileName $catalegName $header['ID_GIA']
     $targetDir = _ResolveOutputDir
     # Triem el primer nom lliure al directori de sortida (afegim _2, _3...
@@ -2073,7 +2128,7 @@ function Build-Document($word, $header, $selectedSections, $fields, $conclusions
     [void]$sel.EndKey(6)  # wdStory = 6
 
     $cfg = $Script:ReportFormatConfig
-    _WriteCatalegBody $sel $cfg $selectedSections $fields $introText
+    _WriteCatalegBody $sel $cfg $selectedSections $fields $introText $isFixedBody $fixedBodyLines
     _WriteConclusionsBlock $sel $cfg $conclusionsHeaderText $conclusions $alwaysConclusions $fields
 
     $doc.Save()
@@ -2250,11 +2305,13 @@ function Invoke-GenerateFromPaquet($paquetPath) {
     try {
         $parsed   = Get-ParsedCataleg -word $word -path $catPath
         $selected = Build-SelectionFromKeys $parsed.Sections $selectedKeys
-        if ($selected.Count -eq 0) {
+        # Els informes de cos fix (p.ex. TERMINI) no seleccionen deficiencies:
+        # nomes els que tenen seccions exigeixen alguna seleccio valida.
+        if (-not $parsed.IsFixedBody -and $selected.Count -eq 0) {
             throw "El paquet no selecciona cap deficiencia valida per al cataleg '$catName'."
         }
 
-        $conclAll    = Read-Conclusions -word $word -path $ConclusionsPath
+        $conclAll    = Read-Conclusions -word $word -path $ConclusionsPath -reportType $catName
         $conclusions = Build-ConclusionsFromTitles $conclAll.Selectable $conclusionTitles
         $fields      = Build-FieldsFromPaquet $selected $conclusions $conclAll.Always $fieldValues
 
@@ -2265,7 +2322,9 @@ function Invoke-GenerateFromPaquet($paquetPath) {
                                   -alwaysConclusions $conclAll.Always `
                                   -catalegName $catName `
                                   -introText $parsed.IntroText `
-                                  -conclusionsHeaderText $conclAll.HeaderText
+                                  -conclusionsHeaderText $conclAll.HeaderText `
+                                  -isFixedBody $parsed.IsFixedBody `
+                                  -fixedBodyLines $parsed.FixedBodyLines
 
         Save-LastReport ([ordered]@{
             Version         = 1
@@ -2348,13 +2407,21 @@ function Main {
                 }
 
                 3 {
-                    $r = Select-Items -sections $st.Parsed.Sections -preloadSelectedKeys $pre.Keys
-                    if     ($r.Nav -eq 'back') { $step = 2; $dir = 'back' }
-                    elseif ($r.Nav -eq 'stay') { }   # cap seleccio: es torna a mostrar
-                    else {
-                        $st.Selected = $r.Data
-                        $pre.Keys    = Get-SelectedKeysFromResult $st.Selected
-                        $step = 4; $dir = 'fwd'
+                    if ($st.Parsed.IsFixedBody) {
+                        # Informe de cos fix (p.ex. TERMINI): no hi ha
+                        # deficiencies a triar. Saltem el Pas 3.
+                        $st.Selected = @()
+                        if ($dir -eq 'back') { $step = 2; $dir = 'back' }
+                        else                 { $step = 4; $dir = 'fwd' }
+                    } else {
+                        $r = Select-Items -sections $st.Parsed.Sections -preloadSelectedKeys $pre.Keys
+                        if     ($r.Nav -eq 'back') { $step = 2; $dir = 'back' }
+                        elseif ($r.Nav -eq 'stay') { }   # cap seleccio: es torna a mostrar
+                        else {
+                            $st.Selected = $r.Data
+                            $pre.Keys    = Get-SelectedKeysFromResult $st.Selected
+                            $step = 4; $dir = 'fwd'
+                        }
                     }
                 }
 
@@ -2364,7 +2431,9 @@ function Main {
                 # cal demanar.
                 4 {
                     if ($null -eq $st.ConclAll) {
-                        $st.ConclAll = Read-Conclusions -word $word -path $ConclusionsPath
+                        # Les conclusions triables depenen del tipus d'informe
+                        # (BaseName del cataleg: REQ1, TERMINI...).
+                        $st.ConclAll = Read-Conclusions -word $word -path $ConclusionsPath -reportType $st.Cataleg.BaseName
                     }
                     if ($st.ConclAll.Selectable.Count -eq 0) {
                         # No hi ha conclusions triables: saltem el pas.
@@ -2410,7 +2479,9 @@ function Main {
                                               -alwaysConclusions $st.ConclAll.Always `
                                               -catalegName $st.Cataleg.BaseName `
                                               -introText $st.Parsed.IntroText `
-                                              -conclusionsHeaderText $st.ConclAll.HeaderText
+                                              -conclusionsHeaderText $st.ConclAll.HeaderText `
+                                              -isFixedBody $st.Parsed.IsFixedBody `
+                                              -fixedBodyLines $st.Parsed.FixedBodyLines
 
                     # Desem les dades per poder replicar aquest informe mes endavant.
                     # Per a 'ConclusionTexts' guardem els TITOLS triats (es el que

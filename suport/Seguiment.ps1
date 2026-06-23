@@ -714,7 +714,23 @@ function _AppendConclusionParagraphsXml($xmlInfo, $headerText, $conclusions, $al
 
 # Llegeix 0 CONCLUSIONS.docx via XML (equivalent a Read-Conclusions pero sense
 # Word). Retorna { HeaderText; Selectable=@({Title;Body}); Always }.
-function Read-ConclusionsXml($path) {
+# Dedueix el tipus d'informe (REQ1, TERMINI...) a partir del nom d'un informe
+# generat. El motor anomena els fitxers "YYYY-MM-DD_<Tipus>_GIA <id>.docx"
+# (vegeu _GetOutputFileName), aixi que el tipus es el 2n segment separat per '_'.
+# Retorna '' si no es pot deduir (llavors s'ofereixen totes les conclusions).
+function _ReportTypeFromFileName($fileName) {
+    if ([string]::IsNullOrWhiteSpace($fileName)) { return '' }
+    $stem  = [System.IO.Path]::GetFileNameWithoutExtension([string]$fileName)
+    $parts = $stem -split '_'
+    if ($parts.Count -ge 2) { return $parts[1].Trim() }
+    return ''
+}
+
+function Read-ConclusionsXml($path, $reportType = $null) {
+    # Versio XML (sense Word) de Read-Conclusions. Mateixa semantica, incloent
+    # els grups per tipus d'informe: Ttulo1 (Heading 1) = tipus d'informe,
+    # Ttulo2 (Heading 2) = titol de conclusio triable. $reportType buit/null
+    # retorna TOTES les conclusions (de tots els grups).
     $empty = [pscustomobject]@{ HeaderText=''; Selectable=@(); Always=@() }
     if (-not (Test-Path -LiteralPath $path)) { return $empty }
 
@@ -722,10 +738,13 @@ function Read-ConclusionsXml($path) {
     $ns        = $xmlInfo.Ns
     $bodyParas = @(_BodyParagraphsXml $xmlInfo)
 
+    $wantType = if ([string]::IsNullOrWhiteSpace($reportType)) { '' } else { _NormalizeText $reportType }
+
     $headerText   = ''
     $selectable   = New-Object System.Collections.ArrayList
     $always       = New-Object System.Collections.ArrayList
     $pendingTitle = $null
+    $inGroup      = ($wantType -eq '')
     $isFirst      = $true
 
     foreach ($p in $bodyParas) {
@@ -736,8 +755,9 @@ function Read-ConclusionsXml($path) {
         $pStyle = $p.SelectSingleNode('w:pPr/w:pStyle', $ns)
         if ($null -ne $pStyle) { $styleVal = $pStyle.GetAttribute('val', $Script:WNS) }
         $isH1 = Test-StyleMatch $styleVal 1
+        $isH2 = Test-StyleMatch $styleVal 2
 
-        if ($isFirst -and -not $isH1) {
+        if ($isFirst -and -not $isH1 -and -not $isH2) {
             $isFirst = $false
             $jc = $p.SelectSingleNode('w:pPr/w:jc', $ns)
             $centered = ($null -ne $jc -and $jc.GetAttribute('val', $Script:WNS) -eq 'center')
@@ -745,7 +765,13 @@ function Read-ConclusionsXml($path) {
         }
         $isFirst = $false
 
-        if ($isH1) { $pendingTitle = $text; continue }
+        if ($isH1) {
+            # Nou grup (tipus d'informe).
+            $inGroup = ($wantType -eq '') -or ((_NormalizeText $text) -eq $wantType)
+            $pendingTitle = $null
+            continue
+        }
+        if ($isH2) { $pendingTitle = $text; continue }
 
         if ($text.StartsWith('::SEMPRE::')) {
             [void]$always.Add($text.Substring('::SEMPRE::'.Length).Trim())
@@ -753,7 +779,9 @@ function Read-ConclusionsXml($path) {
             continue
         }
         if ($null -ne $pendingTitle) {
-            [void]$selectable.Add([pscustomobject]@{ Title=$pendingTitle; Body=$text })
+            if ($inGroup) {
+                [void]$selectable.Add([pscustomobject]@{ Title=$pendingTitle; Body=$text })
+            }
             $pendingTitle = $null
         }
     }
@@ -1167,7 +1195,10 @@ function Invoke-SeguimentFlow {
         if ($null -eq $cut) { return }
         $conclusionStartIndex = [int]$cut.StartIndex
 
-        $conclAll = Read-ConclusionsXml $ConclusionsPath
+        # Les conclusions triables depenen del tipus d'informe original, que
+        # deduim del nom del fitxer de l'informe anterior (REQ1, TERMINI...).
+        $reportType = _ReportTypeFromFileName ([System.IO.Path]::GetFileName($sourcePath))
+        $conclAll = Read-ConclusionsXml $ConclusionsPath $reportType
 
         # Maquina de passos: 1=data, 2=comentaris, 3=conclusions, 4=camps. 5=fi.
         $st  = @{ Date=$null; Decisions=$null; Conclusions=@(); Fields=$null }

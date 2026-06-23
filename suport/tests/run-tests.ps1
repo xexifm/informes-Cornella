@@ -710,9 +710,38 @@ if (Test-Path $conc) {
     AssertEq $cx.HeaderText 'CONCLUSIONS' 'Read-ConclusionsXml: HeaderText = CONCLUSIONS'
     Assert ($cx.Selectable.Count -ge 1)   'Read-ConclusionsXml: hi ha conclusions triables'
     Assert ($cx.Always.Count -ge 1)       'Read-ConclusionsXml: hi ha frases ::SEMPRE::'
+
+    # Conclusions per TIPUS D'INFORME (grups Ttulo1: REQ1 / TERMINI).
+    $titlesOf = { param($r) @($r.Selectable | ForEach-Object { $_.Title }) }
+    $req = Read-ConclusionsXml $conc 'REQ1'
+    $ter = Read-ConclusionsXml $conc 'TERMINI'
+    $reqTitles = & $titlesOf $req
+    $terTitles = & $titlesOf $ter
+    Assert ($req.Selectable.Count -ge 1)                'Read-ConclusionsXml REQ1: te conclusions'
+    Assert ($ter.Selectable.Count -ge 1)               'Read-ConclusionsXml TERMINI: te conclusions'
+    Assert ([bool]($reqTitles -contains 'Requeriment')) 'REQ1: inclou la conclusio Requeriment'
+    Assert (-not ($reqTitles -contains 'Ampliar'))      'REQ1: NO inclou conclusions de TERMINI (Ampliar)'
+    Assert ([bool]($terTitles -contains 'Ampliar'))     'TERMINI: inclou la conclusio Ampliar'
+    Assert (-not ($terTitles -contains 'Requeriment'))  'TERMINI: NO inclou conclusions de REQ1 (Requeriment)'
+    # El total filtrat (REQ1 + TERMINI) no supera el total sense filtre.
+    Assert (($req.Selectable.Count + $ter.Selectable.Count) -le $cx.Selectable.Count) 'Filtrat per tipus <= total sense filtre'
+    # Les frases ::SEMPRE:: son globals: surten per a qualsevol tipus.
+    Assert ($req.Always.Count -ge 1)                    'REQ1: les frases ::SEMPRE:: segueixen sent globals'
+    Assert ($ter.Always.Count -ge 1)                    'TERMINI: les frases ::SEMPRE:: segueixen sent globals'
+    # Un tipus inexistent no retorna conclusions (pero si les ::SEMPRE::).
+    $none = Read-ConclusionsXml $conc 'NO_EXISTEIX'
+    AssertEq $none.Selectable.Count 0                   'Tipus inexistent: cap conclusio triable'
+    Assert ($none.Always.Count -ge 1)                   'Tipus inexistent: ::SEMPRE:: encara globals'
 } else {
     Write-Host '  (omes: no s ha trobat 0 CONCLUSIONS.docx)'
 }
+
+Write-Host "`n--- _ReportTypeFromFileName (dedueix el tipus del nom de l informe) ---"
+AssertEq (_ReportTypeFromFileName '2026-06-23_Termini_GIA 1379.docx') 'Termini' '_ReportTypeFromFileName: 2n segment'
+AssertEq (_ReportTypeFromFileName '2026-06-23_Req1_GIA 10.docx')      'Req1'    '_ReportTypeFromFileName: REQ1'
+AssertEq (_ReportTypeFromFileName 'sense_separadors')                'separadors' '_ReportTypeFromFileName: 2 segments'
+AssertEq (_ReportTypeFromFileName 'nomesun')                          ''        '_ReportTypeFromFileName: sense 2n segment -> buit'
+AssertEq (_ReportTypeFromFileName $null)                              ''        '_ReportTypeFromFileName: null -> buit'
 Write-Host "`n--- Format-Section: MAJUSCULES sense negreta ---"
 # Re-carreguem Format.ps1 perque tests anteriors han estubat Format-Section.
 . (Join-Path (Split-Path -Parent $PSScriptRoot) 'Format.ps1')

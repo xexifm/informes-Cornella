@@ -16,8 +16,9 @@ informes-Cornella/
 ├── ESTRUCTURA.md                  ← MAPA: quins fitxers fa servir cada executable
 ├── ESTRUCTURALS/                  ← plantilles del programa (les pots editar al Word)
 │   ├── 0 CAPCALERA.docx           ← capçalera fixa de l'informe
-│   ├── 0 CONCLUSIONS.docx         ← conclusions triables + fixes
-│   └── REQ1.docx                  ← catàleg de deficiències
+│   ├── 0 CONCLUSIONS.docx         ← conclusions triables (per tipus) + fixes
+│   ├── REQ1.docx                  ← catàleg de deficiències
+│   └── TERMINI.docx               ← informe de cos fix (sense deficiències a triar)
 ├── BASE DE DADES ACTIVITATS/      ← (fallback local) copia local de l'Excel quan no hi ha xarxa
 ├── Informes generats/             ← (local, gitignored) on cauen els .docx generats
 ├── Rutes generades/               ← (local, gitignored) on cauen els mapes de ruta HTML
@@ -313,18 +314,29 @@ Memòria tècnica signada per **tècnic competent**.
 
 ## 6. Editar les conclusions (`0 CONCLUSIONS.docx`)
 
+Les conclusions **depenen del tipus d'informe**. El fitxer s'organitza en
+**grups**: un `Título 1` (Heading 1) per cada tipus d'informe (el nom ha de
+coincidir amb el del catàleg: `REQ1`, `TERMINI`...), i a sota, cada conclusió
+triable d'aquell tipus com a `Título 2` (Heading 2) + un `Normal` amb el cos.
+
 Estructura del fitxer:
 
 ```
 CONCLUSIONS                                 ← Normal CENTRAT + NEGREITA  (títol del bloc)
 
-Terrassa projecte                            ← Título 1  (títol curt; surt al Pas 4)
+REQ1                                         ← Título 1  (TIPUS D'INFORME = grup)
+Terrassa projecte                            ← Título 2  (títol curt; surt al Pas 4)
 La terrassa que apareix... no forma part... ← Normal     (cos que s'imprimeix si la tries)
 
-Requeriment                                  ← Título 1
+Requeriment                                  ← Título 2
 Vist l'anterior, cal requerir l'esmena...   ← Normal
 
-...
+TERMINI                                      ← Título 1  (un altre TIPUS D'INFORME)
+Ampliar                                      ← Título 2
+Vist l'anterior... es valora ampliar...     ← Normal
+
+No ampliar                                   ← Título 2
+Vist l'anterior... es valora NO ampliar...  ← Normal
 
 ::SEMPRE:: Ho poso al seu coneixement...    ← Normal amb prefix ::SEMPRE::
 ::SEMPRE:: Cornellà de Llobregat,           ← Normal amb prefix ::SEMPRE::
@@ -333,13 +345,17 @@ Vist l'anterior, cal requerir l'esmena...   ← Normal
 ### Regles
 - **Títol del bloc** (paràgraf 1, centrat-negreta): es copia tal qual.
   Si vols canviar el text "CONCLUSIONS" per un altre, edita aquest paràgraf.
-- **Conclusions triables**: cada una és un **Título 1** (títol curt,
-  llegible al Pas 4) seguit d'un **Normal** amb el cos.
+- **Grup = tipus d'informe**: cada **Título 1** obre el grup de conclusions
+  d'un tipus d'informe. El text ha de coincidir amb el nom del catàleg
+  (`REQ1.docx` → `REQ1`, `TERMINI.docx` → `TERMINI`). Al Pas 4 només surten
+  les conclusions del tipus que estiguis fent.
+- **Conclusions triables**: dins d'un grup, cada una és un **Título 2** (títol
+  curt, llegible al Pas 4) seguit d'un **Normal** amb el cos.
 - **Parts fixes**: paràgrafs Normal que comencin amb `::SEMPRE:: `.
-  No surten al Pas 4: s'imprimeixen sempre, en l'ordre del fitxer,
-  al final de l'informe.
+  No surten al Pas 4 i són **globals** (s'imprimeixen sempre, per a qualsevol
+  tipus d'informe), en l'ordre del fitxer, al final de l'informe.
 - **Camps i opcions**: pots fer servir `[CAMP: ...]` i `[OPCIO: ...]`
-  als cossos. El Pas 5 els demana junt amb els del REQ1.
+  als cossos. El Pas 5 els demana junt amb els del catàleg.
 - **Negreta i cursiva** inline (`**...**`, `//...//`) també funcionen.
 
 ### Separació visual
@@ -416,6 +432,21 @@ Posa un altre `.docx` a `ESTRUCTURALS/` (per ex. `REQ2.docx`) amb la
 mateixa estructura del REQ1. **No pot començar per `0 `** (aquests són
 plantilles fixes: capçalera i conclusions). Si hi ha més d'un catàleg,
 el Pas 1 et deixarà triar.
+
+### Informes de **cos fix** (p. ex. `TERMINI.docx`)
+
+Si vols un tipus d'informe en què **el cos sempre és el mateix** (no es
+trien deficiències), crea el `.docx` a `ESTRUCTURALS/` **sense cap
+`Título 1/2`**: només paràgrafs `Normal` (i, si cal, `Cita` per a enllaços).
+El programa ho detecta automàticament (un catàleg sense seccions) i:
+
+- **salta el Pas 3** (no hi ha deficiencies a triar);
+- imprimeix tal qual els paràgrafs del document com a cos de l'informe
+  (amb `**negreta**`, `//cursiva//`, `[CAMP:]` i `[OPCIO:]` igual que sempre).
+
+Les conclusions d'aquest informe surten del grup de `0 CONCLUSIONS.docx` amb
+el mateix nom que el fitxer (`TERMINI.docx` → grup `Título 1` **TERMINI**),
+tal com s'explica a la secció 6.
 
 ---
 
