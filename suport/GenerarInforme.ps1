@@ -8,15 +8,15 @@
     1. L'usuari escull un cataleg de defciencies (ESTRUCTURALS\REQ*.docx).
     2. Demana les dades de la capcalera (ID GIA, EXP_NUM, etc.).
     3. Mostra un TreeView amb les seccions/items del cataleg; l'usuari marca
-       quines defciencies aplicaran a l'informe.
-    4. Per cada placeholder [CAMP: ...] que apareixi en algun item seleccionat,
-       demana el valor (1 cop per nom de camp).
-    5. Mostra un formulari amb les conclusions disponibles (paragrafs de
-       ESTRUCTURALS\0 CONCLUSIONS.docx) i deixa triar-ne una o mes.
-    6. Composa el document final:
+       quines defciencies aplicaran a l'informe. En marcar-ne una, el seu text
+       surt al panell de detall i, si conte [OPCIO:]/[CAMP:], s'omplen INLINE
+       (alla mateix), sense un pas separat de camps.
+    4. Mostra les conclusions disponibles (per tipus d'informe) amb el cos
+       sencer; l'usuari en tria i n'omple els [OPCIO:]/[CAMP:] inline.
+    5. Composa el document final:
          - Capcalera (ESTRUCTURALS\0 CAPCALERA.docx) amb valors substituits.
          - Per cada seccio escollida: titol Heading 1 + items numerats
-           globalment 1..N.
+           globalment 1..N (o, en informes de cos fix, el text tal qual).
          - Conclusions seleccionades.
 
 .NOTES
@@ -49,13 +49,21 @@
 param(
     # Mode no interactiu: genera l'informe directament des d'un paquet JSON
     # (el mateix model que lastreport.json) en lloc d'obrir l'assistent de
-    # 6 passos. El paquet l'omple el formulari web del mobil i el porta fins
+    # passos. El paquet l'omple el formulari web del mobil i el porta fins
     # aqui el vigilant (Vigilant.ps1). Necessita Word (com el flux normal),
     # pero NO obre cap finestra. Si no s'indica, el programa funciona com sempre.
     [string]$DesDePaquet
 )
 
 $ErrorActionPreference = 'Stop'
+
+# IMPORTANT (rendiment): a Windows PowerShell 5.1, Invoke-RestMethod/
+# Invoke-WebRequest dibuixen una barra de progres ("Llegint resposta web...")
+# que actualitza byte a byte i fa que una descarrega de pocs KB trigui SEGONS.
+# Silenciant el progres, les crides a Google Drive (p.ex. llegir activitats.json
+# per saber-ne la data) passen a ser gairebe instantanies. Ho posem global
+# perque afecti tambe DriveApi.ps1 (que es dot-source a la mateixa sessio).
+$global:ProgressPreference = 'SilentlyContinue'
 
 # Mode "headless" per a proves automatiques: si la variable d'entorn
 # GENINFORME_TEST esta definida, NO carreguem WinForms ni executem el
@@ -651,41 +659,55 @@ function Select-Cataleg {
     }
     if ($catalegs.Count -eq 1) { return [pscustomobject]@{ Nav='next'; Data=$catalegs[0] } }
 
+    # Un boto gran per cada tipus d'informe (com la pantalla "Que vols fer?").
     $form = New-Object System.Windows.Forms.Form
     $form.Text = 'Pas 1 - Tipus d''informe'
-    $form.Size = New-Object System.Drawing.Size(500, 320)
     $form.StartPosition = 'CenterScreen'
+    $form.FormBorderStyle = 'FixedDialog'
+    $form.MaximizeBox = $false
+    $form.MinimizeBox = $false
 
     $lbl = New-Object System.Windows.Forms.Label
-    $lbl.Text = 'Selecciona el cataleg de deficiencies:'
-    $lbl.Location = New-Object System.Drawing.Point(15, 15)
+    $lbl.Text = 'Quin tipus d''informe vols generar?'
+    $lbl.Location = New-Object System.Drawing.Point(20, 15)
     $lbl.AutoSize = $true
     $form.Controls.Add($lbl)
 
-    $list = New-Object System.Windows.Forms.ListBox
-    $list.Location = New-Object System.Drawing.Point(15, 40)
-    $list.Size = New-Object System.Drawing.Size(450, 180)
-    foreach ($c in $catalegs) { [void]$list.Items.Add($c.BaseName) }
-    $list.SelectedIndex = 0
-    if ($preloadBaseName) {
-        for ($i = 0; $i -lt $catalegs.Count; $i++) {
-            if ($catalegs[$i].BaseName -eq $preloadBaseName) { $list.SelectedIndex = $i; break }
-        }
-    }
-    $form.Controls.Add($list)
+    # Si hi ha molts catalegs, el panell amb AutoScroll evita una finestra
+    # desmesurada (els botons es poden recorrer amb la barra).
+    $panel = New-Object System.Windows.Forms.Panel
+    $panel.Location = New-Object System.Drawing.Point(20, 50)
+    $panel.Size = New-Object System.Drawing.Size(410, [Math]::Min(420, ($catalegs.Count * 55) + 5))
+    $panel.AutoScroll = $true
+    $form.Controls.Add($panel)
 
-    $ok = New-Object System.Windows.Forms.Button
-    $ok.Text = 'Seguent'
-    $ok.Location = New-Object System.Drawing.Point(290, 240)
-    $ok.Size = New-Object System.Drawing.Size(80, 28)
-    $ok.DialogResult = 'OK'
-    $form.AcceptButton = $ok
-    $form.Controls.Add($ok)
+    $script:_selectedCataleg = $null
+    $y = 5
+    for ($i = 0; $i -lt $catalegs.Count; $i++) {
+        $c = $catalegs[$i]
+        $btn = New-Object System.Windows.Forms.Button
+        $btn.Text = $c.BaseName
+        $btn.Location = New-Object System.Drawing.Point(5, $y)
+        $btn.Size = New-Object System.Drawing.Size(380, 45)
+        $btn.Font = New-Object System.Drawing.Font('Segoe UI', 11, [System.Drawing.FontStyle]::Regular)
+        $btn.Tag = $c
+        $btn.add_Click({
+            $script:_selectedCataleg = $c
+            $form.DialogResult = 'OK'
+            $form.Close()
+        }.GetNewClosure())
+        [void]$panel.Controls.Add($btn)
+        # El boto del cataleg preseleccionat (sessio anterior) agafa el focus.
+        if ($preloadBaseName -and $c.BaseName -eq $preloadBaseName) { $form.ActiveControl = $btn }
+        $y += 55
+    }
+
+    $form.ClientSize = New-Object System.Drawing.Size(450, ($panel.Top + $panel.Height + 15))
 
     # No hi ha boto Cancel ni Enrere: el Pas 1 es el primer. Tancar la
     # finestra (X) avorta el programa.
-    if ($form.ShowDialog() -ne 'OK') { exit 0 }
-    return [pscustomobject]@{ Nav='next'; Data=$catalegs[$list.SelectedIndex] }
+    if ($form.ShowDialog() -ne 'OK' -or $null -eq $script:_selectedCataleg) { exit 0 }
+    return [pscustomobject]@{ Nav='next'; Data=$script:_selectedCataleg }
 }
 
 # ----------------------------------------------------------------------------
@@ -1232,11 +1254,12 @@ function _CollectCheckStates($tv, $checkStates) {
 }
 
 function Select-Items {
-    param($sections, $preloadSelectedKeys = $null)
+    param($sections, $preloadSelectedKeys = $null, $fields = $null, $preloadValues = $null)
+    if ($null -eq $fields) { $fields = [ordered]@{} }
 
     $form = New-Object System.Windows.Forms.Form
     $form.Text = 'Pas 3 - Seleccio de deficiencies'
-    $form.Size = New-Object System.Drawing.Size(1100, 720)
+    $form.Size = New-Object System.Drawing.Size(1180, 740)
     $form.StartPosition = 'CenterScreen'
 
     # Filtre (textbox al capdamunt). Cada vegada que canvia, es reconstrueix
@@ -1262,16 +1285,42 @@ function Select-Items {
 
     $tv = New-Object System.Windows.Forms.TreeView
     $tv.Location = New-Object System.Drawing.Point(10, 40)
-    $tv.Size = New-Object System.Drawing.Size(1060, 590)
+    $tv.Size = New-Object System.Drawing.Size(560, 610)
     $tv.CheckBoxes = $true
     $tv.HideSelection = $false
     $tv.ShowNodeToolTips = $true
-    $tv.Anchor = 'Top, Bottom, Left, Right'
+    $tv.Anchor = 'Top, Bottom, Left'
     # El font base es la negreta mes ampla que faran servir les seccions. Aixo
     # evita el bug de WinForms en que un node amb NodeFont mes ample que el
     # font del control surt retallat. Items i fills posen NodeFont regular.
     $tv.Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
     $form.Controls.Add($tv)
+
+    # Panell de detall (dreta): mostra el TEXT de les deficiencies marcades amb
+    # els seus desplegables/camps inline per omplir-los aqui mateix.
+    $lblDetail = New-Object System.Windows.Forms.Label
+    $lblDetail.Text = 'Text i opcions de les deficiencies marcades:'
+    $lblDetail.Location = New-Object System.Drawing.Point(585, 14)
+    $lblDetail.AutoSize = $true
+    $lblDetail.Anchor = 'Top, Left, Right'
+    $form.Controls.Add($lblDetail)
+
+    $detailHost = New-Object System.Windows.Forms.Panel
+    $detailHost.Location = New-Object System.Drawing.Point(585, 40)
+    $detailHost.Size = New-Object System.Drawing.Size(575, 610)
+    $detailHost.AutoScroll = $true
+    $detailHost.BorderStyle = 'FixedSingle'
+    $detailHost.Anchor = 'Top, Bottom, Left, Right'
+    $form.Controls.Add($detailHost)
+
+    $detailV = New-Object System.Windows.Forms.FlowLayoutPanel
+    $detailV.FlowDirection = 'TopDown'
+    $detailV.WrapContents = $false
+    $detailV.AutoSize = $true
+    $detailV.AutoSizeMode = 'GrowAndShrink'
+    $detailV.Location = New-Object System.Drawing.Point(0, 0)
+    $detailV.Width = 550
+    $detailHost.Controls.Add($detailV)
 
     # Estats de check persistents entre rebuilds. Inicialitzat des de session.
     $checkStates = @{}
@@ -1280,6 +1329,91 @@ function Select-Items {
             if ([string]::IsNullOrWhiteSpace($k)) { continue }
             $checkStates[[string]$k] = $true
         }
+    }
+
+    # Amplada util del panell de detall (sense la barra de desplacament).
+    $detailInnerWidth = { [Math]::Max(280, $detailHost.ClientSize.Width - 26) }
+
+    # Crea un FlowLayoutPanel que EMBOLCALLA el text (wrap) a l'ample disponible.
+    # Clau: amb AutoSize + WrapContents cal limitar l'amplada amb MaximumSize,
+    # si no, el panell creix cap a la dreta i no salta de linia.
+    $newWrapFlow = {
+        param($leftMargin)
+        $f = New-Object System.Windows.Forms.FlowLayoutPanel
+        $f.FlowDirection = 'LeftToRight'; $f.WrapContents = $true
+        $f.AutoSize = $true; $f.AutoSizeMode = 'GrowAndShrink'
+        $f.Margin = New-Object System.Windows.Forms.Padding($leftMargin, 0, 2, 4)
+        $iw = & $detailInnerWidth
+        $f.MaximumSize = New-Object System.Drawing.Size([Math]::Max(120, ($iw - $leftMargin - 6)), 0)
+        return $f
+    }
+
+    # Reajusta l'amplada maxima de tots els blocs quan la finestra canvia de mida
+    # (sense reconstruir res, per no perdre el focus mentre s'escriu).
+    $applyDetailWidths = {
+        $iw = & $detailInnerWidth
+        $detailV.MaximumSize = New-Object System.Drawing.Size($iw, 0)
+        foreach ($child in $detailV.Controls) {
+            if ($child -is [System.Windows.Forms.FlowLayoutPanel]) {
+                $child.MaximumSize = New-Object System.Drawing.Size([Math]::Max(120, ($iw - $child.Margin.Left - 6)), 0)
+            }
+        }
+    }
+
+    # Reconstrueix el panell de detall a partir de les caselles marcades.
+    $refreshDetail = {
+        _CollectCheckStates $tv $checkStates
+        $detailV.SuspendLayout()
+        $detailV.Controls.Clear()
+        $registry = _NewFieldRegistry
+        $detailV.MaximumSize = New-Object System.Drawing.Size((& $detailInnerWidth), 0)
+        $anyShown = $false
+        foreach ($sec in $sections) {
+            foreach ($el in $sec.Items) {
+                if ($el.Kind -ne 'item') { continue }
+                $itKey = (_ItemKey $sec.Title $el.Short)
+                $itSel = $checkStates.ContainsKey($itKey) -and $checkStates[$itKey]
+                $selChildren = New-Object System.Collections.ArrayList
+                foreach ($ch in $el.Children) {
+                    $chKey = (_ItemKey $sec.Title $el.Short $ch.Short)
+                    if ($checkStates.ContainsKey($chKey) -and $checkStates[$chKey]) { [void]$selChildren.Add($ch) }
+                }
+                if (-not $itSel -and $selChildren.Count -eq 0) { continue }
+                $anyShown = $true
+
+                $hdr = New-Object System.Windows.Forms.Label
+                $hdr.AutoSize = $true
+                $hdr.Text = $el.Short
+                $hdr.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
+                $hdr.Margin = New-Object System.Windows.Forms.Padding(2, 8, 2, 2)
+                [void]$detailV.Controls.Add($hdr)
+
+                if ($itSel) {
+                    $txt = _RichTextOfBodyLines $el.BodyLines
+                    if ($txt) {
+                        $flow = & $newWrapFlow 8
+                        _RenderRichInto $flow $txt $fields $preloadValues $registry
+                        [void]$detailV.Controls.Add($flow)
+                    }
+                }
+                foreach ($ch in $selChildren) {
+                    $ctxt = _RichTextOfBodyLines $ch.BodyLines
+                    if (-not $ctxt) { continue }
+                    $cflow = & $newWrapFlow 24
+                    _RenderRichInto $cflow $ctxt $fields $preloadValues $registry
+                    [void]$detailV.Controls.Add($cflow)
+                }
+            }
+        }
+        if (-not $anyShown) {
+            $empty = New-Object System.Windows.Forms.Label
+            $empty.AutoSize = $true
+            $empty.ForeColor = [System.Drawing.Color]::DimGray
+            $empty.Text = 'Marca deficiencies a l''esquerra per veure-les i omplir-ne les opcions.'
+            $empty.Margin = New-Object System.Windows.Forms.Padding(6, 10, 2, 2)
+            [void]$detailV.Controls.Add($empty)
+        }
+        $detailV.ResumeLayout()
     }
 
     # Build inicial sense filtre
@@ -1299,6 +1433,7 @@ function Select-Items {
         if ($script:_propagating) { return }
         $script:_propagating = $true
         try { & $propagate $e.Node } finally { $script:_propagating = $false }
+        & $refreshDetail
     })
 
     # Refilter en temps real (debouncing simple: rebuild a cada keystroke;
@@ -1309,9 +1444,16 @@ function Select-Items {
         _RebuildTree $tv $sections $tbFilter.Text $checkStates
     })
 
+    # Quan la finestra canvia de mida, reajustem l'amplada dels blocs perque el
+    # text es reembolcalli a l'ample nou (sense reconstruir, per no perdre focus).
+    $detailHost.add_SizeChanged({ & $applyDetailWidths })
+
+    # Detall inicial (mostra els ja marcats per precarrega).
+    & $refreshDetail
+
     $back = New-Object System.Windows.Forms.Button
     $back.Text = 'Enrere'
-    $back.Location = New-Object System.Drawing.Point(10, 640)
+    $back.Location = New-Object System.Drawing.Point(10, 662)
     $back.Size = New-Object System.Drawing.Size(90, 28)
     $back.DialogResult = 'Retry'
     $back.Anchor = 'Bottom, Left'
@@ -1319,7 +1461,7 @@ function Select-Items {
 
     $ok = New-Object System.Windows.Forms.Button
     $ok.Text = 'Seguent'
-    $ok.Location = New-Object System.Drawing.Point(980, 640)
+    $ok.Location = New-Object System.Drawing.Point(1060, 662)
     $ok.Size = New-Object System.Drawing.Size(80, 28)
     $ok.DialogResult = 'OK'
     $ok.Anchor = 'Bottom, Right'
@@ -1601,6 +1743,175 @@ function Get-FieldValuesForSession($fields) {
     return $h
 }
 
+# ----------------------------------------------------------------------------
+# Renderitzat "ric" amb camps inline (Pas 3 i Pas de conclusions)
+# ----------------------------------------------------------------------------
+# Treu els marcadors **negreta** i //cursiva// d'un text per mostrar-lo net a
+# la pantalla (al .docx final SI s'apliquen via Type-RichText). Es "loose":
+# elimina TOTS els ** i //, encara que un parell quedi partit per un
+# [OPCIO:]/[CAMP:] (p.ex. "**ampliar el termini [OPCIO]**"). Aixo nomes afecta
+# la PREVISUALITZACIO; el text original (amb marcadors) es el que es desa i
+# s'emet al document.
+function _StripMarkers([string]$t) {
+    if ([string]::IsNullOrEmpty($t)) { return '' }
+    $t = $t -replace '\*\*', ''
+    $t = $t -replace '//', ''
+    return $t
+}
+
+# Segmenta un text amb [OPCIO:]/[CAMP:] en trossos ORDENATS, per renderitzar-lo
+# amb controls inline alla on toca. Retorna una llista de hashtables:
+#   @{ Kind='text';  Text='...' }                  (marcadors ** // ja retirats)
+#   @{ Kind='opcio'; Name='...'; Options=@(...) }
+#   @{ Kind='camp';  Name='...'; Hint='...' }
+# Es una funcio PURA (provable sense Word/WinForms).
+function _SegmentRichText([string]$text) {
+    $segments = New-Object System.Collections.ArrayList
+    if ([string]::IsNullOrEmpty($text)) { return $segments.ToArray() }
+    # CAMP i OPCIO en una sola passada, en ordre d'aparicio.
+    $rx = [regex]'\[OPCIO:\s*([^\]]+?)\s*\]|\[CAMP:\s*([^\]]+?)\s*\]'
+    $pos = 0
+    foreach ($m in $rx.Matches($text)) {
+        if ($m.Index -gt $pos) {
+            $plain = _StripMarkers $text.Substring($pos, $m.Index - $pos)
+            if ($plain.Length -gt 0) { [void]$segments.Add(@{ Kind='text'; Text=$plain }) }
+        }
+        if ($m.Groups[1].Success) {
+            $p = _ParseOpcio $m.Groups[1].Value
+            [void]$segments.Add(@{ Kind='opcio'; Name=$p.Name; Options=$p.Options })
+        } else {
+            $raw = $m.Groups[2].Value.Trim(); $name = $raw; $hint = ''
+            $pi = $raw.IndexOf('(')
+            if ($pi -ge 0) { $name = $raw.Substring(0, $pi).Trim(); $hint = $raw.Substring($pi).Trim().TrimStart('(').TrimEnd(')') }
+            [void]$segments.Add(@{ Kind='camp'; Name=$name; Hint=$hint })
+        }
+        $pos = $m.Index + $m.Length
+    }
+    if ($pos -lt $text.Length) {
+        $plain = _StripMarkers $text.Substring($pos)
+        if ($plain.Length -gt 0) { [void]$segments.Add(@{ Kind='text'; Text=$plain }) }
+    }
+    return $segments.ToArray()
+}
+
+# Llegeix un valor precarregat (sessio anterior) per nom de camp. $preload pot
+# ser un hashtable o un PSCustomObject. Retorna $null si no hi es.
+function _GetPreloadValue($preload, $name) {
+    if ($null -eq $preload) { return $null }
+    if ($preload -is [System.Collections.IDictionary]) {
+        if ($preload.Contains($name)) { return $preload[$name] }
+        return $null
+    }
+    if ($preload.PSObject.Properties.Name -contains $name) { return $preload.$name }
+    return $null
+}
+
+# El "registre" relaciona nom de camp -> llista de controls (per sincronitzar
+# els duplicats: un mateix nom pot sortir a diversos llocs de la mateixa
+# pantalla i tots han de mostrar el mateix valor).
+function _NewFieldRegistry { return @{} }
+function _RegisterFieldControl($registry, $name, $ctrl) {
+    if (-not $registry.ContainsKey($name)) { $registry[$name] = New-Object System.Collections.ArrayList }
+    [void]$registry[$name].Add($ctrl)
+}
+
+# Renderitza $text dins d'un FlowLayoutPanel ($flow) barrejant etiquetes de
+# text (paraula a paraula, per poder fer salt de linia) i controls inline per
+# als [OPCIO:]/[CAMP:]. Crea/actualitza les entrades a $fields (mateixa forma
+# que _AddFieldsFromText) i registra els controls a $registry per sincronitzar.
+function _RenderRichInto($flow, [string]$text, $fields, $preload, $registry) {
+    $segs = _SegmentRichText $text
+    foreach ($seg in $segs) {
+        if ($seg.Kind -eq 'text') {
+            foreach ($w in ($seg.Text -split '\s+')) {
+                if ($w -eq '') { continue }
+                $lbl = New-Object System.Windows.Forms.Label
+                $lbl.AutoSize = $true
+                $lbl.Text = $w
+                $lbl.Margin = New-Object System.Windows.Forms.Padding(0, 5, 4, 0)
+                [void]$flow.Controls.Add($lbl)
+            }
+            continue
+        }
+
+        $name = $seg.Name
+        if ([string]::IsNullOrWhiteSpace($name)) { continue }
+
+        if ($seg.Kind -eq 'opcio') {
+            if (-not $fields.Contains($name)) {
+                $val = if ($seg.Options.Count -gt 0) { [string]$seg.Options[0] } else { '' }
+                $pv = _GetPreloadValue $preload $name
+                if ($null -ne $pv) { $val = [string]$pv }
+                $fields[$name] = [pscustomobject]@{ Name=$name; Type='choice'; Hint=''; Options=$seg.Options; Value=$val }
+            }
+            $cb = New-Object System.Windows.Forms.ComboBox
+            $cb.DropDownStyle = 'DropDownList'
+            $cb.Margin = New-Object System.Windows.Forms.Padding(0, 1, 4, 0)
+            foreach ($o in $seg.Options) { [void]$cb.Items.Add($o) }
+            # Amplada segons l'opcio mes llarga (limitada), per llegir-la be.
+            $maxLen = 0; foreach ($o in $seg.Options) { if ($o.Length -gt $maxLen) { $maxLen = $o.Length } }
+            $cb.Width = [Math]::Min(520, [Math]::Max(90, ($maxLen * 7) + 30))
+            $idx = $cb.Items.IndexOf([string]$fields[$name].Value)
+            if ($idx -lt 0 -and $cb.Items.Count -gt 0) { $idx = 0 }
+            if ($idx -ge 0) { $cb.SelectedIndex = $idx }
+            $cb.Tag = $name
+            _RegisterFieldControl $registry $name $cb
+            $cb.add_SelectedIndexChanged({
+                $v = if ($null -ne $cb.SelectedItem) { [string]$cb.SelectedItem } else { '' }
+                $fields[$name].Value = $v
+                foreach ($other in $registry[$name]) {
+                    if ($other -ne $cb -and ($other -is [System.Windows.Forms.ComboBox]) -and ([string]$other.SelectedItem -ne $v)) {
+                        $other.SelectedItem = $v
+                    }
+                }
+            }.GetNewClosure())
+            [void]$flow.Controls.Add($cb)
+        } else {
+            if (-not $fields.Contains($name)) {
+                $val = ''
+                $pv = _GetPreloadValue $preload $name
+                if ($null -ne $pv) { $val = [string]$pv }
+                $fields[$name] = [pscustomobject]@{ Name=$name; Type='text'; Hint=$seg.Hint; Options=@(); Value=$val }
+            }
+            $tb = New-Object System.Windows.Forms.TextBox
+            $tb.Margin = New-Object System.Windows.Forms.Padding(0, 1, 4, 0)
+            $tb.Width = 150
+            $tb.Text = [string]$fields[$name].Value
+            if ($seg.Hint) { $tb.AccessibleDescription = $seg.Hint }
+            $tb.Tag = $name
+            _RegisterFieldControl $registry $name $tb
+            $tb.add_TextChanged({
+                $fields[$name].Value = $tb.Text
+                foreach ($other in $registry[$name]) {
+                    if ($other -ne $tb -and ($other -is [System.Windows.Forms.TextBox]) -and ($other.Text -ne $tb.Text)) {
+                        $other.Text = $tb.Text
+                    }
+                }
+            }.GetNewClosure())
+            [void]$flow.Controls.Add($tb)
+            if ($seg.Hint) {
+                $hl = New-Object System.Windows.Forms.Label
+                $hl.AutoSize = $true
+                $hl.Text = "($($seg.Hint))"
+                $hl.ForeColor = [System.Drawing.Color]::DimGray
+                $hl.Margin = New-Object System.Windows.Forms.Padding(0, 5, 4, 0)
+                [void]$flow.Controls.Add($hl)
+            }
+        }
+    }
+}
+
+# Construeix el text "ric" d'un element (item/fill): nomes la part de TEXT de
+# cada BodyLine (descartem els URLs, que aqui no s'editen), unit amb espais.
+function _RichTextOfBodyLines($bodyLines) {
+    $parts = New-Object System.Collections.ArrayList
+    foreach ($ln in $bodyLines) {
+        $sp = _SplitTextAndUrls $ln
+        if (-not [string]::IsNullOrWhiteSpace($sp.Text)) { [void]$parts.Add($sp.Text) }
+    }
+    return ($parts -join ' ')
+}
+
 # Separa el text d'una linia dels URLs que pugui contenir. Retorna:
 #   @{ Text = '<tot el que hi ha abans del primer URL>'; Urls = @(url1, url2...) }
 #
@@ -1749,9 +2060,14 @@ function Read-Conclusions($word, $path, $reportType = $null) {
 }
 
 function Select-Conclusions {
-    # $conclusions : array d'objectes {Title, Body} (de Read-Conclusions).
-    # $preloadTitles : array de titols (string) preseleccionats (sessio anterior).
-    param($conclusions, $preloadTitles = $null)
+    # $conclusions   : array d'objectes {Title, Body} (de Read-Conclusions).
+    # $always        : array de cadenes ::SEMPRE:: (es mostren com a fixes).
+    # $fields        : diccionari de camps compartit (s'hi afegeixen/editen els
+    #                  [OPCIO:]/[CAMP:] de les conclusions, inline).
+    # $preloadTitles : array de titols preseleccionats (sessio anterior).
+    # $preloadValues : valors de camps precarregats (sessio anterior).
+    param($conclusions, $always = @(), $fields = $null, $preloadTitles = $null, $preloadValues = $null)
+    if ($null -eq $fields) { $fields = [ordered]@{} }
     if ($conclusions.Count -eq 0) { return [pscustomobject]@{ Nav='next'; Data=@() } }
 
     # Convertim preloadTitles a un HashSet per a comparacio rapida.
@@ -1759,56 +2075,111 @@ function Select-Conclusions {
     if ($preloadTitles) { foreach ($t in $preloadTitles) { [void]$preloadSet.Add([string]$t) } }
 
     $form = New-Object System.Windows.Forms.Form
-    $form.Text = 'Pas 5 - Conclusions'
-    $form.Size = New-Object System.Drawing.Size(780, 560)
+    $form.Text = 'Pas 4 - Conclusions'
+    $form.Size = New-Object System.Drawing.Size(940, 660)
     $form.StartPosition = 'CenterScreen'
 
     $lbl = New-Object System.Windows.Forms.Label
-    $lbl.Text = 'Selecciona les conclusions a incloure:'
+    $lbl.Text = 'Marca les conclusions a incloure i omple-hi les opcions/camps:'
     $lbl.Location = New-Object System.Drawing.Point(15, 10)
     $lbl.AutoSize = $true
+    $lbl.Anchor = 'Top, Left, Right'
     $form.Controls.Add($lbl)
 
     $panel = New-Object System.Windows.Forms.Panel
     $panel.Location = New-Object System.Drawing.Point(15, 35)
-    $panel.Size = New-Object System.Drawing.Size(730, 430)
+    $panel.Size = New-Object System.Drawing.Size(895, 545)
     $panel.AutoScroll = $true
     $panel.BorderStyle = 'FixedSingle'
+    $panel.Anchor = 'Top, Bottom, Left, Right'
     $form.Controls.Add($panel)
 
+    $listV = New-Object System.Windows.Forms.FlowLayoutPanel
+    $listV.FlowDirection = 'TopDown'
+    $listV.WrapContents = $false
+    $listV.AutoSize = $true
+    $listV.AutoSizeMode = 'GrowAndShrink'
+    $listV.Location = New-Object System.Drawing.Point(0, 0)
+    $panel.Controls.Add($listV)
+
+    $registry = _NewFieldRegistry
+
+    # Amplada util (sense barra de desplacament). El cos de cada conclusio
+    # s'embolcalla (wrap) a aquesta amplada; cal MaximumSize perque un
+    # FlowLayoutPanel amb AutoSize+WrapContents salti de linia en lloc de
+    # creixer cap a la dreta.
+    $innerW = { [Math]::Max(280, $panel.ClientSize.Width - 26) }
+    $mkConclFlow = {
+        param($leftMargin)
+        $f = New-Object System.Windows.Forms.FlowLayoutPanel
+        $f.FlowDirection = 'LeftToRight'; $f.WrapContents = $true
+        $f.AutoSize = $true; $f.AutoSizeMode = 'GrowAndShrink'
+        $f.Margin = New-Object System.Windows.Forms.Padding($leftMargin, 0, 2, 6)
+        $f.MaximumSize = New-Object System.Drawing.Size([Math]::Max(120, ((& $innerW) - $leftMargin - 6)), 0)
+        return $f
+    }
+
     $checks = @()
-    $y = 5
     for ($i = 0; $i -lt $conclusions.Count; $i++) {
         $c = $conclusions[$i]
         $cb = New-Object System.Windows.Forms.CheckBox
-        $cb.Text = $c.Title    # nomes el titol curt, mes llegible
-        $cb.Location = New-Object System.Drawing.Point(5, $y)
-        $cb.Size = New-Object System.Drawing.Size(700, 28)
-        $cb.AutoSize = $false
+        $cb.Text = $c.Title
+        $cb.AutoSize = $true
         $cb.Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
+        $cb.Margin = New-Object System.Windows.Forms.Padding(4, 12, 4, 2)
         $cb.Tag = $c
-        # Tooltip: cos sencer per veure'l sense haver de tornar al Word
-        $tt = New-Object System.Windows.Forms.ToolTip
-        $tt.AutoPopDelay = 30000
-        $tt.SetToolTip($cb, [string]$c.Body)
         if ($preloadSet.Contains([string]$c.Title)) { $cb.Checked = $true }
-        $panel.Controls.Add($cb)
+        [void]$listV.Controls.Add($cb)
         $checks += $cb
-        $y += 34
+
+        $flow = & $mkConclFlow 22
+        _RenderRichInto $flow ([string]$c.Body) $fields $preloadValues $registry
+        [void]$listV.Controls.Add($flow)
     }
+
+    # Frases fixes (::SEMPRE::): es mostren perque l'usuari les vegi i, si tenen
+    # algun [CAMP:]/[OPCIO:], les pugui omplir (al document hi van sempre).
+    $alwaysArr = @($always)
+    if ($alwaysArr.Count -gt 0) {
+        $sep = New-Object System.Windows.Forms.Label
+        $sep.Text = 'Es posa sempre al final:'
+        $sep.AutoSize = $true
+        $sep.ForeColor = [System.Drawing.Color]::DimGray
+        $sep.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Italic)
+        $sep.Margin = New-Object System.Windows.Forms.Padding(4, 16, 4, 2)
+        [void]$listV.Controls.Add($sep)
+        foreach ($a in $alwaysArr) {
+            $aflow = & $mkConclFlow 22
+            _RenderRichInto $aflow ([string]$a) $fields $preloadValues $registry
+            [void]$listV.Controls.Add($aflow)
+        }
+    }
+
+    # En canviar la mida de la finestra, reembolcallem els cossos a l'ample nou.
+    $panel.add_SizeChanged({
+        $iw = & $innerW
+        $listV.MaximumSize = New-Object System.Drawing.Size($iw, 0)
+        foreach ($child in $listV.Controls) {
+            if ($child -is [System.Windows.Forms.FlowLayoutPanel]) {
+                $child.MaximumSize = New-Object System.Drawing.Size([Math]::Max(120, ($iw - $child.Margin.Left - 6)), 0)
+            }
+        }
+    })
 
     $back = New-Object System.Windows.Forms.Button
     $back.Text = 'Enrere'
-    $back.Location = New-Object System.Drawing.Point(15, 480)
+    $back.Location = New-Object System.Drawing.Point(15, 592)
     $back.Size = New-Object System.Drawing.Size(90, 28)
     $back.DialogResult = 'Retry'
+    $back.Anchor = 'Bottom, Left'
     $form.Controls.Add($back)
 
     $ok = New-Object System.Windows.Forms.Button
-    $ok.Text = 'Generar'
-    $ok.Location = New-Object System.Drawing.Point(655, 480)
-    $ok.Size = New-Object System.Drawing.Size(90, 28)
+    $ok.Text = 'Seguent'
+    $ok.Location = New-Object System.Drawing.Point(815, 592)
+    $ok.Size = New-Object System.Drawing.Size(95, 28)
     $ok.DialogResult = 'OK'
+    $ok.Anchor = 'Bottom, Right'
     $form.AcceptButton = $ok
     $form.Controls.Add($ok)
 
@@ -2353,7 +2724,7 @@ function Main {
     }
 
     # Pas 0: tria de mode. "seguiment" es un flux autonom (Seguiment.ps1) que
-    # edita el .docx directament (XML, sense Word); el wizard de 6 passos de
+    # edita el .docx directament (XML, sense Word); el wizard de passos de
     # sota queda intacte per al mode "nou".
     $mode = Select-Mode
     if ($mode -eq 'seguiment') {
@@ -2370,14 +2741,19 @@ function Main {
     #
     # $st  : dades confirmades de cada pas (es mantenen en memoria al navegar).
     # $pre : precarregues per a cada pas (de l'estat o de "Recuperar ultim").
-    $st  = @{ Cataleg=$null; Parsed=$null; Header=$null; Selected=$null; Fields=$null; ConclAll=$null; Conclusions=$null }
+    #
+    # $st.Fields es un diccionari de camps COMPARTIT: els [OPCIO:]/[CAMP:]
+    # s'omplen inline alla on apareixen (Pas 3 deficiencies i Pas 4 conclusions),
+    # aixi que ja no hi ha un pas separat de "camps". El diccionari es persistent
+    # entre passos perque els valors no es perdin en navegar amunt i avall.
+    $st  = @{ Cataleg=$null; Parsed=$null; Header=$null; Selected=$null; Fields=[ordered]@{}; ConclAll=$null; Conclusions=$null }
     $pre = @{ Cat=$null; Header=$null; Keys=$null; Fields=$null; Concl=$null }
 
     $word = New-WordApp
     try {
         $step = 1
         $dir  = 'fwd'
-        while ($step -ge 1 -and $step -le 6) {
+        while ($step -ge 1 -and $step -le 5) {
             switch ($step) {
 
                 1 {
@@ -2414,21 +2790,23 @@ function Main {
                         if ($dir -eq 'back') { $step = 2; $dir = 'back' }
                         else                 { $step = 4; $dir = 'fwd' }
                     } else {
-                        $r = Select-Items -sections $st.Parsed.Sections -preloadSelectedKeys $pre.Keys
+                        # Pas 3: triar deficiencies I omplir-ne les opcions/camps
+                        # inline (al mateix panell de detall).
+                        $r = Select-Items -sections $st.Parsed.Sections -preloadSelectedKeys $pre.Keys -fields $st.Fields -preloadValues $pre.Fields
                         if     ($r.Nav -eq 'back') { $step = 2; $dir = 'back' }
                         elseif ($r.Nav -eq 'stay') { }   # cap seleccio: es torna a mostrar
                         else {
                             $st.Selected = $r.Data
                             $pre.Keys    = Get-SelectedKeysFromResult $st.Selected
+                            $pre.Fields  = Get-FieldValuesForSession $st.Fields
                             $step = 4; $dir = 'fwd'
                         }
                     }
                 }
 
-                # Ordre: Pas 4 = CONCLUSIONS (abans dels camps), Pas 5 = CAMPS.
-                # Es necessari perque les conclusions poden contenir [CAMP:] /
-                # [OPCIO:]. Cal triar conclusions PRIMER per saber quins camps
-                # cal demanar.
+                # Pas 4 = CONCLUSIONS. El cos de cada conclusio es mostra sencer i
+                # els seus [CAMP:]/[OPCIO:] s'omplen inline aqui mateix (ja no hi
+                # ha un pas separat de camps).
                 4 {
                     if ($null -eq $st.ConclAll) {
                         # Les conclusions triables depenen del tipus d'informe
@@ -2438,40 +2816,22 @@ function Main {
                     if ($st.ConclAll.Selectable.Count -eq 0) {
                         # No hi ha conclusions triables: saltem el pas.
                         $st.Conclusions = @()
-                        if ($dir -eq 'back') { $step = 3 } else { $step = 5 }
+                        if ($dir -eq 'back') { $step = 3; $dir = 'back' } else { $step = 5 }
                     } else {
-                        $r = Select-Conclusions -conclusions $st.ConclAll.Selectable -preloadTitles $pre.Concl
+                        $r = Select-Conclusions -conclusions $st.ConclAll.Selectable -always $st.ConclAll.Always -fields $st.Fields -preloadTitles $pre.Concl -preloadValues $pre.Fields
                         if ($r.Nav -eq 'back') { $step = 3; $dir = 'back' }
                         else {
                             $st.Conclusions = $r.Data
                             # $pre.Concl guarda nomes els TITOLS per a la
                             # precarrega de la propera vegada.
-                            $pre.Concl = @($st.Conclusions | ForEach-Object { $_.Title })
+                            $pre.Concl  = @($st.Conclusions | ForEach-Object { $_.Title })
+                            $pre.Fields = Get-FieldValuesForSession $st.Fields
                             $step = 5; $dir = 'fwd'
                         }
                     }
                 }
 
                 5 {
-                    # Camps: detectem [CAMP:] / [OPCIO:] tant al REQ1 (items
-                    # seleccionats) com a les conclusions triades i fixes.
-                    $fields = Get-FieldsFromSelection $st.Selected
-                    Add-FieldsFromConclusions $fields $st.Conclusions $st.ConclAll.Always
-                    if ($fields.Count -eq 0) {
-                        $st.Fields = $fields
-                        if ($dir -eq 'back') { $step = 4 } else { $step = 6 }
-                    } else {
-                        $r = Prompt-Fields -fields $fields -preloadValues $pre.Fields
-                        if ($r.Nav -eq 'back') { $step = 4; $dir = 'back' }
-                        else {
-                            $st.Fields  = $r.Data
-                            $pre.Fields = Get-FieldValuesForSession $st.Fields
-                            $step = 6; $dir = 'fwd'
-                        }
-                    }
-                }
-
-                6 {
                     $outPath = Build-Document -word $word -header $st.Header `
                                               -selectedSections $st.Selected `
                                               -fields $st.Fields `

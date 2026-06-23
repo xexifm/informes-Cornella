@@ -143,6 +143,108 @@
     return String(t).replace(/\*\*(.+?)\*\*/g, "$1").replace(/\/\/(.+?)\/\//g, "$1");
   }
 
+  // ------- Camps inline (opcions/text dins del propi text) --------------------
+  // Treu TOTS els marcadors ** i // (encara que un parell quedi partit per un
+  // [OPCIO:]/[CAMP:]); només per a la previsualització en pantalla.
+  function stripMarkersLoose(t) {
+    if (!t) return "";
+    return String(t).replace(/\*\*/g, "").replace(/\/\//g, "");
+  }
+
+  // Segmenta un text amb [OPCIO:]/[CAMP:] en trossos ordenats per renderitzar-lo
+  // amb controls inline. Equival a _SegmentRichText del PC.
+  function segmentRichText(text) {
+    var segs = [];
+    if (!text) return segs;
+    var rx = /\[OPCIO:\s*([^\]]+?)\s*\]|\[CAMP:\s*([^\]]+?)\s*\]/g;
+    var pos = 0, m;
+    while ((m = rx.exec(text)) !== null) {
+      if (m.index > pos) {
+        var plain = stripMarkersLoose(text.substring(pos, m.index));
+        if (plain) segs.push({ kind: "text", text: plain });
+      }
+      if (m[1] !== undefined) {
+        var p = parseOpcio(m[1]);
+        segs.push({ kind: "opcio", name: p.name, options: p.options });
+      } else {
+        var raw = m[2].trim(), name = raw, hint = "";
+        var pi = raw.indexOf("(");
+        if (pi >= 0) { name = raw.substring(0, pi).trim(); hint = raw.substring(pi).trim().replace(/^\(/, "").replace(/\)$/, ""); }
+        segs.push({ kind: "camp", name: name, hint: hint });
+      }
+      pos = m.index + m[0].length;
+    }
+    if (pos < text.length) {
+      var plain2 = stripMarkersLoose(text.substring(pos));
+      if (plain2) segs.push({ kind: "text", text: plain2 });
+    }
+    return segs;
+  }
+
+  // Assegura que un camp tingui un valor per defecte a estat.fieldValues.
+  function ensureFieldValue(name, type, options) {
+    if (estat.fieldValues[name] === undefined) {
+      estat.fieldValues[name] = (type === "choice" && options.length) ? options[0] : "";
+    }
+  }
+
+  // Desa un valor de camp i sincronitza tots els controls amb el mateix nom
+  // (un mateix camp pot sortir a diversos llocs alhora).
+  function setFieldValue(name, value) {
+    estat.fieldValues[name] = value;
+    [].forEach.call(document.querySelectorAll("[data-fieldname]"), function (el) {
+      if (el.dataset.fieldname === name && el.value !== value) el.value = value;
+    });
+  }
+
+  // Text "ric" d'un element (item/fill): només la part de TEXT de cada BodyLine
+  // (els URLs no s'editen aquí), unit amb espais.
+  function richTextOf(el) {
+    var parts = [];
+    asArray(el.BodyLines).forEach(function (ln) {
+      var s = splitTextAndUrls(ln);
+      if (s.text) parts.push(s.text);
+    });
+    return parts.join(" ");
+  }
+
+  // Renderitza un text dins d'un contenidor barrejant text i controls inline
+  // per als [OPCIO:]/[CAMP:]. Equival a _RenderRichInto del PC.
+  function renderRich(container, text) {
+    segmentRichText(text).forEach(function (seg) {
+      if (seg.kind === "text") {
+        container.appendChild(document.createTextNode(seg.text + " "));
+        return;
+      }
+      if (!seg.name) return;
+      if (seg.kind === "opcio") {
+        ensureFieldValue(seg.name, "choice", seg.options);
+        var sel = document.createElement("select");
+        sel.className = "inline-camp";
+        sel.dataset.fieldname = seg.name;
+        seg.options.forEach(function (o) {
+          var op = document.createElement("option");
+          op.value = o; op.textContent = o;
+          sel.appendChild(op);
+        });
+        sel.value = (estat.fieldValues[seg.name] !== undefined) ? estat.fieldValues[seg.name] : (seg.options[0] || "");
+        estat.fieldValues[seg.name] = sel.value;
+        sel.addEventListener("change", function () { setFieldValue(seg.name, sel.value); });
+        container.appendChild(sel);
+      } else {
+        ensureFieldValue(seg.name, "text", []);
+        var inp = document.createElement("input");
+        inp.type = "text";
+        inp.className = "inline-camp";
+        inp.dataset.fieldname = seg.name;
+        if (seg.hint) inp.placeholder = seg.hint;
+        inp.value = estat.fieldValues[seg.name] || "";
+        inp.addEventListener("input", function () { setFieldValue(seg.name, inp.value); });
+        container.appendChild(inp);
+      }
+    });
+  }
+
   // Llista de requeriments numerada, PORTADA FIDELMENT de _WriteCatalegBody del
   // PC (mateixa numeració global, subseccions emeses només quan les segueix un
   // ítem real, fills sagnats sense numerar, separació text/URL). Així el correu
@@ -351,7 +453,9 @@
     fieldValues: {}            // name -> valor
   };
 
-  var PASSOS = ["cataleg", "capcalera", "deficiencies", "conclusions", "camps", "final"];
+  // Els camps (opcions/text lliure) ja no tenen un pas propi: s'omplen inline
+  // dins del text, al pas de deficiències i al de conclusions.
+  var PASSOS = ["cataleg", "capcalera", "deficiencies", "conclusions", "final"];
   var passActual = 0;
 
   var HEADER_KEYS = ["ID_GIA", "EXP_NUM", "TITULAR", "ADRECA", "ACTIVITAT", "NUM_ANOTACIO", "DATA_ANOTACIO"];
@@ -382,6 +486,11 @@
       muntarCataleg();
       muntarCapcalera();
       muntarDrive();
+      // Reconnexió silenciosa amb Drive si ja s'havia autoritzat abans (sense
+      // tornar a mostrar la finestra de permisos).
+      if (window.Drive && Drive.reconnectarSilenci) {
+        Drive.reconnectarSilenci().then(function (ok) { if (ok) estatDrive(true); });
+      }
       anarA(0);
     }).catch(function (e) {
       $("carregant").innerHTML = '<span class="error">Error carregant les dades: ' + e.message +
@@ -505,23 +614,48 @@
           cont.appendChild(sub);
           return;
         }
-        // item
+        // item: bloc amb la casella + el text (i camps inline) que apareix en
+        // marcar-la.
+        var block = document.createElement("div");
+        block.className = "item-block";
+        block.dataset.text = (el.Short || "").toLowerCase();
+
         var key = itemKey(sec.Title, el.Short);
         var fila = filaCheckbox(key, el.Short, el, "item");
-        cont.appendChild(fila.wrap);
+        block.appendChild(fila.wrap);
+
+        var det = document.createElement("div");
+        det.className = "detall ocult";
+        renderRich(det, richTextOf(el));
+        block.appendChild(det);
+        var mostraDet = function () { mostrar(det, fila.cb.checked && det.childNodes.length > 0); };
+        fila.cb.addEventListener("change", mostraDet);
+        mostraDet();
 
         // fills
         asArray(el.Children).forEach(function (ch) {
           var ckey = itemKey(sec.Title, el.Short, ch.Short);
           var cf = filaCheckbox(ckey, ch.Short, ch, "fill");
-          cont.appendChild(cf.wrap);
+          block.appendChild(cf.wrap);
+
+          var cdet = document.createElement("div");
+          cdet.className = "detall detall-fill ocult";
+          renderRich(cdet, richTextOf(ch));
+          block.appendChild(cdet);
+          var mostraCdet = function () { mostrar(cdet, cf.cb.checked && cdet.childNodes.length > 0); };
+          cf.cb.addEventListener("change", mostraCdet);
+          mostraCdet();
+
           // propagació (com el TreeView del PC): marcar/desmarcar l'item
           // arrossega els fills.
           fila.cb.addEventListener("change", function () {
             cf.cb.checked = fila.cb.checked;
             if (fila.cb.checked) estat.keys.add(ckey); else estat.keys.delete(ckey);
+            mostraCdet();
           });
         });
+
+        cont.appendChild(block);
       });
     });
     $("filtre-def").value = "";
@@ -596,8 +730,8 @@
   function filtrarArbre(needle) {
     needle = (needle || "").toLowerCase();
     var cont = $("arbre-def");
-    [].forEach.call(cont.querySelectorAll(".item, .fill"), function (w) {
-      var match = !needle || w.dataset.text.indexOf(needle) >= 0;
+    [].forEach.call(cont.querySelectorAll(".item-block"), function (w) {
+      var match = !needle || (w.dataset.text || "").indexOf(needle) >= 0;
       mostrar(w, match);
     });
   }
@@ -609,8 +743,14 @@
     var sel = asArray(conclusions.Selectable);
     if (!sel.length) { cont.innerHTML = '<p class="ajuda">No hi ha conclusions triables.</p>'; return; }
     sel.forEach(function (c) {
-      var wrap = document.createElement("label");   // fila sencera clicable
+      // El títol (amb la casella) ha de ser clicable, però el cos NO pot ser-ho
+      // (conté selects/inputs). Per això la casella i el títol van dins d'un
+      // <label> i el cos va a fora.
+      var wrap = document.createElement("div");
       wrap.className = "concl";
+
+      var cap = document.createElement("label");
+      cap.className = "concl-cap";
       var cb = document.createElement("input");
       cb.type = "checkbox";
       cb.dataset.title = c.Title;
@@ -618,78 +758,42 @@
       cb.addEventListener("change", function () {
         if (cb.checked) estat.conclTitles.add(c.Title); else estat.conclTitles.delete(c.Title);
       });
-      var div = document.createElement("div");
-      var tit = document.createElement("div");
+      var tit = document.createElement("span");
       tit.className = "etq";
       tit.textContent = c.Title;
+      cap.appendChild(cb);
+      cap.appendChild(tit);
+
       var cos = document.createElement("div");
       cos.className = "cos";
-      cos.textContent = stripMarkers(c.Body);
-      div.appendChild(tit);
-      div.appendChild(cos);
-      wrap.appendChild(cb);
-      wrap.appendChild(div);
+      renderRich(cos, c.Body);
+
+      wrap.appendChild(cap);
+      wrap.appendChild(cos);
       cont.appendChild(wrap);
     });
+
+    // Frases fixes (::SEMPRE::): si tenen camps, també s'han de poder omplir.
+    var always = asArray(conclusions.Always);
+    var withFields = always.filter(function (a) { return /\[OPCIO:|\[CAMP:/.test(a); });
+    if (withFields.length) {
+      var fx = document.createElement("div");
+      fx.className = "concl-fixes";
+      var t = document.createElement("div");
+      t.className = "ajuda";
+      t.textContent = "Es posa sempre al final:";
+      fx.appendChild(t);
+      withFields.forEach(function (a) {
+        var cos = document.createElement("div");
+        cos.className = "cos";
+        renderRich(cos, a);
+        fx.appendChild(cos);
+      });
+      cont.appendChild(fx);
+    }
   }
 
-  // ------- Pas 5: camps -------------------------------------------------------
-  function muntarCamps() {
-    return carregarCataleg().then(function (catalog) {
-      recollirKeysDelDOM();
-      recollirConclTitlesDelDOM();
-      var selSections = reconstructSelection(catalog, estat.keys);
-      var conclSel = asArray(conclusions.Selectable).filter(function (c) { return estat.conclTitles.has(c.Title); });
-      var always = asArray(conclusions.Always);
-      var cf = collectFields(selSections, conclSel, always);
-
-      // conserva valors ja introduïts
-      cf.order.forEach(function (name) {
-        if (estat.fieldValues[name] !== undefined) cf.fields[name].value = estat.fieldValues[name];
-      });
-      estat.fieldOrder = cf.order;
-      estat.fieldDefs = cf.fields;
-
-      var cont = $("llista-camps");
-      cont.innerHTML = "";
-      mostrar($("sense-camps"), cf.order.length === 0);
-      cf.order.forEach(function (name) {
-        var f = cf.fields[name];
-        var wrap = document.createElement("div");
-        wrap.className = "camp";
-        var lbl = document.createElement("label");
-        lbl.textContent = name;
-        wrap.appendChild(lbl);
-        if (f.hint) {
-          var h = document.createElement("div");
-          h.className = "ajuda";
-          h.textContent = f.hint;
-          wrap.appendChild(h);
-        }
-        var inp;
-        if (f.type === "choice") {
-          inp = document.createElement("select");
-          f.options.forEach(function (o) {
-            var op = document.createElement("option");
-            op.value = o; op.textContent = o;
-            inp.appendChild(op);
-          });
-          inp.value = f.value || (f.options[0] || "");
-        } else {
-          inp = document.createElement("input");
-          inp.type = "text";
-          inp.value = f.value || "";
-        }
-        inp.addEventListener("input", function () { estat.fieldValues[name] = inp.value; });
-        inp.addEventListener("change", function () { estat.fieldValues[name] = inp.value; });
-        estat.fieldValues[name] = inp.value; // valor inicial (default dels desplegables)
-        wrap.appendChild(inp);
-        cont.appendChild(wrap);
-      });
-    });
-  }
-
-  // ------- Pas 6: final -------------------------------------------------------
+  // ------- Pas 5: final -------------------------------------------------------
   function muntarFinal() {
     return carregarCataleg().then(function (catalog) {
       recollirKeysDelDOM();
@@ -869,7 +973,6 @@
     var prep = Promise.resolve();
     if (entrar === "deficiencies") prep = carregarCataleg().then(muntarDeficiencies);
     else if (entrar === "conclusions") { muntarConclusions(); }
-    else if (entrar === "camps") prep = muntarCamps();
     else if (entrar === "final") prep = muntarFinal();
     prep.then(function () { anarA(seg); }).catch(function (e) {
       alert("Error: " + e.message);
@@ -883,7 +986,6 @@
     var prep = Promise.resolve();
     if (entrar === "deficiencies") prep = carregarCataleg().then(muntarDeficiencies);
     else if (entrar === "conclusions") muntarConclusions();
-    else if (entrar === "camps") prep = muntarCamps();
     prep.then(function () { anarA(ant); });
   }
 

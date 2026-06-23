@@ -38,7 +38,7 @@
   testejables a Linux (sense Word); nomes els dialegs WinForms necessiten Windows.
 
   Reutilitza de GenerarInforme.ps1: _NormalizeText, Test-StyleMatch,
-  Add-FieldsFromConclusions, Apply-Fields, Prompt-Fields, Select-Conclusions,
+  Apply-Fields, Select-Conclusions (amb camps inline), Get-FieldValuesForSession,
   _ResolveOutputDir, _GetUniqueOutputPath.
 #>
 
@@ -1200,11 +1200,13 @@ function Invoke-SeguimentFlow {
         $reportType = _ReportTypeFromFileName ([System.IO.Path]::GetFileName($sourcePath))
         $conclAll = Read-ConclusionsXml $ConclusionsPath $reportType
 
-        # Maquina de passos: 1=data, 2=comentaris, 3=conclusions, 4=camps. 5=fi.
-        $st  = @{ Date=$null; Decisions=$null; Conclusions=@(); Fields=$null }
+        # Maquina de passos: 1=data, 2=comentaris, 3=conclusions (amb camps
+        # inline). Les opcions/camps de les conclusions s'omplen dins del propi
+        # text al Pas 3, aixi que ja no hi ha un pas separat de "camps".
+        $st  = @{ Date=$null; Decisions=$null; Conclusions=@(); Fields=[ordered]@{} }
         $pre = @{ Date=$null; ConclTitles=$null }
         $step = 1
-        while ($step -ge 1 -and $step -le 4) {
+        while ($step -ge 1 -and $step -le 3) {
             switch ($step) {
                 1 {
                     $r = Prompt-RoundDate -preset $pre.Date
@@ -1219,26 +1221,15 @@ function Invoke-SeguimentFlow {
                 3 {
                     if ($conclAll.Selectable.Count -eq 0) {
                         $st.Conclusions = @()
-                        $step = 4
+                        $step = 4   # surt del bucle: no hi ha res mes a fer
                     } else {
-                        $r = Select-Conclusions -conclusions $conclAll.Selectable -preloadTitles $pre.ConclTitles
+                        $r = Select-Conclusions -conclusions $conclAll.Selectable -always $conclAll.Always -fields $st.Fields -preloadTitles $pre.ConclTitles -preloadValues (Get-FieldValuesForSession $st.Fields)
                         if ($r.Nav -eq 'back') { $step = 2 }
                         else {
                             $st.Conclusions = $r.Data
                             $pre.ConclTitles = @($st.Conclusions | ForEach-Object { $_.Title })
-                            $step = 4
+                            $step = 4   # surt del bucle
                         }
-                    }
-                }
-                4 {
-                    $fields = [ordered]@{}
-                    Add-FieldsFromConclusions $fields $st.Conclusions $conclAll.Always
-                    if ($fields.Count -eq 0) {
-                        $st.Fields = $fields; $step = 5
-                    } else {
-                        $r = Prompt-Fields -fields $fields
-                        if ($r.Nav -eq 'back') { $step = 3 }
-                        else { $st.Fields = $r.Data; $step = 5 }
                     }
                 }
             }

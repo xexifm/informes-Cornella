@@ -97,23 +97,25 @@ manera automàtica.
 ## 3. Ús diari
 
 ### Generar un informe
-**Doble clic a `GenerarInforme.bat`**. Et guia per 6 passos:
+**Doble clic a `GenerarInforme.bat`**. Et guia per 5 passos:
 
 | Pas | Què fa |
 |-----|--------|
 | 1 | Triar catàleg (si n'hi ha més d'un a `ESTRUCTURALS/`) |
 | 2 | Dades de la capçalera (auto-fill per ID GIA des de l'Excel) |
-| 3 | Marcar les deficiències a incloure (TreeView amb filtre) |
-| 4 | Triar les conclusions (checkboxes amb el títol curt) |
-| 5 | Omplir camps i triar opcions (només els que apareixen als ítems/conclusions seleccionats) |
-| 6 | Es genera el .docx i s'obre amb Word |
+| 3 | Marcar les deficiències (TreeView amb filtre). **En marcar-ne una, el seu text surt al panell de la dreta i, si té opcions o camps lliures, els omples allà mateix.** |
+| 4 | Triar les conclusions: es mostra el **cos sencer** de cada una i, si té opcions/camps, els omples **dins del propi text**. |
+| 5 | Es genera el .docx i s'obre amb Word |
 
-Els botons **Enrere** dels passos 2-5 permeten tornar enrere conservant les
+> Les opcions (desplegables) i els camps lliures s'omplen **inline**, allà on
+> apareixen al text (Pas 3 i Pas 4); ja no hi ha un pas separat de "camps".
+
+Els botons **Enrere** dels passos 2-4 permeten tornar enrere conservant les
 dades. Hi ha també un botó **Recuperar dades últim informe** al pas 2 per
 clonar l'informe anterior i tirar pas a pas.
 
 > En obrir `GenerarInforme.bat` surt primer una pantalla per triar entre
-> **Generar informe nou** (els 6 passos d'aquí) i **Fer seguiment d'un
+> **Generar informe nou** (els passos d'aquí) i **Fer seguiment d'un
 > informe existent** (vegeu a sota).
 
 ### Fer el seguiment d'un informe
@@ -261,11 +263,14 @@ propi, com a hipervincle, en cos 10 pt. Si oblides l'estil i poses
 
 ### Camps a omplir: `[CAMP: ...]` i `[OPCIO: ...]`
 
+> Els `[OPCIO:]`/`[CAMP:]` s'omplen **inline**, dins del propi text, a la
+> mateixa pantalla on marques la deficiència (Pas 3) o la conclusió (Pas 4).
+
 **Camp de text lliure**:
 ```
 Cal aportar el certificat de la [CAMP: entitat acreditada].
 ```
-Al Pas 5 surt una caixa de text amb l'etiqueta "entitat acreditada".
+On aparegui el text, hi surt una caixa de text per escriure "entitat acreditada".
 
 **Camp amb ajuda**:
 ```
@@ -277,9 +282,9 @@ El text dins els parèntesis surt com a hint a sota del camp.
 ```
 S'ha de presentar un projecte tècnic [OPCIO: Destinatari | a l'ajuntament | a l'ACA] amb el contingut...
 ```
-Al Pas 5 surt un desplegable etiquetat "Destinatari" amb les opcions.
-La primera està preseleccionada per defecte. L'opció triada substitueix
-el `[OPCIO: ...]` al document final.
+Allà mateix surt un desplegable (inline) amb les opcions. La primera està
+preseleccionada per defecte. L'opció triada substitueix el `[OPCIO: ...]`
+al document final.
 
 > El separador d'opcions és `|` (no `/`), perquè el text legal en fa
 > servir molt de barres.
@@ -355,7 +360,7 @@ Vist l'anterior... es valora NO ampliar...  ← Normal
   No surten al Pas 4 i són **globals** (s'imprimeixen sempre, per a qualsevol
   tipus d'informe), en l'ordre del fitxer, al final de l'informe.
 - **Camps i opcions**: pots fer servir `[CAMP: ...]` i `[OPCIO: ...]`
-  als cossos. El Pas 5 els demana junt amb els del catàleg.
+  als cossos. S'omplen inline, dins del propi text, al Pas 4.
 - **Negreta i cursiva** inline (`**...**`, `//...//`) també funcionen.
 
 ### Separació visual
