@@ -8,8 +8,9 @@
   Genera dos tipus de sortida, separades per sensibilitat:
 
   1. PLANTILLES (NO contenen dades personals) -> docs/dades/*.json
-       - cataleg-<BaseName>.json  (un per cada REQ*.docx d'ESTRUCTURALS)
-       - conclusions.json
+       - cataleg-<BaseName>.json  (un per cada cataleg amb deficiencies a triar;
+                                   els informes de cos fix com TERMINI s'ometen)
+       - conclusions.json         (nomes les dels tipus exportats al mobil)
        - capcalera.json           (placeholders <<...>> detectats)
        - manifest.json            (llista de catalegs + data de generacio)
      Aquests fitxers SI es pugen al GitHub public (GitHub Pages els serveix al
@@ -98,6 +99,12 @@ function Export-Plantilles {
         $catNames = @()
         foreach ($cat in $catalegs) {
             $parsed = Get-ParsedCataleg -word $word -path $cat.FullName
+            # El mobil NOMES gestiona informes amb deficiencies a triar (REQ1).
+            # Els informes de cos fix (p.ex. TERMINI) NO van al formulari web.
+            if ($parsed.IsFixedBody) {
+                Write-Host "  (ometo $($cat.BaseName): informe de cos fix, no va al mobil)"
+                continue
+            }
             $sectionsJson = @()
             foreach ($sec in $parsed.Sections) {
                 $itemsJson = @()
@@ -115,12 +122,30 @@ function Export-Plantilles {
             Write-Host "  cataleg-$($cat.BaseName).json"
         }
 
-        # Conclusions
-        $concl = Read-Conclusions -word $word -path $ConclusionsPath
+        # Conclusions: NOMES les dels tipus d'informe exportats al mobil. Cada
+        # tipus te el seu grup a 0 CONCLUSIONS.docx; ajuntem els grups dels
+        # catalegs exportats (dedup per titol). Aixi el mobil no veu mai les
+        # conclusions d'un tipus que no ofereix (p.ex. TERMINI). Les frases
+        # ::SEMPRE:: son globals (iguals per a tots els tipus).
+        $conclHeader = ''
+        $conclSel    = @()
+        $conclAlways = @()
+        $seenTitles  = @{}
+        foreach ($t in $catNames) {
+            $c = Read-Conclusions -word $word -path $ConclusionsPath -reportType $t
+            if ([string]::IsNullOrEmpty($conclHeader)) { $conclHeader = $c.HeaderText }
+            if ($conclAlways.Count -eq 0)              { $conclAlways = @($c.Always) }
+            foreach ($s in $c.Selectable) {
+                if (-not $seenTitles.ContainsKey($s.Title)) {
+                    $seenTitles[$s.Title] = $true
+                    $conclSel += [pscustomobject]@{ Title=$s.Title; Body=$s.Body }
+                }
+            }
+        }
         $conclObj = [pscustomobject]@{
-            HeaderText = $concl.HeaderText
-            Selectable = @($concl.Selectable | ForEach-Object { [pscustomobject]@{ Title=$_.Title; Body=$_.Body } })
-            Always     = @($concl.Always)
+            HeaderText = $conclHeader
+            Selectable = @($conclSel)
+            Always     = @($conclAlways)
         }
         ($conclObj | ConvertTo-Json -Depth 8) |
             Set-Content -LiteralPath (Join-Path $WebDadesDir 'conclusions.json') -Encoding UTF8
