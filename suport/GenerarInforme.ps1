@@ -57,6 +57,14 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+# IMPORTANT (rendiment): a Windows PowerShell 5.1, Invoke-RestMethod/
+# Invoke-WebRequest dibuixen una barra de progres ("Llegint resposta web...")
+# que actualitza byte a byte i fa que una descarrega de pocs KB trigui SEGONS.
+# Silenciant el progres, les crides a Google Drive (p.ex. llegir activitats.json
+# per saber-ne la data) passen a ser gairebe instantanies. Ho posem global
+# perque afecti tambe DriveApi.ps1 (que es dot-source a la mateixa sessio).
+$global:ProgressPreference = 'SilentlyContinue'
+
 # Mode "headless" per a proves automatiques: si la variable d'entorn
 # GENINFORME_TEST esta definida, NO carreguem WinForms ni executem el
 # programa (Main). Aixo permet carregar (dot-source) el script en un Linux
@@ -651,41 +659,55 @@ function Select-Cataleg {
     }
     if ($catalegs.Count -eq 1) { return [pscustomobject]@{ Nav='next'; Data=$catalegs[0] } }
 
+    # Un boto gran per cada tipus d'informe (com la pantalla "Que vols fer?").
     $form = New-Object System.Windows.Forms.Form
     $form.Text = 'Pas 1 - Tipus d''informe'
-    $form.Size = New-Object System.Drawing.Size(500, 320)
     $form.StartPosition = 'CenterScreen'
+    $form.FormBorderStyle = 'FixedDialog'
+    $form.MaximizeBox = $false
+    $form.MinimizeBox = $false
 
     $lbl = New-Object System.Windows.Forms.Label
-    $lbl.Text = 'Selecciona el cataleg de deficiencies:'
-    $lbl.Location = New-Object System.Drawing.Point(15, 15)
+    $lbl.Text = 'Quin tipus d''informe vols generar?'
+    $lbl.Location = New-Object System.Drawing.Point(20, 15)
     $lbl.AutoSize = $true
     $form.Controls.Add($lbl)
 
-    $list = New-Object System.Windows.Forms.ListBox
-    $list.Location = New-Object System.Drawing.Point(15, 40)
-    $list.Size = New-Object System.Drawing.Size(450, 180)
-    foreach ($c in $catalegs) { [void]$list.Items.Add($c.BaseName) }
-    $list.SelectedIndex = 0
-    if ($preloadBaseName) {
-        for ($i = 0; $i -lt $catalegs.Count; $i++) {
-            if ($catalegs[$i].BaseName -eq $preloadBaseName) { $list.SelectedIndex = $i; break }
-        }
-    }
-    $form.Controls.Add($list)
+    # Si hi ha molts catalegs, el panell amb AutoScroll evita una finestra
+    # desmesurada (els botons es poden recorrer amb la barra).
+    $panel = New-Object System.Windows.Forms.Panel
+    $panel.Location = New-Object System.Drawing.Point(20, 50)
+    $panel.Size = New-Object System.Drawing.Size(410, [Math]::Min(420, ($catalegs.Count * 55) + 5))
+    $panel.AutoScroll = $true
+    $form.Controls.Add($panel)
 
-    $ok = New-Object System.Windows.Forms.Button
-    $ok.Text = 'Seguent'
-    $ok.Location = New-Object System.Drawing.Point(290, 240)
-    $ok.Size = New-Object System.Drawing.Size(80, 28)
-    $ok.DialogResult = 'OK'
-    $form.AcceptButton = $ok
-    $form.Controls.Add($ok)
+    $script:_selectedCataleg = $null
+    $y = 5
+    for ($i = 0; $i -lt $catalegs.Count; $i++) {
+        $c = $catalegs[$i]
+        $btn = New-Object System.Windows.Forms.Button
+        $btn.Text = $c.BaseName
+        $btn.Location = New-Object System.Drawing.Point(5, $y)
+        $btn.Size = New-Object System.Drawing.Size(380, 45)
+        $btn.Font = New-Object System.Drawing.Font('Segoe UI', 11, [System.Drawing.FontStyle]::Regular)
+        $btn.Tag = $c
+        $btn.add_Click({
+            $script:_selectedCataleg = $c
+            $form.DialogResult = 'OK'
+            $form.Close()
+        }.GetNewClosure())
+        [void]$panel.Controls.Add($btn)
+        # El boto del cataleg preseleccionat (sessio anterior) agafa el focus.
+        if ($preloadBaseName -and $c.BaseName -eq $preloadBaseName) { $form.ActiveControl = $btn }
+        $y += 55
+    }
+
+    $form.ClientSize = New-Object System.Drawing.Size(450, ($panel.Top + $panel.Height + 15))
 
     # No hi ha boto Cancel ni Enrere: el Pas 1 es el primer. Tancar la
     # finestra (X) avorta el programa.
-    if ($form.ShowDialog() -ne 'OK') { exit 0 }
-    return [pscustomobject]@{ Nav='next'; Data=$catalegs[$list.SelectedIndex] }
+    if ($form.ShowDialog() -ne 'OK' -or $null -eq $script:_selectedCataleg) { exit 0 }
+    return [pscustomobject]@{ Nav='next'; Data=$script:_selectedCataleg }
 }
 
 # ----------------------------------------------------------------------------
@@ -1309,14 +1331,42 @@ function Select-Items {
         }
     }
 
+    # Amplada util del panell de detall (sense la barra de desplacament).
+    $detailInnerWidth = { [Math]::Max(280, $detailHost.ClientSize.Width - 26) }
+
+    # Crea un FlowLayoutPanel que EMBOLCALLA el text (wrap) a l'ample disponible.
+    # Clau: amb AutoSize + WrapContents cal limitar l'amplada amb MaximumSize,
+    # si no, el panell creix cap a la dreta i no salta de linia.
+    $newWrapFlow = {
+        param($leftMargin)
+        $f = New-Object System.Windows.Forms.FlowLayoutPanel
+        $f.FlowDirection = 'LeftToRight'; $f.WrapContents = $true
+        $f.AutoSize = $true; $f.AutoSizeMode = 'GrowAndShrink'
+        $f.Margin = New-Object System.Windows.Forms.Padding($leftMargin, 0, 2, 4)
+        $iw = & $detailInnerWidth
+        $f.MaximumSize = New-Object System.Drawing.Size([Math]::Max(120, ($iw - $leftMargin - 6)), 0)
+        return $f
+    }
+
+    # Reajusta l'amplada maxima de tots els blocs quan la finestra canvia de mida
+    # (sense reconstruir res, per no perdre el focus mentre s'escriu).
+    $applyDetailWidths = {
+        $iw = & $detailInnerWidth
+        $detailV.MaximumSize = New-Object System.Drawing.Size($iw, 0)
+        foreach ($child in $detailV.Controls) {
+            if ($child -is [System.Windows.Forms.FlowLayoutPanel]) {
+                $child.MaximumSize = New-Object System.Drawing.Size([Math]::Max(120, ($iw - $child.Margin.Left - 6)), 0)
+            }
+        }
+    }
+
     # Reconstrueix el panell de detall a partir de les caselles marcades.
     $refreshDetail = {
         _CollectCheckStates $tv $checkStates
         $detailV.SuspendLayout()
         $detailV.Controls.Clear()
         $registry = _NewFieldRegistry
-        $innerWidth = [Math]::Max(300, $detailHost.ClientSize.Width - 28)
-        $detailV.Width = $innerWidth
+        $detailV.MaximumSize = New-Object System.Drawing.Size((& $detailInnerWidth), 0)
         $anyShown = $false
         foreach ($sec in $sections) {
             foreach ($el in $sec.Items) {
@@ -1341,11 +1391,7 @@ function Select-Items {
                 if ($itSel) {
                     $txt = _RichTextOfBodyLines $el.BodyLines
                     if ($txt) {
-                        $flow = New-Object System.Windows.Forms.FlowLayoutPanel
-                        $flow.FlowDirection = 'LeftToRight'; $flow.WrapContents = $true
-                        $flow.AutoSize = $true; $flow.AutoSizeMode = 'GrowAndShrink'
-                        $flow.Width = ($innerWidth - 6)
-                        $flow.Margin = New-Object System.Windows.Forms.Padding(8, 0, 2, 4)
+                        $flow = & $newWrapFlow 8
                         _RenderRichInto $flow $txt $fields $preloadValues $registry
                         [void]$detailV.Controls.Add($flow)
                     }
@@ -1353,11 +1399,7 @@ function Select-Items {
                 foreach ($ch in $selChildren) {
                     $ctxt = _RichTextOfBodyLines $ch.BodyLines
                     if (-not $ctxt) { continue }
-                    $cflow = New-Object System.Windows.Forms.FlowLayoutPanel
-                    $cflow.FlowDirection = 'LeftToRight'; $cflow.WrapContents = $true
-                    $cflow.AutoSize = $true; $cflow.AutoSizeMode = 'GrowAndShrink'
-                    $cflow.Width = ($innerWidth - 22)
-                    $cflow.Margin = New-Object System.Windows.Forms.Padding(24, 0, 2, 4)
+                    $cflow = & $newWrapFlow 24
                     _RenderRichInto $cflow $ctxt $fields $preloadValues $registry
                     [void]$detailV.Controls.Add($cflow)
                 }
@@ -1401,6 +1443,10 @@ function Select-Items {
         _CollectCheckStates $tv $checkStates
         _RebuildTree $tv $sections $tbFilter.Text $checkStates
     })
+
+    # Quan la finestra canvia de mida, reajustem l'amplada dels blocs perque el
+    # text es reembolcalli a l'ample nou (sense reconstruir, per no perdre focus).
+    $detailHost.add_SizeChanged({ & $applyDetailWidths })
 
     # Detall inicial (mostra els ja marcats per precarrega).
     & $refreshDetail
@@ -2057,7 +2103,21 @@ function Select-Conclusions {
     $panel.Controls.Add($listV)
 
     $registry = _NewFieldRegistry
-    $innerWidth = 850
+
+    # Amplada util (sense barra de desplacament). El cos de cada conclusio
+    # s'embolcalla (wrap) a aquesta amplada; cal MaximumSize perque un
+    # FlowLayoutPanel amb AutoSize+WrapContents salti de linia en lloc de
+    # creixer cap a la dreta.
+    $innerW = { [Math]::Max(280, $panel.ClientSize.Width - 26) }
+    $mkConclFlow = {
+        param($leftMargin)
+        $f = New-Object System.Windows.Forms.FlowLayoutPanel
+        $f.FlowDirection = 'LeftToRight'; $f.WrapContents = $true
+        $f.AutoSize = $true; $f.AutoSizeMode = 'GrowAndShrink'
+        $f.Margin = New-Object System.Windows.Forms.Padding($leftMargin, 0, 2, 6)
+        $f.MaximumSize = New-Object System.Drawing.Size([Math]::Max(120, ((& $innerW) - $leftMargin - 6)), 0)
+        return $f
+    }
 
     $checks = @()
     for ($i = 0; $i -lt $conclusions.Count; $i++) {
@@ -2072,11 +2132,7 @@ function Select-Conclusions {
         [void]$listV.Controls.Add($cb)
         $checks += $cb
 
-        $flow = New-Object System.Windows.Forms.FlowLayoutPanel
-        $flow.FlowDirection = 'LeftToRight'; $flow.WrapContents = $true
-        $flow.AutoSize = $true; $flow.AutoSizeMode = 'GrowAndShrink'
-        $flow.Width = $innerWidth
-        $flow.Margin = New-Object System.Windows.Forms.Padding(22, 0, 2, 6)
+        $flow = & $mkConclFlow 22
         _RenderRichInto $flow ([string]$c.Body) $fields $preloadValues $registry
         [void]$listV.Controls.Add($flow)
     }
@@ -2093,15 +2149,22 @@ function Select-Conclusions {
         $sep.Margin = New-Object System.Windows.Forms.Padding(4, 16, 4, 2)
         [void]$listV.Controls.Add($sep)
         foreach ($a in $alwaysArr) {
-            $aflow = New-Object System.Windows.Forms.FlowLayoutPanel
-            $aflow.FlowDirection = 'LeftToRight'; $aflow.WrapContents = $true
-            $aflow.AutoSize = $true; $aflow.AutoSizeMode = 'GrowAndShrink'
-            $aflow.Width = $innerWidth
-            $aflow.Margin = New-Object System.Windows.Forms.Padding(22, 0, 2, 4)
+            $aflow = & $mkConclFlow 22
             _RenderRichInto $aflow ([string]$a) $fields $preloadValues $registry
             [void]$listV.Controls.Add($aflow)
         }
     }
+
+    # En canviar la mida de la finestra, reembolcallem els cossos a l'ample nou.
+    $panel.add_SizeChanged({
+        $iw = & $innerW
+        $listV.MaximumSize = New-Object System.Drawing.Size($iw, 0)
+        foreach ($child in $listV.Controls) {
+            if ($child -is [System.Windows.Forms.FlowLayoutPanel]) {
+                $child.MaximumSize = New-Object System.Drawing.Size([Math]::Max(120, ($iw - $child.Margin.Left - 6)), 0)
+            }
+        }
+    })
 
     $back = New-Object System.Windows.Forms.Button
     $back.Text = 'Enrere'

@@ -1,4 +1,4 @@
-# Proves automatiques de les funcions PURES de GenerarInforme.ps1.
+﻿# Proves automatiques de les funcions PURES de GenerarInforme.ps1.
 #
 # NO prova la part de Word/Excel (COM) ni les finestres (WinForms): aixo
 # nomes es pot provar a Windows amb Office. Aqui es validen les funcions de
