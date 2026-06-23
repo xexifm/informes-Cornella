@@ -742,6 +742,36 @@ AssertEq (_ReportTypeFromFileName '2026-06-23_Req1_GIA 10.docx')      'Req1'    
 AssertEq (_ReportTypeFromFileName 'sense_separadors')                'separadors' '_ReportTypeFromFileName: 2 segments'
 AssertEq (_ReportTypeFromFileName 'nomesun')                          ''        '_ReportTypeFromFileName: sense 2n segment -> buit'
 AssertEq (_ReportTypeFromFileName $null)                              ''        '_ReportTypeFromFileName: null -> buit'
+
+Write-Host "`n--- _StripMarkers (treu ** i // per a la previsualitzacio) ---"
+AssertEq (_StripMarkers 'text **negreta** i //cursiva//') 'text negreta i cursiva' '_StripMarkers: parells nets'
+AssertEq (_StripMarkers '**ampliar el termini ')          'ampliar el termini '   '_StripMarkers: marcador partit (orfe) tambe es treu'
+AssertEq (_StripMarkers $null)                            ''                      '_StripMarkers: null -> buit'
+
+Write-Host "`n--- _SegmentRichText (camps inline al Pas 3 i conclusions) ---"
+$segA = @(_SegmentRichText 'es valora **ampliar el termini [OPCIO: Mesos ampliacio | un mes | dos mesos]**.')
+AssertEq $segA.Count 3                       '_SegmentRichText: 3 trossos (text, opcio, text)'
+AssertEq $segA[0].Kind 'text'                '_SegmentRichText: 1r tros es text'
+AssertEq $segA[0].Text 'es valora ampliar el termini ' '_SegmentRichText: text sense marcadors **'
+AssertEq $segA[1].Kind 'opcio'               '_SegmentRichText: 2n tros es opcio'
+AssertEq $segA[1].Name 'Mesos ampliacio'     '_SegmentRichText: nom de l opcio'
+AssertEq $segA[1].Options.Count 2            '_SegmentRichText: 2 opcions'
+AssertEq $segA[1].Options[0] 'un mes'        '_SegmentRichText: 1a opcio'
+AssertEq $segA[2].Kind 'text'                '_SegmentRichText: 3r tros es text (.)'
+
+$segB = @(_SegmentRichText 'precintar [CAMP: que es precinta] fins esmenar')
+AssertEq $segB.Count 3                       '_SegmentRichText: camp lliure -> 3 trossos'
+AssertEq $segB[1].Kind 'camp'                '_SegmentRichText: tros central es camp'
+AssertEq $segB[1].Name 'que es precinta'     '_SegmentRichText: nom del camp'
+
+$segH = @(_SegmentRichText '[CAMP: data (dd/mm/aaaa)]')
+AssertEq $segH.Count 1                       '_SegmentRichText: nomes el camp'
+AssertEq $segH[0].Name 'data'                '_SegmentRichText: nom sense el hint'
+AssertEq $segH[0].Hint 'dd/mm/aaaa'          '_SegmentRichText: hint separat'
+
+AssertEq (@(_SegmentRichText 'sense cap camp').Count) 1 '_SegmentRichText: text pla -> 1 tros'
+AssertEq (@(_SegmentRichText '').Count)               0 '_SegmentRichText: buit -> cap tros'
+
 Write-Host "`n--- Format-Section: MAJUSCULES sense negreta ---"
 # Re-carreguem Format.ps1 perque tests anteriors han estubat Format-Section.
 . (Join-Path (Split-Path -Parent $PSScriptRoot) 'Format.ps1')

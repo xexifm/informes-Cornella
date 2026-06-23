@@ -33,35 +33,70 @@
     });
   }
 
-  // Demana (interactivament) un token d'accés. Cal una acció de l'usuari.
-  function connectar() {
-    if (!disponible()) return Promise.reject(new Error("Google Drive no configurat."));
+  // Recorda (en aquest navegador) que l'usuari ja ha autoritzat alguna vegada.
+  // Google NO dóna "refresh tokens" a les apps de navegador (els tokens caduquen
+  // ~1h), però si ja s'ha consentit es pot renovar el token EN SILENCI (sense
+  // tornar a mostrar la finestra de permisos) mentre hi hagi sessió de Google.
+  var CLAU_AUTORITZAT = "driveAutoritzat";
+  function jaAutoritzat() {
+    try { return localStorage.getItem(CLAU_AUTORITZAT) === "1"; } catch (e) { return false; }
+  }
+  function recordarAutoritzat() {
+    try { localStorage.setItem(CLAU_AUTORITZAT, "1"); } catch (e) {}
+  }
+
+  function _initClient() {
+    if (tokenClient) return;
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CONFIG.GOOGLE_CLIENT_ID,
+      scope: SCOPE,
+      callback: function () {},        // es reassigna a cada petició
+      error_callback: function () {}   // es reassigna a cada petició
+    });
+  }
+
+  // Demana un token. silenciós=true intenta NO mostrar res (prompt:""); si cal
+  // consentiment, falla i el cridador pot reintentar amb silenciós=false.
+  function _demanarToken(silencios) {
     return carregarGis().then(function () {
       return new Promise(function (resolve, reject) {
         try {
-          if (!tokenClient) {
-            tokenClient = google.accounts.oauth2.initTokenClient({
-              client_id: CONFIG.GOOGLE_CLIENT_ID,
-              scope: SCOPE,
-              callback: function (resp) {
-                if (resp && resp.access_token) {
-                  accessToken = resp.access_token;
-                  resolve(accessToken);
-                } else {
-                  reject(new Error("No s'ha obtingut el token de Google."));
-                }
-              }
-            });
-          } else {
-            tokenClient.callback = function (resp) {
-              if (resp && resp.access_token) { accessToken = resp.access_token; resolve(accessToken); }
-              else { reject(new Error("No s'ha obtingut el token de Google.")); }
-            };
-          }
-          tokenClient.requestAccessToken({ prompt: accessToken ? "" : "consent" });
+          _initClient();
+          tokenClient.callback = function (resp) {
+            if (resp && resp.access_token) {
+              accessToken = resp.access_token;
+              recordarAutoritzat();
+              resolve(accessToken);
+            } else {
+              reject(new Error("No s'ha obtingut el token de Google."));
+            }
+          };
+          tokenClient.error_callback = function (err) {
+            reject(new Error((err && err.message) || "Autorització de Google cancel·lada."));
+          };
+          tokenClient.requestAccessToken({ prompt: silencios ? "" : "consent" });
         } catch (e) { reject(e); }
       });
     });
+  }
+
+  // Connecta amb Drive. Si ja s'havia autoritzat abans en aquest navegador,
+  // prova primer la via SILENCIOSA (sense finestra de permisos) i, si cal,
+  // demana consentiment. La primera vegada sempre demana consentiment.
+  function connectar() {
+    if (!disponible()) return Promise.reject(new Error("Google Drive no configurat."));
+    if (accessToken || jaAutoritzat()) {
+      return _demanarToken(true).catch(function () { return _demanarToken(false); });
+    }
+    return _demanarToken(false);
+  }
+
+  // Reconnexió silenciosa en segon pla (a l'arrencada de l'app): mai mostra res
+  // ni llança. Resol a true si s'ha obtingut token, false si no (llavors caldrà
+  // prémer "Cercar"/"Preparar" perquè surti la finestra una sola vegada).
+  function reconnectarSilenci() {
+    if (!disponible() || !jaAutoritzat()) return Promise.resolve(false);
+    return _demanarToken(true).then(function () { return true; }).catch(function () { return false; });
   }
 
   function connectat() { return !!accessToken; }
@@ -124,6 +159,7 @@
   window.Drive = {
     disponible: disponible,
     connectar: connectar,
+    reconnectarSilenci: reconnectarSilenci,
     connectat: connectat,
     llegirActivitats: llegirActivitats,
     pujarPaquet: pujarPaquet
