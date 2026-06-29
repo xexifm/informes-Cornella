@@ -25,8 +25,9 @@ cada programa (cada `.bat` que pots clicar) i quins són compartits.
 | `Ruta.bat`                  | ▶ Planificar la ruta d'inspecció d'un llistat d'activitats.   |
 | `Vigilant.bat`              | ▶ Generar sol els informes que arriben del mòbil.             |
 | `Actualitzar.bat`           | ▶ Actualitzar el programa des de GitHub i refrescar dades.    |
-| `ESTRUCTURALS/`             | Plantilles `.docx` (capçalera, conclusions, catàleg REQ).     |
+| `ESTRUCTURALS/`             | Plantilles `.docx` (capçalera, conclusions, catàleg REQ, ACT_EXTR). |
 | `BASE DE DADES ACTIVITATS/` | Còpia local de l'Excel d'activitats (fallback sense xarxa).   |
+| `BASE DE DADES ACT_EXTR/`   | Registre local d'activitats extraordinàries (mode ACT_EXTR, gitignored). |
 | `Informes generats/`        | Sortida `.docx` (local, ignorada per git).                    |
 | `Rutes generades/`          | Sortida dels mapes de ruta HTML (local, ignorada per git).    |
 | `docs/`                     | Formulari web del mòbil (GitHub Pages).                        |
@@ -40,7 +41,8 @@ cada programa (cada `.bat` que pots clicar) i quins són compartits.
 suport/
 ├── GenerarInforme.ps1     ← MOTOR + punt d'entrada de GenerarInforme.bat
 ├── Format.ps1             ← mòdul del motor (format del .docx)
-├── Seguiment.ps1          ← mòdul del motor (informes de seguiment)
+├── Seguiment.ps1          ← mòdul del motor (informes de seguiment + tria de mode)
+├── ActExtr.ps1            ← mòdul del motor (mode ACT_EXTR: activitats extraordinàries)
 ├── DriveApi.ps1           ← mòdul compartit (accés a Google Drive)
 ├── config.ps1             ← la TEVA configuració local (rutes, OSRM…)
 ├── Instalar.bat           ← instal·lador per a una màquina nova
@@ -76,6 +78,7 @@ Llegenda: **●** = punt d'entrada · **○** = el carrega (dot-source) · **·*
 | `GenerarInforme.ps1`              | ●              |          | ○        | ○           |
 | `Format.ps1`                      | ○              |          | ○        | ○           |
 | `Seguiment.ps1`                   | ○              |          | ○        | ○           |
+| `ActExtr.ps1`                     | ○              |          | ○        | ○           |
 | `DriveApi.ps1`                    | ○              |          | ○        | ○           |
 | `config.ps1`                      | ·              | ·        | ·        | ·           |
 | `rutes/Ruta.ps1`                  |                | **●**    |          |             |
@@ -99,7 +102,8 @@ Llegenda: **●** = punt d'entrada · **○** = el carrega (dot-source) · **·*
 ## Proves
 
 ```
-pwsh -File suport/tests/run-tests.ps1        # motor / generador d'informes
-pwsh -File suport/tests/run-tests-ruta.ps1   # planificador de rutes
+pwsh -File suport/tests/run-tests.ps1          # motor / generador d'informes
+pwsh -File suport/tests/run-tests-ruta.ps1     # planificador de rutes
+pwsh -File suport/tests/run-tests-actextr.ps1  # mode ACT_EXTR (Decret 112/2010)
 ```
 (en un Windows sense PowerShell 7, fes servir `powershell` en lloc de `pwsh`.)

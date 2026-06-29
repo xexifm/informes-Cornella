@@ -15,16 +15,19 @@ informes-Cornella/
 ├── Actualitzar.bat               ← doble clic per actualitzar el programa
 ├── ESTRUCTURA.md                  ← MAPA: quins fitxers fa servir cada executable
 ├── ESTRUCTURALS/                  ← plantilles del programa (les pots editar al Word)
-│   ├── 0 CAPCALERA.docx           ← capçalera fixa de l'informe
+│   ├── 0 CAPCALERA.docx           ← capçalera fixa (REQ1 + bloc ACT_EXTR)
 │   ├── 0 CONCLUSIONS.docx         ← conclusions triables (per tipus) + fixes
 │   ├── REQ1.docx                  ← catàleg de deficiències
-│   └── TERMINI.docx               ← informe de cos fix (sense deficiències a triar)
+│   ├── TERMINI.docx               ← informe de cos fix (sense deficiències a triar)
+│   ├── ACT_EXTR_REQ.docx          ← plantilla del requeriment d'activitat extraordinària
+│   └── ACT_EXTR_FAVORABLE.docx    ← plantilla de l'informe favorable d'activitat extraordinària
 ├── BASE DE DADES ACTIVITATS/      ← (fallback local) copia local de l'Excel quan no hi ha xarxa
+├── BASE DE DADES ACT_EXTR/        ← registre local d'activitats extraordinàries (mode ACT_EXTR)
 ├── Informes generats/             ← (local, gitignored) on cauen els .docx generats
 ├── Rutes generades/               ← (local, gitignored) on cauen els mapes de ruta HTML
 └── suport/                        ← codi del programa, no cal tocar-lo
     ├── GenerarInforme.ps1         ← MOTOR + entrada de GenerarInforme.bat
-    ├── Format.ps1 · Seguiment.ps1 · DriveApi.ps1   ← mòduls del motor
+    ├── Format.ps1 · Seguiment.ps1 · ActExtr.ps1 · DriveApi.ps1   ← mòduls del motor
     ├── config.ps1                 ← (opcional) sobreescriu rutes locals
     ├── Instalar.bat               ← instal·lar en una màquina nova (vegeu cap. 2)
     ├── rutes/Ruta.ps1             ← planificador de rutes (entrada de Ruta.bat)
@@ -115,8 +118,9 @@ dades. Hi ha també un botó **Recuperar dades últim informe** al pas 2 per
 clonar l'informe anterior i tirar pas a pas.
 
 > En obrir `GenerarInforme.bat` surt primer una pantalla per triar entre
-> **Generar informe nou** (els passos d'aquí) i **Fer seguiment d'un
-> informe existent** (vegeu a sota).
+> **Generar informe nou** (els passos d'aquí), **Fer seguiment d'un
+> informe existent** (vegeu a sota) i **Activitats extraordinàries
+> (ACT_EXTR)** (vegeu el capítol 14).
 
 ### Fer el seguiment d'un informe
 
@@ -547,3 +551,70 @@ camps), **enviar els requeriments per correu** a un destinatari, i fer que el
   canvies plantilles; generar al PC refresca les activitats a Drive.
 
 Posada en marxa pas a pas: **`suport/documentacio/DESPLEGAMENT-MOBIL.md`**.
+
+---
+
+## 14. Activitats extraordinàries (mode ACT_EXTR)
+
+En obrir `GenerarInforme.bat`, a la pantalla inicial («Què vols fer?») hi ha un
+tercer botó: **Activitats extraordinàries (ACT_EXTR)**. És el seguiment de les
+activitats extraordinàries de caràcter esporàdic del **Decret 112/2010**
+(concerts, actes massius...). Substitueix l'Excel `DATA_Act_Extr_NOM`: la lògica
+del Decret viu ara al programa.
+
+### Què fa
+
+| Pas | Què fa |
+|-----|--------|
+| 1 | **Llistat** de les activitats extraordinàries amb el seu **estat** al costat: **PENDENT** (falta documentació) o **TANCAT** (tot lliurat). Pots crear-ne una de nova o obrir-ne una d'existent. |
+| 2 | **Capçalera ACT_EXTR** (pròpia, diferent de REQ1): ID GIA, Exp., Adreça, Activitat, Titular, **Dates** i **Aforament autoritzat**. Es demana un sol cop i identifica l'activitat. |
+| 3 | **Comprovació de la documentació**: respons les preguntes de classificació del Decret (Sí/No) i l'aforament. El programa mostra, **per cada punt, si APLICA i PER QUÈ** (article del Decret), i tu marques si està **lliurat**. |
+| — | Des del Pas 3 generes un **Requeriment** (del que falta) o un **Informe favorable** (si tot està lliurat). |
+
+### El programa sap què cal (abans ho feia l'Excel)
+
+A partir de l'aforament i de les respostes, el programa calcula i decideix:
+
+- **Vigilants de seguretat privada** (Art. 43), **controladors d'accés**
+  (Art. 57/58), **lavabos i cabines** (Art. 47) i la **quantia mínima de la
+  pòlissa de RC** (Art. 80-81, amb el factor de sota rasant).
+- Si cal **informe d'incendis** (Art. 23 Llei 3/2010), **estudi de mobilitat**
+  (Art. 111.b), **Pla d'Autoprotecció** i de quin catàleg (Catalunya/local,
+  Decret 30/2015), **assistència sanitària** (farmaciola/infermeria, Art. 48), etc.
+- Els **punts de la memòria** (Art. 113, a-g).
+
+Els valors `XX`/`XXX` de les plantilles s'omplen sols amb aquests càlculs.
+
+### El requeriment i l'informe favorable
+
+Surten de plantilles editables al Word, igual que `REQ1.docx`:
+
+- **`ESTRUCTURALS/ACT_EXTR_REQ.docx`** — el requeriment llista **només** els
+  punts que **apliquen i NO estan lliurats**.
+- **`ESTRUCTURALS/ACT_EXTR_FAVORABLE.docx`** — l'informe favorable contempla
+  **totes** les condicions que apliquen. Té **parts fixes** (el llistat de
+  normativa i tot el bloc des de *«Es prohibeix l'emissió de qualsevol...»* fins
+  al final) que surten sempre.
+
+Cada punt de la plantilla porta un marcador `[[CLAU]]` al principi (el programa
+el fa servir per decidir si l'inclou; no surt al document) i, on cal, els tokens
+`{{VIGILANTS}}`, `{{CONTROLADORS}}`, `{{LAVABOS}}`, `{{CABINES}}` i
+`{{RC_IMPORT}}` que el programa substitueix pels valors calculats. Pots editar
+lliurement la resta del text al Word.
+
+### La capçalera ACT_EXTR (dins de `0 CAPCALERA.docx`)
+
+`0 CAPCALERA.docx` conté **dues** capçaleres: la de REQ1 (a dalt, l'original) i
+la d'ACT_EXTR (a sota), separades pel paràgraf marcador **`[[CAP:ACT_EXTR]]`**.
+El programa es queda amb el bloc que toca segons el tipus d'informe. Si edites la
+capçalera d'ACT_EXTR al Word, mantén els camps `<<ID_GIA>>`, `<<EXP_NUM>>`,
+`<<ADRECA>>`, `<<ACTIVITAT>>`, `<<TITULAR>>`, `<<DATES>>` i `<<AFORAMENT>>`, i no
+esborris el marcador.
+
+### El registre local
+
+El control de les activitats (titular, adreça, aforament, respostes, estat de
+cada punt i historial de documents generats) es desa a
+**`BASE DE DADES ACT_EXTR/activitats-extraordinaries.json`**. Conté dades
+personals, així que **no es puja mai a GitHub** (està al `.gitignore`); es queda
+al teu PC. Per tenir-lo a la feina i a casa, copia el `.json` a mà entre PCs.

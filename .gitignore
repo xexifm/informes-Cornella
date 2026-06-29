@@ -19,3 +19,8 @@ Rutes generades/
 # dins NO es pugen.
 BASE DE DADES ACTIVITATS/*.xls
 BASE DE DADES ACTIVITATS/*.xlsx
+
+# Registre local d'activitats extraordinaries (mode ACT_EXTR). Conte dades
+# personals (titulars, adreces): NO s'ha de pujar mai al GitHub public. La
+# carpeta es mante al repo (amb un README.txt); el .json de dins NO es puja.
+BASE DE DADES ACT_EXTR/*.json

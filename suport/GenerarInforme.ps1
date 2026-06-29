@@ -154,6 +154,12 @@ if (Test-Path -LiteralPath $configPath) {
     . $configPath
 }
 
+# Carreguem el modul ACT_EXTR (ActExtr.ps1): mode "Activitats extraordinaries"
+# (Decret 112/2010). Es carrega DESPRES de $RepoRoot, $EstructuralsDir i del
+# config (perque pugui calcular les rutes del registre/plantilles i deixar que
+# config.ps1 les sobreescrigui). Tambe en headless, per als tests de la logica.
+. (Join-Path $ScriptRoot 'ActExtr.ps1')
+
 # Subcarpetes de Drive derivades de $DriveBaseDir (despres del config, perque
 # n'hi hagi prou amb sobreescriure $DriveBaseDir a config.ps1).
 $DriveEntradaDir    = Join-Path $DriveBaseDir 'Entrada'
@@ -2212,16 +2218,53 @@ function Select-Conclusions {
 # ----------------------------------------------------------------------------
 # Step 6 - Compose final document
 # ----------------------------------------------------------------------------
+# Retalla 0 CAPCALERA.docx per quedar-se nomes amb el bloc de capcalera demanat.
+# El document pot contenir DUES capcaleres: la de REQ1 (a dalt, l'original) i la
+# d'ACT_EXTR (a sota), separades per un paragraf marcador "[[CAP:ACT_EXTR]]".
+#   $which = 'REQ1'     -> esborra des del marcador fins al final (i el marcador).
+#   $which = 'ACT_EXTR' -> esborra des de l'inici fins al marcador (inclos).
+# Si el marcador no existeix (capcalera antiga, nomes REQ1), no fa res. Aixi es
+# retrocompatible amb una 0 CAPCALERA.docx que encara no tingui el bloc ACT_EXTR.
+function Select-CapcaleraBlock($doc, [string]$which) {
+    $marker = $null
+    foreach ($p in $doc.Paragraphs) {
+        $t = $p.Range.Text.TrimEnd("`r","`n","`a"," ")
+        if ($t.Trim() -eq '[[CAP:ACT_EXTR]]') { $marker = $p; break }
+    }
+    if ($null -eq $marker) { return }   # nomes hi ha la capcalera REQ1: res a fer
+    if ($which -eq 'ACT_EXTR') {
+        # Esborra tot el que hi ha ABANS del marcador (bloc REQ1 + taula) i el
+        # propi marcador.
+        $rng = $doc.Range(0, $marker.Range.End)
+        $rng.Delete() | Out-Null
+    } else {
+        # REQ1: esborra des del marcador (inclos) fins al final del document.
+        $rng = $doc.Range($marker.Range.Start, $doc.Content.End)
+        $rng.Delete() | Out-Null
+    }
+}
+
 function Apply-HeaderReplacements($doc, $header) {
     # Substituim els placeholders <<NOM>> de la capcalera pels valors del Pas 2.
+    # Inclou els d'ACT_EXTR (<<DATES>>, <<AFORAMENT>>); si no apareixen a la
+    # capcalera triada, simplement no es substitueix res.
+    $get = {
+        param($k)
+        if ($null -eq $header) { return '' }
+        if ($header -is [System.Collections.IDictionary]) { if ($header.Contains($k)) { return [string]$header[$k] }; return '' }
+        if ($header.PSObject.Properties.Name -contains $k) { return [string]$header.$k }
+        return ''
+    }
     $map = @{
-        '<<ID_GIA>>'        = $header['ID_GIA']
-        '<<EXP_NUM>>'       = $header['EXP_NUM']
-        '<<ADRECA>>'        = $header['ADRECA']
-        '<<ACTIVITAT>>'     = $header['ACTIVITAT']
-        '<<TITULAR>>'       = $header['TITULAR']
-        '<<NUM_ANOTACIO>>'  = $header['NUM_ANOTACIO']
-        '<<DATA_ANOTACIO>>' = $header['DATA_ANOTACIO']
+        '<<ID_GIA>>'        = (& $get 'ID_GIA')
+        '<<EXP_NUM>>'       = (& $get 'EXP_NUM')
+        '<<ADRECA>>'        = (& $get 'ADRECA')
+        '<<ACTIVITAT>>'     = (& $get 'ACTIVITAT')
+        '<<TITULAR>>'       = (& $get 'TITULAR')
+        '<<NUM_ANOTACIO>>'  = (& $get 'NUM_ANOTACIO')
+        '<<DATA_ANOTACIO>>' = (& $get 'DATA_ANOTACIO')
+        '<<DATES>>'         = (& $get 'DATES')
+        '<<AFORAMENT>>'     = (& $get 'AFORAMENT')
     }
     foreach ($k in $map.Keys) {
         $find = $doc.Content.Find
@@ -2505,6 +2548,9 @@ function Build-Document($word, $header, $selectedSections, $fields, $conclusions
     $tempPath = Join-Path $env:TEMP $fileName
     $doc = _OpenOutputDocument $word $tempPath
 
+    # 0 CAPCALERA.docx pot portar tambe el bloc d'ACT_EXTR a sota; ens quedem
+    # nomes amb el bloc de REQ1 (no fa res si el marcador no hi es).
+    Select-CapcaleraBlock $doc 'REQ1'
     Apply-HeaderReplacements -doc $doc -header $header
 
     $doc.Activate()
@@ -2742,6 +2788,12 @@ function Main {
     $mode = Select-Mode
     if ($mode -eq 'seguiment') {
         Invoke-SeguimentFlow
+        return
+    }
+    if ($mode -eq 'actextr') {
+        # Mode "Activitats extraordinaries" (Decret 112/2010): llistat,
+        # comprovacio de documentacio i generacio de requeriment / favorable.
+        Invoke-ActExtrFlow
         return
     }
 

@@ -878,7 +878,7 @@ function Apply-SeguimentXml {
 function Select-Mode {
     $form = New-Object System.Windows.Forms.Form
     $form.Text = 'Informes Cornella'
-    $form.Size = New-Object System.Drawing.Size(440, 235)
+    $form.Size = New-Object System.Drawing.Size(440, 290)
     $form.StartPosition = 'CenterScreen'
     $form.FormBorderStyle = 'FixedDialog'
     $form.MaximizeBox = $false
@@ -904,10 +904,20 @@ function Select-Mode {
     $btnSeg.DialogResult = 'No'
     $form.Controls.Add($btnSeg)
 
+    # Tercer mode: activitats extraordinaries (Decret 112/2010). Retorna
+    # DialogResult 'Retry' perque Main el dirigeixi a Invoke-ActExtrFlow.
+    $btnActExtr = New-Object System.Windows.Forms.Button
+    $btnActExtr.Text = "Activitats extraordinaries (ACT_EXTR)"
+    $btnActExtr.Location = New-Object System.Drawing.Point(20, 160)
+    $btnActExtr.Size = New-Object System.Drawing.Size(390, 45)
+    $btnActExtr.DialogResult = 'Retry'
+    $form.Controls.Add($btnActExtr)
+
     $form.AcceptButton = $btnNou
     $res = $form.ShowDialog()
-    if ($res -eq 'Yes') { return 'nou' }
-    if ($res -eq 'No')  { return 'seguiment' }
+    if ($res -eq 'Yes')   { return 'nou' }
+    if ($res -eq 'No')    { return 'seguiment' }
+    if ($res -eq 'Retry') { return 'actextr' }
     exit 0
 }
 
