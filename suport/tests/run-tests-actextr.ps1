@@ -138,6 +138,7 @@ Assert (-not (Test-ActExtrIncludeBlock 'PAU_CAT' 'req' $ctxReq)) 'req: PAU_CAT N
 Assert (-not (Test-ActExtrIncludeBlock 'MOBILITAT' 'req' $ctxReq)) 'req: MOBILITAT mai al requeriment'
 Assert (Test-ActExtrIncludeBlock 'MEMORIA_HEADER' 'req' $ctxReq) 'req: capcalera memoria (hi ha subpunts pendents)'
 Assert (-not (Test-ActExtrIncludeBlock 'FIXEDEND' 'req' $ctxReq)) 'req: FIXEDEND nomes al favorable'
+Assert (Test-ActExtrIncludeBlock 'REQ_CLOSING' 'req' $ctxReq) 'req: bloc de tancament (Ho poso.../Cornella) inclos'
 
 Write-Host "`n--- Test-ActExtrIncludeBlock (favorable) ---"
 $ctxFav = @{ Decret=$decret; Computed=$comp; Delivered=$allDelivered; StatusByKey=$statusByKey; DefKeys=@() }
@@ -151,6 +152,7 @@ Assert (-not (Test-ActExtrIncludeBlock 'PAU_CAT' 'fav' $ctxFav)) 'fav: PAU_CAT N
 Assert (Test-ActExtrIncludeBlock 'ASSIST_INFERMERIA' 'fav' $ctxFav) 'fav: assistencia infermeria (>=1000)'
 Assert (-not (Test-ActExtrIncludeBlock 'ASSIST_FARMACIOLA' 'fav' $ctxFav)) 'fav: NO farmaciola (>=1000)'
 Assert (-not (Test-ActExtrIncludeBlock 'MEMORIA_A' 'fav' $ctxFav)) 'fav: memoria no apareix al favorable'
+Assert (-not (Test-ActExtrIncludeBlock 'REQ_CLOSING' 'fav' $ctxFav)) 'fav: REQ_CLOSING nomes al requeriment'
 # Aforament petit -> farmaciola.
 $decPetit = Build-ActExtrDecret @{ Aforament='300' }
 $compPetit = Get-ActExtrComputed $decPetit

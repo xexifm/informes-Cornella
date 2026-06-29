@@ -60,6 +60,10 @@ if (-not $script:ActExtrRegistryDir) {
 }
 $script:ActExtrRegistryFile = 'activitats-extraordinaries.json'
 
+# Font del cos dels informes ACT_EXTR (la de la casa). Es fixa explicitament en
+# generar perque el cos no depengui de la font heretada del punt d'insercio.
+if (-not $script:ActExtrBodyFontName) { $script:ActExtrBodyFontName = 'Bookman Old Style' }
+
 # Rutes de les plantilles ACT_EXTR (a ESTRUCTURALS). $EstructuralsDir el
 # defineix GenerarInforme.ps1.
 if ($EstructuralsDir) {
@@ -435,6 +439,7 @@ function Test-ActExtrIncludeBlock([string]$blockKey, [string]$mode, $ctx) {
 
     switch ($blockKey) {
         'REQ_INTRO'      { return ($mode -eq 'req') -and ($defKeys.Count -gt 0) }
+        'REQ_CLOSING'    { return ($mode -eq 'req') }
         'FAV_INTRO'      { return ($mode -eq 'fav') }
         'FAV_MID'        { return ($mode -eq 'fav') }
         'FIXED'          { return ($mode -eq 'fav') }
@@ -702,6 +707,10 @@ function Build-ActExtrDocument($word, $header, $decret, $delivered, $mode) {
         $doc.Activate()
         $sel = $word.Selection
         [void]$sel.EndKey(6)  # wdStory = 6
+        # Forcem la font del cos a la de la casa (Bookman Old Style). _Reset-Char
+        # de Format.ps1 nomes toca mida/negreta/cursiva, no el nom de la font,
+        # aixi que un cop fixat el nom es mante a tots els paragrafs del cos.
+        try { $sel.Font.Name = $script:ActExtrBodyFontName } catch { }
 
         _WriteActExtrBody $sel $blocks $mode $ctx $computed
 
@@ -897,30 +906,82 @@ function Edit-ActExtrDocumentacio {
 
     $form = New-Object System.Windows.Forms.Form
     $form.Text = 'Comprovacio de la documentacio - ' + ([string]$header.ID_GIA)
-    $form.Size = New-Object System.Drawing.Size(1180, 760)
     $form.StartPosition = 'CenterScreen'
+    $form.ClientSize = New-Object System.Drawing.Size(1160, 680)
+    $form.MinimumSize = New-Object System.Drawing.Size(900, 560)
 
-    # --- Esquerra: preguntes de classificacio ---
+    # Estat compartit en $script: (sempre accessible des de qualsevol handler,
+    # independentment de l'abast d'invocacio). Aixi s'eviten els problemes
+    # d'abast dels scriptblocks niats de WinForms.
+    $script:_actExtrDelivered = @{}
+    foreach ($p in $script:ActExtrPoints) {
+        $script:_actExtrDelivered[$p.Key] = [bool](_GetActExtrDelivered $delivered $p.Key)
+    }
+    $script:_actExtrResult = @{ Action='back'; Answers=$null; Delivered=$null }
+
+    # --- Barra inferior de botons (ancorada a baix; sempre visible) ---
+    $bottom = New-Object System.Windows.Forms.Panel
+    $bottom.Dock = 'Bottom'
+    $bottom.Height = 50
+    $form.Controls.Add($bottom)
+
+    $btnBack = New-Object System.Windows.Forms.Button
+    $btnBack.Text = 'Enrere'
+    $btnBack.Location = New-Object System.Drawing.Point(12, 9)
+    $btnBack.Size = New-Object System.Drawing.Size(90, 32)
+    $bottom.Controls.Add($btnBack)
+
+    $btnSave = New-Object System.Windows.Forms.Button
+    $btnSave.Text = 'Desar'
+    $btnSave.Location = New-Object System.Drawing.Point(110, 9)
+    $btnSave.Size = New-Object System.Drawing.Size(110, 32)
+    $bottom.Controls.Add($btnSave)
+
+    $btnReq = New-Object System.Windows.Forms.Button
+    $btnReq.Text = 'Generar requeriment'
+    $btnReq.Location = New-Object System.Drawing.Point(($form.ClientSize.Width - 390), 9)
+    $btnReq.Size = New-Object System.Drawing.Size(185, 32)
+    $btnReq.Anchor = 'Top, Right'
+    $bottom.Controls.Add($btnReq)
+
+    $btnFav = New-Object System.Windows.Forms.Button
+    $btnFav.Text = 'Generar informe favorable'
+    $btnFav.Location = New-Object System.Drawing.Point(($form.ClientSize.Width - 200), 9)
+    $btnFav.Size = New-Object System.Drawing.Size(190, 32)
+    $btnFav.Anchor = 'Top, Right'
+    $bottom.Controls.Add($btnFav)
+
+    # --- Esquerra: preguntes de classificacio (amb scroll propi) ---
     $gbQ = New-Object System.Windows.Forms.GroupBox
     $gbQ.Text = 'Classificacio (Decret 112/2010)'
     $gbQ.Location = New-Object System.Drawing.Point(12, 12)
-    $gbQ.Size = New-Object System.Drawing.Size(430, 680)
+    $gbQ.Size = New-Object System.Drawing.Size(430, ($form.ClientSize.Height - 50 - 24))
     $gbQ.Anchor = 'Top, Bottom, Left'
     $form.Controls.Add($gbQ)
+
+    # Panell intern desplacable: hi caben totes les preguntes encara que la
+    # finestra sigui curta.
+    $qPanel = New-Object System.Windows.Forms.Panel
+    $qPanel.Location = New-Object System.Drawing.Point(8, 20)
+    $qPanel.Size = New-Object System.Drawing.Size(414, ($gbQ.Height - 28))
+    $qPanel.AutoScroll = $true
+    $qPanel.Anchor = 'Top, Bottom, Left, Right'
+    $gbQ.Controls.Add($qPanel)
 
     $aforamentInit = if ($answers) { [string](_GetActExtrAnswer $answers 'Aforament') } else { '' }
     if ([string]::IsNullOrWhiteSpace($aforamentInit)) { $aforamentInit = [string]$header.AFORAMENT }
 
     $lblAf = New-Object System.Windows.Forms.Label
     $lblAf.Text = 'Aforament autoritzat:'
-    $lblAf.Location = New-Object System.Drawing.Point(15, 28)
+    $lblAf.Location = New-Object System.Drawing.Point(8, 10)
     $lblAf.Size = New-Object System.Drawing.Size(160, 22)
-    $gbQ.Controls.Add($lblAf)
+    $qPanel.Controls.Add($lblAf)
     $tbAf = New-Object System.Windows.Forms.TextBox
-    $tbAf.Location = New-Object System.Drawing.Point(180, 25)
+    $tbAf.Location = New-Object System.Drawing.Point(175, 7)
     $tbAf.Size = New-Object System.Drawing.Size(110, 22)
     $tbAf.Text = $aforamentInit
-    $gbQ.Controls.Add($tbAf)
+    $qPanel.Controls.Add($tbAf)
+    $script:_actExtrAfBox = $tbAf
 
     # Preguntes Si/No (clau -> etiqueta)
     $questions = @(
@@ -930,32 +991,40 @@ function Edit-ActExtrDocumentacio {
         @{ Key='PauCatalunya';      Label='PAU: al Cataleg de Catalunya (Annex I, Cat. A)?' }
         @{ Key='PauLocal';          Label='PAU: al Cataleg local (Annex I, Cat. B)?' }
         @{ Key='EstablimentDotat';  Label='Higiene: l''establiment ja esta dotat de lavabos?' }
-        @{ Key='ParcialSotaRasant'; Label='RC: l''activitat es du a terme PARCIALMENT sota rasant?' }
-        @{ Key='TotalSotaRasant';   Label='RC: l''activitat es du a terme TOTALMENT sota rasant?' }
+        @{ Key='ParcialSotaRasant'; Label='RC: l''activitat es du PARCIALMENT sota rasant?' }
+        @{ Key='TotalSotaRasant';   Label='RC: l''activitat es du TOTALMENT sota rasant?' }
     )
     $qRadios = @{}
-    $qy = 60
+    $qy = 44
     foreach ($q in $questions) {
         $l = New-Object System.Windows.Forms.Label
         $l.Text = $q.Label
-        $l.Location = New-Object System.Drawing.Point(15, $qy)
-        $l.Size = New-Object System.Drawing.Size(400, 30)
-        $gbQ.Controls.Add($l)
+        $l.Location = New-Object System.Drawing.Point(8, $qy)
+        $l.Size = New-Object System.Drawing.Size(395, 30)
+        $qPanel.Controls.Add($l)
         $qy += 30
+        # Cada parella Si/No va al SEU PROPI panell perque els RadioButton nomes
+        # siguin exclusius DINS de la pregunta (si no, tot el contenidor formaria
+        # un sol grup i nomes es podria triar una resposta a tota la columna).
+        $rp = New-Object System.Windows.Forms.Panel
+        $rp.Location = New-Object System.Drawing.Point(20, $qy)
+        $rp.Size = New-Object System.Drawing.Size(200, 26)
         $rbSi = New-Object System.Windows.Forms.RadioButton
         $rbSi.Text = 'Si'
-        $rbSi.Location = New-Object System.Drawing.Point(30, $qy)
+        $rbSi.Location = New-Object System.Drawing.Point(0, 2)
         $rbSi.Size = New-Object System.Drawing.Size(60, 22)
         $rbNo = New-Object System.Windows.Forms.RadioButton
         $rbNo.Text = 'No'
-        $rbNo.Location = New-Object System.Drawing.Point(100, $qy)
+        $rbNo.Location = New-Object System.Drawing.Point(70, 2)
         $rbNo.Size = New-Object System.Drawing.Size(60, 22)
         $cur = if ($answers) { _ActExtrYesNo (_GetActExtrAnswer $answers $q.Key) } else { 'No' }
         if ($cur -eq 'Si') { $rbSi.Checked = $true } else { $rbNo.Checked = $true }
-        $gbQ.Controls.Add($rbSi); $gbQ.Controls.Add($rbNo)
+        $rp.Controls.Add($rbSi); $rp.Controls.Add($rbNo)
+        $qPanel.Controls.Add($rp)
         $qRadios[$q.Key] = @{ Si=$rbSi; No=$rbNo }
-        $qy += 32
+        $qy += 34
     }
+    $script:_actExtrRadios = $qRadios
 
     # --- Dreta: estat per punt (aplica + per que + lliurat) ---
     $lblD = New-Object System.Windows.Forms.Label
@@ -967,34 +1036,28 @@ function Edit-ActExtrDocumentacio {
 
     $panel = New-Object System.Windows.Forms.Panel
     $panel.Location = New-Object System.Drawing.Point(455, 36)
-    $panel.Size = New-Object System.Drawing.Size(700, 654)
+    $panel.Size = New-Object System.Drawing.Size(($form.ClientSize.Width - 455 - 12), ($form.ClientSize.Height - 50 - 48))
     $panel.AutoScroll = $true
     $panel.BorderStyle = 'FixedSingle'
     $panel.Anchor = 'Top, Bottom, Left, Right'
     $form.Controls.Add($panel)
 
-    # Estat dels checks "lliurat" persistent mentre es recalcula el panell.
-    $deliveredState = @{}
-    foreach ($p in $script:ActExtrPoints) {
-        $deliveredState[$p.Key] = [bool](_GetActExtrDelivered $delivered $p.Key)
-    }
-
-    # Llegeix les respostes actuals dels controls.
+    # Llegeix les respostes actuals dels controls (via $script:, robust).
     $readAnswers = {
-        $h = @{ Aforament = ($tbAf.Text -replace '[^\d]','') }
-        foreach ($k in $qRadios.Keys) {
-            $h[$k] = if ($qRadios[$k].Si.Checked) { 'Si' } else { 'No' }
+        $h = @{ Aforament = ($script:_actExtrAfBox.Text -replace '[^\d]','') }
+        foreach ($k in $script:_actExtrRadios.Keys) {
+            $h[$k] = if ($script:_actExtrRadios[$k].Si.Checked) { 'Si' } else { 'No' }
         }
         return $h
     }
+    $script:_actExtrReadAnswers = $readAnswers
 
     # Refresca el panell de la dreta segons les respostes actuals.
-    $refresh = $null
     $refresh = {
-        $ans = & $readAnswers
+        $ans = & $script:_actExtrReadAnswers
         $decret = Build-ActExtrDecret $ans
         $computed = Get-ActExtrComputed $decret
-        $status = Get-ActExtrStatus $decret $computed $deliveredState
+        $status = Get-ActExtrStatus $decret $computed $script:_actExtrDelivered
         $panel.SuspendLayout()
         $panel.Controls.Clear()
         $yy = 8
@@ -1003,7 +1066,7 @@ function Edit-ActExtrDocumentacio {
             $applyTxt = if ($s.Applies) { 'APLICA' } else { 'no aplica' }
             $title.Text = ('{0}  -  {1}' -f $s.Title, $applyTxt)
             $title.Location = New-Object System.Drawing.Point(8, $yy)
-            $title.Size = New-Object System.Drawing.Size(560, 20)
+            $title.Size = New-Object System.Drawing.Size(640, 20)
             $title.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
             $title.ForeColor = if ($s.Applies) { [System.Drawing.Color]::Black } else { [System.Drawing.Color]::Gray }
             [void]$panel.Controls.Add($title)
@@ -1022,9 +1085,14 @@ function Edit-ActExtrDocumentacio {
                 $cb.Text = 'Lliurat correctament'
                 $cb.Location = New-Object System.Drawing.Point(20, $yy)
                 $cb.Size = New-Object System.Drawing.Size(300, 22)
-                $cb.Checked = [bool]$deliveredState[$s.Key]
+                $cb.Checked = [bool]$script:_actExtrDelivered[$s.Key]
                 $cb.Tag = $s.Key
-                $cb.add_CheckedChanged({ $deliveredState[$this.Tag] = [bool]$this.Checked }.GetNewClosure())
+                # Handler robust: el sender ve com a parametre i l'estat es
+                # $script:_actExtrDelivered (no depen de l'abast d'invocacio).
+                $cb.add_CheckedChanged({
+                    param($snd, $e)
+                    $script:_actExtrDelivered[[string]$snd.Tag] = [bool]$snd.Checked
+                })
                 [void]$panel.Controls.Add($cb)
                 $yy += 28
             }
@@ -1032,76 +1100,44 @@ function Edit-ActExtrDocumentacio {
             $sep = New-Object System.Windows.Forms.Label
             $sep.BorderStyle = 'Fixed3D'
             $sep.Location = New-Object System.Drawing.Point(8, $sepY)
-            $sep.Size = New-Object System.Drawing.Size(660, 2)
+            $sep.Size = New-Object System.Drawing.Size(650, 2)
             [void]$panel.Controls.Add($sep)
             $yy = $sepY + 10
         }
         $panel.ResumeLayout()
     }
+    $script:_actExtrRefresh = $refresh
 
-    $tbAf.add_TextChanged($refresh)
+    $tbAf.add_TextChanged({ & $script:_actExtrRefresh })
     foreach ($k in $qRadios.Keys) {
-        $qRadios[$k].Si.add_CheckedChanged($refresh)
+        $qRadios[$k].Si.add_CheckedChanged({ & $script:_actExtrRefresh })
     }
 
-    # --- Botons inferiors ---
-    $btnBack = New-Object System.Windows.Forms.Button
-    $btnBack.Text = 'Enrere'
-    $btnBack.Location = New-Object System.Drawing.Point(12, 700)
-    $btnBack.Size = New-Object System.Drawing.Size(90, 32)
-    $btnBack.Anchor = 'Bottom, Left'
-    $form.Controls.Add($btnBack)
-
-    $btnSave = New-Object System.Windows.Forms.Button
-    $btnSave.Text = 'Desar'
-    $btnSave.Location = New-Object System.Drawing.Point(112, 700)
-    $btnSave.Size = New-Object System.Drawing.Size(110, 32)
-    $btnSave.Anchor = 'Bottom, Left'
-    $form.Controls.Add($btnSave)
-
-    $btnReq = New-Object System.Windows.Forms.Button
-    $btnReq.Text = 'Generar requeriment'
-    $btnReq.Location = New-Object System.Drawing.Point(770, 700)
-    $btnReq.Size = New-Object System.Drawing.Size(180, 32)
-    $btnReq.Anchor = 'Bottom, Right'
-    $form.Controls.Add($btnReq)
-
-    $btnFav = New-Object System.Windows.Forms.Button
-    $btnFav.Text = 'Generar informe favorable'
-    $btnFav.Location = New-Object System.Drawing.Point(960, 700)
-    $btnFav.Size = New-Object System.Drawing.Size(195, 32)
-    $btnFav.Anchor = 'Bottom, Right'
-    $form.Controls.Add($btnFav)
-
-    $script:_actExtrResult = @{ Action='back'; Answers=$null; Delivered=$null }
     $finish = {
         param($action)
         $script:_actExtrResult = @{
             Action    = $action
-            Answers   = (& $readAnswers)
-            Delivered = $deliveredState.Clone()
+            Answers   = (& $script:_actExtrReadAnswers)
+            Delivered = $script:_actExtrDelivered.Clone()
         }
         $form.DialogResult = 'OK'; $form.Close()
     }
-    # NOTA d'abast: aquests handlers NO porten .GetNewClosure() expressament.
-    # Igual que $doSearch a Get-HeaderData, s'han de quedar lligats a l'abast de
-    # la funcio per poder cridar $finish/$readAnswers (que llegeixen els controls
-    # locals). Posar-hi GetNewClosure els relligaria a l'abast de modul i
-    # trencaria l'acces a aquests scriptblocks/controls locals.
-    $btnSave.add_Click({ & $finish 'save' })
-    $btnReq.add_Click({ & $finish 'req' })
+    $script:_actExtrFinish = $finish
+
+    $btnSave.add_Click({ & $script:_actExtrFinish 'save' })
+    $btnReq.add_Click({ & $script:_actExtrFinish 'req' })
     $btnFav.add_Click({
-        $ans = & $readAnswers
+        $ans = & $script:_actExtrReadAnswers
         $decret = Build-ActExtrDecret $ans
         $computed = Get-ActExtrComputed $decret
-        $defs = Get-ActExtrDeficiencies $decret $computed $deliveredState
+        $defs = Get-ActExtrDeficiencies $decret $computed $script:_actExtrDelivered
         if (@($defs).Count -gt 0) {
             $r = [System.Windows.Forms.MessageBox]::Show(
                 "Encara hi ha punts aplicables PENDENTS de lliurar.`n`nL'informe favorable dona per fet que tot esta lliurat. Vols generar-lo igualment?",
                 'Hi ha pendents', 'YesNo', 'Warning')
             if ($r -ne 'Yes') { return }
         }
-        & $finish 'fav'
+        & $script:_actExtrFinish 'fav'
     })
     $btnBack.add_Click({ $script:_actExtrResult = @{ Action='back' }; $form.DialogResult='Cancel'; $form.Close() })
 
