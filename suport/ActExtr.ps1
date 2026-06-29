@@ -60,10 +60,6 @@ if (-not $script:ActExtrRegistryDir) {
 }
 $script:ActExtrRegistryFile = 'activitats-extraordinaries.json'
 
-# Font del cos dels informes ACT_EXTR (la de la casa). Es fixa explicitament en
-# generar perque el cos no depengui de la font heretada del punt d'insercio.
-if (-not $script:ActExtrBodyFontName) { $script:ActExtrBodyFontName = 'Bookman Old Style' }
-
 # Rutes de les plantilles ACT_EXTR (a ESTRUCTURALS). $EstructuralsDir el
 # defineix GenerarInforme.ps1.
 if ($EstructuralsDir) {
@@ -383,6 +379,14 @@ $script:ActExtrKeyRegex = [regex]'^\s*\[\[([A-Z0-9_]+)\]\]\s?(.*)$'
 # Construeix els blocs a partir d'una llista de registres de paragraf
 # @{ Text; Style }. Funcio PURA (sense Word). Retorna una llista de blocs
 # @{ Key; Paragraphs=@(@{Text;Style},...) } en ordre del document.
+# Detecta el nivell d'un paragraf: si comenca per "> " es de SUB-nivell (Level 1,
+# sagnat) i es retira el marcador. Funcio PURA. Retorna @{ Text; Level }.
+function _ActExtrParaLevel([string]$text) {
+    $t = [string]$text
+    if ($t -match '^\s*>\s+(.*)$') { return @{ Text = $Matches[1].Trim(); Level = 1 } }
+    return @{ Text = $t.Trim(); Level = 0 }
+}
+
 function Build-ActExtrBlocks($paraRecords) {
     $blocks = New-Object System.Collections.ArrayList
     $current = $null
@@ -398,13 +402,15 @@ function Build-ActExtrBlocks($paraRecords) {
             [void]$blocks.Add($current)
             $rest = $m.Groups[2].Value
             if (-not [string]::IsNullOrWhiteSpace($rest)) {
-                [void]$current.Paragraphs.Add(@{ Text=$rest.Trim(); Style=$style })
+                $lv = _ActExtrParaLevel $rest
+                [void]$current.Paragraphs.Add(@{ Text=$lv.Text; Style=$style; Level=$lv.Level })
             }
             continue
         }
         if ([string]::IsNullOrWhiteSpace($text)) { continue }
         if ($null -eq $current) { continue }   # text abans del primer [[KEY]]: s'ignora
-        [void]$current.Paragraphs.Add(@{ Text=$text.Trim(); Style=$style })
+        $lv = _ActExtrParaLevel $text
+        [void]$current.Paragraphs.Add(@{ Text=$lv.Text; Style=$style; Level=$lv.Level })
     }
     return $blocks.ToArray()
 }
@@ -637,39 +643,71 @@ function _GetActExtrOutputFileName([string]$tipus, [string]$gia) {
     return ("{0}_ActExtr-{1}_GIA {2}.docx" -f $today, $tipus, $gia)
 }
 
-# Emet el cos del document a partir dels blocs de la plantilla, filtrant per
-# mode i substituint tokens. Numeracio: el comptador d'items de llista es
-# reinicia a cada paragraf 'normal' (aixi cada sub-llista comenca per 1).
+# Emet el cos del document a partir dels blocs de la plantilla, com fa el motor
+# de REQ1 (Format.ps1): cada "unitat" (paragraf de cos o item de primer nivell)
+# va separada per una linia en blanc (Format-Spacer), igual que els requeriments
+# de REQ1. Els URLs i els sub-items (nivell 1) s'enganxen a la unitat anterior
+# sense linia en blanc al davant.
+#
+# Numeracio/pics:
+#   - requeriment ('req'): items de 1r nivell numerats 1..N (continu); sub-items
+#     numerats 1..K (es reinicien a cada nova unitat) i sagnats.
+#   - informe favorable ('fav'): items amb PIC (vinyeta), no numerats; sub-items
+#     amb guio i sagnats (jerarquia com el document original, tot punts).
 function _WriteActExtrBody($sel, $blocks, $mode, $ctx, $computed) {
-    $cfg = $Script:ReportFormatConfig
-    $counter = 0
+    $isReq = ($mode -eq 'req')
+    $num0 = 0   # comptador d'items de 1r nivell (continu)
+    $num1 = 0   # comptador de sub-items (es reinicia a cada unitat nova)
     $first = $true
+
     foreach ($block in $blocks) {
         if (-not (Test-ActExtrIncludeBlock $block.Key $mode $ctx)) { continue }
         foreach ($para in $block.Paragraphs) {
+            $style = [string]$para.Style
+            $level = [int]$para.Level
             $resolved = Resolve-ActExtrTokens ([string]$para.Text) $computed
-            if ([string]::IsNullOrWhiteSpace($resolved)) { continue }
-            switch ([string]$para.Style) {
-                'url' {
-                    $u = $resolved
-                    if ($u.StartsWith('[[URL]] ')) { $u = $u.Substring('[[URL]] '.Length).Trim() }
-                    Format-Url $sel $u
+            if ([string]::IsNullOrWhiteSpace($resolved) -and $style -ne 'url') { continue }
+
+            if ($style -eq 'url') {
+                $u = $resolved
+                if ($u.StartsWith('[[URL]] ')) { $u = $u.Substring('[[URL]] '.Length).Trim() }
+                if (-not [string]::IsNullOrWhiteSpace($u)) {
+                    if ($level -ge 1) { Format-Url $sel $u -IsChild } else { Format-Url $sel $u }
                 }
-                'list' {
-                    $counter++
-                    $parts = _SplitTextAndUrls $resolved
-                    Format-Item $sel "$counter." $parts.Text
-                    foreach ($x in $parts.Urls) { Format-Url $sel $x }
+                continue
+            }
+
+            $parts = _SplitTextAndUrls $resolved
+
+            if ($style -eq 'list' -and $level -ge 1) {
+                # Sub-item: s'enganxa a la unitat anterior (sense linia en blanc).
+                $num1++
+                if (-not [string]::IsNullOrWhiteSpace($parts.Text)) {
+                    if ($isReq) { Format-Item $sel "$num1." $parts.Text -IsChild }
+                    else        { Format-Bullet $sel $parts.Text -IsChild }
                 }
-                default {
-                    # Paragraf de cos. Separem amb una linia en blanc dels items
-                    # anteriors (si no es el primer) i reiniciem la numeracio.
-                    if (-not $first) { Format-Spacer $sel }
-                    $parts = _SplitTextAndUrls $resolved
-                    if (-not [string]::IsNullOrWhiteSpace($parts.Text)) { Format-Body $sel $parts.Text }
-                    foreach ($x in $parts.Urls) { Format-Url $sel $x }
-                    $counter = 0
+                foreach ($x in $parts.Urls) { Format-Url $sel $x -IsChild }
+                $first = $false
+                continue
+            }
+
+            # Unitat nova (paragraf de cos 'normal' o item de 1r nivell 'list'):
+            # linia en blanc al davant si no es la primera unitat del document.
+            if (-not $first) { Format-Spacer $sel }
+            $num1 = 0
+
+            if ($style -eq 'list') {
+                $num0++
+                if (-not [string]::IsNullOrWhiteSpace($parts.Text)) {
+                    if ($isReq) { Format-Item $sel "$num0." $parts.Text }
+                    else        { Format-Bullet $sel $parts.Text }
                 }
+                foreach ($x in $parts.Urls) { Format-Url $sel $x }
+            } else {
+                # 'normal' -> paragraf de cos sense pic ni numero (intros,
+                # capcaleres de seccio, tancament...).
+                if (-not [string]::IsNullOrWhiteSpace($parts.Text)) { Format-Body $sel $parts.Text }
+                foreach ($x in $parts.Urls) { Format-Url $sel $x }
             }
             $first = $false
         }
@@ -707,10 +745,9 @@ function Build-ActExtrDocument($word, $header, $decret, $delivered, $mode) {
         $doc.Activate()
         $sel = $word.Selection
         [void]$sel.EndKey(6)  # wdStory = 6
-        # Forcem la font del cos a la de la casa (Bookman Old Style). _Reset-Char
-        # de Format.ps1 nomes toca mida/negreta/cursiva, no el nom de la font,
-        # aixi que un cop fixat el nom es mante a tots els paragrafs del cos.
-        try { $sel.Font.Name = $script:ActExtrBodyFontName } catch { }
+        # El cos hereta l'estil 'List Paragraph' del darrer paragraf de la
+        # capcalera ACT_EXTR (igual que REQ1), que ja resol a Bookman Old Style.
+        # Aixi el format surt del motor Format.ps1 i de l'estil, no d'un override.
 
         _WriteActExtrBody $sel $blocks $mode $ctx $computed
 
@@ -1199,19 +1236,27 @@ function Invoke-ActExtrFlow {
                 $computed = Get-ActExtrComputed $decret
                 $estat    = Get-ActExtrActivityEstat $decret $computed $delivered
 
-                # Desem/actualitzem l'activitat al registre.
+                # Desem/actualitzem l'activitat al registre. Fem servir un
+                # ArrayList per a l'historial: amb '+=' sobre el resultat d'un
+                # 'if' de @(...) d'un sol element, PowerShell el desempaqueta a
+                # escalar i el '+=' peta ("op_Addition" sobre PSObject).
                 $existing = Get-ActExtrActivity $registry ([string]$header.ID_GIA)
-                $historial = if ($existing -and $existing.Historial) { @($existing.Historial) } else { @() }
+                $historial = New-Object System.Collections.ArrayList
+                if ($existing -and $existing.Historial) {
+                    foreach ($h in @($existing.Historial)) { if ($null -ne $h) { [void]$historial.Add($h) } }
+                }
                 $creatAt = if ($existing -and $existing.CreatAt) { [string]$existing.CreatAt } else { (Get-Date).ToString('o') }
 
+                $outPath = $null
                 if ($r.Action -in @('req','fav')) {
                     if ($null -eq $word) { $word = New-WordApp }
                     $outPath = Build-ActExtrDocument $word $header $decret $delivered $r.Action
-                    $historial += [pscustomobject]@{
+                    $tipus = if ($r.Action -eq 'fav') { 'favorable' } else { 'requeriment' }
+                    [void]$historial.Add([pscustomobject]@{
                         Data    = (Get-Date).ToString('o')
-                        Tipus   = $(if ($r.Action -eq 'fav') { 'favorable' } else { 'requeriment' })
+                        Tipus   = $tipus
                         Fitxer  = $outPath
-                    }
+                    })
                 }
 
                 $activity = [pscustomobject]@{
@@ -1222,13 +1267,12 @@ function Invoke-ActExtrFlow {
                     Estat      = $estat
                     CreatAt    = $creatAt
                     ModificatAt= (Get-Date).ToString('o')
-                    Historial  = $historial
+                    Historial  = @($historial.ToArray())
                 }
                 $registry = Set-ActExtrActivity $registry $activity
                 Save-ActExtrRegistry $registry
 
                 if ($r.Action -in @('req','fav')) {
-                    $outPath = $historial[$historial.Count - 1].Fitxer
                     [System.Windows.Forms.MessageBox]::Show("Document generat:`n$outPath",'Finalitzat','OK','Information') | Out-Null
                     $word.Visible = $true
                     $word.Documents.Open($outPath) | Out-Null

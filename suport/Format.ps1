@@ -117,6 +117,25 @@ function Format-Body {
     if ($text) { Type-RichText $sel $text }
 }
 
+# Item amb pic (vinyeta) en lloc de numero. S'usa per a llistes que han d'anar
+# amb punts i no numerades (p.ex. l'informe favorable d'activitat
+# extraordinaria). El pic es escriu com a text (com el numero a Format-Item),
+# coherent amb la manera com el motor marca les llistes (sense numeracio
+# automatica de Word). -IsChild aplica la sangria de sub-nivell.
+function Format-Bullet {
+    param($sel, [string]$text, [switch]$IsChild)
+    [void]$sel.TypeParagraph()
+    _Reset-Char $sel
+    $indent = if ($IsChild) { $Script:ReportFormatConfig.ChildIndentCm }
+              else          { $Script:ReportFormatConfig.ItemIndentCm }
+    _Apply-Indent $sel $indent
+    # Pic Unicode (U+2022) escrit per codepoint per no dependre de l'encoding
+    # del fitxer .ps1. Sub-nivell amb guio per diferenciar visualment.
+    $glyph = if ($IsChild) { '-' } else { [string]([char]0x2022) }
+    $sel.TypeText("$glyph`t")
+    if ($text) { Type-RichText $sel $text }
+}
+
 function Format-Url {
     param($sel, [string]$url, [switch]$IsChild)
     [void]$sel.TypeParagraph()

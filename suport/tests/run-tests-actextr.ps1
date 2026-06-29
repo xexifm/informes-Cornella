@@ -126,6 +126,21 @@ AssertEq $blocks[1].Key 'INCENDIS' 'segon bloc INCENDIS'
 AssertEq $blocks[1].Paragraphs.Count 2 'INCENDIS te text + url'
 AssertEq $blocks[1].Paragraphs[1].Style 'url' 'segona linia es url'
 
+Write-Host "`n--- Sub-nivell de jerarquia ('> ') ---"
+$lv0 = _ActExtrParaLevel 'Text normal de primer nivell'
+AssertEq $lv0.Level 0 'sense marcador -> nivell 0'
+$lv1 = _ActExtrParaLevel '> Sub-item indentat'
+AssertEq $lv1.Level 1 'amb "> " -> nivell 1'
+AssertEq $lv1.Text 'Sub-item indentat' 'es retira el marcador "> "'
+$recs2 = @(
+    @{ Text='[[MEMORIA_HEADER]] En quant a la memoria falta justificar:'; Style='normal' }
+    @{ Text='[[MEMORIA_A]] > Identificacio.'; Style='list' }
+)
+$bl2 = Build-ActExtrBlocks $recs2
+AssertEq $bl2[0].Paragraphs[0].Level 0 'capcalera memoria a nivell 0'
+AssertEq $bl2[1].Paragraphs[0].Level 1 'sub-item memoria a nivell 1'
+AssertEq $bl2[1].Paragraphs[0].Text 'Identificacio.' 'sub-item memoria sense marcador'
+
 Write-Host "`n--- Test-ActExtrIncludeBlock (requeriment) ---"
 $statusByKey = @{}; foreach ($s in $status) { $statusByKey[$s.Key] = $s }
 $defKeys = Get-ActExtrDeficiencies $decret $comp $delivered
