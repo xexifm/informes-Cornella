@@ -681,7 +681,11 @@ function Select-Cataleg {
     $panel.AutoScroll = $true
     $form.Controls.Add($panel)
 
-    $script:_selectedCataleg = $null
+    # Objecte de referencia (hashtable) per rebre la tria des del handler. NO es
+    # pot fer servir $script: aqui: amb .GetNewClosure() el handler te el seu
+    # propi ambit de modul i $script: NO escriuria a l'ambit d'aquesta funcio.
+    # Mutar una propietat d'un hashtable capturat SI es visible aqui (referencia).
+    $result = @{ Cataleg = $null }
     $y = 5
     for ($i = 0; $i -lt $catalegs.Count; $i++) {
         $c = $catalegs[$i]
@@ -692,7 +696,7 @@ function Select-Cataleg {
         $btn.Font = New-Object System.Drawing.Font('Segoe UI', 11, [System.Drawing.FontStyle]::Regular)
         $btn.Tag = $c
         $btn.add_Click({
-            $script:_selectedCataleg = $c
+            $result.Cataleg = $c
             $form.DialogResult = 'OK'
             $form.Close()
         }.GetNewClosure())
@@ -706,8 +710,8 @@ function Select-Cataleg {
 
     # No hi ha boto Cancel ni Enrere: el Pas 1 es el primer. Tancar la
     # finestra (X) avorta el programa.
-    if ($form.ShowDialog() -ne 'OK' -or $null -eq $script:_selectedCataleg) { exit 0 }
-    return [pscustomobject]@{ Nav='next'; Data=$script:_selectedCataleg }
+    if ($form.ShowDialog() -ne 'OK' -or $null -eq $result.Cataleg) { exit 0 }
+    return [pscustomobject]@{ Nav='next'; Data=$result.Cataleg }
 }
 
 # ----------------------------------------------------------------------------
@@ -839,34 +843,43 @@ function Get-HeaderData {
             'Base de dades no trobada', 'OK', 'Error') | Out-Null
         exit 1
     }
-    if ($latest.Source -eq 'fallback') {
-        # Avis explicit en obrir el Pas 2 perque l'usuari sapiga que esta
-        # treballant amb una copia local i no amb la xarxa de la feina.
-        [System.Windows.Forms.MessageBox]::Show(
-            "No s'ha trobat la base de dades a la xarxa.`n`n" +
-            "S'usa la copia LOCAL del clone:`n  $($latest.File.FullName)`n`n" +
-            "Comprova que sigui prou recent.",
-            'Base de dades: copia local (fallback)', 'OK', 'Warning') | Out-Null
-    }
+    # RENDIMENT: obrir l'Excel i llegir tota la base es la part mes lenta del
+    # Pas 2. Ho fem UNA sola vegada per sessio (i per fitxer): si es torna al
+    # Pas 2 (p.ex. Enrere des del Pas 3), reaprofitem la cache ja carregada i
+    # NO reobrim l'Excel ni refem l'export a Drive. Aixi el pas a pas es immediat.
+    $cacheKey = '{0}|{1}|{2}' -f $latest.File.FullName, $latest.File.Length, $latest.File.LastWriteTimeUtc.Ticks
+    if ($script:_sessionActKey -eq $cacheKey -and $null -ne $script:_sessionActCache) {
+        $actCache = $script:_sessionActCache
+    } else {
+        if ($latest.Source -eq 'fallback') {
+            # Avis explicit (un cop) perque l'usuari sapiga que treballa amb una
+            # copia local i no amb la xarxa de la feina.
+            [System.Windows.Forms.MessageBox]::Show(
+                "No s'ha trobat la base de dades a la xarxa.`n`n" +
+                "S'usa la copia LOCAL del clone:`n  $($latest.File.FullName)`n`n" +
+                "Comprova que sigui prou recent.",
+                'Base de dades: copia local (fallback)', 'OK', 'Warning') | Out-Null
+        }
+        # Precarrega TOTA la base de dades a memoria. A partir d'aqui les cerques
+        # son immediates (no cal reobrir Excel).
+        try {
+            $actCache = Initialize-ActivitatsCache -excelFile $latest.File
+        } catch {
+            [System.Windows.Forms.MessageBox]::Show("Error llegint l'Excel:`n$($_.Exception.Message)",'Error','OK','Error') | Out-Null
+            exit 1
+        }
+        if ($actCache.Warnings -and $actCache.Warnings.Count -gt 0) {
+            $msg = "Avisos de validacio de l'Excel (l'auto-fill podria fallar):`n`n" + ($actCache.Warnings -join "`n")
+            [System.Windows.Forms.MessageBox]::Show($msg,'Avisos','OK','Warning') | Out-Null
+        }
+        $script:_sessionActCache = $actCache
+        $script:_sessionActKey   = $cacheKey
 
-    # Precarrega TOTA la base de dades a memoria una sola vegada. A partir
-    # d'aqui les cerques son immediates (no cal reobrir Excel).
-    try {
-        $actCache = Initialize-ActivitatsCache -excelFile $latest.File
-    } catch {
-        [System.Windows.Forms.MessageBox]::Show("Error llegint l'Excel:`n$($_.Exception.Message)",'Error','OK','Error') | Out-Null
-        exit 1
+        # Mobil: refresquem la copia d'activitats per al mobil (a Drive privat),
+        # nomes quan (re)carreguem la base (1 cop per sessio). Silenciosa i
+        # fail-safe: si Drive no esta configurat, no passa res.
+        [void](Export-ActivitatsToDrive $actCache $latest)
     }
-    if ($actCache.Warnings -and $actCache.Warnings.Count -gt 0) {
-        $msg = "Avisos de validacio de l'Excel (l'auto-fill podria fallar):`n`n" + ($actCache.Warnings -join "`n")
-        [System.Windows.Forms.MessageBox]::Show($msg,'Avisos','OK','Warning') | Out-Null
-    }
-
-    # Mobil: refresquem la copia d'activitats per al mobil (a Drive privat) cada
-    # cop que s'obre el Pas 2, aprofitant que la cache ja esta carregada. Aixi
-    # el mobil sempre te les dades al dia sense cap gestio manual. Silenciosa i
-    # fail-safe: si Drive no esta configurat, no passa res.
-    [void](Export-ActivitatsToDrive $actCache $latest)
 
     $labelText = "Base de dades d'activitats: $($latest.File.Name)  (data: $($latest.Date.ToString('yyyy-MM-dd'))) - $($actCache.ById.Count) activitats carregades"
     $f = _BuildHeaderForm @{ Text = $labelText; Source = $latest.Source }
