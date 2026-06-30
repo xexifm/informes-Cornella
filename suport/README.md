@@ -265,6 +265,13 @@ Posa el paràgraf de l'URL en **estil "Cita"**. Surt sempre en paràgraf
 propi, com a hipervincle, en cos 10 pt. Si oblides l'estil i poses
 `https://...` en Normal, també funciona (retrocompatible).
 
+> **Comprovar enllaços caiguts**: els enllaços de la Generalitat
+> (`canalempresa.gencat.cat`…) canvien sovint. Fes doble clic a
+> **`ComprovarEnllacos.bat`** per revisar tots els enllaços del `REQ1.docx`
+> (necessita internet): marca en verd els que funcionen i en vermell els
+> caiguts, amb un resum al final. Per comprovar tots els catàlegs:
+> `ComprovarEnllacos.bat all`.
+
 ### Camps a omplir: `[CAMP: ...]` i `[OPCIO: ...]`
 
 > Els `[OPCIO:]`/`[CAMP:]` s'omplen **inline**, dins del propi text, a la
