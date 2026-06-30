@@ -368,49 +368,63 @@ function Get-ActExtrDeficiencies($decret, $computed, $delivered) {
 }
 
 # ----------------------------------------------------------------------------
-# Parseig de plantilla ACT_EXTR (blocs keyed [[KEY]])
+# Parseig de plantilla ACT_EXTR (mateix format que REQ1)
 # ----------------------------------------------------------------------------
-# Cada paragraf de la plantilla pot comencar amb un token [[KEY]] que obre un
-# bloc. Els paragrafs seguents sense token pertanyen al mateix bloc. Cada
-# paragraf conserva el seu "estil de render": 'list' (List Paragraph -> item
-# numerat), 'normal' (paragraf de cos) o 'url' (estil Cita / enllac).
-$script:ActExtrKeyRegex = [regex]'^\s*\[\[([A-Z0-9_]+)\]\]\s?(.*)$'
+# Les plantilles ACT_EXTR_*.docx segueixen les MATEIXES convencions d'estil que
+# REQ1.docx perque siguin igual de comodes d'editar al Word:
+#   - Titol 1 (Heading 1): titol de SECCIO. Nomes organitza el document; NO surt
+#     a l'informe (a l'informe no hi ha titols de seccio).
+#   - Titol 2 (Heading 2): obre un BLOC. El text es "[[KEY]] <tipus?> <titol>".
+#       [[KEY]]    -> clau interna (aplicabilitat / valors).
+#       ::TEXT::   -> el bloc es un paragraf de cos (intro, encapcalaments,
+#                     tancament): surt SENSE pic ni numero.
+#       ::CHILD::  -> el bloc es un sub-apartat: surt amb pic i sagnat.
+#       (cap)      -> el bloc es un item: numerat al requeriment, amb pic al
+#                     favorable.
+#     El <titol> es nomes una etiqueta per editar; NO surt a l'informe.
+#   - Normal: el CONTINGUT del bloc (el text que surt a l'informe). Cada
+#     paragraf Normal del bloc es un item/sub-item/paragraf segons el tipus.
+#   - Cita (Quote): enllac (URL) del bloc.
+$script:ActExtrKeyRegex = [regex]'^\s*\[\[([A-Z0-9_]+)\]\]\s*(.*)$'
 
-# Construeix els blocs a partir d'una llista de registres de paragraf
-# @{ Text; Style }. Funcio PURA (sense Word). Retorna una llista de blocs
-# @{ Key; Paragraphs=@(@{Text;Style},...) } en ordre del document.
-# Detecta el nivell d'un paragraf: si comenca per "> " es de SUB-nivell (Level 1,
-# sagnat) i es retira el marcador. Funcio PURA. Retorna @{ Text; Level }.
-function _ActExtrParaLevel([string]$text) {
-    $t = [string]$text
-    if ($t -match '^\s*>\s+(.*)$') { return @{ Text = $Matches[1].Trim(); Level = 1 } }
-    return @{ Text = $t.Trim(); Level = 0 }
+# Analitza el text d'un marcador Titol 2: clau, tipus de render i etiqueta.
+# Funcio PURA. Retorna @{ Key; Kind } o $null si no hi ha [[KEY]].
+function _ParseActExtrMarker([string]$text) {
+    $m = $script:ActExtrKeyRegex.Match([string]$text)
+    if (-not $m.Success) { return $null }
+    $key  = $m.Groups[1].Value
+    $rest = $m.Groups[2].Value
+    $kind = 'item'
+    if     ($rest -match '::TEXT::')  { $kind = 'text' }
+    elseif ($rest -match '::CHILD::') { $kind = 'child' }
+    return @{ Key = $key; Kind = $kind }
 }
 
+# Construeix els blocs a partir de registres de paragraf @{ Text; Style } on
+# Style es 'h1' | 'h2' | 'normal' | 'url'. Funcio PURA (sense Word). Retorna una
+# llista de blocs @{ Key; Kind; Contents=@(@{Text;IsUrl},...) } en ordre.
 function Build-ActExtrBlocks($paraRecords) {
     $blocks = New-Object System.Collections.ArrayList
     $current = $null
     foreach ($r in $paraRecords) {
         $text  = [string]$r.Text
         $style = if ($r.Style) { [string]$r.Style } else { 'normal' }
-        $m = $script:ActExtrKeyRegex.Match($text)
-        if ($m.Success) {
+
+        if ($style -eq 'h1' -or $style -eq 'h2') {
+            $marker = _ParseActExtrMarker $text
+            if ($null -eq $marker) { $current = $null; continue }  # titol visual sense clau
             $current = [pscustomobject]@{
-                Key        = $m.Groups[1].Value
-                Paragraphs = (New-Object System.Collections.ArrayList)
+                Key      = $marker.Key
+                Kind     = $marker.Kind
+                Contents = (New-Object System.Collections.ArrayList)
             }
             [void]$blocks.Add($current)
-            $rest = $m.Groups[2].Value
-            if (-not [string]::IsNullOrWhiteSpace($rest)) {
-                $lv = _ActExtrParaLevel $rest
-                [void]$current.Paragraphs.Add(@{ Text=$lv.Text; Style=$style; Level=$lv.Level })
-            }
             continue
         }
+
         if ([string]::IsNullOrWhiteSpace($text)) { continue }
-        if ($null -eq $current) { continue }   # text abans del primer [[KEY]]: s'ignora
-        $lv = _ActExtrParaLevel $text
-        [void]$current.Paragraphs.Add(@{ Text=$lv.Text; Style=$style; Level=$lv.Level })
+        if ($null -eq $current) { continue }   # contingut abans de cap [[KEY]]: s'ignora
+        [void]$current.Contents.Add(@{ Text = $text.Trim(); IsUrl = ($style -eq 'url') })
     }
     return $blocks.ToArray()
 }
@@ -443,13 +457,13 @@ function Test-ActExtrIncludeBlock([string]$blockKey, [string]$mode, $ctx) {
     }
     $defKeys = @($ctx.DefKeys)
 
+    # Blocs estructurals/fixos del favorable (normativa, encapcalaments, bloc
+    # final...): hi son sempre que es generi l'informe favorable.
+    if ($blockKey -like 'FAV_*') { return ($mode -eq 'fav') }
+
     switch ($blockKey) {
         'REQ_INTRO'      { return ($mode -eq 'req') -and ($defKeys.Count -gt 0) }
         'REQ_CLOSING'    { return ($mode -eq 'req') }
-        'FAV_INTRO'      { return ($mode -eq 'fav') }
-        'FAV_MID'        { return ($mode -eq 'fav') }
-        'FIXED'          { return ($mode -eq 'fav') }
-        'FIXEDEND'       { return ($mode -eq 'fav') }
         'MEMORIA_HEADER' {
             if ($mode -ne 'req') { return $false }
             foreach ($k in $defKeys) { if ($k -like 'MEMORIA_*') { return $true } }
@@ -591,15 +605,12 @@ function Parse-ActExtrTemplate($word, $path) {
             }
             $styleName = ''
             try { $styleName = $p.Style.NameLocal } catch { }
-            $n = (_NormalizeText $styleName) -replace '[^a-z0-9]',''
             $style = 'normal'
-            if ($styleName -match '^(Cita|Cite|Quote|Cita destacada|Quote intense)$') {
-                $style = 'url'
-            } elseif ($n -like '*listparagraph*' -or $n -like '*parrafodelista*' -or $n -like '*llista*' -or $n -like '*prrafodelista*') {
-                $style = 'list'
-            }
+            if     (Test-StyleMatch $styleName 1) { $style = 'h1' }
+            elseif (Test-StyleMatch $styleName 2) { $style = 'h2' }
+            elseif ($styleName -match '^(Cita|Cite|Quote|Cita destacada|Quote intense)$') { $style = 'url' }
             # Fallback: una linia que es nomes un URL es tracta com a 'url'.
-            if ($style -ne 'url' -and $text.Trim() -match '^https?://') { $style = 'url' }
+            if ($style -eq 'normal' -and $text.Trim() -match '^https?://') { $style = 'url' }
             [void]$records.Add(@{ Text=$text; Style=$style })
         }
         return (Build-ActExtrBlocks $records)
@@ -649,16 +660,15 @@ function _GetActExtrOutputFileName([string]$tipus, [string]$gia, [string]$activi
 }
 
 # Emet el cos del document a partir dels blocs de la plantilla, com fa el motor
-# de REQ1 (Format.ps1): cada "unitat" (paragraf de cos o item de primer nivell)
-# va separada per una linia en blanc (Format-Spacer), igual que els requeriments
-# de REQ1. Els URLs i els sub-items (nivell 1) s'enganxen a la unitat anterior
-# sense linia en blanc al davant.
+# de REQ1 (Format.ps1): cada unitat (item de 1r nivell o paragraf de cos) va
+# separada per una linia en blanc (Format-Spacer). Els sub-items i els URLs
+# s'enganxen a la unitat anterior sense linia en blanc al davant.
 #
-# Numeracio/pics:
-#   - requeriment ('req'): items de 1r nivell numerats 1..N (continu); sub-items
-#     numerats 1..K (es reinicien a cada nova unitat) i sagnats.
-#   - informe favorable ('fav'): items amb PIC (vinyeta), no numerats; sub-items
-#     amb guio i sagnats (jerarquia com el document original, tot punts).
+# Tipus de bloc (Kind, definit pel marcador Titol 2 de la plantilla):
+#   'item'  -> cada paragraf de contingut es un item: numerat al requeriment,
+#              amb PIC (vinyeta) al favorable.
+#   'child' -> cada paragraf de contingut es un sub-apartat: amb PIC i sagnat.
+#   'text'  -> cada paragraf de contingut es un paragraf de cos (sense pic).
 function _WriteActExtrBody($sel, $blocks, $mode, $ctx, $computed) {
     $isReq = ($mode -eq 'req')
     $num0 = 0   # comptador d'items de 1r nivell (continu)
@@ -666,40 +676,35 @@ function _WriteActExtrBody($sel, $blocks, $mode, $ctx, $computed) {
 
     foreach ($block in $blocks) {
         if (-not (Test-ActExtrIncludeBlock $block.Key $mode $ctx)) { continue }
-        foreach ($para in $block.Paragraphs) {
-            $style = [string]$para.Style
-            $level = [int]$para.Level
-            $resolved = Resolve-ActExtrTokens ([string]$para.Text) $computed
-            if ([string]::IsNullOrWhiteSpace($resolved) -and $style -ne 'url') { continue }
+        $kind = [string]$block.Kind
+        foreach ($c in $block.Contents) {
+            $resolved = Resolve-ActExtrTokens ([string]$c.Text) $computed
 
-            if ($style -eq 'url') {
+            if ($c.IsUrl) {
                 $u = $resolved
                 if ($u.StartsWith('[[URL]] ')) { $u = $u.Substring('[[URL]] '.Length).Trim() }
                 if (-not [string]::IsNullOrWhiteSpace($u)) {
-                    if ($level -ge 1) { Format-Url $sel $u -IsChild } else { Format-Url $sel $u }
+                    if ($kind -eq 'child') { Format-Url $sel $u -IsChild } else { Format-Url $sel $u }
                 }
                 continue
             }
 
             $parts = _SplitTextAndUrls $resolved
+            if ([string]::IsNullOrWhiteSpace($parts.Text) -and @($parts.Urls).Count -eq 0) { continue }
 
-            if ($style -eq 'list' -and $level -ge 1) {
-                # Sub-item: sempre amb PIC (vinyeta) i sagnat, tant al
-                # requeriment com al favorable (els subapartats son "punts").
-                # S'enganxa a la unitat anterior, sense linia en blanc al davant.
-                if (-not [string]::IsNullOrWhiteSpace($parts.Text)) {
-                    Format-Bullet $sel $parts.Text -IsChild
-                }
+            if ($kind -eq 'child') {
+                # Sub-apartat: PIC sagnat, enganxat a la unitat anterior (sense
+                # linia en blanc al davant).
+                if (-not [string]::IsNullOrWhiteSpace($parts.Text)) { Format-Bullet $sel $parts.Text -IsChild }
                 foreach ($x in $parts.Urls) { Format-Url $sel $x -IsChild }
                 $first = $false
                 continue
             }
 
-            # Unitat nova (paragraf de cos 'normal' o item de 1r nivell 'list'):
-            # linia en blanc al davant si no es la primera unitat del document.
+            # Unitat nova (item o paragraf de cos): linia en blanc al davant si
+            # no es la primera unitat del document.
             if (-not $first) { Format-Spacer $sel }
-
-            if ($style -eq 'list') {
+            if ($kind -eq 'item') {
                 $num0++
                 if (-not [string]::IsNullOrWhiteSpace($parts.Text)) {
                     if ($isReq) { Format-Item $sel "$num0." $parts.Text }
@@ -707,8 +712,7 @@ function _WriteActExtrBody($sel, $blocks, $mode, $ctx, $computed) {
                 }
                 foreach ($x in $parts.Urls) { Format-Url $sel $x }
             } else {
-                # 'normal' -> paragraf de cos sense pic ni numero (intros,
-                # capcaleres de seccio, tancament...).
+                # 'text' -> paragraf de cos sense pic ni numero.
                 if (-not [string]::IsNullOrWhiteSpace($parts.Text)) { Format-Body $sel $parts.Text }
                 foreach ($x in $parts.Urls) { Format-Url $sel $x }
             }

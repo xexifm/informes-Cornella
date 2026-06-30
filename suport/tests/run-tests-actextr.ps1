@@ -110,36 +110,35 @@ Write-Host "`n--- Resolve-ActExtrTokens ---"
 AssertEq (Resolve-ActExtrTokens 'cal {{VIGILANTS}} vigilants i {{CONTROLADORS}} controladors' $comp) 'cal 35 vigilants i 37 controladors' 'substitueix tokens numerics'
 AssertEq (Resolve-ActExtrTokens '{{LAVABOS}} lavabos i {{CABINES}} cabines' (Get-ActExtrComputed (Build-ActExtrDecret @{ Aforament='34719' }))) '276 lavabos i 828 cabines' 'tokens higiene'
 
-Write-Host "`n--- Build-ActExtrBlocks (parseig de plantilla) ---"
+Write-Host "`n--- _ParseActExtrMarker (Titol 2 -> clau + tipus) ---"
+$mk0 = _ParseActExtrMarker '[[INCENDIS]] Incendis'
+AssertEq $mk0.Key 'INCENDIS' 'marcador: clau extreta'
+AssertEq $mk0.Kind 'item' 'marcador sense :: -> item'
+AssertEq (_ParseActExtrMarker '[[REQ_INTRO]] ::TEXT:: Introduccio').Kind 'text' '::TEXT:: -> text'
+AssertEq (_ParseActExtrMarker '[[MEMORIA_A]] ::CHILD:: a) ...').Kind 'child' '::CHILD:: -> child'
+Assert ($null -eq (_ParseActExtrMarker 'Titol visual sense clau')) 'titol sense [[KEY]] -> $null'
+
+Write-Host "`n--- Build-ActExtrBlocks (mateix format que REQ1) ---"
 $recs = @(
-    @{ Text='[[REQ_INTRO]] Intro del requeriment:'; Style='normal' }
-    @{ Text='[[INCENDIS]] Incendis. Text.'; Style='list' }
+    @{ Text='DEFICIENCIES'; Style='h1' }                                  # seccio: ignorada
+    @{ Text='[[REQ_INTRO]] ::TEXT:: Introduccio'; Style='h2' }
+    @{ Text='Intro del requeriment:'; Style='normal' }
+    @{ Text='[[INCENDIS]] Incendis'; Style='h2' }
+    @{ Text='Incendis. Text.'; Style='normal' }
     @{ Text='https://exemple.cat/incendis'; Style='url' }
-    @{ Text=''; Style='normal' }
-    @{ Text='[[RC]] RC per {{RC_IMPORT}} EUR.'; Style='list' }
+    @{ Text='[[MEMORIA_A]] ::CHILD:: a)'; Style='h2' }
+    @{ Text='Identificacio.'; Style='normal' }
 )
 $blocks = Build-ActExtrBlocks $recs
-AssertEq $blocks.Count 3 'blocs: REQ_INTRO, INCENDIS, RC'
+AssertEq $blocks.Count 3 'blocs: REQ_INTRO, INCENDIS, MEMORIA_A (la seccio H1 no obre bloc)'
 AssertEq $blocks[0].Key 'REQ_INTRO' 'primer bloc REQ_INTRO'
-AssertEq $blocks[0].Paragraphs[0].Text 'Intro del requeriment:' 'token retirat del text'
+AssertEq $blocks[0].Kind 'text' 'REQ_INTRO es de tipus text'
+AssertEq $blocks[0].Contents[0].Text 'Intro del requeriment:' 'contingut del bloc (Normal)'
 AssertEq $blocks[1].Key 'INCENDIS' 'segon bloc INCENDIS'
-AssertEq $blocks[1].Paragraphs.Count 2 'INCENDIS te text + url'
-AssertEq $blocks[1].Paragraphs[1].Style 'url' 'segona linia es url'
-
-Write-Host "`n--- Sub-nivell de jerarquia ('> ') ---"
-$lv0 = _ActExtrParaLevel 'Text normal de primer nivell'
-AssertEq $lv0.Level 0 'sense marcador -> nivell 0'
-$lv1 = _ActExtrParaLevel '> Sub-item indentat'
-AssertEq $lv1.Level 1 'amb "> " -> nivell 1'
-AssertEq $lv1.Text 'Sub-item indentat' 'es retira el marcador "> "'
-$recs2 = @(
-    @{ Text='[[MEMORIA_HEADER]] En quant a la memoria falta justificar:'; Style='normal' }
-    @{ Text='[[MEMORIA_A]] > Identificacio.'; Style='list' }
-)
-$bl2 = Build-ActExtrBlocks $recs2
-AssertEq $bl2[0].Paragraphs[0].Level 0 'capcalera memoria a nivell 0'
-AssertEq $bl2[1].Paragraphs[0].Level 1 'sub-item memoria a nivell 1'
-AssertEq $bl2[1].Paragraphs[0].Text 'Identificacio.' 'sub-item memoria sense marcador'
+AssertEq $blocks[1].Kind 'item' 'INCENDIS es item'
+AssertEq $blocks[1].Contents.Count 2 'INCENDIS te text + url'
+Assert ($blocks[1].Contents[1].IsUrl) 'segona linia es url'
+AssertEq $blocks[2].Kind 'child' 'MEMORIA_A es sub-apartat (child)'
 
 Write-Host "`n--- Test-ActExtrIncludeBlock (requeriment) ---"
 $statusByKey = @{}; foreach ($s in $status) { $statusByKey[$s.Key] = $s }
@@ -152,14 +151,14 @@ Assert (Test-ActExtrIncludeBlock 'PAU_LOCAL' 'req' $ctxReq) 'req: PAU_LOCAL incl
 Assert (-not (Test-ActExtrIncludeBlock 'PAU_CAT' 'req' $ctxReq)) 'req: PAU_CAT NO inclos (organ local)'
 Assert (-not (Test-ActExtrIncludeBlock 'MOBILITAT' 'req' $ctxReq)) 'req: MOBILITAT mai al requeriment'
 Assert (Test-ActExtrIncludeBlock 'MEMORIA_HEADER' 'req' $ctxReq) 'req: capcalera memoria (hi ha subpunts pendents)'
-Assert (-not (Test-ActExtrIncludeBlock 'FIXEDEND' 'req' $ctxReq)) 'req: FIXEDEND nomes al favorable'
+Assert (-not (Test-ActExtrIncludeBlock 'FAV_NORMATIVA' 'req' $ctxReq)) 'req: blocs FAV_* nomes al favorable'
 Assert (Test-ActExtrIncludeBlock 'REQ_CLOSING' 'req' $ctxReq) 'req: bloc de tancament (Ho poso.../Cornella) inclos'
 
 Write-Host "`n--- Test-ActExtrIncludeBlock (favorable) ---"
 $ctxFav = @{ Decret=$decret; Computed=$comp; Delivered=$allDelivered; StatusByKey=$statusByKey; DefKeys=@() }
 Assert (Test-ActExtrIncludeBlock 'FAV_INTRO' 'fav' $ctxFav) 'fav: FAV_INTRO inclos'
-Assert (Test-ActExtrIncludeBlock 'FIXED' 'fav' $ctxFav) 'fav: normativa fixa inclosa'
-Assert (Test-ActExtrIncludeBlock 'FIXEDEND' 'fav' $ctxFav) 'fav: bloc final fix inclos'
+Assert (Test-ActExtrIncludeBlock 'FAV_NORMATIVA' 'fav' $ctxFav) 'fav: normativa fixa inclosa'
+Assert (Test-ActExtrIncludeBlock 'FAV_CLOSING' 'fav' $ctxFav) 'fav: bloc final fix inclos'
 Assert (Test-ActExtrIncludeBlock 'MOBILITAT' 'fav' $ctxFav) 'fav: MOBILITAT inclosa (Mobilitat=Si)'
 Assert (Test-ActExtrIncludeBlock 'PAU_LOCAL' 'fav' $ctxFav) 'fav: PAU_LOCAL inclos'
 Assert (-not (Test-ActExtrIncludeBlock 'PAU_CAT' 'fav' $ctxFav)) 'fav: PAU_CAT NO inclos (organ local)'
