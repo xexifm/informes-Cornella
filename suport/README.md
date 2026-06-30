@@ -596,11 +596,21 @@ Surten de plantilles editables al Word, igual que `REQ1.docx`:
   normativa i tot el bloc des de *«Es prohibeix l'emissió de qualsevol...»* fins
   al final) que surten sempre.
 
-Cada punt de la plantilla porta un marcador `[[CLAU]]` al principi (el programa
-el fa servir per decidir si l'inclou; no surt al document) i, on cal, els tokens
-`{{VIGILANTS}}`, `{{CONTROLADORS}}`, `{{LAVABOS}}`, `{{CABINES}}` i
-`{{RC_IMPORT}}` que el programa substitueix pels valors calculats. Pots editar
-lliurement la resta del text al Word.
+Aquestes plantilles segueixen **el mateix format que `REQ1.docx`** (mateixos
+estils de Word: *Bookman Old Style*, *Títol 1*, *Títol 2*, *Normal*, *Cita*),
+així que s'editen igual de còmodament:
+
+| Estil de Word | Què representa al programa |
+|---|---|
+| **Títol 1** | Secció (només organitza el document; **no** surt a l'informe). |
+| **Títol 2** | Obre un punt. El text és `[[CLAU]] <tipus> <títol>`. El `[[CLAU]]` és la clau interna i el `<títol>` només és una etiqueta per editar; **res d'això surt a l'informe**. El `<tipus>` pot ser `::TEXT::` (paràgraf de cos, sense pic) o `::CHILD::` (sub-apartat sagnat amb pic); si no en poses, el punt surt numerat (requeriment) o amb pic (favorable). |
+| **Normal** | El **contingut** del punt (el text que surt a l'informe). |
+| **Cita** | L'enllaç (URL) del punt. |
+
+Dins del text **Normal** pots fer servir els tokens `{{VIGILANTS}}`,
+`{{CONTROLADORS}}`, `{{LAVABOS}}`, `{{CABINES}}` i `{{RC_IMPORT}}`, que el
+programa substitueix pels valors calculats. Pots editar lliurement la resta del
+text al Word.
 
 ### La capçalera ACT_EXTR (dins de `0 CAPCALERA.docx`)
 
