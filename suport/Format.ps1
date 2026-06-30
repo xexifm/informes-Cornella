@@ -130,9 +130,9 @@ function Format-Bullet {
               else          { $Script:ReportFormatConfig.ItemIndentCm }
     _Apply-Indent $sel $indent
     # Pic Unicode (U+2022) escrit per codepoint per no dependre de l'encoding
-    # del fitxer .ps1. Sub-nivell amb guio per diferenciar visualment.
-    $glyph = if ($IsChild) { '-' } else { [string]([char]0x2022) }
-    $sel.TypeText("$glyph`t")
+    # del fitxer .ps1. El sub-nivell es diferencia per la sangria (-IsChild),
+    # mantenint el mateix pic (son "punts" a tots els nivells).
+    $sel.TypeText([string]([char]0x2022) + "`t")
     if ($text) { Type-RichText $sel $text }
 }
 

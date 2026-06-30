@@ -635,12 +635,17 @@ function _ActExtrHeaderMap($header) {
     }
 }
 
-# Nom del fitxer de sortida: YYYY-MM-DD_ActExtr-<Tipus>_GIA <id>.docx
-function _GetActExtrOutputFileName([string]$tipus, [string]$gia) {
+# Nom del fitxer de sortida: YYYY-MM-DD_ActExtr-<Tipus>_GIA <id>_<Activitat>.docx
+# S'hi inclou el nom de l'ACTIVITAT perque en un mateix establiment (mateix GIA)
+# es poden fer diferents activitats extraordinaries i s'han de poder distingir.
+function _GetActExtrOutputFileName([string]$tipus, [string]$gia, [string]$activitat) {
     $today = (Get-Date).ToString('yyyy-MM-dd')
     if ([string]::IsNullOrWhiteSpace($gia)) { $gia = 's_n' }
     $gia = ($gia -replace '[\\/:*?"<>|]','_').Trim()
-    return ("{0}_ActExtr-{1}_GIA {2}.docx" -f $today, $tipus, $gia)
+    $name = "{0}_ActExtr-{1}_GIA {2}" -f $today, $tipus, $gia
+    $act = ([string]$activitat -replace '[\\/:*?"<>|]','_').Trim()
+    if (-not [string]::IsNullOrWhiteSpace($act)) { $name += "_$act" }
+    return ($name + '.docx')
 }
 
 # Emet el cos del document a partir dels blocs de la plantilla, com fa el motor
@@ -657,7 +662,6 @@ function _GetActExtrOutputFileName([string]$tipus, [string]$gia) {
 function _WriteActExtrBody($sel, $blocks, $mode, $ctx, $computed) {
     $isReq = ($mode -eq 'req')
     $num0 = 0   # comptador d'items de 1r nivell (continu)
-    $num1 = 0   # comptador de sub-items (es reinicia a cada unitat nova)
     $first = $true
 
     foreach ($block in $blocks) {
@@ -680,11 +684,11 @@ function _WriteActExtrBody($sel, $blocks, $mode, $ctx, $computed) {
             $parts = _SplitTextAndUrls $resolved
 
             if ($style -eq 'list' -and $level -ge 1) {
-                # Sub-item: s'enganxa a la unitat anterior (sense linia en blanc).
-                $num1++
+                # Sub-item: sempre amb PIC (vinyeta) i sagnat, tant al
+                # requeriment com al favorable (els subapartats son "punts").
+                # S'enganxa a la unitat anterior, sense linia en blanc al davant.
                 if (-not [string]::IsNullOrWhiteSpace($parts.Text)) {
-                    if ($isReq) { Format-Item $sel "$num1." $parts.Text -IsChild }
-                    else        { Format-Bullet $sel $parts.Text -IsChild }
+                    Format-Bullet $sel $parts.Text -IsChild
                 }
                 foreach ($x in $parts.Urls) { Format-Url $sel $x -IsChild }
                 $first = $false
@@ -694,7 +698,6 @@ function _WriteActExtrBody($sel, $blocks, $mode, $ctx, $computed) {
             # Unitat nova (paragraf de cos 'normal' o item de 1r nivell 'list'):
             # linia en blanc al davant si no es la primera unitat del document.
             if (-not $first) { Format-Spacer $sel }
-            $num1 = 0
 
             if ($style -eq 'list') {
                 $num0++
@@ -728,9 +731,10 @@ function Build-ActExtrDocument($word, $header, $decret, $delivered, $mode) {
     $tplPath = if ($mode -eq 'fav') { $script:ActExtrFavTemplate } else { $script:ActExtrReqTemplate }
     $blocks  = Parse-ActExtrTemplate $word $tplPath
 
-    $tipus = if ($mode -eq 'fav') { 'Favorable' } else { 'Requeriment' }
+    $tipus = if ($mode -eq 'fav') { 'Fav' } else { 'Req' }
     $gia = if ($header -is [System.Collections.IDictionary]) { [string]$header['ID_GIA'] } else { [string]$header.ID_GIA }
-    $baseName  = _GetActExtrOutputFileName $tipus $gia
+    $act = if ($header -is [System.Collections.IDictionary]) { [string]$header['ACTIVITAT'] } else { [string]$header.ACTIVITAT }
+    $baseName  = _GetActExtrOutputFileName $tipus $gia $act
     $targetDir = _ResolveOutputDir
     $outPath   = _GetUniqueOutputPath $targetDir $baseName
     $fileName  = [System.IO.Path]::GetFileName($outPath)
