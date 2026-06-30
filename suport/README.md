@@ -155,18 +155,29 @@ A la pantalla inicial tria **Fer seguiment d'un informe existent**. Després:
 - Sota cada requeriment, **a sota de tot** (després del cos i de l'enllaç),
   afegeix la línia `data: comentari`. Si no es marca *Resolt*, el comentari per
   defecte és *"No s'aporta."*; si es marca, *"S'aporta."* (sempre editable).
-- **Negreta dinàmica**: mentre un requeriment NO estigui resolt, **totes** les
-  seves línies (punt + sub-línies + anotacions) van en **negreta** —menys
-  l'enllaç, que mai—; quan el marques com a resolt, deixen d'anar-hi.
+- **Negreta només al comentari pendent**: si el punt NO queda resolt, només es
+  posa en **negreta el comentari** de l'última entrega (ni el requeriment, ni la
+  data, ni l'enllaç). Quan en una ronda posterior es resol, aquell comentari
+  deixa d'anar en negreta. Així, d'una ullada, el negre = el que encara falta.
+- **No reescriu el que ja estava resolt**: si un punt ja constava resolt en una
+  entrega anterior i segueix resolt, no s'hi torna a escriure cap línia.
 - El text afegit (anotacions i conclusions) surt en **Bookman Old Style 11**
   justificat.
+
+> **Com sap el programa si un punt està resolt?** No fa servir cap fitxer
+> extern: ho dedueix del **propi `.docx`**. El comentari de l'última entrega va
+> en negreta només quan el punt està pendent; per tant, si l'últim comentari
+> d'un punt està en negreta vol dir "pendent", i si no, "resolt". Aquesta marca
+> viatja amb el document, així que els seguiments successius saben l'estat.
 
 El resultat torna a ser un "informe anterior" vàlid: pots tornar-hi a passar el
 seguiment a la ronda següent i s'hi afegirà una línia nova sense duplicar res.
 
-**Nom del fitxer:** el seguiment **incrementa el número** del catàleg amb la data
-d'avui: d'un `..._Req1_GIA <id>` en surt `<avui>_Req2_GIA <id>.docx`; el següent,
-`Req3`, etc. Si en generes dos el mateix dia, el segon porta `_2`.
+**Nom del fitxer:** el seguiment **incrementa el número de ronda** "Req" amb la
+data d'avui: d'un `..._Req1_...` en surt `<avui>_..._Req2_...`; el següent,
+`Req3`, etc. Si l'informe antic només porta `Req` (sense número, fet sense el
+programa) → `Req2`. Si no hi ha cap `Req` al nom → `<avui>_Seguiment_<nom>`. Si
+en generes dos el mateix dia, el segon porta `_2`.
 
 **Tècnic:** el seguiment edita el `.docx` directament (XML intern, sense Word);
 Word només s'obre al final per ensenyar-te el resultat. Les frases que marquen

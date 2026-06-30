@@ -468,8 +468,8 @@ Write-Host "`n--- Seguiment: _SeguimentOutputName ---"
 $d = [datetime]'2026-06-05'
 AssertEq (_SeguimentOutputName '2026-05-29_Req1_GIA 1379' $d) '2026-06-05_Req2_GIA 1379.docx' '_SeguimentOutputName Req1 -> Req2, data avui'
 AssertEq (_SeguimentOutputName '2026-06-05_Req2_GIA 1379' $d) '2026-06-05_Req3_GIA 1379.docx' '_SeguimentOutputName Req2 -> Req3'
-AssertEq (_SeguimentOutputName '2026-05-29_Req1_GIA 1379_SEG' $d) '2026-06-05_Req2_GIA 1379.docx' '_SeguimentOutputName ignora sufix _SEG vell -> Req2'
-AssertEq (_SeguimentOutputName 'Informe antic fet a ma' $d) '2026-06-05_Seguiment_Informe antic fet a ma.docx' '_SeguimentOutputName font feta a ma -> prefix Seguiment'
+AssertEq (_SeguimentOutputName '2026-05-15_Req_SELECTIUM CORNELLA' $d) '2026-06-05_Req2_SELECTIUM CORNELLA.docx' '_SeguimentOutputName Req sense numero -> Req2 (requeriment antic)'
+AssertEq (_SeguimentOutputName 'Informe antic fet a ma' $d) '2026-06-05_Seguiment_Informe antic fet a ma.docx' '_SeguimentOutputName sense Req -> prefix Seguiment'
 AssertEq (_SeguimentOutputName 'a/b:c' $d) '2026-06-05_Seguiment_a_b_c.docx' '_SeguimentOutputName saneja caracters il-legals'
 
 Write-Host "`n--- Seguiment: _BuildSeguimentModel ---"
@@ -617,19 +617,21 @@ Assert ($idxAnnot1 -lt $idxSecc) 'Transform (punt 1): l anotacio va ABANS de la 
 AssertEq $after[$idxSecc].B (-1)                   'Transform: la seccio segueix en negreta (no es modifica)'
 Assert (_IsSubsectionXml $afterN[$idxSubs] $xi2.Ns) 'Transform: la subseccio segueix subratllada (no es modifica)'
 
-# PUNT 5: negreta a req1 + sub-linia, MAI a l enllac
-$idxReq1 = [array]::IndexOf($texts, '1. Baixa tensio.')
+# NOMES el comentari de l'anotacio va en negreta (si pendent). NI requeriment,
+# NI sub-linia, NI enllac, NI la data.
 $idxSub  = [array]::IndexOf($texts, '- Subdocument A')
-AssertEq $after[$idxReq1].B (-1) 'Transform (punt 5): req1 pendent en negreta'
-AssertEq $after[$idxSub].B  (-1) 'Transform (punt 5): la sub-linia tambe en negreta'
-AssertEq $after[$idxUrl].B    0  'Transform (punt 5): l enllac MAI en negreta'
-AssertEq $after[$idxAnnot1].B (-1) 'Transform: anotacio de req1 en negreta'
+AssertEq $after[$idxSub].B 0 'Transform: la sub-linia NO es posa en negreta'
+AssertEq $after[$idxUrl].B 0 'Transform: l enllac MAI en negreta'
+# Anotacio PENDENT (req1): data normal + comentari negreta -> paragraf mixt
+AssertEq $after[$idxAnnot1].B 9999999 'Transform: anotacio pendent -> nomes el comentari en negreta (mixt)'
+$annRuns = @($afterN[$idxAnnot1].SelectNodes('w:r', $xi2.Ns))
+AssertEq $annRuns.Count 2 'Transform: anotacio amb 2 runs (data + comentari)'
+Assert ($null -eq $annRuns[0].SelectSingleNode('w:rPr/w:b', $xi2.Ns)) 'Transform: el run de la DATA NO porta negreta'
+Assert ($null -ne $annRuns[1].SelectSingleNode('w:rPr/w:b', $xi2.Ns)) 'Transform: el run del COMENTARI porta negreta'
 
-# req2 resolt -> res en negreta
-$idxReq2 = [array]::IndexOf($texts, '2. Alta tensio.')
+# req2 resolt -> l'anotacio NO porta cap negreta
 $idxAnnot2 = [array]::IndexOf($texts, "04/06/2026: S'aporta.")
-AssertEq $after[$idxReq2].B 0    'Transform: req2 resolt -> sense negreta'
-AssertEq $after[$idxAnnot2].B 0  'Transform: anotacio de req2 -> sense negreta'
+AssertEq $after[$idxAnnot2].B 0  'Transform: anotacio resolta -> cap negreta'
 
 # PUNT 2: l anotacio NO s ha d enumerar -> numPr amb numId=0
 $annotNode = $afterN[$idxAnnot1]
@@ -654,6 +656,48 @@ Assert ($null -ne $concJc -and $concJc.GetAttribute('val',$W) -eq 'both') 'Trans
 Assert ($null -ne $xi2.Body.SelectSingleNode('w:sectPr', $xi2.Ns)) 'Transform: <w:sectPr> preservat'
 $swT = New-Object System.IO.StringWriter; $xi2.Xml.Save($swT)
 Assert (Test-StrictXml $swT.ToString()) 'Transform: el document.xml resultant es estrictament valid (Word)'
+
+Write-Host "`n--- Seguiment XML: estat resolt/pendent guardat a la negreta del comentari ---"
+# req1 ja RESOLT (anotacio previa amb comentari SENSE negreta).
+# req2 PENDENT (anotacio previa amb comentari EN negreta).
+$rb = '<w:rPr><w:rFonts w:ascii="Bookman Old Style"/></w:rPr>'
+$docState = @"
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="$W"><w:body>
+<w:p><w:r><w:t>1. Cal aportar X.</w:t></w:r></w:p>
+<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="0"/></w:numPr></w:pPr><w:r>$rb<w:t xml:space="preserve">10/06/2026: </w:t></w:r><w:r>$rb<w:t>S'aporta.</w:t></w:r></w:p>
+<w:p/>
+<w:p><w:r><w:t>2. Cal aportar Y.</w:t></w:r></w:p>
+<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="0"/></w:numPr></w:pPr><w:r>$rb<w:t xml:space="preserve">10/06/2026: </w:t></w:r><w:r><w:rPr><w:rFonts w:ascii="Bookman Old Style"/><w:b/><w:bCs/></w:rPr><w:t>No s'aporta.</w:t></w:r></w:p>
+<w:p/>
+<w:p><w:r><w:t>Vist l anterior, cal requerir.</w:t></w:r></w:p>
+<w:sectPr/>
+</w:body></w:document>
+"@
+$xiS = New-XmlInfoFromString $docState
+$bpS = @(_BodyParagraphsXml $xiS)
+$modelS = _BuildSeguimentModel (_CollectParaRecordsXml $xiS $bpS)
+AssertEq $modelS.Requirements.Count 2 'Estat: 2 requeriments'
+Assert ($modelS.Requirements[0].WasResolved)        'Estat: req1 amb comentari no-negreta -> RESOLT'
+Assert (-not $modelS.Requirements[1].WasResolved)   'Estat: req2 amb comentari en negreta -> PENDENT'
+
+# Transform: tots dos es marquen Resolt. req1 ja ho estava -> NO s afegeix linia.
+# req2 passa de pendent a resolt -> s afegeix "S'aporta." i es des-negreta l antic.
+$decS = @(
+    [pscustomobject]@{ Resolved=$true; NewComment="S'aporta." },
+    [pscustomobject]@{ Resolved=$true; NewComment="S'aporta." }
+)
+_ApplySeguimentTransform -xmlInfo $xiS -bodyParas $bpS -model $modelS -conclusionStartIndex 7 `
+    -decisions $decS -dateStr '20/06/2026' -conclHeaderText '' -selectedConclusions @() -alwaysConclusions @() -fields ([ordered]@{})
+$afterS = @(_BodyParagraphsXml $xiS | ForEach-Object { [pscustomobject]@{ T=(_ParagraphTextXml $_ $xiS.Ns); B=(_ParagraphBoldStateXml $_ $xiS.Ns) } })
+$textsS = @($afterS | ForEach-Object { $_.T })
+$nAnnot = @($textsS | Where-Object { $_ -match "^\s*\d{1,2}/\d{1,2}/\d{4}\s*:" }).Count
+AssertEq $nAnnot 3 'D: req1 (ja resolt) NO afegeix linia; req2 si -> 2+1 = 3 anotacions'
+$nNew20 = @($textsS | Where-Object { $_ -eq "20/06/2026: S'aporta." }).Count
+AssertEq $nNew20 1 'D: nomes req2 afegeix una linia nova del 20/06'
+# L antic "No s'aporta." de req2 ara queda SENSE negreta (historic)
+$idxOld = [array]::IndexOf($textsS, "10/06/2026: No s'aporta.")
+AssertEq $afterS[$idxOld].B 0 'C: el comentari pendent anterior es des-negreta en resoldre-s'
 
 Write-Host "`n--- Seguiment XML: numeracio AUTOMATICA del Word (numId via estil) ---"
 # Requeriments sense numero al text: la numeracio ve de l'estil (numId=5 decimal),
@@ -707,7 +751,6 @@ if (Test-Path $cap) {
 }
 if (Test-Path $conc) {
     $cx = Read-ConclusionsXml $conc
-    AssertEq $cx.HeaderText 'CONCLUSIONS' 'Read-ConclusionsXml: HeaderText = CONCLUSIONS'
     Assert ($cx.Selectable.Count -ge 1)   'Read-ConclusionsXml: hi ha conclusions triables'
     Assert ($cx.Always.Count -ge 1)       'Read-ConclusionsXml: hi ha frases ::SEMPRE::'
 

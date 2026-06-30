@@ -138,16 +138,24 @@ function _BuildSeguimentModel($paraRecords) {
                 ParaIndex = [int]$r.Index
                 Date      = $c.Date
                 Text      = ([string]$r.Text).Trim()
+                Bold      = $r.Bold
             })
         }
         # 'other' (cos, URL, intro, capcalera, conclusions...) s'ignora al model.
     }
-    # WasResolved (per defecte de la casella "Resolt"): si el requeriment NO te
-    # cap anotacio previa, es la PRIMERA ronda -> pendent (no resolt). Si en te,
-    # ho inferim de la negreta (que el seguiment recalcula cada ronda). Aixi els
-    # informes acabats de generar (literals o auto-numerats) surten pendents.
+    # Estat "resolt" (per defecte de la casella i per saber si cal reescriure):
+    #   - Sense anotacions previes -> primera ronda -> PENDENT.
+    #   - Amb anotacions -> ho inferim de l'ULTIMA anotacio: si el seu comentari
+    #     esta en negreta, el punt encara estava PENDENT; si no, RESOLT. (El
+    #     seguiment nomes posa en negreta el comentari de l'ultima entrega quan
+    #     queda pendent; aixi l'estat queda "guardat" dins el propi .docx.)
     foreach ($req in $reqs) {
-        if ($req.Annotations.Count -eq 0) { $req.WasResolved = $false }
+        if ($req.Annotations.Count -eq 0) {
+            $req.WasResolved = $false
+        } else {
+            $last = $req.Annotations[$req.Annotations.Count - 1]
+            $req.WasResolved = (_InferResolvedFromBold $last.Bold)
+        }
     }
     return [pscustomobject]@{
         Requirements     = $reqs.ToArray()
@@ -204,25 +212,30 @@ function _FormatAnnotationLine($dateStr, $comment) {
 }
 
 # Nom del fitxer de sortida del seguiment. La DATA es la d'AVUI (el dia que es
-# genera l'informe), no la de l'anotacio.
-#   - Font amb l'esquema del programa "..._<Pre><N>_GIA <id>" -> s'incrementa el
-#     numero del cataleg: "Req1" -> "<avui>_Req2_GIA <id>.docx", "Req2"->"Req3"...
-#     (la primera ronda parteix del requeriment Req1; cada seguiment puja un nº).
-#   - Font feta a ma -> "<avui>_Seguiment_<nom>.docx".
+# genera l'informe), no la de l'anotacio. S'incrementa el numero de ronda "Req":
+#   - "...Req1..."           -> "<avui>_...Req2...", "Req2"->"Req3"...
+#   - "...Req..." sense num   -> "<avui>_...Req2..." (requeriments antics fets
+#                                sense el programa, que nomes posen "Req").
+#   - sense "Req" enlloc      -> "<avui>_Seguiment_<nom>.docx".
+# Es treu la data inicial del nom origen i es preserva la resta (GIA, titular...).
 # Sempre s'ha de passar el resultat per _GetUniqueOutputPath (afegeix _2, _3...).
 function _SeguimentOutputName([string]$sourceBaseName, [datetime]$today) {
-    $day = $today.ToString('yyyy-MM-dd')
-    $rx  = [regex]'_(?<pre>[A-Za-z]+)(?<n>\d+)_GIA[\s_]+(?<gia>\d+|s_n)'
-    $m   = $rx.Match([string]$sourceBaseName)
+    $day  = $today.ToString('yyyy-MM-dd')
+    # Treu una data inicial "YYYY-MM-DD" (amb "_" o espai darrere) del nom origen.
+    $rest = [regex]::Replace([string]$sourceBaseName, '^\s*\d{4}-\d{2}-\d{2}[_ ]+', '')
+    # Busca "Req" amb numero opcional i l'incrementa (sense numero -> 2).
+    $m = [regex]::Match($rest, '(?i)Req(\d*)')
     if ($m.Success) {
-        $pre = $m.Groups['pre'].Value
-        $n   = [int]$m.Groups['n'].Value + 1
-        $gia = $m.Groups['gia'].Value
-        return ('{0}_{1}{2}_GIA {3}.docx' -f $day, $pre, $n, $gia)
+        $n = if ($m.Groups[1].Value -ne '') { [int]$m.Groups[1].Value + 1 } else { 2 }
+        $rest = $rest.Remove($m.Index, $m.Length).Insert($m.Index, "Req$n")
+        $name = '{0}_{1}' -f $day, $rest
+    } else {
+        $safe = $rest
+        if ([string]::IsNullOrWhiteSpace($safe)) { $safe = 'informe' }
+        $name = '{0}_Seguiment_{1}' -f $day, $safe
     }
-    $safe = (([string]$sourceBaseName) -replace '[\\/:*?"<>|]','_').Trim()
-    if ([string]::IsNullOrWhiteSpace($safe)) { $safe = 'informe' }
-    return ('{0}_Seguiment_{1}.docx' -f $day, $safe)
+    $name = ($name -replace '[\\/:*?"<>|]','_').Trim()
+    return ($name + '.docx')
 }
 
 # ----------------------------------------------------------------------------
@@ -523,10 +536,35 @@ function _SetParagraphBoldXml($xmlInfo, $p, [bool]$boldOn) {
     }
 }
 
-# Crea un <w:p> d'anotacio clonant el pPr del requeriment (estil/sagnat) pero
-# FORCANT numId=0 (sense numeracio), amb un run en Bookman Old Style 11.
-# Si $spaceBefore, afegeix un espai a sobre (separacio amb el cos de l'item).
-function _MakeAnnotationParagraphXml($xmlInfo, $reqNode, $line, [bool]$spaceBefore = $false) {
+# Crea un run <w:r> en Bookman Old Style 11, opcionalment en negreta, amb l'ordre
+# valid de CT_RPr (rFonts, b, bCs, sz, szCs).
+function _MakeBodyRunXml($xml, $text, [bool]$bold) {
+    $w = $Script:WNS
+    $r = $xml.CreateElement('w','r',$w)
+    $rPr = $xml.CreateElement('w','rPr',$w)
+    $rf = $xml.CreateElement('w','rFonts',$w)
+    [void]$rf.SetAttribute('ascii',$w,$Script:SeguimentFontName)
+    [void]$rf.SetAttribute('hAnsi',$w,$Script:SeguimentFontName)
+    [void]$rf.SetAttribute('cs',$w,$Script:SeguimentFontName)
+    [void]$rPr.AppendChild($rf)
+    if ($bold) {
+        [void]$rPr.AppendChild($xml.CreateElement('w','b',$w))
+        [void]$rPr.AppendChild($xml.CreateElement('w','bCs',$w))
+    }
+    $sz   = $xml.CreateElement('w','sz',$w);   [void]$sz.SetAttribute('val',$w,$Script:SeguimentFontHalfPt);   [void]$rPr.AppendChild($sz)
+    $szCs = $xml.CreateElement('w','szCs',$w); [void]$szCs.SetAttribute('val',$w,$Script:SeguimentFontHalfPt); [void]$rPr.AppendChild($szCs)
+    [void]$r.AppendChild($rPr)
+    $t = $xml.CreateElement('w','t',$w)
+    $xsp=$xml.CreateAttribute('xml','space','http://www.w3.org/XML/1998/namespace'); $xsp.Value='preserve'; [void]$t.Attributes.Append($xsp)
+    $t.InnerText = [string]$text
+    [void]$r.AppendChild($t)
+    return ,$r
+}
+
+# Crea un <w:p> d'anotacio "dd/MM/aaaa: comentari". El PREFIX de la data va sense
+# negreta; NOMES el comentari va en negreta si $commentBold (= punt encara no
+# resolt). Clona el pPr del requeriment (estil/sagnat) forcant numId=0.
+function _MakeAnnotationParagraphXml($xmlInfo, $reqNode, $dateStr, $comment, [bool]$commentBold, [bool]$spaceBefore = $false) {
     $xml = $xmlInfo.Xml; $ns = $xmlInfo.Ns; $w = $Script:WNS
     $p = $xml.CreateElement('w','p',$w)
     $pPr = $null
@@ -564,15 +602,9 @@ function _MakeAnnotationParagraphXml($xmlInfo, $reqNode, $line, [bool]$spaceBefo
         [void]$sp.SetAttribute('before', $w, '200')
     }
     [void]$p.AppendChild($pPr)
-    $r = $xml.CreateElement('w','r',$w)
-    $rPr = $xml.CreateElement('w','rPr',$w)
-    _ApplyBodyFontXml $xml $rPr
-    [void]$r.AppendChild($rPr)
-    $t = $xml.CreateElement('w','t',$w)
-    $xsp=$xml.CreateAttribute('xml','space','http://www.w3.org/XML/1998/namespace'); $xsp.Value='preserve'; [void]$t.Attributes.Append($xsp)
-    $t.InnerText = [string]$line
-    [void]$r.AppendChild($t)
-    [void]$p.AppendChild($r)
+    # Run 1: "dd/MM/aaaa: " (mai negreta). Run 2: comentari (negreta si pendent).
+    [void]$p.AppendChild((_MakeBodyRunXml $xml ('{0}: ' -f $dateStr) $false))
+    [void]$p.AppendChild((_MakeBodyRunXml $xml ([string]$comment) $commentBold))
     return ,$p   # ,: el node <w:p> es IEnumerable; evitem que s'enumeri
 }
 
@@ -818,28 +850,34 @@ function _ApplySeguimentTransform {
         }
     }
 
-    # (2) Per cada requeriment: inserir la nova anotacio A SOTA DE TOT (despres
-    # del cos, l'enllac i les anotacions previes) i recalcular la negreta de
-    # totes les linies de contingut del bloc (mai l'enllac).
+    # (2) Per cada requeriment: afegir la nova anotacio A SOTA DE TOT. NOMES el
+    # comentari va en negreta i nomes si el punt queda PENDENT (no resolt). El
+    # requeriment, la data i el text NO es toquen. Les anotacions ANTERIORS es
+    # des-negreten (historic): nomes l'ultima entrega pendent queda destacada.
     for ($k = 0; $k -lt $blocks.Count; $k++) {
         $b   = $blocks[$k]
         $dec = $decisions[$k]
-        $contentNodes = New-Object System.Collections.ArrayList
-        foreach ($n in $b.ContentNodes) { [void]$contentNodes.Add($n) }
+        $req = $model.Requirements[$k]
 
-        $comment = [string]$dec.NewComment
-        if (-not [string]::IsNullOrWhiteSpace($comment)) {
-            $line = _FormatAnnotationLine $dateStr $comment
-            # Espai a sobre nomes si l'ancora NO es ja una anotacio (es a dir,
-            # quan es la PRIMERA anotacio: separa del cos/enllac). En re-seguiment
-            # les anotacions queden apilades sense espai entre elles.
-            $newP = _MakeAnnotationParagraphXml $xmlInfo $b.ReqNode $line (-not $b.AnchorIsAnnotation)
-            [void]$xmlInfo.Body.InsertAfter($newP, $b.AnchorNode)
-            [void]$contentNodes.Add($newP)
+        # Des-negretar les anotacions previes (deixen de ser "l'ultima pendent").
+        foreach ($a in $req.Annotations) {
+            $annNode = $bodyParas[$a.ParaIndex - 1]
+            if ($null -ne $annNode) { _SetParagraphBoldXml $xmlInfo $annNode $false }
         }
 
-        $boldOn = (_ShouldBeBold $dec.Resolved)
-        foreach ($n in $contentNodes) { _SetParagraphBoldXml $xmlInfo $n $boldOn }
+        $wasResolved = [bool]$req.WasResolved
+        $nowResolved = [bool]$dec.Resolved
+        $comment     = [string]$dec.NewComment
+
+        # Si ja estava resolt I segueix resolt -> NO cal reescriure res (evita
+        # "S'aporta." repetit en rondes posteriors).
+        $addLine = (-not ($wasResolved -and $nowResolved)) -and (-not [string]::IsNullOrWhiteSpace($comment))
+        if ($addLine) {
+            $commentBold = (-not $nowResolved)                 # negreta nomes si pendent
+            $spaceBefore = (-not $b.AnchorIsAnnotation)         # espai si es la 1a anotacio
+            $newP = _MakeAnnotationParagraphXml $xmlInfo $b.ReqNode $dateStr $comment $commentBold $spaceBefore
+            [void]$xmlInfo.Body.InsertAfter($newP, $b.AnchorNode)
+        }
     }
 
     # (3) Afegir les conclusions noves al final.
@@ -954,17 +992,20 @@ function Select-ConclusionCutManually {
     $form = New-Object System.Windows.Forms.Form
     $form.Text = 'Tria el primer paragraf a esborrar'
     $form.Size = New-Object System.Drawing.Size(720, 480)
+    $form.MinimumSize = New-Object System.Drawing.Size(420, 300)
     $form.StartPosition = 'CenterScreen'
 
     $lbl = New-Object System.Windows.Forms.Label
     $lbl.Text = "Tria el PRIMER paragraf del bloc de conclusions a esborrar (s'esborrara fins al final):"
     $lbl.Location = New-Object System.Drawing.Point(15, 10)
     $lbl.Size = New-Object System.Drawing.Size(680, 20)
+    $lbl.Anchor = 'Top, Left, Right'
     $form.Controls.Add($lbl)
 
     $list = New-Object System.Windows.Forms.ListBox
     $list.Location = New-Object System.Drawing.Point(15, 35)
     $list.Size = New-Object System.Drawing.Size(680, 360)
+    $list.Anchor = 'Top, Bottom, Left, Right'
     # Mapatge posicio-de-la-llista -> index 1-based de paragraf.
     $map = @()
     [void]$list.Items.Add('(No esborrar res)')
@@ -991,6 +1032,7 @@ function Select-ConclusionCutManually {
     $btnOk.Text = 'Continuar'
     $btnOk.Location = New-Object System.Drawing.Point(600, 405)
     $btnOk.Size = New-Object System.Drawing.Size(95, 30)
+    $btnOk.Anchor = 'Bottom, Right'
     $btnOk.DialogResult = 'OK'
     $form.AcceptButton = $btnOk
     $form.Controls.Add($btnOk)
@@ -1058,53 +1100,62 @@ function Prompt-SeguimentComments {
 
     $form = New-Object System.Windows.Forms.Form
     $form.Text = 'Seguiment dels requeriments'
-    $form.Size = New-Object System.Drawing.Size(820, 620)
+    $form.Size = New-Object System.Drawing.Size(860, 640)
+    $form.MinimumSize = New-Object System.Drawing.Size(560, 400)
     $form.StartPosition = 'CenterScreen'
 
     $lbl = New-Object System.Windows.Forms.Label
     $lbl.Text = ("Anotacio del {0}. Escriu el comentari de cada requeriment i marca 'Resolt' si ha quedat resolt." -f $dateStr)
     $lbl.Location = New-Object System.Drawing.Point(15, 10)
-    $lbl.Size = New-Object System.Drawing.Size(770, 20)
+    $lbl.Size = New-Object System.Drawing.Size(810, 20)
+    $lbl.Anchor = 'Top, Left, Right'
     $form.Controls.Add($lbl)
 
     $panel = New-Object System.Windows.Forms.Panel
     $panel.Location = New-Object System.Drawing.Point(15, 35)
-    $panel.Size = New-Object System.Drawing.Size(775, 490)
+    $panel.Size = New-Object System.Drawing.Size(815, 510)
+    $panel.Anchor = 'Top, Bottom, Left, Right'
     $panel.AutoScroll = $true
     $panel.BorderStyle = 'FixedSingle'
     $form.Controls.Add($panel)
 
+    $innerW = 760   # amplada dels controls dins el panell (deixa espai per la barra)
     $rows = @()
     $y = 8
     for ($i = 0; $i -lt $requirements.Count; $i++) {
         $req = $requirements[$i]
 
+        # Etiqueta del requeriment: AutoSize amb amplada maxima -> ajusta l'alcada
+        # al text complet (encara que ocupi diverses linies).
         $reqLbl = New-Object System.Windows.Forms.Label
-        $reqLbl.Text = [string]$req.Text
-        $reqLbl.Location = New-Object System.Drawing.Point(8, $y)
-        $reqLbl.Size = New-Object System.Drawing.Size(740, 38)
         $reqLbl.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
+        $reqLbl.AutoSize = $true
+        $reqLbl.MaximumSize = New-Object System.Drawing.Size($innerW, 0)
+        $reqLbl.Location = New-Object System.Drawing.Point(8, $y)
+        $reqLbl.Text = [string]$req.Text
         $panel.Controls.Add($reqLbl)
-        $y += 40
+        $y += $reqLbl.PreferredSize.Height + 4
 
         if ($req.Annotations.Count -gt 0) {
-            $hist = ($req.Annotations | ForEach-Object { ('{0}: {1}' -f $_.Date, $_.Text) }) -join "`r`n"
+            # L'historial: cada anotacio ja inclou "data: comentari" (NO repetir la data).
+            $hist = ($req.Annotations | ForEach-Object { [string]$_.Text }) -join "`r`n"
             $histLbl = New-Object System.Windows.Forms.Label
-            $histLbl.Text = $hist
+            $histLbl.AutoSize = $true
+            $histLbl.MaximumSize = New-Object System.Drawing.Size($innerW, 0)
             $histLbl.Location = New-Object System.Drawing.Point(20, $y)
-            $histLbl.Size = New-Object System.Drawing.Size(728, (16 * $req.Annotations.Count + 2))
             $histLbl.ForeColor = [System.Drawing.Color]::DimGray
+            $histLbl.Text = $hist
             $panel.Controls.Add($histLbl)
-            $y += (16 * $req.Annotations.Count + 6)
+            $y += $histLbl.PreferredSize.Height + 4
         }
 
         $tb = New-Object System.Windows.Forms.TextBox
         $tb.Multiline = $true
         $tb.ScrollBars = 'Vertical'
         $tb.Location = New-Object System.Drawing.Point(20, $y)
-        $tb.Size = New-Object System.Drawing.Size(728, 44)
+        $tb.Size = New-Object System.Drawing.Size(($innerW - 12), 46)
         $panel.Controls.Add($tb)
-        $y += 50
+        $y += 52
 
         $cb = New-Object System.Windows.Forms.CheckBox
         $cb.Text = 'Resolt'
@@ -1131,7 +1182,7 @@ function Prompt-SeguimentComments {
         $sep = New-Object System.Windows.Forms.Label
         $sep.BorderStyle = 'Fixed3D'
         $sep.Location = New-Object System.Drawing.Point(8, $y)
-        $sep.Size = New-Object System.Drawing.Size(740, 2)
+        $sep.Size = New-Object System.Drawing.Size($innerW, 2)
         $panel.Controls.Add($sep)
         $y += 12
 
@@ -1146,15 +1197,17 @@ function Prompt-SeguimentComments {
 
     $back = New-Object System.Windows.Forms.Button
     $back.Text = 'Enrere'
-    $back.Location = New-Object System.Drawing.Point(15, 535)
+    $back.Location = New-Object System.Drawing.Point(15, 555)
     $back.Size = New-Object System.Drawing.Size(90, 30)
+    $back.Anchor = 'Bottom, Left'
     $back.DialogResult = 'Retry'
     $form.Controls.Add($back)
 
     $ok = New-Object System.Windows.Forms.Button
     $ok.Text = 'Seguent'
-    $ok.Location = New-Object System.Drawing.Point(695, 535)
+    $ok.Location = New-Object System.Drawing.Point(735, 555)
     $ok.Size = New-Object System.Drawing.Size(95, 30)
+    $ok.Anchor = 'Bottom, Right'
     $ok.DialogResult = 'OK'
     $form.AcceptButton = $ok
     $form.Controls.Add($ok)
