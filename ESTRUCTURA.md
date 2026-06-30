@@ -24,7 +24,6 @@ cada programa (cada `.bat` que pots clicar) i quins són compartits.
 | `GenerarInforme.bat`        | ▶ Generar un informe de deficiències.                         |
 | `Ruta.bat`                  | ▶ Planificar la ruta d'inspecció d'un llistat d'activitats.   |
 | `Vigilant.bat`              | ▶ Generar sol els informes que arriben del mòbil.             |
-| `ComprovarEnllacos.bat`     | ▶ Comprovar que els enllaços dels catàlegs no estiguin caiguts. |
 | `Actualitzar.bat`           | ▶ Actualitzar el programa des de GitHub i refrescar dades.    |
 | `ESTRUCTURALS/`             | Plantilles `.docx` (capçalera, conclusions, catàleg REQ, ACT_EXTR). |
 | `BASE DE DADES ACTIVITATS/` | Còpia local de l'Excel d'activitats (fallback sense xarxa).   |
@@ -45,7 +44,8 @@ suport/
 ├── Seguiment.ps1          ← mòdul del motor (informes de seguiment + tria de mode)
 ├── ActExtr.ps1            ← mòdul del motor (mode ACT_EXTR: activitats extraordinàries)
 ├── DriveApi.ps1           ← mòdul compartit (accés a Google Drive)
-├── Comprova-Enllacos.ps1  ← utilitat: comprova els enllaços dels catàlegs (entrada de ComprovarEnllacos.bat)
+├── Comprova-Enllacos.ps1  ← utilitat: comprova els enllaços dels catàlegs
+├── ComprovarEnllacos.bat  ← ▶ entrada (doble clic) del comprovador d'enllaços
 ├── config.ps1             ← la TEVA configuració local (rutes, OSRM…)
 ├── Instalar.bat           ← instal·lador per a una màquina nova
 │
