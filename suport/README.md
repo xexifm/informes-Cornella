@@ -29,6 +29,7 @@ informes-Cornella/
     ├── GenerarInforme.ps1         ← MOTOR + entrada de GenerarInforme.bat
     ├── Format.ps1 · Seguiment.ps1 · ActExtr.ps1 · DriveApi.ps1   ← mòduls del motor
     ├── config.ps1                 ← (opcional) sobreescriu rutes locals
+    ├── Comprova-Enllacos.ps1 · ComprovarEnllacos.bat   ← comprova enllaços caiguts dels catàlegs
     ├── Instalar.bat               ← instal·lar en una màquina nova (vegeu cap. 2)
     ├── rutes/Ruta.ps1             ← planificador de rutes (entrada de Ruta.bat)
     ├── mobil/                     ← integració mòbil/Drive
@@ -267,9 +268,9 @@ propi, com a hipervincle, en cos 10 pt. Si oblides l'estil i poses
 
 > **Comprovar enllaços caiguts**: els enllaços de la Generalitat
 > (`canalempresa.gencat.cat`…) canvien sovint. Fes doble clic a
-> **`ComprovarEnllacos.bat`** per revisar tots els enllaços del `REQ1.docx`
-> (necessita internet): marca en verd els que funcionen i en vermell els
-> caiguts, amb un resum al final. Per comprovar tots els catàlegs:
+> **`suport\ComprovarEnllacos.bat`** per revisar tots els enllaços del
+> `REQ1.docx` (necessita internet): marca en verd els que funcionen i en
+> vermell els caiguts, amb un resum al final. Per comprovar tots els catàlegs:
 > `ComprovarEnllacos.bat all`.
 
 ### Camps a omplir: `[CAMP: ...]` i `[OPCIO: ...]`
