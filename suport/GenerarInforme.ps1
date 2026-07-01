@@ -2728,23 +2728,19 @@ function Main {
     }
 
     # Pas 1: un sol menu (Select-Mode) que tria alhora el MODE i, per al cas
-    # "nou", el CATALEG (ja no hi ha un segon pas de tria). Segons la tria:
-    #   - 'seguiment' / 'actextr': fluxos autonoms.
-    #   - 'nou': el wizard Invoke-NouWizard (Pas 2..5). Si l'usuari prem Enrere
-    #     al Pas 2, el wizard torna 'menu' i es reensenya aquesta pantalla.
-    # Tancar la finestra (X) del menu avorta (exit 0 dins Select-Mode).
+    # "nou", el CATALEG (ja no hi ha un segon pas de tria). Cada flux SEMPRE
+    # torna a aquest menu quan acaba o quan es prem Enrere; aixi el programa
+    # ROMAN OBERT. L'UNICA manera de sortir del programa es tancar la finestra
+    # (X) d'aquest menu inicial (Select-Mode fa exit 0).
     while ($true) {
         $sel = Select-Mode
         switch ($sel.Action) {
-            'seguiment' { Invoke-SeguimentFlow; return }
-            'actextr'   { Invoke-ActExtrFlow;  return }
-            'nou' {
-                $res = Invoke-NouWizard -cataleg $sel.Cataleg
-                if ($res -ne 'menu') { return }   # 'done' -> acabat
-                # 'menu' -> el bucle torna a mostrar el Pas 1
-            }
-            default { return }
+            'seguiment' { Invoke-SeguimentFlow }
+            'actextr'   { Invoke-ActExtrFlow }
+            'nou'       { [void](Invoke-NouWizard -cataleg $sel.Cataleg) }
+            default     { return }
         }
+        # ...i es torna a mostrar el menu (Pas 1).
     }
 }
 

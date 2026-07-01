@@ -813,27 +813,30 @@ function Show-ActExtrList($registry) {
     }
     $form.Controls.Add($lv)
 
+    # Enrere (torna al menu inicial) SEMPRE a baix a l'esquerra.
+    $btnBack = New-Object System.Windows.Forms.Button
+    $btnBack.Text = 'Enrere'
+    $btnBack.Location = New-Object System.Drawing.Point(15, 455)
+    $btnBack.Size = New-Object System.Drawing.Size(90, 32)
+    $btnBack.Anchor = 'Bottom, Left'
+    $form.Controls.Add($btnBack)
+
     $btnNew = New-Object System.Windows.Forms.Button
     $btnNew.Text = 'Nova activitat'
-    $btnNew.Location = New-Object System.Drawing.Point(15, 455)
+    $btnNew.Location = New-Object System.Drawing.Point(115, 455)
     $btnNew.Size = New-Object System.Drawing.Size(150, 32)
     $btnNew.Anchor = 'Bottom, Left'
     $form.Controls.Add($btnNew)
 
     $btnOpen = New-Object System.Windows.Forms.Button
     $btnOpen.Text = 'Obrir / continuar'
-    $btnOpen.Location = New-Object System.Drawing.Point(175, 455)
+    $btnOpen.Location = New-Object System.Drawing.Point(275, 455)
     $btnOpen.Size = New-Object System.Drawing.Size(160, 32)
     $btnOpen.Anchor = 'Bottom, Left'
     $form.Controls.Add($btnOpen)
 
-    $btnExit = New-Object System.Windows.Forms.Button
-    $btnExit.Text = 'Sortir'
-    $btnExit.Location = New-Object System.Drawing.Point(705, 455)
-    $btnExit.Size = New-Object System.Drawing.Size(90, 32)
-    $btnExit.Anchor = 'Bottom, Right'
-    $form.Controls.Add($btnExit)
-
+    # 'exit' (Enrere o tancar la finestra) fa que Invoke-ActExtrFlow torni al
+    # menu inicial (el programa no es tanca; nomes es tanca des del Pas 1).
     $result = @{ Action = 'exit'; Id = $null }
     $btnNew.add_Click({ $result.Action = 'new'; $form.DialogResult = 'OK'; $form.Close() })
     $openAction = {
@@ -846,7 +849,7 @@ function Show-ActExtrList($registry) {
     }
     $btnOpen.add_Click($openAction)
     $lv.add_DoubleClick($openAction)
-    $btnExit.add_Click({ $result.Action = 'exit'; $form.DialogResult = 'Cancel'; $form.Close() })
+    $btnBack.add_Click({ $result.Action = 'exit'; $form.DialogResult = 'Cancel'; $form.Close() })
 
     [void]$form.ShowDialog()
     return $result

@@ -1087,6 +1087,15 @@ function Select-ConclusionCutManually {
     $list.SelectedIndex = $selPos
     $form.Controls.Add($list)
 
+    # Enrere (torna al menu inicial) SEMPRE a baix a l'esquerra.
+    $btnBack = New-Object System.Windows.Forms.Button
+    $btnBack.Text = 'Enrere'
+    $btnBack.Location = New-Object System.Drawing.Point(15, 405)
+    $btnBack.Size = New-Object System.Drawing.Size(90, 30)
+    $btnBack.Anchor = 'Bottom, Left'
+    $btnBack.DialogResult = 'Retry'
+    $form.Controls.Add($btnBack)
+
     $btnOk = New-Object System.Windows.Forms.Button
     $btnOk.Text = 'Continuar'
     $btnOk.Location = New-Object System.Drawing.Point(600, 405)
@@ -1097,6 +1106,7 @@ function Select-ConclusionCutManually {
     $form.Controls.Add($btnOk)
 
     $res = $form.ShowDialog()
+    # Enrere o tancar la finestra: no fem res (Invoke-SeguimentFlow torna al menu).
     if ($res -ne 'OK') { return $null }
     return [pscustomobject]@{ StartIndex = [int]$map[$list.SelectedIndex] }
 }
