@@ -20,7 +20,7 @@ informes-Cornella/
 │   ├── REQ1.docx                  ← catàleg de deficiències
 │   ├── TERMINI.docx               ← informe de cos fix (sense deficiències a triar)
 │   ├── ACT_EXTR_REQ.docx          ← plantilla del requeriment d'activitat extraordinària
-│   └── ACT_EXTR_FAVORABLE.docx    ← plantilla de l'informe favorable d'activitat extraordinària
+│   └── ACT_EXTR_FAV.docx          ← plantilla de l'informe favorable d'activitat extraordinària
 ├── BASE DE DADES ACTIVITATS/      ← (fallback local) copia local de l'Excel quan no hi ha xarxa
 ├── BASE DE DADES ACT_EXTR/        ← registre local d'activitats extraordinàries (mode ACT_EXTR)
 ├── Informes generats/             ← (local, gitignored) on cauen els .docx generats
@@ -101,11 +101,11 @@ manera automàtica.
 ## 3. Ús diari
 
 ### Generar un informe
-**Doble clic a `GenerarInforme.bat`**. Et guia per 5 passos:
+**Doble clic a `GenerarInforme.bat`**. Et guia pels passos:
 
 | Pas | Què fa |
 |-----|--------|
-| 1 | Triar catàleg (si n'hi ha més d'un a `ESTRUCTURALS/`) |
+| 1 | **Menú inicial**: tries alhora QUÈ vols fer i, si és un informe nou, el catàleg. Botons: **Requeriment - Nou (REQ1)**, **Requeriment - Seguiment**, **Ampliació termini (TERMINI)** i **Activitats extraordinàries (ACT_EXTR_REQ + ACT_EXTR_FAV)**. El nom del document d'`ESTRUCTURALS` surt en gris entre parèntesis. |
 | 2 | Dades de la capçalera (auto-fill per ID GIA des de l'Excel) |
 | 3 | Marcar les deficiències (TreeView amb filtre). **En marcar-ne una, el seu text surt al panell de la dreta i, si té opcions o camps lliures, els omples allà mateix.** |
 | 4 | Triar les conclusions: es mostra el **cos sencer** de cada una i, si té opcions/camps, els omples **dins del propi text**. |
@@ -115,13 +115,14 @@ manera automàtica.
 > apareixen al text (Pas 3 i Pas 4); ja no hi ha un pas separat de "camps".
 
 Els botons **Enrere** dels passos 2-4 permeten tornar enrere conservant les
-dades. Hi ha també un botó **Recuperar dades últim informe** al pas 2 per
-clonar l'informe anterior i tirar pas a pas.
+dades. **Enrere al Pas 2 torna al menú inicial** (Pas 1). Hi ha també un botó
+**Recuperar dades últim informe** al pas 2 per clonar l'informe anterior i
+tirar pas a pas.
 
-> En obrir `GenerarInforme.bat` surt primer una pantalla per triar entre
-> **Generar informe nou** (els passos d'aquí), **Fer seguiment d'un
-> informe existent** (vegeu a sota) i **Activitats extraordinàries
-> (ACT_EXTR)** (vegeu el capítol 14).
+> El **menú inicial (Pas 1)** és una sola pantalla que fusiona la tria de mode
+> i la de catàleg: **Requeriment - Seguiment** va al mode de seguiment (vegeu
+> a sota) i **Activitats extraordinàries** al mode ACT_EXTR (capítol 14); la
+> resta són informes nous del catàleg indicat.
 
 ### Fer el seguiment d'un informe
 
@@ -575,9 +576,9 @@ Posada en marxa pas a pas: **`suport/documentacio/DESPLEGAMENT-MOBIL.md`**.
 
 ## 14. Activitats extraordinàries (mode ACT_EXTR)
 
-En obrir `GenerarInforme.bat`, a la pantalla inicial («Què vols fer?») hi ha un
-tercer botó: **Activitats extraordinàries (ACT_EXTR)**. És el seguiment de les
-activitats extraordinàries de caràcter esporàdic del **Decret 112/2010**
+En obrir `GenerarInforme.bat`, al menú inicial («Què vols fer?») hi ha el botó
+**Activitats extraordinàries (ACT_EXTR_REQ + ACT_EXTR_FAV)**. És el seguiment de
+les activitats extraordinàries de caràcter esporàdic del **Decret 112/2010**
 (concerts, actes massius...). Substitueix l'Excel `DATA_Act_Extr_NOM`: la lògica
 del Decret viu ara al programa.
 
@@ -610,7 +611,7 @@ Surten de plantilles editables al Word, igual que `REQ1.docx`:
 
 - **`ESTRUCTURALS/ACT_EXTR_REQ.docx`** — el requeriment llista **només** els
   punts que **apliquen i NO estan lliurats**.
-- **`ESTRUCTURALS/ACT_EXTR_FAVORABLE.docx`** — l'informe favorable contempla
+- **`ESTRUCTURALS/ACT_EXTR_FAV.docx`** — l'informe favorable contempla
   **totes** les condicions que apliquen. Té **parts fixes** (el llistat de
   normativa i tot el bloc des de *«Es prohibeix l'emissió de qualsevol...»* fins
   al final) que surten sempre.

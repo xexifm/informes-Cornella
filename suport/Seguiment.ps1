@@ -911,12 +911,42 @@ function Apply-SeguimentXml {
 # CAPA WINFORMS - dialegs del flux de seguiment (nomes Windows)
 # ----------------------------------------------------------------------------
 
-# Pantalla inicial: tria entre generar un informe nou o fer un seguiment.
-# Retorna 'nou' | 'seguiment'. Tancar la finestra (X) avorta (exit 0).
+# Pantalla inicial (Pas 1): un sol menu que fusiona la tria de MODE i la de
+# CATALEG. Cada boto mostra un nom amic (negre) i, en GRIS, el nom del document
+# d'ESTRUCTURALS entre parentesis perque no destaqui tant.
+#
+# Retorna @{ Action='nou'|'seguiment'|'actextr'; Cataleg=<FileInfo|$null> }.
+# Per a 'nou', Cataleg es el .docx triat (ja no cal un segon pas de tria).
+# Tancar la finestra (X) avorta (exit 0).
 function Select-Mode {
+    # Catalegs disponibles a ESTRUCTURALS (REQ*.docx, TERMINI.docx...). Es
+    # descobreixen sols; els noms amics dels coneguts es defineixen mes avall.
+    $catalegs = @(Get-Catalegs)
+    $byName = @{}
+    foreach ($c in $catalegs) { $byName[$c.BaseName] = $c }
+
+    # Noms accentuats fets amb codepoint (Seguiment.ps1 no porta BOM: un literal
+    # accentuat es corromp segons l'encoding amb que PowerShell 5.1 llegeix el
+    # fitxer). U+00F3 = 'o' accent tancat; U+00E0 = 'a' accent obert.
+    $ampliacio      = 'Ampliaci' + [char]0x00F3 + ' termini'
+    $extraordinaria = 'Activitats extraordin' + [char]0x00E0 + 'ries'
+
+    # Menu ORDENAT. Cada entrada: Action, Label (nom amic), Detail (nom/os del
+    # document, en gris) i, per a 'nou', el Cataleg (FileInfo). Els 'nou' nomes
+    # es mostren si el .docx existeix a ESTRUCTURALS.
+    $menu = New-Object System.Collections.ArrayList
+    if ($byName.ContainsKey('REQ1'))    { [void]$menu.Add(@{ Action='nou'; Label='Requeriment - Nou';       Detail='REQ1';    Cataleg=$byName['REQ1'] }) }
+    [void]$menu.Add(@{ Action='seguiment'; Label='Requeriment - Seguiment'; Detail=''; Cataleg=$null })
+    if ($byName.ContainsKey('TERMINI')) { [void]$menu.Add(@{ Action='nou'; Label=$ampliacio;                Detail='TERMINI'; Cataleg=$byName['TERMINI'] }) }
+    [void]$menu.Add(@{ Action='actextr'; Label=$extraordinaria; Detail='ACT_EXTR_REQ + ACT_EXTR_FAV'; Cataleg=$null })
+    # Qualsevol altre cataleg no llistat (p.ex. un REQ2 nou) s'afegeix al final.
+    foreach ($c in $catalegs) {
+        if ($c.BaseName -in 'REQ1','TERMINI') { continue }
+        [void]$menu.Add(@{ Action='nou'; Label=$c.BaseName; Detail=$c.BaseName; Cataleg=$c })
+    }
+
     $form = New-Object System.Windows.Forms.Form
-    $form.Text = 'Informes Cornella'
-    $form.Size = New-Object System.Drawing.Size(440, 290)
+    $form.Text = 'Informes Cornella - Pas 1'
     $form.StartPosition = 'CenterScreen'
     $form.FormBorderStyle = 'FixedDialog'
     $form.MaximizeBox = $false
@@ -928,35 +958,64 @@ function Select-Mode {
     $lbl.AutoSize = $true
     $form.Controls.Add($lbl)
 
-    $btnNou = New-Object System.Windows.Forms.Button
-    $btnNou.Text = 'Generar informe nou'
-    $btnNou.Location = New-Object System.Drawing.Point(20, 50)
-    $btnNou.Size = New-Object System.Drawing.Size(390, 45)
-    $btnNou.DialogResult = 'Yes'
-    $form.Controls.Add($btnNou)
+    $fMain = New-Object System.Drawing.Font('Segoe UI', 11, [System.Drawing.FontStyle]::Regular)
+    $fDet  = New-Object System.Drawing.Font('Segoe UI', 9,  [System.Drawing.FontStyle]::Regular)
+    $flags = [System.Windows.Forms.TextFormatFlags]::NoPadding
 
-    $btnSeg = New-Object System.Windows.Forms.Button
-    $btnSeg.Text = "Fer seguiment d'un informe existent"
-    $btnSeg.Location = New-Object System.Drawing.Point(20, 105)
-    $btnSeg.Size = New-Object System.Drawing.Size(390, 45)
-    $btnSeg.DialogResult = 'No'
-    $form.Controls.Add($btnSeg)
+    # Dibuix propietari del boto: nom amic en negre + "(document)" en gris.
+    $paintHandler = {
+        param($sender, $e)
+        $entry = $sender.Tag
+        $g = $e.Graphics
+        $rect = $sender.ClientRectangle
+        $main = [string]$entry.Label
+        $det  = [string]$entry.Detail
+        $szMain = [System.Windows.Forms.TextRenderer]::MeasureText($g, $main, $fMain, [System.Drawing.Size]::Empty, $flags)
+        if (-not [string]::IsNullOrWhiteSpace($det)) {
+            $detTxt = "($det)"
+            $szDet = [System.Windows.Forms.TextRenderer]::MeasureText($g, $detTxt, $fDet, [System.Drawing.Size]::Empty, $flags)
+            $gap = 8
+            $total = $szMain.Width + $gap + $szDet.Width
+            $x = [int](($rect.Width - $total) / 2)
+            $yM = [int](($rect.Height - $szMain.Height) / 2)
+            $yD = [int](($rect.Height - $szDet.Height) / 2)
+            [System.Windows.Forms.TextRenderer]::DrawText($g, $main, $fMain, (New-Object System.Drawing.Point($x, $yM)), [System.Drawing.Color]::Black, $flags)
+            [System.Windows.Forms.TextRenderer]::DrawText($g, $detTxt, $fDet, (New-Object System.Drawing.Point(($x + $szMain.Width + $gap), $yD)), [System.Drawing.Color]::Gray, $flags)
+        } else {
+            $x = [int](($rect.Width - $szMain.Width) / 2)
+            $yM = [int](($rect.Height - $szMain.Height) / 2)
+            [System.Windows.Forms.TextRenderer]::DrawText($g, $main, $fMain, (New-Object System.Drawing.Point($x, $yM)), [System.Drawing.Color]::Black, $flags)
+        }
+    }
 
-    # Tercer mode: activitats extraordinaries (Decret 112/2010). Retorna
-    # DialogResult 'Retry' perque Main el dirigeixi a Invoke-ActExtrFlow.
-    $btnActExtr = New-Object System.Windows.Forms.Button
-    $btnActExtr.Text = "Activitats extraordinaries (ACT_EXTR)"
-    $btnActExtr.Location = New-Object System.Drawing.Point(20, 160)
-    $btnActExtr.Size = New-Object System.Drawing.Size(390, 45)
-    $btnActExtr.DialogResult = 'Retry'
-    $form.Controls.Add($btnActExtr)
+    $result = @{ Choice = $null }
+    $y = 45
+    foreach ($entry in $menu) {
+        $btn = New-Object System.Windows.Forms.Button
+        $btn.Text = ''
+        $btn.Tag = $entry
+        $btn.Location = New-Object System.Drawing.Point(20, $y)
+        $btn.Size = New-Object System.Drawing.Size(430, 46)
+        $btn.FlatStyle = 'Flat'
+        $btn.BackColor = [System.Drawing.Color]::White
+        $btn.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
+        $btn.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(219, 235, 255)
+        $btn.add_Paint($paintHandler)
+        $btn.add_Click({
+            $result.Choice = $entry
+            $form.DialogResult = 'OK'
+            $form.Close()
+        }.GetNewClosure())
+        [void]$form.Controls.Add($btn)
+        $y += 56
+    }
 
-    $form.AcceptButton = $btnNou
+    $form.ClientSize = New-Object System.Drawing.Size(470, ($y + 12))
+
     $res = $form.ShowDialog()
-    if ($res -eq 'Yes')   { return 'nou' }
-    if ($res -eq 'No')    { return 'seguiment' }
-    if ($res -eq 'Retry') { return 'actextr' }
-    exit 0
+    if ($res -ne 'OK' -or $null -eq $result.Choice) { exit 0 }
+    $ch = $result.Choice
+    return @{ Action = $ch.Action; Cataleg = $ch.Cataleg }
 }
 
 # Tria de l'informe anterior (.docx). Retorna la ruta o $null si es cancel·la.

@@ -648,77 +648,22 @@ function Export-ActivitatsToDrive($cache, $latest) {
 # Step 1 - Cataleg picker
 # ----------------------------------------------------------------------------
 function Get-Catalegs {
-    # Tots els .docx d'ESTRUCTURALS\ que NO comencin amb "0 " son catalegs.
+    # Catalegs = .docx d'ESTRUCTURALS que NO comencin amb "0 " (plantilles fixes:
+    # capcalera, conclusions) i que NO siguin plantilles del mode ACT_EXTR
+    # (ACT_EXTR_REQ / ACT_EXTR_FAV), que no son catalegs del wizard normal sino
+    # que les gestiona el mode "Activitats extraordinaries".
     Get-ChildItem -LiteralPath $EstructuralsDir -Filter '*.docx' |
-        Where-Object { $_.Name -notlike '0 *' -and $_.Name -notlike '0_*' -and -not $_.Name.StartsWith('~$') } |
+        Where-Object {
+            $_.Name -notlike '0 *' -and $_.Name -notlike '0_*' -and
+            $_.Name -notlike 'ACT_EXTR*' -and -not $_.Name.StartsWith('~$')
+        } |
         Sort-Object Name
 }
 
-function Select-Cataleg {
-    param($preloadBaseName = $null)
-    $catalegs = @(Get-Catalegs)
-    if ($catalegs.Count -eq 0) {
-        [System.Windows.Forms.MessageBox]::Show(
-            "No s'ha trobat cap cataleg (REQ*.docx) a $EstructuralsDir.",
-            'Error', 'OK', 'Error') | Out-Null
-        exit 1
-    }
-    if ($catalegs.Count -eq 1) { return [pscustomobject]@{ Nav='next'; Data=$catalegs[0] } }
-
-    # Un boto gran per cada tipus d'informe (com la pantalla "Que vols fer?").
-    $form = New-Object System.Windows.Forms.Form
-    $form.Text = 'Pas 1 - Tipus d''informe'
-    $form.StartPosition = 'CenterScreen'
-    $form.FormBorderStyle = 'FixedDialog'
-    $form.MaximizeBox = $false
-    $form.MinimizeBox = $false
-
-    $lbl = New-Object System.Windows.Forms.Label
-    $lbl.Text = 'Quin tipus d''informe vols generar?'
-    $lbl.Location = New-Object System.Drawing.Point(20, 15)
-    $lbl.AutoSize = $true
-    $form.Controls.Add($lbl)
-
-    # Si hi ha molts catalegs, el panell amb AutoScroll evita una finestra
-    # desmesurada (els botons es poden recorrer amb la barra).
-    $panel = New-Object System.Windows.Forms.Panel
-    $panel.Location = New-Object System.Drawing.Point(20, 50)
-    $panel.Size = New-Object System.Drawing.Size(410, [Math]::Min(420, ($catalegs.Count * 55) + 5))
-    $panel.AutoScroll = $true
-    $form.Controls.Add($panel)
-
-    # Objecte de referencia (hashtable) per rebre la tria des del handler. NO es
-    # pot fer servir $script: aqui: amb .GetNewClosure() el handler te el seu
-    # propi ambit de modul i $script: NO escriuria a l'ambit d'aquesta funcio.
-    # Mutar una propietat d'un hashtable capturat SI es visible aqui (referencia).
-    $result = @{ Cataleg = $null }
-    $y = 5
-    for ($i = 0; $i -lt $catalegs.Count; $i++) {
-        $c = $catalegs[$i]
-        $btn = New-Object System.Windows.Forms.Button
-        $btn.Text = $c.BaseName
-        $btn.Location = New-Object System.Drawing.Point(5, $y)
-        $btn.Size = New-Object System.Drawing.Size(380, 45)
-        $btn.Font = New-Object System.Drawing.Font('Segoe UI', 11, [System.Drawing.FontStyle]::Regular)
-        $btn.Tag = $c
-        $btn.add_Click({
-            $result.Cataleg = $c
-            $form.DialogResult = 'OK'
-            $form.Close()
-        }.GetNewClosure())
-        [void]$panel.Controls.Add($btn)
-        # El boto del cataleg preseleccionat (sessio anterior) agafa el focus.
-        if ($preloadBaseName -and $c.BaseName -eq $preloadBaseName) { $form.ActiveControl = $btn }
-        $y += 55
-    }
-
-    $form.ClientSize = New-Object System.Drawing.Size(450, ($panel.Top + $panel.Height + 15))
-
-    # No hi ha boto Cancel ni Enrere: el Pas 1 es el primer. Tancar la
-    # finestra (X) avorta el programa.
-    if ($form.ShowDialog() -ne 'OK' -or $null -eq $result.Cataleg) { exit 0 }
-    return [pscustomobject]@{ Nav='next'; Data=$result.Cataleg }
-}
+# NOTA: la tria de cataleg ja no es un pas a part. Ara la pantalla inicial
+# (Select-Mode, a Seguiment.ps1) fusiona la tria de MODE i la de CATALEG en un
+# sol menu (Pas 1), i passa el cataleg triat directament al wizard
+# (Invoke-NouWizard). Get-Catalegs (a dalt) segueix sent la font de catalegs.
 
 # ----------------------------------------------------------------------------
 # Step 2 - Header data (formulari + precarrega Excel)
@@ -2782,57 +2727,58 @@ function Main {
         exit 1
     }
 
-    # Pas 0: tria de mode. "seguiment" es un flux autonom (Seguiment.ps1) que
-    # edita el .docx directament (XML, sense Word); el wizard de passos de
-    # sota queda intacte per al mode "nou".
-    $mode = Select-Mode
-    if ($mode -eq 'seguiment') {
-        Invoke-SeguimentFlow
-        return
+    # Pas 1: un sol menu (Select-Mode) que tria alhora el MODE i, per al cas
+    # "nou", el CATALEG (ja no hi ha un segon pas de tria). Segons la tria:
+    #   - 'seguiment' / 'actextr': fluxos autonoms.
+    #   - 'nou': el wizard Invoke-NouWizard (Pas 2..5). Si l'usuari prem Enrere
+    #     al Pas 2, el wizard torna 'menu' i es reensenya aquesta pantalla.
+    # Tancar la finestra (X) del menu avorta (exit 0 dins Select-Mode).
+    while ($true) {
+        $sel = Select-Mode
+        switch ($sel.Action) {
+            'seguiment' { Invoke-SeguimentFlow; return }
+            'actextr'   { Invoke-ActExtrFlow;  return }
+            'nou' {
+                $res = Invoke-NouWizard -cataleg $sel.Cataleg
+                if ($res -ne 'menu') { return }   # 'done' -> acabat
+                # 'menu' -> el bucle torna a mostrar el Pas 1
+            }
+            default { return }
+        }
     }
-    if ($mode -eq 'actextr') {
-        # Mode "Activitats extraordinaries" (Decret 112/2010): llistat,
-        # comprovacio de documentacio i generacio de requeriment / favorable.
-        Invoke-ActExtrFlow
-        return
-    }
+}
 
-    # Assistent navegable. Cada pas (dialeg) retorna un objecte amb:
-    #   Nav  = 'next' | 'back' | 'stay'
-    #   Data = el resultat del pas (si 'next')
-    # Tancar la finestra (X) avorta el programa (exit 0). El boto "Enrere"
-    # retorna 'back' i Main torna al pas anterior conservant les dades ja
-    # introduides (es passen com a precarrega).
-    #
-    # $st  : dades confirmades de cada pas (es mantenen en memoria al navegar).
-    # $pre : precarregues per a cada pas (de l'estat o de "Recuperar ultim").
-    #
-    # $st.Fields es un diccionari de camps COMPARTIT: els [OPCIO:]/[CAMP:]
-    # s'omplen inline alla on apareixen (Pas 3 deficiencies i Pas 4 conclusions),
-    # aixi que ja no hi ha un pas separat de "camps". El diccionari es persistent
-    # entre passos perque els valors no es perdin en navegar amunt i avall.
-    $st  = @{ Cataleg=$null; Parsed=$null; Header=$null; Selected=$null; Fields=[ordered]@{}; ConclAll=$null; Conclusions=$null }
-    $pre = @{ Cat=$null; Header=$null; Keys=$null; Fields=$null; Concl=$null }
+# Wizard de "generar informe nou" (Pas 2..5). El cataleg ja ve triat del Pas 1.
+#
+# Assistent navegable. Cada pas (dialeg) retorna un objecte amb:
+#   Nav  = 'next' | 'back' | 'stay'   ·   Data = el resultat del pas (si 'next')
+# El boto "Enrere" retorna 'back' i el wizard torna al pas anterior conservant
+# les dades (precarrega). Enrere al Pas 2 => torna al menu inicial (retorna
+# 'menu'). Tancar una finestra (X) avorta tot el programa (exit 0).
+#
+# $st  : dades confirmades de cada pas (es mantenen en memoria al navegar).
+# $pre : precarregues per a cada pas (de l'estat o de "Recuperar ultim").
+# $st.Fields es un diccionari de camps COMPARTIT: els [OPCIO:]/[CAMP:] s'omplen
+# inline alla on apareixen (Pas 3 i Pas 4).
+#
+# Retorna 'menu' (Enrere al Pas 2) o 'done' (informe generat).
+function Invoke-NouWizard {
+    param($cataleg)
+
+    $st  = @{ Cataleg=$cataleg; Parsed=$null; Header=$null; Selected=$null; Fields=[ordered]@{}; ConclAll=$null; Conclusions=$null }
+    $pre = @{ Header=$null; Keys=$null; Fields=$null; Concl=$null }
 
     $word = New-WordApp
     try {
-        $step = 1
+        $st.Parsed = Get-ParsedCataleg -word $word -path $st.Cataleg.FullName
+        $step = 2
         $dir  = 'fwd'
-        while ($step -ge 1 -and $step -le 5) {
+        while ($step -ge 2 -and $step -le 5) {
             switch ($step) {
-
-                1 {
-                    $r = Select-Cataleg -preloadBaseName $pre.Cat
-                    # El Pas 1 no te 'back'; nomes 'next' o tancar (exit dins la funcio).
-                    $st.Cataleg = $r.Data
-                    $st.Parsed  = Get-ParsedCataleg -word $word -path $st.Cataleg.FullName
-                    $pre.Cat    = $st.Cataleg.BaseName
-                    $step = 2; $dir = 'fwd'
-                }
 
                 2 {
                     $r = Get-HeaderData -preload $pre.Header
-                    if ($r.Nav -eq 'back') { exit 0 }   # enrere des del Pas 2 = sortir
+                    if ($r.Nav -eq 'back') { return 'menu' }   # enrere Pas 2 = tornar al menu
                     else {
                         $st.Header  = $r.Data
                         $pre.Header = $r.Data
@@ -2932,6 +2878,7 @@ function Main {
                 }
             }
         }
+        return 'done'
     }
     catch {
         [System.Windows.Forms.MessageBox]::Show("Error: $($_.Exception.Message)",'Error','OK','Error') | Out-Null
