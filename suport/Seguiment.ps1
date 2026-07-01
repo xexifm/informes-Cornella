@@ -789,11 +789,12 @@ function Read-ConclusionsXml($path, $reportType = $null) {
         $isH1 = Test-StyleMatch $styleVal 1
         $isH2 = Test-StyleMatch $styleVal 2
 
+        # Titol del bloc (p.ex. "CONCLUSIONS"): el PRIMER paragraf no buit que no
+        # sigui Titol 1/2 es SEMPRE el titol, estigui centrat o no (aixi el titol
+        # surt tambe als informes de seguiment). S'emet centrat i en negreta.
         if ($isFirst -and -not $isH1 -and -not $isH2) {
             $isFirst = $false
-            $jc = $p.SelectSingleNode('w:pPr/w:jc', $ns)
-            $centered = ($null -ne $jc -and $jc.GetAttribute('val', $Script:WNS) -eq 'center')
-            if ($centered) { $headerText = $text; continue }
+            $headerText = $text; continue
         }
         $isFirst = $false
 

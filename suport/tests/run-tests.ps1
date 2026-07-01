@@ -753,6 +753,9 @@ if (Test-Path $conc) {
     $cx = Read-ConclusionsXml $conc
     Assert ($cx.Selectable.Count -ge 1)   'Read-ConclusionsXml: hi ha conclusions triables'
     Assert ($cx.Always.Count -ge 1)       'Read-ConclusionsXml: hi ha frases ::SEMPRE::'
+    # El titol del bloc s'ha de detectar SEMPRE (surt a tots els informes amb
+    # conclusions, incloent els de seguiment), estigui centrat o no.
+    Assert (-not [string]::IsNullOrWhiteSpace($cx.HeaderText)) 'Read-ConclusionsXml: detecta el titol del bloc (HeaderText)'
 
     # Conclusions per TIPUS D'INFORME (grups Ttulo1: REQ1 / TERMINI).
     $titlesOf = { param($r) @($r.Selectable | ForEach-Object { $_.Title }) }
