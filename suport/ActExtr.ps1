@@ -17,7 +17,7 @@
   la logica d'aplicabilitat i el calcul dels valors (vigilants, controladors,
   lavabos/cabines, p0lissa RC, organ del Pla d'Autoproteccio...) viuen aqui;
   els TEXTOS (requeriment i informe favorable) viuen a plantilles editables
-  ESTRUCTURALS\ACT_EXTR_REQ.docx i ACT_EXTR_FAVORABLE.docx.
+  ESTRUCTURALS\ACT_EXTR_REQ.docx i ACT_EXTR_FAV.docx.
 
   Flux (Invoke-ActExtrFlow):
     1. Llistat local d'activitats extraordinaries amb el seu estat (pendent /
@@ -64,7 +64,7 @@ $script:ActExtrRegistryFile = 'activitats-extraordinaries.json'
 # defineix GenerarInforme.ps1.
 if ($EstructuralsDir) {
     $script:ActExtrReqTemplate = Join-Path $EstructuralsDir 'ACT_EXTR_REQ.docx'
-    $script:ActExtrFavTemplate = Join-Path $EstructuralsDir 'ACT_EXTR_FAVORABLE.docx'
+    $script:ActExtrFavTemplate = Join-Path $EstructuralsDir 'ACT_EXTR_FAV.docx'
 }
 
 # ----------------------------------------------------------------------------
