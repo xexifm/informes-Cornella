@@ -1961,18 +1961,16 @@ function Read-Conclusions($word, $path, $reportType = $null) {
             $isH1 = Test-StyleMatch $styleName 1
             $isH2 = Test-StyleMatch $styleName 2
 
-            # Titol del bloc: primer paragraf no buit, centrat (-jc center)
-            # i amb estil Normal. Es queda nomes per ser emes per
-            # _WriteConclusionsBlock.
+            # Titol del bloc (p.ex. "CONCLUSIONS"): el PRIMER paragraf no buit
+            # que no sigui Titol 1/2. Es tracta SEMPRE com a titol, estigui o no
+            # centrat a la plantilla, perque el titol surti a TOTS els informes
+            # que facin servir conclusions. A la sortida s'emet centrat i en
+            # negreta (Format-ConclusionHeader), aixi que l'aspecte es correcte
+            # encara que la plantilla perdi el centrat.
             if ($isFirstPara -and -not $isH1 -and -not $isH2) {
                 $isFirstPara = $false
-                $jc = ''
-                try { $jc = [string]$p.Format.Alignment } catch { }
-                # wdAlignParagraphCenter = 1
-                if ($jc -eq '1' -or $jc -eq 'wdAlignParagraphCenter') {
-                    $headerText = $text
-                    continue
-                }
+                $headerText = $text
+                continue
             }
             $isFirstPara = $false
 
