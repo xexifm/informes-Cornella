@@ -116,6 +116,9 @@ AssertEq $mk0.Key 'INCENDIS' 'marcador: clau extreta'
 AssertEq $mk0.Kind 'item' 'marcador sense :: -> item'
 AssertEq (_ParseActExtrMarker '[[REQ_INTRO]] ::TEXT:: Introduccio').Kind 'text' '::TEXT:: -> text'
 AssertEq (_ParseActExtrMarker '[[MEMORIA_A]] ::CHILD:: a) ...').Kind 'child' '::CHILD:: -> child'
+AssertEq (_ParseActExtrMarker '[[N]] ::NOTE:: nota').Kind 'note' '::NOTE:: -> note'
+AssertEq (_ParseActExtrMarker '[[H]] ::HEADER:: cap').Kind 'header' '::HEADER:: -> header'
+AssertEq (_ParseActExtrMarker '[[C]] ::CONC:: conc').Kind 'conc' '::CONC:: -> conc'
 Assert ($null -eq (_ParseActExtrMarker 'Titol visual sense clau')) 'titol sense [[KEY]] -> $null'
 
 Write-Host "`n--- Build-ActExtrBlocks (mateix format que REQ1) ---"
@@ -139,6 +142,21 @@ AssertEq $blocks[1].Kind 'item' 'INCENDIS es item'
 AssertEq $blocks[1].Contents.Count 2 'INCENDIS te text + url'
 Assert ($blocks[1].Contents[1].IsUrl) 'segona linia es url'
 AssertEq $blocks[2].Kind 'child' 'MEMORIA_A es sub-apartat (child)'
+# Seccions: tots aquests blocs son sota la mateixa H1 -> mateixa Section.
+AssertEq $blocks[0].Section 1 'primer bloc a la seccio 1 (primera H1)'
+AssertEq $blocks[1].Section 1 'INCENDIS a la mateixa seccio'
+# Nova H1 -> nova seccio.
+$recs2 = @(
+    @{ Text='SEC A'; Style='h1' }
+    @{ Text='[[A]] item'; Style='h2' }
+    @{ Text='text a'; Style='normal' }
+    @{ Text='SEC B'; Style='h1' }
+    @{ Text='[[B]] item'; Style='h2' }
+    @{ Text='text b'; Style='normal' }
+)
+$blk2 = Build-ActExtrBlocks $recs2
+AssertEq $blk2[0].Section 1 'bloc A a seccio 1'
+AssertEq $blk2[1].Section 2 'bloc B a seccio 2 (nova H1)'
 
 Write-Host "`n--- Test-ActExtrIncludeBlock (requeriment) ---"
 $statusByKey = @{}; foreach ($s in $status) { $statusByKey[$s.Key] = $s }
@@ -162,16 +180,45 @@ Assert (Test-ActExtrIncludeBlock 'FAV_CLOSING' 'fav' $ctxFav) 'fav: bloc final f
 Assert (Test-ActExtrIncludeBlock 'MOBILITAT' 'fav' $ctxFav) 'fav: MOBILITAT inclosa (Mobilitat=Si)'
 Assert (Test-ActExtrIncludeBlock 'PAU_LOCAL' 'fav' $ctxFav) 'fav: PAU_LOCAL inclos'
 Assert (-not (Test-ActExtrIncludeBlock 'PAU_CAT' 'fav' $ctxFav)) 'fav: PAU_CAT NO inclos (organ local)'
-# Assistencia: aforament 34719 >= 1000 -> infermeria, no farmaciola.
-Assert (Test-ActExtrIncludeBlock 'ASSIST_INFERMERIA' 'fav' $ctxFav) 'fav: assistencia infermeria (>=1000)'
-Assert (-not (Test-ActExtrIncludeBlock 'ASSIST_FARMACIOLA' 'fav' $ctxFav)) 'fav: NO farmaciola (>=1000)'
+# Assistencia sanitaria: bloc unic ASSIST (el text el resol {{ASSISTENCIA}}).
+Assert (Test-ActExtrIncludeBlock 'ASSIST' 'fav' $ctxFav) 'fav: bloc ASSIST inclos (sempre)'
+Assert (-not (Test-ActExtrIncludeBlock 'ASSIST' 'req' $ctxFav)) 'fav: ASSIST nomes al favorable'
 Assert (-not (Test-ActExtrIncludeBlock 'MEMORIA_A' 'fav' $ctxFav)) 'fav: memoria no apareix al favorable'
 Assert (-not (Test-ActExtrIncludeBlock 'REQ_CLOSING' 'fav' $ctxFav)) 'fav: REQ_CLOSING nomes al requeriment'
-# Aforament petit -> farmaciola.
-$decPetit = Build-ActExtrDecret @{ Aforament='300' }
-$compPetit = Get-ActExtrComputed $decPetit
-$ctxFavP = @{ Decret=$decPetit; Computed=$compPetit; Delivered=@{}; StatusByKey=@{}; DefKeys=@() }
-Assert (Test-ActExtrIncludeBlock 'ASSIST_FARMACIOLA' 'fav' $ctxFavP) 'fav: assistencia farmaciola (<1000)'
+
+Write-Host "`n--- Lasers (marcatge + variants req/fav) ---"
+# Sense lasers ($ans no te HiHaLasers -> 'No'): al requeriment el punt LASERS
+# no aplica; al favorable surt la PROHIBICIO (NO_LASERS), no l'autoritzacio.
+Assert (-not (Get-ActExtrPointApplicability 'LASERS' $decret $comp).Applies) 'LASERS no aplica sense lasers'
+Assert (-not (Test-ActExtrIncludeBlock 'LASERS' 'req' $ctxReq)) 'req: LASERS no inclos (sense lasers)'
+Assert (-not (Test-ActExtrIncludeBlock 'FAV_LASERS' 'fav' $ctxFav)) 'fav: FAV_LASERS no inclos (sense lasers)'
+Assert (Test-ActExtrIncludeBlock 'NO_LASERS' 'fav' $ctxFav) 'fav: NO_LASERS inclos (prohibicio)'
+# Amb lasers: aplica al requeriment (pendent) i surt l'AUTORITZACIO al favorable.
+$ansL = @{ Aforament='34719'; PauLocal='Si'; HiHaLasers='Si' }
+$decL = Build-ActExtrDecret $ansL
+$compL = Get-ActExtrComputed $decL
+Assert ($compL.HAS_LASERS) 'computed HAS_LASERS quan HiHaLasers=Si'
+Assert (Get-ActExtrPointApplicability 'LASERS' $decL $compL).Applies 'LASERS aplica amb lasers'
+$stL = Get-ActExtrStatus $decL $compL @{}
+$sbkL = @{}; foreach ($s in $stL) { $sbkL[$s.Key] = $s }
+$ctxL = @{ Decret=$decL; Computed=$compL; Delivered=@{}; StatusByKey=$sbkL; DefKeys=(Get-ActExtrDeficiencies $decL $compL @{}) }
+Assert (Test-ActExtrIncludeBlock 'LASERS' 'req' $ctxL) 'req: LASERS inclos (amb lasers, pendent)'
+Assert (Test-ActExtrIncludeBlock 'FAV_LASERS' 'fav' $ctxL) 'fav: FAV_LASERS inclos (autoritzacio)'
+Assert (-not (Test-ActExtrIncludeBlock 'NO_LASERS' 'fav' $ctxL)) 'fav: NO_LASERS no inclos (amb lasers)'
+
+Write-Host "`n--- Assistencia sanitaria ({{ASSISTENCIA}}) ---"
+# Amb PAU obligat (PauLocal=Si) -> Annex III del Decret 30/2015.
+Assert ($comp.PAU_OBLIGAT) 'PAU obligat (context assistencia)'
+Assert ($comp.ASSISTENCIA -match 'Annex III') 'assistencia amb PAU -> Annex III Decret 30/2015'
+# Sense PAU i aforament < 1000 -> farmaciola (Art. 48).
+$decFarm = Build-ActExtrDecret @{ Aforament='300' }
+$compFarm = Get-ActExtrComputed $decFarm
+Assert (-not $compFarm.PAU_OBLIGAT) 'sense PAU (aforament 300)'
+Assert ($compFarm.ASSISTENCIA -match 'farmaciola') 'assistencia sense PAU <1000 -> farmaciola'
+# Sense PAU i aforament >= 1000 -> infermeria (Art. 48).
+$decInf = Build-ActExtrDecret @{ Aforament='1500' }
+Assert ((Get-ActExtrComputed $decInf).ASSISTENCIA -match 'infermeria') 'assistencia sense PAU >=1000 -> infermeria'
+AssertEq (Resolve-ActExtrTokens 'En aquest cas {{ASSISTENCIA}}.' $compFarm) ('En aquest cas ' + $compFarm.ASSISTENCIA + '.') 'token {{ASSISTENCIA}} substituit'
 
 Write-Host "`n--- Registre local (round-trip) ---"
 $reg = Load-ActExtrRegistry

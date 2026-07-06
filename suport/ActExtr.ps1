@@ -188,6 +188,7 @@ function Build-ActExtrDecret($answers) {
         EstablimentDotat  = _ActExtrYesNo (& $get 'EstablimentDotat')
         ParcialSotaRasant = _ActExtrYesNo (& $get 'ParcialSotaRasant')
         TotalSotaRasant   = _ActExtrYesNo (& $get 'TotalSotaRasant')
+        HiHaLasers        = _ActExtrYesNo (& $get 'HiHaLasers')
     }
 }
 
@@ -202,6 +203,23 @@ function Get-ActExtrComputed($decret) {
     $organKey = if ($decret.PauCatalunya -eq 'Si') { 'CAT' }
                 elseif ($decret.PauLocal -eq 'Si')  { 'LOCAL' }
                 else { '' }
+    $pauObligat = ($organKey -ne '')
+
+    # Assistencia sanitaria ({{ASSISTENCIA}}): text que completa la frase
+    # "...En aquest cas {{ASSISTENCIA}}." de la plantilla.
+    #  - Si cal Pla d'Autoproteccio  -> els dispositius els determina el PAU
+    #    homologat, d'acord amb l'Annex III del Decret 30/2015.
+    #  - Si NO cal PAU               -> Article 48 del Decret 112/2010:
+    #      aforament < 1000 -> farmaciola; aforament >= 1000 -> infermeria.
+    $assistencia =
+        if ($pauObligat) {
+            "els dispositius d'assist" + [char]0x00E8 + "ncia sanit" + [char]0x00E0 + "ria seran els que estableixi el Pla d'Autoprotecci" + [char]0x00F3 + " homologat, d'acord amb l'Annex III del Decret 30/2015, de 3 de mar" + [char]0x00E7 + ", pel qual s'aprova el cat" + [char]0x00E0 + "leg d'activitats i centres obligats a adoptar mesures d'autoprotecci" + [char]0x00F3
+        } elseif ($af -lt 1000) {
+            "s'ha de disposar d'una farmaciola amb els materials i els equips adequats per facilitar primeres cures en cas d'accident, malaltia o crisi sobtada"
+        } else {
+            "s'ha de disposar d'una infermeria amb instal" + [char]0x00B7 + "lacions, materials i equips adequats per prestar els primers auxilis en cas d'accident, malaltia o crisi sobtada. La infermeria pot ser substitu" + [char]0x00EF + "da per una farmaciola i la pres" + [char]0x00E8 + "ncia de vehicles medicalitzats mentre l'establiment estigui obert al p" + [char]0x00FA + "blic o l'activitat recreativa s'estigui duent a terme"
+        }
+
     return @{
         VIGILANTS    = (Get-ActExtrVigilants $af)
         CONTROLADORS = (Get-ActExtrControladors $af)
@@ -210,7 +228,9 @@ function Get-ActExtrComputed($decret) {
         RC_IMPORT    = (_ActExtrThousands $rc)
         RC_RAW       = $rc
         PAU_ORGAN_KEY= $organKey
-        PAU_OBLIGAT  = ($organKey -ne '')
+        PAU_OBLIGAT  = $pauObligat
+        HAS_LASERS   = ($decret.HiHaLasers -eq 'Si')
+        ASSISTENCIA  = $assistencia
     }
 }
 
@@ -219,7 +239,7 @@ function Get-ActExtrComputed($decret) {
 function Resolve-ActExtrTokens([string]$text, $computed) {
     if ([string]::IsNullOrEmpty($text)) { return '' }
     $out = $text
-    foreach ($k in @('VIGILANTS','CONTROLADORS','LAVABOS','CABINES','RC_IMPORT')) {
+    foreach ($k in @('VIGILANTS','CONTROLADORS','LAVABOS','CABINES','RC_IMPORT','ASSISTENCIA')) {
         $out = $out.Replace('{{' + $k + '}}', [string]$computed[$k])
     }
     return $out
@@ -243,6 +263,7 @@ $script:ActExtrPoints = @(
     @{ Key='SERVEIS_HIGIENE';      Title="Serveis d'higiene";                      NeedsDelivery=$true }
     @{ Key='IMPACTE_ACUSTIC';      Title='Impacte acustic';                        NeedsDelivery=$true }
     @{ Key='DISPONIBILITAT_ESPAI'; Title="Disponibilitat de l'espai";              NeedsDelivery=$true }
+    @{ Key='LASERS';               Title='Lasers (autoritzacio)';                  NeedsDelivery=$true }
     @{ Key='MEMORIA_A';            Title='Memoria a) Identificacio';               NeedsDelivery=$true }
     @{ Key='MEMORIA_B';            Title='Memoria b) Data i horari';               NeedsDelivery=$true }
     @{ Key='MEMORIA_C';            Title='Memoria c) Responsables';                NeedsDelivery=$true }
@@ -282,8 +303,17 @@ function Get-ActExtrPointApplicability([string]$key, $decret, $computed) {
             return @{ Applies=$true; Reason=("Art. 80 Decret 112/2010: tota activitat extraordinaria ha de disposar de polissa de RC. Quantia minima segons aforament ({0}): {1} EUR." -f $af, $computed.RC_IMPORT) }
         }
         'ASSIST_SANITARIA' {
+            if ($computed.PAU_OBLIGAT) {
+                return @{ Applies=$true; Reason="Annex III Decret 30/2015: en disposar de Pla d'Autoproteccio, els dispositius d'assistencia sanitaria son els que hi constin (segons l'Annex III del Decret 30/2015)." }
+            }
             $tipus = if ($af -lt 1000) { 'farmaciola' } else { 'infermeria' }
-            return @{ Applies=$true; Reason=("Art. 48 Decret 112/2010: dispositius d'assistencia sanitaria (aforament {0} -> {1})." -f $af, $tipus) }
+            return @{ Applies=$true; Reason=("Art. 48 Decret 112/2010 (sense Pla d'Autoproteccio): dispositius d'assistencia sanitaria (aforament {0} -> {1})." -f $af, $tipus) }
+        }
+        'LASERS' {
+            if ($decret.HiHaLasers -eq 'Si') {
+                return @{ Applies=$true; Reason="L'activitat preveu l'us de lasers: cal acreditar l'autoritzacio del Departamento de Coordinacion Operativa del Espacio Aereo (proteccio de la navegacio aeria)." }
+            }
+            return @{ Applies=$false; Reason="L'activitat NO preveu l'us de lasers: es prohibeix l'emissio de qualsevol senyal luminica que pugui destorbar la navegacio aeria (no cal documentacio)." }
         }
         'CONTROLADORS' {
             if ($decret.ControlAccessos -eq 'Si') {
@@ -379,6 +409,9 @@ function Get-ActExtrDeficiencies($decret, $computed, $delivered) {
 #       ::TEXT::   -> el bloc es un paragraf de cos (intro, encapcalaments,
 #                     tancament): surt SENSE pic ni numero.
 #       ::CHILD::  -> el bloc es un sub-apartat: surt amb pic i sagnat.
+#       ::NOTE::   -> sub-paragraf sagnat SENSE pic (nota).
+#       ::HEADER:: -> capcalera de conclusions (centrada i en negreta).
+#       ::CONC::   -> paragraf de conclusio (justificat).
 #       (cap)      -> el bloc es un item: numerat al requeriment, amb pic al
 #                     favorable.
 #     El <titol> es nomes una etiqueta per editar; NO surt a l'informe.
@@ -395,8 +428,11 @@ function _ParseActExtrMarker([string]$text) {
     $key  = $m.Groups[1].Value
     $rest = $m.Groups[2].Value
     $kind = 'item'
-    if     ($rest -match '::TEXT::')  { $kind = 'text' }
-    elseif ($rest -match '::CHILD::') { $kind = 'child' }
+    if     ($rest -match '::TEXT::')   { $kind = 'text' }
+    elseif ($rest -match '::CHILD::')  { $kind = 'child' }
+    elseif ($rest -match '::NOTE::')   { $kind = 'note' }
+    elseif ($rest -match '::HEADER::') { $kind = 'header' }
+    elseif ($rest -match '::CONC::')   { $kind = 'conc' }
     return @{ Key = $key; Kind = $kind }
 }
 
@@ -406,9 +442,15 @@ function _ParseActExtrMarker([string]$text) {
 function Build-ActExtrBlocks($paraRecords) {
     $blocks = New-Object System.Collections.ArrayList
     $current = $null
+    # Index de seccio: s'incrementa a cada Titol 1. Serveix per saber, a
+    # l'emissio de l'informe favorable, quan cal una linia en blanc (nomes al
+    # canvi de seccio; dins d'una seccio els punts se separen amb SpaceBefore).
+    $section = 0
     foreach ($r in $paraRecords) {
         $text  = [string]$r.Text
         $style = if ($r.Style) { [string]$r.Style } else { 'normal' }
+
+        if ($style -eq 'h1') { $section++ }
 
         if ($style -eq 'h1' -or $style -eq 'h2') {
             $marker = _ParseActExtrMarker $text
@@ -416,6 +458,7 @@ function Build-ActExtrBlocks($paraRecords) {
             $current = [pscustomobject]@{
                 Key      = $marker.Key
                 Kind     = $marker.Kind
+                Section  = $section
                 Contents = (New-Object System.Collections.ArrayList)
             }
             [void]$blocks.Add($current)
@@ -435,9 +478,8 @@ function _ActExtrBlockPoint([string]$blockKey) {
     switch ($blockKey) {
         'PAU_CAT'            { return 'PAU' }
         'PAU_LOCAL'          { return 'PAU' }
+        'ASSIST'             { return 'ASSIST_SANITARIA' }
         'ASSIST_SANITARIA'   { return 'ASSIST_SANITARIA' }
-        'ASSIST_FARMACIOLA'  { return 'ASSIST_SANITARIA' }
-        'ASSIST_INFERMERIA'  { return 'ASSIST_SANITARIA' }
         default              { return $blockKey }
     }
 }
@@ -457,8 +499,15 @@ function Test-ActExtrIncludeBlock([string]$blockKey, [string]$mode, $ctx) {
     }
     $defKeys = @($ctx.DefKeys)
 
-    # Blocs estructurals/fixos del favorable (normativa, encapcalaments, bloc
-    # final...): hi son sempre que es generi l'informe favorable.
+    # Lasers a l'informe favorable: dues variants segons si l'activitat en
+    # preveu l'us. Cal decidir-ho ABANS del catch-all FAV_* (FAV_LASERS hi
+    # entraria). Si hi ha lasers -> text d'autoritzacio (FAV_LASERS); si no
+    # -> text de prohibicio (NO_LASERS).
+    if ($blockKey -eq 'FAV_LASERS') { return ($mode -eq 'fav') -and [bool]$ctx.Computed.HAS_LASERS }
+    if ($blockKey -eq 'NO_LASERS')  { return ($mode -eq 'fav') -and (-not [bool]$ctx.Computed.HAS_LASERS) }
+
+    # Blocs estructurals/fixos del favorable (normativa, encapcalaments,
+    # retols, conclusions...): hi son sempre que es generi l'informe favorable.
     if ($blockKey -like 'FAV_*') { return ($mode -eq 'fav') }
 
     switch ($blockKey) {
@@ -470,17 +519,14 @@ function Test-ActExtrIncludeBlock([string]$blockKey, [string]$mode, $ctx) {
             return $false
         }
         'ASSIST_SANITARIA' {
-            # Variant per al REQUERIMENT (sense l'afegit farmaciola/infermeria).
+            # Bloc del REQUERIMENT: nomes si encara no s'ha lliurat.
             if ($mode -ne 'req') { return $false }
             return (-not (& $isDelivered 'ASSIST_SANITARIA'))
         }
-        'ASSIST_FARMACIOLA' {
-            if ($mode -ne 'fav') { return $false }
-            return ([int]$ctx.Decret.Aforament -lt 1000)
-        }
-        'ASSIST_INFERMERIA' {
-            if ($mode -ne 'fav') { return $false }
-            return ([int]$ctx.Decret.Aforament -ge 1000)
+        'ASSIST' {
+            # Bloc de l'informe FAVORABLE: l'assistencia sanitaria sempre hi es
+            # (el text concret {{ASSISTENCIA}} el resol Get-ActExtrComputed).
+            return ($mode -eq 'fav')
         }
         'PAU_CAT' {
             $applies = ($ctx.Computed.PAU_ORGAN_KEY -eq 'CAT')
@@ -659,21 +705,28 @@ function _GetActExtrOutputFileName([string]$tipus, [string]$gia, [string]$activi
     return ($name + '.docx')
 }
 
-# Emet el cos del document a partir dels blocs de la plantilla, com fa el motor
-# de REQ1 (Format.ps1): cada unitat (item de 1r nivell o paragraf de cos) va
-# separada per una linia en blanc (Format-Spacer). Els sub-items i els URLs
-# s'enganxen a la unitat anterior sense linia en blanc al davant.
+# Emet el cos del document a partir dels blocs de la plantilla. Segons el
+# marcador Titol 2 (Kind), cada paragraf de contingut es renderitza diferent:
+#   'item'   -> item: NUMERAT al requeriment; amb PIC (vinyeta) al favorable.
+#   'child'  -> sub-apartat amb PIC i sagnat.
+#   'note'   -> sub-paragraf sagnat SENSE pic (nota).
+#   'text'   -> paragraf de cos (sense pic ni numero).
+#   'header' -> capcalera de conclusions (centrada i en negreta).
+#   'conc'   -> paragraf de conclusio (justificat).
 #
-# Tipus de bloc (Kind, definit pel marcador Titol 2 de la plantilla):
-#   'item'  -> cada paragraf de contingut es un item: numerat al requeriment,
-#              amb PIC (vinyeta) al favorable.
-#   'child' -> cada paragraf de contingut es un sub-apartat: amb PIC i sagnat.
-#   'text'  -> cada paragraf de contingut es un paragraf de cos (sense pic).
+# ESPAIAT (diferent en cada mode, per reproduir el format de referencia):
+#   - REQUERIMENT: cada unitat (item o paragraf) va separada per una linia en
+#     blanc (com REQ1). Sub-items i URLs s'enganxen a la unitat anterior.
+#   - FAVORABLE: els punts d'una mateixa seccio se separen amb SpaceBefore (no
+#     linies en blanc); nomes s'insereix una linia en blanc al CANVI de seccio
+#     (Titol 1 de la plantilla). Aixi la llista surt compacta, com el document
+#     de referencia.
 function _WriteActExtrBody($sel, $blocks, $mode, $ctx, $computed) {
-    $isReq = ($mode -eq 'req')
+    if ($mode -eq 'fav') { _WriteActExtrBodyFav $sel $blocks $ctx $computed; return }
+
+    # ---- REQUERIMENT ----
     $num0 = 0   # comptador d'items de 1r nivell (continu)
     $first = $true
-
     foreach ($block in $blocks) {
         if (-not (Test-ActExtrIncludeBlock $block.Key $mode $ctx)) { continue }
         $kind = [string]$block.Kind
@@ -693,8 +746,6 @@ function _WriteActExtrBody($sel, $blocks, $mode, $ctx, $computed) {
             if ([string]::IsNullOrWhiteSpace($parts.Text) -and @($parts.Urls).Count -eq 0) { continue }
 
             if ($kind -eq 'child') {
-                # Sub-apartat: PIC sagnat, enganxat a la unitat anterior (sense
-                # linia en blanc al davant).
                 if (-not [string]::IsNullOrWhiteSpace($parts.Text)) { Format-Bullet $sel $parts.Text -IsChild }
                 foreach ($x in $parts.Urls) { Format-Url $sel $x -IsChild }
                 $first = $false
@@ -706,18 +757,56 @@ function _WriteActExtrBody($sel, $blocks, $mode, $ctx, $computed) {
             if (-not $first) { Format-Spacer $sel }
             if ($kind -eq 'item') {
                 $num0++
-                if (-not [string]::IsNullOrWhiteSpace($parts.Text)) {
-                    if ($isReq) { Format-Item $sel "$num0." $parts.Text }
-                    else        { Format-Bullet $sel $parts.Text }
-                }
+                if (-not [string]::IsNullOrWhiteSpace($parts.Text)) { Format-Item $sel "$num0." $parts.Text }
                 foreach ($x in $parts.Urls) { Format-Url $sel $x }
             } else {
-                # 'text' -> paragraf de cos sense pic ni numero.
                 if (-not [string]::IsNullOrWhiteSpace($parts.Text)) { Format-Body $sel $parts.Text }
                 foreach ($x in $parts.Urls) { Format-Url $sel $x }
             }
             $first = $false
         }
+    }
+}
+
+# Emissio del cos de l'INFORME FAVORABLE (espaiat per seccions; vegeu
+# _WriteActExtrBody). Els punts van amb PIC i separats per SpaceBefore; entre
+# seccions (canvi de Titol 1 de la plantilla) s'hi posa una linia en blanc.
+function _WriteActExtrBodyFav($sel, $blocks, $ctx, $computed) {
+    $firstBlock  = $true
+    $prevSection = -1
+    foreach ($block in $blocks) {
+        if (-not (Test-ActExtrIncludeBlock $block.Key 'fav' $ctx)) { continue }
+        $kind = [string]$block.Kind
+        # Linia en blanc nomes al canvi de seccio (no dins d'una seccio).
+        if ((-not $firstBlock) -and ([int]$block.Section -ne [int]$prevSection)) { Format-Spacer $sel }
+
+        foreach ($c in $block.Contents) {
+            $resolved = Resolve-ActExtrTokens ([string]$c.Text) $computed
+
+            if ($c.IsUrl) {
+                $u = $resolved
+                if ($u.StartsWith('[[URL]] ')) { $u = $u.Substring('[[URL]] '.Length).Trim() }
+                if (-not [string]::IsNullOrWhiteSpace($u)) {
+                    if ($kind -eq 'child') { Format-Url $sel $u -IsChild } else { Format-Url $sel $u }
+                }
+                continue
+            }
+
+            $parts = _SplitTextAndUrls $resolved
+            if ([string]::IsNullOrWhiteSpace($parts.Text) -and @($parts.Urls).Count -eq 0) { continue }
+            $txt = $parts.Text
+
+            switch ($kind) {
+                'child'  { if ($txt) { Format-Bullet $sel $txt -IsChild }; foreach ($x in $parts.Urls) { Format-Url $sel $x -IsChild } }
+                'note'   { if ($txt) { Format-Note $sel $txt };            foreach ($x in $parts.Urls) { Format-Url $sel $x -IsChild } }
+                'header' { if ($txt) { Format-ConclusionHeader $sel $txt } }
+                'conc'   { if ($txt) { Format-Conclusion $sel $txt };      foreach ($x in $parts.Urls) { Format-Url $sel $x } }
+                'text'   { if ($txt) { Format-Body $sel $txt };            foreach ($x in $parts.Urls) { Format-Url $sel $x } }
+                default  { if ($txt) { Format-Bullet $sel $txt };          foreach ($x in $parts.Urls) { Format-Url $sel $x } }  # 'item'
+            }
+        }
+        $prevSection = [int]$block.Section
+        $firstBlock  = $false
     }
 }
 
@@ -1041,6 +1130,7 @@ function Edit-ActExtrDocumentacio {
         @{ Key='EstablimentDotat';  Label='Higiene: l''establiment ja esta dotat de lavabos?' }
         @{ Key='ParcialSotaRasant'; Label='RC: l''activitat es du PARCIALMENT sota rasant?' }
         @{ Key='TotalSotaRasant';   Label='RC: l''activitat es du TOTALMENT sota rasant?' }
+        @{ Key='HiHaLasers';        Label='Lasers: l''activitat preveu l''us de lasers?' }
     )
     $qRadios = @{}
     $qy = 44
