@@ -47,6 +47,16 @@ $Script:ReportFormatConfig = @{
     ChildIndentCm        = 1
     ConclusionIndentCm   = 0
 
+    # Vinyetes (Format-Bullet): sangria francesa (hanging) i espaiat propi,
+    # per reproduir el format de llista de l'informe favorable (pic al primer
+    # nivell de sangria i text al segon; separacio per SpaceBefore, sense
+    # linies en blanc entre punts). Valors en cm / punts.
+    BulletIndentCm       = 1.25   # sangria esquerra del text (1r nivell)
+    BulletChildIndentCm  = 2.0    # sangria esquerra del text (sub-nivell)
+    BulletHangCm         = 0.62   # sangria francesa (el pic queda a l'esquerra)
+    BulletSpaceBeforePt  = 6      # separacio entre punts (en lloc de linia buida)
+    NoteIndentCm         = 1.25   # sub-paragraf sagnat sense pic (Format-Note)
+
     # Espaiat (linia buida entre elements)
     SpacerAfterIntroParagraph     = $true   # despres de la frase intro del cataleg
     SpacerAfterSection            = $true   # entre seccio i el que ve a sota
@@ -73,6 +83,9 @@ function _Reset-Char($sel) {
 function _Apply-Indent($sel, $cm) {
     $sel.ParagraphFormat.LeftIndent = (_CmToPoints $cm)
     $sel.ParagraphFormat.FirstLineIndent = 0
+    # Reset del SpaceBefore per no heretar l'espaiat propi de les vinyetes
+    # (Format-Bullet/Format-Note) quan ve un paragraf normal a continuacio.
+    try { $sel.ParagraphFormat.SpaceBefore = 0 } catch { }
 }
 
 function Format-Section {
@@ -126,13 +139,33 @@ function Format-Bullet {
     param($sel, [string]$text, [switch]$IsChild)
     [void]$sel.TypeParagraph()
     _Reset-Char $sel
-    $indent = if ($IsChild) { $Script:ReportFormatConfig.ChildIndentCm }
-              else          { $Script:ReportFormatConfig.ItemIndentCm }
-    _Apply-Indent $sel $indent
-    # Pic Unicode (U+2022) escrit per codepoint per no dependre de l'encoding
-    # del fitxer .ps1. El sub-nivell es diferencia per la sangria (-IsChild),
-    # mantenint el mateix pic (son "punts" a tots els nivells).
+    # Sangria francesa: el text va a LeftIndent i el pic queda a
+    # LeftIndent-Hang (a l'esquerra). El tabulador despres del pic salta al
+    # LeftIndent (el Word posa una parada de tabulacio implicita alli).
+    $left = if ($IsChild) { $Script:ReportFormatConfig.BulletChildIndentCm }
+            else          { $Script:ReportFormatConfig.BulletIndentCm }
+    $sel.ParagraphFormat.LeftIndent = (_CmToPoints $left)
+    $sel.ParagraphFormat.FirstLineIndent = (- (_CmToPoints $Script:ReportFormatConfig.BulletHangCm))
+    # Alineacio explicita a l'esquerra (per no heretar un 'center'/'justify'
+    # d'un paragraf anterior, p.ex. una capcalera de conclusions).
+    try { $sel.ParagraphFormat.Alignment = 0 } catch { }   # 0 = wdAlignParagraphLeft
+    # Separacio entre punts amb SpaceBefore (no linies en blanc): aixi la
+    # llista surt compacta i amb el mateix aire que el document de referencia.
+    try { $sel.ParagraphFormat.SpaceBefore = [double]$Script:ReportFormatConfig.BulletSpaceBeforePt } catch { }
+    # Pic Unicode (U+2022) escrit per codepoint per no dependre de l'encoding.
     $sel.TypeText([string]([char]0x2022) + "`t")
+    if ($text) { Type-RichText $sel $text }
+}
+
+# Sub-paragraf sagnat SENSE pic (p.ex. la nota del "Dret d'admissio" a
+# l'informe favorable): mateixa sangria que un punt pero sense vinyeta.
+function Format-Note {
+    param($sel, [string]$text)
+    [void]$sel.TypeParagraph()
+    _Reset-Char $sel
+    _Apply-Indent $sel $Script:ReportFormatConfig.NoteIndentCm
+    try { $sel.ParagraphFormat.Alignment = 0 } catch { }   # 0 = wdAlignParagraphLeft
+    try { $sel.ParagraphFormat.SpaceBefore = [double]$Script:ReportFormatConfig.BulletSpaceBeforePt } catch { }
     if ($text) { Type-RichText $sel $text }
 }
 
