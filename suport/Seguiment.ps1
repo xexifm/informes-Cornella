@@ -1328,10 +1328,10 @@ function Invoke-SeguimentFlow {
         if ($null -eq $cut) { return }
         $conclusionStartIndex = [int]$cut.StartIndex
 
-        # Les conclusions triables depenen del tipus d'informe original, que
-        # deduim del nom del fitxer de l'informe anterior (REQ1, TERMINI...).
-        $reportType = _ReportTypeFromFileName ([System.IO.Path]::GetFileName($sourcePath))
-        $conclAll = Read-ConclusionsXml $ConclusionsPath $reportType
+        # Al fer un SEGUIMENT, les conclusions triables son les del grup
+        # "SEGUIMENT" de 0 CONCLUSIONS.docx (Titol 1 = grup, Titol 2 = conclusio),
+        # independentment del tipus de l'informe original.
+        $conclAll = Read-ConclusionsXml $ConclusionsPath 'SEGUIMENT'
 
         # Maquina de passos: 1=data, 2=comentaris, 3=conclusions (amb camps
         # inline). Les opcions/camps de les conclusions s'omplen dins del propi

@@ -769,6 +769,13 @@ if (Test-Path $conc) {
     Assert (-not ($reqTitles -contains 'Ampliar'))      'REQ1: NO inclou conclusions de TERMINI (Ampliar)'
     Assert ([bool]($terTitles -contains 'Ampliar'))     'TERMINI: inclou la conclusio Ampliar'
     Assert (-not ($terTitles -contains 'Requeriment'))  'TERMINI: NO inclou conclusions de REQ1 (Requeriment)'
+    # El seguiment ha d'oferir NOMES el grup "SEGUIMENT".
+    $seg = Read-ConclusionsXml $conc 'SEGUIMENT'
+    $segTitles = & $titlesOf $seg
+    Assert ($seg.Selectable.Count -ge 1)                'Read-ConclusionsXml SEGUIMENT: te conclusions'
+    Assert ([bool]($segTitles -contains 'Finalitzat'))  'SEGUIMENT: inclou la conclusio Finalitzat'
+    Assert (-not ($segTitles -contains 'Requeriment'))  'SEGUIMENT: NO inclou conclusions de REQ1'
+    Assert (-not ($segTitles -contains 'Ampliar'))      'SEGUIMENT: NO inclou conclusions de TERMINI'
     # El total filtrat (REQ1 + TERMINI) no supera el total sense filtre.
     Assert (($req.Selectable.Count + $ter.Selectable.Count) -le $cx.Selectable.Count) 'Filtrat per tipus <= total sense filtre'
     # Les frases ::SEMPRE:: son globals: surten per a qualsevol tipus.
