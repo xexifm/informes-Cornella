@@ -56,6 +56,7 @@ $Script:ReportFormatConfig = @{
     BulletHangCm         = 0.62   # sangria francesa (el pic queda a l'esquerra)
     BulletSpaceBeforePt  = 6      # separacio entre punts (en lloc de linia buida)
     NoteIndentCm         = 1.25   # sub-paragraf sagnat sense pic (Format-Note)
+    LabelSpaceAfterPt    = 12     # espai sota una etiqueta de subseccio (Format-Label)
 
     # Espaiat (linia buida entre elements)
     SpacerAfterIntroParagraph     = $true   # despres de la frase intro del cataleg
@@ -83,9 +84,11 @@ function _Reset-Char($sel) {
 function _Apply-Indent($sel, $cm) {
     $sel.ParagraphFormat.LeftIndent = (_CmToPoints $cm)
     $sel.ParagraphFormat.FirstLineIndent = 0
-    # Reset del SpaceBefore per no heretar l'espaiat propi de les vinyetes
-    # (Format-Bullet/Format-Note) quan ve un paragraf normal a continuacio.
+    # Reset de l'espaiat propi (SpaceBefore/After) per no heretar el de les
+    # vinyetes (Format-Bullet/Note) o el d'una etiqueta (Format-Label) quan ve
+    # un paragraf normal a continuacio.
     try { $sel.ParagraphFormat.SpaceBefore = 0 } catch { }
+    try { $sel.ParagraphFormat.SpaceAfter  = 0 } catch { }
 }
 
 function Format-Section {
@@ -146,9 +149,9 @@ function Format-Bullet {
             else          { $Script:ReportFormatConfig.BulletIndentCm }
     $sel.ParagraphFormat.LeftIndent = (_CmToPoints $left)
     $sel.ParagraphFormat.FirstLineIndent = (- (_CmToPoints $Script:ReportFormatConfig.BulletHangCm))
-    # Alineacio explicita a l'esquerra (per no heretar un 'center'/'justify'
-    # d'un paragraf anterior, p.ex. una capcalera de conclusions).
-    try { $sel.ParagraphFormat.Alignment = 0 } catch { }   # 0 = wdAlignParagraphLeft
+    # Text justificat (com l'estil 'List Paragraph' de la casa, jc=both). Es
+    # posa explicit per no heretar un 'center' d'una capcalera anterior.
+    try { $sel.ParagraphFormat.Alignment = 3 } catch { }   # 3 = wdAlignParagraphJustify
     # Separacio entre punts amb SpaceBefore (no linies en blanc): aixi la
     # llista surt compacta i amb el mateix aire que el document de referencia.
     try { $sel.ParagraphFormat.SpaceBefore = [double]$Script:ReportFormatConfig.BulletSpaceBeforePt } catch { }
@@ -164,8 +167,21 @@ function Format-Note {
     [void]$sel.TypeParagraph()
     _Reset-Char $sel
     _Apply-Indent $sel $Script:ReportFormatConfig.NoteIndentCm
-    try { $sel.ParagraphFormat.Alignment = 0 } catch { }   # 0 = wdAlignParagraphLeft
+    try { $sel.ParagraphFormat.Alignment = 3 } catch { }   # 3 = wdAlignParagraphJustify
     try { $sel.ParagraphFormat.SpaceBefore = [double]$Script:ReportFormatConfig.BulletSpaceBeforePt } catch { }
+    if ($text) { Type-RichText $sel $text }
+}
+
+# Etiqueta de subseccio dins del cos (p.ex. "RETOLS INFORMATIUS"): text normal
+# (no negreta) amb un espai a sota per separar-la del que ve. S'usa quan una
+# seccio te un rotul propi seguit del seu contingut sense linia en blanc.
+function Format-Label {
+    param($sel, [string]$text)
+    [void]$sel.TypeParagraph()
+    _Reset-Char $sel
+    _Apply-Indent $sel 0
+    try { $sel.ParagraphFormat.Alignment = 3 } catch { }   # 3 = wdAlignParagraphJustify
+    try { $sel.ParagraphFormat.SpaceAfter = [double]$Script:ReportFormatConfig.LabelSpaceAfterPt } catch { }
     if ($text) { Type-RichText $sel $text }
 }
 

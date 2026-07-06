@@ -410,6 +410,7 @@ function Get-ActExtrDeficiencies($decret, $computed, $delivered) {
 #                     tancament): surt SENSE pic ni numero.
 #       ::CHILD::  -> el bloc es un sub-apartat: surt amb pic i sagnat.
 #       ::NOTE::   -> sub-paragraf sagnat SENSE pic (nota).
+#       ::LABEL::  -> etiqueta de subseccio (text normal amb espai a sota).
 #       ::HEADER:: -> capcalera de conclusions (centrada i en negreta).
 #       ::CONC::   -> paragraf de conclusio (justificat).
 #       (cap)      -> el bloc es un item: numerat al requeriment, amb pic al
@@ -431,6 +432,7 @@ function _ParseActExtrMarker([string]$text) {
     if     ($rest -match '::TEXT::')   { $kind = 'text' }
     elseif ($rest -match '::CHILD::')  { $kind = 'child' }
     elseif ($rest -match '::NOTE::')   { $kind = 'note' }
+    elseif ($rest -match '::LABEL::')  { $kind = 'label' }
     elseif ($rest -match '::HEADER::') { $kind = 'header' }
     elseif ($rest -match '::CONC::')   { $kind = 'conc' }
     return @{ Key = $key; Kind = $kind }
@@ -799,6 +801,7 @@ function _WriteActExtrBodyFav($sel, $blocks, $ctx, $computed) {
             switch ($kind) {
                 'child'  { if ($txt) { Format-Bullet $sel $txt -IsChild }; foreach ($x in $parts.Urls) { Format-Url $sel $x -IsChild } }
                 'note'   { if ($txt) { Format-Note $sel $txt };            foreach ($x in $parts.Urls) { Format-Url $sel $x -IsChild } }
+                'label'  { if ($txt) { Format-Label $sel $txt };           foreach ($x in $parts.Urls) { Format-Url $sel $x } }
                 'header' { if ($txt) { Format-ConclusionHeader $sel $txt } }
                 'conc'   { if ($txt) { Format-Conclusion $sel $txt };      foreach ($x in $parts.Urls) { Format-Url $sel $x } }
                 'text'   { if ($txt) { Format-Body $sel $txt };            foreach ($x in $parts.Urls) { Format-Url $sel $x } }
