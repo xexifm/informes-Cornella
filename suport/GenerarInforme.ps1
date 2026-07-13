@@ -84,6 +84,30 @@ $ScriptRoot      = Split-Path -Parent $MyInvocation.MyCommand.Path
 # ruta absoluta externa que no es mou.
 $RepoRoot        = Split-Path -Parent $ScriptRoot
 
+# Icona corporativa (escut de Cornella) per a TOTES les finestres i la
+# miniatura de la barra de tasques de Windows. Nomes en mode interactiu (en
+# headless no hi ha System.Drawing carregat). Es carrega un sol cop.
+$Script:AppIcon = $null
+if (-not $Script:HeadlessTest) {
+    try {
+        $iconPath = Join-Path $ScriptRoot 'cornella.ico'
+        if (Test-Path -LiteralPath $iconPath) { $Script:AppIcon = New-Object System.Drawing.Icon($iconPath) }
+    } catch { $Script:AppIcon = $null }
+}
+
+# Crea una finestra estandard de l'app: centrada, MINIMITZABLE, MAXIMITZABLE i
+# tancable, amb l'escut de Cornella al titol i a la barra de tasques. Totes les
+# pantalles del programa (inclos Seguiment i ACT_EXTR) la fan servir, aixi el
+# logo i els botons de finestra son consistents a tot arreu.
+function _NewForm {
+    $f = New-Object System.Windows.Forms.Form
+    $f.StartPosition = 'CenterScreen'
+    $f.MinimizeBox = $true
+    $f.MaximizeBox = $true
+    if ($null -ne $Script:AppIcon) { $f.Icon = $Script:AppIcon }
+    return $f
+}
+
 # Carreguem el modul de format (Format.ps1). Conte les funcions Format-Section,
 # Format-Item, etc. i $ReportFormatConfig. Reutilitzable per altres tipus
 # d'informes.
@@ -676,12 +700,10 @@ function _BuildHeaderForm($excelInfo) {
     # Quan es 'fallback', el rotul es taronja i porta el text "[FALLBACK LOCAL]"
     # davant perque l'usuari sapiga que NO esta usant la base de dades oficial
     # de la xarxa.
-    $form = New-Object System.Windows.Forms.Form
+    $form = _NewForm
     $form.Text = 'Pas 2 - Dades de la capcalera'
     $form.Size = New-Object System.Drawing.Size(720, 480)
     $form.StartPosition = 'CenterScreen'
-    $form.FormBorderStyle = 'FixedDialog'
-    $form.MaximizeBox = $false
 
     $lblBd = New-Object System.Windows.Forms.Label
     $lblBd.Location = New-Object System.Drawing.Point(15, 12)
@@ -825,12 +847,13 @@ function Get-HeaderData {
         }
         $script:_sessionActCache = $actCache
         $script:_sessionActKey   = $cacheKey
-
-        # Mobil: refresquem la copia d'activitats per al mobil (a Drive privat),
-        # nomes quan (re)carreguem la base (1 cop per sessio). Silenciosa i
-        # fail-safe: si Drive no esta configurat, no passa res.
-        [void](Export-ActivitatsToDrive $actCache $latest)
     }
+
+    # NOTA: NO refresquem la copia d'activitats al Drive aqui. Comprovar-ho i
+    # pujar-ho feia que generar un informe (Pas 2) trigues molt (accedia a la
+    # xarxa/Drive cada cop). Aquesta sincronitzacio per al mobil ara nomes es fa
+    # amb Actualitzar.bat (ExportaDades.ps1 -> Export-ActivitatsCmd), aixi
+    # generar informes es rapid i no depen de la xarxa.
 
     $labelText = "Base de dades d'activitats: $($latest.File.Name)  (data: $($latest.Date.ToString('yyyy-MM-dd'))) - $($actCache.ById.Count) activitats carregades"
     $f = _BuildHeaderForm @{ Text = $labelText; Source = $latest.Source }
@@ -1221,7 +1244,7 @@ function Select-Items {
     param($sections, $preloadSelectedKeys = $null, $fields = $null, $preloadValues = $null)
     if ($null -eq $fields) { $fields = [ordered]@{} }
 
-    $form = New-Object System.Windows.Forms.Form
+    $form = _NewForm
     $form.Text = 'Pas 3 - Seleccio de deficiencies'
     $form.Size = New-Object System.Drawing.Size(1180, 740)
     $form.StartPosition = 'CenterScreen'
@@ -1599,7 +1622,7 @@ function Prompt-Fields {
         }
     }
 
-    $form = New-Object System.Windows.Forms.Form
+    $form = _NewForm
     $form.Text = 'Pas 4 - Omplir camps'
     $form.StartPosition = 'CenterScreen'
     $form.AutoScroll = $true
@@ -2036,7 +2059,7 @@ function Select-Conclusions {
     $preloadSet = New-Object System.Collections.Generic.HashSet[string]
     if ($preloadTitles) { foreach ($t in $preloadTitles) { [void]$preloadSet.Add([string]$t) } }
 
-    $form = New-Object System.Windows.Forms.Form
+    $form = _NewForm
     $form.Text = 'Pas 4 - Conclusions'
     $form.Size = New-Object System.Drawing.Size(940, 660)
     $form.StartPosition = 'CenterScreen'
@@ -2377,11 +2400,13 @@ function _WriteCatalegBody($sel, $cfg, $selectedSections, $fields, $introText, $
                     $script:_buildGlobal++
                     $itemWritten = $true
                 }
-                # Els fills NO es numeren: s'emeten com a paragraf de cos
-                # amb la sagnia de fill (ChildIndentCm).
+                # Els fills (::CHILD::) NO es numeren: s'emeten com a PUNT DE
+                # LLISTA amb Format-Bullet (-IsChild = sangria de sub-nivell).
+                # Les linies extra del fill (p.ex. un URL) segueixen com a
+                # enllac/cos de fill, sense un nou pic.
                 $pc = _SplitTextAndUrls $childLines[0]
                 if (-not [string]::IsNullOrWhiteSpace($pc.Text)) {
-                    Format-Body $sel $pc.Text -IsChild
+                    Format-Bullet $sel $pc.Text -IsChild
                 }
                 foreach ($u in $pc.Urls) { Format-Url $sel $u -IsChild }
                 & $emitExtras $childLines $true

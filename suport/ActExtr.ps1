@@ -867,7 +867,7 @@ function Build-ActExtrDocument($word, $header, $decret, $delivered, $mode) {
 # Llistat d'activitats extraordinaries amb el seu estat. Retorna:
 #   @{ Action='new' } | @{ Action='open'; Id=<id> } | @{ Action='exit' }
 function Show-ActExtrList($registry) {
-    $form = New-Object System.Windows.Forms.Form
+    $form = _NewForm
     $form.Text = 'Activitats extraordinaries (ACT_EXTR)'
     $form.Size = New-Object System.Drawing.Size(820, 540)
     $form.StartPosition = 'CenterScreen'
@@ -951,12 +951,10 @@ function Show-ActExtrList($registry) {
 # Retorna @{ Nav='next'|'back'; Data=@{ ID_GIA;EXP_NUM;ADRECA;ACTIVITAT;TITULAR;DATES;AFORAMENT } }
 function Get-ActExtrHeader {
     param($preload = $null, [bool]$lockId = $false)
-    $form = New-Object System.Windows.Forms.Form
+    $form = _NewForm
     $form.Text = 'Activitat extraordinaria - Dades de la capcalera'
     $form.Size = New-Object System.Drawing.Size(700, 420)
     $form.StartPosition = 'CenterScreen'
-    $form.FormBorderStyle = 'FixedDialog'
-    $form.MaximizeBox = $false
 
     $controls = @{}
     # $addRow afegeix una etiqueta + caixa de text a la posicio $y i retorna
@@ -1044,7 +1042,7 @@ function Get-ActExtrHeader {
 function Edit-ActExtrDocumentacio {
     param($header, $answers = $null, $delivered = $null)
 
-    $form = New-Object System.Windows.Forms.Form
+    $form = _NewForm
     $form.Text = 'Comprovacio de la documentacio - ' + ([string]$header.ID_GIA)
     $form.StartPosition = 'CenterScreen'
     $form.ClientSize = New-Object System.Drawing.Size(1160, 680)

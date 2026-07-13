@@ -946,12 +946,9 @@ function Select-Mode {
         [void]$menu.Add(@{ Action='nou'; Label=$c.BaseName; Detail=$c.BaseName; Cataleg=$c })
     }
 
-    $form = New-Object System.Windows.Forms.Form
+    $form = _NewForm
     $form.Text = 'Informes Cornella - Pas 1'
     $form.StartPosition = 'CenterScreen'
-    $form.FormBorderStyle = 'FixedDialog'
-    $form.MaximizeBox = $false
-    $form.MinimizeBox = $false
 
     $lbl = New-Object System.Windows.Forms.Label
     $lbl.Text = 'Que vols fer?'
@@ -1049,7 +1046,7 @@ function Confirm-ConclusionDeletion {
 function Select-ConclusionCutManually {
     param($paraTexts, [int]$lastReqEndIndex, [int]$preselectIndex = -1)
 
-    $form = New-Object System.Windows.Forms.Form
+    $form = _NewForm
     $form.Text = 'Tria el primer paragraf a esborrar'
     $form.Size = New-Object System.Drawing.Size(720, 480)
     $form.MinimumSize = New-Object System.Drawing.Size(420, 300)
@@ -1118,12 +1115,10 @@ function Prompt-RoundDate {
     param($preset = $null)
     $default = if ($preset) { [string]$preset } else { (Get-Date).ToString('dd/MM/yyyy') }
 
-    $form = New-Object System.Windows.Forms.Form
+    $form = _NewForm
     $form.Text = 'Data del seguiment'
     $form.Size = New-Object System.Drawing.Size(420, 200)
     $form.StartPosition = 'CenterScreen'
-    $form.FormBorderStyle = 'FixedDialog'
-    $form.MaximizeBox = $false
 
     $lbl = New-Object System.Windows.Forms.Label
     $lbl.Text = "Data d'aquesta entrega/seguiment (dd/MM/aaaa):"
@@ -1168,7 +1163,7 @@ function Prompt-RoundDate {
 function Prompt-SeguimentComments {
     param($requirements, $dateStr, $preload = $null)
 
-    $form = New-Object System.Windows.Forms.Form
+    $form = _NewForm
     $form.Text = 'Seguiment dels requeriments'
     $form.Size = New-Object System.Drawing.Size(860, 640)
     $form.MinimumSize = New-Object System.Drawing.Size(560, 400)
