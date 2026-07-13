@@ -89,6 +89,18 @@ $RepoRoot        = Split-Path -Parent $ScriptRoot
 # headless no hi ha System.Drawing carregat). Es carrega un sol cop.
 $Script:AppIcon = $null
 if (-not $Script:HeadlessTest) {
+    # AppUserModelID propi: sense aixo, la barra de tasques agrupa la finestra
+    # sota el proces amfitrio (PowerShell) i mostra la SEVA icona blava. Amb un
+    # ID propi, Windows tracta el programa com una app a part i la barra de
+    # tasques fa servir la icona de la finestra (l'escut). Cal fer-ho ABANS de
+    # crear cap finestra.
+    try {
+        Add-Type -Namespace CornellaApp -Name Shell -MemberDefinition @'
+[System.Runtime.InteropServices.DllImport("shell32.dll", SetLastError=true)]
+public static extern void SetCurrentProcessExplicitAppUserModelID([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPWStr)] string AppID);
+'@ -ErrorAction Stop
+        [CornellaApp.Shell]::SetCurrentProcessExplicitAppUserModelID('Cornella.Informes.Generador')
+    } catch { }
     try {
         $iconPath = Join-Path $ScriptRoot 'cornella.ico'
         if (Test-Path -LiteralPath $iconPath) { $Script:AppIcon = New-Object System.Drawing.Icon($iconPath) }
