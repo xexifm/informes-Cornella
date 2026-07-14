@@ -3,6 +3,54 @@
     "IntroText":  "S\u0027han observat les següents deficiències que cal esmenar per poder exercir l\u0027activitat:",
     "Sections":  [
                      {
+                         "Title":  "(Sense seccio)",
+                         "Items":  [
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "Requeriment pendent",
+                                           "BodyLines":  [
+                                                             "S’ha de donar resposta a l’anterior requeriment amb Núm. de registre: [CAMP: Registre sortida (S-202X-XXXX)].",
+                                                             "COPIAR REQUERIMENT",
+                                                             "I a més a més, esmenar els següents punts:"
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       }
+                                   ]
+                     },
+                     {
+                         "Title":  "Desistiment comunicació",
+                         "Items":  [
+
+                                   ]
+                     },
+                     {
+                         "Title":  "Estat de l’establiment",
+                         "Items":  [
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "Estat - Higiene",
+                                           "BodyLines":  [
+                                                             "Higiene. S\u0027incompleixen greument les condicions sanitàries, de salubritat i d\u0027higiene. S’haurà de portar a terme una neteja integral de [CAMP: A netejar (p. ex. l\u0027establiment)]."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "Estat - Residus",
+                                           "BodyLines":  [
+                                                             "Residus. S’ha de complir amb l’Article 21 de la Llei 7/2022, de 8 d\u0027abril, de residus i sòls contaminats per a una economia circular on s’indica que s’ha de “Disposar d\u0027una zona habilitada i identificada per a l\u0027emmagatzematge correcte dels residus que reuneixi les condicions adequades d\u0027higiene i seguretat mentre estiguin en el seu poder. En el cas d\u0027emmagatzematge de residus perillosos aquests han d\u0027estar protegits de la intempèrie i amb sistemes de retenció d\u0027abocaments i vessaments.”"
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       }
+                                   ]
+                     },
+                     {
                          "Title":  "Autoritzacions / Informes preceptius",
                          "Items":  [
                                        {
@@ -10,7 +58,7 @@
                                            "Short":  "Sanitat",
                                            "BodyLines":  [
                                                              "Sanitat. L’activitat està inclosa dins l’Annex del Decret 151/2017, de 17 d\u0027octubre, pel qual s\u0027estableixen els requisits i les garanties tecnicosanitàries comunes dels centres i serveis sanitaris i els procediments per a la seva autorització i registre. S’ha d’obtenir l’Autorització de funcionament (Departament de Salut de la Generalitat de Catalunya).",
-                                                             "[[URL]] https://salutweb.gencat.cat/ca/tramits/tramits-temes/Autoritzacio-de-centres-o-serveis-sanitaris"
+                                                             "[[URL]] https://tramits.gencat.cat/ca/tramits/tramits-temes/Autoritzacio-de-centres-o-serveis-sanitaris"
                                                          ],
                                            "Children":  [
 
@@ -421,7 +469,7 @@
                                            "Short":  "RITSIC - gas verificació per unitat",
                                            "BodyLines":  [
                                                              "Instal·lació de gas (Verificació per unitat)",
-                                                             "[[URL]] https://empresa.gencat.cat/ca/treb_ambits_actuacio/seguretat-industrial/installacions-industrials/gasos-combustibles/verificacio/"
+                                                             "[[URL]] https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Presentacio-de-la-declaracio-responsable-per-a-installacions-de-gasos-combustibles-posada-en-servei-modificacions-i-baixa?category="
                                                          ],
                                            "Children":  [
 
@@ -985,16 +1033,6 @@
                                                         ]
                                        },
                                        {
-                                           "Kind":  "intro",
-                                           "Short":  "",
-                                           "BodyLines":  [
-                                                             "https://canalempresa.gencat.cat/web/.content/oge/doc/QUADRE_Salut_Alimentaria.pdf"
-                                                         ],
-                                           "Children":  [
-
-                                                        ]
-                                       },
-                                       {
                                            "Kind":  "item",
                                            "Short":  "Registres sanitaris - RSIPAC",
                                            "BodyLines":  [
@@ -1055,7 +1093,27 @@
                          "Items":  [
                                        {
                                            "Kind":  "item",
-                                           "Short":  "Evacuació - portes practicables",
+                                           "Short":  "Aplica CTE, NO RSCIEI",
+                                           "BodyLines":  [
+                                                             "S’ha de legalitzar l’activitat segons el CTE i no el RSCIEI, tal i com s’indica al CTE DB SI, // II Ámbito de aplicación III// i //Criterios generales de aplicación//."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "Aplica RSCIEI, NO CTE",
+                                           "BodyLines":  [
+                                                             "S’ha de legalitzar l’activitat segons el RSCIEI i no el CTE, tal i com s’indica al CTE DB SI, // II Ámbito de aplicación III// i //Criterios generales de aplicación//."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "Evacuació Evacuació - portes practicables",
                                            "BodyLines":  [
                                                              "Evacuació. Les portes d’emergència han de ser practicables mentre l’activitat romangui oberta. S’ha d’entregar un certificat signat pel titular indicant que la porta que evacua a [CAMP: Adreça porta practicable evacuació] estarà practicable mentre l’activitat estigui oberta."
                                                          ],
@@ -1717,6 +1775,26 @@
                          "Items":  [
                                        {
                                            "Kind":  "subsection",
+                                           "Short":  "Horari",
+                                           "BodyLines":  [
+
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "Horari",
+                                           "BodyLines":  [
+                                                             "Horari. Actualment s’està incomplint l’horari d’obertura perquè **l’activitat únicament pot obrir en horari diürn, és a dir de 7h a 23h**. S’ha de presentar un certificat signat pel titular indicant que coneix que l’horari d’obertura és de 7h a 23h. Si es vol obrir en horari nocturn s’haurà de presentar una sonometria nocturna."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "subsection",
                                            "Short":  "Soroll",
                                            "BodyLines":  [
 
@@ -1747,6 +1825,56 @@
                                                         ]
                                        },
                                        {
+                                           "Kind":  "item",
+                                           "Short":  "Terrassa",
+                                           "BodyLines":  [
+                                                             "Terrassa. S’ha d’implementar algun sistema per posar i treure les taules i cadires de la terrassa que actualment es fa arrastrant."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "subsection",
+                                           "Short":  "Olors",
+                                           "BodyLines":  [
+
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "Olors Elements cocció",
+                                           "BodyLines":  [
+                                                             "Elements de cocció. Segons l\u0027article 11.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornella de Llobregat les activitats de restauració que no tinguin extracció de fums fins a coberta únicament podran disposar dels següents elements de cocció: una planxa elèctrica de fins a 2.500 W de potencia i fins a 40x40 cm de mesura; forns elèctrics de fins a 7.500 W de potencia (suma de potencies de tots els forns) i amb recollida de vapor per condensació. Si es disposen de mes elements de cocció que els esmentats i no es disposa d’extracció de fums s\u0027hauran de retirar immediatament. Si aquests elements de cocció creen molèsties al veïnat, s\u0027hauran de prendre les mesures correctores que indiqui el tècnic municipal competent, podent comportar igualment la seva retirada. S’ha de:"
+                                                         ],
+                                           "Children":  [
+                                                            {
+                                                                "Kind":  "child",
+                                                                "Short":  "Retirar elements",
+                                                                "BodyLines":  [
+                                                                                  "Retirar tots aquells elements que no estiguin inclosos a l\u0027article 11.1 de l’Ordenança."
+                                                                              ]
+                                                            },
+                                                            {
+                                                                "Kind":  "child",
+                                                                "Short":  "Justificació elements",
+                                                                "BodyLines":  [
+                                                                                  "Presentar un certificat signat per un tècnic competent i pel titular indicant que els elements de cocció son els que es mencionen a l\u0027article 11.1 de l’Ordenança. S’haurà de certificar les propietats dels elements de cocció per tal que coincideixin amb les propietats indicades a l\u0027article 11.1 de l’Ordenança."
+                                                                              ]
+                                                            },
+                                                            {
+                                                                "Kind":  "child",
+                                                                "Short":  "Desinstal·lar campana extractora",
+                                                                "BodyLines":  [
+                                                                                  "Desinstal·lar la campana extractora i el conducte d’extracció que va fins a la façana."
+                                                                              ]
+                                                            }
+                                                        ]
+                                       },
+                                       {
                                            "Kind":  "subsection",
                                            "Short":  "Calor",
                                            "BodyLines":  [
@@ -1760,7 +1888,7 @@
                                            "Kind":  "item",
                                            "Short":  "Aïllament focus calor/fred",
                                            "BodyLines":  [
-                                                             "Calor. L\u0027activitat incompleix l\u0027article 10 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat. S\u0027ha d’aïllar tèrmicament el focus de calor o fred (en aquest cas [CAMP: Focus de calor/fred (p. ex. l\u0027aire condicionat)]) de manera que no pugui produir-se una variació de temperatura superior a 1 graus C en la superfície exterior de qualsevol dels paraments on esta ubicat, en aquest cas [CAMP: Parament afectat (p. ex. el veí de sobre el focus de calor)]."
+                                                             "Calor. L\u0027activitat incompleix l\u0027article 10 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat. S\u0027ha d’aïllar tèrmicament el focus de calor o fred (en aquest cas [CAMP: Focus de calor/fred (p. ex. l\u0027aire condicionat)]) de manera que no pugui produir-se una variació de temperatura superior a 1 graus C en [OPCIO: Parament afectat | el terra del veí situat sobre el focus de calor | els balcons del veïns dels habitatges superiors]."
                                                          ],
                                            "Children":  [
 
@@ -1956,7 +2084,15 @@
                                                                 "Kind":  "child",
                                                                 "Short":  "Doc - assegurança RC",
                                                                 "BodyLines":  [
-                                                                                  "Presentar l\u0027assegurança de Responsabilitat Civil, amb la quantitat de capital assegurat següent: fins a 100 persones d\u0027aforament autoritzat: 300.000 EUR; fins a 150: 400.000 EUR; fins a 300: 600.000 EUR; fins a 500: 750.000 EUR; fins a 1.000: 900.000 EUR; fins a 1.500: 1.200.000 EUR; fins a 2.500: 1.600.000 EUR; fins a 5.000: 2.000.000 EUR."
+                                                                                  "Presentar l\u0027assegurança de Responsabilitat Civil, amb la quantitat de capital assegurat següent:",
+                                                                                  "- fins a 100 persones d\u0027aforament autoritzat: 300.000 EUR",
+                                                                                  "- fins a 150: 400.000 EUR",
+                                                                                  "- fins a 300: 600.000 EUR",
+                                                                                  "- fins a 500: 750.000 EUR",
+                                                                                  "- fins a 1.000: 900.000 EUR",
+                                                                                  "- fins a 1.500: 1.200.000 EUR",
+                                                                                  "- fins a 2.500: 1.600.000 EUR",
+                                                                                  "- fins a 5.000: 2.000.000 EUR."
                                                                               ]
                                                             },
                                                             {
@@ -2089,7 +2225,7 @@
                                            "Kind":  "item",
                                            "Short":  "Accés - apartat 2 annex 3d",
                                            "BodyLines":  [
-                                                             "Accés. S’ha de justificar el compliment de l’apartat 2 de l’Annex 3d del DECRET 209/2023, de 28 de novembre, pel qual s\u0027aprova el Codi d\u0027accessibilitat de Catalunya. Condicions que s’han de complir segons la Taula 2.[CAMP: X.X: XXX (segons l\u0027apartat X.X de l\u0027annex XX))]."
+                                                             "Accés. S’ha de justificar el compliment de l’apartat 2 de l’Annex 3d del DECRET 209/2023, de 28 de novembre, pel qual s\u0027aprova el Codi d\u0027accessibilitat de Catalunya. Condició que ha de complir l’accés: [OPCIO: Accessibilitat accés | Accés practicable (segons l\u0027apartat 2 de l\u0027annex 3f) | Accés accessible (segons l\u0027apartat 2 de l\u0027annex 3c)]."
                                                          ],
                                            "Children":  [
 
@@ -2099,7 +2235,7 @@
                                            "Kind":  "item",
                                            "Short":  "Itineraris interiors - apartat 3 annex 3d",
                                            "BodyLines":  [
-                                                             "Itineraris interiors. S’ha de justificar el compliment de l’apartat 3 de l’Annex 3d del DECRET 209/2023, de 28 de novembre, pel qual s\u0027aprova el Codi d\u0027accessibilitat de Catalunya."
+                                                             "Itineraris interiors. S’ha de justificar el compliment de l’apartat 3 de l’Annex 3d del DECRET 209/2023, de 28 de novembre, pel qual s\u0027aprova el Codi d\u0027accessibilitat de Catalunya. Condició que ha de complir l’itinerari: [OPCIO: Accessibilitat itinerari | Itinerari practicable (segons l\u0027apartat 1 de l\u0027annex 3f) | Itinerari  accessible (segons l\u0027apartat 1 de l\u0027annex 3c)]."
                                                          ],
                                            "Children":  [
 
@@ -2109,7 +2245,7 @@
                                            "Kind":  "item",
                                            "Short":  "Cambres higièniques - apartat 4 annex 3d",
                                            "BodyLines":  [
-                                                             "Cambres higièniques. S’ha de justificar el compliment de l’apartat 4 de l’Annex 3d del DECRET 209/2023, de 28 de novembre, pel qual s\u0027aprova el Codi d\u0027accessibilitat de Catalunya. Condicions que s’han de complir segons la Taula 4.[CAMP: X: XXX (segons l\u0027apartat X.X de l\u0027annex XX))]."
+                                                             "Cambres higièniques. S’ha de justificar el compliment de l’apartat 4 de l’Annex 3d del DECRET 209/2023, de 28 de novembre, pel qual s\u0027aprova el Codi d\u0027accessibilitat de Catalunya. Condició que ha de complir la cambra higiènica: [OPCIO: Accessibilitat cambra higiènica | Usable (segons l\u0027apartat 7.2 de l\u0027annex 3f) | Practicable (segons l\u0027apartat 7.1 de l\u0027annex 3c)| Accessible (segons l\u0027apartat 15.4 de l\u0027annex 3c)]."
                                                          ],
                                            "Children":  [
 

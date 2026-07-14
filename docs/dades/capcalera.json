@@ -6,6 +6,7 @@
                          "ACTIVITAT",
                          "TITULAR",
                          "NUM_ANOTACIO",
-                         "DATA_ANOTACIO"
+                         "DATA_ANOTACIO",
+                         "DATES"
                      ]
 }

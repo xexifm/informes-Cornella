@@ -1,5 +1,5 @@
 ﻿{
-    "GeneratedAt":  "2026-06-08T13:58:21.7404965+02:00",
+    "GeneratedAt":  "2026-07-14T12:22:04.0914219+02:00",
     "Catalegs":  [
                      "REQ1"
                  ],
@@ -10,6 +10,7 @@
                          "ACTIVITAT",
                          "TITULAR",
                          "NUM_ANOTACIO",
-                         "DATA_ANOTACIO"
+                         "DATA_ANOTACIO",
+                         "DATES"
                      ]
 }

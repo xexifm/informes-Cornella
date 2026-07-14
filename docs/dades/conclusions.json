@@ -2,6 +2,10 @@
     "HeaderText":  "CONCLUSIONS",
     "Selectable":  [
                        {
+                           "Title":  "Desistiment",
+                           "Body":  "Vist l’anterior, com que la comunicació presenta un o més defectes de caràcter essencial **s’ha de dictar una resolució que deixi sense efecte la comunicació i ordeni el cessament de l\u0027activitat**."
+                       },
+                       {
                            "Title":  "Terrassa projecte",
                            "Body":  "La terrassa que apareix en el projecte no forma part d’aquest informe ni d’aquest expedient."
                        },
@@ -19,7 +23,7 @@
                        },
                        {
                            "Title":  "Precinte inspecció activitat",
-                           "Body":  "Tenint en consideració el risc greu o imminent de seguretat sobre les persones, béns i el medi ambient que genera l’activitat **és pertinent precintar [CAMP: què es precinta]** fins a esmenar les deficiències en el cas de no presentar la documentació requerida en el termini **[OPCIO: Mesos precinta | d’un mes | de dos mesos | de tres mesos]**."
+                           "Body":  "Tenint en consideració el risc greu o imminent de seguretat sobre les persones, béns i el medi ambient que genera l’activitat **és pertinent precintar [CAMP: què es precinta]** fins a esmenar les deficiències en el cas de no presentar la documentació requerida en el termini **[OPCIO: Mesos precinte | d’un mes | de dos mesos | de tres mesos]**."
                        }
                    ],
     "Always":  [
