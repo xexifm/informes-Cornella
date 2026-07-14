@@ -39,10 +39,12 @@ if errorlevel 1 (
 
 REM --- 2. Hi ha canvis a ESTRUCTURALS\*.docx ? Si si, els pugem ---
 REM    (codi ps1/bat NO el pujem mai des d'aqui: el toca Claude o tu via PR)
+REM ESTRUCTURALS nomes conte plantilles .docx, aixi que QUALSEVOL canvi aqui es
+REM un canvi de plantilla. Evitem 'findstr' amb ancora "$": el git treu linies
+REM acabades en LF i el findstr de Windows falla amb l'ancora de final de linia
+REM sobre LF (per aixo abans no detectava els .docx i anaven a parar al stash).
 set "PLANTILLES_CANVIADES=0"
-for /f "delims=" %%f in ('git status --porcelain ESTRUCTURALS ^| findstr /R "\.docx$"') do (
-    set "PLANTILLES_CANVIADES=1"
-)
+for /f "delims=" %%f in ('git status --porcelain -- ESTRUCTURALS') do set "PLANTILLES_CANVIADES=1"
 
 if "%PLANTILLES_CANVIADES%"=="1" (
     echo Detectats canvis locals a ESTRUCTURALS\*.docx.
