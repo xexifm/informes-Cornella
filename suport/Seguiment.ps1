@@ -1021,16 +1021,34 @@ function Select-Mode {
 
     # Boto: Generar ruta (pin de localitzacio). Tanca el menu, llanca el
     # planificador i despres es torna a mostrar el menu (com la resta d'accions).
-    $pin = [System.Char]::ConvertFromUtf32(0x1F4CD)   # pin de localitzacio U+1F4CD (fora del BMP: cal ConvertFromUtf32)
+    # El pic 📍 (U+1F4CD) es fora del pla BMP i molts controls no el dibuixen
+    # amb la font per defecte. El pintem NOSALTRES amb la font "Segoe UI Emoji"
+    # (que si el te) al costat del text "Generar ruta" en "Segoe UI".
+    $pin = [System.Char]::ConvertFromUtf32(0x1F4CD)
+    $fRutaPin = New-Object System.Drawing.Font('Segoe UI Emoji', 12, [System.Drawing.FontStyle]::Regular)
+    $fRutaTxt = New-Object System.Drawing.Font('Segoe UI', 11, [System.Drawing.FontStyle]::Regular)
     $btnRuta = New-Object System.Windows.Forms.Button
-    $btnRuta.Text = "$pin  Generar ruta"
-    $btnRuta.Font = New-Object System.Drawing.Font('Segoe UI', 11, [System.Drawing.FontStyle]::Regular)
+    $btnRuta.Text = ''
     $btnRuta.Location = New-Object System.Drawing.Point(20, $y)
     $btnRuta.Size = New-Object System.Drawing.Size(430, 44)
     $btnRuta.FlatStyle = 'Flat'
     $btnRuta.BackColor = [System.Drawing.Color]::White
     $btnRuta.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
     $btnRuta.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(219, 235, 255)
+    $btnRuta.add_Paint({
+        param($s, $e)
+        $g = $e.Graphics
+        $rc = $s.ClientRectangle
+        $fl = [System.Windows.Forms.TextFormatFlags]::NoPadding
+        $szP = [System.Windows.Forms.TextRenderer]::MeasureText($g, $pin, $fRutaPin, [System.Drawing.Size]::Empty, $fl)
+        $szT = [System.Windows.Forms.TextRenderer]::MeasureText($g, 'Generar ruta', $fRutaTxt, [System.Drawing.Size]::Empty, $fl)
+        $gap = 8
+        $x = [int](($rc.Width - ($szP.Width + $gap + $szT.Width)) / 2)
+        $yP = [int](($rc.Height - $szP.Height) / 2)
+        $yT = [int](($rc.Height - $szT.Height) / 2)
+        [System.Windows.Forms.TextRenderer]::DrawText($g, $pin, $fRutaPin, (New-Object System.Drawing.Point($x, $yP)), [System.Drawing.Color]::Black, $fl)
+        [System.Windows.Forms.TextRenderer]::DrawText($g, 'Generar ruta', $fRutaTxt, (New-Object System.Drawing.Point(($x + $szP.Width + $gap), $yT)), [System.Drawing.Color]::Black, $fl)
+    }.GetNewClosure())
     $btnRuta.add_Click({
         $result.Choice = @{ Action = 'ruta'; Cataleg = $null }
         $form.DialogResult = 'OK'

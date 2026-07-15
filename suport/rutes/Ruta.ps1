@@ -771,7 +771,7 @@ function Show-IdInputForm([string]$dbLabel, [string]$baseLabel, [bool]$startFrom
     $form.AcceptButton = $btnOk
 
     $btnCancel = New-Object System.Windows.Forms.Button
-    $btnCancel.Text = 'Cancel·lar'
+    $btnCancel.Text = 'Enrere'
     $btnCancel.Size = New-Object System.Drawing.Size(120, 32)
     $btnCancel.Location = New-Object System.Drawing.Point(380, 396)
     $btnCancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel

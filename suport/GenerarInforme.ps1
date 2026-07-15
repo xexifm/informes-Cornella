@@ -164,8 +164,13 @@ function Stop-Vigilant {
     $Script:VigilantProc = $null
 }
 
-# Llanca el planificador de rutes (Ruta.ps1) com a proces a part, sense
-# consola (te la seva propia finestra). El menu segueix obert.
+# Obre el planificador de rutes (Ruta.ps1) EN EL MATEIX PROCES, no en una
+# finestra/consola a part. L'operador '&' executa el script en un AMBIT AILLAT:
+# aixi les seves variables ($ScriptRoot, etc.) NO contaminen el generador, pero
+# la finestra forma part del mateix programa (mateix escut a la barra de
+# tasques) i, en acabar o prémer Enrere, es torna al menu. Invoke-RutaMain fa
+# servir 'return' (mai 'exit'), aixi que en cancel-lar torna al menu sense
+# tancar el generador.
 function Start-RutaTool {
     $ruta = Join-Path $ScriptRoot (Join-Path 'rutes' 'Ruta.ps1')
     if (-not (Test-Path -LiteralPath $ruta)) {
@@ -173,11 +178,9 @@ function Start-RutaTool {
         return
     }
     try {
-        # Ruta amb possibles espais -> arguments com UNA cadena, ruta cometejada.
-        $psArgs = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$ruta`""
-        Start-Process -FilePath 'powershell.exe' -ArgumentList $psArgs | Out-Null
+        & $ruta
     } catch {
-        [System.Windows.Forms.MessageBox]::Show("No s'ha pogut obrir el planificador de rutes:`n$($_.Exception.Message)", 'Ruta', 'OK', 'Error') | Out-Null
+        [System.Windows.Forms.MessageBox]::Show("Error al planificador de rutes:`n$($_.Exception.Message)", 'Ruta', 'OK', 'Error') | Out-Null
     }
 }
 
