@@ -3,11 +3,11 @@
     "IntroText":  "S\u0027han observat les següents deficiències que cal esmenar per poder exercir l\u0027activitat:",
     "Sections":  [
                      {
-                         "Title":  "(Sense seccio)",
+                         "Title":  "Requeriment pendent",
                          "Items":  [
                                        {
                                            "Kind":  "item",
-                                           "Short":  "Requeriment pendent",
+                                           "Short":  "Anterior requeriment",
                                            "BodyLines":  [
                                                              "S’ha de donar resposta a l’anterior requeriment amb Núm. de registre: [CAMP: Registre sortida (S-202X-XXXX)].",
                                                              "COPIAR REQUERIMENT",
@@ -22,7 +22,21 @@
                      {
                          "Title":  "Desistiment comunicació",
                          "Items":  [
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "Defectes de caràcter essencial",
+                                           "BodyLines":  [
+                                                             "La comunicació presenta els següents defectes de caràcter essencial:",
+                                                             "a) Les dades consignades no permeten d’identificar degudament el titular o tècnic i l’activitat exercida, ni les característiques que siguin rellevants per a determinar la normativa aplicable.",
+                                                             "b) Les dades consignades no són certes i s’han alterat voluntàriament per tal d’atribuir a la comunicació algun dels elements o requisits essencials necessaris.",
+                                                             "c) L’activitat no disposa d’alguna de les llicències o comunicacions sectorials o urbanístiques necessàries.",
+                                                             "d) No es presenta la documentació necessària o bé aquesta no s’adequa a l’objecte o a les finalitats de l’establiment o l’activitat.",
+                                                             "e) S’han omès l’informe i el certificat de l’acte de comprovació d’incendis o el permís d’abocament, o qualsevol altre informe o control previ preceptiu o necessari d’acord amb la normativa sectorial."
+                                                         ],
+                                           "Children":  [
 
+                                                        ]
+                                       }
                                    ]
                      },
                      {
