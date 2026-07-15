@@ -37,6 +37,16 @@ $ScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $SuportDir  = Split-Path -Parent $ScriptRoot          # suport/
 $RepoRoot   = Split-Path -Parent $SuportDir           # informes-Cornella/
 
+# Icona corporativa (escut de Cornella), compartida amb el generador. Viu a
+# suport/cornella.ico. Per a totes les finestres del planificador de rutes.
+$Script:RutaIcon = $null
+if (-not $Script:HeadlessTest) {
+    try {
+        $rutaIconPath = Join-Path $SuportDir 'cornella.ico'
+        if (Test-Path -LiteralPath $rutaIconPath) { $Script:RutaIcon = New-Object System.Drawing.Icon($rutaIconPath) }
+    } catch { $Script:RutaIcon = $null }
+}
+
 # ----------------------------------------------------------------------------
 # Configuracio per defecte (sobreescriptible des de suport/config.ps1).
 # ----------------------------------------------------------------------------
@@ -706,8 +716,8 @@ function Show-IdInputForm([string]$dbLabel, [string]$baseLabel, [bool]$startFrom
     $form.Text = "Planificador de rutes d'inspeccio"
     $form.Size = New-Object System.Drawing.Size(520, 470)
     $form.StartPosition = 'CenterScreen'
-    $form.FormBorderStyle = 'FixedDialog'
-    $form.MaximizeBox = $false; $form.MinimizeBox = $false
+    $form.MinimizeBox = $true; $form.MaximizeBox = $true
+    if ($null -ne $Script:RutaIcon) { $form.Icon = $Script:RutaIcon }
 
     $lblDb = New-Object System.Windows.Forms.Label
     $lblDb.Text = $dbLabel
@@ -791,8 +801,8 @@ function Show-WarningsDialog($warnings, [int]$resolvedCount, [int]$totalIds) {
     $form.Text = "Avisos abans de generar la ruta"
     $form.Size = New-Object System.Drawing.Size(560, 380)
     $form.StartPosition = 'CenterScreen'
-    $form.FormBorderStyle = 'FixedDialog'
-    $form.MaximizeBox = $false; $form.MinimizeBox = $false
+    $form.MinimizeBox = $true; $form.MaximizeBox = $true
+    if ($null -ne $Script:RutaIcon) { $form.Icon = $Script:RutaIcon }
 
     $lblTitle = New-Object System.Windows.Forms.Label
     $lblTitle.Text = "S'han detectat avisos a la llista d'activitats:"

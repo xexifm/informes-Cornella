@@ -21,9 +21,7 @@ cada programa (cada `.bat` que pots clicar) i quins són compartits.
 
 | Fitxer / carpeta            | Què és                                                        |
 |-----------------------------|---------------------------------------------------------------|
-| `GenerarInforme.bat`        | ▶ Generar un informe de deficiències.                         |
-| `Ruta.bat`                  | ▶ Planificar la ruta d'inspecció d'un llistat d'activitats.   |
-| `Vigilant.bat`              | ▶ Generar sol els informes que arriben del mòbil.             |
+| `GenerarInforme.bat`        | ▶ Programa principal. Al menú (Pas 1) hi ha, a més dels tipus d'informe, el botó **📍 Generar ruta** i l'interruptor **Vigilant del mòbil** (activar/aturar). |
 | `Actualitzar.bat`           | ▶ Actualitzar el programa des de GitHub i refrescar dades.    |
 | `ESTRUCTURALS/`             | Plantilles `.docx` (capçalera, conclusions, catàleg REQ, ACT_EXTR). |
 | `BASE DE DADES ACTIVITATS/` | Còpia local de l'Excel d'activitats (fallback sense xarxa).   |
@@ -50,10 +48,10 @@ suport/
 ├── Instalar.bat           ← instal·lador per a una màquina nova
 │
 ├── rutes/                 ← PROGRAMA: planificador de rutes
-│   └── Ruta.ps1               (entrada de Ruta.bat — independent del motor)
+│   └── Ruta.ps1               (el llança el botó "📍 Generar ruta" del menú)
 │
 ├── mobil/                 ← PROGRAMA(es): integració amb el mòbil/Drive
-│   ├── Vigilant.ps1           (entrada de Vigilant.bat)
+│   ├── Vigilant.ps1           (el llança l'interruptor "Vigilant del mòbil" del menú)
 │   ├── ExportaDades.ps1       (el crida Actualitzar.bat per exportar dades)
 │   └── Authorize-Drive.ps1    (autoritza el PC a Google Drive, un sol cop)
 │

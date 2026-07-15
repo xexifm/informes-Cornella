@@ -120,6 +120,67 @@ function _NewForm {
     return $f
 }
 
+# ----------------------------------------------------------------------------
+# Eines integrades al menu (Pas 1): planificador de rutes i vigilant del mobil.
+# Abans eren dos .bat separats (Ruta.bat, Vigilant.bat); ara es llancen des del
+# menu com a PROCESSOS a part (son programes independents) i el menu segueix
+# obert. El vigilant es un watcher de llarga durada: es pot activar/aturar amb
+# un boto que canvia de color segons l'estat.
+# ----------------------------------------------------------------------------
+$Script:VigilantProc = $null
+
+# Cert si el vigilant s'esta executant (proces viu, no finalitzat).
+function Test-VigilantRunning {
+    return ($null -ne $Script:VigilantProc -and -not $Script:VigilantProc.HasExited)
+}
+
+# Arrenca el vigilant (Vigilant.ps1) en una finestra propia visible (mostra
+# l'activitat i, si cal, l'autoritzacio de Drive el primer cop). Guarda el
+# proces per poder-lo aturar. Segueix corrent encara que es tanqui el menu.
+function Start-Vigilant {
+    if (Test-VigilantRunning) { return }
+    $vig = Join-Path $ScriptRoot (Join-Path 'mobil' 'Vigilant.ps1')
+    if (-not (Test-Path -LiteralPath $vig)) {
+        [System.Windows.Forms.MessageBox]::Show("No s'ha trobat Vigilant.ps1.", 'Vigilant', 'OK', 'Error') | Out-Null
+        return
+    }
+    try {
+        # Passem els arguments com UNA cadena amb la ruta entre cometes: la ruta
+        # pot tenir espais (p.ex. "5.- Sergi Fadurdo") i, amb un array,
+        # Start-Process els uneix amb espais SENSE cometejar -> es trencaria.
+        $psArgs = "-NoProfile -ExecutionPolicy Bypass -File `"$vig`""
+        $Script:VigilantProc = Start-Process -FilePath 'powershell.exe' -ArgumentList $psArgs -PassThru
+    } catch {
+        [System.Windows.Forms.MessageBox]::Show("No s'ha pogut arrencar el vigilant:`n$($_.Exception.Message)", 'Vigilant', 'OK', 'Error') | Out-Null
+        $Script:VigilantProc = $null
+    }
+}
+
+# Atura el vigilant (tanca el seu proces/finestra).
+function Stop-Vigilant {
+    if (Test-VigilantRunning) {
+        try { $Script:VigilantProc.Kill() } catch { }
+    }
+    $Script:VigilantProc = $null
+}
+
+# Llanca el planificador de rutes (Ruta.ps1) com a proces a part, sense
+# consola (te la seva propia finestra). El menu segueix obert.
+function Start-RutaTool {
+    $ruta = Join-Path $ScriptRoot (Join-Path 'rutes' 'Ruta.ps1')
+    if (-not (Test-Path -LiteralPath $ruta)) {
+        [System.Windows.Forms.MessageBox]::Show("No s'ha trobat Ruta.ps1.", 'Ruta', 'OK', 'Error') | Out-Null
+        return
+    }
+    try {
+        # Ruta amb possibles espais -> arguments com UNA cadena, ruta cometejada.
+        $psArgs = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$ruta`""
+        Start-Process -FilePath 'powershell.exe' -ArgumentList $psArgs | Out-Null
+    } catch {
+        [System.Windows.Forms.MessageBox]::Show("No s'ha pogut obrir el planificador de rutes:`n$($_.Exception.Message)", 'Ruta', 'OK', 'Error') | Out-Null
+    }
+}
+
 # Carreguem el modul de format (Format.ps1). Conte les funcions Format-Section,
 # Format-Item, etc. i $ReportFormatConfig. Reutilitzable per altres tipus
 # d'informes.
@@ -2772,6 +2833,7 @@ function Main {
         switch ($sel.Action) {
             'seguiment' { Invoke-SeguimentFlow }
             'actextr'   { Invoke-ActExtrFlow }
+            'ruta'      { Start-RutaTool }   # llanca el planificador; torna al menu
             'nou'       { [void](Invoke-NouWizard -cataleg $sel.Cataleg) }
             default     { return }
         }

@@ -9,9 +9,7 @@ d'activitat de l'Ajuntament de Cornellà.
 
 ```
 informes-Cornella/
-├── GenerarInforme.bat            ← doble clic per generar un informe
-├── Ruta.bat                      ← doble clic per planificar una ruta d'inspecció
-├── Vigilant.bat                  ← genera sol els informes que arriben del mòbil
+├── GenerarInforme.bat            ← doble clic: programa principal (informes, ruta i vigilant al menú)
 ├── Actualitzar.bat               ← doble clic per actualitzar el programa
 ├── ESTRUCTURA.md                  ← MAPA: quins fitxers fa servir cada executable
 ├── ESTRUCTURALS/                  ← plantilles del programa (les pots editar al Word)
@@ -31,9 +29,9 @@ informes-Cornella/
     ├── config.ps1                 ← (opcional) sobreescriu rutes locals
     ├── Comprova-Enllacos.ps1 · ComprovarEnllacos.bat   ← comprova enllaços caiguts dels catàlegs
     ├── Instalar.bat               ← instal·lar en una màquina nova (vegeu cap. 2)
-    ├── rutes/Ruta.ps1             ← planificador de rutes (entrada de Ruta.bat)
+    ├── rutes/Ruta.ps1             ← planificador de rutes (botó "📍 Generar ruta" del menú)
     ├── mobil/                     ← integració mòbil/Drive
-    │   ├── Vigilant.ps1           ← entrada de Vigilant.bat
+    │   ├── Vigilant.ps1           ← el llança l'interruptor "Vigilant del mòbil" del menú
     │   ├── ExportaDades.ps1       ← el crida Actualitzar.bat (exporta dades)
     │   └── Authorize-Drive.ps1    ← autoritza el PC a Google Drive
     ├── tests/                     ← proves (run-tests.ps1, run-tests-ruta.ps1)
@@ -186,8 +184,8 @@ on comencen les conclusions a esborrar es poden personalitzar a
 `suport/config.ps1` (`$SeguimentConclusionPhrases`).
 
 ### Planificar una ruta d'inspecció
-**Doble clic a `Ruta.bat`**. Serveix per visitar diverses activitats en un
-sol viatge amb el camí més curt. Fa el següent:
+Al menú de `GenerarInforme.bat`, prem el botó **📍 Generar ruta**. Serveix per
+visitar diverses activitats en un sol viatge amb el camí més curt. Fa el següent:
 
 1. Surt una finestra: **escriu o enganxa els ID Activitat** a visitar
    (separats per espais, comes o salts de línia). Exemple: `1429 1428 1427`.
@@ -489,7 +487,7 @@ $OutputDir              = '...'    # ruta on desar els informes (.docx)
 $ActivitatsDir          = '...'    # carpeta on viu l'Excel d'activitats
 $AlwaysConclusionsCount = 2        # (obsolet, ara s'usa ::SEMPRE::)
 
-# Planificador de rutes (Ruta.bat):
+# Planificador de rutes (botó "📍 Generar ruta"):
 $OsrmBaseUrl            = '...'    # servidor de rutes OSRM (buit = ruta recta)
 $RutesOutputDir         = '...'    # ruta on desar els mapes de ruta (HTML)
 $RutaOrigenUtmX         = 424456   # base de sortida (UTM X). Per defecte
@@ -562,8 +560,8 @@ camps), **enviar els requeriments per correu** a un destinatari, i fer que el
 
 - El mòbil obre un **formulari web** (GitHub Pages, carpeta `docs/`).
 - El mòbil prepara un **paquet JSON**, el deixa a una carpeta privada de
-  **Google Drive**, i el PC el converteix en `.docx` amb **`Vigilant.bat`**
-  (mode `GenerarInforme.ps1 -DesDePaquet`).
+  **Google Drive**, i el PC el converteix en `.docx` amb l'interruptor
+  **Vigilant del mòbil** del menú (mode `GenerarInforme.ps1 -DesDePaquet`).
 - Les **dades d'activitats** (noms/adreces) **no surten** mai al GitHub públic:
   van només a Drive privat. Les plantilles (sense dades personals) sí que es
   publiquen, per servir el formulari.
