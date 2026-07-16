@@ -24,6 +24,21 @@
 
 $ErrorActionPreference = 'Stop'
 
+# Assegurem TLS 1.2 per a les crides HTTPS al servidor de rutes (OSRM). El
+# Windows PowerShell 5.1 per defecte pot negociar un TLS massa antic i la
+# connexio fallaria; llavors la ruta sortiria en LINIA RECTA en lloc de per
+# carretera. Ho fem additiu (-bor) per no treure cap protocol ja actiu.
+try {
+    [Net.ServicePointManager]::SecurityProtocol =
+        [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+    # TLS 1.3 nomes existeix en Windows/.NET recents; l'afegim si el sistema el te
+    # (aixi no perdem la negociacio moderna que fa servir el sistema per defecte).
+    if ([enum]::GetNames([Net.SecurityProtocolType]) -contains 'Tls13') {
+        [Net.ServicePointManager]::SecurityProtocol =
+            [Net.ServicePointManager]::SecurityProtocol -bor ([Net.SecurityProtocolType]'Tls13')
+    }
+} catch { }
+
 $Script:HeadlessTest = [bool]$env:RUTA_TEST -or [bool]$env:GENINFORME_TEST
 if (-not $Script:HeadlessTest) {
     Add-Type -AssemblyName System.Windows.Forms
@@ -691,18 +706,32 @@ function Read-ActivitatsForRoute($excelFile) {
 # Demana la ruta optimitzada a OSRM (servei /trip). Retorna el resultat de
 # ConvertFrom-OsrmTrip o $null si falla (xarxa, servidor, etc.).
 function Invoke-OsrmTrip($points) {
-    if ([string]::IsNullOrWhiteSpace($OsrmBaseUrl)) { return $null }
+    # $Script:RutaOsrmError guarda el MOTIU real si no es pot fer la ruta per
+    # carretera (l'ensenyem a l'usuari en lloc d'un silenci: abans el missatge
+    # anava a la consola, que ara no es veu perque Ruta corre dins del programa).
+    $Script:RutaOsrmError = ''
+    if ([string]::IsNullOrWhiteSpace($OsrmBaseUrl)) {
+        $Script:RutaOsrmError = 'No hi ha cap servidor de rutes configurat (OsrmBaseUrl buit).'
+        return $null
+    }
     $coords = (@($points | ForEach-Object {
         "{0},{1}" -f ([string]$_.Lon), ([string]$_.Lat)
     }) -join ';')
     $url = "$($OsrmBaseUrl.TrimEnd('/'))/trip/v1/driving/$coords`?source=first&roundtrip=true&geometries=geojson&overview=full"
-    try {
-        $resp = Invoke-RestMethod -Uri $url -Method Get -TimeoutSec 25
-        return ConvertFrom-OsrmTrip $resp (@($points).Count)
-    } catch {
-        Write-Host "Avis: no s'ha pogut contactar amb el servidor de rutes ($($_.Exception.Message)). Uso ruta aproximada."
-        return $null
+    # Reintentem un cop: el servidor public de demostracio (router.project-osrm.org)
+    # de vegades limita o falla de manera transitoria.
+    for ($attempt = 1; $attempt -le 2; $attempt++) {
+        try {
+            $resp = Invoke-RestMethod -Uri $url -Method Get -TimeoutSec 25 -UseBasicParsing
+            $trip = ConvertFrom-OsrmTrip $resp (@($points).Count)
+            if ($null -ne $trip) { return $trip }
+            $Script:RutaOsrmError = "El servidor de rutes ($OsrmBaseUrl) no ha retornat una ruta valida."
+        } catch {
+            $Script:RutaOsrmError = "$($_.Exception.Message)  [servidor: $OsrmBaseUrl]"
+            if ($attempt -lt 2) { Start-Sleep -Milliseconds 700 }
+        }
     }
+    return $null
 }
 
 # ============================================================================
@@ -1055,10 +1084,15 @@ function Invoke-RutaMain {
     if ($mode -eq 'xarxa') {
         $summary += "`nDistancia: $([math]::Round($distanceM/1000.0,1)) km, temps aprox. $([math]::Round($durationS/60.0)) min."
     } elseif ($mode -eq 'aproximada') {
-        $summary += "`n(Ruta aproximada en linia recta: sense connexio al servidor de rutes.)"
+        $summary += "`n`nATENCIO: la ruta ha sortit en LINIA RECTA, no per carretera,"
+        $summary += "`nperque NO s'ha pogut fer la ruta al servidor de rutes."
+        if ($Script:RutaOsrmError) { $summary += "`nMotiu: $Script:RutaOsrmError" }
+        $summary += "`n`nComprova la connexio a internet. Si el problema es del servidor"
+        $summary += "`npublic (router.project-osrm.org), pots posar un servidor propi a"
+        $summary += "`nsuport/config.ps1:  `$OsrmBaseUrl = 'http://EL-TEU-OSRM:5000'"
     }
     $summary += "`n`nFitxer: $outPath`nObre'l i fes 'Imprimir / Desar com a PDF' per tenir-la en PDF."
-    Show-Info $summary 'Ruta generada' 'Information'
+    Show-Info $summary 'Ruta generada' $(if ($mode -eq 'aproximada') { 'Warning' } else { 'Information' })
 }
 
 if (-not $Script:HeadlessTest) {
