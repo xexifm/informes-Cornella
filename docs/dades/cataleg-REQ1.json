@@ -1690,7 +1690,7 @@
                                    ]
                      },
                      {
-                         "Title":  "Cuina i extracció de fums",
+                         "Title":  "Extracció de fums",
                          "Items":  [
                                        {
                                            "Kind":  "item",
@@ -1767,6 +1767,26 @@
                                            "Short":  "Campana - ventilador F400 90",
                                            "BodyLines":  [
                                                              "Campana. S’ha de justificar mitjançant documentació del producte que els ventiladors compleixen amb les especificacions de la norma UNE-EN 12101-3: 2016 “Especificacions per a airejadors extractors de fums i calor mecànics.” i tenen una classificació F400 90."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "Fum per ignició - Vestíbul",
+                                           "BodyLines":  [
+                                                             "Vestíbul ignició. Segons l’article 12.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat els locals on hi hagi producció de fum per ignició de nova implantació o aquells que provoquin molèsties per olors hauran de disposar d’un vestíbul de separació entre la porta d\u0027entrada i la sala principal. S’ha d’executar el vestíbul o presentar un certificat signat pel titular de l’activitat indicant que no es produirà fum per ignició dins l’activitat."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "Fum per ignició - Extracció",
+                                           "BodyLines":  [
+                                                             "Extracció ignició. Segons l’article 12.2 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat tots els locals on hi hagi producció de fum per ignició hauran de disposar d’un sistema mecànic d’extracció d’aire dirigit a la coberta de l’edifici. Aquest mecanisme mecànic d’extracció ha d’abastir tant la sala principal com el vestíbul d’entrada, si en disposa. El sistema d’extracció ha d’estar en marxa durant l’horari d’obertura de l’activitat i les portes i finestres del local permanentment tancades. S’ha d’executar el sistema mecànic d’extracció o presentar un certificat signat pel titular de l’activitat indicant que no es produirà fum per ignició dins l’activitat."
                                                          ],
                                            "Children":  [
 
