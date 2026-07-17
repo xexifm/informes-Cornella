@@ -28,7 +28,7 @@ cada programa (cada `.bat` que pots clicar) i quins són compartits.
 | `BASE DE DADES ACT_EXTR/`   | Registre local d'activitats extraordinàries (mode ACT_EXTR, gitignored). |
 | `Informes generats/`        | Sortida `.docx` (local, ignorada per git).                    |
 | `Rutes generades/`          | Sortida dels mapes de ruta HTML (local, ignorada per git).    |
-| `docs/`                     | Formulari web del mòbil (GitHub Pages).                        |
+| `docs/`                     | Web pública (GitHub Pages): formulari del mòbil (`index.html`) i **plànol públic d'activitats precintades** (`precintades.html`). |
 | `suport/`                   | Codi: motor compartit + scripts de cada programa + proves.    |
 
 ---
@@ -48,8 +48,11 @@ suport/
 ├── config.ps1             ← la TEVA configuració local (rutes, OSRM…)
 ├── Instalar.bat           ← instal·lador per a una màquina nova
 │
-├── rutes/                 ← PROGRAMA: planificador de rutes
-│   └── Ruta.ps1               (el llança el botó "📍 Generar ruta" del menú)
+├── rutes/                 ← PROGRAMA(es): rutes i mapes a partir de l'Excel
+│   ├── Ruta.ps1               (el llança el botó "📍 Generar ruta" del menú)
+│   └── Precintades.ps1        (genera docs/dades/precintades.json per al plànol
+│                               públic; el crida Actualitzar.bat. Reutilitza
+│                               les funcions de Ruta.ps1 en mode headless)
 │
 ├── mobil/                 ← PROGRAMA(es): integració amb el mòbil/Drive
 │   ├── Vigilant.ps1           (el llança l'interruptor "Vigilant del mòbil" del menú)
@@ -57,8 +60,9 @@ suport/
 │   └── Authorize-Drive.ps1    (autoritza el PC a Google Drive, un sol cop)
 │
 ├── tests/                 ← proves automàtiques
-│   ├── run-tests.ps1          (motor / generador d'informes)
-│   └── run-tests-ruta.ps1     (planificador de rutes)
+│   ├── run-tests.ps1              (motor / generador d'informes)
+│   ├── run-tests-ruta.ps1         (planificador de rutes)
+│   └── run-tests-precintades.ps1  (mapa d'activitats precintades)
 │
 └── documentacio/          ← guies tècniques
     ├── PLA-MOBIL.md
@@ -82,7 +86,8 @@ Llegenda: **●** = punt d'entrada · **○** = el carrega (dot-source) · **·*
 | `ActExtr.ps1`                     | ○              |          | ○        | ○           |
 | `DriveApi.ps1`                    | ○              |          | ○        | ○           |
 | `config.ps1`                      | ·              | ·        | ·        | ·           |
-| `rutes/Ruta.ps1`                  |                | **●**    |          |             |
+| `rutes/Ruta.ps1`                  |                | **●**    |          | ○ (Precint.)|
+| `rutes/Precintades.ps1`           |                |          |          | ● (○ Ruta)  |
 | `mobil/Vigilant.ps1`              |                |          | ●        |             |
 | `mobil/ExportaDades.ps1`          |                |          |          | ● (○ motor) |
 | `mobil/Authorize-Drive.ps1`       |                |          | ·        |             |
@@ -94,6 +99,10 @@ Llegenda: **●** = punt d'entrada · **○** = el carrega (dot-source) · **·*
   rutes fràgils.
 - **`rutes/Ruta.ps1` és independent**: només llegeix `config.ps1` (no carrega
   el motor; no necessita Word).
+- **`rutes/Precintades.ps1`** genera les dades del **plànol públic** d'activitats
+  precintades (`docs/dades/precintades.json`). Carrega `Ruta.ps1` en mode
+  headless per reutilitzar-ne les funcions (conversió UTM, format d'adreça,
+  cerca de l'Excel). El crida `Actualitzar.bat`, que puja el JSON a `main`.
 - **El motor compartit** és `GenerarInforme.ps1` + `Format.ps1` +
   `Seguiment.ps1` + `DriveApi.ps1`. Un canvi aquí afecta el generador, el
   vigilant i l'exportador alhora.
@@ -103,8 +112,9 @@ Llegenda: **●** = punt d'entrada · **○** = el carrega (dot-source) · **·*
 ## Proves
 
 ```
-pwsh -File suport/tests/run-tests.ps1          # motor / generador d'informes
-pwsh -File suport/tests/run-tests-ruta.ps1     # planificador de rutes
-pwsh -File suport/tests/run-tests-actextr.ps1  # mode ACT_EXTR (Decret 112/2010)
+pwsh -File suport/tests/run-tests.ps1              # motor / generador d'informes
+pwsh -File suport/tests/run-tests-ruta.ps1         # planificador de rutes
+pwsh -File suport/tests/run-tests-precintades.ps1  # mapa d'activitats precintades
+pwsh -File suport/tests/run-tests-actextr.ps1      # mode ACT_EXTR (Decret 112/2010)
 ```
 (en un Windows sense PowerShell 7, fes servir `powershell` en lloc de `pwsh`.)
