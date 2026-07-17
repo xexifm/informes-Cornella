@@ -21,8 +21,8 @@ cada programa (cada `.bat` que pots clicar) i quins són compartits.
 
 | Fitxer / carpeta            | Què és                                                        |
 |-----------------------------|---------------------------------------------------------------|
-| `GenerarInforme.bat`        | ▶ Programa principal. Al menú (Pas 1) hi ha, a més dels tipus d'informe, el botó **📍 Generar ruta** i l'interruptor **Vigilant del mòbil** (activar/aturar). |
-| `Actualitzar.bat`           | ▶ Actualitzar el programa des de GitHub i refrescar dades.    |
+| `GenerarInforme.bat`        | ▶ Programa principal. Llança el programa **sense cap finestra de consola** (via `suport\GenerarInforme.vbs`). Si ja està obert, **no n'obre un segon**: porta al davant la finestra existent. Al menú (Pas 1) hi ha, a més dels tipus d'informe, el botó **📍 Generar ruta** i l'interruptor **Vigilant del mòbil** (activar/aturar). |
+| `Actualitzar.bat`           | ▶ Actualitzar el programa des de GitHub i refrescar dades. Si el programa està obert, **el tanca abans** d'actualitzar. |
 | `ESTRUCTURALS/`             | Plantilles `.docx` (capçalera, conclusions, catàleg REQ, ACT_EXTR). |
 | `BASE DE DADES ACTIVITATS/` | Còpia local de l'Excel d'activitats (fallback sense xarxa).   |
 | `BASE DE DADES ACT_EXTR/`   | Registre local d'activitats extraordinàries (mode ACT_EXTR, gitignored). |
@@ -37,6 +37,7 @@ cada programa (cada `.bat` que pots clicar) i quins són compartits.
 
 ```
 suport/
+├── GenerarInforme.vbs     ← llançador SENSE consola (el crida GenerarInforme.bat)
 ├── GenerarInforme.ps1     ← MOTOR + punt d'entrada de GenerarInforme.bat
 ├── Format.ps1             ← mòdul del motor (format del .docx)
 ├── Seguiment.ps1          ← mòdul del motor (informes de seguiment + tria de mode)

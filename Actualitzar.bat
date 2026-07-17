@@ -11,6 +11,25 @@ setlocal EnableDelayedExpansion
 title Actualitzar generador d'informes Cornella
 cd /d "%~dp0"
 
+REM --- Tancar el programa si esta obert ---
+REM Abans d'actualitzar tanquem el generador si s'esta executant (si no, podria
+REM quedar amb la versio antiga carregada o bloquejar fitxers). El programa desa
+REM el PID del seu proces viu a running.pid; el llegim i, si es realment un
+REM powershell.exe amb aquest PID, el tanquem.
+set "PIDFILE=%LOCALAPPDATA%\InformesCornella\running.pid"
+if exist "%PIDFILE%" (
+    set "GENPID="
+    set /p GENPID=<"%PIDFILE%"
+    if defined GENPID (
+        tasklist /FI "PID eq !GENPID!" /FI "IMAGENAME eq powershell.exe" 2>nul | find "!GENPID!" >nul
+        if not errorlevel 1 (
+            echo Tancant el generador que esta obert ^(PID !GENPID!^)...
+            taskkill /PID !GENPID! /T /F >nul 2>&1
+        )
+        del "%PIDFILE%" >nul 2>&1
+    )
+)
+
 echo === Estat ABANS ===
 git branch --show-current
 git log -1 --format="%%h  %%s"

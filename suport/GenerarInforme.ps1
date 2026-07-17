@@ -105,6 +105,40 @@ public static extern void SetCurrentProcessExplicitAppUserModelID([System.Runtim
         $iconPath = Join-Path $ScriptRoot 'cornella.ico'
         if (Test-Path -LiteralPath $iconPath) { $Script:AppIcon = New-Object System.Drawing.Icon($iconPath) }
     } catch { $Script:AppIcon = $null }
+
+    # Helper user32 per portar a primer pla la finestra d'una instancia ja oberta
+    # del programa (una sola instancia: si es torna a llancar, s'enfoca la que
+    # ja hi ha en lloc d'obrir-ne una segona). Donat el PID del proces de la
+    # instancia viva, busca la seva finestra de nivell superior visible i la
+    # restaura + la posa al davant.
+    try {
+        Add-Type -Namespace CornellaApp -Name Win -MemberDefinition @'
+[System.Runtime.InteropServices.DllImport("user32.dll")] static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, System.IntPtr lParam);
+delegate bool EnumWindowsProc(System.IntPtr hWnd, System.IntPtr lParam);
+[System.Runtime.InteropServices.DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(System.IntPtr hWnd, out uint pid);
+[System.Runtime.InteropServices.DllImport("user32.dll")] static extern bool IsWindowVisible(System.IntPtr hWnd);
+[System.Runtime.InteropServices.DllImport("user32.dll")] static extern bool ShowWindow(System.IntPtr hWnd, int nCmdShow);
+[System.Runtime.InteropServices.DllImport("user32.dll")] static extern bool SetForegroundWindow(System.IntPtr hWnd);
+[System.Runtime.InteropServices.DllImport("user32.dll")] static extern System.IntPtr GetWindow(System.IntPtr hWnd, uint uCmd);
+const int SW_RESTORE = 9;
+static System.IntPtr _found;
+static uint _target;
+static bool _Cb(System.IntPtr h, System.IntPtr l) {
+    uint p; GetWindowThreadProcessId(h, out p);
+    // GW_OWNER = 4: nomes finestres de nivell superior (sense propietari).
+    if (p == _target && IsWindowVisible(h) && GetWindow(h, 4) == System.IntPtr.Zero) { _found = h; return false; }
+    return true;
+}
+public static bool FocusProcessWindow(int pid) {
+    _found = System.IntPtr.Zero; _target = (uint)pid;
+    EnumWindows(_Cb, System.IntPtr.Zero);
+    if (_found == System.IntPtr.Zero) return false;
+    ShowWindow(_found, SW_RESTORE);
+    SetForegroundWindow(_found);
+    return true;
+}
+'@ -ErrorAction Stop
+    } catch { }
 }
 
 # Crea una finestra estandard de l'app: centrada, MINIMITZABLE, MAXIMITZABLE i
@@ -276,6 +310,51 @@ function Ensure-AppDataDir {
     if (-not (Test-Path -LiteralPath $AppDataDir)) {
         New-Item -ItemType Directory -Path $AppDataDir -Force | Out-Null
     }
+}
+
+# ----------------------------------------------------------------------------
+# Una sola instancia del programa
+# ----------------------------------------------------------------------------
+# Si el programa ja esta obert i es torna a llancar, en lloc d'obrir una segona
+# finestra portem al davant la que ja hi ha i sortim. Fem servir un MUTEX amb
+# nom (Windows destrueix el mutex automaticament quan el proces propietari mor,
+# fins i tot si es tanca amb 'exit' o el mata Actualitzar.bat, aixi la deteccio
+# sempre es correcta) i un PIDFILE amb el PID del proces viu (perque la segona
+# instancia sapiga quina finestra enfocar i perque Actualitzar.bat pugui tancar
+# el programa abans d'actualitzar).
+$Script:AppMutex    = $null
+$Script:PidFilePath = Join-Path $AppDataDir 'running.pid'
+
+# Retorna $true si som la (unica) instancia i podem continuar; $false si ja n'hi
+# ha una d'oberta (l'hem enfocada i el qui crida ha de sortir sense fer res).
+function Enter-SingleInstance {
+    Ensure-AppDataDir
+    $createdNew = $false
+    try {
+        $Script:AppMutex = New-Object System.Threading.Mutex($true, 'Local\InformesCornellaGenerador', [ref]$createdNew)
+    } catch {
+        # Si el mutex falla per qualsevol motiu, no bloquegem l'arrencada.
+        return $true
+    }
+    if ($createdNew) {
+        # Som la primera instancia: desem el nostre PID i programem la neteja
+        # del pidfile en sortir (el mutex el neteja sol el sistema operatiu).
+        try { Set-Content -LiteralPath $Script:PidFilePath -Value ([string]$PID) -Encoding ASCII } catch { }
+        try {
+            $Global:CornellaPidFile = $Script:PidFilePath
+            Register-EngineEvent -SourceIdentifier ([System.Management.Automation.PsEngineEvent]::Exiting) -Action {
+                try { if ($Global:CornellaPidFile -and (Test-Path -LiteralPath $Global:CornellaPidFile)) { Remove-Item -LiteralPath $Global:CornellaPidFile -Force } } catch { }
+            } | Out-Null
+        } catch { }
+        return $true
+    }
+    # Ja hi ha una instancia viva: enfoquem la seva finestra i sortim.
+    $otherPid = $null
+    try { $otherPid = [int]((Get-Content -LiteralPath $Script:PidFilePath -Raw -ErrorAction Stop).Trim()) } catch { $otherPid = $null }
+    if ($otherPid) {
+        try { [CornellaApp.Win]::FocusProcessWindow($otherPid) | Out-Null } catch { }
+    }
+    return $false
 }
 
 # ----------------------------------------------------------------------------
@@ -1036,8 +1115,23 @@ function Test-StyleMatch([string]$styleName, [int]$level) {
     return $false
 }
 
+# Cache en memoria del parseig del cataleg durant l'execucio del programa.
+# Clau = ruta + data de modificacio + mida. Aixi, si es genera un segon informe
+# del mateix cataleg en la mateixa sessio, no cal tornar a obrir-lo amb Word
+# (l'iteracio de paragrafs per COM es de les parts mes lentes). Si el fitxer
+# canvia (l'usuari edita la plantilla), la clau canvia i es torna a parsejar.
+$Script:_parseCache = @{}
+
 function Get-ParsedCataleg($word, $path) {
-    return (Parse-Cataleg -word $word -path $path)
+    $key = $path
+    try {
+        $fi = Get-Item -LiteralPath $path -ErrorAction Stop
+        $key = "$path|$($fi.LastWriteTimeUtc.Ticks)|$($fi.Length)"
+    } catch { }
+    if ($Script:_parseCache.ContainsKey($key)) { return $Script:_parseCache[$key] }
+    $parsed = Parse-Cataleg -word $word -path $path
+    $Script:_parseCache[$key] = $parsed
+    return $parsed
 }
 
 function Parse-Cataleg($word, $path) {
@@ -2864,9 +2958,13 @@ function Invoke-NouWizard {
     $st  = @{ Cataleg=$cataleg; Parsed=$null; Header=$null; Selected=$null; Fields=[ordered]@{}; ConclAll=$null; Conclusions=$null }
     $pre = @{ Header=$null; Keys=$null; Fields=$null; Concl=$null }
 
-    $word = New-WordApp
+    # RENDIMENT: NO obrim Word ni parsejem el cataleg aqui. El Pas 2 (dades de
+    # la capcalera) es WinForms pur i no necessita Word, aixi que apareix de
+    # seguida en clicar el tipus d'informe. Word (arrencada "en fred", lenta el
+    # primer cop) i el parseig del cataleg es fan de forma DIFERIDA quan es
+    # necessiten per primer cop (Pas 3), mentre l'usuari omple la capcalera.
+    $word = $null
     try {
-        $st.Parsed = Get-ParsedCataleg -word $word -path $st.Cataleg.FullName
         $step = 2
         $dir  = 'fwd'
         while ($step -ge 2 -and $step -le 5) {
@@ -2890,6 +2988,12 @@ function Invoke-NouWizard {
                 }
 
                 3 {
+                    # Primer cop que necessitem Word i el cataleg parsejat:
+                    # arrenquem Word (diferit) i parsegem ara (amb cache).
+                    if ($null -eq $st.Parsed) {
+                        if ($null -eq $word) { $word = New-WordApp }
+                        $st.Parsed = Get-ParsedCataleg -word $word -path $st.Cataleg.FullName
+                    }
                     if ($st.Parsed.IsFixedBody) {
                         # Informe de cos fix (p.ex. TERMINI): no hi ha
                         # deficiencies a triar. Saltem el Pas 3.
@@ -2918,6 +3022,7 @@ function Invoke-NouWizard {
                     if ($null -eq $st.ConclAll) {
                         # Les conclusions triables depenen del tipus d'informe
                         # (BaseName del cataleg: REQ1, TERMINI...).
+                        if ($null -eq $word) { $word = New-WordApp }
                         $st.ConclAll = Read-Conclusions -word $word -path $ConclusionsPath -reportType $st.Cataleg.BaseName
                     }
                     if ($st.ConclAll.Selectable.Count -eq 0) {
@@ -2939,6 +3044,7 @@ function Invoke-NouWizard {
                 }
 
                 5 {
+                    if ($null -eq $word) { $word = New-WordApp }
                     $outPath = Build-Document -word $word -header $st.Header `
                                               -selectedSections $st.Selected `
                                               -fields $st.Fields `
@@ -2981,11 +3087,23 @@ function Invoke-NouWizard {
         throw
     }
     finally {
-        if (-not $word.Visible) { Close-WordApp $word }
+        # Si mai vam arribar a obrir Word (p.ex. Enrere al Pas 2), no hi ha res
+        # a tancar. Si el vam obrir pero no es va fer visible (l'usuari va
+        # cancel-lar abans de generar), el tanquem. Si es va fer visible (informe
+        # generat i obert), el deixem obert per a l'usuari.
+        if ($null -ne $word -and -not $word.Visible) { Close-WordApp $word }
     }
 }
 
 if (-not $Script:HeadlessTest) {
-    if ($DesDePaquet) { Invoke-GenerateFromPaquet $DesDePaquet }
-    else              { Main }
+    if ($DesDePaquet) {
+        # Mode no interactiu (vigilant del mobil): NO apliquem el candau d'una
+        # sola instancia (poden processar-se diversos paquets alhora i no obre
+        # cap finestra).
+        Invoke-GenerateFromPaquet $DesDePaquet
+    }
+    else {
+        # Nomes una instancia: si ja n'hi ha una d'oberta, l'enfoquem i sortim.
+        if (Enter-SingleInstance) { Main }
+    }
 }
