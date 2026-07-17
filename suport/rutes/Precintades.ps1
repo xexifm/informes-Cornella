@@ -150,7 +150,7 @@ function Read-PrecintadesFromExcel($excelFile) {
             $headers = @()
             for ($c = 1; $c -le $cols; $c++) {
                 $hv = $data[1, $c]
-                $headers += (if ($null -eq $hv) { '' } else { ([string]$hv).Trim() })
+                $headers += $(if ($null -eq $hv) { '' } else { ([string]$hv).Trim() })
             }
 
             # Columnes fixes (per NOM, mes robust que per index).
