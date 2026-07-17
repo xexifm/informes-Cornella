@@ -1,147 +1,147 @@
 {
-  "GeneratedAt": "2026-07-17T11:10:28+00:00",
-  "Font": "20260716 ACTIVITATS.xls",
-  "Comptador": 20,
-  "Activitats": [
-    {
-      "id": "1369",
-      "activitat": "MAGATZEM I GARATGE",
-      "adreca": "PG FERROCARRILS CATALANS 24",
-      "lat": 41.3515651,
-      "lon": 2.0689571
-    },
-    {
-      "id": "1367",
-      "activitat": "LABORATORI PROTESIS DENTAL",
-      "adreca": "C DOCTOR ARUS 2",
-      "lat": 41.3622932,
-      "lon": 2.082784
-    },
-    {
-      "id": "1310",
-      "activitat": "BAR",
-      "adreca": "PG FERROCARRILS CATALANS 188",
-      "lat": 41.3526004,
-      "lon": 2.0857316
-    },
-    {
-      "id": "1141",
-      "activitat": "TALLER MECÀNIC",
-      "adreca": "C URBANITZACIO PALOU 13",
-      "lat": 41.3669463,
-      "lon": 2.0817536
-    },
-    {
-      "id": "776",
-      "activitat": "BAR RESTAURANT",
-      "adreca": "C RAMONEDA 34",
-      "lat": 41.3612199,
-      "lon": 2.0775688
-    },
-    {
-      "id": "668",
-      "activitat": "BAR",
-      "adreca": "C VISTALEGRE 40",
-      "lat": 41.3621736,
-      "lon": 2.0753598
-    },
-    {
-      "id": "641",
-      "activitat": "TALLER MECÀNIC",
-      "adreca": "C ISCLE SOLER 1",
-      "lat": 41.3650418,
-      "lon": 2.0754597
-    },
-    {
-      "id": "410",
-      "activitat": "FERRETERIA",
-      "adreca": "C DOCTOR MARTI I JULIA 49",
-      "lat": 41.3537929,
-      "lon": 2.0665561
-    },
-    {
-      "id": "364",
-      "activitat": "GIMNÀS",
-      "adreca": "AV FAMA 12",
-      "lat": 41.353545,
-      "lon": 2.0811062
-    },
-    {
-      "id": "334",
-      "activitat": "CENTRE DE CULTE",
-      "adreca": "C BELLATERRA 35",
-      "lat": 41.3579455,
-      "lon": 2.0737282
-    },
-    {
-      "id": "319",
-      "activitat": "TALLER MECÀNIC",
-      "adreca": "AV FAMA 51",
-      "lat": 41.3515681,
-      "lon": 2.0828315
-    },
-    {
-      "id": "231",
-      "activitat": "BAR RESTAURANT",
-      "adreca": "C NOGUERA (LA) 76",
-      "lat": 41.3530527,
-      "lon": 2.0880452
-    },
-    {
-      "id": "181",
-      "activitat": "GIMNÀS",
-      "adreca": "C TRAVESSERA 24",
-      "lat": 41.3651239,
-      "lon": 2.0791103
-    },
-    {
-      "id": "122",
-      "activitat": "COMERÇ AL DETALL DE VEHICLES",
-      "adreca": "CTRA PRAT 77",
-      "lat": 41.3497746,
-      "lon": 2.078258
-    },
-    {
-      "id": "103",
-      "activitat": "BAR RESTAURANT",
-      "adreca": "CAMI CAMP DE L'EMPEDRAT 3",
-      "lat": 41.3560193,
-      "lon": 2.087596
-    },
-    {
-      "id": "60",
-      "activitat": "BAR",
-      "adreca": "C RAMONEDA 69",
-      "lat": 41.3625905,
-      "lon": 2.0779391
-    },
-    {
-      "id": "56",
-      "activitat": "RESTAURANT",
-      "adreca": "C RUBIO I ORS 1",
-      "lat": 41.3561636,
-      "lon": 2.0669153
-    },
-    {
-      "id": "52",
-      "activitat": "BAR",
-      "adreca": "AV PARC 23",
-      "lat": 41.3591511,
-      "lon": 2.0735335
-    },
-    {
-      "id": "34",
-      "activitat": "EMMAGATZEMATGE",
-      "adreca": "RBLA SOLANES 46",
-      "lat": 41.3609515,
-      "lon": 2.090805
-    },
-    {
-      "id": "29",
-      "activitat": "EMMAGATZEMATGE MENJAR",
-      "adreca": "PG FERROCARRILS CATALANS 171",
-      "lat": 41.3533117,
-      "lon": 2.0837919
-    }
-  ]
+    "GeneratedAt":  "2026-07-17T13:35:35.5769097+02:00",
+    "Font":  "2026-07-16 ACTIVITATS.xls",
+    "Comptador":  20,
+    "Activitats":  [
+                       {
+                           "id":  "1369",
+                           "activitat":  "MAGATZEM I GARATGE",
+                           "adreca":  "PG FERROCARRILS CATALANS",
+                           "lat":  41.351565110207048,
+                           "lon":  2.0689570694785369
+                       },
+                       {
+                           "id":  "1367",
+                           "activitat":  "LABORATORI PROTESIS DENTAL",
+                           "adreca":  "C DOCTOR ARUS",
+                           "lat":  41.362293230284088,
+                           "lon":  2.0827839558582451
+                       },
+                       {
+                           "id":  "1310",
+                           "activitat":  "BAR",
+                           "adreca":  "PG FERROCARRILS CATALANS",
+                           "lat":  41.352600444495529,
+                           "lon":  2.0857316442335083
+                       },
+                       {
+                           "id":  "1141",
+                           "activitat":  "TALLER MECÀNIC",
+                           "adreca":  "C URBANITZACIO PALOU",
+                           "lat":  41.366946313504371,
+                           "lon":  2.0817535776861691
+                       },
+                       {
+                           "id":  "776",
+                           "activitat":  "BAR RESTAURANT",
+                           "adreca":  "C RAMONEDA",
+                           "lat":  41.361219912469458,
+                           "lon":  2.0775687663931937
+                       },
+                       {
+                           "id":  "668",
+                           "activitat":  "BAR",
+                           "adreca":  "C VISTALEGRE",
+                           "lat":  41.36217355577017,
+                           "lon":  2.0753598414585244
+                       },
+                       {
+                           "id":  "641",
+                           "activitat":  "TALLER MECÀNIC",
+                           "adreca":  "C ISCLE SOLER",
+                           "lat":  41.365041811455882,
+                           "lon":  2.0754597227613787
+                       },
+                       {
+                           "id":  "410",
+                           "activitat":  "FERRETERIA",
+                           "adreca":  "C DOCTOR MARTI I JULIA",
+                           "lat":  41.353792949311753,
+                           "lon":  2.0665560933645688
+                       },
+                       {
+                           "id":  "364",
+                           "activitat":  "GIMNÀS",
+                           "adreca":  "AV FAMA",
+                           "lat":  41.353544975152218,
+                           "lon":  2.0811062198226429
+                       },
+                       {
+                           "id":  "334",
+                           "activitat":  "CENTRE DE CULTE",
+                           "adreca":  "C BELLATERRA",
+                           "lat":  41.357945543416918,
+                           "lon":  2.0737281602346243
+                       },
+                       {
+                           "id":  "319",
+                           "activitat":  "TALLER MECÀNIC",
+                           "adreca":  "AV FAMA",
+                           "lat":  41.3515680725566,
+                           "lon":  2.0828314803413934
+                       },
+                       {
+                           "id":  "231",
+                           "activitat":  "BAR RESTAURANT",
+                           "adreca":  "C NOGUERA (LA)",
+                           "lat":  41.3530526943505,
+                           "lon":  2.0880451500898416
+                       },
+                       {
+                           "id":  "181",
+                           "activitat":  "GIMNÀS",
+                           "adreca":  "C TRAVESSERA",
+                           "lat":  41.365123867558992,
+                           "lon":  2.0791102897334777
+                       },
+                       {
+                           "id":  "122",
+                           "activitat":  "COMERÇ AL DETALL DE VEHICLES",
+                           "adreca":  "CTRA PRAT",
+                           "lat":  41.349774611327788,
+                           "lon":  2.0782579805890546
+                       },
+                       {
+                           "id":  "103",
+                           "activitat":  "BAR RESTAURANT",
+                           "adreca":  "CAMI CAMP DE L\u0027EMPEDRAT",
+                           "lat":  41.356019278624281,
+                           "lon":  2.087595964502988
+                       },
+                       {
+                           "id":  "60",
+                           "activitat":  "BAR",
+                           "adreca":  "C RAMONEDA",
+                           "lat":  41.362590491992641,
+                           "lon":  2.0779390550922447
+                       },
+                       {
+                           "id":  "56",
+                           "activitat":  "RESTAURANT",
+                           "adreca":  "C RUBIO I ORS",
+                           "lat":  41.3561635811889,
+                           "lon":  2.0669152956312002
+                       },
+                       {
+                           "id":  "52",
+                           "activitat":  "BAR",
+                           "adreca":  "AV PARC",
+                           "lat":  41.359151075035371,
+                           "lon":  2.0735335299458226
+                       },
+                       {
+                           "id":  "34",
+                           "activitat":  "EMMAGATZEMATGE",
+                           "adreca":  "RBLA SOLANES",
+                           "lat":  41.360951528784859,
+                           "lon":  2.0908049558715089
+                       },
+                       {
+                           "id":  "29",
+                           "activitat":  "EMMAGATZEMATGE MENJAR",
+                           "adreca":  "PG FERROCARRILS CATALANS",
+                           "lat":  41.353311745735873,
+                           "lon":  2.0837919154036464
+                       }
+                   ]
 }
