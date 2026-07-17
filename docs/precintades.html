@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Activitats precintades — Cornellà de Llobregat</title>
+<meta name="theme-color" content="#14365c">
+<link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; font-family: Segoe UI, Arial, sans-serif; color: #1a1a1a; }
+  #top { background: #14365c; color: #fff; padding: 10px 16px; display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  #top h1 { font-size: 18px; margin: 0; }
+  #top .meta { font-size: 13px; opacity: .9; }
+  #wrap { display: flex; height: calc(100vh - 92px); }
+  #map { flex: 1 1 auto; }
+  #side { width: 360px; overflow: auto; border-left: 1px solid #ddd; padding: 0 0 40px 0; }
+  #side h2 { font-size: 14px; margin: 14px 14px 6px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid #eee; vertical-align: top; }
+  th { background: #f3f5f8; position: sticky; top: 0; }
+  td.num { font-weight: bold; color: #fff; }
+  tr td.num { background: #c0392b; text-align: center; width: 30px; }
+  td.id { font-family: Consolas, monospace; color: #14365c; white-space: nowrap; }
+  td.act { font-weight: 600; }
+  #bar { padding: 8px 16px; border-top: 1px solid #ddd; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  button { background: #14365c; color: #fff; border: 0; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 14px; }
+  button:hover { background: #1d4d82; }
+  .marker-num { background: #c0392b; color: #fff; border: 2px solid #fff; border-radius: 50%;
+                width: 26px; height: 26px; line-height: 22px; text-align: center; font-weight: bold;
+                box-shadow: 0 1px 4px rgba(0,0,0,.4); font-size: 13px; }
+  .pop-tit { color: #c0392b; font-weight: bold; text-transform: uppercase; font-size: 11px; letter-spacing: .5px; }
+  .pop-act { font-weight: bold; font-size: 14px; margin: 2px 0; }
+  .pop-id  { font-family: Consolas, monospace; color: #14365c; font-size: 12px; }
+  #estat { font-size: 13px; color: #555; padding: 20px; }
+  /* Que els colors de fons i tiles NO es perdin en imprimir. */
+  body, #top, td.num, tr td.num, .marker-num, th, .leaflet-tile,
+  .leaflet-marker-icon, button {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+  @page { size: A4 landscape; margin: 8mm; }
+  @media print {
+    #bar, .leaflet-control-zoom, .leaflet-control-attribution { display: none !important; }
+    html, body { background: #fff; }
+    #side { overflow: visible !important; }
+  }
+</style>
+</head>
+<body>
+<div id="top">
+  <h1>Activitats precintades &mdash; Cornellà de Llobregat</h1>
+  <span class="meta" id="meta-compte"></span>
+  <span class="meta" id="meta-font"></span>
+</div>
+<div id="wrap">
+  <div id="map"></div>
+  <div id="side">
+    <h2>Llistat</h2>
+    <div id="estat">Carregant dades…</div>
+    <table id="taula" hidden>
+      <thead><tr><th>#</th><th>ID</th><th>Activitat</th><th>Adreça</th></tr></thead>
+      <tbody id="taula-body"></tbody>
+    </table>
+    <p style="font-size:11px;color:#777;margin:10px 14px;" id="peu"></p>
+  </div>
+</div>
+<div id="bar">
+  <button onclick="window.print()">&#128424;&#65039; Imprimir / Desar com a PDF</button>
+  <span style="font-size:12px;color:#555;">Font: base de dades d'activitats de l'Ajuntament de Cornellà de Llobregat. Dades obertes.</span>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+  // Centre per defecte (Cornellà) si no hi ha cap punt.
+  var map = L.map('map', { zoomSnap: 0.25, zoomDelta: 0.5, wheelPxPerZoomLevel: 120 });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: '&copy; OpenStreetMap'
+  }).addTo(map);
+  map.setView([41.355, 2.073], 14);
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  fetch('dades/precintades.json', { cache: 'no-store' })
+    .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(function (data) {
+      var acts = (data && data.Activitats) ? data.Activitats : [];
+      var estat = document.getElementById('estat');
+
+      document.getElementById('meta-compte').textContent =
+        acts.length + (acts.length === 1 ? ' activitat precintada' : ' activitats precintades');
+      if (data && data.GeneratedAt) {
+        var d = new Date(data.GeneratedAt);
+        if (!isNaN(d)) {
+          document.getElementById('meta-font').textContent =
+            'Actualitzat: ' + d.toLocaleDateString('ca-ES');
+        }
+      }
+      if (data && data.Font) {
+        document.getElementById('peu').textContent = 'Base de dades: ' + data.Font;
+      }
+
+      if (acts.length === 0) {
+        estat.textContent = 'No hi ha cap activitat precintada per mostrar.';
+        return;
+      }
+      estat.hidden = true;
+      var taula = document.getElementById('taula');
+      var tbody = document.getElementById('taula-body');
+      taula.hidden = false;
+
+      // Desplacament en ventall per a punts amb coordenades identiques (com Ruta.ps1).
+      var FAN_RADIUS_M = 12;
+      var groups = {};
+      acts.forEach(function (a, i) {
+        var key = a.lat.toFixed(5) + ',' + a.lon.toFixed(5);
+        (groups[key] = groups[key] || []).push(i);
+      });
+      function fanOffset(centerLat, k, n) {
+        if (n <= 1) return [0, 0];
+        var ang = (2 * Math.PI * k) / n;
+        var dLat = (FAN_RADIUS_M / 111320) * Math.sin(ang);
+        var dLon = (FAN_RADIUS_M / (111320 * Math.cos(centerLat * Math.PI / 180))) * Math.cos(ang);
+        return [dLat, dLon];
+      }
+
+      var bounds = [];
+      var markers = [];
+      acts.forEach(function (a, i) {
+        var icon = L.divIcon({
+          className: '', html: '<div class="marker-num">' + (i + 1) + '</div>',
+          iconSize: [26, 26], iconAnchor: [13, 13]
+        });
+        var key = a.lat.toFixed(5) + ',' + a.lon.toFixed(5);
+        var grp = groups[key];
+        var k = grp.indexOf(i);
+        var off = fanOffset(a.lat, k, grp.length);
+        var note = grp.length > 1
+          ? "<br><i style='color:#777'>(punts superposats: mateixes coordenades, desplaçats per veure'ls)</i>"
+          : '';
+        var adreca = a.adreca && a.adreca.length ? esc(a.adreca) : '<i>(sense adreça)</i>';
+        var popup =
+          "<div class='pop-tit'>Activitat precintada</div>" +
+          "<div class='pop-act'>" + esc(a.activitat || '(activitat no especificada)') + "</div>" +
+          "<div>" + adreca + "</div>" +
+          "<div class='pop-id'>ID activitat: " + esc(a.id) + "</div>" + note;
+        var m = L.marker([a.lat + off[0], a.lon + off[1]], { icon: icon }).addTo(map).bindPopup(popup);
+        markers.push(m);
+        bounds.push([a.lat, a.lon]);
+
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+          "<td class='num'>" + (i + 1) + "</td>" +
+          "<td class='id'>" + esc(a.id) + "</td>" +
+          "<td class='act'>" + esc(a.activitat) + "</td>" +
+          "<td>" + (a.adreca && a.adreca.length ? esc(a.adreca) : '—') + "</td>";
+        tr.style.cursor = 'pointer';
+        tr.addEventListener('click', function () {
+          map.setView([a.lat, a.lon], 17);
+          markers[i].openPopup();
+        });
+        tbody.appendChild(tr);
+      });
+
+      if (bounds.length === 1) map.setView(bounds[0], 16);
+      else map.fitBounds(L.latLngBounds(bounds).pad(0.15));
+    })
+    .catch(function (err) {
+      document.getElementById('estat').textContent =
+        'No s\'han pogut carregar les dades (' + err.message + ').';
+    });
+</script>
+</body>
+</html>

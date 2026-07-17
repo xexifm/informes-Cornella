@@ -143,6 +143,28 @@ if errorlevel 1 (
     echo  Avis: no s'han pogut refrescar les activitats al Drive. Continuo.
 )
 
+REM --- 7. Refrescar el mapa public d'activitats precintades ---
+REM    Regenera docs\dades\precintades.json des de l'ultim Excel i, si ha
+REM    canviat, el puja a 'main' (GitHub Pages el serveix public). El JSON NO
+REM    conte dades personals (nomes activitat generica, adreca i coordenades).
+REM    Fail-safe: si no pot (sense Excel, etc.), avisa i continua.
+echo.
+echo Refrescant el mapa public d'activitats precintades ^(docs\dades^)...
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0suport\rutes\Precintades.ps1"
+if errorlevel 1 (
+    echo  Avis: no s'ha pogut regenerar el mapa de precintades. Continuo.
+) else (
+    git add "docs/dades/precintades.json"
+    git -c user.name="Generador d'informes" -c user.email="generador@local" commit -m "Mapa d'activitats precintades actualitzat des de Actualitzar.bat"
+    if errorlevel 1 (
+        echo  El mapa de precintades ja estava al dia ^(res a commitejar^).
+    ) else (
+        echo Pujant el mapa de precintades a GitHub...
+        git push origin main
+        if errorlevel 1 echo  No s'ha pogut pujar el mapa. Es queda en local fins la propera.
+    )
+)
+
 echo.
 echo === Estat DESPRES ===
 git branch --show-current
