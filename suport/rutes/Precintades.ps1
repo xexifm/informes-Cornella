@@ -153,13 +153,19 @@ function Read-PrecintadesFromExcel($excelFile) {
                 $headers += $(if ($null -eq $hv) { '' } else { ([string]$hv).Trim() })
             }
 
-            # Columnes fixes (per NOM, mes robust que per index).
+            # Columnes fixes (per NOM, mes robust que per index). IMPORTANT: els
+            # noms de cerca s'escriuen en ASCII SENSE accents ('Numero', no
+            # 'Número'). El Windows PowerShell 5.1 llegeix els .ps1 sense BOM com
+            # a ANSI i corromp els literals accentuats; a mes, Find-HeaderColumn
+            # normalitza sense diacritics, aixi que 'Emp. Numero' encaixa amb la
+            # capcalera real 'Emp. Número'. (Mateixa convencio que Ruta.ps1, que
+            # compara contra 'estes' i no 'Estès'.)
             $colId   = Find-HeaderColumn $headers 'ID Activitat'
             $colUtmX = Find-HeaderColumn $headers 'UTM X'
             $colUtmY = Find-HeaderColumn $headers 'UTM Y'
             $colVia  = Find-HeaderColumn $headers 'Emp. Tipus via'
             $colCarr = Find-HeaderColumn $headers 'Emp. Carrer'
-            $colNum  = Find-HeaderColumn $headers 'Emp. Número'
+            $colNum  = Find-HeaderColumn $headers 'Emp. Numero'
             $colAct  = Find-HeaderColumn $headers 'Activitat principal'
             $pairs   = Get-CampInfoPairs $headers
 

@@ -38,10 +38,16 @@ Assert  (-not (Test-IsPrecintada 'DENUNCIA?' 'SI, la que sigui'))               
 Assert  (-not (Test-IsPrecintada 'REQUERIT PER DECRET?' 'SI'))                     'REQUERIT PER DECRET amb SI -> fals'
 
 Write-Host "`n--- Find-HeaderColumn (localitza columnes per nom, insensible a accents) ---"
-$hdr = @('ID Activitat','UTM X','UTM Y','Emp. Tipus via','Emp. Carrer','Emp. Número','Activitat principal')
+# Construim la capcalera accentuada amb codi de caracter (U+00FA = 'ú') per NO
+# dependre de la codificacio del fitxer: el Windows PowerShell 5.1 llegeix els
+# .ps1 sense BOM com a ANSI i corromp un literal 'Número' escrit directament.
+# Aixi el test comprova de veritat que un nom ASCII ('Emp. Numero') encaixa amb
+# una capcalera accentuada ('Emp. Número'), com passa amb les dades reals d'Excel.
+$numHeader = "Emp. N$([char]0x00FA)mero"   # "Emp. Número"
+$hdr = @('ID Activitat','UTM X','UTM Y','Emp. Tipus via','Emp. Carrer',$numHeader,'Activitat principal')
 AssertEq (Find-HeaderColumn $hdr 'ID Activitat')        1 'ID Activitat -> col 1'
 AssertEq (Find-HeaderColumn $hdr 'UTM Y')               3 'UTM Y -> col 3'
-AssertEq (Find-HeaderColumn $hdr 'Emp. Numero')         6 'accent ignorat (Numero == Número) -> col 6'
+AssertEq (Find-HeaderColumn $hdr 'Emp. Numero')         6 'accent ignorat (Numero ASCII == capcalera accentuada) -> col 6'
 AssertEq (Find-HeaderColumn $hdr 'Activitat principal') 7 'Activitat principal -> col 7'
 AssertEq (Find-HeaderColumn $hdr 'No existeix')         0 'columna inexistent -> 0'
 
