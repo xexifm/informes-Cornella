@@ -278,11 +278,17 @@ function _FlattenInformesDb($db) {
 # Escaneig complet + escriptura del JSON (interactiu, amb finestra de progres)
 # ----------------------------------------------------------------------------
 function Invoke-InformesDbScan {
-    # 1. Resoldre la carpeta d'informes.
+    # 1. Resoldre la carpeta d'informes. -ErrorAction SilentlyContinue: si la
+    #    unitat (p.ex. la I: de la feina) no existeix, Test-Path no ha de petar,
+    #    nomes ha de donar 'no trobada' (potser estas fora de la feina).
     $dir = $InformesDir
-    if ([string]::IsNullOrWhiteSpace($dir) -or -not (Test-Path -LiteralPath $dir)) {
+    $existeix = $false
+    if (-not [string]::IsNullOrWhiteSpace($dir)) {
+        try { $existeix = Test-Path -LiteralPath $dir -ErrorAction SilentlyContinue } catch { $existeix = $false }
+    }
+    if (-not $existeix) {
         [System.Windows.Forms.MessageBox]::Show(
-            "No s'ha trobat la carpeta d'informes:`n$dir`n`nConfigura `$InformesDir a config.ps1 si la tens en una altra ubicacio.",
+            "No s'ha trobat la carpeta d'informes:`n$dir`n`nSi treballes fora de la feina (sense la unitat I:), obre-la quan hi tinguis accés. Pots canviar la ruta amb `$InformesDir a config.ps1.",
             'Base d''informes', 'OK', 'Warning') | Out-Null
         return
     }

@@ -305,9 +305,17 @@ if (Test-Path -LiteralPath $configPath) {
 }
 
 # Carpeta arrel dels informes: si el config no l'ha fixat, la derivem de
-# $ActivitatsDir (germana '...\Informes'), ja amb el valor final del config.
+# $ActivitatsDir (germana '...\Informes'). IMPORTANT: fem servir NOMES operacions
+# de cadena (System.IO.Path), NO Split-Path/Join-Path, perque aquests resolen la
+# UNITAT del cami i peten si no existeix (p.ex. la I: de la feina quan treballes
+# fora). Aixi el programa arrenca igual encara que la I: no hi sigui.
 if (-not $InformesDir) {
-    $InformesDir = Join-Path (Split-Path -Parent $ActivitatsDir) 'Informes'
+    try {
+        $parentDir = [System.IO.Path]::GetDirectoryName($ActivitatsDir)
+        if (-not [string]::IsNullOrWhiteSpace($parentDir)) {
+            $InformesDir = [System.IO.Path]::Combine($parentDir, 'Informes')
+        }
+    } catch { $InformesDir = $null }
 }
 
 # Carreguem el modul ACT_EXTR (ActExtr.ps1): mode "Activitats extraordinaries"
