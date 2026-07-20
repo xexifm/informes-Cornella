@@ -1,7 +1,7 @@
 {
-    "GeneratedAt":  "2026-07-20T15:01:44.2893810+02:00",
-    "Font":  "2026-07-20 ACTIVITATS.xls",
-    "Comptador":  20,
+    "GeneratedAt":  "2026-07-20T18:18:07.9447207+02:00",
+    "Font":  "2026-06-01 ACTIVITATS.xls",
+    "Comptador":  24,
     "Activitats":  [
                        {
                            "id":  "1369",
@@ -53,6 +53,13 @@
                            "lon":  2.0754597227613787
                        },
                        {
+                           "id":  "506",
+                           "activitat":  "BAR RESTAURANT",
+                           "adreca":  "C VERGE DEL PILAR 11",
+                           "lat":  41.354917471149385,
+                           "lon":  2.0715135956469362
+                       },
+                       {
                            "id":  "410",
                            "activitat":  "FERRETERIA",
                            "adreca":  "C DOCTOR MARTI I JULIA 49",
@@ -88,6 +95,13 @@
                            "lon":  2.0880451500898416
                        },
                        {
+                           "id":  "186",
+                           "activitat":  "BAR MUSICAL",
+                           "adreca":  "C DELICIES (LES) 6",
+                           "lat":  41.359532453545,
+                           "lon":  2.0745858143859648
+                       },
+                       {
                            "id":  "181",
                            "activitat":  "GIMNÀS",
                            "adreca":  "C TRAVESSERA 24",
@@ -100,6 +114,13 @@
                            "adreca":  "CTRA PRAT 77",
                            "lat":  41.349774611327788,
                            "lon":  2.0782579805890546
+                       },
+                       {
+                           "id":  "114",
+                           "activitat":  "TRASTERS DE LLOGUER",
+                           "adreca":  "C OLIVERAR 21",
+                           "lat":  41.367945163062387,
+                           "lon":  2.0771491465396243
                        },
                        {
                            "id":  "103",
@@ -128,6 +149,13 @@
                            "adreca":  "AV PARC 23",
                            "lat":  41.359151075035371,
                            "lon":  2.0735335299458226
+                       },
+                       {
+                           "id":  "51",
+                           "activitat":  "BAR",
+                           "adreca":  "C RAMON SALA 30",
+                           "lat":  41.351916371042265,
+                           "lon":  2.0741893490479044
                        },
                        {
                            "id":  "34",
