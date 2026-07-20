@@ -100,6 +100,15 @@ if (Test-Path -LiteralPath $configPath) {
     . $configPath
 }
 
+# Configuracio LOCAL d'aquest ordinador (Settings.ps1, compartit amb
+# GenerarInforme.ps1 -- mateixa pantalla "Configuracio", mateix settings.json
+# a %LOCALAPPDATA%, mai es puja a git). Es processos/scopes independents, aixi
+# que Ruta.ps1 llegeix l'override pel seu compte, igual que fa amb config.ps1.
+. (Join-Path $SuportDir 'Settings.ps1')
+$Script:AppSettings = Load-AppSettings
+$ActivitatsDir  = _ResolveEffectiveValue $AppSettings.ActivitatsDir  $ActivitatsDir
+$RutesOutputDir = _ResolveEffectiveValue $AppSettings.RutesOutputDir $RutesOutputDir
+
 # Carpeta local de fallback (mateixa que fa servir GenerarInforme): si no hi
 # ha xarxa de la feina, s'agafa l'Excel mes recent d'aqui.
 $LocalActivitatsDir = Join-Path $RepoRoot 'BASE DE DADES ACTIVITATS'

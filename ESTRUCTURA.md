@@ -21,7 +21,7 @@ cada programa (cada `.bat` que pots clicar) i quins són compartits.
 
 | Fitxer / carpeta            | Què és                                                        |
 |-----------------------------|---------------------------------------------------------------|
-| `GenerarInforme.bat`        | ▶ Programa principal. Llança el programa **sense cap finestra de consola** (via `suport\GenerarInforme.vbs`). Si ja està obert, **no n'obre un segon**: porta al davant la finestra existent. Al menú (Pas 1) hi ha, a més dels tipus d'informe, els botons **📍 Generar ruta**, **🔒 Activitats precintades** (obre el plànol públic), **🗃 Actualitzar base d'informes**, **📋 Editar base d'informes** i **📥 Revisar entrades del mòbil** (comprovació d'un sol cop). |
+| `GenerarInforme.bat`        | ▶ Programa principal. Llança el programa **sense cap finestra de consola** (via `suport\GenerarInforme.vbs`). Si ja està obert, **no n'obre un segon**: porta al davant la finestra existent. Al menú (Pas 1) hi ha, a més dels tipus d'informe, els botons **📍 Generar ruta**, **🔒 Activitats precintades** (obre el plànol públic), **🗃 Actualitzar base d'informes**, **📋 Editar base d'informes**, **📥 Revisar entrades del mòbil** (comprovació d'un sol cop), **⚙ Configuració** (rutes d'aquest PC + actualitzar el programa) i **❓ Ajuda** (obre el manual). |
 | `Actualitzar.bat`           | ▶ Actualitzar el programa des de GitHub i refrescar dades. Si el programa està obert, **el tanca abans** d'actualitzar. |
 | `ESTRUCTURALS/`             | Plantilles `.docx` (capçalera, conclusions, catàleg REQ, ACT_EXTR). |
 | `BASE DE DADES ACTIVITATS/` | Còpia local de l'Excel d'activitats (fallback sense xarxa) i `informes-db.json` (base d'informes generada des del menú, gitignored). |
@@ -44,9 +44,11 @@ suport/
 ├── ActExtr.ps1            ← mòdul del motor (mode ACT_EXTR: activitats extraordinàries)
 ├── Informes.ps1           ← mòdul del motor (escàner d'informes → informes-db.json)
 ├── DriveApi.ps1           ← mòdul compartit (accés a Google Drive)
+├── Settings.ps1           ← mòdul compartit (rutes d'aquest PC, %LOCALAPPDATA%\...\settings.json)
+├── Configuracio.ps1       ← mòdul del motor (pantalla "⚙ Configuració" + actualitzar el programa)
 ├── Comprova-Enllacos.ps1  ← utilitat: comprova els enllaços dels catàlegs
 ├── ComprovarEnllacos.bat  ← ▶ entrada (doble clic) del comprovador d'enllaços
-├── config.ps1             ← la TEVA configuració local (rutes, OSRM…)
+├── config.ps1             ← configuració COMPARTIDA (git) de valors per defecte (rutes, OSRM…)
 ├── Instalar.bat           ← instal·lador per a una màquina nova
 │
 ├── rutes/                 ← PROGRAMA(es): rutes i mapes a partir de l'Excel
@@ -88,6 +90,8 @@ Llegenda: **●** = punt d'entrada · **○** = el carrega (dot-source) · **·*
 | `ActExtr.ps1`                     | ○              |          | ○        | ○           |
 | `Informes.ps1`                    | ○              |          | ○        | ○           |
 | `DriveApi.ps1`                    | ○              |          | ○        | ○           |
+| `Settings.ps1`                    | ○              | ○        | ○        | ○           |
+| `Configuracio.ps1`                | ○              |          | ○        | ○           |
 | `config.ps1`                      | ·              | ·        | ·        | ·           |
 | `rutes/Ruta.ps1`                  |                | **●**    |          | ○ (Precint.)|
 | `rutes/Precintades.ps1`           |                |          |          | ● (○ Ruta)  |
@@ -101,7 +105,12 @@ Llegenda: **●** = punt d'entrada · **○** = el carrega (dot-source) · **·*
   Així el motor pot viure a `suport/` i els programes a subcarpetes sense
   rutes fràgils.
 - **`rutes/Ruta.ps1` és independent**: només llegeix `config.ps1` (no carrega
-  el motor; no necessita Word).
+  el motor; no necessita Word). També llegeix `Settings.ps1` (dot-source
+  propi) per aplicar l'override d'aquest PC a `$ActivitatsDir`/`$RutesOutputDir`.
+- **`Settings.ps1`** és l'ÚNIC lloc on es llegeix/escriu
+  `%LOCALAPPDATA%\InformesCornella\settings.json` (rutes d'aquest PC, mai a
+  git). El carreguen per separat `GenerarInforme.ps1` i `rutes/Ruta.ps1`
+  (processos/scopes independents), cadascun DESPRÉS del seu propi `config.ps1`.
 - **`rutes/Precintades.ps1`** genera les dades del **plànol públic** d'activitats
   precintades (`docs/dades/precintades.json`). Carrega `Ruta.ps1` en mode
   headless per reutilitzar-ne les funcions (conversió UTM, format d'adreça,

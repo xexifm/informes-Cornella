@@ -86,8 +86,35 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   l'usuari en té una còpia en un **disc extern**:
   `F:\FEINA\2022 Ajuntament Cornellà\5.- Sergi Fadurdo` (per tant, els informes
   són a `F:\FEINA\2022 Ajuntament Cornellà\5.- Sergi Fadurdo\Informes`). Per
-  treballar-hi en local, apunta-hi `$InformesDir` a `suport/config.ps1` o llegeix
-  la ruta directament.
+  treballar-hi en local **NO editis `suport/config.ps1`** (és compartit via
+  git i trepitjaria l'altra màquina) — fes servir el botó **⚙ Configuració**
+  del programa (vegeu secció següent) o, en una sessió de Claude Code sense
+  GUI, escriu directament a `%LOCALAPPDATA%\InformesCornella\settings.json`
+  (`{"InformesDir": "F:\\...\\Informes", "ActivitatsDir": "F:\\...\\2_Controls Excels"}`).
+
+## Configuració per ordinador (portabilitat)
+- El programa és **portable**: cap ordinador nou hauria de necessitar tocar
+  codi ni `config.ps1`. Hi ha tres capes de prioritat creixent: valor
+  hardcodejat al codi → `suport/config.ps1` (compartit via git, valor per
+  defecte comú) → `%LOCALAPPDATA%\InformesCornella\settings.json` (NOMÉS
+  aquest PC, mai versionat).
+- `suport/Settings.ps1`: `Load-AppSettings`/`Save-AppSettings` (mateix idioma
+  que `Save-LastReport`/`Load-LastReport`) + funcions pures testejables
+  `_ResolveEffectiveValue` (override si no buit, sino per defecte) i
+  `_BuildSettingsOverrides` (què es desa: només els camps que l'usuari ha
+  deixat diferents del valor per defecte, mai buits).
+- `suport/Configuracio.ps1`: pantalla **⚙ Configuració** del menú principal.
+  5 camps (Informes, Excel d'activitats, sortida d'informes, sortida de
+  rutes, Drive mòbil) amb explorador de carpetes i indicador ✓/⚠ en viu
+  (`Test-Path`, no bloqueja desar). Secció "Manteniment": branca + últim
+  commit i el botó **🔄 Actualitzar el programa**, que llança el mateix
+  `Actualitzar.bat` (`Start-Process`, finestra visible) i tanca l'app —
+  `Actualitzar.bat` NO s'ha tocat, segueix funcionant igual en doble clic.
+- **Important:** `GenerarInforme.ps1` i `suport/rutes/Ruta.ps1` són processos
+  independents (cadascun amb el seu propi `config.ps1`); cada un dot-sourceja
+  `Settings.ps1` i aplica l'override pel seu compte, DESPRÉS de carregar el
+  seu `config.ps1` i ABANS de derivar-ne res més (p.ex. les subcarpetes de
+  Drive a partir de `$DriveBaseDir`).
 
 ## Plànol públic d'activitats precintades
 - `suport/rutes/Precintades.ps1` genera `docs/dades/precintades.json` a partir

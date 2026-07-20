@@ -318,6 +318,28 @@ if (-not $InformesDir) {
     } catch { $InformesDir = $null }
 }
 
+# Configuracio LOCAL d'aquest ordinador (Settings.ps1 + pantalla Configuracio):
+# una capa MES per sobre de config.ps1, nomes d'aquest PC (%LOCALAPPDATA%, mai
+# es puja a git). Primer capturem els valors "de repositori" (config.ps1 o
+# hardcodejats) ABANS de sobreescriure'ls, perque la pantalla de Configuracio
+# els pugui mostrar com a "valor per defecte" i el boto "Restaura" hi torni.
+. (Join-Path $ScriptRoot 'Settings.ps1')
+
+$Script:DefaultInformesDir    = $InformesDir
+$Script:DefaultActivitatsDir  = $ActivitatsDir
+$Script:DefaultOutputDir      = $OutputDir
+$Script:DefaultDriveBaseDir   = $DriveBaseDir
+# $RutesOutputDir no el fa servir aquest script (nomes rutes/Ruta.ps1), pero
+# es mostra/edita des de la mateixa pantalla de Configuracio: el calculem amb
+# el mateix valor per defecte que fa servir Ruta.ps1.
+$Script:DefaultRutesOutputDir = Join-Path $RepoRoot 'Rutes generades'
+
+$Script:AppSettings = Load-AppSettings
+$InformesDir   = _ResolveEffectiveValue $AppSettings.InformesDir   $InformesDir
+$ActivitatsDir = _ResolveEffectiveValue $AppSettings.ActivitatsDir $ActivitatsDir
+$OutputDir     = _ResolveEffectiveValue $AppSettings.OutputDir     $OutputDir
+$DriveBaseDir  = _ResolveEffectiveValue $AppSettings.DriveBaseDir  $DriveBaseDir
+
 # Carreguem el modul ACT_EXTR (ActExtr.ps1): mode "Activitats extraordinaries"
 # (Decret 112/2010). Es carrega DESPRES de $RepoRoot, $EstructuralsDir i del
 # config (perque pugui calcular les rutes del registre/plantilles i deixar que
@@ -328,6 +350,10 @@ if (-not $InformesDir) {
 # dades JSON (ID GIA + data + conclusio) a partir de la carpeta d'informes. Es
 # carrega tambe en headless perque els tests provin la logica de text pura.
 . (Join-Path $ScriptRoot 'Informes.ps1')
+
+# Carreguem la pantalla de Configuracio (rutes d'aquest PC + actualitzar el
+# programa). Nomes defineix funcions (WinForms), segur en headless.
+. (Join-Path $ScriptRoot 'Configuracio.ps1')
 
 # Subcarpetes de Drive derivades de $DriveBaseDir (despres del config, perque
 # n'hi hagi prou amb sobreescriure $DriveBaseDir a config.ps1).
@@ -2969,6 +2995,7 @@ function Main {
             'informesdb'     { Invoke-InformesDbScan }   # escaneja informes -> JSON; torna al menu
             'informesdbedit' { Invoke-InformesDbEdit }   # editor de la base d'informes
             'revisarmobil'   { Invoke-RevisarMobil }     # revisa el mobil un sol cop; torna al menu
+            'config'         { Invoke-ConfiguracioScreen }   # rutes d'aquest PC + actualitzar; torna al menu
             'nou'        { [void](Invoke-NouWizard -cataleg $sel.Cataleg) }
             default      { return }
         }

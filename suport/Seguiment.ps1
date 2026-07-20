@@ -950,9 +950,13 @@ function Select-Mode {
     $form.Text = 'Informes Cornella - Pas 1'
     $form.StartPosition = 'CenterScreen'
 
+    # Banda de capcalera (color d'accent + titol de l'app). Nomes desplaca
+    # cap avall el punt de partida ($headerHeight): la resta del menu (tots
+    # els botons, ja calculats amb $y +=) no s'ha de retocar.
+    $headerHeight = 50
     $lbl = New-Object System.Windows.Forms.Label
     $lbl.Text = 'Que vols fer?'
-    $lbl.Location = New-Object System.Drawing.Point(20, 15)
+    $lbl.Location = New-Object System.Drawing.Point(20, (15 + $headerHeight))
     $lbl.AutoSize = $true
     $form.Controls.Add($lbl)
 
@@ -987,7 +991,7 @@ function Select-Mode {
     }
 
     $result = @{ Choice = $null }
-    $y = 45
+    $y = 45 + $headerHeight
     foreach ($entry in $menu) {
         $btn = New-Object System.Windows.Forms.Button
         $btn.Text = ''
@@ -1213,7 +1217,65 @@ function Select-Mode {
     [void]$form.Controls.Add($btnVig)
     $y += 52
 
+    # Boto: Configuracio. Obre la pantalla de rutes d'aquest PC (informes,
+    # Excel d'activitats, sortides...) i el manteniment (actualitzar el
+    # programa). Tanca el menu com la resta d'accions, mateix estil que els
+    # altres botons pero sense owner-draw: el simbol de rosca (U+2699) es del
+    # pla BMP i es dibuixa be amb el tipus de lletra normal.
+    $btnConfig = New-Object System.Windows.Forms.Button
+    $btnConfig.Text = "$([char]0x2699)  Configuracio"
+    $btnConfig.Font = $fRutaTxt
+    $btnConfig.Location = New-Object System.Drawing.Point(20, $y)
+    $btnConfig.Size = New-Object System.Drawing.Size(430, 44)
+    $btnConfig.FlatStyle = 'Flat'
+    $btnConfig.BackColor = [System.Drawing.Color]::White
+    $btnConfig.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
+    $btnConfig.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(219, 235, 255)
+    $btnConfig.add_Click({
+        $result.Choice = @{ Action = 'config'; Cataleg = $null }
+        $form.DialogResult = 'OK'
+        $form.Close()
+    }.GetNewClosure())
+    [void]$form.Controls.Add($btnConfig)
+    $y += 52
+
+    # Boto: Ajuda. Obre el manual (README, amb tot el flux: instalacio,
+    # configuracio, mobil...) al navegador (es a GitHub, que el renderitza
+    # amb format). NO tanca el menu, com "Activitats precintades".
+    $urlAjuda = 'https://github.com/xexifm/informes-cornella/blob/main/suport/README.md'
+    $btnAjuda = New-Object System.Windows.Forms.Button
+    $btnAjuda.Text = "$([char]0x2753)  Ajuda / Com comencar"
+    $btnAjuda.Font = $fRutaTxt
+    $btnAjuda.Location = New-Object System.Drawing.Point(20, $y)
+    $btnAjuda.Size = New-Object System.Drawing.Size(430, 44)
+    $btnAjuda.FlatStyle = 'Flat'
+    $btnAjuda.BackColor = [System.Drawing.Color]::White
+    $btnAjuda.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
+    $btnAjuda.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(219, 235, 255)
+    $btnAjuda.add_Click({
+        try { Start-Process $urlAjuda | Out-Null } catch {
+            [System.Windows.Forms.MessageBox]::Show("No s'ha pogut obrir l'enllac:`n$urlAjuda", 'Ajuda', 'OK', 'Error') | Out-Null
+        }
+    }.GetNewClosure())
+    [void]$form.Controls.Add($btnAjuda)
+    $y += 52
+
     $form.ClientSize = New-Object System.Drawing.Size(470, ($y + 12))
+
+    # Banda de capcalera (afegida al final, com Top/Bottom a l'editor de la
+    # base d'informes: no interfereix amb els controls ja posicionats).
+    $header = New-Object System.Windows.Forms.Panel
+    $header.Dock = 'Top'
+    $header.Height = $headerHeight
+    $header.BackColor = [System.Drawing.Color]::FromArgb(30, 90, 160)
+    $lblHeader = New-Object System.Windows.Forms.Label
+    $lblHeader.Text = 'Informes Cornella'
+    $lblHeader.ForeColor = [System.Drawing.Color]::White
+    $lblHeader.Font = New-Object System.Drawing.Font('Segoe UI', 13, [System.Drawing.FontStyle]::Bold)
+    $lblHeader.Location = New-Object System.Drawing.Point(20, 12)
+    $lblHeader.AutoSize = $true
+    [void]$header.Controls.Add($lblHeader)
+    [void]$form.Controls.Add($header)
 
     $res = $form.ShowDialog()
     if ($res -ne 'OK' -or $null -eq $result.Choice) { exit 0 }

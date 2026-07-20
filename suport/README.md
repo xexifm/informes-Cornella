@@ -26,7 +26,8 @@ informes-Cornella/
 └── suport/                        ← codi del programa, no cal tocar-lo
     ├── GenerarInforme.ps1         ← MOTOR + entrada de GenerarInforme.bat
     ├── Format.ps1 · Seguiment.ps1 · ActExtr.ps1 · DriveApi.ps1   ← mòduls del motor
-    ├── config.ps1                 ← (opcional) sobreescriu rutes locals
+    ├── Settings.ps1 · Configuracio.ps1   ← rutes d'aquest PC (botó "⚙ Configuració", vegeu cap. 10)
+    ├── config.ps1                 ← (opcional, compartit per git) sobreescriu rutes per defecte
     ├── Comprova-Enllacos.ps1 · ComprovarEnllacos.bat   ← comprova enllaços caiguts dels catàlegs
     ├── Instalar.bat               ← instal·lar en una màquina nova (vegeu cap. 2)
     ├── rutes/Ruta.ps1             ← planificador de rutes (botó "📍 Generar ruta" del menú)
@@ -44,11 +45,24 @@ informes-Cornella/
 > **`ESTRUCTURA.md`** a l'arrel: hi ha una taula amb el mapa complet.
 
 **Pots moure la carpeta `informes-Cornella` on vulguis dins del PC**:
-tot és relatiu. L'única ruta absoluta del programa és la **base de dades
-d'activitats** a la xarxa de la feina
-(`I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\2_Controls Excels`).
+tot és relatiu. Per defecte el programa apunta a les rutes de la xarxa de la
+feina (`I:\...`), però és **portable**: cada ordinador pot tenir les seves
+pròpies carpetes (informes, Excel d'activitats...) sense tocar cap fitxer de
+codi — vegeu el botó **⚙ Configuració** al [capítol 10](#10-configuració-local).
 Si executes el programa fora de la feina i la xarxa no és accessible,
-mira el [capítol 7: ús fora de la feina](#7-ús-fora-de-la-feina-fallback-local).
+mira també el [capítol 7: ús fora de la feina](#7-ús-fora-de-la-feina-fallback-local).
+
+### Primer ús — resum ràpid
+1. **Instal·la** el programa (capítol 2, `Instalar.bat`).
+2. Obre `GenerarInforme.bat`. Si les teves carpetes d'informes/Excel **no**
+   són les de la feina (p. ex. ets a casa), prem **⚙ Configuració** al menú i
+   fixa-les — vegeu [capítol 10](#10-configuració-local). Si ja hi ets a la
+   feina amb la xarxa `I:` accessible, no cal tocar res.
+3. Genera el teu primer informe (capítol 3) o prova el planificador de rutes.
+4. (Opcional) Si vols preparar informes des del **mòbil**, segueix
+   **`suport/documentacio/DESPLEGAMENT-MOBIL.md`** (posada en marxa pas a pas:
+   Google Drive, credencials, web del mòbil) — capítol 13.
+5. Dubtes? Botó **❓ Ajuda / Com començar** al menú obre aquest manual.
 
 ---
 
@@ -256,7 +270,9 @@ canvis al JSON; en tancar, si hi ha canvis sense desar, t'ho pregunta. En
 reescanejar la base, els informes marcats com a ignorats **conserven** la marca.
 
 ### Actualitzar el programa
-**Doble clic a `Actualitzar.bat`**. Fa el següent:
+**Doble clic a `Actualitzar.bat`** (o el botó **🔄 Actualitzar el programa**
+dins de **⚙ Configuració** — vegeu capítol 10; obre el mateix `.bat` en una
+finestra, i el programa es tanca mentre s'actualitza). Fa el següent:
 
 1. Detecta si tens Word obert en alguna plantilla (`~$*.docx`): si sí, t'avisa i s'atura.
 2. Si has editat plantilles a `ESTRUCTURALS/*.docx`, les **commiteja i puja a GitHub**.
@@ -518,14 +534,49 @@ tal com s'explica a la secció 6.
 
 ---
 
-## 10. Configuració local (`suport/config.ps1`)
+## 10. Configuració local
 
-Fitxer **opcional** per personalitzar rutes/constants només al teu PC.
-Si no existeix s'usen els valors per defecte. Variables disponibles:
+El programa fa servir diverses carpetes (informes, Excel d'activitats,
+sortida...) amb un valor per defecte pensat per a la xarxa de la feina
+(`I:\...`). Hi ha **dues maneres** de personalitzar-les en aquest ordinador,
+sense tocar cap fitxer de codi ni afectar cap altre ordinador:
+
+### El botó ⚙ Configuració (recomanat)
+
+Al menú principal, botó **⚙ Configuració**. Deixa veure i editar:
+
+- **Carpetes principals**: on hi ha els informes ja generats, i on hi ha
+  l'Excel d'activitats.
+- **Carpetes addicionals**: sortida dels informes que generis, sortida dels
+  mapes de ruta, i la carpeta del Drive d'escriptori (mòbil).
+
+Cada camp té un botó **"..."** per triar la carpeta amb l'explorador, i un
+indicador **✓ Trobada** / **⚠ No trobada ara** (no bloqueja desar: pot ser
+una unitat de xarxa o un disc extern que ara mateix no està connectat). Deixa
+un camp **buit** perquè faci servir el valor per defecte del programa. El
+botó **Restaura els valors per defecte** torna tots els camps al valor
+original. En **Desar**, et pregunta si vols reiniciar el programa perquè els
+canvis s'apliquin arreu.
+
+> **On es guarda:** a `%LOCALAPPDATA%\InformesCornella\settings.json`, **fora**
+> del clone i **mai versionat a git** — per això és l'opció recomanada per
+> tenir el mateix clone a diversos ordinadors (p. ex. feina i casa) sense que
+> la configuració d'un trepitgi la de l'altre en fer `Actualitzar.bat`.
+
+La secció **Manteniment** de la mateixa pantalla mostra la branca i l'últim
+commit, i té el botó **🔄 Actualitzar el programa** (vegeu capítol 3).
+
+### `suport/config.ps1` (avançat)
+
+Fitxer **opcional i compartit via git** per fixar el valor **per defecte**
+d'aquestes mateixes rutes (útil si la majoria d'ordinadors on s'usa el
+programa comparteixen una ruta diferent de la de la feina), més algunes
+constants que no són una carpeta i per tant no surten a ⚙ Configuració:
 
 ```powershell
 $OutputDir              = '...'    # ruta on desar els informes (.docx)
 $ActivitatsDir          = '...'    # carpeta on viu l'Excel d'activitats
+$InformesDir            = '...'    # carpeta arrel dels informes ja generats
 $AlwaysConclusionsCount = 2        # (obsolet, ara s'usa ::SEMPRE::)
 
 # Planificador de rutes (botó "📍 Generar ruta"):
@@ -534,7 +585,13 @@ $RutesOutputDir         = '...'    # ruta on desar els mapes de ruta (HTML)
 $RutaOrigenUtmX         = 424456   # base de sortida (UTM X). Per defecte
 $RutaOrigenUtmY         = 4578205  #   Carrer Energia 97. La ruta comenca per
                                    #   l'activitat mes propera a aquest punt.
+
+# Mòbil/Drive (vegeu capítol 13 i documentacio/DESPLEGAMENT-MOBIL.md):
+$DriveBaseDir           = '...'    # carpeta del Drive d'escriptori (o des de ⚙ Configuració)
 ```
+
+**Prioritat** (el més específic guanya): valor hardcodejat al programa <
+`suport/config.ps1` (compartit) < `%LOCALAPPDATA%` d'aquest PC (⚙ Configuració).
 
 ---
 
