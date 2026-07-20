@@ -21,7 +21,7 @@ cada programa (cada `.bat` que pots clicar) i quins són compartits.
 
 | Fitxer / carpeta            | Què és                                                        |
 |-----------------------------|---------------------------------------------------------------|
-| `GenerarInforme.bat`        | ▶ Programa principal. Llança el programa **sense cap finestra de consola** (via `suport\GenerarInforme.vbs`). Si ja està obert, **no n'obre un segon**: porta al davant la finestra existent. Al menú (Pas 1) hi ha, a més dels tipus d'informe, els botons **📍 Generar ruta**, **🗃 Actualitzar base d'informes**, **📋 Editar base d'informes** i l'interruptor **Vigilant del mòbil** (activar/aturar). |
+| `GenerarInforme.bat`        | ▶ Programa principal. Llança el programa **sense cap finestra de consola** (via `suport\GenerarInforme.vbs`). Si ja està obert, **no n'obre un segon**: porta al davant la finestra existent. Al menú (Pas 1) hi ha, a més dels tipus d'informe, els botons **📍 Generar ruta**, **🗃 Actualitzar base d'informes**, **📋 Editar base d'informes** i **📥 Revisar entrades del mòbil** (comprovació d'un sol cop). |
 | `Actualitzar.bat`           | ▶ Actualitzar el programa des de GitHub i refrescar dades. Si el programa està obert, **el tanca abans** d'actualitzar. |
 | `ESTRUCTURALS/`             | Plantilles `.docx` (capçalera, conclusions, catàleg REQ, ACT_EXTR). |
 | `BASE DE DADES ACTIVITATS/` | Còpia local de l'Excel d'activitats (fallback sense xarxa) i `informes-db.json` (base d'informes generada des del menú, gitignored). |
@@ -56,7 +56,8 @@ suport/
 │                               les funcions de Ruta.ps1 en mode headless)
 │
 ├── mobil/                 ← PROGRAMA(es): integració amb el mòbil/Drive
-│   ├── Vigilant.ps1           (el llança l'interruptor "Vigilant del mòbil" del menú)
+│   ├── Vigilant.ps1           (el llança el botó "📥 Revisar entrades del mòbil":
+│   │                           mira un sol cop si han arribat informes del mòbil)
 │   ├── ExportaDades.ps1       (el crida Actualitzar.bat per exportar dades)
 │   └── Authorize-Drive.ps1    (autoritza el PC a Google Drive, un sol cop)
 │

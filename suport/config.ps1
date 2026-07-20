@@ -59,7 +59,8 @@ $ActivitatsDir = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\2_Contro
 
 # Mobil (Google Drive). Carpeta sincronitzada al PC amb el Google Drive
 # d'escriptori, on:
-#   - el vigilant (Vigilant.bat) llegeix els paquets que arriben del mobil, i
+#   - el botó "Revisar entrades del mòbil" del menú llegeix els paquets que
+#     arriben del mòbil (comprovació d'un sol cop), i
 #   - s'hi exporta la base de dades d'activitats per al mobil (carpeta PRIVADA).
 # El default apunta a "%USERPROFILE%\Google Drive\Informes-Cornella". Si el teu
 # Drive d'escriptori esta en una altra ruta (per exemple amb la lletra G:),

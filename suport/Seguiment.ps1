@@ -1131,29 +1131,40 @@ function Select-Mode {
     [void]$form.Controls.Add($btnEdit)
     $y += 52
 
-    # Boto TOGGLE: Vigilant del mobil. Verd = actiu, gris = aturat. NO tanca el
-    # menu: activa/atura el vigilant i canvia de color a l'instant.
+    # Boto: Revisar entrades del mobil. Fa una comprovacio d'UN SOL COP (mira si
+    # han arribat informes del mobil via Drive, els genera i avisa). Ja no hi ha
+    # cap interruptor ni vigilant en segon pla. Mateix patro owner-draw amb
+    # l'emoji 📥 (U+1F4E5).
+    $inbox = [System.Char]::ConvertFromUtf32(0x1F4E5)
+    $fInboxIco = New-Object System.Drawing.Font('Segoe UI Emoji', 12, [System.Drawing.FontStyle]::Regular)
+    $fInboxTxt = New-Object System.Drawing.Font('Segoe UI', 11, [System.Drawing.FontStyle]::Regular)
     $btnVig = New-Object System.Windows.Forms.Button
-    $btnVig.Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
+    $btnVig.Text = ''
     $btnVig.Location = New-Object System.Drawing.Point(20, $y)
     $btnVig.Size = New-Object System.Drawing.Size(430, 44)
     $btnVig.FlatStyle = 'Flat'
+    $btnVig.BackColor = [System.Drawing.Color]::White
     $btnVig.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
-    $updateVig = {
-        if (Test-VigilantRunning) {
-            $btnVig.Text = 'Vigilant del mobil: ACTIVAT  (clica per aturar)'
-            $btnVig.BackColor = [System.Drawing.Color]::FromArgb(46, 125, 50)    # verd
-            $btnVig.ForeColor = [System.Drawing.Color]::White
-        } else {
-            $btnVig.Text = 'Vigilant del mobil: aturat  (clica per activar)'
-            $btnVig.BackColor = [System.Drawing.Color]::FromArgb(224, 224, 224)  # gris
-            $btnVig.ForeColor = [System.Drawing.Color]::Black
-        }
-    }.GetNewClosure()
-    & $updateVig
+    $btnVig.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(219, 235, 255)
+    $btnVig.add_Paint({
+        param($s, $e)
+        $g = $e.Graphics
+        $rc = $s.ClientRectangle
+        $fl = [System.Windows.Forms.TextFormatFlags]::NoPadding
+        $lblTxt = 'Revisar entrades del mobil'
+        $szI = [System.Windows.Forms.TextRenderer]::MeasureText($g, $inbox, $fInboxIco, [System.Drawing.Size]::Empty, $fl)
+        $szT = [System.Windows.Forms.TextRenderer]::MeasureText($g, $lblTxt, $fInboxTxt, [System.Drawing.Size]::Empty, $fl)
+        $gap = 8
+        $x = [int](($rc.Width - ($szI.Width + $gap + $szT.Width)) / 2)
+        $yI = [int](($rc.Height - $szI.Height) / 2)
+        $yT = [int](($rc.Height - $szT.Height) / 2)
+        [System.Windows.Forms.TextRenderer]::DrawText($g, $inbox, $fInboxIco, (New-Object System.Drawing.Point($x, $yI)), [System.Drawing.Color]::Black, $fl)
+        [System.Windows.Forms.TextRenderer]::DrawText($g, $lblTxt, $fInboxTxt, (New-Object System.Drawing.Point(($x + $szI.Width + $gap), $yT)), [System.Drawing.Color]::Black, $fl)
+    }.GetNewClosure())
     $btnVig.add_Click({
-        if (Test-VigilantRunning) { Stop-Vigilant } else { Start-Vigilant }
-        & $updateVig
+        $result.Choice = @{ Action = 'revisarmobil'; Cataleg = $null }
+        $form.DialogResult = 'OK'
+        $form.Close()
     }.GetNewClosure())
     [void]$form.Controls.Add($btnVig)
     $y += 52

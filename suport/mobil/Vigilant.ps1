@@ -1,28 +1,22 @@
 #requires -Version 5.1
 <#
 .SYNOPSIS
-  Vigilant: genera automaticament els informes que arriben del mobil via Drive.
+  Revisa UNA vegada si han arribat informes del mobil (via Drive) i els genera.
 
 .DESCRIPTION
-  Vigila la carpeta $DriveEntradaDir (sincronitzada amb el Google Drive
-  d'escriptori). Quan hi apareix un paquet *.json (preparat al mobil), crida
-  GenerarInforme.ps1 -DesDePaquet per generar el .docx complet, i mou el paquet
-  a $DriveProcessatsDir. Aixi, quan arribes al PC, l'informe ja esta fet a
-  'Informes generats'.
+  Mira la carpeta d'entrada ($DriveEntradaDir, sincronitzada amb el Google Drive
+  d'escriptori) o la carpeta de Drive per API. Per cada paquet *.json pendent
+  (preparat al mobil), crida GenerarInforme.ps1 -DesDePaquet per generar el .docx
+  complet i mou el paquet a Processats. Fa NOMES una passada i surt: no es queda
+  vigilant en segon pla ni fa polling. El programa el llanca (una vegada) des del
+  boto "Revisar entrades del mobil" del menu.
 
-  Pensat per deixar-lo obert en segon pla al PC (Vigilant.bat). Fa polling cada
-  pocs segons (mes robust que FileSystemWatcher sobre carpetes sincronitzades).
-
-.PARAMETER IntervalSec
-  Segons entre comprovacions (per defecte 10).
-
-.PARAMETER Once
-  Processa els paquets pendents un sol cop i surt (per a proves o per a una
-  tasca programada de Windows).
+.PARAMETER ResultFile
+  Ruta (opcional) on escriure el resum en JSON ({ ok, err, pending }) perque el
+  programa que l'ha llancat el pugui mostrar.
 #>
 param(
-    [int]$IntervalSec = 10,
-    [switch]$Once
+    [string]$ResultFile
 )
 
 $ErrorActionPreference = 'Stop'
@@ -40,33 +34,10 @@ Remove-Item Env:\GENINFORME_TEST -ErrorAction SilentlyContinue
 
 $GenerarPs1 = Join-Path $SuportDir 'GenerarInforme.ps1'
 
-# ----------------------------------------------------------------------------
-# Marca de "vigilant viu" perque el programa principal el detecti ENTRE REINICIS.
-# ----------------------------------------------------------------------------
-# El dot-source de GenerarInforme.ps1 (a dalt) ens ha donat $AppDataDir,
-# Ensure-AppDataDir, Get-VigilantPidFile i $Script:VigilantMutexName. Deixem:
-#   - un MUTEX amb nom (senyal de vida; el SO el neteja sol quan aquest proces
-#     mor, encara que es tanqui la finestra a la forca), i
-#   - un PIDFILE amb el nostre PID (perque el programa el pugui aturar).
-# Aixi, si l'usuari activa el vigilant, tanca el programa i el reobre, el menu
-# torna a veure el vigilant com a ACTIU (i no n'arrenca un segon).
-$Script:VigMutex = $null
-try {
-    Ensure-AppDataDir
-    $created = $false
-    $Script:VigMutex = New-Object System.Threading.Mutex($true, $Script:VigilantMutexName, [ref]$created)
-    try { Set-Content -LiteralPath (Get-VigilantPidFile) -Value ([string]$PID) -Encoding ASCII } catch { }
-    # Neteja del pidfile en sortir (el mutex el neteja el SO). Guardem la ruta en
-    # una variable global perque l'accio de l'event corri en l'ambit global.
-    $Global:CornellaVigilantPidFile = (Get-VigilantPidFile)
-    Register-EngineEvent -SourceIdentifier ([System.Management.Automation.PsEngineEvent]::Exiting) -Action {
-        try { if ($Global:CornellaVigilantPidFile -and (Test-Path -LiteralPath $Global:CornellaVigilantPidFile)) { Remove-Item -LiteralPath $Global:CornellaVigilantPidFile -Force } } catch { }
-    } | Out-Null
-} catch {
-    # Si la marca falla per qualsevol motiu, el vigilant funciona igualment
-    # (nomes es perd la deteccio entre reinicis).
-    $Script:VigMutex = $null
-}
+# Comptadors del resum d'aquesta passada.
+$Script:GeneratsOk  = 0
+$Script:GeneratsErr = 0
+$Script:Pendents    = 0
 
 function _EnsureDir($d) {
     if (-not (Test-Path -LiteralPath $d)) { New-Item -ItemType Directory -Path $d -Force | Out-Null }
@@ -75,8 +46,9 @@ function _EnsureDir($d) {
 function Process-Pending {
     _EnsureDir $DriveEntradaDir
     _EnsureDir $DriveProcessatsDir
-    $pending = Get-ChildItem -LiteralPath $DriveEntradaDir -Filter '*.json' -File -ErrorAction SilentlyContinue |
-               Sort-Object LastWriteTime
+    $pending = @(Get-ChildItem -LiteralPath $DriveEntradaDir -Filter '*.json' -File -ErrorAction SilentlyContinue |
+               Sort-Object LastWriteTime)
+    $Script:Pendents += $pending.Count
     foreach ($f in $pending) {
         Write-Host ("[{0}] Paquet detectat: {1}" -f (Get-Date -Format 'HH:mm:ss'), $f.Name)
         try {
@@ -91,8 +63,10 @@ function Process-Pending {
                 $dest = Join-Path $DriveProcessatsDir ("{0}_{1}{2}" -f $f.BaseName, $stamp, $f.Extension)
             }
             Move-Item -LiteralPath $f.FullName -Destination $dest -Force
+            $Script:GeneratsOk++
             Write-Host ("[{0}] OK. Paquet mogut a Processats." -f (Get-Date -Format 'HH:mm:ss')) -ForegroundColor Green
         } catch {
+            $Script:GeneratsErr++
             Write-Host ("[{0}] ERROR amb {1}: {2}" -f (Get-Date -Format 'HH:mm:ss'), $f.Name, $_.Exception.Message) -ForegroundColor Red
             # Movem el paquet problematic a Processats amb sufix .error perque no
             # es reintenti en bucle. El pots revisar a ma.
@@ -112,7 +86,8 @@ function Process-PendingApi {
         Write-Host "Falten \$DriveEntradaId/\$DriveProcessatsId a config.ps1." -ForegroundColor Red
         return
     }
-    $pending = Get-DriveChildren $DriveEntradaId '.json'
+    $pending = @(Get-DriveChildren $DriveEntradaId '.json')
+    $Script:Pendents += $pending.Count
     foreach ($f in $pending) {
         Write-Host ("[{0}] Paquet detectat (Drive): {1}" -f (Get-Date -Format 'HH:mm:ss'), $f.Name)
         $tmp = Join-Path $env:TEMP ("paquet_" + [guid]::NewGuid().ToString() + ".json")
@@ -127,8 +102,10 @@ function Process-PendingApi {
 
             Write-Host "   3/3 Movent el paquet a Processats..."
             Move-DriveFile $f.Id $DriveProcessatsId $DriveEntradaId
+            $Script:GeneratsOk++
             Write-Host ("[{0}] OK. Informe generat i paquet mogut a Processats." -f (Get-Date -Format 'HH:mm:ss')) -ForegroundColor Green
         } catch {
+            $Script:GeneratsErr++
             Write-Host ("[{0}] ERROR amb {1}: {2}" -f (Get-Date -Format 'HH:mm:ss'), $f.Name, $_.Exception.Message) -ForegroundColor Red
             # El movem a Processats igualment perque no es reintenti en bucle.
             try { Move-DriveFile $f.Id $DriveProcessatsId $DriveEntradaId } catch { }
@@ -149,16 +126,16 @@ if ($DriveEntradaId -and -not (Test-DriveApiConfigured)) {
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $ScriptRoot 'Authorize-Drive.ps1')
     Write-Host ""
     if (Test-DriveApiConfigured) {
-        Write-Host "Autoritzacio correcta. Continuem amb el vigilant." -ForegroundColor Green
+        Write-Host "Autoritzacio correcta. Continuem amb la revisio." -ForegroundColor Green
     } else {
-        Write-Host "No s'ha completat l'autoritzacio. El vigilant treballara en mode carpeta local." -ForegroundColor Yellow
+        Write-Host "No s'ha completat l'autoritzacio. Es treballara en mode carpeta local." -ForegroundColor Yellow
     }
     Write-Host ""
 }
 
 $UsaApi = Test-DriveApiConfigured
 
-Write-Host "Vigilant d'informes Cornella"
+Write-Host "Revisar entrades del mobil (una passada)"
 if ($UsaApi) {
     Write-Host "  Mode:       Google Drive per API (sense Drive d'escriptori)"
     Write-Host "  Entrada:    carpeta Drive $DriveEntradaId"
@@ -173,13 +150,16 @@ function Process-All {
     if ($UsaApi) { Process-PendingApi } else { Process-Pending }
 }
 
-if ($Once) {
-    Process-All
-    Write-Host "Fet (mode -Once)."
-    return
-}
-Write-Host ("Vigilant cada {0}s. Tanca la finestra per aturar." -f $IntervalSec)
-while ($true) {
-    try { Process-All } catch { Write-Host "Error al cicle: $($_.Exception.Message)" -ForegroundColor Red }
-    Start-Sleep -Seconds $IntervalSec
+# UNA sola passada i sortim (no hi ha bucle ni polling).
+try { Process-All } catch { Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red; $Script:GeneratsErr++ }
+
+Write-Host ""
+Write-Host ("Fet. Pendents: {0}  -  Generats: {1}  -  Errors: {2}" -f $Script:Pendents, $Script:GeneratsOk, $Script:GeneratsErr) -ForegroundColor Cyan
+
+# Resum en JSON per al programa que ens ha llancat (si ens ha passat -ResultFile).
+if (-not [string]::IsNullOrWhiteSpace($ResultFile)) {
+    try {
+        ([pscustomobject]@{ ok = $Script:GeneratsOk; err = $Script:GeneratsErr; pending = $Script:Pendents } |
+            ConvertTo-Json -Compress) | Set-Content -LiteralPath $ResultFile -Encoding UTF8
+    } catch { }
 }

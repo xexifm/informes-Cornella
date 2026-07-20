@@ -155,90 +155,57 @@ function _NewForm {
 }
 
 # ----------------------------------------------------------------------------
-# Eines integrades al menu (Pas 1): planificador de rutes i vigilant del mobil.
-# Abans eren dos .bat separats (Ruta.bat, Vigilant.bat); ara es llancen des del
-# menu com a PROCESSOS a part (son programes independents) i el menu segueix
-# obert. El vigilant es un watcher de llarga durada: es pot activar/aturar amb
-# un boto que canvia de color segons l'estat.
+# Eines integrades al menu (Pas 1): planificador de rutes i revisio del mobil.
+# Es llancen des del menu (botons). La revisio del mobil es una comprovacio
+# d'UN SOL COP: mira si han arribat paquets del mobil (via Drive), els genera i
+# surt. Ja no hi ha cap vigilant en segon pla ni polling ni interruptor.
 # ----------------------------------------------------------------------------
-$Script:VigilantProc = $null
 
-# Nom del mutex i pidfile que el vigilant crea mentre corre (vegeu Vigilant.ps1).
-# Serveixen per detectar-lo ENTRE REINICIS del programa: si abans nomes miravem
-# $Script:VigilantProc (en memoria), en tancar i reobrir el programa perdiem el
-# rastre d'un vigilant encara viu i el mostravem com a aturat (i, si es tornava a
-# activar, s'obria un segon vigilant). El mutex es la senyal de vida (el SO el
-# neteja sol quan el proces mor, encara que es forci el tancament); el pidfile
-# guarda el PID per poder-lo aturar des d'una altra instancia del programa.
-$Script:VigilantMutexName = 'Local\InformesCornellaVigilant'
-# NOTA: $AppDataDir es defineix mes avall al fitxer, pero aquestes funcions
-# nomes s'executen en temps d'execucio (mai en carregar), quan ja existeix.
-
-# Ruta del pidfile del vigilant (a %LOCALAPPDATA%\InformesCornella\vigilant.pid).
-function Get-VigilantPidFile {
-    return (Join-Path $AppDataDir 'vigilant.pid')
-}
-
-# Cert si el vigilant s'esta executant. Primer mira el proces que hem arrencat
-# nosaltres (en memoria); si no, comprova el mutex amb nom que deixa el vigilant
-# (funciona encara que el vigilant l'hagi arrencat una execucio ANTERIOR del
-# programa, ja tancada).
-function Test-VigilantRunning {
-    if ($null -ne $Script:VigilantProc -and -not $Script:VigilantProc.HasExited) { return $true }
-    # Cross-proces: el vigilant es viu si el seu mutex amb nom encara existeix.
-    try {
-        $m = [System.Threading.Mutex]::OpenExisting($Script:VigilantMutexName)
-        $m.Dispose()
-        return $true
-    } catch {
-        return $false
-    }
-}
-
-# Arrenca el vigilant (Vigilant.ps1) en una finestra propia visible (mostra
-# l'activitat i, si cal, l'autoritzacio de Drive el primer cop). Guarda el
-# proces per poder-lo aturar. Segueix corrent encara que es tanqui el menu.
-function Start-Vigilant {
-    if (Test-VigilantRunning) { return }
+# Revisa UNA vegada si han arribat informes del mobil i els genera. Llanca
+# mobil/Vigilant.ps1 (mode d'un sol cop), espera que acabi i mostra un resum.
+# Normalment SENSE finestra de consola; nomes visible el primer cop, si cal
+# autoritzar Google Drive (mode API), perque l'usuari pugui completar-ho.
+function Invoke-RevisarMobil {
     $vig = Join-Path $ScriptRoot (Join-Path 'mobil' 'Vigilant.ps1')
     if (-not (Test-Path -LiteralPath $vig)) {
-        [System.Windows.Forms.MessageBox]::Show("No s'ha trobat Vigilant.ps1.", 'Vigilant', 'OK', 'Error') | Out-Null
+        [System.Windows.Forms.MessageBox]::Show("No s'ha trobat mobil\Vigilant.ps1.", 'Revisar mobil', 'OK', 'Error') | Out-Null
         return
     }
-    try {
-        # Passem els arguments com UNA cadena amb la ruta entre cometes: la ruta
-        # pot tenir espais (p.ex. "5.- Sergi Fadurdo") i, amb un array,
-        # Start-Process els uneix amb espais SENSE cometejar -> es trencaria.
-        $psArgs = "-NoProfile -ExecutionPolicy Bypass -File `"$vig`""
-        $Script:VigilantProc = Start-Process -FilePath 'powershell.exe' -ArgumentList $psArgs -PassThru
-    } catch {
-        [System.Windows.Forms.MessageBox]::Show("No s'ha pogut arrencar el vigilant:`n$($_.Exception.Message)", 'Vigilant', 'OK', 'Error') | Out-Null
-        $Script:VigilantProc = $null
-    }
-}
+    # Cal autoritzar Drive (primer cop, mode API)? Aleshores ho fem visible.
+    $needsAuth = $false
+    try { $needsAuth = ($DriveEntradaId -and -not (Test-DriveApiConfigured)) } catch { $needsAuth = $false }
 
-# Atura el vigilant (tanca el seu proces/finestra). Si el vam arrencar nosaltres,
-# matem el proces que tenim guardat; si no (l'havia arrencat una execucio
-# anterior del programa), llegim el pidfile i matem aquell PID, comprovant abans
-# que sigui realment un powershell viu (per no matar un PID reciclat).
-function Stop-Vigilant {
-    if ($null -ne $Script:VigilantProc -and -not $Script:VigilantProc.HasExited) {
-        try { $Script:VigilantProc.Kill() } catch { }
-    } else {
-        $pidFile = Get-VigilantPidFile
-        if (Test-Path -LiteralPath $pidFile) {
-            $vpid = $null
-            try { $vpid = [int]((Get-Content -LiteralPath $pidFile -Raw -ErrorAction Stop).Trim()) } catch { $vpid = $null }
-            if ($vpid) {
-                try {
-                    $p = Get-Process -Id $vpid -ErrorAction Stop
-                    if ($p.ProcessName -like 'powershell*') { $p.Kill() }
-                } catch { }
-            }
-            try { Remove-Item -LiteralPath $pidFile -Force -ErrorAction SilentlyContinue } catch { }
+    $resFile = Join-Path $env:TEMP ("revisarmobil_" + [guid]::NewGuid().ToString() + ".json")
+    $psArgs = "-NoProfile -ExecutionPolicy Bypass -File `"$vig`" -ResultFile `"$resFile`""
+    try {
+        if ($needsAuth) {
+            Start-Process -FilePath 'powershell.exe' -ArgumentList $psArgs -Wait | Out-Null
+        } else {
+            Start-Process -FilePath 'powershell.exe' -ArgumentList $psArgs -WindowStyle Hidden -Wait | Out-Null
         }
+    } catch {
+        [System.Windows.Forms.MessageBox]::Show("No s'ha pogut revisar el mobil:`n$($_.Exception.Message)", 'Revisar mobil', 'OK', 'Error') | Out-Null
+        return
     }
-    $Script:VigilantProc = $null
+
+    # Llegim el resum que ha deixat Vigilant.ps1.
+    $ok = 0; $err = 0; $pend = 0
+    try {
+        if (Test-Path -LiteralPath $resFile) {
+            $r = (Get-Content -LiteralPath $resFile -Raw -Encoding UTF8 | ConvertFrom-Json)
+            $ok = [int]$r.ok; $err = [int]$r.err; $pend = [int]$r.pending
+            Remove-Item -LiteralPath $resFile -Force -ErrorAction SilentlyContinue
+        }
+    } catch { }
+
+    if ($pend -eq 0) {
+        [System.Windows.Forms.MessageBox]::Show("No hi havia entrades pendents del mobil.", 'Revisar mobil', 'OK', 'Information') | Out-Null
+    } else {
+        $icon = if ($err -gt 0) { 'Warning' } else { 'Information' }
+        [System.Windows.Forms.MessageBox]::Show(
+            "Revisio completada.`n`nInformes generats: $ok`nErrors: $err",
+            'Revisar mobil', 'OK', $icon) | Out-Null
+    }
 }
 
 # Obre el planificador de rutes (Ruta.ps1) EN EL MATEIX PROCES, no en una
@@ -2993,6 +2960,7 @@ function Main {
             'ruta'       { Start-RutaTool }   # llanca el planificador; torna al menu
             'informesdb'     { Invoke-InformesDbScan }   # escaneja informes -> JSON; torna al menu
             'informesdbedit' { Invoke-InformesDbEdit }   # editor de la base d'informes
+            'revisarmobil'   { Invoke-RevisarMobil }     # revisa el mobil un sol cop; torna al menu
             'nou'        { [void](Invoke-NouWizard -cataleg $sel.Cataleg) }
             default      { return }
         }

@@ -16,7 +16,7 @@ els blocs en ordre. Un cop fet, no hauràs de tornar-hi: tot s'actualitza sol.
 |---|---|---|
 | Mode `-DesDePaquet` | `suport/GenerarInforme.ps1` | Genera el `.docx` des d'un paquet JSON, sense l'assistent. |
 | `ExportaDades.ps1` | `suport/mobil/` | Exporta plantilles → `docs/dades/*.json` (web) i activitats → Drive privat. |
-| `Vigilant.ps1` + `Vigilant.bat` | `suport/mobil/` i arrel | Vigila la carpeta Entrada de Drive i genera els informes que arriben del mòbil. |
+| `Vigilant.ps1` (botó "📥 Revisar entrades del mòbil") | `suport/mobil/` | Mira **un sol cop** la carpeta Entrada de Drive i genera els informes pendents del mòbil. |
 | Web del mòbil | `docs/` | Formulari responsive (GitHub Pages): selecció + correu de requeriments + paquet a Drive. |
 | `Actualitzar.bat` | arrel | Ara també regenera i puja les dades del mòbil quan canvies plantilles. |
 | Auto-export d'activitats | `GenerarInforme.ps1` (Pas 2) | Cada cop que generes al PC, refresca `activitats.json` a Drive. |
@@ -92,7 +92,7 @@ Comprova abans que la xarxa deixa sortir cap a Google amb el test del bloc G.
 
 ---
 
-## D · Primera exportació i engegar el vigilant (al PC)
+## D · Primera exportació i revisar el mòbil (al PC)
 
 1. **Exporta-ho tot un cop** (genera les dades del web i puja les d'activitats a Drive):
    ```
@@ -101,9 +101,10 @@ Comprova abans que la xarxa deixa sortir cap a Google amb el test del bloc G.
    - Crea `docs/dades/*.json`. **Puja'ls** (via `Actualitzar.bat` editant
      qualsevol plantilla, o per PR) perquè GitHub Pages els serveixi.
    - Crea `Dades/activitats.json` a Drive.
-2. **Deixa el vigilant obert** mentre treballis: doble clic a **`Vigilant.bat`**.
-   Vigila `Entrada/` i, quan arribi un paquet del mòbil, genera el `.docx` a
-   `Informes generats/` i mou el paquet a `Processats/`.
+2. Quan tornis al PC, obre `GenerarInforme.bat` i clica **📥 Revisar entrades
+   del mòbil**. Fa una **comprovació d'un sol cop**: mira `Entrada/`, genera els
+   `.docx` dels paquets pendents a `Informes generats/`, els mou a `Processats/`
+   i t'avisa amb un resum. (Ja no hi ha cap vigilant obert en segon pla.)
 
 A partir d'aquí, **cada cop que generes un informe al PC** s'actualitza sol
 `activitats.json` a Drive, i **cada cop que canvies una plantilla i fas
@@ -120,8 +121,9 @@ A partir d'aquí, **cada cop que generes un informe al PC** s'actualitza sol
    - **Enviar requeriments per correu** → s'obre el correu amb el text ja escrit.
    - **Preparar informe al PC** → puja el paquet a Drive.
 
-**Al PC**: el vigilant genera el `.docx` complet en segons. Quan hi arribis, ja
-el tens a `Informes generats/`.
+**Al PC**: quan hi arribis, obre `GenerarInforme.bat` i clica **📥 Revisar
+entrades del mòbil**; genera els `.docx` pendents en segons i els tens a
+`Informes generats/`.
 
 ---
 
@@ -206,16 +208,17 @@ powershell -ExecutionPolicy Bypass -File suport\mobil\Authorize-Drive.ps1
 Enganxa el Client ID i el Secret, autoritza al navegador amb el teu compte i
 ja està. Les credencials queden a `%LOCALAPPDATA%\InformesCornella\` (mai al repo).
 
-A partir d'aquí, `ExportaDades.ps1` puja `activitats.json` a Drive per API i
-`Vigilant.bat` recull els paquets de Drive per API automàticament. No cal
-carpeta sincronitzada.
+A partir d'aquí, `ExportaDades.ps1` puja `activitats.json` a Drive per API i el
+botó **📥 Revisar entrades del mòbil** recull els paquets de Drive per API quan
+el cliques. No cal carpeta sincronitzada.
 
 ## Mode sense Drive (fallback)
 
 Si encara no has fet el bloc C, el web funciona igual però:
 - La capçalera s'omple **a mà** (el PC l'acabarà d'omplir des de l'Excel en generar).
 - En comptes de pujar el paquet, el botó **Baixar paquet** te'l descarrega;
-  deixa'l tu a la carpeta `Entrada/` de Drive i el vigilant farà la resta.
+  deixa'l tu a la carpeta `Entrada/` de Drive i, al PC, clica **📥 Revisar
+  entrades del mòbil** per generar-lo.
 
 ---
 
@@ -227,9 +230,10 @@ Si encara no has fet el bloc C, el web funciona igual però:
   (o executa `ExportaDades.ps1 -Activitats`) perquè es creï a `Dades/`.
 - **Google demana permisos cada vegada**: normal en apps en "mode de prova";
   per a ús personal és suficient.
-- **El vigilant no genera res**: comprova que `Vigilant.bat` està obert, que la
-  ruta `$DriveBaseDir` és correcta i que Drive d'escriptori està sincronitzant.
-- **Un paquet falla**: el vigilant el mou a `Processats/` amb sufix `.error`;
+- **No es genera res en revisar el mòbil**: comprova que la ruta `$DriveBaseDir`
+  és correcta i que Drive d'escriptori està sincronitzant; després torna a
+  clicar **📥 Revisar entrades del mòbil**.
+- **Un paquet falla**: la revisió el mou a `Processats/` amb sufix `.error`;
   obre'l i revisa'l, o torna a preparar-lo des del mòbil.
 
 ---

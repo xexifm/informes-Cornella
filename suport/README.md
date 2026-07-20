@@ -9,7 +9,7 @@ d'activitat de l'Ajuntament de Cornellà.
 
 ```
 informes-Cornella/
-├── GenerarInforme.bat            ← doble clic: programa principal (informes, ruta i vigilant al menú)
+├── GenerarInforme.bat            ← doble clic: programa principal (informes, ruta, base d'informes i revisió del mòbil al menú)
 ├── Actualitzar.bat               ← doble clic per actualitzar el programa
 ├── ESTRUCTURA.md                  ← MAPA: quins fitxers fa servir cada executable
 ├── ESTRUCTURALS/                  ← plantilles del programa (les pots editar al Word)
@@ -31,7 +31,7 @@ informes-Cornella/
     ├── Instalar.bat               ← instal·lar en una màquina nova (vegeu cap. 2)
     ├── rutes/Ruta.ps1             ← planificador de rutes (botó "📍 Generar ruta" del menú)
     ├── mobil/                     ← integració mòbil/Drive
-    │   ├── Vigilant.ps1           ← el llança l'interruptor "Vigilant del mòbil" del menú
+    │   ├── Vigilant.ps1           ← el llança el botó "📥 Revisar entrades del mòbil" (un sol cop)
     │   ├── ExportaDades.ps1       ← el crida Actualitzar.bat (exporta dades)
     │   └── Authorize-Drive.ps1    ← autoritza el PC a Google Drive
     ├── tests/                     ← proves (run-tests.ps1, run-tests-ruta.ps1)
@@ -601,8 +601,11 @@ camps), **enviar els requeriments per correu** a un destinatari, i fer que el
 
 - El mòbil obre un **formulari web** (GitHub Pages, carpeta `docs/`).
 - El mòbil prepara un **paquet JSON**, el deixa a una carpeta privada de
-  **Google Drive**, i el PC el converteix en `.docx` amb l'interruptor
-  **Vigilant del mòbil** del menú (mode `GenerarInforme.ps1 -DesDePaquet`).
+  **Google Drive**, i el PC el converteix en `.docx` quan cliques el botó
+  **📥 Revisar entrades del mòbil** del menú: fa una **comprovació d'un sol
+  cop** (mira si hi ha paquets pendents, els genera amb
+  `GenerarInforme.ps1 -DesDePaquet` i avisa amb un resum). Ja no hi ha cap
+  vigilant en segon pla ni comprovació periòdica.
 - Les **dades d'activitats** (noms/adreces) **no surten** mai al GitHub públic:
   van només a Drive privat. Les plantilles (sense dades personals) sí que es
   publiquen, per servir el formulari.
