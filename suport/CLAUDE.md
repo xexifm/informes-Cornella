@@ -44,17 +44,21 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   `Seguiment.ps1` (`_LoadDocxXml`, `_ParagraphTextXml`). Funcions de text PURES
   (dates, GIA, expedient, conclusió) amb tests a `run-tests.ps1`.
 - **PENDENT (segona passada):** afinar els parsers amb la carpeta REAL d'informes
-  (~43 GB, no es pot pujar). Casos a cobrir: formats de data rars al nom,
-  informes **sense GIA** al document, variants de la frase de conclusió, i
-  **`.doc` antics** (Word 97-2003) — aquests NO es poden llegir descomprimint;
-  cal **Word COM** (com fa `suport/DiagnosticInformes.ps1`, funció `_ReadDocText`).
-  Si s'afegeix suport `.doc` a l'escàner, `Get-InformeData` ha d'acceptar una
-  instància de Word (creada mandrosament) i el `Get-ChildItem` ha d'incloure
-  `*.doc` a més de `*.docx`.
-- Eina de diagnòstic (sense pujar contingut): `DiagnosticInformes.bat` →
-  `suport/DiagnosticInformes.ps1`. Escaneja la carpeta al PC i escriu un resum a
-  l'Escriptori (formats de data, extensions, taxa de GIA/conclusió trobats,
-  exemples dels casos que fallen). Útil per veure les casuístiques reals.
+  (~43 GB). Casos a cobrir: formats de data rars al nom, informes **sense GIA**
+  al document, variants de la frase de conclusió, i **`.doc` antics**
+  (Word 97-2003) — aquests NO es poden llegir descomprimint; cal **Word COM**
+  (`New-Object -ComObject Word.Application`, `Documents.Open($path,$false,$true)`
+  en només-lectura, iterar `$doc.Paragraphs` → `$p.Range.Text`, i `Quit()` al
+  final). Si s'afegeix suport `.doc` a l'escàner, `Get-InformeData` ha d'acceptar
+  una instància de Word (creada mandrosament) i el `Get-ChildItem`
+  d'`Invoke-InformesDbScan` ha d'incloure `*.doc` a més de `*.docx`.
+- **On és la carpeta d'informes:** a la feina, `$InformesDir` per defecte és
+  `I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\Informes`. **A casa**,
+  l'usuari en té una còpia en un **disc extern**:
+  `F:\FEINA\2022 Ajuntament Cornellà\5.- Sergi Fadurdo` (per tant, els informes
+  són a `F:\FEINA\2022 Ajuntament Cornellà\5.- Sergi Fadurdo\Informes`). Per
+  treballar-hi en local, apunta-hi `$InformesDir` a `suport/config.ps1` o llegeix
+  la ruta directament.
 
 ## Plànol públic d'activitats precintades
 - `suport/rutes/Precintades.ps1` genera `docs/dades/precintades.json` a partir
