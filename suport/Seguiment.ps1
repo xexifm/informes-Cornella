@@ -1057,6 +1057,44 @@ function Select-Mode {
     [void]$form.Controls.Add($btnRuta)
     $y += 52
 
+    # Boto: Activitats precintades. Obre el planol public (GitHub Pages) al
+    # navegador. NO tanca el menu: nomes obre l'enllac. Owner-draw amb l'emoji
+    # 🔒 (U+1F512, "precintada" = tancada/segellada).
+    $lock = [System.Char]::ConvertFromUtf32(0x1F512)
+    $fLockIco = New-Object System.Drawing.Font('Segoe UI Emoji', 12, [System.Drawing.FontStyle]::Regular)
+    $fLockTxt = New-Object System.Drawing.Font('Segoe UI', 11, [System.Drawing.FontStyle]::Regular)
+    $urlPrec = 'https://xexifm.github.io/informes-cornella/precintades.html'
+    $btnPrec = New-Object System.Windows.Forms.Button
+    $btnPrec.Text = ''
+    $btnPrec.Location = New-Object System.Drawing.Point(20, $y)
+    $btnPrec.Size = New-Object System.Drawing.Size(430, 44)
+    $btnPrec.FlatStyle = 'Flat'
+    $btnPrec.BackColor = [System.Drawing.Color]::White
+    $btnPrec.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
+    $btnPrec.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(219, 235, 255)
+    $btnPrec.add_Paint({
+        param($s, $e)
+        $g = $e.Graphics
+        $rc = $s.ClientRectangle
+        $fl = [System.Windows.Forms.TextFormatFlags]::NoPadding
+        $lblTxt = 'Activitats precintades'
+        $szI = [System.Windows.Forms.TextRenderer]::MeasureText($g, $lock, $fLockIco, [System.Drawing.Size]::Empty, $fl)
+        $szT = [System.Windows.Forms.TextRenderer]::MeasureText($g, $lblTxt, $fLockTxt, [System.Drawing.Size]::Empty, $fl)
+        $gap = 8
+        $x = [int](($rc.Width - ($szI.Width + $gap + $szT.Width)) / 2)
+        $yI = [int](($rc.Height - $szI.Height) / 2)
+        $yT = [int](($rc.Height - $szT.Height) / 2)
+        [System.Windows.Forms.TextRenderer]::DrawText($g, $lock, $fLockIco, (New-Object System.Drawing.Point($x, $yI)), [System.Drawing.Color]::Black, $fl)
+        [System.Windows.Forms.TextRenderer]::DrawText($g, $lblTxt, $fLockTxt, (New-Object System.Drawing.Point(($x + $szI.Width + $gap), $yT)), [System.Drawing.Color]::Black, $fl)
+    }.GetNewClosure())
+    $btnPrec.add_Click({
+        try { Start-Process $urlPrec | Out-Null } catch {
+            [System.Windows.Forms.MessageBox]::Show("No s'ha pogut obrir l'enllac:`n$urlPrec", 'Activitats precintades', 'OK', 'Error') | Out-Null
+        }
+    }.GetNewClosure())
+    [void]$form.Controls.Add($btnPrec)
+    $y += 52
+
     # Base d'informes: dos botons GERMANS (Actualitzar i Editar) dins d'un mateix
     # marc titulat, perque quedi clar que operen sobre la MATEIXA base de dades.
     # Owner-draw (emoji + text) com la resta de botons del menu.
