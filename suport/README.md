@@ -214,6 +214,27 @@ git). Detalls:
 - És un programa **independent**: només necessita la base de dades d'Excel
   (xarxa de la feina o còpia local), com el generador.
 
+### Actualitzar la base d'informes
+Al menú de `GenerarInforme.bat`, prem el botó **🗃 Actualitzar base d'informes**.
+Recorre la carpeta d'informes (`$InformesDir`, per defecte
+`...\5.- Sergi Fadurdo\Informes`) i, per **cada informe** (`.docx` amb una data
+al principi del nom), en treu:
+
+- la **data** (del principi del nom del fitxer: `AAAA-MM-DD`, `AAAAMMDD`, `AA-MM-DD`…),
+- l'**ID GIA** (del document; si no hi és, del nom de la carpeta `GIA 361`; si
+  tampoc, de l'Excel d'activitats cercant pel **número d'expedient**),
+- la **conclusió** (el paràgraf que comença amb *"Vist l'anterior"*).
+
+Ho desa **agrupat per activitat** a `BASE DE DADES ACTIVITATS\informes-db.json`
+(carpeta ignorada per git). Els informes que no s'han pogut resoldre del tot
+(sense ID GIA o sense conclusió) queden llistats al bloc **`a_revisar`** del
+mateix JSON, per poder-los repassar. En acabar, mostra un resum i ofereix
+obrir el fitxer.
+
+> Configura `$InformesDir` a `suport/config.ps1` si tens els informes en una
+> altra ubicació. Necessita només llegir els `.docx` (no obre Word); l'Excel
+> d'activitats només cal per la cerca de l'ID GIA per expedient i el titular.
+
 ### Actualitzar el programa
 **Doble clic a `Actualitzar.bat`**. Fa el següent:
 

@@ -20,6 +20,10 @@ Rutes generades/
 BASE DE DADES ACTIVITATS/*.xls
 BASE DE DADES ACTIVITATS/*.xlsx
 
+# Base de dades d'informes generada per l'escaner del menu (informes-db.json).
+# Es local (surt d'informes que poden contenir dades personals): NO es puja.
+BASE DE DADES ACTIVITATS/*.json
+
 # Registre local d'activitats extraordinaries (mode ACT_EXTR). Conte dades
 # personals (titulars, adreces): NO s'ha de pujar mai al GitHub public. La
 # carpeta es mante al repo (amb un README.txt); el .json de dins NO es puja.

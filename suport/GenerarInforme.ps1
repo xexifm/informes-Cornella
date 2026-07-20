@@ -163,9 +163,36 @@ function _NewForm {
 # ----------------------------------------------------------------------------
 $Script:VigilantProc = $null
 
-# Cert si el vigilant s'esta executant (proces viu, no finalitzat).
+# Nom del mutex i pidfile que el vigilant crea mentre corre (vegeu Vigilant.ps1).
+# Serveixen per detectar-lo ENTRE REINICIS del programa: si abans nomes miravem
+# $Script:VigilantProc (en memoria), en tancar i reobrir el programa perdiem el
+# rastre d'un vigilant encara viu i el mostravem com a aturat (i, si es tornava a
+# activar, s'obria un segon vigilant). El mutex es la senyal de vida (el SO el
+# neteja sol quan el proces mor, encara que es forci el tancament); el pidfile
+# guarda el PID per poder-lo aturar des d'una altra instancia del programa.
+$Script:VigilantMutexName = 'Local\InformesCornellaVigilant'
+# NOTA: $AppDataDir es defineix mes avall al fitxer, pero aquestes funcions
+# nomes s'executen en temps d'execucio (mai en carregar), quan ja existeix.
+
+# Ruta del pidfile del vigilant (a %LOCALAPPDATA%\InformesCornella\vigilant.pid).
+function Get-VigilantPidFile {
+    return (Join-Path $AppDataDir 'vigilant.pid')
+}
+
+# Cert si el vigilant s'esta executant. Primer mira el proces que hem arrencat
+# nosaltres (en memoria); si no, comprova el mutex amb nom que deixa el vigilant
+# (funciona encara que el vigilant l'hagi arrencat una execucio ANTERIOR del
+# programa, ja tancada).
 function Test-VigilantRunning {
-    return ($null -ne $Script:VigilantProc -and -not $Script:VigilantProc.HasExited)
+    if ($null -ne $Script:VigilantProc -and -not $Script:VigilantProc.HasExited) { return $true }
+    # Cross-proces: el vigilant es viu si el seu mutex amb nom encara existeix.
+    try {
+        $m = [System.Threading.Mutex]::OpenExisting($Script:VigilantMutexName)
+        $m.Dispose()
+        return $true
+    } catch {
+        return $false
+    }
 }
 
 # Arrenca el vigilant (Vigilant.ps1) en una finestra propia visible (mostra
@@ -190,10 +217,26 @@ function Start-Vigilant {
     }
 }
 
-# Atura el vigilant (tanca el seu proces/finestra).
+# Atura el vigilant (tanca el seu proces/finestra). Si el vam arrencar nosaltres,
+# matem el proces que tenim guardat; si no (l'havia arrencat una execucio
+# anterior del programa), llegim el pidfile i matem aquell PID, comprovant abans
+# que sigui realment un powershell viu (per no matar un PID reciclat).
 function Stop-Vigilant {
-    if (Test-VigilantRunning) {
+    if ($null -ne $Script:VigilantProc -and -not $Script:VigilantProc.HasExited) {
         try { $Script:VigilantProc.Kill() } catch { }
+    } else {
+        $pidFile = Get-VigilantPidFile
+        if (Test-Path -LiteralPath $pidFile) {
+            $vpid = $null
+            try { $vpid = [int]((Get-Content -LiteralPath $pidFile -Raw -ErrorAction Stop).Trim()) } catch { $vpid = $null }
+            if ($vpid) {
+                try {
+                    $p = Get-Process -Id $vpid -ErrorAction Stop
+                    if ($p.ProcessName -like 'powershell*') { $p.Kill() }
+                } catch { }
+            }
+            try { Remove-Item -LiteralPath $pidFile -Force -ErrorAction SilentlyContinue } catch { }
+        }
     }
     $Script:VigilantProc = $null
 }
@@ -251,6 +294,12 @@ $OutputDir              = Join-Path $RepoRoot 'Informes generats'
 $ActivitatsDir          = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\2_Controls Excels'
 $AlwaysConclusionsCount = 2
 
+# Carpeta ARREL dels informes ja generats (per l'escaner "Actualitzar base
+# d'informes" del menu). El valor per defecte es deriva de $ActivitatsDir DESPRES
+# de carregar config.ps1 (mes avall), aixi respecta un $ActivitatsDir o un
+# $InformesDir personalitzats al config.
+$InformesDir            = $null
+
 # Mobil (Google Drive). Carpeta sincronitzada al PC amb el Google Drive
 # d'escriptori. Conte tres subcarpetes:
 #   Entrada/    -> paquets JSON que arriben del mobil (els llegeix Vigilant.ps1)
@@ -288,11 +337,22 @@ if (Test-Path -LiteralPath $configPath) {
     . $configPath
 }
 
+# Carpeta arrel dels informes: si el config no l'ha fixat, la derivem de
+# $ActivitatsDir (germana '...\Informes'), ja amb el valor final del config.
+if (-not $InformesDir) {
+    $InformesDir = Join-Path (Split-Path -Parent $ActivitatsDir) 'Informes'
+}
+
 # Carreguem el modul ACT_EXTR (ActExtr.ps1): mode "Activitats extraordinaries"
 # (Decret 112/2010). Es carrega DESPRES de $RepoRoot, $EstructuralsDir i del
 # config (perque pugui calcular les rutes del registre/plantilles i deixar que
 # config.ps1 les sobreescrigui). Tambe en headless, per als tests de la logica.
 . (Join-Path $ScriptRoot 'ActExtr.ps1')
+
+# Carreguem el modul d'escaneig d'informes (Informes.ps1): construeix la base de
+# dades JSON (ID GIA + data + conclusio) a partir de la carpeta d'informes. Es
+# carrega tambe en headless perque els tests provin la logica de text pura.
+. (Join-Path $ScriptRoot 'Informes.ps1')
 
 # Subcarpetes de Drive derivades de $DriveBaseDir (despres del config, perque
 # n'hi hagi prou amb sobreescriure $DriveBaseDir a config.ps1).
@@ -2928,11 +2988,12 @@ function Main {
     while ($true) {
         $sel = Select-Mode
         switch ($sel.Action) {
-            'seguiment' { Invoke-SeguimentFlow }
-            'actextr'   { Invoke-ActExtrFlow }
-            'ruta'      { Start-RutaTool }   # llanca el planificador; torna al menu
-            'nou'       { [void](Invoke-NouWizard -cataleg $sel.Cataleg) }
-            default     { return }
+            'seguiment'  { Invoke-SeguimentFlow }
+            'actextr'    { Invoke-ActExtrFlow }
+            'ruta'       { Start-RutaTool }   # llanca el planificador; torna al menu
+            'informesdb' { Invoke-InformesDbScan }   # escaneja informes -> JSON; torna al menu
+            'nou'        { [void](Invoke-NouWizard -cataleg $sel.Cataleg) }
+            default      { return }
         }
         # ...i es torna a mostrar el menu (Pas 1).
     }

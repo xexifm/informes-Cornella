@@ -1057,6 +1057,44 @@ function Select-Mode {
     [void]$form.Controls.Add($btnRuta)
     $y += 52
 
+    # Boto: Actualitzar base d'informes (escaneja la carpeta d'informes i escriu
+    # el JSON amb ID GIA + data + conclusio de cada informe). Mateix patro que
+    # "Generar ruta": pintem l'emoji 🗃 (U+1F5C3, fora del BMP) amb "Segoe UI Emoji"
+    # al costat del text en "Segoe UI".
+    $box = [System.Char]::ConvertFromUtf32(0x1F5C3)
+    $fBoxIco = New-Object System.Drawing.Font('Segoe UI Emoji', 12, [System.Drawing.FontStyle]::Regular)
+    $fBoxTxt = New-Object System.Drawing.Font('Segoe UI', 11, [System.Drawing.FontStyle]::Regular)
+    $btnIdb = New-Object System.Windows.Forms.Button
+    $btnIdb.Text = ''
+    $btnIdb.Location = New-Object System.Drawing.Point(20, $y)
+    $btnIdb.Size = New-Object System.Drawing.Size(430, 44)
+    $btnIdb.FlatStyle = 'Flat'
+    $btnIdb.BackColor = [System.Drawing.Color]::White
+    $btnIdb.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
+    $btnIdb.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(219, 235, 255)
+    $btnIdb.add_Paint({
+        param($s, $e)
+        $g = $e.Graphics
+        $rc = $s.ClientRectangle
+        $fl = [System.Windows.Forms.TextFormatFlags]::NoPadding
+        $lblTxt = "Actualitzar base d'informes"
+        $szI = [System.Windows.Forms.TextRenderer]::MeasureText($g, $box, $fBoxIco, [System.Drawing.Size]::Empty, $fl)
+        $szT = [System.Windows.Forms.TextRenderer]::MeasureText($g, $lblTxt, $fBoxTxt, [System.Drawing.Size]::Empty, $fl)
+        $gap = 8
+        $x = [int](($rc.Width - ($szI.Width + $gap + $szT.Width)) / 2)
+        $yI = [int](($rc.Height - $szI.Height) / 2)
+        $yT = [int](($rc.Height - $szT.Height) / 2)
+        [System.Windows.Forms.TextRenderer]::DrawText($g, $box, $fBoxIco, (New-Object System.Drawing.Point($x, $yI)), [System.Drawing.Color]::Black, $fl)
+        [System.Windows.Forms.TextRenderer]::DrawText($g, $lblTxt, $fBoxTxt, (New-Object System.Drawing.Point(($x + $szI.Width + $gap), $yT)), [System.Drawing.Color]::Black, $fl)
+    }.GetNewClosure())
+    $btnIdb.add_Click({
+        $result.Choice = @{ Action = 'informesdb'; Cataleg = $null }
+        $form.DialogResult = 'OK'
+        $form.Close()
+    }.GetNewClosure())
+    [void]$form.Controls.Add($btnIdb)
+    $y += 52
+
     # Boto TOGGLE: Vigilant del mobil. Verd = actiu, gris = aturat. NO tanca el
     # menu: activa/atura el vigilant i canvia de color a l'instant.
     $btnVig = New-Object System.Windows.Forms.Button

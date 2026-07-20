@@ -17,6 +17,14 @@
 # fitxer ha de seguir el nom "YYYY-MM-DD ACTIVITATS.xls" o ".xlsx".
 $ActivitatsDir = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\2_Controls Excels'
 
+# Carpeta ARREL dels informes ja generats. La fa servir el boto "Actualitzar
+# base d'informes" del menu, que la recorre i escriu
+# BASE DE DADES ACTIVITATS\informes-db.json (ID GIA + data + conclusio per
+# informe, agrupat per activitat). Per defecte es la germana de $ActivitatsDir:
+# ...\5.- Sergi Fadurdo\Informes. Descomenta si la tens en una altra ubicacio:
+#
+# $InformesDir = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\Informes'
+
 # --- Planificador de rutes (Ruta.bat) -------------------------------------
 # Servidor de rutes OSRM que calcula la ruta circular mes rapida. Per defecte
 # s'usa el servidor public de demostracio. NOMES s'hi envien coordenades

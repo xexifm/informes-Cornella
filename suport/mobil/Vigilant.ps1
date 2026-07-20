@@ -40,6 +40,34 @@ Remove-Item Env:\GENINFORME_TEST -ErrorAction SilentlyContinue
 
 $GenerarPs1 = Join-Path $SuportDir 'GenerarInforme.ps1'
 
+# ----------------------------------------------------------------------------
+# Marca de "vigilant viu" perque el programa principal el detecti ENTRE REINICIS.
+# ----------------------------------------------------------------------------
+# El dot-source de GenerarInforme.ps1 (a dalt) ens ha donat $AppDataDir,
+# Ensure-AppDataDir, Get-VigilantPidFile i $Script:VigilantMutexName. Deixem:
+#   - un MUTEX amb nom (senyal de vida; el SO el neteja sol quan aquest proces
+#     mor, encara que es tanqui la finestra a la forca), i
+#   - un PIDFILE amb el nostre PID (perque el programa el pugui aturar).
+# Aixi, si l'usuari activa el vigilant, tanca el programa i el reobre, el menu
+# torna a veure el vigilant com a ACTIU (i no n'arrenca un segon).
+$Script:VigMutex = $null
+try {
+    Ensure-AppDataDir
+    $created = $false
+    $Script:VigMutex = New-Object System.Threading.Mutex($true, $Script:VigilantMutexName, [ref]$created)
+    try { Set-Content -LiteralPath (Get-VigilantPidFile) -Value ([string]$PID) -Encoding ASCII } catch { }
+    # Neteja del pidfile en sortir (el mutex el neteja el SO). Guardem la ruta en
+    # una variable global perque l'accio de l'event corri en l'ambit global.
+    $Global:CornellaVigilantPidFile = (Get-VigilantPidFile)
+    Register-EngineEvent -SourceIdentifier ([System.Management.Automation.PsEngineEvent]::Exiting) -Action {
+        try { if ($Global:CornellaVigilantPidFile -and (Test-Path -LiteralPath $Global:CornellaVigilantPidFile)) { Remove-Item -LiteralPath $Global:CornellaVigilantPidFile -Force } } catch { }
+    } | Out-Null
+} catch {
+    # Si la marca falla per qualsevol motiu, el vigilant funciona igualment
+    # (nomes es perd la deteccio entre reinicis).
+    $Script:VigMutex = $null
+}
+
 function _EnsureDir($d) {
     if (-not (Test-Path -LiteralPath $d)) { New-Item -ItemType Directory -Path $d -Force | Out-Null }
 }

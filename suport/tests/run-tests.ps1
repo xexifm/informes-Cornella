@@ -951,6 +951,52 @@ $fields2 = Build-FieldsFromPaquet $selF $conclF @() $fvObj
 AssertEq $fields2['certificat'].Value 'X'               'Build-FieldsFromPaquet: valors des de PSCustomObject'
 AssertEq $fields2['Termini'].Value '3 mesos'            'Build-FieldsFromPaquet: OPCIO amb valor del paquet'
 
+Write-Host "`n--- Informes.ps1: _ParseDataInformeFromName ---"
+AssertEq (_ParseDataInformeFromName '20260710_Req4_KRICHI.docx') '2026-07-10' 'data AAAAMMDD sense separador'
+AssertEq (_ParseDataInformeFromName '2026-07-10_Req.docx')       '2026-07-10' 'data AAAA-MM-DD'
+AssertEq (_ParseDataInformeFromName '20250114_Req_X.docx')       '2025-01-14' 'data AAAAMMDD (gener)'
+AssertEq (_ParseDataInformeFromName '2026.05.21 informe.docx')   '2026-05-21' 'data AAAA.MM.DD'
+AssertEq (_ParseDataInformeFromName '26-07-10 antic.docx')       '2026-07-10' 'data AA-MM-DD (any 2 xifres)'
+AssertEq (_ParseDataInformeFromName '20261332_x.docx')          ''           'data invalida (mes/dia) -> buit'
+AssertEq (_ParseDataInformeFromName 'Informe final.docx')       ''           'sense data al principi -> buit'
+AssertEq (_ParseDataInformeFromName '')                         ''           'nom buit -> buit'
+
+Write-Host "`n--- Informes.ps1: _ExtractIdGia / _ExtractExpedient ---"
+$linesA = @('Deficiencies', 'ID GIA:361', 'Exp. Num: 2025/1/2563', 'Sol licitat: KRICHI')
+AssertEq (_ExtractIdGia $linesA)      '361'         '_ExtractIdGia enganxat "ID GIA:361"'
+AssertEq (_ExtractIdGia @('ID GIA: 1379')) '1379'   '_ExtractIdGia amb espai'
+AssertEq (_ExtractIdGia @('Sol licitat: X')) ''      '_ExtractIdGia sense GIA -> buit'
+AssertEq (_ExtractExpedient $linesA)  '2025/1/2563' '_ExtractExpedient de "Exp. Num:"'
+AssertEq (_ExtractExpedient @('res')) ''            '_ExtractExpedient sense exp -> buit'
+
+Write-Host "`n--- Informes.ps1: _ExtractConclusio (apostrof tipografic) ---"
+$ap = [char]0x2019   # apostrof tipografic (com als informes reals)
+$linesC = @(
+    "INFORME:",
+    "Gas. L${ap}activitat...",
+    "Vist l${ap}anterior s${ap}informa que NO es pot donar per finalitzat el procediment d${ap}esmena.",
+    "Ho poso al seu coneixement als efectes oportuns,",
+    "Cornella de Llobregat,"
+)
+AssertEq (_ExtractConclusio $linesC) "Vist l${ap}anterior s${ap}informa que NO es pot donar per finalitzat el procediment d${ap}esmena." '_ExtractConclusio captura la frase "Vist l''anterior"'
+Assert ((_ExtractConclusio $linesC) -notmatch 'Ho poso') '_ExtractConclusio exclou "Ho poso al seu coneixement"'
+AssertEq (_ExtractConclusio @('res', 'de res')) '' '_ExtractConclusio sense "Vist l''anterior" -> buit'
+
+Write-Host "`n--- Informes.ps1: _GiaFromFolderName / _CarpetaActivitat ---"
+$p = 'I:\Activitats\Informes\2025-1-2563 GIA 361 - RC112- KRICHI BEJAUI HOSTELERIA, SL\20260710_Req4.docx'
+AssertEq (_GiaFromFolderName $p) '361' '_GiaFromFolderName treu "GIA 361" de la carpeta'
+AssertEq (_CarpetaActivitat $p) '2025-1-2563 GIA 361 - RC112- KRICHI BEJAUI HOSTELERIA, SL' '_CarpetaActivitat = carpeta pare'
+AssertEq (_GiaFromFolderName 'I:\Informes\sense marca\x.docx') '' '_GiaFromFolderName sense GIA -> buit'
+
+Write-Host "`n--- Informes.ps1: _NormalitzaExpedient / Build-ExpedientToGiaMap ---"
+AssertEq (_NormalitzaExpedient '2025/1/2563')  '2025-1-2563' '_NormalitzaExpedient barres -> guions'
+AssertEq (_NormalitzaExpedient '2025-01-2563') '2025-1-2563' '_NormalitzaExpedient treu zeros inicials'
+AssertEq (_NormalitzaExpedient '  2025 / 1 / 2563 ') '2025-1-2563' '_NormalitzaExpedient espais'
+$fakeCache = [pscustomobject]@{ ById = @{ '361' = @{ EXP_NUM = '2025/1/2563'; TITULAR = 'KRICHI' }; '99' = @{ EXP_NUM = '2024/2/10' } } }
+$e2g = Build-ExpedientToGiaMap $fakeCache
+AssertEq $e2g['2025-1-2563'] '361' 'Build-ExpedientToGiaMap mapa expedient->GIA'
+Assert ($e2g.ContainsKey('2024-2-10')) 'Build-ExpedientToGiaMap inclou totes les files'
+
 $summaryColor = if ($script:fail -eq 0) { 'Green' } else { 'Red' }
 Write-Host "`n========================================"
 Write-Host ("RESULTAT: {0} OK, {1} FAIL" -f $script:pass, $script:fail) -ForegroundColor $summaryColor
