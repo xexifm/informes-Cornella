@@ -56,10 +56,13 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   fiables (Font `vist_anterior`/`risc`, decisió pròpia i diferenciada de cada
   informe). `"S'informa favorablement"` (MNS) i `"El titular/L'organitzador és
   responsable d'executar"` (actes extraordinàries) també es capturen i es
-  desen, però són clàusules gairebé idèntiques entre informes diferents, així
-  que `_ConclusioMotiu` els afegeix el motiu `"conclusio poc fiable
-  (revisar)"` (van a "a_revisar" igualment). Si cap frase coneguda hi apareix,
-  la conclusió queda buida (motiu `"sense conclusio"`).
+  desen al `informes-db.json`, però com que són clàusules gairebé idèntiques
+  entre informes diferents, `_ConclusioIgnorarPerDefecte` fa que
+  Get-InformeData marqui l'informe **"ignorat" PER DEFECTE** (només la
+  primera vegada que es veu; si l'usuari el desmarca des de l'editor, el seu
+  criteri es conserva als escanejos següents). Si cap frase coneguda hi
+  apareix, la conclusió queda buida (motiu `"sense conclusio"`, va a
+  "a_revisar").
 - Validat contra la carpeta REAL d'informes (~43 GB, 720 informes): 0 grups
   GIA corromputs per placeholders, cobertura de conclusió 70% → 87%.
 - **On és la carpeta d'informes:** a la feina, `$InformesDir` per defecte és

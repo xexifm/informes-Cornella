@@ -14,12 +14,13 @@
     - la CONCLUSIO (el paragraf que comenca amb una de les frases de
       $Script:ConclusioStartPhrases: "Vist l'anterior" i "Tenint en
       consideracio el risc" son fiables; "S'informa favorablement" i "El
-      titular/L'organitzador es responsable d'executar" es desen igualment
-      pero es marquen amb el motiu "conclusio poc fiable (revisar)" perque son
-      clausules molt semblants entre informes diferents).
+      titular/L'organitzador es responsable d'executar" es desen igualment,
+      pero l'informe queda marcat "ignorat" PER DEFECTE (nomes la primera
+      vegada; l'usuari pot desmarcar-ho des de l'editor) perque son clausules
+      molt semblants entre informes diferents.
   Ho desa AGRUPAT PER ACTIVITAT a BASE DE DADES ACTIVITATS\informes-db.json
-  (carpeta ignorada per git). Els informes que no es poden resoldre del tot (o
-  la conclusio dels quals cal repassar) van a un bloc "a_revisar".
+  (carpeta ignorada per git). Els informes que no es poden resoldre del tot
+  van a un bloc "a_revisar".
 
   Es un modul del motor: es carrega (dot-source) des de GenerarInforme.ps1, aixi
   reutilitza les funcions de lectura de .docx sense Word (de Seguiment.ps1),
@@ -124,10 +125,11 @@ function _ConclNorm($s) {
 # de tramits tanca la decisio d'una manera diferent (vist a la carpeta real
 # d'informes). Font: 'vist_anterior' i 'risc' son fiables (frase de decisio
 # propia i diferenciada de cada informe, no repetida literalment d'un informe
-# a l'altre); 'mns' i 'act_extr' es marquen per revisar a Get-InformeData
-# perque son clausules gairebe identiques entre informes diferents (aporten
-# poca informacio diferenciada per activitat), tot i que la conclusio es desa
-# igualment.
+# a l'altre); 'mns' i 'act_extr' es desen igualment pero Get-InformeData les
+# marca "ignorat" PER DEFECTE (nomes la primera vegada que es veu l'informe;
+# vegeu _ConclusioIgnorarPerDefecte), perque son clausules gairebe identiques
+# entre informes diferents (aporten poca informacio diferenciada per
+# activitat).
 $Script:ConclusioStartPhrases = @(
     [pscustomobject]@{ Font = 'vist_anterior'; Phrase = "Vist l'anterior" },
     [pscustomobject]@{ Font = 'risc';          Phrase = 'Tenint en consideració el risc' },
@@ -173,14 +175,22 @@ function _ExtractConclusio($lines) {
     return [pscustomobject]@{ Text = ($parts -join ' '); Font = $font }
 }
 
-# Motiu de revisio associat a la conclusio detectada per _ExtractConclusio (si
-# cal): '' si es fiable o si no se n'ha trobat cap (ja hi ha un altre motiu
-# especific per a "sense conclusio"). Funcio PURA per poder-la testejar sense
-# dependre de la lectura del document.
+# Motiu de revisio associat a la conclusio detectada per _ExtractConclusio:
+# 'sense conclusio' si no se n'ha trobat cap, '' si n'hi ha. Funcio PURA per
+# poder-la testejar sense dependre de la lectura del document.
 function _ConclusioMotiu($conclInfo) {
     if ([string]::IsNullOrWhiteSpace($conclInfo.Text)) { return 'sense conclusio' }
-    if ($conclInfo.Font -eq 'mns' -or $conclInfo.Font -eq 'act_extr') { return 'conclusio poc fiable (revisar)' }
     return ''
+}
+
+# Cert si la conclusio detectada ve d'una familia de frases poc diferenciades
+# entre informes ('mns', 'act_extr': gairebe la mateixa clausula sempre).
+# Get-InformeData fa servir aixo per marcar l'informe "ignorat" PER DEFECTE
+# nomes la primera vegada que es veu (a Invoke-InformesDbScan, si l'informe ja
+# existia a un escaneig anterior es conserva l'"ignorat" que hi hagi marcat
+# l'usuari, encara que l'informe s'hagi hagut de reprocessar).
+function _ConclusioIgnorarPerDefecte($conclInfo) {
+    return ($conclInfo.Font -eq 'mns' -or $conclInfo.Font -eq 'act_extr')
 }
 
 # ID GIA a partir dels noms de les carpetes pare (p.ex. la carpeta de l'activitat
@@ -316,7 +326,7 @@ function Get-InformeData($file, $expToGia, $cache, $wordApp = $null) {
         Ruta       = $file.FullName
         Carpeta    = _CarpetaActivitat $file.FullName
         Modificat  = $file.LastWriteTimeUtc.ToString('o')
-        Ignorat    = $false
+        Ignorat    = (_ConclusioIgnorarPerDefecte $conclInfo)
         Motius     = $motius.ToArray()
     }
 }
