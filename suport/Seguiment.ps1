@@ -1095,6 +1095,42 @@ function Select-Mode {
     [void]$form.Controls.Add($btnIdb)
     $y += 52
 
+    # Boto: Editar base d'informes (obre la taula per veure/obrir informes i
+    # marcar-ne d'ignorats). Mateix patro owner-draw amb l'emoji 📋 (U+1F4CB).
+    $clip = [System.Char]::ConvertFromUtf32(0x1F4CB)
+    $fClipIco = New-Object System.Drawing.Font('Segoe UI Emoji', 12, [System.Drawing.FontStyle]::Regular)
+    $fClipTxt = New-Object System.Drawing.Font('Segoe UI', 11, [System.Drawing.FontStyle]::Regular)
+    $btnEdit = New-Object System.Windows.Forms.Button
+    $btnEdit.Text = ''
+    $btnEdit.Location = New-Object System.Drawing.Point(20, $y)
+    $btnEdit.Size = New-Object System.Drawing.Size(430, 44)
+    $btnEdit.FlatStyle = 'Flat'
+    $btnEdit.BackColor = [System.Drawing.Color]::White
+    $btnEdit.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
+    $btnEdit.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(219, 235, 255)
+    $btnEdit.add_Paint({
+        param($s, $e)
+        $g = $e.Graphics
+        $rc = $s.ClientRectangle
+        $fl = [System.Windows.Forms.TextFormatFlags]::NoPadding
+        $lblTxt = "Editar base d'informes"
+        $szI = [System.Windows.Forms.TextRenderer]::MeasureText($g, $clip, $fClipIco, [System.Drawing.Size]::Empty, $fl)
+        $szT = [System.Windows.Forms.TextRenderer]::MeasureText($g, $lblTxt, $fClipTxt, [System.Drawing.Size]::Empty, $fl)
+        $gap = 8
+        $x = [int](($rc.Width - ($szI.Width + $gap + $szT.Width)) / 2)
+        $yI = [int](($rc.Height - $szI.Height) / 2)
+        $yT = [int](($rc.Height - $szT.Height) / 2)
+        [System.Windows.Forms.TextRenderer]::DrawText($g, $clip, $fClipIco, (New-Object System.Drawing.Point($x, $yI)), [System.Drawing.Color]::Black, $fl)
+        [System.Windows.Forms.TextRenderer]::DrawText($g, $lblTxt, $fClipTxt, (New-Object System.Drawing.Point(($x + $szI.Width + $gap), $yT)), [System.Drawing.Color]::Black, $fl)
+    }.GetNewClosure())
+    $btnEdit.add_Click({
+        $result.Choice = @{ Action = 'informesdbedit'; Cataleg = $null }
+        $form.DialogResult = 'OK'
+        $form.Close()
+    }.GetNewClosure())
+    [void]$form.Controls.Add($btnEdit)
+    $y += 52
+
     # Boto TOGGLE: Vigilant del mobil. Verd = actiu, gris = aturat. NO tanca el
     # menu: activa/atura el vigilant i canvia de color a l'instant.
     $btnVig = New-Object System.Windows.Forms.Button

@@ -235,6 +235,26 @@ obrir el fitxer.
 > altra ubicació. Necessita només llegir els `.docx` (no obre Word); l'Excel
 > d'activitats només cal per la cerca de l'ID GIA per expedient i el titular.
 
+L'escaneig és **incremental**: guarda la data de l'última actualització
+(`actualitzat_el`) i, en tornar-lo a executar, **només reprocessa els informes
+nous o modificats** després d'aquella data (la resta es reutilitzen). Si vols
+forçar un escaneig complet, esborra `informes-db.json` i torna a executar-lo.
+
+### Editar la base d'informes
+Al costat de l'anterior, el botó **📋 Editar base d'informes** obre una **taula**
+amb tots els informes (data, GIA, titular, carpeta, conclusió, motiu). Per a
+cada informe pots:
+
+- **Obrir**-lo (botó de la fila) — obre el `.docx` amb el Word.
+- Marcar-lo com a **Ignorar** (casella) — l'informe queda com a *no interessa*
+  (fila en gris i tatxada) i es desa a la base (`ignorat: true`). És
+  **reversible** (desmarca la casella). De cara a un seguiment futur, els
+  ignorats es poden tractar com si no hi fossin, però no s'esborren.
+
+Amb el quadre de **cerca** filtres per qualsevol text. **Desar** escriu els
+canvis al JSON; en tancar, si hi ha canvis sense desar, t'ho pregunta. En
+reescanejar la base, els informes marcats com a ignorats **conserven** la marca.
+
 ### Actualitzar el programa
 **Doble clic a `Actualitzar.bat`**. Fa el següent:
 

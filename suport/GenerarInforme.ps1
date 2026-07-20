@@ -2991,7 +2991,8 @@ function Main {
             'seguiment'  { Invoke-SeguimentFlow }
             'actextr'    { Invoke-ActExtrFlow }
             'ruta'       { Start-RutaTool }   # llanca el planificador; torna al menu
-            'informesdb' { Invoke-InformesDbScan }   # escaneja informes -> JSON; torna al menu
+            'informesdb'     { Invoke-InformesDbScan }   # escaneja informes -> JSON; torna al menu
+            'informesdbedit' { Invoke-InformesDbEdit }   # editor de la base d'informes
             'nou'        { [void](Invoke-NouWizard -cataleg $sel.Cataleg) }
             default      { return }
         }

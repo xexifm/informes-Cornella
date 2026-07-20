@@ -221,8 +221,57 @@ function Get-InformeData($file, $expToGia, $cache) {
         Fitxer     = $file.Name
         Ruta       = $file.FullName
         Carpeta    = _CarpetaActivitat $file.FullName
+        Modificat  = $file.LastWriteTimeUtc.ToString('o')
+        Ignorat    = $false
         Motius     = $motius.ToArray()
     }
+}
+
+# Decideix (funcio PURA) si un informe s'ha de tornar a parsejar (obrir el .docx)
+# o si es pot reutilitzar l'entrada de l'escaneig anterior:
+#   - Si NO en teniem entrada -> cal parsejar (es nou).
+#   - Si en teniem i el fitxer s'ha modificat DESPRES de l'ultima actualitzacio
+#     -> cal parsejar.
+#   - Si en teniem i no s'ha tocat des de l'ultima actualitzacio -> reutilitzar.
+# $lwUtc i $prevUtc son [datetime] en UTC.
+function _HaDeReprocessar([datetime]$lwUtc, [datetime]$prevUtc, [bool]$teEntrada) {
+    if (-not $teEntrada) { return $true }
+    return ($lwUtc -gt $prevUtc)
+}
+
+# Aplana la base d'informes carregada (objecte de ConvertFrom-Json) en registres
+# plans indexats per 'ruta', arrossegant les dades de l'activitat a cada informe.
+# Cada registre te la mateixa forma que Get-InformeData (perque el reagrupament
+# els tracti igual). Retorna una hashtable [ruta] -> registre.
+function _FlattenInformesDb($db) {
+    $map = @{}
+    if ($null -eq $db -or $null -eq $db.activitats) { return $map }
+    foreach ($act in $db.activitats) {
+        if ($null -eq $act.informes) { continue }
+        foreach ($inf in $act.informes) {
+            $ruta = [string]$inf.ruta
+            if ([string]::IsNullOrWhiteSpace($ruta)) { continue }
+            $motiuStr = if ($null -ne $inf.PSObject.Properties['motiu']) { [string]$inf.motiu } else { '' }
+            $motius = if ([string]::IsNullOrWhiteSpace($motiuStr)) { @() } else { @($motiuStr -split ',\s*') }
+            $ign = $false
+            if ($null -ne $inf.PSObject.Properties['ignorat']) { $ign = [bool]$inf.ignorat }
+            $map[$ruta] = [pscustomobject]@{
+                Data      = [string]$inf.data
+                Gia       = [string]$act.id_gia
+                GiaFont   = ''
+                Expedient = [string]$act.expedient
+                Titular   = [string]$act.titular
+                Conclusio = [string]$inf.conclusio
+                Fitxer    = [string]$inf.fitxer
+                Ruta      = $ruta
+                Carpeta   = [string]$act.carpeta
+                Modificat = if ($null -ne $inf.PSObject.Properties['modificat']) { [string]$inf.modificat } else { '' }
+                Ignorat   = $ign
+                Motius    = $motius
+            }
+        }
+    }
+    return $map
 }
 
 # ----------------------------------------------------------------------------
@@ -271,6 +320,29 @@ function Invoke-InformesDbScan {
             }
         } catch { $cache = $null; $expToGia = $null }
 
+        # 3b. Carregar la base anterior (si existeix) per fer un escaneig
+        #     INCREMENTAL: nomes es reobren els .docx modificats DESPRES de
+        #     l'ultima actualitzacio; la resta es reutilitzen (conservant el seu
+        #     "ignorat"). Els fitxers que ja no existeixen es podaran sols (nomes
+        #     reagrupem els que trobem ara). Si no hi ha base previa (o esta
+        #     corrupta), es fa un escaneig complet.
+        $outPath    = Join-Path $LocalActivitatsDir 'informes-db.json'
+        $prevByRuta = @{}
+        $prevUtc    = [datetime]::MinValue
+        $generatEl  = (Get-Date).ToString('o')
+        if (Test-Path -LiteralPath $outPath) {
+            try {
+                $prevDb     = (Get-Content -LiteralPath $outPath -Raw -Encoding UTF8 | ConvertFrom-Json)
+                $prevByRuta = _FlattenInformesDb $prevDb
+                if ($prevDb.PSObject.Properties['actualitzat_el'] -and -not [string]::IsNullOrWhiteSpace([string]$prevDb.actualitzat_el)) {
+                    try { $prevUtc = ([datetime]::Parse([string]$prevDb.actualitzat_el)).ToUniversalTime() } catch { $prevUtc = [datetime]::MinValue }
+                }
+                if ($prevDb.PSObject.Properties['generat_el'] -and -not [string]::IsNullOrWhiteSpace([string]$prevDb.generat_el)) {
+                    $generatEl = [string]$prevDb.generat_el
+                }
+            } catch { $prevByRuta = @{}; $prevUtc = [datetime]::MinValue }
+        }
+
         # 4. Recollir els fitxers candidats (.docx amb data al principi del nom).
         $lbl.Text = "Cercant informes a:`n$dir"
         [System.Windows.Forms.Application]::DoEvents()
@@ -283,18 +355,29 @@ function Invoke-InformesDbScan {
         $bar.Minimum = 0
         $bar.Maximum = [Math]::Max(1, $total)
 
-        # 5. Analitzar cada informe.
+        # 5. Analitzar cada informe (incremental: reutilitzem els no modificats).
         $informes = New-Object System.Collections.ArrayList
         $revisar  = New-Object System.Collections.ArrayList
+        $reprocessats = 0
         $i = 0
         foreach ($f in $files) {
             $i++
+            $ruta = $f.FullName
+            $teEntrada = $prevByRuta.ContainsKey($ruta)
+            if (-not (_HaDeReprocessar $f.LastWriteTimeUtc $prevUtc $teEntrada)) {
+                # No s'ha tocat des de l'ultim escaneig: reutilitzem l'entrada.
+                $r = $prevByRuta[$ruta]
+            } else {
+                $r = Get-InformeData $f $expToGia $cache
+                # Conservem l'"ignorat" que l'usuari hagi marcat abans.
+                if ($teEntrada) { $r.Ignorat = [bool]$prevByRuta[$ruta].Ignorat }
+                $reprocessats++
+            }
             if (($i % 5) -eq 0 -or $i -eq $total) {
-                $lbl.Text = "Analitzant informes... ($i de $total)"
+                $lbl.Text = "Analitzant informes... ($i de $total, $reprocessats de nous/modificats)"
                 $bar.Value = [Math]::Min($bar.Maximum, $i)
                 [System.Windows.Forms.Application]::DoEvents()
             }
-            $r = Get-InformeData $f $expToGia $cache
             [void]$informes.Add($r)
             if ($r.Motius.Count -gt 0) {
                 [void]$revisar.Add([pscustomobject]@{
@@ -329,7 +412,11 @@ function Invoke-InformesDbScan {
             [void]$g._informes.Add([pscustomobject]@{
                 data      = $r.Data
                 fitxer    = $r.Fitxer
+                ruta      = $r.Ruta
                 conclusio = $r.Conclusio
+                modificat = $r.Modificat
+                ignorat   = [bool]$r.Ignorat
+                motiu     = ($r.Motius -join ', ')
             })
         }
 
@@ -346,17 +433,16 @@ function Invoke-InformesDbScan {
         }
         $activitatsOrd = @($activitats | Sort-Object { [string]$_.id_gia })
 
-        # 7. Escriure el JSON.
-        Ensure-AppDataDir | Out-Null
+        # 7. Escriure el JSON (conservem generat_el; actualitzat_el = ara).
         $outObj = [pscustomobject]@{
-            generat_el    = (Get-Date).ToString('o')
-            carpeta_arrel = $dir
-            n_informes    = $informes.Count
-            n_activitats  = $activitatsOrd.Count
-            activitats    = $activitatsOrd
-            a_revisar     = @($revisar)
+            generat_el     = $generatEl
+            actualitzat_el = (Get-Date).ToString('o')
+            carpeta_arrel  = $dir
+            n_informes     = $informes.Count
+            n_activitats   = $activitatsOrd.Count
+            activitats     = $activitatsOrd
+            a_revisar      = @($revisar)
         }
-        $outPath = Join-Path $LocalActivitatsDir 'informes-db.json'
         if (-not (Test-Path -LiteralPath $LocalActivitatsDir)) {
             New-Item -ItemType Directory -Path $LocalActivitatsDir -Force | Out-Null
         }
@@ -367,6 +453,7 @@ function Invoke-InformesDbScan {
         # 8. Resum.
         $msg = "Base d'informes actualitzada.`n`n" +
                "Informes trobats: $($informes.Count)`n" +
+               "Nous o modificats (reprocessats): $reprocessats`n" +
                "Activitats: $($activitatsOrd.Count)`n" +
                "A revisar: $($revisar.Count)`n`n" +
                "Fitxer:`n$outPath`n`nVols obrir-lo?"
@@ -381,4 +468,227 @@ function Invoke-InformesDbScan {
             "Error escanejant els informes:`n$($_.Exception.Message)",
             'Base d''informes', 'OK', 'Error') | Out-Null
     }
+}
+
+# ----------------------------------------------------------------------------
+# Editor de la base d'informes (finestra amb taula)
+# ----------------------------------------------------------------------------
+# Estil d'una fila segons si l'informe esta ignorat: gris + tatxat si ho esta.
+function _StyleInformeRow($gridRow, [bool]$ignorat, $fontNormal, $fontStrike) {
+    if ($ignorat) {
+        $gridRow.DefaultCellStyle.ForeColor = [System.Drawing.Color]::Gray
+        $gridRow.DefaultCellStyle.Font      = $fontStrike
+    } else {
+        $gridRow.DefaultCellStyle.ForeColor = [System.Drawing.Color]::Black
+        $gridRow.DefaultCellStyle.Font      = $fontNormal
+    }
+}
+
+# Obre una finestra amb la base d'informes en forma de taula: es pot veure cada
+# informe (data, GIA, titular, carpeta, conclusio), OBRIR-lo (boto) i marcar-lo
+# com a IGNORAT (casella; reversible). Els canvis d'"ignorat" es desen al JSON.
+function Invoke-InformesDbEdit {
+    $outPath = Join-Path $LocalActivitatsDir 'informes-db.json'
+    if (-not (Test-Path -LiteralPath $outPath)) {
+        [System.Windows.Forms.MessageBox]::Show(
+            "Encara no hi ha cap base d'informes.`n`nExecuta primer 'Actualitzar base d'informes'.",
+            'Editar base d''informes', 'OK', 'Information') | Out-Null
+        return
+    }
+    $db = $null
+    try {
+        $db = (Get-Content -LiteralPath $outPath -Raw -Encoding UTF8 | ConvertFrom-Json)
+    } catch {
+        [System.Windows.Forms.MessageBox]::Show("No s'ha pogut llegir la base:`n$($_.Exception.Message)", 'Editar base d''informes', 'OK', 'Error') | Out-Null
+        return
+    }
+
+    # Aplanar en files, normalitzant cada informe (assegurar ignorat/ruta/motiu).
+    # Cada fila guarda una REFERENCIA a l'objecte informe del JSON ($inf), aixi
+    # marcar/desmarcar "ignorat" modifica directament la base que despres desem.
+    $allRows = New-Object System.Collections.ArrayList
+    if ($null -ne $db.activitats) {
+        foreach ($act in $db.activitats) {
+            if ($null -eq $act.informes) { continue }
+            foreach ($inf in $act.informes) {
+                if ($null -eq $inf.PSObject.Properties['ignorat']) { Add-Member -InputObject $inf -NotePropertyName ignorat -NotePropertyValue $false -Force }
+                if ($null -eq $inf.PSObject.Properties['ruta'])    { Add-Member -InputObject $inf -NotePropertyName ruta -NotePropertyValue '' -Force }
+                if ($null -eq $inf.PSObject.Properties['motiu'])   { Add-Member -InputObject $inf -NotePropertyName motiu -NotePropertyValue '' -Force }
+                [void]$allRows.Add([pscustomobject]@{
+                    Obj       = $inf
+                    Data      = [string]$inf.data
+                    Gia       = [string]$act.id_gia
+                    Titular   = [string]$act.titular
+                    Carpeta   = [string]$act.carpeta
+                    Conclusio = [string]$inf.conclusio
+                    Motiu     = [string]$inf.motiu
+                    Ruta      = [string]$inf.ruta
+                })
+            }
+        }
+    }
+
+    # Estat compartit amb els gestors d'esdeveniments (hashtable per referencia).
+    # 'Loading' evita que el gestor de la casella reaccioni mentre s'omple la
+    # graella (Rows.Add pot disparar CellValueChanged abans d'assignar el Tag).
+    $state = @{ Dirty = $false; Db = $db; Path = $outPath; Loading = $false }
+
+    $form = _NewForm
+    $form.Text = "Editar base d'informes"
+    $form.Size = New-Object System.Drawing.Size(1000, 620)
+    $form.MinimumSize = New-Object System.Drawing.Size(720, 420)
+
+    # Graella.
+    $grid = New-Object System.Windows.Forms.DataGridView
+    $grid.Dock = 'Fill'
+    $grid.AllowUserToAddRows = $false
+    $grid.AllowUserToDeleteRows = $false
+    $grid.RowHeadersVisible = $false
+    $grid.SelectionMode = 'FullRowSelect'
+    $grid.AutoSizeColumnsMode = 'None'
+    $grid.MultiSelect = $false
+    $grid.BackgroundColor = [System.Drawing.Color]::White
+
+    $cData = New-Object System.Windows.Forms.DataGridViewTextBoxColumn;  $cData.HeaderText = 'Data';      $cData.ReadOnly = $true; $cData.Width = 90
+    $cGia  = New-Object System.Windows.Forms.DataGridViewTextBoxColumn;  $cGia.HeaderText  = 'GIA';       $cGia.ReadOnly  = $true; $cGia.Width  = 60
+    $cTit  = New-Object System.Windows.Forms.DataGridViewTextBoxColumn;  $cTit.HeaderText  = 'Titular';   $cTit.ReadOnly  = $true; $cTit.Width  = 180
+    $cCar  = New-Object System.Windows.Forms.DataGridViewTextBoxColumn;  $cCar.HeaderText  = 'Carpeta';   $cCar.ReadOnly  = $true; $cCar.Width  = 190
+    $cCon  = New-Object System.Windows.Forms.DataGridViewTextBoxColumn;  $cCon.HeaderText  = 'Conclusio'; $cCon.ReadOnly  = $true; $cCon.Width  = 260
+    $cMot  = New-Object System.Windows.Forms.DataGridViewTextBoxColumn;  $cMot.HeaderText  = 'Motiu';     $cMot.ReadOnly  = $true; $cMot.Width  = 110
+    $cObr  = New-Object System.Windows.Forms.DataGridViewButtonColumn;   $cObr.HeaderText  = '';          $cObr.Text = 'Obrir'; $cObr.UseColumnTextForButtonValue = $true; $cObr.Width = 64
+    $cIgn  = New-Object System.Windows.Forms.DataGridViewCheckBoxColumn; $cIgn.HeaderText  = 'Ignorar';   $cIgn.Width = 60
+    [void]$grid.Columns.Add($cData)
+    [void]$grid.Columns.Add($cGia)
+    [void]$grid.Columns.Add($cTit)
+    [void]$grid.Columns.Add($cCar)
+    [void]$grid.Columns.Add($cCon)
+    [void]$grid.Columns.Add($cMot)
+    [void]$grid.Columns.Add($cObr)
+    [void]$grid.Columns.Add($cIgn)
+    $idxObrir   = 6
+    $idxIgnorar = 7
+
+    $fontNormal = $grid.Font
+    $fontStrike = New-Object System.Drawing.Font($grid.Font, [System.Drawing.FontStyle]::Strikeout)
+
+    # (Re)omple la graella segons el text del filtre.
+    $fill = {
+        param($needle)
+        $state.Loading = $true
+        $grid.Rows.Clear()
+        $n = if ($needle) { ([string]$needle).ToLower() } else { '' }
+        foreach ($row in $allRows) {
+            if ($n -ne '') {
+                $hay = (($row.Data + ' ' + $row.Gia + ' ' + $row.Titular + ' ' + $row.Carpeta + ' ' + $row.Conclusio + ' ' + $row.Motiu)).ToLower()
+                if (-not $hay.Contains($n)) { continue }
+            }
+            $ign = [bool]$row.Obj.ignorat
+            $idx = $grid.Rows.Add(@($row.Data, $row.Gia, $row.Titular, $row.Carpeta, $row.Conclusio, $row.Motiu, 'Obrir', $ign))
+            $gr = $grid.Rows[$idx]
+            $gr.Tag = $row
+            $gr.Cells[4].ToolTipText = $row.Conclusio
+            _StyleInformeRow $gr $ign $fontNormal $fontStrike
+        }
+        $state.Loading = $false
+    }.GetNewClosure()
+
+    # Barra superior: cerca.
+    $topPanel = New-Object System.Windows.Forms.Panel
+    $topPanel.Dock = 'Top'; $topPanel.Height = 40
+    $lblCerca = New-Object System.Windows.Forms.Label
+    $lblCerca.Text = 'Cerca:'; $lblCerca.AutoSize = $true
+    $lblCerca.Location = New-Object System.Drawing.Point(10, 12)
+    $txtCerca = New-Object System.Windows.Forms.TextBox
+    $txtCerca.Location = New-Object System.Drawing.Point(62, 9); $txtCerca.Width = 320
+    $txtCerca.add_TextChanged({ & $fill $txtCerca.Text }.GetNewClosure())
+    $topPanel.Controls.Add($lblCerca)
+    $topPanel.Controls.Add($txtCerca)
+
+    # Desa la base (retorna $true si va be).
+    $doSave = {
+        try {
+            ($state.Db | ConvertTo-Json -Depth 8) | Set-Content -LiteralPath $state.Path -Encoding UTF8
+            $state.Dirty = $false
+            return $true
+        } catch {
+            [System.Windows.Forms.MessageBox]::Show("No s'ha pogut desar:`n$($_.Exception.Message)", 'Editar base d''informes', 'OK', 'Error') | Out-Null
+            return $false
+        }
+    }.GetNewClosure()
+
+    # Barra inferior: botons.
+    $botPanel = New-Object System.Windows.Forms.Panel
+    $botPanel.Dock = 'Bottom'; $botPanel.Height = 48
+    $btnDesar = New-Object System.Windows.Forms.Button
+    $btnDesar.Text = 'Desar'; $btnDesar.Size = New-Object System.Drawing.Size(120, 30)
+    $btnDesar.Location = New-Object System.Drawing.Point(10, 9)
+    $btnDesar.add_Click({
+        if (& $doSave) {
+            [System.Windows.Forms.MessageBox]::Show('Canvis desats.', 'Editar base d''informes', 'OK', 'Information') | Out-Null
+        }
+    }.GetNewClosure())
+    $btnTancar = New-Object System.Windows.Forms.Button
+    $btnTancar.Text = 'Enrere'; $btnTancar.Size = New-Object System.Drawing.Size(120, 30)
+    $btnTancar.Location = New-Object System.Drawing.Point(140, 9)
+    $btnTancar.add_Click({ $form.Close() }.GetNewClosure())
+    $botPanel.Controls.Add($btnDesar)
+    $botPanel.Controls.Add($btnTancar)
+
+    # Obrir l'informe en clicar el boto "Obrir".
+    $grid.add_CellContentClick({
+        param($s, $e)
+        if ($e.RowIndex -lt 0) { return }
+        if ($e.ColumnIndex -eq $idxObrir) {
+            $row = $s.Rows[$e.RowIndex].Tag
+            $ruta = [string]$row.Ruta
+            if ([string]::IsNullOrWhiteSpace($ruta) -or -not (Test-Path -LiteralPath $ruta)) {
+                [System.Windows.Forms.MessageBox]::Show("No s'ha trobat el fitxer:`n$ruta", 'Obrir informe', 'OK', 'Warning') | Out-Null
+                return
+            }
+            try { Start-Process -FilePath $ruta | Out-Null } catch {
+                [System.Windows.Forms.MessageBox]::Show("No s'ha pogut obrir:`n$($_.Exception.Message)", 'Obrir informe', 'OK', 'Error') | Out-Null
+            }
+        }
+    }.GetNewClosure())
+
+    # Forcem que la casella "Ignorar" es confirmi de seguida (no en sortir de la
+    # cel-la), perque CellValueChanged salti al moment del clic.
+    $grid.add_CurrentCellDirtyStateChanged({
+        if ($grid.IsCurrentCellDirty) {
+            $grid.CommitEdit([System.Windows.Forms.DataGridViewDataErrorContexts]::Commit)
+        }
+    }.GetNewClosure())
+    $grid.add_CellValueChanged({
+        param($s, $e)
+        if ($state.Loading) { return }
+        if ($e.RowIndex -lt 0 -or $e.ColumnIndex -ne $idxIgnorar) { return }
+        $gr = $s.Rows[$e.RowIndex]
+        $row = $gr.Tag
+        if ($null -eq $row) { return }
+        $val = [bool]$gr.Cells[$idxIgnorar].Value
+        $row.Obj.ignorat = $val
+        _StyleInformeRow $gr $val $fontNormal $fontStrike
+        $state.Dirty = $true
+    }.GetNewClosure())
+
+    # Si es tanca amb canvis sense desar, oferim desar-los.
+    $form.add_FormClosing({
+        param($s, $e)
+        if ($state.Dirty) {
+            $r = [System.Windows.Forms.MessageBox]::Show('Hi ha canvis sense desar. Vols desar-los?', 'Editar base d''informes', 'YesNoCancel', 'Warning')
+            if ($r -eq [System.Windows.Forms.DialogResult]::Yes) {
+                if (-not (& $doSave)) { $e.Cancel = $true }
+            } elseif ($r -eq [System.Windows.Forms.DialogResult]::Cancel) {
+                $e.Cancel = $true
+            }
+        }
+    }.GetNewClosure())
+
+    # Ordre d'afegit: primer el Fill (queda al centre), despres Top i Bottom.
+    $form.Controls.Add($grid)
+    $form.Controls.Add($topPanel)
+    $form.Controls.Add($botPanel)
+
+    & $fill ''
+    [void]$form.ShowDialog()
 }
