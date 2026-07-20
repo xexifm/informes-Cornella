@@ -118,12 +118,42 @@ function Build-PrecintadesObject($records, [string]$fontName) {
             lon       = [double]$_.Lon
         }
     })
+    # SourceDate: data (yyyy-MM-dd) de l'Excel origen, treta del seu nom. Serveix
+    # per no fer enrere el mapa si despres es genera des d'una base mes antiga.
+    $srcDate = ''
+    if (([string]$fontName) -match '(\d{4}-\d{2}-\d{2})') { $srcDate = $Matches[1] }
     return [pscustomobject]@{
         GeneratedAt = (Get-Date).ToString('o')
         Font        = [string]$fontName
+        SourceDate  = $srcDate
         Comptador   = @($acts).Count
         Activitats  = $acts
     }
+}
+
+# Treu la data (yyyy-MM-dd) d'un precintades.json ja existent: prefereix el camp
+# SourceDate i, si no hi es (versions antigues), la treu del nom Font. Retorna
+# [datetime]::MinValue si no en pot deduir cap.
+function _ParsePrecintadesDate($obj) {
+    if ($null -eq $obj) { return [datetime]::MinValue }
+    $d = [datetime]::MinValue
+    if ($obj.SourceDate -and [datetime]::TryParseExact([string]$obj.SourceDate, 'yyyy-MM-dd', $null, [System.Globalization.DateTimeStyles]::None, [ref]$d)) {
+        return $d
+    }
+    if ($obj.Font -and ([string]$obj.Font) -match '(\d{4}-\d{2}-\d{2})') {
+        if ([datetime]::TryParseExact($Matches[1], 'yyyy-MM-dd', $null, [System.Globalization.DateTimeStyles]::None, [ref]$d)) { return $d }
+    }
+    return [datetime]::MinValue
+}
+
+# Decideix si cal (re)generar el mapa de precintades. Nomes si la base d'Excel
+# trobada es MES NOVA que la del precintades.json que ja hi ha. Si tenen la
+# mateixa data (o la publicada es mes nova), NO s'actualitza: aixi, si generem
+# des d'una base local antiga (fora de la feina), no fem enrere el mapa public.
+# Mateixa logica que Test-ShouldExportActivitats (Drive). Funcio pura.
+function Test-ShouldUpdatePrecintades([datetime]$localDate, [datetime]$existingDate) {
+    if ($localDate -le [datetime]::MinValue) { return $true }
+    return ($localDate -gt $existingDate)
 }
 
 # ============================================================================
@@ -226,6 +256,21 @@ function Invoke-PrecintadesMain {
         Write-Host "No s'ha trobat cap base de dades d'activitats; ometo el mapa de precintades."
         return $false
     }
+
+    # No fer enrere el mapa: si el precintades.json que ja hi ha ve d'una base
+    # IGUAL o MES NOVA que la trobada ara, no el regenerem (mateixa idea que amb
+    # el Drive). Aixi, executant Actualitzar fora de la feina amb una base local
+    # antiga, el mapa public no es degrada.
+    $outPath = Join-Path $WebDadesDir 'precintades.json'
+    $existingDate = [datetime]::MinValue
+    if (Test-Path -LiteralPath $outPath) {
+        try { $existingDate = _ParsePrecintadesDate ((Get-Content -LiteralPath $outPath -Raw -Encoding UTF8) | ConvertFrom-Json) } catch { $existingDate = [datetime]::MinValue }
+    }
+    if (-not (Test-ShouldUpdatePrecintades $xls.Date $existingDate)) {
+        Write-Host ("El mapa de precintades ja ve d'una base igual o mes nova ({0:yyyy-MM-dd}); no l'actualitzo." -f $existingDate)
+        return $true
+    }
+
     Write-Host "Llegint activitats precintades de: $($xls.File.Name)"
     $records = Read-PrecintadesFromExcel $xls.File
     $obj = Build-PrecintadesObject $records $xls.File.Name
@@ -233,7 +278,6 @@ function Invoke-PrecintadesMain {
     if (-not (Test-Path -LiteralPath $WebDadesDir)) {
         New-Item -ItemType Directory -Path $WebDadesDir -Force | Out-Null
     }
-    $outPath = Join-Path $WebDadesDir 'precintades.json'
     $json = ($obj | ConvertTo-Json -Depth 6)
     [System.IO.File]::WriteAllText($outPath, $json, (New-Object System.Text.UTF8Encoding($false)))
     Write-Host "  precintades.json -> $outPath ($($obj.Comptador) activitats precintades)"

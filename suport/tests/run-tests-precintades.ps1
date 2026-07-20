@@ -89,6 +89,22 @@ $json = $obj | ConvertTo-Json -Depth 6
 Assert ($json -match '"Activitats"') 'JSON conte Activitats'
 Assert ($json -match 'MAGATZEM I GARATGE') 'JSON conte l activitat principal'
 
+Write-Host "`n--- SourceDate / _ParsePrecintadesDate / Test-ShouldUpdatePrecintades ---"
+AssertEq $obj.SourceDate '2026-07-16' 'Build-PrecintadesObject afegeix SourceDate del nom'
+$objSD = [pscustomobject]@{ SourceDate = '2026-07-16'; Font = '2026-07-16 ACTIVITATS.xls' }
+AssertEq ((_ParsePrecintadesDate $objSD).ToString('yyyy-MM-dd')) '2026-07-16' '_ParsePrecintadesDate llegeix SourceDate'
+$objFont = [pscustomobject]@{ Font = '2026-05-29 ACTIVITATS.xlsx' }
+AssertEq ((_ParsePrecintadesDate $objFont).ToString('yyyy-MM-dd')) '2026-05-29' '_ParsePrecintadesDate fallback al nom Font'
+Assert ((_ParsePrecintadesDate ([pscustomobject]@{ x=1 })) -eq [datetime]::MinValue) '_ParsePrecintadesDate sense data -> MinValue'
+Assert ((_ParsePrecintadesDate $null) -eq [datetime]::MinValue) '_ParsePrecintadesDate null -> MinValue'
+
+$dPub = [datetime]'2026-07-16'
+Assert (-not (Test-ShouldUpdatePrecintades ([datetime]'2026-07-16') $dPub)) 'mateixa data -> NO actualitza'
+Assert (-not (Test-ShouldUpdatePrecintades ([datetime]'2026-07-01') $dPub)) 'base trobada mes antiga -> NO actualitza'
+Assert (Test-ShouldUpdatePrecintades ([datetime]'2026-07-20') $dPub)         'base trobada mes nova -> actualitza'
+Assert (Test-ShouldUpdatePrecintades ([datetime]'2026-07-16') ([datetime]::MinValue)) 'sense mapa previ -> actualitza'
+Assert (Test-ShouldUpdatePrecintades ([datetime]::MinValue) $dPub)           'sense data local fiable -> actualitza (per seguretat)'
+
 $summaryColor = if ($script:fail -eq 0) { 'Green' } else { 'Red' }
 Write-Host "`n========================================"
 Write-Host ("RESULTAT: {0} OK, {1} FAIL" -f $script:pass, $script:fail) -ForegroundColor $summaryColor
