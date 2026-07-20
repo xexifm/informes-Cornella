@@ -969,6 +969,12 @@ AssertEq (_ExtractIdGia @('Sol licitat: X')) ''      '_ExtractIdGia sense GIA ->
 AssertEq (_ExtractExpedient $linesA)  '2025/1/2563' '_ExtractExpedient de "Exp. Num:"'
 AssertEq (_ExtractExpedient @('res')) ''            '_ExtractExpedient sense exp -> buit'
 
+Write-Host "`n--- Informes.ps1: _ExtractIdGia (placeholders 'encara sense GIA') ---"
+AssertEq (_ExtractIdGia @("ID GIA:`t-"))   '' '_ExtractIdGia "-" -> placeholder, tractat com a buit'
+AssertEq (_ExtractIdGia @('ID GIA: XXX'))  '' '_ExtractIdGia "XXX" -> placeholder, tractat com a buit'
+AssertEq (_ExtractIdGia @('ID GIA: N/A'))  '' '_ExtractIdGia "N/A" -> placeholder, tractat com a buit'
+AssertEq (_ExtractIdGia @('ID GIA: --'))   '' '_ExtractIdGia "--" -> placeholder, tractat com a buit'
+
 Write-Host "`n--- Informes.ps1: _ExtractConclusio (apostrof tipografic) ---"
 $ap = [char]0x2019   # apostrof tipografic (com als informes reals)
 $linesC = @(
@@ -978,9 +984,67 @@ $linesC = @(
     "Ho poso al seu coneixement als efectes oportuns,",
     "Cornella de Llobregat,"
 )
-AssertEq (_ExtractConclusio $linesC) "Vist l${ap}anterior s${ap}informa que NO es pot donar per finalitzat el procediment d${ap}esmena." '_ExtractConclusio captura la frase "Vist l''anterior"'
-Assert ((_ExtractConclusio $linesC) -notmatch 'Ho poso') '_ExtractConclusio exclou "Ho poso al seu coneixement"'
-AssertEq (_ExtractConclusio @('res', 'de res')) '' '_ExtractConclusio sense "Vist l''anterior" -> buit'
+$cC = _ExtractConclusio $linesC
+AssertEq $cC.Text "Vist l${ap}anterior s${ap}informa que NO es pot donar per finalitzat el procediment d${ap}esmena." '_ExtractConclusio captura la frase "Vist l''anterior"'
+AssertEq $cC.Font 'vist_anterior' '_ExtractConclusio "Vist l''anterior" -> Font vist_anterior (fiable)'
+Assert ($cC.Text -notmatch 'Ho poso') '_ExtractConclusio exclou "Ho poso al seu coneixement"'
+$cNone = _ExtractConclusio @('res', 'de res')
+AssertEq $cNone.Text '' '_ExtractConclusio sense cap frase coneguda -> Text buit'
+AssertEq $cNone.Font '' '_ExtractConclusio sense cap frase coneguda -> Font buit'
+
+Write-Host "`n--- Informes.ps1: _ExtractConclusio (variants reals: risc, MNS, acte extraordinari) ---"
+$linesRisc = @(
+    'INFORME:',
+    "Tenint en consideració el risc greu o imminent de seguretat, és pertinent precintar l${ap}activitat.",
+    'Ho poso al seu coneixement als efectes oportuns,',
+    'Cornella de Llobregat,'
+)
+$cRisc = _ExtractConclusio $linesRisc
+AssertEq $cRisc.Font 'risc' '_ExtractConclusio "Tenint en consideració el risc" -> Font risc (fiable)'
+Assert ($cRisc.Text -match 'precintar') '_ExtractConclusio "risc" captura el text de la decisio'
+
+$linesMns = @(
+    'INFORME:',
+    "S${ap}informa FAVORABLEMENT de la Modificació NO substancial presentada.",
+    'Ho poso al seu coneixement als efectes oportuns,',
+    'Cornella de Llobregat,'
+)
+$cMns = _ExtractConclusio $linesMns
+AssertEq $cMns.Font 'mns' '_ExtractConclusio "S''informa FAVORABLEMENT" -> Font mns (insensible a majuscules)'
+
+$linesAct = @(
+    'INFORME:',
+    "El titular és responsable d${ap}executar i mantenir les mesures de seguretat.",
+    'Ho poso al seu coneixement als efectes oportuns,',
+    'Cornella de Llobregat,'
+)
+$cAct = _ExtractConclusio $linesAct
+AssertEq $cAct.Font 'act_extr' '_ExtractConclusio "El titular és responsable d''executar" -> Font act_extr'
+
+Write-Host "`n--- Informes.ps1: _ExtractConclusio (variants de tancament) ---"
+$linesDoc = @(
+    'INFORME:',
+    "Vist l${ap}anterior, s${ap}informa favorablement.",
+    "S${ap}informa als efectes oportuns,",
+    'Cornella de Llobregat,'
+)
+$cDoc = _ExtractConclusio $linesDoc
+AssertEq $cDoc.Text "Vist l${ap}anterior, s${ap}informa favorablement." '_ExtractConclusio tanca tambe amb "S''informa als efectes oportuns,"'
+
+$linesSign = @(
+    'INFORME:',
+    "Vist l${ap}anterior, s${ap}informa favorablement.",
+    "A Cornella de Llobregat, en la data i amb les signatures electròniques que figuren en aquest document."
+)
+$cSign = _ExtractConclusio $linesSign
+AssertEq $cSign.Text "Vist l${ap}anterior, s${ap}informa favorablement." '_ExtractConclusio tanca tambe amb "A Cornella de Llobregat, en la data..." (signatura electronica)'
+
+Write-Host "`n--- Informes.ps1: _ConclusioMotiu (motiu de revisio segons Font) ---"
+AssertEq (_ConclusioMotiu ([pscustomobject]@{ Text=''; Font='' }))              'sense conclusio'            '_ConclusioMotiu sense conclusio -> motiu'
+AssertEq (_ConclusioMotiu ([pscustomobject]@{ Text='x'; Font='vist_anterior' })) ''                           '_ConclusioMotiu vist_anterior -> fiable, sense motiu'
+AssertEq (_ConclusioMotiu ([pscustomobject]@{ Text='x'; Font='risc' }))          ''                           '_ConclusioMotiu risc -> fiable, sense motiu'
+AssertEq (_ConclusioMotiu ([pscustomobject]@{ Text='x'; Font='mns' }))           'conclusio poc fiable (revisar)' '_ConclusioMotiu mns -> per revisar'
+AssertEq (_ConclusioMotiu ([pscustomobject]@{ Text='x'; Font='act_extr' }))      'conclusio poc fiable (revisar)' '_ConclusioMotiu act_extr -> per revisar'
 
 Write-Host "`n--- Informes.ps1: _GiaFromFolderName / _CarpetaActivitat ---"
 $p = 'I:\Activitats\Informes\2025-1-2563 GIA 361 - RC112- KRICHI BEJAUI HOSTELERIA, SL\20260710_Req4.docx'

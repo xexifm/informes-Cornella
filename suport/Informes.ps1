@@ -5,20 +5,28 @@
 
 .DESCRIPTION
   Recorre l'arbre de carpetes dels informes (per defecte $InformesDir, germa de
-  la carpeta de l'Excel d'activitats) i, per cada informe (.docx), en treu:
+  la carpeta de l'Excel d'activitats) i, per cada informe (.docx, o .doc antic
+  via Word COM), en treu:
     - la DATA (del principi del nom del fitxer),
-    - l'ID GIA (del document; si no hi es, del nom de la carpeta "GIA 361"; si
-      tampoc, de l'Excel d'activitats cercant per numero d'expedient),
-    - la CONCLUSIO (el paragraf que comenca amb "Vist l'anterior").
+    - l'ID GIA (del document -ignorant placeholders com "-"/"XXX" quan encara
+      no n'hi ha-; si no hi es, del nom de la carpeta "GIA 361"; si tampoc, de
+      l'Excel d'activitats cercant per numero d'expedient),
+    - la CONCLUSIO (el paragraf que comenca amb una de les frases de
+      $Script:ConclusioStartPhrases: "Vist l'anterior" i "Tenint en
+      consideracio el risc" son fiables; "S'informa favorablement" i "El
+      titular/L'organitzador es responsable d'executar" es desen igualment
+      pero es marquen amb el motiu "conclusio poc fiable (revisar)" perque son
+      clausules molt semblants entre informes diferents).
   Ho desa AGRUPAT PER ACTIVITAT a BASE DE DADES ACTIVITATS\informes-db.json
-  (carpeta ignorada per git). Els informes que no es poden resoldre del tot van
-  a un bloc "a_revisar" per poder-los repassar.
+  (carpeta ignorada per git). Els informes que no es poden resoldre del tot (o
+  la conclusio dels quals cal repassar) van a un bloc "a_revisar".
 
   Es un modul del motor: es carrega (dot-source) des de GenerarInforme.ps1, aixi
   reutilitza les funcions de lectura de .docx sense Word (de Seguiment.ps1),
   _NormalizeText i l'acces a l'Excel d'activitats (Find-LatestActivitatsExcel /
   Initialize-ActivitatsCache). Les funcions de logica de text son PURES (operen
-  sobre cadenes) perque es puguin provar en headless (Linux, sense Word).
+  sobre cadenes) perque es puguin provar en headless (Linux, sense Word); la
+  lectura de .doc antics (Word COM) nomes es prova manualment a Windows.
 
 .NOTES
   Es llanca des del menu (Pas 1) amb el boto "Actualitzar base d'informes".
@@ -55,8 +63,20 @@ function _ParseDataInformeFromName($name) {
     return $null
 }
 
+# Cert si el valor trobat despres de "ID GIA:" es un placeholder (activitat
+# encara sense GIA assignat: "-", "XXX", "N/A"...) i no un ID real. Cal
+# distingir-ho perque, si no, activitats totalment diferents que encara no
+# tenen GIA queden ajuntades sota una mateixa "activitat" fantasma amb
+# id_gia="-" (vist a la carpeta real d'informes).
+function _EsGiaPlaceholder($val) {
+    if ([string]::IsNullOrWhiteSpace($val)) { return $true }
+    $n = $val.Trim().ToLowerInvariant()
+    return ($n -eq '-' -or $n -eq '--' -or $n -eq '---' -or $n -eq 'xxx' -or $n -eq 'n/a' -or $n -eq 'na' -or $n -eq '?')
+}
+
 # ID GIA d'una llista de linies de text del document. Busca la linia que conte
-# "ID GIA" i en retorna el valor (despres dels dos punts / espais). '' si no hi es.
+# "ID GIA" i en retorna el valor (despres dels dos punts / espais). '' si no hi
+# es, o si el valor trobat es un placeholder de "encara sense GIA".
 function _ExtractIdGia($lines) {
     foreach ($ln in $lines) {
         $s = [string]$ln
@@ -64,8 +84,10 @@ function _ExtractIdGia($lines) {
             $val = $Matches[1].Trim()
             # Ens quedem nomes amb el primer "token" del valor (l'ID; evita
             # arrossegar text si la linia porta res mes al darrere).
-            if ($val -match '^([\w./-]+)') { return $Matches[1] }
-            return $val
+            $token = $val
+            if ($val -match '^([\w./-]+)') { $token = $Matches[1] }
+            if (_EsGiaPlaceholder $token) { continue }
+            return $token
         }
     }
     return ''
@@ -98,18 +120,47 @@ function _ConclNorm($s) {
     return $t
 }
 
-# Conclusio: des del paragraf que conte "Vist l'anterior" fins (exclos) el que
-# conte "Ho poso al seu coneixement" o "Cornella de Llobregat,". Uneix els
-# paragrafs amb un espai i retorna el text ORIGINAL (no normalitzat). '' si no
-# es troba l'inici.
+# Frases que poden marcar l'INICI de la conclusio d'un informe: cada familia
+# de tramits tanca la decisio d'una manera diferent (vist a la carpeta real
+# d'informes). Font: 'vist_anterior' i 'risc' son fiables (frase de decisio
+# propia i diferenciada de cada informe, no repetida literalment d'un informe
+# a l'altre); 'mns' i 'act_extr' es marquen per revisar a Get-InformeData
+# perque son clausules gairebe identiques entre informes diferents (aporten
+# poca informacio diferenciada per activitat), tot i que la conclusio es desa
+# igualment.
+$Script:ConclusioStartPhrases = @(
+    [pscustomobject]@{ Font = 'vist_anterior'; Phrase = "Vist l'anterior" },
+    [pscustomobject]@{ Font = 'risc';          Phrase = 'Tenint en consideració el risc' },
+    [pscustomobject]@{ Font = 'mns';           Phrase = "S'informa favorablement" },
+    [pscustomobject]@{ Font = 'act_extr';      Phrase = "El titular és responsable d'executar" },
+    [pscustomobject]@{ Font = 'act_extr';      Phrase = "L'organitzador és responsable d'executar" }
+)
+
+# Conclusio: des del primer paragraf que conte una de $Script:ConclusioStartPhrases
+# fins (exclos) el que marca el tancament de l'informe (signatura). Uneix els
+# paragrafs amb un espai. Retorna un objecte { Text; Font }: Text es el text
+# ORIGINAL (no normalitzat), '' si no es troba cap frase d'inici coneguda;
+# Font indica quina frase ha disparat la deteccio (vegeu $Script:ConclusioStartPhrases).
 function _ExtractConclusio($lines) {
-    $startPhrase = _ConclNorm "Vist l'anterior"
-    $endPhrases  = @((_ConclNorm 'Ho poso al seu coneixement'), (_ConclNorm 'Cornella de Llobregat,'))
-    $start = -1
-    for ($i = 0; $i -lt $lines.Count; $i++) {
-        if ((_ConclNorm $lines[$i]).Contains($startPhrase)) { $start = $i; break }
+    $starts = $Script:ConclusioStartPhrases | ForEach-Object {
+        [pscustomobject]@{ Font = $_.Font; Norm = (_ConclNorm $_.Phrase) }
     }
-    if ($start -lt 0) { return '' }
+    $endPhrases  = @(
+        (_ConclNorm 'Ho poso al seu coneixement'),
+        (_ConclNorm 'Cornella de Llobregat,'),
+        (_ConclNorm "S'informa als efectes oportuns,"),
+        (_ConclNorm 'A Cornella de Llobregat, en la data')
+    )
+    $start = -1
+    $font = ''
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        $nl = _ConclNorm $lines[$i]
+        foreach ($sp in $starts) {
+            if ($nl.Contains($sp.Norm)) { $start = $i; $font = $sp.Font; break }
+        }
+        if ($start -ge 0) { break }
+    }
+    if ($start -lt 0) { return [pscustomobject]@{ Text = ''; Font = '' } }
     $parts = New-Object System.Collections.ArrayList
     for ($i = $start; $i -lt $lines.Count; $i++) {
         $ln = [string]$lines[$i]
@@ -119,7 +170,17 @@ function _ExtractConclusio($lines) {
         if ($isEnd) { break }
         if (-not [string]::IsNullOrWhiteSpace($ln)) { [void]$parts.Add($ln.Trim()) }
     }
-    return ($parts -join ' ')
+    return [pscustomobject]@{ Text = ($parts -join ' '); Font = $font }
+}
+
+# Motiu de revisio associat a la conclusio detectada per _ExtractConclusio (si
+# cal): '' si es fiable o si no se n'ha trobat cap (ja hi ha un altre motiu
+# especific per a "sense conclusio"). Funcio PURA per poder-la testejar sense
+# dependre de la lectura del document.
+function _ConclusioMotiu($conclInfo) {
+    if ([string]::IsNullOrWhiteSpace($conclInfo.Text)) { return 'sense conclusio' }
+    if ($conclInfo.Font -eq 'mns' -or $conclInfo.Font -eq 'act_extr') { return 'conclusio poc fiable (revisar)' }
+    return ''
 }
 
 # ID GIA a partir dels noms de les carpetes pare (p.ex. la carpeta de l'activitat
@@ -181,12 +242,43 @@ function _ReadDocxParagraphs($docxPath) {
     return $out.ToArray()
 }
 
+# Llegeix tots els paragrafs d'un .doc antic (Word 97-2003) via Word COM, en
+# nomes-lectura. Necessita una instancia de Word JA OBERTA ($wordApp, creada
+# mandrosament nomes si cal a Invoke-InformesDbScan); aqui nomes s'obre i es
+# tanca el DOCUMENT (mai l'aplicacio).
+function _ReadDocParagraphsWord($wordApp, $docPath) {
+    $doc = $wordApp.Documents.Open($docPath, $false, $true, $false)
+    try {
+        $out = New-Object System.Collections.ArrayList
+        foreach ($p in $doc.Paragraphs) {
+            $t = $p.Range.Text
+            if ($null -ne $t) { $t = $t.TrimEnd([char]13, [char]7) }
+            [void]$out.Add($t)
+        }
+        return $out.ToArray()
+    } finally {
+        $doc.Close($false)
+    }
+}
+
+# Tria com llegir els paragrafs d'un informe segons l'extensio: .docx (sense
+# Word, via zip) o .doc antic (via Word COM; retorna buit si no hi ha Word
+# disponible, i l'informe queda "a revisar" com si no s'hagues pogut llegir).
+function _ReadInformeParagraphs($file, $wordApp) {
+    if ($file.Extension -ieq '.doc') {
+        if ($null -eq $wordApp) { return @() }
+        return _ReadDocParagraphsWord $wordApp $file.FullName
+    }
+    return _ReadDocxParagraphs $file.FullName
+}
+
 # Analitza UN informe. Retorna un PSCustomObject amb data, gia, expedient,
-# conclusio, fitxer, ruta, carpeta i el motiu (si cal revisar-lo).
-function Get-InformeData($file, $expToGia, $cache) {
+# conclusio, fitxer, ruta, carpeta i el motiu (si cal revisar-lo). $wordApp es
+# opcional (nomes cal per als .doc antics; vegeu _ReadInformeParagraphs).
+function Get-InformeData($file, $expToGia, $cache, $wordApp = $null) {
     $data = _ParseDataInformeFromName $file.Name
     $lines = @()
-    try { $lines = _ReadDocxParagraphs $file.FullName } catch { $lines = @() }
+    try { $lines = _ReadInformeParagraphs $file $wordApp } catch { $lines = @() }
 
     $gia = _ExtractIdGia $lines
     $exp = _ExtractExpedient $lines
@@ -200,11 +292,13 @@ function Get-InformeData($file, $expToGia, $cache) {
         if ($key -ne '' -and $expToGia.ContainsKey($key)) { $gia = $expToGia[$key]; $font = 'excel' }
     }
 
-    $concl = _ExtractConclusio $lines
+    $conclInfo = _ExtractConclusio $lines
+    $concl = $conclInfo.Text
 
     $motius = New-Object System.Collections.ArrayList
-    if ([string]::IsNullOrWhiteSpace($gia))   { [void]$motius.Add('sense ID GIA') }
-    if ([string]::IsNullOrWhiteSpace($concl)) { [void]$motius.Add('sense conclusio') }
+    if ([string]::IsNullOrWhiteSpace($gia)) { [void]$motius.Add('sense ID GIA') }
+    $conclMotiu = _ConclusioMotiu $conclInfo
+    if (-not [string]::IsNullOrWhiteSpace($conclMotiu)) { [void]$motius.Add($conclMotiu) }
 
     $titular = ''
     if ($null -ne $cache -and -not [string]::IsNullOrWhiteSpace($gia) -and $cache.ById.ContainsKey([string]$gia)) {
@@ -349,12 +443,19 @@ function Invoke-InformesDbScan {
             } catch { $prevByRuta = @{}; $prevUtc = [datetime]::MinValue }
         }
 
-        # 4. Recollir els fitxers candidats (.docx amb data al principi del nom).
+        # 4. Recollir els fitxers candidats (.docx o .doc amb data al principi
+        #    del nom). Un sol Get-ChildItem recursiu (sense -Filter) i filtrem
+        #    per extensio nosaltres: evita el parany de "*.doc" -Filter que a
+        #    vegades tambe encerta ".docx" pel nom curt (8.3) de NTFS.
         $lbl.Text = "Cercant informes a:`n$dir"
         [System.Windows.Forms.Application]::DoEvents()
-        $allDocx = Get-ChildItem -LiteralPath $dir -Recurse -File -Filter '*.docx' -ErrorAction SilentlyContinue |
-                   Where-Object { $_.Name -notlike '~$*' -and $null -ne (_ParseDataInformeFromName $_.Name) }
-        $files = @($allDocx)
+        $allInformes = Get-ChildItem -LiteralPath $dir -Recurse -File -ErrorAction SilentlyContinue |
+                       Where-Object {
+                           $_.Name -notlike '~$*' -and
+                           ($_.Extension -ieq '.docx' -or $_.Extension -ieq '.doc') -and
+                           $null -ne (_ParseDataInformeFromName $_.Name)
+                       }
+        $files = @($allInformes)
         $total = $files.Count
 
         $bar.Style = 'Continuous'
@@ -362,36 +463,46 @@ function Invoke-InformesDbScan {
         $bar.Maximum = [Math]::Max(1, $total)
 
         # 5. Analitzar cada informe (incremental: reutilitzem els no modificats).
+        #    Word només es crea (mandrosament) si cal reprocessar algun .doc
+        #    antic; es tanca sempre al 'finally', encara que hi hagi un error.
         $informes = New-Object System.Collections.ArrayList
         $revisar  = New-Object System.Collections.ArrayList
         $reprocessats = 0
         $i = 0
-        foreach ($f in $files) {
-            $i++
-            $ruta = $f.FullName
-            $teEntrada = $prevByRuta.ContainsKey($ruta)
-            if (-not (_HaDeReprocessar $f.LastWriteTimeUtc $prevUtc $teEntrada)) {
-                # No s'ha tocat des de l'ultim escaneig: reutilitzem l'entrada.
-                $r = $prevByRuta[$ruta]
-            } else {
-                $r = Get-InformeData $f $expToGia $cache
-                # Conservem l'"ignorat" que l'usuari hagi marcat abans.
-                if ($teEntrada) { $r.Ignorat = [bool]$prevByRuta[$ruta].Ignorat }
-                $reprocessats++
+        $wordApp = $null
+        try {
+            foreach ($f in $files) {
+                $i++
+                $ruta = $f.FullName
+                $teEntrada = $prevByRuta.ContainsKey($ruta)
+                if (-not (_HaDeReprocessar $f.LastWriteTimeUtc $prevUtc $teEntrada)) {
+                    # No s'ha tocat des de l'ultim escaneig: reutilitzem l'entrada.
+                    $r = $prevByRuta[$ruta]
+                } else {
+                    if ($f.Extension -ieq '.doc' -and $null -eq $wordApp) {
+                        try { $wordApp = New-Object -ComObject Word.Application; $wordApp.Visible = $false } catch { $wordApp = $null }
+                    }
+                    $r = Get-InformeData $f $expToGia $cache $wordApp
+                    # Conservem l'"ignorat" que l'usuari hagi marcat abans.
+                    if ($teEntrada) { $r.Ignorat = [bool]$prevByRuta[$ruta].Ignorat }
+                    $reprocessats++
+                }
+                if (($i % 5) -eq 0 -or $i -eq $total) {
+                    $lbl.Text = "Analitzant informes... ($i de $total, $reprocessats de nous/modificats)"
+                    $bar.Value = [Math]::Min($bar.Maximum, $i)
+                    [System.Windows.Forms.Application]::DoEvents()
+                }
+                [void]$informes.Add($r)
+                if ($r.Motius.Count -gt 0) {
+                    [void]$revisar.Add([pscustomobject]@{
+                        fitxer = $r.Fitxer
+                        ruta   = $r.Ruta
+                        motiu  = ($r.Motius -join ', ')
+                    })
+                }
             }
-            if (($i % 5) -eq 0 -or $i -eq $total) {
-                $lbl.Text = "Analitzant informes... ($i de $total, $reprocessats de nous/modificats)"
-                $bar.Value = [Math]::Min($bar.Maximum, $i)
-                [System.Windows.Forms.Application]::DoEvents()
-            }
-            [void]$informes.Add($r)
-            if ($r.Motius.Count -gt 0) {
-                [void]$revisar.Add([pscustomobject]@{
-                    fitxer = $r.Fitxer
-                    ruta   = $r.Ruta
-                    motiu  = ($r.Motius -join ', ')
-                })
-            }
+        } finally {
+            if ($null -ne $wordApp) { try { $wordApp.Quit() } catch { } }
         }
 
         # 6. Agrupar per activitat: per ID GIA quan n'hi ha; si NO en tenen, per

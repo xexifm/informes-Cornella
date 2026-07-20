@@ -33,25 +33,35 @@ Per tant, **al final de cada sessió**:
 Si tens dubtes sobre si pots fer push a `main`, pregunta-ho; però el model
 de desplegament de l'usuari depèn que la feina arribi a `main`.
 
-## Base d'informes (informes-db.json) — segona passada pendent
+## Base d'informes (informes-db.json)
 - El motor de la base d'informes és `suport/Informes.ps1`: escaneja `$InformesDir`
-  (per defecte `...\5.- Sergi Fadurdo\Informes`) i, per cada informe (`.docx` amb
-  data al principi del nom), en treu **data + ID GIA + conclusió** ("Vist
-  l'anterior"), agrupat per activitat (per GIA; si no en té, per **carpeta**), a
+  (per defecte `...\5.- Sergi Fadurdo\Informes`) i, per cada informe (`.docx` o
+  `.doc` antic amb data al principi del nom), en treu **data + ID GIA +
+  conclusió**, agrupat per activitat (per GIA; si no en té, per **carpeta**), a
   `BASE DE DADES ACTIVITATS\informes-db.json` (gitignored). Botons al menú:
   **🗃 Actualitzar** i **📋 Editar** (marc "Base d'informes").
 - Lectura de `.docx` **sense Word** (zip) reutilitzant les primitives de
-  `Seguiment.ps1` (`_LoadDocxXml`, `_ParagraphTextXml`). Funcions de text PURES
-  (dates, GIA, expedient, conclusió) amb tests a `run-tests.ps1`.
-- **PENDENT (segona passada):** afinar els parsers amb la carpeta REAL d'informes
-  (~43 GB). Casos a cobrir: formats de data rars al nom, informes **sense GIA**
-  al document, variants de la frase de conclusió, i **`.doc` antics**
-  (Word 97-2003) — aquests NO es poden llegir descomprimint; cal **Word COM**
-  (`New-Object -ComObject Word.Application`, `Documents.Open($path,$false,$true)`
-  en només-lectura, iterar `$doc.Paragraphs` → `$p.Range.Text`, i `Quit()` al
-  final). Si s'afegeix suport `.doc` a l'escàner, `Get-InformeData` ha d'acceptar
-  una instància de Word (creada mandrosament) i el `Get-ChildItem`
-  d'`Invoke-InformesDbScan` ha d'incloure `*.doc` a més de `*.docx`.
+  `Seguiment.ps1` (`_LoadDocxXml`, `_ParagraphTextXml`). Lectura de `.doc`
+  antics (Word 97-2003) via **Word COM** (`_ReadDocParagraphsWord`): instància
+  creada mandrosament a `Invoke-InformesDbScan` només si cal reprocessar algun
+  `.doc`, i tancada (`Quit()`) en un `finally`. Funcions de text PURES (dates,
+  GIA, expedient, conclusió) amb tests a `run-tests.ps1`.
+- **ID GIA:** cadena document → carpeta ("GIA 361") → Excel per expedient.
+  `_ExtractIdGia` ignora placeholders com `"-"`, `"XXX"`, `"N/A"` (activitats
+  encara sense GIA assignat) perquè no s'ajuntin activitats diferents sota una
+  mateixa "activitat" fantasma.
+- **Conclusió:** `$Script:ConclusioStartPhrases` a `Informes.ps1` llista les
+  frases d'inici reconegudes, cada una amb el seu `Font` (família de tràmit).
+  `"Vist l'anterior"` i `"Tenint en consideració el risc"` es consideren
+  fiables (Font `vist_anterior`/`risc`, decisió pròpia i diferenciada de cada
+  informe). `"S'informa favorablement"` (MNS) i `"El titular/L'organitzador és
+  responsable d'executar"` (actes extraordinàries) també es capturen i es
+  desen, però són clàusules gairebé idèntiques entre informes diferents, així
+  que `_ConclusioMotiu` els afegeix el motiu `"conclusio poc fiable
+  (revisar)"` (van a "a_revisar" igualment). Si cap frase coneguda hi apareix,
+  la conclusió queda buida (motiu `"sense conclusio"`).
+- Validat contra la carpeta REAL d'informes (~43 GB, 720 informes): 0 grups
+  GIA corromputs per placeholders, cobertura de conclusió 70% → 87%.
 - **On és la carpeta d'informes:** a la feina, `$InformesDir` per defecte és
   `I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\Informes`. **A casa**,
   l'usuari en té una còpia en un **disc extern**:
