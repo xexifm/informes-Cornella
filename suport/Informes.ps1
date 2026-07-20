@@ -388,12 +388,12 @@ function Invoke-InformesDbScan {
             }
         }
 
-        # 6. Agrupar per activitat (clau = ID GIA; si falta, EXP:<expedient>; si
-        #    tampoc, la carpeta). Ordenem els informes de cada activitat per data.
+        # 6. Agrupar per activitat: per ID GIA quan n'hi ha; si NO en tenen, per
+        #    CARPETA (tots els informes d'una mateixa carpeta = una activitat).
+        #    Ordenem els informes de cada activitat per data.
         $groups = [ordered]@{}
         foreach ($r in $informes) {
             $key = if (-not [string]::IsNullOrWhiteSpace($r.Gia)) { "GIA:$($r.Gia)" }
-                   elseif (-not [string]::IsNullOrWhiteSpace($r.Expedient)) { "EXP:$(_NormalitzaExpedient $r.Expedient)" }
                    else { "DIR:$($r.Carpeta)" }
             if (-not $groups.Contains($key)) {
                 $groups[$key] = [pscustomobject]@{
@@ -527,6 +527,15 @@ function Invoke-InformesDbEdit {
             }
         }
     }
+
+    # Agrupem visualment les files: primer les que tenen ID GIA (ordenades per
+    # GIA), despres les que NO en tenen agrupades per CARPETA. Aixi, per als
+    # informes sense GIA, els d'una mateixa carpeta queden JUNTS. Dins de cada
+    # grup, per data.
+    $allRows = @($allRows | Sort-Object `
+        @{ Expression = { if ([string]::IsNullOrWhiteSpace($_.Gia)) { 1 } else { 0 } } }, `
+        @{ Expression = { if ([string]::IsNullOrWhiteSpace($_.Gia)) { $_.Carpeta } else { $_.Gia } } }, `
+        @{ Expression = { [string]$_.Data } })
 
     # Estat compartit amb els gestors d'esdeveniments (hashtable per referencia).
     # 'Loading' evita que el gestor de la casella reaccioni mentre s'omple la

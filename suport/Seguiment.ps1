@@ -1057,17 +1057,25 @@ function Select-Mode {
     [void]$form.Controls.Add($btnRuta)
     $y += 52
 
-    # Boto: Actualitzar base d'informes (escaneja la carpeta d'informes i escriu
-    # el JSON amb ID GIA + data + conclusio de cada informe). Mateix patro que
-    # "Generar ruta": pintem l'emoji 🗃 (U+1F5C3, fora del BMP) amb "Segoe UI Emoji"
-    # al costat del text en "Segoe UI".
+    # Base d'informes: dos botons GERMANS (Actualitzar i Editar) dins d'un mateix
+    # marc titulat, perque quedi clar que operen sobre la MATEIXA base de dades.
+    # Owner-draw (emoji + text) com la resta de botons del menu.
+    $fIdbIco = New-Object System.Drawing.Font('Segoe UI Emoji', 12, [System.Drawing.FontStyle]::Regular)
+    $fIdbTxt = New-Object System.Drawing.Font('Segoe UI', 10.5, [System.Drawing.FontStyle]::Regular)
+
+    $grpIdb = New-Object System.Windows.Forms.GroupBox
+    $grpIdb.Text = "Base d'informes"
+    $grpIdb.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Regular)
+    $grpIdb.ForeColor = [System.Drawing.Color]::FromArgb(90, 90, 90)
+    $grpIdb.Location = New-Object System.Drawing.Point(20, $y)
+    $grpIdb.Size = New-Object System.Drawing.Size(430, 78)
+
+    # -- Boto Actualitzar (escaneja la carpeta i (re)escriu el JSON). Emoji 🗃 --
     $box = [System.Char]::ConvertFromUtf32(0x1F5C3)
-    $fBoxIco = New-Object System.Drawing.Font('Segoe UI Emoji', 12, [System.Drawing.FontStyle]::Regular)
-    $fBoxTxt = New-Object System.Drawing.Font('Segoe UI', 11, [System.Drawing.FontStyle]::Regular)
     $btnIdb = New-Object System.Windows.Forms.Button
     $btnIdb.Text = ''
-    $btnIdb.Location = New-Object System.Drawing.Point(20, $y)
-    $btnIdb.Size = New-Object System.Drawing.Size(430, 44)
+    $btnIdb.Location = New-Object System.Drawing.Point(12, 27)
+    $btnIdb.Size = New-Object System.Drawing.Size(198, 40)
     $btnIdb.FlatStyle = 'Flat'
     $btnIdb.BackColor = [System.Drawing.Color]::White
     $btnIdb.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
@@ -1077,33 +1085,29 @@ function Select-Mode {
         $g = $e.Graphics
         $rc = $s.ClientRectangle
         $fl = [System.Windows.Forms.TextFormatFlags]::NoPadding
-        $lblTxt = "Actualitzar base d'informes"
-        $szI = [System.Windows.Forms.TextRenderer]::MeasureText($g, $box, $fBoxIco, [System.Drawing.Size]::Empty, $fl)
-        $szT = [System.Windows.Forms.TextRenderer]::MeasureText($g, $lblTxt, $fBoxTxt, [System.Drawing.Size]::Empty, $fl)
+        $lblTxt = 'Actualitzar'
+        $szI = [System.Windows.Forms.TextRenderer]::MeasureText($g, $box, $fIdbIco, [System.Drawing.Size]::Empty, $fl)
+        $szT = [System.Windows.Forms.TextRenderer]::MeasureText($g, $lblTxt, $fIdbTxt, [System.Drawing.Size]::Empty, $fl)
         $gap = 8
         $x = [int](($rc.Width - ($szI.Width + $gap + $szT.Width)) / 2)
         $yI = [int](($rc.Height - $szI.Height) / 2)
         $yT = [int](($rc.Height - $szT.Height) / 2)
-        [System.Windows.Forms.TextRenderer]::DrawText($g, $box, $fBoxIco, (New-Object System.Drawing.Point($x, $yI)), [System.Drawing.Color]::Black, $fl)
-        [System.Windows.Forms.TextRenderer]::DrawText($g, $lblTxt, $fBoxTxt, (New-Object System.Drawing.Point(($x + $szI.Width + $gap), $yT)), [System.Drawing.Color]::Black, $fl)
+        [System.Windows.Forms.TextRenderer]::DrawText($g, $box, $fIdbIco, (New-Object System.Drawing.Point($x, $yI)), [System.Drawing.Color]::Black, $fl)
+        [System.Windows.Forms.TextRenderer]::DrawText($g, $lblTxt, $fIdbTxt, (New-Object System.Drawing.Point(($x + $szI.Width + $gap), $yT)), [System.Drawing.Color]::Black, $fl)
     }.GetNewClosure())
     $btnIdb.add_Click({
         $result.Choice = @{ Action = 'informesdb'; Cataleg = $null }
         $form.DialogResult = 'OK'
         $form.Close()
     }.GetNewClosure())
-    [void]$form.Controls.Add($btnIdb)
-    $y += 52
+    [void]$grpIdb.Controls.Add($btnIdb)
 
-    # Boto: Editar base d'informes (obre la taula per veure/obrir informes i
-    # marcar-ne d'ignorats). Mateix patro owner-draw amb l'emoji 📋 (U+1F4CB).
+    # -- Boto Editar (obre la taula per veure/obrir informes i ignorar-ne). Emoji 📋 --
     $clip = [System.Char]::ConvertFromUtf32(0x1F4CB)
-    $fClipIco = New-Object System.Drawing.Font('Segoe UI Emoji', 12, [System.Drawing.FontStyle]::Regular)
-    $fClipTxt = New-Object System.Drawing.Font('Segoe UI', 11, [System.Drawing.FontStyle]::Regular)
     $btnEdit = New-Object System.Windows.Forms.Button
     $btnEdit.Text = ''
-    $btnEdit.Location = New-Object System.Drawing.Point(20, $y)
-    $btnEdit.Size = New-Object System.Drawing.Size(430, 44)
+    $btnEdit.Location = New-Object System.Drawing.Point(218, 27)
+    $btnEdit.Size = New-Object System.Drawing.Size(198, 40)
     $btnEdit.FlatStyle = 'Flat'
     $btnEdit.BackColor = [System.Drawing.Color]::White
     $btnEdit.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
@@ -1113,23 +1117,25 @@ function Select-Mode {
         $g = $e.Graphics
         $rc = $s.ClientRectangle
         $fl = [System.Windows.Forms.TextFormatFlags]::NoPadding
-        $lblTxt = "Editar base d'informes"
-        $szI = [System.Windows.Forms.TextRenderer]::MeasureText($g, $clip, $fClipIco, [System.Drawing.Size]::Empty, $fl)
-        $szT = [System.Windows.Forms.TextRenderer]::MeasureText($g, $lblTxt, $fClipTxt, [System.Drawing.Size]::Empty, $fl)
+        $lblTxt = 'Editar'
+        $szI = [System.Windows.Forms.TextRenderer]::MeasureText($g, $clip, $fIdbIco, [System.Drawing.Size]::Empty, $fl)
+        $szT = [System.Windows.Forms.TextRenderer]::MeasureText($g, $lblTxt, $fIdbTxt, [System.Drawing.Size]::Empty, $fl)
         $gap = 8
         $x = [int](($rc.Width - ($szI.Width + $gap + $szT.Width)) / 2)
         $yI = [int](($rc.Height - $szI.Height) / 2)
         $yT = [int](($rc.Height - $szT.Height) / 2)
-        [System.Windows.Forms.TextRenderer]::DrawText($g, $clip, $fClipIco, (New-Object System.Drawing.Point($x, $yI)), [System.Drawing.Color]::Black, $fl)
-        [System.Windows.Forms.TextRenderer]::DrawText($g, $lblTxt, $fClipTxt, (New-Object System.Drawing.Point(($x + $szI.Width + $gap), $yT)), [System.Drawing.Color]::Black, $fl)
+        [System.Windows.Forms.TextRenderer]::DrawText($g, $clip, $fIdbIco, (New-Object System.Drawing.Point($x, $yI)), [System.Drawing.Color]::Black, $fl)
+        [System.Windows.Forms.TextRenderer]::DrawText($g, $lblTxt, $fIdbTxt, (New-Object System.Drawing.Point(($x + $szI.Width + $gap), $yT)), [System.Drawing.Color]::Black, $fl)
     }.GetNewClosure())
     $btnEdit.add_Click({
         $result.Choice = @{ Action = 'informesdbedit'; Cataleg = $null }
         $form.DialogResult = 'OK'
         $form.Close()
     }.GetNewClosure())
-    [void]$form.Controls.Add($btnEdit)
-    $y += 52
+    [void]$grpIdb.Controls.Add($btnEdit)
+
+    [void]$form.Controls.Add($grpIdb)
+    $y += 86
 
     # Boto: Revisar entrades del mobil. Fa una comprovacio d'UN SOL COP (mira si
     # han arribat informes del mobil via Drive, els genera i avisa). Ja no hi ha
