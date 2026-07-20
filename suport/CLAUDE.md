@@ -33,6 +33,29 @@ Per tant, **al final de cada sessió**:
 Si tens dubtes sobre si pots fer push a `main`, pregunta-ho; però el model
 de desplegament de l'usuari depèn que la feina arribi a `main`.
 
+## Base d'informes (informes-db.json) — segona passada pendent
+- El motor de la base d'informes és `suport/Informes.ps1`: escaneja `$InformesDir`
+  (per defecte `...\5.- Sergi Fadurdo\Informes`) i, per cada informe (`.docx` amb
+  data al principi del nom), en treu **data + ID GIA + conclusió** ("Vist
+  l'anterior"), agrupat per activitat (per GIA; si no en té, per **carpeta**), a
+  `BASE DE DADES ACTIVITATS\informes-db.json` (gitignored). Botons al menú:
+  **🗃 Actualitzar** i **📋 Editar** (marc "Base d'informes").
+- Lectura de `.docx` **sense Word** (zip) reutilitzant les primitives de
+  `Seguiment.ps1` (`_LoadDocxXml`, `_ParagraphTextXml`). Funcions de text PURES
+  (dates, GIA, expedient, conclusió) amb tests a `run-tests.ps1`.
+- **PENDENT (segona passada):** afinar els parsers amb la carpeta REAL d'informes
+  (~43 GB, no es pot pujar). Casos a cobrir: formats de data rars al nom,
+  informes **sense GIA** al document, variants de la frase de conclusió, i
+  **`.doc` antics** (Word 97-2003) — aquests NO es poden llegir descomprimint;
+  cal **Word COM** (com fa `suport/DiagnosticInformes.ps1`, funció `_ReadDocText`).
+  Si s'afegeix suport `.doc` a l'escàner, `Get-InformeData` ha d'acceptar una
+  instància de Word (creada mandrosament) i el `Get-ChildItem` ha d'incloure
+  `*.doc` a més de `*.docx`.
+- Eina de diagnòstic (sense pujar contingut): `DiagnosticInformes.bat` →
+  `suport/DiagnosticInformes.ps1`. Escaneja la carpeta al PC i escriu un resum a
+  l'Escriptori (formats de data, extensions, taxa de GIA/conclusió trobats,
+  exemples dels casos que fallen). Útil per veure les casuístiques reals.
+
 ## Plànol públic d'activitats precintades
 - `suport/rutes/Precintades.ps1` genera `docs/dades/precintades.json` a partir
   de l'Excel d'activitats (fulla "Estès"): les activitats amb el camp lliure
