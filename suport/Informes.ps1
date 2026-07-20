@@ -193,6 +193,72 @@ function _ConclusioIgnorarPerDefecte($conclInfo) {
     return ($conclInfo.Font -eq 'mns' -or $conclInfo.Font -eq 'act_extr')
 }
 
+# Opcions valides de "conclusio breu" (l'estat en que queda l'activitat
+# despres d'aquell informe). 'Altres' i 'Revisar' son manuals: la deteccio
+# automatica (_ConclusioBreu) MAI les retorna directament com a resultat
+# "trobat" -- nomes 'Revisar' com a valor per defecte quan no hi ha prou
+# senyal. L'usuari les pot triar a ma des de l'editor si cal.
+$Script:ConclusioBreuOpcions = @(
+    'Requeriment',
+    'FI Requeriment',
+    'Precinte / Cessament',
+    'FI Precinte / Cessament',
+    'Favorable',
+    'Ampliació termini',
+    'Sense efecte',
+    'Altres',
+    'Revisar'
+)
+
+# Classifica el text de la CONCLUSIO (ja extreta per _ExtractConclusio) en un
+# dels $Script:ConclusioBreuOpcions, mirant les frases reals amb que Sergi
+# tanca cada tipus de tramit (vist a la carpeta real d'informes). 'Revisar' es
+# el resultat per defecte quan no hi ha conclusio o no es reconeix cap frase
+# (inclou "desfavorable", deliberadament: no es vol confondre amb "Favorable").
+# Funcio PURA (nomes text), testejable en headless.
+function _ConclusioBreu($text) {
+    if ([string]::IsNullOrWhiteSpace($text)) { return 'Revisar' }
+    $n = _ConclNorm $text
+
+    # Seguiment d'un requeriment: encara pendent.
+    if ($n -match "no s.?han esmenat" -or $n -match 'no es pot donar.{0,12}finalitzat') { return 'Requeriment' }
+    # Seguiment d'un requeriment: resolt (inclou denuncies tancades: mateix "final positiu").
+    if ($n -match 'es pot donar.{0,12}finalitzat') { return 'FI Requeriment' }
+    if ($n.Contains('es pot donar per tancada la denuncia')) { return 'FI Requeriment' }
+    # Aixecament d'un precinte/suspensio.
+    if ($n -match 'es (pot|valora) (aixecar|desprecintar)' -or $n.Contains('pertinent desprecintar')) { return 'FI Precinte / Cessament' }
+    # Comunicacio anul·lada.
+    if ($n.Contains('deixa sense efecte')) { return 'Sense efecte' }
+    # Risc greu/imminent: es precinta o es proposa el cessament.
+    if ($n.Contains('pertinent precintar') -or $n.Contains('tenint en consideracio el risc') -or $n -match 'ordeni el cessament') { return 'Precinte / Cessament' }
+    # Desfavorable: deliberadament NO es classifica com a Favorable; cau a Revisar.
+    if ($n.Contains('desfavorablement') -or $n.Contains('desfavorable')) { return 'Revisar' }
+    if ($n.Contains('favorablement') -or $n.Contains('favorable')) { return 'Favorable' }
+    if ($n.Contains('ampliar el termini')) { return 'Ampliació termini' }
+    # Clausules estandard d'un requeriment NOU (encara sense "Vist l'anterior").
+    if ($n.Contains('recepcio del requeriment') -or $n.Contains('esmenar les deficiencies') -or
+        $n.Contains('mancances formals') -or $n.Contains('termini maxim de') -or
+        $n.Contains('podran adoptar les mesures') -or
+        $n.Contains('procediment desmena') -or $n.Contains('esmenar els defectes') -or
+        $n -match 'cas contrari.{0,60}(cessament|precinte)' -or $n -match 'determini el (cessament|precinte)') {
+        return 'Requeriment'
+    }
+    return 'Revisar'
+}
+
+# Estat actual d'una ACTIVITAT: la conclusio_breu del seu informe mes RECENT
+# (per data) entre els que NO estan ignorats (un informe ignorat -p.ex. una
+# clausula MNS/act_extr poc fiable, o marcat a ma- no ha de decidir l'estat
+# de l'activitat). Espera $informesOrdenats ja ordenats per data ASCENDENT
+# (com fa Invoke-InformesDbScan); pren el darrer que compleixi. '' si no n'hi
+# ha cap (activitat sense cap informe fiable). Funcio PURA, testejable.
+function _EstatActualActivitat($informesOrdenats) {
+    if ($null -eq $informesOrdenats) { return '' }
+    $fiables = @($informesOrdenats | Where-Object { -not [bool]$_.ignorat })
+    if ($fiables.Count -eq 0) { return '' }
+    return [string]$fiables[-1].conclusio_breu
+}
+
 # ID GIA a partir dels noms de les carpetes pare (p.ex. la carpeta de l'activitat
 # "2025-1-2563 GIA 361 - ... KRICHI ..."). Retorna '' si cap carpeta no en porta.
 # Parteix la ruta manualment per '\' o '/' (aixi funciona igual a Windows i a
@@ -316,18 +382,19 @@ function Get-InformeData($file, $expToGia, $cache, $wordApp = $null) {
     }
 
     return [pscustomobject]@{
-        Data       = $data
-        Gia        = $gia
-        GiaFont    = $font
-        Expedient  = $exp
-        Titular    = $titular
-        Conclusio  = $concl
-        Fitxer     = $file.Name
-        Ruta       = $file.FullName
-        Carpeta    = _CarpetaActivitat $file.FullName
-        Modificat  = $file.LastWriteTimeUtc.ToString('o')
-        Ignorat    = (_ConclusioIgnorarPerDefecte $conclInfo)
-        Motius     = $motius.ToArray()
+        Data          = $data
+        Gia           = $gia
+        GiaFont       = $font
+        Expedient     = $exp
+        Titular       = $titular
+        Conclusio     = $concl
+        ConclusioBreu = (_ConclusioBreu $concl)
+        Fitxer        = $file.Name
+        Ruta          = $file.FullName
+        Carpeta       = _CarpetaActivitat $file.FullName
+        Modificat     = $file.LastWriteTimeUtc.ToString('o')
+        Ignorat       = (_ConclusioIgnorarPerDefecte $conclInfo)
+        Motius        = $motius.ToArray()
     }
 }
 
@@ -359,19 +426,24 @@ function _FlattenInformesDb($db) {
             $motius = if ([string]::IsNullOrWhiteSpace($motiuStr)) { @() } else { @($motiuStr -split ',\s*') }
             $ign = $false
             if ($null -ne $inf.PSObject.Properties['ignorat']) { $ign = [bool]$inf.ignorat }
+            $conclusioText = [string]$inf.conclusio
+            # Compatibilitat: si la base es d'abans d'aquest camp, la calculem
+            # ara mateix (no cal reescanejar per tenir-la la primera vegada).
+            $conclusioBreu = if ($null -ne $inf.PSObject.Properties['conclusio_breu']) { [string]$inf.conclusio_breu } else { _ConclusioBreu $conclusioText }
             $map[$ruta] = [pscustomobject]@{
-                Data      = [string]$inf.data
-                Gia       = [string]$act.id_gia
-                GiaFont   = ''
-                Expedient = [string]$act.expedient
-                Titular   = [string]$act.titular
-                Conclusio = [string]$inf.conclusio
-                Fitxer    = [string]$inf.fitxer
-                Ruta      = $ruta
-                Carpeta   = [string]$act.carpeta
-                Modificat = if ($null -ne $inf.PSObject.Properties['modificat']) { [string]$inf.modificat } else { '' }
-                Ignorat   = $ign
-                Motius    = $motius
+                Data          = [string]$inf.data
+                Gia           = [string]$act.id_gia
+                GiaFont       = ''
+                Expedient     = [string]$act.expedient
+                Titular       = [string]$act.titular
+                Conclusio     = $conclusioText
+                ConclusioBreu = $conclusioBreu
+                Fitxer        = [string]$inf.fitxer
+                Ruta          = $ruta
+                Carpeta       = [string]$act.carpeta
+                Modificat     = if ($null -ne $inf.PSObject.Properties['modificat']) { [string]$inf.modificat } else { '' }
+                Ignorat       = $ign
+                Motius        = $motius
             }
         }
     }
@@ -493,8 +565,13 @@ function Invoke-InformesDbScan {
                         try { $wordApp = New-Object -ComObject Word.Application; $wordApp.Visible = $false } catch { $wordApp = $null }
                     }
                     $r = Get-InformeData $f $expToGia $cache $wordApp
-                    # Conservem l'"ignorat" que l'usuari hagi marcat abans.
-                    if ($teEntrada) { $r.Ignorat = [bool]$prevByRuta[$ruta].Ignorat }
+                    # Conservem l'"ignorat" i la "conclusio breu" que l'usuari
+                    # hagi marcat/corregit abans (encara que l'informe s'hagi
+                    # hagut de reprocessar).
+                    if ($teEntrada) {
+                        $r.Ignorat = [bool]$prevByRuta[$ruta].Ignorat
+                        $r.ConclusioBreu = [string]$prevByRuta[$ruta].ConclusioBreu
+                    }
                     $reprocessats++
                 }
                 if (($i % 5) -eq 0 -or $i -eq $total) {
@@ -537,13 +614,14 @@ function Invoke-InformesDbScan {
             if ([string]::IsNullOrWhiteSpace($g.expedient) -and -not [string]::IsNullOrWhiteSpace($r.Expedient)) { $g.expedient = $r.Expedient }
             if ([string]::IsNullOrWhiteSpace($g.titular)   -and -not [string]::IsNullOrWhiteSpace($r.Titular))   { $g.titular = $r.Titular }
             [void]$g._informes.Add([pscustomobject]@{
-                data      = $r.Data
-                fitxer    = $r.Fitxer
-                ruta      = $r.Ruta
-                conclusio = $r.Conclusio
-                modificat = $r.Modificat
-                ignorat   = [bool]$r.Ignorat
-                motiu     = ($r.Motius -join ', ')
+                data          = $r.Data
+                fitxer        = $r.Fitxer
+                ruta          = $r.Ruta
+                conclusio     = $r.Conclusio
+                conclusio_breu = $r.ConclusioBreu
+                modificat     = $r.Modificat
+                ignorat       = [bool]$r.Ignorat
+                motiu         = ($r.Motius -join ', ')
             })
         }
 
@@ -551,11 +629,12 @@ function Invoke-InformesDbScan {
         foreach ($g in $groups.Values) {
             $ordered = @($g._informes | Sort-Object { if ($_.data) { $_.data } else { '' } })
             [void]$activitats.Add([pscustomobject]@{
-                id_gia    = $g.id_gia
-                expedient = $g.expedient
-                titular   = $g.titular
-                carpeta   = $g.carpeta
-                informes  = $ordered
+                id_gia       = $g.id_gia
+                expedient    = $g.expedient
+                titular      = $g.titular
+                carpeta      = $g.carpeta
+                estat_actual = (_EstatActualActivitat $ordered)
+                informes     = $ordered
             })
         }
         $activitatsOrd = @($activitats | Sort-Object { [string]$_.id_gia })
@@ -612,8 +691,12 @@ function _StyleInformeRow($gridRow, [bool]$ignorat, $fontNormal, $fontStrike) {
 }
 
 # Obre una finestra amb la base d'informes en forma de taula: es pot veure cada
-# informe (data, GIA, titular, carpeta, conclusio), OBRIR-lo (boto) i marcar-lo
-# com a IGNORAT (casella; reversible). Els canvis d'"ignorat" es desen al JSON.
+# informe (data, GIA, titular, carpeta, conclusio), OBRIR-lo (boto), marcar-lo
+# com a IGNORAT (casella; reversible) i corregir-ne la CONCLUSIO BREU
+# (desplegable editable). La columna "Estat activitat" es NOMES LECTURA: es
+# deriva de la conclusio breu del darrer informe no ignorat de l'activitat
+# (per data) i es recalcula sempre que canvia "ignorar" o "conclusio breu" de
+# qualsevol dels seus informes. Tots els canvis es desen al JSON.
 function Invoke-InformesDbEdit {
     $outPath = Join-Path $LocalActivitatsDir 'informes-db.json'
     if (-not (Test-Path -LiteralPath $outPath)) {
@@ -630,26 +713,37 @@ function Invoke-InformesDbEdit {
         return
     }
 
-    # Aplanar en files, normalitzant cada informe (assegurar ignorat/ruta/motiu).
-    # Cada fila guarda una REFERENCIA a l'objecte informe del JSON ($inf), aixi
-    # marcar/desmarcar "ignorat" modifica directament la base que despres desem.
+    # Aplanar en files, normalitzant cada informe (assegurar ignorat/ruta/motiu/
+    # conclusio_breu). Cada fila guarda una REFERENCIA a l'objecte informe del
+    # JSON ($inf) i a l'activitat ($act), aixi editar "ignorar" o "conclusio
+    # breu" modifica directament la base que despres desem, i podem recalcular
+    # l'"estat actual" de l'activitat (sempre DERIVAT: el recomputem en carregar
+    # i cada cop que canvia algun dels seus informes, mai es desa "a cegues").
     $allRows = New-Object System.Collections.ArrayList
     if ($null -ne $db.activitats) {
         foreach ($act in $db.activitats) {
             if ($null -eq $act.informes) { continue }
             foreach ($inf in $act.informes) {
-                if ($null -eq $inf.PSObject.Properties['ignorat']) { Add-Member -InputObject $inf -NotePropertyName ignorat -NotePropertyValue $false -Force }
-                if ($null -eq $inf.PSObject.Properties['ruta'])    { Add-Member -InputObject $inf -NotePropertyName ruta -NotePropertyValue '' -Force }
-                if ($null -eq $inf.PSObject.Properties['motiu'])   { Add-Member -InputObject $inf -NotePropertyName motiu -NotePropertyValue '' -Force }
+                if ($null -eq $inf.PSObject.Properties['ignorat'])        { Add-Member -InputObject $inf -NotePropertyName ignorat -NotePropertyValue $false -Force }
+                if ($null -eq $inf.PSObject.Properties['ruta'])           { Add-Member -InputObject $inf -NotePropertyName ruta -NotePropertyValue '' -Force }
+                if ($null -eq $inf.PSObject.Properties['motiu'])          { Add-Member -InputObject $inf -NotePropertyName motiu -NotePropertyValue '' -Force }
+                if ($null -eq $inf.PSObject.Properties['conclusio_breu']) { Add-Member -InputObject $inf -NotePropertyName conclusio_breu -NotePropertyValue (_ConclusioBreu ([string]$inf.conclusio)) -Force }
+            }
+            if ($null -eq $act.PSObject.Properties['estat_actual']) { Add-Member -InputObject $act -NotePropertyName estat_actual -NotePropertyValue '' -Force }
+            $act.estat_actual = _EstatActualActivitat $act.informes
+            foreach ($inf in $act.informes) {
                 [void]$allRows.Add([pscustomobject]@{
-                    Obj       = $inf
-                    Data      = [string]$inf.data
-                    Gia       = [string]$act.id_gia
-                    Titular   = [string]$act.titular
-                    Carpeta   = [string]$act.carpeta
-                    Conclusio = [string]$inf.conclusio
-                    Motiu     = [string]$inf.motiu
-                    Ruta      = [string]$inf.ruta
+                    Obj           = $inf
+                    Act           = $act
+                    Data          = [string]$inf.data
+                    Gia           = [string]$act.id_gia
+                    Titular       = [string]$act.titular
+                    Carpeta       = [string]$act.carpeta
+                    Conclusio     = [string]$inf.conclusio
+                    ConclusioBreu = [string]$inf.conclusio_breu
+                    EstatActual   = [string]$act.estat_actual
+                    Motiu         = [string]$inf.motiu
+                    Ruta          = [string]$inf.ruta
                 })
             }
         }
@@ -690,6 +784,9 @@ function Invoke-InformesDbEdit {
     $cTit  = New-Object System.Windows.Forms.DataGridViewTextBoxColumn;  $cTit.HeaderText  = 'Titular';   $cTit.ReadOnly  = $true; $cTit.Width  = 180
     $cCar  = New-Object System.Windows.Forms.DataGridViewTextBoxColumn;  $cCar.HeaderText  = 'Carpeta';   $cCar.ReadOnly  = $true; $cCar.Width  = 190
     $cCon  = New-Object System.Windows.Forms.DataGridViewTextBoxColumn;  $cCon.HeaderText  = 'Conclusio'; $cCon.ReadOnly  = $true; $cCon.Width  = 260
+    $cBreu = New-Object System.Windows.Forms.DataGridViewComboBoxColumn; $cBreu.HeaderText = 'Conclusio breu'; $cBreu.Width = 150; $cBreu.FlatStyle = 'Flat'
+    [void]$cBreu.Items.AddRange($Script:ConclusioBreuOpcions)
+    $cEst  = New-Object System.Windows.Forms.DataGridViewTextBoxColumn;  $cEst.HeaderText  = 'Estat activitat'; $cEst.ReadOnly = $true; $cEst.Width = 150
     $cMot  = New-Object System.Windows.Forms.DataGridViewTextBoxColumn;  $cMot.HeaderText  = 'Motiu';     $cMot.ReadOnly  = $true; $cMot.Width  = 110
     $cObr  = New-Object System.Windows.Forms.DataGridViewButtonColumn;   $cObr.HeaderText  = '';          $cObr.Text = 'Obrir'; $cObr.UseColumnTextForButtonValue = $true; $cObr.Width = 64
     $cIgn  = New-Object System.Windows.Forms.DataGridViewCheckBoxColumn; $cIgn.HeaderText  = 'Ignorar';   $cIgn.Width = 60
@@ -698,11 +795,15 @@ function Invoke-InformesDbEdit {
     [void]$grid.Columns.Add($cTit)
     [void]$grid.Columns.Add($cCar)
     [void]$grid.Columns.Add($cCon)
+    [void]$grid.Columns.Add($cBreu)
+    [void]$grid.Columns.Add($cEst)
     [void]$grid.Columns.Add($cMot)
     [void]$grid.Columns.Add($cObr)
     [void]$grid.Columns.Add($cIgn)
-    $idxObrir   = 6
-    $idxIgnorar = 7
+    $idxConclBreu = 5
+    $idxEstat     = 6
+    $idxObrir     = 8
+    $idxIgnorar   = 9
 
     $fontNormal = $grid.Font
     $fontStrike = New-Object System.Drawing.Font($grid.Font, [System.Drawing.FontStyle]::Strikeout)
@@ -715,11 +816,11 @@ function Invoke-InformesDbEdit {
         $n = if ($needle) { ([string]$needle).ToLower() } else { '' }
         foreach ($row in $allRows) {
             if ($n -ne '') {
-                $hay = (($row.Data + ' ' + $row.Gia + ' ' + $row.Titular + ' ' + $row.Carpeta + ' ' + $row.Conclusio + ' ' + $row.Motiu)).ToLower()
+                $hay = (($row.Data + ' ' + $row.Gia + ' ' + $row.Titular + ' ' + $row.Carpeta + ' ' + $row.Conclusio + ' ' + $row.ConclusioBreu + ' ' + $row.EstatActual + ' ' + $row.Motiu)).ToLower()
                 if (-not $hay.Contains($n)) { continue }
             }
             $ign = [bool]$row.Obj.ignorat
-            $idx = $grid.Rows.Add(@($row.Data, $row.Gia, $row.Titular, $row.Carpeta, $row.Conclusio, $row.Motiu, 'Obrir', $ign))
+            $idx = $grid.Rows.Add(@($row.Data, $row.Gia, $row.Titular, $row.Carpeta, $row.Conclusio, $row.ConclusioBreu, $row.EstatActual, $row.Motiu, 'Obrir', $ign))
             $gr = $grid.Rows[$idx]
             $gr.Tag = $row
             $gr.Cells[4].ToolTipText = $row.Conclusio
@@ -797,14 +898,39 @@ function Invoke-InformesDbEdit {
     $grid.add_CellValueChanged({
         param($s, $e)
         if ($state.Loading) { return }
-        if ($e.RowIndex -lt 0 -or $e.ColumnIndex -ne $idxIgnorar) { return }
+        if ($e.RowIndex -lt 0) { return }
+        if ($e.ColumnIndex -ne $idxIgnorar -and $e.ColumnIndex -ne $idxConclBreu) { return }
         $gr = $s.Rows[$e.RowIndex]
         $row = $gr.Tag
         if ($null -eq $row) { return }
-        $val = [bool]$gr.Cells[$idxIgnorar].Value
-        $row.Obj.ignorat = $val
-        _StyleInformeRow $gr $val $fontNormal $fontStrike
+
+        if ($e.ColumnIndex -eq $idxIgnorar) {
+            $val = [bool]$gr.Cells[$idxIgnorar].Value
+            $row.Obj.ignorat = $val
+            _StyleInformeRow $gr $val $fontNormal $fontStrike
+        } else {
+            $val = [string]$gr.Cells[$idxConclBreu].Value
+            if ([string]::IsNullOrWhiteSpace($val)) { $val = 'Revisar' }
+            $row.Obj.conclusio_breu = $val
+            $row.ConclusioBreu = $val
+        }
         $state.Dirty = $true
+
+        # L'"ignorar" i la "conclusio breu" de qualsevol informe poden canviar
+        # l'estat de l'activitat sencera: el recalculem i el propaguem a totes
+        # les files (visibles i filtrades) d'aquesta mateixa activitat.
+        $nouEstat = _EstatActualActivitat $row.Act.informes
+        $row.Act.estat_actual = $nouEstat
+        foreach ($gr2 in $grid.Rows) {
+            $row2 = $gr2.Tag
+            if ($null -ne $row2 -and $row2.Act -eq $row.Act) {
+                $row2.EstatActual = $nouEstat
+                $gr2.Cells[$idxEstat].Value = $nouEstat
+            }
+        }
+        foreach ($row3 in $allRows) {
+            if ($row3.Act -eq $row.Act) { $row3.EstatActual = $nouEstat }
+        }
     }.GetNewClosure())
 
     # Si es tanca amb canvis sense desar, oferim desar-los.

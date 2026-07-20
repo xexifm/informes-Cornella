@@ -65,6 +65,22 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   "a_revisar").
 - Validat contra la carpeta REAL d'informes (~43 GB, 720 informes): 0 grups
   GIA corromputs per placeholders, cobertura de conclusió 70% → 87%.
+- **Conclusió breu / Estat actual:** cada informe té una `conclusio_breu`
+  (`_ConclusioBreu`, funció pura) que classifica el TEXT de la conclusió (no
+  el nom de l'arxiu, que l'usuari ha anat modificant amb el temps de manera
+  inconsistent) en una de `$Script:ConclusioBreuOpcions`: Requeriment, FI
+  Requeriment (inclou "denúncia tancada"), Precinte / Cessament, FI Precinte /
+  Cessament, Favorable, Ampliació termini, Sense efecte, Altres, Revisar.
+  `Revisar` és el resultat per defecte quan no es reconeix cap frase — inclou
+  deliberadament "desfavorable" (per no confondre'l amb "Favorable"). `Altres`
+  és NOMÉS una opció manual des de l'editor; el classificador automàtic mai
+  la retorna. Cada ACTIVITAT té un `estat_actual` (`_EstatActualActivitat`,
+  funció pura) = `conclusio_breu` del seu informe **no ignorat** més recent
+  **per `data`** (no per data de modificació del fitxer). A **Editar base
+  d'informes** la columna "Conclusio breu" és un desplegable editable
+  (`DataGridViewComboBoxColumn`) i "Estat activitat" és només lectura,
+  derivada; en editar "Ignorar" o "Conclusio breu" de qualsevol informe es
+  recalcula i es propaga l'estat a totes les files de la mateixa activitat.
 - **On és la carpeta d'informes:** a la feina, `$InformesDir` per defecte és
   `I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\Informes`. **A casa**,
   l'usuari en té una còpia en un **disc extern**:
