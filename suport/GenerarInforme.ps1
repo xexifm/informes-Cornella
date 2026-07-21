@@ -1626,32 +1626,35 @@ function Select-Items {
 
     $form = _NewForm
     $form.Text = 'Pas 3 - Seleccio de deficiencies'
-    $form.Size = New-Object System.Drawing.Size(1180, 740)
+    $form.Size = New-Object System.Drawing.Size(1180, 818)
     $form.StartPosition = 'CenterScreen'
+
+    # Espai reservat a dalt per la banda de marca + barra de passos.
+    $topOffset = 78
 
     # Filtre (textbox al capdamunt). Cada vegada que canvia, es reconstrueix
     # el TreeView amb nomes les coincidencies. Els check states es preserven.
     $lblFilter = New-Object System.Windows.Forms.Label
     $lblFilter.Text = 'Filtre:'
-    $lblFilter.Location = New-Object System.Drawing.Point(10, 14)
+    $lblFilter.Location = New-Object System.Drawing.Point(10, (14 + $topOffset))
     $lblFilter.AutoSize = $true
     $form.Controls.Add($lblFilter)
 
     $tbFilter = New-Object System.Windows.Forms.TextBox
-    $tbFilter.Location = New-Object System.Drawing.Point(60, 10)
+    $tbFilter.Location = New-Object System.Drawing.Point(60, (10 + $topOffset))
     $tbFilter.Size = New-Object System.Drawing.Size(400, 22)
     $tbFilter.Anchor = 'Top, Left'
     $form.Controls.Add($tbFilter)
 
     $btnClear = New-Object System.Windows.Forms.Button
     $btnClear.Text = 'Esborra'
-    $btnClear.Location = New-Object System.Drawing.Point(465, 9)
+    $btnClear.Location = New-Object System.Drawing.Point(465, (9 + $topOffset))
     $btnClear.Size = New-Object System.Drawing.Size(70, 24)
     $btnClear.add_Click({ $tbFilter.Text = '' })
     $form.Controls.Add($btnClear)
 
     $tv = New-Object System.Windows.Forms.TreeView
-    $tv.Location = New-Object System.Drawing.Point(10, 40)
+    $tv.Location = New-Object System.Drawing.Point(10, (40 + $topOffset))
     $tv.Size = New-Object System.Drawing.Size(560, 610)
     $tv.CheckBoxes = $true
     $tv.HideSelection = $false
@@ -1667,13 +1670,13 @@ function Select-Items {
     # els seus desplegables/camps inline per omplir-los aqui mateix.
     $lblDetail = New-Object System.Windows.Forms.Label
     $lblDetail.Text = 'Text i opcions de les deficiencies marcades:'
-    $lblDetail.Location = New-Object System.Drawing.Point(585, 14)
+    $lblDetail.Location = New-Object System.Drawing.Point(585, (14 + $topOffset))
     $lblDetail.AutoSize = $true
     $lblDetail.Anchor = 'Top, Left, Right'
     $form.Controls.Add($lblDetail)
 
     $detailHost = New-Object System.Windows.Forms.Panel
-    $detailHost.Location = New-Object System.Drawing.Point(585, 40)
+    $detailHost.Location = New-Object System.Drawing.Point(585, (40 + $topOffset))
     $detailHost.Size = New-Object System.Drawing.Size(575, 610)
     $detailHost.AutoScroll = $true
     $detailHost.BorderStyle = 'FixedSingle'
@@ -1819,21 +1822,26 @@ function Select-Items {
     & $refreshDetail
 
     $back = New-Object System.Windows.Forms.Button
-    $back.Text = 'Enrere'
-    $back.Location = New-Object System.Drawing.Point(10, 662)
-    $back.Size = New-Object System.Drawing.Size(90, 28)
+    $back.Text = ([char]0x2190 + ' Enrere')
+    $back.Location = New-Object System.Drawing.Point(10, 740)
+    $back.Size = New-Object System.Drawing.Size(100, 30)
     $back.DialogResult = 'Retry'
     $back.Anchor = 'Bottom, Left'
+    _StyleSecondaryButton $back
     $form.Controls.Add($back)
 
     $ok = New-Object System.Windows.Forms.Button
-    $ok.Text = 'Seguent'
-    $ok.Location = New-Object System.Drawing.Point(1060, 662)
-    $ok.Size = New-Object System.Drawing.Size(80, 28)
+    $ok.Text = ('Seg' + [char]0x00FC + 'ent ' + [char]0x2192)
+    $ok.Location = New-Object System.Drawing.Point(1050, 740)
+    $ok.Size = New-Object System.Drawing.Size(110, 30)
     $ok.DialogResult = 'OK'
     $ok.Anchor = 'Bottom, Right'
+    _StylePrimaryButton $ok
     $form.AcceptButton = $ok
     $form.Controls.Add($ok)
+
+    [void](_AddStepBar $form 3)
+    [void](_AddBrandHeader $form ("Defici" + [char]0x00E8 + "ncies de l'activitat") $null 44)
 
     $res = $form.ShowDialog()
     if ($res -eq 'Retry') { return [pscustomobject]@{ Nav='back' } }
@@ -2441,18 +2449,21 @@ function Select-Conclusions {
 
     $form = _NewForm
     $form.Text = 'Pas 4 - Conclusions'
-    $form.Size = New-Object System.Drawing.Size(940, 660)
+    $form.Size = New-Object System.Drawing.Size(940, 738)
     $form.StartPosition = 'CenterScreen'
+
+    # Espai reservat a dalt per la banda de marca + barra de passos.
+    $topOffset = 78
 
     $lbl = New-Object System.Windows.Forms.Label
     $lbl.Text = 'Marca les conclusions a incloure i omple-hi les opcions/camps:'
-    $lbl.Location = New-Object System.Drawing.Point(15, 10)
+    $lbl.Location = New-Object System.Drawing.Point(15, (10 + $topOffset))
     $lbl.AutoSize = $true
     $lbl.Anchor = 'Top, Left, Right'
     $form.Controls.Add($lbl)
 
     $panel = New-Object System.Windows.Forms.Panel
-    $panel.Location = New-Object System.Drawing.Point(15, 35)
+    $panel.Location = New-Object System.Drawing.Point(15, (35 + $topOffset))
     $panel.Size = New-Object System.Drawing.Size(895, 545)
     $panel.AutoScroll = $true
     $panel.BorderStyle = 'FixedSingle'
@@ -2532,21 +2543,26 @@ function Select-Conclusions {
     })
 
     $back = New-Object System.Windows.Forms.Button
-    $back.Text = 'Enrere'
-    $back.Location = New-Object System.Drawing.Point(15, 592)
-    $back.Size = New-Object System.Drawing.Size(90, 28)
+    $back.Text = ([char]0x2190 + ' Enrere')
+    $back.Location = New-Object System.Drawing.Point(15, 670)
+    $back.Size = New-Object System.Drawing.Size(100, 30)
     $back.DialogResult = 'Retry'
     $back.Anchor = 'Bottom, Left'
+    _StyleSecondaryButton $back
     $form.Controls.Add($back)
 
     $ok = New-Object System.Windows.Forms.Button
-    $ok.Text = 'Seguent'
-    $ok.Location = New-Object System.Drawing.Point(815, 592)
-    $ok.Size = New-Object System.Drawing.Size(95, 28)
+    $ok.Text = ('Generar informe ' + [char]0x2192)
+    $ok.Location = New-Object System.Drawing.Point(775, 670)
+    $ok.Size = New-Object System.Drawing.Size(135, 30)
     $ok.DialogResult = 'OK'
     $ok.Anchor = 'Bottom, Right'
+    _StylePrimaryButton $ok
     $form.AcceptButton = $ok
     $form.Controls.Add($ok)
+
+    [void](_AddStepBar $form 4)
+    [void](_AddBrandHeader $form "Conclusions de l'informe" $null 44)
 
     $res = $form.ShowDialog()
     if ($res -eq 'Retry') { return [pscustomobject]@{ Nav='back' } }
