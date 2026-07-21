@@ -109,6 +109,11 @@ textarea { resize: vertical; }
   font-weight: 600; cursor: pointer;
 }
 .confirm input[type=checkbox] { width: 24px; height: 24px; accent-color: var(--brand); flex: 0 0 auto; }
+.radio {
+  display: flex; align-items: center; gap: 10px; margin-top: 10px;
+  font-weight: 600; cursor: pointer;
+}
+.radio input[type=radio] { width: 22px; height: 22px; accent-color: var(--brand); flex: 0 0 auto; }
 
 button {
   padding: 11px 16px;

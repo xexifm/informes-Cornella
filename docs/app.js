@@ -458,7 +458,11 @@
   var PASSOS = ["cataleg", "capcalera", "deficiencies", "conclusions", "final"];
   var passActual = 0;
 
-  var HEADER_KEYS = ["ID_GIA", "EXP_NUM", "TITULAR", "ADRECA", "ACTIVITAT", "NUM_ANOTACIO", "DATA_ANOTACIO"];
+  var HEADER_KEYS = ["ID_GIA", "EXP_NUM", "TITULAR", "ADRECA", "ACTIVITAT", "ORIGEN_TIPUS", "NUM_ANOTACIO", "DATA_ANOTACIO", "DATA_INSPECCIO"];
+
+  // Claus de capçalera que NO es mostren al bloc genèric "opcional" (les gestiona
+  // el bloc "Origen de l'informe" o són el camp principal / d'estat intern).
+  var HEADER_SKIP_GENERIC = { ID_GIA: 1, ORIGEN_TIPUS: 1, NUM_ANOTACIO: 1, DATA_ANOTACIO: 1, DATA_INSPECCIO: 1 };
 
   // ------- DOM ----------------------------------------------------------------
   function $(id) { return document.getElementById(id); }
@@ -518,7 +522,7 @@
     cont.innerHTML = "";
     var placeholders = asArray(capcalera.Placeholders).length ? asArray(capcalera.Placeholders) : HEADER_KEYS;
     placeholders.forEach(function (k) {
-      if (k === "ID_GIA") return; // ja té el seu camp principal
+      if (HEADER_SKIP_GENERIC[k]) return; // ID_GIA té camp propi; l'anotació/inspecció van al bloc Origen
       var lbl = document.createElement("label");
       lbl.textContent = k;
       var inp = document.createElement("input");
@@ -531,6 +535,42 @@
 
     $("in-gia").addEventListener("input", function () { estat.header.ID_GIA = $("in-gia").value.trim(); });
     $("btn-cercar").addEventListener("click", cercarActivitat);
+    muntarOrigen();
+  }
+
+  // Bloc "Origen de l'informe": documentació aportada (Núm./Data d'anotació) o
+  // visita d'inspecció (Data d'inspecció). Al mòbil, per defecte INSPECCIÓ.
+  // Es lliga UN sol cop (a muntarCapcalera); l'estat es reinicia a reinici().
+  function muntarOrigen() {
+    if (!estat.header.ORIGEN_TIPUS) estat.header.ORIGEN_TIPUS = "insp";
+    [].forEach.call(document.getElementsByName("origen"), function (r) {
+      r.checked = (r.value === estat.header.ORIGEN_TIPUS);
+      r.addEventListener("change", function () {
+        if (r.checked) { estat.header.ORIGEN_TIPUS = r.value; renderCampsOrigen(); }
+      });
+    });
+    renderCampsOrigen();
+  }
+
+  // Mostra els camps que corresponen a l'origen triat (prefills des de l'estat).
+  function renderCampsOrigen() {
+    var cont = $("camps-origen");
+    cont.innerHTML = "";
+    var camps = (estat.header.ORIGEN_TIPUS === "doc")
+      ? [["NUM_ANOTACIO", "Núm. d'anotació"], ["DATA_ANOTACIO", "Data d'anotació (dd/mm/aaaa)"]]
+      : [["DATA_INSPECCIO", "Data d'inspecció (dd/mm/aaaa)"]];
+    camps.forEach(function (c) {
+      var k = c[0];
+      var lbl = document.createElement("label");
+      lbl.textContent = c[1];
+      var inp = document.createElement("input");
+      inp.type = "text";
+      inp.id = "hdr-" + k;
+      inp.value = estat.header[k] || "";
+      inp.addEventListener("input", function () { estat.header[k] = inp.value; });
+      cont.appendChild(lbl);
+      cont.appendChild(inp);
+    });
   }
 
   function omplirCapcalera(act) {
@@ -920,6 +960,10 @@
     $("tit-mobil").textContent = "—";
     $("tit-email").textContent = "—";
     [].forEach.call($("camps-capcalera").querySelectorAll("input"), function (i) { i.value = ""; });
+    // Torna l'origen al valor per defecte del mòbil (visita d'inspecció).
+    estat.header.ORIGEN_TIPUS = "insp";
+    [].forEach.call(document.getElementsByName("origen"), function (r) { r.checked = (r.value === "insp"); });
+    renderCampsOrigen();
     $("arbre-def").innerHTML = "";
     $("llista-concl").innerHTML = "";
     anarA(0);
