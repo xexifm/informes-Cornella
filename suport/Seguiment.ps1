@@ -950,10 +950,10 @@ function Select-Mode {
     $form.Text = 'Informes Cornella - Pas 1'
     $form.StartPosition = 'CenterScreen'
 
-    # Banda de capcalera (color d'accent + titol de l'app). Nomes desplaca
-    # cap avall el punt de partida ($headerHeight): la resta del menu (tots
-    # els botons, ja calculats amb $y +=) no s'ha de retocar.
-    $headerHeight = 50
+    # Banda de capcalera GRANAT (color corporatiu + titol de l'app). Nomes
+    # desplaca cap avall el punt de partida ($headerHeight): la resta del menu
+    # (tots els botons, ja calculats amb $y +=) no s'ha de retocar.
+    $headerHeight = 56
     $lbl = New-Object System.Windows.Forms.Label
     $lbl.Text = 'Que vols fer?'
     $lbl.Location = New-Object System.Drawing.Point(20, (15 + $headerHeight))
@@ -1267,14 +1267,22 @@ function Select-Mode {
     $header = New-Object System.Windows.Forms.Panel
     $header.Dock = 'Top'
     $header.Height = $headerHeight
-    $header.BackColor = [System.Drawing.Color]::FromArgb(30, 90, 160)
+    $header.BackColor = [System.Drawing.Color]::FromArgb(166, 26, 47)   # granat corporatiu
     $lblHeader = New-Object System.Windows.Forms.Label
-    $lblHeader.Text = 'Informes Cornella'
+    $lblHeader.Text = "Generador d'informes"
     $lblHeader.ForeColor = [System.Drawing.Color]::White
-    $lblHeader.Font = New-Object System.Drawing.Font('Segoe UI', 13, [System.Drawing.FontStyle]::Bold)
-    $lblHeader.Location = New-Object System.Drawing.Point(20, 12)
+    $lblHeader.Font = New-Object System.Drawing.Font('Segoe UI', 14, [System.Drawing.FontStyle]::Bold)
+    $lblHeader.Location = New-Object System.Drawing.Point(18, 7)
     $lblHeader.AutoSize = $true
     [void]$header.Controls.Add($lblHeader)
+    # Subtitol (blanc translucid) sota el titol. Accent amb codepoint (sense BOM).
+    $lblSub = New-Object System.Windows.Forms.Label
+    $lblSub.Text = 'Ajuntament de Cornell' + [char]0x00E0 + ' de Llobregat'
+    $lblSub.ForeColor = [System.Drawing.Color]::FromArgb(232, 210, 215)
+    $lblSub.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Regular)
+    $lblSub.Location = New-Object System.Drawing.Point(20, 33)
+    $lblSub.AutoSize = $true
+    [void]$header.Controls.Add($lblSub)
     [void]$form.Controls.Add($header)
 
     $res = $form.ShowDialog()

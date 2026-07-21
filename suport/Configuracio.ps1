@@ -21,7 +21,7 @@
 #>
 
 if (-not $Script:HeadlessTest) {
-    $Script:ConfigUiAccent = [System.Drawing.Color]::FromArgb(30, 90, 160)
+    $Script:ConfigUiAccent = [System.Drawing.Color]::FromArgb(166, 26, 47)   # granat corporatiu
 }
 
 # Fila d'una carpeta configurable: etiqueta + textbox + boto "..." (Explora)
