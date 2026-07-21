@@ -109,26 +109,6 @@ function Invoke-ConfiguracioScreen {
     $form.MinimumSize = New-Object System.Drawing.Size(480, 560)
     $form.StartPosition = 'CenterScreen'
 
-    # ---- Capcalera (banda de color) -----------------------------------
-    $header = New-Object System.Windows.Forms.Panel
-    $header.Dock = 'Top'
-    $header.Height = 54
-    $header.BackColor = $Script:ConfigUiAccent
-    $lblTitle = New-Object System.Windows.Forms.Label
-    $lblTitle.Text = 'Configuracio'
-    $lblTitle.ForeColor = [System.Drawing.Color]::White
-    $lblTitle.Font = New-Object System.Drawing.Font('Segoe UI', 14, [System.Drawing.FontStyle]::Bold)
-    $lblTitle.Location = New-Object System.Drawing.Point(16, 8)
-    $lblTitle.AutoSize = $true
-    [void]$header.Controls.Add($lblTitle)
-    $lblSub = New-Object System.Windows.Forms.Label
-    $lblSub.Text = "Nomes afecta aquest ordinador: no es comparteix ni es puja a GitHub."
-    $lblSub.ForeColor = [System.Drawing.Color]::FromArgb(225, 235, 250)
-    $lblSub.Font = New-Object System.Drawing.Font('Segoe UI', 8.5)
-    $lblSub.Location = New-Object System.Drawing.Point(18, 32)
-    $lblSub.AutoSize = $true
-    [void]$header.Controls.Add($lblSub)
-
     # ---- Carpetes principals -------------------------------------------
     $y = 12
     $grpPrincipals = New-Object System.Windows.Forms.GroupBox
@@ -186,8 +166,7 @@ function Invoke-ConfiguracioScreen {
     $btnActualitzar.Text = "$([char]0x21BB) Actualitzar el programa"
     $btnActualitzar.Location = New-Object System.Drawing.Point(14, 52)
     $btnActualitzar.Size = New-Object System.Drawing.Size(260, 32)
-    $btnActualitzar.FlatStyle = 'Flat'
-    $btnActualitzar.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
+    _StyleSecondaryButton $btnActualitzar
     $btnActualitzar.add_Click({
         $batPath = Join-Path $RepoRoot 'Actualitzar.bat'
         if (-not (Test-Path -LiteralPath $batPath)) {
@@ -218,18 +197,21 @@ function Invoke-ConfiguracioScreen {
     $btnDesar.Text = 'Desar'
     $btnDesar.Size = New-Object System.Drawing.Size(110, 32)
     $btnDesar.Location = New-Object System.Drawing.Point(14, 10)
+    _StylePrimaryButton $btnDesar
     [void]$botPanel.Controls.Add($btnDesar)
 
     $btnRestaura = New-Object System.Windows.Forms.Button
     $btnRestaura.Text = 'Restaura els valors per defecte'
     $btnRestaura.Size = New-Object System.Drawing.Size(210, 32)
     $btnRestaura.Location = New-Object System.Drawing.Point(134, 10)
+    _StyleSecondaryButton $btnRestaura
     [void]$botPanel.Controls.Add($btnRestaura)
 
     $btnTancar = New-Object System.Windows.Forms.Button
     $btnTancar.Text = 'Tancar'
     $btnTancar.Size = New-Object System.Drawing.Size(110, 32)
     $btnTancar.Location = New-Object System.Drawing.Point(354, 10)
+    _StyleSecondaryButton $btnTancar
     [void]$botPanel.Controls.Add($btnTancar)
 
     $btnRestaura.add_Click({
@@ -280,7 +262,7 @@ function Invoke-ConfiguracioScreen {
     [void]$form.Controls.Add($grpAddicionals)
     [void]$form.Controls.Add($grpMant)
     [void]$form.Controls.Add($botPanel)
-    [void]$form.Controls.Add($header)
+    [void](_AddBrandHeader $form ('Configuraci' + [char]0x00F3) ("Nom" + [char]0x00E9 + "s afecta aquest ordinador: no es comparteix ni es puja a GitHub.") 56)
 
     [void]$form.ShowDialog()
 }
