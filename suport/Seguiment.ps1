@@ -1054,9 +1054,9 @@ function Select-Mode {
     # ---- Eines (separades dels tipus d'informe) ----------------------------
     $y += 6
     $sepEines = New-Object System.Windows.Forms.Label
-    $sepEines.Text = 'Eines'
+    $sepEines.Text = 'EINES'
     $sepEines.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
-    $sepEines.ForeColor = [System.Drawing.Color]::Gray
+    $sepEines.ForeColor = [System.Drawing.Color]::FromArgb(138, 20, 38)
     $sepEines.Location = New-Object System.Drawing.Point(20, $y)
     $sepEines.AutoSize = $true
     [void]$form.Controls.Add($sepEines)
@@ -1076,7 +1076,7 @@ function Select-Mode {
     $btnRuta.Size = New-Object System.Drawing.Size(430, 44)
     $btnRuta.FlatStyle = 'Flat'
     $btnRuta.BackColor = [System.Drawing.Color]::White
-    $btnRuta.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
+    $btnRuta.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(214, 219, 225)
     $btnRuta.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(250, 240, 242)
     $btnRuta.add_Paint({
         param($s, $e)
@@ -1113,7 +1113,7 @@ function Select-Mode {
     $btnPrec.Size = New-Object System.Drawing.Size(430, 44)
     $btnPrec.FlatStyle = 'Flat'
     $btnPrec.BackColor = [System.Drawing.Color]::White
-    $btnPrec.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
+    $btnPrec.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(214, 219, 225)
     $btnPrec.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(250, 240, 242)
     $btnPrec.add_Paint({
         param($s, $e)
@@ -1159,7 +1159,7 @@ function Select-Mode {
     $btnIdb.Size = New-Object System.Drawing.Size(198, 40)
     $btnIdb.FlatStyle = 'Flat'
     $btnIdb.BackColor = [System.Drawing.Color]::White
-    $btnIdb.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
+    $btnIdb.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(214, 219, 225)
     $btnIdb.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(250, 240, 242)
     $btnIdb.add_Paint({
         param($s, $e)
@@ -1191,7 +1191,7 @@ function Select-Mode {
     $btnEdit.Size = New-Object System.Drawing.Size(198, 40)
     $btnEdit.FlatStyle = 'Flat'
     $btnEdit.BackColor = [System.Drawing.Color]::White
-    $btnEdit.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
+    $btnEdit.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(214, 219, 225)
     $btnEdit.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(250, 240, 242)
     $btnEdit.add_Paint({
         param($s, $e)
@@ -1231,7 +1231,7 @@ function Select-Mode {
     $btnVig.Size = New-Object System.Drawing.Size(430, 44)
     $btnVig.FlatStyle = 'Flat'
     $btnVig.BackColor = [System.Drawing.Color]::White
-    $btnVig.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
+    $btnVig.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(214, 219, 225)
     $btnVig.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(250, 240, 242)
     $btnVig.add_Paint({
         param($s, $e)
@@ -1256,55 +1256,57 @@ function Select-Mode {
     [void]$form.Controls.Add($btnVig)
     $y += 52
 
-    # Boto: Configuracio. Obre la pantalla de rutes d'aquest PC (informes,
-    # Excel d'activitats, sortides...) i el manteniment (actualitzar el
-    # programa). Tanca el menu com la resta d'accions, mateix estil que els
-    # altres botons pero sense owner-draw: el simbol de rosca (U+2699) es del
-    # pla BMP i es dibuixa be amb el tipus de lletra normal.
-    $btnConfig = New-Object System.Windows.Forms.Button
-    $btnConfig.Text = "$([char]0x2699)  Configuracio"
-    $btnConfig.Font = $fRutaTxt
-    $btnConfig.Location = New-Object System.Drawing.Point(20, $y)
-    $btnConfig.Size = New-Object System.Drawing.Size(430, 44)
-    $btnConfig.FlatStyle = 'Flat'
-    $btnConfig.BackColor = [System.Drawing.Color]::White
-    $btnConfig.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
-    $btnConfig.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(250, 240, 242)
-    $btnConfig.add_Click({
-        $result.Choice = @{ Action = 'config'; Cataleg = $null }
-        $form.DialogResult = 'OK'
-        $form.Close()
-    }.GetNewClosure())
-    [void]$form.Controls.Add($btnConfig)
-    $y += 52
-
-    # Boto: Ajuda. Obre el manual (README, amb tot el flux: instalacio,
-    # configuracio, mobil...) al navegador (es a GitHub, que el renderitza
-    # amb format). NO tanca el menu, com "Activitats precintades".
+    # (Configuracio i Ajuda ja no son botons grans: van DISCRETS a la cantonada
+    #  de la banda granat, mes avall.)
     $urlAjuda = 'https://github.com/xexifm/informes-cornella/blob/main/suport/README.md'
-    $btnAjuda = New-Object System.Windows.Forms.Button
-    $btnAjuda.Text = "$([char]0x2753)  Ajuda / Com comencar"
-    $btnAjuda.Font = $fRutaTxt
-    $btnAjuda.Location = New-Object System.Drawing.Point(20, $y)
-    $btnAjuda.Size = New-Object System.Drawing.Size(430, 44)
-    $btnAjuda.FlatStyle = 'Flat'
-    $btnAjuda.BackColor = [System.Drawing.Color]::White
-    $btnAjuda.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
-    $btnAjuda.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(250, 240, 242)
-    $btnAjuda.add_Click({
-        try { Start-Process $urlAjuda | Out-Null } catch {
-            [System.Windows.Forms.MessageBox]::Show("No s'ha pogut obrir l'enllac:`n$urlAjuda", 'Ajuda', 'OK', 'Error') | Out-Null
-        }
-    }.GetNewClosure())
-    [void]$form.Controls.Add($btnAjuda)
-    $y += 52
 
     $form.ClientSize = New-Object System.Drawing.Size(470, ($y + 12))
 
     # Banda de capcalera GRANAT amb escut blanc (helper comu del redisseny).
     # S'afegeix al final (Dock=Top) per no desplacar els controls ja posicionats.
     $subTitle = 'Ajuntament de Cornell' + [char]0x00E0 + ' de Llobregat'
-    [void](_AddBrandHeader $form "Generador d'informes" $subTitle $headerHeight)
+    $band = _AddBrandHeader $form "Generador d'informes" $subTitle $headerHeight
+
+    # Botons DISCRETS a la cantonada dreta de la banda: Ajuda (?) i Configuracio
+    # (rosca). Fons granat una mica mes clar, text blanc, sense vora. Ancorats a
+    # la dreta perque segueixin la cantonada si es maximitza.
+    $wForm = $form.ClientSize.Width
+    $fBandIco = New-Object System.Drawing.Font('Segoe UI Emoji', 11, [System.Drawing.FontStyle]::Regular)
+    $btnAjuda = New-Object System.Windows.Forms.Button
+    $btnAjuda.Text = [string][char]0x2753
+    $btnAjuda.Font = $fBandIco
+    $btnAjuda.Size = New-Object System.Drawing.Size(30, 30)
+    $btnAjuda.Location = New-Object System.Drawing.Point(($wForm - 42), 13)
+    $btnAjuda.Anchor = 'Top,Right'
+    $btnAjuda.FlatStyle = 'Flat'
+    $btnAjuda.ForeColor = [System.Drawing.Color]::White
+    $btnAjuda.BackColor = [System.Drawing.Color]::FromArgb(150, 45, 60)
+    $btnAjuda.FlatAppearance.BorderSize = 0
+    $btnAjuda.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(138, 20, 38)
+    $btnAjuda.add_Click({
+        try { Start-Process $urlAjuda | Out-Null } catch {
+            [System.Windows.Forms.MessageBox]::Show("No s'ha pogut obrir l'enllac:`n$urlAjuda", 'Ajuda', 'OK', 'Error') | Out-Null
+        }
+    }.GetNewClosure())
+    [void]$band.Controls.Add($btnAjuda)
+
+    $btnConfig = New-Object System.Windows.Forms.Button
+    $btnConfig.Text = [string][char]0x2699
+    $btnConfig.Font = $fBandIco
+    $btnConfig.Size = New-Object System.Drawing.Size(30, 30)
+    $btnConfig.Location = New-Object System.Drawing.Point(($wForm - 78), 13)
+    $btnConfig.Anchor = 'Top,Right'
+    $btnConfig.FlatStyle = 'Flat'
+    $btnConfig.ForeColor = [System.Drawing.Color]::White
+    $btnConfig.BackColor = [System.Drawing.Color]::FromArgb(150, 45, 60)
+    $btnConfig.FlatAppearance.BorderSize = 0
+    $btnConfig.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(138, 20, 38)
+    $btnConfig.add_Click({
+        $result.Choice = @{ Action = 'config'; Cataleg = $null }
+        $form.DialogResult = 'OK'
+        $form.Close()
+    }.GetNewClosure())
+    [void]$band.Controls.Add($btnConfig)
 
     $res = $form.ShowDialog()
     if ($res -ne 'OK' -or $null -eq $result.Choice) { exit 0 }
