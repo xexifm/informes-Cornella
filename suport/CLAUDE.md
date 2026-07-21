@@ -141,8 +141,12 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   únic placeholder **`<<ORIGEN>>`**, que `Apply-HeaderReplacements` substitueix
   pel text muntat per **`_BuildOrigenText`** (funció PURA, testejada) segons
   `ORIGEN_TIPUS` del `$header`. `<<DATES>>` (actes extraordinàries) NO es toca:
-  és un flux diferent. El paquet del mòbil no ofereix la tria → `ORIGEN_TIPUS`
-  per defecte 'doc' (mateix comportament d'abans).
+  és un flux diferent.
+- **App mòbil (`docs/`)**: el Pas 2 també ofereix la tria d'origen (bloc "Origen
+  de l'informe" a `index.html` + `muntarOrigen`/`renderCampsOrigen` a `app.js`),
+  però al mòbil el valor **per defecte és `insp` (Visita d'inspecció)**. El
+  paquet inclou `ORIGEN_TIPUS` i `DATA_INSPECCIO` (a `HEADER_KEYS`). Al PC, si un
+  paquet ANTIC no porta `ORIGEN_TIPUS`, es manté el fallback 'doc'.
 
 ## Configuració per ordinador (portabilitat)
 - El programa és **portable**: cap ordinador nou hauria de necessitar tocar
