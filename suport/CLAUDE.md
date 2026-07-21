@@ -81,6 +81,16 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   (`DataGridViewComboBoxColumn`) i "Estat activitat" és només lectura,
   derivada; en editar "Ignorar" o "Conclusio breu" de qualsevol informe es
   recalcula i es propaga l'estat a totes les files de la mateixa activitat.
+  Una conclusio que diu que **NO** es pot donar per tancat/finalitzat (qualsevol
+  "no es pot donar...") es **Requeriment** (pendent), no "FI Requeriment": la
+  comprovacio del "no" va abans que la del "si" a `_ConclusioBreu`.
+- **Editar base d'informes — filtres i ordre:** a sobre de la graella hi ha la
+  cerca global (conte, totes les columnes) i, a la 2a fila, **filtres per
+  columna** (desplegables): Conclusio breu, Estat activitat, Motiu i Ignorats
+  (Tots / Actius / Ignorats). Clicar una **capcalera** ordena per aquella
+  columna (asc/desc, amb fletxa), pero l'**agrupament per activitat sempre es
+  la clau primaria** i la data la darrera: la columna triada nomes desempata
+  DINS de cada activitat (ordenacio programatica; `SortMode='Programmatic'`).
 - **On és la carpeta d'informes:** a la feina, `$InformesDir` per defecte és
   `I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\Informes`. **A casa**,
   l'usuari en té una còpia en un **disc extern**:
@@ -91,6 +101,21 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   del programa (vegeu secció següent) o, en una sessió de Claude Code sense
   GUI, escriu directament a `%LOCALAPPDATA%\InformesCornella\settings.json`
   (`{"InformesDir": "F:\\...\\Informes", "ActivitatsDir": "F:\\...\\2_Controls Excels"}`).
+
+## Pas 2 — origen de l'informe (capçalera genèrica REQ1)
+- Al **Pas 2** (capçalera genèrica; les actes extraordinàries es queden igual)
+  hi ha una tria **Origen de l'informe**: *Documentació aportada* o *Visita
+  d'inspecció* (radios; per defecte "doc"). Segons la tria es mostren uns camps
+  o uns altres i canvia la línia **"Objecte:"** de la capçalera:
+  - **doc** → camps `NUM_ANOTACIO` + `DATA_ANOTACIO`; Objecte: `Doc. aportada
+    amb Núm. d'anotació <NUM_ANOTACIO> del <DATA_ANOTACIO>`.
+  - **insp** → camp `DATA_INSPECCIO`; Objecte: `Visita inspecció <DATA_INSPECCIO>`.
+- La línia "Objecte:" de `ESTRUCTURALS/0 CAPCALERA.docx` (bloc REQ1) és ara un
+  únic placeholder **`<<ORIGEN>>`**, que `Apply-HeaderReplacements` substitueix
+  pel text muntat per **`_BuildOrigenText`** (funció PURA, testejada) segons
+  `ORIGEN_TIPUS` del `$header`. `<<DATES>>` (actes extraordinàries) NO es toca:
+  és un flux diferent. El paquet del mòbil no ofereix la tria → `ORIGEN_TIPUS`
+  per defecte 'doc' (mateix comportament d'abans).
 
 ## Configuració per ordinador (portabilitat)
 - El programa és **portable**: cap ordinador nou hauria de necessitar tocar
