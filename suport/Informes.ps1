@@ -220,8 +220,11 @@ function _ConclusioBreu($text) {
     if ([string]::IsNullOrWhiteSpace($text)) { return 'Revisar' }
     $n = _ConclNorm $text
 
-    # Seguiment d'un requeriment: encara pendent.
-    if ($n -match "no s.?han esmenat" -or $n -match 'no es pot donar.{0,12}finalitzat') { return 'Requeriment' }
+    # Seguiment d'un requeriment: encara pendent. Qualsevol negacio de "es pot
+    # donar per ..." (finalitzat / tancat / tancada la denuncia...) vol dir que
+    # l'expedient NO es pot tancar: es un requeriment, no un FI. Ha d'anar ABANS
+    # dels FI de sota (que fan servir la mateixa expressio sense el "no").
+    if ($n -match "no s.?han esmenat" -or $n.Contains('no es pot donar')) { return 'Requeriment' }
     # Seguiment d'un requeriment: resolt (inclou denuncies tancades: mateix "final positiu").
     if ($n -match 'es pot donar.{0,12}finalitzat') { return 'FI Requeriment' }
     if ($n.Contains('es pot donar per tancada la denuncia')) { return 'FI Requeriment' }
@@ -761,7 +764,11 @@ function Invoke-InformesDbEdit {
     # Estat compartit amb els gestors d'esdeveniments (hashtable per referencia).
     # 'Loading' evita que el gestor de la casella reaccioni mentre s'omple la
     # graella (Rows.Add pot disparar CellValueChanged abans d'assignar el Tag).
-    $state = @{ Dirty = $false; Db = $db; Path = $outPath; Loading = $false }
+    # SortColIdx/SortAsc: columna d'ordenacio SECUNDARIA triada per l'usuari
+    # (-1 = cap). L'agrupament per activitat (GIA/carpeta) sempre es la clau
+    # PRIMARIA i la data la darrera; la columna triada nomes ordena DINS de
+    # cada activitat. Aixi mai es trenca l'agrupament, ordenis el que ordenis.
+    $state = @{ Dirty = $false; Db = $db; Path = $outPath; Loading = $false; SortColIdx = -1; SortAsc = $true }
 
     $form = _NewForm
     $form.Text = "Editar base d'informes"
@@ -805,20 +812,104 @@ function Invoke-InformesDbEdit {
     $idxObrir     = 8
     $idxIgnorar   = 9
 
+    # Ordenacio PROGRAMATICA: capturem el clic a la capcalera nosaltres mateixos
+    # (mes avall) per mantenir sempre l'agrupament per activitat. Desactivem
+    # l'ordenacio automatica de totes les columnes menys el boto "Obrir".
+    foreach ($col in $grid.Columns) {
+        if ($col.Index -ne $idxObrir) { $col.SortMode = 'Programmatic' }
+    }
+
     $fontNormal = $grid.Font
     $fontStrike = New-Object System.Drawing.Font($grid.Font, [System.Drawing.FontStyle]::Strikeout)
 
-    # (Re)omple la graella segons el text del filtre.
+    # Expressions d'ordenacio per index de columna (sobre la fila $_). El boto
+    # "Obrir" (8) no s'ordena.
+    $colExpr = @{
+        0 = { [string]$_.Data }
+        1 = { [string]$_.Gia }
+        2 = { [string]$_.Titular }
+        3 = { [string]$_.Carpeta }
+        4 = { [string]$_.Conclusio }
+        5 = { [string]$_.ConclusioBreu }
+        6 = { [string]$_.EstatActual }
+        7 = { [string]$_.Motiu }
+        9 = { [bool]$_.Obj.ignorat }
+    }
+
+    # ---- Barra superior: cerca global (fila 1) + filtres per columna (fila 2) ----
+    $topPanel = New-Object System.Windows.Forms.Panel
+    $topPanel.Dock = 'Top'; $topPanel.Height = 74
+    $lblCerca = New-Object System.Windows.Forms.Label
+    $lblCerca.Text = 'Cerca:'; $lblCerca.AutoSize = $true
+    $lblCerca.Location = New-Object System.Drawing.Point(10, 13)
+    $txtCerca = New-Object System.Windows.Forms.TextBox
+    $txtCerca.Location = New-Object System.Drawing.Point(62, 10); $txtCerca.Width = 300
+    $topPanel.Controls.Add($lblCerca)
+    $topPanel.Controls.Add($txtCerca)
+
+    # Crea un filtre desplegable etiquetat a la fila 2 i el retorna.
+    $mkFilterCombo = {
+        param($labelText, $x, $lblW, $comboW, $items)
+        $l = New-Object System.Windows.Forms.Label
+        $l.Text = $labelText; $l.AutoSize = $true
+        $l.Location = New-Object System.Drawing.Point($x, 46)
+        $topPanel.Controls.Add($l)
+        $cb = New-Object System.Windows.Forms.ComboBox
+        $cb.DropDownStyle = 'DropDownList'
+        $cb.Location = New-Object System.Drawing.Point(($x + $lblW), 43)
+        $cb.Width = $comboW
+        [void]$cb.Items.AddRange([object[]]$items)
+        $cb.SelectedIndex = 0
+        $topPanel.Controls.Add($cb)
+        return $cb
+    }
+
+    $estatVals = @($allRows | ForEach-Object { $_.EstatActual } | Where-Object { $_ -ne '' } | Sort-Object -Unique)
+    $motiuVals = @($allRows | ForEach-Object { $_.Motiu }       | Where-Object { $_ -ne '' } | Sort-Object -Unique)
+    $cbBreu  = & $mkFilterCombo 'Conclusió breu:' 10  100 130 (@('(Totes)') + $Script:ConclusioBreuOpcions)
+    $cbEstat = & $mkFilterCombo 'Estat:'          250 44  120 (@('(Tots)')  + $estatVals)
+    $cbMotiu = & $mkFilterCombo 'Motiu:'          420 44  110 (@('(Tots)')  + $motiuVals)
+    $cbIgn   = & $mkFilterCombo 'Ignorats:'       578 58  80  @('(Tots)', 'Actius', 'Ignorats')
+
+    # (Re)omple la graella: aplica la cerca global + els filtres per columna i,
+    # per acabar, ordena mantenint SEMPRE l'agrupament per activitat.
     $fill = {
-        param($needle)
         $state.Loading = $true
         $grid.Rows.Clear()
-        $n = if ($needle) { ([string]$needle).ToLower() } else { '' }
-        foreach ($row in $allRows) {
+        $n = ([string]$txtCerca.Text).Trim().ToLower()
+        $fBreu  = [string]$cbBreu.SelectedItem
+        $fEstat = [string]$cbEstat.SelectedItem
+        $fMotiu = [string]$cbMotiu.SelectedItem
+        $fIgn   = [string]$cbIgn.SelectedItem
+
+        $rows = foreach ($row in $allRows) {
             if ($n -ne '') {
                 $hay = (($row.Data + ' ' + $row.Gia + ' ' + $row.Titular + ' ' + $row.Carpeta + ' ' + $row.Conclusio + ' ' + $row.ConclusioBreu + ' ' + $row.EstatActual + ' ' + $row.Motiu)).ToLower()
                 if (-not $hay.Contains($n)) { continue }
             }
+            if ($fBreu  -notlike '(*' -and $row.ConclusioBreu -ne $fBreu)  { continue }
+            if ($fEstat -notlike '(*' -and $row.EstatActual   -ne $fEstat) { continue }
+            if ($fMotiu -notlike '(*' -and $row.Motiu         -ne $fMotiu) { continue }
+            if ($fIgn -eq 'Actius'   -and       [bool]$row.Obj.ignorat) { continue }
+            if ($fIgn -eq 'Ignorats' -and -not [bool]$row.Obj.ignorat) { continue }
+            $row
+        }
+        $rows = @($rows)
+
+        # 1) agrupament per activitat (GIA, si no carpeta) SEMPRE primer;
+        # 2) columna triada per l'usuari (asc/desc), nomes desempata dins
+        #    l'activitat; 3) data com a darrera clau.
+        $crit = @(
+            @{ Expression = { if ([string]::IsNullOrWhiteSpace($_.Gia)) { 1 } else { 0 } } },
+            @{ Expression = { if ([string]::IsNullOrWhiteSpace($_.Gia)) { $_.Carpeta } else { $_.Gia } } }
+        )
+        if ($state.SortColIdx -ge 0 -and $colExpr.ContainsKey($state.SortColIdx)) {
+            $crit += @{ Expression = $colExpr[$state.SortColIdx]; Descending = (-not $state.SortAsc) }
+        }
+        $crit += @{ Expression = { [string]$_.Data } }
+        $rows = @($rows | Sort-Object -Property $crit)
+
+        foreach ($row in $rows) {
             $ign = [bool]$row.Obj.ignorat
             $idx = $grid.Rows.Add(@($row.Data, $row.Gia, $row.Titular, $row.Carpeta, $row.Conclusio, $row.ConclusioBreu, $row.EstatActual, $row.Motiu, 'Obrir', $ign))
             $gr = $grid.Rows[$idx]
@@ -829,17 +920,25 @@ function Invoke-InformesDbEdit {
         $state.Loading = $false
     }.GetNewClosure()
 
-    # Barra superior: cerca.
-    $topPanel = New-Object System.Windows.Forms.Panel
-    $topPanel.Dock = 'Top'; $topPanel.Height = 40
-    $lblCerca = New-Object System.Windows.Forms.Label
-    $lblCerca.Text = 'Cerca:'; $lblCerca.AutoSize = $true
-    $lblCerca.Location = New-Object System.Drawing.Point(10, 12)
-    $txtCerca = New-Object System.Windows.Forms.TextBox
-    $txtCerca.Location = New-Object System.Drawing.Point(62, 9); $txtCerca.Width = 320
-    $txtCerca.add_TextChanged({ & $fill $txtCerca.Text }.GetNewClosure())
-    $topPanel.Controls.Add($lblCerca)
-    $topPanel.Controls.Add($txtCerca)
+    # Cerca i filtres tornen a omplir la graella.
+    $txtCerca.add_TextChanged({ & $fill }.GetNewClosure())
+    $cbBreu.add_SelectedIndexChanged({ & $fill }.GetNewClosure())
+    $cbEstat.add_SelectedIndexChanged({ & $fill }.GetNewClosure())
+    $cbMotiu.add_SelectedIndexChanged({ & $fill }.GetNewClosure())
+    $cbIgn.add_SelectedIndexChanged({ & $fill }.GetNewClosure())
+
+    # Clic a la capcalera: tria la columna d'ordenacio SECUNDARIA (dins de cada
+    # activitat) i alterna asc/desc. L'agrupament per activitat no es trenca mai.
+    $grid.add_ColumnHeaderMouseClick({
+        param($s, $e)
+        if ($e.ColumnIndex -lt 0 -or $e.ColumnIndex -eq $idxObrir) { return }
+        if ($state.SortColIdx -eq $e.ColumnIndex) { $state.SortAsc = (-not $state.SortAsc) }
+        else { $state.SortColIdx = $e.ColumnIndex; $state.SortAsc = $true }
+        foreach ($c in $grid.Columns) { $c.HeaderCell.SortGlyphDirection = [System.Windows.Forms.SortOrder]::None }
+        $grid.Columns[$e.ColumnIndex].HeaderCell.SortGlyphDirection =
+            if ($state.SortAsc) { [System.Windows.Forms.SortOrder]::Ascending } else { [System.Windows.Forms.SortOrder]::Descending }
+        & $fill
+    }.GetNewClosure())
 
     # Desa la base (retorna $true si va be).
     $doSave = {
@@ -955,6 +1054,6 @@ function Invoke-InformesDbEdit {
     $form.Controls.Add($botPanel)
     [void](_AddBrandHeader $form "Editar base d'informes" 'Base de dades local de deficiencies i conclusions dels informes' 56)
 
-    & $fill ''
+    & $fill
     [void]$form.ShowDialog()
 }

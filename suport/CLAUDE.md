@@ -81,6 +81,16 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   (`DataGridViewComboBoxColumn`) i "Estat activitat" és només lectura,
   derivada; en editar "Ignorar" o "Conclusio breu" de qualsevol informe es
   recalcula i es propaga l'estat a totes les files de la mateixa activitat.
+  Una conclusio que diu que **NO** es pot donar per tancat/finalitzat (qualsevol
+  "no es pot donar...") es **Requeriment** (pendent), no "FI Requeriment": la
+  comprovacio del "no" va abans que la del "si" a `_ConclusioBreu`.
+- **Editar base d'informes — filtres i ordre:** a sobre de la graella hi ha la
+  cerca global (conte, totes les columnes) i, a la 2a fila, **filtres per
+  columna** (desplegables): Conclusio breu, Estat activitat, Motiu i Ignorats
+  (Tots / Actius / Ignorats). Clicar una **capcalera** ordena per aquella
+  columna (asc/desc, amb fletxa), pero l'**agrupament per activitat sempre es
+  la clau primaria** i la data la darrera: la columna triada nomes desempata
+  DINS de cada activitat (ordenacio programatica; `SortMode='Programmatic'`).
 - **On és la carpeta d'informes:** a la feina, `$InformesDir` per defecte és
   `I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\Informes`. **A casa**,
   l'usuari en té una còpia en un **disc extern**:
