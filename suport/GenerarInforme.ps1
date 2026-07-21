@@ -227,6 +227,69 @@ function _AddBrandHeader($form, [string]$title, [string]$subtitle, [int]$height 
     return $band
 }
 
+# Barra de PASSOS del wizard (1 Tipus · 2 Dades · 3 Deficiencies · 4 Conclusions).
+# Es un Panel Dock=Top; el pas actiu ($active, 1..4) surt en granat i negreta.
+# S'ha d'afegir ABANS de la banda (perque la banda quedi a dalt de tot).
+function _AddStepBar($form, [int]$active) {
+    $bar = New-Object System.Windows.Forms.Panel
+    $bar.Dock = 'Top'
+    $bar.Height = 34
+    $bar.BackColor = [System.Drawing.Color]::White
+    $steps = @('Tipus', 'Dades', 'Deficiències', 'Conclusions')
+    $fA = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
+    $fI = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Regular)
+    $granat = $Script:BrandMaroon
+    $idle   = [System.Drawing.Color]::FromArgb(140, 148, 158)
+    $bar.Tag = @{ Steps=$steps; Active=$active; FA=$fA; FI=$fI; Granat=$granat; Idle=$idle }
+    $bar.add_Paint({
+        param($s, $e)
+        $t = $s.Tag
+        $g = $e.Graphics
+        $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+        $rc = $s.ClientRectangle
+        $pen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(214, 219, 225))
+        $g.DrawLine($pen, 0, ($rc.Height - 1), $rc.Width, ($rc.Height - 1)); $pen.Dispose()
+        $fl = [System.Windows.Forms.TextFormatFlags]::NoPadding
+        $x = 16
+        for ($i = 0; $i -lt 4; $i++) {
+            $isA = (($i + 1) -eq $t.Active)
+            $f = if ($isA) { $t.FA } else { $t.FI }
+            $col = if ($isA) { $t.Granat } else { $t.Idle }
+            $txt = [string]($i + 1) + '  ' + $t.Steps[$i]
+            $sz = [System.Windows.Forms.TextRenderer]::MeasureText($g, $txt, $f, [System.Drawing.Size]::Empty, $fl)
+            [System.Windows.Forms.TextRenderer]::DrawText($g, $txt, $f, (New-Object System.Drawing.Point($x, 9)), $col, $fl)
+            $x += $sz.Width + 10
+            if ($i -lt 3) {
+                [System.Windows.Forms.TextRenderer]::DrawText($g, ([string][char]0x203A), $t.FI, (New-Object System.Drawing.Point($x, 9)), $t.Idle, $fl)
+                $x += 18
+            }
+        }
+    })
+    [void]$form.Controls.Add($bar)
+    return $bar
+}
+
+# Estil de boto PRIMARI (granat ple, text blanc) i SECUNDARI (blanc, text/vora
+# granat). Reutilitzables a totes les pantalles del redisseny.
+function _StylePrimaryButton($btn) {
+    $btn.FlatStyle = 'Flat'
+    $btn.BackColor = $Script:BrandMaroon
+    $btn.ForeColor = [System.Drawing.Color]::White
+    $btn.FlatAppearance.BorderSize = 0
+    $btn.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(138, 20, 38)
+    $btn.Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
+    $btn.Cursor = 'Hand'
+}
+function _StyleSecondaryButton($btn) {
+    $btn.FlatStyle = 'Flat'
+    $btn.BackColor = [System.Drawing.Color]::White
+    $btn.ForeColor = $Script:BrandMaroon
+    $btn.FlatAppearance.BorderColor = $Script:BrandMaroon
+    $btn.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(247, 231, 234)
+    $btn.Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Regular)
+    $btn.Cursor = 'Hand'
+}
+
 # ----------------------------------------------------------------------------
 # Eines integrades al menu (Pas 1): planificador de rutes i revisio del mobil.
 # Es llancen des del menu (botons). La revisio del mobil es una comprovacio
@@ -991,11 +1054,15 @@ function _BuildHeaderForm($excelInfo) {
     # de la xarxa.
     $form = _NewForm
     $form.Text = 'Pas 2 - Dades de la capcalera'
-    $form.Size = New-Object System.Drawing.Size(720, 480)
+    $form.Size = New-Object System.Drawing.Size(720, 560)
     $form.StartPosition = 'CenterScreen'
 
+    # Espai reservat a dalt per la banda granat (44) + barra de passos (34):
+    # tots els controls absoluts es desplacen cap avall aquest offset.
+    $topOffset = 74
+
     $lblBd = New-Object System.Windows.Forms.Label
-    $lblBd.Location = New-Object System.Drawing.Point(15, 12)
+    $lblBd.Location = New-Object System.Drawing.Point(15, (12 + $topOffset))
     $lblBd.Size = New-Object System.Drawing.Size(680, 22)
     if ($excelInfo.Source -eq 'fallback') {
         $lblBd.Text = "[FALLBACK LOCAL]  " + $excelInfo.Text
@@ -1023,12 +1090,13 @@ function _BuildHeaderForm($excelInfo) {
         $controls[$key] = $tb
     }
 
-    $y = 50
+    $y = 50 + $topOffset
     & $addRow 'ID GIA' $y 380 'ID_GIA'
     $btnSearch = New-Object System.Windows.Forms.Button
     $btnSearch.Text = 'Cercar'
-    $btnSearch.Location = New-Object System.Drawing.Point(605, ($y - 3))
-    $btnSearch.Size = New-Object System.Drawing.Size(80, 26)
+    $btnSearch.Location = New-Object System.Drawing.Point(605, ($y - 4))
+    $btnSearch.Size = New-Object System.Drawing.Size(80, 28)
+    _StylePrimaryButton $btnSearch
     [void]$form.Controls.Add($btnSearch)
     $y += 38
 
@@ -1042,22 +1110,30 @@ function _BuildHeaderForm($excelInfo) {
     $back = New-Object System.Windows.Forms.Button
     $back.Text = 'Enrere'
     $back.Location = New-Object System.Drawing.Point(15, $y)
-    $back.Size = New-Object System.Drawing.Size(90, 28)
+    $back.Size = New-Object System.Drawing.Size(90, 30)
     $back.DialogResult = 'Retry'
+    _StyleSecondaryButton $back
     [void]$form.Controls.Add($back)
 
     $recover = New-Object System.Windows.Forms.Button
-    $recover.Text = "Recuperar dades ultim informe"
+    $recover.Text = ([char]0x21BA + " Recuperar dades ultim informe")
     $recover.Location = New-Object System.Drawing.Point(115, $y)
-    $recover.Size = New-Object System.Drawing.Size(250, 28)
+    $recover.Size = New-Object System.Drawing.Size(250, 30)
+    _StyleSecondaryButton $recover
     [void]$form.Controls.Add($recover)
 
     $ok = New-Object System.Windows.Forms.Button
-    $ok.Text = 'Seguent'
-    $ok.Location = New-Object System.Drawing.Point(595, $y)
-    $ok.Size = New-Object System.Drawing.Size(90, 28)
+    $ok.Text = ('Seg' + [char]0x00FC + 'ent ' + [char]0x2192)   # Següent →
+    $ok.Location = New-Object System.Drawing.Point(575, $y)
+    $ok.Size = New-Object System.Drawing.Size(110, 30)
+    _StylePrimaryButton $ok
     $form.AcceptButton = $ok
     [void]$form.Controls.Add($ok)
+
+    # Barra de passos (pas 2 actiu) + banda granat. La banda s'afegeix DESPRES
+    # per quedar a dalt de tot; les dues son Dock=Top.
+    [void](_AddStepBar $form 2)
+    [void](_AddBrandHeader $form "Dades de l'activitat" $null 44)
 
     return @{ Form=$form; Controls=$controls; BtnSearch=$btnSearch; BtnOk=$ok; BtnBack=$back; BtnRecover=$recover }
 }
