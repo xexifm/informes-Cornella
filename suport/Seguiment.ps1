@@ -1062,199 +1062,69 @@ function Select-Mode {
     [void]$form.Controls.Add($sepEines)
     $y += 24
 
-    # Boto: Generar ruta (pin de localitzacio). Tanca el menu, llanca el
-    # planificador i despres es torna a mostrar el menu (com la resta d'accions).
-    # El pic 📍 (U+1F4CD) es fora del pla BMP i molts controls no el dibuixen
-    # amb la font per defecte. El pintem NOSALTRES amb la font "Segoe UI Emoji"
-    # (que si el te) al costat del text "Generar ruta" en "Segoe UI".
-    $pin = [System.Char]::ConvertFromUtf32(0x1F4CD)
-    $fRutaPin = New-Object System.Drawing.Font('Segoe UI Emoji', 12, [System.Drawing.FontStyle]::Regular)
-    $fRutaTxt = New-Object System.Drawing.Font('Segoe UI', 11, [System.Drawing.FontStyle]::Regular)
-    $btnRuta = New-Object System.Windows.Forms.Button
-    $btnRuta.Text = ''
-    $btnRuta.Location = New-Object System.Drawing.Point(20, $y)
-    $btnRuta.Size = New-Object System.Drawing.Size(430, 44)
-    $btnRuta.FlatStyle = 'Flat'
-    $btnRuta.BackColor = [System.Drawing.Color]::White
-    $btnRuta.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(214, 219, 225)
-    $btnRuta.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(250, 240, 242)
-    $btnRuta.add_Paint({
-        param($s, $e)
-        $g = $e.Graphics
-        $rc = $s.ClientRectangle
-        $fl = [System.Windows.Forms.TextFormatFlags]::NoPadding
-        $szP = [System.Windows.Forms.TextRenderer]::MeasureText($g, $pin, $fRutaPin, [System.Drawing.Size]::Empty, $fl)
-        $szT = [System.Windows.Forms.TextRenderer]::MeasureText($g, 'Generar ruta', $fRutaTxt, [System.Drawing.Size]::Empty, $fl)
-        $gap = 8
-        $x = [int](($rc.Width - ($szP.Width + $gap + $szT.Width)) / 2)
-        $yP = [int](($rc.Height - $szP.Height) / 2)
-        $yT = [int](($rc.Height - $szT.Height) / 2)
-        [System.Windows.Forms.TextRenderer]::DrawText($g, $pin, $fRutaPin, (New-Object System.Drawing.Point($x, $yP)), [System.Drawing.Color]::Black, $fl)
-        [System.Windows.Forms.TextRenderer]::DrawText($g, 'Generar ruta', $fRutaTxt, (New-Object System.Drawing.Point(($x + $szP.Width + $gap), $yT)), [System.Drawing.Color]::Black, $fl)
-    }.GetNewClosure())
-    $btnRuta.add_Click({
-        $result.Choice = @{ Action = 'ruta'; Cataleg = $null }
-        $form.DialogResult = 'OK'
-        $form.Close()
-    }.GetNewClosure())
-    [void]$form.Controls.Add($btnRuta)
-    $y += 52
-
-    # Boto: Activitats precintades. Obre el planol public (GitHub Pages) al
-    # navegador. NO tanca el menu: nomes obre l'enllac. Owner-draw amb l'emoji
-    # 🔒 (U+1F512, "precintada" = tancada/segellada).
-    $lock = [System.Char]::ConvertFromUtf32(0x1F512)
-    $fLockIco = New-Object System.Drawing.Font('Segoe UI Emoji', 12, [System.Drawing.FontStyle]::Regular)
-    $fLockTxt = New-Object System.Drawing.Font('Segoe UI', 11, [System.Drawing.FontStyle]::Regular)
+    # EINES: 5 rajoles compactes en una fila (emoji a dalt + etiqueta petita a
+    # sota), segons el disseny. Comportament per rajola: 'action' tanca el menu
+    # amb l'accio; 'url' obre l'enllac public SENSE tancar el menu (precintades).
     $urlPrec = 'https://xexifm.github.io/informes-cornella/precintades.html'
-    $btnPrec = New-Object System.Windows.Forms.Button
-    $btnPrec.Text = ''
-    $btnPrec.Location = New-Object System.Drawing.Point(20, $y)
-    $btnPrec.Size = New-Object System.Drawing.Size(430, 44)
-    $btnPrec.FlatStyle = 'Flat'
-    $btnPrec.BackColor = [System.Drawing.Color]::White
-    $btnPrec.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(214, 219, 225)
-    $btnPrec.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(250, 240, 242)
-    $btnPrec.add_Paint({
+    $tiPin   = [System.Char]::ConvertFromUtf32(0x1F4CD)   # 📍
+    $tiLock  = [System.Char]::ConvertFromUtf32(0x1F512)   # 🔒
+    $tiBox   = [System.Char]::ConvertFromUtf32(0x1F5C3)   # 🗃
+    $tiClip  = [System.Char]::ConvertFromUtf32(0x1F4CB)   # 📋
+    $tiInbox = [System.Char]::ConvertFromUtf32(0x1F4E5)   # 📥
+    $tools = @(
+        @{ Emoji = $tiPin;   Label = 'Generar ruta';           Kind = 'action'; Action = 'ruta' }
+        @{ Emoji = $tiLock;  Label = 'Activitats precintades'; Kind = 'url';    Url = $urlPrec }
+        @{ Emoji = $tiBox;   Label = 'Actualitzar base';       Kind = 'action'; Action = 'informesdb' }
+        @{ Emoji = $tiClip;  Label = 'Editar base';            Kind = 'action'; Action = 'informesdbedit' }
+        @{ Emoji = $tiInbox; Label = ('Revisar m' + [char]0x00F2 + 'bil'); Kind = 'action'; Action = 'revisarmobil' }
+    )
+    $fTileIco   = New-Object System.Drawing.Font('Segoe UI Emoji', 14, [System.Drawing.FontStyle]::Regular)
+    $fTileTxt   = New-Object System.Drawing.Font('Segoe UI', 8, [System.Drawing.FontStyle]::Regular)
+    $tileBorder = [System.Drawing.Color]::FromArgb(214, 219, 225)
+    $tileTxtCol = [System.Drawing.Color]::FromArgb(107, 116, 128)
+    $tilePaint = {
         param($s, $e)
+        $t = $s.Tag
         $g = $e.Graphics
+        $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
         $rc = $s.ClientRectangle
-        $fl = [System.Windows.Forms.TextFormatFlags]::NoPadding
-        $lblTxt = 'Activitats precintades'
-        $szI = [System.Windows.Forms.TextRenderer]::MeasureText($g, $lock, $fLockIco, [System.Drawing.Size]::Empty, $fl)
-        $szT = [System.Windows.Forms.TextRenderer]::MeasureText($g, $lblTxt, $fLockTxt, [System.Drawing.Size]::Empty, $fl)
-        $gap = 8
-        $x = [int](($rc.Width - ($szI.Width + $gap + $szT.Width)) / 2)
-        $yI = [int](($rc.Height - $szI.Height) / 2)
-        $yT = [int](($rc.Height - $szT.Height) / 2)
-        [System.Windows.Forms.TextRenderer]::DrawText($g, $lock, $fLockIco, (New-Object System.Drawing.Point($x, $yI)), [System.Drawing.Color]::Black, $fl)
-        [System.Windows.Forms.TextRenderer]::DrawText($g, $lblTxt, $fLockTxt, (New-Object System.Drawing.Point(($x + $szI.Width + $gap), $yT)), [System.Drawing.Color]::Black, $fl)
-    }.GetNewClosure())
-    $btnPrec.add_Click({
-        try { Start-Process $urlPrec | Out-Null } catch {
-            [System.Windows.Forms.MessageBox]::Show("No s'ha pogut obrir l'enllac:`n$urlPrec", 'Activitats precintades', 'OK', 'Error') | Out-Null
+        $flC = [System.Windows.Forms.TextFormatFlags]::HorizontalCenter -bor [System.Windows.Forms.TextFormatFlags]::NoPadding
+        $flW = [System.Windows.Forms.TextFormatFlags]::HorizontalCenter -bor [System.Windows.Forms.TextFormatFlags]::WordBreak -bor [System.Windows.Forms.TextFormatFlags]::NoPadding
+        $emRect = New-Object System.Drawing.Rectangle(0, 6, $rc.Width, 22)
+        [System.Windows.Forms.TextRenderer]::DrawText($g, $t.Emoji, $fTileIco, $emRect, [System.Drawing.Color]::Black, $flC)
+        $lbRect = New-Object System.Drawing.Rectangle(2, 29, ($rc.Width - 4), ($rc.Height - 31))
+        [System.Windows.Forms.TextRenderer]::DrawText($g, $t.Label, $fTileTxt, $lbRect, $tileTxtCol, $flW)
+    }.GetNewClosure()
+    $tileClick = {
+        param($s, $e)
+        $t = $s.Tag
+        if ($t.Kind -eq 'url') {
+            try { Start-Process $t.Url | Out-Null } catch {
+                [System.Windows.Forms.MessageBox]::Show("No s'ha pogut obrir l'enllac:`n$($t.Url)", 'Eina', 'OK', 'Error') | Out-Null
+            }
+        } else {
+            $result.Choice = @{ Action = $t.Action; Cataleg = $null }
+            $form.DialogResult = 'OK'
+            $form.Close()
         }
-    }.GetNewClosure())
-    [void]$form.Controls.Add($btnPrec)
-    $y += 52
-
-    # Base d'informes: dos botons GERMANS (Actualitzar i Editar) dins d'un mateix
-    # marc titulat, perque quedi clar que operen sobre la MATEIXA base de dades.
-    # Owner-draw (emoji + text) com la resta de botons del menu.
-    $fIdbIco = New-Object System.Drawing.Font('Segoe UI Emoji', 12, [System.Drawing.FontStyle]::Regular)
-    $fIdbTxt = New-Object System.Drawing.Font('Segoe UI', 10.5, [System.Drawing.FontStyle]::Regular)
-
-    $grpIdb = New-Object System.Windows.Forms.GroupBox
-    $grpIdb.Text = "Base d'informes"
-    $grpIdb.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Regular)
-    $grpIdb.ForeColor = [System.Drawing.Color]::FromArgb(90, 90, 90)
-    $grpIdb.Location = New-Object System.Drawing.Point(20, $y)
-    $grpIdb.Size = New-Object System.Drawing.Size(430, 78)
-
-    # -- Boto Actualitzar (escaneja la carpeta i (re)escriu el JSON). Emoji 🗃 --
-    $box = [System.Char]::ConvertFromUtf32(0x1F5C3)
-    $btnIdb = New-Object System.Windows.Forms.Button
-    $btnIdb.Text = ''
-    $btnIdb.Location = New-Object System.Drawing.Point(12, 27)
-    $btnIdb.Size = New-Object System.Drawing.Size(198, 40)
-    $btnIdb.FlatStyle = 'Flat'
-    $btnIdb.BackColor = [System.Drawing.Color]::White
-    $btnIdb.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(214, 219, 225)
-    $btnIdb.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(250, 240, 242)
-    $btnIdb.add_Paint({
-        param($s, $e)
-        $g = $e.Graphics
-        $rc = $s.ClientRectangle
-        $fl = [System.Windows.Forms.TextFormatFlags]::NoPadding
-        $lblTxt = 'Actualitzar'
-        $szI = [System.Windows.Forms.TextRenderer]::MeasureText($g, $box, $fIdbIco, [System.Drawing.Size]::Empty, $fl)
-        $szT = [System.Windows.Forms.TextRenderer]::MeasureText($g, $lblTxt, $fIdbTxt, [System.Drawing.Size]::Empty, $fl)
-        $gap = 8
-        $x = [int](($rc.Width - ($szI.Width + $gap + $szT.Width)) / 2)
-        $yI = [int](($rc.Height - $szI.Height) / 2)
-        $yT = [int](($rc.Height - $szT.Height) / 2)
-        [System.Windows.Forms.TextRenderer]::DrawText($g, $box, $fIdbIco, (New-Object System.Drawing.Point($x, $yI)), [System.Drawing.Color]::Black, $fl)
-        [System.Windows.Forms.TextRenderer]::DrawText($g, $lblTxt, $fIdbTxt, (New-Object System.Drawing.Point(($x + $szI.Width + $gap), $yT)), [System.Drawing.Color]::Black, $fl)
-    }.GetNewClosure())
-    $btnIdb.add_Click({
-        $result.Choice = @{ Action = 'informesdb'; Cataleg = $null }
-        $form.DialogResult = 'OK'
-        $form.Close()
-    }.GetNewClosure())
-    [void]$grpIdb.Controls.Add($btnIdb)
-
-    # -- Boto Editar (obre la taula per veure/obrir informes i ignorar-ne). Emoji 📋 --
-    $clip = [System.Char]::ConvertFromUtf32(0x1F4CB)
-    $btnEdit = New-Object System.Windows.Forms.Button
-    $btnEdit.Text = ''
-    $btnEdit.Location = New-Object System.Drawing.Point(218, 27)
-    $btnEdit.Size = New-Object System.Drawing.Size(198, 40)
-    $btnEdit.FlatStyle = 'Flat'
-    $btnEdit.BackColor = [System.Drawing.Color]::White
-    $btnEdit.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(214, 219, 225)
-    $btnEdit.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(250, 240, 242)
-    $btnEdit.add_Paint({
-        param($s, $e)
-        $g = $e.Graphics
-        $rc = $s.ClientRectangle
-        $fl = [System.Windows.Forms.TextFormatFlags]::NoPadding
-        $lblTxt = 'Editar'
-        $szI = [System.Windows.Forms.TextRenderer]::MeasureText($g, $clip, $fIdbIco, [System.Drawing.Size]::Empty, $fl)
-        $szT = [System.Windows.Forms.TextRenderer]::MeasureText($g, $lblTxt, $fIdbTxt, [System.Drawing.Size]::Empty, $fl)
-        $gap = 8
-        $x = [int](($rc.Width - ($szI.Width + $gap + $szT.Width)) / 2)
-        $yI = [int](($rc.Height - $szI.Height) / 2)
-        $yT = [int](($rc.Height - $szT.Height) / 2)
-        [System.Windows.Forms.TextRenderer]::DrawText($g, $clip, $fIdbIco, (New-Object System.Drawing.Point($x, $yI)), [System.Drawing.Color]::Black, $fl)
-        [System.Windows.Forms.TextRenderer]::DrawText($g, $lblTxt, $fIdbTxt, (New-Object System.Drawing.Point(($x + $szI.Width + $gap), $yT)), [System.Drawing.Color]::Black, $fl)
-    }.GetNewClosure())
-    $btnEdit.add_Click({
-        $result.Choice = @{ Action = 'informesdbedit'; Cataleg = $null }
-        $form.DialogResult = 'OK'
-        $form.Close()
-    }.GetNewClosure())
-    [void]$grpIdb.Controls.Add($btnEdit)
-
-    [void]$form.Controls.Add($grpIdb)
-    $y += 86
-
-    # Boto: Revisar entrades del mobil. Fa una comprovacio d'UN SOL COP (mira si
-    # han arribat informes del mobil via Drive, els genera i avisa). Ja no hi ha
-    # cap interruptor ni vigilant en segon pla. Mateix patro owner-draw amb
-    # l'emoji 📥 (U+1F4E5).
-    $inbox = [System.Char]::ConvertFromUtf32(0x1F4E5)
-    $fInboxIco = New-Object System.Drawing.Font('Segoe UI Emoji', 12, [System.Drawing.FontStyle]::Regular)
-    $fInboxTxt = New-Object System.Drawing.Font('Segoe UI', 11, [System.Drawing.FontStyle]::Regular)
-    $btnVig = New-Object System.Windows.Forms.Button
-    $btnVig.Text = ''
-    $btnVig.Location = New-Object System.Drawing.Point(20, $y)
-    $btnVig.Size = New-Object System.Drawing.Size(430, 44)
-    $btnVig.FlatStyle = 'Flat'
-    $btnVig.BackColor = [System.Drawing.Color]::White
-    $btnVig.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(214, 219, 225)
-    $btnVig.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(250, 240, 242)
-    $btnVig.add_Paint({
-        param($s, $e)
-        $g = $e.Graphics
-        $rc = $s.ClientRectangle
-        $fl = [System.Windows.Forms.TextFormatFlags]::NoPadding
-        $lblTxt = 'Revisar entrades del mobil'
-        $szI = [System.Windows.Forms.TextRenderer]::MeasureText($g, $inbox, $fInboxIco, [System.Drawing.Size]::Empty, $fl)
-        $szT = [System.Windows.Forms.TextRenderer]::MeasureText($g, $lblTxt, $fInboxTxt, [System.Drawing.Size]::Empty, $fl)
-        $gap = 8
-        $x = [int](($rc.Width - ($szI.Width + $gap + $szT.Width)) / 2)
-        $yI = [int](($rc.Height - $szI.Height) / 2)
-        $yT = [int](($rc.Height - $szT.Height) / 2)
-        [System.Windows.Forms.TextRenderer]::DrawText($g, $inbox, $fInboxIco, (New-Object System.Drawing.Point($x, $yI)), [System.Drawing.Color]::Black, $fl)
-        [System.Windows.Forms.TextRenderer]::DrawText($g, $lblTxt, $fInboxTxt, (New-Object System.Drawing.Point(($x + $szI.Width + $gap), $yT)), [System.Drawing.Color]::Black, $fl)
-    }.GetNewClosure())
-    $btnVig.add_Click({
-        $result.Choice = @{ Action = 'revisarmobil'; Cataleg = $null }
-        $form.DialogResult = 'OK'
-        $form.Close()
-    }.GetNewClosure())
-    [void]$form.Controls.Add($btnVig)
-    $y += 52
+    }.GetNewClosure()
+    $tileW = 80; $tileH = 58; $tileGap = 7; $tx = 20
+    foreach ($tool in $tools) {
+        $tb = New-Object System.Windows.Forms.Button
+        $tb.Text = ''
+        $tb.Tag = $tool
+        $tb.Location = New-Object System.Drawing.Point($tx, $y)
+        $tb.Size = New-Object System.Drawing.Size($tileW, $tileH)
+        $tb.FlatStyle = 'Flat'
+        $tb.BackColor = [System.Drawing.Color]::White
+        $tb.FlatAppearance.BorderColor = $tileBorder
+        $tb.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(250, 240, 242)
+        $tb.add_Paint($tilePaint)
+        $tb.add_Click($tileClick)
+        [void]$form.Controls.Add($tb)
+        $tx += $tileW + $tileGap
+    }
+    $y += $tileH + 14
 
     # (Configuracio i Ajuda ja no son botons grans: van DISCRETS a la cantonada
     #  de la banda granat, mes avall.)
