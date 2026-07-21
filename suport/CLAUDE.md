@@ -102,6 +102,21 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   GUI, escriu directament a `%LOCALAPPDATA%\InformesCornella\settings.json`
   (`{"InformesDir": "F:\\...\\Informes", "ActivitatsDir": "F:\\...\\2_Controls Excels"}`).
 
+## Pas 2 — origen de l'informe (capçalera genèrica REQ1)
+- Al **Pas 2** (capçalera genèrica; les actes extraordinàries es queden igual)
+  hi ha una tria **Origen de l'informe**: *Documentació aportada* o *Visita
+  d'inspecció* (radios; per defecte "doc"). Segons la tria es mostren uns camps
+  o uns altres i canvia la línia **"Objecte:"** de la capçalera:
+  - **doc** → camps `NUM_ANOTACIO` + `DATA_ANOTACIO`; Objecte: `Doc. aportada
+    amb Núm. d'anotació <NUM_ANOTACIO> del <DATA_ANOTACIO>`.
+  - **insp** → camp `DATA_INSPECCIO`; Objecte: `Visita inspecció <DATA_INSPECCIO>`.
+- La línia "Objecte:" de `ESTRUCTURALS/0 CAPCALERA.docx` (bloc REQ1) és ara un
+  únic placeholder **`<<ORIGEN>>`**, que `Apply-HeaderReplacements` substitueix
+  pel text muntat per **`_BuildOrigenText`** (funció PURA, testejada) segons
+  `ORIGEN_TIPUS` del `$header`. `<<DATES>>` (actes extraordinàries) NO es toca:
+  és un flux diferent. El paquet del mòbil no ofereix la tria → `ORIGEN_TIPUS`
+  per defecte 'doc' (mateix comportament d'abans).
+
 ## Configuració per ordinador (portabilitat)
 - El programa és **portable**: cap ordinador nou hauria de necessitar tocar
   codi ni `config.ps1`. Hi ha tres capes de prioritat creixent: valor

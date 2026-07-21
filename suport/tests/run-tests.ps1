@@ -315,6 +315,17 @@ try {
     Remove-Item -LiteralPath $tmpDir -Recurse -Force -ErrorAction SilentlyContinue
 }
 
+Write-Host "`n--- _BuildOrigenText (linia Objecte: segons origen triat al Pas 2) ---"
+$uG = [char]0x00FA; $oG = [char]0x00F3; $apG = [char]0x2019
+AssertEq (_BuildOrigenText @{ ORIGEN_TIPUS='doc'; NUM_ANOTACIO='A-123'; DATA_ANOTACIO='10/06/2025' }) `
+    ("Doc. aportada amb N${uG}m. d${apG}anotaci${oG} A-123 del 10/06/2025") '_BuildOrigenText doc -> Doc. aportada amb Num. anotacio'
+AssertEq (_BuildOrigenText @{ ORIGEN_TIPUS='insp'; DATA_INSPECCIO='18/07/2026' }) `
+    ("Visita inspecci${oG} 18/07/2026") '_BuildOrigenText insp -> Visita inspeccio DATA'
+AssertEq (_BuildOrigenText @{ NUM_ANOTACIO='A-9'; DATA_ANOTACIO='01/01/2026' }) `
+    ("Doc. aportada amb N${uG}m. d${apG}anotaci${oG} A-9 del 01/01/2026") '_BuildOrigenText sense tipus -> doc per defecte'
+AssertEq (_BuildOrigenText @{ ORIGEN_TIPUS='insp'; DATA_INSPECCIO='' }) `
+    ("Visita inspecci${oG} ") '_BuildOrigenText insp sense data -> nomes el prefix'
+
 Write-Host "`n--- Camps detectats a conclusions (Add-FieldsFromConclusions) ---"
 $fc = [ordered]@{}
 $selectedConcl = @(

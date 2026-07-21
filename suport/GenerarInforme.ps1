@@ -1054,7 +1054,7 @@ function _BuildHeaderForm($excelInfo) {
     # de la xarxa.
     $form = _NewForm
     $form.Text = 'Pas 2 - Dades de la capcalera'
-    $form.Size = New-Object System.Drawing.Size(720, 560)
+    $form.Size = New-Object System.Drawing.Size(720, 620)
     $form.StartPosition = 'CenterScreen'
 
     # Espai reservat a dalt per la banda granat (44) + barra de passos (34):
@@ -1074,7 +1074,8 @@ function _BuildHeaderForm($excelInfo) {
     }
     $form.Controls.Add($lblBd)
 
-    $controls = @{}
+    $controls  = @{}
+    $rowLabels = @{}
     $addRow = {
         param($label, $y, $tbWidth, $key)
         $lbl = New-Object System.Windows.Forms.Label
@@ -1087,7 +1088,8 @@ function _BuildHeaderForm($excelInfo) {
         $tb.Location = New-Object System.Drawing.Point(220, ($y - 2))
         $tb.Size = New-Object System.Drawing.Size($tbWidth, 22)
         [void]$form.Controls.Add($tb)
-        $controls[$key] = $tb
+        $controls[$key]  = $tb
+        $rowLabels[$key] = $lbl
     }
 
     $y = 50 + $topOffset
@@ -1100,12 +1102,57 @@ function _BuildHeaderForm($excelInfo) {
     [void]$form.Controls.Add($btnSearch)
     $y += 38
 
-    & $addRow "Num. d'expedient (autom., editable)"   $y 460 'EXP_NUM';      $y += 38
-    & $addRow 'Titular (autom., editable)'            $y 460 'TITULAR';      $y += 38
-    & $addRow 'Adreca (autom., editable)'             $y 460 'ADRECA';       $y += 38
-    & $addRow 'Activitat (autom., editable)'          $y 460 'ACTIVITAT';    $y += 38
-    & $addRow "Num. d'anotacio (autom., editable)"    $y 460 'NUM_ANOTACIO'; $y += 38
-    & $addRow "Data d'anotacio (autom., editable)"    $y 460 'DATA_ANOTACIO';$y += 50
+    & $addRow "Num. d'expedient (autom., editable)"   $y 460 'EXP_NUM';   $y += 38
+    & $addRow 'Titular (autom., editable)'            $y 460 'TITULAR';   $y += 38
+    & $addRow 'Adreca (autom., editable)'             $y 460 'ADRECA';    $y += 38
+    & $addRow 'Activitat (autom., editable)'          $y 460 'ACTIVITAT'; $y += 38
+
+    # --- Origen de l'informe: documentacio aportada o visita d'inspeccio ---
+    # Segons la tria es mostren uns camps o uns altres i canvia la linia
+    # "Objecte:" de la capcalera (placeholder <<ORIGEN>>, muntat a
+    # Apply-HeaderReplacements).
+    $lblOrigen = New-Object System.Windows.Forms.Label
+    $lblOrigen.Text = "Origen de l'informe:"
+    $lblOrigen.Location = New-Object System.Drawing.Point(15, $y)
+    $lblOrigen.Size = New-Object System.Drawing.Size(200, 22)
+    [void]$form.Controls.Add($lblOrigen)
+
+    $rbDoc = New-Object System.Windows.Forms.RadioButton
+    $rbDoc.Text = 'Documentacio aportada'
+    $rbDoc.Location = New-Object System.Drawing.Point(220, ($y - 2))
+    $rbDoc.AutoSize = $true
+    $rbDoc.Checked = $true
+    [void]$form.Controls.Add($rbDoc)
+
+    $rbInsp = New-Object System.Windows.Forms.RadioButton
+    $rbInsp.Text = "Visita d'inspeccio"
+    $rbInsp.Location = New-Object System.Drawing.Point(440, ($y - 2))
+    $rbInsp.AutoSize = $true
+    [void]$form.Controls.Add($rbInsp)
+    $controls['_ORIGEN_DOC']  = $rbDoc
+    $controls['_ORIGEN_INSP'] = $rbInsp
+    $y += 34
+
+    # Camps de documentacio aportada (NUM/DATA anotacio) i, superposat al primer,
+    # el camp de data d'inspeccio: nomes es veu el joc que toca segons la tria.
+    $yAnot = $y
+    & $addRow "Num. d'anotacio (autom., editable)" $yAnot 460 'NUM_ANOTACIO'
+    & $addRow "Data d'inspeccio"                    $yAnot 460 'DATA_INSPECCIO'
+    $y = $yAnot + 38
+    & $addRow "Data d'anotacio (autom., editable)"  $y 460 'DATA_ANOTACIO'; $y += 50
+
+    # Mostra/amaga els camps segons l'origen triat.
+    $applyOrigen = {
+        $isDoc = $rbDoc.Checked
+        foreach ($k in 'NUM_ANOTACIO', 'DATA_ANOTACIO') {
+            $controls[$k].Visible  = $isDoc
+            $rowLabels[$k].Visible = $isDoc
+        }
+        $controls['DATA_INSPECCIO'].Visible  = -not $isDoc
+        $rowLabels['DATA_INSPECCIO'].Visible = -not $isDoc
+    }.GetNewClosure()
+    $rbDoc.add_CheckedChanged($applyOrigen)
+    & $applyOrigen
 
     $back = New-Object System.Windows.Forms.Button
     $back.Text = 'Enrere'
@@ -1140,14 +1187,17 @@ function _BuildHeaderForm($excelInfo) {
 
 # Llegeix els valors dels controls i retorna un hashtable amb la capcalera.
 function _ReadHeaderControls($controls) {
+    $tipus = if ($controls['_ORIGEN_INSP'] -and $controls['_ORIGEN_INSP'].Checked) { 'insp' } else { 'doc' }
     @{
-        ID_GIA        = $controls['ID_GIA'].Text.Trim()
-        EXP_NUM       = $controls['EXP_NUM'].Text.Trim()
-        TITULAR       = $controls['TITULAR'].Text.Trim()
-        ADRECA        = $controls['ADRECA'].Text.Trim()
-        ACTIVITAT     = $controls['ACTIVITAT'].Text.Trim()
-        NUM_ANOTACIO  = $controls['NUM_ANOTACIO'].Text.Trim()
-        DATA_ANOTACIO = $controls['DATA_ANOTACIO'].Text.Trim()
+        ID_GIA         = $controls['ID_GIA'].Text.Trim()
+        EXP_NUM        = $controls['EXP_NUM'].Text.Trim()
+        TITULAR        = $controls['TITULAR'].Text.Trim()
+        ADRECA         = $controls['ADRECA'].Text.Trim()
+        ACTIVITAT      = $controls['ACTIVITAT'].Text.Trim()
+        ORIGEN_TIPUS   = $tipus
+        NUM_ANOTACIO   = $controls['NUM_ANOTACIO'].Text.Trim()
+        DATA_ANOTACIO  = $controls['DATA_ANOTACIO'].Text.Trim()
+        DATA_INSPECCIO = $controls['DATA_INSPECCIO'].Text.Trim()
     }
 }
 
@@ -1156,14 +1206,25 @@ function _ReadHeaderControls($controls) {
 # (dades de l'ultim informe llegides de JSON).
 function _PreloadHeaderControls($controls, $preload) {
     if ($null -eq $preload) { return }
-    foreach ($k in 'ID_GIA','EXP_NUM','TITULAR','ADRECA','ACTIVITAT','NUM_ANOTACIO','DATA_ANOTACIO') {
-        $v = $null
+    # Helper per llegir una clau tant si $preload es hashtable com PSCustomObject.
+    $getVal = {
+        param($k)
         if ($preload -is [System.Collections.IDictionary]) {
-            if ($preload.Contains($k)) { $v = $preload[$k] }
+            if ($preload.Contains($k)) { return $preload[$k] }
         } elseif ($preload.PSObject.Properties.Name -contains $k) {
-            $v = $preload.$k
+            return $preload.$k
         }
+        return $null
+    }
+    foreach ($k in 'ID_GIA','EXP_NUM','TITULAR','ADRECA','ACTIVITAT','NUM_ANOTACIO','DATA_ANOTACIO','DATA_INSPECCIO') {
+        $v = & $getVal $k
         if ($null -ne $v) { $controls[$k].Text = [string]$v }
+    }
+    # Restaura l'origen triat (documentacio aportada / visita d'inspeccio).
+    $tipus = & $getVal 'ORIGEN_TIPUS'
+    if ($controls['_ORIGEN_DOC'] -and $controls['_ORIGEN_INSP']) {
+        if ([string]$tipus -eq 'insp') { $controls['_ORIGEN_INSP'].Checked = $true }
+        else                           { $controls['_ORIGEN_DOC'].Checked  = $true }
     }
 }
 
@@ -2606,6 +2667,28 @@ function Select-CapcaleraBlock($doc, [string]$which) {
     }
 }
 
+# Munta el text de la linia "Objecte:" (placeholder <<ORIGEN>>) de la capcalera
+# generica a partir de l'origen triat al Pas 2. Funcio PURA (nomes llegeix el
+# hashtable/objecte $header), testejable en headless. Accents amb codepoint
+# per no dependre de l'encoding amb que PowerShell 5.1 llegeix aquest fitxer.
+#   'doc'  -> "Doc. aportada amb Num. d'anotacio <NUM_ANOTACIO> del <DATA_ANOTACIO>"
+#   'insp' -> "Visita inspeccio <DATA_INSPECCIO>"
+function _BuildOrigenText($header) {
+    $get = {
+        param($k)
+        if ($null -eq $header) { return '' }
+        if ($header -is [System.Collections.IDictionary]) { if ($header.Contains($k)) { return [string]$header[$k] }; return '' }
+        if ($header.PSObject.Properties.Name -contains $k) { return [string]$header.$k }
+        return ''
+    }
+    $tipus = (& $get 'ORIGEN_TIPUS'); if ([string]::IsNullOrWhiteSpace($tipus)) { $tipus = 'doc' }
+    if ($tipus -eq 'insp') {
+        return 'Visita inspecci' + [char]0x00F3 + ' ' + (& $get 'DATA_INSPECCIO')
+    }
+    return 'Doc. aportada amb N' + [char]0x00FA + 'm. d' + [char]0x2019 + 'anotaci' + [char]0x00F3 +
+           ' ' + (& $get 'NUM_ANOTACIO') + ' del ' + (& $get 'DATA_ANOTACIO')
+}
+
 function Apply-HeaderReplacements($doc, $header) {
     # Substituim els placeholders <<NOM>> de la capcalera pels valors del Pas 2.
     # Inclou els d'ACT_EXTR (<<DATES>>, <<AFORAMENT>>); si no apareixen a la
@@ -2617,16 +2700,22 @@ function Apply-HeaderReplacements($doc, $header) {
         if ($header.PSObject.Properties.Name -contains $k) { return [string]$header.$k }
         return ''
     }
+    # <<ORIGEN>>: la linia "Objecte:" de la capcalera generica (REQ1) es
+    # construeix segons el que s'ha triat al Pas 2 (documentacio aportada o
+    # visita d'inspeccio). Vegeu _BuildOrigenText (funcio pura, testejable).
+    $origen = _BuildOrigenText $header
     $map = @{
-        '<<ID_GIA>>'        = (& $get 'ID_GIA')
-        '<<EXP_NUM>>'       = (& $get 'EXP_NUM')
-        '<<ADRECA>>'        = (& $get 'ADRECA')
-        '<<ACTIVITAT>>'     = (& $get 'ACTIVITAT')
-        '<<TITULAR>>'       = (& $get 'TITULAR')
-        '<<NUM_ANOTACIO>>'  = (& $get 'NUM_ANOTACIO')
-        '<<DATA_ANOTACIO>>' = (& $get 'DATA_ANOTACIO')
-        '<<DATES>>'         = (& $get 'DATES')
-        '<<AFORAMENT>>'     = (& $get 'AFORAMENT')
+        '<<ID_GIA>>'         = (& $get 'ID_GIA')
+        '<<EXP_NUM>>'        = (& $get 'EXP_NUM')
+        '<<ADRECA>>'         = (& $get 'ADRECA')
+        '<<ACTIVITAT>>'      = (& $get 'ACTIVITAT')
+        '<<TITULAR>>'        = (& $get 'TITULAR')
+        '<<ORIGEN>>'         = $origen
+        '<<NUM_ANOTACIO>>'   = (& $get 'NUM_ANOTACIO')
+        '<<DATA_ANOTACIO>>'  = (& $get 'DATA_ANOTACIO')
+        '<<DATA_INSPECCIO>>' = (& $get 'DATA_INSPECCIO')
+        '<<DATES>>'          = (& $get 'DATES')
+        '<<AFORAMENT>>'      = (& $get 'AFORAMENT')
     }
     foreach ($k in $map.Keys) {
         $find = $doc.Content.Find
@@ -3060,13 +3149,16 @@ function Invoke-GenerateFromPaquet($paquetPath) {
 
     # Capcalera: hashtable amb les claus que espera Apply-HeaderReplacements.
     $header = @{}
-    foreach ($k in 'ID_GIA','EXP_NUM','ADRECA','ACTIVITAT','TITULAR','NUM_ANOTACIO','DATA_ANOTACIO') {
+    foreach ($k in 'ID_GIA','EXP_NUM','ADRECA','ACTIVITAT','TITULAR','ORIGEN_TIPUS','NUM_ANOTACIO','DATA_ANOTACIO','DATA_INSPECCIO') {
         $val = ''
         if ($null -ne $pkg.Header -and ($pkg.Header.PSObject.Properties.Name -contains $k)) {
             $val = [string]$pkg.Header.$k
         }
         $header[$k] = $val
     }
+    # El mobil no ofereix la tria d'origen: per defecte, documentacio aportada
+    # (mateix comportament que abans, la linia "Objecte:" mostra la doc. aportada).
+    if ([string]::IsNullOrWhiteSpace($header['ORIGEN_TIPUS'])) { $header['ORIGEN_TIPUS'] = 'doc' }
 
     # Si el paquet ve del mobil amb (gairebe) nomes l'ID GIA, completem la
     # capcalera des de l'Excel d'activitats. El PC si que hi te acces; el mobil
