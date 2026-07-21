@@ -106,6 +106,14 @@ public static extern void SetCurrentProcessExplicitAppUserModelID([System.Runtim
         if (Test-Path -LiteralPath $iconPath) { $Script:AppIcon = New-Object System.Drawing.Icon($iconPath) }
     } catch { $Script:AppIcon = $null }
 
+    # Escut BLANC (per a la banda granat de capcalera de totes les pantalles).
+    # Es un PNG amb fons transparent; es carrega un sol cop.
+    $Script:EscutBlanc = $null
+    try {
+        $escutPath = Join-Path $ScriptRoot 'escut-blanc.png'
+        if (Test-Path -LiteralPath $escutPath) { $Script:EscutBlanc = [System.Drawing.Image]::FromFile($escutPath) }
+    } catch { $Script:EscutBlanc = $null }
+
     # Helper user32 per portar a primer pla la finestra d'una instancia ja oberta
     # del programa (una sola instancia: si es torna a llancar, s'enfoca la que
     # ja hi ha en lloc d'obrir-ne una segona). Donat el PID del proces de la
@@ -152,6 +160,71 @@ function _NewForm {
     $f.MaximizeBox = $true
     if ($null -ne $Script:AppIcon) { $f.Icon = $Script:AppIcon }
     return $f
+}
+
+# Color corporatiu granat (redisseny UX/UI). Es fa servir a la banda de
+# capcalera de totes les pantalles. NOMES en interactiu: en headless (Linux,
+# proves) System.Drawing no esta carregat i [System.Drawing.Color] petaria en
+# carregar el motor.
+$Script:BrandMaroon     = $null
+$Script:BrandMaroonSoft = $null
+if (-not $Script:HeadlessTest) {
+    $Script:BrandMaroon     = [System.Drawing.Color]::FromArgb(166, 26, 47)
+    $Script:BrandMaroonSoft = [System.Drawing.Color]::FromArgb(247, 231, 234)
+}
+
+# Afegeix a $form una BANDA superior granat (Dock=Top) amb l'escut blanc,
+# un titol i un subtitol opcional. Retorna el Panel (per si el qui crida hi vol
+# afegir botons a la dreta). Es la capcalera comuna del redisseny; totes les
+# pantalles l'han de fer servir per unificar l'aspecte.
+#   S'ha d'afegir DESPRES dels controls posicionats en absolut (com fan els
+#   Dock=Top/Bottom) perque no els desplaci.
+function _AddBrandHeader($form, [string]$title, [string]$subtitle, [int]$height = 56) {
+    $band = New-Object System.Windows.Forms.Panel
+    $band.Dock = 'Top'
+    $band.Height = $height
+    $band.BackColor = $Script:BrandMaroon
+    $xText = 18
+    if ($null -ne $Script:EscutBlanc) {
+        $escH = [int]($height - 22); if ($escH -lt 18) { $escH = 18 }
+        $escW = [int]([double]$Script:EscutBlanc.Width / $Script:EscutBlanc.Height * $escH)
+        $pic = New-Object System.Windows.Forms.PictureBox
+        $pic.Size = New-Object System.Drawing.Size($escW, $escH)
+        $pic.Location = New-Object System.Drawing.Point(16, [int](($height - $escH) / 2))
+        $pic.SizeMode = 'Zoom'
+        $pic.BackColor = [System.Drawing.Color]::Transparent
+        $pic.Image = $Script:EscutBlanc
+        [void]$band.Controls.Add($pic)
+        $sep = New-Object System.Windows.Forms.Panel
+        $sep.Size = New-Object System.Drawing.Size(1, [int]($height - 24))
+        $sep.Location = New-Object System.Drawing.Point((16 + $escW + 12), 12)
+        $sep.BackColor = [System.Drawing.Color]::FromArgb(206, 138, 148)
+        [void]$band.Controls.Add($sep)
+        $xText = 16 + $escW + 24
+    }
+    $lblT = New-Object System.Windows.Forms.Label
+    $lblT.Text = $title
+    $lblT.ForeColor = [System.Drawing.Color]::White
+    $lblT.Font = New-Object System.Drawing.Font('Segoe UI', 14, [System.Drawing.FontStyle]::Bold)
+    $lblT.AutoSize = $true
+    $lblT.BackColor = [System.Drawing.Color]::Transparent
+    if ([string]::IsNullOrWhiteSpace($subtitle)) {
+        $lblT.Location = New-Object System.Drawing.Point($xText, [int](($height - 26) / 2))
+        [void]$band.Controls.Add($lblT)
+    } else {
+        $lblT.Location = New-Object System.Drawing.Point($xText, 7)
+        [void]$band.Controls.Add($lblT)
+        $lblS = New-Object System.Windows.Forms.Label
+        $lblS.Text = $subtitle
+        $lblS.ForeColor = [System.Drawing.Color]::FromArgb(232, 210, 215)
+        $lblS.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Regular)
+        $lblS.AutoSize = $true
+        $lblS.BackColor = [System.Drawing.Color]::Transparent
+        $lblS.Location = New-Object System.Drawing.Point(($xText + 2), 33)
+        [void]$band.Controls.Add($lblS)
+    }
+    [void]$form.Controls.Add($band)
+    return $band
 }
 
 # ----------------------------------------------------------------------------

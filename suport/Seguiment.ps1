@@ -929,21 +929,30 @@ function Select-Mode {
     # Noms accentuats fets amb codepoint (Seguiment.ps1 no porta BOM: un literal
     # accentuat es corromp segons l'encoding amb que PowerShell 5.1 llegeix el
     # fitxer). U+00F3 = 'o' accent tancat; U+00E0 = 'a' accent obert.
-    $ampliacio      = 'Ampliaci' + [char]0x00F3 + ' termini'
-    $extraordinaria = 'Activitats extraordin' + [char]0x00E0 + 'ries'
+    $aG = [char]0x00E0   # a accent obert
+    $eG = [char]0x00E8   # e accent obert
+    $oT = [char]0x00F3   # o accent tancat
+    $ampliacio      = 'Ampliaci' + $oT + ' termini'
+    $extraordinaria = 'Activitats extraordin' + $aG + 'ries'
 
-    # Menu ORDENAT. Cada entrada: Action, Label (nom amic), Detail (nom/os del
-    # document, en gris) i, per a 'nou', el Cataleg (FileInfo). Els 'nou' nomes
-    # es mostren si el .docx existeix a ESTRUCTURALS.
+    # Icones (emoji astral -> ConvertFromUtf32). Es pinten al xip granat suau.
+    $icoNou = [System.Char]::ConvertFromUtf32(0x1F4DD)   # 📝
+    $icoSeg = [System.Char]::ConvertFromUtf32(0x1F504)   # 🔄
+    $icoTer = [System.Char]::ConvertFromUtf32(0x23F1)    # ⏱
+    $icoExt = [System.Char]::ConvertFromUtf32(0x1F3AA)   # 🎪
+
+    # Menu ORDENAT. Cada entrada: Action, Label (nom amic), Sub (descripcio
+    # curta en gris), Icon (emoji del xip), Doc (xip del document a la dreta) i,
+    # per a 'nou', el Cataleg (FileInfo). Els 'nou' nomes surten si el .docx hi es.
     $menu = New-Object System.Collections.ArrayList
-    if ($byName.ContainsKey('REQ1'))    { [void]$menu.Add(@{ Action='nou'; Label='Requeriment - Nou';       Detail='REQ1';    Cataleg=$byName['REQ1'] }) }
-    [void]$menu.Add(@{ Action='seguiment'; Label='Requeriment - Seguiment'; Detail=''; Cataleg=$null })
-    if ($byName.ContainsKey('TERMINI')) { [void]$menu.Add(@{ Action='nou'; Label=$ampliacio;                Detail='TERMINI'; Cataleg=$byName['TERMINI'] }) }
-    [void]$menu.Add(@{ Action='actextr'; Label=$extraordinaria; Detail='ACT_EXTR_REQ + ACT_EXTR_FAV'; Cataleg=$null })
+    if ($byName.ContainsKey('REQ1'))    { [void]$menu.Add(@{ Action='nou'; Label='Requeriment - Nou'; Sub=('Cat' + $aG + 'leg de defici' + $eG + 'ncies'); Icon=$icoNou; Doc='REQ1'; Cataleg=$byName['REQ1'] }) }
+    [void]$menu.Add(@{ Action='seguiment'; Label='Requeriment - Seguiment'; Sub='Sobre un informe ja fet'; Icon=$icoSeg; Doc=''; Cataleg=$null })
+    if ($byName.ContainsKey('TERMINI')) { [void]$menu.Add(@{ Action='nou'; Label=$ampliacio; Sub='Informe de cos fix'; Icon=$icoTer; Doc='TERMINI'; Cataleg=$byName['TERMINI'] }) }
+    [void]$menu.Add(@{ Action='actextr'; Label=$extraordinaria; Sub='Decret 112/2010'; Icon=$icoExt; Doc='ACT_EXTR'; Cataleg=$null })
     # Qualsevol altre cataleg no llistat (p.ex. un REQ2 nou) s'afegeix al final.
     foreach ($c in $catalegs) {
         if ($c.BaseName -in 'REQ1','TERMINI') { continue }
-        [void]$menu.Add(@{ Action='nou'; Label=$c.BaseName; Detail=$c.BaseName; Cataleg=$c })
+        [void]$menu.Add(@{ Action='nou'; Label=$c.BaseName; Sub=''; Icon=$icoNou; Doc=$c.BaseName; Cataleg=$c })
     }
 
     $form = _NewForm
@@ -960,33 +969,63 @@ function Select-Mode {
     $lbl.AutoSize = $true
     $form.Controls.Add($lbl)
 
-    $fMain = New-Object System.Drawing.Font('Segoe UI', 11, [System.Drawing.FontStyle]::Regular)
-    $fDet  = New-Object System.Drawing.Font('Segoe UI', 9,  [System.Drawing.FontStyle]::Regular)
+    $fMain = New-Object System.Drawing.Font('Segoe UI', 12.5, [System.Drawing.FontStyle]::Bold)
+    $fDet  = New-Object System.Drawing.Font('Segoe UI', 9.5,  [System.Drawing.FontStyle]::Regular)
+    $fIcon = New-Object System.Drawing.Font('Segoe UI Emoji', 15, [System.Drawing.FontStyle]::Regular)
     $flags = [System.Windows.Forms.TextFormatFlags]::NoPadding
+    $flagsC = [System.Windows.Forms.TextFormatFlags]::HorizontalCenter -bor [System.Windows.Forms.TextFormatFlags]::VerticalCenter -bor [System.Windows.Forms.TextFormatFlags]::NoPadding
+    $colGranat = [System.Drawing.Color]::FromArgb(166, 26, 47)
+    $colSoft   = [System.Drawing.Color]::FromArgb(247, 231, 234)
+    $colInk    = [System.Drawing.Color]::FromArgb(29, 39, 51)
+    $colSub    = [System.Drawing.Color]::FromArgb(107, 116, 128)
 
-    # Dibuix propietari del boto: nom amic en negre + "(document)" en gris.
+    # Dibuix propietari del boto de generacio (protagonista): xip granat suau amb
+    # icona a l'esquerra, titol + subtitol al centre-esquerra, i xip del document
+    # a la dreta.
     $paintHandler = {
         param($sender, $e)
         $entry = $sender.Tag
         $g = $e.Graphics
+        $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
         $rect = $sender.ClientRectangle
         $main = [string]$entry.Label
-        $det  = [string]$entry.Detail
-        $szMain = [System.Windows.Forms.TextRenderer]::MeasureText($g, $main, $fMain, [System.Drawing.Size]::Empty, $flags)
-        if (-not [string]::IsNullOrWhiteSpace($det)) {
-            $detTxt = "($det)"
-            $szDet = [System.Windows.Forms.TextRenderer]::MeasureText($g, $detTxt, $fDet, [System.Drawing.Size]::Empty, $flags)
-            $gap = 8
-            $total = $szMain.Width + $gap + $szDet.Width
-            $x = [int](($rect.Width - $total) / 2)
-            $yM = [int](($rect.Height - $szMain.Height) / 2)
-            $yD = [int](($rect.Height - $szDet.Height) / 2)
-            [System.Windows.Forms.TextRenderer]::DrawText($g, $main, $fMain, (New-Object System.Drawing.Point($x, $yM)), [System.Drawing.Color]::Black, $flags)
-            [System.Windows.Forms.TextRenderer]::DrawText($g, $detTxt, $fDet, (New-Object System.Drawing.Point(($x + $szMain.Width + $gap), $yD)), [System.Drawing.Color]::Gray, $flags)
+        $sub  = [string]$entry.Sub
+        $ico  = [string]$entry.Icon
+        $doc  = [string]$entry.Doc
+
+        # Xip d'icona a l'esquerra.
+        $chip = 42
+        $cx = 12; $cy = [int](($rect.Height - $chip) / 2)
+        $bSoft = New-Object System.Drawing.SolidBrush($colSoft)
+        $g.FillRectangle($bSoft, $cx, $cy, $chip, $chip)
+        $bSoft.Dispose()
+        if ($ico) {
+            $icoRect = New-Object System.Drawing.Rectangle($cx, ($cy - 1), $chip, $chip)
+            [System.Windows.Forms.TextRenderer]::DrawText($g, $ico, $fIcon, $icoRect, $colGranat, $flagsC)
+        }
+
+        # Titol + subtitol.
+        $tx = $cx + $chip + 14
+        if (-not [string]::IsNullOrWhiteSpace($sub)) {
+            [System.Windows.Forms.TextRenderer]::DrawText($g, $main, $fMain, (New-Object System.Drawing.Point($tx, 11)), $colInk, $flags)
+            [System.Windows.Forms.TextRenderer]::DrawText($g, $sub,  $fDet,  (New-Object System.Drawing.Point($tx, 35)), $colSub, $flags)
         } else {
-            $x = [int](($rect.Width - $szMain.Width) / 2)
-            $yM = [int](($rect.Height - $szMain.Height) / 2)
-            [System.Windows.Forms.TextRenderer]::DrawText($g, $main, $fMain, (New-Object System.Drawing.Point($x, $yM)), [System.Drawing.Color]::Black, $flags)
+            $szM = [System.Windows.Forms.TextRenderer]::MeasureText($g, $main, $fMain, [System.Drawing.Size]::Empty, $flags)
+            [System.Windows.Forms.TextRenderer]::DrawText($g, $main, $fMain, (New-Object System.Drawing.Point($tx, [int](($rect.Height - $szM.Height) / 2))), $colInk, $flags)
+        }
+
+        # Xip del document a la dreta.
+        if (-not [string]::IsNullOrWhiteSpace($doc)) {
+            $szD = [System.Windows.Forms.TextRenderer]::MeasureText($g, $doc, $fDet, [System.Drawing.Size]::Empty, $flags)
+            $pad = 9
+            $cw = $szD.Width + 2 * $pad
+            $chH = $szD.Height + 8
+            $dx = $rect.Width - $cw - 14
+            $dy = [int](($rect.Height - $chH) / 2)
+            $bD = New-Object System.Drawing.SolidBrush($colSoft)
+            $g.FillRectangle($bD, $dx, $dy, $cw, $chH)
+            $bD.Dispose()
+            [System.Windows.Forms.TextRenderer]::DrawText($g, $doc, $fDet, (New-Object System.Drawing.Point(($dx + $pad), ($dy + 4))), $colGranat, $flags)
         }
     }
 
@@ -997,11 +1036,11 @@ function Select-Mode {
         $btn.Text = ''
         $btn.Tag = $entry
         $btn.Location = New-Object System.Drawing.Point(20, $y)
-        $btn.Size = New-Object System.Drawing.Size(430, 46)
+        $btn.Size = New-Object System.Drawing.Size(430, 62)
         $btn.FlatStyle = 'Flat'
         $btn.BackColor = [System.Drawing.Color]::White
-        $btn.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
-        $btn.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(219, 235, 255)
+        $btn.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(214, 219, 225)
+        $btn.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(250, 240, 242)
         $btn.add_Paint($paintHandler)
         $btn.add_Click({
             $result.Choice = $entry
@@ -1009,7 +1048,7 @@ function Select-Mode {
             $form.Close()
         }.GetNewClosure())
         [void]$form.Controls.Add($btn)
-        $y += 56
+        $y += 70
     }
 
     # ---- Eines (separades dels tipus d'informe) ----------------------------
@@ -1038,7 +1077,7 @@ function Select-Mode {
     $btnRuta.FlatStyle = 'Flat'
     $btnRuta.BackColor = [System.Drawing.Color]::White
     $btnRuta.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
-    $btnRuta.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(219, 235, 255)
+    $btnRuta.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(250, 240, 242)
     $btnRuta.add_Paint({
         param($s, $e)
         $g = $e.Graphics
@@ -1075,7 +1114,7 @@ function Select-Mode {
     $btnPrec.FlatStyle = 'Flat'
     $btnPrec.BackColor = [System.Drawing.Color]::White
     $btnPrec.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
-    $btnPrec.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(219, 235, 255)
+    $btnPrec.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(250, 240, 242)
     $btnPrec.add_Paint({
         param($s, $e)
         $g = $e.Graphics
@@ -1121,7 +1160,7 @@ function Select-Mode {
     $btnIdb.FlatStyle = 'Flat'
     $btnIdb.BackColor = [System.Drawing.Color]::White
     $btnIdb.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
-    $btnIdb.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(219, 235, 255)
+    $btnIdb.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(250, 240, 242)
     $btnIdb.add_Paint({
         param($s, $e)
         $g = $e.Graphics
@@ -1153,7 +1192,7 @@ function Select-Mode {
     $btnEdit.FlatStyle = 'Flat'
     $btnEdit.BackColor = [System.Drawing.Color]::White
     $btnEdit.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
-    $btnEdit.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(219, 235, 255)
+    $btnEdit.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(250, 240, 242)
     $btnEdit.add_Paint({
         param($s, $e)
         $g = $e.Graphics
@@ -1193,7 +1232,7 @@ function Select-Mode {
     $btnVig.FlatStyle = 'Flat'
     $btnVig.BackColor = [System.Drawing.Color]::White
     $btnVig.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
-    $btnVig.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(219, 235, 255)
+    $btnVig.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(250, 240, 242)
     $btnVig.add_Paint({
         param($s, $e)
         $g = $e.Graphics
@@ -1230,7 +1269,7 @@ function Select-Mode {
     $btnConfig.FlatStyle = 'Flat'
     $btnConfig.BackColor = [System.Drawing.Color]::White
     $btnConfig.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
-    $btnConfig.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(219, 235, 255)
+    $btnConfig.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(250, 240, 242)
     $btnConfig.add_Click({
         $result.Choice = @{ Action = 'config'; Cataleg = $null }
         $form.DialogResult = 'OK'
@@ -1251,7 +1290,7 @@ function Select-Mode {
     $btnAjuda.FlatStyle = 'Flat'
     $btnAjuda.BackColor = [System.Drawing.Color]::White
     $btnAjuda.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
-    $btnAjuda.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(219, 235, 255)
+    $btnAjuda.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(250, 240, 242)
     $btnAjuda.add_Click({
         try { Start-Process $urlAjuda | Out-Null } catch {
             [System.Windows.Forms.MessageBox]::Show("No s'ha pogut obrir l'enllac:`n$urlAjuda", 'Ajuda', 'OK', 'Error') | Out-Null
@@ -1262,28 +1301,10 @@ function Select-Mode {
 
     $form.ClientSize = New-Object System.Drawing.Size(470, ($y + 12))
 
-    # Banda de capcalera (afegida al final, com Top/Bottom a l'editor de la
-    # base d'informes: no interfereix amb els controls ja posicionats).
-    $header = New-Object System.Windows.Forms.Panel
-    $header.Dock = 'Top'
-    $header.Height = $headerHeight
-    $header.BackColor = [System.Drawing.Color]::FromArgb(166, 26, 47)   # granat corporatiu
-    $lblHeader = New-Object System.Windows.Forms.Label
-    $lblHeader.Text = "Generador d'informes"
-    $lblHeader.ForeColor = [System.Drawing.Color]::White
-    $lblHeader.Font = New-Object System.Drawing.Font('Segoe UI', 14, [System.Drawing.FontStyle]::Bold)
-    $lblHeader.Location = New-Object System.Drawing.Point(18, 7)
-    $lblHeader.AutoSize = $true
-    [void]$header.Controls.Add($lblHeader)
-    # Subtitol (blanc translucid) sota el titol. Accent amb codepoint (sense BOM).
-    $lblSub = New-Object System.Windows.Forms.Label
-    $lblSub.Text = 'Ajuntament de Cornell' + [char]0x00E0 + ' de Llobregat'
-    $lblSub.ForeColor = [System.Drawing.Color]::FromArgb(232, 210, 215)
-    $lblSub.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Regular)
-    $lblSub.Location = New-Object System.Drawing.Point(20, 33)
-    $lblSub.AutoSize = $true
-    [void]$header.Controls.Add($lblSub)
-    [void]$form.Controls.Add($header)
+    # Banda de capcalera GRANAT amb escut blanc (helper comu del redisseny).
+    # S'afegeix al final (Dock=Top) per no desplacar els controls ja posicionats.
+    $subTitle = 'Ajuntament de Cornell' + [char]0x00E0 + ' de Llobregat'
+    [void](_AddBrandHeader $form "Generador d'informes" $subTitle $headerHeight)
 
     $res = $form.ShowDialog()
     if ($res -ne 'OK' -or $null -eq $result.Choice) { exit 0 }
