@@ -397,6 +397,12 @@ $OutputDir              = Join-Path $RepoRoot 'Informes generats'
 $ActivitatsDir          = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\2_Controls Excels'
 $AlwaysConclusionsCount = 2
 
+# Carpeta on l'eina "Copiar informes" (menu INFORMES) fa una copia de seguretat
+# PLANA (tots els Word a una sola carpeta) de la carpeta d'informes. Sense valor
+# per defecte: l'usuari l'ha de triar a la pantalla Configuracio. Es pot
+# sobreescriure a config.ps1 o a settings.json (per ordinador).
+$CopiaInformesDir       = ''
+
 # Carpeta ARREL dels informes ja generats (per l'escaner "Actualitzar base
 # d'informes" del menu). El valor per defecte es deriva de $ActivitatsDir DESPRES
 # de carregar config.ps1 (mes avall), aixi respecta un $ActivitatsDir o un
@@ -461,20 +467,22 @@ if (-not $InformesDir) {
 # els pugui mostrar com a "valor per defecte" i el boto "Restaura" hi torni.
 . (Join-Path $ScriptRoot 'Settings.ps1')
 
-$Script:DefaultInformesDir    = $InformesDir
-$Script:DefaultActivitatsDir  = $ActivitatsDir
-$Script:DefaultOutputDir      = $OutputDir
-$Script:DefaultDriveBaseDir   = $DriveBaseDir
+$Script:DefaultInformesDir     = $InformesDir
+$Script:DefaultActivitatsDir   = $ActivitatsDir
+$Script:DefaultOutputDir       = $OutputDir
+$Script:DefaultDriveBaseDir    = $DriveBaseDir
+$Script:DefaultCopiaInformesDir = $CopiaInformesDir
 # $RutesOutputDir no el fa servir aquest script (nomes rutes/Ruta.ps1), pero
 # es mostra/edita des de la mateixa pantalla de Configuracio: el calculem amb
 # el mateix valor per defecte que fa servir Ruta.ps1.
 $Script:DefaultRutesOutputDir = Join-Path $RepoRoot 'Rutes generades'
 
 $Script:AppSettings = Load-AppSettings
-$InformesDir   = _ResolveEffectiveValue $AppSettings.InformesDir   $InformesDir
-$ActivitatsDir = _ResolveEffectiveValue $AppSettings.ActivitatsDir $ActivitatsDir
-$OutputDir     = _ResolveEffectiveValue $AppSettings.OutputDir     $OutputDir
-$DriveBaseDir  = _ResolveEffectiveValue $AppSettings.DriveBaseDir  $DriveBaseDir
+$InformesDir      = _ResolveEffectiveValue $AppSettings.InformesDir      $InformesDir
+$ActivitatsDir    = _ResolveEffectiveValue $AppSettings.ActivitatsDir    $ActivitatsDir
+$OutputDir        = _ResolveEffectiveValue $AppSettings.OutputDir        $OutputDir
+$DriveBaseDir     = _ResolveEffectiveValue $AppSettings.DriveBaseDir     $DriveBaseDir
+$CopiaInformesDir = _ResolveEffectiveValue $AppSettings.CopiaInformesDir $CopiaInformesDir
 
 # Carreguem el modul ACT_EXTR (ActExtr.ps1): mode "Activitats extraordinaries"
 # (Decret 112/2010). Es carrega DESPRES de $RepoRoot, $EstructuralsDir i del
@@ -3251,6 +3259,8 @@ function Main {
             'ruta'       { Start-RutaTool }   # llanca el planificador; torna al menu
             'informesdb'     { Invoke-InformesDbScan }   # escaneja informes -> JSON; torna al menu
             'informesdbedit' { Invoke-InformesDbEdit }   # editor de la base d'informes
+            'copiarinformes' { Invoke-CopiarInformes }   # copia incremental dels Word a la carpeta de copia
+            'comprovarexcel' { Invoke-ComprovarExcel }   # comprova que l'Excel reflecteix els precintes
             'revisarmobil'   { Invoke-RevisarMobil }     # revisa el mobil un sol cop; torna al menu
             'config'         { Invoke-ConfiguracioScreen }   # rutes d'aquest PC + actualitzar; torna al menu
             'nou'        { [void](Invoke-NouWizard -cataleg $sel.Cataleg) }
