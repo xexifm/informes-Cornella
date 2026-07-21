@@ -765,8 +765,8 @@ function Invoke-InformesDbEdit {
 
     $form = _NewForm
     $form.Text = "Editar base d'informes"
-    $form.Size = New-Object System.Drawing.Size(1000, 620)
-    $form.MinimumSize = New-Object System.Drawing.Size(720, 420)
+    $form.Size = New-Object System.Drawing.Size(1000, 676)
+    $form.MinimumSize = New-Object System.Drawing.Size(720, 476)
 
     # Graella.
     $grid = New-Object System.Windows.Forms.DataGridView
@@ -859,14 +859,16 @@ function Invoke-InformesDbEdit {
     $btnDesar = New-Object System.Windows.Forms.Button
     $btnDesar.Text = 'Desar'; $btnDesar.Size = New-Object System.Drawing.Size(120, 30)
     $btnDesar.Location = New-Object System.Drawing.Point(10, 9)
+    _StylePrimaryButton $btnDesar
     $btnDesar.add_Click({
         if (& $doSave) {
             [System.Windows.Forms.MessageBox]::Show('Canvis desats.', 'Editar base d''informes', 'OK', 'Information') | Out-Null
         }
     }.GetNewClosure())
     $btnTancar = New-Object System.Windows.Forms.Button
-    $btnTancar.Text = 'Enrere'; $btnTancar.Size = New-Object System.Drawing.Size(120, 30)
+    $btnTancar.Text = ([char]0x2190 + ' Enrere'); $btnTancar.Size = New-Object System.Drawing.Size(120, 30)
     $btnTancar.Location = New-Object System.Drawing.Point(140, 9)
+    _StyleSecondaryButton $btnTancar
     $btnTancar.add_Click({ $form.Close() }.GetNewClosure())
     $botPanel.Controls.Add($btnDesar)
     $botPanel.Controls.Add($btnTancar)
@@ -947,9 +949,11 @@ function Invoke-InformesDbEdit {
     }.GetNewClosure())
 
     # Ordre d'afegit: primer el Fill (queda al centre), despres Top i Bottom.
+    # La banda de marca s'afegeix l'ultima perque quedi a dalt de tot.
     $form.Controls.Add($grid)
     $form.Controls.Add($topPanel)
     $form.Controls.Add($botPanel)
+    [void](_AddBrandHeader $form "Editar base d'informes" 'Base de dades local de deficiencies i conclusions dels informes' 56)
 
     & $fill ''
     [void]$form.ShowDialog()
