@@ -84,6 +84,33 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   Una conclusio que diu que **NO** es pot donar per tancat/finalitzat (qualsevol
   "no es pot donar...") es **Requeriment** (pendent), no "FI Requeriment": la
   comprovacio del "no" va abans que la del "si" a `_ConclusioBreu`.
+- **Menú Pas 1 — apartat INFORMES:** sota EINES hi ha un apartat propi
+  **INFORMES** amb 4 rajoles: 🗃 *Actualitzar base* (`informesdb`), 📋 *Editar
+  base* (`informesdbedit`), 📁 *Copiar informes* (`copiarinformes`) i ✅
+  *Comprovar Excel* (`comprovarexcel`). Les rajoles es dibuixen amb el helper
+  `$addTileRow` de `Select-Mode` (`Seguiment.ps1`), reutilitzat per EINES i
+  INFORMES. Dispatch al `switch` de `Main` (`GenerarInforme.ps1`).
+- **Exportar llistats (CSV):** botó a *Editar base d'informes* →
+  `Export-EstatsActivitats` (`Informes.ps1`). Escriu un CSV (`;`, UTF-8 amb BOM,
+  a `_ResolveOutputDir`) amb una fila per informe de les activitats en Estat
+  `Requeriment` i `Precinte / Cessament`: Estat, GIA, Titular, Adreça (creuada
+  amb l'Excel per GIA), Expedient, Data informe, Conclusió breu. Filtrable a
+  Excel per la columna Estat.
+- **Copiar informes** (`Invoke-CopiarInformes`, `Informes.ps1`): còpia **plana**
+  (tots els Word a una sola carpeta) i **incremental** de `$InformesDir` a
+  `$CopiaInformesDir` (nova carpeta configurable, vegeu Configuració). Guarda
+  `copia-informes-state.json` (`copiat_el`, mateix patró que `actualitzat_el`);
+  només mira els fitxers `.doc`/`.docx` (ignora `~$…`) modificats després de
+  l'última còpia; si el nom ja és al destí NO el recopia; **mai** esborra res del
+  destí. Si el destí desat canvia, fa còpia completa.
+- **Comprovar Excel** (`Invoke-ComprovarExcel`, `Informes.ps1`): per cada
+  activitat en Estat `Precinte / Cessament` de la base d'informes, comprova que a
+  l'Excel (fulla "Estès", indexat per GIA = col 1) tingui un **Camp Info** amb
+  Nom ∈ `$Script:ExcelPrecinteCampNoms` (`requerit per decret?` / `precinte?`) i
+  **Valor que comenci per "SI"** (`_ExcelActivitatActualitzada`, pura + tests).
+  Llista en una finestra les desactualitzades, les no trobades a l'Excel i les
+  sense GIA (no verificables). Lector de Camp Info autònom (`_ReadExcelCampInfoPerGia`
+  + `_FindCampInfoPairs`, pura + tests) — NO dot-sourceja `rutes/Ruta.ps1`.
 - **Editar base d'informes — filtres i ordre:** a sobre de la graella hi ha la
   cerca global (conte, totes les columnes) i, a la 2a fila, **filtres per
   columna** (desplegables): Conclusio breu, Estat activitat, Motiu i Ignorats
@@ -129,8 +156,9 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   `_BuildSettingsOverrides` (què es desa: només els camps que l'usuari ha
   deixat diferents del valor per defecte, mai buits).
 - `suport/Configuracio.ps1`: pantalla **⚙ Configuració** del menú principal.
-  5 camps (Informes, Excel d'activitats, sortida d'informes, sortida de
-  rutes, Drive mòbil) amb explorador de carpetes i indicador ✓/⚠ en viu
+  6 camps (Informes, Excel d'activitats, sortida d'informes, sortida de
+  rutes, Drive mòbil, i **carpeta de còpia dels informes** `CopiaInformesDir`,
+  que fa servir l'eina *Copiar informes*) amb explorador de carpetes i indicador ✓/⚠ en viu
   (`Test-Path`, no bloqueja desar). Secció "Manteniment": branca + últim
   commit i el botó **🔄 Actualitzar el programa**, que llança el mateix
   `Actualitzar.bat` (`Start-Process`, finestra visible) i tanca l'app —

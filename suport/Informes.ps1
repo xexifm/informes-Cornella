@@ -210,6 +210,49 @@ $Script:ConclusioBreuOpcions = @(
     'Revisar'
 )
 
+# ----------------------------------------------------------------------------
+# Comprovar Excel: noms de "Camp Info" que, a l'Excel d'activitats, marquen que
+# una activitat esta requerida per decret / precintada. La comprovacio es fa
+# sobre el NOM del camp (normalitzat, sense accents/majuscules; el '?' es
+# conserva) i, a mes, el VALOR ha de comencar per "SI".
+$Script:ExcelPrecinteCampNoms = @('requerit per decret?', 'precinte?')
+
+# PURA i testejable. $pairs = llista de @{ Nom; Valor } (els Camp Info d'una fila
+# de l'Excel). Retorna $true si algun te el Nom entre els objectius I el Valor
+# comenca per "SI". _NormalizeText es de GenerarInforme.ps1 (ja dot-sourcejat).
+function _ExcelActivitatActualitzada($pairs) {
+    if ($null -eq $pairs) { return $false }
+    foreach ($p in $pairs) {
+        $nom = _NormalizeText ([string]$p.Nom)
+        if ($Script:ExcelPrecinteCampNoms -contains $nom) {
+            $val = _NormalizeText ([string]$p.Valor)
+            if ($val -match '^si\b') { return $true }
+        }
+    }
+    return $false
+}
+
+# PURA i testejable. A partir de la fila de capcaleres (array 0-based de textos),
+# localitza els parells de columnes "Camp Info N - Nom" / "Camp Info N - Valor"
+# i retorna una llista de @{ NomCol; ValorCol } (indexs 1-based, com Excel).
+function _FindCampInfoPairs($headers) {
+    $h = @($headers)
+    $pairs = @()
+    for ($i = 0; $i -lt $h.Count; $i++) {
+        $n = _NormalizeText $h[$i]
+        if ($n -match '^camp info\s+(\d+)\s*-\s*nom$') {
+            $num = $Matches[1]
+            $target = _NormalizeText ("camp info $num - valor")
+            $valorCol = 0
+            for ($j = 0; $j -lt $h.Count; $j++) {
+                if ((_NormalizeText $h[$j]) -eq $target) { $valorCol = $j + 1; break }
+            }
+            if ($valorCol -gt 0) { $pairs += @{ NomCol = ($i + 1); ValorCol = $valorCol } }
+        }
+    }
+    return ,@($pairs)
+}
+
 # Classifica el text de la CONCLUSIO (ja extreta per _ExtractConclusio) en un
 # dels $Script:ConclusioBreuOpcions, mirant les frases reals amb que Sergi
 # tanca cada tipus de tramit (vist a la carpeta real d'informes). 'Revisar' es
@@ -969,8 +1012,18 @@ function Invoke-InformesDbEdit {
     $btnTancar.Location = New-Object System.Drawing.Point(140, 9)
     _StyleSecondaryButton $btnTancar
     $btnTancar.add_Click({ $form.Close() }.GetNewClosure())
+
+    # Exportar a CSV els llistats d'activitats en Estat Requeriment i Precinte /
+    # Cessament (usa l'estat en memoria, que ja reflecteix els canvis no desats).
+    $btnExport = New-Object System.Windows.Forms.Button
+    $btnExport.Text = 'Exportar llistats (CSV)'; $btnExport.Size = New-Object System.Drawing.Size(190, 30)
+    $btnExport.Location = New-Object System.Drawing.Point(275, 9)
+    _StyleSecondaryButton $btnExport
+    $btnExport.add_Click({ Export-EstatsActivitats $state.Db }.GetNewClosure())
+
     $botPanel.Controls.Add($btnDesar)
     $botPanel.Controls.Add($btnTancar)
+    $botPanel.Controls.Add($btnExport)
 
     # Obrir l'informe en clicar el boto "Obrir".
     $grid.add_CellContentClick({
@@ -1056,4 +1109,310 @@ function Invoke-InformesDbEdit {
 
     & $fill
     [void]$form.ShowDialog()
+}
+
+# ============================================================================
+# Exportar llistats (CSV) — botó "Exportar llistats" de l'editor
+# ============================================================================
+# Genera un CSV amb les activitats en Estat "Requeriment" i "Precinte /
+# Cessament" (una fila per informe). Creua amb l'Excel per obtenir l'adreça
+# (si no hi ha Excel, l'adreça queda buida). S'obre a Excel en acabar.
+function Export-EstatsActivitats($db) {
+    if ($null -eq $db -or $null -eq $db.activitats) {
+        [System.Windows.Forms.MessageBox]::Show("La base d'informes és buida.", 'Exportar llistats', 'OK', 'Information') | Out-Null
+        return
+    }
+    $estats = @('Requeriment', 'Precinte / Cessament')
+    $acts = @($db.activitats | Where-Object { $estats -contains [string]$_.estat_actual })
+    if ($acts.Count -eq 0) {
+        [System.Windows.Forms.MessageBox]::Show("No hi ha cap activitat en Estat 'Requeriment' ni 'Precinte / Cessament'.", 'Exportar llistats', 'OK', 'Information') | Out-Null
+        return
+    }
+
+    # Adreça per GIA des de l'Excel (opcional; avís suau si no es pot llegir).
+    $adrByGia = @{}
+    try {
+        $xls = Find-LatestActivitatsExcel
+        if ($null -ne $xls) {
+            $cache = Initialize-ActivitatsCache $xls.File
+            if ($null -ne $cache -and $null -ne $cache.ById) {
+                foreach ($kv in $cache.ById.GetEnumerator()) { $adrByGia[[string]$kv.Key] = [string]$kv.Value.ADRECA }
+            }
+        }
+    } catch { }
+
+    $rows = New-Object System.Collections.ArrayList
+    foreach ($act in $acts) {
+        $gia = [string]$act.id_gia
+        $adr = if ($gia -and $adrByGia.ContainsKey($gia)) { $adrByGia[$gia] } else { '' }
+        foreach ($inf in @($act.informes)) {
+            if ($null -eq $inf) { continue }
+            [void]$rows.Add([pscustomobject]@{
+                'Estat activitat'  = [string]$act.estat_actual
+                'GIA'              = $gia
+                'Titular'          = [string]$act.titular
+                'Adreça'           = $adr
+                'Expedient'        = [string]$act.expedient
+                'Data informe'     = [string]$inf.data
+                'Conclusió breu'   = [string]$inf.conclusio_breu
+            })
+        }
+    }
+    $sorted = @($rows | Sort-Object 'Estat activitat', 'GIA', 'Data informe')
+
+    $dir  = _ResolveOutputDir
+    $name = 'Estat activitats ' + (Get-Date).ToString('yyyy-MM-dd') + '.csv'
+    $path = _GetUniqueOutputPath $dir $name
+    try {
+        $sorted | Export-Csv -LiteralPath $path -NoTypeInformation -Encoding UTF8 -Delimiter ';'
+    } catch {
+        [System.Windows.Forms.MessageBox]::Show("No s'ha pogut escriure el CSV:`n$($_.Exception.Message)", 'Exportar llistats', 'OK', 'Error') | Out-Null
+        return
+    }
+
+    $nReq = @($acts | Where-Object { [string]$_.estat_actual -eq 'Requeriment' }).Count
+    $nPre = @($acts | Where-Object { [string]$_.estat_actual -eq 'Precinte / Cessament' }).Count
+    $r = [System.Windows.Forms.MessageBox]::Show(
+        "CSV generat:`n$path`n`nRequeriment: $nReq activitats`nPrecinte / Cessament: $nPre activitats`n`nVols obrir-lo ara?",
+        'Exportar llistats', 'YesNo', 'Information')
+    if ($r -eq [System.Windows.Forms.DialogResult]::Yes) {
+        try { Start-Process -FilePath $path | Out-Null } catch {
+            [System.Windows.Forms.MessageBox]::Show("No s'ha pogut obrir el CSV:`n$($_.Exception.Message)", 'Exportar llistats', 'OK', 'Warning') | Out-Null
+        }
+    }
+}
+
+# ============================================================================
+# Copiar informes — eina INFORMES "Copiar informes"
+# ============================================================================
+# Còpia PLANA i incremental dels Word de $InformesDir a $CopiaInformesDir:
+#  - només *.doc / *.docx (ignora els temporals ~$...);
+#  - guarda la data de l'última còpia (copia-informes-state.json) i només mira
+#    els fitxers modificats DESPRÉS (com "Actualitzar base");
+#  - si el fitxer ja és al destí (mateix nom), NO es torna a copiar;
+#  - MAI esborra res del destí (còpia additiva).
+function Invoke-CopiarInformes {
+    if ([string]::IsNullOrWhiteSpace($CopiaInformesDir)) {
+        [System.Windows.Forms.MessageBox]::Show(
+            "No s'ha configurat cap carpeta de còpia.`n`nVes a  ⚙ Configuració  i indica 'Carpeta on copiar els informes'.",
+            'Copiar informes', 'OK', 'Information') | Out-Null
+        return
+    }
+    if ([string]::IsNullOrWhiteSpace($InformesDir) -or -not (Test-Path -LiteralPath $InformesDir -ErrorAction SilentlyContinue)) {
+        [System.Windows.Forms.MessageBox]::Show("No s'ha trobat la carpeta d'informes:`n$InformesDir", 'Copiar informes', 'OK', 'Warning') | Out-Null
+        return
+    }
+    try {
+        if (-not (Test-Path -LiteralPath $CopiaInformesDir)) {
+            New-Item -ItemType Directory -Path $CopiaInformesDir -Force -ErrorAction Stop | Out-Null
+        }
+    } catch {
+        [System.Windows.Forms.MessageBox]::Show("No s'ha pogut crear la carpeta destí:`n$($_.Exception.Message)", 'Copiar informes', 'OK', 'Error') | Out-Null
+        return
+    }
+
+    # Estat incremental (mateix patró que actualitzat_el de l'escaneig).
+    $stateFile = Join-Path $LocalActivitatsDir 'copia-informes-state.json'
+    $prevUtc   = [datetime]::MinValue
+    $generatEl = (Get-Date).ToString('o')
+    if (Test-Path -LiteralPath $stateFile) {
+        try {
+            $st = (Get-Content -LiteralPath $stateFile -Raw -Encoding UTF8 | ConvertFrom-Json)
+            if ($st.PSObject.Properties['generat_el']) { $generatEl = [string]$st.generat_el }
+            $prevDesti = if ($st.PSObject.Properties['desti']) { [string]$st.desti } else { '' }
+            # Només reaprofitem la data si el destí és el mateix; si ha canviat,
+            # fem una còpia completa (prevUtc = MinValue).
+            if ($prevDesti -eq $CopiaInformesDir -and $st.PSObject.Properties['copiat_el']) {
+                try { $prevUtc = ([datetime]::Parse([string]$st.copiat_el)).ToUniversalTime() } catch { $prevUtc = [datetime]::MinValue }
+            }
+        } catch { $prevUtc = [datetime]::MinValue }
+    }
+
+    $files = @()
+    try {
+        $files = @(Get-ChildItem -LiteralPath $InformesDir -Recurse -File -Include '*.doc','*.docx' -ErrorAction SilentlyContinue |
+                   Where-Object { $_.Name -notlike '~$*' })
+    } catch { }
+
+    $copied = 0; $skipped = 0; $errors = 0
+    foreach ($f in $files) {
+        if ($f.LastWriteTimeUtc -le $prevUtc) { continue }          # no modificat des de l'última còpia
+        $dest = [System.IO.Path]::Combine($CopiaInformesDir, $f.Name)
+        if (Test-Path -LiteralPath $dest) { $skipped++; continue }  # ja copiat -> no recopiar
+        try { Copy-Item -LiteralPath $f.FullName -Destination $dest -ErrorAction Stop; $copied++ }
+        catch { $errors++ }
+    }
+
+    $newState = [pscustomobject]@{
+        generat_el = $generatEl
+        copiat_el  = (Get-Date).ToString('o')
+        desti      = $CopiaInformesDir
+    }
+    try {
+        $dirState = [System.IO.Path]::GetDirectoryName($stateFile)
+        if ($dirState -and -not (Test-Path -LiteralPath $dirState)) { New-Item -ItemType Directory -Path $dirState -Force | Out-Null }
+        ($newState | ConvertTo-Json) | Set-Content -LiteralPath $stateFile -Encoding UTF8
+    } catch { }
+
+    [System.Windows.Forms.MessageBox]::Show(
+        "Còpia completada.`n`nInformes nous copiats: $copied`nJa existents (omesos): $skipped`nErrors: $errors`n`nDestí: $CopiaInformesDir",
+        'Copiar informes', 'OK', 'Information') | Out-Null
+}
+
+# ============================================================================
+# Comprovar Excel — eina INFORMES "Comprovar Excel"
+# ============================================================================
+# Llegeix els "Camp Info N - Nom/Valor" de la fulla "Estès" i els indexa per GIA
+# (columna 1). Retorna @{ Ok; Map = @{ gia -> @(@{Nom;Valor}) }; Error }.
+function _ReadExcelCampInfoPerGia {
+    $latest = Find-LatestActivitatsExcel
+    if ($null -eq $latest) { return @{ Ok = $false; Error = "No s'ha trobat cap Excel d'activitats." } }
+    $excel = $null
+    try { $excel = New-Object -ComObject Excel.Application } catch { $excel = $null }
+    if ($null -eq $excel) { return @{ Ok = $false; Error = "No s'ha pogut iniciar Microsoft Excel." } }
+    $excel.Visible = $false
+    $excel.DisplayAlerts = $false
+    try {
+        $wb = $excel.Workbooks.Open($latest.File.FullName, 0, $true)   # ReadOnly
+        try {
+            $found = _FindEstesSheet $wb
+            $sh = $found.Sheet
+            if ($null -eq $sh) { return @{ Ok = $false; Error = "No s'ha trobat la fulla 'Estès' a l'Excel." } }
+            $data = $sh.UsedRange.Value2
+            if ($null -eq $data) { return @{ Ok = $true; Map = @{} } }
+            $rows = $data.GetLength(0)
+            $cols = $data.GetLength(1)
+            $headers = @(); for ($c = 1; $c -le $cols; $c++) { $headers += [string]$data[1, $c] }
+            $pairs = _FindCampInfoPairs $headers
+            $map = @{}
+            for ($r = 2; $r -le $rows; $r++) {
+                $cell = $data[$r, 1]
+                if ($null -eq $cell) { continue }
+                $gia = if ($cell -is [double]) {
+                    if ([math]::Floor($cell) -eq $cell) { [string][int]$cell } else { [string]$cell }
+                } else { [string]$cell }
+                $gia = $gia.Trim()
+                if ($gia -eq '') { continue }
+                $list = @()
+                foreach ($p in $pairs) {
+                    $nom = [string]$data[$r, $p.NomCol]
+                    $val = [string]$data[$r, $p.ValorCol]
+                    if (-not [string]::IsNullOrWhiteSpace($nom)) { $list += @{ Nom = $nom.Trim(); Valor = $val.Trim() } }
+                }
+                $map[$gia] = $list
+            }
+            return @{ Ok = $true; Map = $map }
+        } finally {
+            try { $wb.Close($false) } catch { }
+        }
+    } catch {
+        return @{ Ok = $false; Error = $_.Exception.Message }
+    } finally {
+        try { $excel.Quit() } catch { }
+        try { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($excel) | Out-Null } catch { }
+    }
+}
+
+# Finestra modal senzilla amb un llistat de resultats (només lectura).
+function _ShowResultatWindow($titol, $subtitol, $text) {
+    $form = _NewForm
+    $form.Text = $titol
+    $form.Size = New-Object System.Drawing.Size(680, 560)
+    $form.MinimumSize = New-Object System.Drawing.Size(480, 360)
+    $form.StartPosition = 'CenterScreen'
+
+    $tb = New-Object System.Windows.Forms.TextBox
+    $tb.Multiline = $true
+    $tb.ReadOnly = $true
+    $tb.ScrollBars = 'Vertical'
+    $tb.Dock = 'Fill'
+    $tb.Font = New-Object System.Drawing.Font('Consolas', 9.5)
+    $tb.BackColor = [System.Drawing.Color]::White
+    $tb.Text = $text
+
+    $bot = New-Object System.Windows.Forms.Panel
+    $bot.Dock = 'Bottom'; $bot.Height = 46
+    $btn = New-Object System.Windows.Forms.Button
+    $btn.Text = 'Tancar'; $btn.Size = New-Object System.Drawing.Size(110, 30)
+    $btn.Location = New-Object System.Drawing.Point(10, 8)
+    _StyleSecondaryButton $btn
+    $btn.add_Click({ $form.Close() }.GetNewClosure())
+    $bot.Controls.Add($btn)
+
+    $form.Controls.Add($tb)
+    $form.Controls.Add($bot)
+    [void](_AddBrandHeader $form $titol $subtitol 56)
+    [void]$form.ShowDialog()
+}
+
+# Comprova que les activitats en Estat "Precinte / Cessament" (base d'informes)
+# tinguin a l'Excel el Camp Info corresponent amb valor "SI". Llista les que no.
+function Invoke-ComprovarExcel {
+    $outPath = Join-Path $LocalActivitatsDir 'informes-db.json'
+    if (-not (Test-Path -LiteralPath $outPath)) {
+        [System.Windows.Forms.MessageBox]::Show(
+            "Encara no hi ha cap base d'informes.`n`nExecuta primer 'Actualitzar base'.",
+            'Comprovar Excel', 'OK', 'Information') | Out-Null
+        return
+    }
+    try {
+        $db = (Get-Content -LiteralPath $outPath -Raw -Encoding UTF8 | ConvertFrom-Json)
+    } catch {
+        [System.Windows.Forms.MessageBox]::Show("No s'ha pogut llegir la base d'informes:`n$($_.Exception.Message)", 'Comprovar Excel', 'OK', 'Error') | Out-Null
+        return
+    }
+    $targets = @($db.activitats | Where-Object { [string]$_.estat_actual -eq 'Precinte / Cessament' })
+    if ($targets.Count -eq 0) {
+        [System.Windows.Forms.MessageBox]::Show("No hi ha cap activitat en Estat 'Precinte / Cessament' a la base d'informes.", 'Comprovar Excel', 'OK', 'Information') | Out-Null
+        return
+    }
+
+    $res = _ReadExcelCampInfoPerGia
+    if (-not $res.Ok) {
+        [System.Windows.Forms.MessageBox]::Show("No s'ha pogut llegir l'Excel:`n$($res.Error)", 'Comprovar Excel', 'OK', 'Error') | Out-Null
+        return
+    }
+    $map = $res.Map
+
+    $desact = New-Object System.Collections.ArrayList
+    $noTrob = New-Object System.Collections.ArrayList
+    $senseGia = New-Object System.Collections.ArrayList
+    foreach ($act in $targets) {
+        $gia = [string]$act.id_gia
+        if ([string]::IsNullOrWhiteSpace($gia)) {
+            [void]$senseGia.Add("     - " + [string]$act.titular + "  (carpeta: " + [string]$act.carpeta + ")")
+            continue
+        }
+        $etiqueta = "GIA " + $gia + "  -  " + [string]$act.titular
+        if (-not $map.ContainsKey($gia)) { [void]$noTrob.Add("     - " + $etiqueta); continue }
+        if (-not (_ExcelActivitatActualitzada $map[$gia])) { [void]$desact.Add("     - " + $etiqueta); continue }
+    }
+
+    if ($desact.Count -eq 0 -and $noTrob.Count -eq 0 -and $senseGia.Count -eq 0) {
+        [System.Windows.Forms.MessageBox]::Show(
+            ("L'Excel està al dia.`n`nTotes les {0} activitats en Estat 'Precinte / Cessament' tenen a l'Excel un Camp Info 'REQUERIT PER DECRET?' o 'PRECINTE?' amb valor SI." -f $targets.Count),
+            'Comprovar Excel', 'OK', 'Information') | Out-Null
+        return
+    }
+
+    $sb = New-Object System.Text.StringBuilder
+    [void]$sb.AppendLine(("Activitats en Estat 'Precinte / Cessament' a la base d'informes: {0}" -f $targets.Count))
+    [void]$sb.AppendLine("Criteri: a l'Excel han de tenir un Camp Info 'REQUERIT PER DECRET?' o 'PRECINTE?' amb valor que comenci per SI.")
+    [void]$sb.AppendLine("")
+    if ($desact.Count -gt 0) {
+        [void]$sb.AppendLine(("DESACTUALITZADES a l'Excel (sense el Camp Info amb SI): {0}" -f $desact.Count))
+        foreach ($l in $desact) { [void]$sb.AppendLine($l) }
+        [void]$sb.AppendLine("")
+    }
+    if ($noTrob.Count -gt 0) {
+        [void]$sb.AppendLine(("NO trobades a l'Excel (GIA inexistent a la fulla Estès): {0}" -f $noTrob.Count))
+        foreach ($l in $noTrob) { [void]$sb.AppendLine($l) }
+        [void]$sb.AppendLine("")
+    }
+    if ($senseGia.Count -gt 0) {
+        [void]$sb.AppendLine(("NO verificables (activitat sense GIA a la base d'informes): {0}" -f $senseGia.Count))
+        foreach ($l in $senseGia) { [void]$sb.AppendLine($l) }
+    }
+
+    _ShowResultatWindow "Comprovació de l'Excel" "Activitats precintades pendents d'actualitzar a l'Excel" ($sb.ToString())
 }

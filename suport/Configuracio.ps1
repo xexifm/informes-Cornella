@@ -102,10 +102,11 @@ function Invoke-ConfiguracioScreen {
     $effOutputDir      = _ResolveEffectiveValue $current.OutputDir      $Script:DefaultOutputDir
     $effRutesOutputDir = _ResolveEffectiveValue $current.RutesOutputDir $Script:DefaultRutesOutputDir
     $effDriveBaseDir   = _ResolveEffectiveValue $current.DriveBaseDir   $Script:DefaultDriveBaseDir
+    $effCopiaInformesDir = _ResolveEffectiveValue $current.CopiaInformesDir $Script:DefaultCopiaInformesDir
 
     $form = _NewForm
     $form.Text = 'Configuracio'
-    $form.Size = New-Object System.Drawing.Size(560, 760)
+    $form.Size = New-Object System.Drawing.Size(560, 830)
     $form.MinimumSize = New-Object System.Drawing.Size(480, 560)
     $form.StartPosition = 'CenterScreen'
 
@@ -126,7 +127,7 @@ function Invoke-ConfiguracioScreen {
     $grpAddicionals = New-Object System.Windows.Forms.GroupBox
     $grpAddicionals.Text = 'Carpetes addicionals'
     $grpAddicionals.Location = New-Object System.Drawing.Point(14, 246)
-    $grpAddicionals.Size = New-Object System.Drawing.Size(514, 250)
+    $grpAddicionals.Size = New-Object System.Drawing.Size(514, 320)
     $grpAddicionals.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 
     $r = _AddConfigRow $grpAddicionals 24 "Carpeta on desar els informes que generis" $effOutputDir
@@ -135,11 +136,13 @@ function Invoke-ConfiguracioScreen {
     $tbRutes = $r.TextBox
     $r = _AddConfigRow $grpAddicionals $r.NextY "Carpeta del Drive d'escriptori (per al mobil)" $effDriveBaseDir
     $tbDrive = $r.TextBox
+    $r = _AddConfigRow $grpAddicionals $r.NextY "Carpeta on copiar els informes (copia de seguretat)" $effCopiaInformesDir
+    $tbCopia = $r.TextBox
 
     # ---- Manteniment: info de versio + actualitzar ----------------------
     $grpMant = New-Object System.Windows.Forms.GroupBox
     $grpMant.Text = 'Manteniment'
-    $grpMant.Location = New-Object System.Drawing.Point(14, 508)
+    $grpMant.Location = New-Object System.Drawing.Point(14, 578)
     $grpMant.Size = New-Object System.Drawing.Size(514, 96)
     $grpMant.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 
@@ -220,24 +223,27 @@ function Invoke-ConfiguracioScreen {
         $tbOutput.Text     = $Script:DefaultOutputDir
         $tbRutes.Text      = $Script:DefaultRutesOutputDir
         $tbDrive.Text      = $Script:DefaultDriveBaseDir
+        $tbCopia.Text      = $Script:DefaultCopiaInformesDir
     }.GetNewClosure())
 
     $btnTancar.add_Click({ $form.Close() }.GetNewClosure())
 
     $btnDesar.add_Click({
         $values = @{
-            InformesDir    = $tbInformes.Text.Trim()
-            ActivitatsDir  = $tbActivitats.Text.Trim()
-            OutputDir      = $tbOutput.Text.Trim()
-            RutesOutputDir = $tbRutes.Text.Trim()
-            DriveBaseDir   = $tbDrive.Text.Trim()
+            InformesDir      = $tbInformes.Text.Trim()
+            ActivitatsDir    = $tbActivitats.Text.Trim()
+            OutputDir        = $tbOutput.Text.Trim()
+            RutesOutputDir   = $tbRutes.Text.Trim()
+            DriveBaseDir     = $tbDrive.Text.Trim()
+            CopiaInformesDir = $tbCopia.Text.Trim()
         }
         $defaults = @{
-            InformesDir    = $Script:DefaultInformesDir
-            ActivitatsDir  = $Script:DefaultActivitatsDir
-            OutputDir      = $Script:DefaultOutputDir
-            RutesOutputDir = $Script:DefaultRutesOutputDir
-            DriveBaseDir   = $Script:DefaultDriveBaseDir
+            InformesDir      = $Script:DefaultInformesDir
+            ActivitatsDir    = $Script:DefaultActivitatsDir
+            OutputDir        = $Script:DefaultOutputDir
+            RutesOutputDir   = $Script:DefaultRutesOutputDir
+            DriveBaseDir     = $Script:DefaultDriveBaseDir
+            CopiaInformesDir = $Script:DefaultCopiaInformesDir
         }
         $overrides = _BuildSettingsOverrides $values $defaults
         if (-not (Save-AppSettings $overrides)) {

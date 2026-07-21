@@ -25,6 +25,13 @@ $ActivitatsDir = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\2_Contro
 #
 # $InformesDir = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\Informes'
 
+# Carpeta on l'eina "Copiar informes" (menu INFORMES) fa una copia de seguretat
+# PLANA (tots els Word a una sola carpeta) dels informes. Sense valor per
+# defecte: normalment es configura a la pantalla Configuracio (per ordinador),
+# pero tambe es pot fixar aqui. Descomenta:
+#
+# $CopiaInformesDir = 'D:\Copia Informes'
+
 # --- Planificador de rutes (Ruta.bat) -------------------------------------
 # Servidor de rutes OSRM que calcula la ruta circular mes rapida. Per defecte
 # s'usa el servidor public de demostracio. NOMES s'hi envien coordenades

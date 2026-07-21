@@ -1062,21 +1062,29 @@ function Select-Mode {
     [void]$form.Controls.Add($sepEines)
     $y += 24
 
-    # EINES: 5 rajoles compactes en una fila (emoji a dalt + etiqueta petita a
+    # EINES: rajoles compactes en una fila (emoji a dalt + etiqueta petita a
     # sota), segons el disseny. Comportament per rajola: 'action' tanca el menu
     # amb l'accio; 'url' obre l'enllac public SENSE tancar el menu (precintades).
+    # (Les eines de la base d'informes van al seu propi apartat INFORMES, sota.)
     $urlPrec = 'https://xexifm.github.io/informes-cornella/precintades.html'
     $tiPin   = [System.Char]::ConvertFromUtf32(0x1F4CD)   # 📍
     $tiLock  = [System.Char]::ConvertFromUtf32(0x1F512)   # 🔒
     $tiBox   = [System.Char]::ConvertFromUtf32(0x1F5C3)   # 🗃
     $tiClip  = [System.Char]::ConvertFromUtf32(0x1F4CB)   # 📋
     $tiInbox = [System.Char]::ConvertFromUtf32(0x1F4E5)   # 📥
+    $tiCopy  = [System.Char]::ConvertFromUtf32(0x1F4C1)   # 📁
+    $tiCheck = [System.Char]::ConvertFromUtf32(0x2705)    # ✅
     $tools = @(
         @{ Emoji = $tiPin;   Label = 'Generar ruta';           Kind = 'action'; Action = 'ruta' }
         @{ Emoji = $tiLock;  Label = 'Activitats precintades'; Kind = 'url';    Url = $urlPrec }
-        @{ Emoji = $tiBox;   Label = 'Actualitzar base';       Kind = 'action'; Action = 'informesdb' }
-        @{ Emoji = $tiClip;  Label = 'Editar base';            Kind = 'action'; Action = 'informesdbedit' }
         @{ Emoji = $tiInbox; Label = ('Revisar m' + [char]0x00F2 + 'bil'); Kind = 'action'; Action = 'revisarmobil' }
+    )
+    # INFORMES: eines de la base d'informes (mateixes rajoles).
+    $reports = @(
+        @{ Emoji = $tiBox;   Label = 'Actualitzar base'; Kind = 'action'; Action = 'informesdb' }
+        @{ Emoji = $tiClip;  Label = 'Editar base';      Kind = 'action'; Action = 'informesdbedit' }
+        @{ Emoji = $tiCopy;  Label = 'Copiar informes';  Kind = 'action'; Action = 'copiarinformes' }
+        @{ Emoji = $tiCheck; Label = 'Comprovar Excel';  Kind = 'action'; Action = 'comprovarexcel' }
     )
     $fTileIco   = New-Object System.Drawing.Font('Segoe UI Emoji', 14, [System.Drawing.FontStyle]::Regular)
     $fTileTxt   = New-Object System.Drawing.Font('Segoe UI', 8, [System.Drawing.FontStyle]::Regular)
@@ -1108,23 +1116,41 @@ function Select-Mode {
             $form.Close()
         }
     }.GetNewClosure()
-    $tileW = 80; $tileH = 58; $tileGap = 7; $tx = 20
-    foreach ($tool in $tools) {
-        $tb = New-Object System.Windows.Forms.Button
-        $tb.Text = ''
-        $tb.Tag = $tool
-        $tb.Location = New-Object System.Drawing.Point($tx, $y)
-        $tb.Size = New-Object System.Drawing.Size($tileW, $tileH)
-        $tb.FlatStyle = 'Flat'
-        $tb.BackColor = [System.Drawing.Color]::White
-        $tb.FlatAppearance.BorderColor = $tileBorder
-        $tb.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(250, 240, 242)
-        $tb.add_Paint($tilePaint)
-        $tb.add_Click($tileClick)
-        [void]$form.Controls.Add($tb)
-        $tx += $tileW + $tileGap
-    }
-    $y += $tileH + 14
+    $tileW = 80; $tileH = 58; $tileGap = 7
+    # Dibuixa una fila de rajoles a l'alcada $y actual i retorna la $y seguent
+    # (l'agrupem en un helper per no duplicar el loop entre EINES i INFORMES).
+    $addTileRow = {
+        param($items, $yRow)
+        $tx = 20
+        foreach ($tool in $items) {
+            $tb = New-Object System.Windows.Forms.Button
+            $tb.Text = ''
+            $tb.Tag = $tool
+            $tb.Location = New-Object System.Drawing.Point($tx, $yRow)
+            $tb.Size = New-Object System.Drawing.Size($tileW, $tileH)
+            $tb.FlatStyle = 'Flat'
+            $tb.BackColor = [System.Drawing.Color]::White
+            $tb.FlatAppearance.BorderColor = $tileBorder
+            $tb.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(250, 240, 242)
+            $tb.add_Paint($tilePaint)
+            $tb.add_Click($tileClick)
+            [void]$form.Controls.Add($tb)
+            $tx += $tileW + $tileGap
+        }
+        return ($yRow + $tileH + 14)
+    }.GetNewClosure()
+    $y = & $addTileRow $tools $y
+
+    # ---- INFORMES (base d'informes) ----------------------------------------
+    $sepInformes = New-Object System.Windows.Forms.Label
+    $sepInformes.Text = 'INFORMES'
+    $sepInformes.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
+    $sepInformes.ForeColor = [System.Drawing.Color]::FromArgb(138, 20, 38)
+    $sepInformes.Location = New-Object System.Drawing.Point(20, $y)
+    $sepInformes.AutoSize = $true
+    [void]$form.Controls.Add($sepInformes)
+    $y += 24
+    $y = & $addTileRow $reports $y
 
     # (Configuracio i Ajuda ja no son botons grans: van DISCRETS a la cantonada
     #  de la banda granat, mes avall.)
