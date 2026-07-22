@@ -89,7 +89,12 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   base* (`informesdbedit`), 📁 *Copiar informes* (`copiarinformes`) i ✅
   *Comprovar Excel* (`comprovarexcel`). Les rajoles es dibuixen amb el helper
   `$addTileRow` de `Select-Mode` (`Seguiment.ps1`), reutilitzat per EINES i
-  INFORMES. Dispatch al `switch` de `Main` (`GenerarInforme.ps1`).
+  INFORMES. Dispatch al `switch` de `Main` (`GenerarInforme.ps1`). Sota
+  *Actualitzar base*, *Copiar informes* i *Comprovar Excel* es mostra, en petit,
+  l'**última execució** (`_LastRunText`), llegida de `actualitzat_el`
+  (`informes-db.json`), `copiat_el` (`copia-informes-state.json`) i `comprovat_el`
+  (`comprovar-excel-state.json`, que ara escriu `Invoke-ComprovarExcel` via
+  `_SaveRunTimestamp`). *Editar base* no en té.
 - **Exportar llistats (CSV):** botó a *Editar base d'informes* →
   `Export-EstatsActivitats` (`Informes.ps1`). Escriu un CSV (`;`, UTF-8 amb BOM,
   a `_ResolveOutputDir`) amb una fila per informe de les activitats en Estat

@@ -1458,9 +1458,29 @@ function _ShowResultatWindow($titol, $subtitol, $text) {
     [void]$form.ShowDialog()
 }
 
+# Desa (o actualitza) una marca de temps d'"última execució" a un JSON petit,
+# conservant les altres propietats que ja hi hagi. S'usa perquè el menú pugui
+# mostrar quan es va executar cada eina per últim cop.
+function _SaveRunTimestamp($path, [string]$prop) {
+    try {
+        $dir = [System.IO.Path]::GetDirectoryName($path)
+        if ($dir -and -not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+        $data = [ordered]@{}
+        if (Test-Path -LiteralPath $path) {
+            try {
+                $ex = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
+                foreach ($pr in $ex.PSObject.Properties) { $data[$pr.Name] = $pr.Value }
+            } catch { }
+        }
+        $data[$prop] = (Get-Date).ToString('o')
+        ([pscustomobject]$data | ConvertTo-Json) | Set-Content -LiteralPath $path -Encoding UTF8
+    } catch { }
+}
+
 # Comprova que les activitats en Estat "Precinte / Cessament" (base d'informes)
 # tinguin a l'Excel el Camp Info corresponent amb valor "SI". Llista les que no.
 function Invoke-ComprovarExcel {
+    $comprovarState = Join-Path $LocalActivitatsDir 'comprovar-excel-state.json'
     $outPath = Join-Path $LocalActivitatsDir 'informes-db.json'
     if (-not (Test-Path -LiteralPath $outPath)) {
         [System.Windows.Forms.MessageBox]::Show(
@@ -1476,6 +1496,7 @@ function Invoke-ComprovarExcel {
     }
     $targets = @($db.activitats | Where-Object { [string]$_.estat_actual -eq 'Precinte / Cessament' })
     if ($targets.Count -eq 0) {
+        _SaveRunTimestamp $comprovarState 'comprovat_el'
         [System.Windows.Forms.MessageBox]::Show("No hi ha cap activitat en Estat 'Precinte / Cessament' a la base d'informes.", 'Comprovar Excel', 'OK', 'Information') | Out-Null
         return
     }
@@ -1486,6 +1507,8 @@ function Invoke-ComprovarExcel {
         return
     }
     $map = $res.Map
+    # La comprovació s'ha executat de debò: registrem la marca de temps.
+    _SaveRunTimestamp $comprovarState 'comprovat_el'
 
     $desact = New-Object System.Collections.ArrayList
     $noTrob = New-Object System.Collections.ArrayList
