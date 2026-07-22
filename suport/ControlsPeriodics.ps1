@@ -102,6 +102,7 @@ function _ReadControlsPeriodics {
             $cProper  = _FindColIndex $data $cols @('proper', 'previst')    $null
             $cAnnex   = _FindColIndex $data $cols @('classificacio', 'annex')   $null
             $cApart   = _FindColIndex $data $cols @('classificacio', 'apartat') $null
+            $cExp     = _FindColIndex $data $cols @('expedient')                $null
 
             if ($cAnnex -eq 0 -and $cApart -eq 0) {
                 return @{ Ok = $false; Error = "No s'han trobat les columnes 'Classificació general annex' ni 'Classificació general Apartat' a la fulla Estès." }
@@ -162,6 +163,8 @@ function _ReadControlsPeriodics {
                     IsII            = $cl.IsII
                     IsIII           = $cl.IsIII
                     Is561           = $cl.Is561
+                    Exp             = (& $get $r $cExp)
+                    Sel             = $false
                 })
             }
             return @{ Ok = $true; Rows = @($out); File = $latest.File.Name }
@@ -200,10 +203,13 @@ $Script:ControlsPeriodicsCols = @(
 function Show-ControlsPeriodicsWindow($allRows, [string]$fileName) {
     $colsMeta = $Script:ControlsPeriodicsCols
 
+    # La columna 0 de la graella es una casella de seleccio; les columnes de
+    # dades comencen a l'index 1. ColIdx guarda l'index de GRAELLA de la columna
+    # d'ordenacio; el mapatge a $colsMeta es (ColIdx - 1).
     # Ordre per defecte: "Proper CP previst" ascendent (el mes antic primer).
     $defaultSort = 0
     for ($i = 0; $i -lt $colsMeta.Count; $i++) { if ($colsMeta[$i].Key -eq 'ProperCP') { $defaultSort = $i; break } }
-    $state = @{ Loading = $false; ColIdx = $defaultSort; Asc = $true }
+    $state = @{ Loading = $false; ColIdx = ($defaultSort + 1); Asc = $true }
 
     $form = _NewForm
     $form.Text = 'Controls periodics'
@@ -217,16 +223,22 @@ function Show-ControlsPeriodicsWindow($allRows, [string]$fileName) {
     $grid.AllowUserToAddRows = $false
     $grid.AllowUserToDeleteRows = $false
     $grid.RowHeadersVisible = $false
-    $grid.ReadOnly = $true
     $grid.SelectionMode = 'FullRowSelect'
     $grid.MultiSelect = $false
     $grid.AutoSizeColumnsMode = 'None'
     $grid.BackgroundColor = [System.Drawing.Color]::White
+    # Columna 0: casella per triar quines activitats generar (editable).
+    $cSel = New-Object System.Windows.Forms.DataGridViewCheckBoxColumn
+    $cSel.HeaderText = 'Generar'
+    $cSel.Width = 58
+    $cSel.SortMode = 'Programmatic'
+    [void]$grid.Columns.Add($cSel)
     foreach ($cm in $colsMeta) {
         $col = New-Object System.Windows.Forms.DataGridViewTextBoxColumn
         $col.HeaderText = $cm.H
         $col.Width = $cm.W
         $col.SortMode = 'Programmatic'
+        $col.ReadOnly = $true
         [void]$grid.Columns.Add($col)
     }
 
@@ -277,7 +289,8 @@ function Show-ControlsPeriodicsWindow($allRows, [string]$fileName) {
 
         # Adjuntem una clau d'ordenacio a cada fila i ordenem per nom de
         # propietat (evita problemes d'abast amb scriptblocks dins de Sort-Object).
-        $cm = $colsMeta[$state.ColIdx]
+        # $state.ColIdx es index de GRAELLA (col 0 = casella); dades a ColIdx-1.
+        $cm = $colsMeta[[Math]::Max(0, $state.ColIdx - 1)]
         $isDate = [bool]$cm.Date
         $keyProp = $cm.Key
         $kkeyProp = $cm.KKey
@@ -294,6 +307,7 @@ function Show-ControlsPeriodicsWindow($allRows, [string]$fileName) {
 
         foreach ($row in $sorted) {
             $idx = $grid.Rows.Add(@(
+                [bool]$row.Sel,
                 $row.Id, $row.RaoSocial, $row.RaoEmail, $row.RepEmail, $row.Adreca,
                 $row.DataLlic, $row.DataControlIni, $row.PeriodicitatCP, $row.DataControlPer,
                 $row.ProperCP, $row.Annex, $row.Apartat, $row.ActPrincipal
@@ -306,9 +320,22 @@ function Show-ControlsPeriodicsWindow($allRows, [string]$fileName) {
 
     $txtCerca.add_TextChanged({ & $fill }.GetNewClosure())
 
+    # Persistencia de la casella "Generar" (sobreviu a filtres/ordenacio: es desa
+    # a l'objecte fila). Commit immediat del clic.
+    $grid.add_CurrentCellDirtyStateChanged({
+        if ($grid.IsCurrentCellDirty) { $grid.CommitEdit([System.Windows.Forms.DataGridViewDataErrorContexts]::Commit) }
+    }.GetNewClosure())
+    $grid.add_CellValueChanged({
+        param($s, $e)
+        if ($state.Loading) { return }
+        if ($e.RowIndex -lt 0 -or $e.ColumnIndex -ne 0) { return }
+        $row = $s.Rows[$e.RowIndex].Tag
+        if ($null -ne $row) { $row.Sel = [bool]$s.Rows[$e.RowIndex].Cells[0].Value }
+    }.GetNewClosure())
+
     $grid.add_ColumnHeaderMouseClick({
         param($s, $e)
-        if ($e.ColumnIndex -lt 0) { return }
+        if ($e.ColumnIndex -lt 1) { return }   # col 0 = casella, no s'ordena
         if ($state.ColIdx -eq $e.ColumnIndex) { $state.Asc = (-not $state.Asc) }
         else { $state.ColIdx = $e.ColumnIndex; $state.Asc = $true }
         foreach ($c in $grid.Columns) { $c.HeaderCell.SortGlyphDirection = [System.Windows.Forms.SortOrder]::None }
@@ -326,9 +353,19 @@ function Show-ControlsPeriodicsWindow($allRows, [string]$fileName) {
     _StyleSecondaryButton $btnExport
     $btnExport.add_Click({ _ExportControlsPeriodics $grid $colsMeta }.GetNewClosure())
     $botPanel.Controls.Add($btnExport)
+    $btnGenerar = New-Object System.Windows.Forms.Button
+    $btnGenerar.Text = 'Generar informes'; $btnGenerar.Size = New-Object System.Drawing.Size(160, 30)
+    $btnGenerar.Location = New-Object System.Drawing.Point(170, 9)
+    _StylePrimaryButton $btnGenerar
+    $btnGenerar.add_Click({
+        $triades = @()
+        foreach ($r in $allRows) { if ($r.Sel) { $triades += $r } }
+        Invoke-GenerarControlsPeriodics $triades
+    }.GetNewClosure())
+    $botPanel.Controls.Add($btnGenerar)
     $btnTancar = New-Object System.Windows.Forms.Button
     $btnTancar.Text = 'Tancar'; $btnTancar.Size = New-Object System.Drawing.Size(120, 30)
-    $btnTancar.Location = New-Object System.Drawing.Point(170, 9)
+    $btnTancar.Location = New-Object System.Drawing.Point(340, 9)
     _StyleSecondaryButton $btnTancar
     $btnTancar.add_Click({ $form.Close() }.GetNewClosure())
     $botPanel.Controls.Add($btnTancar)
@@ -356,8 +393,9 @@ function _ExportControlsPeriodics($grid, $colsMeta) {
     $rows = New-Object System.Collections.ArrayList
     foreach ($gr in $grid.Rows) {
         $o = [ordered]@{}
+        # Les columnes de dades comencen a l'index 1 (la 0 es la casella Generar).
         for ($c = 0; $c -lt $colsMeta.Count; $c++) {
-            $o[$colsMeta[$c].H] = [string]$gr.Cells[$c].Value
+            $o[$colsMeta[$c].H] = [string]$gr.Cells[$c + 1].Value
         }
         [void]$rows.Add([pscustomobject]$o)
     }
@@ -413,4 +451,180 @@ function Invoke-ControlsPeriodics {
         return
     }
     Show-ControlsPeriodicsWindow $rows $res.File
+}
+
+# ----------------------------------------------------------------------------
+# Generació d'informes de requeriment (control periòdic) en lot
+# ----------------------------------------------------------------------------
+# Regim aplicable a una activitat, amb PRECEDENCIA 561 (Decret 112/2010) > III >
+# II. Retorna 'II' | 'III' | '112' | $null. (Funcio PURA, testejable.)
+function _ControlCatalegKind($row) {
+    if ($row.Is561) { return '112' }
+    if ($row.IsIII) { return 'III' }
+    if ($row.IsII)  { return 'II' }
+    return $null
+}
+
+# Troba el cataleg .docx d'ESTRUCTURALS de "control periòdic" per al regim donat,
+# pel TEXT del nom (robust a variacions). Retorna el BaseName o $null.
+#   'II'  -> conte 'annex ii' (no 'annex iii') + 'control'
+#   'III' -> conte 'annex iii' + 'control'
+#   '112' -> conte '112' (o 'decret 112') + 'control'
+function _FindControlCataleg($catalegs, [string]$kind) {
+    foreach ($f in $catalegs) {
+        $n = _NormalizeText $f.BaseName
+        if ($n -notmatch 'control') { continue }
+        if ($kind -eq 'III' -and $n -match '\bannex iii\b') { return $f.BaseName }
+        if ($kind -eq 'II'  -and $n -match '\bannex ii\b' -and $n -notmatch '\bannex iii\b') { return $f.BaseName }
+        if ($kind -eq '112' -and ($n -match '\b112\b' -or $n -match 'decret 112')) { return $f.BaseName }
+    }
+    return $null
+}
+
+# Totes les claus (item + fills) d'un cataleg ja parsejat: per seleccionar TOTES
+# les deficiencies del cataleg (el requeriment de control periodic les porta
+# totes).
+function _AllCatalegKeys($parsed) {
+    $keys = @()
+    foreach ($sec in $parsed.Sections) {
+        foreach ($el in $sec.Items) {
+            if ($el.Kind -eq 'item') {
+                $keys += (_ItemKey $sec.Title $el.Short)
+                foreach ($ch in $el.Children) { $keys += (_ItemKey $sec.Title $el.Short $ch.Short) }
+            }
+        }
+    }
+    return $keys
+}
+
+# Genera, per a cada activitat triada, un informe REQUERIMENT (com "Requeriment -
+# Nou") amb: capcalera de les dades de l'activitat, TOTES les deficiencies del
+# cataleg de control periodic segons la classificacio, i la conclusio
+# "Requeriment". Reutilitza el motor no interactiu (Get-ParsedCataleg,
+# Build-SelectionFromKeys, Read-Conclusions, Build-ConclusionsFromTitles,
+# Build-FieldsFromPaquet, Build-Document).
+function Invoke-GenerarControlsPeriodics($rows) {
+    $rows = @($rows)
+    if ($rows.Count -eq 0) {
+        [System.Windows.Forms.MessageBox]::Show("Marca almenys una activitat (columna 'Generar') per generar-ne l'informe.", 'Generar informes', 'OK', 'Information') | Out-Null
+        return
+    }
+
+    # Comprovem quins catalegs de control periodic hi ha i quins falten segons
+    # els regims de les activitats triades.
+    $catalegs = @(Get-Catalegs)
+    $needed = @{}
+    foreach ($r in $rows) { $k = _ControlCatalegKind $r; if ($k) { $needed[$k] = $true } }
+    $missing = @()
+    foreach ($k in $needed.Keys) {
+        if ($null -eq (_FindControlCataleg $catalegs $k)) {
+            $nom = switch ($k) { '112' { 'Decret 112/2010 - control periòdic' } 'III' { 'Annex III Llei 20/2009 - control periòdic' } 'II' { 'Annex II Llei 20/2009 - control periòdic' } }
+            $missing += $nom
+        }
+    }
+    if ($missing.Count -gt 0) {
+        [System.Windows.Forms.MessageBox]::Show(
+            ("Falten catàlegs de control periòdic a la carpeta ESTRUCTURALS:`n`n - " + ($missing -join "`n - ") +
+             "`n`nAfegeix-hi aquests .docx (com el REQ1.docx) amb les deficiències corresponents i torna-ho a provar."),
+            'Generar informes', 'OK', 'Warning') | Out-Null
+        return
+    }
+
+    $rc = [System.Windows.Forms.MessageBox]::Show(
+        ("Es generaran $($rows.Count) informes de requeriment (control periòdic), un per activitat triada.`n`n" +
+         "Capçalera amb les dades de l'activitat, totes les deficiències del catàleg segons la classificació, i la conclusió 'Requeriment'.`n`nVols continuar?"),
+        'Generar informes', 'YesNo', 'Question')
+    if ($rc -ne [System.Windows.Forms.DialogResult]::Yes) { return }
+
+    # Finestra de progrés amb Cancel·lar.
+    $cancel = @{ Flag = $false; Running = $true }
+    $form = _NewForm
+    $form.Text = 'Generar informes'
+    $form.Size = New-Object System.Drawing.Size(560, 170)
+    $form.FormBorderStyle = 'FixedDialog'; $form.MaximizeBox = $false
+    $lbl = New-Object System.Windows.Forms.Label
+    $lbl.Location = New-Object System.Drawing.Point(20, 18); $lbl.Size = New-Object System.Drawing.Size(510, 40)
+    $lbl.Text = 'Preparant...'
+    $form.Controls.Add($lbl)
+    $bar = New-Object System.Windows.Forms.ProgressBar
+    $bar.Location = New-Object System.Drawing.Point(20, 66); $bar.Size = New-Object System.Drawing.Size(510, 22)
+    $bar.Style = 'Continuous'; $bar.Minimum = 0; $bar.Maximum = [Math]::Max(1, $rows.Count)
+    $form.Controls.Add($bar)
+    $btnCancel = New-Object System.Windows.Forms.Button
+    $btnCancel.Text = 'Cancel·lar'; $btnCancel.Size = New-Object System.Drawing.Size(120, 30)
+    $btnCancel.Location = New-Object System.Drawing.Point(410, 96)
+    _StyleSecondaryButton $btnCancel
+    $btnCancel.add_Click({ $cancel.Flag = $true }.GetNewClosure())
+    $form.Controls.Add($btnCancel)
+    $form.add_FormClosing({ param($s, $e) if ($cancel.Running) { $cancel.Flag = $true; $e.Cancel = $true } }.GetNewClosure())
+    $form.Show()
+    [System.Windows.Forms.Application]::DoEvents()
+
+    $ok = 0; $err = 0; $cancelled = $false
+    $errDetalls = New-Object System.Collections.ArrayList
+    $word = $null
+    try {
+        try { $word = New-Object -ComObject Word.Application } catch { $word = $null }
+        if ($null -eq $word) {
+            [System.Windows.Forms.MessageBox]::Show("No s'ha pogut iniciar Microsoft Word.", 'Generar informes', 'OK', 'Error') | Out-Null
+            return
+        }
+        $word.Visible = $false; $word.DisplayAlerts = 0
+        try { $word.AutomationSecurity = 1 } catch { }
+
+        # Conclusio "Requeriment" (grup REQ1) i cache de catalegs parsejats.
+        $conclAll    = Read-Conclusions -word $word -path $ConclusionsPath -reportType 'REQ1'
+        $conclusions = Build-ConclusionsFromTitles $conclAll.Selectable @('Requeriment')
+        $parsedCache = @{}
+
+        $done = 0
+        foreach ($r in $rows) {
+            if ($cancel.Flag) { $cancelled = $true; break }
+            $done++
+            $lbl.Text = "Generant informes...  $done de $($rows.Count)`nGIA $($r.Id) - $($r.RaoSocial)"
+            if ($bar.Value -lt $bar.Maximum) { $bar.Value = $done }
+            [System.Windows.Forms.Application]::DoEvents()
+
+            $kind = _ControlCatalegKind $r
+            $catName = _FindControlCataleg $catalegs $kind
+            if (-not $catName) { $err++; [void]$errDetalls.Add("GIA $($r.Id): sense catàleg per al regim $kind"); continue }
+            try {
+                if (-not $parsedCache.ContainsKey($catName)) {
+                    $catPath = Join-Path $EstructuralsDir ($catName + '.docx')
+                    $parsedCache[$catName] = Get-ParsedCataleg -word $word -path $catPath
+                }
+                $parsed   = $parsedCache[$catName]
+                $keys     = _AllCatalegKeys $parsed
+                $selected = Build-SelectionFromKeys $parsed.Sections $keys
+                $fields   = Build-FieldsFromPaquet $selected $conclusions $conclAll.Always $null
+                $header   = @{
+                    ID_GIA = [string]$r.Id; EXP_NUM = [string]$r.Exp; ADRECA = [string]$r.Adreca
+                    ACTIVITAT = [string]$r.ActPrincipal; TITULAR = [string]$r.RaoSocial
+                    ORIGEN_TIPUS = 'insp'; DATA_INSPECCIO = ''; NUM_ANOTACIO = ''; DATA_ANOTACIO = ''
+                }
+                [void](Build-Document -word $word -header $header `
+                                      -selectedSections $selected -fields $fields `
+                                      -conclusions $conclusions -alwaysConclusions $conclAll.Always `
+                                      -catalegName $catName -introText $parsed.IntroText `
+                                      -conclusionsHeaderText $conclAll.HeaderText `
+                                      -isFixedBody $parsed.IsFixedBody -fixedBodyLines $parsed.FixedBodyLines)
+                $ok++
+            } catch {
+                $err++; [void]$errDetalls.Add("GIA $($r.Id): $($_.Exception.Message)")
+            }
+        }
+    } finally {
+        $cancel.Running = $false
+        try { $form.Close() } catch { }
+        Close-WordApp $word
+    }
+
+    $titol = if ($cancelled) { 'Generació cancel·lada' } else { 'Generació completada' }
+    $dir = _ResolveOutputDir
+    $msg = "$titol`n`nInformes generats: $ok`nErrors: $err`n`nCarpeta de sortida:`n$dir"
+    if ($errDetalls.Count -gt 0) { $msg += "`n`nDetall d'errors:`n - " + (($errDetalls | Select-Object -First 10) -join "`n - ") }
+    $r2 = [System.Windows.Forms.MessageBox]::Show($msg + "`n`nVols obrir la carpeta de sortida?", 'Generar informes', 'YesNo', 'Information')
+    if ($r2 -eq [System.Windows.Forms.DialogResult]::Yes) {
+        try { Start-Process -FilePath $dir | Out-Null } catch { }
+    }
 }

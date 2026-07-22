@@ -206,6 +206,24 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   comença per 561, exclou 1561) i `_ParseCellDate`. Les columnes de l'Excel es
   localitzen pel text de capçalera (`_FindColIndex`), amb fallback als índexs
   fixos coneguts de l'adreça.
+- **Generar informes (lot)**: la graella té una **columna de casella "Generar"**
+  (col 0, editable; la resta només lectura; la selecció es desa a l'objecte fila
+  `.Sel` i sobreviu a filtres/ordre) i un botó **Generar informes**. Per cada
+  activitat marcada genera un **requeriment** (com "Requeriment - Nou") reutilitzant
+  el motor NO interactiu (`Get-ParsedCataleg` + `Build-SelectionFromKeys` amb
+  TOTES les deficiències via `_AllCatalegKeys`, `Read-Conclusions -reportType 'REQ1'`
+  + `Build-ConclusionsFromTitles @('Requeriment')`, `Build-FieldsFromPaquet`,
+  `Build-Document`). La capçalera surt de les dades de l'activitat; l'Objecte és
+  **"Visita inspecció"** (`ORIGEN_TIPUS='insp'`, data en blanc). El **catàleg**
+  es tria per la classificació amb **precedència 561 (Decret 112/2010) > III >
+  II** (`_ControlCatalegKind`) i es localitza pel nom a ESTRUCTURALS
+  (`_FindControlCataleg`: conté "control" + "annex ii"/"annex iii"/"112"). **Cal
+  afegir a `ESTRUCTURALS/` els tres catàlegs .docx** (com el REQ1.docx) amb les
+  deficiències: p. ex. "Annex II Llei 20/2009 - control periòdic", "Annex III
+  Llei 20/2009 - control periòdic", "Decret 112/2010 - control periòdic"; si en
+  falta algun, l'eina ho avisa i no genera. Sortida a `_ResolveOutputDir`
+  (carpeta d'informes generats), amb finestra de progrés + Cancel·lar. Funcions
+  pures testejades: `_ControlCatalegKind` i `_FindControlCataleg`.
 
 ## Plànol públic d'activitats precintades
 - `suport/rutes/Precintades.ps1` genera `docs/dades/precintades.json` a partir
