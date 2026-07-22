@@ -548,6 +548,10 @@ $CopiaInformesDir = _ResolveEffectiveValue $AppSettings.CopiaInformesDir $CopiaI
 # carrega tambe en headless perque els tests provin la logica de text pura.
 . (Join-Path $ScriptRoot 'Informes.ps1')
 
+# Lector de catalegs/conclusions en JSON (Opcio B). Nomes defineix funcions;
+# segur en headless. Es carrega abans que s'usi (Get-ParsedCataleg/Read-Conclusions).
+. (Join-Path $ScriptRoot 'CatalegJson.ps1')
+
 # Carreguem l'eina "Controls periodics" (llistat d'activitats amb control
 # periodic a partir de l'Excel). Nomes defineix funcions; segur en headless.
 . (Join-Path $ScriptRoot 'ControlsPeriodics.ps1')
@@ -1459,6 +1463,21 @@ function Test-StyleMatch([string]$styleName, [int]$level) {
 $Script:_parseCache = @{}
 
 function Get-ParsedCataleg($word, $path) {
+    # Si hi ha un JSON al costat del .docx (mateix nom), el fem servir (no cal
+    # Word). Si falla per qualsevol motiu, tornem al .docx (fallback segur).
+    $jsonPath = [System.IO.Path]::ChangeExtension($path, '.json')
+    if (Test-Path -LiteralPath $jsonPath) {
+        try {
+            $fij = Get-Item -LiteralPath $jsonPath -ErrorAction Stop
+            $keyj = "json|$jsonPath|$($fij.LastWriteTimeUtc.Ticks)|$($fij.Length)"
+            if ($Script:_parseCache.ContainsKey($keyj)) { return $Script:_parseCache[$keyj] }
+            $parsedj = Read-CatalegJson $jsonPath
+            $Script:_parseCache[$keyj] = $parsedj
+            return $parsedj
+        } catch {
+            Write-Host "Avis: no s'ha pogut llegir el JSON '$jsonPath' ($($_.Exception.Message)); es fa servir el .docx."
+        }
+    }
     $key = $path
     try {
         $fi = Get-Item -LiteralPath $path -ErrorAction Stop
@@ -2476,6 +2495,14 @@ function Read-Conclusions($word, $path, $reportType = $null) {
     #   - Frases fixes (sempre, per a qualsevol tipus): paragrafs Normal que
     #     comencen amb '::SEMPRE:: '. S'imprimeixen en l'ordre del fitxer.
     $empty = [pscustomobject]@{ HeaderText=''; Selectable=@(); Always=@() }
+
+    # Si hi ha un JSON al costat (0 CONCLUSIONS.json), el fem servir (no cal Word).
+    # Fallback segur al .docx si falla.
+    $jsonPath = [System.IO.Path]::ChangeExtension($path, '.json')
+    if (Test-Path -LiteralPath $jsonPath) {
+        try { return (Read-ConclusionsJson $jsonPath $reportType) }
+        catch { Write-Host "Avis: no s'ha pogut llegir '$jsonPath' ($($_.Exception.Message)); es fa servir el .docx." }
+    }
     if (-not (Test-Path -LiteralPath $path)) { return $empty }
 
     $wantType = if ([string]::IsNullOrWhiteSpace($reportType)) { '' } else { _NormalizeText $reportType }

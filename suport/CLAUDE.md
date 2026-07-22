@@ -162,6 +162,35 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   paquet inclou `ORIGEN_TIPUS` i `DATA_INSPECCIO` (a `HEADER_KEYS`). Al PC, si un
   paquet ANTIC no porta `ORIGEN_TIPUS`, es manté el fallback 'doc'.
 
+## Catàlegs en JSON (REQ1, 0 CONCLUSIONS) — format modern editable
+- **Objectiu (petició de l'usuari):** deixar de dependre del Word "rudimentari"
+  per als catàlegs; format estructurat, editable des del programa, amb nivells
+  (secció/ítem/fill), negreta/cursiva i afegir/treure requeriments. **Fase 1
+  (feta):** format JSON + el programa genera des del JSON. **Fase 2 (pendent):**
+  editor visual a la finestra principal (clicant el nom del catàleg en vermell,
+  amb un emoji ✏️).
+- **Format** (`ESTRUCTURALS/REQ1.json`, `ESTRUCTURALS/0 CONCLUSIONS.json`):
+  Opció B — el cos de cada paràgraf és una llista de **runs** `{"t","b","i"}`
+  (text + negreta + cursiva); un paràgraf pot ser `"url": true` (enllaç, estil
+  Cita). Catàleg: `{tipus, intro[], seccions[{titol, items[{nivell, titol,
+  cos[], fills[]}]}]}` (nivell = item|subseccio|intro; fills = ::CHILD::).
+  Conclusions: `{capcalera, grups[{tipus, conclusions[{titol, cos}]}], sempre[]}`.
+- **Lectura** (`suport/CatalegJson.ps1`, headless/testejable): `Read-CatalegJson`
+  i `Read-ConclusionsJson` tornen EXACTAMENT el mateix model que `Parse-Cataleg`
+  / `Read-Conclusions`. El cos s'**aplana** a la mateixa cadena amb marques
+  (`_RunsToMarkup`: `**negreta**`, `//cursiva//`, `[[URL]] …`) que ja entenen
+  `Type-RichText`/`_SplitTextAndUrls` → **la generació des de JSON és idèntica a
+  la del .docx**. `Get-ParsedCataleg` i `Read-Conclusions` fan servir el `.json`
+  si existeix al costat del `.docx` (mateix nom), amb **fallback segur al .docx**
+  si el JSON falla. Els `.docx` es conserven (còpia de seguretat).
+- **Conversió inicial**: els JSON es van generar a partir dels `.docx` amb un
+  convertidor (Python, a scratchpad) que replica `Parse-Cataleg`/`Read-Conclusions`
+  i **comprova byte a byte** que `flatten(runs)` reprodueix la línia original
+  (mateixa generació). Tests a `run-tests.ps1` (`_RunsToMarkup`,
+  `_JsonParaToBodyLine`, lectura dels JSON reals). Nota: `Type-RichText` tracta
+  `**`/`//` com a spans NO solapats (un run és negreta O cursiva, mai totes dues
+  alhora).
+
 ## Configuració per ordinador (portabilitat)
 - El programa és **portable**: cap ordinador nou hauria de necessitar tocar
   codi ni `config.ps1`. Hi ha tres capes de prioritat creixent: valor
