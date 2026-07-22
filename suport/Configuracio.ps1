@@ -186,8 +186,11 @@ function Invoke-ConfiguracioScreen {
             [System.Windows.Forms.MessageBox]::Show("No s'ha pogut obrir Actualitzar.bat:`n$($_.Exception.Message)", 'Actualitzar el programa', 'OK', 'Error') | Out-Null
             return
         }
-        $form.Close()
-        exit 0
+        # Tanquem el programa DES DE DINS del gestor de clic. Fer servir 'exit'
+        # aqui llenca una excepcio de PowerShell que la bomba de missatges de
+        # WinForms mostra com a "Excepcio no controlada en un component"; en
+        # canvi [Environment]::Exit acaba el proces directament, sense l'error.
+        [System.Environment]::Exit(0)
     }.GetNewClosure())
     [void]$grpMant.Controls.Add($btnActualitzar)
 
@@ -257,8 +260,9 @@ function Invoke-ConfiguracioScreen {
             try {
                 Start-Process -FilePath 'wscript.exe' -ArgumentList ('"' + (Join-Path $ScriptRoot 'GenerarInforme.vbs') + '"')
             } catch { }
-            $form.Close()
-            exit 0
+            # Mateix motiu que a "Actualitzar el programa": acabem el proces amb
+            # [Environment]::Exit i no amb 'exit' (que petaria dins del gestor).
+            [System.Environment]::Exit(0)
         } else {
             $form.Close()
         }
