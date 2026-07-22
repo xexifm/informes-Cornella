@@ -1185,12 +1185,18 @@ function Export-EstatsActivitats($db) {
 # ============================================================================
 # Copiar informes — eina INFORMES "Copiar informes"
 # ============================================================================
-# Còpia PLANA i incremental dels Word de $InformesDir a $CopiaInformesDir:
-#  - només *.doc / *.docx (ignora els temporals ~$...);
+# Còpia PLANA i incremental dels INFORMES Word de $InformesDir a
+# $CopiaInformesDir:
+#  - NOMÉS es consideren informes: *.doc / *.docx (ignora els temporals ~$...)
+#    AMB DATA AL PRINCIPI DEL NOM (AAAA-MM-DD, AA_MM_DD, etc.) — mateix criteri
+#    que "Actualitzar base" (_ParseDataInformeFromName). Qualsevol altre Word
+#    (plantilles, esborranys, documents diversos) NO es copia;
 #  - guarda la data de l'última còpia (copia-informes-state.json) i només mira
-#    els fitxers modificats DESPRÉS (com "Actualitzar base");
+#    els fitxers modificats DESPRÉS;
 #  - si el fitxer ja és al destí (mateix nom), NO es torna a copiar;
-#  - MAI esborra res del destí (còpia additiva).
+#  - MAI esborra res del destí (còpia additiva);
+#  - mostra una finestra de progrés amb botó CANCEL·LAR i confirma abans de
+#    copiar (amb el nombre d'informes) perquè mai comenci "a cegues".
 function Invoke-CopiarInformes {
     if ([string]::IsNullOrWhiteSpace($CopiaInformesDir)) {
         [System.Windows.Forms.MessageBox]::Show(
@@ -1200,6 +1206,10 @@ function Invoke-CopiarInformes {
     }
     if ([string]::IsNullOrWhiteSpace($InformesDir) -or -not (Test-Path -LiteralPath $InformesDir -ErrorAction SilentlyContinue)) {
         [System.Windows.Forms.MessageBox]::Show("No s'ha trobat la carpeta d'informes:`n$InformesDir", 'Copiar informes', 'OK', 'Warning') | Out-Null
+        return
+    }
+    if ([System.IO.Path]::GetFullPath($CopiaInformesDir).TrimEnd('\') -ieq [System.IO.Path]::GetFullPath($InformesDir).TrimEnd('\')) {
+        [System.Windows.Forms.MessageBox]::Show("La carpeta de còpia no pot ser la mateixa que la carpeta d'informes.", 'Copiar informes', 'OK', 'Warning') | Out-Null
         return
     }
     try {
@@ -1228,34 +1238,137 @@ function Invoke-CopiarInformes {
         } catch { $prevUtc = [datetime]::MinValue }
     }
 
-    $files = @()
-    try {
-        $files = @(Get-ChildItem -LiteralPath $InformesDir -Recurse -File -Include '*.doc','*.docx' -ErrorAction SilentlyContinue |
-                   Where-Object { $_.Name -notlike '~$*' })
-    } catch { }
+    # ---- Finestra de progrés amb CANCEL·LAR --------------------------------
+    # Running: mentre és cert, la X de la finestra es tracta com a "cancel·lar"
+    # (no es tanca de debò fins al 'finally'), així el bucle no toca mai controls
+    # ja destruïts.
+    $cancel = @{ Flag = $false; Running = $true }
+    $form = _NewForm
+    $form.Text = 'Copiar informes'
+    $form.Size = New-Object System.Drawing.Size(560, 190)
+    $form.FormBorderStyle = 'FixedDialog'
+    $form.MaximizeBox = $false
+    $lbl = New-Object System.Windows.Forms.Label
+    $lbl.Location = New-Object System.Drawing.Point(20, 18)
+    $lbl.Size = New-Object System.Drawing.Size(510, 60)
+    $lbl.Text = "Cercant informes a:`n$InformesDir"
+    $form.Controls.Add($lbl)
+    $bar = New-Object System.Windows.Forms.ProgressBar
+    $bar.Location = New-Object System.Drawing.Point(20, 88)
+    $bar.Size = New-Object System.Drawing.Size(510, 22)
+    $bar.Style = 'Marquee'
+    $form.Controls.Add($bar)
+    $btnCancel = New-Object System.Windows.Forms.Button
+    $btnCancel.Text = 'Cancel·lar'
+    $btnCancel.Size = New-Object System.Drawing.Size(120, 30)
+    $btnCancel.Location = New-Object System.Drawing.Point(410, 118)
+    _StyleSecondaryButton $btnCancel
+    $btnCancel.add_Click({ $cancel.Flag = $true }.GetNewClosure())
+    $form.Controls.Add($btnCancel)
+    $form.add_FormClosing({
+        param($s, $e)
+        if ($cancel.Running) { $cancel.Flag = $true; $e.Cancel = $true }  # X = cancel·lar; el tancament real el fa el 'finally'
+    }.GetNewClosure())
+    $form.Show()
+    [System.Windows.Forms.Application]::DoEvents()
 
     $copied = 0; $skipped = 0; $errors = 0
-    foreach ($f in $files) {
-        if ($f.LastWriteTimeUtc -le $prevUtc) { continue }          # no modificat des de l'última còpia
-        $dest = [System.IO.Path]::Combine($CopiaInformesDir, $f.Name)
-        if (Test-Path -LiteralPath $dest) { $skipped++; continue }  # ja copiat -> no recopiar
-        try { Copy-Item -LiteralPath $f.FullName -Destination $dest -ErrorAction Stop; $copied++ }
-        catch { $errors++ }
-    }
-
-    $newState = [pscustomobject]@{
-        generat_el = $generatEl
-        copiat_el  = (Get-Date).ToString('o')
-        desti      = $CopiaInformesDir
-    }
+    $cancelled = $false
+    $nothing = $false
+    $trobats = 0
     try {
-        $dirState = [System.IO.Path]::GetDirectoryName($stateFile)
-        if ($dirState -and -not (Test-Path -LiteralPath $dirState)) { New-Item -ItemType Directory -Path $dirState -Force | Out-Null }
-        ($newState | ConvertTo-Json) | Set-Content -LiteralPath $stateFile -Encoding UTF8
-    } catch { }
+        # 1. Enumerar només els INFORMES (data al principi del nom). Streaming
+        #    amb DoEvents periòdic perquè la finestra respongui i es pugui
+        #    cancel·lar; 'break' atura el pipeline.
+        $files = New-Object System.Collections.ArrayList
+        $seen = 0
+        Get-ChildItem -LiteralPath $InformesDir -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object {
+            $seen++
+            if (($seen % 200) -eq 0) {
+                $lbl.Text = "Cercant informes...`n$seen fitxers explorats  ·  $($files.Count) informes trobats"
+                [System.Windows.Forms.Application]::DoEvents()
+                if ($cancel.Flag) { break }
+            }
+            if ($_.Name -notlike '~$*' -and
+                ($_.Extension -ieq '.docx' -or $_.Extension -ieq '.doc') -and
+                $null -ne (_ParseDataInformeFromName $_.Name)) {
+                [void]$files.Add($_)
+            }
+        }
+        $trobats = $files.Count
 
+        if ($cancel.Flag) {
+            $cancelled = $true
+        } else {
+            # 2. Quins cal copiar de veritat: modificats després de l'última còpia
+            #    i que encara no siguin al destí (mai recopiem ni esborrem).
+            $lbl.Text = "Preparant la llista d'informes a copiar..."
+            [System.Windows.Forms.Application]::DoEvents()
+            $toCopy = New-Object System.Collections.ArrayList
+            foreach ($f in $files) {
+                if ($f.LastWriteTimeUtc -le $prevUtc) { continue }
+                $dest = [System.IO.Path]::Combine($CopiaInformesDir, $f.Name)
+                if (Test-Path -LiteralPath $dest) { $skipped++; continue }
+                [void]$toCopy.Add($f)
+            }
+
+            if ($toCopy.Count -eq 0) {
+                $nothing = $true
+            } else {
+                # 3. Confirmació explícita ABANS de copiar res.
+                $rc = [System.Windows.Forms.MessageBox]::Show(
+                    "Es copiaran $($toCopy.Count) informes (de $trobats trobats; $skipped ja hi són).`n`nDestí: $CopiaInformesDir`n`nVols continuar?",
+                    'Copiar informes', 'YesNo', 'Question')
+                if ($rc -ne [System.Windows.Forms.DialogResult]::Yes) {
+                    $cancelled = $true
+                } else {
+                    # 4. Còpia amb barra de progrés i cancel·lació.
+                    $bar.Style = 'Continuous'; $bar.Minimum = 0; $bar.Maximum = [Math]::Max(1, $toCopy.Count); $bar.Value = 0
+                    $done = 0
+                    foreach ($f in $toCopy) {
+                        if ($cancel.Flag) { $cancelled = $true; break }
+                        $dest = [System.IO.Path]::Combine($CopiaInformesDir, $f.Name)
+                        try { Copy-Item -LiteralPath $f.FullName -Destination $dest -ErrorAction Stop; $copied++ }
+                        catch { $errors++ }
+                        $done++
+                        if ($bar.Value -lt $bar.Maximum) { $bar.Value = $done }
+                        $lbl.Text = "Copiant informes...  $done de $($toCopy.Count)`nCopiats: $copied   Errors: $errors"
+                        [System.Windows.Forms.Application]::DoEvents()
+                    }
+                }
+            }
+        }
+    } finally {
+        $cancel.Running = $false   # permet el tancament real de la finestra
+        try { $form.Close() } catch { }
+    }
+
+    if ($nothing) {
+        [System.Windows.Forms.MessageBox]::Show(
+            "No hi ha informes nous per copiar.`n`nInformes trobats: $trobats  (ja copiats: $skipped)`nDestí: $CopiaInformesDir",
+            'Copiar informes', 'OK', 'Information') | Out-Null
+        return
+    }
+
+    # 5. Desem l'estat NOMÉS si s'ha completat (si s'ha cancel·lat, deixem la
+    #    data com estava perquè la propera vegada es tornin a comprovar els que
+    #    faltaven; els ja copiats se saltaran igualment per existència).
+    if (-not $cancelled) {
+        $newState = [pscustomobject]@{
+            generat_el = $generatEl
+            copiat_el  = (Get-Date).ToString('o')
+            desti      = $CopiaInformesDir
+        }
+        try {
+            $dirState = [System.IO.Path]::GetDirectoryName($stateFile)
+            if ($dirState -and -not (Test-Path -LiteralPath $dirState)) { New-Item -ItemType Directory -Path $dirState -Force | Out-Null }
+            ($newState | ConvertTo-Json) | Set-Content -LiteralPath $stateFile -Encoding UTF8
+        } catch { }
+    }
+
+    $titol = if ($cancelled) { 'Còpia cancel·lada' } else { 'Còpia completada' }
     [System.Windows.Forms.MessageBox]::Show(
-        "Còpia completada.`n`nInformes nous copiats: $copied`nJa existents (omesos): $skipped`nErrors: $errors`n`nDestí: $CopiaInformesDir",
+        "$titol`n`nInformes copiats: $copied`nJa existents (omesos): $skipped`nErrors: $errors`n`nDestí: $CopiaInformesDir",
         'Copiar informes', 'OK', 'Information') | Out-Null
 }
 
