@@ -965,12 +965,9 @@ function Invoke-InformesDbEdit {
         $state.Loading = $false
     }.GetNewClosure()
 
-    # Cerca i filtres tornen a omplir la graella.
+    # Cerca torna a omplir la graella. (Els filtres multiseleccio ja criden
+    # $fill pel seu compte, via l'onChange passat a _MakeMultiFilter.)
     $txtCerca.add_TextChanged({ & $fill }.GetNewClosure())
-    $cbBreu.add_SelectedIndexChanged({ & $fill }.GetNewClosure())
-    $cbEstat.add_SelectedIndexChanged({ & $fill }.GetNewClosure())
-    $cbMotiu.add_SelectedIndexChanged({ & $fill }.GetNewClosure())
-    $cbIgn.add_SelectedIndexChanged({ & $fill }.GetNewClosure())
 
     # Clic a la capcalera: tria la columna d'ordenacio SECUNDARIA (dins de cada
     # activitat) i alterna asc/desc. L'agrupament per activitat no es trenca mai.

@@ -200,9 +200,9 @@ $Script:ControlsPeriodicsCols = @(
 function Show-ControlsPeriodicsWindow($allRows, [string]$fileName) {
     $colsMeta = $Script:ControlsPeriodicsCols
 
-    # Index de la columna "Data llicència" (ordre per defecte).
+    # Ordre per defecte: "Proper CP previst" ascendent (el mes antic primer).
     $defaultSort = 0
-    for ($i = 0; $i -lt $colsMeta.Count; $i++) { if ($colsMeta[$i].Key -eq 'DataLlic') { $defaultSort = $i; break } }
+    for ($i = 0; $i -lt $colsMeta.Count; $i++) { if ($colsMeta[$i].Key -eq 'ProperCP') { $defaultSort = $i; break } }
     $state = @{ Loading = $false; ColIdx = $defaultSort; Asc = $true }
 
     $form = _NewForm
@@ -239,18 +239,18 @@ function Show-ControlsPeriodicsWindow($allRows, [string]$fileName) {
     $topPanel.Controls.Add($lblF)
     # Filtre de SELECCIO MULTIPLE (cap marcat = totes). L'accio crida $fill
     # (definit mes avall; ja existeix quan l'usuari hi toca).
-    $mfClass = _MakeMultiFilter $topPanel 96 10 130 'Tots' @('II', 'III', '561') { & $fill }
+    $mfClass = _MakeMultiFilter $topPanel 96 10 104 'Tots' @('II', 'III', '561') { & $fill }
     $lblC = New-Object System.Windows.Forms.Label
     $lblC.Text = 'Cerca:'; $lblC.AutoSize = $true
-    $lblC.Location = New-Object System.Drawing.Point(206, 13)
+    $lblC.Location = New-Object System.Drawing.Point(216, 13)
     $topPanel.Controls.Add($lblC)
     $txtCerca = New-Object System.Windows.Forms.TextBox
-    $txtCerca.Location = New-Object System.Drawing.Point(256, 10); $txtCerca.Width = 300
+    $txtCerca.Location = New-Object System.Drawing.Point(266, 10); $txtCerca.Width = 300
     $topPanel.Controls.Add($txtCerca)
     $lblCompte = New-Object System.Windows.Forms.Label
     $lblCompte.AutoSize = $true
     $lblCompte.ForeColor = [System.Drawing.Color]::FromArgb(90, 90, 90)
-    $lblCompte.Location = New-Object System.Drawing.Point(580, 13)
+    $lblCompte.Location = New-Object System.Drawing.Point(590, 13)
     $topPanel.Controls.Add($lblCompte)
 
     # ---- (Re)omple la graella: filtre + cerca + ordre -------------------
