@@ -465,36 +465,32 @@ function _ControlCatalegKind($row) {
     return $null
 }
 
-# Troba el cataleg .docx d'ESTRUCTURALS de "control periòdic" per al regim donat,
-# pel TEXT del nom (robust a variacions). Retorna el BaseName o $null.
-#   'II'  -> conte 'annex ii' (no 'annex iii') + 'control'
-#   'III' -> conte 'annex iii' + 'control'
-#   '112' -> conte '112' (o 'decret 112') + 'control'
-function _FindControlCataleg($catalegs, [string]$kind) {
-    foreach ($f in $catalegs) {
-        $n = _NormalizeText $f.BaseName
-        if ($n -notmatch 'control') { continue }
-        if ($kind -eq 'III' -and $n -match '\bannex iii\b') { return $f.BaseName }
-        if ($kind -eq 'II'  -and $n -match '\bannex ii\b' -and $n -notmatch '\bannex iii\b') { return $f.BaseName }
-        if ($kind -eq '112' -and ($n -match '\b112\b' -or $n -match 'decret 112')) { return $f.BaseName }
+# Titol EXACTE de la deficiencia (Titol 2 del cataleg REQ1) segons el regim.
+# NO son catalegs nous: son items dins de REQ1 (grup "Controls periòdics").
+function _ControlSectionTitle([string]$kind) {
+    switch ($kind) {
+        '112' { return 'Decret 112/2010 - control periòdic' }
+        'III' { return 'Annex III Llei 20/2009 - control periòdic' }
+        'II'  { return 'Annex II Llei 20/2009 - control periòdic' }
     }
     return $null
 }
 
-# Totes les claus (item + fills) d'un cataleg ja parsejat: per seleccionar TOTES
-# les deficiencies del cataleg (el requeriment de control periodic les porta
-# totes).
-function _AllCatalegKeys($parsed) {
-    $keys = @()
+# Dins d'un cataleg ja parsejat, localitza l'ITEM (Titol 2) el text del qual
+# coincideix amb $title i retorna les seves claus de seleccio (l'item + els seus
+# fills). Buit si no es troba. (Al parser, Titol 1 = seccio, Titol 2 = item.)
+function _FindItemKeysByTitle($parsed, [string]$title) {
+    $tnorm = _NormalizeText $title
     foreach ($sec in $parsed.Sections) {
         foreach ($el in $sec.Items) {
-            if ($el.Kind -eq 'item') {
-                $keys += (_ItemKey $sec.Title $el.Short)
+            if ($el.Kind -eq 'item' -and (_NormalizeText $el.Short) -eq $tnorm) {
+                $keys = @((_ItemKey $sec.Title $el.Short))
                 foreach ($ch in $el.Children) { $keys += (_ItemKey $sec.Title $el.Short $ch.Short) }
+                return , $keys
             }
         }
     }
-    return $keys
+    return , @()
 }
 
 # Genera, per a cada activitat triada, un informe REQUERIMENT (com "Requeriment -
@@ -510,29 +506,18 @@ function Invoke-GenerarControlsPeriodics($rows) {
         return
     }
 
-    # Comprovem quins catalegs de control periodic hi ha i quins falten segons
-    # els regims de les activitats triades.
-    $catalegs = @(Get-Catalegs)
-    $needed = @{}
-    foreach ($r in $rows) { $k = _ControlCatalegKind $r; if ($k) { $needed[$k] = $true } }
-    $missing = @()
-    foreach ($k in $needed.Keys) {
-        if ($null -eq (_FindControlCataleg $catalegs $k)) {
-            $nom = switch ($k) { '112' { 'Decret 112/2010 - control periòdic' } 'III' { 'Annex III Llei 20/2009 - control periòdic' } 'II' { 'Annex II Llei 20/2009 - control periòdic' } }
-            $missing += $nom
-        }
-    }
-    if ($missing.Count -gt 0) {
-        [System.Windows.Forms.MessageBox]::Show(
-            ("Falten catàlegs de control periòdic a la carpeta ESTRUCTURALS:`n`n - " + ($missing -join "`n - ") +
-             "`n`nAfegeix-hi aquests .docx (com el REQ1.docx) amb les deficiències corresponents i torna-ho a provar."),
-            'Generar informes', 'OK', 'Warning') | Out-Null
+    # El cataleg es REQ1; agafem les deficiencies (Titol 2) de control periodic
+    # segons la classificacio. Comprovem que el cataleg existeixi i que hi siguin
+    # els items que necessitem.
+    $catPath = Join-Path $EstructuralsDir 'REQ1.docx'
+    if (-not (Test-Path -LiteralPath $catPath)) {
+        [System.Windows.Forms.MessageBox]::Show("No s'ha trobat el catàleg REQ1.docx a ESTRUCTURALS.", 'Generar informes', 'OK', 'Error') | Out-Null
         return
     }
 
     $rc = [System.Windows.Forms.MessageBox]::Show(
         ("Es generaran $($rows.Count) informes de requeriment (control periòdic), un per activitat triada.`n`n" +
-         "Capçalera amb les dades de l'activitat, totes les deficiències del catàleg segons la classificació, i la conclusió 'Requeriment'.`n`nVols continuar?"),
+         "Del catàleg REQ1: la deficiència de control periòdic segons la classificació (Decret 112/2010, Annex III o Annex II) i la conclusió 'Requeriment'. Capçalera amb les dades de l'activitat, sense Objecte.`n`nVols continuar?"),
         'Generar informes', 'YesNo', 'Question')
     if ($rc -ne [System.Windows.Forms.DialogResult]::Yes) { return }
 
@@ -572,10 +557,10 @@ function Invoke-GenerarControlsPeriodics($rows) {
         $word.Visible = $false; $word.DisplayAlerts = 0
         try { $word.AutomationSecurity = 1 } catch { }
 
-        # Conclusio "Requeriment" (grup REQ1) i cache de catalegs parsejats.
+        # Cataleg REQ1 (una sola vegada) + conclusio "Requeriment" (grup REQ1).
+        $parsed      = Get-ParsedCataleg -word $word -path $catPath
         $conclAll    = Read-Conclusions -word $word -path $ConclusionsPath -reportType 'REQ1'
         $conclusions = Build-ConclusionsFromTitles $conclAll.Selectable @('Requeriment')
-        $parsedCache = @{}
 
         $done = 0
         foreach ($r in $rows) {
@@ -586,26 +571,23 @@ function Invoke-GenerarControlsPeriodics($rows) {
             [System.Windows.Forms.Application]::DoEvents()
 
             $kind = _ControlCatalegKind $r
-            $catName = _FindControlCataleg $catalegs $kind
-            if (-not $catName) { $err++; [void]$errDetalls.Add("GIA $($r.Id): sense catàleg per al regim $kind"); continue }
+            $title = _ControlSectionTitle $kind
+            if (-not $title) { $err++; [void]$errDetalls.Add("GIA $($r.Id): activitat sense classificació de control periòdic"); continue }
+            $keys = @(_FindItemKeysByTitle $parsed $title)
+            if ($keys.Count -eq 0) { $err++; [void]$errDetalls.Add("GIA $($r.Id): no s'ha trobat la deficiència '$title' al catàleg REQ1"); continue }
             try {
-                if (-not $parsedCache.ContainsKey($catName)) {
-                    $catPath = Join-Path $EstructuralsDir ($catName + '.docx')
-                    $parsedCache[$catName] = Get-ParsedCataleg -word $word -path $catPath
-                }
-                $parsed   = $parsedCache[$catName]
-                $keys     = _AllCatalegKeys $parsed
                 $selected = Build-SelectionFromKeys $parsed.Sections $keys
                 $fields   = Build-FieldsFromPaquet $selected $conclusions $conclAll.Always $null
+                # Capçalera de les dades de l'activitat, SENSE línia "Objecte:".
                 $header   = @{
                     ID_GIA = [string]$r.Id; EXP_NUM = [string]$r.Exp; ADRECA = [string]$r.Adreca
                     ACTIVITAT = [string]$r.ActPrincipal; TITULAR = [string]$r.RaoSocial
-                    ORIGEN_TIPUS = 'insp'; DATA_INSPECCIO = ''; NUM_ANOTACIO = ''; DATA_ANOTACIO = ''
+                    ORIGEN_TIPUS = 'cap'
                 }
                 [void](Build-Document -word $word -header $header `
                                       -selectedSections $selected -fields $fields `
                                       -conclusions $conclusions -alwaysConclusions $conclAll.Always `
-                                      -catalegName $catName -introText $parsed.IntroText `
+                                      -catalegName 'REQ1' -introText $parsed.IntroText `
                                       -conclusionsHeaderText $conclAll.HeaderText `
                                       -isFixedBody $parsed.IsFixedBody -fixedBodyLines $parsed.FixedBodyLines)
                 $ok++

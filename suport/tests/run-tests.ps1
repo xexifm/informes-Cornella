@@ -325,6 +325,7 @@ AssertEq (_BuildOrigenText @{ NUM_ANOTACIO='A-9'; DATA_ANOTACIO='01/01/2026' }) 
     ("Doc. aportada amb N${uG}m. d${apG}anotaci${oG} A-9 del 01/01/2026") '_BuildOrigenText sense tipus -> doc per defecte'
 AssertEq (_BuildOrigenText @{ ORIGEN_TIPUS='insp'; DATA_INSPECCIO='' }) `
     ("Visita inspecci${oG} ") '_BuildOrigenText insp sense data -> nomes el prefix'
+AssertEq (_BuildOrigenText @{ ORIGEN_TIPUS='cap' }) '' '_BuildOrigenText cap -> buit (sense Objecte)'
 
 Write-Host "`n--- Camps detectats a conclusions (Add-FieldsFromConclusions) ---"
 $fc = [ordered]@{}
@@ -1135,17 +1136,23 @@ AssertEq (_ControlCatalegKind ([pscustomobject]@{ IsII=$true;  IsIII=$true;  Is5
 AssertEq (_ControlCatalegKind ([pscustomobject]@{ IsII=$true;  IsIII=$true;  Is561=$false })) 'III' '_ControlCatalegKind II+III -> III'
 AssertEq ([bool]($null -eq (_ControlCatalegKind ([pscustomobject]@{ IsII=$false; IsIII=$false; Is561=$false })))) $true '_ControlCatalegKind cap -> null'
 
-Write-Host "`n--- ControlsPeriodics.ps1: _FindControlCataleg (troba el cataleg pel nom) ---"
-$catsCP = @(
-    [pscustomobject]@{ BaseName = 'Annex II Llei 20-2009 - control periodic' },
-    [pscustomobject]@{ BaseName = 'Annex III Llei 20-2009 - control periodic' },
-    [pscustomobject]@{ BaseName = 'Decret 112-2010 - control periodic' },
-    [pscustomobject]@{ BaseName = 'REQ1' }
-)
-AssertEq (_FindControlCataleg $catsCP 'II')  'Annex II Llei 20-2009 - control periodic'  '_FindControlCataleg II'
-AssertEq (_FindControlCataleg $catsCP 'III') 'Annex III Llei 20-2009 - control periodic' '_FindControlCataleg III'
-AssertEq (_FindControlCataleg $catsCP '112') 'Decret 112-2010 - control periodic'        '_FindControlCataleg 112'
-AssertEq ([bool]($null -eq (_FindControlCataleg @([pscustomobject]@{ BaseName='REQ1' }) 'II'))) $true '_FindControlCataleg sense cataleg -> null'
+Write-Host "`n--- ControlsPeriodics.ps1: _ControlSectionTitle (titol del Titol 2 de REQ1 per regim) ---"
+AssertEq (_ControlSectionTitle '112') 'Decret 112/2010 - control periòdic'        '_ControlSectionTitle 112'
+AssertEq (_ControlSectionTitle 'III') 'Annex III Llei 20/2009 - control periòdic' '_ControlSectionTitle III'
+AssertEq (_ControlSectionTitle 'II')  'Annex II Llei 20/2009 - control periòdic'  '_ControlSectionTitle II'
+AssertEq ([bool]($null -eq (_ControlSectionTitle $null))) $true '_ControlSectionTitle desconegut -> null'
+
+Write-Host "`n--- ControlsPeriodics.ps1: _FindItemKeysByTitle (item Titol 2 dins de REQ1) ---"
+$parsedCP = [pscustomobject]@{ Sections = @(
+    [pscustomobject]@{ Title = 'Controls periòdics'; Items = @(
+        [pscustomobject]@{ Kind = 'item'; Short = 'Decret 112/2010 - control periòdic'; Children = @() },
+        [pscustomobject]@{ Kind = 'item'; Short = 'Annex II Llei 20/2009 - control periòdic'; Children = @() }
+    ) }
+) }
+$keysCP = @(_FindItemKeysByTitle $parsedCP 'Decret 112/2010 - control periòdic')
+AssertEq $keysCP.Count 1 '_FindItemKeysByTitle troba l''item (1 clau)'
+AssertEq $keysCP[0] (_ItemKey 'Controls periòdics' 'Decret 112/2010 - control periòdic') '_FindItemKeysByTitle clau correcta'
+AssertEq (@(_FindItemKeysByTitle $parsedCP 'Inexistent').Count) 0 '_FindItemKeysByTitle no trobat -> 0 claus'
 
 Write-Host "`n--- Informes.ps1: _EstatActualActivitat (estat = conclusio breu del darrer informe fiable, per data) ---"
 AssertEq (_EstatActualActivitat $null) '' '_EstatActualActivitat null -> buit'
