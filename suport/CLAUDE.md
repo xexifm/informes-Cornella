@@ -98,11 +98,16 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   Excel per la columna Estat.
 - **Copiar informes** (`Invoke-CopiarInformes`, `Informes.ps1`): còpia **plana**
   (tots els Word a una sola carpeta) i **incremental** de `$InformesDir` a
-  `$CopiaInformesDir` (nova carpeta configurable, vegeu Configuració). Guarda
-  `copia-informes-state.json` (`copiat_el`, mateix patró que `actualitzat_el`);
-  només mira els fitxers `.doc`/`.docx` (ignora `~$…`) modificats després de
-  l'última còpia; si el nom ja és al destí NO el recopia; **mai** esborra res del
-  destí. Si el destí desat canvia, fa còpia completa.
+  `$CopiaInformesDir` (nova carpeta configurable, vegeu Configuració). **Només
+  copia INFORMES**: `.doc`/`.docx` (ignora `~$…`) **amb data al principi del
+  nom** (`_ParseDataInformeFromName`, el mateix criteri que "Actualitzar base");
+  qualsevol altre Word NO es copia. Guarda `copia-informes-state.json`
+  (`copiat_el`, mateix patró que `actualitzat_el`) i només mira els fitxers
+  modificats després de l'última còpia; si el nom ja és al destí NO el recopia;
+  **mai** esborra res del destí; si el destí desat canvia, fa còpia completa.
+  Mostra una **finestra de progrés amb botó Cancel·lar** i **confirma abans de
+  copiar** (amb el nombre d'informes) — mai comença "a cegues". Si es cancel·la,
+  NO desa `copiat_el` (la propera vegada torna a comprovar el que faltava).
 - **Comprovar Excel** (`Invoke-ComprovarExcel`, `Informes.ps1`): per cada
   activitat en Estat `Precinte / Cessament` de la base d'informes, comprova que a
   l'Excel (fulla "Estès", indexat per GIA = col 1) tingui un **Camp Info** amb
