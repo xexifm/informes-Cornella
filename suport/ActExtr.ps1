@@ -639,6 +639,22 @@ function Get-ActExtrActivityEstat($decret, $computed, $delivered) {
 #   - 'List Paragraph'/'Parrafo de lista'/'Llista...' -> 'list'
 #   - altrament -> 'normal'
 function Parse-ActExtrTemplate($word, $path) {
+    # Si hi ha un JSON al costat (llista plana de paragrafs: estil + runs), el
+    # fem servir (no cal Word): reconstruim els records i els passem al mateix
+    # Build-ActExtrBlocks. Fallback segur al .docx si falla.
+    $jsonPath = [System.IO.Path]::ChangeExtension($path, '.json')
+    if (Test-Path -LiteralPath $jsonPath) {
+        try {
+            $o = Get-Content -LiteralPath $jsonPath -Raw -Encoding UTF8 | ConvertFrom-Json
+            $records = New-Object System.Collections.ArrayList
+            foreach ($p in @($o.paragrafs)) {
+                [void]$records.Add(@{ Text = (_RunsToMarkup $p.runs); Style = [string]$p.estil })
+            }
+            return (Build-ActExtrBlocks $records)
+        } catch {
+            Write-Host "Avis: no s'ha pogut llegir '$jsonPath' ($($_.Exception.Message)); es fa servir el .docx."
+        }
+    }
     if (-not (Test-Path -LiteralPath $path)) {
         throw "No s'ha trobat la plantilla ACT_EXTR: $path"
     }

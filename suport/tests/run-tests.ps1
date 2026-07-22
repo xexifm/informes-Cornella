@@ -1187,6 +1187,17 @@ if (Test-Path -LiteralPath $conJson) {
 } else {
     Write-Host "  (omes: no hi ha 0 CONCLUSIONS.json)" -ForegroundColor Yellow
 }
+$terJson = Join-Path $EstructuralsDir 'TERMINI.json'
+if (Test-Path -LiteralPath $terJson) {
+    $terCat = Read-CatalegJson $terJson
+    AssertEq $terCat.IsFixedBody $true 'Read-CatalegJson TERMINI: es cos fix'
+    AssertEq ([bool]($terCat.FixedBodyLines.Count -gt 0)) $true 'Read-CatalegJson TERMINI: te cos fix'
+}
+$aeJson = Join-Path $EstructuralsDir 'ACT_EXTR_REQ.json'
+if (Test-Path -LiteralPath $aeJson) {
+    $aeBlocks = Parse-ActExtrTemplate $null (Join-Path $EstructuralsDir 'ACT_EXTR_REQ.docx')
+    AssertEq ([bool](@($aeBlocks).Count -gt 0)) $true 'Parse-ActExtrTemplate (des del JSON): retorna blocs keyed'
+}
 
 Write-Host "`n--- Informes.ps1: _EstatActualActivitat (estat = conclusio breu del darrer informe fiable, per data) ---"
 AssertEq (_EstatActualActivitat $null) '' '_EstatActualActivitat null -> buit'
