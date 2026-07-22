@@ -4,6 +4,7 @@ REM - Si tens canvis locals a ESTRUCTURALS\*.docx (plantilles), els puja a GitHu
 REM - Si tens canvis a codi (.ps1, .bat) els guarda al stash com a copia de
 REM   seguretat i continua. No es perden mai.
 REM - Sempre acaba a 'main' amb l'ultim commit i mostra resultat.
+REM - En acabar, torna a obrir el programa (actualitzat).
 REM
 REM Doble clic per executar.
 
@@ -11,24 +12,19 @@ setlocal EnableDelayedExpansion
 title Actualitzar generador d'informes Cornella
 cd /d "%~dp0"
 
-REM --- Tancar el programa si esta obert ---
-REM Abans d'actualitzar tanquem el generador si s'esta executant (si no, podria
-REM quedar amb la versio antiga carregada o bloquejar fitxers). El programa desa
-REM el PID del seu proces viu a running.pid; el llegim i, si es realment un
-REM powershell.exe amb aquest PID, el tanquem.
+REM --- Tancar el programa si esta obert i ESPERAR que es tanqui del tot ---
+REM El programa desa el PID del seu proces viu a running.pid. IMPORTANT: quan
+REM s'obre des del boto "Actualitzar" del programa, aquest .bat s'executa com a
+REM proces FILL del programa, per aixo el taskkill va SENSE /T: amb /T ens
+REM matariem a nosaltres mateixos (a tota la branca de processos) i
+REM l'actualitzacio no arribava a executar-se (el programa es tancava pero no
+REM s'actualitzava res). Despres esperem que el proces desaparegui del tot per no
+REM trobar fitxers bloquejats en fer git.
 set "PIDFILE=%LOCALAPPDATA%\InformesCornella\running.pid"
-if exist "%PIDFILE%" (
-    set "GENPID="
-    set /p GENPID=<"%PIDFILE%"
-    if defined GENPID (
-        tasklist /FI "PID eq !GENPID!" /FI "IMAGENAME eq powershell.exe" 2>nul | find "!GENPID!" >nul
-        if not errorlevel 1 (
-            echo Tancant el generador que esta obert ^(PID !GENPID!^)...
-            taskkill /PID !GENPID! /T /F >nul 2>&1
-        )
-        del "%PIDFILE%" >nul 2>&1
-    )
-)
+set "GENPID="
+if exist "%PIDFILE%" set /p GENPID=<"%PIDFILE%"
+if defined GENPID call :TancaGenerador "%GENPID%"
+if exist "%PIDFILE%" del "%PIDFILE%" >nul 2>&1
 
 echo === Estat ABANS ===
 git branch --show-current
@@ -42,8 +38,7 @@ if not errorlevel 1 (
     echo  Hi ha plantilles obertes al Word ESTRUCTURALS\~$*  .
     echo    Tanca el Word i torna a executar Actualitzar.bat.
     echo.
-    pause
-    exit /b 1
+    goto :ERROR
 )
 
 REM --- 1. Fetch ---
@@ -52,8 +47,7 @@ git fetch origin
 if errorlevel 1 (
     echo.
     echo ERROR: no s'ha pogut connectar a GitHub. Comprova la xarxa.
-    pause
-    exit /b 1
+    goto :ERROR
 )
 
 REM --- 2. Hi ha canvis a ESTRUCTURALS\*.docx ? Si si, els pugem ---
@@ -92,8 +86,7 @@ if "%STASHED%"=="1" (
     git stash push -u -m "Auto-stash per Actualitzar.bat"
     if errorlevel 1 (
         echo ERROR: no s'ha pogut fer stash. Avorto.
-        pause
-        exit /b 1
+        goto :ERROR
     )
 )
 
@@ -103,8 +96,7 @@ if errorlevel 1 (
     echo.
     echo ERROR: no s'ha pogut canviar a la branca 'main'.
     git status
-    pause
-    exit /b 1
+    goto :ERROR
 )
 
 REM Primer intentem fast-forward. Si tenim un commit local de plantilles
@@ -118,8 +110,7 @@ if errorlevel 1 (
         echo.
         echo ERROR: rebase ha fallat. Probablement hi ha un conflicte.
         echo   Executa  git status  per veure-ho. Si vols avortar:  git rebase --abort
-        pause
-        exit /b 1
+        goto :ERROR
     )
 )
 
@@ -180,4 +171,44 @@ if "%STASHED%"=="1" (
 
 echo.
 echo Fet.
-pause
+echo.
+echo Prem qualsevol tecla per tancar aquesta finestra i obrir el programa actualitzat...
+pause >nul
+call :ReobrePrograma
+exit
+
+REM ==========================================================================
+REM  Sortida amb ERROR: no s'ha actualitzat. Tornem a obrir el programa (amb la
+REM  versio actual, sense canvis) perque l'usuari no es quedi sense el programa.
+REM ==========================================================================
+:ERROR
+echo.
+echo Prem qualsevol tecla per tancar aquesta finestra i tornar a obrir el programa...
+pause >nul
+call :ReobrePrograma
+exit /b 1
+
+REM ==========================================================================
+REM  Subrutines
+REM ==========================================================================
+
+REM Tanca el generador (PID a %1) SENSE /T i espera fins a ~20s que desaparegui.
+:TancaGenerador
+set "_p=%~1"
+tasklist /FI "PID eq %_p%" /FI "IMAGENAME eq powershell.exe" 2>nul | find "%_p%" >nul
+if errorlevel 1 goto :eof
+echo Tancant el generador que esta obert ^(PID %_p%^)...
+taskkill /PID %_p% /F >nul 2>&1
+set /a _n=0
+:tg_wait
+tasklist /FI "PID eq %_p%" /FI "IMAGENAME eq powershell.exe" 2>nul | find "%_p%" >nul
+if errorlevel 1 goto :eof
+set /a _n+=1
+if %_n% geq 20 goto :eof
+ping -n 2 127.0.0.1 >nul
+goto :tg_wait
+
+REM Torna a obrir el programa (via el .vbs, sense finestra de consola).
+:ReobrePrograma
+start "" wscript.exe "%~dp0suport\GenerarInforme.vbs"
+goto :eof

@@ -177,7 +177,7 @@ function Invoke-ConfiguracioScreen {
             return
         }
         $rr = [System.Windows.Forms.MessageBox]::Show(
-            "S'obrira una finestra per actualitzar el programa des de GitHub. El programa es tancara mentre s'actualitza.`n`nVols continuar?",
+            "S'obrira una finestra per actualitzar el programa des de GitHub. El programa es tancara mentre s'actualitza i, en acabar (quan premis una tecla), es tornara a obrir ja actualitzat.`n`nVols continuar?",
             'Actualitzar el programa', 'YesNo', 'Question')
         if ($rr -ne [System.Windows.Forms.DialogResult]::Yes) { return }
         try {
