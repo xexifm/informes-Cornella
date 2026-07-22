@@ -495,6 +495,10 @@ $CopiaInformesDir = _ResolveEffectiveValue $AppSettings.CopiaInformesDir $CopiaI
 # carrega tambe en headless perque els tests provin la logica de text pura.
 . (Join-Path $ScriptRoot 'Informes.ps1')
 
+# Carreguem l'eina "Controls periodics" (llistat d'activitats amb control
+# periodic a partir de l'Excel). Nomes defineix funcions; segur en headless.
+. (Join-Path $ScriptRoot 'ControlsPeriodics.ps1')
+
 # Carreguem la pantalla de Configuracio (rutes d'aquest PC + actualitzar el
 # programa). Nomes defineix funcions (WinForms), segur en headless.
 . (Join-Path $ScriptRoot 'Configuracio.ps1')
@@ -3257,6 +3261,7 @@ function Main {
             'seguiment'  { Invoke-SeguimentFlow }
             'actextr'    { Invoke-ActExtrFlow }
             'ruta'       { Start-RutaTool }   # llanca el planificador; torna al menu
+            'controlsperiodics' { Invoke-ControlsPeriodics }   # llistat d'activitats amb control periodic (Excel)
             'informesdb'     { Invoke-InformesDbScan }   # escaneja informes -> JSON; torna al menu
             'informesdbedit' { Invoke-InformesDbEdit }   # editor de la base d'informes
             'copiarinformes' { Invoke-CopiarInformes }   # copia incremental dels Word a la carpeta de copia

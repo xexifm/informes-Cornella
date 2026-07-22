@@ -183,6 +183,26 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   seu `config.ps1` i ABANS de derivar-ne res més (p.ex. les subcarpetes de
   Drive a partir de `$DriveBaseDir`).
 
+## Controls periòdics (eina EINES)
+- `suport/ControlsPeriodics.ps1` (fitxer NOU, amb BOM): eina **📅 Controls
+  periòdics** del menú (secció EINES; acció `controlsperiodics`). Llegeix
+  l'Excel d'activitats (fulla "Estès") i llista les activitats amb
+  **Classificació general annex** = II o III **o** **Classificació general
+  Apartat** amb un número que **comença per 561** (561, 5610…). Reutilitza
+  l'estructura d'**Editar base d'informes** (DataGridView + filtre + ordre
+  programàtic). Columnes: ID Activitat, Raó social, Raó soc. E-mail, Rep. Leg.
+  E-mail, Adreça (Emp. Tipus via+Carrer+Número+Lletra), Data llicència/
+  comunicació, Data control inicial/verificació, Periodicitat CP, Data control
+  periòdic, Proper CP previst, Classif. annex, Classif. Apartat, Activitat
+  principal. Filtre desplegable **Tots / II / III / 561** + cerca de text;
+  **ordre per defecte: Data llicència ascendent** (més antic primer); clic a
+  la capçalera reordena (les columnes de data ordenen per data real, no pel
+  text). Botó **Exportar (CSV)**. Funcions pures testejades:
+  `_ControlPeriodicClassify` (II/III per límit de paraula; 561 = número que
+  comença per 561, exclou 1561) i `_ParseCellDate`. Les columnes de l'Excel es
+  localitzen pel text de capçalera (`_FindColIndex`), amb fallback als índexs
+  fixos coneguts de l'adreça.
+
 ## Plànol públic d'activitats precintades
 - `suport/rutes/Precintades.ps1` genera `docs/dades/precintades.json` a partir
   de l'Excel d'activitats (fulla "Estès"): les activitats amb el camp lliure
