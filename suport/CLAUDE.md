@@ -199,7 +199,7 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   comunicació, Data control inicial/verificació, Periodicitat CP, Data control
   periòdic, Proper CP previst, Classif. annex, Classif. Apartat, Activitat
   principal. Filtre de **selecció múltiple** (II / III / 561; cap = tots) + cerca de text;
-  **ordre per defecte: Data llicència ascendent** (més antic primer); clic a
+  **ordre per defecte: Proper CP previst ascendent** (més antic primer; els buits al final); clic a
   la capçalera reordena (les columnes de data ordenen per data real, no pel
   text). Botó **Exportar (CSV)**. Funcions pures testejades:
   `_ControlPeriodicClassify` (II/III per límit de paraula; 561 = número que
