@@ -916,6 +916,19 @@ function Apply-SeguimentXml {
 # CATALEG. Cada boto mostra un nom amic (negre) i, en GRIS, el nom del document
 # d'ESTRUCTURALS entre parentesis perque no destaqui tant.
 #
+# Llegeix una marca de temps d'"ultima execucio" d'un JSON d'estat i la formata
+# per mostrar-la (petita) sota les eines del menu. '(mai)' si no s'ha executat.
+function _LastRunText($jsonPath, $prop) {
+    if ([string]::IsNullOrWhiteSpace($jsonPath) -or -not (Test-Path -LiteralPath $jsonPath -ErrorAction SilentlyContinue)) { return '(mai)' }
+    try {
+        $o = Get-Content -LiteralPath $jsonPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($o.PSObject.Properties[$prop] -and -not [string]::IsNullOrWhiteSpace([string]$o.$prop)) {
+            return ([datetime]::Parse([string]$o.$prop)).ToString('dd/MM/yy HH:mm')
+        }
+    } catch { }
+    return '(mai)'
+}
+
 # Retorna @{ Action='nou'|'seguiment'|'actextr'; Cataleg=<FileInfo|$null> }.
 # Per a 'nou', Cataleg es el .docx triat (ja no cal un segon pas de tria).
 # Tancar la finestra (X) avorta (exit 0).
@@ -1150,7 +1163,36 @@ function Select-Mode {
     $sepInformes.AutoSize = $true
     [void]$form.Controls.Add($sepInformes)
     $y += 24
-    $y = & $addTileRow $reports $y
+    $yReports = $y
+    [void](& $addTileRow $reports $yReports)
+
+    # Sota les eines que guarden estat (Actualitzar base, Copiar informes i
+    # Comprovar Excel), un text petit amb l'ultima vegada que s'han executat.
+    # Editar base (index 1) no en te. Els indexs coincideixen amb $reports.
+    $stampByIdx = @{}
+    if (-not [string]::IsNullOrWhiteSpace($LocalActivitatsDir)) {
+        $stampByIdx[0] = _LastRunText (Join-Path $LocalActivitatsDir 'informes-db.json')          'actualitzat_el'
+        $stampByIdx[2] = _LastRunText (Join-Path $LocalActivitatsDir 'copia-informes-state.json')  'copiat_el'
+        $stampByIdx[3] = _LastRunText (Join-Path $LocalActivitatsDir 'comprovar-excel-state.json') 'comprovat_el'
+    }
+    $yStamp = $yReports + $tileH + 2
+    $fStamp = New-Object System.Drawing.Font('Segoe UI', 7)
+    $colStamp = [System.Drawing.Color]::FromArgb(120, 128, 138)
+    $sx = 20
+    for ($ri = 0; $ri -lt @($reports).Count; $ri++) {
+        if ($stampByIdx.Contains($ri)) {
+            $lblS = New-Object System.Windows.Forms.Label
+            $lblS.Text = $stampByIdx[$ri]
+            $lblS.Font = $fStamp
+            $lblS.ForeColor = $colStamp
+            $lblS.TextAlign = 'MiddleCenter'
+            $lblS.Location = New-Object System.Drawing.Point($sx, $yStamp)
+            $lblS.Size = New-Object System.Drawing.Size($tileW, 14)
+            [void]$form.Controls.Add($lblS)
+        }
+        $sx += $tileW + $tileGap
+    }
+    $y = $yStamp + 18
 
     # (Configuracio i Ajuda ja no son botons grans: van DISCRETS a la cantonada
     #  de la banda granat, mes avall.)
