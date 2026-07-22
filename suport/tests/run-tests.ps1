@@ -1127,6 +1127,26 @@ AssertEq ([bool]($null -eq (_ParseCellDate ''))) $true '_ParseCellDate buit -> n
 AssertEq ([bool]($null -eq (_ParseCellDate $null))) $true '_ParseCellDate null -> null'
 AssertEq ([bool]((_ParseCellDate ([double]45000)) -is [datetime])) $true '_ParseCellDate double OLE -> datetime'
 
+Write-Host "`n--- ControlsPeriodics.ps1: _ControlCatalegKind (precedencia 561 > III > II) ---"
+AssertEq (_ControlCatalegKind ([pscustomobject]@{ IsII=$true;  IsIII=$false; Is561=$false })) 'II'  '_ControlCatalegKind nomes II -> II'
+AssertEq (_ControlCatalegKind ([pscustomobject]@{ IsII=$false; IsIII=$true;  Is561=$false })) 'III' '_ControlCatalegKind nomes III -> III'
+AssertEq (_ControlCatalegKind ([pscustomobject]@{ IsII=$false; IsIII=$false; Is561=$true  })) '112' '_ControlCatalegKind nomes 561 -> 112'
+AssertEq (_ControlCatalegKind ([pscustomobject]@{ IsII=$true;  IsIII=$true;  Is561=$true  })) '112' '_ControlCatalegKind II+III+561 -> 112 (561 mana)'
+AssertEq (_ControlCatalegKind ([pscustomobject]@{ IsII=$true;  IsIII=$true;  Is561=$false })) 'III' '_ControlCatalegKind II+III -> III'
+AssertEq ([bool]($null -eq (_ControlCatalegKind ([pscustomobject]@{ IsII=$false; IsIII=$false; Is561=$false })))) $true '_ControlCatalegKind cap -> null'
+
+Write-Host "`n--- ControlsPeriodics.ps1: _FindControlCataleg (troba el cataleg pel nom) ---"
+$catsCP = @(
+    [pscustomobject]@{ BaseName = 'Annex II Llei 20-2009 - control periodic' },
+    [pscustomobject]@{ BaseName = 'Annex III Llei 20-2009 - control periodic' },
+    [pscustomobject]@{ BaseName = 'Decret 112-2010 - control periodic' },
+    [pscustomobject]@{ BaseName = 'REQ1' }
+)
+AssertEq (_FindControlCataleg $catsCP 'II')  'Annex II Llei 20-2009 - control periodic'  '_FindControlCataleg II'
+AssertEq (_FindControlCataleg $catsCP 'III') 'Annex III Llei 20-2009 - control periodic' '_FindControlCataleg III'
+AssertEq (_FindControlCataleg $catsCP '112') 'Decret 112-2010 - control periodic'        '_FindControlCataleg 112'
+AssertEq ([bool]($null -eq (_FindControlCataleg @([pscustomobject]@{ BaseName='REQ1' }) 'II'))) $true '_FindControlCataleg sense cataleg -> null'
+
 Write-Host "`n--- Informes.ps1: _EstatActualActivitat (estat = conclusio breu del darrer informe fiable, per data) ---"
 AssertEq (_EstatActualActivitat $null) '' '_EstatActualActivitat null -> buit'
 AssertEq (_EstatActualActivitat @()) '' '_EstatActualActivitat llista buida -> buit'
