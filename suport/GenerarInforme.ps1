@@ -290,6 +290,59 @@ function _StyleSecondaryButton($btn) {
     $btn.Cursor = 'Hand'
 }
 
+# Filtre desplegable de SELECCIO MULTIPLE (WinForms no en te de natiu): un boto
+# que sembla un desplegable i, en clicar-lo, obre un menu amb items marcables
+# (checkbox). El menu no es tanca en marcar (nomes en clicar fora / Escape).
+# Retorna @{ Button; Menu; GetSelected } on GetSelected torna l'array de textos
+# marcats (buit = cap filtre = totes les files passen). $onChange es crida a
+# cada canvi. S'afegeix a $parent a la posicio i amplada donades.
+function _MakeMultiFilter($parent, [int]$x, [int]$y, [int]$width, [string]$allLabel, $options, [scriptblock]$onChange) {
+    $btn = New-Object System.Windows.Forms.Button
+    $btn.FlatStyle = 'Flat'
+    $btn.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
+    $btn.BackColor = [System.Drawing.Color]::White
+    $btn.TextAlign = 'MiddleLeft'
+    $btn.Padding = New-Object System.Windows.Forms.Padding(6, 0, 4, 0)
+    $btn.Font = New-Object System.Drawing.Font('Segoe UI', 9)
+    $btn.Location = New-Object System.Drawing.Point($x, $y)
+    $btn.Size = New-Object System.Drawing.Size($width, 24)
+
+    $menu = New-Object System.Windows.Forms.ContextMenuStrip
+    # No tancar el menu en marcar un item (per poder-ne triar diversos).
+    $menu.add_Closing({
+        param($s, $e)
+        if ($e.CloseReason -eq [System.Windows.Forms.ToolStripDropDownCloseReason]::ItemClicked) { $e.Cancel = $true }
+    }.GetNewClosure())
+
+    $arrow = [char]0x25BE   # ▾
+    $refresh = {
+        $sel = @()
+        foreach ($it in $menu.Items) { if ($it.Checked) { $sel += [string]$it.Text } }
+        if ($sel.Count -eq 0)      { $btn.Text = $allLabel + '   ' + $arrow }
+        elseif ($sel.Count -le 2)  { $btn.Text = ($sel -join ', ') + '   ' + $arrow }
+        else                       { $btn.Text = ('' + $sel.Count + ' triats   ' + $arrow) }
+    }.GetNewClosure()
+
+    foreach ($opt in $options) {
+        $it = New-Object System.Windows.Forms.ToolStripMenuItem
+        $it.Text = [string]$opt
+        $it.CheckOnClick = $true
+        $it.add_CheckedChanged({ & $refresh; if ($onChange) { & $onChange } }.GetNewClosure())
+        [void]$menu.Items.Add($it)
+    }
+    $btn.add_Click({ $menu.Show($btn, (New-Object System.Drawing.Point(0, $btn.Height))) }.GetNewClosure())
+    & $refresh
+    [void]$parent.Controls.Add($btn)
+
+    $getSel = {
+        $s = @()
+        foreach ($it in $menu.Items) { if ($it.Checked) { $s += [string]$it.Text } }
+        return , ([string[]]$s)
+    }.GetNewClosure()
+
+    return @{ Button = $btn; Menu = $menu; GetSelected = $getSel }
+}
+
 # ----------------------------------------------------------------------------
 # Eines integrades al menu (Pas 1): planificador de rutes i revisio del mobil.
 # Es llancen des del menu (botons). La revisio del mobil es una comprovacio

@@ -123,8 +123,12 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   + `_FindCampInfoPairs`, pura + tests) — NO dot-sourceja `rutes/Ruta.ps1`.
 - **Editar base d'informes — filtres i ordre:** a sobre de la graella hi ha la
   cerca global (conte, totes les columnes) i, a la 2a fila, **filtres per
-  columna** (desplegables): Conclusio breu, Estat activitat, Motiu i Ignorats
-  (Tots / Actius / Ignorats). Clicar una **capcalera** ordena per aquella
+  columna de SELECCIO MULTIPLE**: Conclusio breu, Estat activitat, Motiu i
+  Ignorats (Actius / Ignorats). Cada filtre es un desplegable amb items
+  marcables (helper comu `_MakeMultiFilter` a `GenerarInforme.ps1`, un boto +
+  `ContextMenuStrip` que no es tanca en marcar): cap opcio marcada = passa tot;
+  amb diverses marcades, la fila passa si el seu valor es entre les triades
+  (OR dins del filtre; AND entre filtres diferents). Clicar una **capcalera** ordena per aquella
   columna (asc/desc, amb fletxa), pero l'**agrupament per activitat sempre es
   la clau primaria** i la data la darrera: la columna triada nomes desempata
   DINS de cada activitat (ordenacio programatica; `SortMode='Programmatic'`).
@@ -190,11 +194,11 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   **Classificació general annex** = II o III **o** **Classificació general
   Apartat** amb un número que **comença per 561** (561, 5610…). Reutilitza
   l'estructura d'**Editar base d'informes** (DataGridView + filtre + ordre
-  programàtic). Columnes: ID Activitat, Raó social, Raó soc. E-mail, Rep. Leg.
+  programàtic; filtre de **selecció múltiple** `_MakeMultiFilter`). Columnes: ID Activitat, Raó social, Raó soc. E-mail, Rep. Leg.
   E-mail, Adreça (Emp. Tipus via+Carrer+Número+Lletra), Data llicència/
   comunicació, Data control inicial/verificació, Periodicitat CP, Data control
   periòdic, Proper CP previst, Classif. annex, Classif. Apartat, Activitat
-  principal. Filtre desplegable **Tots / II / III / 561** + cerca de text;
+  principal. Filtre de **selecció múltiple** (II / III / 561; cap = tots) + cerca de text;
   **ordre per defecte: Data llicència ascendent** (més antic primer); clic a
   la capçalera reordena (les columnes de data ordenen per data real, no pel
   text). Botó **Exportar (CSV)**. Funcions pures testejades:
