@@ -2738,6 +2738,7 @@ function Select-CapcaleraBlock($doc, [string]$which) {
 # per no dependre de l'encoding amb que PowerShell 5.1 llegeix aquest fitxer.
 #   'doc'  -> "Doc. aportada amb Num. d'anotacio <NUM_ANOTACIO> del <DATA_ANOTACIO>"
 #   'insp' -> "Visita inspeccio <DATA_INSPECCIO>"
+#   'cap'  -> '' (sense Objecte; p.ex. requeriments de control periodic)
 function _BuildOrigenText($header) {
     $get = {
         param($k)
@@ -2747,6 +2748,7 @@ function _BuildOrigenText($header) {
         return ''
     }
     $tipus = (& $get 'ORIGEN_TIPUS'); if ([string]::IsNullOrWhiteSpace($tipus)) { $tipus = 'doc' }
+    if ($tipus -eq 'cap')  { return '' }
     if ($tipus -eq 'insp') {
         return 'Visita inspecci' + [char]0x00F3 + ' ' + (& $get 'DATA_INSPECCIO')
     }
