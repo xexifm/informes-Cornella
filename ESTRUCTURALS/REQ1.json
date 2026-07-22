@@ -1,0 +1,4324 @@
+{
+ "tipus": "REQ1",
+ "intro": [
+  {
+   "runs": [
+    {
+     "t": "S'han observat les següents deficiències que cal esmenar per poder exercir l'activitat:"
+    }
+   ]
+  }
+ ],
+ "seccions": [
+  {
+   "titol": "Requeriment pendent",
+   "items": [
+    {
+     "nivell": "item",
+     "titol": "Anterior requeriment",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "S’ha de donar resposta a l’anterior requeriment amb Núm. de registre: [CAMP: Registre sortida (S-202X-XXXX)]."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "COPIAR REQUERIMENT"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "I a més a més, esmenar els següents punts:"
+        }
+       ]
+      }
+     ],
+     "fills": []
+    }
+   ]
+  },
+  {
+   "titol": "Desistiment comunicació",
+   "items": [
+    {
+     "nivell": "item",
+     "titol": "Defectes de caràcter essencial",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "La comunicació presenta els següents defectes de caràcter essencial:"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "a) Les dades consignades no permeten d’identificar degudament el titular o tècnic i l’activitat exercida, ni les característiques que siguin rellevants per a determinar la normativa aplicable."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "b) Les dades consignades no són certes i s’han alterat voluntàriament per tal d’atribuir a la comunicació algun dels elements o requisits essencials necessaris."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "c) L’activitat no disposa d’alguna de les llicències o comunicacions sectorials o urbanístiques necessàries."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "d) No es presenta la documentació necessària o bé aquesta no s’adequa a l’objecte o a les finalitats de l’establiment o l’activitat."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "e) S’han omès l’informe i el certificat de l’acte de comprovació d’incendis o el permís d’abocament, o qualsevol altre informe o control previ preceptiu o necessari d’acord amb la normativa sectorial."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    }
+   ]
+  },
+  {
+   "titol": "Estat de l’establiment",
+   "items": [
+    {
+     "nivell": "item",
+     "titol": "Estat - Higiene",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Higiene. S'incompleixen greument les condicions sanitàries, de salubritat i d'higiene. S’haurà de portar a terme una neteja integral de [CAMP: A netejar (p. ex. l'establiment)]."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Estat - Residus",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Residus. S’ha de complir amb l’Article 21 de la Llei 7/2022, de 8 d'abril, de residus i sòls contaminats per a una economia circular on s’indica que s’ha de “Disposar d'una zona habilitada i identificada per a l'emmagatzematge correcte dels residus que reuneixi les condicions adequades d'higiene i seguretat mentre estiguin en el seu poder. En el cas d'emmagatzematge de residus perillosos aquests han d'estar protegits de la intempèrie i amb sistemes de retenció d'abocaments i vessaments.”"
+        }
+       ]
+      }
+     ],
+     "fills": []
+    }
+   ]
+  },
+  {
+   "titol": "Autoritzacions / Informes preceptius",
+   "items": [
+    {
+     "nivell": "item",
+     "titol": "Sanitat",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Sanitat. L’activitat està inclosa dins l’Annex del Decret 151/2017, de 17 d'octubre, pel qual s'estableixen els requisits i les garanties tecnicosanitàries comunes dels centres i serveis sanitaris i els procediments per a la seva autorització i registre. S’ha d’obtenir l’Autorització de funcionament (Departament de Salut de la Generalitat de Catalunya)."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://tramits.gencat.cat/ca/tramits/tramits-temes/Autoritzacio-de-centres-o-serveis-sanitaris"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Educació",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Educació. L’activitat està inclosa dins el Decret 122/2012, de 9 d'octubre, del procediment d'autorització i de comunicació prèvia per a l'obertura de centres educatius privats. S’ha d’obtenir l’Autorització d’obertura de centres educatius privats  (Departament d’Educació)."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://educacio.gencat.cat/ca/tramits/tramits-temes/autoritzacio-obertura-privats"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Comerç",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Comerç. L’activitat està inclosa dins el Decret Llei 1/2009, del 22 de desembre, d'ordenació dels equipaments comercials. S’ha d’obtenir la llicència comercial d’implantació d’un establiment comercial (Departament d’Empresa i Treball)."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Llicencia-comercial?category=&moda=2"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Esport",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Esport. L’activitat està inclosa dins el DECRET LEGISLATIU 1/2000, de 31 de juliol, pel qual s'aprova el Text únic de la Llei de l'esport. S’ha d’haver iniciat el tràmit per obtenir l’informe previ de les actuacions en instal·lacions esportives (Consell Català de l’Esport)."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://web.gencat.cat/ca/tramits/tramits-temes/22032-Informe-previ-al-Servei-dEquipaments-Esportius-per-a-la-realitzacio-en-installacions-esportives-a-Catalunya"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Incendis",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Incendis. L’activitat està inclosa dins l’Annex I de la Llei 3/2010, del 18 de febrer, de prevenció i seguretat en matèria d'incendis en establiments, activitats, infraestructures i edificis. S’ha de presentar l’acte de comprovació per una entitat col·laboradora"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/23705_-_Informe-de-prevencio-i-seguretat-en-materia-dincendis"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Impacte ambiental",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Impacte ambiental. L’activitat està inclosa dins l’Article 7 de la "
+        },
+        {
+         "t": "Ley 21/2013, de 9 de diciembre, de evaluación ambiental",
+         "i": true
+        },
+        {
+         "t": ". S’ha de presentar l’estudi d'impacte ambiental a l’ajuntament amb el contingut determinat a l'Annex VI de l’esmentada Llei per obtenir posteriorment l’informe favorable per part de l’OGAU."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Vector Aigua (ACA) - Zona inundable fluvial T500",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Zona inundable fluvial T500. És una activitat crítica situada en zona de perill d’inundació fluvial T500. S’ha d’obtenir l’informe relacionat amb el vector aigua (Agència Catalana de l’Aigua)."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://aca.gencat.cat/ca/tramits/Informes-relacionats-amb-el-vector-aigua?moda=1"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Vector Aigua (ACA) - abocaments",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Vector Aigua (ACA). L’activitat està inclosa dins l’Annex VI.1 de la Llei 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats. S’ha de presentar un projecte tècnic [OPCIO: Destinatari del projecte ACA | a l'ajuntament (per ser un Annex II) | a l'ACA] amb el contingut determinat a l’Annex III del Decret 130/2003, de 13 de maig, pel qual s'aprova el Reglament dels serveis públics de sanejament per obtenir posteriorment l’autorització d’abocaments d’aigües residuals (Agència Catalana de l’Aigua)."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://aca.gencat.cat/ca/tramits/Autoritzacions-dabocaments-daiguees-residuals"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Vector Aigua (ACA) - DUCA",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Vector Aigua (ACA). L’activitat disposa d’ volum anual d'aigua superior a 1.000 m3, i es troba inclosa en les seccions B, C i D i els grups A032, E360, E383 i J581 de la Classificació catalana d'activitats econòmiques (CCAE-2009). S’ha de presentar la Declaració de l'Ús i la Contaminació de l'Aigua (DUCA)."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://web.gencat.cat/ca/tramits/tramits-temes/Declaracio-de-lUs-i-la-Contaminacio-de-lAigua-DUCA"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Vector Aigua (AMB) - abocaments",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Vector Aigua (AMB). L’activitat està inclosa dins l’Article 22 o l’Annex 4 del Reglament Metropolità d’Abocament d’Aigües Residuals (RMAAR, Exp 944/18). S’ha de presentar l’autorització d’abocaments d’aigües (Àrea Metropolitana de Barcelona)."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://tramitaiguesresiduals.amb.cat/mod/sol/index.php"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Vector Residus (ARC)",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Vector Residus. L’activitat està inclosa dins l’Annex VI.2 de la Llei 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats. S’ha de presentar un projecte tècnic a l’ajuntament amb el contingut determinat a l'Annex IX i X de la "
+        },
+        {
+         "t": "Ley 7/2022, de 8 de abril, de residuos y suelos contaminados para una economía circular",
+         "i": true
+        },
+        {
+         "t": " per obtenir posteriorment l’informe preceptiu favorable (Agència de Residus de Catalunya)."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Vector Residus - SDR",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Vector Residus. L’establiment de l’activitat ha d’estar donat d’alta al Sistema Documental de Residus (SDR) i disposar d’un gestor de residus."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://sdr.arc.cat/sdr/GetLogin.do"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Vector Atmosfera - Grup A/B",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Vector Atmosfera. Grups A i B. L’activitat està inclosa dins l’Annex VI.3 de la Llei 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats. S’ha de presentar un projecte tècnic a l’ajuntament amb el contingut mínim determinat a la web de Medi Ambient i Sostenibilitat per obtenir posteriorment l’informe preceptiu favorable (Direcció General de Canvi Climàtic i Qualitat Ambiental). Grup CAPCA: [CAMP: Grup CAPCA]."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://mediambient.gencat.cat/web/.content/home/ambits_dactuacio/atmosfera/emissions_industrials/guia_emissions_permisos/Juny-2018-contingut-minim.doc"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Vector Atmosfera - Grup C llicència",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Vector Atmosfera. Grup C - llicència. Per tal d’emetre un permís ambiental és necessari disposar de la informació imprescindible per poder fixar els límits d’emissió a l’atmosfera i les prescripcions tècniques. S’ha de redactar un document amb el contingut mínim en matèria d’emissions a l’atmosfera dels projectes d’activitats. Grup CAPCA: [CAMP: Grup CAPCA]."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://mediambient.gencat.cat/web/.content/home/ambits_dactuacio/atmosfera/emissions_industrials/guia_emissions_permisos/Juny-2018-contingut-minim.doc"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Vector Atmosfera - Grup C comunicació",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Vector Atmosfera. Grup C - comunicació. Segons la Disposició addicional Segona del DECRET 139/2018, de 3 de juliol, sobre els règims d'intervenció ambiental atmosfèrica dels establiments on es desenvolupin activitats potencialment contaminants de l'atmosfera: Els establiments sotmesos per la Llei 20/2009, de 4 de desembre, a comunicació i classificats en el grup C d'acord amb l'article 7 no han de realitzar la notificació d'emissions que estableix l'article 12. No obstant això, aquests establiments estan obligats a presentar, juntament amb la comunicació, una memòria tècnica i un informe de control d'una entitat col·laboradora de l'Administració en matèria de medi ambient, d'acord amb el que estableix l'article 13.2 i 13.3. Grup CAPCA: [CAMP: Grup CAPCA]."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Soroll",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Soroll. L’activitat està inclosa dins l’Annex I del Decret 112/2010, de 31 d'agost, pel qual s'aprova el Reglament d'espectacles públics i activitats recreatives o és susceptible de generar contaminació acústica per soroll. S’han de presentar les mesures in situ de comprovació de les exigències d’acústica ambiental i de qualitat en l’edificació realitzades per una Entitat de Protecció de la Contaminació Acústica [EC-PCA] segons l’article 9 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat (versió vigent des del 19 de juny de 2025). Les mesures in situ consistiran en comprovar:"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "- Immissió sonora aplicable a l'ambient exterior"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "- Immissió sonora aplicable a l'ambient interior"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://www.gencat.cat/mediamb/oaec/epca_CA.pdf"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": [
+      {
+       "nivell": "fill",
+       "titol": "Soroll - vibracions",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Immissió de les vibracions als interiors dels edificis"
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    },
+    {
+     "nivell": "item",
+     "titol": "Olors",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Olors. S’ha de presentar un estudi d’avaluació de l’impacte odorífer de l’activitat sobre l’entorn. S’han de quantificar els nivells d’olors en immissió i avaluar-los mitjançant els valors límit d’immissió de l’Annex II del model d’Ordenança tipus reguladora de la contaminació odorífera de la Diputació de Barcelona."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Vector Sòl",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Vector Sòl. L’activitat està inclosa dins l’Annex I del "
+        },
+        {
+         "t": "Real Decreto 9/2005, de 14 de enero, por el que se establece la relación de actividades potencialmente contaminantes del suelo y los criterios y estándares para la declaración de suelos contaminados",
+         "i": true
+        },
+        {
+         "t": ". S’ha de presentar l’informe preliminar de situació del sòl amb el contingut mínim determinat a l’Annex II de l’esmentat Real Decret en els casos següents:"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "- Quan s’ha realitzat un canvi substancial en l’activitat i/o instal·lacions."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "- Quan se cessa l’activitat."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "- Quan se sol·licita una activitat no potencialment contaminant del sòl en una situació on abans hi havia una activitat potencialment contaminant del sòl."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "- Quan hi ha un canvi d’ús del sòl."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Mobilitat",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Mobilitat. L’activitat està inclosa dins l’Article 3 del Decret 344/2006, de 19 de setembre, de regulació dels estudis d'avaluació de la mobilitat generada. S’ha de presentar l’estudi d’avaluació de la mobilitat generada a l’ajuntament amb el contingut mínim determinat a l’Article 14 de l’esmentat Decret i obtenir l’informe preceptiu favorable de Guàrdia Urbana."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    }
+   ]
+  },
+  {
+   "titol": "Pla d'Autoprotecció",
+   "items": [
+    {
+     "nivell": "item",
+     "titol": "PAU",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "PAU. L’activitat està inclosa dins l’Annex I del Decret 30/2015, de 3 de març, pel qual s'aprova el catàleg d'activitats i centres obligats a adoptar mesures d'autoprotecció i es fixa el contingut d'aquestes mesures. S’ha d’elaborar el Pla d’Autoprotecció amb el contingut mínim determinat a l’Annex II de l’esmentat Decret i obtenir el certificat d’homologació del Pla d’Autoprotecció de Protecció civil [OPCIO: Competència PAU | de Catalunya | local]."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://canalempresa.gencat.cat/ca/02_serveis_per_temes/instal-lacions-i-seguretat/prevencio-accidents/plans-autoproteccio/"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "PAU - actualització",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "PAU. L’activitat està inclosa dins l’Annex I del Decret 30/2015, de 3 de març, pel qual s'aprova el catàleg d'activitats i centres obligats a adoptar mesures d'autoprotecció i es fixa el contingut d'aquestes mesures. S’ha de revisar el Pla d’Autoprotecció amb el contingut mínim determinat a l’Annex II de l’esmentat Decret i presentar l’informe favorable emès per Protecció civil [OPCIO: Competència PAU | de Catalunya | local]."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://canalempresa.gencat.cat/ca/02_serveis_per_temes/instal-lacions-i-seguretat/prevencio-accidents/plans-autoproteccio/"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    }
+   ]
+  },
+  {
+   "titol": "Controls inicials",
+   "items": [
+    {
+     "nivell": "item",
+     "titol": "Annex III Llei 20/2009 - control inicial",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Annex III Llei 20/2009. Segons l’article 6 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha d’entregar una certificació tècnica inicial amb resultat favorable per part d’una Entitat Col·laboradora de l'Administració. El titular queda assabentat que els controls periòdics posteriors s'han d'efectuar cada vuit anys, tal i com s’indica a l’article 7 de la mateixa Ordenança."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://www.gencat.cat/mediamb/ohec/eac_CA.pdf"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Annex II Llei 20/2009 - control inicial",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Annex II Llei 20/2009. L’activitat es troba regulada pel LLEI 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats. S’ha de realitzar un control inicial amb resultat favorable per part d’una Entitat Col·laboradora de l'Administració, com s’indica a l’Article 69 de la Llei. El titular queda assabentat que els controls periòdics posteriors s'han d'efectuar cada sis anys, tal i com s’indica a l’article 71 de la mateixa Llei."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://www.gencat.cat/mediamb/ohec/eac_CA.pdf"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Vector Atmosfera - control inicial",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Vector Atmosfera. L’activitat està inclosa dins l’Annex IV de la "
+        },
+        {
+         "t": "Ley 34/2007, de 15 de noviembre, de calidad del aire y protección de la atmosfera",
+         "i": true
+        },
+        {
+         "t": ". S’ha d’entregar, per part d’una Entitat de control en l’àmbit sectorial de la prevenció de la contaminació atmosfèrica [EC-A], tal i com s’indica a l’Article 16 del DECRET 139/2018, de 3 de juliol, sobre els règims d'intervenció ambiental atmosfèrica dels establiments on es desenvolupin activitats potencialment contaminants de l'atmosfera:"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "- El CAE (Control Atmosfèric de l'Establiment)"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "- L'informe reglamentari de mesures d'emissions a l’atmosfera"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://www.gencat.cat/mediamb/oaec/ec_atm_CA.pdf"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    }
+   ]
+  },
+  {
+   "titol": "Controls periòdics",
+   "items": [
+    {
+     "nivell": "item",
+     "titol": "Decret 112/2010 - control periòdic",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Decret 112/2010. L’activitat es troba regulada pel DECRET 112/2010, de 31 d'agost, pel qual s'aprova el Reglament d'espectacles públics i activitats recreatives. S’ha de realitzar un control periòdic amb resultat favorable per part d’una Entitat Col·laboradora de l'Administració conforme l’article 8 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat. El titular queda assabentat que els controls periòdics posteriors s'han d'efectuar cada quatre anys, tal i com s’indica a l’article 132 del mateix Decret."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/entitats_col_laboradores_de_l_administracio/entitats-tecnics-habilitats/"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Annex II Llei 20/2009 - control periòdic",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Annex II Llei 20/2009. L’activitat es troba regulada per la LLEI 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats. S’ha de realitzar un control periòdic amb resultat favorable per part d’una Entitat Col·laboradora de l'Administració. Els controls periòdics posteriors s'han d'efectuar cada sis anys, tal i com s’indica a l’article 71 de la mateixa Llei."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://www.gencat.cat/mediamb/ohec/eac_CA.pdf"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Annex III Llei 20/2009 - control periòdic",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Annex III Llei 20/2009. S’ha de realitzar un control periòdic amb resultat favorable per part d’una Entitat Col·laboradora de l'Administració. Els controls periòdics posteriors s'han d'efectuar cada vuit anys, tal i com s’indica a l’article 7.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat (versió vigent des del 19 de juny de 2025)."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://www.gencat.cat/mediamb/ohec/eac_CA.pdf"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RSCIEI - control periòdic",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "RSCIEI. L’activitat es troba regulada pel "
+        },
+        {
+         "t": "Real Decreto 2267/2004, de 3 de diciembre, por el que se aprueba el Reglamento de seguridad contra incendios en los establecimientos Industriales",
+         "i": true
+        },
+        {
+         "t": ". S’ha de realitzar un control periòdic amb resultat favorable per part d’una Entitat de Control habilitada, com s’indica a l’Article 7 del Real Decret. Els controls periòdics posteriors s'han d'efectuar cada cinc anys, tal i com s’indica a l’Article 7 del mateix Real Decret."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Vector Atmosfera - control periòdic",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Vector Atmosfera. L'activitat esta inclosa dins l'Annex IV de la "
+        },
+        {
+         "t": "Ley 34/2007, de 15 de noviembre, de calidad del aire y proteccion de la atmosfera",
+         "i": true
+        },
+        {
+         "t": ". S'ha d'entregar, per part d'una Entitat de control en l’àmbit sectorial de la prevenció de la contaminació atmosfèrica [EC-A], tal i com s'indica a l'Article 16 del DECRET 139/2018, de 3 de juliol, sobre els règims d’intervenció ambiental atmosfèrica dels establiments on es desenvolupin activitats potencialment contaminants de l'atmosfera:"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "- El CAE (Control Atmosfèric de l'Establiment)"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "- L'informe reglamentari de mesures d'emissions a l’atmosfera"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://www.gencat.cat/mediamb/oaec/ec_atm_CA.pdf"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Vector Sòl - control periòdic",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Vector Sòl. L’activitat està inclosa dins l’Annex I del "
+        },
+        {
+         "t": "Real Decreto 9/2005, de 14 de enero, por el que se establece la relación de actividades potencialmente contaminantes del suelo y los criterios y estándares para la declaración de suelos contaminados",
+         "i": true
+        },
+        {
+         "t": ". S’ha de presentar l’informe de situació periòdic coincidint amb el termini de revisió de la llicència o, en defecte, cada 10 anys."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    }
+   ]
+  },
+  {
+   "titol": "Instal·lacions",
+   "items": [
+    {
+     "nivell": "subseccio",
+     "titol": "Legalitzacions",
+     "cos": [],
+     "fills": []
+    },
+    {
+     "nivell": "intro",
+     "titol": "",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Segons l’article 4 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha de presentar el certificat d’inscripció al Registre d'instal·lacions de Seguretat Industrial de Catalunya (RITSIC) de totes les instal·lacions que conformin l’activitat a nom del titular de l’activitat o el propietari de l’establiment:"
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RITSIC - fotovoltaica",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Instal·lació d’autoconsum (fotovoltaica)"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/03_energia/Autoconsum/"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RITSIC - gas combustible (transport/distribucio)",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Instal·lació de gas. Transport, emmagatzematge, distribució gas combustible"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Presentacio-de-la-declaracio-responsable-per-a-installacions-de-gasos-combustibles-posada-en-servei-modificacions-i-baixa?moda=1"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RITSIC - gas receptor i GLP (ITC-ICG 07)",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Instal·lació de gas. Instal·lacions receptores de gas i emmagatzematge GLP per a consum propi (ITC-ICG 07)"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_i_instal_lacions/03_instal_lacions/aigua_gas_i_electricitat/gas/sense_autoritzacio/"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RITSIC - gas verificació per unitat",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Instal·lació de gas (Verificació per unitat)"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Presentacio-de-la-declaracio-responsable-per-a-installacions-de-gasos-combustibles-posada-en-servei-modificacions-i-baixa?category="
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RITSIC - alta tensió",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Instal·lació d'electricitat. Alta tensió"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_i_instal_lacions/03_instal_lacions/aigua_gas_i_electricitat/electricitat/alta_tensio/"
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RITSIC - baixa tensió",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Instal·lació de baixa tensió"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_i_instal_lacions/03_instal_lacions/aigua_gas_i_electricitat/electricitat/baixa_tensio/"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RITSIC - ascensors",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Ascensors"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_i_instal_lacions/03_instal_lacions/ascensors_i_grues/ascensors/"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RITSIC - tèrmiques",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Instal·lacions tèrmiques en els edificis"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_i_instal_lacions/03_instal_lacions/calefaccio_climatitzacio_i_fred_industrial/installacions_termiques_en_els_edificis/"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RITSIC - fred industrial",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Instal·lacions de fred industrial"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_i_instal_lacions/03_instal_lacions/calefaccio_climatitzacio_i_fred_industrial/installacions_de_fred_industrial/"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RITSIC - equips a pressió",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Equips a pressió"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_i_instal_lacions/03_instal_lacions/equips_a_pressio/"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RITSIC - PCI",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Instal·lacions de protecció contra incendis PCI"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Installacions-de-proteccio-contra-incendis"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RITSIC - Emmagatzematge productes químics",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Emmagatzematge de productes químics. S'ha d'entregar una relació dels màxims productes emmagatzemats on s'indiqui, en una taula, el següent: Substància | Classificació (1) | Classe de perill (1) | Categoria (1) | Indicació de perill (2) | Capacitat d'emmagatzematge (3)."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "(1) Segons l'Annex I del Reglamento (CE) nº 1272/2008 del Parlamento Europeo y del Consejo."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "(2) Segons l'Annex III del Reglamento (CE) nº 1272/2008 del Parlamento Europeo y del Consejo."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "(3) Con respecto a las unidades: para los productos químicos sólidos, la masa en kilogramos (kg); para los productos químicos líquidos, el volumen en litros (l); para los gases licuados, los gases licuados refrigerados y los gases disueltos, la masa en kilogramos (kg); para los gases comprimidos, el volumen en Nm³."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "A partir d'aquesta taula s'haurà de justificar:"
+        }
+       ]
+      }
+     ],
+     "fills": [
+      {
+       "nivell": "fill",
+       "titol": "Aplicació RAPQ",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "L’aplicació, o no, del "
+          },
+          {
+           "t": "Real Decreto 656/2017, de 23 de junio, por el que se aprueba el Reglamento de Almacenamiento de Productos Químicos y sus Instrucciones Técnicas Complementarias MIE APQ 0 a 10",
+           "i": true
+          },
+          {
+           "t": " segons l’Article 1 i l’Article 2 del mateix reglament."
+          }
+         ]
+        },
+        {
+         "runs": [
+          {
+           "t": "https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_i_instal_lacions/03_instal_lacions/productes_quimics_petrolifers/productes-quimics/"
+          }
+         ],
+         "url": true
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "Aplicació Seveso",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "L’aplicació, o no, del "
+          },
+          {
+           "t": "Real Decreto 840/2015, de 21 de septiembre, por el que se aprueban medidas de control de los riesgos inherentes a los accidentes graves en los que intervengan sustancias peligrosas",
+           "i": true
+          },
+          {
+           "t": "."
+          }
+         ]
+        },
+        {
+         "runs": [
+          {
+           "t": "https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Establiments-afectats-per-la-normativa-daccidents-greus?category=74c8c94c-a82c-11e3-a972-000c29052e2c"
+          }
+         ],
+         "url": true
+        }
+       ],
+       "fills": []
+      }
+     ]
+    },
+    {
+     "nivell": "item",
+     "titol": "RISTIC Petrolífera - ITC MI-IP 02 (parc emmagatzematge)",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Instal·lació petrolífera. ITC MI-IP 02 Parques de almacenamiento de líquidos petrolíferos"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_i_instal_lacions/03_instal_lacions/productes_quimics_petrolifers/installacio-emmagatzematge-carburants-combustibles-liquids-benzineres/"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RITSIC Petrolífera - ITC MI-IP 03 (ús propi)",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Instal·lació petrolífera. ITC MI-IP 03 Instalaciones petrolíferas para uso propio"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_i_instal_lacions/03_instal_lacions/productes_quimics_petrolifers/productes-petrolifers-consum-propia-installacio/"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RITSIC Petrolífera - ITC MI-IP 04 (subministre vehicles)",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Instal·lació petrolífera. ITC MI-IP 04 Instalaciones para suministro a vehículos"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_i_instal_lacions/03_instal_lacions/productes_quimics_petrolifers/installacio-emmagatzematge-carburants-combustibles-liquids-benzineres/"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RITSIC - radioactives",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Instal·lacions radioactives"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Autoritzacio-dinstallacions-radioactives"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RITSIC - Raigs X (medic/veterinari)",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Instal·lacions de raigs X per a usos mèdics i veterinaris"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Registre-dinstallacions-de-raigs-X-per-a-usos-medics-i-veterinaris"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "subseccio",
+     "titol": "Inspeccions inicials",
+     "cos": [],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Insp. inicial - fotovoltaica >25 kW",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Instal·lació fotovoltaica >25 kW. L’activitat està inclosa dins l’apartat 4.1 de la "
+        },
+        {
+         "t": "ITC-BT-05 VERIFICACIONES E INSPECCIONES",
+         "i": true
+        },
+        {
+         "t": " del "
+        },
+        {
+         "t": "Real Decreto 842/2002, de 2 de agosto, por el que se aprueba el Reglamento electrotécnico para baja tensión",
+         "i": true
+        },
+        {
+         "t": ". S’ha de presentar la inspecció inicial de la instal·lació fotovoltaica per part d’un organisme de control habilitat."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Insp. inicial - gas",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Gas. L’activitat està inclosa dins l’article 2 del "
+        },
+        {
+         "t": "Real Decreto 919/2006, de 28 de julio, por el que se aprueba el Reglamento técnico de distribución y utilización de combustibles gaseosos y sus instrucciones técnicas complementarias ICG 01 a 11",
+         "i": true
+        },
+        {
+         "t": ". S’ha de presentar la inspecció inicial de gas per una empresa instal·ladora de gas."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Insp. inicial - alta tensió",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Alta Tensió. L’activitat té una potència superior a 30 kV per tant està inclosa dins l’apartat 3 de la "
+        },
+        {
+         "t": "INSTRUCCIÓN TÉCNICA COMPLEMENTARIA ITC-RAT 23 del Real Decreto 337/2014, de 9 de mayo, por el que se aprueban el Reglamento sobre condiciones técnicas y garantías de seguridad en instalaciones eléctricas de alta tensión y sus Instrucciones Técnicas Complementarias ITC-RAT 01 a 23",
+         "i": true
+        },
+        {
+         "t": ". S’ha de presentar la inspecció inicial d’Alta Tensió per part d’un organisme de control habilitat."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Insp. inicial - baixa tensió",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Baixa Tensió. L’activitat està inclosa dins l’apartat 4.1 de la ITC-BT-05 VERIFICACIONES E INSPECCIONES del "
+        },
+        {
+         "t": "Real Decreto 842/2002, de 2 de agosto, por el que se aprueba el Reglamento electrotécnico para baja tensión",
+         "i": true
+        },
+        {
+         "t": ". S’ha de presentar la inspecció inicial de Baixa Tensió per part d’un organisme de control habilitat."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Insp. inicial - ascensors",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Ascensors. L’activitat està inclosa dins l’article 1 de "
+        },
+        {
+         "t": "Real Decreto 355/2024, de 2 de abril, por el que se aprueba la Instrucción Técnica Complementaria ITC AEM 1 «Ascensores»",
+         "i": true
+        },
+        {
+         "t": ". S’ha de presentar la inspecció inicial de l’ascensor o ascensors per part d’un organisme de control habilitat."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "subseccio",
+     "titol": "Inspeccions periòdiques",
+     "cos": [],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Insp. periòdica - fotovoltaica >25 kW (5 anys)",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Instal·lació fotovoltaica >25 kW. L’activitat està inclosa dins l’apartat 4.1 de la "
+        },
+        {
+         "t": "ITC-BT-05 VERIFICACIONES E INSPECCIONES del Real Decreto 842/2002, de 2 de agosto, por el que se aprueba el Reglamento electrotécnico para baja tensión",
+         "i": true
+        },
+        {
+         "t": ". S’ha de presentar la inspecció periòdica de la instal·lació fotovoltaica per part d’un organisme de control habilitat (vigència 5 anys)."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Insp. periòdica - gas (5 anys)",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Gas. L’activitat està inclosa dins l’article 2 del "
+        },
+        {
+         "t": "Real Decreto 919/2006, de 28 de julio, por el que se aprueba el Reglamento técnico de distribución y utilización de combustibles gaseosos y sus instrucciones técnicas complementarias ICG 01 a 11",
+         "i": true
+        },
+        {
+         "t": ". S’ha de presentar la inspecció periòdica de gas per una empresa instal·ladora de gas (vigència 5 anys)."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Insp. periòdica - alta tensió (3 anys)",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Alta Tensió. L’activitat té una potència superior a 30 kV per tant està inclosa dins l’apartat 3 de la "
+        },
+        {
+         "t": "INSTRUCCIÓN TÉCNICA COMPLEMENTARIA ITC-RAT 23 del Real Decreto 337/2014, de 9 de mayo, por el que se aprueban el Reglamento sobre condiciones técnicas y garantías de seguridad en instalaciones eléctricas de alta tensión y sus Instrucciones Técnicas Complementarias ITC-RAT 01 a 23",
+         "i": true
+        },
+        {
+         "t": ". S’ha de presentar la inspecció periòdica d’Alta Tensió per part d’un organisme de control habilitat (vigència 3 anys)."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Insp. periòdica - baixa tensió (5 anys)",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Baixa Tensió. L’activitat està inclosa dins l’apartat 4.1 de la "
+        },
+        {
+         "t": "ITC-BT-05 VERIFICACIONES E INSPECCIONES del Real Decreto 842/2002, de 2 de agosto, por el que se aprueba el Reglamento electrotécnico para baja tensión",
+         "i": true
+        },
+        {
+         "t": ". S’ha de presentar la inspecció periòdica de Baixa Tensió per part d’un organisme de control habilitat (vigència 5 anys)."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Insp. periòdica – ascensors (2, 4 o 6 anys)",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Ascensors. L’activitat està inclosa dins l’article 1 de "
+        },
+        {
+         "t": "Real Decreto 355/2024, de 2 de abril, por el que se aprueba la Instrucción Técnica Complementaria ITC AEM 1 «Ascensores»",
+         "i": true
+        },
+        {
+         "t": ". S’ha de presentar la inspecció periòdica de l’ascensor o ascensors per part d’un organisme de control habilitat (vigència de 2 anys en ús industrial i pública concurrència, 4 anys en més de 20 habitatges o 4 plantes, 6 anys de vigència la resta de casos)."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Insp. periòdica – tèrmiques > 70kW",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Instal·lacions tèrmiques. L’activitat està inclosa dins l’article 4.2 de la "
+        },
+        {
+         "t": "INSTRUCCIÓN TÉCNICA IT 4. INSPECCIÓN del Real Decreto 1027/2007, de 20 de julio, por el que se aprueba el Reglamento de Instalaciones Térmicas en los Edificios",
+         "i": true
+        },
+        {
+         "t": ". S’ha de presentar la inspecció periòdica de la instal·lació tèrmica per part d’un organisme de control habilitat (vigència 4 anys)."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Insp. periòdica - fred industrial (10 anys)",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Instal·lacions de fred industrial. L’activitat està inclosa dins l’article 3 de la "
+        },
+        {
+         "t": "INSTRUCCIÓN IF-14 del Real Decreto 552/2019, de 27 de septiembre, por el que se aprueban el Reglamento de seguridad para instalaciones frigoríficas y sus instrucciones técnicas complementarias",
+         "i": true
+        },
+        {
+         "t": ". S’ha de presentar la inspecció periòdica de la instal·lació de fred industrial per part d’un organisme de control habilitat (vigència 10 anys)."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Insp. periòdica - equips a pressió (10 anys)",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Equips a pressió. L’activitat està inclosa dins el "
+        },
+        {
+         "t": "Real Decreto 809/2021, de 21 de septiembre, por el que se aprueba el Reglamento de equipos a presión y sus instrucciones técnicas complementarias",
+         "i": true
+        },
+        {
+         "t": ". S’ha de presentar la inspecció periòdica de l’equip a pressió per part d’un organisme de control habilitat (vigència 10 anys)."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Insp. periòdica - PCI",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "PCI. L’activitat està inclosa dins el "
+        },
+        {
+         "t": "Real Decreto 513/2017, de 22 de mayo, por el que se aprueba el Reglamento de instalaciones de protección contra incendios",
+         "i": true
+        },
+        {
+         "t": ". S’ha de presentar la inspecció periòdica dels elements de protecció contra incendis per part d’un organisme de control habilitat (vigència 10 anys). En cas que els elements de protecció contra incendis estiguin instal·lats fa menys de 10 anys s’ha d’entregar un certificat de l'empresa instal·ladora, emès per un tècnic titulat competent designat per aquesta, en el qual es farà constar que la instal·lació s'ha realitzat de conformitat amb el que s'estableix en el Real Decret 513/2017 i d'acord amb el projecte o documentació tècnica."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Insp. periòdica - productes químics (5 anys)",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Emmagatzematge de productes químics. L’activitat està inclosa dins l’Article 1 i 2 del "
+        },
+        {
+         "t": "Real Decreto 656/2017, de 23 de junio, por el que se aprueba el Reglamento de Almacenamiento de Productos Químicos y sus Instrucciones Técnicas Complementarias MIE APQ 0 a 10",
+         "i": true
+        },
+        {
+         "t": ". S’ha de presentar la inspecció periòdica de l’emmagatzematge de productes químics per part d’un organisme de control habilitat (vigència 5 anys)."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Insp. periòdica - petrolífera MI-IP 02 (10 anys)",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Instal·lació petrolífera. ITC MI-IP 02 Parques de almacenamiento de líquidos petrolíferos. L’activitat està inclosa dins l’Article 2 del "
+        },
+        {
+         "t": "Real Decreto 2085/1994, de 20 de octubre, por el que se aprueba el Reglamento de Instalaciones Petrolíferas",
+         "i": true
+        },
+        {
+         "t": ". S’ha de presentar la inspecció periòdica de la instal·lació petrolífera per part d’un organisme de control habilitat (vigència 10 anys)."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Insp. periòdica - petrolífera MI-IP 03 (10 anys)",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Instal·lació petrolífera. ITC MI-IP 03 Instalaciones petrolíferas para uso propio. L’activitat està inclosa dins l’Article 2 del "
+        },
+        {
+         "t": "Real Decreto 1427/1997, de 15 de septiembre, por el que se aprueba la instrucción técnica complementaria MI-IP 03 «Instalaciones petrolíferas para uso propio»",
+         "i": true
+        },
+        {
+         "t": ". S’ha de presentar la inspecció periòdica de la instal·lació petrolífera per part d’un organisme de control habilitat (vigència 10 anys)."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Insp. periòdica - petrolífera MI-IP 04 (5 anys)",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Instal·lació petrolífera. ITC MI-IP 04 Instalaciones para suministro a vehículos. L’activitat està inclosa dins del "
+        },
+        {
+         "t": "Real Decreto 706/2017, de 7 de julio, por el que se aprueba la instrucción técnica complementaria MI-IP 04 \"Instalaciones para suministro a vehículos\" y se regulan determinados aspectos de la reglamentación de instalaciones petrolíferes",
+         "i": true
+        },
+        {
+         "t": ". S’ha de presentar la inspecció periòdica de la instal·lació petrolífera per part d’un organisme de control habilitat (vigència 5 anys)."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Insp. periòdica - raigs X",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Instal·lacions de raigs X. L’activitat està inclosa dins l’Article 17 del "
+        },
+        {
+         "t": "Real Decreto 1085/2009, de 3 de julio, por el que se aprueba el Reglamento sobre instalación y utilización de aparatos de rayos X con fines de diagnóstico médico",
+         "i": true
+        },
+        {
+         "t": ". S’ha de presentar la inspecció periòdica de la instal·lació de raigs X per part d’un organisme de control habilitat (vigència 5 anys)."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    }
+   ]
+  },
+  {
+   "titol": "Registres",
+   "items": [
+    {
+     "nivell": "item",
+     "titol": "Nucli zoològic",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Nucli zoològic. L’activitat està inclosa dins el Decret Legislatiu 2/2008, de 15 d'abril, pel qual s'aprova el Text refós de la Llei de protecció dels animals. S’ha d’inscriure l’activitat en el Registre de nucli zoològic."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://territori.gencat.cat/ca/tramits/tramits-temes/Registre-dun-nucli-zoologic"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "subseccio",
+     "titol": "Registre d'Agents de la Seguretat Industrial de Catalunya",
+     "cos": [],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RASIC",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "RASIC. El titular de l’activitat està inclòs dins l’Article 8 de la Llei 9/2014, del 31 de juliol, de la seguretat industrial dels establiments, les instal·lacions i els productes. S’ha de registrar en el següent enllaç:"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Empresa-installadora-mantenidora-i-o-reparadora-dinstallacions-industrials"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RASIC - taller mecanic",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "RASIC Taller mecànic. El titular de l’activitat està inclòs dins l’Article 8 de la Llei 9/2014, del 31 de juliol, de la seguretat industrial dels establiments, les instal·lacions i els productes. S’ha de registrar en el següent enllaç:"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Taller-de-reparacio-de-vehicles-automobils"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "subseccio",
+     "titol": "Activitats industrials",
+     "cos": [],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Metalls preciosos",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Metalls preciosos. L’activitat és fabricant o importadora d'objectes fabricats amb metalls preciosos. Ha d’estar inscrita en el Registre de fabricants i/o importadors de metalls preciosos."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://web.gencat.cat/ca/tramits/tramits-temes/Registre-de-fabricants-i-o-importadors-de-metalls-preciosos"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "subseccio",
+     "titol": "Productes i establiments sanitaris",
+     "cos": [],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Productes sanitaris – Fabricació, distribució i venda",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Fabricació, distribució i venda de productes sanitaris. S’ha de sol·licitar la Comunicació de l’activitat de venda de productes sanitaris i/o de productes sanitaris per a diagnòstic in vitro"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Comunicacio-de-lactivitat-de-venda-de-productes-sanitaris-i-o-de-productes-sanitaris-per-a-diagnostic-in-vitro"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Productes sanitaris – Fabricació pròtesis dentals",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Fabricació pròtesis dentals. S’ha de sol·licitar l’Autorització d'empreses fabricants de pròtesis dentals i altres productes sanitaris dentals a mida"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Autoritzacio-dempreses-fabricants-de-protesis-dentals-i-altres-productes-sanitaris-dentals-a-mida"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Òptica - autorització",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Òptica. S’ha de sol·licitar l’Autorització dels establiments d’òptica o de les seccions d’òptica en oficines de farmàcia"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Autoritzacio-dels-establiments-doptica-o-de-les-seccions-doptica-en-oficines-de-farmacia"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Ortopèdia/audiopròtesis - autorització",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Ortopèdia i audiopròtesis. S’ha de sol·licitar l’Autorització dels establiments d'ortopèdia i d'audiopròtesis"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Autoritzacio-dels-establiments-dortopedia-i-daudioprotesis"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Ortoprotètics a mida - autorització sanitària",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Fabricació ortopèdics. S’ha de sol·licitar l’Autorització sanitària d'empreses fabricants de productes sanitaris ortoprotètics a mida"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Autoritzacio-sanitaria-dempreses-fabricants-de-productes-sanitaris-ortoprotetics-a-mida"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Farmàcies",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Farmàcies i indústria farmacèutica. S’ha de presentar la sol·licitud d’obertura concedida pel Col·legi Oficial de Farmacèutics de Barcelona."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Estètica - bancs solars",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Bancs solars. S’ha de presentar la declaració responsable per a instal·lacions de bancs solars (posada en servei, modificacions i baixa)"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Presentacio-de-la-declaracio-responsable-per-a-installacions-de-bancs-solars-posada-en-servei-modificacions-i-baixa"
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Desfibriladors",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Desfibril·ladors. S’ha de notificar la instal·lació inscrivint-la en el Registre de desfibril·ladors fora de l’àmbit sanitari."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "DEA - inscripcio",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Desfibril·ladors. S’ha de notificar la instal·lació inscrivint-la en el Registre de desfibril·ladors fora de l’àmbit sanitari."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Inscripcio-modificacio-i-cancellacio-de-les-dades-dels-desfibrilladors-externs-automatics-de-centres-no-sanitaris"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "subseccio",
+     "titol": "Registres sanitaris",
+     "cos": [],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Registres sanitaris - RSIPAC",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "L'activitat s'ha d'inscriure en el Registre sanitari d’indústries i productes alimentaris de Catalunya (RSIPAC)."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://web.gencat.cat/ca/tramits/tramits-temes/Registre-sanitari-dindustries-i-productes-alimentaris-de-Cataluya-RSIPAC"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Registres sanitaris - DR salut alimentària",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "L’activitat ha de presentar la Declaració responsable en matèria de salut alimentària."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://www.seu-e.cat/ca/web/cornella/tramits-i-gestions/-/tramits/tramit/14387441?p_auth=xcFulVcY"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "subseccio",
+     "titol": "Comerç",
+     "cos": [],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Comerç - mesures de seguretat",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Comerç de seguretat. S’ha de sol·licitar l’Autorització d'obertura, trasllat i comunicació de reformes d'establiments obligats a disposar de mesures de seguretat i/o de dispensa d'alguna de les mesures."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://interior.gencat.cat/ca/tramits/tramits-temes/21558_-_Autoritzacio-dobertura-trasllat-i-comunicacio-de-reformes-destabliments-obligats-a-disposar-de-mesures-de-seguretat-i-o-de-dispensa-dalguna-de-les-mesures"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "API - Registre agents immobiliaris",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "API. El titular de l’activitat s’ha d’enregistrar en el Registre d'agents immobiliaris de Catalunya."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Registre_Agents_Immobiliaris_Catalunya"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    }
+   ]
+  },
+  {
+   "titol": "Incendis",
+   "items": [
+    {
+     "nivell": "item",
+     "titol": "Aplica CTE, NO RSCIEI",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "S’ha de legalitzar l’activitat segons el CTE i no el RSCIEI, tal i com s’indica al CTE DB SI, "
+        },
+        {
+         "t": " II Ámbito de aplicación III",
+         "i": true
+        },
+        {
+         "t": " i "
+        },
+        {
+         "t": "Criterios generales de aplicación",
+         "i": true
+        },
+        {
+         "t": "."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Aplica RSCIEI, NO CTE",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "S’ha de legalitzar l’activitat segons el RSCIEI i no el CTE, tal i com s’indica al CTE DB SI, "
+        },
+        {
+         "t": " II Ámbito de aplicación III",
+         "i": true
+        },
+        {
+         "t": " i "
+        },
+        {
+         "t": "Criterios generales de aplicación",
+         "i": true
+        },
+        {
+         "t": "."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Evacuació Evacuació - portes practicables",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Evacuació. Les portes d’emergència han de ser practicables mentre l’activitat romangui oberta. S’ha d’entregar un certificat signat pel titular indicant que la porta que evacua a [CAMP: Adreça porta practicable evacuació] estarà practicable mentre l’activitat estigui oberta."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "subseccio",
+     "titol": "Documentació (ITC SP)",
+     "cos": [],
+     "fills": []
+    },
+    {
+     "nivell": "intro",
+     "titol": "",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Segons l’article 3.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha d’entregar la Certificació d'instal·lació o aplicació de productes de protecció passiva contra incendis adjuntant la corresponen documentació complementària:"
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "SP 136 Model A - limitacio propagacio",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "SP 136 Model A Certificat d’instal·lació de productes de limitació de la propagació d’incendis, adjuntant com a mínim:"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "- Documents de subministrament del producte"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "- Documents acreditatius de les prestacions del producte"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://interior.gencat.cat/web/.content/home/030_arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/instruccions_tecniques_complementaries/documents/SP-136_A-Model-certificat-limitacio-propagacio.doc"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "SP 136 Model B - reaccio al foc",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "SP 136 Model B Certificat d’aplicació de productes de millora de la reacció al foc, adjuntant com a mínim:"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "- Documents de subministrament del producte"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "- Documents acreditatius de les prestacions del producte"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://interior.gencat.cat/web/.content/home/030_arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/instruccions_tecniques_complementaries/documents/SP-136_B-Model-certificat-millora-reaccio-al-foc.doc"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "SP 136 Model C - proteccio estructures",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "SP 136 Model C Certificat d'instal·lació o aplicació de productes de protecció d'estructures, adjuntant com a mínim:"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "- Documents de subministrament del producte"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "- Documents acreditatius de les prestacions del producte"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://interior.gencat.cat/web/.content/home/030_arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/instruccions_tecniques_complementaries/documents/SP-136_C-Model-certificat-proteccio-estructures.doc"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "ITC SP 108 - lluernes en coberta",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "ITC SP 108. Segons l’article 3.2 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha de justificar el compliment de la SP 108. Lluernes en coberta en establiments industrials, adjuntant com a mínim:"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "- Documents de subministrament del producte"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "- Documents acreditatius de les prestacions del producte"
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://interior.gencat.cat/web/.content/home/030_arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/instruccions_tecniques_complementaries/documents/sp108.pdf"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "subseccio",
+     "titol": "RIPCI",
+     "cos": [],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RIPCI - posada en servei",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Posada en servei. Es requereix tenir subscrit un contracte de manteniment amb una empresa mantenidora degudament habilitada, que cobreixi, almenys, els manteniments dels equips i sistemes subjectes al RIPCI, segons correspongui."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RIPCI - Extintors - emplaçament",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Extintors. L'emplaçament dels extintors permetrà que siguin fàcilment visibles i accessibles, estaran situats pròxims als punts on s'estimi major probabilitat d'iniciar-se l'incendi i, si pot ser, pròxims a les sortides d'evacuació."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RIPCI - Extintors - alçada",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Extintors. La part superior dels extintors ha de quedar situada entre 80cm i 120cm sobre el terra."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RIPCI - Extintors - recorregut màxim",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Extintors. El recorregut màxim horitzontal des de qualsevol punt del sector d'incendi fins a l'extintor no pot superar els 15 m."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RIPCI - Extintors - manteniment UNE 23120",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Extintors. S’han de realitzar les operacions de manteniment segons el que s'estableix en el «Programa de Manteniment Anual» de la norma UNE 23120."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RIPCI - BIEs - alçada vàlvula",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "BIEs. La vàlvula d'obertura manual i el sistema d'obertura de l'armari de la BIE, si n’hi ha, han d’estar situats com a màxim a 1,50 m. sobre el nivell del terra."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RIPCI - BIEs - distància sortides",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "BIEs. Les BIE se situaran sempre a una distància màxima de 5 m de les sortides del sector d'incendi, mesurada sobre un recorregut d'evacuació, sense que constitueixin obstacle per a la seva utilització."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RIPCI - BIEs - separació entre BIE",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "BIEs. Per a les BIE amb mànega semirígida o mànega plana, la separació màxima entre cada BIE i la seva més pròxima serà de 50 m. La distància des de qualsevol punt de l'àrea protegida fins a la BIE més pròxima no haurà d'excedir del radi d'acció d'aquesta. Tant la separació, com la distància màxima i el radi d'acció es mesuraran seguint recorreguts d'evacuació"
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RIPCI - BIEs - zona lliure",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "BIEs. S'haurà de mantenir al voltant de cada BIE una zona lliure d'obstacles, que permeti l'accés a ella i la seva maniobra sense dificultat."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RIPCI - BIEs - pressió",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "BIEs. Les BIEs de 45 mm han d’obtenir una pressió manomètrica entre 5,4 i 8,4 bar. Les BIEs de 25 mm han d’obtenir una pressió manomètrica entre 3,5 i 6,5 bar."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RIPCI - BIEs - manteniment UNE-EN 671-3",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "BIEs. S’han de realitzar les operacions d'inspecció i manteniment anuals segons el que s'estableix la UNE-EN 671-3."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RIPCI - Senyalitzacio PCI",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Senyalització. La senyalització dels mitjans de protecció contra incendis d'utilització manual i dels sistemes d'alerta i alarma, hauran de complir la norma UNE 23033-1. Els senyals no definits en aquesta norma es podran dissenyar amb els mateixos criteris establerts en la norma UNE 23033-1, en la UNE 23032 i a la UNE-EN ISO 7010."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RIPCI - Enllumenat emergència",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Enllumenat emergència. Les instal·lacions d'enllumenat d'emergència seran conformes a les especificacions establertes en el Reglament Electrotècnic de Baixa Tensió, aprovat per Reial decret 842/2002, de 2 d'agost, i en la Instrucció Tècnica Complementària ITC-BT-28."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "subseccio",
+     "titol": "CTE DB SI",
+     "cos": [],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "CTE DB SI 1 - Propagació interior",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "S’ha de justificar el CTE DB SI 1 Propagació interior, més específicament:"
+        }
+       ]
+      }
+     ],
+     "fills": [
+      {
+       "nivell": "fill",
+       "titol": "SI 1.1 - Compartimentación sectores",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "1 Compartimentación en sectores de incendio",
+           "i": true
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "SI 1.2 - Locales y zonas de riesgo especial",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "2 Locales y zonas de riesgo especial",
+           "i": true
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "SI 1.3 - Espacios ocultos",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "3 Espacios ocultos. Paso de instalaciones a través de elementos de compartimentación de incendios",
+           "i": true
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "SI 1.4 - Reacción al fuego",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "4 Reacción al fuego de los elementos constructivos, decorativos y de mobiliario",
+           "i": true
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    },
+    {
+     "nivell": "item",
+     "titol": "CTE DB SI 2 - Propagació exterior",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "S’ha de justificar el CTE DB SI 2 Propagació exterior, més específicament:"
+        }
+       ]
+      }
+     ],
+     "fills": [
+      {
+       "nivell": "fill",
+       "titol": "SI 2.1 - Medianerias y fachadas",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "1 Medianerías y fachadas",
+           "i": true
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "SI 2.2 - Cubiertas",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "2 Cubiertas",
+           "i": true
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    },
+    {
+     "nivell": "item",
+     "titol": "CTE DB SI 3 - Evacuació d'ocupants",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "S’ha de justificar el CTE DB SI 3 Evacuació d’ocupants, més específicament:"
+        }
+       ]
+      }
+     ],
+     "fills": [
+      {
+       "nivell": "fill",
+       "titol": "SI 3.1 - Compatibilidad elementos",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "1 Compatibilidad de los elementos de evacuación",
+           "i": true
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "SI 3.2 - Calculo ocupacion",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "2 Cálculo de la ocupación",
+           "i": true
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "SI 3.3 - Salidas y recorridos",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "3 Número de salidas y longitud de los recorridos de evacuación",
+           "i": true
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "SI 3.4 - Dimensionado medios",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "4 Dimensionado de los medios de evacuación",
+           "i": true
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "SI 3.5 - Proteccion escaleras",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "5 Protección de las escaleras",
+           "i": true
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "SI 3.6 - Puertas en recorridos",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "6 Puertas situadas en recorridos de evacuacion.",
+           "i": true
+          }
+         ]
+        },
+        {
+         "runs": [
+          {
+           "t": "Validez de las puertas para vehículos para la evacuación de persones",
+           "i": true
+          }
+         ]
+        },
+        {
+         "runs": [
+          {
+           "t": "Ningún portón para vehículos, ya sea manual o motorizado, es válido por sí mismo como elemento para la evacuación de personas. No obstante, dichos portones pueden contener una puerta peatonal válida para dicha evacuación si, conforme a SUA 2-1.2.3, tienen marcado CE de conformidad con los correspondientes Reglamentos y Directivas Europeas.",
+           "i": true
+          }
+         ]
+        },
+        {
+         "runs": [
+          {
+           "t": "Condiciones aplicables a un hueco de salida",
+           "i": true
+          }
+         ]
+        },
+        {
+         "runs": [
+          {
+           "t": "El compromiso personal del titular de un establecimiento de que las puertas vayan a permanecer abiertas no puede considerarse una solución alternativa.",
+           "i": true
+          }
+         ]
+        },
+        {
+         "runs": [
+          {
+           "t": "Puertas peatonales automáticas",
+           "i": true
+          }
+         ]
+        },
+        {
+         "runs": [
+          {
+           "t": "5 Las puertas peatonales automáticas dispondrán de un sistema que en caso de fallo en el suministro eléctrico o en caso de señal de emergencia, cumplirá las siguientes condiciones, excepto en posición de cerrado seguro:",
+           "i": true
+          }
+         ]
+        },
+        {
+         "runs": [
+          {
+           "t": "a) Que, cuando se trate de una puerta corredera o plegable, abra y mantenga la puerta abierta o bien permita su apertura abatible en el sentido de la evacuación mediante simple empuje con una fuerza total que no exceda de 220 N. La opción de apertura abatible no se admite cuando la puerta esté situada en un itinerario accesible según DB SUA.",
+           "i": true
+          }
+         ]
+        },
+        {
+         "runs": [
+          {
+           "t": "b) Que, cuando se trate de una puerta abatible o giro-batiente (oscilo-batiente), abra y mantenga la puerta abierta o bien permita su abatimiento en el sentido de la evacuación mediante simple empuje con una fuerza total que no exceda de 150 N. Cuando la puerta esté situada en un itinerario accesible según DB SUA, dicha fuerza no excederá de 25 N, en general, y de 65 N cuando sea resistente al fuego.",
+           "i": true
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "SI 3.7 - Señalización medios evacuacion",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "7 Señalización de los medios de evacuación",
+           "i": true
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "SI 3.8 - Control humo",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "8 Control del humo de incendio",
+           "i": true
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "SI 3.9 - Evacuacion discapacitats",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "9 Evacuación de personas con discapacidad en caso de incendio",
+           "i": true
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    },
+    {
+     "nivell": "item",
+     "titol": "CTE DB SI 4 - Instal·lacions PCI",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "S’ha de justificar el CTE DB SI 4 Instal·lacions de protecció contra incendis, més específicament:"
+        }
+       ]
+      }
+     ],
+     "fills": [
+      {
+       "nivell": "fill",
+       "titol": "SI 4.1 - Dotacion instalaciones PCI",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "1 Dotación de instalaciones de protección contra incendios",
+           "i": true
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    },
+    {
+     "nivell": "item",
+     "titol": "CTE DB SI 5 - Intervenció bombers",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "S’ha de justificar el CTE DB SI 5 Intervenció de bombers, més específicament:"
+        }
+       ]
+      }
+     ],
+     "fills": [
+      {
+       "nivell": "fill",
+       "titol": "SI 5.1 - Aproximacion y entorno",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "1 Condiciones de aproximación y entorno",
+           "i": true
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "SI 5.2 - Accesibilidad fachada",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "2 Accesibilidad por fachada",
+           "i": true
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    },
+    {
+     "nivell": "item",
+     "titol": "CTE DB SI 6 - Resistència al foc",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "S’ha de justificar el CTE DB SI 6 Resistència al foc de l’estructura, més específicament:"
+        }
+       ]
+      }
+     ],
+     "fills": [
+      {
+       "nivell": "fill",
+       "titol": "SI 6.3 - Elementos estructurales principales",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "3 Elementos estructurales principales",
+           "i": true
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "SI 6.4 - Elementos estructurales secundarios",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "4 Elementos estructurales secundarios",
+           "i": true
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "SI 6.6 - Determinacion resistència",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "6 Determinación de la resistencia al fuego",
+           "i": true
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "titol": "Projecte",
+   "items": [
+    {
+     "nivell": "item",
+     "titol": "Llum",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Llum. L’activitat està inclosa dins l’Article 3 del DECRET 190/2015, de 25 d'agost, de desplegament de la Llei 6/2001, de 31 de maig, d'ordenació ambiental de l'enllumenament per a la protecció del medi nocturn. S’ha d’entregar documentació que acrediti el compliment del requisits tècnics segons l’Annex 1 de l’esmentat Decret."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Modificació activitat - Llei 18/2020",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Modificació de l’activitat. L’activitat es regeix per la LLEI 18/2020, del 28 de desembre, de facilitació de l'activitat econòmica. S’ha de justificar si la modificació és substancial o no segons els criteris de l’Article 53 del Decret 131/2022, de 5 de juliol, del Reglament de la Llei de facilitació de l'activitat econòmica."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Modificació activitat - Llei 20/2009",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Modificació de l’activitat. L’activitat es regeix per la LLEI 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats. S’ha de justificar si la modificació és substancial o no segons els criteris del document ACTUALITZACIÓ DELS CRITERIS DE SUBSTANCIALITAT DE LES MODIFICACIONS DE LES ACTIVITATS DE LA LLEI 20/2009, DEL 4 DE DESEMBRE, DE PREVENCIÓ I CONTROL AMBIENTAL D'ACTIVITATS de la Generalitat de Catalunya."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://mediambient.gencat.cat/ca/05_ambits_dactuacio/empresa_i_produccio_sostenible/prevencio_i_control_dactivitats/la_llei_de_prevencio_i_control_ambiental_dactivitats/llei_20_2009_pcaa/modificacions_de_les_activitats/"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    }
+   ]
+  },
+  {
+   "titol": "Activitat",
+   "items": [
+    {
+     "nivell": "item",
+     "titol": "Tapiar zones sense ús",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "S’han de tapiar aquelles zones sense ús de l’activitat i demostrar-ho adjuntant material fotogràfic."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Alçades minimes",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "No es pot fer ús d’aquelles zones que disposin d’una alçada inferior a 2,5m (a excepció dels magatzems i els lavabos que poden tenir 2,2m d’alçada). Exemples"
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Amplada passadissos",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Per les característiques del local i la normativa vigent, els passadissos han de ser 1,2m d’ample mínim. S’ha d’entregar una fotografia on es pugui observar que l’ample de tots els passadissos compleix."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Modificació activitat - tramitar",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Hi ha modificacions en l’activitat. S’ha de tramitar una modificació de l’activitat."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Retirar barra via pública",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "D’acord amb el que disposa l’article 6.1 de l’Ordenança General de Convivència Ciutadana de Cornellà de Llobregat: L’Ajuntament de Cornellà de Llobregat vetllarà perquè no es consumeixin begudes alcohòliques en els espais públics. Es requereix al titular de l’activitat que retiri immediatament la barra que dona a la via pública i procedeixi al tancament del forat de façana que ara mateix ocupa aquesta barra."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Farmaciola",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "No es disposa de farmaciola."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Vestíbul previ lavabo",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "No disposa de vestíbul previ entre el lavabo i la sala. En aquest s’ha de poder inscriure una cercle de 1,50m/1,20m (comprovar) de diàmetre lliure d’obstacles."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Sabó i secamans lavabos",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Tots els lavabos han de disposar de sabó de mans i secamans."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    }
+   ]
+  },
+  {
+   "titol": "Extracció de fums",
+   "items": [
+    {
+     "nivell": "item",
+     "titol": "Elements cocció sense extracció",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Elements de cocció. Segons l'article 11.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornella de Llobregat les activitats de restauració que no tinguin extracció de fums fins a coberta únicament podran disposar dels següents elements de cocció: una planxa elèctrica de fins a 2.500 W de potencia i fins a 40x40 cm de mesura; forns elèctrics de fins a 7.500 W de potencia (suma de potencies de tots els forns) i amb recollida de vapor per condensació. Si es disposen de mes elements de cocció que els esmentats i no es disposa d’extracció de fums s'hauran de retirar immediatament. Si aquests elements de cocció creen molèsties al veïnat, s'hauran de prendre les mesures correctores que indiqui el tècnic municipal competent, podent comportar igualment la seva retirada."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Sectorització conductes",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Sectorització. Segons l’article 11.3 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha de justificar, i aportar la documentació corresponent, el compliment del Document TINSCI DT 18 Sectorització de conductes d’extracció de fums de les cuines."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Xemeneia - alçada coberta",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Xemeneia. Segons l’article 11.4 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha de justificar el compliment de l’apartat 6.2.1.3 de la norma UNE 123001 on s’especifica el següent: "
+        },
+        {
+         "t": "El remate debe elevarse más de 1 m por encima de la parte más alta de cualquier edificación situada en un radio inferior a 10 m respecto a la salida de la chimenea",
+         "i": true
+        },
+        {
+         "t": ". S’ha d’aportar un plànol en planta de la coberta i un plànol en secció de l’edifici on es justifiqui."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Neteja anual conducte",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Neteja. Segons l’article 11.5 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha de justificar el compliment de l’apartat 12 de la norma UNE 123001 on s’especifica el següent: "
+        },
+        {
+         "t": "Deben llevarse a cabo la limpieza de la chimenea y del conducto de unión con periodicidad mínima anual",
+         "i": true
+        },
+        {
+         "t": ". S’ha d’aportar un certificat de neteja."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Estanqueïtat anual conducte",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Estanqueïtat. Segons l’article 11.6 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha de justificar el compliment de l’apartat 12 de la norma UNE 123001 on s’especifica el següent: "
+        },
+        {
+         "t": "Se debe verificar que se mantienen las condiciones iniciales de estanquidad del sistema, prestando especial atención a los puntos de unión entre los elementos, y al possible deterioro de las juntas de estanquidad, si las hubiera, con periodicidad mínima anual",
+         "i": true
+        },
+        {
+         "t": ". S’ha d’aportar un certificat d’estanqueïtat."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Campana - extinció automàtic",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Campana. Segons l’article 11.7 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha d’instal·lar, i aportar la documentació corresponent, un sistema d’extinció automàtic a la campana d’extracció de la cuina perquè se superen els 20 kW de potència instal·lada i la cuina no està considerada un local de risc especial. El sistema s’ha d’instal·lar segons la norma UNE 17446."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Campana - prohibit filtres carbó",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Campana. Segons l’article 11.9 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat no es permeten solucions tècniques substitutòries enfocades a reduir les olors a través de filtres del carbó actiu o qualsevol sistema que no sigui l’extracció mecànica tal i com s’indica a l’Article 11.9 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat. S’ha de retirar qualsevol sistema que no sigui l’extracció mecànica."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Campana - ventilador F400 90",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Campana. S’ha de justificar mitjançant documentació del producte que els ventiladors compleixen amb les especificacions de la norma UNE-EN 12101-3: 2016 “Especificacions per a airejadors extractors de fums i calor mecànics.” i tenen una classificació F400 90."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Fum per ignició - Vestíbul",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Vestíbul ignició. Segons l’article 12.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat els locals on hi hagi producció de fum per ignició de nova implantació o aquells que provoquin molèsties per olors hauran de disposar d’un vestíbul de separació entre la porta d'entrada i la sala principal. S’ha d’executar el vestíbul o presentar un certificat signat pel titular de l’activitat indicant que no es produirà fum per ignició dins l’activitat."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Fum per ignició - Extracció",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Extracció ignició. Segons l’article 12.2 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat tots els locals on hi hagi producció de fum per ignició hauran de disposar d’un sistema mecànic d’extracció d’aire dirigit a la coberta de l’edifici. Aquest sistema mecànic d’extracció ha d’abastir tant la sala principal com el vestíbul d’entrada, si en disposa. El sistema d’extracció ha d’estar en marxa durant l’horari d’obertura de l’activitat i les portes i finestres del local permanentment tancades. S’ha d’executar el sistema mecànic d’extracció o presentar un certificat signat pel titular de l’activitat indicant que no es produirà fum per ignició dins l’activitat."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Elaboració menjar a domicili",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Elaboració menjar a domicili. Segons l’article 11.10 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat no es permet l’elaboració de menjars en domicilis privats per a la seva comercialització."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    }
+   ]
+  },
+  {
+   "titol": "Denúncia",
+   "items": [
+    {
+     "nivell": "subseccio",
+     "titol": "Horari",
+     "cos": [],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Horari",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Horari. Actualment s’està incomplint l’horari d’obertura perquè "
+        },
+        {
+         "t": "l’activitat únicament pot obrir en horari diürn, és a dir de 7h a 23h",
+         "b": true
+        },
+        {
+         "t": ". S’ha de presentar un certificat signat pel titular indicant que coneix que l’horari d’obertura és de 7h a 23h. Si es vol obrir en horari nocturn s’haurà de presentar una sonometria nocturna."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "subseccio",
+     "titol": "Soroll",
+     "cos": [],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Estudi acústic ajuntament",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Soroll. Es portarà a terme un estudi acústic per part de l’ajuntament per comprovar que es compleixen els requisits referents a la contaminació acústica, de sorolls o vibracions, d’acord amb la normativa d’aplicació. En cas de resultat desfavorable, el titular haurà de fer les mesures pertinents per complir els requisits referents a la contaminació acústica i posteriorment contractar una Entitat de Control de la Prevenció de la Contaminació Acústica (EC-PCA) perquè ho verifiqui. A criteri de qui faci l’estudi acústic pot demanar al titular de l’activitat activar totes les fonts sonores de l’activitat al màxim rendiment."
+        }
+       ]
+      },
+      {
+       "runs": [
+        {
+         "t": "https://www.gencat.cat/mediamb/ohec/epca_CA.pdf"
+        }
+       ],
+       "url": true
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Acta no accés habitatge",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Soroll. Segons l’article 9.4 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat “El receptor ha de permetre l’accés de l’habitatge per poder realitzar totes les comprovacions i mesuraments necessaris. En cas contrari [OPCIO: Qui fa sonometria | la Guàrdia Urbana | l’EC-PCA] haurà d’aixecar una acta descrivint les fonts sonores del local i explicant el motiu pel qual no s’ha pogut accedir a l’habitatge adjuntant les proves pertinents”."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Terrassa",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Terrassa. S’ha d’implementar algun sistema per posar i treure les taules i cadires de la terrassa que actualment es fa arrastrant."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "subseccio",
+     "titol": "Olors",
+     "cos": [],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Olors Elements cocció",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Elements de cocció. Segons l'article 11.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornella de Llobregat les activitats de restauració que no tinguin extracció de fums fins a coberta únicament podran disposar dels següents elements de cocció: una planxa elèctrica de fins a 2.500 W de potencia i fins a 40x40 cm de mesura; forns elèctrics de fins a 7.500 W de potencia (suma de potencies de tots els forns) i amb recollida de vapor per condensació. Si es disposen de mes elements de cocció que els esmentats i no es disposa d’extracció de fums s'hauran de retirar immediatament. Si aquests elements de cocció creen molèsties al veïnat, s'hauran de prendre les mesures correctores que indiqui el tècnic municipal competent, podent comportar igualment la seva retirada. S’ha de:"
+        }
+       ]
+      }
+     ],
+     "fills": [
+      {
+       "nivell": "fill",
+       "titol": "Retirar elements",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Retirar tots aquells elements que no estiguin inclosos a l'article 11.1 de l’Ordenança."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "Justificació elements",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Presentar un certificat signat per un tècnic competent i pel titular indicant que els elements de cocció son els que es mencionen a l'article 11.1 de l’Ordenança. S’haurà de certificar les propietats dels elements de cocció per tal que coincideixin amb les propietats indicades a l'article 11.1 de l’Ordenança."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "Desinstal·lar campana extractora",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Desinstal·lar la campana extractora i el conducte d’extracció que va fins a la façana."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    },
+    {
+     "nivell": "subseccio",
+     "titol": "Calor",
+     "cos": [],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Aïllament focus calor/fred",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Calor. L'activitat incompleix l'article 10 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat. S'ha d’aïllar tèrmicament el focus de calor o fred (en aquest cas [CAMP: Focus de calor/fred (p. ex. l'aire condicionat)]) de manera que no pugui produir-se una variació de temperatura superior a 1 graus C en [OPCIO: Parament afectat | el terra del veí situat sobre el focus de calor | els balcons del veïns dels habitatges superiors]."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "subseccio",
+     "titol": "Accessibilitat",
+     "cos": [],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Compliment Codi accessibilitat",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Accessibilitat. S’haurà de complir amb aquelles condicions que no es compleixen en la data indicada segons la 2.12. Taula resum de l’Annex 3e del DECRET 209/2023, de 28 de novembre, pel qual s'aprova el Codi d'accessibilitat de Catalunya:"
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "subseccio",
+     "titol": "Emmagatzematge material exterior",
+     "cos": [],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "RSCIEI - distribució piles (Annex II 2.2)",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Segons l’estipulat en el punt 2.2 de l’Annex II del "
+        },
+        {
+         "t": "REGLAMENTO DE SEGURIDAD CONTRA INCENDIOS EN LOS ESTABLECIMIENTOS INDUSTRIALES (RSCIEI) La distribución de los materiales combustibles en las áreas de incendio en configuraciones de tipo D y de tipo E deberán cumplir los siguientes requisitos",
+         "i": true
+        },
+        {
+         "t": ":"
+        }
+       ]
+      }
+     ],
+     "fills": [
+      {
+       "nivell": "fill",
+       "titol": "Pila - superfície max 500 m2",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "1º Superficie máxima de cada pila: 500 m2.",
+           "i": true
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "Pila - volum max 3500 m3",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "2º Volumen máximo de cada pila: 3500 m3.",
+           "i": true
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "Pila - alçada max 15 m",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "3º Altura máxima de cada pila: 15 m.",
+           "i": true
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "Pila - longitud segons passadis",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "4º Longitud máxima de cada pila: 45 m si el pasillo entre pilas es ≥ 2,5 m; 20 m si el pasillo entre pilas es ≥ 1,5 m.",
+           "i": true
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    },
+    {
+     "nivell": "item",
+     "titol": "RSCIEI - evacuació i senyalitzacio (Annex II 6.5)",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Segons l’estipulat en el punt 6.5 de l’Annex II del RSCIEI "
+        },
+        {
+         "t": "Las disposiciones en materia de evacuación y señalización en los establecimientos industriales que estén ubicados en configuraciones de tipo D y E [...] cumplirán los requisitos siguientes",
+         "i": true
+        },
+        {
+         "t": ":"
+        }
+       ]
+      }
+     ],
+     "fills": [
+      {
+       "nivell": "fill",
+       "titol": "Franja perimetral",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Anchura de la franja perimetral: la altura de la pila y como mínimo 5 m.",
+           "i": true
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "Camins emergència - amplada",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Anchura para caminos de acceso de emergencia: 4,5 m",
+           "i": true
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "Camins emergència - separació",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Separación máxima entre caminos de emergencia: 65 m",
+           "i": true
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "Passadissos entre piles - amplada",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Anchura mínima de pasillos entre pilas: 1,5 m",
+           "i": true
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "titol": "Documentació / Rètols",
+   "items": [
+    {
+     "nivell": "item",
+     "titol": "Documentació a presentar",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "S’ha de presentar la següent documentació:"
+        }
+       ]
+      }
+     ],
+     "fills": [
+      {
+       "nivell": "fill",
+       "titol": "Doc - canvi titularitat activitat",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "El canvi de titularitat de l’activitat a l’actual titular."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "Doc - canvi titularitat autorització",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "El canvi de titularitat de l’autorització X a l’actual titular."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "Doc - plànol(s) plantes",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "El(s) plànol(s) de les plantes ocupades per l’activitat a escala normalitzada amb el detall de: la maquinària instal·lada, els recorreguts d’evacuació i senyalització dels corresponents, els equips i instal·lacions contra incendis, el compliment d’accessibilitat, resta de detalls que es considerin necessaris per explicar el compliment de requisits segons la normativa d’aplicació corresponent."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "Doc - alta IAE",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "L’alta a l’IAE on s’observi l’adreça de l’activitat."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "Doc - factura elèctrica",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "La factura elèctrica a nom del titular."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "Doc - factura aigua",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "La factura d’aigua a nom del titular."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "Doc - fulls de reclamació",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Fulls de reclamació impresos."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "Doc - contracte gestió olis",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "El contracte de gestió d’olis de la cuina."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "Doc - control de plagues",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "El certificat de control de plagues."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "Doc - formació aliments (4 anys)",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "El certificat de formació d’aliments de tots i cadascun dels treballadors de l’establiment (vigència 4 anys)."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "Doc - assegurança RC",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Presentar l'assegurança de Responsabilitat Civil, amb la quantitat de capital assegurat següent:"
+          }
+         ]
+        },
+        {
+         "runs": [
+          {
+           "t": "- fins a 100 persones d'aforament autoritzat: 300.000 EUR"
+          }
+         ]
+        },
+        {
+         "runs": [
+          {
+           "t": "- fins a 150: 400.000 EUR"
+          }
+         ]
+        },
+        {
+         "runs": [
+          {
+           "t": "- fins a 300: 600.000 EUR"
+          }
+         ]
+        },
+        {
+         "runs": [
+          {
+           "t": "- fins a 500: 750.000 EUR"
+          }
+         ]
+        },
+        {
+         "runs": [
+          {
+           "t": "- fins a 1.000: 900.000 EUR"
+          }
+         ]
+        },
+        {
+         "runs": [
+          {
+           "t": "- fins a 1.500: 1.200.000 EUR"
+          }
+         ]
+        },
+        {
+         "runs": [
+          {
+           "t": "- fins a 2.500: 1.600.000 EUR"
+          }
+         ]
+        },
+        {
+         "runs": [
+          {
+           "t": "- fins a 5.000: 2.000.000 EUR."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "Doc - rebut assegurança RC",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "El rebut de pagament de l’assegurança de Responsabilitat Civil."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    },
+    {
+     "nivell": "item",
+     "titol": "Rètols exterior - general",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Manquen els següents rètols a l’exterior de l’establiment, mínim en català:"
+        }
+       ]
+      }
+     ],
+     "fills": [
+      {
+       "nivell": "fill",
+       "titol": "Rètol - nom comercial",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "El nom comercial de l’activitat."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "Rètol - horari obertura/tancament",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "L’horari d’obertura i tancament, que es pugui veure clarament inclús si l’activitat està tancada."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "Rètol - aforament autoritzat",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Aforament autoritzat."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "Rètol - prohibit fumar",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Prohibit fumar."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "Rètol - llistat de preus",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Llistat de preus."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "Rètol - ús càmeres seguretat",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Informació ús de càmeres de seguretat."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    },
+    {
+     "nivell": "item",
+     "titol": "Rètols exterior - addicionals",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Manquen els següents rètols a l’exterior de l’establiment, mínim en català:"
+        }
+       ]
+      }
+     ],
+     "fills": [
+      {
+       "nivell": "fill",
+       "titol": "Rètol - alcohol menors",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Prohibició venta d’alcohol a menors d’edat."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "Rètol - tabac menors",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Prohibició venta tabac a menors d’edat."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "Rètol - màquines recreatives menors",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Prohibició de l’ús de màquines recreatives i atzar a menors d’edat."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "Rètol - fulls de reclamació",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Es disposa de fulls de reclamació."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "Rètol - recorreguts emergència",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Els recorreguts d’emergència segons el CTE DB SI 3 Apartat 7."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "nivell": "fill",
+       "titol": "Rètol - SORTIDA",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "La sortida de l’establiment on s’indiqui “SORTIDA”"
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "titol": "Accessibilitat",
+   "items": [
+    {
+     "nivell": "item",
+     "titol": "Espai treballadors - amplada portes/passadissos",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Espai treballadors. No es compleix amb l’article Article 5.3º de l’Annex I.A del "
+        },
+        {
+         "t": "Real Decreto 486/1997, de 14 de abril, por el que se establecen las disposiciones mínimas de seguridad y salud en los lugares de trabajo: “La anchura mínima de las puertas exteriores y de los pasillos será de 80 centímetros y 1 metro, respectivamente",
+         "i": true
+        },
+        {
+         "t": ". S’ha de redistribuir l’espai [CAMP: espai redistribuir treballadors]."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Accés - apartat 2 annex 3d",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Accés. S’ha de justificar el compliment de l’apartat 2 de l’Annex 3d del DECRET 209/2023, de 28 de novembre, pel qual s'aprova el Codi d'accessibilitat de Catalunya. Condició que ha de complir l’accés: [OPCIO: Accessibilitat accés | Accés practicable (segons l'apartat 2 de l'annex 3f) | Accés accessible (segons l'apartat 2 de l'annex 3c)]."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Itineraris interiors - apartat 3 annex 3d",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Itineraris interiors. S’ha de justificar el compliment de l’apartat 3 de l’Annex 3d del DECRET 209/2023, de 28 de novembre, pel qual s'aprova el Codi d'accessibilitat de Catalunya. Condició que ha de complir l’itinerari: [OPCIO: Accessibilitat itinerari | Itinerari practicable (segons l'apartat 1 de l'annex 3f) | Itinerari  accessible (segons l'apartat 1 de l'annex 3c)]."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Cambres higièniques - apartat 4 annex 3d",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Cambres higièniques. S’ha de justificar el compliment de l’apartat 4 de l’Annex 3d del DECRET 209/2023, de 28 de novembre, pel qual s'aprova el Codi d'accessibilitat de Catalunya. Condició que ha de complir la cambra higiènica: [OPCIO: Accessibilitat cambra higiènica | Usable (segons l'apartat 7.2 de l'annex 3f) | Practicable (segons l'apartat 7.1 de l'annex 3c)| Accessible (segons l'apartat 15.4 de l'annex 3c)]."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Nombre lavabos",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "S’ha de justificar en el projecte que hi ha els lavabos corresponents segons la normativa"
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": "item",
+     "titol": "Nou projecte modificacions",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "S’haurà d’entregar a l’Ajuntament un nou projecte on es puguin observar les modificacions per esmenar les deficiències d’aquest informe."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    }
+   ]
+  }
+ ]
+}

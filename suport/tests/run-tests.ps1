@@ -1154,6 +1154,40 @@ AssertEq $keysCP.Count 1 '_FindItemKeysByTitle troba l''item (1 clau)'
 AssertEq $keysCP[0] (_ItemKey 'Controls periòdics' 'Decret 112/2010 - control periòdic') '_FindItemKeysByTitle clau correcta'
 AssertEq (@(_FindItemKeysByTitle $parsedCP 'Inexistent').Count) 0 '_FindItemKeysByTitle no trobat -> 0 claus'
 
+Write-Host "`n--- CatalegJson.ps1: _RunsToMarkup / _JsonParaToBodyLine ---"
+AssertEq (_RunsToMarkup @(@{t='a'}, @{t='b'; b=$true}, @{t='c'; i=$true})) 'a**b**//c//' '_RunsToMarkup negreta + cursiva'
+AssertEq (_RunsToMarkup @(@{t='sol text'})) 'sol text' '_RunsToMarkup text sense format'
+AssertEq (_RunsToMarkup @()) '' '_RunsToMarkup buit -> cadena buida'
+AssertEq (_JsonParaToBodyLine @{ runs=@(@{t='http://x'}); url=$true }) '[[URL]] http://x' '_JsonParaToBodyLine url -> prefix [[URL]]'
+AssertEq (_JsonParaToBodyLine @{ runs=@(@{t='normal'}) }) 'normal' '_JsonParaToBodyLine normal'
+
+Write-Host "`n--- CatalegJson.ps1: lectura dels JSON reals (REQ1.json / 0 CONCLUSIONS.json) ---"
+$req1Json = Join-Path $EstructuralsDir 'REQ1.json'
+if (Test-Path -LiteralPath $req1Json) {
+    $reqCat = Read-CatalegJson $req1Json
+    AssertEq ([bool]($reqCat.Sections.Count -gt 0)) $true 'Read-CatalegJson REQ1: te seccions'
+    AssertEq $reqCat.IsFixedBody $false 'Read-CatalegJson REQ1: no es cos fix'
+    $secCP = @($reqCat.Sections | Where-Object { $_.Title -eq 'Controls periòdics' })
+    AssertEq ([bool]($secCP.Count -eq 1)) $true 'Read-CatalegJson REQ1: hi ha la seccio "Controls periòdics"'
+    $it112 = @($secCP[0].Items | Where-Object { $_.Short -eq 'Decret 112/2010 - control periòdic' })
+    AssertEq ([bool]($it112.Count -eq 1 -and $it112[0].Kind -eq 'item')) $true 'Read-CatalegJson REQ1: item "Decret 112/2010 - control periòdic"'
+    AssertEq ([bool]($it112[0].BodyLines.Count -gt 0)) $true 'Read-CatalegJson REQ1: l''item te cos'
+} else {
+    Write-Host "  (omes: no hi ha REQ1.json)" -ForegroundColor Yellow
+}
+$conJson = Join-Path $EstructuralsDir '0 CONCLUSIONS.json'
+if (Test-Path -LiteralPath $conJson) {
+    $conReq = Read-ConclusionsJson $conJson 'REQ1'
+    $reqConcl = @($conReq.Selectable | Where-Object { $_.Title -eq 'Requeriment' })
+    AssertEq ([bool]($reqConcl.Count -eq 1)) $true 'Read-ConclusionsJson REQ1: hi ha la conclusio "Requeriment"'
+    AssertEq ([bool]($reqConcl[0].Body.Length -gt 0)) $true 'Read-ConclusionsJson REQ1: la conclusio te cos'
+    AssertEq $conReq.Always.Count 2 'Read-ConclusionsJson: 2 frases ::SEMPRE::'
+    $conAll = Read-ConclusionsJson $conJson ''
+    AssertEq ([bool]($conAll.Selectable.Count -ge $conReq.Selectable.Count)) $true 'Read-ConclusionsJson buit -> totes les conclusions'
+} else {
+    Write-Host "  (omes: no hi ha 0 CONCLUSIONS.json)" -ForegroundColor Yellow
+}
+
 Write-Host "`n--- Informes.ps1: _EstatActualActivitat (estat = conclusio breu del darrer informe fiable, per data) ---"
 AssertEq (_EstatActualActivitat $null) '' '_EstatActualActivitat null -> buit'
 AssertEq (_EstatActualActivitat @()) '' '_EstatActualActivitat llista buida -> buit'
