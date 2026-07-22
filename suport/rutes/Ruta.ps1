@@ -460,15 +460,18 @@ function Build-RouteHtml($stops, $geometry, [double]$distanceM, [double]$duratio
   #bar { padding: 8px 16px; border-top: 1px solid #ddd; display: flex; gap: 10px; align-items: center; }
   button { background: #14365c; color: #fff; border: 0; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 14px; }
   button:hover { background: #1d4d82; }
-  .marker-num { background: #c0392b; color: #fff; border: 2px solid #fff; border-radius: 50%;
-                width: 26px; height: 26px; line-height: 22px; text-align: center; font-weight: bold;
-                box-shadow: 0 1px 4px rgba(0,0,0,.4); font-size: 13px; }
+  .marker-num { background: #c0392b; color: #fff; border: 2px solid #fff; border-radius: 12px;
+                height: 24px; line-height: 20px; text-align: center; font-weight: bold;
+                box-sizing: border-box; padding: 0 5px; white-space: nowrap;
+                box-shadow: 0 1px 4px rgba(0,0,0,.4); font-size: 12px; }
+  .route-arrow { color: #c0392b; font-size: 16px; line-height: 18px; text-align: center;
+                 text-shadow: 0 0 2px #fff, 0 0 3px #fff; }
   .marker-start { background: #1e8449; }
   .marker-base  { background: #14365c; }   /* punt 0 = BASE de sortida (blau) */
   /* Forcem que els colors de fons (capcalera blava, badges vermells, etc.) i
      les imatges (tiles del mapa) NO es perdin en imprimir. Sense aixo, la
      majoria de navegadors imprimeixen el fons en blanc per defecte. */
-  body, #top, td.num, tr td.num, .marker-num, .marker-start, th, .leaflet-tile,
+  body, #top, td.num, tr td.num, .marker-num, .marker-start, .route-arrow, th, .leaflet-tile,
   .leaflet-marker-icon, button {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
@@ -557,9 +560,12 @@ $rows
     var isBase  = (s.id === 'BASE');
     var isStart = (!hasBase) && (s.order === 1);
     var cls = 'marker-num' + (isBase ? ' marker-base' : (isStart ? ' marker-start' : ''));
+    // Etiqueta del punt: l'ID Activitat (GIA); la BASE conserva el "0".
+    var label = isBase ? String(s.order) : String(s.id);
+    var mw = Math.max(26, 12 + label.length * 8);
     var icon = L.divIcon({
-      className: '', html: '<div class="' + cls + '">' + s.order + '</div>',
-      iconSize: [26, 26], iconAnchor: [13, 13]
+      className: '', html: '<div class="' + cls + '" style="width:' + mw + 'px">' + label + '</div>',
+      iconSize: [mw, 24], iconAnchor: [mw / 2, 12]
     });
     var addr = s.address && s.address.length ? s.address : '(sense adreca)';
     var key = s.lat.toFixed(5) + ',' + s.lon.toFixed(5);
@@ -580,8 +586,32 @@ $rows
     bounds.push([s.lat, s.lon]);
   });
 
+  // Unes quantes fletxes (modestes) al llarg del recorregut per indicar-ne el
+  // sentit de la marxa. Es reparteixen de manera uniforme (~9) i s'orienten a
+  // la direccio local del traçat.
+  function addRouteArrows(geom) {
+    var n = geom.length;
+    if (n < 3) return;
+    var step = Math.max(1, Math.floor(n / 10));
+    for (var i = step; i < n - 1; i += step) {
+      var a = geom[i], b = geom[i + 1];
+      var latMid = (a[0] + b[0]) / 2, lonMid = (a[1] + b[1]) / 2;
+      var dx = (b[1] - a[1]) * Math.cos(latMid * Math.PI / 180);
+      var dy = -(b[0] - a[0]);
+      if (dx === 0 && dy === 0) continue;
+      var deg = Math.atan2(dy, dx) * 180 / Math.PI;
+      var ic = L.divIcon({
+        className: '',
+        html: '<div class="route-arrow" style="transform:rotate(' + deg + 'deg)">&#10148;</div>',
+        iconSize: [18, 18], iconAnchor: [9, 9]
+      });
+      L.marker([latMid, lonMid], { icon: ic, interactive: false, keyboard: false }).addTo(map);
+    }
+  }
+
   if (routeGeom && routeGeom.length > 1) {
     var line = L.polyline(routeGeom, { color: '#c0392b', weight: 4, opacity: .8 }).addTo(map);
+    addRouteArrows(routeGeom);
     map.fitBounds(line.getBounds().pad(0.15));
   } else if (bounds.length === 1) {
     map.setView(bounds[0], 16);

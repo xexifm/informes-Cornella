@@ -28,9 +28,10 @@
   #bar { padding: 8px 16px; border-top: 1px solid #ddd; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   button { background: #14365c; color: #fff; border: 0; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 14px; }
   button:hover { background: #1d4d82; }
-  .marker-num { background: #c0392b; color: #fff; border: 2px solid #fff; border-radius: 50%;
-                width: 26px; height: 26px; line-height: 22px; text-align: center; font-weight: bold;
-                box-shadow: 0 1px 4px rgba(0,0,0,.4); font-size: 13px; }
+  .marker-num { background: #c0392b; color: #fff; border: 2px solid #fff; border-radius: 12px;
+                height: 24px; line-height: 20px; text-align: center; font-weight: bold;
+                box-sizing: border-box; padding: 0 5px; white-space: nowrap;
+                box-shadow: 0 1px 4px rgba(0,0,0,.4); font-size: 12px; }
   .pop-tit { color: #c0392b; font-weight: bold; text-transform: uppercase; font-size: 11px; letter-spacing: .5px; }
   .pop-act { font-weight: bold; font-size: 14px; margin: 2px 0; }
   .pop-id  { font-family: Consolas, monospace; color: #14365c; font-size: 12px; }
@@ -134,9 +135,12 @@
       var bounds = [];
       var markers = [];
       acts.forEach(function (a, i) {
+        // Etiqueta del punt: l'ID Activitat (GIA), no un numero correlatiu.
+        var lbl = String(a.id == null ? '?' : a.id);
+        var mw = Math.max(26, 12 + lbl.length * 8);
         var icon = L.divIcon({
-          className: '', html: '<div class="marker-num">' + (i + 1) + '</div>',
-          iconSize: [26, 26], iconAnchor: [13, 13]
+          className: '', html: '<div class="marker-num" style="width:' + mw + 'px">' + esc(lbl) + '</div>',
+          iconSize: [mw, 24], iconAnchor: [mw / 2, 12]
         });
         var key = a.lat.toFixed(5) + ',' + a.lon.toFixed(5);
         var grp = groups[key];

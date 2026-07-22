@@ -184,6 +184,12 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   l'establiment, ID intern i coordenades — **mai** la raó social ni el text
   lliure del Valor (que conté noms i tràmits interns). No hi afegeixis dades
   personals: aquesta pàgina és pública.
+- **Etiquetes del plànol**: tant a `precintades.html` com al mapa de ruta
+  (`Ruta.ps1`, `Build-RouteHtml`) els marcadors mostren l'**ID Activitat (GIA)**
+  en una "pastilla" (no un número correlatiu; l'amplada s'ajusta als dígits). A
+  la ruta, la BASE conserva el "0" i s'afegeixen unes quantes **fletxes de
+  sentit** (~9, `addRouteArrows`) orientades al traçat. El GIA ja era públic al
+  JSON i al popup, així que no hi ha cap dada nova exposada.
 - Reutilitza les funcions de `Ruta.ps1` carregant-lo en mode headless
   (`RUTA_TEST`); si canvies `Ruta.ps1`, executa també
   `run-tests-precintades.ps1`.
