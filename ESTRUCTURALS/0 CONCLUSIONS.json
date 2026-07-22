@@ -1,250 +1,348 @@
 {
- "capcalera": "CONCLUSIONS",
- "grups": [
+ "tipus": "0 CONCLUSIONS",
+ "familia": "conclusions",
+ "intro": [
   {
-   "tipus": "REQ1",
-   "conclusions": [
+   "runs": [
     {
-     "titol": "Desistiment",
-     "cos": {
-      "runs": [
-       {
-        "t": "Vist l’anterior, com que la comunicació presenta un o més defectes de caràcter essencial "
-       },
-       {
-        "t": "s’ha de dictar una resolució que deixi sense efecte la comunicació i ordeni el cessament de l'activitat",
-        "b": true
-       },
-       {
-        "t": "."
-       }
-      ]
-     }
-    },
-    {
-     "titol": "Terrassa projecte",
-     "cos": {
-      "runs": [
-       {
-        "t": "La terrassa que apareix en el projecte no forma part d’aquest informe ni d’aquest expedient."
-       }
-      ]
-     }
-    },
-    {
-     "titol": "Requeriment",
-     "cos": {
-      "runs": [
-       {
-        "t": "Vist l’anterior, cal requerir l’esmena de les deficiències indicades, aportant la documentació corresponent i presentant la mateixa en un termini màxim de quinze dies, a comptar des de l’endemà de la recepció del requeriment."
-       }
-      ]
-     }
-    },
-    {
-     "titol": "Mancances formals",
-     "cos": {
-      "runs": [
-       {
-        "t": "Vist l’anterior, la comunicació presenta mancances formals que s’hauran d’esmenar per tal de poder iniciar l’activitat amb legalitat."
-       }
-      ]
-     }
-    },
-    {
-     "titol": "Procediment d’esmena documentació",
-     "cos": {
-      "runs": [
-       {
-        "t": "Vist l’anterior, s’inicia d’ofici el procediment d’esmena, disposant "
-       },
-       {
-        "t": "d’un termini [OPCIO: Mesos procediment esmena | d’un mes | de dos mesos degut a la complexitat de les actuacions que s’han de dur a terme per a esmenar les deficiències o per a complir els requisits exigits per la normativa sectorial aplicable | de tres mesos degut a la complexitat de les actuacions que s’han de dur a terme per a esmenar les deficiències o per a complir els requisits exigits per la normativa sectorial aplicable]",
-        "b": true
-       },
-       {
-        "t": " per a esmenar els defectes constatats. En cas contrari és pertinent que la resolució del procediment administratiu determini el "
-       },
-       {
-        "t": "cessament de l’activitat",
-        "b": true
-       },
-       {
-        "t": "."
-       }
-      ]
-     }
-    },
-    {
-     "titol": "Precinte inspecció activitat",
-     "cos": {
-      "runs": [
-       {
-        "t": "Tenint en consideració el risc greu o imminent de seguretat sobre les persones, béns i el medi ambient que genera l’activitat "
-       },
-       {
-        "t": "és pertinent precintar [CAMP: què es precinta]",
-        "b": true
-       },
-       {
-        "t": " fins a esmenar les deficiències en el cas de no presentar la documentació requerida en el termini "
-       },
-       {
-        "t": "[OPCIO: Mesos precinte | d’un mes | de dos mesos | de tres mesos]",
-        "b": true
-       },
-       {
-        "t": "."
-       }
-      ]
-     }
-    }
-   ]
-  },
-  {
-   "tipus": "SEGUIMENT",
-   "conclusions": [
-    {
-     "titol": "Finalitzat",
-     "cos": {
-      "runs": [
-       {
-        "t": "Vist l’anterior s’informa que "
-       },
-       {
-        "t": "es pot donar per finalitzat el procediment d’esmena",
-        "b": true
-       },
-       {
-        "t": "."
-       }
-      ]
-     }
-    },
-    {
-     "titol": "NO finalitzat",
-     "cos": {
-      "runs": [
-       {
-        "t": "Vist l’anterior s’informa que "
-       },
-       {
-        "t": "NO es pot donar per finalitzat el procediment d’esmena",
-        "b": true
-       },
-       {
-        "t": "."
-       }
-      ]
-     }
-    },
-    {
-     "titol": "NO finalitzat però aixecar cessament",
-     "cos": {
-      "runs": [
-       {
-        "t": "Vist l’anterior s’informa que "
-       },
-       {
-        "t": "NO es pot donar per finalitzat el procediment d’esmena però",
-        "b": true
-       },
-       {
-        "t": " tenint en compte les actuacions que s’han dut a terme, "
-       },
-       {
-        "t": "es valora ampliar el termini [OPCIO: Mesos ampliació | un mes | dos mesos] i aixecar el cessament de l’activitat",
-        "b": true
-       },
-       {
-        "t": "."
-       }
-      ]
-     }
-    },
-    {
-     "titol": "Tancament denúncia",
-     "cos": {
-      "runs": [
-       {
-        "t": "Vist l’anterior s’informa que "
-       },
-       {
-        "t": "es pot donar per tancada la denúncia",
-        "b": true
-       },
-       {
-        "t": "."
-       }
-      ]
-     }
-    },
-    {
-     "titol": "Tancament denúncia + inici procediment esmena",
-     "cos": {
-      "runs": [
-       {
-        "t": "Vist l’anterior, es s’informa que es pot donar per tancada la denúncia."
-       }
-      ]
-     }
-    }
-   ]
-  },
-  {
-   "tipus": "TERMINI",
-   "conclusions": [
-    {
-     "titol": "Ampliar",
-     "cos": {
-      "runs": [
-       {
-        "t": "Vist l’anterior, i tenint en compte les actuacions que s’han de dur a terme, es valora "
-       },
-       {
-        "t": "ampliar el termini [OPCIO: Mesos ampliació | un mes | dos mesos]",
-        "b": true
-       },
-       {
-        "t": "."
-       }
-      ]
-     }
-    },
-    {
-     "titol": "No ampliar",
-     "cos": {
-      "runs": [
-       {
-        "t": "Vist l’anterior, i tenint en compte les actuacions que s’han de dur a terme, es valora "
-       },
-       {
-        "t": "NO ampliar el termini",
-        "b": true
-       },
-       {
-        "t": "."
-       }
-      ]
-     }
+     "t": "CONCLUSIONS"
     }
    ]
   }
  ],
- "sempre": [
+ "nodes": [
   {
-   "runs": [
+   "nivell": 1,
+   "marca": "grup",
+   "titol": "REQ1",
+   "cos": [],
+   "fills": [
     {
-     "t": "Ho poso al seu coneixement als efectes oportuns,"
+     "nivell": 2,
+     "marca": "conclusio",
+     "titol": "Desistiment",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Vist l’anterior, com que la comunicació presenta un o més defectes de caràcter essencial "
+        },
+        {
+         "t": "s’ha de dictar una resolució que deixi sense efecte la comunicació i ordeni el cessament de l'activitat",
+         "b": true
+        },
+        {
+         "t": "."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": 2,
+     "marca": "conclusio",
+     "titol": "Terrassa projecte",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "La terrassa que apareix en el projecte no forma part d’aquest informe ni d’aquest expedient."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": 2,
+     "marca": "conclusio",
+     "titol": "Requeriment",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Vist l’anterior, cal requerir l’esmena de les deficiències indicades, aportant la documentació corresponent i presentant la mateixa en un termini màxim de quinze dies, a comptar des de l’endemà de la recepció del requeriment."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": 2,
+     "marca": "conclusio",
+     "titol": "Mancances formals",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Vist l’anterior, la comunicació presenta mancances formals que s’hauran d’esmenar per tal de poder iniciar l’activitat amb legalitat."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": 2,
+     "marca": "conclusio",
+     "titol": "Procediment d’esmena documentació",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Vist l’anterior, s’inicia d’ofici el procediment d’esmena, disposant "
+        },
+        {
+         "t": "d’un termini [OPCIO: Mesos procediment esmena | d’un mes | de dos mesos degut a la complexitat de les actuacions que s’han de dur a terme per a esmenar les deficiències o per a complir els requisits exigits per la normativa sectorial aplicable | de tres mesos degut a la complexitat de les actuacions que s’han de dur a terme per a esmenar les deficiències o per a complir els requisits exigits per la normativa sectorial aplicable]",
+         "b": true
+        },
+        {
+         "t": " per a esmenar els defectes constatats. En cas contrari és pertinent que la resolució del procediment administratiu determini el "
+        },
+        {
+         "t": "cessament de l’activitat",
+         "b": true
+        },
+        {
+         "t": "."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": 2,
+     "marca": "conclusio",
+     "titol": "Precinte inspecció activitat",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Tenint en consideració el risc greu o imminent de seguretat sobre les persones, béns i el medi ambient que genera l’activitat "
+        },
+        {
+         "t": "és pertinent precintar [CAMP: què es precinta]",
+         "b": true
+        },
+        {
+         "t": " fins a esmenar les deficiències en el cas de no presentar la documentació requerida en el termini "
+        },
+        {
+         "t": "[OPCIO: Mesos precinte | d’un mes | de dos mesos | de tres mesos]",
+         "b": true
+        },
+        {
+         "t": "."
+        }
+       ]
+      }
+     ],
+     "fills": []
     }
    ]
   },
   {
-   "runs": [
+   "nivell": 1,
+   "marca": "grup",
+   "titol": "SEGUIMENT",
+   "cos": [],
+   "fills": [
     {
-     "t": "Cornellà de Llobregat,"
+     "nivell": 2,
+     "marca": "conclusio",
+     "titol": "Finalitzat",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Vist l’anterior s’informa que "
+        },
+        {
+         "t": "es pot donar per finalitzat el procediment d’esmena",
+         "b": true
+        },
+        {
+         "t": "."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": 2,
+     "marca": "conclusio",
+     "titol": "NO finalitzat",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Vist l’anterior s’informa que "
+        },
+        {
+         "t": "NO es pot donar per finalitzat el procediment d’esmena",
+         "b": true
+        },
+        {
+         "t": "."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": 2,
+     "marca": "conclusio",
+     "titol": "NO finalitzat però aixecar cessament",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Vist l’anterior s’informa que "
+        },
+        {
+         "t": "NO es pot donar per finalitzat el procediment d’esmena però",
+         "b": true
+        },
+        {
+         "t": " tenint en compte les actuacions que s’han dut a terme, "
+        },
+        {
+         "t": "es valora ampliar el termini [OPCIO: Mesos ampliació | un mes | dos mesos] i aixecar el cessament de l’activitat",
+         "b": true
+        },
+        {
+         "t": "."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": 2,
+     "marca": "conclusio",
+     "titol": "Tancament denúncia",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Vist l’anterior s’informa que "
+        },
+        {
+         "t": "es pot donar per tancada la denúncia",
+         "b": true
+        },
+        {
+         "t": "."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": 2,
+     "marca": "conclusio",
+     "titol": "Tancament denúncia + inici procediment esmena",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Vist l’anterior, es s’informa que es pot donar per tancada la denúncia."
+        }
+       ]
+      }
+     ],
+     "fills": []
     }
    ]
+  },
+  {
+   "nivell": 1,
+   "marca": "grup",
+   "titol": "TERMINI",
+   "cos": [],
+   "fills": [
+    {
+     "nivell": 2,
+     "marca": "conclusio",
+     "titol": "Ampliar",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Vist l’anterior, i tenint en compte les actuacions que s’han de dur a terme, es valora "
+        },
+        {
+         "t": "ampliar el termini [OPCIO: Mesos ampliació | un mes | dos mesos]",
+         "b": true
+        },
+        {
+         "t": "."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "nivell": 2,
+     "marca": "conclusio",
+     "titol": "No ampliar",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Vist l’anterior, i tenint en compte les actuacions que s’han de dur a terme, es valora "
+        },
+        {
+         "t": "NO ampliar el termini",
+         "b": true
+        },
+        {
+         "t": "."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    }
+   ]
+  },
+  {
+   "nivell": 1,
+   "marca": "sempre",
+   "titol": "",
+   "cos": [
+    {
+     "runs": [
+      {
+       "t": "Ho poso al seu coneixement als efectes oportuns,"
+      }
+     ]
+    }
+   ],
+   "fills": []
+  },
+  {
+   "nivell": 1,
+   "marca": "sempre",
+   "titol": "",
+   "cos": [
+    {
+     "runs": [
+      {
+       "t": "Cornellà de Llobregat,"
+      }
+     ]
+    }
+   ],
+   "fills": []
   }
  ]
 }

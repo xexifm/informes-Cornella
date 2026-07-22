@@ -1,5 +1,6 @@
 {
  "tipus": "TERMINI",
+ "familia": "cataleg",
  "intro": [
   {
    "runs": [
@@ -17,5 +18,5 @@
    ]
   }
  ],
- "seccions": []
+ "nodes": []
 }

@@ -1,5 +1,6 @@
 {
  "tipus": "REQ1",
+ "familia": "cataleg",
  "intro": [
   {
    "runs": [
@@ -9,12 +10,16 @@
    ]
   }
  ],
- "seccions": [
+ "nodes": [
   {
+   "nivell": 1,
+   "marca": "seccio",
    "titol": "Requeriment pendent",
-   "items": [
+   "cos": [],
+   "fills": [
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Anterior requeriment",
      "cos": [
       {
@@ -44,10 +49,14 @@
    ]
   },
   {
+   "nivell": 1,
+   "marca": "seccio",
    "titol": "Desistiment comunicació",
-   "items": [
+   "cos": [],
+   "fills": [
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Defectes de caràcter essencial",
      "cos": [
       {
@@ -98,10 +107,14 @@
    ]
   },
   {
+   "nivell": 1,
+   "marca": "seccio",
    "titol": "Estat de l’establiment",
-   "items": [
+   "cos": [],
+   "fills": [
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Estat - Higiene",
      "cos": [
       {
@@ -115,7 +128,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Estat - Residus",
      "cos": [
       {
@@ -131,10 +145,14 @@
    ]
   },
   {
+   "nivell": 1,
+   "marca": "seccio",
    "titol": "Autoritzacions / Informes preceptius",
-   "items": [
+   "cos": [],
+   "fills": [
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Sanitat",
      "cos": [
       {
@@ -156,7 +174,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Educació",
      "cos": [
       {
@@ -178,7 +197,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Comerç",
      "cos": [
       {
@@ -200,7 +220,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Esport",
      "cos": [
       {
@@ -222,7 +243,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Incendis",
      "cos": [
       {
@@ -244,7 +266,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Impacte ambiental",
      "cos": [
       {
@@ -265,7 +288,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Vector Aigua (ACA) - Zona inundable fluvial T500",
      "cos": [
       {
@@ -287,7 +311,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Vector Aigua (ACA) - abocaments",
      "cos": [
       {
@@ -309,7 +334,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Vector Aigua (ACA) - DUCA",
      "cos": [
       {
@@ -331,7 +357,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Vector Aigua (AMB) - abocaments",
      "cos": [
       {
@@ -353,7 +380,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Vector Residus (ARC)",
      "cos": [
       {
@@ -374,7 +402,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Vector Residus - SDR",
      "cos": [
       {
@@ -396,7 +425,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Vector Atmosfera - Grup A/B",
      "cos": [
       {
@@ -418,7 +448,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Vector Atmosfera - Grup C llicència",
      "cos": [
       {
@@ -440,7 +471,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Vector Atmosfera - Grup C comunicació",
      "cos": [
       {
@@ -454,7 +486,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Soroll",
      "cos": [
       {
@@ -489,7 +522,8 @@
      ],
      "fills": [
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Soroll - vibracions",
        "cos": [
         {
@@ -505,7 +539,8 @@
      ]
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Olors",
      "cos": [
       {
@@ -519,7 +554,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Vector Sòl",
      "cos": [
       {
@@ -568,7 +604,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Mobilitat",
      "cos": [
       {
@@ -584,10 +621,14 @@
    ]
   },
   {
+   "nivell": 1,
+   "marca": "seccio",
    "titol": "Pla d'Autoprotecció",
-   "items": [
+   "cos": [],
+   "fills": [
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "PAU",
      "cos": [
       {
@@ -609,7 +650,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "PAU - actualització",
      "cos": [
       {
@@ -633,10 +675,14 @@
    ]
   },
   {
+   "nivell": 1,
+   "marca": "seccio",
    "titol": "Controls inicials",
-   "items": [
+   "cos": [],
+   "fills": [
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Annex III Llei 20/2009 - control inicial",
      "cos": [
       {
@@ -658,7 +704,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Annex II Llei 20/2009 - control inicial",
      "cos": [
       {
@@ -680,7 +727,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Vector Atmosfera - control inicial",
      "cos": [
       {
@@ -725,10 +773,14 @@
    ]
   },
   {
+   "nivell": 1,
+   "marca": "seccio",
    "titol": "Controls periòdics",
-   "items": [
+   "cos": [],
+   "fills": [
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Decret 112/2010 - control periòdic",
      "cos": [
       {
@@ -750,7 +802,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Annex II Llei 20/2009 - control periòdic",
      "cos": [
       {
@@ -772,7 +825,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Annex III Llei 20/2009 - control periòdic",
      "cos": [
       {
@@ -794,7 +848,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RSCIEI - control periòdic",
      "cos": [
       {
@@ -815,7 +870,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Vector Atmosfera - control periòdic",
      "cos": [
       {
@@ -858,7 +914,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Vector Sòl - control periòdic",
      "cos": [
       {
@@ -881,16 +938,21 @@
    ]
   },
   {
+   "nivell": 1,
+   "marca": "seccio",
    "titol": "Instal·lacions",
-   "items": [
+   "cos": [],
+   "fills": [
     {
-     "nivell": "subseccio",
+     "nivell": 2,
+     "marca": "subseccio",
      "titol": "Legalitzacions",
      "cos": [],
      "fills": []
     },
     {
-     "nivell": "intro",
+     "nivell": 2,
+     "marca": "intro",
      "titol": "",
      "cos": [
       {
@@ -904,7 +966,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RITSIC - fotovoltaica",
      "cos": [
       {
@@ -926,7 +989,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RITSIC - gas combustible (transport/distribucio)",
      "cos": [
       {
@@ -948,7 +1012,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RITSIC - gas receptor i GLP (ITC-ICG 07)",
      "cos": [
       {
@@ -970,7 +1035,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RITSIC - gas verificació per unitat",
      "cos": [
       {
@@ -992,7 +1058,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RITSIC - alta tensió",
      "cos": [
       {
@@ -1013,7 +1080,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RITSIC - baixa tensió",
      "cos": [
       {
@@ -1035,7 +1103,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RITSIC - ascensors",
      "cos": [
       {
@@ -1057,7 +1126,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RITSIC - tèrmiques",
      "cos": [
       {
@@ -1079,7 +1149,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RITSIC - fred industrial",
      "cos": [
       {
@@ -1101,7 +1172,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RITSIC - equips a pressió",
      "cos": [
       {
@@ -1123,7 +1195,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RITSIC - PCI",
      "cos": [
       {
@@ -1145,7 +1218,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RITSIC - Emmagatzematge productes químics",
      "cos": [
       {
@@ -1186,7 +1260,8 @@
      ],
      "fills": [
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Aplicació RAPQ",
        "cos": [
         {
@@ -1215,7 +1290,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Aplicació Seveso",
        "cos": [
         {
@@ -1246,7 +1322,8 @@
      ]
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RISTIC Petrolífera - ITC MI-IP 02 (parc emmagatzematge)",
      "cos": [
       {
@@ -1268,7 +1345,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RITSIC Petrolífera - ITC MI-IP 03 (ús propi)",
      "cos": [
       {
@@ -1290,7 +1368,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RITSIC Petrolífera - ITC MI-IP 04 (subministre vehicles)",
      "cos": [
       {
@@ -1312,7 +1391,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RITSIC - radioactives",
      "cos": [
       {
@@ -1334,7 +1414,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RITSIC - Raigs X (medic/veterinari)",
      "cos": [
       {
@@ -1356,13 +1437,15 @@
      "fills": []
     },
     {
-     "nivell": "subseccio",
+     "nivell": 2,
+     "marca": "subseccio",
      "titol": "Inspeccions inicials",
      "cos": [],
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Insp. inicial - fotovoltaica >25 kW",
      "cos": [
       {
@@ -1390,7 +1473,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Insp. inicial - gas",
      "cos": [
       {
@@ -1411,7 +1495,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Insp. inicial - alta tensió",
      "cos": [
       {
@@ -1432,7 +1517,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Insp. inicial - baixa tensió",
      "cos": [
       {
@@ -1453,7 +1539,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Insp. inicial - ascensors",
      "cos": [
       {
@@ -1474,13 +1561,15 @@
      "fills": []
     },
     {
-     "nivell": "subseccio",
+     "nivell": 2,
+     "marca": "subseccio",
      "titol": "Inspeccions periòdiques",
      "cos": [],
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Insp. periòdica - fotovoltaica >25 kW (5 anys)",
      "cos": [
       {
@@ -1501,7 +1590,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Insp. periòdica - gas (5 anys)",
      "cos": [
       {
@@ -1522,7 +1612,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Insp. periòdica - alta tensió (3 anys)",
      "cos": [
       {
@@ -1543,7 +1634,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Insp. periòdica - baixa tensió (5 anys)",
      "cos": [
       {
@@ -1564,7 +1656,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Insp. periòdica – ascensors (2, 4 o 6 anys)",
      "cos": [
       {
@@ -1585,7 +1678,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Insp. periòdica – tèrmiques > 70kW",
      "cos": [
       {
@@ -1606,7 +1700,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Insp. periòdica - fred industrial (10 anys)",
      "cos": [
       {
@@ -1627,7 +1722,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Insp. periòdica - equips a pressió (10 anys)",
      "cos": [
       {
@@ -1648,7 +1744,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Insp. periòdica - PCI",
      "cos": [
       {
@@ -1669,7 +1766,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Insp. periòdica - productes químics (5 anys)",
      "cos": [
       {
@@ -1690,7 +1788,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Insp. periòdica - petrolífera MI-IP 02 (10 anys)",
      "cos": [
       {
@@ -1711,7 +1810,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Insp. periòdica - petrolífera MI-IP 03 (10 anys)",
      "cos": [
       {
@@ -1732,7 +1832,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Insp. periòdica - petrolífera MI-IP 04 (5 anys)",
      "cos": [
       {
@@ -1753,7 +1854,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Insp. periòdica - raigs X",
      "cos": [
       {
@@ -1776,10 +1878,14 @@
    ]
   },
   {
+   "nivell": 1,
+   "marca": "seccio",
    "titol": "Registres",
-   "items": [
+   "cos": [],
+   "fills": [
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Nucli zoològic",
      "cos": [
       {
@@ -1801,13 +1907,15 @@
      "fills": []
     },
     {
-     "nivell": "subseccio",
+     "nivell": 2,
+     "marca": "subseccio",
      "titol": "Registre d'Agents de la Seguretat Industrial de Catalunya",
      "cos": [],
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RASIC",
      "cos": [
       {
@@ -1829,7 +1937,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RASIC - taller mecanic",
      "cos": [
       {
@@ -1851,13 +1960,15 @@
      "fills": []
     },
     {
-     "nivell": "subseccio",
+     "nivell": 2,
+     "marca": "subseccio",
      "titol": "Activitats industrials",
      "cos": [],
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Metalls preciosos",
      "cos": [
       {
@@ -1879,13 +1990,15 @@
      "fills": []
     },
     {
-     "nivell": "subseccio",
+     "nivell": 2,
+     "marca": "subseccio",
      "titol": "Productes i establiments sanitaris",
      "cos": [],
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Productes sanitaris – Fabricació, distribució i venda",
      "cos": [
       {
@@ -1907,7 +2020,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Productes sanitaris – Fabricació pròtesis dentals",
      "cos": [
       {
@@ -1929,7 +2043,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Òptica - autorització",
      "cos": [
       {
@@ -1951,7 +2066,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Ortopèdia/audiopròtesis - autorització",
      "cos": [
       {
@@ -1973,7 +2089,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Ortoprotètics a mida - autorització sanitària",
      "cos": [
       {
@@ -1995,7 +2112,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Farmàcies",
      "cos": [
       {
@@ -2009,7 +2127,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Estètica - bancs solars",
      "cos": [
       {
@@ -2030,7 +2149,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Desfibriladors",
      "cos": [
       {
@@ -2044,7 +2164,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "DEA - inscripcio",
      "cos": [
       {
@@ -2066,13 +2187,15 @@
      "fills": []
     },
     {
-     "nivell": "subseccio",
+     "nivell": 2,
+     "marca": "subseccio",
      "titol": "Registres sanitaris",
      "cos": [],
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Registres sanitaris - RSIPAC",
      "cos": [
       {
@@ -2094,7 +2217,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Registres sanitaris - DR salut alimentària",
      "cos": [
       {
@@ -2116,13 +2240,15 @@
      "fills": []
     },
     {
-     "nivell": "subseccio",
+     "nivell": 2,
+     "marca": "subseccio",
      "titol": "Comerç",
      "cos": [],
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Comerç - mesures de seguretat",
      "cos": [
       {
@@ -2144,7 +2270,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "API - Registre agents immobiliaris",
      "cos": [
       {
@@ -2168,10 +2295,14 @@
    ]
   },
   {
+   "nivell": 1,
+   "marca": "seccio",
    "titol": "Incendis",
-   "items": [
+   "cos": [],
+   "fills": [
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Aplica CTE, NO RSCIEI",
      "cos": [
       {
@@ -2199,7 +2330,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Aplica RSCIEI, NO CTE",
      "cos": [
       {
@@ -2227,7 +2359,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Evacuació Evacuació - portes practicables",
      "cos": [
       {
@@ -2241,13 +2374,15 @@
      "fills": []
     },
     {
-     "nivell": "subseccio",
+     "nivell": 2,
+     "marca": "subseccio",
      "titol": "Documentació (ITC SP)",
      "cos": [],
      "fills": []
     },
     {
-     "nivell": "intro",
+     "nivell": 2,
+     "marca": "intro",
      "titol": "",
      "cos": [
       {
@@ -2261,7 +2396,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "SP 136 Model A - limitacio propagacio",
      "cos": [
       {
@@ -2297,7 +2433,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "SP 136 Model B - reaccio al foc",
      "cos": [
       {
@@ -2333,7 +2470,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "SP 136 Model C - proteccio estructures",
      "cos": [
       {
@@ -2369,7 +2507,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "ITC SP 108 - lluernes en coberta",
      "cos": [
       {
@@ -2405,13 +2544,15 @@
      "fills": []
     },
     {
-     "nivell": "subseccio",
+     "nivell": 2,
+     "marca": "subseccio",
      "titol": "RIPCI",
      "cos": [],
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RIPCI - posada en servei",
      "cos": [
       {
@@ -2425,7 +2566,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RIPCI - Extintors - emplaçament",
      "cos": [
       {
@@ -2439,7 +2581,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RIPCI - Extintors - alçada",
      "cos": [
       {
@@ -2453,7 +2596,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RIPCI - Extintors - recorregut màxim",
      "cos": [
       {
@@ -2467,7 +2611,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RIPCI - Extintors - manteniment UNE 23120",
      "cos": [
       {
@@ -2481,7 +2626,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RIPCI - BIEs - alçada vàlvula",
      "cos": [
       {
@@ -2495,7 +2641,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RIPCI - BIEs - distància sortides",
      "cos": [
       {
@@ -2509,7 +2656,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RIPCI - BIEs - separació entre BIE",
      "cos": [
       {
@@ -2523,7 +2671,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RIPCI - BIEs - zona lliure",
      "cos": [
       {
@@ -2537,7 +2686,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RIPCI - BIEs - pressió",
      "cos": [
       {
@@ -2551,7 +2701,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RIPCI - BIEs - manteniment UNE-EN 671-3",
      "cos": [
       {
@@ -2565,7 +2716,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RIPCI - Senyalitzacio PCI",
      "cos": [
       {
@@ -2579,7 +2731,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RIPCI - Enllumenat emergència",
      "cos": [
       {
@@ -2593,13 +2746,15 @@
      "fills": []
     },
     {
-     "nivell": "subseccio",
+     "nivell": 2,
+     "marca": "subseccio",
      "titol": "CTE DB SI",
      "cos": [],
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "CTE DB SI 1 - Propagació interior",
      "cos": [
       {
@@ -2612,7 +2767,8 @@
      ],
      "fills": [
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "SI 1.1 - Compartimentación sectores",
        "cos": [
         {
@@ -2627,7 +2783,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "SI 1.2 - Locales y zonas de riesgo especial",
        "cos": [
         {
@@ -2642,7 +2799,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "SI 1.3 - Espacios ocultos",
        "cos": [
         {
@@ -2657,7 +2815,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "SI 1.4 - Reacción al fuego",
        "cos": [
         {
@@ -2674,7 +2833,8 @@
      ]
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "CTE DB SI 2 - Propagació exterior",
      "cos": [
       {
@@ -2687,7 +2847,8 @@
      ],
      "fills": [
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "SI 2.1 - Medianerias y fachadas",
        "cos": [
         {
@@ -2702,7 +2863,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "SI 2.2 - Cubiertas",
        "cos": [
         {
@@ -2719,7 +2881,8 @@
      ]
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "CTE DB SI 3 - Evacuació d'ocupants",
      "cos": [
       {
@@ -2732,7 +2895,8 @@
      ],
      "fills": [
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "SI 3.1 - Compatibilidad elementos",
        "cos": [
         {
@@ -2747,7 +2911,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "SI 3.2 - Calculo ocupacion",
        "cos": [
         {
@@ -2762,7 +2927,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "SI 3.3 - Salidas y recorridos",
        "cos": [
         {
@@ -2777,7 +2943,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "SI 3.4 - Dimensionado medios",
        "cos": [
         {
@@ -2792,7 +2959,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "SI 3.5 - Proteccion escaleras",
        "cos": [
         {
@@ -2807,7 +2975,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "SI 3.6 - Puertas en recorridos",
        "cos": [
         {
@@ -2886,7 +3055,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "SI 3.7 - Señalización medios evacuacion",
        "cos": [
         {
@@ -2901,7 +3071,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "SI 3.8 - Control humo",
        "cos": [
         {
@@ -2916,7 +3087,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "SI 3.9 - Evacuacion discapacitats",
        "cos": [
         {
@@ -2933,7 +3105,8 @@
      ]
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "CTE DB SI 4 - Instal·lacions PCI",
      "cos": [
       {
@@ -2946,7 +3119,8 @@
      ],
      "fills": [
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "SI 4.1 - Dotacion instalaciones PCI",
        "cos": [
         {
@@ -2963,7 +3137,8 @@
      ]
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "CTE DB SI 5 - Intervenció bombers",
      "cos": [
       {
@@ -2976,7 +3151,8 @@
      ],
      "fills": [
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "SI 5.1 - Aproximacion y entorno",
        "cos": [
         {
@@ -2991,7 +3167,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "SI 5.2 - Accesibilidad fachada",
        "cos": [
         {
@@ -3008,7 +3185,8 @@
      ]
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "CTE DB SI 6 - Resistència al foc",
      "cos": [
       {
@@ -3021,7 +3199,8 @@
      ],
      "fills": [
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "SI 6.3 - Elementos estructurales principales",
        "cos": [
         {
@@ -3036,7 +3215,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "SI 6.4 - Elementos estructurales secundarios",
        "cos": [
         {
@@ -3051,7 +3231,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "SI 6.6 - Determinacion resistència",
        "cos": [
         {
@@ -3070,10 +3251,14 @@
    ]
   },
   {
+   "nivell": 1,
+   "marca": "seccio",
    "titol": "Projecte",
-   "items": [
+   "cos": [],
+   "fills": [
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Llum",
      "cos": [
       {
@@ -3087,7 +3272,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Modificació activitat - Llei 18/2020",
      "cos": [
       {
@@ -3101,7 +3287,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Modificació activitat - Llei 20/2009",
      "cos": [
       {
@@ -3125,10 +3312,14 @@
    ]
   },
   {
+   "nivell": 1,
+   "marca": "seccio",
    "titol": "Activitat",
-   "items": [
+   "cos": [],
+   "fills": [
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Tapiar zones sense ús",
      "cos": [
       {
@@ -3142,7 +3333,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Alçades minimes",
      "cos": [
       {
@@ -3156,7 +3348,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Amplada passadissos",
      "cos": [
       {
@@ -3170,7 +3363,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Modificació activitat - tramitar",
      "cos": [
       {
@@ -3184,7 +3378,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Retirar barra via pública",
      "cos": [
       {
@@ -3198,7 +3393,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Farmaciola",
      "cos": [
       {
@@ -3212,7 +3408,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Vestíbul previ lavabo",
      "cos": [
       {
@@ -3226,7 +3423,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Sabó i secamans lavabos",
      "cos": [
       {
@@ -3242,10 +3440,14 @@
    ]
   },
   {
+   "nivell": 1,
+   "marca": "seccio",
    "titol": "Extracció de fums",
-   "items": [
+   "cos": [],
+   "fills": [
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Elements cocció sense extracció",
      "cos": [
       {
@@ -3259,7 +3461,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Sectorització conductes",
      "cos": [
       {
@@ -3273,7 +3476,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Xemeneia - alçada coberta",
      "cos": [
       {
@@ -3294,7 +3498,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Neteja anual conducte",
      "cos": [
       {
@@ -3315,7 +3520,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Estanqueïtat anual conducte",
      "cos": [
       {
@@ -3336,7 +3542,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Campana - extinció automàtic",
      "cos": [
       {
@@ -3350,7 +3557,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Campana - prohibit filtres carbó",
      "cos": [
       {
@@ -3364,7 +3572,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Campana - ventilador F400 90",
      "cos": [
       {
@@ -3378,7 +3587,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Fum per ignició - Vestíbul",
      "cos": [
       {
@@ -3392,7 +3602,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Fum per ignició - Extracció",
      "cos": [
       {
@@ -3406,7 +3617,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Elaboració menjar a domicili",
      "cos": [
       {
@@ -3422,16 +3634,21 @@
    ]
   },
   {
+   "nivell": 1,
+   "marca": "seccio",
    "titol": "Denúncia",
-   "items": [
+   "cos": [],
+   "fills": [
     {
-     "nivell": "subseccio",
+     "nivell": 2,
+     "marca": "subseccio",
      "titol": "Horari",
      "cos": [],
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Horari",
      "cos": [
       {
@@ -3452,13 +3669,15 @@
      "fills": []
     },
     {
-     "nivell": "subseccio",
+     "nivell": 2,
+     "marca": "subseccio",
      "titol": "Soroll",
      "cos": [],
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Estudi acústic ajuntament",
      "cos": [
       {
@@ -3480,7 +3699,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Acta no accés habitatge",
      "cos": [
       {
@@ -3494,7 +3714,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Terrassa",
      "cos": [
       {
@@ -3508,13 +3729,15 @@
      "fills": []
     },
     {
-     "nivell": "subseccio",
+     "nivell": 2,
+     "marca": "subseccio",
      "titol": "Olors",
      "cos": [],
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Olors Elements cocció",
      "cos": [
       {
@@ -3527,7 +3750,8 @@
      ],
      "fills": [
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Retirar elements",
        "cos": [
         {
@@ -3541,7 +3765,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Justificació elements",
        "cos": [
         {
@@ -3555,7 +3780,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Desinstal·lar campana extractora",
        "cos": [
         {
@@ -3571,13 +3797,15 @@
      ]
     },
     {
-     "nivell": "subseccio",
+     "nivell": 2,
+     "marca": "subseccio",
      "titol": "Calor",
      "cos": [],
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Aïllament focus calor/fred",
      "cos": [
       {
@@ -3591,13 +3819,15 @@
      "fills": []
     },
     {
-     "nivell": "subseccio",
+     "nivell": 2,
+     "marca": "subseccio",
      "titol": "Accessibilitat",
      "cos": [],
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Compliment Codi accessibilitat",
      "cos": [
       {
@@ -3611,13 +3841,15 @@
      "fills": []
     },
     {
-     "nivell": "subseccio",
+     "nivell": 2,
+     "marca": "subseccio",
      "titol": "Emmagatzematge material exterior",
      "cos": [],
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RSCIEI - distribució piles (Annex II 2.2)",
      "cos": [
       {
@@ -3637,7 +3869,8 @@
      ],
      "fills": [
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Pila - superfície max 500 m2",
        "cos": [
         {
@@ -3652,7 +3885,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Pila - volum max 3500 m3",
        "cos": [
         {
@@ -3667,7 +3901,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Pila - alçada max 15 m",
        "cos": [
         {
@@ -3682,7 +3917,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Pila - longitud segons passadis",
        "cos": [
         {
@@ -3699,7 +3935,8 @@
      ]
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "RSCIEI - evacuació i senyalitzacio (Annex II 6.5)",
      "cos": [
       {
@@ -3719,7 +3956,8 @@
      ],
      "fills": [
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Franja perimetral",
        "cos": [
         {
@@ -3734,7 +3972,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Camins emergència - amplada",
        "cos": [
         {
@@ -3749,7 +3988,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Camins emergència - separació",
        "cos": [
         {
@@ -3764,7 +4004,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Passadissos entre piles - amplada",
        "cos": [
         {
@@ -3783,10 +4024,14 @@
    ]
   },
   {
+   "nivell": 1,
+   "marca": "seccio",
    "titol": "Documentació / Rètols",
-   "items": [
+   "cos": [],
+   "fills": [
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Documentació a presentar",
      "cos": [
       {
@@ -3799,7 +4044,8 @@
      ],
      "fills": [
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Doc - canvi titularitat activitat",
        "cos": [
         {
@@ -3813,7 +4059,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Doc - canvi titularitat autorització",
        "cos": [
         {
@@ -3827,7 +4074,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Doc - plànol(s) plantes",
        "cos": [
         {
@@ -3841,7 +4089,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Doc - alta IAE",
        "cos": [
         {
@@ -3855,7 +4104,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Doc - factura elèctrica",
        "cos": [
         {
@@ -3869,7 +4119,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Doc - factura aigua",
        "cos": [
         {
@@ -3883,7 +4134,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Doc - fulls de reclamació",
        "cos": [
         {
@@ -3897,7 +4149,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Doc - contracte gestió olis",
        "cos": [
         {
@@ -3911,7 +4164,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Doc - control de plagues",
        "cos": [
         {
@@ -3925,7 +4179,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Doc - formació aliments (4 anys)",
        "cos": [
         {
@@ -3939,7 +4194,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Doc - assegurança RC",
        "cos": [
         {
@@ -4009,7 +4265,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Doc - rebut assegurança RC",
        "cos": [
         {
@@ -4025,7 +4282,8 @@
      ]
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Rètols exterior - general",
      "cos": [
       {
@@ -4038,7 +4296,8 @@
      ],
      "fills": [
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Rètol - nom comercial",
        "cos": [
         {
@@ -4052,7 +4311,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Rètol - horari obertura/tancament",
        "cos": [
         {
@@ -4066,7 +4326,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Rètol - aforament autoritzat",
        "cos": [
         {
@@ -4080,7 +4341,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Rètol - prohibit fumar",
        "cos": [
         {
@@ -4094,7 +4356,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Rètol - llistat de preus",
        "cos": [
         {
@@ -4108,7 +4371,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Rètol - ús càmeres seguretat",
        "cos": [
         {
@@ -4124,7 +4388,8 @@
      ]
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Rètols exterior - addicionals",
      "cos": [
       {
@@ -4137,7 +4402,8 @@
      ],
      "fills": [
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Rètol - alcohol menors",
        "cos": [
         {
@@ -4151,7 +4417,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Rètol - tabac menors",
        "cos": [
         {
@@ -4165,7 +4432,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Rètol - màquines recreatives menors",
        "cos": [
         {
@@ -4179,7 +4447,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Rètol - fulls de reclamació",
        "cos": [
         {
@@ -4193,7 +4462,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Rètol - recorreguts emergència",
        "cos": [
         {
@@ -4207,7 +4477,8 @@
        "fills": []
       },
       {
-       "nivell": "fill",
+       "nivell": 3,
+       "marca": "fill",
        "titol": "Rètol - SORTIDA",
        "cos": [
         {
@@ -4225,10 +4496,14 @@
    ]
   },
   {
+   "nivell": 1,
+   "marca": "seccio",
    "titol": "Accessibilitat",
-   "items": [
+   "cos": [],
+   "fills": [
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Espai treballadors - amplada portes/passadissos",
      "cos": [
       {
@@ -4249,7 +4524,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Accés - apartat 2 annex 3d",
      "cos": [
       {
@@ -4263,7 +4539,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Itineraris interiors - apartat 3 annex 3d",
      "cos": [
       {
@@ -4277,7 +4554,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Cambres higièniques - apartat 4 annex 3d",
      "cos": [
       {
@@ -4291,7 +4569,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Nombre lavabos",
      "cos": [
       {
@@ -4305,7 +4584,8 @@
      "fills": []
     },
     {
-     "nivell": "item",
+     "nivell": 2,
+     "marca": "item",
      "titol": "Nou projecte modificacions",
      "cos": [
       {

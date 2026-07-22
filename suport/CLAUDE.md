@@ -162,40 +162,52 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   paquet inclou `ORIGEN_TIPUS` i `DATA_INSPECCIO` (a `HEADER_KEYS`). Al PC, si un
   paquet ANTIC no porta `ORIGEN_TIPUS`, es manté el fallback 'doc'.
 
-## Catàlegs en JSON (REQ1, 0 CONCLUSIONS) — format modern editable
-- **Objectiu (petició de l'usuari):** deixar de dependre del Word "rudimentari"
-  per als catàlegs; format estructurat, editable des del programa, amb nivells
-  (secció/ítem/fill), negreta/cursiva i afegir/treure requeriments. **Fase 1
-  (feta):** format JSON + el programa genera des del JSON. **Fase 2 (pendent):**
-  editor visual a la finestra principal (clicant el nom del catàleg en vermell,
-  amb un emoji ✏️).
-- **Fitxers en JSON**: `REQ1.json`, `TERMINI.json` (cos fix), `ACT_EXTR_REQ.json`
-  i `ACT_EXTR_FAV.json` (llista plana de paràgrafs `{estil,runs}`, que
-  `Parse-ActExtrTemplate` reconstrueix en records i passa a `Build-ActExtrBlocks`),
-  i `0 CONCLUSIONS.json`. **`0 CAPCALERA` es queda en Word**: és una carta amb
-  escut/taula/format real (la generació COPIA el .docx i hi substitueix
-  `<<PLACEHOLDERS>>`), no un llistat reconstruïble des d'un model de runs.
-- **Format** (`ESTRUCTURALS/REQ1.json`, `ESTRUCTURALS/0 CONCLUSIONS.json`):
-  Opció B — el cos de cada paràgraf és una llista de **runs** `{"t","b","i"}`
-  (text + negreta + cursiva); un paràgraf pot ser `"url": true` (enllaç, estil
-  Cita). Catàleg: `{tipus, intro[], seccions[{titol, items[{nivell, titol,
-  cos[], fills[]}]}]}` (nivell = item|subseccio|intro; fills = ::CHILD::).
-  Conclusions: `{capcalera, grups[{tipus, conclusions[{titol, cos}]}], sempre[]}`.
-- **Lectura** (`suport/CatalegJson.ps1`, headless/testejable): `Read-CatalegJson`
-  i `Read-ConclusionsJson` tornen EXACTAMENT el mateix model que `Parse-Cataleg`
-  / `Read-Conclusions`. El cos s'**aplana** a la mateixa cadena amb marques
-  (`_RunsToMarkup`: `**negreta**`, `//cursiva//`, `[[URL]] …`) que ja entenen
-  `Type-RichText`/`_SplitTextAndUrls` → **la generació des de JSON és idèntica a
-  la del .docx**. `Get-ParsedCataleg` i `Read-Conclusions` fan servir el `.json`
-  si existeix al costat del `.docx` (mateix nom), amb **fallback segur al .docx**
-  si el JSON falla. Els `.docx` es conserven (còpia de seguretat).
-- **Conversió inicial**: els JSON es van generar a partir dels `.docx` amb un
-  convertidor (Python, a scratchpad) que replica `Parse-Cataleg`/`Read-Conclusions`
-  i **comprova byte a byte** que `flatten(runs)` reprodueix la línia original
-  (mateixa generació). Tests a `run-tests.ps1` (`_RunsToMarkup`,
-  `_JsonParaToBodyLine`, lectura dels JSON reals). Nota: `Type-RichText` tracta
-  `**`/`//` com a spans NO solapats (un run és negreta O cursiva, mai totes dues
-  alhora).
+## ESTRUCTURALS en JSON — FORMAT ESTÀNDARD ÚNIC, editable des del programa
+- **Objectiu (petició de l'usuari):** deixar de dependre del Word "rudimentari";
+  format estructurat, editable des del programa, amb nivells, negreta/cursiva i
+  afegir/treure requeriments. L'usuari va demanar **un únic format estàndard,
+  replicable entre tots els ESTRUCTURALS** (mateixos nivells, formats i opcions),
+  amb **fills imbricats**.
+- **Format estàndard únic** (`suport/CatalegJson.ps1` ho documenta):
+  ```
+  { "tipus","familia","intro":[<paràgraf>],
+    "nodes":[ {"nivell","marca","titol","cos":[<paràgraf>],"fills":[<node>]} ] }
+  <paràgraf> = { "runs":[ {"t","b","i"} ], "url": bool }
+  ```
+  Un **run** és un fragment de text amb negreta (`b`) i/o cursiva (`i`); un
+  paràgraf pot ser `"url": true` (enllaç). Els **fills són imbricats** dins cada
+  node. La `familia` + la `marca` de cada node donen la semàntica (l'estructura
+  és sempre la mateixa):
+  - `cataleg` (REQ1, TERMINI): nivell1 `marca=seccio`; nivell2
+    `marca=item|subseccio|intro`; nivell3 `marca=fill` (imbricat dins l'ítem).
+    `intro` = cos fix (TERMINI no té nodes → cos fix).
+  - `conclusions` (0 CONCLUSIONS): nivell1 `marca=grup` (titol=tipus d'informe)
+    amb fills `marca=conclusio`; nivell1 `marca=sempre` (frases ::SEMPRE::).
+    `intro` = `[capçalera]`.
+  - `actextr` (ACT_EXTR_REQ/FAV): nivell1 `marca=seccio` (títol visual, pot dur
+    `[[KEY]]`); nivell2 `marca=bloc` (titol = `"[[KEY]] … etiqueta"`, cos =
+    contingut). El lector recorre l'arbre → llista ordenada de records
+    `@{Text;Style}` per a `Build-ActExtrBlocks`.
+- **`0 CAPCALERA` es queda en Word**: és una carta amb escut/taula/format real
+  (la generació COPIA el .docx i hi substitueix `<<PLACEHOLDERS>>`), no un
+  llistat reconstruïble des d'un model de runs.
+- **Lectura** (`suport/CatalegJson.ps1`, headless/testejable): `Read-CatalegJson`,
+  `Read-ConclusionsJson` i `Read-ActExtrRecordsJson` tornen EXACTAMENT el mateix
+  model en memòria que `Parse-Cataleg` / `Read-Conclusions` / `Build-ActExtrBlocks`.
+  El cos s'**aplana** a la mateixa cadena amb marques (`_RunsToMarkup`:
+  `**negreta**`, `//cursiva//`, `[[URL]] …`) que ja entenen `Type-RichText`/
+  `_SplitTextAndUrls` → **la generació des de JSON és idèntica a la del .docx**.
+  `Get-ParsedCataleg`, `Read-Conclusions` i `Parse-ActExtrTemplate` fan servir el
+  `.json` si existeix al costat del `.docx` (mateix nom), amb **fallback segur al
+  .docx** si el JSON falla. Els `.docx` es conserven (còpia de seguretat).
+- **Conversió inicial**: els 5 JSON es van generar a partir dels `.docx` amb un
+  convertidor (Python, a scratchpad) que replica `Parse-Cataleg`/
+  `Read-Conclusions`/`Build-ActExtrBlocks` i **comprova byte a byte** que (a)
+  `flatten(runs)` reprodueix cada línia original i (b) el model del lector NOU és
+  idèntic al del lector VELL (ja validat). Tests a `run-tests.ps1` (`_RunsToMarkup`,
+  `_JsonParaToBodyLine`, lectura dels JSON reals amb fills imbricats i records
+  ACT_EXTR). Nota: `Type-RichText` tracta `**`/`//` com a spans NO solapats (un
+  run és negreta O cursiva, mai totes dues alhora).
 
 ## Configuració per ordinador (portabilitat)
 - El programa és **portable**: cap ordinador nou hauria de necessitar tocar

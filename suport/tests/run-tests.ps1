@@ -1172,6 +1172,11 @@ if (Test-Path -LiteralPath $req1Json) {
     $it112 = @($secCP[0].Items | Where-Object { $_.Short -eq 'Decret 112/2010 - control periòdic' })
     AssertEq ([bool]($it112.Count -eq 1 -and $it112[0].Kind -eq 'item')) $true 'Read-CatalegJson REQ1: item "Decret 112/2010 - control periòdic"'
     AssertEq ([bool]($it112[0].BodyLines.Count -gt 0)) $true 'Read-CatalegJson REQ1: l''item te cos'
+    # Fills imbricats (nivell3): algun item ha de tenir Children (Kind 'child').
+    $ambFills = @()
+    foreach ($s in $reqCat.Sections) { foreach ($i in $s.Items) { if (@($i.Children).Count -gt 0) { $ambFills += $i } } }
+    AssertEq ([bool]($ambFills.Count -gt 0)) $true 'Read-CatalegJson REQ1: hi ha items amb fills imbricats'
+    AssertEq ([bool](@($ambFills[0].Children)[0].Kind -eq 'child')) $true 'Read-CatalegJson REQ1: el fill imbricat te Kind child'
 } else {
     Write-Host "  (omes: no hi ha REQ1.json)" -ForegroundColor Yellow
 }
@@ -1197,6 +1202,12 @@ $aeJson = Join-Path $EstructuralsDir 'ACT_EXTR_REQ.json'
 if (Test-Path -LiteralPath $aeJson) {
     $aeBlocks = Parse-ActExtrTemplate $null (Join-Path $EstructuralsDir 'ACT_EXTR_REQ.docx')
     AssertEq ([bool](@($aeBlocks).Count -gt 0)) $true 'Parse-ActExtrTemplate (des del JSON): retorna blocs keyed'
+    # Els records reconstruits de l'arbre comencen amb un h1 (seccio) i duen h2 keyed.
+    $aeRecs = Read-ActExtrRecordsJson $aeJson
+    AssertEq ([bool](@($aeRecs).Count -gt 0)) $true 'Read-ActExtrRecordsJson: retorna records'
+    AssertEq ([string](@($aeRecs)[0].Style)) 'h1' 'Read-ActExtrRecordsJson: el primer record es una seccio (h1)'
+    $h2recs = @($aeRecs | Where-Object { $_.Style -eq 'h2' -and $_.Text -match '^\s*\[\[[A-Z0-9_]+\]\]' })
+    AssertEq ([bool]($h2recs.Count -gt 0)) $true 'Read-ActExtrRecordsJson: hi ha blocs h2 amb [[KEY]]'
 }
 
 Write-Host "`n--- Informes.ps1: _EstatActualActivitat (estat = conclusio breu del darrer informe fiable, per data) ---"
