@@ -1210,6 +1210,49 @@ if (Test-Path -LiteralPath $aeJson) {
     AssertEq ([bool]($h2recs.Count -gt 0)) $true 'Read-ActExtrRecordsJson: hi ha blocs h2 amb [[KEY]]'
 }
 
+Write-Host "`n--- EditorCatalegs.ps1: funcions pures (segments<->runs) ---"
+$edR1 = _Ed_SegmentsToRuns @(@{Text='a';Bold=$false;Italic=$false}, @{Text='b';Bold=$true;Italic=$false}, @{Text='c';Bold=$true;Italic=$false})
+AssertEq (_RunsToMarkup $edR1) 'a**bc**' '_Ed_SegmentsToRuns: fusiona negreta consecutiva'
+$edR2 = _Ed_SegmentsToRuns @(@{Text='x';Bold=$true;Italic=$true})
+AssertEq (_RunsToMarkup $edR2) '**x**' '_Ed_SegmentsToRuns: negreta+cursiva -> nomes negreta (sense solapament)'
+$edR3 = _Ed_SegmentsToRuns @(@{Text='p';Bold=$false;Italic=$true})
+AssertEq (_RunsToMarkup $edR3) '//p//' '_Ed_SegmentsToRuns: cursiva'
+AssertEq (@(_Ed_SegmentsToRuns @()).Count) 1 '_Ed_SegmentsToRuns: buit -> un run buit'
+# CosToRich/RichToCos round-trip (aplana igual).
+$cosOrig = @(@{ runs=@(@{t='Text '},@{t='fort';b=$true},@{t=' i '},@{t='inclinat';i=$true}); url=$false })
+$rich = _Ed_CosToRich $cosOrig
+$cosBack = _Ed_RichToCos $rich
+AssertEq (_JsonParaToBodyLine @($cosBack)[0]) 'Text **fort** i //inclinat//' '_Ed_CosToRich/_Ed_RichToCos: round-trip de negreta/cursiva'
+# Marques per familia.
+AssertEq (@(_Ed_MarcaOptions 'cataleg' 2) -join ',') 'item,subseccio,intro' '_Ed_MarcaOptions cataleg nivell2'
+AssertEq (_Ed_ChildMarca 'cataleg' 'item') 'fill' '_Ed_ChildMarca cataleg item -> fill'
+AssertEq ([bool](_Ed_CanAddChild 'conclusions' @{marca='grup'})) $true '_Ed_CanAddChild conclusions grup'
+AssertEq ([bool](_Ed_CanAddChild 'conclusions' @{marca='conclusio'})) $false '_Ed_CanAddChild conclusions conclusio -> no'
+
+Write-Host "`n--- EditorCatalegs.ps1: model<->JSON sense perdues (els 5 ESTRUCTURALS) ---"
+foreach ($docKey in @('REQ1', 'TERMINI', '0 CONCLUSIONS', 'ACT_EXTR_REQ', 'ACT_EXTR_FAV')) {
+    $src = Join-Path $EstructuralsDir ($docKey + '.json')
+    if (-not (Test-Path -LiteralPath $src)) { continue }
+    $o = Get-Content -LiteralPath $src -Raw -Encoding UTF8 | ConvertFrom-Json
+    $model = _Ed_JsonToModel $o
+    $back = (_Ed_ModelToJson $model) | ConvertTo-Json -Depth 40
+    $tmp = [System.IO.Path]::GetTempFileName()
+    [System.IO.File]::WriteAllText($tmp, $back, (New-Object System.Text.UTF8Encoding($false)))
+    $fam = [string]$model.familia
+    if ($fam -eq 'cataleg') {
+        $da = (Read-CatalegJson $src) | ConvertTo-Json -Depth 40
+        $db = (Read-CatalegJson $tmp) | ConvertTo-Json -Depth 40
+    } elseif ($fam -eq 'conclusions') {
+        $da = (Read-ConclusionsJson $src '') | ConvertTo-Json -Depth 40
+        $db = (Read-ConclusionsJson $tmp '') | ConvertTo-Json -Depth 40
+    } else {
+        $da = (Read-ActExtrRecordsJson $src) | ConvertTo-Json -Depth 40
+        $db = (Read-ActExtrRecordsJson $tmp) | ConvertTo-Json -Depth 40
+    }
+    Assert ($da -eq $db) "round-trip editor $docKey: el model del lector es identic (sense perdues)"
+    Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
+}
+
 Write-Host "`n--- Informes.ps1: _EstatActualActivitat (estat = conclusio breu del darrer informe fiable, per data) ---"
 AssertEq (_EstatActualActivitat $null) '' '_EstatActualActivitat null -> buit'
 AssertEq (_EstatActualActivitat @()) '' '_EstatActualActivitat llista buida -> buit'

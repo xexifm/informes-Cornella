@@ -208,6 +208,30 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   `_JsonParaToBodyLine`, lectura dels JSON reals amb fills imbricats i records
   ACT_EXTR). Nota: `Type-RichText` tracta `**`/`//` com a spans NO solapats (un
   run és negreta O cursiva, mai totes dues alhora).
+- **Editor visual "Editar catàlegs"** (`suport/EditorCatalegs.ps1`, WinForms):
+  una sola finestra edita QUALSEVOL ESTRUCTURAL en JSON (desplegable amb tots els
+  `*.json`). Arbre de nodes (nivell1/2/3, fills imbricats) + entrada especial per a
+  la introducció/capçalera; a la dreta s'edita títol, tipus (marca segons família)
+  i **cos amb negreta/cursiva reals** (RichTextBox ↔ runs) amb botons per inserir
+  `[CAMP:]`/`[OPCIO:]` i enllaços. Es poden afegir/eliminar/moure nodes. En desar
+  s'escriu el JSON (sense BOM) amb **validació** (re-llegeix amb el lector) i
+  **còpia `.bak`** de seguretat; l'editor només ESCRIU, la generació no en depèn.
+  - **Punt d'entrada**: a la finestra principal (`Seguiment.ps1 Select-Mode`),
+    el **xip del document** (REQ1/TERMINI/ACT_EXTR) dels botons de tipus d'informe
+    porta un emoji d'editar ✏️; clicar-lo (hit-test del rectangle `DocChipRect`
+    via `MouseClick`) obre l'editor centrat en aquell document. Dispatch:
+    `'editcataleg' → Show-CatalegEditor -focusDoc <Doc>` (ACT_EXTR → ACT_EXTR_REQ).
+  - **Funcions pures testejables** (headless): `_Ed_JsonToModel`/`_Ed_ModelToJson`
+    (model editable ↔ JSON), `_Ed_SegmentsToRuns` (fragments RTB → runs, forçant la
+    invariant de no-solapament), `_Ed_CosToRich`/`_Ed_RichToCos`, `_Ed_MarcaOptions`/
+    `_Ed_CanAddChild`/`_Ed_ChildMarca`. Tests a `run-tests.ps1` comproven que
+    model→JSON→lector és **idèntic** a llegir l'original (sense pèrdues) per als 5
+    fitxers. La finestra (WinForms) només es pot provar a Windows.
+  - **Notes d'implementació WinForms** (per no repetir errors): les funcions que
+    retornen col·leccions fan servir `return ,$coll` (el `,` evita que el pipeline
+    desenrotlli l'ArrayList i trenqui `.Add`); els handlers capturen només `$state`
+    amb `.GetNewClosure()`; la reentrada arbre↔editor es controla amb `$state.Busy`;
+    el `FormClosing` (no el botó Enrere) fa la pregunta de desar (evita doble prompt).
 
 ## Configuració per ordinador (portabilitat)
 - El programa és **portable**: cap ordinador nou hauria de necessitar tocar

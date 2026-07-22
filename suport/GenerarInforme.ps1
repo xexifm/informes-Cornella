@@ -548,9 +548,14 @@ $CopiaInformesDir = _ResolveEffectiveValue $AppSettings.CopiaInformesDir $CopiaI
 # carrega tambe en headless perque els tests provin la logica de text pura.
 . (Join-Path $ScriptRoot 'Informes.ps1')
 
-# Lector de catalegs/conclusions en JSON (Opcio B). Nomes defineix funcions;
-# segur en headless. Es carrega abans que s'usi (Get-ParsedCataleg/Read-Conclusions).
+# Lector dels ESTRUCTURALS en JSON (format estandard unic). Nomes defineix
+# funcions; segur en headless. Es carrega abans que s'usi (Get-ParsedCataleg/
+# Read-Conclusions/Parse-ActExtrTemplate).
 . (Join-Path $ScriptRoot 'CatalegJson.ps1')
+
+# Editor visual dels ESTRUCTURALS (Editar catalegs). Funcions pures (model<->JSON)
+# testejables; la finestra WinForms nomes s'executa a Windows.
+. (Join-Path $ScriptRoot 'EditorCatalegs.ps1')
 
 # Carreguem l'eina "Controls periodics" (llistat d'activitats amb control
 # periodic a partir de l'Excel). Nomes defineix funcions; segur en headless.
@@ -3350,6 +3355,7 @@ function Main {
             'comprovarexcel' { Invoke-ComprovarExcel }   # comprova que l'Excel reflecteix els precintes
             'revisarmobil'   { Invoke-RevisarMobil }     # revisa el mobil un sol cop; torna al menu
             'config'         { Invoke-ConfiguracioScreen }   # rutes d'aquest PC + actualitzar; torna al menu
+            'editcataleg'    { Show-CatalegEditor -focusDoc ([string]$sel.Doc) }   # editor dels ESTRUCTURALS (xip del document)
             'nou'        { [void](Invoke-NouWizard -cataleg $sel.Cataleg) }
             default      { return }
         }

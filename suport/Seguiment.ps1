@@ -985,6 +985,8 @@ function Select-Mode {
     $fMain = New-Object System.Drawing.Font('Segoe UI', 12.5, [System.Drawing.FontStyle]::Bold)
     $fDet  = New-Object System.Drawing.Font('Segoe UI', 9.5,  [System.Drawing.FontStyle]::Regular)
     $fIcon = New-Object System.Drawing.Font('Segoe UI Emoji', 15, [System.Drawing.FontStyle]::Regular)
+    $fEmoS = New-Object System.Drawing.Font('Segoe UI Emoji', 9, [System.Drawing.FontStyle]::Regular)
+    $pencil = [string][char]0x270F + [char]0xFE0F   # emoji d'editar
     $flags = [System.Windows.Forms.TextFormatFlags]::NoPadding
     $flagsC = [System.Windows.Forms.TextFormatFlags]::HorizontalCenter -bor [System.Windows.Forms.TextFormatFlags]::VerticalCenter -bor [System.Windows.Forms.TextFormatFlags]::NoPadding
     $colGranat = [System.Drawing.Color]::FromArgb(166, 26, 47)
@@ -1027,18 +1029,24 @@ function Select-Mode {
             [System.Windows.Forms.TextRenderer]::DrawText($g, $main, $fMain, (New-Object System.Drawing.Point($tx, [int](($rect.Height - $szM.Height) / 2))), $colInk, $flags)
         }
 
-        # Xip del document a la dreta.
+        # Xip del document a la dreta. Es CLICABLE: obre l'editor de catalegs
+        # (hi dibuixem un emoji d'editar ✏️ i en guardem el rectangle per al
+        # hit-test del clic, a $entry.DocChipRect).
+        $entry.DocChipRect = $null
         if (-not [string]::IsNullOrWhiteSpace($doc)) {
+            $szP = [System.Windows.Forms.TextRenderer]::MeasureText($g, $pencil, $fEmoS, [System.Drawing.Size]::Empty, $flags)
             $szD = [System.Windows.Forms.TextRenderer]::MeasureText($g, $doc, $fDet, [System.Drawing.Size]::Empty, $flags)
-            $pad = 9
-            $cw = $szD.Width + 2 * $pad
+            $pad = 9; $gap = 5
+            $cw = $pad + $szP.Width + $gap + $szD.Width + $pad
             $chH = $szD.Height + 8
             $dx = $rect.Width - $cw - 14
             $dy = [int](($rect.Height - $chH) / 2)
             $bD = New-Object System.Drawing.SolidBrush($colSoft)
             $g.FillRectangle($bD, $dx, $dy, $cw, $chH)
             $bD.Dispose()
-            [System.Windows.Forms.TextRenderer]::DrawText($g, $doc, $fDet, (New-Object System.Drawing.Point(($dx + $pad), ($dy + 4))), $colGranat, $flags)
+            [System.Windows.Forms.TextRenderer]::DrawText($g, $pencil, $fEmoS, (New-Object System.Drawing.Point(($dx + $pad), ($dy + 5))), $colGranat, $flags)
+            [System.Windows.Forms.TextRenderer]::DrawText($g, $doc, $fDet, (New-Object System.Drawing.Point(($dx + $pad + $szP.Width + $gap), ($dy + 4))), $colGranat, $flags)
+            $entry.DocChipRect = New-Object System.Drawing.Rectangle($dx, $dy, $cw, $chH)
         }
     }
 
@@ -1055,8 +1063,17 @@ function Select-Mode {
         $btn.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(214, 219, 225)
         $btn.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(250, 240, 242)
         $btn.add_Paint($paintHandler)
-        $btn.add_Click({
-            $result.Choice = $entry
+        # Clic amb coordenades: si es damunt del xip del document (✏️), obre
+        # l'editor de catalegs; si no, tria el tipus d'informe com sempre.
+        $btn.add_MouseClick({
+            param($s, $e)
+            $en = $s.Tag
+            $rc = $en.DocChipRect
+            if ($null -ne $rc -and $rc.Contains($e.Location)) {
+                $result.Choice = @{ Action = 'editcataleg'; Doc = [string]$en.Doc; Cataleg = $null }
+            } else {
+                $result.Choice = $en
+            }
             $form.DialogResult = 'OK'
             $form.Close()
         }.GetNewClosure())
