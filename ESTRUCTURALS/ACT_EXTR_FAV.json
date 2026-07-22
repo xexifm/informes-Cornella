@@ -1,0 +1,596 @@
+{
+ "tipus": "ACT_EXTR_FAV",
+ "paragrafs": [
+  {
+   "estil": "h1",
+   "runs": [
+    {
+     "t": "DISPOSICIONS LEGALS"
+    }
+   ]
+  },
+  {
+   "estil": "h2",
+   "runs": [
+    {
+     "t": "[[FAV_INTRO]] ::TEXT:: Introducció"
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "Després d’haver comprovat la documentació presentada i sempre i quan es doni compliment a les següents disposicions legals:"
+    }
+   ]
+  },
+  {
+   "estil": "h2",
+   "runs": [
+    {
+     "t": "[[FAV_NORMATIVA]] Normativa aplicable"
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "LLEI 3/2010, del 18 de febrer, de prevenció i seguretat en matèria d'incendis en establiments, activitats, infraestructures i edificis."
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "Instrucció Tècnica Complementària SP-144 Condicions de seguretat en cas d’incendi en activitats esporàdiques."
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "LLEI 11/2009, del 6 de juliol, de regulació administrativa dels espectacles públics i les activitats recreatives."
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "DECRET 112/2010, de 31 d'agost, pel qual s'aprova el Reglament d'espectacles públics i activitats recreatives."
+    }
+   ]
+  },
+  {
+   "estil": "h1",
+   "runs": [
+    {
+     "t": "CONSIDERACIONS"
+    }
+   ]
+  },
+  {
+   "estil": "h2",
+   "runs": [
+    {
+     "t": "[[FAV_MID]] ::TEXT:: Encapçalament de consideracions"
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "s’informa favorablement tenint en compte les següents consideracions:"
+    }
+   ]
+  },
+  {
+   "estil": "h2",
+   "runs": [
+    {
+     "t": "[[MOBILITAT]] Mobilitat"
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "Mobilitat. Es disposa de l’informe favorable de mobilitat de la Guàrdia Urbana de Cornellà de Llobregat, indicant que no hi ha cap inconvenient per a que es pugui dur a terme el mencionat acte a les dates i establiment sol·licitat."
+    }
+   ]
+  },
+  {
+   "estil": "h2",
+   "runs": [
+    {
+     "t": "[[INCENDIS]] Incendis"
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "Incendis. Es disposa de l’informe favorable de prevenció i seguretat en matèria d’incendis emès per la Direcció General de Prevenció, Extinció d'Incendis i Salvaments (DGPEIS)."
+    }
+   ]
+  },
+  {
+   "estil": "h2",
+   "runs": [
+    {
+     "t": "[[PAU_CAT]] Pla d’Autoprotecció (Protecció civil de Catalunya)"
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "Pla d’Autoprotecció. Es disposa del certificat d’homologació del Pla d’Autoprotecció per part de Protecció civil de Catalunya."
+    }
+   ]
+  },
+  {
+   "estil": "h2",
+   "runs": [
+    {
+     "t": "[[PAU_LOCAL]] Pla d’Autoprotecció (Protecció civil local)"
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "Pla d’Autoprotecció. Es disposa del certificat d’homologació del Pla d’Autoprotecció per part de Protecció civil local."
+    }
+   ]
+  },
+  {
+   "estil": "h2",
+   "runs": [
+    {
+     "t": "[[RC]] Responsabilitat civil"
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "Responsabilitat Civil. Es disposa de la pòlissa d’assegurança de responsabilitat civil, juntament amb el seu corresponent rebut, per la quantia mínima de {{RC_IMPORT}} €. Les garanties i sumes assegurades, indicades a la pòlissa d'assegurança de responsabilitat civil, ho seran per sinistre, amb un sublímit mínim per víctima de 150.000 €."
+    }
+   ]
+  },
+  {
+   "estil": "h2",
+   "runs": [
+    {
+     "t": "[[ASSIST]] Assistència sanitària"
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "Assistència sanitària. Es disposarà dels dispositius d’assistència sanitària que consten en el Pla d’Autoprotecció homologat o, en el seu defecte, els necessaris segons l’Article 48 del DECRET 112/2010. En aquest cas {{ASSISTENCIA}}."
+    }
+   ]
+  },
+  {
+   "estil": "h2",
+   "runs": [
+    {
+     "t": "[[CONTROLADORS]] Controladors d’accés"
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "Controladors d’accés. Es disposarà d’un mínim de {{CONTROLADORS}} persones de personal de control d’accés. Aquest personal disposarà de l’habilitació per exercir aquestes funcions i estarà identificat portant de manera visible un distintiu amb la llegenda “Personal de control d’accés”."
+    }
+   ]
+  },
+  {
+   "estil": "h2",
+   "runs": [
+    {
+     "t": "[[VIGILANTS]] Seguretat privada"
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "Seguretat privada. Es disposarà d’un mínim de {{VIGILANTS}} vigilants de seguretat privada."
+    }
+   ]
+  },
+  {
+   "estil": "h2",
+   "runs": [
+    {
+     "t": "[[SERVEIS_HIGIENE]] Serveis d’higiene"
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "Serveis d’higiene. Es disposarà d’un mínim de {{LAVABOS}} lavabos i {{CABINES}} cabines de vàter."
+    }
+   ]
+  },
+  {
+   "estil": "h2",
+   "runs": [
+    {
+     "t": "[[DISPONIBILITAT_ESPAI]] Disponibilitat de l’espai"
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "Espai. S’acredita la disponibilitat de l’espai."
+    }
+   ]
+  },
+  {
+   "estil": "h2",
+   "runs": [
+    {
+     "t": "[[FAV_LASERS]] Autorització de senyals lumíniques"
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "Làsers. S’autoritza la utilització de làsers per part del "
+    },
+    {
+     "t": "Departamento de Coordinación Operativa del Espacio Aéreo",
+     "i": true
+    },
+    {
+     "t": "."
+    }
+   ]
+  },
+  {
+   "estil": "h2",
+   "runs": [
+    {
+     "t": "[[NO_LASERS]] Prohibició de senyals lumíniques"
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "Làsers. Es prohibeix l'emissió de qualsevol senyal lumínica amb punts de llum, punters làser o objectes anàlegs que puguin alterar o destorbar la navegació aèria."
+    }
+   ]
+  },
+  {
+   "estil": "h1",
+   "runs": [
+    {
+     "t": "ABANS DE L’INICI"
+    }
+   ]
+  },
+  {
+   "estil": "h2",
+   "runs": [
+    {
+     "t": "[[FAV_ABANS]] ::TEXT:: Encapçalament"
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "ABANS DE L’INICI DE L’ACTIVITAT EXTRAORDINÀRIA:"
+    }
+   ]
+  },
+  {
+   "estil": "h2",
+   "runs": [
+    {
+     "t": "[[FAV_CERTIFICATS]] Certificats a presentar"
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "S’haurà de presentar un Certificat d'instal·lació elèctrica i de muntatge signat electrònicament per un tècnic competent o una entitat col·laboradora de l’Administració, en el que es faci constar que el conjunt de les instal·lacions no permanents desmuntables funcionen correctament i complint amb la normativa vigent, d’acord amb l’article 39 del Decret 112/2010, de 31 d’agost, pel qual s’aprova el Reglament d’Espectacles Públics i Activitats Recreatives."
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "S’haurà de presentar un Control inicial favorable signat electrònicament per un tècnic competent, en el que es faci constar que la documentació tècnica presentada és suficient i correcta, de la mateixa manera que les característiques de l’activitat són les adients, també d’acord amb l’article 39 del Decret 112/2010, de 31 d’agost, pel qual s’aprova el Reglament d’Espectacles Públics i Activitats Recreatives."
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "S’haurà de presentar els Certificats de reacció al foc dels elements decoratius instal·lats que no pertanyen a la pròpia llicència de l’establiment, en compliment amb el CTE DB SI 1 Apartat 4 Reacció al foc dels elements constructius, decoratius i de mobiliari."
+    }
+   ]
+  },
+  {
+   "estil": "h2",
+   "runs": [
+    {
+     "t": "[[FAV_FINALITZACIO]] Instal·lacions i extintors"
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "Les instal·lacions de l’establiment disposaran de les pertinents inspeccions i revisions periòdiques."
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "Es disposarà dels extintors necessaris a les zones on es puguin ubicar instal·lacions com l’escenari, equips de so, casetes de venta entrades, etc."
+    }
+   ]
+  },
+  {
+   "estil": "h1",
+   "runs": [
+    {
+     "t": "RÈTOLS INFORMATIUS"
+    }
+   ]
+  },
+  {
+   "estil": "h2",
+   "runs": [
+    {
+     "t": "[[FAV_RETOLS_HDR]] ::LABEL:: Rètol de la secció"
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "RÈTOLS INFORMATIUS"
+    }
+   ]
+  },
+  {
+   "estil": "h2",
+   "runs": [
+    {
+     "t": "[[FAV_RETOLS_INTRO]] ::TEXT:: Rètols"
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "L’activitat haurà de disposar dels rètols informatius següents:"
+    }
+   ]
+  },
+  {
+   "estil": "h2",
+   "runs": [
+    {
+     "t": "[[FAV_RETOL_ID]] Identificació"
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "D’identificació i informació."
+    }
+   ]
+  },
+  {
+   "estil": "h2",
+   "runs": [
+    {
+     "t": "[[FAV_RETOL_RECLAMACIO]] Fulls de reclamació"
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "Disposar dels fulls oficials de queixa, reclamació o denúncia."
+    }
+   ]
+  },
+  {
+   "estil": "h2",
+   "runs": [
+    {
+     "t": "[[FAV_RETOL_SO]] Nivells sonors"
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "Nivells sonors que poden lesionar seriosament l’oïda (>90 dB(A))."
+    }
+   ]
+  },
+  {
+   "estil": "h2",
+   "runs": [
+    {
+     "t": "[[FAV_RETOL_ADMISSIO]] Admissió"
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "Dret d’admissió (si escau)."
+    }
+   ]
+  },
+  {
+   "estil": "h2",
+   "runs": [
+    {
+     "t": "[[FAV_RETOL_ADMISSIO_NOTA]] ::NOTE:: Nota admissió"
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "Si l'organitzador de l'activitat vol determinar condicions d'accés, haurà de comunicar l'exercici del dret d'admissió, si s'escau, a la Generalitat, mitjançant el tràmit electrònic corresponent, per tal que el servei territorial corresponent validi aquestes condicions."
+    }
+   ]
+  },
+  {
+   "estil": "h2",
+   "runs": [
+    {
+     "t": "[[FAV_RETOL_ALCOHOL]] Alcohol menors"
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "Prohibició de venda i subministrament d’alcohol a menors d’edat."
+    }
+   ]
+  },
+  {
+   "estil": "h1",
+   "runs": [
+    {
+     "t": "CONDICIONS DE LA LLICÈNCIA"
+    }
+   ]
+  },
+  {
+   "estil": "h2",
+   "runs": [
+    {
+     "t": "[[FAV_CONDICIONANTS]] ::TEXT:: Condicionants"
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "CONDICIONANTS LLICÈNCIA"
+    }
+   ]
+  },
+  {
+   "estil": "h1",
+   "runs": [
+    {
+     "t": "CONCLUSIONS"
+    }
+   ]
+  },
+  {
+   "estil": "h2",
+   "runs": [
+    {
+     "t": "[[FAV_CONCLUSIONS]] ::HEADER:: Capçalera conclusions"
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "CONCLUSIONS"
+    }
+   ]
+  },
+  {
+   "estil": "h2",
+   "runs": [
+    {
+     "t": "[[FAV_TITULAR]] ::CONC:: Responsabilitat del titular"
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "El titular és responsable d’executar i mantenir les mesures de seguretat indicades en la memòria, en el Pla d’Autoprotecció i les previstes en la documentació tècnica, establertes per la reglamentació d’aplicació segons escaigui, i de donar compliment als límits acústics exteriors establerts per l’Ajuntament de Cornellà de Llobregat."
+    }
+   ]
+  },
+  {
+   "estil": "h2",
+   "runs": [
+    {
+     "t": "[[FAV_CLOSING]] ::CONC:: Tancament"
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "Ho poso al seu coneixement als efectes oportuns,"
+    }
+   ]
+  },
+  {
+   "estil": "normal",
+   "runs": [
+    {
+     "t": "Cornellà de Llobregat,"
+    }
+   ]
+  }
+ ]
+}

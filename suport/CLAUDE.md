@@ -169,6 +169,12 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   (feta):** format JSON + el programa genera des del JSON. **Fase 2 (pendent):**
   editor visual a la finestra principal (clicant el nom del catàleg en vermell,
   amb un emoji ✏️).
+- **Fitxers en JSON**: `REQ1.json`, `TERMINI.json` (cos fix), `ACT_EXTR_REQ.json`
+  i `ACT_EXTR_FAV.json` (llista plana de paràgrafs `{estil,runs}`, que
+  `Parse-ActExtrTemplate` reconstrueix en records i passa a `Build-ActExtrBlocks`),
+  i `0 CONCLUSIONS.json`. **`0 CAPCALERA` es queda en Word**: és una carta amb
+  escut/taula/format real (la generació COPIA el .docx i hi substitueix
+  `<<PLACEHOLDERS>>`), no un llistat reconstruïble des d'un model de runs.
 - **Format** (`ESTRUCTURALS/REQ1.json`, `ESTRUCTURALS/0 CONCLUSIONS.json`):
   Opció B — el cos de cada paràgraf és una llista de **runs** `{"t","b","i"}`
   (text + negreta + cursiva); un paràgraf pot ser `"url": true` (enllaç, estil
