@@ -237,12 +237,9 @@ function Show-ControlsPeriodicsWindow($allRows, [string]$fileName) {
     $lblF.Text = 'Classificació:'; $lblF.AutoSize = $true
     $lblF.Location = New-Object System.Drawing.Point(10, 13)
     $topPanel.Controls.Add($lblF)
-    $cbFilter = New-Object System.Windows.Forms.ComboBox
-    $cbFilter.DropDownStyle = 'DropDownList'
-    $cbFilter.Location = New-Object System.Drawing.Point(96, 10); $cbFilter.Width = 90
-    [void]$cbFilter.Items.AddRange([object[]]@('Tots', 'II', 'III', '561'))
-    $cbFilter.SelectedIndex = 0
-    $topPanel.Controls.Add($cbFilter)
+    # Filtre de SELECCIO MULTIPLE (cap marcat = totes). L'accio crida $fill
+    # (definit mes avall; ja existeix quan l'usuari hi toca).
+    $mfClass = _MakeMultiFilter $topPanel 96 10 130 'Tots' @('II', 'III', '561') { & $fill }
     $lblC = New-Object System.Windows.Forms.Label
     $lblC.Text = 'Cerca:'; $lblC.AutoSize = $true
     $lblC.Location = New-Object System.Drawing.Point(206, 13)
@@ -260,13 +257,16 @@ function Show-ControlsPeriodicsWindow($allRows, [string]$fileName) {
     $fill = {
         $state.Loading = $true
         $grid.Rows.Clear()
-        $f = [string]$cbFilter.SelectedItem
+        $selClass = & $mfClass.GetSelected
         $n = ([string]$txtCerca.Text).Trim().ToLower()
 
         $sel = foreach ($row in $allRows) {
-            if ($f -eq 'II'  -and -not $row.IsII)  { continue }
-            if ($f -eq 'III' -and -not $row.IsIII) { continue }
-            if ($f -eq '561' -and -not $row.Is561) { continue }
+            if ($selClass.Count -gt 0) {
+                $okC = ($selClass -contains 'II'  -and $row.IsII)  -or
+                       ($selClass -contains 'III' -and $row.IsIII) -or
+                       ($selClass -contains '561' -and $row.Is561)
+                if (-not $okC) { continue }
+            }
             if ($n -ne '') {
                 $hay = (($row.Id + ' ' + $row.RaoSocial + ' ' + $row.RaoEmail + ' ' + $row.RepEmail + ' ' + $row.Adreca + ' ' + $row.PeriodicitatCP + ' ' + $row.Annex + ' ' + $row.Apartat + ' ' + $row.ActPrincipal)).ToLower()
                 if (-not $hay.Contains($n)) { continue }
@@ -305,7 +305,6 @@ function Show-ControlsPeriodicsWindow($allRows, [string]$fileName) {
     }.GetNewClosure()
 
     $txtCerca.add_TextChanged({ & $fill }.GetNewClosure())
-    $cbFilter.add_SelectedIndexChanged({ & $fill }.GetNewClosure())
 
     $grid.add_ColumnHeaderMouseClick({
         param($s, $e)

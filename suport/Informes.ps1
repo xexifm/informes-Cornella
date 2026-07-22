@@ -890,29 +890,27 @@ function Invoke-InformesDbEdit {
     $topPanel.Controls.Add($lblCerca)
     $topPanel.Controls.Add($txtCerca)
 
-    # Crea un filtre desplegable etiquetat a la fila 2 i el retorna.
-    $mkFilterCombo = {
-        param($labelText, $x, $lblW, $comboW, $items)
+    # Etiqueta a la fila 2 dels filtres.
+    $mkLbl = {
+        param($text, $x)
         $l = New-Object System.Windows.Forms.Label
-        $l.Text = $labelText; $l.AutoSize = $true
+        $l.Text = $text; $l.AutoSize = $true
         $l.Location = New-Object System.Drawing.Point($x, 46)
         $topPanel.Controls.Add($l)
-        $cb = New-Object System.Windows.Forms.ComboBox
-        $cb.DropDownStyle = 'DropDownList'
-        $cb.Location = New-Object System.Drawing.Point(($x + $lblW), 43)
-        $cb.Width = $comboW
-        [void]$cb.Items.AddRange([object[]]$items)
-        $cb.SelectedIndex = 0
-        $topPanel.Controls.Add($cb)
-        return $cb
     }
 
     $estatVals = @($allRows | ForEach-Object { $_.EstatActual } | Where-Object { $_ -ne '' } | Sort-Object -Unique)
     $motiuVals = @($allRows | ForEach-Object { $_.Motiu }       | Where-Object { $_ -ne '' } | Sort-Object -Unique)
-    $cbBreu  = & $mkFilterCombo 'Conclusió breu:' 10  100 130 (@('(Totes)') + $Script:ConclusioBreuOpcions)
-    $cbEstat = & $mkFilterCombo 'Estat:'          250 44  120 (@('(Tots)')  + $estatVals)
-    $cbMotiu = & $mkFilterCombo 'Motiu:'          420 44  110 (@('(Tots)')  + $motiuVals)
-    $cbIgn   = & $mkFilterCombo 'Ignorats:'       578 58  80  @('(Tots)', 'Actius', 'Ignorats')
+    # Filtres de SELECCIO MULTIPLE (cap marcat = totes les files passen). L'accio
+    # de canvi crida $fill (definit mes avall; ja existeix quan l'usuari hi toca).
+    & $mkLbl 'Conclusió breu:' 10
+    $mfBreu  = _MakeMultiFilter $topPanel 110 43 130 '(Totes)' $Script:ConclusioBreuOpcions { & $fill }
+    & $mkLbl 'Estat:' 250
+    $mfEstat = _MakeMultiFilter $topPanel 294 43 120 '(Tots)' $estatVals { & $fill }
+    & $mkLbl 'Motiu:' 420
+    $mfMotiu = _MakeMultiFilter $topPanel 464 43 110 '(Tots)' $motiuVals { & $fill }
+    & $mkLbl 'Ignorats:' 582
+    $mfIgn   = _MakeMultiFilter $topPanel 640 43 90  'Tots'    @('Actius', 'Ignorats') { & $fill }
 
     # (Re)omple la graella: aplica la cerca global + els filtres per columna i,
     # per acabar, ordena mantenint SEMPRE l'agrupament per activitat.
@@ -920,21 +918,25 @@ function Invoke-InformesDbEdit {
         $state.Loading = $true
         $grid.Rows.Clear()
         $n = ([string]$txtCerca.Text).Trim().ToLower()
-        $fBreu  = [string]$cbBreu.SelectedItem
-        $fEstat = [string]$cbEstat.SelectedItem
-        $fMotiu = [string]$cbMotiu.SelectedItem
-        $fIgn   = [string]$cbIgn.SelectedItem
+        $selBreu  = & $mfBreu.GetSelected
+        $selEstat = & $mfEstat.GetSelected
+        $selMotiu = & $mfMotiu.GetSelected
+        $selIgn   = & $mfIgn.GetSelected
 
         $rows = foreach ($row in $allRows) {
             if ($n -ne '') {
                 $hay = (($row.Data + ' ' + $row.Gia + ' ' + $row.Titular + ' ' + $row.Carpeta + ' ' + $row.Conclusio + ' ' + $row.ConclusioBreu + ' ' + $row.EstatActual + ' ' + $row.Motiu)).ToLower()
                 if (-not $hay.Contains($n)) { continue }
             }
-            if ($fBreu  -notlike '(*' -and $row.ConclusioBreu -ne $fBreu)  { continue }
-            if ($fEstat -notlike '(*' -and $row.EstatActual   -ne $fEstat) { continue }
-            if ($fMotiu -notlike '(*' -and $row.Motiu         -ne $fMotiu) { continue }
-            if ($fIgn -eq 'Actius'   -and       [bool]$row.Obj.ignorat) { continue }
-            if ($fIgn -eq 'Ignorats' -and -not [bool]$row.Obj.ignorat) { continue }
+            # Cada filtre: cap opcio marcada = passa tot; si n'hi ha, el valor de
+            # la fila ha de ser entre les marcades (unio / OR dins del filtre).
+            if ($selBreu.Count  -gt 0 -and $selBreu  -notcontains $row.ConclusioBreu) { continue }
+            if ($selEstat.Count -gt 0 -and $selEstat -notcontains $row.EstatActual)   { continue }
+            if ($selMotiu.Count -gt 0 -and $selMotiu -notcontains $row.Motiu)         { continue }
+            if ($selIgn.Count -gt 0) {
+                $ignLabel = if ([bool]$row.Obj.ignorat) { 'Ignorats' } else { 'Actius' }
+                if ($selIgn -notcontains $ignLabel) { continue }
+            }
             $row
         }
         $rows = @($rows)
