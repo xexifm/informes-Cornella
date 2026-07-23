@@ -1268,7 +1268,7 @@ function Select-Mode {
     $res = $form.ShowDialog()
     if ($res -ne 'OK' -or $null -eq $result.Choice) { exit 0 }
     $ch = $result.Choice
-    return @{ Action = $ch.Action; Cataleg = $ch.Cataleg }
+    return @{ Action = $ch.Action; Cataleg = $ch.Cataleg; Doc = $ch.Doc }
 }
 
 # Tria de l'informe anterior (.docx). Retorna la ruta o $null si es cancel·la.

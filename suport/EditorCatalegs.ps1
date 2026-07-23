@@ -231,13 +231,13 @@ function _Ed_DocList {
         'ACT_EXTR_FAV' = 'ACT_EXTR_FAV ' + [char]0x2014 + ' Informe favorable act. extraordin' + [char]0x00E0 + 'ria'
     }
     $out = New-Object System.Collections.ArrayList
-    if (-not (Test-Path -LiteralPath $EstructuralsDir)) { return ,$out }
+    if (-not (Test-Path -LiteralPath $EstructuralsDir)) { return $out }
     foreach ($f in (Get-ChildItem -LiteralPath $EstructuralsDir -Filter '*.json' | Sort-Object Name)) {
         $key = [System.IO.Path]::GetFileNameWithoutExtension($f.Name)
         $label = if ($known.ContainsKey($key)) { $known[$key] } else { $key }
         [void]$out.Add(@{ Key = $key; Label = $label; Path = $f.FullName })
     }
-    return ,$out
+    return $out
 }
 
 # ===========================================================================
@@ -729,7 +729,7 @@ function Show-CatalegEditor([string]$focusDoc = '') {
     $btnItal.Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Italic)
     $btnCamp   = & $mkToolBtn '[CAMP]'   ($xR + 96) 78 $false
     $btnOpcio  = & $mkToolBtn '[OPCIO]'  ($xR + 180) 78 $false
-    $btnLink   = & $mkToolBtn ([char]0x1F517 + ' Enlla' + [char]0x00E7) ($xR + 264) 100 $false
+    $btnLink   = & $mkToolBtn ([System.Char]::ConvertFromUtf32(0x1F517) + ' Enlla' + [char]0x00E7) ($xR + 264) 100 $false
 
     # Cos (RichTextBox).
     $lblCos = New-Object System.Windows.Forms.Label
