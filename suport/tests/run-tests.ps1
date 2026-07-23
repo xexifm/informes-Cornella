@@ -1249,7 +1249,7 @@ foreach ($docKey in @('REQ1', 'TERMINI', '0 CONCLUSIONS', 'ACT_EXTR_REQ', 'ACT_E
         $da = (Read-ActExtrRecordsJson $src) | ConvertTo-Json -Depth 40
         $db = (Read-ActExtrRecordsJson $tmp) | ConvertTo-Json -Depth 40
     }
-    Assert ($da -eq $db) "round-trip editor $docKey: el model del lector es identic (sense perdues)"
+    Assert ($da -eq $db) "round-trip editor ${docKey}: el model del lector es identic (sense perdues)"
     Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
 }
 

@@ -146,7 +146,8 @@ AssertEq ($t.Order -join ',') '1,2,0' 'ordena els indexs d entrada per waypoint_
 AssertEq $t.DistanceM 5000 'distancia del trip'
 AssertEq $t.DurationS 600  'durada del trip'
 AssertEq @($t.Geometry).Count 2 'geometria amb 2 punts'
-AssertEq ($t.Geometry[0] -join ',') '41.34,2.07' 'geometria convertida a [lat,lon]'
+$geom0Inv = ($t.Geometry[0] | ForEach-Object { $_.ToString([System.Globalization.CultureInfo]::InvariantCulture) }) -join ','
+AssertEq $geom0Inv '41.34,2.07' 'geometria convertida a [lat,lon]'
 Assert ($null -eq (ConvertFrom-OsrmTrip ([pscustomobject]@{ code='NoRoute' }) 3)) 'code != Ok -> null'
 Assert ($null -eq (ConvertFrom-OsrmTrip $null 3)) 'null -> null'
 

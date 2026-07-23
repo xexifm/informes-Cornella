@@ -486,11 +486,11 @@ function _FindItemKeysByTitle($parsed, [string]$title) {
             if ($el.Kind -eq 'item' -and (_NormalizeText $el.Short) -eq $tnorm) {
                 $keys = @((_ItemKey $sec.Title $el.Short))
                 foreach ($ch in $el.Children) { $keys += (_ItemKey $sec.Title $el.Short $ch.Short) }
-                return , $keys
+                return $keys
             }
         }
     }
-    return , @()
+    return @()
 }
 
 # Genera, per a cada activitat triada, un informe REQUERIMENT (com "Requeriment -
