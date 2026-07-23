@@ -1253,6 +1253,27 @@ foreach ($docKey in @('REQ1', 'TERMINI', '0 CONCLUSIONS', 'ACT_EXTR_REQ', 'ACT_E
     Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
 }
 
+Write-Host "`n--- PdfSignar.ps1: funcions pures (rutes, decisió, arguments AutoFirma) ---"
+AssertEq (_PdfPathForDoc 'C:\Inf\2026-01-02 informe.docx') 'C:\Inf\2026-01-02 informe.pdf' '_PdfPathForDoc canvia extensio a .pdf'
+AssertEq (_PdfShouldConvert $false ([datetime]'2026-01-01') ([datetime]::MinValue) $false) $true '_PdfShouldConvert: PDF no existeix -> si'
+AssertEq (_PdfShouldConvert $true ([datetime]'2026-02-01') ([datetime]'2026-01-01') $false) $true '_PdfShouldConvert: Word mes nou -> si'
+AssertEq (_PdfShouldConvert $true ([datetime]'2026-01-01') ([datetime]'2026-02-01') $false) $false '_PdfShouldConvert: PDF al dia -> no'
+AssertEq (_PdfShouldConvert $true ([datetime]'2026-01-01') ([datetime]'2026-02-01') $true) $true '_PdfShouldConvert: overwrite -> sempre si'
+AssertEq (_CertFilterValue '') '' '_CertFilterValue buit -> sense filtre'
+AssertEq (_CertFilterValue '  12345678Z ') 'subject.contains:12345678Z' '_CertFilterValue -> subject.contains:'
+$afArgs = _BuildAutoFirmaSignArgs 'C:\a b\in.pdf' 'C:\a b\out.pdf' 'subject.contains:X' ''
+AssertEq ([bool]($afArgs -like 'sign *')) $true '_BuildAutoFirmaSignArgs: comenca per sign'
+AssertEq ([bool]($afArgs -like '*-store windows*')) $true '_BuildAutoFirmaSignArgs: magatzem windows'
+AssertEq ([bool]($afArgs -like '*-format pades*')) $true '_BuildAutoFirmaSignArgs: format pades'
+AssertEq ([bool]($afArgs -like '*-i "C:\a b\in.pdf"*')) $true '_BuildAutoFirmaSignArgs: entrada entre cometes'
+AssertEq ([bool]($afArgs -like '*-o "C:\a b\out.pdf"*')) $true '_BuildAutoFirmaSignArgs: sortida entre cometes'
+AssertEq ([bool]($afArgs -like '*-filter "subject.contains:X"*')) $true '_BuildAutoFirmaSignArgs: filtre inclos'
+$afNoFilter = _BuildAutoFirmaSignArgs 'in.pdf' 'out.pdf' '' 'SHA512withRSA'
+AssertEq ([bool]($afNoFilter -like '*-filter*')) $false '_BuildAutoFirmaSignArgs: sense filtre si no s''indica'
+AssertEq ([bool]($afNoFilter -like '*-algorithm SHA512withRSA*')) $true '_BuildAutoFirmaSignArgs: algoritme indicat'
+AssertEq ([bool](@(_AutoFirmaCandidatePaths).Count -gt 0)) $true '_AutoFirmaCandidatePaths: retorna candidats'
+AssertEq ([bool](@(_AutoFirmaCandidatePaths) -like '*AutoFirma.exe')) $true '_AutoFirmaCandidatePaths: apunten a AutoFirma.exe'
+
 Write-Host "`n--- Informes.ps1: _EstatActualActivitat (estat = conclusio breu del darrer informe fiable, per data) ---"
 AssertEq (_EstatActualActivitat $null) '' '_EstatActualActivitat null -> buit'
 AssertEq (_EstatActualActivitat @()) '' '_EstatActualActivitat llista buida -> buit'

@@ -121,6 +121,21 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   Llista en una finestra les desactualitzades, les no trobades a l'Excel i les
   sense GIA (no verificables). Lector de Camp Info autònom (`_ReadExcelCampInfoPerGia`
   + `_FindCampInfoPairs`, pura + tests) — NO dot-sourceja `rutes/Ruta.ps1`.
+- **Word a PDF (i signar)** (`Invoke-ConvertirPdf`, `suport/PdfSignar.ps1`, rajola
+  📄 a EINES, acció `convertirpdf`): converteix tots els Word (`.doc`/`.docx`) d'una
+  carpeta (i subcarpetes) a **PDF al mateix lloc i mateix nom** (via Word COM
+  `ExportAsFixedFormat`, `17`=wdExportFormatPDF); salta els que ja tenen un PDF al
+  dia si no es marca "sobreescriure". Opcionalment **signa** cada PDF amb
+  **AutoFirma** per línia de comandes (`sign -store windows -format pades`), amb un
+  **filtre de certificat** `subject.contains:<text>` (nom/NIF del titular) perquè
+  AutoFirma triï el certificat del magatzem de Windows sol, sense diàleg; el PDF
+  signat substitueix el sense signar. Es va triar **AutoFirma + magatzem de
+  Windows** perquè reutilitza el certificat que l'usuari ja fa servir i és l'eina
+  oficial (signatura vàlida per a l'administració). Funcions pures testejables
+  (`_PdfPathForDoc`, `_PdfShouldConvert`, `_CertFilterValue`,
+  `_BuildAutoFirmaSignArgs`, `_AutoFirmaCandidatePaths`); Word (COM) i AutoFirma
+  només a Windows. Opcions/estat desats a `pdf-signar-state.json`
+  (`$LocalActivitatsDir`). **Pendent de provar a Windows** (COM + AutoFirma).
 - **Editar base d'informes — filtres i ordre:** a sobre de la graella hi ha la
   cerca global (conte, totes les columnes) i, a la 2a fila, **filtres per
   columna de SELECCIO MULTIPLE**: Conclusio breu, Estat activitat, Motiu i

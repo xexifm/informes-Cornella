@@ -1105,11 +1105,13 @@ function Select-Mode {
     $tiCopy  = [System.Char]::ConvertFromUtf32(0x1F4C1)   # 📁
     $tiCheck = [System.Char]::ConvertFromUtf32(0x2705)    # ✅
     $tiCal   = [System.Char]::ConvertFromUtf32(0x1F4C5)   # 📅
+    $tiPdf   = [System.Char]::ConvertFromUtf32(0x1F4C4)   # 📄
     $tools = @(
         @{ Emoji = $tiPin;   Label = 'Generar ruta';           Kind = 'action'; Action = 'ruta' }
         @{ Emoji = $tiLock;  Label = 'Activitats precintades'; Kind = 'url';    Url = $urlPrec }
         @{ Emoji = $tiInbox; Label = ('Revisar m' + [char]0x00F2 + 'bil'); Kind = 'action'; Action = 'revisarmobil' }
         @{ Emoji = $tiCal;   Label = ('Controls peri' + [char]0x00F2 + 'dics'); Kind = 'action'; Action = 'controlsperiodics' }
+        @{ Emoji = $tiPdf;   Label = 'Word a PDF'; Kind = 'action'; Action = 'convertirpdf' }
     )
     # INFORMES: eines de la base d'informes (mateixes rajoles).
     $reports = @(

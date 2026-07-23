@@ -557,6 +557,10 @@ $CopiaInformesDir = _ResolveEffectiveValue $AppSettings.CopiaInformesDir $CopiaI
 # testejables; la finestra WinForms nomes s'executa a Windows.
 . (Join-Path $ScriptRoot 'EditorCatalegs.ps1')
 
+# Eina "Convertir informes a PDF (i signar)". Funcions pures (rutes, arguments
+# d'AutoFirma) testejables; Word (COM) i AutoFirma nomes s'executen a Windows.
+. (Join-Path $ScriptRoot 'PdfSignar.ps1')
+
 # Carreguem l'eina "Controls periodics" (llistat d'activitats amb control
 # periodic a partir de l'Excel). Nomes defineix funcions; segur en headless.
 . (Join-Path $ScriptRoot 'ControlsPeriodics.ps1')
@@ -3356,6 +3360,7 @@ function Main {
             'revisarmobil'   { Invoke-RevisarMobil }     # revisa el mobil un sol cop; torna al menu
             'config'         { Invoke-ConfiguracioScreen }   # rutes d'aquest PC + actualitzar; torna al menu
             'editcataleg'    { Show-CatalegEditor -focusDoc ([string]$sel.Doc) }   # editor dels ESTRUCTURALS (xip del document)
+            'convertirpdf'   { Invoke-ConvertirPdf }   # converteix una carpeta de Word a PDF (i signa)
             'nou'        { [void](Invoke-NouWizard -cataleg $sel.Cataleg) }
             default      { return }
         }
