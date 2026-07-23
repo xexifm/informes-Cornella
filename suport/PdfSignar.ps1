@@ -67,28 +67,41 @@ function _BuildAutoFirmaSignArgs([string]$inPdf, [string]$outPdf, [string]$filte
 # Rutes candidates on sol estar instal·lat AutoFirma.exe a Windows. Si les
 # variables d'entorn no hi son (p. ex. proves a Linux), s'usen els camins
 # literals habituals de Windows perque la funció sempre retorni candidats.
+# Retorna un array pla de cadenes (NO un ArrayList amb ,$out: aixi @() sempre
+# l'enumera bé i el bucle rep cadenes, no la llista sencera).
 function _AutoFirmaCandidatePaths {
     $pf  = if ([string]::IsNullOrWhiteSpace($env:ProgramFiles))       { 'C:\Program Files' }       else { $env:ProgramFiles }
     $px  = if ([string]::IsNullOrWhiteSpace(${env:ProgramFiles(x86)})) { 'C:\Program Files (x86)' } else { ${env:ProgramFiles(x86)} }
-    $out = New-Object System.Collections.ArrayList
-    foreach ($base in @($pf, $px)) {
-        [void]$out.Add((Join-Path $base 'AutoFirma\AutoFirma\AutoFirma.exe'))
-        [void]$out.Add((Join-Path $base 'AutoFirma\AutoFirma.exe'))
-    }
+    $paths = @(
+        (Join-Path $pf 'AutoFirma\AutoFirma\AutoFirma.exe')
+        (Join-Path $pf 'AutoFirma\AutoFirma.exe')
+        (Join-Path $px 'AutoFirma\AutoFirma\AutoFirma.exe')
+        (Join-Path $px 'AutoFirma\AutoFirma.exe')
+    )
     if (-not [string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) {
-        [void]$out.Add((Join-Path $env:LOCALAPPDATA 'AutoFirma\AutoFirma\AutoFirma.exe'))
+        $paths += (Join-Path $env:LOCALAPPDATA 'AutoFirma\AutoFirma\AutoFirma.exe')
     }
-    return ,$out
+    return $paths
 }
 
-# Localitza AutoFirma.exe. Retorna la ruta o '' si no es troba. $preferit té
-# prioritat (ruta desada per l'usuari).
+# Localitza AutoFirma.exe. Retorna SEMPRE una cadena (la ruta o ''). $preferit
+# té prioritat (ruta desada per l'usuari).
 function _FindAutoFirmaExe([string]$preferit) {
-    if (-not [string]::IsNullOrWhiteSpace($preferit) -and (Test-Path -LiteralPath $preferit)) { return $preferit }
+    if (-not [string]::IsNullOrWhiteSpace($preferit) -and (Test-Path -LiteralPath $preferit)) { return [string]$preferit }
     foreach ($c in @(_AutoFirmaCandidatePaths)) {
-        if (Test-Path -LiteralPath $c) { return $c }
+        $cs = [string]$c
+        if (Test-Path -LiteralPath $cs) { return $cs }
     }
     return ''
+}
+
+# Extreu el "nom comú" (CN) d'un subjecte de certificat (DN). Funció PURA.
+# "CN=NOM COGNOM - 12345678Z, O=..., C=ES" -> "NOM COGNOM - 12345678Z".
+function _CertCommonName([string]$subject) {
+    if ([string]::IsNullOrWhiteSpace($subject)) { return '' }
+    $m = [regex]::Match($subject, 'CN=([^,]+)')
+    if ($m.Success) { return $m.Groups[1].Value.Trim() }
+    return ([string]$subject).Trim()
 }
 
 # ----------------------------------------------------------------------------
@@ -101,11 +114,11 @@ function _PdfSignarStatePath {
 
 function _LoadPdfSignarState {
     $p = _PdfSignarStatePath
-    $def = @{ folder = ''; sign = $false; certText = ''; autofirma = ''; overwrite = $false }
+    $def = @{ folder = ''; sign = $false; certFilter = ''; autofirma = ''; overwrite = $false }
     if (-not (Test-Path -LiteralPath $p)) { return $def }
     try {
         $o = Get-Content -LiteralPath $p -Raw -Encoding UTF8 | ConvertFrom-Json
-        foreach ($k in @('folder','certText','autofirma')) { if ($o.PSObject.Properties[$k]) { $def[$k] = [string]$o.$k } }
+        foreach ($k in @('folder','certFilter','autofirma')) { if ($o.PSObject.Properties[$k]) { $def[$k] = [string]$o.$k } }
         if ($o.PSObject.Properties['sign'])      { $def['sign'] = [bool]$o.sign }
         if ($o.PSObject.Properties['overwrite']) { $def['overwrite'] = [bool]$o.overwrite }
     } catch { }
@@ -131,95 +144,100 @@ function _ShowConvertPdfOptions {
               else { '' }
     $autofirma = _FindAutoFirmaExe $st.autofirma
 
+    # Certificats disponibles al magatzem de Windows (per triar-lo d'una llista,
+    # en lloc d'escriure text). Primer element: deixar-ho a AutoFirma.
+    $certOpts = New-Object System.Collections.ArrayList
+    [void]$certOpts.Add(@{ Display = ('(triar-lo a AutoFirma en signar)'); Filter = '' })
+    try {
+        Get-ChildItem 'Cert:\CurrentUser\My' -ErrorAction SilentlyContinue |
+            Where-Object { $_.HasPrivateKey } | Sort-Object NotAfter -Descending | ForEach-Object {
+                $cn = _CertCommonName ([string]$_.Subject)
+                $exp = ''
+                try { $exp = $_.NotAfter.ToString('dd/MM/yyyy') } catch { }
+                [void]$certOpts.Add(@{ Display = ("{0}  (fins {1})" -f $cn, $exp); Filter = (_CertFilterValue $cn) })
+            }
+    } catch { }
+
     $form = _NewForm
     $form.Text = 'Convertir informes a PDF'
-    $form.ClientSize = New-Object System.Drawing.Size(600, 300)
+    $form.ClientSize = New-Object System.Drawing.Size(510, 336)
     $form.FormBorderStyle = 'FixedDialog'
     $form.MaximizeBox = $false
 
-    $y = 74
-    $lblF = New-Object System.Windows.Forms.Label
-    $lblF.Text = 'Carpeta amb els informes (Word):'
-    $lblF.Location = New-Object System.Drawing.Point(18, $y)
-    $lblF.AutoSize = $true
-    [void]$form.Controls.Add($lblF)
-
-    $tbF = New-Object System.Windows.Forms.TextBox
-    $tbF.Location = New-Object System.Drawing.Point(18, ($y + 22))
-    $tbF.Size = New-Object System.Drawing.Size(460, 24)
-    $tbF.ReadOnly = $true
-    $tbF.Text = $folder
-    [void]$form.Controls.Add($tbF)
-
-    $btnTria = New-Object System.Windows.Forms.Button
-    $btnTria.Text = 'Tria...'
-    $btnTria.Location = New-Object System.Drawing.Point(486, ($y + 21))
-    $btnTria.Size = New-Object System.Drawing.Size(96, 26)
-    _StyleSecondaryButton $btnTria
-    $btnTria.add_Click({
-        $fb = New-Object System.Windows.Forms.FolderBrowserDialog
-        $fb.Description = 'Tria la carpeta amb els informes en Word'
-        if (-not [string]::IsNullOrWhiteSpace($tbF.Text) -and (Test-Path -LiteralPath $tbF.Text)) { $fb.SelectedPath = $tbF.Text }
-        if ($fb.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { $tbF.Text = $fb.SelectedPath }
-    }.GetNewClosure())
-    [void]$form.Controls.Add($btnTria)
+    # Carpeta: mateix format que la Configuració (quadre editable + "..." +
+    # indicador ✓/⚠ en viu). Helper comú _AddConfigRow (Configuracio.ps1).
+    $row = _AddConfigRow $form 70 'Carpeta amb els informes (Word):' $folder
+    $tbF = $row.TextBox
+    $y = [int]$row.NextY
 
     $cbOver = New-Object System.Windows.Forms.CheckBox
     $cbOver.Text = 'Tornar a generar els PDF que ja existeixen'
-    $cbOver.Location = New-Object System.Drawing.Point(18, ($y + 54))
+    $cbOver.Location = New-Object System.Drawing.Point(14, $y)
     $cbOver.AutoSize = $true
     $cbOver.Checked = [bool]$st.overwrite
     [void]$form.Controls.Add($cbOver)
+    $y += 30
 
     $cbSign = New-Object System.Windows.Forms.CheckBox
     $cbSign.Text = 'Signar els PDF amb AutoFirma (certificat de Windows)'
-    $cbSign.Location = New-Object System.Drawing.Point(18, ($y + 84))
+    $cbSign.Location = New-Object System.Drawing.Point(14, $y)
     $cbSign.AutoSize = $true
     $cbSign.Checked = [bool]$st.sign
     [void]$form.Controls.Add($cbSign)
+    $y += 26
 
     $lblC = New-Object System.Windows.Forms.Label
-    $lblC.Text = ('Certificat (nom o NIF del titular, per triar-lo sol):')
-    $lblC.Location = New-Object System.Drawing.Point(38, ($y + 110))
+    $lblC.Text = 'Certificat amb què signar:'
+    $lblC.Location = New-Object System.Drawing.Point(34, $y)
     $lblC.AutoSize = $true
     [void]$form.Controls.Add($lblC)
+    $y += 20
 
-    $tbC = New-Object System.Windows.Forms.TextBox
-    $tbC.Location = New-Object System.Drawing.Point(38, ($y + 132))
-    $tbC.Size = New-Object System.Drawing.Size(320, 24)
-    $tbC.Text = [string]$st.certText
-    [void]$form.Controls.Add($tbC)
+    $cbCert = New-Object System.Windows.Forms.ComboBox
+    $cbCert.DropDownStyle = 'DropDownList'
+    $cbCert.Location = New-Object System.Drawing.Point(34, $y)
+    $cbCert.Size = New-Object System.Drawing.Size(454, 24)
+    foreach ($o in $certOpts) { [void]$cbCert.Items.Add([string]$o.Display) }
+    $selIdx = 0
+    for ($i = 0; $i -lt $certOpts.Count; $i++) { if ([string]$certOpts[$i].Filter -eq [string]$st.certFilter -and [string]$st.certFilter -ne '') { $selIdx = $i } }
+    if ($cbCert.Items.Count -gt 0) { $cbCert.SelectedIndex = $selIdx }
+    [void]$form.Controls.Add($cbCert)
+    $y += 30
 
     $lblAF = New-Object System.Windows.Forms.Label
-    $lblAF.Location = New-Object System.Drawing.Point(38, ($y + 160))
+    $lblAF.Location = New-Object System.Drawing.Point(34, $y)
+    $lblAF.MaximumSize = New-Object System.Drawing.Size(454, 0)
     $lblAF.AutoSize = $true
+    $lblAF.Font = New-Object System.Drawing.Font('Segoe UI', 8.5, [System.Drawing.FontStyle]::Regular)
     if ([string]::IsNullOrWhiteSpace($autofirma)) {
-        $lblAF.Text = 'AutoFirma: no s''ha trobat. Instal·la''l o desmarca la signatura.'
+        $lblAF.Text = ([char]0x26A0 + ' AutoFirma no trobat. Instal·la''l o desmarca la signatura.')
         $lblAF.ForeColor = [System.Drawing.Color]::Firebrick
     } else {
-        $lblAF.Text = 'AutoFirma: ' + $autofirma
-        $lblAF.ForeColor = [System.Drawing.Color]::ForestGreen
+        $lblAF.Text = ([char]0x2713 + ' AutoFirma: ' + $autofirma)
+        $lblAF.ForeColor = [System.Drawing.Color]::SeaGreen
     }
     [void]$form.Controls.Add($lblAF)
 
     $syncSign = {
         $on = $cbSign.Checked
-        $tbC.Enabled = $on; $lblC.Enabled = $on; $lblAF.Enabled = $on
+        $lblC.Enabled = $on; $cbCert.Enabled = $on; $lblAF.Enabled = $on
     }.GetNewClosure()
     $cbSign.add_CheckedChanged($syncSign)
     & $syncSign
 
     $btnGo = New-Object System.Windows.Forms.Button
     $btnGo.Text = 'Comença'
-    $btnGo.Location = New-Object System.Drawing.Point(370, 262)
+    $btnGo.Location = New-Object System.Drawing.Point(280, 298)
     $btnGo.Size = New-Object System.Drawing.Size(120, 30)
+    $btnGo.Anchor = 'Bottom, Right'
     _StylePrimaryButton $btnGo
     [void]$form.Controls.Add($btnGo)
 
     $btnCancel = New-Object System.Windows.Forms.Button
     $btnCancel.Text = 'Tanca'
-    $btnCancel.Location = New-Object System.Drawing.Point(496, 262)
-    $btnCancel.Size = New-Object System.Drawing.Size(86, 30)
+    $btnCancel.Location = New-Object System.Drawing.Point(406, 298)
+    $btnCancel.Size = New-Object System.Drawing.Size(88, 30)
+    $btnCancel.Anchor = 'Bottom, Right'
     _StyleSecondaryButton $btnCancel
     $btnCancel.add_Click({ $form.DialogResult = 'Cancel'; $form.Close() }.GetNewClosure())
     [void]$form.Controls.Add($btnCancel)
@@ -235,11 +253,13 @@ function _ShowConvertPdfOptions {
             [System.Windows.Forms.MessageBox]::Show("No s'ha trobat AutoFirma. Desmarca la signatura (es faran només els PDF) o instal·la AutoFirma.", 'Convertir informes a PDF', 'OK', 'Warning') | Out-Null
             return
         }
+        $certFilter = ''
+        if ($cbCert.SelectedIndex -ge 0 -and $cbCert.SelectedIndex -lt $certOpts.Count) { $certFilter = [string]$certOpts[$cbCert.SelectedIndex].Filter }
         $result.Value = @{
-            Folder = $f; Sign = [bool]$cbSign.Checked; CertText = [string]$tbC.Text
-            Overwrite = [bool]$cbOver.Checked; AutoFirma = $autofirma
+            Folder = $f; Sign = [bool]$cbSign.Checked; CertFilter = $certFilter
+            Overwrite = [bool]$cbOver.Checked; AutoFirma = [string]$autofirma
         }
-        _SavePdfSignarState @{ folder = $f; sign = [bool]$cbSign.Checked; certText = [string]$tbC.Text; autofirma = $autofirma; overwrite = [bool]$cbOver.Checked }
+        _SavePdfSignarState @{ folder = $f; sign = [bool]$cbSign.Checked; certFilter = $certFilter; autofirma = [string]$autofirma; overwrite = [bool]$cbOver.Checked }
         $form.DialogResult = 'OK'; $form.Close()
     }.GetNewClosure())
 
@@ -254,9 +274,13 @@ function _ShowConvertPdfOptions {
 # Execució: converteix (i signa) amb barra de progrés i cancel·lació.
 # ----------------------------------------------------------------------------
 function _RunConvertPdf($opts) {
+    # Defensa: si $opts arribés embolcallat en un array, agafem l'element real.
+    if ($opts -is [System.Array]) { $opts = @($opts)[-1] }
+    $folderPath = [string]$opts.Folder
+    $afExe      = [string]$opts.AutoFirma
     # Enumeració dels Word de la carpeta (i subcarpetes), saltant temporals ~$.
     $files = New-Object System.Collections.ArrayList
-    Get-ChildItem -LiteralPath $opts.Folder -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object {
+    Get-ChildItem -LiteralPath $folderPath -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object {
         if ($_.Name -notlike '~$*' -and ($_.Extension -ieq '.docx' -or $_.Extension -ieq '.doc')) {
             [void]$files.Add($_)
         }
@@ -302,7 +326,7 @@ function _RunConvertPdf($opts) {
     $form.Show()
     [System.Windows.Forms.Application]::DoEvents()
 
-    $filter = _CertFilterValue $opts.CertText
+    $filter = [string]$opts.CertFilter
     $converted = 0; $skipped = 0; $signed = 0; $errors = 0; $done = 0
     $errDetalls = New-Object System.Collections.ArrayList
     $word = $null
@@ -348,9 +372,9 @@ function _RunConvertPdf($opts) {
                 [System.Windows.Forms.Application]::DoEvents()
                 $tmpSigned = $pdf + '.signat.pdf'
                 try { if (Test-Path -LiteralPath $tmpSigned) { Remove-Item -LiteralPath $tmpSigned -Force } } catch { }
-                $argLine = _BuildAutoFirmaSignArgs $pdf $tmpSigned $filter ''
+                $argLine = [string](_BuildAutoFirmaSignArgs $pdf $tmpSigned $filter '')
                 try {
-                    $p = Start-Process -FilePath $opts.AutoFirma -ArgumentList $argLine -Wait -PassThru -WindowStyle Hidden
+                    $p = Start-Process -FilePath $afExe -ArgumentList $argLine -Wait -PassThru -WindowStyle Hidden
                     if ($p.ExitCode -eq 0 -and (Test-Path -LiteralPath $tmpSigned)) {
                         Move-Item -LiteralPath $tmpSigned -Destination $pdf -Force
                         $signed++

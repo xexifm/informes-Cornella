@@ -126,16 +126,21 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   carpeta (i subcarpetes) a **PDF al mateix lloc i mateix nom** (via Word COM
   `ExportAsFixedFormat`, `17`=wdExportFormatPDF); salta els que ja tenen un PDF al
   dia si no es marca "sobreescriure". Opcionalment **signa** cada PDF amb
-  **AutoFirma** per línia de comandes (`sign -store windows -format pades`), amb un
-  **filtre de certificat** `subject.contains:<text>` (nom/NIF del titular) perquè
-  AutoFirma triï el certificat del magatzem de Windows sol, sense diàleg; el PDF
-  signat substitueix el sense signar. Es va triar **AutoFirma + magatzem de
-  Windows** perquè reutilitza el certificat que l'usuari ja fa servir i és l'eina
-  oficial (signatura vàlida per a l'administració). Funcions pures testejables
-  (`_PdfPathForDoc`, `_PdfShouldConvert`, `_CertFilterValue`,
-  `_BuildAutoFirmaSignArgs`, `_AutoFirmaCandidatePaths`); Word (COM) i AutoFirma
-  només a Windows. Opcions/estat desats a `pdf-signar-state.json`
-  (`$LocalActivitatsDir`). **Pendent de provar a Windows** (COM + AutoFirma).
+  **AutoFirma** per línia de comandes (`sign -store windows -format pades`). El
+  **certificat es tria d'un desplegable** poblat del magatzem de Windows
+  (`Cert:\CurrentUser\My`, amb clau privada); del certificat triat se'n treu el
+  CN (`_CertCommonName`) i es passa a AutoFirma com a `-filter subject.contains:<CN>`
+  perquè el triï sol, sense diàleg. El PDF signat substitueix el sense signar. Es
+  va triar **AutoFirma + magatzem de Windows** perquè reutilitza el certificat que
+  l'usuari ja fa servir i és l'eina oficial (signatura vàlida per a
+  l'administració). La **tria de carpeta** fa servir el helper comú `_AddConfigRow`
+  (Configuracio.ps1) — quadre editable + "..." + indicador ✓/⚠ en viu — igual que
+  a Configuració (tots els selectors de carpeta del programa han de fer servir
+  aquest format). Funcions pures testejables (`_PdfPathForDoc`, `_PdfShouldConvert`,
+  `_CertFilterValue`, `_CertCommonName`, `_BuildAutoFirmaSignArgs`,
+  `_AutoFirmaCandidatePaths` — retorna un **array pla**, no `,$ArrayList`, perquè
+  `@()` l'enumeri bé). Word (COM) i AutoFirma només a Windows. Opcions/estat a
+  `pdf-signar-state.json`. **Pendent de provar la signatura a Windows** (AutoFirma).
 - **Editar base d'informes — filtres i ordre:** a sobre de la graella hi ha la
   cerca global (conte, totes les columnes) i, a la 2a fila, **filtres per
   columna de SELECCIO MULTIPLE**: Conclusio breu, Estat activitat, Motiu i
