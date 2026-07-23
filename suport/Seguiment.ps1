@@ -1096,7 +1096,7 @@ function Select-Mode {
     # sota), segons el disseny. Comportament per rajola: 'action' tanca el menu
     # amb l'accio; 'url' obre l'enllac public SENSE tancar el menu (precintades).
     # (Les eines de la base d'informes van al seu propi apartat INFORMES, sota.)
-    $urlPrec = 'https://xexifm.github.io/informes-cornella/precintades.html'
+    $urlPrec = 'https://xexifm.github.io/informes-Cornella/precintades.html'
     $tiPin   = [System.Char]::ConvertFromUtf32(0x1F4CD)   # 📍
     $tiLock  = [System.Char]::ConvertFromUtf32(0x1F512)   # 🔒
     $tiBox   = [System.Char]::ConvertFromUtf32(0x1F5C3)   # 🗃

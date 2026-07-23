@@ -302,7 +302,7 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   "PRECINTE ACTIVITAT?" i valor que comença per "SI". La pàgina pública
   `docs/precintades.html` (GitHub Pages) el llegeix i pinta el mapa (Leaflet).
 - Ho refresca i puja a `main` **`Actualitzar.bat`** (pas 7). URL pública:
-  `https://xexifm.github.io/informes-cornella/precintades.html`.
+  `https://xexifm.github.io/informes-Cornella/precintades.html`.
 - **Privadesa**: el JSON només conté activitat genèrica (p.ex. "BAR"), adreça de
   l'establiment, ID intern i coordenades — **mai** la raó social ni el text
   lliure del Valor (que conté noms i tràmits interns). No hi afegeixis dades

@@ -28,7 +28,7 @@ els blocs en ordre. Un cop fet, no hauràs de tornar-hi: tot s'actualitza sol.
 1. Al GitHub, repositori `informes-cornella` → **Settings → Pages**.
 2. **Source: Deploy from a branch**. **Branch: `main`**, carpeta **`/docs`**. Desa.
 3. Al cap d'un parell de minuts tindràs una URL tipus
-   `https://xexifm.github.io/informes-cornella/`. Aquesta és l'adreça que
+   `https://xexifm.github.io/informes-Cornella/`. Aquesta és l'adreça que
    obriràs al mòbil (afegeix-la a la pantalla d'inici).
 
 > De moment mostrarà un error de "dades": és normal fins que facis el bloc D
