@@ -118,7 +118,7 @@ REM Primer intentem fast-forward. Si tenim un commit local de plantilles
 REM i el remot tambe ha avancat, fem rebase per integrar-ho ordenadament.
 git pull --ff-only origin main
 if errorlevel 1 (
-    echo Fast-forward no possible (la branca local i la remota han divergit^).
+    echo Fast-forward no possible ^(la branca local i la remota han divergit^).
     echo Faig rebase per integrar els canvis...
     git pull --rebase origin main
     if errorlevel 1 (
@@ -129,11 +129,12 @@ if errorlevel 1 (
     )
 )
 
-REM --- 5. Pujar els commits locals (plantilles i/o textos del correu) ---
-set "CAL_PUJAR=0"
-if "%PLANTILLES_CANVIADES%"=="1" set "CAL_PUJAR=1"
-if "%TEXTOS_CANVIATS%"=="1" set "CAL_PUJAR=1"
-if "%CAL_PUJAR%"=="1" (
+REM --- 5. Pujar a GitHub si el 'main' local va per davant de l'origin ---
+REM    (commits fets per aquest .bat: plantilles, textos del correu, o algun de
+REM    pendent d'una execucio anterior que no es va poder pujar).
+set "PENDENTS=1"
+for /f %%c in ('git rev-list --count origin/main..HEAD') do set "PENDENTS=%%c"
+if not "%PENDENTS%"=="0" (
     echo Pujant els canvis locals a GitHub...
     git push origin main
     if errorlevel 1 (
