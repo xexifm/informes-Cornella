@@ -74,6 +74,21 @@ if "%PLANTILLES_CANVIADES%"=="1" (
     )
 )
 
+REM --- 2b. Canvis als textos del correu del mobil (editats des de l'app)? ---
+REM    docs\dades\email-textos.json es tracked; si l'usuari l'ha editat des de
+REM    l'eina "Textos del correu", el commitegem AQUI (abans del stash; si no,
+REM    aniria a parar al stash i no es publicaria).
+set "TEXTOS_CANVIATS=0"
+for /f "delims=" %%f in ('git status --porcelain -- docs/dades/email-textos.json') do set "TEXTOS_CANVIATS=1"
+if "%TEXTOS_CANVIATS%"=="1" (
+    echo Detectats canvis als textos del correu del mobil.
+    git add "docs/dades/email-textos.json"
+    git -c user.name="Generador d'informes" -c user.email="generador@local" commit -m "Textos del correu del mobil actualitzats des de l'app"
+    if errorlevel 1 (
+        echo  No hi havia res a commitejar o el commit ha fallat. Continuo.
+    )
+)
+
 REM --- 3. Si queden ALTRES canvis (codi), els guardem al stash ---
 set "STASHED=0"
 git diff --quiet
@@ -114,12 +129,15 @@ if errorlevel 1 (
     )
 )
 
-REM --- 5. Si abans hem commitejat plantilles, pugem-les ---
-if "%PLANTILLES_CANVIADES%"=="1" (
-    echo Pujant les plantilles a GitHub...
+REM --- 5. Pujar els commits locals (plantilles i/o textos del correu) ---
+set "CAL_PUJAR=0"
+if "%PLANTILLES_CANVIADES%"=="1" set "CAL_PUJAR=1"
+if "%TEXTOS_CANVIATS%"=="1" set "CAL_PUJAR=1"
+if "%CAL_PUJAR%"=="1" (
+    echo Pujant els canvis locals a GitHub...
     git push origin main
     if errorlevel 1 (
-        echo  No s'han pogut pujar les plantilles. Es queden en local fins la propera.
+        echo  No s'han pogut pujar els canvis. Es queden en local fins la propera.
     )
 )
 

@@ -84,17 +84,35 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   Una conclusio que diu que **NO** es pot donar per tancat/finalitzat (qualsevol
   "no es pot donar...") es **Requeriment** (pendent), no "FI Requeriment": la
   comprovacio del "no" va abans que la del "si" a `_ConclusioBreu`.
-- **Menú Pas 1 — apartat INFORMES:** sota EINES hi ha un apartat propi
-  **INFORMES** amb 4 rajoles: 🗃 *Actualitzar base* (`informesdb`), 📋 *Editar
-  base* (`informesdbedit`), 📁 *Copiar informes* (`copiarinformes`) i ✅
-  *Comprovar Excel* (`comprovarexcel`). Les rajoles es dibuixen amb el helper
-  `$addTileRow` de `Select-Mode` (`Seguiment.ps1`), reutilitzat per EINES i
-  INFORMES. Dispatch al `switch` de `Main` (`GenerarInforme.ps1`). Sota
+- **Menú Pas 1 — 3 apartats de rajoles** (`Select-Mode`, `Seguiment.ps1`, helper
+  `$addTileRow`; dispatch al `switch` de `Main`):
+  - **EINES** (3): 📍 *Generar ruta* (`ruta`), 🔒 *Activitats precintades* (url),
+    📅 *Controls periòdics* (`controlsperiodics`).
+  - **INFORMES** (5): 🗃 *Actualitzar base* (`informesdb`), 📋 *Editar base*
+    (`informesdbedit`), 📁 *Copiar informes* (`copiarinformes`), ✅ *Comprovar
+    Excel* (`comprovarexcel`), 📄 *Word a PDF* (`convertirpdf`).
+  - **MÒBIL** (2): 📧 *Textos del correu* (`emailtextos`), 📥 *Revisar mòbil*
+    (`revisarmobil`).
+  Sota
   *Actualitzar base*, *Copiar informes* i *Comprovar Excel* es mostra, en petit,
   l'**última execució** (`_LastRunText`), llegida de `actualitzat_el`
   (`informes-db.json`), `copiat_el` (`copia-informes-state.json`) i `comprovat_el`
   (`comprovar-excel-state.json`, que ara escriu `Invoke-ComprovarExcel` via
   `_SaveRunTimestamp`). *Editar base* no en té.
+- **Textos del correu del mòbil** (`Invoke-EmailTextos`, `suport/EmailTextos.ps1`,
+  rajola 📧 a MÒBIL, acció `emailtextos`): editor dels textos que l'app mòbil
+  envia al titular per EmailJS. Viuen a **`docs/dades/email-textos.json`** (sense
+  dades personals → committejable) que `docs/app.js` llegeix (`carregarJson` +
+  `aplicarEmailTextos`, amb els defaults `EMAIL_TEXTOS_DEFAULT` de fallback).
+  Claus: `assumpte`, `introFrase`, bloc *Com presentar la documentació*
+  (`pujarTitol/Text/Instr` en **Ca/Es** + `pujarUrl`) i `avisCa`/`avisEs`. Els
+  textos admeten **placeholders** `{ID_GIA}{ADRECA}{ACTIVITAT}{TITULAR}{DATA}`
+  (`fillPh`) i **`**negreta**`** (`mdHtml`→`<b>`, o `stripMarkers` al text pla).
+  El correu i l'avís són ara **només CA+ES** (abans l'avís era en 5 idiomes). En
+  desar, l'`Actualitzar.bat` publica `email-textos.json` (pas **2b**, que el
+  commiteja ABANS del stash perquè no s'hi quedi). Funcions pures a
+  `EmailTextos.ps1` (`_DefaultEmailTextos`, `_EmailTextosFields`,
+  `_LoadEmailTextos`, `_SaveEmailTextos`) amb tests; la finestra només a Windows.
 - **Exportar llistats (CSV):** botó a *Editar base d'informes* →
   `Export-EstatsActivitats` (`Informes.ps1`). Escriu un CSV (`;`, UTF-8 amb BOM,
   a `_ResolveOutputDir`) amb una fila per informe de les activitats en Estat

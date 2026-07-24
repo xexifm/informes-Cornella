@@ -1,0 +1,13 @@
+{
+  "assumpte": "GIA {ID_GIA} Requeriments",
+  "introFrase": "Aquestes són les deficiències que s'han detectat a la visita de l'activitat per part de l'Ajuntament el dia {DATA} i que s'han d'esmenar:",
+  "pujarTitolCa": "Com presentar la documentació",
+  "pujarTitolEs": "Cómo presentar la documentación",
+  "pujarTextCa": "Heu de presentar **tota la documentació alhora** (important: no la presenteu per parts), mitjançant una **instància genèrica** de la seu electrònica de l'Ajuntament de Cornellà de Llobregat:",
+  "pujarTextEs": "Debe presentar **toda la documentación a la vez** (importante: no la presente por partes), mediante una **instancia genérica** de la sede electrónica del Ayuntamiento de Cornellà de Llobregat:",
+  "pujarUrl": "https://seuelectronica.cornella.cat/portal/entidades.do?ent_id=1&idioma=2",
+  "pujarInstrCa": "Indiqueu que la instància va **a l'atenció del Departament d'Activitats** i feu-hi constar les dades de l'activitat:",
+  "pujarInstrEs": "Indique que la instancia va dirigida **a la atención del Departamento de Actividades** y haga constar los datos de la actividad:",
+  "avisCa": "IMPORTANT: aquest és un correu automàtic i no s'admeten respostes. Aquest llistat NO és definitiu ni oficial i pot variar respecte del requeriment oficial que rebreu properament. Per a qualsevol consulta podeu adreçar-vos al Departament d'Activitats de l'Ajuntament de Cornellà de Llobregat (Carrer de l'Energia, 97) o trucar al 93 377 02 12, extensió 1227.",
+  "avisEs": "IMPORTANTE: este es un correo automático y no se admiten respuestas. Este listado NO es definitivo ni oficial y puede variar respecto del requerimiento oficial que recibirá próximamente. Para cualquier consulta puede dirigirse al Departamento de Actividades del Ayuntamiento de Cornellà de Llobregat (Calle de l'Energia, 97) o llamar al 93 377 02 12, extensión 1227."
+}

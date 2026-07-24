@@ -1278,6 +1278,19 @@ AssertEq (_CertCommonName 'CN=NOM COGNOM - 12345678Z, OU=X, O=Y, C=ES') 'NOM COG
 AssertEq (_CertCommonName 'sense cn') 'sense cn' '_CertCommonName sense CN -> retorna el subjecte'
 AssertEq (_CertCommonName '') '' '_CertCommonName buit -> buit'
 
+Write-Host "`n--- EmailTextos.ps1: funcions pures (textos del correu del mobil) ---"
+$edefs = _DefaultEmailTextos
+AssertEq (@($edefs.Keys).Count) 11 '_DefaultEmailTextos: 11 claus'
+AssertEq ([bool]($edefs.Contains('assumpte') -and $edefs.Contains('avisEs'))) $true '_DefaultEmailTextos: te assumpte i avisEs'
+$efields = @(_EmailTextosFields)
+AssertEq ($efields.Count) 11 '_EmailTextosFields: 11 camps'
+$fkeys = ($efields | ForEach-Object { $_.Key }) -join ','
+$dkeys = (@($edefs.Keys)) -join ','
+AssertEq $fkeys $dkeys '_EmailTextosFields: claus i ordre coincideixen amb els defaults'
+$eload = _LoadEmailTextos
+AssertEq ([bool]($eload.Contains('pujarUrl') -and ([string]$eload['pujarUrl']).Contains('seuelectronica'))) $true '_LoadEmailTextos: pujarUrl apunta a la seu electronica'
+AssertEq ([bool]([string]$eload['assumpte'] -like '*{ID_GIA}*')) $true '_LoadEmailTextos: assumpte conserva el placeholder {ID_GIA}'
+
 Write-Host "`n--- Informes.ps1: _EstatActualActivitat (estat = conclusio breu del darrer informe fiable, per data) ---"
 AssertEq (_EstatActualActivitat $null) '' '_EstatActualActivitat null -> buit'
 AssertEq (_EstatActualActivitat @()) '' '_EstatActualActivitat llista buida -> buit'

@@ -561,6 +561,10 @@ $CopiaInformesDir = _ResolveEffectiveValue $AppSettings.CopiaInformesDir $CopiaI
 # d'AutoFirma) testejables; Word (COM) i AutoFirma nomes s'executen a Windows.
 . (Join-Path $ScriptRoot 'PdfSignar.ps1')
 
+# Editor dels textos del correu del mobil (docs\dades\email-textos.json).
+# Funcions pures testejables; la finestra (WinForms) nomes a Windows.
+. (Join-Path $ScriptRoot 'EmailTextos.ps1')
+
 # Carreguem l'eina "Controls periodics" (llistat d'activitats amb control
 # periodic a partir de l'Excel). Nomes defineix funcions; segur en headless.
 . (Join-Path $ScriptRoot 'ControlsPeriodics.ps1')
@@ -3361,6 +3365,7 @@ function Main {
             'config'         { Invoke-ConfiguracioScreen }   # rutes d'aquest PC + actualitzar; torna al menu
             'editcataleg'    { Show-CatalegEditor -focusDoc ([string]$sel.Doc) }   # editor dels ESTRUCTURALS (xip del document)
             'convertirpdf'   { Invoke-ConvertirPdf }   # converteix una carpeta de Word a PDF (i signa)
+            'emailtextos'    { Invoke-EmailTextos }    # edita els textos del correu del mobil
             'nou'        { [void](Invoke-NouWizard -cataleg $sel.Cataleg) }
             default      { return }
         }

@@ -1106,19 +1106,25 @@ function Select-Mode {
     $tiCheck = [System.Char]::ConvertFromUtf32(0x2705)    # ✅
     $tiCal   = [System.Char]::ConvertFromUtf32(0x1F4C5)   # 📅
     $tiPdf   = [System.Char]::ConvertFromUtf32(0x1F4C4)   # 📄
+    $tiMail  = [System.Char]::ConvertFromUtf32(0x1F4E7)   # 📧
+    # EINES: utilitats generals.
     $tools = @(
         @{ Emoji = $tiPin;   Label = 'Generar ruta';           Kind = 'action'; Action = 'ruta' }
         @{ Emoji = $tiLock;  Label = 'Activitats precintades'; Kind = 'url';    Url = $urlPrec }
-        @{ Emoji = $tiInbox; Label = ('Revisar m' + [char]0x00F2 + 'bil'); Kind = 'action'; Action = 'revisarmobil' }
         @{ Emoji = $tiCal;   Label = ('Controls peri' + [char]0x00F2 + 'dics'); Kind = 'action'; Action = 'controlsperiodics' }
-        @{ Emoji = $tiPdf;   Label = 'Word a PDF'; Kind = 'action'; Action = 'convertirpdf' }
     )
-    # INFORMES: eines de la base d'informes (mateixes rajoles).
+    # INFORMES: eines de la base d'informes + conversio a PDF.
     $reports = @(
         @{ Emoji = $tiBox;   Label = 'Actualitzar base'; Kind = 'action'; Action = 'informesdb' }
         @{ Emoji = $tiClip;  Label = 'Editar base';      Kind = 'action'; Action = 'informesdbedit' }
         @{ Emoji = $tiCopy;  Label = 'Copiar informes';  Kind = 'action'; Action = 'copiarinformes' }
         @{ Emoji = $tiCheck; Label = 'Comprovar Excel';  Kind = 'action'; Action = 'comprovarexcel' }
+        @{ Emoji = $tiPdf;   Label = 'Word a PDF';       Kind = 'action'; Action = 'convertirpdf' }
+    )
+    # MOBIL: eines de l'app del mobil.
+    $mobil = @(
+        @{ Emoji = $tiMail;  Label = 'Textos del correu'; Kind = 'action'; Action = 'emailtextos' }
+        @{ Emoji = $tiInbox; Label = ('Revisar m' + [char]0x00F2 + 'bil'); Kind = 'action'; Action = 'revisarmobil' }
     )
     $fTileIco   = New-Object System.Drawing.Font('Segoe UI Emoji', 14, [System.Drawing.FontStyle]::Regular)
     $fTileTxt   = New-Object System.Drawing.Font('Segoe UI', 8, [System.Drawing.FontStyle]::Regular)
@@ -1214,6 +1220,18 @@ function Select-Mode {
         $sx += $tileW + $tileGap
     }
     $y = $yStamp + 18
+
+    # ---- MOBIL (app del mobil) ---------------------------------------------
+    $sepMobil = New-Object System.Windows.Forms.Label
+    $sepMobil.Text = 'M' + [char]0x00D2 + 'BIL'
+    $sepMobil.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
+    $sepMobil.ForeColor = [System.Drawing.Color]::FromArgb(138, 20, 38)
+    $sepMobil.Location = New-Object System.Drawing.Point(20, $y)
+    $sepMobil.AutoSize = $true
+    [void]$form.Controls.Add($sepMobil)
+    $y += 24
+    $y = & $addTileRow $mobil $y
+    $y += 4
 
     # (Configuracio i Ajuda ja no son botons grans: van DISCRETS a la cantonada
     #  de la banda granat, mes avall.)

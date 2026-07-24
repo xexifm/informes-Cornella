@@ -322,37 +322,71 @@
     return p(d.getDate()) + "/" + p(d.getMonth() + 1) + "/" + d.getFullYear();
   }
 
-  // Avís FINAL en 5 idiomes (CA, ES, EN, AR, ZH): automàtic + no definitiu/oficial.
-  var AVIS_MULTI = [
-    "IMPORTANT: aquest és un correu automàtic i no s'admeten respostes. Aquest llistat NO és definitiu ni oficial i pot variar respecte del requeriment oficial que rebreu properament. Per a qualsevol consulta podeu adreçar-vos al Departament d'Activitats de l'Ajuntament de Cornellà de Llobregat (Carrer de l'Energia, 97) o trucar al 93 377 02 12, extensió 1227.",
-    "IMPORTANTE: este es un correo automático y no se admiten respuestas. Este listado NO es definitivo ni oficial y puede variar respecto del requerimiento oficial que recibirá próximamente. Para cualquier consulta puede dirigirse al Departamento de Actividades del Ayuntamiento de Cornellà de Llobregat (Calle de l'Energia, 97) o llamar al 93 377 02 12, extensión 1227.",
-    "IMPORTANT: this is an automated email and replies are not accepted. This list is NOT final or official and may change with respect to the official requirement you will receive shortly. For any enquiries, please contact the Activities Department of Cornellà de Llobregat Town Council (Carrer de l'Energia, 97) or call +34 93 377 02 12, extension 1227.",
-    "هام: هذه رسالة إلكترونية آلية ولا تُقبل الردود عليها. هذه القائمة ليست نهائية ولا رسمية وقد تتغيّر مقارنةً بالطلب الرسمي الذي ستتلقونه قريباً. لأي استفسار، يُرجى التواصل مع قسم الأنشطة في بلدية كورنيا دي يوبريغات (Carrer de l'Energia, 97) أو الاتصال على الرقم 93 377 02 12 التحويلة 1227.",
-    "重要提示：本邮件为系统自动发送，恕不接受回复。此清单并非最终版本，也不具官方效力，可能与您即将收到的正式要求有所不同。如有任何疑问，请联系科尔内利亚-德略夫雷加特市政府活动部门（Carrer de l'Energia, 97），或拨打电话 93 377 02 12 转 1227。"
-  ];
+  // Textos EDITABLES del correu (des de dades/email-textos.json; l'app del PC els
+  // pot modificar). Aquests son els valors PER DEFECTE (fallback si el fitxer no
+  // hi es o li falta una clau). Placeholders: {ID_GIA} {ADRECA} {ACTIVITAT}
+  // {TITULAR} {DATA}. Els textos accepten **negreta** (es passa a <b> a l'HTML i
+  // es treu al text pla).
+  var EMAIL_TEXTOS_DEFAULT = {
+    assumpte: "GIA {ID_GIA} Requeriments",
+    introFrase: "Aquestes són les deficiències que s'han detectat a la visita de l'activitat per part de l'Ajuntament el dia {DATA} i que s'han d'esmenar:",
+    pujarTitolCa: "Com presentar la documentació",
+    pujarTitolEs: "Cómo presentar la documentación",
+    pujarTextCa: "Heu de presentar **tota la documentació alhora** (important: no la presenteu per parts), mitjançant una **instància genèrica** de la seu electrònica de l'Ajuntament de Cornellà de Llobregat:",
+    pujarTextEs: "Debe presentar **toda la documentación a la vez** (importante: no la presente por partes), mediante una **instancia genérica** de la sede electrónica del Ayuntamiento de Cornellà de Llobregat:",
+    pujarUrl: "https://seuelectronica.cornella.cat/portal/entidades.do?ent_id=1&idioma=2",
+    pujarInstrCa: "Indiqueu que la instància va **a l'atenció del Departament d'Activitats** i feu-hi constar les dades de l'activitat:",
+    pujarInstrEs: "Indique que la instancia va dirigida **a la atención del Departamento de Actividades** y haga constar los datos de la actividad:",
+    avisCa: "IMPORTANT: aquest és un correu automàtic i no s'admeten respostes. Aquest llistat NO és definitiu ni oficial i pot variar respecte del requeriment oficial que rebreu properament. Per a qualsevol consulta podeu adreçar-vos al Departament d'Activitats de l'Ajuntament de Cornellà de Llobregat (Carrer de l'Energia, 97) o trucar al 93 377 02 12, extensió 1227.",
+    avisEs: "IMPORTANTE: este es un correo automático y no se admiten respuestas. Este listado NO es definitivo ni oficial y puede variar respecto del requerimiento oficial que recibirá próximamente. Para cualquier consulta puede dirigirse al Departamento de Actividades del Ayuntamiento de Cornellà de Llobregat (Calle de l'Energia, 97) o llamar al 93 377 02 12, extensión 1227."
+  };
+  var emailTextos = EMAIL_TEXTOS_DEFAULT;   // se sobreescriu a inici() amb el JSON
 
-  // Seu electrònica (instància genèrica) per presentar la documentació.
-  var SEU_URL = "https://seuelectronica.cornella.cat/portal/entidades.do?ent_id=1&idioma=2";
+  // Aplica el fitxer carregat sobre els valors per defecte (només claus amb text).
+  function aplicarEmailTextos(obj) {
+    if (!obj) return;
+    var merged = {};
+    Object.keys(EMAIL_TEXTOS_DEFAULT).forEach(function (k) {
+      merged[k] = (obj[k] != null && String(obj[k]) !== "") ? obj[k] : EMAIL_TEXTOS_DEFAULT[k];
+    });
+    emailTextos = merged;
+  }
 
-  // Bloc "Com presentar la documentació" (va ENTRE els requeriments i l'avís
-  // final). Versió text (mailto) i versió HTML (EmailJS/previsualització).
+  // Substitueix els placeholders {ID_GIA}, {ADRECA}, {ACTIVITAT}, {TITULAR}, {DATA}.
+  function fillPh(s, h) {
+    h = h || {};
+    return String(s == null ? "" : s)
+      .replace(/\{ID_GIA\}/g, h.ID_GIA || "")
+      .replace(/\{ADRECA\}/g, h.ADRECA || "")
+      .replace(/\{ACTIVITAT\}/g, h.ACTIVITAT || "")
+      .replace(/\{TITULAR\}/g, h.TITULAR || "")
+      .replace(/\{DATA\}/g, avuiDDMMYYYY());
+  }
+
+  // Bloc "Com presentar la documentació" (ENTRE requeriments i avís), en CA + ES.
   function uploadInfoText(h) {
+    var t = emailTextos;
     return [
-      "Com presentar la documentació:",
-      "Heu de presentar TOTA la documentació ALHORA (important: no la presenteu per parts), mitjançant una instància genèrica de la seu electrònica de l'Ajuntament de Cornellà de Llobregat:",
-      SEU_URL,
-      "Indiqueu que la instància va a l'atenció del Departament d'Activitats i feu-hi constar les dades de l'activitat:",
+      stripMarkers(t.pujarTitolCa) + " / " + stripMarkers(t.pujarTitolEs) + ":",
+      stripMarkers(fillPh(t.pujarTextCa, h)),
+      stripMarkers(fillPh(t.pujarTextEs, h)),
+      t.pujarUrl,
+      stripMarkers(fillPh(t.pujarInstrCa, h)),
+      stripMarkers(fillPh(t.pujarInstrEs, h)),
       "- ID GIA: " + (h.ID_GIA || ""),
       "- Adreça: " + (h.ADRECA || ""),
       "- Titular: " + (h.TITULAR || "")
     ].join("\n");
   }
   function uploadInfoHTML(h) {
+    var t = emailTextos;
     var L = [];
-    L.push('<div style="margin-top:14px;font-weight:bold">Com presentar la documentació</div>');
-    L.push('<div style="margin-top:4px">Heu de presentar <b>tota la documentació alhora</b> (important: no la presenteu per parts), mitjançant una <b>instància genèrica</b> de la seu electrònica de l\'Ajuntament de Cornellà de Llobregat:</div>');
-    L.push('<div style="margin-top:4px"><a href="' + esc(SEU_URL) + '">' + esc(SEU_URL) + '</a></div>');
-    L.push('<div style="margin-top:4px">Indiqueu que la instància va <b>a l\'atenció del Departament d\'Activitats</b> i feu-hi constar les dades de l\'activitat:</div>');
+    L.push('<div style="margin-top:14px;font-weight:bold">' + esc(stripMarkers(t.pujarTitolCa)) + ' / ' + esc(stripMarkers(t.pujarTitolEs)) + '</div>');
+    L.push('<div style="margin-top:4px">' + mdHtml(fillPh(t.pujarTextCa, h)) + '</div>');
+    L.push('<div style="margin-top:2px">' + mdHtml(fillPh(t.pujarTextEs, h)) + '</div>');
+    L.push('<div style="margin-top:4px"><a href="' + esc(t.pujarUrl) + '">' + esc(t.pujarUrl) + '</a></div>');
+    L.push('<div style="margin-top:4px">' + mdHtml(fillPh(t.pujarInstrCa, h)) + '</div>');
+    L.push('<div style="margin-top:2px">' + mdHtml(fillPh(t.pujarInstrEs, h)) + '</div>');
     L.push('<div style="margin-left:18px">ID GIA: ' + esc(h.ID_GIA || "") + '</div>');
     L.push('<div style="margin-left:18px">Adreça: ' + esc(h.ADRECA || "") + '</div>');
     L.push('<div style="margin-left:18px">Titular: ' + esc(h.TITULAR || "") + '</div>');
@@ -369,7 +403,7 @@
     L.push("Activitat: " + (h.ACTIVITAT || ""));
     L.push("Titular: " + (h.TITULAR || ""));
     L.push("");
-    L.push("Aquestes són les deficiències que s'han detectat a la visita de l'activitat per part de l'Ajuntament el dia " + avuiDDMMYYYY() + " i que s'han d'esmenar:");
+    L.push(stripMarkers(fillPh(emailTextos.introFrase, h)));
     L.push("");
     L.push(buildRequirementsList(selSections, values));
     L.push("");
@@ -377,7 +411,9 @@
     L.push("");
     L.push("__________________________________________");
     L.push("");
-    L.push(AVIS_MULTI.join("\n\n"));
+    L.push(stripMarkers(emailTextos.avisCa));
+    L.push("");
+    L.push(stripMarkers(emailTextos.avisEs));
     return L.join("\n");
   }
 
@@ -463,11 +499,12 @@
     H.push('<div>Adreça: ' + esc(h.ADRECA || "") + '</div>');
     H.push('<div>Activitat: ' + esc(h.ACTIVITAT || "") + '</div>');
     H.push('<div>Titular: ' + esc(h.TITULAR || "") + '</div>');
-    H.push('<div style="margin-top:10px">Aquestes són les deficiències que s\'han detectat a la visita de l\'activitat per part de l\'Ajuntament el dia ' + avuiDDMMYYYY() + ' i que s\'han d\'esmenar:</div>');
+    H.push('<div style="margin-top:10px">' + mdHtml(fillPh(emailTextos.introFrase, h)) + '</div>');
     H.push(buildRequirementsHTML(selSections, values));
     H.push(uploadInfoHTML(h));
     H.push('<hr style="margin-top:14px">');
-    H.push(AVIS_MULTI.map(function (a) { return '<div style="margin-bottom:8px;color:#444">' + esc(a) + '</div>'; }).join(""));
+    H.push('<div style="margin-bottom:8px;color:#444">' + esc(emailTextos.avisCa) + '</div>');
+    H.push('<div style="margin-bottom:8px;color:#444">' + esc(emailTextos.avisEs) + '</div>');
     return '<div style="font-family:Calibri,Arial,sans-serif;font-size:14px;line-height:1.4">' + H.join("\n") + '</div>';
   }
 
@@ -512,11 +549,13 @@
     Promise.all([
       carregarJson("dades/manifest.json"),
       carregarJson("dades/conclusions.json").catch(function () { return { HeaderText: "", Selectable: [], Always: [] }; }),
-      carregarJson("dades/capcalera.json").catch(function () { return { Placeholders: HEADER_KEYS }; })
+      carregarJson("dades/capcalera.json").catch(function () { return { Placeholders: HEADER_KEYS }; }),
+      carregarJson("dades/email-textos.json").catch(function () { return null; })
     ]).then(function (res) {
       manifest = res[0];
       conclusions = res[1];
       capcalera = res[2];
+      aplicarEmailTextos(res[3]);
       $("carregant").classList.add("ocult");
       mostrar($("navegacio"), true);
       muntarCataleg();
@@ -881,7 +920,7 @@
   }
 
   function assumpte() {
-    return "GIA " + (estat.header.ID_GIA || "") + " Requeriments";
+    return fillPh(emailTextos.assumpte, estat.header || {});
   }
 
   function enviarEmail() {
