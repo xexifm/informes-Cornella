@@ -5,8 +5,7 @@
                          "ADRECA",
                          "ACTIVITAT",
                          "TITULAR",
-                         "NUM_ANOTACIO",
-                         "DATA_ANOTACIO",
+                         "ORIGEN",
                          "DATES"
                      ]
 }
