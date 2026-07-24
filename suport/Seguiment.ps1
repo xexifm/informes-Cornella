@@ -1041,9 +1041,17 @@ function Select-Mode {
             $chH = $szD.Height + 8
             $dx = $rect.Width - $cw - 14
             $dy = [int](($rect.Height - $chH) / 2)
-            $bD = New-Object System.Drawing.SolidBrush($colSoft)
+            # En passar-hi el ratolí (ChipHover) es ressalta com un botó: fons més
+            # intens + vora granat (el cursor passa a "mà" al MouseMove).
+            $chipBg = if ($entry.ChipHover) { [System.Drawing.Color]::FromArgb(238, 208, 213) } else { $colSoft }
+            $bD = New-Object System.Drawing.SolidBrush($chipBg)
             $g.FillRectangle($bD, $dx, $dy, $cw, $chH)
             $bD.Dispose()
+            if ($entry.ChipHover) {
+                $penH = New-Object System.Drawing.Pen($colGranat)
+                $g.DrawRectangle($penH, $dx, $dy, ($cw - 1), ($chH - 1))
+                $penH.Dispose()
+            }
             [System.Windows.Forms.TextRenderer]::DrawText($g, $pencil, $fEmoS, (New-Object System.Drawing.Point(($dx + $pad), ($dy + 5))), $colGranat, $flags)
             [System.Windows.Forms.TextRenderer]::DrawText($g, $doc, $fDet, (New-Object System.Drawing.Point(($dx + $pad + $szP.Width + $gap), ($dy + 4))), $colGranat, $flags)
             $entry.DocChipRect = New-Object System.Drawing.Rectangle($dx, $dy, $cw, $chH)
@@ -1076,6 +1084,24 @@ function Select-Mode {
             }
             $form.DialogResult = 'OK'
             $form.Close()
+        }.GetNewClosure())
+        # Feedback de que el xip ✏️ es clicable: cursor "mà" i ressaltat quan el
+        # ratolí hi és a sobre (nomes es repinta quan l'estat de hover canvia).
+        $btn.add_MouseMove({
+            param($s, $e)
+            $en = $s.Tag
+            $rc = $en.DocChipRect
+            $over = ($null -ne $rc -and $rc.Contains($e.Location))
+            if ($over -ne [bool]$en.ChipHover) {
+                $en.ChipHover = $over
+                $s.Cursor = if ($over) { [System.Windows.Forms.Cursors]::Hand } else { [System.Windows.Forms.Cursors]::Default }
+                $s.Invalidate()
+            }
+        }.GetNewClosure())
+        $btn.add_MouseLeave({
+            param($s, $e)
+            $en = $s.Tag
+            if ([bool]$en.ChipHover) { $en.ChipHover = $false; $s.Cursor = [System.Windows.Forms.Cursors]::Default; $s.Invalidate() }
         }.GetNewClosure())
         [void]$form.Controls.Add($btn)
         $y += 70

@@ -1280,16 +1280,18 @@ AssertEq (_CertCommonName '') '' '_CertCommonName buit -> buit'
 
 Write-Host "`n--- EmailTextos.ps1: funcions pures (textos del correu del mobil) ---"
 $edefs = _DefaultEmailTextos
-AssertEq (@($edefs.Keys).Count) 11 '_DefaultEmailTextos: 11 claus'
-AssertEq ([bool]($edefs.Contains('assumpte') -and $edefs.Contains('avisEs'))) $true '_DefaultEmailTextos: te assumpte i avisEs'
+AssertEq (@($edefs.Keys).Count) 2 '_DefaultEmailTextos: 2 claus (assumpte, cos)'
+AssertEq ([bool]($edefs.Contains('assumpte') -and $edefs.Contains('cos'))) $true '_DefaultEmailTextos: te assumpte i cos'
+AssertEq ([bool]([string]$edefs['cos'] -like '*{REQUERIMENTS}*')) $true '_DefaultEmailTextos: el cos te la variable {REQUERIMENTS}'
 $efields = @(_EmailTextosFields)
-AssertEq ($efields.Count) 11 '_EmailTextosFields: 11 camps'
+AssertEq ($efields.Count) 2 '_EmailTextosFields: 2 camps'
 $fkeys = ($efields | ForEach-Object { $_.Key }) -join ','
 $dkeys = (@($edefs.Keys)) -join ','
 AssertEq $fkeys $dkeys '_EmailTextosFields: claus i ordre coincideixen amb els defaults'
 $eload = _LoadEmailTextos
-AssertEq ([bool]($eload.Contains('pujarUrl') -and ([string]$eload['pujarUrl']).Contains('seuelectronica'))) $true '_LoadEmailTextos: pujarUrl apunta a la seu electronica'
-AssertEq ([bool]([string]$eload['assumpte'] -like '*{ID_GIA}*')) $true '_LoadEmailTextos: assumpte conserva el placeholder {ID_GIA}'
+AssertEq ([bool]($eload.Contains('cos') -and ([string]$eload['cos']).Contains('seuelectronica'))) $true '_LoadEmailTextos: el cos conte l''enllac de la seu'
+AssertEq ([bool]([string]$eload['cos'] -like '*{REQUERIMENTS}*')) $true '_LoadEmailTextos: el cos conserva {REQUERIMENTS}'
+AssertEq ([bool]([string]$eload['assumpte'] -like '*{ID_GIA}*')) $true '_LoadEmailTextos: assumpte conserva {ID_GIA}'
 
 Write-Host "`n--- Informes.ps1: _EstatActualActivitat (estat = conclusio breu del darrer informe fiable, per data) ---"
 AssertEq (_EstatActualActivitat $null) '' '_EstatActualActivitat null -> buit'

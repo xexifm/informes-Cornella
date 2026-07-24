@@ -104,15 +104,23 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   envia al titular per EmailJS. Viuen a **`docs/dades/email-textos.json`** (sense
   dades personals → committejable) que `docs/app.js` llegeix (`carregarJson` +
   `aplicarEmailTextos`, amb els defaults `EMAIL_TEXTOS_DEFAULT` de fallback).
-  Claus: `assumpte`, `introFrase`, bloc *Com presentar la documentació*
-  (`pujarTitol/Text/Instr` en **Ca/Es** + `pujarUrl`) i `avisCa`/`avisEs`. Els
-  textos admeten **placeholders** `{ID_GIA}{ADRECA}{ACTIVITAT}{TITULAR}{DATA}`
-  (`fillPh`) i **`**negreta**`** (`mdHtml`→`<b>`, o `stripMarkers` al text pla).
-  El correu i l'avís són ara **només CA+ES** (abans l'avís era en 5 idiomes). En
-  desar, l'`Actualitzar.bat` publica `email-textos.json` (pas **2b**, que el
-  commiteja ABANS del stash perquè no s'hi quedi). Funcions pures a
+  **Model simplificat: només 2 claus, `assumpte` i `cos`.** Al **cos** hi surt
+  TOT (capçalera, text CA/ES, avís…) i els requeriments seleccionats s'insereixen
+  allà on hi ha la variable **`{REQUERIMENTS}`** (`buildEmailBody`/`buildEmailHTML`
+  fan `cos.split("{REQUERIMENTS}")` i hi encasten `buildRequirementsList/HTML`).
+  Variables: `{REQUERIMENTS}{ID_GIA}{ADRECA}{ACTIVITAT}{TITULAR}{DATA}` (`fillPh`),
+  **`**negreta**`** (`mdHtml`→`<b>`, `stripMarkers` al text pla) i **auto-enllaç**
+  dels URLs http(s) (`autolinkHtml`). Cada línia del cos → un `<div>` a l'HTML.
+  L'editor (`Invoke-EmailTextos`) té 2 camps (assumpte + cos gran) i avisa si el
+  cos no conté `{REQUERIMENTS}`. En desar, l'`Actualitzar.bat` publica
+  `email-textos.json` (pas **2b**, commit ABANS del stash). Funcions pures a
   `EmailTextos.ps1` (`_DefaultEmailTextos`, `_EmailTextosFields`,
   `_LoadEmailTextos`, `_SaveEmailTextos`) amb tests; la finestra només a Windows.
+- **Feedback del xip ✏️ (editor de catàlegs):** a `Select-Mode`, els botons de
+  tipus d'informe tenen un xip clicable que obre l'editor; en passar-hi el ratolí
+  (`add_MouseMove`/`add_MouseLeave` → `$entry.ChipHover`) el cursor passa a **mà**
+  i el xip es **ressalta** (fons més intens + vora granat), repintant només quan
+  l'estat de hover canvia.
 - **Exportar llistats (CSV):** botó a *Editar base d'informes* →
   `Export-EstatsActivitats` (`Informes.ps1`). Escriu un CSV (`;`, UTF-8 amb BOM,
   a `_ResolveOutputDir`) amb una fila per informe de les activitats en Estat
