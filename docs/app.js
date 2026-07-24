@@ -331,7 +331,36 @@
     "重要提示：本邮件为系统自动发送，恕不接受回复。此清单并非最终版本，也不具官方效力，可能与您即将收到的正式要求有所不同。如有任何疑问，请联系科尔内利亚-德略夫雷加特市政府活动部门（Carrer de l'Energia, 97），或拨打电话 93 377 02 12 转 1227。"
   ];
 
-  // Cos complet del correu: capçalera + frase + requeriments + avís final.
+  // Seu electrònica (instància genèrica) per presentar la documentació.
+  var SEU_URL = "https://seuelectronica.cornella.cat/portal/entidades.do?ent_id=1&idioma=2";
+
+  // Bloc "Com presentar la documentació" (va ENTRE els requeriments i l'avís
+  // final). Versió text (mailto) i versió HTML (EmailJS/previsualització).
+  function uploadInfoText(h) {
+    return [
+      "Com presentar la documentació:",
+      "Heu de presentar TOTA la documentació ALHORA (important: no la presenteu per parts), mitjançant una instància genèrica de la seu electrònica de l'Ajuntament de Cornellà de Llobregat:",
+      SEU_URL,
+      "Indiqueu que la instància va a l'atenció del Departament d'Activitats i feu-hi constar les dades de l'activitat:",
+      "- ID GIA: " + (h.ID_GIA || ""),
+      "- Adreça: " + (h.ADRECA || ""),
+      "- Titular: " + (h.TITULAR || "")
+    ].join("\n");
+  }
+  function uploadInfoHTML(h) {
+    var L = [];
+    L.push('<div style="margin-top:14px;font-weight:bold">Com presentar la documentació</div>');
+    L.push('<div style="margin-top:4px">Heu de presentar <b>tota la documentació alhora</b> (important: no la presenteu per parts), mitjançant una <b>instància genèrica</b> de la seu electrònica de l\'Ajuntament de Cornellà de Llobregat:</div>');
+    L.push('<div style="margin-top:4px"><a href="' + esc(SEU_URL) + '">' + esc(SEU_URL) + '</a></div>');
+    L.push('<div style="margin-top:4px">Indiqueu que la instància va <b>a l\'atenció del Departament d\'Activitats</b> i feu-hi constar les dades de l\'activitat:</div>');
+    L.push('<div style="margin-left:18px">ID GIA: ' + esc(h.ID_GIA || "") + '</div>');
+    L.push('<div style="margin-left:18px">Adreça: ' + esc(h.ADRECA || "") + '</div>');
+    L.push('<div style="margin-left:18px">Titular: ' + esc(h.TITULAR || "") + '</div>');
+    return L.join("\n");
+  }
+
+  // Cos complet del correu: capçalera + frase + requeriments + com presentar la
+  // documentació + avís final.
   function buildEmailBody(selSections, values) {
     var h = estat.header || {};
     var L = [];
@@ -343,6 +372,8 @@
     L.push("Aquestes són les deficiències que s'han detectat a la visita de l'activitat per part de l'Ajuntament el dia " + avuiDDMMYYYY() + " i que s'han d'esmenar:");
     L.push("");
     L.push(buildRequirementsList(selSections, values));
+    L.push("");
+    L.push(uploadInfoText(h));
     L.push("");
     L.push("__________________________________________");
     L.push("");
@@ -434,6 +465,7 @@
     H.push('<div>Titular: ' + esc(h.TITULAR || "") + '</div>');
     H.push('<div style="margin-top:10px">Aquestes són les deficiències que s\'han detectat a la visita de l\'activitat per part de l\'Ajuntament el dia ' + avuiDDMMYYYY() + ' i que s\'han d\'esmenar:</div>');
     H.push(buildRequirementsHTML(selSections, values));
+    H.push(uploadInfoHTML(h));
     H.push('<hr style="margin-top:14px">');
     H.push(AVIS_MULTI.map(function (a) { return '<div style="margin-bottom:8px;color:#444">' + esc(a) + '</div>'; }).join(""));
     return '<div style="font-family:Calibri,Arial,sans-serif;font-size:14px;line-height:1.4">' + H.join("\n") + '</div>';
