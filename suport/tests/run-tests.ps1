@@ -1,4 +1,4 @@
-﻿# Proves automatiques de les funcions PURES de GenerarInforme.ps1.
+﻿# Proves automatiques de les funcions PURES del motor (Motor.ps1).
 #
 # NO prova la part de Word/Excel (COM) ni les finestres (WinForms): aixo
 # nomes es pot provar a Windows amb Office. Aqui es validen les funcions de
@@ -7,16 +7,17 @@
 # Execucio (Windows o Linux amb pwsh):
 #   pwsh -File tests/run-tests.ps1
 #
-# Carrega GenerarInforme.ps1 en mode "headless" (GENINFORME_TEST=1) perque
-# no obri finestres ni executi el programa.
+# Carrega Motor.ps1 (nomes definicions) en mode "headless" (GENINFORME_TEST=1)
+# perque no carregui WinForms. El motor no arrenca res per si sol: qui executa
+# el programa es GenerarInforme.ps1, que aqui no toquem.
 
 $ErrorActionPreference = 'Stop'
 $env:GENINFORME_TEST = '1'
 # A Linux no existeix LOCALAPPDATA; el donem perque el dot-source no falli.
 if ([string]::IsNullOrEmpty($env:LOCALAPPDATA)) { $env:LOCALAPPDATA = [System.IO.Path]::GetTempPath() }
 
-$scriptPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'GenerarInforme.ps1'
-. $scriptPath   # dot-source: defineix les funcions, no executa Main
+$scriptPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'Motor.ps1'
+. $scriptPath   # dot-source: defineix les funcions del motor
 
 $script:pass = 0
 $script:fail = 0

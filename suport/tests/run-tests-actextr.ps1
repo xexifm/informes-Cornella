@@ -8,8 +8,8 @@
 # Execucio (Windows o Linux amb pwsh):
 #   pwsh -File suport/tests/run-tests-actextr.ps1
 #
-# Carrega GenerarInforme.ps1 en mode "headless" (GENINFORME_TEST=1), que al seu
-# torn fa dot-source d'ActExtr.ps1.
+# Carrega Motor.ps1 en mode "headless" (GENINFORME_TEST=1), que al seu torn fa
+# dot-source d'ActExtr.ps1.
 
 $ErrorActionPreference = 'Stop'
 $env:GENINFORME_TEST = '1'
@@ -18,8 +18,8 @@ if ([string]::IsNullOrEmpty($env:LOCALAPPDATA)) { $env:LOCALAPPDATA = [System.IO
 # Registre en una carpeta temporal aillada (NO el del repo).
 $script:ActExtrRegistryDir = Join-Path ([System.IO.Path]::GetTempPath()) ("actextr-test-" + [guid]::NewGuid().ToString('N'))
 
-$scriptPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'GenerarInforme.ps1'
-. $scriptPath   # dot-source: defineix les funcions, no executa Main
+$scriptPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'Motor.ps1'
+. $scriptPath   # dot-source: defineix les funcions del motor
 
 $script:pass = 0
 $script:fail = 0

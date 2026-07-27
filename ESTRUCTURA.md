@@ -10,10 +10,17 @@ cada programa (cada `.bat` que pots clicar) i quins són compartits.
   programes) i, en **subcarpetes**, els scripts propis de cada programa.
 
 > **Per què el motor és a `suport/` i no dins d'una carpeta per executable?**
-> Perquè `GenerarInforme.ps1` (+ els seus mòduls) és alhora el **generador
-> d'informes** *i* el motor que reutilitzen el **vigilant** i l'**exportador**.
-> No pertany a un sol executable: és compartit. Per això viu a l'arrel de
-> `suport/` i els programes que el fan servir són a subcarpetes.
+> Perquè `Motor.ps1` (+ els seus mòduls) és el motor que reutilitzen el
+> **generador**, el **vigilant** i l'**exportador**. No pertany a un sol
+> executable: és compartit. Per això viu a l'arrel de `suport/` i els programes
+> que el fan servir són a subcarpetes.
+
+> **Motor i punt d'entrada són fitxers DIFERENTS.** `Motor.ps1` només
+> *defineix* (funcions, rutes, configuració): carregar-lo no obre cap finestra
+> ni genera res. `GenerarInforme.ps1` només *arrenca* (carrega el motor i crida
+> `Main`, o `Invoke-GenerateFromPaquet` amb `-DesDePaquet`). Qui vol el motor
+> com a **biblioteca** (vigilant, exportador, proves) carrega `Motor.ps1`; qui
+> vol el **programa** executa `GenerarInforme.ps1`.
 
 ---
 
@@ -38,7 +45,10 @@ cada programa (cada `.bat` que pots clicar) i quins són compartits.
 ```
 suport/
 ├── GenerarInforme.vbs     ← llançador SENSE consola (el crida GenerarInforme.bat)
-├── GenerarInforme.ps1     ← MOTOR + punt d'entrada de GenerarInforme.bat
+├── GenerarInforme.ps1     ← PUNT D'ENTRADA (només arrenca: carrega Motor.ps1 i crida Main)
+├── Motor.ps1              ← MOTOR compartit (només definicions; no executa res)
+├── UiComuns.ps1           ← mòdul del motor (helpers WinForms compartits: _NewForm,
+│                            banda granat, estils de botó, _MakeMultiFilter, _AddConfigRow)
 ├── Format.ps1             ← mòdul del motor (format del .docx)
 ├── Seguiment.ps1          ← mòdul del motor (informes de seguiment + tria de mode)
 ├── ActExtr.ps1            ← mòdul del motor (mode ACT_EXTR: activitats extraordinàries)
@@ -84,7 +94,9 @@ Llegenda: **●** = punt d'entrada · **○** = el carrega (dot-source) · **·*
 
 | Fitxer                            | GenerarInforme | **Ruta** | Vigilant | Actualitzar |
 |-----------------------------------|:--------------:|:--------:|:--------:|:-----------:|
-| `GenerarInforme.ps1`              | ●              |          | ○        | ○           |
+| `GenerarInforme.ps1`              | ●              |          |          |             |
+| `Motor.ps1`                       | ○              |          | ○        | ○           |
+| `UiComuns.ps1`                    | ○              |          | ○        | ○           |
 | `Format.ps1`                      | ○              |          | ○        | ○           |
 | `Seguiment.ps1`                   | ○              |          | ○        | ○           |
 | `ActExtr.ps1`                     | ○              |          | ○        | ○           |
@@ -109,15 +121,22 @@ Llegenda: **●** = punt d'entrada · **○** = el carrega (dot-source) · **·*
   propi) per aplicar l'override d'aquest PC a `$ActivitatsDir`/`$RutesOutputDir`.
 - **`Settings.ps1`** és l'ÚNIC lloc on es llegeix/escriu
   `%LOCALAPPDATA%\InformesCornella\settings.json` (rutes d'aquest PC, mai a
-  git). El carreguen per separat `GenerarInforme.ps1` i `rutes/Ruta.ps1`
+  git). El carreguen per separat `Motor.ps1` i `rutes/Ruta.ps1`
   (processos/scopes independents), cadascun DESPRÉS del seu propi `config.ps1`.
 - **`rutes/Precintades.ps1`** genera les dades del **plànol públic** d'activitats
   precintades (`docs/dades/precintades.json`). Carrega `Ruta.ps1` en mode
   headless per reutilitzar-ne les funcions (conversió UTM, format d'adreça,
   cerca de l'Excel). El crida `Actualitzar.bat`, que puja el JSON a `main`.
-- **El motor compartit** és `GenerarInforme.ps1` + `Format.ps1` +
+- **El motor compartit** és `Motor.ps1` + `UiComuns.ps1` + `Format.ps1` +
   `Seguiment.ps1` + `DriveApi.ps1`. Un canvi aquí afecta el generador, el
   vigilant i l'exportador alhora.
+- **Reutilitzar el motor des d'un script de consola**: posa
+  `$MotorSenseGui = $true` i fes dot-source de `Motor.ps1` (ho fan
+  `mobil/Vigilant.ps1` i `mobil/ExportaDades.ps1`). La bandera només evita
+  carregar WinForms; carregar el motor mai arrenca el programa.
+- **`UiComuns.ps1` es carrega el primer** i no coneix res del motor. Hi van els
+  helpers de WinForms que fan servir diverses pantalles, perquè cap mòdul hagi
+  de dependre del punt d'entrada (ni d'una altra pantalla) per dibuixar-se.
 
 ---
 
