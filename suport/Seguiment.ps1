@@ -112,54 +112,112 @@ function _ShouldBeBold($resolved) {
     return (-not $resolved)
 }
 
-# Munta el model ordenat de requeriments-amb-anotacions a partir d'un array de
-# registres de paragraf { Index; Text; ListString; Bold }. Funcio PURA.
+# Escurca un text a $max caracters (afegint … si es talla). Funcio PURA.
+function _ShortenText([string]$s, [int]$max) {
+    $t = ([string]$s).Trim()
+    if ($t.Length -le $max) { return $t }
+    return ($t.Substring(0, $max).TrimEnd() + [char]0x2026)
+}
+
+# Tema curt d'un requeriment (per etiquetar-ne els fills): treu el "N." inicial i
+# es queda amb la primera frase (o els primers ~44 caracters). Funcio PURA.
+function _SeguimentParentTopic([string]$reqText) {
+    $t = ([string]$reqText).Trim() -replace '^\s*\d+\.\s*', ''
+    $dot = $t.IndexOf('. ')
+    if ($dot -ge 3 -and $dot -le 44) { return $t.Substring(0, $dot) }
+    return (_ShortenText $t 44)
+}
+
+# Munta el model ordenat de requeriments a partir d'un array de registres de
+# paragraf { Index; Text; ListString; Bold; IsBulletChild }. Funcio PURA.
+#
+# UNITATS accionables (cada una tindra checkbox+comentari al seguiment):
+#   - Un requeriment SENSE fills -> una unitat (el propi requeriment).
+#   - Un requeriment AMB fills (sub-punts amb pic) -> una unitat PER FILL: el
+#     requeriment fa nomes de capcalera i cada fill es pot resoldre per separat.
+# Aixi, els punts amb fills permeten indicar quins fills s'han resolt i quins no.
+# Cada unitat: { Number; ParaIndex; Text; Label; IsChild; ParentParaIndex; Bold;
+# WasResolved; Annotations }. El motor (blocs/transformacio/UI) treballa per
+# unitat, aixi que els fills s'integren sense canviar-lo.
 function _BuildSeguimentModel($paraRecords) {
-    $reqs       = New-Object System.Collections.ArrayList
-    $current    = $null
-    $lastReqIdx = 0
+    # Pas 1: arbre requeriment -> fills, amb les anotacions previes al seu lloc.
+    $tree      = New-Object System.Collections.ArrayList
+    $curReq    = $null
+    $curTarget = $null    # on van les anotacions datades (un requeriment o un fill)
     foreach ($r in $paraRecords) {
         $c = _ClassifyParagraph $r.Text $r.ListString
         if ($c.Kind -eq 'requirement') {
-            $current = [pscustomobject]@{
+            $curReq = [pscustomobject]@{
                 Number         = $c.Number
                 ParaIndex      = [int]$r.Index
                 Text           = ([string]$r.Text).Trim()
                 IsAutoNumbered = [bool]$c.ViaList
                 Bold           = $r.Bold
-                WasResolved    = (_InferResolvedFromBold $r.Bold)
                 Annotations    = (New-Object System.Collections.ArrayList)
+                Children       = (New-Object System.Collections.ArrayList)
             }
-            [void]$reqs.Add($current)
-            $lastReqIdx = [int]$r.Index
+            [void]$tree.Add($curReq)
+            $curTarget = $curReq
         }
-        elseif ($c.Kind -eq 'annotation' -and $null -ne $current) {
-            [void]$current.Annotations.Add([pscustomobject]@{
+        elseif ($c.Kind -eq 'annotation' -and $null -ne $curTarget) {
+            [void]$curTarget.Annotations.Add([pscustomobject]@{
                 ParaIndex = [int]$r.Index
                 Date      = $c.Date
                 Text      = ([string]$r.Text).Trim()
                 Bold      = $r.Bold
             })
         }
-        # 'other' (cos, URL, intro, capcalera, conclusions...) s'ignora al model.
+        elseif ($r.IsBulletChild -and $null -ne $curReq) {
+            $child = [pscustomobject]@{
+                ParaIndex   = [int]$r.Index
+                Text        = ([string]$r.Text).Trim()
+                Bold        = $r.Bold
+                Annotations = (New-Object System.Collections.ArrayList)
+            }
+            [void]$curReq.Children.Add($child)
+            $curTarget = $child
+        }
+        # altres 'other' (cos, URL, seccions, capcalera, conclusions) s'ignoren.
     }
-    # Estat "resolt" (per defecte de la casella i per saber si cal reescriure):
-    #   - Sense anotacions previes -> primera ronda -> PENDENT.
-    #   - Amb anotacions -> ho inferim de l'ULTIMA anotacio: si el seu comentari
-    #     esta en negreta, el punt encara estava PENDENT; si no, RESOLT. (El
-    #     seguiment nomes posa en negreta el comentari de l'ultima entrega quan
-    #     queda pendent; aixi l'estat queda "guardat" dins el propi .docx.)
-    foreach ($req in $reqs) {
-        if ($req.Annotations.Count -eq 0) {
-            $req.WasResolved = $false
+
+    # Estat "resolt": sense anotacions previes -> PENDENT; amb anotacions -> segons
+    # la negreta de l'ULTIMA (el seguiment nomes deixa en negreta el comentari de
+    # l'ultima entrega quan queda pendent, aixi l'estat queda guardat al .docx).
+    $resolvedOf = {
+        param($anns)
+        if ($anns.Count -eq 0) { return $false }
+        return (_InferResolvedFromBold $anns[$anns.Count - 1].Bold)
+    }
+
+    # Pas 2: aplanar a UNITATS accionables (en ordre de document per ParaIndex).
+    $units  = New-Object System.Collections.ArrayList
+    $maxIdx = 0
+    foreach ($req in $tree) {
+        if ($req.ParaIndex -gt $maxIdx) { $maxIdx = $req.ParaIndex }
+        if ($req.Children.Count -eq 0) {
+            [void]$units.Add([pscustomobject]@{
+                Number = $req.Number; ParaIndex = $req.ParaIndex; Text = $req.Text
+                Label = $req.Text; IsChild = $false; ParentParaIndex = $null
+                Bold = $req.Bold; WasResolved = (& $resolvedOf $req.Annotations)
+                Annotations = $req.Annotations
+            })
         } else {
-            $last = $req.Annotations[$req.Annotations.Count - 1]
-            $req.WasResolved = (_InferResolvedFromBold $last.Bold)
+            $topic = _SeguimentParentTopic $req.Text
+            foreach ($ch in $req.Children) {
+                if ($ch.ParaIndex -gt $maxIdx) { $maxIdx = $ch.ParaIndex }
+                [void]$units.Add([pscustomobject]@{
+                    Number = $req.Number; ParaIndex = $ch.ParaIndex; Text = $ch.Text
+                    Label = ('Req. {0} ({1}): {2}' -f $req.Number, $topic, $ch.Text)
+                    IsChild = $true; ParentParaIndex = $req.ParaIndex
+                    Bold = $ch.Bold; WasResolved = (& $resolvedOf $ch.Annotations)
+                    Annotations = $ch.Annotations
+                })
+            }
         }
     }
     return [pscustomobject]@{
-        Requirements     = $reqs.ToArray()
-        LastReqParaIndex = $lastReqIdx
+        Requirements     = $units.ToArray()
+        LastReqParaIndex = $maxIdx
     }
 }
 
@@ -459,19 +517,24 @@ function _CollectParaRecordsXml($xmlInfo, $bodyParas) {
     for ($i = 0; $i -lt $bodyParas.Count; $i++) {
         $p = $bodyParas[$i]
         $listStr = ''
+        $isBulletChild = $false
         $li = _EffectiveListInfo $p $ns $styleNum
-        if ($li.NumId -ne '0' -and $li.Ilvl -eq 0) {
+        if ($li.NumId -ne '0') {
             $fmt = if ($null -ne $numFmt -and $numFmt.ContainsKey($li.NumId)) { $numFmt[$li.NumId] } else { 'decimal' }
-            if ($fmt -eq 'decimal') {
+            if ($li.Ilvl -eq 0 -and $fmt -eq 'decimal') {
                 $autoCounter++
                 $listStr = "$autoCounter."
+            } else {
+                # Llista de PICS (no decimal) o de nivell > 0: es un sub-punt (fill).
+                $isBulletChild = $true
             }
         }
         [void]$records.Add([pscustomobject]@{
-            Index      = ($i + 1)
-            Text       = (_ParagraphTextXml $p $ns)
-            ListString = $listStr
-            Bold       = (_ParagraphBoldStateXml $p $ns)
+            Index         = ($i + 1)
+            Text          = (_ParagraphTextXml $p $ns)
+            ListString    = $listStr
+            Bold          = (_ParagraphBoldStateXml $p $ns)
+            IsBulletChild = $isBulletChild
         })
     }
     return $records.ToArray()
@@ -1493,12 +1556,16 @@ function Prompt-SeguimentComments {
 
         # Etiqueta del requeriment: AutoSize amb amplada maxima -> ajusta l'alcada
         # al text complet (encara que ocupi diverses linies).
+        $isChild = ($req.PSObject.Properties['IsChild'] -and [bool]$req.IsChild)
+        $lblX    = if ($isChild) { 22 } else { 8 }
+        $lblTxt  = if ($req.PSObject.Properties['Label'] -and -not [string]::IsNullOrEmpty([string]$req.Label)) { [string]$req.Label } else { [string]$req.Text }
         $reqLbl = New-Object System.Windows.Forms.Label
         $reqLbl.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
         $reqLbl.AutoSize = $true
-        $reqLbl.MaximumSize = New-Object System.Drawing.Size($innerW, 0)
-        $reqLbl.Location = New-Object System.Drawing.Point(8, $y)
-        $reqLbl.Text = [string]$req.Text
+        $reqLbl.MaximumSize = New-Object System.Drawing.Size(($innerW - $lblX + 8), 0)
+        $reqLbl.Location = New-Object System.Drawing.Point($lblX, $y)
+        $reqLbl.Text = $lblTxt
+        if ($isChild) { $reqLbl.ForeColor = [System.Drawing.Color]::FromArgb(60, 60, 60) }
         $panel.Controls.Add($reqLbl)
         $y += $reqLbl.PreferredSize.Height + 4
 

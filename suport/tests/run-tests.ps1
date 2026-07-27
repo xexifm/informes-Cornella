@@ -448,6 +448,40 @@ Assert (-not (_InferResolvedFromBold 9999999)) '_InferResolvedFromBold 9999999 (
 Assert (_ShouldBeBold $false)              '_ShouldBeBold: no resolt -> negreta'
 Assert (-not (_ShouldBeBold $true))        '_ShouldBeBold: resolt -> sense negreta'
 
+Write-Host "`n--- Seguiment: _ShortenText / _SeguimentParentTopic ---"
+AssertEq (_ShortenText 'abc' 10) 'abc' '_ShortenText curt -> igual'
+AssertEq (_ShortenText 'abcdefghij' 5) ('abcde' + [char]0x2026) '_ShortenText llarg -> talla amb ...'
+AssertEq (_SeguimentParentTopic '1. Elements de coccio. Segons article 11.') 'Elements de coccio' '_SeguimentParentTopic treu el num i agafa la 1a frase'
+
+Write-Host "`n--- Seguiment: _BuildSeguimentModel (fills / sub-punts) ---"
+$recs = @(
+    [pscustomobject]@{ Index=1; Text='1. Elements de coccio. Segons article.'; ListString=''; Bold=-1; IsBulletChild=$false }
+    [pscustomobject]@{ Index=2; Text='Retirar la fregidora.';                   ListString=''; Bold=-1; IsBulletChild=$true }
+    [pscustomobject]@{ Index=3; Text='Presentar certificat.';                   ListString=''; Bold=-1; IsBulletChild=$true }
+    [pscustomobject]@{ Index=4; Text='2. Calor. Incompleix article.';           ListString=''; Bold=-1; IsBulletChild=$false }
+)
+$m = _BuildSeguimentModel $recs
+$u = @($m.Requirements)
+AssertEq $u.Count 3 '_BuildSeguimentModel: req amb 2 fills + req sense fills -> 3 unitats'
+AssertEq ([bool]$u[0].IsChild) $true  '_BuildSeguimentModel: la 1a unitat es un fill'
+AssertEq $u[0].ParaIndex 2            '_BuildSeguimentModel: el fill apunta al seu paragraf (2)'
+AssertEq ([bool]($u[0].Label -like 'Req. 1 (*): Retirar*')) $true '_BuildSeguimentModel: etiqueta del fill amb num i tema del pare'
+AssertEq ([bool]$u[2].IsChild) $false '_BuildSeguimentModel: el req sense fills NO es child'
+AssertEq $u[2].ParaIndex 4            '_BuildSeguimentModel: req sense fills apunta al seu paragraf (4)'
+AssertEq $m.LastReqParaIndex 4        '_BuildSeguimentModel: LastReqParaIndex = ultim paragraf de unitat'
+# Les anotacions van al fill correcte i en determinen l'estat.
+$recs2 = @(
+    [pscustomobject]@{ Index=1; Text='1. Punt amb fills.';    ListString=''; Bold=-1; IsBulletChild=$false }
+    [pscustomobject]@{ Index=2; Text='Fill A.';               ListString=''; Bold=-1; IsBulletChild=$true }
+    [pscustomobject]@{ Index=3; Text="01/06/2026: S'aporta."; ListString=''; Bold=0;  IsBulletChild=$false }
+    [pscustomobject]@{ Index=4; Text='Fill B.';               ListString=''; Bold=-1; IsBulletChild=$true }
+)
+$u2 = @((_BuildSeguimentModel $recs2).Requirements)
+AssertEq $u2.Count 2                      '_BuildSeguimentModel: 1 req amb 2 fills -> 2 unitats'
+AssertEq (@($u2[0].Annotations).Count) 1  '_BuildSeguimentModel: l''anotacio va al fill A'
+AssertEq ([bool]$u2[0].WasResolved) $true '_BuildSeguimentModel: fill A amb anotacio no-negreta -> resolt'
+AssertEq ([bool]$u2[1].WasResolved) $false '_BuildSeguimentModel: fill B sense anotacio -> pendent'
+
 Write-Host "`n--- Seguiment: _FindConclusionStartIndex ---"
 $pt = @(
     '1. Baixa tensio. Vist l anterior cal aportar.',  # frase DINS un requeriment (no ha de disparar)

@@ -46,6 +46,17 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   creada mandrosament a `Invoke-InformesDbScan` només si cal reprocessar algun
   `.doc`, i tancada (`Quit()`) en un `finally`. Funcions de text PURES (dates,
   GIA, expedient, conclusió) amb tests a `run-tests.ps1`.
+- **Informe de seguiment — sub-punts (fills):** `_BuildSeguimentModel`
+  (`Seguiment.ps1`) aplana a **UNITATS accionables**: un requeriment sense fills →
+  1 unitat; un requeriment **amb fills** (sub-punts amb pic; `IsBulletChild` a
+  `_CollectParaRecordsXml`: `numId≠0` i (pics o `ilvl>0`)) → **1 unitat per fill**
+  (el requeriment fa de capçalera i cada fill es resol per separat). Cada unitat
+  té `ParaIndex` propi, i el motor (`_SeguimentBlocksXml`/`_ApplySeguimentTransform`)
+  hi ancora la seva anotació datada sense canvis (les subseccions subratllades i
+  els espaiadors buits tallen el bloc). La UI (`Prompt-SeguimentComments`) mostra
+  un checkbox+comentari per unitat, amb `Label` "Req. N (tema): <fill>" i sagnat
+  per als fills. Funcions pures amb tests (`_ShortenText`, `_SeguimentParentTopic`,
+  `_BuildSeguimentModel` amb fills).
 - **ID GIA:** cadena document → carpeta ("GIA 361") → Excel per expedient.
   `_ExtractIdGia` ignora placeholders com `"-"`, `"XXX"`, `"N/A"` (activitats
   encara sense GIA assignat) perquè no s'ajuntin activitats diferents sota una
