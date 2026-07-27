@@ -286,6 +286,82 @@ function _MakeMultiFilter($parent, [int]$x, [int]$y, [int]$width, [string]$allLa
     return @{ Button = $btn; Menu = $menu; GetSelected = $getSel }
 }
 
+# ----------------------------------------------------------------------------
+# Graelles de llistat (DataGridView)
+# ----------------------------------------------------------------------------
+# Les pantalles "Editar base d'informes" (Informes.ps1) i "Controls periodics"
+# (ControlsPeriodics.ps1) son totes dues un llistat amb cerca, filtres i ordre
+# per capcalera. NO comparteixen un widget unic: les columnes, el criteri de
+# filtratge i el d'ordenacio son massa diferents (l'una agrupa SEMPRE per
+# activitat, l'altra ordena per data real i te una casella de seleccio), i un
+# "constructor de graelles" generic acabaria sent mes complicat que les dues
+# pantalles juntes. El que si compartim son les peces que estaven copiades
+# literalment: la carcassa, la caixa de cerca i l'ordre per capcalera.
+
+# Carcassa comuna d'una graella de llistat (nomes lectura de files, seleccio
+# de fila sencera, sense capcaleres de fila). Les columnes les afegeix qui
+# crida, DESPRES.
+function _StyleListGrid($grid) {
+    $grid.Dock = 'Fill'
+    $grid.AllowUserToAddRows = $false
+    $grid.AllowUserToDeleteRows = $false
+    $grid.RowHeadersVisible = $false
+    $grid.SelectionMode = 'FullRowSelect'
+    $grid.MultiSelect = $false
+    $grid.AutoSizeColumnsMode = 'None'
+    $grid.BackgroundColor = [System.Drawing.Color]::White
+}
+
+# Etiqueta + caixa de cerca. Retorna el TextBox (el qui crida el llegeix des
+# del seu $fill). $onChange es crida a cada tecla.
+function _AddSearchBox($parent, [int]$x, [int]$y, [int]$width, [string]$labelText, [scriptblock]$onChange) {
+    $lbl = New-Object System.Windows.Forms.Label
+    $lbl.Text = $labelText
+    $lbl.AutoSize = $true
+    $lbl.Location = New-Object System.Drawing.Point($x, ($y + 3))
+    [void]$parent.Controls.Add($lbl)
+
+    $tb = New-Object System.Windows.Forms.TextBox
+    $tb.Location = New-Object System.Drawing.Point(($x + 52), $y)
+    $tb.Width = $width
+    [void]$parent.Controls.Add($tb)
+    if ($onChange) { $tb.add_TextChanged($onChange) }
+    return $tb
+}
+
+# Pinta la fletxa d'ordenacio NOMES a la columna activa (WinForms no ho fa sol
+# quan l'ordenacio es programatica).
+function _SetSortGlyph($grid, [int]$colIdx, [bool]$asc) {
+    foreach ($c in $grid.Columns) { $c.HeaderCell.SortGlyphDirection = [System.Windows.Forms.SortOrder]::None }
+    if ($colIdx -lt 0 -or $colIdx -ge $grid.Columns.Count) { return }
+    $grid.Columns[$colIdx].HeaderCell.SortGlyphDirection =
+        if ($asc) { [System.Windows.Forms.SortOrder]::Ascending } else { [System.Windows.Forms.SortOrder]::Descending }
+}
+
+# Ordre per clic a la capcalera, en mode PROGRAMATIC: clicar una columna la
+# tria com a columna d'ordre; tornar-hi a clicar alterna asc/desc. Desa l'estat
+# a $state.SortColIdx / $state.SortAsc i despres crida $onSort (que ha de
+# reomplir la graella). Les columnes amb index < $minCol i les de $skipCols
+# no s'ordenen (caselles, botons).
+#   IMPORTANT: qui cridi aixo ha de posar SortMode='Programmatic' a les
+#   columnes ordenables, si no WinForms ordenaria pel seu compte.
+function _EnableHeaderSort($grid, $state, [int]$minCol = 0, $skipCols = @(), [scriptblock]$onSort) {
+    $grid.add_ColumnHeaderMouseClick({
+        param($s, $e)
+        if ($e.ColumnIndex -lt $minCol) { return }
+        if ($skipCols -contains $e.ColumnIndex) { return }
+        if ($state.SortColIdx -eq $e.ColumnIndex) { $state.SortAsc = (-not $state.SortAsc) }
+        else { $state.SortColIdx = $e.ColumnIndex; $state.SortAsc = $true }
+        _SetSortGlyph $grid $state.SortColIdx ([bool]$state.SortAsc)
+        & $onSort
+    }.GetNewClosure())
+}
+
+# NOTA: per al filtre de text lliure de les graelles NO hi ha cap helper nou
+# aqui: ja existeix _TextMatches a Motor.ps1 (el fa servir tambe el cercador
+# del TreeView de catalegs) i el reutilitzem. Els qui criden li passen el text
+# de cerca JA net (.Trim()), que es el seu contracte.
+
 # Fila d'una carpeta configurable: etiqueta + textbox + boto "..." (Explora)
 # + indicador d'estat en viu (Test-Path). Afegeix els controls a $parent i
 # retorna @{ TextBox = ...; NextY = ... } per encadenar files.

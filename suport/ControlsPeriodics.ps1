@@ -204,12 +204,13 @@ function Show-ControlsPeriodicsWindow($allRows, [string]$fileName) {
     $colsMeta = $Script:ControlsPeriodicsCols
 
     # La columna 0 de la graella es una casella de seleccio; les columnes de
-    # dades comencen a l'index 1. ColIdx guarda l'index de GRAELLA de la columna
-    # d'ordenacio; el mapatge a $colsMeta es (ColIdx - 1).
+    # dades comencen a l'index 1. SortColIdx guarda l'index de GRAELLA de la
+    # columna d'ordenacio; el mapatge a $colsMeta es (SortColIdx - 1).
+    # (SortColIdx/SortAsc son els noms que espera _EnableHeaderSort, UiComuns.ps1.)
     # Ordre per defecte: "Proper CP previst" ascendent (el mes antic primer).
     $defaultSort = 0
     for ($i = 0; $i -lt $colsMeta.Count; $i++) { if ($colsMeta[$i].Key -eq 'ProperCP') { $defaultSort = $i; break } }
-    $state = @{ Loading = $false; ColIdx = ($defaultSort + 1); Asc = $true }
+    $state = @{ Loading = $false; SortColIdx = ($defaultSort + 1); SortAsc = $true }
 
     $form = _NewForm
     $form.Text = 'Controls periodics'
@@ -219,14 +220,7 @@ function Show-ControlsPeriodicsWindow($allRows, [string]$fileName) {
 
     # ---- Graella --------------------------------------------------------
     $grid = New-Object System.Windows.Forms.DataGridView
-    $grid.Dock = 'Fill'
-    $grid.AllowUserToAddRows = $false
-    $grid.AllowUserToDeleteRows = $false
-    $grid.RowHeadersVisible = $false
-    $grid.SelectionMode = 'FullRowSelect'
-    $grid.MultiSelect = $false
-    $grid.AutoSizeColumnsMode = 'None'
-    $grid.BackgroundColor = [System.Drawing.Color]::White
+    _StyleListGrid $grid
     # Columna 0: casella per triar quines activitats generar (editable).
     $cSel = New-Object System.Windows.Forms.DataGridViewCheckBoxColumn
     $cSel.HeaderText = 'Generar'
@@ -252,13 +246,7 @@ function Show-ControlsPeriodicsWindow($allRows, [string]$fileName) {
     # Filtre de SELECCIO MULTIPLE (cap marcat = totes). L'accio crida $fill
     # (definit mes avall; ja existeix quan l'usuari hi toca).
     $mfClass = _MakeMultiFilter $topPanel 96 10 104 'Tots' @('II', 'III', '561') { & $fill }
-    $lblC = New-Object System.Windows.Forms.Label
-    $lblC.Text = 'Cerca:'; $lblC.AutoSize = $true
-    $lblC.Location = New-Object System.Drawing.Point(216, 13)
-    $topPanel.Controls.Add($lblC)
-    $txtCerca = New-Object System.Windows.Forms.TextBox
-    $txtCerca.Location = New-Object System.Drawing.Point(266, 10); $txtCerca.Width = 300
-    $topPanel.Controls.Add($txtCerca)
+    $txtCerca = _AddSearchBox $topPanel 214 10 300 'Cerca:' { & $fill }
     $lblCompte = New-Object System.Windows.Forms.Label
     $lblCompte.AutoSize = $true
     $lblCompte.ForeColor = [System.Drawing.Color]::FromArgb(90, 90, 90)
@@ -279,18 +267,16 @@ function Show-ControlsPeriodicsWindow($allRows, [string]$fileName) {
                        ($selClass -contains '561' -and $row.Is561)
                 if (-not $okC) { continue }
             }
-            if ($n -ne '') {
-                $hay = (($row.Id + ' ' + $row.RaoSocial + ' ' + $row.RaoEmail + ' ' + $row.RepEmail + ' ' + $row.Adreca + ' ' + $row.PeriodicitatCP + ' ' + $row.Annex + ' ' + $row.Apartat + ' ' + $row.ActPrincipal)).ToLower()
-                if (-not $hay.Contains($n)) { continue }
-            }
+            $hay = $row.Id + ' ' + $row.RaoSocial + ' ' + $row.RaoEmail + ' ' + $row.RepEmail + ' ' + $row.Adreca + ' ' + $row.PeriodicitatCP + ' ' + $row.Annex + ' ' + $row.Apartat + ' ' + $row.ActPrincipal
+            if (-not (_TextMatches $hay $n)) { continue }
             $row
         }
         $sel = @($sel)
 
         # Adjuntem una clau d'ordenacio a cada fila i ordenem per nom de
         # propietat (evita problemes d'abast amb scriptblocks dins de Sort-Object).
-        # $state.ColIdx es index de GRAELLA (col 0 = casella); dades a ColIdx-1.
-        $cm = $colsMeta[[Math]::Max(0, $state.ColIdx - 1)]
+        # $state.SortColIdx es index de GRAELLA (col 0 = casella); dades a -1.
+        $cm = $colsMeta[[Math]::Max(0, $state.SortColIdx - 1)]
         $isDate = [bool]$cm.Date
         $keyProp = $cm.Key
         $kkeyProp = $cm.KKey
@@ -303,7 +289,7 @@ function Show-ControlsPeriodicsWindow($allRows, [string]$fileName) {
             }
             Add-Member -InputObject $row -NotePropertyName '_SortKey' -NotePropertyValue $sv -Force
         }
-        $sorted = @($sel | Sort-Object -Property '_SortKey' -Descending:(-not $state.Asc))
+        $sorted = @($sel | Sort-Object -Property '_SortKey' -Descending:(-not $state.SortAsc))
 
         foreach ($row in $sorted) {
             $idx = $grid.Rows.Add(@(
@@ -333,16 +319,8 @@ function Show-ControlsPeriodicsWindow($allRows, [string]$fileName) {
         if ($null -ne $row) { $row.Sel = [bool]$s.Rows[$e.RowIndex].Cells[0].Value }
     }.GetNewClosure())
 
-    $grid.add_ColumnHeaderMouseClick({
-        param($s, $e)
-        if ($e.ColumnIndex -lt 1) { return }   # col 0 = casella, no s'ordena
-        if ($state.ColIdx -eq $e.ColumnIndex) { $state.Asc = (-not $state.Asc) }
-        else { $state.ColIdx = $e.ColumnIndex; $state.Asc = $true }
-        foreach ($c in $grid.Columns) { $c.HeaderCell.SortGlyphDirection = [System.Windows.Forms.SortOrder]::None }
-        $grid.Columns[$e.ColumnIndex].HeaderCell.SortGlyphDirection =
-            if ($state.Asc) { [System.Windows.Forms.SortOrder]::Ascending } else { [System.Windows.Forms.SortOrder]::Descending }
-        & $fill
-    }.GetNewClosure())
+    # Col 0 = casella "Generar": no s'ordena (minCol = 1).
+    _EnableHeaderSort $grid $state 1 @() { & $fill }
 
     # ---- Barra inferior: Exportar / Tancar ------------------------------
     $botPanel = New-Object System.Windows.Forms.Panel
@@ -395,8 +373,8 @@ function Show-ControlsPeriodicsWindow($allRows, [string]$fileName) {
     $sub = "Activitats amb control periòdic (annex II/III o apartat 561)  ·  $fileName"
     [void](_AddBrandHeader $form 'Controls periòdics' $sub 56)
 
-    # Ordre inicial: per Data llicència ascendent (mes antic primer).
-    $grid.Columns[$state.ColIdx].HeaderCell.SortGlyphDirection = [System.Windows.Forms.SortOrder]::Ascending
+    # Ordre inicial: per "Proper CP previst" ascendent (el mes antic primer).
+    _SetSortGlyph $grid $state.SortColIdx $true
     & $fill
     [void]$form.ShowDialog()
 }

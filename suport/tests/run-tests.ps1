@@ -19,15 +19,7 @@ if ([string]::IsNullOrEmpty($env:LOCALAPPDATA)) { $env:LOCALAPPDATA = [System.IO
 $scriptPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'Motor.ps1'
 . $scriptPath   # dot-source: defineix les funcions del motor
 
-$script:pass = 0
-$script:fail = 0
-function Assert($cond, $name) {
-    if ($cond) { $script:pass++; Write-Host "  OK   $name" -ForegroundColor Green }
-    else       { $script:fail++; Write-Host "  FAIL $name" -ForegroundColor Red }
-}
-function AssertEq($actual, $expected, $name) {
-    Assert ([string]$actual -eq [string]$expected) "$name (esperat '$expected', obtingut '$actual')"
-}
+. (Join-Path $PSScriptRoot 'TestLib.ps1')   # Assert / AssertEq / Write-TestSummary
 
 Write-Host "`n--- _NormalizeText ---"
 AssertEq (_NormalizeText 'Estès')            'estes'           '_NormalizeText treu accents i minuscula'
@@ -131,16 +123,8 @@ AssertEq $r4.Text 'Veure'                          '_SplitTextAndUrls text abans
 AssertEq $r4.Urls.Count 2                          '_SplitTextAndUrls detecta 2 URLs'
 
 Write-Host "`n--- Regressio: text de l'item i URL en paragrafs separats (build emit) ---"
-# Estubem les funcions Format (de Word) per capturar que reben, sense COM.
-$global:emitCalls = New-Object System.Collections.ArrayList
-function Format-Section    { param($s,$t) [void]$global:emitCalls.Add("SECT|$t") }
-function Format-Subsection { param($s,$t) [void]$global:emitCalls.Add("SUB|$t") }
-function Format-Item       { param($s,$n,$t,[switch]$IsChild) [void]$global:emitCalls.Add("ITEM|$n|$t") }
-function Format-Body       { param($s,$t,[switch]$IsChild) [void]$global:emitCalls.Add("BODY|$t") }
-function Format-Bullet     { param($s,$t,[switch]$IsChild) [void]$global:emitCalls.Add("BULLET|$t") }
-function Format-Url        { param($s,$u,[switch]$IsChild) [void]$global:emitCalls.Add("URL|$u") }
-function Format-Spacer     { param($s) }
-function Format-Conclusion { param($s,$t) }
+# Dobles de les funcions Format (de Word) per capturar que reben, sense COM.
+. (Join-Path $PSScriptRoot 'FormatDoubles.ps1')
 $sel = [pscustomobject]@{}
 $cfg = $Script:ReportFormatConfig
 # Item amb el text i l'URL en linies SEPARADES (estructura real del REQ1).
@@ -209,15 +193,7 @@ AssertEq $noflag.Text 'Veure'                          'Sense [[URL]]: text aban
 AssertEq $noflag.Urls.Count 1                          'Sense [[URL]]: 1 url detectada per contingut'
 
 Write-Host "`n--- Fills sense numeracio (build emit) ---"
-$global:emitCalls = New-Object System.Collections.ArrayList
-function Format-Section    { param($s,$t) [void]$global:emitCalls.Add("SECT|$t") }
-function Format-Subsection { param($s,$t) [void]$global:emitCalls.Add("SUB|$t") }
-function Format-Item       { param($s,$n,$t,[switch]$IsChild) [void]$global:emitCalls.Add("ITEM|$n|$t" + $(if($IsChild){' (fill)'}else{''})) }
-function Format-Body       { param($s,$t,[switch]$IsChild) [void]$global:emitCalls.Add('BODY' + $(if($IsChild){'/CH'}else{''}) + "|$t") }
-function Format-Bullet     { param($s,$t,[switch]$IsChild) [void]$global:emitCalls.Add('BULLET' + $(if($IsChild){'/CH'}else{''}) + "|$t") }
-function Format-Url        { param($s,$u,[switch]$IsChild) [void]$global:emitCalls.Add('URL'  + $(if($IsChild){'/CH'}else{''}) + "|$u") }
-function Format-Spacer     { param($s) }
-function Format-Conclusion { param($s,$t) [void]$global:emitCalls.Add("CONCL|$t") }
+. (Join-Path $PSScriptRoot 'FormatDoubles.ps1')   # reinicia $global:emitCalls
 
 $sec3 = [pscustomobject]@{ Title='X'; Items=@(
   [pscustomobject]@{ Kind='item'; Short='pare'; Selected=$true;
@@ -1450,8 +1426,16 @@ $valuesTots = @{ InformesDir = 'F:\Informes'; ActivitatsDir = 'F:\Activitats'; O
 $ov3 = _BuildSettingsOverrides $valuesTots $defaults
 AssertEq $ov3.Count 3 '_BuildSettingsOverrides: tots els camps diferents -> tots es desen'
 
-$summaryColor = if ($script:fail -eq 0) { 'Green' } else { 'Red' }
-Write-Host "`n========================================"
-Write-Host ("RESULTAT: {0} OK, {1} FAIL" -f $script:pass, $script:fail) -ForegroundColor $summaryColor
-Write-Host "========================================"
-if ($script:fail -gt 0) { exit 1 } else { exit 0 }
+Write-Host "`n--- _TextMatches com a filtre de les graelles (Informes / Controls periodics) ---"
+# Les graelles li passen la concatenacio dels camps cercables de la fila i el
+# text de cerca JA net (.Trim().ToLower()), que es el contracte de la funcio.
+$filaHay = 'GIA 361 BAR PEPE Cornella de Llobregat Requeriment'
+Assert (_TextMatches $filaHay 'bar')             'filtre graella: troba sense distingir majuscules'
+Assert (_TextMatches $filaHay 'pepe')            'filtre graella: troba el titular'
+Assert (_TextMatches $filaHay '361')             'filtre graella: troba un numero (GIA)'
+Assert (_TextMatches $filaHay 'lla de llo')      'filtre graella: subcadena amb espais'
+Assert (_TextMatches $filaHay '')                'filtre graella: cerca buida -> passa tot'
+Assert (-not (_TextMatches $filaHay 'restaurant')) 'filtre graella: sense coincidencia -> no passa'
+Assert (-not (_TextMatches '' 'x'))              'filtre graella: fila sense text i cerca amb contingut -> no passa'
+
+exit (Write-TestSummary 'RESULTAT')

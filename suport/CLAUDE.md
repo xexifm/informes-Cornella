@@ -22,6 +22,23 @@
   del `return ,([string[]]$s)` és deliberat). Consumeix-lo com
   `$sel = & $mf.GetSelected`, **sense `@()`** al voltant: `@()` l'embolcallaria
   en un array d'un element i trencaria el "cap opció marcada = passa tot".
+- **Helpers de graella** (`UiComuns.ps1`): `_StyleListGrid` (carcassa),
+  `_AddSearchBox`, `_EnableHeaderSort` + `_SetSortGlyph` (ordre programàtic amb
+  fletxa). Els fan servir *Editar base d'informes* i *Controls periòdics*.
+  L'estat d'ordre s'ha de dir **`$state.SortColIdx` / `$state.SortAsc`** (és el
+  que espera `_EnableHeaderSort`). Deliberadament **NO** hi ha un "constructor
+  de graelles" únic: les columnes, el filtratge i l'ordenació de les dues
+  pantalles són massa diferents (una agrupa sempre per activitat, l'altra
+  ordena per data real i té casella de selecció) i el genèric sortiria més
+  complicat que les dues pantalles juntes.
+- **Compte amb les col·lisions de noms**: tot el codi cau al mateix àmbit
+  global (dot-source), i **el darrer fitxer carregat guanya, en silenci**.
+  Abans d'afegir una funció nova, `grep` del nom. Ja va passar: es va crear un
+  `_TextMatches` a `UiComuns.ps1` sense veure que ja n'hi havia un a
+  `Motor.ps1` (el del cercador del TreeView de catàlegs) — el de `Motor.ps1`
+  el tapava i les proves ho van destapar. El filtre de text de les graelles
+  reutilitza el de `Motor.ps1`; se li passa el text de cerca **ja net**
+  (`.Trim().ToLower()`), que és el seu contracte.
 
 ## Desplegament de l'usuari
 - L'usuari executa el programa des d'un **clone de git local** al seu PC.

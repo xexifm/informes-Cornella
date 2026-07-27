@@ -820,14 +820,7 @@ function Invoke-InformesDbEdit {
 
     # Graella.
     $grid = New-Object System.Windows.Forms.DataGridView
-    $grid.Dock = 'Fill'
-    $grid.AllowUserToAddRows = $false
-    $grid.AllowUserToDeleteRows = $false
-    $grid.RowHeadersVisible = $false
-    $grid.SelectionMode = 'FullRowSelect'
-    $grid.AutoSizeColumnsMode = 'None'
-    $grid.MultiSelect = $false
-    $grid.BackgroundColor = [System.Drawing.Color]::White
+    _StyleListGrid $grid
 
     $cData = New-Object System.Windows.Forms.DataGridViewTextBoxColumn;  $cData.HeaderText = 'Data';      $cData.ReadOnly = $true; $cData.Width = 90
     $cGia  = New-Object System.Windows.Forms.DataGridViewTextBoxColumn;  $cGia.HeaderText  = 'GIA';       $cGia.ReadOnly  = $true; $cGia.Width  = 60
@@ -882,13 +875,9 @@ function Invoke-InformesDbEdit {
     # ---- Barra superior: cerca global (fila 1) + filtres per columna (fila 2) ----
     $topPanel = New-Object System.Windows.Forms.Panel
     $topPanel.Dock = 'Top'; $topPanel.Height = 74
-    $lblCerca = New-Object System.Windows.Forms.Label
-    $lblCerca.Text = 'Cerca:'; $lblCerca.AutoSize = $true
-    $lblCerca.Location = New-Object System.Drawing.Point(10, 13)
-    $txtCerca = New-Object System.Windows.Forms.TextBox
-    $txtCerca.Location = New-Object System.Drawing.Point(62, 10); $txtCerca.Width = 300
-    $topPanel.Controls.Add($lblCerca)
-    $topPanel.Controls.Add($txtCerca)
+    # La cerca torna a omplir la graella. ($fill es defineix mes avall; ja
+    # existeix quan l'usuari hi escriu.)
+    $txtCerca = _AddSearchBox $topPanel 10 10 300 'Cerca:' { & $fill }
 
     # Etiqueta a la fila 2 dels filtres.
     $mkLbl = {
@@ -924,10 +913,8 @@ function Invoke-InformesDbEdit {
         $selIgn   = & $mfIgn.GetSelected
 
         $rows = foreach ($row in $allRows) {
-            if ($n -ne '') {
-                $hay = (($row.Data + ' ' + $row.Gia + ' ' + $row.Titular + ' ' + $row.Carpeta + ' ' + $row.Conclusio + ' ' + $row.ConclusioBreu + ' ' + $row.EstatActual + ' ' + $row.Motiu)).ToLower()
-                if (-not $hay.Contains($n)) { continue }
-            }
+            $hay = $row.Data + ' ' + $row.Gia + ' ' + $row.Titular + ' ' + $row.Carpeta + ' ' + $row.Conclusio + ' ' + $row.ConclusioBreu + ' ' + $row.EstatActual + ' ' + $row.Motiu
+            if (-not (_TextMatches $hay $n)) { continue }
             # Cada filtre: cap opcio marcada = passa tot; si n'hi ha, el valor de
             # la fila ha de ser entre les marcades (unio / OR dins del filtre).
             if ($selBreu.Count  -gt 0 -and $selBreu  -notcontains $row.ConclusioBreu) { continue }
@@ -965,22 +952,10 @@ function Invoke-InformesDbEdit {
         $state.Loading = $false
     }.GetNewClosure()
 
-    # Cerca torna a omplir la graella. (Els filtres multiseleccio ja criden
-    # $fill pel seu compte, via l'onChange passat a _MakeMultiFilter.)
-    $txtCerca.add_TextChanged({ & $fill }.GetNewClosure())
-
     # Clic a la capcalera: tria la columna d'ordenacio SECUNDARIA (dins de cada
-    # activitat) i alterna asc/desc. L'agrupament per activitat no es trenca mai.
-    $grid.add_ColumnHeaderMouseClick({
-        param($s, $e)
-        if ($e.ColumnIndex -lt 0 -or $e.ColumnIndex -eq $idxObrir) { return }
-        if ($state.SortColIdx -eq $e.ColumnIndex) { $state.SortAsc = (-not $state.SortAsc) }
-        else { $state.SortColIdx = $e.ColumnIndex; $state.SortAsc = $true }
-        foreach ($c in $grid.Columns) { $c.HeaderCell.SortGlyphDirection = [System.Windows.Forms.SortOrder]::None }
-        $grid.Columns[$e.ColumnIndex].HeaderCell.SortGlyphDirection =
-            if ($state.SortAsc) { [System.Windows.Forms.SortOrder]::Ascending } else { [System.Windows.Forms.SortOrder]::Descending }
-        & $fill
-    }.GetNewClosure())
+    # activitat) i alterna asc/desc. L'agrupament per activitat no es trenca mai
+    # (ho garanteix $fill, no l'ordenador). La columna "Obrir" (boto) no s'ordena.
+    _EnableHeaderSort $grid $state 0 @($idxObrir) { & $fill }
 
     # Desa la base (retorna $true si va be).
     $doSave = {

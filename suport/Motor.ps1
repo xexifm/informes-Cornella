@@ -35,9 +35,14 @@
   (opcional) al costat del .ps1; si no existeix, s'usen els valors per
   defecte definits a sota.
 
-  Persistencia: despres de cada pas, l'estat es guarda a
-  %LOCALAPPDATA%\InformesCornella\session.json. Si en arrencar es
-  detecta una sessio anterior, el script pregunta si es vol recuperar.
+  Estat a %LOCALAPPDATA%\InformesCornella\ (mai al repositori):
+    lastreport.json  dades de l'ULTIM informe generat amb exit, per poder-lo
+                     replicar des del Pas 2.
+    running.pid      PID de la instancia viva (instancia unica + perque
+                     Actualitzar.bat pugui tancar el programa abans d'actualitzar).
+    settings.json    rutes d'AQUEST ordinador (Settings.ps1).
+  NO hi ha cap "sessio recuperable" pas a pas: si es tanca el programa a mig
+  assistent, es torna a comencar (amb l'ultim informe com a plantilla).
 
   Cache: el resultat del parseig del cataleg .docx es guarda a
   %LOCALAPPDATA%\InformesCornella\cache\<basename>.json amb un hash

@@ -143,9 +143,21 @@ Llegenda: **●** = punt d'entrada · **○** = el carrega (dot-source) · **·*
 ## Proves
 
 ```
+pwsh -File suport/tests/run-tests-all.ps1          # TOTES (recomanat)
+```
+Cada suite corre en un procés a part (els dobles i les variables d'entorn
+d'una no poden contaminar la següent) i el codi de sortida és 0 només si
+passen totes. També es poden triar: `run-tests-all.ps1 -Suite ruta,actextr`.
+
+Per executar-ne una de sola:
+```
 pwsh -File suport/tests/run-tests.ps1              # motor / generador d'informes
 pwsh -File suport/tests/run-tests-ruta.ps1         # planificador de rutes
 pwsh -File suport/tests/run-tests-precintades.ps1  # mapa d'activitats precintades
 pwsh -File suport/tests/run-tests-actextr.ps1      # mode ACT_EXTR (Decret 112/2010)
 ```
 (en un Windows sense PowerShell 7, fes servir `powershell` en lloc de `pwsh`.)
+
+Fitxers compartits de les proves: `tests/TestLib.ps1` (`Assert`, `AssertEq`,
+`AssertNear`, `Write-TestSummary`) i `tests/FormatDoubles.ps1` (els dobles de
+les funcions `Format-*`, que capturen a `$global:emitCalls` què rebria Word).

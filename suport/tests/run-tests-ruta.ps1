@@ -14,18 +14,7 @@ $env:RUTA_TEST = '1'   # mode headless: nomes defineix funcions, no obre res
 $scriptPath = Join-Path (Split-Path -Parent $PSScriptRoot) (Join-Path 'rutes' 'Ruta.ps1')
 . $scriptPath
 
-$script:pass = 0
-$script:fail = 0
-function Assert($cond, $name) {
-    if ($cond) { $script:pass++; Write-Host "  OK   $name" -ForegroundColor Green }
-    else       { $script:fail++; Write-Host "  FAIL $name" -ForegroundColor Red }
-}
-function AssertEq($actual, $expected, $name) {
-    Assert ([string]$actual -eq [string]$expected) "$name (esperat '$expected', obtingut '$actual')"
-}
-function AssertNear($actual, $expected, $tol, $name) {
-    Assert ([math]::Abs([double]$actual - [double]$expected) -le $tol) "$name (esperat ~$expected, obtingut $actual)"
-}
+. (Join-Path $PSScriptRoot 'TestLib.ps1')   # Assert / AssertEq / AssertNear / Write-TestSummary
 
 Write-Host "`n--- ConvertFrom-IdList ---"
 AssertEq ((ConvertFrom-IdList '1429 1428,1427') -join '|') '1429|1428|1427' 'separadors espai i coma'
@@ -164,8 +153,4 @@ Assert ($html -match 'QUINTANA I MILLAS') 'inclou l adreca'
 Assert ($html -match 'window.print') 'inclou el boto d imprimir'
 Assert ($html -match '5 km') 'mostra els km de la ruta'
 
-$summaryColor = if ($script:fail -eq 0) { 'Green' } else { 'Red' }
-Write-Host "`n========================================"
-Write-Host ("RESULTAT: {0} OK, {1} FAIL" -f $script:pass, $script:fail) -ForegroundColor $summaryColor
-Write-Host "========================================"
-if ($script:fail -gt 0) { exit 1 } else { exit 0 }
+exit (Write-TestSummary 'RESULTAT')
