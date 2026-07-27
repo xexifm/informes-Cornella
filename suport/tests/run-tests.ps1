@@ -1206,7 +1206,7 @@ if (Test-Path -LiteralPath $req1Json) {
     $it112 = @($secCP[0].Items | Where-Object { $_.Short -eq 'Decret 112/2010 - control periòdic' })
     AssertEq ([bool]($it112.Count -eq 1 -and $it112[0].Kind -eq 'item')) $true 'Read-CatalegJson REQ1: item "Decret 112/2010 - control periòdic"'
     AssertEq ([bool]($it112[0].BodyLines.Count -gt 0)) $true 'Read-CatalegJson REQ1: l''item te cos'
-    # Fills imbricats (nivell3): algun item ha de tenir Children (Kind 'child').
+    # Fills imbricats (subitems): algun item ha de tenir Children (Kind 'child').
     $ambFills = @()
     foreach ($s in $reqCat.Sections) { foreach ($i in $s.Items) { if (@($i.Children).Count -gt 0) { $ambFills += $i } } }
     AssertEq ([bool]($ambFills.Count -gt 0)) $true 'Read-CatalegJson REQ1: hi ha items amb fills imbricats'
@@ -1257,11 +1257,24 @@ $cosOrig = @(@{ runs=@(@{t='Text '},@{t='fort';b=$true},@{t=' i '},@{t='inclinat
 $rich = _Ed_CosToRich $cosOrig
 $cosBack = _Ed_RichToCos $rich
 AssertEq (_JsonParaToBodyLine @($cosBack)[0]) 'Text **fort** i //inclinat//' '_Ed_CosToRich/_Ed_RichToCos: round-trip de negreta/cursiva'
-# Marques per familia.
-AssertEq (@(_Ed_MarcaOptions 'cataleg' 2) -join ',') 'item,subseccio,intro' '_Ed_MarcaOptions cataleg nivell2'
-AssertEq (_Ed_ChildMarca 'cataleg' 'item') 'fill' '_Ed_ChildMarca cataleg item -> fill'
-AssertEq ([bool](_Ed_CanAddChild 'conclusions' @{marca='grup'})) $true '_Ed_CanAddChild conclusions grup'
-AssertEq ([bool](_Ed_CanAddChild 'conclusions' @{marca='conclusio'})) $false '_Ed_CanAddChild conclusions conclusio -> no'
+# Tipus per familia i pare (vocabulari unificat).
+AssertEq (@(_Ed_TipusOptions 'cataleg' '') -join ',') 'seccio' '_Ed_TipusOptions cataleg arrel -> seccio'
+AssertEq (@(_Ed_TipusOptions 'cataleg' 'seccio') -join ',') 'item,subseccio,text' '_Ed_TipusOptions cataleg sota seccio'
+AssertEq (@(_Ed_TipusOptions 'cataleg' 'subseccio') -join ',') 'item' '_Ed_TipusOptions cataleg sota subseccio -> item'
+AssertEq (@(_Ed_TipusOptions 'cataleg' 'item') -join ',') 'subitem' '_Ed_TipusOptions cataleg sota item -> subitem'
+AssertEq (@(_Ed_TipusOptions 'conclusions' '') -join ',') 'seccio,sempre' '_Ed_TipusOptions conclusions arrel'
+AssertEq (@(_Ed_TipusOptions 'conclusions' 'seccio') -join ',') 'item' '_Ed_TipusOptions conclusions sota seccio -> item'
+AssertEq (@(_Ed_TipusOptions 'actextr' '') -join ',') 'seccio' '_Ed_TipusOptions actextr arrel -> seccio'
+AssertEq (@(_Ed_TipusOptions 'actextr' 'seccio') -join ',') 'item,subitem,text,nota,etiqueta,capcalera,paragraf' '_Ed_TipusOptions actextr sota seccio'
+AssertEq (_Ed_ChildTipus 'cataleg' 'seccio') 'item' '_Ed_ChildTipus cataleg seccio -> item'
+AssertEq (_Ed_ChildTipus 'cataleg' 'item') 'subitem' '_Ed_ChildTipus cataleg item -> subitem'
+AssertEq (_Ed_ChildTipus 'actextr' 'seccio') 'item' '_Ed_ChildTipus actextr seccio -> item'
+AssertEq ([bool](_Ed_CanAddChild 'conclusions' @{tipus='seccio'})) $true '_Ed_CanAddChild conclusions seccio'
+AssertEq ([bool](_Ed_CanAddChild 'conclusions' @{tipus='item'})) $false '_Ed_CanAddChild conclusions item -> no'
+AssertEq ([bool](_Ed_CanAddChild 'cataleg' @{tipus='subseccio'})) $true '_Ed_CanAddChild cataleg subseccio'
+AssertEq ([bool](_Ed_CanAddChild 'actextr' @{tipus='seccio'})) $true '_Ed_CanAddChild actextr seccio'
+# Etiqueta d'arbre: [tipus] titol (vocabulari nou, sense [[KEY]] ni ::CHILD::).
+AssertEq (_Ed_NodeLabel @{tipus='item';titol='Incendis';clau='INCENDIS';cos=@()}) '[item] Incendis' '_Ed_NodeLabel [tipus] titol'
 
 Write-Host "`n--- EditorCatalegs.ps1: model<->JSON sense perdues (els 5 ESTRUCTURALS) ---"
 foreach ($docKey in @('REQ1', 'TERMINI', '0 CONCLUSIONS', 'ACT_EXTR_REQ', 'ACT_EXTR_FAV')) {

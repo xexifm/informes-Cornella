@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 <#
 .SYNOPSIS
   Lectura dels ESTRUCTURALS en FORMAT ESTANDARD UNIC (JSON amb "runs").
@@ -8,30 +8,34 @@
   es guarden amb la MATEIXA estructura JSON, editable des del mateix programa:
 
     { "tipus","familia","intro":[<paragraf>],
-      "nodes":[ {"nivell","marca","titol","cos":[<paragraf>],"fills":[<node>]} ] }
+      "nodes":[ {"tipus","titol","clau"?,"cos":[<paragraf>],"fills":[<node>]} ] }
 
     <paragraf> = { "runs":[ {"t","b","i"} ], "url": bool }
 
-  La 'familia' i la 'marca' de cada node donen la semantica (l'estructura es
-  sempre la mateixa; nomes canvia com s'interpreta):
-    - cataleg     : nivell1 marca=seccio; nivell2 marca=item|subseccio|intro;
-                    nivell3 marca=fill (imbricat). 'intro' = cos fix (TERMINI).
-    - conclusions : nivell1 marca=grup (titol=tipus) amb fills marca=conclusio;
-                    nivell1 marca=sempre (cos). 'intro' = [capcalera].
-    - actextr     : nivell1 marca=seccio; nivell2 marca=bloc (titol="[[KEY]] ...").
+  El "tipus" de cada node (mateix vocabulari a tots els catalegs) + la 'familia'
+  donen la semantica. Vocabulari:
+    - seccio     : contenidor de primer nivell (seccio de cataleg; grup de
+                   conclusions -titol=tipus d'informe-; seccio visual d'actextr).
+    - subseccio  : sub-contenidor (cataleg) que AGRUPA els seus items (fills).
+    - item       : unitat de contingut (deficiencia / conclusio / bloc actextr).
+    - subitem    : sub-item amb pic (fill d'un item; ::CHILD:: a actextr).
+    - text       : text/introduccio (::TEXT:: a actextr).
+    - sempre     : (conclusions) frase que s'inclou sempre.
+    - nota/etiqueta/capcalera/paragraf : (actextr) estils ::NOTE::/::LABEL::/
+                   ::HEADER::/::CONC:: de l'informe favorable.
+  A ACT_EXTR, 'clau' es la [[KEY]] funcional (Decret 112); mai es toca aqui.
 
   Aquest modul llegeix el JSON i el converteix al MATEIX model en memoria que
   retornaven Parse-Cataleg, Read-Conclusions i Build-ActExtrBlocks, de manera que
-  la resta del programa (Build-Document, wizard, ACT_EXTR...) no canvia. El cos de
-  cada paragraf s'"aplana" a la mateixa cadena amb marques (**negreta**,
-  //cursiva//, [[URL]] ...) que ja entenen Type-RichText i _SplitTextAndUrls. Aixi
-  la generacio des de JSON es identica a la del .docx.
+  la resta del programa (Build-Document, wizard, ACT_EXTR...) NO canvia i la
+  generacio es identica a la del .docx. El cos de cada paragraf s'"aplana" a la
+  mateixa cadena amb marques (**negreta**, //cursiva//, [[URL]] ...) que ja
+  entenen Type-RichText i _SplitTextAndUrls.
 
   Nomes defineix funcions (cap execucio en carregar-se): segur en headless.
 #>
 
-# Aplana una llista de "runs" a la cadena amb marques equivalent. Es l'invers de
-# la conversio del convertidor .docx->json (regex de Type-RichText).
+# Aplana una llista de "runs" a la cadena amb marques equivalent.
 function _RunsToMarkup($runs) {
     $sb = New-Object System.Text.StringBuilder
     foreach ($r in @($runs)) {
@@ -50,49 +54,63 @@ function _JsonParaToBodyLine($p) {
     return $line
 }
 
-# Llegeix i cacheja el JSON d'un ESTRUCTURAL (per no tornar-lo a parsejar cada cop).
+# Llegeix i cacheja el JSON d'un ESTRUCTURAL.
 function _LoadEstructuralJson($jsonPath) {
     return (Get-Content -LiteralPath $jsonPath -Raw -Encoding UTF8 | ConvertFrom-Json)
 }
 
-# Llegeix un cataleg (familia 'cataleg') i retorna el MATEIX objecte que
-# Parse-Cataleg:
-#   IntroText, Sections=[{Title; Items=[{Kind; Short; BodyLines; Children}]}],
-#   IsFixedBody, FixedBodyLines.
-# Nivells: nivell1 marca=seccio -> Section; nivell2 (item/subseccio/intro) -> Item
-# (Kind item/subsection/intro); nivell3 marca=fill (imbricat dins l'item) -> Child.
+# ----------------------------------------------------------------------------
+# CATALEG -> model de Parse-Cataleg (Sections=[{Title; Items=[pla]}], ...)
+# ----------------------------------------------------------------------------
+# Aplana un node del cataleg a la LLISTA PLANA d'items que espera el motor:
+#   - subseccio -> un Item Kind=subsection i, tot seguit, els seus fills (items)
+#                  a la MATEIXA llista, en ordre (reprodueix el model pla d'abans).
+#   - text      -> Item Kind=intro.
+#   - item      -> Item Kind=item, amb els seus subitems com a Children.
+function _EmitCatalegItem($node, $items) {
+    $tipus = [string]$node.tipus
+    $body = New-Object System.Collections.ArrayList
+    foreach ($p in @($node.cos)) { [void]$body.Add((_JsonParaToBodyLine $p)) }
+
+    if ($tipus -eq 'subseccio') {
+        [void]$items.Add([pscustomobject]@{
+            Kind = 'subsection'; Short = [string]$node.titol
+            BodyLines = $body; Children = (New-Object System.Collections.ArrayList)
+        })
+        foreach ($ch in @($node.fills)) { _EmitCatalegItem $ch $items }
+    }
+    elseif ($tipus -eq 'text') {
+        [void]$items.Add([pscustomobject]@{
+            Kind = 'intro'; Short = [string]$node.titol
+            BodyLines = $body; Children = (New-Object System.Collections.ArrayList)
+        })
+    }
+    else {   # item
+        $children = New-Object System.Collections.ArrayList
+        foreach ($ch in @($node.fills)) {
+            $cbody = New-Object System.Collections.ArrayList
+            foreach ($p in @($ch.cos)) { [void]$cbody.Add((_JsonParaToBodyLine $p)) }
+            [void]$children.Add([pscustomobject]@{
+                Kind = 'child'; Short = [string]$ch.titol
+                BodyLines = $cbody; Children = (New-Object System.Collections.ArrayList)
+            })
+        }
+        [void]$items.Add([pscustomobject]@{
+            Kind = 'item'; Short = [string]$node.titol
+            BodyLines = $body; Children = $children
+        })
+    }
+}
+
+# Llegeix un cataleg i retorna el MATEIX objecte que Parse-Cataleg.
 function Read-CatalegJson($jsonPath) {
     $o = _LoadEstructuralJson $jsonPath
-
     $sections = New-Object System.Collections.ArrayList
     foreach ($sec in @($o.nodes)) {
         $items = New-Object System.Collections.ArrayList
-        foreach ($it in @($sec.fills)) {
-            $kind = switch ([string]$it.marca) {
-                'subseccio' { 'subsection' }
-                'intro'     { 'intro' }
-                default     { 'item' }
-            }
-            $body = New-Object System.Collections.ArrayList
-            foreach ($p in @($it.cos)) { [void]$body.Add((_JsonParaToBodyLine $p)) }
-
-            $children = New-Object System.Collections.ArrayList
-            foreach ($ch in @($it.fills)) {
-                $cbody = New-Object System.Collections.ArrayList
-                foreach ($p in @($ch.cos)) { [void]$cbody.Add((_JsonParaToBodyLine $p)) }
-                [void]$children.Add([pscustomobject]@{
-                    Kind = 'child'; Short = [string]$ch.titol
-                    BodyLines = $cbody; Children = (New-Object System.Collections.ArrayList)
-                })
-            }
-            [void]$items.Add([pscustomobject]@{
-                Kind = $kind; Short = [string]$it.titol
-                BodyLines = $body; Children = $children
-            })
-        }
+        foreach ($node in @($sec.fills)) { _EmitCatalegItem $node $items }
         [void]$sections.Add([pscustomobject]@{ Title = [string]$sec.titol; Items = $items })
     }
-
     $fixed = New-Object System.Collections.ArrayList
     foreach ($p in @($o.intro)) { [void]$fixed.Add((_JsonParaToBodyLine $p)) }
     $introText = if ($fixed.Count -gt 0) { [string]$fixed[0] } else { '' }
@@ -105,10 +123,9 @@ function Read-CatalegJson($jsonPath) {
     }
 }
 
-# Llegeix les conclusions (familia 'conclusions') i retorna el MATEIX objecte que
-# Read-Conclusions per al $reportType demanat: HeaderText, Selectable=[{Title;
-# Body}], Always. Nivell1 marca=grup (titol=tipus) amb fills marca=conclusio;
-# nivell1 marca=sempre (cos). La capcalera es el primer paragraf d''intro'.
+# ----------------------------------------------------------------------------
+# CONCLUSIONS -> model de Read-Conclusions (HeaderText; Selectable; Always)
+# ----------------------------------------------------------------------------
 function Read-ConclusionsJson($jsonPath, $reportType = $null) {
     $o = _LoadEstructuralJson $jsonPath
     $want = if ([string]::IsNullOrWhiteSpace($reportType)) { '' } else { _NormalizeText $reportType }
@@ -116,8 +133,8 @@ function Read-ConclusionsJson($jsonPath, $reportType = $null) {
     $selectable = New-Object System.Collections.ArrayList
     $always = New-Object System.Collections.ArrayList
     foreach ($n in @($o.nodes)) {
-        $marca = [string]$n.marca
-        if ($marca -eq 'grup') {
+        $tp = [string]$n.tipus
+        if ($tp -eq 'seccio') {
             $inGroup = ($want -eq '') -or ((_NormalizeText $n.titol) -eq $want)
             if ($inGroup) {
                 foreach ($c in @($n.fills)) {
@@ -126,7 +143,7 @@ function Read-ConclusionsJson($jsonPath, $reportType = $null) {
                     })
                 }
             }
-        } elseif ($marca -eq 'sempre') {
+        } elseif ($tp -eq 'sempre') {
             [void]$always.Add((_JsonParaToBodyLine @($n.cos)[0]))
         }
     }
@@ -139,22 +156,45 @@ function Read-ConclusionsJson($jsonPath, $reportType = $null) {
     }
 }
 
-# Recorre l'arbre d'un ESTRUCTURAL 'actextr' i reconstrueix la llista ORDENADA de
-# registres de paragraf @{ Text; Style } (Style 'h1'|'h2'|'normal'|'url') que
-# espera Build-ActExtrBlocks. Nivell1 -> h1 (titol de seccio); nivell2 -> h2
-# (titol "[[KEY]] ..."); cada paragraf de 'cos' -> normal/url segons 'url'.
+# ----------------------------------------------------------------------------
+# ACT_EXTR -> registres de paragraf { Text; Style } per a Build-ActExtrBlocks
+# ----------------------------------------------------------------------------
+# El 'tipus' del node determina el marcador ::KIND:: que cal reconstruir a la
+# capcalera h2 "[[clau]] ::KIND:: titol". Build-ActExtrBlocks nomes fa servir la
+# clau i el ::KIND:: (l'etiqueta la ignora), aixi que la generacio queda identica.
+function _ActExtrTipusToken([string]$tipus) {
+    switch ($tipus) {
+        'subitem'   { return '::CHILD::' }
+        'text'      { return '::TEXT::' }
+        'nota'      { return '::NOTE::' }
+        'etiqueta'  { return '::LABEL::' }
+        'capcalera' { return '::HEADER::' }
+        'paragraf'  { return '::CONC::' }
+        default     { return '' }   # item
+    }
+}
+
+# Emet (recursivament, en profunditat) els records d'un node ACT_EXTR: la seva
+# capcalera h2 reconstruida, el seu cos (normal/url) i despres els seus fills.
+function _EmitActExtrRecords($node, $records) {
+    $tok = _ActExtrTipusToken ([string]$node.tipus)
+    $h2 = '[[' + [string]$node.clau + ']]'
+    if ($tok) { $h2 += ' ' + $tok }
+    if (-not [string]::IsNullOrEmpty([string]$node.titol)) { $h2 += ' ' + [string]$node.titol }
+    [void]$records.Add(@{ Text = $h2; Style = 'h2' })
+    foreach ($p in @($node.cos)) {
+        $st = if ($p.url) { 'url' } else { 'normal' }
+        [void]$records.Add(@{ Text = (_RunsToMarkup $p.runs); Style = $st })
+    }
+    foreach ($ch in @($node.fills)) { _EmitActExtrRecords $ch $records }
+}
+
 function Read-ActExtrRecordsJson($jsonPath) {
     $o = _LoadEstructuralJson $jsonPath
     $records = New-Object System.Collections.ArrayList
     foreach ($sec in @($o.nodes)) {
         [void]$records.Add(@{ Text = [string]$sec.titol; Style = 'h1' })
-        foreach ($blk in @($sec.fills)) {
-            [void]$records.Add(@{ Text = [string]$blk.titol; Style = 'h2' })
-            foreach ($p in @($blk.cos)) {
-                $st = if ($p.url) { 'url' } else { 'normal' }
-                [void]$records.Add(@{ Text = (_RunsToMarkup $p.runs); Style = $st })
-            }
-        }
+        foreach ($node in @($sec.fills)) { _EmitActExtrRecords $node $records }
     }
     return $records
 }

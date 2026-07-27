@@ -4,15 +4,14 @@
  "intro": [],
  "nodes": [
   {
-   "nivell": 1,
-   "marca": "seccio",
+   "tipus": "seccio",
    "titol": "DEFICIÈNCIES",
    "cos": [],
    "fills": [
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[REQ_INTRO]] ::TEXT:: Introducció",
+     "tipus": "text",
+     "titol": "Introducció",
+     "clau": "REQ_INTRO",
      "cos": [
       {
        "runs": [
@@ -25,9 +24,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[INCENDIS]] Incendis",
+     "tipus": "item",
+     "titol": "Incendis",
+     "clau": "INCENDIS",
      "cos": [
       {
        "runs": [
@@ -48,9 +47,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[PAU_CAT]] Pla d’Autoprotecció (Protecció civil de Catalunya)",
+     "tipus": "item",
+     "titol": "Pla d’Autoprotecció (Protecció civil de Catalunya)",
+     "clau": "PAU_CAT",
      "cos": [
       {
        "runs": [
@@ -71,9 +70,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[PAU_LOCAL]] Pla d’Autoprotecció (Protecció civil local)",
+     "tipus": "item",
+     "titol": "Pla d’Autoprotecció (Protecció civil local)",
+     "clau": "PAU_LOCAL",
      "cos": [
       {
        "runs": [
@@ -94,9 +93,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[RC]] Responsabilitat civil",
+     "tipus": "item",
+     "titol": "Responsabilitat civil",
+     "clau": "RC",
      "cos": [
       {
        "runs": [
@@ -109,9 +108,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[ASSIST_SANITARIA]] Assistència sanitària",
+     "tipus": "item",
+     "titol": "Assistència sanitària",
+     "clau": "ASSIST_SANITARIA",
      "cos": [
       {
        "runs": [
@@ -124,9 +123,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[CONTROLADORS]] Controladors d’accés",
+     "tipus": "item",
+     "titol": "Controladors d’accés",
+     "clau": "CONTROLADORS",
      "cos": [
       {
        "runs": [
@@ -139,9 +138,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[VIGILANTS]] Seguretat privada",
+     "tipus": "item",
+     "titol": "Seguretat privada",
+     "clau": "VIGILANTS",
      "cos": [
       {
        "runs": [
@@ -154,9 +153,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[SERVEIS_HIGIENE]] Serveis d’higiene",
+     "tipus": "item",
+     "titol": "Serveis d’higiene",
+     "clau": "SERVEIS_HIGIENE",
      "cos": [
       {
        "runs": [
@@ -169,9 +168,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[IMPACTE_ACUSTIC]] Impacte acústic",
+     "tipus": "item",
+     "titol": "Impacte acústic",
+     "clau": "IMPACTE_ACUSTIC",
      "cos": [
       {
        "runs": [
@@ -184,9 +183,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[DISPONIBILITAT_ESPAI]] Disponibilitat d’espai",
+     "tipus": "item",
+     "titol": "Disponibilitat d’espai",
+     "clau": "DISPONIBILITAT_ESPAI",
      "cos": [
       {
        "runs": [
@@ -199,9 +198,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[LASERS]] Làsers",
+     "tipus": "item",
+     "titol": "Làsers",
+     "clau": "LASERS",
      "cos": [
       {
        "runs": [
@@ -223,15 +222,14 @@
    ]
   },
   {
-   "nivell": 1,
-   "marca": "seccio",
+   "tipus": "seccio",
    "titol": "MEMÒRIA",
    "cos": [],
    "fills": [
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[MEMORIA_HEADER]] Encapçalament de la memòria",
+     "tipus": "item",
+     "titol": "Encapçalament de la memòria",
+     "clau": "MEMORIA_HEADER",
      "cos": [
       {
        "runs": [
@@ -244,9 +242,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[MEMORIA_A]] ::CHILD:: a) Identificació",
+     "tipus": "subitem",
+     "titol": "a) Identificació",
+     "clau": "MEMORIA_A",
      "cos": [
       {
        "runs": [
@@ -259,9 +257,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[MEMORIA_B]] ::CHILD:: b) Data i horari",
+     "tipus": "subitem",
+     "titol": "b) Data i horari",
+     "clau": "MEMORIA_B",
      "cos": [
       {
        "runs": [
@@ -274,9 +272,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[MEMORIA_C]] ::CHILD:: c) Responsables",
+     "tipus": "subitem",
+     "titol": "c) Responsables",
+     "clau": "MEMORIA_C",
      "cos": [
       {
        "runs": [
@@ -289,9 +287,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[MEMORIA_D]] ::CHILD:: d) Descripció i aforament",
+     "tipus": "subitem",
+     "titol": "d) Descripció i aforament",
+     "clau": "MEMORIA_D",
      "cos": [
       {
        "runs": [
@@ -304,9 +302,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[MEMORIA_E]] ::CHILD:: e) Mesures adoptades",
+     "tipus": "subitem",
+     "titol": "e) Mesures adoptades",
+     "clau": "MEMORIA_E",
      "cos": [
       {
        "runs": [
@@ -319,9 +317,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[MEMORIA_F]] ::CHILD:: f) Declaració de pòlissa",
+     "tipus": "subitem",
+     "titol": "f) Declaració de pòlissa",
+     "clau": "MEMORIA_F",
      "cos": [
       {
        "runs": [
@@ -334,9 +332,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[MEMORIA_G]] ::CHILD:: g) Titulars de la disponibilitat",
+     "tipus": "subitem",
+     "titol": "g) Titulars de la disponibilitat",
+     "clau": "MEMORIA_G",
      "cos": [
       {
        "runs": [
@@ -351,15 +349,14 @@
    ]
   },
   {
-   "nivell": 1,
-   "marca": "seccio",
+   "tipus": "seccio",
    "titol": "TANCAMENT",
    "cos": [],
    "fills": [
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[REQ_CLOSING]] ::TEXT:: Tancament",
+     "tipus": "text",
+     "titol": "Tancament",
+     "clau": "REQ_CLOSING",
      "cos": [
       {
        "runs": [

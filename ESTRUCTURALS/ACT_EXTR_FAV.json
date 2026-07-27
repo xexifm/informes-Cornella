@@ -4,15 +4,14 @@
  "intro": [],
  "nodes": [
   {
-   "nivell": 1,
-   "marca": "seccio",
+   "tipus": "seccio",
    "titol": "DISPOSICIONS LEGALS",
    "cos": [],
    "fills": [
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[FAV_INTRO]] ::TEXT:: Introducció",
+     "tipus": "text",
+     "titol": "Introducció",
+     "clau": "FAV_INTRO",
      "cos": [
       {
        "runs": [
@@ -25,9 +24,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[FAV_NORMATIVA]] Normativa aplicable",
+     "tipus": "item",
+     "titol": "Normativa aplicable",
+     "clau": "FAV_NORMATIVA",
      "cos": [
       {
        "runs": [
@@ -63,15 +62,14 @@
    ]
   },
   {
-   "nivell": 1,
-   "marca": "seccio",
+   "tipus": "seccio",
    "titol": "CONSIDERACIONS",
    "cos": [],
    "fills": [
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[FAV_MID]] ::TEXT:: Encapçalament de consideracions",
+     "tipus": "text",
+     "titol": "Encapçalament de consideracions",
+     "clau": "FAV_MID",
      "cos": [
       {
        "runs": [
@@ -84,9 +82,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[MOBILITAT]] Mobilitat",
+     "tipus": "item",
+     "titol": "Mobilitat",
+     "clau": "MOBILITAT",
      "cos": [
       {
        "runs": [
@@ -99,9 +97,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[INCENDIS]] Incendis",
+     "tipus": "item",
+     "titol": "Incendis",
+     "clau": "INCENDIS",
      "cos": [
       {
        "runs": [
@@ -114,9 +112,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[PAU_CAT]] Pla d’Autoprotecció (Protecció civil de Catalunya)",
+     "tipus": "item",
+     "titol": "Pla d’Autoprotecció (Protecció civil de Catalunya)",
+     "clau": "PAU_CAT",
      "cos": [
       {
        "runs": [
@@ -129,9 +127,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[PAU_LOCAL]] Pla d’Autoprotecció (Protecció civil local)",
+     "tipus": "item",
+     "titol": "Pla d’Autoprotecció (Protecció civil local)",
+     "clau": "PAU_LOCAL",
      "cos": [
       {
        "runs": [
@@ -144,9 +142,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[RC]] Responsabilitat civil",
+     "tipus": "item",
+     "titol": "Responsabilitat civil",
+     "clau": "RC",
      "cos": [
       {
        "runs": [
@@ -159,9 +157,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[ASSIST]] Assistència sanitària",
+     "tipus": "item",
+     "titol": "Assistència sanitària",
+     "clau": "ASSIST",
      "cos": [
       {
        "runs": [
@@ -174,9 +172,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[CONTROLADORS]] Controladors d’accés",
+     "tipus": "item",
+     "titol": "Controladors d’accés",
+     "clau": "CONTROLADORS",
      "cos": [
       {
        "runs": [
@@ -189,9 +187,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[VIGILANTS]] Seguretat privada",
+     "tipus": "item",
+     "titol": "Seguretat privada",
+     "clau": "VIGILANTS",
      "cos": [
       {
        "runs": [
@@ -204,9 +202,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[SERVEIS_HIGIENE]] Serveis d’higiene",
+     "tipus": "item",
+     "titol": "Serveis d’higiene",
+     "clau": "SERVEIS_HIGIENE",
      "cos": [
       {
        "runs": [
@@ -219,9 +217,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[DISPONIBILITAT_ESPAI]] Disponibilitat de l’espai",
+     "tipus": "item",
+     "titol": "Disponibilitat de l’espai",
+     "clau": "DISPONIBILITAT_ESPAI",
      "cos": [
       {
        "runs": [
@@ -234,9 +232,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[FAV_LASERS]] Autorització de senyals lumíniques",
+     "tipus": "item",
+     "titol": "Autorització de senyals lumíniques",
+     "clau": "FAV_LASERS",
      "cos": [
       {
        "runs": [
@@ -256,9 +254,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[NO_LASERS]] Prohibició de senyals lumíniques",
+     "tipus": "item",
+     "titol": "Prohibició de senyals lumíniques",
+     "clau": "NO_LASERS",
      "cos": [
       {
        "runs": [
@@ -273,15 +271,14 @@
    ]
   },
   {
-   "nivell": 1,
-   "marca": "seccio",
+   "tipus": "seccio",
    "titol": "ABANS DE L’INICI",
    "cos": [],
    "fills": [
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[FAV_ABANS]] ::TEXT:: Encapçalament",
+     "tipus": "text",
+     "titol": "Encapçalament",
+     "clau": "FAV_ABANS",
      "cos": [
       {
        "runs": [
@@ -294,9 +291,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[FAV_CERTIFICATS]] Certificats a presentar",
+     "tipus": "item",
+     "titol": "Certificats a presentar",
+     "clau": "FAV_CERTIFICATS",
      "cos": [
       {
        "runs": [
@@ -323,9 +320,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[FAV_FINALITZACIO]] Instal·lacions i extintors",
+     "tipus": "item",
+     "titol": "Instal·lacions i extintors",
+     "clau": "FAV_FINALITZACIO",
      "cos": [
       {
        "runs": [
@@ -347,15 +344,14 @@
    ]
   },
   {
-   "nivell": 1,
-   "marca": "seccio",
+   "tipus": "seccio",
    "titol": "RÈTOLS INFORMATIUS",
    "cos": [],
    "fills": [
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[FAV_RETOLS_HDR]] ::LABEL:: Rètol de la secció",
+     "tipus": "etiqueta",
+     "titol": "Rètol de la secció",
+     "clau": "FAV_RETOLS_HDR",
      "cos": [
       {
        "runs": [
@@ -368,9 +364,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[FAV_RETOLS_INTRO]] ::TEXT:: Rètols",
+     "tipus": "text",
+     "titol": "Rètols",
+     "clau": "FAV_RETOLS_INTRO",
      "cos": [
       {
        "runs": [
@@ -383,9 +379,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[FAV_RETOL_ID]] Identificació",
+     "tipus": "item",
+     "titol": "Identificació",
+     "clau": "FAV_RETOL_ID",
      "cos": [
       {
        "runs": [
@@ -398,9 +394,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[FAV_RETOL_RECLAMACIO]] Fulls de reclamació",
+     "tipus": "item",
+     "titol": "Fulls de reclamació",
+     "clau": "FAV_RETOL_RECLAMACIO",
      "cos": [
       {
        "runs": [
@@ -413,9 +409,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[FAV_RETOL_SO]] Nivells sonors",
+     "tipus": "item",
+     "titol": "Nivells sonors",
+     "clau": "FAV_RETOL_SO",
      "cos": [
       {
        "runs": [
@@ -428,9 +424,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[FAV_RETOL_ADMISSIO]] Admissió",
+     "tipus": "item",
+     "titol": "Admissió",
+     "clau": "FAV_RETOL_ADMISSIO",
      "cos": [
       {
        "runs": [
@@ -443,9 +439,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[FAV_RETOL_ADMISSIO_NOTA]] ::NOTE:: Nota admissió",
+     "tipus": "nota",
+     "titol": "Nota admissió",
+     "clau": "FAV_RETOL_ADMISSIO_NOTA",
      "cos": [
       {
        "runs": [
@@ -458,9 +454,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[FAV_RETOL_ALCOHOL]] Alcohol menors",
+     "tipus": "item",
+     "titol": "Alcohol menors",
+     "clau": "FAV_RETOL_ALCOHOL",
      "cos": [
       {
        "runs": [
@@ -475,15 +471,14 @@
    ]
   },
   {
-   "nivell": 1,
-   "marca": "seccio",
+   "tipus": "seccio",
    "titol": "CONDICIONS DE LA LLICÈNCIA",
    "cos": [],
    "fills": [
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[FAV_CONDICIONANTS]] ::TEXT:: Condicionants",
+     "tipus": "text",
+     "titol": "Condicionants",
+     "clau": "FAV_CONDICIONANTS",
      "cos": [
       {
        "runs": [
@@ -498,15 +493,14 @@
    ]
   },
   {
-   "nivell": 1,
-   "marca": "seccio",
+   "tipus": "seccio",
    "titol": "CONCLUSIONS",
    "cos": [],
    "fills": [
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[FAV_CONCLUSIONS]] ::HEADER:: Capçalera conclusions",
+     "tipus": "capcalera",
+     "titol": "Capçalera conclusions",
+     "clau": "FAV_CONCLUSIONS",
      "cos": [
       {
        "runs": [
@@ -519,9 +513,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[FAV_TITULAR]] ::CONC:: Responsabilitat del titular",
+     "tipus": "paragraf",
+     "titol": "Responsabilitat del titular",
+     "clau": "FAV_TITULAR",
      "cos": [
       {
        "runs": [
@@ -534,9 +528,9 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "bloc",
-     "titol": "[[FAV_CLOSING]] ::CONC:: Tancament",
+     "tipus": "paragraf",
+     "titol": "Tancament",
+     "clau": "FAV_CLOSING",
      "cos": [
       {
        "runs": [

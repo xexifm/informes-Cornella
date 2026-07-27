@@ -228,23 +228,37 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
 - **Format estàndard únic** (`suport/CatalegJson.ps1` ho documenta):
   ```
   { "tipus","familia","intro":[<paràgraf>],
-    "nodes":[ {"nivell","marca","titol","cos":[<paràgraf>],"fills":[<node>]} ] }
+    "nodes":[ {"tipus","titol","clau"?,"cos":[<paràgraf>],"fills":[<node>]} ] }
   <paràgraf> = { "runs":[ {"t","b","i"} ], "url": bool }
   ```
   Un **run** és un fragment de text amb negreta (`b`) i/o cursiva (`i`); un
-  paràgraf pot ser `"url": true` (enllaç). Els **fills són imbricats** dins cada
-  node. La `familia` + la `marca` de cada node donen la semàntica (l'estructura
-  és sempre la mateixa):
-  - `cataleg` (REQ1, TERMINI): nivell1 `marca=seccio`; nivell2
-    `marca=item|subseccio|intro`; nivell3 `marca=fill` (imbricat dins l'ítem).
-    `intro` = cos fix (TERMINI no té nodes → cos fix).
-  - `conclusions` (0 CONCLUSIONS): nivell1 `marca=grup` (titol=tipus d'informe)
-    amb fills `marca=conclusio`; nivell1 `marca=sempre` (frases ::SEMPRE::).
-    `intro` = `[capçalera]`.
-  - `actextr` (ACT_EXTR_REQ/FAV): nivell1 `marca=seccio` (títol visual, pot dur
-    `[[KEY]]`); nivell2 `marca=bloc` (titol = `"[[KEY]] … etiqueta"`, cos =
-    contingut). El lector recorre l'arbre → llista ordenada de records
-    `@{Text;Style}` per a `Build-ActExtrBlocks`.
+  paràgraf pot ser `"url": true` (enllaç). Els **fills són imbricats de veritat**
+  dins cada node (una subsecció conté els seus ítems, un ítem els seus subítems…);
+  el **nivell = fondària d'imbricació**, no un camp. El `tipus` de cada node fa
+  servir el **MATEIX vocabulari a tots els catàlegs** (petició de l'usuari: "mateixos
+  noms a tot") i, amb la `familia`, dona la semàntica. El lector torna a mapar el
+  `tipus` al `Kind`/`Style` intern d'abans → **generació byte-idèntica**. Vocabulari:
+  - `seccio` — contenidor de 1r nivell (secció de catàleg; grup de conclusions amb
+    `titol`=tipus d'informe; secció visual d'ACT_EXTR).
+  - `subseccio` — sub-contenidor de catàleg que agrupa els seus ítems (fills).
+  - `item` — unitat de contingut (deficiència / conclusió / bloc d'ACT_EXTR).
+  - `subitem` — sub-ítem amb pic (fill d'un ítem; a ACT_EXTR = bloc `::CHILD::`).
+  - `text` — text/introducció (a ACT_EXTR = bloc `::TEXT::`).
+  - `sempre` — (conclusions) frase que s'inclou sempre (`::SEMPRE::`).
+  - `nota`/`etiqueta`/`capcalera`/`paragraf` — (ACT_EXTR) estils
+    `::NOTE::`/`::LABEL::`/`::HEADER::`/`::CONC::` de l'informe favorable.
+  - `intro` (camp de dalt): cos fix (TERMINI no té nodes) o capçalera (conclusions).
+  Per família: `cataleg` (REQ1, TERMINI) fa servir seccio→(item|subseccio|text),
+  subseccio→item, item→subitem; `conclusions` (0 CONCLUSIONS) fa servir
+  seccio→item i seccio `sempre` a l'arrel; `actextr` (ACT_EXTR_REQ/FAV) fa servir
+  seccio→(item|subitem|text|nota|etiqueta|capcalera|paragraf).
+  - **`clau`**: només a ACT_EXTR. És la `[[KEY]]` funcional (Decret 112) del bloc,
+    ara un **atribut a part** (abans vivia DINS el títol junt amb `::CHILD::`). El
+    lector reconstrueix la capçalera `"[[clau]] ::TOKEN:: titol"` que espera
+    `Build-ActExtrBlocks` (que només fa servir clau + token i **ignora l'etiqueta**),
+    de manera que els blocs surten idèntics. Les claus funcionals NO es toquen mai
+    (`INCENDIS`, `PAU_CAT/LOCAL`, `VIGILANTS`, `RC`, `MEMORIA_A..G`, `REQ_INTRO`,
+    `FAV_*`…). L'editor la mostra en un camp **bloquejat** (mai s'edita des d'aquí).
 - **`0 CAPCALERA` es queda en Word**: és una carta amb escut/taula/format real
   (la generació COPIA el .docx i hi substitueix `<<PLACEHOLDERS>>`), no un
   llistat reconstruïble des d'un model de runs.
@@ -267,23 +281,29 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   run és negreta O cursiva, mai totes dues alhora).
 - **Editor visual "Editar catàlegs"** (`suport/EditorCatalegs.ps1`, WinForms):
   una sola finestra edita QUALSEVOL ESTRUCTURAL en JSON (desplegable amb tots els
-  `*.json`). Arbre de nodes (nivell1/2/3, fills imbricats) + entrada especial per a
-  la introducció/capçalera; a la dreta s'edita títol, tipus (marca segons família)
-  i **cos amb negreta/cursiva reals** (RichTextBox ↔ runs) amb botons per inserir
-  `[CAMP:]`/`[OPCIO:]` i enllaços. Es poden afegir/eliminar/moure nodes. En desar
-  s'escriu el JSON (sense BOM) amb **validació** (re-llegeix amb el lector) i
-  **còpia `.bak`** de seguretat; l'editor només ESCRIU, la generació no en depèn.
+  `*.json`). Arbre de nodes amb **fills imbricats de veritat** (les subseccions i
+  els subítems pengen del seu pare) + entrada especial per a la introducció/
+  capçalera; a la dreta s'edita títol, **Tipus** (vocabulari unificat; el combo
+  s'omple amb `_Ed_TipusOptions $familia $parentTipus` i és **SEMPRE canviable**
+  quan hi ha >1 opció) i **cos amb negreta/cursiva reals** (RichTextBox ↔ runs) amb
+  botons per inserir `[CAMP:]`/`[OPCIO:]` i enllaços. A ACT_EXTR es mostra a més un
+  camp **Clau** (`ReadOnly`) amb la `[[KEY]]` funcional, que no s'edita mai. El tag
+  de cada TreeNode duu `ParentNode` (per calcular els tipus vàlids). Es poden
+  afegir/eliminar/moure nodes. En desar s'escriu el JSON (sense BOM; `clau` només
+  quan té valor) amb **validació** (re-llegeix amb el lector) i **còpia `.bak`** de
+  seguretat; l'editor només ESCRIU, la generació no en depèn.
   - **Punt d'entrada**: a la finestra principal (`Seguiment.ps1 Select-Mode`),
     el **xip del document** (REQ1/TERMINI/ACT_EXTR) dels botons de tipus d'informe
     porta un emoji d'editar ✏️; clicar-lo (hit-test del rectangle `DocChipRect`
     via `MouseClick`) obre l'editor centrat en aquell document. Dispatch:
     `'editcataleg' → Show-CatalegEditor -focusDoc <Doc>` (ACT_EXTR → ACT_EXTR_REQ).
   - **Funcions pures testejables** (headless): `_Ed_JsonToModel`/`_Ed_ModelToJson`
-    (model editable ↔ JSON), `_Ed_SegmentsToRuns` (fragments RTB → runs, forçant la
-    invariant de no-solapament), `_Ed_CosToRich`/`_Ed_RichToCos`, `_Ed_MarcaOptions`/
-    `_Ed_CanAddChild`/`_Ed_ChildMarca`. Tests a `run-tests.ps1` comproven que
-    model→JSON→lector és **idèntic** a llegir l'original (sense pèrdues) per als 5
-    fitxers. La finestra (WinForms) només es pot provar a Windows.
+    (model editable ↔ JSON; node `@{tipus;titol;clau;cos;fills}`), `_Ed_SegmentsToRuns`
+    (fragments RTB → runs, forçant la invariant de no-solapament), `_Ed_CosToRich`/
+    `_Ed_RichToCos`, `_Ed_TipusOptions`/`_Ed_DefaultTipus`/`_Ed_CanAddChild`/
+    `_Ed_ChildTipus` (vocabulari unificat segons família i tipus del pare). Tests a
+    `run-tests.ps1` comproven que model→JSON→lector és **idèntic** a llegir l'original
+    (sense pèrdues) per als 5 fitxers. La finestra (WinForms) només es prova a Windows.
   - **Notes d'implementació WinForms** (per no repetir errors): les funcions que
     retornen col·leccions fan servir `return ,$coll` (el `,` evita que el pipeline
     desenrotlli l'ArrayList i trenqui `.Add`); els handlers capturen només `$state`

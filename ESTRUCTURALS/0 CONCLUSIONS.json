@@ -12,14 +12,12 @@
  ],
  "nodes": [
   {
-   "nivell": 1,
-   "marca": "grup",
+   "tipus": "seccio",
    "titol": "REQ1",
    "cos": [],
    "fills": [
     {
-     "nivell": 2,
-     "marca": "conclusio",
+     "tipus": "item",
      "titol": "Desistiment",
      "cos": [
       {
@@ -40,8 +38,7 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "conclusio",
+     "tipus": "item",
      "titol": "Terrassa projecte",
      "cos": [
       {
@@ -55,8 +52,7 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "conclusio",
+     "tipus": "item",
      "titol": "Requeriment",
      "cos": [
       {
@@ -70,8 +66,7 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "conclusio",
+     "tipus": "item",
      "titol": "Mancances formals",
      "cos": [
       {
@@ -85,8 +80,7 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "conclusio",
+     "tipus": "item",
      "titol": "Procediment d’esmena documentació",
      "cos": [
       {
@@ -114,8 +108,7 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "conclusio",
+     "tipus": "item",
      "titol": "Precinte inspecció activitat",
      "cos": [
       {
@@ -145,14 +138,12 @@
    ]
   },
   {
-   "nivell": 1,
-   "marca": "grup",
+   "tipus": "seccio",
    "titol": "SEGUIMENT",
    "cos": [],
    "fills": [
     {
-     "nivell": 2,
-     "marca": "conclusio",
+     "tipus": "item",
      "titol": "Finalitzat",
      "cos": [
       {
@@ -173,8 +164,7 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "conclusio",
+     "tipus": "item",
      "titol": "NO finalitzat",
      "cos": [
       {
@@ -195,8 +185,7 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "conclusio",
+     "tipus": "item",
      "titol": "NO finalitzat però aixecar cessament",
      "cos": [
       {
@@ -224,8 +213,7 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "conclusio",
+     "tipus": "item",
      "titol": "Tancament denúncia",
      "cos": [
       {
@@ -246,8 +234,7 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "conclusio",
+     "tipus": "item",
      "titol": "Tancament denúncia + inici procediment esmena",
      "cos": [
       {
@@ -263,14 +250,12 @@
    ]
   },
   {
-   "nivell": 1,
-   "marca": "grup",
+   "tipus": "seccio",
    "titol": "TERMINI",
    "cos": [],
    "fills": [
     {
-     "nivell": 2,
-     "marca": "conclusio",
+     "tipus": "item",
      "titol": "Ampliar",
      "cos": [
       {
@@ -291,8 +276,7 @@
      "fills": []
     },
     {
-     "nivell": 2,
-     "marca": "conclusio",
+     "tipus": "item",
      "titol": "No ampliar",
      "cos": [
       {
@@ -315,8 +299,7 @@
    ]
   },
   {
-   "nivell": 1,
-   "marca": "sempre",
+   "tipus": "sempre",
    "titol": "",
    "cos": [
     {
@@ -330,8 +313,7 @@
    "fills": []
   },
   {
-   "nivell": 1,
-   "marca": "sempre",
+   "tipus": "sempre",
    "titol": "",
    "cos": [
     {

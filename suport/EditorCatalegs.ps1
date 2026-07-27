@@ -6,17 +6,19 @@
 .DESCRIPTION
   Una sola finestra "Editar catalegs" que edita QUALSEVOL ESTRUCTURAL en JSON
   (REQ1, TERMINI, 0 CONCLUSIONS, ACT_EXTR_REQ, ACT_EXTR_FAV) amb la MATEIXA
-  interficie, perque tots comparteixen el mateix format:
-    { tipus, familia, intro[], nodes[{nivell,marca,titol,cos[],fills[]}] }
+  interficie i el MATEIX vocabulari, perque tots comparteixen el mateix format:
+    { tipus, familia, intro[], nodes[{tipus,titol,clau?,cos[],fills[]}] }
     <paragraf> = { runs:[{t,b,i}], url }
 
   - Un desplegable tria el document.
-  - Un arbre (TreeView) mostra l'estructura (nivell1/2/3, fills imbricats) + una
+  - Un arbre (TreeView) mostra l'estructura (fills imbricats de veritat) + una
     entrada especial per a la "introduccio" (cos fix de TERMINI / capcalera de
     les conclusions).
-  - A la dreta s'edita el titol, el tipus (marca) i el COS del node amb
+  - A la dreta s'edita el titol, el TIPUS (mateixos noms a tots els catalegs;
+    SEMPRE canviable quan hi ha mes d'una opcio) i el COS del node amb
     negreta/cursiva REALS (RichTextBox), i botons per inserir [CAMP:]/[OPCIO:] i
-    enllacos.
+    enllacos. A ACT_EXTR es mostra tambe la CLAU funcional ([[KEY]]) en un camp
+    a part i BLOQUEJAT (no s'edita mai des d'aqui).
   - Es poden afegir, eliminar i moure nodes. En desar s'escriu el JSON (amb
     validacio + copia .bak de seguretat).
 
@@ -29,8 +31,9 @@
 # FUNCIONS PURES: model editable <-> JSON
 # ===========================================================================
 # Model editable = hashtables/ArrayLists mutables (facils d'editar i de tornar a
-# serialitzar amb ConvertTo-Json). Node = @{nivell;marca;titol;cos;fills};
-# paragraf = @{runs=@(@{t;b;i});url}.
+# serialitzar amb ConvertTo-Json). Node = @{tipus;titol;clau;cos;fills};
+# paragraf = @{runs=@(@{t;b;i});url}. 'clau' nomes te valor a ACT_EXTR (la [[KEY]]
+# funcional); als altres catalegs es queda buida i no s'escriu al JSON.
 
 function _Ed_ParasFromJson($paras) {
     $out = New-Object System.Collections.ArrayList
@@ -49,11 +52,11 @@ function _Ed_NodesFromJson($nodes) {
     $out = New-Object System.Collections.ArrayList
     foreach ($n in @($nodes)) {
         [void]$out.Add(@{
-            nivell = [int]$n.nivell
-            marca  = [string]$n.marca
-            titol  = [string]$n.titol
-            cos    = (_Ed_ParasFromJson $n.cos)
-            fills  = (_Ed_NodesFromJson $n.fills)
+            tipus = [string]$n.tipus
+            titol = [string]$n.titol
+            clau  = [string]$n.clau
+            cos   = (_Ed_ParasFromJson $n.cos)
+            fills = (_Ed_NodesFromJson $n.fills)
         })
     }
     return ,$out
@@ -89,13 +92,16 @@ function _Ed_ParasToJson($paras) {
 function _Ed_NodesToJson($nodes) {
     $arr = @()
     foreach ($n in @($nodes)) {
-        $arr += ,([ordered]@{
-            nivell = [int]$n.nivell
-            marca  = [string]$n.marca
-            titol  = [string]$n.titol
-            cos    = (_Ed_ParasToJson $n.cos)
-            fills  = (_Ed_NodesToJson $n.fills)
-        })
+        # Ordre de claus identic al dels JSON generats: tipus, titol, [clau], cos,
+        # fills. 'clau' nomes s'escriu si te valor (ACT_EXTR).
+        $no = [ordered]@{
+            tipus = [string]$n.tipus
+            titol = [string]$n.titol
+        }
+        if (-not [string]::IsNullOrEmpty([string]$n.clau)) { $no.clau = [string]$n.clau }
+        $no.cos   = (_Ed_ParasToJson $n.cos)
+        $no.fills = (_Ed_NodesToJson $n.fills)
+        $arr += ,$no
     }
     return ,$arr
 }
@@ -165,48 +171,59 @@ function _Ed_RichToCos($richParas) {
 }
 
 # ===========================================================================
-# FUNCIONS PURES: semantica de marques per familia/nivell
+# FUNCIONS PURES: semantica del TIPUS (vocabulari unificat) per familia i pare
 # ===========================================================================
-function _Ed_MarcaOptions([string]$familia, [int]$nivell) {
+# Vocabulari unic a tots els catalegs. Els tipus valids d'un node depenen de la
+# FAMILIA i del TIPUS DEL PARE (arrel = pare buit ''); aixi la imbricacio es real
+# (una subseccio conte items, un item conte subitems...). El lector torna a mapar
+# cada tipus al Kind/Style intern, de manera que la generacio no canvia.
+function _Ed_TipusOptions([string]$familia, [string]$parentTipus) {
     switch ($familia) {
         'cataleg' {
-            if ($nivell -eq 1) { return @('seccio') }
-            if ($nivell -eq 2) { return @('item', 'subseccio', 'intro') }
-            return @('fill')
+            if ([string]::IsNullOrEmpty($parentTipus)) { return @('seccio') }
+            switch ($parentTipus) {
+                'seccio'    { return @('item', 'subseccio', 'text') }
+                'subseccio' { return @('item') }
+                'item'      { return @('subitem') }
+            }
+            return @('item')
         }
         'conclusions' {
-            if ($nivell -eq 1) { return @('grup', 'sempre') }
-            return @('conclusio')
+            if ([string]::IsNullOrEmpty($parentTipus)) { return @('seccio', 'sempre') }
+            return @('item')
         }
         'actextr' {
-            if ($nivell -eq 1) { return @('seccio') }
-            return @('bloc')
+            if ([string]::IsNullOrEmpty($parentTipus)) { return @('seccio') }
+            # Sota una seccio (o dins d'un bloc) tots els estils de bloc son valids.
+            return @('item', 'subitem', 'text', 'nota', 'etiqueta', 'capcalera', 'paragraf')
         }
     }
     return @('')
 }
 
-function _Ed_DefaultMarca([string]$familia, [int]$nivell) {
-    return @(_Ed_MarcaOptions $familia $nivell)[0]
+function _Ed_DefaultTipus([string]$familia, [string]$parentTipus) {
+    return @(_Ed_TipusOptions $familia $parentTipus)[0]
 }
 
 # Un node d'aquesta familia pot tenir fills? (nomes on el lector els llegeix.)
 function _Ed_CanAddChild([string]$familia, $node) {
     switch ($familia) {
-        'cataleg'     { return ([string]$node.marca -in @('seccio', 'item')) }
-        'conclusions' { return ([string]$node.marca -eq 'grup') }
-        'actextr'     { return ([string]$node.marca -eq 'seccio') }
+        'cataleg'     { return ([string]$node.tipus -in @('seccio', 'subseccio', 'item')) }
+        'conclusions' { return ([string]$node.tipus -eq 'seccio') }
+        'actextr'     { return ([string]$node.tipus -in @('seccio', 'item')) }
     }
     return $false
 }
 
-function _Ed_ChildMarca([string]$familia, [string]$parentMarca) {
+# El tipus d'un fill nou, segons familia i tipus del pare (sempre dins de
+# _Ed_TipusOptions del pare, perque el combo el pugui mostrar).
+function _Ed_ChildTipus([string]$familia, [string]$parentTipus) {
     switch ($familia) {
-        'cataleg'     { if ($parentMarca -eq 'seccio') { return 'item' } else { return 'fill' } }
-        'conclusions' { return 'conclusio' }
-        'actextr'     { return 'bloc' }
+        'cataleg'     { if ($parentTipus -eq 'seccio' -or $parentTipus -eq 'subseccio') { return 'item' } else { return 'subitem' } }
+        'conclusions' { return 'item' }
+        'actextr'     { if ($parentTipus -eq 'seccio') { return 'item' } else { return 'subitem' } }
     }
-    return ''
+    return (_Ed_DefaultTipus $familia $parentTipus)
 }
 
 # Text curt per a l'etiqueta d'un node a l'arbre.
@@ -217,7 +234,7 @@ function _Ed_NodeLabel($node) {
     }
     $t = ($t -replace '\s+', ' ').Trim()
     if ($t.Length -gt 64) { $t = $t.Substring(0, 64) + [char]0x2026 }
-    return ('[' + [string]$node.marca + '] ' + $t)
+    return ('[' + [string]$node.tipus + '] ' + $t)
 }
 
 # Llista dels ESTRUCTURALS editables (tots els *.json de la carpeta), amb nom
@@ -354,11 +371,13 @@ function _Ed_InsertPlain($rtb, [string]$text, $baseFont) {
 }
 
 # ---- Arbre ----------------------------------------------------------------
-function _Ed_AddTreeNode($parentNodes, $node, $siblings) {
+# El tag de cada TreeNode guarda: el node de model, la llista de germans (per
+# moure/eliminar) i el NODE PARE ($null a l'arrel) per calcular els tipus valids.
+function _Ed_AddTreeNode($parentNodes, $node, $siblings, $parentNode) {
     $tn = New-Object System.Windows.Forms.TreeNode((_Ed_NodeLabel $node))
-    $tn.Tag = @{ Kind = 'node'; Node = $node; Parent = $siblings }
+    $tn.Tag = @{ Kind = 'node'; Node = $node; Parent = $siblings; ParentNode = $parentNode }
     [void]$parentNodes.Add($tn)
-    foreach ($ch in @($node.fills)) { _Ed_AddTreeNode $tn.Nodes $ch $node.fills }
+    foreach ($ch in @($node.fills)) { _Ed_AddTreeNode $tn.Nodes $ch $node.fills $node }
     $tn.Expand()
     return $tn
 }
@@ -376,7 +395,7 @@ function _Ed_BuildTree($state) {
     $tnIntro = New-Object System.Windows.Forms.TreeNode($introLabel)
     $tnIntro.Tag = @{ Kind = 'intro' }
     [void]$tree.Nodes.Add($tnIntro)
-    foreach ($n in @($m.nodes)) { [void](_Ed_AddTreeNode $tree.Nodes $n $m.nodes) }
+    foreach ($n in @($m.nodes)) { [void](_Ed_AddTreeNode $tree.Nodes $n $m.nodes $null) }
     $tree.EndUpdate()
     $state.Busy = $false
 }
@@ -406,11 +425,15 @@ function _Ed_SelectModelNode($state, $target) {
 function _Ed_LoadEditor($state) {
     $state.Busy = $true
     $tag = $state.Bound
+    $isActextr = ([string]$state.Model.familia -eq 'actextr')
     if ($null -eq $tag) {
         $state.TitolBox.Text = ''
         $state.TitolBox.Enabled = $false
-        $state.MarcaCombo.Items.Clear()
-        $state.MarcaCombo.Enabled = $false
+        $state.TipusCombo.Items.Clear()
+        $state.TipusCombo.Enabled = $false
+        $state.ClauLabel.Visible = $false
+        $state.ClauBox.Visible = $false
+        $state.ClauBox.Text = ''
         $state.Rtb.Clear()
         $state.Rtb.Enabled = $false
         $state.Busy = $false
@@ -419,21 +442,30 @@ function _Ed_LoadEditor($state) {
     if ($tag.Kind -eq 'intro') {
         $state.TitolBox.Text = ''
         $state.TitolBox.Enabled = $false
-        $state.MarcaCombo.Items.Clear()
-        $state.MarcaCombo.Enabled = $false
+        $state.TipusCombo.Items.Clear()
+        $state.TipusCombo.Enabled = $false
+        $state.ClauLabel.Visible = $false
+        $state.ClauBox.Visible = $false
+        $state.ClauBox.Text = ''
         $state.Rtb.Enabled = $true
         _Ed_RenderRichToRtb $state.Rtb (_Ed_CosToRich $state.Model.intro) $state.RtbFont
     } else {
         $node = $tag.Node
         $state.TitolBox.Enabled = $true
         $state.TitolBox.Text = [string]$node.titol
-        $opts = @(_Ed_MarcaOptions $state.Model.familia ([int]$node.nivell))
-        $state.MarcaCombo.Items.Clear()
-        foreach ($o in $opts) { [void]$state.MarcaCombo.Items.Add($o) }
-        $idx = $state.MarcaCombo.Items.IndexOf([string]$node.marca)
-        if ($idx -lt 0 -and $state.MarcaCombo.Items.Count -gt 0) { $idx = 0 }
-        if ($idx -ge 0) { $state.MarcaCombo.SelectedIndex = $idx }
-        $state.MarcaCombo.Enabled = ($opts.Count -gt 1)
+        $parentTipus = if ($null -ne $tag.ParentNode) { [string]$tag.ParentNode.tipus } else { '' }
+        $opts = @(_Ed_TipusOptions $state.Model.familia $parentTipus)
+        $state.TipusCombo.Items.Clear()
+        foreach ($o in $opts) { [void]$state.TipusCombo.Items.Add($o) }
+        $idx = $state.TipusCombo.Items.IndexOf([string]$node.tipus)
+        if ($idx -lt 0 -and $state.TipusCombo.Items.Count -gt 0) { $idx = 0 }
+        if ($idx -ge 0) { $state.TipusCombo.SelectedIndex = $idx }
+        # SEMPRE canviable quan hi ha mes d'una opcio.
+        $state.TipusCombo.Enabled = ($opts.Count -gt 1)
+        # Camp CLAU: nomes a ACT_EXTR, i BLOQUEJAT (mostra la [[KEY]] funcional).
+        $state.ClauLabel.Visible = $isActextr
+        $state.ClauBox.Visible = $isActextr
+        $state.ClauBox.Text = if ($isActextr) { [string]$node.clau } else { '' }
         $state.Rtb.Enabled = $true
         _Ed_RenderRichToRtb $state.Rtb (_Ed_CosToRich $node.cos) $state.RtbFont
     }
@@ -449,9 +481,10 @@ function _Ed_FlushEditor($state) {
     }
     $node = $tag.Node
     $node.titol = [string]$state.TitolBox.Text
-    if ($state.MarcaCombo.Enabled -and $null -ne $state.MarcaCombo.SelectedItem) {
-        $node.marca = [string]$state.MarcaCombo.SelectedItem
+    if ($state.TipusCombo.Enabled -and $null -ne $state.TipusCombo.SelectedItem) {
+        $node.tipus = [string]$state.TipusCombo.SelectedItem
     }
+    # 'clau' es nomes lectura: no es toca mai des de l'editor.
     $node.cos = _Ed_RichToCos (_Ed_ReadRtbToRich $state.Rtb)
 }
 
@@ -461,10 +494,10 @@ function _Ed_RelabelSelected($state) {
     $tag = $state.Bound
     if ($null -eq $tag -or $tag.Kind -ne 'node') { return }
     if ($null -eq $state.Tree.SelectedNode) { return }
-    $marca = if ($null -ne $state.MarcaCombo.SelectedItem) { [string]$state.MarcaCombo.SelectedItem } else { [string]$tag.Node.marca }
+    $tipus = if ($null -ne $state.TipusCombo.SelectedItem) { [string]$state.TipusCombo.SelectedItem } else { [string]$tag.Node.tipus }
     $t = ([string]$state.TitolBox.Text -replace '\s+', ' ').Trim()
     if ($t.Length -gt 64) { $t = $t.Substring(0, 64) + [char]0x2026 }
-    $state.Tree.SelectedNode.Text = ('[' + $marca + '] ' + $t)
+    $state.Tree.SelectedNode.Text = ('[' + $tipus + '] ' + $t)
 }
 
 function _Ed_OnTreeSelect($state) {
@@ -476,9 +509,9 @@ function _Ed_OnTreeSelect($state) {
 }
 
 # ---- Operacions d'estructura ----------------------------------------------
-function _Ed_NewNode([int]$nivell, [string]$marca) {
+function _Ed_NewNode([string]$tipus) {
     return @{
-        nivell = $nivell; marca = $marca; titol = ''
+        tipus = $tipus; titol = ''; clau = ''
         cos = (New-Object System.Collections.ArrayList)
         fills = (New-Object System.Collections.ArrayList)
     }
@@ -488,16 +521,19 @@ function _Ed_AddSibling($state) {
     _Ed_FlushEditor $state
     $tag = $state.Bound
     if ($null -eq $tag -or $tag.Kind -eq 'intro') {
-        # Sense node (o intro): afegeix un node de primer nivell al final.
-        $marca = _Ed_DefaultMarca $state.Model.familia 1
-        $new = _Ed_NewNode 1 $marca
+        # Sense node (o intro): afegeix un node d'arrel al final.
+        $tipus = _Ed_DefaultTipus $state.Model.familia ''
+        $new = _Ed_NewNode $tipus
         [void]$state.Model.nodes.Add($new)
     } else {
         $sib = $tag.Parent
         $node = $tag.Node
         $idx = $sib.IndexOf($node)
-        $marca = if (@(_Ed_MarcaOptions $state.Model.familia ([int]$node.nivell)) -contains [string]$node.marca) { [string]$node.marca } else { _Ed_DefaultMarca $state.Model.familia ([int]$node.nivell) }
-        $new = _Ed_NewNode ([int]$node.nivell) $marca
+        # El germa nou comparteix el pare del node actual: mateix conjunt de tipus.
+        $parentTipus = if ($null -ne $tag.ParentNode) { [string]$tag.ParentNode.tipus } else { '' }
+        $opts = @(_Ed_TipusOptions $state.Model.familia $parentTipus)
+        $tipus = if ($opts -contains [string]$node.tipus) { [string]$node.tipus } else { $opts[0] }
+        $new = _Ed_NewNode $tipus
         if ($idx -ge 0) { $sib.Insert($idx + 1, $new) } else { [void]$sib.Add($new) }
     }
     $state.Dirty = $true
@@ -514,8 +550,8 @@ function _Ed_AddChild($state) {
         [System.Windows.Forms.MessageBox]::Show('Aquest tipus de node no pot tenir fills.', 'Editar catalegs', 'OK', 'Information') | Out-Null
         return
     }
-    $marca = _Ed_ChildMarca $state.Model.familia ([string]$node.marca)
-    $new = _Ed_NewNode ([int]$node.nivell + 1) $marca
+    $tipus = _Ed_ChildTipus $state.Model.familia ([string]$node.tipus)
+    $new = _Ed_NewNode $tipus
     [void]$node.fills.Add($new)
     $state.Dirty = $true
     _Ed_BuildTree $state
@@ -633,7 +669,8 @@ function Show-CatalegEditor([string]$focusDoc = '') {
 
     $state = @{
         Model = $null; CurrentDoc = $null; Bound = $null; Dirty = $false; Busy = $false
-        Tree = $null; TitolBox = $null; MarcaCombo = $null; Rtb = $null; RtbFont = $baseRtbFont
+        Tree = $null; TitolBox = $null; TipusCombo = $null; ClauLabel = $null; ClauBox = $null
+        Rtb = $null; RtbFont = $baseRtbFont
     }
 
     $yTop = 66
@@ -696,7 +733,7 @@ function Show-CatalegEditor([string]$focusDoc = '') {
     [void]$form.Controls.Add($tbTit)
     $state.TitolBox = $tbTit
 
-    # Tipus (marca).
+    # Tipus (vocabulari unificat, sempre canviable quan hi ha >1 opcio).
     $lblMar = New-Object System.Windows.Forms.Label
     $lblMar.Text = 'Tipus:'
     $lblMar.Location = New-Object System.Drawing.Point($xR, ($yTop + 58))
@@ -706,9 +743,30 @@ function Show-CatalegEditor([string]$focusDoc = '') {
     $cbMar = New-Object System.Windows.Forms.ComboBox
     $cbMar.DropDownStyle = 'DropDownList'
     $cbMar.Location = New-Object System.Drawing.Point(($xR + 52), ($yTop + 55))
-    $cbMar.Size = New-Object System.Drawing.Size(190, 26)
+    $cbMar.Size = New-Object System.Drawing.Size(160, 26)
     [void]$form.Controls.Add($cbMar)
-    $state.MarcaCombo = $cbMar
+    $state.TipusCombo = $cbMar
+
+    # Clau (nomes ACT_EXTR): la [[KEY]] funcional, BLOQUEJADA (nomes lectura).
+    $lblClau = New-Object System.Windows.Forms.Label
+    $lblClau.Text = 'Clau:'
+    $lblClau.Location = New-Object System.Drawing.Point(($xR + 224), ($yTop + 58))
+    $lblClau.AutoSize = $true
+    $lblClau.Visible = $false
+    [void]$form.Controls.Add($lblClau)
+    $state.ClauLabel = $lblClau
+
+    $tbClau = New-Object System.Windows.Forms.TextBox
+    $tbClau.Location = New-Object System.Drawing.Point(($xR + 262), ($yTop + 55))
+    $tbClau.Size = New-Object System.Drawing.Size(296, 26)
+    $tbClau.Anchor = 'Top, Left, Right'
+    $tbClau.ReadOnly = $true
+    $tbClau.TabStop = $false
+    $tbClau.BackColor = [System.Drawing.Color]::FromArgb(238, 241, 245)
+    $tbClau.ForeColor = [System.Drawing.Color]::FromArgb(90, 99, 110)
+    $tbClau.Visible = $false
+    [void]$form.Controls.Add($tbClau)
+    $state.ClauBox = $tbClau
 
     # Barra d'eines del cos.
     $yTool = $yTop + 90
@@ -783,7 +841,16 @@ function Show-CatalegEditor([string]$focusDoc = '') {
     }.GetNewClosure())
     $rtb.add_TextChanged({ if (-not $state.Busy) { $state.Dirty = $true } }.GetNewClosure())
     $tbTit.add_TextChanged({ if (-not $state.Busy) { $state.Dirty = $true; _Ed_RelabelSelected $state } }.GetNewClosure())
-    $cbMar.add_SelectedIndexChanged({ if (-not $state.Busy) { $state.Dirty = $true; _Ed_RelabelSelected $state } }.GetNewClosure())
+    $cbMar.add_SelectedIndexChanged({
+        if ($state.Busy) { return }
+        $state.Dirty = $true
+        # Aplica el canvi de tipus al node lligat i refresca l'etiqueta de l'arbre.
+        $tag = $state.Bound
+        if ($null -ne $tag -and $tag.Kind -eq 'node' -and $null -ne $state.TipusCombo.SelectedItem) {
+            $tag.Node.tipus = [string]$state.TipusCombo.SelectedItem
+        }
+        _Ed_RelabelSelected $state
+    }.GetNewClosure())
 
     $btnAdd.add_Click({ _Ed_AddSibling $state }.GetNewClosure())
     $btnAddSub.add_Click({ _Ed_AddChild $state }.GetNewClosure())
