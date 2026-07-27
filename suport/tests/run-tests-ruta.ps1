@@ -103,7 +103,16 @@ Assert ($htmlB -match "tr class='base'")     'fila de la BASE marcada amb class=
 Assert ($htmlB -match '>BASE<')              'cel·la ID amb el text BASE'
 Assert ($htmlB -match 'marker-base')         'CSS .marker-base present per al punt 0'
 Assert ($htmlB -match "id.{0,3}:.{0,3}.BASE.") 'JSON stops conte id=BASE'
-Assert ($htmlB -match 'order.{0,3}:.{0,3}0,') 'JSON stops conte order=0'
+# Sense dependre del que ve DESPRES (abans exigia una coma final, i quan
+# 'order' queia l'ultima propietat del JSON la prova fallava sense motiu).
+Assert ($htmlB -match 'order.{0,3}:.{0,3}0\b') 'JSON stops conte order=0'
+# L'ordre de les propietats del JSON ha de ser SEMPRE el mateix ([ordered] a
+# Build-RouteHtml): amb una hashtable normal canviava a cada execucio.
+$stopsJson0 = [regex]::Match($htmlB, '\[\{"[^\]]*?\}\]').Value
+$iOrder = $stopsJson0.IndexOf('"order"')
+$iId    = $stopsJson0.IndexOf('"id"')
+$iAddr  = $stopsJson0.IndexOf('"address"')
+Assert ($iOrder -ge 0 -and $iOrder -lt $iId -and $iId -lt $iAddr) 'JSON stops mante l ordre de propietats estable (order, id, address)'
 
 Write-Host "`n--- Signatures de l UI (Show-IdInputForm + Show-WarningsDialog) ---"
 $idfParams = (Get-Command Show-IdInputForm).Parameters.Keys
