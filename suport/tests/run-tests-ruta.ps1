@@ -14,18 +14,7 @@ $env:RUTA_TEST = '1'   # mode headless: nomes defineix funcions, no obre res
 $scriptPath = Join-Path (Split-Path -Parent $PSScriptRoot) (Join-Path 'rutes' 'Ruta.ps1')
 . $scriptPath
 
-$script:pass = 0
-$script:fail = 0
-function Assert($cond, $name) {
-    if ($cond) { $script:pass++; Write-Host "  OK   $name" -ForegroundColor Green }
-    else       { $script:fail++; Write-Host "  FAIL $name" -ForegroundColor Red }
-}
-function AssertEq($actual, $expected, $name) {
-    Assert ([string]$actual -eq [string]$expected) "$name (esperat '$expected', obtingut '$actual')"
-}
-function AssertNear($actual, $expected, $tol, $name) {
-    Assert ([math]::Abs([double]$actual - [double]$expected) -le $tol) "$name (esperat ~$expected, obtingut $actual)"
-}
+. (Join-Path $PSScriptRoot 'TestLib.ps1')   # Assert / AssertEq / AssertNear / Write-TestSummary
 
 Write-Host "`n--- ConvertFrom-IdList ---"
 AssertEq ((ConvertFrom-IdList '1429 1428,1427') -join '|') '1429|1428|1427' 'separadors espai i coma'
@@ -114,7 +103,16 @@ Assert ($htmlB -match "tr class='base'")     'fila de la BASE marcada amb class=
 Assert ($htmlB -match '>BASE<')              'cel·la ID amb el text BASE'
 Assert ($htmlB -match 'marker-base')         'CSS .marker-base present per al punt 0'
 Assert ($htmlB -match "id.{0,3}:.{0,3}.BASE.") 'JSON stops conte id=BASE'
-Assert ($htmlB -match 'order.{0,3}:.{0,3}0,') 'JSON stops conte order=0'
+# Sense dependre del que ve DESPRES (abans exigia una coma final, i quan
+# 'order' queia l'ultima propietat del JSON la prova fallava sense motiu).
+Assert ($htmlB -match 'order.{0,3}:.{0,3}0\b') 'JSON stops conte order=0'
+# L'ordre de les propietats del JSON ha de ser SEMPRE el mateix ([ordered] a
+# Build-RouteHtml): amb una hashtable normal canviava a cada execucio.
+$stopsJson0 = [regex]::Match($htmlB, '\[\{"[^\]]*?\}\]').Value
+$iOrder = $stopsJson0.IndexOf('"order"')
+$iId    = $stopsJson0.IndexOf('"id"')
+$iAddr  = $stopsJson0.IndexOf('"address"')
+Assert ($iOrder -ge 0 -and $iOrder -lt $iId -and $iId -lt $iAddr) 'JSON stops mante l ordre de propietats estable (order, id, address)'
 
 Write-Host "`n--- Signatures de l UI (Show-IdInputForm + Show-WarningsDialog) ---"
 $idfParams = (Get-Command Show-IdInputForm).Parameters.Keys
@@ -164,8 +162,4 @@ Assert ($html -match 'QUINTANA I MILLAS') 'inclou l adreca'
 Assert ($html -match 'window.print') 'inclou el boto d imprimir'
 Assert ($html -match '5 km') 'mostra els km de la ruta'
 
-$summaryColor = if ($script:fail -eq 0) { 'Green' } else { 'Red' }
-Write-Host "`n========================================"
-Write-Host ("RESULTAT: {0} OK, {1} FAIL" -f $script:pass, $script:fail) -ForegroundColor $summaryColor
-Write-Host "========================================"
-if ($script:fail -gt 0) { exit 1 } else { exit 0 }
+exit (Write-TestSummary 'RESULTAT')

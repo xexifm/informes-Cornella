@@ -25,12 +25,12 @@ $ScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 # viu a suport/, que es el directori pare.
 $SuportDir  = Split-Path -Parent $ScriptRoot
 
-# Carreguem GenerarInforme.ps1 en headless NOMES per obtenir les rutes de Drive
-# ($DriveEntradaDir, $DriveProcessatsDir...). La generacio real es fa cridant el
-# .ps1 com a proces independent (amb -DesDePaquet), per aïllar cada informe.
-$env:GENINFORME_TEST = '1'
-. (Join-Path $SuportDir 'GenerarInforme.ps1')
-Remove-Item Env:\GENINFORME_TEST -ErrorAction SilentlyContinue
+# Carreguem el MOTOR (nomes definicions) per obtenir les rutes de Drive
+# ($DriveEntradaDir, $DriveProcessatsDir...). Som un script de consola: no
+# volem WinForms. La generacio real es fa cridant GenerarInforme.ps1 com a
+# proces independent (amb -DesDePaquet), per aïllar cada informe.
+$MotorSenseGui = $true
+. (Join-Path $SuportDir 'Motor.ps1')
 
 $GenerarPs1 = Join-Path $SuportDir 'GenerarInforme.ps1'
 

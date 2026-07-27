@@ -8,8 +8,8 @@
 # Execucio (Windows o Linux amb pwsh):
 #   pwsh -File suport/tests/run-tests-actextr.ps1
 #
-# Carrega GenerarInforme.ps1 en mode "headless" (GENINFORME_TEST=1), que al seu
-# torn fa dot-source d'ActExtr.ps1.
+# Carrega Motor.ps1 en mode "headless" (GENINFORME_TEST=1), que al seu torn fa
+# dot-source d'ActExtr.ps1.
 
 $ErrorActionPreference = 'Stop'
 $env:GENINFORME_TEST = '1'
@@ -18,18 +18,10 @@ if ([string]::IsNullOrEmpty($env:LOCALAPPDATA)) { $env:LOCALAPPDATA = [System.IO
 # Registre en una carpeta temporal aillada (NO el del repo).
 $script:ActExtrRegistryDir = Join-Path ([System.IO.Path]::GetTempPath()) ("actextr-test-" + [guid]::NewGuid().ToString('N'))
 
-$scriptPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'GenerarInforme.ps1'
-. $scriptPath   # dot-source: defineix les funcions, no executa Main
+$scriptPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'Motor.ps1'
+. $scriptPath   # dot-source: defineix les funcions del motor
 
-$script:pass = 0
-$script:fail = 0
-function Assert($cond, $name) {
-    if ($cond) { $script:pass++; Write-Host "  OK   $name" -ForegroundColor Green }
-    else       { $script:fail++; Write-Host "  FAIL $name" -ForegroundColor Red }
-}
-function AssertEq($actual, $expected, $name) {
-    Assert ([string]$actual -eq [string]$expected) "$name (esperat '$expected', obtingut '$actual')"
-}
+. (Join-Path $PSScriptRoot 'TestLib.ps1')   # Assert / AssertEq / Write-TestSummary
 
 Write-Host "`n--- Lookups del Decret (valors calculats) ---"
 # Mostra de l'Excel: aforament 34719 -> 35 vigilants, 37 controladors,
@@ -245,6 +237,4 @@ AssertEq ((Get-ActExtrActivity $reg2 '1429').Header.TITULAR) 'BIG TOURS 2' 'upse
 # Neteja de la carpeta temporal del registre.
 try { Remove-Item -LiteralPath $script:ActExtrRegistryDir -Recurse -Force -ErrorAction SilentlyContinue } catch { }
 
-Write-Host "`n========================================" -ForegroundColor Cyan
-Write-Host ("RESULTAT ACT_EXTR: {0} OK, {1} FAIL" -f $script:pass, $script:fail) -ForegroundColor Cyan
-if ($script:fail -gt 0) { exit 1 } else { exit 0 }
+exit (Write-TestSummary 'RESULTAT ACT_EXTR')

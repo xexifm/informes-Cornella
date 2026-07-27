@@ -15,15 +15,7 @@ $env:PRECINTADES_TEST = '1'   # mode headless: nomes defineix funcions
 $scriptPath = Join-Path (Split-Path -Parent $PSScriptRoot) (Join-Path 'rutes' 'Precintades.ps1')
 . $scriptPath
 
-$script:pass = 0
-$script:fail = 0
-function Assert($cond, $name) {
-    if ($cond) { $script:pass++; Write-Host "  OK   $name" -ForegroundColor Green }
-    else       { $script:fail++; Write-Host "  FAIL $name" -ForegroundColor Red }
-}
-function AssertEq($actual, $expected, $name) {
-    Assert ([string]$actual -eq [string]$expected) "$name (esperat '$expected', obtingut '$actual')"
-}
+. (Join-Path $PSScriptRoot 'TestLib.ps1')   # Assert / AssertEq / Write-TestSummary
 
 Write-Host "`n--- Test-IsPrecintada (camp + regla del valor 'SI') ---"
 Assert  (Test-IsPrecintada 'PRECINTE ACTIVITAT?' 'SI, PRECINTAT 24/03/2026')       'valor comenca per SI, ...'
@@ -105,8 +97,4 @@ Assert (Test-ShouldUpdatePrecintades ([datetime]'2026-07-20') $dPub)         'ba
 Assert (Test-ShouldUpdatePrecintades ([datetime]'2026-07-16') ([datetime]::MinValue)) 'sense mapa previ -> actualitza'
 Assert (Test-ShouldUpdatePrecintades ([datetime]::MinValue) $dPub)           'sense data local fiable -> actualitza (per seguretat)'
 
-$summaryColor = if ($script:fail -eq 0) { 'Green' } else { 'Red' }
-Write-Host "`n========================================"
-Write-Host ("RESULTAT: {0} OK, {1} FAIL" -f $script:pass, $script:fail) -ForegroundColor $summaryColor
-Write-Host "========================================"
-if ($script:fail -gt 0) { exit 1 } else { exit 0 }
+exit (Write-TestSummary 'RESULTAT')

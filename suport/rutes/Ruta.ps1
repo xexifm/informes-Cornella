@@ -400,8 +400,13 @@ function ConvertFrom-OsrmTrip($resp, [int]$count) {
 # llista de [lat,lon] de la linia de la ruta (pot ser $null). $mode es un text
 # descriptiu ('xarxa' o 'aproximada'). Retorna l'HTML com a cadena.
 function Build-RouteHtml($stops, $geometry, [double]$distanceM, [double]$durationS, [string]$mode, [string]$dbLabel) {
+    # [ordered]: una hashtable normal no garanteix l'ordre de les claus, aixi
+    # que ConvertTo-Json treia les propietats en un ordre DIFERENT a cada
+    # execucio. El JavaScript hi accedeix pel nom i li era igual, pero feia
+    # que l'HTML generat canvies sense que canviessin les dades (i que una
+    # prova que mirava el text del JSON fallesses una vegada de cada sis).
     $stopsJson = ConvertTo-Json @($stops | ForEach-Object {
-        @{ order = $_.Order; id = $_.Id; address = $_.Address; lat = $_.Lat; lon = $_.Lon }
+        [ordered]@{ order = $_.Order; id = $_.Id; address = $_.Address; lat = $_.Lat; lon = $_.Lon }
     }) -Depth 5 -Compress
     if (@($stops).Count -eq 1) { $stopsJson = "[$stopsJson]" }  # ConvertTo-Json no embolcalla 1 element
 

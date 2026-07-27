@@ -1,5 +1,45 @@
 # Notes per a Claude (mantenir entre sessions)
 
+## Arquitectura: motor, punt d'entrada i UiComuns
+- **`suport/Motor.ps1`** = el motor. NOMÉS defineix (funcions, rutes,
+  configuració); carregar-lo no obre res ni genera res. Abans es deia
+  `GenerarInforme.ps1` i era alhora motor i programa.
+- **`suport/GenerarInforme.ps1`** = el punt d'entrada (~45 línies): té el
+  `param(-DesDePaquet)`, carrega `Motor.ps1` i crida `Main` (o
+  `Invoke-GenerateFromPaquet`). És el que llancen el `.bat`/`.vbs`.
+- **Reutilitzar el motor com a biblioteca**: `$MotorSenseGui = $true` i
+  dot-source de `Motor.ps1`. Ho fan `mobil/Vigilant.ps1` i
+  `mobil/ExportaDades.ps1`. **Ja no cal `$env:GENINFORME_TEST = '1'`** per
+  evitar que s'executi el programa: aquesta bandera ara només vol dir "no
+  carreguis WinForms" i la fan servir les proves.
+- **`suport/UiComuns.ps1`** = helpers de WinForms compartits; **es carrega el
+  primer** de tots els mòduls i no coneix res del motor. Hi viuen `_NewForm`,
+  `_AddBrandHeader`, `_AddStepBar`, `_StylePrimaryButton`/`_StyleSecondaryButton`,
+  **`_MakeMultiFilter`** (abans al punt d'entrada) i **`_AddConfigRow`** (abans
+  a `Configuracio.ps1`). Regla: si un helper d'interfície el fan servir dues
+  pantalles, va aquí — mai a la pantalla que el va estrenar.
+- `_MakeMultiFilter().GetSelected` retorna **sempre** un `[string[]]` (el `,`
+  del `return ,([string[]]$s)` és deliberat). Consumeix-lo com
+  `$sel = & $mf.GetSelected`, **sense `@()`** al voltant: `@()` l'embolcallaria
+  en un array d'un element i trencaria el "cap opció marcada = passa tot".
+- **Helpers de graella** (`UiComuns.ps1`): `_StyleListGrid` (carcassa),
+  `_AddSearchBox`, `_EnableHeaderSort` + `_SetSortGlyph` (ordre programàtic amb
+  fletxa). Els fan servir *Editar base d'informes* i *Controls periòdics*.
+  L'estat d'ordre s'ha de dir **`$state.SortColIdx` / `$state.SortAsc`** (és el
+  que espera `_EnableHeaderSort`). Deliberadament **NO** hi ha un "constructor
+  de graelles" únic: les columnes, el filtratge i l'ordenació de les dues
+  pantalles són massa diferents (una agrupa sempre per activitat, l'altra
+  ordena per data real i té casella de selecció) i el genèric sortiria més
+  complicat que les dues pantalles juntes.
+- **Compte amb les col·lisions de noms**: tot el codi cau al mateix àmbit
+  global (dot-source), i **el darrer fitxer carregat guanya, en silenci**.
+  Abans d'afegir una funció nova, `grep` del nom. Ja va passar: es va crear un
+  `_TextMatches` a `UiComuns.ps1` sense veure que ja n'hi havia un a
+  `Motor.ps1` (el del cercador del TreeView de catàlegs) — el de `Motor.ps1`
+  el tapava i les proves ho van destapar. El filtre de text de les graelles
+  reutilitza el de `Motor.ps1`; se li passa el text de cerca **ja net**
+  (`.Trim().ToLower()`), que és el seu contracte.
+
 ## Desplegament de l'usuari
 - L'usuari executa el programa des d'un **clone de git local** al seu PC.
 - Per actualitzar fa doble clic a **`Actualitzar.bat`** (fa `git pull` de

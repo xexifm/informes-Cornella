@@ -24,73 +24,9 @@ if (-not $Script:HeadlessTest) {
     $Script:ConfigUiAccent = [System.Drawing.Color]::FromArgb(166, 26, 47)   # granat corporatiu
 }
 
-# Fila d'una carpeta configurable: etiqueta + textbox + boto "..." (Explora)
-# + indicador d'estat en viu (Test-Path). Afegeix els controls a $parent i
-# retorna @{ TextBox = ...; NextY = ... } per encadenar files.
-function _AddConfigRow($parent, [int]$y, [string]$labelText, [string]$initialValue) {
-    $lbl = New-Object System.Windows.Forms.Label
-    $lbl.Text = $labelText
-    $lbl.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
-    $lbl.Location = New-Object System.Drawing.Point(14, $y)
-    $lbl.AutoSize = $true
-    [void]$parent.Controls.Add($lbl)
-    $y += 20
-
-    $tb = New-Object System.Windows.Forms.TextBox
-    $tb.Location = New-Object System.Drawing.Point(14, $y)
-    $tb.Size = New-Object System.Drawing.Size(432, 24)
-    $tb.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
-    $tb.Text = $initialValue
-    [void]$parent.Controls.Add($tb)
-
-    $btn = New-Object System.Windows.Forms.Button
-    $btn.Text = '...'
-    $btn.Location = New-Object System.Drawing.Point(452, ($y - 1))
-    $btn.Size = New-Object System.Drawing.Size(36, 24)
-    $btn.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right
-    [void]$parent.Controls.Add($btn)
-    $y += 28
-
-    $status = New-Object System.Windows.Forms.Label
-    $status.Location = New-Object System.Drawing.Point(14, $y)
-    $status.AutoSize = $true
-    $status.Font = New-Object System.Drawing.Font('Segoe UI', 8.5, [System.Drawing.FontStyle]::Regular)
-    [void]$parent.Controls.Add($status)
-    $y += 22
-
-    $refreshStatus = {
-        $p = $tb.Text.Trim()
-        if ([string]::IsNullOrWhiteSpace($p)) {
-            $status.Text = "(buit: es fara servir el valor per defecte)"
-            $status.ForeColor = [System.Drawing.Color]::Gray
-            return
-        }
-        $ok = $false
-        try { $ok = Test-Path -LiteralPath $p } catch { $ok = $false }
-        if ($ok) {
-            $status.Text = "$([char]0x2713) Trobada"
-            $status.ForeColor = [System.Drawing.Color]::SeaGreen
-        } else {
-            $status.Text = "$([char]0x26A0) No trobada ara (es pot desar igualment)"
-            $status.ForeColor = [System.Drawing.Color]::DarkOrange
-        }
-    }.GetNewClosure()
-    $tb.add_TextChanged($refreshStatus)
-    & $refreshStatus
-
-    $btn.add_Click({
-        $dlg = New-Object System.Windows.Forms.FolderBrowserDialog
-        $dlg.Description = $labelText
-        try {
-            if (-not [string]::IsNullOrWhiteSpace($tb.Text) -and (Test-Path -LiteralPath $tb.Text)) {
-                $dlg.SelectedPath = $tb.Text
-            }
-        } catch { }
-        if ($dlg.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { $tb.Text = $dlg.SelectedPath }
-    }.GetNewClosure())
-
-    return @{ TextBox = $tb; NextY = ($y + 8) }
-}
+# _AddConfigRow (fila per triar una carpeta) viu ara a UiComuns.ps1: el fa
+# servir tambe PdfSignar.ps1, i un modul no ha de dependre d'aquesta pantalla
+# per dibuixar un selector de carpeta.
 
 function Invoke-ConfiguracioScreen {
     # Llegim els overrides ACTUALS d'aquest PC (poden haver canviat des de
