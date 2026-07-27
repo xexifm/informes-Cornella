@@ -156,7 +156,9 @@ function Invoke-EmailTextos {
     $tbC.WordWrap = $true
     $tbC.AcceptsReturn = $true
     $tbC.Font = New-Object System.Drawing.Font('Segoe UI', 9.5)
-    $tbC.Text = [string]$textos['cos']
+    # El TextBox multilinia de WinForms NOMES mostra els salts com a CRLF; el cos
+    # es guarda amb LF (\n), aixi que el normalitzem a CRLF per veure'l bé.
+    $tbC.Text = [string]$textos['cos'] -replace "`r?`n", "`r`n"
     [void]$form.Controls.Add($tbC)
 
     # Barra inferior.
@@ -193,7 +195,7 @@ function Invoke-EmailTextos {
         if ($r -ne [System.Windows.Forms.DialogResult]::Yes) { return }
         $def = _DefaultEmailTextos
         $tbA.Text = [string]$def['assumpte']
-        $tbC.Text = [string]$def['cos']
+        $tbC.Text = [string]$def['cos'] -replace "`r?`n", "`r`n"
     }.GetNewClosure())
 
     $btnSave.add_Click({
@@ -201,7 +203,8 @@ function Invoke-EmailTextos {
             $r = [System.Windows.Forms.MessageBox]::Show("El cos no conte la variable {REQUERIMENTS}: els requeriments NO sortiran al correu.`n`nVols desar igualment?", 'Textos del correu', 'YesNo', 'Warning')
             if ($r -ne [System.Windows.Forms.DialogResult]::Yes) { return }
         }
-        $out = [ordered]@{ assumpte = [string]$tbA.Text; cos = [string]$tbC.Text }
+        # Tornem a LF (\n) per al JSON (app.js parteix el cos per \n).
+        $out = [ordered]@{ assumpte = [string]$tbA.Text; cos = ([string]$tbC.Text -replace "`r`n", "`n") }
         try {
             _SaveEmailTextos $out
             [System.Windows.Forms.MessageBox]::Show("Textos desats.`n`nEs publicaran al mobil la propera vegada que facis Actualitzar.", 'Textos del correu', 'OK', 'Information') | Out-Null
