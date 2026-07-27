@@ -569,6 +569,10 @@ $CopiaInformesDir = _ResolveEffectiveValue $AppSettings.CopiaInformesDir $CopiaI
 # periodic a partir de l'Excel). Nomes defineix funcions; segur en headless.
 . (Join-Path $ScriptRoot 'ControlsPeriodics.ps1')
 
+# Avisos de control periodic per correu (esborranys a Outlook) des de l'eina
+# Controls periodics. Funcions pures testejables; Outlook (COM)/WinForms a Windows.
+. (Join-Path $ScriptRoot 'ControlsCpEmail.ps1')
+
 # Carreguem la pantalla de Configuracio (rutes d'aquest PC + actualitzar el
 # programa). Nomes defineix funcions (WinForms), segur en headless.
 . (Join-Path $ScriptRoot 'Configuracio.ps1')

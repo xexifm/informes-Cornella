@@ -1340,6 +1340,35 @@ AssertEq ([bool]($eload.Contains('cos') -and ([string]$eload['cos']).Contains('s
 AssertEq ([bool]([string]$eload['cos'] -like '*{REQUERIMENTS}*')) $true '_LoadEmailTextos: el cos conserva {REQUERIMENTS}'
 AssertEq ([bool]([string]$eload['assumpte'] -like '*{ID_GIA}*')) $true '_LoadEmailTextos: assumpte conserva {ID_GIA}'
 
+Write-Host "`n--- ControlsCpEmail.ps1: avisos de control periodic per correu ---"
+$ccdef = _DefaultControlsCpEmail
+AssertEq (@($ccdef.Keys).Count) 2 '_DefaultControlsCpEmail: 2 claus (assumpte, cos)'
+AssertEq ([bool]($ccdef.Contains('assumpte') -and $ccdef.Contains('cos'))) $true '_DefaultControlsCpEmail: te assumpte i cos'
+AssertEq ([bool]([string]$ccdef['cos'] -like '*{ACTIVITAT}*' -and [string]$ccdef['cos'] -like '*{ADRECA}*' -and [string]$ccdef['cos'] -like '*{PROPER_CP}*')) $true '_DefaultControlsCpEmail: el cos te les variables clau'
+AssertEq ([bool]([string]$ccdef['assumpte'] -like '*{ID_GIA}*')) $true '_DefaultControlsCpEmail: assumpte te {ID_GIA}'
+# Destinataris: titular a To, representant a CC (i marxa enrere si en falta un).
+$rc1 = _ControlsCpRecipients 'titular@x.cat' 'rep@x.cat'
+AssertEq $rc1.To 'titular@x.cat' '_ControlsCpRecipients: titular a To'
+AssertEq $rc1.Cc 'rep@x.cat'     '_ControlsCpRecipients: representant a CC'
+AssertEq $rc1.Ok $true           '_ControlsCpRecipients: dos correus -> Ok'
+$rc2 = _ControlsCpRecipients '' 'rep@x.cat'
+AssertEq $rc2.To 'rep@x.cat' '_ControlsCpRecipients: sense titular -> representant a To'
+AssertEq $rc2.Cc ''          '_ControlsCpRecipients: sense titular -> CC buit'
+$rc3 = _ControlsCpRecipients 'titular@x.cat' ''
+AssertEq $rc3.To 'titular@x.cat' '_ControlsCpRecipients: sense representant -> titular a To'
+$rc4 = _ControlsCpRecipients '  ' 'no-es-un-correu'
+AssertEq $rc4.Ok $false '_ControlsCpRecipients: cap correu valid -> Ok=false'
+# Substitucio de variables amb una fila d'activitat.
+$fila = [pscustomobject]@{ ActPrincipal='BAR'; Adreca='C/ Major 1'; Id='361'; RaoSocial='ACME SL'; ProperCP='10/01/2026'; DataControlPer='10/01/2024' }
+$sub = _FillControlsCpPh 'Activitat {ACTIVITAT} a {ADRECA} (GIA {ID_GIA}), data {PROPER_CP}' $fila
+AssertEq $sub 'Activitat BAR a C/ Major 1 (GIA 361), data 10/01/2026' '_FillControlsCpPh: substitueix les variables'
+# HTML: escapa, negreta i enllacos.
+AssertEq (_ControlsCpLineHtml 'a & b < c') 'a &amp; b &lt; c' '_ControlsCpLineHtml: escapa &, <'
+AssertEq (_ControlsCpLineHtml '**negreta**') '<b>negreta</b>' '_ControlsCpLineHtml: **negreta** -> <b>'
+AssertEq (_ControlsCpLineHtml 'veure http://x.cat/a ok') 'veure <a href="http://x.cat/a">http://x.cat/a</a> ok' '_ControlsCpLineHtml: enllac http -> <a>'
+$html = _ControlsCpEmailHtml "linia1`n`nlinia2"
+AssertEq ([bool]($html -like '*<div>linia1</div>*' -and $html -like '*<div>linia2</div>*')) $true '_ControlsCpEmailHtml: una linia = un <div>'
+
 Write-Host "`n--- Informes.ps1: _EstatActualActivitat (estat = conclusio breu del darrer informe fiable, per data) ---"
 AssertEq (_EstatActualActivitat $null) '' '_EstatActualActivitat null -> buit'
 AssertEq (_EstatActualActivitat @()) '' '_EstatActualActivitat llista buida -> buit'

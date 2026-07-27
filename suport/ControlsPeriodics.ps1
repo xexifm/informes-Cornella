@@ -363,9 +363,27 @@ function Show-ControlsPeriodicsWindow($allRows, [string]$fileName) {
         Invoke-GenerarControlsPeriodics $triades
     }.GetNewClosure())
     $botPanel.Controls.Add($btnGenerar)
+    # Enviar correu als titulars de les activitats marcades (esborranys a Outlook).
+    $btnCorreu = New-Object System.Windows.Forms.Button
+    $btnCorreu.Text = 'Enviar correu (esborranys)'; $btnCorreu.Size = New-Object System.Drawing.Size(200, 30)
+    $btnCorreu.Location = New-Object System.Drawing.Point(340, 9)
+    _StylePrimaryButton $btnCorreu
+    $btnCorreu.add_Click({
+        $triades = @()
+        foreach ($r in $allRows) { if ($r.Sel) { $triades += $r } }
+        Invoke-ControlsCpEmailDrafts $triades
+    }.GetNewClosure())
+    $botPanel.Controls.Add($btnCorreu)
+    # Editar el text del correu (assumpte + cos amb variables).
+    $btnText = New-Object System.Windows.Forms.Button
+    $btnText.Text = 'Editar text'; $btnText.Size = New-Object System.Drawing.Size(120, 30)
+    $btnText.Location = New-Object System.Drawing.Point(550, 9)
+    _StyleSecondaryButton $btnText
+    $btnText.add_Click({ Invoke-ControlsCpEmailTextos }.GetNewClosure())
+    $botPanel.Controls.Add($btnText)
     $btnTancar = New-Object System.Windows.Forms.Button
     $btnTancar.Text = 'Tancar'; $btnTancar.Size = New-Object System.Drawing.Size(120, 30)
-    $btnTancar.Location = New-Object System.Drawing.Point(340, 9)
+    $btnTancar.Location = New-Object System.Drawing.Point(690, 9)
     _StyleSecondaryButton $btnTancar
     $btnTancar.add_Click({ $form.Close() }.GetNewClosure())
     $botPanel.Controls.Add($btnTancar)

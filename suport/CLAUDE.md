@@ -372,6 +372,24 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   Cancel·lar. Si l'item de control periòdic no és a REQ1, l'informe d'aquella
   activitat s'omet amb avís. Funcions pures testejades: `_ControlCatalegKind`,
   `_ControlSectionTitle`, `_FindItemKeysByTitle`.
+- **Avisar titulars per correu (esborranys a Outlook)** (`suport/ControlsCpEmail.ps1`,
+  botó **"Enviar correu (esborranys)"** a la finestra de Controls periòdics): per a
+  les activitats **marcades** (mateixa columna "Generar"/`.Sel`), crea un correu per
+  titular avisant que constava un **control periòdic** a passar (data prevista) per
+  la seva activitat/adreça. Els correus i les dades surten de l'Excel (`RaoEmail`,
+  `RepEmail`, `Adreca`, `ActPrincipal`, `ProperCP`, `DataControlPer`…). Fa servir
+  **Outlook per COM** (`CreateItem(0)` → `.Save()`): deixa **esborranys** a la
+  carpeta *Esborranys*; **MAI** `.Send()` (l'usuari revisa i envia). Titular a
+  **Per a**, representant a **CC** (`_ControlsCpRecipients`; si en falta un, l'altre
+  passa a To; les activitats sense correu vàlid es llisten com a omeses). El text és
+  **editable** (assumpte + cos amb variables `{ACTIVITAT}{ADRECA}{ID_GIA}{TITULAR}`
+  `{PROPER_CP}{DATA_CONTROL}{DATA}` + `**negreta**` + enllaços) via el botó **"Editar
+  text"** (`Invoke-ControlsCpEmailTextos`, mateix patró que *Textos del correu*),
+  però es desa **LOCALMENT** a `%LOCALAPPDATA%\InformesCornella\controls-cp-email.json`
+  (fora del repo: cap dada personal, sobreviu a `Actualitzar.bat`). Funcions pures
+  testejades: `_DefaultControlsCpEmail`, `_ControlsCpRecipients`, `_FillControlsCpPh`,
+  `_ControlsCpLineHtml`/`_ControlsCpEmailHtml`. Outlook (COM) i finestres només a
+  Windows. Es dot-sourceja a `GenerarInforme.ps1` després de `ControlsPeriodics.ps1`.
 
 ## Plànol públic d'activitats precintades
 - `suport/rutes/Precintades.ps1` genera `docs/dades/precintades.json` a partir
