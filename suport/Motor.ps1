@@ -201,7 +201,7 @@ function Start-RutaTool {
 # de suport/, per facilitar que l'usuari edita les plantilles.
 $EstructuralsDir = Join-Path $RepoRoot 'ESTRUCTURALS'
 $HeaderPath      = Join-Path $EstructuralsDir '0 CAPCALERA.docx'
-$ConclusionsPath = Join-Path $EstructuralsDir '0 CONCLUSIONS.docx'
+$ConclusionsPath = Join-Path $EstructuralsDir '0 CONCLUSIONS.json'
 
 # ----------------------------------------------------------------------------
 # Configuracio per defecte. Es pot sobreescriure des de config.ps1 (opcional)
@@ -320,6 +320,11 @@ $CopiaInformesDir = _ResolveEffectiveValue $AppSettings.CopiaInformesDir $CopiaI
 # Editor visual dels ESTRUCTURALS (Editar catalegs). Funcions pures (model<->JSON)
 # testejables; la finestra WinForms nomes s'executa a Windows.
 . (Join-Path $ScriptRoot 'EditorCatalegs.ps1')
+
+# Generador de les VISTES en Word dels catalegs (des dels JSON). Els .docx
+# d'ESTRUCTURALS ja no son plantilles: son vistes per consultar (excepte
+# '0 CAPCALERA.docx'). Funcions pures testejables; Word (COM) nomes a Windows.
+. (Join-Path $ScriptRoot 'VistaWord.ps1')
 
 # Eina "Convertir informes a PDF (i signar)". Funcions pures (rutes, arguments
 # d'AutoFirma) testejables; Word (COM) i AutoFirma nomes s'executen a Windows.
@@ -874,11 +879,18 @@ function Export-ActivitatsToDrive($cache, $latest) {
 # Step 1 - Cataleg picker
 # ----------------------------------------------------------------------------
 function Get-Catalegs {
-    # Catalegs = .docx d'ESTRUCTURALS que NO comencin amb "0 " (plantilles fixes:
+    # Catalegs = fitxers .JSON d'ESTRUCTURALS que NO comencin amb "0 " (fixos:
     # capcalera, conclusions) i que NO siguin plantilles del mode ACT_EXTR
     # (ACT_EXTR_REQ / ACT_EXTR_FAV), que no son catalegs del wizard normal sino
     # que les gestiona el mode "Activitats extraordinaries".
-    Get-ChildItem -LiteralPath $EstructuralsDir -Filter '*.docx' |
+    #
+    # ATENCIO: la font de veritat es el .JSON, no el .docx. Abans aixo llistava
+    # '*.docx' i, quan l'usuari va apartar els .docx (que ja no servien per
+    # generar), van DESAPAREIXER del menu "Requeriment - Nou" i "Ampliacio de
+    # termini". Els .docx d'ESTRUCTURALS son ara nomes VISTES generades des dels
+    # JSON (vegeu VistaWord.ps1); l'unic .docx que encara es una plantilla de
+    # veritat es '0 CAPCALERA.docx'.
+    Get-ChildItem -LiteralPath $EstructuralsDir -Filter '*.json' |
         Where-Object {
             $_.Name -notlike '0 *' -and $_.Name -notlike '0_*' -and
             $_.Name -notlike 'ACT_EXTR*' -and -not $_.Name.StartsWith('~$')
@@ -3017,7 +3029,7 @@ function Invoke-GenerateFromPaquet($paquetPath) {
 
     $catName = [string]$pkg.CatalegBaseName
     if ([string]::IsNullOrWhiteSpace($catName)) { throw "El paquet no indica 'CatalegBaseName'." }
-    $catPath = Join-Path $EstructuralsDir ($catName + '.docx')
+    $catPath = Join-Path $EstructuralsDir ($catName + '.json')
     if (-not (Test-Path -LiteralPath $catPath)) {
         throw "No s'ha trobat el cataleg '$catName' a $EstructuralsDir."
     }

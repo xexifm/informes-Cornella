@@ -505,9 +505,9 @@ function Invoke-GenerarControlsPeriodics($rows) {
     # El cataleg es REQ1; agafem les deficiencies (Titol 2) de control periodic
     # segons la classificacio. Comprovem que el cataleg existeixi i que hi siguin
     # els items que necessitem.
-    $catPath = Join-Path $EstructuralsDir 'REQ1.docx'
+    $catPath = Join-Path $EstructuralsDir 'REQ1.json'
     if (-not (Test-Path -LiteralPath $catPath)) {
-        [System.Windows.Forms.MessageBox]::Show("No s'ha trobat el catàleg REQ1.docx a ESTRUCTURALS.", 'Generar informes', 'OK', 'Error') | Out-Null
+        [System.Windows.Forms.MessageBox]::Show("No s'ha trobat el catàleg REQ1.json a ESTRUCTURALS.", 'Generar informes', 'OK', 'Error') | Out-Null
         return
     }
 

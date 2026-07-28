@@ -827,6 +827,15 @@ function Read-ConclusionsXml($path, $reportType = $null) {
     # Ttulo2 (Heading 2) = titol de conclusio triable. $reportType buit/null
     # retorna TOTES les conclusions (de tots els grups).
     $empty = [pscustomobject]@{ HeaderText=''; Selectable=@(); Always=@() }
+
+    # La FONT DE VERITAT es el JSON. Si la ruta ja es un .json (ara $ConclusionsPath
+    # apunta a '0 CONCLUSIONS.json') o n'hi ha un al costat del .docx, el llegim
+    # directament: no cal ni Word ni obrir el .docx com a ZIP.
+    $jsonPath = [System.IO.Path]::ChangeExtension($path, '.json')
+    if (Test-Path -LiteralPath $jsonPath) {
+        try { return (Read-ConclusionsJson $jsonPath $reportType) }
+        catch { Write-Host "Avis: no s'ha pogut llegir '$jsonPath' ($($_.Exception.Message))." }
+    }
     if (-not (Test-Path -LiteralPath $path)) { return $empty }
 
     $xmlInfo   = _LoadDocxXml $path

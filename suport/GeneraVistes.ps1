@@ -1,0 +1,32 @@
+﻿#requires -Version 5.1
+<#
+.SYNOPSIS
+  Regenera les VISTES en Word (.docx) de tots els catalegs, des dels JSON.
+
+.DESCRIPTION
+  Els .docx d'ESTRUCTURALS ja no serveixen per generar informes: la font de
+  veritat son els .json. Aquest script els torna a escriure perque l'usuari
+  pugui consultar el contingut sencer de cada cataleg (tots els requeriments,
+  totes les conclusions...) sense obrir el programa, amb els titols de Word.
+
+  NO toca '0 CAPCALERA.docx', que si que es una plantilla de veritat.
+
+  El crida Actualitzar.bat. Necessita Word instal·lat; si no hi es, avisa i
+  no fa res (mai atura l'actualitzacio).
+#>
+
+$ErrorActionPreference = 'Stop'
+
+$ScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+
+# Carreguem el MOTOR nomes com a biblioteca (cap finestra, cap WinForms).
+$MotorSenseGui = $true
+. (Join-Path $ScriptRoot 'Motor.ps1')
+
+try {
+    $n = Invoke-ExportarVistesWord
+    if ($n -gt 0) { Write-Host ("  {0} vistes de cataleg actualitzades." -f $n) }
+} catch {
+    Write-Host ("  Avis: no s'han pogut generar les vistes (" + $_.Exception.Message + ").")
+}
+exit 0

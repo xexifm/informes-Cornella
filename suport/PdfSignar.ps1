@@ -118,6 +118,30 @@ function _AutoFirmaArgvToText($argv) {
     return ($parts -join ' ')
 }
 
+# Converteix l'argv en la LINIA D'ORDRES real, amb les cometes posades per
+# NOSALTRES. Funció PURA.
+#
+# PER QUE: a PowerShell 5.1, 'Start-Process -ArgumentList @(...)' NO enquota res:
+# ajunta els elements amb espais. Amb rutes com "5.- Sergi Fadurdo" AutoFirma
+# rebia la ruta TALLADA al primer espai i responia "El fichero de entrada no
+# existe: I:\...\5.-". Per això construïm la línia i l'enquotem aquí.
+# Els salts de línia del -config es conserven DINS de les cometes (Windows només
+# separa arguments per espais i tabuladors, no per salts de línia).
+function _ArgvToCommandLine($argv) {
+    $parts = @()
+    foreach ($a in @($argv)) {
+        $s = [string]$a
+        # Cal enquotar si porta espais, tabuladors, salts de línia o ja va buit.
+        if ($s -eq '' -or $s -match '[\s"]') {
+            $s = $s -replace '"', '\"'
+            $parts += ('"' + $s + '"')
+        } else {
+            $parts += $s
+        }
+    }
+    return ($parts -join ' ')
+}
+
 # Rutes candidates on sol estar instal·lat AutoFirma.exe a Windows. Si les
 # variables d'entorn no hi son (p. ex. proves a Linux), s'usen els camins
 # literals habituals de Windows perque la funció sempre retorni candidats.
@@ -172,6 +196,26 @@ function _PdfSignarStatePath {
 function _PdfSignarLogPath {
     $dir = if ($LocalActivitatsDir) { $LocalActivitatsDir } else { $env:TEMP }
     return (Join-Path $dir 'pdf-signar-log.txt')
+}
+
+# Executa AutoFirma amb la línia d'ordres que construïm nosaltres (amb cometes)
+# i en recull el codi de sortida i el que hagi escrit. Retorna @{ExitCode;Output}.
+# Fem servir ProcessStartInfo (i no Start-Process) perquè volem controlar
+# EXACTAMENT la línia d'ordres: vegeu _ArgvToCommandLine.
+function _RunAutoFirma([string]$afExe, $argv) {
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = $afExe
+    $psi.Arguments = (_ArgvToCommandLine $argv)
+    $psi.UseShellExecute = $false
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    $psi.CreateNoWindow = $true
+    $p = [System.Diagnostics.Process]::Start($psi)
+    $so = $p.StandardOutput.ReadToEnd()
+    $se = $p.StandardError.ReadToEnd()
+    $p.WaitForExit()
+    $out = (([string]$so) + "`n" + ([string]$se)).Trim()
+    return @{ ExitCode = $p.ExitCode; Output = $out }
 }
 
 function _PdfSignarLog([string]$text) {
@@ -447,6 +491,8 @@ function _RunConvertPdf($opts) {
     # Caixetí de signatura visible (buit = signatura invisible, com abans).
     $caixeti = if ([bool]$opts.VisibleSign) { [string]$opts.Caixeti } else { '' }
     $converted = 0; $skipped = 0; $signed = 0; $errors = 0; $done = 0
+    # Quants s'han hagut de signar SENSE caixeti perque el visible ha fallat.
+    $senseCaixeti = 0
     $errDetalls = New-Object System.Collections.ArrayList
     $word = $null
     try {
@@ -491,36 +537,37 @@ function _RunConvertPdf($opts) {
                 [System.Windows.Forms.Application]::DoEvents()
                 $tmpSigned = $pdf + '.signat.pdf'
                 try { if (Test-Path -LiteralPath $tmpSigned) { Remove-Item -LiteralPath $tmpSigned -Force } } catch { }
-                # ARRAY d'arguments: el -config porta salts de línia reals i no
-                # cabria en una sola cadena (vegeu _BuildAutoFirmaSignArgv).
-                $argv = @(_BuildAutoFirmaSignArgv $pdf $tmpSigned $filter '' $caixeti)
-                $outLog = [System.IO.Path]::GetTempFileName()
-                $errLog = [System.IO.Path]::GetTempFileName()
                 try {
-                    $p = Start-Process -FilePath $afExe -ArgumentList $argv -Wait -PassThru -WindowStyle Hidden `
-                                       -RedirectStandardOutput $outLog -RedirectStandardError $errLog
-                    $so = ''
-                    try { $so = ((Get-Content -LiteralPath $outLog -Raw -ErrorAction SilentlyContinue) + ' ' + (Get-Content -LiteralPath $errLog -Raw -ErrorAction SilentlyContinue)).Trim() } catch { }
-                    if ($p.ExitCode -eq 0 -and (Test-Path -LiteralPath $tmpSigned)) {
+                    $argv = @(_BuildAutoFirmaSignArgv $pdf $tmpSigned $filter '' $caixeti)
+                    $res = _RunAutoFirma $afExe $argv
+                    # Si la signatura VISIBLE falla (p. ex. una versió d'AutoFirma
+                    # que no accepti algun extraParam), reintentem SENSE caixetí:
+                    # val més un PDF signat sense caixetí que cap PDF signat.
+                    if (($res.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $tmpSigned)) -and $caixeti) {
+                        _PdfSignarLog ("AVIS: la signatura amb caixeti ha fallat (codi " + $res.ExitCode + ") a " + $f.Name + "; reintento sense caixeti.")
+                        _PdfSignarLog ("   ordre: " + (_AutoFirmaArgvToText $argv))
+                        if ($res.Output) { _PdfSignarLog ("   sortida: " + $res.Output) }
+                        try { if (Test-Path -LiteralPath $tmpSigned) { Remove-Item -LiteralPath $tmpSigned -Force } } catch { }
+                        $argv = @(_BuildAutoFirmaSignArgv $pdf $tmpSigned $filter '' '')
+                        $res = _RunAutoFirma $afExe $argv
+                        $senseCaixeti++
+                    }
+                    if ($res.ExitCode -eq 0 -and (Test-Path -LiteralPath $tmpSigned)) {
                         Move-Item -LiteralPath $tmpSigned -Destination $pdf -Force
                         $signed++
                         # Nomes la primera: serveix per comprovar l'ordre exacta.
                         if ($signed -eq 1) { _PdfSignarLog ("OK  " + $f.Name + "  ::  " + (_AutoFirmaArgvToText $argv)) }
                     } else {
                         $errors++
-                        [void]$errDetalls.Add(("Signatura: {0} (codi {1})" -f $f.Name, $p.ExitCode))
-                        _PdfSignarLog ("ERROR codi " + $p.ExitCode + "  " + $f.Name + "  ::  " + (_AutoFirmaArgvToText $argv))
-                        if ($so) { _PdfSignarLog ("   sortida: " + $so) }
+                        [void]$errDetalls.Add(("Signatura: {0} (codi {1})" -f $f.Name, $res.ExitCode))
+                        _PdfSignarLog ("ERROR codi " + $res.ExitCode + "  " + $f.Name + "  ::  " + (_AutoFirmaArgvToText $argv))
+                        if ($res.Output) { _PdfSignarLog ("   sortida: " + $res.Output) }
                         try { if (Test-Path -LiteralPath $tmpSigned) { Remove-Item -LiteralPath $tmpSigned -Force } } catch { }
                     }
                 } catch {
                     $errors++
                     [void]$errDetalls.Add(("Signatura: {0} -> {1}" -f $f.Name, $_.Exception.Message))
-                    _PdfSignarLog ("EXCEPCIO " + $f.Name + " -> " + $_.Exception.Message + "  ::  " + (_AutoFirmaArgvToText $argv))
-                } finally {
-                    foreach ($tmpl in @($outLog, $errLog)) {
-                        try { if (Test-Path -LiteralPath $tmpl) { Remove-Item -LiteralPath $tmpl -Force } } catch { }
-                    }
+                    _PdfSignarLog ("EXCEPCIO " + $f.Name + " -> " + $_.Exception.Message)
                 }
             }
         }
@@ -538,7 +585,12 @@ function _RunConvertPdf($opts) {
     if ($cancel.Flag) { [void]$msg.AppendLine('Cancel·lat.') ; [void]$msg.AppendLine('') }
     [void]$msg.AppendLine(("PDF generats: {0}" -f $converted))
     [void]$msg.AppendLine(("Ja estaven al dia (saltats): {0}" -f $skipped))
-    if ($opts.Sign) { [void]$msg.AppendLine(("PDF signats: {0}" -f $signed)) }
+    if ($opts.Sign) {
+        [void]$msg.AppendLine(("PDF signats: {0}" -f $signed))
+        if ($senseCaixeti -gt 0) {
+            [void]$msg.AppendLine(("  (dels quals {0} SENSE caixeti: el caixeti ha fallat i s'han signat igualment)" -f $senseCaixeti))
+        }
+    }
     if ($errors -gt 0) {
         [void]$msg.AppendLine(("Errors: {0}" -f $errors))
         [void]$msg.AppendLine('')

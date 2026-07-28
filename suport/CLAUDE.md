@@ -262,10 +262,20 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
     Base64) i `CommandLineLauncher.java` fa `extraParams.split("\n")`. Un primer
     intent el passava en **Base64** i el resultat era que se signava **sense
     caixetí** i sense cap error (AutoFirma no trobava cap propietat vàlida).
-    Com que una cadena d'ordres no pot portar salts de línia, els arguments es
-    passen com a **ARRAY** (`_BuildAutoFirmaSignArgv` + `Start-Process -ArgumentList
-    $argv`), que és qui fa el quoting. Dins de `layer2Text`, en canvi, els salts
-    són `\n` **literal** (barra+n). Posició tunejable a `$Script:AutoFirmaCaixetiPos`.
+    Dins de `layer2Text`, en canvi, els salts són `\n` **literal** (barra+n).
+    Posició tunejable a `$Script:AutoFirmaCaixetiPos`.
+  - **LES COMETES LES POSEM NOSALTRES (2n error, també real)**: a PowerShell 5.1
+    `Start-Process -ArgumentList @(...)` **NO enquota** els elements: els ajunta
+    amb espais. Amb rutes com `5.- Sergi Fadurdo`, AutoFirma rebia la ruta
+    **tallada** al primer espai i responia *"El fichero de entrada no existe:
+    I:\…\5.-"*. Ara `_ArgvToCommandLine` (pura) construeix la línia i enquota, i
+    s'executa amb **`ProcessStartInfo`** (`_RunAutoFirma`), que dona control
+    exacte de la línia d'ordres i recull sortida i codi de sortida. Els salts de
+    línia del `-config` sobreviuen **dins de les cometes** (Windows només separa
+    arguments per espais i tabuladors).
+  - **Reintent sense caixetí**: si la signatura visible falla, es reintenta
+    automàticament **sense** caixetí (val més un PDF signat sense caixetí que cap)
+    i es compta al resum; queda registrat al log.
   - **Registre de diagnòstic**: cada execució desa a `pdf-signar-log.txt` (al costat
     de `pdf-signar-state.json`) **l'ordre exacta** passada a AutoFirma, el codi de
     sortida i la seva sortida (`_PdfSignarLog`, `_AutoFirmaArgvToText`). El resum
@@ -367,9 +377,35 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
     de manera que els blocs surten idèntics. Les claus funcionals NO es toquen mai
     (`INCENDIS`, `PAU_CAT/LOCAL`, `VIGILANTS`, `RC`, `MEMORIA_A..G`, `REQ_INTRO`,
     `FAV_*`…). L'editor la mostra en un camp **bloquejat** (mai s'edita des d'aquí).
+- **ELS `.docx` JA NO SERVEIXEN PER GENERAR: la font de veritat és el `.json`.**
+  `Get-Catalegs` llista **`*.json`** d'ESTRUCTURALS (abans `*.docx`), i
+  `$ConclusionsPath`, les plantilles d'ACT_EXTR (`ActExtr.ps1`), el catàleg de
+  *Controls periòdics* i `Invoke-GenerateFromPaquet` apunten tots al `.json`.
+  **Per què:** l'usuari va apartar els `.docx` (ja no calien) i van
+  **desaparèixer del menú** "Requeriment - Nou" i "Ampliació de termini", perquè
+  el menú es construïa llistant `*.docx`. `Read-ConclusionsXml` (Seguiment, que
+  llegia el `.docx` com a ZIP) també delega ara al JSON.
 - **`0 CAPCALERA` es queda en Word**: és una carta amb escut/taula/format real
   (la generació COPIA el .docx i hi substitueix `<<PLACEHOLDERS>>`), no un
-  llistat reconstruïble des d'un model de runs.
+  llistat reconstruïble des d'un model de runs. És **l'únic `.docx` que és una
+  plantilla de veritat** i **no es pot regenerar**: `Actualitzar.bat` el recupera
+  del repositori (`git checkout --`) si falta, en lloc de commitejar-ne l'esborrat.
+- **VISTES en Word dels catàlegs** (`suport/VistaWord.ps1` + `suport/GeneraVistes.ps1`):
+  la resta de `.docx` d'ESTRUCTURALS són ara **vistes generades des dels JSON**
+  per poder consultar tot el contingut (tots els requeriments, totes les
+  conclusions…) sense obrir el programa. Porten **Títols de Word** (Títol 1 =
+  secció / grup de conclusions, Títol 2 = subsecció o ítem, Títol 3 = ítem dins
+  d'una subsecció, Normal = cos amb negreta/cursiva i enllaços), de manera que el
+  panell de navegació de Word mostri l'estructura. Es regeneren **en desar des de
+  l'editor de catàlegs** (`_Ed_SaveDoc`) i des de **`Actualitzar.bat`**, i
+  sobreescriuen el `.docx` del mateix nom (mai `0 CAPCALERA.docx`).
+  **Només si el JSON és més nou que la vista** (`_VistaCalRegenerar`): si es
+  regeneressin sempre, cada `Actualitzar.bat` faria un commit d'un `.docx` "nou"
+  (Word hi posa dates internes) i el repositori s'ompliria de canvis inútils.
+  Funcions pures amb tests: `_VistaWordPathFor`, `_VistaEsProtegit`,
+  `_VistaSegments` (**negreta**//cursiva//), `_VistaActExtrTitol`, `_VistaCalRegenerar`.
+  Els estils es posen amb les **constants** de Word (`-2`=Títol 1…), no pel nom,
+  que depèn de l'idioma del Word instal·lat ("Ttulo 1" en castellà).
 - **Lectura** (`suport/CatalegJson.ps1`, headless/testejable): `Read-CatalegJson`,
   `Read-ConclusionsJson` i `Read-ActExtrRecordsJson` tornen EXACTAMENT el mateix
   model en memòria que `Parse-Cataleg` / `Read-Conclusions` / `Build-ActExtrBlocks`.

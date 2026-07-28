@@ -1328,6 +1328,36 @@ AssertEq ([bool]($valCfg -like '*signaturePage=1*' -and $valCfg -like '*layer2Te
 AssertEq (@($valCfg -split "`n").Count) 8 '_BuildAutoFirmaSignArgv: el -config porta salts de línia reals (8 propietats)'
 AssertEq ([bool]($valCfg -match '^[A-Za-z0-9+/=]+$')) $false '_BuildAutoFirmaSignArgv: el -config NO va en Base64'
 AssertEq ([bool]((_AutoFirmaArgvToText $argvCx) -like '*\n*')) $true '_AutoFirmaArgvToText: mostra els salts com a \n per al registre'
+# LINIA D'ORDRES: PS 5.1 no enquota els elements de -ArgumentList; ho fem nosaltres.
+# Sense aixo, "5.- Sergi Fadurdo" arribava tallat i AutoFirma deia "El fichero de
+# entrada no existe: I:\...\5.-".
+$cmdEspais = _ArgvToCommandLine @('sign', '-i', 'I:\5.- Sergi Fadurdo\a.pdf', '-store', 'windows')
+AssertEq ([bool]($cmdEspais -like '*"I:\5.- Sergi Fadurdo\a.pdf"*')) $true '_ArgvToCommandLine: enquota les rutes amb espais'
+AssertEq ([bool]($cmdEspais -like 'sign -i *')) $true '_ArgvToCommandLine: els que no tenen espais van sense cometes'
+AssertEq ([bool]($cmdEspais -like '*-store windows')) $true '_ArgvToCommandLine: manté l''ordre dels arguments'
+$cmdCx = _ArgvToCommandLine @('-config', (_AutoFirmaVisibleExtraParams $cxDef))
+AssertEq ([bool]($cmdCx -like '-config "*')) $true '_ArgvToCommandLine: el -config multilínia va entre cometes'
+AssertEq ([bool]($cmdCx -like "*signaturePage=1*")) $true '_ArgvToCommandLine: el -config conserva les propietats'
+AssertEq (@($cmdCx -split "`n").Count) 8 '_ArgvToCommandLine: conserva els salts de línia REALS dins de les cometes'
+
+Write-Host "`n--- VistaWord.ps1: vistes en Word dels catalegs (des dels JSON) ---"
+AssertEq (_VistaWordPathFor 'C:\E\REQ1.json') 'C:\E\REQ1.docx' '_VistaWordPathFor: mateix nom, .docx'
+AssertEq ([bool](_VistaEsProtegit 'C:\E\0 CAPCALERA.json')) $true '_VistaEsProtegit: 0 CAPCALERA no es toca mai'
+AssertEq ([bool](_VistaEsProtegit 'C:\E\REQ1.json')) $false '_VistaEsProtegit: la resta si'
+AssertEq (@(_VistaSegments 'text normal').Count) 1 '_VistaSegments: text sense marques -> 1 tros'
+$vs = @(_VistaSegments 'aixo es **fort** i //inclinat//')
+AssertEq $vs.Count 4 '_VistaSegments: parteix negreta i cursiva'
+AssertEq ([bool]($vs[1].Bold)) $true '_VistaSegments: **...** -> negreta'
+AssertEq ($vs[1].Text) 'fort' '_VistaSegments: treu les marques del text'
+AssertEq ([bool]($vs[3].Italic)) $true '_VistaSegments: //...// -> cursiva'
+AssertEq (@(_VistaSegments '').Count) 0 '_VistaSegments: buit -> cap tros'
+AssertEq (_VistaActExtrTitol '[[INCENDIS]] Incendis') 'Incendis  [INCENDIS]' '_VistaActExtrTitol: etiqueta + clau'
+AssertEq (_VistaActExtrTitol '[[MEMORIA_A]] ::CHILD:: a) Identificacio') 'a) Identificacio  [MEMORIA_A]' '_VistaActExtrTitol: treu el token'
+AssertEq (_VistaActExtrTitol '[[REQ_INTRO]]') 'REQ_INTRO' '_VistaActExtrTitol: sense etiqueta -> la clau'
+AssertEq ([bool](_VistaCalRegenerar $false ([datetime]'2026-01-01') ([datetime]::MinValue) $false)) $true '_VistaCalRegenerar: no hi ha vista -> si'
+AssertEq ([bool](_VistaCalRegenerar $true ([datetime]'2026-02-01') ([datetime]'2026-01-01') $false)) $true '_VistaCalRegenerar: JSON mes nou -> si'
+AssertEq ([bool](_VistaCalRegenerar $true ([datetime]'2026-01-01') ([datetime]'2026-02-01') $false)) $false '_VistaCalRegenerar: vista al dia -> no (evita commits inutils)'
+AssertEq ([bool](_VistaCalRegenerar $true ([datetime]'2026-01-01') ([datetime]'2026-02-01') $true)) $true '_VistaCalRegenerar: -Force -> sempre'
 
 Write-Host "`n--- SincronitzaCatalegs.ps1: protegir els catalegs en actualitzar ---"
 # No el carrega Motor.ps1 (l'executa Actualitzar.bat pel seu compte); el

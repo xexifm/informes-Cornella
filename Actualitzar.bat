@@ -68,6 +68,23 @@ REM (ESTRUCTURALS + docs\dades). Es fa SEMPRE i ABANS de tocar res de git, aixi
 REM passi el que passi (stash, conflicte, rebase) la feina queda desada en disc.
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0suport\SincronitzaCatalegs.ps1" -Fase Backup
 
+REM '0 CAPCALERA.docx' es l'UNIC .docx que segueix sent una plantilla de veritat
+REM (la carta amb l'escut i la taula) i NO es pot regenerar. Si l'usuari l'ha
+REM mogut o esborrat, el recuperem del repositori en lloc de commitejar-ne
+REM l'esborrat, que el perdriem per sempre.
+if not exist "ESTRUCTURALS\0 CAPCALERA.docx" (
+    echo Recuperant la plantilla '0 CAPCALERA.docx' del repositori...
+    git checkout -- "ESTRUCTURALS/0 CAPCALERA.docx"
+)
+
+REM Les VISTES en Word dels catalegs es regeneren SEMPRE des dels JSON (els
+REM .docx d'ESTRUCTURALS ja no serveixen per generar: nomes son per consultar).
+echo Actualitzant les vistes en Word dels catalegs...
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0suport\GeneraVistes.ps1"
+
+REM Despres de regenerar les vistes pot haver-hi .docx nous o canviats.
+for /f "delims=" %%f in ('git status --porcelain -- ESTRUCTURALS') do set "PLANTILLES_CANVIADES=1"
+
 if "%PLANTILLES_CANVIADES%"=="1" (
     echo Detectats canvis locals als catalegs/plantilles ESTRUCTURALS.
     echo Regenerant les dades del mobil ^(docs\dades^) des dels catalegs...

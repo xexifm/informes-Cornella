@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 <#
 .SYNOPSIS
   Mode "ACT_EXTR": seguiment d'activitats extraordinaries de caracter
@@ -63,8 +63,8 @@ $script:ActExtrRegistryFile = 'activitats-extraordinaries.json'
 # Rutes de les plantilles ACT_EXTR (a ESTRUCTURALS). $EstructuralsDir el
 # defineix GenerarInforme.ps1.
 if ($EstructuralsDir) {
-    $script:ActExtrReqTemplate = Join-Path $EstructuralsDir 'ACT_EXTR_REQ.docx'
-    $script:ActExtrFavTemplate = Join-Path $EstructuralsDir 'ACT_EXTR_FAV.docx'
+    $script:ActExtrReqTemplate = Join-Path $EstructuralsDir 'ACT_EXTR_REQ.json'
+    $script:ActExtrFavTemplate = Join-Path $EstructuralsDir 'ACT_EXTR_FAV.json'
 }
 
 # ----------------------------------------------------------------------------

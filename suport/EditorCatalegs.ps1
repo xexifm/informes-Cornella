@@ -634,7 +634,23 @@ function _Ed_SaveDoc($state) {
         if (Test-Path -LiteralPath $doc.Path) { Copy-Item -LiteralPath $doc.Path -Destination ($doc.Path + '.bak') -Force }
         [System.IO.File]::WriteAllText($doc.Path, $json, (New-Object System.Text.UTF8Encoding($false)))
         $state.Dirty = $false
-        [System.Windows.Forms.MessageBox]::Show('Catàleg desat correctament.', 'Editar catalegs', 'OK', 'Information') | Out-Null
+        # Refresquem la VISTA en Word del cataleg (el .docx del mateix nom), que
+        # serveix per consultar-lo sense obrir el programa. Si no hi ha Word, no
+        # passa res: el desat del JSON (que es el que compta) ja s'ha fet.
+        $avisVista = ''
+        try {
+            $w = $null
+            try { $w = New-Object -ComObject Word.Application } catch { $w = $null }
+            if ($null -ne $w) {
+                $w.Visible = $false
+                try { $w.DisplayAlerts = 0 } catch { }
+                try { [void](Export-VistaWord $w $doc.Path) } finally {
+                    try { $w.Quit() } catch { }
+                    try { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($w) | Out-Null } catch { }
+                }
+            }
+        } catch { $avisVista = "`n`n(No s'ha pogut refrescar la vista en Word: $($_.Exception.Message))" }
+        [System.Windows.Forms.MessageBox]::Show(('Catàleg desat correctament.' + $avisVista), 'Editar catalegs', 'OK', 'Information') | Out-Null
     } catch {
         [System.Windows.Forms.MessageBox]::Show("Error en desar:`n$($_.Exception.Message)", 'Editar catalegs', 'OK', 'Error') | Out-Null
     }
