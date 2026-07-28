@@ -40,6 +40,21 @@ $Script:ReportFormatConfig = @{
     BodyFontSize         = 11
     UrlFontSize          = 10
 
+    # TIPOGRAFIA BASE del document. A l'informe ve heretada de la plantilla
+    # (Build-Document COPIA '0 CAPCALERA.docx', que porta Bookman Old Style i
+    # justificat), pero un document NOU de Word faria servir Calibri alineat a
+    # l'esquerra. Per aixo es declara aqui: aixi les VISTES dels catalegs
+    # (VistaWord.ps1) es veuen igual que l'informe. Els valors son EXACTAMENT
+    # els de la plantilla (word/document.xml + sectPr).
+    BodyFontName         = 'Bookman Old Style'
+    BodyAlignment        = 3        # 3 = wdAlignParagraphJustify (a la plantilla: jc="both")
+    BaseLineSpacing      = 1.15     # plantilla: w:line="276" lineRule="auto" -> 1,15 linies
+    # Marges de pagina en PUNTS (plantilla, en twips: 1417/849/993/1701; 20 twips = 1 pt)
+    PageMarginTopPt      = 70.85
+    PageMarginRightPt    = 42.45
+    PageMarginBottomPt   = 49.65
+    PageMarginLeftPt     = 85.05
+
     # Sangries (cm) a l'esquerra
     SectionIndentCm      = 0
     SubsectionIndentCm   = 0
@@ -79,16 +94,58 @@ function _Reset-Char($sel) {
     $sel.Font.Italic = 0
     $sel.Font.Underline = 0  # wdUnderlineNone
     $sel.Font.Size = $Script:ReportFormatConfig.BodyFontSize
+    # Tipus de lletra EXPLICIT a cada text: mai ha de sortir la Calibri del tema
+    # d'un document nou. A l'informe coincideix amb el que ja hereta de la
+    # plantilla, o sigui que no en canvia res.
+    try { $sel.Font.Name = $Script:ReportFormatConfig.BodyFontName } catch { }
 }
 
 function _Apply-Indent($sel, $cm) {
     $sel.ParagraphFormat.LeftIndent = (_CmToPoints $cm)
     $sel.ParagraphFormat.FirstLineIndent = 0
+    # Justificat EXPLICIT (com la plantilla). Els qui volen una altra cosa
+    # (Format-ConclusionHeader, centrat) l'apliquen DESPRES d'aquesta crida.
+    try { $sel.ParagraphFormat.Alignment = $Script:ReportFormatConfig.BodyAlignment } catch { }
     # Reset de l'espaiat propi (SpaceBefore/After) per no heretar el de les
     # vinyetes (Format-Bullet/Note) o el d'una etiqueta (Format-Label) quan ve
     # un paragraf normal a continuacio.
     try { $sel.ParagraphFormat.SpaceBefore = 0 } catch { }
     try { $sel.ParagraphFormat.SpaceAfter  = 0 } catch { }
+}
+
+# Deixa un document NOU amb la MATEIXA base que la plantilla de l'informe:
+# Bookman Old Style, cos 11, justificat, interlineat 1,15 i els marges de la
+# plantilla. Sense aixo, un document creat amb Documents.Add() surt en Calibri
+# alineat a l'esquerra i no s'assembla gens a l'informe.
+#
+# A l'informe NO cal cridar-la (Build-Document copia '0 CAPCALERA.docx' i ja ho
+# hereta tot); qui la fa servir es el generador de VISTES dels catalegs.
+function Format-ApplyBaseStyle($doc) {
+    $cfg = $Script:ReportFormatConfig
+    try {
+        $normal = $doc.Styles.Item(-1)          # -1 = wdStyleNormal
+        $normal.Font.Name = $cfg.BodyFontName
+        $normal.Font.Size = $cfg.BodyFontSize
+        $normal.ParagraphFormat.Alignment = $cfg.BodyAlignment
+        $normal.ParagraphFormat.SpaceBefore = 0
+        $normal.ParagraphFormat.SpaceAfter = 0
+        # wdLineSpaceMultiple = 5; amb aquesta regla, LineSpacing va en punts on
+        # 12 pt = 1 linia (1,15 linies -> 13,8).
+        $normal.ParagraphFormat.LineSpacingRule = 5
+        $normal.ParagraphFormat.LineSpacing = ([double]$cfg.BaseLineSpacing * 12)
+    } catch { }
+    # Que la Calibri del TEMA no s'escoli enlloc.
+    try {
+        $doc.Content.Font.Name = $cfg.BodyFontName
+        $doc.Content.Font.Size = $cfg.BodyFontSize
+    } catch { }
+    try {
+        $ps = $doc.PageSetup
+        $ps.TopMargin    = [double]$cfg.PageMarginTopPt
+        $ps.RightMargin  = [double]$cfg.PageMarginRightPt
+        $ps.BottomMargin = [double]$cfg.PageMarginBottomPt
+        $ps.LeftMargin   = [double]$cfg.PageMarginLeftPt
+    } catch { }
 }
 
 function Format-Section {

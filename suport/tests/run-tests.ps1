@@ -1364,7 +1364,14 @@ AssertEq ([bool](_VistaCalRegenerar $true ([datetime]'2026-01-01') ([datetime]'2
 AssertEq ([bool](_VistaCalRegenerar $true ([datetime]'2026-01-01') ([datetime]'2026-02-01') $true)) $true '_VistaCalRegenerar: -Force -> sempre'
 # En canviar el FORMAT de les vistes cal regenerar-les encara que el .docx sigui
 # mes nou que el JSON (si no, es quedarien amb el format antic per sempre).
-AssertEq ([bool]($Script:VistaWordVersio -ge 2)) $true 'VistaWordVersio: versio de format definida'
+AssertEq ([bool]($Script:VistaWordVersio -ge 3)) $true 'VistaWordVersio: versio de format definida'
+# La tipografia base viu a Format.ps1 (no a la vista): un document nou de Word
+# sortiria en Calibri alineat a l'esquerra i no s'assemblaria a l'informe.
+AssertEq ($Script:ReportFormatConfig.BodyFontName) 'Bookman Old Style' 'Format: el tipus de lletra base es Bookman Old Style'
+AssertEq ($Script:ReportFormatConfig.BodyAlignment) 3 'Format: justificat (3 = wdAlignParagraphJustify)'
+AssertEq ($Script:ReportFormatConfig.BaseLineSpacing) 1.15 'Format: interlineat 1,15 com la plantilla'
+AssertEq ([math]::Round($Script:ReportFormatConfig.PageMarginLeftPt, 2)) 85.05 'Format: marge esquerre = 1701 twips de la plantilla'
+AssertEq ([bool](Get-Command Format-ApplyBaseStyle -ErrorAction SilentlyContinue)) $true 'Format-ApplyBaseStyle existeix (l''apliquen les vistes)'
 
 Write-Host "`n--- SincronitzaCatalegs.ps1: protegir els catalegs en actualitzar ---"
 # No el carrega Motor.ps1 (l'executa Actualitzar.bat pel seu compte); el

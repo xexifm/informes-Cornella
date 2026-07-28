@@ -50,7 +50,9 @@ function _VistaEsProtegit([string]$jsonPath) {
 # regeneren totes una vegada.
 #   1 -> primera versio (format propi, amb estils de titol)
 #   2 -> format de l'informe (Format.ps1) + nivells d'esquema
-$Script:VistaWordVersio = 2
+#   3 -> tipografia base de la plantilla (Bookman Old Style, justificat,
+#        interlineat i marges) via Format-ApplyBaseStyle
+$Script:VistaWordVersio = 3
 
 function _VistaVersioPath {
     $base = [string]$env:LOCALAPPDATA
@@ -281,6 +283,11 @@ function Export-VistaWord($word, [string]$jsonPath) {
 
     $doc = $word.Documents.Add()
     try {
+        # Un document NOU de Word surt en Calibri, alineat a l'esquerra i amb
+        # uns altres marges. Li posem la MATEIXA base que la plantilla de
+        # l'informe (Bookman Old Style, justificat, interlineat i marges), que
+        # es on esta declarada: Format.ps1.
+        Format-ApplyBaseStyle $doc
         $sel = $word.Selection
         switch ($familia) {
             'cataleg'     { _VistaCataleg $sel $jsonPath $nom }
