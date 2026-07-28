@@ -1301,6 +1301,24 @@ AssertEq ([bool]((@(_AutoFirmaCandidatePaths))[0] -is [string])) $true '_AutoFir
 AssertEq (_CertCommonName 'CN=NOM COGNOM - 12345678Z, OU=X, O=Y, C=ES') 'NOM COGNOM - 12345678Z' '_CertCommonName extreu el CN'
 AssertEq (_CertCommonName 'sense cn') 'sense cn' '_CertCommonName sense CN -> retorna el subjecte'
 AssertEq (_CertCommonName '') '' '_CertCommonName buit -> buit'
+# Signatura VISIBLE (caixetí). Sense caixetí -> retrocompatible (cap -config).
+AssertEq ([bool]($afNoFilter -like '*-config*')) $false '_BuildAutoFirmaSignArgs: sense caixetí -> sense -config'
+AssertEq (_AutoFirmaVisibleExtraParams '') '' '_AutoFirmaVisibleExtraParams buit -> buit'
+$cxDef = _DefaultCaixeti
+AssertEq ([bool]($cxDef -like "*Sergi Fadurdo Modesto*")) $true '_DefaultCaixeti: conté el nom'
+AssertEq ([bool]($cxDef -like '*$$SIGNDATE=*')) $true '_DefaultCaixeti: conté el marcador de data'
+$ep = _AutoFirmaVisibleExtraParams $cxDef
+AssertEq ([bool]($ep -like '*signaturePage=1*')) $true '_AutoFirmaVisibleExtraParams: signaturePage=1'
+AssertEq ([bool]($ep -like '*signaturePositionOnPageLowerLeftX=360*')) $true '_AutoFirmaVisibleExtraParams: posició dalt-dreta (X)'
+AssertEq ([bool]($ep -like '*signaturePositionOnPageUpperRightY=815*')) $true '_AutoFirmaVisibleExtraParams: posició dalt-dreta (Y)'
+AssertEq ([bool]($ep -like '*layer2Text=Sergi Fadurdo Modesto\nEnginyer*')) $true '_AutoFirmaVisibleExtraParams: layer2Text amb \n literal'
+AssertEq (@($ep -split "`n").Count) 8 '_AutoFirmaVisibleExtraParams: 8 parells separats per salt de línia'
+# _BuildAutoFirmaSignArgs amb caixetí -> afegeix -config (Base64 per defecte).
+$afCx = _BuildAutoFirmaSignArgs 'i.pdf' 'o.pdf' '' '' $cxDef
+AssertEq ([bool]($afCx -like '*-config *')) $true '_BuildAutoFirmaSignArgs: amb caixetí -> conté -config'
+$mCfg = [regex]::Match($afCx, '-config (\S+)')
+$decoded = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($mCfg.Groups[1].Value))
+AssertEq ([bool]($decoded -like '*signaturePage=1*' -and $decoded -like '*layer2Text=*')) $true '_BuildAutoFirmaSignArgs: el -config Base64 descodifica als extraParams'
 
 Write-Host "`n--- EmailTextos.ps1: funcions pures (textos del correu del mobil) ---"
 $edefs = _DefaultEmailTextos

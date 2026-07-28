@@ -362,11 +362,112 @@ function _EnableHeaderSort($grid, $state, [int]$minCol = 0, $skipCols = @(), [sc
 # del TreeView de catalegs) i el reutilitzem. Els qui criden li passen el text
 # de cerca JA net (.Trim()), que es el seu contracte.
 
-# Fila d'una carpeta configurable: etiqueta + textbox + boto "..." (Explora)
-# + indicador d'estat en viu (Test-Path). Afegeix els controls a $parent i
-# retorna @{ TextBox = ...; NextY = ... } per encadenar files.
-# TOTS els selectors de carpeta del programa han de fer servir aquest format
-# (pantalla Configuracio, Word a PDF...).
+# Codi C# (COM) del navegador de carpetes MODERN (IFileOpenDialog amb
+# FOS_PICKFOLDERS): el diàleg estil Explorer amb barra d'adreça (on es pot
+# enganxar la ruta), panell lateral d'unitats/xarxa i cerca. Es compila EN VIU
+# el primer cop que es fa servir (mai en headless).
+$Script:FolderPickerCSharp = @"
+using System;
+using System.Runtime.InteropServices;
+namespace CornellaShell {
+  [ComImport, ClassInterface(ClassInterfaceType.None), Guid("DC1C5A9C-E88A-4DDE-A5A1-60F82A20AEF7")]
+  internal class FileOpenDialogRCW { }
+
+  [ComImport, Guid("43826D1E-E718-42EE-BC55-A1E261C37BFE"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+  internal interface IShellItem {
+    void BindToHandler(IntPtr pbc, ref Guid bhid, ref Guid riid, out IntPtr ppv);
+    void GetParent(out IShellItem ppsi);
+    void GetDisplayName(uint sigdnName, [MarshalAs(UnmanagedType.LPWStr)] out string ppszName);
+    void GetAttributes(uint sfgaoMask, out uint psfgaoAttribs);
+    void Compare(IShellItem psi, uint hint, out int piOrder);
+  }
+
+  [ComImport, Guid("42F85136-DB7E-439C-85F1-E4075D135FC8"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+  internal interface IFileDialog {
+    [PreserveSig] int Show(IntPtr parent);
+    void SetFileTypes(uint cFileTypes, IntPtr rgFilterSpec);
+    void SetFileTypeIndex(uint iFileType);
+    void GetFileTypeIndex(out uint piFileType);
+    void Advise(IntPtr pfde, out uint pdwCookie);
+    void Unadvise(uint dwCookie);
+    void SetOptions(uint fos);
+    void GetOptions(out uint fos);
+    void SetDefaultFolder(IShellItem psi);
+    void SetFolder(IShellItem psi);
+    void GetFolder(out IShellItem ppsi);
+    void GetCurrentSelection(out IShellItem ppsi);
+    void SetFileName([MarshalAs(UnmanagedType.LPWStr)] string pszName);
+    void GetFileName([MarshalAs(UnmanagedType.LPWStr)] out string pszName);
+    void SetTitle([MarshalAs(UnmanagedType.LPWStr)] string pszTitle);
+    void SetOkButtonLabel([MarshalAs(UnmanagedType.LPWStr)] string pszText);
+    void SetFileNameLabel([MarshalAs(UnmanagedType.LPWStr)] string pszLabel);
+    void GetResult(out IShellItem ppsi);
+    void AddPlace(IShellItem psi, uint fdap);
+    void SetDefaultExtension([MarshalAs(UnmanagedType.LPWStr)] string pszDefaultExtension);
+    void Close(int hr);
+    void SetClientGuid(ref Guid guid);
+    void ClearClientData();
+    void SetFilter(IntPtr pFilter);
+  }
+
+  public static class FolderPicker {
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = false)]
+    private static extern void SHCreateItemFromParsingName(
+      [MarshalAs(UnmanagedType.LPWStr)] string pszPath, IntPtr pbc,
+      ref Guid riid, [MarshalAs(UnmanagedType.Interface)] out IShellItem ppv);
+
+    public static string Pick(string initialPath, string title, IntPtr owner) {
+      IFileDialog dlg = (IFileDialog)new FileOpenDialogRCW();
+      uint opts;
+      dlg.GetOptions(out opts);
+      // FOS_PICKFOLDERS=0x20 | FOS_FORCEFILESYSTEM=0x40 | FOS_PATHMUSTEXIST=0x800
+      dlg.SetOptions(opts | 0x20 | 0x40 | 0x800);
+      if (!string.IsNullOrEmpty(title)) { try { dlg.SetTitle(title); } catch {} }
+      if (!string.IsNullOrEmpty(initialPath)) {
+        try {
+          Guid iid = new Guid("43826D1E-E718-42EE-BC55-A1E261C37BFE");
+          IShellItem item;
+          SHCreateItemFromParsingName(initialPath, IntPtr.Zero, ref iid, out item);
+          if (item != null) dlg.SetFolder(item);
+        } catch {}
+      }
+      int hr = dlg.Show(owner);
+      if (hr != 0) return "";   // S_OK=0; cancel·lat o error -> buit
+      IShellItem res;
+      dlg.GetResult(out res);
+      string path;
+      res.GetDisplayName(0x80058000u, out path);   // SIGDN_FILESYSPATH
+      return path == null ? "" : path;
+    }
+  }
+}
+"@
+
+# Obre el navegador de carpetes MODERN i retorna la ruta triada (o '' si es
+# cancel·la). Compila el codi COM el primer cop. Si res falla (Windows molt
+# antic, etc.) recorre al FolderBrowserDialog classic com a xarxa de seguretat.
+function _PickFolderModern([string]$initialPath, [string]$title, $ownerForm) {
+    try {
+        if (-not ([System.Management.Automation.PSTypeName]'CornellaShell.FolderPicker').Type) {
+            Add-Type -TypeDefinition $Script:FolderPickerCSharp -ErrorAction Stop
+        }
+        $owner = [IntPtr]::Zero
+        if ($null -ne $ownerForm) { try { $owner = $ownerForm.Handle } catch { $owner = [IntPtr]::Zero } }
+        return [string][CornellaShell.FolderPicker]::Pick($initialPath, $title, $owner)
+    } catch {
+        $dlg = New-Object System.Windows.Forms.FolderBrowserDialog
+        if (-not [string]::IsNullOrWhiteSpace($title)) { $dlg.Description = $title }
+        try { if (-not [string]::IsNullOrWhiteSpace($initialPath) -and (Test-Path -LiteralPath $initialPath)) { $dlg.SelectedPath = $initialPath } } catch { }
+        if ($dlg.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { return [string]$dlg.SelectedPath }
+        return ''
+    }
+}
+
+# Fila d'una carpeta configurable: etiqueta + textbox + boto "..." (Explora, amb
+# el navegador MODERN _PickFolderModern) + indicador d'estat en viu (Test-Path).
+# Afegeix els controls a $parent i retorna @{ TextBox = ...; NextY = ... } per
+# encadenar files. TOTS els selectors de carpeta del programa fan servir aquest
+# format (pantalla Configuracio, Word a PDF...).
 function _AddConfigRow($parent, [int]$y, [string]$labelText, [string]$initialValue) {
     $lbl = New-Object System.Windows.Forms.Label
     $lbl.Text = $labelText
@@ -419,14 +520,8 @@ function _AddConfigRow($parent, [int]$y, [string]$labelText, [string]$initialVal
     & $refreshStatus
 
     $btn.add_Click({
-        $dlg = New-Object System.Windows.Forms.FolderBrowserDialog
-        $dlg.Description = $labelText
-        try {
-            if (-not [string]::IsNullOrWhiteSpace($tb.Text) -and (Test-Path -LiteralPath $tb.Text)) {
-                $dlg.SelectedPath = $tb.Text
-            }
-        } catch { }
-        if ($dlg.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { $tb.Text = $dlg.SelectedPath }
+        $sel = _PickFolderModern $tb.Text $labelText $parent
+        if (-not [string]::IsNullOrWhiteSpace($sel)) { $tb.Text = $sel }
     }.GetNewClosure())
 
     return @{ TextBox = $tb; NextY = ($y + 8) }

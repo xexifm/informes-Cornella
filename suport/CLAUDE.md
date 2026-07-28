@@ -211,13 +211,39 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   va triar **AutoFirma + magatzem de Windows** perquè reutilitza el certificat que
   l'usuari ja fa servir i és l'eina oficial (signatura vàlida per a
   l'administració). La **tria de carpeta** fa servir el helper comú `_AddConfigRow`
-  (Configuracio.ps1) — quadre editable + "..." + indicador ✓/⚠ en viu — igual que
-  a Configuració (tots els selectors de carpeta del programa han de fer servir
-  aquest format). Funcions pures testejables (`_PdfPathForDoc`, `_PdfShouldConvert`,
-  `_CertFilterValue`, `_CertCommonName`, `_BuildAutoFirmaSignArgs`,
-  `_AutoFirmaCandidatePaths` — retorna un **array pla**, no `,$ArrayList`, perquè
-  `@()` l'enumeri bé). Word (COM) i AutoFirma només a Windows. Opcions/estat a
-  `pdf-signar-state.json`. **Pendent de provar la signatura a Windows** (AutoFirma).
+  (`UiComuns.ps1`) — quadre editable + "..." + indicador ✓/⚠ en viu — igual que a
+  Configuració (tots els selectors de carpeta del programa fan servir aquest format).
+  - **Signatura VISIBLE (caixetí)**: en signar, per defecte s'afegeix un **caixetí a
+    dalt a la dreta de la pàgina 1** que reprodueix l'aspecte "CERTIFICAT SENSE DNI"
+    (nom / càrrec / organisme / data, **sense DNI**). AutoFirma per línia de comandes
+    **NO pot triar un "Aspecto" desat de la GUI**, així que es reprodueix amb
+    `layer2Text` via `-config` (`_AutoFirmaVisibleExtraParams` → `signaturePage=1`,
+    `signaturePositionOnPage...` dalt-dreta, `layer2Text` amb les línies del caixetí
+    unides per `\n` LITERAL i el marcador `$$SIGNDATE=yyyy.MM.dd HH:mm:ss$$`). El text
+    del caixetí és **editable** al diàleg d'opcions (casella "Signatura visible" +
+    quadre de text) i es desa a `pdf-signar-state.json` (`caixeti`, `visibleSign`);
+    per defecte `_DefaultCaixeti`. Sense caixetí, `_BuildAutoFirmaSignArgs` es comporta
+    com abans (signatura invisible, cap `-config`).
+  - **Encoding de `-config`**: el valor va en **Base64** dels extraParams
+    (`$Script:AutoFirmaConfigBase64 = $true`, evita problemes d'espais/salts a la
+    línia d'ordres). Els extraParams se separen per salt de línia (`CommandLineLauncher`
+    d'AutoFirma els fa `split("\n")`). **Si el caixetí no surt a Windows**, posar el
+    commutador a `$false` (text pla). Posició del caixetí tunejable a
+    `$Script:AutoFirmaCaixetiPos`.
+  Funcions pures testejables (`_PdfPathForDoc`, `_PdfShouldConvert`, `_CertFilterValue`,
+  `_CertCommonName`, `_BuildAutoFirmaSignArgs`, `_AutoFirmaVisibleExtraParams`,
+  `_AutoFirmaConfigArg`, `_DefaultCaixeti`, `_AutoFirmaCandidatePaths` — retorna un
+  **array pla**, no `,$ArrayList`, perquè `@()` l'enumeri bé). Word (COM) i AutoFirma
+  només a Windows. Opcions/estat a `pdf-signar-state.json`. **Pendent de provar la
+  signatura visible a Windows** (posició/encoding).
+- **Selector de carpetes MODERN (a tot el programa)** (`_PickFolderModern`,
+  `UiComuns.ps1`): el botó "..." de `_AddConfigRow` obre el diàleg **IFileOpenDialog**
+  amb `FOS_PICKFOLDERS` (estil Explorer: barra d'adreça on es pot **enganxar la ruta**,
+  panell lateral d'unitats/xarxa, cerca), en lloc del `FolderBrowserDialog` clàssic
+  (arbre bàsic). Les interfícies COM (`IFileOpenDialog`/`IShellItem`) es defineixen per
+  `Add-Type` (C#) i es compilen EN VIU el primer cop (mai en headless); si res falla,
+  **fallback** al `FolderBrowserDialog` de sempre. Com que `_AddConfigRow` el fan servir
+  TOTS els selectors (Configuració, Word a PDF…), el canvi és automàtic arreu.
 - **Editar base d'informes — filtres i ordre:** a sobre de la graella hi ha la
   cerca global (conte, totes les columnes) i, a la 2a fila, **filtres per
   columna de SELECCIO MULTIPLE**: Conclusio breu, Estat activitat, Motiu i

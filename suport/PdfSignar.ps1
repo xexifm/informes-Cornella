@@ -53,14 +53,70 @@ function _CertFilterValue([string]$text) {
     return 'subject.contains:' + $t
 }
 
+# Text per defecte del CAIXETÍ de la signatura visible (reprodueix l'aspecte
+# "CERTIFICAT SENSE DNI" de l'usuari: nom / càrrec / organisme / data, SENSE DNI).
+# La data la posa AutoFirma amb el marcador $$SIGNDATE=...$$.
+function _DefaultCaixeti {
+    return (@(
+        'Sergi Fadurdo Modesto'
+        "Enginyer d'Activitats"
+        'Aj.Cornellà de Llobregat'
+        '$$SIGNDATE=yyyy.MM.dd HH:mm:ss$$'
+    ) -join "`n")
+}
+
+# Posició del caixetí a la pàgina (A4 595x842 pt): a DALT A LA DRETA. Tunejable.
+$Script:AutoFirmaCaixetiPos = @{ Page = 1; LLX = 360; LLY = 740; URX = 560; URY = 815 }
+
+# Encoding del valor de -config d'AutoFirma. Segons la versió, AutoFirma vol els
+# extraParams en Base64 ($true, RECOMANAT: evita problemes d'espais/salts a la
+# línia d'ordres) o en text pla ($false). Si el caixetí no surt a Windows, prova
+# de posar-ho a $false.
+$Script:AutoFirmaConfigBase64 = $true
+
+# Construeix la cadena d'extraParams (TEXT PLA, determinista) per a una signatura
+# VISIBLE PAdES amb el caixetí donat. Els parells van separats per salt de línia;
+# dins de layer2Text els salts són \n LITERAL (barra+n), com espera AutoFirma.
+# Funció PURA. Caixetí buit -> '' (signatura invisible, com abans).
+function _AutoFirmaVisibleExtraParams([string]$caixeti) {
+    if ([string]::IsNullOrWhiteSpace($caixeti)) { return '' }
+    $p = $Script:AutoFirmaCaixetiPos
+    $layer = (([string]$caixeti -replace "`r`n", "`n") -replace "`n", '\n')
+    return (@(
+        "signaturePage=$($p.Page)"
+        "signaturePositionOnPageLowerLeftX=$($p.LLX)"
+        "signaturePositionOnPageLowerLeftY=$($p.LLY)"
+        "signaturePositionOnPageUpperRightX=$($p.URX)"
+        "signaturePositionOnPageUpperRightY=$($p.URY)"
+        'layer2FontFamily=1'
+        'layer2FontSize=8'
+        "layer2Text=$layer"
+    ) -join "`n")
+}
+
+# El fragment ' -config <valor>' per afegir a la línia d'arguments (o '' si no hi
+# ha caixetí). Codifica els extraParams en Base64 o text pla segons el commutador.
+function _AutoFirmaConfigArg([string]$caixeti) {
+    $ep = _AutoFirmaVisibleExtraParams $caixeti
+    if ([string]::IsNullOrWhiteSpace($ep)) { return '' }
+    if ($Script:AutoFirmaConfigBase64) {
+        $b64 = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($ep))
+        return ' -config ' + $b64
+    }
+    return ' -config "' + $ep + '"'
+}
+
 # Construeix la LÍNIA d'arguments (string, amb les rutes entre cometes) per signar
 # un PDF amb AutoFirma. Funció PURA. Operació 'sign', PAdES, magatzem 'windows'.
-function _BuildAutoFirmaSignArgs([string]$inPdf, [string]$outPdf, [string]$filter, [string]$algorithm) {
+# Si $caixeti no és buit, afegeix el -config de la signatura VISIBLE (caixetí a
+# dalt a la dreta). Sense $caixeti es comporta EXACTAMENT com abans (invisible).
+function _BuildAutoFirmaSignArgs([string]$inPdf, [string]$outPdf, [string]$filter, [string]$algorithm, [string]$caixeti = '') {
     if ([string]::IsNullOrWhiteSpace($algorithm)) { $algorithm = 'SHA256withRSA' }
     $a = 'sign -i "' + $inPdf + '" -o "' + $outPdf + '" -store windows -format pades -algorithm ' + $algorithm
     if (-not [string]::IsNullOrWhiteSpace($filter)) {
         $a += ' -filter "' + $filter + '"'
     }
+    $a += (_AutoFirmaConfigArg $caixeti)
     return $a
 }
 
@@ -114,13 +170,15 @@ function _PdfSignarStatePath {
 
 function _LoadPdfSignarState {
     $p = _PdfSignarStatePath
-    $def = @{ folder = ''; sign = $false; certFilter = ''; autofirma = ''; overwrite = $false }
+    $def = @{ folder = ''; sign = $false; certFilter = ''; autofirma = ''; overwrite = $false; visibleSign = $true; caixeti = (_DefaultCaixeti) }
     if (-not (Test-Path -LiteralPath $p)) { return $def }
     try {
         $o = Get-Content -LiteralPath $p -Raw -Encoding UTF8 | ConvertFrom-Json
-        foreach ($k in @('folder','certFilter','autofirma')) { if ($o.PSObject.Properties[$k]) { $def[$k] = [string]$o.$k } }
-        if ($o.PSObject.Properties['sign'])      { $def['sign'] = [bool]$o.sign }
-        if ($o.PSObject.Properties['overwrite']) { $def['overwrite'] = [bool]$o.overwrite }
+        foreach ($k in @('folder','certFilter','autofirma','caixeti')) { if ($o.PSObject.Properties[$k]) { $def[$k] = [string]$o.$k } }
+        if ($o.PSObject.Properties['sign'])        { $def['sign'] = [bool]$o.sign }
+        if ($o.PSObject.Properties['overwrite'])   { $def['overwrite'] = [bool]$o.overwrite }
+        if ($o.PSObject.Properties['visibleSign']) { $def['visibleSign'] = [bool]$o.visibleSign }
+        if ([string]::IsNullOrWhiteSpace([string]$def['caixeti'])) { $def['caixeti'] = (_DefaultCaixeti) }
     } catch { }
     return $def
 }
@@ -160,7 +218,7 @@ function _ShowConvertPdfOptions {
 
     $form = _NewForm
     $form.Text = 'Convertir informes a PDF'
-    $form.ClientSize = New-Object System.Drawing.Size(510, 336)
+    $form.ClientSize = New-Object System.Drawing.Size(510, 476)
     $form.FormBorderStyle = 'FixedDialog'
     $form.MaximizeBox = $false
 
@@ -217,17 +275,50 @@ function _ShowConvertPdfOptions {
         $lblAF.ForeColor = [System.Drawing.Color]::SeaGreen
     }
     [void]$form.Controls.Add($lblAF)
+    $y += 40
+
+    # Signatura VISIBLE (caixetí a dalt a la dreta) + text editable del caixetí.
+    $cbVis = New-Object System.Windows.Forms.CheckBox
+    $cbVis.Text = 'Signatura visible (caixetí a dalt a la dreta)'
+    $cbVis.Location = New-Object System.Drawing.Point(34, $y)
+    $cbVis.AutoSize = $true
+    $cbVis.Checked = [bool]$st.visibleSign
+    [void]$form.Controls.Add($cbVis)
+    $y += 26
+
+    $lblCx = New-Object System.Windows.Forms.Label
+    $lblCx.Text = 'Text del caixetí (una línia per fila; $$SIGNDATE=...$$ = data):'
+    $lblCx.Location = New-Object System.Drawing.Point(34, $y)
+    $lblCx.AutoSize = $true
+    $lblCx.Font = New-Object System.Drawing.Font('Segoe UI', 8.5, [System.Drawing.FontStyle]::Regular)
+    [void]$form.Controls.Add($lblCx)
+    $y += 20
+
+    $tbCx = New-Object System.Windows.Forms.TextBox
+    $tbCx.Location = New-Object System.Drawing.Point(34, $y)
+    $tbCx.Size = New-Object System.Drawing.Size(454, 76)
+    $tbCx.Multiline = $true
+    $tbCx.ScrollBars = 'Vertical'
+    $tbCx.AcceptsReturn = $true
+    $tbCx.Font = New-Object System.Drawing.Font('Segoe UI', 9)
+    # El TextBox multilínia només mostra CRLF; el caixetí es guarda amb LF.
+    $tbCx.Text = ([string]$st.caixeti -replace "`r?`n", "`r`n")
+    [void]$form.Controls.Add($tbCx)
 
     $syncSign = {
         $on = $cbSign.Checked
         $lblC.Enabled = $on; $cbCert.Enabled = $on; $lblAF.Enabled = $on
+        $cbVis.Enabled = $on
+        $onVis = ($on -and $cbVis.Checked)
+        $lblCx.Enabled = $onVis; $tbCx.Enabled = $onVis
     }.GetNewClosure()
     $cbSign.add_CheckedChanged($syncSign)
+    $cbVis.add_CheckedChanged($syncSign)
     & $syncSign
 
     $btnGo = New-Object System.Windows.Forms.Button
     $btnGo.Text = 'Comença'
-    $btnGo.Location = New-Object System.Drawing.Point(280, 298)
+    $btnGo.Location = New-Object System.Drawing.Point(280, 438)
     $btnGo.Size = New-Object System.Drawing.Size(120, 30)
     $btnGo.Anchor = 'Bottom, Right'
     _StylePrimaryButton $btnGo
@@ -235,7 +326,7 @@ function _ShowConvertPdfOptions {
 
     $btnCancel = New-Object System.Windows.Forms.Button
     $btnCancel.Text = 'Tanca'
-    $btnCancel.Location = New-Object System.Drawing.Point(406, 298)
+    $btnCancel.Location = New-Object System.Drawing.Point(406, 438)
     $btnCancel.Size = New-Object System.Drawing.Size(88, 30)
     $btnCancel.Anchor = 'Bottom, Right'
     _StyleSecondaryButton $btnCancel
@@ -255,11 +346,13 @@ function _ShowConvertPdfOptions {
         }
         $certFilter = ''
         if ($cbCert.SelectedIndex -ge 0 -and $cbCert.SelectedIndex -lt $certOpts.Count) { $certFilter = [string]$certOpts[$cbCert.SelectedIndex].Filter }
+        $caixeti = ([string]$tbCx.Text -replace "`r`n", "`n")
         $result.Value = @{
             Folder = $f; Sign = [bool]$cbSign.Checked; CertFilter = $certFilter
             Overwrite = [bool]$cbOver.Checked; AutoFirma = [string]$autofirma
+            VisibleSign = [bool]$cbVis.Checked; Caixeti = $caixeti
         }
-        _SavePdfSignarState @{ folder = $f; sign = [bool]$cbSign.Checked; certFilter = $certFilter; autofirma = [string]$autofirma; overwrite = [bool]$cbOver.Checked }
+        _SavePdfSignarState @{ folder = $f; sign = [bool]$cbSign.Checked; certFilter = $certFilter; autofirma = [string]$autofirma; overwrite = [bool]$cbOver.Checked; visibleSign = [bool]$cbVis.Checked; caixeti = $caixeti }
         $form.DialogResult = 'OK'; $form.Close()
     }.GetNewClosure())
 
@@ -327,6 +420,8 @@ function _RunConvertPdf($opts) {
     [System.Windows.Forms.Application]::DoEvents()
 
     $filter = [string]$opts.CertFilter
+    # Caixetí de signatura visible (buit = signatura invisible, com abans).
+    $caixeti = if ([bool]$opts.VisibleSign) { [string]$opts.Caixeti } else { '' }
     $converted = 0; $skipped = 0; $signed = 0; $errors = 0; $done = 0
     $errDetalls = New-Object System.Collections.ArrayList
     $word = $null
@@ -372,7 +467,7 @@ function _RunConvertPdf($opts) {
                 [System.Windows.Forms.Application]::DoEvents()
                 $tmpSigned = $pdf + '.signat.pdf'
                 try { if (Test-Path -LiteralPath $tmpSigned) { Remove-Item -LiteralPath $tmpSigned -Force } } catch { }
-                $argLine = [string](_BuildAutoFirmaSignArgs $pdf $tmpSigned $filter '')
+                $argLine = [string](_BuildAutoFirmaSignArgs $pdf $tmpSigned $filter '' $caixeti)
                 try {
                     $p = Start-Process -FilePath $afExe -ArgumentList $argLine -Wait -PassThru -WindowStyle Hidden
                     if ($p.ExitCode -eq 0 -and (Test-Path -LiteralPath $tmpSigned)) {
