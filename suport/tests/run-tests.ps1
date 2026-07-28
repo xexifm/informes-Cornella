@@ -1364,6 +1364,13 @@ $cmdCx = _ArgvToCommandLine @('-config', (_AutoFirmaVisibleExtraParams $cxDef))
 AssertEq ([bool]($cmdCx -like '-config "*')) $true '_ArgvToCommandLine: el -config multilínia va entre cometes'
 AssertEq ([bool]($cmdCx -like "*signaturePage=1*")) $true '_ArgvToCommandLine: el -config conserva les propietats'
 AssertEq (@($cmdCx -split "`n").Count) 8 '_ArgvToCommandLine: conserva els salts de línia REALS dins de les cometes'
+# LIMIT de la linia d'ordres de Windows (32767). La imatge del caixeti viatja en
+# base64 dins de l'ordre; si no hi cap, AutoFirma ni s'arrenca ("El nombre del
+# archivo o la extension es demasiado largo"). Per aixo hi ha topalls.
+AssertEq ([bool]($Script:MaxCommandLine -le 32767 -and $Script:MaxCommandLine -ge 10000)) $true 'MaxCommandLine: topall sota el limit de Windows amb marge'
+AssertEq ([bool]($Script:MaxCaixetiBase64 -lt $Script:MaxCommandLine)) $true 'MaxCaixetiBase64: la imatge ha de deixar lloc per a les rutes'
+$argvLlarg = @('sign', '-i', 'a.pdf', '-config', ('x=' + ('A' * 40000)))
+AssertEq ([bool]((_ArgvToCommandLine $argvLlarg).Length -gt $Script:MaxCommandLine)) $true '_ArgvToCommandLine: es pot mesurar si una ordre no hi cabria'
 
 Write-Host "`n--- VistaWord.ps1: vistes en Word dels catalegs (des dels JSON) ---"
 AssertEq (_VistaWordPathFor 'C:\E\REQ1.json') 'C:\E\REQ1.docx' '_VistaWordPathFor: mateix nom, .docx'

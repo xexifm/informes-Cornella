@@ -68,6 +68,14 @@ function _DefaultCaixeti {
 # Posició del caixetí a la pàgina (A4 595x842 pt): a DALT A LA DRETA. Tunejable.
 $Script:AutoFirmaCaixetiPos = @{ Page = 1; LLX = 360; LLY = 740; URX = 560; URY = 815 }
 
+# Límit REAL de Windows per a una línia d'ordres: 32767 caràcters. Deixem marge
+# per a les rutes (que poden ser llargues, en xarxa) i per al filtre del
+# certificat. Si un intent no hi cap, se salta (mai es prova i peta).
+$Script:MaxCommandLine = 30000
+# Mida màxima del base64 de la imatge del caixetí. Amb el marge de dalt, la
+# imatge no pot passar d'aquí o l'ordre no hi cabria.
+$Script:MaxCaixetiBase64 = 20000
+
 # Resol els marcadors de data del caixetí NOSALTRES, en lloc de deixar-los a
 # AutoFirma. Funció PURA (per això la data entra com a paràmetre).
 #
@@ -102,8 +110,12 @@ function _BuildCaixetiImageBase64([string]$caixeti) {
     try {
         Add-Type -AssemblyName System.Drawing -ErrorAction Stop
         $p = $Script:AutoFirmaCaixetiPos
-        # Mateixa proporcio que el requadre de la signatura, x4 per qualitat.
-        $escala = 4
+        # Mateixa proporcio que el requadre de la signatura, x2 (144 ppp: prou
+        # nitid). NO es pot pujar gaire: la imatge viatja en BASE64 dins de la
+        # linia d'ordres, i Windows no admet mes de 32767 caracters. Amb x4 el
+        # base64 se n'anava i AutoFirma ni s'arrencava ("El nombre del archivo o
+        # la extension es demasiado largo").
+        $escala = 2
         $w = [int](([int]$p.URX - [int]$p.LLX) * $escala)
         $h = [int](([int]$p.URY - [int]$p.LLY) * $escala)
         if ($w -le 0 -or $h -le 0) { return '' }
@@ -132,8 +144,25 @@ function _BuildCaixetiImageBase64([string]$caixeti) {
 
         $ms = New-Object System.IO.MemoryStream
         try {
-            $bmp.Save($ms, [System.Drawing.Imaging.ImageFormat]::Jpeg)
-            return [System.Convert]::ToBase64String($ms.ToArray())
+            # JPEG amb qualitat moderada: el que compta es que el base64 sigui
+            # curt (ha de cabre a la linia d'ordres), i el caixeti es text negre
+            # sobre blanc, que comprimeix molt be.
+            $codec = [System.Drawing.Imaging.ImageCodecInfo]::GetImageEncoders() |
+                     Where-Object { $_.MimeType -eq 'image/jpeg' } | Select-Object -First 1
+            if ($null -ne $codec) {
+                $ep = New-Object System.Drawing.Imaging.EncoderParameters(1)
+                $ep.Param[0] = New-Object System.Drawing.Imaging.EncoderParameter(
+                                    [System.Drawing.Imaging.Encoder]::Quality, [long]70)
+                $bmp.Save($ms, $codec, $ep)
+                $ep.Dispose()
+            } else {
+                $bmp.Save($ms, [System.Drawing.Imaging.ImageFormat]::Jpeg)
+            }
+            $b64 = [System.Convert]::ToBase64String($ms.ToArray())
+            # Ultim tall de seguretat: si tot i aixi no hi cabria, millor no
+            # intentar-ho (el crider passara al caixeti de text).
+            if ($b64.Length -gt $Script:MaxCaixetiBase64) { return '' }
+            return $b64
         } finally { $ms.Dispose(); $bmp.Dispose() }
     } catch {
         return ''
@@ -663,9 +692,26 @@ function _RunConvertPdf($opts) {
                     $res = $null; $argv = @(); $usat = ''
                     foreach ($intent in $intents) {
                         try { if (Test-Path -LiteralPath $tmpSigned) { Remove-Item -LiteralPath $tmpSigned -Force } } catch { }
-                        $argv = @(_BuildAutoFirmaSignArgv $pdf $tmpSigned $filter '' ([string]$intent.Text) ([string]$intent.Mode))
-                        $res = _RunAutoFirma $afExe $argv
                         $usat = [string]$intent.Nom
+                        # IMPORTANT: el try/catch va DINS del bucle. Si una
+                        # excepcio d'un intent sortia fora, s'enduia TOTS els
+                        # intents i el fitxer es quedava sense signar (va passar
+                        # amb la imatge: "El nombre del archivo o la extension es
+                        # demasiado largo").
+                        try {
+                            $argv = @(_BuildAutoFirmaSignArgv $pdf $tmpSigned $filter '' ([string]$intent.Text) ([string]$intent.Mode))
+                            # Windows no admet linies d'ordres de mes de 32767
+                            # caracters. Si l'intent no hi cabria, ni el provem.
+                            $llarg = (_ArgvToCommandLine $argv).Length
+                            if ($llarg -gt $Script:MaxCommandLine) {
+                                _PdfSignarLog ("AVIS: l'intent '" + $usat + "' no hi cap a la linia d'ordres (" + $llarg + " car.); el salto.")
+                                $res = @{ ExitCode = -1; Output = 'ordre massa llarga' }
+                                continue
+                            }
+                            $res = _RunAutoFirma $afExe $argv
+                        } catch {
+                            $res = @{ ExitCode = -1; Output = $_.Exception.Message }
+                        }
                         if ($res.ExitCode -eq 0 -and (Test-Path -LiteralPath $tmpSigned)) { break }
                         _PdfSignarLog ("AVIS: ha fallat l'intent '" + $usat + "' (codi " + $res.ExitCode + ") a " + $f.Name)
                         _PdfSignarLog ("   ordre: " + (_AutoFirmaArgvToText $argv))

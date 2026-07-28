@@ -305,6 +305,16 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
     requadre de la signatura i el passa a `signatureRubricImage` (base64), que és
     el mecanisme documentat d'AutoFirma per a la rúbrica. En aquest mode NO s'hi
     posa `layer2Text` (la imatge ja ho porta tot).
+  - **LÍMIT DE LA LÍNIA D'ORDRES (5è error real)**: la imatge viatja en **base64
+    dins de l'ordre**, i Windows no admet més de **32767** caràcters. Amb la
+    imatge a escala x4, `Process.Start` petava amb *"El nombre del archivo o la
+    extensión es demasiado largo"*. Ara la imatge va a **escala x2 amb JPEG de
+    qualitat 70** i hi ha **dos topalls**: `$Script:MaxCaixetiBase64` (la imatge
+    no es genera si passa de 20000 car.) i `$Script:MaxCommandLine` (un intent que
+    no hi cabria **ni es prova**, se salta i es registra).
+  - **El `try/catch` va DINS del bucle d'intents**: quan estava a fora, una
+    excepció d'un intent s'enduia **tots** els altres i el fitxer es quedava
+    **sense signar**. Va passar exactament això amb la imatge massa gran.
   - **Reintents escalats**: caixetí **(imatge)** → caixetí **(text d'una línia)**
     → **sense** caixetí. Així mai es queda un PDF sense signar i del registre se'n
     dedueix quin ha funcionat. Al registre la imatge surt **resumida** (mida en
