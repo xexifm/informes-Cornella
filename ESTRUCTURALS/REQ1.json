@@ -324,7 +324,7 @@
       {
        "runs": [
         {
-         "t": "Vector Aigua (ACA). L’activitat disposa d’ volum anual d'aigua superior a 1.000 m3, i es troba inclosa en les seccions B, C i D i els grups A032, E360, E383 i J581 de la Classificació catalana d'activitats econòmiques (CCAE-2009). S’ha de presentar la Declaració de l'Ús i la Contaminació de l'Aigua (DUCA)."
+         "t": "Vector Aigua (ACA). L’activitat disposa d’un volum anual d'aigua superior a 1.000 m3, i es troba inclosa en les seccions B, C i D i els grups A032, E360, E383 i J581 de la Classificació catalana d'activitats econòmiques (CCAE-2009). S’ha de presentar la Declaració de l'Ús i la Contaminació de l'Aigua (DUCA)."
         }
        ]
       },
@@ -836,7 +836,7 @@
       {
        "runs": [
         {
-         "t": "Vector Atmosfera. L'activitat esta inclosa dins l'Annex IV de la "
+         "t": "Vector Atmosfera. L'activitat està inclosa dins l'Annex IV de la "
         },
         {
          "t": "Ley 34/2007, de 15 de noviembre, de calidad del aire y proteccion de la atmosfera",
@@ -943,7 +943,7 @@
       },
       {
        "tipus": "item",
-       "titol": "RITSIC - gas combustible (transport/distribucio)",
+       "titol": "RITSIC - gas combustible (transport/distribució)",
        "cos": [
         {
          "runs": [
@@ -2068,7 +2068,7 @@
       },
       {
        "tipus": "item",
-       "titol": "DEA - inscripcio",
+       "titol": "DEA - inscripció",
        "cos": [
         {
          "runs": [
@@ -2257,7 +2257,7 @@
     },
     {
      "tipus": "item",
-     "titol": "Evacuació Evacuació - portes practicables",
+     "titol": "Evacuació - portes practicables",
      "cos": [
       {
        "runs": [
@@ -2290,7 +2290,7 @@
       },
       {
        "tipus": "item",
-       "titol": "SP 136 Model A - limitacio propagacio",
+       "titol": "SP 136 Model A - limitació propagació",
        "cos": [
         {
          "runs": [
@@ -2326,7 +2326,7 @@
       },
       {
        "tipus": "item",
-       "titol": "SP 136 Model B - reaccio al foc",
+       "titol": "SP 136 Model B - reacció al foc",
        "cos": [
         {
          "runs": [
@@ -2362,7 +2362,7 @@
       },
       {
        "tipus": "item",
-       "titol": "SP 136 Model C - proteccio estructures",
+       "titol": "SP 136 Model C - protecció estructures",
        "cos": [
         {
          "runs": [
@@ -2595,7 +2595,7 @@
       },
       {
        "tipus": "item",
-       "titol": "RIPCI - Senyalitzacio PCI",
+       "titol": "RIPCI - Senyalització PCI",
        "cos": [
         {
          "runs": [
@@ -3179,7 +3179,7 @@
     },
     {
      "tipus": "item",
-     "titol": "Alçades minimes",
+     "titol": "Alçades mínimes",
      "cos": [
       {
        "runs": [
@@ -3289,7 +3289,7 @@
       {
        "runs": [
         {
-         "t": "Elements de cocció. Segons l'article 11.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornella de Llobregat les activitats de restauració que no tinguin extracció de fums fins a coberta únicament podran disposar dels següents elements de cocció: una planxa elèctrica de fins a 2.500 W de potencia i fins a 40x40 cm de mesura; forns elèctrics de fins a 7.500 W de potencia (suma de potencies de tots els forns) i amb recollida de vapor per condensació. Si es disposen de mes elements de cocció que els esmentats i no es disposa d’extracció de fums s'hauran de retirar immediatament. Si aquests elements de cocció creen molèsties al veïnat, s'hauran de prendre les mesures correctores que indiqui el tècnic municipal competent, podent comportar igualment la seva retirada."
+         "t": "Elements de cocció. Segons l'article 11.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat les activitats de restauració que no tinguin extracció de fums fins a coberta únicament podran disposar dels següents elements de cocció: una planxa elèctrica de fins a 2.500 W de potència i fins a 40x40 cm de mesura; forns elèctrics de fins a 7.500 W de potència (suma de potències de tots els forns) i amb recollida de vapor per condensació. Si es disposen de més elements de cocció que els esmentats i no es disposa d’extracció de fums s'hauran de retirar immediatament. Si aquests elements de cocció creen molèsties al veïnat, s'hauran de prendre les mesures correctores que indiqui el tècnic municipal competent, podent comportar igualment la seva retirada."
         }
        ]
       }
@@ -3561,7 +3561,7 @@
         {
          "runs": [
           {
-           "t": "Elements de cocció. Segons l'article 11.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornella de Llobregat les activitats de restauració que no tinguin extracció de fums fins a coberta únicament podran disposar dels següents elements de cocció: una planxa elèctrica de fins a 2.500 W de potencia i fins a 40x40 cm de mesura; forns elèctrics de fins a 7.500 W de potencia (suma de potencies de tots els forns) i amb recollida de vapor per condensació. Si es disposen de mes elements de cocció que els esmentats i no es disposa d’extracció de fums s'hauran de retirar immediatament. Si aquests elements de cocció creen molèsties al veïnat, s'hauran de prendre les mesures correctores que indiqui el tècnic municipal competent, podent comportar igualment la seva retirada. S’ha de:"
+           "t": "Elements de cocció. Segons l'article 11.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat les activitats de restauració que no tinguin extracció de fums fins a coberta únicament podran disposar dels següents elements de cocció: una planxa elèctrica de fins a 2.500 W de potència i fins a 40x40 cm de mesura; forns elèctrics de fins a 7.500 W de potència (suma de potències de tots els forns) i amb recollida de vapor per condensació. Si es disposen de més elements de cocció que els esmentats i no es disposa d’extracció de fums s'hauran de retirar immediatament. Si aquests elements de cocció creen molèsties al veïnat, s'hauran de prendre les mesures correctores que indiqui el tècnic municipal competent, podent comportar igualment la seva retirada. S’ha de:"
           }
          ]
         }
@@ -3744,7 +3744,7 @@
       },
       {
        "tipus": "item",
-       "titol": "RSCIEI - evacuació i senyalitzacio (Annex II 6.5)",
+       "titol": "RSCIEI - evacuació i senyalització (Annex II 6.5)",
        "cos": [
         {
          "runs": [

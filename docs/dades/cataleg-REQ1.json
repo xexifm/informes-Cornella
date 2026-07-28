@@ -158,7 +158,7 @@
                                            "Kind":  "item",
                                            "Short":  "Vector Aigua (ACA) - DUCA",
                                            "BodyLines":  [
-                                                             "Vector Aigua (ACA). L’activitat disposa d’ volum anual d\u0027aigua superior a 1.000 m3, i es troba inclosa en les seccions B, C i D i els grups A032, E360, E383 i J581 de la Classificació catalana d\u0027activitats econòmiques (CCAE-2009). S’ha de presentar la Declaració de l\u0027Ús i la Contaminació de l\u0027Aigua (DUCA).",
+                                                             "Vector Aigua (ACA). L’activitat disposa d’un volum anual d\u0027aigua superior a 1.000 m3, i es troba inclosa en les seccions B, C i D i els grups A032, E360, E383 i J581 de la Classificació catalana d\u0027activitats econòmiques (CCAE-2009). S’ha de presentar la Declaració de l\u0027Ús i la Contaminació de l\u0027Aigua (DUCA).",
                                                              "[[URL]] https://web.gencat.cat/ca/tramits/tramits-temes/Declaracio-de-lUs-i-la-Contaminacio-de-lAigua-DUCA"
                                                          ],
                                            "Children":  [
@@ -401,7 +401,7 @@
                                            "Kind":  "item",
                                            "Short":  "Vector Atmosfera - control periòdic",
                                            "BodyLines":  [
-                                                             "Vector Atmosfera. L\u0027activitat esta inclosa dins l\u0027Annex IV de la //Ley 34/2007, de 15 de noviembre, de calidad del aire y proteccion de la atmosfera//. S\u0027ha d\u0027entregar, per part d\u0027una Entitat de control en l’àmbit sectorial de la prevenció de la contaminació atmosfèrica [EC-A], tal i com s\u0027indica a l\u0027Article 16 del DECRET 139/2018, de 3 de juliol, sobre els règims d’intervenció ambiental atmosfèrica dels establiments on es desenvolupin activitats potencialment contaminants de l\u0027atmosfera:",
+                                                             "Vector Atmosfera. L\u0027activitat està inclosa dins l\u0027Annex IV de la //Ley 34/2007, de 15 de noviembre, de calidad del aire y proteccion de la atmosfera//. S\u0027ha d\u0027entregar, per part d\u0027una Entitat de control en l’àmbit sectorial de la prevenció de la contaminació atmosfèrica [EC-A], tal i com s\u0027indica a l\u0027Article 16 del DECRET 139/2018, de 3 de juliol, sobre els règims d’intervenció ambiental atmosfèrica dels establiments on es desenvolupin activitats potencialment contaminants de l\u0027atmosfera:",
                                                              "- El CAE (Control Atmosfèric de l\u0027Establiment)",
                                                              "- L\u0027informe reglamentari de mesures d\u0027emissions a l’atmosfera",
                                                              "[[URL]] https://www.gencat.cat/mediamb/oaec/ec_atm_CA.pdf"
@@ -458,7 +458,7 @@
                                        },
                                        {
                                            "Kind":  "item",
-                                           "Short":  "RITSIC - gas combustible (transport/distribucio)",
+                                           "Short":  "RITSIC - gas combustible (transport/distribució)",
                                            "BodyLines":  [
                                                              "Instal·lació de gas. Transport, emmagatzematge, distribució gas combustible",
                                                              "[[URL]] https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Presentacio-de-la-declaracio-responsable-per-a-installacions-de-gasos-combustibles-posada-en-servei-modificacions-i-baixa?moda=1"
@@ -1027,7 +1027,7 @@
                                        },
                                        {
                                            "Kind":  "item",
-                                           "Short":  "DEA - inscripcio",
+                                           "Short":  "DEA - inscripció",
                                            "BodyLines":  [
                                                              "Desfibril·ladors. S’ha de notificar la instal·lació inscrivint-la en el Registre de desfibril·ladors fora de l’àmbit sanitari.",
                                                              "[[URL]] https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Inscripcio-modificacio-i-cancellacio-de-les-dades-dels-desfibrilladors-externs-automatics-de-centres-no-sanitaris"
@@ -1127,7 +1127,7 @@
                                        },
                                        {
                                            "Kind":  "item",
-                                           "Short":  "Evacuació Evacuació - portes practicables",
+                                           "Short":  "Evacuació - portes practicables",
                                            "BodyLines":  [
                                                              "Evacuació. Les portes d’emergència han de ser practicables mentre l’activitat romangui oberta. S’ha d’entregar un certificat signat pel titular indicant que la porta que evacua a [CAMP: Adreça porta practicable evacuació] estarà practicable mentre l’activitat estigui oberta."
                                                          ],
@@ -1157,7 +1157,7 @@
                                        },
                                        {
                                            "Kind":  "item",
-                                           "Short":  "SP 136 Model A - limitacio propagacio",
+                                           "Short":  "SP 136 Model A - limitació propagació",
                                            "BodyLines":  [
                                                              "SP 136 Model A Certificat d’instal·lació de productes de limitació de la propagació d’incendis, adjuntant com a mínim:",
                                                              "- Documents de subministrament del producte",
@@ -1170,7 +1170,7 @@
                                        },
                                        {
                                            "Kind":  "item",
-                                           "Short":  "SP 136 Model B - reaccio al foc",
+                                           "Short":  "SP 136 Model B - reacció al foc",
                                            "BodyLines":  [
                                                              "SP 136 Model B Certificat d’aplicació de productes de millora de la reacció al foc, adjuntant com a mínim:",
                                                              "- Documents de subministrament del producte",
@@ -1183,7 +1183,7 @@
                                        },
                                        {
                                            "Kind":  "item",
-                                           "Short":  "SP 136 Model C - proteccio estructures",
+                                           "Short":  "SP 136 Model C - protecció estructures",
                                            "BodyLines":  [
                                                              "SP 136 Model C Certificat d\u0027instal·lació o aplicació de productes de protecció d\u0027estructures, adjuntant com a mínim:",
                                                              "- Documents de subministrament del producte",
@@ -1329,7 +1329,7 @@
                                        },
                                        {
                                            "Kind":  "item",
-                                           "Short":  "RIPCI - Senyalitzacio PCI",
+                                           "Short":  "RIPCI - Senyalització PCI",
                                            "BodyLines":  [
                                                              "Senyalització. La senyalització dels mitjans de protecció contra incendis d\u0027utilització manual i dels sistemes d\u0027alerta i alarma, hauran de complir la norma UNE 23033-1. Els senyals no definits en aquesta norma es podran dissenyar amb els mateixos criteris establerts en la norma UNE 23033-1, en la UNE 23032 i a la UNE-EN ISO 7010."
                                                          ],
@@ -1619,7 +1619,7 @@
                                        },
                                        {
                                            "Kind":  "item",
-                                           "Short":  "Alçades minimes",
+                                           "Short":  "Alçades mínimes",
                                            "BodyLines":  [
                                                              "No es pot fer ús d’aquelles zones que disposin d’una alçada inferior a 2,5m (a excepció dels magatzems i els lavabos que poden tenir 2,2m d’alçada). Exemples"
                                                          ],
@@ -1696,7 +1696,7 @@
                                            "Kind":  "item",
                                            "Short":  "Elements cocció sense extracció",
                                            "BodyLines":  [
-                                                             "Elements de cocció. Segons l\u0027article 11.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornella de Llobregat les activitats de restauració que no tinguin extracció de fums fins a coberta únicament podran disposar dels següents elements de cocció: una planxa elèctrica de fins a 2.500 W de potencia i fins a 40x40 cm de mesura; forns elèctrics de fins a 7.500 W de potencia (suma de potencies de tots els forns) i amb recollida de vapor per condensació. Si es disposen de mes elements de cocció que els esmentats i no es disposa d’extracció de fums s\u0027hauran de retirar immediatament. Si aquests elements de cocció creen molèsties al veïnat, s\u0027hauran de prendre les mesures correctores que indiqui el tècnic municipal competent, podent comportar igualment la seva retirada."
+                                                             "Elements de cocció. Segons l\u0027article 11.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat les activitats de restauració que no tinguin extracció de fums fins a coberta únicament podran disposar dels següents elements de cocció: una planxa elèctrica de fins a 2.500 W de potència i fins a 40x40 cm de mesura; forns elèctrics de fins a 7.500 W de potència (suma de potències de tots els forns) i amb recollida de vapor per condensació. Si es disposen de més elements de cocció que els esmentats i no es disposa d’extracció de fums s\u0027hauran de retirar immediatament. Si aquests elements de cocció creen molèsties al veïnat, s\u0027hauran de prendre les mesures correctores que indiqui el tècnic municipal competent, podent comportar igualment la seva retirada."
                                                          ],
                                            "Children":  [
 
@@ -1882,7 +1882,7 @@
                                            "Kind":  "item",
                                            "Short":  "Olors Elements cocció",
                                            "BodyLines":  [
-                                                             "Elements de cocció. Segons l\u0027article 11.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornella de Llobregat les activitats de restauració que no tinguin extracció de fums fins a coberta únicament podran disposar dels següents elements de cocció: una planxa elèctrica de fins a 2.500 W de potencia i fins a 40x40 cm de mesura; forns elèctrics de fins a 7.500 W de potencia (suma de potencies de tots els forns) i amb recollida de vapor per condensació. Si es disposen de mes elements de cocció que els esmentats i no es disposa d’extracció de fums s\u0027hauran de retirar immediatament. Si aquests elements de cocció creen molèsties al veïnat, s\u0027hauran de prendre les mesures correctores que indiqui el tècnic municipal competent, podent comportar igualment la seva retirada. S’ha de:"
+                                                             "Elements de cocció. Segons l\u0027article 11.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat les activitats de restauració que no tinguin extracció de fums fins a coberta únicament podran disposar dels següents elements de cocció: una planxa elèctrica de fins a 2.500 W de potència i fins a 40x40 cm de mesura; forns elèctrics de fins a 7.500 W de potència (suma de potències de tots els forns) i amb recollida de vapor per condensació. Si es disposen de més elements de cocció que els esmentats i no es disposa d’extracció de fums s\u0027hauran de retirar immediatament. Si aquests elements de cocció creen molèsties al veïnat, s\u0027hauran de prendre les mesures correctores que indiqui el tècnic municipal competent, podent comportar igualment la seva retirada. S’ha de:"
                                                          ],
                                            "Children":  [
                                                             {
@@ -1997,7 +1997,7 @@
                                        },
                                        {
                                            "Kind":  "item",
-                                           "Short":  "RSCIEI - evacuació i senyalitzacio (Annex II 6.5)",
+                                           "Short":  "RSCIEI - evacuació i senyalització (Annex II 6.5)",
                                            "BodyLines":  [
                                                              "Segons l’estipulat en el punt 6.5 de l’Annex II del RSCIEI //Las disposiciones en materia de evacuación y señalización en los establecimientos industriales que estén ubicados en configuraciones de tipo D y E [...] cumplirán los requisitos siguientes//:"
                                                          ],
