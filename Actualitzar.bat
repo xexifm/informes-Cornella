@@ -12,6 +12,21 @@ setlocal EnableDelayedExpansion
 title Actualitzar generador d'informes Cornella
 cd /d "%~dp0"
 
+REM --- Manteniment automatic del git: DESACTIVAT ---
+REM El clone viu en una unitat de XARXA (\\fitxers\arrel\...). Alli, el
+REM "geometric-repack" que el git llanca sol despres d'un fetch/push no pot
+REM reanomenar el fitxer .idx (SMB el te bloquejat) i deixa un rastre d'errors:
+REM   Rename from '...tmp-XXXX-pack-....idx' to '....idx' failed.
+REM   Should I try again? (y/n)      <- I A SOBRE HO PREGUNTA
+REM   fatal: renaming pack ... Permission denied / error: task 'geometric-repack' failed
+REM Aquesta pregunta es el pitjor: pot deixar l'actualitzacio ATURADA esperant
+REM una tecla. Ho desactivem al clone (nomes afecta aquest repositori) i, per si
+REM de cas, li diem al git que no pregunti mai aquestes coses.
+REM No perdem res: el repositori es petit i el manteniment no cal.
+set "GIT_ASK_YESNO=false"
+git config maintenance.auto false >nul 2>&1
+git config gc.auto 0 >nul 2>&1
+
 REM --- Tancar el programa si esta obert i ESPERAR que es tanqui del tot ---
 REM El programa desa el PID del seu proces viu a running.pid. IMPORTANT: quan
 REM s'obre des del boto "Actualitzar" del programa, aquest .bat s'executa com a

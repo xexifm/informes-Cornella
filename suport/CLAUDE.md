@@ -40,6 +40,19 @@
   reutilitza el de `Motor.ps1`; se li passa el text de cerca **ja net**
   (`.Trim().ToLower()`), que és el seu contracte.
 
+## El clone viu en una unitat de XARXA: manteniment del git desactivat
+- El clone de l'usuari està a `\\fitxers\arrel\Activitats_Ordenances\...`. Allà, el
+  **`geometric-repack`** que el git llança sol després d'un `fetch`/`push` **falla**:
+  no pot reanomenar el `.idx` (SMB el té bloquejat) i escup
+  `Permission denied` + `error: task 'geometric-repack' failed`.
+- El pitjor no és el soroll: git **PREGUNTA** `Should I try again? (y/n)` i això pot
+  deixar `Actualitzar.bat` **ATURAT esperant una tecla** (al registre de l'usuari
+  s'hi veu fins i tot un `Sorry, I did not understand your answer`).
+- Per això `Actualitzar.bat` (a dalt de tot) i `Instalar.bat` (subrutina
+  `:NO_MAINTENANCE`) desactiven el manteniment **en aquest clone**:
+  `git config maintenance.auto false` + `git config gc.auto 0`, i s'hi posa
+  `GIT_ASK_YESNO=false` per si de cas. El repositori és petit: no perdem res.
+
 ## Desplegament de l'usuari
 - L'usuari executa el programa des d'un **clone de git local** al seu PC.
 - Per actualitzar fa doble clic a **`Actualitzar.bat`** (fa `git pull` de

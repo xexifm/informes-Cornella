@@ -87,6 +87,7 @@ goto ADOPT_ZIP
 
 :UPDATE_CLONE
 echo [Repo] Ja es un clone. Actualitzant a 'main'...
+call :NO_MAINTENANCE
 "%GIT%" fetch origin
 if errorlevel 1 goto NET_ERR
 "%GIT%" checkout main
@@ -102,6 +103,7 @@ goto OFFICE_CHECK
 :ADOPT_ZIP
 echo [Repo] Carpeta del programa sense Git. La converteixo en clone...
 "%GIT%" init
+call :NO_MAINTENANCE
 "%GIT%" remote remove origin >nul 2>&1
 "%GIT%" remote add origin "%REPO_URL%"
 "%GIT%" fetch origin
@@ -121,6 +123,9 @@ if errorlevel 1 (
     exit /b 1
 )
 set "FINALDIR=%~dp0informes-Cornella"
+pushd "%FINALDIR%"
+call :NO_MAINTENANCE
+popd
 goto OFFICE_CHECK
 
 :NET_ERR
@@ -172,4 +177,19 @@ for /f "delims=" %%g in ('where git 2^>nul') do if not defined GIT set "GIT=%%g"
 if not defined GIT if exist "%ProgramFiles%\Git\cmd\git.exe" set "GIT=%ProgramFiles%\Git\cmd\git.exe"
 if not defined GIT if exist "%ProgramFiles(x86)%\Git\cmd\git.exe" set "GIT=%ProgramFiles(x86)%\Git\cmd\git.exe"
 if not defined GIT if exist "%LocalAppData%\Programs\Git\cmd\git.exe" set "GIT=%LocalAppData%\Programs\Git\cmd\git.exe"
+goto :eof
+
+REM ============================================================
+REM  Subrutina: desactiva el manteniment automatic del git al clone
+REM ------------------------------------------------------------
+REM  Quan el clone viu en una unitat de XARXA, el "geometric-repack" que el git
+REM  llanca sol despres d'un fetch/push no pot reanomenar el fitxer .idx (SMB el
+REM  te bloquejat) i deixa errors "Permission denied". A sobre PREGUNTA
+REM  "Should I try again? (y/n)", cosa que pot deixar l'instal-lador o
+REM  l'Actualitzar.bat ATURATS esperant una tecla. El repositori es petit i el
+REM  manteniment no cal, aixi que el desactivem (nomes en aquest clone).
+REM ============================================================
+:NO_MAINTENANCE
+"%GIT%" config maintenance.auto false >nul 2>&1
+"%GIT%" config gc.auto 0 >nul 2>&1
 goto :eof
