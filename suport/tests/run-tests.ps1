@@ -1327,7 +1327,18 @@ $valCfg = [string]$argvCx[$iCfg + 1]
 AssertEq ([bool]($valCfg -like '*signaturePage=1*' -and $valCfg -like '*layer2Text=*')) $true '_BuildAutoFirmaSignArgv: el -config es el TEXT PLA dels extraParams'
 AssertEq (@($valCfg -split "`n").Count) 8 '_BuildAutoFirmaSignArgv: el -config porta salts de línia reals (8 propietats)'
 AssertEq ([bool]($valCfg -match '^[A-Za-z0-9+/=]+$')) $false '_BuildAutoFirmaSignArgv: el -config NO va en Base64'
-AssertEq ([bool]((_AutoFirmaArgvToText $argvCx) -like '*\n*')) $true '_AutoFirmaArgvToText: mostra els salts com a \n per al registre'
+AssertEq ([bool]((_AutoFirmaArgvToText $argvCx) -like '*<LF>*')) $true '_AutoFirmaArgvToText: els salts REALS es marquen <LF> (per distingir-los dels \n literals)'
+# La data la resolem NOSALTRES: AutoFirma no ha de veure cap marcador $$...$$
+# (amb ells petava amb "begin 0, end -1, length 21" i no signava).
+$ara = [datetime]'2026-07-28 11:39:41'
+AssertEq (_ResolveCaixetiDate 'Data: $$SIGNDATE=yyyy.MM.dd HH:mm:ss$$' $ara) 'Data: 2026.07.28 11:39:41' '_ResolveCaixetiDate: substitueix el marcador per la data'
+AssertEq (_ResolveCaixetiDate 'sense marcador' $ara) 'sense marcador' '_ResolveCaixetiDate: text sense marcador no es toca'
+AssertEq (_ResolveCaixetiDate 'x $$SUBJECTCN$$ y' $ara) 'x  y' '_ResolveCaixetiDate: treu els altres marcadors (AutoFirma no els paeix)'
+AssertEq (_ResolveCaixetiDate '' $ara) '' '_ResolveCaixetiDate: buit -> buit'
+AssertEq ([bool]((_AutoFirmaVisibleExtraParams $cxDef $ara) -like '*$$*')) $false '_AutoFirmaVisibleExtraParams: cap marcador $$ arriba a AutoFirma'
+AssertEq ([bool]((_AutoFirmaVisibleExtraParams $cxDef $ara) -like '*2026.07.28 11:39:41*')) $true '_AutoFirmaVisibleExtraParams: hi surt la data ja resolta'
+AssertEq (_CaixetiUnaLinia "a`nb`nc") ('a ' + [char]0x00B7 + ' b ' + [char]0x00B7 + ' c') '_CaixetiUnaLinia: ajunta les linies amb un punt volat'
+AssertEq (_CaixetiUnaLinia 'nomes una') 'nomes una' '_CaixetiUnaLinia: una sola linia no canvia'
 # LINIA D'ORDRES: PS 5.1 no enquota els elements de -ArgumentList; ho fem nosaltres.
 # Sense aixo, "5.- Sergi Fadurdo" arribava tallat i AutoFirma deia "El fichero de
 # entrada no existe: I:\...\5.-".
@@ -1344,13 +1355,6 @@ Write-Host "`n--- VistaWord.ps1: vistes en Word dels catalegs (des dels JSON) --
 AssertEq (_VistaWordPathFor 'C:\E\REQ1.json') 'C:\E\REQ1.docx' '_VistaWordPathFor: mateix nom, .docx'
 AssertEq ([bool](_VistaEsProtegit 'C:\E\0 CAPCALERA.json')) $true '_VistaEsProtegit: 0 CAPCALERA no es toca mai'
 AssertEq ([bool](_VistaEsProtegit 'C:\E\REQ1.json')) $false '_VistaEsProtegit: la resta si'
-AssertEq (@(_VistaSegments 'text normal').Count) 1 '_VistaSegments: text sense marques -> 1 tros'
-$vs = @(_VistaSegments 'aixo es **fort** i //inclinat//')
-AssertEq $vs.Count 4 '_VistaSegments: parteix negreta i cursiva'
-AssertEq ([bool]($vs[1].Bold)) $true '_VistaSegments: **...** -> negreta'
-AssertEq ($vs[1].Text) 'fort' '_VistaSegments: treu les marques del text'
-AssertEq ([bool]($vs[3].Italic)) $true '_VistaSegments: //...// -> cursiva'
-AssertEq (@(_VistaSegments '').Count) 0 '_VistaSegments: buit -> cap tros'
 AssertEq (_VistaActExtrTitol '[[INCENDIS]] Incendis') 'Incendis  [INCENDIS]' '_VistaActExtrTitol: etiqueta + clau'
 AssertEq (_VistaActExtrTitol '[[MEMORIA_A]] ::CHILD:: a) Identificacio') 'a) Identificacio  [MEMORIA_A]' '_VistaActExtrTitol: treu el token'
 AssertEq (_VistaActExtrTitol '[[REQ_INTRO]]') 'REQ_INTRO' '_VistaActExtrTitol: sense etiqueta -> la clau'

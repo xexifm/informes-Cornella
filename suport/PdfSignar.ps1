@@ -68,14 +68,46 @@ function _DefaultCaixeti {
 # Posició del caixetí a la pàgina (A4 595x842 pt): a DALT A LA DRETA. Tunejable.
 $Script:AutoFirmaCaixetiPos = @{ Page = 1; LLX = 360; LLY = 740; URX = 560; URY = 815 }
 
+# Resol els marcadors de data del caixetí NOSALTRES, en lloc de deixar-los a
+# AutoFirma. Funció PURA (per això la data entra com a paràmetre).
+#
+# PER QUE: amb '$$SIGNDATE=yyyy.MM.dd HH:mm:ss$$' dins de layer2Text, AutoFirma
+# petava amb "Error no reconocido: begin 0, end -1, length 21" (un substring amb
+# un índex no trobat) i no signava. Resolent la data aquí, AutoFirma no veu mai
+# cap marcador '$$...$$' i ens estalviem tot aquest camí de codi seu. La data
+# surt igual de bé: és el moment en què llancem la signatura.
+function _ResolveCaixetiDate([string]$caixeti, [datetime]$ara) {
+    $s = [string]$caixeti
+    if ([string]::IsNullOrEmpty($s)) { return '' }
+    $rx = [regex]'\$\$SIGNDATE=([^$]*)\$\$'
+    for ($n = 0; $n -lt 10; $n++) {
+        $m = $rx.Match($s)
+        if (-not $m.Success) { break }
+        $fmt = $m.Groups[1].Value
+        $val = ''
+        try { $val = $ara.ToString($fmt) } catch { $val = $ara.ToString('yyyy.MM.dd HH:mm:ss') }
+        $s = $s.Substring(0, $m.Index) + $val + $s.Substring($m.Index + $m.Length)
+    }
+    # Qualsevol altre marcador que quedi es treu: AutoFirma no els paeix.
+    return [regex]::Replace($s, '\$\$[A-Z]+(=[^$]*)?\$\$', '')
+}
+
+# El caixetí en UNA SOLA línia (s'usa com a reintent si el multilínia falla).
+function _CaixetiUnaLinia([string]$caixeti) {
+    $parts = @((([string]$caixeti -replace "`r`n", "`n") -split "`n") | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    return ($parts -join (' ' + [char]0x00B7 + ' '))
+}
+
 # Construeix la cadena d'extraParams (TEXT PLA, determinista) per a una signatura
 # VISIBLE PAdES amb el caixetí donat. Els parells van separats per salt de línia;
 # dins de layer2Text els salts són \n LITERAL (barra+n), com espera AutoFirma.
 # Funció PURA. Caixetí buit -> '' (signatura invisible, com abans).
-function _AutoFirmaVisibleExtraParams([string]$caixeti) {
+function _AutoFirmaVisibleExtraParams([string]$caixeti, $ara = $null) {
     if ([string]::IsNullOrWhiteSpace($caixeti)) { return '' }
+    if ($null -eq $ara) { $ara = Get-Date }
     $p = $Script:AutoFirmaCaixetiPos
-    $layer = (([string]$caixeti -replace "`r`n", "`n") -replace "`n", '\n')
+    $resolt = _ResolveCaixetiDate $caixeti ([datetime]$ara)
+    $layer = (([string]$resolt -replace "`r`n", "`n") -replace "`n", '\n')
     return (@(
         "signaturePage=$($p.Page)"
         "signaturePositionOnPageLowerLeftX=$($p.LLX)"
@@ -109,10 +141,13 @@ function _BuildAutoFirmaSignArgv([string]$inPdf, [string]$outPdf, [string]$filte
 
 # Representació llegible de l'argv per al registre de diagnòstic (els salts de
 # línia del -config es mostren com a \n perquè el log quedi en una sola línia).
+# IMPORTANT: els salts de línia REALS es mostren com a <LF> i els \n LITERALS es
+# deixen tal qual. Abans tots dos sortien com a '\n' i el registre no permetia
+# distingir-los, que és justament el que calia saber per depurar el caixetí.
 function _AutoFirmaArgvToText($argv) {
     $parts = @()
     foreach ($a in @($argv)) {
-        $s = ([string]$a) -replace "`r`n", '\n' -replace "`n", '\n'
+        $s = ([string]$a) -replace "`r`n", '<LF>' -replace "`n", '<LF>'
         if ($s -match '\s') { $parts += ('"' + $s + '"') } else { $parts += $s }
     }
     return ($parts -join ' ')
@@ -538,25 +573,35 @@ function _RunConvertPdf($opts) {
                 $tmpSigned = $pdf + '.signat.pdf'
                 try { if (Test-Path -LiteralPath $tmpSigned) { Remove-Item -LiteralPath $tmpSigned -Force } } catch { }
                 try {
-                    $argv = @(_BuildAutoFirmaSignArgv $pdf $tmpSigned $filter '' $caixeti)
-                    $res = _RunAutoFirma $afExe $argv
-                    # Si la signatura VISIBLE falla (p. ex. una versió d'AutoFirma
-                    # que no accepti algun extraParam), reintentem SENSE caixetí:
-                    # val més un PDF signat sense caixetí que cap PDF signat.
-                    if (($res.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $tmpSigned)) -and $caixeti) {
-                        _PdfSignarLog ("AVIS: la signatura amb caixeti ha fallat (codi " + $res.ExitCode + ") a " + $f.Name + "; reintento sense caixeti.")
+                    # Intents en ordre de preferència. Si el caixetí multilínia
+                    # falla, provem el d'UNA LÍNIA (així sabem si el problema son
+                    # els salts de línia) i, si tampoc, SENSE caixetí: val més un
+                    # PDF signat sense caixetí que cap PDF signat.
+                    $intents = New-Object System.Collections.ArrayList
+                    if ($caixeti) {
+                        [void]$intents.Add(@{ Nom = 'caixeti'; Text = $caixeti })
+                        $unaLinia = _CaixetiUnaLinia $caixeti
+                        if ($unaLinia -ne $caixeti) { [void]$intents.Add(@{ Nom = 'caixeti d''una linia'; Text = $unaLinia }) }
+                    }
+                    [void]$intents.Add(@{ Nom = 'sense caixeti'; Text = '' })
+
+                    $res = $null; $argv = @(); $usat = ''
+                    foreach ($intent in $intents) {
+                        try { if (Test-Path -LiteralPath $tmpSigned) { Remove-Item -LiteralPath $tmpSigned -Force } } catch { }
+                        $argv = @(_BuildAutoFirmaSignArgv $pdf $tmpSigned $filter '' ([string]$intent.Text))
+                        $res = _RunAutoFirma $afExe $argv
+                        $usat = [string]$intent.Nom
+                        if ($res.ExitCode -eq 0 -and (Test-Path -LiteralPath $tmpSigned)) { break }
+                        _PdfSignarLog ("AVIS: ha fallat l'intent '" + $usat + "' (codi " + $res.ExitCode + ") a " + $f.Name)
                         _PdfSignarLog ("   ordre: " + (_AutoFirmaArgvToText $argv))
                         if ($res.Output) { _PdfSignarLog ("   sortida: " + $res.Output) }
-                        try { if (Test-Path -LiteralPath $tmpSigned) { Remove-Item -LiteralPath $tmpSigned -Force } } catch { }
-                        $argv = @(_BuildAutoFirmaSignArgv $pdf $tmpSigned $filter '' '')
-                        $res = _RunAutoFirma $afExe $argv
-                        $senseCaixeti++
                     }
+                    if ($usat -ne 'caixeti' -and $res.ExitCode -eq 0) { $senseCaixeti++ }
                     if ($res.ExitCode -eq 0 -and (Test-Path -LiteralPath $tmpSigned)) {
                         Move-Item -LiteralPath $tmpSigned -Destination $pdf -Force
                         $signed++
                         # Nomes la primera: serveix per comprovar l'ordre exacta.
-                        if ($signed -eq 1) { _PdfSignarLog ("OK  " + $f.Name + "  ::  " + (_AutoFirmaArgvToText $argv)) }
+                        if ($signed -eq 1) { _PdfSignarLog ("OK (" + $usat + ")  " + $f.Name + "  ::  " + (_AutoFirmaArgvToText $argv)) }
                     } else {
                         $errors++
                         [void]$errDetalls.Add(("Signatura: {0} (codi {1})" -f $f.Name, $res.ExitCode))

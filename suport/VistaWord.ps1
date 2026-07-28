@@ -43,29 +43,6 @@ function _VistaEsProtegit([string]$jsonPath) {
     return ([string]$b -like '0 CAPCALERA*')
 }
 
-# Parteix una linia de cos en trossos amb negreta/cursiva. Les marques son les
-# mateixes que entenen Type-RichText i el motor: **negreta** i //cursiva//.
-# Retorna un ARRAY PLA de @{ Text; Bold; Italic }. Funcio PURA.
-function _VistaSegments([string]$line) {
-    $out = New-Object System.Collections.ArrayList
-    $s = [string]$line
-    if ([string]::IsNullOrEmpty($s)) { return @() }
-    $rx = [regex]'\*\*(.+?)\*\*|//(.+?)//'
-    $pos = 0
-    foreach ($m in $rx.Matches($s)) {
-        if ($m.Index -gt $pos) {
-            [void]$out.Add(@{ Text = $s.Substring($pos, $m.Index - $pos); Bold = $false; Italic = $false })
-        }
-        if ($m.Groups[1].Success) { [void]$out.Add(@{ Text = $m.Groups[1].Value; Bold = $true;  Italic = $false }) }
-        else                      { [void]$out.Add(@{ Text = $m.Groups[2].Value; Bold = $false; Italic = $true  }) }
-        $pos = $m.Index + $m.Length
-    }
-    if ($pos -lt $s.Length) {
-        [void]$out.Add(@{ Text = $s.Substring($pos); Bold = $false; Italic = $false })
-    }
-    return $out.ToArray()
-}
-
 # Cal tornar a generar la vista? Funcio PURA (mateixa forma que _PdfShouldConvert).
 # NOMES es regenera si el JSON s'ha tocat despres del .docx: si es regenerava
 # sempre, cada Actualitzar.bat faria un commit d'un .docx "nou" (Word hi posa
@@ -93,82 +70,104 @@ function _VistaActExtrTitol([string]$h2) {
 # ----------------------------------------------------------------------------
 # ESCRIPTURA A WORD (COM) - nomes Windows
 # ----------------------------------------------------------------------------
-# Constants d'estil integrades (independents de l'idioma del Word instal·lat:
-# per nom serien "Ttulo 1" en castella i "Heading 1" en angles).
-$Script:WdNormal = -1
-$Script:WdH1     = -2
-$Script:WdH2     = -3
-$Script:WdH3     = -4
+# El format es EXACTAMENT el de l'informe: totes les funcions de sota criden les
+# Format-* de Format.ps1 (les mateixes que fa servir Build-Document), aixi la
+# vista es veu igual que sortiria el document generat.
+#
+# A mes, cada titol rep un NIVELL D'ESQUEMA (OutlineLevel) perque surti al panell
+# de navegacio del Word. L'OutlineLevel NO canvia com es veu el paragraf: nomes
+# el fa navegable. Compte: el Word HERETA el nivell al paragraf seguent, per aixo
+# el cos el torna sempre a 10 (wdOutlineLevelBodyText).
+$Script:WdOutlineBody = 10
 
-# Escriu un paragraf amb l'estil indicat i el text ja segmentat (negreta/cursiva).
-function _VistaEscriuPara($sel, [int]$style, [string]$text, [bool]$bullet = $false) {
-    try { $sel.Style = $style } catch { }
-    $sel.Font.Bold = $false
-    $sel.Font.Italic = $false
-    $prefix = if ($bullet) { [char]0x2022 + ' ' } else { '' }
-    if ($prefix) { $sel.TypeText($prefix) }
-    foreach ($seg in @(_VistaSegments $text)) {
-        $sel.Font.Bold = [bool]$seg.Bold
-        $sel.Font.Italic = [bool]$seg.Italic
-        $sel.TypeText([string]$seg.Text)
-    }
-    $sel.Font.Bold = $false
-    $sel.Font.Italic = $false
-    $sel.TypeParagraph()
+function _VistaNivell($sel, [int]$n) {
+    try { $sel.ParagraphFormat.OutlineLevel = $n } catch { }
 }
 
-# Escriu les linies de cos d'un item (les que venen del lector: poden dur el
-# prefix '[[URL]] ' quan la linia es un enllac).
-function _VistaEscriuCos($sel, $bodyLines, [bool]$bullet = $false) {
-    foreach ($ln in @($bodyLines)) {
-        $l = [string]$ln
-        if ([string]::IsNullOrWhiteSpace($l)) { continue }
-        if ($l.StartsWith('[[URL]] ')) {
-            $url = $l.Substring('[[URL]] '.Length).Trim()
-            try { $sel.Style = $Script:WdNormal } catch { }
-            $sel.Font.Bold = $false
-            $sel.Font.Italic = $true
-            $sel.TypeText($url)
-            $sel.Font.Italic = $false
-            $sel.TypeParagraph()
-            continue
-        }
-        _VistaEscriuPara $sel $Script:WdNormal $l $bullet
-    }
+# --- Embolcalls: format de l'informe + nivell d'esquema ---------------------
+function _VSection($sel, [string]$t)  { Format-Section $sel $t;    _VistaNivell $sel 1 }
+function _VSubsection($sel, [string]$t) { Format-Subsection $sel $t; _VistaNivell $sel 2 }
+function _VItem($sel, [string]$num, [string]$t) { Format-Item $sel $num $t; _VistaNivell $sel 3 }
+function _VBody($sel, [string]$t, [bool]$isChild = $false) {
+    if ($isChild) { Format-Body $sel $t -IsChild } else { Format-Body $sel $t }
+    _VistaNivell $sel $Script:WdOutlineBody
+}
+function _VUrl($sel, [string]$u, [bool]$isChild = $false) {
+    if ($isChild) { Format-Url $sel $u -IsChild } else { Format-Url $sel $u }
+    _VistaNivell $sel $Script:WdOutlineBody
+}
+function _VBullet($sel, [string]$t, [bool]$isChild = $true) {
+    if ($isChild) { Format-Bullet $sel $t -IsChild } else { Format-Bullet $sel $t }
+    _VistaNivell $sel $Script:WdOutlineBody
+}
+function _VSpacer($sel) { Format-Spacer $sel; _VistaNivell $sel $Script:WdOutlineBody }
+
+# Escriu una linia de cos separant text i URLs, com fa el motor (_SplitTextAndUrls).
+function _VLine($sel, [string]$line, [bool]$isChild = $false) {
+    if ([string]::IsNullOrWhiteSpace($line)) { return }
+    $parts = _SplitTextAndUrls $line
+    if (-not [string]::IsNullOrWhiteSpace($parts.Text)) { _VBody $sel $parts.Text $isChild }
+    foreach ($u in $parts.Urls) { _VUrl $sel $u $isChild }
 }
 
 # ---- Vista d'un CATALEG (REQ1, TERMINI...) ---------------------------------
+# Reprodueix el que faria _WriteCatalegBody amb TOTS els items triats: seccio en
+# MAJUSCULES, subseccio subratllada, items numerats amb el numero en negreta i
+# fills com a punts de llista. Els [CAMP:]/[OPCIO:] es deixen tal qual (es una
+# vista del cataleg, no un informe d'una activitat concreta).
 function _VistaCataleg($sel, [string]$jsonPath, [string]$nom) {
     $parsed = Read-CatalegJson $jsonPath
-    _VistaEscriuPara $sel $Script:WdH1 ("Cat" + [char]0x00E0 + "leg " + $nom)
+    $cfg = $Script:ReportFormatConfig
+
     if (-not [string]::IsNullOrWhiteSpace([string]$parsed.IntroText)) {
-        _VistaEscriuPara $sel $Script:WdNormal ([string]$parsed.IntroText)
+        _VBody $sel ([string]$parsed.IntroText)
+        if ($cfg.SpacerAfterIntroParagraph) { _VSpacer $sel }
     }
     if ($parsed.IsFixedBody) {
-        _VistaEscriuCos $sel @($parsed.FixedBodyLines)
+        $lines = @($parsed.FixedBodyLines)
+        for ($i = 0; $i -lt $lines.Count; $i++) {
+            _VLine $sel ([string]$lines[$i])
+            if ($i -lt ($lines.Count - 1)) { _VSpacer $sel }
+        }
         return
     }
+
+    $num = 0
     foreach ($sec in @($parsed.Sections)) {
-        _VistaEscriuPara $sel $Script:WdH1 ([string]$sec.Title)
-        # Els items pengen de Titol 2; quan apareix una subseccio, ella es el
-        # Titol 2 i els items que la segueixen baixen a Titol 3.
-        $hItem = $Script:WdH2
-        foreach ($it in @($sec.Items)) {
-            switch ([string]$it.Kind) {
+        _VSection $sel ([string]$sec.Title)
+        if ($cfg.SpacerAfterSection) { _VSpacer $sel }
+        foreach ($el in @($sec.Items)) {
+            switch ([string]$el.Kind) {
                 'subsection' {
-                    _VistaEscriuPara $sel $Script:WdH2 ([string]$it.Short)
-                    _VistaEscriuCos $sel @($it.BodyLines)
-                    $hItem = $Script:WdH3
+                    _VSubsection $sel ([string]$el.Short)
+                    if ($cfg.SpacerAfterSubsection) { _VSpacer $sel }
                 }
                 'intro' {
-                    _VistaEscriuCos $sel @($it.BodyLines)
+                    foreach ($ln in @($el.BodyLines)) { _VLine $sel ([string]$ln) }
+                    if ($cfg.SpacerAfterIntro) { _VSpacer $sel }
                 }
                 default {
-                    _VistaEscriuPara $sel $hItem ([string]$it.Short)
-                    _VistaEscriuCos $sel @($it.BodyLines)
-                    foreach ($ch in @($it.Children)) {
-                        _VistaEscriuCos $sel @($ch.BodyLines) $true
+                    $lines = @($el.BodyLines)
+                    $escrit = $false
+                    if ($lines.Count -gt 0) {
+                        $num++
+                        $p0 = _SplitTextAndUrls ([string]$lines[0])
+                        _VItem $sel ("$num.") ([string]$p0.Text)
+                        foreach ($u in $p0.Urls) { _VUrl $sel $u }
+                        for ($i = 1; $i -lt $lines.Count; $i++) { _VLine $sel ([string]$lines[$i]) }
+                        $escrit = $true
                     }
+                    foreach ($ch in @($el.Children)) {
+                        $cl = @($ch.BodyLines)
+                        if ($cl.Count -eq 0) { continue }
+                        if (-not $escrit) { $num++; $escrit = $true }
+                        # Els fills NO es numeren: van amb pic, com a l'informe.
+                        $pc = _SplitTextAndUrls ([string]$cl[0])
+                        if (-not [string]::IsNullOrWhiteSpace($pc.Text)) { _VBullet $sel ([string]$pc.Text) }
+                        foreach ($u in $pc.Urls) { _VUrl $sel $u $true }
+                        for ($i = 1; $i -lt $cl.Count; $i++) { _VLine $sel ([string]$cl[$i]) $true }
+                    }
+                    if ($escrit -and $cfg.SpacerAfterItem) { _VSpacer $sel }
                 }
             }
         }
@@ -178,38 +177,64 @@ function _VistaCataleg($sel, [string]$jsonPath, [string]$nom) {
 # ---- Vista de les CONCLUSIONS ----------------------------------------------
 function _VistaConclusions($sel, [string]$jsonPath) {
     $o = _LoadEstructuralJson $jsonPath
-    _VistaEscriuPara $sel $Script:WdH1 'Conclusions'
-    foreach ($p in @($o.intro)) { _VistaEscriuPara $sel $Script:WdNormal (_JsonParaToBodyLine $p) }
     $sempre = New-Object System.Collections.ArrayList
+    foreach ($p in @($o.intro)) {
+        $t = _JsonParaToBodyLine $p
+        if (-not [string]::IsNullOrWhiteSpace($t)) { _VSection $sel $t }
+    }
     foreach ($n in @($o.nodes)) {
         if ([string]$n.tipus -eq 'sempre') {
             foreach ($p in @($n.cos)) { [void]$sempre.Add((_JsonParaToBodyLine $p)) }
             continue
         }
         # Grup = tipus d'informe (REQ1, SEGUIMENT, TERMINI...).
-        _VistaEscriuPara $sel $Script:WdH1 ('Conclusions de: ' + [string]$n.titol)
+        _VSpacer $sel
+        _VSection $sel ('Conclusions de ' + [string]$n.titol)
+        _VSpacer $sel
+        $num = 0
         foreach ($c in @($n.fills)) {
-            _VistaEscriuPara $sel $Script:WdH2 ([string]$c.titol)
-            foreach ($p in @($c.cos)) { _VistaEscriuPara $sel $Script:WdNormal (_JsonParaToBodyLine $p) }
+            $num++
+            $cos = @($c.cos)
+            $primera = if ($cos.Count -gt 0) { _JsonParaToBodyLine $cos[0] } else { '' }
+            _VItem $sel ("$num.") ([string]$primera)
+            for ($i = 1; $i -lt $cos.Count; $i++) { _VLine $sel (_JsonParaToBodyLine $cos[$i]) }
+            _VSpacer $sel
         }
     }
     if ($sempre.Count -gt 0) {
-        _VistaEscriuPara $sel $Script:WdH1 ('Frases que surten SEMPRE')
-        foreach ($l in $sempre) { _VistaEscriuPara $sel $Script:WdNormal ([string]$l) }
+        _VSpacer $sel
+        _VSection $sel 'Frases que surten sempre'
+        _VSpacer $sel
+        foreach ($l in $sempre) { _VLine $sel ([string]$l) }
     }
 }
 
 # ---- Vista d'una plantilla ACT_EXTR ----------------------------------------
 function _VistaActExtr($sel, [string]$jsonPath, [string]$nom) {
     $records = @(Read-ActExtrRecordsJson $jsonPath)
-    _VistaEscriuPara $sel $Script:WdH1 ('Activitats extraordin' + [char]0x00E0 + 'ries ' + [char]0x00B7 + ' ' + $nom)
+    $num = 0
     foreach ($r in $records) {
         $txt = [string]$r.Text
         switch ([string]$r.Style) {
-            'h1'     { _VistaEscriuPara $sel $Script:WdH1 $txt }
-            'h2'     { _VistaEscriuPara $sel $Script:WdH2 (_VistaActExtrTitol $txt) }
-            'url'    { _VistaEscriuCos $sel @('[[URL]] ' + $txt) }
-            default  { if (-not [string]::IsNullOrWhiteSpace($txt)) { _VistaEscriuPara $sel $Script:WdNormal $txt } }
+            'h1' {
+                _VSpacer $sel
+                _VSection $sel $txt
+                _VSpacer $sel
+                $num = 0
+            }
+            'h2' {
+                # La capcalera del bloc ("[[CLAU]] ::TOKEN:: etiqueta") no surt a
+                # l'informe: al document nomes hi va el CONTINGUT. A la vista si
+                # que la posem (subratllada) per saber quin bloc es cadascun.
+                _VSubsection $sel (_VistaActExtrTitol $txt)
+            }
+            'url' { _VUrl $sel $txt }
+            default {
+                if (-not [string]::IsNullOrWhiteSpace($txt)) {
+                    $num++
+                    _VItem $sel ("$num.") $txt
+                }
+            }
         }
     }
 }
@@ -233,8 +258,8 @@ function Export-VistaWord($word, [string]$jsonPath) {
             default       { _VistaCataleg $sel $jsonPath $nom }
         }
         # Nota final: que quedi clar que es una vista generada i que no s'edita.
-        _VistaEscriuPara $sel $Script:WdNormal ''
-        _VistaEscriuPara $sel $Script:WdNormal ("//Vista generada autom" + [char]0x00E0 + "ticament des de " + [System.IO.Path]::GetFileName($jsonPath) + " el " + (Get-Date).ToString('dd/MM/yyyy HH:mm') + ". No l'editis: els canvis es fan des de l'editor de cat" + [char]0x00E0 + "legs del programa.//")
+        _VSpacer $sel
+        _VBody $sel ("//Vista generada autom" + [char]0x00E0 + "ticament des de " + [System.IO.Path]::GetFileName($jsonPath) + " el " + (Get-Date).ToString('dd/MM/yyyy HH:mm') + ". No l'editis: els canvis es fan des de l'editor de cat" + [char]0x00E0 + "legs del programa.//")
         $doc.SaveAs([ref]$out, [ref]16)   # 16 = wdFormatDocumentDefault (.docx)
         return $true
     } finally {

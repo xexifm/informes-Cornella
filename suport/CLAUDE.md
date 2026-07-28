@@ -1,4 +1,4 @@
-# Notes per a Claude (mantenir entre sessions)
+﻿# Notes per a Claude (mantenir entre sessions)
 
 ## Arquitectura: motor, punt d'entrada i UiComuns
 - **`suport/Motor.ps1`** = el motor. NOMÉS defineix (funcions, rutes,
@@ -273,9 +273,20 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
     exacte de la línia d'ordres i recull sortida i codi de sortida. Els salts de
     línia del `-config` sobreviuen **dins de les cometes** (Windows només separa
     arguments per espais i tabuladors).
-  - **Reintent sense caixetí**: si la signatura visible falla, es reintenta
-    automàticament **sense** caixetí (val més un PDF signat sense caixetí que cap)
-    i es compta al resum; queda registrat al log.
+  - **La data la resolem NOSALTRES (3r error real)**: amb
+    `$$SIGNDATE=yyyy.MM.dd HH:mm:ss$$` dins de `layer2Text`, AutoFirma petava amb
+    *"Error no reconocido: begin 0, end -1, length 21"* (un `substring` amb un
+    índex no trobat) i no signava. `_ResolveCaixetiDate` (pura) substitueix el
+    marcador per la data abans de cridar AutoFirma i **treu qualsevol altre
+    `$$...$$`**, de manera que AutoFirma no veu mai cap marcador. A la interfície
+    el marcador es manté (l'usuari pot triar el format de data).
+  - **Reintents escalats**: caixetí multilínia → caixetí d'**una línia**
+    (`_CaixetiUnaLinia`) → **sense** caixetí. Així mai es queda un PDF sense
+    signar i, del registre, se'n dedueix si el problema són els salts de línia.
+  - **El registre distingeix els salts**: `_AutoFirmaArgvToText` mostra els salts
+    de línia REALS com a `<LF>` i deixa els `\n` LITERALS tal qual. Abans tots
+    dos sortien com a `\n` i el log no permetia saber quin era quin — que és
+    justament el que calia per depurar.
   - **Registre de diagnòstic**: cada execució desa a `pdf-signar-log.txt` (al costat
     de `pdf-signar-state.json`) **l'ordre exacta** passada a AutoFirma, el codi de
     sortida i la seva sortida (`_PdfSignarLog`, `_AutoFirmaArgvToText`). El resum
@@ -393,19 +404,21 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
 - **VISTES en Word dels catàlegs** (`suport/VistaWord.ps1` + `suport/GeneraVistes.ps1`):
   la resta de `.docx` d'ESTRUCTURALS són ara **vistes generades des dels JSON**
   per poder consultar tot el contingut (tots els requeriments, totes les
-  conclusions…) sense obrir el programa. Porten **Títols de Word** (Títol 1 =
-  secció / grup de conclusions, Títol 2 = subsecció o ítem, Títol 3 = ítem dins
-  d'una subsecció, Normal = cos amb negreta/cursiva i enllaços), de manera que el
-  panell de navegació de Word mostri l'estructura. Es regeneren **en desar des de
+  conclusions…) sense obrir el programa. **El format és EXACTAMENT el de l'informe**:
+  criden les mateixes `Format-*` de `Format.ps1` que fa servir `Build-Document`
+  (secció en MAJÚSCULES, subsecció subratllada, ítems numerats amb el número en
+  negreta, fills amb pic, URLs com a hipervincle, mateixos espaiats). A sobre,
+  cada títol rep un **nivell d'esquema** (`OutlineLevel` 1/2/3) perquè surti al
+  **panell de navegació** de Word: l'OutlineLevel NO canvia com es veu el
+  paràgraf, només el fa navegable. Compte: Word **hereta** el nivell al paràgraf
+  següent, per això el cos el torna sempre a 10 (`wdOutlineLevelBodyText`). Es regeneren **en desar des de
   l'editor de catàlegs** (`_Ed_SaveDoc`) i des de **`Actualitzar.bat`**, i
   sobreescriuen el `.docx` del mateix nom (mai `0 CAPCALERA.docx`).
   **Només si el JSON és més nou que la vista** (`_VistaCalRegenerar`): si es
   regeneressin sempre, cada `Actualitzar.bat` faria un commit d'un `.docx` "nou"
   (Word hi posa dates internes) i el repositori s'ompliria de canvis inútils.
   Funcions pures amb tests: `_VistaWordPathFor`, `_VistaEsProtegit`,
-  `_VistaSegments` (**negreta**//cursiva//), `_VistaActExtrTitol`, `_VistaCalRegenerar`.
-  Els estils es posen amb les **constants** de Word (`-2`=Títol 1…), no pel nom,
-  que depèn de l'idioma del Word instal·lat ("Ttulo 1" en castellà).
+  `_VistaActExtrTitol`, `_VistaCalRegenerar`.
 - **Lectura** (`suport/CatalegJson.ps1`, headless/testejable): `Read-CatalegJson`,
   `Read-ConclusionsJson` i `Read-ActExtrRecordsJson` tornen EXACTAMENT el mateix
   model en memòria que `Parse-Cataleg` / `Read-Conclusions` / `Build-ActExtrBlocks`.
