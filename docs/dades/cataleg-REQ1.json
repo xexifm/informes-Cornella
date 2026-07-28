@@ -2140,7 +2140,7 @@
                                        },
                                        {
                                            "Kind":  "item",
-                                           "Short":  "Rètols exteriors",
+                                           "Short":  "Rètols exterior - general",
                                            "BodyLines":  [
                                                              "Manquen els següents rètols a l’exterior de l’establiment, mínim en català:"
                                                          ],
@@ -2191,7 +2191,7 @@
                                        },
                                        {
                                            "Kind":  "item",
-                                           "Short":  "Rètols interiors",
+                                           "Short":  "Rètols exterior - addicionals",
                                            "BodyLines":  [
                                                              "Manquen els següents rètols a l’exterior de l’establiment, mínim en català:"
                                                          ],
