@@ -1,8 +1,8 @@
 {
-    "GeneratedAt":  "2026-07-20T20:01:21.4765830+02:00",
-    "Font":  "2026-07-20 ACTIVITATS.xls",
-    "SourceDate":  "2026-07-20",
-    "Comptador":  20,
+    "GeneratedAt":  "2026-07-28T10:33:53.1388385+02:00",
+    "Font":  "2026-07-28 ACTIVITATS.xls",
+    "SourceDate":  "2026-07-28",
+    "Comptador":  19,
     "Activitats":  [
                        {
                            "id":  "1369",
@@ -122,13 +122,6 @@
                            "adreca":  "C RUBIO I ORS 1",
                            "lat":  41.3561635811889,
                            "lon":  2.0669152956312002
-                       },
-                       {
-                           "id":  "52",
-                           "activitat":  "BAR",
-                           "adreca":  "AV PARC 23",
-                           "lat":  41.359151075035371,
-                           "lon":  2.0735335299458226
                        },
                        {
                            "id":  "34",
