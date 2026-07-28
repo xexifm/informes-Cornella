@@ -291,6 +291,10 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
     de `pdf-signar-state.json`) **l'ordre exacta** passada a AutoFirma, el codi de
     sortida i la seva sortida (`_PdfSignarLog`, `_AutoFirmaArgvToText`). El resum
     ofereix obrir-lo. Serveix per no haver d'endevinar si el caixetí no surt.
+    **Va al `.gitignore`**: conté les RUTES COMPLETES dels informes i les carpetes
+    porten el nom i l'adreça del titular — i aquest repositori és PÚBLIC. (S'hi
+    ignora pel nom exacte, no `*.txt`, perquè el `README.txt` d'aquella carpeta sí
+    que va al repositori.)
   - **Carpeta O document**: el quadre accepta una **carpeta** (tots els Word de dins
     i subcarpetes) o **un sol document** Word; hi ha dos botons (Carpeta / Document).
     `_RunConvertPdf` ho distingeix amb `Test-Path -PathType Leaf`.
@@ -412,8 +416,12 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   **panell de navegació** de Word: l'OutlineLevel NO canvia com es veu el
   paràgraf, només el fa navegable. Compte: Word **hereta** el nivell al paràgraf
   següent, per això el cos el torna sempre a 10 (`wdOutlineLevelBodyText`). Es regeneren **en desar des de
-  l'editor de catàlegs** (`_Ed_SaveDoc`) i des de **`Actualitzar.bat`**, i
-  sobreescriuen el `.docx` del mateix nom (mai `0 CAPCALERA.docx`).
+  l'editor de catàlegs** (`_Ed_SaveDoc`) i des de **`Actualitzar.bat`** (al pas
+  **4b, DESPRÉS del `pull`**: si es fessin abans, es generarien amb la versió
+  ANTIGA del programa i un canvi de format no hi arribaria mai — caldria executar
+  `Actualitzar.bat` dues vegades), i sobreescriuen el `.docx` del mateix nom (mai
+  `0 CAPCALERA.docx`). Quan canvia `$Script:VistaWordVersio` es regeneren **totes**
+  una vegada (la versió es desa a `%LOCALAPPDATA%`, no al repositori).
   **Només si el JSON és més nou que la vista** (`_VistaCalRegenerar`): si es
   regeneressin sempre, cada `Actualitzar.bat` faria un commit d'un `.docx` "nou"
   (Word hi posa dates internes) i el repositori s'ompliria de canvis inútils.
