@@ -29,6 +29,13 @@ BASE DE DADES ACTIVITATS/*.xlsx
 # Es local (surt d'informes que poden contenir dades personals): NO es puja.
 BASE DE DADES ACTIVITATS/*.json
 
+# Registre de diagnostic de l'eina "Word a PDF (i signar)". CONTE DADES
+# PERSONALS: hi surten les RUTES COMPLETES dels informes, i les carpetes porten
+# el nom i l'adreca del titular. Aquest repositori es PUBLIC: no s'ha de pujar
+# mai. (No s'ignora *.txt sencer perque README.txt d'aquesta carpeta si que va
+# al repositori.)
+BASE DE DADES ACTIVITATS/pdf-signar-log.txt
+
 # Registre local d'activitats extraordinaries (mode ACT_EXTR). Conte dades
 # personals (titulars, adreces): NO s'ha de pujar mai al GitHub public. La
 # carpeta es mante al repo (amb un README.txt); el .json de dins NO es puja.

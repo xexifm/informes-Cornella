@@ -77,14 +77,6 @@ if not exist "ESTRUCTURALS\0 CAPCALERA.docx" (
     git checkout -- "ESTRUCTURALS/0 CAPCALERA.docx"
 )
 
-REM Les VISTES en Word dels catalegs es regeneren SEMPRE des dels JSON (els
-REM .docx d'ESTRUCTURALS ja no serveixen per generar: nomes son per consultar).
-echo Actualitzant les vistes en Word dels catalegs...
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0suport\GeneraVistes.ps1"
-
-REM Despres de regenerar les vistes pot haver-hi .docx nous o canviats.
-for /f "delims=" %%f in ('git status --porcelain -- ESTRUCTURALS') do set "PLANTILLES_CANVIADES=1"
-
 if "%PLANTILLES_CANVIADES%"=="1" (
     echo Detectats canvis locals als catalegs/plantilles ESTRUCTURALS.
     echo Regenerant les dades del mobil ^(docs\dades^) des dels catalegs...
@@ -186,11 +178,22 @@ if "%PROTEGITS_CANVIATS%"=="1" (
     echo.
     echo Tornant a aplicar els teus catalegs ^(la teva versio preval^)...
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0suport\SincronitzaCatalegs.ps1" -Fase Restore
-    git add "ESTRUCTURALS/*.docx" "ESTRUCTURALS/*.json" "docs/dades/*.json"
-    git -c user.name="Generador d'informes" -c user.email="generador@local" commit -m "Catalegs de l'usuari mantinguts des de Actualitzar.bat"
-    if errorlevel 1 (
-        echo  Els catalegs ja estaven al dia ^(res a commitejar^).
-    )
+)
+
+REM Les VISTES en Word dels catalegs es regeneren des dels JSON (els .docx
+REM d'ESTRUCTURALS ja no serveixen per generar: nomes son per consultar).
+REM IMPORTANT: aixo va DESPRES del pull, no abans. Si es feia abans, es generaven
+REM amb la versio ANTIGA del programa i un canvi de format de les vistes no
+REM arribava mai (calia executar Actualitzar.bat dos cops).
+echo.
+echo Actualitzant les vistes en Word dels catalegs...
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0suport\GeneraVistes.ps1"
+
+REM Pugem el que hagi quedat: catalegs de l'usuari i/o vistes regenerades.
+git add "ESTRUCTURALS/*.docx" "ESTRUCTURALS/*.json" "docs/dades/*.json"
+git -c user.name="Generador d'informes" -c user.email="generador@local" commit -m "Catalegs i vistes actualitzats des de Actualitzar.bat"
+if errorlevel 1 (
+    echo  Els catalegs i les vistes ja estaven al dia ^(res a commitejar^).
 )
 
 REM --- 5. Pujar a GitHub si el 'main' local va per davant de l'origin ---
