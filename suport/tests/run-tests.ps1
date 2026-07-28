@@ -1311,8 +1311,22 @@ $ep = _AutoFirmaVisibleExtraParams $cxDef
 AssertEq ([bool]($ep -like '*signaturePage=1*')) $true '_AutoFirmaVisibleExtraParams: signaturePage=1'
 AssertEq ([bool]($ep -like '*signaturePositionOnPageLowerLeftX=360*')) $true '_AutoFirmaVisibleExtraParams: posició dalt-dreta (X)'
 AssertEq ([bool]($ep -like '*signaturePositionOnPageUpperRightY=815*')) $true '_AutoFirmaVisibleExtraParams: posició dalt-dreta (Y)'
-AssertEq ([bool]($ep -like '*layer2Text=Sergi Fadurdo Modesto\nEnginyer*')) $true '_AutoFirmaVisibleExtraParams: layer2Text amb \n literal'
+# El layer2Text ha d'anar en UNA SOLA LINIA: amb \n literal AutoFirma peta
+# ("begin 0, end -1, length 21" = la primera linia). Comprovat al registre real.
+AssertEq ([bool]($ep -like '*layer2Text=*')) $true '_AutoFirmaVisibleExtraParams: hi ha layer2Text'
+AssertEq ([bool]($ep -like '*layer2Text=*\n*')) $false '_AutoFirmaVisibleExtraParams: el layer2Text NO porta \n literal (AutoFirma hi peta)'
+AssertEq ([bool]($ep -like ('*Sergi Fadurdo Modesto ' + [char]0x00B7 + ' Enginyer*'))) $true '_AutoFirmaVisibleExtraParams: el text va en una linia amb punt volat'
 AssertEq (@($ep -split "`n").Count) 8 '_AutoFirmaVisibleExtraParams: 8 parells separats per salt de línia REAL'
+# Mode IMATGE: l'unica manera de tenir el caixeti de diverses linies.
+$epImg = _AutoFirmaVisibleExtraParams $cxDef $ara 'imatge'
+if ([string]::IsNullOrWhiteSpace($epImg)) {
+    Write-Host "  (omes: mode imatge no disponible sense System.Drawing)" -ForegroundColor Yellow
+} else {
+    AssertEq ([bool]($epImg -like '*signatureRubricImage=*')) $true '_AutoFirmaVisibleExtraParams imatge: hi ha signatureRubricImage'
+    AssertEq ([bool]($epImg -like '*layer2Text=*')) $false '_AutoFirmaVisibleExtraParams imatge: sense layer2Text (la imatge ja ho porta tot)'
+    AssertEq ([bool]($epImg -like '*signaturePage=1*')) $true '_AutoFirmaVisibleExtraParams imatge: manté la posició'
+    AssertEq ([bool]((_AutoFirmaArgvToText @('-config', $epImg)) -like '*<imatge base64, *')) $true '_AutoFirmaArgvToText: al registre la imatge surt resumida, no sencera'
+}
 # ARGV (array) : AutoFirma agafa el -config TAL QUAL (sense Base64) i el parteix
 # per salts de línia reals; per aixo va com un element d'un array, no en una cadena.
 $argvSense = @(_BuildAutoFirmaSignArgv 'C:\a b\in.pdf' 'C:\a b\out.pdf' 'subject.contains:X' '')

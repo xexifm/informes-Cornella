@@ -92,6 +92,54 @@ function _ResolveCaixetiDate([string]$caixeti, [datetime]$ara) {
     return [regex]::Replace($s, '\$\$[A-Z]+(=[^$]*)?\$\$', '')
 }
 
+# Dibuixa el caixetí com a IMATGE i la retorna en JPEG/base64, que és el que
+# demana 'signatureRubricImage' d'AutoFirma. És l'ÚNICA manera de tenir el
+# caixetí de diverses línies (el layer2Text de text només admet una línia).
+# Reprodueix l'aspecte "CERTIFICAT SENSE DNI": una línia per fila, alineades a
+# l'esquerra, sobre fons blanc. Només Windows (System.Drawing); si peta, retorna
+# '' i el crider passa al mode de text.
+function _BuildCaixetiImageBase64([string]$caixeti) {
+    try {
+        Add-Type -AssemblyName System.Drawing -ErrorAction Stop
+        $p = $Script:AutoFirmaCaixetiPos
+        # Mateixa proporcio que el requadre de la signatura, x4 per qualitat.
+        $escala = 4
+        $w = [int](([int]$p.URX - [int]$p.LLX) * $escala)
+        $h = [int](([int]$p.URY - [int]$p.LLY) * $escala)
+        if ($w -le 0 -or $h -le 0) { return '' }
+
+        $lines = @((([string]$caixeti -replace "`r`n", "`n") -split "`n") | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+        if ($lines.Count -eq 0) { return '' }
+
+        $bmp = New-Object System.Drawing.Bitmap($w, $h)
+        $g = [System.Drawing.Graphics]::FromImage($bmp)
+        try {
+            $g.Clear([System.Drawing.Color]::White)
+            $g.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::AntiAliasGridFit
+            $alcadaLinia = [double]$h / [double]$lines.Count
+            # Mida de lletra que hi cap amb un marge raonable.
+            $mida = [int][Math]::Max(8, [Math]::Floor($alcadaLinia * 0.58))
+            $font = New-Object System.Drawing.Font('Arial', $mida, [System.Drawing.GraphicsUnit]::Pixel)
+            try {
+                $y = 0.0
+                foreach ($l in $lines) {
+                    $g.DrawString([string]$l, $font, [System.Drawing.Brushes]::Black,
+                                  [single]2, [single]($y + ($alcadaLinia - $mida) / 2.0))
+                    $y += $alcadaLinia
+                }
+            } finally { $font.Dispose() }
+        } finally { $g.Dispose() }
+
+        $ms = New-Object System.IO.MemoryStream
+        try {
+            $bmp.Save($ms, [System.Drawing.Imaging.ImageFormat]::Jpeg)
+            return [System.Convert]::ToBase64String($ms.ToArray())
+        } finally { $ms.Dispose(); $bmp.Dispose() }
+    } catch {
+        return ''
+    }
+}
+
 # El caixetí en UNA SOLA línia (s'usa com a reintent si el multilínia falla).
 function _CaixetiUnaLinia([string]$caixeti) {
     $parts = @((([string]$caixeti -replace "`r`n", "`n") -split "`n") | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
@@ -102,22 +150,43 @@ function _CaixetiUnaLinia([string]$caixeti) {
 # VISIBLE PAdES amb el caixetí donat. Els parells van separats per salt de línia;
 # dins de layer2Text els salts són \n LITERAL (barra+n), com espera AutoFirma.
 # Funció PURA. Caixetí buit -> '' (signatura invisible, com abans).
-function _AutoFirmaVisibleExtraParams([string]$caixeti, $ara = $null) {
-    if ([string]::IsNullOrWhiteSpace($caixeti)) { return '' }
-    if ($null -eq $ara) { $ara = Get-Date }
+# Les linies de posicio, comunes a tots els modes. Funcio PURA.
+function _AutoFirmaPosLines {
     $p = $Script:AutoFirmaCaixetiPos
-    $resolt = _ResolveCaixetiDate $caixeti ([datetime]$ara)
-    $layer = (([string]$resolt -replace "`r`n", "`n") -replace "`n", '\n')
-    return (@(
+    return @(
         "signaturePage=$($p.Page)"
         "signaturePositionOnPageLowerLeftX=$($p.LLX)"
         "signaturePositionOnPageLowerLeftY=$($p.LLY)"
         "signaturePositionOnPageUpperRightX=$($p.URX)"
         "signaturePositionOnPageUpperRightY=$($p.URY)"
-        'layer2FontFamily=1'
-        'layer2FontSize=8'
-        "layer2Text=$layer"
-    ) -join "`n")
+    )
+}
+
+# $mode:
+#   'text'   -> caixeti de TEXT (layer2Text). ATENCIO: ha d'anar en UNA SOLA
+#               LINIA. Amb salts (\n literal) AutoFirma peta amb
+#               "Error no reconocido: begin 0, end -1, length 21" (21 = la
+#               primera linia): parteix el layer2Text pel \n i s'hi ennuega.
+#               Comprovat al registre de l'usuari: multilinia falla, una linia va.
+#   'imatge' -> caixeti dibuixat com a IMATGE (signatureRubricImage, JPEG en
+#               base64). Es l'unica manera de tenir-lo de VARIES LINIES.
+function _AutoFirmaVisibleExtraParams([string]$caixeti, $ara = $null, [string]$mode = 'text') {
+    if ([string]::IsNullOrWhiteSpace($caixeti)) { return '' }
+    if ($null -eq $ara) { $ara = Get-Date }
+    $resolt = _ResolveCaixetiDate $caixeti ([datetime]$ara)
+    $lines = @(_AutoFirmaPosLines)
+    if ($mode -eq 'imatge') {
+        $b64 = _BuildCaixetiImageBase64 $resolt
+        if ([string]::IsNullOrWhiteSpace($b64)) { return '' }
+        $lines += "signatureRubricImage=$b64"
+        return ($lines -join "`n")
+    }
+    # Text: SEMPRE en una sola linia (vegeu el comentari de dalt).
+    $unaLinia = _CaixetiUnaLinia $resolt
+    $lines += 'layer2FontFamily=1'
+    $lines += 'layer2FontSize=8'
+    $lines += "layer2Text=$unaLinia"
+    return ($lines -join "`n")
 }
 
 # Construeix la LLISTA d'arguments (ARRAY PLA) per signar un PDF amb AutoFirma.
@@ -130,11 +199,11 @@ function _AutoFirmaVisibleExtraParams([string]$caixeti, $ara = $null) {
 # portar salts de linia, per aixo es passa com a element d'un array a
 # Start-Process -ArgumentList, que ja fa el quoting.
 # IMPORTANT: retorna un array PLA (no ,$ArrayList): aixi @() l'enumera bé.
-function _BuildAutoFirmaSignArgv([string]$inPdf, [string]$outPdf, [string]$filter, [string]$algorithm, [string]$caixeti = '') {
+function _BuildAutoFirmaSignArgv([string]$inPdf, [string]$outPdf, [string]$filter, [string]$algorithm, [string]$caixeti = '', [string]$mode = 'text') {
     if ([string]::IsNullOrWhiteSpace($algorithm)) { $algorithm = 'SHA256withRSA' }
     $argv = @('sign', '-i', $inPdf, '-o', $outPdf, '-store', 'windows', '-format', 'pades', '-algorithm', $algorithm)
     if (-not [string]::IsNullOrWhiteSpace($filter)) { $argv += @('-filter', $filter) }
-    $ep = _AutoFirmaVisibleExtraParams $caixeti
+    $ep = _AutoFirmaVisibleExtraParams $caixeti $null $mode
     if (-not [string]::IsNullOrWhiteSpace($ep)) { $argv += @('-config', $ep) }
     return $argv
 }
@@ -148,6 +217,11 @@ function _AutoFirmaArgvToText($argv) {
     $parts = @()
     foreach ($a in @($argv)) {
         $s = ([string]$a) -replace "`r`n", '<LF>' -replace "`n", '<LF>'
+        # La imatge del caixeti son milers de caracters en base64: al registre
+        # nomes n'hi posem la mida, si no el fitxer es fa inservible.
+        $s = [regex]::Replace($s, 'signatureRubricImage=([A-Za-z0-9+/=]+)', {
+            param($m) 'signatureRubricImage=<imatge base64, ' + $m.Groups[1].Value.Length + ' car.>'
+        })
         if ($s -match '\s') { $parts += ('"' + $s + '"') } else { $parts += $s }
     }
     return ($parts -join ' ')
@@ -579,16 +653,17 @@ function _RunConvertPdf($opts) {
                     # PDF signat sense caixetí que cap PDF signat.
                     $intents = New-Object System.Collections.ArrayList
                     if ($caixeti) {
-                        [void]$intents.Add(@{ Nom = 'caixeti'; Text = $caixeti })
-                        $unaLinia = _CaixetiUnaLinia $caixeti
-                        if ($unaLinia -ne $caixeti) { [void]$intents.Add(@{ Nom = 'caixeti d''una linia'; Text = $unaLinia }) }
+                        # 1r: IMATGE (l'unica manera de tenir-lo de diverses linies).
+                        # 2n: TEXT d'una linia (comprovat que AutoFirma l'accepta).
+                        [void]$intents.Add(@{ Nom = 'caixeti (imatge)'; Text = $caixeti; Mode = 'imatge' })
+                        [void]$intents.Add(@{ Nom = 'caixeti (text d''una linia)'; Text = $caixeti; Mode = 'text' })
                     }
-                    [void]$intents.Add(@{ Nom = 'sense caixeti'; Text = '' })
+                    [void]$intents.Add(@{ Nom = 'sense caixeti'; Text = ''; Mode = 'text' })
 
                     $res = $null; $argv = @(); $usat = ''
                     foreach ($intent in $intents) {
                         try { if (Test-Path -LiteralPath $tmpSigned) { Remove-Item -LiteralPath $tmpSigned -Force } } catch { }
-                        $argv = @(_BuildAutoFirmaSignArgv $pdf $tmpSigned $filter '' ([string]$intent.Text))
+                        $argv = @(_BuildAutoFirmaSignArgv $pdf $tmpSigned $filter '' ([string]$intent.Text) ([string]$intent.Mode))
                         $res = _RunAutoFirma $afExe $argv
                         $usat = [string]$intent.Nom
                         if ($res.ExitCode -eq 0 -and (Test-Path -LiteralPath $tmpSigned)) { break }
@@ -596,7 +671,7 @@ function _RunConvertPdf($opts) {
                         _PdfSignarLog ("   ordre: " + (_AutoFirmaArgvToText $argv))
                         if ($res.Output) { _PdfSignarLog ("   sortida: " + $res.Output) }
                     }
-                    if ($usat -ne 'caixeti' -and $res.ExitCode -eq 0) { $senseCaixeti++ }
+                    if ($usat -eq 'sense caixeti' -and $res.ExitCode -eq 0) { $senseCaixeti++ }
                     if ($res.ExitCode -eq 0 -and (Test-Path -LiteralPath $tmpSigned)) {
                         Move-Item -LiteralPath $tmpSigned -Destination $pdf -Force
                         $signed++

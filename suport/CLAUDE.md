@@ -280,9 +280,22 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
     marcador per la data abans de cridar AutoFirma i **treu qualsevol altre
     `$$...$$`**, de manera que AutoFirma no veu mai cap marcador. A la interfície
     el marcador es manté (l'usuari pot triar el format de data).
-  - **Reintents escalats**: caixetí multilínia → caixetí d'**una línia**
-    (`_CaixetiUnaLinia`) → **sense** caixetí. Així mai es queda un PDF sense
-    signar i, del registre, se'n dedueix si el problema són els salts de línia.
+  - **EL `layer2Text` NOMÉS ADMET UNA LÍNIA (4t error real, ja confirmat)**: amb
+    els salts com a `\n` LITERAL, AutoFirma peta amb *"Error no reconocido:
+    begin 0, end -1, length 21"* (21 = "Sergi Fadurdo Modesto", la primera línia):
+    parteix el `layer2Text` pel `\n` i s'hi ennuega. Al registre de l'usuari es
+    veu clarament: l'intent multilínia falla i el d'una línia funciona. Per això
+    `_AutoFirmaVisibleExtraParams` en mode `text` **sempre** posa el caixetí en
+    una sola línia (`_CaixetiUnaLinia`, unit amb ` · `).
+  - **Per tenir-lo de DIVERSES LÍNIES: com a IMATGE**. `_BuildCaixetiImageBase64`
+    (System.Drawing) dibuixa el caixetí en un JPEG amb la mateixa proporció que el
+    requadre de la signatura i el passa a `signatureRubricImage` (base64), que és
+    el mecanisme documentat d'AutoFirma per a la rúbrica. En aquest mode NO s'hi
+    posa `layer2Text` (la imatge ja ho porta tot).
+  - **Reintents escalats**: caixetí **(imatge)** → caixetí **(text d'una línia)**
+    → **sense** caixetí. Així mai es queda un PDF sense signar i del registre se'n
+    dedueix quin ha funcionat. Al registre la imatge surt **resumida** (mida en
+    caràcters), mai el base64 sencer, que faria el fitxer inservible.
   - **El registre distingeix els salts**: `_AutoFirmaArgvToText` mostra els salts
     de línia REALS com a `<LF>` i deixa els `\n` LITERALS tal qual. Abans tots
     dos sortien com a `\n` i el log no permetia saber quin era quin — que és
