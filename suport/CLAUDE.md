@@ -51,6 +51,38 @@
 - La branca **estable i de desplegament és `main`**. El clone de l'usuari
   segueix `main`, i `main` és la branca per defecte del repositori.
 
+## CRÍTIC: els catàlegs de l'usuari no es poden perdre mai
+- **Què va passar (bug real, no ho repeteixis):** `Actualitzar.bat` detectava
+  canvis a **qualsevol** fitxer d'`ESTRUCTURALS` però només feia
+  `git add "ESTRUCTURALS/*.docx"`. Els **`.json` dels catàlegs** (els que escriu
+  l'editor "Editar catàlegs") no es committejaven mai, quedaven bruts, i el
+  `git stash push -u` del pas següent se'ls enduia. El `pull` restaurava la versió
+  del repositori i **la feina de l'usuari desapareixia del programa** (quedava al
+  stash, però ningú no la treia mai d'allà). A sobre, el mòbil SÍ que rebia els
+  canvis (les dades es regeneren abans del stash), o sigui que PC i mòbil quedaven
+  incoherents.
+- **Regla:** els catàlegs editats a l'ordinador de l'usuari **SÓN L'AUTORITAT**.
+  Es committegen, es pugen a `main` i **prevalen** sobre el que baixi del repositori.
+- **Com està resolt** (`suport/SincronitzaCatalegs.ps1` + `Actualitzar.bat`):
+  1. **Còpia de seguretat SEMPRE i abans de tocar res de git** (`-Fase Backup`) de
+     tot el que l'usuari pot editar (`ESTRUCTURALS` + `docs/dades`) a
+     `%LOCALAPPDATA%\InformesCornella\backups\<data-hora>\` amb `manifest.txt`.
+  2. `git add "ESTRUCTURALS/*.docx" "ESTRUCTURALS/*.json" "docs/dades/*.json"` +
+     commit (així **no** queda res brut i el stash no se'n pot endur res).
+  3. Després del `pull`, **`-Fase Restore`** torna a aplicar els fitxers de la
+     còpia → la versió de l'usuari **preval** — i es committeja i puja.
+  4. Si el `rebase` troba un **conflicte**: `rebase --abort` + `reset --hard
+     origin/main` i es tornen a aplicar els catàlegs de la còpia (mai es deixa
+     l'usuari amb un rebase a mitges).
+  5. Si tot i així quedés res brut a `ESTRUCTURALS`, s'avisa **ben visible** amb la
+     ruta de la còpia (mai un stash silenciós).
+- **`Recuperar-catalegs.bat`** (arrel) → `-Fase Recuperar`: busca als stashes antics
+  els catàlegs que es van perdre amb la versió anterior i els **extreu** a
+  `%LOCALAPPDATA%\InformesCornella\recuperats\` (no fa `pop`: no toca res del clone).
+- `.gitignore` té `ESTRUCTURALS/*.bak` (còpies que fa l'editor en desar).
+- Funcions pures amb tests: `_CatalegEsProtegible`, `_ParseGitStatusPaths` (compte:
+  git **enquota** els noms amb espais, i retorna **array pla**), `_CatalegsBackupName`.
+
 ## IMPORTANT: tota la feina ha de convergir a `main`
 Cada sessió de Claude Code (web) treballa en una branca pròpia `claude/...`.
 Si la feina es queda només en aquesta branca, **l'usuari no la rebrà mai**
@@ -222,20 +254,30 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
     unides per `\n` LITERAL i el marcador `$$SIGNDATE=yyyy.MM.dd HH:mm:ss$$`). El text
     del caixetí és **editable** al diàleg d'opcions (casella "Signatura visible" +
     quadre de text) i es desa a `pdf-signar-state.json` (`caixeti`, `visibleSign`);
-    per defecte `_DefaultCaixeti`. Sense caixetí, `_BuildAutoFirmaSignArgs` es comporta
+    per defecte `_DefaultCaixeti`. Sense caixetí, `_BuildAutoFirmaSignArgv` es comporta
     com abans (signatura invisible, cap `-config`).
-  - **Encoding de `-config`**: el valor va en **Base64** dels extraParams
-    (`$Script:AutoFirmaConfigBase64 = $true`, evita problemes d'espais/salts a la
-    línia d'ordres). Els extraParams se separen per salt de línia (`CommandLineLauncher`
-    d'AutoFirma els fa `split("\n")`). **Si el caixetí no surt a Windows**, posar el
-    commutador a `$false` (text pla). Posició del caixetí tunejable a
-    `$Script:AutoFirmaCaixetiPos`.
+  - **Format de `-config` (ATENCIÓ, aquí ens vam equivocar una vegada)**: el valor
+    va en **TEXT PLA**, amb les propietats separades per **salts de línia REALS**.
+    `CommandLineParameters.java` el guarda **tal qual** (NO el descodifica de
+    Base64) i `CommandLineLauncher.java` fa `extraParams.split("\n")`. Un primer
+    intent el passava en **Base64** i el resultat era que se signava **sense
+    caixetí** i sense cap error (AutoFirma no trobava cap propietat vàlida).
+    Com que una cadena d'ordres no pot portar salts de línia, els arguments es
+    passen com a **ARRAY** (`_BuildAutoFirmaSignArgv` + `Start-Process -ArgumentList
+    $argv`), que és qui fa el quoting. Dins de `layer2Text`, en canvi, els salts
+    són `\n` **literal** (barra+n). Posició tunejable a `$Script:AutoFirmaCaixetiPos`.
+  - **Registre de diagnòstic**: cada execució desa a `pdf-signar-log.txt` (al costat
+    de `pdf-signar-state.json`) **l'ordre exacta** passada a AutoFirma, el codi de
+    sortida i la seva sortida (`_PdfSignarLog`, `_AutoFirmaArgvToText`). El resum
+    ofereix obrir-lo. Serveix per no haver d'endevinar si el caixetí no surt.
+  - **Carpeta O document**: el quadre accepta una **carpeta** (tots els Word de dins
+    i subcarpetes) o **un sol document** Word; hi ha dos botons (Carpeta / Document).
+    `_RunConvertPdf` ho distingeix amb `Test-Path -PathType Leaf`.
   Funcions pures testejables (`_PdfPathForDoc`, `_PdfShouldConvert`, `_CertFilterValue`,
-  `_CertCommonName`, `_BuildAutoFirmaSignArgs`, `_AutoFirmaVisibleExtraParams`,
-  `_AutoFirmaConfigArg`, `_DefaultCaixeti`, `_AutoFirmaCandidatePaths` — retorna un
+  `_CertCommonName`, `_BuildAutoFirmaSignArgv`, `_AutoFirmaVisibleExtraParams`,
+  `_AutoFirmaArgvToText`, `_DefaultCaixeti`, `_AutoFirmaCandidatePaths` — retorna un
   **array pla**, no `,$ArrayList`, perquè `@()` l'enumeri bé). Word (COM) i AutoFirma
-  només a Windows. Opcions/estat a `pdf-signar-state.json`. **Pendent de provar la
-  signatura visible a Windows** (posició/encoding).
+  només a Windows. Opcions/estat a `pdf-signar-state.json`.
 - **Selector de carpetes MODERN (a tot el programa)** (`_PickFolderModern`,
   `UiComuns.ps1`): el botó "..." de `_AddConfigRow` obre el diàleg **IFileOpenDialog**
   amb `FOS_PICKFOLDERS` (estil Explorer: barra d'adreça on es pot **enganxar la ruta**,

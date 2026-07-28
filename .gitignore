@@ -2,6 +2,11 @@
 # esta obert; desapareixen en tancar-lo). Mai s'han de versionar.
 ~$*
 
+# Copies de seguretat que fa l'editor de catalegs en desar (REQ1.json.bak...).
+# Son locals: el que es puja es el .json bo. Sense aquesta regla, l'Actualitzar.bat
+# se'ls enduria en fer 'git add ESTRUCTURALS'.
+ESTRUCTURALS/*.bak
+
 # Cache de miniatures del Windows Explorer.
 Thumbs.db
 ehthumbs.db

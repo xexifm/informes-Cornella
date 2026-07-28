@@ -1285,24 +1285,24 @@ AssertEq (_PdfShouldConvert $true ([datetime]'2026-01-01') ([datetime]'2026-02-0
 AssertEq (_PdfShouldConvert $true ([datetime]'2026-01-01') ([datetime]'2026-02-01') $true) $true '_PdfShouldConvert: overwrite -> sempre si'
 AssertEq (_CertFilterValue '') '' '_CertFilterValue buit -> sense filtre'
 AssertEq (_CertFilterValue '  12345678Z ') 'subject.contains:12345678Z' '_CertFilterValue -> subject.contains:'
-$afArgs = _BuildAutoFirmaSignArgs 'C:\a b\in.pdf' 'C:\a b\out.pdf' 'subject.contains:X' ''
-AssertEq ([bool]($afArgs -like 'sign *')) $true '_BuildAutoFirmaSignArgs: comenca per sign'
-AssertEq ([bool]($afArgs -like '*-store windows*')) $true '_BuildAutoFirmaSignArgs: magatzem windows'
-AssertEq ([bool]($afArgs -like '*-format pades*')) $true '_BuildAutoFirmaSignArgs: format pades'
-AssertEq ([bool]($afArgs -like '*-i "C:\a b\in.pdf"*')) $true '_BuildAutoFirmaSignArgs: entrada entre cometes'
-AssertEq ([bool]($afArgs -like '*-o "C:\a b\out.pdf"*')) $true '_BuildAutoFirmaSignArgs: sortida entre cometes'
-AssertEq ([bool]($afArgs -like '*-filter "subject.contains:X"*')) $true '_BuildAutoFirmaSignArgs: filtre inclos'
-$afNoFilter = _BuildAutoFirmaSignArgs 'in.pdf' 'out.pdf' '' 'SHA512withRSA'
-AssertEq ([bool]($afNoFilter -like '*-filter*')) $false '_BuildAutoFirmaSignArgs: sense filtre si no s''indica'
-AssertEq ([bool]($afNoFilter -like '*-algorithm SHA512withRSA*')) $true '_BuildAutoFirmaSignArgs: algoritme indicat'
+$afArgs = @(_BuildAutoFirmaSignArgv 'C:\a b\in.pdf' 'C:\a b\out.pdf' 'subject.contains:X' '')
+AssertEq ($afArgs[0]) 'sign' '_BuildAutoFirmaSignArgv: comenca per sign'
+AssertEq ([bool]($afArgs -contains 'windows')) $true '_BuildAutoFirmaSignArgv: magatzem windows'
+AssertEq ([bool]($afArgs -contains 'pades')) $true '_BuildAutoFirmaSignArgv: format pades'
+AssertEq ($afArgs[[Array]::IndexOf($afArgs, '-i') + 1]) 'C:\a b\in.pdf' '_BuildAutoFirmaSignArgv: entrada com a element propi'
+AssertEq ($afArgs[[Array]::IndexOf($afArgs, '-o') + 1]) 'C:\a b\out.pdf' '_BuildAutoFirmaSignArgv: sortida com a element propi'
+AssertEq ($afArgs[[Array]::IndexOf($afArgs, '-filter') + 1]) 'subject.contains:X' '_BuildAutoFirmaSignArgv: filtre inclos'
+AssertEq ([bool]($afArgs -contains 'SHA256withRSA')) $true '_BuildAutoFirmaSignArgv: algoritme per defecte'
+$afNoFilter = @(_BuildAutoFirmaSignArgv 'in.pdf' 'out.pdf' '' 'SHA512withRSA')
+AssertEq ([bool]($afNoFilter -contains '-filter')) $false '_BuildAutoFirmaSignArgv: sense filtre si no s''indica'
+AssertEq ([bool]($afNoFilter -contains 'SHA512withRSA')) $true '_BuildAutoFirmaSignArgv: algoritme indicat'
 AssertEq ([bool](@(_AutoFirmaCandidatePaths).Count -gt 0)) $true '_AutoFirmaCandidatePaths: retorna candidats'
 AssertEq ([bool](@(_AutoFirmaCandidatePaths) -like '*AutoFirma.exe')) $true '_AutoFirmaCandidatePaths: apunten a AutoFirma.exe'
 AssertEq ([bool]((@(_AutoFirmaCandidatePaths))[0] -is [string])) $true '_AutoFirmaCandidatePaths: elements son cadenes (no la llista sencera)'
 AssertEq (_CertCommonName 'CN=NOM COGNOM - 12345678Z, OU=X, O=Y, C=ES') 'NOM COGNOM - 12345678Z' '_CertCommonName extreu el CN'
 AssertEq (_CertCommonName 'sense cn') 'sense cn' '_CertCommonName sense CN -> retorna el subjecte'
 AssertEq (_CertCommonName '') '' '_CertCommonName buit -> buit'
-# Signatura VISIBLE (caixetí). Sense caixetí -> retrocompatible (cap -config).
-AssertEq ([bool]($afNoFilter -like '*-config*')) $false '_BuildAutoFirmaSignArgs: sense caixetí -> sense -config'
+# Signatura VISIBLE (caixetí).
 AssertEq (_AutoFirmaVisibleExtraParams '') '' '_AutoFirmaVisibleExtraParams buit -> buit'
 $cxDef = _DefaultCaixeti
 AssertEq ([bool]($cxDef -like "*Sergi Fadurdo Modesto*")) $true '_DefaultCaixeti: conté el nom'
@@ -1312,13 +1312,49 @@ AssertEq ([bool]($ep -like '*signaturePage=1*')) $true '_AutoFirmaVisibleExtraPa
 AssertEq ([bool]($ep -like '*signaturePositionOnPageLowerLeftX=360*')) $true '_AutoFirmaVisibleExtraParams: posició dalt-dreta (X)'
 AssertEq ([bool]($ep -like '*signaturePositionOnPageUpperRightY=815*')) $true '_AutoFirmaVisibleExtraParams: posició dalt-dreta (Y)'
 AssertEq ([bool]($ep -like '*layer2Text=Sergi Fadurdo Modesto\nEnginyer*')) $true '_AutoFirmaVisibleExtraParams: layer2Text amb \n literal'
-AssertEq (@($ep -split "`n").Count) 8 '_AutoFirmaVisibleExtraParams: 8 parells separats per salt de línia'
-# _BuildAutoFirmaSignArgs amb caixetí -> afegeix -config (Base64 per defecte).
-$afCx = _BuildAutoFirmaSignArgs 'i.pdf' 'o.pdf' '' '' $cxDef
-AssertEq ([bool]($afCx -like '*-config *')) $true '_BuildAutoFirmaSignArgs: amb caixetí -> conté -config'
-$mCfg = [regex]::Match($afCx, '-config (\S+)')
-$decoded = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($mCfg.Groups[1].Value))
-AssertEq ([bool]($decoded -like '*signaturePage=1*' -and $decoded -like '*layer2Text=*')) $true '_BuildAutoFirmaSignArgs: el -config Base64 descodifica als extraParams'
+AssertEq (@($ep -split "`n").Count) 8 '_AutoFirmaVisibleExtraParams: 8 parells separats per salt de línia REAL'
+# ARGV (array) : AutoFirma agafa el -config TAL QUAL (sense Base64) i el parteix
+# per salts de línia reals; per aixo va com un element d'un array, no en una cadena.
+$argvSense = @(_BuildAutoFirmaSignArgv 'C:\a b\in.pdf' 'C:\a b\out.pdf' 'subject.contains:X' '')
+AssertEq ($argvSense[0]) 'sign' '_BuildAutoFirmaSignArgv: primer element sign'
+AssertEq ([bool]($argvSense -contains 'C:\a b\in.pdf')) $true '_BuildAutoFirmaSignArgv: la ruta va SENSE cometes (element propi)'
+AssertEq ([bool]($argvSense -contains '-config')) $false '_BuildAutoFirmaSignArgv: sense caixetí -> cap -config'
+AssertEq ([bool]($argvSense -contains 'subject.contains:X')) $true '_BuildAutoFirmaSignArgv: filtre com a element'
+$argvCx = @(_BuildAutoFirmaSignArgv 'i.pdf' 'o.pdf' '' '' $cxDef)
+$iCfg = [Array]::IndexOf($argvCx, '-config')
+AssertEq ([bool]($iCfg -ge 0)) $true '_BuildAutoFirmaSignArgv: amb caixetí -> hi ha -config'
+$valCfg = [string]$argvCx[$iCfg + 1]
+AssertEq ([bool]($valCfg -like '*signaturePage=1*' -and $valCfg -like '*layer2Text=*')) $true '_BuildAutoFirmaSignArgv: el -config es el TEXT PLA dels extraParams'
+AssertEq (@($valCfg -split "`n").Count) 8 '_BuildAutoFirmaSignArgv: el -config porta salts de línia reals (8 propietats)'
+AssertEq ([bool]($valCfg -match '^[A-Za-z0-9+/=]+$')) $false '_BuildAutoFirmaSignArgv: el -config NO va en Base64'
+AssertEq ([bool]((_AutoFirmaArgvToText $argvCx) -like '*\n*')) $true '_AutoFirmaArgvToText: mostra els salts com a \n per al registre'
+
+Write-Host "`n--- SincronitzaCatalegs.ps1: protegir els catalegs en actualitzar ---"
+# No el carrega Motor.ps1 (l'executa Actualitzar.bat pel seu compte); el
+# dot-sourcegem aqui. El $env:GENINFORME_TEST fa que nomes en surtin definicions.
+. (Join-Path (Split-Path -Parent $PSScriptRoot) 'SincronitzaCatalegs.ps1')
+AssertEq ([bool](_CatalegEsProtegible 'ESTRUCTURALS/REQ1.json')) $true '_CatalegEsProtegible: cataleg json'
+AssertEq ([bool](_CatalegEsProtegible 'ESTRUCTURALS/REQ1.docx')) $true '_CatalegEsProtegible: plantilla docx'
+AssertEq ([bool](_CatalegEsProtegible 'docs/dades/email-textos.json')) $true '_CatalegEsProtegible: dades del mobil'
+AssertEq ([bool](_CatalegEsProtegible 'ESTRUCTURALS/REQ1.json.bak')) $false '_CatalegEsProtegible: els .bak de l''editor NO'
+AssertEq ([bool](_CatalegEsProtegible 'suport/Motor.ps1')) $false '_CatalegEsProtegible: el codi NO'
+AssertEq ([bool](_CatalegEsProtegible '')) $false '_CatalegEsProtegible: buit -> no'
+# Sortida real de 'git status --porcelain' (git enquota els noms amb espais).
+$gs = @(
+    ' M "ESTRUCTURALS/0 CONCLUSIONS.json"',
+    ' M ESTRUCTURALS/REQ1.json',
+    ' M docs/dades/email-textos.json',
+    '?? ESTRUCTURALS/NOU.json',
+    '?? ESTRUCTURALS/REQ1.json.bak',
+    ' M suport/Motor.ps1'
+)
+$paths = @(_ParseGitStatusPaths $gs)
+AssertEq $paths.Count 4 '_ParseGitStatusPaths: 4 protegits (fora .bak i codi)'
+AssertEq ([bool]($paths -contains 'ESTRUCTURALS/0 CONCLUSIONS.json')) $true '_ParseGitStatusPaths: treu les cometes dels noms amb espais'
+AssertEq ([bool]($paths -contains 'ESTRUCTURALS/NOU.json')) $true '_ParseGitStatusPaths: inclou els fitxers nous (??)'
+AssertEq ([bool]($paths -contains 'suport/Motor.ps1')) $false '_ParseGitStatusPaths: exclou el codi'
+AssertEq (@(_ParseGitStatusPaths @(' M ESTRUCTURALS/REQ1.json -> ESTRUCTURALS/NOU.json')).Count) 1 '_ParseGitStatusPaths: canvi de nom -> es queda amb el desti'
+AssertEq (_CatalegsBackupName ([datetime]'2026-07-28 11:39:41')) '20260728-113941' '_CatalegsBackupName: nom de carpeta per data'
 
 Write-Host "`n--- EmailTextos.ps1: funcions pures (textos del correu del mobil) ---"
 $edefs = _DefaultEmailTextos

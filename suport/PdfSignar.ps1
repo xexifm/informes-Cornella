@@ -68,12 +68,6 @@ function _DefaultCaixeti {
 # Posició del caixetí a la pàgina (A4 595x842 pt): a DALT A LA DRETA. Tunejable.
 $Script:AutoFirmaCaixetiPos = @{ Page = 1; LLX = 360; LLY = 740; URX = 560; URY = 815 }
 
-# Encoding del valor de -config d'AutoFirma. Segons la versió, AutoFirma vol els
-# extraParams en Base64 ($true, RECOMANAT: evita problemes d'espais/salts a la
-# línia d'ordres) o en text pla ($false). Si el caixetí no surt a Windows, prova
-# de posar-ho a $false.
-$Script:AutoFirmaConfigBase64 = $true
-
 # Construeix la cadena d'extraParams (TEXT PLA, determinista) per a una signatura
 # VISIBLE PAdES amb el caixetí donat. Els parells van separats per salt de línia;
 # dins de layer2Text els salts són \n LITERAL (barra+n), com espera AutoFirma.
@@ -94,30 +88,34 @@ function _AutoFirmaVisibleExtraParams([string]$caixeti) {
     ) -join "`n")
 }
 
-# El fragment ' -config <valor>' per afegir a la línia d'arguments (o '' si no hi
-# ha caixetí). Codifica els extraParams en Base64 o text pla segons el commutador.
-function _AutoFirmaConfigArg([string]$caixeti) {
+# Construeix la LLISTA d'arguments (ARRAY PLA) per signar un PDF amb AutoFirma.
+# Funció PURA. Operació 'sign', PAdES, magatzem 'windows'.
+#
+# PER QUE UN ARRAY I NO UNA CADENA: el valor de -config son els extraParams en
+# TEXT PLA amb les propietats separades per SALTS DE LINIA REALS (AutoFirma fa
+# extraParams.split("\n") a CommandLineLauncher.java) i NO es descodifica de
+# Base64 (CommandLineParameters.java el guarda tal qual). Una cadena unica no pot
+# portar salts de linia, per aixo es passa com a element d'un array a
+# Start-Process -ArgumentList, que ja fa el quoting.
+# IMPORTANT: retorna un array PLA (no ,$ArrayList): aixi @() l'enumera bé.
+function _BuildAutoFirmaSignArgv([string]$inPdf, [string]$outPdf, [string]$filter, [string]$algorithm, [string]$caixeti = '') {
+    if ([string]::IsNullOrWhiteSpace($algorithm)) { $algorithm = 'SHA256withRSA' }
+    $argv = @('sign', '-i', $inPdf, '-o', $outPdf, '-store', 'windows', '-format', 'pades', '-algorithm', $algorithm)
+    if (-not [string]::IsNullOrWhiteSpace($filter)) { $argv += @('-filter', $filter) }
     $ep = _AutoFirmaVisibleExtraParams $caixeti
-    if ([string]::IsNullOrWhiteSpace($ep)) { return '' }
-    if ($Script:AutoFirmaConfigBase64) {
-        $b64 = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($ep))
-        return ' -config ' + $b64
-    }
-    return ' -config "' + $ep + '"'
+    if (-not [string]::IsNullOrWhiteSpace($ep)) { $argv += @('-config', $ep) }
+    return $argv
 }
 
-# Construeix la LÍNIA d'arguments (string, amb les rutes entre cometes) per signar
-# un PDF amb AutoFirma. Funció PURA. Operació 'sign', PAdES, magatzem 'windows'.
-# Si $caixeti no és buit, afegeix el -config de la signatura VISIBLE (caixetí a
-# dalt a la dreta). Sense $caixeti es comporta EXACTAMENT com abans (invisible).
-function _BuildAutoFirmaSignArgs([string]$inPdf, [string]$outPdf, [string]$filter, [string]$algorithm, [string]$caixeti = '') {
-    if ([string]::IsNullOrWhiteSpace($algorithm)) { $algorithm = 'SHA256withRSA' }
-    $a = 'sign -i "' + $inPdf + '" -o "' + $outPdf + '" -store windows -format pades -algorithm ' + $algorithm
-    if (-not [string]::IsNullOrWhiteSpace($filter)) {
-        $a += ' -filter "' + $filter + '"'
+# Representació llegible de l'argv per al registre de diagnòstic (els salts de
+# línia del -config es mostren com a \n perquè el log quedi en una sola línia).
+function _AutoFirmaArgvToText($argv) {
+    $parts = @()
+    foreach ($a in @($argv)) {
+        $s = ([string]$a) -replace "`r`n", '\n' -replace "`n", '\n'
+        if ($s -match '\s') { $parts += ('"' + $s + '"') } else { $parts += $s }
     }
-    $a += (_AutoFirmaConfigArg $caixeti)
-    return $a
+    return ($parts -join ' ')
 }
 
 # Rutes candidates on sol estar instal·lat AutoFirma.exe a Windows. Si les
@@ -166,6 +164,21 @@ function _CertCommonName([string]$subject) {
 function _PdfSignarStatePath {
     $dir = if ($LocalActivitatsDir) { $LocalActivitatsDir } else { $env:TEMP }
     return (Join-Path $dir 'pdf-signar-state.json')
+}
+
+# Registre de diagnòstic de les crides a AutoFirma (argv exacte + codi de sortida
+# + sortida del programa). Serveix per saber QUE ha passat quan la signatura
+# visible no surt, sense haver d'endevinar.
+function _PdfSignarLogPath {
+    $dir = if ($LocalActivitatsDir) { $LocalActivitatsDir } else { $env:TEMP }
+    return (Join-Path $dir 'pdf-signar-log.txt')
+}
+
+function _PdfSignarLog([string]$text) {
+    try {
+        $line = ('[' + (Get-Date).ToString('yyyy-MM-dd HH:mm:ss') + '] ' + $text)
+        Add-Content -LiteralPath (_PdfSignarLogPath) -Value $line -Encoding UTF8
+    } catch { }
 }
 
 function _LoadPdfSignarState {
@@ -224,7 +237,9 @@ function _ShowConvertPdfOptions {
 
     # Carpeta: mateix format que la Configuració (quadre editable + "..." +
     # indicador ✓/⚠ en viu). Helper comú _AddConfigRow (Configuracio.ps1).
-    $row = _AddConfigRow $form 70 'Carpeta amb els informes (Word):' $folder
+    # Es pot triar una CARPETA (tots els Word de dins i subcarpetes) o UN SOL
+    # DOCUMENT Word: el segon boto obre el dialeg de fitxers.
+    $row = _AddConfigRow $form 70 'Carpeta o document (Word):' $folder 'Documents Word|*.docx;*.doc|Tots els fitxers|*.*'
     $tbF = $row.TextBox
     $y = [int]$row.NextY
 
@@ -337,7 +352,7 @@ function _ShowConvertPdfOptions {
     $btnGo.add_Click({
         $f = [string]$tbF.Text
         if ([string]::IsNullOrWhiteSpace($f) -or -not (Test-Path -LiteralPath $f)) {
-            [System.Windows.Forms.MessageBox]::Show('Tria una carpeta vàlida.', 'Convertir informes a PDF', 'OK', 'Warning') | Out-Null
+            [System.Windows.Forms.MessageBox]::Show('Tria una carpeta o un document vàlids.', 'Convertir informes a PDF', 'OK', 'Warning') | Out-Null
             return
         }
         if ($cbSign.Checked -and [string]::IsNullOrWhiteSpace($autofirma)) {
@@ -371,15 +386,24 @@ function _RunConvertPdf($opts) {
     if ($opts -is [System.Array]) { $opts = @($opts)[-1] }
     $folderPath = [string]$opts.Folder
     $afExe      = [string]$opts.AutoFirma
-    # Enumeració dels Word de la carpeta (i subcarpetes), saltant temporals ~$.
+    # Pot ser UN SOL DOCUMENT o una CARPETA (llavors, tots els Word de dins i de
+    # les subcarpetes, saltant els temporals ~$).
+    $esFitxer = $false
+    try { $esFitxer = Test-Path -LiteralPath $folderPath -PathType Leaf } catch { }
     $files = New-Object System.Collections.ArrayList
-    Get-ChildItem -LiteralPath $folderPath -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object {
-        if ($_.Name -notlike '~$*' -and ($_.Extension -ieq '.docx' -or $_.Extension -ieq '.doc')) {
-            [void]$files.Add($_)
+    if ($esFitxer) {
+        $fi = Get-Item -LiteralPath $folderPath -ErrorAction SilentlyContinue
+        if ($null -ne $fi -and ($fi.Extension -ieq '.docx' -or $fi.Extension -ieq '.doc')) { [void]$files.Add($fi) }
+    } else {
+        Get-ChildItem -LiteralPath $folderPath -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object {
+            if ($_.Name -notlike '~$*' -and ($_.Extension -ieq '.docx' -or $_.Extension -ieq '.doc')) {
+                [void]$files.Add($_)
+            }
         }
     }
     if ($files.Count -eq 0) {
-        [System.Windows.Forms.MessageBox]::Show("No s'ha trobat cap Word (.doc/.docx) a la carpeta.", 'Convertir informes a PDF', 'OK', 'Information') | Out-Null
+        $qui = if ($esFitxer) { "El fitxer triat no es un Word (.doc/.docx)." } else { "No s'ha trobat cap Word (.doc/.docx) a la carpeta." }
+        [System.Windows.Forms.MessageBox]::Show($qui, 'Convertir informes a PDF', 'OK', 'Information') | Out-Null
         return
     }
 
@@ -467,20 +491,36 @@ function _RunConvertPdf($opts) {
                 [System.Windows.Forms.Application]::DoEvents()
                 $tmpSigned = $pdf + '.signat.pdf'
                 try { if (Test-Path -LiteralPath $tmpSigned) { Remove-Item -LiteralPath $tmpSigned -Force } } catch { }
-                $argLine = [string](_BuildAutoFirmaSignArgs $pdf $tmpSigned $filter '' $caixeti)
+                # ARRAY d'arguments: el -config porta salts de línia reals i no
+                # cabria en una sola cadena (vegeu _BuildAutoFirmaSignArgv).
+                $argv = @(_BuildAutoFirmaSignArgv $pdf $tmpSigned $filter '' $caixeti)
+                $outLog = [System.IO.Path]::GetTempFileName()
+                $errLog = [System.IO.Path]::GetTempFileName()
                 try {
-                    $p = Start-Process -FilePath $afExe -ArgumentList $argLine -Wait -PassThru -WindowStyle Hidden
+                    $p = Start-Process -FilePath $afExe -ArgumentList $argv -Wait -PassThru -WindowStyle Hidden `
+                                       -RedirectStandardOutput $outLog -RedirectStandardError $errLog
+                    $so = ''
+                    try { $so = ((Get-Content -LiteralPath $outLog -Raw -ErrorAction SilentlyContinue) + ' ' + (Get-Content -LiteralPath $errLog -Raw -ErrorAction SilentlyContinue)).Trim() } catch { }
                     if ($p.ExitCode -eq 0 -and (Test-Path -LiteralPath $tmpSigned)) {
                         Move-Item -LiteralPath $tmpSigned -Destination $pdf -Force
                         $signed++
+                        # Nomes la primera: serveix per comprovar l'ordre exacta.
+                        if ($signed -eq 1) { _PdfSignarLog ("OK  " + $f.Name + "  ::  " + (_AutoFirmaArgvToText $argv)) }
                     } else {
                         $errors++
                         [void]$errDetalls.Add(("Signatura: {0} (codi {1})" -f $f.Name, $p.ExitCode))
+                        _PdfSignarLog ("ERROR codi " + $p.ExitCode + "  " + $f.Name + "  ::  " + (_AutoFirmaArgvToText $argv))
+                        if ($so) { _PdfSignarLog ("   sortida: " + $so) }
                         try { if (Test-Path -LiteralPath $tmpSigned) { Remove-Item -LiteralPath $tmpSigned -Force } } catch { }
                     }
                 } catch {
                     $errors++
                     [void]$errDetalls.Add(("Signatura: {0} -> {1}" -f $f.Name, $_.Exception.Message))
+                    _PdfSignarLog ("EXCEPCIO " + $f.Name + " -> " + $_.Exception.Message + "  ::  " + (_AutoFirmaArgvToText $argv))
+                } finally {
+                    foreach ($tmpl in @($outLog, $errLog)) {
+                        try { if (Test-Path -LiteralPath $tmpl) { Remove-Item -LiteralPath $tmpl -Force } } catch { }
+                    }
                 }
             }
         }
@@ -505,6 +545,19 @@ function _RunConvertPdf($opts) {
         $mostra = @($errDetalls) | Select-Object -First 8
         foreach ($e in $mostra) { [void]$msg.AppendLine('  - ' + $e) }
         if ($errDetalls.Count -gt 8) { [void]$msg.AppendLine(('  ... i {0} més.' -f ($errDetalls.Count - 8))) }
+    }
+    # Si s'ha signat, oferim el registre: hi ha l'ordre EXACTA que s'ha passat a
+    # AutoFirma i serveix per veure per que no surt el caixeti, si es el cas.
+    if ($opts.Sign -and ($signed -gt 0 -or $errors -gt 0)) {
+        [void]$msg.AppendLine('')
+        [void]$msg.AppendLine("Vols obrir el registre de la signatura? (hi ha l'ordre exacta")
+        [void]$msg.AppendLine('enviada a AutoFirma; util si el caixeti no apareix al PDF)')
+        $r = [System.Windows.Forms.MessageBox]::Show($msg.ToString(), 'Convertir informes a PDF', 'YesNo',
+                                                     $(if ($errors -gt 0) { 'Warning' } else { 'Information' }))
+        if ($r -eq [System.Windows.Forms.DialogResult]::Yes) {
+            try { Start-Process -FilePath (_PdfSignarLogPath) | Out-Null } catch { }
+        }
+        return
     }
     $icon = if ($errors -gt 0) { 'Warning' } else { 'Information' }
     [System.Windows.Forms.MessageBox]::Show($msg.ToString(), 'Convertir informes a PDF', 'OK', $icon) | Out-Null

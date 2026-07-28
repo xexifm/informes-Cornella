@@ -468,7 +468,10 @@ function _PickFolderModern([string]$initialPath, [string]$title, $ownerForm) {
 # Afegeix els controls a $parent i retorna @{ TextBox = ...; NextY = ... } per
 # encadenar files. TOTS els selectors de carpeta del programa fan servir aquest
 # format (pantalla Configuracio, Word a PDF...).
-function _AddConfigRow($parent, [int]$y, [string]$labelText, [string]$initialValue) {
+# $fileFilter (opcional): si s'indica (p. ex. 'Documents Word|*.docx;*.doc'),
+# s'afegeix un SEGON boto que obre un dialeg de FITXERS, de manera que al mateix
+# quadre s'hi pot posar una CARPETA o un DOCUMENT concret (ho fa servir Word a PDF).
+function _AddConfigRow($parent, [int]$y, [string]$labelText, [string]$initialValue, [string]$fileFilter = '') {
     $lbl = New-Object System.Windows.Forms.Label
     $lbl.Text = $labelText
     $lbl.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
@@ -477,19 +480,53 @@ function _AddConfigRow($parent, [int]$y, [string]$labelText, [string]$initialVal
     [void]$parent.Controls.Add($lbl)
     $y += 20
 
+    # Amb filtre de fitxer hi ha DOS botons (carpeta + document): el quadre es
+    # fa una mica mes estret per encabir-los tots dos.
+    $ambFitxer = (-not [string]::IsNullOrWhiteSpace($fileFilter))
+    $tbWidth = if ($ambFitxer) { 386 } else { 432 }
+
     $tb = New-Object System.Windows.Forms.TextBox
     $tb.Location = New-Object System.Drawing.Point(14, $y)
-    $tb.Size = New-Object System.Drawing.Size(432, 24)
+    $tb.Size = New-Object System.Drawing.Size($tbWidth, 24)
     $tb.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
     $tb.Text = $initialValue
     [void]$parent.Controls.Add($tb)
 
     $btn = New-Object System.Windows.Forms.Button
-    $btn.Text = '...'
-    $btn.Location = New-Object System.Drawing.Point(452, ($y - 1))
-    $btn.Size = New-Object System.Drawing.Size(36, 24)
     $btn.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right
+    if ($ambFitxer) {
+        $btn.Text = 'Carpeta'
+        $btn.Location = New-Object System.Drawing.Point(404, ($y - 1))
+        $btn.Size = New-Object System.Drawing.Size(58, 24)
+    } else {
+        $btn.Text = '...'
+        $btn.Location = New-Object System.Drawing.Point(452, ($y - 1))
+        $btn.Size = New-Object System.Drawing.Size(36, 24)
+    }
     [void]$parent.Controls.Add($btn)
+
+    if ($ambFitxer) {
+        $btnFile = New-Object System.Windows.Forms.Button
+        $btnFile.Text = 'Document'
+        $btnFile.Location = New-Object System.Drawing.Point(466, ($y - 1))
+        $btnFile.Size = New-Object System.Drawing.Size(70, 24)
+        $btnFile.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right
+        [void]$parent.Controls.Add($btnFile)
+        $btnFile.add_Click({
+            $dlg = New-Object System.Windows.Forms.OpenFileDialog
+            $dlg.Title = $labelText
+            $dlg.Filter = $fileFilter
+            $dlg.CheckFileExists = $true
+            try {
+                $cur = [string]$tb.Text
+                if (-not [string]::IsNullOrWhiteSpace($cur)) {
+                    if (Test-Path -LiteralPath $cur -PathType Container) { $dlg.InitialDirectory = $cur }
+                    elseif (Test-Path -LiteralPath $cur) { $dlg.InitialDirectory = (Split-Path -Parent $cur) }
+                }
+            } catch { }
+            if ($dlg.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { $tb.Text = $dlg.FileName }
+        }.GetNewClosure())
+    }
     $y += 28
 
     $status = New-Object System.Windows.Forms.Label
@@ -509,7 +546,10 @@ function _AddConfigRow($parent, [int]$y, [string]$labelText, [string]$initialVal
         $ok = $false
         try { $ok = Test-Path -LiteralPath $p } catch { $ok = $false }
         if ($ok) {
-            $status.Text = "$([char]0x2713) Trobada"
+            $esFitxer = $false
+            try { $esFitxer = Test-Path -LiteralPath $p -PathType Leaf } catch { }
+            if ($esFitxer) { $status.Text = "$([char]0x2713) Document trobat" }
+            else           { $status.Text = "$([char]0x2713) Trobada" }
             $status.ForeColor = [System.Drawing.Color]::SeaGreen
         } else {
             $status.Text = "$([char]0x26A0) No trobada ara (es pot desar igualment)"
