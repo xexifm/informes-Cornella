@@ -43,6 +43,37 @@ function _VistaEsProtegit([string]$jsonPath) {
     return ([string]$b -like '0 CAPCALERA*')
 }
 
+# VERSIO del generador de vistes. Puja-la SEMPRE que canviï com es veuen les
+# vistes: si no, les que ja existeixen es queden amb el format antic per sempre
+# (la regla de sota nomes regenera quan el JSON es mes nou que el .docx, i just
+# despres de generar-les el .docx sempre es el mes nou). En canviar de versio es
+# regeneren totes una vegada.
+#   1 -> primera versio (format propi, amb estils de titol)
+#   2 -> format de l'informe (Format.ps1) + nivells d'esquema
+$Script:VistaWordVersio = 2
+
+function _VistaVersioPath {
+    $base = [string]$env:LOCALAPPDATA
+    if ([string]::IsNullOrWhiteSpace($base)) { $base = [System.IO.Path]::GetTempPath() }
+    return (Join-Path $base (Join-Path 'InformesCornella' 'vistes-versio.txt'))
+}
+
+# La versio amb que es van generar les vistes d'aquest ordinador (0 si no consta).
+function _VistaVersioDesada {
+    $p = _VistaVersioPath
+    if (-not (Test-Path -LiteralPath $p)) { return 0 }
+    try { return [int](Get-Content -LiteralPath $p -Raw -ErrorAction Stop).Trim() } catch { return 0 }
+}
+
+function _VistaDesaVersio([int]$v) {
+    try {
+        $p = _VistaVersioPath
+        $d = Split-Path -Parent $p
+        if (-not (Test-Path -LiteralPath $d)) { New-Item -ItemType Directory -Path $d -Force | Out-Null }
+        [string]$v | Set-Content -LiteralPath $p -Encoding UTF8
+    } catch { }
+}
+
 # Cal tornar a generar la vista? Funcio PURA (mateixa forma que _PdfShouldConvert).
 # NOMES es regenera si el JSON s'ha tocat despres del .docx: si es regenerava
 # sempre, cada Actualitzar.bat faria un commit d'un .docx "nou" (Word hi posa
@@ -273,15 +304,23 @@ function Invoke-ExportarVistesWord([switch]$Force) {
     if (-not (Test-Path -LiteralPath $EstructuralsDir)) { return 0 }
     $tots = @(Get-ChildItem -LiteralPath $EstructuralsDir -Filter '*.json' -ErrorAction SilentlyContinue |
               Where-Object { -not (_VistaEsProtegit $_.FullName) } | Sort-Object Name)
+    # Si ha canviat el format de les vistes, es regeneren TOTES una vegada.
+    $canviDeFormat = ((_VistaVersioDesada) -ne $Script:VistaWordVersio)
+    $forcar = ([bool]$Force -or $canviDeFormat)
+    if ($canviDeFormat) { Write-Host "  (el format de les vistes ha canviat: es regeneren totes)" }
+
     # Nomes els que tinguin el JSON mes nou que la vista (o cap vista encara).
     $jsons = @()
     foreach ($j in $tots) {
         $out = _VistaWordPathFor $j.FullName
         $ex = Test-Path -LiteralPath $out
         $docxUtc = if ($ex) { (Get-Item -LiteralPath $out).LastWriteTimeUtc } else { [datetime]::MinValue }
-        if (_VistaCalRegenerar $ex $j.LastWriteTimeUtc $docxUtc ([bool]$Force)) { $jsons += $j }
+        if (_VistaCalRegenerar $ex $j.LastWriteTimeUtc $docxUtc $forcar) { $jsons += $j }
     }
-    if ($jsons.Count -eq 0) { return 0 }
+    if ($jsons.Count -eq 0) {
+        if ($canviDeFormat) { _VistaDesaVersio $Script:VistaWordVersio }
+        return 0
+    }
 
     $word = $null
     try { $word = New-Object -ComObject Word.Application } catch { $word = $null }
@@ -307,5 +346,8 @@ function Invoke-ExportarVistesWord([switch]$Force) {
         try { $word.Quit() } catch { }
         try { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($word) | Out-Null } catch { }
     }
+    # Nomes donem la versio per bona si s'han pogut generar (si Word ha fallat,
+    # la propera vegada ho tornara a intentar).
+    if ($n -gt 0) { _VistaDesaVersio $Script:VistaWordVersio }
     return $n
 }
