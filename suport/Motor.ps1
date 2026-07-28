@@ -2765,6 +2765,7 @@ function _WriteCatalegBody($sel, $cfg, $selectedSections, $fields, $introText, $
             }
         }
         if ($hasChildren) {
+            $firstChild = $true
             foreach ($ch in $it.Children) {
                 $childLines = @(& $resolveLines $ch.BodyLines)
                 if ($childLines.Count -eq 0) { continue }
@@ -2778,7 +2779,10 @@ function _WriteCatalegBody($sel, $cfg, $selectedSections, $fields, $introText, $
                 # enllac/cos de fill, sense un nou pic.
                 $pc = _SplitTextAndUrls $childLines[0]
                 if (-not [string]::IsNullOrWhiteSpace($pc.Text)) {
-                    Format-Bullet $sel $pc.Text -IsChild
+                    # -First: el primer sub-punt se separa de l'item numerat amb
+                    # ItemSpaceAfterPt (els seguents, amb BulletSpaceBeforePt).
+                    Format-Bullet $sel $pc.Text -IsChild -First:$firstChild
+                    $firstChild = $false
                 }
                 foreach ($u in $pc.Urls) { Format-Url $sel $u -IsChild }
                 & $emitExtras $childLines $true

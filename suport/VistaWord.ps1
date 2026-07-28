@@ -52,7 +52,8 @@ function _VistaEsProtegit([string]$jsonPath) {
 #   2 -> format de l'informe (Format.ps1) + nivells d'esquema
 #   3 -> tipografia base de la plantilla (Bookman Old Style, justificat,
 #        interlineat i marges) via Format-ApplyBaseStyle
-$Script:VistaWordVersio = 3
+#   4 -> separacio entre l'item i el seu PRIMER sub-punt (Format-Bullet -First)
+$Script:VistaWordVersio = 4
 
 function _VistaVersioPath {
     $base = [string]$env:LOCALAPPDATA
@@ -129,8 +130,8 @@ function _VUrl($sel, [string]$u, [bool]$isChild = $false) {
     if ($isChild) { Format-Url $sel $u -IsChild } else { Format-Url $sel $u }
     _VistaNivell $sel $Script:WdOutlineBody
 }
-function _VBullet($sel, [string]$t, [bool]$isChild = $true) {
-    if ($isChild) { Format-Bullet $sel $t -IsChild } else { Format-Bullet $sel $t }
+function _VBullet($sel, [string]$t, [bool]$isChild = $true, [bool]$first = $false) {
+    if ($isChild) { Format-Bullet $sel $t -IsChild -First:$first } else { Format-Bullet $sel $t -First:$first }
     _VistaNivell $sel $Script:WdOutlineBody
 }
 function _VSpacer($sel) { Format-Spacer $sel; _VistaNivell $sel $Script:WdOutlineBody }
@@ -190,13 +191,18 @@ function _VistaCataleg($sel, [string]$jsonPath, [string]$nom) {
                         for ($i = 1; $i -lt $lines.Count; $i++) { _VLine $sel ([string]$lines[$i]) }
                         $escrit = $true
                     }
+                    $primerFill = $true
                     foreach ($ch in @($el.Children)) {
                         $cl = @($ch.BodyLines)
                         if ($cl.Count -eq 0) { continue }
                         if (-not $escrit) { $num++; $escrit = $true }
                         # Els fills NO es numeren: van amb pic, com a l'informe.
+                        # El PRIMER se separa mes de l'item (com fa Motor.ps1).
                         $pc = _SplitTextAndUrls ([string]$cl[0])
-                        if (-not [string]::IsNullOrWhiteSpace($pc.Text)) { _VBullet $sel ([string]$pc.Text) }
+                        if (-not [string]::IsNullOrWhiteSpace($pc.Text)) {
+                            _VBullet $sel ([string]$pc.Text) $true $primerFill
+                            $primerFill = $false
+                        }
                         foreach ($u in $pc.Urls) { _VUrl $sel $u $true }
                         for ($i = 1; $i -lt $cl.Count; $i++) { _VLine $sel ([string]$cl[$i]) $true }
                     }

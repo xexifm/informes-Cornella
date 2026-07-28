@@ -142,6 +142,28 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   un checkbox+comentari per unitat, amb `Label` "Req. N (tema): <fill>" i sagnat
   per als fills. Funcions pures amb tests (`_ShortenText`, `_SeguimentParentTopic`,
   `_BuildSeguimentModel` amb fills).
+- **Format de l'anotació d'un sub-punt:** `_MakeAnnotationParagraphXml` clona el
+  `pPr` del paràgraf que anota i hi força `numId=0` perquè l'anotació **no
+  s'enumeri**. Això té un efecte col·lateral: si el sub-punt treia la sagnia de
+  la **numeració** (llista real del Word, sense `w:ind` propi), l'anotació la
+  perdia i quedava desalineada. Per això, quan `$req.IsChild`, l'anotació rep
+  (només si el `pPr` clonat no en portava cap) una **sagnia explícita**
+  `AnnotationIndentCm` i un **espai a sota** `AnnotationSpaceAfterPt`, perquè el
+  sub-punt següent no li quedi enganxat. Els valors viuen a
+  `$ReportFormatConfig` de **`Format.ps1`** (que és qui mana en el format del
+  document) i `Seguiment.ps1` només els llegeix — `_AnnotationFormatTwips` els
+  passa a **twips** (1 cm = 1440/2,54; 1 pt = 20), amb els mateixos valors per
+  defecte si `Format.ps1` no s'ha carregat. L'ordre dels elements dins de
+  `<w:pPr>` (`pStyle, numPr, spacing, ind`) es respecta: fora d'ordre el Word
+  es queixa del document.
+- **Separació ítem → primer sub-punt:** `Format-Bullet -First` (`Format.ps1`)
+  aplica `ItemSpaceAfterPt` (12 pt) en lloc de `BulletSpaceBeforePt` (6 pt) al
+  **primer** punt que penja d'un ítem numerat, perquè no quedi enganxat al text
+  de l'ítem; els punts següents entre ells mantenen els 6 pt. `Motor.ps1` marca
+  el primer fill EMÈS (no el primer del catàleg: els fills sense línies es
+  salten). Es posa l'espai a **`SpaceBefore` del fill** i no a `SpaceAfter` de
+  l'ítem perquè entre l'ítem i els fills hi pot haver línies extra o un URL, i
+  llavors l'espai separaria l'ítem del seu propi cos.
 - **ID GIA:** cadena document → carpeta ("GIA 361") → Excel per expedient.
   `_ExtractIdGia` ignora placeholders com `"-"`, `"XXX"`, `"N/A"` (activitats
   encara sense GIA assignat) perquè no s'ajuntin activitats diferents sota una

@@ -73,6 +73,23 @@ $Script:ReportFormatConfig = @{
     NoteIndentCm         = 1.25   # sub-paragraf sagnat sense pic (Format-Note)
     LabelSpaceAfterPt    = 12     # espai sota una etiqueta de subseccio (Format-Label)
 
+    # Separacio entre un item numerat i el seu PRIMER sub-punt. Sense aixo el
+    # sub-punt queda enganxat al text de l'item (12 pt = 240 twips al XML).
+    # Els sub-punts entre ells segueixen amb BulletSpaceBeforePt.
+    ItemSpaceAfterPt        = 12
+
+    # Anotacions datades de l'informe de SEGUIMENT. Seguiment.ps1 escriu el XML
+    # directament (sense Word), pero els valors de FORMAT viuen aqui: el format
+    # del document es cosa d'aquest modul.
+    #   - L'anotacio d'un SUB-PUNT s'alinea amb els punts de llista
+    #     (1,25 cm = 709 twips, el mateix que BulletIndentCm). Cal posar-la
+    #     EXPLICITA perque, en forcar numId=0 perque l'anotacio no s'enumeri, es
+    #     perd la sagnia que aportava la numeracio.
+    #   - L'anotacio d'un requeriment de primer nivell NO se sagna.
+    AnnotationIndentCm      = 1.25
+    AnnotationSpaceBeforePt = 10
+    AnnotationSpaceAfterPt  = 12
+
     # Espaiat (linia buida entre elements)
     SpacerAfterIntroParagraph     = $true   # despres de la frase intro del cataleg
     SpacerAfterSection            = $true   # entre seccio i el que ve a sota
@@ -88,6 +105,13 @@ $Script:ReportFormatConfig = @{
 }
 
 function _CmToPoints { param([double]$cm) return ($cm * 28.346456692913385) }
+
+# Conversions a TWIPS (la unitat del XML del Word: w:ind, w:spacing). Les fa
+# servir Seguiment.ps1, que escriu el XML directament pero ha de respectar els
+# valors d'aquesta configuracio de format.
+#   1 polzada = 1440 twips = 2,54 cm = 72 pt  ->  1 cm = 566,93 twips; 1 pt = 20.
+function _PtToTwips { param([double]$pt) return [int][Math]::Round($pt * 20) }
+function _CmToTwips { param([double]$cm) return [int][Math]::Round($cm * 1440 / 2.54) }
 
 function _Reset-Char($sel) {
     $sel.Font.Bold = 0
@@ -195,8 +219,12 @@ function Format-Body {
 # extraordinaria). El pic es escriu com a text (com el numero a Format-Item),
 # coherent amb la manera com el motor marca les llistes (sense numeracio
 # automatica de Word). -IsChild aplica la sangria de sub-nivell.
+#
+# -First marca el PRIMER punt d'una llista (el que penja directament d'un item
+# numerat): en lloc de la separacio curta entre punts (BulletSpaceBeforePt) hi
+# posa ItemSpaceAfterPt, perque el sub-punt no quedi enganxat al text de l'item.
 function Format-Bullet {
-    param($sel, [string]$text, [switch]$IsChild)
+    param($sel, [string]$text, [switch]$IsChild, [switch]$First)
     [void]$sel.TypeParagraph()
     _Reset-Char $sel
     # Sangria francesa: el text va a LeftIndent i el pic queda a
@@ -211,7 +239,10 @@ function Format-Bullet {
     try { $sel.ParagraphFormat.Alignment = 3 } catch { }   # 3 = wdAlignParagraphJustify
     # Separacio entre punts amb SpaceBefore (no linies en blanc): aixi la
     # llista surt compacta i amb el mateix aire que el document de referencia.
-    try { $sel.ParagraphFormat.SpaceBefore = [double]$Script:ReportFormatConfig.BulletSpaceBeforePt } catch { }
+    # El primer punt de la llista se separa mes (ItemSpaceAfterPt) de l'item.
+    $before = if ($First) { $Script:ReportFormatConfig.ItemSpaceAfterPt }
+              else        { $Script:ReportFormatConfig.BulletSpaceBeforePt }
+    try { $sel.ParagraphFormat.SpaceBefore = [double]$before } catch { }
     # Pic Unicode (U+2022) escrit per codepoint per no dependre de l'encoding.
     $sel.TypeText([string]([char]0x2022) + "`t")
     if ($text) { Type-RichText $sel $text }

@@ -624,10 +624,35 @@ function _MakeBodyRunXml($xml, $text, [bool]$bold) {
     return ,$r
 }
 
+# Valors de FORMAT de les anotacions. Viuen a Format.ps1 ($ReportFormatConfig),
+# que es qui mana en el format del document; aqui nomes es llegeixen. Si per
+# algun motiu Format.ps1 no s'ha carregat (proves aillades), s'usen els mateixos
+# valors per defecte, aixi que el resultat no canvia mai.
+function _AnnotationFormatTwips {
+    $cfg = $Script:ReportFormatConfig
+    $ind    = if ($null -ne $cfg -and $null -ne $cfg.AnnotationIndentCm)      { [double]$cfg.AnnotationIndentCm }      else { 1.25 }
+    $before = if ($null -ne $cfg -and $null -ne $cfg.AnnotationSpaceBeforePt) { [double]$cfg.AnnotationSpaceBeforePt } else { 10 }
+    $after  = if ($null -ne $cfg -and $null -ne $cfg.AnnotationSpaceAfterPt)  { [double]$cfg.AnnotationSpaceAfterPt }  else { 12 }
+    return [pscustomobject]@{
+        # 1 polzada = 1440 twips = 2,54 cm = 72 pt.
+        Indent      = [int][Math]::Round($ind * 1440 / 2.54)
+        SpaceBefore = [int][Math]::Round($before * 20)
+        SpaceAfter  = [int][Math]::Round($after * 20)
+    }
+}
+
 # Crea un <w:p> d'anotacio "dd/MM/aaaa: comentari". El PREFIX de la data va sense
 # negreta; NOMES el comentari va en negreta si $commentBold (= punt encara no
 # resolt). Clona el pPr del requeriment (estil/sagnat) forcant numId=0.
-function _MakeAnnotationParagraphXml($xmlInfo, $reqNode, $dateStr, $comment, [bool]$commentBold, [bool]$spaceBefore = $false) {
+#
+# $isChild = l'anotacio penja d'un SUB-PUNT (no d'un requeriment de 1r nivell).
+# En aquest cas cal, a mes:
+#   - Sangria EXPLICITA (AnnotationIndentCm): en forcar numId=0 perque l'anotacio
+#     no s'enumeri es perd la sangria que aportava la numeracio, i l'anotacio
+#     queda desalineada respecte del sub-punt que comenta.
+#   - Espai a sota (AnnotationSpaceAfterPt): si no, el sub-punt seguent queda
+#     enganxat a l'anotacio.
+function _MakeAnnotationParagraphXml($xmlInfo, $reqNode, $dateStr, $comment, [bool]$commentBold, [bool]$spaceBefore = $false, [bool]$isChild = $false) {
     $xml = $xmlInfo.Xml; $ns = $xmlInfo.Ns; $w = $Script:WNS
     $p = $xml.CreateElement('w','p',$w)
     $pPr = $null
@@ -653,16 +678,39 @@ function _MakeAnnotationParagraphXml($xmlInfo, $reqNode, $dateStr, $comment, [bo
     } else {
         $pPr = $xml.CreateElement('w','pPr',$w)
     }
-    # Espai a sobre (separacio visual amb el cos de l'item). Es fa amb spacing
-    # (no amb un paragraf buit) per no trencar la deteccio de fi de cos.
-    if ($spaceBefore) {
+    $fmt = _AnnotationFormatTwips
+    # Espai a sobre (separacio visual amb el cos de l'item) i, per als sub-punts,
+    # espai a sota. Es fa amb spacing (no amb un paragraf buit) per no trencar la
+    # deteccio de fi de cos.
+    $getSpacing = {
         $sp = $pPr.SelectSingleNode('w:spacing', $ns)
         if ($null -eq $sp) {
             $sp = $xml.CreateElement('w','spacing',$w)
             $numPr2 = $pPr.SelectSingleNode('w:numPr', $ns)
             if ($null -ne $numPr2) { [void]$pPr.InsertAfter($sp, $numPr2) } else { [void]$pPr.AppendChild($sp) }
         }
-        [void]$sp.SetAttribute('before', $w, '200')
+        return $sp
+    }
+    if ($spaceBefore) {
+        $spB = & $getSpacing
+        [void]$spB.SetAttribute('before', $w, [string]$fmt.SpaceBefore)
+    }
+    if ($isChild) {
+        $spA = & $getSpacing
+        [void]$spA.SetAttribute('after', $w, [string]$fmt.SpaceAfter)
+        # Sangria explicita nomes si el paragraf clonat no en portava cap (si en
+        # porta, ja esta alineat amb el sub-punt i no s'ha de tocar).
+        if ($null -eq $pPr.SelectSingleNode('w:ind', $ns)) {
+            $ind = $xml.CreateElement('w','ind',$w)
+            [void]$ind.SetAttribute('left', $w, [string]$fmt.Indent)
+            # Ordre de l'esquema OOXML dins de <w:pPr>: ... numPr ... spacing, ind.
+            $spNode = $pPr.SelectSingleNode('w:spacing', $ns)
+            if ($null -ne $spNode) { [void]$pPr.InsertAfter($ind, $spNode) }
+            else {
+                $numPr3 = $pPr.SelectSingleNode('w:numPr', $ns)
+                if ($null -ne $numPr3) { [void]$pPr.InsertAfter($ind, $numPr3) } else { [void]$pPr.AppendChild($ind) }
+            }
+        }
     }
     [void]$p.AppendChild($pPr)
     # Run 1: "dd/MM/aaaa: " (mai negreta). Run 2: comentari (negreta si pendent).
@@ -948,7 +996,8 @@ function _ApplySeguimentTransform {
         if ($addLine) {
             $commentBold = (-not $nowResolved)                 # negreta nomes si pendent
             $spaceBefore = (-not $b.AnchorIsAnnotation)         # espai si es la 1a anotacio
-            $newP = _MakeAnnotationParagraphXml $xmlInfo $b.ReqNode $dateStr $comment $commentBold $spaceBefore
+            $isChild     = [bool]$req.IsChild                    # anotacio d'un sub-punt
+            $newP = _MakeAnnotationParagraphXml $xmlInfo $b.ReqNode $dateStr $comment $commentBold $spaceBefore $isChild
             [void]$xmlInfo.Body.InsertAfter($newP, $b.AnchorNode)
         }
     }

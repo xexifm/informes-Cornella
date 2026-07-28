@@ -208,11 +208,11 @@ $f3 = Get-FieldsFromSelection @($sec3)
 $global:emitCalls.Clear()
 _WriteCatalegBody ([pscustomobject]@{}) $Script:ReportFormatConfig @($sec3) $f3 ''
 $itemCalls = @($global:emitCalls | Where-Object { $_ -like 'ITEM|*' })
-$bulletChildCalls = @($global:emitCalls | Where-Object { $_ -like 'BULLET/CH|*' })
+$bulletChildCalls = @($global:emitCalls | Where-Object { $_ -like 'BULLET/CH*' })
 AssertEq $itemCalls.Count 1                "Nomes 1 ITEM (el pare); cap ITEM per als fills"
 AssertEq $bulletChildCalls.Count 2         "Els 2 fills surten com a BULLET (punt de llista) amb sagnia de fill"
-AssertEq $bulletChildCalls[0] 'BULLET/CH|Fill A.' "Primer fill: punt de llista, sense numero"
-AssertEq $bulletChildCalls[1] 'BULLET/CH|Fill B.' "Segon fill: punt de llista, sense numero"
+AssertEq $bulletChildCalls[0] 'BULLET/CH/1r|Fill A.' "Primer fill: punt de llista, marcat -First (se separa de l'item)"
+AssertEq $bulletChildCalls[1] 'BULLET/CH|Fill B.'    "Segon fill: punt de llista, separacio normal entre punts"
 # Cap fill ha de tenir patro de numeracio "X.Y."
 $childHasNum = @($global:emitCalls | Where-Object { $_ -match 'ITEM\|\d+\.\d+\.' }).Count
 AssertEq $childHasNum 0                    "Cap fill amb numeracio jerarquica (X.Y.)"
@@ -681,6 +681,54 @@ Assert ($null -ne $concJc -and $concJc.GetAttribute('val',$W) -eq 'both') 'Trans
 Assert ($null -ne $xi2.Body.SelectSingleNode('w:sectPr', $xi2.Ns)) 'Transform: <w:sectPr> preservat'
 $swT = New-Object System.IO.StringWriter; $xi2.Xml.Save($swT)
 Assert (Test-StrictXml $swT.ToString()) 'Transform: el document.xml resultant es estrictament valid (Word)'
+
+Write-Host "`n--- Seguiment XML: format de l'anotacio d'un SUB-PUNT ---"
+# Requeriment numerat amb 2 sub-punts en una llista REAL del Word (numId=33, la
+# sagnia la posa la numeracio i NO hi ha cap <w:ind>). En forcar numId=0 perque
+# l'anotacio no s'enumeri es perdia aquella sagnia i l'anotacio quedava
+# desalineada; a mes el sub-punt seguent li quedava enganxat.
+$docChild = @"
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="$W"><w:body>
+<w:p><w:pPr><w:pStyle w:val="Prrafodelista"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="0"/></w:numPr></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">1. </w:t></w:r><w:r><w:t>Elements de coccio.</w:t></w:r></w:p>
+<w:p><w:pPr><w:pStyle w:val="Prrafodelista"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="33"/></w:numPr></w:pPr><w:r><w:t>Retirar la fregidora.</w:t></w:r></w:p>
+<w:p><w:pPr><w:pStyle w:val="Prrafodelista"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="34"/></w:numPr><w:ind w:left="1134"/></w:pPr><w:r><w:t>Presentar certificat.</w:t></w:r></w:p>
+<w:p/>
+<w:p><w:r><w:t>Vist l anterior, cal requerir.</w:t></w:r></w:p>
+<w:sectPr/>
+</w:body></w:document>
+"@
+$xiC = New-XmlInfoFromString $docChild @{ '33' = 'bullet'; '34' = 'bullet' }
+$bpC = @(_BodyParagraphsXml $xiC)
+$modelC = _BuildSeguimentModel (_CollectParaRecordsXml $xiC $bpC)
+$uC = @($modelC.Requirements)
+AssertEq $uC.Count 2                  'Sub-punt: el req amb 2 sub-punts dona 2 unitats'
+AssertEq ([bool]$uC[0].IsChild) $true 'Sub-punt: la 1a unitat es un fill'
+_ApplySeguimentTransform -xmlInfo $xiC -bodyParas $bpC -model $modelC -conclusionStartIndex 5 `
+    -decisions @(
+        [pscustomobject]@{ Resolved=$true; NewComment="S'aporta." },
+        [pscustomobject]@{ Resolved=$true; NewComment="S'aporta certificat." }
+    ) -dateStr '27/07/2026' -conclHeaderText '' -selectedConclusions @() -alwaysConclusions @() -fields ([ordered]@{})
+$afterC = @(_BodyParagraphsXml $xiC)
+$textsC = @($afterC | ForEach-Object { _ParagraphTextXml $_ $xiC.Ns })
+$iA1 = [array]::IndexOf($textsC, "27/07/2026: S'aporta.")
+$iA2 = [array]::IndexOf($textsC, "27/07/2026: S'aporta certificat.")
+Assert ($iA1 -ge 0 -and $iA2 -ge 0) 'Sub-punt: les dues anotacions inserides'
+# 1r sub-punt: sense <w:ind> propi -> cal posar la sagnia EXPLICITA (1,25 cm)
+$indC1 = $afterC[$iA1].SelectSingleNode('w:pPr/w:ind', $xiC.Ns)
+Assert ($null -ne $indC1) "Sub-punt: l'anotacio d'un sub-punt sense sagnia propia en rep una d'explicita"
+AssertEq ([int]$indC1.GetAttribute('left',$W)) (_CmToTwips $Script:ReportFormatConfig.AnnotationIndentCm) 'Sub-punt: la sagnia es AnnotationIndentCm (1,25 cm = 709 twips)'
+$spC1 = $afterC[$iA1].SelectSingleNode('w:pPr/w:spacing', $xiC.Ns)
+AssertEq ([int]$spC1.GetAttribute('after',$W)) (_PtToTwips $Script:ReportFormatConfig.AnnotationSpaceAfterPt) 'Sub-punt: espai a sota = AnnotationSpaceAfterPt (12 pt = 240)'
+AssertEq ([int]$spC1.GetAttribute('before',$W)) (_PtToTwips $Script:ReportFormatConfig.AnnotationSpaceBeforePt) 'Sub-punt: espai a sobre = AnnotationSpaceBeforePt (10 pt = 200)'
+# 2n sub-punt: JA porta <w:ind w:left="1134"> -> es respecta (no es trepitja)
+$indC2 = $afterC[$iA2].SelectSingleNode('w:pPr/w:ind', $xiC.Ns)
+AssertEq ([int]$indC2.GetAttribute('left',$W)) 1134 "Sub-punt: si el sub-punt ja porta sagnia propia, es conserva"
+# Ordre OOXML dins de <w:pPr>: numPr, spacing, ind (si no, el Word es queixa)
+$namesC = @($afterC[$iA1].SelectSingleNode('w:pPr', $xiC.Ns).ChildNodes | ForEach-Object { $_.LocalName })
+AssertEq ($namesC -join ',') 'pStyle,numPr,spacing,ind' 'Sub-punt: ordre correcte dels elements dins de <w:pPr>'
+$swC = New-Object System.IO.StringWriter; $xiC.Xml.Save($swC)
+Assert (Test-StrictXml $swC.ToString()) 'Sub-punt: document.xml estrictament valid'
 
 Write-Host "`n--- Seguiment XML: estat resolt/pendent guardat a la negreta del comentari ---"
 # req1 ja RESOLT (anotacio previa amb comentari SENSE negreta).
