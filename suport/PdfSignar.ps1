@@ -169,15 +169,38 @@ function _BuildCaixetiImageBase64([string]$caixeti) {
     }
 }
 
-# El caixetí en UNA SOLA línia (s'usa com a reintent si el multilínia falla).
+# El caixetí en UNA SOLA línia, per al mode de text.
+# Trosseja tant pels salts de línia REALS com pel \n LITERAL: el \n literal és el
+# separador de propietats d'AutoFirma i no en pot quedar cap dins del valor.
+# Per si de cas, al final es treu qualsevol barra invertida que hi quedi.
 function _CaixetiUnaLinia([string]$caixeti) {
-    $parts = @((([string]$caixeti -replace "`r`n", "`n") -split "`n") | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
-    return ($parts -join (' ' + [char]0x00B7 + ' '))
+    $s = ([string]$caixeti -replace "`r`n", "`n") -replace '\\n', "`n"
+    $parts = @(($s -split "`n") | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    $linia = ($parts -join (' ' + [char]0x00B7 + ' '))
+    return ($linia -replace '\\', '')
 }
 
+# SEPARADOR dels extraParams: els DOS CARACTERS barra-invertida + ena, NO un salt
+# de linia real.
+#
+# Aixo NO es una suposicio: es el codi d'AutoFirma. L'ordre 'sign' munta els
+# extraParams amb CommandLineLauncher.buildProperties(), que fa
+#
+#     while ((endIndex = params.indexOf("\\n", beginIndex)) != -1) { ... }
+#
+# i a Java el literal "\\n" son els dos caracters \ + n; indexOf busca una cadena
+# LITERAL (no una expressio regular). El mateix codi ho diu al comentari:
+# "La division no funciona correctamente con split porque el caracter salto de
+# linea se protege al insertarse por consola, asi que lo hacemos manualmente."
+#
+# Amb salts de linia REALS el bucle no troba mai res i AutoFirma es queda amb UNA
+# sola propietat: clau 'signaturePage' i com a valor TOTA la resta de la cadena.
+# Resultat: signa be (codi 0) pero SENSE signatura visible. Es exactament el que
+# passava: al PDF signat hi havia /Rect[0 0 0 0] i un /AP amb BBox [0 0 0 0].
+$Script:AutoFirmaConfigSep = '\n'
+
 # Construeix la cadena d'extraParams (TEXT PLA, determinista) per a una signatura
-# VISIBLE PAdES amb el caixetí donat. Els parells van separats per salt de línia;
-# dins de layer2Text els salts són \n LITERAL (barra+n), com espera AutoFirma.
+# VISIBLE PAdES amb el caixetí donat.
 # Funció PURA. Caixetí buit -> '' (signatura invisible, com abans).
 # Les linies de posicio, comunes a tots els modes. Funcio PURA.
 function _AutoFirmaPosLines {
@@ -193,12 +216,17 @@ function _AutoFirmaPosLines {
 
 # $mode:
 #   'text'   -> caixeti de TEXT (layer2Text). ATENCIO: ha d'anar en UNA SOLA
-#               LINIA. Amb salts (\n literal) AutoFirma peta amb
-#               "Error no reconocido: begin 0, end -1, length 21" (21 = la
-#               primera linia): parteix el layer2Text pel \n i s'hi ennuega.
-#               Comprovat al registre de l'usuari: multilinia falla, una linia va.
+#               LINIA, perque el \n LITERAL es el separador de PROPIETATS: si
+#               n'hi posessim un dins del layer2Text, AutoFirma tallaria per
+#               alli i el tros seguent (sense cap '=') faria petar
+#               keyValue.substring(0, keyValue.indexOf('=')) amb indexOf = -1.
+#               Es exactament l'error del registre: "Error no reconocido:
+#               begin 0, end -1, length 21", i 21 son els caracters de
+#               "Enginyer d'Activitats", la 2a linia del caixeti.
 #   'imatge' -> caixeti dibuixat com a IMATGE (signatureRubricImage, JPEG en
 #               base64). Es l'unica manera de tenir-lo de VARIES LINIES.
+#               El base64 (A-Z a-z 0-9 + / =) no pot contenir mai cap '\',
+#               o sigui que no trenca el separador.
 function _AutoFirmaVisibleExtraParams([string]$caixeti, $ara = $null, [string]$mode = 'text') {
     if ([string]::IsNullOrWhiteSpace($caixeti)) { return '' }
     if ($null -eq $ara) { $ara = Get-Date }
@@ -208,25 +236,24 @@ function _AutoFirmaVisibleExtraParams([string]$caixeti, $ara = $null, [string]$m
         $b64 = _BuildCaixetiImageBase64 $resolt
         if ([string]::IsNullOrWhiteSpace($b64)) { return '' }
         $lines += "signatureRubricImage=$b64"
-        return ($lines -join "`n")
+        return ($lines -join $Script:AutoFirmaConfigSep)
     }
     # Text: SEMPRE en una sola linia (vegeu el comentari de dalt).
     $unaLinia = _CaixetiUnaLinia $resolt
     $lines += 'layer2FontFamily=1'
     $lines += 'layer2FontSize=8'
     $lines += "layer2Text=$unaLinia"
-    return ($lines -join "`n")
+    return ($lines -join $Script:AutoFirmaConfigSep)
 }
 
 # Construeix la LLISTA d'arguments (ARRAY PLA) per signar un PDF amb AutoFirma.
 # Funció PURA. Operació 'sign', PAdES, magatzem 'windows'.
 #
-# PER QUE UN ARRAY I NO UNA CADENA: el valor de -config son els extraParams en
-# TEXT PLA amb les propietats separades per SALTS DE LINIA REALS (AutoFirma fa
-# extraParams.split("\n") a CommandLineLauncher.java) i NO es descodifica de
-# Base64 (CommandLineParameters.java el guarda tal qual). Una cadena unica no pot
-# portar salts de linia, per aixo es passa com a element d'un array a
-# Start-Process -ArgumentList, que ja fa el quoting.
+# PER QUE UN ARRAY: cada argument ha d'arribar SENCER a AutoFirma (les rutes
+# porten espais). L'enquotat el fa _ArgvToCommandLine, no PowerShell.
+# El valor de -config son els extraParams en TEXT PLA (CommandLineParameters.java
+# el guarda tal qual, NO el descodifica de Base64) amb les propietats separades
+# pel \n LITERAL (vegeu $Script:AutoFirmaConfigSep).
 # IMPORTANT: retorna un array PLA (no ,$ArrayList): aixi @() l'enumera bé.
 function _BuildAutoFirmaSignArgv([string]$inPdf, [string]$outPdf, [string]$filter, [string]$algorithm, [string]$caixeti = '', [string]$mode = 'text') {
     if ([string]::IsNullOrWhiteSpace($algorithm)) { $algorithm = 'SHA256withRSA' }
@@ -272,12 +299,44 @@ function _ArgvToCommandLine($argv) {
         # Cal enquotar si porta espais, tabuladors, salts de línia o ja va buit.
         if ($s -eq '' -or $s -match '[\s"]') {
             $s = $s -replace '"', '\"'
+            # Barres invertides FINALS: dins de cometes, la barra escaparia la
+            # cometa de tancament (p. ex. "C:\carpeta\" -> el Windows llegiria
+            # una cometa literal). Es dupliquen, que és el que espera
+            # CommandLineToArgvW.
+            $m = [regex]::Match($s, '\\+$')
+            if ($m.Success) { $s = $s.Substring(0, $m.Index) + ($m.Value + $m.Value) }
             $parts += ('"' + $s + '"')
         } else {
             $parts += $s
         }
     }
     return ($parts -join ' ')
+}
+
+# AutoFirma pot signar PERFECTAMENT (codi de sortida 0) i deixar la signatura
+# INVISIBLE: si els extraParams no li arriben bé, es limita a posar un widget amb
+# /Rect[0 0 0 0] i una aparença /Form amb /BBox[0 0 0 0]. Sense aquesta
+# comprovació el programa donava el fitxer per bo i l'usuari no veia el caixetí
+# enlloc, sense cap avís.
+#
+# Funció PURA sobre el TEXT del tros afegit pel signador (la revisió
+# incremental), per poder-la provar sense Word ni AutoFirma.
+function _PdfTextCaixetiInvisible([string]$txt) {
+    if ([string]::IsNullOrEmpty($txt)) { return $false }
+    return ([regex]::IsMatch($txt, '/BBox\s*\[\s*0\s+0\s+0\s+0\s*\]'))
+}
+
+# Mira NOMÉS el que el signador ha afegit al final ($lenOriginal en endavant):
+# així un /BBox[0 0 0 0] que ja vingués del document original no ens enganya.
+function _PdfCaixetiEsInvisible([string]$pathSignat, [long]$lenOriginal) {
+    try {
+        $bytes = [System.IO.File]::ReadAllBytes($pathSignat)
+        $desde = [int]([Math]::Max(0, $lenOriginal))
+        if ($desde -ge $bytes.Length) { $desde = 0 }
+        # ISO-8859-1: 1 byte = 1 caràcter, no falla mai amb dades binàries.
+        $txt = [System.Text.Encoding]::GetEncoding(28591).GetString($bytes, $desde, $bytes.Length - $desde)
+        return (_PdfTextCaixetiInvisible $txt)
+    } catch { return $false }
 }
 
 # Rutes candidates on sol estar instal·lat AutoFirma.exe a Windows. Si les
@@ -712,7 +771,20 @@ function _RunConvertPdf($opts) {
                         } catch {
                             $res = @{ ExitCode = -1; Output = $_.Exception.Message }
                         }
-                        if ($res.ExitCode -eq 0 -and (Test-Path -LiteralPath $tmpSigned)) { break }
+                        if ($res.ExitCode -eq 0 -and (Test-Path -LiteralPath $tmpSigned)) {
+                            # Codi 0 NO vol dir caixeti visible: si els
+                            # extraParams no li arriben be, AutoFirma signa
+                            # igualment pero amb /BBox[0 0 0 0] (invisible).
+                            $volCaixeti = -not [string]::IsNullOrWhiteSpace([string]$intent.Text)
+                            $lenOrig = 0
+                            try { $lenOrig = (Get-Item -LiteralPath $pdf).Length } catch { }
+                            if ($volCaixeti -and (_PdfCaixetiEsInvisible $tmpSigned $lenOrig)) {
+                                _PdfSignarLog ("AVIS: l'intent '" + $usat + "' ha signat pero el caixeti ha quedat INVISIBLE (/BBox[0 0 0 0]) a " + $f.Name)
+                                _PdfSignarLog ("   ordre: " + (_AutoFirmaArgvToText $argv))
+                                continue
+                            }
+                            break
+                        }
                         _PdfSignarLog ("AVIS: ha fallat l'intent '" + $usat + "' (codi " + $res.ExitCode + ") a " + $f.Name)
                         _PdfSignarLog ("   ordre: " + (_AutoFirmaArgvToText $argv))
                         if ($res.Output) { _PdfSignarLog ("   sortida: " + $res.Output) }

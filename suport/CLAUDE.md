@@ -310,23 +310,39 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
     quadre de text) i es desa a `pdf-signar-state.json` (`caixeti`, `visibleSign`);
     per defecte `_DefaultCaixeti`. Sense caixetí, `_BuildAutoFirmaSignArgv` es comporta
     com abans (signatura invisible, cap `-config`).
-  - **Format de `-config` (ATENCIÓ, aquí ens vam equivocar una vegada)**: el valor
-    va en **TEXT PLA**, amb les propietats separades per **salts de línia REALS**.
-    `CommandLineParameters.java` el guarda **tal qual** (NO el descodifica de
-    Base64) i `CommandLineLauncher.java` fa `extraParams.split("\n")`. Un primer
-    intent el passava en **Base64** i el resultat era que se signava **sense
-    caixetí** i sense cap error (AutoFirma no trobava cap propietat vàlida).
-    Dins de `layer2Text`, en canvi, els salts són `\n` **literal** (barra+n).
-    Posició tunejable a `$Script:AutoFirmaCaixetiPos`.
+  - **Format de `-config`: propietats separades pel `\n` LITERAL (2 caràcters),
+    MAI per salts de línia reals.** Això no és una suposició, és el codi
+    d'AutoFirma. `CommandLineParameters.java` guarda el valor **tal qual** (NO el
+    descodifica de Base64) i l'ordre `sign` el converteix a `Properties` amb
+    `CommandLineLauncher.buildProperties()`, que fa
+    `while ((endIndex = params.indexOf("\\n", beginIndex)) != -1)`: en Java el
+    literal `"\\n"` són els caràcters `\` + `n` i `indexOf` busca una **cadena
+    literal**, no una expressió regular. El mateix codi ho diu al comentari:
+    *"La division no funciona correctamente con split porque el caracter salto de
+    linea se protege al insertarse por consola, asi que lo hacemos manualmente."*
+    (Compte: `loadSignConfig`, unes línies més amunt, sí que fa `split("\n")` amb
+    salts reals — però **aquest camí no és el de `sign`**. És exactament la trampa
+    en què vam caure.) Amb salts REALS el bucle no troba res i AutoFirma es queda
+    amb **una sola propietat**: clau `signaturePage` i com a valor tota la resta →
+    **signa bé (codi 0) però sense caixetí**. Al PDF es reconeix perquè el widget
+    surt amb `/Rect[0 0 0 0]` i l'aparença amb `/BBox[0 0 0 0]`. Un intent encara
+    anterior el passava en **Base64**, amb el mateix resultat. `$Script:AutoFirmaConfigSep`
+    conté el separador; posició tunejable a `$Script:AutoFirmaCaixetiPos`.
+  - **Codi de sortida 0 NO vol dir caixetí visible**: `_PdfCaixetiEsInvisible`
+    mira **només el tros que el signador ha afegit al final** del PDF (la revisió
+    incremental, des de la mida del fitxer original) i hi busca `/BBox[0 0 0 0]`
+    (`_PdfTextCaixetiInvisible`, pura). Si el caixetí ha quedat invisible, l'intent
+    es dona per fallat, es registra i es passa al següent. Sense això el programa
+    donava el fitxer per bo i l'usuari no veia res, sense cap avís.
   - **LES COMETES LES POSEM NOSALTRES (2n error, també real)**: a PowerShell 5.1
     `Start-Process -ArgumentList @(...)` **NO enquota** els elements: els ajunta
     amb espais. Amb rutes com `5.- Sergi Fadurdo`, AutoFirma rebia la ruta
     **tallada** al primer espai i responia *"El fichero de entrada no existe:
     I:\…\5.-"*. Ara `_ArgvToCommandLine` (pura) construeix la línia i enquota, i
     s'executa amb **`ProcessStartInfo`** (`_RunAutoFirma`), que dona control
-    exacte de la línia d'ordres i recull sortida i codi de sortida. Els salts de
-    línia del `-config` sobreviuen **dins de les cometes** (Windows només separa
-    arguments per espais i tabuladors).
+    exacte de la línia d'ordres i recull sortida i codi de sortida. Les barres
+    invertides **finals** es dupliquen quan l'argument va entre cometes: si no,
+    la barra escaparia la cometa de tancament (`CommandLineToArgvW`).
   - **La data la resolem NOSALTRES (3r error real)**: amb
     `$$SIGNDATE=yyyy.MM.dd HH:mm:ss$$` dins de `layer2Text`, AutoFirma petava amb
     *"Error no reconocido: begin 0, end -1, length 21"* (un `substring` amb un
@@ -334,13 +350,16 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
     marcador per la data abans de cridar AutoFirma i **treu qualsevol altre
     `$$...$$`**, de manera que AutoFirma no veu mai cap marcador. A la interfície
     el marcador es manté (l'usuari pot triar el format de data).
-  - **EL `layer2Text` NOMÉS ADMET UNA LÍNIA (4t error real, ja confirmat)**: amb
-    els salts com a `\n` LITERAL, AutoFirma peta amb *"Error no reconocido:
-    begin 0, end -1, length 21"* (21 = "Sergi Fadurdo Modesto", la primera línia):
-    parteix el `layer2Text` pel `\n` i s'hi ennuega. Al registre de l'usuari es
-    veu clarament: l'intent multilínia falla i el d'una línia funciona. Per això
-    `_AutoFirmaVisibleExtraParams` en mode `text` **sempre** posa el caixetí en
-    una sola línia (`_CaixetiUnaLinia`, unit amb ` · `).
+  - **EL `layer2Text` NOMÉS ADMET UNA LÍNIA (4t error real, ja confirmat)**, i ara
+    se n'entén el perquè: el `\n` literal és el **separador de propietats**, de
+    manera que un salt dins del `layer2Text` fa que AutoFirma hi talli i que el
+    tros següent (sense cap `=`) faci petar
+    `keyValue.substring(0, keyValue.indexOf('='))` amb `indexOf` = −1. És
+    exactament l'error del registre: *"Error no reconocido: begin 0, end -1,
+    length 21"*, i **21 són els caràcters de `Enginyer d'Activitats`**, la 2a línia
+    del caixetí. Per això `_AutoFirmaVisibleExtraParams` en mode `text` **sempre**
+    posa el caixetí en una sola línia (`_CaixetiUnaLinia`, unit amb ` · `, que
+    també talla pel `\n` literal i treu qualsevol barra invertida que quedi).
   - **Per tenir-lo de DIVERSES LÍNIES: com a IMATGE**. `_BuildCaixetiImageBase64`
     (System.Drawing) dibuixa el caixetí en un JPEG amb la mateixa proporció que el
     requadre de la signatura i el passa a `signatureRubricImage` (base64), que és

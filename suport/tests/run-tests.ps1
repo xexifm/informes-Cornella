@@ -1370,12 +1370,19 @@ $ep = _AutoFirmaVisibleExtraParams $cxDef
 AssertEq ([bool]($ep -like '*signaturePage=1*')) $true '_AutoFirmaVisibleExtraParams: signaturePage=1'
 AssertEq ([bool]($ep -like '*signaturePositionOnPageLowerLeftX=360*')) $true '_AutoFirmaVisibleExtraParams: posició dalt-dreta (X)'
 AssertEq ([bool]($ep -like '*signaturePositionOnPageUpperRightY=815*')) $true '_AutoFirmaVisibleExtraParams: posició dalt-dreta (Y)'
-# El layer2Text ha d'anar en UNA SOLA LINIA: amb \n literal AutoFirma peta
-# ("begin 0, end -1, length 21" = la primera linia). Comprovat al registre real.
+# SEPARADOR: el \n LITERAL (2 caracters), MAI un salt de linia real. Ho fa
+# CommandLineLauncher.buildProperties() d'AutoFirma amb indexOf("\\n"), que en
+# Java busca els caracters \ + n. Amb salts REALS no en troba cap i es queda amb
+# UNA propietat (signaturePage = tota la resta) -> signa pero SENSE caixeti.
 AssertEq ([bool]($ep -like '*layer2Text=*')) $true '_AutoFirmaVisibleExtraParams: hi ha layer2Text'
-AssertEq ([bool]($ep -like '*layer2Text=*\n*')) $false '_AutoFirmaVisibleExtraParams: el layer2Text NO porta \n literal (AutoFirma hi peta)'
-AssertEq ([bool]($ep -like ('*Sergi Fadurdo Modesto ' + [char]0x00B7 + ' Enginyer*'))) $true '_AutoFirmaVisibleExtraParams: el text va en una linia amb punt volat'
-AssertEq (@($ep -split "`n").Count) 8 '_AutoFirmaVisibleExtraParams: 8 parells separats per salt de línia REAL'
+AssertEq ([bool]($ep -match "`n")) $false '_AutoFirmaVisibleExtraParams: cap salt de linia REAL (AutoFirma no els parteix)'
+AssertEq (@($ep -split '\\n').Count) 8 '_AutoFirmaVisibleExtraParams: 8 parells separats pel \n LITERAL'
+# El layer2Text ha d'anar en UNA SOLA LINIA: si hi posessim el separador, el tros
+# seguent no tindria cap '=' i AutoFirma petaria amb "begin 0, end -1, length 21"
+# (21 = els caracters de "Enginyer d'Activitats"). Comprovat al registre real.
+$valLayer2 = (@($ep -split '\\n') | Where-Object { $_ -like 'layer2Text=*' })
+AssertEq ([bool]($valLayer2 -like ('*Sergi Fadurdo Modesto ' + [char]0x00B7 + ' Enginyer*'))) $true '_AutoFirmaVisibleExtraParams: el text va en una linia amb punt volat'
+AssertEq ([bool]([string]$valLayer2 -like '*\*')) $false '_AutoFirmaVisibleExtraParams: cap barra invertida dins del layer2Text'
 # Mode IMATGE: l'unica manera de tenir el caixeti de diverses linies.
 $epImg = _AutoFirmaVisibleExtraParams $cxDef $ara 'imatge'
 if ([string]::IsNullOrWhiteSpace($epImg)) {
@@ -1387,7 +1394,7 @@ if ([string]::IsNullOrWhiteSpace($epImg)) {
     AssertEq ([bool]((_AutoFirmaArgvToText @('-config', $epImg)) -like '*<imatge base64, *')) $true '_AutoFirmaArgvToText: al registre la imatge surt resumida, no sencera'
 }
 # ARGV (array) : AutoFirma agafa el -config TAL QUAL (sense Base64) i el parteix
-# per salts de línia reals; per aixo va com un element d'un array, no en una cadena.
+# pel \n LITERAL; per aixo va com un element propi de l'array, no enganxat.
 $argvSense = @(_BuildAutoFirmaSignArgv 'C:\a b\in.pdf' 'C:\a b\out.pdf' 'subject.contains:X' '')
 AssertEq ($argvSense[0]) 'sign' '_BuildAutoFirmaSignArgv: primer element sign'
 AssertEq ([bool]($argvSense -contains 'C:\a b\in.pdf')) $true '_BuildAutoFirmaSignArgv: la ruta va SENSE cometes (element propi)'
@@ -1398,9 +1405,16 @@ $iCfg = [Array]::IndexOf($argvCx, '-config')
 AssertEq ([bool]($iCfg -ge 0)) $true '_BuildAutoFirmaSignArgv: amb caixetí -> hi ha -config'
 $valCfg = [string]$argvCx[$iCfg + 1]
 AssertEq ([bool]($valCfg -like '*signaturePage=1*' -and $valCfg -like '*layer2Text=*')) $true '_BuildAutoFirmaSignArgv: el -config es el TEXT PLA dels extraParams'
-AssertEq (@($valCfg -split "`n").Count) 8 '_BuildAutoFirmaSignArgv: el -config porta salts de línia reals (8 propietats)'
+AssertEq (@($valCfg -split '\\n').Count) 8 '_BuildAutoFirmaSignArgv: el -config porta 8 propietats separades pel \n LITERAL'
+AssertEq ([bool]($valCfg -match "`n")) $false '_BuildAutoFirmaSignArgv: el -config no porta cap salt de linia REAL'
 AssertEq ([bool]($valCfg -match '^[A-Za-z0-9+/=]+$')) $false '_BuildAutoFirmaSignArgv: el -config NO va en Base64'
-AssertEq ([bool]((_AutoFirmaArgvToText $argvCx) -like '*<LF>*')) $true '_AutoFirmaArgvToText: els salts REALS es marquen <LF> (per distingir-los dels \n literals)'
+AssertEq ([bool]((_AutoFirmaArgvToText $argvCx) -like '*<LF>*')) $false '_AutoFirmaArgvToText: ja no hi ha salts REALS a marcar amb <LF>'
+# Caixeti INVISIBLE: codi 0 no vol dir que es vegi res.
+AssertEq (_PdfTextCaixetiInvisible '/Type/XObject/Subtype/Form/BBox[0 0 0 0]/FormType 1') $true '_PdfTextCaixetiInvisible: /BBox[0 0 0 0] -> signatura invisible'
+AssertEq (_PdfTextCaixetiInvisible '/Type/XObject/Subtype/Form/BBox[0 0 200 75]/FormType 1') $false '_PdfTextCaixetiInvisible: BBox amb mida -> caixeti visible'
+AssertEq (_PdfTextCaixetiInvisible '') $false '_PdfTextCaixetiInvisible: text buit -> no es pot dir que sigui invisible'
+# Barres invertides FINALS: dins de cometes escaparien la cometa de tancament.
+AssertEq (_ArgvToCommandLine @('C:\a b\')) '"C:\a b\\"' '_ArgvToCommandLine: barra final duplicada dins de cometes'
 # La data la resolem NOSALTRES: AutoFirma no ha de veure cap marcador $$...$$
 # (amb ells petava amb "begin 0, end -1, length 21" i no signava).
 $ara = [datetime]'2026-07-28 11:39:41'
