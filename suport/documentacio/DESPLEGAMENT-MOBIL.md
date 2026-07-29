@@ -57,7 +57,7 @@ que la carpeta `Informes-Cornella` aparegui com una carpeta local. Si la ruta
 **no** és `%USERPROFILE%\Google Drive\Informes-Cornella`, posa-la al camp
 **"Carpeta del Drive d'escriptori (per al mòbil)"** de la pantalla
 **⚙ Configuració** del programa (recomanat: només afecta aquest PC — vegeu
-`suport/README.md`, capítol 10), o bé a `suport/config.ps1` (compartit):
+`LLEGEIX-ME.md`, capítol 5), o bé a `suport/config.ps1` (compartit):
 ```powershell
 $DriveBaseDir = 'G:\El meu Drive\Informes-Cornella'
 ```

@@ -1,7 +1,61 @@
 ﻿# Notes per a Claude (mantenir entre sessions)
 
+## On és cada cosa (mapa de mòduls)
+`Motor.ps1` havia arribat a **3.316 línies i 70 funcions**, amb la configuració,
+l'Excel, el Drive, la selecció, els camps, les conclusions, el document, el mode
+mòbil i el menú tot barrejat. Es va partir. **El mapa complet i actualitzat és a
+la capçalera de `suport/Motor.ps1`** — mira'l allà abans de tocar res; aquí només
+el resum:
+
+| Fitxer | Què hi ha |
+|---|---|
+| `Motor.ps1` (635 l.) | rutes, config, càrrega de mòduls, `%LOCALAPPDATA%`, instància única, Word, accés al catàleg |
+| `Wizard.ps1` | `Main` + assistent de "Requeriment - Nou" |
+| `Capcalera.ps1` · `SeleccioItems.ps1` · `Camps.ps1` · `Document.ps1` | els passos 2, 3+5, camps i composició |
+| `Activitats.ps1` | Excel d'activitats: caché per ID GIA + pujada a Drive |
+| `Paquet.ps1` | generar sense assistent (mòbil) |
+| `Migracio.ps1` | rutes de `local/` (`Get-LocalSubdir`) + endreç de les carpetes velles |
+
+**Partir un fitxer és barat i segur**: tot va amb dot-source al **mateix àmbit**,
+o sigui que moure una funció d'un fitxer a un altre no en canvia el comportament.
+L'únic que compta és l'**ordre de càrrega**, i només per als mòduls que
+**calculen alguna cosa en carregar-se** (`Activitats.ps1` → `$LocalActivitatsDir`,
+`ActExtr.ps1` → rutes del registre): han d'anar **després** del bloc de rutes.
+En partir, verifica que la llista de noms de funció de tot `suport/` és idèntica
+abans i després.
+
+## La carpeta `local/`: què és del repositori i què no
+- **`ESTRUCTURALS/` = FONTS**: els 5 `.json` + `0 CAPCALERA.docx` (l'única
+  plantilla de Word de veritat, que no es pot regenerar). Res més.
+- **`local/` = tot el que és d'aquest ordinador**, i el `.gitignore` l'exclou
+  **sencera** (`local/*` + `!local/README.txt`). Hi van: informes generats,
+  mapes de ruta, l'Excel local, `informes-db.json`, el registre de la signatura
+  i les **vistes en Word** dels catàlegs (derivades, es regeneren soles).
+- Això és **seguretat, no estètica**: abans un fitxer local nou a l'arrel es
+  pujava per defecte i calia recordar-se d'afegir una regla; el
+  `pdf-signar-log.txt`, que porta noms i adreces de titulars, ja s'hi va escapar
+  un cop **en un repositori públic**. Ara no pot passar.
+- Els noms de les subcarpetes viuen **NOMÉS** a `Migracio.ps1`
+  (`$Script:LocalSubdirs` + `Get-LocalSubdir`). `rutes/Ruta.ps1` s'executa en un
+  procés propi i abans repetia `'BASE DE DADES ACTIVITATS'` pel seu compte: era
+  **l'única duplicació real del projecte**; ara demana la ruta al mateix lloc.
+- **NO** es mou `%LOCALAPPDATA%\InformesCornella\` (settings, caché, còpies dels
+  catàlegs, credencials del Drive, `running.pid`): és estat d'usuari de Windows,
+  ha de sobreviure a tornar a clonar, i les credencials del Drive no han de
+  viure dins d'una carpeta que es pugui comprimir i enviar.
+- `Invoke-MigracioLocal` (idempotent, no llança mai) la criden `Motor.ps1` en
+  arrencar i `Actualitzar.bat` al pas 4a, després del `pull`.
+
+## Res de llegir `.docx` per treure'n contingut
+El lector de `.docx` (`Parse-Cataleg`, les branques `.docx` de `Read-Conclusions`
+i `Parse-ActExtrTemplate`, `Read-ConclusionsXml`, `Test-StyleMatch`) es va
+esborrar. **No el tornis a posar "per si de cas"**: els `.docx` d'ESTRUCTURALS ja
+no són catàlegs, són **vistes generades en format d'informe**. Un respatller que
+els llegís no fallaria — generaria un informe **silenciosament equivocat**. Si el
+`.json` no hi és, val més petar amb un missatge clar.
+
 ## Arquitectura: motor, punt d'entrada i UiComuns
-- **`suport/Motor.ps1`** = el motor. NOMÉS defineix (funcions, rutes,
+- **`suport/Motor.ps1`** = la base. NOMÉS defineix (funcions, rutes,
   configuració); carregar-lo no obre res ni genera res. Abans es deia
   `GenerarInforme.ps1` i era alhora motor i programa.
 - **`suport/GenerarInforme.ps1`** = el punt d'entrada (~45 línies): té el
@@ -106,10 +160,8 @@ Per tant, **al final de cada sessió**:
 2. Fusiona la feina a `main` i fes push de `main`:
    ```
    git fetch origin
-   git checkout main
-   git pull --ff-only origin main
-   git merge --no-ff <branca-de-la-sessio>
-   git push origin main
+   git rebase origin/main
+   git push origin HEAD:main
    ```
    (o, si la branca de sessió ja conté `main`, n'hi ha prou amb
    `git push origin <branca-de-la-sessio>:main`).
@@ -123,8 +175,8 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   (per defecte `...\5.- Sergi Fadurdo\Informes`) i, per cada informe (`.docx` o
   `.doc` antic amb data al principi del nom), en treu **data + ID GIA +
   conclusió**, agrupat per activitat (per GIA; si no en té, per **carpeta**), a
-  `BASE DE DADES ACTIVITATS\informes-db.json` (gitignored). Botons al menú:
-  **🗃 Actualitzar** i **📋 Editar** (marc "Base d'informes").
+  `local\base-dades-activitats\informes-db.json` (dins de `local/`: mai es puja).
+  Botons al menú: **🗃 Actualitzar** i **📋 Editar** (marc "Base d'informes").
 - Lectura de `.docx` **sense Word** (zip) reutilitzant les primitives de
   `Seguiment.ps1` (`_LoadDocxXml`, `_ParagraphTextXml`). Lectura de `.doc`
   antics (Word 97-2003) via **Word COM** (`_ReadDocParagraphsWord`): instància
@@ -639,7 +691,7 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   Capçalera amb les dades de l'activitat i **sense Objecte** (`ORIGEN_TIPUS='cap'`
   → `_BuildOrigenText` torna ''). Una activitat mai compleix més d'un criteri;
   `_ControlCatalegKind` manté igualment una precedència (561 > III > II). Sortida
-  a `_ResolveOutputDir` (Informes generats), amb finestra de progrés +
+  a `_ResolveOutputDir` (`local\informes-generats\`), amb finestra de progrés +
   Cancel·lar. Si l'item de control periòdic no és a REQ1, l'informe d'aquella
   activitat s'omet amb avís. Funcions pures testejades: `_ControlCatalegKind`,
   `_ControlSectionTitle`, `_FindItemKeysByTitle`.

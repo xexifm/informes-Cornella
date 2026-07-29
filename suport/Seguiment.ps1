@@ -1292,7 +1292,7 @@ function Select-Mode {
 
     # (Configuracio i Ajuda ja no son botons grans: van DISCRETS a la cantonada
     #  de la banda granat, mes avall.)
-    $urlAjuda = 'https://github.com/xexifm/informes-cornella/blob/main/suport/README.md'
+    $urlAjuda = 'https://github.com/xexifm/informes-cornella/blob/main/LLEGEIX-ME.md'
 
     $form.ClientSize = New-Object System.Drawing.Size(470, ($y + 12))
 
