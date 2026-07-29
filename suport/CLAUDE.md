@@ -46,6 +46,26 @@ abans i després.
 - `Invoke-MigracioLocal` (idempotent, no llança mai) la criden `Motor.ps1` en
   arrencar i `Actualitzar.bat` al pas 4a, després del `pull`.
 
+## Trampa: el que surt d'un CMDLET ve embolcallat en un `PSObject`
+`Join-Path` és un **cmdlet**, i el seu resultat arriba dins d'un `PSObject`.
+Normalment no es nota (PowerShell el desembolcalla sol), **però NO quan el valor
+s'ha de passar a una crida COM per referència**:
+
+```
+$doc.SaveAs([ref]$out, [ref]16)
+→ no se puede convertir el valor "...\REQ1.docx" de tipo "psobject" al tipo "Object"
+```
+
+Va passar exactament això en canviar `_VistaWordPathFor` de
+`[System.IO.Path]::ChangeExtension(...)` (mètode .NET → `String` net) a
+`Join-Path` (cmdlet → `PSObject`): **cap vista es va poder desar**. Solució:
+`return [string](Join-Path …)` a `Get-LocalDir`/`Get-LocalSubdir`/
+`_VistaWordPathFor` **i** `[string]$out = …` al punt d'ús.
+
+No es pot detectar amb una prova pura (`-is [string]`, `.GetType()` i
+`.psobject.BaseObject` diuen `String` en tots dos casos), o sigui que la regla
+és: **si un valor ha d'anar a un `[ref]` d'una crida COM, força'n el tipus**.
+
 ## Res de llegir `.docx` per treure'n contingut
 El lector de `.docx` (`Parse-Cataleg`, les branques `.docx` de `Read-Conclusions`
 i `Parse-ActExtrTemplate`, `Read-ConclusionsXml`, `Test-StyleMatch`) es va

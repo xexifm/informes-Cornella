@@ -38,10 +38,13 @@
 #
 # $dir permet dir on han d'anar (les proves hi passen una carpeta temporal);
 # buit -> local\vistes-catalegs\ del clone.
+# El [string] del 'return' NO es decoratiu: Join-Path es un cmdlet i el que en
+# surt ve embolcallat en un PSObject, i despres $doc.SaveAs([ref]$out) peta amb
+# "no se puede convertir el valor ... de tipo psobject al tipo Object".
 function _VistaWordPathFor([string]$jsonPath, [string]$dir = '') {
     $nom = [System.IO.Path]::GetFileNameWithoutExtension([string]$jsonPath) + '.docx'
     $d = if ([string]::IsNullOrWhiteSpace($dir)) { Get-LocalSubdir $RepoRoot 'Vistes' } else { $dir }
-    return (Join-Path $d $nom)
+    return [string](Join-Path $d $nom)
 }
 
 # '0 CAPCALERA' es una plantilla de VERITAT: no se n'ha de generar mai cap vista
@@ -295,7 +298,9 @@ function Export-VistaWord($word, [string]$jsonPath) {
     $o = _LoadEstructuralJson $jsonPath
     $familia = [string]$o.familia
     $nom = [System.IO.Path]::GetFileNameWithoutExtension($jsonPath)
-    $out = _VistaWordPathFor $jsonPath
+    # [string] EXPLICIT: SaveAs rep la ruta per REFERENCIA ([ref]$out) i, si el
+    # valor ve embolcallat en un PSObject, el COM no el sap convertir.
+    [string]$out = _VistaWordPathFor $jsonPath
     # La carpeta de les vistes pot no existir encara (clone acabat de baixar).
     $outDir = Split-Path -Parent $out
     if (-not (Test-Path -LiteralPath $outDir)) {

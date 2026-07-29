@@ -21,6 +21,16 @@ local/*
 # enduria en fer 'git add ESTRUCTURALS'.
 ESTRUCTURALS/*.bak
 
+# CARPETES VELLES (abans que existis 'local'). Migracio.ps1 les buida i les
+# esborra sol, pero si un fitxer de dins esta obert al Word no el pot moure i la
+# carpeta es queda fins al proper Actualitzar.bat. Sense aquestes regles, mentre
+# tant sortiria com a "untracked" a cada 'git status' i es podria pujar per
+# accident. Es poden treure quan faci temps que tothom ha migrat.
+Informes generats/
+Rutes generades/
+BASE DE DADES ACTIVITATS/
+BASE DE DADES ACT_EXTR/
+
 # Fitxers de bloqueig temporals de Word/Excel (apareixen quan el fitxer esta
 # obert i desapareixen en tancar-lo). Mai s'han de versionar.
 ~$*

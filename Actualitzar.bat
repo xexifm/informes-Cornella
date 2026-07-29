@@ -101,7 +101,7 @@ if "%PLANTILLES_CANVIADES%"=="1" (
     )
     echo Pujant catalegs i dades del mobil a GitHub...
     git add "ESTRUCTURALS/*.json" "docs/dades/*.json"
-    git -c user.name="Generador d'informes" -c user.email="generador@local" commit -m "Catalegs i dades del mobil actualitzats des de Actualitzar.bat"
+    git -c user.name="Generador d'informes" -c user.email="generador@local" commit -q -m "Catalegs i dades del mobil actualitzats des de Actualitzar.bat" >nul 2>&1
     if errorlevel 1 (
         echo  No hi havia res a commitejar o el commit ha fallat. Continuo.
     )
@@ -116,7 +116,7 @@ for /f "delims=" %%f in ('git status --porcelain -- docs/dades/email-textos.json
 if "%TEXTOS_CANVIATS%"=="1" (
     echo Detectats canvis als textos del correu del mobil.
     git add "docs/dades/email-textos.json"
-    git -c user.name="Generador d'informes" -c user.email="generador@local" commit -m "Textos del correu del mobil actualitzats des de l'app"
+    git -c user.name="Generador d'informes" -c user.email="generador@local" commit -q -m "Textos del correu del mobil actualitzats des de l'app" >nul 2>&1
     if errorlevel 1 (
         echo  No hi havia res a commitejar o el commit ha fallat. Continuo.
     )
@@ -225,7 +225,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0suport\GeneraViste
 REM Pugem el que hagi quedat: els catalegs de l'usuari (les vistes ja no, que
 REM ara son locals i no es pugen).
 git add "ESTRUCTURALS/*.json" "docs/dades/*.json"
-git -c user.name="Generador d'informes" -c user.email="generador@local" commit -m "Catalegs actualitzats des de Actualitzar.bat"
+git -c user.name="Generador d'informes" -c user.email="generador@local" commit -q -m "Catalegs actualitzats des de Actualitzar.bat" >nul 2>&1
 if errorlevel 1 (
     echo  Els catalegs ja estaven al dia ^(res a commitejar^).
 )
@@ -266,7 +266,7 @@ if errorlevel 1 (
     echo  Avis: no s'ha pogut regenerar el mapa de precintades. Continuo.
 ) else (
     git add "docs/dades/precintades.json"
-    git -c user.name="Generador d'informes" -c user.email="generador@local" commit -m "Mapa d'activitats precintades actualitzat des de Actualitzar.bat"
+    git -c user.name="Generador d'informes" -c user.email="generador@local" commit -q -m "Mapa d'activitats precintades actualitzat des de Actualitzar.bat" >nul 2>&1
     if errorlevel 1 (
         echo  El mapa de precintades ja estava al dia ^(res a commitejar^).
     ) else (

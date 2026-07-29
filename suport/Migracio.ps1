@@ -52,15 +52,21 @@ $Script:LocalSubdirs = [ordered]@{
     Vistes     = 'vistes-catalegs'
 }
 
+# ATENCIO al [string] del 'return': Join-Path es un CMDLET, i el que surt d'un
+# cmdlet ve embolcallat en un PSObject. Aixo passa desapercebut gairebe sempre
+# (PowerShell el desembolcalla sol), pero NO quan el valor s'ha de passar a una
+# crida COM per REFERENCIA: $doc.SaveAs([ref]$ruta) peta amb
+#   "no se puede convertir el valor ... de tipo psobject al tipo Object"
+# Va passar exactament aixo amb les vistes en Word. El cast el desembolcalla.
 function Get-LocalDir([string]$repoRoot) {
-    return (Join-Path $repoRoot $Script:LocalDirName)
+    return [string](Join-Path $repoRoot $Script:LocalDirName)
 }
 
 # Ruta d'una subcarpeta de 'local\' PEL SEU NOM LOGIC (Informes, Rutes...).
 # No crea res: nomes calcula la ruta.
 function Get-LocalSubdir([string]$repoRoot, [string]$clau) {
     if (-not $Script:LocalSubdirs.Contains($clau)) { throw "Subcarpeta local desconeguda: $clau" }
-    return (Join-Path (Get-LocalDir $repoRoot) $Script:LocalSubdirs[$clau])
+    return [string](Join-Path (Get-LocalDir $repoRoot) $Script:LocalSubdirs[$clau])
 }
 
 # ----------------------------------------------------------------------------
@@ -103,7 +109,12 @@ function _MouContingut([string]$origen, [string]$desti) {
         $dst = Join-Path $desti $it.Name
         if (Test-Path -LiteralPath $dst) { continue }   # ja hi es: no el toquem
         try { Move-Item -LiteralPath $it.FullName -Destination $dst -Force -ErrorAction Stop; $moguts++ }
-        catch { Write-Host ("  avis: no s'ha pogut moure '{0}' ({1})" -f $it.Name, $_.Exception.Message) }
+        catch {
+            # Cas tipic: el fitxer esta obert (Word, Acrobat...). No es cap
+            # problema: es queda on es i es torna a provar el proper cop.
+            Write-Host ("  '{0}' esta obert en un altre programa: el deixo on es i ho tornare a provar." -f $it.Name)
+            $Script:MigracioPendents = $true
+        }
     }
     # Nomes esborrem la carpeta vella si ha quedat BUIDA del tot.
     if (@(Get-ChildItem -LiteralPath $origen -Force -ErrorAction SilentlyContinue).Count -eq 0) {
@@ -176,6 +187,7 @@ function Invoke-MigracioLocal([string]$repoRoot = '') {
     if ([string]::IsNullOrWhiteSpace($repoRoot)) { $repoRoot = $Script:MigracioRepoRoot }
     if ([string]::IsNullOrWhiteSpace($repoRoot)) { return 0 }
     $total = 0
+    $Script:MigracioPendents = $false
     try {
         foreach ($m in @(Get-MigracionsLocal $repoRoot)) {
             if (-not (Test-Path -LiteralPath $m.Origen -PathType Container)) { continue }
@@ -185,6 +197,9 @@ function Invoke-MigracioLocal([string]$repoRoot = '') {
         if ($total -gt 0) {
             [void](_ActualitzaSettingsLocal $repoRoot)
             Write-Host ("Endrecat: {0} elements moguts a '{1}\'." -f $total, $Script:LocalDirName)
+        }
+        if ($Script:MigracioPendents) {
+            Write-Host "  (queda algun fitxer per moure perque estava obert; tanca'l i torna a fer Actualitzar.bat)"
         }
     } catch {
         Write-Host ("Avis: no s'ha pogut acabar d'endrecar la carpeta 'local' ({0})." -f $_.Exception.Message)
