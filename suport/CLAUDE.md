@@ -299,6 +299,16 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   l'administració). La **tria de carpeta** fa servir el helper comú `_AddConfigRow`
   (`UiComuns.ps1`) — quadre editable + "..." + indicador ✓/⚠ en viu — igual que a
   Configuració (tots els selectors de carpeta del programa fan servir aquest format).
+  - **Per defecte hi surt l'ÚLTIM INFORME GENERAT** (`_UltimInformeGenerat`): el
+    `.docx`/`.doc` més nou de la carpeta de sortida, sense `-Recurse` (els informes
+    es desen plans), saltant els temporals `~$`. El cas d'ús real és sempre el
+    mateix — acabes de generar un informe i el vols passar a PDF i signar-lo — i
+    abans tocava anar-hi a buscar cada vegada. Si no se'n troba cap (o la unitat de
+    xarxa no hi és) es recupera la cascada d'abans: última ruta desada →
+    `$InformesDir` → buit. `_CarpetaInformesGenerats` repeteix la cascada de
+    `_ResolveOutputDir` (`Motor.ps1`) però **sense crear la carpeta**: obrir un
+    diàleg no ha de crear res al disc. Es pot canviar sempre: el quadre és editable
+    i hi ha els botons **Carpeta** i **Document**.
   - **Signatura VISIBLE (caixetí)**: en signar, per defecte s'afegeix un **caixetí a
     dalt a la dreta de la pàgina 1** que reprodueix l'aspecte "CERTIFICAT SENSE DNI"
     (nom / càrrec / organisme / data, **sense DNI**). AutoFirma per línia de comandes

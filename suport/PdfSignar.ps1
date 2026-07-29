@@ -387,6 +387,44 @@ function _PdfSignarStatePath {
     return (Join-Path $dir 'pdf-signar-state.json')
 }
 
+# Carpeta on el programa DESA els informes que genera, SENSE crear-la.
+# Es la mateixa cascada que _ResolveOutputDir (Motor.ps1) pero en mode NOMES
+# LECTURA: aqui nomes volem mirar-hi, i obrir el dialeg no ha de crear carpetes.
+# Retorna '' si no n'hi ha cap d'accessible (p. ex. sense la unitat de xarxa).
+function _CarpetaInformesGenerats {
+    try {
+        if (-not [string]::IsNullOrWhiteSpace([string]$OutputDir) -and (Test-Path -LiteralPath $OutputDir)) {
+            return [string]$OutputDir
+        }
+    } catch { }
+    try {
+        $local = Join-Path $RepoRoot 'Informes generats'
+        if (Test-Path -LiteralPath $local) { return [string]$local }
+    } catch { }
+    return ''
+}
+
+# L'ULTIM INFORME GENERAT: el .docx (o .doc) mes NOU de la carpeta de sortida.
+# Es el valor per defecte del quadre de l'eina "Word a PDF": el cas real es
+# sempre el mateix (acabes de generar un informe i el vols passar a PDF i
+# signar-lo), i abans tocava anar-hi a buscar cada vegada.
+#
+# SENSE -Recurse: els informes es desen PLANS a l'arrel de la carpeta.
+# Se salten els temporals de Word (~$...) i tot el que no sigui Word.
+# $dir buit -> _CarpetaInformesGenerats (el parametre hi es per poder provar-la).
+# Retorna '' si no hi ha cap informe o si la carpeta no es accessible.
+function _UltimInformeGenerat([string]$dir = '') {
+    try {
+        $d = if ([string]::IsNullOrWhiteSpace($dir)) { _CarpetaInformesGenerats } else { $dir }
+        if ([string]::IsNullOrWhiteSpace($d) -or -not (Test-Path -LiteralPath $d -PathType Container)) { return '' }
+        $ultim = Get-ChildItem -LiteralPath $d -File -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -notlike '~$*' -and ($_.Extension -ieq '.docx' -or $_.Extension -ieq '.doc') } |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1
+        if ($null -eq $ultim) { return '' }
+        return [string]$ultim.FullName
+    } catch { return '' }
+}
+
 # Registre de diagnòstic de les crides a AutoFirma (argv exacte + codi de sortida
 # + sortida del programa). Serveix per saber QUE ha passat quan la signatura
 # visible no surt, sense haver d'endevinar.
@@ -451,7 +489,13 @@ function _SavePdfSignarState($state) {
 # ----------------------------------------------------------------------------
 function _ShowConvertPdfOptions {
     $st = _LoadPdfSignarState
-    $folder = if (-not [string]::IsNullOrWhiteSpace($st.folder) -and (Test-Path -LiteralPath $st.folder)) { [string]$st.folder }
+    # Per defecte, L'ULTIM INFORME GENERAT: es el que gairebe sempre es vol
+    # signar. Si no n'hi ha cap (o la carpeta no es accessible), es recupera el
+    # comportament d'abans: l'ultima ruta que s'hi va fer servir i, si tampoc,
+    # la carpeta d'informes.
+    $ultim = _UltimInformeGenerat
+    $folder = if (-not [string]::IsNullOrWhiteSpace($ultim)) { [string]$ultim }
+              elseif (-not [string]::IsNullOrWhiteSpace($st.folder) -and (Test-Path -LiteralPath $st.folder)) { [string]$st.folder }
               elseif ($InformesDir -and (Test-Path -LiteralPath $InformesDir)) { [string]$InformesDir }
               else { '' }
     $autofirma = _FindAutoFirmaExe $st.autofirma
@@ -479,8 +523,9 @@ function _ShowConvertPdfOptions {
     # Carpeta: mateix format que la Configuració (quadre editable + "..." +
     # indicador ✓/⚠ en viu). Helper comú _AddConfigRow (Configuracio.ps1).
     # Es pot triar una CARPETA (tots els Word de dins i subcarpetes) o UN SOL
-    # DOCUMENT Word: el segon boto obre el dialeg de fitxers.
-    $row = _AddConfigRow $form 70 'Carpeta o document (Word):' $folder 'Documents Word|*.docx;*.doc|Tots els fitxers|*.*'
+    # DOCUMENT Word: el segon boto obre el dialeg de fitxers. El quadre ve ple
+    # amb l'ultim informe generat, pero es pot canviar (o escriure-hi a ma).
+    $row = _AddConfigRow $form 70 ('Carpeta o document (Word) ' + [char]0x2014 + " per defecte, l'ultim informe generat:") $folder 'Documents Word|*.docx;*.doc|Tots els fitxers|*.*'
     $tbF = $row.TextBox
     $y = [int]$row.NextY
 

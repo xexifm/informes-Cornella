@@ -1344,6 +1344,31 @@ AssertEq (_PdfShouldConvert $true ([datetime]'2026-01-01') ([datetime]'2026-02-0
 AssertEq (_PdfShouldConvert $true ([datetime]'2026-01-01') ([datetime]'2026-02-01') $true) $true '_PdfShouldConvert: overwrite -> sempre si'
 AssertEq (_CertFilterValue '') '' '_CertFilterValue buit -> sense filtre'
 AssertEq (_CertFilterValue '  12345678Z ') 'subject.contains:12345678Z' '_CertFilterValue -> subject.contains:'
+# L'ULTIM INFORME GENERAT (valor per defecte del quadre de l'eina).
+$tmpGen = Join-Path ([System.IO.Path]::GetTempPath()) ('cornella-ultim-' + [Guid]::NewGuid().ToString('N'))
+[void](New-Item -ItemType Directory -Path $tmpGen -Force)
+try {
+    AssertEq (_UltimInformeGenerat $tmpGen) '' '_UltimInformeGenerat: carpeta buida -> cadena buida'
+    $base = Get-Date '2026-07-01 09:00:00'
+    $fitxers = @(
+        @{ N = 'vell.docx';             T = $base }
+        @{ N = 'ultim.docx';            T = $base.AddHours(3) }   # el mes nou dels Word
+        @{ N = 'mitja.doc';             T = $base.AddHours(1) }
+        @{ N = '~$ultim.docx';          T = $base.AddHours(9) }   # temporal del Word
+        @{ N = 'mes-nou-de-tots.pdf';   T = $base.AddHours(9) }   # no es Word
+        @{ N = 'notes.txt';             T = $base.AddHours(9) }
+    )
+    foreach ($x in $fitxers) {
+        $p = Join-Path $tmpGen $x.N
+        Set-Content -LiteralPath $p -Value 'x' -Encoding UTF8
+        (Get-Item -LiteralPath $p).LastWriteTime = [datetime]$x.T
+    }
+    AssertEq ([System.IO.Path]::GetFileName((_UltimInformeGenerat $tmpGen))) 'ultim.docx' '_UltimInformeGenerat: el Word mes nou (ignora ~$, .pdf i .txt)'
+    AssertEq (_UltimInformeGenerat (Join-Path $tmpGen 'no-hi-es')) '' '_UltimInformeGenerat: carpeta inexistent -> cadena buida'
+    AssertEq (_UltimInformeGenerat $null) (_UltimInformeGenerat) '_UltimInformeGenerat: $null es tracta com a "sense carpeta"'
+} finally {
+    Remove-Item -LiteralPath $tmpGen -Recurse -Force -ErrorAction SilentlyContinue
+}
 $afArgs = @(_BuildAutoFirmaSignArgv 'C:\a b\in.pdf' 'C:\a b\out.pdf' 'subject.contains:X' '')
 AssertEq ($afArgs[0]) 'sign' '_BuildAutoFirmaSignArgv: comenca per sign'
 AssertEq ([bool]($afArgs -contains 'windows')) $true '_BuildAutoFirmaSignArgv: magatzem windows'
