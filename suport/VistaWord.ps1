@@ -53,7 +53,9 @@ function _VistaEsProtegit([string]$jsonPath) {
 #   3 -> tipografia base de la plantilla (Bookman Old Style, justificat,
 #        interlineat i marges) via Format-ApplyBaseStyle
 #   4 -> separacio entre l'item i el seu PRIMER sub-punt (Format-Bullet -First)
-$Script:VistaWordVersio = 4
+#   5 -> negreta del numero de l'item aplicada pel RANG (no s'encomana al cos)
+#        i sangria dels fills a 1 cm amb francesa de 0,5 cm
+$Script:VistaWordVersio = 5
 
 function _VistaVersioPath {
     $base = [string]$env:LOCALAPPDATA

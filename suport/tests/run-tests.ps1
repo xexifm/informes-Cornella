@@ -217,6 +217,17 @@ AssertEq $bulletChildCalls[1] 'BULLET/CH|Fill B.'    "Segon fill: punt de llista
 $childHasNum = @($global:emitCalls | Where-Object { $_ -match 'ITEM\|\d+\.\d+\.' }).Count
 AssertEq $childHasNum 0                    "Cap fill amb numeracio jerarquica (X.Y.)"
 
+Write-Host "`n--- Sangries de la vinyeta d'un fill (twips del Word) ---"
+# Els valors del cataleg es guarden en cm, pero el que es veu al .docx son
+# twips. Aquests son els que ha de produir el Word (mateixos que el document de
+# referencia corregit a ma: w:ind left="567" hanging="283").
+$cfgB = $Script:ReportFormatConfig
+AssertEq (_CmToTwips $cfgB.BulletChildIndentCm) 567 'Fill: sangria esquerra 1 cm = 567 twips'
+AssertEq (_CmToTwips $cfgB.BulletChildHangCm)   283 'Fill: sangria francesa 0,5 cm = 283 twips'
+AssertEq (_CmToTwips $cfgB.ChildIndentCm)       567 'Fill: la vinyeta s alinea amb les sub-linies i els enllacos del fill'
+AssertEq (_PtToTwips $cfgB.ItemSpaceAfterPt)    240 'Fill: separacio amb l item = 12 pt = 240 twips'
+AssertEq (_PtToTwips $cfgB.BulletSpaceBeforePt) 120 'Fill: separacio entre punts = 6 pt = 120 twips'
+
 Write-Host "`n--- OPCIO se substitueix dins emit (regressio) ---"
 $global:emitCalls.Clear()
 $secO = [pscustomobject]@{ Title='Y'; Items=@(

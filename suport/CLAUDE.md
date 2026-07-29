@@ -164,6 +164,25 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   salten). Es posa l'espai a **`SpaceBefore` del fill** i no a `SpaceAfter` de
   l'ítem perquè entre l'ítem i els fills hi pot haver línies extra o un URL, i
   llavors l'espai separaria l'ítem del seu propi cos.
+- **Sangria dels fills:** la vinyeta d'un fill s'alinea el text a
+  `BulletChildIndentCm` = **1 cm** amb francesa `BulletChildHangCm` = **0,5 cm**
+  (al XML: `w:ind left="567" hanging="283"`). És el **mateix** 1 cm que
+  `ChildIndentCm`, que fan servir les sub-línies i els enllaços del fill
+  (`Format-Body`/`Format-Url -IsChild`), de manera que tot el bloc del fill
+  queda alineat. Els punts de **primer nivell** (només l'informe favorable
+  d'activitat extraordinària) mantenen `BulletIndentCm` 1,25 / `BulletHangCm`
+  0,62: són un altre document i no s'han tocat.
+- **La negreta del número d'un ítem s'aplica pel RANG**, no amb
+  `$sel.Font.Bold = 1` … `= 0`. Motiu real: el `Bold = 0` d'després d'escriure
+  el número actua sobre el **format d'escriptura del punt d'inserció**, i el
+  Word no sempre l'hi aplica; quan no ho feia, **tot** el text de l'ítem sortia
+  en negreta i el número i el text quedaven fusionats en un sol `<w:r>` (es veia
+  a tots els ítems de CONTROLS INICIALS i CONTROLS PERIÒDICS de la vista de
+  REQ1, i només allà). `Format-Item` escriu ara el número sense negreta, es
+  guarda `Range.Start`/`Range.End` i al final fa
+  `$sel.Document.Range($numStart,$numEnd).Font.Bold = $true`: així la negreta
+  només pot tocar el número i el cos no se la pot encomanar mai. La negreta
+  **inline** del cos (`**...**` de `Type-RichText`) no es toca.
 - **ID GIA:** cadena document → carpeta ("GIA 361") → Excel per expedient.
   `_ExtractIdGia` ignora placeholders com `"-"`, `"XXX"`, `"N/A"` (activitats
   encara sense GIA assignat) perquè no s'ajuntin activitats diferents sota una

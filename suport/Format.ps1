@@ -67,8 +67,13 @@ $Script:ReportFormatConfig = @{
     # nivell de sangria i text al segon; separacio per SpaceBefore, sense
     # linies en blanc entre punts). Valors en cm / punts.
     BulletIndentCm       = 1.25   # sangria esquerra del text (1r nivell)
-    BulletChildIndentCm  = 2.0    # sangria esquerra del text (sub-nivell)
     BulletHangCm         = 0.62   # sangria francesa (el pic queda a l'esquerra)
+    # Sub-nivell (els FILLS d'un item numerat). El text s'alinea a 1 cm, igual
+    # que ChildIndentCm, que es el que fan servir les sub-linies i els enllacos
+    # del fill (Format-Body/-Url -IsChild): aixi tot el bloc del fill queda
+    # alineat. Al XML: w:ind left="567" hanging="283".
+    BulletChildIndentCm  = 1.0
+    BulletChildHangCm    = 0.5
     BulletSpaceBeforePt  = 6      # separacio entre punts (en lloc de linia buida)
     NoteIndentCm         = 1.25   # sub-paragraf sagnat sense pic (Format-Note)
     LabelSpaceAfterPt    = 12     # espai sota una etiqueta de subseccio (Format-Label)
@@ -198,10 +203,24 @@ function Format-Item {
     $indent = if ($IsChild) { $Script:ReportFormatConfig.ChildIndentCm }
               else          { $Script:ReportFormatConfig.ItemIndentCm }
     _Apply-Indent $sel $indent
-    $sel.Font.Bold = 1
+    # El numero s'escriu SENSE negreta i despres es posa en negreta pel RANG.
+    #
+    # Abans es feia amb $sel.Font.Bold = 1 / TypeText / = 0. El problema: el
+    # "Bold = 0" actua sobre el FORMAT D'ESCRIPTURA del punt d'insercio, i el
+    # Word no sempre l'hi aplica (depen del que hi hagi al paragraf anterior).
+    # Quan no l'aplicava, tot el text de l'item sortia en negreta i el numero i
+    # el text quedaven en un sol <w:r> (es veia, p.ex., a tots els items de
+    # CONTROLS INICIALS i CONTROLS PERIODICS de la vista de REQ1). Fent-ho pel
+    # rang, la negreta NOMES pot tocar el numero: el punt d'insercio no queda
+    # mai en negreta i el cos no se la pot encomanar. La negreta INLINE del cos
+    # (**...** de Type-RichText) no es toca.
+    $numStart = $sel.Range.Start
     $sel.TypeText("$number ")
-    $sel.Font.Bold = 0
+    $numEnd = $sel.Range.End
     if ($text) { Type-RichText $sel $text }
+    if ($numEnd -gt $numStart) {
+        try { $sel.Document.Range($numStart, $numEnd).Font.Bold = $true } catch { }
+    }
 }
 
 function Format-Body {
@@ -232,8 +251,10 @@ function Format-Bullet {
     # LeftIndent (el Word posa una parada de tabulacio implicita alli).
     $left = if ($IsChild) { $Script:ReportFormatConfig.BulletChildIndentCm }
             else          { $Script:ReportFormatConfig.BulletIndentCm }
+    $hang = if ($IsChild) { $Script:ReportFormatConfig.BulletChildHangCm }
+            else          { $Script:ReportFormatConfig.BulletHangCm }
     $sel.ParagraphFormat.LeftIndent = (_CmToPoints $left)
-    $sel.ParagraphFormat.FirstLineIndent = (- (_CmToPoints $Script:ReportFormatConfig.BulletHangCm))
+    $sel.ParagraphFormat.FirstLineIndent = (- (_CmToPoints $hang))
     # Text justificat (com l'estil 'List Paragraph' de la casa, jc=both). Es
     # posa explicit per no heretar un 'center' d'una capcalera anterior.
     try { $sel.ParagraphFormat.Alignment = 3 } catch { }   # 3 = wdAlignParagraphJustify
