@@ -165,19 +165,6 @@ AssertEq $fo['Destinatari'].Value 'ajuntament'       'Per defecte tria la primer
 $fo['Destinatari'].Value = 'ACA'
 AssertEq (Apply-Fields 'Presentar projecte [OPCIO: Destinatari | ajuntament | ACA] amb el contingut.' $fo) 'Presentar projecte ACA amb el contingut.' 'Apply-Fields substitueix el desplegable per l opcio triada'
 
-Write-Host "`n--- Test-StyleMatch (variants d'estil Word EN/CA/ES) ---"
-foreach ($s in 'Heading 1','Titulo 1','Título 1','Titol 1','Títol 1','Ttulo1','Ttulo 1','TÍTULO 1') {
-    Assert (Test-StyleMatch $s 1) ("Test-StyleMatch nivell 1: '$s' -> true")
-}
-foreach ($s in 'Heading 2','Titulo 2','Título 2','Ttulo2','Ttulo 2') {
-    Assert (Test-StyleMatch $s 2) ("Test-StyleMatch nivell 2: '$s' -> true")
-}
-Assert (-not (Test-StyleMatch 'Normal' 1))    "Test-StyleMatch 'Normal' nivell 1 -> false"
-Assert (-not (Test-StyleMatch 'Cita' 1))      "Test-StyleMatch 'Cita' nivell 1 -> false"
-Assert (-not (Test-StyleMatch 'Titulo 1' 2))  "Test-StyleMatch 'Titulo 1' nivell 2 -> false"
-Assert (-not (Test-StyleMatch $null 1))       "Test-StyleMatch null -> false"
-Assert (-not (Test-StyleMatch '' 1))          "Test-StyleMatch buit -> false"
-
 Write-Host "`n--- _SplitTextAndUrls amb marcador [[URL]] (estil Cita) ---"
 $cita1 = _SplitTextAndUrls '[[URL]] https://example.com/path'
 AssertEq $cita1.Text ''                                '[[URL]] tota la linia es URL: Text buit'
@@ -810,75 +797,6 @@ $modelA = _BuildSeguimentModel $recA
 AssertEq $modelA.Requirements.Count 2 'Auto-num: 2 requeriments detectats per numeracio d estil'
 AssertEq $modelA.Requirements[0].Text 'Vector Aigua. Cal aportar X.' 'Auto-num: text del requeriment 1'
 Assert (-not $modelA.Requirements[0].WasResolved) 'Auto-num: requeriment fresc (sense anotacions) -> pendent per defecte'
-
-Write-Host "`n--- Seguiment XML: round-trip sobre .docx real + Read-ConclusionsXml ---"
-$estr = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'ESTRUCTURALS'
-$cap  = Join-Path $estr '0 CAPCALERA.docx'
-$conc = Join-Path $estr '0 CONCLUSIONS.docx'
-if (Test-Path $cap) {
-    $xiR = _LoadDocxXml $cap
-    $sect = $xiR.Body.SelectSingleNode('w:sectPr', $xiR.Ns)
-    [void]$xiR.Body.InsertBefore((_MakeConclusionParagraphXml $xiR 'PROVA_RT' $false), $sect)
-    $outRt = Join-Path ([System.IO.Path]::GetTempPath()) ('rt_' + [Guid]::NewGuid().ToString('N') + '.docx')
-    _SaveDocxXml $xiR $cap $outRt
-    Assert (Test-Path $outRt) 'Round-trip: el .docx s ha desat'
-    $xiR2 = _LoadDocxXml $outRt
-    $rtTexts = @(_BodyParagraphsXml $xiR2 | ForEach-Object { _ParagraphTextXml $_ $xiR2.Ns })
-    Assert ([bool]($rtTexts -match 'PROVA_RT')) 'Round-trip: el paragraf inserit hi es despres de reobrir'
-    AssertEq $xiR2.Body.LastChild.LocalName 'sectPr' 'Round-trip: <w:sectPr> segueix sent l ultim fill'
-    # El document.xml desat ha de passar el parseig ESTRICTE (com el Word).
-    $savedXmlText = _ReadDocxPartText $outRt 'word/document.xml'
-    Assert (Test-StrictXml $savedXmlText) 'Round-trip: el document.xml desat es estrictament valid (Word)'
-    Remove-Item -LiteralPath $outRt -Force -ErrorAction SilentlyContinue
-} else {
-    Write-Host '  (omes: no s ha trobat 0 CAPCALERA.docx)'
-}
-if (Test-Path $conc) {
-    $cx = Read-ConclusionsXml $conc
-    Assert ($cx.Selectable.Count -ge 1)   'Read-ConclusionsXml: hi ha conclusions triables'
-    Assert ($cx.Always.Count -ge 1)       'Read-ConclusionsXml: hi ha frases ::SEMPRE::'
-    # El titol del bloc s'ha de detectar SEMPRE (surt a tots els informes amb
-    # conclusions, incloent els de seguiment), estigui centrat o no.
-    Assert (-not [string]::IsNullOrWhiteSpace($cx.HeaderText)) 'Read-ConclusionsXml: detecta el titol del bloc (HeaderText)'
-
-    # Conclusions per TIPUS D'INFORME (grups Ttulo1: REQ1 / TERMINI).
-    $titlesOf = { param($r) @($r.Selectable | ForEach-Object { $_.Title }) }
-    $req = Read-ConclusionsXml $conc 'REQ1'
-    $ter = Read-ConclusionsXml $conc 'TERMINI'
-    $reqTitles = & $titlesOf $req
-    $terTitles = & $titlesOf $ter
-    Assert ($req.Selectable.Count -ge 1)                'Read-ConclusionsXml REQ1: te conclusions'
-    Assert ($ter.Selectable.Count -ge 1)               'Read-ConclusionsXml TERMINI: te conclusions'
-    Assert ([bool]($reqTitles -contains 'Requeriment')) 'REQ1: inclou la conclusio Requeriment'
-    Assert (-not ($reqTitles -contains 'Ampliar'))      'REQ1: NO inclou conclusions de TERMINI (Ampliar)'
-    Assert ([bool]($terTitles -contains 'Ampliar'))     'TERMINI: inclou la conclusio Ampliar'
-    Assert (-not ($terTitles -contains 'Requeriment'))  'TERMINI: NO inclou conclusions de REQ1 (Requeriment)'
-    # El seguiment ha d'oferir NOMES el grup "SEGUIMENT".
-    $seg = Read-ConclusionsXml $conc 'SEGUIMENT'
-    $segTitles = & $titlesOf $seg
-    Assert ($seg.Selectable.Count -ge 1)                'Read-ConclusionsXml SEGUIMENT: te conclusions'
-    Assert ([bool]($segTitles -contains 'Finalitzat'))  'SEGUIMENT: inclou la conclusio Finalitzat'
-    Assert (-not ($segTitles -contains 'Requeriment'))  'SEGUIMENT: NO inclou conclusions de REQ1'
-    Assert (-not ($segTitles -contains 'Ampliar'))      'SEGUIMENT: NO inclou conclusions de TERMINI'
-    # El total filtrat (REQ1 + TERMINI) no supera el total sense filtre.
-    Assert (($req.Selectable.Count + $ter.Selectable.Count) -le $cx.Selectable.Count) 'Filtrat per tipus <= total sense filtre'
-    # Les frases ::SEMPRE:: son globals: surten per a qualsevol tipus.
-    Assert ($req.Always.Count -ge 1)                    'REQ1: les frases ::SEMPRE:: segueixen sent globals'
-    Assert ($ter.Always.Count -ge 1)                    'TERMINI: les frases ::SEMPRE:: segueixen sent globals'
-    # Un tipus inexistent no retorna conclusions (pero si les ::SEMPRE::).
-    $none = Read-ConclusionsXml $conc 'NO_EXISTEIX'
-    AssertEq $none.Selectable.Count 0                   'Tipus inexistent: cap conclusio triable'
-    Assert ($none.Always.Count -ge 1)                   'Tipus inexistent: ::SEMPRE:: encara globals'
-} else {
-    Write-Host '  (omes: no s ha trobat 0 CONCLUSIONS.docx)'
-}
-
-Write-Host "`n--- _ReportTypeFromFileName (dedueix el tipus del nom de l informe) ---"
-AssertEq (_ReportTypeFromFileName '2026-06-23_Termini_GIA 1379.docx') 'Termini' '_ReportTypeFromFileName: 2n segment'
-AssertEq (_ReportTypeFromFileName '2026-06-23_Req1_GIA 10.docx')      'Req1'    '_ReportTypeFromFileName: REQ1'
-AssertEq (_ReportTypeFromFileName 'sense_separadors')                'separadors' '_ReportTypeFromFileName: 2 segments'
-AssertEq (_ReportTypeFromFileName 'nomesun')                          ''        '_ReportTypeFromFileName: sense 2n segment -> buit'
-AssertEq (_ReportTypeFromFileName $null)                              ''        '_ReportTypeFromFileName: null -> buit'
 
 Write-Host "`n--- _StripMarkers (treu ** i // per a la previsualitzacio) ---"
 AssertEq (_StripMarkers 'text **negreta** i //cursiva//') 'text negreta i cursiva' '_StripMarkers: parells nets'

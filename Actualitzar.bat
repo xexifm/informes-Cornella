@@ -160,7 +160,11 @@ if "%STASHED%"=="1" (
 )
 
 REM --- 4. Anar a main i actualitzar ---
-git checkout main
+REM    Silenciat: quan ja hi som escriu "Already on 'main'" i, si hi ha commits
+REM    locals pendents de pujar, un "Your branch and 'origin/main' have
+REM    diverged" que no es cap problema (el rebase de sota ho arregla) pero fa
+REM    patir. Si falla de veritat, l'errorlevel ho detecta igual.
+git checkout main >nul 2>&1
 if errorlevel 1 (
     echo.
     echo ERROR: no s'ha pogut canviar a la branca 'main'.
@@ -168,20 +172,25 @@ if errorlevel 1 (
     goto :ERROR
 )
 
-REM Primer intentem fast-forward. Si tenim un commit local de plantilles
-REM i el remot tambe ha avancat, fem rebase per integrar-ho ordenadament.
-git pull --ff-only origin main
+REM SEMPRE rebase, mai "--ff-only" primer.
+REM
+REM Abans es provava 'git pull --ff-only' i, si fallava, es feia el rebase. El
+REM problema es que al pas 2 aquest mateix .bat ACABA DE FER UN COMMIT local
+REM dels catalegs, o sigui que, si el repositori remot tambe ha avancat, el
+REM fast-forward es IMPOSSIBLE PER DEFINICIO. No era cap error, pero cada
+REM actualitzacio escopia un "fatal: Not possible to fast-forward, aborting."
+REM amb quatre pantalles de "hint:" que feien patir sense motiu.
+REM
+REM Un rebase quan NO hi ha res local es exactament un fast-forward, aixi que
+REM fer sempre rebase no perd res i el missatge espantos desapareix.
+echo Integrant els canvis del GitHub...
+git pull --rebase origin main
 if errorlevel 1 (
-    echo Fast-forward no possible ^(la branca local i la remota han divergit^).
-    echo Faig rebase per integrar els canvis...
-    git pull --rebase origin main
-    if errorlevel 1 (
-        echo.
-        echo  El rebase ha trobat un conflicte. Els TEUS catalegs manen:
-        echo    avorto el rebase, em poso al dia i els torno a aplicar.
-        git rebase --abort
-        git reset --hard origin/main
-    )
+    echo.
+    echo  El rebase ha trobat un conflicte. Els TEUS catalegs manen:
+    echo    avorto el rebase, em poso al dia i els torno a aplicar.
+    git rebase --abort
+    git reset --hard origin/main
 )
 
 REM --- 4b. Tornar a aplicar els catalegs de l'usuari (PREVALEN) ---

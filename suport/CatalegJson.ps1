@@ -26,7 +26,7 @@
   A ACT_EXTR, 'clau' es la [[KEY]] funcional (Decret 112); mai es toca aqui.
 
   Aquest modul llegeix el JSON i el converteix al MATEIX model en memoria que
-  retornaven Parse-Cataleg, Read-Conclusions i Build-ActExtrBlocks, de manera que
+  retornava el lector de .docx (ja esborrat) i Build-ActExtrBlocks, de manera que
   la resta del programa (Build-Document, wizard, ACT_EXTR...) NO canvia i la
   generacio es identica a la del .docx. El cos de cada paragraf s'"aplana" a la
   mateixa cadena amb marques (**negreta**, //cursiva//, [[URL]] ...) que ja
@@ -60,7 +60,7 @@ function _LoadEstructuralJson($jsonPath) {
 }
 
 # ----------------------------------------------------------------------------
-# CATALEG -> model de Parse-Cataleg (Sections=[{Title; Items=[pla]}], ...)
+# CATALEG -> model del motor (Sections=[{Title; Items=[pla]}], ...)
 # ----------------------------------------------------------------------------
 # Aplana un node del cataleg a la LLISTA PLANA d'items que espera el motor:
 #   - subseccio -> un Item Kind=subsection i, tot seguit, els seus fills (items)
@@ -102,7 +102,7 @@ function _EmitCatalegItem($node, $items) {
     }
 }
 
-# Llegeix un cataleg i retorna el MATEIX objecte que Parse-Cataleg.
+# Llegeix un cataleg i retorna el model que espera el motor.
 function Read-CatalegJson($jsonPath) {
     $o = _LoadEstructuralJson $jsonPath
     $sections = New-Object System.Collections.ArrayList
@@ -124,7 +124,7 @@ function Read-CatalegJson($jsonPath) {
 }
 
 # ----------------------------------------------------------------------------
-# CONCLUSIONS -> model de Read-Conclusions (HeaderText; Selectable; Always)
+# CONCLUSIONS -> model del motor (HeaderText; Selectable; Always)
 # ----------------------------------------------------------------------------
 function Read-ConclusionsJson($jsonPath, $reportType = $null) {
     $o = _LoadEstructuralJson $jsonPath

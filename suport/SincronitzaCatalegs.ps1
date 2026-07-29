@@ -22,17 +22,13 @@
                      la ruta a 'ultima-copia-catalegs.txt'.
     -Fase Restore    torna a copiar aquells fitxers al clone (la versio de
                      l'usuari preval sobre la que hagi baixat del repositori).
-    -Fase Recuperar  busca als STASHES antics els catalegs que es van perdre amb
-                     la versio anterior d'Actualitzar.bat i els extreu a
-                     %LOCALAPPDATA%\InformesCornella\recuperats\ (NO fa 'pop':
-                     no toca res del clone).
 
   Les funcions de text son PURES i es proven en headless; la resta nomes fa
   copies de fitxers i crides a git (cap dependencia del motor d'informes).
 #>
 
 param(
-    [ValidateSet('Backup', 'Restore', 'Recuperar')]
+    [ValidateSet('Backup', 'Restore')]
     [string]$Fase = 'Backup'
 )
 
@@ -98,7 +94,6 @@ function _CatalegsBaseDir {
     return (Join-Path $base 'InformesCornella')
 }
 function _CatalegsBackupRoot   { return (Join-Path (_CatalegsBaseDir) 'backups') }
-function _CatalegsRecuperatDir { return (Join-Path (_CatalegsBaseDir) 'recuperats') }
 function _CatalegsMarkerPath   { return (Join-Path (_CatalegsBaseDir) 'ultima-copia-catalegs.txt') }
 
 # Arrel del clone (aquest script viu a <clone>\suport\).
@@ -185,63 +180,12 @@ function Invoke-CatalegsRestore {
     return $n
 }
 
-# Busca als stashes els catalegs que es van perdre amb la versio anterior
-# d'Actualitzar.bat i els extreu (sense tocar el clone ni els stashes).
-function Invoke-CatalegsRecuperar {
-    $root = _CatalegsRepoRoot
-    Push-Location $root
-    try {
-        $stashes = @(git stash list --format=%gd 2>$null)
-        if ($stashes.Count -eq 0) {
-            Write-Host "No hi ha cap stash: no hi ha res a recuperar."
-            return
-        }
-        $outRoot = _CatalegsRecuperatDir
-        $trobats = 0
-        foreach ($ref in $stashes) {
-            $r = ([string]$ref).Trim()
-            if ([string]::IsNullOrWhiteSpace($r)) { continue }
-            $noms = @(git stash show --name-only $r 2>$null)
-            $prot = @()
-            foreach ($n in $noms) { if (_CatalegEsProtegible ([string]$n)) { $prot += ([string]$n).Trim() } }
-            if ($prot.Count -eq 0) { continue }
-
-            $safe = ($r -replace '[^A-Za-z0-9]', '_')
-            $dir = Join-Path $outRoot $safe
-            foreach ($rel in $prot) {
-                $dst = Join-Path $dir ($rel -replace '/', '\')
-                $dstDir = Split-Path -Parent $dst
-                if (-not (Test-Path -LiteralPath $dstDir)) { New-Item -ItemType Directory -Path $dstDir -Force | Out-Null }
-                # El contingut del fitxer TAL COM estava al stash.
-                $txt = (git show ("{0}:{1}" -f $r, $rel) 2>$null | Out-String)
-                if ([string]::IsNullOrWhiteSpace($txt)) { continue }
-                [System.IO.File]::WriteAllText($dst, $txt, (New-Object System.Text.UTF8Encoding($false)))
-                $trobats++
-                Write-Host ("  {0}  ->  {1}" -f $r, $rel)
-            }
-        }
-        Write-Host ""
-        if ($trobats -eq 0) {
-            Write-Host "No s'ha trobat cap cataleg als stashes."
-        } else {
-            Write-Host ("S'han extret {0} fitxers a:" -f $trobats)
-            Write-Host ("  " + $outRoot)
-            Write-Host ""
-            Write-Host "Obre'ls per veure els teus canvis. Si en vols recuperar algun,"
-            Write-Host "copia'l a la carpeta ESTRUCTURALS del programa i executa Actualitzar.bat."
-        }
-    } finally {
-        Pop-Location
-    }
-}
-
 # ----------------------------------------------------------------------------
 # Execucio (en mode proves nomes es volien les definicions)
 # ----------------------------------------------------------------------------
 if ($env:GENINFORME_TEST -eq '1') { return }
 
 switch ($Fase) {
-    'Backup'    { [void](Invoke-CatalegsBackup) }
-    'Restore'   { [void](Invoke-CatalegsRestore) }
-    'Recuperar' { Invoke-CatalegsRecuperar }
+    'Backup'  { [void](Invoke-CatalegsBackup) }
+    'Restore' { [void](Invoke-CatalegsRestore) }
 }

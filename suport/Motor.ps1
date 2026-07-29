@@ -16,7 +16,7 @@
   nomes vol dir "no carreguis WinForms".
 
   Flux del programa (el condueix Main, definit aqui):
-    1. L'usuari escull un cataleg de defciencies (ESTRUCTURALS\REQ*.docx).
+    1. L'usuari escull un cataleg de deficiencies (ESTRUCTURALS\REQ1.json...).
     2. Demana les dades de la capcalera (ID GIA, EXP_NUM, etc.).
     3. Mostra un TreeView amb les seccions/items del cataleg; l'usuari marca
        quines defciencies aplicaran a l'informe. En marcar-ne una, el seu text
@@ -48,7 +48,7 @@
   %LOCALAPPDATA%\InformesCornella\cache\<basename>.json amb un hash
   del fitxer com a clau de validesa.
 
-  Convencions del cataleg (REQ1.docx i seguents):
+  Convencions del cataleg (REQ1.json i seguents):
     - Heading 1  -> titol de seccio.
     - Heading 2  -> nom curt de l'item (per al TreeView). Si comenca per
                     "::CHILD:: " es tracta d'un sub-bullet (fill de l'item
@@ -314,7 +314,7 @@ $CopiaInformesDir = _ResolveEffectiveValue $AppSettings.CopiaInformesDir $CopiaI
 
 # Lector dels ESTRUCTURALS en JSON (format estandard unic). Nomes defineix
 # funcions; segur en headless. Es carrega abans que s'usi (Get-ParsedCataleg/
-# Read-Conclusions/Parse-ActExtrTemplate).
+# Read-Conclusions/Parse-ActExtrTemplate), que llegeixen els .json.
 . (Join-Path $ScriptRoot 'CatalegJson.ps1')
 
 # Editor visual dels ESTRUCTURALS (Editar catalegs). Funcions pures (model<->JSON)
@@ -1220,192 +1220,36 @@ function Get-HeaderData {
 }
 
 # ----------------------------------------------------------------------------
-# Step 3 - Parse cataleg
+# Step 3 - Lectura del cataleg
 # ----------------------------------------------------------------------------
-# NOTA: es va provar una cache en disc del resultat del parseig (JSON), pero
-# el round-trip ConvertTo-Json/ConvertFrom-Json no preserva de manera fiable
-# l'estructura niada (BodyLines/Children), cosa que trencava el format dels
-# enllacos al document final. El parseig d'un .docx triga molt poc, aixi que
-# es fa sempre en fresc. Si en el futur es vol cachejar, cal fer-ho amb
-# Export-Clixml/Import-Clixml (preserva tipus i arrays), no amb JSON.
-# Cert si $styleName encaixa amb "Heading N" (N=1 o 2) en qualsevol de les
-# variants que escupen els Word EN/CA/ES, incloent les variants compactades
-# 'Ttulo1' / 'Ttulo 1' que apareixen amb el Word castella d'algunes versions.
-function Test-StyleMatch([string]$styleName, [int]$level) {
-    if ([string]::IsNullOrWhiteSpace($styleName)) { return $false }
-    # Normalitzem: minuscules, treiem accents i caracters no alfanumerics
-    # (espais, guions, etc.), aixi 'Título 1', 'Titol 1' i 'Ttulo1' col·lapsen.
-    $n = (_NormalizeText $styleName) -replace '[^a-z0-9]',''
-    $patterns = @(
-        "heading$level",
-        "titulo$level",
-        "titol$level",
-        "ttulo$level"     # variant que apareix per a 'Ttulo1' (sense accent ni espai)
-    )
-    foreach ($pat in $patterns) {
-        if ($n -eq $pat) { return $true }
-    }
-    return $false
-}
 
-# Cache en memoria del parseig del cataleg durant l'execucio del programa.
-# Clau = ruta + data de modificacio + mida. Aixi, si es genera un segon informe
-# del mateix cataleg en la mateixa sessio, no cal tornar a obrir-lo amb Word
-# (l'iteracio de paragrafs per COM es de les parts mes lentes). Si el fitxer
-# canvia (l'usuari edita la plantilla), la clau canvia i es torna a parsejar.
+# Cache en memoria del cataleg parsejat durant l'execucio del programa.
+# Clau = ruta del JSON + data de modificacio + mida: si es genera un segon
+# informe del mateix cataleg en la mateixa sessio no cal tornar a llegir-lo, i
+# si l'usuari l'edita (l'editor de catalegs reescriu el .json) la clau canvia i
+# es torna a llegir sol.
 $Script:_parseCache = @{}
 
-function Get-ParsedCataleg($word, $path) {
-    # Si hi ha un JSON al costat del .docx (mateix nom), el fem servir (no cal
-    # Word). Si falla per qualsevol motiu, tornem al .docx (fallback segur).
-    $jsonPath = [System.IO.Path]::ChangeExtension($path, '.json')
-    if (Test-Path -LiteralPath $jsonPath) {
-        try {
-            $fij = Get-Item -LiteralPath $jsonPath -ErrorAction Stop
-            $keyj = "json|$jsonPath|$($fij.LastWriteTimeUtc.Ticks)|$($fij.Length)"
-            if ($Script:_parseCache.ContainsKey($keyj)) { return $Script:_parseCache[$keyj] }
-            $parsedj = Read-CatalegJson $jsonPath
-            $Script:_parseCache[$keyj] = $parsedj
-            return $parsedj
-        } catch {
-            Write-Host "Avis: no s'ha pogut llegir el JSON '$jsonPath' ($($_.Exception.Message)); es fa servir el .docx."
-        }
+# Llegeix un cataleg. La FONT DE VERITAT es el .json d'ESTRUCTURALS.
+#
+# Abans hi havia un "respatller segur" que, si el JSON no hi era o no es podia
+# llegir, obria el .docx del mateix nom amb el Word i el parsejava pels estils
+# (Titol 1 / Titol 2). Es va treure, i no per estalviar codi: els .docx ja NO
+# son catalegs, son VISTES generades en format d'informe (VistaWord.ps1). El
+# respatller, doncs, no hauria fallat: hauria llegit la vista i hauria generat
+# un informe silenciosament EQUIVOCAT. Val mes petar aqui, amb un missatge clar.
+function Get-ParsedCataleg($path) {
+    $jsonPath = if ([System.IO.Path]::GetExtension($path) -ieq '.json') { $path }
+                else { [System.IO.Path]::ChangeExtension($path, '.json') }
+    if (-not (Test-Path -LiteralPath $jsonPath)) {
+        throw "No s'ha trobat el cataleg: $jsonPath"
     }
-    $key = $path
-    try {
-        $fi = Get-Item -LiteralPath $path -ErrorAction Stop
-        $key = "$path|$($fi.LastWriteTimeUtc.Ticks)|$($fi.Length)"
-    } catch { }
+    $fi = Get-Item -LiteralPath $jsonPath -ErrorAction Stop
+    $key = "json|$jsonPath|$($fi.LastWriteTimeUtc.Ticks)|$($fi.Length)"
     if ($Script:_parseCache.ContainsKey($key)) { return $Script:_parseCache[$key] }
-    $parsed = Parse-Cataleg -word $word -path $path
+    $parsed = Read-CatalegJson $jsonPath
     $Script:_parseCache[$key] = $parsed
     return $parsed
-}
-
-function Parse-Cataleg($word, $path) {
-    # Retorna un PSCustomObject amb:
-    #   IntroText : la frase introductoria del cataleg (primer paragraf Normal
-    #               abans de la primera seccio). Apareix sempre al document.
-    #   Sections  : llista de seccions. Cada seccio te:
-    #                 Title : titol Heading 1.
-    #                 Items : llista plana d'elements del catalog. Cada element
-    #                         te un camp Kind:
-    #                           'item'       (Heading 2 sense prefix)
-    #                           'subsection' (Heading 2 ::SUB::)
-    #                           'intro'      (Heading 2 ::INTRO::)
-    #                         Els items poden tenir Children (Heading 2 ::CHILD::).
-    #
-    # Estils Word reconeguts (NameLocal segons l'idioma del Word de l'usuari):
-    #   Heading 1, Titol 1, Titulo 1, Tisingleitulo 1 (placeholder per a accents):
-    #   en realitat: 'Titulo 1', 'Título 1', 'Titol 1', 'Títol 1' i la variant
-    #   compactada 'Ttulo1' / 'Ttulo 1' que apareix amb alguns Word castellans.
-    #
-    # Estil 'Cita' (o 'Cite'/'Quote' en angles, 'Cita' en castella/catala) es
-    # tracta com a paragraf d'URL: el text es l'enllac.
-    $doc = $word.Documents.Open($path, $false, $true)  # ReadOnly
-    try {
-        $sections      = New-Object System.Collections.ArrayList
-        $introText     = ''
-        # Paragrafs Normal/Cita que apareixen ABANS de qualsevol seccio (sense
-        # cap Heading). En un cataleg normal nomes hi ha la frase introductoria;
-        # en un informe de "cos fix" (com TERMINI.docx, sense Headings) son TOT
-        # el cos del document.
-        $fixedBodyLines = New-Object System.Collections.ArrayList
-        $currentSection = $null
-        $lastItem      = $null   # darrer Heading 2 'item' (per associar fills)
-        $lastH2        = $null   # darrer Heading 2 sigui del tipus que sigui
-
-        foreach ($p in $doc.Paragraphs) {
-            $text = $p.Range.Text.TrimEnd("`r","`n","`a"," ")
-            if ([string]::IsNullOrWhiteSpace($text)) { continue }
-
-            $styleName = ''
-            try { $styleName = $p.Style.NameLocal } catch { }
-            # Acceptem: amb/sense espai, amb/sense accent, i diversos idiomes.
-            #   "Heading 1"  (en),  "Titol 1"/"Titulo 1" (ca/es),
-            #   "Titulo 1" amb i sense espai/accent,
-            #   "Ttulo1" i "Ttulo 1" (com els desa el Word castella en alguns casos).
-            $isH1 = (Test-StyleMatch $styleName 1)
-            $isH2 = (Test-StyleMatch $styleName 2)
-            $isCita = ($styleName -match '^(Cita|Cite|Quote|Cita destacada|Quote intense)$')
-
-            if ($isH1) {
-                $currentSection = [pscustomobject]@{
-                    Title = $text
-                    Items = New-Object System.Collections.ArrayList
-                }
-                [void]$sections.Add($currentSection)
-                $lastItem = $null
-                $lastH2   = $null
-                continue
-            }
-
-            if ($isH2) {
-                if ($null -eq $currentSection) {
-                    $currentSection = [pscustomobject]@{
-                        Title = '(Sense seccio)'
-                        Items = New-Object System.Collections.ArrayList
-                    }
-                    [void]$sections.Add($currentSection)
-                }
-                $kind = 'item'
-                $short = $text
-                if     ($short -like '::CHILD::*') { $kind = 'child';      $short = $short.Substring('::CHILD::'.Length).Trim() }
-                elseif ($short -like '::SUB::*')   { $kind = 'subsection'; $short = $short.Substring('::SUB::'.Length).Trim() }
-                elseif ($short -like '::INTRO::*') { $kind = 'intro';      $short = $short.Substring('::INTRO::'.Length).Trim() }
-
-                $newEl = [pscustomobject]@{
-                    Kind      = $kind
-                    Short     = $short
-                    BodyLines = New-Object System.Collections.ArrayList
-                    Children  = New-Object System.Collections.ArrayList
-                }
-
-                if ($kind -eq 'child' -and $null -ne $lastItem) {
-                    [void]$lastItem.Children.Add($newEl)
-                } else {
-                    [void]$currentSection.Items.Add($newEl)
-                    if ($kind -eq 'item')        { $lastItem = $newEl }
-                    elseif ($kind -eq 'subsection') { $lastItem = $null }
-                }
-                $lastH2 = $newEl
-                continue
-            }
-
-            # Paragraf Normal o Cita: l'afegim al BodyLines de l'element actiu.
-            # Si l'estil es Cita, marquem el text amb un prefix intern [[URL]]
-            # perque l'emissor (_SplitTextAndUrls) el tracti SEMPRE com a URL
-            # (i no com a text), encara que no comenci per "http". Aixo permet
-            # a l'usuari marcar enllacos al Word de manera explicita per estil,
-            # sense dependre de regex sobre el contingut.
-            $textToAdd = if ($isCita) { '[[URL]] ' + $text } else { $text }
-            if ($null -eq $lastH2) {
-                if ($null -eq $currentSection) {
-                    [void]$fixedBodyLines.Add($textToAdd)
-                    if ([string]::IsNullOrWhiteSpace($introText)) { $introText = $textToAdd }
-                }
-                continue
-            }
-            $target = $lastH2
-            if ($lastH2.Kind -eq 'item' -and $lastH2.Children.Count -gt 0) {
-                $target = $lastH2.Children[$lastH2.Children.Count - 1]
-            }
-            [void]$target.BodyLines.Add($textToAdd)
-        }
-        # IsFixedBody: el document no te cap seccio (cap Heading). En aquest cas
-        # no hi ha deficiencies a triar; el cos de l'informe son directament els
-        # paragrafs Normal/Cita ($fixedBodyLines). S'usa per a informes de text
-        # fix com TERMINI.docx.
-        return [pscustomobject]@{
-            IntroText      = $introText
-            Sections       = $sections
-            IsFixedBody    = ($sections.Count -eq 0)
-            FixedBodyLines = $fixedBodyLines.ToArray()
-        }
-    }
-    finally {
-        $doc.Close($false)
-    }
 }
 
 # ----------------------------------------------------------------------------
@@ -1931,104 +1775,6 @@ function Add-FieldsFromConclusions($fields, $selectedConcl, $alwaysConcl) {
     }
 }
 
-function Prompt-Fields {
-    param($fields, $preloadValues = $null)
-    if ($fields.Count -eq 0) { return [pscustomobject]@{ Nav='next'; Data=$fields } }
-
-    # Precarrega valors anteriors (per nom de camp)
-    if ($preloadValues) {
-        foreach ($name in $fields.Keys) {
-            $v = $null
-            if ($preloadValues -is [System.Collections.IDictionary] -and $preloadValues.Contains($name)) {
-                $v = $preloadValues[$name]
-            } elseif ($preloadValues -is [psobject] -and ($preloadValues.PSObject.Properties.Name -contains $name)) {
-                $v = $preloadValues.$name
-            }
-            if ($null -ne $v) { $fields[$name].Value = [string]$v }
-        }
-    }
-
-    $form = _NewForm
-    $form.Text = 'Pas 4 - Omplir camps'
-    $form.StartPosition = 'CenterScreen'
-    $form.AutoScroll = $true
-
-    $y = 15
-    $inputs = @{}   # nom -> control (TextBox o ComboBox)
-    foreach ($name in $fields.Keys) {
-        $f = $fields[$name]
-        $lbl = New-Object System.Windows.Forms.Label
-        $lbl.Text = $name
-        $lbl.Location = New-Object System.Drawing.Point(15, $y)
-        $lbl.Size = New-Object System.Drawing.Size(520, 22)
-        $lbl.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
-        $form.Controls.Add($lbl)
-        $y += 22
-
-        if ($f.Hint) {
-            $hintLbl = New-Object System.Windows.Forms.Label
-            $hintLbl.Text = $f.Hint
-            $hintLbl.Location = New-Object System.Drawing.Point(15, $y)
-            $hintLbl.Size = New-Object System.Drawing.Size(520, 18)
-            $hintLbl.ForeColor = [System.Drawing.Color]::DimGray
-            $form.Controls.Add($hintLbl)
-            $y += 18
-        }
-
-        if ($f.Type -eq 'choice') {
-            # Desplegable (l'usuari nomes pot triar de la llista)
-            $cb = New-Object System.Windows.Forms.ComboBox
-            $cb.Location = New-Object System.Drawing.Point(15, $y)
-            $cb.Size = New-Object System.Drawing.Size(520, 24)
-            $cb.DropDownStyle = 'DropDownList'
-            foreach ($o in $f.Options) { [void]$cb.Items.Add($o) }
-            $idx = if ($f.Value) { $cb.Items.IndexOf([string]$f.Value) } else { -1 }
-            if ($idx -lt 0 -and $cb.Items.Count -gt 0) { $idx = 0 }
-            if ($idx -ge 0) { $cb.SelectedIndex = $idx }
-            $form.Controls.Add($cb)
-            $inputs[$name] = $cb
-        } else {
-            $tb = New-Object System.Windows.Forms.TextBox
-            $tb.Location = New-Object System.Drawing.Point(15, $y)
-            $tb.Size = New-Object System.Drawing.Size(520, 22)
-            $tb.Text = $f.Value
-            $form.Controls.Add($tb)
-            $inputs[$name] = $tb
-        }
-        $y += 32
-    }
-
-    $form.ClientSize = New-Object System.Drawing.Size(560, [Math]::Min(640, ($y + 70)))
-
-    $back = New-Object System.Windows.Forms.Button
-    $back.Text = 'Enrere'
-    $back.Location = New-Object System.Drawing.Point(15, $y)
-    $back.Size = New-Object System.Drawing.Size(90, 28)
-    $back.DialogResult = 'Retry'
-    $form.Controls.Add($back)
-
-    $ok = New-Object System.Windows.Forms.Button
-    $ok.Text = 'Seguent'
-    $ok.Location = New-Object System.Drawing.Point(450, $y)
-    $ok.Size = New-Object System.Drawing.Size(80, 28)
-    $ok.DialogResult = 'OK'
-    $form.AcceptButton = $ok
-    $form.Controls.Add($ok)
-
-    $res = $form.ShowDialog()
-    if ($res -eq 'Retry') { return [pscustomobject]@{ Nav='back' } }
-    if ($res -ne 'OK')    { exit 0 }
-    foreach ($name in $fields.Keys) {
-        $ctrl = $inputs[$name]
-        if ($fields[$name].Type -eq 'choice') {
-            $fields[$name].Value = if ($null -ne $ctrl.SelectedItem) { [string]$ctrl.SelectedItem } else { '' }
-        } else {
-            $fields[$name].Value = $ctrl.Text
-        }
-    }
-    return [pscustomobject]@{ Nav='next'; Data=$fields }
-}
-
 function Apply-Fields($text, $fields) {
     # Primer els desplegables [OPCIO: nom | ...] i despres els [CAMP: ...].
     $out = $Script:OpcioRegex.Replace($text, {
@@ -2229,14 +1975,14 @@ function _RichTextOfBodyLines($bodyLines) {
 #   @{ Text = '<tot el que hi ha abans del primer URL>'; Urls = @(url1, url2...) }
 #
 # Hi ha dues fonts d'URLs reconegudes:
-#   1. Prefix intern '[[URL]] ': el ha posat Parse-Cataleg quan el paragraf
+#   1. Prefix intern '[[URL]] ': l'ha posat el lector del cataleg quan el paragraf
 #      del .docx te estil 'Cita' (manera explicita, recomanada al cataleg
 #      modern). En aquest cas tota la linia es l'URL.
 #   2. Deteccio per contingut: qualsevol token que comenci per 'http://' o
 #      'https://' (retrocompatible amb cataleg vell).
 function _SplitTextAndUrls($line) {
     if ([string]::IsNullOrWhiteSpace($line)) { return @{ Text=''; Urls=@() } }
-    # Cas 1: estil Cita marcat per Parse-Cataleg.
+    # Cas 1: paragraf marcat com a enllac pel lector del cataleg.
     if ($line.StartsWith('[[URL]] ')) {
         $url = $line.Substring('[[URL]] '.Length).Trim()
         return @{ Text=''; Urls=@($url) }
@@ -2256,126 +2002,28 @@ function _SplitTextAndUrls($line) {
 # ----------------------------------------------------------------------------
 # Step 5 - Conclusions
 # ----------------------------------------------------------------------------
-function Read-Conclusions($word, $path, $reportType = $null) {
-    # Llegeix el fitxer 0 CONCLUSIONS.docx i retorna un PSCustomObject amb:
-    #
-    #   HeaderText       : text del titol del document (sol ser 'CONCLUSIONS'),
-    #                      llegit del primer paragraf centrat-negreta. '' si no n'hi ha.
-    #   Selectable       : llista d'objectes triables al Pas 5. Cada element:
-    #                        Title : el titol curt (Ttulo2) que es mostra a la
-    #                                checkbox del Pas 5.
-    #                        Body  : el text complet del cos (paragraf Normal
-    #                                que segueix al Ttulo2) que s'imprimeix
-    #                                si l'usuari el tria.
-    #   Always           : llista de cadenes amb les frases fixes. Son els
-    #                      paragrafs Normal que comencen amb '::SEMPRE:: '
-    #                      (s'inclouen sempre al final del document, sense
-    #                      passar pel Pas 5). El prefix s'elimina.
-    #
-    # Les conclusions depenen del TIPUS D'INFORME. El fitxer s'organitza en grups
-    # (un per tipus d'informe) i $reportType (el BaseName del cataleg: 'REQ1',
-    # 'TERMINI'...) selecciona quin grup es retorna a Selectable:
-    #   - $reportType buit/null  -> es retornen TOTES les conclusions de tots els
-    #                               grups (comportament per a l'export del mobil i
-    #                               compatibilitat).
-    #   - $reportType definit     -> nomes les conclusions del grup que hi coincideix.
-    #
-    # NOTES sobre el format esperat de 0 CONCLUSIONS.docx:
-    #   - Primer paragraf (opcional): titol del bloc (centrat-negreta).
-    #   - Ttulo1 (Heading 1): titol del GRUP = tipus d'informe ('REQ1', 'TERMINI').
-    #   - Per cada conclusio triable del grup: un paragraf Ttulo2 (Heading 2,
-    #     titol curt) + un paragraf Normal (cos).
-    #   - Frases fixes (sempre, per a qualsevol tipus): paragrafs Normal que
-    #     comencen amb '::SEMPRE:: '. S'imprimeixen en l'ordre del fitxer.
-    $empty = [pscustomobject]@{ HeaderText=''; Selectable=@(); Always=@() }
-
-    # Si hi ha un JSON al costat (0 CONCLUSIONS.json), el fem servir (no cal Word).
-    # Fallback segur al .docx si falla.
-    $jsonPath = [System.IO.Path]::ChangeExtension($path, '.json')
-    if (Test-Path -LiteralPath $jsonPath) {
-        try { return (Read-ConclusionsJson $jsonPath $reportType) }
-        catch { Write-Host "Avis: no s'ha pogut llegir '$jsonPath' ($($_.Exception.Message)); es fa servir el .docx." }
+# Llegeix '0 CONCLUSIONS.json' i retorna un PSCustomObject amb:
+#
+#   HeaderText : titol del bloc de conclusions (sol ser 'CONCLUSIONS').
+#   Selectable : conclusions triables al Pas 5. Cada element: { Title; Body }.
+#   Always     : frases fixes (tipus 'sempre'), que hi van sempre al final.
+#
+# Les conclusions depenen del TIPUS D'INFORME: el fitxer s'organitza en seccions
+# (una per tipus) i $reportType (el BaseName del cataleg: 'REQ1', 'TERMINI'...)
+# tria quina secció va a Selectable. Buit -> totes (ho fa servir l'export del
+# mobil).
+#
+# Nomes JSON: igual que Get-ParsedCataleg, aqui hi havia un respatller que obria
+# '0 CONCLUSIONS.docx' amb el Word. Aquell .docx ja no es una font, es una VISTA
+# generada, o sigui que el respatller hauria donat conclusions equivocades sense
+# dir res. Es va treure.
+function Read-Conclusions($path, $reportType = $null) {
+    $jsonPath = if ([System.IO.Path]::GetExtension($path) -ieq '.json') { $path }
+                else { [System.IO.Path]::ChangeExtension($path, '.json') }
+    if (-not (Test-Path -LiteralPath $jsonPath)) {
+        return [pscustomobject]@{ HeaderText=''; Selectable=@(); Always=@() }
     }
-    if (-not (Test-Path -LiteralPath $path)) { return $empty }
-
-    $wantType = if ([string]::IsNullOrWhiteSpace($reportType)) { '' } else { _NormalizeText $reportType }
-
-    $doc = $word.Documents.Open($path, $false, $true)
-    try {
-        $headerText = ''
-        $selectable = New-Object System.Collections.ArrayList
-        $always     = New-Object System.Collections.ArrayList
-        $pendingTitle = $null   # ultim Ttulo2 vist (esperant cos Normal)
-        $inGroup      = ($wantType -eq '')   # dins del grup demanat (o tots si buit)
-        $isFirstPara  = $true
-
-        foreach ($p in $doc.Paragraphs) {
-            $text = $p.Range.Text.TrimEnd("`r","`n","`a"," ")
-            if ([string]::IsNullOrWhiteSpace($text)) { continue }
-
-            $styleName = ''
-            try { $styleName = $p.Style.NameLocal } catch { }
-            $isH1 = Test-StyleMatch $styleName 1
-            $isH2 = Test-StyleMatch $styleName 2
-
-            # Titol del bloc (p.ex. "CONCLUSIONS"): el PRIMER paragraf no buit
-            # que no sigui Titol 1/2. Es tracta SEMPRE com a titol, estigui o no
-            # centrat a la plantilla, perque el titol surti a TOTS els informes
-            # que facin servir conclusions. A la sortida s'emet centrat i en
-            # negreta (Format-ConclusionHeader), aixi que l'aspecte es correcte
-            # encara que la plantilla perdi el centrat.
-            if ($isFirstPara -and -not $isH1 -and -not $isH2) {
-                $isFirstPara = $false
-                $headerText = $text
-                continue
-            }
-            $isFirstPara = $false
-
-            if ($isH1) {
-                # Nou grup (tipus d'informe). Decidim si les conclusions que venen
-                # ara pertanyen al tipus demanat.
-                $inGroup = ($wantType -eq '') -or ((_NormalizeText $text) -eq $wantType)
-                $pendingTitle = $null
-                continue
-            }
-
-            if ($isH2) {
-                # Nou titol de conclusio. Si l'anterior queda sense cos, l'ignorem.
-                $pendingTitle = $text
-                continue
-            }
-
-            # Paragraf Normal:
-            if ($text.StartsWith('::SEMPRE::')) {
-                $stripped = $text.Substring('::SEMPRE::'.Length).Trim()
-                [void]$always.Add($stripped)
-                $pendingTitle = $null
-                continue
-            }
-
-            if ($null -ne $pendingTitle) {
-                # Cos de la conclusio precedida pel Ttulo2. Nomes l'afegim si
-                # pertany al grup (tipus d'informe) demanat.
-                if ($inGroup) {
-                    [void]$selectable.Add([pscustomobject]@{
-                        Title = $pendingTitle
-                        Body  = $text
-                    })
-                }
-                $pendingTitle = $null
-            }
-            # Si no hi havia titol pendent ni '::SEMPRE::', ignorem (text
-            # de transicio sense rol clar).
-        }
-
-        return [pscustomobject]@{
-            HeaderText = $headerText
-            Selectable = $selectable.ToArray()
-            Always     = $always.ToArray()
-        }
-    } finally {
-        $doc.Close($false)
-    }
+    return (Read-ConclusionsJson $jsonPath $reportType)
 }
 
 function Select-Conclusions {
@@ -2926,7 +2574,7 @@ function Build-Document($word, $header, $selectedSections, $fields, $conclusions
 # ma). Necessita Word, com el flux normal, pero es 100% no interactiu.
 #
 # Clau del disseny: REAPROFITA el mateix motor que el flux normal
-# (Parse-Cataleg, Read-Conclusions, Build-Document). Nomes canvia QUI omple les
+# (Get-ParsedCataleg, Read-Conclusions, Build-Document). Nomes canvia QUI omple les
 # dades: en comptes dels dialegs WinForms, surten del paquet. Les tres funcions
 # Build-*FromPaquet son PURES (sense Word/UI) i es proven als tests.
 # ============================================================================
@@ -3080,7 +2728,7 @@ function Invoke-GenerateFromPaquet($paquetPath) {
 
     $word = New-WordApp
     try {
-        $parsed   = Get-ParsedCataleg -word $word -path $catPath
+        $parsed   = Get-ParsedCataleg -path $catPath
         $selected = Build-SelectionFromKeys $parsed.Sections $selectedKeys
         # Els informes de cos fix (p.ex. TERMINI) no seleccionen deficiencies:
         # nomes els que tenen seccions exigeixen alguna seleccio valida.
@@ -3088,7 +2736,7 @@ function Invoke-GenerateFromPaquet($paquetPath) {
             throw "El paquet no selecciona cap deficiencia valida per al cataleg '$catName'."
         }
 
-        $conclAll    = Read-Conclusions -word $word -path $ConclusionsPath -reportType $catName
+        $conclAll    = Read-Conclusions -path $ConclusionsPath -reportType $catName
         $conclusions = Build-ConclusionsFromTitles $conclAll.Selectable $conclusionTitles
         $fields      = Build-FieldsFromPaquet $selected $conclusions $conclAll.Always $fieldValues
 
@@ -3211,7 +2859,7 @@ function Invoke-NouWizard {
                     # arrenquem Word (diferit) i parsegem ara (amb cache).
                     if ($null -eq $st.Parsed) {
                         if ($null -eq $word) { $word = New-WordApp }
-                        $st.Parsed = Get-ParsedCataleg -word $word -path $st.Cataleg.FullName
+                        $st.Parsed = Get-ParsedCataleg -path $st.Cataleg.FullName
                     }
                     if ($st.Parsed.IsFixedBody) {
                         # Informe de cos fix (p.ex. TERMINI): no hi ha
@@ -3242,7 +2890,7 @@ function Invoke-NouWizard {
                         # Les conclusions triables depenen del tipus d'informe
                         # (BaseName del cataleg: REQ1, TERMINI...).
                         if ($null -eq $word) { $word = New-WordApp }
-                        $st.ConclAll = Read-Conclusions -word $word -path $ConclusionsPath -reportType $st.Cataleg.BaseName
+                        $st.ConclAll = Read-Conclusions -path $ConclusionsPath -reportType $st.Cataleg.BaseName
                     }
                     if ($st.ConclAll.Selectable.Count -eq 0) {
                         # No hi ha conclusions triables: saltem el pas.

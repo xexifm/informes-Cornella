@@ -29,7 +29,7 @@
   Si no s'indica cap dels dos, s'exporten totes dues coses.
 
 .NOTES
-  Reutilitza les funcions de GenerarInforme.ps1 (Parse-Cataleg, Read-Conclusions,
+  Reutilitza les funcions de GenerarInforme.ps1 (Get-ParsedCataleg, Read-Conclusions,
   Initialize-ActivitatsCache...) carregant-lo en mode headless. Necessita Word
   instal·lat (i Excel per a -Activitats).
 #>
@@ -63,7 +63,7 @@ if (-not $Plantilles -and -not $Activitats) {
 # /docs). $RepoRoot el defineix GenerarInforme.ps1 (arrel del clone).
 $WebDadesDir = Join-Path $RepoRoot (Join-Path 'docs' 'dades')
 
-# Converteix un element del cataleg (de Parse-Cataleg) en un objecte
+# Converteix un element del cataleg (de Get-ParsedCataleg) en un objecte
 # JSON-friendly (arrays plans en lloc d'ArrayList), preservant
 # Kind/Short/BodyLines/Children. Les BodyLines es deixen TAL QUAL (amb els
 # marcadors [[URL]] i els placeholders [CAMP:]/[OPCIO:]): el formulari web les
@@ -95,11 +95,11 @@ function Export-Plantilles {
     try {
         $catalegs = @(Get-Catalegs)
         if ($catalegs.Count -eq 0) {
-            Write-Host "  (cap cataleg REQ*.docx trobat a $EstructuralsDir)"
+            Write-Host "  (cap cataleg .json trobat a $EstructuralsDir)"
         }
         $catNames = @()
         foreach ($cat in $catalegs) {
-            $parsed = Get-ParsedCataleg -word $word -path $cat.FullName
+            $parsed = Get-ParsedCataleg -path $cat.FullName
             # El mobil NOMES gestiona informes amb deficiencies a triar (REQ1).
             # Els informes de cos fix (p.ex. TERMINI) NO van al formulari web.
             if ($parsed.IsFixedBody) {
@@ -124,7 +124,7 @@ function Export-Plantilles {
         }
 
         # Conclusions: NOMES les dels tipus d'informe exportats al mobil. Cada
-        # tipus te el seu grup a 0 CONCLUSIONS.docx; ajuntem els grups dels
+        # tipus te la seva seccio a 0 CONCLUSIONS.json; ajuntem les seccions dels
         # catalegs exportats (dedup per titol). Aixi el mobil no veu mai les
         # conclusions d'un tipus que no ofereix (p.ex. TERMINI). Les frases
         # ::SEMPRE:: son globals (iguals per a tots els tipus).
@@ -133,7 +133,7 @@ function Export-Plantilles {
         $conclAlways = @()
         $seenTitles  = @{}
         foreach ($t in $catNames) {
-            $c = Read-Conclusions -word $word -path $ConclusionsPath -reportType $t
+            $c = Read-Conclusions -path $ConclusionsPath -reportType $t
             if ([string]::IsNullOrEmpty($conclHeader)) { $conclHeader = $c.HeaderText }
             if ($conclAlways.Count -eq 0)              { $conclAlways = @($c.Always) }
             foreach ($s in $c.Selectable) {

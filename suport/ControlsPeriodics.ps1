@@ -554,8 +554,8 @@ function Invoke-GenerarControlsPeriodics($rows) {
         try { $word.AutomationSecurity = 1 } catch { }
 
         # Cataleg REQ1 (una sola vegada) + conclusio "Requeriment" (grup REQ1).
-        $parsed      = Get-ParsedCataleg -word $word -path $catPath
-        $conclAll    = Read-Conclusions -word $word -path $ConclusionsPath -reportType 'REQ1'
+        $parsed      = Get-ParsedCataleg -path $catPath
+        $conclAll    = Read-Conclusions -path $ConclusionsPath -reportType 'REQ1'
         $conclusions = Build-ConclusionsFromTitles $conclAll.Selectable @('Requeriment')
 
         $done = 0

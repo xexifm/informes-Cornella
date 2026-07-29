@@ -1,89 +1,77 @@
 #requires -Version 5.1
 <#
 .SYNOPSIS
-  Comprova els enllacos (URLs) d'un cataleg .docx i avisa dels que estan CAIGUTS.
+  Comprova els enllacos (URLs) dels catalegs i avisa dels que estan CAIGUTS.
 
 .DESCRIPTION
-  Llegeix un .docx (per defecte ESTRUCTURALS\REQ1.docx), n'extreu tots els
-  enllaces (estil Cita, text amb http i hipervincles incrustats) i fa una
+  Llegeix els catalegs .json d'ESTRUCTURALS, n'extreu tots els enllacos i fa una
   peticio a cadascun per saber si responen. Marca en VERD els que van be i en
-  VERMELL els que estan CAIGUTS (codi 4xx/5xx o sense resposta), i al final fa
-  un resum dels caiguts.
+  VERMELL els que estan CAIGUTS (codi 4xx/5xx o sense resposta), i al final en
+  fa un resum.
 
-  NO necessita Word: llegeix el .docx com un ZIP (XML intern). Si nomes hi ha
-  Windows PowerShell 5.1, funciona igual.
+  Llegeix el JSON, que es la FONT DE VERITAT dels catalegs. Abans obria el .docx
+  com un ZIP i en treia els hipervincles i el text visible; els .docx ja no son
+  catalegs (son vistes generades), i al JSON els enllacos ja venen marcats amb
+  "url": true, o sigui que no cal endevinar res.
 
-.PARAMETER Docx
-  Ruta del .docx a comprovar. Si no s'indica, s'usa ESTRUCTURALS\REQ1.docx.
-  Es pot passar 'all' per comprovar TOTS els catalegs REQ*.docx d'ESTRUCTURALS.
+.PARAMETER Cataleg
+  Nom o ruta del cataleg a comprovar. Sense valor, es comproven TOTS els
+  catalegs d'ESTRUCTURALS (els .json que no comencen per "0 ").
 
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File suport\Comprova-Enllacos.ps1
-  powershell -ExecutionPolicy Bypass -File suport\Comprova-Enllacos.ps1 all
-  powershell -ExecutionPolicy Bypass -File suport\Comprova-Enllacos.ps1 "C:\ruta\REQ2.docx"
+  powershell -ExecutionPolicy Bypass -File suport\Comprova-Enllacos.ps1 REQ1
 #>
 
-param([string]$Docx)
+param([string]$Cataleg)
 
 $ScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RepoRoot   = Split-Path -Parent $ScriptRoot
 $EstructDir = Join-Path $RepoRoot 'ESTRUCTURALS'
 
-# Decideix quins fitxers comprovar.
+# Decideix quins catalegs comprovar.
 $targets = @()
-if ([string]::IsNullOrWhiteSpace($Docx)) {
-    $targets = @(Join-Path $EstructDir 'REQ1.docx')
-} elseif ($Docx -eq 'all') {
-    $targets = @(Get-ChildItem -LiteralPath $EstructDir -Filter '*.docx' -ErrorAction SilentlyContinue |
+if ([string]::IsNullOrWhiteSpace($Cataleg)) {
+    $targets = @(Get-ChildItem -LiteralPath $EstructDir -Filter '*.json' -ErrorAction SilentlyContinue |
         Where-Object { $_.Name -notlike '0 *' -and -not $_.Name.StartsWith('~$') } |
         Sort-Object Name | ForEach-Object { $_.FullName })
+} elseif (Test-Path -LiteralPath $Cataleg) {
+    $targets = @((Resolve-Path -LiteralPath $Cataleg).Path)
 } else {
-    $targets = @($Docx)
+    # Nom curt ('REQ1'): el busquem a ESTRUCTURALS.
+    $n = if ([System.IO.Path]::GetExtension($Cataleg) -ieq '.json') { $Cataleg } else { "$Cataleg.json" }
+    $targets = @(Join-Path $EstructDir $n)
 }
 if ($targets.Count -eq 0) { Write-Host "No s'ha trobat cap cataleg a comprovar." -ForegroundColor Red; exit 1 }
 
-# Extreu els URLs d'un .docx (sense Word). Agafa nomes els enllacos REALS:
-#   1) els hipervincles (relacions amb Type '...hyperlink'),
-#   2) els URLs escrits com a TEXT visible (REQ1 posa l'URL en estil Cita).
-# NO agafa els URLs dels espais de noms XML (schemas.openxmlformats.org...),
-# que no son enllacos de contingut.
-function _ReadZipEntryText($zip, [string]$name) {
-    $entry = $zip.GetEntry($name); if (-not $entry) { return $null }
-    $sr = New-Object System.IO.StreamReader($entry.Open())
-    $txt = $sr.ReadToEnd(); $sr.Close(); return $txt
-}
-function Get-DocxUrls([string]$path) {
-    Add-Type -AssemblyName System.IO.Compression.FileSystem | Out-Null
+# Tots els URLs d'un cataleg .json, en ordre i sense repetits. Els paragrafs
+# d'enllac venen marcats amb "url": true; per si de cas, tambe s'accepta un
+# http(s) escrit dins del text d'un paragraf normal.
+function Get-CatalegUrls([string]$path) {
     $urls = New-Object System.Collections.Generic.List[string]
     $add = {
         param($u)
         if ([string]::IsNullOrWhiteSpace($u)) { return }
-        $u = ([string]$u).Trim().TrimEnd('.',',',';',')')
+        $u = ([string]$u).Trim().TrimEnd('.', ',', ';', ')')
         if ($u -match '^https?://' -and -not $urls.Contains($u)) { [void]$urls.Add($u) }
     }
-    $zip = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path -LiteralPath $path))
-    try {
-        # 1) Hipervincles (word/_rels/document.xml.rels)
-        $relsTxt = _ReadZipEntryText $zip 'word/_rels/document.xml.rels'
-        if ($relsTxt) {
-            try {
-                [xml]$rels = $relsTxt
-                foreach ($rel in $rels.Relationships.Relationship) {
-                    if (([string]$rel.Type) -like '*hyperlink*') { & $add $rel.Target }
-                }
-            } catch { }
-        }
-        # 2) URLs escrits com a text visible (contingut de <w:t>)
-        $docTxt = _ReadZipEntryText $zip 'word/document.xml'
-        if ($docTxt) {
-            $sb = New-Object System.Text.StringBuilder
-            foreach ($m in [regex]::Matches($docTxt, '(?s)<w:t[^>]*>(.*?)</w:t>')) {
-                [void]$sb.Append($m.Groups[1].Value).Append(' ')
+    $o = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
+    # Recorregut en profunditat: cada node pot tenir 'cos' (paragrafs) i 'fills'.
+    $visita = {
+        param($nodes)
+        foreach ($n in @($nodes)) {
+            foreach ($par in @($n.cos)) {
+                $txt = -join (@($par.runs) | ForEach-Object { [string]$_.t })
+                foreach ($m in [regex]::Matches($txt, 'https?://[^\s"<>\]\)]+')) { & $add $m.Value }
             }
-            $visible = [System.Net.WebUtility]::HtmlDecode($sb.ToString())
-            foreach ($m in [regex]::Matches($visible, 'https?://[^\s"<>\]\)]+')) { & $add $m.Value }
+            if ($n.fills) { & $visita $n.fills }
         }
-    } finally { $zip.Dispose() }
+    }
+    & $visita $o.nodes
+    foreach ($par in @($o.intro)) {
+        $txt = -join (@($par.runs) | ForEach-Object { [string]$_.t })
+        foreach ($m in [regex]::Matches($txt, 'https?://[^\s"<>\]\)]+')) { & $add $m.Value }
+    }
     return $urls
 }
 
@@ -95,7 +83,7 @@ $totalCaiguts = @()
 
 foreach ($t in $targets) {
     if (-not (Test-Path -LiteralPath $t)) { Write-Host "No trobo: $t" -ForegroundColor Red; continue }
-    $urls = Get-DocxUrls $t
+    $urls = Get-CatalegUrls $t
     Write-Host ("`n===== {0}  ({1} enllacos) =====" -f (Split-Path -Leaf $t), $urls.Count) -ForegroundColor Cyan
     foreach ($u in $urls) {
         $code = $null; $ok = $false

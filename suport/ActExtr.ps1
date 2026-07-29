@@ -39,7 +39,7 @@
   de proves). Les funcions PURES (logica del Decret, model, parseig de
   plantilla, inclusio de blocs) son testejables a Linux sense Word.
 
-  Reutilitza de GenerarInforme.ps1 / Format.ps1: _NormalizeText, Test-StyleMatch,
+  Reutilitza de GenerarInforme.ps1 / Format.ps1: _NormalizeText,
   _SplitTextAndUrls, _ResolveOutputDir, _GetUniqueOutputPath, Apply-HeaderReplacements,
   _OpenOutputDocument, les funcions Format-* i $ReportFormatConfig.
 
@@ -401,7 +401,7 @@ function Get-ActExtrDeficiencies($decret, $computed, $delivered) {
 # Parseig de plantilla ACT_EXTR (mateix format que REQ1)
 # ----------------------------------------------------------------------------
 # Les plantilles ACT_EXTR_*.docx segueixen les MATEIXES convencions d'estil que
-# REQ1.docx perque siguin igual de comodes d'editar al Word:
+# REQ1 perque siguin igual de comodes d'editar a l'editor de catalegs:
 #   - Titol 1 (Heading 1): titol de SECCIO. Nomes organitza el document; NO surt
 #     a l'informe (a l'informe no hi ha titols de seccio).
 #   - Titol 2 (Heading 2): obre un BLOC. El text es "[[KEY]] <tipus?> <titol>".
@@ -633,51 +633,22 @@ function Get-ActExtrActivityEstat($decret, $computed, $delivered) {
 # ----------------------------------------------------------------------------
 # Lectura de la plantilla amb Word (COM) -> registres de paragraf
 # ----------------------------------------------------------------------------
-# Llegeix una plantilla ACT_EXTR (.docx) i en treu els blocs keyed. Detecta
-# l'estil de render de cada paragraf:
-#   - 'Cita'/'Quote' o contingut http -> 'url'
-#   - 'List Paragraph'/'Parrafo de lista'/'Llista...' -> 'list'
-#   - altrament -> 'normal'
-function Parse-ActExtrTemplate($word, $path) {
-    # Si hi ha un JSON al costat (format estandard unic: nodes seccio/bloc amb
-    # cos en "runs"), el fem servir (no cal Word): en reconstruim els records
-    # ordenats i els passem al mateix Build-ActExtrBlocks. Fallback segur al
-    # .docx si falla.
-    $jsonPath = [System.IO.Path]::ChangeExtension($path, '.json')
-    if (Test-Path -LiteralPath $jsonPath) {
-        try {
-            $records = Read-ActExtrRecordsJson $jsonPath
-            return (Build-ActExtrBlocks $records)
-        } catch {
-            Write-Host "Avis: no s'ha pogut llegir '$jsonPath' ($($_.Exception.Message)); es fa servir el .docx."
-        }
+# Llegeix una plantilla ACT_EXTR i en treu els blocs keyed.
+#
+# Nomes JSON (format estandard unic: nodes seccio/bloc amb el cos en "runs").
+# Aqui hi havia un respatller que obria el .docx amb el Word i el parsejava pels
+# estils; es va treure perque ACT_EXTR_REQ.docx / ACT_EXTR_FAV.docx ja no son
+# fonts, son VISTES generades des dels JSON (VistaWord.ps1). El respatller no
+# hauria fallat: hauria llegit la vista i hauria compost un informe
+# silenciosament equivocat.
+function Parse-ActExtrTemplate($path) {
+    $jsonPath = if ([System.IO.Path]::GetExtension($path) -ieq '.json') { $path }
+                else { [System.IO.Path]::ChangeExtension($path, '.json') }
+    if (-not (Test-Path -LiteralPath $jsonPath)) {
+        throw "No s'ha trobat la plantilla ACT_EXTR: $jsonPath"
     }
-    if (-not (Test-Path -LiteralPath $path)) {
-        throw "No s'ha trobat la plantilla ACT_EXTR: $path"
-    }
-    $doc = $word.Documents.Open($path, $false, $true)  # ReadOnly
-    try {
-        $records = New-Object System.Collections.ArrayList
-        foreach ($p in $doc.Paragraphs) {
-            $text = $p.Range.Text.TrimEnd("`r","`n","`a"," ")
-            if ([string]::IsNullOrWhiteSpace($text)) {
-                [void]$records.Add(@{ Text=''; Style='normal' })
-                continue
-            }
-            $styleName = ''
-            try { $styleName = $p.Style.NameLocal } catch { }
-            $style = 'normal'
-            if     (Test-StyleMatch $styleName 1) { $style = 'h1' }
-            elseif (Test-StyleMatch $styleName 2) { $style = 'h2' }
-            elseif ($styleName -match '^(Cita|Cite|Quote|Cita destacada|Quote intense)$') { $style = 'url' }
-            # Fallback: una linia que es nomes un URL es tracta com a 'url'.
-            if ($style -eq 'normal' -and $text.Trim() -match '^https?://') { $style = 'url' }
-            [void]$records.Add(@{ Text=$text; Style=$style })
-        }
-        return (Build-ActExtrBlocks $records)
-    } finally {
-        $doc.Close($false)
-    }
+    $records = Read-ActExtrRecordsJson $jsonPath
+    return (Build-ActExtrBlocks $records)
 }
 
 # ----------------------------------------------------------------------------
@@ -838,7 +809,7 @@ function Build-ActExtrDocument($word, $header, $decret, $delivered, $mode) {
     $ctx = @{ Decret=$decret; Computed=$computed; Delivered=$delivered; StatusByKey=$statusByKey; DefKeys=$defKeys }
 
     $tplPath = if ($mode -eq 'fav') { $script:ActExtrFavTemplate } else { $script:ActExtrReqTemplate }
-    $blocks  = Parse-ActExtrTemplate $word $tplPath
+    $blocks  = Parse-ActExtrTemplate $tplPath
 
     $tipus = if ($mode -eq 'fav') { 'Fav' } else { 'Req' }
     $gia = if ($header -is [System.Collections.IDictionary]) { [string]$header['ID_GIA'] } else { [string]$header.ID_GIA }

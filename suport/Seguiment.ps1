@@ -23,7 +23,7 @@
     3. Triar el primer paragraf de conclusions a esborrar (manual).
     4. Introduir la data de la ronda (per defecte, avui).
     5. Per cada requeriment: comentari nou + checkbox "Resolt".
-    6. Triar conclusions (de 0 CONCLUSIONS.docx) i omplir camps.
+    6. Triar conclusions (de 0 CONCLUSIONS.json) i omplir camps.
     7. Editar el XML: esborrar conclusions -> inserir anotacions -> recalcular
        negreta -> afegir conclusions -> desar a un .docx nou.
 
@@ -37,7 +37,7 @@
   mode headless de proves). Les funcions pures i les de manipulacio XML son
   testejables a Linux (sense Word); nomes els dialegs WinForms necessiten Windows.
 
-  Reutilitza de GenerarInforme.ps1: _NormalizeText, Test-StyleMatch,
+  Reutilitza de GenerarInforme.ps1: _NormalizeText,
   Apply-Fields, Select-Conclusions (amb camps inline), Get-FieldValuesForSession,
   _ResolveOutputDir, _GetUniqueOutputPath.
 #>
@@ -855,96 +855,6 @@ function _AppendConclusionParagraphsXml($xmlInfo, $headerText, $conclusions, $al
     }
 }
 
-# Llegeix 0 CONCLUSIONS.docx via XML (equivalent a Read-Conclusions pero sense
-# Word). Retorna { HeaderText; Selectable=@({Title;Body}); Always }.
-# Dedueix el tipus d'informe (REQ1, TERMINI...) a partir del nom d'un informe
-# generat. El motor anomena els fitxers "YYYY-MM-DD_<Tipus>_GIA <id>.docx"
-# (vegeu _GetOutputFileName), aixi que el tipus es el 2n segment separat per '_'.
-# Retorna '' si no es pot deduir (llavors s'ofereixen totes les conclusions).
-function _ReportTypeFromFileName($fileName) {
-    if ([string]::IsNullOrWhiteSpace($fileName)) { return '' }
-    $stem  = [System.IO.Path]::GetFileNameWithoutExtension([string]$fileName)
-    $parts = $stem -split '_'
-    if ($parts.Count -ge 2) { return $parts[1].Trim() }
-    return ''
-}
-
-function Read-ConclusionsXml($path, $reportType = $null) {
-    # Versio XML (sense Word) de Read-Conclusions. Mateixa semantica, incloent
-    # els grups per tipus d'informe: Ttulo1 (Heading 1) = tipus d'informe,
-    # Ttulo2 (Heading 2) = titol de conclusio triable. $reportType buit/null
-    # retorna TOTES les conclusions (de tots els grups).
-    $empty = [pscustomobject]@{ HeaderText=''; Selectable=@(); Always=@() }
-
-    # La FONT DE VERITAT es el JSON. Si la ruta ja es un .json (ara $ConclusionsPath
-    # apunta a '0 CONCLUSIONS.json') o n'hi ha un al costat del .docx, el llegim
-    # directament: no cal ni Word ni obrir el .docx com a ZIP.
-    $jsonPath = [System.IO.Path]::ChangeExtension($path, '.json')
-    if (Test-Path -LiteralPath $jsonPath) {
-        try { return (Read-ConclusionsJson $jsonPath $reportType) }
-        catch { Write-Host "Avis: no s'ha pogut llegir '$jsonPath' ($($_.Exception.Message))." }
-    }
-    if (-not (Test-Path -LiteralPath $path)) { return $empty }
-
-    $xmlInfo   = _LoadDocxXml $path
-    $ns        = $xmlInfo.Ns
-    $bodyParas = @(_BodyParagraphsXml $xmlInfo)
-
-    $wantType = if ([string]::IsNullOrWhiteSpace($reportType)) { '' } else { _NormalizeText $reportType }
-
-    $headerText   = ''
-    $selectable   = New-Object System.Collections.ArrayList
-    $always       = New-Object System.Collections.ArrayList
-    $pendingTitle = $null
-    $inGroup      = ($wantType -eq '')
-    $isFirst      = $true
-
-    foreach ($p in $bodyParas) {
-        $text = (_ParagraphTextXml $p $ns).TrimEnd("`r","`n","`t"," ")
-        if ([string]::IsNullOrWhiteSpace($text)) { continue }
-
-        $styleVal = ''
-        $pStyle = $p.SelectSingleNode('w:pPr/w:pStyle', $ns)
-        if ($null -ne $pStyle) { $styleVal = $pStyle.GetAttribute('val', $Script:WNS) }
-        $isH1 = Test-StyleMatch $styleVal 1
-        $isH2 = Test-StyleMatch $styleVal 2
-
-        # Titol del bloc (p.ex. "CONCLUSIONS"): el PRIMER paragraf no buit que no
-        # sigui Titol 1/2 es SEMPRE el titol, estigui centrat o no (aixi el titol
-        # surt tambe als informes de seguiment). S'emet centrat i en negreta.
-        if ($isFirst -and -not $isH1 -and -not $isH2) {
-            $isFirst = $false
-            $headerText = $text; continue
-        }
-        $isFirst = $false
-
-        if ($isH1) {
-            # Nou grup (tipus d'informe).
-            $inGroup = ($wantType -eq '') -or ((_NormalizeText $text) -eq $wantType)
-            $pendingTitle = $null
-            continue
-        }
-        if ($isH2) { $pendingTitle = $text; continue }
-
-        if ($text.StartsWith('::SEMPRE::')) {
-            [void]$always.Add($text.Substring('::SEMPRE::'.Length).Trim())
-            $pendingTitle = $null
-            continue
-        }
-        if ($null -ne $pendingTitle) {
-            if ($inGroup) {
-                [void]$selectable.Add([pscustomobject]@{ Title=$pendingTitle; Body=$text })
-            }
-            $pendingTitle = $null
-        }
-    }
-
-    return [pscustomobject]@{
-        HeaderText = $headerText
-        Selectable = $selectable.ToArray()
-        Always     = $always.ToArray()
-    }
-}
 
 # Transforma el XML carregat (en memoria, sense E/S): esborra conclusions,
 # insereix anotacions, recalcula negreta i afegeix les conclusions noves.
@@ -1054,7 +964,7 @@ function _LastRunText($jsonPath, $prop) {
 # Per a 'nou', Cataleg es el .docx triat (ja no cal un segon pas de tria).
 # Tancar la finestra (X) avorta (exit 0).
 function Select-Mode {
-    # Catalegs disponibles a ESTRUCTURALS (REQ*.docx, TERMINI.docx...). Es
+    # Catalegs disponibles a ESTRUCTURALS (REQ1.json, TERMINI.json...). Es
     # descobreixen sols; els noms amics dels coneguts es defineixen mes avall.
     $catalegs = @(Get-Catalegs)
     $byName = @{}
@@ -1749,10 +1659,10 @@ function Invoke-SeguimentFlow {
         if ($null -eq $cut) { return }
         $conclusionStartIndex = [int]$cut.StartIndex
 
-        # Al fer un SEGUIMENT, les conclusions triables son les del grup
-        # "SEGUIMENT" de 0 CONCLUSIONS.docx (Titol 1 = grup, Titol 2 = conclusio),
-        # independentment del tipus de l'informe original.
-        $conclAll = Read-ConclusionsXml $ConclusionsPath 'SEGUIMENT'
+        # Al fer un SEGUIMENT, les conclusions triables son les de la seccio
+        # "SEGUIMENT" de '0 CONCLUSIONS.json', independentment del tipus de
+        # l'informe original.
+        $conclAll = Read-ConclusionsJson $ConclusionsPath 'SEGUIMENT'
 
         # Maquina de passos: 1=data, 2=comentaris, 3=conclusions (amb camps
         # inline). Les opcions/camps de les conclusions s'omplen dins del propi
