@@ -197,20 +197,27 @@ function Start-RutaTool {
 # %LOCALAPPDATA% (fora del repo) i les posa Authorize-Drive.ps1.
 . (Join-Path $ScriptRoot 'DriveApi.ps1')
 
-# ESTRUCTURALS viu a l'arrel del clone (al costat dels .bat), no dins
-# de suport/, per facilitar que l'usuari edita les plantilles.
+# ESTRUCTURALS viu a l'arrel del clone (al costat dels .bat), no dins de
+# suport/. Hi ha NOMES LES FONTS dels catalegs: els .json (que edita l'editor de
+# catalegs) i '0 CAPCALERA.docx', l'unica plantilla de Word de veritat. Les
+# vistes en Word dels catalegs son derivades i viuen a local\vistes-catalegs\.
 $EstructuralsDir = Join-Path $RepoRoot 'ESTRUCTURALS'
 $HeaderPath      = Join-Path $EstructuralsDir '0 CAPCALERA.docx'
 $ConclusionsPath = Join-Path $EstructuralsDir '0 CONCLUSIONS.json'
+
+# Carpeta 'local\': TOT el que es d'aquest ordinador i no va al repositori.
+# Defineix Get-LocalSubdir (les rutes) i Invoke-MigracioLocal (que hi mou el que
+# abans estava escampat per l'arrel). Es carrega aqui perque les linies de sota
+# ja en necessiten les rutes.
+. (Join-Path $ScriptRoot 'Migracio.ps1')
 
 # ----------------------------------------------------------------------------
 # Configuracio per defecte. Es pot sobreescriure des de config.ps1 (opcional)
 # al costat del .ps1 (dins de suport/).
 # ----------------------------------------------------------------------------
-# OutputDir per defecte: 'Informes generats' AL COSTAT DEL CLONE (no dins
-# de suport/), per quedar al nivell que l'usuari veu i pot obrir amb el
-# Word sense entrar a carpetes internes. El .gitignore l'exclou.
-$OutputDir              = Join-Path $RepoRoot 'Informes generats'
+# OutputDir per defecte: local\informes-generats\, dins del clone pero fora del
+# repositori (local\ s'ignora sencera). Es pot canviar a la Configuracio.
+$OutputDir              = Get-LocalSubdir $RepoRoot 'Informes'
 $ActivitatsDir          = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\2_Controls Excels'
 $AlwaysConclusionsCount = 2
 
@@ -292,7 +299,7 @@ $Script:DefaultCopiaInformesDir = $CopiaInformesDir
 # $RutesOutputDir no el fa servir aquest script (nomes rutes/Ruta.ps1), pero
 # es mostra/edita des de la mateixa pantalla de Configuracio: el calculem amb
 # el mateix valor per defecte que fa servir Ruta.ps1.
-$Script:DefaultRutesOutputDir = Join-Path $RepoRoot 'Rutes generades'
+$Script:DefaultRutesOutputDir = Get-LocalSubdir $RepoRoot 'Rutes'
 
 $Script:AppSettings = Load-AppSettings
 $InformesDir      = _ResolveEffectiveValue $AppSettings.InformesDir      $InformesDir
@@ -300,6 +307,13 @@ $ActivitatsDir    = _ResolveEffectiveValue $AppSettings.ActivitatsDir    $Activi
 $OutputDir        = _ResolveEffectiveValue $AppSettings.OutputDir        $OutputDir
 $DriveBaseDir     = _ResolveEffectiveValue $AppSettings.DriveBaseDir     $DriveBaseDir
 $CopiaInformesDir = _ResolveEffectiveValue $AppSettings.CopiaInformesDir $CopiaInformesDir
+
+# Endrec de la carpeta 'local': si encara hi ha les carpetes velles a l'arrel
+# del clone (o vistes .docx a ESTRUCTURALS), s'hi mouen. Va DESPRES de carregar
+# el settings.json perque, si l'usuari hi tenia desada una ruta antiga, es pugui
+# reescriure. Es idempotent i molt barat: si ja esta fet, nomes son uns quants
+# Test-Path. En headless no cal (els tests no volen tocar el disc del clone).
+if (-not $Script:HeadlessTest) { [void](Invoke-MigracioLocal $RepoRoot) }
 
 # Carreguem el modul ACT_EXTR (ActExtr.ps1): mode "Activitats extraordinaries"
 # (Decret 112/2010). Es carrega DESPRES de $RepoRoot, $EstructuralsDir i del
@@ -515,7 +529,7 @@ $Script:ActivitatsColumns = @(
 # a aquesta carpeta i el programa la fara servir com a fallback. La carpeta
 # es queda al clone (existeix amb un .gitkeep); els .xls/.xlsx de dins NO
 # es pugen (estan al .gitignore).
-$LocalActivitatsDir = Join-Path $RepoRoot 'BASE DE DADES ACTIVITATS'
+$LocalActivitatsDir = Get-LocalSubdir $RepoRoot 'Activitats'
 
 # Cerca el fitxer 'YYYY-MM-DD ACTIVITATS.xls/xlsx' mes recent en una carpeta.
 # Retorna $null si no se'n troba cap.
@@ -1100,7 +1114,7 @@ function Get-HeaderData {
             "  1. $ActivitatsDir`n" +
             "  2. $LocalActivitatsDir  (fallback local)`n`n" +
             "Si estas fora de la feina, copia una base de dades a la carpeta`n" +
-            "'BASE DE DADES ACTIVITATS' dins de la carpeta del programa.",
+            "'local\base-dades-activitats' dins de la carpeta del programa.",
             'Base de dades no trobada', 'OK', 'Error') | Out-Null
         exit 1
     }
@@ -2298,7 +2312,7 @@ function _GetUniqueOutputPath($targetDir, $baseFileName) {
 }
 
 # Determina el directori de sortida: l'$OutputDir si es accessible, en cas
-# contrari una subcarpeta 'Informes generats' a l'arrel del clone (al
+# contrari local\informes-generats\ (al
 # costat dels .bat).
 function _ResolveOutputDir {
     $targetDir = $OutputDir
@@ -2308,7 +2322,7 @@ function _ResolveOutputDir {
         }
         return $targetDir
     } catch {
-        $local = Join-Path $RepoRoot 'Informes generats'
+        $local = Get-LocalSubdir $RepoRoot 'Informes'
         if (-not (Test-Path -LiteralPath $local)) {
             New-Item -ItemType Directory -Path $local -Force | Out-Null
         }

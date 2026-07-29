@@ -31,9 +31,17 @@
 # FUNCIONS PURES (testejables)
 # ----------------------------------------------------------------------------
 
-# Ruta del .docx de la vista d'un cataleg (mateixa carpeta i nom, .docx).
-function _VistaWordPathFor([string]$jsonPath) {
-    return [System.IO.Path]::ChangeExtension($jsonPath, '.docx')
+# Ruta del .docx de la vista d'un cataleg: MATEIX NOM, pero a
+# local\vistes-catalegs\ (i no al costat del .json). Les vistes son DERIVADES:
+# es regeneren soles i no es pugen. Aixi ESTRUCTURALS es queda nomes amb les
+# FONTS (els .json + '0 CAPCALERA.docx') i no es barregen font i derivat.
+#
+# $dir permet dir on han d'anar (les proves hi passen una carpeta temporal);
+# buit -> local\vistes-catalegs\ del clone.
+function _VistaWordPathFor([string]$jsonPath, [string]$dir = '') {
+    $nom = [System.IO.Path]::GetFileNameWithoutExtension([string]$jsonPath) + '.docx'
+    $d = if ([string]::IsNullOrWhiteSpace($dir)) { Get-LocalSubdir $RepoRoot 'Vistes' } else { $dir }
+    return (Join-Path $d $nom)
 }
 
 # '0 CAPCALERA' es una plantilla de VERITAT: no se n'ha de generar mai cap vista
@@ -288,6 +296,11 @@ function Export-VistaWord($word, [string]$jsonPath) {
     $familia = [string]$o.familia
     $nom = [System.IO.Path]::GetFileNameWithoutExtension($jsonPath)
     $out = _VistaWordPathFor $jsonPath
+    # La carpeta de les vistes pot no existir encara (clone acabat de baixar).
+    $outDir = Split-Path -Parent $out
+    if (-not (Test-Path -LiteralPath $outDir)) {
+        New-Item -ItemType Directory -Path $outDir -Force | Out-Null
+    }
 
     $doc = $word.Documents.Add()
     try {

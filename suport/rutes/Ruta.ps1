@@ -67,11 +67,16 @@ if (-not $Script:HeadlessTest) {
 # ----------------------------------------------------------------------------
 # Carpeta on viu l'Excel d'activitats a la xarxa de la feina.
 $ActivitatsDir = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\2_Controls Excels'
-# Carpeta on es desen els mapes de ruta generats (a l'arrel del clone, fora
-# de suport/, perque l'usuari els trobi facilment). Ignorada per git. Es fa
-# servir un nom propi ($RutesOutputDir, no $OutputDir) per NO barrejar-se amb
-# la carpeta d'informes .docx que comparteix config.ps1 amb GenerarInforme.
-$RutesOutputDir = Join-Path $RepoRoot 'Rutes generades'
+# Carpeta on es desen els mapes de ruta generats: local\rutes-generades\ (dins
+# del clone pero fora del repositori; 'local' s'ignora sencera). Es fa servir un
+# nom propi ($RutesOutputDir, no $OutputDir) per NO barrejar-se amb la carpeta
+# d'informes .docx que comparteix config.ps1 amb GenerarInforme.
+#
+# Migracio.ps1 nomes defineix funcions (Get-LocalSubdir), aixi que es pot
+# carregar aqui sense arrossegar el motor: Ruta.ps1 s'executa en un proces
+# PROPI i no carrega Motor.ps1.
+. (Join-Path $SuportDir 'Migracio.ps1')
+$RutesOutputDir = Get-LocalSubdir $RepoRoot 'Rutes'
 # Servidor de rutes OSRM. Per defecte el servidor public de demostracio
 # (router.project-osrm.org). NOMES s'hi envien coordenades (mai noms ni
 # adreces). Si tens un OSRM propi, posa la seva URL base a config.ps1:
@@ -109,9 +114,12 @@ $Script:AppSettings = Load-AppSettings
 $ActivitatsDir  = _ResolveEffectiveValue $AppSettings.ActivitatsDir  $ActivitatsDir
 $RutesOutputDir = _ResolveEffectiveValue $AppSettings.RutesOutputDir $RutesOutputDir
 
-# Carpeta local de fallback (mateixa que fa servir GenerarInforme): si no hi
-# ha xarxa de la feina, s'agafa l'Excel mes recent d'aqui.
-$LocalActivitatsDir = Join-Path $RepoRoot 'BASE DE DADES ACTIVITATS'
+# Carpeta local de fallback (LA MATEIXA que fa servir GenerarInforme): si no hi
+# ha xarxa de la feina, s'agafa l'Excel mes recent d'aqui. La ruta surt de
+# Get-LocalSubdir (Migracio.ps1), que es l'unic lloc on estan escrits els noms
+# de les subcarpetes de 'local': abans aquesta linia repetia el nom literal i
+# era l'unica duplicacio de tot el projecte.
+$LocalActivitatsDir = Get-LocalSubdir $RepoRoot 'Activitats'
 
 # Mapeig de columnes (1-based) de la fulla "Estes"/"Estès" que necessitem.
 $Script:RutaColumns = @{

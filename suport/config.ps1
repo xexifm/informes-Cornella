@@ -8,8 +8,8 @@
 # el valor aqui. Aquest fitxer no es comparteix entre maquines.
 
 # Ruta on s'han de desar els informes generats. Per defecte el script els
-# desa a la subcarpeta 'Informes generats' a l'arrel del clone (al costat
-# dels .bat). Si vols una ruta absoluta diferent, descomenta:
+# desa a local\informes-generats\ (dins del clone pero fora del repositori).
+# Si vols una ruta absoluta diferent, descomenta:
 #
 # $OutputDir = 'D:\Informes\Sortida'
 
@@ -19,7 +19,7 @@ $ActivitatsDir = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\2_Contro
 
 # Carpeta ARREL dels informes ja generats. La fa servir el boto "Actualitzar
 # base d'informes" del menu, que la recorre i escriu
-# BASE DE DADES ACTIVITATS\informes-db.json (ID GIA + data + conclusio per
+# local\base-dades-activitats\informes-db.json (ID GIA + data + conclusio per
 # informe, agrupat per activitat). Per defecte es la germana de $ActivitatsDir:
 # ...\5.- Sergi Fadurdo\Informes. Descomenta si la tens en una altra ubicacio:
 #
@@ -42,7 +42,7 @@ $ActivitatsDir = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\2_Contro
 # $OsrmBaseUrl = 'http://localhost:5000'
 #
 # Carpeta on es desen els mapes de ruta generats (HTML que pots imprimir a
-# PDF). Per defecte 'Rutes generades' a l'arrel del clone (ignorada per git).
+# PDF). Per defecte local\rutes-generades\ (dins del clone, fora del repositori).
 #
 # $RutesOutputDir = 'D:\Rutes'
 #

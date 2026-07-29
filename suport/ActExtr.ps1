@@ -51,12 +51,12 @@
 # ----------------------------------------------------------------------------
 # Localitzacio del registre local (JSON, ignorat per git)
 # ----------------------------------------------------------------------------
-# Per defecte, una carpeta 'BASE DE DADES ACT_EXTR' a l'arrel del clone (al
-# costat de 'BASE DE DADES ACTIVITATS'). El .json de dins NO es puja (gitignore).
+# Per defecte, local\base-dades-actextr\ (dins del clone pero fora del
+# repositori: 'local' s'ignora sencera).
 # Es pot sobreescriure $script:ActExtrRegistryDir des de config.ps1 o des dels
 # tests. $RepoRoot el defineix GenerarInforme.ps1 abans de carregar aquest fitxer.
 if (-not $script:ActExtrRegistryDir) {
-    $script:ActExtrRegistryDir = if ($RepoRoot) { Join-Path $RepoRoot 'BASE DE DADES ACT_EXTR' } else { 'BASE DE DADES ACT_EXTR' }
+    $script:ActExtrRegistryDir = if ($RepoRoot) { Get-LocalSubdir $RepoRoot 'ActExtr' } else { 'base-dades-actextr' }
 }
 $script:ActExtrRegistryFile = 'activitats-extraordinaries.json'
 

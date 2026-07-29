@@ -1389,7 +1389,8 @@ $argvLlarg = @('sign', '-i', 'a.pdf', '-config', ('x=' + ('A' * 40000)))
 AssertEq ([bool]((_ArgvToCommandLine $argvLlarg).Length -gt $Script:MaxCommandLine)) $true '_ArgvToCommandLine: es pot mesurar si una ordre no hi cabria'
 
 Write-Host "`n--- VistaWord.ps1: vistes en Word dels catalegs (des dels JSON) ---"
-AssertEq (_VistaWordPathFor 'C:\E\REQ1.json') 'C:\E\REQ1.docx' '_VistaWordPathFor: mateix nom, .docx'
+AssertEq (_VistaWordPathFor 'C:\E\REQ1.json' 'C:\L\vistes') 'C:\L\vistes\REQ1.docx' "_VistaWordPathFor: mateix nom, .docx, a la carpeta de vistes"
+AssertEq (_VistaWordPathFor 'C:\E\0 CONCLUSIONS.json' 'C:\L\v') 'C:\L\v\0 CONCLUSIONS.docx' '_VistaWordPathFor: respecta els espais del nom'
 AssertEq ([bool](_VistaEsProtegit 'C:\E\0 CAPCALERA.json')) $true '_VistaEsProtegit: 0 CAPCALERA no es toca mai'
 AssertEq ([bool](_VistaEsProtegit 'C:\E\REQ1.json')) $false '_VistaEsProtegit: la resta si'
 AssertEq (_VistaActExtrTitol '[[INCENDIS]] Incendis') 'Incendis  [INCENDIS]' '_VistaActExtrTitol: etiqueta + clau'
@@ -1410,12 +1411,33 @@ AssertEq ($Script:ReportFormatConfig.BaseLineSpacing) 1.15 'Format: interlineat 
 AssertEq ([math]::Round($Script:ReportFormatConfig.PageMarginLeftPt, 2)) 85.05 'Format: marge esquerre = 1701 twips de la plantilla'
 AssertEq ([bool](Get-Command Format-ApplyBaseStyle -ErrorAction SilentlyContinue)) $true 'Format-ApplyBaseStyle existeix (l''apliquen les vistes)'
 
+Write-Host "`n--- Migracio.ps1: carpeta 'local' ---"
+# Rutes: totes pengen de local\ i el nom de cada subcarpeta viu NOMES aqui
+# (abans Ruta.ps1 repetia 'BASE DE DADES ACTIVITATS' pel seu compte).
+AssertEq (Get-LocalDir 'C:\clone') 'C:\clone\local' 'Get-LocalDir: local a l''arrel del clone'
+AssertEq (Get-LocalSubdir 'C:\clone' 'Informes')   'C:\clone\local\informes-generats'      'Get-LocalSubdir: informes generats'
+AssertEq (Get-LocalSubdir 'C:\clone' 'Rutes')      'C:\clone\local\rutes-generades'        'Get-LocalSubdir: mapes de ruta'
+AssertEq (Get-LocalSubdir 'C:\clone' 'Activitats') 'C:\clone\local\base-dades-activitats'  'Get-LocalSubdir: base de dades d''activitats'
+AssertEq (Get-LocalSubdir 'C:\clone' 'ActExtr')    'C:\clone\local\base-dades-actextr'     'Get-LocalSubdir: registre ACT_EXTR'
+AssertEq (Get-LocalSubdir 'C:\clone' 'Vistes')     'C:\clone\local\vistes-catalegs'        'Get-LocalSubdir: vistes en Word'
+$errClau = $false
+try { [void](Get-LocalSubdir 'C:\clone' 'NoExisteix') } catch { $errClau = $true }
+AssertEq $errClau $true 'Get-LocalSubdir: una clau desconeguda peta (no retorna una ruta inventada)'
+# Migracions: les 4 carpetes velles de l'arrel, cadascuna al seu lloc nou.
+$migs = @(Get-MigracionsLocal 'C:\clone')
+AssertEq $migs.Count 4 'Get-MigracionsLocal: 4 carpetes a moure'
+AssertEq ([bool]($migs[0] -is [pscustomobject])) $true 'Get-MigracionsLocal: retorna un array PLA (no la llista sencera)'
+$vells = @($migs | ForEach-Object { Split-Path -Leaf $_.Origen })
+AssertEq ($vells -join '|') 'Informes generats|Rutes generades|BASE DE DADES ACTIVITATS|BASE DE DADES ACT_EXTR' 'Get-MigracionsLocal: origens = les carpetes velles de l''arrel'
+AssertEq $migs[2].Desti 'C:\clone\local\base-dades-activitats' 'Get-MigracionsLocal: desti dins de local'
+AssertEq ([bool](@($migs | Where-Object { $_.Origen -like '*ESTRUCTURALS*' }).Count -eq 0)) $true 'Get-MigracionsLocal: ESTRUCTURALS no es mou (les vistes van a part)'
+
 Write-Host "`n--- SincronitzaCatalegs.ps1: protegir els catalegs en actualitzar ---"
 # No el carrega Motor.ps1 (l'executa Actualitzar.bat pel seu compte); el
 # dot-sourcegem aqui. El $env:GENINFORME_TEST fa que nomes en surtin definicions.
 . (Join-Path (Split-Path -Parent $PSScriptRoot) 'SincronitzaCatalegs.ps1')
 AssertEq ([bool](_CatalegEsProtegible 'ESTRUCTURALS/REQ1.json')) $true '_CatalegEsProtegible: cataleg json'
-AssertEq ([bool](_CatalegEsProtegible 'ESTRUCTURALS/REQ1.docx')) $true '_CatalegEsProtegible: plantilla docx'
+AssertEq ([bool](_CatalegEsProtegible 'ESTRUCTURALS/0 CAPCALERA.docx')) $true '_CatalegEsProtegible: la plantilla de la capcalera'
 AssertEq ([bool](_CatalegEsProtegible 'docs/dades/email-textos.json')) $true '_CatalegEsProtegible: dades del mobil'
 AssertEq ([bool](_CatalegEsProtegible 'ESTRUCTURALS/REQ1.json.bak')) $false '_CatalegEsProtegible: els .bak de l''editor NO'
 AssertEq ([bool](_CatalegEsProtegible 'suport/Motor.ps1')) $false '_CatalegEsProtegible: el codi NO'

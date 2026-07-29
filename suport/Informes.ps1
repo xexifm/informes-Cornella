@@ -18,7 +18,7 @@
       pero l'informe queda marcat "ignorat" PER DEFECTE (nomes la primera
       vegada; l'usuari pot desmarcar-ho des de l'editor) perque son clausules
       molt semblants entre informes diferents.
-  Ho desa AGRUPAT PER ACTIVITAT a BASE DE DADES ACTIVITATS\informes-db.json
+  Ho desa AGRUPAT PER ACTIVITAT a local\base-dades-activitats\informes-db.json
   (carpeta ignorada per git). Els informes que no es poden resoldre del tot
   van a un bloc "a_revisar".
 

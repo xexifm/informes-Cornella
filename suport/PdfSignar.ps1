@@ -398,7 +398,7 @@ function _CarpetaInformesGenerats {
         }
     } catch { }
     try {
-        $local = Join-Path $RepoRoot 'Informes generats'
+        $local = Get-LocalSubdir $RepoRoot 'Informes'
         if (Test-Path -LiteralPath $local) { return [string]$local }
     } catch { }
     return ''

@@ -1,6 +1,6 @@
 @echo off
 REM Actualitza el generador d'informes Cornella.
-REM - Si tens canvis locals a ESTRUCTURALS\*.docx (plantilles), els puja a GitHub.
+REM - Si tens canvis locals als CATALEGS (ESTRUCTURALS\*.json), els puja a GitHub.
 REM - Si tens canvis a codi (.ps1, .bat) els guarda al stash com a copia de
 REM   seguretat i continua. No es perden mai.
 REM - Sempre acaba a 'main' amb l'ultim commit i mostra resultat.
@@ -65,9 +65,9 @@ if errorlevel 1 (
     goto :ERROR
 )
 
-REM --- 2. Hi ha canvis als CATALEGS/plantilles d'ESTRUCTURALS ? Els pugem ---
+REM --- 2. Hi ha canvis als CATALEGS d'ESTRUCTURALS ? Els pugem ---
 REM    (codi ps1/bat NO el pujem mai des d'aqui: el toca Claude o tu via PR)
-REM ESTRUCTURALS conte les plantilles .docx I ELS CATALEGS .json (els que escriu
+REM ESTRUCTURALS conte els CATALEGS .json (els que escriu
 REM l'editor "Editar catalegs"). ATENCIO: abans aqui nomes es feia
 REM 'git add ESTRUCTURALS/*.docx'; els .json quedaven bruts, se'ls enduia el
 REM 'git stash' del pas 3 i la feina de l'usuari DESAPAREIXIA del programa. Ara
@@ -93,15 +93,15 @@ if not exist "ESTRUCTURALS\0 CAPCALERA.docx" (
 )
 
 if "%PLANTILLES_CANVIADES%"=="1" (
-    echo Detectats canvis locals als catalegs/plantilles ESTRUCTURALS.
+    echo Detectats canvis locals als catalegs d'ESTRUCTURALS.
     echo Regenerant les dades del mobil ^(docs\dades^) des dels catalegs...
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0suport\mobil\ExportaDades.ps1" -Plantilles
     if errorlevel 1 (
         echo  Avis: no s'han pogut regenerar les dades del mobil ^(Word obert o no instal·lat?^). Continuo igualment.
     )
-    echo Pujant catalegs, plantilles i dades del mobil a GitHub...
-    git add "ESTRUCTURALS/*.docx" "ESTRUCTURALS/*.json" "docs/dades/*.json"
-    git -c user.name="Generador d'informes" -c user.email="generador@local" commit -m "Catalegs, plantilles i dades del mobil actualitzats des de Actualitzar.bat"
+    echo Pujant catalegs i dades del mobil a GitHub...
+    git add "ESTRUCTURALS/*.json" "docs/dades/*.json"
+    git -c user.name="Generador d'informes" -c user.email="generador@local" commit -m "Catalegs i dades del mobil actualitzats des de Actualitzar.bat"
     if errorlevel 1 (
         echo  No hi havia res a commitejar o el commit ha fallat. Continuo.
     )
@@ -193,6 +193,14 @@ if errorlevel 1 (
     git reset --hard origin/main
 )
 
+REM --- 4a. Endrecar la carpeta 'local' ---
+REM    Si vens d'una versio antiga, les carpetes locals encara son a l'arrel
+REM    del clone ('Informes generats', 'BASE DE DADES ACTIVITATS'...) i les
+REM    vistes en Word encara son a ESTRUCTURALS. Aixo ho mou tot a 'local\'.
+REM    Va DESPRES del pull (abans no existiria ni el Migracio.ps1) i es
+REM    idempotent: si ja esta fet, no fa res.
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command ". '%~dp0suport\Migracio.ps1'; [void](Invoke-MigracioLocal)"
+
 REM --- 4b. Tornar a aplicar els catalegs de l'usuari (PREVALEN) ---
 REM    Despres del pull, els catalegs que hagin baixat es substitueixen pels que
 REM    tenia l'usuari (copia del pas 2). Aixi la seva feina mai no es perd, ni
@@ -204,8 +212,9 @@ if "%PROTEGITS_CANVIATS%"=="1" (
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0suport\SincronitzaCatalegs.ps1" -Fase Restore
 )
 
-REM Les VISTES en Word dels catalegs es regeneren des dels JSON (els .docx
-REM d'ESTRUCTURALS ja no serveixen per generar: nomes son per consultar).
+REM Les VISTES en Word dels catalegs es regeneren des dels JSON i van a
+REM local\vistes-catalegs\ (son derivades: no es pugen, nomes serveixen per
+REM llegir un cataleg sencer sense obrir el programa).
 REM IMPORTANT: aixo va DESPRES del pull, no abans. Si es feia abans, es generaven
 REM amb la versio ANTIGA del programa i un canvi de format de les vistes no
 REM arribava mai (calia executar Actualitzar.bat dos cops).
@@ -213,11 +222,12 @@ echo.
 echo Actualitzant les vistes en Word dels catalegs...
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0suport\GeneraVistes.ps1"
 
-REM Pugem el que hagi quedat: catalegs de l'usuari i/o vistes regenerades.
-git add "ESTRUCTURALS/*.docx" "ESTRUCTURALS/*.json" "docs/dades/*.json"
-git -c user.name="Generador d'informes" -c user.email="generador@local" commit -m "Catalegs i vistes actualitzats des de Actualitzar.bat"
+REM Pugem el que hagi quedat: els catalegs de l'usuari (les vistes ja no, que
+REM ara son locals i no es pugen).
+git add "ESTRUCTURALS/*.json" "docs/dades/*.json"
+git -c user.name="Generador d'informes" -c user.email="generador@local" commit -m "Catalegs actualitzats des de Actualitzar.bat"
 if errorlevel 1 (
-    echo  Els catalegs i les vistes ja estaven al dia ^(res a commitejar^).
+    echo  Els catalegs ja estaven al dia ^(res a commitejar^).
 )
 
 REM --- 5. Pujar a GitHub si el 'main' local va per davant de l'origin ---
