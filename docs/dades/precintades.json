@@ -1,8 +1,8 @@
 {
-    "GeneratedAt":  "2026-07-28T10:33:53.1388385+02:00",
-    "Font":  "2026-07-28 ACTIVITATS.xls",
-    "SourceDate":  "2026-07-28",
-    "Comptador":  19,
+    "GeneratedAt":  "2026-07-30T14:07:41.1335325+02:00",
+    "Font":  "2026-07-30 ACTIVITATS.xls",
+    "SourceDate":  "2026-07-30",
+    "Comptador":  21,
     "Activitats":  [
                        {
                            "id":  "1369",
@@ -33,6 +33,20 @@
                            "lon":  2.0817535776861691
                        },
                        {
+                           "id":  "996",
+                           "activitat":  "BAR",
+                           "adreca":  "C FLORIDA (LA) 38",
+                           "lat":  41.357191621560929,
+                           "lon":  2.0752075170536646
+                       },
+                       {
+                           "id":  "907",
+                           "activitat":  "BAR RESTAURANT",
+                           "adreca":  "PL PAU 4",
+                           "lat":  41.3510468408845,
+                           "lon":  2.0855750309950931
+                       },
+                       {
                            "id":  "776",
                            "activitat":  "BAR RESTAURANT",
                            "adreca":  "C RAMONEDA 34",
@@ -45,6 +59,20 @@
                            "adreca":  "C VISTALEGRE 40",
                            "lat":  41.36217355577017,
                            "lon":  2.0753598414585244
+                       },
+                       {
+                           "id":  "660",
+                           "activitat":  "BAR RESTAURANT",
+                           "adreca":  "C SANT JERONI 21",
+                           "lat":  41.351284806411087,
+                           "lon":  2.0741500038243221
+                       },
+                       {
+                           "id":  "659",
+                           "activitat":  "",
+                           "adreca":  "C FRANCESC MORAGAS 1",
+                           "lat":  41.351511959962792,
+                           "lon":  2.074920801741718
                        },
                        {
                            "id":  "641",
@@ -89,13 +117,6 @@
                            "lon":  2.0880451500898416
                        },
                        {
-                           "id":  "181",
-                           "activitat":  "GIMNÀS",
-                           "adreca":  "C TRAVESSERA 24",
-                           "lat":  41.365123867558992,
-                           "lon":  2.0791102897334777
-                       },
-                       {
                            "id":  "122",
                            "activitat":  "COMERÇ AL DETALL DE VEHICLES",
                            "adreca":  "CTRA PRAT 77",
@@ -115,13 +136,6 @@
                            "adreca":  "C RAMONEDA 69",
                            "lat":  41.362590491992641,
                            "lon":  2.0779390550922447
-                       },
-                       {
-                           "id":  "56",
-                           "activitat":  "RESTAURANT",
-                           "adreca":  "C RUBIO I ORS 1",
-                           "lat":  41.3561635811889,
-                           "lon":  2.0669152956312002
                        },
                        {
                            "id":  "34",
