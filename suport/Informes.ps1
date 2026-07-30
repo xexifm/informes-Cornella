@@ -215,7 +215,38 @@ $Script:ConclusioBreuOpcions = @(
 # una activitat esta requerida per decret / precintada. La comprovacio es fa
 # sobre el NOM del camp (normalitzat, sense accents/majuscules; el '?' es
 # conserva) i, a mes, el VALOR ha de comencar per "SI".
-$Script:ExcelPrecinteCampNoms = @('requerit per decret?', 'precinte?')
+#
+# ATENCIO: han de ser els noms EXACTES de les columnes de l'Excel. Aqui hi deia
+# 'precinte?' quan a l'Excel el camp es 'PRECINTE ACTIVITAT?', i el resultat era
+# que activitats correctament marcades sortien com a DESACTUALITZADES. La
+# comparacio es exacta a proposit (un 'comenca per precinte' agafaria coses com
+# 'PRECINTE AIXECAT?', que voldria dir justament el contrari). Per aixo el
+# llistat del final del resum diu QUINS camps d'aquesta familia hi ha de debo a
+# l'Excel: si algun dia es tornen a reanomenar, es veu de seguida.
+$Script:ExcelPrecinteCampNoms = @('requerit per decret?', 'precinte activitat?')
+
+# Etiqueta per als missatges: els noms de dalt, en majuscules i entre cometes.
+function _ExcelPrecinteCampsText {
+    return (($Script:ExcelPrecinteCampNoms | ForEach-Object { "'" + $_.ToUpperInvariant() + "'" }) -join ' o ')
+}
+
+# Camps "Camp Info" de l'Excel que parlen de precinte o de decret, siguin els
+# que busquem o no. Serveix per DIAGNOSTICAR un canvi de nom: si el camp bo
+# passa a dir-se d'una altra manera, aqui es veura. Funcio PURA.
+#   $map = la taula GIA -> llista de @{ Nom; Valor } de _ReadExcelCampInfoPerGia.
+function _ExcelCampsPrecinteTrobats($map) {
+    $vistos = New-Object System.Collections.ArrayList
+    if ($null -eq $map) { return $vistos.ToArray() }
+    foreach ($gia in $map.Keys) {
+        foreach ($p in @($map[$gia])) {
+            $nom = [string]$p.Nom
+            $n = _NormalizeText $nom
+            if ($n -notmatch 'precinte|decret') { continue }
+            if (-not $vistos.Contains($nom)) { [void]$vistos.Add($nom) }
+        }
+    }
+    return (@($vistos.ToArray()) | Sort-Object)
+}
 
 # PURA i testejable. $pairs = llista de @{ Nom; Valor } (els Camp Info d'una fila
 # de l'Excel). Retorna $true si algun te el Nom entre els objectius I el Valor
@@ -1530,14 +1561,14 @@ function Invoke-ComprovarExcel {
 
     if ($desact.Count -eq 0 -and $noTrob.Count -eq 0 -and $senseGia.Count -eq 0) {
         [System.Windows.Forms.MessageBox]::Show(
-            ("L'Excel està al dia.`n`nTotes les {0} activitats en Estat 'Precinte / Cessament' tenen a l'Excel un Camp Info 'REQUERIT PER DECRET?' o 'PRECINTE?' amb valor SI." -f $targets.Count),
+            ("L'Excel està al dia.`n`nTotes les {0} activitats en Estat 'Precinte / Cessament' tenen a l'Excel un Camp Info {1} amb valor SI." -f $targets.Count, (_ExcelPrecinteCampsText)),
             'Comprovar Excel', 'OK', 'Information') | Out-Null
         return
     }
 
     $sb = New-Object System.Text.StringBuilder
     [void]$sb.AppendLine(("Activitats en Estat 'Precinte / Cessament' a la base d'informes: {0}" -f $targets.Count))
-    [void]$sb.AppendLine("Criteri: a l'Excel han de tenir un Camp Info 'REQUERIT PER DECRET?' o 'PRECINTE?' amb valor que comenci per SI.")
+    [void]$sb.AppendLine(("Criteri: a l'Excel han de tenir un Camp Info {0} amb valor que comenci per SI." -f (_ExcelPrecinteCampsText)))
     [void]$sb.AppendLine("")
     if ($desact.Count -gt 0) {
         [void]$sb.AppendLine(("DESACTUALITZADES a l'Excel (sense el Camp Info amb SI): {0}" -f $desact.Count))
@@ -1552,6 +1583,20 @@ function Invoke-ComprovarExcel {
     if ($senseGia.Count -gt 0) {
         [void]$sb.AppendLine(("NO verificables (activitat sense GIA a la base d'informes): {0}" -f $senseGia.Count))
         foreach ($l in $senseGia) { [void]$sb.AppendLine($l) }
+        [void]$sb.AppendLine("")
+    }
+
+    # DIAGNOSTIC: quins camps d'aquesta familia hi ha DE DEBO a l'Excel. Si algun
+    # dia es reanomenen (va passar: 'PRECINTE?' -> 'PRECINTE ACTIVITAT?') el
+    # criteri deixa de trobar-los i tot surt com a desactualitzat; aixi es veu de
+    # seguida en lloc d'haver-ho d'endevinar.
+    $campsExcel = @(_ExcelCampsPrecinteTrobats $map)
+    if ($campsExcel.Count -gt 0) {
+        [void]$sb.AppendLine("Camps de l'Excel que parlen de precinte o decret (per si s'han reanomenat):")
+        foreach ($c in $campsExcel) {
+            $marca = if ($Script:ExcelPrecinteCampNoms -contains (_NormalizeText $c)) { '  <-- es el que es comprova' } else { '' }
+            [void]$sb.AppendLine("     - " + $c + $marca)
+        }
     }
 
     _ShowResultatWindow "Comprovació de l'Excel" "Activitats precintades pendents d'actualitzar a l'Excel" ($sb.ToString())

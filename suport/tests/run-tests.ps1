@@ -1075,15 +1075,35 @@ AssertEq (_ConclusioBreu "Un cop feta la recepcio del requeriment, caldra esmena
 AssertEq (_ConclusioBreu "Vist l${ap}anterior, s${ap}inicia d${ap}ofici el procediment d${ap}esmena, disposant d${ap}un termini d${ap}un mes per a esmenar els defectes constatats.") 'Requeriment' '_ConclusioBreu procediment d''esmena -> Requeriment (nou)'
 AssertEq (_ConclusioBreu 'Aquest text no conte cap de les formules reconegudes.') 'Revisar' '_ConclusioBreu text no reconegut -> Revisar'
 
-Write-Host "`n--- Informes.ps1: _ExcelActivitatActualitzada (Camp Info REQUERIT PER DECRET? / PRECINTE? amb SI) ---"
-AssertEq (_ExcelActivitatActualitzada @(@{ Nom='PRECINTE?'; Valor='SI, requerit' })) $true '_ExcelActivitatActualitzada PRECINTE? + SI -> true'
+Write-Host "`n--- Informes.ps1: _ExcelActivitatActualitzada (Camp Info REQUERIT PER DECRET? / PRECINTE ACTIVITAT? amb SI) ---"
+# El camp de l'Excel es 'PRECINTE ACTIVITAT?'. Aqui hi havia una prova que
+# assegurava justament el contrari ('PRECINTE ACTIVITAT?' -> false) i per aixo el
+# criteri equivocat va sobreviure: activitats ben marcades sortien com a
+# desactualitzades. Les proves han de dir el que ha de passar, no el que passa.
+AssertEq (_ExcelActivitatActualitzada @(@{ Nom='PRECINTE ACTIVITAT?'; Valor='SI' })) $true '_ExcelActivitatActualitzada PRECINTE ACTIVITAT? + SI -> true'
+AssertEq (_ExcelActivitatActualitzada @(@{ Nom='precinte activitat?'; Valor='si, des del 2022' })) $true '_ExcelActivitatActualitzada: el nom i el valor no distingeixen majuscules'
 AssertEq (_ExcelActivitatActualitzada @(@{ Nom='REQUERIT PER DECRET?'; Valor='Si' })) $true '_ExcelActivitatActualitzada REQUERIT PER DECRET? + Si -> true'
-AssertEq (_ExcelActivitatActualitzada @(@{ Nom='PRECINTE?'; Valor='NO' })) $false '_ExcelActivitatActualitzada PRECINTE? + NO -> false'
+AssertEq (_ExcelActivitatActualitzada @(@{ Nom='PRECINTE ACTIVITAT?'; Valor='NO' })) $false '_ExcelActivitatActualitzada PRECINTE ACTIVITAT? + NO -> false'
+AssertEq (_ExcelActivitatActualitzada @(@{ Nom='PRECINTE ACTIVITAT?'; Valor='' })) $false '_ExcelActivitatActualitzada valor buit -> false'
 AssertEq (_ExcelActivitatActualitzada @(@{ Nom='ALTRA COSA?'; Valor='SI' })) $false '_ExcelActivitatActualitzada nom no objectiu -> false'
-AssertEq (_ExcelActivitatActualitzada @(@{ Nom='PRECINTE ACTIVITAT?'; Valor='SI' })) $false '_ExcelActivitatActualitzada "PRECINTE ACTIVITAT?" (nom diferent) -> false'
-AssertEq (_ExcelActivitatActualitzada @(@{ Nom='X?'; Valor='' }, @{ Nom='PRECINTE?'; Valor='SI' })) $true '_ExcelActivitatActualitzada algun parell valid entre varis -> true'
+# La comparacio es EXACTA a proposit: un "comenca per precinte" agafaria
+# 'PRECINTE AIXECAT?', que voldria dir exactament el contrari.
+AssertEq (_ExcelActivitatActualitzada @(@{ Nom='PRECINTE AIXECAT?'; Valor='SI' })) $false '_ExcelActivitatActualitzada: PRECINTE AIXECAT? NO val (voldria dir el contrari)'
+AssertEq (_ExcelActivitatActualitzada @(@{ Nom='PRECINTE?'; Valor='SI' })) $false '_ExcelActivitatActualitzada: PRECINTE? sol ja no existeix a l''Excel'
+AssertEq (_ExcelActivitatActualitzada @(@{ Nom='X?'; Valor='' }, @{ Nom='PRECINTE ACTIVITAT?'; Valor='SI' })) $true '_ExcelActivitatActualitzada algun parell valid entre varis -> true'
 AssertEq (_ExcelActivitatActualitzada @()) $false '_ExcelActivitatActualitzada sense parells -> false'
 AssertEq (_ExcelActivitatActualitzada $null) $false '_ExcelActivitatActualitzada null -> false'
+# Diagnostic: quins camps de la familia hi ha a l'Excel (per veure un canvi de nom).
+$mapDiag = @{
+    '10' = @(@{ Nom='PRECINTE ACTIVITAT?'; Valor='SI' }, @{ Nom='AFORAMENT'; Valor='120' })
+    '20' = @(@{ Nom='REQUERIT PER DECRET?'; Valor='NO' }, @{ Nom='PRECINTE AIXECAT?'; Valor='SI' })
+    '30' = @(@{ Nom='PRECINTE ACTIVITAT?'; Valor='NO' })
+}
+$campsDiag = @(_ExcelCampsPrecinteTrobats $mapDiag)
+AssertEq ($campsDiag -join ' | ') 'PRECINTE ACTIVITAT? | PRECINTE AIXECAT? | REQUERIT PER DECRET?' '_ExcelCampsPrecinteTrobats: els de precinte/decret, sense repetits i ordenats'
+AssertEq (@(_ExcelCampsPrecinteTrobats $null).Count) 0 '_ExcelCampsPrecinteTrobats null -> buit'
+AssertEq (@(_ExcelCampsPrecinteTrobats @{ '1' = @(@{ Nom='AFORAMENT'; Valor='10' }) }).Count) 0 '_ExcelCampsPrecinteTrobats: ignora els camps que no parlen de precinte ni decret'
+AssertEq (_ExcelPrecinteCampsText) "'REQUERIT PER DECRET?' o 'PRECINTE ACTIVITAT?'" '_ExcelPrecinteCampsText: etiqueta dels missatges, treta de la mateixa llista'
 
 Write-Host "`n--- Informes.ps1: _FindCampInfoPairs (localitza parells Nom/Valor dels Camp Info) ---"
 $hdrCI = @('ID Activitat','Camp Info 1 - Nom','Camp Info 1 - Valor','Camp Info 2 - Nom','Camp Info 2 - Unitat','Camp Info 2 - Valor')
