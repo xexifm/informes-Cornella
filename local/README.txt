@@ -25,7 +25,10 @@ base-dades-activitats\  La teva copia de l'Excel d'activitats, per treballar
                         te acces, agafa el mes recent d'aqui i t'ho indica al
                         Pas 2 amb l'etiqueta [FALLBACK LOCAL] en taronja.
                         Aqui tambe hi ha el registre de l'eina "Word a PDF"
-                        (pdf-signar-log.txt i pdf-signar-state.json).
+                        (pdf-signar-log.txt i pdf-signar-state.json) i
+                        eines-state.json, que nomes guarda l'ultima vegada que
+                        s'ha fet servir cada eina (es el que surt en petit sota
+                        cada boto del menu).
 
 base-dades-actextr\     El registre de les activitats extraordinaries
                         (Decret 112/2010) que portes amb el mode ACT_EXTR:

@@ -47,6 +47,15 @@ function Main {
             'nou'        { [void](Invoke-NouWizard -cataleg $sel.Cataleg) }
             default      { return }
         }
+        # Segell d'ultima execucio de les EINES, en un sol lloc per a totes: quan
+        # l'eina torna, s'apunta la data al registre i el menu la mostra sota la
+        # seva rajola. Els tipus d'informe i les pantalles de sistema no en porten
+        # ($Script:AccionsSenseSegell, a Seguiment.ps1). Una rajola NOVA hi entra
+        # sola, sense tocar cap llista.
+        if (-not [string]::IsNullOrWhiteSpace([string]$sel.Action) -and
+            [string]$sel.Action -notin $Script:AccionsSenseSegell) {
+            _MarcaEinaUsada ([string]$sel.Action)
+        }
         # ...i es torna a mostrar el menu (Pas 1).
     }
 }

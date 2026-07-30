@@ -147,6 +147,13 @@ aquell estat, perquè puguis actualitzar l'Excel.
 - **📋 Editar base d'informes**, **📥 Revisar entrades del mòbil**,
   **⏱ Controls periòdics**, **Activitats extraordinàries**.
 
+### Sota cada eina, quan la vas fer servir
+
+A totes les eines del menú hi surt, en gris i lletra petita, **l'última vegada
+que la vas obrir** (o `(mai)`). Serveix per no haver de recordar si ja havies
+passat, per exemple, el *Comprovar Excel* aquesta setmana. Es desa a
+`local/base-dades-activitats/eines-state.json` i no es puja mai.
+
 ---
 
 ## 4. Editar els catàlegs

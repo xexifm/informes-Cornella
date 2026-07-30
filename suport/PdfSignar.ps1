@@ -106,6 +106,15 @@ function _ResolveCaixetiDate([string]$caixeti, [datetime]$ara) {
 # Reprodueix l'aspecte "CERTIFICAT SENSE DNI": una línia per fila, alineades a
 # l'esquerra, sobre fons blanc. Només Windows (System.Drawing); si peta, retorna
 # '' i el crider passa al mode de text.
+#
+# NO LA CRIDIS FORA DE WINDOWS: el guard ha d'anar al CRIDADOR (vegeu
+# _AutoFirmaVisibleExtraParams). Motiu: PowerShell compila el cos sencer de la
+# funcio la primera vegada que s'invoca, i en compilar-lo resol els literals de
+# tipus [System.Drawing.*]; aixo dispara l'inicialitzador estatic de GDI+, que
+# fora de Windows llanca PlatformNotSupportedException embolcallada en una
+# TypeInitializationException. Aquesta excepcio surt ABANS de la primera linia
+# del cos, o sigui que ni un 'if' de guard aqui dins ni el try/catch la poden
+# aturar: s'enduia tota la suite de proves quan s'executa en un Linux.
 function _BuildCaixetiImageBase64([string]$caixeti) {
     try {
         Add-Type -AssemblyName System.Drawing -ErrorAction Stop
@@ -233,6 +242,11 @@ function _AutoFirmaVisibleExtraParams([string]$caixeti, $ara = $null, [string]$m
     $resolt = _ResolveCaixetiDate $caixeti ([datetime]$ara)
     $lines = @(_AutoFirmaPosLines)
     if ($mode -eq 'imatge') {
+        # El caixeti-imatge necessita System.Drawing, que nomes hi es a Windows.
+        # El guard va AQUI i no dins de _BuildCaixetiImageBase64: alli no serviria
+        # (l'excepcio del carregador de tipus salta en compilar-ne el cos, abans
+        # de la primera linia). Fora de Windows -> '' i el crider prova el text.
+        if ($env:OS -ne 'Windows_NT') { return '' }
         $b64 = _BuildCaixetiImageBase64 $resolt
         if ([string]::IsNullOrWhiteSpace($b64)) { return '' }
         $lines += "signatureRubricImage=$b64"
@@ -344,17 +358,22 @@ function _PdfCaixetiEsInvisible([string]$pathSignat, [long]$lenOriginal) {
 # literals habituals de Windows perque la funció sempre retorni candidats.
 # Retorna un array pla de cadenes (NO un ArrayList amb ,$out: aixi @() sempre
 # l'enumera bé i el bucle rep cadenes, no la llista sencera).
+#
+# Els camins es munten amb [System.IO.Path]::Combine, NO amb Join-Path: Join-Path
+# resol la UNITAT i, en provar-ho fora de Windows, peta amb "Cannot find drive. A
+# drive with the name 'C' does not exist" (i, a sobre, torna la ruta dins d'un
+# PSObject). Combine és un mètode .NET: no toca el sistema de fitxers.
 function _AutoFirmaCandidatePaths {
     $pf  = if ([string]::IsNullOrWhiteSpace($env:ProgramFiles))       { 'C:\Program Files' }       else { $env:ProgramFiles }
     $px  = if ([string]::IsNullOrWhiteSpace(${env:ProgramFiles(x86)})) { 'C:\Program Files (x86)' } else { ${env:ProgramFiles(x86)} }
     $paths = @(
-        (Join-Path $pf 'AutoFirma\AutoFirma\AutoFirma.exe')
-        (Join-Path $pf 'AutoFirma\AutoFirma.exe')
-        (Join-Path $px 'AutoFirma\AutoFirma\AutoFirma.exe')
-        (Join-Path $px 'AutoFirma\AutoFirma.exe')
+        [System.IO.Path]::Combine($pf, 'AutoFirma\AutoFirma\AutoFirma.exe')
+        [System.IO.Path]::Combine($pf, 'AutoFirma\AutoFirma.exe')
+        [System.IO.Path]::Combine($px, 'AutoFirma\AutoFirma\AutoFirma.exe')
+        [System.IO.Path]::Combine($px, 'AutoFirma\AutoFirma.exe')
     )
     if (-not [string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) {
-        $paths += (Join-Path $env:LOCALAPPDATA 'AutoFirma\AutoFirma\AutoFirma.exe')
+        $paths += [System.IO.Path]::Combine($env:LOCALAPPDATA, 'AutoFirma\AutoFirma\AutoFirma.exe')
     }
     return $paths
 }

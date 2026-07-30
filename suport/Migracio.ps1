@@ -59,6 +59,10 @@ $Script:LocalSubdirs = [ordered]@{
 # crida COM per REFERENCIA: $doc.SaveAs([ref]$ruta) peta amb
 #   "no se puede convertir el valor ... de tipo psobject al tipo Object"
 # Va passar exactament aixo amb les vistes en Word. El cast el desembolcalla.
+#
+# Nota per a les proves: Join-Path resol la UNITAT, o sigui que fora de Windows
+# no se li pot passar 'C:\...' (peta amb "A drive with the name 'C' does not
+# exist"). Les proves fan servir una arrel valida a la plataforma on corren.
 function Get-LocalDir([string]$repoRoot) {
     return [string](Join-Path $repoRoot $Script:LocalDirName)
 }

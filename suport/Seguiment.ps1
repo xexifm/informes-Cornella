@@ -947,17 +947,86 @@ function Apply-SeguimentXml {
 # CATALEG. Cada boto mostra un nom amic (negre) i, en GRIS, el nom del document
 # d'ESTRUCTURALS entre parentesis perque no destaqui tant.
 #
-# Llegeix una marca de temps d'"ultima execucio" d'un JSON d'estat i la formata
-# per mostrar-la (petita) sota les eines del menu. '(mai)' si no s'ha executat.
+# Formata una marca de temps ISO per mostrar-la (petita) sota les rajoles del
+# menu. '(mai)' si es buida o no es pot llegir. Funcio PURA (testejable).
+function _FormatRunStamp([string]$iso) {
+    if ([string]::IsNullOrWhiteSpace($iso)) { return '(mai)' }
+    try { return ([datetime]::Parse($iso)).ToString('dd/MM/yy HH:mm') } catch { return '(mai)' }
+}
+
+# Llegeix una marca de temps d'"ultima execucio" d'un JSON d'estat i la formata.
 function _LastRunText($jsonPath, $prop) {
     if ([string]::IsNullOrWhiteSpace($jsonPath) -or -not (Test-Path -LiteralPath $jsonPath -ErrorAction SilentlyContinue)) { return '(mai)' }
     try {
         $o = Get-Content -LiteralPath $jsonPath -Raw -Encoding UTF8 | ConvertFrom-Json
         if ($o.PSObject.Properties[$prop] -and -not [string]::IsNullOrWhiteSpace([string]$o.$prop)) {
-            return ([datetime]::Parse([string]$o.$prop)).ToString('dd/MM/yy HH:mm')
+            return (_FormatRunStamp ([string]$o.$prop))
         }
     } catch { }
     return '(mai)'
+}
+
+# ----------------------------------------------------------------------------
+# SEGELL D'ULTIMA EXECUCIO DE LES EINES
+# ----------------------------------------------------------------------------
+# Sota cada rajola del menu hi surt quan es va fer servir aquella eina per
+# ultima vegada. Un SOL registre per a totes, indexat per ACCIO:
+#
+#     local\base-dades-activitats\eines-state.json   ->  { "<accio>": "<ISO>" }
+#
+# Abans cada segell tenia el seu fitxer i el seu nom de propietat i el menu els
+# llegia un per un; amb onze rajoles aixo seria pura duplicitat. Es marca en UN
+# SOL LLOC: al despatxador de Main (Wizard.ps1), quan l'eina torna. Per tant la
+# data vol dir "l'ultima vegada que has obert i tancat aquesta eina".
+#
+# Accions que NO son eines (tipus d'informe i pantalles de sistema): no porten
+# segell. Qualsevol rajola NOVA en te automaticament, sense tocar cap llista.
+$Script:AccionsSenseSegell = @('nou', 'seguiment', 'actextr', 'config', 'editcataleg')
+
+# Excepcio: dues eines ja escriuen la seva PROPIA marca quan han treballat de
+# debo (la necessiten per anar en incremental), i aquella data es mes precisa que
+# "has obert l'eina". Es llegeix primer i, si no hi es, es cau al registre.
+$Script:SegellPropi = @{
+    informesdb     = @{ Fitxer = 'informes-db.json';          Prop = 'actualitzat_el' }
+    copiarinformes = @{ Fitxer = 'copia-informes-state.json'; Prop = 'copiat_el' }
+}
+
+function _EinesStatePath {
+    if ([string]::IsNullOrWhiteSpace($LocalActivitatsDir)) { return '' }
+    return [string](Join-Path $LocalActivitatsDir 'eines-state.json')
+}
+
+# Apunta que aquesta eina s'acaba de fer servir. No llanca mai: si la carpeta no
+# hi es (unitat de xarxa fora de servei), el menu ha de seguir funcionant igual.
+function _MarcaEinaUsada([string]$accio) {
+    if ([string]::IsNullOrWhiteSpace($accio)) { return }
+    try {
+        $p = _EinesStatePath
+        if ([string]::IsNullOrWhiteSpace($p)) { return }
+        $dir = Split-Path -Parent $p
+        if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+        $dades = [ordered]@{}
+        if (Test-Path -LiteralPath $p) {
+            $o = Get-Content -LiteralPath $p -Raw -Encoding UTF8 | ConvertFrom-Json
+            foreach ($pr in $o.PSObject.Properties) { $dades[$pr.Name] = [string]$pr.Value }
+        }
+        $dades[$accio] = (Get-Date).ToString('o')
+        # [pscustomobject] (i no el diccionari pelat): es l'idioma que ja fa
+        # servir la resta del programa i a PowerShell 5.1 serialitza segur com un
+        # objecte JSON, conservant l'ordre.
+        ([pscustomobject]$dades | ConvertTo-Json) | Set-Content -LiteralPath $p -Encoding UTF8
+    } catch { }
+}
+
+# El text del segell d'una eina.
+function _LastRunEina([string]$accio) {
+    if ([string]::IsNullOrWhiteSpace($accio)) { return '(mai)' }
+    if ($Script:SegellPropi.Contains($accio) -and -not [string]::IsNullOrWhiteSpace($LocalActivitatsDir)) {
+        $d = $Script:SegellPropi[$accio]
+        $t = _LastRunText (Join-Path $LocalActivitatsDir $d.Fitxer) $d.Prop
+        if ($t -ne '(mai)') { return $t }
+    }
+    return (_LastRunText (_EinesStatePath) $accio)
 }
 
 # Retorna @{ Action='nou'|'seguiment'|'actextr'; Cataleg=<FileInfo|$null> }.
@@ -1168,7 +1237,9 @@ function Select-Mode {
     # EINES: utilitats generals.
     $tools = @(
         @{ Emoji = $tiPin;   Label = 'Generar ruta';           Kind = 'action'; Action = 'ruta' }
-        @{ Emoji = $tiLock;  Label = 'Activitats precintades'; Kind = 'url';    Url = $urlPrec }
+        # 'Action' tambe a la rajola d'enllac: no despatxa res, pero es la clau
+        # del seu segell d'ultima execucio.
+        @{ Emoji = $tiLock;  Label = 'Activitats precintades'; Kind = 'url';    Action = 'precintades'; Url = $urlPrec }
         @{ Emoji = $tiCal;   Label = ('Controls peri' + [char]0x00F2 + 'dics'); Kind = 'action'; Action = 'controlsperiodics' }
     )
     # INFORMES: eines de la base d'informes + conversio a PDF.
@@ -1210,7 +1281,13 @@ function Select-Mode {
         param($s, $e)
         $t = $s.Tag
         if ($t.Kind -eq 'url') {
-            try { Start-Process $t.Url | Out-Null } catch {
+            try {
+                Start-Process $t.Url | Out-Null
+                # Aquesta rajola NO tanca el menu, o sigui que no passa pel
+                # despatxador: el segell s'apunta i es refresca aqui mateix.
+                _MarcaEinaUsada ([string]$t.Action)
+                if ($null -ne $t.StampLabel) { $t.StampLabel.Text = [string](_LastRunEina ([string]$t.Action)) }
+            } catch {
                 [System.Windows.Forms.MessageBox]::Show("No s'ha pogut obrir l'enllac:`n$($t.Url)", 'Eina', 'OK', 'Error') | Out-Null
             }
         } else {
@@ -1220,8 +1297,15 @@ function Select-Mode {
         }
     }.GetNewClosure()
     $tileW = 80; $tileH = 58; $tileGap = 7
-    # Dibuixa una fila de rajoles a l'alcada $y actual i retorna la $y seguent
-    # (l'agrupem en un helper per no duplicar el loop entre EINES i INFORMES).
+    # Sota CADA rajola, en petit, l'ultima vegada que s'ha fet servir l'eina
+    # ('(mai)' si encara no). El segell es llegeix per l'ACCIO de la rajola (la
+    # clau del registre), no per la posicio dins de la fila: abans els indexs
+    # anaven a pinyo fix contra una fila concreta i, en moure 'Comprovar Excel'
+    # de fila, el segell hauria anat a la rajola equivocada.
+    $fStamp = New-Object System.Drawing.Font('Segoe UI', 7)
+    $colStamp = [System.Drawing.Color]::FromArgb(120, 128, 138)
+    # Dibuixa una fila de rajoles amb el seu segell a l'alcada $y actual i retorna
+    # la $y seguent (helper unic: el fan servir les quatre files).
     $addTileRow = {
         param($items, $yRow)
         $tx = 20
@@ -1238,9 +1322,22 @@ function Select-Mode {
             $tb.add_Paint($tilePaint)
             $tb.add_Click($tileClick)
             [void]$form.Controls.Add($tb)
+
+            $lblS = New-Object System.Windows.Forms.Label
+            $lblS.Text = [string](_LastRunEina ([string]$tool.Action))
+            $lblS.Font = $fStamp
+            $lblS.ForeColor = $colStamp
+            $lblS.TextAlign = 'MiddleCenter'
+            $lblS.Location = New-Object System.Drawing.Point($tx, ($yRow + $tileH + 2))
+            $lblS.Size = New-Object System.Drawing.Size($tileW, 14)
+            [void]$form.Controls.Add($lblS)
+            # El guardem a la propia rajola: la d'enllac (precintades) no tanca el
+            # menu i s'ha de poder refrescar el seu segell alli mateix.
+            $tool.StampLabel = $lblS
+
             $tx += $tileW + $tileGap
         }
-        return ($yRow + $tileH + 14)
+        return ($yRow + $tileH + 20)
     }.GetNewClosure()
     $y = & $addTileRow $tools $y
 
@@ -1254,46 +1351,7 @@ function Select-Mode {
     [void]$form.Controls.Add($sepInformes)
     $y += 24
 
-    # Sota les eines que guarden estat, un text petit amb l'ultima vegada que
-    # s'han executat. Ho fa un helper perque ara hi ha DUES files amb segells
-    # (INFORMES i GIA); abans els indexs anaven a pinyo fix contra $reports i, en
-    # moure 'Comprovar Excel' a la fila GIA, el segell hauria anat a la rajola
-    # equivocada. Les claus de $segells son ETIQUETES de rajola, no posicions.
-    $fStamp = New-Object System.Drawing.Font('Segoe UI', 7)
-    $colStamp = [System.Drawing.Color]::FromArgb(120, 128, 138)
-    $segells = @{}
-    if (-not [string]::IsNullOrWhiteSpace($LocalActivitatsDir)) {
-        $segells['Actualitzar base'] = _LastRunText (Join-Path $LocalActivitatsDir 'informes-db.json')           'actualitzat_el'
-        $segells['Copiar informes']  = _LastRunText (Join-Path $LocalActivitatsDir 'copia-informes-state.json')  'copiat_el'
-        $segells['Comprovar Excel']  = _LastRunText (Join-Path $LocalActivitatsDir 'comprovar-excel-state.json') 'comprovat_el'
-    }
-    # Dibuixa la fila de rajoles i, a sota, els segells que hi toquin. Retorna la
-    # $y seguent (ja comptant l'espai dels segells si n'hi ha cap).
-    $addTileRowAmbSegells = {
-        param($items, $yRow)
-        [void](& $addTileRow $items $yRow)
-        $yS = $yRow + $tileH + 2
-        $sx = 20
-        $cap = $false
-        foreach ($it in @($items)) {
-            $txt = [string]$segells[[string]$it.Label]
-            if (-not [string]::IsNullOrWhiteSpace($txt)) {
-                $cap = $true
-                $lblS = New-Object System.Windows.Forms.Label
-                $lblS.Text = $txt
-                $lblS.Font = $fStamp
-                $lblS.ForeColor = $colStamp
-                $lblS.TextAlign = 'MiddleCenter'
-                $lblS.Location = New-Object System.Drawing.Point($sx, $yS)
-                $lblS.Size = New-Object System.Drawing.Size($tileW, 14)
-                [void]$form.Controls.Add($lblS)
-            }
-            $sx += $tileW + $tileGap
-        }
-        if ($cap) { return ($yS + 18) }
-        return ($yRow + $tileH + 14)
-    }.GetNewClosure()
-    $y = & $addTileRowAmbSegells $reports $y
+    $y = & $addTileRow $reports $y
 
     # ---- GIA (base de dades d'activitats) ----------------------------------
     $sepGia = New-Object System.Windows.Forms.Label
@@ -1304,7 +1362,7 @@ function Select-Mode {
     $sepGia.AutoSize = $true
     [void]$form.Controls.Add($sepGia)
     $y += 24
-    $y = & $addTileRowAmbSegells $gia $y
+    $y = & $addTileRow $gia $y
 
     # ---- MOBIL (app del mobil) ---------------------------------------------
     $sepMobil = New-Object System.Windows.Forms.Label

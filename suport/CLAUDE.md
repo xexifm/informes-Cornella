@@ -24,6 +24,44 @@ L'únic que compta és l'**ordre de càrrega**, i només per als mòduls que
 En partir, verifica que la llista de noms de funció de tot `suport/` és idèntica
 abans i després.
 
+## EXECUTA LES PROVES. De debò, executa-les
+`suport/tests/run-tests.ps1` passa sencer **en un Linux sense Word ni Excel**:
+
+```
+apt-get install -y powershell   # o el tar.gz de github.com/PowerShell/PowerShell
+GENINFORME_TEST=1 pwsh -NoProfile -File suport/tests/run-tests.ps1
+```
+
+Val la pena insistir-hi perquè durant molt de temps **no es van executar mai**
+(en aquell contenidor no hi havia `pwsh` i es validava tot amb rèpliques en
+Python). El dia que es van poder executar van sortir **quatre errors reals de
+seguida**, tres d'ells amb les proves ja escrites i afirmant el que tocava:
+
+1. L'eina *Seguiment* petava a la primera pestanya (el `@()` de
+   `_FindCampInfoPairs`, vegeu la seva secció).
+2. La crida de prova a `Parse-ActExtrTemplate` passava **dos** arguments: la
+   signatura havia canviat en treure el lector de `.docx` i ningú no ho havia
+   vist. El `throw` **matava la resta de la suite**, o sigui que tot el que hi
+   havia després no s'executava.
+3. Dins d'un literal `@(...)` la **coma lliga més fort que el `+`**: a les dades
+   de prova, `'DEN' + [char]0x00DA + 'NCIA?'` sense parèntesis es convertia en
+   TRES elements i desalineava la fila sencera. **Parentetitza sempre** les
+   concatenacions dins d'un array.
+4. Les amplades de columna anaven desplaçades una posició (vegeu *Seguiment*).
+
+Coses a tenir en compte perquè la suite pugui córrer fora de Windows:
+- **`Join-Path` resol la UNITAT**: fora de Windows, `Join-Path 'C:\x' 'y'` peta
+  amb *"A drive with the name 'C' does not exist"*. El codi de producció el pot
+  fer servir (només corre a Windows), però **les proves de rutes han de fer
+  servir una arrel vàlida a la plataforma on corren** (`$tstClone`, `$tstSep`…).
+  `[System.IO.Path]` tampoc no serveix per a rutes de Windows en un Linux: allà
+  la `\` no és separador.
+- **System.Drawing (GDI+) no hi és fora de Windows**, i l'excepció del
+  carregador de tipus **s'escapa del `try/catch`** perquè salta en *compilar* el
+  cos de la funció, abans de la primera línia. Per això el guard de plataforma va
+  al **cridador** (`_AutoFirmaVisibleExtraParams`) i no dins de
+  `_BuildCaixetiImageBase64`.
+
 ## La carpeta `local/`: què és del repositori i què no
 - **`ESTRUCTURALS/` = FONTS**: els 5 `.json` + `0 CAPCALERA.docx` (l'única
   plantilla de Word de veritat, que no es pot regenerar). Res més.
@@ -84,10 +122,26 @@ n'és la traducció literal:
   `ActiveSheet` només sortiria una pestanya.
 - Escriure amb COM va **per matriu** (`$range.Value2 = $matriu`), no cel·la a
   cel·la: la diferència és de minuts a segons.
+- **PER QUÈ VA PETAR EL PRIMER DIA** («No se puede convertir el valor
+  "System.Object[]" … al tipo "System.Int32"»): `_FindCampInfoPairs`
+  (`Informes.ps1`) acaba amb `return ,@($pairs)`. La coma hi és a posta —
+  protegeix el cas d'UNA sola parella, perquè `$x = f` no rebi el hashtable pelat
+  i `.Count` no li doni el nombre de CLAUS — i per tant **s'ha de consumir SENSE
+  `@()`**. `SeguimentGia.ps1` hi posava un `@()`, que **hi torna a posar la
+  capa**: `$pairs` quedava com un array d'UN element que contenia l'array de
+  parelles, `$p.NomCol` feia **enumeració de membres** (retornava un `Object[]`
+  amb tots els `NomCol`) i `[int]$p.NomCol` petava. Ara: la crida va sense `@()`
+  **i** `_SgFilesPerFulla` passa el que rep per **`_SgAplanaPairs`** (pura), que
+  accepta les dues formes. Hi ha prova de regressió amb la forma embolcallada.
 - Els segells de «última vegada» del menú (`Select-Mode`) s'indexaven per
   POSICIÓ dins de la fila de rajoles; en moure *Comprovar Excel* a la fila GIA
-  haurien anat a la rajola equivocada. Ara `$segells` va per **etiqueta** de
-  rajola i l'helper `$addTileRowAmbSegells` serveix per a les dues files.
+  haurien anat a la rajola equivocada. Vegeu la secció del segell, més avall.
+- **Les amplades de columna han de tenir un FORAT** on la plantilla no en
+  defineix cap: `Rep. Leg. Mòbil` no porta amplada pròpia (es queda amb la de
+  defecte, `baseColWidth=10`). Al principi no hi era i **totes les amplades de
+  després ballaven una posició**: la columna ampla del Valor es quedava sense
+  amplada i la del text ajustat sortia estreta. Als arrays d'amplades el **0**
+  vol dir «no la toquis».
 
 ## Trampa: el que surt d'un CMDLET ve embolcallat en un `PSObject`
 `Join-Path` és un **cmdlet**, i el seu resultat arriba dins d'un `PSObject`.
@@ -336,21 +390,48 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   Una conclusio que diu que **NO** es pot donar per tancat/finalitzat (qualsevol
   "no es pot donar...") es **Requeriment** (pendent), no "FI Requeriment": la
   comprovacio del "no" va abans que la del "si" a `_ConclusioBreu`.
-- **Menú Pas 1 — 3 apartats de rajoles** (`Select-Mode`, `Seguiment.ps1`, helper
+- **Menú Pas 1 — 4 apartats de rajoles** (`Select-Mode`, `Seguiment.ps1`, helper
   `$addTileRow`; dispatch al `switch` de `Main`):
-  - **EINES** (3): 📍 *Generar ruta* (`ruta`), 🔒 *Activitats precintades* (url),
-    📅 *Controls periòdics* (`controlsperiodics`).
-  - **INFORMES** (5): 🗃 *Actualitzar base* (`informesdb`), 📋 *Editar base*
-    (`informesdbedit`), 📁 *Copiar informes* (`copiarinformes`), ✅ *Comprovar
-    Excel* (`comprovarexcel`), 📄 *Word a PDF* (`convertirpdf`).
+  - **EINES** (3): 📍 *Generar ruta* (`ruta`), 🔒 *Activitats precintades*
+    (`url`, acció `precintades` només per al segell), 📅 *Controls periòdics*
+    (`controlsperiodics`).
+  - **INFORMES** (4): 🗃 *Actualitzar base* (`informesdb`), 📋 *Editar base*
+    (`informesdbedit`), 📁 *Copiar informes* (`copiarinformes`), 📄 *Word a PDF*
+    (`convertirpdf`).
+  - **GIA** (2): ✅ *Comprovar Excel* (`comprovarexcel`), 📊 *Seguiment*
+    (`seguimentgia`).
   - **MÒBIL** (2): 📧 *Textos del correu* (`emailtextos`), 📥 *Revisar mòbil*
     (`revisarmobil`).
-  Sota
-  *Actualitzar base*, *Copiar informes* i *Comprovar Excel* es mostra, en petit,
-  l'**última execució** (`_LastRunText`), llegida de `actualitzat_el`
-  (`informes-db.json`), `copiat_el` (`copia-informes-state.json`) i `comprovat_el`
-  (`comprovar-excel-state.json`, que ara escriu `Invoke-ComprovarExcel` via
-  `_SaveRunTimestamp`). *Editar base* no en té.
+- **Segell d'«última execució»: UN sol registre per a totes les rajoles.**
+  `local\base-dades-activitats\eines-state.json` → `{ "<accio>": "<ISO>" }`.
+  - S'escriu en **un sol lloc**: al final del bucle de `Main` (`Wizard.ps1`),
+    quan l'eina torna. Per tant la data vol dir **«l'última vegada que has obert
+    i tancat aquesta eina»**, no «l'última vegada que va acabar bé» — és l'única
+    cosa que el despatxador pot saber sense tocar les onze eines, i està dit al
+    comentari perquè ningú no ho llegeixi com una altra cosa.
+  - La llista que es manté és la dels que **NO** en porten
+    (`$Script:AccionsSenseSegell` = `nou`, `seguiment`, `actextr`, `config`,
+    `editcataleg`), no la dels que sí: així **una rajola nova hi entra sola**.
+  - El segell es llegeix per **`$it.Action`** (clau del registre), no per posició
+    ni per etiqueta. Abans anava per posició dins d'una fila concreta i, en moure
+    *Comprovar Excel* a la fila GIA, hauria anat a la rajola equivocada.
+  - Dues excepcions llegeixen **la seva pròpia marca** si la tenen, perquè
+    l'escriu el procés mateix quan ha treballat de debò i és més precisa:
+    `informesdb` → `actualitzat_el`, `copiarinformes` → `copiat_el`
+    (`$Script:SegellPropi`). Si no hi és, es cau al registre.
+  - `_SaveRunTimestamp` i `comprovat_el` (`comprovar-excel-state.json`) **es van
+    esborrar**: el seu únic ús era pintar aquest segell. `comprovar-excel-state.json`
+    ja no s'escriu (si en queda un de vell al disc, és inofensiu).
+  - Com que **totes** les files porten segell, els dos helpers de fila
+    (`$addTileRow` + `$addTileRowAmbSegells`) es van tornar a fondre en **un
+    sol**. Cada rajola es guarda la seva etiqueta a `$tool.StampLabel`, que
+    serveix perquè la rajola d'**enllaç** (que no tanca el menú, i per tant no
+    passa pel despatxador) s'apunti i es refresqui el segell allà mateix.
+  - `_FormatRunStamp` (pura, amb proves) fa el format `dd/MM/aa HH:mm`;
+    `_LastRunText` l'ha de fer servir i no duplicar-lo. **Compte a les proves**:
+    la marca es desa en hora LOCAL amb desplaçament, o sigui que una asserció amb
+    una cadena fixa falla si la màquina va en una altra zona horària — s'ha de
+    comprovar l'anada i tornada.
 - **Textos del correu del mòbil** (`Invoke-EmailTextos`, `suport/EmailTextos.ps1`,
   rajola 📧 a MÒBIL, acció `emailtextos`): editor dels textos que l'app mòbil
   envia al titular per EmailJS. Viuen a **`docs/dades/email-textos.json`** (sense

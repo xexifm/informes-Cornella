@@ -1208,7 +1208,9 @@ if (Test-Path -LiteralPath $terJson) {
 }
 $aeJson = Join-Path $EstructuralsDir 'ACT_EXTR_REQ.json'
 if (Test-Path -LiteralPath $aeJson) {
-    $aeBlocks = Parse-ActExtrTemplate $null (Join-Path $EstructuralsDir 'ACT_EXTR_REQ.docx')
+    # Un sol argument: Parse-ActExtrTemplate ja no rep el Word (llegia el .docx
+    # i el respatller es va treure). Se li pot passar el .json o el .docx.
+    $aeBlocks = Parse-ActExtrTemplate $aeJson
     AssertEq ([bool](@($aeBlocks).Count -gt 0)) $true 'Parse-ActExtrTemplate (des del JSON): retorna blocs keyed'
     # Els records reconstruits de l'arbre comencen amb un h1 (seccio) i duen h2 keyed.
     $aeRecs = Read-ActExtrRecordsJson $aeJson
@@ -1399,7 +1401,11 @@ AssertEq ([bool]($cmdEspais -like '*-store windows')) $true '_ArgvToCommandLine:
 $cmdCx = _ArgvToCommandLine @('-config', (_AutoFirmaVisibleExtraParams $cxDef))
 AssertEq ([bool]($cmdCx -like '-config "*')) $true '_ArgvToCommandLine: el -config multilínia va entre cometes'
 AssertEq ([bool]($cmdCx -like "*signaturePage=1*")) $true '_ArgvToCommandLine: el -config conserva les propietats'
-AssertEq (@($cmdCx -split "`n").Count) 8 '_ArgvToCommandLine: conserva els salts de línia REALS dins de les cometes'
+# Dins de les cometes s'hi han de conservar els 8 parells, separats pel \n
+# LITERAL (dos caracters). Salts de linia REALS no n'hi ha d'haver cap: AutoFirma
+# no els parteix (ho comprova tambe l'asserció de mes amunt).
+AssertEq (@($cmdCx -split '\\n').Count) 8 '_ArgvToCommandLine: el -config conserva els 8 parells separats pel \n LITERAL'
+AssertEq (@($cmdCx -split "`n").Count) 1 '_ArgvToCommandLine: cap salt de línia REAL a la línia d''ordres'
 # LIMIT de la linia d'ordres de Windows (32767). La imatge del caixeti viatja en
 # base64 dins de l'ordre; si no hi cap, AutoFirma ni s'arrenca ("El nombre del
 # archivo o la extension es demasiado largo"). Per aixo hi ha topalls.
@@ -1408,11 +1414,24 @@ AssertEq ([bool]($Script:MaxCaixetiBase64 -lt $Script:MaxCommandLine)) $true 'Ma
 $argvLlarg = @('sign', '-i', 'a.pdf', '-config', ('x=' + ('A' * 40000)))
 AssertEq ([bool]((_ArgvToCommandLine $argvLlarg).Length -gt $Script:MaxCommandLine)) $true '_ArgvToCommandLine: es pot mesurar si una ordre no hi cabria'
 
+# ARREL DE LES PROVES DE RUTES. El programa nomes corre a Windows i munta rutes
+# de Windows amb Join-Path / [System.IO.Path], pero totes dues coses depenen de
+# la plataforma: Join-Path RESOL LA UNITAT (fora de Windows, 'C:\...' peta amb
+# "A drive with the name 'C' does not exist") i [System.IO.Path] no reconeix la
+# '\' com a separador en un Linux. Per poder executar la suite a totes dues
+# bandes, aquestes proves fan servir una arrel valida a la plataforma on corren i
+# comparen amb el separador d'aquella plataforma: el que es comprova es la
+# LOGICA (quin nom de carpeta, quin nivell), que es el que ha de ser correcte.
+$tstSep   = [string][System.IO.Path]::DirectorySeparatorChar
+$tstEstr  = if ($env:OS -eq 'Windows_NT') { 'C:\E' }      else { '/tmp/E' }
+$tstVist  = if ($env:OS -eq 'Windows_NT') { 'C:\L\vistes' } else { '/tmp/L/vistes' }
+$tstClone = if ($env:OS -eq 'Windows_NT') { 'C:\clone' }  else { '/tmp/clone' }
+
 Write-Host "`n--- VistaWord.ps1: vistes en Word dels catalegs (des dels JSON) ---"
-AssertEq (_VistaWordPathFor 'C:\E\REQ1.json' 'C:\L\vistes') 'C:\L\vistes\REQ1.docx' "_VistaWordPathFor: mateix nom, .docx, a la carpeta de vistes"
-AssertEq (_VistaWordPathFor 'C:\E\0 CONCLUSIONS.json' 'C:\L\v') 'C:\L\v\0 CONCLUSIONS.docx' '_VistaWordPathFor: respecta els espais del nom'
-AssertEq ([bool](_VistaEsProtegit 'C:\E\0 CAPCALERA.json')) $true '_VistaEsProtegit: 0 CAPCALERA no es toca mai'
-AssertEq ([bool](_VistaEsProtegit 'C:\E\REQ1.json')) $false '_VistaEsProtegit: la resta si'
+AssertEq (_VistaWordPathFor ($tstEstr + $tstSep + 'REQ1.json') $tstVist) ($tstVist + $tstSep + 'REQ1.docx') "_VistaWordPathFor: mateix nom, .docx, a la carpeta de vistes"
+AssertEq (_VistaWordPathFor ($tstEstr + $tstSep + '0 CONCLUSIONS.json') $tstVist) ($tstVist + $tstSep + '0 CONCLUSIONS.docx') '_VistaWordPathFor: respecta els espais del nom'
+AssertEq ([bool](_VistaEsProtegit ($tstEstr + $tstSep + '0 CAPCALERA.json'))) $true '_VistaEsProtegit: 0 CAPCALERA no es toca mai'
+AssertEq ([bool](_VistaEsProtegit ($tstEstr + $tstSep + 'REQ1.json'))) $false '_VistaEsProtegit: la resta si'
 AssertEq (_VistaActExtrTitol '[[INCENDIS]] Incendis') 'Incendis  [INCENDIS]' '_VistaActExtrTitol: etiqueta + clau'
 AssertEq (_VistaActExtrTitol '[[MEMORIA_A]] ::CHILD:: a) Identificacio') 'a) Identificacio  [MEMORIA_A]' '_VistaActExtrTitol: treu el token'
 AssertEq (_VistaActExtrTitol '[[REQ_INTRO]]') 'REQ_INTRO' '_VistaActExtrTitol: sense etiqueta -> la clau'
@@ -1434,22 +1453,24 @@ AssertEq ([bool](Get-Command Format-ApplyBaseStyle -ErrorAction SilentlyContinue
 Write-Host "`n--- Migracio.ps1: carpeta 'local' ---"
 # Rutes: totes pengen de local\ i el nom de cada subcarpeta viu NOMES aqui
 # (abans Ruta.ps1 repetia 'BASE DE DADES ACTIVITATS' pel seu compte).
-AssertEq (Get-LocalDir 'C:\clone') 'C:\clone\local' 'Get-LocalDir: local a l''arrel del clone'
-AssertEq (Get-LocalSubdir 'C:\clone' 'Informes')   'C:\clone\local\informes-generats'      'Get-LocalSubdir: informes generats'
-AssertEq (Get-LocalSubdir 'C:\clone' 'Rutes')      'C:\clone\local\rutes-generades'        'Get-LocalSubdir: mapes de ruta'
-AssertEq (Get-LocalSubdir 'C:\clone' 'Activitats') 'C:\clone\local\base-dades-activitats'  'Get-LocalSubdir: base de dades d''activitats'
-AssertEq (Get-LocalSubdir 'C:\clone' 'ActExtr')    'C:\clone\local\base-dades-actextr'     'Get-LocalSubdir: registre ACT_EXTR'
-AssertEq (Get-LocalSubdir 'C:\clone' 'Vistes')     'C:\clone\local\vistes-catalegs'        'Get-LocalSubdir: vistes en Word'
+$tstLocal = $tstClone + $tstSep + 'local' + $tstSep
+AssertEq (Get-LocalDir $tstClone) ($tstClone + $tstSep + 'local') 'Get-LocalDir: local a l''arrel del clone'
+AssertEq (Get-LocalSubdir $tstClone 'Informes')   ($tstLocal + 'informes-generats')      'Get-LocalSubdir: informes generats'
+AssertEq (Get-LocalSubdir $tstClone 'Rutes')      ($tstLocal + 'rutes-generades')        'Get-LocalSubdir: mapes de ruta'
+AssertEq (Get-LocalSubdir $tstClone 'Activitats') ($tstLocal + 'base-dades-activitats')  'Get-LocalSubdir: base de dades d''activitats'
+AssertEq (Get-LocalSubdir $tstClone 'ActExtr')    ($tstLocal + 'base-dades-actextr')     'Get-LocalSubdir: registre ACT_EXTR'
+AssertEq (Get-LocalSubdir $tstClone 'Vistes')     ($tstLocal + 'vistes-catalegs')        'Get-LocalSubdir: vistes en Word'
+AssertEq (Get-LocalSubdir $tstClone 'Seguiment')  ($tstLocal + 'seguiment-gia')          'Get-LocalSubdir: llistats de seguiment del GIA'
 $errClau = $false
-try { [void](Get-LocalSubdir 'C:\clone' 'NoExisteix') } catch { $errClau = $true }
+try { [void](Get-LocalSubdir $tstClone 'NoExisteix') } catch { $errClau = $true }
 AssertEq $errClau $true 'Get-LocalSubdir: una clau desconeguda peta (no retorna una ruta inventada)'
 # Migracions: les 4 carpetes velles de l'arrel, cadascuna al seu lloc nou.
-$migs = @(Get-MigracionsLocal 'C:\clone')
+$migs = @(Get-MigracionsLocal $tstClone)
 AssertEq $migs.Count 4 'Get-MigracionsLocal: 4 carpetes a moure'
 AssertEq ([bool]($migs[0] -is [pscustomobject])) $true 'Get-MigracionsLocal: retorna un array PLA (no la llista sencera)'
 $vells = @($migs | ForEach-Object { Split-Path -Leaf $_.Origen })
 AssertEq ($vells -join '|') 'Informes generats|Rutes generades|BASE DE DADES ACTIVITATS|BASE DE DADES ACT_EXTR' 'Get-MigracionsLocal: origens = les carpetes velles de l''arrel'
-AssertEq $migs[2].Desti 'C:\clone\local\base-dades-activitats' 'Get-MigracionsLocal: desti dins de local'
+AssertEq $migs[2].Desti ($tstLocal + 'base-dades-activitats') 'Get-MigracionsLocal: desti dins de local'
 AssertEq ([bool](@($migs | Where-Object { $_.Origen -like '*ESTRUCTURALS*' }).Count -eq 0)) $true 'Get-MigracionsLocal: ESTRUCTURALS no es mou (les vistes van a part)'
 
 Write-Host "`n--- SincronitzaCatalegs.ps1: protegir els catalegs en actualitzar ---"
@@ -1559,6 +1580,47 @@ AssertEq (_GiaFromFolderName $p) '361' '_GiaFromFolderName treu "GIA 361" de la 
 AssertEq (_CarpetaActivitat $p) '2025-1-2563 GIA 361 - RC112- KRICHI BEJAUI HOSTELERIA, SL' '_CarpetaActivitat = carpeta pare'
 AssertEq (_GiaFromFolderName 'I:\Informes\sense marca\x.docx') '' '_GiaFromFolderName sense GIA -> buit'
 
+Write-Host "`n--- Seguiment.ps1: segell d'ultima execucio de les eines ---"
+# La marca es desa amb (Get-Date).ToString('o'), o sigui hora LOCAL amb el seu
+# desplacament, i es torna a llegir en hora local: el viatge d'anada i tornada ha
+# de donar la mateixa hora. Es comprova aixi i no amb una cadena fixa perque
+# aquesta maquina pot anar en una zona horaria diferent de la del PC de l'usuari.
+$isoLocal = ([datetime]'2026-07-30T14:22:05').ToString('o')
+AssertEq (_FormatRunStamp $isoLocal) '30/07/26 14:22' '_FormatRunStamp: ISO -> dd/MM/aa HH:mm (anada i tornada en hora local)'
+AssertEq (_FormatRunStamp '') '(mai)' '_FormatRunStamp: buit -> (mai)'
+AssertEq (_FormatRunStamp '   ') '(mai)' '_FormatRunStamp: nomes espais -> (mai)'
+AssertEq (_FormatRunStamp 'aixo no es una data') '(mai)' '_FormatRunStamp: text que no es data -> (mai)'
+AssertEq (_FormatRunStamp $null) '(mai)' '_FormatRunStamp: $null -> (mai)'
+# Els tipus d'informe i les pantalles de sistema NO porten segell; qualsevol
+# altra accio del menu es una eina i si (aixi una rajola nova hi entra sola).
+Assert ('nou' -in $Script:AccionsSenseSegell)          'AccionsSenseSegell: "nou" no porta segell'
+Assert ('seguiment' -in $Script:AccionsSenseSegell)    'AccionsSenseSegell: el seguiment d''un informe tampoc'
+Assert ('config' -in $Script:AccionsSenseSegell)       'AccionsSenseSegell: la configuracio tampoc'
+Assert ('seguimentgia' -notin $Script:AccionsSenseSegell) 'AccionsSenseSegell: l''eina Seguiment del GIA SI que en porta'
+Assert ('comprovarexcel' -notin $Script:AccionsSenseSegell) 'AccionsSenseSegell: Comprovar Excel SI que en porta'
+Assert ('precintades' -notin $Script:AccionsSenseSegell)   'AccionsSenseSegell: la rajola d''enllac SI que en porta'
+# Registre: escriure i tornar a llegir, i que conservi les altres eines.
+$segellDir = Join-Path ([System.IO.Path]::GetTempPath()) ('segells-' + [guid]::NewGuid().ToString('N'))
+[void](New-Item -ItemType Directory -Path $segellDir -Force)
+$LocalActivitatsDirVell = $LocalActivitatsDir
+$LocalActivitatsDir = $segellDir
+try {
+    AssertEq (_LastRunEina 'seguimentgia') '(mai)' '_LastRunEina: sense registre -> (mai)'
+    _MarcaEinaUsada 'seguimentgia'
+    AssertEq ([bool]((_LastRunEina 'seguimentgia') -ne '(mai)')) $true '_LastRunEina: despres de marcar-la, hi ha data'
+    _MarcaEinaUsada 'comprovarexcel'
+    AssertEq ([bool]((_LastRunEina 'seguimentgia') -ne '(mai)')) $true '_MarcaEinaUsada: marcar-ne una altra NO esborra la primera'
+    AssertEq @(((Get-Content -LiteralPath (_EinesStatePath) -Raw | ConvertFrom-Json).PSObject.Properties)).Count 2 '_MarcaEinaUsada: un sol fitxer amb una clau per eina'
+    # Les dues que tenen marca propia la fan servir si hi es.
+    ([pscustomobject]@{ actualitzat_el = '2026-07-28T09:05:00Z' } | ConvertTo-Json) |
+        Set-Content -LiteralPath (Join-Path $segellDir 'informes-db.json') -Encoding UTF8
+    AssertEq (_LastRunEina 'informesdb') (_FormatRunStamp '2026-07-28T09:05:00Z') '_LastRunEina: informesdb fa servir actualitzat_el (mes precis)'
+    AssertEq (_LastRunEina 'einaqueno') '(mai)' '_LastRunEina: una accio sense registre -> (mai)'
+} finally {
+    $LocalActivitatsDir = $LocalActivitatsDirVell
+    Remove-Item -LiteralPath $segellDir -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 Write-Host "`n--- Informes.ps1: _NormalitzaExpedient / Build-ExpedientToGiaMap ---"
 AssertEq (_NormalitzaExpedient '2025/1/2563')  '2025-1-2563' '_NormalitzaExpedient barres -> guions'
 AssertEq (_NormalitzaExpedient '2025-01-2563') '2025-1-2563' '_NormalitzaExpedient treu zeros inicials'
@@ -1645,14 +1707,33 @@ $sgH = @(
     'Activitat principal', ('Classificaci' + [char]0x00F3 + ' general annex'), ('Descripci' + [char]0x00F3 + ' lliure'),
     'Camp Info 1 - Nom', 'Camp Info 1 - Valor', 'Camp Info 2 - Nom', 'Camp Info 2 - Valor'
 )
-$sgPairs = @(_FindCampInfoPairs $sgH)
-AssertEq $sgPairs.Count 2 'SeguimentGia: es reaprofita _FindCampInfoPairs (2 parelles)'
+# SENSE @(): _FindCampInfoPairs protegeix el seu retorn amb una coma (per al cas
+# d'UNA sola parella) i un @() al voltant hi torna a posar la capa. Aixo es
+# exactament el que feia petar l'eina Seguiment amb "No se puede convertir el
+# valor System.Object[] ... al tipo System.Int32" (vegeu _SgAplanaPairs).
+$sgPairs = _FindCampInfoPairs $sgH
+AssertEq @($sgPairs).Count 2 'SeguimentGia: es reaprofita _FindCampInfoPairs (2 parelles)'
+AssertEq @(_FindCampInfoPairs $sgH | Select-Object -First 1).Count 1 '_FindCampInfoPairs: el retorn es una llista de parelles, no una llista d''una llista'
+# La forma EMBOLCALLADA (com si algu hi tornes a posar un @()) i la neta han de
+# donar el mateix: _SgAplanaPairs ho aplana al punt d'entrada.
+$sgPairsEmbolcallat = @(_FindCampInfoPairs $sgH)
+AssertEq @($sgPairsEmbolcallat).Count 1 '_FindCampInfoPairs amb @(): queda embolcallat (per aixo no s''hi posa)'
+AssertEq @(_SgAplanaPairs $sgPairs).Count 2 '_SgAplanaPairs: la forma neta es queda igual'
+AssertEq @(_SgAplanaPairs $sgPairsEmbolcallat).Count 2 '_SgAplanaPairs: la forma embolcallada s''aplana'
+AssertEq @(_SgAplanaPairs $null).Count 0 '_SgAplanaPairs: $null -> llista buida'
+AssertEq @(_SgAplanaPairs @()).Count 0 '_SgAplanaPairs: llista buida -> llista buida'
+AssertEq ([int](@(_SgAplanaPairs $sgPairsEmbolcallat)[0].NomCol)) 18 '_SgAplanaPairs: els elements son parelles de debo (NomCol es un enter)'
 AssertEq (_SgColIndex $sgH 'ID Activitat') 1 '_SgColIndex: 1-based'
 AssertEq (_SgColIndex $sgH ('classificacio general annex')) 11 '_SgColIndex: la PRIMERA que coincideix (com el MATCH de la plantilla)'
 AssertEq (_SgColIndex $sgH 'no existeix') 0 '_SgColIndex: si no hi es -> 0'
 #            1      2         3        4       5      6      7     8     9    10    11   12       13           14           15      16   17        18                      19                20              21
+# ATENCIO als PARENTESIS de ('DEN' + [char]0x00DA + 'NCIA?'): dins d'un literal
+# @(...) la COMA lliga mes fort que el '+', o sigui que sense parentesis
+# 'DEN' + [char]0x00DA + 'NCIA?' es converteix en TRES elements ('DEN', 'U',
+# 'NCIA?') i desalinea tota la fila. Va passar: la prova de DENUNCIES no trobava
+# res perque la fila tenia 23 columnes en lloc de 21.
 $sgFiles = @(
-  @('100','E-1','TITULAR U','600','REP U','601','BAR U','C','MAJOR','1','II','5.17.b','2019-03-15 00:00:00.0','2025-07-08 00:00:00.0','BAR','II','Text llarg de descripcio','PRECINTE ACTIVITAT?','SI, precintada','DEN' + [char]0x00DA + 'NCIA?','SI, soroll'),
+  @('100','E-1','TITULAR U','600','REP U','601','BAR U','C','MAJOR','1','II','5.17.b','2019-03-15 00:00:00.0','2025-07-08 00:00:00.0','BAR','II','Text llarg de descripcio','PRECINTE ACTIVITAT?','SI, precintada',('DEN' + [char]0x00DA + 'NCIA?'),'SI, soroll'),
   @('101','E-2','TITULAR D','602','','','BAR D','AV','PICASSO','6','III','','','','REST','III','','SONOMETRIA?','SI, queixa','',''),
   @('102','E-3','TITULAR T','603','','','BAR T','PG','FERRO','24','II','1.1','','','IND','II','','REQUERIT PER DECRET?','PROCEDIMENT ESMENA','',''),
   @('','E-4','SENSE ID','','','','','','','','II','','','','','II','hi ha descripcio','PRECINTE ACTIVITAT?','SI',''),

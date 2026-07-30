@@ -8,9 +8,10 @@
   Substitueix un Excel amb formules ('0_PLANTILLA.xlsx') que l'usuari es va
   muntar fa temps. Aquell fitxer treia cinc llistats de la base de dades amb
   VLOOKUP/MATCH, i per fer-ho necessitava 15 COLUMNES OCULTES d'ajuda a la fulla
-  Estes, rangs fixos fins a la fila 15000 i 100 files pre-omplertes per
-  pestanya. Aqui la feina de les formules la fa el codi, i el resultat es el
-  mateix pero sense cap columna oculta ni res a recalcular.
+  Estes, rangs fixos fins a la fila 15000 (per aixo la plantilla declara
+  A1:EV15000 tot i que nomes ~1.312 files tenen ID Activitat) i 100 files
+  pre-omplertes per pestanya. Aqui la feina de les formules la fa el codi, i el
+  resultat es el mateix pero sense cap columna oculta ni res a recalcular.
 
   Pestanyes que genera:
     Estes              copia de la base de dades d'activitats
@@ -53,12 +54,19 @@ $Script:SgColsActivitat = @(
     ('Emp. N' + [char]0x00FA + 'mero')
 )
 
-# Amplades de columna EXACTES de la plantilla (unitats de l'Excel).
+# Amplades de columna EXACTES de la plantilla (unitats de l'Excel), tretes del
+# seu <cols> descomprimit. N'hi ha d'haver UNA PER COLUMNA de sortida:
 #   1a  = la columna 'N' (numero de fila)
 #   ...  les 10 de l'activitat
 #   2 ultimes = Camp Info Nom / Valor (la del Valor, ampla, amb text ajustat)
-$Script:SgAmpladesCampInfo = @(3.57, 10.14, 12.86, 31.71, 10.86, 31.57, 23.29, 13.14, 25.86, 12.71, 20.86, 58)
-$Script:SgAmpladesAnnex    = @(3.57, 10.14, 12.86, 31.71, 10.86, 31.57, 23.29, 7.14, 20, 7.57, 7.14, 9.14, 10.14, 10.43, 39.57, 50.86)
+#
+# El 0 vol dir "no la toquem": a la plantilla, 'Rep. Leg. Mobil' NO porta amplada
+# propia i es queda amb la de defecte de la fulla (baseColWidth=10). Ha de ser-hi
+# com a forat, perque si no totes les amplades seguents ballen una posicio (hi va
+# passar: la columna ampla del Valor es quedava sense amplada i les altres
+# s'aplicaven a la columna del costat).
+$Script:SgAmpladesCampInfo = @(3.57, 10.14, 12.86, 31.71, 10.86, 31.57, 0, 23.29, 13.14, 25.86, 12.71, 20.86, 58)
+$Script:SgAmpladesAnnex    = @(3.57, 10.14, 12.86, 31.71, 10.86, 31.57, 0, 23.29, 7.14, 20, 7.57, 7.14, 9.14, 10.14, 10.43, 39.57, 50.86)
 
 # Les 5 pestanyes de llistat. Per cada una:
 #   Nom        nom de la pestanya
@@ -103,6 +111,36 @@ function _SgColIndex($headers, [string]$nom) {
         if ((_NormalizeText $h[$i]) -eq $t) { return ($i + 1) }
     }
     return 0
+}
+
+# Deixa les parelles de Camp Info en una llista PLANA de @{NomCol;ValorCol}.
+#
+# Per que cal: _FindCampInfoPairs (Informes.ps1) acaba amb 'return ,@($pairs)'.
+# La coma hi es a posta (protegeix el cas d'UNA sola parella: sense ella el
+# consumidor rebria el hashtable pelat i .Count li donaria el nombre de CLAUS),
+# pero vol dir que s'ha de consumir SENSE @(): un @() al voltant hi torna a
+# posar la capa i deixa un array d'UN element que conte l'array de parelles.
+# Quan passava aixo, '$p.NomCol' dins del bucle feia enumeracio de membres i
+# retornava un Object[], i '[int]$p.NomCol' petava amb
+#   "No se puede convertir el valor System.Object[] ... al tipo System.Int32".
+# Aixo es aplanar-ho una vegada al punt d'entrada, de manera que la logica
+# funcioni amb les dues formes i el crash no es pugui repetir. Funcio PURA.
+function _SgAplanaPairs($pairs) {
+    $out = New-Object System.Collections.ArrayList
+    if ($null -eq $pairs) { return $out.ToArray() }
+    foreach ($p in @($pairs)) {
+        if ($null -eq $p) { continue }
+        if ($p -is [System.Collections.IDictionary]) { [void]$out.Add($p); continue }
+        # No es un hashtable: es una col·leccio (la capa de mes). L'aplanem.
+        if ($p -is [System.Collections.IEnumerable] -and $p -isnot [string]) {
+            foreach ($q in $p) {
+                if ($q -is [System.Collections.IDictionary]) { [void]$out.Add($q) }
+            }
+            continue
+        }
+        [void]$out.Add($p)
+    }
+    return $out.ToArray()
 }
 
 # Quina parella 'Camp Info N - Nom/Valor' d'aquesta fila val per al criteri.
@@ -150,6 +188,9 @@ function _SgNomFitxer([datetime]$data, [string]$ext = 'xlsx') {
 function _SgFilesPerFulla($def, $headers, $files, $pairs) {
     $out = New-Object System.Collections.ArrayList
     if ($null -eq $files) { return $out.ToArray() }
+    # Punt d'entrada de les parelles: les aplanem aqui i prou (vegeu
+    # _SgAplanaPairs). Aixi tant se val com les hagi consumit qui ens crida.
+    $pairs = _SgAplanaPairs $pairs
 
     # Index de cada columna de sortida, resolt UNA vegada (no per fila).
     $idx = @()
@@ -261,9 +302,12 @@ function _SgFormatarFulla($sh, $def, [int]$nFiles, $excel) {
         } catch { }
     }
 
-    # --- Amplades EXACTES de la plantilla ---
+    # --- Amplades EXACTES de la plantilla (0 = deixar la de defecte) ---
     for ($c = 1; $c -le $nCols; $c++) {
-        if ($c -le $ampl.Count) { $sh.Columns.Item($c).ColumnWidth = [double]$ampl[$c - 1] }
+        if ($c -gt $ampl.Count) { continue }
+        $w = [double]$ampl[$c - 1]
+        if ($w -le 0) { continue }
+        $sh.Columns.Item($c).ColumnWidth = $w
     }
 
     # --- Text AJUSTAT a les columnes de text llarg (el que ha demanat l'usuari):
@@ -344,7 +388,9 @@ function _SgConstruirLlibre {
         $nRows = $data.GetLength(0); $nCols = $data.GetLength(1)
         $headers = @()
         for ($c = 1; $c -le $nCols; $c++) { $headers += [string]$data[1, $c] }
-        $pairs = @(_FindCampInfoPairs $headers)
+        # SENSE @(): _FindCampInfoPairs ja protegeix el seu retorn amb una coma i
+        # un @() al voltant hi tornaria a posar la capa (vegeu _SgAplanaPairs).
+        $pairs = _FindCampInfoPairs $headers
         $files = New-Object System.Collections.ArrayList
         for ($r = 2; $r -le $nRows; $r++) {
             $fila = New-Object object[] $nCols
@@ -426,13 +472,14 @@ function _SgExportar([string]$mode) {
     $ara = Get-Date
     $dir = _SgCarpetaSortida
     $ext = if ($mode -eq 'pdf') { 'pdf' } else { 'xlsx' }
-    $path = _GetUniqueOutputPath $dir (_SgNomFitxer $ara $ext)
+    # [string] a posta: _GetUniqueOutputPath torna la sortida de Join-Path, que
+    # es un cmdlet i arriba embolcallada en un PSObject. Al COM li pot fer nosa.
+    [string]$path = _GetUniqueOutputPath $dir (_SgNomFitxer $ara $ext)
     try {
         if ($mode -eq 'pdf') {
             # NOMES les 5 pestanyes de llistat: la fulla Estes son 152 columnes
-            # per 15.000 files i a la plantilla ni tan sols esta preparada per
-            # imprimir. Es seleccionen com a grup perque l'exportacio nomes
-            # agafi la seleccio.
+            # i a la plantilla ni tan sols esta preparada per imprimir. Es
+            # seleccionen com a grup perque l'exportacio nomes agafi la seleccio.
             $noms = @(@(_SgFullesDef) | ForEach-Object { [string]$_.Nom })
             $wb.Sheets.Item($noms[0]).Select()
             for ($i = 1; $i -lt $noms.Count; $i++) { $wb.Sheets.Item($noms[$i]).Select($false) }
