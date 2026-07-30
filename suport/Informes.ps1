@@ -298,11 +298,32 @@ function _ConclusioBreu($text) {
 # de l'activitat). Espera $informesOrdenats ja ordenats per data ASCENDENT
 # (com fa Invoke-InformesDbScan); pren el darrer que compleixi. '' si no n'hi
 # ha cap (activitat sense cap informe fiable). Funcio PURA, testejable.
-function _EstatActualActivitat($informesOrdenats) {
-    if ($null -eq $informesOrdenats) { return '' }
+# L'informe que DECIDEIX l'estat de l'activitat: l'ULTIM dels fiables (els
+# informes venen ordenats per data). $null si no n'hi ha cap.
+# Es la font unica: _EstatActualActivitat i qui vulgui saber-ne la DATA
+# (p. ex. "Comprovar Excel") criden aquesta mateixa funcio, aixi no poden
+# discrepar mai sobre quin informe manda.
+function _InformeQueDeterminaEstat($informesOrdenats) {
+    if ($null -eq $informesOrdenats) { return $null }
     $fiables = @($informesOrdenats | Where-Object { -not [bool]$_.ignorat })
-    if ($fiables.Count -eq 0) { return '' }
-    return [string]$fiables[-1].conclusio_breu
+    if ($fiables.Count -eq 0) { return $null }
+    return $fiables[-1]
+}
+
+function _EstatActualActivitat($informesOrdenats) {
+    $inf = _InformeQueDeterminaEstat $informesOrdenats
+    if ($null -eq $inf) { return '' }
+    return [string]$inf.conclusio_breu
+}
+
+# La data d'un informe en format de carrer: 'yyyy-MM-dd' -> 'dd/MM/yyyy'.
+# Buit si no hi ha data o no te aquest format (mai peta). Funcio PURA.
+function _DataInformeDdMmAaaa($data) {
+    $s = [string]$data
+    if ($s -match '^(\d{4})-(\d{2})-(\d{2})') {
+        return ('{0}/{1}/{2}' -f $Matches[3], $Matches[2], $Matches[1])
+    }
+    return ''
 }
 
 # ID GIA a partir dels noms de les carpetes pare (p.ex. la carpeta de l'activitat
@@ -1495,7 +1516,16 @@ function Invoke-ComprovarExcel {
         }
         $etiqueta = "GIA " + $gia + "  -  " + [string]$act.titular
         if (-not $map.ContainsKey($gia)) { [void]$noTrob.Add("     - " + $etiqueta); continue }
-        if (-not (_ExcelActivitatActualitzada $map[$gia])) { [void]$desact.Add("     - " + $etiqueta); continue }
+        if (-not (_ExcelActivitatActualitzada $map[$gia])) {
+            # Hi afegim la data de l'informe que va deixar l'activitat en
+            # "Precinte / Cessament": es el que has de citar per actualitzar
+            # l'Excel, i sense aixo tocava anar a buscar-lo a ma.
+            $infEstat = _InformeQueDeterminaEstat $act.informes
+            $dataEstat = if ($null -ne $infEstat) { _DataInformeDdMmAaaa $infEstat.data } else { '' }
+            if ($dataEstat) { $etiqueta += " - INFORME ENGINYER " + $dataEstat }
+            [void]$desact.Add("     - " + $etiqueta)
+            continue
+        }
     }
 
     if ($desact.Count -eq 0 -and $noTrob.Count -eq 0 -and $senseGia.Count -eq 0) {
