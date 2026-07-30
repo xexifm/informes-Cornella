@@ -1164,6 +1164,7 @@ function Select-Mode {
     $tiCal   = [System.Char]::ConvertFromUtf32(0x1F4C5)   # 📅
     $tiPdf   = [System.Char]::ConvertFromUtf32(0x1F4C4)   # 📄
     $tiMail  = [System.Char]::ConvertFromUtf32(0x1F4E7)   # 📧
+    $tiList  = [System.Char]::ConvertFromUtf32(0x1F4CA)   # 📊
     # EINES: utilitats generals.
     $tools = @(
         @{ Emoji = $tiPin;   Label = 'Generar ruta';           Kind = 'action'; Action = 'ruta' }
@@ -1175,8 +1176,13 @@ function Select-Mode {
         @{ Emoji = $tiBox;   Label = 'Actualitzar base'; Kind = 'action'; Action = 'informesdb' }
         @{ Emoji = $tiClip;  Label = 'Editar base';      Kind = 'action'; Action = 'informesdbedit' }
         @{ Emoji = $tiCopy;  Label = 'Copiar informes';  Kind = 'action'; Action = 'copiarinformes' }
-        @{ Emoji = $tiCheck; Label = 'Comprovar Excel';  Kind = 'action'; Action = 'comprovarexcel' }
         @{ Emoji = $tiPdf;   Label = 'Word a PDF';       Kind = 'action'; Action = 'convertirpdf' }
+    )
+    # GIA: eines que parlen de la base de dades d'ACTIVITATS (el GIA), no dels
+    # informes. 'Comprovar Excel' era a INFORMES pero el seu tema es el GIA.
+    $gia = @(
+        @{ Emoji = $tiCheck; Label = 'Comprovar Excel'; Kind = 'action'; Action = 'comprovarexcel' }
+        @{ Emoji = $tiList;  Label = 'Seguiment';       Kind = 'action'; Action = 'seguimentgia' }
     )
     # MOBIL: eines de l'app del mobil.
     $mobil = @(
@@ -1247,36 +1253,58 @@ function Select-Mode {
     $sepInformes.AutoSize = $true
     [void]$form.Controls.Add($sepInformes)
     $y += 24
-    $yReports = $y
-    [void](& $addTileRow $reports $yReports)
 
-    # Sota les eines que guarden estat (Actualitzar base, Copiar informes i
-    # Comprovar Excel), un text petit amb l'ultima vegada que s'han executat.
-    # Editar base (index 1) no en te. Els indexs coincideixen amb $reports.
-    $stampByIdx = @{}
-    if (-not [string]::IsNullOrWhiteSpace($LocalActivitatsDir)) {
-        $stampByIdx[0] = _LastRunText (Join-Path $LocalActivitatsDir 'informes-db.json')          'actualitzat_el'
-        $stampByIdx[2] = _LastRunText (Join-Path $LocalActivitatsDir 'copia-informes-state.json')  'copiat_el'
-        $stampByIdx[3] = _LastRunText (Join-Path $LocalActivitatsDir 'comprovar-excel-state.json') 'comprovat_el'
-    }
-    $yStamp = $yReports + $tileH + 2
+    # Sota les eines que guarden estat, un text petit amb l'ultima vegada que
+    # s'han executat. Ho fa un helper perque ara hi ha DUES files amb segells
+    # (INFORMES i GIA); abans els indexs anaven a pinyo fix contra $reports i, en
+    # moure 'Comprovar Excel' a la fila GIA, el segell hauria anat a la rajola
+    # equivocada. Les claus de $segells son ETIQUETES de rajola, no posicions.
     $fStamp = New-Object System.Drawing.Font('Segoe UI', 7)
     $colStamp = [System.Drawing.Color]::FromArgb(120, 128, 138)
-    $sx = 20
-    for ($ri = 0; $ri -lt @($reports).Count; $ri++) {
-        if ($stampByIdx.Contains($ri)) {
-            $lblS = New-Object System.Windows.Forms.Label
-            $lblS.Text = $stampByIdx[$ri]
-            $lblS.Font = $fStamp
-            $lblS.ForeColor = $colStamp
-            $lblS.TextAlign = 'MiddleCenter'
-            $lblS.Location = New-Object System.Drawing.Point($sx, $yStamp)
-            $lblS.Size = New-Object System.Drawing.Size($tileW, 14)
-            [void]$form.Controls.Add($lblS)
-        }
-        $sx += $tileW + $tileGap
+    $segells = @{}
+    if (-not [string]::IsNullOrWhiteSpace($LocalActivitatsDir)) {
+        $segells['Actualitzar base'] = _LastRunText (Join-Path $LocalActivitatsDir 'informes-db.json')           'actualitzat_el'
+        $segells['Copiar informes']  = _LastRunText (Join-Path $LocalActivitatsDir 'copia-informes-state.json')  'copiat_el'
+        $segells['Comprovar Excel']  = _LastRunText (Join-Path $LocalActivitatsDir 'comprovar-excel-state.json') 'comprovat_el'
     }
-    $y = $yStamp + 18
+    # Dibuixa la fila de rajoles i, a sota, els segells que hi toquin. Retorna la
+    # $y seguent (ja comptant l'espai dels segells si n'hi ha cap).
+    $addTileRowAmbSegells = {
+        param($items, $yRow)
+        [void](& $addTileRow $items $yRow)
+        $yS = $yRow + $tileH + 2
+        $sx = 20
+        $cap = $false
+        foreach ($it in @($items)) {
+            $txt = [string]$segells[[string]$it.Label]
+            if (-not [string]::IsNullOrWhiteSpace($txt)) {
+                $cap = $true
+                $lblS = New-Object System.Windows.Forms.Label
+                $lblS.Text = $txt
+                $lblS.Font = $fStamp
+                $lblS.ForeColor = $colStamp
+                $lblS.TextAlign = 'MiddleCenter'
+                $lblS.Location = New-Object System.Drawing.Point($sx, $yS)
+                $lblS.Size = New-Object System.Drawing.Size($tileW, 14)
+                [void]$form.Controls.Add($lblS)
+            }
+            $sx += $tileW + $tileGap
+        }
+        if ($cap) { return ($yS + 18) }
+        return ($yRow + $tileH + 14)
+    }.GetNewClosure()
+    $y = & $addTileRowAmbSegells $reports $y
+
+    # ---- GIA (base de dades d'activitats) ----------------------------------
+    $sepGia = New-Object System.Windows.Forms.Label
+    $sepGia.Text = 'GIA'
+    $sepGia.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
+    $sepGia.ForeColor = [System.Drawing.Color]::FromArgb(138, 20, 38)
+    $sepGia.Location = New-Object System.Drawing.Point(20, $y)
+    $sepGia.AutoSize = $true
+    [void]$form.Controls.Add($sepGia)
+    $y += 24
+    $y = & $addTileRowAmbSegells $gia $y
 
     # ---- MOBIL (app del mobil) ---------------------------------------------
     $sepMobil = New-Object System.Windows.Forms.Label

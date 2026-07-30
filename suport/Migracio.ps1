@@ -50,6 +50,7 @@ $Script:LocalSubdirs = [ordered]@{
     Activitats = 'base-dades-activitats'
     ActExtr    = 'base-dades-actextr'
     Vistes     = 'vistes-catalegs'
+    Seguiment  = 'seguiment-gia'
 }
 
 # ATENCIO al [string] del 'return': Join-Path es un CMDLET, i el que surt d'un

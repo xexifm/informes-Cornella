@@ -102,6 +102,44 @@ pots triar-ne un altre o una carpeta sencera. Converteix a PDF al mateix lloc i,
 si ho marques, els signa amb l'**AutoFirma** i el teu certificat de Windows,
 amb el caixetí a dalt a la dreta de la primera pàgina.
 
+### Seguiment (fila GIA)
+
+Botó **📊 Seguiment**. Genera els cinc llistats de seguiment a partir de la base
+de dades d'activitats, en un sol fitxer amb una pestanya per cada un:
+
+| Pestanya | Què hi surt |
+|---|---|
+| `Estès` | còpia de la base de dades d'activitats |
+| `PRECINTES` | activitats amb el Camp Info **PRECINTE ACTIVITAT?** |
+| `DENÚNCIES` | … amb **DENÚNCIA?** |
+| `REQUERIT DECRET` | … amb **REQUERIT PER DECRET?** |
+| `SONOMETRIA` | … amb **SONOMETRIA?** |
+| `ANNEX II` | annex **II** amb **Descripció lliure** escrita |
+
+Hi surt **tota activitat que TINGUI aquell camp**, digui el que digui el valor
+(no cal que comenci per SI). Substitueix l'Excel de fórmules que hi havia abans,
+i el resultat és el mateix però sense columnes ocultes ni res a recalcular.
+
+Dos botons: **Exportar a Excel** i **Exportar a PDF**. El PDF surt en horitzontal
+i A3, ajustat perquè hi càpiguen totes les columnes, amb les dues primeres files
+repetides a cada pàgina i el nom de la pestanya i el número de pàgina al peu; hi
+van **només els cinc llistats** (la pestanya `Estès` són 152 columnes i no es
+pensa per imprimir). Els fitxers es desen a `local/seguiment-gia/`.
+
+> Necessita tenir l'Excel una estona treballant: amb tota la base de dades pot
+> trigar. Mentre ho fa, els botons queden desactivats.
+
+### Comprovar Excel (fila GIA)
+
+Botó **✅ Comprovar Excel**. Agafa les activitats que la base d'informes té en
+estat *Precinte / Cessament* i comprova que a l'Excel hi tinguin el Camp Info
+**REQUERIT PER DECRET?** o **PRECINTE ACTIVITAT?** amb un valor que comenci per
+**SI**. Les que no, te les llista amb la data de l'informe que les va deixar en
+aquell estat, perquè puguis actualitzar l'Excel.
+
+> Compte, que no és el mateix criteri que el de **Seguiment**: aquí sí que es
+> demana el «SI», i allà no.
+
 ### Altres botons del menú
 
 - **🗃 Actualitzar base d'informes**: recorre els informes ja fets i n'extreu

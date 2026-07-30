@@ -38,6 +38,7 @@ function Main {
             'informesdbedit' { Invoke-InformesDbEdit }   # editor de la base d'informes
             'copiarinformes' { Invoke-CopiarInformes }   # copia incremental dels Word a la carpeta de copia
             'comprovarexcel' { Invoke-ComprovarExcel }   # comprova que l'Excel reflecteix els precintes
+            'seguimentgia'   { Invoke-SeguimentGia }     # llistats de seguiment del GIA (Excel o PDF)
             'revisarmobil'   { Invoke-RevisarMobil }     # revisa el mobil un sol cop; torna al menu
             'config'         { Invoke-ConfiguracioScreen }   # rutes d'aquest PC + actualitzar; torna al menu
             'editcataleg'    { Show-CatalegEditor -focusDoc ([string]$sel.Doc) }   # editor dels ESTRUCTURALS (xip del document)

@@ -1630,4 +1630,73 @@ Assert (_TextMatches $filaHay '')                'filtre graella: cerca buida ->
 Assert (-not (_TextMatches $filaHay 'restaurant')) 'filtre graella: sense coincidencia -> no passa'
 Assert (-not (_TextMatches '' 'x'))              'filtre graella: fila sense text i cerca amb contingut -> no passa'
 
+Write-Host "`n--- SeguimentGia.ps1: els cinc llistats del GIA (funcions pures) ---"
+# Taula d'exemple amb la MATEIXA forma que la fulla Estes de la base de dades:
+# capceleres amb 'Classificacio general annex' REPETIDA (a la base hi surt dues
+# vegades: la 1a es la que es MOSTRA, la 2a la que fa de CRITERI a ANNEX II) i
+# dues parelles de Camp Info.
+$sgH = @(
+    'ID Activitat', ('N' + [char]0x00FA + 'm. expedient '), ('Ra' + [char]0x00F3 + ' social'),
+    ('Ra' + [char]0x00F3 + ' soc. M' + [char]0x00F2 + 'bil'), 'Representant legal',
+    ('Rep. Leg. M' + [char]0x00F2 + 'bil'), 'Nom comercial activitat ',
+    'Emp. Tipus via', 'Emp. Carrer', ('Emp. N' + [char]0x00FA + 'mero'),
+    ('Classificaci' + [char]0x00F3 + ' general annex'), ('Classificaci' + [char]0x00F3 + ' general Apartat'),
+    ('Data control inicial/verificaci' + [char]0x00F3), ('Data control peri' + [char]0x00F2 + 'dic'),
+    'Activitat principal', ('Classificaci' + [char]0x00F3 + ' general annex'), ('Descripci' + [char]0x00F3 + ' lliure'),
+    'Camp Info 1 - Nom', 'Camp Info 1 - Valor', 'Camp Info 2 - Nom', 'Camp Info 2 - Valor'
+)
+$sgPairs = @(_FindCampInfoPairs $sgH)
+AssertEq $sgPairs.Count 2 'SeguimentGia: es reaprofita _FindCampInfoPairs (2 parelles)'
+AssertEq (_SgColIndex $sgH 'ID Activitat') 1 '_SgColIndex: 1-based'
+AssertEq (_SgColIndex $sgH ('classificacio general annex')) 11 '_SgColIndex: la PRIMERA que coincideix (com el MATCH de la plantilla)'
+AssertEq (_SgColIndex $sgH 'no existeix') 0 '_SgColIndex: si no hi es -> 0'
+#            1      2         3        4       5      6      7     8     9    10    11   12       13           14           15      16   17        18                      19                20              21
+$sgFiles = @(
+  @('100','E-1','TITULAR U','600','REP U','601','BAR U','C','MAJOR','1','II','5.17.b','2019-03-15 00:00:00.0','2025-07-08 00:00:00.0','BAR','II','Text llarg de descripcio','PRECINTE ACTIVITAT?','SI, precintada','DEN' + [char]0x00DA + 'NCIA?','SI, soroll'),
+  @('101','E-2','TITULAR D','602','','','BAR D','AV','PICASSO','6','III','','','','REST','III','','SONOMETRIA?','SI, queixa','',''),
+  @('102','E-3','TITULAR T','603','','','BAR T','PG','FERRO','24','II','1.1','','','IND','II','','REQUERIT PER DECRET?','PROCEDIMENT ESMENA','',''),
+  @('','E-4','SENSE ID','','','','','','','','II','','','','','II','hi ha descripcio','PRECINTE ACTIVITAT?','SI',''),
+  @('103','E-5','TITULAR C','604','','','BAR C','C','LLUNA','9','II','2.2','','','COM','II','','','','','')
+)
+$sgDefs = @(_SgFullesDef)
+AssertEq $sgDefs.Count 5 '_SgFullesDef: 5 pestanyes'
+AssertEq ($sgDefs[0].Nom) 'PRECINTES' '_SgFullesDef: la primera es PRECINTES'
+$sgPre = @(_SgFilesPerFulla $sgDefs[0] $sgH $sgFiles $sgPairs)
+AssertEq $sgPre.Count 1 'PRECINTES: nomes l activitat 100 (la fila sense ID Activitat NO compta)'
+AssertEq ($sgPre[0][0]) 1 'PRECINTES: la columna N numera 1..N (no es el numero de fila de l Excel)'
+AssertEq ($sgPre[0][1]) '100' 'PRECINTES: ID Activitat'
+AssertEq ($sgPre[0][11]) 'PRECINTE ACTIVITAT?' 'PRECINTES: penultima columna = el Camp Info que ha coincidit'
+AssertEq ($sgPre[0][12]) 'SI, precintada' 'PRECINTES: ultima columna = el seu valor'
+# El criteri es NOMES tenir el camp: el valor pot dir qualsevol cosa.
+$sgReq = @(_SgFilesPerFulla $sgDefs[2] $sgH $sgFiles $sgPairs)
+AssertEq $sgReq.Count 1 'REQUERIT DECRET: hi entra tot i que el valor no comenci per SI'
+AssertEq ($sgReq[0][12]) 'PROCEDIMENT ESMENA' 'REQUERIT DECRET: el valor surt tal qual (aqui NO es demana SI)'
+# La 2a parella de Camp Info tambe val (a la plantilla el MATCH mirava tota la fila).
+$sgDen = @(_SgFilesPerFulla $sgDefs[1] $sgH $sgFiles $sgPairs)
+AssertEq $sgDen.Count 1 ('DEN' + [char]0x00DA + 'NCIES: troba el criteri a la 2a parella de Camp Info')
+AssertEq ($sgDen[0][12]) 'SI, soroll' ('DEN' + [char]0x00DA + 'NCIES: valor de la 2a parella')
+$sgSon = @(_SgFilesPerFulla $sgDefs[3] $sgH $sgFiles $sgPairs)
+AssertEq $sgSon.Count 1 'SONOMETRIA: nomes l activitat 101'
+# ANNEX II: classificacio II (2a columna repetida) I descripcio lliure amb text.
+$sgAnx = @(_SgFilesPerFulla $sgDefs[4] $sgH $sgFiles $sgPairs)
+AssertEq $sgAnx.Count 1 'ANNEX II: nomes la 100 (la 102 i la 103 son II pero sense descripcio; la 101 es III)'
+AssertEq ($sgAnx[0][11]) 'II' 'ANNEX II: mostra la PRIMERA columna de classificacio'
+AssertEq ($sgAnx[0][13]) '15/03/2019' 'ANNEX II: la data surt com a dd/MM/aaaa, no en cru'
+AssertEq ($sgAnx[0][14]) '08/07/2025' 'ANNEX II: la 2a data, igual'
+AssertEq ($sgAnx[0][16]) 'Text llarg de descripcio' ('ANNEX II: ultima columna = Descripci' + [char]0x00F3 + ' lliure')
+AssertEq ([bool](_SgAnnexCoincideix 'II' 'text')) $true '_SgAnnexCoincideix: II + descripcio -> si'
+AssertEq ([bool](_SgAnnexCoincideix 'II' '')) $false '_SgAnnexCoincideix: sense descripcio -> no'
+AssertEq ([bool](_SgAnnexCoincideix 'III' 'text')) $false '_SgAnnexCoincideix: annex III -> no'
+AssertEq ([bool](_SgAnnexCoincideix 'ii' '  x ')) $true '_SgAnnexCoincideix: no distingeix majuscules'
+# Titols i nom del fitxer
+$sgData = Get-Date '2026-07-30'
+AssertEq (_SgTitolFulla $sgDefs[0] $sgData) 'ACTIVITAT PRECINTADA? 30/07/2026' '_SgTitolFulla: titol + data de la fila 1'
+AssertEq (_SgTitolFulla $sgDefs[4] $sgData) 'ANNEXOS II 30/07/2026' '_SgTitolFulla: ANNEX II te el seu propi titol'
+AssertEq (_SgNomFitxer $sgData) '2026-07-30 Seguiment GIA.xlsx' '_SgNomFitxer: xlsx per defecte'
+AssertEq (_SgNomFitxer $sgData 'pdf') '2026-07-30 Seguiment GIA.pdf' '_SgNomFitxer: pdf'
+# Amplades: tantes com columnes (N + les de dades).
+foreach ($d in $sgDefs) {
+    AssertEq (@($d.Amplades).Count) ((@($d.Cols).Count) + 1) ("Amplades de " + $d.Nom + ": una per columna, incloent-hi la 'N'")
+}
+
 exit (Write-TestSummary 'RESULTAT')

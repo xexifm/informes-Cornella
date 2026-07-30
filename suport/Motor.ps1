@@ -384,6 +384,11 @@ if (-not $Script:HeadlessTest) { [void](Invoke-MigracioLocal $RepoRoot) }
 # d'AutoFirma) testejables; Word (COM) i AutoFirma nomes s'executen a Windows.
 . (Join-Path $ScriptRoot 'PdfSignar.ps1')
 
+# Eina "Seguiment" (fila GIA): els cinc llistats de seguiment de la base de
+# dades d'activitats, en Excel o en PDF. Les funcions de dades son pures i es
+# proven en headless; nomes la construccio del llibre fa servir Excel (COM).
+. (Join-Path $ScriptRoot 'SeguimentGia.ps1')
+
 # Editor dels textos del correu del mobil (docs\dades\email-textos.json).
 # Funcions pures testejables; la finestra (WinForms) nomes a Windows.
 . (Join-Path $ScriptRoot 'EmailTextos.ps1')

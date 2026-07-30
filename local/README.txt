@@ -42,6 +42,11 @@ vistes-catalegs\        Copies en Word dels catalegs, per poder-los llegir
                         l'editor de catalegs del programa (edita els .json
                         d'ESTRUCTURALS, que son la font de veritat).
 
+seguiment-gia\          Els llistats de seguiment del GIA que fa l'eina
+                        "Seguiment" (fila GIA del menu), en Excel i en PDF:
+                        PRECINTES, DENUNCIES, REQUERIT DECRET, SONOMETRIA i
+                        ANNEX II, amb una copia de la fulla Estes.
+
 PRIVACITAT
 ----------
 Bona part d'aquests fitxers contenen DADES PERSONALS (noms i adreces de

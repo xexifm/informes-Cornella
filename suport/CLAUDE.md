@@ -46,6 +46,49 @@ abans i després.
 - `Invoke-MigracioLocal` (idempotent, no llança mai) la criden `Motor.ps1` en
   arrencar i `Actualitzar.bat` al pas 4a, després del `pull`.
 
+## Eina «Seguiment» (fila GIA): d'on surt cada cosa
+`SeguimentGia.ps1` substitueix un Excel de fórmules de l'usuari
+(`0_PLANTILLA.xlsx`). Val la pena tenir apuntat com estava fet, perquè el codi
+n'és la traducció literal:
+
+- La plantilla tenia les columnes **desplaçades 15 posicions** (`ID Activitat` a
+  la P, no a l'A) perquè hi havien inserit **15 columnes ocultes** d'ajuda: **5
+  blocs de 3** (A-B-C … M-N-O), un per pestanya. Dins de cada bloc, la 3a
+  columna feia `MATCH(criteri, P:FZ, 0)` → la posició del `Camp Info N - Nom`
+  que coincidia; la 2a era un comptador que només avançava quan la fila
+  coincidia; la 1a, la clau que després buscava el `VLOOKUP` de la pestanya.
+- **El criteri és NOMÉS tenir aquell `Camp Info`, digui el que digui el valor.**
+  No es demana que comenci per SI. Comprovat contra les dades reals: a REQUERIT
+  DECRET hi havia dues activitats amb valor `PROCEDIMENT ESMENA` i
+  `CONTROL PERIODIC VTO. 27-04-2026…`. **`Invoke-ComprovarExcel` (Informes.ps1)
+  fa servir un criteri DIFERENT**, allà sí que cal el SI: són dues coses
+  distintes i no s'han d'unificar.
+- **ANNEX II**: `Classificació general annex` = `II` **i** `Descripció lliure`
+  amb contingut. Ull: la base de dades té aquesta capçalera **dues vegades**; la
+  plantilla **mostra la primera** (CZ) i **filtra per la segona** (DG). A les
+  dades reals les dues són idèntiques a totes 1.312 activitats, però
+  `_SgFilesPerFulla` ho reprodueix igual (busca explícitament la 2a per al
+  criteri) per no canviar el resultat si algun dia divergeixen.
+- Les columnes es resolen **pel nom de la capçalera**, com el `MATCH` de la
+  plantilla, i es reaprofita **`_FindCampInfoPairs`** (`Informes.ps1`), que ja
+  localitzava les parelles `Camp Info N - Nom`/`- Valor`.
+- **Validat cel·la a cel·la** contra la plantilla real: 26 / 24 / 48 / 8 / 51
+  files, mateixos ID i mateixos valors i en el mateix ordre. L'única diferència
+  volguda són les dues columnes de data d'ANNEX II, que ara surten com a
+  `dd/MM/aaaa` (`_FormatDateOnly`) en lloc de `2020-12-22 00:00:00.0`.
+- **Impressió** (i per tant el PDF): horitzontal, **A3**, `Zoom=$false` +
+  `FitToPagesWide=1` + `FitToPagesTall=$false` (hi caben totes les columnes),
+  marges 0,5 cm, `PrintTitleRows='$1:$2'` i peu `&A` / `Página &P`. Al PDF hi
+  van **només els 5 llistats**, seleccionats com a grup i exportats amb
+  **`$excel.ActiveWindow.SelectedSheets.ExportAsFixedFormat`** — amb
+  `ActiveSheet` només sortiria una pestanya.
+- Escriure amb COM va **per matriu** (`$range.Value2 = $matriu`), no cel·la a
+  cel·la: la diferència és de minuts a segons.
+- Els segells de «última vegada» del menú (`Select-Mode`) s'indexaven per
+  POSICIÓ dins de la fila de rajoles; en moure *Comprovar Excel* a la fila GIA
+  haurien anat a la rajola equivocada. Ara `$segells` va per **etiqueta** de
+  rajola i l'helper `$addTileRowAmbSegells` serveix per a les dues files.
+
 ## Trampa: el que surt d'un CMDLET ve embolcallat en un `PSObject`
 `Join-Path` és un **cmdlet**, i el seu resultat arriba dins d'un `PSObject`.
 Normalment no es nota (PowerShell el desembolcalla sol), **però NO quan el valor
