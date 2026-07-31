@@ -114,9 +114,28 @@ n'és la traducció literal:
   files, mateixos ID i mateixos valors i en el mateix ordre. L'única diferència
   volguda són les dues columnes de data d'ANNEX II, que ara surten com a
   `dd/MM/aaaa` (`_FormatDateOnly`) en lloc de `2020-12-22 00:00:00.0`.
+- **Colors, calcats de la plantilla** (`$Script:SgColors`, trets del seu
+  `styles.xml`): capçalera amb lletra **blanca sobre blau marí** — al fitxer són
+  colors **indexats de la paleta antiga**, `indexed 9` = `FFFFFF` i `indexed 18`
+  = `000080` — i files de dades amb **ratllat de zebra** `E8E8E8` (`theme 2`),
+  la 1a ombrejada i després una sí una no. La columna `N` de la capçalera **no
+  porta fons**. Abans hi havia un `#D9E1F2` que m'havia inventat. L'Excel vol el
+  color com a **`R + G*256 + B*65536`** (BGR), no com un `#RRGGBB`.
+- **L'alçada de la capçalera s'ajusta DESPRÉS de posar les amplades**: amb
+  `WrapText`, `Rows(2).AutoFit()` calcula l'alçada a partir de l'amplada de la
+  columna, o sigui que fer-ho abans deixa el text tallat igualment.
 - **Impressió** (i per tant el PDF): horitzontal, **A3**, `Zoom=$false` +
   `FitToPagesWide=1` + `FitToPagesTall=$false` (hi caben totes les columnes),
-  marges 0,5 cm, `PrintTitleRows='$1:$2'` i peu `&A` / `Página &P`.
+  marges 0,5 cm, `PrintTitleRows='$1:$2'` i peu `&A` / `Pàgina &P de N`.
+- **El peu compta les pàgines DE CADA PESTANYA**, no del PDF sencer:
+  - `FirstPageNumber = 1` a cada fulla — per defecte l'Excel numera de correguda
+    per tot el treball d'impressió i ANNEX II hauria començat per la 540.
+  - El total **no pot ser `&N`**: en una exportació de diverses pestanyes, `&N`
+    és el total del PDF. Es llegeix **`$sh.PageSetup.Pages.Count`** i s'escriu el
+    número literal al peu. S'ha de llegir **al final**, quan la paginació ja està
+    decidida (orientació, paper i ajust a l'ample); abans donaria un altre
+    número. Si no es pot llegir, el peu es queda amb `Pàgina &P` (sense total),
+    mai amb un total fals.
 - **Es TRIA què s'exporta** (caselles a la finestra, totes marcades per defecte).
   `_SgOpcionsExport` és **l'única llista** — la fan servir tant la finestra com
   `_SgConstruirLlibre`, o sigui que no es poden desincronitzar — i

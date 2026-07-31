@@ -308,6 +308,19 @@ $Script:SgXl = @{
     InsideVert    = 11; InsideHoriz = 12
 }
 
+# COLORS, tal com son a la plantilla de l'usuari (trets del styles.xml).
+# L'Excel els vol com a R + G*256 + B*65536 (BGR), no com un #RRGGBB.
+#   Capcalera: lletra BLANCA sobre BLAU MARI. Al fitxer son colors indexats de
+#   la paleta antiga: 'indexed 9' = FFFFFF i 'indexed 18' = 000080. (Aqui hi
+#   havia un #D9E1F2 inventat per mi, que no s'assemblava a l'original.)
+#   Files de dades: ratllat de zebra amb el 'theme 2' del tema del fitxer, que
+#   val E8E8E8; la 1a fila de dades va ombrejada i despres una si una no.
+$Script:SgColors = @{
+    CapcaleraFons  = 8388608    # 000080 blau mari
+    CapcaleraText  = 16777215   # FFFFFF blanc
+    FilaAlterna    = 15263976   # E8E8E8 gris clar
+}
+
 # Text d'un error: el missatge, EN QUIN PAS estavem i la LINIA exacta del codi.
 #
 # Aquesta eina nomes es pot provar amb l'Excel de debo (fora de Windows no hi ha
@@ -409,11 +422,20 @@ function _SgFormatarFulla($sh, $def, [int]$nFiles, $excel) {
     $t.Font.Color = 255                                  # vermell (BGR)
     $t.VerticalAlignment = -4108                         # xlCenter
 
-    # --- Fila 2: capceleres ---
+    # --- Fila 2: capceleres, amb els colors de la plantilla ---
+    #     Lletra BLANCA sobre BLAU MARI, i el text AJUSTAT perque no es talli (la
+    #     fila creix tota sola mes avall, quan les columnes ja tenen l'amplada
+    #     definitiva). A la plantilla, la columna 'N' NO porta fons.
     $hdr = $sh.Range($sh.Cells.Item(2, 1), $sh.Cells.Item(2, $nCols))
     $hdr.Font.Name = 'Arial'; $hdr.Font.Size = 10; $hdr.Font.Bold = $true
-    $hdr.Interior.Color = 15917529                        # gris blavos clar
-    $hdr.HorizontalAlignment = -4108
+    $hdr.HorizontalAlignment = -4108                      # xlCenter
+    $hdr.VerticalAlignment = -4108
+    $hdr.WrapText = $true
+    if ($nCols -ge 2) {
+        $hdrFons = $sh.Range($sh.Cells.Item(2, 2), $sh.Cells.Item(2, $nCols))
+        $hdrFons.Interior.Color = $Script:SgColors.CapcaleraFons
+        $hdrFons.Font.Color = $Script:SgColors.CapcaleraText
+    }
 
     # --- Dades: vores fines i text ajustat a les columnes llargues ---
     $ultima = if ($nFiles -gt 0) { 2 + $nFiles } else { 2 }
@@ -445,6 +467,19 @@ function _SgFormatarFulla($sh, $def, [int]$nFiles, $excel) {
         $rng.VerticalAlignment = -4160                    # xlTop
         # Autoajust d'alcada: amb wrap, si no, el text queda tallat.
         try { $sh.Rows("3:$ultima").AutoFit() | Out-Null } catch { }
+    }
+
+    # --- Alcada de la CAPCALERA: ha d'anar DESPRES de les amplades, si no
+    #     l'AutoFit calcularia l'alcada amb l'amplada que no toca i el text es
+    #     tallaria igualment (que es el que passava).
+    try { $sh.Rows.Item(2).AutoFit() | Out-Null } catch { }
+
+    # --- Ratllat de zebra de les dades, com a la plantilla: la 1a fila de dades
+    #     ombrejada i despres una si una no.
+    if ($nFiles -gt 0) {
+        for ($r = 3; $r -le $ultima; $r += 2) {
+            try { $sh.Range($sh.Cells.Item($r, 1), $sh.Cells.Item($r, $nCols)).Interior.Color = $Script:SgColors.FilaAlterna } catch { }
+        }
     }
 
     # --- Panells fixats a A3 (les dues primeres files sempre visibles) ---
@@ -480,7 +515,22 @@ function _SgFormatarFulla($sh, $def, [int]$nFiles, $excel) {
         $ps.PrintTitleRows = '$1:$2'
         $ps.CenterFooter = ''
         $ps.LeftFooter   = '&A'
-        $ps.RightFooter  = ('P' + [char]0x00E1 + 'gina &P')
+
+        # --- PEU: la pagina DINS D'AQUESTA pestanya, no dins del PDF sencer ---
+        # Per defecte l'Excel numera de correguda per tot el traball d'impressio:
+        # si ANNEX II comenca a la pagina 540, el peu hi diria 540. Amb
+        # FirstPageNumber = 1 cada pestanya torna a comencar per 1.
+        $ps.FirstPageNumber = 1
+        # I el TOTAL tampoc no pot ser '&N': en una exportacio de diverses
+        # pestanyes, &N es el total del PDF sencer. El total d'aquesta pestanya
+        # el sabem nosaltres amb Pages.Count, i s'ha de llegir AQUI, al final,
+        # quan la paginacio ja esta decidida (orientacio, paper i ajust a
+        # l'ample); si es llegis abans, el numero seria d'una altra pagina.
+        $ps.RightFooter = ('P' + [char]0x00E0 + 'gina &P')
+        try {
+            $nPag = [int]$sh.PageSetup.Pages.Count
+            if ($nPag -gt 0) { $ps.RightFooter = ('P' + [char]0x00E0 + 'gina &P de ' + $nPag) }
+        } catch { }
     } catch { }
 }
 

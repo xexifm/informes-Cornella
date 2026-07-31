@@ -126,8 +126,10 @@ totes de cop). Al fitxer només hi haurà les pestanyes marcades.
 
 Dos botons: **Exportar a Excel** i **Exportar a PDF**. El PDF surt en horitzontal
 i A3, ajustat perquè hi càpiguen totes les columnes, amb les dues primeres files
-repetides a cada pàgina i el nom de la pestanya i el número de pàgina al peu.
-Els fitxers es desen a `local/seguiment-gia/`.
+repetides a cada pàgina. Al peu hi ha el nom de la pestanya i **la pàgina dins
+d'aquella pestanya**: encara que el PDF sencer en tingui 600, ANNEX II comença
+per *Pàgina 1 de …* amb el total d'ANNEX II. Els fitxers es desen a
+`local/seguiment-gia/`.
 
 > Per al PDF val més **desmarcar `Estès`**: són 152 columnes i no està pensada
 > per imprimir. Si la deixes marcada, hi sortirà igualment — mana el que triïs.
