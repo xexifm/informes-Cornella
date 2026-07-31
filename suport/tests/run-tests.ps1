@@ -1775,6 +1775,16 @@ AssertEq (_SgTitolFulla $sgDefs[0] $sgData) 'ACTIVITAT PRECINTADA? 30/07/2026' '
 AssertEq (_SgTitolFulla $sgDefs[4] $sgData) 'ANNEXOS II 30/07/2026' '_SgTitolFulla: ANNEX II te el seu propi titol'
 AssertEq (_SgNomFitxer $sgData) '2026-07-30 Seguiment GIA.xlsx' '_SgNomFitxer: xlsx per defecte'
 AssertEq (_SgNomFitxer $sgData 'pdf') '2026-07-30 Seguiment GIA.pdf' '_SgNomFitxer: pdf'
+# Missatge d'error: ha de dir el PAS i la LINIA, no nomes el missatge pelat. Amb
+# COM, un "Unable to cast object of type X to type Y" no diu on ha estat, i
+# aquesta eina nomes es pot provar amb l'Excel de debo.
+$sgErr = $null
+try { throw 'petada de prova' } catch { $sgErr = $_ }
+$sgTxt = _SgTextError $sgErr "bolcant les dades a 'PRECINTES'"
+Assert ($sgTxt -like '*petada de prova*')                 '_SgTextError: hi surt el missatge original'
+Assert ($sgTxt -like "*bolcant les dades a 'PRECINTES'*") '_SgTextError: hi surt el pas on estavem'
+Assert ($sgTxt -like '*SeguimentGia.ps1, linia*')         '_SgTextError: hi surt la linia del codi'
+Assert ((_SgTextError $sgErr '') -like '*petada de prova*') '_SgTextError: sense pas, encara dona el missatge'
 # Amplades: tantes com columnes (N + les de dades).
 foreach ($d in $sgDefs) {
     AssertEq (@($d.Amplades).Count) ((@($d.Cols).Count) + 1) ("Amplades de " + $d.Nom + ": una per columna, incloent-hi la 'N'")

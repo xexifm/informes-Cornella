@@ -270,6 +270,28 @@ $Script:SgXl = @{
     InsideVert    = 11; InsideHoriz = 12
 }
 
+# Text d'un error: el missatge, EN QUIN PAS estavem i la LINIA exacta del codi.
+#
+# Aquesta eina nomes es pot provar amb l'Excel de debo (fora de Windows no hi ha
+# COM), o sigui que quan peta ha de dir tot el que sap. Amb el missatge pelat
+# ("Unable to cast object of type X to type Y") toca endevinar quina de les
+# vint crides a l'Excel ha estat, i cada intent costa una volta sencera.
+function _SgTextError($err, [string]$pas) {
+    $parts = New-Object System.Collections.ArrayList
+    $msg = ''
+    try { $msg = [string]$err.Exception.Message } catch { }
+    if ([string]::IsNullOrWhiteSpace($msg)) { $msg = [string]$err }
+    [void]$parts.Add($msg)
+    if (-not [string]::IsNullOrWhiteSpace($pas)) { [void]$parts.Add(('Estava ' + $pas + '.')) }
+    try {
+        $inv = $err.InvocationInfo
+        if ($null -ne $inv) {
+            [void]$parts.Add(('SeguimentGia.ps1, linia ' + [string]$inv.ScriptLineNumber + ':' + "`n" + ([string]$inv.Line).Trim()))
+        }
+    } catch { }
+    return ($parts -join "`n`n")
+}
+
 # Deixa una pestanya de llistat amb el format i la configuracio d'impressio de
 # la plantilla. Tot el que es veu (colors, amplades, marges, peu de pagina) surt
 # d'aqui: si algun dia canvia, es canvia en un sol lloc.
@@ -372,9 +394,14 @@ function _SgConstruirLlibre {
     $excel.DisplayAlerts = $false
     $excel.ScreenUpdating = $false
 
+    # On som, per si peta: aquesta eina nomes es pot provar amb l'Excel de debo,
+    # o sigui que quan falla ha de dir EXACTAMENT en quin punt i a quina pestanya.
+    # Sense aixo, un error de COM nomes dona el missatge pelat i toca endevinar.
+    $pas = "obrint l'Excel d'activitats"
     $wbOrig = $null
     try {
         $wbOrig = $excel.Workbooks.Open($latest.File.FullName, 0, $true)   # ReadOnly
+        $pas = ("localitzant la fulla 'Est" + [char]0x00E8 + "s'")
         $found = _FindEstesSheet $wbOrig
         $shOrig = $found.Sheet
         if ($null -eq $shOrig) {
@@ -383,6 +410,7 @@ function _SgConstruirLlibre {
 
         # 1) Llegim la taula sencera d'una sola vegada (molt mes rapid que anar
         #    cel·la a cel·la per COM).
+        $pas = "llegint les dades de l'Excel"
         $data = $shOrig.UsedRange.Value2
         if ($null -eq $data) { return @{ Ok=$false; Error="La fulla d'activitats es buida." } }
         $nRows = $data.GetLength(0); $nCols = $data.GetLength(1)
@@ -399,6 +427,7 @@ function _SgConstruirLlibre {
         }
 
         # 2) Llibre nou amb la fulla Estes COPIADA (valors i format de l'origen).
+        $pas = ("copiant la fulla 'Est" + [char]0x00E8 + "s' al llibre nou")
         $wb = $excel.Workbooks.Add()
         while ($wb.Sheets.Count -gt 1) { $wb.Sheets.Item($wb.Sheets.Count).Delete() }
         $shOrig.Copy($wb.Sheets.Item(1))          # la posa ABANS del full buit
@@ -412,11 +441,15 @@ function _SgConstruirLlibre {
             # Sheets.Add(Before, After, ...): per saltar-se 'Before' cal passar
             # Missing.Value, NO $null (amb $null el COM es pensa que li donem un
             # 'Before' buit i afegeix la pestanya al principi).
+            $pas = ("creant la pestanya '" + [string]$def.Nom + "'")
             $sh = $wb.Sheets.Add([System.Reflection.Missing]::Value, $wb.Sheets.Item($wb.Sheets.Count))
             $sh.Name = [string]$def.Nom
+
+            $pas = ("triant les activitats de '" + [string]$def.Nom + "'")
             $rows = @(_SgFilesPerFulla $def $headers $files $pairs)
             $resum[[string]$def.Nom] = $rows.Count
 
+            $pas = ("escrivint el titol i les capceleres de '" + [string]$def.Nom + "'")
             $sh.Cells.Item(1, 1).Value2 = (_SgTitolFulla $def $ara)
             $cols = @('N') + @($def.Cols)
             for ($c = 0; $c -lt $cols.Count; $c++) { $sh.Cells.Item(2, $c + 1).Value2 = [string]$cols[$c] }
@@ -425,14 +458,17 @@ function _SgConstruirLlibre {
                 # Matriu [files x columnes] i UNA sola assignacio: per COM, la
                 # diferencia entre aixo i escriure cel·la a cel·la es de minuts
                 # a segons.
+                $pas = ("muntant la matriu de '" + [string]$def.Nom + "' (" + $rows.Count + " files x " + $cols.Count + " columnes)")
                 $m = New-Object 'object[,]' $rows.Count, $cols.Count
                 for ($i = 0; $i -lt $rows.Count; $i++) {
                     $f = @($rows[$i])
                     for ($j = 0; $j -lt $cols.Count; $j++) { $m[$i, $j] = if ($j -lt $f.Count) { $f[$j] } else { '' } }
                 }
+                $pas = ("bolcant les dades a '" + [string]$def.Nom + "'")
                 $dest = $sh.Range($sh.Cells.Item(3, 1), $sh.Cells.Item(2 + $rows.Count, $cols.Count))
                 $dest.Value2 = $m
             }
+            $pas = ("donant format a '" + [string]$def.Nom + "'")
             _SgFormatarFulla $sh $def $rows.Count $excel
         }
 
@@ -440,7 +476,7 @@ function _SgConstruirLlibre {
         return @{ Ok=$true; Workbook=$wb; Excel=$excel; Resum=$resum; Origen=$latest.File.Name }
     } catch {
         try { if ($null -ne $excel) { $excel.Quit() } } catch { }
-        return @{ Ok=$false; Error=$_.Exception.Message }
+        return @{ Ok=$false; Error=(_SgTextError $_ $pas) }
     } finally {
         try { if ($null -ne $wbOrig) { $wbOrig.Close($false) } } catch { }
         try { if ($null -ne $excel) { $excel.ScreenUpdating = $true } } catch { }
@@ -490,8 +526,9 @@ function _SgExportar([string]$mode) {
             $wb.SaveAs($path, $Script:SgXl.OpenXMLBook)
         }
     } catch {
+        $detall = _SgTextError $_ ("desant el fitxer en " + $ext)
         _SgTancar $excel $wb
-        [System.Windows.Forms.MessageBox]::Show("No s'ha pogut desar el fitxer:`n$($_.Exception.Message)", 'Seguiment', 'OK', 'Error') | Out-Null
+        [System.Windows.Forms.MessageBox]::Show("No s'ha pogut desar el fitxer:`n`n$detall", 'Seguiment', 'OK', 'Error') | Out-Null
         return ''
     }
     _SgTancar $excel $wb
