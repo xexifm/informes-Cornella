@@ -120,8 +120,28 @@ n'és la traducció literal:
   van **només els 5 llistats**, seleccionats com a grup i exportats amb
   **`$excel.ActiveWindow.SelectedSheets.ExportAsFixedFormat`** — amb
   `ActiveSheet` només sortiria una pestanya.
-- Escriure amb COM va **per matriu** (`$range.Value2 = $matriu`), no cel·la a
-  cel·la: la diferència és de minuts a segons.
+- **`$rang.Value2 = $matriu` NO FUNCIONA** amb l'Excel real: peta amb
+  *"Unable to cast object of type 'System.Object[,]' to type 'System.String'"*.
+  L'adaptador COM de PowerShell intenta **convertir** la matriu sencera al tipus
+  de la propietat en lloc de passar-la tal qual com un SAFEARRAY. Amb una cel·la
+  sola i una cadena no passa (per això el títol i les capçaleres sí que
+  s'escrivien, i el missatge pelat no deia on era). `_SgEscriuMatriu` ho fa amb
+  **`InvokeMember('Value2', SetProperty, …, @(,$matriu))`**, que se salta
+  l'adaptador — el `@(,…)` és imprescindible: la llista d'arguments ha de portar
+  la matriu com un **únic** element. Si això també falla, escriu **cel·la a
+  cel·la**: aquests llistats són de desenes de files (26/24/48/8/51), no de
+  milers, i val més trigar dos segons que quedar-se sense el fitxer. El «matriu
+  vs cel·la a cel·la és de minuts a segons» valia per a la **lectura** de la base
+  sencera (1.312 × 152), no per a aquesta escriptura.
+- **El format d'una pestanya no pot endur-se el fitxer**: `_SgFormatarFulla` va
+  dins d'un `try/catch` **dins del bucle** (mateixa lliçó que els reintents de la
+  signatura) i, si falla, s'afegeix un avís al resum i es continua. Les dades
+  són el que importa; els colors, no.
+- **Quan una eina de COM peta, ha de dir ON.** `_SgConstruirLlibre` porta un
+  `$pas` («obrint l'Excel», «copiant la fulla Estès», «bolcant les dades a
+  PRECINTES»…) i `_SgTextError` hi afegeix **la línia exacta del codi**. Sense
+  això, un missatge com el de dalt obliga a endevinar quina de les vint crides a
+  l'Excel ha estat, i cada intent costa una volta sencera amb l'usuari.
 - **PER QUÈ VA PETAR EL PRIMER DIA** («No se puede convertir el valor
   "System.Object[]" … al tipo "System.Int32"»): `_FindCampInfoPairs`
   (`Informes.ps1`) acaba amb `return ,@($pairs)`. La coma hi és a posta —

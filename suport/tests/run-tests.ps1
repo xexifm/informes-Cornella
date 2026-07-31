@@ -1785,6 +1785,34 @@ Assert ($sgTxt -like '*petada de prova*')                 '_SgTextError: hi surt
 Assert ($sgTxt -like "*bolcant les dades a 'PRECINTES'*") '_SgTextError: hi surt el pas on estavem'
 Assert ($sgTxt -like '*SeguimentGia.ps1, linia*')         '_SgTextError: hi surt la linia del codi'
 Assert ((_SgTextError $sgErr '') -like '*petada de prova*') '_SgTextError: sense pas, encara dona el missatge'
+
+# _SgEscriuMatriu: si l'escriptura EN BLOC falla, ha d'escriure cel·la a cel·la i
+# deixar les dades igualment. Amb l'Excel de l'usuari l'assignacio en bloc peta
+# ("Unable to cast object of type 'System.Object[,]' to type 'System.String'"),
+# aixi que aquest cami alternatiu es el que ha de salvar el fitxer.
+# La fulla falsa no te InvokeMember de COM, o sigui que el bloc falla sol i es
+# prova exactament el que interessa: el respatller.
+$sgEscrites = @{}
+$sgFullaFalsa = [pscustomobject]@{}
+$sgFullaFalsa | Add-Member -MemberType ScriptProperty -Name Cells -Value {
+    [pscustomobject]@{} | Add-Member -MemberType ScriptMethod -Name Item -Value {
+        param($r, $c)
+        $cel = [pscustomobject]@{ R = $r; C = $c }
+        $cel | Add-Member -MemberType ScriptProperty -Name Value2 -Value { '' } `
+                          -SecondValue { param($v) $script:sgEscrites["$($this.R),$($this.C)"] = $v } -PassThru
+    } -PassThru
+}
+$sgFullaFalsa | Add-Member -MemberType ScriptMethod -Name Range -Value { param($a, $b) throw 'sense COM' }
+$sgMat = New-Object 'object[,]' 2, 3
+$sgMat[0, 0] = 'a'; $sgMat[0, 1] = 'b'; $sgMat[0, 2] = 'c'
+$sgMat[1, 0] = 'd'; $sgMat[1, 1] = 'e'; $sgMat[1, 2] = 'f'
+$sgVia = _SgEscriuMatriu $sgFullaFalsa 3 $sgMat
+AssertEq $sgVia ('cel' + [char]0x00B7 + 'la') '_SgEscriuMatriu: si el bloc falla, passa a cel·la a cel·la'
+AssertEq $sgEscrites.Count 6      '_SgEscriuMatriu: escriu totes les cel·les de la matriu'
+AssertEq $sgEscrites['3,1'] 'a'   '_SgEscriuMatriu: la matriu comenca a la fila indicada, columna 1'
+AssertEq $sgEscrites['3,3'] 'c'   '_SgEscriuMatriu: ultima columna de la 1a fila'
+AssertEq $sgEscrites['4,1'] 'd'   '_SgEscriuMatriu: 2a fila'
+AssertEq $sgEscrites['4,3'] 'f'   '_SgEscriuMatriu: ultima cel·la'
 # Amplades: tantes com columnes (N + les de dades).
 foreach ($d in $sgDefs) {
     AssertEq (@($d.Amplades).Count) ((@($d.Cols).Count) + 1) ("Amplades de " + $d.Nom + ": una per columna, incloent-hi la 'N'")

@@ -292,6 +292,42 @@ function _SgTextError($err, [string]$pas) {
     return ($parts -join "`n`n")
 }
 
+# Escriu una matriu [files x columnes] a la fulla, a partir de $filaInici i de la
+# columna 1. Retorna 'bloc' o 'cel·la' segons per on ha passat.
+#
+# L'assignacio directa de tota la vida, $rang.Value2 = $matriu, PETA amb
+#   "Unable to cast object of type 'System.Object[,]' to type 'System.String'"
+# (comprovat amb l'Excel de l'usuari: SeguimentGia.ps1, linia 469). L'adaptador
+# COM de PowerShell intenta CONVERTIR la matriu sencera al tipus de la propietat
+# en lloc de passar-la tal qual com un SAFEARRAY. Amb una cel·la sola i una
+# cadena no passa (per aixo el titol i les capceleres si que s'escrivien).
+#
+# InvokeMember se salta l'adaptador i passa el valor TAL QUAL. El @(,$matriu) no
+# es decoratiu: la llista d'arguments ha de contenir la matriu com un UNIC
+# element, i sense la coma l'array es desenrotllaria.
+#
+# I si tot i aixi falles, s'escriu cel·la a cel·la. Aqui es pot permetre: aquests
+# llistats son de desenes de files (26/24/48/8/51), no de milers; el "matriu vs
+# cel·la a cel·la es de minuts a segons" valia per a la LECTURA de la base
+# sencera, no per a aquesta escriptura. Val mes trigar dos segons que no pas
+# quedar-se sense el fitxer.
+function _SgEscriuMatriu($sh, [int]$filaInici, $matriu) {
+    $nf = $matriu.GetLength(0)
+    $nc = $matriu.GetLength(1)
+    try {
+        $dest = $sh.Range($sh.Cells.Item($filaInici, 1), $sh.Cells.Item($filaInici + $nf - 1, $nc))
+        [void]$dest.GetType().InvokeMember('Value2',
+            [System.Reflection.BindingFlags]::SetProperty, $null, $dest, @(, $matriu))
+        return 'bloc'
+    } catch { }
+    for ($i = 0; $i -lt $nf; $i++) {
+        for ($j = 0; $j -lt $nc; $j++) {
+            $sh.Cells.Item($filaInici + $i, $j + 1).Value2 = $matriu[$i, $j]
+        }
+    }
+    return 'cel·la'
+}
+
 # Deixa una pestanya de llistat amb el format i la configuracio d'impressio de
 # la plantilla. Tot el que es veu (colors, amplades, marges, peu de pagina) surt
 # d'aqui: si algun dia canvia, es canvia en un sol lloc.
@@ -437,6 +473,7 @@ function _SgConstruirLlibre {
         # 3) Les 5 pestanyes de llistat
         $ara = Get-Date
         $resum = [ordered]@{}
+        $avisos = New-Object System.Collections.ArrayList
         foreach ($def in @(_SgFullesDef)) {
             # Sheets.Add(Before, After, ...): per saltar-se 'Before' cal passar
             # Missing.Value, NO $null (amb $null el COM es pensa que li donem un
@@ -455,25 +492,30 @@ function _SgConstruirLlibre {
             for ($c = 0; $c -lt $cols.Count; $c++) { $sh.Cells.Item(2, $c + 1).Value2 = [string]$cols[$c] }
 
             if ($rows.Count -gt 0) {
-                # Matriu [files x columnes] i UNA sola assignacio: per COM, la
-                # diferencia entre aixo i escriure cel·la a cel·la es de minuts
-                # a segons.
                 $pas = ("muntant la matriu de '" + [string]$def.Nom + "' (" + $rows.Count + " files x " + $cols.Count + " columnes)")
                 $m = New-Object 'object[,]' $rows.Count, $cols.Count
                 for ($i = 0; $i -lt $rows.Count; $i++) {
                     $f = @($rows[$i])
                     for ($j = 0; $j -lt $cols.Count; $j++) { $m[$i, $j] = if ($j -lt $f.Count) { $f[$j] } else { '' } }
                 }
+                # Les dades comencen a la fila 3 (1 = titol, 2 = capceleres).
                 $pas = ("bolcant les dades a '" + [string]$def.Nom + "'")
-                $dest = $sh.Range($sh.Cells.Item(3, 1), $sh.Cells.Item(2 + $rows.Count, $cols.Count))
-                $dest.Value2 = $m
+                [void](_SgEscriuMatriu $sh 3 $m)
             }
+            # El format es NOMES aparenca: si peta, val mes tenir el fitxer amb
+            # les dades i un avis que no pas quedar-se sense res. (Mateixa lliço
+            # que als reintents de la signatura: el try/catch va DINS del bucle,
+            # perque una pestanya no s'endugui les altres.)
             $pas = ("donant format a '" + [string]$def.Nom + "'")
-            _SgFormatarFulla $sh $def $rows.Count $excel
+            try {
+                _SgFormatarFulla $sh $def $rows.Count $excel
+            } catch {
+                [void]$avisos.Add((_SgTextError $_ $pas))
+            }
         }
 
         $wb.Sheets.Item(1).Activate()
-        return @{ Ok=$true; Workbook=$wb; Excel=$excel; Resum=$resum; Origen=$latest.File.Name }
+        return @{ Ok=$true; Workbook=$wb; Excel=$excel; Resum=$resum; Origen=$latest.File.Name; Avisos=$avisos.ToArray() }
     } catch {
         try { if ($null -ne $excel) { $excel.Quit() } } catch { }
         return @{ Ok=$false; Error=(_SgTextError $_ $pas) }
@@ -534,7 +576,13 @@ function _SgExportar([string]$mode) {
     _SgTancar $excel $wb
 
     $det = (@($r.Resum.Keys) | ForEach-Object { "  $_ : $($r.Resum[$_])" }) -join "`n"
-    $msg = "Seguiment generat:`n$path`n`nActivitats per pestanya:`n$det`n`nBase de dades: $($r.Origen)`n`nVols obrir-lo ara?"
+    $msg = "Seguiment generat:`n$path`n`nActivitats per pestanya:`n$det`n`nBase de dades: $($r.Origen)"
+    # Si alguna pestanya s'ha quedat sense format, es diu (les dades hi son).
+    $avisos = @($r.Avisos)
+    if ($avisos.Count -gt 0) {
+        $msg += "`n`nAVIS: hi ha " + $avisos.Count + " pestanya(es) sense format. Les dades hi son igualment.`n" + ($avisos -join "`n")
+    }
+    $msg += "`n`nVols obrir-lo ara?"
     $rc = [System.Windows.Forms.MessageBox]::Show($msg, 'Seguiment', 'YesNo', 'Information')
     if ($rc -eq [System.Windows.Forms.DialogResult]::Yes) {
         try { Invoke-Item -LiteralPath $path } catch { }
