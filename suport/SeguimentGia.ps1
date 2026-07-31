@@ -584,15 +584,27 @@ function _SgExportar([string]$mode) {
     [string]$path = _GetUniqueOutputPath $dir (_SgNomFitxer $ara $ext)
     try {
         if ($mode -eq 'pdf') {
-            # NOMES les 5 pestanyes de llistat: la fulla Estes son 152 columnes
-            # i a la plantilla ni tan sols esta preparada per imprimir. Es
-            # seleccionen com a grup perque l'exportacio nomes agafi la seleccio.
-            $noms = @(@(_SgFullesDef) | ForEach-Object { [string]$_.Nom })
-            $wb.Sheets.Item($noms[0]).Select()
-            for ($i = 1; $i -lt $noms.Count; $i++) { $wb.Sheets.Item($noms[$i]).Select($false) }
-            # SelectedSheets (no ActiveSheet): ActiveSheet nomes exportaria la
-            # pestanya activa i el PDF sortiria amb un sol llistat.
-            $excel.ActiveWindow.SelectedSheets.ExportAsFixedFormat($Script:SgXl.TypePDF, $path)
+            # Al PDF hi van NOMES els 5 llistats: la fulla Estes son 152 columnes
+            # i ni a la plantilla estava preparada per imprimir.
+            #
+            # Es fa AMAGANT-LA i exportant el llibre sencer, perque
+            # ExportAsFixedFormat del WORKBOOK no inclou les fulles amagades.
+            # Abans hi havia $excel.ActiveWindow.SelectedSheets.ExportAsFixedFormat,
+            # que NO existeix: SelectedSheets es una col·leccio 'Sheets', i aquest
+            # metode nomes el tenen Workbook, Worksheet, Chart i Range. L'Excel ho
+            # deia clar: "[System.__ComObject] no contiene ningun metodo llamado
+            # 'ExportAsFixedFormat'".
+            #
+            # Visible = $false (booleà) i no = 0 (xlSheetHidden) a posta: en aquest
+            # Excel les assignacions numeriques son sospitoses (vegeu
+            # _SgValorCella) i els booleans, en canvi, sempre han funcionat.
+            $shEstes = $wb.Sheets.Item(1)
+            try { $shEstes.Visible = $false } catch { }
+            try {
+                $wb.ExportAsFixedFormat($Script:SgXl.TypePDF, $path)
+            } finally {
+                try { $shEstes.Visible = $true } catch { }
+            }
         } else {
             $wb.SaveAs($path, $Script:SgXl.OpenXMLBook)
         }
