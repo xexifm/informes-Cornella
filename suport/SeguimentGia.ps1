@@ -292,40 +292,69 @@ function _SgTextError($err, [string]$pas) {
     return ($parts -join "`n`n")
 }
 
+# Valor tal com s'ha d'escriure a una cel·la: SEMPRE una cadena.
+#
+# A l'Excel de l'usuari, escriure a Value2 qualsevol cosa que NO sigui una cadena
+# peta. Ho hem vist dues vegades seguides, i la segona ho va deixar clar:
+#   - $rang.Value2 = $matriu   -> "Unable to cast object of type
+#     'System.Object[,]' to type 'System.String'"
+#   - $cel.Value2  = 1         -> "Unable to cast object of type 'System.Int32'
+#     to type 'System.String'"
+# ...mentre que el titol i les capceleres (cadenes) sempre s'han escrit be. O
+# sigui que l'adaptador COM d'aquest PowerShell resol el 'put' de Value2 com si
+# demanes una cadena, i tot el que no ho es, peta.
+#
+# No es cap perdua: de tota la taula, l'UNIC valor que no era text ja era la
+# columna 'N' (el numero de fila); tota la resta passa per $cel, que ja retorna
+# cadenes. I l'Excel interpreta el text en assignar-lo igual que si l'escrivissis
+# a ma, o sigui que "1" segueix sent el numero 1 i les dates, dates.
+# Funcio PURA.
+function _SgValorCella($v) {
+    if ($null -eq $v) { return '' }
+    return [string]$v
+}
+
 # Escriu una matriu [files x columnes] a la fulla, a partir de $filaInici i de la
-# columna 1. Retorna 'bloc' o 'cel·la' segons per on ha passat.
+# columna 1. Retorna com ho ha aconseguit ('bloc', 'bloc-invoke' o 'cel·la').
 #
-# L'assignacio directa de tota la vida, $rang.Value2 = $matriu, PETA amb
-#   "Unable to cast object of type 'System.Object[,]' to type 'System.String'"
-# (comprovat amb l'Excel de l'usuari: SeguimentGia.ps1, linia 469). L'adaptador
-# COM de PowerShell intenta CONVERTIR la matriu sencera al tipus de la propietat
-# en lloc de passar-la tal qual com un SAFEARRAY. Amb una cel·la sola i una
-# cadena no passa (per aixo el titol i les capceleres si que s'escrivien).
+# Es proven tres maneres perque la primera es la rapida i les altres dues son el
+# respatller (vegeu _SgValorCella per al perque). Si totes tres fallen, es llanca
+# un error que diu que ha passat a cada una: aquesta eina nomes es pot provar amb
+# l'Excel de debo, i un error mut costa una volta sencera amb l'usuari.
 #
-# InvokeMember se salta l'adaptador i passa el valor TAL QUAL. El @(,$matriu) no
-# es decoratiu: la llista d'arguments ha de contenir la matriu com un UNIC
-# element, i sense la coma l'array es desenrotllaria.
-#
-# I si tot i aixi falles, s'escriu cel·la a cel·la. Aqui es pot permetre: aquests
-# llistats son de desenes de files (26/24/48/8/51), no de milers; el "matriu vs
-# cel·la a cel·la es de minuts a segons" valia per a la LECTURA de la base
-# sencera, no per a aquesta escriptura. Val mes trigar dos segons que no pas
-# quedar-se sense el fitxer.
+# El cami cel·la a cel·la aqui es pot permetre: aquests llistats son de desenes
+# de files (26/24/48/8/51), no de milers. El "per matriu es de minuts a segons"
+# valia per a la LECTURA de la base sencera (1.312 x 152), no per a aixo.
 function _SgEscriuMatriu($sh, [int]$filaInici, $matriu) {
     $nf = $matriu.GetLength(0)
     $nc = $matriu.GetLength(1)
+    $errors = New-Object System.Collections.ArrayList
+
+    try {
+        $dest = $sh.Range($sh.Cells.Item($filaInici, 1), $sh.Cells.Item($filaInici + $nf - 1, $nc))
+        $dest.Value2 = $matriu
+        return 'bloc'
+    } catch { [void]$errors.Add('bloc: ' + $_.Exception.Message) }
+
+    # El @(,$matriu) no es decoratiu: la llista d'arguments ha de portar la
+    # matriu com un UNIC element; sense la coma, l'array es desenrotllaria.
     try {
         $dest = $sh.Range($sh.Cells.Item($filaInici, 1), $sh.Cells.Item($filaInici + $nf - 1, $nc))
         [void]$dest.GetType().InvokeMember('Value2',
             [System.Reflection.BindingFlags]::SetProperty, $null, $dest, @(, $matriu))
-        return 'bloc'
-    } catch { }
-    for ($i = 0; $i -lt $nf; $i++) {
-        for ($j = 0; $j -lt $nc; $j++) {
-            $sh.Cells.Item($filaInici + $i, $j + 1).Value2 = $matriu[$i, $j]
+        return 'bloc-invoke'
+    } catch { [void]$errors.Add('bloc-invoke: ' + $_.Exception.Message) }
+
+    try {
+        for ($i = 0; $i -lt $nf; $i++) {
+            for ($j = 0; $j -lt $nc; $j++) {
+                $sh.Cells.Item($filaInici + $i, $j + 1).Value2 = (_SgValorCella $matriu[$i, $j])
+            }
         }
-    }
-    return 'cel·la'
+        return ('cel' + [char]0x00B7 + 'la')
+    } catch { [void]$errors.Add('cel-la: ' + $_.Exception.Message) }
+
+    throw ("No s'han pogut escriure les dades a la fulla de cap de les tres maneres:" + "`n" + ($errors -join "`n"))
 }
 
 # Deixa una pestanya de llistat amb el format i la configuracio d'impressio de

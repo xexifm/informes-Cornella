@@ -1813,6 +1813,29 @@ AssertEq $sgEscrites['3,1'] 'a'   '_SgEscriuMatriu: la matriu comenca a la fila 
 AssertEq $sgEscrites['3,3'] 'c'   '_SgEscriuMatriu: ultima columna de la 1a fila'
 AssertEq $sgEscrites['4,1'] 'd'   '_SgEscriuMatriu: 2a fila'
 AssertEq $sgEscrites['4,3'] 'f'   '_SgEscriuMatriu: ultima cel·la'
+# A l'Excel de l'usuari, Value2 nomes accepta CADENES: un Int32 peta igual que
+# la matriu. Per aixo tot el que s'escriu passa per _SgValorCella.
+AssertEq (_SgValorCella 1) '1'            '_SgValorCella: un enter surt com a text (Value2 nomes accepta cadenes)'
+AssertEq (_SgValorCella $null) ''         '_SgValorCella: $null -> cadena buida'
+AssertEq (_SgValorCella '') ''            '_SgValorCella: buit -> buit'
+AssertEq (_SgValorCella 'SI, precintat') 'SI, precintat' '_SgValorCella: el text no es toca'
+Assert ((_SgValorCella 1) -is [string])   '_SgValorCella: retorna SEMPRE un String'
+Assert ((_SgValorCella $null) -is [string]) '_SgValorCella: fins i tot amb $null'
+# La columna N de veritat es un enter: es el cas que va fer petar l'eina.
+$sgMatN = New-Object 'object[,]' 1, 2
+$sgMatN[0, 0] = 1; $sgMatN[0, 1] = 'TEXT'
+$sgEscrites = @{}
+[void](_SgEscriuMatriu $sgFullaFalsa 3 $sgMatN)
+AssertEq $sgEscrites['3,1'] '1' '_SgEscriuMatriu: la columna N (enter) s''escriu com a text'
+Assert ($sgEscrites['3,1'] -is [string]) '_SgEscriuMatriu: i arriba a la cel·la com a String'
+# Si CAP de les tres maneres funciona, ha de petar dient que ha passat a cada una.
+$sgFullaMorta = [pscustomobject]@{}
+$sgFullaMorta | Add-Member -MemberType ScriptProperty -Name Cells -Value { throw 'sense Cells' }
+$sgFullaMorta | Add-Member -MemberType ScriptMethod -Name Range -Value { param($a, $b) throw 'sense Range' }
+$sgErrTot = ''
+try { [void](_SgEscriuMatriu $sgFullaMorta 3 $sgMat) } catch { $sgErrTot = [string]$_.Exception.Message }
+Assert ($sgErrTot -like '*de cap de les tres maneres*') '_SgEscriuMatriu: si tot falla, peta (no es queda mut)'
+Assert ($sgErrTot -like '*bloc-invoke:*')               '_SgEscriuMatriu: l''error diu que ha passat a cada intent'
 # Amplades: tantes com columnes (N + les de dades).
 foreach ($d in $sgDefs) {
     AssertEq (@($d.Amplades).Count) ((@($d.Cols).Count) + 1) ("Amplades de " + $d.Nom + ": una per columna, incloent-hi la 'N'")

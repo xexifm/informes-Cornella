@@ -120,19 +120,34 @@ n'és la traducció literal:
   van **només els 5 llistats**, seleccionats com a grup i exportats amb
   **`$excel.ActiveWindow.SelectedSheets.ExportAsFixedFormat`** — amb
   `ActiveSheet` només sortiria una pestanya.
-- **`$rang.Value2 = $matriu` NO FUNCIONA** amb l'Excel real: peta amb
-  *"Unable to cast object of type 'System.Object[,]' to type 'System.String'"*.
-  L'adaptador COM de PowerShell intenta **convertir** la matriu sencera al tipus
-  de la propietat en lloc de passar-la tal qual com un SAFEARRAY. Amb una cel·la
-  sola i una cadena no passa (per això el títol i les capçaleres sí que
-  s'escrivien, i el missatge pelat no deia on era). `_SgEscriuMatriu` ho fa amb
-  **`InvokeMember('Value2', SetProperty, …, @(,$matriu))`**, que se salta
-  l'adaptador — el `@(,…)` és imprescindible: la llista d'arguments ha de portar
-  la matriu com un **únic** element. Si això també falla, escriu **cel·la a
-  cel·la**: aquests llistats són de desenes de files (26/24/48/8/51), no de
-  milers, i val més trigar dos segons que quedar-se sense el fitxer. El «matriu
-  vs cel·la a cel·la és de minuts a segons» valia per a la **lectura** de la base
-  sencera (1.312 × 152), no per a aquesta escriptura.
+- **A l'Excel de l'usuari, `Range.Value2` NOMÉS ACCEPTA CADENES.** Dues rondes
+  seguides amb el mateix patró:
+  - `$rang.Value2 = $matriu` → *"Unable to cast object of type
+    'System.Object[,]' to type 'System.String'"*
+  - `$cel.Value2 = 1` → *"Unable to cast object of type 'System.Int32' to type
+    'System.String'"*
+  - …mentre que el títol i les capçaleres (cadenes) s'escrivien **sempre** bé.
+
+  L'adaptador COM d'aquell PowerShell resol el `put` de `Value2` com si demanés
+  una cadena. Per això **tot el que s'escriu passa per `_SgValorCella`** (pura),
+  que retorna sempre un `String`. No es perd res: de tota la taula, l'únic valor
+  que no era text ja era la columna **`N`** (el número de fila) — tota la resta
+  ve de `$cel`, que ja retorna cadenes — i l'Excel interpreta el text en
+  assignar-lo igual que si l'escrivissis a mà (`"1"` segueix sent el número 1).
+  `_SgEscriuMatriu` prova tres camins (bloc → bloc per `InvokeMember` →
+  **cel·la a cel·la amb text**) i, si fallen tots tres, peta dient què ha passat
+  a cada un. Cel·la a cel·la aquí es pot permetre: aquests llistats són de
+  desenes de files (26/24/48/8/51), no de milers. El «matriu vs cel·la a cel·la
+  és de minuts a segons» valia per a la **lectura** de la base sencera
+  (1.312 × 152), no per a aquesta escriptura.
+
+  **Pendent de saber:** si el problema és només de `Value2` o de **qualsevol**
+  `put` que no sigui cadena. Els booleans (`$excel.Visible = $false`) i les
+  cadenes (`$sh.Name`) funcionen; encara no s'ha arribat a executar cap
+  assignació NUMÈRICA (`RowHeight`, `Font.Size`, `ColumnWidth`, `Interior.Color`…
+  són totes a `_SgFormatarFulla`, que va després). Si algun dia surt l'avís de
+  «pestanya sense format», la resposta és que sí i caldrà passar aquelles
+  assignacions per un helper amb respatller.
 - **El format d'una pestanya no pot endur-se el fitxer**: `_SgFormatarFulla` va
   dins d'un `try/catch` **dins del bucle** (mateixa lliçó que els reintents de la
   signatura) i, si falla, s'afegeix un avís al resum i es continua. Les dades
