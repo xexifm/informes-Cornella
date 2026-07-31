@@ -100,6 +100,44 @@ function _SgFullesDef {
 # FUNCIONS PURES (testejables en headless)
 # ----------------------------------------------------------------------------
 
+# Nom de la pestanya amb la copia de la base de dades. Es alhora el nom real de
+# la fulla i la clau amb que es tria a la finestra.
+function _SgNomEstes { return ('Est' + [char]0x00E8 + 's') }
+
+# TOTES les opcions exportables, en l'ordre en que surten al llibre. Es l'unica
+# llista que hi ha: la finestra la fa servir per pintar les caselles i la
+# construccio per saber que ha de muntar, o sigui que no es poden desincronitzar.
+function _SgOpcionsExport {
+    $out = New-Object System.Collections.ArrayList
+    [void]$out.Add((_SgNomEstes))
+    foreach ($d in @(_SgFullesDef)) { [void]$out.Add([string]$d.Nom) }
+    return $out.ToArray()
+}
+
+# Cert si la seleccio inclou la copia de la base de dades.
+function _SgSeleccioTeEstes($seleccio) {
+    $n = _NormalizeText (_SgNomEstes)
+    foreach ($s in @($seleccio)) {
+        if ((_NormalizeText $s) -eq $n) { return $true }
+    }
+    return $false
+}
+
+# Les definicions de llistat que s'han triat, EN L'ORDRE de _SgFullesDef (no en
+# l'ordre en que l'usuari les hagi marcat: el llibre sempre surt igual).
+function _SgFullesTriades($seleccio) {
+    $tri = @{}
+    foreach ($s in @($seleccio)) {
+        $k = _NormalizeText $s
+        if (-not [string]::IsNullOrWhiteSpace($k)) { $tri[$k] = $true }
+    }
+    $out = New-Object System.Collections.ArrayList
+    foreach ($d in @(_SgFullesDef)) {
+        if ($tri.ContainsKey((_NormalizeText $d.Nom))) { [void]$out.Add($d) }
+    }
+    return $out.ToArray()
+}
+
 # Index (1-based) de la columna amb aquesta capcalera. La PRIMERA que hi
 # coincideixi, com feia el MATCH de la plantilla: a la base de dades hi ha
 # capceleres repetides ('Classificacio general annex' hi surt dues vegades) i la
@@ -446,9 +484,17 @@ function _SgFormatarFulla($sh, $def, [int]$nFiles, $excel) {
     } catch { }
 }
 
-# Construeix el llibre sencer i el retorna (obert, sense desar).
+# Construeix el llibre amb les pestanyes TRIADES i el retorna (obert, sense
+# desar). $seleccio son noms de _SgOpcionsExport; buit vol dir totes.
 # Retorna @{ Ok; Error; Workbook; Excel; Resum } — $Resum = files per pestanya.
-function _SgConstruirLlibre {
+function _SgConstruirLlibre($seleccio) {
+    if ($null -eq $seleccio -or @($seleccio).Count -eq 0) { $seleccio = @(_SgOpcionsExport) }
+    $volEstes = _SgSeleccioTeEstes $seleccio
+    $defs = @(_SgFullesTriades $seleccio)
+    if (-not $volEstes -and $defs.Count -eq 0) {
+        return @{ Ok=$false; Error="No s'ha triat cap pestanya per exportar." }
+    }
+
     $latest = Find-LatestActivitatsExcel
     if ($null -eq $latest) { return @{ Ok=$false; Error="No s'ha trobat cap Excel d'activitats." } }
 
@@ -474,36 +520,43 @@ function _SgConstruirLlibre {
         }
 
         # 1) Llegim la taula sencera d'una sola vegada (molt mes rapid que anar
-        #    cel·la a cel·la per COM).
-        $pas = "llegint les dades de l'Excel"
-        $data = $shOrig.UsedRange.Value2
-        if ($null -eq $data) { return @{ Ok=$false; Error="La fulla d'activitats es buida." } }
-        $nRows = $data.GetLength(0); $nCols = $data.GetLength(1)
-        $headers = @()
-        for ($c = 1; $c -le $nCols; $c++) { $headers += [string]$data[1, $c] }
-        # SENSE @(): _FindCampInfoPairs ja protegeix el seu retorn amb una coma i
-        # un @() al voltant hi tornaria a posar la capa (vegeu _SgAplanaPairs).
-        $pairs = _FindCampInfoPairs $headers
-        $files = New-Object System.Collections.ArrayList
-        for ($r = 2; $r -le $nRows; $r++) {
-            $fila = New-Object object[] $nCols
-            for ($c = 1; $c -le $nCols; $c++) { $fila[$c - 1] = $data[$r, $c] }
-            [void]$files.Add($fila)
+        #    cel·la a cel·la per COM). Nomes cal si s'ha triat algun LLISTAT: si
+        #    l'usuari nomes vol la copia de la base, no te sentit llegir-la tota.
+        $headers = @(); $pairs = @(); $files = New-Object System.Collections.ArrayList
+        if ($defs.Count -gt 0) {
+            $pas = "llegint les dades de l'Excel"
+            $data = $shOrig.UsedRange.Value2
+            if ($null -eq $data) { return @{ Ok=$false; Error="La fulla d'activitats es buida." } }
+            $nRows = $data.GetLength(0); $nCols = $data.GetLength(1)
+            for ($c = 1; $c -le $nCols; $c++) { $headers += [string]$data[1, $c] }
+            # SENSE @(): _FindCampInfoPairs ja protegeix el seu retorn amb una coma
+            # i un @() al voltant hi tornaria a posar la capa (vegeu _SgAplanaPairs).
+            $pairs = _FindCampInfoPairs $headers
+            for ($r = 2; $r -le $nRows; $r++) {
+                $fila = New-Object object[] $nCols
+                for ($c = 1; $c -le $nCols; $c++) { $fila[$c - 1] = $data[$r, $c] }
+                [void]$files.Add($fila)
+            }
         }
 
-        # 2) Llibre nou amb la fulla Estes COPIADA (valors i format de l'origen).
-        $pas = ("copiant la fulla 'Est" + [char]0x00E8 + "s' al llibre nou")
+        # 2) Llibre nou. El full buit que hi ve de fabrica fa de PLACEHOLDER: un
+        #    llibre no pot quedar-se sense cap fulla, o sigui que no s'esborra
+        #    fins al final, quan ja hi ha les pestanyes de debo.
+        $pas = 'creant el llibre nou'
         $wb = $excel.Workbooks.Add()
         while ($wb.Sheets.Count -gt 1) { $wb.Sheets.Item($wb.Sheets.Count).Delete() }
-        $shOrig.Copy($wb.Sheets.Item(1))          # la posa ABANS del full buit
-        $wb.Sheets.Item(1).Name = ('Est' + [char]0x00E8 + 's')
-        $wb.Sheets.Item($wb.Sheets.Count).Delete()   # fora el full buit que sobra
+        if ($volEstes) {
+            $pas = ("copiant la fulla 'Est" + [char]0x00E8 + "s' al llibre nou")
+            $shOrig.Copy($wb.Sheets.Item(1))          # la posa ABANS del full buit
+            $wb.Sheets.Item(1).Name = (_SgNomEstes)
+            $wb.Sheets.Item($wb.Sheets.Count).Delete()   # fora el full buit que sobra
+        }
 
-        # 3) Les 5 pestanyes de llistat
+        # 3) Les pestanyes de llistat que s'hagin triat
         $ara = Get-Date
         $resum = [ordered]@{}
         $avisos = New-Object System.Collections.ArrayList
-        foreach ($def in @(_SgFullesDef)) {
+        foreach ($def in $defs) {
             # Sheets.Add(Before, After, ...): per saltar-se 'Before' cal passar
             # Missing.Value, NO $null (amb $null el COM es pensa que li donem un
             # 'Before' buit i afegeix la pestanya al principi).
@@ -543,6 +596,12 @@ function _SgConstruirLlibre {
             }
         }
 
+        # Si no s'ha triat la copia de la base, el full buit encara hi es: fora.
+        if (-not $volEstes -and $wb.Sheets.Count -gt $defs.Count) {
+            $pas = 'traient el full buit que sobra'
+            $wb.Sheets.Item(1).Delete()
+        }
+
         $wb.Sheets.Item(1).Activate()
         return @{ Ok=$true; Workbook=$wb; Excel=$excel; Resum=$resum; Origen=$latest.File.Name; Avisos=$avisos.ToArray() }
     } catch {
@@ -568,9 +627,10 @@ function _SgTancar($excel, $wb) {
     try { if ($null -ne $excel) { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($excel) | Out-Null } } catch { }
 }
 
-# Genera i desa. $mode = 'excel' o 'pdf'. Retorna la ruta o '' si ha fallat.
-function _SgExportar([string]$mode) {
-    $r = _SgConstruirLlibre
+# Genera i desa. $mode = 'excel' o 'pdf'; $seleccio, les pestanyes triades.
+# Retorna la ruta o '' si ha fallat.
+function _SgExportar([string]$mode, $seleccio) {
+    $r = _SgConstruirLlibre $seleccio
     if (-not $r.Ok) {
         [System.Windows.Forms.MessageBox]::Show("No s'ha pogut generar el seguiment:`n$($r.Error)", 'Seguiment', 'OK', 'Error') | Out-Null
         return ''
@@ -584,27 +644,14 @@ function _SgExportar([string]$mode) {
     [string]$path = _GetUniqueOutputPath $dir (_SgNomFitxer $ara $ext)
     try {
         if ($mode -eq 'pdf') {
-            # Al PDF hi van NOMES els 5 llistats: la fulla Estes son 152 columnes
-            # i ni a la plantilla estava preparada per imprimir.
-            #
-            # Es fa AMAGANT-LA i exportant el llibre sencer, perque
-            # ExportAsFixedFormat del WORKBOOK no inclou les fulles amagades.
-            # Abans hi havia $excel.ActiveWindow.SelectedSheets.ExportAsFixedFormat,
-            # que NO existeix: SelectedSheets es una col·leccio 'Sheets', i aquest
-            # metode nomes el tenen Workbook, Worksheet, Chart i Range. L'Excel ho
-            # deia clar: "[System.__ComObject] no contiene ningun metodo llamado
+            # El llibre ja conte NOMES el que s'ha triat, o sigui que s'exporta
+            # sencer. ExportAsFixedFormat es del WORKBOOK i respecta el PageSetup
+            # de cada pestanya. Compte: $excel.ActiveWindow.SelectedSheets.ExportAsFixedFormat
+            # NO existeix (SelectedSheets es una col·leccio 'Sheets'; el metode
+            # nomes el tenen Workbook, Worksheet, Chart i Range) — l'Excel deia
+            # "[System.__ComObject] no contiene ningun metodo llamado
             # 'ExportAsFixedFormat'".
-            #
-            # Visible = $false (booleà) i no = 0 (xlSheetHidden) a posta: en aquest
-            # Excel les assignacions numeriques son sospitoses (vegeu
-            # _SgValorCella) i els booleans, en canvi, sempre han funcionat.
-            $shEstes = $wb.Sheets.Item(1)
-            try { $shEstes.Visible = $false } catch { }
-            try {
-                $wb.ExportAsFixedFormat($Script:SgXl.TypePDF, $path)
-            } finally {
-                try { $shEstes.Visible = $true } catch { }
-            }
+            $wb.ExportAsFixedFormat($Script:SgXl.TypePDF, $path)
         } else {
             $wb.SaveAs($path, $Script:SgXl.OpenXMLBook)
         }
@@ -632,48 +679,78 @@ function _SgExportar([string]$mode) {
 }
 
 # ----------------------------------------------------------------------------
-# Finestra de l'eina: nomes els DOS botons d'exportacio
+# Finestra de l'eina: les caselles del que es vol exportar + els dos botons
 # ----------------------------------------------------------------------------
 function Invoke-SeguimentGia {
     $form = _NewForm
     $form.Text = 'Seguiment'
-    $form.ClientSize = New-Object System.Drawing.Size(470, 250)
+    $form.ClientSize = New-Object System.Drawing.Size(470, 336)
     $form.FormBorderStyle = 'FixedDialog'
     $form.MaximizeBox = $false
 
     $lbl = New-Object System.Windows.Forms.Label
-    $lbl.Location = New-Object System.Drawing.Point(20, 76)
-    $lbl.Size = New-Object System.Drawing.Size(430, 84)
-    $lbl.Text = ("Genera el seguiment d'activitats a partir de la base de dades del GIA, amb una pestanya per cada llistat:" + "`r`n`r`n" +
-                 ("   Est" + [char]0x00E8 + "s  " + [char]0x00B7 + "  PRECINTES  " + [char]0x00B7 + "  DEN" + [char]0x00DA + "NCIES  " + [char]0x00B7 + "  REQUERIT DECRET") + "`r`n" +
-                 ("   SONOMETRIA  " + [char]0x00B7 + "  ANNEX II"))
+    $lbl.Location = New-Object System.Drawing.Point(20, 72)
+    $lbl.Size = New-Object System.Drawing.Size(430, 34)
+    $lbl.Text = ("Genera els llistats de seguiment a partir de la base de dades del GIA." + "`r`n" +
+                 "Marca les pestanyes que vols exportar:")
     [void]$form.Controls.Add($lbl)
 
+    # Caselles: una per pestanya, totes marcades de bon principi. La llista surt
+    # de _SgOpcionsExport, que es la MATEIXA que fa servir la construccio del
+    # llibre, o sigui que no es poden desincronitzar.
+    # CheckOnClick: sense aixo cal clicar exactament el quadradet (el primer clic
+    # nomes selecciona la fila), i es un embolic.
+    $clb = New-Object System.Windows.Forms.CheckedListBox
+    $clb.Location = New-Object System.Drawing.Point(20, 110)
+    $clb.Size = New-Object System.Drawing.Size(430, 112)
+    $clb.CheckOnClick = $true
+    $clb.IntegralHeight = $false
+    $clb.BorderStyle = 'FixedSingle'
+    $clb.Font = New-Object System.Drawing.Font('Segoe UI', 9)
+    foreach ($op in @(_SgOpcionsExport)) { [void]$clb.Items.Add([string]$op, $true) }
+    [void]$form.Controls.Add($clb)
+
+    $lnk = New-Object System.Windows.Forms.LinkLabel
+    $lnk.Location = New-Object System.Drawing.Point(20, 226)
+    $lnk.Size = New-Object System.Drawing.Size(200, 18)
+    $lnk.Text = 'Marcar-les / desmarcar-les totes'
+    $lnk.Font = New-Object System.Drawing.Font('Segoe UI', 8)
+    $lnk.add_LinkClicked({
+        # Si n'hi ha cap sense marcar, es marquen totes; si ja hi eren totes, es
+        # desmarquen. Un sol enllac per als dos casos.
+        $totes = $true
+        for ($i = 0; $i -lt $clb.Items.Count; $i++) { if (-not $clb.GetItemChecked($i)) { $totes = $false; break } }
+        for ($i = 0; $i -lt $clb.Items.Count; $i++) { $clb.SetItemChecked($i, (-not $totes)) }
+    }.GetNewClosure())
+    [void]$form.Controls.Add($lnk)
+
     $lbl2 = New-Object System.Windows.Forms.Label
-    $lbl2.Location = New-Object System.Drawing.Point(20, 164)
-    $lbl2.Size = New-Object System.Drawing.Size(430, 30)
+    $lbl2.Location = New-Object System.Drawing.Point(20, 248)
+    $lbl2.Size = New-Object System.Drawing.Size(430, 42)
     $lbl2.ForeColor = [System.Drawing.Color]::FromArgb(120, 128, 138)
     $lbl2.Font = New-Object System.Drawing.Font('Segoe UI', 8)
-    $lbl2.Text = ("Al PDF hi van nom" + [char]0x00E9 + "s els cinc llistats (horitzontal, A3, ajustat a l'ample). Necessita l'Excel obert una estona: pot trigar.")
+    $lbl2.Text = ("Els llistats surten en horitzontal i A3, ajustats a l'ample. La pestanya Est" + [char]0x00E8 +
+                  "s son 152 columnes: per al PDF val m" + [char]0x00E9 + "s desmarcar-la." + "`r`n" +
+                  "Necessita l'Excel treballant una estona: pot trigar.")
     [void]$form.Controls.Add($lbl2)
 
     $btnXls = New-Object System.Windows.Forms.Button
     $btnXls.Text = 'Exportar a Excel'
-    $btnXls.Location = New-Object System.Drawing.Point(20, 202)
+    $btnXls.Location = New-Object System.Drawing.Point(20, 292)
     $btnXls.Size = New-Object System.Drawing.Size(150, 32)
     _StylePrimaryButton $btnXls
     [void]$form.Controls.Add($btnXls)
 
     $btnPdf = New-Object System.Windows.Forms.Button
     $btnPdf.Text = 'Exportar a PDF'
-    $btnPdf.Location = New-Object System.Drawing.Point(180, 202)
+    $btnPdf.Location = New-Object System.Drawing.Point(180, 292)
     $btnPdf.Size = New-Object System.Drawing.Size(150, 32)
     _StyleSecondaryButton $btnPdf
     [void]$form.Controls.Add($btnPdf)
 
     $btnTanca = New-Object System.Windows.Forms.Button
     $btnTanca.Text = 'Tancar'
-    $btnTanca.Location = New-Object System.Drawing.Point(362, 202)
+    $btnTanca.Location = New-Object System.Drawing.Point(362, 292)
     $btnTanca.Size = New-Object System.Drawing.Size(88, 32)
     _StyleSecondaryButton $btnTanca
     $btnTanca.add_Click({ $form.Close() }.GetNewClosure())
@@ -683,9 +760,14 @@ function Invoke-SeguimentGia {
     # espera: si no, es pot clicar dues vegades i s'obren dos Excel.
     $ferExport = {
         param($mode)
+        $sel = @($clb.CheckedItems | ForEach-Object { [string]$_ })
+        if ($sel.Count -eq 0) {
+            [System.Windows.Forms.MessageBox]::Show('Marca almenys una pestanya per exportar.', 'Seguiment', 'OK', 'Information') | Out-Null
+            return
+        }
         $btnXls.Enabled = $false; $btnPdf.Enabled = $false
         $form.Cursor = [System.Windows.Forms.Cursors]::WaitCursor
-        try { [void](_SgExportar $mode) } finally {
+        try { [void](_SgExportar $mode $sel) } finally {
             $form.Cursor = [System.Windows.Forms.Cursors]::Default
             $btnXls.Enabled = $true; $btnPdf.Enabled = $true
         }

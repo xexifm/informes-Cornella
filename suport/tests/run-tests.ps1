@@ -1741,6 +1741,27 @@ $sgFiles = @(
 )
 $sgDefs = @(_SgFullesDef)
 AssertEq $sgDefs.Count 5 '_SgFullesDef: 5 pestanyes'
+
+# --- Tria de pestanyes (les caselles de la finestra) ---------------------------
+# La llista de caselles i el que construeix el llibre surten de la MATEIXA font,
+# _SgOpcionsExport, per no poder-se desincronitzar.
+$sgOps = @(_SgOpcionsExport)
+AssertEq $sgOps.Count 6 '_SgOpcionsExport: la copia de la base + els 5 llistats'
+AssertEq $sgOps[0] (_SgNomEstes) '_SgOpcionsExport: la copia de la base va primer'
+AssertEq $sgOps[1] 'PRECINTES'   '_SgOpcionsExport: despres els llistats, en ordre'
+AssertEq $sgOps[5] 'ANNEX II'    '_SgOpcionsExport: l ultim es ANNEX II'
+Assert (_SgSeleccioTeEstes @((_SgNomEstes), 'PRECINTES')) '_SgSeleccioTeEstes: la troba'
+Assert (_SgSeleccioTeEstes @('estes'))                    '_SgSeleccioTeEstes: sense accents i en minuscules tambe'
+Assert (-not (_SgSeleccioTeEstes @('PRECINTES')))         '_SgSeleccioTeEstes: si no hi es, no'
+Assert (-not (_SgSeleccioTeEstes @()))                    '_SgSeleccioTeEstes: seleccio buida'
+AssertEq @(_SgFullesTriades @('PRECINTES', 'ANNEX II')).Count 2 '_SgFullesTriades: nomes les triades'
+AssertEq @(_SgFullesTriades @('PRECINTES', 'ANNEX II'))[0].Nom 'PRECINTES' '_SgFullesTriades: en l ordre de _SgFullesDef, no en el de la tria'
+AssertEq @(_SgFullesTriades @('ANNEX II', 'PRECINTES'))[0].Nom 'PRECINTES' '_SgFullesTriades: l ordre de la tria no compta'
+AssertEq @(_SgFullesTriades @((_SgNomEstes))).Count 0 '_SgFullesTriades: la copia de la base no es cap llistat'
+AssertEq @(_SgFullesTriades @()).Count 0              '_SgFullesTriades: res triat -> cap llistat'
+AssertEq @(_SgFullesTriades $null).Count 0            '_SgFullesTriades: $null -> cap llistat'
+AssertEq @(_SgFullesTriades $sgOps).Count 5           '_SgFullesTriades: totes marcades -> els 5 llistats'
+AssertEq @(_SgFullesTriades @('PRECINTES')).Count 1   '_SgFullesTriades: una sola tria no es desenrotlla'
 AssertEq ($sgDefs[0].Nom) 'PRECINTES' '_SgFullesDef: la primera es PRECINTES'
 $sgPre = @(_SgFilesPerFulla $sgDefs[0] $sgH $sgFiles $sgPairs)
 AssertEq $sgPre.Count 1 'PRECINTES: nomes l activitat 100 (la fila sense ID Activitat NO compta)'

@@ -120,11 +120,17 @@ Hi surt **tota activitat que TINGUI aquell camp**, digui el que digui el valor
 (no cal que comenci per SI). Substitueix l'Excel de fórmules que hi havia abans,
 i el resultat és el mateix però sense columnes ocultes ni res a recalcular.
 
+**Tries què vols exportar** amb les caselles: hi són totes marcades i en pots
+desmarcar les que no necessitis (hi ha un enllaç per marcar-les o desmarcar-les
+totes de cop). Al fitxer només hi haurà les pestanyes marcades.
+
 Dos botons: **Exportar a Excel** i **Exportar a PDF**. El PDF surt en horitzontal
 i A3, ajustat perquè hi càpiguen totes les columnes, amb les dues primeres files
-repetides a cada pàgina i el nom de la pestanya i el número de pàgina al peu; hi
-van **només els cinc llistats** (la pestanya `Estès` són 152 columnes i no es
-pensa per imprimir). Els fitxers es desen a `local/seguiment-gia/`.
+repetides a cada pàgina i el nom de la pestanya i el número de pàgina al peu.
+Els fitxers es desen a `local/seguiment-gia/`.
+
+> Per al PDF val més **desmarcar `Estès`**: són 152 columnes i no està pensada
+> per imprimir. Si la deixes marcada, hi sortirà igualment — mana el que triïs.
 
 > Necessita tenir l'Excel una estona treballant: amb tota la base de dades pot
 > trigar. Mentre ho fa, els botons queden desactivats.

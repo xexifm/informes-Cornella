@@ -116,16 +116,21 @@ n'és la traducció literal:
   `dd/MM/aaaa` (`_FormatDateOnly`) en lloc de `2020-12-22 00:00:00.0`.
 - **Impressió** (i per tant el PDF): horitzontal, **A3**, `Zoom=$false` +
   `FitToPagesWide=1` + `FitToPagesTall=$false` (hi caben totes les columnes),
-  marges 0,5 cm, `PrintTitleRows='$1:$2'` i peu `&A` / `Página &P`. Al PDF hi
-  van **només els 5 llistats**: s'**amaga la fulla `Estès`** (`Visible = $false`)
-  i s'exporta el **llibre sencer** amb `$wb.ExportAsFixedFormat`, que no inclou
-  les fulles amagades i respecta el `PageSetup` de cada pestanya.
-  **`$excel.ActiveWindow.SelectedSheets.ExportAsFixedFormat` NO EXISTEIX**:
-  `SelectedSheets` és una col·lecció `Sheets`, i aquest mètode només el tenen
-  `Workbook`, `Worksheet`, `Chart` i `Range`. L'Excel ho deia clar —
+  marges 0,5 cm, `PrintTitleRows='$1:$2'` i peu `&A` / `Página &P`.
+- **Es TRIA què s'exporta** (caselles a la finestra, totes marcades per defecte).
+  `_SgOpcionsExport` és **l'única llista** — la fan servir tant la finestra com
+  `_SgConstruirLlibre`, o sigui que no es poden desincronitzar — i
+  `_SgSeleccioTeEstes` / `_SgFullesTriades` (pures) decideixen què es munta.
+  El llibre porta **només** el que s'ha triat, i per això el PDF s'exporta
+  sencer: `$wb.ExportAsFixedFormat`, que respecta el `PageSetup` de cada
+  pestanya. **`$excel.ActiveWindow.SelectedSheets.ExportAsFixedFormat` NO
+  EXISTEIX**: `SelectedSheets` és una col·lecció `Sheets`, i aquest mètode només
+  el tenen `Workbook`, `Worksheet`, `Chart` i `Range`. L'Excel ho deia clar —
   *"[System.__ComObject] no contiene ningún método llamado 'ExportAsFixedFormat'"*.
-  El `Visible = $false` va amb **booleà** i no amb `0` (`xlSheetHidden`) perquè
-  en aquest Excel les assignacions numèriques són sospitoses i els booleans no.
+- **El full buit del llibre nou fa de PLACEHOLDER**: un llibre no pot quedar-se
+  sense cap fulla, així que només s'esborra **al final**, quan ja hi ha les
+  pestanyes de debò. Abans es podia esborrar de seguida perquè `Estès` es copiava
+  sempre; ara `Estès` pot no estar triada.
 - **A l'Excel de l'usuari, `Range.Value2` NOMÉS ACCEPTA CADENES.** Dues rondes
   seguides amb el mateix patró:
   - `$rang.Value2 = $matriu` → *"Unable to cast object of type
