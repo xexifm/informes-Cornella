@@ -100,7 +100,12 @@ amb un mapa numerat que pots imprimir a PDF. Els mapes van a
 Botó **📄 Word a PDF**. Per defecte hi surt **l'últim informe que has generat**;
 pots triar-ne un altre o una carpeta sencera. Converteix a PDF al mateix lloc i,
 si ho marques, els signa amb l'**AutoFirma** i el teu certificat de Windows,
-amb el caixetí a dalt a la dreta de la primera pàgina.
+amb el caixetí a dalt a la dreta de la primera pàgina, alineat amb l'escut i el
+marge dret de la capçalera de l'informe.
+
+El text del caixetí és editable a les opcions. Allà mateix hi ha la casella
+**«Obrir el registre de la signatura en acabar»**: normalment la vols desmarcada;
+marca-la si el caixetí no surt i vols veure què s'ha enviat a l'AutoFirma.
 
 ### Seguiment (fila GIA)
 

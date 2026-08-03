@@ -65,10 +65,19 @@ function _DefaultCaixeti {
     ) -join "`n")
 }
 
-# Posició del caixetí a la pàgina (A4 595x842 pt): a DALT A LA DRETA. Tunejable.
-# L'alçada són 48 pt per a 4 línies (abans 75): amb 75 les línies quedaven molt
-# separades i el caixetí, innecessàriament alt.
-$Script:AutoFirmaCaixetiPos = @{ Page = 1; LLX = 360; LLY = 767; URX = 560; URY = 815 }
+# Posició del caixetí a la pàgina (A4 595x842 pt): a DALT A LA DRETA, ALINEAT amb
+# la capçalera de l'informe. L'alçada són 48 pt per a 4 línies (abans 75): amb 75
+# les línies quedaven molt separades i el caixetí, innecessàriament alt.
+#
+# Els dos números d'alineació NO són a ull: surten de mesurar un informe ja
+# generat (es descomprimeix el flux de contingut de la pàgina 1 del PDF).
+#   · Dalt (URY = 800) = la punta de l'escut de la capçalera. Compte, que NO és
+#     el 806,52 on està col·locada la imatge del logo: aquella imatge porta 18
+#     píxels de blanc a dalt (de 199), que a la pàgina són 6,5 pt. Alineant amb
+#     el 806,52 el caixetí hauria quedat mig dit massa amunt.
+#   · Dreta (URX = 552) = el marge dret del text, tret del requadre de la "Nota:"
+#     de l'informe, que va de x=85,58 a x=552,45.
+$Script:AutoFirmaCaixetiPos = @{ Page = 1; LLX = 352; LLY = 752; URX = 552; URY = 800 }
 
 # Aspecte del caixetí-imatge. Tot el que es pot tocar sense entrar al codi.
 $Script:CaixetiEstil = @{
@@ -705,7 +714,7 @@ function _PdfSignarLog([string]$text) {
 
 function _LoadPdfSignarState {
     $p = _PdfSignarStatePath
-    $def = @{ folder = ''; sign = $false; certFilter = ''; autofirma = ''; overwrite = $false; visibleSign = $true; caixeti = (_DefaultCaixeti) }
+    $def = @{ folder = ''; sign = $false; certFilter = ''; autofirma = ''; overwrite = $false; visibleSign = $true; caixeti = (_DefaultCaixeti); obrirRegistre = $false }
     if (-not (Test-Path -LiteralPath $p)) { return $def }
     try {
         $o = Get-Content -LiteralPath $p -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -713,6 +722,7 @@ function _LoadPdfSignarState {
         if ($o.PSObject.Properties['sign'])        { $def['sign'] = [bool]$o.sign }
         if ($o.PSObject.Properties['overwrite'])   { $def['overwrite'] = [bool]$o.overwrite }
         if ($o.PSObject.Properties['visibleSign']) { $def['visibleSign'] = [bool]$o.visibleSign }
+        if ($o.PSObject.Properties['obrirRegistre']) { $def['obrirRegistre'] = [bool]$o.obrirRegistre }
         if ([string]::IsNullOrWhiteSpace([string]$def['caixeti'])) { $def['caixeti'] = (_DefaultCaixeti) }
     } catch { }
     return $def
@@ -830,6 +840,17 @@ function _ShowConvertPdfOptions {
     [void]$form.Controls.Add($cbVis)
     $y += 26
 
+    # El registre de la signatura es DIAGNOSTIC: abans, en acabar, sortia una
+    # pregunta de si es volia obrir, i preguntar-ho cada vegada fa nosa. Ara es
+    # una casella d'aqui, que es recorda: qui el vol, el marca i prou.
+    $cbLog = New-Object System.Windows.Forms.CheckBox
+    $cbLog.Text = 'Obrir el registre de la signatura en acabar'
+    $cbLog.Location = New-Object System.Drawing.Point(34, $y)
+    $cbLog.AutoSize = $true
+    $cbLog.Checked = [bool]$st.obrirRegistre
+    [void]$form.Controls.Add($cbLog)
+    $y += 26
+
     $lblCx = New-Object System.Windows.Forms.Label
     $lblCx.Text = 'Text del caixetí (una línia per fila; $$SIGNDATE=...$$ = data):'
     $lblCx.Location = New-Object System.Drawing.Point(34, $y)
@@ -895,8 +916,9 @@ function _ShowConvertPdfOptions {
             Folder = $f; Sign = [bool]$cbSign.Checked; CertFilter = $certFilter
             Overwrite = [bool]$cbOver.Checked; AutoFirma = [string]$autofirma
             VisibleSign = [bool]$cbVis.Checked; Caixeti = $caixeti
+            ObrirRegistre = [bool]$cbLog.Checked
         }
-        _SavePdfSignarState @{ folder = $f; sign = [bool]$cbSign.Checked; certFilter = $certFilter; autofirma = [string]$autofirma; overwrite = [bool]$cbOver.Checked; visibleSign = [bool]$cbVis.Checked; caixeti = $caixeti }
+        _SavePdfSignarState @{ folder = $f; sign = [bool]$cbSign.Checked; certFilter = $certFilter; autofirma = [string]$autofirma; overwrite = [bool]$cbOver.Checked; visibleSign = [bool]$cbVis.Checked; caixeti = $caixeti; obrirRegistre = [bool]$cbLog.Checked }
         $form.DialogResult = 'OK'; $form.Close()
     }.GetNewClosure())
 
@@ -1135,21 +1157,17 @@ function _RunConvertPdf($opts) {
         foreach ($e in $mostra) { [void]$msg.AppendLine('  - ' + $e) }
         if ($errDetalls.Count -gt 8) { [void]$msg.AppendLine(('  ... i {0} més.' -f ($errDetalls.Count - 8))) }
     }
-    # Si s'ha signat, oferim el registre: hi ha l'ordre EXACTA que s'ha passat a
-    # AutoFirma i serveix per veure per que no surt el caixeti, si es el cas.
-    if ($opts.Sign -and ($signed -gt 0 -or $errors -gt 0)) {
-        [void]$msg.AppendLine('')
-        [void]$msg.AppendLine("Vols obrir el registre de la signatura? (hi ha l'ordre exacta")
-        [void]$msg.AppendLine('enviada a AutoFirma; util si el caixeti no apareix al PDF)')
-        $r = [System.Windows.Forms.MessageBox]::Show($msg.ToString(), 'Convertir informes a PDF', 'YesNo',
-                                                     $(if ($errors -gt 0) { 'Warning' } else { 'Information' }))
-        if ($r -eq [System.Windows.Forms.DialogResult]::Yes) {
-            try { Start-Process -FilePath (_PdfSignarLogPath) | Out-Null } catch { }
-        }
-        return
-    }
     $icon = if ($errors -gt 0) { 'Warning' } else { 'Information' }
     [System.Windows.Forms.MessageBox]::Show($msg.ToString(), 'Convertir informes a PDF', 'OK', $icon) | Out-Null
+
+    # El registre porta l'ordre EXACTA que s'ha passat a AutoFirma i serveix per
+    # veure per que no surt el caixeti, si es el cas. Abans es preguntava en
+    # acabar CADA VEGADA, i preguntar-ho sempre fa nosa; ara hi ha la casella
+    # 'Obrir el registre de la signatura en acabar' al diàleg d'opcions, que es
+    # recorda: qui el vol, el marca i prou.
+    if ($opts.ObrirRegistre -and $opts.Sign -and ($signed -gt 0 -or $errors -gt 0)) {
+        try { Start-Process -FilePath (_PdfSignarLogPath) | Out-Null } catch { }
+    }
 }
 
 # Punt d'entrada de l'eina (des del menú principal).

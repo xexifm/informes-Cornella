@@ -709,10 +709,21 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
     de línia REALS com a `<LF>` i deixa els `\n` LITERALS tal qual. Abans tots
     dos sortien com a `\n` i el log no permetia saber quin era quin — que és
     justament el que calia per depurar.
+  - **Posició: ALINEADA amb la capçalera de l'informe, i els números són
+    MESURATS**, no posats a ull. Es descomprimeix el flux de contingut de la
+    pàgina 1 d'un informe ja generat i se'n treu que: la imatge del logo es
+    col·loca amb el seu dalt a `y=806,52` **però porta 18 px de blanc a dalt**
+    (de 199) = 6,51 pt, o sigui que la punta de l'escut és a **`y=800`**; i el
+    requadre de la «Nota:» va de `x=85,58` a **`x=552,45`**, que és el marge dret
+    del text. D'aquí `AutoFirmaCaixetiPos` = 352/752/552/800. Hi ha proves que
+    lliguen el caixetí a aquestes dues referències.
   - **Registre de diagnòstic**: cada execució desa a `pdf-signar-log.txt` (al costat
     de `pdf-signar-state.json`) **l'ordre exacta** passada a AutoFirma, el codi de
-    sortida i la seva sortida (`_PdfSignarLog`, `_AutoFirmaArgvToText`). El resum
-    ofereix obrir-lo. Serveix per no haver d'endevinar si el caixetí no surt.
+    sortida i la seva sortida (`_PdfSignarLog`, `_AutoFirmaArgvToText`). S'obre
+    (o no) segons la casella **«Obrir el registre de la signatura en acabar»** del
+    diàleg d'opcions, que es recorda a `pdf-signar-state.json` (`obrirRegistre`,
+    per defecte **no**). Abans es preguntava en acabar cada vegada, i preguntar
+    sempre una cosa que és de diagnòstic fa nosa. Serveix per no haver d'endevinar si el caixetí no surt.
     **Va al `.gitignore`**: conté les RUTES COMPLETES dels informes i les carpetes
     porten el nom i l'adreça del titular — i aquest repositori és PÚBLIC. (S'hi
     ignora pel nom exacte, no `*.txt`, perquè el `README.txt` d'aquella carpeta sí

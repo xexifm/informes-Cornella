@@ -1333,8 +1333,24 @@ AssertEq ([bool]($cxDef -like "*Sergi Fadurdo Modesto*")) $true '_DefaultCaixeti
 AssertEq ([bool]($cxDef -like '*$$SIGNDATE=*')) $true '_DefaultCaixeti: conté el marcador de data'
 $ep = _AutoFirmaVisibleExtraParams $cxDef
 AssertEq ([bool]($ep -like '*signaturePage=1*')) $true '_AutoFirmaVisibleExtraParams: signaturePage=1'
-AssertEq ([bool]($ep -like '*signaturePositionOnPageLowerLeftX=360*')) $true '_AutoFirmaVisibleExtraParams: posició dalt-dreta (X)'
-AssertEq ([bool]($ep -like '*signaturePositionOnPageUpperRightY=815*')) $true '_AutoFirmaVisibleExtraParams: posició dalt-dreta (Y)'
+$cxP = $Script:AutoFirmaCaixetiPos
+AssertEq ([bool]($ep -like ('*signaturePositionOnPageLowerLeftX=' + [int]$cxP.LLX + '*'))) $true '_AutoFirmaVisibleExtraParams: hi va la X de la posicio configurada'
+AssertEq ([bool]($ep -like ('*signaturePositionOnPageUpperRightY=' + [int]$cxP.URY + '*'))) $true '_AutoFirmaVisibleExtraParams: hi va la Y de la posicio configurada'
+# ALINEACIO amb la capçalera de l'informe. Els numeros de referencia son MESURATS
+# d'un informe ja generat (descomprimint el flux de contingut de la pagina 1):
+#   · la imatge del logo es col·loca amb el seu dalt a y=806,52, pero porta 18 px
+#     de blanc a dalt (de 199) = 6,51 pt, o sigui que la punta de l'escut es a
+#     y=800,01;
+#   · el requadre de la "Nota:" de l'informe va de x=85,58 a x=552,45, que es el
+#     marge dret del text.
+# Si algu mou el caixeti, aquestes dues proves l'obliguen a saber respecte de que
+# l'esta movent.
+$refEscutDalt = 800.01
+$refTextDreta = 552.45
+Assert ([bool]([Math]::Abs([double]$cxP.URY - $refEscutDalt) -le 1.0)) 'AutoFirmaCaixetiPos: el dalt del caixeti va alineat amb la punta de l''escut de la capcalera'
+Assert ([bool]([Math]::Abs([double]$cxP.URX - $refTextDreta) -le 1.0)) 'AutoFirmaCaixetiPos: la dreta del caixeti va alineada amb el marge dret del text'
+AssertEq ([int]$cxP.URX - [int]$cxP.LLX) 200 'AutoFirmaCaixetiPos: l''amplada del caixeti no ha canviat (nomes s''ha mogut)'
+AssertEq ([int]$cxP.URY - [int]$cxP.LLY) 48  'AutoFirmaCaixetiPos: l''alcada del caixeti no ha canviat (nomes s''ha mogut)'
 # SEPARADOR: el \n LITERAL (2 caracters), MAI un salt de linia real. Ho fa
 # CommandLineLauncher.buildProperties() d'AutoFirma amb indexOf("\\n"), que en
 # Java busca els caracters \ + n. Amb salts REALS no en troba cap i es queda amb
