@@ -1681,6 +1681,57 @@ AssertEq (_GiaFromFolderName $p) '361' '_GiaFromFolderName treu "GIA 361" de la 
 AssertEq (_CarpetaActivitat $p) '2025-1-2563 GIA 361 - RC112- KRICHI BEJAUI HOSTELERIA, SL' '_CarpetaActivitat = carpeta pare'
 AssertEq (_GiaFromFolderName 'I:\Informes\sense marca\x.docx') '' '_GiaFromFolderName sense GIA -> buit'
 
+Write-Host "`n--- Seguiment.ps1: espaiat de les anotacions datades ---"
+# Cas real: al punt 6 d'un informe hi sortia un forat entre "No s'aporta." i
+# "S'aporta.", i a la resta de punts no. Motiu: NOMES aquell requeriment portava
+# un w:spacing/@w:after (el que el separa del punt seguent) i l'anotacio, que
+# clona el pPr del requeriment, se l'enduia; a la segona ronda hi havia doncs un
+# 'after' entre les dues linies datades.
+$anW = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
+function New-XmlProva([string]$pPrIntern) {
+    $x = New-Object System.Xml.XmlDocument
+    $x.PreserveWhitespace = $true
+    $x.LoadXml("<w:document xmlns:w=""$anW""><w:body><w:p><w:pPr>$pPrIntern</w:pPr><w:r><w:t>requeriment</w:t></w:r></w:p></w:body></w:document>")
+    $nsm = New-Object System.Xml.XmlNamespaceManager($x.NameTable)
+    $nsm.AddNamespace('w', $anW)
+    return [pscustomobject]@{ Xml = $x; Ns = $nsm; Body = $x.SelectSingleNode('//w:body', $nsm) }
+}
+function SpacingDe($node, $xi) {
+    $sp = $node.SelectSingleNode('w:pPr/w:spacing', $xi.Ns)
+    if ($null -eq $sp) { return '-' }
+    return ('before=' + [string]$sp.GetAttribute('before', $anW) + ' after=' + [string]$sp.GetAttribute('after', $anW))
+}
+# (a) Requeriment SENSE 'after' (la majoria): l'anotacio tampoc no n'ha de tenir.
+$xiA = New-XmlProva '<w:pStyle w:val="Prrafodelista"/>'
+$reqA = $xiA.Body.SelectSingleNode('w:p', $xiA.Ns)
+$annA1 = _MakeAnnotationParagraphXml $xiA $reqA '09/06/2026' "No s'aporta." $true $true $false (_TakeSpacingAfterXml $xiA $reqA)
+AssertEq (SpacingDe $annA1 $xiA) 'before=200 after=' 'anotacio 1a: nomes espai a sobre'
+$annA2 = _MakeAnnotationParagraphXml $xiA $reqA '03/08/2026' "S'aporta." $false $false $false (_TakeSpacingAfterXml $xiA $annA1)
+AssertEq (SpacingDe $annA2 $xiA) '-' 'anotacio 2a: sense cap espai (van seguides)'
+# (b) Requeriment AMB 'after' (el cas del punt 6): l'espai s'ha de MOURE, no
+#     copiar. Entre les dues linies datades no n'hi pot quedar cap.
+$xiB = New-XmlProva '<w:pStyle w:val="Prrafodelista"/><w:spacing w:after="240"/>'
+$reqB = $xiB.Body.SelectSingleNode('w:p', $xiB.Ns)
+$afterB = _TakeSpacingAfterXml $xiB $reqB
+AssertEq $afterB '240' '_TakeSpacingAfterXml: retorna l''espai de sota del requeriment'
+AssertEq (SpacingDe $reqB $xiB) 'before= after=' '_TakeSpacingAfterXml: i l''hi TREU (ja no separa el requeriment de la seva anotacio)'
+$annB1 = _MakeAnnotationParagraphXml $xiB $reqB '09/06/2026' "No s'aporta." $true $true $false $afterB
+AssertEq (SpacingDe $annB1 $xiB) 'before=200 after=240' 'anotacio 1a: hereta l''espai que tancava el bloc'
+$afterB2 = _TakeSpacingAfterXml $xiB $annB1
+AssertEq $afterB2 '240' 'l''espai es torna a prendre de l''anotacio anterior'
+$annB2 = _MakeAnnotationParagraphXml $xiB $reqB '03/08/2026' "S'aporta." $false $false $false $afterB2
+AssertEq (SpacingDe $annB1 $xiB) 'before=200 after=' 'anotacio 1a: ES QUEDA SENSE espai a sota (aqui hi havia el forat)'
+AssertEq (SpacingDe $annB2 $xiB) 'before= after=240' 'anotacio 2a: ara es ella qui tanca el bloc'
+# (c) Sub-punt: l'espai de sota del sub-punt mana, pero tampoc no es pot quedar a
+#     l'anotacio del mig.
+$xiC = New-XmlProva '<w:pStyle w:val="Prrafodelista"/>'
+$reqC = $xiC.Body.SelectSingleNode('w:p', $xiC.Ns)
+$annC1 = _MakeAnnotationParagraphXml $xiC $reqC '09/06/2026' "No s'aporta." $true $true $true ''
+AssertEq (SpacingDe $annC1 $xiC) 'before=200 after=240' 'sub-punt: la 1a anotacio porta espai a sobre i a sota'
+$annC2 = _MakeAnnotationParagraphXml $xiC $reqC '03/08/2026' "S'aporta." $false $false $true (_TakeSpacingAfterXml $xiC $annC1)
+AssertEq (SpacingDe $annC1 $xiC) 'before=200 after=' 'sub-punt: la 1a anotacio perd l''espai de sota quan en ve una altra'
+AssertEq (SpacingDe $annC2 $xiC) 'before= after=240' 'sub-punt: el tanca la darrera anotacio'
+
 Write-Host "`n--- Seguiment.ps1: segell d'ultima execucio de les eines ---"
 # La marca es desa amb (Get-Date).ToString('o'), o sigui hora LOCAL amb el seu
 # desplacament, i es torna a llegir en hora local: el viatge d'anada i tornada ha

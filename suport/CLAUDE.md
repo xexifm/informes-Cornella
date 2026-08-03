@@ -397,6 +397,20 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   un checkbox+comentari per unitat, amb `Label` "Req. N (tema): <fill>" i sagnat
   per als fills. Funcions pures amb tests (`_ShortenText`, `_SeguimentParentTopic`,
   `_BuildSeguimentModel` amb fills).
+- **L'anotació NO hereta l'espaiat del requeriment.** El clon del `pPr` es fa per
+  quedar-se la **sagnia i l'estil**, no els espais: `_MakeAnnotationParagraphXml`
+  esborra el `w:spacing` clonat i després hi posa el que decideix ell. Sense
+  això, un requeriment que porti un `after` (el que el separa del punt següent)
+  l'encomanava a **totes** les seves anotacions i, a la segona entrega,
+  apareixia un **forat entre les dues línies datades**. Es notava en un sol punt
+  de l'informe — el que casualment duia aquell `after` — i per això semblava
+  aleatori.
+- **L'espai de sota del bloc es MOU, no es copia**: ha d'anar sempre a l'**últim**
+  paràgraf del bloc, i cada anotació nova passa a ser-ho.
+  `_TakeSpacingAfterXml` el pren del que ho era fins ara (el cos del requeriment
+  o l'anotació anterior) i el passa a la nova. Si no es mogués, se n'acumularia
+  un a cada ronda. **Compte que això també passava entre dues anotacions d'un
+  SUB-PUNT**, on l'`after` el posa la regla del sub-punt.
 - **Format de l'anotació d'un sub-punt:** `_MakeAnnotationParagraphXml` clona el
   `pPr` del paràgraf que anota i hi força `numId=0` perquè l'anotació **no
   s'enumeri**. Això té un efecte col·lateral: si el sub-punt treia la sagnia de

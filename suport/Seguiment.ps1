@@ -652,7 +652,22 @@ function _AnnotationFormatTwips {
 #     queda desalineada respecte del sub-punt que comenta.
 #   - Espai a sota (AnnotationSpaceAfterPt): si no, el sub-punt seguent queda
 #     enganxat a l'anotacio.
-function _MakeAnnotationParagraphXml($xmlInfo, $reqNode, $dateStr, $comment, [bool]$commentBold, [bool]$spaceBefore = $false, [bool]$isChild = $false) {
+# Treu l'espai de sota (w:spacing/@w:after) d'un paragraf i el retorna ('' si no
+# en tenia). Serveix per MOURE'L: l'espai que separa el bloc del punt seguent ha
+# d'anar sempre a l'ULTIM paragraf del bloc, i cada anotacio nova passa a ser-ho.
+function _TakeSpacingAfterXml($xmlInfo, $node) {
+    if ($null -eq $node) { return '' }
+    $sp = $node.SelectSingleNode('w:pPr/w:spacing', $xmlInfo.Ns)
+    if ($null -eq $sp) { return '' }
+    $val = [string]$sp.GetAttribute('after', $Script:WNS)
+    if ([string]::IsNullOrWhiteSpace($val)) { return '' }
+    [void]$sp.RemoveAttribute('after', $Script:WNS)
+    return $val
+}
+
+# $afterHeretat: l'espai de sota que venia del paragraf anterior del bloc (vegeu
+# _TakeSpacingAfterXml). Va a la nova anotacio, que es la que ara tanca el bloc.
+function _MakeAnnotationParagraphXml($xmlInfo, $reqNode, $dateStr, $comment, [bool]$commentBold, [bool]$spaceBefore = $false, [bool]$isChild = $false, [string]$afterHeretat = '') {
     $xml = $xmlInfo.Xml; $ns = $xmlInfo.Ns; $w = $Script:WNS
     $p = $xml.CreateElement('w','p',$w)
     $pPr = $null
@@ -661,6 +676,14 @@ function _MakeAnnotationParagraphXml($xmlInfo, $reqNode, $dateStr, $comment, [bo
         $pPr = $reqPPr.CloneNode($true)
         $pmRPr = $pPr.SelectSingleNode('w:rPr', $ns)   # format de la marca de paragraf
         if ($null -ne $pmRPr) { [void]$pPr.RemoveChild($pmRPr) }
+        # FORA l'espaiat heretat del requeriment. El clonem per quedar-nos amb la
+        # sagnia i l'estil, no amb els espais: l'anotacio decideix els seus.
+        # Sense aixo, un requeriment que porti 'after' (el que el separa del punt
+        # seguent) l'encomanava a TOTES les seves anotacions, i entre dues linies
+        # datades hi apareixia un forat. Passava nomes als punts on el
+        # requeriment duia aquell 'after', per aixo semblava aleatori.
+        $spHeretat = $pPr.SelectSingleNode('w:spacing', $ns)
+        if ($null -ne $spHeretat) { [void]$pPr.RemoveChild($spHeretat) }
         # FORCAR numId=0 perque NO s'enumeri (mantenint l'estil de llista, que
         # aporta la sagnia per alinear l'anotacio sota el requeriment).
         $numPr = $pPr.SelectSingleNode('w:numPr', $ns)
@@ -695,9 +718,16 @@ function _MakeAnnotationParagraphXml($xmlInfo, $reqNode, $dateStr, $comment, [bo
         $spB = & $getSpacing
         [void]$spB.SetAttribute('before', $w, [string]$fmt.SpaceBefore)
     }
+    # Espai de sota: el del sub-punt mana; si no, el que venia del paragraf que
+    # fins ara tancava el bloc.
     if ($isChild) {
         $spA = & $getSpacing
         [void]$spA.SetAttribute('after', $w, [string]$fmt.SpaceAfter)
+    } elseif (-not [string]::IsNullOrWhiteSpace($afterHeretat)) {
+        $spA = & $getSpacing
+        [void]$spA.SetAttribute('after', $w, $afterHeretat)
+    }
+    if ($isChild) {
         # Sangria explicita nomes si el paragraf clonat no en portava cap (si en
         # porta, ja esta alineat amb el sub-punt i no s'ha de tocar).
         if ($null -eq $pPr.SelectSingleNode('w:ind', $ns)) {
@@ -907,7 +937,13 @@ function _ApplySeguimentTransform {
             $commentBold = (-not $nowResolved)                 # negreta nomes si pendent
             $spaceBefore = (-not $b.AnchorIsAnnotation)         # espai si es la 1a anotacio
             $isChild     = [bool]$req.IsChild                    # anotacio d'un sub-punt
-            $newP = _MakeAnnotationParagraphXml $xmlInfo $b.ReqNode $dateStr $comment $commentBold $spaceBefore $isChild
+            # L'espai de sota del bloc ha d'anar SEMPRE al seu ultim paragraf.
+            # Aqui l'ultim passa a ser l'anotacio nova, o sigui que el prenem del
+            # que ho era fins ara (el cos del requeriment o l'anotacio anterior).
+            # Si no es mou, se n'acumula un a cada ronda i queden forats entre les
+            # linies datades.
+            $afterHeretat = _TakeSpacingAfterXml $xmlInfo $b.AnchorNode
+            $newP = _MakeAnnotationParagraphXml $xmlInfo $b.ReqNode $dateStr $comment $commentBold $spaceBefore $isChild $afterHeretat
             [void]$xmlInfo.Body.InsertAfter($newP, $b.AnchorNode)
         }
     }
