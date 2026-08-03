@@ -632,10 +632,29 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
     posa el caixetí en una sola línia (`_CaixetiUnaLinia`, unit amb ` · `, que
     també talla pel `\n` literal i treu qualsevol barra invertida que quedi).
   - **Per tenir-lo de DIVERSES LÍNIES: com a IMATGE**. `_BuildCaixetiImageBase64`
-    (System.Drawing) dibuixa el caixetí en un JPEG amb la mateixa proporció que el
-    requadre de la signatura i el passa a `signatureRubricImage` (base64), que és
-    el mecanisme documentat d'AutoFirma per a la rúbrica. En aquest mode NO s'hi
+    (System.Drawing) dibuixa el caixetí amb la mateixa proporció que el requadre
+    de la signatura i el passa a `signatureRubricImage` (base64), que és el
+    mecanisme documentat d'AutoFirma per a la rúbrica. En aquest mode NO s'hi
     posa `layer2Text` (la imatge ja ho porta tot).
+  - **La lletra es veia BORROSA i era el JPEG.** El JPEG va molt malament amb
+    text negre sobre blanc (hi deixa halos), i a més s'hi anava a **qualitat 70**
+    i **escala x2** (144 ppp). Ara `$Script:CaixetiIntents` és una escala
+    d'intents **de més a menys qualitat** (PNG x4 → x3 → x2 → JPEG) i es fa
+    servir **el primer que hi càpiga**: el PNG no perd res i, amb text pla, fins
+    i tot comprimeix millor. AutoFirma l'accepta — la rúbrica acaba a
+    `Image.getInstance()` d'iText, que reconeix PNG/JPEG/GIF/BMP/TIFF pels bytes
+    de capçalera.
+  - **`MaxCaixetiBase64` era massa just** (20000): amb l'escut de fons, l'única
+    escala que hi cabia era la x2, justament la borrosa. Ara 26000; la resta de
+    l'ordre no arriba a 1.000 caràcters ni amb rutes de xarxa llargues, i la
+    comprovació de `MaxCommandLine` segueix sent la xarxa de seguretat.
+  - **Aspecte** (`$Script:CaixetiEstil`, tot tunejable en un sol lloc): contorn
+    gris fosc, **escut de l'Ajuntament de fons a la dreta** (`suport/cornella.ico`,
+    carregat a la mida que toca amb `Icon(path, Size)` i pintat amb
+    `ColorMatrix.Matrix33` = opacitat; va **abans** del text perquè aquest hi
+    passi per sobre) i `FactorLletra` = 0,72 (era 0,58): com més alt, més omplen
+    les lletres la línia i **menys espai buit** queda entremig. El requadre ha
+    passat de **75 a 48 pt** d'alçada per al mateix nombre de línies.
   - **LÍMIT DE LA LÍNIA D'ORDRES (5è error real)**: la imatge viatja en **base64
     dins de l'ordre**, i Windows no admet més de **32767** caràcters. Amb la
     imatge a escala x4, `Process.Start` petava amb *"El nombre del archivo o la

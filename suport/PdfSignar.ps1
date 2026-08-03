@@ -66,7 +66,40 @@ function _DefaultCaixeti {
 }
 
 # Posició del caixetí a la pàgina (A4 595x842 pt): a DALT A LA DRETA. Tunejable.
-$Script:AutoFirmaCaixetiPos = @{ Page = 1; LLX = 360; LLY = 740; URX = 560; URY = 815 }
+# L'alçada són 48 pt per a 4 línies (abans 75): amb 75 les línies quedaven molt
+# separades i el caixetí, innecessàriament alt.
+$Script:AutoFirmaCaixetiPos = @{ Page = 1; LLX = 360; LLY = 767; URX = 560; URY = 815 }
+
+# Aspecte del caixetí-imatge. Tot el que es pot tocar sense entrar al codi.
+$Script:CaixetiEstil = @{
+    # Proporció de la mida de lletra respecte de l'alçada de línia. Com més
+    # alta, més omplen les lletres i menys espai buit queda entremig (era 0,58).
+    FactorLletra   = 0.72
+    # Contorn del requadre: gris fosc, gruix en píxels per unitat d'escala.
+    ContornRGB     = @(64, 64, 64)
+    ContornGruix   = 1
+    # Escut de fons, a la dreta. Opacitat baixa perquè el text hi pugui passar
+    # per sobre i seguir llegint-se.
+    EscutOpacitat  = 0.35
+    EscutFitxer    = 'cornella.ico'
+    MargePt        = 2
+}
+
+# Intents de generació de la imatge, EN ORDRE de preferència. Es va provant fins
+# que el base64 hi cap (vegeu $Script:MaxCaixetiBase64).
+#
+# PNG primer perquè NO PERD QUALITAT: el JPEG de qualitat 70 que hi havia abans
+# era el que feia la lletra borrosa (el JPEG va molt malament amb text negre
+# sobre blanc, hi deixa halos). El PNG, amb text pla, a més comprimeix millor.
+# AutoFirma l'accepta: la rúbrica acaba a Image.getInstance() d'iText, que
+# reconeix PNG, JPEG, GIF, BMP i TIFF pels bytes de capçalera.
+$Script:CaixetiIntents = @(
+    @{ Format = 'png';  Escala = 4 }
+    @{ Format = 'png';  Escala = 3 }
+    @{ Format = 'png';  Escala = 2 }
+    @{ Format = 'jpeg'; Escala = 3; Qualitat = 92 }
+    @{ Format = 'jpeg'; Escala = 2; Qualitat = 88 }
+)
 
 # Límit REAL de Windows per a una línia d'ordres: 32767 caràcters. Deixem marge
 # per a les rutes (que poden ser llargues, en xarxa) i per al filtre del
@@ -74,7 +107,15 @@ $Script:AutoFirmaCaixetiPos = @{ Page = 1; LLX = 360; LLY = 740; URX = 560; URY 
 $Script:MaxCommandLine = 30000
 # Mida màxima del base64 de la imatge del caixetí. Amb el marge de dalt, la
 # imatge no pot passar d'aquí o l'ordre no hi cabria.
-$Script:MaxCaixetiBase64 = 20000
+#
+# Eren 20000, i era massa just: amb l'escut de fons, l'única escala que hi cabia
+# era la x2 (144 ppp), que és justament la que es veia borrosa. La resta de
+# l'ordre (rutes, filtre del certificat i les altres propietats) no arriba a
+# 1.000 caràcters ni amb rutes de xarxa llargues, o sigui que fins a 26000 hi ha
+# marge de sobres per sota de $Script:MaxCommandLine. I si algun dia no hi
+# cabés, la comprovació d'allà salta l'intent igualment: aquest topall no és
+# l'única xarxa de seguretat.
+$Script:MaxCaixetiBase64 = 26000
 
 # Resol els marcadors de data del caixetí NOSALTRES, en lloc de deixar-los a
 # AutoFirma. Funció PURA (per això la data entra com a paràmetre).
@@ -118,34 +159,112 @@ function _ResolveCaixetiDate([string]$caixeti, [datetime]$ara) {
 function _BuildCaixetiImageBase64([string]$caixeti) {
     try {
         Add-Type -AssemblyName System.Drawing -ErrorAction Stop
-        $p = $Script:AutoFirmaCaixetiPos
-        # Mateixa proporcio que el requadre de la signatura, x2 (144 ppp: prou
-        # nitid). NO es pot pujar gaire: la imatge viatja en BASE64 dins de la
-        # linia d'ordres, i Windows no admet mes de 32767 caracters. Amb x4 el
-        # base64 se n'anava i AutoFirma ni s'arrencava ("El nombre del archivo o
-        # la extension es demasiado largo").
-        $escala = 2
-        $w = [int](([int]$p.URX - [int]$p.LLX) * $escala)
-        $h = [int](([int]$p.URY - [int]$p.LLY) * $escala)
-        if ($w -le 0 -or $h -le 0) { return '' }
-
         $lines = @((([string]$caixeti -replace "`r`n", "`n") -split "`n") | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
         if ($lines.Count -eq 0) { return '' }
+        # Es prova de mes nitid a menys, i ens quedem amb el PRIMER que hi cap:
+        # la imatge viatja en base64 dins de la linia d'ordres, i Windows no
+        # admet mes de 32767 caracters (amb l'escala x4 en JPEG, AutoFirma ni
+        # s'arrencava: "El nombre del archivo o la extension es demasiado
+        # largo"). Aixi es fa servir sempre la millor qualitat possible en lloc
+        # d'anar a la fixa amb la pitjor.
+        foreach ($intent in $Script:CaixetiIntents) {
+            $b64 = _CaixetiImatgeIntent $lines $intent
+            if (-not [string]::IsNullOrWhiteSpace($b64) -and $b64.Length -le $Script:MaxCaixetiBase64) {
+                return $b64
+            }
+        }
+        return ''
+    } catch {
+        return ''
+    }
+}
 
-        $bmp = New-Object System.Drawing.Bitmap($w, $h)
+# Ruta de l'escut de l'Ajuntament. Es al costat del codi, a suport\.
+function _CaixetiEscutPath {
+    $d = $PSScriptRoot
+    if ([string]::IsNullOrWhiteSpace($d)) { $d = Join-Path $RepoRoot 'suport' }
+    return [string](Join-Path $d $Script:CaixetiEstil.EscutFitxer)
+}
+
+# Dibuixa el caixeti amb UN intent concret i el retorna en base64 ('' si falla).
+# Separat de _BuildCaixetiImageBase64 perque aquella nomes decideix quin intent
+# es queda; aqui hi ha tot el dibuix.
+function _CaixetiImatgeIntent($lines, $intent) {
+    $p    = $Script:AutoFirmaCaixetiPos
+    $est  = $Script:CaixetiEstil
+    $esc  = [int]$intent.Escala
+    $w    = [int](([int]$p.URX - [int]$p.LLX) * $esc)
+    $h    = [int](([int]$p.URY - [int]$p.LLY) * $esc)
+    if ($w -le 0 -or $h -le 0) { return '' }
+
+    $bmp = New-Object System.Drawing.Bitmap($w, $h)
+    try {
         $g = [System.Drawing.Graphics]::FromImage($bmp)
         try {
             $g.Clear([System.Drawing.Color]::White)
-            $g.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::AntiAliasGridFit
-            $alcadaLinia = [double]$h / [double]$lines.Count
-            # Mida de lletra que hi cap amb un marge raonable.
-            $mida = [int][Math]::Max(8, [Math]::Floor($alcadaLinia * 0.58))
+            $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+            $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+            # AntiAlias (no AntiAliasGridFit): la imatge es reescala dins del PDF,
+            # i l'ajust a la graella de pixels que fa el GridFit hi queda pitjor.
+            $g.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::AntiAlias
+
+            $marge = [int]([double]$est.MargePt * $esc)
+
+            # --- ESCUT de fons, a la dreta. Va PRIMER perque el text hi passi per
+            #     sobre (l'usuari ja ho ha donat per bo). Amb poca opacitat, si no
+            #     es menja les lletres.
+            try {
+                $ico = _CaixetiEscutPath
+                if (Test-Path -LiteralPath $ico) {
+                    $sz = $h - (2 * $marge)
+                    if ($sz -gt 0) {
+                        $icona = New-Object System.Drawing.Icon($ico, (New-Object System.Drawing.Size($sz, $sz)))
+                        try {
+                            $imgE = $icona.ToBitmap()
+                            try {
+                                # Matrix33 es el canal ALFA: amb 1 es veuria opac.
+                                $cmx = New-Object System.Drawing.Imaging.ColorMatrix
+                                $cmx.Matrix33 = [single]$est.EscutOpacitat
+                                $ia = New-Object System.Drawing.Imaging.ImageAttributes
+                                $ia.SetColorMatrix($cmx)
+                                $rc = New-Object System.Drawing.Rectangle(($w - $marge - $sz), $marge, $sz, $sz)
+                                $g.DrawImage($imgE, $rc, 0, 0, $imgE.Width, $imgE.Height,
+                                             [System.Drawing.GraphicsUnit]::Pixel, $ia)
+                                $ia.Dispose()
+                            } finally { $imgE.Dispose() }
+                        } finally { $icona.Dispose() }
+                    }
+                }
+            } catch { }
+
+            # --- CONTORN gris fosc. El requadre es dibuixa cap endins mig gruix:
+            #     si no, la meitat del trac cauria fora de la imatge i es veuria
+            #     mes prim per dos costats.
+            try {
+                $gruix = [single][Math]::Max(1, ([int]$est.ContornGruix * $esc))
+                $col = [System.Drawing.Color]::FromArgb([int]$est.ContornRGB[0], [int]$est.ContornRGB[1], [int]$est.ContornRGB[2])
+                $pen = New-Object System.Drawing.Pen($col, $gruix)
+                try {
+                    $o = $gruix / 2.0
+                    $g.DrawRectangle($pen, [single]$o, [single]$o, [single]($w - $gruix), [single]($h - $gruix))
+                } finally { $pen.Dispose() }
+            } catch { }
+
+            # --- TEXT. L'alcada de linia es reparteix l'espai util i la lletra
+            #     n'ocupa FactorLletra: com mes alt el factor, menys espai buit
+            #     queda entre linia i linia.
+            $util = $h - (2 * $marge)
+            $alcadaLinia = [double]$util / [double]@($lines).Count
+            $mida = [int][Math]::Max(6, [Math]::Floor($alcadaLinia * [double]$est.FactorLletra))
             $font = New-Object System.Drawing.Font('Arial', $mida, [System.Drawing.GraphicsUnit]::Pixel)
             try {
-                $y = 0.0
+                # GenericTypographic: sense el farciment extra que hi posa el
+                # format de defecte, que separava mes les linies.
+                $sf = [System.Drawing.StringFormat]::GenericTypographic
+                $y = [double]$marge
                 foreach ($l in $lines) {
                     $g.DrawString([string]$l, $font, [System.Drawing.Brushes]::Black,
-                                  [single]2, [single]($y + ($alcadaLinia - $mida) / 2.0))
+                                  [single]($marge + $esc), [single]($y + ($alcadaLinia - $mida) / 2.0), $sf)
                     $y += $alcadaLinia
                 }
             } finally { $font.Dispose() }
@@ -153,29 +272,26 @@ function _BuildCaixetiImageBase64([string]$caixeti) {
 
         $ms = New-Object System.IO.MemoryStream
         try {
-            # JPEG amb qualitat moderada: el que compta es que el base64 sigui
-            # curt (ha de cabre a la linia d'ordres), i el caixeti es text negre
-            # sobre blanc, que comprimeix molt be.
-            $codec = [System.Drawing.Imaging.ImageCodecInfo]::GetImageEncoders() |
-                     Where-Object { $_.MimeType -eq 'image/jpeg' } | Select-Object -First 1
-            if ($null -ne $codec) {
-                $ep = New-Object System.Drawing.Imaging.EncoderParameters(1)
-                $ep.Param[0] = New-Object System.Drawing.Imaging.EncoderParameter(
-                                    [System.Drawing.Imaging.Encoder]::Quality, [long]70)
-                $bmp.Save($ms, $codec, $ep)
-                $ep.Dispose()
+            if ([string]$intent.Format -eq 'png') {
+                $bmp.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png)
             } else {
-                $bmp.Save($ms, [System.Drawing.Imaging.ImageFormat]::Jpeg)
+                $codec = [System.Drawing.Imaging.ImageCodecInfo]::GetImageEncoders() |
+                         Where-Object { $_.MimeType -eq 'image/jpeg' } | Select-Object -First 1
+                if ($null -ne $codec) {
+                    $ep = New-Object System.Drawing.Imaging.EncoderParameters(1)
+                    $ep.Param[0] = New-Object System.Drawing.Imaging.EncoderParameter(
+                                        [System.Drawing.Imaging.Encoder]::Quality, [long]$intent.Qualitat)
+                    $bmp.Save($ms, $codec, $ep)
+                    $ep.Dispose()
+                } else {
+                    $bmp.Save($ms, [System.Drawing.Imaging.ImageFormat]::Jpeg)
+                }
             }
-            $b64 = [System.Convert]::ToBase64String($ms.ToArray())
-            # Ultim tall de seguretat: si tot i aixi no hi cabria, millor no
-            # intentar-ho (el crider passara al caixeti de text).
-            if ($b64.Length -gt $Script:MaxCaixetiBase64) { return '' }
-            return $b64
-        } finally { $ms.Dispose(); $bmp.Dispose() }
+            return [System.Convert]::ToBase64String($ms.ToArray())
+        } finally { $ms.Dispose() }
     } catch {
         return ''
-    }
+    } finally { $bmp.Dispose() }
 }
 
 # El caixetí en UNA SOLA línia, per al mode de text.

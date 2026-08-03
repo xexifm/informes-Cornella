@@ -1411,6 +1411,39 @@ AssertEq (@($cmdCx -split "`n").Count) 1 '_ArgvToCommandLine: cap salt de línia
 # archivo o la extension es demasiado largo"). Per aixo hi ha topalls.
 AssertEq ([bool]($Script:MaxCommandLine -le 32767 -and $Script:MaxCommandLine -ge 10000)) $true 'MaxCommandLine: topall sota el limit de Windows amb marge'
 AssertEq ([bool]($Script:MaxCaixetiBase64 -lt $Script:MaxCommandLine)) $true 'MaxCaixetiBase64: la imatge ha de deixar lloc per a les rutes'
+# Amb rutes de xarxa llargues, la resta de l'ordre no arriba a 1.000 caracters:
+# ha de quedar-hi marge de sobres.
+AssertEq ([bool](($Script:MaxCommandLine - $Script:MaxCaixetiBase64) -ge 2000)) $true 'MaxCaixetiBase64: hi ha d''haver marge per a la resta de l''ordre'
+
+Write-Host "`n--- PdfSignar.ps1: aspecte del caixeti-imatge ---"
+# L'ESCUT ha d'existir de debo: la signatura el dibuixa de fons i, si no hi es,
+# el caixeti surt sense escut i ningu no se n'assabenta.
+$cxIco = _CaixetiEscutPath
+Assert ([bool]($cxIco -like '*cornella.ico')) '_CaixetiEscutPath: apunta a l''escut'
+Assert (Test-Path -LiteralPath $cxIco)        '_CaixetiEscutPath: l''escut hi es de debo'
+# Els intents van de MES a MENYS qualitat: el primer que hi capiga es el que
+# s'usa, o sigui que si l'ordre s'inverteix sempre sortiria el pitjor.
+$cxInt = @($Script:CaixetiIntents)
+Assert ([bool]($cxInt.Count -ge 2)) 'CaixetiIntents: hi ha respatller si el millor no hi cap'
+AssertEq ([string]$cxInt[0].Format) 'png' 'CaixetiIntents: el primer intent es PNG (sense perdua: el JPEG feia la lletra borrosa)'
+$cxOk = $true
+for ($i = 1; $i -lt $cxInt.Count; $i++) {
+    # Dins del mateix format, l'escala ha d'anar baixant.
+    if ([string]$cxInt[$i].Format -eq [string]$cxInt[$i - 1].Format -and
+        [int]$cxInt[$i].Escala -gt [int]$cxInt[$i - 1].Escala) { $cxOk = $false }
+}
+Assert $cxOk 'CaixetiIntents: ordenats de mes a menys resolucio'
+# El requadre ha de ser prou alt per a les linies del caixeti (si no, la lletra
+# sortiria minuscula) i prou baix per no menjar-se la capcalera de l'informe.
+$cxPos = $Script:AutoFirmaCaixetiPos
+$cxAlt = [int]$cxPos.URY - [int]$cxPos.LLY
+$cxNLin = @((_DefaultCaixeti) -split "`n").Count
+Assert ([bool](($cxAlt / $cxNLin) -ge 9))  'AutoFirmaCaixetiPos: hi caben les linies amb una mida llegible'
+Assert ([bool](($cxAlt / $cxNLin) -le 16)) 'AutoFirmaCaixetiPos: sense espai buit de sobres entre linies'
+Assert ([bool]([int]$cxPos.URY -le 842))   'AutoFirmaCaixetiPos: no se surt de la pagina A4'
+Assert ([bool]([int]$cxPos.URX -le 595))   'AutoFirmaCaixetiPos: no se surt per la dreta'
+AssertEq ([bool]($Script:CaixetiEstil.FactorLletra -gt 0.6)) $true 'CaixetiEstil: la lletra omple la linia (menys espai entre files)'
+AssertEq ([bool]($Script:CaixetiEstil.EscutOpacitat -gt 0 -and $Script:CaixetiEstil.EscutOpacitat -lt 1)) $true 'CaixetiEstil: l''escut es de FONS (ni invisible ni opac)'
 $argvLlarg = @('sign', '-i', 'a.pdf', '-config', ('x=' + ('A' * 40000)))
 AssertEq ([bool]((_ArgvToCommandLine $argvLlarg).Length -gt $Script:MaxCommandLine)) $true '_ArgvToCommandLine: es pot mesurar si una ordre no hi cabria'
 
