@@ -1411,9 +1411,12 @@ AssertEq (@($cmdCx -split "`n").Count) 1 '_ArgvToCommandLine: cap salt de línia
 # archivo o la extension es demasiado largo"). Per aixo hi ha topalls.
 AssertEq ([bool]($Script:MaxCommandLine -le 32767 -and $Script:MaxCommandLine -ge 10000)) $true 'MaxCommandLine: topall sota el limit de Windows amb marge'
 AssertEq ([bool]($Script:MaxCaixetiBase64 -lt $Script:MaxCommandLine)) $true 'MaxCaixetiBase64: la imatge ha de deixar lloc per a les rutes'
-# Amb rutes de xarxa llargues, la resta de l'ordre no arriba a 1.000 caracters:
-# ha de quedar-hi marge de sobres.
-AssertEq ([bool](($Script:MaxCommandLine - $Script:MaxCaixetiBase64) -ge 2000)) $true 'MaxCaixetiBase64: hi ha d''haver marge per a la resta de l''ordre'
+# Mesurat en una ordre REAL del registre de l'usuari (rutes a la unitat de
+# xarxa, filtre amb el CN sencer i les 6 propietats de posicio): tot el que no es
+# la imatge ocupa 628 caracters. El marge ha de ser prou gran per a aixo amb
+# folgança, i tot plegat ha de quedar sota el limit dur de Windows.
+AssertEq ([bool](($Script:MaxCommandLine - $Script:MaxCaixetiBase64) -ge 1200)) $true 'MaxCaixetiBase64: hi ha d''haver marge per a la resta de l''ordre'
+AssertEq ([bool]($Script:MaxCommandLine -le 32767)) $true 'MaxCommandLine: per sota del limit dur de Windows'
 
 Write-Host "`n--- PdfSignar.ps1: aspecte del caixeti-imatge ---"
 # L'ESCUT ha d'existir de debo: la signatura el dibuixa de fons i, si no hi es,
@@ -1425,7 +1428,13 @@ Assert (Test-Path -LiteralPath $cxIco)        '_CaixetiEscutPath: l''escut hi es
 # s'usa, o sigui que si l'ordre s'inverteix sempre sortiria el pitjor.
 $cxInt = @($Script:CaixetiIntents)
 Assert ([bool]($cxInt.Count -ge 2)) 'CaixetiIntents: hi ha respatller si el millor no hi cap'
-AssertEq ([string]$cxInt[0].Format) 'png' 'CaixetiIntents: el primer intent es PNG (sense perdua: el JPEG feia la lletra borrosa)'
+# NOMES JPEG. Es va provar el PNG (ocupa molt menys amb text pla) i AutoFirma el
+# va rebutjar: "Se ha proporcionado una imagen de rubrica que no esta codificada
+# en JPEG". El caixeti va caure al respatller de text i no va sortir la imatge.
+$cxNoJpeg = @($cxInt | Where-Object { [string]$_.Format -ne 'jpeg' })
+AssertEq $cxNoJpeg.Count 0 'CaixetiIntents: TOTS en JPEG (AutoFirma nomes accepta JPEG per a la rubrica)'
+$cxSenseQ = @($cxInt | Where-Object { $null -eq $_.Qualitat })
+AssertEq $cxSenseQ.Count 0 'CaixetiIntents: cada intent JPEG diu la seva qualitat'
 $cxOk = $true
 for ($i = 1; $i -lt $cxInt.Count; $i++) {
     # Dins del mateix format, l'escala ha d'anar baixant.

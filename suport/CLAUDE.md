@@ -636,18 +636,34 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
     de la signatura i el passa a `signatureRubricImage` (base64), que és el
     mecanisme documentat d'AutoFirma per a la rúbrica. En aquest mode NO s'hi
     posa `layer2Text` (la imatge ja ho porta tot).
-  - **La lletra es veia BORROSA i era el JPEG.** El JPEG va molt malament amb
-    text negre sobre blanc (hi deixa halos), i a més s'hi anava a **qualitat 70**
-    i **escala x2** (144 ppp). Ara `$Script:CaixetiIntents` és una escala
-    d'intents **de més a menys qualitat** (PNG x4 → x3 → x2 → JPEG) i es fa
-    servir **el primer que hi càpiga**: el PNG no perd res i, amb text pla, fins
-    i tot comprimeix millor. AutoFirma l'accepta — la rúbrica acaba a
-    `Image.getInstance()` d'iText, que reconeix PNG/JPEG/GIF/BMP/TIFF pels bytes
-    de capçalera.
-  - **`MaxCaixetiBase64` era massa just** (20000): amb l'escut de fons, l'única
-    escala que hi cabia era la x2, justament la borrosa. Ara 26000; la resta de
-    l'ordre no arriba a 1.000 caràcters ni amb rutes de xarxa llargues, i la
-    comprovació de `MaxCommandLine` segueix sent la xarxa de seguretat.
+  - **LA RÚBRICA HA D'ANAR EN JPEG. NO EN PNG.** Es va provar de passar-la en PNG
+    (amb text pla ocupa molt menys: 16.244 caràcters contra els 35.000 llargs del
+    JPEG equivalent) i AutoFirma la va rebutjar amb
+    *"Se ha proporcionado una imagen de rubrica que no esta codificada en JPEG"*.
+    L'intent amb imatge falla i el caixetí cau al respatller de **text d'una
+    línia** — que és com es nota, perquè no surt cap error a la pantalla. Hi ha
+    prova que ho blinda (cap entrada de `$Script:CaixetiIntents` pot ser d'un
+    altre format).
+  - **La lletra es veia BORROSA i era la QUALITAT del JPEG**, no el format:
+    s'hi anava a **qualitat 70** i **escala x2** (144 ppp), i el JPEG a qualitat
+    baixa deixa halos al voltant del text negre sobre blanc. Ara
+    `$Script:CaixetiIntents` és una escala d'intents **de més a menys qualitat**
+    (x3 q92 → q88 → q84 → q78 → x2 q95 → q90) i es fa servir **el primer que hi
+    càpiga**: així s'aprofita tot el pressupost en lloc d'anar a la fixa amb el
+    pitjor. El codificador JPEG del Windows no dona la mateixa mida que cap
+    altre, per això hi ha tants graons.
+  - **`MaxCaixetiBase64` era massa just** (20000, posat "per si de cas"): amb
+    l'escut de fons només hi cabia l'escala x2, justament la borrosa. **Mesurat
+    amb una ordre real del registre** (rutes a `I:\…\5.- Sergi Fadurdo\…`, filtre
+    amb el CN sencer i les 6 propietats de posició), tot el que **no** és la
+    imatge ocupa **628 caràcters** — o sigui que del límit dur de Windows (32767)
+    en sobren més de 30.000. Ara `MaxCommandLine` = 32000 i el topall de la
+    imatge, 30500. La comprovació de `MaxCommandLine` segueix sent la xarxa de
+    seguretat si una ruta fos molt més llarga.
+  - **El registre diu quina variant d'imatge ha entrat** (`$Script:CaixetiUltimIntent`
+    → línia `imatge: jpeg x3 q88 (28… car.)`), i si no n'hi cap cap, les mides de
+    totes les provades. Sense això, quan el caixetí sortia en text calia endevinar
+    si havia estat la mida o el format.
   - **Aspecte** (`$Script:CaixetiEstil`, tot tunejable en un sol lloc): contorn
     gris fosc, **escut de l'Ajuntament de fons a la dreta** (`suport/cornella.ico`,
     carregat a la mida que toca amb `Icon(path, Size)` i pintat amb

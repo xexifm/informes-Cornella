@@ -88,34 +88,49 @@ $Script:CaixetiEstil = @{
 # Intents de generació de la imatge, EN ORDRE de preferència. Es va provant fins
 # que el base64 hi cap (vegeu $Script:MaxCaixetiBase64).
 #
-# PNG primer perquè NO PERD QUALITAT: el JPEG de qualitat 70 que hi havia abans
-# era el que feia la lletra borrosa (el JPEG va molt malament amb text negre
-# sobre blanc, hi deixa halos). El PNG, amb text pla, a més comprimeix millor.
-# AutoFirma l'accepta: la rúbrica acaba a Image.getInstance() d'iText, que
-# reconeix PNG, JPEG, GIF, BMP i TIFF pels bytes de capçalera.
+# NOMÉS JPEG. Es va provar de fer-ho en PNG (no perd qualitat i, amb text pla,
+# comprimeix molt millor: la mateixa imatge feia 24.352 caràcters en PNG i
+# 35.060 en JPEG) i **AutoFirma no el va acceptar**: el caixetí no va sortir i la
+# signatura va caure al respatller de text d'una línia. No ho diu cap missatge
+# d'error — simplement l'intent amb imatge falla. Per tant: la rúbrica es passa
+# SEMPRE en JPEG, que és l'únic format que s'ha vist funcionar de debò.
+#
+# La nitidesa, doncs, ha de sortir de la RESOLUCIÓ i de la QUALITAT, no del
+# format: abans anava a escala x2 i qualitat 70, i el JPEG a qualitat baixa
+# deixa halos al voltant del text negre sobre blanc — això era la borrositat.
+# Es va de mes a menys i es fa servir el PRIMER que hi capiga; hi ha forca
+# graons perque no se sap exactament quant ocupara cada JPEG fins que el Windows
+# no el genera (el seu codificador no dona la mateixa mida que cap altre).
 $Script:CaixetiIntents = @(
-    @{ Format = 'png';  Escala = 4 }
-    @{ Format = 'png';  Escala = 3 }
-    @{ Format = 'png';  Escala = 2 }
     @{ Format = 'jpeg'; Escala = 3; Qualitat = 92 }
-    @{ Format = 'jpeg'; Escala = 2; Qualitat = 88 }
+    @{ Format = 'jpeg'; Escala = 3; Qualitat = 88 }
+    @{ Format = 'jpeg'; Escala = 3; Qualitat = 84 }
+    @{ Format = 'jpeg'; Escala = 3; Qualitat = 78 }
+    @{ Format = 'jpeg'; Escala = 2; Qualitat = 95 }
+    @{ Format = 'jpeg'; Escala = 2; Qualitat = 90 }
 )
+
+# Quin intent ha entrat, per al registre. Serveix per saber, sense endevinar, si
+# el caixetí ha sortit com a imatge i amb quina resolució.
+$Script:CaixetiUltimIntent = ''
 
 # Límit REAL de Windows per a una línia d'ordres: 32767 caràcters. Deixem marge
 # per a les rutes (que poden ser llargues, en xarxa) i per al filtre del
 # certificat. Si un intent no hi cap, se salta (mai es prova i peta).
-$Script:MaxCommandLine = 30000
+$Script:MaxCommandLine = 32000
 # Mida màxima del base64 de la imatge del caixetí. Amb el marge de dalt, la
 # imatge no pot passar d'aquí o l'ordre no hi cabria.
 #
-# Eren 20000, i era massa just: amb l'escut de fons, l'única escala que hi cabia
-# era la x2 (144 ppp), que és justament la que es veia borrosa. La resta de
-# l'ordre (rutes, filtre del certificat i les altres propietats) no arriba a
-# 1.000 caràcters ni amb rutes de xarxa llargues, o sigui que fins a 26000 hi ha
-# marge de sobres per sota de $Script:MaxCommandLine. I si algun dia no hi
-# cabés, la comprovació d'allà salta l'intent igualment: aquest topall no és
+# Eren 20000 "per si de cas", i era MOLT curt: amb l'escut de fons només hi
+# cabia l'escala x2, que és justament la borrosa. Amb una ordre real del registre
+# de l'usuari (rutes a la unitat de xarxa `I:\...\5.- Sergi Fadurdo\...`, filtre
+# amb el CN sencer i les 6 propietats de posició), tot el que NO és la imatge
+# ocupa **628 caràcters**. O sigui que del límit dur de Windows (32767) en sobren
+# més de 30.000 per a la imatge, i el topall es pot pujar sense por.
+# Si algun dia una ruta fos molt més llarga, la comprovació de
+# $Script:MaxCommandLine salta l'intent abans d'executar-lo: aquest topall no és
 # l'única xarxa de seguretat.
-$Script:MaxCaixetiBase64 = 26000
+$Script:MaxCaixetiBase64 = 30500
 
 # Resol els marcadors de data del caixetí NOSALTRES, en lloc de deixar-los a
 # AutoFirma. Funció PURA (per això la data entra com a paràmetre).
@@ -167,12 +182,22 @@ function _BuildCaixetiImageBase64([string]$caixeti) {
         # s'arrencava: "El nombre del archivo o la extension es demasiado
         # largo"). Aixi es fa servir sempre la millor qualitat possible en lloc
         # d'anar a la fixa amb la pitjor.
+        $Script:CaixetiUltimIntent = ''
+        $provats = New-Object System.Collections.ArrayList
         foreach ($intent in $Script:CaixetiIntents) {
             $b64 = _CaixetiImatgeIntent $lines $intent
-            if (-not [string]::IsNullOrWhiteSpace($b64) -and $b64.Length -le $Script:MaxCaixetiBase64) {
+            $etiq = ([string]$intent.Format + ' x' + [string]$intent.Escala +
+                     $(if ($null -ne $intent.Qualitat) { ' q' + [string]$intent.Qualitat } else { '' }))
+            if ([string]::IsNullOrWhiteSpace($b64)) { [void]$provats.Add($etiq + ': no s''ha pogut dibuixar'); continue }
+            [void]$provats.Add($etiq + ': ' + $b64.Length + ' car.')
+            if ($b64.Length -le $Script:MaxCaixetiBase64) {
+                $Script:CaixetiUltimIntent = $etiq + ' (' + $b64.Length + ' car.)'
                 return $b64
             }
         }
+        # Cap no hi cap: es deixa dit al registre amb les mides de tots, que es
+        # l'unica manera de saber per que el caixeti ha sortit en text.
+        $Script:CaixetiUltimIntent = 'CAP (topall ' + $Script:MaxCaixetiBase64 + '): ' + ($provats -join ' | ')
         return ''
     } catch {
         return ''
@@ -968,13 +993,24 @@ function _RunConvertPdf($opts) {
                         _PdfSignarLog ("AVIS: ha fallat l'intent '" + $usat + "' (codi " + $res.ExitCode + ") a " + $f.Name)
                         _PdfSignarLog ("   ordre: " + (_AutoFirmaArgvToText $argv))
                         if ($res.Output) { _PdfSignarLog ("   sortida: " + $res.Output) }
+                        # Quina variant d'imatge s'ha fet servir (o per que cap):
+                        # sense aixo, quan el caixeti sortia en text calia
+                        # endevinar si era la mida o el format.
+                        if ([string]$intent.Mode -eq 'imatge' -and -not [string]::IsNullOrWhiteSpace($Script:CaixetiUltimIntent)) {
+                            _PdfSignarLog ("   imatge: " + $Script:CaixetiUltimIntent)
+                        }
                     }
                     if ($usat -eq 'sense caixeti' -and $res.ExitCode -eq 0) { $senseCaixeti++ }
                     if ($res.ExitCode -eq 0 -and (Test-Path -LiteralPath $tmpSigned)) {
                         Move-Item -LiteralPath $tmpSigned -Destination $pdf -Force
                         $signed++
                         # Nomes la primera: serveix per comprovar l'ordre exacta.
-                        if ($signed -eq 1) { _PdfSignarLog ("OK (" + $usat + ")  " + $f.Name + "  ::  " + (_AutoFirmaArgvToText $argv)) }
+                        if ($signed -eq 1) {
+                            _PdfSignarLog ("OK (" + $usat + ")  " + $f.Name + "  ::  " + (_AutoFirmaArgvToText $argv))
+                            if ($usat -like 'caixeti (imatge)*' -and -not [string]::IsNullOrWhiteSpace($Script:CaixetiUltimIntent)) {
+                                _PdfSignarLog ("   imatge: " + $Script:CaixetiUltimIntent)
+                            }
+                        }
                     } else {
                         $errors++
                         [void]$errDetalls.Add(("Signatura: {0} (codi {1})" -f $f.Name, $res.ExitCode))
