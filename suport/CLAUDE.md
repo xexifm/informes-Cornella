@@ -665,12 +665,32 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
     totes les provades. Sense això, quan el caixetí sortia en text calia endevinar
     si havia estat la mida o el format.
   - **Aspecte** (`$Script:CaixetiEstil`, tot tunejable en un sol lloc): contorn
-    gris fosc, **escut de l'Ajuntament de fons a la dreta** (`suport/cornella.ico`,
-    carregat a la mida que toca amb `Icon(path, Size)` i pintat amb
+    gris fosc, **escut de l'Ajuntament de fons a la dreta** (pintat amb
     `ColorMatrix.Matrix33` = opacitat; va **abans** del text perquè aquest hi
     passi per sobre) i `FactorLletra` = 0,72 (era 0,58): com més alt, més omplen
     les lletres la línia i **menys espai buit** queda entremig. El requadre ha
     passat de **75 a 48 pt** d'alçada per al mateix nombre de línies.
+  - **`Icon.ToBitmap()` NO serveix amb `suport/cornella.ico`**: un `.ico` és un
+    contenidor amb diverses mides a dins, i aquest les porta **totes set
+    comprimides en PNG** (16…256 px). El .NET, amb icones així, no les
+    descomprimeix bé i el resultat surt **buit** — l'escut no apareixia al
+    caixetí i **no ho deia ningú**, perquè el dibuix va dins d'un `try/catch`.
+    `_IcoTriaFrame` (pura, amb proves contra el fitxer real) llegeix la taula del
+    `.ico` — capçalera de 6 bytes i una entrada de 16 per imatge, amb l'amplada
+    en **un sol byte** on el 0 vol dir 256 — i en tria la més petita que ja sigui
+    prou gran; després el PNG va a `Image.FromStream`. Queda el respatller a
+    `Icon(path, Size)` per si algun dia el `.ico` porta imatges DIB.
+    `$Script:CaixetiAvisEscut` / `CaixetiEscutDibuixat` ho deixen dit al
+    registre: **un `try/catch` que s'empassa un error de dibuix ha de deixar
+    rastre**, si no la cosa surt malament en silenci.
+  - **Resolució: mesura-la, no la suposis.** Del registre de l'usuari surt que
+    l'escala x3 amb qualitat 92 ocupa **26.416 caràcters**, mentre que les meves
+    proves n'estimaven 33.192: el codificador JPEG del Windows fa la imatge un
+    **20% més petita**. Amb això calibrat, l'escala **x4 (800×192, 288 ppp) hi
+    cap fins a qualitat 85**, i amb TEXT més resolució val més que més qualitat.
+    La imatge que hi ha dins d'un PDF ja signat es pot treure i mirar
+    (`/DCTDecode`) — és la manera de saber què hi ha arribat de debò en lloc de
+    discutir sobre una captura de pantalla.
   - **LÍMIT DE LA LÍNIA D'ORDRES (5è error real)**: la imatge viatja en **base64
     dins de l'ordre**, i Windows no admet més de **32767** caràcters. Amb la
     imatge a escala x4, `Process.Start` petava amb *"El nombre del archivo o la

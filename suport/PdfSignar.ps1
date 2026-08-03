@@ -101,18 +101,29 @@ $Script:CaixetiEstil = @{
 # Es va de mes a menys i es fa servir el PRIMER que hi capiga; hi ha forca
 # graons perque no se sap exactament quant ocupara cada JPEG fins que el Windows
 # no el genera (el seu codificador no dona la mateixa mida que cap altre).
+# Mesurat de debo: al Windows de l'usuari, l'escala x3 amb qualitat 92 ha ocupat
+# 26.416 caracters (el JPEG del Windows surt ~20% mes petit del que estimaven les
+# meves proves). Amb el topall a 30.500, doncs, l'escala x4 hi cap fins a
+# qualitat 85, i mes resolucio val mes que mes qualitat quan el que hi ha es
+# TEXT: 800x192 son 288 ppp, davant dels 216 de la x3.
 $Script:CaixetiIntents = @(
+    @{ Format = 'jpeg'; Escala = 4; Qualitat = 88 }
+    @{ Format = 'jpeg'; Escala = 4; Qualitat = 85 }
+    @{ Format = 'jpeg'; Escala = 4; Qualitat = 80 }
     @{ Format = 'jpeg'; Escala = 3; Qualitat = 92 }
-    @{ Format = 'jpeg'; Escala = 3; Qualitat = 88 }
-    @{ Format = 'jpeg'; Escala = 3; Qualitat = 84 }
-    @{ Format = 'jpeg'; Escala = 3; Qualitat = 78 }
+    @{ Format = 'jpeg'; Escala = 3; Qualitat = 86 }
     @{ Format = 'jpeg'; Escala = 2; Qualitat = 95 }
-    @{ Format = 'jpeg'; Escala = 2; Qualitat = 90 }
 )
 
 # Quin intent ha entrat, per al registre. Serveix per saber, sense endevinar, si
 # el caixetí ha sortit com a imatge i amb quina resolució.
 $Script:CaixetiUltimIntent = ''
+# Si l'escut no s'ha pogut dibuixar, per què. Va al registre: la primera vegada
+# l'escut no sortia i no ho deia enlloc, perquè el dibuix va dins d'un try/catch.
+$Script:CaixetiAvisEscut = ''
+# Cert si l'escut s'ha arribat a pintar. Igual que l'avis: sense aixo, que no hi
+# fos no es notava fins que algu mirava el PDF amb lupa.
+$Script:CaixetiEscutDibuixat = $false
 
 # Límit REAL de Windows per a una línia d'ordres: 32767 caràcters. Deixem marge
 # per a les rutes (que poden ser llargues, en xarxa) i per al filtre del
@@ -183,6 +194,8 @@ function _BuildCaixetiImageBase64([string]$caixeti) {
         # largo"). Aixi es fa servir sempre la millor qualitat possible en lloc
         # d'anar a la fixa amb la pitjor.
         $Script:CaixetiUltimIntent = ''
+        $Script:CaixetiAvisEscut = ''
+        $Script:CaixetiEscutDibuixat = $false
         $provats = New-Object System.Collections.ArrayList
         foreach ($intent in $Script:CaixetiIntents) {
             $b64 = _CaixetiImatgeIntent $lines $intent
@@ -192,6 +205,11 @@ function _BuildCaixetiImageBase64([string]$caixeti) {
             [void]$provats.Add($etiq + ': ' + $b64.Length + ' car.')
             if ($b64.Length -le $Script:MaxCaixetiBase64) {
                 $Script:CaixetiUltimIntent = $etiq + ' (' + $b64.Length + ' car.)'
+                if (-not [string]::IsNullOrWhiteSpace($Script:CaixetiAvisEscut)) {
+                    $Script:CaixetiUltimIntent += ' [' + $Script:CaixetiAvisEscut + ']'
+                } elseif (-not $Script:CaixetiEscutDibuixat) {
+                    $Script:CaixetiUltimIntent += ' [SENSE escut]'
+                }
                 return $b64
             }
         }
@@ -209,6 +227,51 @@ function _CaixetiEscutPath {
     $d = $PSScriptRoot
     if ([string]::IsNullOrWhiteSpace($d)) { $d = Join-Path $RepoRoot 'suport' }
     return [string](Join-Path $d $Script:CaixetiEstil.EscutFitxer)
+}
+
+# Tria la millor imatge de dins d'un .ico i en retorna @{ Offset; Mida; Amplada;
+# EsPng } (o $null si el fitxer no es un .ico valid).
+#
+# Per que ens ho fem nosaltres: un .ico es un CONTENIDOR amb diverses mides a
+# dins, i el de l'Ajuntament les porta TOTES set comprimides en PNG (16, 24, 32,
+# 48, 64, 128 i 256 px). El .NET, amb icones aixi, va maldestre:
+# Icon.ToBitmap() no les descomprimeix be i el resultat surt buit — que es
+# exactament el que passava, l'escut no apareixia al caixeti i no ho deia
+# ningu, perque el dibuix va dins d'un try/catch. Llegint nosaltres la taula del
+# .ico podem agafar el PNG que ens convé i passar-lo a Image.FromStream, que si
+# que el sap llegir.
+#
+# Format del .ico: capcalera de 6 bytes (reservat, tipus, nombre d'imatges) i
+# despres una entrada de 16 bytes per imatge; l'amplada i l'alcada hi van en UN
+# sol byte, i el 0 vol dir 256. Funcio PURA (rep els bytes).
+function _IcoTriaFrame($bytes, [int]$midaVolguda) {
+    if ($null -eq $bytes -or $bytes.Length -lt 22) { return $null }
+    if ($bytes[0] -ne 0 -or $bytes[1] -ne 0 -or $bytes[2] -ne 1 -or $bytes[3] -ne 0) { return $null }
+    $n = [int]$bytes[4] + ([int]$bytes[5] * 256)
+    if ($n -le 0) { return $null }
+    $millor = $null
+    for ($i = 0; $i -lt $n; $i++) {
+        $o = 6 + ($i * 16)
+        if (($o + 16) -gt $bytes.Length) { break }
+        $ampl = [int]$bytes[$o]
+        if ($ampl -eq 0) { $ampl = 256 }
+        $mida = [BitConverter]::ToInt32($bytes, $o + 8)
+        $desp = [BitConverter]::ToInt32($bytes, $o + 12)
+        if ($mida -le 0 -or $desp -lt 0 -or ($desp + $mida) -gt $bytes.Length) { continue }
+        $esPng = ($mida -gt 8 -and $bytes[$desp] -eq 0x89 -and $bytes[$desp + 1] -eq 0x50 -and
+                  $bytes[$desp + 2] -eq 0x4E -and $bytes[$desp + 3] -eq 0x47)
+        $cand = @{ Offset = $desp; Mida = $mida; Amplada = $ampl; EsPng = $esPng }
+        if ($null -eq $millor) { $millor = $cand; continue }
+        # La mes petita que ja sigui prou gran; si cap no hi arriba, la mes gran
+        # (val mes reduir una imatge gran que no pas estirar-ne una de petita).
+        $mA = [int]$millor.Amplada
+        if ($mA -lt $midaVolguda) {
+            if ($ampl -gt $mA) { $millor = $cand }
+        } elseif ($ampl -ge $midaVolguda -and $ampl -lt $mA) {
+            $millor = $cand
+        }
+    }
+    return $millor
 }
 
 # Dibuixa el caixeti amb UN intent concret i el retorna en base64 ('' si falla).
@@ -243,9 +306,24 @@ function _CaixetiImatgeIntent($lines, $intent) {
                 if (Test-Path -LiteralPath $ico) {
                     $sz = $h - (2 * $marge)
                     if ($sz -gt 0) {
-                        $icona = New-Object System.Drawing.Icon($ico, (New-Object System.Drawing.Size($sz, $sz)))
-                        try {
-                            $imgE = $icona.ToBitmap()
+                        # Llegim el .ico a ma i n'agafem el PNG que toca (vegeu
+                        # _IcoTriaFrame): amb Icon.ToBitmap() l'escut sortia buit.
+                        $raw = [System.IO.File]::ReadAllBytes($ico)
+                        $fr = _IcoTriaFrame $raw $sz
+                        $imgE = $null
+                        if ($null -ne $fr -and $fr.EsPng) {
+                            $tros = New-Object byte[] ([int]$fr.Mida)
+                            [Array]::Copy($raw, [int]$fr.Offset, $tros, 0, [int]$fr.Mida)
+                            $msE = New-Object System.IO.MemoryStream(, $tros)
+                            $imgE = [System.Drawing.Image]::FromStream($msE)
+                        }
+                        # Respatller: si no era PNG (un .ico amb imatges DIB de
+                        # tota la vida), que ho provi el .NET a la seva manera.
+                        if ($null -eq $imgE) {
+                            $icona = New-Object System.Drawing.Icon($ico, (New-Object System.Drawing.Size($sz, $sz)))
+                            try { $imgE = $icona.ToBitmap() } finally { $icona.Dispose() }
+                        }
+                        if ($null -ne $imgE) {
                             try {
                                 # Matrix33 es el canal ALFA: amb 1 es veuria opac.
                                 $cmx = New-Object System.Drawing.Imaging.ColorMatrix
@@ -256,11 +334,16 @@ function _CaixetiImatgeIntent($lines, $intent) {
                                 $g.DrawImage($imgE, $rc, 0, 0, $imgE.Width, $imgE.Height,
                                              [System.Drawing.GraphicsUnit]::Pixel, $ia)
                                 $ia.Dispose()
+                                $Script:CaixetiEscutDibuixat = $true
                             } finally { $imgE.Dispose() }
-                        } finally { $icona.Dispose() }
+                        }
                     }
                 }
-            } catch { }
+            } catch {
+                # No es prou greu per deixar el caixeti sense fer, pero SI que
+                # s'ha de saber: sense aixo, l'escut no sortia i no ho deia ningu.
+                $Script:CaixetiAvisEscut = "no s'ha pogut dibuixar l'escut: " + $_.Exception.Message
+            }
 
             # --- CONTORN gris fosc. El requadre es dibuixa cap endins mig gruix:
             #     si no, la meitat del trac cauria fora de la imatge i es veuria

@@ -1442,6 +1442,32 @@ for ($i = 1; $i -lt $cxInt.Count; $i++) {
         [int]$cxInt[$i].Escala -gt [int]$cxInt[$i - 1].Escala) { $cxOk = $false }
 }
 Assert $cxOk 'CaixetiIntents: ordenats de mes a menys resolucio'
+
+# --- Lectura del .ico de l'escut -----------------------------------------------
+# El .ico es un CONTENIDOR amb diverses mides a dins i el de l'Ajuntament les
+# porta TOTES en PNG. El .NET, amb icones aixi, no les descomprimeix be amb
+# Icon.ToBitmap() i l'escut sortia BUIT al caixeti, sense dir-ho ningu. Per aixo
+# ens llegim la taula del .ico i n'agafem el PNG que toca.
+$icoRaw = [System.IO.File]::ReadAllBytes((_CaixetiEscutPath))
+$fr128 = _IcoTriaFrame $icoRaw 128
+Assert ($null -ne $fr128)        '_IcoTriaFrame: llegeix el .ico de l''escut'
+AssertEq ([int]$fr128.Amplada) 128 '_IcoTriaFrame: demanant-ne 128 dona la de 128'
+Assert ([bool]$fr128.EsPng)      '_IcoTriaFrame: les imatges del nostre .ico son PNG (per aixo peta Icon.ToBitmap)'
+# Els bytes triats han de ser un PNG de debo (signatura de 8 bytes).
+$sig = @(0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
+$okSig = $true
+for ($i = 0; $i -lt 8; $i++) { if ($icoRaw[[int]$fr128.Offset + $i] -ne $sig[$i]) { $okSig = $false } }
+Assert $okSig '_IcoTriaFrame: l''offset apunta al principi d''un PNG'
+Assert ([bool](([int]$fr128.Offset + [int]$fr128.Mida) -le $icoRaw.Length)) '_IcoTriaFrame: el tros cau dins del fitxer'
+# La mes petita que ja sigui prou gran (no la mes gran de totes: no cal
+# arrossegar 256x256 per a un escut de 130 px).
+AssertEq ([int](_IcoTriaFrame $icoRaw 40).Amplada)  48  '_IcoTriaFrame: agafa la mes petita que hi arribi'
+AssertEq ([int](_IcoTriaFrame $icoRaw 64).Amplada)  64  '_IcoTriaFrame: mida exacta'
+AssertEq ([int](_IcoTriaFrame $icoRaw 200).Amplada) 256 '_IcoTriaFrame: si en cal una de gran, la gran'
+AssertEq ([int](_IcoTriaFrame $icoRaw 9999).Amplada) 256 '_IcoTriaFrame: si cap no hi arriba, la mes gran de totes'
+Assert ($null -eq (_IcoTriaFrame $null 32))                   '_IcoTriaFrame: $null -> $null'
+Assert ($null -eq (_IcoTriaFrame ([byte[]]@(1, 2, 3)) 32))     '_IcoTriaFrame: massa curt -> $null'
+Assert ($null -eq (_IcoTriaFrame ([byte[]](@(0) * 40)) 32))    '_IcoTriaFrame: no es un .ico -> $null'
 # El requadre ha de ser prou alt per a les linies del caixeti (si no, la lletra
 # sortiria minuscula) i prou baix per no menjar-se la capcalera de l'informe.
 $cxPos = $Script:AutoFirmaCaixetiPos
