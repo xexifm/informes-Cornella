@@ -312,6 +312,27 @@ els llegís no fallaria — generaria un informe **silenciosament equivocat**. S
   incoherents.
 - **Regla:** els catàlegs editats a l'ordinador de l'usuari **SÓN L'AUTORITAT**.
   Es committegen, es pugen a `main` i **prevalen** sobre el que baixi del repositori.
+- **Segona part del mateix bug, mesos després:** `0 CAPCALERA.docx` **està al
+  repositori i és una plantilla de veritat**, però quan es va passar tot a JSON
+  el `git add` es va deixar en `"ESTRUCTURALS/*.json"`. Resultat: l'usuari
+  canvia la mida de l'escut de la capçalera i **el canvi no es committeja mai**
+  → el `git pull --rebase` es nega a començar (*"You have unstaged changes"*) →
+  es va al camí d'error → el `git reset --hard origin/main` **se l'endú**. Només
+  se salvava per la còpia de seguretat del pas 2, i a l'execució següent tornava
+  a passar exactament igual. Ara hi ha **`git add -u -- ESTRUCTURALS`** als dos
+  commits (estadia el que ja té seguiment) i **no** un `add ESTRUCTURALS/*.docx`
+  a pèl, que en un clone antic pujaria les vistes en Word encara sense migrar.
+  Lliçó: quan es treu un tipus de fitxer d'un flux, s'ha de mirar si **algun
+  d'aquells fitxers seguia sent una font**.
+- **Res destructiu sense desar-ho abans**: el camí d'error del pull feia
+  `rebase --abort` (que escopia *"fatal: no rebase in progress"* quan el pull ni
+  havia arrencat) i tot seguit `reset --hard`. Ara l'abort només es fa si hi ha
+  un rebase de debò a mitges (`.git\rebase-merge` / `rebase-apply`) i **abans del
+  reset sempre es fa un `git stash push -u`**.
+- El «hi ha alguna cosa bruta?» del pas 3 es mira amb **`git status --porcelain`**
+  i no amb `git diff`: el `diff` **no veu els fitxers sense seguiment**, i que la
+  detecció d'allà i la del `pull` no miressin el mateix és com s'arribava a un
+  pull que peta havent dit que tot estava net.
 - **Com està resolt** (`suport/SincronitzaCatalegs.ps1` + `Actualitzar.bat`):
   1. **Còpia de seguretat SEMPRE i abans de tocar res de git** (`-Fase Backup`) de
      tot el que l'usuari pot editar (`ESTRUCTURALS` + `docs/dades`) a

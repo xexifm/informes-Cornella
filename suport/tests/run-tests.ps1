@@ -1567,6 +1567,23 @@ AssertEq ([bool](_CatalegEsProtegible 'docs/dades/email-textos.json')) $true '_C
 AssertEq ([bool](_CatalegEsProtegible 'ESTRUCTURALS/REQ1.json.bak')) $false '_CatalegEsProtegible: els .bak de l''editor NO'
 AssertEq ([bool](_CatalegEsProtegible 'suport/Motor.ps1')) $false '_CatalegEsProtegible: el codi NO'
 AssertEq ([bool](_CatalegEsProtegible '')) $false '_CatalegEsProtegible: buit -> no'
+
+# La copia de seguretat ja protegia '0 CAPCALERA.docx' (proves de dalt), pero
+# Actualitzar.bat nomes ESTADIAVA els *.json, o sigui que un canvi a la capcalera
+# no es commitejava MAI: el 'pull --rebase' es negava a comencar, s'anava al cami
+# d'error i el 'reset --hard' se l'enduia. Nomes es salvava per la copia. El
+# 'git add -u -- ESTRUCTURALS' estadia qualsevol fitxer JA SEGUIT d'alli (i no
+# 'ESTRUCTURALS/*.docx' a piu, que en un clone antic pujaria les vistes en Word
+# que encara no s'han migrat a 'local\').
+$batAct = Get-Content -LiteralPath (Join-Path $RepoRoot 'Actualitzar.bat') -Raw
+$batAdds = @([regex]::Matches($batAct, [regex]::Escape('git add -u -- ESTRUCTURALS')))
+AssertEq $batAdds.Count 2 'Actualitzar.bat: estadia els fitxers seguits d''ESTRUCTURALS als DOS commits (abans i despres del pull)'
+Assert (-not ($batAct -like '*git add "ESTRUCTURALS/*.docx"*')) 'Actualitzar.bat: NO estadia els .docx a piu (les vistes velles no s''han de pujar)'
+# El reset --hard esborra el que no s'ha commitejat: no hi pot arribar res sense
+# haver-ho desat al stash abans.
+$iStash = $batAct.IndexOf('Actualitzar.bat: abans de posar-me al dia')
+$iReset = $batAct.IndexOf('git reset --hard origin/main')
+Assert ([bool]($iStash -gt 0 -and $iReset -gt $iStash)) 'Actualitzar.bat: el stash de seguretat va ABANS del reset --hard'
 # Sortida real de 'git status --porcelain' (git enquota els noms amb espais).
 $gs = @(
     ' M "ESTRUCTURALS/0 CONCLUSIONS.json"',

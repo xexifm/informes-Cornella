@@ -100,7 +100,19 @@ if "%PLANTILLES_CANVIADES%"=="1" (
         echo  Avis: no s'han pogut regenerar les dades del mobil ^(Word obert o no instal·lat?^). Continuo igualment.
     )
     echo Pujant catalegs i dades del mobil a GitHub...
+    REM Els .json (n'hi pot haver de NOUS, encara sense seguiment) i, amb el
+    REM 'add -u', qualsevol fitxer JA SEGUIT d'ESTRUCTURALS que s'hagi modificat.
+    REM El '-u' hi es per '0 CAPCALERA.docx': es una plantilla de veritat i esta
+    REM al repositori, pero nomes s'hi afegien els *.json, o sigui que si l'usuari
+    REM la retocava (per exemple canviant la mida de l'escut) el canvi NO es
+    REM commitejava mai. Llavors el 'pull --rebase' de mes avall es negava a
+    REM comencar ("You have unstaged changes"), s'anava al cami d'error i el
+    REM 'reset --hard' se l'enduia: nomes es salvava per la copia de seguretat, i
+    REM a la seguent execucio tornava a passar exactament igual.
+    REM No es fa 'add ESTRUCTURALS/*.docx' a piu: aixi, si en un clone antic hi
+    REM queden vistes en Word encara per migrar a 'local\', no es pugen.
     git add "ESTRUCTURALS/*.json" "docs/dades/*.json"
+    git add -u -- ESTRUCTURALS
     git -c user.name="Generador d'informes" -c user.email="generador@local" commit -q -m "Catalegs i dades del mobil actualitzats des de Actualitzar.bat" >nul 2>&1
     if errorlevel 1 (
         echo  No hi havia res a commitejar o el commit ha fallat. Continuo.
@@ -144,14 +156,15 @@ if "%CATALEGS_BRUTS%"=="1" (
     echo.
 )
 
+REM Es mira amb 'status --porcelain' i no amb 'git diff': el diff NO veu els
+REM fitxers sense seguiment, i n'hi ha prou amb un d'aquests per fer que el
+REM 'pull --rebase' es negui a comencar. Que la deteccio d'aqui i la del pull no
+REM mirin el mateix es com s'arriba a un pull que peta havent dit que tot era net.
 set "STASHED=0"
-git diff --quiet
-if errorlevel 1 set "STASHED=1"
-git diff --cached --quiet
-if errorlevel 1 set "STASHED=1"
+for /f "delims=" %%f in ('git status --porcelain') do set "STASHED=1"
 
 if "%STASHED%"=="1" (
-    echo Hi ha canvis locals a fitxers de codi. Els guardo al stash com a copia de seguretat...
+    echo Hi ha canvis locals que no s'han commitejat. Els guardo al stash com a copia de seguretat...
     git stash push -u -m "Auto-stash per Actualitzar.bat"
     if errorlevel 1 (
         echo ERROR: no s'ha pogut fer stash. Avorto.
@@ -187,9 +200,19 @@ echo Integrant els canvis del GitHub...
 git pull --rebase origin main
 if errorlevel 1 (
     echo.
-    echo  El rebase ha trobat un conflicte. Els TEUS catalegs manen:
-    echo    avorto el rebase, em poso al dia i els torno a aplicar.
-    git rebase --abort
+    echo  El pull no ha pogut acabar. Els TEUS catalegs manen:
+    echo    em poso al dia i els torno a aplicar.
+    REM Nomes s'avorta el rebase si N'HI HA UN a mitges. Si el pull s'ha negat a
+    REM comencar (per exemple per canvis sense estadiar), no n'hi ha cap i el
+    REM 'git rebase --abort' nomes escopia un "fatal: no rebase in progress"
+    REM que feia patir sense motiu.
+    if exist ".git\rebase-merge" git rebase --abort
+    if exist ".git\rebase-apply" git rebase --abort
+    REM I ABANS del reset, desar el que hi hagi. El 'reset --hard' esborra els
+    REM canvis no commitejats i aqui hi arribava, per exemple, la capcalera que
+    REM l'usuari acabava de retocar: es salvava de miracle, per la copia de
+    REM seguretat del pas 2. Amb el stash queda desada tambe al propi git.
+    git stash push -u -m "Actualitzar.bat: abans de posar-me al dia" >nul 2>&1
     git reset --hard origin/main
 )
 
@@ -225,6 +248,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0suport\GeneraViste
 REM Pugem el que hagi quedat: els catalegs de l'usuari (les vistes ja no, que
 REM ara son locals i no es pugen).
 git add "ESTRUCTURALS/*.json" "docs/dades/*.json"
+git add -u -- ESTRUCTURALS
 git -c user.name="Generador d'informes" -c user.email="generador@local" commit -q -m "Catalegs actualitzats des de Actualitzar.bat" >nul 2>&1
 if errorlevel 1 (
     echo  Els catalegs ja estaven al dia ^(res a commitejar^).
