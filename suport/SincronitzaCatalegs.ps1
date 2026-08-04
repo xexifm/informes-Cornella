@@ -85,6 +85,40 @@ function _CatalegsBackupName([datetime]$now) {
     return $now.ToString('yyyyMMdd-HHmmss')
 }
 
+# Un fitxer protegit es BINARI (no es pot fusionar)? Funcio PURA.
+#
+# Els catalegs son .json: text. Si el repositori i l'usuari toquen el mateix
+# .json, tornar a aplicar el de l'usuari es el que ha de passar (ell mana) i com
+# a molt es perd un canvi de text que es pot tornar a fer.
+#
+# '0 CAPCALERA.docx' NO: es un ZIP amb XML a dins. Alli "guanya l'usuari" vol dir
+# LLENCAR el fitxer sencer de l'altra banda, i el que hi pot haver a l'altra
+# banda es una peca que el programa NECESSITA (un bloc [[CAP:...]] nou, un
+# marcador <<...>>). Vegeu _CatalegHiHaColisio.
+function _CatalegEsBinari([string]$path) {
+    $p = ([string]$path).Replace('\', '/').Trim().ToLower()
+    return ($p -like '*.docx' -or $p -like '*.doc')
+}
+
+# Hi ha COL·LISIO en un fitxer? Funcio PURA.
+#
+# $shaBase = el fitxer al commit on era el clone ABANS del pull (d'on va sortir
+#            la copia de l'usuari)
+# $shaAra  = el fitxer que hi ha al clone DESPRES del pull (el del repositori)
+#
+# Si son iguals, el repositori no l'ha tocat: la copia de l'usuari es pot tornar
+# a aplicar tranquil·lament. Si son diferents, l'han tocat TOTS DOS i, en un
+# fitxer binari, no es poden tenir les dues coses: cal aturar-se i dir-ho.
+#
+# Si no se sap el sha de base (cadena buida), es diu que NO hi ha col·lisio: val
+# mes tornar a aplicar el de l'usuari (el comportament de sempre, que mai no li
+# perd res) que arriscar-se a descartar-lo per un dubte.
+function _CatalegHiHaColisio([string]$shaBase, [string]$shaAra, [bool]$esBinari) {
+    if (-not $esBinari) { return $false }
+    if ([string]::IsNullOrWhiteSpace($shaBase) -or [string]::IsNullOrWhiteSpace($shaAra)) { return $false }
+    return ($shaBase.Trim() -ne $shaAra.Trim())
+}
+
 # ----------------------------------------------------------------------------
 # Rutes de treball
 # ----------------------------------------------------------------------------
@@ -143,6 +177,15 @@ function Invoke-CatalegsBackup {
         }
         # Manifest: la llista exacta que s'ha de tornar a aplicar.
         ($copiats -join "`r`n") | Set-Content -LiteralPath (Join-Path $dest 'manifest.txt') -Encoding UTF8
+        # BASE: el commit on era el clone ABANS del pull, que es d'on va sortir
+        # el que l'usuari te al disc. El Restore el necessita per saber si el
+        # repositori ha tocat el mateix fitxer (vegeu _CatalegHiHaColisio).
+        # S'apunta AQUI perque aquesta fase corre abans del commit i del pull.
+        $base = ''
+        try { $base = ([string](git rev-parse HEAD 2>$null)).Trim() } catch { $base = '' }
+        if (-not [string]::IsNullOrWhiteSpace($base)) {
+            $base | Set-Content -LiteralPath (Join-Path $dest 'base.txt') -Encoding UTF8
+        }
         $dest | Set-Content -LiteralPath (_CatalegsMarkerPath) -Encoding UTF8
         Write-Host ""
         Write-Host ("  COPIA DE SEGURETAT: " + $dest)
@@ -153,31 +196,78 @@ function Invoke-CatalegsBackup {
 }
 
 # Torna a aplicar la copia al clone: la versio de l'usuari PREVAL sobre la que
-# hagi baixat del repositori. Retorna el nombre de fitxers restaurats.
+# hagi baixat del repositori.
+#
+# EXCEPCIO: els fitxers BINARIS que hagin canviat a les DUES bandes. Vegeu
+# _CatalegHiHaColisio: alli "l'usuari mana" vol dir llencar el fitxer sencer del
+# repositori, i aixo ja va passar de veritat amb '0 CAPCALERA.docx' — el bloc
+# [[CAP:LLIC]] que hi acabava d'entrar va desapareixer i, a sobre, la versio
+# sense el bloc es va PUJAR a main. En aquest cas no es toca res: es deixa la
+# del repositori (el programa queda sencer), la de l'usuari es queda a la copia
+# de seguretat i s'avisa. Com que el fitxer no es modifica, el clone queda net i
+# l'Actualitzar.bat no puja res: ningu no decideix per l'usuari en silenci.
+#
+# Retorna @{ Restaurats; Colisions } (llista de rutes).
 function Invoke-CatalegsRestore {
+    $buit = @{ Restaurats = 0; Colisions = @() }
     $root = _CatalegsRepoRoot
     $mk = _CatalegsMarkerPath
-    if (-not (Test-Path -LiteralPath $mk)) { return 0 }
+    if (-not (Test-Path -LiteralPath $mk)) { return $buit }
     $dest = ''
     try { $dest = (Get-Content -LiteralPath $mk -Raw -Encoding UTF8).Trim() } catch { $dest = '' }
-    if ([string]::IsNullOrWhiteSpace($dest) -or -not (Test-Path -LiteralPath $dest)) { return 0 }
+    if ([string]::IsNullOrWhiteSpace($dest) -or -not (Test-Path -LiteralPath $dest)) { return $buit }
     $man = Join-Path $dest 'manifest.txt'
-    if (-not (Test-Path -LiteralPath $man)) { return 0 }
+    if (-not (Test-Path -LiteralPath $man)) { return $buit }
+
+    # El commit d'on venia el que l'usuari te al disc (l'escriu el Backup).
+    $base = ''
+    $baseFile = Join-Path $dest 'base.txt'
+    if (Test-Path -LiteralPath $baseFile) {
+        try { $base = (Get-Content -LiteralPath $baseFile -Raw -Encoding UTF8).Trim() } catch { $base = '' }
+    }
 
     $n = 0
-    foreach ($rel in @(Get-Content -LiteralPath $man -Encoding UTF8)) {
-        $r = ([string]$rel).Trim()
-        if ([string]::IsNullOrWhiteSpace($r)) { continue }
-        $src = Join-Path $dest ($r -replace '/', '\')
-        $dst = Join-Path $root ($r -replace '/', '\')
-        if (-not (Test-Path -LiteralPath $src)) { continue }
-        $dstDir = Split-Path -Parent $dst
-        if (-not (Test-Path -LiteralPath $dstDir)) { New-Item -ItemType Directory -Path $dstDir -Force | Out-Null }
-        Copy-Item -LiteralPath $src -Destination $dst -Force
-        $n++
-        Write-Host ("  restaurat: " + $r)
+    $colisions = New-Object System.Collections.ArrayList
+    Push-Location $root
+    try {
+        foreach ($rel in @(Get-Content -LiteralPath $man -Encoding UTF8)) {
+            $r = ([string]$rel).Trim()
+            if ([string]::IsNullOrWhiteSpace($r)) { continue }
+            $src = Join-Path $dest ($r -replace '/', '\')
+            $dst = Join-Path $root ($r -replace '/', '\')
+            if (-not (Test-Path -LiteralPath $src)) { continue }
+
+            # El repositori ha tocat el mateix fitxer binari? Es compara pel sha
+            # del blob (res de llegir binaris amb PowerShell): el de la base
+            # contra el que hi ha ARA al clone, que ja ve del pull.
+            $esBin = _CatalegEsBinari $r
+            if ($esBin -and -not [string]::IsNullOrWhiteSpace($base)) {
+                $shaBase = ''
+                $shaAra  = ''
+                try { $shaBase = ([string](git rev-parse ("{0}:{1}" -f $base, $r) 2>$null)).Trim() } catch { $shaBase = '' }
+                try { $shaAra  = ([string](git hash-object -- $dst 2>$null)).Trim() } catch { $shaAra = '' }
+                if (_CatalegHiHaColisio $shaBase $shaAra $true) {
+                    [void]$colisions.Add($r)
+                    Write-Host ""
+                    Write-Host ("  ATENCIO: '" + $r + "' ha canviat a les DUES bandes.")
+                    Write-Host  "    Es queda la versio del repositori (el programa la necessita sencera)."
+                    Write-Host ("    La TEVA es guarda a: " + $src)
+                    Write-Host  "    No es puja res: passa-li la teva copia a en Claude i te l'ajuntara."
+                    Write-Host ""
+                    continue
+                }
+            }
+
+            $dstDir = Split-Path -Parent $dst
+            if (-not (Test-Path -LiteralPath $dstDir)) { New-Item -ItemType Directory -Path $dstDir -Force | Out-Null }
+            Copy-Item -LiteralPath $src -Destination $dst -Force
+            $n++
+            Write-Host ("  restaurat: " + $r)
+        }
+    } finally {
+        Pop-Location
     }
-    return $n
+    return @{ Restaurats = $n; Colisions = $colisions.ToArray() }
 }
 
 # ----------------------------------------------------------------------------
@@ -187,5 +277,10 @@ if ($env:GENINFORME_TEST -eq '1') { return }
 
 switch ($Fase) {
     'Backup'  { [void](Invoke-CatalegsBackup) }
-    'Restore' { [void](Invoke-CatalegsRestore) }
+    'Restore' {
+        $res = Invoke-CatalegsRestore
+        # Codi 2 = hi ha hagut col·lisio. L'Actualitzar.bat el mira per tornar a
+        # dir-ho al FINAL, que es on l'usuari mira: aqui enmig es perd amunt.
+        if (@($res.Colisions).Count -gt 0) { exit 2 }
+    }
 }

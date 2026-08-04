@@ -1538,12 +1538,47 @@ AssertEq (_CapMarcador '[[CAP:]]')         ''         '_CapMarcador: sense nom n
 $capPath = Join-Path $EstructuralsDir '0 CAPCALERA.docx'
 if (Test-Path -LiteralPath $capPath) {
     $capTxt = _ReadDocxPartText $capPath 'word/document.xml'
-    Assert ([bool]($capTxt -like '*[[CAP:ACT_EXTR]]*')) '0 CAPCALERA.docx: hi ha el bloc ACT_EXTR'
-    Assert ([bool]($capTxt -like '*[[CAP:LLIC]]*'))     '0 CAPCALERA.docx: hi ha el bloc LLIC'
-    Assert ([bool]($capTxt -like '*CLASSIFICACIO*'))    '0 CAPCALERA.docx: hi ha el marcador de la classificacio'
+    # Amb .Contains() i NO amb -like: en un patro de -like, '[[CAP:LLIC]' es una
+    # CLASSE DE CARACTERS, o sigui que '*[[CAP:LLIC]]*' li dona per bo qualsevol
+    # text que porti un dels caracters '[ C A P : L I' seguit d'un ']'. Amb
+    # aquest .docx encertava de casualitat (no hi ha cap ']'), pero una prova que
+    # nomes funciona per casualitat no protegeix res.
+    Assert ($capTxt.Contains('[[CAP:ACT_EXTR]]')) '0 CAPCALERA.docx: hi ha el bloc ACT_EXTR'
+    Assert ($capTxt.Contains('[[CAP:LLIC]]'))     '0 CAPCALERA.docx: hi ha el bloc LLIC'
     # ...i NOMES una vegada: si estigues tambe al bloc generic, sortiria als
     # REQ1, on no hi ha de ser.
     AssertEq ([regex]::Matches($capTxt, 'CLASSIFICACIO').Count) 1 '0 CAPCALERA.docx: la classificacio nomes al bloc de Llicencia'
+
+    # A partir d'aqui, sobre el text DESCODIFICAT dels paragrafs: al XML cru el
+    # marcador surt escapat ('&lt;&lt;CLASSIFICACIO&gt;&gt;') i buscar-hi
+    # '<<CLASSIFICACIO>>' no trobaria mai res.
+    $capDoc = _LoadDocxXml $capPath
+    $capBloc = ''
+    $capLinies = @{ '' = (New-Object System.Collections.ArrayList) }
+    foreach ($p in $capDoc.Body.SelectNodes('.//w:p', $capDoc.Ns)) {
+        $t = ([string](_ParagraphTextXml $p $capDoc.Ns)).Trim()
+        $marca = _CapMarcador $t
+        if (-not [string]::IsNullOrWhiteSpace($marca)) {
+            $capBloc = $marca
+            if (-not $capLinies.ContainsKey($marca)) { $capLinies[$marca] = New-Object System.Collections.ArrayList }
+            continue
+        }
+        if ($t.Length -gt 0) { [void]$capLinies[$capBloc].Add($t) }
+    }
+    Assert ([bool](@($capLinies['LLIC']) | Where-Object { $_.Contains('<<CLASSIFICACIO>>') })) '0 CAPCALERA.docx: el bloc LLIC porta el marcador de la classificacio'
+    Assert (-not (@($capLinies['']) | Where-Object { $_ -like 'Classificaci*' })) '0 CAPCALERA.docx: el bloc generic NO porta la classificacio'
+
+    # Cap ETIQUETA SENSE MARCADOR. Una linia com "Classificacio:" sense cap
+    # <<...>> al darrere nomes pot sortir BUIDA a l'informe, i es exactament el
+    # que hi havia al bloc generic: sortia una "Classificacio:" en blanc a tots
+    # els REQ1 i TERMINI. Aixo ho enxampa vingui d'on vingui.
+    $capBuides = New-Object System.Collections.ArrayList
+    foreach ($bloc in $capLinies.Keys) {
+        foreach ($t in @($capLinies[$bloc])) {
+            if (([string]$t).Length -ge 2 -and ([string]$t).EndsWith(':')) { [void]$capBuides.Add($t) }
+        }
+    }
+    AssertEq $capBuides.Count 0 ('0 CAPCALERA.docx: cap etiqueta sense marcador (' + ($capBuides -join ' | ') + ')')
 }
 
 Write-Host "`n--- LLIC.json: la capa de Llicencia sobre REQ1 ---"
@@ -1711,6 +1746,31 @@ AssertEq ([bool](_CatalegEsProtegible 'docs/dades/email-textos.json')) $true '_C
 AssertEq ([bool](_CatalegEsProtegible 'ESTRUCTURALS/REQ1.json.bak')) $false '_CatalegEsProtegible: els .bak de l''editor NO'
 AssertEq ([bool](_CatalegEsProtegible 'suport/Motor.ps1')) $false '_CatalegEsProtegible: el codi NO'
 AssertEq ([bool](_CatalegEsProtegible '')) $false '_CatalegEsProtegible: buit -> no'
+
+# COL·LISIO en un fitxer BINARI. Historia real: l'usuari tenia '0 CAPCALERA.docx'
+# retocat, el repositori hi acabava d'afegir el bloc [[CAP:LLIC]], el rebase va
+# petar (binari: no es pot fusionar), la seva copia es va tornar a aplicar a
+# sobre i la versio SENSE el bloc es va pujar a main. Els .json no tenen aquest
+# problema: alli l'usuari mana i com a molt es torna a escriure un text.
+AssertEq ([bool](_CatalegEsBinari 'ESTRUCTURALS/0 CAPCALERA.docx')) $true  '_CatalegEsBinari: la plantilla de la capcalera'
+AssertEq ([bool](_CatalegEsBinari 'ESTRUCTURALS/REQ1.json'))        $false '_CatalegEsBinari: un cataleg json no'
+AssertEq ([bool](_CatalegEsBinari 'docs/dades/email-textos.json'))  $false '_CatalegEsBinari: dades del mobil no'
+AssertEq ([bool](_CatalegHiHaColisio 'aaa' 'bbb' $true))  $true  '_CatalegHiHaColisio: binari que ha canviat a les dues bandes'
+AssertEq ([bool](_CatalegHiHaColisio 'aaa' 'aaa' $true))  $false '_CatalegHiHaColisio: binari que el repositori NO ha tocat'
+AssertEq ([bool](_CatalegHiHaColisio 'aaa' 'bbb' $false)) $false '_CatalegHiHaColisio: als .json l''usuari mana sempre'
+# Sense sha de base no se sap: val mes tornar a aplicar el de l'usuari (el
+# comportament de sempre) que descartar-li la feina per un dubte.
+AssertEq ([bool](_CatalegHiHaColisio '' 'bbb' $true))     $false '_CatalegHiHaColisio: sense base, no es decideix en contra de l''usuari'
+AssertEq ([bool](_CatalegHiHaColisio 'aaa' '' $true))     $false '_CatalegHiHaColisio: sense el sha d''ara, tampoc'
+# El Backup ha d'apuntar el commit de base: sense ell, el Restore no pot saber
+# si el repositori ha tocat el mateix fitxer.
+$syncSrc = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'SincronitzaCatalegs.ps1') -Raw
+Assert ($syncSrc.Contains('base.txt')) 'SincronitzaCatalegs: la copia apunta el commit de base'
+Assert ($syncSrc.Contains('git rev-parse HEAD')) 'SincronitzaCatalegs: el commit de base es llegeix al Backup (abans del pull)'
+# I l'Actualitzar.bat ha de mirar el codi 2 per tornar a avisar al final.
+$batCol = Get-Content -LiteralPath (Join-Path $RepoRoot 'Actualitzar.bat') -Raw
+Assert ($batCol.Contains('if errorlevel 2 set "COLISIO_CATALEGS=1"')) 'Actualitzar.bat: recull la col·lisio del Restore'
+Assert ($batCol.Contains('if "%COLISIO_CATALEGS%"=="1"')) 'Actualitzar.bat: torna a avisar de la col·lisio al final'
 
 # La copia de seguretat ja protegia '0 CAPCALERA.docx' (proves de dalt), pero
 # Actualitzar.bat nomes ESTADIAVA els *.json, o sigui que un canvi a la capcalera

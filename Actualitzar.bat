@@ -229,10 +229,20 @@ REM    Despres del pull, els catalegs que hagin baixat es substitueixen pels que
 REM    tenia l'usuari (copia del pas 2). Aixi la seva feina mai no es perd, ni
 REM    quan el repositori ha tocat el mateix fitxer. Si el resultat difereix del
 REM    que hi ha al repositori, es committeja i es puja.
+REM    EXCEPCIO: '0 CAPCALERA.docx'. Es un ZIP, no es pot fusionar, i si l'han
+REM    tocat les DUES bandes "la teva versio preval" vol dir llencar la de
+REM    l'altra. Va passar: el bloc [[CAP:LLIC]] hi acabava d'entrar, la copia de
+REM    l'usuari se'l va endur i la versio sense el bloc es va PUJAR a main. Ara,
+REM    en aquest cas, no es toca res (es queda la del repositori, que el
+REM    programa necessita sencera), la de l'usuari es queda a la copia de
+REM    seguretat, el clone queda NET (o sigui que no es puja res) i el codi de
+REM    sortida 2 fa que ho tornem a dir al final.
+set "COLISIO_CATALEGS=0"
 if "%PROTEGITS_CANVIATS%"=="1" (
     echo.
     echo Tornant a aplicar els teus catalegs ^(la teva versio preval^)...
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0suport\SincronitzaCatalegs.ps1" -Fase Restore
+    if errorlevel 2 set "COLISIO_CATALEGS=1"
 )
 
 REM Les VISTES en Word dels catalegs es regeneren des dels JSON i van a
@@ -311,6 +321,24 @@ if "%STASHED%"=="1" (
     echo   Per recuperar:    git stash pop
     echo   Per veure:        git stash list
     echo   Per descartar:    git stash drop
+)
+
+REM Es repeteix aqui al final perque enmig de l'actualitzacio l'avis queda amunt
+REM i no es veu. Sense aixo, l'usuari es queda amb un retoc seu sense aplicar
+REM sense saber-ho.
+if "%COLISIO_CATALEGS%"=="1" (
+    echo.
+    echo  ============================================================
+    echo   ATENCIO: una plantilla ha canviat a les DUES bandes.
+    echo.
+    echo   S'ha quedat la versio del repositori, perque el programa la
+    echo   necessita sencera. El teu retoc NO s'ha perdut: es a
+    echo     %LOCALAPPDATA%\InformesCornella\backups
+    echo   ^(la carpeta amb la data d'avui^).
+    echo.
+    echo   No s'ha pujat res a GitHub. Passa-li aquesta copia a en
+    echo   Claude i ajuntara les dues coses.
+    echo  ============================================================
 )
 
 echo.
