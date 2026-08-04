@@ -49,9 +49,14 @@ function _VistaWordPathFor([string]$jsonPath, [string]$dir = '') {
 
 # '0 CAPCALERA' es una plantilla de VERITAT: no se n'ha de generar mai cap vista
 # (la sobreescriuriem i perdriem la carta amb l'escut i la taula).
+#
+# LLIC tampoc en te: no es un cataleg de deficiencies sino la capa propia de
+# Llicencia sobre REQ1 (per cada requeriment, el "No es disposa", el "Es
+# disposa" i el "Quan:"). Els seus items no porten text -el treuen de REQ1 en
+# viu-, o sigui que la vista sortiria plena de punts buits.
 function _VistaEsProtegit([string]$jsonPath) {
     $b = [System.IO.Path]::GetFileNameWithoutExtension([string]$jsonPath)
-    return ([string]$b -like '0 CAPCALERA*')
+    return (([string]$b -like '0 CAPCALERA*') -or ([string]$b -eq 'LLIC'))
 }
 
 # VERSIO del generador de vistes. Puja-la SEMPRE que canviï com es veuen les

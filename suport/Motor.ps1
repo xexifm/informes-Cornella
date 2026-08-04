@@ -565,10 +565,15 @@ function Get-Catalegs {
     # termini". Els .docx d'ESTRUCTURALS son ara nomes VISTES generades des dels
     # JSON (vegeu VistaWord.ps1); l'unic .docx que encara es una plantilla de
     # veritat es '0 CAPCALERA.docx'.
+    # LLIC.json tampoc: no es un cataleg de deficiencies sino la capa propia de
+    # Llicencia (per cada requeriment de REQ1, el "No es disposa", el "Es
+    # disposa" i el "Quan:"). Els seus items NO tenen text propi -el treuen de
+    # REQ1 en viu-, o sigui que triar-lo aqui donaria un informe buit.
     Get-ChildItem -LiteralPath $EstructuralsDir -Filter '*.json' |
         Where-Object {
             $_.Name -notlike '0 *' -and $_.Name -notlike '0_*' -and
-            $_.Name -notlike 'ACT_EXTR*' -and -not $_.Name.StartsWith('~$')
+            $_.Name -notlike 'ACT_EXTR*' -and $_.Name -ne 'LLIC.json' -and
+            -not $_.Name.StartsWith('~$')
         } |
         Sort-Object Name
 }

@@ -1516,6 +1516,54 @@ AssertEq (_VistaWordPathFor ($tstEstr + $tstSep + 'REQ1.json') $tstVist) ($tstVi
 AssertEq (_VistaWordPathFor ($tstEstr + $tstSep + '0 CONCLUSIONS.json') $tstVist) ($tstVist + $tstSep + '0 CONCLUSIONS.docx') '_VistaWordPathFor: respecta els espais del nom'
 AssertEq ([bool](_VistaEsProtegit ($tstEstr + $tstSep + '0 CAPCALERA.json'))) $true '_VistaEsProtegit: 0 CAPCALERA no es toca mai'
 AssertEq ([bool](_VistaEsProtegit ($tstEstr + $tstSep + 'REQ1.json'))) $false '_VistaEsProtegit: la resta si'
+AssertEq ([bool](_VistaEsProtegit ($tstEstr + $tstSep + 'LLIC.json'))) $true '_VistaEsProtegit: LLIC tampoc (no te text propi, el treu de REQ1)'
+
+Write-Host "`n--- LLIC.json: la capa de Llicencia sobre REQ1 ---"
+# LLIC no es un cataleg de deficiencies: per cada requeriment de REQ1 hi desa
+# nomes el que es propi de Llicencia, i el text surt de REQ1 EN VIU. Per aixo:
+#  - no pot sortir al menu "Requeriment - Nou" (donaria un informe buit);
+#  - cada clau ha d'existir a REQ1, si no el lligam s'ha trencat en silenci.
+$llicPath = Join-Path $EstructuralsDir 'LLIC.json'
+if (Test-Path -LiteralPath $llicPath) {
+    Assert (-not (@(Get-Catalegs) | Where-Object { $_.Name -eq 'LLIC.json' })) 'Get-Catalegs: LLIC NO surt com a cataleg triable'
+    $llic = Get-Content -LiteralPath $llicPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    AssertEq ([string]$llic.familia) 'llicencia' 'LLIC.json: familia llicencia'
+    $llicSecs = @($llic.nodes | ForEach-Object { [string]$_.titol })
+    AssertEq ($llicSecs -join ',') 'ABANS,DESPRES,PROPIS' 'LLIC.json: les tres seccions, en ordre'
+    # Totes les claus han d'existir a REQ1.
+    $req1 = Read-CatalegJson (Join-Path $EstructuralsDir 'REQ1.json')
+    $clausReq1 = @{}
+    foreach ($sec in $req1.Sections) {
+        foreach ($el in $sec.Items) {
+            if ($el.Kind -eq 'item' -and -not [string]::IsNullOrWhiteSpace([string]$el.Short)) {
+                $clausReq1[(_ItemKey $sec.Title $el.Short)] = $true
+            }
+        }
+    }
+    $llicOrfes = New-Object System.Collections.ArrayList
+    $llicLligats = 0
+    foreach ($sec in $llic.nodes) {
+        foreach ($it in @($sec.fills)) {
+            $k = [string]$it.clau
+            if ([string]::IsNullOrWhiteSpace($k)) { continue }
+            $llicLligats++
+            if (-not $clausReq1.ContainsKey($k)) { [void]$llicOrfes.Add($k) }
+        }
+    }
+    AssertEq ($llicOrfes -join ' | ') '' 'LLIC.json: cap clau orfe (totes existeixen a REQ1)'
+    Assert ([bool]($llicLligats -ge 20)) 'LLIC.json: la majoria de punts van lligats a REQ1, no copiats'
+    # Els punts lligats NO poden portar text propi: si en portessin, el de REQ1
+    # deixaria de manar i tornariem a tenir dos textos que mantenir.
+    $ambText = New-Object System.Collections.ArrayList
+    foreach ($sec in $llic.nodes) {
+        foreach ($it in @($sec.fills)) {
+            if (-not [string]::IsNullOrWhiteSpace([string]$it.clau) -and @($it.cos).Count -gt 0) {
+                [void]$ambText.Add([string]$it.titol)
+            }
+        }
+    }
+    AssertEq ($ambText -join ' | ') '' 'LLIC.json: cap punt lligat porta text propi (el text mana a REQ1)'
+}
 AssertEq (_VistaActExtrTitol '[[INCENDIS]] Incendis') 'Incendis  [INCENDIS]' '_VistaActExtrTitol: etiqueta + clau'
 AssertEq (_VistaActExtrTitol '[[MEMORIA_A]] ::CHILD:: a) Identificacio') 'a) Identificacio  [MEMORIA_A]' '_VistaActExtrTitol: treu el token'
 AssertEq (_VistaActExtrTitol '[[REQ_INTRO]]') 'REQ_INTRO' '_VistaActExtrTitol: sense etiqueta -> la clau'
