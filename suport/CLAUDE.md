@@ -324,6 +324,39 @@ els llegís no fallaria — generaria un informe **silenciosament equivocat**. S
   a pèl, que en un clone antic pujaria les vistes en Word encara sense migrar.
   Lliçó: quan es treu un tipus de fitxer d'un flux, s'ha de mirar si **algun
   d'aquells fitxers seguia sent una font**.
+- **UN BINARI NO ES POT FUSIONAR, i «l'usuari mana» hi vol dir una altra cosa**
+  (incident real, agost 2026). L'usuari tenia `0 CAPCALERA.docx` retocat i el
+  repositori hi acabava d'afegir el bloc `[[CAP:LLIC]]`. El `rebase` va petar
+  (*"Cannot merge binary files"*), es va anar al camí d'error i, tot seguit, el
+  **Restore va tornar a posar-hi la còpia de l'usuari a sobre**: el bloc va
+  desaparèixer i la versió sense el bloc **es va pujar a `main`**. La regla és
+  bona per als `.json` (text, i com a molt es torna a escriure un text), però en
+  un binari vol dir **llençar el fitxer sencer de l'altra banda**, i és allà on
+  hi ha les peces que el programa necessita.
+  - `_CatalegEsBinari` + `_CatalegHiHaColisio` (pures): si un fitxer binari ha
+    canviat a les **dues** bandes, el Restore **no el toca**. Es queda la del
+    repositori (el programa la necessita sencera), la de l'usuari es queda a la
+    còpia de seguretat i s'avisa amb la ruta. Com que el fitxer no es modifica,
+    el clone queda **net** i per tant no es puja res: ningú decideix en silenci.
+  - La comparació es fa **pel sha del blob** (`git rev-parse <base>:<ruta>`
+    contra `git hash-object`), no llegint binaris amb PowerShell. El **commit de
+    base** l'apunta el Backup a `base.txt` (corre abans del commit i del pull,
+    o sigui que `HEAD` encara és d'on venia el fitxer de l'usuari).
+  - **Sense sha de base no es decideix en contra de l'usuari**: es torna a
+    aplicar la seva còpia, que és el comportament de sempre.
+  - `Actualitzar.bat` recull el **codi de sortida 2** i torna a dir-ho **al
+    final**: enmig de l'actualització l'avís queda amunt i no es veu.
+- **La prova que havia de protegir la capçalera anava amb `-like`** i per tant no
+  provava res: en un patró de `-like`, `[[CAP:LLIC]` és una **classe de
+  caràcters**, o sigui que `*[[CAP:LLIC]]*` dona per bo qualsevol text amb un
+  dels caràcters `[ C A P : L I` seguit d'un `]`. Amb aquest `.docx` encertava de
+  casualitat (no hi ha cap `]`). Ara va amb `.Contains()` i **sobre el text
+  descodificat dels paràgrafs** — al XML cru el marcador surt escapat
+  (`&lt;&lt;CLASSIFICACIO&gt;&gt;`) i buscar-hi `<<CLASSIFICACIO>>` no trobaria
+  mai res. Hi ha també una prova que no hi hagi cap **etiqueta sense marcador**
+  (una línia acabada en `:` sense cap `<<...>>` al darrere només pot sortir
+  BUIDA a l'informe: és el que passava amb `Classificació:` al bloc genèric,
+  que sortia en blanc a tots els REQ1 i TERMINI).
 - **Res destructiu sense desar-ho abans**: el camí d'error del pull feia
   `rebase --abort` (que escopia *"fatal: no rebase in progress"* quan el pull ni
   havia arrencat) i tot seguit `reset --hard`. Ara l'abort només es fa si hi ha
@@ -851,6 +884,27 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
 - `Get-Catalegs` **exclou `LLIC.json`** (no és un catàleg de deficiències: no ha
   de sortir al menú de "Requeriment - Nou") i `_VistaEsProtegit` també el
   protegeix.
+- **El favorable POST LLEGEIX el pre-llicència**, no el torna a demanar
+  (`_LlicPuntsDelDocxAnterior`, pura): el post diu «Després d'haver comprovat la
+  següent documentació presentada:» i ha de llistar **exactament** el que deia
+  l'informe anterior. Fer-ho triar altre cop era repetir una feina que ja consta
+  escrita i obrir la porta que les dues llistes no quadressin.
+  - **Es reconeix pel TEXT**, sense mirar la numeració del Word: aquests
+    informes els genera aquest mateix programa i allà el número i el pic
+    s'**escriuen com a text** (`Format-Item` teclegia `"N. "`, `Format-Bullet`
+    `U+2022` + tabulador). Per tant `^\d+\.\s` = punt nou, `U+2022` = sub-punt,
+    la resta = línia de cos.
+  - El **«Quan:» es descarta**: al post la documentació ja s'ha presentat i el
+    termini no hi pinta res.
+  - El bloc es talla amb `_LlicFinalsDeBloc` (CONDICIONS, ANNEX 1, «Ho poso al
+    seu coneixement», la conclusió...). Si no se'n treu res, s'avisa i es cau a
+    la llista del catàleg: l'informe s'ha de poder fer igualment.
+- **Les caselles surten MARCADES al bloc DESPRÉS** (`Select-LlicDocumentacio
+  -marcatPerDefecte`), i al bloc ABANS no. El Word de l'usuari portava tots els
+  punts del DESPRÉS i ell hi anava esborrant el que no tocava; picar quinze
+  caselles cada vegada era el que feia que l'eina no compensés. A ABANS cada
+  punt demana a més decidir «No es disposa / Es disposa», que sí que és una
+  decisió per activitat. Hi ha **«Marcar-ho tot» / «Desmarcar-ho tot»**.
 
 ## Pas 2 — origen de l'informe (capçalera genèrica REQ1)
 - Al **Pas 2** (capçalera genèrica; les actes extraordinàries es queden igual)

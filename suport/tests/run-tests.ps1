@@ -1688,6 +1688,46 @@ Assert ([bool]($td -like '*Simon Aledo Vives*'))  '_LlicTextDocumentacio: hi sur
 Assert ([bool]($td -like '*1.780*'))              '_LlicTextDocumentacio: i el numero de col·legiat'
 Assert ([bool]($td -like '*20 de febrer de 2024.')) '_LlicTextDocumentacio: i la data, acabant amb punt'
 AssertEq (_LlicTextDocumentacio '' '1' 'X' 'Y') '' '_LlicTextDocumentacio: sense tecnic no hi ha paragraf'
+
+# El post-llicencia LLEGEIX el pre-llicencia: en treu el bloc DESPRES tal com hi
+# consta, i sense el "Quan:" (la documentacio ja s'ha presentat). Els informes
+# els genera aquest mateix programa, o sigui que el numero i el pic hi son com a
+# TEXT: n'hi ha prou amb el text dels paragrafs.
+$pic = [string][char]0x2022
+$docAnterior = @(
+    'ID GIA:1433',
+    'INFORME',
+    ('DOCUMENTACI' + [char]0x00D3 + ' NECESS' + [char]0x00C0 + 'RIA ABANS DE LA RESOLUCI' + [char]0x00D3 + '...'),
+    '1. Projecte tecnic.',
+    'No es disposa de la documentacio.',
+    ('DOCUMENTACI' + [char]0x00D3 + ' NECESS' + [char]0x00C0 + 'RIA DESPR' + [char]0x00C9 + 'S DE LA RESOLUCI' + [char]0x00D3 + '...'),
+    ('1. Certificat Final d' + [char]0x2019 + 'Activitat.'),
+    ('Quan: Abans d' + [char]0x2019 + 'iniciar l' + [char]0x2019 + 'activitat.'),
+    '2. Certificats RITSIC de les instal·lacions:',
+    ($pic + "`t" + 'Instal·lacio de gas'),
+    ($pic + "`t" + 'Ascensors'),
+    ('Quan: Abans d' + [char]0x2019 + 'iniciar l' + [char]0x2019 + 'activitat.'),
+    "S'informa favorablement a l'espera de rebre la citada documentacio.",
+    'Ho poso al seu coneixement als efectes oportuns,'
+)
+$pAnt = @(_LlicPuntsDelDocxAnterior $docAnterior)
+AssertEq $pAnt.Count 2 '_LlicPuntsDelDocxAnterior: nomes els punts del bloc DESPRES'
+Assert ([bool]($pAnt[0].Cos[0] -like '*Certificat Final*')) '_LlicPuntsDelDocxAnterior: el 1r punt, sense el numero'
+AssertEq (@($pAnt[0].Cos).Count) 1 '_LlicPuntsDelDocxAnterior: el "Quan:" no hi entra'
+AssertEq (@($pAnt[1].Subs).Count) 2 '_LlicPuntsDelDocxAnterior: els sub-punts del 2n punt'
+AssertEq (@($pAnt[1].Subs[0])[0]) 'Instal·lacio de gas' '_LlicPuntsDelDocxAnterior: el pic i el tabulador fora'
+Assert (-not (@($pAnt | ForEach-Object { $_.Cos }) | Where-Object { ([string]$_).StartsWith('Quan:') })) '_LlicPuntsDelDocxAnterior: cap "Quan:" enlloc'
+# Un informe que no es de Llicencia (o molt retocat): no s'inventa punts.
+AssertEq (@(_LlicPuntsDelDocxAnterior @('INFORME', '1. Una cosa', 'Cornella de Llobregat,')).Count) 0 '_LlicPuntsDelDocxAnterior: sense bloc DESPRES no retorna res'
+AssertEq (@(_LlicPuntsDelDocxAnterior @()).Count) 0 '_LlicPuntsDelDocxAnterior: document buit'
+# El bloc s'ha de tancar amb qualsevol dels finals (aqui, les CONDICIONS).
+$ambCond = @(
+    ('DOCUMENTACI' + [char]0x00D3 + ' DESPR' + [char]0x00C9 + 'S'),
+    '1. Acta de control inicial.',
+    ('CONDICIONS LLIC' + [char]0x00C8 + 'NCIA'),
+    '2. Aixo ja no es un punt del bloc.'
+)
+AssertEq (@(_LlicPuntsDelDocxAnterior $ambCond).Count) 1 '_LlicPuntsDelDocxAnterior: les CONDICIONS tanquen el bloc'
 # Nom del fitxer: data al principi, com la resta d'informes (aixi "Actualitzar
 # base d'informes" el reconeix).
 $nf = _LlicNomFitxer ([datetime]'2026-08-03') 'requeriment' '1433' 'MANUEL CRUZ'

@@ -25,7 +25,7 @@ $global:emitCalls = New-Object System.Collections.ArrayList
 function Format-Section    { param($s,$t) [void]$global:emitCalls.Add("SECT|$t") }
 function Format-Subsection { param($s,$t) [void]$global:emitCalls.Add("SUB|$t") }
 function Format-Item       { param($s,$n,$t,[switch]$IsChild) [void]$global:emitCalls.Add("ITEM|$n|$t" + $(if($IsChild){' (fill)'}else{''})) }
-function Format-Body       { param($s,$t,[switch]$IsChild) [void]$global:emitCalls.Add('BODY'   + $(if($IsChild){'/CH'}else{''}) + "|$t") }
+function Format-Body       { param($s,$t,[switch]$IsChild,[switch]$Bold) [void]$global:emitCalls.Add('BODY'   + $(if($IsChild){'/CH'}else{''}) + $(if($Bold){'/N'}else{''}) + "|$t") }
 function Format-Bullet     { param($s,$t,[switch]$IsChild,[switch]$First) [void]$global:emitCalls.Add('BULLET' + $(if($IsChild){'/CH'}else{''}) + $(if($First){'/1r'}else{''}) + "|$t") }
 function Format-Url        { param($s,$u,[switch]$IsChild) [void]$global:emitCalls.Add('URL'    + $(if($IsChild){'/CH'}else{''}) + "|$u") }
 function Format-Spacer     { param($s) }

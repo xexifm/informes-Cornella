@@ -112,6 +112,15 @@ La diferència amb un requeriment normal és que aquí els punts **no són
 deficiències sinó documentació**, i surten tant si es té com si no: de cada punt
 tries **«No es disposa…»** (surt en negreta) o **«Es disposa… (Id Firmadoc: …)»**.
 
+Al bloc de **després** de la resolució les caselles surten **totes marcades** (és
+com tenies el Word: hi eren totes i n'anaves esborrant); hi ha **«Marcar-ho
+tot»** i **«Desmarcar-ho tot»**. Al bloc d'**abans** surten desmarcades, perquè
+allà cada punt demana a més dir si ja es disposa de la documentació.
+
+El **favorable post-llicència** no et fa tornar a triar res: et demana el `.docx`
+del **pre-llicència** i en treu la documentació que hi constava, ja sense el
+«Quan:». Només has de desmarcar el que no s'hagi arribat a comprovar.
+
 > **D'on surt el text:** de **REQ1**, en viu. `LLIC.json` només hi afegeix el que
 > és propi de Llicència (els dos comentaris i el «Quan:»); si canvies un
 > requeriment a REQ1, aquí canvia sol. Si algú reanomena un requeriment de REQ1,
