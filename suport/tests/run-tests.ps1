@@ -1319,6 +1319,30 @@ AssertEq ($afArgs[[Array]::IndexOf($afArgs, '-filter') + 1]) 'subject.contains:X
 AssertEq ([bool]($afArgs -contains 'SHA256withRSA')) $true '_BuildAutoFirmaSignArgv: algoritme per defecte'
 $afNoFilter = @(_BuildAutoFirmaSignArgv 'in.pdf' 'out.pdf' '' 'SHA512withRSA')
 AssertEq ([bool]($afNoFilter -contains '-filter')) $false '_BuildAutoFirmaSignArgv: sense filtre si no s''indica'
+
+# COMPATIBILITAT amb els ordinadors dels altres. Comparant el CMS d'un informe
+# nostre amb el d'un de signat a ma (mateix certificat!), les uniques
+# diferencies eren el SubFilter i que nosaltres encastavem TOTA la cadena
+# (arrel + subCA + signant) i el que funciona, nomes el signant.
+$afCompat = @(_AutoFirmaCompatLines)
+Assert ([bool]($afCompat -contains 'signatureSubFilter=adbe.pkcs7.detached')) '_AutoFirmaCompatLines: SubFilter classic, com el que valida arreu'
+# El nom del parametre porta DUES ENES ("Signning") al Client @firma. Si algu
+# el "corregeix", AutoFirma l'ignora en silenci i tornem a encastar la cadena.
+Assert ([bool]($afCompat -contains 'includeOnlySignningCertificate=true')) '_AutoFirmaCompatLines: nomes el certificat del signant (ull: Signning, amb dues enes)'
+# Hi han de ser SEMPRE, tambe quan no hi ha caixeti: abans el -config nomes
+# existia si hi havia caixeti i una signatura invisible no se n'hauria
+# beneficiat.
+$afSenseCaix = @(_BuildAutoFirmaSignArgv 'in.pdf' 'out.pdf' '' '' '')
+Assert ([bool]($afSenseCaix -contains '-config')) '_BuildAutoFirmaSignArgv: hi ha -config fins i tot sense caixeti'
+$cfgSense = $afSenseCaix[[Array]::IndexOf($afSenseCaix, '-config') + 1]
+Assert ($cfgSense.Contains('adbe.pkcs7.detached')) '_BuildAutoFirmaSignArgv: la compatibilitat hi es sense caixeti'
+Assert (-not $cfgSense.Contains('signaturePage')) '_BuildAutoFirmaSignArgv: sense caixeti no s''hi cola cap posicio'
+# ...i amb caixeti, les dues coses al mateix -config, amb el separador LITERAL.
+$afAmbCaix = @(_BuildAutoFirmaSignArgv 'in.pdf' 'out.pdf' '' '' "Nom`nCarrec" 'text')
+$cfgAmb = $afAmbCaix[[Array]::IndexOf($afAmbCaix, '-config') + 1]
+Assert ($cfgAmb.Contains('adbe.pkcs7.detached')) '_BuildAutoFirmaSignArgv: compatibilitat + caixeti al mateix -config'
+Assert ($cfgAmb.Contains('signaturePage=1')) '_BuildAutoFirmaSignArgv: i la posicio del caixeti tambe'
+AssertEq ([bool]($cfgAmb -like "*`n*")) $false '_BuildAutoFirmaSignArgv: cap salt de linia REAL al -config (el separador es el \n LITERAL)'
 AssertEq ([bool]($afNoFilter -contains 'SHA512withRSA')) $true '_BuildAutoFirmaSignArgv: algoritme indicat'
 AssertEq ([bool](@(_AutoFirmaCandidatePaths).Count -gt 0)) $true '_AutoFirmaCandidatePaths: retorna candidats'
 AssertEq ([bool](@(_AutoFirmaCandidatePaths) -like '*AutoFirma.exe')) $true '_AutoFirmaCandidatePaths: apunten a AutoFirma.exe'
@@ -1379,14 +1403,20 @@ if ([string]::IsNullOrWhiteSpace($epImg)) {
 $argvSense = @(_BuildAutoFirmaSignArgv 'C:\a b\in.pdf' 'C:\a b\out.pdf' 'subject.contains:X' '')
 AssertEq ($argvSense[0]) 'sign' '_BuildAutoFirmaSignArgv: primer element sign'
 AssertEq ([bool]($argvSense -contains 'C:\a b\in.pdf')) $true '_BuildAutoFirmaSignArgv: la ruta va SENSE cometes (element propi)'
-AssertEq ([bool]($argvSense -contains '-config')) $false '_BuildAutoFirmaSignArgv: sense caixetí -> cap -config'
+# Abans aqui s'hi comprovava que sense caixeti NO hi hagues -config. Ja no val:
+# les linies de COMPATIBILITAT (SubFilter classic + nomes el certificat del
+# signant) hi van sempre, perque son el que fa que la firma es validi als
+# ordinadors dels altres, i amb caixeti o sense fa igual.
+AssertEq ([bool]($argvSense -contains '-config')) $true '_BuildAutoFirmaSignArgv: sense caixetí, el -config hi es igualment (compatibilitat)'
+$valSense = [string]$argvSense[[Array]::IndexOf($argvSense, '-config') + 1]
+AssertEq (@($valSense -split '\\n').Count) 2 '_BuildAutoFirmaSignArgv: sense caixetí, nomes les 2 linies de compatibilitat'
 AssertEq ([bool]($argvSense -contains 'subject.contains:X')) $true '_BuildAutoFirmaSignArgv: filtre com a element'
 $argvCx = @(_BuildAutoFirmaSignArgv 'i.pdf' 'o.pdf' '' '' $cxDef)
 $iCfg = [Array]::IndexOf($argvCx, '-config')
 AssertEq ([bool]($iCfg -ge 0)) $true '_BuildAutoFirmaSignArgv: amb caixetí -> hi ha -config'
 $valCfg = [string]$argvCx[$iCfg + 1]
 AssertEq ([bool]($valCfg -like '*signaturePage=1*' -and $valCfg -like '*layer2Text=*')) $true '_BuildAutoFirmaSignArgv: el -config es el TEXT PLA dels extraParams'
-AssertEq (@($valCfg -split '\\n').Count) 8 '_BuildAutoFirmaSignArgv: el -config porta 8 propietats separades pel \n LITERAL'
+AssertEq (@($valCfg -split '\\n').Count) 10 '_BuildAutoFirmaSignArgv: el -config porta 10 propietats (2 de compatibilitat + 8 del caixetí) separades pel \n LITERAL'
 AssertEq ([bool]($valCfg -match "`n")) $false '_BuildAutoFirmaSignArgv: el -config no porta cap salt de linia REAL'
 AssertEq ([bool]($valCfg -match '^[A-Za-z0-9+/=]+$')) $false '_BuildAutoFirmaSignArgv: el -config NO va en Base64'
 AssertEq ([bool]((_AutoFirmaArgvToText $argvCx) -like '*<LF>*')) $false '_AutoFirmaArgvToText: ja no hi ha salts REALS a marcar amb <LF>'

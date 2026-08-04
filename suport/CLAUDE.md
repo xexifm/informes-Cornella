@@ -769,6 +769,40 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   - **El `try/catch` va DINS del bucle d'intents**: quan estava a fora, una
     excepció d'un intent s'enduia **tots** els altres i el fitxer es quedava
     **sense signar**. Va passar exactament això amb la imatge massa gran.
+  - **LA FIRMA NO ES VALIDAVA ALS ALTRES ORDINADORS** (mesurat comparant els dos
+    PDF, no deduït). Al PC de l'usuari sortia vàlida; als dels companys **i al
+    visor corporatiu de l'Ajuntament** (`aytos-fdocweb`), *"La validez de la
+    firma es DESCONOCIDA / la identidad del firmante es desconocida"*. Un informe
+    signat a mà **amb el mateix certificat** sí que s'hi validava.
+    - Es va treure el CMS de dins del `/Contents` dels dos PDF i comparar-los:
+      **el certificat signant és EL MATEIX** (mateix número de sèrie
+      `49160A73…`, TCAT d'empleat públic, emès per `SubCA SECTOR PUBLIC Q (G3)
+      A.1`). O sigui que **no era el certificat**, ni caducat ni res.
+    - Diferències reals: el nostre anava amb `SubFilter` **`ETSI.CAdES.detached`**
+      i **3 certificats a dins** (arrel + subCA + signant), amb
+      `signingCertificateV2` i la política de firma de l'AGE; el que funciona,
+      **`adbe.pkcs7.detached`** i **només 1** (el signant). **Cap dels dos** porta
+      segell de temps ni dades de revocació (el `revocationInfoArchival` del que
+      funciona és un SET **buit**).
+    - **Per què es creu que és això**: l'avís d'Adobe diu que no són de confiança
+      *"sus certificados PRINCIPALES"* — i els pares només els té perquè **els hi
+      encastem nosaltres**. Si l'ancoratge de confiança d'aquell ordinador no és
+      l'arrel de l'AOC sinó la **subCA** (que és el que publica la Llista de
+      Confiança europea), donar-li la cadena sencera el fa aturar-se en una arrel
+      que no coneix. Que falli **també al visor corporatiu** —que és de servidor i
+      té la llista de confiança ben posada— apunta al **fitxer**, no a cada PC.
+    - `_AutoFirmaCompatLines` (pura) hi posa `signatureSubFilter=adbe.pkcs7.detached`
+      i `includeOnlySignningCertificate=true`. **El nom porta DUES ENES**
+      (`Signning`): és així al Client @firma i, si algú l'hi "corregeix",
+      AutoFirma l'ignora **en silenci** i tornem a encastar la cadena. Hi ha prova.
+    - Aquestes línies van al `-config` **sempre**, amb caixetí o sense: abans el
+      `-config` només existia si hi havia caixetí i una signatura invisible no
+      se n'hauria beneficiat.
+    - Per tornar enrere: `$Script:SignaturaCompat`, i prou.
+    - **Pendent**: el que faria la firma validable a qualsevol banda i d'aquí a
+      anys és un **segell de temps (TSA)** + dades de revocació (PAdES-LTV).
+      AutoFirma ho admet (`tsaURL`, `tsaPolicy`, `tsaHashAlgorithm`…), però cal
+      una TSA a què l'Ajuntament doni accés.
   - **Reintents escalats**: caixetí **(imatge)** → caixetí **(text d'una línia)**
     → **sense** caixetí. Així mai es queda un PDF sense signar i del registre se'n
     dedueix quin ha funcionat. Al registre la imatge surt **resumida** (mida en

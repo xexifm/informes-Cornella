@@ -149,6 +149,16 @@ El text del caixetí és editable a les opcions. Allà mateix hi ha la casella
 **«Obrir el registre de la signatura en acabar»**: normalment la vols desmarcada;
 marca-la si el caixetí no surt i vols veure què s'ha enviat a l'AutoFirma.
 
+> **Si en un altre ordinador surt «la validesa de la firma és DESCONEGUDA»:**
+> la firma es fa igual que la que et validava a tot arreu (només s'hi encasta el
+> teu certificat, no tota la cadena de l'AOC). Si encara et passés, obre el
+> registre de la signatura i passa'm-lo: allà hi surt l'ordre exacta.
+>
+> El que ho deixaria resolt per sempre és afegir-hi un **segell de temps**, i
+> per això cal demanar a Informàtica de l'Ajuntament la **URL del servei de
+> segellat de temps (TSA)** que fan servir. Amb aquella adreça és afegir-la a
+> les opcions i llestos.
+
 ### Seguiment (fila GIA)
 
 Botó **📊 Seguiment**. Genera els cinc llistats de seguiment a partir de la base

@@ -441,6 +441,57 @@ function _CaixetiUnaLinia([string]$caixeti) {
 # passava: al PDF signat hi havia /Rect[0 0 0 0] i un /AP amb BBox [0 0 0 0].
 $Script:AutoFirmaConfigSep = '\n'
 
+# ----------------------------------------------------------------------------
+# COMPATIBILITAT: que la firma es validi als ordinadors dels ALTRES
+# ----------------------------------------------------------------------------
+# EL PROBLEMA (mesurat, no suposat): els informes signats amb aquesta eina es
+# validaven be al PC de l'usuari pero als dels companys -i al visor corporatiu
+# de l'Ajuntament- hi sortia "La validez de la firma es DESCONOCIDA / la
+# identidad del firmante es desconocida". Un informe signat a ma amb el MATEIX
+# certificat si que s'hi validava.
+#
+# Es van comparar els dos PDF (el CMS de dins de /Contents):
+#   - MATEIX certificat signant als dos (mateix numero de serie 49160A73...,
+#     TCAT d'empleat public, emes per "SubCA SECTOR PUBLIC Q (G3) A.1"). O sigui
+#     que el certificat NO era la diferencia.
+#   - El nostre: SubFilter 'ETSI.CAdES.detached' i **3 certificats a dins**
+#     (arrel + subCA + el signant), amb signingCertificateV2 i la politica de
+#     firma de l'AGE.
+#   - El que funciona: SubFilter 'adbe.pkcs7.detached' i **nomes 1 certificat**
+#     (el signant). Cap dels dos porta segell de temps ni dades de revocacio.
+#
+# PER QUE ES CREU QUE ES AIXO: l'avis d'Adobe diu que no son de confianca "sus
+# certificados PRINCIPALES", i els pares nomes els te perque ELS HI ENCASTEM
+# NOSALTRES. Si en aquell ordinador l'ancoratge de confianca no es l'arrel de
+# l'AOC sino la subCA (que es el que publica la Llista de Confianca europea),
+# donar-li la cadena sencera el fa aturar-se en una arrel que no coneix. Sense
+# pares, el validador busca l'emissor al seu propi magatzem i alli si que hi es.
+# Que falli TAMBE al visor corporatiu -que es de servidor i te la llista de
+# confianca ben posada- apunta a una cosa del FITXER, no de cada PC.
+#
+# Per aixo la firma es fa ara com la que funciona. Si algun dia es vol tornar
+# enrere, es aquest hashtable i prou.
+$Script:SignaturaCompat = @{
+    # Nomes el certificat del signant dins de la firma (ni arrel ni subCA).
+    NomesCertificatSignant = $true
+    # SubFilter classic d'Adobe en lloc del PAdES/CAdES.
+    SubFilterClassic       = $true
+}
+
+# Les linies de compatibilitat per al -config. Funcio PURA.
+# ATENCIO al nom del parametre: al Client @firma esta escrit amb DUES ENES
+# ("Signning"). No es una errada d'aqui; si es corregeix, AutoFirma l'ignora.
+function _AutoFirmaCompatLines {
+    $l = @()
+    if ($Script:SignaturaCompat.SubFilterClassic) {
+        $l += 'signatureSubFilter=adbe.pkcs7.detached'
+    }
+    if ($Script:SignaturaCompat.NomesCertificatSignant) {
+        $l += 'includeOnlySignningCertificate=true'
+    }
+    return $l
+}
+
 # Construeix la cadena d'extraParams (TEXT PLA, determinista) per a una signatura
 # VISIBLE PAdES amb el caixetí donat.
 # Funció PURA. Caixetí buit -> '' (signatura invisible, com abans).
@@ -506,8 +557,13 @@ function _BuildAutoFirmaSignArgv([string]$inPdf, [string]$outPdf, [string]$filte
     if ([string]::IsNullOrWhiteSpace($algorithm)) { $algorithm = 'SHA256withRSA' }
     $argv = @('sign', '-i', $inPdf, '-o', $outPdf, '-store', 'windows', '-format', 'pades', '-algorithm', $algorithm)
     if (-not [string]::IsNullOrWhiteSpace($filter)) { $argv += @('-filter', $filter) }
+    # Les de compatibilitat hi van SEMPRE, tambe sense caixeti: abans el -config
+    # nomes existia si hi havia caixeti, i llavors una signatura invisible no
+    # se'n hauria beneficiat.
+    $cfg = @(_AutoFirmaCompatLines)
     $ep = _AutoFirmaVisibleExtraParams $caixeti $null $mode
-    if (-not [string]::IsNullOrWhiteSpace($ep)) { $argv += @('-config', $ep) }
+    if (-not [string]::IsNullOrWhiteSpace($ep)) { $cfg += $ep }
+    if ($cfg.Count -gt 0) { $argv += @('-config', ($cfg -join $Script:AutoFirmaConfigSep)) }
     return $argv
 }
 
