@@ -801,6 +801,57 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   GUI, escriu directament a `%LOCALAPPDATA%\InformesCornella\settings.json`
   (`{"InformesDir": "F:\\...\\Informes", "ActivitatsDir": "F:\\...\\2_Controls Excels"}`).
 
+## Llicència (Annex II / LL Prov) — `suport/Llicencia.ps1` + `ESTRUCTURALS/LLIC.json`
+- **No és un informe, són TRES** (`_LlicFases`): *requeriment* (el que es fa el
+  95% dels cops), *favorable-pre* («a l'espera de rebre la citada documentació»)
+  i *favorable-post* («es dóna per tancat l'expedient»). **Un sol botó** al menú
+  (📜, acció `llicencia`, entre *Activitats extraordinàries* i EINES) i la fase
+  es tria a dins, amb la casella **«Llicència provisional»**.
+- **LLIC NOMÉS HI AFEGEIX; el text és de REQ1, EN VIU.** Aquesta és la decisió
+  que ho explica tot: els punts de Llicència **són** els requeriments de REQ1, i
+  duplicar-los voldria dir mantenir dues còpies del mateix text. `LLIC.json`
+  desa per punt una **`clau`** (`"Secció::Títol"`, el mateix format que
+  `_FindItemKeysByTitle` de `ControlsPeriodics.ps1`) i **`cos` buit**; el cos el
+  resol `_LlicPuntsPerBloc` contra el REQ1 parsejat (`_LlicIndexReq1`).
+  - **Per què `clau` i no el títol a pèl:** si l'usuari reanomena un requeriment
+    a REQ1, el lligam s'ha de trencar **dient-ho**. `_LlicPuntsPerBloc` retorna
+    `@{Punts; Orfes}` i l'assistent **avisa amb el llistat de claus òrfenes**.
+    Empassar-s'ho voldria dir generar un informe al qual li falta un punt sense
+    que ningú se n'adoni.
+  - Els punts que **no** són a REQ1 (els dos condicionals de compatibilitat i
+    l'ANNEX 1) van a la secció `PROPIS` **amb el text sencer** i sense clau.
+- **Vocabulari propi de la família `llicencia`** (`_Ed_TipusOptions`):
+  `nodisposa` / `sidisposa` (els dos comentaris de cada punt) i `quan` (el
+  «Quan:» del bloc DESPRÉS). Seccions: `ABANS`, `DESPRES`, `PROPIS`, `ANNEX 1`.
+- **Els comentaris NO van en verd.** Al Word que feia servir l'usuari sí, però
+  aquell color era **una marca seva** per veure què havia de canviar a cada
+  informe — no forma part del document. Al generat van amb el color de sempre;
+  l'única distinció és **negreta al «No es disposa…»** (falta) i normal al «Es
+  disposa…». `Format-Body` va guanyar `-Bold` per això (aplicat **al rang**, mai
+  amb `$sel.Font.Bold` abans de teclejar: la trampa de `Format-Item`).
+- **Classificació**: només als informes de Llicència. `_ClassificacioText`
+  (pura, `Activitats.ps1`) munta `"Llei 20/2009; Annex II; Epígraf 12.25"` de les
+  columnes `Classificació general annex` / `... Apartat` de l'Excel. Va al
+  `<<CLASSIFICACIO>>` de la capçalera.
+- **`0 CAPCALERA.docx` té ara TRES blocs**: el genèric (REQ1/TERMINI), el
+  d'`[[CAP:ACT_EXTR]]` i el nou `[[CAP:LLIC]]`, que és una còpia del genèric amb
+  la línia `Classificació: <<CLASSIFICACIO>>`. `_CapMarcador` (pura) reconeix
+  **qualsevol** `[[CAP:X]]` i `Select-CapcaleraBlock $doc 'LLIC'` es queda el que
+  toca (`''` = el genèric), **esborrant primer el tros de baix** perquè els
+  índexs dels paràgrafs de dalt no ballin. Si el bloc no hi és, es queda amb el
+  genèric i l'informe surt igualment, sense classificació.
+- **L'ANNEX 1 només al REQUERIMENT d'una llicència PROVISIONAL**, i el seu text
+  **viu al catàleg** (secció que comença per `ANNEX 1`), no encastat al codi:
+  així l'usuari el pot editar com tota la resta.
+- L'assistent (`Invoke-LlicenciaWizard`) reaprofita el que ja hi ha:
+  `Get-HeaderData` per a la capçalera i **`Select-Items` tal qual** per al bloc
+  *Projecte* (són els requeriments normals de REQ1: no s'hi inventa cap pantalla).
+  `_LlicPuntsDeSeleccio` converteix el que retorna `Select-Items` als mateixos
+  punts que la composició, per no tenir **dos camins** de generació.
+- `Get-Catalegs` **exclou `LLIC.json`** (no és un catàleg de deficiències: no ha
+  de sortir al menú de "Requeriment - Nou") i `_VistaEsProtegit` també el
+  protegeix.
+
 ## Pas 2 — origen de l'informe (capçalera genèrica REQ1)
 - Al **Pas 2** (capçalera genèrica; les actes extraordinàries es queden igual)
   hi ha una tria **Origen de l'informe**: *Documentació aportada* o *Visita

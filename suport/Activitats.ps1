@@ -139,6 +139,33 @@ function _FormatDateOnly($v) {
     return $s.Split(' ')[0]  # si no es pot parsejar, agafem la part abans de l'hora
 }
 
+# Text de la linia "Classificacio:" de la capcalera de LLICENCIA, a partir de les
+# dues columnes de l'Excel: "Classificacio general annex" i "... Apartat".
+#
+#   ('II', '12.25')  ->  "Llei 20/2009; II; Epigraf 12.25"
+#   ('II', '')       ->  "Llei 20/2009; II"
+#   ('', '')         ->  ""      (no s'inventa una classificacio que no hi es)
+#
+# El prefix i el "Epigraf" surten del Word que feia servir l'usuari
+# ("Llei 20/2009; Annex II; Epigraf 12.25"); a l'Excel l'annex ja hi consta com
+# a "II" o "III", i el text es completa aqui. Funcio PURA.
+function _ClassificacioText($annex, $apartat) {
+    $a = ([string]$annex).Trim()
+    $p = ([string]$apartat).Trim()
+    if ([string]::IsNullOrWhiteSpace($a) -and [string]::IsNullOrWhiteSpace($p)) { return '' }
+    $parts = New-Object System.Collections.ArrayList
+    [void]$parts.Add('Llei 20/2009')
+    if (-not [string]::IsNullOrWhiteSpace($a)) {
+        # Si a l'Excel ja hi diu "Annex II", no s'ha de repetir la paraula.
+        if ($a -match '(?i)^annex\b') { [void]$parts.Add($a) } else { [void]$parts.Add('Annex ' + $a) }
+    }
+    if (-not [string]::IsNullOrWhiteSpace($p)) {
+        if ($p -match '(?i)^ep' + [char]0x00ED + 'graf\b') { [void]$parts.Add($p) }
+        else { [void]$parts.Add('Ep' + [char]0x00ED + 'graf ' + $p) }
+    }
+    return ($parts -join '; ')
+}
+
 # Localitza la fulla "Estes"/"Estès" del workbook acceptant variants Unicode.
 function _FindEstesSheet($wb) {
     $sheetNames = @()
@@ -223,6 +250,9 @@ function Initialize-ActivitatsCache($excelFile) {
             $colExp  = _FindColIndex $data $cols @('expedient') $null
             $colNum  = _FindColIndex $data $cols @('registre','entrada') @('data')
             $colData = _FindColIndex $data $cols @('data','registre','entrada') $null
+            # Classificacio de l'activitat, per a la capcalera de Llicencia.
+            $colAnx  = _FindColIndex $data $cols @('classificacio general annex') $null
+            $colApa  = _FindColIndex $data $cols @('classificacio general apartat') $null
             if ($colExp  -eq 0) { [void]$warnings.Add("No s'ha trobat la columna 'Num. expedient'.") }
             if ($colNum  -eq 0) { [void]$warnings.Add("No s'ha trobat la columna 'Num. registre entrada'.") }
             if ($colData -eq 0) { [void]$warnings.Add("No s'ha trobat la columna 'Data registre entrada'.") }
@@ -266,6 +296,8 @@ function Initialize-ActivitatsCache($excelFile) {
                 $expNum = if ($colExp  -gt 0) { _CellToString  $data[$r, $colExp] }  else { '' }
                 $numAno = if ($colNum  -gt 0) { _CellToString  $data[$r, $colNum] }  else { '' }
                 $datAno = if ($colData -gt 0) { _FormatDateOnly $data[$r, $colData] } else { '' }
+                $anx    = if ($colAnx  -gt 0) { _CellToString  $data[$r, $colAnx] }  else { '' }
+                $apa    = if ($colApa  -gt 0) { _CellToString  $data[$r, $colApa] }  else { '' }
 
                 $byId[$id] = @{
                     TITULAR       = $rao
@@ -276,6 +308,7 @@ function Initialize-ActivitatsCache($excelFile) {
                     EXP_NUM       = $expNum
                     NUM_ANOTACIO  = $numAno
                     DATA_ANOTACIO = $datAno
+                    CLASSIFICACIO = (_ClassificacioText $anx $apa)
                 }
             }
             return [pscustomobject]@{ ById = $byId; Warnings = $warnings.ToArray() }

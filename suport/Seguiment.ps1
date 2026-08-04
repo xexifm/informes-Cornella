@@ -1017,7 +1017,7 @@ function _LastRunText($jsonPath, $prop) {
 #
 # Accions que NO son eines (tipus d'informe i pantalles de sistema): no porten
 # segell. Qualsevol rajola NOVA en te automaticament, sense tocar cap llista.
-$Script:AccionsSenseSegell = @('nou', 'seguiment', 'actextr', 'config', 'editcataleg')
+$Script:AccionsSenseSegell = @('nou', 'seguiment', 'actextr', 'llicencia', 'config', 'editcataleg')
 
 # Excepcio: dues eines ja escriuen la seva PROPIA marca quan han treballat de
 # debo (la necessiten per anar en incremental), i aquella data es mes precisa que
@@ -1089,6 +1089,7 @@ function Select-Mode {
     $icoSeg = [System.Char]::ConvertFromUtf32(0x1F504)   # 🔄
     $icoTer = [System.Char]::ConvertFromUtf32(0x23F1)    # ⏱
     $icoExt = [System.Char]::ConvertFromUtf32(0x1F3AA)   # 🎪
+    $icoLlic = [System.Char]::ConvertFromUtf32(0x1F4DC)  # rotlle: llicencia
 
     # Menu ORDENAT. Cada entrada: Action, Label (nom amic), Sub (descripcio
     # curta en gris), Icon (emoji del xip), Doc (xip del document a la dreta) i,
@@ -1098,6 +1099,10 @@ function Select-Mode {
     [void]$menu.Add(@{ Action='seguiment'; Label='Requeriment - Seguiment'; Sub='Sobre un informe ja fet'; Icon=$icoSeg; Doc=''; Cataleg=$null })
     if ($byName.ContainsKey('TERMINI')) { [void]$menu.Add(@{ Action='nou'; Label=$ampliacio; Sub='Informe de cos fix'; Icon=$icoTer; Doc='TERMINI'; Cataleg=$byName['TERMINI'] }) }
     [void]$menu.Add(@{ Action='actextr'; Label=$extraordinaria; Sub='Decret 112/2010'; Icon=$icoExt; Doc='ACT_EXTR'; Cataleg=$null })
+    # Llicencia: NO passa el cataleg (LLIC no es un cataleg de deficiencies sino
+    # la capa propia de Llicencia sobre REQ1; vegeu Llicencia.ps1).
+    $llicNom = 'Llic' + $eG + 'ncia (Annex II / LL Prov)'
+    [void]$menu.Add(@{ Action='llicencia'; Label=$llicNom; Sub='Requeriment i favorables'; Icon=$icoLlic; Doc='LLIC'; Cataleg=$null })
     # Qualsevol altre cataleg no llistat (p.ex. un REQ2 nou) s'afegeix al final.
     foreach ($c in $catalegs) {
         if ($c.BaseName -in 'REQ1','TERMINI') { continue }

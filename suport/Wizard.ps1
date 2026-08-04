@@ -44,6 +44,7 @@ function Main {
             'editcataleg'    { Show-CatalegEditor -focusDoc ([string]$sel.Doc) }   # editor dels ESTRUCTURALS (xip del document)
             'convertirpdf'   { Invoke-ConvertirPdf }   # converteix una carpeta de Word a PDF (i signa)
             'emailtextos'    { Invoke-EmailTextos }    # edita els textos del correu del mobil
+            'llicencia'  { Invoke-LlicenciaWizard }
             'nou'        { [void](Invoke-NouWizard -cataleg $sel.Cataleg) }
             default      { return }
         }

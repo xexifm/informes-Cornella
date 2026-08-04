@@ -197,6 +197,20 @@ function _Ed_TipusOptions([string]$familia, [string]$parentTipus) {
             # Sota una seccio (o dins d'un bloc) tots els estils de bloc son valids.
             return @('item', 'subitem', 'text', 'nota', 'etiqueta', 'capcalera', 'paragraf')
         }
+        'llicencia' {
+            # LLIC no es un cataleg de deficiencies: cada item hi aporta el que
+            # es propi de Llicencia i el text surt de REQ1 (vegeu Llicencia.ps1).
+            #   nodisposa / sidisposa : els dos comentaris de cada punt
+            #   quan                  : el termini del bloc DESPRES
+            #   subitem / item / text : per als punts que NO son a REQ1 i per a
+            #                           l'ANNEX 1, que porten el text aqui
+            if ([string]::IsNullOrEmpty($parentTipus)) { return @('seccio') }
+            switch ($parentTipus) {
+                'seccio' { return @('item', 'subitem', 'text') }
+                'item'   { return @('nodisposa', 'sidisposa', 'quan', 'subitem') }
+            }
+            return @('item')
+        }
     }
     return @('')
 }

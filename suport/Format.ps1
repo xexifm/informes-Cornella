@@ -223,14 +223,30 @@ function Format-Item {
     }
 }
 
+# -Bold: negreta a TOT el paragraf. Nomes el fa servir l'informe de LLICENCIA
+# (el comentari "No es disposa..." de cada punt). Per defecte no s'hi toca res,
+# o sigui que enlloc mes no canvia absolutament res.
+#
+# S'aplica al RANG que s'acaba d'escriure, no amb $sel.Font.Bold abans de
+# teclejar: aixo ultim toca el format del PUNT D'INSERCIO, i el Word no sempre
+# l'aplica (es la mateixa trampa que feia sortir en negreta tot un item a
+# Format-Item).
 function Format-Body {
-    param($sel, [string]$text, [switch]$IsChild)
+    param($sel, [string]$text, [switch]$IsChild, [switch]$Bold)
     [void]$sel.TypeParagraph()
     _Reset-Char $sel
     $indent = if ($IsChild) { $Script:ReportFormatConfig.ChildIndentCm }
               else          { $Script:ReportFormatConfig.ItemIndentCm }
     _Apply-Indent $sel $indent
+    $ini = $sel.Range.Start
     if ($text) { Type-RichText $sel $text }
+    $fi = $sel.Range.End
+    if ($fi -gt $ini) {
+        try {
+            $rng = $sel.Document.Range($ini, $fi)
+            if ($Bold) { $rng.Font.Bold = $true }
+        } catch { }
+    }
 }
 
 # Item amb pic (vinyeta) en lloc de numero. S'usa per a llistes que han d'anar

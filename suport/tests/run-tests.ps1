@@ -1518,6 +1518,34 @@ AssertEq ([bool](_VistaEsProtegit ($tstEstr + $tstSep + '0 CAPCALERA.json'))) $t
 AssertEq ([bool](_VistaEsProtegit ($tstEstr + $tstSep + 'REQ1.json'))) $false '_VistaEsProtegit: la resta si'
 AssertEq ([bool](_VistaEsProtegit ($tstEstr + $tstSep + 'LLIC.json'))) $true '_VistaEsProtegit: LLIC tampoc (no te text propi, el treu de REQ1)'
 
+Write-Host "`n--- Activitats.ps1: _ClassificacioText (linia de la capcalera de Llicencia) ---"
+AssertEq (_ClassificacioText 'II' '12.25')  ('Llei 20/2009; Annex II; Ep' + [char]0x00ED + 'graf 12.25') '_ClassificacioText: annex + apartat'
+AssertEq (_ClassificacioText 'III' '')      'Llei 20/2009; Annex III' '_ClassificacioText: nomes annex'
+AssertEq (_ClassificacioText '' '')         '' '_ClassificacioText: sense dades -> buit (no s''inventa res)'
+AssertEq (_ClassificacioText '  ' '  ')     '' '_ClassificacioText: nomes espais -> buit'
+# Si a l'Excel ja hi diu "Annex II" o "Epigraf x", no s'ha de repetir la paraula.
+AssertEq (_ClassificacioText 'Annex II' '12.25') ('Llei 20/2009; Annex II; Ep' + [char]0x00ED + 'graf 12.25') '_ClassificacioText: no repeteix "Annex"'
+AssertEq (_ClassificacioText 'II' ('Ep' + [char]0x00ED + 'graf 3.1')) ('Llei 20/2009; Annex II; Ep' + [char]0x00ED + 'graf 3.1') '_ClassificacioText: no repeteix "Epigraf"'
+
+Write-Host "`n--- Document.ps1: blocs de 0 CAPCALERA.docx ---"
+AssertEq (_CapMarcador '[[CAP:ACT_EXTR]]') 'ACT_EXTR' '_CapMarcador: reconeix el marcador'
+AssertEq (_CapMarcador '  [[CAP:LLIC]]  ') 'LLIC'     '_CapMarcador: amb espais al voltant'
+AssertEq (_CapMarcador 'ID GIA: 1234')     ''         '_CapMarcador: un paragraf normal no ho es'
+AssertEq (_CapMarcador '')                 ''         '_CapMarcador: buit'
+AssertEq (_CapMarcador '[[CAP:]]')         ''         '_CapMarcador: sense nom no val'
+# La plantilla ha de portar els tres blocs: generic (REQ1/TERMINI), ACT_EXTR i
+# LLIC. Es mira al .docx de debo, que es l'unica plantilla de Word que queda.
+$capPath = Join-Path $EstructuralsDir '0 CAPCALERA.docx'
+if (Test-Path -LiteralPath $capPath) {
+    $capTxt = _ReadDocxPartText $capPath 'word/document.xml'
+    Assert ([bool]($capTxt -like '*[[CAP:ACT_EXTR]]*')) '0 CAPCALERA.docx: hi ha el bloc ACT_EXTR'
+    Assert ([bool]($capTxt -like '*[[CAP:LLIC]]*'))     '0 CAPCALERA.docx: hi ha el bloc LLIC'
+    Assert ([bool]($capTxt -like '*CLASSIFICACIO*'))    '0 CAPCALERA.docx: hi ha el marcador de la classificacio'
+    # ...i NOMES una vegada: si estigues tambe al bloc generic, sortiria als
+    # REQ1, on no hi ha de ser.
+    AssertEq ([regex]::Matches($capTxt, 'CLASSIFICACIO').Count) 1 '0 CAPCALERA.docx: la classificacio nomes al bloc de Llicencia'
+}
+
 Write-Host "`n--- LLIC.json: la capa de Llicencia sobre REQ1 ---"
 # LLIC no es un cataleg de deficiencies: per cada requeriment de REQ1 hi desa
 # nomes el que es propi de Llicencia, i el text surt de REQ1 EN VIU. Per aixo:
@@ -1529,7 +1557,11 @@ if (Test-Path -LiteralPath $llicPath) {
     $llic = Get-Content -LiteralPath $llicPath -Raw -Encoding UTF8 | ConvertFrom-Json
     AssertEq ([string]$llic.familia) 'llicencia' 'LLIC.json: familia llicencia'
     $llicSecs = @($llic.nodes | ForEach-Object { [string]$_.titol })
-    AssertEq ($llicSecs -join ',') 'ABANS,DESPRES,PROPIS' 'LLIC.json: les tres seccions, en ordre'
+    AssertEq (($llicSecs | Select-Object -First 3) -join ',') 'ABANS,DESPRES,PROPIS' 'LLIC.json: les tres seccions de punts, en ordre'
+    Assert ([bool](@($llicSecs | Where-Object { $_ -like 'ANNEX 1*' }).Count -eq 1)) 'LLIC.json: hi ha la seccio de l''ANNEX 1'
+    # L'ANNEX 1 nomes va al REQUERIMENT d'una llicencia PROVISIONAL.
+    $annexSec = @($llic.nodes | Where-Object { [string]$_.titol -like 'ANNEX 1*' })[0]
+    Assert ([bool](@($annexSec.fills).Count -ge 15)) 'LLIC.json: l''ANNEX 1 porta tot el text (no s''ha quedat a mitges)'
     # Totes les claus han d'existir a REQ1.
     $req1 = Read-CatalegJson (Join-Path $EstructuralsDir 'REQ1.json')
     $clausReq1 = @{}
@@ -1563,7 +1595,71 @@ if (Test-Path -LiteralPath $llicPath) {
         }
     }
     AssertEq ($ambText -join ' | ') '' 'LLIC.json: cap punt lligat porta text propi (el text mana a REQ1)'
+
+    # --- Resolucio dels punts contra REQ1 (el cor de l'eina) ------------------
+    $idxR1 = _LlicIndexReq1 $req1
+    Assert ([bool]($idxR1.Count -gt 100)) '_LlicIndexReq1: indexa els items de REQ1'
+    foreach ($b in @('ABANS', 'DESPRES', 'PROPIS')) {
+        $r = _LlicPuntsPerBloc $llic $idxR1 $b
+        AssertEq (@($r.Orfes) -join ' | ') '' ("_LlicPuntsPerBloc " + $b + ": cap clau orfe")
+        Assert ([bool](@($r.Punts).Count -gt 0)) ("_LlicPuntsPerBloc " + $b + ": hi ha punts")
+    }
+    # El text ha de venir de REQ1, no de LLIC.
+    $pAbans = @((_LlicPuntsPerBloc $llic $idxR1 'ABANS').Punts)
+    $pSan = @($pAbans | Where-Object { [string]$_.Titol -eq 'Sanitat' })[0]
+    Assert ([bool](@($pSan.Cos).Count -gt 0)) '_LlicPuntsPerBloc: el punt agafa el cos de REQ1'
+    Assert ([bool]([string]@($pSan.Cos)[0] -like 'Sanitat.*')) '_LlicPuntsPerBloc: i es el text de REQ1 de debo'
+    Assert ([bool](@($pSan.NoDisposa).Count -gt 0)) '_LlicPuntsPerBloc: i el "No es disposa" de LLIC'
+    Assert ([bool](@($pSan.SiDisposa).Count -gt 0)) '_LlicPuntsPerBloc: i el "Es disposa" de LLIC'
+    # Una clau que ja no existeix a REQ1 s'ha de DENUNCIAR, no ignorar: si no,
+    # el punt desapareixeria de l'informe sense que ningu se n'assabentes.
+    $rOrfe = _LlicPuntsPerBloc $llic @{} 'ABANS'
+    Assert ([bool](@($rOrfe.Orfes).Count -ge 15)) '_LlicPuntsPerBloc: si REQ1 no te les claus, TOTES surten com a orfes'
+    AssertEq @($rOrfe.Punts).Count 0 '_LlicPuntsPerBloc: i cap punt no es dona per bo'
+    # El bloc DESPRES ha de portar el "Quan:".
+    $pDesp = @((_LlicPuntsPerBloc $llic $idxR1 'DESPRES').Punts)
+    Assert ([bool](@($pDesp | Where-Object { @($_.Quan).Count -gt 0 }).Count -ge 10)) '_LlicPuntsPerBloc DESPRES: els punts porten el "Quan:"'
 }
+
+Write-Host "`n--- Llicencia.ps1: fases, condicionals i textos ---"
+$llFases = @(_LlicFases)
+AssertEq $llFases.Count 3 '_LlicFases: els tres informes de la llicencia'
+AssertEq ([string]$llFases[0].Clau) 'requeriment' '_LlicFases: el primer es el requeriment'
+# Els dos punts CONDICIONALS: un nomes si es provisional i l'altre nomes si no.
+Assert (_LlicCondicioEntra 'annexii' $false)        '_LlicCondicioEntra: el d''Annex II entra si NO es provisional'
+Assert (-not (_LlicCondicioEntra 'annexii' $true))  '_LlicCondicioEntra: ...i no si ho es'
+Assert (_LlicCondicioEntra 'provisional' $true)     '_LlicCondicioEntra: el de l''AMB entra si ES provisional'
+Assert (-not (_LlicCondicioEntra 'provisional' $false)) '_LlicCondicioEntra: ...i no si no ho es'
+Assert (_LlicCondicioEntra '' $true)                '_LlicCondicioEntra: sense condicio, entra sempre'
+Assert (_LlicCondicioEntra '' $false)               '_LlicCondicioEntra: sense condicio, tambe sense provisional'
+# La conclusio de cada fase. Al favorable PRE, la coda de les condicions es
+# OPCIONAL: sense condicions la frase ha d'acabar amb un punt.
+$cReq = _LlicConclusioText 'requeriment' $false
+Assert ([bool]($cReq -like '*esmena de les defici*')) '_LlicConclusioText: requeriment'
+$cPreSense = _LlicConclusioText 'favorable-pre' $false
+$cPreAmb   = _LlicConclusioText 'favorable-pre' $true
+Assert ([bool]($cPreSense -like '*tancat l*expedient.')) '_LlicConclusioText: pre SENSE condicions acaba amb punt'
+Assert (-not ($cPreSense -like '*sota les seg*'))        '_LlicConclusioText: pre sense condicions NO promet condicions'
+Assert ([bool]($cPreAmb -like '*i sota les seg*ents condicions.')) '_LlicConclusioText: pre AMB condicions hi afegeix la coda'
+$cPost = _LlicConclusioText 'favorable-post' $false
+Assert ([bool]($cPost -like '*per tancat l*expedient.')) '_LlicConclusioText: post tanca l''expedient'
+AssertEq (_LlicConclusioText 'no-existeix' $false) '' '_LlicConclusioText: fase desconeguda -> buit'
+# L'entrada del post-llicencia: la visita d'inspeccio nomes si es provisional.
+Assert (-not ((_LlicEntradaPost $false) -like '*visita d*inspecci*')) '_LlicEntradaPost: sense visita si no es provisional'
+Assert ([bool]((_LlicEntradaPost $true) -like '*visita d*inspecci*'))  '_LlicEntradaPost: amb visita si ho es'
+# El paragraf del tecnic redactor.
+$td = _LlicTextDocumentacio 'Simon Aledo Vives' '1.780' 'COITI d''Alacant' '20 de febrer de 2024'
+Assert ([bool]($td -like '*Simon Aledo Vives*'))  '_LlicTextDocumentacio: hi surt el tecnic'
+Assert ([bool]($td -like '*1.780*'))              '_LlicTextDocumentacio: i el numero de col·legiat'
+Assert ([bool]($td -like '*20 de febrer de 2024.')) '_LlicTextDocumentacio: i la data, acabant amb punt'
+AssertEq (_LlicTextDocumentacio '' '1' 'X' 'Y') '' '_LlicTextDocumentacio: sense tecnic no hi ha paragraf'
+# Nom del fitxer: data al principi, com la resta d'informes (aixi "Actualitzar
+# base d'informes" el reconeix).
+$nf = _LlicNomFitxer ([datetime]'2026-08-03') 'requeriment' '1433' 'MANUEL CRUZ'
+AssertEq $nf '2026-08-03_LlicReq_GIA 1433_MANUEL CRUZ.docx' '_LlicNomFitxer: requeriment'
+Assert ([bool]((_LlicNomFitxer ([datetime]'2026-08-03') 'favorable-pre' '1' 'X') -like '*LlicFavPre*'))  '_LlicNomFitxer: favorable pre'
+Assert ([bool]((_LlicNomFitxer ([datetime]'2026-08-03') 'favorable-post' '1' 'X') -like '*LlicFavPost*')) '_LlicNomFitxer: favorable post'
+Assert (-not ((_LlicNomFitxer ([datetime]'2026-08-03') 'requeriment' '1' 'A/B:C') -match '[\\/:*?"<>|]')) '_LlicNomFitxer: fora els caracters que Windows no admet'
 AssertEq (_VistaActExtrTitol '[[INCENDIS]] Incendis') 'Incendis  [INCENDIS]' '_VistaActExtrTitol: etiqueta + clau'
 AssertEq (_VistaActExtrTitol '[[MEMORIA_A]] ::CHILD:: a) Identificacio') 'a) Identificacio  [MEMORIA_A]' '_VistaActExtrTitol: treu el token'
 AssertEq (_VistaActExtrTitol '[[REQ_INTRO]]') 'REQ_INTRO' '_VistaActExtrTitol: sense etiqueta -> la clau'

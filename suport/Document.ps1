@@ -17,29 +17,57 @@
 # ----------------------------------------------------------------------------
 # Step 6 - Compose final document
 # ----------------------------------------------------------------------------
+# Nom del paragraf marcador que separa els blocs de 0 CAPCALERA.docx. Funcio
+# PURA: d'un text de paragraf en treu el TIPUS de bloc que comenca, o '' si
+# aquell paragraf no es cap marcador.
+#   "[[CAP:ACT_EXTR]]" -> 'ACT_EXTR'
+function _CapMarcador([string]$text) {
+    $t = ([string]$text).Trim()
+    if ($t -match '^\[\[CAP:([A-Z_0-9]+)\]\]$') { return $Matches[1] }
+    return ''
+}
+
 # Retalla 0 CAPCALERA.docx per quedar-se nomes amb el bloc de capcalera demanat.
-# El document pot contenir DUES capcaleres: la de REQ1 (a dalt, l'original) i la
-# d'ACT_EXTR (a sota), separades per un paragraf marcador "[[CAP:ACT_EXTR]]".
-#   $which = 'REQ1'     -> esborra des del marcador fins al final (i el marcador).
-#   $which = 'ACT_EXTR' -> esborra des de l'inici fins al marcador (inclos).
-# Si el marcador no existeix (capcalera antiga, nomes REQ1), no fa res. Aixi es
-# retrocompatible amb una 0 CAPCALERA.docx que encara no tingui el bloc ACT_EXTR.
+#
+# El document porta els blocs un darrere l'altre, separats per paragrafs
+# marcadors "[[CAP:XXX]]". El PRIMER bloc (el de dalt, sense marcador) es el
+# generic: REQ1, TERMINI i qualsevol cataleg nou. Els de sota son els especifics
+# ('ACT_EXTR', 'LLIC'...).
+#
+# Si el bloc demanat no hi es (capcalera antiga), es queda amb el generic: aixi
+# una 0 CAPCALERA.docx que encara no tingui el bloc nou segueix funcionant, que
+# es el que ha de passar mentre l'usuari no l'hagi actualitzada.
 function Select-CapcaleraBlock($doc, [string]$which) {
-    $marker = $null
+    # Tots els marcadors, en ordre: @{ Tipus; Start; End } del seu paragraf.
+    $marcadors = New-Object System.Collections.ArrayList
     foreach ($p in $doc.Paragraphs) {
-        $t = $p.Range.Text.TrimEnd("`r","`n","`a"," ")
-        if ($t.Trim() -eq '[[CAP:ACT_EXTR]]') { $marker = $p; break }
+        $t = $p.Range.Text.TrimEnd("`r", "`n", "`a", " ")
+        $tipus = _CapMarcador $t
+        if (-not [string]::IsNullOrWhiteSpace($tipus)) {
+            [void]$marcadors.Add(@{ Tipus = $tipus; Start = $p.Range.Start; End = $p.Range.End })
+        }
     }
-    if ($null -eq $marker) { return }   # nomes hi ha la capcalera REQ1: res a fer
-    if ($which -eq 'ACT_EXTR') {
-        # Esborra tot el que hi ha ABANS del marcador (bloc REQ1 + taula) i el
-        # propi marcador.
-        $rng = $doc.Range(0, $marker.Range.End)
-        $rng.Delete() | Out-Null
-    } else {
-        # REQ1: esborra des del marcador (inclos) fins al final del document.
-        $rng = $doc.Range($marker.Range.Start, $doc.Content.End)
-        $rng.Delete() | Out-Null
+    if ($marcadors.Count -eq 0) { return }   # capcalera d'un sol bloc: res a fer
+
+    # Quin tros ens quedem: [inici, fi) del bloc demanat.
+    $iniciBloc = 0
+    $fiBloc = [int]$marcadors[0].Start          # generic: fins al 1r marcador
+    if (-not [string]::IsNullOrWhiteSpace($which)) {
+        for ($i = 0; $i -lt $marcadors.Count; $i++) {
+            if ([string]$marcadors[$i].Tipus -ne $which) { continue }
+            $iniciBloc = [int]$marcadors[$i].End
+            $fiBloc = if ($i -lt ($marcadors.Count - 1)) { [int]$marcadors[$i + 1].Start } else { [int]$doc.Content.End }
+            break
+        }
+    }
+
+    # S'esborra primer el tros de SOTA i despres el de sobre: si es fes al reves,
+    # les posicions del de sota ja no servirien (el document s'escurca).
+    if ($fiBloc -lt [int]$doc.Content.End) {
+        $doc.Range($fiBloc, $doc.Content.End).Delete() | Out-Null
+    }
+    if ($iniciBloc -gt 0) {
+        $doc.Range(0, $iniciBloc).Delete() | Out-Null
     }
 }
 
@@ -94,6 +122,8 @@ function Apply-HeaderReplacements($doc, $header) {
         '<<DATA_INSPECCIO>>' = (& $get 'DATA_INSPECCIO')
         '<<DATES>>'          = (& $get 'DATES')
         '<<AFORAMENT>>'      = (& $get 'AFORAMENT')
+        # Nomes a la capcalera de Llicencia: "Llei 20/2009; II; Epigraf 12.25".
+        '<<CLASSIFICACIO>>'  = (& $get 'CLASSIFICACIO')
     }
     foreach ($k in $map.Keys) {
         $find = $doc.Content.Find
@@ -385,7 +415,8 @@ function Build-Document($word, $header, $selectedSections, $fields, $conclusions
 
     # 0 CAPCALERA.docx pot portar tambe el bloc d'ACT_EXTR a sota; ens quedem
     # nomes amb el bloc de REQ1 (no fa res si el marcador no hi es).
-    Select-CapcaleraBlock $doc 'REQ1'
+    # '' = el bloc generic (el primer). REQ1, TERMINI i qualsevol cataleg nou.
+    Select-CapcaleraBlock $doc ''
     Apply-HeaderReplacements -doc $doc -header $header
 
     $doc.Activate()

@@ -388,6 +388,7 @@ if (-not $Script:HeadlessTest) { [void](Invoke-MigracioLocal $RepoRoot) }
 # dades d'activitats, en Excel o en PDF. Les funcions de dades son pures i es
 # proven en headless; nomes la construccio del llibre fa servir Excel (COM).
 . (Join-Path $ScriptRoot 'SeguimentGia.ps1')
+. (Join-Path $ScriptRoot 'Llicencia.ps1')
 
 # Editor dels textos del correu del mobil (docs\dades\email-textos.json).
 # Funcions pures testejables; la finestra (WinForms) nomes a Windows.

@@ -85,6 +85,39 @@ Sobre un informe ja emès, marques quins punts s'han resolt i quins no. És
 només l'última entrega pendent queda en negreta. Les conclusions es
 regeneren amb les del grup **SEGUIMENT**.
 
+### Llicència (Annex II / LL Prov)
+
+Botó **📜 Llicència (Annex II / LL Prov)**. És el tràmit de llicència d'activitat
+de l'Annex II de la Llei 20/2009 i el de llicència provisional. **No és un
+informe, són tres**, i tries quin fas al primer pas:
+
+| Fase | Com acaba |
+|------|-----------|
+| **Requeriment** | «Cal requerir l'esmena de les deficiències indicades…» |
+| **Favorable pre-llicència** | «S'informa favorablement a l'espera de rebre la citada documentació…» |
+| **Favorable post-llicència** | «S'informa favorablement l'activitat i es dóna per tancat l'expedient.» |
+
+Al mateix pas hi ha la casella **«Llicència provisional»**, que canvia el punt
+condicional del principi (compatibilitat urbanística) i afegeix l'**ANNEX 1** al
+final — però **només** a la fase de Requeriment.
+
+Passos: fase → capçalera (amb la **Classificació** ja omplerta des de l'Excel:
+`Llei 20/2009; Annex II; Epígraf …`) → documentació **abans** de la resolució →
+**Projecte** (la mateixa pantalla de deficiències de sempre) → dades del tècnic
+redactor i els Id Firmadoc → documentació **després** de la resolució (amb el
+«Quan:») → i, si és el favorable pre, les **condicions** de la llicència, en un
+quadre de text lliure.
+
+La diferència amb un requeriment normal és que aquí els punts **no són
+deficiències sinó documentació**, i surten tant si es té com si no: de cada punt
+tries **«No es disposa…»** (surt en negreta) o **«Es disposa… (Id Firmadoc: …)»**.
+
+> **D'on surt el text:** de **REQ1**, en viu. `LLIC.json` només hi afegeix el que
+> és propi de Llicència (els dos comentaris i el «Quan:»); si canvies un
+> requeriment a REQ1, aquí canvia sol. Si algú reanomena un requeriment de REQ1,
+> el programa **avisa** que aquell punt s'ha quedat sense text en lloc de
+> callar-s'ho.
+
 ### Ruta d'inspecció
 
 Botó **📍 Generar ruta**. Escrius els ID d'activitat a visitar i et calcula la
@@ -196,11 +229,28 @@ Quan deses, el programa **regenera les vistes en Word** i, en fer
 `Actualitzar.bat`, **puja els teus catàlegs al GitHub**. Els teus canvis
 sempre manen: si el repositori ha tocat el mateix fitxer, guanya la teva versió.
 
+### El catàleg de Llicència (`LLIC.json`)
+
+És diferent de la resta i val la pena saber-ho abans de tocar-lo: **no hi ha el
+text dels requeriments**. Cada punt hi porta només una **clau** que apunta a un
+requeriment de REQ1 (bloquejada a l'editor, com la d'ACT_EXTR) i el que és propi
+de Llicència:
+
+| Tipus | Què és |
+|---|---|
+| `nodisposa` | El comentari de quan **falta** la documentació. |
+| `sidisposa` | El de quan **ja es té** (hi va l'Id Firmadoc). |
+| `quan` | El «Quan:» del bloc de després de la resolució. |
+
+Els punts que **no** existeixen a REQ1 (els dos condicionals de compatibilitat i
+l'ANNEX 1) van a la secció `PROPIS` i sí que hi porten el text sencer.
+
 ### Afegir un catàleg nou
 
 Posa un `.json` nou a `ESTRUCTURALS` (el més fàcil: copia'n un i edita'l amb
-l'editor). Apareixerà tot sol al menú. Els que comencen per `0 ` i els
-`ACT_EXTR_*` no surten al menú d'informes nous: són fitxers de sistema.
+l'editor). Apareixerà tot sol al menú. Els que comencen per `0 `, els
+`ACT_EXTR_*` i `LLIC` no surten al menú d'informes nous: són fitxers de sistema
+(el de Llicència té botó propi).
 
 ### Comprovar que els enllaços funcionen
 
