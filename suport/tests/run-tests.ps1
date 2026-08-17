@@ -1324,6 +1324,29 @@ AssertEq ([bool]($afNoFilter -contains '-filter')) $false '_BuildAutoFirmaSignAr
 # nostre amb el d'un de signat a ma (mateix certificat!), les uniques
 # diferencies eren el SubFilter i que nosaltres encastavem TOTA la cadena
 # (arrel + subCA + signant) i el que funciona, nomes el signant.
+# ASPECTE del caixeti. Per defecte, el que dibuixa l'AutoFirma (el mateix que
+# l'eina "Utilizar un certificado" de l'Adobe): nomes se li diu ON va. El
+# caixeti propi (lletra, contorn, escut) NO s'ha esborrat: es recupera posant
+# $Script:CaixetiAspecte a 'propi'.
+AssertEq ([string]$Script:CaixetiAspecte) 'defecte' 'CaixetiAspecte: per defecte, el de l''AutoFirma'
+$casDef = @(_CaixetiCascada "Nom`nCarrec")
+AssertEq $casDef.Count 1 '_CaixetiCascada: aspecte per defecte -> un sol intent'
+AssertEq ([string]$casDef[0].Mode) 'defecte' '_CaixetiCascada: i es el mode defecte'
+AssertEq (@(_CaixetiCascada '').Count) 0 '_CaixetiCascada: sense caixeti no hi ha cap intent'
+$epDef = _AutoFirmaVisibleExtraParams "Nom`nCarrec" $null 'defecte'
+Assert ($epDef.Contains('signaturePage=1')) '_AutoFirmaVisibleExtraParams: el mode defecte diu ON va'
+Assert (-not $epDef.Contains('layer2Text')) '_AutoFirmaVisibleExtraParams: ...i cap text nostre'
+Assert (-not $epDef.Contains('signatureRubricImage')) '_AutoFirmaVisibleExtraParams: ...ni cap imatge'
+AssertEq (@($epDef -split '\\n').Count) 5 '_AutoFirmaVisibleExtraParams: el mode defecte son NOMES les 5 linies de posicio'
+AssertEq (_AutoFirmaVisibleExtraParams '' $null 'defecte') '' '_AutoFirmaVisibleExtraParams: sense caixeti, signatura invisible (com sempre)'
+# El caixeti propi segueix sencer al fitxer: si algun dia es vol tornar, hi es.
+$capPropi = $Script:CaixetiAspecte
+$Script:CaixetiAspecte = 'propi'
+$casPropi = @(_CaixetiCascada "Nom`nCarrec")
+AssertEq $casPropi.Count 2 '_CaixetiCascada: amb ''propi'' tornen els dos intents (imatge i text)'
+AssertEq ([string]$casPropi[0].Mode) 'imatge' '_CaixetiCascada: ...i el primer segueix sent la imatge'
+$Script:CaixetiAspecte = $capPropi
+
 $afCompat = @(_AutoFirmaCompatLines)
 Assert ([bool]($afCompat -contains 'signatureSubFilter=adbe.pkcs7.detached')) '_AutoFirmaCompatLines: SubFilter classic, com el que valida arreu'
 # El nom del parametre porta DUES ENES ("Signning") al Client @firma. Si algu

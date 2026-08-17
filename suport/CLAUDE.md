@@ -803,6 +803,15 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
       anys és un **segell de temps (TSA)** + dades de revocació (PAdES-LTV).
       AutoFirma ho admet (`tsaURL`, `tsaPolicy`, `tsaHashAlgorithm`…), però cal
       una TSA a què l'Ajuntament doni accés.
+  - **L'ASPECTE del caixetí està a `$Script:CaixetiAspecte`** i ara val
+    `'defecte'`: només se li diu **on** va (les coordenades de sempre) i el
+    dibuixa AutoFirma, que és el mateix que surt amb l'eina *"Utilizar un
+    certificado"* de l'Adobe. Amb `'propi'` torna el caixetí nostre (lletra,
+    interlineat, contorn i escut de fons): **no s'ha esborrat res**, tot el codi
+    hi és i hi ha proves que ho comproven. Es va canviar a petició de l'usuari
+    mentre es perseguia el problema de validesa; **que quedi dit: l'aspecte no
+    pot canviar la validesa** — el que es valida és el certificat i la seva
+    cadena, no el dibuix.
   - **Reintents escalats**: caixetí **(imatge)** → caixetí **(text d'una línia)**
     → **sense** caixetí. Així mai es queda un PDF sense signar i del registre se'n
     dedueix quin ha funcionat. Al registre la imatge surt **resumida** (mida en

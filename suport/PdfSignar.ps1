@@ -124,6 +124,28 @@ $Script:CaixetiIntents = @(
     @{ Format = 'jpeg'; Escala = 2; Qualitat = 95 }
 )
 
+# ----------------------------------------------------------------------------
+# QUIN ASPECTE TE EL CAIXETI
+# ----------------------------------------------------------------------------
+#   'defecte' -> el que dibuixa AutoFirma tot sol: el mateix que surt amb l'eina
+#                "Utilizar un certificado" de l'Adobe ("Firmado digitalmente por
+#                NOM / Fecha: ..."). NOMES se li diu ON va (les mateixes
+#                coordenades de sempre), res mes.
+#   'propi'   -> el caixeti dibuixat per nosaltres: la lletra, l'interlineat, el
+#                contorn i l'escut de l'Ajuntament de fons (tot el que hi ha a
+#                $Script:CaixetiEstil, _BuildCaixetiImageBase64, _IcoTriaFrame...).
+#
+# PER QUE ES A 'defecte': als ordinadors dels companys la signatura sortia com a
+# desconeguda i, provat tot el que era del CERTIFICAT sense sort, l'usuari va
+# demanar de deixar-hi la signatura tal com la fa l'Adobe, a les mateixes
+# coordenades. NOTA, perque no s'oblidi: l'ASPECTE no pot canviar la validesa
+# -el que es valida es el certificat i la seva cadena, no el dibuix-, aixi que
+# si aixo tampoc no ho arregla, el problema segueix sent un altre.
+#
+# NO S'HA ESBORRAT RES del caixeti propi: es tot al fitxer i es recupera posant
+# aquesta variable a 'propi'.
+$Script:CaixetiAspecte = 'defecte'
+
 # Quin intent ha entrat, per al registre. Serveix per saber, sense endevinar, si
 # el caixetí ha sortit com a imatge i amb quina resolució.
 $Script:CaixetiUltimIntent = ''
@@ -520,11 +542,20 @@ function _AutoFirmaPosLines {
 #               base64). Es l'unica manera de tenir-lo de VARIES LINIES.
 #               El base64 (A-Z a-z 0-9 + / =) no pot contenir mai cap '\',
 #               o sigui que no trenca el separador.
+#   'defecte' -> NOMES la posicio: ni rubrica ni layer2Text. AutoFirma hi dibuixa
+#               llavors el seu caixeti de sempre, que es el mateix que fa l'eina
+#               "Utilizar un certificado" de l'Adobe. El text del caixeti no
+#               s'hi fa servir; nomes serveix per saber que se'n vol un de
+#               VISIBLE (buit = signatura invisible, com sempre).
 function _AutoFirmaVisibleExtraParams([string]$caixeti, $ara = $null, [string]$mode = 'text') {
     if ([string]::IsNullOrWhiteSpace($caixeti)) { return '' }
     if ($null -eq $ara) { $ara = Get-Date }
     $resolt = _ResolveCaixetiDate $caixeti ([datetime]$ara)
     $lines = @(_AutoFirmaPosLines)
+    if ($mode -eq 'defecte') {
+        # Res mes: on va, i que se l'hi pinti ell.
+        return ($lines -join $Script:AutoFirmaConfigSep)
+    }
     if ($mode -eq 'imatge') {
         # El caixeti-imatge necessita System.Drawing, que nomes hi es a Windows.
         # El guard va AQUI i no dins de _BuildCaixetiImageBase64: alli no serviria
@@ -542,6 +573,29 @@ function _AutoFirmaVisibleExtraParams([string]$caixeti, $ara = $null, [string]$m
     $lines += 'layer2FontSize=8'
     $lines += "layer2Text=$unaLinia"
     return ($lines -join $Script:AutoFirmaConfigSep)
+}
+
+# Els intents de caixeti, en ordre de preferencia, segons $Script:CaixetiAspecte.
+# Funcio PURA (retorna un ARRAY PLA de @{ Nom; Text; Mode }).
+#
+# El crider hi afegeix sempre, al final, l'intent 'sense caixeti': val mes un PDF
+# signat sense caixeti que cap PDF signat.
+function _CaixetiCascada([string]$caixeti) {
+    if ([string]::IsNullOrWhiteSpace($caixeti)) { return @() }
+    if ([string]$Script:CaixetiAspecte -eq 'propi') {
+        # 1r: IMATGE (l'unica manera de tenir-lo de diverses linies).
+        # 2n: TEXT d'una linia (comprovat que AutoFirma l'accepta).
+        return @(
+            @{ Nom = 'caixeti (imatge)';             Text = $caixeti; Mode = 'imatge' }
+            @{ Nom = 'caixeti (text d''una linia)';  Text = $caixeti; Mode = 'text' }
+        )
+    }
+    # 'defecte': el d'AutoFirma, a les nostres coordenades. Un sol intent: no hi
+    # ha res a negociar (ni imatge que hi hagi de cabre, ni text que es pugui
+    # partir), o hi entra o cau a 'sense caixeti'.
+    return @(
+        @{ Nom = 'caixeti (aspecte per defecte)'; Text = $caixeti; Mode = 'defecte' }
+    )
 }
 
 # Construeix la LLISTA d'arguments (ARRAY PLA) per signar un PDF amb AutoFirma.
@@ -907,8 +961,16 @@ function _ShowConvertPdfOptions {
     [void]$form.Controls.Add($cbLog)
     $y += 26
 
+    # Amb l'aspecte per DEFECTE, el caixetí el dibuixa l'AutoFirma (com l'eina
+    # "Utilizar un certificado" de l'Adobe) i aquest text no s'hi fa servir. Es
+    # deixa igualment -es el que es recuperaria en tornar a $CaixetiAspecte
+    # 'propi'- pero es diu clar, que si no sembla espatllat.
     $lblCx = New-Object System.Windows.Forms.Label
-    $lblCx.Text = 'Text del caixetí (una línia per fila; $$SIGNDATE=...$$ = data):'
+    $lblCx.Text = if ([string]$Script:CaixetiAspecte -eq 'propi') {
+        'Text del caixetí (una línia per fila; $$SIGNDATE=...$$ = data):'
+    } else {
+        'Text del caixetí (ara no s''usa: el dibuixa l''AutoFirma, com l''Adobe):'
+    }
     $lblCx.Location = New-Object System.Drawing.Point(34, $y)
     $lblCx.AutoSize = $true
     $lblCx.Font = New-Object System.Drawing.Font('Segoe UI', 8.5, [System.Drawing.FontStyle]::Regular)
@@ -1107,10 +1169,7 @@ function _RunConvertPdf($opts) {
                     # PDF signat sense caixetí que cap PDF signat.
                     $intents = New-Object System.Collections.ArrayList
                     if ($caixeti) {
-                        # 1r: IMATGE (l'unica manera de tenir-lo de diverses linies).
-                        # 2n: TEXT d'una linia (comprovat que AutoFirma l'accepta).
-                        [void]$intents.Add(@{ Nom = 'caixeti (imatge)'; Text = $caixeti; Mode = 'imatge' })
-                        [void]$intents.Add(@{ Nom = 'caixeti (text d''una linia)'; Text = $caixeti; Mode = 'text' })
+                        [void]$intents.AddRange(@(_CaixetiCascada $caixeti))
                     }
                     [void]$intents.Add(@{ Nom = 'sense caixeti'; Text = ''; Mode = 'text' })
 
