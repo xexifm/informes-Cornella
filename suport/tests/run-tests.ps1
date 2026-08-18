@@ -1884,6 +1884,15 @@ $petat = $false
 try { [void](_PdfPosaCms $pdfFals $fCap.HexStart $fCap.HexLen (New-Object byte[] 500)) } catch { $petat = $true }
 AssertEq $petat $true '_PdfPosaCms: si el CMS no hi cap, peta (no escriu a mitges)'
 
+# On es busca l'Adobe per al mode de signatura a ma. Rutes en text pla (amb
+# Join-Path petarien fora de Windows per la unitat C:).
+$adC = @(_AdobeExeCandidats 'C:\PF' 'C:\PF86')
+AssertEq $adC.Count 6 '_AdobeExeCandidats: 3 rutes per cada Program Files'
+Assert ([bool]($adC[0] -like 'C:\PF\Adobe\*Acrobat.exe')) '_AdobeExeCandidats: primer l''Acrobat complet'
+Assert ([bool]($adC -like '*AcroRd32.exe').Count -eq 4) '_AdobeExeCandidats: i els Readers'
+AssertEq (@(_AdobeExeCandidats 'C:\PF' '').Count) 3 '_AdobeExeCandidats: sense Program Files (x86), nomes 3'
+AssertEq (@(_AdobeExeCandidats '' '').Count) 0 '_AdobeExeCandidats: sense res, cap ruta (i cap petada)'
+
 # EL CMS SENCER, amb un certificat EFIMER creat en memoria: es prova el cicle
 # complet (crear -> igualar l'OID com l'Adobe -> comprovar -> posar-lo dins d'un
 # PDF sintetic i rellegir-lo). Aixi el cami que corre a Windows es exactament el

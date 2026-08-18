@@ -919,6 +919,25 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
       després cal marcar la Integració amb Windows a l'Adobe (o «Agregar a
       certificados de confianza» des del propi PDF). ASCII pur (els `.bat` amb
       accents es trenquen amb les codepages).
+    - **6a ronda — el requisit real de l'usuari**: la firma ha de sortir vàlida
+      **també fora de la feina**, sense que cap receptor instal·li res. L'únic
+      artefacte que ho compleix EMPÍRICAMENT és el PDF signat pel **propi
+      Adobe**. Per això el diàleg té ara **dos modes de signatura**
+      (`SignMode` a l'estat/opcions; per defecte `'adobe'`):
+      - **`adobe`**: l'eina obre cada PDF a l'Adobe (`_TrobaAdobeExe` /
+        `_AdobeExeCandidats`, rutes en text pla — `Join-Path` peta fora de
+        Windows), l'usuari signa a mà, i en dir «Sí» es **comprova** que hi hagi
+        firma de debò (`_PdfTrobaFirma`); si no n'hi ha (desada amb un altre
+        nom!), s'avisa i es compta a part (`$senseFirmaAdobe`). `Cancel·la`
+        atura la resta. El certificat/caixetí/AutoFirma del diàleg es
+        desactiven en aquest mode.
+      - **`autofirma`**: tot el pipeline d'abans (AutoFirma + repack + caixetí),
+        intacte i encara provat per la suite. Vàlid on es confiï en l'AOC.
+      La qüestió de fons (per què el mateix CMS byte-idèntic es fia en un fitxer
+      i en l'altre no en aquells ordinadors) segueix SENSE explicació mesurada:
+      la pestanya **Confianza** de l'Adobe d'un company amb els dos fitxers és
+      la dada que falta. No barrejar les dues coses: el mode `adobe` és el camí
+      pràctic, no la resposta al misteri.
     - **Pendent**: el que faria la firma validable a qualsevol banda i d'aquí a
       anys és un **segell de temps (TSA)** + dades de revocació (PAdES-LTV).
       AutoFirma ho admet (`tsaURL`, `tsaPolicy`, `tsaHashAlgorithm`…), però cal

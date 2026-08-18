@@ -141,9 +141,19 @@ amb un mapa numerat que pots imprimir a PDF. Els mapes van a
 
 Botó **📄 Word a PDF**. Per defecte hi surt **l'últim informe que has generat**;
 pots triar-ne un altre o una carpeta sencera. Converteix a PDF al mateix lloc i,
-si ho marques, els signa amb l'**AutoFirma** i el teu certificat de Windows,
-amb el caixetí a dalt a la dreta de la primera pàgina, alineat amb l'escut i el
-marge dret de la capçalera de l'informe.
+si ho marques, els signa. Hi ha **dues maneres de signar**:
+
+- **Amb l'Adobe, a mà** *(per defecte)*: l'eina obre cada PDF a l'Adobe, el
+  signes allà (com feies amb els manuals) i, quan dius que ja està, **comprova
+  que la firma hi sigui de debò**. És la **única** signatura que s'ha comprovat
+  que surt vàlida a tot arreu — també fora de l'Ajuntament — sense que el
+  receptor hagi d'instal·lar res.
+- **Amb AutoFirma, automàtica**: sense clics, amb el caixetí alineat amb la
+  capçalera. Tècnicament és una signatura perfecta (idèntica a la de l'Adobe,
+  comprovat byte a byte), però hi ha ordinadors on l'Adobe no es refia de
+  l'entitat emissora i la mostra com a «desconeguda». Fes-la servir per a
+  documents interns, o quan els receptors tinguin la confiança amb l'AOC
+  instal·lada (`suport/Confiar-certificats-AOC.bat`).
 
 El text del caixetí és editable a les opcions. Allà mateix hi ha la casella
 **«Obrir el registre de la signatura en acabar»**: normalment la vols desmarcada;
