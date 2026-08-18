@@ -780,7 +780,9 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
       A.1`). O sigui que **no era el certificat**, ni caducat ni res.
     - Diferències reals: el nostre anava amb `SubFilter` **`ETSI.CAdES.detached`**
       i **3 certificats a dins** (arrel + subCA + signant), amb
-      `signingCertificateV2` i la política de firma de l'AGE; el que funciona,
+      `signingCertificateV2` (els OID de política que s'hi veuen són **del
+      certificat**, dins d'aquell atribut: **no** hi ha cap política de firma —
+      les preferències d'AutoFirma diuen «Ninguna política»); el que funciona,
       **`adbe.pkcs7.detached`** i **només 1** (el signant). **Cap dels dos** porta
       segell de temps ni dades de revocació (el `revocationInfoArchival` del que
       funciona és un SET **buit**).
@@ -799,6 +801,37 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
       `-config` només existia si hi havia caixetí i una signatura invisible no
       se n'hauria beneficiat.
     - Per tornar enrere: `$Script:SignaturaCompat`, i prou.
+    - **3a ronda, amb els DOS PDF del MATEIX ordinador** (el signat a mà surt
+      vàlid, el nostre desconegut): això **retira definitivament** la teoria del
+      magatzem de confiança de l'altre PC — és el fitxer. I els dos canvis
+      anteriors **sí que van entrar** (el PDF ja porta `adbe.pkcs7.detached` i
+      un sol certificat), o sigui que **tampoc no eren la causa**.
+    - **L'OID de l'algorisme tampoc.** Al `SignerInfo` nosaltres emetíem
+      `rsaEncryption` i Adobe `sha256WithRSAEncryption`. Es va poder provar
+      **sense tornar a signar**, perquè aquell camp **no està cobert per la
+      signatura**: es va canviar **1 sol byte** del PDF ja signat (l'OID passa de
+      `…01 01 01` a `…01 01 0B`, mateixa llargada, `/ByteRange` intacte),
+      l'OpenSSL seguia dient *CMS Verification successful*… i l'Adobe seguia
+      dient desconegut. **Aquest truc del byte és reutilitzable** per provar
+      qualsevol cosa que estigui fora dels `signedAttrs`.
+    - **L'única diferència que queda: `signingCertificateV2`** (atribut ESS que
+      AutoFirma posa i Adobe no). El seu `certHash` és **correcte** (SHA-256 del
+      certificat, comprovat), però l'atribut hi porta a dins un camp
+      **`policies`** amb les polítiques del certificat — i el **RFC 5035** diu
+      que això **no és informatiu**: obliga a validar la cadena **restringida a
+      aquelles polítiques**. Al PC de l'usuari, amb tota la cadena de l'AOC
+      instal·lada, passa; en un altre, no. Això explica per què encastar o no la
+      cadena no va canviar res: el que falla no és **trobar** els pares, és
+      **validar-los sota aquelles polítiques**.
+    - `signingCertificateV2=false` demana la versió antiga de l'atribut
+      (SigningCertificate, RFC 2634), que **no porta `policies`**. És l'últim
+      recurs abans de muntar la signatura nosaltres.
+    - **Si això tampoc**: no queda cap paràmetre d'AutoFirma. El camí és
+      **signar des del programa** (`SignedCms` de .NET amb el certificat de
+      `Cert:\CurrentUser\My` + actualització incremental del PDF), reproduint
+      el que fa Adobe: `signedAttrs` només contentType + messageDigest, sense
+      cap atribut ESS, un sol certificat i `adbe.pkcs7.detached`. Es té el PDF
+      vàlid de l'usuari com a **model exacte** a reproduir.
     - **Pendent**: el que faria la firma validable a qualsevol banda i d'aquí a
       anys és un **segell de temps (TSA)** + dades de revocació (PAdES-LTV).
       AutoFirma ho admet (`tsaURL`, `tsaPolicy`, `tsaHashAlgorithm`…), però cal

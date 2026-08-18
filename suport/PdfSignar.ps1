@@ -491,6 +491,27 @@ $Script:AutoFirmaConfigSep = '\n'
 # Que falli TAMBE al visor corporatiu -que es de servidor i te la llista de
 # confianca ben posada- apunta a una cosa del FITXER, no de cada PC.
 #
+# MESURAT DESPRES (3a ronda, amb els dos PDF del MATEIX ordinador): ni el
+# SubFilter ni la cadena encastada no eren la causa -els dos canvis van entrar i
+# la signatura seguia sortint desconeguda- i l'OID de l'algorisme tampoc (es va
+# provar canviant NOMES aquell byte al PDF ja signat: l'OpenSSL seguia validant
+# el CMS i l'Adobe seguia dient desconegut).
+#
+# L'UNICA diferencia que queda es l'atribut ESS 'signingCertificateV2', que
+# l'AutoFirma hi posa i l'Adobe no. I no nomes identifica el certificat: hi
+# porta a dins un camp 'policies' amb les politiques del certificat, i el
+# RFC 5035 diu que aixo NO es informatiu -obliga el validador a validar la
+# cadena RESTRINGIDA a aquelles politiques. Al PC de l'usuari, que te tota la
+# cadena de l'AOC instal·lada, la comprovacio passa; en un altre, no. Aixo
+# explica per que canviar la cadena encastada no va servir de res: el que falla
+# no es trobar els pares, es validar-los sota aquelles politiques.
+#
+# 'signingCertificateV2=false' li demana la versio ANTIGA de l'atribut
+# (SigningCertificate, RFC 2634), que NO porta camp 'policies'. Es l'ultim
+# recurs que no obliga a muntar la signatura nosaltres mateixos; si l'AutoFirma
+# l'ignora (el registre ho dira) o si aixo tampoc no ho arregla, el cami que
+# queda es signar des del programa, reproduint el que fa l'Adobe.
+#
 # Per aixo la firma es fa ara com la que funciona. Si algun dia es vol tornar
 # enrere, es aquest hashtable i prou.
 $Script:SignaturaCompat = @{
@@ -498,6 +519,10 @@ $Script:SignaturaCompat = @{
     NomesCertificatSignant = $true
     # SubFilter classic d'Adobe en lloc del PAdES/CAdES.
     SubFilterClassic       = $true
+    # L'atribut ESS en la versio ANTIGA (SigningCertificate, RFC 2634) en lloc de
+    # SigningCertificateV2 (RFC 5035). Vegeu el comentari de sota: es l'unica
+    # diferencia que queda amb la signatura que SI es valida a tot arreu.
+    SenseSigningCertV2     = $true
 }
 
 # Les linies de compatibilitat per al -config. Funcio PURA.
@@ -510,6 +535,9 @@ function _AutoFirmaCompatLines {
     }
     if ($Script:SignaturaCompat.NomesCertificatSignant) {
         $l += 'includeOnlySignningCertificate=true'
+    }
+    if ($Script:SignaturaCompat.SenseSigningCertV2) {
+        $l += 'signingCertificateV2=false'
     }
     return $l
 }

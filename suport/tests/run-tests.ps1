@@ -1352,6 +1352,11 @@ Assert ([bool]($afCompat -contains 'signatureSubFilter=adbe.pkcs7.detached')) '_
 # El nom del parametre porta DUES ENES ("Signning") al Client @firma. Si algu
 # el "corregeix", AutoFirma l'ignora en silenci i tornem a encastar la cadena.
 Assert ([bool]($afCompat -contains 'includeOnlySignningCertificate=true')) '_AutoFirmaCompatLines: nomes el certificat del signant (ull: Signning, amb dues enes)'
+# L'atribut ESS en la versio ANTIGA (RFC 2634): la V2 hi porta un camp 'policies'
+# amb les politiques del certificat i el RFC 5035 obliga a validar la cadena
+# RESTRINGIDA a aquelles politiques. Es l'unica diferencia que quedava amb la
+# signatura de l'Adobe, que valida a tot arreu.
+Assert ([bool]($afCompat -contains 'signingCertificateV2=false')) '_AutoFirmaCompatLines: l''atribut ESS sense el camp de politiques'
 # Hi han de ser SEMPRE, tambe quan no hi ha caixeti: abans el -config nomes
 # existia si hi havia caixeti i una signatura invisible no se n'hauria
 # beneficiat.
@@ -1432,14 +1437,14 @@ AssertEq ([bool]($argvSense -contains 'C:\a b\in.pdf')) $true '_BuildAutoFirmaSi
 # ordinadors dels altres, i amb caixeti o sense fa igual.
 AssertEq ([bool]($argvSense -contains '-config')) $true '_BuildAutoFirmaSignArgv: sense caixetí, el -config hi es igualment (compatibilitat)'
 $valSense = [string]$argvSense[[Array]::IndexOf($argvSense, '-config') + 1]
-AssertEq (@($valSense -split '\\n').Count) 2 '_BuildAutoFirmaSignArgv: sense caixetí, nomes les 2 linies de compatibilitat'
+AssertEq (@($valSense -split '\\n').Count) 3 '_BuildAutoFirmaSignArgv: sense caixetí, nomes les linies de compatibilitat'
 AssertEq ([bool]($argvSense -contains 'subject.contains:X')) $true '_BuildAutoFirmaSignArgv: filtre com a element'
 $argvCx = @(_BuildAutoFirmaSignArgv 'i.pdf' 'o.pdf' '' '' $cxDef)
 $iCfg = [Array]::IndexOf($argvCx, '-config')
 AssertEq ([bool]($iCfg -ge 0)) $true '_BuildAutoFirmaSignArgv: amb caixetí -> hi ha -config'
 $valCfg = [string]$argvCx[$iCfg + 1]
 AssertEq ([bool]($valCfg -like '*signaturePage=1*' -and $valCfg -like '*layer2Text=*')) $true '_BuildAutoFirmaSignArgv: el -config es el TEXT PLA dels extraParams'
-AssertEq (@($valCfg -split '\\n').Count) 10 '_BuildAutoFirmaSignArgv: el -config porta 10 propietats (2 de compatibilitat + 8 del caixetí) separades pel \n LITERAL'
+AssertEq (@($valCfg -split '\\n').Count) 11 '_BuildAutoFirmaSignArgv: el -config porta 11 propietats (3 de compatibilitat + 8 del caixetí) separades pel \n LITERAL'
 AssertEq ([bool]($valCfg -match "`n")) $false '_BuildAutoFirmaSignArgv: el -config no porta cap salt de linia REAL'
 AssertEq ([bool]($valCfg -match '^[A-Za-z0-9+/=]+$')) $false '_BuildAutoFirmaSignArgv: el -config NO va en Base64'
 AssertEq ([bool]((_AutoFirmaArgvToText $argvCx) -like '*<LF>*')) $false '_AutoFirmaArgvToText: ja no hi ha salts REALS a marcar amb <LF>'
