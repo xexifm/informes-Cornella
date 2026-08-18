@@ -895,6 +895,30 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
       interpolació `"$x"` dóna "48"; el cast `[string]$x` dóna "0x30". Als
       arguments de test, els valors esperats **en decimal**. (Mateixa família
       que el PSObject del `Join-Path`.)
+    - **5a ronda — LA FI DE LES DIFERÈNCIES DE FITXER.** L'usuari va enviar el
+      PDF nou (resum: «REFETA I COMPROVADA») que als PCs dels companys seguia
+      sortint desconegut. Es va analitzar contra el vàlid de l'Adobe:
+      - certificat del signant **byte a byte idèntic** (mateix SHA-256);
+      - CMS del mateix **exacte** nombre de bytes (2.629) i **esquelet ASN.1
+        idèntic node a node (156/156)**: les úniques diferències són el hash del
+        document i la firma, que canvien per força;
+      - **pyHanko** (validador PAdES independent, amb l'arrel de l'AOC com a
+        àncora): els DOS fitxers `INTACT:TRUSTED,UNTOUCHED`, cobertura
+        `ENTIRE_FILE`, modificacions `NONE`.
+      **Conclusió: ja no queda cap diferència de fitxer.** El que difereix és la
+      CONFIANÇA dels ordinadors que miren: l'Adobe, per defecte, **només es refia
+      de les seves llistes AATL/EUTL** (documentat per Adobe), no del magatzem de
+      Windows. El següent element de diagnòstic és la pestanya **Confianza** del
+      certificat a l'Adobe d'un company (diu la FONT de la confiança) amb els dos
+      fitxers costat a costat.
+    - **`suport/Confiar-certificats-AOC.bat`**: la solució de desplegament — la
+      mateixa que documenten el BOE i els ministeris per als seus PDF. Porta
+      **incrustats** els dos certificats PÚBLICS de l'AOC (arrel `ROOT-A` +
+      `SubCA SECTOR PUBLIC Q (G3) A.1`, verificats per hash contra els del CMS
+      real) i els instal·la amb `certutil -user -addstore` (sense administrador);
+      després cal marcar la Integració amb Windows a l'Adobe (o «Agregar a
+      certificados de confianza» des del propi PDF). ASCII pur (els `.bat` amb
+      accents es trenquen amb les codepages).
     - **Pendent**: el que faria la firma validable a qualsevol banda i d'aquí a
       anys és un **segell de temps (TSA)** + dades de revocació (PAdES-LTV).
       AutoFirma ho admet (`tsaURL`, `tsaPolicy`, `tsaHashAlgorithm`…), però cal
