@@ -638,10 +638,17 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
     $form.StartPosition = 'CenterScreen'
 
     $grid = New-Object System.Windows.Forms.DataGridView
+    _StyleListGrid $grid
+    # ATENCIO: _StyleListGrid fa Dock='Fill', pensat per a graelles que viuen
+    # DINS d'un panell (Editar base, Controls periodics). Aqui la graella
+    # conviu amb els botons posats a ma al mateix formulari: amb el Dock posat
+    # ocupava TOTA la finestra i els TAPAVA -cap boto visible ni clicable, la
+    # pantalla semblava morta-. Per aixo el Dock es desfa i la posicio va
+    # DESPRES de l'estil (abans, l'estil la trepitjava).
+    $grid.Dock = 'None'
     $grid.Location = New-Object System.Drawing.Point(15, 70)
     $grid.Size = New-Object System.Drawing.Size(870, 480)
     $grid.Anchor = 'Top,Bottom,Left,Right'
-    _StyleListGrid $grid
     $grid.AllowUserToAddRows = $false
     $grid.AutoGenerateColumns = $false
 
@@ -925,8 +932,10 @@ function Invoke-LlicenciaWizard {
                     $step = 3
                 }
                 3 {
-                    # A partir d'aqui cal el Word i REQ1 (d'on surt el text).
-                    if ($null -eq $word) { $word = New-WordApp }
+                    # Aqui nomes cal REQ1 (el JSON d'on surt el text). El Word
+                    # s'arrenca DIFERIT al pas 9, quan es genera de debo (mateix
+                    # motiu que a Invoke-NouWizard: arrencar-lo en fred es lent
+                    # i si l'usuari tira enrere no ha de quedar obert per res).
                     if ($null -eq $st.Req1) {
                         $req1Path = Join-Path $EstructuralsDir 'REQ1.json'
                         $st.Req1 = Get-ParsedCataleg -path $req1Path
@@ -1038,6 +1047,7 @@ function Invoke-LlicenciaWizard {
                     $step = 9
                 }
                 9 {
+                    if ($null -eq $word) { $word = New-WordApp }
                     # Els camps [CAMP: ...] dels textos triats.
                     $model = @{
                         Fase = [string]$st.Fase

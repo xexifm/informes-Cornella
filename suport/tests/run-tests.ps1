@@ -1639,6 +1639,24 @@ if (Test-Path -LiteralPath $capPath) {
     AssertEq $capBuides.Count 0 ('0 CAPCALERA.docx: cap etiqueta sense marcador (' + ($capBuides -join ' | ') + ')')
 }
 
+# La pantalla de tria de documentacio de LLICENCIA va quedar MORTA: cap boto
+# responia. La causa: _StyleListGrid fa Dock='Fill' (pensat per a graelles dins
+# d'un panell) i la graella, posada directament al formulari, ocupava TOTA la
+# finestra i tapava els botons. Prova de FONT: despres de l'estil, el Dock s'ha
+# de desfer i la posicio s'ha de fixar DESPRES (abans, l'estil la trepitjava).
+$srcLlic = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'Llicencia.ps1') -Raw
+$iEstil = $srcLlic.IndexOf('_StyleListGrid $grid')
+Assert ($iEstil -ge 0) 'Llicencia: la graella usa l''estil comu'
+$iDockNone = $srcLlic.IndexOf("`$grid.Dock = 'None'")
+Assert ($iDockNone -gt $iEstil) 'Llicencia: el Dock=Fill de l''estil es DESFA despres (si no, la graella tapa els botons)'
+$iLoc = $srcLlic.IndexOf('$grid.Location = New-Object System.Drawing.Point(15, 70)')
+Assert ($iLoc -gt $iEstil) 'Llicencia: la posicio de la graella es fixa DESPRES de l''estil'
+# I el Word, DIFERIT: al pas 3 nomes cal el JSON; si s'arrenca alla, la tria de
+# punts triga i un usuari que tira enrere deixa un Word obert per res.
+$iPas3 = $srcLlic.IndexOf('# Aqui nomes cal REQ1')
+$iWord = $srcLlic.IndexOf('if ($null -eq $word) { $word = New-WordApp }')
+Assert ($iPas3 -ge 0 -and $iWord -gt $iPas3) 'Llicencia: el Word s''arrenca DIFERIT (al pas de generar, no abans)'
+
 Write-Host "`n--- LLIC.json: la capa de Llicencia sobre REQ1 ---"
 # LLIC no es un cataleg de deficiencies: per cada requeriment de REQ1 hi desa
 # nomes el que es propi de Llicencia, i el text surt de REQ1 EN VIU. Per aixo:

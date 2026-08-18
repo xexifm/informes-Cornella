@@ -267,6 +267,14 @@ els llegís no fallaria — generaria un informe **silenciosament equivocat**. S
   pantalles són massa diferents (una agrupa sempre per activitat, l'altra
   ordena per data real i té casella de selecció) i el genèric sortiria més
   complicat que les dues pantalles juntes.
+- **`_StyleListGrid` fa `Dock='Fill'` — i això és un CONTRACTE, no un detall**:
+  està pensada per a graelles que viuen **dins d'un panell** (Editar base,
+  Controls periòdics). Si la graella conviu amb botons posats a mà **al mateix
+  formulari**, el `Dock` la fa ocupar TOTA la finestra i **tapa els botons**:
+  la pantalla sembla morta (cap botó visible ni clicable). Va passar de debò a
+  la tria de documentació de Llicència — «no em deixa posar següent ni enrere
+  ni res». Solució: desfer el `Dock` i fixar `Location/Size/Anchor` **després**
+  de l'estil (abans, l'estil ho trepitja). Hi ha prova de font que ho vigila.
 - **Compte amb les col·lisions de noms**: tot el codi cau al mateix àmbit
   global (dot-source), i **el darrer fitxer carregat guanya, en silenci**.
   Abans d'afegir una funció nova, `grep` del nom. Ja va passar: es va crear un
