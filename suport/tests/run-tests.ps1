@@ -1884,6 +1884,24 @@ $petat = $false
 try { [void](_PdfPosaCms $pdfFals $fCap.HexStart $fCap.HexLen (New-Object byte[] 500)) } catch { $petat = $true }
 AssertEq $petat $true '_PdfPosaCms: si el CMS no hi cap, peta (no escriu a mitges)'
 
+# GEOMETRIA del dialeg "Convertir informes a PDF". Aixo es una prova de FONT
+# (la finestra nomes es pot dibuixar a Windows), pero enxampa el que va passar
+# de debo: en afegir-hi els dos radios del mode de signatura, els botons
+# 'Comenca'/'Tanca' -clavats a y=438- van quedar FORA de la finestra, i el boto
+# 'Document' de la fila de dalt (que acaba a x=536) ja sortia tallat amb els
+# 510 px d'amplada que hi havia.
+$srcPdf = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'PdfSignar.ps1') -Raw
+# NOMES el tros del dialeg d'OPCIONS: la finestra de PROGRES que ve despres es
+# de mida fixa i alli no hi ha res a dir.
+$iDlg = $srcPdf.IndexOf('$row = _AddConfigRow $form 70')
+$iFi  = $srcPdf.IndexOf("_AddBrandHeader `$form 'Convertir informes a PDF'")
+$dlgPdf = $srcPdf.Substring($iDlg, $iFi - $iDlg)
+Assert ($Script:PdfDlgAmple -ge 550) 'dialeg PDF: l''amplada dona per al boto Document (x fins 536)'
+Assert (-not ($dlgPdf -match '\$btnGo\.Location = New-Object System\.Drawing\.Point\(\d+, \d+\)')) 'dialeg PDF: el boto Comenca NO va a una alcada fixa'
+Assert (-not ($dlgPdf -match '\$btnCancel\.Location = New-Object System\.Drawing\.Point\(\d+, \d+\)')) 'dialeg PDF: ni el boto Tanca'
+Assert ($dlgPdf.Contains('$yBotons = $y')) 'dialeg PDF: els botons es col·loquen a partir de l''ultim control'
+Assert ($dlgPdf.Contains('$form.ClientSize = New-Object System.Drawing.Size($Script:PdfDlgAmple, ($yBotons + 44))')) 'dialeg PDF: i la finestra creix segons el contingut'
+
 # On es busca l'Adobe per al mode de signatura a ma. Rutes en text pla (amb
 # Join-Path petarien fora de Windows per la unitat C:).
 $adC = @(_AdobeExeCandidats 'C:\PF' 'C:\PF86')

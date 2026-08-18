@@ -938,6 +938,13 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
       la pestanya **Confianza** de l'Adobe d'un company amb els dos fitxers és
       la dada que falta. No barrejar les dues coses: el mode `adobe` és el camí
       pràctic, no la resposta al misteri.
+    - **Geometria del diàleg**: `$Script:PdfDlgAmple` (550) i els botons
+      col·locats a partir de `$y` (`$yBotons`), amb la `ClientSize` calculada al
+      final. Abans anaven clavats a `y=438` i, en afegir-hi els dos radios del
+      mode, **van quedar fora de la finestra**; i el botó «Document» de
+      `_AddConfigRow` (que acaba a **x=536**) ja sortia tallat amb els 510 px
+      d'amplada. Hi ha prova de FONT que ho vigila — acotada al tros del diàleg
+      d'opcions, perquè la finestra de **progrés** sí que és de mida fixa.
     - **Pendent**: el que faria la firma validable a qualsevol banda i d'aquí a
       anys és un **segell de temps (TSA)** + dades de revocació (PAdES-LTV).
       AutoFirma ho admet (`tsaURL`, `tsaPolicy`, `tsaHashAlgorithm`…), però cal

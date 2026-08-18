@@ -146,6 +146,10 @@ $Script:CaixetiIntents = @(
 # aquesta variable a 'propi'.
 $Script:CaixetiAspecte = 'defecte'
 
+# Amplada del dialeg de "Convertir informes a PDF". La mana la fila del
+# selector de carpeta/document (_AddConfigRow), que acaba a x=536.
+$Script:PdfDlgAmple = 550
+
 # Quin intent ha entrat, per al registre. Serveix per saber, sense endevinar, si
 # el caixetí ha sortit com a imatge i amb quina resolució.
 $Script:CaixetiUltimIntent = ''
@@ -928,7 +932,11 @@ function _ShowConvertPdfOptions {
 
     $form = _NewForm
     $form.Text = 'Convertir informes a PDF'
-    $form.ClientSize = New-Object System.Drawing.Size(510, 476)
+    # AMPLADA 550: la fila de dalt (quadre + 'Carpeta' + 'Document') acaba a
+    # x=536 (_AddConfigRow, UiComuns.ps1) i amb 510 el boto 'Document' quedava
+    # TALLAT. L'ALCADA es recalcula al final a partir de la ultima fila: aixi,
+    # afegir-hi controls no pot tornar a deixar els botons fora de la finestra.
+    $form.ClientSize = New-Object System.Drawing.Size($Script:PdfDlgAmple, 476)
     $form.FormBorderStyle = 'FixedDialog'
     $form.MaximizeBox = $false
 
@@ -986,7 +994,7 @@ function _ShowConvertPdfOptions {
     $cbCert = New-Object System.Windows.Forms.ComboBox
     $cbCert.DropDownStyle = 'DropDownList'
     $cbCert.Location = New-Object System.Drawing.Point(34, $y)
-    $cbCert.Size = New-Object System.Drawing.Size(454, 24)
+    $cbCert.Size = New-Object System.Drawing.Size(($Script:PdfDlgAmple - 62), 24)
     foreach ($o in $certOpts) { [void]$cbCert.Items.Add([string]$o.Display) }
     $selIdx = 0
     for ($i = 0; $i -lt $certOpts.Count; $i++) { if ([string]$certOpts[$i].Filter -eq [string]$st.certFilter -and [string]$st.certFilter -ne '') { $selIdx = $i } }
@@ -996,7 +1004,7 @@ function _ShowConvertPdfOptions {
 
     $lblAF = New-Object System.Windows.Forms.Label
     $lblAF.Location = New-Object System.Drawing.Point(34, $y)
-    $lblAF.MaximumSize = New-Object System.Drawing.Size(454, 0)
+    $lblAF.MaximumSize = New-Object System.Drawing.Size(($Script:PdfDlgAmple - 62), 0)
     $lblAF.AutoSize = $true
     $lblAF.Font = New-Object System.Drawing.Font('Segoe UI', 8.5, [System.Drawing.FontStyle]::Regular)
     if ([string]::IsNullOrWhiteSpace($autofirma)) {
@@ -1047,7 +1055,7 @@ function _ShowConvertPdfOptions {
 
     $tbCx = New-Object System.Windows.Forms.TextBox
     $tbCx.Location = New-Object System.Drawing.Point(34, $y)
-    $tbCx.Size = New-Object System.Drawing.Size(454, 76)
+    $tbCx.Size = New-Object System.Drawing.Size(($Script:PdfDlgAmple - 62), 76)
     $tbCx.Multiline = $true
     $tbCx.ScrollBars = 'Vertical'
     $tbCx.AcceptsReturn = $true
@@ -1071,9 +1079,15 @@ function _ShowConvertPdfOptions {
     $cbVis.add_CheckedChanged($syncSign)
     & $syncSign
 
+    # La finestra CREIX segons el contingut (aqui $y ja es sota de l'ultim
+    # control). Abans els botons anaven clavats a y=438 i, en afegir-hi els dos
+    # radios del mode de signatura, van quedar FORA de la finestra.
+    $yBotons = $y + $tbCx.Height + 14
+    $form.ClientSize = New-Object System.Drawing.Size($Script:PdfDlgAmple, ($yBotons + 44))
+
     $btnGo = New-Object System.Windows.Forms.Button
     $btnGo.Text = 'Comença'
-    $btnGo.Location = New-Object System.Drawing.Point(280, 438)
+    $btnGo.Location = New-Object System.Drawing.Point(($Script:PdfDlgAmple - 230), $yBotons)
     $btnGo.Size = New-Object System.Drawing.Size(120, 30)
     $btnGo.Anchor = 'Bottom, Right'
     _StylePrimaryButton $btnGo
@@ -1081,7 +1095,7 @@ function _ShowConvertPdfOptions {
 
     $btnCancel = New-Object System.Windows.Forms.Button
     $btnCancel.Text = 'Tanca'
-    $btnCancel.Location = New-Object System.Drawing.Point(406, 438)
+    $btnCancel.Location = New-Object System.Drawing.Point(($Script:PdfDlgAmple - 104), $yBotons)
     $btnCancel.Size = New-Object System.Drawing.Size(88, 30)
     $btnCancel.Anchor = 'Bottom, Right'
     _StyleSecondaryButton $btnCancel
@@ -1128,7 +1142,7 @@ function _ShowConvertPdfOptions {
         $form.DialogResult = 'OK'; $form.Close()
     }.GetNewClosure())
 
-    [void](_AddBrandHeader $form 'Convertir informes a PDF' ('PDF a la mateixa carpeta ' + [char]0x00B7 + ' signatura opcional amb AutoFirma'))
+    [void](_AddBrandHeader $form 'Convertir informes a PDF' ('PDF a la mateixa carpeta ' + [char]0x00B7 + ' signatura opcional'))
     [void]$form.ShowDialog()
     $v = $result.Value
     $form.Dispose()
