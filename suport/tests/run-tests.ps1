@@ -1898,7 +1898,7 @@ AssertEq (@(_LlicPuntsDelDocxAnterior $ambCond).Count) 1 '_LlicPuntsDelDocxAnter
 # Nom del fitxer: data al principi, com la resta d'informes (aixi "Actualitzar
 # base d'informes" el reconeix).
 $nf = _LlicNomFitxer ([datetime]'2026-08-03') 'requeriment' '1433' 'MANUEL CRUZ'
-AssertEq $nf '2026-08-03_LlicReq_GIA 1433_MANUEL CRUZ.docx' '_LlicNomFitxer: requeriment'
+AssertEq $nf '2026-08-03_LlicReq_GIA 1433.docx' '_LlicNomFitxer: requeriment (sense titular)'
 Assert ([bool]((_LlicNomFitxer ([datetime]'2026-08-03') 'favorable-pre' '1' 'X') -like '*LlicFavPre*'))  '_LlicNomFitxer: favorable pre'
 Assert ([bool]((_LlicNomFitxer ([datetime]'2026-08-03') 'favorable-post' '1' 'X') -like '*LlicFavPost*')) '_LlicNomFitxer: favorable post'
 Assert (-not ((_LlicNomFitxer ([datetime]'2026-08-03') 'requeriment' '1' 'A/B:C') -match '[\\/:*?"<>|]')) '_LlicNomFitxer: fora els caracters que Windows no admet'
@@ -1942,6 +1942,74 @@ $vells = @($migs | ForEach-Object { Split-Path -Leaf $_.Origen })
 AssertEq ($vells -join '|') 'Informes generats|Rutes generades|BASE DE DADES ACTIVITATS|BASE DE DADES ACT_EXTR' 'Get-MigracionsLocal: origens = les carpetes velles de l''arrel'
 AssertEq $migs[2].Desti ($tstLocal + 'base-dades-activitats') 'Get-MigracionsLocal: desti dins de local'
 AssertEq ([bool](@($migs | Where-Object { $_.Origen -like '*ESTRUCTURALS*' }).Count -eq 0)) $true 'Get-MigracionsLocal: ESTRUCTURALS no es mou (les vistes van a part)'
+
+Write-Host "`n--- Llicencia: la GENERACIO sencera (amb el Word simulat) ---"
+# Es genera un informe de debo amb els dobles de Format.ps1 i un Word de
+# mentida. Aixo hauria enxampat, de cop, gairebe tot el que va fallar a la
+# primera prova real: el [[URL]] a la vista, els enllacos repetits, la manca de
+# CONCLUSIONS i de negreta, i el titular al nom del fitxer.
+if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path $EstructuralsDir 'REQ1.json'))) {
+    . (Join-Path $PSScriptRoot 'FormatDoubles.ps1')
+    $llicG = Read-LlicCataleg $llicPathX
+    $idxG  = _LlicIndexReq1 (Read-CatalegJson (Join-Path $EstructuralsDir 'REQ1.json'))
+    $bAG = (_LlicPuntsPerBloc $llicG $idxG 'ABANS').Punts
+    $bDG = (_LlicPuntsPerBloc $llicG $idxG 'DESPRES').Punts
+    # Word simulat: nomes el que Build-LlicenciaDocument li demana.
+    $selG = [pscustomobject]@{ Range = [pscustomobject]@{ Start = 0; End = 0 } }
+    $selG | Add-Member ScriptMethod EndKey { param($u) } -Force
+    $selG | Add-Member ScriptMethod InsertBreak { param($b) } -Force
+    $docG = [pscustomobject]@{}
+    $docG | Add-Member ScriptMethod Activate {} -Force
+    $docG | Add-Member ScriptMethod Save {} -Force
+    $docG | Add-Member ScriptMethod Close { param($x) } -Force
+    $wordG = [pscustomobject]@{ Selection = $selG }
+    function _ResolveOutputDir { return ([System.IO.Path]::GetTempPath()) }
+    function _GetUniqueOutputPath($d, $b) { return (Join-Path $d $b) }
+    function _OpenOutputDocument($w, $p) { return $script:_docGlobalProva }
+    function Select-CapcaleraBlock($d, $w) { }
+    function Apply-HeaderReplacements { param($doc, $header) }
+    $script:_docGlobalProva = $docG
+    # Build-LlicenciaDocument escriu a $env:TEMP (a Windows sempre hi es; en
+    # aquest Linux de proves, no).
+    $tempAbans = $env:TEMP
+    if ([string]::IsNullOrWhiteSpace($env:TEMP)) { $env:TEMP = [System.IO.Path]::GetTempPath() }
+    $unPunt = @(@($bAG)[0] | ForEach-Object { $_ | Add-Member NoteProperty Estat 'no' -PassThru -Force })
+    $unDesp = @(@($bDG)[0] | ForEach-Object { $_ | Add-Member NoteProperty Estat 'no' -PassThru -Force })
+    $modelG = @{
+        Fase = 'requeriment'; EsProvisional = $false
+        Header = @{ ID_GIA = '357'; TITULAR = 'PROVA SL'; CLASSIFICACIO = 'Llei 20/2009; Annex II' }
+        Fields = [ordered]@{}
+        Abans = $unPunt; Projecte = @(); Despres = $unDesp
+        Doc = @{ Text = ''; Items = @() }; Condicions = ''; Cataleg = $llicG
+    }
+    $global:emitCalls.Clear()
+    $petaG = $false
+    try { [void](Build-LlicenciaDocument $wordG $modelG) } catch { $petaG = $true; Write-Host ("    EXCEPCIO: " + $_.Exception.Message) -ForegroundColor Red }
+    AssertEq $petaG $false 'Build-LlicenciaDocument: genera sense petar'
+    $emG = @($global:emitCalls)
+    Assert ($emG.Count -gt 5) 'Build-LlicenciaDocument: escriu el document'
+    # Cap marcador [[URL]] a la VISTA: els enllacos van per Format-Url.
+    Assert (-not (@($emG) | Where-Object { $_ -like '*`[`[URL`]`]*' })) 'Llicencia: cap [[URL]] al text de l''informe'
+    Assert ([bool](@($emG) | Where-Object { $_ -like 'URL|*' })) 'Llicencia: els enllacos surten com a Format-Url'
+    # Els items van numerats "N." (amb punt), com a REQ1.
+    $itemsG = @($emG | Where-Object { $_ -like 'ITEM|*' })
+    Assert ($itemsG.Count -ge 2) 'Llicencia: hi ha items numerats'
+    Assert ([bool](($itemsG[0] -split '\|')[1] -match '^\d+\.$')) 'Llicencia: el numero de l''item porta punt (1., 2....)'
+    # CONCLUSIONS centrat i en negreta, i la conclusio en negreta.
+    $iCapG = [Array]::FindIndex([string[]]$emG, [Predicate[string]]{ param($x) $x -like 'CONCLCAP|*' })
+    $iConG = [Array]::FindIndex([string[]]$emG, [Predicate[string]]{ param($x) $x -like 'CONCL|*' })
+    Assert ($iCapG -ge 0) 'Llicencia: hi ha la capcalera CONCLUSIONS (centrada i en negreta)'
+    Assert ($iConG -gt $iCapG) 'Llicencia: ...i va ABANS de la conclusio'
+    Assert ([bool]($emG[$iConG] -like '*`*`**')) 'Llicencia: la conclusio va en negreta'
+    # Cap enllac repetit DINS del mateix punt (el text de REQ1 i el comentari
+    # solen portar el mateix, i sortia dues vegades seguides).
+    $urlsG = @($emG | Where-Object { $_ -like 'URL*|*' } | ForEach-Object { ($_ -split '\|', 2)[1] })
+    AssertEq (@($urlsG).Count) (@($urlsG | Select-Object -Unique).Count) 'Llicencia: cap enllac repetit'
+    $env:TEMP = $tempAbans
+}
+# El nom del fitxer NO porta el titular (l'usuari no el vol; ja surt a dins).
+$nfG = _LlicNomFitxer ([datetime]'2026-08-18') 'requeriment' '1457' 'EUROMASTER AUTOMOCION Y SERVICIOS SA'
+AssertEq $nfG '2026-08-18_LlicReq_GIA 1457.docx' '_LlicNomFitxer: sense el titular'
 
 Write-Host "`n--- PdfCms.ps1: refer la signatura de dins del PDF ---"
 # Els informes signats amb l'AutoFirma nomes es validaven a l'ordinador que

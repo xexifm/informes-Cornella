@@ -329,6 +329,32 @@ function _LlicClauPunt($punt) {
     return ('#' + [string]$punt.Titol)
 }
 
+# La CLASSIFICACIO de l'activitat ("Llei 20/2009; Annex II; Epigraf 12.25"), que
+# nomes surt als informes de Llicencia. Es busca a l'Excel per ID GIA
+# (_ClassificacioText la munta a Activitats.ps1) i, si no se'n troba, es demana
+# a l'usuari: una linia "Classificacio:" buida a l'informe no serveix de res.
+# Sempre es pot corregir al quadre que surt.
+function _LlicClassificacio($header) {
+    $ja = ''
+    if ($null -ne $header -and $header.Contains('CLASSIFICACIO')) { $ja = [string]$header['CLASSIFICACIO'] }
+    if ([string]::IsNullOrWhiteSpace($ja)) {
+        try {
+            $idGia = [string]$header['ID_GIA']
+            if (-not [string]::IsNullOrWhiteSpace($idGia)) {
+                $act = Get-ActivitatFromCache $script:_sessionActCache $idGia
+                if ($null -ne $act -and $act.PSObject.Properties['CLASSIFICACIO']) { $ja = [string]$act.CLASSIFICACIO }
+            }
+        } catch { $ja = '' }
+    }
+    # Es reaprofita el dialeg de dades (un sol camp) en lloc d'inventar-ne un.
+    $camp = 'Classificaci' + [char]0x00F3
+    $r = Select-LlicDadesPunt ('Surt a la cap' + [char]0x00E7 + 'alera de l' + [char]0x2019 +
+                               'informe. Exemple: Llei 20/2009; Annex II; Ep' + [char]0x00ED + 'graf 12.25') `
+                              @($camp) @{ $camp = $ja }
+    if ($r.Nav -ne 'fwd') { return $ja }
+    return [string]$r.Valors[$camp]
+}
+
 # Quins punts condicionals entren, segons si es llicencia provisional.
 #   'annexii'     -> nomes si NO ho es
 #   'provisional' -> nomes si SI ho es
@@ -382,7 +408,9 @@ function _LlicTextDocumentacio([string]$tecnic, [string]$numCol, [string]$colleg
 
 # Nom del fitxer de sortida. Segueix el mateix patro que la resta d'informes:
 # data al principi (aixi "Actualitzar base d'informes" el reconeix).
-function _LlicNomFitxer([datetime]$data, [string]$fase, [string]$idGia, [string]$titular) {
+# El nom NO porta el titular (l'usuari no el vol): data_fase_GIA. El titular ja
+# surt a la capcalera del document.
+function _LlicNomFitxer([datetime]$data, [string]$fase, [string]$idGia, [string]$titular = '') {
     $curt = switch ($fase) {
         'favorable-pre'  { 'LlicFavPre' }
         'favorable-post' { 'LlicFavPost' }
@@ -392,7 +420,6 @@ function _LlicNomFitxer([datetime]$data, [string]$fase, [string]$idGia, [string]
     [void]$parts.Add($data.ToString('yyyy-MM-dd'))
     [void]$parts.Add($curt)
     if (-not [string]::IsNullOrWhiteSpace($idGia)) { [void]$parts.Add('GIA ' + $idGia.Trim()) }
-    if (-not [string]::IsNullOrWhiteSpace($titular)) { [void]$parts.Add($titular.Trim()) }
     $nom = ($parts -join '_')
     # Fora els caracters que Windows no admet en un nom de fitxer.
     $nom = [regex]::Replace($nom, '[\\/:*?"<>|]', '-')
@@ -409,20 +436,37 @@ function _LlicNomFitxer([datetime]$data, [string]$fase, [string]$idGia, [string]
 # Tot el format surt de Format.ps1: aqui no s'hi inventa res. L'unic afegit es
 # el color, que Format-Body ja sap aplicar.
 function _LlicEscriuPunt($sel, $punt, [int]$numero, $fields, [string]$estat, [bool]$ambQuan) {
+    # Els URLs ja emesos en AQUEST punt: el text de REQ1 i el comentari solen
+    # portar el mateix enllac i sortia dues vegades seguides.
+    $vistos = New-Object System.Collections.ArrayList
     $linies = @($punt.Cos)
     $primera = if ($linies.Count -gt 0) { [string]$linies[0] } else { [string]$punt.Titol }
-    Format-Item $sel $numero (Apply-Fields -text $primera -fields $fields)
+    # El numero i el text van junts a Format-Item; l'URL que porti la PRIMERA
+    # linia s'emet a part, com fa REQ1 (_WriteCatalegBody).
+    $p0 = _SplitTextAndUrls ([string](Apply-Fields -text $primera -fields $fields))
+    Format-Item $sel ([string]$numero + '.') $p0.Text
+    foreach ($u in @($p0.Urls)) {
+        $c = ([string]$u).Trim()
+        if ($vistos.Contains($c)) { continue }
+        [void]$vistos.Add($c); Format-Url $sel $u
+    }
     for ($i = 1; $i -lt $linies.Count; $i++) {
-        $t = [string]$linies[$i]
-        if (_EsUrl $t) { Format-Url $sel (_TextUrl $t) } else { Format-Body $sel (Apply-Fields -text $t -fields $fields) }
+        _LlicEmetLinia $sel ([string]$linies[$i]) $fields $vistos $false
     }
     # Sub-punts (per exemple, quines instal·lacions s'han de legalitzar).
     $primerSub = $true
     foreach ($sub in @($punt.Subs)) {
         foreach ($l in @($sub)) {
-            if (_EsUrl $l) { Format-Url $sel (_TextUrl $l) -IsChild; continue }
-            if ($primerSub) { Format-Bullet $sel (Apply-Fields -text $l -fields $fields) -First; $primerSub = $false }
-            else { Format-Bullet $sel (Apply-Fields -text $l -fields $fields) }
+            $pc = _SplitTextAndUrls ([string](Apply-Fields -text $l -fields $fields))
+            if (-not [string]::IsNullOrWhiteSpace($pc.Text)) {
+                if ($primerSub) { Format-Bullet $sel $pc.Text -IsChild -First; $primerSub = $false }
+                else { Format-Bullet $sel $pc.Text -IsChild }
+            }
+            foreach ($u in @($pc.Urls)) {
+                $c = ([string]$u).Trim()
+                if ($vistos.Contains($c)) { continue }
+                [void]$vistos.Add($c); Format-Url $sel $u -IsChild
+            }
         }
     }
     # El comentari. 'no' = falta (negreta); 'si' = ja hi es (normal). Al Word de
@@ -432,11 +476,17 @@ function _LlicEscriuPunt($sel, $punt, [int]$numero, $fields, [string]$estat, [bo
     $com = if ($estat -eq 'si') { @($punt.SiDisposa) } elseif ($estat -eq 'no') { @($punt.NoDisposa) } else { @() }
     $primerCom = $true
     foreach ($l in $com) {
-        if (_EsUrl $l) { Format-Url $sel (_TextUrl $l); continue }
-        $txt = Apply-Fields -text $l -fields $fields
-        if ($primerCom -and $estat -eq 'no') { Format-Body $sel $txt -Bold }
-        else { Format-Body $sel $txt }
-        $primerCom = $false
+        $pp = _SplitTextAndUrls ([string](Apply-Fields -text $l -fields $fields))
+        if (-not [string]::IsNullOrWhiteSpace($pp.Text)) {
+            if ($primerCom -and $estat -eq 'no') { Format-Body $sel $pp.Text -Bold }
+            else { Format-Body $sel $pp.Text }
+            $primerCom = $false
+        }
+        foreach ($u in @($pp.Urls)) {
+            $c = ([string]$u).Trim()
+            if ($vistos.Contains($c)) { continue }
+            [void]$vistos.Add($c); Format-Url $sel $u
+        }
     }
     if ($ambQuan) {
         foreach ($l in @($punt.Quan)) {
@@ -445,13 +495,31 @@ function _LlicEscriuPunt($sel, $punt, [int]$numero, $fields, [string]$estat, [bo
     }
 }
 
-# Una linia del cos es un enllac? El motor marca els URL amb "[[URL]] ..." (el
-# mateix conveni de tot el programa).
-function _EsUrl([string]$linia) { return (([string]$linia).TrimStart() -like '[[URL]]*') }
-function _TextUrl([string]$linia) {
-    $t = ([string]$linia).TrimStart()
-    if ($t -like '[[URL]]*') { return $t.Substring(7).Trim() }
-    return $t
+# Emet una linia SEPARANT el text dels URLs, exactament com ho fa REQ1
+# (_SplitTextAndUrls + Format-Body/Format-Url de Document.ps1): el text va com a
+# cos i cada URL com a HIPERVINCLE en un paragraf propi.
+#
+# Abans hi havia un _EsUrl fet a ma amb -like '[[URL]]*'. En un patro de -like,
+# '[[URL]' es una CLASSE DE CARACTERS, o sigui que no coincidia mai: el marcador
+# [[URL]] sortia TAL QUAL a l'informe i l'enllac no tenia format d'enllac.
+# (Mateixa trampa que a la prova de la capcalera; vegeu CLAUDE.md.)
+#
+# $vistos: URLs que ja han sortit en AQUEST punt, per no repetir-los. El text de
+# REQ1 i el comentari "No es disposa..." solen portar el mateix enllac i sortia
+# dues vegades seguides.
+function _LlicEmetLinia($sel, [string]$linia, $fields, $vistos, [bool]$esFill = $false) {
+    if ([string]::IsNullOrWhiteSpace($linia)) { return }
+    $resolt = [string](Apply-Fields -text $linia -fields $fields)
+    $parts = _SplitTextAndUrls $resolt
+    if (-not [string]::IsNullOrWhiteSpace($parts.Text)) {
+        if ($esFill) { Format-Body $sel $parts.Text -IsChild } else { Format-Body $sel $parts.Text }
+    }
+    foreach ($u in @($parts.Urls)) {
+        $clau = ([string]$u).Trim()
+        if ($null -ne $vistos -and $vistos.Contains($clau)) { continue }
+        if ($null -ne $vistos) { [void]$vistos.Add($clau) }
+        if ($esFill) { Format-Url $sel $u -IsChild } else { Format-Url $sel $u }
+    }
 }
 
 # Composa l'informe sencer i el desa. Retorna la ruta.
@@ -486,59 +554,73 @@ function Build-LlicenciaDocument($word, $model) {
         # El post-llicencia no repeteix tot l'informe: nomes la documentacio que
         # s'ha comprovat, sense el "Quan:".
         Format-Body $sel (_LlicEntradaPost ([bool]$model.EsProvisional))
+        if ($cfg.SpacerAfterIntro) { Format-Spacer $sel }
         $n = 0
         foreach ($p in @($model.Despres)) {
             $n++
             _LlicEscriuPunt $sel $p $n $fields '' $false
+            if ($cfg.SpacerAfterItem) { Format-Spacer $sel }
         }
     } else {
         # ---- ABANS ----
+        # Els espais els mana Format.ps1 ($cfg.SpacerAfterSection / -Subsection /
+        # -Item), exactament com _WriteCatalegBody de REQ1: aqui no s'hi inventa
+        # cap separacio.
         Format-Section $sel (_LlicTitolAbans)
+        if ($cfg.SpacerAfterSection) { Format-Spacer $sel }
         $n = 0
         foreach ($p in @($model.Abans)) {
             $n++
             _LlicEscriuPunt $sel $p $n $fields ([string]$p.Estat) $false
+            if ($cfg.SpacerAfterItem) { Format-Spacer $sel }
         }
         # ---- PROJECTE: els requeriments normals de REQ1, com sempre ----
         $proj = @($model.Projecte)
         if ($proj.Count -gt 0) {
-            Format-Spacer $sel
             Format-Subsection $sel 'Projecte'
+            if ($cfg.SpacerAfterSubsection) { Format-Spacer $sel }
             foreach ($p in $proj) {
                 $n++
                 _LlicEscriuPunt $sel $p $n $fields '' $false
+                if ($cfg.SpacerAfterItem) { Format-Spacer $sel }
             }
         }
         # ---- DOCUMENTACIO del tecnic redactor ----
         $doc1 = [string]$model.Doc.Text
         if (-not [string]::IsNullOrWhiteSpace($doc1)) {
-            Format-Spacer $sel
             Format-Subsection $sel ('Documentaci' + [char]0x00F3)
+            if ($cfg.SpacerAfterSubsection) { Format-Spacer $sel }
             $n++
-            Format-Item $sel $n $doc1
+            Format-Item $sel ([string]$n + '.') $doc1
             $primer = $true
             foreach ($d in @($model.Doc.Items)) {
-                if ($primer) { Format-Bullet $sel ([string]$d) -First; $primer = $false }
-                else { Format-Bullet $sel ([string]$d) }
+                if ($primer) { Format-Bullet $sel ([string]$d) -IsChild -First; $primer = $false }
+                else { Format-Bullet $sel ([string]$d) -IsChild }
             }
+            if ($cfg.SpacerAfterItem) { Format-Spacer $sel }
         }
         # ---- DESPRES ----
         $desp = @($model.Despres)
         if ($desp.Count -gt 0) {
-            Format-Spacer $sel
             Format-Section $sel (_LlicTitolDespres)
+            if ($cfg.SpacerAfterSection) { Format-Spacer $sel }
             $n = 0
             foreach ($p in $desp) {
                 $n++
                 _LlicEscriuPunt $sel $p $n $fields ([string]$p.Estat) $true
+                if ($cfg.SpacerAfterItem) { Format-Spacer $sel }
             }
         }
     }
 
     # ---- CONCLUSIO ----
     $ambCond = (-not [string]::IsNullOrWhiteSpace([string]$model.Condicions))
-    Format-Spacer $sel
-    Format-Conclusion $sel (_LlicConclusioText ([string]$model.Fase) $ambCond)
+    # Mateix bloc que REQ1 (_WriteConclusionsBlock): capcalera CONCLUSIONS
+    # centrada i en negreta, i la conclusio en negreta (a REQ1 la negreta ve del
+    # **...** del cataleg; aqui el text es nostre, o sigui que l'hi posem).
+    if ($cfg.SpacerBeforeConclusionsBlock) { Format-Spacer $sel }
+    Format-ConclusionHeader $sel 'CONCLUSIONS'
+    Format-Conclusion $sel ('**' + (_LlicConclusioText ([string]$model.Fase) $ambCond) + '**')
     if ($ambCond -and [string]$model.Fase -eq 'favorable-pre') {
         Format-Spacer $sel
         Format-Section $sel ('CONDICIONS LLIC' + [char]0x00C8 + 'NCIA')
@@ -584,15 +666,19 @@ function _LlicEscriuAnnex1($sel, $llic) {
     foreach ($nd in @($sec.fills)) {
         $tipus = [string]$nd.tipus
         foreach ($l in @(_LlicCos $nd)) {
-            if (_EsUrl $l) { Format-Url $sel (_TextUrl $l); continue }
+            $pp = _SplitTextAndUrls ([string]$l)
+            $t = [string]$pp.Text
+            if (-not [string]::IsNullOrWhiteSpace($t)) {
             switch ($tipus) {
-                'item'    { $n++; Format-Item $sel $n $l; $primerSub = $true }
+                'item'    { $n++; Format-Item $sel ([string]$n + '.') $t; $primerSub = $true }
                 'subitem' {
-                    if ($primerSub) { Format-Bullet $sel $l -First; $primerSub = $false }
-                    else { Format-Bullet $sel $l }
+                    if ($primerSub) { Format-Bullet $sel $t -IsChild -First; $primerSub = $false }
+                    else { Format-Bullet $sel $t -IsChild }
                 }
-                default   { Format-Body $sel $l }
+                default   { Format-Body $sel $t }
             }
+            }
+            foreach ($u in @($pp.Urls)) { Format-Url $sel $u }
         }
     }
 }
@@ -1117,6 +1203,11 @@ function Invoke-LlicenciaWizard {
                     if ($r.Nav -eq 'back') { $step = 1; break }
                     $st.Header = $r.Data
                     $st.HeaderPre = $r.Data
+                    # LA CLASSIFICACIO. La capcalera generica no en te camp (es
+                    # NOMES de Llicencia), o sigui que s'omple aqui des de
+                    # l'Excel, per ID GIA. Si l'Excel no en te, es demana: sortia
+                    # una linia "Classificacio:" BUIDA a l'informe.
+                    $st.Header['CLASSIFICACIO'] = _LlicClassificacio $st.Header
                     $step = 3
                 }
                 3 {

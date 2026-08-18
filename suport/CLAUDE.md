@@ -1063,6 +1063,13 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   (pura, `Activitats.ps1`) munta `"Llei 20/2009; Annex II; Epígraf 12.25"` de les
   columnes `Classificació general annex` / `... Apartat` de l'Excel. Va al
   `<<CLASSIFICACIO>>` de la capçalera.
+- **En copiar un bloc de la capçalera, s'han de copiar els FILLS DE PRIMER
+  NIVELL, no els paràgrafs.** El requadre de la «Nota: S'ha publicat
+  l'Ordenança…» és una **taula** (`<w:tbl>`), no un paràgraf amb vora. La
+  primera versió del bloc `[[CAP:LLIC]]` només va copiar els `<w:p>`, i els
+  paràgrafs de dins de la taula van sortir-ne: **l'informe perdia el requadre**.
+  Ara es recorren els fills de primer nivell del `<w:body>` (`w:p`, `w:tbl`,
+  `w:sectPr`) i es copien sencers.
 - **`0 CAPCALERA.docx` NO ES TOCA AMB UN SERIALITZADOR D'XML. MAI.** (Error meu,
   gros, i que va deixar el programa inservible uns dies.) La cirurgia del bloc
   `[[CAP:LLIC]]` es va fer amb `ElementTree`, que **reserialitza tot el
@@ -1096,6 +1103,36 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
 - `Get-Catalegs` **exclou `LLIC.json`** (no és un catàleg de deficiències: no ha
   de sortir al menú de "Requeriment - Nou") i `_VistaEsProtegit` també el
   protegeix.
+- **EL FORMAT EL MANA `Format.ps1`, i el camí és el de REQ1.** La primera prova
+  real de Llicència va destapar que `Build-LlicenciaDocument` s'havia inventat
+  mitja composició. Ara segueix `_WriteCatalegBody` (`Document.ps1`) al peu de
+  la lletra:
+  - **URLs**: `_SplitTextAndUrls` + `Format-Url`, mai un detector propi. N'hi
+    havia un (`_EsUrl`) fet amb `-like '[[URL]]*'` — i en un patró de `-like`
+    `[[URL]` és una **classe de caràcters**, o sigui que no encertava mai: el
+    marcador `[[URL]]` sortia **tal qual** a l'informe i l'enllaç no era
+    hipervincle. (Tercera aparició d'aquesta mateixa trampa.)
+  - **Un enllaç no es repeteix dins d'un punt**: el text de REQ1 i el comentari
+    «No es disposa…» solen portar-lo tots dos i sortia dues vegades seguides.
+  - **Espais**: `$cfg.SpacerAfterSection` / `-Subsection` / `-Item`, com REQ1.
+    No s'hi posa cap `Format-Spacer` a mà.
+  - **Numeració**: `Format-Item $sel "N." $text` — amb el **punt**.
+  - **Conclusions**: `Format-ConclusionHeader 'CONCLUSIONS'` (centrat i en
+    negreta) + `Format-Conclusion`. A REQ1 la negreta de la conclusió ve del
+    `**…**` del catàleg; aquí el text el posem nosaltres, així que l'hi afegim.
+  - **`FormatDoubles.ps1` ha de tenir TOTES les `Format-*`**: li faltaven
+    `Format-ConclusionHeader`, `Format-Note` i `Format-Label`, i per això la
+    suite no podia executar la composició sencera.
+  - **Prova de generació COMPLETA** (Word simulat + dobles): hauria enxampat de
+    cop el `[[URL]]`, els enllaços repetits, la manca de CONCLUSIONS i de
+    negreta i el nom del fitxer. Ara hi és.
+- **La CLASSIFICACIÓ no és a la capçalera genèrica**: `_ReadHeaderControls` no
+  la retorna (és només de Llicència). S'omple després del pas 2 amb
+  `_LlicClassificacio`: es busca a l'Excel per ID GIA i **sempre es mostra** en
+  un quadre per confirmar-la o corregir-la. Sense això sortia una línia
+  «Classificació:» **buida** a l'informe.
+- **El nom del fitxer no porta el titular** (decisió de l'usuari): ja surt a la
+  capçalera del document.
 - **Els comentaris «Es disposa» demanen DADES, i són per punt.** Al Word de
   l'usuari hi havia `XXX` on va l'Id Firmadoc i, segons el punt, l'Expedient /
   Referència / Registre. Al catàleg són ara **`[CAMP: nom]`**, i la pantalla del
