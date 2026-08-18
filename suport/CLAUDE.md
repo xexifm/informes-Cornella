@@ -866,6 +866,35 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
         la cerca "l'última aparició" queia sobre el certificat. Com que ja
         s'havia demostrat que aquell OID **no canvia la validesa**, la funció es
         va esborrar. Codi que no cal, fora.
+    - **4a ronda: l'usuari va reportar «tampoc» amb el reempaquetat ja publicat,
+      SENSE registre** — o sigui que no se sap si la signatura refeta es va
+      arribar a aplicar (sense certificat triat al desplegable no es pot refer,
+      i una excepció al `SignedCms` queia en silenci al respatller). Resposta:
+      **tancar l'ambigüitat**, no provar més coses a cegues:
+      - **Res no s'escriu sense comprovar-ho** (`_CmsComprova`): el CMS nou es
+        descodifica, `CheckSignature($true)` contra el contingut del PDF, 1
+        certificat, `messageDigest` present, **cap atribut ESS**. Si falla, el
+        PDF es queda com estava i el motiu surt al registre **i al resum**.
+      - **L'OID del SignerInfo ara també s'iguala** (`_CmsOidComAdobe`), amb
+        guarda POSICIONAL: dins d'un SignerInfo l'algorisme va DESPRÉS dels
+        atributs signats, o sigui que l'última aparició de `rsaEncryption` només
+        és la bona si queda **després de l'últim `messageDigest`** (la del
+        certificat queda sempre abans). El .NET l'escriu `30 0B` sense
+        paràmetres i l'Adobe `30 0D` amb NULL: tots dos legals, i el NULL no es
+        pot inserir sense re-encodar longituds — es deixa sense.
+      - **El resum ho diu ben gros**: «N amb la signatura REFETA I COMPROVADA» o
+        «ATENCIÓ: N s'han quedat amb la d'AutoFirma (només vàlida aquí)». I si
+        es vol signar **sense** certificat triat, s'avisa **abans** de començar.
+      - La suite genera un **certificat efímer en memòria** (`CertificateRequest`)
+        i prova el cicle sencer: crear → igualar OID → comprovar → PDF sintètic
+        → rellegir i verificar. El camí que corre a Windows és el provat.
+    - **TRAMPA de PowerShell (test enxampat)**: un literal hex com a argument
+      (`AssertEq $x 0x30`) arriba com a 48 però el PSObject **conserva el text
+      del token**, i el `[string]` de dins d'`AssertEq` en fa `"0x30"` → la
+      comparació falla mentre el missatge mostra «48» contra «48». La
+      interpolació `"$x"` dóna "48"; el cast `[string]$x` dóna "0x30". Als
+      arguments de test, els valors esperats **en decimal**. (Mateixa família
+      que el PSObject del `Join-Path`.)
     - **Pendent**: el que faria la firma validable a qualsevol banda i d'aquí a
       anys és un **segell de temps (TSA)** + dades de revocació (PAdES-LTV).
       AutoFirma ho admet (`tsaURL`, `tsaPolicy`, `tsaHashAlgorithm`…), però cal

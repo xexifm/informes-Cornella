@@ -1063,6 +1063,17 @@ function _ShowConvertPdfOptions {
             $certFilter = [string]$certOpts[$cbCert.SelectedIndex].Filter
             $certThumb  = [string]$certOpts[$cbCert.SelectedIndex].Thumb
         }
+        # Sense certificat triat, la signatura NO es pot refer (PdfCms.ps1) i el
+        # PDF nomes es validara EN AQUEST ordinador -que es exactament el
+        # problema que es va patir-. S'avisa ARA, no despres de signar-ho tot.
+        if ($cbSign.Checked -and [string]::IsNullOrWhiteSpace($certThumb)) {
+            $respCert = [System.Windows.Forms.MessageBox]::Show(
+                ("No has triat cap certificat del desplegable." + [Environment]::NewLine + [Environment]::NewLine +
+                 "Sense aixo la signatura NO es pot refer com la de l'Adobe i nomes sera valida en AQUEST ordinador." + [Environment]::NewLine + [Environment]::NewLine +
+                 'Vols continuar igualment?'),
+                'Signatura', 'YesNo', 'Warning')
+            if ($respCert -ne 'Yes') { return }
+        }
         $caixeti = ([string]$tbCx.Text -replace "`r`n", "`n")
         $result.Value = @{
             Folder = $f; Sign = [bool]$cbSign.Checked; CertFilter = $certFilter; CertThumb = $certThumb
@@ -1159,6 +1170,7 @@ function _RunConvertPdf($opts) {
     if (-not [string]::IsNullOrWhiteSpace($thumb)) {
         try { $certRefer = Get-Item -LiteralPath ("Cert:\CurrentUser\My\" + $thumb) -ErrorAction Stop } catch { $certRefer = $null }
         if ($null -eq $certRefer) { _PdfSignarLog ("AVIS: no trobo el certificat " + $thumb + " al magatzem; no podre refer el CMS.") }
+        else { _PdfSignarLog ("Refare cada signatura amb el certificat: " + $certRefer.Subject) }
     } else {
         _PdfSignarLog "AVIS: cap certificat triat al desplegable; la signatura es quedara la que faci l'AutoFirma (nomes es valida a aquest PC)."
     }
@@ -1284,7 +1296,7 @@ function _RunConvertPdf($opts) {
                             $rp = Repack-PdfFirmaComAdobe $pdf $certRefer
                             if ($rp.Ok) {
                                 $refets++
-                                if ($refets -eq 1) { _PdfSignarLog ("CMS refet com l'Adobe  " + $f.Name + "  ::  " + $rp.Motiu) }
+                                _PdfSignarLog ("REFETA I COMPROVADA  " + $f.Name + "  ::  " + $rp.Motiu)
                             } else {
                                 _PdfSignarLog ("AVIS: no s'ha pogut refer el CMS de " + $f.Name + " -> " + $rp.Motiu)
                             }
@@ -1327,7 +1339,13 @@ function _RunConvertPdf($opts) {
     if ($opts.Sign) {
         [void]$msg.AppendLine(("PDF signats: {0}" -f $signed))
         if ($refets -gt 0) {
-            [void]$msg.AppendLine(("  ({0} amb la signatura refeta perque es validi a qualsevol ordinador)" -f $refets))
+            [void]$msg.AppendLine(("  {0} amb la signatura REFETA I COMPROVADA (es validara a qualsevol ordinador)" -f $refets))
+        }
+        if ($signed -gt $refets) {
+            [void]$msg.AppendLine('')
+            [void]$msg.AppendLine(("  ATENCIO: {0} PDF s'han quedat amb la signatura de l'AutoFirma," -f ($signed - $refets)))
+            [void]$msg.AppendLine('  que NOMES es valida en aquest ordinador. El registre de la')
+            [void]$msg.AppendLine('  signatura diu exactament per que.')
         }
         if ($senseCaixeti -gt 0) {
             [void]$msg.AppendLine(("  (dels quals {0} SENSE caixeti: el caixeti ha fallat i s'han signat igualment)" -f $senseCaixeti))

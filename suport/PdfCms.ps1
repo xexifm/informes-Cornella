@@ -36,12 +36,20 @@
       certificats      : nomes el del signant
       cap atribut ESS  : ni signingCertificate ni signingCertificateV2
 
-  L'OID de l'algorisme del SignerInfo (el .NET hi posa 'rsaEncryption' i l'Adobe
-  'sha256WithRSAEncryption') es deixa TAL COM SURT: es va comprovar canviant
-  nomes aquell byte a un PDF ja signat que no canvia gens la validesa. Es va
-  arribar a escriure la funcio que ho corregia i la prova la va enxampar
-  corrompent el CERTIFICAT (el patro que buscava tambe apareix a la clau publica
-  del certificat, i el del SignerInfo no porta el NULL). Codi que no cal, fora.
+  L'OID de l'algorisme del SignerInfo (el .NET hi posa 'rsaEncryption' i
+  l'Adobe 'sha256WithRSAEncryption') tambe S'IGUALA (_CmsOidComAdobe). El primer
+  intent d'aixo va corrompre el CERTIFICAT: el mateix patro de bytes apareix a
+  la clau publica de dins del certificat, i el del SignerInfo no porta el NULL
+  (el .NET l'escriu 30 0B, sense parametres; l'Adobe 30 0D amb NULL: tots dos
+  legals, i no es pot inserir el NULL sense re-encodar totes les longituds).
+  Ara la guarda es POSICIONAL: dins d'un SignerInfo l'algorisme va DESPRES dels
+  atributs signats, o sigui que l'ultima aparicio de l'OID nomes es del
+  SignerInfo si queda despres de l'ultim 'messageDigest'; si no, no es toca res.
+
+  I RES NO S'ESCRIU SENSE COMPROVAR-HO (_CmsComprova): el CMS nou es descodifica
+  i es verifica criptograficament (CheckSignature) contra el contingut del PDF,
+  es confirma que porta UN certificat, el messageDigest i CAP atribut ESS. Si
+  qualsevol d'aquestes falla, el PDF es queda com estava i es diu ben alt.
 
   Aixo no toca ni un byte del document: el /ByteRange no canvia, el forat del
   /Contents ja hi es (l'AutoFirma el deixa de 27.000 bytes llargs i el nostre
@@ -139,6 +147,63 @@ function _CmsComAdobe([byte[]]$contingut, $cert) {
     return ,($cms.Encode())
 }
 
+# Posicio de l'ULTIMA aparicio d'un patro de bytes (o -1). Funcio PURA.
+function _BytesUltimaPosicio([byte[]]$dades, [byte[]]$patro) {
+    for ($i = $dades.Length - $patro.Length; $i -ge 0; $i--) {
+        $ok = $true
+        for ($j = 0; $j -lt $patro.Length; $j++) { if ($dades[$i + $j] -ne $patro[$j]) { $ok = $false; break } }
+        if ($ok) { return $i }
+    }
+    return -1
+}
+
+# Iguala l'OID de l'algorisme del SignerInfo amb el que hi escriu l'Adobe
+# (rsaEncryption -> sha256WithRSAEncryption). Canvia UN byte i la mida no es
+# mou. GUARDA POSICIONAL (vegeu el capçal): nomes es toca si l'ultima aparicio
+# de l'OID va DESPRES de l'ultim 'messageDigest' -els certificats van abans
+# dels atributs signats, o sigui que aquella nomes pot ser la del SignerInfo-.
+# Si no, es torna el CMS tal qual. Funcio PURA.
+function _CmsOidComAdobe([byte[]]$der) {
+    $oidRsa = [byte[]](0x06,0x09,0x2A,0x86,0x48,0x86,0xF7,0x0D,0x01,0x01,0x01)   # rsaEncryption
+    $oidMd  = [byte[]](0x06,0x09,0x2A,0x86,0x48,0x86,0xF7,0x0D,0x01,0x09,0x04)   # messageDigest
+    $pRsa = _BytesUltimaPosicio $der $oidRsa
+    $pMd  = _BytesUltimaPosicio $der $oidMd
+    if ($pRsa -lt 0 -or $pMd -lt 0 -or $pRsa -lt $pMd) { return ,$der }
+    $out = New-Object byte[] $der.Length
+    [Array]::Copy($der, $out, $der.Length)
+    $out[$pRsa + 10] = 0x0B   # ...01 01 01 -> ...01 01 0B
+    return ,$out
+}
+
+# Comprova un CMS ABANS que ningu l'escrigui al PDF:
+#   1. es descodifica i la signatura VERIFICA contra el contingut (CheckSignature
+#      amb $true = nomes criptografia; la confianca de la cadena la decidira
+#      l'Adobe del lector, no aquest PC);
+#   2. porta exactament UN certificat;
+#   3. porta el messageDigest;
+#   4. NO porta cap atribut ESS (la causa de tot el problema).
+# Retorna @{ Ok; Motiu; Atributs } (els OID dels atributs signats, per al registre).
+function _CmsComprova([byte[]]$der, [byte[]]$contingut) {
+    _CmsCarregaTipus
+    $res = @{ Ok = $false; Motiu = ''; Atributs = @() }
+    try {
+        $ci = New-Object System.Security.Cryptography.Pkcs.ContentInfo (,$contingut)
+        $cms = New-Object System.Security.Cryptography.Pkcs.SignedCms ($ci, $true)
+        $cms.Decode($der)
+        $cms.CheckSignature($true)
+        $oids = New-Object System.Collections.ArrayList
+        foreach ($a in $cms.SignerInfos[0].SignedAttributes) { [void]$oids.Add([string]$a.Oid.Value) }
+        $res.Atributs = $oids.ToArray()
+        if ($cms.Certificates.Count -ne 1) { $res.Motiu = ('porta ' + $cms.Certificates.Count + " certificats i n'ha de portar 1"); return $res }
+        if ($res.Atributs -contains '1.2.840.113549.1.9.16.2.47' -or $res.Atributs -contains '1.2.840.113549.1.9.16.2.12') {
+            $res.Motiu = "encara porta l'atribut ESS"; return $res
+        }
+        if (-not ($res.Atributs -contains '1.2.840.113549.1.9.4')) { $res.Motiu = 'no porta messageDigest'; return $res }
+        $res.Ok = $true
+        return $res
+    } catch { $res.Motiu = $_.Exception.Message; return $res }
+}
+
 # ----------------------------------------------------------------------------
 # L'OPERACIO SENCERA
 # ----------------------------------------------------------------------------
@@ -155,9 +220,15 @@ function Repack-PdfFirmaComAdobe([string]$path, $cert) {
         if (-not $inf.Ok) { return @{ Ok = $false; Motiu = $inf.Motiu } }
         $contingut = _PdfContingutSignat $bytes $inf.Ranges
         $cms = _CmsComAdobe $contingut $cert
+        $cms = _CmsOidComAdobe $cms
+        # Res no s'escriu sense comprovar-ho (vegeu el capçal). Si aixo falla,
+        # el PDF es queda amb la signatura de l'AutoFirma i el motiu surt al
+        # registre I al resum.
+        $prova = _CmsComprova $cms $contingut
+        if (-not $prova.Ok) { return @{ Ok = $false; Motiu = ('el CMS nou NO passa la comprovacio: ' + $prova.Motiu) } }
         $nou = _PdfPosaCms $bytes $inf.HexStart $inf.HexLen $cms
         [System.IO.File]::WriteAllBytes($path, $nou)
-        return @{ Ok = $true; Motiu = ('CMS refet, ' + $cms.Length + ' bytes') }
+        return @{ Ok = $true; Motiu = ('CMS refet i COMPROVAT: verifica, 1 certificat, sense ESS; ' + $cms.Length + ' bytes; atributs: ' + ($prova.Atributs -join ', ')) }
     } catch {
         return @{ Ok = $false; Motiu = $_.Exception.Message }
     }

@@ -153,8 +153,15 @@ marca-la si el caixetí no surt i vols veure què s'ha enviat a l'AutoFirma.
 > el programa li refà la signatura de dins amb la mateixa forma que la fa
 > l'Adobe, que és l'única que es validava a tot arreu. Per això **has de triar
 > el teu certificat al desplegable**: si hi deixes «(triar-lo a AutoFirma en
-> signar)», el programa no sap quin és i no la pot refer. Si algun dia et torna
-> a sortir «desconeguda», obre el registre de la signatura i passa'm-lo.
+> signar)», el programa no sap quin és i no la pot refer — i ara **t'avisa
+> abans de començar** si et passa.
+>
+> **Com saps que ha anat bé:** el resum del final ha de dir
+> **«N amb la signatura REFETA I COMPROVADA»**. La comprovació és de debò: la
+> signatura nova es verifica criptogràficament abans d'escriure-la al fitxer.
+> Si el resum no ho diu, la signatura s'ha quedat com la feia l'AutoFirma i el
+> registre explica per què. Si dius que sí i tot i així en un altre ordinador
+> surt «desconeguda», passa'm el PDF signat i el registre.
 >
 > El que ho deixaria resolt per sempre és afegir-hi un **segell de temps**, i
 > per això cal demanar a Informàtica de l'Ajuntament la **URL del servei de

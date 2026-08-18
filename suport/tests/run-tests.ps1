@@ -1884,6 +1884,83 @@ $petat = $false
 try { [void](_PdfPosaCms $pdfFals $fCap.HexStart $fCap.HexLen (New-Object byte[] 500)) } catch { $petat = $true }
 AssertEq $petat $true '_PdfPosaCms: si el CMS no hi cap, peta (no escriu a mitges)'
 
+# EL CMS SENCER, amb un certificat EFIMER creat en memoria: es prova el cicle
+# complet (crear -> igualar l'OID com l'Adobe -> comprovar -> posar-lo dins d'un
+# PDF sintetic i rellegir-lo). Aixi el cami que corre a Windows es exactament el
+# que s'ha provat aqui, no una replica.
+$certT = $null
+try {
+    $rsaT = [System.Security.Cryptography.RSA]::Create(2048)
+    $reqT = New-Object System.Security.Cryptography.X509Certificates.CertificateRequest ('CN=PROVA CMS', $rsaT, [System.Security.Cryptography.HashAlgorithmName]::SHA256, [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
+    $certT = $reqT.CreateSelfSigned([System.DateTimeOffset]::Now.AddDays(-1), [System.DateTimeOffset]::Now.AddDays(1))
+} catch { $certT = $null }
+if ($null -ne $certT) {
+    $contT = [System.Text.Encoding]::ASCII.GetBytes('contingut signat de prova, com si fos el PDF')
+    $derT = _CmsComAdobe $contT $certT
+    Assert ($derT.Length -gt 500) '_CmsComAdobe: genera un CMS'
+    # L'OID s'iguala amb el de l'Adobe: UN byte, la mida no es mou, i el CMS
+    # SEGUEIX VERIFICANT (el primer intent d'aixo corrompia el certificat).
+    $derP = _CmsOidComAdobe $derT
+    AssertEq $derP.Length $derT.Length '_CmsOidComAdobe: la mida no canvia'
+    $difT = 0
+    for ($i = 0; $i -lt $derT.Length; $i++) { if ($derT[$i] -ne $derP[$i]) { $difT++ } }
+    Assert ($difT -le 1) '_CmsOidComAdobe: canvia UN byte com a molt'
+    $provaT = _CmsComprova $derP $contT
+    AssertEq ([bool]$provaT.Ok) $true ('_CmsComprova: el CMS igualat segueix verificant (' + $provaT.Motiu + ')')
+    Assert ([bool]($provaT.Atributs -contains '1.2.840.113549.1.9.4')) '_CmsComprova: hi ha messageDigest'
+    Assert ([bool]($provaT.Atributs -contains '1.2.840.113583.1.1.8')) '_CmsComprova: hi ha revocationInfoArchival (com l''Adobe)'
+    Assert (-not ($provaT.Atributs -contains '1.2.840.113549.1.9.16.2.47')) '_CmsComprova: CAP atribut ESS (la causa de tot)'
+    # La guarda posicional: en un blob que porta l'OID pero cap messageDigest
+    # (com dins d'un certificat), NO s'ha de tocar res.
+    $blobT = New-Object byte[] 64
+    $oidT = [byte[]](0x06,0x09,0x2A,0x86,0x48,0x86,0xF7,0x0D,0x01,0x01,0x01)
+    for ($i = 0; $i -lt $oidT.Length; $i++) { $blobT[20 + $i] = $oidT[$i] }
+    $blobP = _CmsOidComAdobe $blobT
+    AssertEq $blobP[30] $blobT[30] '_CmsOidComAdobe: sense messageDigest al darrere, no toca res (la guarda del certificat)'
+    # Si algu toca la SIGNATURA, la comprovacio ho ha de veure.
+    $derMal = New-Object byte[] $derP.Length
+    [Array]::Copy($derP, $derMal, $derP.Length)
+    $derMal[$derMal.Length - 10] = $derMal[$derMal.Length - 10] -bxor 0xFF
+    AssertEq ([bool](_CmsComprova $derMal $contT).Ok) $false '_CmsComprova: una signatura tocada NO passa'
+    # ...i el CICLE SENCER sobre un PDF sintetic amb un forat de debo.
+    $tplT = '%PDF-1.7' + "`n" + '/ByteRange[0 100 4102 30]'
+    $pdfT = New-Object byte[] 4132
+    $tplB = [System.Text.Encoding]::ASCII.GetBytes($tplT)
+    for ($i = 0; $i -lt $tplB.Length; $i++) { $pdfT[$i] = $tplB[$i] }
+    for ($i = $tplB.Length; $i -lt 100; $i++) { $pdfT[$i] = 0x20 }
+    $pdfT[100] = [byte][char]'<'
+    for ($i = 101; $i -lt 4101; $i++) { $pdfT[$i] = [byte][char]'0' }
+    $pdfT[4101] = [byte][char]'>'
+    for ($i = 4102; $i -lt 4132; $i++) { $pdfT[$i] = 0x20 }
+    $tmpPdfT = Join-Path ([System.IO.Path]::GetTempPath()) ('prova-cms-' + [guid]::NewGuid().ToString('N') + '.pdf')
+    [System.IO.File]::WriteAllBytes($tmpPdfT, $pdfT)
+    $rT = Repack-PdfFirmaComAdobe $tmpPdfT $certT
+    AssertEq ([bool]$rT.Ok) $true ('Repack-PdfFirmaComAdobe: el cicle sencer acaba be (' + $rT.Motiu + ')')
+    Assert ([bool]($rT.Motiu -like '*COMPROVAT*')) 'Repack-PdfFirmaComAdobe: el motiu diu que s''ha comprovat'
+    $b2T = [System.IO.File]::ReadAllBytes($tmpPdfT)
+    AssertEq $b2T.Length $pdfT.Length 'Repack-PdfFirmaComAdobe: la mida del PDF no canvia'
+    # Es rellegeix el CMS de dins del PDF (la longitud real es treu del DER, no
+    # es retallen zeros a cegues: una signatura pot acabar en 00 de debo).
+    $hex2T = [System.Text.Encoding]::ASCII.GetString($b2T, 101, 4000)
+    $raw2T = New-Object byte[] 2000
+    for ($i = 0; $i -lt 2000; $i++) { $raw2T[$i] = [Convert]::ToByte($hex2T.Substring($i * 2, 2), 16) }
+    # 48 = 0x30 (SEQUENCE) i 130 = 0x82. EN DECIMAL A POSTA: un literal hex com
+    # a argument (AssertEq $x 0x30) arriba com a 48 pero CONSERVA el text del
+    # token, i el [string] de dins d'AssertEq el converteix en "0x30" -> la
+    # comparacio falla mentre el missatge diu '48' contra '48'. Mateixa familia
+    # de trampes que el PSObject del Join-Path (vegeu CLAUDE.md).
+    AssertEq $raw2T[0] 48 'Repack-PdfFirmaComAdobe: el CMS de dins comenca amb SEQUENCE'
+    AssertEq $raw2T[1] 130 'Repack-PdfFirmaComAdobe: ...amb longitud de dos bytes'
+    $lenT = ($raw2T[2] * 256) + $raw2T[3] + 4
+    $cms2T = New-Object byte[] $lenT
+    [Array]::Copy($raw2T, $cms2T, $lenT)
+    $c2T = _PdfContingutSignat $b2T @(0, 100, 4102, 30)
+    AssertEq ([bool](_CmsComprova $cms2T $c2T).Ok) $true 'Repack-PdfFirmaComAdobe: el CMS de dins del PDF verifica contra el contingut signat'
+    Remove-Item $tmpPdfT -Force -ErrorAction SilentlyContinue
+} else {
+    Write-Host '  (omes: no es poden crear certificats en memoria en aquesta plataforma)'
+}
+
 Write-Host "`n--- SincronitzaCatalegs.ps1: protegir els catalegs en actualitzar ---"
 # No el carrega Motor.ps1 (l'executa Actualitzar.bat pel seu compte); el
 # dot-sourcegem aqui. El $env:GENINFORME_TEST fa que nomes en surtin definicions.
