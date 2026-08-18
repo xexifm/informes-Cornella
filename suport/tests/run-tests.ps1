@@ -1642,6 +1642,32 @@ if (Test-Path -LiteralPath $capPath) {
 # "Planols" sortia partit en TRES caselles (Pl / a / nols): dins d'un @(...) la
 # coma lliga MES FORT que el '+'. Ja esta avisat a CLAUDE.md i hi vam caure
 # igualment; per aixo la llista es una funcio PURA i es pot COMPTAR.
+# LA MATEIXA TRAMPA, EN ARGUMENTS D'UNA CRIDA, i a TOT el codi de suport/.
+#
+#   _AddBrandHeader $form 'X' 'refer' + [char]0x00E8 + 'ncia' 56
+#
+# PowerShell NO concatena: passa 'refer', '+', 'e', '+', 'ncia' i 56 com a
+# arguments SOLTS, o sigui que el 56 (l'alcada) acaba en un altre parametre i
+# la crida peta amb "no se puede convertir el valor '+' al tipo System.Int32".
+# Va passar de debo al boto "Omplir..." de Llicencia.
+#
+# La deteccio la fa EL PROPI PARSER i no te falsos positius: un argument que
+# sigui LITERALMENT '+' nomes pot venir d'una concatenacio sense parentesis.
+$plusSolts = New-Object System.Collections.ArrayList
+Get-ChildItem -Recurse -Filter *.ps1 (Split-Path -Parent $PSScriptRoot) | ForEach-Object {
+    $fitxer = $_
+    $arbre = [System.Management.Automation.Language.Parser]::ParseFile($fitxer.FullName, [ref]$null, [ref]$null)
+    foreach ($cmd in $arbre.FindAll({ param($x) $x -is [System.Management.Automation.Language.CommandAst] }, $true)) {
+        foreach ($el in $cmd.CommandElements) {
+            if ($el -is [System.Management.Automation.Language.StringConstantExpressionAst] -and $el.Value -eq '+') {
+                [void]$plusSolts.Add(($fitxer.Name + ':' + $el.Extent.StartLineNumber))
+                break
+            }
+        }
+    }
+}
+AssertEq $plusSolts.Count 0 ("cap concatenacio sense parentesis en arguments d'una crida (" + ($plusSolts -join ', ') + ')')
+
 $docsLl = @(_LlicDocsSignats)
 AssertEq $docsLl.Count 3 '_LlicDocsSignats: TRES documents (no cinc: la coma dins d''un @() parteix el text)'
 AssertEq $docsLl[1] ('Pl' + [char]0x00E0 + 'nols') '_LlicDocsSignats: Planols, sencer'

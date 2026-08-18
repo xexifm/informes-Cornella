@@ -1103,6 +1103,21 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   en silenci** («es tanca i no passa res, tampoc es genera cap informe»).
   `Invoke-NouWizard` sí que en té des de sempre; aquest se'l va deixar. Ara
   mostra el missatge **i el fitxer i la línia**, i torna al menú.
+- **LA MATEIXA TRAMPA TÉ UNA SEGONA CARA: en ARGUMENTS d'una crida.**
+  `_AddBrandHeader $form 'X' 'refer' + [char]0x00E8 + 'ncia' 56` no concatena
+  res: PowerShell passa `'refer'`, `'+'`, `'è'`, `'+'`, `'ncia'` i `56` com a
+  arguments **solts**, i el `56` (l'alçada) acaba a un altre paràmetre. El
+  programa peta amb *"no se puede convertir el valor '+' al tipo System.Int32"*
+  i, com que és una excepció de WinForms, surt el quadre gros de .NET. Va
+  passar al botó «Omplir…» de Llicència.
+  - **Detector definitiu, sense falsos positius**: es recorre l'AST de tot
+    `suport/` i es busca un argument que sigui **literalment `'+'`** — això
+    només pot venir d'una concatenació sense parèntesis. Ho diu el propi
+    parser, no una expressió regular. Hi ha prova, i s'ha comprovat que
+    **falla** quan s'hi injecta el cas (i diu fitxer i línia).
+  - Regla pràctica: **qualsevol concatenació que vagi com a argument, entre
+    parèntesis**. Les dues cares d'aquesta trampa (dins d'un `@()` i en
+    arguments) ja han costat dues rondes amb l'usuari.
 - **La trampa de la coma, altre cop i al meu propi codi**: `@('Pl' + [char]0x00E0 + 'nols')`
   són **TRES** elements, i a la pantalla hi sortien cinc caselles —Projecte,
   `Pl`, `à`, `nols`, Annexos— en lloc de tres. Per això la llista és ara una

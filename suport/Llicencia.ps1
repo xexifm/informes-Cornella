@@ -736,7 +736,7 @@ function Select-LlicDadesPunt([string]$titol, $camps, $valors) {
     [void]$form.Controls.Add($btnC)
 
     $form.ClientSize = New-Object System.Drawing.Size(560, ($y + 60))
-    [void](_AddBrandHeader $form 'Dades del document' 'Id Firmadoc i, si escau, expedient o refer' + [char]0x00E8 + 'ncia' 56)
+    [void](_AddBrandHeader $form 'Dades del document' ('Id Firmadoc i, si escau, expedient o refer' + [char]0x00E8 + 'ncia') 56)
     [void]$form.ShowDialog()
     $form.Dispose()
     return $res
