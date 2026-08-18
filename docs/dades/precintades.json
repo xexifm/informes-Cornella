@@ -1,8 +1,8 @@
 {
-    "GeneratedAt":  "2026-07-30T14:07:41.1335325+02:00",
-    "Font":  "2026-07-30 ACTIVITATS.xls",
-    "SourceDate":  "2026-07-30",
-    "Comptador":  21,
+    "GeneratedAt":  "2026-08-18T11:56:48.5034091+02:00",
+    "Font":  "2026-08-18 ACTIVITATS.xls",
+    "SourceDate":  "2026-08-18",
+    "Comptador":  23,
     "Activitats":  [
                        {
                            "id":  "1369",
@@ -110,11 +110,25 @@
                            "lon":  2.0828314803413934
                        },
                        {
+                           "id":  "282",
+                           "activitat":  "GIMNÀS",
+                           "adreca":  "C LASARTE 1",
+                           "lat":  41.356538358118009,
+                           "lon":  2.0681125997587322
+                       },
+                       {
                            "id":  "231",
                            "activitat":  "BAR RESTAURANT",
                            "adreca":  "C NOGUERA (LA) 76",
                            "lat":  41.3530526943505,
                            "lon":  2.0880451500898416
+                       },
+                       {
+                           "id":  "200",
+                           "activitat":  "RESTAURANT",
+                           "adreca":  "C PIUS XII 1",
+                           "lat":  41.3560836626998,
+                           "lon":  2.0696382961527249
                        },
                        {
                            "id":  "122",
