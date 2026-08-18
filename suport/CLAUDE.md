@@ -1063,6 +1063,21 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   (pura, `Activitats.ps1`) munta `"Llei 20/2009; Annex II; Epígraf 12.25"` de les
   columnes `Classificació general annex` / `... Apartat` de l'Excel. Va al
   `<<CLASSIFICACIO>>` de la capçalera.
+- **`0 CAPCALERA.docx` NO ES TOCA AMB UN SERIALITZADOR D'XML. MAI.** (Error meu,
+  gros, i que va deixar el programa inservible uns dies.) La cirurgia del bloc
+  `[[CAP:LLIC]]` es va fer amb `ElementTree`, que **reserialitza tot el
+  document**: dels **19** espais de noms de l'arrel en van quedar **3**, va
+  inventar prefixos `ns0:`/`ns1:` i va perdre el `mc:Ignorable`. Word deia
+  *"El archivo parece estar corrompido"* i **no es podia generar CAP informe**
+  —ni REQ1, ni TERMINI, ni ACT_EXTR— perquè tots surten d'aquesta capçalera.
+  El símptoma va sortir a `Document.ps1:197` (`$word.Documents.Open`).
+  - **Com s'ha de fer**: edicions de **TEXT** sobre `word/document.xml` (buscar
+    els `<w:p>…</w:p>` com a trossos de cadena i moure'ls), i tornar a escriure
+    el ZIP **conservant `compress_type` i l'ordre** de cada entrada. Així només
+    canvia `document.xml` i tota la resta queda byte a byte igual.
+  - **Proves que ho vigilen** (i s'ha comprovat que fallen si es reprodueix el
+    desastre): `mc:Ignorable` present, cap prefix `ns\d+:`, la declaració XML
+    original amb `standalone="yes"`, i **≥15 espais de noms** a l'arrel.
 - **`0 CAPCALERA.docx` té ara TRES blocs**: el genèric (REQ1/TERMINI), el
   d'`[[CAP:ACT_EXTR]]` i el nou `[[CAP:LLIC]]`, que és una còpia del genèric amb
   la línia `Classificació: <<CLASSIFICACIO>>`. `_CapMarcador` (pura) reconeix

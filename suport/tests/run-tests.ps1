@@ -1596,6 +1596,19 @@ AssertEq (_CapMarcador '[[CAP:]]')         ''         '_CapMarcador: sense nom n
 $capPath = Join-Path $EstructuralsDir '0 CAPCALERA.docx'
 if (Test-Path -LiteralPath $capPath) {
     $capTxt = _ReadDocxPartText $capPath 'word/document.xml'
+    # INTEGRITAT del .docx, ABANS de mirar-ne el contingut. Aixo va passar de
+    # debo: una cirurgia feta amb un serialitzador d'XML (ElementTree) va
+    # reescriure document.xml deixant 3 espais de noms dels 19, inventant-se
+    # prefixos 'ns0:' i perdent el mc:Ignorable. Word deia "El archivo parece
+    # estar corrompido" i NO ES PODIA GENERAR CAP INFORME -de cap tipus, no
+    # nomes Llicencia-, perque tots parteixen d'aquesta capcalera.
+    # Regla: aquesta plantilla es toca amb edicions de TEXT sobre el XML, mai
+    # reserialitzant-lo.
+    Assert ($capTxt.Contains('mc:Ignorable')) '0 CAPCALERA.docx: conserva el mc:Ignorable (si no, Word el dona per corrupte)'
+    Assert (-not ($capTxt -match 'ns\d+:')) '0 CAPCALERA.docx: cap prefix d''espai de noms inventat (ns0:, ns1:...)'
+    Assert ($capTxt.Contains('standalone="yes"')) '0 CAPCALERA.docx: conserva la declaracio XML original'
+    $capNs = ([regex]::Matches($capTxt.Substring(0, [Math]::Min(2000, $capTxt.Length)), 'xmlns:')).Count
+    Assert ($capNs -ge 15) ('0 CAPCALERA.docx: hi ha tots els espais de noms (' + $capNs + ', n''hi ha d''haver 19)')
     # Amb .Contains() i NO amb -like: en un patro de -like, '[[CAP:LLIC]' es una
     # CLASSE DE CARACTERS, o sigui que '*[[CAP:LLIC]]*' li dona per bo qualsevol
     # text que porti un dels caracters '[ C A P : L I' seguit d'un ']'. Amb
