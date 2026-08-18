@@ -894,14 +894,16 @@ function _ShowConvertPdfOptions {
     # Certificats disponibles al magatzem de Windows (per triar-lo d'una llista,
     # en lloc d'escriure text). Primer element: deixar-ho a AutoFirma.
     $certOpts = New-Object System.Collections.ArrayList
-    [void]$certOpts.Add(@{ Display = ('(triar-lo a AutoFirma en signar)'); Filter = '' })
+    [void]$certOpts.Add(@{ Display = ('(triar-lo a AutoFirma en signar)'); Filter = ''; Thumb = '' })
     try {
         Get-ChildItem 'Cert:\CurrentUser\My' -ErrorAction SilentlyContinue |
             Where-Object { $_.HasPrivateKey } | Sort-Object NotAfter -Descending | ForEach-Object {
                 $cn = _CertCommonName ([string]$_.Subject)
                 $exp = ''
                 try { $exp = $_.NotAfter.ToString('dd/MM/yyyy') } catch { }
-                [void]$certOpts.Add(@{ Display = ("{0}  (fins {1})" -f $cn, $exp); Filter = (_CertFilterValue $cn) })
+                # Thumb: cal per recuperar el certificat i refer el CMS
+                # nosaltres (PdfCms.ps1). El Filter nomes serveix per a AutoFirma.
+                [void]$certOpts.Add(@{ Display = ("{0}  (fins {1})" -f $cn, $exp); Filter = (_CertFilterValue $cn); Thumb = [string]$_.Thumbprint })
             }
     } catch { }
 
@@ -1056,10 +1058,14 @@ function _ShowConvertPdfOptions {
             return
         }
         $certFilter = ''
-        if ($cbCert.SelectedIndex -ge 0 -and $cbCert.SelectedIndex -lt $certOpts.Count) { $certFilter = [string]$certOpts[$cbCert.SelectedIndex].Filter }
+        $certThumb  = ''
+        if ($cbCert.SelectedIndex -ge 0 -and $cbCert.SelectedIndex -lt $certOpts.Count) {
+            $certFilter = [string]$certOpts[$cbCert.SelectedIndex].Filter
+            $certThumb  = [string]$certOpts[$cbCert.SelectedIndex].Thumb
+        }
         $caixeti = ([string]$tbCx.Text -replace "`r`n", "`n")
         $result.Value = @{
-            Folder = $f; Sign = [bool]$cbSign.Checked; CertFilter = $certFilter
+            Folder = $f; Sign = [bool]$cbSign.Checked; CertFilter = $certFilter; CertThumb = $certThumb
             Overwrite = [bool]$cbOver.Checked; AutoFirma = [string]$autofirma
             VisibleSign = [bool]$cbVis.Checked; Caixeti = $caixeti
             ObrirRegistre = [bool]$cbLog.Checked
@@ -1144,6 +1150,19 @@ function _RunConvertPdf($opts) {
     # Caixetí de signatura visible (buit = signatura invisible, com abans).
     $caixeti = if ([bool]$opts.VisibleSign) { [string]$opts.Caixeti } else { '' }
     $converted = 0; $skipped = 0; $signed = 0; $errors = 0; $done = 0
+    # El certificat amb que refarem el CMS (PdfCms.ps1). Si no se n'ha triat cap
+    # del desplegable no es pot refer: AutoFirma el triaria ell i aqui no sabem
+    # quin es. En aquest cas es deixa la signatura tal com la fa l'AutoFirma.
+    $certRefer = $null
+    $refets = 0
+    $thumb = [string]$opts.CertThumb
+    if (-not [string]::IsNullOrWhiteSpace($thumb)) {
+        try { $certRefer = Get-Item -LiteralPath ("Cert:\CurrentUser\My\" + $thumb) -ErrorAction Stop } catch { $certRefer = $null }
+        if ($null -eq $certRefer) { _PdfSignarLog ("AVIS: no trobo el certificat " + $thumb + " al magatzem; no podre refer el CMS.") }
+    } else {
+        _PdfSignarLog "AVIS: cap certificat triat al desplegable; la signatura es quedara la que faci l'AutoFirma (nomes es valida a aquest PC)."
+    }
+
     # Quants s'han hagut de signar SENSE caixeti perque el visible ha fallat.
     $senseCaixeti = 0
     $errDetalls = New-Object System.Collections.ArrayList
@@ -1252,6 +1271,24 @@ function _RunConvertPdf($opts) {
                     if ($res.ExitCode -eq 0 -and (Test-Path -LiteralPath $tmpSigned)) {
                         Move-Item -LiteralPath $tmpSigned -Destination $pdf -Force
                         $signed++
+                        # LA SIGNATURA ES REFA AQUI (PdfCms.ps1). L'AutoFirma ha
+                        # muntat el PDF -que aixo ho fa be- pero el CMS que hi
+                        # posa nomes es valida a l'ordinador que signa. Se li
+                        # reemplaca pel nostre, amb la mateixa estructura que fa
+                        # l'Adobe. No es toca ni un byte del document: el
+                        # /ByteRange no canvia i el forat del /Contents ja hi es.
+                        # Si falla, es queda la de l'AutoFirma i s'apunta al
+                        # registre: val mes una signatura que es validi nomes
+                        # aqui que cap signatura.
+                        if ($null -ne $certRefer) {
+                            $rp = Repack-PdfFirmaComAdobe $pdf $certRefer
+                            if ($rp.Ok) {
+                                $refets++
+                                if ($refets -eq 1) { _PdfSignarLog ("CMS refet com l'Adobe  " + $f.Name + "  ::  " + $rp.Motiu) }
+                            } else {
+                                _PdfSignarLog ("AVIS: no s'ha pogut refer el CMS de " + $f.Name + " -> " + $rp.Motiu)
+                            }
+                        }
                         # Nomes la primera: serveix per comprovar l'ordre exacta.
                         if ($signed -eq 1) {
                             _PdfSignarLog ("OK (" + $usat + ")  " + $f.Name + "  ::  " + (_AutoFirmaArgvToText $argv))
@@ -1289,6 +1326,9 @@ function _RunConvertPdf($opts) {
     [void]$msg.AppendLine(("Ja estaven al dia (saltats): {0}" -f $skipped))
     if ($opts.Sign) {
         [void]$msg.AppendLine(("PDF signats: {0}" -f $signed))
+        if ($refets -gt 0) {
+            [void]$msg.AppendLine(("  ({0} amb la signatura refeta perque es validi a qualsevol ordinador)" -f $refets))
+        }
         if ($senseCaixeti -gt 0) {
             [void]$msg.AppendLine(("  (dels quals {0} SENSE caixeti: el caixeti ha fallat i s'han signat igualment)" -f $senseCaixeti))
         }

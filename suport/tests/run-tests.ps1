@@ -1834,6 +1834,56 @@ AssertEq ($vells -join '|') 'Informes generats|Rutes generades|BASE DE DADES ACT
 AssertEq $migs[2].Desti ($tstLocal + 'base-dades-activitats') 'Get-MigracionsLocal: desti dins de local'
 AssertEq ([bool](@($migs | Where-Object { $_.Origen -like '*ESTRUCTURALS*' }).Count -eq 0)) $true 'Get-MigracionsLocal: ESTRUCTURALS no es mou (les vistes van a part)'
 
+Write-Host "`n--- PdfCms.ps1: refer la signatura de dins del PDF ---"
+# Els informes signats amb l'AutoFirma nomes es validaven a l'ordinador que
+# signa. Comparant amb un de signat a ma amb l'Adobe (mateix certificat, mateix
+# ordinador) l'unica diferencia que quedava era l'atribut ESS
+# 'signingCertificateV2', que porta un camp 'policies' i, pel RFC 5035, obliga a
+# validar la cadena RESTRINGIDA a aquelles politiques. Aqui es refa el CMS amb
+# la mateixa estructura que l'Adobe, sense tocar ni un byte del document.
+. (Join-Path (Split-Path -Parent $PSScriptRoot) 'PdfCms.ps1')
+
+# Un PDF de mentida, pero amb un /ByteRange i un forat de /Contents de veritat.
+$pdfCap  = [System.Text.Encoding]::ASCII.GetBytes('%PDF-1.7' + "`n" + '/ByteRange[0 40 100 20]' + "`n")
+$pdfFals = New-Object byte[] 120
+for ($i = 0; $i -lt $pdfCap.Length; $i++) { $pdfFals[$i] = $pdfCap[$i] }
+$pdfFals[40] = [byte][char]'<'
+for ($i = 41; $i -lt 99; $i++) { $pdfFals[$i] = [byte][char]'0' }
+$pdfFals[99] = [byte][char]'>'
+$fCap = _PdfTrobaFirma $pdfFals
+AssertEq ([bool]$fCap.Ok) $true '_PdfTrobaFirma: troba la signatura'
+AssertEq (@($fCap.Ranges) -join ',') '0,40,100,20' '_PdfTrobaFirma: el /ByteRange'
+AssertEq $fCap.HexStart 41 '_PdfTrobaFirma: el forat comenca despres del <'
+AssertEq $fCap.HexLen   58 '_PdfTrobaFirma: i acaba abans del >'
+# El contingut signat son els DOS trossos, seguits.
+$cSig = _PdfContingutSignat $pdfFals $fCap.Ranges
+AssertEq $cSig.Length 60 '_PdfContingutSignat: els dos trossos del /ByteRange'
+# Un PDF sense signar no s'ha de confondre amb un de signat.
+$senseFirma = [System.Text.Encoding]::ASCII.GetBytes('%PDF-1.7 res a veure aqui dins, nomes text i mes text per fer bulto')
+AssertEq ([bool](_PdfTrobaFirma $senseFirma).Ok) $false '_PdfTrobaFirma: un PDF sense signar -> no'
+AssertEq ([bool](_PdfTrobaFirma ([byte[]]@())).Ok) $false '_PdfTrobaFirma: fitxer buit -> no'
+# Escriure el CMS: la MIDA DEL FITXER NO POT CANVIAR (el /ByteRange ja esta
+# escrit i firmat; si el fitxer creix o minva, deixa de quadrar).
+$cmsFals = [byte[]](0xDE, 0xAD, 0xBE, 0xEF)
+$posat = _PdfPosaCms $pdfFals $fCap.HexStart $fCap.HexLen $cmsFals
+AssertEq $posat.Length $pdfFals.Length '_PdfPosaCms: la mida del fitxer no canvia'
+$hexPosat = [System.Text.Encoding]::ASCII.GetString($posat, $fCap.HexStart, 8)
+AssertEq $hexPosat 'deadbeef' '_PdfPosaCms: el CMS hi va en hexadecimal'
+AssertEq ([System.Text.Encoding]::ASCII.GetString($posat, $fCap.HexStart + 8, 4)) '0000' '_PdfPosaCms: la resta del forat, farcida de zeros'
+AssertEq ([char]$posat[40]) '<' '_PdfPosaCms: no es toca el < d''obrir'
+AssertEq ([char]$posat[99]) '>' '_PdfPosaCms: ni el > de tancar'
+# ...i el DOCUMENT (el que hi ha fora del forat) ha de quedar intacte.
+$igualFora = $true
+for ($i = 0; $i -lt $pdfFals.Length; $i++) {
+    if ($i -ge $fCap.HexStart -and $i -lt ($fCap.HexStart + $fCap.HexLen)) { continue }
+    if ($pdfFals[$i] -ne $posat[$i]) { $igualFora = $false; break }
+}
+AssertEq $igualFora $true '_PdfPosaCms: fora del forat no es toca ni un byte'
+# Un CMS que no hi cap ha de PETAR, no escriure a mitges.
+$petat = $false
+try { [void](_PdfPosaCms $pdfFals $fCap.HexStart $fCap.HexLen (New-Object byte[] 500)) } catch { $petat = $true }
+AssertEq $petat $true '_PdfPosaCms: si el CMS no hi cap, peta (no escriu a mitges)'
+
 Write-Host "`n--- SincronitzaCatalegs.ps1: protegir els catalegs en actualitzar ---"
 # No el carrega Motor.ps1 (l'executa Actualitzar.bat pel seu compte); el
 # dot-sourcegem aqui. El $env:GENINFORME_TEST fa que nomes en surtin definicions.

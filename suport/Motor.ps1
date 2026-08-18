@@ -382,6 +382,7 @@ if (-not $Script:HeadlessTest) { [void](Invoke-MigracioLocal $RepoRoot) }
 
 # Eina "Convertir informes a PDF (i signar)". Funcions pures (rutes, arguments
 # d'AutoFirma) testejables; Word (COM) i AutoFirma nomes s'executen a Windows.
+. (Join-Path $ScriptRoot 'PdfCms.ps1')
 . (Join-Path $ScriptRoot 'PdfSignar.ps1')
 
 # Eina "Seguiment" (fila GIA): els cinc llistats de seguiment de la base de

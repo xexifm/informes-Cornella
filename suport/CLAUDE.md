@@ -826,12 +826,46 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
     - `signingCertificateV2=false` demana la versió antiga de l'atribut
       (SigningCertificate, RFC 2634), que **no porta `policies`**. És l'últim
       recurs abans de muntar la signatura nosaltres.
-    - **Si això tampoc**: no queda cap paràmetre d'AutoFirma. El camí és
-      **signar des del programa** (`SignedCms` de .NET amb el certificat de
-      `Cert:\CurrentUser\My` + actualització incremental del PDF), reproduint
-      el que fa Adobe: `signedAttrs` només contentType + messageDigest, sense
-      cap atribut ESS, un sol certificat i `adbe.pkcs7.detached`. Es té el PDF
-      vàlid de l'usuari com a **model exacte** a reproduir.
+    - **`signingCertificateV2=false` tampoc.** Provat: segueix desconeguda.
+      S'han acabat els paràmetres d'AutoFirma.
+    - **LA SOLUCIÓ: `suport/PdfCms.ps1`.** En lloc de seguir perseguint
+      diferències d'una en una, es deixa que **AutoFirma munti el PDF** (que això
+      ho fa bé: el document mai surt alterat, el camp de signatura i el caixetí
+      són correctes) i **se li reemplaça NOMÉS el CMS de dins del `/Contents`**
+      per un fet aquí amb `SignedCms` de .NET, amb l'estructura **exacta**
+      d'Adobe: `contentType` + `messageDigest` + `adbe-revocationInfoArchival`
+      buit, un sol certificat i **cap atribut ESS**.
+      - **Per què és segur**: no es toca ni un byte del document. El
+        `/ByteRange` no canvia (i és el que diu on és el forat, així que no cal
+        endevinar on és el `<`), el forat que deixa AutoFirma és de **27.000
+        bytes** i el nostre CMS n'ocupa ~2.600, i el que es firma són
+        **exactament** els mateixos bytes → el *"no ha habido modificaciones"*
+        continua sortint igual. La mida del fitxer **no pot canviar**: si
+        canviés, el `/ByteRange` (que ja està escrit i firmat) deixaria de
+        quadrar.
+      - Cal l'**empremta** del certificat (`CertThumb` a les opcions), no només
+        el filtre de CN que fa servir AutoFirma: sense triar-ne un al
+        desplegable no es pot refer i es queda la signatura d'AutoFirma (i el
+        registre ho diu).
+      - Si el reempaquetat falla, **es deixa la d'AutoFirma**: val més una
+        signatura que només es validi al PC de l'usuari que cap signatura.
+      - **`CmsSigner` de .NET, dos paranys**: (1) per defecte fa **SHA-1**, s'ha
+        de posar SHA-256 explícitament; (2) si no se li posa **cap** atribut
+        signat, firma el contingut directament i el PDF queda **sense
+        `messageDigest`**, que és el que Adobe espera. Per això s'hi posa
+        l'`adbe-revocationInfoArchival` buit — el mateix que hi posa Adobe — i
+        llavors .NET hi afegeix sol el `contentType` i el `messageDigest`.
+      - `CryptographicAttributeObject` **no** és a `...Cryptography.Pkcs` sinó a
+        `System.Security.Cryptography`. L'assemblatge és `System.Security` al
+        PowerShell 5.1 i `System.Security.Cryptography.Pkcs` al 7 (les proves):
+        `_CmsCarregaTipus` prova els dos.
+      - **Es va escriure una funció que "corregia" l'OID de l'algorisme del
+        SignerInfo i la prova la va enxampar corrompent el CERTIFICAT**: el patró
+        que buscava (`SEQUENCE{rsaEncryption, NULL}`) també surt a la clau
+        pública del certificat, i el del SignerInfo no porta el `NULL`, així que
+        la cerca "l'última aparició" queia sobre el certificat. Com que ja
+        s'havia demostrat que aquell OID **no canvia la validesa**, la funció es
+        va esborrar. Codi que no cal, fora.
     - **Pendent**: el que faria la firma validable a qualsevol banda i d'aquí a
       anys és un **segell de temps (TSA)** + dades de revocació (PAdES-LTV).
       AutoFirma ho admet (`tsaURL`, `tsaPolicy`, `tsaHashAlgorithm`…), però cal

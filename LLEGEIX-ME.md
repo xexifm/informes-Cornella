@@ -1,4 +1,4 @@
-# Generador d'informes — Ajuntament de Cornellà de Llobregat
+﻿# Generador d'informes — Ajuntament de Cornellà de Llobregat
 
 Programa per muntar informes de deficiències de llicències d'activitat, fer-ne
 el seguiment, planificar rutes d'inspecció i passar-los a PDF signat.
@@ -149,10 +149,12 @@ El text del caixetí és editable a les opcions. Allà mateix hi ha la casella
 **«Obrir el registre de la signatura en acabar»**: normalment la vols desmarcada;
 marca-la si el caixetí no surt i vols veure què s'ha enviat a l'AutoFirma.
 
-> **Si en un altre ordinador surt «la validesa de la firma és DESCONEGUDA»:**
-> la firma es fa igual que la que et validava a tot arreu (només s'hi encasta el
-> teu certificat, no tota la cadena de l'AOC). Si encara et passés, obre el
-> registre de la signatura i passa'm-lo: allà hi surt l'ordre exacta.
+> **La signatura es valida a QUALSEVOL ordinador.** L'AutoFirma munta el PDF i
+> el programa li refà la signatura de dins amb la mateixa forma que la fa
+> l'Adobe, que és l'única que es validava a tot arreu. Per això **has de triar
+> el teu certificat al desplegable**: si hi deixes «(triar-lo a AutoFirma en
+> signar)», el programa no sap quin és i no la pot refer. Si algun dia et torna
+> a sortir «desconeguda», obre el registre de la signatura i passa'm-lo.
 >
 > El que ho deixaria resolt per sempre és afegir-hi un **segell de temps**, i
 > per això cal demanar a Informàtica de l'Ajuntament la **URL del servei de
