@@ -112,6 +112,14 @@ La diferència amb un requeriment normal és que aquí els punts **no són
 deficiències sinó documentació**, i surten tant si es té com si no: de cada punt
 tries **«No es disposa…»** (surt en negreta) o **«Es disposa… (Id Firmadoc: …)»**.
 
+Quan poses **«Es disposa»** al bloc d'**abans**, el botó **«Omplir…»** d'aquella
+fila et demana les dades d'aquell document — l'Id Firmadoc i, segons el punt,
+l'expedient, la referència o el registre. Cada document té les seves. Al bloc de
+**després** només cal dir si es disposa del document; les dades no hi van.
+
+Si tornes **Enrere**, el que havies marcat (i les dades que havies posat) **es
+conserva**.
+
 Al bloc de **després** de la resolució les caselles surten **totes marcades** (és
 com tenies el Word: hi eren totes i n'anaves esborrant); hi ha **«Marcar-ho
 tot»** i **«Desmarcar-ho tot»**. Al bloc d'**abans** surten desmarcades, perquè

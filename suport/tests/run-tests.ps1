@@ -1639,6 +1639,58 @@ if (Test-Path -LiteralPath $capPath) {
     AssertEq $capBuides.Count 0 ('0 CAPCALERA.docx: cap etiqueta sense marcador (' + ($capBuides -join ' | ') + ')')
 }
 
+# "Planols" sortia partit en TRES caselles (Pl / a / nols): dins d'un @(...) la
+# coma lliga MES FORT que el '+'. Ja esta avisat a CLAUDE.md i hi vam caure
+# igualment; per aixo la llista es una funcio PURA i es pot COMPTAR.
+$docsLl = @(_LlicDocsSignats)
+AssertEq $docsLl.Count 3 '_LlicDocsSignats: TRES documents (no cinc: la coma dins d''un @() parteix el text)'
+AssertEq $docsLl[1] ('Pl' + [char]0x00E0 + 'nols') '_LlicDocsSignats: Planols, sencer'
+# I cap element pot ser un tros solt d'una paraula.
+Assert (-not (@($docsLl) | Where-Object { $_.Length -le 2 })) '_LlicDocsSignats: cap element trencat'
+
+# Les DADES de cada document ("Es disposa (Id Firmadoc: ...; Expedient: ...)").
+# Els XXX del Word de l'usuari son forats: al cataleg han de ser [CAMP: ...].
+$txtSi = @('Es disposa de l''informe (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient])')
+$campsSi = @(_LlicCampsDelText $txtSi)
+AssertEq $campsSi.Count 2 '_LlicCampsDelText: troba els dos camps'
+AssertEq $campsSi[0] 'Id Firmadoc' '_LlicCampsDelText: el primer'
+AssertEq $campsSi[1] 'Expedient'   '_LlicCampsDelText: el segon'
+AssertEq (@(_LlicCampsDelText @('sense cap camp')).Count) 0 '_LlicCampsDelText: sense camps, cap'
+AssertEq (@(_LlicCampsDelText @()).Count) 0 '_LlicCampsDelText: sense text, cap'
+# El mateix camp repetit compta un cop (surt una sola casella al dialeg).
+AssertEq (@(_LlicCampsDelText @('[CAMP: A] i [CAMP: A]')).Count) 1 '_LlicCampsDelText: el mateix camp, una vegada'
+$resolt = @(_LlicAplicaCamps $txtSi @{ 'Id Firmadoc' = '2024/123'; 'Expedient' = 'E-9' })
+Assert ($resolt[0].Contains('Id Firmadoc: 2024/123')) '_LlicAplicaCamps: hi posa el valor'
+Assert ($resolt[0].Contains('Expedient: E-9')) '_LlicAplicaCamps: i el segon'
+Assert (-not ($resolt[0] -match '\[CAMP:')) '_LlicAplicaCamps: no queda cap marcador al text'
+# Un camp sense valor no deixa el marcador a la vista: queda buit.
+$buit = @(_LlicAplicaCamps $txtSi @{})
+Assert (-not ($buit[0] -match '\[CAMP:')) '_LlicAplicaCamps: sense valor, el marcador desapareix igualment'
+# La clau amb que es recorda cada punt en tornar ENRERE.
+AssertEq (_LlicClauPunt ([pscustomobject]@{ Clau='S::T'; Titol='X' })) 'S::T' '_LlicClauPunt: la clau de REQ1 si en te'
+AssertEq (_LlicClauPunt ([pscustomobject]@{ Clau=''; Titol='Propi' })) '#Propi' '_LlicClauPunt: i el titol si es un punt propi'
+
+# Al CATALEG real: cap "Es disposa" pot quedar amb XXX (seria un forat que
+# l'usuari no pot omplir des del programa).
+$llicPathX = Join-Path $EstructuralsDir 'LLIC.json'
+if (Test-Path -LiteralPath $llicPathX) {
+    $llicTxt = Get-Content -LiteralPath $llicPathX -Raw -Encoding UTF8
+    Assert (-not $llicTxt.Contains('XXX')) 'LLIC.json: cap XXX (els forats son camps [CAMP: ...])'
+    # ...i cada "Es disposa" ha de demanar com a minim l'Id Firmadoc.
+    $llicJ = $llicTxt | ConvertFrom-Json
+    $senseId = New-Object System.Collections.ArrayList
+    foreach ($sx in @($llicJ.nodes)) {
+        foreach ($itx in @($sx.fills)) {
+            foreach ($fx in @($itx.fills)) {
+                if ([string]$fx.tipus -ne 'sidisposa') { continue }
+                $tx = -join (@($fx.cos) | ForEach-Object { @($_.runs) | ForEach-Object { [string]$_.t } })
+                if ($tx -notmatch '\[CAMP:') { [void]$senseId.Add([string]$itx.titol) }
+            }
+        }
+    }
+    AssertEq $senseId.Count 0 ("LLIC.json: tot 'Es disposa' demana dades (" + ($senseId -join ', ') + ')')
+}
+
 # La pantalla de tria de documentacio de LLICENCIA va quedar MORTA: cap boto
 # responia. La causa: _StyleListGrid fa Dock='Fill' (pensat per a graelles dins
 # d'un panell) i la graella, posada directament al formulari, ocupava TOTA la

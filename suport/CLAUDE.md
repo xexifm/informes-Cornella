@@ -1081,6 +1081,33 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
 - `Get-Catalegs` **exclou `LLIC.json`** (no és un catàleg de deficiències: no ha
   de sortir al menú de "Requeriment - Nou") i `_VistaEsProtegit` també el
   protegeix.
+- **Els comentaris «Es disposa» demanen DADES, i són per punt.** Al Word de
+  l'usuari hi havia `XXX` on va l'Id Firmadoc i, segons el punt, l'Expedient /
+  Referència / Registre. Al catàleg són ara **`[CAMP: nom]`**, i la pantalla del
+  bloc ABANS té una columna **«Omplir…»** que obre `Select-LlicDadesPunt` amb
+  els camps que demani aquell text (`_LlicCampsDelText`, pura).
+  - **No es fa servir el diccionari de camps compartit**: allà la clau és el
+    NOM del camp, i «Id Firmadoc» val **una cosa diferent a cada document**. El
+    valor es resol punt a punt (`_LlicAplicaCamps`, pura) i el punt se'n va amb
+    el text **ja resolt**. Un camp sense valor deixa el forat buit, mai el
+    marcador a la vista.
+  - Al bloc **DESPRÉS** es marca si es disposa del document, però **no** es
+    demanen les dades (`$ambDades` només a ABANS): l'usuari ho va demanar així.
+  - Prova al catàleg real: **cap `XXX`** i **tot «Es disposa» demana com a
+    mínim l'Id Firmadoc**.
+- **La tria de cada pantalla es RECORDA** (`$st.MemAbans` / `$st.MemDespres`,
+  indexada per `_LlicClauPunt` = clau de REQ1, o `#títol` per als punts propis):
+  tornar Enrere ja no esborra el que s'havia marcat. Es recorda **tot** —marcat
+  o no, l'estat i les dades—, no només el que estava marcat.
+- **L'assistent NO tenia `catch`.** Qualsevol error a dins **matava el programa
+  en silenci** («es tanca i no passa res, tampoc es genera cap informe»).
+  `Invoke-NouWizard` sí que en té des de sempre; aquest se'l va deixar. Ara
+  mostra el missatge **i el fitxer i la línia**, i torna al menú.
+- **La trampa de la coma, altre cop i al meu propi codi**: `@('Pl' + [char]0x00E0 + 'nols')`
+  són **TRES** elements, i a la pantalla hi sortien cinc caselles —Projecte,
+  `Pl`, `à`, `nols`, Annexos— en lloc de tres. Per això la llista és ara una
+  funció pura (`_LlicDocsSignats`) **que es pot comptar en una prova**: la
+  regla ja era a aquest document i no va evitar res; la prova sí.
 - **El favorable POST LLEGEIX el pre-llicència**, no el torna a demanar
   (`_LlicPuntsDelDocxAnterior`, pura): el post diu «Després d'haver comprovat la
   següent documentació presentada:» i ha de llistar **exactament** el que deia

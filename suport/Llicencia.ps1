@@ -273,6 +273,62 @@ function _LlicPuntsDelDocxAnterior($paraTexts) {
     return $punts.ToArray()
 }
 
+# Els documents que pot haver signat el tecnic redactor. Funcio PURA (i per aixo
+# es aqui i no dins del dialeg: aixi es pot COMPTAR en una prova).
+#
+# ATENCIO als PARENTESIS: dins d'un @(...) la coma lliga MES FORT que el '+', o
+# sigui que @('Pl' + [char]0x00E0 + 'nols') son TRES elements, no un. Aixo va
+# passar de debo: a la pantalla hi sortien cinc caselles -Projecte, Pl, a, nols,
+# Annexos- en lloc de tres. Esta avisat a CLAUDE.md i hi vaig caure igualment.
+function _LlicDocsSignats {
+    return @('Projecte', ('Pl' + [char]0x00E0 + 'nols'), 'Annexos')
+}
+
+# Els noms dels camps [CAMP: ...] que hi ha en unes linies de text. Funcio PURA.
+# Serveix per saber QUINES dades ha d'omplir l'usuari quan diu que ja disposa
+# d'un document (Id Firmadoc, Expedient, Referencia... segons el punt).
+function _LlicCampsDelText($linies) {
+    $out = New-Object System.Collections.ArrayList
+    foreach ($l in @($linies)) {
+        foreach ($m in [regex]::Matches([string]$l, '\[CAMP:\s*([^\]]+)\]')) {
+            $nom = ([string]$m.Groups[1].Value).Trim()
+            if ($nom -and -not $out.Contains($nom)) { [void]$out.Add($nom) }
+        }
+    }
+    return $out.ToArray()
+}
+
+# Substitueix els [CAMP: nom] d'unes linies pels valors donats. Funcio PURA.
+#
+# PER QUE NO ES FA SERVIR EL DICCIONARI DE CAMPS COMPARTIT: alli les claus son
+# el NOM del camp, i aqui "Id Firmadoc" te un valor DIFERENT a cada punt (cada
+# document te el seu). Per aixo el valor es resol punt a punt i s'hi deixa el
+# text ja resolt.
+function _LlicAplicaCamps($linies, $valors) {
+    $out = New-Object System.Collections.ArrayList
+    foreach ($l in @($linies)) {
+        $t = [string]$l
+        foreach ($m in [regex]::Matches($t, '\[CAMP:\s*([^\]]+)\]')) {
+            $nom = ([string]$m.Groups[1].Value).Trim()
+            $v = ''
+            if ($null -ne $valors -and $valors.Contains($nom)) { $v = [string]$valors[$nom] }
+            $t = $t.Replace([string]$m.Value, $v)
+        }
+        [void]$out.Add($t)
+    }
+    return $out.ToArray()
+}
+
+# La clau amb que es recorda que havia triat l'usuari a la pantalla de
+# documentacio (per poder-ho tornar a pintar si torna ENRERE). Funcio PURA: la
+# clau de REQ1 si en te, i si no el titol -que es l'unic que distingeix els
+# punts propis-.
+function _LlicClauPunt($punt) {
+    $c = [string]$punt.Clau
+    if (-not [string]::IsNullOrWhiteSpace($c)) { return $c }
+    return ('#' + [string]$punt.Titol)
+}
+
 # Quins punts condicionals entren, segons si es llicencia provisional.
 #   'annexii'     -> nomes si NO ho es
 #   'provisional' -> nomes si SI ho es
@@ -623,6 +679,69 @@ function Select-LlicFase($preFase, $preProv) {
     return $res
 }
 
+# Les dades d'UN punt del qual ja es disposa: Id Firmadoc i, segons el punt,
+# Expedient / Referencia / Registre. Els noms surten del propi text del cataleg
+# (_LlicCampsDelText), o sigui que si algu n'hi afegeix un, aqui surt sol.
+# Retorna @{ Nav; Valors } .
+function Select-LlicDadesPunt([string]$titol, $camps, $valors) {
+    $camps = @($camps)
+    $form = _NewForm
+    $form.Text = 'Dades del document'
+    $form.FormBorderStyle = 'FixedDialog'
+    $form.MaximizeBox = $false
+
+    $lbl = New-Object System.Windows.Forms.Label
+    $lbl.Location = New-Object System.Drawing.Point(20, 68)
+    $lbl.Size = New-Object System.Drawing.Size(520, 34)
+    $lbl.Text = [string]$titol
+    [void]$form.Controls.Add($lbl)
+
+    $y = 112
+    $tb = @{}
+    foreach ($c in $camps) {
+        $l = New-Object System.Windows.Forms.Label
+        $l.Location = New-Object System.Drawing.Point(20, ($y + 3))
+        $l.Size = New-Object System.Drawing.Size(150, 20)
+        $l.Text = [string]$c + ':'
+        [void]$form.Controls.Add($l)
+        $t = New-Object System.Windows.Forms.TextBox
+        $t.Location = New-Object System.Drawing.Point(175, $y)
+        $t.Size = New-Object System.Drawing.Size(360, 22)
+        if ($null -ne $valors -and $valors.Contains([string]$c)) { $t.Text = [string]$valors[[string]$c] }
+        [void]$form.Controls.Add($t)
+        $tb[[string]$c] = $t
+        $y += 30
+    }
+
+    $res = @{ Nav = 'back'; Valors = @{} }
+    $btnOk = New-Object System.Windows.Forms.Button
+    $btnOk.Text = "D'acord"
+    $btnOk.Location = New-Object System.Drawing.Point(410, ($y + 12))
+    $btnOk.Size = New-Object System.Drawing.Size(125, 32)
+    _StylePrimaryButton $btnOk
+    $btnOk.add_Click({
+        foreach ($k in $tb.Keys) { $res.Valors[$k] = [string]$tb[$k].Text }
+        $res.Nav = 'fwd'
+        $form.DialogResult = 'OK'; $form.Close()
+    }.GetNewClosure())
+    [void]$form.Controls.Add($btnOk)
+    $form.AcceptButton = $btnOk
+
+    $btnC = New-Object System.Windows.Forms.Button
+    $btnC.Text = 'Cancel' + [char]0x00B7 + 'la'
+    $btnC.Location = New-Object System.Drawing.Point(20, ($y + 12))
+    $btnC.Size = New-Object System.Drawing.Size(115, 32)
+    _StyleSecondaryButton $btnC
+    $btnC.add_Click({ $form.Close() }.GetNewClosure())
+    [void]$form.Controls.Add($btnC)
+
+    $form.ClientSize = New-Object System.Drawing.Size(560, ($y + 60))
+    [void](_AddBrandHeader $form 'Dades del document' 'Id Firmadoc i, si escau, expedient o refer' + [char]0x00E8 + 'ncia' 56)
+    [void]$form.ShowDialog()
+    $form.Dispose()
+    return $res
+}
+
 # Pas de tria de DOCUMENTACIO (blocs ABANS i DESPRES): per cada punt, si aplica
 # i, si aplica, si la documentacio ja hi es o no.
 # Retorna @{ Nav; Punts } amb els punts triats i el seu Estat ('no' | 'si').
@@ -630,7 +749,12 @@ function Select-LlicFase($preFase, $preProv) {
 # de l'usuari els portava tots i ell hi anava esborrant el que no tocava; picar
 # quinze caselles cada vegada era feina de mes), i al bloc ABANS no, perque alli
 # cada punt demana a mes decidir si es te la documentacio o no.
-function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [bool]$ambEstat, [bool]$marcatPerDefecte = $false) {
+# $ambDades: si, al costat de cada punt, hi ha un boto per omplir les dades del
+# document (Id Firmadoc, Expedient...). NOMES al bloc ABANS: al DESPRES s'ha de
+# poder dir si es disposa del document, pero les dades no hi van.
+# $preSel: el que ja s'havia triat (per _LlicClauPunt), per no perdre-ho en
+# tornar ENRERE.
+function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [bool]$ambEstat, [bool]$marcatPerDefecte = $false, [bool]$ambDades = $false, $preSel = $null) {
     $punts = @($punts)
     $form = _NewForm
     $form.Text = $titol
@@ -668,18 +792,68 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
         [void]$cEstat.Items.Add('Es disposa')
         [void]$grid.Columns.Add($cEstat)
     }
+    if ($ambDades) {
+        $cDades = New-Object System.Windows.Forms.DataGridViewButtonColumn
+        $cDades.HeaderText = 'Dades'
+        $cDades.Text = 'Omplir...'
+        $cDades.UseColumnTextForButtonValue = $true
+        $cDades.Width = 90
+        [void]$grid.Columns.Add($cDades)
+    }
     [void]$form.Controls.Add($grid)
 
+    # Els valors de cada punt es guarden a part, indexats per la clau del punt:
+    # "Id Firmadoc" val una cosa DIFERENT a cada document, o sigui que no poden
+    # anar al diccionari de camps compartit.
+    $dades = @{}
     foreach ($p in $punts) {
         $txt = if (@($p.Cos).Count -gt 0) { [string]@($p.Cos)[0] } else { [string]$p.Titol }
+        $clau = _LlicClauPunt $p
+        $marcat = $marcatPerDefecte
+        $estat = 'No es disposa'
+        if ($null -ne $preSel -and $preSel.Contains($clau)) {
+            $marcat = [bool]$preSel[$clau].Marcat
+            if ([string]$preSel[$clau].Estat -eq 'si') { $estat = 'Es disposa' }
+            if ($null -ne $preSel[$clau].Dades) { $dades[$clau] = $preSel[$clau].Dades }
+        }
         $i = $grid.Rows.Add()
-        $grid.Rows[$i].Cells[0].Value = $marcatPerDefecte
+        $grid.Rows[$i].Cells[0].Value = $marcat
         $grid.Rows[$i].Cells[1].Value = $txt
-        if ($ambEstat) { $grid.Rows[$i].Cells[2].Value = 'No es disposa' }
+        if ($ambEstat) { $grid.Rows[$i].Cells[2].Value = $estat }
         $grid.Rows[$i].Tag = $p
     }
 
-    $res = @{ Nav = 'back'; Punts = @() }
+    # Clic al boto "Omplir...": obre el dialeg amb els camps que demani el text
+    # d'aquell punt. Nomes te sentit si s'ha dit que ES DISPOSA del document.
+    if ($ambDades) {
+        $colDades = $grid.Columns.Count - 1
+        $grid.add_CellClick({
+            param($sender, $e)
+            if ($e.RowIndex -lt 0 -or $e.ColumnIndex -ne $colDades) { return }
+            $row = $grid.Rows[$e.RowIndex]
+            $p = $row.Tag
+            if ($ambEstat -and [string]$row.Cells[2].Value -ne 'Es disposa') {
+                [System.Windows.Forms.MessageBox]::Show(
+                    ('Aquestes dades nomes calen si ja es disposa del document.' + [Environment]::NewLine +
+                     'Posa "Es disposa" a la columna Documentacio.'),
+                    'Dades del document', 'OK', 'Information') | Out-Null
+                return
+            }
+            $camps = @(_LlicCampsDelText $p.SiDisposa)
+            if ($camps.Count -eq 0) {
+                [System.Windows.Forms.MessageBox]::Show(
+                    'Aquest punt no demana cap dada.', 'Dades del document', 'OK', 'Information') | Out-Null
+                return
+            }
+            $clau = _LlicClauPunt $p
+            $ja = $null
+            if ($dades.Contains($clau)) { $ja = $dades[$clau] }
+            $r = Select-LlicDadesPunt ([string]$row.Cells[1].Value) $camps $ja
+            if ($r.Nav -eq 'fwd') { $dades[$clau] = $r.Valors }
+        }.GetNewClosure())
+    }
+
+    $res = @{ Nav = 'back'; Punts = @(); Memoria = $null }
     $btnOk = New-Object System.Windows.Forms.Button
     $btnOk.Text = 'Continuar'
     $btnOk.Location = New-Object System.Drawing.Point(760, 566)
@@ -687,18 +861,28 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
     $btnOk.Anchor = 'Bottom,Right'
     _StylePrimaryButton $btnOk
     $btnOk.add_Click({
+        $grid.EndEdit() | Out-Null
         $sel = New-Object System.Collections.ArrayList
+        $mem = @{}
         foreach ($row in $grid.Rows) {
-            if (-not [bool]$row.Cells[0].Value) { continue }
             $p = $row.Tag
+            $clau = _LlicClauPunt $p
+            $marcat = [bool]$row.Cells[0].Value
             $estat = if ($ambEstat -and [string]$row.Cells[2].Value -eq 'Es disposa') { 'si' } else { 'no' }
+            # Es recorda TOT (marcat o no), per si l'usuari torna ENRERE.
+            $mem[$clau] = @{ Marcat = $marcat; Estat = $estat; Dades = $(if ($dades.Contains($clau)) { $dades[$clau] } else { $null }) }
+            if (-not $marcat) { continue }
+            # El text del "Es disposa" ja resolt amb les dades d'AQUEST punt.
+            $si = @($p.SiDisposa)
+            if ($estat -eq 'si' -and $dades.Contains($clau)) { $si = @(_LlicAplicaCamps $p.SiDisposa $dades[$clau]) }
             [void]$sel.Add(([pscustomobject]@{
                 Clau = $p.Clau; Titol = $p.Titol; Condicio = $p.Condicio
-                Cos = $p.Cos; NoDisposa = $p.NoDisposa; SiDisposa = $p.SiDisposa
+                Cos = $p.Cos; NoDisposa = $p.NoDisposa; SiDisposa = $si
                 Quan = $p.Quan; Subs = $p.Subs; Estat = $estat
             }))
         }
         $res.Punts = $sel.ToArray()
+        $res.Memoria = $mem
         $res.Nav = 'fwd'
         $form.DialogResult = 'OK'; $form.Close()
     }.GetNewClosure())
@@ -783,7 +967,7 @@ function Select-LlicTecnic($pre) {
     [void]$form.Controls.Add($lblD)
     $y += 32
 
-    $docs = @('Projecte', 'Pl' + [char]0x00E0 + 'nols', 'Annexos')
+    $docs = @(_LlicDocsSignats)
     $cbDoc = @{}
     $tbDoc = @{}
     foreach ($d in $docs) {
@@ -912,7 +1096,11 @@ function Invoke-LlicenciaWizard {
     # mateix paper que a Invoke-NouWizard): els [CAMP:]/[OPCIO:] s'hi omplen
     # alla on surten i despres la composicio els hi busca.
     $st = @{ Fase = 'requeriment'; Prov = $false; Tecnic = @{}; Condicions = ''
-             Fields = [ordered]@{}; PostLlegit = $false }
+             Fields = [ordered]@{}; PostLlegit = $false
+             # El que s'havia triat a cada pantalla de documentacio, per no
+             # perdre-ho quan l'usuari torna ENRERE (era exactament el que
+             # passava: tornaves i havies de tornar a marcar-ho tot).
+             MemAbans = $null; MemDespres = $null }
     $step = 1
     try {
         while ($true) {
@@ -994,9 +1182,10 @@ function Invoke-LlicenciaWizard {
                         break
                     }
                     $r = Select-LlicDocumentacio $st.AbansTots ('Documentaci' + [char]0x00F3 + ' ABANS de la resoluci' + [char]0x00F3) `
-                            ('Marca la que aplica i si ja es t' + [char]0x00E9) $true $false
+                            ('Marca la que aplica, si ja es t' + [char]0x00E9 + ' i les seves dades') $true $false $true $st.MemAbans
                     if ($r.Nav -ne 'fwd') { $step = 2; break }
                     $st.Abans = $r.Punts
+                    $st.MemAbans = $r.Memoria
                     $step = 5
                 }
                 5 {
@@ -1029,7 +1218,7 @@ function Invoke-LlicenciaWizard {
                     # Tot marcat de sortida: al POST ve de l'informe anterior (hi
                     # ha de constar tot) i al pre-llicencia el Word de l'usuari
                     # tambe els portava tots.
-                    $r = Select-LlicDocumentacio $st.DespresTots $titol $sub (-not $esPost) $true
+                    $r = Select-LlicDocumentacio $st.DespresTots $titol $sub (-not $esPost) $true $false $st.MemDespres
                     if ($r.Nav -ne 'fwd') {
                         # Enrere al POST = tornar a triar l'informe anterior, que
                         # es l'unica cosa que hi ha darrere.
@@ -1037,6 +1226,7 @@ function Invoke-LlicenciaWizard {
                         break
                     }
                     $st.Despres = $r.Punts
+                    $st.MemDespres = $r.Memoria
                     $step = 8
                 }
                 8 {
@@ -1085,6 +1275,15 @@ function Invoke-LlicenciaWizard {
                 default { return }
             }
         }
+    } catch {
+        # SENSE AIXO, qualsevol error aqui dins matava el programa EN SILENCI:
+        # "es tanca i no passa res, tampoc es genera cap informe". Ara es diu
+        # que ha passat i ON, i es torna al menu en lloc de tancar-ho tot.
+        $on = ''
+        try { $on = "`n`n(" + [System.IO.Path]::GetFileName([string]$_.InvocationInfo.ScriptName) + ', linia ' + [string]$_.InvocationInfo.ScriptLineNumber + ')' } catch { }
+        [System.Windows.Forms.MessageBox]::Show(
+            ("No s'ha pogut acabar l'informe de Llicencia:`n`n" + $_.Exception.Message + $on),
+            'Llicencia', 'OK', 'Error') | Out-Null
     } finally {
         # Si l'informe s'ha generat, el Word s'ha fet visible i es deixa obert
         # per a l'usuari; si es va cancel·lar pel cami, es tanca.
