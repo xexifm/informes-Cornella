@@ -112,10 +112,19 @@ La diferència amb un requeriment normal és que aquí els punts **no són
 deficiències sinó documentació**, i surten tant si es té com si no: de cada punt
 tries **«No es disposa…»** (surt en negreta) o **«Es disposa… (Id Firmadoc: …)»**.
 
-Quan poses **«Es disposa»** al bloc d'**abans**, el botó **«Omplir…»** d'aquella
-fila et demana les dades d'aquell document — l'Id Firmadoc i, segons el punt,
-l'expedient, la referència o el registre. Cada document té les seves. Al bloc de
-**després** només cal dir si es disposa del document; les dades no hi van.
+La pantalla és com la de marcar deficiències: la **llista a l'esquerra** (amb
+cercador) i el **detall a la dreta**. Al detall tries «No es disposa / Es
+disposa» i, al bloc d'**abans**, hi omples els camps **allà mateix** — l'Id
+Firmadoc i, segons el punt, l'expedient, la referència o el registre. Cada
+document té les seves dades.
+
+Al bloc d'**abans** hi surten els punts de quatre seccions de REQ1
+(*Autoritzacions*, *Pla d'Autoprotecció*, *Controls inicials* i *Registres*), i
+per això **ja no surten al pas «Projecte»**: no els has de demanar dues vegades.
+
+Al bloc de **després**, els punts que tenen sub-punts —els certificats
+d'inscripció i les inspeccions inicials— et deixen **triar quines
+instal·lacions** apliquen.
 
 Si tornes **Enrere**, el que havies marcat (i les dades que havies posat) **es
 conserva**.

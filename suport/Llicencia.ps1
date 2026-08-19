@@ -75,6 +75,20 @@ function _LlicFases {
     )
 }
 
+# Cos de lletra del full de signatures de l'ANNEX 1 (a la plantilla, sz=18
+# mig-punts = 9 pt). La resta de l'informe va a 11.
+$Script:LlicAnnexSignaturaCos = 9
+
+# El titol que obre el full de signatures de l'ANNEX 1. Es mira pel PRINCIPI del
+# text -es una frase llarga amb citacions legals- i sense accents, per no
+# dependre de com s'hagi escrit al cataleg. Funcio PURA.
+function _LlicEsTitolAcceptacio([string]$text) {
+    $t = ([string]$text).Trim().ToLower()
+    if ($t.Length -lt 12) { return $false }
+    $t = $t.Replace([char]0x2019, "'").Replace([char]0x00F3, 'o').Replace([char]0x00E9, 'e')
+    return $t.StartsWith("document d'acceptacio")
+}
+
 # Titols dels dos grans blocs de l'informe.
 function _LlicTitolAbans {
     return ('DOCUMENTACI' + [char]0x00D3 + ' NECESS' + [char]0x00C0 + 'RIA ABANS DE LA RESOLUCI' + [char]0x00D3 +
@@ -145,6 +159,37 @@ function _LlicIndexReq1($parsed) {
     return $idx
 }
 
+# Les seccions de REQ1 que son DOCUMENTACIO (no deficiencies del projecte) i
+# que, per tant, es demanen al bloc ABANS de la resolucio. Funcio PURA.
+#
+# PER QUE UNA LLISTA I NO LA DE LLIC.json: aixi un requeriment NOU d'aquestes
+# seccions surt sol a la pantalla, sense haver de recordar-se d'apuntar-lo
+# tambe a LLIC. LLIC.json hi aporta el "No es disposa / Es disposa" de cada un.
+function _LlicSeccionsAbans {
+    return @(
+        'Autoritzacions / Informes preceptius'
+        ('Pla d' + [char]0x2019 + 'Autoprotecci' + [char]0x00F3)
+        'Controls inicials'
+        'Registres'
+    )
+}
+
+# Una seccio de REQ1 es de les que van al bloc ABANS? Funcio PURA. Es compara
+# sense accents ni apostrofs: el cataleg els escriu amb l'apostrof tipografic i
+# es facil que algun dia no coincideixin caracter a caracter.
+function _LlicEsSeccioAbans([string]$titol) {
+    $norm = {
+        param($x)
+        $t = ([string]$x).Trim().ToLower()
+        $t = $t.Replace([char]0x2019, "'").Replace([char]0x00F3, 'o').Replace([char]0x00E8, 'e')
+        $t = $t.Replace([char]0x00E9, 'e').Replace([char]0x00E0, 'a').Replace([char]0x00ED, 'i')
+        return ($t -replace '\s+', ' ')
+    }
+    $n = & $norm $titol
+    foreach ($s in (_LlicSeccionsAbans)) { if ((& $norm $s) -eq $n) { return $true } }
+    return $false
+}
+
 # EL COS DE L'EINA, i es PUR: resol els punts d'un bloc de LLIC ('ABANS',
 # 'DESPRES' o 'PROPIS') ajuntant-los amb el text de REQ1.
 #
@@ -154,10 +199,47 @@ function _LlicIndexReq1($parsed) {
 #   Orfes : claus que son a LLIC pero JA NO a REQ1. NO s'amaguen: si el lligam
 #           s'ha trencat (perque algu ha reanomenat un requeriment), el
 #           programa ho ha de dir en lloc de deixar-se un punt en silenci.
-function _LlicPuntsPerBloc($llic, $idxReq1, [string]$bloc) {
+function _LlicPuntsPerBloc($llic, $idxReq1, [string]$bloc, $req1 = $null) {
     $punts = New-Object System.Collections.ArrayList
     $orfes = New-Object System.Collections.ArrayList
     if ($null -eq $llic) { return @{ Punts = $punts.ToArray(); Orfes = $orfes.ToArray() } }
+
+    # EL BLOC 'ABANS' surt de REQ1, no de la llista de LLIC: son TOTS els items
+    # de les seccions de documentacio (_LlicSeccionsAbans). LLIC nomes hi posa
+    # el "No es disposa / Es disposa" de cada un, per clau. Un requeriment nou
+    # d'aquelles seccions surt sol, encara que ningu l'hagi apuntat a LLIC.
+    if ($bloc -eq 'ABANS' -and $null -ne $req1) {
+        $perClau = @{}
+        foreach ($s in @($llic.nodes)) {
+            if ([string]$s.titol -ne 'ABANS') { continue }
+            foreach ($it in @($s.fills)) {
+                $c = [string]$it.clau
+                if (-not [string]::IsNullOrWhiteSpace($c)) { $perClau[$c] = $it }
+            }
+        }
+        foreach ($sec in @($req1.Sections)) {
+            if (-not (_LlicEsSeccioAbans ([string]$sec.Title))) { continue }
+            foreach ($el in @($sec.Items)) {
+                if ([string]$el.Kind -ne 'item') { continue }
+                if ([string]::IsNullOrWhiteSpace([string]$el.Short)) { continue }
+                $clau = _ItemKey $sec.Title $el.Short
+                $it = if ($perClau.ContainsKey($clau)) { $perClau[$clau] } else { $null }
+                $nod = if ($null -ne $it) { _LlicFill $it 'nodisposa' } else { $null }
+                $sid = if ($null -ne $it) { _LlicFill $it 'sidisposa' } else { $null }
+                [void]$punts.Add([pscustomobject]@{
+                    Clau      = $clau
+                    Titol     = [string]$el.Short
+                    Condicio  = ''
+                    Cos       = @($el.BodyLines)
+                    NoDisposa = if ($null -ne $nod) { @(_LlicCos $nod) } else { @() }
+                    SiDisposa = if ($null -ne $sid) { @(_LlicCos $sid) } else { @() }
+                    Quan      = @()
+                    Subs      = @(@($el.Children) | ForEach-Object { @($_.BodyLines) })
+                })
+            }
+        }
+        return @{ Punts = $punts.ToArray(); Orfes = $orfes.ToArray() }
+    }
 
     $sec = $null
     foreach ($s in @($llic.nodes)) {
@@ -329,30 +411,36 @@ function _LlicClauPunt($punt) {
     return ('#' + [string]$punt.Titol)
 }
 
-# La CLASSIFICACIO de l'activitat ("Llei 20/2009; Annex II; Epigraf 12.25"), que
-# nomes surt als informes de Llicencia. Es busca a l'Excel per ID GIA
-# (_ClassificacioText la munta a Activitats.ps1) i, si no se'n troba, es demana
-# a l'usuari: una linia "Classificacio:" buida a l'informe no serveix de res.
-# Sempre es pot corregir al quadre que surt.
-function _LlicClassificacio($header) {
-    $ja = ''
-    if ($null -ne $header -and $header.Contains('CLASSIFICACIO')) { $ja = [string]$header['CLASSIFICACIO'] }
-    if ([string]::IsNullOrWhiteSpace($ja)) {
-        try {
-            $idGia = [string]$header['ID_GIA']
-            if (-not [string]::IsNullOrWhiteSpace($idGia)) {
-                $act = Get-ActivitatFromCache $script:_sessionActCache $idGia
-                if ($null -ne $act -and $act.PSObject.Properties['CLASSIFICACIO']) { $ja = [string]$act.CLASSIFICACIO }
-            }
-        } catch { $ja = '' }
+# La CLASSIFICACIO de l'activitat ("Llei 20/2009; Annex II; Epigraf 12.25" o
+# "Llei 18/2020; Epigraf ..."), que nomes surt als informes de Llicencia.
+#
+# SURT SOLA, no es pregunta: es llegeix de l'Excel per ID GIA (_ClassificacioText
+# la munta a Activitats.ps1 a partir de "Classificacio general annex" i
+# "... Apartat"). Si no se'n troba cap, es deixa BUIDA i el crider ho avisa en
+# acabar: aturar l'assistent per aixo seria pitjor que generar l'informe.
+#
+# ATENCIO: la fitxa de la cache es un HASHTABLE (Activitats.ps1 hi desa @{...}),
+# no un PSCustomObject. Amb $act.PSObject.Properties['CLASSIFICACIO'] sempre
+# sortia buit i per aixo es preguntava sempre.
+function _LlicClassificacio($header, $cache = $null) {
+    if ($null -eq $header) { return '' }
+    if ($header.Contains('CLASSIFICACIO')) {
+        $ja = [string]$header['CLASSIFICACIO']
+        if (-not [string]::IsNullOrWhiteSpace($ja)) { return $ja }
     }
-    # Es reaprofita el dialeg de dades (un sol camp) en lloc d'inventar-ne un.
-    $camp = 'Classificaci' + [char]0x00F3
-    $r = Select-LlicDadesPunt ('Surt a la cap' + [char]0x00E7 + 'alera de l' + [char]0x2019 +
-                               'informe. Exemple: Llei 20/2009; Annex II; Ep' + [char]0x00ED + 'graf 12.25') `
-                              @($camp) @{ $camp = $ja }
-    if ($r.Nav -ne 'fwd') { return $ja }
-    return [string]$r.Valors[$camp]
+    if ($null -eq $cache) { $cache = $script:_sessionActCache }
+    try {
+        $idGia = [string]$header['ID_GIA']
+        if ([string]::IsNullOrWhiteSpace($idGia)) { return '' }
+        $act = Get-ActivitatFromCache $cache $idGia
+        if ($null -eq $act) { return '' }
+        if ($act -is [System.Collections.IDictionary]) {
+            if ($act.Contains('CLASSIFICACIO')) { return [string]$act['CLASSIFICACIO'] }
+            return ''
+        }
+        if ($act.PSObject.Properties.Name -contains 'CLASSIFICACIO') { return [string]$act.CLASSIFICACIO }
+    } catch { }
+    return ''
 }
 
 # Quins punts condicionals entren, segons si es llicencia provisional.
@@ -436,9 +524,26 @@ function _LlicNomFitxer([datetime]$data, [string]$fase, [string]$idGia, [string]
 # Tot el format surt de Format.ps1: aqui no s'hi inventa res. L'unic afegit es
 # el color, que Format-Body ja sap aplicar.
 function _LlicEscriuPunt($sel, $punt, [int]$numero, $fields, [string]$estat, [bool]$ambQuan) {
-    # Els URLs ja emesos en AQUEST punt: el text de REQ1 i el comentari solen
-    # portar el mateix enllac i sortia dues vegades seguides.
+    # ON VA L'ENLLAC. El comentari acaba dient "...en el seguent enllac:", o
+    # sigui que l'enllac ha d'anar JUST DESPRES d'aquella frase. Pero el cos de
+    # l'item (que ve de REQ1) sol portar EL MATEIX enllac, i sortia abans -amb
+    # la frase penjada sense res al darrere-.
+    #
+    # Per aixo es miren PRIMER els enllacos del comentari: els que tambe son al
+    # cos de l'item NO s'emeten amb l'item; s'esperen i surten despres del
+    # comentari. Aixi no se'n repeteix cap i cada un queda on el text l'anuncia.
+    $comLinies = if ($estat -eq 'si') { @($punt.SiDisposa) } elseif ($estat -eq 'no') { @($punt.NoDisposa) } else { @() }
+    $urlsComentari = New-Object System.Collections.ArrayList
+    foreach ($l in $comLinies) {
+        foreach ($u in @((_SplitTextAndUrls ([string](Apply-Fields -text $l -fields $fields))).Urls)) {
+            $c = ([string]$u).Trim()
+            if (-not $urlsComentari.Contains($c)) { [void]$urlsComentari.Add($c) }
+        }
+    }
+    # Els URLs ja emesos en AQUEST punt (per no repetir-ne cap).
     $vistos = New-Object System.Collections.ArrayList
+    foreach ($c in $urlsComentari) { [void]$vistos.Add($c) }
+    $emesos = New-Object System.Collections.ArrayList
     $linies = @($punt.Cos)
     $primera = if ($linies.Count -gt 0) { [string]$linies[0] } else { [string]$punt.Titol }
     # El numero i el text van junts a Format-Item; l'URL que porti la PRIMERA
@@ -448,10 +553,10 @@ function _LlicEscriuPunt($sel, $punt, [int]$numero, $fields, [string]$estat, [bo
     foreach ($u in @($p0.Urls)) {
         $c = ([string]$u).Trim()
         if ($vistos.Contains($c)) { continue }
-        [void]$vistos.Add($c); Format-Url $sel $u
+        [void]$vistos.Add($c); [void]$emesos.Add($c); Format-Url $sel $u
     }
     for ($i = 1; $i -lt $linies.Count; $i++) {
-        _LlicEmetLinia $sel ([string]$linies[$i]) $fields $vistos $false
+        _LlicEmetLinia $sel ([string]$linies[$i]) $fields $vistos $false $emesos
     }
     # Sub-punts (per exemple, quines instal·lacions s'han de legalitzar).
     $primerSub = $true
@@ -465,7 +570,7 @@ function _LlicEscriuPunt($sel, $punt, [int]$numero, $fields, [string]$estat, [bo
             foreach ($u in @($pc.Urls)) {
                 $c = ([string]$u).Trim()
                 if ($vistos.Contains($c)) { continue }
-                [void]$vistos.Add($c); Format-Url $sel $u -IsChild
+                [void]$vistos.Add($c); [void]$emesos.Add($c); Format-Url $sel $u -IsChild
             }
         }
     }
@@ -473,19 +578,19 @@ function _LlicEscriuPunt($sel, $punt, [int]$numero, $fields, [string]$estat, [bo
     # l'usuari anaven en verd, pero aquell color era una MARCA SEVA per saber que
     # havia de canviar a cada informe, no part del document: aqui van amb el
     # color de sempre (Format.ps1).
-    $com = if ($estat -eq 'si') { @($punt.SiDisposa) } elseif ($estat -eq 'no') { @($punt.NoDisposa) } else { @() }
     $primerCom = $true
-    foreach ($l in $com) {
+    foreach ($l in $comLinies) {
         $pp = _SplitTextAndUrls ([string](Apply-Fields -text $l -fields $fields))
         if (-not [string]::IsNullOrWhiteSpace($pp.Text)) {
             if ($primerCom -and $estat -eq 'no') { Format-Body $sel $pp.Text -Bold }
             else { Format-Body $sel $pp.Text }
             $primerCom = $false
         }
+        # Aqui SI que s'emeten: es el lloc que la frase anuncia.
         foreach ($u in @($pp.Urls)) {
             $c = ([string]$u).Trim()
-            if ($vistos.Contains($c)) { continue }
-            [void]$vistos.Add($c); Format-Url $sel $u
+            if ($emesos.Contains($c)) { continue }
+            [void]$emesos.Add($c); Format-Url $sel $u
         }
     }
     if ($ambQuan) {
@@ -507,7 +612,7 @@ function _LlicEscriuPunt($sel, $punt, [int]$numero, $fields, [string]$estat, [bo
 # $vistos: URLs que ja han sortit en AQUEST punt, per no repetir-los. El text de
 # REQ1 i el comentari "No es disposa..." solen portar el mateix enllac i sortia
 # dues vegades seguides.
-function _LlicEmetLinia($sel, [string]$linia, $fields, $vistos, [bool]$esFill = $false) {
+function _LlicEmetLinia($sel, [string]$linia, $fields, $vistos, [bool]$esFill = $false, $emesos = $null) {
     if ([string]::IsNullOrWhiteSpace($linia)) { return }
     $resolt = [string](Apply-Fields -text $linia -fields $fields)
     $parts = _SplitTextAndUrls $resolt
@@ -518,6 +623,7 @@ function _LlicEmetLinia($sel, [string]$linia, $fields, $vistos, [bool]$esFill = 
         $clau = ([string]$u).Trim()
         if ($null -ne $vistos -and $vistos.Contains($clau)) { continue }
         if ($null -ne $vistos) { [void]$vistos.Add($clau) }
+        if ($null -ne $emesos) { [void]$emesos.Add($clau) }
         if ($esFill) { Format-Url $sel $u -IsChild } else { Format-Url $sel $u }
     }
 }
@@ -655,28 +761,35 @@ function _LlicSeccioAnnex1($llic) {
     return $null
 }
 
+# L'ANNEX 1 va en TEXT PLA: sense sagnies, sense pics i sense numeracio (a la
+# plantilla de l'usuari es text corrent, encara que alli el Word hi tingues una
+# llista). NOMES van en negreta els dos TITOLS:
+#   - "ANNEX 1. Documentacio per demanar..."
+#   - "Document d'acceptacio del cessament dels usos..."
+# I des del "Document d'acceptacio..." fins al final: PAGINA NOVA i cos 9 (a la
+# plantilla, sz=18 mig-punts).
 function _LlicEscriuAnnex1($sel, $llic) {
     $sec = _LlicSeccioAnnex1 $llic
     if ($null -eq $sec) { return }
     # Salt de pagina: l'annex es un document a part dins de l'informe.
     try { [void]$sel.InsertBreak(7) } catch { Format-Spacer $sel }   # wdPageBreak
-    Format-Section $sel ([string]$sec.titol)
-    $n = 0
-    $primerSub = $true
+    Format-Plain $sel ([string]$sec.titol) -Bold
+
+    $cos9 = $false          # ja som al full de signatures?
     foreach ($nd in @($sec.fills)) {
-        $tipus = [string]$nd.tipus
         foreach ($l in @(_LlicCos $nd)) {
             $pp = _SplitTextAndUrls ([string]$l)
             $t = [string]$pp.Text
             if (-not [string]::IsNullOrWhiteSpace($t)) {
-            switch ($tipus) {
-                'item'    { $n++; Format-Item $sel ([string]$n + '.') $t; $primerSub = $true }
-                'subitem' {
-                    if ($primerSub) { Format-Bullet $sel $t -IsChild -First; $primerSub = $false }
-                    else { Format-Bullet $sel $t -IsChild }
+                $esTitolAcceptacio = (_LlicEsTitolAcceptacio $t)
+                if ($esTitolAcceptacio -and -not $cos9) {
+                    # A partir d'aqui, full a part i lletra mes petita.
+                    try { [void]$sel.InsertBreak(7) } catch { Format-Spacer $sel }
+                    $cos9 = $true
                 }
-                default   { Format-Body $sel $t }
-            }
+                if ($esTitolAcceptacio) { Format-Plain $sel $t -Bold -Size $Script:LlicAnnexSignaturaCos }
+                elseif ($cos9)          { Format-Plain $sel $t -Size $Script:LlicAnnexSignaturaCos }
+                else                    { Format-Plain $sel $t }
             }
             foreach ($u in @($pp.Urls)) { Format-Url $sel $u }
         }
@@ -835,136 +948,253 @@ function Select-LlicDadesPunt([string]$titol, $camps, $valors) {
 # de l'usuari els portava tots i ell hi anava esborrant el que no tocava; picar
 # quinze caselles cada vegada era feina de mes), i al bloc ABANS no, perque alli
 # cada punt demana a mes decidir si es te la documentacio o no.
-# $ambDades: si, al costat de cada punt, hi ha un boto per omplir les dades del
-# document (Id Firmadoc, Expedient...). NOMES al bloc ABANS: al DESPRES s'ha de
-# poder dir si es disposa del document, pero les dades no hi van.
-# $preSel: el que ja s'havia triat (per _LlicClauPunt), per no perdre-ho en
-# tornar ENRERE.
-function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [bool]$ambEstat, [bool]$marcatPerDefecte = $false, [bool]$ambDades = $false, $preSel = $null) {
+# Pas de tria de DOCUMENTACIO (blocs ABANS i DESPRES).
+#
+# LLISTA a l'esquerra + DETALL a la dreta, el mateix patro que Select-Items
+# (SeleccioItems.ps1): abans hi havia una graella amb un boto "Omplir..." que
+# obria un dialeg, i no s'assemblava a com s'omplen els camps a la resta del
+# programa.
+#
+# Al detall hi ha, segons el bloc:
+#   - la tria "No es disposa / Es disposa" ($ambEstat);
+#   - la frase del cataleg amb els [CAMP: ...] INLINE ($ambDades, nomes ABANS),
+#     renderitzada amb _RenderRichInto (Camps.ps1) -la MATEIXA funcio que fa
+#     servir REQ1-;
+#   - les caselles dels SUB-PUNTS ($ambSubs, nomes DESPRES): els certificats
+#     d'inscripcio i les inspeccions inicials no els te tothom.
+#
+# ELS CAMPS VAN PER PUNT, no al diccionari compartit: "Id Firmadoc" val una cosa
+# diferent a cada document.
+#
+# Retorna @{ Nav; Punts; Memoria }.
+function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [bool]$ambEstat,
+                                 [bool]$marcatPerDefecte = $false, [bool]$ambDades = $false,
+                                 $preSel = $null, [bool]$ambSubs = $false) {
     $punts = @($punts)
+
+    # Estat de cada punt (viu tota la pantalla i es el que es retorna).
+    $st = @{}
+    for ($i = 0; $i -lt $punts.Count; $i++) {
+        $p = $punts[$i]
+        $clau = _LlicClauPunt $p
+        $e = @{ Marcat = $marcatPerDefecte; Estat = 'no'; Camps = [ordered]@{}; Subs = @{} }
+        if ($null -ne $preSel -and $preSel.Contains($clau)) {
+            $e.Marcat = [bool]$preSel[$clau].Marcat
+            $e.Estat  = [string]$preSel[$clau].Estat
+            if ($null -ne $preSel[$clau].Camps) { $e.Camps = $preSel[$clau].Camps }
+            if ($null -ne $preSel[$clau].Subs)  { $e.Subs  = $preSel[$clau].Subs }
+        }
+        # Per defecte, TOTS els sub-punts d'un punt marcat entren.
+        foreach ($k in 0..([Math]::Max(0, @($p.Subs).Count - 1))) {
+            if (-not $e.Subs.Contains($k)) { $e.Subs[$k] = $true }
+        }
+        $st[$i] = $e
+    }
+
     $form = _NewForm
     $form.Text = $titol
-    $form.ClientSize = New-Object System.Drawing.Size(900, 620)
+    $form.ClientSize = New-Object System.Drawing.Size(1080, 660)
     $form.StartPosition = 'CenterScreen'
+    $form.MinimumSize = New-Object System.Drawing.Size(820, 520)
 
-    $grid = New-Object System.Windows.Forms.DataGridView
-    _StyleListGrid $grid
-    # ATENCIO: _StyleListGrid fa Dock='Fill', pensat per a graelles que viuen
-    # DINS d'un panell (Editar base, Controls periodics). Aqui la graella
-    # conviu amb els botons posats a ma al mateix formulari: amb el Dock posat
-    # ocupava TOTA la finestra i els TAPAVA -cap boto visible ni clicable, la
-    # pantalla semblava morta-. Per aixo el Dock es desfa i la posicio va
-    # DESPRES de l'estil (abans, l'estil la trepitjava).
-    $grid.Dock = 'None'
-    $grid.Location = New-Object System.Drawing.Point(15, 70)
-    $grid.Size = New-Object System.Drawing.Size(870, 480)
-    $grid.Anchor = 'Top,Bottom,Left,Right'
-    $grid.AllowUserToAddRows = $false
-    $grid.AutoGenerateColumns = $false
+    # ---- Esquerra: cercador + llista amb caselles -------------------------
+    $panEsq = New-Object System.Windows.Forms.Panel
+    $panEsq.Location = New-Object System.Drawing.Point(14, 66)
+    $panEsq.Size = New-Object System.Drawing.Size(500, 520)
+    $panEsq.Anchor = 'Top,Bottom,Left'
+    [void]$form.Controls.Add($panEsq)
 
-    $cAplica = New-Object System.Windows.Forms.DataGridViewCheckBoxColumn
-    $cAplica.HeaderText = 'Aplica'; $cAplica.Width = 55
-    [void]$grid.Columns.Add($cAplica)
+    $llista = New-Object System.Windows.Forms.CheckedListBox
+    $llista.Location = New-Object System.Drawing.Point(0, 28)
+    $llista.Size = New-Object System.Drawing.Size(500, 492)
+    $llista.Anchor = 'Top,Bottom,Left,Right'
+    $llista.CheckOnClick = $true
+    $llista.IntegralHeight = $false
+    [void]$panEsq.Controls.Add($llista)
 
-    $cPunt = New-Object System.Windows.Forms.DataGridViewTextBoxColumn
-    $cPunt.HeaderText = 'Punt'; $cPunt.Width = 560; $cPunt.ReadOnly = $true
-    [void]$grid.Columns.Add($cPunt)
+    # Index de la llista -> index del punt (canvia amb el filtre de cerca).
+    $mapa = New-Object System.Collections.ArrayList
+    $estatUi = @{ Busy = $false }
 
-    if ($ambEstat) {
-        $cEstat = New-Object System.Windows.Forms.DataGridViewComboBoxColumn
-        $cEstat.HeaderText = 'Documentaci' + [char]0x00F3
-        $cEstat.Width = 220
-        [void]$cEstat.Items.Add('No es disposa')
-        [void]$cEstat.Items.Add('Es disposa')
-        [void]$grid.Columns.Add($cEstat)
-    }
-    if ($ambDades) {
-        $cDades = New-Object System.Windows.Forms.DataGridViewButtonColumn
-        $cDades.HeaderText = 'Dades'
-        $cDades.Text = 'Omplir...'
-        $cDades.UseColumnTextForButtonValue = $true
-        $cDades.Width = 90
-        [void]$grid.Columns.Add($cDades)
-    }
-    [void]$form.Controls.Add($grid)
+    $etiqueta = {
+        param($idx)
+        $p = $punts[$idx]
+        $t = if (@($p.Cos).Count -gt 0) { [string]@($p.Cos)[0] } else { [string]$p.Titol }
+        $t = ($t -replace '\s+', ' ').Trim()
+        if ($t.Length -gt 150) { $t = $t.Substring(0, 150) + [char]0x2026 }
+        return $t
+    }.GetNewClosure()
 
-    # Els valors de cada punt es guarden a part, indexats per la clau del punt:
-    # "Id Firmadoc" val una cosa DIFERENT a cada document, o sigui que no poden
-    # anar al diccionari de camps compartit.
-    $dades = @{}
-    foreach ($p in $punts) {
-        $txt = if (@($p.Cos).Count -gt 0) { [string]@($p.Cos)[0] } else { [string]$p.Titol }
-        $clau = _LlicClauPunt $p
-        $marcat = $marcatPerDefecte
-        $estat = 'No es disposa'
-        if ($null -ne $preSel -and $preSel.Contains($clau)) {
-            $marcat = [bool]$preSel[$clau].Marcat
-            if ([string]$preSel[$clau].Estat -eq 'si') { $estat = 'Es disposa' }
-            if ($null -ne $preSel[$clau].Dades) { $dades[$clau] = $preSel[$clau].Dades }
+    $omplirLlista = {
+        param($filtre)
+        $estatUi.Busy = $true
+        $llista.Items.Clear()
+        $mapa.Clear()
+        $f = ([string]$filtre).Trim().ToLower()
+        for ($i = 0; $i -lt $punts.Count; $i++) {
+            $txt = & $etiqueta $i
+            if ($f -and -not (_TextMatches $txt $f)) { continue }
+            [void]$mapa.Add($i)
+            [void]$llista.Items.Add($txt, [bool]$st[$i].Marcat)
         }
-        $i = $grid.Rows.Add()
-        $grid.Rows[$i].Cells[0].Value = $marcat
-        $grid.Rows[$i].Cells[1].Value = $txt
-        if ($ambEstat) { $grid.Rows[$i].Cells[2].Value = $estat }
-        $grid.Rows[$i].Tag = $p
-    }
+        $estatUi.Busy = $false
+    }.GetNewClosure()
 
-    # Clic al boto "Omplir...": obre el dialeg amb els camps que demani el text
-    # d'aquell punt. Nomes te sentit si s'ha dit que ES DISPOSA del document.
-    if ($ambDades) {
-        $colDades = $grid.Columns.Count - 1
-        $grid.add_CellClick({
-            param($sender, $e)
-            if ($e.RowIndex -lt 0 -or $e.ColumnIndex -ne $colDades) { return }
-            $row = $grid.Rows[$e.RowIndex]
-            $p = $row.Tag
-            if ($ambEstat -and [string]$row.Cells[2].Value -ne 'Es disposa') {
-                [System.Windows.Forms.MessageBox]::Show(
-                    ('Aquestes dades nomes calen si ja es disposa del document.' + [Environment]::NewLine +
-                     'Posa "Es disposa" a la columna Documentacio.'),
-                    'Dades del document', 'OK', 'Information') | Out-Null
-                return
-            }
-            $camps = @(_LlicCampsDelText $p.SiDisposa)
-            if ($camps.Count -eq 0) {
-                [System.Windows.Forms.MessageBox]::Show(
-                    'Aquest punt no demana cap dada.', 'Dades del document', 'OK', 'Information') | Out-Null
-                return
-            }
-            $clau = _LlicClauPunt $p
-            $ja = $null
-            if ($dades.Contains($clau)) { $ja = $dades[$clau] }
-            $r = Select-LlicDadesPunt ([string]$row.Cells[1].Value) $camps $ja
-            if ($r.Nav -eq 'fwd') { $dades[$clau] = $r.Valors }
-        }.GetNewClosure())
-    }
+    # _AddSearchBox (UiComuns.ps1) retorna el TextBox; el handler el necessita,
+    # o sigui que la variable s'ha de declarar ABANS de tancar-la al scriptblock.
+    $cerca = $null
+    $cerca = _AddSearchBox $panEsq 0 2 380 'Cerca:' {
+        & $omplirLlista $cerca.Text
+    }.GetNewClosure()
 
+    # ---- Dreta: detall del punt triat -------------------------------------
+    $panDret = New-Object System.Windows.Forms.Panel
+    $panDret.Location = New-Object System.Drawing.Point(526, 66)
+    $panDret.Size = New-Object System.Drawing.Size(540, 520)
+    $panDret.Anchor = 'Top,Bottom,Left,Right'
+    $panDret.AutoScroll = $true
+    $panDret.BorderStyle = 'FixedSingle'
+    $panDret.BackColor = [System.Drawing.Color]::White
+    [void]$form.Controls.Add($panDret)
+
+    $fldRegistry = _NewFieldRegistry
+
+    $pintaDetall = {
+        param($idx)
+        $panDret.Controls.Clear()
+        if ($idx -lt 0) { return }
+        $p = $punts[$idx]
+        $e = $st[$idx]
+        $y = 10
+
+        # El text del punt.
+        $lbT = New-Object System.Windows.Forms.Label
+        $lbT.Location = New-Object System.Drawing.Point(10, $y)
+        $lbT.MaximumSize = New-Object System.Drawing.Size(495, 0)
+        $lbT.AutoSize = $true
+        $lbT.Text = (& $etiqueta $idx)
+        [void]$panDret.Controls.Add($lbT)
+        $y += [Math]::Max(24, $lbT.PreferredHeight + 10)
+
+        if ($ambEstat) {
+            $rbNo = New-Object System.Windows.Forms.RadioButton
+            $rbNo.Location = New-Object System.Drawing.Point(10, $y)
+            $rbNo.AutoSize = $true
+            $rbNo.Text = 'No es disposa del document'
+            $rbNo.Checked = ([string]$e.Estat -ne 'si')
+            [void]$panDret.Controls.Add($rbNo)
+            $y += 24
+            $rbSi = New-Object System.Windows.Forms.RadioButton
+            $rbSi.Location = New-Object System.Drawing.Point(10, $y)
+            $rbSi.AutoSize = $true
+            $rbSi.Text = 'Es disposa del document'
+            $rbSi.Checked = ([string]$e.Estat -eq 'si')
+            [void]$panDret.Controls.Add($rbSi)
+            $y += 30
+            $canvia = {
+                if ($estatUi.Busy) { return }
+                $e.Estat = if ($rbSi.Checked) { 'si' } else { 'no' }
+                & $pintaDetall $idx
+            }.GetNewClosure()
+            $rbNo.add_CheckedChanged($canvia)
+            $rbSi.add_CheckedChanged($canvia)
+        }
+
+        # La frase del cataleg amb els camps INLINE (nomes al bloc ABANS).
+        if ($ambDades) {
+            $linies = if ([string]$e.Estat -eq 'si') { @($p.SiDisposa) } else { @($p.NoDisposa) }
+            foreach ($l in $linies) {
+                $flow = New-Object System.Windows.Forms.FlowLayoutPanel
+                $flow.Location = New-Object System.Drawing.Point(10, $y)
+                $flow.Size = New-Object System.Drawing.Size(500, 10)
+                $flow.AutoSize = $true
+                $flow.AutoSizeMode = 'GrowAndShrink'
+                $flow.MaximumSize = New-Object System.Drawing.Size(500, 0)
+                $flow.WrapContents = $true
+                $flow.FlowDirection = 'LeftToRight'
+                [void]$panDret.Controls.Add($flow)
+                # LA MATEIXA funcio que REQ1, amb un diccionari PER PUNT.
+                _RenderRichInto $flow ([string]$l) $e.Camps $null $fldRegistry
+                $y += [Math]::Max(26, $flow.PreferredSize.Height + 8)
+            }
+        }
+
+        # Els SUB-PUNTS (nomes al bloc DESPRES): no tothom els te tots.
+        if ($ambSubs -and @($p.Subs).Count -gt 0) {
+            $lbS = New-Object System.Windows.Forms.Label
+            $lbS.Location = New-Object System.Drawing.Point(10, $y)
+            $lbS.AutoSize = $true
+            $lbS.Text = 'Quins hi entren:'
+            [void]$panDret.Controls.Add($lbS)
+            $y += 22
+            for ($k = 0; $k -lt @($p.Subs).Count; $k++) {
+                $sub = @($p.Subs)[$k]
+                $txtSub = (@($sub) -join ' ').Trim()
+                if ([string]::IsNullOrWhiteSpace($txtSub)) { continue }
+                $cb = New-Object System.Windows.Forms.CheckBox
+                $cb.Location = New-Object System.Drawing.Point(24, $y)
+                $cb.MaximumSize = New-Object System.Drawing.Size(470, 0)
+                $cb.AutoSize = $true
+                $cb.Text = $txtSub
+                $cb.Checked = [bool]$e.Subs[$k]
+                $kk = $k
+                $cb.add_CheckedChanged({ $e.Subs[$kk] = [bool]$cb.Checked }.GetNewClosure())
+                [void]$panDret.Controls.Add($cb)
+                $y += [Math]::Max(24, $cb.PreferredHeight + 4)
+            }
+        }
+    }.GetNewClosure()
+
+    $llista.add_SelectedIndexChanged({
+        if ($estatUi.Busy) { return }
+        $i = $llista.SelectedIndex
+        if ($i -lt 0 -or $i -ge $mapa.Count) { return }
+        & $pintaDetall $mapa[$i]
+    }.GetNewClosure())
+    $llista.add_ItemCheck({
+        param($sender, $e2)
+        if ($estatUi.Busy) { return }
+        if ($e2.Index -lt 0 -or $e2.Index -ge $mapa.Count) { return }
+        $st[$mapa[$e2.Index]].Marcat = ($e2.NewValue -eq 'Checked')
+    }.GetNewClosure())
+
+    & $omplirLlista ''
+    if ($llista.Items.Count -gt 0) { $llista.SelectedIndex = 0 }
+
+    # ---- Botons -----------------------------------------------------------
     $res = @{ Nav = 'back'; Punts = @(); Memoria = $null }
     $btnOk = New-Object System.Windows.Forms.Button
     $btnOk.Text = 'Continuar'
-    $btnOk.Location = New-Object System.Drawing.Point(760, 566)
+    $btnOk.Location = New-Object System.Drawing.Point(941, 606)
     $btnOk.Size = New-Object System.Drawing.Size(125, 34)
     $btnOk.Anchor = 'Bottom,Right'
     _StylePrimaryButton $btnOk
     $btnOk.add_Click({
-        $grid.EndEdit() | Out-Null
         $sel = New-Object System.Collections.ArrayList
         $mem = @{}
-        foreach ($row in $grid.Rows) {
-            $p = $row.Tag
+        for ($i = 0; $i -lt $punts.Count; $i++) {
+            $p = $punts[$i]
+            $e = $st[$i]
             $clau = _LlicClauPunt $p
-            $marcat = [bool]$row.Cells[0].Value
-            $estat = if ($ambEstat -and [string]$row.Cells[2].Value -eq 'Es disposa') { 'si' } else { 'no' }
-            # Es recorda TOT (marcat o no), per si l'usuari torna ENRERE.
-            $mem[$clau] = @{ Marcat = $marcat; Estat = $estat; Dades = $(if ($dades.Contains($clau)) { $dades[$clau] } else { $null }) }
-            if (-not $marcat) { continue }
-            # El text del "Es disposa" ja resolt amb les dades d'AQUEST punt.
-            $si = @($p.SiDisposa)
-            if ($estat -eq 'si' -and $dades.Contains($clau)) { $si = @(_LlicAplicaCamps $p.SiDisposa $dades[$clau]) }
+            $mem[$clau] = @{ Marcat = $e.Marcat; Estat = $e.Estat; Camps = $e.Camps; Subs = $e.Subs }
+            if (-not $e.Marcat) { continue }
+            # Els valors dels camps d'AQUEST punt (el registre de Camps.ps1 desa
+            # objectes amb .Value; aqui en volem un mapa nom -> valor).
+            $vals = @{}
+            foreach ($k in @($e.Camps.Keys)) { $vals[[string]$k] = [string]$e.Camps[$k].Value }
+            $si = @($p.SiDisposa); $no = @($p.NoDisposa)
+            if ([string]$e.Estat -eq 'si') { $si = @(_LlicAplicaCamps $p.SiDisposa $vals) }
+            else                           { $no = @(_LlicAplicaCamps $p.NoDisposa $vals) }
+            # Nomes els sub-punts triats.
+            $subs = New-Object System.Collections.ArrayList
+            for ($k = 0; $k -lt @($p.Subs).Count; $k++) {
+                if ($ambSubs -and -not [bool]$e.Subs[$k]) { continue }
+                [void]$subs.Add(@($p.Subs)[$k])
+            }
             [void]$sel.Add(([pscustomobject]@{
                 Clau = $p.Clau; Titol = $p.Titol; Condicio = $p.Condicio
-                Cos = $p.Cos; NoDisposa = $p.NoDisposa; SiDisposa = $si
-                Quan = $p.Quan; Subs = $p.Subs; Estat = $estat
+                Cos = $p.Cos; NoDisposa = $no; SiDisposa = $si
+                Quan = $p.Quan; Subs = $subs.ToArray(); Estat = [string]$e.Estat
             }))
         }
         $res.Punts = $sel.ToArray()
@@ -976,23 +1206,23 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
 
     $btnBack = New-Object System.Windows.Forms.Button
     $btnBack.Text = [string][char]0x2190 + ' Enrere'
-    $btnBack.Location = New-Object System.Drawing.Point(15, 566)
+    $btnBack.Location = New-Object System.Drawing.Point(14, 606)
     $btnBack.Size = New-Object System.Drawing.Size(115, 34)
     $btnBack.Anchor = 'Bottom,Left'
     _StyleSecondaryButton $btnBack
     $btnBack.add_Click({ $form.Close() }.GetNewClosure())
     [void]$form.Controls.Add($btnBack)
 
-    # Marcar-ho / desmarcar-ho tot: amb quinze punts, anar picant casella a
-    # casella es el que fa que l'eina no compensi.
     $marcaTot = {
         param($valor)
-        foreach ($row in $grid.Rows) { $row.Cells[0].Value = $valor }
-        $grid.EndEdit() | Out-Null
+        $estatUi.Busy = $true
+        for ($i = 0; $i -lt $punts.Count; $i++) { $st[$i].Marcat = $valor }
+        for ($i = 0; $i -lt $llista.Items.Count; $i++) { $llista.SetItemChecked($i, $valor) }
+        $estatUi.Busy = $false
     }.GetNewClosure()
     $btnTot = New-Object System.Windows.Forms.Button
     $btnTot.Text = 'Marcar-ho tot'
-    $btnTot.Location = New-Object System.Drawing.Point(140, 566)
+    $btnTot.Location = New-Object System.Drawing.Point(139, 606)
     $btnTot.Size = New-Object System.Drawing.Size(125, 34)
     $btnTot.Anchor = 'Bottom,Left'
     _StyleSecondaryButton $btnTot
@@ -1001,7 +1231,7 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
 
     $btnCap = New-Object System.Windows.Forms.Button
     $btnCap.Text = 'Desmarcar-ho tot'
-    $btnCap.Location = New-Object System.Drawing.Point(273, 566)
+    $btnCap.Location = New-Object System.Drawing.Point(272, 606)
     $btnCap.Size = New-Object System.Drawing.Size(140, 34)
     $btnCap.Anchor = 'Bottom,Left'
     _StyleSecondaryButton $btnCap
@@ -1223,7 +1453,7 @@ function Invoke-LlicenciaWizard {
                     # Els punts, resolts amb el text de REQ1. Les claus ORFES
                     # s'avisen: si algu ha reanomenat un requeriment a REQ1, el
                     # punt desapareixeria de l'informe sense dir res.
-                    $bAbans  = _LlicPuntsPerBloc $llic $st.IdxReq1 'ABANS'
+                    $bAbans  = _LlicPuntsPerBloc $llic $st.IdxReq1 'ABANS' $st.Req1
                     $bDesp   = _LlicPuntsPerBloc $llic $st.IdxReq1 'DESPRES'
                     $bPropis = _LlicPuntsPerBloc $llic $st.IdxReq1 'PROPIS'
                     $orfes = @($bAbans.Orfes) + @($bDesp.Orfes) + @($bPropis.Orfes)
@@ -1282,7 +1512,13 @@ function Invoke-LlicenciaWizard {
                 5 {
                     # Projecte: els requeriments NORMALS de REQ1, amb la mateixa
                     # pantalla de sempre (no s'hi inventa res).
-                    $r = Select-Items -sections $st.Req1.Sections -preloadSelectedKeys $st.ProjKeys -fields $st.Fields -preloadValues $st.ProjVals
+                    # El PROJECTE es la resta de REQ1: les seccions de
+                    # documentacio ja s'han demanat al pas d'ABANS i no s'han de
+                    # poder demanar dues vegades.
+                    if ($null -eq $st.SeccionsProjecte) {
+                        $st.SeccionsProjecte = @(@($st.Req1.Sections) | Where-Object { -not (_LlicEsSeccioAbans ([string]$_.Title)) })
+                    }
+                    $r = Select-Items -sections $st.SeccionsProjecte -preloadSelectedKeys $st.ProjKeys -fields $st.Fields -preloadValues $st.ProjVals
                     if ($r.Nav -eq 'back') { $step = 4; break }
                     if ($r.Nav -eq 'stay') { break }
                     $st.ProjSel = $r.Data
@@ -1309,7 +1545,7 @@ function Invoke-LlicenciaWizard {
                     # Tot marcat de sortida: al POST ve de l'informe anterior (hi
                     # ha de constar tot) i al pre-llicencia el Word de l'usuari
                     # tambe els portava tots.
-                    $r = Select-LlicDocumentacio $st.DespresTots $titol $sub (-not $esPost) $true $false $st.MemDespres
+                    $r = Select-LlicDocumentacio $st.DespresTots $titol $sub (-not $esPost) $true $false $st.MemDespres $true
                     if ($r.Nav -ne 'fwd') {
                         # Enrere al POST = tornar a triar l'informe anterior, que
                         # es l'unica cosa que hi ha darrere.

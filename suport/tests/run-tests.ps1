@@ -1736,12 +1736,12 @@ if (Test-Path -LiteralPath $llicPathX) {
 # finestra i tapava els botons. Prova de FONT: despres de l'estil, el Dock s'ha
 # de desfer i la posicio s'ha de fixar DESPRES (abans, l'estil la trepitjava).
 $srcLlic = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'Llicencia.ps1') -Raw
-$iEstil = $srcLlic.IndexOf('_StyleListGrid $grid')
-Assert ($iEstil -ge 0) 'Llicencia: la graella usa l''estil comu'
-$iDockNone = $srcLlic.IndexOf("`$grid.Dock = 'None'")
-Assert ($iDockNone -gt $iEstil) 'Llicencia: el Dock=Fill de l''estil es DESFA despres (si no, la graella tapa els botons)'
-$iLoc = $srcLlic.IndexOf('$grid.Location = New-Object System.Drawing.Point(15, 70)')
-Assert ($iLoc -gt $iEstil) 'Llicencia: la posicio de la graella es fixa DESPRES de l''estil'
+# La pantalla de documentacio ja NO es una graella: es llista + detall, com
+# Select-Items, per poder omplir els camps INLINE (i per aixo tampoc pot
+# tornar a passar que el Dock='Fill' de _StyleListGrid tapi els botons).
+Assert (-not $srcLlic.Contains('_StyleListGrid')) 'Llicencia: la pantalla ja no es una graella (llista + detall, com REQ1)'
+Assert ($srcLlic.Contains('_RenderRichInto')) 'Llicencia: els camps es pinten amb la MATEIXA funcio que REQ1'
+Assert (-not $srcLlic.Contains('DataGridViewButtonColumn')) 'Llicencia: fora el boto "Omplir..."'
 # I el Word, DIFERIT: al pas 3 nomes cal el JSON; si s'arrenca alla, la tria de
 # punts triga i un usuari que tira enrere deixa un Word obert per res.
 $iPas3 = $srcLlic.IndexOf('# Aqui nomes cal REQ1')
@@ -1943,6 +1943,48 @@ AssertEq ($vells -join '|') 'Informes generats|Rutes generades|BASE DE DADES ACT
 AssertEq $migs[2].Desti ($tstLocal + 'base-dades-activitats') 'Get-MigracionsLocal: desti dins de local'
 AssertEq ([bool](@($migs | Where-Object { $_.Origen -like '*ESTRUCTURALS*' }).Count -eq 0)) $true 'Get-MigracionsLocal: ESTRUCTURALS no es mou (les vistes van a part)'
 
+# La CLASSIFICACIO surt SOLA de l'Excel; ja no es pregunta. La llei la diu la
+# columna "Classificacio general annex".
+AssertEq (_ClassificacioText 'L18 Cert' '12.25')        'Llei 18/2020; Epígraf 12.25'            '_ClassificacioText: L18 Cert -> Llei 18/2020, sense annex'
+AssertEq (_ClassificacioText 'L18 Proj i Cert' '3.1')   'Llei 18/2020; Epígraf 3.1'              '_ClassificacioText: L18 Proj i Cert'
+AssertEq (_ClassificacioText 'L18' '')                  'Llei 18/2020'                          '_ClassificacioText: L18 sense apartat'
+AssertEq (_ClassificacioText 'II' '12.25')              'Llei 20/2009; Annex II; Epígraf 12.25'  '_ClassificacioText: Annex II'
+AssertEq (_ClassificacioText 'III' '4')                 'Llei 20/2009; Annex III; Epígraf 4'     '_ClassificacioText: Annex III'
+AssertEq (_ClassificacioText '' '')                     ''                                      '_ClassificacioText: buit'
+
+# El bloc ABANS surt de REQ1 (4 seccions), no de la llista de LLIC: aixi un
+# requeriment nou d'aquelles seccions hi surt sol.
+$secAb = @(_LlicSeccionsAbans)
+AssertEq $secAb.Count 4 '_LlicSeccionsAbans: les quatre seccions de documentacio'
+Assert ([bool](_LlicEsSeccioAbans 'Autoritzacions / Informes preceptius')) '_LlicEsSeccioAbans: Autoritzacions'
+Assert ([bool](_LlicEsSeccioAbans ('Pla d' + [char]0x2019 + 'Autoprotecci' + [char]0x00F3))) '_LlicEsSeccioAbans: PAU amb apostrof tipografic'
+Assert ([bool](_LlicEsSeccioAbans "Pla d'Autoproteccio")) '_LlicEsSeccioAbans: ...i sense accents ni apostrof tipografic'
+Assert ([bool](_LlicEsSeccioAbans 'Registres')) '_LlicEsSeccioAbans: Registres (d''aqui surt el RASIC)'
+Assert (-not (_LlicEsSeccioAbans 'Projecte')) '_LlicEsSeccioAbans: Projecte NO'
+Assert (-not (_LlicEsSeccioAbans ('Controls peri' + [char]0x00F2 + 'dics'))) '_LlicEsSeccioAbans: els periodics tampoc (son una altra cosa)'
+if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path $EstructuralsDir 'REQ1.json'))) {
+    $req1Ab = Read-CatalegJson (Join-Path $EstructuralsDir 'REQ1.json')
+    $llicAb = Read-LlicCataleg $llicPathX
+    $bAb = _LlicPuntsPerBloc $llicAb (_LlicIndexReq1 $req1Ab) 'ABANS' $req1Ab
+    $esperats = 0
+    foreach ($sc in @($req1Ab.Sections)) {
+        if (-not (_LlicEsSeccioAbans ([string]$sc.Title))) { continue }
+        $esperats += @($sc.Items | Where-Object { $_.Kind -eq 'item' -and $_.Short }).Count
+    }
+    AssertEq (@($bAb.Punts).Count) $esperats 'ABANS: hi son TOTS els items de les 4 seccions de REQ1'
+    Assert ((@($bAb.Punts).Count) -gt 25) 'ABANS: inclou els items de dins de les subseccions'
+    # I les 4 seccions NO poden quedar al pas Projecte.
+    $secProj = @(@($req1Ab.Sections) | Where-Object { -not (_LlicEsSeccioAbans ([string]$_.Title)) })
+    Assert (-not (@($secProj) | Where-Object { _LlicEsSeccioAbans ([string]$_.Title) })) 'Projecte: cap seccio de documentacio (no es pot demanar dues vegades)'
+    Assert ((@($secProj).Count) -lt (@($req1Ab.Sections).Count)) 'Projecte: se n''han tret seccions'
+}
+
+# El titol que obre el full de signatures de l'ANNEX 1.
+Assert ([bool](_LlicEsTitolAcceptacio ('Document d' + [char]0x2019 + 'acceptaci' + [char]0x00F3 + ' del cessament dels usos...'))) '_LlicEsTitolAcceptacio: el titol de la plantilla'
+Assert ([bool](_LlicEsTitolAcceptacio "document d'acceptacio del cessament")) '_LlicEsTitolAcceptacio: sense accents ni majuscules'
+Assert (-not (_LlicEsTitolAcceptacio 'Jo.........., amb DNI......')) '_LlicEsTitolAcceptacio: una linia del full, no'
+Assert (-not (_LlicEsTitolAcceptacio '')) '_LlicEsTitolAcceptacio: buit'
+
 Write-Host "`n--- Llicencia: la GENERACIO sencera (amb el Word simulat) ---"
 # Es genera un informe de debo amb els dobles de Format.ps1 i un Word de
 # mentida. Aixo hauria enxampat, de cop, gairebe tot el que va fallar a la
@@ -2005,8 +2047,63 @@ if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path 
     # solen portar el mateix, i sortia dues vegades seguides).
     $urlsG = @($emG | Where-Object { $_ -like 'URL*|*' } | ForEach-Object { ($_ -split '\|', 2)[1] })
     AssertEq (@($urlsG).Count) (@($urlsG | Select-Object -Unique).Count) 'Llicencia: cap enllac repetit'
+    # ...i el mateix informe com a LLICENCIA PROVISIONAL, que hi afegeix
+    # l'ANNEX 1. Ha de sortir en TEXT PLA: cap pic, cap item numerat, negreta
+    # nomes als dos titols, i el full de signatures a part i a cos 9.
+    $modelG.EsProvisional = $true
+    $global:emitCalls.Clear()
+    try { [void](Build-LlicenciaDocument $wordG $modelG) } catch { Write-Host ("    EXCEPCIO (annex): " + $_.Exception.Message) -ForegroundColor Red }
+    $emA = @($global:emitCalls)
+    $iAnnex = [Array]::FindIndex([string[]]$emA, [Predicate[string]]{ param($x) $x -like 'PLA*|ANNEX 1*' })
+    Assert ($iAnnex -ge 0) 'ANNEX 1: hi surt (nomes a la llicencia provisional)'
+    $annex = @($emA[$iAnnex..($emA.Count - 1)])
+    Assert (-not (@($annex) | Where-Object { $_ -like 'BULLET*' })) 'ANNEX 1: cap pic (text pla)'
+    Assert (-not (@($annex) | Where-Object { $_ -like 'ITEM|*' })) 'ANNEX 1: cap item numerat (text pla)'
+    Assert (-not (@($annex) | Where-Object { $_ -like 'BODY*' })) 'ANNEX 1: tot passa per Format-Plain'
+    $negretes = @($annex | Where-Object { $_ -like 'PLA/N*' })
+    AssertEq $negretes.Count 2 'ANNEX 1: negreta NOMES als dos titols'
+    Assert ([bool]($negretes[0] -like '*ANNEX 1*')) 'ANNEX 1: el primer titol en negreta'
+    Assert ([bool]($negretes[1] -like '*acceptaci*')) 'ANNEX 1: i el del full de signatures'
+    $cos9 = @($annex | Where-Object { $_ -like '*/sz9|*' })
+    Assert ($cos9.Count -ge 5) 'ANNEX 1: el full de signatures va a cos 9'
+    Assert (-not (@($annex[0..($annex.Count - $cos9.Count - 1)]) | Where-Object { $_ -like '*sz9*' })) 'ANNEX 1: ...i NOMES el full de signatures'
     $env:TEMP = $tempAbans
 }
+# L'ENLLAC VA DESPRES DE LA FRASE QUE L'ANUNCIA. El comentari acaba amb
+# "...en el seguent enllac:" i el cos de l'item (de REQ1) sol portar EL MATEIX
+# enllac: sortia abans, amb la frase penjada sense res al darrere.
+if (Test-Path -LiteralPath $llicPathX) {
+    . (Join-Path $PSScriptRoot 'FormatDoubles.ps1')
+    $selU = [pscustomobject]@{}
+    $L1 = 'https://exemple.cat/tramit'
+    $puntU = [pscustomobject]@{
+        Clau = ''; Titol = 'Incendis'; Condicio = ''
+        Cos = @('Incendis. S''ha d''obtenir l''informe.', ('[[URL]] ' + $L1))
+        NoDisposa = @('No es disposa de l''informe. S''ha de sol·licitar en el seguent enllac:', ('[[URL]] ' + $L1))
+        SiDisposa = @(); Quan = @(); Subs = @()
+    }
+    $global:emitCalls.Clear()
+    _LlicEscriuPunt $selU $puntU 2 ([ordered]@{}) 'no' $false
+    $emU = @($global:emitCalls)
+    $iCom = [Array]::FindIndex([string[]]$emU, [Predicate[string]]{ param($x) $x -like 'BODY*|No es disposa*' })
+    $iUrl = [Array]::FindIndex([string[]]$emU, [Predicate[string]]{ param($x) $x -like 'URL*' })
+    Assert ($iCom -ge 0) 'enllac: hi ha el comentari'
+    Assert ($iUrl -gt $iCom) 'enllac: va DESPRES de la frase que l''anuncia (no abans)'
+    AssertEq (@($emU | Where-Object { $_ -like 'URL*' }).Count) 1 'enllac: nomes una vegada, encara que sigui als dos textos'
+    # Si el comentari NO porta enllac, el de l'item ha de sortir amb l'item.
+    $puntU2 = [pscustomobject]@{
+        Clau = ''; Titol = 'X'; Condicio = ''
+        Cos = @('Text de l''item.', ('[[URL]] ' + $L1))
+        NoDisposa = @('No es disposa.'); SiDisposa = @(); Quan = @(); Subs = @()
+    }
+    $global:emitCalls.Clear()
+    _LlicEscriuPunt $selU $puntU2 1 ([ordered]@{}) 'no' $false
+    $emU2 = @($global:emitCalls)
+    $iUrl2 = [Array]::FindIndex([string[]]$emU2, [Predicate[string]]{ param($x) $x -like 'URL*' })
+    $iCom2 = [Array]::FindIndex([string[]]$emU2, [Predicate[string]]{ param($x) $x -like 'BODY*|No es disposa*' })
+    Assert ($iUrl2 -ge 0 -and $iUrl2 -lt $iCom2) 'enllac: si el comentari no en porta, el de l''item surt amb l''item'
+}
+
 # El nom del fitxer NO porta el titular (l'usuari no el vol; ja surt a dins).
 $nfG = _LlicNomFitxer ([datetime]'2026-08-18') 'requeriment' '1457' 'EUROMASTER AUTOMOCION Y SERVICIOS SA'
 AssertEq $nfG '2026-08-18_LlicReq_GIA 1457.docx' '_LlicNomFitxer: sense el titular'

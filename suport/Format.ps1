@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 <#
 .SYNOPSIS
   Format del document Word per als informes.
@@ -327,6 +327,26 @@ function Format-Url {
         [void]$doc.Hyperlinks.Add($rng, $url)
     } catch { }
     $sel.Font.Size = $Script:ReportFormatConfig.BodyFontSize
+}
+
+# Paragraf PLA: sense sagnia, sense pic, sense numero i sense espaiats propis.
+# El fa servir l'ANNEX 1 de Llicencia, que a la plantilla de l'usuari es text
+# corrent (i el full de signatures del final, a cos 9).
+#   -Bold  : tot el paragraf en negreta (els dos titols de l'annex)
+#   -Size  : cos en punts (0 = el del document)
+function Format-Plain {
+    param($sel, [string]$text, [switch]$Bold, [int]$Size = 0)
+    [void]$sel.TypeParagraph()
+    _Reset-Char $sel
+    _Apply-Indent $sel 0
+    if ($Size -gt 0) { try { $sel.Font.Size = $Size } catch { } }
+    $ini = $sel.Range.Start
+    if ($text) { Type-RichText $sel $text }
+    $fi = $sel.Range.End
+    if ($Bold -and $fi -gt $ini) {
+        try { $sel.Document.Range($ini, $fi).Font.Bold = $true } catch { }
+    }
+    if ($Size -gt 0) { try { $sel.Font.Size = $Script:ReportFormatConfig.BodyFontSize } catch { } }
 }
 
 function Format-Spacer {

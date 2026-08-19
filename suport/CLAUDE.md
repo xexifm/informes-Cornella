@@ -1126,6 +1126,47 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   - **Prova de generació COMPLETA** (Word simulat + dobles): hauria enxampat de
     cop el `[[URL]]`, els enllaços repetits, la manca de CONCLUSIONS i de
     negreta i el nom del fitxer. Ara hi és.
+- **La CLASSIFICACIÓ surt SOLA i mai es pregunta.** La llei la decideix la
+  columna **«Classificació general annex»** de l'Excel (`_ClassificacioText`,
+  `Activitats.ps1`): el que comença per **`L18`** (`L18 Cert`,
+  `L18 Proj i Cert`) → **`Llei 18/2020; Epígraf …`** *sense annex* — el
+  «Cert / Proj i Cert» és el tipus de tràmit, no part de la classificació —;
+  `II` / `III` → `Llei 20/2009; Annex …; Epígraf …`.
+  - La fitxa de la caché és un **hashtable** (`Activitats.ps1` hi desa `@{…}`).
+    S'hi accedia amb `$act.PSObject.Properties[…]` → **sempre buit**, i per
+    això el programa preguntava cada vegada. Si no se'n troba cap, es deixa
+    buida: aturar l'assistent per això seria pitjor que generar l'informe.
+- **El bloc ABANS surt de REQ1, no de la llista de LLIC.** Són **tots** els
+  ítems de 4 seccions (`_LlicSeccionsAbans`): *Autoritzacions / Informes
+  preceptius*, *Pla d'Autoprotecció*, *Controls inicials* i *Registres* (d'aquí
+  ve el RASIC). LLIC.json hi aporta només el «No es disposa / Es disposa» per
+  clau; un requeriment **nou** d'aquelles seccions hi surt sol, sense haver-lo
+  d'apuntar enlloc. Són **41 punts**, no 25: el lector **aplana les
+  subseccions** (*Registres* en té 17).
+  - **El pas «Projecte» exclou aquestes 4 seccions** (`$st.SeccionsProjecte`):
+    si no, es podrien demanar dues vegades.
+  - `_LlicEsSeccioAbans` compara **sense accents ni apòstrof tipogràfic**: el
+    catàleg escriu `Pla d'Autoprotecció` amb U+2019 i és fàcil que un dia no
+    coincideixi caràcter a caràcter.
+- **La pantalla de documentació és LLISTA + DETALL**, com `Select-Items`, no una
+  graella. Els `[CAMP: …]` es pinten **inline amb `_RenderRichInto`**
+  (`Camps.ps1`) — la mateixa funció que REQ1 —, amb un **diccionari de camps
+  per punt** (l'«Id Firmadoc» val una cosa diferent a cada document). El botó
+  «Omplir…» que obria un diàleg s'ha esborrat: no s'assemblava a res de la
+  resta del programa. Al bloc DESPRÉS, el detall mostra les **caselles dels
+  sub-punts** (els certificats d'inscripció i les inspeccions inicials: no
+  totes les activitats els tenen tots).
+- **L'ENLLAÇ VA DESPRÉS DE LA FRASE QUE L'ANUNCIA.** El comentari acaba amb
+  «…en el següent enllaç:» i el cos de l'ítem (de REQ1) **sol portar el mateix
+  enllaç**: sortia abans i la frase quedava penjada. `_LlicEscriuPunt` mira
+  **primer** els enllaços del comentari; els que també són al cos **no
+  s'emeten amb l'ítem** i surten després del comentari. Cap enllaç es repeteix
+  dins d'un punt. (La deduplicació a seques, sense això, ho **empitjorava**:
+  esborrava justament el que havia d'anar després de la frase.)
+- **L'ANNEX 1 va en TEXT PLA**: `Format-Plain` (`Format.ps1`) — sense sagnia,
+  pics ni numeració. **Negreta només** als dos títols, i des del «Document
+  d'acceptació…» (`_LlicEsTitolAcceptacio`, pura) **pàgina nova i cos 9**
+  (`$Script:LlicAnnexSignaturaCos`; a la plantilla, `sz=18` mig-punts).
 - **La CLASSIFICACIÓ no és a la capçalera genèrica**: `_ReadHeaderControls` no
   la retorna (és només de Llicència). S'omple després del pas 2 amb
   `_LlicClassificacio`: es busca a l'Excel per ID GIA i **sempre es mostra** en
