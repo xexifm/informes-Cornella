@@ -2032,6 +2032,7 @@ AssertEq (Get-LocalSubdir $tstClone 'Activitats') ($tstLocal + 'base-dades-activ
 AssertEq (Get-LocalSubdir $tstClone 'ActExtr')    ($tstLocal + 'base-dades-actextr')     'Get-LocalSubdir: registre ACT_EXTR'
 AssertEq (Get-LocalSubdir $tstClone 'Vistes')     ($tstLocal + 'vistes-catalegs')        'Get-LocalSubdir: vistes en Word'
 AssertEq (Get-LocalSubdir $tstClone 'Seguiment')  ($tstLocal + 'seguiment-gia')          'Get-LocalSubdir: llistats de seguiment del GIA'
+AssertEq (Get-LocalSubdir $tstClone 'Geocodificacio') ($tstLocal + 'geocodificacio')     'Get-LocalSubdir: portals del Cadastre i mapes de coordenades'
 $errClau = $false
 try { [void](Get-LocalSubdir $tstClone 'NoExisteix') } catch { $errClau = $true }
 AssertEq $errClau $true 'Get-LocalSubdir: una clau desconeguda peta (no retorna una ruta inventada)'

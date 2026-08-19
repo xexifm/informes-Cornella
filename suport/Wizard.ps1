@@ -33,6 +33,7 @@ function Main {
             'seguiment'  { Invoke-SeguimentFlow }
             'actextr'    { Invoke-ActExtrFlow }
             'ruta'       { Start-RutaTool }   # llanca el planificador; torna al menu
+            'coordenades' { Start-CoordenadesTool }   # mapa Excel vs facana; torna al menu
             'controlsperiodics' { Invoke-ControlsPeriodics }   # llistat d'activitats amb control periodic (Excel)
             'informesdb'     { Invoke-InformesDbScan }   # escaneja informes -> JSON; torna al menu
             'informesdbedit' { Invoke-InformesDbEdit }   # editor de la base d'informes

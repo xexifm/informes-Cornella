@@ -163,6 +163,22 @@ function _RutaNormalize($s) {
     return $sb.ToString().Normalize([System.Text.NormalizationForm]::FormC).Trim().ToLowerInvariant()
 }
 
+# Cerca la columna (index 1-based) que te EXACTAMENT aquest nom de capcalera
+# (comparacio insensible a accents/majuscules/espais). 0 si no la troba.
+# $headers es un array 0-based de cadenes (l'index i correspon a la columna i+1).
+#
+# Buscar per NOM en lloc de per index es el que fa que els programes no es
+# trenquin quan el GIA afegeix una columna al mig. Viu aqui, amb la resta
+# d'utillatge comu de 'rutes/', perque la fan servir Precintades.ps1 i
+# Coordenades.ps1.
+function Find-HeaderColumn($headers, [string]$name) {
+    $target = _RutaNormalize $name
+    for ($i = 0; $i -lt @($headers).Count; $i++) {
+        if ((_RutaNormalize $headers[$i]) -eq $target) { return $i + 1 }
+    }
+    return 0
+}
+
 # Parseja la llista d'IDs que escriu l'usuari. Accepta separadors: comes,
 # punts i comes, espais, tabuladors i salts de linia. Treu duplicats
 # conservant l'ordre d'aparicio. Retorna un array de cadenes.

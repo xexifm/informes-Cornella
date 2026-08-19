@@ -154,6 +154,46 @@ amb un mapa numerat que pots imprimir a PDF. Els mapes van a
 > **Privacitat:** al servei de rutes només s'hi envien **coordenades**, mai noms
 > ni adreces.
 
+### Coordenades dels establiments
+
+Botó **🗺 Coordenades**, just a la dreta de *Generar ruta*.
+
+El GIA agafa les coordenades del Cadastre, i el Cadastre situa cada activitat al
+centre de la seva **parcel·la**, no al local. Per això totes les activitats d'un
+mateix edifici cauen exactament al mateix punt: a la base del 18/08/2026, 1.380
+activitats només tenien 899 punts diferents, i a Ctra. de l'Hospitalet 147 n'hi
+havia **19 apilades**.
+
+Aquesta eina et fa un mapa on veus les dues coordenades alhora:
+
+- **🔴 vermell** — la que hi ha ara a l'Excel (centre de la parcel·la). No es mou.
+- **🟢 verd** — la del **portal**, segons l'adreça de l'activitat. La demana al
+  Cadastre (servei d'adreces INSPIRE), una consulta per parcel·la. Aquest punt
+  **l'arrossegues** fins on toqui.
+- Una línia grisa uneix cada parella, perquè vegis quin verd és de quin vermell.
+- Si d'una activitat no se n'ha trobat el portal, el punt verd surt **buit** i a
+  sobre del vermell: mou-lo tu.
+
+En obrir-la tries si vols repassar **només les activitats apilades** (les que
+comparteixen punt amb una altra, que són les que fan nosa) o **totes**. La
+primera vegada triga una estona perquè ha de preguntar parcel·la per parcel·la;
+a partir d'aleshores les respostes queden desades i és immediat.
+
+Quan ho tinguis, el botó **Baixar Excel (.xlsx)** et dona un full amb l'ID GIA, la
+referència cadastral, l'adreça, la coordenada vella, la nova, d'on surt cada una
+i quants metres s'ha mogut.
+
+Els punts que moguis **es recorden en aquest navegador**: pots tancar la pàgina i
+tornar-hi un altre dia. Si te'n vols desfer, hi ha el botó *Esborrar les meves
+correccions*.
+
+> L'eina **no toca res**: ni l'Excel, ni els mapes de ruta, ni el plànol
+> d'activitats precintades, que segueixen fent servir la coordenada de sempre.
+> El que et baixes és un full a part, per fer-ne el que vulguis.
+
+> **Privacitat:** al Cadastre només s'hi envia la **referència cadastral**, mai
+> el nom del titular ni la raó social.
+
 ### Word a PDF (i signar)
 
 Botó **📄 Word a PDF**. Per defecte hi surt **l'últim informe que has generat**;

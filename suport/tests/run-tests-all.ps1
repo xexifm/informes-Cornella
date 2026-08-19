@@ -26,6 +26,7 @@ $totes = [ordered]@{
     'ruta'        = 'run-tests-ruta.ps1'
     'actextr'     = 'run-tests-actextr.ps1'
     'precintades' = 'run-tests-precintades.ps1'
+    'coordenades' = 'run-tests-coordenades.ps1'
 }
 
 $aExecutar = if ($Suite) { $Suite } else { @($totes.Keys) }

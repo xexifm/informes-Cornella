@@ -533,9 +533,9 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   comprovacio del "no" va abans que la del "si" a `_ConclusioBreu`.
 - **Menú Pas 1 — 4 apartats de rajoles** (`Select-Mode`, `Seguiment.ps1`, helper
   `$addTileRow`; dispatch al `switch` de `Main`):
-  - **EINES** (3): 📍 *Generar ruta* (`ruta`), 🔒 *Activitats precintades*
-    (`url`, acció `precintades` només per al segell), 📅 *Controls periòdics*
-    (`controlsperiodics`).
+  - **EINES** (4): 📍 *Generar ruta* (`ruta`), 🗺 *Coordenades*
+    (`coordenades`), 🔒 *Activitats precintades* (`url`, acció `precintades`
+    només per al segell), 📅 *Controls periòdics* (`controlsperiodics`).
   - **INFORMES** (4): 🗃 *Actualitzar base* (`informesdb`), 📋 *Editar base*
     (`informesdbedit`), 📁 *Copiar informes* (`copiarinformes`), 📄 *Word a PDF*
     (`convertirpdf`).
@@ -1518,6 +1518,96 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   testejades: `_DefaultControlsCpEmail`, `_ControlsCpRecipients`, `_FillControlsCpPh`,
   `_ControlsCpLineHtml`/`_ControlsCpEmailHtml`. Outlook (COM) i finestres només a
   Windows. Es dot-sourceja a `GenerarInforme.ps1` després de `ControlsPeriodics.ps1`.
+
+## Eina «Coordenades» — Excel vs façana (`rutes/Coordenades.ps1` + `rutes/Geocodificador.ps1`)
+- **El problema, mesurat** (base del 18/08/2026): el GIA porta les coordenades
+  del Cadastre, i el Cadastre georeferencia la **parcel·la**, no el local. 1.380
+  activitats → **899 punts diferents**; 711 files (52%) en comparteixen un amb
+  alguna altra. De les 898 parcel·les, **227 tenen més d'una activitat** i
+  concentren aquelles 711 files. Pitjor cas: `4091106DF2749A` (Ctra. de
+  l'Hospitalet 147) amb **19 apilades**.
+- **La coordenada verda NO surt de geocodificar el text de l'adreça.** Surt de
+  la `Ref. cadastral` que ja hi ha a l'Excel: els **14 primers caràcters** són la
+  parcel·la, i al Cadastre se li demanen els **portals** d'aquella parcel·la
+  (servei INSPIRE d'Adreces, `wfsAD.aspx`, consulta desada `GetadByRefcat`). Cada
+  portal és un punt d'**entrada** amb el seu número de carrer. Avantatges: **una
+  consulta per parcel·la** (no per activitat) i la resposta ja ve en **EPSG:25831**,
+  el mateix sistema que l'Excel — cap reprojecció, cap error de conversió.
+- **NO toca Ruta.ps1 ni Precintades.ps1.** Va ser petició explícita de l'usuari:
+  aquells segueixen amb la coordenada original. L'eina només MIRA i genera un
+  fitxer.
+- **Tres xarxes de seguretat, i totes tres hi són a posta:**
+  1. `Resolve-CoordEstabliment` descarta qualsevol portal a més de
+     `$GeoDistanciaMaximaM` (250 m) de la parcel·la. Val més un marcador imprecís
+     que un marcador mentider.
+  2. `ConvertFrom-CatastroAdXml` parseja **per `local-name()`**, sense lligar-se a
+     cap espai de noms ni nivell de l'arbre, i gira els eixos si venen a l'inrevés
+     (en UTM 31N l'est ~420.000 va molt per sota del nord ~4.578.000).
+  3. Res del mòdul llança mai: si el servei no respon, la parcel·la queda sense
+     portals i cada activitat es queda amb la seva coordenada de sempre.
+- **`$GeoCatastroUrlTemplate` és una VARIABLE, no una cadena enterrada al codi**:
+  si el Cadastre canvia el nom del paràmetre de la consulta desada, s'arregla des
+  de `config.ps1` sense tocar el programa. Per això `Coordenades.ps1` carrega
+  `Geocodificador.ps1` **ABANS** de `Ruta.ps1` — que és qui carrega `config.ps1`:
+  si es carregués després, els valors per defecte del mòdul trepitjarien el que
+  l'usuari hagués posat a `config.ps1`.
+- **EL CLIENT DE XARXA NO S'HA POGUT PROVAR CONTRA EL SERVEI REAL.** L'entorn on
+  es va escriure tenia `ovc.catastro.meh.es` bloquejat per política de sortida
+  (403 al CONNECT; també ICGC, Cartociudad i Nominatim). La fixture
+  `tests/dades/wfsAD-exemple.xml` està **muntada a mà** seguint l'esquema INSPIRE,
+  no gravada. Abans de fiar-se'n, a la feina:
+  ```
+  powershell -NoProfile -Command ". suport\rutes\Ruta.ps1; . suport\rutes\Geocodificador.ps1; Test-Geocodificador '2295827DF2729E'"
+  ```
+  Ha de llistar els portals de Cadis i Huelva amb els seus números. `Test-Geocodificador`
+  ensenya la **resposta crua** i què n'ha entès: si el parseig falla, amb aquella
+  sortida s'arregla de seguida.
+- **`Coordenades.ps1` PORTA BOM I L'HA DE PORTAR.** Tot el text que l'usuari veu
+  al mapa (llegenda, popups, capçaleres de l'Excel que es baixa) viu dins del
+  here-string de `Build-CoordenadesHtml`, en català i amb accents. Sense BOM, el
+  Windows PowerShell 5.1 llegeix el fitxer com a ANSI i el mapa surt ple de
+  `Ã§`. `Geocodificador.ps1`, en canvi, és ASCII pur i no en porta (com
+  `Precintades.ps1`).
+- **Dins del here-string `@"…"@` no hi pot haver cap `$` ni cap `` ` `` que no
+  sigui una interpolació volguda**: el JavaScript del mapa està escrit
+  expressament sense `$` ni template literals. Si hi afegeixes codi, comprova-ho
+  (`$` dins del here-string = variable de PowerShell).
+- **L'`.xlsx` el genera el NAVEGADOR, sense cap biblioteca.** Un `.xlsx` és un ZIP
+  amb cinc XML a dins; amb el mètode «sense compressió» només cal el CRC-32 i les
+  capçaleres del ZIP (`crc32`/`zipStore`/`buildXlsx` al mateix HTML). Els textos
+  van **inline** (`t="inlineStr"`), així no cal `sharedStrings.xml`. Verificat:
+  el fitxer generat el valida `zipfile` i l'obre `openpyxl` **sense avisos**, amb
+  números com a números i accents intactes. Sense el `<cellStyles>` a
+  `styles.xml`, `openpyxl` es queixa («no default style»).
+- **`latLonToUtm31` (al JS) és la INVERSA de `Convert-UtmToLatLon`** i cal perquè
+  Leaflet dona graus quan s'arrossega un punt i nosaltres hem d'exportar metres.
+  Comprovada d'anada i tornada sobre 525 punts de tot el terme municipal: error
+  màxim **0,07 mm**. Una coordenada que **no** s'ha mogut a mà s'exporta amb els
+  metres **tal com van arribar** (`utmActual`), sense reprojectar: així no s'hi
+  acumula l'error d'anar i tornar.
+- **`estat[]` va per POSICIÓ dins d'`ITEMS`, no per ID**: si algun dia la base
+  portés dos cops el mateix ID Activitat, dues fitxes es trepitjarien. Al
+  `localStorage`, en canvi, es desa **per ID**, que és el que ha de sobreviure
+  quan es torni a generar el mapa.
+- **Es va provar el mapa SENCER en un navegador de debò** (Chromium + Playwright,
+  amb un doble de Leaflet perquè el CDN estava bloquejat): estat inicial,
+  arrossegament, desat i recuperació al navegador, esborrat de correccions,
+  filtre, i el `.xlsx` baixat rellegit amb `openpyxl`. El **SRI** dels `<script>`
+  de Leaflet bloqueja qualsevol doble: a la còpia de prova s'ha de treure
+  l'`integrity` (mai al fitxer de veritat).
+- **`Find-HeaderColumn` ha passat de `Precintades.ps1` a `Ruta.ps1`**: és
+  utillatge comú de `rutes/` i ara la fan servir dos fitxers. Tot va a dot-source
+  al mateix àmbit, o sigui que Precintades la segueix veient.
+- La memòria cau dels portals viu a `local/geocodificacio/portals.json` (clau
+  `Geocodificacio` a `$Script:LocalSubdirs`) i **es desa cada 25 parcel·les
+  noves**: si es cancel·la a mitja tanda, no es perd el que ja s'ha demanat. Les
+  entrades amb portals valen 365 dies; les buides, 30 (per si el servei era
+  caigut). Si la crida **falla**, no s'hi escriu res.
+- **Proves**: `tests/run-tests-coordenades.ps1` (registrada a `run-tests-all.ps1`).
+  A l'entorn de desenvolupament no hi havia `pwsh` (ni paquet ni GitHub), o sigui
+  que la lògica es va validar amb una **rèplica en Python** — el mateix recurs
+  que ja s'havia fet servir en aquest projecte — i les suites de PowerShell les
+  ha d'executar l'usuari a Windows.
 
 ## Plànol públic d'activitats precintades
 - `suport/rutes/Precintades.ps1` genera `docs/dades/precintades.json` a partir

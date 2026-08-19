@@ -67,16 +67,9 @@ $Script:PrecCampNom = 'precinte activitat?'
 # FUNCIONS PURES (provables en mode headless, sense Office)
 # ============================================================================
 
-# Cerca la columna (index 1-based) que te EXACTAMENT aquest nom de capcalera
-# (comparacio insensible a accents/majuscules/espais). 0 si no la troba.
-# $headers es un array 0-based de cadenes (l'index i correspon a la columna i+1).
-function Find-HeaderColumn($headers, [string]$name) {
-    $target = _RutaNormalize $name
-    for ($i = 0; $i -lt @($headers).Count; $i++) {
-        if ((_RutaNormalize $headers[$i]) -eq $target) { return $i + 1 }
-    }
-    return 0
-}
+# (Find-HeaderColumn vivia aqui i ara es a Ruta.ps1, amb la resta d'utillatge
+# comu de la carpeta 'rutes': la fa servir tambe l'eina Coordenades. Ruta.ps1
+# ja es carrega mes amunt, aixi que segueix a l'abast des d'aqui.)
 
 # Detecta tots els parells de camps lliures "Camp Info N - Nom" /
 # "Camp Info N - Valor" a la capcalera, de forma dinamica (n'hi pot haver mes
