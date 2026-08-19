@@ -231,6 +231,64 @@ Assert ($itemTxt -notmatch '\[OPCIO:')        "L'OPCIO NO ha de quedar literal a
 Assert ($itemTxt.Contains('ACA'))             "El valor triat (ACA) apareix al text de l'item"
 Assert ($itemTxt.Contains('Presentar a ACA')) "L'OPCIO substituit forma una frase coherent"
 
+# UN [OPCIO:] QUE OCUPA DOS PARAGRAFS DEL CATALEG (cas real del GIA 1463).
+#
+# Cada paragraf es una BodyLine. Si algu prem Enter dins del marcador -l'editor
+# ho permet-, cap de les dues linies en te un de SENCER: resolent linia a linia
+# no hi havia res a substituir i el [OPCIO: ...] anava al Word TAL QUAL. La
+# deteccio, en canvi, si que funcionava (Get-FieldsFromSelection ajunta les
+# linies), o sigui que el desplegable sortia a la pantalla i tot semblava be.
+#
+# I una opcio BUIDA es una opcio: "Afegito? | | text" vol dir "res o el text".
+$Global:_lnPartit = @(
+    ('L' + [char]0x2019 + 'activitat esta classificada segons ' + [char]0x2019 + "l'Annex III, epigraf 12.3."),
+    '[OPCIO: Afegito? | | Article 7.2 de la LLEI 20/2009:',
+    '2. Si una mateixa persona sol.licita diverses activitats...]'
+)
+$fP = [ordered]@{}
+_AddFieldsFromText $fP ($Global:_lnPartit -join [char]10)
+AssertEq (@($fP['Afegito?'].Options).Count) 2 '_ParseOpcio: l''opcio BUIDA compta com a opcio'
+AssertEq ([string]@($fP['Afegito?'].Options)[0]) '' '_ParseOpcio: i es la primera'
+AssertEq ([string]$fP['Afegito?'].Value) '' '_ParseOpcio: per defecte, cap afegito'
+AssertEq (_OpcioEtiqueta '') '(res)' '_OpcioEtiqueta: l''opcio buida es veu com a (res)'
+AssertEq (_OpcioEtiqueta ("a`nb")) 'a b' '_OpcioEtiqueta: els salts es col-lapsen per cabre a la fila'
+AssertEq (_OpcioEtiqueta 'Normal') 'Normal' '_OpcioEtiqueta: la resta, igual'
+
+# Amb el defecte (res): nomes queda la linia de la classificacio.
+$resRes = @(Apply-FieldsToLines $Global:_lnPartit $fP | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+AssertEq $resRes.Count 1 'Apply-FieldsToLines: amb (res) nomes queda la classificacio'
+Assert ($resRes[0] -notmatch '\[OPCIO:') 'Apply-FieldsToLines: cap marcador literal'
+
+# Triant l'afegito: el salt de linia de DINS del valor torna a ser un paragraf.
+$fP['Afegito?'].Value = [string]@($fP['Afegito?'].Options)[1]
+$resAfe = @(Apply-FieldsToLines $Global:_lnPartit $fP | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+AssertEq $resAfe.Count 3 'Apply-FieldsToLines: l''afegito surt en DOS paragrafs, no un'
+Assert ($resAfe[1].StartsWith('Article 7.2')) 'Apply-FieldsToLines: el primer paragraf de l''afegito'
+Assert ($resAfe[2].StartsWith('2. Si una mateixa')) 'Apply-FieldsToLines: i el segon, a part'
+Assert (-not (@($resAfe) | Where-Object { $_ -match '\[OPCIO:' })) 'Apply-FieldsToLines: cap marcador literal'
+
+# Una linia normal no s'ha de tocar gens.
+AssertEq ((Apply-FieldsToLines @('Text sense cap marcador.') $fP) -join '|') 'Text sense cap marcador.' 'Apply-FieldsToLines: sense marcadors, identica'
+AssertEq (@(Apply-FieldsToLines @() $fP).Count) 1 'Apply-FieldsToLines: llista buida -> una linia buida (els cridadors la salten)'
+
+# I EL MATEIX, PASSANT PEL GENERADOR (dobles de Format-*).
+$global:emitCalls.Clear()
+$secP = [pscustomobject]@{ Title='CLASSIFICACIO'; Items=@(
+  [pscustomobject]@{ Kind='item'; Short='cl'; Selected=$true; Children=@(); BodyLines=$Global:_lnPartit }
+)}
+$fG = Get-FieldsFromSelection @($secP)
+_WriteCatalegBody ([pscustomobject]@{}) $Script:ReportFormatConfig @($secP) $fG ''
+$emP = @($global:emitCalls)
+Assert (-not (@($emP) | Where-Object { $_ -match '\[OPCIO:|\[CAMP:' })) 'Generacio: cap marcador literal amb (res)'
+AssertEq (@($emP | Where-Object { $_ -like 'BODY|*' }).Count) 0 'Generacio: amb (res) no s''escriu cap paragraf d''afegito'
+
+$global:emitCalls.Clear()
+$fG['Afegito?'].Value = [string]@($fG['Afegito?'].Options)[1]
+_WriteCatalegBody ([pscustomobject]@{}) $Script:ReportFormatConfig @($secP) $fG ''
+$emP2 = @($global:emitCalls)
+Assert (-not (@($emP2) | Where-Object { $_ -match '\[OPCIO:|\[CAMP:' })) 'Generacio: cap marcador literal amb l''afegito'
+AssertEq (@($emP2 | Where-Object { $_ -like 'BODY|*' }).Count) 2 'Generacio: l''afegito son DOS paragrafs de cos'
+
 Write-Host "`n--- Subseccions buides NO s'emeten (regressio) ---"
 # Cas real: secció "Instal·lacions" amb 3 ::SUB:: (Legalitzacions,
 # Inspeccions inicials, Inspeccions periòdiques). L'usuari només
@@ -2139,6 +2197,9 @@ if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path 
     # solen portar el mateix, i sortia dues vegades seguides).
     $urlsG = @($emG | Where-Object { $_ -like 'URL*|*' } | ForEach-Object { ($_ -split '\|', 2)[1] })
     AssertEq (@($urlsG).Count) (@($urlsG | Select-Object -Unique).Count) 'Llicencia: cap enllac repetit'
+    # Cap marcador de camp pot arribar al document (els camps es resolen per
+    # BLOC, no linia a linia: un [OPCIO:] pot ocupar dos paragrafs del cataleg).
+    Assert (-not (@($emG) | Where-Object { $_ -match '\[OPCIO:|\[CAMP:' })) 'Llicencia: cap [OPCIO:]/[CAMP:] literal al document'
     # ...i el mateix informe com a LLICENCIA PROVISIONAL, que hi afegeix
     # l'ANNEX 1. Ha de sortir en TEXT PLA: cap pic, cap item numerat, negreta
     # nomes als dos titols, i el full de signatures a part i a cos 9.

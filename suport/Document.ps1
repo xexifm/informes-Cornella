@@ -210,9 +210,11 @@ function _WriteCatalegBody($sel, $cfg, $selectedSections, $fields, $introText, $
     # numerar; el cos son directament els paragrafs del document, amb els camps
     # [CAMP:]/[OPCIO:] resolts i separant text/URLs com a la resta del motor.
     if ($isFixedBody) {
-        $lines = @($fixedBodyLines)
+        # Per BLOC, no linia a linia: un [OPCIO:]/[CAMP:] pot ocupar dos
+        # paragrafs del cataleg (vegeu Apply-FieldsToLines a Camps.ps1).
+        $lines = @(Apply-FieldsToLines $fixedBodyLines $fields)
         for ($i = 0; $i -lt $lines.Count; $i++) {
-            $resolved = [string](Apply-Fields -text $lines[$i] -fields $fields)
+            $resolved = [string]$lines[$i]
             if ([string]::IsNullOrWhiteSpace($resolved)) { continue }
             $parts = _SplitTextAndUrls $resolved
             if (-not [string]::IsNullOrWhiteSpace($parts.Text)) { Format-Body $sel $parts.Text }
@@ -227,17 +229,19 @@ function _WriteCatalegBody($sel, $cfg, $selectedSections, $fields, $introText, $
         if ($cfg.SpacerAfterIntroParagraph) { Format-Spacer $sel }
     }
 
-    # Resol [CAMP: ...] a cada linia i EMET cada linia resolta al pipeline.
+    # Resol [CAMP: ...] i [OPCIO: ...] i EMET cada linia resolta al pipeline.
     # Els cridadors fan servir @(& $resolveLines ...) per recollir un array
     # PLA de cadenes. (No retornem ,@(...): combinat amb el @() del cridador
     # provocava un doble embolcall on $itemLines[0] era TOT l'array de linies
     # en comptes de la primera linia -> trencava la separacio text/URL i feia
     # petar Substring.)
+    #
+    # PER BLOC, no linia a linia: un marcador pot ocupar dos paragrafs del
+    # cataleg (algu ha premut Enter a dins), i llavors cap de les dues linies en
+    # te un de sencer i sortia TAL QUAL al Word. Vegeu Apply-FieldsToLines.
     $resolveLines = {
         param($lines)
-        foreach ($ln in $lines) {
-            [string](Apply-Fields -text $ln -fields $fields)
-        }
+        foreach ($ln in @(Apply-FieldsToLines $lines $fields)) { [string]$ln }
     }
 
     # Emet una linia separant text i URLs: el text (si n'hi ha) va com a cos i

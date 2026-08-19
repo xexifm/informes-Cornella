@@ -1211,6 +1211,30 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   - Regla pràctica: **qualsevol concatenació que vagi com a argument, entre
     parèntesis**. Les dues cares d'aquesta trampa (dins d'un `@()` i en
     arguments) ja han costat dues rondes amb l'usuari.
+- **Els camps es resolen per BLOC, no línia a línia** (`Apply-FieldsToLines`,
+  `Camps.ps1`). Cada paràgraf del catàleg és una **BodyLine**, i l'editor deixa
+  prémer Enter **a dins** d'un `[OPCIO: …]`. Llavors el marcador queda partit
+  entre dues línies, cap de les dues en té un de sencer, i `Apply-Fields` línia
+  a línia no hi trobava res: **el `[OPCIO: …]` anava al Word tal qual**. Va
+  passar de debò al punt 1 del Req1 del GIA 1463.
+  - **El que despistava**: la *detecció* sí que funcionava, perquè
+    `Get-FieldsFromSelection` ajunta les BodyLines. El desplegable sortia bé a
+    la pantalla i no es veia res estrany fins a obrir el document.
+  - Ajuntar amb `\n`, resoldre i tornar a partir arregla **les dues cares**: el
+    marcador partit es resol, i un salt de línia **dins del valor triat** torna
+    a sortir com a **paràgraf propi** al Word.
+  - Per això `Get-FieldsFromSelection` i `_RichTextOfBodyLines` ajunten amb
+    **salt de línia i no amb espai**: si la pantalla i el generador no veuen el
+    mateix text, el valor triat al desplegable no és el que s'escriu.
+- **Una opció BUIDA és una opció.** `[OPCIO: Afegitó? | | text]` vol dir «res o
+  aquest text». `_ParseOpcio` les llençava (`if ($o -ne '')`), o sigui que
+  l'afegitó sortia **sempre** i no hi havia manera de dir que no. Ara hi entra,
+  i com que sol anar primera també és el valor per defecte —que és el que toca—.
+  - Al desplegable es pinta **`(res)`**: una fila en blanc no es distingeix d'un
+    desplegable trencat.
+  - I el `ComboBox` **es llegeix per ÍNDEX**, no pel text de la fila:
+    l'etiqueta és només per veure-la (col·lapsa els salts perquè càpiga en una
+    fila) i el valor que es desa ha de ser el del catàleg, salts inclosos.
 - **`.GetNewClosure()` copia VALORS, no referències.** Un scriptblock que es
   crida a si mateix — `$pinta = { ... & $pinta $idx ... }.GetNewClosure()` — es
   queda amb `$pinta = $null`, perquè quan es va crear encara no s'havia

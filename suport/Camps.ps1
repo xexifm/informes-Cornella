@@ -24,14 +24,30 @@
 $Script:CampRegex  = [regex]'\[CAMP:\s*([^\]]+?)\s*\]'
 $Script:OpcioRegex = [regex]'\[OPCIO:\s*([^\]]+?)\s*\]'
 
+# El que es VEU al desplegable quan una opcio es BUIDA. Una fila en blanc no es
+# distingeix d'un desplegable trencat; el que es DESA segueix sent '' i al Word
+# no s'hi escriu res.
+$Script:OpcioEtiquetaBuida = '(res)'
+# NOMES per pintar: una opcio pot ocupar dos paragrafs i al desplegable ha de
+# cabre en una fila, o sigui que els salts de linia es col-lapsen. El valor de
+# debo NO passa mai per aqui -els controls es llegeixen per INDEX, no pel text-.
+function _OpcioEtiqueta([string]$valor) {
+    if ([string]::IsNullOrWhiteSpace($valor)) { return $Script:OpcioEtiquetaBuida }
+    return (($valor -replace '\s+', ' ').Trim())
+}
+
 # Analitza el contingut d'un [OPCIO: ...]: "nom | A | B" -> nom + opcions.
+#
+# UNA OPCIO BUIDA ES UNA OPCIO: "Afegito? | | text" vol dir "res o aquest text",
+# i abans es llencava (nomes quedava el text, o sigui que l'afegito sortia
+# SEMPRE i no hi havia manera de dir que no). Com que l'opcio buida sol anar
+# primera, tambe passa a ser el valor per defecte, que es el que toca.
 function _ParseOpcio($raw) {
     $segs = $raw -split '\|'
     $name = $segs[0].Trim()
     $opts = @()
     for ($i = 1; $i -lt $segs.Count; $i++) {
-        $o = $segs[$i].Trim()
-        if ($o -ne '') { $opts += $o }
+        $opts += $segs[$i].Trim()
     }
     return @{ Name = $name; Options = $opts }
 }
@@ -67,9 +83,12 @@ function Get-FieldsFromSelection($selectedSections) {
     $fields = [ordered]@{}
     foreach ($sec in $selectedSections) {
         foreach ($it in $sec.Items) {
-            $allText = ($it.BodyLines -join ' ')
+            # Amb SALT DE LINIA, no amb espai: un [OPCIO:] pot ocupar dos
+            # paragrafs, i el valor que es desa ha de conservar el salt perque
+            # al Word en tornin a sortir dos paragrafs (Apply-FieldsToLines).
+            $allText = ($it.BodyLines -join [char]10)
             foreach ($ch in $it.Children) {
-                $allText += ' ' + ($ch.BodyLines -join ' ')
+                $allText += [char]10 + ($ch.BodyLines -join [char]10)
             }
             _AddFieldsFromText $fields $allText
         }
@@ -108,6 +127,25 @@ function Apply-Fields($text, $fields) {
         return ''
     })
     return $out
+}
+
+# ELS CAMPS ES RESOLEN PER BLOC, NO LINIA A LINIA.
+#
+# Cada paragraf del cataleg es una BodyLine. Si algu prem Enter DINS d'un
+# [OPCIO: ...] -cosa que l'editor permet-, el marcador queda partit en dues
+# linies i cap de les dues en te un de sencer: Apply-Fields no hi troba res i el
+# marcador anava al Word TAL QUAL. (La deteccio, en canvi, si que funcionava,
+# perque Get-FieldsFromSelection ajunta les linies amb un espai: el desplegable
+# sortia a la pantalla i tot semblava correcte fins al document.)
+#
+# Ajuntar, resoldre i tornar a partir arregla les dues cares del mateix
+# problema: el marcador partit es resol, i el salt de linia que hi hagi DINS del
+# valor triat torna a sortir com a PARAGRAF PROPI. Si el valor es buit, la linia
+# queda buida i els cridadors ja la salten.
+function Apply-FieldsToLines($lines, $fields) {
+    $junt = (@($lines) -join [char]10)
+    $resolt = [string](Apply-Fields -text $junt -fields $fields)
+    return @($resolt.Split([char]10))
 }
 
 # Extreu els valors dels camps en un hashtable simple per a la sessio.
@@ -221,21 +259,30 @@ function _RenderRichInto($flow, [string]$text, $fields, $preload, $registry) {
             $cb = New-Object System.Windows.Forms.ComboBox
             $cb.DropDownStyle = 'DropDownList'
             $cb.Margin = New-Object System.Windows.Forms.Padding(0, 1, 4, 0)
-            foreach ($o in $seg.Options) { [void]$cb.Items.Add($o) }
+            # ES LLEGEIX PER INDEX, no pel text de la fila: l'etiqueta es nomes
+            # per veure-la ('(res)' per a l'opcio buida, salts col-lapsats), i
+            # el valor que es desa ha de ser el del cataleg, salts inclosos.
+            $opcions = @($seg.Options)
+            foreach ($o in $opcions) { [void]$cb.Items.Add((_OpcioEtiqueta $o)) }
             # Amplada segons l'opcio mes llarga (limitada), per llegir-la be.
-            $maxLen = 0; foreach ($o in $seg.Options) { if ($o.Length -gt $maxLen) { $maxLen = $o.Length } }
+            $maxLen = 0; foreach ($o in $cb.Items) { if (([string]$o).Length -gt $maxLen) { $maxLen = ([string]$o).Length } }
             $cb.Width = [Math]::Min(520, [Math]::Max(90, ($maxLen * 7) + 30))
-            $idx = $cb.Items.IndexOf([string]$fields[$name].Value)
+            $idx = -1
+            for ($k = 0; $k -lt $opcions.Count; $k++) {
+                if ([string]$opcions[$k] -eq [string]$fields[$name].Value) { $idx = $k; break }
+            }
             if ($idx -lt 0 -and $cb.Items.Count -gt 0) { $idx = 0 }
             if ($idx -ge 0) { $cb.SelectedIndex = $idx }
             $cb.Tag = $name
             _RegisterFieldControl $registry $name $cb
             $cb.add_SelectedIndexChanged({
-                $v = if ($null -ne $cb.SelectedItem) { [string]$cb.SelectedItem } else { '' }
-                $fields[$name].Value = $v
+                $i = $cb.SelectedIndex
+                if ($i -lt 0 -or $i -ge $opcions.Count) { return }
+                $fields[$name].Value = [string]$opcions[$i]
                 foreach ($other in $registry[$name]) {
-                    if ($other -ne $cb -and ($other -is [System.Windows.Forms.ComboBox]) -and ([string]$other.SelectedItem -ne $v)) {
-                        $other.SelectedItem = $v
+                    if ($other -ne $cb -and ($other -is [System.Windows.Forms.ComboBox]) -and
+                        $other.Items.Count -eq $cb.Items.Count -and $other.SelectedIndex -ne $i) {
+                        $other.SelectedIndex = $i
                     }
                 }
             }.GetNewClosure())
@@ -283,7 +330,10 @@ function _RichTextOfBodyLines($bodyLines) {
         $sp = _SplitTextAndUrls $ln
         if (-not [string]::IsNullOrWhiteSpace($sp.Text)) { [void]$parts.Add($sp.Text) }
     }
-    return ($parts -join ' ')
+    # Amb SALT DE LINIA (vegeu Get-FieldsFromSelection): la pantalla i el
+    # document han de veure EXACTAMENT el mateix text, si no el valor triat al
+    # desplegable no coincideix amb el que s'escriu.
+    return ($parts -join [char]10)
 }
 
 # Separa el text d'una linia dels URLs que pugui contenir. Retorna:

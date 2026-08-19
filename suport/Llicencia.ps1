@@ -592,10 +592,17 @@ function _LlicEscriuPunt($sel, $punt, [int]$numero, $fields, [string]$estat, [bo
     # Per aixo es miren PRIMER els enllacos del comentari: els que tambe son al
     # cos de l'item NO s'emeten amb l'item; s'esperen i surten despres del
     # comentari. Aixi no se'n repeteix cap i cada un queda on el text l'anuncia.
-    $comLinies = if ($estat -eq 'si') { @($punt.SiDisposa) } elseif ($estat -eq 'no') { @($punt.NoDisposa) } else { @() }
+    #
+    # ELS CAMPS ES RESOLEN PER BLOC (Apply-FieldsToLines, Camps.ps1) i NO linia a
+    # linia: un [OPCIO:]/[CAMP:] pot ocupar dos paragrafs del cataleg, i llavors
+    # cap de les dues linies en te un de sencer i el marcador sortia TAL QUAL al
+    # Word. D'aqui avall les linies ja venen resoltes.
+    $comLinies = if ($estat -eq 'si') { @(Apply-FieldsToLines $punt.SiDisposa $fields) }
+                 elseif ($estat -eq 'no') { @(Apply-FieldsToLines $punt.NoDisposa $fields) }
+                 else { @() }
     $urlsComentari = New-Object System.Collections.ArrayList
     foreach ($l in $comLinies) {
-        foreach ($u in @((_SplitTextAndUrls ([string](Apply-Fields -text $l -fields $fields))).Urls)) {
+        foreach ($u in @((_SplitTextAndUrls ([string]$l)).Urls)) {
             $c = ([string]$u).Trim()
             if (-not $urlsComentari.Contains($c)) { [void]$urlsComentari.Add($c) }
         }
@@ -604,11 +611,11 @@ function _LlicEscriuPunt($sel, $punt, [int]$numero, $fields, [string]$estat, [bo
     $vistos = New-Object System.Collections.ArrayList
     foreach ($c in $urlsComentari) { [void]$vistos.Add($c) }
     $emesos = New-Object System.Collections.ArrayList
-    $linies = @($punt.Cos)
-    $primera = if ($linies.Count -gt 0) { [string]$linies[0] } else { [string]$punt.Titol }
+    $linies = @(Apply-FieldsToLines $punt.Cos $fields)
+    $primera = if ($linies.Count -gt 0) { [string]$linies[0] } else { [string](Apply-Fields -text $punt.Titol -fields $fields) }
     # El numero i el text van junts a Format-Item; l'URL que porti la PRIMERA
     # linia s'emet a part, com fa REQ1 (_WriteCatalegBody).
-    $p0 = _SplitTextAndUrls ([string](Apply-Fields -text $primera -fields $fields))
+    $p0 = _SplitTextAndUrls ([string]$primera)
     Format-Item $sel ([string]$numero + '.') $p0.Text
     foreach ($u in @($p0.Urls)) {
         $c = ([string]$u).Trim()
@@ -616,13 +623,13 @@ function _LlicEscriuPunt($sel, $punt, [int]$numero, $fields, [string]$estat, [bo
         [void]$vistos.Add($c); [void]$emesos.Add($c); Format-Url $sel $u
     }
     for ($i = 1; $i -lt $linies.Count; $i++) {
-        _LlicEmetLinia $sel ([string]$linies[$i]) $fields $vistos $false $emesos
+        _LlicEmetLinia $sel ([string]$linies[$i]) $vistos $false $emesos
     }
     # Sub-punts (per exemple, quines instal·lacions s'han de legalitzar).
     $primerSub = $true
     foreach ($sub in @($punt.Subs)) {
-        foreach ($l in @($sub)) {
-            $pc = _SplitTextAndUrls ([string](Apply-Fields -text $l -fields $fields))
+        foreach ($l in @(Apply-FieldsToLines $sub $fields)) {
+            $pc = _SplitTextAndUrls ([string]$l)
             if (-not [string]::IsNullOrWhiteSpace($pc.Text)) {
                 if ($primerSub) { Format-Bullet $sel $pc.Text -IsChild -First; $primerSub = $false }
                 else { Format-Bullet $sel $pc.Text -IsChild }
@@ -640,7 +647,7 @@ function _LlicEscriuPunt($sel, $punt, [int]$numero, $fields, [string]$estat, [bo
     # color de sempre (Format.ps1).
     $primerCom = $true
     foreach ($l in $comLinies) {
-        $pp = _SplitTextAndUrls ([string](Apply-Fields -text $l -fields $fields))
+        $pp = _SplitTextAndUrls ([string]$l)
         if (-not [string]::IsNullOrWhiteSpace($pp.Text)) {
             if ($primerCom -and $estat -eq 'no') { Format-Body $sel $pp.Text -Bold }
             else { Format-Body $sel $pp.Text }
@@ -654,8 +661,9 @@ function _LlicEscriuPunt($sel, $punt, [int]$numero, $fields, [string]$estat, [bo
         }
     }
     if ($ambQuan) {
-        foreach ($l in @($punt.Quan)) {
-            Format-Body $sel ('Quan: ' + (Apply-Fields -text $l -fields $fields))
+        foreach ($l in @(Apply-FieldsToLines $punt.Quan $fields)) {
+            if ([string]::IsNullOrWhiteSpace($l)) { continue }
+            Format-Body $sel ('Quan: ' + [string]$l)
         }
     }
 }
@@ -672,10 +680,11 @@ function _LlicEscriuPunt($sel, $punt, [int]$numero, $fields, [string]$estat, [bo
 # $vistos: URLs que ja han sortit en AQUEST punt, per no repetir-los. El text de
 # REQ1 i el comentari "No es disposa..." solen portar el mateix enllac i sortia
 # dues vegades seguides.
-function _LlicEmetLinia($sel, [string]$linia, $fields, $vistos, [bool]$esFill = $false, $emesos = $null) {
+# La linia arriba JA RESOLTA (_LlicEscriuPunt resol els camps per bloc, no linia
+# a linia): aqui nomes se'n separen el text i els URLs.
+function _LlicEmetLinia($sel, [string]$linia, $vistos, [bool]$esFill = $false, $emesos = $null) {
     if ([string]::IsNullOrWhiteSpace($linia)) { return }
-    $resolt = [string](Apply-Fields -text $linia -fields $fields)
-    $parts = _SplitTextAndUrls $resolt
+    $parts = _SplitTextAndUrls $linia
     if (-not [string]::IsNullOrWhiteSpace($parts.Text)) {
         if ($esFill) { Format-Body $sel $parts.Text -IsChild } else { Format-Body $sel $parts.Text }
     }
@@ -1206,8 +1215,13 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
 
         # La frase del cataleg amb els camps INLINE (nomes al bloc ABANS).
         if ($ambDades) {
+            # TOT EL BLOC JUNT, no linia a linia: un [CAMP:]/[OPCIO:] pot ocupar
+            # dos paragrafs del cataleg, i la pantalla ha de veure el mateix
+            # text que el generador (que resol per bloc, Apply-FieldsToLines).
             $linies = if ([string]$e.Estat -eq 'si') { @($p.SiDisposa) } else { @($p.NoDisposa) }
+            $linies = @(($linies -join [char]10))
             foreach ($l in $linies) {
+                if ([string]::IsNullOrWhiteSpace($l)) { continue }
                 $flow = New-Object System.Windows.Forms.FlowLayoutPanel
                 $flow.Location = New-Object System.Drawing.Point(10, $y)
                 $flow.Size = New-Object System.Drawing.Size(500, 10)
