@@ -1681,6 +1681,49 @@ Get-ChildItem -Recurse -Filter *.ps1 (Split-Path -Parent $PSScriptRoot) | ForEac
 }
 AssertEq $plusSolts.Count 0 ("cap concatenacio sense parentesis en arguments d'una crida (" + ($plusSolts -join ', ') + ')')
 
+# UNA CLOSURE QUE ES CRIDA A SI MATEIXA, i a TOT el codi de suport/.
+#
+#   $pinta = { ... & $pinta $idx ... }.GetNewClosure()
+#
+# .GetNewClosure() copia el VALOR de les variables EN EL MOMENT de crear el
+# scriptblock, i en aquell moment $pinta encara val $null. En cridar-la peta
+# amb "l'expressio que segueix a & ... no es un nom d'ordre ni un scriptblock"
+# (un dialeg gris de .NET, sense fitxer ni linia). Va passar de debo a la
+# pantalla de documentacio de Llicencia, en triar "Es disposa del document".
+#
+# La variant SILENCIOSA es encara pitjor: $cerca = $null; ... { $cerca.Text
+# }.GetNewClosure() ... $cerca = _AddSearchBox ... -> la closure es queda amb
+# $null, $null.Text no peta, i el cercador simplement NO FILTRA MAI.
+#
+# SOLUCIO: un hashtable de funcions ($fn = @{}; $fn.Pinta = { ... & $fn.Pinta
+# ... }.GetNewClosure()), que es captura per REFERENCIA i es resol en cridar-lo.
+# Un scriptblock SENSE .GetNewClosure() no te el problema (resol en temps
+# d'execucio), o sigui que nomes es miren els que la fan servir.
+$closuresRecursives = New-Object System.Collections.ArrayList
+Get-ChildItem -Recurse -Filter *.ps1 (Split-Path -Parent $PSScriptRoot) | ForEach-Object {
+    $fitxer = $_
+    $arbre = [System.Management.Automation.Language.Parser]::ParseFile($fitxer.FullName, [ref]$null, [ref]$null)
+    foreach ($asg in $arbre.FindAll({ param($x) $x -is [System.Management.Automation.Language.AssignmentStatementAst] }, $true)) {
+        $esq = $asg.Left -as [System.Management.Automation.Language.VariableExpressionAst]
+        if ($null -eq $esq) { continue }
+        $nom = $esq.VariablePath.UserPath
+        $tancades = $asg.Right.FindAll({ param($x)
+            $x -is [System.Management.Automation.Language.InvokeMemberExpressionAst] -and
+            ([string]$x.Member.Value -eq 'GetNewClosure') }, $true)
+        foreach ($c in $tancades) {
+            $trobat = $false
+            foreach ($v in $c.Expression.FindAll({ param($x) $x -is [System.Management.Automation.Language.VariableExpressionAst] }, $true)) {
+                if ($v.VariablePath.UserPath -eq $nom) { $trobat = $true; break }
+            }
+            if ($trobat) {
+                [void]$closuresRecursives.Add(($fitxer.Name + ':' + $asg.Extent.StartLineNumber + ' ($' + $nom + ')'))
+                break
+            }
+        }
+    }
+}
+AssertEq $closuresRecursives.Count 0 ("cap .GetNewClosure() es refereix a la variable que s'hi assigna (" + ($closuresRecursives -join ', ') + ')')
+
 $docsLl = @(_LlicDocsSignats)
 AssertEq $docsLl.Count 3 '_LlicDocsSignats: TRES documents (no cinc: la coma dins d''un @() parteix el text)'
 AssertEq $docsLl[1] ('Pl' + [char]0x00E0 + 'nols') '_LlicDocsSignats: Planols, sencer'
@@ -1977,6 +2020,55 @@ if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path 
     $secProj = @(@($req1Ab.Sections) | Where-Object { -not (_LlicEsSeccioAbans ([string]$_.Title)) })
     Assert (-not (@($secProj) | Where-Object { _LlicEsSeccioAbans ([string]$_.Title) })) 'Projecte: cap seccio de documentacio (no es pot demanar dues vegades)'
     Assert ((@($secProj).Count) -lt (@($req1Ab.Sections).Count)) 'Projecte: se n''han tret seccions'
+}
+
+# ---------------------------------------------------------------------------
+# L'ARBRE de la pantalla de documentacio (agrupacio per seccions)
+# ---------------------------------------------------------------------------
+# La seccio d'un punt surt de la seva clau ("Seccio::Item", _ItemKey): els
+# punts de REQ1 en tenen i els PROPIS no, i aquests van al primer nivell.
+AssertEq (_LlicSeccioDePunt ([pscustomobject]@{ Clau = 'Registres::RASIC' })) 'Registres' '_LlicSeccioDePunt: la seccio de la clau'
+AssertEq (_LlicSeccioDePunt ([pscustomobject]@{ Clau = 'Autoritzacions / Informes preceptius::Sanitat' })) 'Autoritzacions / Informes preceptius' '_LlicSeccioDePunt: amb barres i espais'
+AssertEq (_LlicSeccioDePunt ([pscustomobject]@{ Clau = '' })) '' '_LlicSeccioDePunt: sense clau, primer nivell'
+AssertEq (_LlicSeccioDePunt ([pscustomobject]@{ Clau = 'sense separador' })) '' '_LlicSeccioDePunt: sense ::, primer nivell'
+AssertEq (_LlicSeccioDePunt ([pscustomobject]@{ Titol = 'x' })) '' '_LlicSeccioDePunt: un punt sense propietat Clau no peta'
+
+# L'etiqueta del node: el titol si en te, si no la primera linia del cos.
+AssertEq (_LlicEtiquetaPunt ([pscustomobject]@{ Titol = 'Sanitat'; Cos = @('Sanitat. Molt de text...') })) 'Sanitat' '_LlicEtiquetaPunt: el titol mana'
+AssertEq (_LlicEtiquetaPunt ([pscustomobject]@{ Titol = ''; Cos = @('', 'La primera de debo') })) 'La primera de debo' '_LlicEtiquetaPunt: sense titol, la primera linia amb text'
+AssertEq (_LlicEtiquetaPunt ([pscustomobject]@{ Titol = "  dos   espais  " })) 'dos espais' '_LlicEtiquetaPunt: espais collapsats'
+$etLlarga = _LlicEtiquetaPunt ([pscustomobject]@{ Titol = ('x' * 200) }) 20
+AssertEq $etLlarga.Length 21 '_LlicEtiquetaPunt: tallada a la mida demanada (+ els punts suspensius)'
+AssertEq $etLlarga[20] ([char]0x2026) '_LlicEtiquetaPunt: i acaba amb punts suspensius'
+AssertEq (_LlicEtiquetaPunt ([pscustomobject]@{ Titol = ('x' * 200) }) 0).Length 200 '_LlicEtiquetaPunt: amb max 0 no talla'
+
+# L'agrupacio, sobre els punts REALS d'ABANS (els 2 propis condicionals al
+# davant, com els munta el pas 3 del wizard).
+if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path $EstructuralsDir 'REQ1.json'))) {
+    $req1Gr = Read-CatalegJson (Join-Path $EstructuralsDir 'REQ1.json')
+    $llicGr = Read-LlicCataleg $llicPathX
+    $idxGr  = _LlicIndexReq1 $req1Gr
+    $propisGr = @((_LlicPuntsPerBloc $llicGr $idxGr 'PROPIS').Punts)
+    $abansGr  = @((_LlicPuntsPerBloc $llicGr $idxGr 'ABANS' $req1Gr).Punts)
+    $totsGr   = @($propisGr) + @($abansGr)
+    $grups = @(_LlicAgrupaPunts $totsGr)
+
+    Assert ([bool](@($propisGr).Count -ge 2)) '_LlicAgrupaPunts: els punts propis hi son'
+    AssertEq ([string]$grups[0].Titol) '' '_LlicAgrupaPunts: el primer grup es el del primer nivell (els propis)'
+    AssertEq (@($grups[0].Idx).Count) (@($propisGr).Count) '_LlicAgrupaPunts: i hi son tots els propis, nomes ells'
+    # Despres, les 4 seccions de documentacio de REQ1, en ordre de cataleg.
+    $titolsGr = @(@($grups) | Select-Object -Skip 1 | ForEach-Object { [string]$_.Titol })
+    AssertEq $titolsGr.Count 4 '_LlicAgrupaPunts: les 4 seccions de REQ1'
+    Assert (-not (@($titolsGr) | Where-Object { -not (_LlicEsSeccioAbans $_) })) '_LlicAgrupaPunts: i totes son de documentacio'
+    # CAP punt perdut ni duplicat: aplanar els grups ha de donar 0..N-1.
+    $plans = @(@($grups) | ForEach-Object { @($_.Idx) })
+    AssertEq $plans.Count $totsGr.Count '_LlicAgrupaPunts: cap punt perdut ni duplicat'
+    AssertEq ((@($plans) | Sort-Object) -join ',') ((0..($totsGr.Count - 1)) -join ',') '_LlicAgrupaPunts: hi son tots els indexs, un sol cop'
+    # I DINS de cada grup, l'ordre del cataleg es respecta.
+    foreach ($g in $grups) {
+        $ix = @($g.Idx)
+        AssertEq ($ix -join ',') ((@($ix) | Sort-Object) -join ',') ('_LlicAgrupaPunts: ordre de cataleg dins de "' + [string]$g.Titol + '"')
+    }
 }
 
 # El titol que obre el full de signatures de l'ANNEX 1.

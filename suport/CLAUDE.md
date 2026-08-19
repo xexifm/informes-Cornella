@@ -1211,6 +1211,40 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   - Regla pràctica: **qualsevol concatenació que vagi com a argument, entre
     parèntesis**. Les dues cares d'aquesta trampa (dins d'un `@()` i en
     arguments) ja han costat dues rondes amb l'usuari.
+- **`.GetNewClosure()` copia VALORS, no referències.** Un scriptblock que es
+  crida a si mateix — `$pinta = { ... & $pinta $idx ... }.GetNewClosure()` — es
+  queda amb `$pinta = $null`, perquè quan es va crear encara no s'havia
+  assignat. Al clic peta amb *«l'expressió que segueix a `&` … no és un nom
+  d'ordre ni un scriptblock»*, i com que ve d'un handler de WinForms surt el
+  quadre gris de .NET. Va passar en triar «Es disposa del document».
+  - **La variant silenciosa és pitjor**: `$cerca = $null` … `{ $cerca.Text
+    }.GetNewClosure()` … `$cerca = _AddSearchBox …`. La closure es queda amb
+    `$null`, `$null.Text` **no peta**, i el cercador simplement **no filtra
+    mai**. Ningú se n'assabenta.
+  - **Solució**: un hashtable de funcions. `$fn = @{}` declarat primer i
+    després `$fn.Pinta = { … & $fn.Pinta … }.GetNewClosure()`: el hashtable
+    **sí** es captura per referència, i `$fn.Pinta` es resol en cridar-lo. Si
+    el handler ja rep el control (`add_TextChanged` passa el `$sender`), millor
+    encara: no cal capturar res.
+  - Un scriptblock **sense** `.GetNewClosure()` no té el problema (resol en
+    temps d'execució): `$propagate` de `SeleccioItems.ps1` és recursiu i va bé.
+  - **Detector, sense falsos positius**: es recorre l'AST de tot `suport/` i es
+    busca un `.GetNewClosure()` que referenciï **la variable a què s'està
+    assignant**. Hi ha prova, i s'ha comprovat que **falla** quan s'hi injecta
+    el cas.
+- **Els errors dels handlers de WinForms no arriben al `try/catch` de qui va
+  obrir la finestra**: els para el bucle de missatges, que ensenya el seu quadre
+  gris en l'idioma del Windows i sense dir on ha passat. Per això `Motor.ps1`
+  posa `SetUnhandledExceptionMode('CatchException')` + `add_ThreadException` i
+  els mostra amb **fitxer i línia**, com la resta del programa.
+- **La pantalla de documentació és un ARBRE per seccions** (com el Pas 3), no
+  una llista plana: 43 punts tots a la mateixa alçada no es podien llegir.
+  L'agrupació (`_LlicAgrupaPunts`, pura) surt de la **clau** del punt
+  (`Secció::Ítem`, `_ItemKey`) — no cal cap camp nou a cap JSON —, i els punts
+  sense clau (els PROPIS, i els llegits d'un informe ja emès) van al **primer
+  nivell, sense capçalera**. És **només de pantalla**: l'informe es munta
+  recorrent els punts en l'ordre del catàleg, i hi ha prova que agrupar no
+  perd, no duplica i no reordena res.
 - **La trampa de la coma, altre cop i al meu propi codi**: `@('Pl' + [char]0x00E0 + 'nols')`
   són **TRES** elements, i a la pantalla hi sortien cinc caselles —Projecte,
   `Pl`, `à`, `nols`, Annexos— en lloc de tres. Per això la llista és ara una

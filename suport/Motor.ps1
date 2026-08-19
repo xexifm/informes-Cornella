@@ -106,6 +106,26 @@ if (-not $Script:HeadlessTest) {
     Add-Type -AssemblyName System.Windows.Forms
     Add-Type -AssemblyName System.Drawing
     [System.Windows.Forms.Application]::EnableVisualStyles()
+
+    # ELS ERRORS DELS HANDLERS, AMB FITXER I LINIA.
+    #
+    # Una excepcio dins d'un handler de WinForms (un clic, un CheckedChanged...)
+    # NO arriba al try/catch de qui va obrir la finestra: la para el bucle de
+    # missatges, que ensenya el seu dialeg gris en l'idioma del Windows i sense
+    # dir on ha passat. Amb aixo surt el mateix format que la resta del
+    # programa -missatge + fitxer + linia-, que es l'unic que permet arreglar-ho.
+    [System.Windows.Forms.Application]::SetUnhandledExceptionMode('CatchException')
+    [System.Windows.Forms.Application]::add_ThreadException({
+        param($errSender, $errArgs)
+        $ex = $errArgs.Exception
+        $on = ''
+        if ($null -ne $ex.ErrorRecord -and $null -ne $ex.ErrorRecord.InvocationInfo) {
+            $ii = $ex.ErrorRecord.InvocationInfo
+            $on = "`n`n" + (Split-Path -Leaf ([string]$ii.ScriptName)) + ', linia ' + $ii.ScriptLineNumber
+        }
+        [System.Windows.Forms.MessageBox]::Show(
+            ($ex.Message + $on), 'Error', 'OK', 'Error') | Out-Null
+    })
 }
 
 $ScriptRoot      = Split-Path -Parent $MyInvocation.MyCommand.Path

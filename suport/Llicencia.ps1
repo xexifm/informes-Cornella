@@ -411,6 +411,66 @@ function _LlicClauPunt($punt) {
     return ('#' + [string]$punt.Titol)
 }
 
+# La SECCIO d'un punt, per agrupar-lo a la pantalla de documentacio. Funcio
+# PURA i sense esquema nou: la clau d'un punt que ve de REQ1 ja es
+# "Seccio::Item" (_ItemKey, Motor.ps1), o sigui que la seccio es el tros
+# d'abans del "::". Els punts PROPIS (i els que es llegeixen d'un informe
+# anterior) no tenen clau: retornen '' i van al primer nivell de l'arbre.
+function _LlicSeccioDePunt($punt) {
+    $c = [string]$punt.Clau
+    if ([string]::IsNullOrWhiteSpace($c)) { return '' }
+    $i = $c.IndexOf('::')
+    if ($i -le 0) { return '' }
+    return $c.Substring(0, $i)
+}
+
+# El text d'un punt a l'arbre de la pantalla de documentacio. Funcio PURA.
+#
+# El TITOL primer: als punts que venen de REQ1 es el nom curt del cataleg
+# ("Sanitat", "Incendis"), que es exactament el que surt al Pas 3. Nomes es cau
+# al cos quan no n'hi ha (els punts trets d'un informe ja emes).
+function _LlicEtiquetaPunt($punt, [int]$max = 110) {
+    $t = [string]$punt.Titol
+    if ([string]::IsNullOrWhiteSpace($t)) {
+        foreach ($l in @($punt.Cos)) {
+            if (-not [string]::IsNullOrWhiteSpace([string]$l)) { $t = [string]$l; break }
+        }
+    }
+    $t = ([string]$t -replace '\s+', ' ').Trim()
+    if ($max -gt 0 -and $t.Length -gt $max) { $t = $t.Substring(0, $max).TrimEnd() + [char]0x2026 }
+    return $t
+}
+
+# Agrupa els punts per seccio per pintar-los en ARBRE. Funcio PURA.
+#
+# Retorna els grups en ORDRE DE PRIMERA APARICIO, cada un amb els INDEXS dels
+# seus punts dins de $punts:
+#     @( @{ Titol = ''; Idx = @(0,1) }, @{ Titol = 'Registres'; Idx = @(5) } )
+#
+# Els punts sense seccio van al grup de titol '' -el primer nivell de l'arbre,
+# sense capcalera-.
+#
+# AIXO NOMES ES DE PANTALLA: l'informe es munta recorrent $punts en l'ordre del
+# cataleg, no l'arbre, o sigui que agrupar no reordena res del document.
+function _LlicAgrupaPunts($punts) {
+    $punts = @($punts)
+    $ordre = New-Object System.Collections.ArrayList
+    $perSeccio = @{}
+    for ($i = 0; $i -lt $punts.Count; $i++) {
+        $sec = _LlicSeccioDePunt $punts[$i]
+        if (-not $perSeccio.ContainsKey($sec)) {
+            $perSeccio[$sec] = New-Object System.Collections.ArrayList
+            [void]$ordre.Add($sec)
+        }
+        [void]$perSeccio[$sec].Add($i)
+    }
+    $out = New-Object System.Collections.ArrayList
+    foreach ($sec in $ordre) {
+        [void]$out.Add(@{ Titol = [string]$sec; Idx = $perSeccio[$sec].ToArray() })
+    }
+    return $out.ToArray()
+}
+
 # La CLASSIFICACIO de l'activitat ("Llei 20/2009; Annex II; Epigraf 12.25" o
 # "Llei 18/2020; Epigraf ..."), que nomes surt als informes de Llicencia.
 #
@@ -941,19 +1001,18 @@ function Select-LlicDadesPunt([string]$titol, $camps, $valors) {
     return $res
 }
 
-# Pas de tria de DOCUMENTACIO (blocs ABANS i DESPRES): per cada punt, si aplica
-# i, si aplica, si la documentacio ja hi es o no.
-# Retorna @{ Nav; Punts } amb els punts triats i el seu Estat ('no' | 'si').
-# $marcatPerDefecte: si els punts surten ja marcats. Al bloc DESPRES si (el Word
-# de l'usuari els portava tots i ell hi anava esborrant el que no tocava; picar
-# quinze caselles cada vegada era feina de mes), i al bloc ABANS no, perque alli
-# cada punt demana a mes decidir si es te la documentacio o no.
 # Pas de tria de DOCUMENTACIO (blocs ABANS i DESPRES).
 #
-# LLISTA a l'esquerra + DETALL a la dreta, el mateix patro que Select-Items
-# (SeleccioItems.ps1): abans hi havia una graella amb un boto "Omplir..." que
-# obria un dialeg, i no s'assemblava a com s'omplen els camps a la resta del
-# programa.
+# ARBRE a l'esquerra + DETALL a la dreta, el mateix aspecte que el Pas 3
+# (Select-Items, SeleccioItems.ps1): les seccions en negreta i els punts a
+# dins. Abans era una llista plana amb 40 punts a la mateixa alcada, i abans
+# encara una graella amb un boto "Omplir..." que obria un dialeg -que no
+# s'assemblava a com s'omplen els camps a la resta del programa-.
+#
+# L'AGRUPACIO ES NOMES DE PANTALLA (_LlicAgrupaPunts): els punts es recorren en
+# l'ordre del cataleg per muntar l'informe, o sigui que agrupar no en canvia
+# l'ordre. Els punts sense seccio (els PROPIS, i els que es llegeixen d'un
+# informe ja emes) van al primer nivell, sense capcalera.
 #
 # Al detall hi ha, segons el bloc:
 #   - la tria "No es disposa / Es disposa" ($ambEstat);
@@ -966,11 +1025,17 @@ function Select-LlicDadesPunt([string]$titol, $camps, $valors) {
 # ELS CAMPS VAN PER PUNT, no al diccionari compartit: "Id Firmadoc" val una cosa
 # diferent a cada document.
 #
+# $marcatPerDefecte: si els punts surten ja marcats. Al bloc DESPRES si (el Word
+# de l'usuari els portava tots i ell hi anava esborrant el que no tocava; picar
+# quinze caselles cada vegada era feina de mes), i al bloc ABANS no, perque alli
+# cada punt demana a mes decidir si es te la documentacio o no.
+#
 # Retorna @{ Nav; Punts; Memoria }.
 function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [bool]$ambEstat,
                                  [bool]$marcatPerDefecte = $false, [bool]$ambDades = $false,
                                  $preSel = $null, [bool]$ambSubs = $false) {
     $punts = @($punts)
+    $grups = @(_LlicAgrupaPunts $punts)
 
     # Estat de cada punt (viu tota la pantalla i es el que es retorna).
     $st = @{}
@@ -991,63 +1056,46 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
         $st[$i] = $e
     }
 
+    # LES FUNCIONS DE LA PANTALLA, TOTES DINS D'UN HASHTABLE.
+    #
+    # PER QUE: .GetNewClosure() copia el VALOR de les variables en el moment de
+    # crear el scriptblock. Un scriptblock que es cridi a si mateix (o que
+    # cridi un que encara no existeix) es quedaria amb $null i peta amb
+    #   "L'expressio que segueix a & ... no es un nom d'ordre ni un scriptblock".
+    # El hashtable, en canvi, es captura per REFERENCIA: $fn.Pinta es resol en
+    # cridar-lo i l'ordre de definicio deixa d'importar.
+    # Hi ha una prova que ho vigila a run-tests.ps1 ("cap closure es refereix a
+    # si mateixa"); no tornis a fer $x = { ... & $x ... }.GetNewClosure().
+    $fn = @{}
+    $estatUi = @{ Busy = $false }
+
     $form = _NewForm
     $form.Text = $titol
     $form.ClientSize = New-Object System.Drawing.Size(1080, 660)
     $form.StartPosition = 'CenterScreen'
     $form.MinimumSize = New-Object System.Drawing.Size(820, 520)
 
-    # ---- Esquerra: cercador + llista amb caselles -------------------------
+    # ---- Esquerra: cercador + ARBRE amb caselles ---------------------------
     $panEsq = New-Object System.Windows.Forms.Panel
     $panEsq.Location = New-Object System.Drawing.Point(14, 66)
     $panEsq.Size = New-Object System.Drawing.Size(500, 520)
     $panEsq.Anchor = 'Top,Bottom,Left'
     [void]$form.Controls.Add($panEsq)
 
-    $llista = New-Object System.Windows.Forms.CheckedListBox
-    $llista.Location = New-Object System.Drawing.Point(0, 28)
-    $llista.Size = New-Object System.Drawing.Size(500, 492)
-    $llista.Anchor = 'Top,Bottom,Left,Right'
-    $llista.CheckOnClick = $true
-    $llista.IntegralHeight = $false
-    [void]$panEsq.Controls.Add($llista)
+    # Mateix aspecte que el Pas 3 (Select-Items): seccions en negreta i punts a
+    # dins. El font BASE es la negreta mes ampla, si no WinForms retalla els
+    # nodes que tenen un NodeFont mes ample que el del control.
+    $arbre = New-Object System.Windows.Forms.TreeView
+    $arbre.Location = New-Object System.Drawing.Point(0, 28)
+    $arbre.Size = New-Object System.Drawing.Size(500, 492)
+    $arbre.Anchor = 'Top,Bottom,Left,Right'
+    $arbre.CheckBoxes = $true
+    $arbre.HideSelection = $false
+    $arbre.ShowNodeToolTips = $true
+    $arbre.Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
+    [void]$panEsq.Controls.Add($arbre)
 
-    # Index de la llista -> index del punt (canvia amb el filtre de cerca).
-    $mapa = New-Object System.Collections.ArrayList
-    $estatUi = @{ Busy = $false }
-
-    $etiqueta = {
-        param($idx)
-        $p = $punts[$idx]
-        $t = if (@($p.Cos).Count -gt 0) { [string]@($p.Cos)[0] } else { [string]$p.Titol }
-        $t = ($t -replace '\s+', ' ').Trim()
-        if ($t.Length -gt 150) { $t = $t.Substring(0, 150) + [char]0x2026 }
-        return $t
-    }.GetNewClosure()
-
-    $omplirLlista = {
-        param($filtre)
-        $estatUi.Busy = $true
-        $llista.Items.Clear()
-        $mapa.Clear()
-        $f = ([string]$filtre).Trim().ToLower()
-        for ($i = 0; $i -lt $punts.Count; $i++) {
-            $txt = & $etiqueta $i
-            if ($f -and -not (_TextMatches $txt $f)) { continue }
-            [void]$mapa.Add($i)
-            [void]$llista.Items.Add($txt, [bool]$st[$i].Marcat)
-        }
-        $estatUi.Busy = $false
-    }.GetNewClosure()
-
-    # _AddSearchBox (UiComuns.ps1) retorna el TextBox; el handler el necessita,
-    # o sigui que la variable s'ha de declarar ABANS de tancar-la al scriptblock.
-    $cerca = $null
-    $cerca = _AddSearchBox $panEsq 0 2 380 'Cerca:' {
-        & $omplirLlista $cerca.Text
-    }.GetNewClosure()
-
-    # ---- Dreta: detall del punt triat -------------------------------------
+    # ---- Dreta: detall del punt seleccionat --------------------------------
     $panDret = New-Object System.Windows.Forms.Panel
     $panDret.Location = New-Object System.Drawing.Point(526, 66)
     $panDret.Size = New-Object System.Drawing.Size(540, 520)
@@ -1059,20 +1107,76 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
 
     $fldRegistry = _NewFieldRegistry
 
-    $pintaDetall = {
+    # Reconstrueix l'arbre segons el filtre. L'estat de les caselles NO viu a
+    # l'arbre sino a $st: aixi el filtre no en pot perdre cap.
+    $fn.Omple = {
+        param($filtre)
+        $estatUi.Busy = $true
+        $arbre.BeginUpdate()
+        try {
+            $arbre.Nodes.Clear()
+            $f = ([string]$filtre).Trim()
+            foreach ($g in $grups) {
+                $secTit = [string]$g.Titol
+                $secMatch = (_TextMatches $secTit $f)
+                # Els punts del grup que passen el filtre.
+                $visibles = New-Object System.Collections.ArrayList
+                foreach ($i in @($g.Idx)) {
+                    $et = _LlicEtiquetaPunt $punts[$i]
+                    if ($secMatch -or (_TextMatches $et $f)) { [void]$visibles.Add($i) }
+                }
+                if ($visibles.Count -eq 0) { continue }
+
+                # Grup sense titol = primer nivell, sense capcalera.
+                $pare = $null
+                if (-not [string]::IsNullOrWhiteSpace($secTit)) {
+                    $pare = New-Object System.Windows.Forms.TreeNode($secTit)
+                    $pare.Tag = @{ Kind = 'Section' }
+                    $pare.NodeFont = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
+                    [void]$arbre.Nodes.Add($pare)
+                }
+                $totsMarcats = $true
+                foreach ($i in $visibles) {
+                    $nd = New-Object System.Windows.Forms.TreeNode((_LlicEtiquetaPunt $punts[$i]))
+                    $nd.Tag = @{ Kind = 'Item'; Idx = $i }
+                    $nd.NodeFont = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Regular)
+                    $nd.ToolTipText = ((@($punts[$i].Cos) -join ' ') -replace '\s+', ' ').Trim()
+                    if ($nd.ToolTipText.Length -gt 600) { $nd.ToolTipText = $nd.ToolTipText.Substring(0, 600) + '...' }
+                    $nd.Checked = [bool]$st[$i].Marcat
+                    if (-not $nd.Checked) { $totsMarcats = $false }
+                    if ($null -eq $pare) { [void]$arbre.Nodes.Add($nd) } else { [void]$pare.Nodes.Add($nd) }
+                }
+                if ($null -ne $pare) {
+                    $pare.Checked = $totsMarcats
+                    $pare.Expand()
+                }
+            }
+        } finally {
+            $arbre.EndUpdate()
+            $estatUi.Busy = $false
+        }
+    }.GetNewClosure()
+
+    $cerca = _AddSearchBox $panEsq 0 2 380 'Cerca:' {
+        param($sender, $ev)
+        & $fn.Omple $sender.Text
+    }.GetNewClosure()
+
+    $fn.Pinta = {
         param($idx)
         $panDret.Controls.Clear()
-        if ($idx -lt 0) { return }
+        if ($null -eq $idx -or $idx -lt 0) { return }
         $p = $punts[$idx]
         $e = $st[$idx]
         $y = 10
 
-        # El text del punt.
+        # El text sencer del punt.
         $lbT = New-Object System.Windows.Forms.Label
         $lbT.Location = New-Object System.Drawing.Point(10, $y)
         $lbT.MaximumSize = New-Object System.Drawing.Size(495, 0)
         $lbT.AutoSize = $true
-        $lbT.Text = (& $etiqueta $idx)
+        $lbT.Text = ((@($p.Cos) -join ' ') -replace '\s+', ' ').Trim()
+        if ([string]::IsNullOrWhiteSpace($lbT.Text)) { $lbT.Text = (_LlicEtiquetaPunt $p 0) }
         [void]$panDret.Controls.Add($lbT)
         $y += [Math]::Max(24, $lbT.PreferredHeight + 10)
 
@@ -1094,7 +1198,7 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
             $canvia = {
                 if ($estatUi.Busy) { return }
                 $e.Estat = if ($rbSi.Checked) { 'si' } else { 'no' }
-                & $pintaDetall $idx
+                & $fn.Pinta $idx
             }.GetNewClosure()
             $rbNo.add_CheckedChanged($canvia)
             $rbSi.add_CheckedChanged($canvia)
@@ -1145,21 +1249,47 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
         }
     }.GetNewClosure()
 
-    $llista.add_SelectedIndexChanged({
+    # Marcar una SECCIO marca tots els seus punts (com al Pas 3).
+    $arbre.add_AfterCheck({
+        param($sender, $ev)
         if ($estatUi.Busy) { return }
-        $i = $llista.SelectedIndex
-        if ($i -lt 0 -or $i -ge $mapa.Count) { return }
-        & $pintaDetall $mapa[$i]
-    }.GetNewClosure())
-    $llista.add_ItemCheck({
-        param($sender, $e2)
-        if ($estatUi.Busy) { return }
-        if ($e2.Index -lt 0 -or $e2.Index -ge $mapa.Count) { return }
-        $st[$mapa[$e2.Index]].Marcat = ($e2.NewValue -eq 'Checked')
+        $estatUi.Busy = $true
+        try {
+            $tag = $ev.Node.Tag
+            if ($null -ne $tag -and [string]$tag.Kind -eq 'Section') {
+                foreach ($fill in $ev.Node.Nodes) {
+                    $fill.Checked = $ev.Node.Checked
+                    $st[[int]$fill.Tag.Idx].Marcat = [bool]$ev.Node.Checked
+                }
+            } elseif ($null -ne $tag -and [string]$tag.Kind -eq 'Item') {
+                $st[[int]$tag.Idx].Marcat = [bool]$ev.Node.Checked
+                # La casella de la seccio segueix els seus fills.
+                $pare = $ev.Node.Parent
+                if ($null -ne $pare) {
+                    $tots = $true
+                    foreach ($fill in $pare.Nodes) { if (-not $fill.Checked) { $tots = $false; break } }
+                    $pare.Checked = $tots
+                }
+            }
+        } finally { $estatUi.Busy = $false }
     }.GetNewClosure())
 
-    & $omplirLlista ''
-    if ($llista.Items.Count -gt 0) { $llista.SelectedIndex = 0 }
+    $arbre.add_AfterSelect({
+        param($sender, $ev)
+        if ($estatUi.Busy) { return }
+        $tag = $ev.Node.Tag
+        if ($null -eq $tag -or [string]$tag.Kind -ne 'Item') { $panDret.Controls.Clear(); return }
+        & $fn.Pinta ([int]$tag.Idx)
+    }.GetNewClosure())
+
+    & $fn.Omple ''
+    if ($arbre.Nodes.Count -gt 0) {
+        $primer = $arbre.Nodes[0]
+        if ($null -ne $primer.Tag -and [string]$primer.Tag.Kind -ne 'Item' -and $primer.Nodes.Count -gt 0) {
+            $primer = $primer.Nodes[0]
+        }
+        $arbre.SelectedNode = $primer
+    }
 
     # ---- Botons -----------------------------------------------------------
     $res = @{ Nav = 'back'; Punts = @(); Memoria = $null }
@@ -1172,6 +1302,7 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
     $btnOk.add_Click({
         $sel = New-Object System.Collections.ArrayList
         $mem = @{}
+        # EN L'ORDRE DEL CATALEG, no el de l'arbre: agrupar es NOMES de pantalla.
         for ($i = 0; $i -lt $punts.Count; $i++) {
             $p = $punts[$i]
             $e = $st[$i]
@@ -1213,12 +1344,10 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
     $btnBack.add_Click({ $form.Close() }.GetNewClosure())
     [void]$form.Controls.Add($btnBack)
 
-    $marcaTot = {
+    $fn.MarcaTot = {
         param($valor)
-        $estatUi.Busy = $true
         for ($i = 0; $i -lt $punts.Count; $i++) { $st[$i].Marcat = $valor }
-        for ($i = 0; $i -lt $llista.Items.Count; $i++) { $llista.SetItemChecked($i, $valor) }
-        $estatUi.Busy = $false
+        & $fn.Omple $cerca.Text
     }.GetNewClosure()
     $btnTot = New-Object System.Windows.Forms.Button
     $btnTot.Text = 'Marcar-ho tot'
@@ -1226,7 +1355,7 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
     $btnTot.Size = New-Object System.Drawing.Size(125, 34)
     $btnTot.Anchor = 'Bottom,Left'
     _StyleSecondaryButton $btnTot
-    $btnTot.add_Click({ & $marcaTot $true }.GetNewClosure())
+    $btnTot.add_Click({ & $fn.MarcaTot $true }.GetNewClosure())
     [void]$form.Controls.Add($btnTot)
 
     $btnCap = New-Object System.Windows.Forms.Button
@@ -1235,7 +1364,7 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
     $btnCap.Size = New-Object System.Drawing.Size(140, 34)
     $btnCap.Anchor = 'Bottom,Left'
     _StyleSecondaryButton $btnCap
-    $btnCap.add_Click({ & $marcaTot $false }.GetNewClosure())
+    $btnCap.add_Click({ & $fn.MarcaTot $false }.GetNewClosure())
     [void]$form.Controls.Add($btnCap)
 
     [void](_AddBrandHeader $form $titol $subtitol 56)
