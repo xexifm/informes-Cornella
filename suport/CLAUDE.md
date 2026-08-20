@@ -1557,11 +1557,17 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   `tests/dades/wfsAD-exemple.xml` està **muntada a mà** seguint l'esquema INSPIRE,
   no gravada. Abans de fiar-se'n, a la feina:
   ```
-  powershell -NoProfile -Command ". suport\rutes\Ruta.ps1; . suport\rutes\Geocodificador.ps1; Test-Geocodificador '2295827DF2729E'"
+  powershell -NoProfile -Command "$env:COORDENADES_TEST=1; . suport\rutes\Coordenades.ps1; Test-Geocodificador '2295827DF2729E'"
   ```
-  Ha de llistar els portals de Cadis i Huelva amb els seus números. `Test-Geocodificador`
-  ensenya la **resposta crua** i què n'ha entès: si el parseig falla, amb aquella
-  sortida s'arregla de seguida.
+  Ha de llistar els portals de Cadis i Huelva amb els seus números.
+  **NO cridis `. Ruta.ps1` a pèl** per fer-ho: `Ruta.ps1` executa la seva `Main`
+  i t'obre el planificador de rutes (va passar). `Coordenades.ps1` en mode
+  headless ja ho carrega tot sense obrir res.
+  `Test-Geocodificador` compta les adreces de la resposta **crua** (per
+  `regex`, sense parsejar) i les compara amb les que ha entès el parseig: així
+  es distingeix «el servei no ha tornat res» de «no n'he sabut treure res». I
+  desa **sempre** la resposta sencera a `local/geocodificacio/resposta-<rc>.xml`,
+  que és l'única cosa que permet arreglar el parseig sense anar a les palpentes.
 - **`Coordenades.ps1` PORTA BOM I L'HA DE PORTAR.** Tot el text que l'usuari veu
   al mapa (llegenda, popups, capçaleres de l'Excel que es baixa) viu dins del
   here-string de `Build-CoordenadesHtml`, en català i amb accents. Sense BOM, el
@@ -1595,6 +1601,27 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   filtre, i el `.xlsx` baixat rellegit amb `openpyxl`. El **SRI** dels `<script>`
   de Leaflet bloqueja qualsevol doble: a la còpia de prova s'ha de treure
   l'`integrity` (mai al fitxer de veritat).
+- **LA TRAMPA DEL `return ,@(...)`, TERCERA APARICIÓ — i la primera crida real
+  al Cadastre la va destapar.** `ConvertFrom-CatastroAdXml`, `Get-RegistresApilats`
+  i `Get-RefcatsAConsultar` acabaven amb `return ,@(...)` **i** totes les crides
+  les embolcallaven amb `@()`. Les dues coses juntes hi posen la capa **dues
+  vegades**: `$portals.Count` valia **1**, `$p.Numero` feia enumeració de
+  membres i el diagnòstic escrivia `numero='System.Object[]'`. El servei
+  funcionava perfectament; el que fallava era el consum.
+  - **Tria una convenció i escriu-la al costat de la funció.** Aquí és **array
+    pla + `@()` al lloc de la crida** (com `_AutoFirmaCandidatePaths`), no la de
+    `_FindCampInfoPairs` (`,@(...)` consumit **sense** `@()`). Les dues són
+    correctes; barrejar-les no.
+  - **Les proves ho haurien enxampat** (`AssertEq $portals.Count 5`,
+    `AssertEq @(ConvertFrom-CatastroAdXml '').Count 0`), però no s'havien pogut
+    executar: a l'entorn no hi ha `pwsh`, i la rèplica en Python **no modela
+    aquesta semàntica** — retorna llistes planes i el problema no hi existeix.
+    Lliçó: una rèplica en Python valida la LÒGICA, mai les trampes del llenguatge.
+- **NO cridis `. Ruta.ps1` a pèl per provar res**: `Ruta.ps1` executa la seva
+  `Main` al final i **obre el planificador de rutes**. La comanda de diagnòstic
+  que hi havia documentada ho feia, i l'usuari es va trobar la finestra oberta
+  sense saber què fer. Sempre `$env:COORDENADES_TEST=1` + `. Coordenades.ps1`,
+  que carrega `Ruta.ps1` en headless.
 - **`Find-HeaderColumn` ha passat de `Precintades.ps1` a `Ruta.ps1`**: és
   utillatge comú de `rutes/` i ara la fan servir dos fitxers. Tot va a dot-source
   al mateix àmbit, o sigui que Precintades la segueix veient.

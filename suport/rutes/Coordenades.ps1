@@ -121,9 +121,12 @@ function Get-ClauCoord([double]$x, [double]$y) {
 # Els registres APILATS: els que comparteixen coordenada amb algun altre.
 # Aquests son exactament els que fan nosa al mapa. Retorna un subconjunt de
 # $records, conservant l'ordre d'entrada.
+# Retorna un array PLA (sense la coma protectora) i s'ha de consumir amb @().
+# Vegeu la nota de ConvertFrom-CatastroAdXml a Geocodificador.ps1: barrejar les
+# dues convencions embolcalla l'array dues vegades.
 function Get-RegistresApilats($records) {
     $arr = @($records)
-    if ($arr.Count -eq 0) { return ,@() }
+    if ($arr.Count -eq 0) { return @() }
     $comptes = @{}
     foreach ($r in $arr) {
         $k = Get-ClauCoord ([double]$r.UtmX) ([double]$r.UtmY)
@@ -134,7 +137,7 @@ function Get-RegistresApilats($records) {
         $k = Get-ClauCoord ([double]$r.UtmX) ([double]$r.UtmY)
         if ($comptes[$k] -gt 1) { $out += $r }
     }
-    return ,@($out)
+    return @($out)
 }
 
 # Les referencies cadastrals de PARCEL.LA (14 car.) que caldra consultar per a
@@ -146,7 +149,7 @@ function Get-RefcatsAConsultar($records) {
         $rc = Get-RefcatParcel $r.Rc
         if ($rc -ne '') { $set[$rc] = $true }
     }
-    return ,@(@($set.Keys) | Sort-Object)
+    return @(@($set.Keys) | Sort-Object)
 }
 
 # Combina un registre de l'Excel amb els portals de la seva parcel.la i en

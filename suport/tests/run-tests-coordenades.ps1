@@ -9,9 +9,10 @@
 # La resposta d'exemple del Cadastre es a dades/wfsAD-exemple.xml. ATENCIO:
 # NO es una resposta gravada del servei real (des de l'entorn on es va escriure
 # el codi el host del Cadastre estava bloquejat), sino un fitxer muntat seguint
-# l'esquema INSPIRE Addresses. Per validar-lo contra el servei de veritat:
-#   . suport\rutes\Ruta.ps1 ; . suport\rutes\Geocodificador.ps1
-#   Test-Geocodificador '2295827DF2729E'
+# l'esquema INSPIRE Addresses. Per validar-lo contra el servei de veritat (i
+# compte: carrega Coordenades.ps1 en headless, NO Ruta.ps1 a pel, que obriria
+# el planificador de rutes):
+#   powershell -NoProfile -Command "$env:COORDENADES_TEST=1; . suport\rutes\Coordenades.ps1; Test-Geocodificador '2295827DF2729E'"
 #
 # Execucio (Windows o Linux amb pwsh):
 #   pwsh -File tests/run-tests-coordenades.ps1

@@ -138,14 +138,22 @@ function Get-ViaNormalitzada($s) {
 # El parseig es a proposit TOLERANT (per local-name(), sense lligar-se a cap
 # espai de noms ni a cap nivell concret de l'arbre): aixi sobreviu a un canvi
 # de versio de l'esquema INSPIRE (ad/3.0 -> ad/4.0) sense tocar codi.
+# CONVENCIO DE RETORN (llegeix-ho abans de tocar-hi): aquesta funcio retorna un
+# array PLA, sense la coma protectora, i qui la crida l'ha d'embolcallar amb
+# @(). Es la combinacio contraria a la de _FindCampInfoPairs (que retorna
+# ,@(...) i s'ha de consumir SENSE @()), i barrejar-les costa car: amb
+# 'return ,@()' i '@(...)' al lloc de la crida, l'array queda embolcallat DUES
+# vegades, .Count val 1 i $p.Numero fa enumeracio de membres i retorna
+# 'System.Object[]'. Va passar de debo la primera vegada que es va provar
+# contra el Cadastre de veritat.
 function ConvertFrom-CatastroAdXml($xmlText) {
-    if ([string]::IsNullOrWhiteSpace($xmlText)) { return ,@() }
+    if ([string]::IsNullOrWhiteSpace($xmlText)) { return @() }
     $doc = $null
     try {
         $doc = New-Object System.Xml.XmlDocument
         $doc.XmlResolver = $null       # mai resoldre entitats externes
         $doc.LoadXml([string]$xmlText)
-    } catch { return ,@() }
+    } catch { return @() }
 
     # Diccionari gml:id -> nom de via, muntat amb QUALSEVOL element que sigui
     # un nom de via (ThoroughfareName) i porti un <text> a dins.
@@ -204,7 +212,7 @@ function ConvertFrom-CatastroAdXml($xmlText) {
             Y      = $y
         }
     }
-    return ,@($portals)
+    return @($portals)
 }
 
 # Tria el portal que correspon a una activitat.
@@ -447,11 +455,15 @@ function Get-PortalsPerParcelles($refcats, [scriptblock]$onProgress = $null) {
 # ----------------------------------------------------------------------------
 # DIAGNOSTIC
 # ----------------------------------------------------------------------------
-# Fa UNA consulta real i explica que ha entes. Serveix per comprovar en un
-# minut, des de l'ordinador de la feina, que el servei del Cadastre respon i
-# que el parseig funciona.
+# Fa UNA consulta real i explica que ha entes. Serveix per comprovar, des de
+# l'ordinador de la feina, que el servei del Cadastre respon i que el parseig
+# funciona (a l'entorn on es va escriure el codi el host estava bloquejat).
 #
-#   powershell -NoProfile -Command ". suport\rutes\Ruta.ps1; . suport\rutes\Geocodificador.ps1; Test-Geocodificador '2295827DF2729E'"
+# ATENCIO A COM ES CRIDA: NO facis '. Ruta.ps1' a pel, perque Ruta.ps1 executa
+# la seva Main i t'obre el planificador de rutes. Carrega Coordenades.ps1 en
+# mode headless, que ja s'encarrega de carregar-ho tot sense obrir res:
+#
+#   powershell -NoProfile -Command "$env:COORDENADES_TEST=1; . suport\rutes\Coordenades.ps1; Test-Geocodificador '2295827DF2729E'"
 function Test-Geocodificador([string]$refcat = '2295827DF2729E') {
     $rc = Get-RefcatParcel $refcat
     if ($rc -eq '') { Write-Host "Referencia cadastral no valida: '$refcat'" -ForegroundColor Red; return }
@@ -462,16 +474,37 @@ function Test-Geocodificador([string]$refcat = '2295827DF2729E') {
         Write-Host "SENSE RESPOSTA: $Script:GeoUltimError" -ForegroundColor Red
         return
     }
-    Write-Host ("Resposta rebuda: {0} caracters. Primers 800:" -f $xml.Length) -ForegroundColor Cyan
-    Write-Host ($xml.Substring(0, [math]::Min(800, $xml.Length)))
+
+    # Desem SEMPRE la resposta sencera. Si el parseig falla, aquest fitxer es
+    # l'unica cosa que permet arreglar-lo sense anar a les palpentes.
+    $desat = ''
+    try {
+        $dir = Split-Path -Parent (Get-GeoCachePath)
+        if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+        $desat = Join-Path $dir ("resposta-$rc.xml")
+        [System.IO.File]::WriteAllText($desat, $xml, (New-Object System.Text.UTF8Encoding($false)))
+    } catch { $desat = '' }
+
+    # Quantes adreces porta la resposta CRUA, comptades sense parsejar res. Aixi
+    # es distingeix "el servei no ha tornat res" de "no n'he sabut treure res".
+    $crues = ([regex]::Matches($xml, '<[A-Za-z0-9]*:?Address[ >]')).Count
+
+    Write-Host ("Resposta rebuda: {0} caracters, amb {1} adreces." -f $xml.Length, $crues) -ForegroundColor Cyan
+    if ($desat -ne '') { Write-Host "Resposta sencera desada a: $desat" }
+
     $portals = @(ConvertFrom-CatastroAdXml $xml)
-    Write-Host ("`nPortals entesos: {0}" -f $portals.Count) -ForegroundColor Cyan
+    Write-Host ("`nPortals entesos: {0} (de {1})" -f $portals.Count, $crues) -ForegroundColor Cyan
     foreach ($p in $portals) {
         Write-Host ("  numero='{0}'  via='{1}'  X={2}  Y={3}" -f $p.Numero, $p.Via, $p.X, $p.Y)
     }
-    if ($portals.Count -eq 0) {
+
+    if ($portals.Count -eq 0 -and $crues -gt 0) {
         Write-Host "`nEl servei ha respost pero no n'he sabut treure cap portal." -ForegroundColor Yellow
-        Write-Host "Desa la resposta sencera i passa-la per revisar el parseig:" -ForegroundColor Yellow
-        Write-Host "  Invoke-CatastroAd '$rc' | Set-Content resposta.xml"
+        Write-Host "Passa el fitxer desat mes amunt per arreglar el parseig." -ForegroundColor Yellow
+    } elseif ($portals.Count -lt $crues) {
+        Write-Host ("`nAvis: el servei ha tornat {0} adreces i nomes n'he entes {1}." -f $crues, $portals.Count) -ForegroundColor Yellow
+        Write-Host "Pot ser normal (adreces sense coordenades), pero val la pena mirar-s'ho." -ForegroundColor Yellow
+    } elseif ($portals.Count -gt 0) {
+        Write-Host "`nTot correcte: el servei respon i el parseig l'enten." -ForegroundColor Green
     }
 }
