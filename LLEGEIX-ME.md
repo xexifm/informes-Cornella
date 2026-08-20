@@ -194,6 +194,11 @@ correccions*.
 > **Privacitat:** al Cadastre només s'hi envia la **referència cadastral**, mai
 > el nom del titular ni la raó social.
 
+Si algun dia els punts verds no surten (tots es queden a sobre del vermell), fes
+doble clic a **`suport\rutes\Provar-Cadastre.bat`**: fa una sola consulta al
+Cadastre i et diu si el servei respon i quants portals n'ha entès. No obre res ni
+toca cap fitxer.
+
 ### Word a PDF (i signar)
 
 Botó **📄 Word a PDF**. Per defecte hi surt **l'últim informe que has generat**;

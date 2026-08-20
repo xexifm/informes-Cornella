@@ -459,11 +459,18 @@ function Get-PortalsPerParcelles($refcats, [scriptblock]$onProgress = $null) {
 # l'ordinador de la feina, que el servei del Cadastre respon i que el parseig
 # funciona (a l'entorn on es va escriure el codi el host estava bloquejat).
 #
-# ATENCIO A COM ES CRIDA: NO facis '. Ruta.ps1' a pel, perque Ruta.ps1 executa
-# la seva Main i t'obre el planificador de rutes. Carrega Coordenades.ps1 en
-# mode headless, que ja s'encarrega de carregar-ho tot sense obrir res:
+# COM ES CRIDA. La manera bona es fer DOBLE CLIC a:
 #
-#   powershell -NoProfile -Command "$env:COORDENADES_TEST=1; . suport\rutes\Coordenades.ps1; Test-Geocodificador '2295827DF2729E'"
+#   suport\rutes\Provar-Cadastre.bat
+#
+# Si ja tens un PowerShell obert a l'arrel del clone, tambe val:
+#
+#   $env:COORDENADES_TEST=1; . .\suport\rutes\Coordenades.ps1; Test-Geocodificador '2295827DF2729E'
+#
+# El que NO funciona es embolcallar-ho en un altre powershell -Command "...":
+# el shell de FORA expandeix el $env: abans de passar-ho i al de dins li arriba
+# "=1; ...". I tampoc facis '. Ruta.ps1' a pel: executa la seva Main i obre el
+# planificador de rutes.
 function Test-Geocodificador([string]$refcat = '2295827DF2729E') {
     $rc = Get-RefcatParcel $refcat
     if ($rc -eq '') { Write-Host "Referencia cadastral no valida: '$refcat'" -ForegroundColor Red; return }

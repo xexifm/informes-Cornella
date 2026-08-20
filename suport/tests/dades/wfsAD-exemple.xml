@@ -10,8 +10,8 @@
   comportament del parseig (que es a proposit tolerant: busca per local-name(),
   sense lligar-se a cap espai de noms ni a cap nivell de l'arbre).
 
-  Per validar-lo contra el servei DE VERITAT, des de l'ordinador de la feina:
-    powershell -NoProfile -Command "$env:COORDENADES_TEST=1; . suport\rutes\Coordenades.ps1; Test-Geocodificador '2295827DF2729E'"
+  Per validar-lo contra el servei DE VERITAT, des de l'ordinador de la feina,
+  doble clic a suport\rutes\Provar-Cadastre.bat
 -->
 <wfs:FeatureCollection
     xmlns:wfs="http://www.opengis.net/wfs/2.0"

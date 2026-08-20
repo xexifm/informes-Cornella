@@ -1557,7 +1557,7 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   `tests/dades/wfsAD-exemple.xml` està **muntada a mà** seguint l'esquema INSPIRE,
   no gravada. Abans de fiar-se'n, a la feina:
   ```
-  powershell -NoProfile -Command "$env:COORDENADES_TEST=1; . suport\rutes\Coordenades.ps1; Test-Geocodificador '2295827DF2729E'"
+  suport\rutes\Provar-Cadastre.bat        (doble clic; accepta una refcat com a argument)
   ```
   Ha de llistar els portals de Cadis i Huelva amb els seus números.
   **NO cridis `. Ruta.ps1` a pèl** per fer-ho: `Ruta.ps1` executa la seva `Main`
@@ -1617,11 +1617,22 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
     executar: a l'entorn no hi ha `pwsh`, i la rèplica en Python **no modela
     aquesta semàntica** — retorna llistes planes i el problema no hi existeix.
     Lliçó: una rèplica en Python valida la LÒGICA, mai les trampes del llenguatge.
-- **NO cridis `. Ruta.ps1` a pèl per provar res**: `Ruta.ps1` executa la seva
-  `Main` al final i **obre el planificador de rutes**. La comanda de diagnòstic
-  que hi havia documentada ho feia, i l'usuari es va trobar la finestra oberta
-  sense saber què fer. Sempre `$env:COORDENADES_TEST=1` + `. Coordenades.ps1`,
-  que carrega `Ruta.ps1` en headless.
+- **EL DIAGNÒSTIC ÉS UN `.bat`, i ho és per dues rascades seguides.**
+  `suport/rutes/Provar-Cadastre.bat`, doble clic. Els dos intents d'escriure la
+  comanda a mà van fallar tots dos:
+  1. `. Ruta.ps1` a pèl → `Ruta.ps1` executa la seva `Main` al final i **obre el
+     planificador de rutes**. L'usuari es va trobar la finestra oberta sense
+     saber què fer.
+  2. `powershell -NoProfile -Command "$env:COORDENADES_TEST=1; …"` llançat
+     **des d'un PowerShell** → el shell de FORA expandeix `$env:` (buit) abans
+     de passar-ho i al de dins li arriba `=1; …` → *«El término '=1' no se
+     reconoce»*. Dins de cometes dobles, el `$` és del shell exterior.
+  Al `.bat` la variable la posa el `cmd` i a la línia de PowerShell **no hi ha
+  cap `$`**. Si algú ja té un PowerShell obert a l'arrel, el que sí que va és
+  `$env:COORDENADES_TEST=1; . .\suport\rutes\Coordenades.ps1; Test-Geocodificador '…'`
+  (sense embolcallar-ho en un altre `powershell`).
+  Regla general: **una comanda de diagnòstic que s'ha d'escriure a mà amb
+  cometes niuades no és una comanda de diagnòstic, és un `.bat` que falta.**
 - **`Find-HeaderColumn` ha passat de `Precintades.ps1` a `Ruta.ps1`**: és
   utillatge comú de `rutes/` i ara la fan servir dos fitxers. Tot va a dot-source
   al mateix àmbit, o sigui que Precintades la segueix veient.
