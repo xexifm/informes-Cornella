@@ -45,12 +45,13 @@ $Script:MigracioRepoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.
 
 $Script:LocalDirName = 'local'
 $Script:LocalSubdirs = [ordered]@{
-    Informes   = 'informes-generats'
-    Rutes      = 'rutes-generades'
-    Activitats = 'base-dades-activitats'
-    ActExtr    = 'base-dades-actextr'
-    Vistes     = 'vistes-catalegs'
-    Seguiment  = 'seguiment-gia'
+    Informes       = 'informes-generats'
+    Rutes          = 'rutes-generades'
+    Activitats     = 'base-dades-activitats'
+    ActExtr        = 'base-dades-actextr'
+    Vistes         = 'vistes-catalegs'
+    Seguiment      = 'seguiment-gia'
+    Geocodificacio = 'geocodificacio'
 }
 
 # ATENCIO al [string] del 'return': Join-Path es un CMDLET, i el que surt d'un

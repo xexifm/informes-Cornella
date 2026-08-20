@@ -36,6 +36,17 @@ AssertEq (Format-EmpAddress 'AV' 'BAIX LLOBREGAT' 'S/N' '   ') 'AV BAIX LLOBREGA
 AssertEq (Format-EmpAddress 'C' 'QUINTANA I MILLAS' '7' '9')   'C QUINTANA I MILLAS 7 9' 'totes les parts'
 AssertEq (Format-EmpAddress '   ' '   ' '   ' '   ')           ''                       'tot buit -> cadena buida'
 
+Write-Host "`n--- Find-HeaderColumn (viu aqui: la comparteixen Precintades i Coordenades) ---"
+# La capcalera accentuada es construeix amb codi de caracter (U+00FA = 'u' amb
+# accent) per NO dependre de la codificacio del fitxer. Aixi es comprova de
+# veritat que un nom escrit en ASCII encaixa amb la capcalera real de l'Excel.
+$hdrRuta = @('ID Activitat', 'Ref. cadastral', 'UTM X', 'UTM Y', "Emp. N$([char]0x00FA)mero")
+AssertEq (Find-HeaderColumn $hdrRuta 'ID Activitat')   1 'ID Activitat -> col 1'
+AssertEq (Find-HeaderColumn $hdrRuta 'Ref. cadastral') 2 'Ref. cadastral -> col 2'
+AssertEq (Find-HeaderColumn $hdrRuta 'Emp. Numero')    5 'accent ignorat -> col 5'
+AssertEq (Find-HeaderColumn $hdrRuta 'No existeix')    0 'columna inexistent -> 0'
+AssertEq (Find-HeaderColumn @() 'UTM X')               0 'capcalera buida -> 0'
+
 Write-Host "`n--- Convert-UtmToLatLon (validat contra pyproj EPSG:25831) ---"
 $ll = Convert-UtmToLatLon 422843.04 4577731.73 31 $true
 AssertNear $ll.Lat 41.347387 0.00001 'latitud Cornella'

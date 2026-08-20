@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Resposta d'EXEMPLE del servei INSPIRE d'Adreces del Cadastre (wfsAD.aspx,
+  consulta desada GetadByRefcat) per a la parcel.la 2295827DF2729E, que es
+  l'illa de Cornella amb entrades pels carrers Cadis i Huelva.
+
+  ATENCIO: aquest fitxer NO es una resposta gravada del servei real. Des de
+  l'entorn on es va escriure el codi, el host del Cadastre estava bloquejat.
+  Esta muntat seguint l'esquema INSPIRE Addresses, i serveix per fixar el
+  comportament del parseig (que es a proposit tolerant: busca per local-name(),
+  sense lligar-se a cap espai de noms ni a cap nivell de l'arbre).
+
+  Per validar-lo contra el servei DE VERITAT, des de l'ordinador de la feina,
+  doble clic a suport\rutes\Provar-Cadastre.bat
+-->
+<wfs:FeatureCollection
+    xmlns:wfs="http://www.opengis.net/wfs/2.0"
+    xmlns:gml="http://www.opengis.net/gml/3.2"
+    xmlns:ad="http://inspire.ec.europa.eu/schemas/ad/4.0"
+    xmlns:gn="http://inspire.ec.europa.eu/schemas/gn/4.0"
+    xmlns:base="http://inspire.ec.europa.eu/schemas/base/3.3"
+    xmlns:xlink="http://www.w3.org/1999/xlink"
+    numberMatched="5" numberReturned="5">
+
+  <wfs:member>
+    <ad:Address gml:id="ES.SDGC.AD.08068.2295827DF2729E.1">
+      <ad:inspireId><base:Identifier><base:localId>08068.2295827DF2729E.1</base:localId><base:namespace>ES.SDGC.AD</base:namespace></base:Identifier></ad:inspireId>
+      <ad:position>
+        <ad:GeographicPosition>
+          <ad:geometry>
+            <gml:Point gml:id="Point.AD.1" srsName="urn:ogc:def:crs:EPSG::25831">
+              <gml:pos>421960.10 4579500.20</gml:pos>
+            </gml:Point>
+          </ad:geometry>
+          <ad:specification>entrance</ad:specification>
+          <ad:method>fromFeature</ad:method>
+          <ad:default>true</ad:default>
+        </ad:GeographicPosition>
+      </ad:position>
+      <ad:locator>
+        <ad:AddressLocator>
+          <ad:designator>
+            <ad:LocatorDesignator>
+              <ad:designator>1</ad:designator>
+              <ad:type>2</ad:type>
+            </ad:LocatorDesignator>
+          </ad:designator>
+          <ad:level>siteLevel</ad:level>
+        </ad:AddressLocator>
+      </ad:locator>
+      <ad:component xlink:href="#ES.SDGC.TN.08068.CADIS"/>
+      <ad:component xlink:href="#ES.SDGC.PD.08940"/>
+    </ad:Address>
+  </wfs:member>
+
+  <wfs:member>
+    <ad:Address gml:id="ES.SDGC.AD.08068.2295827DF2729E.3">
+      <ad:position>
+        <ad:GeographicPosition>
+          <ad:geometry>
+            <gml:Point gml:id="Point.AD.3" srsName="urn:ogc:def:crs:EPSG::25831">
+              <gml:pos>421971.45 4579494.80</gml:pos>
+            </gml:Point>
+          </ad:geometry>
+          <ad:specification>entrance</ad:specification>
+        </ad:GeographicPosition>
+      </ad:position>
+      <ad:locator>
+        <ad:AddressLocator>
+          <ad:designator>
+            <ad:LocatorDesignator>
+              <ad:designator>3</ad:designator>
+              <ad:type>2</ad:type>
+            </ad:LocatorDesignator>
+          </ad:designator>
+        </ad:AddressLocator>
+      </ad:locator>
+      <ad:component xlink:href="#ES.SDGC.TN.08068.CADIS"/>
+    </ad:Address>
+  </wfs:member>
+
+  <wfs:member>
+    <ad:Address gml:id="ES.SDGC.AD.08068.2295827DF2729E.5">
+      <ad:position>
+        <ad:GeographicPosition>
+          <ad:geometry>
+            <gml:Point gml:id="Point.AD.5" srsName="urn:ogc:def:crs:EPSG::25831">
+              <gml:pos>421982.90 4579489.35</gml:pos>
+            </gml:Point>
+          </ad:geometry>
+          <ad:specification>entrance</ad:specification>
+        </ad:GeographicPosition>
+      </ad:position>
+      <ad:locator>
+        <ad:AddressLocator>
+          <ad:designator>
+            <ad:LocatorDesignator>
+              <ad:designator>5</ad:designator>
+              <ad:type>2</ad:type>
+            </ad:LocatorDesignator>
+          </ad:designator>
+        </ad:AddressLocator>
+      </ad:locator>
+      <ad:component xlink:href="#ES.SDGC.TN.08068.CADIS"/>
+    </ad:Address>
+  </wfs:member>
+
+  <wfs:member>
+    <ad:Address gml:id="ES.SDGC.AD.08068.2295827DF2729E.6">
+      <ad:position>
+        <ad:GeographicPosition>
+          <ad:geometry>
+            <gml:Point gml:id="Point.AD.6" srsName="urn:ogc:def:crs:EPSG::25831">
+              <gml:pos>421944.20 4579523.70</gml:pos>
+            </gml:Point>
+          </ad:geometry>
+          <ad:specification>entrance</ad:specification>
+        </ad:GeographicPosition>
+      </ad:position>
+      <ad:locator>
+        <ad:AddressLocator>
+          <ad:designator>
+            <ad:LocatorDesignator>
+              <ad:designator>6</ad:designator>
+              <ad:type>2</ad:type>
+            </ad:LocatorDesignator>
+          </ad:designator>
+        </ad:AddressLocator>
+      </ad:locator>
+      <ad:component xlink:href="#ES.SDGC.TN.08068.HUELVA"/>
+    </ad:Address>
+  </wfs:member>
+
+  <wfs:member>
+    <ad:Address gml:id="ES.SDGC.AD.08068.2295827DF2729E.8">
+      <ad:position>
+        <ad:GeographicPosition>
+          <ad:geometry>
+            <gml:Point gml:id="Point.AD.8" srsName="urn:ogc:def:crs:EPSG::25831">
+              <gml:pos>421955.65 4579530.15</gml:pos>
+            </gml:Point>
+          </ad:geometry>
+          <ad:specification>entrance</ad:specification>
+        </ad:GeographicPosition>
+      </ad:position>
+      <ad:locator>
+        <ad:AddressLocator>
+          <ad:designator>
+            <ad:LocatorDesignator>
+              <ad:designator>8</ad:designator>
+              <ad:type>2</ad:type>
+            </ad:LocatorDesignator>
+          </ad:designator>
+        </ad:AddressLocator>
+      </ad:locator>
+      <ad:component xlink:href="#ES.SDGC.TN.08068.HUELVA"/>
+    </ad:Address>
+  </wfs:member>
+
+  <wfs:member>
+    <ad:ThoroughfareName gml:id="ES.SDGC.TN.08068.CADIS">
+      <ad:name>
+        <gn:GeographicalName>
+          <gn:language>mul</gn:language>
+          <gn:spelling>
+            <gn:SpellingOfName>
+              <gn:text>CALLE CADIS</gn:text>
+            </gn:SpellingOfName>
+          </gn:spelling>
+        </gn:GeographicalName>
+      </ad:name>
+    </ad:ThoroughfareName>
+  </wfs:member>
+
+  <wfs:member>
+    <ad:ThoroughfareName gml:id="ES.SDGC.TN.08068.HUELVA">
+      <ad:name>
+        <gn:GeographicalName>
+          <gn:language>mul</gn:language>
+          <gn:spelling>
+            <gn:SpellingOfName>
+              <gn:text>CALLE HUELVA</gn:text>
+            </gn:SpellingOfName>
+          </gn:spelling>
+        </gn:GeographicalName>
+      </ad:name>
+    </ad:ThoroughfareName>
+  </wfs:member>
+
+</wfs:FeatureCollection>

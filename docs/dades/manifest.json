@@ -1,5 +1,5 @@
 ﻿{
-    "GeneratedAt":  "2026-07-29T11:07:40.2640847+02:00",
+    "GeneratedAt":  "2026-08-20T08:27:46.8550565+02:00",
     "Catalegs":  [
                      "REQ1"
                  ],
@@ -10,6 +10,7 @@
                          "ACTIVITAT",
                          "TITULAR",
                          "ORIGEN",
-                         "DATES"
+                         "DATES",
+                         "CLASSIFICACIO"
                      ]
 }

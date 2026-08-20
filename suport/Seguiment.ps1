@@ -1275,9 +1275,11 @@ function Select-Mode {
     $tiPdf   = [System.Char]::ConvertFromUtf32(0x1F4C4)   # 📄
     $tiMail  = [System.Char]::ConvertFromUtf32(0x1F4E7)   # 📧
     $tiList  = [System.Char]::ConvertFromUtf32(0x1F4CA)   # 📊
+    $tiMap   = [System.Char]::ConvertFromUtf32(0x1F5FA)   # 🗺
     # EINES: utilitats generals.
     $tools = @(
         @{ Emoji = $tiPin;   Label = 'Generar ruta';           Kind = 'action'; Action = 'ruta' }
+        @{ Emoji = $tiMap;   Label = 'Coordenades';            Kind = 'action'; Action = 'coordenades' }
         # 'Action' tambe a la rajola d'enllac: no despatxa res, pero es la clau
         # del seu segell d'ultima execucio.
         @{ Emoji = $tiLock;  Label = 'Activitats precintades'; Kind = 'url';    Action = 'precintades'; Url = $urlPrec }

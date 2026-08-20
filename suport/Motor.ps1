@@ -38,6 +38,7 @@
     ControlsPeriodics.ps1 + ControlsCpEmail.ps1                 controls periodics
     EmailTextos.ps1     textos del correu     Configuracio.ps1  rutes d'aquest PC
     rutes\Ruta.ps1      planificador de rutes (proces a part)
+    rutes\Coordenades.ps1  mapa per repassar la geolocalitzacio dels establiments
 
     -- comu --
     UiComuns.ps1        finestres, botons, la banda granat, _AddConfigRow
@@ -217,6 +218,23 @@ function Start-RutaTool {
         & $ruta
     } catch {
         [System.Windows.Forms.MessageBox]::Show("Error al planificador de rutes:`n$($_.Exception.Message)", 'Ruta', 'OK', 'Error') | Out-Null
+    }
+}
+
+# Obre l'eina de COORDENADES (rutes/Coordenades.ps1). Mateixa mecanica que
+# Start-RutaTool: '&' l'executa en un AMBIT AILLAT (les seves variables no
+# contaminen el generador) pero dins del MATEIX proces, aixi que la finestra
+# porta el mateix escut i, en acabar o cancel-lar, es torna al menu.
+function Start-CoordenadesTool {
+    $eina = Join-Path $ScriptRoot (Join-Path 'rutes' 'Coordenades.ps1')
+    if (-not (Test-Path -LiteralPath $eina)) {
+        [System.Windows.Forms.MessageBox]::Show("No s'ha trobat Coordenades.ps1.", 'Coordenades', 'OK', 'Error') | Out-Null
+        return
+    }
+    try {
+        & $eina
+    } catch {
+        [System.Windows.Forms.MessageBox]::Show("Error a l'eina de coordenades:`n$($_.Exception.Message)", 'Coordenades', 'OK', 'Error') | Out-Null
     }
 }
 
