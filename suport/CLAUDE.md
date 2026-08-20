@@ -1148,6 +1148,52 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   - `_LlicEsSeccioAbans` compara **sense accents ni apòstrof tipogràfic**: el
     catàleg escriu `Pla d'Autoprotecció` amb U+2019 i és fàcil que un dia no
     coincideixi caràcter a caràcter.
+- **Cap dada d'una activitat concreta al catàleg.** `LLIC.json` portava **sis**
+  expedients i referències cremats (`Expedient: FUE-2023-03018882`,
+  `Referència 24/2022/000104`, `NIMA: 0801096860`…) que sortien a l'informe de
+  **tothom**. Ara són `[CAMP: …]`.
+  - **Convenció**: les dades van al **parèntesi del final** de la línia
+    `sidisposa`, en peces `Etiqueta: [CAMP: Nom]` separades per `;`. Hi ha una
+    prova que recorre `LLIC.json` i **falla si després dels dos punts hi ha
+    text que no és un camp** — també vigila el que s'hi escrigui de nou des de
+    l'editor de catàlegs. Els dos punts són obligatoris: és el que fa que la
+    comprovació sigui fiable.
+- **Tots els punts d'ABANS poden dir que es tenen.** El bloc en té 41 i
+  `LLIC.json` només en descrivia 15: als altres 26, triar «Es disposa» no
+  ensenyava res i a l'informe no s'hi escrivia res. `_LlicTextosPerDefecte`
+  (pura) hi posa `No es disposa del document` i
+  `Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])` quan el catàleg
+  no en diu res; els que tenen redacció pròpia la conserven. Un requeriment
+  **nou** de REQ1 ja surt utilitzable sense tocar `LLIC.json`.
+- **LA MEMÒRIA D'UNA LLICÈNCIA ÉS UN MAPA PLA, no els objectes de camp.**
+  `$st.MemAbans[<clau>]` era `@{ Marcat; Estat; Camps; Subs }`, i `Camps` eren
+  els objectes vius que fa `_RenderRichInto` — que **no sobreviuen un pas per
+  JSON**. Ara és `@{ Marcat; Estat; Valors; Subs }` amb `Valors` = nom → valor,
+  i la pantalla el torna a fer servir com a **`$preload`** de `_RenderRichInto`
+  (`_GetPreloadValue`, `Camps.ps1`), que és la via que ja feia servir REQ1.
+  - En sortir de la pantalla, `Valors` es reconstrueix **fusionant** el que hi
+    havia amb el que hi ha als controls: un punt que l'usuari no arriba a
+    clicar no té controls pintats, i els valors recuperats es perdrien.
+- **La base de dades de llicències** (`suport/LlicenciaDb.ps1`,
+  `local\base-dades-llicencies\llicencies-db.json`, ignorada pel git) és el
+  mateix patró que el registre d'activitats extraordinàries. Un informe de
+  llicència gairebé mai va sol —requeriment → favorable pre → post— i fins ara
+  el segon tornava a demanar-ho **tot**.
+  - **Es carrega sola** en sortir del pas 2, quan ja se sap l'ID GIA, i
+    **només un cop per sessió** (`$st.DbCarregat`): si l'usuari torna Enrere,
+    el que acaba d'editar mana.
+  - **No toca la capçalera**: TITULAR, ADREÇA i ACTIVITAT les omple l'Excel per
+    ID GIA (`Get-HeaderData`), i les de la base poden ser més velles.
+  - **Es desa al pas 9**, després de generar, dins d'un `try`: un error desant
+    la memòria no pot fer perdre un informe que ja està fet.
+  - `ConvertFrom-Json` torna **PSCustomObjects** i converteix les claus
+    numèriques dels sub-punts en **text**; `_LlicDbAMapa` i
+    `ConvertFrom-LlicenciaMemoria` ho desfan. Hi ha prova d'anada i tornada
+    **amb el JSON pel mig**, que és on es trencava.
+- **El xip «Dades» del menú.** La fila de Llicència té ara **dos** xips
+  clicables: el `✏️ LLIC` de sempre i un de nou que obre la base de dades
+  (`Extra` a l'entrada del menú → `ExtraChipRect`, mateix hit-test i hover que
+  `DocChipRect`; acció `llicdb`).
 - **La pantalla de documentació és LLISTA + DETALL**, com `Select-Items`, no una
   graella. Els `[CAMP: …]` es pinten **inline amb `_RenderRichInto`**
   (`Camps.ps1`) — la mateixa funció que REQ1 —, amb un **diccionari de camps

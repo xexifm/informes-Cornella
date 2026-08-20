@@ -1017,7 +1017,7 @@ function _LastRunText($jsonPath, $prop) {
 #
 # Accions que NO son eines (tipus d'informe i pantalles de sistema): no porten
 # segell. Qualsevol rajola NOVA en te automaticament, sense tocar cap llista.
-$Script:AccionsSenseSegell = @('nou', 'seguiment', 'actextr', 'llicencia', 'config', 'editcataleg')
+$Script:AccionsSenseSegell = @('nou', 'seguiment', 'actextr', 'llicencia', 'llicdb', 'config', 'editcataleg')
 
 # Excepcio: dues eines ja escriuen la seva PROPIA marca quan han treballat de
 # debo (la necessiten per anar en incremental), i aquella data es mes precisa que
@@ -1102,7 +1102,11 @@ function Select-Mode {
     # Llicencia: NO passa el cataleg (LLIC no es un cataleg de deficiencies sino
     # la capa propia de Llicencia sobre REQ1; vegeu Llicencia.ps1).
     $llicNom = 'Llic' + $eG + 'ncia (Annex II / LL Prov)'
-    [void]$menu.Add(@{ Action='llicencia'; Label=$llicNom; Sub='Requeriment i favorables'; Icon=$icoLlic; Doc='LLIC'; Cataleg=$null })
+    # 'Extra': un SEGON xip clicable a la mateixa fila, a l'esquerra del de
+    # ✏️ LLIC. Obre la base de dades de llicencies (el que es recorda de cada
+    # activitat per als informes seguents).
+    [void]$menu.Add(@{ Action='llicencia'; Label=$llicNom; Sub='Requeriment i favorables'; Icon=$icoLlic; Doc='LLIC'; Cataleg=$null;
+                       Extra=@{ Text='Dades'; Icon=[string][char]0x1F5C2 + [char]0xFE0F; Action='llicdb' } })
     # Qualsevol altre cataleg no llistat (p.ex. un REQ2 nou) s'afegeix al final.
     foreach ($c in $catalegs) {
         if ($c.BaseName -in 'REQ1','TERMINI') { continue }
@@ -1174,6 +1178,7 @@ function Select-Mode {
         # (hi dibuixem un emoji d'editar ✏️ i en guardem el rectangle per al
         # hit-test del clic, a $entry.DocChipRect).
         $entry.DocChipRect = $null
+        $entry.ExtraChipRect = $null
         if (-not [string]::IsNullOrWhiteSpace($doc)) {
             $szP = [System.Windows.Forms.TextRenderer]::MeasureText($g, $pencil, $fEmoS, [System.Drawing.Size]::Empty, $flags)
             $szD = [System.Windows.Forms.TextRenderer]::MeasureText($g, $doc, $fDet, [System.Drawing.Size]::Empty, $flags)
@@ -1196,6 +1201,29 @@ function Select-Mode {
             [System.Windows.Forms.TextRenderer]::DrawText($g, $pencil, $fEmoS, (New-Object System.Drawing.Point(($dx + $pad), ($dy + 5))), $colGranat, $flags)
             [System.Windows.Forms.TextRenderer]::DrawText($g, $doc, $fDet, (New-Object System.Drawing.Point(($dx + $pad + $szP.Width + $gap), ($dy + 4))), $colGranat, $flags)
             $entry.DocChipRect = New-Object System.Drawing.Rectangle($dx, $dy, $cw, $chH)
+
+            # Xip EXTRA (opcional), just a l'esquerra del del document. Mateix
+            # aspecte i mateix hit-test; el seu rectangle va a $entry.ExtraChipRect.
+            if ($null -ne $entry.Extra) {
+                $et = [string]$entry.Extra.Text
+                $ei = [string]$entry.Extra.Icon
+                $szEI = [System.Windows.Forms.TextRenderer]::MeasureText($g, $ei, $fEmoS, [System.Drawing.Size]::Empty, $flags)
+                $szET = [System.Windows.Forms.TextRenderer]::MeasureText($g, $et, $fDet, [System.Drawing.Size]::Empty, $flags)
+                $ew = $pad + $szEI.Width + $gap + $szET.Width + $pad
+                $ex = $dx - $ew - 8
+                $exBg = if ($entry.ExtraHover) { [System.Drawing.Color]::FromArgb(238, 208, 213) } else { $colSoft }
+                $bE = New-Object System.Drawing.SolidBrush($exBg)
+                $g.FillRectangle($bE, $ex, $dy, $ew, $chH)
+                $bE.Dispose()
+                if ($entry.ExtraHover) {
+                    $penE = New-Object System.Drawing.Pen($colGranat)
+                    $g.DrawRectangle($penE, $ex, $dy, ($ew - 1), ($chH - 1))
+                    $penE.Dispose()
+                }
+                [System.Windows.Forms.TextRenderer]::DrawText($g, $ei, $fEmoS, (New-Object System.Drawing.Point(($ex + $pad), ($dy + 5))), $colGranat, $flags)
+                [System.Windows.Forms.TextRenderer]::DrawText($g, $et, $fDet, (New-Object System.Drawing.Point(($ex + $pad + $szEI.Width + $gap), ($dy + 4))), $colGranat, $flags)
+                $entry.ExtraChipRect = New-Object System.Drawing.Rectangle($ex, $dy, $ew, $chH)
+            }
         }
     }
 
@@ -1218,7 +1246,10 @@ function Select-Mode {
             param($s, $e)
             $en = $s.Tag
             $rc = $en.DocChipRect
-            if ($null -ne $rc -and $rc.Contains($e.Location)) {
+            $rx = $en.ExtraChipRect
+            if ($null -ne $rx -and $rx.Contains($e.Location)) {
+                $result.Choice = @{ Action = [string]$en.Extra.Action; Doc = [string]$en.Doc; Cataleg = $null }
+            } elseif ($null -ne $rc -and $rc.Contains($e.Location)) {
                 $result.Choice = @{ Action = 'editcataleg'; Doc = [string]$en.Doc; Cataleg = $null }
             } else {
                 $result.Choice = $en
@@ -1232,17 +1263,23 @@ function Select-Mode {
             param($s, $e)
             $en = $s.Tag
             $rc = $en.DocChipRect
-            $over = ($null -ne $rc -and $rc.Contains($e.Location))
-            if ($over -ne [bool]$en.ChipHover) {
+            $rx = $en.ExtraChipRect
+            $over  = ($null -ne $rc -and $rc.Contains($e.Location))
+            $overX = ($null -ne $rx -and $rx.Contains($e.Location))
+            if ($over -ne [bool]$en.ChipHover -or $overX -ne [bool]$en.ExtraHover) {
                 $en.ChipHover = $over
-                $s.Cursor = if ($over) { [System.Windows.Forms.Cursors]::Hand } else { [System.Windows.Forms.Cursors]::Default }
+                $en.ExtraHover = $overX
+                $s.Cursor = if ($over -or $overX) { [System.Windows.Forms.Cursors]::Hand } else { [System.Windows.Forms.Cursors]::Default }
                 $s.Invalidate()
             }
         }.GetNewClosure())
         $btn.add_MouseLeave({
             param($s, $e)
             $en = $s.Tag
-            if ([bool]$en.ChipHover) { $en.ChipHover = $false; $s.Cursor = [System.Windows.Forms.Cursors]::Default; $s.Invalidate() }
+            if ([bool]$en.ChipHover -or [bool]$en.ExtraHover) {
+                $en.ChipHover = $false; $en.ExtraHover = $false
+                $s.Cursor = [System.Windows.Forms.Cursors]::Default; $s.Invalidate()
+            }
         }.GetNewClosure())
         [void]$form.Controls.Add($btn)
         $y += 70

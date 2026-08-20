@@ -175,7 +175,7 @@
                 {
                   "runs": [
                     {
-                      "t": "Es disposa de l’informe (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient [CAMP: Expedient])"
+                      "t": "Es disposa de l’informe (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient])"
                     }
                   ]
                 }
@@ -219,7 +219,7 @@
                 {
                   "runs": [
                     {
-                      "t": "Es disposa de l’informe (Id Firmadoc: [CAMP: Id Firmadoc]; Referència 24/2022/000104)"
+                      "t": "Es disposa de l’informe (Id Firmadoc: [CAMP: Id Firmadoc]; Referència: [CAMP: Referència])"
                     }
                   ]
                 }
@@ -255,7 +255,7 @@
                 {
                   "runs": [
                     {
-                      "t": "Es disposa de l’informe (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient [CAMP: Expedient])"
+                      "t": "Es disposa de l’informe (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient])"
                     }
                   ]
                 }
@@ -299,7 +299,7 @@
                 {
                   "runs": [
                     {
-                      "t": "Es disposa de l’informe (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: FUE-2023-03018882)"
+                      "t": "Es disposa de l’informe (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient])"
                     }
                   ]
                 }
@@ -379,7 +379,7 @@
                 {
                   "runs": [
                     {
-                      "t": "Es disposa de l’autorització (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: 901417/23)"
+                      "t": "Es disposa de l’autorització (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient])"
                     }
                   ]
                 }
@@ -459,7 +459,7 @@
                 {
                   "runs": [
                     {
-                      "t": "Es disposa del document d’alta al SDR (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: Q0612/2024/1; NIMA: 0801096860)"
+                      "t": "Es disposa del document d’alta al SDR (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient]; NIMA: [CAMP: NIMA])"
                     }
                   ]
                 }
@@ -1339,7 +1339,7 @@
                 {
                   "runs": [
                     {
-                      "t": "Es disposa de l’informe o certificat (Id Firmadoc: [CAMP: Id Firmadoc]; Exp 46/2003)"
+                      "t": "Es disposa de l’informe o certificat (Id Firmadoc: [CAMP: Id Firmadoc]; Exp: [CAMP: Expedient])"
                     }
                   ]
                 }
@@ -1383,7 +1383,7 @@
                 {
                   "runs": [
                     {
-                      "t": "Es disposa de l’autorització (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: 902967/23)"
+                      "t": "Es disposa de l’autorització (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient])"
                     }
                   ]
                 }

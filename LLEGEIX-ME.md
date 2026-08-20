@@ -118,6 +118,11 @@ disposa» i, al bloc d'**abans**, hi omples els camps **allà mateix** — l'Id
 Firmadoc i, segons el punt, l'expedient, la referència o el registre. Cada
 document té les seves dades.
 
+**Tots** els punts d'abans et deixen dir que es disposa del document amb el seu
+Id Firmadoc, encara que `LLIC.json` no en digui res: els que hi tenen una
+redacció pròpia la mantenen, i la resta agafen
+«Es disposa del document (Id Firmadoc: …)».
+
 Al bloc d'**abans** hi surten els punts de quatre seccions de REQ1
 (*Autoritzacions*, *Pla d'Autoprotecció*, *Controls inicials* i *Registres*), i
 per això **ja no surten al pas «Projecte»**: no els has de demanar dues vegades.
@@ -128,6 +133,26 @@ instal·lacions** apliquen.
 
 Si tornes **Enrere**, el que havies marcat (i les dades que havies posat) **es
 conserva**.
+
+#### La base de dades de llicències
+
+Els informes d'una llicència van en cadena: primer el requeriment, després el
+favorable pre i després el post. El programa **se'n recorda**: quan poses un
+**ID GIA** que ja té un informe de llicència fet, t'avisa i **surt tot omplert**
+—el que aplicava, si es disposava o no de cada document, els **Id Firmadoc**,
+els expedients, les referències, els punts del Projecte, el tècnic redactor i
+les condicions—. Ho pots canviar tot; només hi és perquè no ho hagis de tornar
+a escriure.
+
+Es desa sol quan generes l'informe, a
+`local\base-dades-llicencies\llicencies-db.json`. Com tot el que hi ha a
+`local\`, **no puja mai al GitHub**.
+
+Al menú principal, la fila de **Llicència** té un botó **🗂 Dades** al costat
+del de `✏️ LLIC`: obre la base de dades, on pots veure el que s'ha desat de
+cada activitat, **corregir una dada** que s'hagués entrat malament i esborrar la
+fitxa d'una llicència. Esborrar la fitxa no toca cap informe ja generat: només
+es perd la memòria per al següent.
 
 Al bloc de **després** de la resolució les caselles surten **totes marcades** (és
 com tenies el Word: hi eren totes i n'anaves esborrant); hi ha **«Marcar-ho

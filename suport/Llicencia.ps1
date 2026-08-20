@@ -190,6 +190,22 @@ function _LlicEsSeccioAbans([string]$titol) {
     return $false
 }
 
+# ELS TEXTOS PER DEFECTE d'un punt d'ABANS que no consta a LLIC.json. Funcio
+# PURA. Retorna @{ NoDisposa; SiDisposa }.
+#
+# PER QUE: la llista d'ABANS surt de les 4 seccions de REQ1 (43 punts) i LLIC
+# nomes en descriu 15. Als altres 28, triar "Es disposa del document" no
+# ensenyava res i a l'informe no s'hi escrivia res. Com a MINIM tots han de
+# poder dir que es tenen, amb el seu Id Firmadoc; qui necessiti una redaccio
+# propia (l'expedient, la referencia, el NIMA...) la posa a LLIC.json i mana
+# aquella. Aixi un requeriment NOU de REQ1 ja surt utilitzable sense tocar res.
+function _LlicTextosPerDefecte {
+    return @{
+        NoDisposa = @('No es disposa del document')
+        SiDisposa = @('Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])')
+    }
+}
+
 # EL COS DE L'EINA, i es PUR: resol els punts d'un bloc de LLIC ('ABANS',
 # 'DESPRES' o 'PROPIS') ajuntant-los amb el text de REQ1.
 #
@@ -226,13 +242,20 @@ function _LlicPuntsPerBloc($llic, $idxReq1, [string]$bloc, $req1 = $null) {
                 $it = if ($perClau.ContainsKey($clau)) { $perClau[$clau] } else { $null }
                 $nod = if ($null -ne $it) { _LlicFill $it 'nodisposa' } else { $null }
                 $sid = if ($null -ne $it) { _LlicFill $it 'sidisposa' } else { $null }
+                # Els que no consten a LLIC (o hi consten sense text) agafen els
+                # textos per defecte: tots han de poder dir que es tenen.
+                $def = _LlicTextosPerDefecte
+                $lNod = if ($null -ne $nod) { @(_LlicCos $nod) } else { @() }
+                $lSid = if ($null -ne $sid) { @(_LlicCos $sid) } else { @() }
+                if (@($lNod).Count -eq 0) { $lNod = @($def.NoDisposa) }
+                if (@($lSid).Count -eq 0) { $lSid = @($def.SiDisposa) }
                 [void]$punts.Add([pscustomobject]@{
                     Clau      = $clau
                     Titol     = [string]$el.Short
                     Condicio  = ''
                     Cos       = @($el.BodyLines)
-                    NoDisposa = if ($null -ne $nod) { @(_LlicCos $nod) } else { @() }
-                    SiDisposa = if ($null -ne $sid) { @(_LlicCos $sid) } else { @() }
+                    NoDisposa = $lNod
+                    SiDisposa = $lSid
                     Quan      = @()
                     Subs      = @(@($el.Children) | ForEach-Object { @($_.BodyLines) })
                 })
@@ -439,6 +462,17 @@ function _LlicEtiquetaPunt($punt, [int]$max = 110) {
     $t = ([string]$t -replace '\s+', ' ').Trim()
     if ($max -gt 0 -and $t.Length -gt $max) { $t = $t.Substring(0, $max).TrimEnd() + [char]0x2026 }
     return $t
+}
+
+# El cos d'un punt, en text pla per ensenyar-lo a la pantalla. Funcio PURA.
+#
+# Treu el marcador intern '[[URL]] ' -que el posa el lector del cataleg als
+# paragrafs d'enllac (CatalegJson.ps1)- i deixa l'adreca. Sortia TAL QUAL al
+# panell de detall i al tooltip de l'arbre.
+function _LlicTextPlaDelCos($cos) {
+    $t = (@($cos) -join ' ')
+    $t = $t -replace '\[\[URL\]\]\s*', ''
+    return (($t -replace '\s+', ' ').Trim())
 }
 
 # Agrupa els punts per seccio per pintar-los en ARBRE. Funcio PURA.
@@ -1051,12 +1085,17 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
     for ($i = 0; $i -lt $punts.Count; $i++) {
         $p = $punts[$i]
         $clau = _LlicClauPunt $p
-        $e = @{ Marcat = $marcatPerDefecte; Estat = 'no'; Camps = [ordered]@{}; Subs = @{} }
+        # Camps  = els objectes de camp VIUS de la pantalla (els fa _RenderRichInto).
+        # Valors = el mapa pla nom -> valor, que es el que es RECORDA i es desa a
+        #          la base de dades. Els objectes de camp no sobreviuen un pas per
+        #          JSON; el mapa pla si, i _RenderRichInto ja el sap llegir com a
+        #          $preload (_GetPreloadValue, Camps.ps1).
+        $e = @{ Marcat = $marcatPerDefecte; Estat = 'no'; Camps = [ordered]@{}; Valors = @{}; Subs = @{} }
         if ($null -ne $preSel -and $preSel.Contains($clau)) {
             $e.Marcat = [bool]$preSel[$clau].Marcat
             $e.Estat  = [string]$preSel[$clau].Estat
-            if ($null -ne $preSel[$clau].Camps) { $e.Camps = $preSel[$clau].Camps }
-            if ($null -ne $preSel[$clau].Subs)  { $e.Subs  = $preSel[$clau].Subs }
+            if ($null -ne $preSel[$clau].Valors) { $e.Valors = $preSel[$clau].Valors }
+            if ($null -ne $preSel[$clau].Subs)   { $e.Subs   = $preSel[$clau].Subs }
         }
         # Per defecte, TOTS els sub-punts d'un punt marcat entren.
         foreach ($k in 0..([Math]::Max(0, @($p.Subs).Count - 1))) {
@@ -1149,7 +1188,7 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
                     $nd = New-Object System.Windows.Forms.TreeNode((_LlicEtiquetaPunt $punts[$i]))
                     $nd.Tag = @{ Kind = 'Item'; Idx = $i }
                     $nd.NodeFont = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Regular)
-                    $nd.ToolTipText = ((@($punts[$i].Cos) -join ' ') -replace '\s+', ' ').Trim()
+                    $nd.ToolTipText = (_LlicTextPlaDelCos $punts[$i].Cos)
                     if ($nd.ToolTipText.Length -gt 600) { $nd.ToolTipText = $nd.ToolTipText.Substring(0, 600) + '...' }
                     $nd.Checked = [bool]$st[$i].Marcat
                     if (-not $nd.Checked) { $totsMarcats = $false }
@@ -1184,7 +1223,7 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
         $lbT.Location = New-Object System.Drawing.Point(10, $y)
         $lbT.MaximumSize = New-Object System.Drawing.Size(495, 0)
         $lbT.AutoSize = $true
-        $lbT.Text = ((@($p.Cos) -join ' ') -replace '\s+', ' ').Trim()
+        $lbT.Text = (_LlicTextPlaDelCos $p.Cos)
         if ([string]::IsNullOrWhiteSpace($lbT.Text)) { $lbT.Text = (_LlicEtiquetaPunt $p 0) }
         [void]$panDret.Controls.Add($lbT)
         $y += [Math]::Max(24, $lbT.PreferredHeight + 10)
@@ -1247,8 +1286,10 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
                 $flow.WrapContents = $true
                 $flow.FlowDirection = 'LeftToRight'
                 [void]$panDret.Controls.Add($flow)
-                # LA MATEIXA funcio que REQ1, amb un diccionari PER PUNT.
-                _RenderRichInto $flow ([string]$l) $e.Camps $null $fldRegistry
+                # LA MATEIXA funcio que REQ1, amb un diccionari PER PUNT i amb
+                # els valors recordats com a $preload: aixi els Id Firmadoc i
+                # els expedients de l'informe anterior ja surten escrits.
+                _RenderRichInto $flow ([string]$l) $e.Camps $e.Valors $fldRegistry
                 $y += [Math]::Max(26, $flow.PreferredSize.Height + 8)
             }
         }
@@ -1337,12 +1378,17 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
             $p = $punts[$i]
             $e = $st[$i]
             $clau = _LlicClauPunt $p
-            $mem[$clau] = @{ Marcat = $e.Marcat; Estat = $e.Estat; Camps = $e.Camps; Subs = $e.Subs }
-            if (-not $e.Marcat) { continue }
-            # Els valors dels camps d'AQUEST punt (el registre de Camps.ps1 desa
-            # objectes amb .Value; aqui en volem un mapa nom -> valor).
+            # El registre de Camps.ps1 desa objectes amb .Value; aqui en volem un
+            # mapa nom -> valor, que es el que es recorda i el que es desa.
+            # S'HI CONSERVA el que ja hi havia: si un punt no s'ha arribat a
+            # pintar (no s'hi ha clicat mai), $e.Camps es buit i els valors
+            # recuperats de la base es perdrien.
             $vals = @{}
-            foreach ($k in @($e.Camps.Keys)) { $vals[[string]$k] = [string]$e.Camps[$k].Value }
+            foreach ($k in @($e.Valors.Keys)) { $vals[[string]$k] = [string]$e.Valors[$k] }
+            foreach ($k in @($e.Camps.Keys))  { $vals[[string]$k] = [string]$e.Camps[$k].Value }
+            $e.Valors = $vals
+            $mem[$clau] = @{ Marcat = $e.Marcat; Estat = $e.Estat; Valors = $vals; Subs = $e.Subs }
+            if (-not $e.Marcat) { continue }
             $si = @($p.SiDisposa); $no = @($p.NoDisposa)
             if ([string]$e.Estat -eq 'si') { $si = @(_LlicAplicaCamps $p.SiDisposa $vals) }
             else                           { $no = @(_LlicAplicaCamps $p.NoDisposa $vals) }
@@ -1575,7 +1621,9 @@ function Invoke-LlicenciaWizard {
              # El que s'havia triat a cada pantalla de documentacio, per no
              # perdre-ho quan l'usuari torna ENRERE (era exactament el que
              # passava: tornaves i havies de tornar a marcar-ho tot).
-             MemAbans = $null; MemDespres = $null }
+             MemAbans = $null; MemDespres = $null
+             # La base de dades nomes es llegeix un cop per sessio (vegeu pas 2).
+             DbCarregat = $false }
     $step = 1
     try {
         while ($true) {
@@ -1597,6 +1645,23 @@ function Invoke-LlicenciaWizard {
                     # l'Excel, per ID GIA. Si l'Excel no en te, es demana: sortia
                     # una linia "Classificacio:" BUIDA a l'informe.
                     $st.Header['CLASSIFICACIO'] = _LlicClassificacio $st.Header
+                    # LA MEMORIA D'AQUESTA LLICENCIA. Un informe de llicencia
+                    # gairebe mai va sol (requeriment -> favorable pre -> post) i
+                    # fins ara el segon tornava a demanar-ho TOT, Id Firmadoc i
+                    # expedients inclosos. Es carrega UNA sola vegada per sessio:
+                    # si l'usuari torna Enrere, el que acaba d'editar mana.
+                    if (-not $st.DbCarregat) {
+                        $st.DbCarregat = $true
+                        $rec = Get-LlicenciaRecord (Load-LlicenciaDb) ([string]$st.Header['ID_GIA'])
+                        if ($null -ne $rec) {
+                            [void](Restore-LlicenciaState $rec $st)
+                            $quan = Get-LlicenciaDataText $rec
+                            [System.Windows.Forms.MessageBox]::Show(
+                                ("S'han recuperat les dades de l'informe de llic" + [char]0x00E8 + 'ncia del ' + $quan + ".`n`n" +
+                                 "Ho trobaras ja marcat i omplert als passos seguents; canvia el que calgui."),
+                                'Llicencia', 'OK', 'Information') | Out-Null
+                        }
+                    }
                     $step = 3
                 }
                 3 {
@@ -1751,6 +1816,23 @@ function Invoke-LlicenciaWizard {
                         FieldValues     = (Get-FieldValuesForSession $st.Fields)
                         ConclusionTexts = @()
                     })
+                    # ...i a la BASE DE DADES DE LLICENCIES, que es el que fa que
+                    # el proper informe d'aquesta activitat surti ja omplert.
+                    # Un error aqui no pot fer perdre l'informe, que ja esta fet.
+                    try {
+                        $db = Load-LlicenciaDb
+                        $vell = Get-LlicenciaRecord $db ([string]$st.Header['ID_GIA'])
+                        $hist = New-Object System.Collections.ArrayList
+                        if ($null -ne $vell) { foreach ($x in @($vell.Historial)) { [void]$hist.Add($x) } }
+                        [void]$hist.Add((New-LlicenciaHistorial ([string]$st.Fase) ([string]$out)))
+                        [void](Set-LlicenciaRecord $db (ConvertTo-LlicenciaRecord $st $hist.ToArray()))
+                        Save-LlicenciaDb $db
+                    } catch {
+                        [System.Windows.Forms.MessageBox]::Show(
+                            ("L'informe s'ha generat be, pero no s'han pogut desar les dades a la base de " +
+                             "llicencies:`n`n" + $_.Exception.Message),
+                            'Llicencia', 'OK', 'Warning') | Out-Null
+                    }
                     [System.Windows.Forms.MessageBox]::Show(
                         "Informe generat:`n$out", 'Finalitzat', 'OK', 'Information') | Out-Null
                     # Es deixa el Word obert amb l'informe, com a la resta de fluxos.

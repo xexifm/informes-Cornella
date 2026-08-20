@@ -2968,4 +2968,141 @@ foreach ($d in $sgDefs) {
     AssertEq (@($d.Amplades).Count) ((@($d.Cols).Count) + 1) ("Amplades de " + $d.Nom + ": una per columna, incloent-hi la 'N'")
 }
 
+Write-Host "`n--- Cap dada d'una activitat CREMADA al cataleg de Llicencia ---"
+# Al LLIC.json hi havia sis expedients i referencies d'UNA activitat concreta
+# ("Expedient: FUE-2023-03018882", "Referencia 24/2022/000104"...), que sortien
+# a l'informe de TOTHOM. Han de ser camps. Aquesta prova vigila tambe el que
+# s'hi pugui tornar a escriure des de l'editor de catalegs.
+$llicPathC = Join-Path $EstructuralsDir 'LLIC.json'
+if (Test-Path -LiteralPath $llicPathC) {
+    $llicC = Read-LlicCataleg $llicPathC
+    $cremades = New-Object System.Collections.ArrayList
+    foreach ($secC in @($llicC.nodes)) {
+        foreach ($itC in @($secC.fills)) {
+            $bC = _LlicFill $itC 'sidisposa'
+            if ($null -eq $bC) { continue }
+            foreach ($lnC in @(_LlicCos $bC)) {
+                # Les dades van al PARENTESI del final: "(Id Firmadoc: X; Expedient: Y)".
+                $parC = @([regex]::Matches([string]$lnC, '\(([^)]*)\)'))
+                if ($parC.Count -eq 0) { continue }
+                foreach ($pecaC in (([string]$parC[$parC.Count - 1].Groups[1].Value) -split ';')) {
+                    # Trec els [CAMP: ...]; el que quedi despres dels dos punts
+                    # ha de ser NOMES espais. Si hi queda text, es un valor cremat.
+                    $netC = $pecaC -replace '\[CAMP:[^\]]*\]', ''
+                    $iC = $netC.IndexOf(':')
+                    $restaC = if ($iC -ge 0) { $netC.Substring($iC + 1) } else { $netC }
+                    if ([string]::IsNullOrWhiteSpace($restaC)) { continue }
+                    [void]$cremades.Add(([string]$itC.titol) + ' -> ' + $pecaC.Trim())
+                }
+            }
+        }
+    }
+    AssertEq $cremades.Count 0 ('LLIC.json: cap expedient/referencia d''una activitat concreta (' + ($cremades -join ' | ') + ')')
+}
+
+Write-Host "`n--- Tots els punts d'ABANS poden dir que es tenen ---"
+# La llista d'ABANS surt de les 4 seccions de REQ1 (mes de 40 punts) pero LLIC
+# nomes en descriu 15: als altres, triar "Es disposa" no ensenyava res i a
+# l'informe no s'hi escrivia res.
+$defT = _LlicTextosPerDefecte
+Assert ([bool](@($defT.NoDisposa).Count -gt 0)) '_LlicTextosPerDefecte: hi ha el "No es disposa"'
+Assert ([bool](@($defT.SiDisposa) -join ' ') -like '*[CAMP: Id Firmadoc]*') '_LlicTextosPerDefecte: el "Es disposa" demana l''Id Firmadoc'
+if ((Test-Path -LiteralPath $llicPathC) -and (Test-Path -LiteralPath (Join-Path $EstructuralsDir 'REQ1.json'))) {
+    $req1D = Read-CatalegJson (Join-Path $EstructuralsDir 'REQ1.json')
+    $llicD = Read-LlicCataleg $llicPathC
+    $pAb = @((_LlicPuntsPerBloc $llicD (_LlicIndexReq1 $req1D) 'ABANS' $req1D).Punts)
+    Assert ([bool]($pAb.Count -gt 25)) 'ABANS: hi ha tots els punts de les 4 seccions'
+    AssertEq (@($pAb | Where-Object { @($_.NoDisposa).Count -eq 0 }).Count) 0 'ABANS: cap punt sense "No es disposa"'
+    AssertEq (@($pAb | Where-Object { @($_.SiDisposa).Count -eq 0 }).Count) 0 'ABANS: cap punt sense "Es disposa"'
+    AssertEq (@($pAb | Where-Object { (@($_.SiDisposa) -join ' ') -notmatch 'Id Firmadoc' }).Count) 0 'ABANS: tots demanen l''Id Firmadoc'
+    # ...i els que SI que consten a LLIC conserven la seva redaccio.
+    $pSanD = @($pAb | Where-Object { $_.Titol -eq 'Sanitat' })[0]
+    Assert ([bool]((@($pSanD.SiDisposa) -join ' ') -like '*autoritzaci*')) 'ABANS: el text propi de LLIC mana sobre el de defecte'
+}
+
+Write-Host "`n--- El text del cos, sense el marcador [[URL]] ---"
+$cosU = @('Zona inundable. Cal l''informe.', '[[URL]] https://aca.gencat.cat/x')
+$plaU = _LlicTextPlaDelCos $cosU
+Assert ($plaU -notmatch '\[\[URL\]\]') '_LlicTextPlaDelCos: el marcador intern no es veu'
+Assert ($plaU.Contains('https://aca.gencat.cat/x')) '_LlicTextPlaDelCos: ...pero l''adreca si'
+AssertEq (_LlicTextPlaDelCos @()) '' '_LlicTextPlaDelCos: sense cos, buit'
+
+Write-Host "`n--- Base de dades de llicencies ---"
+# Insercio, substitucio per ID GIA i esborrat.
+$dbT = New-LlicenciaDb
+AssertEq (@($dbT.Llicencies).Count) 0 'Base nova: buida'
+Assert ($null -eq (Get-LlicenciaRecord $dbT '1463')) 'Base buida: no troba res'
+[void](Set-LlicenciaRecord $dbT ([ordered]@{ IdGia = '1463'; Titular = 'A' }))
+[void](Set-LlicenciaRecord $dbT ([ordered]@{ IdGia = '999';  Titular = 'B' }))
+AssertEq (@($dbT.Llicencies).Count) 2 'Set-LlicenciaRecord: dues fitxes'
+[void](Set-LlicenciaRecord $dbT ([ordered]@{ IdGia = '1463'; Titular = 'A bis' }))
+AssertEq (@($dbT.Llicencies).Count) 2 'Set-LlicenciaRecord: el mateix GIA NO duplica'
+AssertEq ([string](Get-LlicenciaRecord $dbT '1463').Titular) 'A bis' 'Set-LlicenciaRecord: substitueix'
+AssertEq ([string](Get-LlicenciaRecord $dbT '999').Titular) 'B' 'Set-LlicenciaRecord: ...i no toca les altres'
+[void](Remove-LlicenciaRecord $dbT '1463')
+AssertEq (@($dbT.Llicencies).Count) 1 'Remove-LlicenciaRecord: en treu una'
+Assert ($null -eq (Get-LlicenciaRecord $dbT '1463')) 'Remove-LlicenciaRecord: ...la seva'
+Assert ($null -ne (Get-LlicenciaRecord $dbT '999'))  'Remove-LlicenciaRecord: ...i nomes la seva'
+
+# ANADA I TORNADA amb ConvertTo-Json pel mig, que es com viura de debo: el JSON
+# torna PSCustomObjects i les claus numeriques dels sub-punts tornen com a text.
+$stT = @{
+    Fase = 'requeriment'; Prov = $true; Condicions = 'les de sempre'
+    Header = @{ ID_GIA = '1463'; TITULAR = 'ZEROCATORZE'; ADRECA = 'CAMI 12'; ACTIVITAT = 'TALLER'; CLASSIFICACIO = 'Llei 20/2009' }
+    MemAbans = @{
+        'Autoritzacions / Informes preceptius::Sanitat' = @{ Marcat = $true;  Estat = 'si'; Valors = @{ 'Id Firmadoc' = 'FD-777' }; Subs = @{} }
+        'Registres::RASIC'                              = @{ Marcat = $false; Estat = 'no'; Valors = @{}; Subs = @{} }
+    }
+    MemDespres = @{ '#PAU' = @{ Marcat = $true; Estat = 'no'; Valors = @{}; Subs = @{ 0 = $true; 1 = $false } } }
+    ProjKeys = @('Projecte::A', 'Projecte::B'); ProjVals = @{ 'Epigraf' = '12.3' }
+    Tecnic = @{ Tecnic = 'Nom'; NumCol = '123' }
+}
+$recT = ConvertTo-LlicenciaRecord $stT @((New-LlicenciaHistorial 'requeriment' 'C:\a.docx'))
+AssertEq ([string]$recT.IdGia) '1463' 'ConvertTo-LlicenciaRecord: la clau es l''ID GIA'
+AssertEq ([string]$recT.Titular) 'ZEROCATORZE' 'ConvertTo-LlicenciaRecord: el titular, per llistar-la'
+AssertEq (@($recT.Historial).Count) 1 'ConvertTo-LlicenciaRecord: l''historial'
+# El pas per JSON (i tornada), que es el que trenca les coses.
+$recJ = ($recT | ConvertTo-Json -Depth 20) | ConvertFrom-Json
+$stR = @{ Fase = 'x'; Prov = $false; Header = @{ ID_GIA = '1463' } }
+[void](Restore-LlicenciaState $recJ $stR)
+AssertEq ([bool]$stR.MemAbans['Autoritzacions / Informes preceptius::Sanitat'].Marcat) $true 'anada i tornada: el marcat'
+AssertEq ([string]$stR.MemAbans['Autoritzacions / Informes preceptius::Sanitat'].Estat) 'si' 'anada i tornada: l''estat'
+AssertEq ([string]$stR.MemAbans['Autoritzacions / Informes preceptius::Sanitat'].Valors['Id Firmadoc']) 'FD-777' 'anada i tornada: l''Id Firmadoc'
+AssertEq ([bool]$stR.MemAbans['Registres::RASIC'].Marcat) $false 'anada i tornada: el NO marcat tambe es recorda'
+AssertEq ([bool]$stR.MemDespres['#PAU'].Subs[0]) $true  'anada i tornada: el sub-punt triat'
+AssertEq ([bool]$stR.MemDespres['#PAU'].Subs[1]) $false 'anada i tornada: i el no triat'
+Assert ((@($stR.MemDespres['#PAU'].Subs.Keys)[0]) -is [int]) 'anada i tornada: les claus dels sub-punts tornen a ser NUMERIQUES'
+AssertEq (@($stR.ProjKeys) -join '|') 'Projecte::A|Projecte::B' 'anada i tornada: els punts del projecte'
+AssertEq ([string]$stR.ProjVals['Epigraf']) '12.3' 'anada i tornada: els camps del projecte'
+AssertEq ([string]$stR.Tecnic['Tecnic']) 'Nom' 'anada i tornada: el tecnic redactor'
+AssertEq ([string]$stR.Condicions) 'les de sempre' 'anada i tornada: les condicions'
+# La capcalera NO es toca: l'omple l'Excel per ID GIA i la de la base pot ser vella.
+AssertEq ([string]$stR.Header['ID_GIA']) '1463' 'Restore-LlicenciaState: no toca la capcalera'
+# El resum per a la llista.
+$resT = Get-LlicenciaResum $recJ
+AssertEq ([string]$resT.IdGia) '1463' 'Get-LlicenciaResum: ID GIA'
+AssertEq ([int]$resT.Punts) 2 'Get-LlicenciaResum: nomes compta els punts MARCATS'
+AssertEq ([int]$resT.Informes) 1 'Get-LlicenciaResum: els informes fets'
+Assert (-not [string]::IsNullOrWhiteSpace([string]$resT.Data)) 'Get-LlicenciaResum: la data, llegible'
+
+# Una fitxa mig buida no pot petar (una base vella, o feta a ma).
+$stB = @{ Header = @{ ID_GIA = '7' } }
+$recB = ConvertTo-LlicenciaRecord $stB
+AssertEq ([string]$recB.IdGia) '7' 'ConvertTo-LlicenciaRecord: sense memoria, no peta'
+$stB2 = @{}
+[void](Restore-LlicenciaState (($recB | ConvertTo-Json -Depth 20) | ConvertFrom-Json) $stB2)
+AssertEq (@($stB2.MemAbans.Keys).Count) 0 'Restore-LlicenciaState: sense memoria, memoria buida'
+[void](Restore-LlicenciaState $null $stB2) | Out-Null
+Assert $true 'Restore-LlicenciaState: amb $null tampoc peta'
+
+# EL CAMI SENCER: base de dades -> memoria -> text de l'informe. Els valors
+# recuperats han de SUBSTITUIR els [CAMP: ...] al document.
+$valsR = $stR.MemAbans['Autoritzacions / Informes preceptius::Sanitat'].Valors
+$liniesR = @(_LlicAplicaCamps @('Es disposa de l''autoritzacio (Id Firmadoc: [CAMP: Id Firmadoc])') $valsR)
+Assert ($liniesR[0] -notmatch '\[CAMP:') 'De la base a l''informe: cap marcador literal'
+Assert ($liniesR[0].Contains('FD-777')) 'De la base a l''informe: hi surt el valor recuperat'
+# ...i un punt del qual la base no en sap res queda buit, no amb el marcador.
+$liniesR2 = @(_LlicAplicaCamps @('Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])') @{})
+Assert ($liniesR2[0] -notmatch '\[CAMP:') 'Sense valor a la base: tampoc queda el marcador'
+
 exit (Write-TestSummary 'RESULTAT')

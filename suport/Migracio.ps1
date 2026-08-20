@@ -51,6 +51,7 @@ $Script:LocalSubdirs = [ordered]@{
     ActExtr        = 'base-dades-actextr'
     Vistes         = 'vistes-catalegs'
     Seguiment      = 'seguiment-gia'
+    Llicencies     = 'base-dades-llicencies'
     Geocodificacio = 'geocodificacio'
 }
 

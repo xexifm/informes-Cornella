@@ -46,6 +46,7 @@ function Main {
             'convertirpdf'   { Invoke-ConvertirPdf }   # converteix una carpeta de Word a PDF (i signa)
             'emailtextos'    { Invoke-EmailTextos }    # edita els textos del correu del mobil
             'llicencia'  { Invoke-LlicenciaWizard }
+            'llicdb'     { Show-LlicenciaDb }   # el que es recorda de cada llicencia
             'nou'        { [void](Invoke-NouWizard -cataleg $sel.Cataleg) }
             default      { return }
         }

@@ -427,6 +427,10 @@ if (-not $Script:HeadlessTest) { [void](Invoke-MigracioLocal $RepoRoot) }
 # dades d'activitats, en Excel o en PDF. Les funcions de dades son pures i es
 # proven en headless; nomes la construccio del llibre fa servir Excel (COM).
 . (Join-Path $ScriptRoot 'SeguimentGia.ps1')
+# La BASE DE DADES de llicencies (local\base-dades-llicencies): la memoria de
+# cada activitat entre informes consecutius. Abans que Llicencia.ps1, que la fa
+# servir per tornar a omplir l'assistent tot sol.
+. (Join-Path $ScriptRoot 'LlicenciaDb.ps1')
 . (Join-Path $ScriptRoot 'Llicencia.ps1')
 
 # Editor dels textos del correu del mobil (docs\dades\email-textos.json).
