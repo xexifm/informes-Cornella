@@ -1852,6 +1852,70 @@ Get-ChildItem -Recurse -Filter *.ps1 (Split-Path -Parent $PSScriptRoot) | ForEac
 }
 AssertEq $closuresImbricades.Count 0 ('cap closure imbricada depen del que ve de fora (' + ($closuresImbricades -join ', ') + ')')
 
+# UN EMOJI ASTRAL AMB [char]: EL PROGRAMA NO S'OBRE.
+#
+#   Icon = [string][char]0x1F5C2 + [char]0xFE0F
+#
+# [char] es de 16 bits (max 0xFFFF) i 0x1F5C2 (128450) NO hi cap: PowerShell
+# peta amb "no se puede convertir el valor 128450 al tipo System.Char". Va
+# passar al xip "Dades" del menu, i com que aquell codi construeix la PRIMERA
+# pantalla, el programa no arrencava gens.
+#
+# La manera bona ja era al fitxer dues linies mes amunt:
+#   [System.Char]::ConvertFromUtf32(0x1F5C2)
+#
+# PER QUE CAL LA PROVA: Select-Mode es WinForms i les proves no el criden mai,
+# o sigui que aixo no ho enxampa cap prova de comportament. El parser, en canvi,
+# ho veu sense executar res i sense falsos positius: un [char] amb una constant
+# mes gran que 0xFFFF no pot ser correcte MAI.
+$charsForaDeRang = New-Object System.Collections.ArrayList
+Get-ChildItem -Recurse -Filter *.ps1 (Split-Path -Parent $PSScriptRoot) | ForEach-Object {
+    $fitxer = $_
+    $arbre = [System.Management.Automation.Language.Parser]::ParseFile($fitxer.FullName, [ref]$null, [ref]$null)
+    foreach ($cast in $arbre.FindAll({ param($x) $x -is [System.Management.Automation.Language.ConvertExpressionAst] }, $true)) {
+        $tipus = [string]$cast.Type.TypeName.FullName
+        if ($tipus -notin @('char', 'System.Char')) { continue }
+        $const = $cast.Child -as [System.Management.Automation.Language.ConstantExpressionAst]
+        if ($null -eq $const) { continue }
+        $n = 0
+        if (-not [int]::TryParse([string]$const.Value, [ref]$n)) { continue }
+        if ($n -gt 0xFFFF) {
+            [void]$charsForaDeRang.Add(($fitxer.Name + ':' + $cast.Extent.StartLineNumber + ' ' + $cast.Extent.Text))
+        }
+    }
+}
+AssertEq $charsForaDeRang.Count 0 ("cap [char] amb un codi mes gran que 0xFFFF -fes servir [System.Char]::ConvertFromUtf32- (" + ($charsForaDeRang -join ', ') + ')')
+
+# EL DESPATXADOR DEL MENU HA D'APUNTAR A FUNCIONS QUE EXISTEIXIN.
+#
+# El 'switch' de Main (Wizard.ps1) reparteix cada rajola del menu cap a la seva
+# funcio. Si algu la reanomena -o l'afegeix al switch abans d'escriure-la-, el
+# programa arrenca igual i nomes peta EN CLICAR aquella rajola. Cap prova de
+# comportament ho veu: totes aquestes funcions obren finestres.
+#
+# Aqui es treuen del PROPI switch (AST) els noms d'ordre que invoca i es
+# comprova que tots es resolen amb el motor ja carregat.
+$accionsSenseFuncio = New-Object System.Collections.ArrayList
+$wizardPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'Wizard.ps1'
+if (Test-Path -LiteralPath $wizardPath) {
+    $astW = [System.Management.Automation.Language.Parser]::ParseFile($wizardPath, [ref]$null, [ref]$null)
+    $mainFn = $astW.Find({ param($x)
+        $x -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $x.Name -eq 'Main' }, $true)
+    Assert ($null -ne $mainFn) 'Wizard.ps1: hi ha la funcio Main'
+    $sw = $mainFn.Find({ param($x) $x -is [System.Management.Automation.Language.SwitchStatementAst] }, $true)
+    Assert ($null -ne $sw) 'Main: hi ha el switch del despatxador'
+    foreach ($cmd in $sw.FindAll({ param($x) $x -is [System.Management.Automation.Language.CommandAst] }, $true)) {
+        $nom = [string]$cmd.GetCommandName()
+        if ([string]::IsNullOrWhiteSpace($nom)) { continue }
+        # Nomes ens interessen les funcions del programa (Verb-Nom).
+        if ($nom -notmatch '^[A-Za-z]+-[A-Za-z]') { continue }
+        if (-not (Get-Command $nom -ErrorAction SilentlyContinue)) {
+            [void]$accionsSenseFuncio.Add($nom)
+        }
+    }
+}
+AssertEq $accionsSenseFuncio.Count 0 ('el despatxador del menu apunta a funcions que no existeixen (' + ($accionsSenseFuncio -join ', ') + ')')
+
 $docsLl = @(_LlicDocsSignats)
 AssertEq $docsLl.Count 3 '_LlicDocsSignats: TRES documents (no cinc: la coma dins d''un @() parteix el text)'
 AssertEq $docsLl[1] ('Pl' + [char]0x00E0 + 'nols') '_LlicDocsSignats: Planols, sencer'

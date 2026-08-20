@@ -1106,7 +1106,7 @@ function Select-Mode {
     # ✏️ LLIC. Obre la base de dades de llicencies (el que es recorda de cada
     # activitat per als informes seguents).
     [void]$menu.Add(@{ Action='llicencia'; Label=$llicNom; Sub='Requeriment i favorables'; Icon=$icoLlic; Doc='LLIC'; Cataleg=$null;
-                       Extra=@{ Text='Dades'; Icon=[string][char]0x1F5C2 + [char]0xFE0F; Action='llicdb' } })
+                       Extra=@{ Text='Dades'; Icon=([System.Char]::ConvertFromUtf32(0x1F5C2) + [char]0xFE0F); Action='llicdb' } })
     # Qualsevol altre cataleg no llistat (p.ex. un REQ2 nou) s'afegeix al final.
     foreach ($c in $catalegs) {
         if ($c.BaseName -in 'REQ1','TERMINI') { continue }

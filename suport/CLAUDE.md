@@ -1329,6 +1329,23 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
     assignacions, variables de `foreach`) o seves. S'exclouen les automàtiques i
     les de `$Script:`/`$Global:`/`$env:`. Sobre el codi d'avui: 1 encert i **0
     falsos positius**; validat injectant el cas.
+- **UN EMOJI ASTRAL AMB `[char]` I EL PROGRAMA NO S'OBRE.**
+  `Icon = [string][char]0x1F5C2 + [char]0xFE0F` → *«no se puede convertir el
+  valor 128450 al tipo System.Char»*. Un `[char]` és de **16 bits** (màxim
+  `0xFFFF`) i `0x1F5C2` (🗂) no hi cap. Com que aquell codi és a `Select-Mode`,
+  que construeix la **primera** pantalla, el programa **no arrencava gens**.
+  - La manera bona ja era **dues línies més amunt** al mateix fitxer:
+    `[System.Char]::ConvertFromUtf32(0x1F5C2)`. Els emoji del pla bàsic
+    (`✏️` = `[char]0x270F + [char]0xFE0F`) sí que van amb `[char]`.
+  - **Per què cap prova ho va veure**: `Select-Mode` és WinForms i les proves no
+    el criden mai. Cap prova de comportament pot enxampar això.
+  - **Detector**: es recorre l'AST de tot `suport/` buscant un `[char]` amb una
+    constant més gran que `0xFFFF`. Zero falsos positius —un `[char]` així no
+    pot ser correcte MAI— i validat injectant el cas.
+  - **Lliçó general**: el codi que només corre a la interfície (menú, diàlegs)
+    no el toca cap prova, o sigui que **hi ha d'arribar el parser**. Els tres
+    detectors AST que hi ha (el `'+'` solt, les closures i aquest) són tots del
+    mateix estil i per la mateixa raó.
 - **Un clic en un RadioButton dispara DOS esdeveniments**: el que es marca i el
   germà que es desmarca. Amb un handler compartit la pantalla es repintava dues
   vegades, i la segona llegia uns controls que `Controls.Clear()` acabava de
