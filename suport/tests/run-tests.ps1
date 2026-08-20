@@ -1782,6 +1782,76 @@ Get-ChildItem -Recurse -Filter *.ps1 (Split-Path -Parent $PSScriptRoot) | ForEac
 }
 AssertEq $closuresRecursives.Count 0 ("cap .GetNewClosure() es refereix a la variable que s'hi assigna (" + ($closuresRecursives -join ', ') + ')')
 
+# LA SEGONA CARA DE LA MATEIXA TRAMPA: UNA CLOSURE DINS D'UNA ALTRA.
+#
+# .GetNewClosure() copia NOMES els LOCALS del context que la crida. Una closure
+# creada A DINS d'una altra es queda, doncs, amb els locals d'aquella invocacio
+# -parametres i variables que s'hi assignen- i PERD tot el que venia del modul
+# de la closure de fora:
+#
+#   $fn = @{}; $fora = 'x'
+#   $fn.Pinta = { param($idx)
+#       $local = 'l'
+#       $inner = { "$local $idx $fora $fn" }.GetNewClosure()   # <- $fora i $fn: NULL
+#   }.GetNewClosure()
+#
+# Va passar al handler dels radios de la pantalla de documentacio: $fn hi
+# arribava buit i "& $fn.Pinta" petava en triar "Es disposa del document".
+# El detector de mes amunt (una closure que es refereix a SI MATEIXA) no el veu.
+#
+# S'exclouen les automatiques i les de $Script:/$Global:/$env:, que si que es
+# resolen en temps d'execucio.
+$Global:_autoTancades = @('_','null','true','false','args','this','PSItem','input','error',
+                          'matches','host','PSScriptRoot','PSCommandPath','MyInvocation',
+                          'LASTEXITCODE','sender','e','ev','s','o')
+function _LocalsDeScriptBlock($sb) {
+    $set = New-Object System.Collections.Generic.HashSet[string] ([StringComparer]::OrdinalIgnoreCase)
+    if ($sb.ParamBlock) {
+        foreach ($p in $sb.ParamBlock.Parameters) { [void]$set.Add($p.Name.VariablePath.UserPath) }
+    }
+    foreach ($a in $sb.FindAll({ param($x) $x -is [System.Management.Automation.Language.AssignmentStatementAst] }, $true)) {
+        $l = $a.Left -as [System.Management.Automation.Language.VariableExpressionAst]
+        if ($l) { [void]$set.Add($l.VariablePath.UserPath) }
+    }
+    foreach ($f in $sb.FindAll({ param($x) $x -is [System.Management.Automation.Language.ForEachStatementAst] }, $true)) {
+        [void]$set.Add($f.Variable.VariablePath.UserPath)
+    }
+    # Amb la coma: si no, PowerShell ENUMERA el HashSet i el retorn es una
+    # cadena (o $null si es buit), i despres .Contains() peta.
+    return ,$set
+}
+$closuresImbricades = New-Object System.Collections.ArrayList
+Get-ChildItem -Recurse -Filter *.ps1 (Split-Path -Parent $PSScriptRoot) | ForEach-Object {
+    $fitxer = $_
+    $arbre = [System.Management.Automation.Language.Parser]::ParseFile($fitxer.FullName, [ref]$null, [ref]$null)
+    $esTancada = { param($x)
+        $x -is [System.Management.Automation.Language.InvokeMemberExpressionAst] -and
+        ([string]$x.Member.Value -eq 'GetNewClosure') }
+    foreach ($fora in $arbre.FindAll($esTancada, $true)) {
+        $sbFora = $fora.Expression -as [System.Management.Automation.Language.ScriptBlockExpressionAst]
+        if ($null -eq $sbFora) { continue }
+        $localsFora = _LocalsDeScriptBlock $sbFora.ScriptBlock
+        foreach ($dins in $sbFora.ScriptBlock.FindAll($esTancada, $true)) {
+            $sbDins = $dins.Expression -as [System.Management.Automation.Language.ScriptBlockExpressionAst]
+            if ($null -eq $sbDins) { continue }
+            $localsDins = _LocalsDeScriptBlock $sbDins.ScriptBlock
+            $perdudes = @()
+            foreach ($v in $sbDins.ScriptBlock.FindAll({ param($x) $x -is [System.Management.Automation.Language.VariableExpressionAst] }, $true)) {
+                $n = $v.VariablePath.UserPath
+                if ($v.VariablePath.IsGlobal -or $v.VariablePath.IsScript -or $n -like 'env:*') { continue }
+                if ($Global:_autoTancades -contains $n) { continue }
+                if ($localsDins.Contains($n) -or $localsFora.Contains($n)) { continue }
+                if ($perdudes -notcontains $n) { $perdudes += $n }
+            }
+            if ($perdudes.Count -gt 0) {
+                [void]$closuresImbricades.Add(($fitxer.Name + ':' + $dins.Extent.StartLineNumber +
+                                               ' ($' + ($perdudes -join ', $') + ')'))
+            }
+        }
+    }
+}
+AssertEq $closuresImbricades.Count 0 ('cap closure imbricada depen del que ve de fora (' + ($closuresImbricades -join ', ') + ')')
+
 $docsLl = @(_LlicDocsSignats)
 AssertEq $docsLl.Count 3 '_LlicDocsSignats: TRES documents (no cinc: la coma dins d''un @() parteix el text)'
 AssertEq $docsLl[1] ('Pl' + [char]0x00E0 + 'nols') '_LlicDocsSignats: Planols, sencer'

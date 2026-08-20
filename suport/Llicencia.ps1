@@ -1204,13 +1204,29 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
             $rbSi.Checked = ([string]$e.Estat -eq 'si')
             [void]$panDret.Controls.Add($rbSi)
             $y += 30
-            $canvia = {
-                if ($estatUi.Busy) { return }
-                $e.Estat = if ($rbSi.Checked) { 'si' } else { 'no' }
-                & $fn.Pinta $idx
-            }.GetNewClosure()
-            $rbNo.add_CheckedChanged($canvia)
-            $rbSi.add_CheckedChanged($canvia)
+            # UNA COPIA LOCAL DE $fn.
+            #
+            # .GetNewClosure() nomes copia els LOCALS del context que la crida.
+            # Aqui dins, $idx, $e i els dos radios SI que ho son, pero $fn ve del
+            # modul de la closure de fora i arribaria als handlers com a $null
+            # (-> "& $null.Pinta", el quadre d'error en triar "Es disposa").
+            # Hi ha una prova que ho vigila; vegeu CLAUDE.md.
+            $fnAquest = $fn
+            # UN HANDLER PER RADIO, i nomes actua el que s'acaba de marcar: un
+            # sol clic dispara DOS esdeveniments -el que es marca i el germa que
+            # es desmarca- i amb un handler compartit la pantalla es repintava
+            # dues vegades, la segona llegint uns controls que Controls.Clear()
+            # acabava de treure del panell.
+            $rbSi.add_CheckedChanged({
+                if (-not $rbSi.Checked) { return }
+                $e.Estat = 'si'
+                & $fnAquest.Pinta $idx
+            }.GetNewClosure())
+            $rbNo.add_CheckedChanged({
+                if (-not $rbNo.Checked) { return }
+                $e.Estat = 'no'
+                & $fnAquest.Pinta $idx
+            }.GetNewClosure())
         }
 
         # La frase del cataleg amb els camps INLINE (nomes al bloc ABANS).

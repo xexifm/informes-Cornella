@@ -1256,6 +1256,37 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
     busca un `.GetNewClosure()` que referenciï **la variable a què s'està
     assignant**. Hi ha prova, i s'ha comprovat que **falla** quan s'hi injecta
     el cas.
+- **LA SEGONA CARA: una closure DINS d'una altra perd el que ve de fora.**
+  `.GetNewClosure()` copia **només els locals del context que la crida**. Una
+  closure creada a dins d'una altra es queda amb els locals d'aquella invocació
+  —paràmetres i variables que s'hi assignen— i **perd tot el que venia del
+  mòdul de la closure exterior**:
+
+  ```powershell
+  $fn = @{}; $fora = 'x'
+  $fn.Pinta = { param($idx)
+      $local = 'l'
+      $inner = { "$local $idx $fora $fn" }.GetNewClosure()   # $fora i $fn: NULL
+  }.GetNewClosure()
+  ```
+
+  Vaig arreglar la primera cara posant les funcions de la pantalla en un
+  hashtable `$fn`… i el handler dels radios, que es crea **a dins** de
+  `$fn.Pinta`, seguia rebent `$fn` buit: `& $null.Pinta` en triar «Es disposa
+  del document». **El detector de la primera cara no ho veu**, perquè `$fn` no
+  és la variable que s'està assignant.
+  - **Solució**: una **còpia local** just abans de crear els handlers
+    (`$fnAquest = $fn`). Els paràmetres i les variables assignades dins de la
+    funció (`$idx`, `$e`, els controls) sí que arriben bé.
+  - **Detector propi**: una `.GetNewClosure()` imbricada dins d'una altra només
+    pot referenciar variables **locals de la de fora** (paràmetres,
+    assignacions, variables de `foreach`) o seves. S'exclouen les automàtiques i
+    les de `$Script:`/`$Global:`/`$env:`. Sobre el codi d'avui: 1 encert i **0
+    falsos positius**; validat injectant el cas.
+- **Un clic en un RadioButton dispara DOS esdeveniments**: el que es marca i el
+  germà que es desmarca. Amb un handler compartit la pantalla es repintava dues
+  vegades, i la segona llegia uns controls que `Controls.Clear()` acabava de
+  treure. Un handler per radio amb `if (-not $rb.Checked) { return }` i s'acaba.
 - **Els errors dels handlers de WinForms no arriben al `try/catch` de qui va
   obrir la finestra**: els para el bucle de missatges, que ensenya el seu quadre
   gris en l'idioma del Windows i sense dir on ha passat. Per això `Motor.ps1`
