@@ -3,6 +3,33 @@
     "IntroText":  "S\u0027han observat les següents deficiències que cal esmenar per poder exercir l\u0027activitat:",
     "Sections":  [
                      {
+                         "Title":  "Classificació",
+                         "Items":  [
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "Classificació L20/2009",
+                                           "BodyLines":  [
+                                                             "L’activitat està classificada segons l’Annex [OPCIO: Annex | II | III], epígraf [CAMP: Epígraf L20] de la LLEI 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats.",
+                                                             "[OPCIO: Afegitó? | | Article 7.2 de la LLEI 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats:",
+                                                             "2. Si una mateixa persona o una mateixa empresa sol·licita exercir diverses activitats en un mateix centre o en un mateix establiment subjectes a diferents règims d\u0027intervenció establerts en aquesta llei, la sol·licitud s\u0027ha de tramitar i resoldre en una sola autorització o llicència ambientals, i s\u0027ha d\u0027aplicar el règim que correspon a les activitats amb grau d\u0027incidència ambiental més elevat.]"
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "Classificació L18/2020",
+                                           "BodyLines":  [
+                                                             "L’activitat està classificada segons l’epígraf [CAMP: epígraf L18] de la LLEI 18/2020, del 28 de desembre, de facilitació de l\u0027activitat econòmica."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       }
+                                   ]
+                     },
+                     {
                          "Title":  "Requeriment pendent",
                          "Items":  [
                                        {
