@@ -52,6 +52,17 @@ AssertEq (Get-ViaNormalitzada 'Doctor Ferran') 'DOCTOR FERRAN' 'majuscules'
 AssertEq (Get-ViaNormalitzada 'Muntanya  del   Vent') 'MUNTANYA DEL VENT' 'espais collapsats'
 AssertEq (Get-ViaNormalitzada '') '' 'buida'
 AssertEq (Get-ViaNormalitzada $null) '' 'null'
+# LES SIGLES DEL CADASTRE. Aquesta es la prova que hauria evitat que cap adreca
+# coincidis mai per carrer: el Cadastre escriu 'CL CADIS' i, sense 'CL' a la
+# llista, no es convertia en 'CADIS'. La tria del portal es feia nomes pel
+# numero i s'agafava el del carrer del costat.
+AssertEq (Get-ViaNormalitzada 'CL CADIS')  'CADIS'  'CL (calle, com ho escriu el Cadastre)'
+AssertEq (Get-ViaNormalitzada 'CL CADIS')  (Get-ViaNormalitzada 'C CADIS') 'el Cadastre i l Excel han de coincidir'
+AssertEq (Get-ViaNormalitzada 'CL HUELVA') 'HUELVA' 'l altre carrer de la illa'
+AssertEq (Get-ViaNormalitzada 'PZ CATALUNYA') 'CATALUNYA' 'PZ (plaza)'
+AssertEq (Get-ViaNormalitzada 'TR MIG')       'MIG'       'TR (travesia)'
+AssertEq (Get-ViaNormalitzada 'GL ESPANYA')   'ESPANYA'   'GL (glorieta)'
+AssertEq (Get-ViaNormalitzada 'CL DE LA PAU') 'DE LA PAU' 'nomes es treu la PRIMERA paraula'
 
 Write-Host "`n--- ConvertFrom-CatastroAdXml (fixture INSPIRE) ---"
 $portals = @(ConvertFrom-CatastroAdXml $fixture)
@@ -110,6 +121,55 @@ $dos = @(
     [pscustomobject]@{ Numero=''; Via=''; X=421980.0; Y=4579520.0 }
 )
 Assert ($null -eq (Select-PortalFacana $dos '' '')) 'ambigu del tot -> null'
+# DOS portals amb el MATEIX numero al mateix carrer: la tria es una moneda a
+# l'aire i s'ha de dir. Passa de debo a la illa de Cadis, on n'hi ha dos amb
+# l'1 i un d'ells cau al centre de la parcel.la.
+$repetit = @(
+    [pscustomobject]@{ Numero='1'; Via='CL CADIS'; X=422069.174; Y=4579449.952 }
+    [pscustomobject]@{ Numero='1'; Via='CL CADIS'; X=421968.090; Y=4579505.550 }
+    [pscustomobject]@{ Numero='3'; Via='CL CADIS'; X=422060.714; Y=4579461.182 }
+)
+$t = Select-PortalFacana $repetit 'CADIS' '1'
+AssertEq $t.Precisio 'facana-dubtosa' 'dos portals amb el numero 1 -> dubtos'
+$t = Select-PortalFacana $repetit 'CADIS' '3'
+AssertEq $t.Precisio 'facana' 'i el que nomes hi es un cop, segueix sent fiable'
+
+Write-Host "`n--- Zones (graella de 400 m ancorada a un origen FIX) ---"
+# L'ancoratge es constant a proposit: si la graella sortis del minim de les
+# dades, una activitat nova mes a l'oest desplacaria TOTES les zones i 'la zona
+# C6' voldria dir una altra cosa que la setmana passada.
+AssertEq (Get-ZonaDeCoord 421968.09 4579505.55) 'F2' 'la illa de Cadis/Huelva es la F2'
+AssertEq (Get-ZonaDeCoord 423912.16 4578928.25) 'E7' 'Ctra. de l Hospitalet 147 es la E7'
+AssertEq (Get-ZonaDeCoord 421200.0  4577200.0)  'A1' 'el canto de la graella es A1'
+AssertEq (Get-ZonaDeCoord 421599.9  4577599.9)  'A1' 'i tot el quadre de 400 m tambe'
+AssertEq (Get-ZonaDeCoord 421600.0  4577600.0)  'B2' 'el quadre seguent, en diagonal'
+AssertEq (Get-ZonaDeCoord 421200.0  4587200.0)  'Z1'  'la fila 25 es la Z'
+AssertEq (Get-ZonaDeCoord 421200.0  4587600.0)  'AA1' 'i passada la Z, AA (no es queda sense lletres)'
+
+Assert (Test-CoordPlausible 421968.09 4579505.55) 'una coordenada de Cornella es plausible'
+# El GIA 1009 (Quintana i Millas 9) porta X=423,37 Y=4578,81: les xifres bones
+# dividides per mil. Si es cola, el mapa s'estira fins a l'Atlantic.
+Assert (-not (Test-CoordPlausible 423.37 4578.81)) 'les xifres partides per mil, NO'
+Assert (-not (Test-CoordPlausible 0 0))            'l origen, NO'
+Assert (-not (Test-CoordPlausible 421968.09 12.5)) 'una Y impossible, NO'
+
+$regsZ = @(
+    [pscustomobject]@{ Id='1'; Rc='2295827DF2729E0011RQ'; Carrer='CADIS';  Numero='19'; UtmX=421968.09; UtmY=4579505.55 }
+    [pscustomobject]@{ Id='2'; Rc='2295827DF2729E0008RQ'; Carrer='HUELVA'; Numero='6';  UtmX=421968.09; UtmY=4579505.55 }
+    [pscustomobject]@{ Id='3'; Rc='2295827DF2729E0003XL'; Carrer='HUELVA'; Numero='16'; UtmX=421970.00; UtmY=4579500.00 }
+    [pscustomobject]@{ Id='4'; Rc='4091106DF2749A0006XJ'; Carrer='HOSPITALET'; Numero='147'; UtmX=423912.16; UtmY=4578928.25 }
+    [pscustomobject]@{ Id='5'; Rc='XXXX'; Carrer='ENLLOC'; Numero='1'; UtmX=423.37; UtmY=4578.81 }
+)
+$zones = @(Get-ZonesAmbActivitats $regsZ)
+AssertEq $zones.Count 2 'dues zones (la impossible no compta)'
+AssertEq $zones[0].Nom 'F2' 'primer la que en te mes'
+AssertEq $zones[0].Comptador 3 'i en te tres'
+AssertEq $zones[0].Carrers 'HUELVA / CADIS' 'el nom de la zona surt dels carrers, el mes repetit primer'
+AssertEq $zones[1].Nom 'E7' 'i la segona zona'
+AssertEq $zones[1].Comptador 1 'amb una activitat'
+AssertEq @(Get-ZonesAmbActivitats @()).Count 0 'sense registres, cap zona'
+AssertEq (Get-CarrersDominants @()) '' 'sense carrers, nom buit'
+AssertEq (Get-CarrersDominants $regsZ 1) 'HUELVA' 'el carrer mes repetit de tots'
 
 Write-Host "`n--- Get-UtmDistanceM ---"
 AssertNear (Get-UtmDistanceM 0 0 3 4) 5 0.0001 'triangle 3-4-5'
@@ -186,6 +246,7 @@ AssertEq @(Get-RefcatsAConsultar $senseRc).Count 0 'sense referencia cadastral n
 Write-Host "`n--- New-ItemCoordenades ---"
 $it = New-ItemCoordenades $recs[0] $portals
 AssertEq $it.Id '1' 'conserva l ID'
+AssertEq $it.Zona 'F2' 'i porta la seva zona (per al mapa i per a l Excel)'
 AssertEq $it.Precisio 'facana-aprox' 'Cadis 19 no hi es: agafa el portal senar mes proper'
 AssertNear $it.XExcel  421968.09 0.001 'la coordenada de l Excel es conserva intacta'
 AssertNear $it.XFacana 421982.90 0.001 'i la nova es la del portal'
@@ -203,13 +264,18 @@ AssertNear $itSense.LatFacana $itSense.LatExcel 0.0000001 'i tambe en graus'
 
 Write-Host "`n--- Get-ResumPrecisio ---"
 $resum = Get-ResumPrecisio @($it, $itSense, $it)
-AssertEq $resum['facana-aprox'] 2 'compta els aproximats'
-AssertEq $resum['cadastre']     1 'compta els que es queden al cadastre'
-AssertEq $resum['facana']       0 'i els exactes, encara que siguin zero'
+AssertEq $resum['facana-aprox']   2 'compta els aproximats'
+AssertEq $resum['cadastre']       1 'compta els que es queden al cadastre'
+AssertEq $resum['facana']         0 'i els exactes, encara que siguin zero'
+AssertEq $resum['facana-dubtosa'] 0 'i els dubtosos'
 
 Write-Host "`n--- Build-CoordenadesHtml ---"
 $items = @($it, $itSense)
-$html = Build-CoordenadesHtml $items 'Base de dades: 2026-08-18 ACTIVITATS.xls' 'activitats apilades' '2026-08-18 ACTIVITATS.xls'
+$portalsMapa = @(
+    [pscustomobject]@{ Numero='19'; Via='CL CADIS';  Lat=41.36537; Lon=2.06765 }
+    [pscustomobject]@{ Numero='6';  Via='CL HUELVA'; Lat=41.36452; Lon=2.06780 }
+)
+$html = Build-CoordenadesHtml $items 'Base de dades: 2026-08-18 ACTIVITATS.xls' 'F2 (apilades)' '2026-08-18 ACTIVITATS.xls' $portalsMapa
 Assert ($html -match 'leaflet')                 'inclou Leaflet'
 Assert ($html -match '"id":"1"')                'inclou l ID de l activitat'
 Assert ($html -match '421968\.09')              'inclou la coordenada de l Excel'
@@ -218,22 +284,40 @@ Assert ($html -match 'baixaExcel')              'inclou el boto de baixar l Exce
 Assert ($html -match 'draggable: true')         'el punt verd es pot arrossegar'
 Assert ($html -match 'latLonToUtm31')           'inclou la projeccio per als punts moguts'
 Assert ($html -match 'localStorage')            'les correccions es recorden al navegador'
+Assert ($html -match 'validaVisibles')          'hi ha el boto de validar tot el que es veu'
+Assert ($html -match 'ZOOM_NUMS')               'els numeros de portal tenen llindar de zoom'
+Assert ($html -match 'chkNums')                 'i una casella per apagar-los'
+Assert ($html -match '"zona":"F2"')             'cada activitat porta la seva zona al JSON'
+# Els portals han d'arribar a la pagina amb el seu numero: son el que et deixa
+# dir si un punt esta ben posat.
+Assert ($html -match 'var PORTALS = (\[.*?\]);') 'hi ha la llista de portals'
+$jsonP = $Matches[1]
+$parsedP = $null
+try { $parsedP = $jsonP | ConvertFrom-Json } catch { $parsedP = $null }
+Assert ($null -ne $parsedP) 'el JSON dels portals es valid'
+AssertEq @($parsedP).Count 2 'hi son els dos portals'
+AssertEq $parsedP[0].n '19' 'amb el seu numero'
 Assert ($html -match 'ACTIVITATS\.xls')         'inclou el nom de la base de dades'
 Assert ($html -match '<meta charset="utf-8">')  'declara la codificacio'
 # El JSON que s'incrusta ha de ser valid: si no, la pagina no arrenca.
-Assert ($html -match 'var ITEMS = (\[.*\]);') 'hi ha la llista d items'
+Assert ($html -match 'var ITEMS   = (\[.*?\]);') 'hi ha la llista d items'
 $json = $Matches[1]
 $parsed = $null
 try { $parsed = $json | ConvertFrom-Json } catch { $parsed = $null }
 Assert ($null -ne $parsed) 'el JSON incrustat es valid'
 AssertEq @($parsed).Count 2 'hi son les dues activitats'
 AssertEq $parsed[0].prec 'facana-aprox' 'el JSON porta la precisio'
-# Amb una sola activitat, ConvertTo-Json no embolcalla en array: ha de sortir
-# igualment com a llista (la mateixa trampa que ja hi havia a Ruta.ps1).
-$html1 = Build-CoordenadesHtml @($it) 'db' 'abast' 'font.xls'
-Assert ($html1 -match 'var ITEMS = \[\{') 'amb un sol item, el JSON segueix sent una llista'
+# AMB UNA SOLA ACTIVITAT. Aquesta es la prova que fallava de debo: el guard
+# mirava el NOMBRE d'elements donant per fet que ConvertTo-Json en desembolcalla
+# un de sol, i en el PowerShell de l'usuari NO ho fa -- sortia [[{...}]] i la
+# pagina no arrencava. Ara es mira la SORTIDA, que es el que compta, i tant se
+# val com es comporti cada versio. Amb zones petites, aixo passara sovint.
+$html1 = Build-CoordenadesHtml @($it) 'db' 'abast' 'font.xls' @()
+Assert ($html1 -match 'var ITEMS   = \[\{') 'amb un sol item, el JSON segueix sent una llista'
+Assert ($html1 -notmatch 'var ITEMS   = \[\[') 'i NO queda embolcallat dues vegades'
 # I sense cap activitat, la pagina no ha de petar.
-$html0 = Build-CoordenadesHtml @() 'db' 'abast' 'font.xls'
-Assert ($html0 -match 'var ITEMS = \[\];') 'sense activitats, llista buida'
+$html0 = Build-CoordenadesHtml @() 'db' 'abast' 'font.xls' @()
+Assert ($html0 -match 'var PORTALS = \[\];') 'sense portals, llista buida'
+Assert ($html0 -match 'var ITEMS   = \[\];') 'sense activitats, llista buida'
 
 exit (Write-TestSummary 'RESULTAT')

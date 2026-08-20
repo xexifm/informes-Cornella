@@ -1672,6 +1672,48 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   noves**: si es cancel·la a mitja tanda, no es perd el que ja s'ha demanat. Les
   entrades amb portals valen 365 dies; les buides, 30 (per si el servei era
   caigut). Si la crida **falla**, no s'hi escriu res.
+- **LES SIGLES DE VIA DEL CADASTRE HI HAN DE SER TOTES.** El Cadastre escriu
+  `CL CADIS`, i a `Get-ViaNormalitzada` hi faltava **`CL`** (hi havia `CALLE`,
+  `CARRER` i `C`, però la `C` demana un espai al darrere i a `CL` la segueix una
+  `L`). Resultat: `'CL CADIS' ≠ 'CADIS'`, **cap adreça no ha coincidit mai per
+  carrer** i la tria del portal es feia només pel número. En una illa amb
+  entrades per dos carrers això vol dir agafar el número del carrer del costat:
+  `C HUELVA 1` va acabar a 129 m d'on tocava. La llista viu a
+  `$Script:GeoSiglesVia`; si un dia surten desplaçaments estranys, mira primer
+  si hi ha una sigla nova. Va passar desapercebut perquè **no falla, empitjora
+  en silenci**: seguia trobant un portal, només que el que no era.
+- **Dos portals amb el mateix número existeixen.** A la illa de Cadis n'hi ha
+  dos amb l'1, i un d'ells cau exactament al centre de la parcel·la. Quan passa,
+  `Select-PortalFacana` retorna `facana-dubtosa`: al mapa surt en ambre perquè
+  l'usuari el miri, en lloc de triar-ne un a l'atzar i callar.
+- **El guard del JSON ha de mirar la SORTIDA, no el `Count`.** El
+  `if ($arr.Count -eq 1) { "[$json]" }` dona per fet que `ConvertTo-Json`
+  desembolcalla quan hi ha un sol element — i **en el PowerShell de l'usuari no
+  ho fa**: sortia `[[{…}]]` i el mapa d'una sola activitat no arrencava. Ara es
+  mira `StartsWith('[')`. **`Ruta.ps1` tenia el mateix patró** i s'ha arreglat
+  igual (amb una sola parada hauria petat exactament igual).
+- **La graella de zones s'ancora a un origen CONSTANT** (`$CoordZonaX0` /
+  `$CoordZonaY0`), no al mínim de les dades. Si sortís de les dades, n'hi hauria
+  prou que una activitat nova caigués més a l'oest perquè **totes** les zones es
+  desplacessin i «la zona C6» volgués dir una altra cosa que la setmana passada.
+  400 m: 40 zones, la més gran de 40 activitats i la mediana de 17.
+- **Els noms de les zones surten de les dades, no del codi.** `Get-CarrersDominants`
+  els calcula dels carrers de les activitats que hi cauen: al codi no hi ha
+  escrit cap nom de cap carrer de Cornellà, i per tant no es pot desfasar.
+- **`Test-CoordPlausible` i per què cal.** La base porta coordenades impossibles
+  (el GIA 1009 té `X=423,37`: les xifres bones dividides per mil). Si es colen, el
+  mapa s'estira fins a l'Atlàntic i la resta de punts queden tots en un píxel. Es
+  descarten i es llisten al resum del final, mai en silenci.
+- **El progrés del repàs viu al NAVEGADOR, i el PowerShell no hi té accés.** Per
+  això la finestra de tria diu quantes activitats té cada zona però **no** quantes
+  en portes de repassades: això ho diu el mapa, que sí que pot llegir el
+  `localStorage`. No intentis posar-ho a la finestra sense una via real de
+  retorn del navegador al disc.
+- **El `localStorage` desa la FILA SENCERA**, no només la posició: l'Excel ha de
+  poder portar tot el que s'hagi validat d'aquesta base, també el de les zones
+  que avui no estan obertes. La clau és el **nom del fitxer d'origen**, de manera
+  que en canviar de base d'activitats el repàs es buida sol — que és el que toca,
+  perquè les correccions ja seran a dins de la base nova.
 - **Proves**: `tests/run-tests-coordenades.ps1` (registrada a `run-tests-all.ps1`).
   A l'entorn de desenvolupament no hi havia `pwsh` (ni paquet ni GitHub), o sigui
   que la lògica es va validar amb una **rèplica en Python** — el mateix recurs

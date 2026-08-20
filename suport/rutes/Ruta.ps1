@@ -432,7 +432,12 @@ function Build-RouteHtml($stops, $geometry, [double]$distanceM, [double]$duratio
     $stopsJson = ConvertTo-Json @($stops | ForEach-Object {
         [ordered]@{ order = $_.Order; id = $_.Id; address = $_.Address; lat = $_.Lat; lon = $_.Lon }
     }) -Depth 5 -Compress
-    if (@($stops).Count -eq 1) { $stopsJson = "[$stopsJson]" }  # ConvertTo-Json no embolcalla 1 element
+    # La llista de parades ha de ser una LLISTA sempre. Es mira la SORTIDA i no
+    # el nombre de parades: donar per fet que ConvertTo-Json desembolcalla quan
+    # n'hi ha una de sola no es cert a totes les versions, i on no ho es sortia
+    # [[{...}]] i el mapa no arrencava (destapat a l'eina Coordenades).
+    if ([string]::IsNullOrWhiteSpace($stopsJson) -or $stopsJson -eq 'null') { $stopsJson = '[]' }
+    elseif (-not $stopsJson.TrimStart().StartsWith('[')) { $stopsJson = "[$stopsJson]" }
 
     $geomJson = if ($geometry -and @($geometry).Count -gt 0) {
         ConvertTo-Json @($geometry) -Depth 5 -Compress

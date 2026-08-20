@@ -118,6 +118,102 @@ function Get-ClauCoord([double]$x, [double]$y) {
     return ([math]::Round($x, 2).ToString('F2', $inv) + '|' + [math]::Round($y, 2).ToString('F2', $inv))
 }
 
+# ----------------------------------------------------------------------------
+# ZONES
+# ----------------------------------------------------------------------------
+# El repas de 700 activitats no es pot fer d'una tirada, aixi que el municipi es
+# parteix en una GRAELLA de quadres de 400 m i es treballa zona a zona.
+#
+# L'ancoratge es CONSTANT i no surt de les dades. Si la graella s'ancores al
+# minim de l'Excel, n'hi hauria prou que una activitat nova caigues mes a
+# l'oest perque TOTES les zones es desplacessin i "la zona C6" volgues dir una
+# altra cosa que la setmana passada. Amb un origen fix, un nom de zona sempre
+# es el mateix rectangle.
+#
+# 400 m calculat amb la base del 2026-08-18: 40 zones amb activitats apilades,
+# la mes gran de 40 i la mediana de 17 -- una tanda raonable.
+$CoordZonaMetres = 400
+$CoordZonaX0     = 421200      # cantonada SO de la graella (UTM 31N)
+$CoordZonaY0     = 4577200
+
+# Nom de la zona d'una coordenada: lletra per la FILA (de sud a nord) i numero
+# per la COLUMNA (d'oest a est) -- 'C6', 'F2'... Les coordenades que cauen fora
+# de la graella tambe en reben un (la graella no te limit): el que les descarta
+# es Test-CoordPlausible, no aixo.
+function Get-ZonaDeCoord([double]$x, [double]$y) {
+    $col = [int][math]::Floor(($x - $CoordZonaX0) / $CoordZonaMetres)
+    $fil = [int][math]::Floor(($y - $CoordZonaY0) / $CoordZonaMetres)
+    return ((_CoordLletraFila $fil) + [string]($col + 1))
+}
+
+# Lletra de la fila. Passada la Z es continua amb AA, AB... (no hi arribarem
+# mai amb Cornella, pero una funcio que retorna escombraries fora de rang es
+# una trampa esperant algu).
+function _CoordLletraFila([int]$fil) {
+    if ($fil -lt 0) { return 'z' + [string](-$fil) }   # al sud de l'origen
+    $n = $fil
+    $s = ''
+    do {
+        $s = [string][char](65 + ($n % 26)) + $s
+        $n = [int][math]::Floor($n / 26) - 1
+    } while ($n -ge 0)
+    return $s
+}
+
+# Una coordenada UTM 31N pot ser d'aquest mon? Es una comprovacio GENEROSA (tot
+# el fus, no nomes Cornella): nomes ha de caçar el que es impossible.
+#
+# Cal perque la base en porta: el GIA 1009 (Quintana i Millas 9) te
+# X=423,37 Y=4578,81 -- li falten tres xifres. Sense aixo es pinta al golf de
+# Guinea i estira el mapa sencer, de manera que la resta de punts queden
+# amuntegats en un pixel.
+function Test-CoordPlausible([double]$x, [double]$y) {
+    return ($x -ge 100000 -and $x -le 900000 -and $y -ge 4000000 -and $y -le 4900000)
+}
+
+# Agrupa els registres per zona i retorna, per cada una, el nom, quantes
+# activitats hi ha i els carrers mes repetits (per poder-la reconeixer). PURA.
+#
+# Els noms dels carrers es calculen AQUI, de les dades: al codi no hi ha escrit
+# cap nom de cap carrer de Cornella, aixi que aixo no es pot desfasar.
+function Get-ZonesAmbActivitats($records) {
+    $z = @{}
+    foreach ($r in @($records)) {
+        $x = [double]$r.UtmX; $y = [double]$r.UtmY
+        if (-not (Test-CoordPlausible $x $y)) { continue }
+        $nom = Get-ZonaDeCoord $x $y
+        if (-not $z.ContainsKey($nom)) { $z[$nom] = New-Object System.Collections.ArrayList }
+        [void]$z[$nom].Add($r)
+    }
+    $out = @()
+    foreach ($nom in @($z.Keys)) {
+        $regs = @($z[$nom])
+        $out += [pscustomobject]@{
+            Nom        = $nom
+            Comptador  = $regs.Count
+            Carrers    = (Get-CarrersDominants $regs)
+            Registres  = $regs
+        }
+    }
+    # De mes gran a mes petita: les que fan mes nosa, primer.
+    return @($out | Sort-Object -Property @{Expression='Comptador';Descending=$true}, @{Expression='Nom'})
+}
+
+# Els carrers mes repetits d'un grup de registres, per posar nom a una zona.
+function Get-CarrersDominants($records, [int]$quants = 2) {
+    $c = @{}
+    foreach ($r in @($records)) {
+        $v = ([string]$r.Carrer).Trim()
+        if ($v -eq '') { continue }
+        if ($c.ContainsKey($v)) { $c[$v] = $c[$v] + 1 } else { $c[$v] = 1 }
+    }
+    if ($c.Count -eq 0) { return '' }
+    $top = @($c.GetEnumerator() |
+        Sort-Object -Property @{Expression='Value';Descending=$true}, @{Expression='Key'} |
+        Select-Object -First $quants | ForEach-Object { $_.Key })
+    return ($top -join ' / ')
+}
+
 # Els registres APILATS: els que comparteixen coordenada amb algun altre.
 # Aquests son exactament els que fan nosa al mapa. Retorna un subconjunt de
 # $records, conservant l'ordre d'entrada.
@@ -166,6 +262,7 @@ function New-ItemCoordenades($record, $portals) {
     $llFacana = Convert-UtmToLatLon ([double]$coord.X) ([double]$coord.Y) 31 $true
     return [pscustomobject]@{
         Id        = [string]$record.Id
+        Zona      = (Get-ZonaDeCoord $x $y)
         Rc        = [string]$record.Rc
         Adreca    = [string]$record.Adreca
         Activitat = [string]$record.Activitat
@@ -183,7 +280,7 @@ function New-ItemCoordenades($record, $portals) {
 
 # Recompte per a la finestra de tria i per al resum final.
 function Get-ResumPrecisio($items) {
-    $r = [ordered]@{ facana = 0; 'facana-aprox' = 0; cadastre = 0 }
+    $r = [ordered]@{ facana = 0; 'facana-dubtosa' = 0; 'facana-aprox' = 0; cadastre = 0 }
     foreach ($it in @($items)) {
         $p = [string]$it.Precisio
         if ($r.Contains($p)) { $r[$p] = $r[$p] + 1 } else { $r[$p] = 1 }
@@ -211,7 +308,7 @@ function Get-ResumPrecisio($items) {
 #   desaCorreccions() els punts que mous a ma van al localStorage del navegador,
 #                    amb clau del fitxer d'origen. Si tanques la pagina i la
 #                    tornes a obrir, hi son.
-function Build-CoordenadesHtml($items, [string]$dbLabel, [string]$abast, [string]$fontName) {
+function Build-CoordenadesHtml($items, [string]$dbLabel, [string]$abast, [string]$fontName, $portals) {
     $arr = @($items)
     $itemsJson = ConvertTo-Json @($arr | ForEach-Object {
         # [ordered]: sense aixo, ConvertTo-Json treu les propietats en un ordre
@@ -219,6 +316,7 @@ function Build-CoordenadesHtml($items, [string]$dbLabel, [string]$abast, [string
         # canviat les dades (la mateixa trampa que ja hi havia a Ruta.ps1).
         [ordered]@{
             id        = [string]$_.Id
+            zona      = [string]$_.Zona
             rc        = [string]$_.Rc
             adreca    = [string]$_.Adreca
             activitat = [string]$_.Activitat
@@ -233,8 +331,21 @@ function Build-CoordenadesHtml($items, [string]$dbLabel, [string]$abast, [string
             prec      = [string]$_.Precisio
         }
     }) -Depth 5 -Compress
-    if ($arr.Count -eq 1) { $itemsJson = "[$itemsJson]" }   # ConvertTo-Json no embolcalla 1 element
-    if ($arr.Count -eq 0) { $itemsJson = '[]' }
+    # El JSON ha de ser una LLISTA sempre. Aixo abans es decidia pel nombre
+    # d'elements, donant per fet que ConvertTo-Json desembolcalla quan n'hi ha
+    # un de sol -- i en el PowerShell de l'usuari NO ho fa: el mapa d'una sola
+    # activitat sortia amb [[{...}]] i no arrencava. Ara es mira la SORTIDA, que
+    # es el que compta, i tant se val com es comporti cada versio.
+    if ([string]::IsNullOrWhiteSpace($itemsJson) -or $itemsJson -eq 'null') { $itemsJson = '[]' }
+    elseif (-not $itemsJson.TrimStart().StartsWith('[')) { $itemsJson = "[$itemsJson]" }
+
+    # Els portals de les parcel.les consultades, per pintar-los amb el seu
+    # numero com al planol del Cadastre. Poden ser cap.
+    $portalsJson = ConvertTo-Json @(@($portals) | Where-Object { $null -ne $_ } | ForEach-Object {
+        [ordered]@{ n = [string]$_.Numero; v = [string]$_.Via; lat = [double]$_.Lat; lon = [double]$_.Lon }
+    }) -Depth 5 -Compress
+    if ([string]::IsNullOrWhiteSpace($portalsJson) -or $portalsJson -eq 'null') { $portalsJson = '[]' }
+    elseif (-not $portalsJson.TrimStart().StartsWith('[')) { $portalsJson = "[$portalsJson]" }
 
     $resum = Get-ResumPrecisio $arr
     $today = (Get-Date).ToString('dd/MM/yyyy HH:mm')
@@ -246,7 +357,9 @@ function Build-CoordenadesHtml($items, [string]$dbLabel, [string]$abast, [string
     $fontJson = ConvertTo-Json ([string]$fontName) -Compress
     $abastEnc = _HtmlEncode $abast
     $nTot = $arr.Count
-    $nFac = [int]$resum['facana'] + [int]$resum['facana-aprox']
+    $nFac = [int]$resum['facana']
+    $nDub = [int]$resum['facana-dubtosa']
+    $nApr = [int]$resum['facana-aprox']
     $nCad = [int]$resum['cadastre']
 
     $html = @"
@@ -275,14 +388,20 @@ function Build-CoordenadesHtml($items, [string]$dbLabel, [string]$abast, [string
   th { background: #f3f5f8; position: sticky; top: 0; z-index: 2; }
   tbody tr { cursor: pointer; }
   tbody tr:hover { background: #f7fafd; }
-  tr.moguda td.id { font-weight: bold; }
+  tr.moguda td.id { font-weight: bold; color: #a0560b; }
+  tr.revisada { background: #f2f7f4; }
+  tr.revisada td.id::before { content: '\2713 '; color: #14365c; font-weight: bold; }
   td.id { font-family: Consolas, monospace; color: #14365c; white-space: nowrap; }
   td.dist { text-align: right; white-space: nowrap; color: #555; }
   .pin { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
-  .pin-fac { background: #1e8449; }
-  .pin-cad { background: #fff; border: 2px solid #1e8449; width: 7px; height: 7px; }
-  .pin-man { background: #f39c12; }
+  .pin-fac { background: #2ecc71; border: 1px solid #145a32; }
+  .pin-dub { background: #f1c40f; border: 1px solid #7d6608; }
+  .pin-apr { background: #a9dfbf; border: 1px solid #145a32; }
+  .pin-cad { background: #fff;    border: 2px solid #145a32; width: 7px; height: 7px; }
+  .pin-man { background: #e67e22; border: 1px solid #7e5109; }
+  .pin-rev { background: #fff; border: 2px solid #14365c; }
   .pin-red { background: #c0392b; }
+  #llegenda b { color: #14365c; }
   #llegenda { font-size: 12px; color: #444; margin: 10px 14px; line-height: 1.7; }
   #bar { padding: 8px 16px; border-top: 1px solid #ddd; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   button { background: #14365c; color: #fff; border: 0; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 14px; }
@@ -290,10 +409,20 @@ function Build-CoordenadesHtml($items, [string]$dbLabel, [string]$abast, [string
   button.sec { background: #fff; color: #14365c; border: 1px solid #c3ccd8; }
   button.sec:hover { background: #eef3f9; }
   #estat { font-size: 12px; color: #555; }
+  /* El COLOR diu d'on surt el punt; el CONTORN GRUIXUT, que ja l'has repassat. */
   .marker-verd { width: 14px; height: 14px; border-radius: 50%; background: #2ecc71;
                  border: 2px solid #145a32; box-shadow: 0 1px 3px rgba(0,0,0,.45); cursor: move; }
-  .marker-verd.sensefacana { background: #fff; }
-  .marker-verd.moguda { background: #f39c12; border-color: #7e5109; }
+  .marker-verd.dubtosa     { background: #f1c40f; border-color: #7d6608; }
+  .marker-verd.aprox       { background: #a9dfbf; border-color: #145a32; }
+  .marker-verd.sensefacana { background: #fff;    border-color: #145a32; }
+  .marker-verd.moguda      { background: #e67e22; border-color: #7e5109; }
+  .marker-verd.revisada    { box-shadow: 0 0 0 3px #14365c, 0 1px 3px rgba(0,0,0,.45); }
+  /* Numeros de portal del Cadastre: nomes a partir del zoom de carrer. */
+  .portal-num { white-space: nowrap; font-size: 11px; color: #34495e; font-weight: bold;
+                text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff;
+                pointer-events: none; }
+  .portal-num i { display: inline-block; width: 5px; height: 5px; border-radius: 50%;
+                  background: #34495e; margin-right: 3px; vertical-align: 1px; }
   .pop h3 { margin: 0 0 4px; font-size: 14px; color: #14365c; }
   .pop .rc { font-family: Consolas, monospace; font-size: 11px; color: #666; }
   .pop table { font-size: 12px; margin-top: 6px; }
@@ -305,7 +434,7 @@ function Build-CoordenadesHtml($items, [string]$dbLabel, [string]$abast, [string
 <div id="top">
   <h1>Coordenades dels establiments &mdash; Cornella de Llobregat</h1>
   <span class="meta">$nTot activitats &middot; $abastEnc</span>
-  <span class="meta">Facana: $nFac &middot; sense facana: $nCad</span>
+  <span class="meta">Portal: $nFac &middot; dubtosos: $nDub &middot; aprox.: $nApr &middot; sense portal: $nCad</span>
   <span class="meta">Generat: $today</span>
 </div>
 <div id="wrap">
@@ -328,15 +457,18 @@ function Build-CoordenadesHtml($items, [string]$dbLabel, [string]$abast, [string
 </div>
 <div id="bar">
   <button onclick="baixaExcel()">Baixar Excel (.xlsx)</button>
-  <button class="sec" onclick="esborraCorreccions()">Esborrar les meves correccions</button>
+  <button class="sec" onclick="validaVisibles()">Validar tot el que es veu</button>
+  <button class="sec" onclick="esborraCorreccions()">Esborrar el meu repàs</button>
+  <label style="font-size:12px;color:#333;"><input type="checkbox" id="chkNums" checked> números dels portals</label>
   <span id="estat"></span>
   <span style="font-size:12px;color:#777;">Base de dades: $dbEnc</span>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
-var ITEMS = $itemsJson;
-var FONT  = $fontJson;
+var ITEMS   = $itemsJson;
+var PORTALS = $portalsJson;
+var FONT    = $fontJson;
 var CLAU  = 'coordenades:' + FONT;
 </script>
 <script>
@@ -524,56 +656,81 @@ function buildXlsx(sheetName, header, rows) {
 }
 
 // ---------------------------------------------------------------------------
-// ESTAT: on es cada punt verd ara mateix, i d'on ve.
-// origen: 'facana' | 'facana-aprox' | 'cadastre' | 'manual'
+// ESTAT DE CADA ACTIVITAT
+//   origen:   d'on surt el punt verd -- 'facana' | 'facana-dubtosa' |
+//             'facana-aprox' | 'cadastre' | 'manual' (l'has mogut tu)
+//   revisada: ja l'has donada per bona
+//
+// estat[] va per POSICIO dins d'ITEMS, no per ID: si algun dia la base portes
+// dos cops el mateix ID Activitat, dues fitxes es trepitjarien. Al navegador,
+// en canvi, es desa per ID -- que es el que ha de sobreviure quan es torni a
+// generar el mapa d'una altra zona.
 // ---------------------------------------------------------------------------
-// estat[i] va per POSICIO dins d'ITEMS, no per ID: si mai la base portes dos
-// cops el mateix ID Activitat, dues fitxes no s'han de trepitjar l'una a
-// l'altra. Al navegador, en canvi, es desa per ID, que es el que ha de
-// sobreviure quan es torni a generar el mapa.
 var estat = [];
 
-function carregaCorreccions() {
-  var desat = {};
+function llegeixDesat() {
   try {
     var cru = window.localStorage.getItem(CLAU);
-    if (cru) { desat = JSON.parse(cru) || {}; }
-  } catch (e) { desat = {}; }   // localStorage desactivat: no es cap drama
+    return cru ? (JSON.parse(cru) || {}) : {};
+  } catch (e) { return {}; }   // localStorage desactivat: no es cap drama
+}
+
+function escriuDesat(d) {
+  try { window.localStorage.setItem(CLAU, JSON.stringify(d)); } catch (e) { }
+}
+
+function r2(v) { return Math.round(v * 100) / 100; }
+
+function carregaCorreccions() {
+  var desat = llegeixDesat();
   for (var i = 0; i < ITEMS.length; i++) {
     var it = ITEMS[i];
-    var c = desat[it.id];
-    if (c && isFinite(c.lat) && isFinite(c.lon)) {
-      estat[i] = { lat: c.lat, lon: c.lon, origen: 'manual' };
+    var d = desat[it.id];
+    if (d && isFinite(d.lat) && isFinite(d.lon)) {
+      // Les versions velles nomes desaven lat/lon: es donen per mogudes a ma.
+      estat[i] = { lat: d.lat, lon: d.lon, origen: d.origen || 'manual', revisada: true };
     } else {
-      estat[i] = { lat: it.latf, lon: it.lonf, origen: it.prec };
+      estat[i] = { lat: it.latf, lon: it.lonf, origen: it.prec, revisada: false };
     }
   }
 }
 
-function comptaMogudes() {
+// Desa (o treu) una activitat del navegador. Es desa la FILA SENCERA i no
+// nomes la posicio, perque l'Excel ha de poder portar tot el que has repassat
+// d'aquesta base -- tambe el de les zones que avui no tens obertes.
+function desaItem(i) {
+  var it = ITEMS[i], e = estat[i];
+  var desat = llegeixDesat();
+  if (e.revisada) {
+    var u = utmActual(i);
+    desat[it.id] = {
+      lat: e.lat, lon: e.lon, origen: e.origen,
+      x: r2(u[0]), y: r2(u[1]), xe: it.xe, ye: it.ye,
+      rc: it.rc, adreca: it.adreca, zona: it.zona
+    };
+  } else {
+    delete desat[it.id];
+  }
+  escriuDesat(desat);
+}
+
+function comptaRevisades() {
   var n = 0;
-  for (var i = 0; i < estat.length; i++) { if (estat[i].origen === 'manual') n++; }
+  for (var i = 0; i < estat.length; i++) { if (estat[i].revisada) n++; }
   return n;
 }
 
-function desaCorreccions() {
-  var desat = {};
-  for (var i = 0; i < estat.length; i++) {
-    if (estat[i].origen === 'manual') { desat[ITEMS[i].id] = { lat: estat[i].lat, lon: estat[i].lon }; }
-  }
-  try { window.localStorage.setItem(CLAU, JSON.stringify(desat)); } catch (e) { }
-}
-
 function textOrigen(o) {
-  if (o === 'facana')       return 'portal (façana)';
-  if (o === 'facana-aprox') return 'portal més proper de la parcel·la (façana)';
-  if (o === 'manual')       return 'moguda a mà';
-  return 'sense façana: centre de la parcel·la (cadastre)';
+  if (o === 'facana')         return 'portal amb el número exacte';
+  if (o === 'facana-dubtosa') return 'portal DUBTÓS: n\'hi havia més d\'un amb aquell número';
+  if (o === 'facana-aprox')   return 'aquell número no hi era: el portal més proper de la parcel·la';
+  if (o === 'manual')         return 'mogut per tu';
+  return 'sense portal: es queda al centre de la parcel·la';
 }
 
-// Coordenada UTM actual del punt verd d'una activitat. Si no s'ha mogut a mà,
-// tornem els metres TAL COM van arribar (del Cadastre o de l'Excel) en lloc de
-// reprojectar-los: així no s'hi acumula l'error d'anar i tornar de graus.
+// Coordenada UTM actual del punt verd. Si no s'ha mogut a ma, tornem els metres
+// TAL COM van arribar (del Cadastre o de l'Excel) en lloc de reprojectar-los:
+// aixi no s'hi acumula l'error d'anar i tornar de graus.
 function utmActual(i) {
   var it = ITEMS[i], e = estat[i];
   if (e.origen === 'manual') { return latLonToUtm31(e.lat, e.lon); }
@@ -583,8 +740,8 @@ function utmActual(i) {
 // ---------------------------------------------------------------------------
 // MAPA
 // ---------------------------------------------------------------------------
-// preferCanvas: amb centenars d'activitats, dibuixar els cercles i les línies
-// al canvas en lloc de fer-ne SVG és la diferència entre un mapa fluid i un
+// preferCanvas: amb centenars d'activitats, dibuixar els cercles i les linies
+// al canvas en lloc de fer-ne SVG es la diferencia entre un mapa fluid i un
 // mapa que va a batzegades.
 var map = L.map('map', { preferCanvas: true, zoomSnap: 0.25, zoomDelta: 0.5, wheelPxPerZoomLevel: 120 });
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -594,10 +751,20 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 var capes = [];   // per posicio: { verd, vermell, linia, fila }
 var bounds = [];
 
-function classeVerd(origen) {
-  if (origen === 'manual') return 'marker-verd moguda';
-  if (origen === 'cadastre') return 'marker-verd sensefacana';
-  return 'marker-verd';
+function classeVerd(i) {
+  var e = estat[i];
+  var c = 'marker-verd';
+  if (e.origen === 'manual')             { c += ' moguda'; }
+  else if (e.origen === 'facana-dubtosa'){ c += ' dubtosa'; }
+  else if (e.origen === 'facana-aprox')  { c += ' aprox'; }
+  else if (e.origen === 'cadastre')      { c += ' sensefacana'; }
+  if (e.revisada) { c += ' revisada'; }
+  return c;
+}
+
+function iconaVerd(i) {
+  return L.divIcon({ className: '', html: '<div class="' + classeVerd(i) + '"></div>',
+                     iconSize: [14, 14], iconAnchor: [7, 7] });
 }
 
 function popupHtml(i) {
@@ -605,18 +772,19 @@ function popupHtml(i) {
   var utm = utmActual(i);
   var d = distanciaUtm(it.xe, it.ye, utm[0], utm[1]);
   return '<div class="pop">' +
-    '<h3>ID ' + escHtml(it.id) + '</h3>' +
+    '<h3>ID ' + escHtml(it.id) + (it.zona ? ' &middot; zona ' + escHtml(it.zona) : '') + '</h3>' +
     '<div>' + escHtml(it.activitat || '(activitat no especificada)') + '</div>' +
     '<div>' + escHtml(it.adreca || '(sense adreça)') + '</div>' +
     '<div class="rc">' + escHtml(it.rc) + '</div>' +
     '<table>' +
     '<tr><td><span class="pin pin-red"></span>Excel</td><td>' + it.xe.toFixed(2) + '</td><td>' + it.ye.toFixed(2) + '</td></tr>' +
-    '<tr><td><span class="pin ' + (e.origen === 'manual' ? 'pin-man' : 'pin-fac') + '"></span>Nova</td><td>' +
-      utm[0].toFixed(2) + '</td><td>' + utm[1].toFixed(2) + '</td></tr>' +
+    '<tr><td>Nova</td><td>' + utm[0].toFixed(2) + '</td><td>' + utm[1].toFixed(2) + '</td></tr>' +
     '</table>' +
-    '<div class="org">Origen: ' + escHtml(textOrigen(e.origen)) + '<br>' +
-    'Desplaçament: ' + d.toFixed(1) + ' m</div>' +
-    '</div>';
+    '<div class="org">' + escHtml(textOrigen(e.origen)) + '<br>' +
+    'Desplaçament: ' + d.toFixed(1) + ' m<br>' +
+    (e.revisada ? '<b>Validat.</b> Torna-hi a fer clic per desfer-ho.'
+                : 'Fes clic al punt per validar-lo, o arrossega\'l.') +
+    '</div></div>';
 }
 
 function refrescaItem(i) {
@@ -625,18 +793,48 @@ function refrescaItem(i) {
   var d = distanciaUtm(it.xe, it.ye, utm[0], utm[1]);
   var html = popupHtml(i);
   c.linia.setLatLngs([[it.late, it.lone], [e.lat, e.lon]]);
-  c.verd.setIcon(L.divIcon({ className: '', html: '<div class="' + classeVerd(e.origen) + '"></div>',
-                             iconSize: [14, 14], iconAnchor: [7, 7] }));
+  c.verd.setIcon(iconaVerd(i));
   c.verd.setPopupContent(html);
   c.vermell.setPopupContent(html);
-  c.fila.className = (e.origen === 'manual' ? 'moguda' : '');
+  c.fila.className = (e.revisada ? 'revisada' : '') + (e.origen === 'manual' ? ' moguda' : '');
   c.fila.cells[2].textContent = d.toFixed(1) + ' m';
 }
 
 function actualitzaEstatBarra() {
-  var n = comptaMogudes();
+  var n = comptaRevisades();
+  var total = Object.keys(llegeixDesat()).length;
   document.getElementById('estat').textContent =
-    n === 0 ? 'Cap punt mogut a mà.' : (n === 1 ? '1 punt mogut a mà.' : n + ' punts moguts a mà.');
+    'Validades ' + n + ' de ' + ITEMS.length + ' en aquest mapa  ·  ' +
+    total + ' en total en aquesta base de dades';
+}
+
+// Validar / desfer. Desfer un punt que havies mogut el torna on el Cadastre
+// deia, que es l'unica manera de fer marxa enrere sense refer el mapa.
+function commutaValidada(i) {
+  var it = ITEMS[i], e = estat[i];
+  if (e.revisada) {
+    estat[i] = { lat: it.latf, lon: it.lonf, origen: it.prec, revisada: false };
+    capes[i].verd.setLatLng([it.latf, it.lonf]);
+  } else {
+    e.revisada = true;
+  }
+  refrescaItem(i);
+  desaItem(i);
+  actualitzaEstatBarra();
+}
+
+function validaVisibles() {
+  var n = 0;
+  for (var i = 0; i < ITEMS.length; i++) {
+    if (capes[i].fila.style.display === 'none') { continue; }
+    if (estat[i].revisada) { continue; }
+    estat[i].revisada = true;
+    refrescaItem(i);
+    desaItem(i);
+    n++;
+  }
+  actualitzaEstatBarra();
+  alert(n === 0 ? 'Ja les tenies totes validades.' : 'Validades ' + n + ' activitats.');
 }
 
 var tbody = document.getElementById('tbody');
@@ -660,19 +858,20 @@ function pinta() {
 
       // Verd: la coordenada de façana. Aquest sí que es pot arrossegar, i per
       // això ha de ser un L.marker (els circleMarker no són arrossegables).
-      var verd = L.marker([e.lat, e.lon], {
-        draggable: true,
-        icon: L.divIcon({ className: '', html: '<div class="' + classeVerd(e.origen) + '"></div>',
-                          iconSize: [14, 14], iconAnchor: [7, 7] })
-      }).addTo(map).bindPopup(html);
+      var verd = L.marker([e.lat, e.lon], { draggable: true, icon: iconaVerd(idx) })
+        .addTo(map).bindPopup(html);
 
       verd.on('dragend', function () {
         var p = verd.getLatLng();
-        estat[idx] = { lat: p.lat, lon: p.lng, origen: 'manual' };
+        estat[idx] = { lat: p.lat, lon: p.lng, origen: 'manual', revisada: true };
         refrescaItem(idx);
-        desaCorreccions();
+        desaItem(idx);
         actualitzaEstatBarra();
       });
+      // Un clic al punt el valida (o desfà la validació). Leaflet dispara
+      // 'click' després d'un arrossegament curt, així que ens assegurem que no
+      // ve d'un drag mirant si la posició ha canviat.
+      verd.on('click', function () { commutaValidada(idx); });
 
       var fila = document.createElement('tr');
       var utm = utmActual(idx);
@@ -680,7 +879,7 @@ function pinta() {
         '<td class="id">' + escHtml(it.id) + '</td>' +
         '<td>' + escHtml(it.adreca || '—') + '</td>' +
         '<td class="dist">' + distanciaUtm(it.xe, it.ye, utm[0], utm[1]).toFixed(1) + ' m</td>';
-      if (e.origen === 'manual') { fila.className = 'moguda'; }
+      fila.className = (e.revisada ? 'revisada' : '') + (e.origen === 'manual' ? ' moguda' : '');
       fila.addEventListener('click', function () {
         map.setView([estat[idx].lat, estat[idx].lon], 19);
         verd.openPopup();
@@ -693,9 +892,42 @@ function pinta() {
     })(i);
   }
 
+  muntaPortals();
+
   if (bounds.length > 0) { map.fitBounds(L.latLngBounds(bounds).pad(0.08)); }
   else { map.setView([41.355, 2.073], 14); }
   actualitzaEstatBarra();
+}
+
+// ---------------------------------------------------------------------------
+// ELS NUMEROS DELS PORTALS (com al planol del Cadastre)
+// ---------------------------------------------------------------------------
+// Son TOTS els portals de les parcel.les consultades, tambe els que no tenen
+// cap activitat: sense ells no hi ha manera de dir si un punt esta ben posat.
+// Nomes surten a partir del zoom de carrer, perque de lluny una illa amb vint
+// numeros tapa el mapa.
+var ZOOM_NUMS = 18;
+var capaPortals = L.layerGroup();
+
+function muntaPortals() {
+  for (var i = 0; i < PORTALS.length; i++) {
+    var p = PORTALS[i];
+    var etiqueta = (p.n || '?') + (p.v ? '' : '');
+    capaPortals.addLayer(L.marker([p.lat, p.lon], {
+      interactive: false, keyboard: false,
+      icon: L.divIcon({ className: '', iconSize: [0, 0], iconAnchor: [0, 6],
+                        html: '<div class="portal-num"><i></i>' + escHtml(etiqueta) + '</div>' })
+    }));
+  }
+  map.on('zoomend', refrescaPortals);
+  document.getElementById('chkNums').addEventListener('change', refrescaPortals);
+  refrescaPortals();
+}
+
+function refrescaPortals() {
+  var vol = document.getElementById('chkNums').checked && map.getZoom() >= ZOOM_NUMS;
+  if (vol && !map.hasLayer(capaPortals)) { map.addLayer(capaPortals); }
+  else if (!vol && map.hasLayer(capaPortals)) { map.removeLayer(capaPortals); }
 }
 
 // Filtre del panell lateral: per ID o per adreça.
@@ -705,7 +937,8 @@ document.getElementById('cerca').addEventListener('input', function (ev) {
     var it = ITEMS[i];
     var visible = q === '' ||
       String(it.id).toLowerCase().indexOf(q) >= 0 ||
-      String(it.adreca || '').toLowerCase().indexOf(q) >= 0;
+      String(it.adreca || '').toLowerCase().indexOf(q) >= 0 ||
+      String(it.zona || '').toLowerCase() === q;
     capes[i].fila.style.display = visible ? '' : 'none';
   }
 });
@@ -713,22 +946,34 @@ document.getElementById('cerca').addEventListener('input', function (ev) {
 // ---------------------------------------------------------------------------
 // BAIXAR L'EXCEL
 // ---------------------------------------------------------------------------
+// Hi surt TOT el que hagis validat d'aquesta base de dades, encara que sigui
+// d'una altra zona i d'un altre dia: la idea es acabar amb UN sol fitxer.
+// Quan actualitzis l'Excel d'activitats i en generis un de nou, aixo es buida
+// sol, perque la clau del navegador es el nom del fitxer d'origen.
 function baixaExcel() {
-  var header = ['ID GIA', 'Ref. cadastral', 'Adreça',
+  var desat = llegeixDesat();
+  var ids = Object.keys(desat);
+  if (ids.length === 0) {
+    alert('Encara no has validat cap activitat.\n\nAmplia el mapa, comprova els punts i fes-hi clic per validar-los (o arrossega\'ls). Després torna a provar.');
+    return;
+  }
+  var header = ['ID GIA', 'Ref. cadastral', 'Adreça', 'Zona',
                 'UTM X (Excel)', 'UTM Y (Excel)', 'UTM X (nova)', 'UTM Y (nova)',
                 'Origen', 'Desplaçament (m)'];
   var rows = [];
-  for (var i = 0; i < ITEMS.length; i++) {
-    var it = ITEMS[i];
-    var utm = utmActual(i);
-    rows.push([
-      String(it.id), String(it.rc), String(it.adreca || ''),
-      Math.round(it.xe * 100) / 100, Math.round(it.ye * 100) / 100,
-      Math.round(utm[0] * 100) / 100, Math.round(utm[1] * 100) / 100,
-      textOrigen(estat[i].origen),
-      Math.round(distanciaUtm(it.xe, it.ye, utm[0], utm[1]) * 10) / 10
-    ]);
+  for (var k = 0; k < ids.length; k++) {
+    var id = ids[k], d = desat[id];
+    var xe = isFinite(d.xe) ? d.xe : '';
+    var ye = isFinite(d.ye) ? d.ye : '';
+    var x = isFinite(d.x) ? d.x : '';
+    var y = isFinite(d.y) ? d.y : '';
+    var desp = '';
+    if (isFinite(d.xe) && isFinite(d.x)) { desp = Math.round(distanciaUtm(d.xe, d.ye, d.x, d.y) * 10) / 10; }
+    rows.push([String(id), String(d.rc || ''), String(d.adreca || ''), String(d.zona || ''),
+               xe, ye, x, y, textOrigen(d.origen || 'manual'), desp]);
   }
+  rows.sort(function (a, b) { return (a[3] + '').localeCompare(b[3] + '') || (a[0] - b[0]); });
+
   var bytes = buildXlsx('Coordenades', header, rows);
   var blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   var url = URL.createObjectURL(blob);
@@ -745,13 +990,13 @@ function baixaExcel() {
 }
 
 function esborraCorreccions() {
-  var n = comptaMogudes();
-  if (n === 0) { alert('No has mogut cap punt.'); return; }
-  if (!confirm('Segur que vols descartar les ' + n + ' correccions que has fet a mà?')) { return; }
+  var total = Object.keys(llegeixDesat()).length;
+  if (total === 0) { alert('Encara no has validat res.'); return; }
+  if (!confirm('Segur que vols descartar el repàs sencer d\'aquesta base de dades?\n\nSón ' + total + ' activitats validades, també les d\'altres zones i altres dies.')) { return; }
   try { window.localStorage.removeItem(CLAU); } catch (e) { }
   for (var i = 0; i < ITEMS.length; i++) {
     var it = ITEMS[i];
-    estat[i] = { lat: it.latf, lon: it.lonf, origen: it.prec };
+    estat[i] = { lat: it.latf, lon: it.lonf, origen: it.prec, revisada: false };
     capes[i].verd.setLatLng([it.latf, it.lonf]);
     refrescaItem(i);
   }
@@ -784,7 +1029,7 @@ function Read-CoordenadesFromExcel($excelFile) {
             $sh = _RutaFindEstesSheet $wb
             if ($null -eq $sh) { throw "No s'ha trobat la fulla 'Estes'/'Estes' al fitxer Excel." }
             $data = $sh.UsedRange.Value2
-            if ($null -eq $data) { return [pscustomobject]@{ Registres = @(); SenseCoord = 0 } }
+            if ($null -eq $data) { return [pscustomobject]@{ Registres = @(); SenseCoord = 0; Impossibles = @() } }
             $rows = $data.GetLength(0)
             $cols = $data.GetLength(1)
 
@@ -824,6 +1069,7 @@ function Read-CoordenadesFromExcel($excelFile) {
 
             $registres = @()
             $senseCoord = 0
+            $impossibles = @()
             for ($r = 2; $r -le $rows; $r++) {
                 # ID Activitat (numero -> enter sense decimals, com a Ruta).
                 $idCell = if ($colId -ge 1 -and $colId -le $cols) { $data[$r, $colId] } else { $null }
@@ -832,12 +1078,21 @@ function Read-CoordenadesFromExcel($excelFile) {
                 } elseif ($null -ne $idCell) { ([string]$idCell).Trim() } else { '' }
                 if ($id -eq '') { continue }
 
+                $carrerRaw = & $get $r $colCarr
+                $numeroRaw = & $get $r $colNum
+
                 $x = ConvertTo-UtmNumber (& $get $r $colUtmX)
                 $y = ConvertTo-UtmNumber (& $get $r $colUtmY)
                 if ($null -eq $x -or $null -eq $y -or $x -eq 0 -or $y -eq 0) { $senseCoord++; continue }
+                # Coordenades que no poden ser d'aquest mon (al GIA n'hi ha: una
+                # activitat amb X=423,37, que son les xifres bones dividides per
+                # mil). Si es colessin, el mapa s'estiraria fins a l'Atlantic i
+                # la resta de punts quedarien tots en un pixel.
+                if (-not (Test-CoordPlausible $x $y)) {
+                    $impossibles += [pscustomobject]@{ Id = $id; X = $x; Y = $y; Adreca = (Format-EmpAddress (& $get $r $colVia) $carrerRaw $numeroRaw '') }
+                    continue
+                }
 
-                $carrer = & $get $r $colCarr
-                $numero = & $get $r $colNum
                 $nomCom = & $get $r $colNom
                 $actPri = & $get $r $colAct
                 $activitat = if ($nomCom -ne '' -and $actPri -ne '') { "$nomCom - $actPri" }
@@ -847,15 +1102,15 @@ function Read-CoordenadesFromExcel($excelFile) {
                 $registres += [pscustomobject]@{
                     Id        = $id
                     Rc        = (& $get $r $colRc)
-                    Adreca    = (Format-EmpAddress (& $get $r $colVia) $carrer $numero (& $get $r $colLlet))
-                    Carrer    = $carrer
-                    Numero    = $numero
+                    Adreca    = (Format-EmpAddress (& $get $r $colVia) $carrerRaw $numeroRaw (& $get $r $colLlet))
+                    Carrer    = $carrerRaw
+                    Numero    = $numeroRaw
                     Activitat = $activitat
                     UtmX      = $x
                     UtmY      = $y
                 }
             }
-            return [pscustomobject]@{ Registres = @($registres); SenseCoord = $senseCoord }
+            return [pscustomobject]@{ Registres = @($registres); SenseCoord = $senseCoord; Impossibles = @($impossibles) }
         } finally {
             $wb.Close($false)
         }
@@ -873,12 +1128,19 @@ function Show-CoordInfo([string]$msg, [string]$title = 'Coordenades', [string]$i
     [System.Windows.Forms.MessageBox]::Show($msg, $title, 'OK', $icon) | Out-Null
 }
 
-# Finestra de tria de l'abast. Retorna 'apilades', 'totes' o $null (cancel.la).
-function Show-CoordenadesForm([string]$dbLabel, [int]$nApilades, [int]$nParcApilades,
-                              [int]$nTotal, [int]$nParcTotal, [int]$nSenseCoord) {
+# Finestra de tria: quines ZONES es repassen.
+#
+# Retorna { NomsZones; NomesApilades } o $null si es cancel.la.
+#
+# NOTA sobre "quantes en portes de repassades": aqui NO es pot saber. El que has
+# validat viu al localStorage del NAVEGADOR, i el PowerShell no hi te acces. El
+# progres, per tant, el mostra el mapa (que si que hi te acces) i aquesta
+# finestra nomes diu quantes activitats hi ha a cada zona.
+function Show-CoordenadesForm([string]$dbLabel, $zonesApilades, $zonesTotes,
+                              [int]$nSenseCoord, [int]$nImpossibles) {
     $form = New-Object System.Windows.Forms.Form
     $form.Text = 'Coordenades dels establiments'
-    $form.Size = New-Object System.Drawing.Size(560, 400)
+    $form.Size = New-Object System.Drawing.Size(600, 610)
     $form.StartPosition = 'CenterScreen'
     $form.FormBorderStyle = 'FixedDialog'
     $form.MinimizeBox = $true; $form.MaximizeBox = $false
@@ -887,73 +1149,126 @@ function Show-CoordenadesForm([string]$dbLabel, [int]$nApilades, [int]$nParcApil
     $lblDb = New-Object System.Windows.Forms.Label
     $lblDb.Text = $dbLabel
     $lblDb.AutoSize = $false
-    $lblDb.Size = New-Object System.Drawing.Size(510, 20)
+    $lblDb.Size = New-Object System.Drawing.Size(550, 20)
     $lblDb.Location = New-Object System.Drawing.Point(15, 12)
     $lblDb.ForeColor = [System.Drawing.Color]::FromArgb(20, 54, 92)
     $form.Controls.Add($lblDb)
 
     $lbl = New-Object System.Windows.Forms.Label
-    $lbl.Text = "El Cadastre situa cada activitat al centre de la seva PARCEL·LA, no al local. " +
-                "Per això totes les activitats d'un mateix edifici cauen al mateix punt.`r`n`r`n" +
-                "Aquesta eina et farà un mapa amb les dues coordenades: la que hi ha ara a " +
-                "l'Excel (vermell) i la del PORTAL segons l'adreça (verd), que podràs " +
-                "arrossegar per corregir-la."
+    $lbl.Text = "El Cadastre situa cada activitat al centre de la seva PARCEL·LA, no al local, " +
+                "i per això totes les d'un mateix edifici cauen al mateix punt.`r`n" +
+                "El mapa et mostra les dues coordenades: la de l'Excel (vermell) i la del " +
+                "PORTAL segons l'adreça (verd), que pots arrossegar."
     $lbl.AutoSize = $false
-    $lbl.Size = New-Object System.Drawing.Size(510, 86)
-    $lbl.Location = New-Object System.Drawing.Point(15, 38)
+    $lbl.Size = New-Object System.Drawing.Size(550, 56)
+    $lbl.Location = New-Object System.Drawing.Point(15, 36)
     $form.Controls.Add($lbl)
 
-    $grp = New-Object System.Windows.Forms.GroupBox
-    $grp.Text = 'Quines activitats vols repassar?'
-    $grp.Size = New-Object System.Drawing.Size(510, 130)
-    $grp.Location = New-Object System.Drawing.Point(15, 130)
-    $form.Controls.Add($grp)
+    $chkApil = New-Object System.Windows.Forms.CheckBox
+    $chkApil.Text = 'Només les APILADES (les que comparteixen punt amb una altra)'
+    $chkApil.AutoSize = $false
+    $chkApil.Size = New-Object System.Drawing.Size(550, 22)
+    $chkApil.Location = New-Object System.Drawing.Point(15, 96)
+    $chkApil.Checked = $true
+    $form.Controls.Add($chkApil)
 
-    $rbApil = New-Object System.Windows.Forms.RadioButton
-    $rbApil.Text = "Només les APILADES: $nApilades activitats que comparteixen punt amb una altra"
-    $rbApil.AutoSize = $false
-    $rbApil.Size = New-Object System.Drawing.Size(480, 22)
-    $rbApil.Location = New-Object System.Drawing.Point(15, 26)
-    $rbApil.Checked = $true
-    $grp.Controls.Add($rbApil)
+    $lblZ = New-Object System.Windows.Forms.Label
+    $lblZ.Text = 'Tria les zones que vols repassar ara (el municipi va per quadres de 400 m):'
+    $lblZ.AutoSize = $false
+    $lblZ.Size = New-Object System.Drawing.Size(550, 20)
+    $lblZ.Location = New-Object System.Drawing.Point(15, 122)
+    $form.Controls.Add($lblZ)
 
-    $lblApil = New-Object System.Windows.Forms.Label
-    $lblApil.Text = "$nParcApilades consultes al Cadastre el primer cop (després queden desades)."
-    $lblApil.AutoSize = $false
-    $lblApil.Size = New-Object System.Drawing.Size(460, 18)
-    $lblApil.Location = New-Object System.Drawing.Point(36, 48)
-    $lblApil.ForeColor = [System.Drawing.Color]::FromArgb(90, 90, 90)
-    $grp.Controls.Add($lblApil)
+    $llista = New-Object System.Windows.Forms.CheckedListBox
+    $llista.Size = New-Object System.Drawing.Size(550, 300)
+    $llista.Location = New-Object System.Drawing.Point(15, 144)
+    $llista.CheckOnClick = $true
+    $llista.Font = New-Object System.Drawing.Font('Consolas', 9)
+    $form.Controls.Add($llista)
 
-    $rbTot = New-Object System.Windows.Forms.RadioButton
-    $rbTot.Text = "TOTES: $nTotal activitats amb coordenades"
-    $rbTot.AutoSize = $false
-    $rbTot.Size = New-Object System.Drawing.Size(480, 22)
-    $rbTot.Location = New-Object System.Drawing.Point(15, 74)
-    $grp.Controls.Add($rbTot)
+    $lblTotal = New-Object System.Windows.Forms.Label
+    $lblTotal.AutoSize = $false
+    $lblTotal.Size = New-Object System.Drawing.Size(320, 20)
+    $lblTotal.Location = New-Object System.Drawing.Point(15, 452)
+    $lblTotal.ForeColor = [System.Drawing.Color]::FromArgb(20, 54, 92)
+    $form.Controls.Add($lblTotal)
 
-    $lblTot = New-Object System.Windows.Forms.Label
-    $lblTot.Text = "$nParcTotal consultes al Cadastre el primer cop: pot trigar uns quants minuts."
-    $lblTot.AutoSize = $false
-    $lblTot.Size = New-Object System.Drawing.Size(460, 18)
-    $lblTot.Location = New-Object System.Drawing.Point(36, 96)
-    $lblTot.ForeColor = [System.Drawing.Color]::FromArgb(90, 90, 90)
-    $grp.Controls.Add($lblTot)
+    # $estat es un hashtable a proposit: les closures capturen els VALORS, i una
+    # variable normal reassignada aqui dins no arribaria als handlers (la trampa
+    # del .GetNewClosure() que ja ha costat una ronda en aquest projecte).
+    $estat = @{ Zones = @() }
 
-    if ($nSenseCoord -gt 0) {
-        $lblSense = New-Object System.Windows.Forms.Label
-        $lblSense.Text = "($nSenseCoord activitats no tenen coordenades a l'Excel i no es poden situar.)"
-        $lblSense.AutoSize = $false
-        $lblSense.Size = New-Object System.Drawing.Size(510, 18)
-        $lblSense.Location = New-Object System.Drawing.Point(15, 268)
-        $lblSense.ForeColor = [System.Drawing.Color]::FromArgb(150, 80, 20)
-        $form.Controls.Add($lblSense)
+    $refrescaTotal = {
+        $n = 0
+        foreach ($i in $llista.CheckedIndices) { $n += [int]$estat.Zones[$i].Comptador }
+        $lblTotal.Text = "$($llista.CheckedIndices.Count) zones triades  ·  $n activitats"
+    }.GetNewClosure()
+
+    $omple = {
+        $zones = if ($chkApil.Checked) { @($zonesApilades) } else { @($zonesTotes) }
+        $estat.Zones = $zones
+        $llista.BeginUpdate()
+        $llista.Items.Clear()
+        foreach ($z in $zones) {
+            [void]$llista.Items.Add(("{0,-4} {1,4} act.  {2}" -f $z.Nom, $z.Comptador, $z.Carrers))
+        }
+        $llista.EndUpdate()
+        & $refrescaTotal
+    }.GetNewClosure()
+
+    $llista.add_ItemCheck({
+        param($sender, $e)
+        # ItemCheck salta ABANS que l'estat canvii: el total es calcula amb el
+        # valor NOU d'aquest item i els que ja estaven marcats.
+        $n = 0
+        foreach ($i in $llista.CheckedIndices) { if ($i -ne $e.Index) { $n += [int]$estat.Zones[$i].Comptador } }
+        if ($e.NewValue -eq [System.Windows.Forms.CheckState]::Checked) { $n += [int]$estat.Zones[$e.Index].Comptador }
+        $marcades = $llista.CheckedIndices.Count
+        if ($e.NewValue -eq [System.Windows.Forms.CheckState]::Checked) { $marcades++ } else { $marcades-- }
+        $lblTotal.Text = "$marcades zones triades  ·  $n activitats"
+    }.GetNewClosure())
+
+    $chkApil.add_CheckedChanged($omple)
+
+    $btnTot = New-Object System.Windows.Forms.Button
+    $btnTot.Text = 'Marcar-ho tot'
+    $btnTot.Size = New-Object System.Drawing.Size(120, 26)
+    $btnTot.Location = New-Object System.Drawing.Point(340, 449)
+    $btnTot.add_Click({
+        for ($i = 0; $i -lt $llista.Items.Count; $i++) { $llista.SetItemChecked($i, $true) }
+        & $refrescaTotal
+    }.GetNewClosure())
+    $form.Controls.Add($btnTot)
+
+    $btnCap = New-Object System.Windows.Forms.Button
+    $btnCap.Text = 'Desmarcar-ho tot'
+    $btnCap.Size = New-Object System.Drawing.Size(120, 26)
+    $btnCap.Location = New-Object System.Drawing.Point(445, 449)
+    $btnCap.add_Click({
+        for ($i = 0; $i -lt $llista.Items.Count; $i++) { $llista.SetItemChecked($i, $false) }
+        & $refrescaTotal
+    }.GetNewClosure())
+    $form.Controls.Add($btnCap)
+
+    $y = 478
+    if ($nSenseCoord -gt 0 -or $nImpossibles -gt 0) {
+        $avisos = @()
+        if ($nSenseCoord -gt 0)   { $avisos += "$nSenseCoord sense coordenades a l'Excel" }
+        if ($nImpossibles -gt 0)  { $avisos += "$nImpossibles amb coordenades impossibles (mira l'avís del final)" }
+        $lblAvis = New-Object System.Windows.Forms.Label
+        $lblAvis.Text = '(' + ($avisos -join '; ') + ": no es poden situar.)"
+        $lblAvis.AutoSize = $false
+        $lblAvis.Size = New-Object System.Drawing.Size(550, 20)
+        $lblAvis.Location = New-Object System.Drawing.Point(15, $y)
+        $lblAvis.ForeColor = [System.Drawing.Color]::FromArgb(150, 80, 20)
+        $form.Controls.Add($lblAvis)
+        $y += 22
     }
 
     $btnOk = New-Object System.Windows.Forms.Button
     $btnOk.Text = 'Generar mapa'
     $btnOk.Size = New-Object System.Drawing.Size(130, 32)
-    $btnOk.Location = New-Object System.Drawing.Point(255, 305)
+    $btnOk.Location = New-Object System.Drawing.Point(295, $y)
     $btnOk.DialogResult = [System.Windows.Forms.DialogResult]::OK
     $form.Controls.Add($btnOk)
     $form.AcceptButton = $btnOk
@@ -961,15 +1276,20 @@ function Show-CoordenadesForm([string]$dbLabel, [int]$nApilades, [int]$nParcApil
     $btnCancel = New-Object System.Windows.Forms.Button
     $btnCancel.Text = 'Enrere'
     $btnCancel.Size = New-Object System.Drawing.Size(130, 32)
-    $btnCancel.Location = New-Object System.Drawing.Point(395, 305)
+    $btnCancel.Location = New-Object System.Drawing.Point(435, $y)
     $btnCancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
     $form.Controls.Add($btnCancel)
     $form.CancelButton = $btnCancel
 
+    $form.ClientSize = New-Object System.Drawing.Size(580, ($y + 46))
+
+    & $omple
+
     $res = $form.ShowDialog()
     if ($res -ne [System.Windows.Forms.DialogResult]::OK) { return $null }
-    if ($rbTot.Checked) { return 'totes' }
-    return 'apilades'
+    $noms = @()
+    foreach ($i in $llista.CheckedIndices) { $noms += [string]$estat.Zones[$i].Nom }
+    return [pscustomobject]@{ NomsZones = @($noms); NomesApilades = [bool]$chkApil.Checked }
 }
 
 # Finestra de progres de les consultes al Cadastre, amb Cancel.lar de veritat.
@@ -1052,16 +1372,35 @@ function Invoke-CoordenadesMain {
         return
     }
     $apilats = @(Get-RegistresApilats $tots)
-
-    # 3. Triar l'abast.
-    $mode = Show-CoordenadesForm $dbLabel $apilats.Count (@(Get-RefcatsAConsultar $apilats).Count) `
-                                 $tots.Count (@(Get-RefcatsAConsultar $tots).Count) ([int]$lectura.SenseCoord)
-    if ($null -eq $mode) { return }
-
-    $triats = if ($mode -eq 'totes') { $tots } else { $apilats }
-    $abast  = if ($mode -eq 'totes') { 'totes les activitats' } else { 'activitats apilades' }
-    if (@($triats).Count -eq 0) {
+    if ($apilats.Count -eq 0) {
         Show-CoordInfo "No hi ha cap activitat apilada: totes tenen ja un punt propi." 'Coordenades' 'Information'
+        return
+    }
+
+    # 3. Triar les ZONES. El repas de centenars d'activitats no es fa d'una
+    # tirada: es va per quadres de 400 m, i cada tanda es la que caben en una
+    # estona.
+    $zonesApil = @(Get-ZonesAmbActivitats $apilats)
+    $zonesTot  = @(Get-ZonesAmbActivitats $tots)
+    $tria = Show-CoordenadesForm $dbLabel $zonesApil $zonesTot `
+                                 ([int]$lectura.SenseCoord) (@($lectura.Impossibles).Count)
+    if ($null -eq $tria) { return }
+    if (@($tria.NomsZones).Count -eq 0) {
+        Show-CoordInfo "No has triat cap zona." 'Coordenades' 'Warning'
+        return
+    }
+
+    $base    = if ($tria.NomesApilades) { $apilats } else { $tots }
+    $zonesOk = @{}
+    foreach ($n in @($tria.NomsZones)) { $zonesOk[$n] = $true }
+    $triats = @($base | Where-Object {
+        (Test-CoordPlausible ([double]$_.UtmX) ([double]$_.UtmY)) -and
+        $zonesOk.ContainsKey((Get-ZonaDeCoord ([double]$_.UtmX) ([double]$_.UtmY)))
+    })
+    $abast = ("{0} {1}" -f (@($tria.NomsZones) -join ', '),
+                            $(if ($tria.NomesApilades) { '(apilades)' } else { '(totes)' }))
+    if ($triats.Count -eq 0) {
+        Show-CoordInfo "Les zones triades no tenen cap activitat." 'Coordenades' 'Warning'
         return
     }
 
@@ -1097,8 +1436,27 @@ function Invoke-CoordenadesMain {
         $items += New-ItemCoordenades $r $portals
     }
 
+    # 5b. TOTS els portals de les parcel.les consultades, per pintar-los al mapa
+    # amb el seu numero (com al planol del Cadastre). Ja els tenim demanats: fins
+    # ara se'n feia servir un i la resta es llencaven.
+    $portalsMapa = @()
+    foreach ($rc in @($portalsPerRc.Keys)) {
+        foreach ($p in @($portalsPerRc[$rc])) {
+            if ($null -eq $p) { continue }
+            $px = [double]$p.X; $py = [double]$p.Y
+            if (-not (Test-CoordPlausible $px $py)) { continue }
+            $ll = Convert-UtmToLatLon $px $py 31 $true
+            $portalsMapa += [pscustomobject]@{
+                Numero = [string]$p.Numero
+                Via    = [string]$p.Via
+                Lat    = $ll.Lat
+                Lon    = $ll.Lon
+            }
+        }
+    }
+
     # 6. Generar l'HTML i obrir-lo.
-    $html = Build-CoordenadesHtml $items $dbLabel $abast $xls.File.Name
+    $html = Build-CoordenadesHtml $items $dbLabel $abast $xls.File.Name $portalsMapa
     if (-not (Test-Path -LiteralPath $CoordOutputDir)) {
         New-Item -ItemType Directory -Path $CoordOutputDir -Force | Out-Null
     }
@@ -1110,15 +1468,27 @@ function Invoke-CoordenadesMain {
     # 7. Resum.
     $resum = Get-ResumPrecisio $items
     $nFac = [int]$resum['facana']
+    $nDub = [int]$resum['facana-dubtosa']
     $nApr = [int]$resum['facana-aprox']
     $nCad = [int]$resum['cadastre']
-    $msg  = "Mapa generat amb $(@($items).Count) activitats ($abast).`n`n"
-    $msg += "Amb portal exacte:            $nFac`n"
-    $msg += "Amb el portal mes proper:     $nApr`n"
-    $msg += "Sense portal (queden al centre de la parcel·la): $nCad`n`n"
-    $msg += "Al mapa, arrossega els punts VERDS on toqui i despres prem`n"
-    $msg += "'Baixar Excel (.xlsx)'. El que moguis es recorda en aquest`n"
-    $msg += "navegador, encara que tanquis la pagina.`n`n"
+    $msg  = "Mapa generat amb $(@($items).Count) activitats.`n"
+    $msg += "Zones: $abast`n`n"
+    $msg += "Portal exacte:                 $nFac`n"
+    $msg += "Portal DUBTOS (mira'ls):       $nDub`n"
+    $msg += "Portal mes proper:             $nApr`n"
+    $msg += "Sense portal (es queden on eren): $nCad`n`n"
+    $msg += "Al mapa: amplia fins que surtin els NUMEROS dels portals, valida`n"
+    $msg += "amb un clic els punts que ja son bons i arrossega els que no.`n"
+    $msg += "Despres, 'Baixar Excel (.xlsx)': hi surt tot el que hagis validat`n"
+    $msg += "d'aquesta base de dades, tambe el d'altres zones i altres dies.`n`n"
+    if (@($lectura.Impossibles).Count -gt 0) {
+        $msg += "ATENCIO: aquestes activitats tenen unes coordenades IMPOSSIBLES a`n"
+        $msg += "l'Excel i no es poden situar enlloc (sembla que els falten xifres):`n"
+        foreach ($im in @($lectura.Impossibles)) {
+            $msg += ("  GIA {0}  X={1}  Y={2}   {3}`n" -f $im.Id, $im.X, $im.Y, $im.Adreca)
+        }
+        $msg += "`n"
+    }
     $msg += "Fitxer: $outPath"
     Show-CoordInfo $msg 'Coordenades'
 }

@@ -164,32 +164,46 @@ mateix edifici cauen exactament al mateix punt: a la base del 18/08/2026, 1.380
 activitats només tenien 899 punts diferents, i a Ctra. de l'Hospitalet 147 n'hi
 havia **19 apilades**.
 
-Aquesta eina et fa un mapa on veus les dues coordenades alhora:
+**Es treballa per zones, no tot de cop.** En obrir l'eina tries les zones que
+vols repassar avui: el municipi va per quadres de 400 m, i de cada zona hi surt
+el nom, els seus dos carrers principals i **quantes activitats hi ha**. Amb la
+base del 18/08 són 40 zones, la més gran de 40 activitats. Només es consulta el
+Cadastre de les zones que hagis marcat.
 
-- **🔴 vermell** — la que hi ha ara a l'Excel (centre de la parcel·la). No es mou.
-- **🟢 verd** — la del **portal**, segons l'adreça de l'activitat. La demana al
-  Cadastre (servei d'adreces INSPIRE), una consulta per parcel·la. Aquest punt
-  **l'arrossegues** fins on toqui.
-- Una línia grisa uneix cada parella, perquè vegis quin verd és de quin vermell.
-- Si d'una activitat no se n'ha trobat el portal, el punt verd surt **buit** i a
-  sobre del vermell: mou-lo tu.
+Al mapa hi veus, de cada activitat:
 
-En obrir-la tries si vols repassar **només les activitats apilades** (les que
-comparteixen punt amb una altra, que són les que fan nosa) o **totes**. La
-primera vegada triga una estona perquè ha de preguntar parcel·la per parcel·la;
-a partir d'aleshores les respostes queden desades i és immediat.
+- **🔴 vermell** — la coordenada que hi ha ara a l'Excel. No es mou.
+- **🟢 verd** — la del portal segons l'adreça, unida al vermell per una línia
+  grisa. El color et diu d'on surt:
+  - **verd** — el portal amb el número exacte de l'activitat.
+  - **groc** — hi havia més d'un portal amb aquell número: mira-te'l.
+  - **verd clar** — aquell número no hi era: el portal més proper de la parcel·la.
+  - **blanc** — no s'ha trobat cap portal. Comença a sobre del vermell i l'has de
+    moure tu.
 
-Quan ho tinguis, el botó **Baixar Excel (.xlsx)** et dona un full amb l'ID GIA, la
-referència cadastral, l'adreça, la coordenada vella, la nova, d'on surt cada una
-i quants metres s'ha mogut.
+**Amplia el mapa fins que surtin els números dels portals** (a partir del zoom de
+carrer). Són tots els portals de la illa, tal com al plànol del Cadastre, també
+els que no tenen cap activitat: són el que et deixa dir si un punt és al lloc.
 
-Els punts que moguis **es recorden en aquest navegador**: pots tancar la pàgina i
-tornar-hi un altre dia. Si te'n vols desfer, hi ha el botó *Esborrar les meves
-correccions*.
+Aleshores, de cada punt verd:
+
+- si ja és on toca, **fes-hi clic** per donar-lo per bo (li surt un anell blau);
+- si no, **arrossega'l** fins on toqui (queda taronja);
+- si has de validar-ne molts de cop, el botó **«Validar tot el que es veu»** fa
+  els que hi hagi a la llista de la dreta (i el cercador la filtra).
+
+El botó **Baixar Excel (.xlsx)** et dona **tot el que hagis validat d'aquesta
+base de dades**, també el d'altres zones i altres dies: ID GIA, referència
+cadastral, adreça, zona, coordenada vella, coordenada nova, d'on surt i quants
+metres s'ha mogut. La idea és que acabis amb **un sol fitxer**.
+
+El repàs es recorda en aquest navegador, així que pots tancar i tornar-hi un
+altre dia. Quan hagis abocat les coordenades noves a l'Excel d'activitats i en
+generis un de nou, el comptador es buida sol i comences net — i com que aquelles
+activitats ja no estaran apilades, **cada tanda serà més curta que l'anterior**.
 
 > L'eina **no toca res**: ni l'Excel, ni els mapes de ruta, ni el plànol
-> d'activitats precintades, que segueixen fent servir la coordenada de sempre.
-> El que et baixes és un full a part, per fer-ne el que vulguis.
+> d'activitats precintades. El que et baixes és un full a part.
 
 > **Privacitat:** al Cadastre només s'hi envia la **referència cadastral**, mai
 > el nom del titular ni la raó social.

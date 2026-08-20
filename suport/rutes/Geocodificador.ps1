@@ -110,6 +110,23 @@ function Get-NumeroPortal($numero) {
     return ''
 }
 
+# Sigles i noms de tipus de via que es treuen del davant d'un nom de carrer.
+# Les de DOS lletres son les del Cadastre (CL=calle, PZ=plaza, TR=travesia,
+# GL=glorieta, CJ=callejon, BO=barrio, UR=urbanizacion, LG=lugar, RB=rambla,
+# PQ=parque, AU=autopista, CH=chalet, DS=diseminado, PB=poblado, SD=sin
+# denominacion...); la resta son les que escriu la gent, en catala i castella.
+# ORDRE: primer les llargues, perque 'CARRETERA' no se l'empassi 'CARRER'
+# (encara que el \s+ del final ja ho evita, val mes no dependre'n).
+$Script:GeoSiglesVia = (@(
+    'CARRETERA', 'TRAVESSERA', 'TRAVESIA', 'AVINGUDA', 'AVENIDA', 'PASSATGE',
+    'PASSEIG', 'POLIGON', 'GLORIETA', 'CALLEJON', 'AUTOPISTA', 'DISEMINADO',
+    'URBANITZACIO', 'URBANIZACION', 'CARRER', 'CALLE', 'PLACA', 'PLAZA',
+    'RAMBLA', 'PASAJE', 'PASEO', 'RONDA', 'CAMINO', 'PARQUE', 'BARRIO',
+    'POBLADO', 'CHALET', 'LUGAR', 'CAMI', 'AVDA', 'RBLA', 'CTRA',
+    'AV', 'BO', 'CJ', 'CL', 'CM', 'CR', 'DS', 'GL', 'LG', 'PB', 'PG', 'PI',
+    'PJ', 'PL', 'PQ', 'PS', 'PZ', 'RB', 'RD', 'SD', 'TR', 'UR', 'C'
+) -join '|')
+
 # Normalitza un nom de via per comparar-lo (sense accents, sense el tipus de
 # via al davant, majuscules, espais collapsats). 'C/ Doctor Ferran' i
 # 'CARRER DOCTOR FERRAN' han de coincidir.
@@ -125,9 +142,19 @@ function Get-ViaNormalitzada($s) {
     }
     $t = $sb.ToString().ToUpperInvariant()
     $t = $t -replace '[^A-Z0-9 ]', ' '
-    # Treu el tipus de via del davant: el Cadastre el porta enganxat al nom i
-    # l'Excel el te en una columna a part (Emp. Tipus via).
-    $t = $t -replace '^(CARRER|CALLE|AVINGUDA|AVENIDA|AVDA|PASSEIG|PASEO|PLACA|PLAZA|RAMBLA|RBLA|CARRETERA|CTRA|TRAVESSERA|CAMINO|CAMI|RONDA|POLIGON|PASSATGE|PASAJE|AV|PG|PS|PL|CR|RD|PJ|PI|CM|C)\s+', ''
+    # Treu el tipus de via del davant: el Cadastre el porta enganxat al nom
+    # ("CL CADIS") i l'Excel el te en una columna a part (Emp. Tipus via), de
+    # manera que nomes comparant els noms pelats poden coincidir.
+    #
+    # LES SIGLES DEL CADASTRE HI HAN DE SER TOTES, I NO ES UNA MANIA. Hi faltava
+    # CL (que es com el Cadastre escriu "calle") i, com que la 'C' de la llista
+    # demana un espai al darrere i a "CL" la segueix una 'L', 'CL CADIS' no es
+    # convertia en 'CADIS': NINGUNA adreca ha coincidit mai per carrer i la tria
+    # del portal es feia NOMES pel numero. En una illa amb entrades per dos
+    # carrers aixo vol dir agafar el numero del carrer del costat -- "C HUELVA 1"
+    # va acabar a 129 m d'on tocava. Si un dia surten desplacaments estranys,
+    # mira primer si el Cadastre fa servir una sigla que no es en aquesta llista.
+    $t = $t -replace ('^(' + $Script:GeoSiglesVia + ')\s+'), ''
     $t = $t -replace '\s+', ' '
     return $t.Trim()
 }
@@ -223,10 +250,12 @@ function ConvertFrom-CatastroAdXml($xmlText) {
 #
 # Retorna un objecte { X; Y; Precisio } o $null si no hi ha cap portal usable.
 # Precisio:
-#   'facana'       -> el numero del portal es EXACTAMENT el de l'activitat
-#   'facana-aprox' -> no hi havia aquell numero; s'agafa el mes proper de la
-#                     mateixa parcel.la, prioritzant la mateixa BANDA del
-#                     carrer (o sigui, la mateixa paritat del numero)
+#   'facana'         -> el numero del portal es EXACTAMENT el de l'activitat
+#   'facana-dubtosa' -> hi havia MES D'UN portal amb aquell numero; se n'agafa un
+#                       pero s'avisa, perque la tria no es fiable
+#   'facana-aprox'   -> no hi havia aquell numero; s'agafa el mes proper de la
+#                       mateixa parcel.la, prioritzant la mateixa BANDA del
+#                       carrer (o sigui, la mateixa paritat del numero)
 function Select-PortalFacana($portals, $carrer, $numero) {
     $arr = @($portals)
     if ($arr.Count -eq 0) { return $null }
@@ -239,12 +268,16 @@ function Select-PortalFacana($portals, $carrer, $numero) {
         if ($ambVia.Count -gt 0) { $cands = $ambVia }
     }
 
-    # 2. Numero exacte.
+    # 2. Numero exacte. Si n'hi ha MES D'UN amb el mateix numero, la tria es una
+    # moneda a l'aire: es marca 'facana-dubtosa' perque al mapa surti en ambre i
+    # l'usuari la miri. Passa de debo: a la illa de Cadis hi ha dos portals amb
+    # el numero 1, i un d'ells cau exactament al centre de la parcel.la.
     $numBuscat = Get-NumeroPortal $numero
     if ($numBuscat -ne '') {
         $exacte = @($cands | Where-Object { $_.Numero -eq $numBuscat })
         if ($exacte.Count -gt 0) {
-            return [pscustomobject]@{ X = $exacte[0].X; Y = $exacte[0].Y; Precisio = 'facana' }
+            $prec = if ($exacte.Count -gt 1) { 'facana-dubtosa' } else { 'facana' }
+            return [pscustomobject]@{ X = $exacte[0].X; Y = $exacte[0].Y; Precisio = $prec }
         }
     }
 
@@ -306,10 +339,11 @@ function Resolve-CoordEstabliment($portals, $carrer, $numero, [double]$utmX, [do
 # Text curt per ensenyar a l'usuari (popup del mapa, columna de l'Excel).
 function Get-PrecisioText([string]$precisio) {
     switch ($precisio) {
-        'facana'       { return 'portal (facana)' }
-        'facana-aprox' { return 'portal mes proper (facana)' }
-        'manual'       { return 'moguda a ma' }
-        default        { return 'centre de la parcel.la (cadastre)' }
+        'facana'         { return 'portal (facana)' }
+        'facana-dubtosa' { return 'portal dubtos: n hi havia mes d un amb aquest numero' }
+        'facana-aprox'   { return 'portal mes proper (facana)' }
+        'manual'         { return 'moguda a ma' }
+        default          { return 'centre de la parcel.la (cadastre)' }
     }
 }
 
