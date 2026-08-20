@@ -3,6 +3,23 @@
     "IntroText":  "S\u0027han observat les següents deficiències que cal esmenar per poder exercir l\u0027activitat:",
     "Sections":  [
                      {
+                         "Title":  "Requeriment pendent",
+                         "Items":  [
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "Anterior requeriment",
+                                           "BodyLines":  [
+                                                             "S’ha de donar resposta a l’anterior requeriment amb Núm. de registre: [CAMP: Registre sortida (S-202X-XXXX)].",
+                                                             "COPIAR REQUERIMENT",
+                                                             "I a més a més, esmenar els següents punts:"
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       }
+                                   ]
+                     },
+                     {
                          "Title":  "Classificació",
                          "Items":  [
                                        {
@@ -22,23 +39,6 @@
                                            "Short":  "Classificació L18/2020",
                                            "BodyLines":  [
                                                              "L’activitat està classificada segons l’epígraf [CAMP: epígraf L18] de la LLEI 18/2020, del 28 de desembre, de facilitació de l\u0027activitat econòmica."
-                                                         ],
-                                           "Children":  [
-
-                                                        ]
-                                       }
-                                   ]
-                     },
-                     {
-                         "Title":  "Requeriment pendent",
-                         "Items":  [
-                                       {
-                                           "Kind":  "item",
-                                           "Short":  "Anterior requeriment",
-                                           "BodyLines":  [
-                                                             "S’ha de donar resposta a l’anterior requeriment amb Núm. de registre: [CAMP: Registre sortida (S-202X-XXXX)].",
-                                                             "COPIAR REQUERIMENT",
-                                                             "I a més a més, esmenar els següents punts:"
                                                          ],
                                            "Children":  [
 

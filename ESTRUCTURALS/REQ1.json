@@ -13,6 +13,45 @@
     "nodes":  [
                   {
                       "tipus":  "seccio",
+                      "titol":  "Requeriment pendent",
+                      "cos":  [
+
+                              ],
+                      "fills":  [
+                                    {
+                                        "tipus":  "item",
+                                        "titol":  "Anterior requeriment",
+                                        "cos":  [
+                                                    {
+                                                        "runs":  [
+                                                                     {
+                                                                         "t":  "S’ha de donar resposta a l’anterior requeriment amb Núm. de registre: [CAMP: Registre sortida (S-202X-XXXX)]."
+                                                                     }
+                                                                 ]
+                                                    },
+                                                    {
+                                                        "runs":  [
+                                                                     {
+                                                                         "t":  "COPIAR REQUERIMENT"
+                                                                     }
+                                                                 ]
+                                                    },
+                                                    {
+                                                        "runs":  [
+                                                                     {
+                                                                         "t":  "I a més a més, esmenar els següents punts:"
+                                                                     }
+                                                                 ]
+                                                    }
+                                                ],
+                                        "fills":  [
+
+                                                  ]
+                                    }
+                                ]
+                  },
+                  {
+                      "tipus":  "seccio",
                       "titol":  "Classificació",
                       "cos":  [
 
@@ -56,45 +95,6 @@
                                                         "runs":  [
                                                                      {
                                                                          "t":  "L’activitat està classificada segons l’epígraf [CAMP: epígraf L18] de la LLEI 18/2020, del 28 de desembre, de facilitació de l\u0027activitat econòmica."
-                                                                     }
-                                                                 ]
-                                                    }
-                                                ],
-                                        "fills":  [
-
-                                                  ]
-                                    }
-                                ]
-                  },
-                  {
-                      "tipus":  "seccio",
-                      "titol":  "Requeriment pendent",
-                      "cos":  [
-
-                              ],
-                      "fills":  [
-                                    {
-                                        "tipus":  "item",
-                                        "titol":  "Anterior requeriment",
-                                        "cos":  [
-                                                    {
-                                                        "runs":  [
-                                                                     {
-                                                                         "t":  "S’ha de donar resposta a l’anterior requeriment amb Núm. de registre: [CAMP: Registre sortida (S-202X-XXXX)]."
-                                                                     }
-                                                                 ]
-                                                    },
-                                                    {
-                                                        "runs":  [
-                                                                     {
-                                                                         "t":  "COPIAR REQUERIMENT"
-                                                                     }
-                                                                 ]
-                                                    },
-                                                    {
-                                                        "runs":  [
-                                                                     {
-                                                                         "t":  "I a més a més, esmenar els següents punts:"
                                                                      }
                                                                  ]
                                                     }
