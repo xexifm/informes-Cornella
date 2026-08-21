@@ -130,6 +130,11 @@ function _Reset-Char($sel) {
 }
 
 function _Apply-Indent($sel, $cm) {
+    # FORA LA NUMERACIO AUTOMATICA que hagi deixat un Format-ListItem: si no, el
+    # paragraf seguent continuaria la llista. Va PRIMER perque el Word, en
+    # treure la numeracio, tambe toca la sagnia del paragraf i aqui de seguida
+    # se li torna a posar la bona.
+    try { $sel.Range.ListFormat.RemoveNumbers() } catch { }
     $sel.ParagraphFormat.LeftIndent = (_CmToPoints $cm)
     $sel.ParagraphFormat.FirstLineIndent = 0
     # Justificat EXPLICIT (com la plantilla). Els qui volen una altra cosa
@@ -356,6 +361,23 @@ function Format-Append {
     param($sel, [string]$text)
     if ([string]::IsNullOrWhiteSpace($text)) { return }
     Type-RichText $sel $text
+}
+
+# UN PARAGRAF DE LLISTA DE WORD DE VERITAT (numeracio automatica), no un numero
+# escrit com a text.
+#
+# PER QUE: a la resta de l'informe el numero s'escriu (Format-Item teclegia
+# "N. ") perque el document ja surt fet i ningu hi ha d'afegir res. Aqui es al
+# reves: el paragraf surt BUIT i l'usuari hi escriu les modificacions o les
+# observacions un cop generat el Word, i llavors vol que en prement Enter el
+# Word li continui la llista sol.
+function Format-ListItem {
+    param($sel, [string]$text = '')
+    [void]$sel.TypeParagraph()
+    _Reset-Char $sel
+    _Apply-Indent $sel 0
+    try { $sel.Range.ListFormat.ApplyNumberDefault() } catch { }
+    if ($text) { Type-RichText $sel $text }
 }
 
 function Format-Spacer {

@@ -1307,11 +1307,19 @@ AssertEq ([bool](_Ed_CanAddChild 'conclusions' @{tipus='seccio'})) $true '_Ed_Ca
 AssertEq ([bool](_Ed_CanAddChild 'conclusions' @{tipus='item'})) $false '_Ed_CanAddChild conclusions item -> no'
 AssertEq ([bool](_Ed_CanAddChild 'cataleg' @{tipus='subseccio'})) $true '_Ed_CanAddChild cataleg subseccio'
 AssertEq ([bool](_Ed_CanAddChild 'actextr' @{tipus='seccio'})) $true '_Ed_CanAddChild actextr seccio'
+AssertEq (@(_Ed_TipusOptions 'mnstraspas' '') -join ',') 'seccio' '_Ed_TipusOptions mnstraspas arrel -> seccio'
+AssertEq (@(_Ed_TipusOptions 'mnstraspas' 'seccio') -join ',') 'text,item' '_Ed_TipusOptions mnstraspas sota seccio'
+AssertEq ([bool](_Ed_CanAddChild 'mnstraspas' @{tipus='seccio'})) $true '_Ed_CanAddChild mnstraspas seccio'
+AssertEq ([bool](_Ed_CanAddChild 'mnstraspas' @{tipus='text'})) $false '_Ed_CanAddChild mnstraspas text -> no'
+AssertEq (_Ed_ChildTipus 'mnstraspas' 'seccio') 'text' '_Ed_ChildTipus mnstraspas -> text'
+# LLIC tambe hi era: sense aixo l'editor no deixava afegir fills a cap punt.
+AssertEq ([bool](_Ed_CanAddChild 'llicencia' @{tipus='item'})) $true '_Ed_CanAddChild llicencia item'
+AssertEq (_Ed_ChildTipus 'llicencia' 'item') 'nodisposa' '_Ed_ChildTipus llicencia item -> nodisposa'
 # Etiqueta d'arbre: [tipus] titol (vocabulari nou, sense [[KEY]] ni ::CHILD::).
 AssertEq (_Ed_NodeLabel @{tipus='item';titol='Incendis';clau='INCENDIS';cos=@()}) '[item] Incendis' '_Ed_NodeLabel [tipus] titol'
 
 Write-Host "`n--- EditorCatalegs.ps1: model<->JSON sense perdues (els 5 ESTRUCTURALS) ---"
-foreach ($docKey in @('REQ1', 'TERMINI', '0 CONCLUSIONS', 'ACT_EXTR_REQ', 'ACT_EXTR_FAV')) {
+foreach ($docKey in @('REQ1', 'TERMINI', '0 CONCLUSIONS', 'ACT_EXTR_REQ', 'ACT_EXTR_FAV', 'MNSTRAS')) {
     $src = Join-Path $EstructuralsDir ($docKey + '.json')
     if (-not (Test-Path -LiteralPath $src)) { continue }
     $o = Get-Content -LiteralPath $src -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -1326,6 +1334,17 @@ foreach ($docKey in @('REQ1', 'TERMINI', '0 CONCLUSIONS', 'ACT_EXTR_REQ', 'ACT_E
     } elseif ($fam -eq 'conclusions') {
         $da = (Read-ConclusionsJson $src '') | ConvertTo-Json -Depth 40
         $db = (Read-ConclusionsJson $tmp '') | ConvertTo-Json -Depth 40
+    } elseif ($fam -eq 'mnstraspas') {
+        # El que compta es el que en surt: els paragrafs de cada informe, amb
+        # observacions i sense.
+        $da = @(); $db = @()
+        foreach ($fx in @('mns', 'traspas')) {
+            foreach ($ax in @($true, $false)) {
+                $da += @(_MnsParagrafs (Read-MnsCataleg $src) $fx $ax) | ForEach-Object { ($_.Tipus + '|' + (@($_.Linies) -join "`n")) }
+                $db += @(_MnsParagrafs (Read-MnsCataleg $tmp) $fx $ax) | ForEach-Object { ($_.Tipus + '|' + (@($_.Linies) -join "`n")) }
+            }
+        }
+        $da = ($da -join '###'); $db = ($db -join '###')
     } else {
         $da = (Read-ActExtrRecordsJson $src) | ConvertTo-Json -Depth 40
         $db = (Read-ActExtrRecordsJson $tmp) | ConvertTo-Json -Depth 40
@@ -1991,9 +2010,19 @@ Assert ($srcLlic.Contains('_RenderRichInto')) 'Llicencia: els camps es pinten am
 Assert (-not $srcLlic.Contains('DataGridViewButtonColumn')) 'Llicencia: fora el boto "Omplir..."'
 # I el Word, DIFERIT: al pas 3 nomes cal el JSON; si s'arrenca alla, la tria de
 # punts triga i un usuari que tira enrere deixa un Word obert per res.
+# Ara hi ha DOS camins que generen (l'informe llarg i els dos curts), o sigui
+# que la prova mira que CADA arrencada del Word vagi seguida d'un Build-...
 $iPas3 = $srcLlic.IndexOf('# Aqui nomes cal REQ1')
-$iWord = $srcLlic.IndexOf('if ($null -eq $word) { $word = New-WordApp }')
-Assert ($iPas3 -ge 0 -and $iWord -gt $iPas3) 'Llicencia: el Word s''arrenca DIFERIT (al pas de generar, no abans)'
+Assert ($iPas3 -ge 0) 'Llicencia: el pas 3 nomes llegeix el JSON'
+$nWord = 0
+$posW = $srcLlic.IndexOf('$word = New-WordApp')
+while ($posW -ge 0) {
+    $nWord++
+    $tros = $srcLlic.Substring($posW, [Math]::Min(1200, $srcLlic.Length - $posW))
+    Assert ($tros.Contains('Build-')) 'Llicencia: el Word s''arrenca DIFERIT (al pas de generar, no abans)'
+    $posW = $srcLlic.IndexOf('$word = New-WordApp', $posW + 1)
+}
+Assert ($nWord -ge 2) 'Llicencia: els dos camins de generacio arrenquen el Word'
 
 Write-Host "`n--- LLIC.json: la capa de Llicencia sobre REQ1 ---"
 # LLIC no es un cataleg de deficiencies: per cada requeriment de REQ1 hi desa
@@ -3484,5 +3513,121 @@ $stD2 = @{}
 [void](Restore-LlicenciaState (($recD | ConvertTo-Json -Depth 20) | ConvertFrom-Json) $stD2)
 AssertEq ([bool](_LlicDbAMapa $stD2['TecnicDocs'])['Projecte']['Marcat']) $true 'base de dades: els documents signats es recorden'
 AssertEq ([string](_LlicDbAMapa $stD2['TecnicDocs'])['Projecte']['Id']) '9741790' 'base de dades: ...amb el seu Id Firmadoc'
+
+# ---------------------------------------------------------------------------
+# MODIFICACIO NO SUBSTANCIAL i TRASPAS (MnsTraspas.ps1 + MNSTRAS.json)
+# ---------------------------------------------------------------------------
+$fasesM = @(_MnsFases)
+AssertEq $fasesM.Count 2 '_MnsFases: els dos informes curts'
+Assert ([bool](_MnsEsFase 'mns'))     '_MnsEsFase: la modificacio no substancial'
+Assert ([bool](_MnsEsFase 'traspas')) '_MnsEsFase: el traspas'
+Assert (-not (_MnsEsFase 'requeriment')) '_MnsEsFase: el requeriment NO hi es'
+Assert (-not (_MnsEsFase '')) '_MnsEsFase: buit tampoc'
+# ...i el pas 1 de Llicencia les ensenya totes cinc.
+AssertEq (@(_LlicTotesLesFases).Count) 5 '_LlicTotesLesFases: 3 informes llargs + 2 curts'
+$clausF = @(@(_LlicTotesLesFases) | ForEach-Object { [string]$_.Clau })
+AssertEq (@($clausF | Select-Object -Unique).Count) $clausF.Count '_LlicTotesLesFases: cap clau repetida'
+
+# Quin node hi entra segons si hi ha observacions.
+Assert ([bool](_MnsNodeEntra '' $true))  '_MnsNodeEntra: sense clau, sempre'
+Assert ([bool](_MnsNodeEntra '' $false)) '_MnsNodeEntra: sense clau, sempre (2)'
+Assert ([bool](_MnsNodeEntra 'amb-observacions' $true))     '_MnsNodeEntra: amb-observacions quan n''hi ha'
+Assert (-not (_MnsNodeEntra 'amb-observacions' $false))     '_MnsNodeEntra: ...i no quan no n''hi ha'
+Assert ([bool](_MnsNodeEntra 'sense-observacions' $false))  '_MnsNodeEntra: sense-observacions quan no n''hi ha'
+Assert (-not (_MnsNodeEntra 'sense-observacions' $true))    '_MnsNodeEntra: ...i no quan n''hi ha'
+Assert ([bool](_MnsNodeEntra 'llista-observacions' $true))  '_MnsNodeEntra: la llista, nomes si n''hi ha'
+Assert (-not (_MnsNodeEntra 'llista-observacions' $false))  '_MnsNodeEntra: ...i si no, res'
+Assert ([bool](_MnsNodeEntra ' AMB-OBSERVACIONS ' $true))   '_MnsNodeEntra: la clau, tolerant'
+
+# El nom del fitxer, amb el mateix patro que la resta (data al principi).
+AssertEq (_MnsNomFitxer ([datetime]'2026-08-21') 'mns' '1457') '2026-08-21_LlicMNS_GIA 1457.docx' '_MnsNomFitxer: modificacio no substancial'
+Assert ([bool]((_MnsNomFitxer ([datetime]'2026-08-21') 'traspas' '1') -like '*LlicTraspas*')) '_MnsNomFitxer: traspas'
+
+# EL CATALEG REAL.
+$mnsPath = Join-Path $Global:EstructuralsDir 'MNSTRAS.json'
+Assert (Test-Path -LiteralPath $mnsPath) 'MNSTRAS.json: hi es'
+$catM = Read-MnsCataleg $mnsPath
+Assert ($null -ne $catM) 'MNSTRAS.json: es valid'
+AssertEq ([string]$catM.familia) 'mnstraspas' 'MNSTRAS.json: la familia'
+Assert ($null -ne (_MnsSeccio $catM 'mns'))     'MNSTRAS.json: hi ha la seccio de la MNS'
+Assert ($null -ne (_MnsSeccio $catM 'traspas')) 'MNSTRAS.json: ...i la del traspas'
+Assert ($null -eq (_MnsSeccio $catM 'no-existeix')) '_MnsSeccio: una clau desconeguda -> $null'
+Assert ($null -eq (Read-MnsCataleg (Join-Path $Global:EstructuralsDir 'NO-HI-ES.json'))) 'Read-MnsCataleg: si no hi es, $null (no s''inventa res)'
+
+foreach ($fM in @('mns', 'traspas')) {
+    $ambM   = @(_MnsParagrafs $catM $fM $true)
+    $senseM = @(_MnsParagrafs $catM $fM $false)
+    Assert ($ambM.Count -gt 0)   ($fM + ': amb observacions, hi ha paragrafs')
+    Assert ($senseM.Count -gt 0) ($fM + ': sense observacions, tambe')
+    # LA LLISTA DE LES OBSERVACIONS nomes si n'hi ha.
+    $tAmb   = @($ambM   | ForEach-Object { [string]$_.Tipus })
+    $tSense = @($senseM | ForEach-Object { [string]$_.Tipus })
+    AssertEq (@($tAmb   | Where-Object { $_ -eq 'llista' }).Count - @($tSense | Where-Object { $_ -eq 'llista' }).Count) 1 ($fM + ': amb observacions hi ha UNA llista mes')
+    # La frase que canvia: una variant o l'altra, mai les dues.
+    $txtAmb   = (@($ambM   | ForEach-Object { @($_.Linies) }) -join ' ')
+    $txtSense = (@($senseM | ForEach-Object { @($_.Linies) }) -join ' ')
+    Assert ([bool]($txtAmb   -like '*amb la seg*ent observaci*'))   ($fM + ': amb observacions ho diu')
+    Assert (-not ($txtAmb    -like '*sense m*s observacions*'))     ($fM + ': ...i no diu tambe el contrari')
+    Assert ([bool]($txtSense -like '*sense m*s observacions*'))     ($fM + ': sense observacions ho diu')
+    Assert (-not ($txtSense  -like '*amb la seg*ent observaci*'))   ($fM + ': ...i no diu tambe el contrari')
+    # Cap marcador intern al text.
+    Assert (-not ($txtAmb -match '\[\[URL\]\]|\[CAMP:|\[OPCIO:')) ($fM + ': cap marcador intern al text')
+}
+# La MNS porta SEMPRE la llista de les modificacions justificades.
+Assert ((@(@(_MnsParagrafs $catM 'mns' $false) | Where-Object { [string]$_.Tipus -eq 'llista' }).Count) -ge 1) 'mns: la llista de modificacions hi es sempre'
+AssertEq (@(_MnsParagrafs $null 'mns' $true).Count) 0 '_MnsParagrafs: sense cataleg, cap paragraf'
+AssertEq (@(_MnsParagrafs $catM 'no-existeix' $true).Count) 0 '_MnsParagrafs: fase desconeguda, cap paragraf'
+
+# GENERACIO SENCERA amb el Word simulat.
+if (Test-Path -LiteralPath $mnsPath) {
+    . (Join-Path $PSScriptRoot 'FormatDoubles.ps1')
+    $selM = [pscustomobject]@{ Range = [pscustomobject]@{ Start = 0; End = 0 } }
+    $selM | Add-Member ScriptMethod EndKey { param($u) } -Force
+    $selM | Add-Member ScriptMethod InsertBreak { param($b) } -Force
+    $docM = [pscustomobject]@{}
+    $docM | Add-Member ScriptMethod Activate {} -Force
+    $docM | Add-Member ScriptMethod Save {} -Force
+    $docM | Add-Member ScriptMethod Close { param($x) } -Force
+    $wordM = [pscustomobject]@{ Selection = $selM }
+    function _ResolveOutputDir { return ([System.IO.Path]::GetTempPath()) }
+    function _GetUniqueOutputPath($d, $b) { return (Join-Path $d $b) }
+    function _OpenOutputDocument($w, $p) { return $script:_docMprova }
+    function Select-CapcaleraBlock($d, $w) { [void]$global:emitCalls.Add("CAPCALERA|$w") }
+    function Apply-HeaderReplacements { param($doc, $header) }
+    $script:_docMprova = $docM
+    if ([string]::IsNullOrWhiteSpace($env:TEMP)) { $env:TEMP = [System.IO.Path]::GetTempPath() }
+    foreach ($fM in @('mns', 'traspas')) {
+        foreach ($ambM in @($true, $false)) {
+            $global:emitCalls.Clear()
+            $petaM = $false
+            try {
+                [void](Build-MnsDocument $wordM @{
+                    Fase = $fM; Header = @{ ID_GIA = '1457'; TITULAR = 'PROVA SL' }
+                    AmbObservacions = $ambM; Cataleg = $catM })
+            } catch { $petaM = $true; Write-Host ("    EXCEPCIO ($fM): " + $_.Exception.Message) -ForegroundColor Red }
+            AssertEq $petaM $false ($fM + '/' + $ambM + ': genera sense petar')
+            $emM = @($global:emitCalls)
+            # La capcalera es la de LLICENCIA, com va demanar l'usuari.
+            Assert ([bool]($emM -contains 'CAPCALERA|LLIC')) ($fM + ': fa servir la capcalera de Llicencia')
+            $llistesM = @($emM | Where-Object { $_ -like 'LLISTA|*' })
+            if ($ambM) { Assert ($llistesM.Count -ge 1) ($fM + ': amb observacions hi ha llista de Word') }
+            # El tancament de sempre.
+            Assert ([bool]($emM | Where-Object { $_ -like 'BODY|Ho poso al seu coneixement*' })) ($fM + ': porta el tancament de sempre')
+            Assert ([bool]($emM | Where-Object { $_ -like 'BODY|Cornell* de Llobregat,' })) ($fM + ': ...i la linia de Cornella')
+            # Cap titol de seccio: "MODIFICACIO NO SUBSTANCIAL" i "TRASPAS"
+            # anaven en VERMELL al Word de l'usuari, o sigui que son marques
+            # seves i no van al document.
+            Assert (-not ($emM | Where-Object { $_ -like 'SECT|*' })) ($fM + ': els titols vermells no van al document')
+        }
+    }
+    # Sense observacions no hi ha cap llista al TRASPAS (nomes hi ha la de les
+    # observacions); a la MNS si, que la de modificacions hi va sempre.
+    $global:emitCalls.Clear()
+    [void](Build-MnsDocument $wordM @{ Fase = 'traspas'; Header = @{ ID_GIA = '1' }; AmbObservacions = $false; Cataleg = $catM })
+    AssertEq (@(@($global:emitCalls) | Where-Object { $_ -like 'LLISTA|*' }).Count) 0 'traspas sense observacions: cap llista'
+    $global:emitCalls.Clear()
+    [void](Build-MnsDocument $wordM @{ Fase = 'mns'; Header = @{ ID_GIA = '1' }; AmbObservacions = $false; Cataleg = $catM })
+    AssertEq (@(@($global:emitCalls) | Where-Object { $_ -like 'LLISTA|*' }).Count) 1 'mns sense observacions: nomes la de modificacions'
+}
 
 exit (Write-TestSummary 'RESULTAT')

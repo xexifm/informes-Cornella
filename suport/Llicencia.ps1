@@ -599,6 +599,29 @@ function _LlicCondicioEntra([string]$condicio, [bool]$esProvisional) {
     return $true
 }
 
+# Avisa d'on ha quedat l'informe i el deixa obert al Word, com la resta de
+# fluxos del programa. Es un sol lloc perque els dos camins de l'assistent
+# -l'informe llarg i els dos curts- acabin exactament igual.
+function _LlicObreIAvisa($word, [string]$out) {
+    [System.Windows.Forms.MessageBox]::Show(
+        "Informe generat:`n$out", 'Finalitzat', 'OK', 'Information') | Out-Null
+    $word.Visible = $true
+    $word.Documents.Open($out) | Out-Null
+}
+
+# TOTES LES FASES que ofereix el pas 1 de Llicencia: les tres de l'informe
+# llarg i les dues curtes (Modificacio NO Substancial i Traspas). Funcio PURA.
+#
+# Van juntes al mateix menu perque per a l'usuari son "l'informe de la
+# llicencia" i comparteixen capcalera; el que canvia es el document que en
+# surt, i d'aixo ja se n'ocupa cada modul.
+function _LlicTotesLesFases {
+    $out = New-Object System.Collections.ArrayList
+    foreach ($f in @(_LlicFases)) { [void]$out.Add($f) }
+    foreach ($f in @(_MnsFases))  { [void]$out.Add($f) }
+    return $out.ToArray()
+}
+
 # EL BLOC DESPRES SEGONS LA FASE. Funcio PURA.
 #
 # ELS TRES INFORMES SON EL MATEIX DOCUMENT. Aixo es el que va costar de veure:
@@ -1062,12 +1085,16 @@ function Select-LlicFase($preFase, $preProv) {
     $lbl = New-Object System.Windows.Forms.Label
     $lbl.Location = New-Object System.Drawing.Point(20, 72)
     $lbl.Size = New-Object System.Drawing.Size(480, 20)
-    $lbl.Text = 'Quin dels tres informes de la llic' + [char]0x00E8 + 'ncia vols fer?'
+    $lbl.Text = 'Quin informe de la llic' + [char]0x00E8 + 'ncia vols fer?'
     [void]$form.Controls.Add($lbl)
 
     $y = 98
     $radios = @{}
-    foreach ($f in @(_LlicFases)) {
+    # LES CINC FASES: les tres de l'informe llarg (_LlicFases) i les dues
+    # curtes (_MnsFases: Modificacio NO Substancial i Traspas). Van al mateix
+    # menu perque comparteixen capcalera i tramit, encara que el document que
+    # en surt no s'assembli gens.
+    foreach ($f in @(_LlicTotesLesFases)) {
         $rb = New-Object System.Windows.Forms.RadioButton
         $rb.Location = New-Object System.Drawing.Point(30, $y)
         $rb.Size = New-Object System.Drawing.Size(460, 22)
@@ -1101,6 +1128,25 @@ function Select-LlicFase($preFase, $preProv) {
     $lbl2.Text = ('Canvia el punt de compatibilitat (AMB en lloc d' + [char]0x2019 + 'Annex II) i, al requeriment, ' +
                   'hi afegeix l' + [char]0x2019 + 'ANNEX 1.')
     [void]$form.Controls.Add($lbl2)
+
+    # La casella "Llicencia provisional" nomes te sentit a l'informe llarg: als
+    # dos curts no canvia res del document, i deixar-la activa nomes despista.
+    #
+    # VA AQUI I NO MES AMUNT: .GetNewClosure() copia els VALORS del moment, o
+    # sigui que una closure creada abans de $cbProv i $lbl2 se'ls quedaria a
+    # $null (vegeu CLAUDE.md). I un clic en un radio dispara DOS esdeveniments
+    # -el que es marca i el germa que es desmarca-, pero aqui es idempotent.
+    $fnFase = @{}
+    $fnFase.Refresca = {
+        $curta = $false
+        foreach ($k in @($radios.Keys)) { if ($radios[$k].Checked -and (_MnsEsFase $k)) { $curta = $true } }
+        $cbProv.Enabled = (-not $curta)
+        $lbl2.Visible = (-not $curta)
+    }.GetNewClosure()
+    foreach ($k in @($radios.Keys)) {
+        $radios[$k].add_CheckedChanged({ & $fnFase.Refresca }.GetNewClosure())
+    }
+    & $fnFase.Refresca
 
     # ELS BOTONS, SOTA L'ULTIMA ETIQUETA. Estaven clavats a y=286 i la nota de
     # la llicencia provisional (y=264, alt 32) els trepitjava. Ara surten del
@@ -1896,7 +1942,32 @@ function Invoke-LlicenciaWizard {
                                 'Llicencia', 'OK', 'Information') | Out-Null
                         }
                     }
-                    $step = 3
+                    # ELS DOS INFORMES CURTS (Modificacio NO Substancial i
+                    # Traspas) no tenen ni blocs de documentacio ni deficiencies
+                    # de projecte: nomes cal saber si hi ha observacions.
+                    $step = if (_MnsEsFase ([string]$st.Fase)) { 20 } else { 3 }
+                }
+                20 {
+                    if ($null -eq $st.MnsCataleg) { $st.MnsCataleg = Read-MnsCataleg }
+                    if ($null -eq $st.MnsCataleg) {
+                        [System.Windows.Forms.MessageBox]::Show(
+                            ("No trobo el cataleg MNSTRAS.json a ESTRUCTURALS.`n`n" +
+                             "Sense el text no es pot fer aquest informe."),
+                            'Llicencia', 'OK', 'Error') | Out-Null
+                        return
+                    }
+                    $r = Select-MnsObservacions ([string]$st.Fase) $st.MnsCataleg $st.MnsObs
+                    if ($r.Nav -ne 'fwd') { $step = 2; break }
+                    $st.MnsObs = [bool]$r.AmbObservacions
+                    if ($null -eq $word) { $word = New-WordApp }
+                    $out = Build-MnsDocument $word @{
+                        Fase = [string]$st.Fase
+                        Header = $st.Header
+                        AmbObservacions = [bool]$st.MnsObs
+                        Cataleg = $st.MnsCataleg
+                    }
+                    _LlicObreIAvisa $word $out
+                    return
                 }
                 3 {
                     # Aqui nomes cal REQ1 (el JSON d'on surt el text). El Word
@@ -2041,11 +2112,7 @@ function Invoke-LlicenciaWizard {
                              "llicencies:`n`n" + $_.Exception.Message),
                             'Llicencia', 'OK', 'Warning') | Out-Null
                     }
-                    [System.Windows.Forms.MessageBox]::Show(
-                        "Informe generat:`n$out", 'Finalitzat', 'OK', 'Information') | Out-Null
-                    # Es deixa el Word obert amb l'informe, com a la resta de fluxos.
-                    $word.Visible = $true
-                    $word.Documents.Open($out) | Out-Null
+                    _LlicObreIAvisa $word $out
                     return
                 }
                 default { return }

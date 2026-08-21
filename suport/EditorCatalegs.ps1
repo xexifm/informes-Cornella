@@ -211,6 +211,16 @@ function _Ed_TipusOptions([string]$familia, [string]$parentTipus) {
             }
             return @('item')
         }
+        'mnstraspas' {
+            # Els dos informes CURTS de llicencia. Cada seccio es un informe i
+            # cada fill un paragraf:
+            #   text -> paragraf normal
+            #   item -> paragraf de LLISTA DE WORD buit (l'omple l'usuari)
+            # ...i la CLAU diu quan hi entra (amb-observacions /
+            # sense-observacions / llista-observacions / res = sempre).
+            if ([string]::IsNullOrEmpty($parentTipus)) { return @('seccio') }
+            return @('text', 'item')
+        }
     }
     return @('')
 }
@@ -225,6 +235,8 @@ function _Ed_CanAddChild([string]$familia, $node) {
         'cataleg'     { return ([string]$node.tipus -in @('seccio', 'subseccio', 'item')) }
         'conclusions' { return ([string]$node.tipus -eq 'seccio') }
         'actextr'     { return ([string]$node.tipus -in @('seccio', 'item')) }
+        'llicencia'   { return ([string]$node.tipus -in @('seccio', 'item')) }
+        'mnstraspas'  { return ([string]$node.tipus -eq 'seccio') }
     }
     return $false
 }
@@ -236,6 +248,8 @@ function _Ed_ChildTipus([string]$familia, [string]$parentTipus) {
         'cataleg'     { if ($parentTipus -eq 'seccio' -or $parentTipus -eq 'subseccio') { return 'item' } else { return 'subitem' } }
         'conclusions' { return 'item' }
         'actextr'     { if ($parentTipus -eq 'seccio') { return 'item' } else { return 'subitem' } }
+        'llicencia'   { if ($parentTipus -eq 'seccio') { return 'item' } else { return 'nodisposa' } }
+        'mnstraspas'  { return 'text' }
     }
     return (_Ed_DefaultTipus $familia $parentTipus)
 }

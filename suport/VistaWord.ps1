@@ -75,7 +75,7 @@ function _VistaEsProtegit([string]$jsonPath) {
 #   4 -> separacio entre l'item i el seu PRIMER sub-punt (Format-Bullet -First)
 #   5 -> negreta del numero de l'item aplicada pel RANG (no s'encomana al cos)
 #        i sangria dels fills a 1 cm amb francesa de 0,5 cm
-$Script:VistaWordVersio = 6
+$Script:VistaWordVersio = 7
 
 function _VistaVersioPath {
     $base = [string]$env:LOCALAPPDATA
@@ -174,6 +174,33 @@ function _VLine($sel, [string]$line, [bool]$isChild = $false) {
 #
 # Els punts surten de _LlicPuntsPerBloc, o sigui de la MATEIXA funcio que munta
 # l'informe: la vista no pot dir una cosa i el document una altra.
+# La vista dels dos informes CURTS de llicencia (MNSTRAS.json). Ensenya cada un
+# amb les DUES variants -amb observacions i sense-, que es l'unica cosa que hi
+# canvia, i marca on va la llista que l'usuari omple al Word.
+function _VistaMnsTraspas($sel, [string]$jsonPath) {
+    $cfg = $Script:ReportFormatConfig
+    $cat = Read-MnsCataleg $jsonPath
+    foreach ($f in @(_MnsFases)) {
+        _VSection $sel ([string]$f.Nom)
+        if ($cfg.SpacerAfterSection) { _VSpacer $sel }
+        foreach ($v in @(@{ Amb = $false; Nom = 'sense observacions' }, @{ Amb = $true; Nom = 'amb observacions' })) {
+            _VSubsection $sel ([string]$v.Nom)
+            if ($cfg.SpacerAfterSubsection) { _VSpacer $sel }
+            foreach ($p in @(_MnsParagrafs $cat ([string]$f.Clau) ([bool]$v.Amb))) {
+                if ([string]$p.Tipus -eq 'llista') {
+                    _VBody $sel ('//(aqui hi va una llista de Word buida, per omplir-la a ma)//')
+                    continue
+                }
+                foreach ($l in @($p.Linies)) {
+                    $pp = _SplitTextAndUrls ([string]$l)
+                    if (-not [string]::IsNullOrWhiteSpace($pp.Text)) { _VBody $sel $pp.Text }
+                }
+            }
+            if ($cfg.SpacerAfterItem) { _VSpacer $sel }
+        }
+    }
+}
+
 function _VistaLlicencia($sel, [string]$jsonPath) {
     $cfg = $Script:ReportFormatConfig
     $llic = Read-LlicCataleg $jsonPath
@@ -427,6 +454,7 @@ function Export-VistaWord($word, [string]$jsonPath) {
             'conclusions' { _VistaConclusions $sel $jsonPath }
             'actextr'     { _VistaActExtr $sel $jsonPath $nom }
             'llicencia'   { _VistaLlicencia $sel $jsonPath }
+            'mnstraspas'  { _VistaMnsTraspas $sel $jsonPath }
             default       { _VistaCataleg $sel $jsonPath $nom }
         }
         # Nota final: que quedi clar que es una vista generada i que no s'edita.
