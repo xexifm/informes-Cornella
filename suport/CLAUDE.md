@@ -1474,6 +1474,134 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   punt demana a més decidir «No es disposa / Es disposa», que sí que és una
   decisió per activitat. Hi ha **«Marcar-ho tot» / «Desmarcar-ho tot»**.
 
+## ELS TRES INFORMES DE LLICÈNCIA SÓN EL MATEIX DOCUMENT
+Això va costar de veure i és el canvi més gros d'aquesta família. El favorable
+**POST** estava fet com un informe **curt** que **llegia** el pre-llicència i en
+copiava el bloc DESPRÉS. L'usuari va enviar el que fa a mà i és **l'informe
+sencer**: documentació del projecte, bloc ABANS i bloc DESPRÉS amb els seus
+«Quan:». L'única cosa que canvia entre fases és **què es diu de cada punt del
+bloc DESPRÉS**:
+
+| Fase | Sota el «Quan:» |
+|---|---|
+| `requeriment` | res (encara no toca dir si es té o no) |
+| `favorable-pre` | **No es disposa de la documentació.** (negreta: falta) |
+| `favorable-post` | Es disposa del document (Id Firmadoc: …) |
+
+- Ho decideix **`_LlicEstatDespres`** (pura) i ho aplica **`_LlicPuntsAmbEstatFase`**
+  al **pas 3** de l'assistent, de manera que **la pantalla del pas 7 i el
+  document fan servir exactament els mateixos punts**. Si es fes només a la
+  composició, la pantalla no ensenyaria el que sortirà.
+- Un punt que ja porti text propi al catàleg **se'l queda**: el genèric només hi
+  entra quan no n'hi ha.
+- **El «Quan:» va ABANS del comentari** (`_LlicEscriuPunt`): a l'informe fet a mà
+  cada punt diu primer quan s'ha de tenir i després si es té. Al revés, el
+  termini quedava penjat al final del punt.
+- **Fora**: `_LlicEntradaPost`, `_LlicPuntsDelDocxAnterior` i `_LlicFinalsDeBloc`
+  — només servien per al post que llegia el `.docx` anterior. `Select-PreviousReport`
+  es queda: la fa servir *Seguiment*.
+
+### Altres coses que va destapar comparar el generat amb el fet a mà
+- **La documentació del projecte va DALT DE TOT**, sota el títol de secció
+  `DOCUMENTACIÓ PROJECTE` i **fora de la numeració**. Sortia al final del bloc
+  ABANS, numerada i sota un subtítol subratllat «Documentació».
+- **La classificació no porta tabulador**: l'etiqueta és més llarga que la
+  primera parada de tabulació i el valor saltava a la següent, molt a la dreta.
+- **ANNEX 1**: una línia en blanc entre punts numerats; l'aclariment d'un punt va
+  **dins del mateix paràgraf** (`Format-Append`, nou a `Format.ps1`, que és
+  l'únic `Format-*` que **no** comença amb `TypeParagraph`); i el full de
+  signatures porta dues línies en blanc davant de cada declaració.
+- **L'ANNEX 1 no s'escriu si ja es disposa de l'autorització d'usos i obres
+  provisionals** (`_LlicCalAnnex1`): l'annex diu **com demanar-la**, o sigui que
+  si ja es té no pinta res. El punt es reconeix per la **condició `provisional`**,
+  no pel títol (que es pot reescriure des de l'editor i trencaria el lligam en
+  silenci).
+- **La pantalla «Documentació» recorda què s'ha signat**: Projecte / Plànols /
+  Annexos i el seu Id Firmadoc no es desaven enlloc i calia tornar-ho a marcar a
+  cada informe. Ara van a `$st.TecnicDocs` i a la base de dades de llicències
+  (`ConvertTo-LlicenciaDocs`), i la pantalla surt ja marcada.
+
+## Modificació NO Substancial i Traspàs (`suport/MnsTraspas.ps1`)
+Dos informes **curts** que van al **mateix menú** que els tres de sempre (pas 1
+de Llicència) perquè comparteixen capçalera i tràmit, però el document no
+s'assembla gens: tres o quatre paràgrafs fixos i cap bloc de documentació.
+`_LlicTotesLesFases` ajunta `_LlicFases` + `_MnsFases`.
+
+- **L'única cosa que es tria és si hi ha observacions.** Amb observacions →
+  «…amb la següent observació:» i **un paràgraf de llista de Word buit**; sense →
+  «…sense més observacions en relació a aquest tràmit.» i cap llista.
+- **`Format-ListItem` (`Format.ps1`) és una llista de Word DE VERITAT**
+  (`ListFormat.ApplyNumberDefault()`), no un número escrit com a text. A la resta
+  de l'informe el número s'escriu perquè el document ja surt fet; aquí el
+  paràgraf surt **buit** i l'usuari hi escriu al Word, i vol que en prémer Enter
+  la llista continuï sola. Perquè el paràgraf següent **no** continuï la llista,
+  `_Apply-Indent` fa `ListFormat.RemoveNumbers()` **abans** de posar la sagnia
+  (el Word, en treure la numeració, també toca la sagnia).
+- **El text viu a `ESTRUCTURALS/MNSTRAS.json`** (un sol catàleg per als dos, com
+  va demanar l'usuari), família `mnstraspas`. Una secció per informe i un fill
+  per paràgraf: `text` → paràgraf normal, `item` → paràgraf de llista buit. La
+  **clau** diu quan hi entra: `amb-observacions`, `sense-observacions`,
+  `llista-observacions`, o res = sempre (`_MnsNodeEntra`, pura).
+- **El vermell del Word original era una marca de l'usuari**, no part del
+  document: ni els títols «MODIFICACIÓ NO SUBSTANCIAL» / «TRASPÀS» ni les dues
+  variants es pinten de cap color. Els títols **no s'escriuen**: només serveixen
+  per saber quin informe és.
+- `MNSTRAS.json` queda **fora de `Get-Catalegs`** (com `LLIC.json`) i té vista en
+  Word (`_VistaMnsTraspas`), que ensenya els dos informes amb les dues variants.
+
+## La capçalera i les conclusions, editables des del programa
+Els fan servir **tots** els informes, no pengen de cap rajola del menú i no hi
+havia manera d'arribar-hi. Ara hi ha **dos enllaços al costat de «Què vols
+fer?»** de la pantalla principal (acció `editcataleg` amb `Doc` = `0 CAPCALERA`
+/ `0 CONCLUSIONS`) i l'editor **diu a quin tipus d'informe s'aplica** cada
+secció (`_Ed_AplicaText`, reaprofitant el camp de només lectura que a ACT_EXTR
+mostra la `[[KEY]]`).
+
+**`0 CAPCALERA.docx` NO es converteix a JSON**: és l'única plantilla de Word de
+veritat (escut, la taula del requadre de la «Nota:», les parades de tabulació,
+els marges) i no es pot regenerar. El que es fa és **separar les dues coses**:
+
+```
+el .docx mana en el FORMAT   (escut, taula, lletra, tabulacions)
+el .json mana en el TEXT     (etiquetes, valors fixos, la nota)
+```
+
+- **`suport/CapcaleraJson.ps1`**: `_CapBlocsDelXml` (docx → blocs i línies) i
+  `_CapAplicaAlXml` (JSON → docx), totes dues **pures i provades sobre el fitxer
+  real**. `Sync-CapcaleraJson` regenera el JSON en obrir l'editor —així no pot
+  quedar desincronitzat— i `Apply-CapcaleraJson` el torna a escriure en desar,
+  amb **còpia de seguretat** al costat.
+- **Tot són edicions de TEXT sobre `word/document.xml`**, mai un serialitzador
+  d'XML (això ja va corrompre el fitxer un cop i va deixar el programa
+  inservible; vegeu la secció de Llicència). El ZIP es reescriu amb
+  `ZipArchiveMode::Update`, que només toca aquella entrada.
+- **Com es llegeix una línia** (`_CapLiniaDeRuns`): l'etiqueta són els runs en
+  **negreta abans del tabulador**, i el valor, els de després. Sense tabulador,
+  l'etiqueta és la negreta del principi. En escriure, **tot el text va al PRIMER
+  run del grup i els altres es queden buits**: així el `<w:rPr>` (lletra,
+  negreta, mida) no es toca mai.
+- **Les línies es localitzen per POSICIÓ** (la clau `pN` del JSON), no pel
+  contingut: la capçalera té una estructura fixa i el que s'edita és el que hi
+  diu, no on va. Per això l'editor **no deixa afegir ni treure línies**
+  (`_Ed_CanAddChild` → `$false` per a `capcalera`).
+- **Comprovat sobre el `.docx` real**: aplicar el JSON sense canvis no en mou ni
+  un byte; canviar una etiqueta només toca aquella línia; i el document segueix
+  amb els seus **19 espais de noms**, el `mc:Ignorable` i **cap prefix `ns0:`**
+  inventat.
+- **`_VistaEsProtegit` ja protegia `0 CAPCALERA*`**, i és el que impedeix que el
+  generador de vistes en Word sobreescrigui la plantilla a partir del JSON nou.
+
+## Controls que es trepitgen: la tolerància
+`_TrobaSolapaments` avisava de pantalles que es veuen perfectament (una etiqueta
+que passa **un píxel** per sota d'un radio, el títol i el subtítol de la banda
+granat) i l'avís es va tornar soroll que ningú llegia — l'usuari: *«Calen tots
+aquests avisos de Pantalla mal col·locada??»*. Ara ha de trepitjar com a mínim
+**8 px en les DUES direccions** (`$Script:SolapMinPx`) **i** cobrir el **15%**
+del control més petit (`$Script:SolapMinPct`). Amb això calla en els casos reals
+que no molesten i segueix cridant quan un botó tapa una etiqueta de debò —que és
+com es va trobar el defecte de `Select-LlicFase`, on els botons anaven a una `Y`
+clavada al codi i ara surten del **peu real** de l'última etiqueta.
+
 ## Pas 2 — origen de l'informe (capçalera genèrica REQ1)
 - Al **Pas 2** (capçalera genèrica; les actes extraordinàries es queden igual)
   hi ha una tria **Origen de l'informe**: *Documentació aportada* o *Visita

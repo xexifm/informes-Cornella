@@ -89,17 +89,21 @@ regeneren amb les del grup **SEGUIMENT**.
 
 Botó **📜 Llicència (Annex II / LL Prov)**. És el tràmit de llicència d'activitat
 de l'Annex II de la Llei 20/2009 i el de llicència provisional. **No és un
-informe, són tres**, i tries quin fas al primer pas:
+informe, són cinc**, i tries quin fas al primer pas:
 
-| Fase | Com acaba |
+| Informe | Com acaba |
 |------|-----------|
 | **Requeriment** | «Cal requerir l'esmena de les deficiències indicades…» |
 | **Favorable pre-llicència** | «S'informa favorablement a l'espera de rebre la citada documentació…» |
 | **Favorable post-llicència** | «S'informa favorablement l'activitat i es dóna per tancat l'expedient.» |
+| **Modificació NO Substancial** | informe curt, a part (vegeu més avall) |
+| **Traspàs** | informe curt, a part (vegeu més avall) |
 
 Al mateix pas hi ha la casella **«Llicència provisional»**, que canvia el punt
 condicional del principi (compatibilitat urbanística) i afegeix l'**ANNEX 1** al
-final — però **només** a la fase de Requeriment.
+final — però **només** a la fase de Requeriment, i **només si encara no es
+disposa** d'aquella autorització: l'annex diu com demanar-la, i si ja la tens no
+hi pinta res. (La casella no s'aplica als dos informes curts.)
 
 Passos: fase → capçalera (amb la **Classificació** ja omplerta des de l'Excel:
 `Llei 20/2009; Annex II; Epígraf …`) → documentació **abans** de la resolució →
@@ -159,9 +163,42 @@ com tenies el Word: hi eren totes i n'anaves esborrant); hi ha **«Marcar-ho
 tot»** i **«Desmarcar-ho tot»**. Al bloc d'**abans** surten desmarcades, perquè
 allà cada punt demana a més dir si ja es disposa de la documentació.
 
-El **favorable post-llicència** no et fa tornar a triar res: et demana el `.docx`
-del **pre-llicència** i en treu la documentació que hi constava, ja sense el
-«Quan:». Només has de desmarcar el que no s'hagi arribat a comprovar.
+#### Els tres informes són el mateix document
+
+El **favorable pre** i el **post** no són informes a part: són **el mateix
+informe sencer** (documentació del projecte, bloc d'abans i bloc de després amb
+els seus «Quan:»). L'única cosa que canvia és què diu de cada punt del bloc de
+**després**:
+
+| Informe | Sota el «Quan:» |
+|---|---|
+| Requeriment | res |
+| Favorable pre-llicència | **No es disposa de la documentació.** |
+| Favorable post-llicència | Es disposa del document (Id Firmadoc: …) |
+
+Al pre i al post, doncs, el bloc de després també et deixa dir de cada punt si es
+disposa del document i posar-hi l'**Id Firmadoc**.
+
+La **documentació del projecte** (el tècnic redactor i els documents signats) va
+**dalt de tot**, sota el títol `DOCUMENTACIÓ PROJECTE` i **fora de la
+numeració**; la numeració dels punts va seguida de cap a peus.
+
+#### Modificació NO Substancial i Traspàs
+
+Són dos informes **curts**, dins del mateix botó de Llicència. Tenen la mateixa
+capçalera i **només et pregunten una cosa: si hi ha observacions**.
+
+- **Amb observacions** → l'informe diu «…amb la següent observació:» i hi deixa
+  una **llista de Word buida** just a sota, perquè hi escriguis el que calgui un
+  cop obert el document (en prémer Enter, el Word et continua la llista).
+- **Sense** → diu «…sense més observacions en relació a aquest tràmit.» i no hi
+  posa cap llista.
+
+A la *Modificació NO Substancial* hi ha, a més, la llista de les modificacions
+justificades, que hi surt **sempre**.
+
+El text el pots canviar des de l'editor de catàlegs: hi ha un sol document per
+als dos, **`MNSTRAS.json`**.
 
 > **D'on surt el text:** de **REQ1**, en viu. `LLIC.json` només hi afegeix el que
 > és propi de Llicència (els dos comentaris i el «Quan:»); si canvies un
@@ -346,6 +383,11 @@ passat, per exemple, el *Comprovar Excel* aquesta setmana. Es desa a
 **Des del programa**, amb el botó **✏ Editar catàlegs**. Hi pots afegir,
 esborrar i moure seccions, subseccions, ítems i sub-punts, i escriure'n el text.
 
+**La capçalera i les conclusions** les fan servir *tots* els informes i per això
+no pengen de cap botó: hi entres pels dos enllaços que hi ha **al costat de «Què
+vols fer?»** de la pantalla principal — **✏ Capçalera** i **✏ Conclusions**. A
+dins, cada bloc et diu **a quin tipus d'informe s'aplica**.
+
 > Abans els catàlegs eren documents de Word i s'editaven amb els estils
 > "Títol 1"/"Títol 2". **Ja no**: la font són els `.json` i l'editor. Els `.docx`
 > que veus a `local/vistes-catalegs/` són **còpies per llegir**, es regeneren
@@ -367,6 +409,33 @@ hipervincle, en cos més petit.
 Quan deses, el programa **regenera les vistes en Word** i, en fer
 `Actualitzar.bat`, **puja els teus catàlegs al GitHub**. Els teus canvis
 sempre manen: si el repositori ha tocat el mateix fitxer, guanya la teva versió.
+
+### La capçalera (`0 CAPCALERA`)
+
+És l'únic document que **segueix sent un Word de veritat**: hi ha l'escut, el
+requadre de la «Nota:», les tabulacions i els marges, i això no es pot refer des
+de cap fitxer de text. Per això va **a mitges**:
+
+- el **`.docx`** mana en el **format**;
+- el **`.json`** mana en el **text** (les etiquetes, els valors fixos i la nota).
+
+Quan obres l'editor, el `.json` es torna a llegir del document —o sigui que mai
+et pot dir una cosa diferent del que hi ha—, i quan deses, el text que hi hagis
+posat **es torna a escriure dins del `.docx`** (i se'n fa una còpia de seguretat
+al costat). No s'hi poden afegir ni treure línies: la capçalera té una
+estructura fixa i el que s'edita és **el que hi diu**.
+
+Hi ha **tres blocs**, i l'editor et diu a quin informe va cadascun:
+
+| Bloc | S'aplica a |
+|---|---|
+| Capçalera general | Requeriment - Nou, Ampliació de termini, Controls periòdics |
+| Capçalera d'activitats extraordinàries | Activitats extraordinàries |
+| Capçalera de llicència | Llicència, Modificació NO Substancial, Traspàs |
+
+> Els `<<ID_GIA>>`, `<<TITULAR>>`, `<<ADRECA>>`… són els forats que omple el
+> programa: **no els esborris**. Una línia «Camp:» sense cap forat surt buida a
+> l'informe.
 
 ### El catàleg de Llicència (`LLIC.json`)
 
