@@ -159,6 +159,25 @@ function ConvertTo-LlicenciaMemoria($mem) {
     return $out
 }
 
+# ELS DOCUMENTS SIGNATS del tecnic redactor (Projecte / Planols / Annexos) a
+# una forma DESABLE i de tornada: nom -> @{ Marcat; Id }. Funcio PURA.
+#
+# PER QUE: aixo no es desava enlloc, i cada informe de la mateixa llicencia
+# obligava a tornar a marcar els documents i a reescriure els Id Firmadoc.
+# Igual que la resta, ha de sobreviure el pas per JSON (que torna
+# PSCustomObjects).
+function ConvertTo-LlicenciaDocs($docs) {
+    $out = [ordered]@{}
+    foreach ($k in @((_LlicDbAMapa $docs).Keys)) {
+        $e = _LlicDbAMapa ((_LlicDbAMapa $docs)[$k])
+        $out[[string]$k] = [ordered]@{
+            Marcat = [bool]$e['Marcat']
+            Id     = [string]$e['Id']
+        }
+    }
+    return $out
+}
+
 # ...i de tornada: el que llegeix Select-LlicDocumentacio ($preSel). Les claus
 # dels sub-punts tornen a ser NUMERIQUES, que es com les indexa la pantalla.
 function ConvertFrom-LlicenciaMemoria($mem) {
@@ -205,6 +224,7 @@ function ConvertTo-LlicenciaRecord($st, $historial = @()) {
         ProjKeys      = @($h['ProjKeys'])
         ProjVals      = (_LlicDbAMapa $h['ProjVals'])
         Tecnic        = (_LlicDbAMapa $h['Tecnic'])
+        TecnicDocs    = (ConvertTo-LlicenciaDocs $h['TecnicDocs'])
         Condicions    = [string]$h['Condicions']
         Historial     = $hist.ToArray()
     }
@@ -223,6 +243,7 @@ function Restore-LlicenciaState($record, $st) {
     $st['ProjKeys']   = @($r['ProjKeys'])
     $st['ProjVals']   = _LlicDbAMapa $r['ProjVals']
     $st['Tecnic']     = _LlicDbAMapa $r['Tecnic']
+    $st['TecnicDocs'] = ConvertTo-LlicenciaDocs $r['TecnicDocs']
     $st['Condicions'] = [string]$r['Condicions']
     return $st
 }

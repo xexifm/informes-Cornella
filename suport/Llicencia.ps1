@@ -420,84 +420,6 @@ function _LlicPuntsPerBloc($llic, $idxReq1, [string]$bloc, $req1 = $null) {
     return @{ Punts = $punts.ToArray(); Orfes = $orfes.ToArray() }
 }
 
-# Frases que TANQUEN el bloc DESPRES d'un informe de Llicencia ja emes. Es
-# comparen en majuscules i sense accents no: n'hi ha prou amb el principi.
-function _LlicFinalsDeBloc {
-    return @(
-        'CONDICIONS LLIC',
-        'ANNEX 1',
-        'Ho poso al seu coneixement',
-        'Cornell',
-        "S'informa favorablement",
-        [char]0x2018 + 'informa favorablement',   # apostrof tipografic del Word
-        'Cal requerir'
-    )
-}
-
-# Treu els punts del bloc DESPRES d'un informe de Llicencia JA EMES (el
-# pre-llicencia), a partir del text dels seus paragrafs. Funcio PURA.
-#
-# PER QUE: el favorable POST-llicencia diu "Despres d'haver comprovat la seguent
-# documentacio presentada:" i llista EXACTAMENT el que deia el pre-llicencia. Fer
-# que l'usuari ho tornes a triar del cataleg era demanar-li que repetis una
-# feina que ja consta escrita, i obria la porta a que les dues llistes no
-# quadressin.
-#
-# COM ES RECONEIX: els informes els genera aquest mateix programa, i alli el
-# numero i el pic s'escriuen com a TEXT (Format-Item escriu "N. ", Format-Bullet
-# escriu U+2022 + tabulador); no hi ha numeracio automatica del Word. Per tant
-# n'hi ha prou amb el text de cada paragraf.
-#   "N. ..."  -> comenca un punt nou
-#   U+2022    -> sub-punt del punt actual
-#   "Quan: ..." -> ES DESCARTA (al post ja no toca: la documentacio ja s'ha
-#                  presentat, o sigui que el termini no hi pinta res)
-#   la resta  -> linia de cos del punt actual
-function _LlicPuntsDelDocxAnterior($paraTexts) {
-    $punts = New-Object System.Collections.ArrayList
-    $dins = $false
-    $actual = $null
-    $pic = [string][char]0x2022
-
-    foreach ($raw in @($paraTexts)) {
-        $t = ([string]$raw).Trim()
-        if ($t.Length -eq 0) { continue }
-
-        if (-not $dins) {
-            # El titol del bloc DESPRES. Es mira tolerant (l'usuari pot haver
-            # retocat l'informe a ma) i en majuscules, que es com surt.
-            $u = $t.ToUpper()
-            if ($u.StartsWith('DOCUMENTACI') -and $u.Contains('DESPR')) { $dins = $true }
-            continue
-        }
-
-        foreach ($fi in (_LlicFinalsDeBloc)) {
-            if ($t.StartsWith($fi)) { $dins = $false; break }
-        }
-        if (-not $dins) { break }
-
-        if ($t -match '^(\d+)\.\s+(.*)$') {
-            if ($null -ne $actual) { [void]$punts.Add($actual) }
-            $actual = [pscustomobject]@{
-                Clau = ''; Titol = [string]$Matches[2]; Condicio = ''
-                Cos = @([string]$Matches[2]); NoDisposa = @(); SiDisposa = @()
-                Quan = @(); Subs = @()
-            }
-            continue
-        }
-        if ($null -eq $actual) { continue }   # text solt abans del primer punt
-
-        if ($t.StartsWith($pic)) {
-            $sub = $t.Substring(1).TrimStart([char]0x0009, ' ')
-            $actual.Subs = @($actual.Subs) + @(, @($sub))
-            continue
-        }
-        if ($t.StartsWith('Quan:')) { continue }
-        $actual.Cos = @($actual.Cos) + @($t)
-    }
-    if ($null -ne $actual) { [void]$punts.Add($actual) }
-    return $punts.ToArray()
-}
-
 # Els documents que pot haver signat el tecnic redactor. Funcio PURA (i per aixo
 # es aqui i no dins del dialeg: aixi es pot COMPTAR en una prova).
 #
@@ -677,6 +599,74 @@ function _LlicCondicioEntra([string]$condicio, [bool]$esProvisional) {
     return $true
 }
 
+# EL BLOC DESPRES SEGONS LA FASE. Funcio PURA.
+#
+# ELS TRES INFORMES SON EL MATEIX DOCUMENT. Aixo es el que va costar de veure:
+# el favorable POST no es un informe curt que llegeix l'anterior -aixi estava
+# fet i no es el que fa l'usuari a ma-, sino EL MATEIX informe sencer
+# (documentacio del projecte, bloc ABANS i bloc DESPRES amb els seus "Quan:").
+# L'unica cosa que canvia entre les tres fases es QUE ES DIU DE CADA PUNT DEL
+# BLOC DESPRES:
+#
+#   requeriment    -> res (encara no toca dir si es te o no)
+#   favorable-pre  -> "No es disposa de la documentacio." (en negreta: falta)
+#   favorable-post -> "Es disposa del document (Id Firmadoc: ...)"
+#
+# ...i la conclusio, que ja la decidia _LlicConclusioText.
+function _LlicEstatDespres([string]$fase) {
+    $sid = @('Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])')
+    $nod = @('No es disposa de la documentaci' + [char]0x00F3 + '.')
+    switch ([string]$fase) {
+        'favorable-pre'  { return @{ Estat = 'no'; NoDisposa = $nod; SiDisposa = $sid; AmbEstat = $true;  AmbDades = $true } }
+        'favorable-post' { return @{ Estat = 'si'; NoDisposa = $nod; SiDisposa = $sid; AmbEstat = $true;  AmbDades = $true } }
+    }
+    return @{ Estat = ''; NoDisposa = @(); SiDisposa = @(); AmbEstat = $false; AmbDades = $false }
+}
+
+# Els punts del bloc DESPRES amb els textos de la fase. Funcio PURA: retorna
+# copies, mai toca els punts que li arriben. Un punt que ja porti text propi al
+# cataleg el conserva -alli hi ha la redaccio bona i aqui nomes hi ha el text
+# generic-.
+function _LlicPuntsAmbEstatFase($punts, [string]$fase) {
+    $ef = _LlicEstatDespres $fase
+    $out = New-Object System.Collections.ArrayList
+    foreach ($p in @($punts)) {
+        $nod = @($p.NoDisposa); $sid = @($p.SiDisposa)
+        if ($nod.Count -eq 0) { $nod = @($ef.NoDisposa) }
+        if ($sid.Count -eq 0) { $sid = @($ef.SiDisposa) }
+        [void]$out.Add([pscustomobject]@{
+            Clau      = $p.Clau
+            Subseccio = $p.Subseccio
+            Titol     = $p.Titol
+            Condicio  = $p.Condicio
+            Cos       = @($p.Cos)
+            NoDisposa = $nod
+            SiDisposa = $sid
+            Quan      = @($p.Quan)
+            Subs      = @($p.Subs)
+        })
+    }
+    return $out.ToArray()
+}
+
+# CAL L'ANNEX 1? Funcio PURA.
+#
+# L'ANNEX 1 diu QUINA DOCUMENTACIO s'ha d'enviar per demanar l'autoritzacio
+# d'usos i obres provisionals. Si l'usuari ha marcat que d'aquella autoritzacio
+# JA SE'N DISPOSA, l'annex no te cap sentit: ja no s'ha de demanar res.
+#
+# El punt es reconeix per la CONDICIO 'provisional' (la que el fa entrar nomes a
+# les llicencies provisionals), no pel titol: el titol es pot reescriure des de
+# l'editor de catalegs i el lligam es trencaria en silenci.
+function _LlicCalAnnex1($punts, [bool]$esProvisional) {
+    if (-not $esProvisional) { return $false }
+    foreach ($p in @($punts)) {
+        if (([string]$p.Condicio).Trim().ToLower() -ne 'provisional') { continue }
+        if ([string]$p.Estat -eq 'si') { return $false }
+    }
+    return $true
+}
+
 # Text de la conclusio d'una fase.
 #   - Al favorable PRE, la coda " i sota les seguents condicions" es OPCIONAL:
 #     no sempre n'hi ha. Sense condicions, la frase acaba amb un punt.
@@ -691,16 +681,6 @@ function _LlicConclusioText([string]$fase, [bool]$ambCondicions) {
         return ([string]$f.Conclusio + ' i sota les seg' + [char]0x00FC + 'ents condicions.')
     }
     return ([string]$f.Conclusio + '.')
-}
-
-# Frase d'entrada del favorable POST-llicencia.
-function _LlicEntradaPost([bool]$esProvisional) {
-    $t = ('Despr' + [char]0x00E9 + 's d' + [char]0x2019 + 'haver comprovat la seg' + [char]0x00FC +
-          'ent documentaci' + [char]0x00F3 + ' presentada')
-    if ($esProvisional) {
-        $t += (' i d' + [char]0x2019 + 'haver realitzat la posterior visita d' + [char]0x2019 + 'inspecci' + [char]0x00F3)
-    }
-    return ($t + ':')
 }
 
 # El paragraf "Documentacio signada digitalment pel tecnic redactor..." Funcio
@@ -803,6 +783,16 @@ function _LlicEscriuPunt($sel, $punt, [int]$numero, $fields, [string]$estat, [bo
             }
         }
     }
+    # EL "Quan:" VA ABANS DEL COMENTARI. A l'informe fet a ma, cada punt del
+    # bloc DESPRES diu primer QUAN s'ha de tenir i despres SI ES TE o no; al
+    # reves quedava el termini penjat al final del punt.
+    if ($ambQuan) {
+        foreach ($l in @(Apply-FieldsToLines $punt.Quan $fields)) {
+            if ([string]::IsNullOrWhiteSpace($l)) { continue }
+            Format-Body $sel ('Quan: ' + [string]$l)
+        }
+    }
+
     # El comentari. 'no' = falta (negreta); 'si' = ja hi es (normal). Al Word de
     # l'usuari anaven en verd, pero aquell color era una MARCA SEVA per saber que
     # havia de canviar a cada informe, no part del document: aqui van amb el
@@ -820,12 +810,6 @@ function _LlicEscriuPunt($sel, $punt, [int]$numero, $fields, [string]$estat, [bo
             $c = ([string]$u).Trim()
             if ($emesos.Contains($c)) { continue }
             [void]$emesos.Add($c); Format-Url $sel $u
-        }
-    }
-    if ($ambQuan) {
-        foreach ($l in @(Apply-FieldsToLines $punt.Quan $fields)) {
-            if ([string]::IsNullOrWhiteSpace($l)) { continue }
-            Format-Body $sel ('Quan: ' + [string]$l)
         }
     }
 }
@@ -885,74 +869,59 @@ function Build-LlicenciaDocument($word, $model) {
 
     $cfg = $Script:ReportFormatConfig
     $fields = $model.Fields
-    $esPost = ([string]$model.Fase -eq 'favorable-post')
-
-    if ($esPost) {
-        # El post-llicencia no repeteix tot l'informe: nomes la documentacio que
-        # s'ha comprovat, sense el "Quan:".
-        Format-Body $sel (_LlicEntradaPost ([bool]$model.EsProvisional))
-        if ($cfg.SpacerAfterIntro) { Format-Spacer $sel }
-        $n = 0
-        foreach ($p in @($model.Despres)) {
+    # ---- DOCUMENTACIO DEL PROJECTE ----
+    # VA LA PRIMERA i FORA de la numeracio: es el que el tecnic ha aportat,
+    # no un requeriment. Abans sortia al final del bloc ABANS, numerada i
+    # sota un subtitol subratllat "Documentacio"; a l'informe fet a ma va
+    # dalt de tot, amb el titol de seccio "DOCUMENTACIO PROJECTE" i el text
+    # en cos normal.
+    $doc1 = [string]$model.Doc.Text
+    if (-not [string]::IsNullOrWhiteSpace($doc1)) {
+        Format-Section $sel ('DOCUMENTACI' + [char]0x00D3 + ' PROJECTE')
+        if ($cfg.SpacerAfterSection) { Format-Spacer $sel }
+        Format-Body $sel $doc1
+        $primer = $true
+        foreach ($d in @($model.Doc.Items)) {
+            if ($primer) { Format-Bullet $sel ([string]$d) -IsChild -First; $primer = $false }
+            else { Format-Bullet $sel ([string]$d) -IsChild }
+        }
+        if ($cfg.SpacerAfterItem) { Format-Spacer $sel }
+    }
+    # ---- ABANS ----
+    # Els espais els mana Format.ps1 ($cfg.SpacerAfterSection / -Subsection /
+    # -Item), exactament com _WriteCatalegBody de REQ1: aqui no s'hi inventa
+    # cap separacio.
+    Format-Section $sel (_LlicTitolAbans)
+    if ($cfg.SpacerAfterSection) { Format-Spacer $sel }
+    $n = 0
+    foreach ($p in @($model.Abans)) {
+        $n++
+        _LlicEscriuPunt $sel $p $n $fields ([string]$p.Estat) $false
+        if ($cfg.SpacerAfterItem) { Format-Spacer $sel }
+    }
+    # ---- PROJECTE: els requeriments normals de REQ1, com sempre ----
+    $proj = @($model.Projecte)
+    if ($proj.Count -gt 0) {
+        Format-Subsection $sel 'Projecte'
+        if ($cfg.SpacerAfterSubsection) { Format-Spacer $sel }
+        foreach ($p in $proj) {
             $n++
             _LlicEscriuPunt $sel $p $n $fields '' $false
             if ($cfg.SpacerAfterItem) { Format-Spacer $sel }
         }
-    } else {
-        # ---- DOCUMENTACIO DEL PROJECTE ----
-        # VA LA PRIMERA i FORA de la numeracio: es el que el tecnic ha aportat,
-        # no un requeriment. Abans sortia al final del bloc ABANS, numerada i
-        # sota un subtitol subratllat "Documentacio"; a l'informe fet a ma va
-        # dalt de tot, amb el titol de seccio "DOCUMENTACIO PROJECTE" i el text
-        # en cos normal.
-        $doc1 = [string]$model.Doc.Text
-        if (-not [string]::IsNullOrWhiteSpace($doc1)) {
-            Format-Section $sel ('DOCUMENTACI' + [char]0x00D3 + ' PROJECTE')
-            if ($cfg.SpacerAfterSection) { Format-Spacer $sel }
-            Format-Body $sel $doc1
-            $primer = $true
-            foreach ($d in @($model.Doc.Items)) {
-                if ($primer) { Format-Bullet $sel ([string]$d) -IsChild -First; $primer = $false }
-                else { Format-Bullet $sel ([string]$d) -IsChild }
-            }
-            if ($cfg.SpacerAfterItem) { Format-Spacer $sel }
-        }
-        # ---- ABANS ----
-        # Els espais els mana Format.ps1 ($cfg.SpacerAfterSection / -Subsection /
-        # -Item), exactament com _WriteCatalegBody de REQ1: aqui no s'hi inventa
-        # cap separacio.
-        Format-Section $sel (_LlicTitolAbans)
+    }
+    # ---- DESPRES ----
+    $desp = @($model.Despres)
+    if ($desp.Count -gt 0) {
+        Format-Section $sel (_LlicTitolDespres)
         if ($cfg.SpacerAfterSection) { Format-Spacer $sel }
-        $n = 0
-        foreach ($p in @($model.Abans)) {
+        # LA NUMERACIO CONTINUA la del bloc ABANS ($n NO es reinicia): a
+        # l'informe els punts van seguits de cap a peus, no dues llistes que
+        # tornen a comencar per 1.
+        foreach ($p in $desp) {
             $n++
-            _LlicEscriuPunt $sel $p $n $fields ([string]$p.Estat) $false
+            _LlicEscriuPunt $sel $p $n $fields ([string]$p.Estat) $true
             if ($cfg.SpacerAfterItem) { Format-Spacer $sel }
-        }
-        # ---- PROJECTE: els requeriments normals de REQ1, com sempre ----
-        $proj = @($model.Projecte)
-        if ($proj.Count -gt 0) {
-            Format-Subsection $sel 'Projecte'
-            if ($cfg.SpacerAfterSubsection) { Format-Spacer $sel }
-            foreach ($p in $proj) {
-                $n++
-                _LlicEscriuPunt $sel $p $n $fields '' $false
-                if ($cfg.SpacerAfterItem) { Format-Spacer $sel }
-            }
-        }
-        # ---- DESPRES ----
-        $desp = @($model.Despres)
-        if ($desp.Count -gt 0) {
-            Format-Section $sel (_LlicTitolDespres)
-            if ($cfg.SpacerAfterSection) { Format-Spacer $sel }
-            # LA NUMERACIO CONTINUA la del bloc ABANS ($n NO es reinicia): a
-            # l'informe els punts van seguits de cap a peus, no dues llistes que
-            # tornen a comencar per 1.
-            foreach ($p in $desp) {
-                $n++
-                _LlicEscriuPunt $sel $p $n $fields ([string]$p.Estat) $true
-                if ($cfg.SpacerAfterItem) { Format-Spacer $sel }
-            }
         }
     }
 
@@ -978,7 +947,7 @@ function Build-LlicenciaDocument($word, $model) {
     Format-Body $sel ('Cornell' + [char]0x00E0 + ' de Llobregat,')
 
     # ---- ANNEX 1: nomes al REQUERIMENT d'una llicencia PROVISIONAL ----
-    if ([string]$model.Fase -eq 'requeriment' -and [bool]$model.EsProvisional) {
+    if ([string]$model.Fase -eq 'requeriment' -and (_LlicCalAnnex1 $model.Abans ([bool]$model.EsProvisional))) {
         _LlicEscriuAnnex1 $sel $model.Cataleg
     }
 
@@ -1263,7 +1232,8 @@ function Select-LlicDadesPunt([string]$titol, $camps, $valors) {
 # Retorna @{ Nav; Punts; Memoria }.
 function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [bool]$ambEstat,
                                  [bool]$marcatPerDefecte = $false, [bool]$ambDades = $false,
-                                 $preSel = $null, [bool]$ambSubs = $false) {
+                                 $preSel = $null, [bool]$ambSubs = $false,
+                                 [string]$estatPerDefecte = 'no') {
     $punts = @($punts)
     $grups = @(_LlicAgrupaPunts $punts)
 
@@ -1277,7 +1247,8 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
         #          la base de dades. Els objectes de camp no sobreviuen un pas per
         #          JSON; el mapa pla si, i _RenderRichInto ja el sap llegir com a
         #          $preload (_GetPreloadValue, Camps.ps1).
-        $e = @{ Marcat = $marcatPerDefecte; Estat = 'no'; Camps = [ordered]@{}; Valors = @{}; Subs = @{} }
+        $ini = if ([string]::IsNullOrWhiteSpace($estatPerDefecte)) { 'no' } else { [string]$estatPerDefecte }
+        $e = @{ Marcat = $marcatPerDefecte; Estat = $ini; Camps = [ordered]@{}; Valors = @{}; Subs = @{} }
         if ($null -ne $preSel -and $preSel.Contains($clau)) {
             $e.Marcat = [bool]$preSel[$clau].Marcat
             $e.Estat  = [string]$preSel[$clau].Estat
@@ -1665,7 +1636,41 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
 
 # Pas de la DOCUMENTACIO del tecnic redactor.
 # Retorna @{ Nav; Text; Items }.
-function Select-LlicTecnic($pre) {
+# ELS DOCUMENTS SIGNATS, en la forma que es DESA: nom -> @{ Marcat; Id }.
+# Funcio PURA. Es la mateixa forma que torna la pantalla i que va a la base de
+# dades, o sigui que no hi ha cap conversio pel mig.
+function _LlicDocsBuits {
+    $out = [ordered]@{}
+    foreach ($d in @(_LlicDocsSignats)) { $out[[string]$d] = @{ Marcat = $false; Id = '' } }
+    return $out
+}
+
+# Les linies que van a l'informe a partir d'aquell mapa. Funcio PURA.
+function _LlicItemsDocsSignats($docs) {
+    $out = New-Object System.Collections.ArrayList
+    $m = @{}
+    if ($docs -is [System.Collections.IDictionary]) {
+        foreach ($k in @($docs.Keys)) { $m[[string]$k] = $docs[$k] }
+    } elseif ($null -ne $docs) {
+        foreach ($pr in @($docs.PSObject.Properties)) { $m[[string]$pr.Name] = $pr.Value }
+    }
+    # EN L'ORDRE DEL CATALEG, no el del mapa: un hashtable no en te, i a
+    # l'informe els documents han de sortir sempre igual.
+    foreach ($d in @(_LlicDocsSignats)) {
+        if (-not $m.ContainsKey([string]$d)) { continue }
+        $e = $m[[string]$d]
+        $marcat = $false; $id = ''
+        if ($e -is [System.Collections.IDictionary]) { $marcat = [bool]$e['Marcat']; $id = [string]$e['Id'] }
+        elseif ($null -ne $e) { $marcat = [bool]$e.Marcat; $id = [string]$e.Id }
+        if (-not $marcat) { continue }
+        $id = $id.Trim()
+        if ([string]::IsNullOrWhiteSpace($id)) { [void]$out.Add([string]$d) }
+        else { [void]$out.Add([string]$d + ' (Id Firmadoc: ' + $id + ')') }
+    }
+    return $out.ToArray()
+}
+
+function Select-LlicTecnic($pre, $preDocs = $null) {
     $form = _NewForm
     $form.Text = 'Llic' + [char]0x00E8 + 'ncia - Documentaci' + [char]0x00F3
     $form.ClientSize = New-Object System.Drawing.Size(620, 430)
@@ -1703,6 +1708,15 @@ function Select-LlicTecnic($pre) {
     $y += 32
 
     $docs = @(_LlicDocsSignats)
+    # EL QUE JA S'HAVIA TRIAT. Sense aixo, tornar Enrere o fer el segon informe
+    # de la mateixa llicencia obligava a tornar a marcar-ho i a reescriure els
+    # Id Firmadoc.
+    $preD = @{}
+    if ($preDocs -is [System.Collections.IDictionary]) {
+        foreach ($k in @($preDocs.Keys)) { $preD[[string]$k] = $preDocs[$k] }
+    } elseif ($null -ne $preDocs) {
+        foreach ($pr in @($preDocs.PSObject.Properties)) { $preD[[string]$pr.Name] = $pr.Value }
+    }
     $cbDoc = @{}
     $tbDoc = @{}
     foreach ($d in $docs) {
@@ -1722,12 +1736,17 @@ function Select-LlicTecnic($pre) {
         $lid.Font = New-Object System.Drawing.Font('Segoe UI', 8)
         $lid.Text = 'Id Firmadoc'
         [void]$form.Controls.Add($lid)
+        if ($preD.ContainsKey([string]$d)) {
+            $e = $preD[[string]$d]
+            if ($e -is [System.Collections.IDictionary]) { $cb.Checked = [bool]$e['Marcat']; $t.Text = [string]$e['Id'] }
+            elseif ($null -ne $e) { $cb.Checked = [bool]$e.Marcat; $t.Text = [string]$e.Id }
+        }
         $cbDoc[[string]$d] = $cb
         $tbDoc[[string]$d] = $t
         $y += 30
     }
 
-    $res = @{ Nav = 'back'; Text = ''; Items = @(); Camps = @{} }
+    $res = @{ Nav = 'back'; Text = ''; Items = @(); Camps = @{}; Docs = (_LlicDocsBuits) }
     $btnOk = New-Object System.Windows.Forms.Button
     $btnOk.Text = 'Continuar'
     $btnOk.Location = New-Object System.Drawing.Point(465, 380)
@@ -1735,14 +1754,15 @@ function Select-LlicTecnic($pre) {
     _StylePrimaryButton $btnOk
     $btnOk.add_Click({
         $res.Text = _LlicTextDocumentacio $tb['Tecnic'].Text $tb['NumCol'].Text $tb['Collegi'].Text $tb['Data'].Text
-        $items = New-Object System.Collections.ArrayList
+        $tria = [ordered]@{}
         foreach ($d in $docs) {
-            if (-not $cbDoc[[string]$d].Checked) { continue }
-            $id = ([string]$tbDoc[[string]$d].Text).Trim()
-            if ([string]::IsNullOrWhiteSpace($id)) { [void]$items.Add([string]$d) }
-            else { [void]$items.Add([string]$d + ' (Id Firmadoc: ' + $id + ')') }
+            $tria[[string]$d] = @{
+                Marcat = [bool]$cbDoc[[string]$d].Checked
+                Id     = ([string]$tbDoc[[string]$d].Text).Trim()
+            }
         }
-        $res.Items = $items.ToArray()
+        $res.Docs = $tria
+        $res.Items = @(_LlicItemsDocsSignats $tria)
         foreach ($k in $tb.Keys) { $res.Camps[$k] = [string]$tb[$k].Text }
         $res.Nav = 'fwd'
         $form.DialogResult = 'OK'; $form.Close()
@@ -1831,7 +1851,7 @@ function Invoke-LlicenciaWizard {
     # mateix paper que a Invoke-NouWizard): els [CAMP:]/[OPCIO:] s'hi omplen
     # alla on surten i despres la composicio els hi busca.
     $st = @{ Fase = 'requeriment'; Prov = $false; Tecnic = @{}; Condicions = ''
-             Fields = [ordered]@{}; PostLlegit = $false
+             Fields = [ordered]@{}
              # El que s'havia triat a cada pantalla de documentacio, per no
              # perdre-ho quan l'usuari torna ENRERE (era exactament el que
              # passava: tornaves i havies de tornar a marcar-ho tot).
@@ -1905,41 +1925,14 @@ function Invoke-LlicenciaWizard {
                     # Els condicionals entren segons el tipus de llicencia.
                     $cond = @(@($bPropis.Punts) | Where-Object { _LlicCondicioEntra ([string]$_.Condicio) ([bool]$st.Prov) })
                     $st.AbansTots = @($cond) + @($bAbans.Punts)
-                    $st.DespresTots = @($bDesp.Punts)
+                    # ELS TEXTOS DE LA FASE al bloc DESPRES ("No es disposa de la
+                    # documentacio." al favorable pre, "Es disposa..." al post).
+                    # S'apliquen AQUI perque la pantalla del pas 7 i el document
+                    # facin servir EXACTAMENT els mateixos punts.
+                    $st.DespresTots = @(_LlicPuntsAmbEstatFase $bDesp.Punts ([string]$st.Fase))
                     $step = 4
                 }
                 4 {
-                    if ([string]$st.Fase -eq 'favorable-post') {
-                        # El POST no repeteix la tria: LLEGEIX el pre-llicencia i
-                        # en treu la documentacio que hi constava. Si no se'n pot
-                        # treure res, es cau a la llista del cataleg (l'informe
-                        # s'ha de poder fer igualment).
-                        if (-not $st.PostLlegit) {
-                            $anterior = Select-PreviousReport
-                            if (-not $anterior) { $step = 2; break }
-                            $st.PostLlegit = $true
-                            $delDoc = @()
-                            try {
-                                $xmlInfo = _LoadDocxXml $anterior
-                                $paras = @(_BodyParagraphsXml $xmlInfo)
-                                $delDoc = @(_LlicPuntsDelDocxAnterior (@($paras | ForEach-Object { _ParagraphTextXml $_ $xmlInfo.Ns })))
-                            } catch {
-                                $delDoc = @()
-                            }
-                            if ($delDoc.Count -eq 0) {
-                                [System.Windows.Forms.MessageBox]::Show(
-                                    ("D'aquest informe no n'he pogut treure el bloc " +
-                                     [char]0x2018 + 'DOCUMENTACI' + [char]0x00D3 + ' NECESS' + [char]0x00C0 + 'RIA DESPR' + [char]0x00C9 + 'S...' + [char]0x2019 +
-                                     ".`n`nSegurament no es un informe de Llicencia (o s'ha retocat molt a ma). " +
-                                     "Et deixo la llista del cataleg per triar-la a ma."),
-                                    'Llicencia', 'OK', 'Warning') | Out-Null
-                            } else {
-                                $st.DespresTots = $delDoc
-                            }
-                        }
-                        $step = 7
-                        break
-                    }
                     $r = Select-LlicDocumentacio $st.AbansTots ('Documentaci' + [char]0x00F3 + ' ABANS de la resoluci' + [char]0x00F3) `
                             ('Marca la que aplica, si ja es t' + [char]0x00E9 + ' i les seves dades') $true $false $true $st.MemAbans
                     if ($r.Nav -ne 'fwd') { $step = 2; break }
@@ -1971,31 +1964,26 @@ function Invoke-LlicenciaWizard {
                     $step = 6
                 }
                 6 {
-                    $r = Select-LlicTecnic $st.Tecnic
+                    $r = Select-LlicTecnic $st.Tecnic $st.TecnicDocs
                     if ($r.Nav -ne 'fwd') { $step = 5; break }
                     $st.Doc = @{ Text = [string]$r.Text; Items = @($r.Items) }
                     $st.Tecnic = $r.Camps
+                    $st.TecnicDocs = $r.Docs
                     $step = 7
                 }
                 7 {
-                    $esPost = ([string]$st.Fase -eq 'favorable-post')
-                    $titol = if ($esPost) {
-                        'Documentaci' + [char]0x00F3 + ' comprovada'
-                    } else {
-                        'Documentaci' + [char]0x00F3 + ' DESPR' + [char]0x00C9 + 'S de la resoluci' + [char]0x00F3
-                    }
-                    $sub = if ($esPost) { ('Ve de l' + [char]0x2019 + 'informe anterior; treu el que no s' + [char]0x2019 + 'hagi comprovat') }
-                           else         { "Marca la que entra a l'informe" }
-                    # Tot marcat de sortida: al POST ve de l'informe anterior (hi
-                    # ha de constar tot) i al pre-llicencia el Word de l'usuari
-                    # tambe els portava tots.
-                    $r = Select-LlicDocumentacio $st.DespresTots $titol $sub (-not $esPost) $true $false $st.MemDespres $true
-                    if ($r.Nav -ne 'fwd') {
-                        # Enrere al POST = tornar a triar l'informe anterior, que
-                        # es l'unica cosa que hi ha darrere.
-                        if ($esPost) { $st.PostLlegit = $false; $step = 4 } else { $step = 6 }
-                        break
-                    }
+                    # LA MATEIXA PANTALLA PER A LES TRES FASES. Nomes canvia si
+                    # es demana l'estat de cada punt (i les seves dades), que ho
+                    # decideix _LlicEstatDespres: al requeriment encara no toca
+                    # dir si es te o no; al favorable pre i post, si.
+                    $ef = _LlicEstatDespres ([string]$st.Fase)
+                    $titol = 'Documentaci' + [char]0x00F3 + ' DESPR' + [char]0x00C9 + 'S de la resoluci' + [char]0x00F3
+                    $sub = "Marca la que entra a l'informe"
+                    # Tot marcat de sortida: el Word de l'usuari els portava tots
+                    # i ell hi anava esborrant el que no tocava.
+                    $r = Select-LlicDocumentacio $st.DespresTots $titol $sub ([bool]$ef.AmbEstat) $true ([bool]$ef.AmbDades) `
+                            $st.MemDespres $true ([string]$ef.Estat)
+                    if ($r.Nav -ne 'fwd') { $step = 6; break }
                     $st.Despres = $r.Punts
                     $st.MemDespres = $r.Memoria
                     $step = 8

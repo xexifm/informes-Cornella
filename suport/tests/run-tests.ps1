@@ -2113,9 +2113,6 @@ Assert ([bool]($cPreAmb -like '*i sota les seg*ents condicions.')) '_LlicConclus
 $cPost = _LlicConclusioText 'favorable-post' $false
 Assert ([bool]($cPost -like '*per tancat l*expedient.')) '_LlicConclusioText: post tanca l''expedient'
 AssertEq (_LlicConclusioText 'no-existeix' $false) '' '_LlicConclusioText: fase desconeguda -> buit'
-# L'entrada del post-llicencia: la visita d'inspeccio nomes si es provisional.
-Assert (-not ((_LlicEntradaPost $false) -like '*visita d*inspecci*')) '_LlicEntradaPost: sense visita si no es provisional'
-Assert ([bool]((_LlicEntradaPost $true) -like '*visita d*inspecci*'))  '_LlicEntradaPost: amb visita si ho es'
 # El paragraf del tecnic redactor.
 $td = _LlicTextDocumentacio 'Simon Aledo Vives' '1.780' 'COITI d''Alacant' '20 de febrer de 2024'
 Assert ([bool]($td -like '*Simon Aledo Vives*'))  '_LlicTextDocumentacio: hi surt el tecnic'
@@ -2123,45 +2120,35 @@ Assert ([bool]($td -like '*1.780*'))              '_LlicTextDocumentacio: i el n
 Assert ([bool]($td -like '*20 de febrer de 2024.')) '_LlicTextDocumentacio: i la data, acabant amb punt'
 AssertEq (_LlicTextDocumentacio '' '1' 'X' 'Y') '' '_LlicTextDocumentacio: sense tecnic no hi ha paragraf'
 
-# El post-llicencia LLEGEIX el pre-llicencia: en treu el bloc DESPRES tal com hi
-# consta, i sense el "Quan:" (la documentacio ja s'ha presentat). Els informes
-# els genera aquest mateix programa, o sigui que el numero i el pic hi son com a
-# TEXT: n'hi ha prou amb el text dels paragrafs.
-$pic = [string][char]0x2022
-$docAnterior = @(
-    'ID GIA:1433',
-    'INFORME',
-    ('DOCUMENTACI' + [char]0x00D3 + ' NECESS' + [char]0x00C0 + 'RIA ABANS DE LA RESOLUCI' + [char]0x00D3 + '...'),
-    '1. Projecte tecnic.',
-    'No es disposa de la documentacio.',
-    ('DOCUMENTACI' + [char]0x00D3 + ' NECESS' + [char]0x00C0 + 'RIA DESPR' + [char]0x00C9 + 'S DE LA RESOLUCI' + [char]0x00D3 + '...'),
-    ('1. Certificat Final d' + [char]0x2019 + 'Activitat.'),
-    ('Quan: Abans d' + [char]0x2019 + 'iniciar l' + [char]0x2019 + 'activitat.'),
-    '2. Certificats RITSIC de les instal·lacions:',
-    ($pic + "`t" + 'Instal·lacio de gas'),
-    ($pic + "`t" + 'Ascensors'),
-    ('Quan: Abans d' + [char]0x2019 + 'iniciar l' + [char]0x2019 + 'activitat.'),
-    "S'informa favorablement a l'espera de rebre la citada documentacio.",
-    'Ho poso al seu coneixement als efectes oportuns,'
-)
-$pAnt = @(_LlicPuntsDelDocxAnterior $docAnterior)
-AssertEq $pAnt.Count 2 '_LlicPuntsDelDocxAnterior: nomes els punts del bloc DESPRES'
-Assert ([bool]($pAnt[0].Cos[0] -like '*Certificat Final*')) '_LlicPuntsDelDocxAnterior: el 1r punt, sense el numero'
-AssertEq (@($pAnt[0].Cos).Count) 1 '_LlicPuntsDelDocxAnterior: el "Quan:" no hi entra'
-AssertEq (@($pAnt[1].Subs).Count) 2 '_LlicPuntsDelDocxAnterior: els sub-punts del 2n punt'
-AssertEq (@($pAnt[1].Subs[0])[0]) 'Instal·lacio de gas' '_LlicPuntsDelDocxAnterior: el pic i el tabulador fora'
-Assert (-not (@($pAnt | ForEach-Object { $_.Cos }) | Where-Object { ([string]$_).StartsWith('Quan:') })) '_LlicPuntsDelDocxAnterior: cap "Quan:" enlloc'
-# Un informe que no es de Llicencia (o molt retocat): no s'inventa punts.
-AssertEq (@(_LlicPuntsDelDocxAnterior @('INFORME', '1. Una cosa', 'Cornella de Llobregat,')).Count) 0 '_LlicPuntsDelDocxAnterior: sense bloc DESPRES no retorna res'
-AssertEq (@(_LlicPuntsDelDocxAnterior @()).Count) 0 '_LlicPuntsDelDocxAnterior: document buit'
-# El bloc s'ha de tancar amb qualsevol dels finals (aqui, les CONDICIONS).
-$ambCond = @(
-    ('DOCUMENTACI' + [char]0x00D3 + ' DESPR' + [char]0x00C9 + 'S'),
-    '1. Acta de control inicial.',
-    ('CONDICIONS LLIC' + [char]0x00C8 + 'NCIA'),
-    '2. Aixo ja no es un punt del bloc.'
-)
-AssertEq (@(_LlicPuntsDelDocxAnterior $ambCond).Count) 1 '_LlicPuntsDelDocxAnterior: les CONDICIONS tanquen el bloc'
+# ELS TRES INFORMES SON EL MATEIX DOCUMENT; el que canvia es que es diu de cada
+# punt del bloc DESPRES. Abans el post era un informe curt que LLEGIA el
+# pre-llicencia; l'usuari va ensenyar que a ma el fa sencer.
+$efReq  = _LlicEstatDespres 'requeriment'
+$efPre  = _LlicEstatDespres 'favorable-pre'
+$efPost = _LlicEstatDespres 'favorable-post'
+AssertEq ([string]$efReq.Estat) '' '_LlicEstatDespres: al requeriment no es diu si es te o no'
+AssertEq ([bool]$efReq.AmbEstat) $false '_LlicEstatDespres: ...i per tant no es demana'
+AssertEq ([string]$efPre.Estat) 'no' '_LlicEstatDespres: al favorable pre, per defecte NO es disposa'
+AssertEq ([string]$efPost.Estat) 'si' '_LlicEstatDespres: al favorable post, per defecte SI'
+Assert ([bool]((@($efPre.NoDisposa) -join ' ') -like 'No es disposa de la documentaci*.')) '_LlicEstatDespres: el text del pre'
+Assert ([bool]((@($efPost.SiDisposa) -join ' ') -like '*`[CAMP: Id Firmadoc`]*')) '_LlicEstatDespres: el post demana l''Id Firmadoc'
+Assert ([bool]$efPost.AmbDades) '_LlicEstatDespres: ...i per aixo la pantalla demana dades'
+AssertEq ([string](_LlicEstatDespres 'no-existeix').Estat) '' '_LlicEstatDespres: fase desconeguda -> res'
+
+# Els punts del bloc DESPRES agafen els textos de la fase, i els que ja en tenen
+# de propis al cataleg se'ls queden.
+$pFase = @(
+    [pscustomobject]@{ Clau='A'; Subseccio=''; Titol='Sense text'; Condicio=''; Cos=@('x'); NoDisposa=@(); SiDisposa=@(); Quan=@('q'); Subs=@() },
+    [pscustomobject]@{ Clau='B'; Subseccio=''; Titol='Amb text';   Condicio=''; Cos=@('y'); NoDisposa=@('El seu propi'); SiDisposa=@('El seu propi si'); Quan=@(); Subs=@() })
+$rFase = @(_LlicPuntsAmbEstatFase $pFase 'favorable-pre')
+AssertEq $rFase.Count 2 '_LlicPuntsAmbEstatFase: no perd cap punt'
+Assert ([bool]((@($rFase[0].NoDisposa) -join ' ') -like 'No es disposa de la documentaci*')) '_LlicPuntsAmbEstatFase: el que no en te, agafa el de la fase'
+AssertEq (@($rFase[1].NoDisposa) -join ' ') 'El seu propi' '_LlicPuntsAmbEstatFase: el que en te, se''l queda'
+AssertEq (@($rFase[0].Quan) -join ' ') 'q' '_LlicPuntsAmbEstatFase: el "Quan:" no es toca'
+# I NO toca els punts originals (funcio pura).
+AssertEq (@($pFase[0].NoDisposa).Count) 0 '_LlicPuntsAmbEstatFase: no modifica el que li arriba'
+AssertEq (@(_LlicPuntsAmbEstatFase @() 'requeriment').Count) 0 '_LlicPuntsAmbEstatFase: sense punts, cap'
+
 # Nom del fitxer: data al principi, com la resta d'informes (aixi "Actualitzar
 # base d'informes" el reconeix).
 $nf = _LlicNomFitxer ([datetime]'2026-08-03') 'requeriment' '1433' 'MANUEL CRUZ'
@@ -2522,6 +2509,62 @@ if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path 
     # ...i el mateix informe com a LLICENCIA PROVISIONAL, que hi afegeix
     # l'ANNEX 1. Ha de sortir en TEXT PLA: cap pic, cap item numerat, negreta
     # nomes als dos titols, i el full de signatures a part i a cos 9.
+    # ---- LES TRES FASES, EL MATEIX DOCUMENT ------------------------------
+    # Es el que va ensenyar l'usuari comparant el generat amb el fet a ma: el
+    # favorable POST no es un informe curt, es el mateix informe sencer amb
+    # "Es disposa..." a cada punt del bloc DESPRES.
+    $modelF = @{
+        Fase = 'requeriment'; EsProvisional = $false
+        Header = @{ ID_GIA = '357'; TITULAR = 'PROVA SL' }
+        Fields = [ordered]@{}
+        Abans = $unPunt; Projecte = @()
+        Doc = @{ Text = 'Documentacio signada pel tecnic X.'; Items = @('Projecte (Id Firmadoc: 1)') }
+        Condicions = ''; Cataleg = $llicG
+    }
+    foreach ($fs in @('requeriment', 'favorable-pre', 'favorable-post')) {
+        $modelF.Fase = $fs
+        $ef = _LlicEstatDespres $fs
+        $dsp = @(_LlicPuntsAmbEstatFase (@($bDG)[0]) $fs)
+        $modelF.Despres = @($dsp | ForEach-Object { $_ | Add-Member NoteProperty Estat ([string]$ef.Estat) -PassThru -Force })
+        $global:emitCalls.Clear()
+        try { [void](Build-LlicenciaDocument $wordG $modelF) } catch { Write-Host ("    EXCEPCIO ($fs): " + $_.Exception.Message) -ForegroundColor Red }
+        $emF = @($global:emitCalls)
+        # La documentacio del projecte va DALT DE TOT i fora de la numeracio.
+        $iProj = [Array]::FindIndex([string[]]$emF, [Predicate[string]]{ param($x) $x -like 'SECT|DOCUMENTACI* PROJECTE' })
+        $iAb   = [Array]::FindIndex([string[]]$emF, [Predicate[string]]{ param($x) $x -like 'SECT|*ABANS*' })
+        $iDe   = [Array]::FindIndex([string[]]$emF, [Predicate[string]]{ param($x) $x -like 'SECT|*DESPR*' })
+        Assert ($iProj -ge 0 -and $iProj -lt $iAb) ($fs + ': la documentacio del projecte va la primera')
+        Assert ($iAb -ge 0 -and $iAb -lt $iDe) ($fs + ': ...despres ABANS i despres DESPRES')
+        Assert (-not (@($emF) | Where-Object { $_ -like 'SUB|Documentaci*' })) ($fs + ': ja no hi ha el subtitol "Documentacio"')
+        # El bloc DESPRES: primer el "Quan:", despres si es disposa o no.
+        $bloc = @($emF[$iDe..($emF.Count - 1)])
+        $iQuan = [Array]::FindIndex([string[]]$bloc, [Predicate[string]]{ param($x) $x -like 'BODY|Quan: *' })
+        Assert ($iQuan -ge 0) ($fs + ': el bloc DESPRES porta el "Quan:"')
+        $iEstat = [Array]::FindIndex([string[]]$bloc, [Predicate[string]]{ param($x) $x -like '*es disposa*' })
+        if ([string]$ef.Estat -eq '') {
+            AssertEq $iEstat -1 ($fs + ': al requeriment no es diu si es disposa o no')
+        } else {
+            Assert ($iEstat -gt $iQuan) ($fs + ': "es disposa" va DESPRES del "Quan:"')
+        }
+        # La numeracio va seguida de cap a peus, tambe al post.
+        $numsF = @($emF | Where-Object { $_ -like 'ITEM|*' } | ForEach-Object { [int](($_ -split '\|')[1] -replace '\.', '') })
+        AssertEq ($numsF -join ',') ((1..$numsF.Count) -join ',') ($fs + ': la numeracio va seguida')
+    }
+    # El pre-llicencia diu que FALTA (negreta) i el post que ja hi es (normal).
+    $modelF.Fase = 'favorable-pre'
+    $modelF.Despres = @(@(_LlicPuntsAmbEstatFase (@($bDG)[0]) 'favorable-pre') | ForEach-Object { $_ | Add-Member NoteProperty Estat 'no' -PassThru -Force })
+    $global:emitCalls.Clear()
+    [void](Build-LlicenciaDocument $wordG $modelF)
+    Assert ([bool](@($global:emitCalls) | Where-Object { $_ -like 'BODY/N|No es disposa de la documentaci*' })) 'favorable-pre: "No es disposa de la documentacio." i en negreta'
+    $modelF.Fase = 'favorable-post'
+    $modelF.Despres = @(@(_LlicPuntsAmbEstatFase (@($bDG)[0]) 'favorable-post') | ForEach-Object { $_ | Add-Member NoteProperty Estat 'si' -PassThru -Force })
+    $global:emitCalls.Clear()
+    [void](Build-LlicenciaDocument $wordG $modelF)
+    $emPost = @($global:emitCalls)
+    Assert ([bool]($emPost | Where-Object { $_ -like 'BODY|Es disposa del document*' })) 'favorable-post: "Es disposa del document" i SENSE negreta'
+    Assert (-not ($emPost | Where-Object { $_ -match '\[CAMP:' })) 'favorable-post: cap marcador de camp literal'
+    Assert (-not ($emPost | Where-Object { $_ -like '*haver comprovat la seg*ent documentaci*' })) 'favorable-post: ja no es un informe a part'
+
     $modelG.EsProvisional = $true
     $global:emitCalls.Clear()
     try { [void](Build-LlicenciaDocument $wordG $modelG) } catch { Write-Host ("    EXCEPCIO (annex): " + $_.Exception.Message) -ForegroundColor Red }
@@ -3399,5 +3442,47 @@ $memDes = ConvertTo-LlicenciaMemoria $memEd
 AssertEq ([string]$memDes['S::A']['Estat']) 'no' '_LlicDbMemEditable: i tornar a desar-ho'
 AssertEq ([string]$memDes['S::A']['Valors']['Expedient']) '901417/23' '_LlicDbMemEditable: amb el camp nou inclos'
 AssertEq (@((_LlicDbMemEditable $null).Keys).Count) 0 '_LlicDbMemEditable: amb $null, mapa buit'
+
+# L'ANNEX 1 NOMES SI ENCARA S'HA DE DEMANAR L'AUTORITZACIO. L'annex diu quina
+# documentacio cal per demanar-la: si ja se'n disposa, no pinta res.
+$pAnx = @(
+    [pscustomobject]@{ Titol = 'LL Prov Compatibilitat'; Condicio = 'provisional'; Estat = 'no' },
+    [pscustomobject]@{ Titol = 'Incendis';               Condicio = '';            Estat = 'si' })
+AssertEq (_LlicCalAnnex1 $pAnx $true) $true '_LlicCalAnnex1: provisional i NO es disposa -> hi va'
+$pAnx2 = @(
+    [pscustomobject]@{ Titol = 'LL Prov Compatibilitat'; Condicio = 'provisional'; Estat = 'si' },
+    [pscustomobject]@{ Titol = 'Incendis';               Condicio = '';            Estat = 'no' })
+AssertEq (_LlicCalAnnex1 $pAnx2 $true) $false '_LlicCalAnnex1: es disposa de la LL Prov -> FORA'
+AssertEq (_LlicCalAnnex1 $pAnx $false) $false '_LlicCalAnnex1: sense llicencia provisional, mai'
+AssertEq (_LlicCalAnnex1 @() $true) $true '_LlicCalAnnex1: si el punt no s''ha marcat, hi va'
+# La condicio es compara sense distingir majuscules ni espais.
+AssertEq (_LlicCalAnnex1 @([pscustomobject]@{ Condicio = ' Provisional '; Estat = 'si' }) $true) $false '_LlicCalAnnex1: la condicio, tolerant'
+
+# ELS DOCUMENTS SIGNATS pel tecnic redactor: es desen i es tornen a llegir.
+$docsT = [ordered]@{
+    'Projecte' = @{ Marcat = $true;  Id = '9741790' }
+    'Annexos'  = @{ Marcat = $true;  Id = '' }
+}
+$itemsT = @(_LlicItemsDocsSignats $docsT)
+AssertEq $itemsT.Count 2 '_LlicItemsDocsSignats: nomes els marcats'
+Assert ([bool]($itemsT[0] -like 'Projecte (Id Firmadoc: 9741790)')) '_LlicItemsDocsSignats: amb l''Id Firmadoc'
+AssertEq ([string]$itemsT[1]) 'Annexos' '_LlicItemsDocsSignats: sense Id, nomes el nom'
+# ...i EN L'ORDRE DEL CATALEG, que un hashtable no en te.
+$ordreT = @(_LlicItemsDocsSignats ([ordered]@{
+    'Annexos'  = @{ Marcat = $true; Id = '' }
+    'Projecte' = @{ Marcat = $true; Id = '' } }))
+AssertEq ($ordreT -join '|') 'Projecte|Annexos' '_LlicItemsDocsSignats: ordre del cataleg, no del mapa'
+AssertEq (@(_LlicItemsDocsSignats @{ 'Projecte' = @{ Marcat = $false; Id = 'x' } }).Count) 0 '_LlicItemsDocsSignats: el no marcat no hi surt'
+AssertEq (@(_LlicItemsDocsSignats $null).Count) 0 '_LlicItemsDocsSignats: amb $null, cap'
+AssertEq (@((_LlicDocsBuits).Keys).Count) (@(_LlicDocsSignats).Count) '_LlicDocsBuits: un per document del cataleg'
+# El pas per JSON (PSCustomObjects) no els pot perdre.
+$docsJ = ($docsT | ConvertTo-Json -Depth 10) | ConvertFrom-Json
+AssertEq (@(_LlicItemsDocsSignats $docsJ).Count) 2 '_LlicItemsDocsSignats: sobreviu el pas per JSON'
+$stD = @{ Header = @{ ID_GIA = '1457' }; TecnicDocs = $docsT }
+$recD = ConvertTo-LlicenciaRecord $stD
+$stD2 = @{}
+[void](Restore-LlicenciaState (($recD | ConvertTo-Json -Depth 20) | ConvertFrom-Json) $stD2)
+AssertEq ([bool](_LlicDbAMapa $stD2['TecnicDocs'])['Projecte']['Marcat']) $true 'base de dades: els documents signats es recorden'
+AssertEq ([string](_LlicDbAMapa $stD2['TecnicDocs'])['Projecte']['Id']) '9741790' 'base de dades: ...amb el seu Id Firmadoc'
 
 exit (Write-TestSummary 'RESULTAT')
