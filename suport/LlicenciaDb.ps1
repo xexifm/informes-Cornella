@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 <#
 .SYNOPSIS
   La BASE DE DADES de llicencies: memoria de cada activitat entre informes.
@@ -342,7 +342,16 @@ function Show-LlicenciaDb {
         $panDret.Controls.Clear()
         $edicions.Clear()
         $rec = Get-LlicenciaRecord $db ([string]$idGia)
-        if ($null -eq $rec) { return }
+        if ($null -eq $rec) {
+            # Mai en silenci: si no es troba la fitxa, que es vegi.
+            $avis = New-Object System.Windows.Forms.Label
+            $avis.Location = New-Object System.Drawing.Point(10, 10)
+            $avis.AutoSize = $true
+            $avis.ForeColor = [System.Drawing.Color]::DimGray
+            $avis.Text = 'Tria una llic' + [char]0x00E8 + 'ncia de la llista.'
+            [void]$panDret.Controls.Add($avis)
+            return
+        }
         $y = 10
 
         $lb = New-Object System.Windows.Forms.Label
@@ -410,7 +419,47 @@ function Show-LlicenciaDb {
             }
             $y += 8
         }
-        if ($edicions.Count -eq 0) {
+        # La RESTA del que es recorda: sense aixo la fitxa semblava buida encara
+        # que hi hagues mitja llicencia desada.
+        $altres = New-Object System.Collections.ArrayList
+        $nProj = @($rec.ProjKeys).Count
+        if ($nProj -gt 0) { [void]$altres.Add('Punts del projecte triats: ' + $nProj) }
+        $tec = _LlicDbAMapa $rec.Tecnic
+        $bitsTec = New-Object System.Collections.ArrayList
+        foreach ($k in @('Tecnic','NumCol','Collegi','Data')) {
+            if (-not [string]::IsNullOrWhiteSpace([string]$tec[$k])) { [void]$bitsTec.Add($k + ': ' + [string]$tec[$k]) }
+        }
+        if ($bitsTec.Count -gt 0) { [void]$altres.Add('Tecnic redactor  ' + [char]0x00B7 + '  ' + ($bitsTec -join '   ')) }
+        if (-not [string]::IsNullOrWhiteSpace([string]$rec.Condicions)) {
+            $c = [string]$rec.Condicions
+            if ($c.Length -gt 200) { $c = $c.Substring(0, 200) + [char]0x2026 }
+            [void]$altres.Add('Condicions: ' + $c)
+        }
+        foreach ($h in @($rec.Historial)) {
+            $hh = _LlicDbAMapa $h
+            [void]$altres.Add('Informe generat: ' + [string]$hh['Fase'] + '  ' + [char]0x00B7 + '  ' +
+                              (Split-Path -Leaf ([string]$hh['Fitxer'])))
+        }
+        if ($altres.Count -gt 0) {
+            $lbA = New-Object System.Windows.Forms.Label
+            $lbA.Location = New-Object System.Drawing.Point(10, $y)
+            $lbA.AutoSize = $true
+            $lbA.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
+            $lbA.Text = 'La resta de l' + [char]0x2019 + 'informe'
+            [void]$panDret.Controls.Add($lbA)
+            $y += 24
+            foreach ($t in $altres) {
+                $lbT = New-Object System.Windows.Forms.Label
+                $lbT.Location = New-Object System.Drawing.Point(20, $y)
+                $lbT.MaximumSize = New-Object System.Drawing.Size(550, 0)
+                $lbT.AutoSize = $true
+                $lbT.Text = [string]$t
+                [void]$panDret.Controls.Add($lbT)
+                $y += [Math]::Max(20, $lbT.PreferredHeight + 3)
+            }
+            $y += 8
+        }
+        if ($edicions.Count -eq 0 -and $altres.Count -eq 0) {
             $buit = New-Object System.Windows.Forms.Label
             $buit.Location = New-Object System.Drawing.Point(10, $y)
             $buit.AutoSize = $true
@@ -445,8 +494,12 @@ function Show-LlicenciaDb {
         return $canvis
     }.GetNewClosure()
 
+    # QUINA FILA HI HA TRIADA. Mira CurrentRow i, si no n'hi ha, les
+    # seleccionades: posar '.Selected = $true' a ma NO mou el CurrentRow, i la
+    # pantalla es quedava sense saber quina fila mirar.
     $fn.IdTriat = {
         $i = $graella.CurrentRow
+        if ($null -eq $i -and @($graella.SelectedRows).Count -gt 0) { $i = @($graella.SelectedRows)[0] }
         if ($null -eq $i -or $i.Index -lt 0 -or $i.Index -ge $mapa.Count) { return '' }
         return [string]$mapa[$i.Index]
     }.GetNewClosure()
@@ -455,9 +508,27 @@ function Show-LlicenciaDb {
         if ($ui.Busy) { return }
         & $fn.Pinta (& $fn.IdTriat)
     }.GetNewClosure())
+    # ...i tambe al clic: si la fila JA estava seleccionada, SelectionChanged no
+    # es dispara i el detall no es tornava a pintar mai.
+    $graella.add_CellClick({
+        if ($ui.Busy) { return }
+        & $fn.Pinta (& $fn.IdTriat)
+    }.GetNewClosure())
+
+    # La PRIMERA fila: cal moure-hi el CurrentCell (no nomes .Selected), si no
+    # CurrentRow es queda a $null i el detall surt buit.
+    $fn.TriaPrimera = {
+        if ($graella.Rows.Count -le 0) { $panDret.Controls.Clear(); return }
+        try { $graella.CurrentCell = $graella.Rows[0].Cells[0] } catch { }
+        $graella.Rows[0].Selected = $true
+        & $fn.Pinta (& $fn.IdTriat)
+    }.GetNewClosure()
 
     & $fn.Omple
-    if ($graella.Rows.Count -gt 0) { $graella.Rows[0].Selected = $true; & $fn.Pinta (& $fn.IdTriat) }
+    & $fn.TriaPrimera
+    # El detall es torna a pintar quan la finestra ja te handle: abans de
+    # mostrar-la, el CurrentCell encara pot no estar posat.
+    $form.add_Shown({ & $fn.TriaPrimera }.GetNewClosure())
 
     # ---- Botons ------------------------------------------------------------
     $btnTanca = New-Object System.Windows.Forms.Button
@@ -502,7 +573,7 @@ function Show-LlicenciaDb {
         Save-LlicenciaDb $db
         & $fn.Omple
         $panDret.Controls.Clear()
-        if ($graella.Rows.Count -gt 0) { $graella.Rows[0].Selected = $true; & $fn.Pinta (& $fn.IdTriat) }
+        & $fn.TriaPrimera
     }.GetNewClosure())
     [void]$form.Controls.Add($btnEsb)
 

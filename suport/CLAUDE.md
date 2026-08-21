@@ -1136,15 +1136,24 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
     S'hi accedia amb `$act.PSObject.Properties[…]` → **sempre buit**, i per
     això el programa preguntava cada vegada. Si no se'n troba cap, es deixa
     buida: aturar l'assistent per això seria pitjor que generar l'informe.
-- **El bloc ABANS surt de REQ1, no de la llista de LLIC.** Són **tots** els
-  ítems de 4 seccions (`_LlicSeccionsAbans`): *Autoritzacions / Informes
-  preceptius*, *Pla d'Autoprotecció*, *Controls inicials* i *Registres* (d'aquí
-  ve el RASIC). LLIC.json hi aporta només el «No es disposa / Es disposa» per
-  clau; un requeriment **nou** d'aquelles seccions hi surt sol, sense haver-lo
-  d'apuntar enlloc. Són **41 punts**, no 25: el lector **aplana les
-  subseccions** (*Registres* en té 17).
-  - **El pas «Projecte» exclou aquestes 4 seccions** (`$st.SeccionsProjecte`):
-    si no, es podrien demanar dues vegades.
+- **CADA BLOC ES PORTA SECCIONS SENCERES DE REQ1, i qui ho decideix és el
+  CATÀLEG.** Una entrada de `LLIC.json` amb una **`clau` que no és un ítem** —
+  una secció (`Instal·lacions`) o una subsecció (`Incendis::Documentació (ITC
+  SP)`) — **s'expandeix**: un punt per cada ítem d'aquella part, amb el text
+  **literal** de REQ1 i el mateix «Quan:» per a tots.
+  - **ABANS** (`_LlicSeccionsAbans`): *Autoritzacions / Informes preceptius* i
+    *Registres* — **36 punts**. Aquí LLIC hi aporta el «No es disposa / Es
+    disposa» **per ítem**, per clau.
+  - **DESPRÉS**: els 6 punts de text propi més **5 seccions expandides** —
+    *Incendis / Documentació (ITC SP)*, *Pla d'Autoprotecció*, *Controls
+    inicials*, *Controls periòdics* i *Instal·lacions* (**51 punts**).
+  - **PROJECTE**: la resta (**68**). Les exclusions surten de
+    `_LlicSeccionsExpandides` (llegeix el catàleg), no d'una llista al codi:
+    moure una secció de bloc és editar `LLIC.json`, no tocar el programa.
+  - **Cap punt de REQ1 surt a dos blocs.** Abans el PAU i dos controls inicials
+    sortien a ABANS i a DESPRÉS alhora; hi ha prova que ho vigila.
+  - Un requeriment **nou** d'una secció expandida hi surt sol, sense apuntar-lo
+    enlloc — que és tot el motiu de fer-ho així.
   - `_LlicEsSeccioAbans` compara **sense accents ni apòstrof tipogràfic**: el
     catàleg escriu `Pla d'Autoprotecció` amb U+2019 i és fàcil que un dia no
     coincideixi caràcter a caràcter.
@@ -1194,6 +1203,20 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   clicables: el `✏️ LLIC` de sempre i un de nou que obre la base de dades
   (`Extra` a l'entrada del menú → `ExtraChipRect`, mateix hit-test i hover que
   `DocChipRect`; acció `llicdb`).
+- **`LLIC.json` TÉ vista en Word** (`_VistaLlicencia`, `VistaWord.ps1`): abans
+  era l'únic catàleg sense, i no es podia consultar fora del programa. Ensenya
+  cada bloc amb **tots** els seus punts ja resolts contra REQ1 i, en cursiva, el
+  que hi afegeix (`[No es disposa]`, `[Es disposa]`, `[Quan]`), més el resum del
+  PROJECTE i l'ANNEX 1. Surten de **`_LlicPuntsPerBloc`**, la mateixa funció que
+  munta l'informe: la vista no pot dir una cosa i el document una altra.
+  `_VistaEsProtegit` ara només protegeix `0 CAPCALERA.docx`.
+- **La base de dades no ensenyava res** (pantalla en blanc): `.Selected = $true`
+  **no mou el `CurrentRow`**, i com que la fila ja sortia seleccionada, clicar-la
+  **no disparava `SelectionChanged`** — el detall no es pintava mai. Ara es posa
+  el `CurrentCell`, hi ha `add_CellClick` a més del canvi de selecció, i es
+  repinta al `Shown` (abans de mostrar la finestra el `CurrentCell` encara pot
+  ser `$null`). El detall mostra també els punts del projecte, el tècnic, les
+  condicions i l'historial: només amb els blocs semblava buit.
 - **La pantalla de documentació és LLISTA + DETALL**, com `Select-Items`, no una
   graella. Els `[CAMP: …]` es pinten **inline amb `_RenderRichInto`**
   (`Camps.ps1`) — la mateixa funció que REQ1 —, amb un **diccionari de camps

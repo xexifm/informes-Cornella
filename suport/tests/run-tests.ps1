@@ -1632,7 +1632,7 @@ AssertEq (_VistaWordPathFor ($tstEstr + $tstSep + 'REQ1.json') $tstVist) ($tstVi
 AssertEq (_VistaWordPathFor ($tstEstr + $tstSep + '0 CONCLUSIONS.json') $tstVist) ($tstVist + $tstSep + '0 CONCLUSIONS.docx') '_VistaWordPathFor: respecta els espais del nom'
 AssertEq ([bool](_VistaEsProtegit ($tstEstr + $tstSep + '0 CAPCALERA.json'))) $true '_VistaEsProtegit: 0 CAPCALERA no es toca mai'
 AssertEq ([bool](_VistaEsProtegit ($tstEstr + $tstSep + 'REQ1.json'))) $false '_VistaEsProtegit: la resta si'
-AssertEq ([bool](_VistaEsProtegit ($tstEstr + $tstSep + 'LLIC.json'))) $true '_VistaEsProtegit: LLIC tampoc (no te text propi, el treu de REQ1)'
+Assert (-not (_VistaEsProtegit 'C:\x\LLIC.json')) '_VistaEsProtegit: LLIC SI que te vista (_VistaLlicencia: els punts resolts contra REQ1 i el que hi afegeix cada bloc)'
 
 Write-Host "`n--- Activitats.ps1: _ClassificacioText (linia de la capcalera de Llicencia) ---"
 AssertEq (_ClassificacioText 'II' '12.25')  ('Llei 20/2009; Annex II; Ep' + [char]0x00ED + 'graf 12.25') '_ClassificacioText: annex + apartat'
@@ -2023,6 +2023,9 @@ if (Test-Path -LiteralPath $llicPath) {
                 $clausReq1[(_ItemKey $sec.Title $el.Short)] = $true
             }
         }
+        # ...i la SECCIO sencera: el bloc DESPRES es porta seccions enteres
+        # (Instal-lacions, Controls inicials...) amb una sola entrada.
+        $clausReq1[[string]$sec.Title] = $true
     }
     $llicOrfes = New-Object System.Collections.ArrayList
     $llicLligats = 0
@@ -2049,6 +2052,7 @@ if (Test-Path -LiteralPath $llicPath) {
                 $subseccionsReq1[(_ItemKey $sec.Title $el.Short)] = $true
             }
         }
+        $subseccionsReq1[[string]$sec.Title] = $true
     }
     $ambText = New-Object System.Collections.ArrayList
     foreach ($sec in $llic.nodes) {
@@ -2082,8 +2086,8 @@ if (Test-Path -LiteralPath $llicPath) {
     Assert ([bool](@($rOrfe.Orfes).Count -ge 15)) '_LlicPuntsPerBloc: si REQ1 no te les claus, TOTES surten com a orfes'
     AssertEq @($rOrfe.Punts).Count 0 '_LlicPuntsPerBloc: i cap punt no es dona per bo'
     # El bloc DESPRES ha de portar el "Quan:".
-    $pDesp = @((_LlicPuntsPerBloc $llic $idxR1 'DESPRES').Punts)
-    Assert ([bool](@($pDesp | Where-Object { @($_.Quan).Count -gt 0 }).Count -ge 10)) '_LlicPuntsPerBloc DESPRES: els punts porten el "Quan:"'
+    $pDesp = @((_LlicPuntsPerBloc $llic $idxR1 'DESPRES' $req1).Punts)
+    Assert ([bool](@($pDesp | Where-Object { @($_.Quan).Count -gt 0 }).Count -ge 40)) '_LlicPuntsPerBloc DESPRES: els punts porten el "Quan:" (tambe els de les seccions expandides)'
 }
 
 Write-Host "`n--- Llicencia.ps1: fases, condicionals i textos ---"
@@ -2219,11 +2223,13 @@ AssertEq (_ClassificacioText '' '')                     ''                      
 # El bloc ABANS surt de REQ1 (4 seccions), no de la llista de LLIC: aixi un
 # requeriment nou d'aquelles seccions hi surt sol.
 $secAb = @(_LlicSeccionsAbans)
-AssertEq $secAb.Count 4 '_LlicSeccionsAbans: les quatre seccions de documentacio'
+AssertEq $secAb.Count 2 '_LlicSeccionsAbans: les DUES seccions de documentacio (el PAU i els controls inicials han passat a DESPRES)'
 Assert ([bool](_LlicEsSeccioAbans 'Autoritzacions / Informes preceptius')) '_LlicEsSeccioAbans: Autoritzacions'
-Assert ([bool](_LlicEsSeccioAbans ('Pla d' + [char]0x2019 + 'Autoprotecci' + [char]0x00F3))) '_LlicEsSeccioAbans: PAU amb apostrof tipografic'
-Assert ([bool](_LlicEsSeccioAbans "Pla d'Autoproteccio")) '_LlicEsSeccioAbans: ...i sense accents ni apostrof tipografic'
 Assert ([bool](_LlicEsSeccioAbans 'Registres')) '_LlicEsSeccioAbans: Registres (d''aqui surt el RASIC)'
+Assert (-not (_LlicEsSeccioAbans ('Pla d' + [char]0x2019 + 'Autoprotecci' + [char]0x00F3))) '_LlicEsSeccioAbans: el PAU ja NO (va a DESPRES)'
+Assert (-not (_LlicEsSeccioAbans 'Controls inicials')) '_LlicEsSeccioAbans: ni els controls inicials'
+# La comparacio segueix sent sense accents ni apostrof tipografic.
+Assert ([bool](_LlicEsSeccioAbans 'AUTORITZACIONS / INFORMES PRECEPTIUS')) '_LlicEsSeccioAbans: sense distingir majuscules'
 Assert (-not (_LlicEsSeccioAbans 'Projecte')) '_LlicEsSeccioAbans: Projecte NO'
 Assert (-not (_LlicEsSeccioAbans ('Controls peri' + [char]0x00F2 + 'dics'))) '_LlicEsSeccioAbans: els periodics tampoc (son una altra cosa)'
 if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path $EstructuralsDir 'REQ1.json'))) {
@@ -2244,70 +2250,83 @@ if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path 
 }
 
 # ---------------------------------------------------------------------------
-# INSTAL-LACIONS: els sub-punts del bloc DESPRES surten de REQ1
+# EL BLOC DESPRES ES PORTA SECCIONS SENCERES DE REQ1
 # ---------------------------------------------------------------------------
-# "Certificats d'inscripcio al RITSIC" i "Inspeccio inicial" mantenien a ma una
-# copia de la llista d'instal-lacions (10 i 4 subitems escrits a LLIC.json)
-# mentre la llista de debo viu a REQ1 (17 i 5). Ara la clau del punt apunta a la
-# SUBSECCIO i els sub-punts en surten sols.
-$Global:_clauLeg = (_ItemKey ('Instal' + [char]0x00B7 + 'lacions') 'Legalitzacions')
-$Global:_clauIni = (_ItemKey ('Instal' + [char]0x00B7 + 'lacions') 'Inspeccions inicials')
-AssertEq (@(_LlicSubseccionsFora).Count) 2 '_LlicSubseccionsFora: les dues subseccions d''instal-lacions'
-Assert ([bool]((_LlicSubseccionsFora) -contains $Global:_clauLeg)) '_LlicSubseccionsFora: Legalitzacions'
-Assert ([bool]((_LlicSubseccionsFora) -contains $Global:_clauIni)) '_LlicSubseccionsFora: Inspeccions inicials'
+# Una entrada de LLIC.json amb una clau que NO es un item (una SECCIO, o una
+# "Seccio::Subseccio") s'EXPANDEIX: un punt per cada item d'aquella part, amb el
+# text LITERAL de REQ1 i el mateix "Quan:" per a tots. Abans hi havia dos punts
+# amb text propi que mantenien a ma la llista d'instal-lacions.
+$Global:_secInst = ('Instal' + [char]0x00B7 + 'lacions')
+$Global:_secCtrlI = 'Controls inicials'
+$Global:_subITC = ('Incendis::Documentaci' + [char]0x00F3 + ' (ITC SP)')
 
 if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path $EstructuralsDir 'REQ1.json'))) {
     $req1In = Read-CatalegJson (Join-Path $EstructuralsDir 'REQ1.json')
     $llicIn = Read-LlicCataleg $llicPathX
+    $idxIn  = _LlicIndexReq1 $req1In
 
-    # _LlicItemsDeSubseccio: nomes els items de la subseccio demanada.
-    $itLeg = @(_LlicItemsDeSubseccio $req1In $Global:_clauLeg)
-    $itIni = @(_LlicItemsDeSubseccio $req1In $Global:_clauIni)
-    Assert ($itLeg.Count -ge 15) ('_LlicItemsDeSubseccio: Legalitzacions en te ' + $itLeg.Count)
-    Assert ($itIni.Count -ge 4)  ('_LlicItemsDeSubseccio: Inspeccions inicials en te ' + $itIni.Count)
-    Assert (-not (@($itLeg) | Where-Object { [string]$_.Kind -ne 'item' })) '_LlicItemsDeSubseccio: nomes items'
-    # ...i no s'ha endut els de la subseccio del costat.
-    Assert (-not (@($itLeg | ForEach-Object { [string]$_.Short }) | Where-Object { $_ -like 'Insp. inicial*' })) '_LlicItemsDeSubseccio: no s''endu la subseccio seguent'
-    AssertEq (@(_LlicItemsDeSubseccio $req1In 'No::Existeix').Count) 0 '_LlicItemsDeSubseccio: clau desconeguda -> cap item'
+    # _LlicItemsDeSubseccio: tota la seccio, o nomes una subseccio.
+    $itInst = @(_LlicItemsDeSubseccio $req1In $Global:_secInst)
+    $itITC  = @(_LlicItemsDeSubseccio $req1In $Global:_subITC)
+    Assert ($itInst.Count -ge 30) ('_LlicItemsDeSubseccio: la seccio SENCERA d''instal-lacions (' + $itInst.Count + ')')
+    AssertEq $itITC.Count 4 '_LlicItemsDeSubseccio: nomes la subseccio Documentacio (ITC SP)'
+    Assert (-not (@($itITC | ForEach-Object { [string]$_.Short }) | Where-Object { $_ -like 'RIPCI*' })) '_LlicItemsDeSubseccio: no s''endu la subseccio seguent'
+    AssertEq (@(_LlicItemsDeSubseccio $req1In 'No existeix').Count) 0 '_LlicItemsDeSubseccio: seccio desconeguda -> cap item'
+    AssertEq (@(_LlicItemsDeSubseccio $req1In '').Count) 0 '_LlicItemsDeSubseccio: clau buida -> cap item'
 
-    # _LlicResumSubpunt: el text FINS a l'enllac, i l'enllac.
-    $unAmbUrl = @($itLeg | Where-Object { (@($_.BodyLines) -join ' ') -match 'https?://' })[0]
-    $res = @(_LlicResumSubpunt $unAmbUrl)
-    Assert ($res.Count -ge 2) '_LlicResumSubpunt: el text i l''enllac'
-    Assert ($res[0] -notmatch '\[\[URL\]\]') '_LlicResumSubpunt: cap marcador [[URL]] al text'
-    Assert ($res[0] -notmatch 'https?://') '_LlicResumSubpunt: l''URL no es queda dins del text'
-    Assert ($res[0] -notmatch '\*\*|//') '_LlicResumSubpunt: sense marcadors de negreta/cursiva'
-    Assert ([bool]($res[1] -like '[[]*URL*')) '_LlicResumSubpunt: l''enllac va en linia propia amb el marcador'
+    # _LlicSeccionsExpandides: surt del CATALEG, no d'una llista al codi.
+    $exp = @(_LlicSeccionsExpandides $llicIn $idxIn)
+    Assert ([bool]($exp -contains $Global:_secInst)) '_LlicSeccionsExpandides: Instal-lacions'
+    Assert ([bool]($exp -contains $Global:_secCtrlI)) '_LlicSeccionsExpandides: Controls inicials'
+    Assert ([bool]($exp -contains $Global:_subITC)) '_LlicSeccionsExpandides: Incendis / Documentacio (ITC SP)'
+    Assert (-not (@($exp) | Where-Object { $idxIn.ContainsKey($_) })) '_LlicSeccionsExpandides: cap clau d''item'
 
     # El bloc DESPRES sencer.
-    $rDe = _LlicPuntsPerBloc $llicIn (_LlicIndexReq1 $req1In) 'DESPRES' $req1In
-    AssertEq (@($rDe.Orfes) -join ' | ') '' 'DESPRES: cap clau orfe amb les subseccions'
+    $rDe = _LlicPuntsPerBloc $llicIn $idxIn 'DESPRES' $req1In
+    AssertEq (@($rDe.Orfes) -join ' | ') '' 'DESPRES: cap clau orfe'
     $pDe = @($rDe.Punts)
-    $pLeg = @($pDe | Where-Object { [string]$_.Clau -eq $Global:_clauLeg })[0]
-    $pIni = @($pDe | Where-Object { [string]$_.Clau -eq $Global:_clauIni })[0]
-    Assert ($null -ne $pLeg) 'DESPRES: hi ha el punt dels certificats RITSIC'
-    AssertEq (@($pLeg.Subs).Count) $itLeg.Count 'DESPRES: els sub-punts del RITSIC son TOTS els de REQ1'
-    AssertEq (@($pIni.Subs).Count) $itIni.Count 'DESPRES: i els de la inspeccio inicial tambe'
-    Assert ([bool]((@($pLeg.Cos) -join ' ') -match 'RITSIC')) 'DESPRES: el punt conserva la seva frase d''encapcalament'
-    Assert ([bool]((@($pLeg.Quan) -join ' ') -match 'Abans')) 'DESPRES: ...i el seu "Quan:"'
+    Assert ($pDe.Count -ge 50) ('DESPRES: hi caben totes les seccions expandides (' + $pDe.Count + ' punts)')
+    # ...i el text es LITERAL, no retallat.
+    $unInst = @($pDe | Where-Object { [string]$_.Clau -like ($Global:_secInst + '::*') })[0]
+    $elInst = $idxIn[[string]$unInst.Clau]
+    AssertEq ((@($unInst.Cos) -join '|')) ((@($elInst.BodyLines) -join '|')) 'DESPRES: el text de les seccions expandides es LITERAL de REQ1'
+    Assert ([bool](@($unInst.Quan).Count -gt 0)) 'DESPRES: ...i cada punt porta el "Quan:" de l''entrada'
+    # El PAU porta el seu "Quan:" propi, diferent de la resta.
+    $pPau = @($pDe | Where-Object { [string]$_.Clau -like ('Pla d*Autoprotecci*::*') })[0]
+    Assert ($null -ne $pPau) 'DESPRES: hi ha el Pla d''Autoproteccio'
+    Assert ([bool]((@($pPau.Quan) -join ' ') -match 'sis mesos')) 'DESPRES: el PAU porta el seu "Quan:" de sis mesos'
 
-    # INSTAL-LACIONS, L'ULTIMA SECCIO de l'arbre (i de l'informe: es el mateix ordre).
+    # LES SECCIONS, en l'ordre del cataleg i amb Instal-lacions al final.
     $grDe = @(_LlicAgrupaPunts $pDe)
-    AssertEq ([string]$grDe[$grDe.Count - 1].Titol) ('Instal' + [char]0x00B7 + 'lacions') 'DESPRES: Instal-lacions es l''ultima seccio'
-    AssertEq (@($grDe | Where-Object { [string]$_.Titol -eq ('Instal' + [char]0x00B7 + 'lacions') }).Count) 1 'DESPRES: Instal-lacions surt UNA sola vegada (el PCI hi va junt)'
-    AssertEq (@($grDe[$grDe.Count - 1].Idx).Count) 3 'DESPRES: i hi ha els tres punts (PCI + RITSIC + inspeccio inicial)'
+    AssertEq ([string]$grDe[0].Titol) '' 'DESPRES: primer els punts propis (sense seccio)'
+    AssertEq ([string]$grDe[$grDe.Count - 1].Titol) $Global:_secInst 'DESPRES: i Instal-lacions al final'
+    $titolsDe = @(@($grDe) | ForEach-Object { [string]$_.Titol })
+    AssertEq (@($titolsDe | Select-Object -Unique).Count) $titolsDe.Count 'DESPRES: cap seccio repetida a l''arbre'
 
-    # ...i al pas PROJECTE ja no hi son.
-    $secPr = @(_LlicSeccionsSenseSubseccions $req1In.Sections (_LlicSubseccionsFora))
-    AssertEq (@(_LlicItemsDeSubseccio ([pscustomobject]@{ Sections = $secPr }) $Global:_clauLeg).Count) 0 'Projecte: Legalitzacions ja no hi es'
-    AssertEq (@(_LlicItemsDeSubseccio ([pscustomobject]@{ Sections = $secPr }) $Global:_clauIni).Count) 0 'Projecte: ni Inspeccions inicials'
-    # ...pero la resta de la seccio SI (les periodiques no es demanen a DESPRES).
-    $clauPer = (_ItemKey ('Instal' + [char]0x00B7 + 'lacions') ('Inspeccions peri' + [char]0x00F2 + 'diques'))
-    Assert ((@(_LlicItemsDeSubseccio ([pscustomobject]@{ Sections = $secPr }) $clauPer).Count) -ge 10) 'Projecte: les inspeccions PERIODIQUES s''hi queden'
-    # I cap seccio ha perdut items que no toquessin.
-    $abansPr = (@($req1In.Sections) | ForEach-Object { @($_.Items | Where-Object { $_.Kind -eq 'item' }).Count } | Measure-Object -Sum).Sum
-    $despresPr = (@($secPr) | ForEach-Object { @($_.Items | Where-Object { $_.Kind -eq 'item' }).Count } | Measure-Object -Sum).Sum
-    AssertEq ($abansPr - $despresPr) ($itLeg.Count + $itIni.Count) 'Projecte: nomes s''han tret els items d''aquelles dues subseccions'
+    # EL PAU I ELS CONTROLS INICIALS JA NO SON A ABANS.
+    $pAb = @((_LlicPuntsPerBloc $llicIn $idxIn 'ABANS' $req1In).Punts)
+    Assert (-not (@($pAb) | Where-Object { (_LlicSeccioDePunt $_) -like 'Pla d*' })) 'ABANS: el PAU ja no hi es'
+    Assert (-not (@($pAb) | Where-Object { (_LlicSeccioDePunt $_) -eq $Global:_secCtrlI })) 'ABANS: ni els controls inicials'
+    AssertEq (@($pAb | ForEach-Object { _LlicSeccioDePunt $_ } | Select-Object -Unique).Count) 2 'ABANS: nomes dues seccions'
+
+    # CAP PUNT DE REQ1 A DOS BLOCS ALHORA.
+    $clausAb = @($pAb | ForEach-Object { [string]$_.Clau })
+    $clausDe = @($pDe | ForEach-Object { [string]$_.Clau } | Where-Object { $_ })
+    $tots2 = @($clausAb | Where-Object { $clausDe -contains $_ })
+    AssertEq ($tots2 -join ' | ') '' 'Cap punt de REQ1 surt a ABANS i a DESPRES alhora'
+
+    # ...i al pas PROJECTE no hi ha res del que ja es demana.
+    $senseAb = @(@($req1In.Sections) | Where-Object { -not (_LlicEsSeccioAbans ([string]$_.Title)) })
+    $secPr = @(_LlicSeccionsSenseSubseccions $senseAb $exp)
+    AssertEq (@(_LlicItemsDeSubseccio ([pscustomobject]@{ Sections = $secPr }) $Global:_secInst).Count) 0 'Projecte: Instal-lacions ja no hi es'
+    AssertEq (@(_LlicItemsDeSubseccio ([pscustomobject]@{ Sections = $secPr }) $Global:_subITC).Count) 0 'Projecte: ni la Documentacio (ITC SP)'
+    # ...pero la resta d'Incendis SI (nomes en marxa una subseccio).
+    $inc = @(_LlicItemsDeSubseccio ([pscustomobject]@{ Sections = $secPr }) 'Incendis')
+    Assert ($inc.Count -ge 20) ('Projecte: la resta d''Incendis s''hi queda (' + $inc.Count + ')')
+    # I CADA punt de REQ1 es EN ALGUN LLOC, un sol cop.
+    $totsReq1 = (@($req1In.Sections) | ForEach-Object { @($_.Items | Where-Object { $_.Kind -eq 'item' }).Count } | Measure-Object -Sum).Sum
+    $nPr = (@($secPr) | ForEach-Object { @($_.Items | Where-Object { $_.Kind -eq 'item' }).Count } | Measure-Object -Sum).Sum
+    AssertEq ($clausAb.Count + $clausDe.Count + $nPr) $totsReq1 'Tots els punts de REQ1 son en algun bloc, i nomes en un'
 }
 
 # ---------------------------------------------------------------------------
@@ -2380,7 +2399,7 @@ if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path 
     AssertEq (@($grups[0].Idx).Count) (@($propisGr).Count) '_LlicAgrupaPunts: i hi son tots els propis, nomes ells'
     # Despres, les 4 seccions de documentacio de REQ1, en ordre de cataleg.
     $titolsGr = @(@($grups) | Select-Object -Skip 1 | ForEach-Object { [string]$_.Titol })
-    AssertEq $titolsGr.Count 4 '_LlicAgrupaPunts: les 4 seccions de REQ1'
+    AssertEq $titolsGr.Count 2 '_LlicAgrupaPunts: les 2 seccions de documentacio de REQ1'
     Assert (-not (@($titolsGr) | Where-Object { -not (_LlicEsSeccioAbans $_) })) '_LlicAgrupaPunts: i totes son de documentacio'
     # CAP punt perdut ni duplicat: aplanar els grups ha de donar 0..N-1.
     $plans = @(@($grups) | ForEach-Object { @($_.Idx) })

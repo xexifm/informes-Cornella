@@ -55,8 +55,11 @@ function _VistaWordPathFor([string]$jsonPath, [string]$dir = '') {
 # disposa" i el "Quan:"). Els seus items no porten text -el treuen de REQ1 en
 # viu-, o sigui que la vista sortiria plena de punts buits.
 function _VistaEsProtegit([string]$jsonPath) {
+    # NOMES la plantilla de la capcalera: es l'unic .docx que no es una vista
+    # generada. LLIC.json si que en te (vegeu _VistaLlicencia): l'usuari
+    # necessita poder consultar el cataleg de Llicencia sense obrir el programa.
     $b = [System.IO.Path]::GetFileNameWithoutExtension([string]$jsonPath)
-    return (([string]$b -like '0 CAPCALERA*') -or ([string]$b -eq 'LLIC'))
+    return ([string]$b -like '0 CAPCALERA*')
 }
 
 # VERSIO del generador de vistes. Puja-la SEMPRE que canviï com es veuen les
@@ -64,6 +67,7 @@ function _VistaEsProtegit([string]$jsonPath) {
 # (la regla de sota nomes regenera quan el JSON es mes nou que el .docx, i just
 # despres de generar-les el .docx sempre es el mes nou). En canviar de versio es
 # regeneren totes una vegada.
+#   6 -> LLIC.json tambe te vista (_VistaLlicencia)
 #   1 -> primera versio (format propi, amb estils de titol)
 #   2 -> format de l'informe (Format.ps1) + nivells d'esquema
 #   3 -> tipografia base de la plantilla (Bookman Old Style, justificat,
@@ -71,7 +75,7 @@ function _VistaEsProtegit([string]$jsonPath) {
 #   4 -> separacio entre l'item i el seu PRIMER sub-punt (Format-Bullet -First)
 #   5 -> negreta del numero de l'item aplicada pel RANG (no s'encomana al cos)
 #        i sangria dels fills a 1 cm amb francesa de 0,5 cm
-$Script:VistaWordVersio = 5
+$Script:VistaWordVersio = 6
 
 function _VistaVersioPath {
     $base = [string]$env:LOCALAPPDATA
@@ -160,6 +164,104 @@ function _VLine($sel, [string]$line, [bool]$isChild = $false) {
     $parts = _SplitTextAndUrls $line
     if (-not [string]::IsNullOrWhiteSpace($parts.Text)) { _VBody $sel $parts.Text $isChild }
     foreach ($u in $parts.Urls) { _VUrl $sel $u $isChild }
+}
+
+# ---- Vista del cataleg de LLICENCIA ----------------------------------------
+# Ensenya el que Llicencia produira: cada bloc (ABANS / PROJECTE / DESPRES /
+# PROPIS / ANNEX 1) amb TOTS els seus punts, el text que ve de REQ1 i, a sota,
+# el que hi afegeix LLIC (els comentaris "No es disposa..." / "Es disposa..." i
+# el "Quan:"). Es la manera de veure d'una ullada d'on surt cada punt.
+#
+# Els punts surten de _LlicPuntsPerBloc, o sigui de la MATEIXA funcio que munta
+# l'informe: la vista no pot dir una cosa i el document una altra.
+function _VistaLlicencia($sel, [string]$jsonPath) {
+    $cfg = $Script:ReportFormatConfig
+    $llic = Read-LlicCataleg $jsonPath
+    $req1Path = Join-Path (Split-Path -Parent $jsonPath) 'REQ1.json'
+    $req1 = if (Test-Path -LiteralPath $req1Path) { Read-CatalegJson $req1Path } else { $null }
+    $idx = _LlicIndexReq1 $req1
+
+    $blocs = @(
+        @{ Clau = 'PROPIS';  Titol = 'PUNTS PROPIS DE LLIC' + [char]0x00C8 + 'NCIA (no son a REQ1)' },
+        @{ Clau = 'ABANS';   Titol = (_LlicTitolAbans) },
+        @{ Clau = 'DESPRES'; Titol = (_LlicTitolDespres) }
+    )
+    foreach ($b in $blocs) {
+        $r = _LlicPuntsPerBloc $llic $idx ([string]$b.Clau) $req1
+        _VSection $sel ([string]$b.Titol)
+        if ($cfg.SpacerAfterSection) { _VSpacer $sel }
+        $seccioAra = ''
+        $n = 0
+        foreach ($p in @($r.Punts)) {
+            $sec = _LlicSeccioDePunt $p
+            if ($sec -ne $seccioAra) {
+                $seccioAra = $sec
+                if ($sec) {
+                    _VSubsection $sel ('de REQ1: ' + $sec)
+                    if ($cfg.SpacerAfterSubsection) { _VSpacer $sel }
+                }
+            }
+            $linies = @($p.Cos)
+            $n++
+            if ($linies.Count -gt 0) {
+                $p0 = _SplitTextAndUrls ([string]$linies[0])
+                _VItem $sel ("$n.") ([string]$p0.Text)
+                foreach ($u in $p0.Urls) { _VUrl $sel $u }
+                for ($i = 1; $i -lt $linies.Count; $i++) { _VLine $sel ([string]$linies[$i]) }
+            } else {
+                _VItem $sel ("$n.") ([string]$p.Titol)
+            }
+            foreach ($sub in @($p.Subs)) {
+                foreach ($l in @($sub)) { _VLine $sel ([string]$l) $true }
+            }
+            foreach ($par in @(
+                @{ E = 'No es disposa'; L = @($p.NoDisposa) },
+                @{ E = 'Es disposa';    L = @($p.SiDisposa) },
+                @{ E = 'Quan';          L = @($p.Quan) })) {
+                foreach ($l in @($par.L)) {
+                    if ([string]::IsNullOrWhiteSpace([string]$l)) { continue }
+                    _VLine $sel ('//[' + [string]$par.E + ']// ' + [string]$l) $true
+                }
+            }
+            if ($cfg.SpacerAfterItem) { _VSpacer $sel }
+        }
+        if (@($r.Orfes).Count -gt 0) {
+            _VBody $sel ('**Claus que ja NO son a REQ1: ' + (@($r.Orfes) -join ' | ') + '**')
+            if ($cfg.SpacerAfterItem) { _VSpacer $sel }
+        }
+    }
+
+    # El PROJECTE: la resta de REQ1, la que no es demana ni abans ni despres.
+    if ($null -ne $req1) {
+        _VSection $sel 'PROJECTE (la resta de REQ1)'
+        if ($cfg.SpacerAfterSection) { _VSpacer $sel }
+        $senseAbans = @(@($req1.Sections) | Where-Object { -not (_LlicEsSeccioAbans ([string]$_.Title)) })
+        $secProj = @(_LlicSeccionsSenseSubseccions $senseAbans (_LlicSeccionsExpandides $llic $idx))
+        foreach ($sc in $secProj) {
+            _VBody $sel ('//' + [string]$sc.Title + ' (' +
+                         @($sc.Items | Where-Object { [string]$_.Kind -eq 'item' }).Count + ' punts)//')
+        }
+        if ($cfg.SpacerAfterItem) { _VSpacer $sel }
+    }
+
+    # L'ANNEX 1, tal com surt a l'informe.
+    $secAnnex = _LlicSeccioAnnex1 $llic
+    if ($null -ne $secAnnex) {
+        _VSection $sel ([string]$secAnnex.titol)
+        if ($cfg.SpacerAfterSection) { _VSpacer $sel }
+        $num = 0
+        foreach ($nd in @($secAnnex.fills)) {
+            $marca = ''
+            $tip = [string]$nd.tipus
+            if ($tip -eq 'item') { $num++; $marca = [string]$num + '. ' }
+            elseif ($tip -eq 'subitem') { $marca = '- ' }
+            $primera = $true
+            foreach ($l in @(_LlicCos $nd)) {
+                _VLine $sel ($(if ($primera) { $marca } else { '' }) + [string]$l)
+                $primera = $false
+            }
+        }
+    }
 }
 
 # ---- Vista d'un CATALEG (REQ1, TERMINI...) ---------------------------------
@@ -324,6 +426,7 @@ function Export-VistaWord($word, [string]$jsonPath) {
             'cataleg'     { _VistaCataleg $sel $jsonPath $nom }
             'conclusions' { _VistaConclusions $sel $jsonPath }
             'actextr'     { _VistaActExtr $sel $jsonPath $nom }
+            'llicencia'   { _VistaLlicencia $sel $jsonPath }
             default       { _VistaCataleg $sel $jsonPath $nom }
         }
         # Nota final: que quedi clar que es una vista generada i que no s'edita.

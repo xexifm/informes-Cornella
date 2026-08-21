@@ -702,72 +702,6 @@
     },
     {
      "tipus": "item",
-     "titol": "SP 136 Model A - limitació propagació",
-     "cos": [],
-     "fills": [
-      {
-       "tipus": "quan",
-       "titol": "",
-       "cos": [
-        {
-         "runs": [
-          {
-           "t": "Abans d’iniciar l’activitat."
-          }
-         ]
-        }
-       ],
-       "fills": []
-      }
-     ],
-     "clau": "Incendis::SP 136 Model A - limitació propagació"
-    },
-    {
-     "tipus": "item",
-     "titol": "SP 136 Model C - protecció estructures",
-     "cos": [],
-     "fills": [
-      {
-       "tipus": "quan",
-       "titol": "",
-       "cos": [
-        {
-         "runs": [
-          {
-           "t": "Abans d’iniciar l’activitat."
-          }
-         ]
-        }
-       ],
-       "fills": []
-      }
-     ],
-     "clau": "Incendis::SP 136 Model C - protecció estructures"
-    },
-    {
-     "tipus": "item",
-     "titol": "ITC SP 108 - lluernes en coberta",
-     "cos": [],
-     "fills": [
-      {
-       "tipus": "quan",
-       "titol": "",
-       "cos": [
-        {
-         "runs": [
-          {
-           "t": "Abans d’iniciar l’activitat."
-          }
-         ]
-        }
-       ],
-       "fills": []
-      }
-     ],
-     "clau": "Incendis::ITC SP 108 - lluernes en coberta"
-    },
-    {
-     "tipus": "item",
      "titol": "Sanitat. Autorització de funcionament (Departament de Salut ",
      "cos": [
       {
@@ -929,7 +863,30 @@
     },
     {
      "tipus": "item",
-     "titol": "PAU",
+     "titol": "Incendis - Documentació (ITC SP)",
+     "clau": "Incendis::Documentació (ITC SP)",
+     "cos": [],
+     "fills": [
+      {
+       "tipus": "quan",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Abans d’iniciar l’activitat."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    },
+    {
+     "tipus": "item",
+     "titol": "Pla d'Autoprotecció",
+     "clau": "Pla d'Autoprotecció",
      "cos": [],
      "fills": [
       {
@@ -946,30 +903,15 @@
        ],
        "fills": []
       }
-     ],
-     "clau": "Pla d'Autoprotecció::PAU"
+     ]
     },
     {
      "tipus": "item",
-     "titol": "Annex II Llei 20/2009 - control inicial",
+     "titol": "Controls inicials",
+     "clau": "Controls inicials",
      "cos": [],
      "fills": [
       {
-       "tipus": "subitem",
-       "titol": "",
-       "cos": [
-        {
-         "runs": [
-          {
-           "t": "https://www.gencat.cat/mediamb/ohec/eac_CA.pdf"
-          }
-         ],
-         "url": true
-        }
-       ],
-       "fills": []
-      },
-      {
        "tipus": "quan",
        "titol": "",
        "cos": [
@@ -983,43 +925,15 @@
        ],
        "fills": []
       }
-     ],
-     "clau": "Controls inicials::Annex II Llei 20/2009 - control inicial"
+     ]
     },
     {
      "tipus": "item",
-     "titol": "Vector Atmosfera - control inicial",
+     "titol": "Controls periòdics",
+     "clau": "Controls periòdics",
      "cos": [],
      "fills": [
       {
-       "tipus": "subitem",
-       "titol": "",
-       "cos": [
-        {
-         "runs": [
-          {
-           "t": "CAE (Control Atmosfèric de l'Establiment)"
-          }
-         ]
-        }
-       ],
-       "fills": []
-      },
-      {
-       "tipus": "subitem",
-       "titol": "",
-       "cos": [
-        {
-         "runs": [
-          {
-           "t": "Informe reglamentari de mesures d'emissions a l’atmosfera"
-          }
-         ]
-        }
-       ],
-       "fills": []
-      },
-      {
        "tipus": "quan",
        "titol": "",
        "cos": [
@@ -1033,28 +947,13 @@
        ],
        "fills": []
       }
-     ],
-     "clau": "Controls inicials::Vector Atmosfera - control inicial"
+     ]
     },
     {
      "tipus": "item",
-     "titol": "Insp. periòdica - PCI",
+     "titol": "Instal·lacions",
+     "clau": "Instal·lacions",
      "cos": [],
-     "fills": [],
-     "clau": "Instal·lacions::Insp. periòdica - PCI"
-    },
-    {
-     "tipus": "item",
-     "titol": "Certificats d’inscripció al Registre d'instal·lacions de Seg",
-     "cos": [
-      {
-       "runs": [
-        {
-         "t": "Certificats d’inscripció al Registre d'instal·lacions de Seguretat Industrial de Catalunya (RITSIC) que acrediti que s’han legalitzat les següents instal·lacions:"
-        }
-       ]
-      }
-     ],
      "fills": [
       {
        "tipus": "quan",
@@ -1070,38 +969,7 @@
        ],
        "fills": []
       }
-     ],
-     "clau": "Instal·lacions::Legalitzacions"
-    },
-    {
-     "tipus": "item",
-     "titol": "Inspecció inicial per part d’un organisme de control habilit",
-     "cos": [
-      {
-       "runs": [
-        {
-         "t": "Inspecció inicial per part d’un organisme de control habilitat de les següents instal·lacions:"
-        }
-       ]
-      }
-     ],
-     "fills": [
-      {
-       "tipus": "quan",
-       "titol": "",
-       "cos": [
-        {
-         "runs": [
-          {
-           "t": "Abans d’iniciar l’activitat."
-          }
-         ]
-        }
-       ],
-       "fills": []
-      }
-     ],
-     "clau": "Instal·lacions::Inspeccions inicials"
+     ]
     }
    ]
   },
