@@ -2300,8 +2300,14 @@ if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path 
     $grDe = @(_LlicAgrupaPunts $pDe)
     AssertEq ([string]$grDe[0].Titol) '' 'DESPRES: primer els punts propis (sense seccio)'
     AssertEq ([string]$grDe[$grDe.Count - 1].Titol) $Global:_secInst 'DESPRES: i Instal-lacions al final'
-    $titolsDe = @(@($grDe) | ForEach-Object { [string]$_.Titol })
-    AssertEq (@($titolsDe | Select-Object -Unique).Count) $titolsDe.Count 'DESPRES: cap seccio repetida a l''arbre'
+    # L'ARBRE ES DE DOS NIVELLS (seccio > subseccio), com el Pas 3 de REQ1: una
+    # mateixa seccio hi surt tants cops com subseccions te, i el que no s'ha de
+    # repetir es el PARELL.
+    $parellsDe = @(@($grDe) | ForEach-Object { [string]$_.Titol + '||' + [string]$_.Sub })
+    AssertEq (@($parellsDe | Select-Object -Unique).Count) $parellsDe.Count 'DESPRES: cap seccio+subseccio repetida a l''arbre'
+    $instDe = @(@($grDe) | Where-Object { [string]$_.Titol -eq $Global:_secInst })
+    Assert ($instDe.Count -ge 2) ('DESPRES: Instal-lacions es parteix per subseccions (' + $instDe.Count + ')')
+    Assert (-not (@($instDe) | Where-Object { [string]::IsNullOrWhiteSpace([string]$_.Sub) })) 'DESPRES: ...i totes tenen subseccio'
 
     # EL PAU I ELS CONTROLS INICIALS JA NO SON A ABANS.
     $pAb = @((_LlicPuntsPerBloc $llicIn $idxIn 'ABANS' $req1In).Punts)
@@ -2347,8 +2353,29 @@ Assert ([bool]($solC[0] -like '*Titol*' -and $solC[0] -like '*Xip*')) '_TrobaSol
 Assert ([bool]($solC[0] -like '*250,0*')) '_TrobaSolapaments: ...i on'
 $rcD = @(@{ Nom='Fons'; X=0; Y=0; W=400; H=60 }, @{ Nom='Boto'; X=10; Y=10; W=80; H=24 })
 AssertEq (@(_TrobaSolapaments $rcD).Count) 0 '_TrobaSolapaments: un DINS de l''altre es un fons, no un error'
-$rcE = @(@{ Nom='A'; X=0; Y=0; W=100; H=20 }, @{ Nom='B'; X=0; Y=19; W=100; H=20 })
+$rcE = @(@{ Nom='A'; X=0; Y=0; W=100; H=20 }, @{ Nom='B'; X=0; Y=10; W=100; H=20 })
 AssertEq (@(_TrobaSolapaments $rcE).Count) 1 '_TrobaSolapaments: tambe en vertical'
+
+# LA TOLERANCIA. Sense ella el programa avisava de pantalles que es veuen
+# perfectament (una etiqueta que passa un pixel per sota d'un radio) i l'avis es
+# tornava soroll que ningu llegia. Ha de callar quan es freguen i cridar quan
+# es tapen de debo. Els rectangles son ELS DE VERITAT del programa.
+$rcTitol = @(@{ Nom='Titol'; X=76; Y=7; W=300; H=31 }, @{ Nom='Subtitol'; X=76; Y=33; W=300; H=18 })
+AssertEq (@(_TrobaSolapaments $rcTitol).Count) 0 '_TrobaSolapaments: capcalera titol/subtitol, no molesta'
+$rcRadio = @(@{ Nom='Radio'; X=30; Y=98; W=460; H=22 }, @{ Nom='Descripcio'; X=50; Y=119; W=440; H=18 })
+AssertEq (@(_TrobaSolapaments $rcRadio).Count) 0 '_TrobaSolapaments: radio i la seva descripcio, no molesta'
+$rcPoc = @(@{ Nom='A'; X=0; Y=0; W=200; H=40 }, @{ Nom='B'; X=195; Y=0; W=200; H=40 })
+AssertEq (@(_TrobaSolapaments $rcPoc).Count) 0 '_TrobaSolapaments: 5 px de frec, no molesta'
+$rcMolt = @(@{ Nom='Etiqueta'; X=50; Y=264; W=450; H=32 }, @{ Nom='Continuar'; X=370; Y=286; W=130; H=32 })
+AssertEq (@(_TrobaSolapaments $rcMolt).Count) 1 '_TrobaSolapaments: etiqueta sota el boto, AVISA'
+
+# ...i la pantalla que ho patia: els botons del Pas 1 de Llicencia ja no van a
+# una Y clavada al codi, surten del peu de l'etiqueta.
+$srcLlic = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'Llicencia.ps1') -Raw
+$iFase = $srcLlic.IndexOf('function Select-LlicFase')
+$blocFase = $srcLlic.Substring($iFase, 4000)
+Assert ($blocFase.Contains('$lbl2.Bottom')) 'Select-LlicFase: els botons surten del peu de l''etiqueta'
+Assert (-not ($blocFase.Contains('Point(370, 286)'))) 'Select-LlicFase: ...i ja no d''una Y clavada'
 
 # EL TITOL DE LA RAJOLA DEL MENU s'ha de dibuixar ACOTAT pels xips. Prova de
 # FONT (el menu nomes es pinta a Windows): el xip "Dades" tapava el "LL Prov" de
@@ -2399,7 +2426,10 @@ if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path 
     AssertEq (@($grups[0].Idx).Count) (@($propisGr).Count) '_LlicAgrupaPunts: i hi son tots els propis, nomes ells'
     # Despres, les 4 seccions de documentacio de REQ1, en ordre de cataleg.
     $titolsGr = @(@($grups) | Select-Object -Skip 1 | ForEach-Object { [string]$_.Titol })
-    AssertEq $titolsGr.Count 2 '_LlicAgrupaPunts: les 2 seccions de documentacio de REQ1'
+    AssertEq (@($titolsGr | Select-Object -Unique).Count) 2 '_LlicAgrupaPunts: les 2 seccions de documentacio de REQ1'
+    # Dos nivells: dins d'una seccio, un grup per subseccio i en ordre.
+    $parellsGr = @(@($grups) | ForEach-Object { [string]$_.Titol + '||' + [string]$_.Sub })
+    AssertEq (@($parellsGr | Select-Object -Unique).Count) $parellsGr.Count '_LlicAgrupaPunts: cap parell seccio+subseccio repetit'
     Assert (-not (@($titolsGr) | Where-Object { -not (_LlicEsSeccioAbans $_) })) '_LlicAgrupaPunts: i totes son de documentacio'
     # CAP punt perdut ni duplicat: aplanar els grups ha de donar 0..N-1.
     $plans = @(@($grups) | ForEach-Object { @($_.Idx) })
@@ -3332,5 +3362,42 @@ Assert ($liniesR[0].Contains('FD-777')) 'De la base a l''informe: hi surt el val
 # ...i un punt del qual la base no en sap res queda buit, no amb el marcador.
 $liniesR2 = @(_LlicAplicaCamps @('Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])') @{})
 Assert ($liniesR2[0] -notmatch '\[CAMP:') 'Sense valor a la base: tampoc queda el marcador'
+
+# ELS PUNTS EDITABLES DE LA PANTALLA DE CONSULTA. El defecte: la pantalla nomes
+# sabia pintar les dades JA DESADES, o sigui que d'un punt que no s'havia
+# omplert mai no en sortia cap casella i no es podia escriure res.
+$llicEd = Read-LlicCataleg (Join-Path $Global:EstructuralsDir 'LLIC.json')
+$req1Ed = Get-ParsedCataleg -path (Join-Path $Global:EstructuralsDir 'REQ1.json')
+if ($null -ne $llicEd -and $null -ne $req1Ed) {
+    $edit = Get-LlicenciaPuntsEditables $llicEd $req1Ed
+    $abEd = @($edit['Abans']); $deEd = @($edit['Despres'])
+    Assert ($abEd.Count -ge 30) ('Get-LlicenciaPuntsEditables: tots els punts d''ABANS (' + $abEd.Count + ')')
+    Assert ($deEd.Count -ge 40) ('Get-LlicenciaPuntsEditables: i els de DESPRES (' + $deEd.Count + ')')
+    Assert (-not (@($abEd) | Where-Object { @($_.Camps).Count -eq 0 })) 'Get-LlicenciaPuntsEditables: CAP punt d''ABANS es queda sense camps'
+    Assert (-not (@($abEd) | Where-Object { -not (@($_.Camps) -contains 'Id Firmadoc') })) 'Get-LlicenciaPuntsEditables: i tots demanen l''Id Firmadoc'
+    $clausEd = @(@($abEd) | ForEach-Object { [string]$_.Clau })
+    AssertEq (@($clausEd | Select-Object -Unique).Count) $clausEd.Count 'Get-LlicenciaPuntsEditables: cap clau repetida'
+    Assert (-not (@($abEd) | Where-Object { [string]::IsNullOrWhiteSpace([string]$_.Titol) })) 'Get-LlicenciaPuntsEditables: tots tenen titol'
+    # El punt amb dades propies (SDR) demana els SEUS camps, no nomes el firmadoc.
+    $sdrEd = @(@($abEd) | Where-Object { @($_.Camps) -contains 'NIMA' })
+    Assert ($sdrEd.Count -ge 1) 'Get-LlicenciaPuntsEditables: els camps propis del punt (NIMA) tambe hi surten'
+}
+AssertEq (@((Get-LlicenciaPuntsEditables $null $null)['Abans']).Count) 0 'Get-LlicenciaPuntsEditables: sense cataleg, cap punt'
+
+# _LlicDbMemEditable: el que ve del JSON son PSCustomObject i s'hi ha de poder
+# escriure a sobre sense Add-Member a cada nivell.
+$memEd = _LlicDbMemEditable ((@{
+    'S::A' = @{ Marcat = $true; Estat = 'si'; Valors = @{ 'Id Firmadoc' = 'FD-1' }; Subs = @{ '0' = $true } }
+} | ConvertTo-Json -Depth 10) | ConvertFrom-Json)
+AssertEq ([bool]$memEd['S::A']['Marcat']) $true '_LlicDbMemEditable: el marcat'
+AssertEq ([string]$memEd['S::A']['Valors']['Id Firmadoc']) 'FD-1' '_LlicDbMemEditable: els valors'
+$memEd['S::A']['Valors']['Expedient'] = '901417/23'
+$memEd['S::A']['Estat'] = 'no'
+AssertEq ([string]$memEd['S::A']['Valors']['Expedient']) '901417/23' '_LlicDbMemEditable: s''hi pot AFEGIR un camp nou'
+# ...i tornar a la forma desable sense perdre res.
+$memDes = ConvertTo-LlicenciaMemoria $memEd
+AssertEq ([string]$memDes['S::A']['Estat']) 'no' '_LlicDbMemEditable: i tornar a desar-ho'
+AssertEq ([string]$memDes['S::A']['Valors']['Expedient']) '901417/23' '_LlicDbMemEditable: amb el camp nou inclos'
+AssertEq (@((_LlicDbMemEditable $null).Keys).Count) 0 '_LlicDbMemEditable: amb $null, mapa buit'
 
 exit (Write-TestSummary 'RESULTAT')

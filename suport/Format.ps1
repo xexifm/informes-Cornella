@@ -349,6 +349,15 @@ function Format-Plain {
     if ($Size -gt 0) { try { $sel.Font.Size = $Script:ReportFormatConfig.BodyFontSize } catch { } }
 }
 
+# CONTINUA EL PARAGRAF que s'acaba d'escriure, en comptes d'obrir-ne un de nou.
+# Tots els altres Format-* comencen amb TypeParagraph; aquest no, i per aixo
+# serveix per a l'aclariment que a la plantilla va DINS del punt de l'ANNEX 1.
+function Format-Append {
+    param($sel, [string]$text)
+    if ([string]::IsNullOrWhiteSpace($text)) { return }
+    Type-RichText $sel $text
+}
+
 function Format-Spacer {
     param($sel)
     [void]$sel.TypeParagraph()

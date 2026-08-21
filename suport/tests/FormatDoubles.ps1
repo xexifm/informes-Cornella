@@ -29,6 +29,7 @@ function Format-Body       { param($s,$t,[switch]$IsChild,[switch]$Bold) [void]$
 function Format-Bullet     { param($s,$t,[switch]$IsChild,[switch]$First) [void]$global:emitCalls.Add('BULLET' + $(if($IsChild){'/CH'}else{''}) + $(if($First){'/1r'}else{''}) + "|$t") }
 function Format-Url        { param($s,$u,[switch]$IsChild) [void]$global:emitCalls.Add('URL'    + $(if($IsChild){'/CH'}else{''}) + "|$u") }
 function Format-Spacer     { param($s) }
+function Format-Append     { param($s,$t) [void]$global:emitCalls.Add("APPEND|$t") }
 function Format-Conclusion { param($s,$t) [void]$global:emitCalls.Add("CONCL|$t") }
 function Format-ConclusionHeader { param($s,$t) [void]$global:emitCalls.Add("CONCLCAP|$t") }
 function Format-Note       { param($s,$t) [void]$global:emitCalls.Add("NOTE|$t") }

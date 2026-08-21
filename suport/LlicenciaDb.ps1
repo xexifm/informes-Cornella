@@ -260,6 +260,63 @@ function Get-LlicenciaResum($record) {
     }
 }
 
+# ELS PUNTS DEL CATALEG amb els CAMPS que demana cadascun. Funcio PURA.
+#
+# PER QUE: la pantalla de consulta nomes sabia pintar les dades JA DESADES, o
+# sigui que d'un punt que mai s'havia omplert no en sortia cap casella i no hi
+# havia manera d'escriure-hi res (l'usuari nomes podia editar el punt de
+# Compatibilitat, l'unic que tenia valors desats). Els noms dels camps surten
+# del text "Es disposa..." del propi cataleg (_LlicCampsDelText), o sigui que
+# si algu n'hi afegeix un a l'editor, aqui surt sol.
+#
+# Retorna @{ Abans = @(...); Despres = @(...) } amb @{ Clau; Titol; Camps }.
+function Get-LlicenciaPuntsEditables($llic, $req1) {
+    $out = [ordered]@{ Abans = @(); Despres = @() }
+    if ($null -eq $llic) { return $out }
+    $idx = _LlicIndexReq1 $req1
+    foreach ($b in @(@{ P = 'Abans'; B = 'ABANS' }, @{ P = 'Despres'; B = 'DESPRES' })) {
+        $llista = New-Object System.Collections.ArrayList
+        $vistes = @{}
+        foreach ($p in @((_LlicPuntsPerBloc $llic $idx ([string]$b.B) $req1).Punts)) {
+            $clau = _LlicClauPunt $p
+            if ($vistes.ContainsKey($clau)) { continue }
+            $vistes[$clau] = $true
+            [void]$llista.Add(@{
+                Clau  = [string]$clau
+                Titol = [string]$p.Titol
+                Camps = @(_LlicCampsDelText $p.SiDisposa)
+            })
+        }
+        $out[[string]$b.P] = $llista.ToArray()
+    }
+    return $out
+}
+
+# La memoria d'un bloc en hashtables plans i MODIFICABLES. El que ve del JSON
+# son PSCustomObject i escriure-hi a sobre demanaria Add-Member a cada nivell.
+function _LlicDbMemEditable($obj) {
+    $out = @{}
+    $m = _LlicDbAMapa $obj
+    foreach ($k in @($m.Keys)) {
+        $e = _LlicDbAMapa $m[$k]
+        $vals = @{}
+        foreach ($n in @((_LlicDbAMapa $e['Valors']).Keys)) {
+            $vals[[string]$n] = [string](_LlicDbAMapa $e['Valors'])[$n]
+        }
+        $subs = @{}
+        foreach ($n in @((_LlicDbAMapa $e['Subs']).Keys)) {
+            $subs[[string]$n] = [bool](_LlicDbAMapa $e['Subs'])[$n]
+        }
+        $out[[string]$k] = @{
+            Marcat = [bool]$e['Marcat']
+            Estat  = [string]$e['Estat']
+            Valors = $vals
+            Subs   = $subs
+        }
+    }
+    return $out
+}
+
 # ----------------------------------------------------------------------------
 # PANTALLA DE CONSULTA (l'unica part que toca WinForms)
 # ----------------------------------------------------------------------------
@@ -334,8 +391,24 @@ function Show-LlicenciaDb {
         } finally { $ui.Busy = $false }
     }.GetNewClosure()
 
-    # Les caselles de text que s'estan editant: control -> on va el valor.
+    # ELS CONTROLS QUE S'ESTAN EDITANT: cadascun sap on va el seu valor.
     $edicions = New-Object System.Collections.ArrayList
+
+    # EL CATALEG, per saber QUINS punts hi ha i QUINS camps demana cadascun.
+    # Sense aixo la pantalla nomes sabia pintar el que ja estava desat i no hi
+    # havia manera d'omplir un punt per primera vegada.
+    $cat = $null
+    try {
+        $req1 = Get-ParsedCataleg -path (Join-Path $EstructuralsDir 'REQ1.json')
+        $cat = Get-LlicenciaPuntsEditables (Read-LlicCataleg) $req1
+    } catch { $cat = $null }
+
+    $chkTots = New-Object System.Windows.Forms.CheckBox
+    $chkTots.Location = New-Object System.Drawing.Point(456, 592)
+    $chkTots.AutoSize = $true
+    $chkTots.Anchor = 'Bottom,Left'
+    $chkTots.Text = 'Mostra TOTS els punts del cat' + [char]0x00E0 + 'leg (no nom' + [char]0x00E9 + 's els marcats)'
+    [void]$form.Controls.Add($chkTots)
 
     $fn.Pinta = {
         param($idGia)
@@ -352,6 +425,7 @@ function Show-LlicenciaDb {
             [void]$panDret.Controls.Add($avis)
             return
         }
+        $panDret.SuspendLayout()
         $y = 10
 
         $lb = New-Object System.Windows.Forms.Label
@@ -374,34 +448,74 @@ function Show-LlicenciaDb {
         [void]$panDret.Controls.Add($lb2)
         $y += [Math]::Max(24, $lb2.PreferredHeight + 12)
 
+        $tots = [bool]$chkTots.Checked
         foreach ($bloc in @(
             @{ Prop = 'Abans';   Titol = 'Documentaci' + [char]0x00F3 + ' ABANS de la resoluci' + [char]0x00F3 },
             @{ Prop = 'Despres'; Titol = 'Documentaci' + [char]0x00F3 + ' DESPR' + [char]0x00C9 + 'S de la resoluci' + [char]0x00F3 })) {
-            $mem = _LlicDbAMapa $rec.($bloc.Prop)
-            $marcats = @(@($mem.Keys) | Where-Object { [bool](_LlicDbAMapa $mem[$_])['Marcat'] } | Sort-Object)
-            if ($marcats.Count -eq 0) { continue }
+            $mem = _LlicDbMemEditable $rec.($bloc.Prop)
 
-            $lbB = New-Object System.Windows.Forms.Label
-            $lbB.Location = New-Object System.Drawing.Point(10, $y)
-            $lbB.AutoSize = $true
-            $lbB.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
-            $lbB.Text = [string]$bloc.Titol
-            [void]$panDret.Controls.Add($lbB)
-            $y += 24
+            # L'ORDRE ES EL DEL CATALEG; el que nomes es a la memoria (punts que
+            # ja no hi son, o llegits d'un informe anterior) va al final, que
+            # perdre'l de vista seria perdre'l.
+            $fila = New-Object System.Collections.ArrayList
+            $vistes = @{}
+            $delCat = if ($null -ne $cat) { @($cat[[string]$bloc.Prop]) } else { @() }
+            foreach ($c in $delCat) {
+                $vistes[[string]$c.Clau] = $true
+                [void]$fila.Add(@{ Clau = [string]$c.Clau; Titol = [string]$c.Titol; Camps = @($c.Camps) })
+            }
+            foreach ($k in @($mem.Keys | Sort-Object)) {
+                if ($vistes.ContainsKey([string]$k)) { continue }
+                [void]$fila.Add(@{ Clau = [string]$k; Titol = ''; Camps = @() })
+            }
 
-            foreach ($clau in $marcats) {
-                $e = _LlicDbAMapa $mem[$clau]
-                $lbP = New-Object System.Windows.Forms.Label
-                $lbP.Location = New-Object System.Drawing.Point(20, $y)
-                $lbP.MaximumSize = New-Object System.Drawing.Size(550, 0)
-                $lbP.AutoSize = $true
-                $estatTxt = if ([string]$e['Estat'] -eq 'si') { 'es disposa' } else { 'no es disposa' }
-                $lbP.Text = ([string]$clau + '  (' + $estatTxt + ')')
-                [void]$panDret.Controls.Add($lbP)
-                $y += [Math]::Max(20, $lbP.PreferredHeight + 2)
+            $capcalera = $false
+            foreach ($f in $fila) {
+                $clau = [string]$f.Clau
+                $e = if ($mem.ContainsKey($clau)) { $mem[$clau] } else { @{ Marcat = $false; Estat = ''; Valors = @{} } }
+                $marcat = [bool]$e['Marcat']
+                if (-not $tots -and -not $marcat) { continue }
 
-                $vals = _LlicDbAMapa $e['Valors']
-                foreach ($nom in @($vals.Keys | Sort-Object)) {
+                if (-not $capcalera) {
+                    $capcalera = $true
+                    $lbB = New-Object System.Windows.Forms.Label
+                    $lbB.Location = New-Object System.Drawing.Point(10, $y)
+                    $lbB.AutoSize = $true
+                    $lbB.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
+                    $lbB.Text = [string]$bloc.Titol
+                    [void]$panDret.Controls.Add($lbB)
+                    $y += 24
+                }
+
+                # MARCAT: la casella diu si el punt surt o no a l'informe.
+                $cb = New-Object System.Windows.Forms.CheckBox
+                $cb.Location = New-Object System.Drawing.Point(20, $y)
+                $cb.MaximumSize = New-Object System.Drawing.Size(400, 0)
+                $cb.AutoSize = $true
+                $cb.Checked = $marcat
+                $cb.Text = if ([string]::IsNullOrWhiteSpace([string]$f.Titol)) { $clau } else { [string]$f.Titol }
+                [void]$panDret.Controls.Add($cb)
+                [void]$edicions.Add(@{ Ctrl = $cb; Prop = [string]$bloc.Prop; Clau = $clau; Tipus = 'marcat' })
+
+                # ESTAT: es disposa / no es disposa del document.
+                $cbo = New-Object System.Windows.Forms.ComboBox
+                $cbo.Location = New-Object System.Drawing.Point(425, ($y - 2))
+                $cbo.Size = New-Object System.Drawing.Size(130, 22)
+                $cbo.DropDownStyle = 'DropDownList'
+                [void]$cbo.Items.Add('no es disposa')
+                [void]$cbo.Items.Add('es disposa')
+                $cbo.SelectedIndex = if ([string]$e['Estat'] -eq 'si') { 1 } else { 0 }
+                [void]$panDret.Controls.Add($cbo)
+                [void]$edicions.Add(@{ Ctrl = $cbo; Prop = [string]$bloc.Prop; Clau = $clau; Tipus = 'estat' })
+                $y += [Math]::Max(24, $cb.PreferredHeight + 4)
+
+                # ELS CAMPS: els del cataleg (Id Firmadoc, Expedient...) MES els
+                # que ja estiguessin desats encara que el text ja no els demani.
+                $vals = $e['Valors']
+                $noms = New-Object System.Collections.ArrayList
+                foreach ($n in @($f.Camps)) { if (-not $noms.Contains([string]$n)) { [void]$noms.Add([string]$n) } }
+                foreach ($n in @($vals.Keys | Sort-Object)) { if (-not $noms.Contains([string]$n)) { [void]$noms.Add([string]$n) } }
+                foreach ($nom in $noms) {
                     $lbN = New-Object System.Windows.Forms.Label
                     $lbN.Location = New-Object System.Drawing.Point(40, ($y + 3))
                     $lbN.Size = New-Object System.Drawing.Size(150, 20)
@@ -410,14 +524,14 @@ function Show-LlicenciaDb {
                     $tb = New-Object System.Windows.Forms.TextBox
                     $tb.Location = New-Object System.Drawing.Point(195, $y)
                     $tb.Size = New-Object System.Drawing.Size(360, 22)
-                    $tb.Text = [string]$vals[$nom]
+                    $tb.Text = [string]$vals[[string]$nom]
                     [void]$panDret.Controls.Add($tb)
-                    [void]$edicions.Add(@{ Ctrl = $tb; Bloc = [string]$bloc.Prop; Clau = [string]$clau; Nom = [string]$nom })
+                    [void]$edicions.Add(@{ Ctrl = $tb; Prop = [string]$bloc.Prop; Clau = $clau; Tipus = 'valor'; Nom = [string]$nom })
                     $y += 26
                 }
                 $y += 6
             }
-            $y += 8
+            if ($capcalera) { $y += 8 }
         }
         # La RESTA del que es recorda: sense aixo la fitxa semblava buida encara
         # que hi hagues mitja llicencia desada.
@@ -464,33 +578,53 @@ function Show-LlicenciaDb {
             $buit.Location = New-Object System.Drawing.Point(10, $y)
             $buit.AutoSize = $true
             $buit.ForeColor = [System.Drawing.Color]::DimGray
-            $buit.Text = "D'aquesta llic" + [char]0x00E8 + 'ncia no se n' + [char]0x2019 + 'ha desat cap dada de documentaci' + [char]0x00F3 + '.'
+            $buit.Text = ("D'aquesta llic" + [char]0x00E8 + 'ncia no se n' + [char]0x2019 + 'ha desat cap dada de documentaci' + [char]0x00F3 +
+                          '. Marca "Mostra TOTS els punts" per posar-n' + [char]0x2019 + 'hi.')
             [void]$panDret.Controls.Add($buit)
         }
+        $panDret.ResumeLayout()
     }.GetNewClosure()
 
-    # Escriu a la fitxa el que s'hagi canviat a les caselles i ho desa.
+    # Escriu a la fitxa el que s'hagi canviat als controls i ho desa. El bloc es
+    # torna a construir SENCER (les fitxes venen del JSON com a PSCustomObject i
+    # escriure-hi a dins demanaria Add-Member a cada nivell).
     $fn.Desa = {
         param($idGia)
         $rec = Get-LlicenciaRecord $db ([string]$idGia)
-        if ($null -eq $rec) { return $false }
+        if ($null -eq $rec) { return 0 }
         $canvis = 0
+        $mems = @{}
+        foreach ($prop in @('Abans','Despres')) { $mems[$prop] = _LlicDbMemEditable $rec.$prop }
         foreach ($ed in $edicions) {
-            $mem = _LlicDbAMapa $rec.($ed.Bloc)
-            if (-not $mem.ContainsKey($ed.Clau)) { continue }
-            $e = _LlicDbAMapa $mem[$ed.Clau]
-            $vals = $e['Valors']
-            $nou = [string]$ed.Ctrl.Text
-            if ($vals -is [System.Collections.IDictionary]) {
-                if ([string]$vals[$ed.Nom] -ne $nou) { $vals[$ed.Nom] = $nou; $canvis++ }
-            } else {
-                if ([string]$vals.($ed.Nom) -ne $nou) {
-                    Add-Member -InputObject $vals -NotePropertyName $ed.Nom -NotePropertyValue $nou -Force
-                    $canvis++
+            $mem = $mems[[string]$ed.Prop]
+            $clau = [string]$ed.Clau
+            if (-not $mem.ContainsKey($clau)) {
+                $mem[$clau] = @{ Marcat = $false; Estat = ''; Valors = @{}; Subs = @{} }
+            }
+            $e = $mem[$clau]
+            switch ([string]$ed.Tipus) {
+                'marcat' {
+                    $nou = [bool]$ed.Ctrl.Checked
+                    if ([bool]$e['Marcat'] -ne $nou) { $e['Marcat'] = $nou; $canvis++ }
+                }
+                'estat' {
+                    $nou = if ([int]$ed.Ctrl.SelectedIndex -eq 1) { 'si' } else { 'no' }
+                    if ([string]$e['Estat'] -ne $nou) { $e['Estat'] = $nou; $canvis++ }
+                }
+                'valor' {
+                    $nou = [string]$ed.Ctrl.Text
+                    $ara = [string]$e['Valors'][[string]$ed.Nom]
+                    if ($ara -ne $nou) { $e['Valors'][[string]$ed.Nom] = $nou; $canvis++ }
                 }
             }
         }
-        if ($canvis -gt 0) { Save-LlicenciaDb $db }
+        if ($canvis -gt 0) {
+            foreach ($prop in @('Abans','Despres')) {
+                Add-Member -InputObject $rec -NotePropertyName $prop `
+                    -NotePropertyValue (ConvertTo-LlicenciaMemoria $mems[$prop]) -Force
+            }
+            Save-LlicenciaDb $db
+        }
         return $canvis
     }.GetNewClosure()
 
@@ -517,6 +651,12 @@ function Show-LlicenciaDb {
 
     # La PRIMERA fila: cal moure-hi el CurrentCell (no nomes .Selected), si no
     # CurrentRow es queda a $null i el detall surt buit.
+    # Canviar el filtre ha de repintar el detall.
+    $chkTots.add_CheckedChanged({
+        if ($ui.Busy) { return }
+        & $fn.Pinta (& $fn.IdTriat)
+    }.GetNewClosure())
+
     $fn.TriaPrimera = {
         if ($graella.Rows.Count -le 0) { $panDret.Controls.Clear(); return }
         try { $graella.CurrentCell = $graella.Rows[0].Cells[0] } catch { }

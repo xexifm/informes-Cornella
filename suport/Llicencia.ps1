@@ -191,12 +191,24 @@ function _LlicEsSeccioAbans([string]$titol) {
 # La clau "Seccio::Item" d'un element de REQ1 ja parsejat. Funcio PURA: busca a
 # quina seccio pertany (el model pla no la porta a dins de l'element).
 function _LlicClauDeItem($req1, $el) {
+    return ([string](_LlicUbicacioDeItem $req1 $el).Clau)
+}
+
+# On viu un element de REQ1: @{ Clau; Seccio; Subseccio }. Funcio PURA.
+# El model pla no porta la seccio a dins de l'element, i la SUBSECCIO nomes es
+# sap recorrent la llista en ordre (Kind='subsection' i despres els seus items).
+function _LlicUbicacioDeItem($req1, $el) {
     foreach ($sec in @($req1.Sections)) {
+        $sub = ''
         foreach ($x in @($sec.Items)) {
-            if ([object]::ReferenceEquals($x, $el)) { return (_ItemKey ([string]$sec.Title) ([string]$el.Short)) }
+            if ([string]$x.Kind -eq 'subsection') { $sub = [string]$x.Short; continue }
+            if ([object]::ReferenceEquals($x, $el)) {
+                return @{ Clau = (_ItemKey ([string]$sec.Title) ([string]$el.Short))
+                          Seccio = [string]$sec.Title; Subseccio = $sub }
+            }
         }
     }
-    return ''
+    return @{ Clau = ''; Seccio = ''; Subseccio = '' }
 }
 
 # Els ITEMS d'una SECCIO o SUBSECCIO de REQ1. Funcio PURA.
@@ -316,7 +328,9 @@ function _LlicPuntsPerBloc($llic, $idxReq1, [string]$bloc, $req1 = $null) {
         }
         foreach ($sec in @($req1.Sections)) {
             if (-not (_LlicEsSeccioAbans ([string]$sec.Title))) { continue }
+            $subAra = ''
             foreach ($el in @($sec.Items)) {
+                if ([string]$el.Kind -eq 'subsection') { $subAra = [string]$el.Short; continue }
                 if ([string]$el.Kind -ne 'item') { continue }
                 if ([string]::IsNullOrWhiteSpace([string]$el.Short)) { continue }
                 $clau = _ItemKey $sec.Title $el.Short
@@ -332,6 +346,7 @@ function _LlicPuntsPerBloc($llic, $idxReq1, [string]$bloc, $req1 = $null) {
                 if (@($lSid).Count -eq 0) { $lSid = @($def.SiDisposa) }
                 [void]$punts.Add([pscustomobject]@{
                     Clau      = $clau
+                    Subseccio = $subAra
                     Titol     = [string]$el.Short
                     Condicio  = ''
                     Cos       = @($el.BodyLines)
@@ -374,8 +389,10 @@ function _LlicPuntsPerBloc($llic, $idxReq1, [string]$bloc, $req1 = $null) {
                 continue
             }
             foreach ($el in $delsSubs) {
+                $ub = _LlicUbicacioDeItem $req1 $el
                 [void]$punts.Add([pscustomobject]@{
-                    Clau      = (_LlicClauDeItem $req1 $el)
+                    Clau      = [string]$ub.Clau
+                    Subseccio = [string]$ub.Subseccio
                     Titol     = [string]$el.Short
                     Condicio  = [string]$it.condicio
                     Cos       = @($el.BodyLines)
@@ -578,11 +595,16 @@ function _LlicTextPlaDelCos($cos) {
     return (($t -replace '\s+', ' ').Trim())
 }
 
-# Agrupa els punts per seccio per pintar-los en ARBRE. Funcio PURA.
+# Agrupa els punts per SECCIO i SUBSECCIO per pintar-los en ARBRE. Funcio PURA.
 #
 # Retorna els grups en ORDRE DE PRIMERA APARICIO, cada un amb els INDEXS dels
 # seus punts dins de $punts:
-#     @( @{ Titol = ''; Idx = @(0,1) }, @{ Titol = 'Registres'; Idx = @(5) } )
+#     @( @{ Titol=''; Sub=''; Idx=@(0,1) },
+#        @{ Titol='Instal-lacions'; Sub='Legalitzacions'; Idx=@(5,6) } )
+#
+# DOS NIVELLS, com el Pas 3: a REQ1 les seccions grans (Instal-lacions,
+# Registres, Incendis) tenen subseccions, i sense elles surten trenta punts
+# seguits a la mateixa alcada i no es poden llegir.
 #
 # Els punts sense seccio van al grup de titol '' -el primer nivell de l'arbre,
 # sense capcalera-.
@@ -592,18 +614,21 @@ function _LlicTextPlaDelCos($cos) {
 function _LlicAgrupaPunts($punts) {
     $punts = @($punts)
     $ordre = New-Object System.Collections.ArrayList
-    $perSeccio = @{}
+    $perGrup = @{}
     for ($i = 0; $i -lt $punts.Count; $i++) {
         $sec = _LlicSeccioDePunt $punts[$i]
-        if (-not $perSeccio.ContainsKey($sec)) {
-            $perSeccio[$sec] = New-Object System.Collections.ArrayList
-            [void]$ordre.Add($sec)
+        $sub = [string]$punts[$i].Subseccio
+        if ([string]::IsNullOrWhiteSpace($sec)) { $sub = '' }   # al primer nivell no hi ha subseccio
+        $clau = $sec + [char]0x0001 + $sub
+        if (-not $perGrup.ContainsKey($clau)) {
+            $perGrup[$clau] = New-Object System.Collections.ArrayList
+            [void]$ordre.Add(@{ Clau = $clau; Titol = $sec; Sub = $sub })
         }
-        [void]$perSeccio[$sec].Add($i)
+        [void]$perGrup[$clau].Add($i)
     }
     $out = New-Object System.Collections.ArrayList
-    foreach ($sec in $ordre) {
-        [void]$out.Add(@{ Titol = [string]$sec; Idx = $perSeccio[$sec].ToArray() })
+    foreach ($g in $ordre) {
+        [void]$out.Add(@{ Titol = [string]$g.Titol; Sub = [string]$g.Sub; Idx = $perGrup[$g.Clau].ToArray() })
     }
     return $out.ToArray()
 }
@@ -874,6 +899,24 @@ function Build-LlicenciaDocument($word, $model) {
             if ($cfg.SpacerAfterItem) { Format-Spacer $sel }
         }
     } else {
+        # ---- DOCUMENTACIO DEL PROJECTE ----
+        # VA LA PRIMERA i FORA de la numeracio: es el que el tecnic ha aportat,
+        # no un requeriment. Abans sortia al final del bloc ABANS, numerada i
+        # sota un subtitol subratllat "Documentacio"; a l'informe fet a ma va
+        # dalt de tot, amb el titol de seccio "DOCUMENTACIO PROJECTE" i el text
+        # en cos normal.
+        $doc1 = [string]$model.Doc.Text
+        if (-not [string]::IsNullOrWhiteSpace($doc1)) {
+            Format-Section $sel ('DOCUMENTACI' + [char]0x00D3 + ' PROJECTE')
+            if ($cfg.SpacerAfterSection) { Format-Spacer $sel }
+            Format-Body $sel $doc1
+            $primer = $true
+            foreach ($d in @($model.Doc.Items)) {
+                if ($primer) { Format-Bullet $sel ([string]$d) -IsChild -First; $primer = $false }
+                else { Format-Bullet $sel ([string]$d) -IsChild }
+            }
+            if ($cfg.SpacerAfterItem) { Format-Spacer $sel }
+        }
         # ---- ABANS ----
         # Els espais els mana Format.ps1 ($cfg.SpacerAfterSection / -Subsection /
         # -Item), exactament com _WriteCatalegBody de REQ1: aqui no s'hi inventa
@@ -896,20 +939,6 @@ function Build-LlicenciaDocument($word, $model) {
                 _LlicEscriuPunt $sel $p $n $fields '' $false
                 if ($cfg.SpacerAfterItem) { Format-Spacer $sel }
             }
-        }
-        # ---- DOCUMENTACIO del tecnic redactor ----
-        $doc1 = [string]$model.Doc.Text
-        if (-not [string]::IsNullOrWhiteSpace($doc1)) {
-            Format-Subsection $sel ('Documentaci' + [char]0x00F3)
-            if ($cfg.SpacerAfterSubsection) { Format-Spacer $sel }
-            $n++
-            Format-Item $sel ([string]$n + '.') $doc1
-            $primer = $true
-            foreach ($d in @($model.Doc.Items)) {
-                if ($primer) { Format-Bullet $sel ([string]$d) -IsChild -First; $primer = $false }
-                else { Format-Bullet $sel ([string]$d) -IsChild }
-            }
-            if ($cfg.SpacerAfterItem) { Format-Spacer $sel }
         }
         # ---- DESPRES ----
         $desp = @($model.Despres)
@@ -976,6 +1005,15 @@ function _LlicSeccioAnnex1($llic) {
 #   - "Document d'acceptacio del cessament dels usos..."
 # I des del "Document d'acceptacio..." fins al final: PAGINA NOVA i cos 9 (a la
 # plantilla, sz=18 mig-punts).
+# Afegeix text AL PARAGRAF QUE S'ACABA D'ESCRIURE, separat per un espai. Els
+# Format-* comencen sempre amb TypeParagraph, o sigui que n'obren un de nou;
+# aqui volem continuar el mateix (a la plantilla, l'aclariment d'un punt de
+# l'ANNEX 1 va dins del punt, no en un paragraf a part).
+function _LlicAfegeixAlParagraf($sel, [string]$text) {
+    if ([string]::IsNullOrWhiteSpace($text)) { return }
+    Format-Append $sel (' ' + $text)
+}
+
 function _LlicEscriuAnnex1($sel, $llic) {
     $sec = _LlicSeccioAnnex1 $llic
     if ($null -eq $sec) { return }
@@ -985,6 +1023,8 @@ function _LlicEscriuAnnex1($sel, $llic) {
 
     $cos9 = $false          # ja som al full de signatures?
     $num = 0                # el comptador dels punts numerats
+    $primerItem = $true     # el primer punt no porta linia en blanc al davant
+    $obreBloc = $false      # al full de signatures, comenca una declaracio nova
     foreach ($nd in @($sec.fills)) {
         # LA MARCA VA COM A TEXT, no com a llista del Word: la plantilla la porta
         # amb numeracio automatica i sagnia, i l'usuari la vol PLANA (nomes el
@@ -994,6 +1034,10 @@ function _LlicEscriuAnnex1($sel, $llic) {
         $tip = [string]$nd.tipus
         if ($tip -eq 'item') { $num++; $marca = [string]$num + '. ' }
         elseif ($tip -eq 'subitem') { $marca = '- ' }
+        # UNA LINIA EN BLANC entre punts numerats (a l'informe fet a ma n'hi ha
+        # una, i sense ella els quatre punts sortien arrapats).
+        if ($tip -eq 'item' -and -not $primerItem -and -not $cos9) { Format-Spacer $sel }
+        if ($tip -eq 'item') { $primerItem = $false }
         $primeraLinia = $true
         foreach ($l in @(_LlicCos $nd)) {
             $pp = _SplitTextAndUrls ([string]$l)
@@ -1004,14 +1048,31 @@ function _LlicEscriuAnnex1($sel, $llic) {
                     # A partir d'aqui, full a part i lletra mes petita.
                     try { [void]$sel.InsertBreak(7) } catch { Format-Spacer $sel }
                     $cos9 = $true
+                    $obreBloc = $false
                 }
-                # La marca nomes a la PRIMERA linia del punt (un punt pot tenir
-                # mes d'un paragraf de cos), i mai al full de signatures.
-                $txt = if ($primeraLinia -and -not $cos9) { $marca + $t } else { $t }
-                if ($esTitolAcceptacio) { Format-Plain $sel $txt -Bold -Size $Script:LlicAnnexSignaturaCos }
-                elseif ($cos9)          { Format-Plain $sel $txt -Size $Script:LlicAnnexSignaturaCos }
-                else                    { Format-Plain $sel $txt }
-                $primeraLinia = $false
+                if ($cos9) {
+                    # EL FULL DE SIGNATURES: dues linies en blanc davant de cada
+                    # declaracio (despres del titol i despres de cada "Signat"),
+                    # que es com esta a la plantilla.
+                    if ($obreBloc) { Format-Spacer $sel; Format-Spacer $sel; $obreBloc = $false }
+                    if ($esTitolAcceptacio) { Format-Plain $sel $t -Bold -Size $Script:LlicAnnexSignaturaCos }
+                    else                    { Format-Plain $sel $t -Size $Script:LlicAnnexSignaturaCos }
+                    if ($esTitolAcceptacio -or $t.Trim() -eq 'Signat') { $obreBloc = $true }
+                    $primeraLinia = $false
+                }
+                elseif ($tip -eq 'text' -and -not $primerItem) {
+                    # UN NODE 'text' ES LA CONTINUACIO del punt de sobre, no un
+                    # paragraf nou: a la plantilla va DINS del mateix paragraf,
+                    # separat per un espai. Anava a part i partia el punt en dos.
+                    _LlicAfegeixAlParagraf $sel $t
+                }
+                else {
+                    # La marca nomes a la PRIMERA linia del punt (un punt pot
+                    # tenir mes d'un paragraf de cos).
+                    $txt = if ($primeraLinia) { $marca + $t } else { $t }
+                    Format-Plain $sel $txt
+                    $primeraLinia = $false
+                }
             }
             foreach ($u in @($pp.Urls)) { Format-Url $sel $u }
         }
@@ -1072,10 +1133,17 @@ function Select-LlicFase($preFase, $preProv) {
                   'hi afegeix l' + [char]0x2019 + 'ANNEX 1.')
     [void]$form.Controls.Add($lbl2)
 
+    # ELS BOTONS, SOTA L'ULTIMA ETIQUETA. Estaven clavats a y=286 i la nota de
+    # la llicencia provisional (y=264, alt 32) els trepitjava. Ara surten del
+    # peu real de $lbl2, o sigui que si hi afegim una fase o una linia de text
+    # baixen sols i la finestra creix amb ells.
+    $yBotons = $lbl2.Bottom + 14
+    $form.ClientSize = New-Object System.Drawing.Size(520, ($yBotons + 32 + 16))
+
     $res = @{ Nav = 'back' }
     $btnOk = New-Object System.Windows.Forms.Button
     $btnOk.Text = 'Continuar'
-    $btnOk.Location = New-Object System.Drawing.Point(370, 286)
+    $btnOk.Location = New-Object System.Drawing.Point(370, $yBotons)
     $btnOk.Size = New-Object System.Drawing.Size(130, 32)
     _StylePrimaryButton $btnOk
     $btnOk.add_Click({
@@ -1088,7 +1156,7 @@ function Select-LlicFase($preFase, $preProv) {
 
     $btnBack = New-Object System.Windows.Forms.Button
     $btnBack.Text = [string][char]0x2190 + ' Enrere'
-    $btnBack.Location = New-Object System.Drawing.Point(20, 286)
+    $btnBack.Location = New-Object System.Drawing.Point(20, $yBotons)
     $btnBack.Size = New-Object System.Drawing.Size(110, 32)
     _StyleSecondaryButton $btnBack
     $btnBack.add_Click({ $form.Close() }.GetNewClosure())
@@ -1283,9 +1351,15 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
         try {
             $arbre.Nodes.Clear()
             $f = ([string]$filtre).Trim()
+            # DOS NIVELLS, com el Pas 3: seccio en negreta i, si en te, la
+            # subseccio subratllada a dins. El node de seccio es REAPROFITA
+            # entre subseccions consecutives de la mateixa seccio.
+            $secAra = [char]0x0001   # cap seccio encara (no pot coincidir amb res)
+            $nodeSec = $null
             foreach ($g in $grups) {
                 $secTit = [string]$g.Titol
-                $secMatch = (_TextMatches $secTit $f)
+                $subTit = [string]$g.Sub
+                $secMatch = ((_TextMatches $secTit $f) -or (_TextMatches $subTit $f))
                 # Els punts del grup que passen el filtre.
                 $visibles = New-Object System.Collections.ArrayList
                 foreach ($i in @($g.Idx)) {
@@ -1297,10 +1371,21 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
                 # Grup sense titol = primer nivell, sense capcalera.
                 $pare = $null
                 if (-not [string]::IsNullOrWhiteSpace($secTit)) {
-                    $pare = New-Object System.Windows.Forms.TreeNode($secTit)
-                    $pare.Tag = @{ Kind = 'Section' }
-                    $pare.NodeFont = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
-                    [void]$arbre.Nodes.Add($pare)
+                    if ($secTit -ne $secAra) {
+                        $secAra = $secTit
+                        $nodeSec = New-Object System.Windows.Forms.TreeNode($secTit)
+                        $nodeSec.Tag = @{ Kind = 'Section' }
+                        $nodeSec.NodeFont = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
+                        [void]$arbre.Nodes.Add($nodeSec)
+                    }
+                    $pare = $nodeSec
+                    if (-not [string]::IsNullOrWhiteSpace($subTit)) {
+                        $nodeSub = New-Object System.Windows.Forms.TreeNode($subTit)
+                        $nodeSub.Tag = @{ Kind = 'Section' }
+                        $nodeSub.NodeFont = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Underline)
+                        [void]$nodeSec.Nodes.Add($nodeSub)
+                        $pare = $nodeSub
+                    }
                 }
                 $totsMarcats = $true
                 foreach ($i in $visibles) {
@@ -1316,6 +1401,7 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
                 if ($null -ne $pare) {
                     $pare.Checked = $totsMarcats
                     $pare.Expand()
+                    if ($null -ne $pare.Parent) { $pare.Parent.Expand() }
                 }
             }
         } finally {
@@ -1447,18 +1533,27 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
         try {
             $tag = $ev.Node.Tag
             if ($null -ne $tag -and [string]$tag.Kind -eq 'Section') {
-                foreach ($fill in $ev.Node.Nodes) {
-                    $fill.Checked = $ev.Node.Checked
-                    $st[[int]$fill.Tag.Idx].Marcat = [bool]$ev.Node.Checked
+                # Baixa per tot l'arbre: una seccio pot tenir subseccions.
+                $pila = New-Object System.Collections.ArrayList
+                [void]$pila.Add($ev.Node)
+                while ($pila.Count -gt 0) {
+                    $nd = $pila[0]; [void]$pila.RemoveAt(0)
+                    foreach ($fill in $nd.Nodes) {
+                        $fill.Checked = $ev.Node.Checked
+                        if ($null -ne $fill.Tag -and [string]$fill.Tag.Kind -eq 'Item') {
+                            $st[[int]$fill.Tag.Idx].Marcat = [bool]$ev.Node.Checked
+                        } else { [void]$pila.Add($fill) }
+                    }
                 }
             } elseif ($null -ne $tag -and [string]$tag.Kind -eq 'Item') {
                 $st[[int]$tag.Idx].Marcat = [bool]$ev.Node.Checked
                 # La casella de la seccio segueix els seus fills.
                 $pare = $ev.Node.Parent
-                if ($null -ne $pare) {
+                while ($null -ne $pare) {
                     $tots = $true
                     foreach ($fill in $pare.Nodes) { if (-not $fill.Checked) { $tots = $false; break } }
                     $pare.Checked = $tots
+                    $pare = $pare.Parent
                 }
             }
         } finally { $estatUi.Busy = $false }

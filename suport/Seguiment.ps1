@@ -1247,7 +1247,7 @@ function Select-Mode {
         $btn.Text = ''
         $btn.Tag = $entry
         $btn.Location = New-Object System.Drawing.Point(20, $y)
-        $btn.Size = New-Object System.Drawing.Size(430, 62)
+        $btn.Size = New-Object System.Drawing.Size(560, 62)
         $btn.FlatStyle = 'Flat'
         $btn.BackColor = [System.Drawing.Color]::White
         $btn.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(214, 219, 225)
@@ -1473,7 +1473,7 @@ function Select-Mode {
     #  de la banda granat, mes avall.)
     $urlAjuda = 'https://github.com/xexifm/informes-cornella/blob/main/LLEGEIX-ME.md'
 
-    $form.ClientSize = New-Object System.Drawing.Size(470, ($y + 12))
+    $form.ClientSize = New-Object System.Drawing.Size(600, ($y + 12))
 
     # Banda de capcalera GRANAT amb escut blanc (helper comu del redisseny).
     # S'afegeix al final (Dock=Top) per no desplacar els controls ja posicionats.

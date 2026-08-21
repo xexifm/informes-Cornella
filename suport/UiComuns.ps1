@@ -124,8 +124,18 @@ function _NewForm {
 # parells es trepitgen.
 #
 # $rects: llista de @{ Nom; X; Y; W; H }.
-# NO es solapament: que un CONTINGUI l'altre del tot (un fons a posta) ni que
-# nomes es toquin per la vora.
+#
+# NO es solapament:
+#   - que un CONTINGUI l'altre del tot (un fons a posta);
+#   - que nomes es toquin per la vora;
+#   - i, sobretot, que es TOQUIN DE POC. Aquesta ultima condicio es la que fa
+#     que la comprovacio serveixi de res: un Label amb AutoSize reserva mes
+#     alcada de la que pinta (la del descens de les lletres), o sigui que dues
+#     linies apilades a la distancia normal es "solapen" 1-5 px SEMPRE. Sense
+#     tolerancia, la meitat de les pantalles del programa donaven avis i
+#     l'usuari deixava de mirar-los -que es pitjor que no tenir-ne cap-.
+$Script:SolapMinPx = 8      # ha de trepitjar com a minim aixo en LES DUES direccions
+$Script:SolapMinPct = 0.15  # ...i cobrir aquesta part del control mes petit
 function _TrobaSolapaments($rects) {
     $out = New-Object System.Collections.ArrayList
     $l = @($rects)
@@ -140,6 +150,13 @@ function _TrobaSolapaments($rects) {
             $aDinsB = ([int]$b.X -le [int]$a.X -and [int]$b.Y -le [int]$a.Y -and $bx2 -ge $ax2 -and $by2 -ge $ay2)
             $bDinsA = ([int]$a.X -le [int]$b.X -and [int]$a.Y -le [int]$b.Y -and $ax2 -ge $bx2 -and $ay2 -ge $by2)
             if ($aDinsB -or $bDinsA) { continue }
+            # Es toquen de poc: no molesta ningu.
+            $ampleTrepitjat = [Math]::Min($ax2, $bx2) - [Math]::Max([int]$a.X, [int]$b.X)
+            $altTrepitjada  = [Math]::Min($ay2, $by2) - [Math]::Max([int]$a.Y, [int]$b.Y)
+            if ($ampleTrepitjat -lt $Script:SolapMinPx -or $altTrepitjada -lt $Script:SolapMinPx) { continue }
+            $areaMinima = [Math]::Min(([int]$a.W * [int]$a.H), ([int]$b.W * [int]$b.H))
+            if ($areaMinima -le 0) { continue }
+            if ((($ampleTrepitjat * $altTrepitjada) / [double]$areaMinima) -lt $Script:SolapMinPct) { continue }
             [void]$out.Add(('{0} [{1},{2} {3}x{4}] i {5} [{6},{7} {8}x{9}]' -f `
                 $a.Nom, $a.X, $a.Y, $a.W, $a.H, $b.Nom, $b.X, $b.Y, $b.W, $b.H))
         }
