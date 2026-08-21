@@ -190,6 +190,105 @@ function _LlicEsSeccioAbans([string]$titol) {
     return $false
 }
 
+# Les SUBSECCIONS de REQ1 que ja es demanen al bloc DESPRES i que, per tant, NO
+# poden tornar a sortir al pas "Projecte". Funcio PURA.
+#
+# Son les instal-lacions: al requeriment es demanava "cal legalitzar X" i a
+# DESPRES "porta'm el certificat RITSIC de X", i acabaven sent la mateixa
+# llista mantinguda a dos llocs. Ara la llista viu NOMES a REQ1 i el bloc
+# DESPRES l'agafa d'alli (_LlicItemsDeSubseccio).
+function _LlicSubseccionsFora {
+    return @(
+        (_ItemKey ('Instal' + [char]0x00B7 + 'lacions') 'Legalitzacions'),
+        (_ItemKey ('Instal' + [char]0x00B7 + 'lacions') 'Inspeccions inicials')
+    )
+}
+
+# El text d'un item de REQ1 quan surt com a SUB-PUNT d'un altre bloc (la llista
+# d'instal-lacions dels "Certificats RITSIC" i de la "Inspeccio inicial").
+# Funcio PURA.
+#
+# ES QUEDA AMB EL TEXT FINS A L'ENLLAC, I AMB L'ENLLAC: al cataleg, la primera
+# linia d'aquests punts es l'etiqueta ("Instal-lacio de gas. Transport,
+# emmagatzematge...") seguida del tramit, i el que ve despres ja es el
+# requeriment sencer, que aqui no hi pinta res. Els que no porten enllac es
+# queden com estan.
+#
+# Retorna LINIES (el text i, si n'hi ha, l'enllac amb el marcador [[URL]]), que
+# es el que espera _LlicEscriuPunt: el text va com a pic i l'enllac com a
+# hipervincle, igual que a la resta de l'informe.
+#
+# Els marcadors de negreta/cursiva es treuen: es una llista per marcar, no un
+# text formatat.
+function _LlicResumSubpunt($el) {
+    $parts = New-Object System.Collections.ArrayList
+    $urls = New-Object System.Collections.ArrayList
+    foreach ($l in @($el.BodyLines)) {
+        $sp = _SplitTextAndUrls ([string]$l)
+        if (-not [string]::IsNullOrWhiteSpace($sp.Text)) { [void]$parts.Add([string]$sp.Text) }
+        foreach ($u in @($sp.Urls)) { [void]$urls.Add([string]$u) }
+        if (@($sp.Urls).Count -gt 0) { break }
+    }
+    $t = ($parts -join ' ')
+    $t = $t -replace '\*\*', ''
+    $t = $t -replace '//', ''
+    $out = New-Object System.Collections.ArrayList
+    $t = ($t -replace '\s+', ' ').Trim()
+    if (-not [string]::IsNullOrWhiteSpace($t)) { [void]$out.Add($t) }
+    foreach ($u in $urls) { [void]$out.Add('[[URL]] ' + $u) }
+    return $out.ToArray()
+}
+
+# Els ITEMS d'una SUBSECCIO de REQ1, per clau "Seccio::Subseccio". Funcio PURA.
+#
+# El lector aplana les subseccions (Kind='subsection' seguit dels seus items a
+# la MATEIXA llista), o sigui que "els items de la subseccio X" son els que van
+# despres del seu marcador i abans del marcador seguent.
+function _LlicItemsDeSubseccio($req1, [string]$clau) {
+    $out = New-Object System.Collections.ArrayList
+    if ($null -eq $req1) { return $out.ToArray() }
+    foreach ($sec in @($req1.Sections)) {
+        $dins = $false
+        foreach ($el in @($sec.Items)) {
+            $kind = [string]$el.Kind
+            if ($kind -eq 'subsection') {
+                $dins = ((_ItemKey ([string]$sec.Title) ([string]$el.Short)) -eq $clau)
+                continue
+            }
+            if (-not $dins) { continue }
+            if ($kind -ne 'item') { continue }
+            [void]$out.Add($el)
+        }
+    }
+    return $out.ToArray()
+}
+
+# Treu de les seccions de REQ1 les SUBSECCIONS de $claus (i els seus items), per
+# al pas "Projecte". Funcio PURA: retorna seccions noves, no toca les originals.
+# Una seccio que es quedi sense cap item desapareix.
+function _LlicSeccionsSenseSubseccions($sections, $claus) {
+    $fora = @{}
+    foreach ($c in @($claus)) { $fora[[string]$c] = $true }
+    $out = New-Object System.Collections.ArrayList
+    foreach ($sec in @($sections)) {
+        $items = New-Object System.Collections.ArrayList
+        $saltant = $false
+        foreach ($el in @($sec.Items)) {
+            if ([string]$el.Kind -eq 'subsection') {
+                $saltant = $fora.ContainsKey((_ItemKey ([string]$sec.Title) ([string]$el.Short)))
+                if ($saltant) { continue }
+            }
+            if ($saltant -and [string]$el.Kind -ne 'subsection') { continue }
+            [void]$items.Add($el)
+        }
+        $teItem = $false
+        foreach ($el in $items) { if ([string]$el.Kind -eq 'item') { $teItem = $true; break } }
+        if (-not $teItem) { continue }
+        [void]$out.Add([pscustomobject]@{ Title = [string]$sec.Title; Items = $items.ToArray() })
+    }
+    return $out.ToArray()
+}
+
 # ELS TEXTOS PER DEFECTE d'un punt d'ABANS que no consta a LLIC.json. Funcio
 # PURA. Retorna @{ NoDisposa; SiDisposa }.
 #
@@ -273,13 +372,27 @@ function _LlicPuntsPerBloc($llic, $idxReq1, [string]$bloc, $req1 = $null) {
     foreach ($it in @($sec.fills)) {
         $clau = [string]$it.clau
         $cos = @()
+        # Una clau pot apuntar a una SUBSECCIO de REQ1 en lloc d'a un item: llavors
+        # el cos es el del propi punt de LLIC (la frase que encapcala la llista) i
+        # els SUB-PUNTS son els items d'aquella subseccio. Aixi els "Certificats
+        # d'inscripcio al RITSIC" i la "Inspeccio inicial" no han de mantenir una
+        # copia a ma de la llista d'instal-lacions.
+        $subsDeReq1 = $null
         if (-not [string]::IsNullOrWhiteSpace($clau)) {
-            if ($null -eq $idxReq1 -or -not $idxReq1.ContainsKey($clau)) {
-                [void]$orfes.Add($clau)
-                continue
+            if ($null -ne $idxReq1 -and $idxReq1.ContainsKey($clau)) {
+                # El text mana a REQ1: aqui nomes se'n fa servir el cos.
+                $cos = @($idxReq1[$clau].BodyLines)
+            } else {
+                $delsSubs = @(_LlicItemsDeSubseccio $req1 $clau)
+                if (@($delsSubs).Count -eq 0) {
+                    [void]$orfes.Add($clau)
+                    continue
+                }
+                $cos = @(_LlicCos $it)
+                # El text fins a l'enllac de cada item (_LlicResumSubpunt): es una
+                # llista per marcar, no un lloc on posar-hi vint requeriments.
+                $subsDeReq1 = @(@($delsSubs) | ForEach-Object { ,@(_LlicResumSubpunt $_) })
             }
-            # El text mana a REQ1: aqui nomes se'n fa servir el cos.
-            $cos = @($idxReq1[$clau].BodyLines)
         } else {
             $cos = @(_LlicCos $it)
         }
@@ -294,7 +407,8 @@ function _LlicPuntsPerBloc($llic, $idxReq1, [string]$bloc, $req1 = $null) {
             NoDisposa = if ($null -ne $nod) { @(_LlicCos $nod) } else { @() }
             SiDisposa = if ($null -ne $sid) { @(_LlicCos $sid) } else { @() }
             Quan      = if ($null -ne $qua) { @(_LlicCos $qua) } else { @() }
-            Subs      = @(@(_LlicFills $it 'subitem') | ForEach-Object { @(_LlicCos $_) })
+            Subs      = if ($null -ne $subsDeReq1) { $subsDeReq1 }
+                        else { @(@(_LlicFills $it 'subitem') | ForEach-Object { @(_LlicCos $_) }) }
         })
     }
     return @{ Punts = $punts.ToArray(); Orfes = $orfes.ToArray() }
@@ -813,7 +927,9 @@ function Build-LlicenciaDocument($word, $model) {
         if ($desp.Count -gt 0) {
             Format-Section $sel (_LlicTitolDespres)
             if ($cfg.SpacerAfterSection) { Format-Spacer $sel }
-            $n = 0
+            # LA NUMERACIO CONTINUA la del bloc ABANS ($n NO es reinicia): a
+            # l'informe els punts van seguits de cap a peus, no dues llistes que
+            # tornen a comencar per 1.
             foreach ($p in $desp) {
                 $n++
                 _LlicEscriuPunt $sel $p $n $fields ([string]$p.Estat) $true
@@ -879,7 +995,17 @@ function _LlicEscriuAnnex1($sel, $llic) {
     Format-Plain $sel ([string]$sec.titol) -Bold
 
     $cos9 = $false          # ja som al full de signatures?
+    $num = 0                # el comptador dels punts numerats
     foreach ($nd in @($sec.fills)) {
+        # LA MARCA VA COM A TEXT, no com a llista del Word: la plantilla la porta
+        # amb numeracio automatica i sagnia, i l'usuari la vol PLANA (nomes el
+        # numero o el guio escrits al davant). El comptador NOMES avanca amb els
+        # 'item': els 'text' del mig no es numeren.
+        $marca = ''
+        $tip = [string]$nd.tipus
+        if ($tip -eq 'item') { $num++; $marca = [string]$num + '. ' }
+        elseif ($tip -eq 'subitem') { $marca = '- ' }
+        $primeraLinia = $true
         foreach ($l in @(_LlicCos $nd)) {
             $pp = _SplitTextAndUrls ([string]$l)
             $t = [string]$pp.Text
@@ -890,9 +1016,13 @@ function _LlicEscriuAnnex1($sel, $llic) {
                     try { [void]$sel.InsertBreak(7) } catch { Format-Spacer $sel }
                     $cos9 = $true
                 }
-                if ($esTitolAcceptacio) { Format-Plain $sel $t -Bold -Size $Script:LlicAnnexSignaturaCos }
-                elseif ($cos9)          { Format-Plain $sel $t -Size $Script:LlicAnnexSignaturaCos }
-                else                    { Format-Plain $sel $t }
+                # La marca nomes a la PRIMERA linia del punt (un punt pot tenir
+                # mes d'un paragraf de cos), i mai al full de signatures.
+                $txt = if ($primeraLinia -and -not $cos9) { $marca + $t } else { $t }
+                if ($esTitolAcceptacio) { Format-Plain $sel $txt -Bold -Size $Script:LlicAnnexSignaturaCos }
+                elseif ($cos9)          { Format-Plain $sel $txt -Size $Script:LlicAnnexSignaturaCos }
+                else                    { Format-Plain $sel $txt }
+                $primeraLinia = $false
             }
             foreach ($u in @($pp.Urls)) { Format-Url $sel $u }
         }
@@ -1678,7 +1808,7 @@ function Invoke-LlicenciaWizard {
                     # s'avisen: si algu ha reanomenat un requeriment a REQ1, el
                     # punt desapareixeria de l'informe sense dir res.
                     $bAbans  = _LlicPuntsPerBloc $llic $st.IdxReq1 'ABANS' $st.Req1
-                    $bDesp   = _LlicPuntsPerBloc $llic $st.IdxReq1 'DESPRES'
+                    $bDesp   = _LlicPuntsPerBloc $llic $st.IdxReq1 'DESPRES' $st.Req1
                     $bPropis = _LlicPuntsPerBloc $llic $st.IdxReq1 'PROPIS'
                     $orfes = @($bAbans.Orfes) + @($bDesp.Orfes) + @($bPropis.Orfes)
                     if ($orfes.Count -gt 0) {
@@ -1740,9 +1870,14 @@ function Invoke-LlicenciaWizard {
                     # documentacio ja s'han demanat al pas d'ABANS i no s'han de
                     # poder demanar dues vegades.
                     if ($null -eq $st.SeccionsProjecte) {
-                        $st.SeccionsProjecte = @(@($st.Req1.Sections) | Where-Object { -not (_LlicEsSeccioAbans ([string]$_.Title)) })
+                        $senseAbans = @(@($st.Req1.Sections) | Where-Object { -not (_LlicEsSeccioAbans ([string]$_.Title)) })
+                        # ...i fora tambe les subseccions d'instal-lacions que es
+                        # demanen al bloc DESPRES (no es poden demanar dues vegades).
+                        $st.SeccionsProjecte = @(_LlicSeccionsSenseSubseccions $senseAbans (_LlicSubseccionsFora))
                     }
-                    $r = Select-Items -sections $st.SeccionsProjecte -preloadSelectedKeys $st.ProjKeys -fields $st.Fields -preloadValues $st.ProjVals
+                    # -permetreBuit: pot ser que l'activitat no tingui cap
+                    # deficiencia de projecte, i llavors no s'ha d'aturar res.
+                    $r = Select-Items -sections $st.SeccionsProjecte -preloadSelectedKeys $st.ProjKeys -fields $st.Fields -preloadValues $st.ProjVals -permetreBuit $true
                     if ($r.Nav -eq 'back') { $step = 4; break }
                     if ($r.Nav -eq 'stay') { break }
                     $st.ProjSel = $r.Data

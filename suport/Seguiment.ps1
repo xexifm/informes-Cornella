@@ -1164,16 +1164,11 @@ function Select-Mode {
             [System.Windows.Forms.TextRenderer]::DrawText($g, $ico, $fIcon, $icoRect, $colGranat, $flagsC)
         }
 
-        # Titol + subtitol.
-        $tx = $cx + $chip + 14
-        if (-not [string]::IsNullOrWhiteSpace($sub)) {
-            [System.Windows.Forms.TextRenderer]::DrawText($g, $main, $fMain, (New-Object System.Drawing.Point($tx, 11)), $colInk, $flags)
-            [System.Windows.Forms.TextRenderer]::DrawText($g, $sub,  $fDet,  (New-Object System.Drawing.Point($tx, 35)), $colSub, $flags)
-        } else {
-            $szM = [System.Windows.Forms.TextRenderer]::MeasureText($g, $main, $fMain, [System.Drawing.Size]::Empty, $flags)
-            [System.Windows.Forms.TextRenderer]::DrawText($g, $main, $fMain, (New-Object System.Drawing.Point($tx, [int](($rect.Height - $szM.Height) / 2))), $colInk, $flags)
-        }
-
+        # ELS XIPS PRIMER, i despres el titol dins del que quedi: si es dibuixa
+        # el titol sense limit, un nom llarg passa PER SOTA dels xips (el xip
+        # "Dades" tapava el "LL Prov" de Llicencia). Amb EndEllipsis el text es
+        # retalla amb punts suspensius i no pot solapar-se MAI, digui el que
+        # digui i hi hagi els xips que hi hagi.
         # Xip del document a la dreta. Es CLICABLE: obre l'editor de catalegs
         # (hi dibuixem un emoji d'editar ✏️ i en guardem el rectangle per al
         # hit-test del clic, a $entry.DocChipRect).
@@ -1224,6 +1219,24 @@ function Select-Mode {
                 [System.Windows.Forms.TextRenderer]::DrawText($g, $et, $fDet, (New-Object System.Drawing.Point(($ex + $pad + $szEI.Width + $gap), ($dy + 4))), $colGranat, $flags)
                 $entry.ExtraChipRect = New-Object System.Drawing.Rectangle($ex, $dy, $ew, $chH)
             }
+        }
+
+        # Titol + subtitol, ACOTATS pel xip mes a l'esquerra.
+        $tx = $cx + $chip + 14
+        $limit = $rect.Width - 14
+        if ($null -ne $entry.ExtraChipRect) { $limit = $entry.ExtraChipRect.Left }
+        elseif ($null -ne $entry.DocChipRect) { $limit = $entry.DocChipRect.Left }
+        $ampleText = [Math]::Max(40, $limit - $tx - 10)
+        $flagsT = $flags -bor [System.Windows.Forms.TextFormatFlags]::EndEllipsis
+        if (-not [string]::IsNullOrWhiteSpace($sub)) {
+            $rT = New-Object System.Drawing.Rectangle($tx, 11, $ampleText, 24)
+            $rS = New-Object System.Drawing.Rectangle($tx, 35, $ampleText, 20)
+            [System.Windows.Forms.TextRenderer]::DrawText($g, $main, $fMain, $rT, $colInk, $flagsT)
+            [System.Windows.Forms.TextRenderer]::DrawText($g, $sub,  $fDet,  $rS, $colSub, $flagsT)
+        } else {
+            $szM = [System.Windows.Forms.TextRenderer]::MeasureText($g, $main, $fMain, [System.Drawing.Size]::Empty, $flags)
+            $rT = New-Object System.Drawing.Rectangle($tx, [int](($rect.Height - $szM.Height) / 2), $ampleText, $szM.Height)
+            [System.Windows.Forms.TextRenderer]::DrawText($g, $main, $fMain, $rT, $colInk, $flagsT)
         }
     }
 

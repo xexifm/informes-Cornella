@@ -1708,6 +1708,18 @@ if (Test-Path -LiteralPath $capPath) {
         }
     }
     AssertEq $capBuides.Count 0 ('0 CAPCALERA.docx: cap etiqueta sense marcador (' + ($capBuides -join ' | ') + ')')
+    # LA CLASSIFICACIO NO VA EN NEGRETA. A la resta de linies de la capcalera
+    # l'etiqueta es en negreta i el VALOR no; el bloc [[CAP:LLIC]] es va escriure
+    # amb tot en un sol run bold, i "Llei 20/2009; Annex III..." sortia en
+    # negreta a l'informe. El valor ha de tenir el seu propi run, sense <w:b/>.
+    $paraCl = @([regex]::Matches($capTxt, '<w:p[ >].*?</w:p>', 'Singleline') |
+                Where-Object { $_.Value -match 'Classificaci' })
+    Assert ($paraCl.Count -ge 1) '0 CAPCALERA.docx: hi ha el paragraf de la classificacio'
+    $runCl = @([regex]::Matches($paraCl[0].Value, '<w:r[ >].*?</w:r>', 'Singleline') |
+               Where-Object { $_.Value -match 'CLASSIFICACIO' })
+    AssertEq $runCl.Count 1 '0 CAPCALERA.docx: el marcador de la classificacio va en un run propi'
+    Assert (-not ($runCl[0].Value -match '<w:b/>')) '0 CAPCALERA.docx: ...i aquell run NO va en negreta'
+    Assert ([bool]($paraCl[0].Value -match 'Classificaci[^<]*</w:t>')) '0 CAPCALERA.docx: l''etiqueta "Classificacio:" va a part'
 }
 
 # "Planols" sortia partit en TRES caselles (Pl / a / nols): dins d'un @(...) la
@@ -2001,10 +2013,13 @@ if (Test-Path -LiteralPath $llicPath) {
     Assert ([bool](@($annexSec.fills).Count -ge 15)) 'LLIC.json: l''ANNEX 1 porta tot el text (no s''ha quedat a mitges)'
     # Totes les claus han d'existir a REQ1.
     $req1 = Read-CatalegJson (Join-Path $EstructuralsDir 'REQ1.json')
+    # Una clau pot apuntar a un ITEM de REQ1 o -els dos punts d'instal-lacions
+    # del bloc DESPRES- a una SUBSECCIO sencera, i llavors els seus items son
+    # els SUB-PUNTS (vegeu _LlicItemsDeSubseccio).
     $clausReq1 = @{}
     foreach ($sec in $req1.Sections) {
         foreach ($el in $sec.Items) {
-            if ($el.Kind -eq 'item' -and -not [string]::IsNullOrWhiteSpace([string]$el.Short)) {
+            if ($el.Kind -in 'item', 'subsection' -and -not [string]::IsNullOrWhiteSpace([string]$el.Short)) {
                 $clausReq1[(_ItemKey $sec.Title $el.Short)] = $true
             }
         }
@@ -2023,21 +2038,34 @@ if (Test-Path -LiteralPath $llicPath) {
     Assert ([bool]($llicLligats -ge 20)) 'LLIC.json: la majoria de punts van lligats a REQ1, no copiats'
     # Els punts lligats NO poden portar text propi: si en portessin, el de REQ1
     # deixaria de manar i tornariem a tenir dos textos que mantenir.
-    $ambText = New-Object System.Collections.ArrayList
-    foreach ($sec in $llic.nodes) {
-        foreach ($it in @($sec.fills)) {
-            if (-not [string]::IsNullOrWhiteSpace([string]$it.clau) -and @($it.cos).Count -gt 0) {
-                [void]$ambText.Add([string]$it.titol)
+    # Els que apunten a un ITEM no poden portar text propi (el de REQ1 mana). Els
+    # que apunten a una SUBSECCIO si: la clau nomes els dona els SUB-PUNTS, i la
+    # frase que els encapcala ("...que acrediti que s'han legalitzat les
+    # seguents instal-lacions:") es d'ells.
+    $subseccionsReq1 = @{}
+    foreach ($sec in $req1.Sections) {
+        foreach ($el in $sec.Items) {
+            if ($el.Kind -eq 'subsection' -and -not [string]::IsNullOrWhiteSpace([string]$el.Short)) {
+                $subseccionsReq1[(_ItemKey $sec.Title $el.Short)] = $true
             }
         }
     }
-    AssertEq ($ambText -join ' | ') '' 'LLIC.json: cap punt lligat porta text propi (el text mana a REQ1)'
+    $ambText = New-Object System.Collections.ArrayList
+    foreach ($sec in $llic.nodes) {
+        foreach ($it in @($sec.fills)) {
+            $k = [string]$it.clau
+            if ([string]::IsNullOrWhiteSpace($k)) { continue }
+            if ($subseccionsReq1.ContainsKey($k)) { continue }
+            if (@($it.cos).Count -gt 0) { [void]$ambText.Add([string]$it.titol) }
+        }
+    }
+    AssertEq ($ambText -join ' | ') '' 'LLIC.json: cap punt lligat a un ITEM porta text propi (el text mana a REQ1)'
 
     # --- Resolucio dels punts contra REQ1 (el cor de l'eina) ------------------
     $idxR1 = _LlicIndexReq1 $req1
     Assert ([bool]($idxR1.Count -gt 100)) '_LlicIndexReq1: indexa els items de REQ1'
     foreach ($b in @('ABANS', 'DESPRES', 'PROPIS')) {
-        $r = _LlicPuntsPerBloc $llic $idxR1 $b
+        $r = _LlicPuntsPerBloc $llic $idxR1 $b $req1
         AssertEq (@($r.Orfes) -join ' | ') '' ("_LlicPuntsPerBloc " + $b + ": cap clau orfe")
         Assert ([bool](@($r.Punts).Count -gt 0)) ("_LlicPuntsPerBloc " + $b + ": hi ha punts")
     }
@@ -2216,6 +2244,107 @@ if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path 
 }
 
 # ---------------------------------------------------------------------------
+# INSTAL-LACIONS: els sub-punts del bloc DESPRES surten de REQ1
+# ---------------------------------------------------------------------------
+# "Certificats d'inscripcio al RITSIC" i "Inspeccio inicial" mantenien a ma una
+# copia de la llista d'instal-lacions (10 i 4 subitems escrits a LLIC.json)
+# mentre la llista de debo viu a REQ1 (17 i 5). Ara la clau del punt apunta a la
+# SUBSECCIO i els sub-punts en surten sols.
+$Global:_clauLeg = (_ItemKey ('Instal' + [char]0x00B7 + 'lacions') 'Legalitzacions')
+$Global:_clauIni = (_ItemKey ('Instal' + [char]0x00B7 + 'lacions') 'Inspeccions inicials')
+AssertEq (@(_LlicSubseccionsFora).Count) 2 '_LlicSubseccionsFora: les dues subseccions d''instal-lacions'
+Assert ([bool]((_LlicSubseccionsFora) -contains $Global:_clauLeg)) '_LlicSubseccionsFora: Legalitzacions'
+Assert ([bool]((_LlicSubseccionsFora) -contains $Global:_clauIni)) '_LlicSubseccionsFora: Inspeccions inicials'
+
+if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path $EstructuralsDir 'REQ1.json'))) {
+    $req1In = Read-CatalegJson (Join-Path $EstructuralsDir 'REQ1.json')
+    $llicIn = Read-LlicCataleg $llicPathX
+
+    # _LlicItemsDeSubseccio: nomes els items de la subseccio demanada.
+    $itLeg = @(_LlicItemsDeSubseccio $req1In $Global:_clauLeg)
+    $itIni = @(_LlicItemsDeSubseccio $req1In $Global:_clauIni)
+    Assert ($itLeg.Count -ge 15) ('_LlicItemsDeSubseccio: Legalitzacions en te ' + $itLeg.Count)
+    Assert ($itIni.Count -ge 4)  ('_LlicItemsDeSubseccio: Inspeccions inicials en te ' + $itIni.Count)
+    Assert (-not (@($itLeg) | Where-Object { [string]$_.Kind -ne 'item' })) '_LlicItemsDeSubseccio: nomes items'
+    # ...i no s'ha endut els de la subseccio del costat.
+    Assert (-not (@($itLeg | ForEach-Object { [string]$_.Short }) | Where-Object { $_ -like 'Insp. inicial*' })) '_LlicItemsDeSubseccio: no s''endu la subseccio seguent'
+    AssertEq (@(_LlicItemsDeSubseccio $req1In 'No::Existeix').Count) 0 '_LlicItemsDeSubseccio: clau desconeguda -> cap item'
+
+    # _LlicResumSubpunt: el text FINS a l'enllac, i l'enllac.
+    $unAmbUrl = @($itLeg | Where-Object { (@($_.BodyLines) -join ' ') -match 'https?://' })[0]
+    $res = @(_LlicResumSubpunt $unAmbUrl)
+    Assert ($res.Count -ge 2) '_LlicResumSubpunt: el text i l''enllac'
+    Assert ($res[0] -notmatch '\[\[URL\]\]') '_LlicResumSubpunt: cap marcador [[URL]] al text'
+    Assert ($res[0] -notmatch 'https?://') '_LlicResumSubpunt: l''URL no es queda dins del text'
+    Assert ($res[0] -notmatch '\*\*|//') '_LlicResumSubpunt: sense marcadors de negreta/cursiva'
+    Assert ([bool]($res[1] -like '[[]*URL*')) '_LlicResumSubpunt: l''enllac va en linia propia amb el marcador'
+
+    # El bloc DESPRES sencer.
+    $rDe = _LlicPuntsPerBloc $llicIn (_LlicIndexReq1 $req1In) 'DESPRES' $req1In
+    AssertEq (@($rDe.Orfes) -join ' | ') '' 'DESPRES: cap clau orfe amb les subseccions'
+    $pDe = @($rDe.Punts)
+    $pLeg = @($pDe | Where-Object { [string]$_.Clau -eq $Global:_clauLeg })[0]
+    $pIni = @($pDe | Where-Object { [string]$_.Clau -eq $Global:_clauIni })[0]
+    Assert ($null -ne $pLeg) 'DESPRES: hi ha el punt dels certificats RITSIC'
+    AssertEq (@($pLeg.Subs).Count) $itLeg.Count 'DESPRES: els sub-punts del RITSIC son TOTS els de REQ1'
+    AssertEq (@($pIni.Subs).Count) $itIni.Count 'DESPRES: i els de la inspeccio inicial tambe'
+    Assert ([bool]((@($pLeg.Cos) -join ' ') -match 'RITSIC')) 'DESPRES: el punt conserva la seva frase d''encapcalament'
+    Assert ([bool]((@($pLeg.Quan) -join ' ') -match 'Abans')) 'DESPRES: ...i el seu "Quan:"'
+
+    # INSTAL-LACIONS, L'ULTIMA SECCIO de l'arbre (i de l'informe: es el mateix ordre).
+    $grDe = @(_LlicAgrupaPunts $pDe)
+    AssertEq ([string]$grDe[$grDe.Count - 1].Titol) ('Instal' + [char]0x00B7 + 'lacions') 'DESPRES: Instal-lacions es l''ultima seccio'
+    AssertEq (@($grDe | Where-Object { [string]$_.Titol -eq ('Instal' + [char]0x00B7 + 'lacions') }).Count) 1 'DESPRES: Instal-lacions surt UNA sola vegada (el PCI hi va junt)'
+    AssertEq (@($grDe[$grDe.Count - 1].Idx).Count) 3 'DESPRES: i hi ha els tres punts (PCI + RITSIC + inspeccio inicial)'
+
+    # ...i al pas PROJECTE ja no hi son.
+    $secPr = @(_LlicSeccionsSenseSubseccions $req1In.Sections (_LlicSubseccionsFora))
+    AssertEq (@(_LlicItemsDeSubseccio ([pscustomobject]@{ Sections = $secPr }) $Global:_clauLeg).Count) 0 'Projecte: Legalitzacions ja no hi es'
+    AssertEq (@(_LlicItemsDeSubseccio ([pscustomobject]@{ Sections = $secPr }) $Global:_clauIni).Count) 0 'Projecte: ni Inspeccions inicials'
+    # ...pero la resta de la seccio SI (les periodiques no es demanen a DESPRES).
+    $clauPer = (_ItemKey ('Instal' + [char]0x00B7 + 'lacions') ('Inspeccions peri' + [char]0x00F2 + 'diques'))
+    Assert ((@(_LlicItemsDeSubseccio ([pscustomobject]@{ Sections = $secPr }) $clauPer).Count) -ge 10) 'Projecte: les inspeccions PERIODIQUES s''hi queden'
+    # I cap seccio ha perdut items que no toquessin.
+    $abansPr = (@($req1In.Sections) | ForEach-Object { @($_.Items | Where-Object { $_.Kind -eq 'item' }).Count } | Measure-Object -Sum).Sum
+    $despresPr = (@($secPr) | ForEach-Object { @($_.Items | Where-Object { $_.Kind -eq 'item' }).Count } | Measure-Object -Sum).Sum
+    AssertEq ($abansPr - $despresPr) ($itLeg.Count + $itIni.Count) 'Projecte: nomes s''han tret els items d''aquelles dues subseccions'
+}
+
+# ---------------------------------------------------------------------------
+# CONTROLS QUE ES TREPITGEN (_TrobaSolapaments, UiComuns.ps1)
+# ---------------------------------------------------------------------------
+# El defecte recurrent del programa. La geometria es pura i es pot provar aqui;
+# el que no es pot es dibuixar una finestra, i per aixo la comprovacio de debo
+# la fa el PROGRAMA en obrir cada pantalla.
+AssertEq (@(_TrobaSolapaments @()).Count) 0 '_TrobaSolapaments: sense controls, cap solapament'
+$rcA = @(@{ Nom='A'; X=0; Y=0; W=100; H=20 }, @{ Nom='B'; X=200; Y=0; W=100; H=20 })
+AssertEq (@(_TrobaSolapaments $rcA).Count) 0 '_TrobaSolapaments: separats, cap'
+$rcB = @(@{ Nom='A'; X=0; Y=0; W=100; H=20 }, @{ Nom='B'; X=100; Y=0; W=100; H=20 })
+AssertEq (@(_TrobaSolapaments $rcB).Count) 0 '_TrobaSolapaments: tocant-se per la vora, cap'
+$rcC = @(@{ Nom='Titol'; X=0; Y=0; W=300; H=20 }, @{ Nom='Xip'; X=250; Y=0; W=100; H=20 })
+$solC = @(_TrobaSolapaments $rcC)
+AssertEq $solC.Count 1 '_TrobaSolapaments: el titol per sota del xip, ENXAMPAT'
+Assert ([bool]($solC[0] -like '*Titol*' -and $solC[0] -like '*Xip*')) '_TrobaSolapaments: i diu quins son'
+Assert ([bool]($solC[0] -like '*250,0*')) '_TrobaSolapaments: ...i on'
+$rcD = @(@{ Nom='Fons'; X=0; Y=0; W=400; H=60 }, @{ Nom='Boto'; X=10; Y=10; W=80; H=24 })
+AssertEq (@(_TrobaSolapaments $rcD).Count) 0 '_TrobaSolapaments: un DINS de l''altre es un fons, no un error'
+$rcE = @(@{ Nom='A'; X=0; Y=0; W=100; H=20 }, @{ Nom='B'; X=0; Y=19; W=100; H=20 })
+AssertEq (@(_TrobaSolapaments $rcE).Count) 1 '_TrobaSolapaments: tambe en vertical'
+
+# EL TITOL DE LA RAJOLA DEL MENU s'ha de dibuixar ACOTAT pels xips. Prova de
+# FONT (el menu nomes es pinta a Windows): el xip "Dades" tapava el "LL Prov" de
+# Llicencia perque el titol es dibuixava en un PUNT, sense limit d'amplada.
+$srcMenu = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'Seguiment.ps1') -Raw
+$iPaint = $srcMenu.IndexOf('$paintHandler = {')
+$iFiPaint = $srcMenu.IndexOf('$result = @{ Choice = $null }')
+$paint = $srcMenu.Substring($iPaint, $iFiPaint - $iPaint)
+Assert ($paint.Contains('EndEllipsis')) 'menu: el titol de la rajola es retalla amb punts suspensius'
+Assert ($paint.Contains('$limit = $rect.Width - 14')) 'menu: hi ha un limit dret per al text'
+Assert ($paint.Contains('$entry.ExtraChipRect.Left')) 'menu: ...i el marca el xip mes a l''esquerra'
+Assert ($paint.IndexOf('$entry.DocChipRect = New-Object') -lt $paint.IndexOf('Titol + subtitol')) 'menu: els xips es calculen ABANS del titol'
+Assert (-not ($paint -match 'DrawText\(\$g, \$main, \$fMain, \(New-Object System\.Drawing\.Point')) 'menu: el titol ja no es dibuixa en un punt sense limit'
+
+# ---------------------------------------------------------------------------
 # L'ARBRE de la pantalla de documentacio (agrupacio per seccions)
 # ---------------------------------------------------------------------------
 # La seccio d'un punt surt de la seva clau ("Seccio::Item", _ItemKey): els
@@ -2335,6 +2464,12 @@ if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path 
     # Cap marcador de camp pot arribar al document (els camps es resolen per
     # BLOC, no linia a linia: un [OPCIO:] pot ocupar dos paragrafs del cataleg).
     Assert (-not (@($emG) | Where-Object { $_ -match '\[OPCIO:|\[CAMP:' })) 'Llicencia: cap [OPCIO:]/[CAMP:] literal al document'
+    # LA NUMERACIO CONTINUA: el bloc DESPRES no torna a comencar per 1.
+    $nums = @($emG | Where-Object { $_ -like 'ITEM|*' } | ForEach-Object { [int](($_ -split '\|')[1] -replace '\.', '') })
+    Assert ($nums.Count -ge 2) 'Llicencia: hi ha prou items per comprovar la numeracio'
+    $trencats = @()
+    for ($i = 1; $i -lt $nums.Count; $i++) { if ($nums[$i] -ne ($nums[$i - 1] + 1)) { $trencats += ("$($nums[$i-1])->$($nums[$i])") } }
+    AssertEq ($trencats -join ',') '' 'Llicencia: la numeracio va seguida de cap a peus (DESPRES no reinicia)'
     # ...i el mateix informe com a LLICENCIA PROVISIONAL, que hi afegeix
     # l'ANNEX 1. Ha de sortir en TEXT PLA: cap pic, cap item numerat, negreta
     # nomes als dos titols, i el full de signatures a part i a cos 9.
@@ -2354,6 +2489,16 @@ if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path 
     Assert ([bool]($negretes[1] -like '*acceptaci*')) 'ANNEX 1: i el del full de signatures'
     $cos9 = @($annex | Where-Object { $_ -like '*/sz9|*' })
     Assert ($cos9.Count -ge 5) 'ANNEX 1: el full de signatures va a cos 9'
+    # ELS NUMEROS I ELS GUIONS, com a TEXT (l'original els porta amb numeracio
+    # automatica del Word; aqui van escrits al davant i sense sagnia).
+    $numerats = @($annex | Where-Object { $_ -match '^PLA[^|]*\|\d+\. ' })
+    Assert ($numerats.Count -ge 4) ('ANNEX 1: els punts van numerats "1. ", "2. "... (n''hi ha ' + $numerats.Count + ')')
+    $primerNum = [int]((($numerats[0] -split '\|', 2)[1] -split '\.')[0])
+    AssertEq $primerNum 1 'ANNEX 1: la numeracio comenca per 1'
+    $guionats = @($annex | Where-Object { $_ -match '^PLA[^|]*\|- ' })
+    Assert ($guionats.Count -ge 7) ('ANNEX 1: els sub-punts van amb guio (n''hi ha ' + $guionats.Count + ')')
+    # El full de signatures NO porta ni numero ni guio.
+    Assert (-not (@($annex | Where-Object { $_ -like '*/sz9|*' }) | Where-Object { $_ -match '\|(\d+\.|-) ' })) 'ANNEX 1: el full de signatures va sense marques'
     Assert (-not (@($annex[0..($annex.Count - $cos9.Count - 1)]) | Where-Object { $_ -like '*sz9*' })) 'ANNEX 1: ...i NOMES el full de signatures'
     $env:TEMP = $tempAbans
 }

@@ -1209,8 +1209,47 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   s'emeten amb l'ítem** i surten després del comentari. Cap enllaç es repeteix
   dins d'un punt. (La deduplicació a seques, sense això, ho **empitjorava**:
   esborrava justament el que havia d'anar després de la frase.)
+- **La NUMERACIÓ de l'informe va seguida de cap a peus**: el bloc DESPRÉS no
+  reinicia el comptador (`$n` no es torna a posar a 0). Sortien dues llistes que
+  començaven per 1 totes dues.
+- **Els sub-punts d'INSTAL·LACIONS surten de REQ1, no d'una còpia a mà.**
+  «Certificats d'inscripció al RITSIC» i «Inspecció inicial» tenien 10 i 4
+  subítems escrits a `LLIC.json` mentre la llista de debò (17 i 5) viu a REQ1.
+  Ara la seva **`clau` apunta a una SUBSECCIÓ** (`Instal·lacions::Legalitzacions`,
+  `Instal·lacions::Inspeccions inicials`) i `_LlicPuntsPerBloc` en treu els
+  sub-punts amb `_LlicItemsDeSubseccio` (pura).
+  - **Una clau pot apuntar a un ítem O a una subsecció.** Si és una subsecció, el
+    **cos** és el del punt de LLIC (la frase que encapçala la llista) i els
+    **sub-punts** són els ítems de la subsecció. Per això aquests —i només
+    aquests— sí que porten text propi.
+  - `_LlicResumSubpunt` (pura) es queda amb **el text fins a l'enllaç, i
+    l'enllaç**: a REQ1 la primera línia és l'etiqueta i el que ve després ja és
+    el requeriment sencer. Retorna **línies** (text + `[[URL]] …`), que és el que
+    `_LlicEscriuPunt` ja sap emetre com a pic + hipervincle. Decisió de
+    l'usuari, vista la comparació amb «només la primera frase» —que deixava
+    tres ítems de gas idèntics—.
+  - **Aquelles dues subseccions desapareixen del pas «Projecte»**
+    (`_LlicSubseccionsFora` + `_LlicSeccionsSenseSubseccions`, pures): no es
+    poden demanar dues vegades. *Inspeccions periòdiques* s'hi queda.
+  - **`Instal·lacions` és l'última secció** del bloc, i per això el punt
+    `Insp. periòdica - PCI` s'ha mogut al final de la llista de `LLIC.json`:
+    l'ordre de la pantalla i el de l'informe són el mateix.
+- **El pas «Projecte» de Llicència accepta no triar res** (`Select-Items
+  -permetreBuit`): hi ha activitats sense cap deficiència de projecte, i
+  l'avís «No s'ha seleccionat cap deficiència» hi bloquejava l'assistent. A
+  «Requeriment - Nou» l'avís es queda: allà un informe buit no té sentit.
+- **La CLASSIFICACIÓ no va en negreta.** A la capçalera, l'etiqueta és en
+  negreta i el **valor** no —així són totes les línies (`ID GIA:`, `Titular:`…)—,
+  però el bloc `[[CAP:LLIC]]` es va escriure amb `Classificació: <<CLASSIFICACIO>>`
+  en **un sol run** amb `<w:b/>`. Ara són tres runs, com a `Titular:`: etiqueta
+  en negreta, tabulador, i el valor amb el mateix `rPr` **sense** `<w:b/>`. Hi
+  ha prova sobre el `.docx` real.
 - **L'ANNEX 1 va en TEXT PLA**: `Format-Plain` (`Format.ps1`) — sense sagnia,
-  pics ni numeració. **Negreta només** als dos títols, i des del «Document
+  pics ni numeració. **Els números i els guions van escrits com a TEXT**
+  (`1. `, `2. `… als `item`; `- ` als `subitem`), perquè la plantilla els porta
+  amb numeració automàtica del Word i l'usuari els vol plans i sense sagnia. El
+  comptador només avança amb els `item`; els `text` del mig no es numeren, i al
+  full de signatures no s'hi posa cap marca. **Negreta només** als dos títols, i des del «Document
   d'acceptació…» (`_LlicEsTitolAcceptacio`, pura) **pàgina nova i cos 9**
   (`$Script:LlicAnnexSignaturaCos`; a la plantilla, `sz=18` mig-punts).
 - **La CLASSIFICACIÓ no és a la capçalera genèrica**: `_ReadHeaderControls` no
@@ -1346,6 +1385,28 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
     no el toca cap prova, o sigui que **hi ha d'arribar el parser**. Els tres
     detectors AST que hi ha (el `'+'` solt, les closures i aquest) són tots del
     mateix estil i per la mateixa raó.
+- **CONTROLS QUE ES TREPITGEN: ho ha de veure el PROGRAMA, no jo.** És el
+  defecte recurrent d'aquest projecte —coordenades a mà, i un text que creix o
+  un control nou que hi passa per sobre—. L'últim: el xip «Dades» tapant el
+  «LL Prov» del menú.
+  - **Al menú, arreglat per construcció**: el `$paintHandler` calcula **primer**
+    els xips i després dibuixa el títol dins d'un **rectangle acotat** pel xip
+    més a l'esquerra, amb `EndEllipsis`. Digui el que digui el títol i hi hagi
+    els xips que hi hagi, no s'hi pot posar a sobre. (Abans es dibuixava en un
+    `Point`, sense límit d'amplada.)
+  - **A tot arreu, comprovació en viu**: `_NewForm` (`UiComuns.ps1`) enganxa un
+    `Shown` que crida **`_AvisaSolapaments`** → recorre l'arbre de controls i
+    compara **només els germans** (dins d'un contenidor les coordenades són
+    relatives a ell). Si en troba, ho diu **amb els noms i les coordenades**, un
+    sol cop per pantalla i sessió.
+  - **La geometria és pura i es prova a Linux** (`_TrobaSolapaments`). NO és
+    solapament que un contingui l'altre del tot (és un fons) ni que es toquin
+    per la vora. S'ignoren els `Dock` (els col·loca WinForms) i els invisibles.
+  - **Per què no un analitzador estàtic**: es va provar. Resol els controls amb
+    `Location`/`Size` constants i les variables enteres seqüencials (`$y = 76`,
+    `$y += 32`), i sobre el codi d'avui troba **zero** — perquè el que falla de
+    debò és text pintat a mà (no són controls) i codi dins de bucles. La
+    comprovació en viu sí que ho veu tot.
 - **Un clic en un RadioButton dispara DOS esdeveniments**: el que es marca i el
   germà que es desmarca. Amb un handler compartit la pantalla es repintava dues
   vegades, i la segona llegia uns controls que `Controls.Clear()` acabava de

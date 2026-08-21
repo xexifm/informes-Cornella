@@ -1,1685 +1,1491 @@
 {
-  "tipus": "LLIC",
-  "familia": "llicencia",
-  "intro": [],
-  "nodes": [
+ "tipus": "LLIC",
+ "familia": "llicencia",
+ "intro": [],
+ "nodes": [
+  {
+   "tipus": "seccio",
+   "titol": "ABANS",
+   "cos": [],
+   "fills": [
     {
-      "tipus": "seccio",
-      "titol": "ABANS",
-      "cos": [],
-      "fills": [
+     "tipus": "item",
+     "titol": "Sanitat",
+     "clau": "Autoritzacions / Informes preceptius::Sanitat",
+     "cos": [],
+     "fills": [
+      {
+       "tipus": "nodisposa",
+       "titol": "",
+       "cos": [
         {
-          "tipus": "item",
-          "titol": "Sanitat",
-          "clau": "Autoritzacions / Informes preceptius::Sanitat",
-          "cos": [],
-          "fills": [
-            {
-              "tipus": "nodisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "No es disposa de l’autorització. S’ha de sol·licitar en el següent enllaç:"
-                    }
-                  ]
-                },
-                {
-                  "runs": [
-                    {
-                      "t": "https://salutweb.gencat.cat/ca/tramits/tramits-temes/Autoritzacio-de-centres-o-serveis-sanitaris?moda=1"
-                    }
-                  ],
-                  "url": true
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "sidisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Es disposa de l’autorització (Id Firmadoc: [CAMP: Id Firmadoc]; Referència: [CAMP: Referència])"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            }
-          ]
+         "runs": [
+          {
+           "t": "No es disposa de l’autorització. S’ha de sol·licitar en el següent enllaç:"
+          }
+         ]
         },
         {
-          "tipus": "item",
-          "titol": "Educació",
-          "clau": "Autoritzacions / Informes preceptius::Educació",
-          "cos": [],
-          "fills": [
-            {
-              "tipus": "nodisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "No es disposa de l’autorització. S’ha de sol·licitar en el següent enllaç:"
-                    }
-                  ]
-                },
-                {
-                  "runs": [
-                    {
-                      "t": "https://educacio.gencat.cat/ca/tramits/tramits-temes/autoritzacio-obertura-privats?moda=1"
-                    }
-                  ],
-                  "url": true
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "sidisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Es disposa de l’autorització (Id Firmadoc: [CAMP: Id Firmadoc]; Referència: [CAMP: Referència])"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            }
-          ]
-        },
-        {
-          "tipus": "item",
-          "titol": "Comerç",
-          "clau": "Autoritzacions / Informes preceptius::Comerç",
-          "cos": [],
-          "fills": [
-            {
-              "tipus": "nodisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "No es disposa de llicència. S’ha de sol·licitar en el següent enllaç:"
-                    }
-                  ]
-                },
-                {
-                  "runs": [
-                    {
-                      "t": "https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Llicencia-comercial?category=&moda=2"
-                    }
-                  ],
-                  "url": true
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "sidisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Es disposa de llicència (Id Firmadoc: [CAMP: Id Firmadoc]; Referència: [CAMP: Referència])"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            }
-          ]
-        },
-        {
-          "tipus": "item",
-          "titol": "Esport",
-          "clau": "Autoritzacions / Informes preceptius::Esport",
-          "cos": [],
-          "fills": [
-            {
-              "tipus": "nodisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "No es disposa de l’informe. S’ha de sol·licitar en el següent enllaç:"
-                    }
-                  ]
-                },
-                {
-                  "runs": [
-                    {
-                      "t": "https://web.gencat.cat/ca/tramits/tramits-temes/22032-Informe-previ-al-Servei-dEquipaments-Esportius-per-a-la-realitzacio-en-installacions-esportives-a-Catalunya"
-                    }
-                  ],
-                  "url": true
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "sidisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Es disposa de l’informe (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient])"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            }
-          ]
-        },
-        {
-          "tipus": "item",
-          "titol": "Incendis",
-          "clau": "Autoritzacions / Informes preceptius::Incendis",
-          "cos": [],
-          "fills": [
-            {
-              "tipus": "nodisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "No es disposa de l’informe. S’ha de sol·licitar en el següent enllaç:"
-                    }
-                  ]
-                },
-                {
-                  "runs": [
-                    {
-                      "t": "https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/23705_-_Informe-de-prevencio-i-seguretat-en-materia-dincendis"
-                    }
-                  ],
-                  "url": true
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "sidisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Es disposa de l’informe (Id Firmadoc: [CAMP: Id Firmadoc]; Referència: [CAMP: Referència])"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            }
-          ]
-        },
-        {
-          "tipus": "item",
-          "titol": "Impacte ambiental",
-          "clau": "Autoritzacions / Informes preceptius::Impacte ambiental",
-          "cos": [],
-          "fills": [
-            {
-              "tipus": "nodisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "No es disposa de l’estudi d’impacte ambiental. S’ha de presentar a l’ajuntament per enviar-lo a l’OGAU després de fer la informació pública."
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "sidisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Es disposa de l’informe (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient])"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            }
-          ]
-        },
-        {
-          "tipus": "item",
-          "titol": "Vector Aigua (ACA) - Zona inundable fluvial T500",
-          "clau": "Autoritzacions / Informes preceptius::Vector Aigua (ACA) - Zona inundable fluvial T500",
-          "cos": [],
-          "fills": [
-            {
-              "tipus": "nodisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "No es disposa de l’informe. S’ha de sol·licitar en el següent enllaç:"
-                    }
-                  ]
-                },
-                {
-                  "runs": [
-                    {
-                      "t": "https://aca.gencat.cat/ca/tramits/Informes-relacionats-amb-el-vector-aigua?moda=1"
-                    }
-                  ],
-                  "url": true
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "sidisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Es disposa de l’informe (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient])"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            }
-          ]
-        },
-        {
-          "tipus": "item",
-          "titol": "Vector Aigua (ACA) - abocaments",
-          "clau": "Autoritzacions / Informes preceptius::Vector Aigua (ACA) - abocaments",
-          "cos": [],
-          "fills": [
-            {
-              "tipus": "nodisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "No es disposa de l’autorització"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "sidisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Es disposa de l’autorització (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient])"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            }
-          ]
-        },
-        {
-          "tipus": "item",
-          "titol": "Vector Aigua (AMB) - abocaments",
-          "clau": "Autoritzacions / Informes preceptius::Vector Aigua (AMB) - abocaments",
-          "cos": [],
-          "fills": [
-            {
-              "tipus": "nodisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "No es disposa de l’autorització. S’ha de sol·licitar en el següent enllaç i posteriorment enviar el resguard a l’ajuntament per a tramitar l’autorització:"
-                    }
-                  ]
-                },
-                {
-                  "runs": [
-                    {
-                      "t": "https://tramitaiguesresiduals.amb.cat/mod/sol/index.php"
-                    }
-                  ],
-                  "url": true
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "sidisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Es disposa de l’autorització (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient])"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            }
-          ]
-        },
-        {
-          "tipus": "item",
-          "titol": "Vector Residus (ARC)",
-          "clau": "Autoritzacions / Informes preceptius::Vector Residus (ARC)",
-          "cos": [],
-          "fills": [
-            {
-              "tipus": "nodisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "No es disposa de l’informe preceptiu"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "sidisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Es disposa de l’informe preceptiu (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient])"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            }
-          ]
-        },
-        {
-          "tipus": "item",
-          "titol": "Vector Residus - SDR",
-          "clau": "Autoritzacions / Informes preceptius::Vector Residus - SDR",
-          "cos": [],
-          "fills": [
-            {
-              "tipus": "nodisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "No es disposa del document d’alta al SDR. S’ha de sol·licitar en el següent enllaç:"
-                    }
-                  ]
-                },
-                {
-                  "runs": [
-                    {
-                      "t": "https://sdr.arc.cat/modemp/EditSolAltaReferencia.do?tipusProductor=RE"
-                    }
-                  ],
-                  "url": true
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "sidisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Es disposa del document d’alta al SDR (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient]; NIMA: [CAMP: NIMA])"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            }
-          ]
-        },
-        {
-          "tipus": "item",
-          "titol": "Vector Atmosfera - Grup A/B",
-          "clau": "Autoritzacions / Informes preceptius::Vector Atmosfera - Grup A/B",
-          "cos": [],
-          "fills": [
-            {
-              "tipus": "nodisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "No es disposa de l’informe preceptiu"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "sidisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Es disposa de l’informe preceptiu (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient])"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            }
-          ]
-        },
-        {
-          "tipus": "item",
-          "titol": "Vector Sòl",
-          "clau": "Autoritzacions / Informes preceptius::Vector Sòl",
-          "cos": [],
-          "fills": [
-            {
-              "tipus": "nodisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "No es disposa de l’informe preliminar"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "sidisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Es disposa de l’informe preliminar (Id Firmadoc: [CAMP: Id Firmadoc])"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            }
-          ]
-        },
-        {
-          "tipus": "item",
-          "titol": "Mobilitat",
-          "clau": "Autoritzacions / Informes preceptius::Mobilitat",
-          "cos": [],
-          "fills": [
-            {
-              "tipus": "nodisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "No es disposa de l’informe preliminar"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "sidisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Es disposa de l’informe preliminar (Id Firmadoc: [CAMP: Id Firmadoc])"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            }
-          ]
-        },
-        {
-          "tipus": "item",
-          "titol": "RASIC",
-          "clau": "Registres::RASIC",
-          "cos": [],
-          "fills": [
-            {
-              "tipus": "nodisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "No es disposa del registre. S’ha de registrar en el següent enllaç:"
-                    }
-                  ]
-                },
-                {
-                  "runs": [
-                    {
-                      "t": "https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Empresa-installadora-mantenidora-i-o-reparadora-dinstallacions-industrials"
-                    }
-                  ],
-                  "url": true
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "sidisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Es disposa del registre (Id Firmadoc: [CAMP: Id Firmadoc]; Registre: [CAMP: Registre])"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            }
-          ]
+         "runs": [
+          {
+           "t": "https://salutweb.gencat.cat/ca/tramits/tramits-temes/Autoritzacio-de-centres-o-serveis-sanitaris?moda=1"
+          }
+         ],
+         "url": true
         }
-      ]
+       ],
+       "fills": []
+      },
+      {
+       "tipus": "sidisposa",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Es disposa de l’autorització (Id Firmadoc: [CAMP: Id Firmadoc]; Referència: [CAMP: Referència])"
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
     },
     {
-      "tipus": "seccio",
-      "titol": "DESPRES",
-      "cos": [],
-      "fills": [
+     "tipus": "item",
+     "titol": "Educació",
+     "clau": "Autoritzacions / Informes preceptius::Educació",
+     "cos": [],
+     "fills": [
+      {
+       "tipus": "nodisposa",
+       "titol": "",
+       "cos": [
         {
-          "tipus": "item",
-          "titol": "Certificat Final d’Activitat.",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "Certificat Final d’Activitat."
-                }
-              ]
-            }
-          ],
-          "fills": [
-            {
-              "tipus": "quan",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Abans d’iniciar l’activitat."
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            }
-          ]
+         "runs": [
+          {
+           "t": "No es disposa de l’autorització. S’ha de sol·licitar en el següent enllaç:"
+          }
+         ]
         },
         {
-          "tipus": "item",
-          "titol": "Incendis. Acte de comprovació favorable en matèria d’incendi",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "Incendis. Acte de comprovació favorable en matèria d’incendis expedit per una Entitat Col·laboradora de l’Administració (EC-PCAA)."
-                }
-              ]
-            }
-          ],
-          "fills": [
-            {
-              "tipus": "subitem",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/entitats_col_laboradores_de_l_administracio/entitats-tecnics-habilitats/"
-                    }
-                  ],
-                  "url": true
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "quan",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Abans d’iniciar l’activitat."
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            }
-          ]
-        },
-        {
-          "tipus": "item",
-          "titol": "SP 136 Model A - limitació propagació",
-          "cos": [],
-          "fills": [
-            {
-              "tipus": "quan",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Abans d’iniciar l’activitat."
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            }
-          ],
-          "clau": "Incendis::SP 136 Model A - limitació propagació"
-        },
-        {
-          "tipus": "item",
-          "titol": "SP 136 Model C - protecció estructures",
-          "cos": [],
-          "fills": [
-            {
-              "tipus": "quan",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Abans d’iniciar l’activitat."
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            }
-          ],
-          "clau": "Incendis::SP 136 Model C - protecció estructures"
-        },
-        {
-          "tipus": "item",
-          "titol": "ITC SP 108 - lluernes en coberta",
-          "cos": [],
-          "fills": [
-            {
-              "tipus": "quan",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Abans d’iniciar l’activitat."
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            }
-          ],
-          "clau": "Incendis::ITC SP 108 - lluernes en coberta"
-        },
-        {
-          "tipus": "item",
-          "titol": "Insp. periòdica - PCI",
-          "cos": [],
-          "fills": [],
-          "clau": "Instal·lacions::Insp. periòdica - PCI"
-        },
-        {
-          "tipus": "item",
-          "titol": "Sanitat. Autorització de funcionament (Departament de Salut ",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "Sanitat. Autorització de funcionament (Departament de Salut de la Generalitat de Catalunya)."
-                }
-              ]
-            }
-          ],
-          "fills": [
-            {
-              "tipus": "subitem",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "https://salutweb.gencat.cat/ca/tramits/tramits-temes/Autoritzacio-de-centres-o-serveis-sanitaris?moda=2"
-                    }
-                  ],
-                  "url": true
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "quan",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Abans d’iniciar l’activitat."
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            }
-          ]
-        },
-        {
-          "tipus": "item",
-          "titol": "Educació. Autorització d’obertura de centres educatius priva",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "Educació. Autorització d’obertura de centres educatius privats  (Departament d’Educació)."
-                }
-              ]
-            }
-          ],
-          "fills": [
-            {
-              "tipus": "subitem",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "https://educacio.gencat.cat/ca/tramits/tramits-temes/autoritzacio-obertura-privats?moda=2"
-                    }
-                  ],
-                  "url": true
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "quan",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Abans d’iniciar l’activitat."
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            }
-          ]
-        },
-        {
-          "tipus": "item",
-          "titol": "Comerç. Comunicar l'inici d'activitat d'un establiment amb l",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "Comerç. Comunicar l'inici d'activitat d'un establiment amb llicència comercial (Departament d’Empresa i Treball)."
-                }
-              ]
-            }
-          ],
-          "fills": [
-            {
-              "tipus": "subitem",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Llicencia-comercial?category=&moda=3"
-                    }
-                  ],
-                  "url": true
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "quan",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Abans d’iniciar l’activitat."
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            }
-          ]
-        },
-        {
-          "tipus": "item",
-          "titol": "Vector Aigua (AMB). Anàlisi de les aigües residuals (punt fi",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "Vector Aigua (AMB). Anàlisi de les aigües residuals (punt final d’abocament)."
-                }
-              ]
-            }
-          ],
-          "fills": [
-            {
-              "tipus": "quan",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Abans de tres mesos després de la data d’inici de l’activitat."
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            }
-          ]
-        },
-        {
-          "tipus": "item",
-          "titol": "PAU",
-          "cos": [],
-          "fills": [
-            {
-              "tipus": "quan",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Iniciar el tràmit abans de sis mesos després de la data d’inici de l’activitat."
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            }
-          ],
-          "clau": "Pla d'Autoprotecció::PAU"
-        },
-        {
-          "tipus": "item",
-          "titol": "Annex II Llei 20/2009 - control inicial",
-          "cos": [],
-          "fills": [
-            {
-              "tipus": "subitem",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "https://www.gencat.cat/mediamb/ohec/eac_CA.pdf"
-                    }
-                  ],
-                  "url": true
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "quan",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Abans d’iniciar l’activitat."
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            }
-          ],
-          "clau": "Controls inicials::Annex II Llei 20/2009 - control inicial"
-        },
-        {
-          "tipus": "item",
-          "titol": "Vector Atmosfera - control inicial",
-          "cos": [],
-          "fills": [
-            {
-              "tipus": "subitem",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "CAE (Control Atmosfèric de l'Establiment)"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "subitem",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Informe reglamentari de mesures d'emissions a l’atmosfera"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "quan",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Abans d’iniciar l’activitat."
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            }
-          ],
-          "clau": "Controls inicials::Vector Atmosfera - control inicial"
-        },
-        {
-          "tipus": "item",
-          "titol": "Certificats d’inscripció al Registre d'instal·lacions de Seg",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "Certificats d’inscripció al Registre d'instal·lacions de Seguretat Industrial de Catalunya (RITSIC) que acrediti que s’han legalitzat les següents instal·lacions:"
-                }
-              ]
-            }
-          ],
-          "fills": [
-            {
-              "tipus": "subitem",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Instal·lació d’autoconsum (fotovoltaica)"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "subitem",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Instal·lació de gas"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "subitem",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Instal·lació de baixa tensió"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "subitem",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Ascensors"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "subitem",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Instal·lacions tèrmiques en els edificis"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "subitem",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Instal·lacions de fred industrial"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "subitem",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Equips a pressió"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "subitem",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Instal·lacions de protecció contra incendis PCI"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "subitem",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Emmagatzematge de productes químics"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "subitem",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Instal·lació petrolífera"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "quan",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Abans d’iniciar l’activitat."
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            }
-          ]
-        },
-        {
-          "tipus": "item",
-          "titol": "Inspecció inicial per part d’un organisme de control habilit",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "Inspecció inicial per part d’un organisme de control habilitat de les següents instal·lacions:"
-                }
-              ]
-            }
-          ],
-          "fills": [
-            {
-              "tipus": "subitem",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Instal·lació d’autoconsum (fotovoltaica)"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "subitem",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Instal·lació de gas"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "subitem",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Instal·lació de baixa tensió"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "subitem",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Ascensors"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "quan",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Abans d’iniciar l’activitat."
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            }
-          ]
+         "runs": [
+          {
+           "t": "https://educacio.gencat.cat/ca/tramits/tramits-temes/autoritzacio-obertura-privats?moda=1"
+          }
+         ],
+         "url": true
         }
-      ]
+       ],
+       "fills": []
+      },
+      {
+       "tipus": "sidisposa",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Es disposa de l’autorització (Id Firmadoc: [CAMP: Id Firmadoc]; Referència: [CAMP: Referència])"
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
     },
     {
-      "tipus": "seccio",
-      "titol": "PROPIS",
-      "cos": [],
-      "fills": [
+     "tipus": "item",
+     "titol": "Comerç",
+     "clau": "Autoritzacions / Informes preceptius::Comerç",
+     "cos": [],
+     "fills": [
+      {
+       "tipus": "nodisposa",
+       "titol": "",
+       "cos": [
         {
-          "tipus": "item",
-          "titol": "Annex II Compatibilitat. Informe o certificat de compatibili",
-          "condicio": "annexii",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "Annex II Compatibilitat. Informe o certificat de compatibilitat urbanística signat pel Cap d’Àrea de Gestió de Política Territorial."
-                }
-              ]
-            }
-          ],
-          "fills": [
-            {
-              "tipus": "nodisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "No es disposa de l’informe o certificat. S’ha de demanar al departament de Política Territorial a través de la seu electrònica"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "sidisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Es disposa de l’informe o certificat (Id Firmadoc: [CAMP: Id Firmadoc]; Exp: [CAMP: Expedient])"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            }
-          ]
+         "runs": [
+          {
+           "t": "No es disposa de llicència. S’ha de sol·licitar en el següent enllaç:"
+          }
+         ]
         },
         {
-          "tipus": "item",
-          "titol": "Llicència provisional Compatibilitat. Informe preceptiu per ",
-          "condicio": "provisional",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "Llicència provisional Compatibilitat. Informe preceptiu per a l’autorització d’usos i obres provisionals per part de l’Àrea Metropolitana de Barcelona."
-                }
-              ]
-            }
-          ],
-          "fills": [
-            {
-              "tipus": "nodisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "No es disposa de l’autorització. S’ha d’enviar a l’ajuntament la documentació que s’indica a l’ANNEX 1"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            },
-            {
-              "tipus": "sidisposa",
-              "titol": "",
-              "cos": [
-                {
-                  "runs": [
-                    {
-                      "t": "Es disposa de l’autorització (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient])"
-                    }
-                  ]
-                }
-              ],
-              "fills": []
-            }
-          ]
+         "runs": [
+          {
+           "t": "https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Llicencia-comercial?category=&moda=2"
+          }
+         ],
+         "url": true
         }
-      ]
+       ],
+       "fills": []
+      },
+      {
+       "tipus": "sidisposa",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Es disposa de llicència (Id Firmadoc: [CAMP: Id Firmadoc]; Referència: [CAMP: Referència])"
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
     },
     {
-      "tipus": "seccio",
-      "titol": "ANNEX 1. Documentació per demanar l’autorització d’usos i obres provisionals",
-      "cos": [],
-      "fills": [
+     "tipus": "item",
+     "titol": "Esport",
+     "clau": "Autoritzacions / Informes preceptius::Esport",
+     "cos": [],
+     "fills": [
+      {
+       "tipus": "nodisposa",
+       "titol": "",
+       "cos": [
         {
-          "tipus": "item",
-          "titol": "",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "Instància d’entrada a l’Ajuntament per part de la persona interessada sol·licitant la llicència d’obres i usos de caràcter provisional."
-                }
-              ]
-            }
-          ],
-          "fills": []
+         "runs": [
+          {
+           "t": "No es disposa de l’informe. S’ha de sol·licitar en el següent enllaç:"
+          }
+         ]
         },
         {
-          "tipus": "text",
-          "titol": "",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "S’ha d’aportar la memòria que es comenta en el següent. No és necessari el projecte visat, únicament un document on s’expliquin quins usos es volen dur a terme i la descripció de les obres el més detallat possible per valorar si aquestes són les mínimes imprescindibles, a més de la descripció de les obres de desmuntatge."
-                }
-              ]
-            }
-          ],
-          "fills": []
-        },
-        {
-          "tipus": "item",
-          "titol": "",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "La memòria justificativa del caràcter provisional dels usos i les obres provisionals (elaborada per la persona sol·licitant de l’ús / obra / activitat), on hi figuri, com a mínim, els punts següents:"
-                }
-              ]
-            }
-          ],
-          "fills": []
-        },
-        {
-          "tipus": "subitem",
-          "titol": "",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "Descripció i representació gràfica de les obres provisionals, on es justifiqui que aquestes son les mínimes necessàries per a desenvolupar l'ús sense ometre cap de les normes de seguretat i higiene establertes per la legislació sectorial. La naturalesa de les obres provisionals de nova planta no ha de dificultar la restitució dels terrenys a llur estat original."
-                }
-              ]
-            }
-          ],
-          "fills": []
-        },
-        {
-          "tipus": "subitem",
-          "titol": "",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "Obres necessàries per reposar la situació que s’alteri al seu estat original."
-                }
-              ]
-            }
-          ],
-          "fills": []
-        },
-        {
-          "tipus": "subitem",
-          "titol": "",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "Indicació dels pressupostos d’execució de les obres provisionals i de reposició."
-                }
-              ]
-            }
-          ],
-          "fills": []
-        },
-        {
-          "tipus": "text",
-          "titol": "",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "És suficient amb un resum del pressupost. El pressupost de desmuntatge ha de ser com a mínim un 10% del pressupost d’execució."
-                }
-              ]
-            }
-          ],
-          "fills": []
-        },
-        {
-          "tipus": "subitem",
-          "titol": "",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "Indicació dels serveis urbanístics existents i els que calgui implantar, incloses les obres de connexió corresponents."
-                }
-              ]
-            }
-          ],
-          "fills": []
-        },
-        {
-          "tipus": "item",
-          "titol": "",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "Acreditació de les diverses titularitats amb els documents següents:"
-                }
-              ]
-            }
-          ],
-          "fills": []
-        },
-        {
-          "tipus": "subitem",
-          "titol": "",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "Identificació precisa de la finca afectada amb indicació de la seva referència cadastral i registral, així com els documents on s’acrediti la titularitat de la finca (nota simple o escriptura d’adquisició)."
-                }
-              ]
-            }
-          ],
-          "fills": []
-        },
-        {
-          "tipus": "subitem",
-          "titol": "",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "Per acreditar el titular del dret d’ús, s’aportarà el contracte d’explotador dels usos o el negoci jurídic mitjançant el qual s’ha instrumentalitzar aquesta explotació."
-                }
-              ]
-            }
-          ],
-          "fills": []
-        },
-        {
-          "tipus": "subitem",
-          "titol": "",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "En el cas que les persones físiques que signen els compromisos no siguin les titulars de la finca i/o del dret d’ús que apareixen en els documents acreditatius abans esmentats, s’haurà d’aportar els poders mitjançant escriptura notarial on es pugui certificar que poden actuar en nom de les titulars."
-                }
-              ]
-            }
-          ],
-          "fills": []
-        },
-        {
-          "tipus": "item",
-          "titol": "",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "Acceptació expressa dels efectes i compromís d’advertència, d’acord amb el següent document."
-                }
-              ]
-            }
-          ],
-          "fills": []
-        },
-        {
-          "tipus": "text",
-          "titol": "",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "Document d’acceptació del cessament dels usos, desmuntatge i reposició de les obres autoritzades de caràcter provisional segons l’article 54.1 del Decret legislatiu pel qual s’aprova el text refós de la llei d’urbanisme 1/2010, de 3 d’agost (TRLU), i l’article 66 del Decret 64/2014, de 13 de maig,  pel qual s’aprova el Reglament sobre protecció de la legalitat urbanística (RPLU)."
-                }
-              ]
-            }
-          ],
-          "fills": []
-        },
-        {
-          "tipus": "text",
-          "titol": "",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "Jo.............................................., amb DNI......................................., com a titular del dret de la propietat de la finca situada .................... del terme municipal de ....................amb referència cadastral ....................... i número de finca registral.......inscrita al Tom......., Llibre.....,Foli......del Registre de la Propietat número...... de ............., accepto cessar els usos i desmuntar o enderrocar les obres que s’autoritzin, així com de reposar la situació que s’alteri al seu estat original, quan ho acordi l’administració actuant, sense dret a percebre indemnització per aquests conceptes, inclosa la finalització eventual dels contractes d’arrendament o qualsevol altre negoci jurídic al qual estiguin vinculats. També em comprometo a advertir, per escrit, del caràcter de provisionalitat dels usos i obres que s’autoritzin i dels seus efectes quan formalitzin qualsevol negoci jurídic amb terceres persones en virtut del qual els transmetin els drets respectius de propietat o ús corresponents als usos i les obres provisionals que s’autoritzin."
-                }
-              ]
-            }
-          ],
-          "fills": []
-        },
-        {
-          "tipus": "text",
-          "titol": "",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "Per tal de rebre notificacions per mitjans electrònics la meva adreça electrònica és........................, o bé per rebre-ho per correu ordinari la meva direcció postal és .........................del terme municipal de ................................"
-                }
-              ]
-            }
-          ],
-          "fills": []
-        },
-        {
-          "tipus": "text",
-          "titol": "",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "Signat"
-                }
-              ]
-            }
-          ],
-          "fills": []
-        },
-        {
-          "tipus": "text",
-          "titol": "",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "Jo ........................, amb DNI......................................., com a arrendatari / gestor / explotador / titular dels drets de l’ús de la finca situada .................... del terme municipal de ....................amb referència cadastral ....................... i número de finca registral.......inscrita al Tom......., Llibre.....,Foli......del Registre de la Propietat número...... de ............., accepto cessar els usos i desmuntar o enderrocar les obres que s’autoritzin, així com de reposar la situació que s’alteri al seu estat original, quan ho acordi l’administració actuant, sense dret a percebre indemnització per aquests conceptes, inclosa la finalització eventual dels contractes d’arrendament o qualsevol altre negoci jurídic al qual estiguin vinculats. També em comprometo a advertir, per escrit, del caràcter de provisionalitat dels usos i obres que s’autoritzin i dels seus efectes quan formalitzin qualsevol negoci jurídic amb terceres persones en virtut del qual els transmetin els drets respectius de propietat o ús corresponents als usos i les obres provisionals que s’autoritzin."
-                }
-              ]
-            }
-          ],
-          "fills": []
-        },
-        {
-          "tipus": "text",
-          "titol": "",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "Per tal de rebre notificacions per mitjans electrònics la meva adreça electrònica és........................, o bé per rebre-ho per correu ordinari la meva direcció postal és .........................del terme municipal de ................................"
-                }
-              ]
-            }
-          ],
-          "fills": []
-        },
-        {
-          "tipus": "text",
-          "titol": "",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "Signat"
-                }
-              ]
-            }
-          ],
-          "fills": []
+         "runs": [
+          {
+           "t": "https://web.gencat.cat/ca/tramits/tramits-temes/22032-Informe-previ-al-Servei-dEquipaments-Esportius-per-a-la-realitzacio-en-installacions-esportives-a-Catalunya"
+          }
+         ],
+         "url": true
         }
-      ]
+       ],
+       "fills": []
+      },
+      {
+       "tipus": "sidisposa",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Es disposa de l’informe (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient])"
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    },
+    {
+     "tipus": "item",
+     "titol": "Incendis",
+     "clau": "Autoritzacions / Informes preceptius::Incendis",
+     "cos": [],
+     "fills": [
+      {
+       "tipus": "nodisposa",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "No es disposa de l’informe. S’ha de sol·licitar en el següent enllaç:"
+          }
+         ]
+        },
+        {
+         "runs": [
+          {
+           "t": "https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/23705_-_Informe-de-prevencio-i-seguretat-en-materia-dincendis"
+          }
+         ],
+         "url": true
+        }
+       ],
+       "fills": []
+      },
+      {
+       "tipus": "sidisposa",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Es disposa de l’informe (Id Firmadoc: [CAMP: Id Firmadoc]; Referència: [CAMP: Referència])"
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    },
+    {
+     "tipus": "item",
+     "titol": "Impacte ambiental",
+     "clau": "Autoritzacions / Informes preceptius::Impacte ambiental",
+     "cos": [],
+     "fills": [
+      {
+       "tipus": "nodisposa",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "No es disposa de l’estudi d’impacte ambiental. S’ha de presentar a l’ajuntament per enviar-lo a l’OGAU després de fer la informació pública."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "tipus": "sidisposa",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Es disposa de l’informe (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient])"
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    },
+    {
+     "tipus": "item",
+     "titol": "Vector Aigua (ACA) - Zona inundable fluvial T500",
+     "clau": "Autoritzacions / Informes preceptius::Vector Aigua (ACA) - Zona inundable fluvial T500",
+     "cos": [],
+     "fills": [
+      {
+       "tipus": "nodisposa",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "No es disposa de l’informe. S’ha de sol·licitar en el següent enllaç:"
+          }
+         ]
+        },
+        {
+         "runs": [
+          {
+           "t": "https://aca.gencat.cat/ca/tramits/Informes-relacionats-amb-el-vector-aigua?moda=1"
+          }
+         ],
+         "url": true
+        }
+       ],
+       "fills": []
+      },
+      {
+       "tipus": "sidisposa",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Es disposa de l’informe (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient])"
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    },
+    {
+     "tipus": "item",
+     "titol": "Vector Aigua (ACA) - abocaments",
+     "clau": "Autoritzacions / Informes preceptius::Vector Aigua (ACA) - abocaments",
+     "cos": [],
+     "fills": [
+      {
+       "tipus": "nodisposa",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "No es disposa de l’autorització"
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "tipus": "sidisposa",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Es disposa de l’autorització (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient])"
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    },
+    {
+     "tipus": "item",
+     "titol": "Vector Aigua (AMB) - abocaments",
+     "clau": "Autoritzacions / Informes preceptius::Vector Aigua (AMB) - abocaments",
+     "cos": [],
+     "fills": [
+      {
+       "tipus": "nodisposa",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "No es disposa de l’autorització. S’ha de sol·licitar en el següent enllaç i posteriorment enviar el resguard a l’ajuntament per a tramitar l’autorització:"
+          }
+         ]
+        },
+        {
+         "runs": [
+          {
+           "t": "https://tramitaiguesresiduals.amb.cat/mod/sol/index.php"
+          }
+         ],
+         "url": true
+        }
+       ],
+       "fills": []
+      },
+      {
+       "tipus": "sidisposa",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Es disposa de l’autorització (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient])"
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    },
+    {
+     "tipus": "item",
+     "titol": "Vector Residus (ARC)",
+     "clau": "Autoritzacions / Informes preceptius::Vector Residus (ARC)",
+     "cos": [],
+     "fills": [
+      {
+       "tipus": "nodisposa",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "No es disposa de l’informe preceptiu"
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "tipus": "sidisposa",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Es disposa de l’informe preceptiu (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient])"
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    },
+    {
+     "tipus": "item",
+     "titol": "Vector Residus - SDR",
+     "clau": "Autoritzacions / Informes preceptius::Vector Residus - SDR",
+     "cos": [],
+     "fills": [
+      {
+       "tipus": "nodisposa",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "No es disposa del document d’alta al SDR. S’ha de sol·licitar en el següent enllaç:"
+          }
+         ]
+        },
+        {
+         "runs": [
+          {
+           "t": "https://sdr.arc.cat/modemp/EditSolAltaReferencia.do?tipusProductor=RE"
+          }
+         ],
+         "url": true
+        }
+       ],
+       "fills": []
+      },
+      {
+       "tipus": "sidisposa",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Es disposa del document d’alta al SDR (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient]; NIMA: [CAMP: NIMA])"
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    },
+    {
+     "tipus": "item",
+     "titol": "Vector Atmosfera - Grup A/B",
+     "clau": "Autoritzacions / Informes preceptius::Vector Atmosfera - Grup A/B",
+     "cos": [],
+     "fills": [
+      {
+       "tipus": "nodisposa",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "No es disposa de l’informe preceptiu"
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "tipus": "sidisposa",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Es disposa de l’informe preceptiu (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient])"
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    },
+    {
+     "tipus": "item",
+     "titol": "Vector Sòl",
+     "clau": "Autoritzacions / Informes preceptius::Vector Sòl",
+     "cos": [],
+     "fills": [
+      {
+       "tipus": "nodisposa",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "No es disposa de l’informe preliminar"
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "tipus": "sidisposa",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Es disposa de l’informe preliminar (Id Firmadoc: [CAMP: Id Firmadoc])"
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    },
+    {
+     "tipus": "item",
+     "titol": "Mobilitat",
+     "clau": "Autoritzacions / Informes preceptius::Mobilitat",
+     "cos": [],
+     "fills": [
+      {
+       "tipus": "nodisposa",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "No es disposa de l’informe preliminar"
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "tipus": "sidisposa",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Es disposa de l’informe preliminar (Id Firmadoc: [CAMP: Id Firmadoc])"
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    },
+    {
+     "tipus": "item",
+     "titol": "RASIC",
+     "clau": "Registres::RASIC",
+     "cos": [],
+     "fills": [
+      {
+       "tipus": "nodisposa",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "No es disposa del registre. S’ha de registrar en el següent enllaç:"
+          }
+         ]
+        },
+        {
+         "runs": [
+          {
+           "t": "https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Empresa-installadora-mantenidora-i-o-reparadora-dinstallacions-industrials"
+          }
+         ],
+         "url": true
+        }
+       ],
+       "fills": []
+      },
+      {
+       "tipus": "sidisposa",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Es disposa del registre (Id Firmadoc: [CAMP: Id Firmadoc]; Registre: [CAMP: Registre])"
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
     }
-  ]
+   ]
+  },
+  {
+   "tipus": "seccio",
+   "titol": "DESPRES",
+   "cos": [],
+   "fills": [
+    {
+     "tipus": "item",
+     "titol": "Certificat Final d’Activitat.",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Certificat Final d’Activitat."
+        }
+       ]
+      }
+     ],
+     "fills": [
+      {
+       "tipus": "quan",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Abans d’iniciar l’activitat."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    },
+    {
+     "tipus": "item",
+     "titol": "Incendis. Acte de comprovació favorable en matèria d’incendi",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Incendis. Acte de comprovació favorable en matèria d’incendis expedit per una Entitat Col·laboradora de l’Administració (EC-PCAA)."
+        }
+       ]
+      }
+     ],
+     "fills": [
+      {
+       "tipus": "subitem",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/entitats_col_laboradores_de_l_administracio/entitats-tecnics-habilitats/"
+          }
+         ],
+         "url": true
+        }
+       ],
+       "fills": []
+      },
+      {
+       "tipus": "quan",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Abans d’iniciar l’activitat."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    },
+    {
+     "tipus": "item",
+     "titol": "SP 136 Model A - limitació propagació",
+     "cos": [],
+     "fills": [
+      {
+       "tipus": "quan",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Abans d’iniciar l’activitat."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ],
+     "clau": "Incendis::SP 136 Model A - limitació propagació"
+    },
+    {
+     "tipus": "item",
+     "titol": "SP 136 Model C - protecció estructures",
+     "cos": [],
+     "fills": [
+      {
+       "tipus": "quan",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Abans d’iniciar l’activitat."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ],
+     "clau": "Incendis::SP 136 Model C - protecció estructures"
+    },
+    {
+     "tipus": "item",
+     "titol": "ITC SP 108 - lluernes en coberta",
+     "cos": [],
+     "fills": [
+      {
+       "tipus": "quan",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Abans d’iniciar l’activitat."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ],
+     "clau": "Incendis::ITC SP 108 - lluernes en coberta"
+    },
+    {
+     "tipus": "item",
+     "titol": "Sanitat. Autorització de funcionament (Departament de Salut ",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Sanitat. Autorització de funcionament (Departament de Salut de la Generalitat de Catalunya)."
+        }
+       ]
+      }
+     ],
+     "fills": [
+      {
+       "tipus": "subitem",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "https://salutweb.gencat.cat/ca/tramits/tramits-temes/Autoritzacio-de-centres-o-serveis-sanitaris?moda=2"
+          }
+         ],
+         "url": true
+        }
+       ],
+       "fills": []
+      },
+      {
+       "tipus": "quan",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Abans d’iniciar l’activitat."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    },
+    {
+     "tipus": "item",
+     "titol": "Educació. Autorització d’obertura de centres educatius priva",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Educació. Autorització d’obertura de centres educatius privats  (Departament d’Educació)."
+        }
+       ]
+      }
+     ],
+     "fills": [
+      {
+       "tipus": "subitem",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "https://educacio.gencat.cat/ca/tramits/tramits-temes/autoritzacio-obertura-privats?moda=2"
+          }
+         ],
+         "url": true
+        }
+       ],
+       "fills": []
+      },
+      {
+       "tipus": "quan",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Abans d’iniciar l’activitat."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    },
+    {
+     "tipus": "item",
+     "titol": "Comerç. Comunicar l'inici d'activitat d'un establiment amb l",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Comerç. Comunicar l'inici d'activitat d'un establiment amb llicència comercial (Departament d’Empresa i Treball)."
+        }
+       ]
+      }
+     ],
+     "fills": [
+      {
+       "tipus": "subitem",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Llicencia-comercial?category=&moda=3"
+          }
+         ],
+         "url": true
+        }
+       ],
+       "fills": []
+      },
+      {
+       "tipus": "quan",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Abans d’iniciar l’activitat."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    },
+    {
+     "tipus": "item",
+     "titol": "Vector Aigua (AMB). Anàlisi de les aigües residuals (punt fi",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Vector Aigua (AMB). Anàlisi de les aigües residuals (punt final d’abocament)."
+        }
+       ]
+      }
+     ],
+     "fills": [
+      {
+       "tipus": "quan",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Abans de tres mesos després de la data d’inici de l’activitat."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    },
+    {
+     "tipus": "item",
+     "titol": "PAU",
+     "cos": [],
+     "fills": [
+      {
+       "tipus": "quan",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Iniciar el tràmit abans de sis mesos després de la data d’inici de l’activitat."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ],
+     "clau": "Pla d'Autoprotecció::PAU"
+    },
+    {
+     "tipus": "item",
+     "titol": "Annex II Llei 20/2009 - control inicial",
+     "cos": [],
+     "fills": [
+      {
+       "tipus": "subitem",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "https://www.gencat.cat/mediamb/ohec/eac_CA.pdf"
+          }
+         ],
+         "url": true
+        }
+       ],
+       "fills": []
+      },
+      {
+       "tipus": "quan",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Abans d’iniciar l’activitat."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ],
+     "clau": "Controls inicials::Annex II Llei 20/2009 - control inicial"
+    },
+    {
+     "tipus": "item",
+     "titol": "Vector Atmosfera - control inicial",
+     "cos": [],
+     "fills": [
+      {
+       "tipus": "subitem",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "CAE (Control Atmosfèric de l'Establiment)"
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "tipus": "subitem",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Informe reglamentari de mesures d'emissions a l’atmosfera"
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "tipus": "quan",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Abans d’iniciar l’activitat."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ],
+     "clau": "Controls inicials::Vector Atmosfera - control inicial"
+    },
+    {
+     "tipus": "item",
+     "titol": "Insp. periòdica - PCI",
+     "cos": [],
+     "fills": [],
+     "clau": "Instal·lacions::Insp. periòdica - PCI"
+    },
+    {
+     "tipus": "item",
+     "titol": "Certificats d’inscripció al Registre d'instal·lacions de Seg",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Certificats d’inscripció al Registre d'instal·lacions de Seguretat Industrial de Catalunya (RITSIC) que acrediti que s’han legalitzat les següents instal·lacions:"
+        }
+       ]
+      }
+     ],
+     "fills": [
+      {
+       "tipus": "quan",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Abans d’iniciar l’activitat."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ],
+     "clau": "Instal·lacions::Legalitzacions"
+    },
+    {
+     "tipus": "item",
+     "titol": "Inspecció inicial per part d’un organisme de control habilit",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Inspecció inicial per part d’un organisme de control habilitat de les següents instal·lacions:"
+        }
+       ]
+      }
+     ],
+     "fills": [
+      {
+       "tipus": "quan",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Abans d’iniciar l’activitat."
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ],
+     "clau": "Instal·lacions::Inspeccions inicials"
+    }
+   ]
+  },
+  {
+   "tipus": "seccio",
+   "titol": "PROPIS",
+   "cos": [],
+   "fills": [
+    {
+     "tipus": "item",
+     "titol": "Annex II Compatibilitat. Informe o certificat de compatibili",
+     "condicio": "annexii",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Annex II Compatibilitat. Informe o certificat de compatibilitat urbanística signat pel Cap d’Àrea de Gestió de Política Territorial."
+        }
+       ]
+      }
+     ],
+     "fills": [
+      {
+       "tipus": "nodisposa",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "No es disposa de l’informe o certificat. S’ha de demanar al departament de Política Territorial a través de la seu electrònica"
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "tipus": "sidisposa",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Es disposa de l’informe o certificat (Id Firmadoc: [CAMP: Id Firmadoc]; Exp: [CAMP: Expedient])"
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    },
+    {
+     "tipus": "item",
+     "titol": "Llicència provisional Compatibilitat. Informe preceptiu per ",
+     "condicio": "provisional",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Llicència provisional Compatibilitat. Informe preceptiu per a l’autorització d’usos i obres provisionals per part de l’Àrea Metropolitana de Barcelona."
+        }
+       ]
+      }
+     ],
+     "fills": [
+      {
+       "tipus": "nodisposa",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "No es disposa de l’autorització. S’ha d’enviar a l’ajuntament la documentació que s’indica a l’ANNEX 1"
+          }
+         ]
+        }
+       ],
+       "fills": []
+      },
+      {
+       "tipus": "sidisposa",
+       "titol": "",
+       "cos": [
+        {
+         "runs": [
+          {
+           "t": "Es disposa de l’autorització (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient])"
+          }
+         ]
+        }
+       ],
+       "fills": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "tipus": "seccio",
+   "titol": "ANNEX 1. Documentació per demanar l’autorització d’usos i obres provisionals",
+   "cos": [],
+   "fills": [
+    {
+     "tipus": "item",
+     "titol": "",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Instància d’entrada a l’Ajuntament per part de la persona interessada sol·licitant la llicència d’obres i usos de caràcter provisional."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "tipus": "text",
+     "titol": "",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "S’ha d’aportar la memòria que es comenta en el següent. No és necessari el projecte visat, únicament un document on s’expliquin quins usos es volen dur a terme i la descripció de les obres el més detallat possible per valorar si aquestes són les mínimes imprescindibles, a més de la descripció de les obres de desmuntatge."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "tipus": "item",
+     "titol": "",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "La memòria justificativa del caràcter provisional dels usos i les obres provisionals (elaborada per la persona sol·licitant de l’ús / obra / activitat), on hi figuri, com a mínim, els punts següents:"
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "tipus": "subitem",
+     "titol": "",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Descripció i representació gràfica de les obres provisionals, on es justifiqui que aquestes son les mínimes necessàries per a desenvolupar l'ús sense ometre cap de les normes de seguretat i higiene establertes per la legislació sectorial. La naturalesa de les obres provisionals de nova planta no ha de dificultar la restitució dels terrenys a llur estat original."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "tipus": "subitem",
+     "titol": "",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Obres necessàries per reposar la situació que s’alteri al seu estat original."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "tipus": "subitem",
+     "titol": "",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Indicació dels pressupostos d’execució de les obres provisionals i de reposició."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "tipus": "text",
+     "titol": "",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "És suficient amb un resum del pressupost. El pressupost de desmuntatge ha de ser com a mínim un 10% del pressupost d’execució."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "tipus": "subitem",
+     "titol": "",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Indicació dels serveis urbanístics existents i els que calgui implantar, incloses les obres de connexió corresponents."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "tipus": "item",
+     "titol": "",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Acreditació de les diverses titularitats amb els documents següents:"
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "tipus": "subitem",
+     "titol": "",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Identificació precisa de la finca afectada amb indicació de la seva referència cadastral i registral, així com els documents on s’acrediti la titularitat de la finca (nota simple o escriptura d’adquisició)."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "tipus": "subitem",
+     "titol": "",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Per acreditar el titular del dret d’ús, s’aportarà el contracte d’explotador dels usos o el negoci jurídic mitjançant el qual s’ha instrumentalitzar aquesta explotació."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "tipus": "subitem",
+     "titol": "",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "En el cas que les persones físiques que signen els compromisos no siguin les titulars de la finca i/o del dret d’ús que apareixen en els documents acreditatius abans esmentats, s’haurà d’aportar els poders mitjançant escriptura notarial on es pugui certificar que poden actuar en nom de les titulars."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "tipus": "item",
+     "titol": "",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Acceptació expressa dels efectes i compromís d’advertència, d’acord amb el següent document."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "tipus": "text",
+     "titol": "",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Document d’acceptació del cessament dels usos, desmuntatge i reposició de les obres autoritzades de caràcter provisional segons l’article 54.1 del Decret legislatiu pel qual s’aprova el text refós de la llei d’urbanisme 1/2010, de 3 d’agost (TRLU), i l’article 66 del Decret 64/2014, de 13 de maig,  pel qual s’aprova el Reglament sobre protecció de la legalitat urbanística (RPLU)."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "tipus": "text",
+     "titol": "",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Jo.............................................., amb DNI......................................., com a titular del dret de la propietat de la finca situada .................... del terme municipal de ....................amb referència cadastral ....................... i número de finca registral.......inscrita al Tom......., Llibre.....,Foli......del Registre de la Propietat número...... de ............., accepto cessar els usos i desmuntar o enderrocar les obres que s’autoritzin, així com de reposar la situació que s’alteri al seu estat original, quan ho acordi l’administració actuant, sense dret a percebre indemnització per aquests conceptes, inclosa la finalització eventual dels contractes d’arrendament o qualsevol altre negoci jurídic al qual estiguin vinculats. També em comprometo a advertir, per escrit, del caràcter de provisionalitat dels usos i obres que s’autoritzin i dels seus efectes quan formalitzin qualsevol negoci jurídic amb terceres persones en virtut del qual els transmetin els drets respectius de propietat o ús corresponents als usos i les obres provisionals que s’autoritzin."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "tipus": "text",
+     "titol": "",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Per tal de rebre notificacions per mitjans electrònics la meva adreça electrònica és........................, o bé per rebre-ho per correu ordinari la meva direcció postal és .........................del terme municipal de ................................"
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "tipus": "text",
+     "titol": "",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Signat"
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "tipus": "text",
+     "titol": "",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Jo ........................, amb DNI......................................., com a arrendatari / gestor / explotador / titular dels drets de l’ús de la finca situada .................... del terme municipal de ....................amb referència cadastral ....................... i número de finca registral.......inscrita al Tom......., Llibre.....,Foli......del Registre de la Propietat número...... de ............., accepto cessar els usos i desmuntar o enderrocar les obres que s’autoritzin, així com de reposar la situació que s’alteri al seu estat original, quan ho acordi l’administració actuant, sense dret a percebre indemnització per aquests conceptes, inclosa la finalització eventual dels contractes d’arrendament o qualsevol altre negoci jurídic al qual estiguin vinculats. També em comprometo a advertir, per escrit, del caràcter de provisionalitat dels usos i obres que s’autoritzin i dels seus efectes quan formalitzin qualsevol negoci jurídic amb terceres persones en virtut del qual els transmetin els drets respectius de propietat o ús corresponents als usos i les obres provisionals que s’autoritzin."
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "tipus": "text",
+     "titol": "",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Per tal de rebre notificacions per mitjans electrònics la meva adreça electrònica és........................, o bé per rebre-ho per correu ordinari la meva direcció postal és .........................del terme municipal de ................................"
+        }
+       ]
+      }
+     ],
+     "fills": []
+    },
+    {
+     "tipus": "text",
+     "titol": "",
+     "cos": [
+      {
+       "runs": [
+        {
+         "t": "Signat"
+        }
+       ]
+      }
+     ],
+     "fills": []
+    }
+   ]
+  }
+ ]
 }

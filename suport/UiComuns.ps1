@@ -102,7 +102,99 @@ function _NewForm {
     $f.MinimizeBox = $true
     $f.MaximizeBox = $true
     if ($null -ne $Script:AppIcon) { $f.Icon = $Script:AppIcon }
+    # Cada finestra es comprova a si mateixa en obrir-se (vegeu mes avall).
+    $f.add_Shown({ param($s, $e) _AvisaSolapaments $s }.GetNewClosure())
     return $f
+}
+
+# ----------------------------------------------------------------------------
+# CONTROLS QUE ES TREPITGEN: detectar-ho SOL, a totes les pantalles
+# ----------------------------------------------------------------------------
+# Els solapaments son el defecte recurrent d'aquest programa: coordenades
+# posades a ma, i un text que creix o un control nou que hi passa per sobre. El
+# darrer va ser el xip "Dades" tapant el "LL Prov" del menu.
+#
+# Les proves no ho poden veure -les finestres nomes es dibuixen a Windows-, o
+# sigui que qui ho ha de veure es EL PROGRAMA MATEIX: cada finestra es mira en
+# obrir-se i, si hi ha controls germans que es trepitgen, ho diu amb els noms i
+# les coordenades. Val mes un avis lleig un cop que una pantalla mig tapada
+# durant setmanes.
+
+# La part de decisio es PURA i es prova a Linux: rebre rectangles i dir quins
+# parells es trepitgen.
+#
+# $rects: llista de @{ Nom; X; Y; W; H }.
+# NO es solapament: que un CONTINGUI l'altre del tot (un fons a posta) ni que
+# nomes es toquin per la vora.
+function _TrobaSolapaments($rects) {
+    $out = New-Object System.Collections.ArrayList
+    $l = @($rects)
+    for ($i = 0; $i -lt $l.Count; $i++) {
+        for ($j = $i + 1; $j -lt $l.Count; $j++) {
+            $a = $l[$i]; $b = $l[$j]
+            $ax2 = [int]$a.X + [int]$a.W; $ay2 = [int]$a.Y + [int]$a.H
+            $bx2 = [int]$b.X + [int]$b.W; $by2 = [int]$b.Y + [int]$b.H
+            if (-not ([int]$a.X -lt $bx2 -and [int]$b.X -lt $ax2 -and
+                      [int]$a.Y -lt $by2 -and [int]$b.Y -lt $ay2)) { continue }
+            # Un dins de l'altre del tot: es un fons, no un error.
+            $aDinsB = ([int]$b.X -le [int]$a.X -and [int]$b.Y -le [int]$a.Y -and $bx2 -ge $ax2 -and $by2 -ge $ay2)
+            $bDinsA = ([int]$a.X -le [int]$b.X -and [int]$a.Y -le [int]$b.Y -and $ax2 -ge $bx2 -and $ay2 -ge $by2)
+            if ($aDinsB -or $bDinsA) { continue }
+            [void]$out.Add(('{0} [{1},{2} {3}x{4}] i {5} [{6},{7} {8}x{9}]' -f `
+                $a.Nom, $a.X, $a.Y, $a.W, $a.H, $b.Nom, $b.X, $b.Y, $b.W, $b.H))
+        }
+    }
+    return $out.ToArray()
+}
+
+# El nom amb que surt un control a l'avis: el text si en te, si no el tipus.
+function _NomControl($c) {
+    $t = ''
+    try { $t = ([string]$c.Text -replace '\s+', ' ').Trim() } catch { $t = '' }
+    $tipus = $c.GetType().Name
+    if ([string]::IsNullOrWhiteSpace($t)) { return $tipus }
+    if ($t.Length -gt 28) { $t = $t.Substring(0, 28) + [char]0x2026 }
+    return ($tipus + " '" + $t + "'")
+}
+
+# Recorre l'arbre de controls d'un contenidor i compara NOMES ELS GERMANS (dins
+# d'un contenidor les coordenades son relatives a ell: comparar-les entre
+# contenidors diferents no vol dir res).
+function _SolapamentsDeContenidor($cont) {
+    $out = New-Object System.Collections.ArrayList
+    $fills = New-Object System.Collections.ArrayList
+    foreach ($c in $cont.Controls) {
+        if (-not $c.Visible) { continue }
+        # Els Dock els col-loca WinForms; per definicio no es trepitgen.
+        try { if ([string]$c.Dock -ne 'None') { continue } } catch { }
+        [void]$fills.Add(@{ Nom = (_NomControl $c); X = $c.Left; Y = $c.Top; W = $c.Width; H = $c.Height })
+    }
+    foreach ($s in @(_TrobaSolapaments $fills)) { [void]$out.Add($s) }
+    foreach ($c in $cont.Controls) {
+        if ($c.Controls.Count -gt 0) {
+            foreach ($s in @(_SolapamentsDeContenidor $c)) { [void]$out.Add($s) }
+        }
+    }
+    return $out.ToArray()
+}
+
+# Nomes s'avisa UNA vegada per pantalla i sessio: si no, un formulari que es
+# repinta seria inaguantable.
+$Script:SolapamentsAvisats = @{}
+function _AvisaSolapaments($form) {
+    if ($Script:HeadlessTest) { return }
+    try {
+        $clau = [string]$form.Text
+        if ($Script:SolapamentsAvisats.ContainsKey($clau)) { return }
+        $Script:SolapamentsAvisats[$clau] = $true
+        $sol = @(_SolapamentsDeContenidor $form)
+        if ($sol.Count -eq 0) { return }
+        [System.Windows.Forms.MessageBox]::Show(
+            ("A la pantalla '" + $clau + "' hi ha " + $sol.Count + " control(s) que es trepitgen:`n`n  " +
+             (($sol | Select-Object -First 8) -join "`n  ") +
+             "`n`nL'informe es genera igual; digues-ho perque ho arreglin."),
+            'Pantalla mal col-locada', 'OK', 'Warning') | Out-Null
+    } catch { }   # una comprovacio no pot impedir obrir una finestra
 }
 
 # Color corporatiu granat (redisseny UX/UI). Es fa servir a la banda de

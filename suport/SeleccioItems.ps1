@@ -165,7 +165,10 @@ function _CollectCheckStates($tv, $checkStates) {
 }
 
 function Select-Items {
-    param($sections, $preloadSelectedKeys = $null, $fields = $null, $preloadValues = $null)
+    # $permetreBuit: a Llicencia el bloc 'Projecte' pot no tenir cap punt (hi ha
+    # activitats sense cap deficiencia de projecte) i no s'ha de bloquejar el pas.
+    param($sections, $preloadSelectedKeys = $null, $fields = $null, $preloadValues = $null,
+          [bool]$permetreBuit = $false)
     if ($null -eq $fields) { $fields = [ordered]@{} }
 
     $form = _NewForm
@@ -438,7 +441,7 @@ function Select-Items {
             })
         }
     }
-    if ($result.Count -eq 0) {
+    if ($result.Count -eq 0 -and -not $permetreBuit) {
         [System.Windows.Forms.MessageBox]::Show('No s''ha seleccionat cap deficiencia.','Avis','OK','Warning') | Out-Null
         return [pscustomobject]@{ Nav='stay' }   # es torna a mostrar el Pas 3
     }
