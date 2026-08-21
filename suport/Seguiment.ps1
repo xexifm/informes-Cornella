@@ -1139,6 +1139,37 @@ function Select-Mode {
     $colInk    = [System.Drawing.Color]::FromArgb(29, 39, 51)
     $colSub    = [System.Drawing.Color]::FromArgb(107, 116, 128)
 
+    # ELS DOS DOCUMENTS QUE SON DE TOTS ELS INFORMES: la capcalera i les
+    # conclusions. No son de cap tipus d'informe en concret -per aixo no tenen
+    # xip a cap rajola- i fins ara no s'hi podia arribar des d'enlloc. Van al
+    # costat de "Que vols fer?", com va demanar l'usuari.
+    #
+    # VAN AQUI I NO MES AMUNT: $pencil i les fonts es declaren just abans, i el
+    # text del control es munta ARA (no en cridar-lo).
+    $xComuns = 130
+    foreach ($d in @(
+        @{ Doc = '0 CAPCALERA';   Text = ('Cap' + [char]0x00E7 + 'alera') },
+        @{ Doc = '0 CONCLUSIONS'; Text = 'Conclusions' })) {
+        $ll = New-Object System.Windows.Forms.LinkLabel
+        $ll.Text = [string]$pencil + ' ' + [string]$d.Text
+        $ll.Location = New-Object System.Drawing.Point($xComuns, (15 + $headerHeight))
+        $ll.AutoSize = $true
+        $ll.Font = $fDet
+        $ll.LinkColor = $colGranat
+        $ll.ActiveLinkColor = [System.Drawing.Color]::FromArgb(138, 20, 38)
+        $ll.LinkBehavior = 'HoverUnderline'
+        $ll.Tag = [string]$d.Doc
+        [void]$form.Controls.Add($ll)
+        # SENSE .GetNewClosure(): aixi $result i $form es resolen quan es clica
+        # (i $result encara no existeix aqui). Vegeu CLAUDE.md.
+        $ll.add_LinkClicked({
+            param($snd, $ev)
+            $result.Choice = @{ Action = 'editcataleg'; Doc = [string]$snd.Tag; Cataleg = $null }
+            $form.Close()
+        })
+        $xComuns += $ll.PreferredWidth + 18
+    }
+
     # Dibuix propietari del boto de generacio (protagonista): xip granat suau amb
     # icona a l'esquerra, titol + subtitol al centre-esquerra, i xip del document
     # a la dreta.

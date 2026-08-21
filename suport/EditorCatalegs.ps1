@@ -211,6 +211,14 @@ function _Ed_TipusOptions([string]$familia, [string]$parentTipus) {
             }
             return @('item')
         }
+        'capcalera' {
+            # La capcalera NO es un cataleg: el .docx mana en el FORMAT (escut,
+            # taula, tabulacions) i el JSON nomes en el TEXT. Per aixo aqui no
+            # s'hi afegeixen ni s'hi treuen linies: nomes es canvia el que hi
+            # diu. Els tipus son els que hi ha, i no n'hi ha cap alternativa.
+            if ([string]::IsNullOrEmpty($parentTipus)) { return @('seccio') }
+            return @('etiqueta', 'text', 'buida')
+        }
         'mnstraspas' {
             # Els dos informes CURTS de llicencia. Cada seccio es un informe i
             # cada fill un paragraf:
@@ -229,6 +237,26 @@ function _Ed_DefaultTipus([string]$familia, [string]$parentTipus) {
     return @(_Ed_TipusOptions $familia $parentTipus)[0]
 }
 
+# A QUIN TIPUS D'INFORME S'APLICA aquest node. Funcio PURA i buida per a la
+# majoria: nomes en tenen la CAPCALERA i les CONCLUSIONS, que son els dos
+# documents que fan servir TOTS els informes i que per aixo no pengen de cap
+# rajola del menu. L'usuari va demanar que quedes clar.
+function _Ed_AplicaText([string]$familia, $node) {
+    if ([string]$node.tipus -ne 'seccio') { return '' }
+    switch ($familia) {
+        'capcalera'   { return ((_CapAplicaDe ([string]$node.clau)) -join ', ') }
+        'conclusions' {
+            switch (([string]$node.titol).Trim().ToUpper()) {
+                'REQ1'      { return 'Requeriment - Nou (REQ1)' }
+                'TERMINI'   { return ('Ampliaci' + [char]0x00F3 + ' de termini (TERMINI)') }
+                'SEGUIMENT' { return 'Seguiment d' + [char]0x2019 + 'un informe anterior' }
+            }
+            return ([string]$node.titol)
+        }
+    }
+    return ''
+}
+
 # Un node d'aquesta familia pot tenir fills? (nomes on el lector els llegeix.)
 function _Ed_CanAddChild([string]$familia, $node) {
     switch ($familia) {
@@ -237,6 +265,7 @@ function _Ed_CanAddChild([string]$familia, $node) {
         'actextr'     { return ([string]$node.tipus -in @('seccio', 'item')) }
         'llicencia'   { return ([string]$node.tipus -in @('seccio', 'item')) }
         'mnstraspas'  { return ([string]$node.tipus -eq 'seccio') }
+        'capcalera'   { return $false }
     }
     return $false
 }
@@ -268,12 +297,17 @@ function _Ed_NodeLabel($node) {
 # Llista dels ESTRUCTURALS editables (tots els *.json de la carpeta), amb nom
 # amic per als coneguts. Retorna @(@{ Key; Label; Path }).
 function _Ed_DocList {
+    # LA CAPCALERA es genera del .docx cada vegada: el .docx mana en el format i
+    # no ha de poder quedar un JSON que digui una cosa i el document una altra.
+    try { [void](Sync-CapcaleraJson) } catch { }
     $known = @{
         'REQ1'         = 'REQ1 ' + [char]0x2014 + ' Requeriment (cat' + [char]0x00E0 + 'leg)'
         'TERMINI'      = 'TERMINI ' + [char]0x2014 + ' Ampliaci' + [char]0x00F3 + ' termini'
         '0 CONCLUSIONS'= '0 CONCLUSIONS ' + [char]0x2014 + ' Conclusions'
         'ACT_EXTR_REQ' = 'ACT_EXTR_REQ ' + [char]0x2014 + ' Requeriment act. extraordin' + [char]0x00E0 + 'ria'
         'ACT_EXTR_FAV' = 'ACT_EXTR_FAV ' + [char]0x2014 + ' Informe favorable act. extraordin' + [char]0x00E0 + 'ria'
+        '0 CAPCALERA'  = '0 CAPCALERA ' + [char]0x2014 + ' Cap' + [char]0x00E7 + 'alera dels informes'
+        'MNSTRAS'      = 'MNSTRAS ' + [char]0x2014 + ' Modificaci' + [char]0x00F3 + ' NO Substancial i Trasp' + [char]0x00E0 + 's'
     }
     $out = New-Object System.Collections.ArrayList
     if (-not (Test-Path -LiteralPath $EstructuralsDir)) { return $out }
@@ -490,10 +524,25 @@ function _Ed_LoadEditor($state) {
         if ($idx -ge 0) { $state.TipusCombo.SelectedIndex = $idx }
         # SEMPRE canviable quan hi ha mes d'una opcio.
         $state.TipusCombo.Enabled = ($opts.Count -gt 1)
-        # Camp CLAU: nomes a ACT_EXTR, i BLOQUEJAT (mostra la [[KEY]] funcional).
-        $state.ClauLabel.Visible = $isActextr
-        $state.ClauBox.Visible = $isActextr
-        $state.ClauBox.Text = if ($isActextr) { [string]$node.clau } else { '' }
+        # Camp de nomes lectura al costat del tipus. A ACT_EXTR hi va la [[KEY]]
+        # funcional; a la capcalera i a les conclusions, A QUIN INFORME S'APLICA
+        # aquella seccio (era justament el que no es podia saber).
+        $aplica = _Ed_AplicaText $state.Model.familia $node
+        if ($isActextr) {
+            $state.ClauLabel.Text = 'Clau:'
+            $state.ClauLabel.Visible = $true
+            $state.ClauBox.Visible = $true
+            $state.ClauBox.Text = [string]$node.clau
+        } elseif (-not [string]::IsNullOrWhiteSpace($aplica)) {
+            $state.ClauLabel.Text = "S'aplica a:"
+            $state.ClauLabel.Visible = $true
+            $state.ClauBox.Visible = $true
+            $state.ClauBox.Text = $aplica
+        } else {
+            $state.ClauLabel.Visible = $false
+            $state.ClauBox.Visible = $false
+            $state.ClauBox.Text = ''
+        }
         $state.Rtb.Enabled = $true
         _Ed_RenderRichToRtb $state.Rtb (_Ed_CosToRich $node.cos) $state.RtbFont
     }
@@ -678,6 +727,19 @@ function _Ed_SaveDoc($state) {
                 }
             }
         } catch { $avisVista = "`n`n(No s'ha pogut refrescar la vista en Word: $($_.Exception.Message))" }
+        # LA CAPCALERA, a mes, cap al .docx: el JSON nomes en porta el TEXT i qui
+        # genera els informes es el document (escut, taula, tabulacions). Es fa
+        # amb edicions de TEXT sobre word/document.xml -mai amb un serialitzador
+        # d'XML: aixo ja va corrompre el fitxer un cop (vegeu CLAUDE.md)- i amb
+        # una copia de seguretat al costat.
+        if ([string]$state.Model.familia -eq 'capcalera') {
+            $rCap = Apply-CapcaleraJson $doc.Path
+            if (-not [bool]$rCap.Ok) {
+                $avisVista += ("`n`n(ATENCIO: no s'ha pogut aplicar al document: " + [string]$rCap.Motiu + ')')
+            } elseif ([bool]$rCap.Canvis) {
+                $avisVista += "`n`n(El text s'ha aplicat a 0 CAPCALERA.docx.)"
+            }
+        }
         [System.Windows.Forms.MessageBox]::Show(('Catàleg desat correctament.' + $avisVista), 'Editar catalegs', 'OK', 'Information') | Out-Null
     } catch {
         [System.Windows.Forms.MessageBox]::Show("Error en desar:`n$($_.Exception.Message)", 'Editar catalegs', 'OK', 'Error') | Out-Null

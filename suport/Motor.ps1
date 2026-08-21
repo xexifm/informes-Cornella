@@ -430,6 +430,9 @@ if (-not $Script:HeadlessTest) { [void](Invoke-MigracioLocal $RepoRoot) }
 # La BASE DE DADES de llicencies (local\base-dades-llicencies): la memoria de
 # cada activitat entre informes consecutius. Abans que Llicencia.ps1, que la fa
 # servir per tornar a omplir l'assistent tot sol.
+# La capcalera dels informes en JSON (el .docx mana en el format, el JSON en el
+# text). Va ABANS de l'editor de catalegs, que la sincronitza en obrir-se.
+. (Join-Path $ScriptRoot 'CapcaleraJson.ps1')
 . (Join-Path $ScriptRoot 'LlicenciaDb.ps1')
 . (Join-Path $ScriptRoot 'Llicencia.ps1')
 # Els dos informes CURTS de llicencia (Modificacio NO Substancial i Traspas).

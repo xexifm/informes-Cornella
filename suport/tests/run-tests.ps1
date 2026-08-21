@@ -3630,4 +3630,97 @@ if (Test-Path -LiteralPath $mnsPath) {
     AssertEq (@(@($global:emitCalls) | Where-Object { $_ -like 'LLISTA|*' }).Count) 1 'mns sense observacions: nomes la de modificacions'
 }
 
+# ---------------------------------------------------------------------------
+# LA CAPCALERA EN JSON (CapcaleraJson.ps1) - sobre el .docx REAL
+# ---------------------------------------------------------------------------
+# El .docx mana en el FORMAT (escut, taula, tabulacions) i el JSON en el TEXT.
+# Aqui es comprova que llegir-lo, escriure'l i tornar-lo a llegir no en canvia
+# res mes: aquest fitxer es l'unic que no es pot regenerar.
+$capDocx = Join-Path $Global:EstructuralsDir '0 CAPCALERA.docx'
+if (Test-Path -LiteralPath $capDocx) {
+    $capXml = _CapLlegeixDocumentXml $capDocx
+    Assert (-not [string]::IsNullOrWhiteSpace($capXml)) 'capcalera: es llegeix el document.xml'
+    $capBlocs = @(_CapBlocsDelXml $capXml)
+    AssertEq $capBlocs.Count 3 'capcalera: els tres blocs (generic, ACT_EXTR, LLIC)'
+    AssertEq ([string]$capBlocs[0].Clau) ''         'capcalera: el primer bloc es el generic'
+    AssertEq ([string]$capBlocs[1].Clau) 'ACT_EXTR' 'capcalera: el segon, activitats extraordinaries'
+    AssertEq ([string]$capBlocs[2].Clau) 'LLIC'     'capcalera: el tercer, llicencia'
+    # Cada bloc ha de portar els seus <<PLACEHOLDER>>: si un dia en desapareix
+    # un, l'informe surt amb una linia BUIDA i ningu se n'assabenta.
+    foreach ($bC in $capBlocs) {
+        $totC = (@($bC.Linies) | ForEach-Object { [string]$_.Etiqueta + [string]$_.Valor }) -join ' '
+        foreach ($ph in @('<<ID_GIA>>', '<<EXP_NUM>>', '<<ADRECA>>', '<<ACTIVITAT>>', '<<TITULAR>>')) {
+            Assert ($totC.Contains($ph)) ('capcalera [' + [string]$bC.Clau + ']: hi ha ' + $ph)
+        }
+    }
+    # La classificacio NOMES al bloc de llicencia.
+    $txtLlic = ((@($capBlocs[2].Linies) | ForEach-Object { [string]$_.Valor }) -join ' ')
+    $txtGen  = ((@($capBlocs[0].Linies) | ForEach-Object { [string]$_.Valor }) -join ' ')
+    Assert ($txtLlic.Contains('<<CLASSIFICACIO>>')) 'capcalera: la classificacio es al bloc de llicencia'
+    Assert (-not $txtGen.Contains('<<CLASSIFICACIO>>')) 'capcalera: ...i NO al generic'
+    # Cap etiqueta sense marcador: una linia "Camp:" sense <<...>> nomes pot
+    # sortir BUIDA a l'informe (ja va passar amb "Classificacio:").
+    foreach ($bC in $capBlocs) {
+        foreach ($lC in @($bC.Linies)) {
+            if ([string]$lC.Tipus -ne 'etiqueta') { continue }
+            if (([string]$lC.Etiqueta).Trim() -eq 'Nota:') { continue }
+            $v = [string]$lC.Valor
+            Assert ([bool]($v -match '<<[A-Z_]+>>' -or $v.Length -gt 20)) ('capcalera: "' + ([string]$lC.Etiqueta).Trim() + '" te valor o marcador')
+        }
+    }
+    # A quin informe s'aplica cada bloc (el que l'usuari no podia saber).
+    AssertEq (@(_CapAplicaDe 'ACT_EXTR').Count) 1 '_CapAplicaDe: act. extraordinaries, un tipus'
+    AssertEq (@(_CapAplicaDe 'LLIC').Count) 3 '_CapAplicaDe: llicencia, els seus tres informes'
+    Assert ([bool]((_CapAplicaDe '') -contains 'Requeriment - Nou (REQ1)')) '_CapAplicaDe: el generic, el requeriment'
+    # ...i sense la trampa de la coma dins d'un @(): cap element esmicolat.
+    foreach ($aC in @(@(_CapAplicaDe '') + @(_CapAplicaDe 'LLIC') + @(_CapAplicaDe 'ACT_EXTR'))) {
+        Assert (([string]$aC).Length -gt 3) ('_CapAplicaDe: "' + $aC + '" no esta esmicolat')
+    }
+
+    # ANADA I TORNADA: el JSON generat, aplicat sobre el mateix XML, no en canvia
+    # ni un byte.
+    $capJson = (_CapModelAJson $capBlocs | ConvertTo-Json -Depth 20) | ConvertFrom-Json
+    AssertEq (_CapAplicaAlXml $capXml $capJson) $capXml 'capcalera: sense canvis, el document no es toca'
+
+    # ...i un canvi de text nomes toca aquella linia.
+    foreach ($nC in @($capJson.nodes)) {
+        foreach ($fC in @($nC.fills)) {
+            if ([string]$fC.clau -eq 'p2') { $fC.titol = 'Expedient: ' }
+        }
+    }
+    $capNou = _CapAplicaAlXml $capXml $capJson
+    Assert ($capNou -ne $capXml) 'capcalera: un canvi de text si que el toca'
+    $blocsNous = @(_CapBlocsDelXml $capNou)
+    $l2 = @(@($blocsNous[0].Linies) | Where-Object { [int]$_.Para -eq 2 })[0]
+    AssertEq ([string]$l2.Etiqueta) 'Expedient: ' 'capcalera: l''etiqueta nova hi es'
+    AssertEq ([string]$l2.Valor) '<<EXP_NUM>>' 'capcalera: ...i el marcador no s''ha tocat'
+    # La resta de linies, intactes.
+    $abansTxt = ((@($capBlocs[0].Linies) | Where-Object { [int]$_.Para -ne 2 } | ForEach-Object { [string]$_.Etiqueta + '|' + [string]$_.Valor }) -join '###')
+    $despresTxt = ((@($blocsNous[0].Linies) | Where-Object { [int]$_.Para -ne 2 } | ForEach-Object { [string]$_.Etiqueta + '|' + [string]$_.Valor }) -join '###')
+    AssertEq $despresTxt $abansTxt 'capcalera: cap altra linia no s''ha mogut'
+    # El document segueix sent un XML de Word ben format: els espais de noms de
+    # l'arrel, el mc:Ignorable i cap prefix ns0: (aixo ja va corrompre el fitxer
+    # una vegada, vegeu CLAUDE.md).
+    Assert ($capNou.Contains('mc:Ignorable')) 'capcalera: el mc:Ignorable hi segueix'
+    Assert (-not ($capNou -match '\bns\d+:')) 'capcalera: cap prefix ns0:/ns1: inventat'
+    Assert ((@([regex]::Matches($capNou.Substring(0, [Math]::Min(2000, $capNou.Length)), 'xmlns:')).Count) -ge 15) 'capcalera: hi son tots els espais de noms'
+    $petaXml = $false
+    try { [void]([xml]$capNou) } catch { $petaXml = $true }
+    AssertEq $petaXml $false 'capcalera: el XML resultant es valid'
+
+    # I EL JSON QUE HI HA AL REPOSITORI diu el mateix que el .docx.
+    $capJsonPath = Join-Path $Global:EstructuralsDir '0 CAPCALERA.json'
+    if (Test-Path -LiteralPath $capJsonPath) {
+        $capDelDisc = Get-Content -LiteralPath $capJsonPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        AssertEq (_CapAplicaAlXml $capXml $capDelDisc) $capXml 'capcalera: el JSON del repositori quadra amb el .docx'
+        AssertEq ([string]$capDelDisc.familia) 'capcalera' 'capcalera: la familia del JSON'
+        AssertEq (@($capDelDisc.nodes).Count) 3 'capcalera: el JSON porta els tres blocs'
+    }
+}
+# L'editor ensenya a quin informe s'aplica cada seccio (capcalera i conclusions).
+AssertEq (_Ed_AplicaText 'capcalera' @{ tipus='seccio'; clau='LLIC'; titol='x' }) ((_CapAplicaDe 'LLIC') -join ', ') '_Ed_AplicaText: capcalera de llicencia'
+AssertEq (_Ed_AplicaText 'conclusions' @{ tipus='seccio'; clau=''; titol='REQ1' }) 'Requeriment - Nou (REQ1)' '_Ed_AplicaText: conclusions de REQ1'
+AssertEq (_Ed_AplicaText 'cataleg' @{ tipus='seccio'; clau=''; titol='X' }) '' '_Ed_AplicaText: als catalegs normals, res'
+AssertEq (_Ed_AplicaText 'capcalera' @{ tipus='etiqueta'; clau='p1'; titol='ID GIA:' }) '' '_Ed_AplicaText: nomes a les seccions'
+
 exit (Write-TestSummary 'RESULTAT')

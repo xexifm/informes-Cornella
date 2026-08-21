@@ -1,0 +1,640 @@
+{
+  "tipus": "capcalera",
+  "familia": "capcalera",
+  "intro": [],
+  "nodes": [
+    {
+      "tipus": "seccio",
+      "titol": "Capcalera - general",
+      "clau": "",
+      "cos": [
+        {
+          "runs": [
+            {
+              "t": "S'aplica a: Requeriment - Nou (REQ1), Ampliació de termini (TERMINI), Controls periòdics"
+            }
+          ]
+        }
+      ],
+      "fills": [
+        {
+          "tipus": "text",
+          "titol": "",
+          "clau": "p0",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "Activitats i Ordenances Cíviques"
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "etiqueta",
+          "titol": "ID GIA:",
+          "clau": "p1",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "<<ID_GIA>>"
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "etiqueta",
+          "titol": "Exp. Núm: ",
+          "clau": "p2",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "<<EXP_NUM>>"
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "etiqueta",
+          "titol": "Adreça: ",
+          "clau": "p3",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "<<ADRECA>>"
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "etiqueta",
+          "titol": "Activitat:",
+          "clau": "p4",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "<<ACTIVITAT>>"
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "etiqueta",
+          "titol": "Titular: ",
+          "clau": "p5",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "<<TITULAR>>"
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "etiqueta",
+          "titol": "Objecte: ",
+          "clau": "p6",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "<<ORIGEN>>"
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "buida",
+          "titol": "",
+          "clau": "p7",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": ""
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "text",
+          "titol": "",
+          "clau": "p8",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "INFORME"
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "buida",
+          "titol": "",
+          "clau": "p9",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": ""
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "etiqueta",
+          "titol": "Nota:",
+          "clau": "p10",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": " S’ha publicat l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat (versió vigent des del 19 de juny de 2025)."
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "text",
+          "titol": "",
+          "clau": "p11",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "https://cido.diba.cat/normativa_local/1951/ordenanca-reguladora-de-la-intervencio-administrativa-municipal-en-les-activitats-ajuntament-de-cornella-de-llobregat"
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "buida",
+          "titol": "",
+          "clau": "p12",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": ""
+                }
+              ]
+            }
+          ],
+          "fills": []
+        }
+      ]
+    },
+    {
+      "tipus": "seccio",
+      "titol": "Capcalera - activitats extraordinaries",
+      "clau": "ACT_EXTR",
+      "cos": [
+        {
+          "runs": [
+            {
+              "t": "S'aplica a: Activitats extraordinàries"
+            }
+          ]
+        }
+      ],
+      "fills": [
+        {
+          "tipus": "text",
+          "titol": "",
+          "clau": "p14",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "Activitats i Ordenances Cíviques"
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "etiqueta",
+          "titol": "ASSUMPTE: ",
+          "clau": "p15",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "Informe - Llicència activitat extraordinària de caràcter esporàdic"
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "buida",
+          "titol": "",
+          "clau": "p16",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": ""
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "etiqueta",
+          "titol": "ID GIA:",
+          "clau": "p17",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "<<ID_GIA>>"
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "etiqueta",
+          "titol": "Exp. Núm: ",
+          "clau": "p18",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "<<EXP_NUM>>"
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "etiqueta",
+          "titol": "Adreça: ",
+          "clau": "p19",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "<<ADRECA>>, Cornellà de Llobregat"
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "etiqueta",
+          "titol": "Activitat:",
+          "clau": "p20",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "<<ACTIVITAT>>"
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "etiqueta",
+          "titol": "Titular: ",
+          "clau": "p21",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "<<TITULAR>>"
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "etiqueta",
+          "titol": "Dates:",
+          "clau": "p22",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "<<DATES>>"
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "buida",
+          "titol": "",
+          "clau": "p23",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": ""
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "text",
+          "titol": "",
+          "clau": "p24",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "INFORME"
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "buida",
+          "titol": "",
+          "clau": "p25",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": ""
+                }
+              ]
+            }
+          ],
+          "fills": []
+        }
+      ]
+    },
+    {
+      "tipus": "seccio",
+      "titol": "Capcalera - llicencia",
+      "clau": "LLIC",
+      "cos": [
+        {
+          "runs": [
+            {
+              "t": "S'aplica a: Llicència (Annex II / LL Prov), Modificació NO Substancial, Traspàs"
+            }
+          ]
+        }
+      ],
+      "fills": [
+        {
+          "tipus": "text",
+          "titol": "",
+          "clau": "p27",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "Activitats i Ordenances Cíviques"
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "etiqueta",
+          "titol": "ID GIA:",
+          "clau": "p28",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "<<ID_GIA>>"
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "etiqueta",
+          "titol": "Exp. Núm: ",
+          "clau": "p29",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "<<EXP_NUM>>"
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "etiqueta",
+          "titol": "Adreça: ",
+          "clau": "p30",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "<<ADRECA>>"
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "etiqueta",
+          "titol": "Activitat:",
+          "clau": "p31",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "<<ACTIVITAT>>"
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "etiqueta",
+          "titol": "Classificació: ",
+          "clau": "p32",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "<<CLASSIFICACIO>>"
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "etiqueta",
+          "titol": "Titular: ",
+          "clau": "p33",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "<<TITULAR>>"
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "etiqueta",
+          "titol": "Objecte: ",
+          "clau": "p34",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "<<ORIGEN>>"
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "buida",
+          "titol": "",
+          "clau": "p35",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": ""
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "text",
+          "titol": "",
+          "clau": "p36",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "INFORME"
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "buida",
+          "titol": "",
+          "clau": "p37",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": ""
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "etiqueta",
+          "titol": "Nota:",
+          "clau": "p38",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": " S’ha publicat l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat (versió vigent des del 19 de juny de 2025)."
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "text",
+          "titol": "",
+          "clau": "p39",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "https://cido.diba.cat/normativa_local/1951/ordenanca-reguladora-de-la-intervencio-administrativa-municipal-en-les-activitats-ajuntament-de-cornella-de-llobregat"
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "buida",
+          "titol": "",
+          "clau": "p40",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": ""
+                }
+              ]
+            }
+          ],
+          "fills": []
+        }
+      ]
+    }
+  ]
+}
