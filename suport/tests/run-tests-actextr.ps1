@@ -332,4 +332,57 @@ Write-Host "`n--- ACT_EXTR: -First al primer sub-punt ---"
     Assert ([bool]($picsF[1] -eq 'BULLET/CH|Fill dos.')) 'ACT_EXTR fav -First: el segon es queda a 6 pt'
 }.Invoke() | Out-Null
 
+# ---------------------------------------------------------------------------
+# La VISTA d'ACT_EXTR s'ha d'assemblar a l'informe que genera
+# ---------------------------------------------------------------------------
+# La vista numerava TOT (_VItem "$num.") mirant nomes l'estil del paragraf:
+# tambe els sub-punts, les notes, les etiquetes i les conclusions del favorable.
+# El document, en canvi, mira el TOKEN del bloc (::CHILD::, ::NOTE::...).
+# Ensenyava una cosa i en generava una altra.
+Write-Host "`n--- La vista d'ACT_EXTR s'assembla al document ---"
+if (Test-Path -LiteralPath $script:ActExtrReqTemplate) {
+    . (Join-Path $PSScriptRoot 'FormatDoubles.ps1')
+    $selV = [pscustomobject]@{}
+
+    $global:emitCalls.Clear()
+    _VistaActExtr $selV $script:ActExtrReqTemplate 'ACT_EXTR_REQ'
+    $vis = @($global:emitCalls)
+    Assert (-not (@($vis) | Where-Object { $_ -like 'ITEM|*' })) 'Vista ACT_EXTR: ja no numera els blocs (el document tampoc)'
+    Assert ([bool](@($vis) | Where-Object { $_ -like 'BULLET/CH*' })) 'Vista ACT_EXTR: els ::CHILD:: surten com a sub-punts'
+
+    # Els sub-punts han de quedar EXACTAMENT com al document (inclos quin es el
+    # primer de la seva unitat, que va a 12 pt i no a 6).
+    $blocsV = Parse-ActExtrTemplate $script:ActExtrReqTemplate
+    $ctxV = @{ Decret=@{}; Computed=@{ PAU_ORGAN_KEY='CAT' }; Delivered=@{}; DefKeys=@(); StatusByKey=@{} }
+    foreach ($b in $blocsV) {
+        $k = _ActExtrBlockPoint $b.Key
+        if (-not $ctxV.StatusByKey.ContainsKey($k)) { $ctxV.StatusByKey[$k] = @{ Applies = $true } }
+    }
+    $global:emitCalls.Clear()
+    _WriteActExtrBody $selV $blocsV 'req' $ctxV $ctxV.Computed
+    $doc = @($global:emitCalls)
+
+    $picsVis = @(@($vis) | Where-Object { $_ -like 'BULLET/CH*' })
+    $picsDoc = @(@($doc) | Where-Object { $_ -like 'BULLET/CH*' })
+    AssertEq $picsVis.Count $picsDoc.Count 'Vista ACT_EXTR: els mateixos sub-punts que el document'
+    # Es comparen les MARQUES de format (BULLET/CH, BULLET/CH/1r...), no el text
+    # sencer: el text ja se sap que es el mateix i abocar-lo omple la sortida de
+    # les proves de paragrafs sencers.
+    $marcaVis = (@($picsVis | ForEach-Object { ($_ -split '\|', 2)[0] }) -join ',')
+    $marcaDoc = (@($picsDoc | ForEach-Object { ($_ -split '\|', 2)[0] }) -join ',')
+    AssertEq $marcaVis $marcaDoc 'Vista ACT_EXTR: ...i amb el mateix format, primer inclos'
+}
+if (Test-Path -LiteralPath $script:ActExtrFavTemplate) {
+    . (Join-Path $PSScriptRoot 'FormatDoubles.ps1')
+    $global:emitCalls.Clear()
+    _VistaActExtr ([pscustomobject]@{}) $script:ActExtrFavTemplate 'ACT_EXTR_FAV'
+    $visF = @($global:emitCalls)
+    Assert (-not (@($visF) | Where-Object { $_ -like 'ITEM|*' })) 'Vista ACT_EXTR fav: cap bloc numerat'
+    # Els estils propis del favorable han de sortir com al document.
+    Assert ([bool](@($visF) | Where-Object { $_ -like 'CONCLCAP|*' })) 'Vista ACT_EXTR fav: els ::HEADER:: son capcaleres de conclusio'
+    Assert ([bool](@($visF) | Where-Object { $_ -like 'CONCL|*' }))    'Vista ACT_EXTR fav: els ::CONC:: son conclusions'
+    Assert ([bool](@($visF) | Where-Object { $_ -like 'NOTE|*' }))     'Vista ACT_EXTR fav: els ::NOTE:: son notes'
+    Assert ([bool](@($visF) | Where-Object { $_ -like 'LABEL|*' }))    'Vista ACT_EXTR fav: els ::LABEL:: son etiquetes'
+}
+
 exit (Write-TestSummary 'RESULTAT ACT_EXTR')

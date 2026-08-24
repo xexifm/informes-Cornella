@@ -156,6 +156,10 @@ function _VBullet($sel, [string]$t, [bool]$isChild = $true, [bool]$first = $fals
     if ($isChild) { Format-Bullet $sel $t -IsChild -First:$first } else { Format-Bullet $sel $t -First:$first }
     _VistaNivell $sel $Script:WdOutlineBody
 }
+function _VNote($sel, [string]$t)  { Format-Note $sel $t;  _VistaNivell $sel $Script:WdOutlineBody }
+function _VLabel($sel, [string]$t) { Format-Label $sel $t; _VistaNivell $sel $Script:WdOutlineBody }
+function _VConcl($sel, [string]$t) { Format-Conclusion $sel $t; _VistaNivell $sel $Script:WdOutlineBody }
+function _VConclCap($sel, [string]$t) { Format-ConclusionHeader $sel $t; _VistaNivell $sel $Script:WdOutlineBody }
 function _VSpacer($sel) { Format-Spacer $sel; _VistaNivell $sel $Script:WdOutlineBody }
 # I la versio per NOM de bloc (Format-Aire), que es la que decideix si hi va
 # aire o no. Vegeu $Script:AireFlagPerClau a Format.ps1.
@@ -406,30 +410,63 @@ function _VistaConclusions($sel, [string]$jsonPath) {
 }
 
 # ---- Vista d'una plantilla ACT_EXTR ----------------------------------------
+# EL CONTINGUT ES PINTA COM AL DOCUMENT, segons el TOKEN del bloc
+# (::CHILD::, ::NOTE::, ::LABEL::, ::HEADER::, ::CONC::, ::TEXT:: o res = item),
+# el mateix que fa _WriteActExtrBody.
+#
+# Abans la vista ho numerava TOT -tambe els sub-punts, les notes, les etiquetes
+# i les conclusions de l'informe favorable-, o sigui que ensenyava una cosa i el
+# document en generava una altra. Una vista que no s'assembla al que surt no
+# serveix per consultar-la, que es tot el motiu de tenir-la.
+function _VActExtrContingut($sel, [string]$kind, [string]$txt, [ref]$primerFill) {
+    if ([string]::IsNullOrWhiteSpace($txt)) { return }
+    if ($kind -eq 'child') {
+        _VBullet $sel $txt $true ([bool]$primerFill.Value)
+        $primerFill.Value = $false
+        return
+    }
+    switch ($kind) {
+        'note'   { _VNote $sel $txt }
+        'label'  { _VLabel $sel $txt }
+        'header' { _VConclCap $sel $txt }
+        'conc'   { _VConcl $sel $txt }
+        'text'   { _VBody $sel $txt }
+        default  { _VBullet $sel $txt $false }   # 'item': pic de primer nivell
+    }
+    $primerFill.Value = $true
+}
+
 function _VistaActExtr($sel, [string]$jsonPath, [string]$nom) {
     $records = @(Read-ActExtrRecordsJson $jsonPath)
-    $num = 0
+    $kind = 'item'
+    $primerFill = $false
     foreach ($r in $records) {
         $txt = [string]$r.Text
         switch ([string]$r.Style) {
             'h1' {
                 _VSpacer $sel
-                _VSection $sel $txt
+                _VSection $sel (_VistaActExtrTitol $txt)
                 _VSpacer $sel
-                $num = 0
+                $mk = _ParseActExtrMarker $txt
+                $kind = if ($null -ne $mk) { [string]$mk.Kind } else { 'item' }
             }
             'h2' {
                 # La capcalera del bloc ("[[CLAU]] ::TOKEN:: etiqueta") no surt a
                 # l'informe: al document nomes hi va el CONTINGUT. A la vista si
                 # que la posem (subratllada) per saber quin bloc es cadascun.
                 _VSubsection $sel (_VistaActExtrTitol $txt)
+                $mk = _ParseActExtrMarker $txt
+                $kind = if ($null -ne $mk) { [string]$mk.Kind } else { 'item' }
+                # $primerFill NO es reinicia aqui: al document les capcaleres de
+                # bloc no escriuen res, o sigui que el primer sub-punt d'un bloc
+                # 'child' segueix penjant de la unitat anterior. Reiniciar-lo
+                # faria que a la vista cap sub-punt no sortis mai com a primer.
             }
-            'url' { _VUrl $sel $txt }
+            'url' { _VUrl $sel $txt ($kind -eq 'child') }
             default {
-                if (-not [string]::IsNullOrWhiteSpace($txt)) {
-                    $num++
-                    _VItem $sel ("$num.") $txt
-                }
+                $pf = $primerFill
+                _VActExtrContingut $sel $kind $txt ([ref]$pf)
+                $primerFill = $pf
             }
         }
     }
