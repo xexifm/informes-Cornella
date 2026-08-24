@@ -740,7 +740,14 @@ function _WriteActExtrBody($sel, $blocks, $mode, $ctx, $computed) {
 
             # Unitat nova (item o paragraf de cos): linia en blanc al davant si
             # no es la primera unitat del document.
-            if (-not $first) { Format-Spacer $sel }
+            #
+            # ES LA MATEIXA BANDERA QUE L'AIRE ENTRE ITEMS DE REQ1 ('item'):
+            # separar una unitat de la seguent es la mateixa decisio de format,
+            # i abans aqui anava a la fixa -o sigui que apagar-la a REQ1 no
+            # tocava ACT_EXTR-. L'unica diferencia es que aqui l'aire va DAVANT
+            # de la unitat i no darrere, i per aixo el document no acaba amb un
+            # paragraf en blanc de mes.
+            if (-not $first) { Format-Aire $sel 'item' }
             if ($kind -eq 'item') {
                 $num0++
                 if (-not [string]::IsNullOrWhiteSpace($parts.Text)) { Format-Item $sel "$num0." $parts.Text }
@@ -763,8 +770,9 @@ function _WriteActExtrBodyFav($sel, $blocks, $ctx, $computed) {
     foreach ($block in $blocks) {
         if (-not (Test-ActExtrIncludeBlock $block.Key 'fav' $ctx)) { continue }
         $kind = [string]$block.Kind
-        # Linia en blanc nomes al canvi de seccio (no dins d'una seccio).
-        if ((-not $firstBlock) -and ([int]$block.Section -ne [int]$prevSection)) { Format-Spacer $sel }
+        # Linia en blanc nomes al canvi de seccio (no dins d'una seccio): la
+        # mateixa bandera que separa les seccions a la resta d'informes.
+        if ((-not $firstBlock) -and ([int]$block.Section -ne [int]$prevSection)) { Format-Aire $sel 'seccio' }
 
         foreach ($c in $block.Contents) {
             $resolved = Resolve-ActExtrTokens ([string]$c.Text) $computed

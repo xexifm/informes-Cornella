@@ -1,4 +1,4 @@
-# Proves automatiques de les funcions PURES del mode ACT_EXTR (ActExtr.ps1).
+﻿# Proves automatiques de les funcions PURES del mode ACT_EXTR (ActExtr.ps1).
 #
 # NO prova la part de Word (COM) ni les finestres (WinForms): aixo nomes es pot
 # provar a Windows amb Office. Aqui es valida la LOGICA del Decret 112/2010
@@ -236,5 +236,59 @@ AssertEq ((Get-ActExtrActivity $reg2 '1429').Header.TITULAR) 'BIG TOURS 2' 'upse
 
 # Neteja de la carpeta temporal del registre.
 try { Remove-Item -LiteralPath $script:ActExtrRegistryDir -Recurse -Force -ErrorAction SilentlyContinue } catch { }
+
+# ---------------------------------------------------------------------------
+# ACT_EXTR respecta la configuracio de format
+# ---------------------------------------------------------------------------
+# Els seus dos espais anaven A LA FIXA (Format-Spacer a pel), o sigui que
+# apagar l'aire a $ReportFormatConfig no tocava ACT_EXTR i aquesta familia
+# quedava fora del "es canvia en un lloc i afecta a tot".
+Write-Host "`n--- ACT_EXTR: l'aire surt de la configuracio ---"
+{
+    . (Join-Path $PSScriptRoot 'FormatDoubles.ps1')
+    $selA = [pscustomobject]@{}
+    $blocsA = @(
+        @{ Key='A'; Kind='item'; Section=0; Contents=@(@{ Text='Primer punt.'; IsUrl=$false }) },
+        @{ Key='B'; Kind='item'; Section=0; Contents=@(@{ Text='Segon punt.';  IsUrl=$false }) },
+        @{ Key='C'; Kind='item'; Section=1; Contents=@(@{ Text='Tercer punt.'; IsUrl=$false }) }
+    )
+    # Els blocs han de passar Test-ActExtrIncludeBlock: amb una clau qualsevol
+    # cau al 'default', que demana un estat que hi APLIQUI i no estigui lliurat.
+    $ctxA = @{
+        Decret=@{}; Computed=@{}; Delivered=@{}; DefKeys=@()
+        StatusByKey=@{ 'A'=@{ Applies=$true }; 'B'=@{ Applies=$true }; 'C'=@{ Applies=$true } }
+    }
+
+    # REQUERIMENT: aire entre unitats, mai davant de la primera.
+    $global:emitCalls.Clear()
+    _WriteActExtrBody $selA $blocsA 'req' $ctxA @{}
+    $emA = @($global:emitCalls)
+    AssertEq @($emA | Where-Object { $_ -eq 'AIRE|item' }).Count 2 'ACT_EXTR req: aire entre unitats (2 per a 3 punts)'
+    Assert ([bool]($emA[0] -notlike 'AIRE*')) 'ACT_EXTR req: cap aire davant de la primera unitat'
+
+    # ...i la bandera MANA: apagant-la, els espais desapareixen.
+    $abansItem = $Script:ReportFormatConfig.SpacerAfterItem
+    try {
+        $Script:ReportFormatConfig.SpacerAfterItem = $false
+        $global:emitCalls.Clear()
+        _WriteActExtrBody $selA $blocsA 'req' $ctxA @{}
+        AssertEq @(@($global:emitCalls) | Where-Object { $_ -like 'AIRE*' }).Count 0 'ACT_EXTR req: amb la bandera a fals, cap aire'
+    } finally { $Script:ReportFormatConfig.SpacerAfterItem = $abansItem }
+
+    # FAVORABLE: aire NOMES al canvi de seccio.
+    $global:emitCalls.Clear()
+    _WriteActExtrBodyFav $selA $blocsA $ctxA @{}
+    $emF = @($global:emitCalls)
+    AssertEq @($emF | Where-Object { $_ -eq 'AIRE|seccio' }).Count 1 'ACT_EXTR fav: aire nomes al canvi de seccio'
+    Assert ([bool]($emF[0] -notlike 'AIRE*')) 'ACT_EXTR fav: cap aire davant del primer bloc'
+
+    $abansSec = $Script:ReportFormatConfig.SpacerAfterSection
+    try {
+        $Script:ReportFormatConfig.SpacerAfterSection = $false
+        $global:emitCalls.Clear()
+        _WriteActExtrBodyFav $selA $blocsA $ctxA @{}
+        AssertEq @(@($global:emitCalls) | Where-Object { $_ -like 'AIRE*' }).Count 0 'ACT_EXTR fav: amb la bandera a fals, cap aire'
+    } finally { $Script:ReportFormatConfig.SpacerAfterSection = $abansSec }
+}.Invoke() | Out-Null
 
 exit (Write-TestSummary 'RESULTAT ACT_EXTR')
