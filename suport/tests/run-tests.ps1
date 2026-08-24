@@ -4300,4 +4300,67 @@ foreach ($f in @(Get-ChildItem -Path $dirFmt -Filter '*.ps1' -File)) {
 }
 AssertEq $toquen.Count 0 ('Cap fitxer fora de Format.ps1 toca el Word per format' + $(if ($toquen.Count) { ' -> ' + ($toquen -join ' | ') } else { '' }))
 
+# ---------------------------------------------------------------------------
+# El motor de blocs: Build-CatalegBlocs (pura) i Write-Informe
+# ---------------------------------------------------------------------------
+Write-Host "`n--- Build-CatalegBlocs (pura: sense Word ni dobles) ---"
+# Un cataleg de mentida amb tot el que compta: una seccio, una subseccio buida
+# (que NO ha de sortir), una amb item, un item amb fills i un item no triat.
+function _NouEl([string]$kind, [string]$short, $linies, $fills, [bool]$triat) {
+    return [pscustomobject]@{
+        Kind = $kind; Short = $short
+        BodyLines = @($linies); Children = @($fills); Selected = $triat
+    }
+}
+$secP = [pscustomobject]@{
+    Title = 'Instal·lacions'
+    Items = @(
+        (_NouEl 'subsection' 'Subseccio BUIDA' @() @() $false),
+        (_NouEl 'subsection' 'Legalitzacions'  @() @() $false),
+        (_NouEl 'item' 'A' @('Primer punt.') @() $true),
+        (_NouEl 'item' 'B' @('Punt amb fills.') @(
+            (_NouEl 'subitem' 'f1' @('Fill u.') @() $true),
+            (_NouEl 'subitem' 'f2' @('Fill dos.') @() $true)
+        ) $true),
+        (_NouEl 'item' 'C' @('No triat.') @() $false)
+    )
+}
+$bl = @(Build-CatalegBlocs @($secP) $null '' $false @() -SenseCamps)
+$tipus = @($bl | ForEach-Object { [string]$_.T })
+AssertEq ($tipus -join ',') 'seccio,aire,subseccio,aire,unitat,unitat' 'Blocs: seccio + subseccio pendent + dues unitats'
+# LA SUBSECCIO BUIDA NO HI ES: nomes surt la que va seguida d'un item de debo.
+Assert (-not (@($bl) | Where-Object { [string]$_.Text -eq 'Subseccio BUIDA' })) 'Blocs: una subseccio sense items no surt'
+Assert ([bool](@($bl) | Where-Object { [string]$_.Text -eq 'Legalitzacions' })) 'Blocs: la que en te, si'
+# L'item no triat i sense fills tampoc.
+$nums = @(@($bl) | Where-Object { $_.T -eq 'unitat' } | ForEach-Object { [string]@($_.Blocs)[0].Num })
+AssertEq ($nums -join ',') '1.,2.' 'Blocs: la numeracio va seguida i salta el que no es tria'
+# Els fills son PICS, no items numerats.
+$dins2 = @(@($bl)[-1].Blocs | ForEach-Object { [string]$_.T })
+AssertEq ($dins2 -join ',') 'item,pic,pic' 'Blocs: els fills van amb pic, no numerats'
+
+# Write-Informe: el -First del primer sub-punt el posa EL MOTOR.
+Write-Host "`n--- Write-Informe (l'aire i el -First els decideix el motor) ---"
+{
+    . (Join-Path $PSScriptRoot 'FormatDoubles.ps1')
+    $selM = [pscustomobject]@{}
+    [void](Write-Informe $selM $bl)
+    $em = @($global:emitCalls)
+    Assert ([bool]($em | Where-Object { $_ -eq 'BULLET/CH/1r|Fill u.' })) 'Motor: el primer sub-punt d''una unitat va a 12 pt'
+    Assert ([bool]($em | Where-Object { $_ -eq 'BULLET/CH|Fill dos.' }))  'Motor: el segon es queda a 6 pt'
+    # L'aire d'item va DESPRES de la unitat sencera (amb els seus fills).
+    $iFill = [Array]::IndexOf([string[]]$em, 'BULLET/CH|Fill dos.')
+    AssertEq $em[$iFill + 1] 'AIRE|item' 'Motor: l''aire va despres de la unitat SENCERA'
+
+    # Una unitat que no escriu res NO deixa aire darrere.
+    $global:emitCalls.Clear()
+    [void](Write-Informe $selM @(@{ T = 'unitat'; Blocs = @() }))
+    AssertEq @($global:emitCalls).Count 0 'Motor: una unitat buida no deixa aire'
+
+    # Un tipus de bloc desconegut PETA: val mes que generar un document al qual
+    # li falta un tros sense que ho digui ningu.
+    $petat = $false
+    try { [void](Write-Informe $selM @(@{ T = 'aixo-no-existeix' })) } catch { $petat = $true }
+    Assert $petat 'Motor: un tipus de bloc desconegut peta (no s''ho empassa)'
+}.Invoke() | Out-Null
+
 exit (Write-TestSummary 'RESULTAT')
