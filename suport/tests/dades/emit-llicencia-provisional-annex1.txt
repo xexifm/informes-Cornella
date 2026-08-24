@@ -1,0 +1,42 @@
+SECT|DOCUMENTACIÓ NECESSÀRIA ABANS DE LA RESOLUCIÓ DE L’ÒRGAN TÈCNIC AMBIENTAL
+AIRE|seccio
+ITEM|1.|Sanitat. L’activitat està inclosa dins l’Annex del Decret 151/2017, de 17 d'octubre, pel qual s'estableixen els requisits i les garanties tecnicosanitàries comunes dels centres i serveis sanitaris i els procediments per a la seva autorització i registre. S’ha d’obtenir l’Autorització de funcionament (Departament de Salut de la Generalitat de Catalunya).
+URL|https://tramits.gencat.cat/ca/tramits/tramits-temes/Autoritzacio-de-centres-o-serveis-sanitaris
+BODY/N/SEP|No es disposa de l’autorització. S’ha de sol·licitar en el següent enllaç:
+URL|https://salutweb.gencat.cat/ca/tramits/tramits-temes/Autoritzacio-de-centres-o-serveis-sanitaris?moda=1
+AIRE|item
+ITEM|2.|Educació. L’activitat està inclosa dins el Decret 122/2012, de 9 d'octubre, del procediment d'autorització i de comunicació prèvia per a l'obertura de centres educatius privats. S’ha d’obtenir l’Autorització d’obertura de centres educatius privats  (Departament d’Educació).
+URL|https://educacio.gencat.cat/ca/tramits/tramits-temes/autoritzacio-obertura-privats
+BODY/N/SEP|No es disposa de l’autorització. S’ha de sol·licitar en el següent enllaç:
+URL|https://educacio.gencat.cat/ca/tramits/tramits-temes/autoritzacio-obertura-privats?moda=1
+AIRE|item
+ITEM|3.|Comerç. L’activitat està inclosa dins el Decret Llei 1/2009, del 22 de desembre, d'ordenació dels equipaments comercials. S’ha d’obtenir la llicència comercial d’implantació d’un establiment comercial (Departament d’Empresa i Treball).
+BODY/N/SEP|No es disposa de llicència. S’ha de sol·licitar en el següent enllaç:
+URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Llicencia-comercial?category=&moda=2
+AIRE|item
+AIRE|conclusions
+CONCLCAP|CONCLUSIONS
+CONCL|**Cal requerir l’esmena de les deficiències indicades, aportant la documentació corresponent.**
+CONCL|Ho poso al seu coneixement als efectes oportuns,
+CONCL|Cornellà de Llobregat,
+PLA/N|ANNEX 1. Documentació per demanar l’autorització d’usos i obres provisionals
+PLA|1. Instància d’entrada a l’Ajuntament per part de la persona interessada sol·licitant la llicència d’obres i usos de caràcter provisional.
+APPEND| S’ha d’aportar la memòria que es comenta en el següent. No és necessari el projecte visat, únicament un document on s’expliquin quins usos es volen dur a terme i la descripció de les obres el més detallat possible per valorar si aquestes són les mínimes imprescindibles, a més de la descripció de les obres de desmuntatge.
+PLA|2. La memòria justificativa del caràcter provisional dels usos i les obres provisionals (elaborada per la persona sol·licitant de l’ús / obra / activitat), on hi figuri, com a mínim, els punts següents:
+PLA|- Descripció i representació gràfica de les obres provisionals, on es justifiqui que aquestes son les mínimes necessàries per a desenvolupar l'ús sense ometre cap de les normes de seguretat i higiene establertes per la legislació sectorial. La naturalesa de les obres provisionals de nova planta no ha de dificultar la restitució dels terrenys a llur estat original.
+PLA|- Obres necessàries per reposar la situació que s’alteri al seu estat original.
+PLA|- Indicació dels pressupostos d’execució de les obres provisionals i de reposició.
+APPEND| És suficient amb un resum del pressupost. El pressupost de desmuntatge ha de ser com a mínim un 10% del pressupost d’execució.
+PLA|- Indicació dels serveis urbanístics existents i els que calgui implantar, incloses les obres de connexió corresponents.
+PLA|3. Acreditació de les diverses titularitats amb els documents següents:
+PLA|- Identificació precisa de la finca afectada amb indicació de la seva referència cadastral i registral, així com els documents on s’acrediti la titularitat de la finca (nota simple o escriptura d’adquisició).
+PLA|- Per acreditar el titular del dret d’ús, s’aportarà el contracte d’explotador dels usos o el negoci jurídic mitjançant el qual s’ha instrumentalitzar aquesta explotació.
+PLA|- En el cas que les persones físiques que signen els compromisos no siguin les titulars de la finca i/o del dret d’ús que apareixen en els documents acreditatius abans esmentats, s’haurà d’aportar els poders mitjançant escriptura notarial on es pugui certificar que poden actuar en nom de les titulars.
+PLA|4. Acceptació expressa dels efectes i compromís d’advertència, d’acord amb el següent document.
+PLA/N/sz9|Document d’acceptació del cessament dels usos, desmuntatge i reposició de les obres autoritzades de caràcter provisional segons l’article 54.1 del Decret legislatiu pel qual s’aprova el text refós de la llei d’urbanisme 1/2010, de 3 d’agost (TRLU), i l’article 66 del Decret 64/2014, de 13 de maig,  pel qual s’aprova el Reglament sobre protecció de la legalitat urbanística (RPLU).
+PLA/sz9|Jo.............................................., amb DNI......................................., com a titular del dret de la propietat de la finca situada .................... del terme municipal de ....................amb referència cadastral ....................... i número de finca registral.......inscrita al Tom......., Llibre.....,Foli......del Registre de la Propietat número...... de ............., accepto cessar els usos i desmuntar o enderrocar les obres que s’autoritzin, així com de reposar la situació que s’alteri al seu estat original, quan ho acordi l’administració actuant, sense dret a percebre indemnització per aquests conceptes, inclosa la finalització eventual dels contractes d’arrendament o qualsevol altre negoci jurídic al qual estiguin vinculats. També em comprometo a advertir, per escrit, del caràcter de provisionalitat dels usos i obres que s’autoritzin i dels seus efectes quan formalitzin qualsevol negoci jurídic amb terceres persones en virtut del qual els transmetin els drets respectius de propietat o ús corresponents als usos i les obres provisionals que s’autoritzin.
+PLA/sz9|Per tal de rebre notificacions per mitjans electrònics la meva adreça electrònica és........................, o bé per rebre-ho per correu ordinari la meva direcció postal és .........................del terme municipal de ................................
+PLA/sz9|Signat
+PLA/sz9|Jo ........................, amb DNI......................................., com a arrendatari / gestor / explotador / titular dels drets de l’ús de la finca situada .................... del terme municipal de ....................amb referència cadastral ....................... i número de finca registral.......inscrita al Tom......., Llibre.....,Foli......del Registre de la Propietat número...... de ............., accepto cessar els usos i desmuntar o enderrocar les obres que s’autoritzin, així com de reposar la situació que s’alteri al seu estat original, quan ho acordi l’administració actuant, sense dret a percebre indemnització per aquests conceptes, inclosa la finalització eventual dels contractes d’arrendament o qualsevol altre negoci jurídic al qual estiguin vinculats. També em comprometo a advertir, per escrit, del caràcter de provisionalitat dels usos i obres que s’autoritzin i dels seus efectes quan formalitzin qualsevol negoci jurídic amb terceres persones en virtut del qual els transmetin els drets respectius de propietat o ús corresponents als usos i les obres provisionals que s’autoritzin.
+PLA/sz9|Per tal de rebre notificacions per mitjans electrònics la meva adreça electrònica és........................, o bé per rebre-ho per correu ordinari la meva direcció postal és .........................del terme municipal de ................................
+PLA/sz9|Signat

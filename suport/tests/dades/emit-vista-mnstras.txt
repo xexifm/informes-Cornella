@@ -1,0 +1,14 @@
+SECT|Modificació NO Substancial
+SUB|sense observacions
+BODY|En relació a la sol·licitud de Modificació NO Substancial presentada a l’Ajuntament de Cornellà de Llobregat on es justifiquen les següents modificacions:
+BODY|//(aqui hi va una llista de Word buida, per omplir-la a ma)//
+BODY|**S’informa FAVORABLEMENT de la Modificació NO substancial presentada sense més observacions en relació a aquest tràmit.**
+SUB|amb observacions
+BODY|En relació a la sol·licitud de Modificació NO Substancial presentada a l’Ajuntament de Cornellà de Llobregat on es justifiquen les següents modificacions:
+BODY|//(aqui hi va una llista de Word buida, per omplir-la a ma)//
+BODY|**S’informa FAVORABLEMENT de la Modificació NO substancial presentada amb les següents observacions:**
+SECT|Traspàs
+SUB|sense observacions
+BODY|**En relació a la sol·licitud de canvi de nom presentada a l’Ajuntament de Cornellà de Llobregat s’informa FAVORABLEMENT del canvi de nom presentat sense més observacions en relació a aquest tràmit.**
+SUB|amb observacions
+BODY|**En relació a la sol·licitud de canvi de nom presentada a l’Ajuntament de Cornellà de Llobregat s’informa FAVORABLEMENT del canvi de nom presentat amb les següents observacions:**

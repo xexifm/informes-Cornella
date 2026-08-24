@@ -1,0 +1,40 @@
+BODY|Després d’haver comprovat la documentació presentada i sempre i quan es doni compliment a les següents disposicions legals:
+BULLET|LLEI 3/2010, del 18 de febrer, de prevenció i seguretat en matèria d'incendis en establiments, activitats, infraestructures i edificis.
+BULLET|Instrucció Tècnica Complementària SP-144 Condicions de seguretat en cas d’incendi en activitats esporàdiques.
+BULLET|LLEI 11/2009, del 6 de juliol, de regulació administrativa dels espectacles públics i les activitats recreatives.
+BULLET|DECRET 112/2010, de 31 d'agost, pel qual s'aprova el Reglament d'espectacles públics i activitats recreatives.
+AIRE|seccio
+BODY|s’informa favorablement tenint en compte les següents consideracions:
+BULLET|Mobilitat. Es disposa de l’informe favorable de mobilitat de la Guàrdia Urbana de Cornellà de Llobregat, indicant que no hi ha cap inconvenient per a que es pugui dur a terme el mencionat acte a les dates i establiment sol·licitat.
+BULLET|Incendis. Es disposa de l’informe favorable de prevenció i seguretat en matèria d’incendis emès per la Direcció General de Prevenció, Extinció d'Incendis i Salvaments (DGPEIS).
+BULLET|Pla d’Autoprotecció. Es disposa del certificat d’homologació del Pla d’Autoprotecció per part de Protecció civil de Catalunya.
+BULLET|Responsabilitat Civil. Es disposa de la pòlissa d’assegurança de responsabilitat civil, juntament amb el seu corresponent rebut, per la quantia mínima de  €. Les garanties i sumes assegurades, indicades a la pòlissa d'assegurança de responsabilitat civil, ho seran per sinistre, amb un sublímit mínim per víctima de 150.000 €.
+BULLET|Assistència sanitària. Es disposarà dels dispositius d’assistència sanitària que consten en el Pla d’Autoprotecció homologat o, en el seu defecte, els necessaris segons l’Article 48 del DECRET 112/2010. En aquest cas .
+BULLET|Controladors d’accés. Es disposarà d’un mínim de  persones de personal de control d’accés. Aquest personal disposarà de l’habilitació per exercir aquestes funcions i estarà identificat portant de manera visible un distintiu amb la llegenda “Personal de control d’accés”.
+BULLET|Seguretat privada. Es disposarà d’un mínim de  vigilants de seguretat privada.
+BULLET|Serveis d’higiene. Es disposarà d’un mínim de  lavabos i  cabines de vàter.
+BULLET|Espai. S’acredita la disponibilitat de l’espai.
+BULLET|Làsers. S’autoritza la utilització de làsers per part del //Departamento de Coordinación Operativa del Espacio Aéreo//.
+AIRE|seccio
+BODY|ABANS DE L’INICI DE L’ACTIVITAT EXTRAORDINÀRIA:
+BULLET|S’haurà de presentar un Certificat d'instal·lació elèctrica i de muntatge signat electrònicament per un tècnic competent o una entitat col·laboradora de l’Administració, en el que es faci constar que el conjunt de les instal·lacions no permanents desmuntables funcionen correctament i complint amb la normativa vigent, d’acord amb l’article 39 del Decret 112/2010, de 31 d’agost, pel qual s’aprova el Reglament d’Espectacles Públics i Activitats Recreatives.
+BULLET|S’haurà de presentar un Control inicial favorable signat electrònicament per un tècnic competent, en el que es faci constar que la documentació tècnica presentada és suficient i correcta, de la mateixa manera que les característiques de l’activitat són les adients, també d’acord amb l’article 39 del Decret 112/2010, de 31 d’agost, pel qual s’aprova el Reglament d’Espectacles Públics i Activitats Recreatives.
+BULLET|S’haurà de presentar els Certificats de reacció al foc dels elements decoratius instal·lats que no pertanyen a la pròpia llicència de l’establiment, en compliment amb el CTE DB SI 1 Apartat 4 Reacció al foc dels elements constructius, decoratius i de mobiliari.
+BULLET|Les instal·lacions de l’establiment disposaran de les pertinents inspeccions i revisions periòdiques.
+BULLET|Es disposarà dels extintors necessaris a les zones on es puguin ubicar instal·lacions com l’escenari, equips de so, casetes de venta entrades, etc.
+AIRE|seccio
+LABEL|RÈTOLS INFORMATIUS
+BODY|L’activitat haurà de disposar dels rètols informatius següents:
+BULLET|D’identificació i informació.
+BULLET|Disposar dels fulls oficials de queixa, reclamació o denúncia.
+BULLET|Nivells sonors que poden lesionar seriosament l’oïda (>90 dB(A)).
+BULLET|Dret d’admissió (si escau).
+NOTE|Si l'organitzador de l'activitat vol determinar condicions d'accés, haurà de comunicar l'exercici del dret d'admissió, si s'escau, a la Generalitat, mitjançant el tràmit electrònic corresponent, per tal que el servei territorial corresponent validi aquestes condicions.
+BULLET|Prohibició de venda i subministrament d’alcohol a menors d’edat.
+AIRE|seccio
+BODY|CONDICIONANTS LLICÈNCIA
+AIRE|seccio
+CONCLCAP|CONCLUSIONS
+CONCL|El titular és responsable d’executar i mantenir les mesures de seguretat indicades en la memòria, en el Pla d’Autoprotecció i les previstes en la documentació tècnica, establertes per la reglamentació d’aplicació segons escaigui, i de donar compliment als límits acústics exteriors establerts per l’Ajuntament de Cornellà de Llobregat.
+CONCL|Ho poso al seu coneixement als efectes oportuns,
+CONCL|Cornellà de Llobregat,

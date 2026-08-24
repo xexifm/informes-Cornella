@@ -1,0 +1,5 @@
+BODY|**En relació a la sol·licitud de canvi de nom presentada a l’Ajuntament de Cornellà de Llobregat s’informa FAVORABLEMENT del canvi de nom presentat sense més observacions en relació a aquest tràmit.**
+AIRE|item
+AIRE|conclusions
+CONCL|Ho poso al seu coneixement als efectes oportuns,
+CONCL|Cornellà de Llobregat,

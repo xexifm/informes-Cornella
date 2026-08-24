@@ -1,0 +1,21 @@
+BODY|En relació a la sol·licitud de Modificació NO Substancial presentada a l’Ajuntament de Cornellà de Llobregat on es justifiquen les següents modificacions:
+AIRE|item
+LLISTA|
+BODY|**S’informa FAVORABLEMENT de la Modificació NO substancial presentada amb les següents observacions:**
+AIRE|item
+SECT|Requeriment pendent
+AIRE|seccio
+ITEM|1.|S’ha de donar resposta a l’anterior requeriment amb Núm. de registre: .
+BODY|COPIAR REQUERIMENT
+BODY|I a més a més, esmenar els següents punts:
+AIRE|item
+SECT|Classificació
+AIRE|seccio
+ITEM|2.|L’activitat està classificada segons l’Annex , epígraf  de la LLEI 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats.
+AIRE|item
+AIRE|conclusions
+CONCLCAP|CONCLUSIONS
+CONCL|D’acord amb l’article 59.1.d de la Llei 20/2009 aquestes Modificacions NO Substancials han de figurar a les posteriors actes dels controls periòdics.
+CONCL|Vist l’anterior, cal requerir l’esmena de les deficiències indicades, aportant la documentació corresponent i presentant la mateixa en un termini màxim de quinze dies, a comptar des de l’endemà de la recepció del requeriment.
+CONCL|Ho poso al seu coneixement als efectes oportuns,
+CONCL|Cornellà de Llobregat,

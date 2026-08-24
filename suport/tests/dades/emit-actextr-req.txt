@@ -1,0 +1,32 @@
+ITEM|1.|Incendis. L’activitat està inclosa dins l’Article 23 de la Llei 3/2010, del 18 de febrer, de prevenció i seguretat en matèria d'incendis en establiments, activitats, infraestructures i edificis. S’ha d’obtenir l’informe favorable de prevenció i seguretat en matèria d’incendis.
+URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/23705_-_Informe-de-prevencio-i-seguretat-en-materia-dincendis
+AIRE|item
+ITEM|2.|Pla d’Autoprotecció. L’activitat està inclosa dins l’Annex I del Decret 30/2015, de 3 de març, pel qual s'aprova el catàleg d'activitats i centres obligats a adoptar mesures d'autoprotecció i es fixa el contingut d'aquestes mesures. S’ha de presentar el certificat d’homologació del Pla d’Autoprotecció per part de Protecció civil de Catalunya.
+URL|https://canalempresa.gencat.cat/ca/02_serveis_per_temes/instal-lacions-i-seguretat/prevencio-accidents/plans-autoproteccio/
+AIRE|item
+ITEM|3.|Responsabilitat Civil. S’ha de presentar la pòlissa d’assegurança de responsabilitat civil, juntament amb el seu corresponent rebut on hi consti el mateix número de pòlissa, per la quantia mínima de  €. Les garanties i sumes assegurades, indicades a la pòlissa d'assegurança de responsabilitat civil, ho seran per sinistre, amb un sublímit mínim per víctima de 150.000 €.
+AIRE|item
+ITEM|4.|Assistència sanitària. S’ha de justificar documentalment que es disposarà dels dispositius d’assistència sanitària que consten en el Pla d’Autoprotecció homologat o, en el seu defecte, els necessaris segons l’Article 48 del Decret 112/2010, de 31 d’agost, pel qual s’aprova el Reglament d’espectacles públics i activitats recreatives. En aquest cas .
+AIRE|item
+ITEM|5.|Controladors d’accés. S’ha de justificar documentalment que es disposarà de  controladors d’accés el dia de l’esdeveniment segons l’Article 57 del Decret 112/2010, de 31 d’agost, pel qual s’aprova el Reglament d’espectacles públics i activitats recreatives.
+AIRE|item
+ITEM|6.|Seguretat privada. S’ha de justificar documentalment que es disposarà de  vigilants de seguretat privada el dia de l’esdeveniment segons l’Article 43 del Decret 112/2010, de 31 d’agost, pel qual s’aprova el Reglament d’espectacles públics i activitats recreatives.
+AIRE|item
+ITEM|7.|Serveis d’higiene. S’ha de justificar documentalment disposar dels serveis d'higiene amb la proporció mínima de  lavabos i  cabines de vàter segons l’Article 47 del Decret 112/2010, de 31 d’agost, pel qual s’aprova el Reglament d’espectacles públics i activitats recreatives.
+AIRE|item
+ITEM|8.|Impacte acústic. S’ha de presentar una valoració de l’impacte acústic de l'espectacle públic o de l'activitat recreativa i, si escau, adoptar les mesures necessàries per prevenir-lo i minimitzar-lo.
+AIRE|item
+ITEM|9.|Disponibilitat d’espai. S’ha d’acreditar la disponibilitat de l'establiment o de l'espai on es realitza l'espectacle públic o l'activitat recreativa.
+AIRE|item
+ITEM|10.|Làsers. S’ha d’acreditar l’autorització per la utilització de làsers per part del //Departamento de Coordinación Operativa del Espacio Aéreo//.
+BULLET/CH/1r|Identificació de l'espectacle públic o activitat recreativa de què es tracti.
+BULLET/CH|Data o dates i horari previst per a la realització.
+BULLET/CH|Nom, cognoms, adreça i telèfons de, com a mínim, dues persones responsables de la seva organització.
+BULLET/CH|Descripció breu de l'espectacle o activitat i del nombre màxim de persones que previsiblement assistiran o participaran en la seva realització, amb indicació dels serveis o prestacions que se'ls ofereixen.
+BULLET/CH|Indicació de les mesures adoptades, incloses la contractació del personal de seguretat privada i de control d'accés, i de les que convindria adoptar per part dels serveis municipals afectats, per tal prevenir riscos per a la salut i la seguretat i per prevenir inconvenients o molèsties per a terceres persones interessades, especialment en matèria de sorolls i de trànsit.
+BULLET/CH|Declaració responsable de disposar de la pòlissa d'assegurances que dóna cobertura a la responsabilitat civil que pugui derivar-se de l'organització i realització de l'espectacle o de l'activitat recreativa.
+BULLET/CH|Identificació de la persona o persones titulars de la disponibilitat de l'establiment, recinte o espai obert i, en cas que no sigui la mateixa persona promotora o organitzadora, document que expressi la seva conformitat amb l'espectacle públic o amb activitat recreativa projectats.
+AIRE|item
+BODY|Ho poso al seu coneixement als efectes oportuns,
+AIRE|item
+BODY|Cornellà de Llobregat,

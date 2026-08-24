@@ -1,0 +1,10 @@
+BODY|En relació a la sol·licitud de Modificació NO Substancial presentada a l’Ajuntament de Cornellà de Llobregat on es justifiquen les següents modificacions:
+AIRE|item
+LLISTA|
+BODY|**S’informa FAVORABLEMENT de la Modificació NO substancial presentada sense més observacions en relació a aquest tràmit.**
+AIRE|item
+AIRE|conclusions
+CONCLCAP|CONCLUSIONS
+CONCL|D’acord amb l’article 59.1.d de la Llei 20/2009 aquestes Modificacions NO Substancials han de figurar a les posteriors actes dels controls periòdics.
+CONCL|Ho poso al seu coneixement als efectes oportuns,
+CONCL|Cornellà de Llobregat,

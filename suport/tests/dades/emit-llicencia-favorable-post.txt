@@ -1,0 +1,43 @@
+SECT|DOCUMENTACIÓ PROJECTE
+AIRE|seccio
+BODY|La documentacio tecnica ve signada per:
+BULLET/CH/1r|Projecte
+BULLET/CH|Planols
+AIRE|item
+SECT|DOCUMENTACIÓ NECESSÀRIA ABANS DE LA RESOLUCIÓ DE L’ÒRGAN TÈCNIC AMBIENTAL
+AIRE|seccio
+ITEM|1.|Sanitat. L’activitat està inclosa dins l’Annex del Decret 151/2017, de 17 d'octubre, pel qual s'estableixen els requisits i les garanties tecnicosanitàries comunes dels centres i serveis sanitaris i els procediments per a la seva autorització i registre. S’ha d’obtenir l’Autorització de funcionament (Departament de Salut de la Generalitat de Catalunya).
+URL|https://tramits.gencat.cat/ca/tramits/tramits-temes/Autoritzacio-de-centres-o-serveis-sanitaris
+BODY/N/SEP|No es disposa de l’autorització. S’ha de sol·licitar en el següent enllaç:
+URL|https://salutweb.gencat.cat/ca/tramits/tramits-temes/Autoritzacio-de-centres-o-serveis-sanitaris?moda=1
+AIRE|item
+ITEM|2.|Educació. L’activitat està inclosa dins el Decret 122/2012, de 9 d'octubre, del procediment d'autorització i de comunicació prèvia per a l'obertura de centres educatius privats. S’ha d’obtenir l’Autorització d’obertura de centres educatius privats  (Departament d’Educació).
+URL|https://educacio.gencat.cat/ca/tramits/tramits-temes/autoritzacio-obertura-privats
+BODY/N/SEP|No es disposa de l’autorització. S’ha de sol·licitar en el següent enllaç:
+URL|https://educacio.gencat.cat/ca/tramits/tramits-temes/autoritzacio-obertura-privats?moda=1
+AIRE|item
+ITEM|3.|Comerç. L’activitat està inclosa dins el Decret Llei 1/2009, del 22 de desembre, d'ordenació dels equipaments comercials. S’ha d’obtenir la llicència comercial d’implantació d’un establiment comercial (Departament d’Empresa i Treball).
+BODY/N/SEP|No es disposa de llicència. S’ha de sol·licitar en el següent enllaç:
+URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Llicencia-comercial?category=&moda=2
+AIRE|item
+SECT|DOCUMENTACIÓ NECESSÀRIA DESPRÉS DE LA RESOLUCIÓ DE L’ÒRGAN TÈCNIC AMBIENTAL EN ELS TERMINIS DE TEMPS ESPECIFICATS
+AIRE|seccio
+ITEM|4.|Certificat Final d’Activitat.
+BODY|Quan: Abans d’iniciar l’activitat.
+BODY/N/SEP|No es disposa de la documentació.
+AIRE|item
+ITEM|5.|Incendis. Acte de comprovació favorable en matèria d’incendis expedit per una Entitat Col·laboradora de l’Administració (EC-PCAA).
+URL|https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/entitats_col_laboradores_de_l_administracio/entitats-tecnics-habilitats/
+BODY|Quan: Abans d’iniciar l’activitat.
+BODY/N/SEP|No es disposa de la documentació.
+AIRE|item
+ITEM|6.|Sanitat. Autorització de funcionament (Departament de Salut de la Generalitat de Catalunya).
+URL|https://salutweb.gencat.cat/ca/tramits/tramits-temes/Autoritzacio-de-centres-o-serveis-sanitaris?moda=2
+BODY|Quan: Abans d’iniciar l’activitat.
+BODY/N/SEP|No es disposa de la documentació.
+AIRE|item
+AIRE|conclusions
+CONCLCAP|CONCLUSIONS
+CONCL|**S’informa favorablement l’activitat i es dóna per tancat l’expedient.**
+CONCL|Ho poso al seu coneixement als efectes oportuns,
+CONCL|Cornellà de Llobregat,
