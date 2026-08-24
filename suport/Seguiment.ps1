@@ -1139,37 +1139,6 @@ function Select-Mode {
     $colInk    = [System.Drawing.Color]::FromArgb(29, 39, 51)
     $colSub    = [System.Drawing.Color]::FromArgb(107, 116, 128)
 
-    # ELS DOS DOCUMENTS QUE SON DE TOTS ELS INFORMES: la capcalera i les
-    # conclusions. No son de cap tipus d'informe en concret -per aixo no tenen
-    # xip a cap rajola- i fins ara no s'hi podia arribar des d'enlloc. Van al
-    # costat de "Que vols fer?", com va demanar l'usuari.
-    #
-    # VAN AQUI I NO MES AMUNT: $pencil i les fonts es declaren just abans, i el
-    # text del control es munta ARA (no en cridar-lo).
-    $xComuns = 130
-    foreach ($d in @(
-        @{ Doc = '0 CAPCALERA';   Text = ('Cap' + [char]0x00E7 + 'alera') },
-        @{ Doc = '0 CONCLUSIONS'; Text = 'Conclusions' })) {
-        $ll = New-Object System.Windows.Forms.LinkLabel
-        $ll.Text = [string]$pencil + ' ' + [string]$d.Text
-        $ll.Location = New-Object System.Drawing.Point($xComuns, (15 + $headerHeight))
-        $ll.AutoSize = $true
-        $ll.Font = $fDet
-        $ll.LinkColor = $colGranat
-        $ll.ActiveLinkColor = [System.Drawing.Color]::FromArgb(138, 20, 38)
-        $ll.LinkBehavior = 'HoverUnderline'
-        $ll.Tag = [string]$d.Doc
-        [void]$form.Controls.Add($ll)
-        # SENSE .GetNewClosure(): aixi $result i $form es resolen quan es clica
-        # (i $result encara no existeix aqui). Vegeu CLAUDE.md.
-        $ll.add_LinkClicked({
-            param($snd, $ev)
-            $result.Choice = @{ Action = 'editcataleg'; Doc = [string]$snd.Tag; Cataleg = $null }
-            $form.Close()
-        })
-        $xComuns += $ll.PreferredWidth + 18
-    }
-
     # Dibuix propietari del boto de generacio (protagonista): xip granat suau amb
     # icona a l'esquerra, titol + subtitol al centre-esquerra, i xip del document
     # a la dreta.
@@ -1272,6 +1241,42 @@ function Select-Mode {
     }
 
     $result = @{ Choice = $null }
+
+    # ELS DOS DOCUMENTS QUE SON DE TOTS ELS INFORMES: la capcalera i les
+    # conclusions. No son de cap tipus d'informe en concret -per aixo no tenen
+    # xip a cap rajola- i fins ara no s'hi podia arribar des d'enlloc. Van al
+    # costat de "Que vols fer?", com va demanar l'usuari.
+    #
+    # VA DESPRES DE $result I AMB .GetNewClosure(): un scriptblock SENSE closure
+    # no veu els LOCALS de la funcio que el crea (nomes l'ambit de l'script), o
+    # sigui que "$result.Choice = ..." queia sobre $null, el menu es tancava i el
+    # programa sortia sense fer res. Va passar de debo.
+    #
+    # I SENSE EMOJI: un LinkLabel te UNA sola lletra per a tot el text, i amb la
+    # Segoe UI del programa el llapis surt com un quadrat. Als xips de les
+    # rajoles si que hi es perque alla el dibuixem a part, amb Segoe UI Emoji.
+    $xComuns = 130
+    foreach ($d in @(
+        @{ Doc = '0 CAPCALERA';   Text = ('Cap' + [char]0x00E7 + 'alera') },
+        @{ Doc = '0 CONCLUSIONS'; Text = 'Conclusions' })) {
+        $ll = New-Object System.Windows.Forms.LinkLabel
+        $ll.Text = [string]$d.Text
+        $ll.Location = New-Object System.Drawing.Point($xComuns, (15 + $headerHeight))
+        $ll.AutoSize = $true
+        $ll.Font = $fDet
+        $ll.LinkColor = $colGranat
+        $ll.ActiveLinkColor = [System.Drawing.Color]::FromArgb(138, 20, 38)
+        $ll.LinkBehavior = 'HoverUnderline'
+        $ll.Tag = [string]$d.Doc
+        [void]$form.Controls.Add($ll)
+        $ll.add_LinkClicked({
+            param($snd, $ev)
+            $result.Choice = @{ Action = 'editcataleg'; Doc = [string]$snd.Tag; Cataleg = $null }
+            $form.DialogResult = 'OK'
+            $form.Close()
+        }.GetNewClosure())
+        $xComuns += $ll.PreferredWidth + 18
+    }
     $y = 45 + $headerHeight
     foreach ($entry in $menu) {
         $btn = New-Object System.Windows.Forms.Button

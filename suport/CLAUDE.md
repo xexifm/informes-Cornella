@@ -1210,6 +1210,14 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   PROJECTE i l'ANNEX 1. Surten de **`_LlicPuntsPerBloc`**, la mateixa funció que
   munta l'informe: la vista no pot dir una cosa i el document una altra.
   `_VistaEsProtegit` ara només protegeix `0 CAPCALERA.docx`.
+- **La base de dades edita TOT el que es recorda**, en l'ordre de l'informe:
+  primer **Documentació PROJECTE** (tècnic redactor, núm. col·legiat, col·legi,
+  data i els documents signats amb el seu Id Firmadoc), després els blocs ABANS
+  i DESPRÉS i, al final, la resta. Abans la documentació del projecte sortia al
+  final i **com a text**: no s'hi podia tocar res. Els camps de cada punt surten
+  del **text del catàleg** (`Get-LlicenciaPuntsEditables`), no només dels valors
+  ja desats — per això abans només es podia editar «Compatibilitat», l'únic que
+  en tenia.
 - **La base de dades no ensenyava res** (pantalla en blanc): `.Selected = $true`
   **no mou el `CurrentRow`**, i com que la fila ja sortia seleccionada, clicar-la
   **no disparava `SelectionChanged`** — el detall no es pintava mai. Ara es posa
@@ -1590,6 +1598,34 @@ el .json mana en el TEXT     (etiquetes, valors fixos, la nota)
   inventat.
 - **`_VistaEsProtegit` ja protegia `0 CAPCALERA*`**, i és el que impedeix que el
   generador de vistes en Word sobreescrigui la plantilla a partir del JSON nou.
+
+### Els enllaços del menú: dues trampes en una
+Els enllaços **Capçalera** / **Conclusions** del costat de «Què vols fer?» van
+sortir malament de primera:
+
+1. **Un `LinkLabel` té UNA sola lletra per a tot el text**, i amb la Segoe UI del
+   programa el llapis `✏️` sortia com un **quadrat**. Als xips de les rajoles sí
+   que n'hi ha perquè allà es dibuixa a part, amb `Segoe UI Emoji`
+   (`TextRenderer.DrawText`). Als enllaços: **sense emoji**.
+2. **Un scriptblock SENSE `.GetNewClosure()` no veu els LOCALS de la funció que
+   el crea**, només l'àmbit de l'script. El bloc es va posar **abans** de
+   declarar `$result` i sense closure: `$result.Choice = …` queia sobre `$null`,
+   el menú es tancava i **el programa sortia sense fer res** («es tanca el
+   programa i no passa res més»). Ara va **després** de `$result` i **amb**
+   closure, com tots els altres handlers de `Select-Mode`.
+   - Prova que ho vigila: **cada `$result.Choice =` de `Seguiment.ps1` ha
+     d'anar després de la declaració i dins d'un bloc amb `.GetNewClosure()`**.
+     Validada injectant el cas.
+   - Ull amb la variant contrària: un scriptblock **sense** closure sí que
+     resol bé quan la variable és de l'àmbit de l'**script** (`$propagate` de
+     `SeleccioItems.ps1`). El que no veu són els **locals d'una funció**.
+
+### `continue` dins d'un `switch` NO continua el `foreach` de fora
+Només surt del `switch`; l'execució segueix a la línia de sota, dins de la
+mateixa volta del bucle. Va passar al desat de la base de llicències: les
+entrades de la documentació del projecte (que no pertanyen a cap bloc de punts)
+queien al codi dels blocs i petaven. Solució: `if` + `continue`, no `switch`.
+Hi ha una prova que ho deixa escrit **i comprovat** contra el propi PowerShell.
 
 ## Controls que es trepitgen: la tolerància
 `_TrobaSolapaments` avisava de pantalles que es veuen perfectament (una etiqueta

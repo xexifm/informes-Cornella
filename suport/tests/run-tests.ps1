@@ -3723,4 +3723,48 @@ AssertEq (_Ed_AplicaText 'conclusions' @{ tipus='seccio'; clau=''; titol='REQ1' 
 AssertEq (_Ed_AplicaText 'cataleg' @{ tipus='seccio'; clau=''; titol='X' }) '' '_Ed_AplicaText: als catalegs normals, res'
 AssertEq (_Ed_AplicaText 'capcalera' @{ tipus='etiqueta'; clau='p1'; titol='ID GIA:' }) '' '_Ed_AplicaText: nomes a les seccions'
 
+# ---------------------------------------------------------------------------
+# EL MENU: els handlers que trien opcio han de veure $result
+# ---------------------------------------------------------------------------
+# Un scriptblock SENSE .GetNewClosure() NO veu els locals de la funcio que el
+# crea (nomes l'ambit de l'script). Els enllacos 'Capcalera'/'Conclusions' es
+# van posar ABANS de declarar $result i sense closure: "$result.Choice = ..."
+# queia sobre $null, el menu es tancava i el programa SORTIA sense fer res.
+$srcMenu2 = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'Seguiment.ps1') -Raw
+$iDecl = $srcMenu2.IndexOf('$result = @{ Choice = $null }')
+Assert ($iDecl -ge 0) 'menu: $result es declara a Select-Mode'
+# Nomes les linies de CODI (una menció dins d'un comentari no compta).
+$nUsos = 0
+foreach ($mR in [regex]::Matches($srcMenu2, '(?m)^[ \t]*\$result\.Choice\s*=')) {
+    $nUsos++
+    Assert ($mR.Index -gt $iDecl) 'menu: cap handler no toca $result abans de declarar-lo'
+    # ...i el bloc on va ha de ser una CLOSURE (si no, no el veu).
+    $tros = $srcMenu2.Substring($mR.Index, [Math]::Min(600, $srcMenu2.Length - $mR.Index))
+    Assert ($tros.Contains('.GetNewClosure()')) 'menu: el handler que tria opcio es una closure'
+}
+Assert ($nUsos -ge 3) 'menu: hi ha els handlers de tria (rajoles + enllacos)'
+# UN LinkLabel TE UNA SOLA LLETRA per a tot el text: amb la Segoe UI del
+# programa, un emoji hi surt com un quadrat. Als xips de les rajoles si que n'hi
+# ha perque alla es dibuixa a part, amb Segoe UI Emoji.
+$iLL = $srcMenu2.IndexOf('New-Object System.Windows.Forms.LinkLabel')
+if ($iLL -ge 0) {
+    $trosLL = $srcMenu2.Substring($iLL, [Math]::Min(700, $srcMenu2.Length - $iLL))
+    Assert (-not ($trosLL -match '\$ll\.Text\s*=\s*\[string\]\$pencil')) 'menu: els enllacos no porten emoji (el LinkLabel no en sap)'
+}
+
+# ---------------------------------------------------------------------------
+# 'continue' DINS D'UN 'switch' NO CONTINUA EL FOREACH DE FORA
+# ---------------------------------------------------------------------------
+# Comprovacio del propi llenguatge, perque la regla quedi escrita i provada: el
+# desat de la base de llicencies hi va caure (les entrades de la documentacio
+# del projecte queien al codi dels blocs de punts i petaven).
+$provaSw = New-Object System.Collections.ArrayList
+foreach ($x in 1..3) {
+    switch ("$x") {
+        '1' { continue }
+    }
+    [void]$provaSw.Add($x)
+}
+AssertEq ($provaSw -join ',') '1,2,3' "'continue' dins d'un switch NO continua el foreach de fora"
+
 exit (Write-TestSummary 'RESULTAT')

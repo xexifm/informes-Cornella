@@ -469,6 +469,65 @@ function Show-LlicenciaDb {
         [void]$panDret.Controls.Add($lb2)
         $y += [Math]::Max(24, $lb2.PreferredHeight + 12)
 
+        # ---- DOCUMENTACIO PROJECTE ------------------------------------------
+        # VA LA PRIMERA, com a l'informe: qui ha signat el projecte, amb quin
+        # numero de col-legiat i quins documents, amb el seu Id Firmadoc. Abans
+        # sortia al final i com a TEXT: no s'hi podia tocar res.
+        $lbPr = New-Object System.Windows.Forms.Label
+        $lbPr.Location = New-Object System.Drawing.Point(10, $y)
+        $lbPr.AutoSize = $true
+        $lbPr.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
+        $lbPr.Text = 'Documentaci' + [char]0x00F3 + ' PROJECTE'
+        [void]$panDret.Controls.Add($lbPr)
+        $y += 24
+
+        $tec = _LlicDbAMapa $rec.Tecnic
+        foreach ($c in @(
+            @{ K = 'Tecnic';  L = 'T' + [char]0x00E8 + 'cnic redactor:' },
+            @{ K = 'NumCol';  L = 'N' + [char]0x00FA + 'm. col' + [char]0x00B7 + 'legiat:' },
+            @{ K = 'Collegi'; L = 'Col' + [char]0x00B7 + 'legi:' },
+            @{ K = 'Data';    L = 'Data de signatura:' })) {
+            $lbT = New-Object System.Windows.Forms.Label
+            $lbT.Location = New-Object System.Drawing.Point(20, ($y + 3))
+            $lbT.Size = New-Object System.Drawing.Size(170, 20)
+            $lbT.Text = [string]$c.L
+            [void]$panDret.Controls.Add($lbT)
+            $tbT = New-Object System.Windows.Forms.TextBox
+            $tbT.Location = New-Object System.Drawing.Point(195, $y)
+            $tbT.Size = New-Object System.Drawing.Size(360, 22)
+            $tbT.Text = [string]$tec[[string]$c.K]
+            [void]$panDret.Controls.Add($tbT)
+            [void]$edicions.Add(@{ Ctrl = $tbT; Tipus = 'tecnic'; Nom = [string]$c.K })
+            $y += 26
+        }
+
+        $docsRec = _LlicDbAMapa $rec.TecnicDocs
+        foreach ($d in @(_LlicDocsSignats)) {
+            $e = _LlicDbAMapa $docsRec[[string]$d]
+            $cbD = New-Object System.Windows.Forms.CheckBox
+            $cbD.Location = New-Object System.Drawing.Point(20, ($y + 2))
+            $cbD.Size = New-Object System.Drawing.Size(120, 22)
+            $cbD.Text = [string]$d
+            $cbD.Checked = [bool]$e['Marcat']
+            [void]$panDret.Controls.Add($cbD)
+            [void]$edicions.Add(@{ Ctrl = $cbD; Tipus = 'docmarcat'; Nom = [string]$d })
+            $lbI = New-Object System.Windows.Forms.Label
+            $lbI.Location = New-Object System.Drawing.Point(148, ($y + 5))
+            $lbI.Size = New-Object System.Drawing.Size(80, 20)
+            $lbI.ForeColor = [System.Drawing.Color]::DimGray
+            $lbI.Font = New-Object System.Drawing.Font('Segoe UI', 8)
+            $lbI.Text = 'Id Firmadoc'
+            [void]$panDret.Controls.Add($lbI)
+            $tbI = New-Object System.Windows.Forms.TextBox
+            $tbI.Location = New-Object System.Drawing.Point(232, $y)
+            $tbI.Size = New-Object System.Drawing.Size(323, 22)
+            $tbI.Text = [string]$e['Id']
+            [void]$panDret.Controls.Add($tbI)
+            [void]$edicions.Add(@{ Ctrl = $tbI; Tipus = 'docid'; Nom = [string]$d })
+            $y += 26
+        }
+        $y += 10
+
         $tots = [bool]$chkTots.Checked
         foreach ($bloc in @(
             @{ Prop = 'Abans';   Titol = 'Documentaci' + [char]0x00F3 + ' ABANS de la resoluci' + [char]0x00F3 },
@@ -559,12 +618,6 @@ function Show-LlicenciaDb {
         $altres = New-Object System.Collections.ArrayList
         $nProj = @($rec.ProjKeys).Count
         if ($nProj -gt 0) { [void]$altres.Add('Punts del projecte triats: ' + $nProj) }
-        $tec = _LlicDbAMapa $rec.Tecnic
-        $bitsTec = New-Object System.Collections.ArrayList
-        foreach ($k in @('Tecnic','NumCol','Collegi','Data')) {
-            if (-not [string]::IsNullOrWhiteSpace([string]$tec[$k])) { [void]$bitsTec.Add($k + ': ' + [string]$tec[$k]) }
-        }
-        if ($bitsTec.Count -gt 0) { [void]$altres.Add('Tecnic redactor  ' + [char]0x00B7 + '  ' + ($bitsTec -join '   ')) }
         if (-not [string]::IsNullOrWhiteSpace([string]$rec.Condicions)) {
             $c = [string]$rec.Condicions
             if ($c.Length -gt 200) { $c = $c.Substring(0, 200) + [char]0x2026 }
@@ -616,7 +669,37 @@ function Show-LlicenciaDb {
         $canvis = 0
         $mems = @{}
         foreach ($prop in @('Abans','Despres')) { $mems[$prop] = _LlicDbMemEditable $rec.$prop }
+        # La documentacio del projecte va a part (no es un bloc de punts).
+        $tecNou = @{}
+        foreach ($k in @((_LlicDbAMapa $rec.Tecnic).Keys)) { $tecNou[[string]$k] = [string](_LlicDbAMapa $rec.Tecnic)[$k] }
+        $docsNous = @{}
+        foreach ($k in @((_LlicDbAMapa $rec.TecnicDocs).Keys)) {
+            $e = _LlicDbAMapa ((_LlicDbAMapa $rec.TecnicDocs)[$k])
+            $docsNous[[string]$k] = @{ Marcat = [bool]$e['Marcat']; Id = [string]$e['Id'] }
+        }
+        $tocaProjecte = $false
+        # LA DOCUMENTACIO DEL PROJECTE, PRIMER. Va amb 'if' i no amb un 'switch':
+        # dins d'un switch, 'continue' NO continua el foreach de fora (nomes surt
+        # del switch), i llavors aquestes entrades caurien al codi dels blocs de
+        # punts -que no tenen- i petarien.
         foreach ($ed in $edicions) {
+            $tp = [string]$ed.Tipus
+            if ($tp -eq 'tecnic') {
+                $nou = [string]$ed.Ctrl.Text
+                if ([string]$tecNou[[string]$ed.Nom] -ne $nou) { $tecNou[[string]$ed.Nom] = $nou; $canvis++; $tocaProjecte = $true }
+                continue
+            }
+            if ($tp -eq 'docmarcat' -or $tp -eq 'docid') {
+                if (-not $docsNous.ContainsKey([string]$ed.Nom)) { $docsNous[[string]$ed.Nom] = @{ Marcat = $false; Id = '' } }
+                if ($tp -eq 'docmarcat') {
+                    $nou = [bool]$ed.Ctrl.Checked
+                    if ([bool]$docsNous[[string]$ed.Nom]['Marcat'] -ne $nou) { $docsNous[[string]$ed.Nom]['Marcat'] = $nou; $canvis++; $tocaProjecte = $true }
+                } else {
+                    $nou = ([string]$ed.Ctrl.Text).Trim()
+                    if ([string]$docsNous[[string]$ed.Nom]['Id'] -ne $nou) { $docsNous[[string]$ed.Nom]['Id'] = $nou; $canvis++; $tocaProjecte = $true }
+                }
+                continue
+            }
             $mem = $mems[[string]$ed.Prop]
             $clau = [string]$ed.Clau
             if (-not $mem.ContainsKey($clau)) {
@@ -643,6 +726,13 @@ function Show-LlicenciaDb {
             foreach ($prop in @('Abans','Despres')) {
                 Add-Member -InputObject $rec -NotePropertyName $prop `
                     -NotePropertyValue (ConvertTo-LlicenciaMemoria $mems[$prop]) -Force
+            }
+            if ($tocaProjecte) {
+                $tecOrd = [ordered]@{}
+                foreach ($k in @('Tecnic','NumCol','Collegi','Data')) { $tecOrd[$k] = [string]$tecNou[$k] }
+                Add-Member -InputObject $rec -NotePropertyName 'Tecnic' -NotePropertyValue $tecOrd -Force
+                Add-Member -InputObject $rec -NotePropertyName 'TecnicDocs' `
+                    -NotePropertyValue (ConvertTo-LlicenciaDocs $docsNous) -Force
             }
             Save-LlicenciaDb $db
         }
