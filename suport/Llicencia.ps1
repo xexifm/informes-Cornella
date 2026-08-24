@@ -795,7 +795,7 @@ function _LlicEscriuPunt($sel, $punt, [int]$numero, $fields, [string]$estat, [bo
         [void]$vistos.Add($c); [void]$emesos.Add($c); Format-Url $sel $u
     }
     for ($i = 1; $i -lt $linies.Count; $i++) {
-        _LlicEmetLinia $sel ([string]$linies[$i]) $vistos $false $emesos
+        Write-Linia $sel ([string]$linies[$i]) $vistos $emesos
     }
     # Sub-punts (per exemple, quines instal·lacions s'han de legalitzar).
     #
@@ -855,35 +855,6 @@ function _LlicEscriuPunt($sel, $punt, [int]$numero, $fields, [string]$estat, [bo
             if ($emesos.Contains($c)) { continue }
             [void]$emesos.Add($c); Format-Url $sel $u
         }
-    }
-}
-
-# Emet una linia SEPARANT el text dels URLs, exactament com ho fa REQ1
-# (_SplitTextAndUrls + Format-Body/Format-Url de Document.ps1): el text va com a
-# cos i cada URL com a HIPERVINCLE en un paragraf propi.
-#
-# Abans hi havia un _EsUrl fet a ma amb -like '[[URL]]*'. En un patro de -like,
-# '[[URL]' es una CLASSE DE CARACTERS, o sigui que no coincidia mai: el marcador
-# [[URL]] sortia TAL QUAL a l'informe i l'enllac no tenia format d'enllac.
-# (Mateixa trampa que a la prova de la capcalera; vegeu CLAUDE.md.)
-#
-# $vistos: URLs que ja han sortit en AQUEST punt, per no repetir-los. El text de
-# REQ1 i el comentari "No es disposa..." solen portar el mateix enllac i sortia
-# dues vegades seguides.
-# La linia arriba JA RESOLTA (_LlicEscriuPunt resol els camps per bloc, no linia
-# a linia): aqui nomes se'n separen el text i els URLs.
-function _LlicEmetLinia($sel, [string]$linia, $vistos, [bool]$esFill = $false, $emesos = $null) {
-    if ([string]::IsNullOrWhiteSpace($linia)) { return }
-    $parts = _SplitTextAndUrls $linia
-    if (-not [string]::IsNullOrWhiteSpace($parts.Text)) {
-        if ($esFill) { Format-Body $sel $parts.Text -IsChild } else { Format-Body $sel $parts.Text }
-    }
-    foreach ($u in @($parts.Urls)) {
-        $clau = ([string]$u).Trim()
-        if ($null -ne $vistos -and $vistos.Contains($clau)) { continue }
-        if ($null -ne $vistos) { [void]$vistos.Add($clau) }
-        if ($null -ne $emesos) { [void]$emesos.Add($clau) }
-        if ($esFill) { Format-Url $sel $u -IsChild } else { Format-Url $sel $u }
     }
 }
 

@@ -244,31 +244,20 @@ function _WriteCatalegBody($sel, $cfg, $selectedSections, $fields, $introText, $
         foreach ($ln in @(Apply-FieldsToLines $lines $fields)) { [string]$ln }
     }
 
-    # Emet una linia separant text i URLs: el text (si n'hi ha) va com a cos i
-    # cada URL com a hipervincle en paragraf propi.
-    $emitLine = {
-        param($line, $isChild)
-        if ([string]::IsNullOrWhiteSpace($line)) { return }
-        $parts = _SplitTextAndUrls $line
-        if (-not [string]::IsNullOrWhiteSpace($parts.Text)) {
-            if ($isChild) { Format-Body $sel $parts.Text -IsChild } else { Format-Body $sel $parts.Text }
-        }
-        foreach ($u in $parts.Urls) {
-            if ($isChild) { Format-Url $sel $u -IsChild } else { Format-Url $sel $u }
-        }
-    }
-
+    # Les linies s'emeten amb Write-Linia (MotorInforme.ps1): el text (si n'hi ha)
+    # va com a cos i cada URL com a hipervincle en paragraf propi. Aqui no es
+    # dedupliquen enllacos ($vistos a $null): nomes ho fa Llicencia.
     $emitExtras = {
         param($lines, $isChild)
         for ($i = 1; $i -lt $lines.Count; $i++) {
-            & $emitLine $lines[$i] $isChild
+            Write-Linia $sel ([string]$lines[$i]) -IsChild:$isChild
         }
     }
 
     $emitIntro = {
         param($introEl)
         $lines = @(& $resolveLines $introEl.BodyLines)
-        foreach ($bp in $lines) { & $emitLine $bp $false }
+        foreach ($bp in $lines) { Write-Linia $sel ([string]$bp) }
         Format-Aire $sel 'intro'
     }
 
