@@ -310,66 +310,27 @@ function _VistaLlicencia($sel, [string]$jsonPath) {
 # vista del cataleg, no un informe d'una activitat concreta).
 function _VistaCataleg($sel, [string]$jsonPath, [string]$nom) {
     $parsed = Read-CatalegJson $jsonPath
-    $cfg = $Script:ReportFormatConfig
 
-    if (-not [string]::IsNullOrWhiteSpace([string]$parsed.IntroText)) {
-        _VBody $sel ([string]$parsed.IntroText)
-        _VAire $sel 'introparagraf'
-    }
-    if ($parsed.IsFixedBody) {
-        $lines = @($parsed.FixedBodyLines)
-        for ($i = 0; $i -lt $lines.Count; $i++) {
-            _VLine $sel ([string]$lines[$i])
-            if ($i -lt ($lines.Count - 1)) { _VSpacer $sel }
-        }
-        return
-    }
-
-    $num = 0
+    # LA MATEIXA FUNCIO QUE L'INFORME. Abans aqui hi havia una copia de
+    # _WriteCatalegBody -seccio, subseccio, items numerats, fills amb pic...- i
+    # una copia podia dir una cosa mentre el document en generava una altra.
+    # Ara nomes canvia una cosa: -AmbNivells, que posa l'OutlineLevel a cada
+    # paragraf perque la vista sigui navegable des del panell del Word.
+    #
+    # A la vista hi SURT TOT: els items del cataleg no venen d'una tria, o sigui
+    # que se'ls marca com a triats perque el motor els escrigui tots.
     foreach ($sec in @($parsed.Sections)) {
-        _VSection $sel ([string]$sec.Title)
-        _VAire $sel 'seccio'
         foreach ($el in @($sec.Items)) {
-            switch ([string]$el.Kind) {
-                'subsection' {
-                    _VSubsection $sel ([string]$el.Short)
-                    _VAire $sel 'subseccio'
-                }
-                'intro' {
-                    foreach ($ln in @($el.BodyLines)) { _VLine $sel ([string]$ln) }
-                    _VAire $sel 'intro'
-                }
-                default {
-                    $lines = @($el.BodyLines)
-                    $escrit = $false
-                    if ($lines.Count -gt 0) {
-                        $num++
-                        $p0 = _SplitTextAndUrls ([string]$lines[0])
-                        _VItem $sel ("$num.") ([string]$p0.Text)
-                        foreach ($u in $p0.Urls) { _VUrl $sel $u }
-                        for ($i = 1; $i -lt $lines.Count; $i++) { _VLine $sel ([string]$lines[$i]) }
-                        $escrit = $true
-                    }
-                    $primerFill = $true
-                    foreach ($ch in @($el.Children)) {
-                        $cl = @($ch.BodyLines)
-                        if ($cl.Count -eq 0) { continue }
-                        if (-not $escrit) { $num++; $escrit = $true }
-                        # Els fills NO es numeren: van amb pic, com a l'informe.
-                        # El PRIMER se separa mes de l'item (com fa Motor.ps1).
-                        $pc = _SplitTextAndUrls ([string]$cl[0])
-                        if (-not [string]::IsNullOrWhiteSpace($pc.Text)) {
-                            _VBullet $sel ([string]$pc.Text) $true $primerFill
-                            $primerFill = $false
-                        }
-                        foreach ($u in $pc.Urls) { _VUrl $sel $u $true }
-                        for ($i = 1; $i -lt $cl.Count; $i++) { _VLine $sel ([string]$cl[$i]) $true }
-                    }
-                    if ($escrit) { _VAire $sel 'item' }
-                }
-            }
+            if ([string]$el.Kind -eq 'subsection' -or [string]$el.Kind -eq 'intro') { continue }
+            $el | Add-Member NoteProperty Selected $true -Force
         }
     }
+    # -SenseCamps: a la vista els [CAMP:]/[OPCIO:] es veuen TAL QUAL. Es una
+    # vista del CATALEG, no l'informe d'una activitat: resoldre'ls amb un
+    # diccionari buit els deixaria en blanc i la vista perdria el que hi vas a
+    # mirar.
+    $blocs = Build-CatalegBlocs $parsed.Sections $null ([string]$parsed.IntroText) ([bool]$parsed.IsFixedBody) @($parsed.FixedBodyLines) -SenseCamps
+    [void](Write-Informe $sel $blocs -AmbNivells)
 }
 
 # ---- Vista de les CONCLUSIONS ----------------------------------------------
