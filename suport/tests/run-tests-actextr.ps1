@@ -291,4 +291,45 @@ Write-Host "`n--- ACT_EXTR: l'aire surt de la configuracio ---"
     } finally { $Script:ReportFormatConfig.SpacerAfterSection = $abansSec }
 }.Invoke() | Out-Null
 
+# ---------------------------------------------------------------------------
+# ACT_EXTR: el PRIMER sub-punt d'una unitat va a 12 pt, no a 6
+# ---------------------------------------------------------------------------
+# Format-Bullet -First aplica ItemSpaceAfterPt (12 pt) en lloc de
+# BulletSpaceBeforePt (6 pt) al primer sub-punt que penja d'una unitat. Tot el
+# programa ho fa; ACT_EXTR era l'unic que no, i el seu primer sub-punt quedava
+# enganxat al text de l'item.
+Write-Host "`n--- ACT_EXTR: -First al primer sub-punt ---"
+{
+    . (Join-Path $PSScriptRoot 'FormatDoubles.ps1')
+    $selB = [pscustomobject]@{}
+    $blocsB = @(
+        @{ Key='A'; Kind='item';  Section=0; Contents=@(@{ Text='Punt amb fills.'; IsUrl=$false }) },
+        @{ Key='B'; Kind='child'; Section=0; Contents=@(@{ Text='Fill u.';   IsUrl=$false }) },
+        @{ Key='C'; Kind='child'; Section=0; Contents=@(@{ Text='Fill dos.'; IsUrl=$false }) },
+        @{ Key='D'; Kind='item';  Section=0; Contents=@(@{ Text='Altre punt.'; IsUrl=$false }) },
+        @{ Key='E'; Kind='child'; Section=0; Contents=@(@{ Text='Fill tres.'; IsUrl=$false }) }
+    )
+    $ctxB = @{
+        Decret=@{}; Computed=@{}; Delivered=@{}; DefKeys=@()
+        StatusByKey=@{ 'A'=@{Applies=$true}; 'B'=@{Applies=$true}; 'C'=@{Applies=$true}; 'D'=@{Applies=$true}; 'E'=@{Applies=$true} }
+    }
+    $global:emitCalls.Clear()
+    _WriteActExtrBody $selB $blocsB 'req' $ctxB @{}
+    $pics = @(@($global:emitCalls) | Where-Object { $_ -like 'BULLET*' })
+    AssertEq $pics.Count 3 'ACT_EXTR -First: tres sub-punts'
+    Assert ([bool]($pics[0] -eq 'BULLET/CH/1r|Fill u.'))   'ACT_EXTR -First: el primer fill d''una unitat va a 12 pt'
+    Assert ([bool]($pics[1] -eq 'BULLET/CH|Fill dos.'))    'ACT_EXTR -First: el segon es queda a 6 pt'
+    Assert ([bool]($pics[2] -eq 'BULLET/CH/1r|Fill tres.')) 'ACT_EXTR -First: i el comptador es reinicia a la unitat seguent'
+
+    # El mateix a l'informe FAVORABLE. Avui la seva plantilla no te cap bloc
+    # 'child' (mesurat), o sigui que alli el canvi encara no es nota; la regla hi
+    # es igualment perque el dia que n'hi hagi un no torni a quedar a 6 pt.
+    $global:emitCalls.Clear()
+    _WriteActExtrBodyFav $selB $blocsB $ctxB @{}
+    $picsF = @(@($global:emitCalls) | Where-Object { $_ -like 'BULLET/CH*' })
+    AssertEq $picsF.Count 3 'ACT_EXTR fav -First: tres sub-punts'
+    Assert ([bool]($picsF[0] -like '*/1r|Fill u.'))  'ACT_EXTR fav -First: el primer fill va a 12 pt'
+    Assert ([bool]($picsF[1] -eq 'BULLET/CH|Fill dos.')) 'ACT_EXTR fav -First: el segon es queda a 6 pt'
+}.Invoke() | Out-Null
+
 exit (Write-TestSummary 'RESULTAT ACT_EXTR')

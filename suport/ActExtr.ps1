@@ -713,6 +713,7 @@ function _WriteActExtrBody($sel, $blocks, $mode, $ctx, $computed) {
     # ---- REQUERIMENT ----
     $num0 = 0   # comptador d'items de 1r nivell (continu)
     $first = $true
+    $primerFill = $false   # el seguent sub-punt es el primer de la seva unitat?
     foreach ($block in $blocks) {
         if (-not (Test-ActExtrIncludeBlock $block.Key $mode $ctx)) { continue }
         $kind = [string]$block.Kind
@@ -732,7 +733,14 @@ function _WriteActExtrBody($sel, $blocks, $mode, $ctx, $computed) {
             if ([string]::IsNullOrWhiteSpace($parts.Text) -and @($parts.Urls).Count -eq 0) { continue }
 
             if ($kind -eq 'child') {
-                if (-not [string]::IsNullOrWhiteSpace($parts.Text)) { Format-Bullet $sel $parts.Text -IsChild }
+                # -First al PRIMER sub-punt que penja d'una unitat: el separa
+                # amb ItemSpaceAfterPt (12 pt) en lloc de BulletSpaceBeforePt
+                # (6 pt), com a tota la resta del programa. Aqui no s'hi posava
+                # i el primer sub-punt quedava enganxat al text de l'item.
+                if (-not [string]::IsNullOrWhiteSpace($parts.Text)) {
+                    Format-Bullet $sel $parts.Text -IsChild -First:$primerFill
+                    $primerFill = $false
+                }
                 foreach ($x in $parts.Urls) { Format-Url $sel $x -IsChild }
                 $first = $false
                 continue
@@ -756,6 +764,8 @@ function _WriteActExtrBody($sel, $blocks, $mode, $ctx, $computed) {
                 if (-not [string]::IsNullOrWhiteSpace($parts.Text)) { Format-Body $sel $parts.Text }
                 foreach ($x in $parts.Urls) { Format-Url $sel $x }
             }
+            # La unitat que ve de tancar-se es la mare dels sub-punts seguents.
+            $primerFill = $true
             $first = $false
         }
     }
@@ -767,6 +777,7 @@ function _WriteActExtrBody($sel, $blocks, $mode, $ctx, $computed) {
 function _WriteActExtrBodyFav($sel, $blocks, $ctx, $computed) {
     $firstBlock  = $true
     $prevSection = -1
+    $primerFill  = $false   # el seguent sub-punt es el primer de la seva unitat?
     foreach ($block in $blocks) {
         if (-not (Test-ActExtrIncludeBlock $block.Key 'fav' $ctx)) { continue }
         $kind = [string]$block.Kind
@@ -790,14 +801,25 @@ function _WriteActExtrBodyFav($sel, $blocks, $ctx, $computed) {
             if ([string]::IsNullOrWhiteSpace($parts.Text) -and @($parts.Urls).Count -eq 0) { continue }
             $txt = $parts.Text
 
-            switch ($kind) {
-                'child'  { if ($txt) { Format-Bullet $sel $txt -IsChild }; foreach ($x in $parts.Urls) { Format-Url $sel $x -IsChild } }
-                'note'   { if ($txt) { Format-Note $sel $txt };            foreach ($x in $parts.Urls) { Format-Url $sel $x -IsChild } }
-                'label'  { if ($txt) { Format-Label $sel $txt };           foreach ($x in $parts.Urls) { Format-Url $sel $x } }
-                'header' { if ($txt) { Format-ConclusionHeader $sel $txt } }
-                'conc'   { if ($txt) { Format-Conclusion $sel $txt };      foreach ($x in $parts.Urls) { Format-Url $sel $x } }
-                'text'   { if ($txt) { Format-Body $sel $txt };            foreach ($x in $parts.Urls) { Format-Url $sel $x } }
-                default  { if ($txt) { Format-Bullet $sel $txt };          foreach ($x in $parts.Urls) { Format-Url $sel $x } }  # 'item'
+            # -First al PRIMER sub-punt de cada unitat (12 pt en lloc de 6),
+            # com a tota la resta del programa. Qualsevol contingut que NO sigui
+            # un sub-punt obre unitat nova.
+            if ($kind -eq 'child') {
+                if ($txt) {
+                    Format-Bullet $sel $txt -IsChild -First:$primerFill
+                    $primerFill = $false
+                }
+                foreach ($x in $parts.Urls) { Format-Url $sel $x -IsChild }
+            } else {
+                switch ($kind) {
+                    'note'   { if ($txt) { Format-Note $sel $txt };            foreach ($x in $parts.Urls) { Format-Url $sel $x -IsChild } }
+                    'label'  { if ($txt) { Format-Label $sel $txt };           foreach ($x in $parts.Urls) { Format-Url $sel $x } }
+                    'header' { if ($txt) { Format-ConclusionHeader $sel $txt } }
+                    'conc'   { if ($txt) { Format-Conclusion $sel $txt };      foreach ($x in $parts.Urls) { Format-Url $sel $x } }
+                    'text'   { if ($txt) { Format-Body $sel $txt };            foreach ($x in $parts.Urls) { Format-Url $sel $x } }
+                    default  { if ($txt) { Format-Bullet $sel $txt };          foreach ($x in $parts.Urls) { Format-Url $sel $x } }  # 'item'
+                }
+                $primerFill = $true
             }
         }
         $prevSection = [int]$block.Section
