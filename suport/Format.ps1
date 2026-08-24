@@ -436,6 +436,27 @@ function Format-Aire($sel, [string]$clau) {
     if (Test-FormatAire $clau) { Format-Spacer $sel }
 }
 
+# SALT DE PAGINA. El fa servir l'ANNEX 1 de Llicencia (el full de signatures
+# comenca en pagina nova). Aqui, i no al cridador, perque tocar el Word per
+# format nomes ho fa aquest modul.
+$Script:WdPageBreak = 7        # wdPageBreak
+
+function Format-SaltPagina($sel) {
+    try { [void]$sel.InsertBreak($Script:WdPageBreak) } catch { }
+}
+
+# NIVELL D'ESQUEMA (OutlineLevel) del paragraf que s'acaba d'escriure. NO canvia
+# com es veu: nomes el fa sortir al panell de navegacio del Word. El fan servir
+# les VISTES dels catalegs.
+#
+# COMPTE: el Word HERETA el nivell al paragraf seguent, o sigui que el cos l'ha
+# de tornar sempre a $WdOutlineBody. Posar-lo un sol cop al final no serveix.
+$Script:WdOutlineBody = 10     # wdOutlineLevelBodyText
+
+function Format-Nivell($sel, [int]$n) {
+    try { $sel.ParagraphFormat.OutlineLevel = $n } catch { }
+}
+
 function Format-Conclusion {
     param($sel, [string]$text)
     [void]$sel.TypeParagraph()

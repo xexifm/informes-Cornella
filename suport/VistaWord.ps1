@@ -134,11 +134,9 @@ function _VistaActExtrTitol([string]$h2) {
 # de navegacio del Word. L'OutlineLevel NO canvia com es veu el paragraf: nomes
 # el fa navegable. Compte: el Word HERETA el nivell al paragraf seguent, per aixo
 # el cos el torna sempre a 10 (wdOutlineLevelBodyText).
-$Script:WdOutlineBody = 10
-
-function _VistaNivell($sel, [int]$n) {
-    try { $sel.ParagraphFormat.OutlineLevel = $n } catch { }
-}
+# $Script:WdOutlineBody i Format-Nivell viuen a Format.ps1: tocar el Word per
+# format es cosa d'aquell modul, i aixi no en queda cap copia aqui.
+function _VistaNivell($sel, [int]$n) { Format-Nivell $sel $n }
 
 # --- Embolcalls: format de l'informe + nivell d'esquema ---------------------
 function _VSection($sel, [string]$t)  { Format-Section $sel $t;    _VistaNivell $sel 1 }

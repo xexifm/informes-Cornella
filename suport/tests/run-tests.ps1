@@ -4276,4 +4276,28 @@ try {
     AssertEq (_AnnotationFormatTwips).Indent (_CmToTwips 2.0) 'Anotacio: canviar-ho a Format.ps1 hi arriba'
 } finally { $Script:ReportFormatConfig.AnnotationIndentCm = $indAbans }
 
+# ---------------------------------------------------------------------------
+# NOMES Format.ps1 toca el Word per FORMAT
+# ---------------------------------------------------------------------------
+# Es la invariant que fa que "canviar-ho en un lloc" sigui veritat: si un altre
+# fitxer posa una sagnia, un salt de pagina o un nivell d'esquema pel seu
+# compte, aquell tros de format queda fora de $ReportFormatConfig i ja no es
+# pot canviar des d'un sol lloc. Ja va passar amb el salt de pagina de l'ANNEX 1
+# i amb l'OutlineLevel de les vistes.
+Write-Host "`n--- Nomes Format.ps1 toca el Word per format ---"
+$dirFmt = Split-Path -Parent $PSScriptRoot
+$toquen = @()
+foreach ($f in @(Get-ChildItem -Path $dirFmt -Filter '*.ps1' -File)) {
+    if ($f.Name -eq 'Format.ps1') { continue }
+    $i = 0
+    foreach ($ln in ((Get-Content -LiteralPath $f.FullName -Raw) -split "`r?`n")) {
+        $i++
+        if ($ln.TrimStart().StartsWith('#')) { continue }
+        if ($ln -match 'ParagraphFormat\.|\.OutlineLevel|InsertBreak\(') {
+            $toquen += ($f.Name + ':' + $i + ': ' + $ln.Trim())
+        }
+    }
+}
+AssertEq $toquen.Count 0 ('Cap fitxer fora de Format.ps1 toca el Word per format' + $(if ($toquen.Count) { ' -> ' + ($toquen -join ' | ') } else { '' }))
+
 exit (Write-TestSummary 'RESULTAT')

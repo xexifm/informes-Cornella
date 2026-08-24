@@ -986,7 +986,7 @@ function _LlicEscriuAnnex1($sel, $llic) {
     $sec = _LlicSeccioAnnex1 $llic
     if ($null -eq $sec) { return }
     # Salt de pagina: l'annex es un document a part dins de l'informe.
-    try { [void]$sel.InsertBreak(7) } catch { Format-Spacer $sel }   # wdPageBreak
+    Format-SaltPagina $sel
     Format-Plain $sel ([string]$sec.titol) -Bold
 
     $cos9 = $false          # ja som al full de signatures?
@@ -1014,7 +1014,7 @@ function _LlicEscriuAnnex1($sel, $llic) {
                 $esTitolAcceptacio = (_LlicEsTitolAcceptacio $t)
                 if ($esTitolAcceptacio -and -not $cos9) {
                     # A partir d'aqui, full a part i lletra mes petita.
-                    try { [void]$sel.InsertBreak(7) } catch { Format-Spacer $sel }
+                    Format-SaltPagina $sel
                     $cos9 = $true
                     $obreBloc = $false
                 }
