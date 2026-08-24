@@ -29,6 +29,12 @@ function Format-Body       { param($s,$t,[switch]$IsChild,[switch]$Bold,[switch]
 function Format-Bullet     { param($s,$t,[switch]$IsChild,[switch]$First) [void]$global:emitCalls.Add('BULLET' + $(if($IsChild){'/CH'}else{''}) + $(if($First){'/1r'}else{''}) + "|$t") }
 function Format-Url        { param($s,$u,[switch]$IsChild) [void]$global:emitCalls.Add('URL'    + $(if($IsChild){'/CH'}else{''}) + "|$u") }
 function Format-Spacer     { param($s) }
+# L'AIRE S'ENREGISTRA: aixi les proves veuen si un bloc va separat del seguent i
+# no nomes que s'hagi escrit. Passa per la Test-FormatAire de debo (es pura), de
+# manera que la seqüencia enregistrada reflecteix les banderes de veritat.
+# Format-Spacer segueix sense enregistrar res: els espais que es posen a ma
+# (ANNEX 1, ACT_EXTR) no son aire de bloc.
+function Format-Aire       { param($s,$c) if (Test-FormatAire $c) { [void]$global:emitCalls.Add("AIRE|$c") } }
 function Format-Append     { param($s,$t) [void]$global:emitCalls.Add("APPEND|$t") }
 function Format-ListItem   { param($s,$t) [void]$global:emitCalls.Add("LLISTA|$t") }
 function Format-Conclusion { param($s,$t) [void]$global:emitCalls.Add("CONCL|$t") }

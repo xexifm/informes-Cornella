@@ -199,7 +199,7 @@ function Build-MnsDocument($word, $model) {
                 if (-not [string]::IsNullOrWhiteSpace($pp.Text)) { Format-Body $sel $pp.Text }
                 foreach ($u in @($pp.Urls)) { Format-Url $sel $u }
             }
-            if ($cfg.SpacerAfterItem) { Format-Spacer $sel }
+            Format-Aire $sel 'item'
         }
 
         # ELS PUNTS DE REQ1, amb la MATEIXA funcio que els informes de REQ1: el

@@ -4131,4 +4131,44 @@ foreach ($f in @(Get-ChildItem -Path $srcMotorDir -Filter '*.ps1' -File)) {
 }
 AssertEq $obren.Count 0 ('Cap informe obre el document pel seu compte (nomes Write-InformeDocx)' + $(if ($obren.Count) { ' -> ' + ($obren -join ' | ') } else { '' }))
 
+# ---------------------------------------------------------------------------
+# L'aire entre blocs: una bandera, un sol lloc
+# ---------------------------------------------------------------------------
+# Abans hi havia TRENTA-QUATRE "if ($cfg.SpacerAfterX) { Format-Spacer $sel }"
+# escampats per Document / Llicencia / MnsTraspas / VistaWord. Ara es
+# Format-Aire $sel '<clau>' i la bandera es resol en un sol lloc.
+Write-Host "`n--- Format-Aire (l'aire entre blocs) ---"
+Assert (Test-FormatAire 'seccio')        'Aire: la clau "seccio" mira SpacerAfterSection'
+Assert (Test-FormatAire 'subseccio')     'Aire: "subseccio" -> SpacerAfterSubsection'
+Assert (Test-FormatAire 'item')          'Aire: "item" -> SpacerAfterItem'
+Assert (Test-FormatAire 'intro')         'Aire: "intro" -> SpacerAfterIntro'
+Assert (Test-FormatAire 'introparagraf') 'Aire: "introparagraf" -> SpacerAfterIntroParagraph'
+Assert (Test-FormatAire 'conclusions')   'Aire: "conclusions" -> SpacerBeforeConclusionsBlock'
+Assert (Test-FormatAire 'SECCIO')        'Aire: la clau no distingeix majuscules'
+# Una clau desconeguda NO ha de posar aire "per si de cas" ni petar: un nom mal
+# escrit no pot afegir una linia en blanc a un informe sense que ningu ho vegi.
+Assert (-not (Test-FormatAire 'aixo-no-existeix')) 'Aire: una clau desconeguda no posa aire'
+Assert (-not (Test-FormatAire ''))                 'Aire: una clau buida tampoc'
+# I la bandera MANA: si es posa a fals, l'aire desapareix.
+$aireAbans = $Script:ReportFormatConfig.SpacerAfterItem
+try {
+    $Script:ReportFormatConfig.SpacerAfterItem = $false
+    Assert (-not (Test-FormatAire 'item')) 'Aire: amb la bandera a fals, no hi va aire'
+} finally { $Script:ReportFormatConfig.SpacerAfterItem = $aireAbans }
+Assert (Test-FormatAire 'item') 'Aire: ...i en tornar-la a posar, si'
+
+# CAP INFORME LLEGEIX LES BANDERES PEL SEU COMPTE. Es la prova que impedeix que
+# tornin a apareixer els 34 "if ($cfg.SpacerAfterX)" escampats: si algu n'escriu
+# un de nou, aqui salta.
+$srcAireDir = Split-Path -Parent $PSScriptRoot
+$llegeixen = @()
+foreach ($f in @(Get-ChildItem -Path $srcAireDir -Filter '*.ps1' -File)) {
+    if ($f.Name -eq 'Format.ps1') { continue }   # es qui les defineix
+    foreach ($ln in ((Get-Content -LiteralPath $f.FullName -Raw) -split "`r?`n")) {
+        if ($ln.TrimStart().StartsWith('#')) { continue }
+        if ($ln -match '\$cfg\.Spacer|ReportFormatConfig\.Spacer') { $llegeixen += ($f.Name + ': ' + $ln.Trim()) }
+    }
+}
+AssertEq $llegeixen.Count 0 ('Cap informe llegeix les banderes d''aire pel seu compte' + $(if ($llegeixen.Count) { ' -> ' + ($llegeixen -join ' | ') } else { '' }))
+
 exit (Write-TestSummary 'RESULTAT')

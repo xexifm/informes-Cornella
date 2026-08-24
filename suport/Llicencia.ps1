@@ -912,50 +912,50 @@ function Build-LlicenciaDocument($word, $model) {
         $doc1 = [string]$model.Doc.Text
         if (-not [string]::IsNullOrWhiteSpace($doc1)) {
             Format-Section $sel ('DOCUMENTACI' + [char]0x00D3 + ' PROJECTE')
-            if ($cfg.SpacerAfterSection) { Format-Spacer $sel }
+            Format-Aire $sel 'seccio'
             Format-Body $sel $doc1
             $primer = $true
             foreach ($d in @($model.Doc.Items)) {
                 if ($primer) { Format-Bullet $sel ([string]$d) -IsChild -First; $primer = $false }
                 else { Format-Bullet $sel ([string]$d) -IsChild }
             }
-            if ($cfg.SpacerAfterItem) { Format-Spacer $sel }
+            Format-Aire $sel 'item'
         }
         # ---- ABANS ----
-        # Els espais els mana Format.ps1 ($cfg.SpacerAfterSection / -Subsection /
-        # -Item), exactament com _WriteCatalegBody de REQ1: aqui no s'hi inventa
+        # Els espais els mana Format.ps1 (Format-Aire 'seccio' / 'subseccio' /
+        # 'item'), exactament com _WriteCatalegBody de REQ1: aqui no s'hi inventa
         # cap separacio.
         Format-Section $sel (_LlicTitolAbans)
-        if ($cfg.SpacerAfterSection) { Format-Spacer $sel }
+        Format-Aire $sel 'seccio'
         $n = 0
         foreach ($p in @($model.Abans)) {
             $n++
             _LlicEscriuPunt $sel $p $n $fields ([string]$p.Estat) $false
-            if ($cfg.SpacerAfterItem) { Format-Spacer $sel }
+            Format-Aire $sel 'item'
         }
         # ---- PROJECTE: els requeriments normals de REQ1, com sempre ----
         $proj = @($model.Projecte)
         if ($proj.Count -gt 0) {
             Format-Subsection $sel 'Projecte'
-            if ($cfg.SpacerAfterSubsection) { Format-Spacer $sel }
+            Format-Aire $sel 'subseccio'
             foreach ($p in $proj) {
                 $n++
                 _LlicEscriuPunt $sel $p $n $fields '' $false
-                if ($cfg.SpacerAfterItem) { Format-Spacer $sel }
+                Format-Aire $sel 'item'
             }
         }
         # ---- DESPRES ----
         $desp = @($model.Despres)
         if ($desp.Count -gt 0) {
             Format-Section $sel (_LlicTitolDespres)
-            if ($cfg.SpacerAfterSection) { Format-Spacer $sel }
+            Format-Aire $sel 'seccio'
             # LA NUMERACIO CONTINUA la del bloc ABANS ($n NO es reinicia): a
             # l'informe els punts van seguits de cap a peus, no dues llistes que
             # tornen a comencar per 1.
             foreach ($p in $desp) {
                 $n++
                 _LlicEscriuPunt $sel $p $n $fields ([string]$p.Estat) $true
-                if ($cfg.SpacerAfterItem) { Format-Spacer $sel }
+                Format-Aire $sel 'item'
             }
         }
 
@@ -964,7 +964,7 @@ function Build-LlicenciaDocument($word, $model) {
         # Mateix bloc que REQ1 (_WriteConclusionsBlock): capcalera CONCLUSIONS
         # centrada i en negreta, i la conclusio en negreta -que aqui ve del **...**
         # del cataleg, exactament com a REQ1: el text ja no es del codi.
-        if ($cfg.SpacerBeforeConclusionsBlock) { Format-Spacer $sel }
+        Format-Aire $sel 'conclusions'
         Format-ConclusionHeader $sel 'CONCLUSIONS'
         Format-Conclusion $sel (_LlicConclusioText ([string]$model.Fase) $ambCond)
         if ($ambCond -and [string]$model.Fase -eq 'favorable-pre') {

@@ -399,6 +399,38 @@ function Format-Spacer {
     _Apply-Indent $sel 0
 }
 
+# L'AIRE ENTRE BLOCS, PER NOM. Abans cada informe escrivia
+#   if ($cfg.SpacerAfterSection) { Format-Spacer $sel }
+# i n'hi havia TRENTA-QUATRE d'aquests escampats per Document.ps1,
+# Llicencia.ps1, MnsTraspas.ps1 i VistaWord.ps1. Amb aixo, afegir una bandera
+# nova volia dir trobar-los tots, i cap dels que ACT_EXTR posava a la fixa no
+# la mirava.
+#
+# Ara la clau es el NOM del bloc que s'acaba d'escriure i la bandera es resol
+# en un sol lloc. Canviar l'aire d'un tipus de bloc es tocar $ReportFormatConfig
+# i prou.
+$Script:AireFlagPerClau = @{
+    'seccio'        = 'SpacerAfterSection'
+    'subseccio'     = 'SpacerAfterSubsection'
+    'item'          = 'SpacerAfterItem'
+    'intro'         = 'SpacerAfterIntro'
+    'introparagraf' = 'SpacerAfterIntroParagraph'
+    'conclusions'   = 'SpacerBeforeConclusionsBlock'
+}
+
+# Hi va aire despres d'un bloc d'aquesta mena? PURA: es pot provar sense Word.
+# Una clau desconeguda retorna $false -mai un espai per sorpresa- i tampoc no
+# peta: un informe no s'ha de perdre per un nom mal escrit.
+function Test-FormatAire([string]$clau) {
+    $flag = $Script:AireFlagPerClau[([string]$clau).ToLower()]
+    if ([string]::IsNullOrWhiteSpace($flag)) { return $false }
+    return [bool]$Script:ReportFormatConfig.$flag
+}
+
+function Format-Aire($sel, [string]$clau) {
+    if (Test-FormatAire $clau) { Format-Spacer $sel }
+}
+
 function Format-Conclusion {
     param($sel, [string]$text)
     [void]$sel.TypeParagraph()

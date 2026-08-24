@@ -226,7 +226,7 @@ function _WriteCatalegBody($sel, $cfg, $selectedSections, $fields, $introText, $
 
     if (-not [string]::IsNullOrWhiteSpace($introText)) {
         Format-Body $sel $introText
-        if ($cfg.SpacerAfterIntroParagraph) { Format-Spacer $sel }
+        Format-Aire $sel 'introparagraf'
     }
 
     # Resol [CAMP: ...] i [OPCIO: ...] i EMET cada linia resolta al pipeline.
@@ -269,7 +269,7 @@ function _WriteCatalegBody($sel, $cfg, $selectedSections, $fields, $introText, $
         param($introEl)
         $lines = @(& $resolveLines $introEl.BodyLines)
         foreach ($bp in $lines) { & $emitLine $bp $false }
-        if ($cfg.SpacerAfterIntro) { Format-Spacer $sel }
+        Format-Aire $sel 'intro'
     }
 
     $emitItem = {
@@ -313,7 +313,7 @@ function _WriteCatalegBody($sel, $cfg, $selectedSections, $fields, $introText, $
                 & $emitExtras $childLines $true
             }
         }
-        if ($itemWritten -and $cfg.SpacerAfterItem) { Format-Spacer $sel }
+        if ($itemWritten) { Format-Aire $sel 'item' }
     }
 
     $script:_buildGlobal = 0
@@ -326,14 +326,14 @@ function _WriteCatalegBody($sel, $cfg, $selectedSections, $fields, $introText, $
             $subName = $parts[1].Trim()
             if ($secName -ne $lastSectionName) {
                 Format-Section $sel $secName
-                if ($cfg.SpacerAfterSection) { Format-Spacer $sel }
+                Format-Aire $sel 'seccio'
                 $lastSectionName = $secName
             }
             Format-Subsection $sel $subName
-            if ($cfg.SpacerAfterSubsection) { Format-Spacer $sel }
+            Format-Aire $sel 'subseccio'
         } else {
             Format-Section $sel $sec.Title
-            if ($cfg.SpacerAfterSection) { Format-Spacer $sel }
+            Format-Aire $sel 'seccio'
             $lastSectionName = $sec.Title
         }
 
@@ -358,7 +358,7 @@ function _WriteCatalegBody($sel, $cfg, $selectedSections, $fields, $introText, $
             # despres l'intro pendent, i finalment l'item.
             if ($null -ne $pendingSubsection) {
                 Format-Subsection $sel $pendingSubsection.Short
-                if ($cfg.SpacerAfterSubsection) { Format-Spacer $sel }
+                Format-Aire $sel 'subseccio'
                 $pendingSubsection = $null
             }
             if ($null -ne $pendingIntro) {
@@ -406,7 +406,7 @@ function _WriteConclusionsBlock($sel, $cfg, $headerText, $conclusions, $alwaysCo
     $hasHead = -not [string]::IsNullOrWhiteSpace($headerText)
     if (-not $hasBody -and -not $hasHead) { return }
 
-    if ($cfg.SpacerBeforeConclusionsBlock) { Format-Spacer $sel }
+    Format-Aire $sel 'conclusions'
 
     if ($hasHead) {
         Format-ConclusionHeader $sel $headerText

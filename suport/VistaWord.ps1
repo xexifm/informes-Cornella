@@ -157,6 +157,9 @@ function _VBullet($sel, [string]$t, [bool]$isChild = $true, [bool]$first = $fals
     _VistaNivell $sel $Script:WdOutlineBody
 }
 function _VSpacer($sel) { Format-Spacer $sel; _VistaNivell $sel $Script:WdOutlineBody }
+# I la versio per NOM de bloc (Format-Aire), que es la que decideix si hi va
+# aire o no. Vegeu $Script:AireFlagPerClau a Format.ps1.
+function _VAire($sel, [string]$clau) { if (Test-FormatAire $clau) { _VSpacer $sel } }
 
 # Escriu una linia de cos separant text i URLs, com fa el motor (_SplitTextAndUrls).
 function _VLine($sel, [string]$line, [bool]$isChild = $false) {
@@ -182,10 +185,10 @@ function _VistaMnsTraspas($sel, [string]$jsonPath) {
     $cat = Read-MnsCataleg $jsonPath
     foreach ($f in @(_MnsFases)) {
         _VSection $sel ([string]$f.Nom)
-        if ($cfg.SpacerAfterSection) { _VSpacer $sel }
+        _VAire $sel 'seccio'
         foreach ($v in @(@{ Amb = $false; Nom = 'sense observacions' }, @{ Amb = $true; Nom = 'amb observacions' })) {
             _VSubsection $sel ([string]$v.Nom)
-            if ($cfg.SpacerAfterSubsection) { _VSpacer $sel }
+            _VAire $sel 'subseccio'
             foreach ($p in @(_MnsParagrafs $cat ([string]$f.Clau) ([bool]$v.Amb))) {
                 if ([string]$p.Tipus -eq 'llista') {
                     _VBody $sel ('//(aqui hi va una llista de Word buida, per omplir-la a ma)//')
@@ -196,7 +199,7 @@ function _VistaMnsTraspas($sel, [string]$jsonPath) {
                     if (-not [string]::IsNullOrWhiteSpace($pp.Text)) { _VBody $sel $pp.Text }
                 }
             }
-            if ($cfg.SpacerAfterItem) { _VSpacer $sel }
+            _VAire $sel 'item'
         }
     }
 }
@@ -216,7 +219,7 @@ function _VistaLlicencia($sel, [string]$jsonPath) {
     foreach ($b in $blocs) {
         $r = _LlicPuntsPerBloc $llic $idx ([string]$b.Clau) $req1
         _VSection $sel ([string]$b.Titol)
-        if ($cfg.SpacerAfterSection) { _VSpacer $sel }
+        _VAire $sel 'seccio'
         $seccioAra = ''
         $n = 0
         foreach ($p in @($r.Punts)) {
@@ -225,7 +228,7 @@ function _VistaLlicencia($sel, [string]$jsonPath) {
                 $seccioAra = $sec
                 if ($sec) {
                     _VSubsection $sel ('de REQ1: ' + $sec)
-                    if ($cfg.SpacerAfterSubsection) { _VSpacer $sel }
+                    _VAire $sel 'subseccio'
                 }
             }
             $linies = @($p.Cos)
@@ -250,32 +253,32 @@ function _VistaLlicencia($sel, [string]$jsonPath) {
                     _VLine $sel ('//[' + [string]$par.E + ']// ' + [string]$l) $true
                 }
             }
-            if ($cfg.SpacerAfterItem) { _VSpacer $sel }
+            _VAire $sel 'item'
         }
         if (@($r.Orfes).Count -gt 0) {
             _VBody $sel ('**Claus que ja NO son a REQ1: ' + (@($r.Orfes) -join ' | ') + '**')
-            if ($cfg.SpacerAfterItem) { _VSpacer $sel }
+            _VAire $sel 'item'
         }
     }
 
     # El PROJECTE: la resta de REQ1, la que no es demana ni abans ni despres.
     if ($null -ne $req1) {
         _VSection $sel 'PROJECTE (la resta de REQ1)'
-        if ($cfg.SpacerAfterSection) { _VSpacer $sel }
+        _VAire $sel 'seccio'
         $senseAbans = @(@($req1.Sections) | Where-Object { -not (_LlicEsSeccioAbans ([string]$_.Title)) })
         $secProj = @(_LlicSeccionsSenseSubseccions $senseAbans (_LlicSeccionsExpandides $llic $idx))
         foreach ($sc in $secProj) {
             _VBody $sel ('//' + [string]$sc.Title + ' (' +
                          @($sc.Items | Where-Object { [string]$_.Kind -eq 'item' }).Count + ' punts)//')
         }
-        if ($cfg.SpacerAfterItem) { _VSpacer $sel }
+        _VAire $sel 'item'
     }
 
     # L'ANNEX 1, tal com surt a l'informe.
     $secAnnex = _LlicSeccioAnnex1 $llic
     if ($null -ne $secAnnex) {
         _VSection $sel ([string]$secAnnex.titol)
-        if ($cfg.SpacerAfterSection) { _VSpacer $sel }
+        _VAire $sel 'seccio'
         $num = 0
         foreach ($nd in @($secAnnex.fills)) {
             $marca = ''
@@ -302,7 +305,7 @@ function _VistaCataleg($sel, [string]$jsonPath, [string]$nom) {
 
     if (-not [string]::IsNullOrWhiteSpace([string]$parsed.IntroText)) {
         _VBody $sel ([string]$parsed.IntroText)
-        if ($cfg.SpacerAfterIntroParagraph) { _VSpacer $sel }
+        _VAire $sel 'introparagraf'
     }
     if ($parsed.IsFixedBody) {
         $lines = @($parsed.FixedBodyLines)
@@ -316,16 +319,16 @@ function _VistaCataleg($sel, [string]$jsonPath, [string]$nom) {
     $num = 0
     foreach ($sec in @($parsed.Sections)) {
         _VSection $sel ([string]$sec.Title)
-        if ($cfg.SpacerAfterSection) { _VSpacer $sel }
+        _VAire $sel 'seccio'
         foreach ($el in @($sec.Items)) {
             switch ([string]$el.Kind) {
                 'subsection' {
                     _VSubsection $sel ([string]$el.Short)
-                    if ($cfg.SpacerAfterSubsection) { _VSpacer $sel }
+                    _VAire $sel 'subseccio'
                 }
                 'intro' {
                     foreach ($ln in @($el.BodyLines)) { _VLine $sel ([string]$ln) }
-                    if ($cfg.SpacerAfterIntro) { _VSpacer $sel }
+                    _VAire $sel 'intro'
                 }
                 default {
                     $lines = @($el.BodyLines)
@@ -353,7 +356,7 @@ function _VistaCataleg($sel, [string]$jsonPath, [string]$nom) {
                         foreach ($u in $pc.Urls) { _VUrl $sel $u $true }
                         for ($i = 1; $i -lt $cl.Count; $i++) { _VLine $sel ([string]$cl[$i]) $true }
                     }
-                    if ($escrit -and $cfg.SpacerAfterItem) { _VSpacer $sel }
+                    if ($escrit) { _VAire $sel 'item' }
                 }
             }
         }
