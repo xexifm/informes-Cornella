@@ -424,42 +424,15 @@ function _WriteConclusionsBlock($sel, $cfg, $headerText, $conclusions, $alwaysCo
 }
 
 function Build-Document($word, $header, $selectedSections, $fields, $conclusions, $alwaysConclusions, $catalegName, $introText, $conclusionsHeaderText, $isFixedBody = $false, $fixedBodyLines = @()) {
-    $baseName  = _GetOutputFileName $catalegName $header['ID_GIA']
-    $targetDir = _ResolveOutputDir
-    # Triem el primer nom lliure al directori de sortida (afegim _2, _3...
-    # si ja existeix). Aixi pots generar diversos informes del mateix dia/GIA
-    # sense que cap es sobreescrigui.
-    $outPath  = _GetUniqueOutputPath $targetDir $baseName
-    $fileName = [System.IO.Path]::GetFileName($outPath)
-
-    # Treballem amb una copia LOCAL (a %TEMP%) per evitar que Word obri el
-    # fitxer en "Vista protegida" quan el desti es una unitat de xarxa.
-    # El temp porta el mateix nom (ja unic) que el desti final.
-    $tempPath = Join-Path $env:TEMP $fileName
-    $doc = _OpenOutputDocument $word $tempPath
-
-    # 0 CAPCALERA.docx pot portar tambe el bloc d'ACT_EXTR a sota; ens quedem
-    # nomes amb el bloc de REQ1 (no fa res si el marcador no hi es).
-    # '' = el bloc generic (el primer). REQ1, TERMINI i qualsevol cataleg nou.
-    Select-CapcaleraBlock $doc ''
-    Apply-HeaderReplacements -doc $doc -header $header
-
-    $doc.Activate()
-    $sel = $word.Selection
-    [void]$sel.EndKey(6)  # wdStory = 6
-
+    $baseName = _GetOutputFileName $catalegName $header['ID_GIA']
     $cfg = $Script:ReportFormatConfig
-    _WriteCatalegBody $sel $cfg $selectedSections $fields $introText $isFixedBody $fixedBodyLines
-    _WriteConclusionsBlock $sel $cfg $conclusionsHeaderText $conclusions $alwaysConclusions $fields
 
-    $doc.Save()
-    $doc.Close($false)
-
-    # Movem el fitxer al desti final (xarxa o local segons disponibilitat).
-    try {
-        Move-Item -LiteralPath $tempPath -Destination $outPath -Force
-    } catch {
-        return $tempPath
+    # 0 CAPCALERA.docx pot portar tambe els blocs d'ACT_EXTR i de LLIC a sota;
+    # ens quedem nomes amb el generic ('' = el primer), que es el de REQ1,
+    # TERMINI i qualsevol cataleg nou.
+    return Write-InformeDocx $word $baseName '' $header {
+        param($sel)
+        _WriteCatalegBody $sel $cfg $selectedSections $fields $introText $isFixedBody $fixedBodyLines
+        _WriteConclusionsBlock $sel $cfg $conclusionsHeaderText $conclusions $alwaysConclusions $fields
     }
-    return $outPath
 }

@@ -4055,4 +4055,80 @@ $emF3 = @($global:emitCalls)
 Assert ([bool]($emF3 | Where-Object { $_ -like 'BULLET/CH/1r|Text del sub-punt' })) 'F3: amb text, el sub-punt emet el seu pic'
 Assert ([bool]($emF3 | Where-Object { $_ -eq 'URL/CH|https://exemple.cat/amb-pic' })) 'F3: ...i llavors l''enllac SI que va sagnat'
 
+# ---------------------------------------------------------------------------
+# Write-InformeDocx: la seqüencia d'obrir/escriure/desar, un sol cop
+# ---------------------------------------------------------------------------
+# Abans estava copiada a les quatre families (Build-Document, Build-ActExtrDocument,
+# Build-LlicenciaDocument, Build-MnsDocument). Aqui es comprova el CONTRACTE:
+# quin bloc de capcalera demana, que el cos rebi la Selection, i -l'unica cosa
+# que canvia de comportament- que si el cos peta el document es TANCA (abans
+# nomes ho feia ACT_EXTR; les altres tres deixaven el Word amb un document obert
+# i el %TEMP% brut).
+Write-Host "`n--- Write-InformeDocx (la seqüencia compartida) ---"
+{
+    $script:_widBloc = $null
+    $script:_widTancat = 0
+    $script:_widDesat = 0
+    $selW = [pscustomobject]@{}
+    $selW | Add-Member ScriptMethod EndKey { param($u) } -Force
+    $docW = [pscustomobject]@{}
+    $docW | Add-Member ScriptMethod Activate {} -Force
+    $docW | Add-Member ScriptMethod Save { $script:_widDesat++ } -Force
+    $docW | Add-Member ScriptMethod Close { param($x) $script:_widTancat++ } -Force
+    $wordW = [pscustomobject]@{ Selection = $selW }
+    function _ResolveOutputDir { return ([System.IO.Path]::GetTempPath()) }
+    function _GetUniqueOutputPath($d, $b) { return (Join-Path $d $b) }
+    function _OpenOutputDocument($w, $p) { return $script:_widDocProva }
+    function Select-CapcaleraBlock($d, $w) { $script:_widBloc = [string]$w }
+    function Apply-HeaderReplacements { param($doc, $header) }
+    $script:_widDocProva = $docW
+    $tempAbans = $env:TEMP
+    if ([string]::IsNullOrWhiteSpace($env:TEMP)) { $env:TEMP = [System.IO.Path]::GetTempPath() }
+
+    # Cami bo: el cos rep la Selection i el document es desa i es tanca un cop.
+    $vist = $null
+    $ruta = Write-InformeDocx $wordW 'prova-motor.docx' 'LLIC' @{ ID_GIA = '1' } {
+        param($sel)
+        $script:_widSel = $sel
+    }
+    $vist = $script:_widSel
+    AssertEq $script:_widBloc 'LLIC' 'Write-InformeDocx: demana el bloc de capcalera que se li diu'
+    Assert ($null -ne $vist) 'Write-InformeDocx: el cos rep la Selection'
+    AssertEq $script:_widDesat 1 'Write-InformeDocx: desa el document un sol cop'
+    AssertEq $script:_widTancat 1 'Write-InformeDocx: ...i el tanca un sol cop'
+    Assert ([bool]([string]$ruta).EndsWith('prova-motor.docx')) 'Write-InformeDocx: retorna la ruta del document'
+
+    # LA REGRESSIO DE DEBO: si el cos peta, el document s'ha de tancar igualment
+    # i l'error ha d'arribar a qui ha cridat (no es pot empassar en silenci).
+    $script:_widTancat = 0
+    $script:_widDesat = 0
+    $petada = $null
+    try {
+        [void](Write-InformeDocx $wordW 'prova-motor-2.docx' '' @{ ID_GIA = '2' } {
+            param($sel)
+            throw 'el cos ha petat'
+        })
+    } catch { $petada = $_ }
+    Assert ($null -ne $petada) 'Write-InformeDocx: si el cos peta, l''error arriba a qui ha cridat'
+    AssertEq $script:_widTancat 1 'Write-InformeDocx: ...i el document es tanca igualment'
+    AssertEq $script:_widDesat 0 'Write-InformeDocx: ...sense desar-lo'
+    $env:TEMP = $tempAbans
+}.Invoke() | Out-Null
+
+# I QUE NO TORNI A APAREIXER LA COPIA: cap fitxer fora de MotorInforme.ps1 pot
+# obrir el document de sortida pel seu compte. Es la prova que evita que la
+# seqüencia es torni a duplicar a la quinta familia d'informe.
+$srcMotorDir = Join-Path (Split-Path -Parent $PSScriptRoot) ''
+$obren = @()
+foreach ($f in @(Get-ChildItem -Path $srcMotorDir -Filter '*.ps1' -File)) {
+    if ($f.Name -eq 'MotorInforme.ps1') { continue }
+    $txt = Get-Content -LiteralPath $f.FullName -Raw
+    # Nomes les CRIDES, no les mencions als comentaris.
+    foreach ($ln in ($txt -split "`r?`n")) {
+        if ($ln.TrimStart().StartsWith('#')) { continue }
+        if ($ln -match '_OpenOutputDocument\s+\$') { $obren += ($f.Name + ': ' + $ln.Trim()) }
+    }
+}
+AssertEq $obren.Count 0 ('Cap informe obre el document pel seu compte (nomes Write-InformeDocx)' + $(if ($obren.Count) { ' -> ' + ($obren -join ' | ') } else { '' }))
+
 exit (Write-TestSummary 'RESULTAT')

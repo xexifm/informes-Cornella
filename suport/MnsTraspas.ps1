@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 <#
 .SYNOPSIS
   Dos informes curts de Llicencia: MODIFICACIO NO SUBSTANCIAL i TRASPAS.
@@ -177,55 +177,41 @@ function _MnsNomFitxer([datetime]$data, [string]$fase, [string]$idGia) {
 function Build-MnsDocument($word, $model) {
     $header = $model.Header
     $baseName = _MnsNomFitxer (Get-Date) ([string]$model.Fase) ([string]$header['ID_GIA'])
-    $targetDir = _ResolveOutputDir
-    [string]$outPath = _GetUniqueOutputPath $targetDir $baseName
-    $fileName = [System.IO.Path]::GetFileName($outPath)
-    $tempPath = Join-Path $env:TEMP $fileName
-    $doc = _OpenOutputDocument $word $tempPath
+    $cfg = $Script:ReportFormatConfig
+    $fields = $model.Fields
 
     # LA MATEIXA CAPCALERA que la resta d'informes de Llicencia (porta la linia
     # "Classificacio:"), tal com va demanar l'usuari.
-    Select-CapcaleraBlock $doc 'LLIC'
-    Apply-HeaderReplacements -doc $doc -header $header
+    return Write-InformeDocx $word $baseName 'LLIC' $header {
+        param($sel)
+        # HI HA PUNTS DE REQ1? Es l'unica cosa que decideix la frase i la conclusio.
+        $seccions = @($model.Punts)
+        $amb = ($seccions.Count -gt 0)
 
-    $doc.Activate()
-    $sel = $word.Selection
-    [void]$sel.EndKey(6)   # wdStory
-
-    $cfg = $Script:ReportFormatConfig
-    $fields = $model.Fields
-    # HI HA PUNTS DE REQ1? Es l'unica cosa que decideix la frase i la conclusio.
-    $seccions = @($model.Punts)
-    $amb = ($seccions.Count -gt 0)
-
-    foreach ($p in @(_MnsParagrafs $model.Cataleg ([string]$model.Fase) $amb)) {
-        if ([string]$p.Tipus -eq 'llista') {
-            # El paragraf de llista va BUIT: l'omple l'usuari al Word.
-            Format-ListItem $sel ''
-            continue
+        foreach ($p in @(_MnsParagrafs $model.Cataleg ([string]$model.Fase) $amb)) {
+            if ([string]$p.Tipus -eq 'llista') {
+                # El paragraf de llista va BUIT: l'omple l'usuari al Word.
+                Format-ListItem $sel ''
+                continue
+            }
+            foreach ($l in @(Apply-FieldsToLines $p.Linies $fields)) {
+                $pp = _SplitTextAndUrls ([string]$l)
+                if (-not [string]::IsNullOrWhiteSpace($pp.Text)) { Format-Body $sel $pp.Text }
+                foreach ($u in @($pp.Urls)) { Format-Url $sel $u }
+            }
+            if ($cfg.SpacerAfterItem) { Format-Spacer $sel }
         }
-        foreach ($l in @(Apply-FieldsToLines $p.Linies $fields)) {
-            $pp = _SplitTextAndUrls ([string]$l)
-            if (-not [string]::IsNullOrWhiteSpace($pp.Text)) { Format-Body $sel $pp.Text }
-            foreach ($u in @($pp.Urls)) { Format-Url $sel $u }
-        }
-        if ($cfg.SpacerAfterItem) { Format-Spacer $sel }
+
+        # ELS PUNTS DE REQ1, amb la MATEIXA funcio que els informes de REQ1: el
+        # format es identic per construccio i no n'hi ha cap copia.
+        if ($amb) { _WriteCatalegBody $sel $cfg $seccions $fields '' }
+
+        # CONCLUSIONS. El bloc nomes surt si te alguna linia; el tancament hi va
+        # sempre, com a la resta d'informes (son els nodes 'sempre' del cataleg).
+        $concl = @(_MnsConclusions ([string]$model.Fase) $amb)
+        $cap = if ($concl.Count -gt 0) { 'CONCLUSIONS' } else { '' }
+        _WriteConclusionsBlock $sel $cfg $cap $concl (Get-TextTancament) $fields
     }
-
-    # ELS PUNTS DE REQ1, amb la MATEIXA funcio que els informes de REQ1: el
-    # format es identic per construccio i no n'hi ha cap copia.
-    if ($amb) { _WriteCatalegBody $sel $cfg $seccions $fields '' }
-
-    # CONCLUSIONS. El bloc nomes surt si te alguna linia; el tancament hi va
-    # sempre, com a la resta d'informes (son els nodes 'sempre' del cataleg).
-    $concl = @(_MnsConclusions ([string]$model.Fase) $amb)
-    $cap = if ($concl.Count -gt 0) { 'CONCLUSIONS' } else { '' }
-    _WriteConclusionsBlock $sel $cfg $cap $concl (Get-TextTancament) $fields
-
-    $doc.Save()
-    $doc.Close($false)
-    try { Move-Item -LiteralPath $tempPath -Destination $outPath -Force } catch { return $tempPath }
-    return $outPath
 }
 
 # ----------------------------------------------------------------------------

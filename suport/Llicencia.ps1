@@ -895,108 +895,94 @@ function _LlicEmetLinia($sel, [string]$linia, $vistos, [bool]$esFill = $false, $
 function Build-LlicenciaDocument($word, $model) {
     $header = $model.Header
     $baseName = _LlicNomFitxer (Get-Date) ([string]$model.Fase) ([string]$header['ID_GIA']) ([string]$header['TITULAR'])
-    $targetDir = _ResolveOutputDir
-    [string]$outPath = _GetUniqueOutputPath $targetDir $baseName
-    $fileName = [System.IO.Path]::GetFileName($outPath)
-    $tempPath = Join-Path $env:TEMP $fileName
-    $doc = _OpenOutputDocument $word $tempPath
+    $cfg = $Script:ReportFormatConfig
+    $fields = $model.Fields
 
     # La capcalera de LLICENCIA (porta la linia "Classificacio:"). Si el bloc no
     # hi es (0 CAPCALERA.docx encara sense actualitzar), Select-CapcaleraBlock es
     # queda amb el generic i l'informe surt igualment, sense la classificacio.
-    Select-CapcaleraBlock $doc 'LLIC'
-    Apply-HeaderReplacements -doc $doc -header $header
-
-    $doc.Activate()
-    $sel = $word.Selection
-    [void]$sel.EndKey(6)   # wdStory
-
-    $cfg = $Script:ReportFormatConfig
-    $fields = $model.Fields
-    # ---- DOCUMENTACIO DEL PROJECTE ----
-    # VA LA PRIMERA i FORA de la numeracio: es el que el tecnic ha aportat,
-    # no un requeriment. Abans sortia al final del bloc ABANS, numerada i
-    # sota un subtitol subratllat "Documentacio"; a l'informe fet a ma va
-    # dalt de tot, amb el titol de seccio "DOCUMENTACIO PROJECTE" i el text
-    # en cos normal.
-    $doc1 = [string]$model.Doc.Text
-    if (-not [string]::IsNullOrWhiteSpace($doc1)) {
-        Format-Section $sel ('DOCUMENTACI' + [char]0x00D3 + ' PROJECTE')
-        if ($cfg.SpacerAfterSection) { Format-Spacer $sel }
-        Format-Body $sel $doc1
-        $primer = $true
-        foreach ($d in @($model.Doc.Items)) {
-            if ($primer) { Format-Bullet $sel ([string]$d) -IsChild -First; $primer = $false }
-            else { Format-Bullet $sel ([string]$d) -IsChild }
-        }
-        if ($cfg.SpacerAfterItem) { Format-Spacer $sel }
-    }
-    # ---- ABANS ----
-    # Els espais els mana Format.ps1 ($cfg.SpacerAfterSection / -Subsection /
-    # -Item), exactament com _WriteCatalegBody de REQ1: aqui no s'hi inventa
-    # cap separacio.
-    Format-Section $sel (_LlicTitolAbans)
-    if ($cfg.SpacerAfterSection) { Format-Spacer $sel }
-    $n = 0
-    foreach ($p in @($model.Abans)) {
-        $n++
-        _LlicEscriuPunt $sel $p $n $fields ([string]$p.Estat) $false
-        if ($cfg.SpacerAfterItem) { Format-Spacer $sel }
-    }
-    # ---- PROJECTE: els requeriments normals de REQ1, com sempre ----
-    $proj = @($model.Projecte)
-    if ($proj.Count -gt 0) {
-        Format-Subsection $sel 'Projecte'
-        if ($cfg.SpacerAfterSubsection) { Format-Spacer $sel }
-        foreach ($p in $proj) {
-            $n++
-            _LlicEscriuPunt $sel $p $n $fields '' $false
+    return Write-InformeDocx $word $baseName 'LLIC' $header {
+        param($sel)
+        # ---- DOCUMENTACIO DEL PROJECTE ----
+        # VA LA PRIMERA i FORA de la numeracio: es el que el tecnic ha aportat,
+        # no un requeriment. Abans sortia al final del bloc ABANS, numerada i
+        # sota un subtitol subratllat "Documentacio"; a l'informe fet a ma va
+        # dalt de tot, amb el titol de seccio "DOCUMENTACIO PROJECTE" i el text
+        # en cos normal.
+        $doc1 = [string]$model.Doc.Text
+        if (-not [string]::IsNullOrWhiteSpace($doc1)) {
+            Format-Section $sel ('DOCUMENTACI' + [char]0x00D3 + ' PROJECTE')
+            if ($cfg.SpacerAfterSection) { Format-Spacer $sel }
+            Format-Body $sel $doc1
+            $primer = $true
+            foreach ($d in @($model.Doc.Items)) {
+                if ($primer) { Format-Bullet $sel ([string]$d) -IsChild -First; $primer = $false }
+                else { Format-Bullet $sel ([string]$d) -IsChild }
+            }
             if ($cfg.SpacerAfterItem) { Format-Spacer $sel }
         }
-    }
-    # ---- DESPRES ----
-    $desp = @($model.Despres)
-    if ($desp.Count -gt 0) {
-        Format-Section $sel (_LlicTitolDespres)
+        # ---- ABANS ----
+        # Els espais els mana Format.ps1 ($cfg.SpacerAfterSection / -Subsection /
+        # -Item), exactament com _WriteCatalegBody de REQ1: aqui no s'hi inventa
+        # cap separacio.
+        Format-Section $sel (_LlicTitolAbans)
         if ($cfg.SpacerAfterSection) { Format-Spacer $sel }
-        # LA NUMERACIO CONTINUA la del bloc ABANS ($n NO es reinicia): a
-        # l'informe els punts van seguits de cap a peus, no dues llistes que
-        # tornen a comencar per 1.
-        foreach ($p in $desp) {
+        $n = 0
+        foreach ($p in @($model.Abans)) {
             $n++
-            _LlicEscriuPunt $sel $p $n $fields ([string]$p.Estat) $true
+            _LlicEscriuPunt $sel $p $n $fields ([string]$p.Estat) $false
             if ($cfg.SpacerAfterItem) { Format-Spacer $sel }
         }
-    }
+        # ---- PROJECTE: els requeriments normals de REQ1, com sempre ----
+        $proj = @($model.Projecte)
+        if ($proj.Count -gt 0) {
+            Format-Subsection $sel 'Projecte'
+            if ($cfg.SpacerAfterSubsection) { Format-Spacer $sel }
+            foreach ($p in $proj) {
+                $n++
+                _LlicEscriuPunt $sel $p $n $fields '' $false
+                if ($cfg.SpacerAfterItem) { Format-Spacer $sel }
+            }
+        }
+        # ---- DESPRES ----
+        $desp = @($model.Despres)
+        if ($desp.Count -gt 0) {
+            Format-Section $sel (_LlicTitolDespres)
+            if ($cfg.SpacerAfterSection) { Format-Spacer $sel }
+            # LA NUMERACIO CONTINUA la del bloc ABANS ($n NO es reinicia): a
+            # l'informe els punts van seguits de cap a peus, no dues llistes que
+            # tornen a comencar per 1.
+            foreach ($p in $desp) {
+                $n++
+                _LlicEscriuPunt $sel $p $n $fields ([string]$p.Estat) $true
+                if ($cfg.SpacerAfterItem) { Format-Spacer $sel }
+            }
+        }
 
-    # ---- CONCLUSIO ----
-    $ambCond = (-not [string]::IsNullOrWhiteSpace([string]$model.Condicions))
-    # Mateix bloc que REQ1 (_WriteConclusionsBlock): capcalera CONCLUSIONS
-    # centrada i en negreta, i la conclusio en negreta -que aqui ve del **...**
-    # del cataleg, exactament com a REQ1: el text ja no es del codi.
-    if ($cfg.SpacerBeforeConclusionsBlock) { Format-Spacer $sel }
-    Format-ConclusionHeader $sel 'CONCLUSIONS'
-    Format-Conclusion $sel (_LlicConclusioText ([string]$model.Fase) $ambCond)
-    if ($ambCond -and [string]$model.Fase -eq 'favorable-pre') {
-        Format-Spacer $sel
-        Format-Section $sel ('CONDICIONS LLIC' + [char]0x00C8 + 'NCIA')
-        foreach ($l in (([string]$model.Condicions) -split "`r?`n")) {
-            if ([string]::IsNullOrWhiteSpace($l)) { continue }
-            Format-Body $sel ([string]$l).Trim() -Bold
+        # ---- CONCLUSIO ----
+        $ambCond = (-not [string]::IsNullOrWhiteSpace([string]$model.Condicions))
+        # Mateix bloc que REQ1 (_WriteConclusionsBlock): capcalera CONCLUSIONS
+        # centrada i en negreta, i la conclusio en negreta -que aqui ve del **...**
+        # del cataleg, exactament com a REQ1: el text ja no es del codi.
+        if ($cfg.SpacerBeforeConclusionsBlock) { Format-Spacer $sel }
+        Format-ConclusionHeader $sel 'CONCLUSIONS'
+        Format-Conclusion $sel (_LlicConclusioText ([string]$model.Fase) $ambCond)
+        if ($ambCond -and [string]$model.Fase -eq 'favorable-pre') {
+            Format-Spacer $sel
+            Format-Section $sel ('CONDICIONS LLIC' + [char]0x00C8 + 'NCIA')
+            foreach ($l in (([string]$model.Condicions) -split "`r?`n")) {
+                if ([string]::IsNullOrWhiteSpace($l)) { continue }
+                Format-Body $sel ([string]$l).Trim() -Bold
+            }
+        }
+        # El tancament: del cataleg, com tots els altres informes (Write-Tancament).
+        Write-Tancament $sel $fields
+
+        # ---- ANNEX 1: nomes al REQUERIMENT d'una llicencia PROVISIONAL ----
+        if ([string]$model.Fase -eq 'requeriment' -and (_LlicCalAnnex1 $model.Abans ([bool]$model.EsProvisional))) {
+            _LlicEscriuAnnex1 $sel $model.Cataleg
         }
     }
-    # El tancament: del cataleg, com tots els altres informes (Write-Tancament).
-    Write-Tancament $sel $fields
-
-    # ---- ANNEX 1: nomes al REQUERIMENT d'una llicencia PROVISIONAL ----
-    if ([string]$model.Fase -eq 'requeriment' -and (_LlicCalAnnex1 $model.Abans ([bool]$model.EsProvisional))) {
-        _LlicEscriuAnnex1 $sel $model.Cataleg
-    }
-
-    $doc.Save()
-    $doc.Close($false)
-    try { Move-Item -LiteralPath $tempPath -Destination $outPath -Force } catch { return $tempPath }
-    return $outPath
 }
 
 # L'ANNEX 1, que nomes va al REQUERIMENT d'una llicencia provisional. El text es

@@ -243,6 +243,13 @@ function Start-CoordenadesTool {
 # d'informes.
 . (Join-Path $ScriptRoot 'Format.ps1')
 
+# I el motor de COMPOSICIO (MotorInforme.ps1): el que tots els informes fan
+# igual (obrir la plantilla, escriure el cos, desar). Va just despres de
+# Format.ps1 -Format.ps1 diu com es veu un paragraf; aquest, com es munta un
+# document sencer-. Nomes defineix funcions, o sigui que l'ordre de carrega no
+# li importa mes enlla d'aixo.
+. (Join-Path $ScriptRoot 'MotorInforme.ps1')
+
 # Carreguem el modul de seguiment (Seguiment.ps1). Conte el mode "Informe de
 # seguiment" (afegir anotacions de resolucio sobre un informe anterior). Es
 # carrega tambe en mode headless perque les seves funcions pures es puguin

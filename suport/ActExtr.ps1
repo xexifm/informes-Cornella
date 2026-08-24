@@ -39,9 +39,9 @@
   de proves). Les funcions PURES (logica del Decret, model, parseig de
   plantilla, inclusio de blocs) son testejables a Linux sense Word.
 
-  Reutilitza de GenerarInforme.ps1 / Format.ps1: _NormalizeText,
-  _SplitTextAndUrls, _ResolveOutputDir, _GetUniqueOutputPath, Apply-HeaderReplacements,
-  _OpenOutputDocument, les funcions Format-* i $ReportFormatConfig.
+  Reutilitza de GenerarInforme.ps1 / Format.ps1 / MotorInforme.ps1:
+  _NormalizeText, _SplitTextAndUrls, Write-InformeDocx (obrir la plantilla,
+  escriure el cos i desar), les funcions Format-* i $ReportFormatConfig.
 
   CONVENCIO ASCII: per evitar problemes d'encoding de PowerShell 5.1, el codi
   no porta accents. Tot el text accentuat que va als documents viu a les
@@ -815,34 +815,15 @@ function Build-ActExtrDocument($word, $header, $decret, $delivered, $mode) {
     $gia = if ($header -is [System.Collections.IDictionary]) { [string]$header['ID_GIA'] } else { [string]$header.ID_GIA }
     $act = if ($header -is [System.Collections.IDictionary]) { [string]$header['ACTIVITAT'] } else { [string]$header.ACTIVITAT }
     $baseName  = _GetActExtrOutputFileName $tipus $gia $act
-    $targetDir = _ResolveOutputDir
-    $outPath   = _GetUniqueOutputPath $targetDir $baseName
-    $fileName  = [System.IO.Path]::GetFileName($outPath)
 
-    $tempPath = Join-Path $env:TEMP $fileName
-    $doc = _OpenOutputDocument $word $tempPath
-    try {
-        # Retallem la capcalera per quedar-nos nomes amb el bloc ACT_EXTR.
-        Select-CapcaleraBlock $doc 'ACT_EXTR'
-        Apply-HeaderReplacements -doc $doc -header (_ActExtrHeaderMap $header)
-
-        $doc.Activate()
-        $sel = $word.Selection
-        [void]$sel.EndKey(6)  # wdStory = 6
-        # El cos hereta l'estil 'List Paragraph' del darrer paragraf de la
-        # capcalera ACT_EXTR (igual que REQ1), que ja resol a Bookman Old Style.
-        # Aixi el format surt del motor Format.ps1 i de l'estil, no d'un override.
-
+    # Retallem la capcalera per quedar-nos nomes amb el bloc ACT_EXTR.
+    # El cos hereta l'estil 'List Paragraph' del darrer paragraf d'aquella
+    # capcalera (igual que REQ1), que ja resol a Bookman Old Style: el format
+    # surt del motor Format.ps1 i de l'estil, no d'un override.
+    return Write-InformeDocx $word $baseName 'ACT_EXTR' (_ActExtrHeaderMap $header) {
+        param($sel)
         _WriteActExtrBody $sel $blocks $mode $ctx $computed
-
-        $doc.Save()
-        $doc.Close($false)
-    } catch {
-        try { $doc.Close($false) } catch { }
-        throw
     }
-    try { Move-Item -LiteralPath $tempPath -Destination $outPath -Force } catch { return $tempPath }
-    return $outPath
 }
 
 # ----------------------------------------------------------------------------
