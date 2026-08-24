@@ -237,65 +237,170 @@ function Build-CapcaleraJson([string]$docxPath = '') {
 # ----------------------------------------------------------------------------
 # TORNAR-HO A ESCRIURE AL .docx (edicions de TEXT, mai un serialitzador)
 # ----------------------------------------------------------------------------
+# UN PARAGRAF DE LINIA amb l'etiqueta i el valor que se li diguin. Funcio PURA:
+# rep el XML d'un paragraf de MOSTRA i en retorna un de nou.
+#
+# AIXI ES COM ES DERIVA EL .docx DEL JSON: no s'inventa cap paragraf -construir
+# un <w:p> a ma voldria dir reproduir la sagnia, la parada de tabulacio, la
+# lletra i el rsid de la plantilla- sino que es CLONA una linia que ja hi es i
+# nomes se li canvia el text. Aixi el format no es pot perdre.
+function _CapParagrafAmb([string]$pXml, [string]$etiqueta, [string]$valor, [string]$lletra = '') {
+    $runs = @(_CapRunsDeParagraf $pXml)
+    if ($runs.Count -eq 0) { return $pXml }
+    # Els dos grups: la NEGRETA del principi (l'etiqueta) i la resta (el valor).
+    # El tabulador del mig, si n'hi ha, es queda com esta.
+    $iTab = -1
+    for ($i = 0; $i -lt $runs.Count; $i++) { if ($runs[$i].EsTab) { $iTab = $i; break } }
+    $grupEti = New-Object System.Collections.ArrayList
+    $grupVal = New-Object System.Collections.ArrayList
+    if ($iTab -ge 0) {
+        for ($i = 0; $i -lt $iTab; $i++) { [void]$grupEti.Add($runs[$i]) }
+        for ($i = $iTab + 1; $i -lt $runs.Count; $i++) { [void]$grupVal.Add($runs[$i]) }
+    } else {
+        $i = 0
+        while ($i -lt $runs.Count -and [bool]$runs[$i].Negreta) { [void]$grupEti.Add($runs[$i]); $i++ }
+        for (; $i -lt $runs.Count; $i++) { [void]$grupVal.Add($runs[$i]) }
+    }
+    $canvis = New-Object System.Collections.ArrayList
+    foreach ($c in @(_CapCanvisDeGrupText $grupEti.ToArray() 0 $etiqueta)) { [void]$canvis.Add($c) }
+    foreach ($c in @(_CapCanvisDeGrupText $grupVal.ToArray() 0 $valor))    { [void]$canvis.Add($c) }
+    $out = [string]$pXml
+    foreach ($c in @(@($canvis) | Sort-Object -Property @{ Expression = { [int]$_.Ini }; Descending = $true })) {
+        $out = $out.Substring(0, [int]$c.Ini) + [string]$c.Nou + $out.Substring([int]$c.Fi)
+    }
+    if (-not [string]::IsNullOrWhiteSpace($lletra)) { $out = _CapAplicaLletra $out $lletra }
+    return $out
+}
+
+# LA LLETRA DE LA CAPCALERA, de la configuracio. Funcio PURA.
+#
+# PER QUE: el .docx porta el tipus de lletra escrit a CADA <w:r>, o sigui que
+# canviar $ReportFormatConfig.BodyFontName no en canviava res -la capcalera era
+# l'unic tros de l'informe que no obeia la configuracio-. Com que ara les linies
+# es generen, aqui es on es tanca.
+function _CapAplicaLletra([string]$pXml, [string]$lletra) {
+    if ([string]::IsNullOrWhiteSpace($lletra)) { return $pXml }
+    $l = (_CapEscapa $lletra)
+    return [regex]::Replace($pXml, '<w:rFonts\b[^>]*/>', ('<w:rFonts w:ascii="' + $l + '" w:hAnsi="' + $l + '"/>'))
+}
+
+# LA REGIO DE LINIES d'un bloc: del primer paragraf d'etiqueta a l'ultim. Es el
+# tros que es refa des del JSON; el que hi ha a fora (el departament, la linia
+# en blanc i l'INFORME) no es toca. Funcio PURA: retorna @{ Ini; Fi } amb
+# INDEXS de paragraf, o $null si el bloc no en te cap.
+function _CapRegioDeBloc($linies) {
+    $ini = -1; $fi = -1
+    foreach ($l in @($linies)) {
+        if ([string]$l.Tipus -ne 'etiqueta') { continue }
+        if ($ini -lt 0) { $ini = [int]$l.Para }
+        $fi = [int]$l.Para
+    }
+    if ($ini -lt 0) { return $null }
+    return @{ Ini = $ini; Fi = $fi }
+}
+
 # Aplica el JSON al XML del document. Funcio PURA: retorna el XML nou.
 #
-# NOMES es toca el TEXT de les linies que hagin canviat, i cada linia es
-# localitza per la seva posicio dins del document (la clau 'pN' del JSON): la
-# capcalera te una estructura fixa i el que s'edita es el que hi diu, no on va.
-function _CapAplicaAlXml([string]$xml, $json) {
+# EL JSON MANA I EL .docx ES DERIVA. De cada bloc se'n refa la REGIO DE LINIES
+# (del primer camp a l'ultim) amb el que digui el JSON: quines linies hi ha, en
+# quin ordre i amb quina etiqueta. Aixi afegir la Classificacio a la capcalera
+# generica -o treure les Dates de la d'activitats extraordinaries- es editar el
+# JSON, i no hi ha tres blocs gairebe iguals per mantenir a ma.
+#
+# La resta del document (el departament, la linia en blanc, l'INFORME i els
+# marcadors [[CAP:X]]) no es toca mai.
+function _CapAplicaAlXml([string]$xml, $json, [string]$lletra = '') {
     $paras = @(_CapTrossejaParagrafs $xml)
-    # Linia per numero de paragraf.
-    $perPara = @{}
-    foreach ($n in @($json.nodes)) {
-        foreach ($f in @($n.fills)) {
-            $c = [string]$f.clau
-            if (-not $c.StartsWith('p')) { continue }
-            $i = 0
-            if (-not [int]::TryParse($c.Substring(1), [ref]$i)) { continue }
+    $blocs = @(_CapBlocsDelXml $xml)
+    # El JSON, per clau de bloc.
+    $perClau = @{}
+    foreach ($n in @($json.nodes)) { $perClau[[string]$n.clau] = $n }
+
+    # De DARRERE CAP ENDAVANT: refer una regio mou els offsets de tot el que ve
+    # despres.
+    $regions = New-Object System.Collections.ArrayList
+    foreach ($b in $blocs) {
+        $nd = $null
+        if ($perClau.ContainsKey([string]$b.Clau)) { $nd = $perClau[[string]$b.Clau] }
+        if ($null -eq $nd) { continue }
+        $reg = _CapRegioDeBloc $b.Linies
+        if ($null -eq $reg) { continue }
+        # La MOSTRA: la primera linia d'etiqueta del bloc.
+        $mostra = [string]$paras[[int]$reg.Ini].Xml
+        # Les linies que vol el JSON (nomes camps i blancs de dins de la regio).
+        $vol = New-Object System.Collections.ArrayList
+        foreach ($f in @($nd.fills)) {
+            $tp = [string]$f.tipus
+            if ($tp -ne 'etiqueta' -and $tp -ne 'buida') { continue }
             $valor = ''
-            foreach ($p in @($f.cos)) { foreach ($r in @($p.runs)) { $valor += [string]$r.t } }
-            $perPara[$i] = @{ Tipus = [string]$f.tipus; Etiqueta = [string]$f.titol; Valor = $valor }
+            foreach ($pp in @($f.cos)) { foreach ($r in @($pp.runs)) { $valor += [string]$r.t } }
+            [void]$vol.Add(@{ Tipus = $tp; Etiqueta = [string]$f.titol; Valor = $valor })
         }
+        # LA REGIO ES DEL PRIMER CAMP A L'ULTIM, tambe al JSON: les linies en
+        # blanc de fora (la que separa els camps de l'INFORME) no en formen
+        # part. Sense retallar-les, la llista del JSON i la del document no
+        # quadraven mai i la regio es refeia sempre.
+        $iniV = -1; $fiV = -1
+        for ($i = 0; $i -lt $vol.Count; $i++) {
+            if ([string]$vol[$i].Tipus -ne 'etiqueta') { continue }
+            if ($iniV -lt 0) { $iniV = $i }
+            $fiV = $i
+        }
+        if ($iniV -lt 0) { continue }
+        $vol = [System.Collections.ArrayList]@($vol[$iniV..$fiV])
+        if ($vol.Count -eq 0) { continue }
+
+        # QUE HI HA ARA a la regio, per no refer-la si no cal.
+        $ara = New-Object System.Collections.ArrayList
+        for ($i = [int]$reg.Ini; $i -le [int]$reg.Fi; $i++) {
+            $lin = _CapLiniaDeRuns (_CapRunsDeParagraf ([string]$paras[$i].Xml))
+            [void]$ara.Add(@{ Tipus = [string]$lin.Tipus; Etiqueta = [string]$lin.Etiqueta; Valor = [string]$lin.Valor; Para = $i })
+        }
+        # MATEIXA ESTRUCTURA? Llavors nomes cal canviar EL TEXT alli on estigui,
+        # i el document no es toca mes. Refer-la sencera funcionaria igual, pero
+        # deixaria el .docx diferent a cada desat encara que no s'hagues canviat
+        # res -i llavors 'Actualitzar.bat' committejaria una capcalera "nova"
+        # cada vegada-.
+        $mateixa = ($ara.Count -eq $vol.Count)
+        if ($mateixa) {
+            for ($i = 0; $i -lt $vol.Count; $i++) {
+                if ([string]$ara[$i].Tipus -ne [string]$vol[$i].Tipus) { $mateixa = $false; break }
+            }
+        }
+        if ($mateixa) {
+            for ($i = 0; $i -lt $vol.Count; $i++) {
+                if ([string]$vol[$i].Tipus -eq 'buida') { continue }
+                $iP = [int]$ara[$i].Para
+                if ([string]$ara[$i].Etiqueta -eq [string]$vol[$i].Etiqueta -and
+                    [string]$ara[$i].Valor    -eq [string]$vol[$i].Valor) { continue }
+                [void]$regions.Add(@{
+                    Ini = [int]$paras[$iP].Ini
+                    Fi  = [int]$paras[$iP].Fi
+                    Nou = (_CapParagrafAmb ([string]$paras[$iP].Xml) ([string]$vol[$i].Etiqueta) ([string]$vol[$i].Valor) '')
+                })
+            }
+            continue
+        }
+
+        # L'ESTRUCTURA HA CANVIAT (s'hi ha afegit o tret una linia, o s'han
+        # reordenat): es refa la regio sencera clonant la linia de mostra.
+        $nouXml = ''
+        foreach ($v in $vol) {
+            if ([string]$v.Tipus -eq 'buida') {
+                $nouXml += (_CapParagrafAmb $mostra '' '' $lletra)
+            } else {
+                $nouXml += (_CapParagrafAmb $mostra ([string]$v.Etiqueta) ([string]$v.Valor) $lletra)
+            }
+        }
+        [void]$regions.Add(@{
+            Ini = [int]$paras[[int]$reg.Ini].Ini
+            Fi  = [int]$paras[[int]$reg.Fi].Fi
+            Nou = $nouXml
+        })
     }
-    # Els canvis es calculen tots i s'apliquen DE DARRERE CAP ENDAVANT: si
-    # s'apliquessin en ordre, el primer ja desplacaria els offsets dels altres.
-    $canvis = New-Object System.Collections.ArrayList
-    for ($i = 0; $i -lt $paras.Count; $i++) {
-        if (-not $perPara.ContainsKey($i)) { continue }
-        $vol = $perPara[$i]
-        if ([string]$vol.Tipus -eq 'buida') { continue }
-        $runs = @(_CapRunsDeParagraf ([string]$paras[$i].Xml))
-        $ara = _CapLiniaDeRuns $runs
-        $iTab = -1
-        for ($k = 0; $k -lt $runs.Count; $k++) { if ($runs[$k].EsTab) { $iTab = $k; break } }
-        $grupEtiqueta = @()
-        $grupValor = @()
-        if ($iTab -ge 0) {
-            $grupEtiqueta = @($runs[0..([Math]::Max(0, $iTab - 1))] | Where-Object { $iTab -gt 0 })
-            if ($iTab + 1 -lt $runs.Count) { $grupValor = @($runs[($iTab + 1)..($runs.Count - 1)]) }
-        } else {
-            $k = 0
-            $eti = New-Object System.Collections.ArrayList
-            while ($k -lt $runs.Count -and [bool]$runs[$k].Negreta) { [void]$eti.Add($runs[$k]); $k++ }
-            $grupEtiqueta = $eti.ToArray()
-            if ($k -lt $runs.Count) { $grupValor = @($runs[$k..($runs.Count - 1)]) }
-        }
-        # Un paragraf de nomes text: tot el que hi ha es el "valor".
-        if ([string]$ara.Tipus -eq 'text' -and @($grupValor).Count -eq 0) {
-            $grupValor = $grupEtiqueta
-            $grupEtiqueta = @()
-        }
-        if ([string]$vol.Etiqueta -ne [string]$ara.Etiqueta -and @($grupEtiqueta).Count -gt 0) {
-            foreach ($c in @(_CapCanvisDeGrupText $grupEtiqueta ([int]$paras[$i].Ini) ([string]$vol.Etiqueta))) { [void]$canvis.Add($c) }
-        }
-        if ([string]$vol.Valor -ne [string]$ara.Valor -and @($grupValor).Count -gt 0) {
-            foreach ($c in @(_CapCanvisDeGrupText $grupValor ([int]$paras[$i].Ini) ([string]$vol.Valor))) { [void]$canvis.Add($c) }
-        }
-    }
-    $ordenats = @(@($canvis) | Sort-Object -Property @{ Expression = { [int]$_.Ini }; Descending = $true })
     $out = [string]$xml
-    foreach ($c in $ordenats) {
-        $out = $out.Substring(0, [int]$c.Ini) + [string]$c.Nou + $out.Substring([int]$c.Fi)
+    foreach ($r in @(@($regions) | Sort-Object -Property @{ Expression = { [int]$_.Ini }; Descending = $true })) {
+        $out = $out.Substring(0, [int]$r.Ini) + [string]$r.Nou + $out.Substring([int]$r.Fi)
     }
     return $out
 }
@@ -390,7 +495,11 @@ function Apply-CapcaleraJson([string]$jsonPath = '', [string]$docxPath = '') {
     $json = $null
     try { $json = Get-Content -LiteralPath $jsonPath -Raw -Encoding UTF8 | ConvertFrom-Json } catch { }
     if ($null -eq $json) { return @{ Ok = $false; Motiu = 'el JSON no es valid' } }
-    $nou = _CapAplicaAlXml $xml $json
+    # LA LLETRA, de la configuracio de format: la capcalera era l'unic tros de
+    # l'informe que no l'obeia (la porta escrita a cada <w:r> del .docx).
+    $lletra = ''
+    try { $lletra = [string]$Script:ReportFormatConfig.BodyFontName } catch { }
+    $nou = _CapAplicaAlXml $xml $json $lletra
     if ($nou -eq $xml) { return @{ Ok = $true; Canvis = $false } }
     # COPIA DE SEGURETAT abans de tocar l'unica plantilla que no es pot refer.
     try { Copy-Item -LiteralPath $docxPath -Destination ($docxPath + '.bak') -Force } catch { }

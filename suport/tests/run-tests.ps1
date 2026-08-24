@@ -3706,6 +3706,22 @@ if (Test-Path -LiteralPath $capDocx) {
     $txtGen  = ((@($capBlocs[0].Linies) | ForEach-Object { [string]$_.Valor }) -join ' ')
     Assert ($txtLlic.Contains('<<CLASSIFICACIO>>')) 'capcalera: la classificacio es al bloc de llicencia'
     Assert (-not $txtGen.Contains('<<CLASSIFICACIO>>')) 'capcalera: ...i NO al generic'
+    # FORA EL CAIXETI DE LA NOTA de l'Ordenanca, de TOTES les capcaleres: era
+    # una taula (<w:tbl>) a la generica i una altra a la de llicencia.
+    Assert (-not ($capXml.Contains('<w:tbl>'))) 'capcalera: cap taula al document (fora el caixeti de la Nota)'
+    foreach ($bN in $capBlocs) {
+        $totN = ((@($bN.Linies) | ForEach-Object { [string]$_.Etiqueta + [string]$_.Valor }) -join ' ')
+        Assert (-not ($totN -like '*Nota:*'))     ('capcalera [' + [string]$bN.Clau + ']: cap "Nota:"')
+        Assert (-not ($totN -like '*Ordenan*a relativa*')) ('capcalera [' + [string]$bN.Clau + ']: ...ni el text de l''Ordenanca')
+    }
+    # LES TRES CAPCALERES SON LA MATEIXA amb desviacions: totes porten el
+    # departament, les linies de camp i l'INFORME, i les uniques diferencies
+    # son ASSUMPTE/Dates (act. extraordinaries) i Classificacio (llicencia).
+    foreach ($bN in $capBlocs) {
+        $texts = @(@($bN.Linies) | Where-Object { [string]$_.Tipus -eq 'text' } | ForEach-Object { [string]$_.Valor })
+        Assert ([bool]($texts -contains 'INFORME')) ('capcalera [' + [string]$bN.Clau + ']: hi ha l''INFORME')
+        Assert ([bool](@($texts) | Where-Object { $_ -like 'Activitats i Ordenances*' })) ('capcalera [' + [string]$bN.Clau + ']: ...i el departament')
+    }
     # Cap etiqueta sense marcador: una linia "Camp:" sense <<...>> nomes pot
     # sortir BUIDA a l'informe (ja va passar amb "Classificacio:").
     foreach ($bC in $capBlocs) {
@@ -3730,13 +3746,17 @@ if (Test-Path -LiteralPath $capDocx) {
     $capJson = (_CapModelAJson $capBlocs | ConvertTo-Json -Depth 20) | ConvertFrom-Json
     AssertEq (_CapAplicaAlXml $capXml $capJson) $capXml 'capcalera: sense canvis, el document no es toca'
 
-    # ...i un canvi de text nomes toca aquella linia.
+    # ...i un canvi de text nomes toca aquella linia (no refa la regio: si la
+    # refes, el .docx sortiria diferent a cada desat encara que no s'hagues
+    # canviat res, i 'Actualitzar.bat' committejaria una capcalera "nova" cada
+    # vegada).
     foreach ($nC in @($capJson.nodes)) {
         foreach ($fC in @($nC.fills)) {
             if ([string]$fC.clau -eq 'p2') { $fC.titol = 'Expedient: ' }
         }
     }
     $capNou = _CapAplicaAlXml $capXml $capJson
+    Assert (($capNou.Length - $capXml.Length) -lt 200) 'capcalera: canviar un text nomes toca aquella linia'
     Assert ($capNou -ne $capXml) 'capcalera: un canvi de text si que el toca'
     $blocsNous = @(_CapBlocsDelXml $capNou)
     $l2 = @(@($blocsNous[0].Linies) | Where-Object { [int]$_.Para -eq 2 })[0]
@@ -3765,6 +3785,42 @@ if (Test-Path -LiteralPath $capDocx) {
         AssertEq (@($capDelDisc.nodes).Count) 3 'capcalera: el JSON porta els tres blocs'
     }
 }
+# EL JSON MANA I EL .docx ES DERIVA: afegir una linia al JSON l'ha de fer
+# apareixer al document, amb el format de les altres. Aixi les tres capcaleres
+# deixen de ser tres copies a mantenir a ma.
+if (Test-Path -LiteralPath $capDocx) {
+    $capX2 = _CapLlegeixDocumentXml $capDocx
+    $capJ2 = (_CapModelAJson (_CapBlocsDelXml $capX2) | ConvertTo-Json -Depth 20) | ConvertFrom-Json
+    $genN = @($capJ2.nodes)[0]
+    $nCampsAbans = @(@($genN.fills) | Where-Object { [string]$_.tipus -eq 'etiqueta' }).Count
+    # Una linia nova, calcada d'una que ja hi es.
+    $novaN = ((@($genN.fills)[4]) | ConvertTo-Json -Depth 10) | ConvertFrom-Json
+    $novaN.titol = 'Classificaci' + [char]0x00F3 + ': '
+    $novaN.cos[0].runs[0].t = '<<CLASSIFICACIO>>'
+    $genN.fills = @(@($genN.fills)[0..4]) + @($novaN) + @(@($genN.fills)[5..(@($genN.fills).Count - 1)])
+    $capX3 = _CapAplicaAlXml $capX2 $capJ2 'Bookman Old Style'
+    $bloc3 = @(_CapBlocsDelXml $capX3)[0]
+    $camps3 = @(@($bloc3.Linies) | Where-Object { [string]$_.Tipus -eq 'etiqueta' })
+    AssertEq $camps3.Count ($nCampsAbans + 1) 'capcalera: afegir una linia al JSON l''afegeix al document'
+    Assert ([bool](@($camps3) | Where-Object { [string]$_.Valor -eq '<<CLASSIFICACIO>>' })) 'capcalera: ...amb el seu marcador'
+    # ...i al lloc que li tocava: just despres de l'Activitat, com a la de
+    # llicencia. Es mira per POSICIO RELATIVA, no per index absolut.
+    $etq3 = @(@($camps3) | ForEach-Object { ([string]$_.Etiqueta).Trim() })
+    $iAct = [Array]::IndexOf($etq3, 'Activitat:')
+    $iCla = [Array]::IndexOf($etq3, ('Classificaci' + [char]0x00F3 + ':'))
+    Assert ($iAct -ge 0 -and $iCla -eq ($iAct + 1)) 'capcalera: ...i al lloc que li tocava (just sota Activitat)'
+    # ...i la resta del bloc no s'ha mogut.
+    $texts3 = @(@($bloc3.Linies) | Where-Object { [string]$_.Tipus -eq 'text' } | ForEach-Object { [string]$_.Valor })
+    Assert ([bool]($texts3 -contains 'INFORME')) 'capcalera: ...i l''INFORME segueix al seu lloc'
+    $petaX3 = $false
+    try { [void]([xml]$capX3) } catch { $petaX3 = $true }
+    AssertEq $petaX3 $false 'capcalera: el document amb la linia nova segueix sent XML valid'
+    # LA LLETRA surt de la configuracio: era l'unic tros de l'informe que no
+    # obeia BodyFontName (la porta escrita a cada <w:r>).
+    $capX4 = _CapAplicaAlXml $capX2 $capJ2 'Arial'
+    Assert ($capX4.Contains('w:ascii="Arial"')) 'capcalera: la lletra surt de la configuracio'
+}
+
 # L'editor ensenya a quin informe s'aplica cada seccio (capcalera i conclusions).
 AssertEq (_Ed_AplicaText 'capcalera' @{ tipus='seccio'; clau='LLIC'; titol='x' }) ((_CapAplicaDe 'LLIC') -join ', ') '_Ed_AplicaText: capcalera de llicencia'
 AssertEq (_Ed_AplicaText 'conclusions' @{ tipus='seccio'; clau=''; titol='REQ1' }) 'Requeriment - Nou (REQ1)' '_Ed_AplicaText: conclusions de REQ1'
