@@ -149,15 +149,30 @@ if errorlevel 1 (
 )
 
 REM ------------------------------------------------------------
-REM  4. Final
+REM  4. Acces directe (per poder ancorar el programa a la barra de tasques)
+REM ------------------------------------------------------------
+REM  Windows no deixa ancorar un .bat: cal un acces directe que apunti a un
+REM  executable. El deixa a l'escriptori i al menu Inici, amb l'escut.
+if defined FINALDIR (
+  echo [Acces directe] Creant l'acces directe...
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -Command ". '%FINALDIR%\suport\AccesDirecte.ps1'; Invoke-CrearAccesDirecte '%FINALDIR%' | Out-Null"
+)
+
+REM ------------------------------------------------------------
+REM  5. Final
 REM ------------------------------------------------------------
 echo ============================================================
 echo  Fet. El programa esta a:
 echo    %FINALDIR%
 echo.
 echo  A partir d'ara, dins d'aquesta carpeta:
-echo    - GenerarInforme.bat  =^> generar un informe
-echo    - Actualitzar.bat     =^> baixar l'ultima versio
+echo    - GenerarInforme.bat      =^> generar un informe
+echo    - Actualitzar.bat         =^> baixar l'ultima versio
+echo    - Crear-acces-directe.bat =^> refer l'acces directe
+echo.
+echo  Tens un acces directe a l'escriptori i al menu Inici. Per ancorar-lo
+echo  a la barra de tasques: clic dret damunt seu =^> "Ancorar a la barra
+echo  de tasques" (al Windows 11, potser abans "Mostra mes opcions").
 echo ============================================================
 echo.
 

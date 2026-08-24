@@ -1620,6 +1620,35 @@ sortir malament de primera:
      resol bé quan la variable és de l'àmbit de l'**script** (`$propagate` de
      `SeleccioItems.ps1`). El que no veu són els **locals d'una funció**.
 
+### Ancorar el programa a la barra de tasques (`suport/AccesDirecte.ps1`)
+**Windows no deixa ancorar un `.bat`** (ni un `.vbs`): només accessos directes
+que apuntin a un **executable**. Per això el `.lnk` apunta a
+`wscript.exe "<clone>\suport\GenerarInforme.vbs"` — que és exactament el que ja
+fa `GenerarInforme.bat` — amb `IconLocation` = `suport\cornella.ico`. Es deixa a
+l'**escriptori** i al **menú Inici** (des d'allà se cerca i s'ancora).
+
+- **No s'ancora sol i no s'ha d'intentar**: des del Windows 10, el verb *Pin to
+  taskbar* ja no és invocable per codi. Els trucs que corren escriuen al
+  registre (`Taskband`) i reinicien l'explorer: són fràgils i poden carregar-se
+  la barra de tasques de l'usuari. Es deixa el `.lnk` fet i un clic dret.
+- `Crear-acces-directe.bat` (arrel) i el pas 4 d'`Instalar.bat` el criden.
+- **Un `.bat` amb una ordre de PowerShell llarga és un niu d'errors**, i per això
+  la feina és al `.ps1` (`Invoke-CrearAccesDirecte`). Concretament: **dins de
+  cometes dobles el `cmd` NO interpreta el `|`, però sí que deixa passar el `^`
+  literal** — o sigui que un `^|` escrit «per si de cas» arriba tal qual al
+  PowerShell i peta. Hi ha prova de font que no hi hagi cap `^` dins de cometes
+  al `.bat`, i que sigui ASCII pur.
+- `Get-AccesDirecteObjectiu` / `Get-AccesDirecteDestins` són **pures** i es
+  proven a Linux (destí, arguments entre cometes, icona, barra final del clone).
+
+### El botó 📁 del menú: la carpeta dels informes
+A l'esquerra de ⚙, obre la carpeta on es desen els informes. La ruta surt de
+**`_ResolveOutputDir`** —la mateixa que fa servir la generació, o sigui la de
+**Configuració** amb el seu respatller local—: **cap ruta escrita al codi**, i
+hi ha prova que ho vigila (validada injectant una ruta `I:\…`). **No tanca el
+menú**: obrir una carpeta no és triar cap opció. L'emoji de carpeta és
+**astral** (U+1F4C1) i va amb `ConvertFromUtf32`, mai amb `[char]`.
+
 ### `continue` dins d'un `switch` NO continua el `foreach` de fora
 Només surt del `switch`; l'execució segueix a la línia de sota, dins de la
 mateixa volta del bucle. Va passar al desat de la base de llicències: les

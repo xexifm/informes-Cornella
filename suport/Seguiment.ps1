@@ -1539,6 +1539,44 @@ function Select-Mode {
     }.GetNewClosure())
     [void]$band.Controls.Add($btnAjuda)
 
+    # CARPETA DELS INFORMES GENERATS. La ruta surt de _ResolveOutputDir, o sigui
+    # que es EXACTAMENT la que hi ha a Configuracio (i el respatller local si
+    # aquella no s'hi pot arribar): aqui no hi ha cap ruta escrita.
+    #
+    # El menu NO es tanca: obrir una carpeta no es triar cap opcio.
+    #
+    # L'EMOJI DE CARPETA ES ASTRAL (U+1F4C1): [char] es de 16 bits i no hi cap
+    # -aixo ja va deixar el programa sense arrencar un cop-, per aixo va amb
+    # ConvertFromUtf32. Ho vigila una prova.
+    $btnCarpeta = New-Object System.Windows.Forms.Button
+    $btnCarpeta.Text = [System.Char]::ConvertFromUtf32(0x1F4C1)
+    $btnCarpeta.Font = $fBandIco
+    $btnCarpeta.Size = New-Object System.Drawing.Size(30, 30)
+    $btnCarpeta.Location = New-Object System.Drawing.Point(($wForm - 114), 13)
+    $btnCarpeta.Anchor = 'Top,Right'
+    $btnCarpeta.FlatStyle = 'Flat'
+    $btnCarpeta.ForeColor = [System.Drawing.Color]::White
+    $btnCarpeta.BackColor = [System.Drawing.Color]::FromArgb(150, 45, 60)
+    $btnCarpeta.FlatAppearance.BorderSize = 0
+    $btnCarpeta.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(138, 20, 38)
+    $btnCarpeta.add_Click({
+        try {
+            $carpeta = [string](_ResolveOutputDir)
+            if ([string]::IsNullOrWhiteSpace($carpeta)) { throw "no hi ha cap carpeta de sortida configurada" }
+            if (-not (Test-Path -LiteralPath $carpeta)) { throw ("no existeix: " + $carpeta) }
+            Start-Process -FilePath 'explorer.exe' -ArgumentList ('"' + $carpeta + '"') | Out-Null
+        } catch {
+            [System.Windows.Forms.MessageBox]::Show(
+                ("No s'ha pogut obrir la carpeta dels informes:`n`n" + $_.Exception.Message +
+                 "`n`nLa pots canviar al boto de Configuracio."),
+                'Informes generats', 'OK', 'Warning') | Out-Null
+        }
+    }.GetNewClosure())
+    [void]$band.Controls.Add($btnCarpeta)
+    $ttBand = New-Object System.Windows.Forms.ToolTip
+    $ttBand.SetToolTip($btnCarpeta, 'Obre la carpeta dels informes generats')
+    $ttBand.SetToolTip($btnAjuda, 'Ajuda')
+
     $btnConfig = New-Object System.Windows.Forms.Button
     $btnConfig.Text = [string][char]0x2699
     $btnConfig.Font = $fBandIco
@@ -1556,6 +1594,7 @@ function Select-Mode {
         $form.Close()
     }.GetNewClosure())
     [void]$band.Controls.Add($btnConfig)
+    $ttBand.SetToolTip($btnConfig, 'Configuracio')
 
     $res = $form.ShowDialog()
     if ($res -ne 'OK' -or $null -eq $result.Choice) { exit 0 }

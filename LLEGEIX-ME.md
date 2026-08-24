@@ -14,6 +14,7 @@ el seguiment, planificar rutes d'inspecció i passar-los a PDF signat.
 informes-Cornella/
 ├── GenerarInforme.bat     ← DOBLE CLIC: el programa
 ├── Actualitzar.bat        ← DOBLE CLIC: baixar l'última versió i pujar els teus catàlegs
+├── Crear-acces-directe.bat ← DOBLE CLIC: l'accés directe per ancorar-lo a la barra de tasques
 ├── LLEGEIX-ME.md          ← això que estàs llegint
 │
 ├── ESTRUCTURALS/          ← les FONTS dels catàlegs (el que dona contingut als informes)
@@ -60,6 +61,23 @@ poden instal·lar sols) ni l'AutoFirma (només per signar).
 
 Després: obre `GenerarInforme.bat` i, si no ets a la feina amb la unitat `I:`,
 prem **⚙ Configuració** i posa-hi les teves carpetes.
+
+### Tenir-lo a la barra de tasques
+
+Windows **no deixa ancorar un `.bat`** a la barra de tasques: només hi admet
+accessos directes que apuntin a un programa. Doble clic a
+**`Crear-acces-directe.bat`** i te'n deixa un a l'**escriptori** i al **menú
+Inici**, amb l'escut de l'Ajuntament.
+
+Després, **clic dret** damunt de l'accés directe → **«Ancorar a la barra de
+tasques»**. Al Windows 11 potser primer has de triar «Mostra més opcions».
+
+> No s'ancora sol perquè des del Windows 10 aquesta ordre ja no es pot fer per
+> codi: el que es troba per internet són trucs que toquen el registre i
+> reinicien l'explorador, i es poden carregar la barra de tasques.
+>
+> L'accés directe l'obre `Instalar.bat` per tu quan instal·les de zero. Si mous
+> la carpeta del programa, torna a fer doble clic al `.bat` per refer-lo.
 
 ---
 
@@ -478,6 +496,9 @@ recent d'aquesta carpeta i t'ho indica al Pas 2 amb l'etiqueta
 Amb el botó **⚙ Configuració** pots canviar totes les rutes d'aquest
 ordinador (es desen a `%LOCALAPPDATA%`, no al repositori, o sigui que cada PC
 té les seves).
+
+Al costat, el botó **📁** obre la **carpeta on es desen els informes generats** —
+la que hi ha posada a Configuració, sigui quina sigui. No tanca el menú.
 
 ---
 

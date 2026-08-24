@@ -3767,4 +3767,61 @@ foreach ($x in 1..3) {
 }
 AssertEq ($provaSw -join ',') '1,2,3' "'continue' dins d'un switch NO continua el foreach de fora"
 
+# ---------------------------------------------------------------------------
+# L'ACCES DIRECTE (AccesDirecte.ps1) i el boto de la carpeta d'informes
+# ---------------------------------------------------------------------------
+# Windows NO deixa ancorar un .bat a la barra de tasques: l'acces directe ha
+# d'apuntar a un EXECUTABLE. Per aixo va a wscript.exe amb el .vbs com a
+# argument, que es el mateix que fa GenerarInforme.bat.
+$objAD = Get-AccesDirecteObjectiu 'C:\clone\informes' 'C:\Windows'
+Assert ([string]$objAD.Desti -like '*\wscript.exe') 'acces directe: el desti es un EXECUTABLE (wscript.exe)'
+Assert (-not ([string]$objAD.Desti -like '*.bat')) 'acces directe: mai un .bat (no es pot ancorar)'
+AssertEq ([string]$objAD.Arguments) '"C:\clone\informes\suport\GenerarInforme.vbs"' 'acces directe: apunta al llancador sense consola'
+Assert ([string]$objAD.Arguments).StartsWith('"') 'acces directe: l''argument va entre cometes (la ruta pot portar espais)'
+AssertEq ([string]$objAD.Carpeta) 'C:\clone\informes' 'acces directe: la carpeta de treball es el clone'
+AssertEq ([string]$objAD.Icona) 'C:\clone\informes\suport\cornella.ico' 'acces directe: porta l''escut'
+# Una barra final al clone no ha de duplicar-se.
+AssertEq ([string](Get-AccesDirecteObjectiu 'C:\clone\informes\' 'C:\Windows').Icona) 'C:\clone\informes\suport\cornella.ico' 'acces directe: la barra final del clone no es duplica'
+# ...i sense SystemRoot es cau a C:\Windows (mai una ruta buida).
+Assert ([string](Get-AccesDirecteObjectiu 'C:\x' '').Desti -like 'C:\Windows\*') 'acces directe: sense SystemRoot, C:\Windows'
+# Es deixa a l'escriptori I al menu Inici (des d'alli es pot ancorar).
+$destAD = @(Get-AccesDirecteDestins 'C:\Users\x\Desktop' 'C:\Users\x\Programs')
+AssertEq $destAD.Count 2 'acces directe: escriptori i menu Inici'
+Assert (-not (@($destAD) | Where-Object { -not ([string]$_).EndsWith('.lnk') })) 'acces directe: tots dos son .lnk'
+AssertEq (@(Get-AccesDirecteDestins '' '').Count) 0 'acces directe: sense carpetes, cap desti'
+# El .vbs al qual apunta ha d'existir de debo al repositori.
+Assert (Test-Path -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'GenerarInforme.vbs')) 'acces directe: el llancador .vbs hi es'
+Assert (Test-Path -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'cornella.ico')) 'acces directe: l''escut hi es'
+# El .bat que el crea: ASCII pur (els .bat amb accents es trenquen segons la
+# codepage) i sense cap '^' dins de cometes -dins de cometes el cmd el deixa
+# passar LITERAL i el que arriba al PowerShell ja no es el que havies escrit-.
+$batAD = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'Crear-acces-directe.bat'
+Assert (Test-Path -LiteralPath $batAD) 'acces directe: hi ha Crear-acces-directe.bat a l''arrel'
+if (Test-Path -LiteralPath $batAD) {
+    $txtAD = Get-Content -LiteralPath $batAD -Raw
+    Assert (-not (@([char[]]$txtAD) | Where-Object { [int]$_ -gt 127 })) 'Crear-acces-directe.bat: ASCII pur'
+    foreach ($lnAD in @($txtAD -split "`n")) {
+        $iQ = $lnAD.IndexOf('"')
+        if ($iQ -lt 0) { continue }
+        $jQ = $lnAD.LastIndexOf('"')
+        if ($jQ -le $iQ) { continue }
+        Assert (-not ($lnAD.Substring($iQ, $jQ - $iQ).Contains('^'))) 'Crear-acces-directe.bat: cap ^ dins de cometes'
+    }
+    Assert ($txtAD.Contains('AccesDirecte.ps1')) 'Crear-acces-directe.bat: la feina la fa el .ps1'
+}
+
+# EL BOTO DE LA CARPETA del menu: la ruta NO pot estar escrita al codi, ha de
+# sortir de _ResolveOutputDir (que es el que mana la Configuracio).
+$srcMenu3 = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'Seguiment.ps1') -Raw
+$iBtnC = $srcMenu3.IndexOf('$btnCarpeta = New-Object')
+Assert ($iBtnC -ge 0) 'menu: hi ha el boto de la carpeta dels informes'
+if ($iBtnC -ge 0) {
+    $trosC = $srcMenu3.Substring($iBtnC, [Math]::Min(1800, $srcMenu3.Length - $iBtnC))
+    Assert ($trosC.Contains('_ResolveOutputDir')) 'menu: la carpeta surt de la CONFIGURACIO, no del codi'
+    Assert (-not ($trosC -match '[A-Z]:\\')) 'menu: cap ruta escrita al codi'
+    Assert ($trosC.Contains('ConvertFromUtf32')) 'menu: l''emoji de carpeta es astral i va amb ConvertFromUtf32'
+    # No tanca el menu: obrir una carpeta no es triar cap opcio.
+    Assert (-not ($trosC.Substring(0, $trosC.IndexOf('$btnConfig')).Contains('$form.Close()'))) 'menu: obrir la carpeta NO tanca el menu'
+}
+
 exit (Write-TestSummary 'RESULTAT')
