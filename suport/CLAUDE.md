@@ -1327,6 +1327,19 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   - Regla pràctica: **qualsevol concatenació que vagi com a argument, entre
     parèntesis**. Les dues cares d'aquesta trampa (dins d'un `@()` i en
     arguments) ja han costat dues rondes amb l'usuari.
+- **TERCERA CARA: `f -or $x` NO ÉS UN «O», és una CRIDA a `f`.** Una funció
+  sense parèntesis obre una **crida a una ordre**, i tot el que ve darrere en
+  són **arguments**: `_GoldenEsRefer -or -not (Test-Path $p)` li passa `-or`,
+  `-not` i el resultat del `Test-Path` com a paràmetres, la funció els ignora i
+  retorna el seu valor de sempre → **la condició sempre és certa**. Ho vaig
+  patir escrivint els fitxers d'or: el codi anava directe a la branca de
+  «llegeix el fitxer» amb un fitxer que encara no existia.
+  - **Regla**: una crida a funció dins d'una condició, **entre parèntesis**:
+    `(f) -or (-not (Test-Path $p))`.
+  - És la mateixa família que el `'+'` solt: PowerShell té **dos modes de
+    parseig** (expressió i ordre), i el que decideix quin s'aplica és com
+    comença el token. Quan una condició es comporta al revés del que diu,
+    sospita d'això abans que de la lògica.
 - **Els camps es resolen per BLOC, no línia a línia** (`Apply-FieldsToLines`,
   `Camps.ps1`). Cada paràgraf del catàleg és una **BodyLine**, i l'editor deixa
   prémer Enter **a dins** d'un `[OPCIO: …]`. Llavors el marcador queda partit
@@ -1729,6 +1742,129 @@ clavada al codi i ara surten del **peu real** de l'última etiqueta.
   però al mòbil el valor **per defecte és `insp` (Visita d'inspecció)**. El
   paquet inclou `ORIGEN_TIPUS` i `DATA_INSPECCIO` (a `HEADER_KEYS`). Al PC, si un
   paquet ANTIC no porta `ORIGEN_TIPUS`, es manté el fallback 'doc'.
+
+## El MOTOR DE COMPOSICIÓ (`suport/MotorInforme.ps1`)
+Ve de la petició de l'usuari: **«el programa el més senzill, estandarditzat i
+modulable possible; no vull duplicitats»** — canviar la lletra en un lloc i que
+afecti a tot, canviar un requeriment de REQ1 i que canviï a tot arreu, els salts
+de pàgina, les conclusions.
+
+**El repartiment és aquest, i val per a tot el programa:**
+
+```
+Format.ps1        COM es veu un paràgraf   (lletra, sagnies, espaiats)
+MotorInforme.ps1  COM es munta un document (l'ordre, l'aire, els nivells)
+els Build-*Blocs  QUÈ s'escriu             (purs: es proven sense Word)
+```
+
+### El que hi havia duplicat (i on ha anat a parar)
+| Duplicitat | Còpies | On viu ara |
+|---|---|---|
+| Obrir/desar el `.docx` (~20 l.) | 4 (`Build-Document`, `Build-ActExtrDocument`, `Build-LlicenciaDocument`, `Build-MnsDocument`) | `Write-InformeDocx` |
+| Escriure una línia (text + enllaços) | 3 (`$emitLine`, `_LlicEmetLinia`, `_VLine`) | `Write-Linia` |
+| Escriure un punt (número + cos + fills + URLs) | 2 (`_WriteCatalegBody`, `_VistaCataleg`) | `Build-CatalegBlocs` + `Write-Informe` |
+| `if ($cfg.SpacerAfterX) { Format-Spacer }` | **34** | `Format-Aire $sel '<clau>'` |
+| Salt de pàgina i `OutlineLevel` a pèl | 2 fitxers | `Format-SaltPagina` / `Format-Nivell` |
+| Valors i conversions de format | `Seguiment.ps1` en tenia còpia | llegeix `$ReportFormatConfig` + `_CmToTwips`/`_PtToTwips` |
+
+### `Write-InformeDocx`
+Nom únic → còpia a `%TEMP%` (si no, el Word obre el fitxer en *Vista protegida*
+quan el destí és una unitat de xarxa) → bloc de capçalera → `<<PLACEHOLDERS>>` →
+**el cos, que arriba com a scriptblock** → desar, tancar i moure al destí.
+- **El scriptblock del cos NO porta `.GetNewClosure()`**, i és a posta: ha de
+  veure els locals del `Build-*` **en temps d'execució**, i la closure en
+  copiaria els valors del moment de crear-lo (vegeu la secció de les closures).
+- **Si el cos peta, el document es tanca** abans de rellançar l'error. Abans
+  només ho feia ACT_EXTR; les altres tres deixaven el Word amb un document
+  obert i el `%TEMP%` brut.
+
+### `Format-Aire` i les banderes
+La clau és el **nom del bloc que s'acaba d'escriure** (`seccio`, `subseccio`,
+`item`, `intro`, `introparagraf`, `conclusions`) i `$Script:AireFlagPerClau` la
+tradueix a la bandera. **Una clau desconeguda no posa aire i no peta**: un nom
+mal escrit no pot afegir una línia en blanc a un informe en silenci.
+- **`Test-FormatAire` és pura** i es prova sense Word.
+- **`aire` ≠ `espai`**: `aire` depèn d'una bandera; `espai` és una línia en
+  blanc **sempre** (el cos fix de TERMINI, l'ANNEX 1).
+- Les **vistes** tenen `_VAire`, que passa per `_VSpacer` per tornar el nivell
+  d'esquema a cos.
+
+### El vocabulari de blocs (`Write-Informe`)
+`seccio`, `subseccio`, `etiqueta`, `item`, `cos`, `pic`, `nota`, `enllac`,
+`pla`, `continua`, `llista`, `conclusio`, `conclusiocap`, `aire`, `espai`,
+`saltpagina` i **`unitat`**.
+
+**`unitat` és la peça que ho fa funcionar.** És el contenidor d'un punt sencer:
+- en obrir-se marca que **el pròxim `pic` és el primer sub-punt** → `-First`
+  (12 pt en lloc de 6);
+- en tancar-se hi posa l'aire d'ítem **només si ha escrit alguna cosa**, de
+  manera que l'espai va després de l'ítem **complet** (amb els seus fills i
+  enllaços). Això és el que abans feia el `$itemWritten` a mà a cada família.
+
+**`-AmbNivells`** és l'**única** cosa que diferencia una vista d'un informe:
+posa l'`OutlineLevel` a cada paràgraf. Els paràgrafs **buits també el tornen a
+cos**: el Word l'hereta, i un espaiador després d'un títol es quedaria a nivell
+1 i sortiria com una entrada buida al panell de navegació.
+
+**`-SenseCamps`**: a la vista els `[CAMP:]`/`[OPCIO:]` es veuen **tal qual**. És
+una vista del **catàleg**, no l'informe d'una activitat. (Primer intent:
+passar-hi un diccionari buit. Els deixava **en blanc** i la vista perdia
+justament el que hi vas a mirar; ho va enxampar un fitxer d'or.)
+
+**Un tipus de bloc desconegut PETA.** Val més això que generar un document al
+qual li falta un tros sense que ho digui ningú.
+
+### Les proves de font que ho mantenen
+Quatre guards, tots **validats injectant el cas** i comprovant que passen a
+vermell:
+1. Cap fitxer fora de `MotorInforme.ps1` crida `_OpenOutputDocument`.
+2. Cap fitxer fora de `Format.ps1` llegeix les banderes `Spacer*`.
+3. **Cap fitxer fora de `Format.ps1` toca el Word per format**
+   (`ParagraphFormat.`, `.OutlineLevel`, `InsertBreak(`). És la invariant que
+   fa que «canviar-ho en un lloc» sigui veritat.
+4. Cap alineat escrit a pèl a `Format.ps1` (l'únic literal que hi pot quedar és
+   el centrat del títol CONCLUSIONS).
+
+### ELS FITXERS D'OR (`suport/tests/dades/emit-*.txt`)
+**La xarxa de seguretat per tocar el motor.** Cada fitxer és la seqüència
+sencera de crides `Format-*` d'una família, una per línia, tal com les
+enregistra `FormatDoubles.ps1`. Es llegeixen com el document:
+
+```
+BODY|En relació a la sol·licitud de Modificació NO Substancial …
+AIRE|item
+LLISTA|
+CONCLCAP|CONCLUSIONS
+```
+
+- **Per què**: aquest projecte té l'historial de defectes que **no fallen sinó
+  que empitjoren en silenci** — un espai que desapareix, un sub-punt que passa
+  de 12 a 6 pt, un enllaç que canvia de lloc. Cap prova puntual els veu tots;
+  una comparació línia a línia de tot el document, sí.
+- **19 escenaris FIXOS** (els N primers ítems de cada secció; cap dada que
+  depengui de la data ni de la màquina): REQ1, TERMINI, ACT_EXTR req i fav, les
+  7 vistes, els 3 informes de Llicència, la provisional amb ANNEX 1, i
+  MNS/Traspàs amb punts de REQ1 i sense.
+- Quan una comparació falla diu **la primera línia que difereix**, amb
+  l'esperat i l'obtingut: la resta acostuma a ser el mateix desplaçat una
+  posició, i abocar-ho tot amagaria la línia que importa.
+- **Per refer-los després d'un canvi VOLGUT:**
+  ```
+  GENINFORME_GOLDEN=1 pwsh -NoProfile -File suport/tests/run-tests-golden.ps1
+  ```
+  **…i després mira't el `git diff`: és tota la gràcia.** Si el diff no és
+  exactament el que esperaves, el canvi no era el que et pensaves. Va passar
+  dues vegades el mateix dia (els `[CAMP:]` que es buidaven, i un paràgraf
+  duplicat a la vista de TERMINI que hi era des de sempre).
+
+### Què queda per migrar (i per què no corre pressa)
+`MnsTraspas.ps1`, `ActExtr.ps1` i `_LlicEscriuPunt` encara criden les
+`Format-*` directament. **No és duplicació**: totes tres ja passen per
+`Format-Aire`, `Write-Linia` i, quan escriuen punts de catàleg, per
+`_WriteCatalegBody`. El que els queda és lògica **pròpia** (la frase
+d'observacions de MNS, el repartiment per token d'ACT_EXTR, i l'ordre dels
+enllaços respecte del comentari a Llicència). Si es migren, **una família per
+commit i comparant el fitxer d'or a cada pas**.
 
 ## ESTRUCTURALS en JSON — FORMAT ESTÀNDARD ÚNIC, editable des del programa
 - **Objectiu (petició de l'usuari):** deixar de dependre del Word "rudimentari";
