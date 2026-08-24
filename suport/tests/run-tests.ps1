@@ -2136,11 +2136,25 @@ $cReq = _LlicConclusioText 'requeriment' $false
 Assert ([bool]($cReq -like '*esmena de les defici*')) '_LlicConclusioText: requeriment'
 $cPreSense = _LlicConclusioText 'favorable-pre' $false
 $cPreAmb   = _LlicConclusioText 'favorable-pre' $true
-Assert ([bool]($cPreSense -like '*tancat l*expedient.')) '_LlicConclusioText: pre SENSE condicions acaba amb punt'
+Assert ([bool]($cPreSense -like '*tancat l*expedient.*')) '_LlicConclusioText: pre SENSE condicions acaba amb punt'
 Assert (-not ($cPreSense -like '*sota les seg*'))        '_LlicConclusioText: pre sense condicions NO promet condicions'
-Assert ([bool]($cPreAmb -like '*i sota les seg*ents condicions.')) '_LlicConclusioText: pre AMB condicions hi afegeix la coda'
+Assert ([bool]($cPreAmb -like '*i sota les seg*ents condicions.*')) '_LlicConclusioText: pre AMB condicions hi afegeix la coda'
 $cPost = _LlicConclusioText 'favorable-post' $false
-Assert ([bool]($cPost -like '*per tancat l*expedient.')) '_LlicConclusioText: post tanca l''expedient'
+Assert ([bool]($cPost -like '*per tancat l*expedient.*')) '_LlicConclusioText: post tanca l''expedient'
+# EL TEXT VE DEL CATALEG, no del codi: hi ha de portar la negreta del **...**
+# (com les de REQ1) i no pot quedar cap frase de conclusio escrita al programa.
+Assert ([bool]($cPost -like '`*`**')) '_LlicConclusioText: la negreta ve del cataleg (**...**)'
+$srcLlicC = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'Llicencia.ps1') -Raw
+Assert (-not ($srcLlicC -match 'Conclusio\s*=')) 'Llicencia: cap text de conclusio escrit al codi'
+Assert (-not ($srcLlicC.Contains('Ho poso al seu coneixement'))) 'Llicencia: ni el tancament'
+$srcMnsC = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'MnsTraspas.ps1') -Raw
+Assert (-not ($srcMnsC.Contains('Ho poso al seu coneixement'))) 'MnsTraspas: ni el tancament'
+# ...i el cataleg els te tots quatre, un per fase (i el pre, amb i sense condicions).
+$grLlic = Read-Conclusions $Global:ConclusionsPath 'LLIC'
+AssertEq (@($grLlic.Selectable).Count) 4 'cataleg: el grup LLIC porta les quatre conclusions'
+foreach ($fLl in @('requeriment', 'favorable-pre', 'favorable-pre-condicions', 'favorable-post')) {
+    Assert ([bool](@($grLlic.Selectable) | Where-Object { [string]$_.Title -eq $fLl })) ('cataleg: hi ha la conclusio "' + $fLl + '"')
+}
 AssertEq (_LlicConclusioText 'no-existeix' $false) '' '_LlicConclusioText: fase desconeguda -> buit'
 # El paragraf del tecnic redactor.
 $td = _LlicTextDocumentacio 'Simon Aledo Vives' '1.780' 'COITI d''Alacant' '20 de febrer de 2024'
@@ -3612,8 +3626,8 @@ if (Test-Path -LiteralPath $mnsPath) {
             $llistesM = @($emM | Where-Object { $_ -like 'LLISTA|*' })
             if ($ambM) { Assert ($llistesM.Count -ge 1) ($fM + ': amb observacions hi ha llista de Word') }
             # El tancament de sempre.
-            Assert ([bool]($emM | Where-Object { $_ -like 'BODY|Ho poso al seu coneixement*' })) ($fM + ': porta el tancament de sempre')
-            Assert ([bool]($emM | Where-Object { $_ -like 'BODY|Cornell* de Llobregat,' })) ($fM + ': ...i la linia de Cornella')
+            Assert ([bool]($emM | Where-Object { $_ -like 'CONCL|Ho poso al seu coneixement*' })) ($fM + ': porta el tancament de sempre')
+            Assert ([bool]($emM | Where-Object { $_ -like 'CONCL|Cornell* de Llobregat,' })) ($fM + ': ...i la linia de Cornella')
             # Cap titol de seccio: "MODIFICACIO NO SUBSTANCIAL" i "TRASPAS"
             # anaven en VERMELL al Word de l'usuari, o sigui que son marques
             # seves i no van al document.

@@ -380,6 +380,27 @@ function _WriteCatalegBody($sel, $cfg, $selectedSections, $fields, $introText, $
 #   - $fields : per resoldre [CAMP:] i [OPCIO:] dins els textos.
 # La separacio entre conclusions la posa Format-Conclusion via SpaceAfter
 # (ConclusionSpaceAfterPt), aixi que aqui no hi fa falta un Spacer entre.
+# EL TANCAMENT DE L'INFORME ("Ho poso al seu coneixement...", "Cornella de
+# Llobregat,"), que el porten TOTS els informes.
+#
+# NO ES ENLLOC DEL CODI: son els nodes 'sempre' de '0 CONCLUSIONS.json', que ja
+# hi eren. Llicencia i MNS/Traspas se'ls escrivien a ma -dues copies literals-,
+# de manera que canviar el tancament volia dir tocar dos fitxers de codi i el
+# cataleg. Ara es canvia en un sol lloc i afecta tots els informes.
+#
+# REQ1 i TERMINI hi arriben per _WriteConclusionsBlock ($alwaysConclusions);
+# Llicencia i MNS criden aixo, perque el seu tancament va DESPRES d'altres
+# coses (les condicions de la llicencia).
+function Get-TextTancament {
+    try { return @((Read-Conclusions $ConclusionsPath).Always) } catch { return @() }
+}
+
+function Write-Tancament($sel, $fields = $null) {
+    foreach ($l in @(Get-TextTancament)) {
+        Format-Conclusion $sel (Apply-Fields -text ([string]$l) -fields $fields)
+    }
+}
+
 function _WriteConclusionsBlock($sel, $cfg, $headerText, $conclusions, $alwaysConclusions, $fields) {
     $hasBody = ($conclusions.Count -gt 0) -or ($alwaysConclusions.Count -gt 0)
     $hasHead = -not [string]::IsNullOrWhiteSpace($headerText)

@@ -54,23 +54,16 @@ function _LlicFases {
             Clau = 'requeriment'
             Nom  = 'Requeriment'
             Sub  = 'Es demana la documentaci' + [char]0x00F3 + ' que falta'
-            Conclusio = ('Cal requerir l' + [char]0x2019 + 'esmena de les defici' + [char]0x00E8 +
-                         'ncies indicades, aportant la documentaci' + [char]0x00F3 + ' corresponent.')
         }
         [pscustomobject]@{
             Clau = 'favorable-pre'
             Nom  = 'Favorable pre-llic' + [char]0x00E8 + 'ncia'
             Sub  = 'Ja hi ha tota la documentaci' + [char]0x00F3 + ' d' + [char]0x2019 + 'abans de la resoluci' + [char]0x00F3
-            Conclusio = ('S' + [char]0x2019 + 'informa favorablement a l' + [char]0x2019 + 'espera de rebre la citada ' +
-                         'documentaci' + [char]0x00F3 + ' en els terminis de temps especificats per poder donar per ' +
-                         'tancat l' + [char]0x2019 + 'expedient')
         }
         [pscustomobject]@{
             Clau = 'favorable-post'
             Nom  = 'Favorable post-llic' + [char]0x00E8 + 'ncia'
             Sub  = 'Ja s' + [char]0x2019 + 'ha comprovat tota la documentaci' + [char]0x00F3
-            Conclusio = ('S' + [char]0x2019 + 'informa favorablement l' + [char]0x2019 + 'activitat i es d' +
-                         [char]0x00F3 + 'na per tancat l' + [char]0x2019 + 'expedient.')
         }
     )
 }
@@ -701,13 +694,23 @@ function _LlicCalAnnex1($punts, [bool]$esProvisional) {
 #     d'inspeccio.
 # Funcio PURA.
 function _LlicConclusioText([string]$fase, [bool]$ambCondicions) {
-    $f = @(_LlicFases) | Where-Object { $_.Clau -eq $fase } | Select-Object -First 1
-    if ($null -eq $f) { return '' }
-    if ($fase -ne 'favorable-pre') { return [string]$f.Conclusio }
-    if ($ambCondicions) {
-        return ([string]$f.Conclusio + ' i sota les seg' + [char]0x00FC + 'ents condicions.')
+    # EL TEXT VE DEL CATALEG, del grup 'LLIC' de '0 CONCLUSIONS.json', i el titol
+    # de cada entrada es la CLAU DE LA FASE. Abans era al codi (_LlicFases), o
+    # sigui que canviar una conclusio de llicencia volia dir tocar el programa
+    # mentre que les de REQ1 s'editaven des de l'editor de catalegs.
+    #
+    # El favorable PRE en te dues: amb condicions i sense (la coda " i sota les
+    # seguents condicions" no sempre hi va).
+    $titol = [string]$fase
+    if ($fase -eq 'favorable-pre' -and $ambCondicions) { $titol = 'favorable-pre-condicions' }
+    $c = $null
+    try { $c = Read-Conclusions $ConclusionsPath 'LLIC' } catch { $c = $null }
+    if ($null -ne $c) {
+        foreach ($x in @($c.Selectable)) {
+            if ([string]$x.Title -eq $titol) { return [string]$x.Body }
+        }
     }
-    return ([string]$f.Conclusio + '.')
+    return ''
 }
 
 # El paragraf "Documentacio signada digitalment pel tecnic redactor..." Funcio
@@ -969,11 +972,11 @@ function Build-LlicenciaDocument($word, $model) {
     # ---- CONCLUSIO ----
     $ambCond = (-not [string]::IsNullOrWhiteSpace([string]$model.Condicions))
     # Mateix bloc que REQ1 (_WriteConclusionsBlock): capcalera CONCLUSIONS
-    # centrada i en negreta, i la conclusio en negreta (a REQ1 la negreta ve del
-    # **...** del cataleg; aqui el text es nostre, o sigui que l'hi posem).
+    # centrada i en negreta, i la conclusio en negreta -que aqui ve del **...**
+    # del cataleg, exactament com a REQ1: el text ja no es del codi.
     if ($cfg.SpacerBeforeConclusionsBlock) { Format-Spacer $sel }
     Format-ConclusionHeader $sel 'CONCLUSIONS'
-    Format-Conclusion $sel ('**' + (_LlicConclusioText ([string]$model.Fase) $ambCond) + '**')
+    Format-Conclusion $sel (_LlicConclusioText ([string]$model.Fase) $ambCond)
     if ($ambCond -and [string]$model.Fase -eq 'favorable-pre') {
         Format-Spacer $sel
         Format-Section $sel ('CONDICIONS LLIC' + [char]0x00C8 + 'NCIA')
@@ -982,10 +985,8 @@ function Build-LlicenciaDocument($word, $model) {
             Format-Body $sel ([string]$l).Trim() -Bold
         }
     }
-    # El tancament de sempre, igual que a la resta d'informes.
-    Format-Spacer $sel
-    Format-Body $sel ('Ho poso al seu coneixement als efectes oportuns,')
-    Format-Body $sel ('Cornell' + [char]0x00E0 + ' de Llobregat,')
+    # El tancament: del cataleg, com tots els altres informes (Write-Tancament).
+    Write-Tancament $sel $fields
 
     # ---- ANNEX 1: nomes al REQUERIMENT d'una llicencia PROVISIONAL ----
     if ([string]$model.Fase -eq 'requeriment' -and (_LlicCalAnnex1 $model.Abans ([bool]$model.EsProvisional))) {

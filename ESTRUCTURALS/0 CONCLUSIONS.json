@@ -1,330 +1,418 @@
 {
- "tipus": "0 CONCLUSIONS",
- "familia": "conclusions",
- "intro": [
-  {
-   "runs": [
+  "tipus": "0 CONCLUSIONS",
+  "familia": "conclusions",
+  "intro": [
     {
-     "t": "CONCLUSIONS"
+      "runs": [
+        {
+          "t": "CONCLUSIONS"
+        }
+      ]
     }
-   ]
-  }
- ],
- "nodes": [
-  {
-   "tipus": "seccio",
-   "titol": "REQ1",
-   "cos": [],
-   "fills": [
+  ],
+  "nodes": [
     {
-     "tipus": "item",
-     "titol": "Desistiment",
-     "cos": [
-      {
-       "runs": [
+      "tipus": "seccio",
+      "titol": "REQ1",
+      "cos": [],
+      "fills": [
         {
-         "t": "Vist l’anterior, com que la comunicació presenta un o més defectes de caràcter essencial "
+          "tipus": "item",
+          "titol": "Desistiment",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "Vist l’anterior, com que la comunicació presenta un o més defectes de caràcter essencial "
+                },
+                {
+                  "t": "s’ha de dictar una resolució que deixi sense efecte la comunicació i ordeni el cessament de l'activitat",
+                  "b": true
+                },
+                {
+                  "t": "."
+                }
+              ]
+            }
+          ],
+          "fills": []
         },
         {
-         "t": "s’ha de dictar una resolució que deixi sense efecte la comunicació i ordeni el cessament de l'activitat",
-         "b": true
+          "tipus": "item",
+          "titol": "Terrassa projecte",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "La terrassa que apareix en el projecte no forma part d’aquest informe ni d’aquest expedient."
+                }
+              ]
+            }
+          ],
+          "fills": []
         },
         {
-         "t": "."
+          "tipus": "item",
+          "titol": "Requeriment",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "Vist l’anterior, cal requerir l’esmena de les deficiències indicades, aportant la documentació corresponent i presentant la mateixa en un termini màxim de quinze dies, a comptar des de l’endemà de la recepció del requeriment."
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "item",
+          "titol": "Mancances formals",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "Vist l’anterior, la comunicació presenta mancances formals que s’hauran d’esmenar per tal de poder iniciar l’activitat amb legalitat."
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "item",
+          "titol": "Procediment d’esmena documentació",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "Vist l’anterior, s’inicia d’ofici el procediment d’esmena, disposant "
+                },
+                {
+                  "t": "d’un termini [OPCIO: Mesos procediment esmena | d’un mes | de dos mesos degut a la complexitat de les actuacions que s’han de dur a terme per a esmenar les deficiències o per a complir els requisits exigits per la normativa sectorial aplicable | de tres mesos degut a la complexitat de les actuacions que s’han de dur a terme per a esmenar les deficiències o per a complir els requisits exigits per la normativa sectorial aplicable]",
+                  "b": true
+                },
+                {
+                  "t": " per a esmenar els defectes constatats. En cas contrari és pertinent que la resolució del procediment administratiu determini el "
+                },
+                {
+                  "t": "cessament de l’activitat",
+                  "b": true
+                },
+                {
+                  "t": "."
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "item",
+          "titol": "Precinte inspecció activitat",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "Tenint en consideració el risc greu o imminent de seguretat sobre les persones, béns i el medi ambient que genera l’activitat "
+                },
+                {
+                  "t": "és pertinent precintar [CAMP: què es precinta]",
+                  "b": true
+                },
+                {
+                  "t": " fins a esmenar les deficiències en el cas de no presentar la documentació requerida en el termini "
+                },
+                {
+                  "t": "[OPCIO: Mesos precinte | d’un mes | de dos mesos | de tres mesos]",
+                  "b": true
+                },
+                {
+                  "t": "."
+                }
+              ]
+            }
+          ],
+          "fills": []
         }
-       ]
-      }
-     ],
-     "fills": []
+      ]
     },
     {
-     "tipus": "item",
-     "titol": "Terrassa projecte",
-     "cos": [
-      {
-       "runs": [
+      "tipus": "seccio",
+      "titol": "SEGUIMENT",
+      "cos": [],
+      "fills": [
         {
-         "t": "La terrassa que apareix en el projecte no forma part d’aquest informe ni d’aquest expedient."
+          "tipus": "item",
+          "titol": "Finalitzat",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "Vist l’anterior s’informa que "
+                },
+                {
+                  "t": "es pot donar per finalitzat el procediment d’esmena",
+                  "b": true
+                },
+                {
+                  "t": "."
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "item",
+          "titol": "NO finalitzat",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "Vist l’anterior s’informa que "
+                },
+                {
+                  "t": "NO es pot donar per finalitzat el procediment d’esmena",
+                  "b": true
+                },
+                {
+                  "t": "."
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "item",
+          "titol": "NO finalitzat però aixecar cessament",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "Vist l’anterior s’informa que "
+                },
+                {
+                  "t": "NO es pot donar per finalitzat el procediment d’esmena però",
+                  "b": true
+                },
+                {
+                  "t": " tenint en compte les actuacions que s’han dut a terme, "
+                },
+                {
+                  "t": "es valora ampliar el termini [OPCIO: Mesos ampliació | un mes | dos mesos] i aixecar el cessament de l’activitat",
+                  "b": true
+                },
+                {
+                  "t": "."
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "item",
+          "titol": "Tancament denúncia",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "Vist l’anterior s’informa que "
+                },
+                {
+                  "t": "es pot donar per tancada la denúncia",
+                  "b": true
+                },
+                {
+                  "t": "."
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "item",
+          "titol": "Tancament denúncia + inici procediment esmena",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "Vist l’anterior, es s’informa que es pot donar per tancada la denúncia."
+                }
+              ]
+            }
+          ],
+          "fills": []
         }
-       ]
-      }
-     ],
-     "fills": []
+      ]
     },
     {
-     "tipus": "item",
-     "titol": "Requeriment",
-     "cos": [
-      {
-       "runs": [
+      "tipus": "seccio",
+      "titol": "TERMINI",
+      "cos": [],
+      "fills": [
         {
-         "t": "Vist l’anterior, cal requerir l’esmena de les deficiències indicades, aportant la documentació corresponent i presentant la mateixa en un termini màxim de quinze dies, a comptar des de l’endemà de la recepció del requeriment."
+          "tipus": "item",
+          "titol": "Ampliar",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "Vist l’anterior, i tenint en compte les actuacions que s’han de dur a terme, es valora "
+                },
+                {
+                  "t": "ampliar el termini [OPCIO: Mesos ampliació | un mes | dos mesos]",
+                  "b": true
+                },
+                {
+                  "t": "."
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "item",
+          "titol": "No ampliar",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "Vist l’anterior, i tenint en compte les actuacions que s’han de dur a terme, es valora "
+                },
+                {
+                  "t": "NO ampliar el termini",
+                  "b": true
+                },
+                {
+                  "t": "."
+                }
+              ]
+            }
+          ],
+          "fills": []
         }
-       ]
-      }
-     ],
-     "fills": []
+      ]
     },
     {
-     "tipus": "item",
-     "titol": "Mancances formals",
-     "cos": [
-      {
-       "runs": [
+      "tipus": "seccio",
+      "titol": "LLIC",
+      "cos": [],
+      "fills": [
         {
-         "t": "Vist l’anterior, la comunicació presenta mancances formals que s’hauran d’esmenar per tal de poder iniciar l’activitat amb legalitat."
+          "tipus": "item",
+          "titol": "requeriment",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "Cal requerir l’esmena de les deficiències indicades, aportant la documentació corresponent.",
+                  "b": true
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "item",
+          "titol": "favorable-pre",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "S’informa favorablement a l’espera de rebre la citada documentació en els terminis de temps especificats per poder donar per tancat l’expedient.",
+                  "b": true
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "item",
+          "titol": "favorable-pre-condicions",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "S’informa favorablement a l’espera de rebre la citada documentació en els terminis de temps especificats per poder donar per tancat l’expedient i sota les següents condicions.",
+                  "b": true
+                }
+              ]
+            }
+          ],
+          "fills": []
+        },
+        {
+          "tipus": "item",
+          "titol": "favorable-post",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "S’informa favorablement l’activitat i es dóna per tancat l’expedient.",
+                  "b": true
+                }
+              ]
+            }
+          ],
+          "fills": []
         }
-       ]
-      }
-     ],
-     "fills": []
+      ]
     },
     {
-     "tipus": "item",
-     "titol": "Procediment d’esmena documentació",
-     "cos": [
-      {
-       "runs": [
+      "tipus": "seccio",
+      "titol": "MNS",
+      "cos": [],
+      "fills": [
         {
-         "t": "Vist l’anterior, s’inicia d’ofici el procediment d’esmena, disposant "
-        },
-        {
-         "t": "d’un termini [OPCIO: Mesos procediment esmena | d’un mes | de dos mesos degut a la complexitat de les actuacions que s’han de dur a terme per a esmenar les deficiències o per a complir els requisits exigits per la normativa sectorial aplicable | de tres mesos degut a la complexitat de les actuacions que s’han de dur a terme per a esmenar les deficiències o per a complir els requisits exigits per la normativa sectorial aplicable]",
-         "b": true
-        },
-        {
-         "t": " per a esmenar els defectes constatats. En cas contrari és pertinent que la resolució del procediment administratiu determini el "
-        },
-        {
-         "t": "cessament de l’activitat",
-         "b": true
-        },
-        {
-         "t": "."
+          "tipus": "item",
+          "titol": "Actes dels controls periòdics",
+          "cos": [
+            {
+              "runs": [
+                {
+                  "t": "D’acord amb l’article 59.1.d de la Llei 20/2009 aquestes Modificacions NO Substancials han de figurar a les posteriors actes dels controls periòdics."
+                }
+              ]
+            }
+          ],
+          "fills": []
         }
-       ]
-      }
-     ],
-     "fills": []
+      ]
     },
     {
-     "tipus": "item",
-     "titol": "Precinte inspecció activitat",
-     "cos": [
-      {
-       "runs": [
+      "tipus": "sempre",
+      "titol": "",
+      "cos": [
         {
-         "t": "Tenint en consideració el risc greu o imminent de seguretat sobre les persones, béns i el medi ambient que genera l’activitat "
-        },
-        {
-         "t": "és pertinent precintar [CAMP: què es precinta]",
-         "b": true
-        },
-        {
-         "t": " fins a esmenar les deficiències en el cas de no presentar la documentació requerida en el termini "
-        },
-        {
-         "t": "[OPCIO: Mesos precinte | d’un mes | de dos mesos | de tres mesos]",
-         "b": true
-        },
-        {
-         "t": "."
+          "runs": [
+            {
+              "t": "Ho poso al seu coneixement als efectes oportuns,"
+            }
+          ]
         }
-       ]
-      }
-     ],
-     "fills": []
+      ],
+      "fills": []
+    },
+    {
+      "tipus": "sempre",
+      "titol": "",
+      "cos": [
+        {
+          "runs": [
+            {
+              "t": "Cornellà de Llobregat,"
+            }
+          ]
+        }
+      ],
+      "fills": []
     }
-   ]
-  },
-  {
-   "tipus": "seccio",
-   "titol": "SEGUIMENT",
-   "cos": [],
-   "fills": [
-    {
-     "tipus": "item",
-     "titol": "Finalitzat",
-     "cos": [
-      {
-       "runs": [
-        {
-         "t": "Vist l’anterior s’informa que "
-        },
-        {
-         "t": "es pot donar per finalitzat el procediment d’esmena",
-         "b": true
-        },
-        {
-         "t": "."
-        }
-       ]
-      }
-     ],
-     "fills": []
-    },
-    {
-     "tipus": "item",
-     "titol": "NO finalitzat",
-     "cos": [
-      {
-       "runs": [
-        {
-         "t": "Vist l’anterior s’informa que "
-        },
-        {
-         "t": "NO es pot donar per finalitzat el procediment d’esmena",
-         "b": true
-        },
-        {
-         "t": "."
-        }
-       ]
-      }
-     ],
-     "fills": []
-    },
-    {
-     "tipus": "item",
-     "titol": "NO finalitzat però aixecar cessament",
-     "cos": [
-      {
-       "runs": [
-        {
-         "t": "Vist l’anterior s’informa que "
-        },
-        {
-         "t": "NO es pot donar per finalitzat el procediment d’esmena però",
-         "b": true
-        },
-        {
-         "t": " tenint en compte les actuacions que s’han dut a terme, "
-        },
-        {
-         "t": "es valora ampliar el termini [OPCIO: Mesos ampliació | un mes | dos mesos] i aixecar el cessament de l’activitat",
-         "b": true
-        },
-        {
-         "t": "."
-        }
-       ]
-      }
-     ],
-     "fills": []
-    },
-    {
-     "tipus": "item",
-     "titol": "Tancament denúncia",
-     "cos": [
-      {
-       "runs": [
-        {
-         "t": "Vist l’anterior s’informa que "
-        },
-        {
-         "t": "es pot donar per tancada la denúncia",
-         "b": true
-        },
-        {
-         "t": "."
-        }
-       ]
-      }
-     ],
-     "fills": []
-    },
-    {
-     "tipus": "item",
-     "titol": "Tancament denúncia + inici procediment esmena",
-     "cos": [
-      {
-       "runs": [
-        {
-         "t": "Vist l’anterior, es s’informa que es pot donar per tancada la denúncia."
-        }
-       ]
-      }
-     ],
-     "fills": []
-    }
-   ]
-  },
-  {
-   "tipus": "seccio",
-   "titol": "TERMINI",
-   "cos": [],
-   "fills": [
-    {
-     "tipus": "item",
-     "titol": "Ampliar",
-     "cos": [
-      {
-       "runs": [
-        {
-         "t": "Vist l’anterior, i tenint en compte les actuacions que s’han de dur a terme, es valora "
-        },
-        {
-         "t": "ampliar el termini [OPCIO: Mesos ampliació | un mes | dos mesos]",
-         "b": true
-        },
-        {
-         "t": "."
-        }
-       ]
-      }
-     ],
-     "fills": []
-    },
-    {
-     "tipus": "item",
-     "titol": "No ampliar",
-     "cos": [
-      {
-       "runs": [
-        {
-         "t": "Vist l’anterior, i tenint en compte les actuacions que s’han de dur a terme, es valora "
-        },
-        {
-         "t": "NO ampliar el termini",
-         "b": true
-        },
-        {
-         "t": "."
-        }
-       ]
-      }
-     ],
-     "fills": []
-    }
-   ]
-  },
-  {
-   "tipus": "sempre",
-   "titol": "",
-   "cos": [
-    {
-     "runs": [
-      {
-       "t": "Ho poso al seu coneixement als efectes oportuns,"
-      }
-     ]
-    }
-   ],
-   "fills": []
-  },
-  {
-   "tipus": "sempre",
-   "titol": "",
-   "cos": [
-    {
-     "runs": [
-      {
-       "t": "Cornellà de Llobregat,"
-      }
-     ]
-    }
-   ],
-   "fills": []
-  }
- ]
+  ]
 }

@@ -169,9 +169,8 @@ function Build-MnsDocument($word, $model) {
         if ($cfg.SpacerAfterItem) { Format-Spacer $sel }
     }
 
-    # El tancament de sempre, igual que a la resta d'informes.
-    Format-Body $sel ('Ho poso al seu coneixement als efectes oportuns,')
-    Format-Body $sel ('Cornell' + [char]0x00E0 + ' de Llobregat,')
+    # El tancament: del cataleg, com tots els altres informes (Write-Tancament).
+    Write-Tancament $sel
 
     $doc.Save()
     $doc.Close($false)
