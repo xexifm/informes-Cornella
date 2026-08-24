@@ -9,12 +9,19 @@
   document no s'assembla gens: no hi ha bloc ABANS ni DESPRES ni deficiencies
   de projecte, nomes tres o quatre paragrafs fixos.
 
-  L'UNICA COSA QUE ES TRIA es si hi ha observacions:
-    - SI  -> "...amb la seguent observacio:" i, a sota, un paragraf de LLISTA
-             DE WORD buit, perque l'usuari hi escrigui el que calgui un cop
-             generat el document.
-    - NO  -> "...sense mes observacions en relacio a aquest tramit." i cap
-             llista.
+  L'UNICA COSA QUE ES TRIA son ELS PUNTS DE REQ1 que s'hi adjunten, amb la
+  MATEIXA pantalla de sempre (Select-Items) i pintats amb la MATEIXA funcio que
+  els informes de REQ1 (_WriteCatalegBody). O sigui que el format es identic per
+  construccio, i si es canvia un requeriment a REQ1 aqui canvia tambe.
+
+  La tria decideix la frase:
+    - amb punts -> "...amb les seguents observacions:" i, a sota, els punts
+    - sense     -> "...sense mes observacions en relacio a aquest tramit."
+
+  Abans hi havia una enumeracio buida d'observacions perque l'usuari hi
+  escrigues a ma; ara alli hi van els requeriments del cataleg. L'unica llista
+  de Word buida que queda es la de les MODIFICACIONS de la MNS, que si que
+  s'escriuen a ma.
 
   EL TEXT NO ES AQUI: viu a ESTRUCTURALS\MNSTRAS.json (un sol cataleg per als
   dos informes, com va demanar l'usuari) i es pot editar des de l'editor de
@@ -120,6 +127,37 @@ function _MnsParagrafs($cat, [string]$fase, [bool]$ambObservacions) {
     return $out.ToArray()
 }
 
+# QUINES CONCLUSIONS van a l'informe. Funcio PURA (rep les dues llistes de
+# conclusions ja llegides del cataleg).
+#
+#   MNS       -> SEMPRE l'avis de l'article 59.1.d: val per a qualsevol
+#                modificacio no substancial, hi hagi observacions o no.
+#   amb punts -> i la conclusio de REQUERIMENT de REQ1, la mateixa que fan
+#                servir els requeriments normals (no se'n fa cap copia).
+#
+# Si no en queda cap -Traspas sense punts-, l'informe no porta bloc de
+# CONCLUSIONS: la conclusio ja es dins del text fix.
+function _MnsTriaConclusions($selMns, $selReq1, [string]$fase, [bool]$ambObservacions) {
+    $out = New-Object System.Collections.ArrayList
+    if ([string]$fase -eq 'mns') {
+        foreach ($x in @($selMns)) { [void]$out.Add($x) }
+    }
+    if ($ambObservacions) {
+        foreach ($x in @(Build-ConclusionsFromTitles $selReq1 @('Requeriment'))) { [void]$out.Add($x) }
+    }
+    return $out.ToArray()
+}
+
+# ...i la versio que llegeix el cataleg (no es pura, per aixo va a part).
+function _MnsConclusions([string]$fase, [bool]$ambObservacions) {
+    $mns = $null; $req1 = $null
+    try { $mns = Read-Conclusions $ConclusionsPath 'MNS' } catch { }
+    try { $req1 = Read-Conclusions $ConclusionsPath 'REQ1' } catch { }
+    $sMns = if ($null -ne $mns) { @($mns.Selectable) } else { @() }
+    $sReq = if ($null -ne $req1) { @($req1.Selectable) } else { @() }
+    return (_MnsTriaConclusions $sMns $sReq $fase $ambObservacions)
+}
+
 # Nom del fitxer de sortida (mateix patro que la resta: data al principi).
 function _MnsNomFitxer([datetime]$data, [string]$fase, [string]$idGia) {
     $curt = 'LlicMNS'
@@ -155,13 +193,18 @@ function Build-MnsDocument($word, $model) {
     [void]$sel.EndKey(6)   # wdStory
 
     $cfg = $Script:ReportFormatConfig
-    foreach ($p in @(_MnsParagrafs $model.Cataleg ([string]$model.Fase) ([bool]$model.AmbObservacions))) {
+    $fields = $model.Fields
+    # HI HA PUNTS DE REQ1? Es l'unica cosa que decideix la frase i la conclusio.
+    $seccions = @($model.Punts)
+    $amb = ($seccions.Count -gt 0)
+
+    foreach ($p in @(_MnsParagrafs $model.Cataleg ([string]$model.Fase) $amb)) {
         if ([string]$p.Tipus -eq 'llista') {
             # El paragraf de llista va BUIT: l'omple l'usuari al Word.
             Format-ListItem $sel ''
             continue
         }
-        foreach ($l in @($p.Linies)) {
+        foreach ($l in @(Apply-FieldsToLines $p.Linies $fields)) {
             $pp = _SplitTextAndUrls ([string]$l)
             if (-not [string]::IsNullOrWhiteSpace($pp.Text)) { Format-Body $sel $pp.Text }
             foreach ($u in @($pp.Urls)) { Format-Url $sel $u }
@@ -169,8 +212,15 @@ function Build-MnsDocument($word, $model) {
         if ($cfg.SpacerAfterItem) { Format-Spacer $sel }
     }
 
-    # El tancament: del cataleg, com tots els altres informes (Write-Tancament).
-    Write-Tancament $sel
+    # ELS PUNTS DE REQ1, amb la MATEIXA funcio que els informes de REQ1: el
+    # format es identic per construccio i no n'hi ha cap copia.
+    if ($amb) { _WriteCatalegBody $sel $cfg $seccions $fields '' }
+
+    # CONCLUSIONS. El bloc nomes surt si te alguna linia; el tancament hi va
+    # sempre, com a la resta d'informes (son els nodes 'sempre' del cataleg).
+    $concl = @(_MnsConclusions ([string]$model.Fase) $amb)
+    $cap = if ($concl.Count -gt 0) { 'CONCLUSIONS' } else { '' }
+    _WriteConclusionsBlock $sel $cfg $cap $concl (Get-TextTancament) $fields
 
     $doc.Save()
     $doc.Close($false)
@@ -179,92 +229,9 @@ function Build-MnsDocument($word, $model) {
 }
 
 # ----------------------------------------------------------------------------
-# LA PANTALLA (l'unica part que toca WinForms)
+# NO HI HA PANTALLA PROPIA
 # ----------------------------------------------------------------------------
-# Nomes hi ha una cosa per decidir: si hi ha observacions o no. Ensenya, a sota,
-# com quedara la frase, que es l'unica manera de triar-ho sense dubtar.
-function Select-MnsObservacions([string]$fase, $cat, $pre = $null) {
-    $form = _NewForm
-    $nom = ''
-    foreach ($f in @(_MnsFases)) { if ([string]$f.Clau -eq [string]$fase) { $nom = [string]$f.Nom } }
-    $form.Text = 'Llic' + [char]0x00E8 + 'ncia - ' + $nom
-    $form.ClientSize = New-Object System.Drawing.Size(620, 330)
-    $form.FormBorderStyle = 'FixedDialog'
-    $form.MaximizeBox = $false
-
-    $lbl = New-Object System.Windows.Forms.Label
-    $lbl.Location = New-Object System.Drawing.Point(20, 72)
-    $lbl.Size = New-Object System.Drawing.Size(570, 20)
-    $lbl.Text = 'Hi ha observacions en relaci' + [char]0x00F3 + ' a aquest tr' + [char]0x00E0 + 'mit?'
-    [void]$form.Controls.Add($lbl)
-
-    $rbNo = New-Object System.Windows.Forms.RadioButton
-    $rbNo.Location = New-Object System.Drawing.Point(30, 98)
-    $rbNo.Size = New-Object System.Drawing.Size(560, 22)
-    $rbNo.Text = 'No, cap observaci' + [char]0x00F3
-    [void]$form.Controls.Add($rbNo)
-
-    $rbSi = New-Object System.Windows.Forms.RadioButton
-    $rbSi.Location = New-Object System.Drawing.Point(30, 124)
-    $rbSi.Size = New-Object System.Drawing.Size(560, 22)
-    $rbSi.Text = 'S' + [char]0x00ED + ', i les escriur' + [char]0x00E9 + ' al Word (hi surt una llista buida)'
-    [void]$form.Controls.Add($rbSi)
-
-    if ($null -ne $pre -and [bool]$pre) { $rbSi.Checked = $true } else { $rbNo.Checked = $true }
-
-    $lblPrev = New-Object System.Windows.Forms.Label
-    $lblPrev.Location = New-Object System.Drawing.Point(30, 158)
-    $lblPrev.Size = New-Object System.Drawing.Size(560, 90)
-    $lblPrev.ForeColor = [System.Drawing.Color]::FromArgb(120, 128, 138)
-    $lblPrev.Font = New-Object System.Drawing.Font('Segoe UI', 8)
-    [void]$form.Controls.Add($lblPrev)
-
-    # LES FUNCIONS DE LA PANTALLA, TOTES DINS D'UN HASHTABLE (vegeu CLAUDE.md:
-    # .GetNewClosure() copia VALORS, i una closure que se'n cridi una altra es
-    # quedaria amb $null).
-    $fn = @{}
-    $fn.Previsualitza = {
-        $amb = [bool]$rbSi.Checked
-        $linies = New-Object System.Collections.ArrayList
-        foreach ($p in @(_MnsParagrafs $cat $fase $amb)) {
-            if ([string]$p.Tipus -eq 'llista') { [void]$linies.Add('   1. ...'); continue }
-            foreach ($l in @($p.Linies)) { [void]$linies.Add(((_SplitTextAndUrls ([string]$l)).Text)) }
-        }
-        # Nomes la frase que canvia: la resta ja la veura al document.
-        $clau = if ($amb) { 'amb la seg' } else { 'sense m' }
-        $frase = @($linies | Where-Object { ([string]$_) -like ('*' + $clau + '*') })
-        $lblPrev.Text = if ($frase.Count -gt 0) { [string]$frase[0] } else { '' }
-    }.GetNewClosure()
-    # UN CLIC EN UN RADIO DISPARA DOS ESDEVENIMENTS (el que es marca i el germa
-    # que es desmarca): un handler per radio i prou.
-    $rbSi.add_CheckedChanged({ & $fn.Previsualitza }.GetNewClosure())
-    $rbNo.add_CheckedChanged({ & $fn.Previsualitza }.GetNewClosure())
-    & $fn.Previsualitza
-
-    $res = @{ Nav = 'back'; AmbObservacions = $false }
-    $yBotons = 262
-    $btnOk = New-Object System.Windows.Forms.Button
-    $btnOk.Text = 'Generar'
-    $btnOk.Location = New-Object System.Drawing.Point(465, $yBotons)
-    $btnOk.Size = New-Object System.Drawing.Size(130, 32)
-    _StylePrimaryButton $btnOk
-    $btnOk.add_Click({
-        $res.AmbObservacions = [bool]$rbSi.Checked
-        $res.Nav = 'fwd'
-        $form.DialogResult = 'OK'; $form.Close()
-    }.GetNewClosure())
-    [void]$form.Controls.Add($btnOk)
-
-    $btnBack = New-Object System.Windows.Forms.Button
-    $btnBack.Text = [string][char]0x2190 + ' Enrere'
-    $btnBack.Location = New-Object System.Drawing.Point(20, $yBotons)
-    $btnBack.Size = New-Object System.Drawing.Size(115, 32)
-    _StyleSecondaryButton $btnBack
-    $btnBack.add_Click({ $form.Close() }.GetNewClosure())
-    [void]$form.Controls.Add($btnBack)
-
-    [void](_AddBrandHeader $form $nom ('Nom' + [char]0x00E9 + 's cal decidir si hi ha observacions') 56)
-    [void]$form.ShowDialog()
-    $form.Dispose()
-    return $res
-}
+# Abans hi havia Select-MnsObservacions, que nomes preguntava "hi ha
+# observacions?". Ara la pregunta es "quins punts de REQ1 hi adjuntes?", i
+# aquella pantalla ja existeix: es Select-Items, la mateixa del pas Projecte de
+# Llicencia i la de "Requeriment - Nou". No s'hi inventa res.

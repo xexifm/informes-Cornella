@@ -34,34 +34,13 @@
         {
           "tipus": "text",
           "titol": "",
-          "clau": "",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "i un cop avaluades seguint els CRITERIS DE SUBSTANCIALITAT DE LES MODIFICACIONS DE LES ACTIVITATS DE LA LLEI 20/2009, DEL 4 DE DESEMBRE, DE PREVENCIÓ I CONTROL AMBIENTAL D'ACTIVITATS (Aprovats el 18 d’octubre de 2016 i modificats el 26 d’abril de 2018, el 27 de maig de 2020 i el 19 de desembre de 2023) en base a l’article 59.2 de la "
-                },
-                {
-                  "t": "Llei 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats",
-                  "i": true
-                },
-                {
-                  "t": ":"
-                }
-              ]
-            }
-          ],
-          "fills": []
-        },
-        {
-          "tipus": "text",
-          "titol": "",
           "clau": "amb-observacions",
           "cos": [
             {
               "runs": [
                 {
-                  "t": "S’informa FAVORABLEMENT de la Modificació NO substancial presentada amb la següent observació:"
+                  "t": "S’informa FAVORABLEMENT de la Modificació NO substancial presentada amb les següents observacions:",
+                  "b": true
                 }
               ]
             }
@@ -76,36 +55,8 @@
             {
               "runs": [
                 {
-                  "t": "S’informa FAVORABLEMENT de la Modificació NO substancial presentada sense més observacions en relació a aquest tràmit."
-                }
-              ]
-            }
-          ],
-          "fills": []
-        },
-        {
-          "tipus": "item",
-          "titol": "",
-          "clau": "llista-observacions",
-          "cos": [],
-          "fills": []
-        },
-        {
-          "tipus": "text",
-          "titol": "",
-          "clau": "",
-          "cos": [
-            {
-              "runs": [
-                {
-                  "t": "D’acord amb l’article 59.1.d de la "
-                },
-                {
-                  "t": "Llei 20/2009",
-                  "i": true
-                },
-                {
-                  "t": " aquestes Modificacions NO Substancials han de figurar a les posteriors actes dels controls periòdics."
+                  "t": "S’informa FAVORABLEMENT de la Modificació NO substancial presentada sense més observacions en relació a aquest tràmit.",
+                  "b": true
                 }
               ]
             }
@@ -128,7 +79,8 @@
             {
               "runs": [
                 {
-                  "t": "En relació a la sol·licitud de canvi de nom presentada a l’Ajuntament de Cornellà de Llobregat s’informa FAVORABLEMENT del canvi de nom presentat amb la següent observació:"
+                  "t": "En relació a la sol·licitud de canvi de nom presentada a l’Ajuntament de Cornellà de Llobregat s’informa FAVORABLEMENT del canvi de nom presentat amb les següents observacions:",
+                  "b": true
                 }
               ]
             }
@@ -143,18 +95,12 @@
             {
               "runs": [
                 {
-                  "t": "En relació a la sol·licitud de canvi de nom presentada a l’Ajuntament de Cornellà de Llobregat s’informa FAVORABLEMENT del canvi de nom presentat sense més observacions en relació a aquest tràmit."
+                  "t": "En relació a la sol·licitud de canvi de nom presentada a l’Ajuntament de Cornellà de Llobregat s’informa FAVORABLEMENT del canvi de nom presentat sense més observacions en relació a aquest tràmit.",
+                  "b": true
                 }
               ]
             }
           ],
-          "fills": []
-        },
-        {
-          "tipus": "item",
-          "titol": "",
-          "clau": "llista-observacions",
-          "cos": [],
           "fills": []
         }
       ]

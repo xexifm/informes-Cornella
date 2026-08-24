@@ -1975,14 +1975,28 @@ function Invoke-LlicenciaWizard {
                             'Llicencia', 'OK', 'Error') | Out-Null
                         return
                     }
-                    $r = Select-MnsObservacions ([string]$st.Fase) $st.MnsCataleg $st.MnsObs
-                    if ($r.Nav -ne 'fwd') { $step = 2; break }
-                    $st.MnsObs = [bool]$r.AmbObservacions
+                    # QUINS PUNTS DE REQ1 S'HI ADJUNTEN. Amb la pantalla de
+                    # sempre (Select-Items) i el cataleg SENCER de REQ1: aqui no
+                    # hi ha cap seccio que sobri, perque no s'ha demanat res
+                    # abans. -permetreBuit: no marcar-ne cap vol dir "sense mes
+                    # observacions", que es un cas ben normal.
+                    if ($null -eq $st.Req1) {
+                        $st.Req1 = Get-ParsedCataleg -path (Join-Path $EstructuralsDir 'REQ1.json')
+                        $st.IdxReq1 = _LlicIndexReq1 $st.Req1
+                    }
+                    $r = Select-Items -sections @($st.Req1.Sections) -preloadSelectedKeys $st.ProjKeys `
+                            -fields $st.Fields -preloadValues $st.ProjVals -permetreBuit $true
+                    if ($r.Nav -eq 'back') { $step = 2; break }
+                    if ($r.Nav -eq 'stay') { break }
+                    $st.ProjSel = $r.Data
+                    $st.ProjKeys = Get-SelectedKeysFromResult $st.ProjSel
+                    $st.ProjVals = Get-FieldValuesForSession $st.Fields
                     if ($null -eq $word) { $word = New-WordApp }
                     $out = Build-MnsDocument $word @{
                         Fase = [string]$st.Fase
                         Header = $st.Header
-                        AmbObservacions = [bool]$st.MnsObs
+                        Fields = $st.Fields
+                        Punts = @($st.ProjSel)
                         Cataleg = $st.MnsCataleg
                     }
                     _LlicObreIAvisa $word $out
