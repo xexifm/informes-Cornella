@@ -4239,4 +4239,41 @@ Write-Host "`n--- Write-Linia (text + enllacos) ---"
     Assert ($emesos.Contains($U1)) 'Write-Linia: $emesos recull els enllacos escrits'
 }.Invoke() | Out-Null
 
+# ---------------------------------------------------------------------------
+# L'alineat i els espais surten de la CONFIGURACIO, no de literals
+# ---------------------------------------------------------------------------
+# Hi havia tres "Alignment = 3" escrits a Format-Note, Format-Label i
+# Format-Conclusion, que _Apply-Indent ja hi posava: amb ells, canviar
+# BodyAlignment no els tocava. L'unic literal que hi pot quedar es el centrat
+# del titol CONCLUSIONS, que es una decisio propia d'aquell paragraf.
+Write-Host "`n--- Format.ps1: cap alineat ni espai escrit a pel ---"
+$fmtSrc = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'Format.ps1') -Raw
+$literals = @()
+foreach ($ln in ($fmtSrc -split "`r?`n")) {
+    if ($ln.TrimStart().StartsWith('#')) { continue }
+    if ($ln -notmatch 'ParagraphFormat\.Alignment\s*=') { continue }
+    # 1 = centrat: nomes el titol de conclusions, i hi ha de ser.
+    if ($ln -match 'ParagraphFormat\.Alignment\s*=\s*1\b') { continue }
+    if ($ln -match 'ParagraphFormat\.Alignment\s*=\s*\d') { $literals += $ln.Trim() }
+}
+AssertEq $literals.Count 0 ('Format.ps1: cap alineat escrit a pel' + $(if ($literals.Count) { ' -> ' + ($literals -join ' | ') } else { '' }))
+AssertEq ([int]$Script:ReportFormatConfig.ConclusionHeaderSpaceAfterPt) 12 'L''espai sota CONCLUSIONS es configurable (i val 12 pt)'
+# ...i va A PART del de cada conclusio: son dues decisions diferents.
+Assert ($null -ne $Script:ReportFormatConfig.ConclusionSpaceAfterPt) 'L''espai entre conclusions segueix sent el seu'
+
+# Les anotacions de SEGUIMENT llegeixen els valors de Format.ps1 i les seves
+# conversions, no una copia. Abans en tenien dues (els valors per defecte i els
+# factors 1440/2,54 i 20) i es podien desfasar en silenci.
+Write-Host "`n--- Seguiment: el format de l'anotacio ve de Format.ps1 ---"
+$fmtAnot = _AnnotationFormatTwips
+AssertEq $fmtAnot.Indent      (_CmToTwips $Script:ReportFormatConfig.AnnotationIndentCm)      'Anotacio: la sangria surt de la configuracio'
+AssertEq $fmtAnot.SpaceBefore (_PtToTwips $Script:ReportFormatConfig.AnnotationSpaceBeforePt) 'Anotacio: l''espai de sobre tambe'
+AssertEq $fmtAnot.SpaceAfter  (_PtToTwips $Script:ReportFormatConfig.AnnotationSpaceAfterPt)  'Anotacio: i el de sota'
+# ...i canviar-la a Format.ps1 hi arriba.
+$indAbans = $Script:ReportFormatConfig.AnnotationIndentCm
+try {
+    $Script:ReportFormatConfig.AnnotationIndentCm = 2.0
+    AssertEq (_AnnotationFormatTwips).Indent (_CmToTwips 2.0) 'Anotacio: canviar-ho a Format.ps1 hi arriba'
+} finally { $Script:ReportFormatConfig.AnnotationIndentCm = $indAbans }
+
 exit (Write-TestSummary 'RESULTAT')

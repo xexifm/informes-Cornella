@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 <#
 .SYNOPSIS
   Mode "Informe de seguiment": pren un informe anterior amb requeriments
@@ -625,19 +625,21 @@ function _MakeBodyRunXml($xml, $text, [bool]$bold) {
 }
 
 # Valors de FORMAT de les anotacions. Viuen a Format.ps1 ($ReportFormatConfig),
-# que es qui mana en el format del document; aqui nomes es llegeixen. Si per
-# algun motiu Format.ps1 no s'ha carregat (proves aillades), s'usen els mateixos
-# valors per defecte, aixi que el resultat no canvia mai.
+# que es qui mana en el format del document; aqui nomes es LLEGEIXEN i es passen
+# a twips (la unitat del XML).
+#
+# Ni els valors ni les conversions es repeteixen aqui. Abans hi havia les dues
+# coses -uns valors per defecte (1,25 / 10 / 12) copiats de $ReportFormatConfig
+# "per si Format.ps1 no s'ha carregat", i els factors 1440/2,54 i 20 escrits
+# altre cop- i totes dues copies es podien desfasar sense que ho digues ningu:
+# canviar l'espai de l'anotacio a Format.ps1 podia no arribar aqui.
+# Format.ps1 SEMPRE hi es: Motor.ps1 el carrega dos moduls abans que aquest.
 function _AnnotationFormatTwips {
     $cfg = $Script:ReportFormatConfig
-    $ind    = if ($null -ne $cfg -and $null -ne $cfg.AnnotationIndentCm)      { [double]$cfg.AnnotationIndentCm }      else { 1.25 }
-    $before = if ($null -ne $cfg -and $null -ne $cfg.AnnotationSpaceBeforePt) { [double]$cfg.AnnotationSpaceBeforePt } else { 10 }
-    $after  = if ($null -ne $cfg -and $null -ne $cfg.AnnotationSpaceAfterPt)  { [double]$cfg.AnnotationSpaceAfterPt }  else { 12 }
     return [pscustomobject]@{
-        # 1 polzada = 1440 twips = 2,54 cm = 72 pt.
-        Indent      = [int][Math]::Round($ind * 1440 / 2.54)
-        SpaceBefore = [int][Math]::Round($before * 20)
-        SpaceAfter  = [int][Math]::Round($after * 20)
+        Indent      = (_CmToTwips ([double]$cfg.AnnotationIndentCm))
+        SpaceBefore = (_PtToTwips ([double]$cfg.AnnotationSpaceBeforePt))
+        SpaceAfter  = (_PtToTwips ([double]$cfg.AnnotationSpaceAfterPt))
     }
 }
 

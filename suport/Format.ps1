@@ -107,6 +107,10 @@ $Script:ReportFormatConfig = @{
     # (que el Word pot col·lapsar visualment), apliquem "Space After"
     # propi a cada conclusio. Mes robust i sempre visible.
     ConclusionSpaceAfterPt        = 12      # punts despres de cada conclusio (0 = enganxades)
+    # Espai sota el titol CONCLUSIONS. Va A PART del d'una conclusio: son dues
+    # coses diferents (separar el titol del bloc / separar dues conclusions) i
+    # ajuntar-les voldria dir no poder tocar l'una sense l'altra.
+    ConclusionHeaderSpaceAfterPt  = 12
 }
 
 function _CmToPoints { param([double]$cm) return ($cm * 28.346456692913385) }
@@ -289,8 +293,11 @@ function Format-Bullet {
     $sel.ParagraphFormat.LeftIndent = (_CmToPoints $left)
     $sel.ParagraphFormat.FirstLineIndent = (- (_CmToPoints $hang))
     # Text justificat (com l'estil 'List Paragraph' de la casa, jc=both). Es
-    # posa explicit per no heretar un 'center' d'una capcalera anterior.
-    try { $sel.ParagraphFormat.Alignment = 3 } catch { }   # 3 = wdAlignParagraphJustify
+    # posa explicit per no heretar un 'center' d'una capcalera anterior. Aquest
+    # Format-* NO passa per _Apply-Indent (te sangria francesa i espaiat propis),
+    # o sigui que l'alineat se l'ha de posar ell -pero de la configuracio, no
+    # d'un literal.
+    try { $sel.ParagraphFormat.Alignment = $Script:ReportFormatConfig.BodyAlignment } catch { }
     # Separacio entre punts amb SpaceBefore (no linies en blanc): aixi la
     # llista surt compacta i amb el mateix aire que el document de referencia.
     # El primer punt de la llista se separa mes (ItemSpaceAfterPt) de l'item.
@@ -309,7 +316,6 @@ function Format-Note {
     [void]$sel.TypeParagraph()
     _Reset-Char $sel
     _Apply-Indent $sel $Script:ReportFormatConfig.NoteIndentCm
-    try { $sel.ParagraphFormat.Alignment = 3 } catch { }   # 3 = wdAlignParagraphJustify
     try { $sel.ParagraphFormat.SpaceBefore = [double]$Script:ReportFormatConfig.BulletSpaceBeforePt } catch { }
     if ($text) { Type-RichText $sel $text }
 }
@@ -322,7 +328,6 @@ function Format-Label {
     [void]$sel.TypeParagraph()
     _Reset-Char $sel
     _Apply-Indent $sel 0
-    try { $sel.ParagraphFormat.Alignment = 3 } catch { }   # 3 = wdAlignParagraphJustify
     try { $sel.ParagraphFormat.SpaceAfter = [double]$Script:ReportFormatConfig.LabelSpaceAfterPt } catch { }
     if ($text) { Type-RichText $sel $text }
 }
@@ -435,10 +440,10 @@ function Format-Conclusion {
     param($sel, [string]$text)
     [void]$sel.TypeParagraph()
     _Reset-Char $sel
+    # _Apply-Indent ja hi posa BodyAlignment, i aixo es el que treu el "center"
+    # que deixa Format-ConclusionHeader (CONCLUSIONS centrat). Abans hi havia un
+    # 3 escrit aqui: amb ell, canviar BodyAlignment no tocava les conclusions.
     _Apply-Indent $sel $Script:ReportFormatConfig.ConclusionIndentCm
-    # Alignment explicit per no heretar el "center" que deixa el
-    # Format-ConclusionHeader (CONCLUSIONS centrat). Volem justified.
-    try { $sel.ParagraphFormat.Alignment = 3 } catch { }   # 3 = wdAlignParagraphJustify
     # "Space After" propi del paragraf (en punts). Es robust a la
     # compactacio visual del Word que feia que els paragrafs buits no
     # es veiessin entre conclusions.
@@ -457,7 +462,7 @@ function Format-ConclusionHeader {
     _Reset-Char $sel
     _Apply-Indent $sel 0
     try { $sel.ParagraphFormat.Alignment = 1 } catch { }   # 1 = wdAlignParagraphCenter
-    try { $sel.ParagraphFormat.SpaceAfter = 12 } catch { }
+    try { $sel.ParagraphFormat.SpaceAfter = [double]$Script:ReportFormatConfig.ConclusionHeaderSpaceAfterPt } catch { }
     $sel.Font.Bold = 1
     if ($text) { $sel.TypeText($text) }
     $sel.Font.Bold = 0
