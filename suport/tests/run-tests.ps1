@@ -3780,6 +3780,34 @@ AssertEq ([string]$objAD.Arguments) '"C:\clone\informes\suport\GenerarInforme.vb
 Assert ([string]$objAD.Arguments).StartsWith('"') 'acces directe: l''argument va entre cometes (la ruta pot portar espais)'
 AssertEq ([string]$objAD.Carpeta) 'C:\clone\informes' 'acces directe: la carpeta de treball es el clone'
 AssertEq ([string]$objAD.Icona) 'C:\clone\informes\suport\cornella.ico' 'acces directe: porta l''escut'
+# L'IDENTIFICADOR D'APLICACIO. Es el que lliga la icona ANCORADA amb la finestra
+# del programa: sense ell, la drecera ancorada surt sense icona i en obrir-la
+# apareix un SEGON boto a la barra de tasques (va passar de debo).
+Assert (-not [string]::IsNullOrWhiteSpace([string]$Script:AppUserModelId)) 'acces directe: hi ha un AppUserModelID'
+# ...i esta escrit en UN SOL LLOC de tot suport/ (el proces i la drecera n'han
+# de fer servir EXACTAMENT el mateix).
+$dirSup = Split-Path -Parent $PSScriptRoot
+$nLit = 0
+foreach ($fAD in (Get-ChildItem -LiteralPath $dirSup -Filter '*.ps1')) {
+    $cAD = Get-Content -LiteralPath $fAD.FullName -Raw
+    $nLit += @([regex]::Matches($cAD, [regex]::Escape("'" + [string]$Script:AppUserModelId + "'"))).Count
+}
+AssertEq $nLit 1 'acces directe: l''AppUserModelID nomes esta escrit una vegada'
+# El proces se'l posa (UiComuns.ps1) i la drecera tambe (AccesDirecte.ps1).
+$srcUi = Get-Content -LiteralPath (Join-Path $dirSup 'UiComuns.ps1') -Raw
+Assert ($srcUi.Contains('SetCurrentProcessExplicitAppUserModelID')) 'acces directe: el proces es posa l''identificador'
+Assert ($srcUi.Contains('$Script:AppUserModelId')) 'acces directe: ...i el llegeix del lloc unic'
+$srcAD = Get-Content -LiteralPath (Join-Path $dirSup 'AccesDirecte.ps1') -Raw
+Assert ($srcAD.Contains('9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3')) 'acces directe: PKEY_AppUserModel_ID'
+Assert ($srcAD.Contains('Set-AccesDirecteAppId $ruta')) 'acces directe: es posa a CADA drecera creada'
+# El C# de les interficies COM ha de COMPILAR (aqui tambe: nomes es compila,
+# no es crida res del shell).
+Assert ([bool](_AccesDirecteCarregaTipus)) 'acces directe: el C# de les interficies COM compila'
+if ('CornellaApp.PropertyKey' -as [type]) {
+    AssertEq ([System.Runtime.InteropServices.Marshal]::SizeOf([type]'CornellaApp.PropertyKey')) 20 'acces directe: PROPERTYKEY = GUID + int'
+}
+# Sense fitxer no peta i no s'inventa res.
+AssertEq (Set-AccesDirecteAppId (Join-Path ([System.IO.Path]::GetTempPath()) 'no-hi-es-mai.lnk')) $false 'acces directe: si el .lnk no hi es, retorna fals'
 # Una barra final al clone no ha de duplicar-se.
 AssertEq ([string](Get-AccesDirecteObjectiu 'C:\clone\informes\' 'C:\Windows').Icona) 'C:\clone\informes\suport\cornella.ico' 'acces directe: la barra final del clone no es duplica'
 # ...i sense SystemRoot es cau a C:\Windows (mai una ruta buida).

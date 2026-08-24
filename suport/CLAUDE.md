@@ -1631,6 +1631,29 @@ l'**escriptori** i al **menú Inici** (des d'allà se cerca i s'ancora).
   taskbar* ja no és invocable per codi. Els trucs que corren escriuen al
   registre (`Taskband`) i reinicien l'explorer: són fràgils i poden carregar-se
   la barra de tasques de l'usuari. Es deixa el `.lnk` fet i un clic dret.
+- **LA DRECERA HA DE PORTAR L'`AppUserModelID`, i el mateix que el procés.** Sense
+  això, per a Windows la icona ancorada i la finestra del programa són **dues
+  aplicacions diferents**: l'ancorada surt **sense icona** i en obrir-la apareix
+  un **segon botó** a la barra de tasques en lloc d'il·luminar-se el que ja hi
+  havia. Va passar exactament així.
+  - El procés ja se'l posava (`SetCurrentProcessExplicitAppUserModelID`, a
+    `UiComuns.ps1`); el que faltava era **posar-l'hi a la drecera**.
+  - `WScript.Shell` **no sap** escriure aquesta propietat: cal
+    `IShellLink` → `IPersistFile.Load` → QI `IPropertyStore` →
+    `SetValue(PKEY_AppUserModel_ID, …)` → `Commit` → `Save`. Les interfícies es
+    declaren amb `Add-Type` i es compilen en viu (mateix patró que
+    `_PickFolderModern`), en **C# 5** (PowerShell 5.1 no en compila de més nou).
+  - `PROPVARIANT` per a una cadena: `vt = 31` (VT_LPWSTR) i el punter **al byte
+    8** (2 del tipus + 6 de reservats), tant a 32 com a 64 bits; s'allibera amb
+    `PropVariantClear`. Comprovat amb `Marshal.SizeOf`: `PROPERTYKEY` = 20.
+  - **L'identificador està escrit en UN SOL LLOC** (`AccesDirecte.ps1`) i
+    `UiComuns.ps1` el llegeix d'allà — per això `UiComuns.ps1` carrega
+    `AccesDirecte.ps1` si no hi és. Hi ha prova que compta el literal a tot
+    `suport/` i falla si n'apareix un segon (validada injectant-lo).
+  - **`IconLocation` amb l'índex** (`…\cornella.ico,0`): sense ell hi ha Windows
+    que es queden amb la icona genèrica.
+  - **Si ja estava ancorat, s'ha de desancorar i tornar a ancorar**: Windows es
+    queda la còpia del dia que es va ancorar. Ho diu el `.bat` i el `LLEGEIX-ME`.
 - `Crear-acces-directe.bat` (arrel) i el pas 4 d'`Instalar.bat` el criden.
 - **Un `.bat` amb una ordre de PowerShell llarga és un niu d'errors**, i per això
   la feina és al `.ps1` (`Invoke-CrearAccesDirecte`). Concretament: **dins de

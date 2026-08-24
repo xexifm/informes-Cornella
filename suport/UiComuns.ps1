@@ -31,6 +31,14 @@
 # miniatura de la barra de tasques de Windows. Nomes en mode interactiu (en
 # headless no hi ha System.Drawing carregat). Es carrega un sol cop.
 $Script:AppIcon = $null
+# L'AppUserModelID viu a AccesDirecte.ps1 i NOMES alli: es el mateix que es posa
+# a la drecera de la barra de tasques, i si els dos no coincideixen Windows els
+# tracta com dues aplicacions diferents. AccesDirecte.ps1 no depen de res, o
+# sigui que carregar-lo aqui es segur (i Motor.ps1 el torna a carregar despres,
+# que es idempotent).
+if (-not (Get-Command Get-AccesDirecteObjectiu -ErrorAction SilentlyContinue)) {
+    try { . (Join-Path $ScriptRoot 'AccesDirecte.ps1') } catch { }
+}
 if (-not $Script:HeadlessTest) {
     # AppUserModelID propi: sense aixo, la barra de tasques agrupa la finestra
     # sota el proces amfitrio (PowerShell) i mostra la SEVA icona blava. Amb un
@@ -42,7 +50,7 @@ if (-not $Script:HeadlessTest) {
 [System.Runtime.InteropServices.DllImport("shell32.dll", SetLastError=true)]
 public static extern void SetCurrentProcessExplicitAppUserModelID([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPWStr)] string AppID);
 '@ -ErrorAction Stop
-        [CornellaApp.Shell]::SetCurrentProcessExplicitAppUserModelID('Cornella.Informes.Generador')
+        [CornellaApp.Shell]::SetCurrentProcessExplicitAppUserModelID([string]$Script:AppUserModelId)
     } catch { }
     try {
         $iconPath = Join-Path $ScriptRoot 'cornella.ico'

@@ -28,6 +28,10 @@ echo    clic dret damunt de l'acces directe (escriptori o menu Inici)
 echo    i tria "Ancorar a la barra de tasques".
 echo.
 echo  Al Windows 11 pot ser que primer hagis de triar "Mostra mes opcions".
+echo.
+echo  SI JA EL TENIES ANCORAT: treu-lo de la barra i torna-hi a posar. Windows
+echo  es queda la copia del dia que el vas ancorar, o sigui que fins que no el
+echo  tornis a ancorar seguira sense icona i obrira un segon boto.
 echo ---------------------------------------------------------------------------
 echo.
 pause

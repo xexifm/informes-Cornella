@@ -72,6 +72,10 @@ Inici**, amb l'escut de l'Ajuntament.
 Després, **clic dret** damunt de l'accés directe → **«Ancorar a la barra de
 tasques»**. Al Windows 11 potser primer has de triar «Mostra més opcions».
 
+**Si ja el tenies ancorat**, treu-lo de la barra i torna-hi a posar: Windows es
+queda la còpia del dia que el vas ancorar, i fins que no el tornis a ancorar
+seguirà sense icona i obrirà un segon botó.
+
 > No s'ancora sol perquè des del Windows 10 aquesta ordre ja no es pot fer per
 > codi: el que es troba per internet són trucs que toquen el registre i
 > reinicien l'explorador, i es poden carregar la barra de tasques.

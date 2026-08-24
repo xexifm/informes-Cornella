@@ -39,6 +39,15 @@
 # es un nom de fitxer i ha de sobreviure a qualsevol codepage.
 $Script:AccesDirecteNom = "Generador d'informes Cornella.lnk"
 
+# L'IDENTIFICADOR D'APLICACIO (AppUserModelID), i nomes es escrit AQUI.
+#
+# Es el que lliga la icona ancorada amb la finestra del programa. Windows agrupa
+# la barra de tasques per aquest identificador: si la drecera no en te, l'ancora
+# i la finestra son DUES coses diferents -surt un segon boto quan obres el
+# programa, i l'ancorada es queda sense icona-. Va a la drecera
+# (Set-AccesDirecteAppId) i al proces (UiComuns.ps1), i han de ser EL MATEIX.
+$Script:AppUserModelId = 'Cornella.Informes.Generador'
+
 # ON APUNTA l'acces directe, a partir de l'arrel del clone. Funcio PURA: no toca
 # el disc, o sigui que es pot provar a qualsevol plataforma.
 function Get-AccesDirecteObjectiu([string]$repoRoot, [string]$systemRoot = '') {
@@ -62,6 +71,131 @@ function Get-AccesDirecteDestins([string]$escriptori, [string]$menuInici) {
         [void]$out.Add(($d.TrimEnd('\') + '\' + $Script:AccesDirecteNom))
     }
     return $out.ToArray()
+}
+
+# ----------------------------------------------------------------------------
+# L'AppUserModelID DE LA DRECERA
+# ----------------------------------------------------------------------------
+# El WScript.Shell sap fer una drecera pero NO sap posar-li aquesta propietat:
+# cal anar a l'IShellLink i demanar-li l'IPropertyStore. Es el mateix patro que
+# _PickFolderModern (UiComuns.ps1): les interficies COM es declaren amb Add-Type
+# i es compilen EN VIU el primer cop.
+#
+# PER QUE CAL. Sense aixo, la icona ancorada i la finestra del programa son dues
+# aplicacions diferents per a Windows:
+#   - l'ancorada surt SENSE ICONA (el desti es wscript.exe, i Windows no sap
+#     que aquella drecera es "una aplicacio");
+#   - i en obrir-la surt un SEGON boto a la barra de tasques, en lloc
+#     d'il-luminar-se el que ja hi havia.
+# Amb el mateix identificador a la drecera i al proces, Windows els ajunta.
+#
+# ATENCIO: el C# ha de ser de PowerShell 5.1 (C# 5): res de 'nameof', ni
+# membres amb cos d'expressio, ni 'out var'.
+$Script:AccesDirecteTipusCarregats = $false
+function _AccesDirecteCarregaTipus {
+    if ($Script:AccesDirecteTipusCarregats) { return $true }
+    if ('CornellaApp.Lnk' -as [type]) { $Script:AccesDirecteTipusCarregats = $true; return $true }
+    $codi = @'
+using System;
+using System.Runtime.InteropServices;
+
+namespace CornellaApp {
+
+    [StructLayout(LayoutKind.Sequential, Pack = 4)]
+    public struct PropertyKey {
+        public Guid fmtid;
+        public int pid;
+    }
+
+    // El PROPVARIANT nomes s'omple aqui per a una cadena (VT_LPWSTR = 31). Les
+    // dades comencen al byte 8: 2 del tipus i 6 de reservats, tant a 32 com a
+    // 64 bits.
+    [StructLayout(LayoutKind.Explicit)]
+    public struct PropVariant {
+        [FieldOffset(0)] public ushort vt;
+        [FieldOffset(8)] public IntPtr p;
+    }
+
+    [ComImport, Guid("00021401-0000-0000-C000-000000000046")]
+    public class ShellLink { }
+
+    [ComImport, Guid("0000010b-0000-0000-C000-000000000046"),
+     InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    public interface IPersistFile {
+        void GetClassID(out Guid pClassID);
+        [PreserveSig] int IsDirty();
+        void Load([MarshalAs(UnmanagedType.LPWStr)] string pszFileName, uint dwMode);
+        void Save([MarshalAs(UnmanagedType.LPWStr)] string pszFileName,
+                  [MarshalAs(UnmanagedType.Bool)] bool fRemember);
+        void SaveCompleted([MarshalAs(UnmanagedType.LPWStr)] string pszFileName);
+        void GetCurFile([MarshalAs(UnmanagedType.LPWStr)] out string ppszFileName);
+    }
+
+    [ComImport, Guid("886d8eeb-8cf2-4446-8d02-cdba1dbdcf99"),
+     InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    public interface IPropertyStore {
+        void GetCount(out uint cProps);
+        void GetAt(uint iProp, out PropertyKey pkey);
+        void GetValue(ref PropertyKey key, out PropVariant pv);
+        void SetValue(ref PropertyKey key, ref PropVariant pv);
+        void Commit();
+    }
+
+    public static class Lnk {
+        // PKEY_AppUserModel_ID
+        static readonly Guid FMTID = new Guid("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3");
+        const int PID = 5;
+        const ushort VT_LPWSTR = 31;
+
+        [DllImport("ole32.dll")]
+        static extern int PropVariantClear(ref PropVariant pvar);
+
+        public static void SetAppId(string lnkPath, string appId) {
+            object o = new ShellLink();
+            try {
+                IPersistFile pf = (IPersistFile)o;
+                pf.Load(lnkPath, 2);            // 2 = STGM_READWRITE
+                IPropertyStore ps = (IPropertyStore)o;
+                PropertyKey key = new PropertyKey();
+                key.fmtid = FMTID;
+                key.pid = PID;
+                PropVariant pv = new PropVariant();
+                pv.vt = VT_LPWSTR;
+                pv.p = Marshal.StringToCoTaskMemUni(appId);
+                try {
+                    ps.SetValue(ref key, ref pv);
+                    ps.Commit();
+                } finally {
+                    PropVariantClear(ref pv);
+                }
+                pf.Save(lnkPath, true);
+            } finally {
+                Marshal.ReleaseComObject(o);
+            }
+        }
+    }
+}
+'@
+    try {
+        Add-Type -TypeDefinition $codi -ErrorAction Stop
+        $Script:AccesDirecteTipusCarregats = $true
+        return $true
+    } catch {
+        return $false
+    }
+}
+
+# Posa l'AppUserModelID a una drecera ja creada. Retorna $true si ho ha fet.
+function Set-AccesDirecteAppId([string]$lnkPath, [string]$appId = '') {
+    if ([string]::IsNullOrWhiteSpace($appId)) { $appId = [string]$Script:AppUserModelId }
+    if (-not (Test-Path -LiteralPath $lnkPath)) { return $false }
+    if (-not (_AccesDirecteCarregaTipus)) { return $false }
+    try {
+        [CornellaApp.Lnk]::SetAppId((Resolve-Path -LiteralPath $lnkPath).Path, $appId)
+        return $true
+    } catch {
+        return $false
+    }
 }
 
 # Crea (o refresca) l'acces directe. Retorna @{ Ok; Fets; Errors }.
@@ -90,8 +224,15 @@ function New-AccesDirecteInformes([string]$repoRoot = '') {
             $lnk.Arguments = [string]$obj.Arguments
             $lnk.WorkingDirectory = [string]$obj.Carpeta
             $lnk.Description = "Generador d'informes - Ajuntament de Cornella de Llobregat"
-            if (Test-Path -LiteralPath ([string]$obj.Icona)) { $lnk.IconLocation = [string]$obj.Icona }
+            # AMB L'INDEX (",0"): es la forma que espera el shell per a un fitxer
+            # d'icones, i sense ell hi ha Windows que es queden amb la generica.
+            if (Test-Path -LiteralPath ([string]$obj.Icona)) { $lnk.IconLocation = ([string]$obj.Icona + ',0') }
             $lnk.Save()
+            # ...i l'identificador d'aplicacio, que es el que fa que l'ancorada i
+            # la finestra del programa siguin LA MATEIXA cosa per a Windows.
+            if (-not (Set-AccesDirecteAppId $ruta ([string]$Script:AppUserModelId))) {
+                [void]$errs.Add(($ruta + ": la drecera s'ha creat, pero no s'hi ha pogut posar l'identificador d'aplicacio (sortira sense icona a la barra de tasques)."))
+            }
             [void]$fets.Add($ruta)
         } catch {
             [void]$errs.Add(($ruta + ': ' + $_.Exception.Message))
@@ -117,5 +258,13 @@ function Invoke-CrearAccesDirecte([string]$repoRoot = '') {
         Write-Host "No s'ha pogut crear l'acces directe." -ForegroundColor Red
     }
     foreach ($e in @($r.Errors)) { Write-Host ('   ' + $e) -ForegroundColor Yellow }
+    if ([bool]$r.Ok) {
+        # Windows es queda la drecera ANCORADA tal com era el dia que es va
+        # ancorar: si ja hi era, s'ha de treure i tornar-hi a posar perque
+        # agafi la icona i l'identificador nous.
+        Write-Host ''
+        Write-Host 'Si ja el tenies ancorat a la barra de tasques, treu-lo i torna-hi:' -ForegroundColor Cyan
+        Write-Host '   Windows es queda la copia del dia que el vas ancorar.'
+    }
     return $r
 }
