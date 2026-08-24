@@ -2584,13 +2584,13 @@ if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path 
     $modelF.Despres = @(@(_LlicPuntsAmbEstatFase (@($bDG)[0]) 'favorable-pre') | ForEach-Object { $_ | Add-Member NoteProperty Estat 'no' -PassThru -Force })
     $global:emitCalls.Clear()
     [void](Build-LlicenciaDocument $wordG $modelF)
-    Assert ([bool](@($global:emitCalls) | Where-Object { $_ -like 'BODY/N|No es disposa de la documentaci*' })) 'favorable-pre: "No es disposa de la documentacio." i en negreta'
+    Assert ([bool](@($global:emitCalls) | Where-Object { $_ -like 'BODY/N/SEP|No es disposa de la documentaci*' })) 'favorable-pre: "No es disposa de la documentacio.", en negreta i separada'
     $modelF.Fase = 'favorable-post'
     $modelF.Despres = @(@(_LlicPuntsAmbEstatFase (@($bDG)[0]) 'favorable-post') | ForEach-Object { $_ | Add-Member NoteProperty Estat 'si' -PassThru -Force })
     $global:emitCalls.Clear()
     [void](Build-LlicenciaDocument $wordG $modelF)
     $emPost = @($global:emitCalls)
-    Assert ([bool]($emPost | Where-Object { $_ -like 'BODY|Es disposa del document*' })) 'favorable-post: "Es disposa del document" i SENSE negreta'
+    Assert ([bool]($emPost | Where-Object { $_ -like 'BODY/SEP|Es disposa del document*' })) 'favorable-post: "Es disposa del document", separada i SENSE negreta'
     Assert (-not ($emPost | Where-Object { $_ -match '\[CAMP:' })) 'favorable-post: cap marcador de camp literal'
     Assert (-not ($emPost | Where-Object { $_ -like '*haver comprovat la seg*ent documentaci*' })) 'favorable-post: ja no es un informe a part'
 
@@ -3883,5 +3883,72 @@ if ($iBtnC -ge 0) {
     # No tanca el menu: obrir una carpeta no es triar cap opcio.
     Assert (-not ($trosC.Substring(0, $trosC.IndexOf('$btnConfig')).Contains('$form.Close()'))) 'menu: obrir la carpeta NO tanca el menu'
 }
+
+# ---------------------------------------------------------------------------
+# EL FORMAT DEL REQUERIMENT DE LLICENCIA (mesurat sobre el .docx fet a ma)
+# ---------------------------------------------------------------------------
+# F2: cap titol de seccio de Llicencia no acaba amb punt.
+Assert (-not ((_LlicTitolAbans).TrimEnd().EndsWith('.')))   'F2: el titol del bloc ABANS no acaba amb punt'
+Assert (-not ((_LlicTitolDespres).TrimEnd().EndsWith('.'))) 'F2: ...ni el del bloc DESPRES'
+Assert ((_LlicTitolAbans).Contains('AMBIENTAL'))            'F2: ...pero el titol hi es sencer'
+
+# F4: cap linia "No es disposa / Es disposa" no es queda sense punt final. Aixo
+# vigila tambe el que s'hi escrigui de nou des de l'editor de catalegs.
+$llicF4 = Read-LlicCataleg (Join-Path $Global:EstructuralsDir 'LLIC.json')
+if ($null -ne $llicF4) {
+    $senseFi = New-Object System.Collections.ArrayList
+    foreach ($secF4 in @($llicF4.nodes)) {
+        foreach ($itF4 in @($secF4.fills)) {
+            foreach ($chF4 in @($itF4.fills)) {
+                if ([string]$chF4.tipus -notin @('nodisposa', 'sidisposa')) { continue }
+                foreach ($lF4 in @(_LlicCos $chF4)) {
+                    $tF4 = ([string]$lF4).Trim()
+                    if ([string]::IsNullOrWhiteSpace($tF4)) { continue }
+                    if ($tF4.StartsWith('[[URL]]') -or $tF4.StartsWith('http')) { continue }
+                    if ($tF4.EndsWith('.') -or $tF4.EndsWith(':') -or $tF4.EndsWith(')')) { continue }
+                    [void]$senseFi.Add([string]$itF4.titol + ' / ' + [string]$chF4.tipus)
+                }
+            }
+        }
+    }
+    AssertEq ($senseFi -join ' | ') '' 'F4: cap linia d''estat de LLIC.json es queda sense punt final'
+}
+Assert ((@((_LlicTextosPerDefecte).NoDisposa) -join ' ').Trim().EndsWith('.')) 'F4: ...ni la de per defecte'
+
+# F1 i F3, sobre el punt sencer.
+. (Join-Path $PSScriptRoot 'FormatDoubles.ps1')
+$puntF = [pscustomobject]@{
+    Clau = 'S::A'; Subseccio = ''; Titol = 'Un punt'; Condicio = ''
+    Cos = @('El cos del punt.')
+    NoDisposa = @('No es disposa del document.')
+    SiDisposa = @()
+    Quan = @()
+    # Un sub-punt que NOMES porta un enllac: no en surt cap pic.
+    Subs = @(, @('[[URL]] https://exemple.cat/nomes-enllac'))
+}
+$global:emitCalls.Clear()
+_LlicEscriuPunt $null $puntF 1 ([ordered]@{}) 'no' $false
+$emF = @($global:emitCalls)
+# F1: la linia d'estat va SEPARADA (i en negreta, que ja hi era).
+Assert ([bool]($emF | Where-Object { $_ -like 'BODY/N/SEP|No es disposa*' })) 'F1: la linia d''estat va separada del cos del punt'
+# ...i nomes la PRIMERA linia del comentari.
+$puntF2 = $puntF | Select-Object *
+$puntF2.NoDisposa = @('Primera linia.', 'Segona linia.')
+$global:emitCalls.Clear()
+_LlicEscriuPunt $null $puntF2 1 ([ordered]@{}) 'no' $false
+$sepF = @(@($global:emitCalls) | Where-Object { $_ -like '*/SEP|*' })
+AssertEq $sepF.Count 1 'F1: nomes la primera linia del comentari va separada'
+# F3: l'enllac d'un sub-punt SENSE text no va sagnat.
+Assert (-not ($emF | Where-Object { $_ -like 'BULLET*' })) 'F3: un sub-punt sense text no emet cap pic'
+Assert ([bool]($emF | Where-Object { $_ -eq 'URL|https://exemple.cat/nomes-enllac' })) 'F3: ...i el seu enllac NO va sagnat'
+Assert (-not ($emF | Where-Object { $_ -like 'URL/CH|*' })) 'F3: ...cap enllac de fill'
+# ...pero si el sub-punt TE text, el pic hi es i l'enllac si que va sagnat.
+$puntF3 = $puntF | Select-Object *
+$puntF3.Subs = @(, @('Text del sub-punt', '[[URL]] https://exemple.cat/amb-pic'))
+$global:emitCalls.Clear()
+_LlicEscriuPunt $null $puntF3 1 ([ordered]@{}) 'no' $false
+$emF3 = @($global:emitCalls)
+Assert ([bool]($emF3 | Where-Object { $_ -like 'BULLET/CH/1r|Text del sub-punt' })) 'F3: amb text, el sub-punt emet el seu pic'
+Assert ([bool]($emF3 | Where-Object { $_ -eq 'URL/CH|https://exemple.cat/amb-pic' })) 'F3: ...i llavors l''enllac SI que va sagnat'
 
 exit (Write-TestSummary 'RESULTAT')

@@ -236,13 +236,25 @@ function Format-Item {
 # teclejar: aixo ultim toca el format del PUNT D'INSERCIO, i el Word no sempre
 # l'aplica (es la mateixa trampa que feia sortir en negreta tot un item a
 # Format-Item).
+# -Separat: hi posa al davant l'espai que separa un ITEM del que hi penja
+# (ItemSpaceAfterPt, els mateixos 12 pt que Format-Bullet -First). El fa servir
+# la linia "No es disposa... / Es disposa..." de cada punt de Llicencia, que a
+# l'informe fet a ma va separada del cos del punt.
+#
+# VA A SpaceBefore D'AQUESTA LINIA i no a SpaceAfter de l'anterior, pel mateix
+# motiu que ja hi ha escrit a Format-Bullet -First: entre l'item i el comentari
+# hi pot haver linies de cos, sub-punts o un enllac, i llavors l'espai separaria
+# l'item del seu propi cos.
 function Format-Body {
-    param($sel, [string]$text, [switch]$IsChild, [switch]$Bold)
+    param($sel, [string]$text, [switch]$IsChild, [switch]$Bold, [switch]$Separat)
     [void]$sel.TypeParagraph()
     _Reset-Char $sel
     $indent = if ($IsChild) { $Script:ReportFormatConfig.ChildIndentCm }
               else          { $Script:ReportFormatConfig.ItemIndentCm }
     _Apply-Indent $sel $indent
+    if ($Separat) {
+        try { $sel.ParagraphFormat.SpaceBefore = [double]$Script:ReportFormatConfig.ItemSpaceAfterPt } catch { }
+    }
     $ini = $sel.Range.Start
     if ($text) { Type-RichText $sel $text }
     $fi = $sel.Range.End

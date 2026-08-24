@@ -90,14 +90,18 @@ function _LlicEsTitolAcceptacio([string]$text) {
 }
 
 # Titols dels dos grans blocs de l'informe.
+#
+# SENSE PUNT FINAL: a l'informe fet a ma cap titol de seccio no en porta (ho
+# vaig comprovar al requeriment i al favorable pre del GIA 1457). Son els dos
+# unics titols de seccio escrits al codi; els de REQ1 venen del cataleg.
 function _LlicTitolAbans {
     return ('DOCUMENTACI' + [char]0x00D3 + ' NECESS' + [char]0x00C0 + 'RIA ABANS DE LA RESOLUCI' + [char]0x00D3 +
-            ' DE L' + [char]0x2019 + [char]0x00D2 + 'RGAN T' + [char]0x00C8 + 'CNIC AMBIENTAL.')
+            ' DE L' + [char]0x2019 + [char]0x00D2 + 'RGAN T' + [char]0x00C8 + 'CNIC AMBIENTAL')
 }
 function _LlicTitolDespres {
     return ('DOCUMENTACI' + [char]0x00D3 + ' NECESS' + [char]0x00C0 + 'RIA DESPR' + [char]0x00C9 + 'S DE LA RESOLUCI' +
             [char]0x00D3 + ' DE L' + [char]0x2019 + [char]0x00D2 + 'RGAN T' + [char]0x00C8 + 'CNIC AMBIENTAL EN ELS ' +
-            'TERMINIS DE TEMPS ESPECIFICATS.')
+            'TERMINIS DE TEMPS ESPECIFICATS')
 }
 
 # ----------------------------------------------------------------------------
@@ -294,7 +298,7 @@ function _LlicSeccionsSenseSubseccions($sections, $claus) {
 # aquella. Aixi un requeriment NOU de REQ1 ja surt utilitzable sense tocar res.
 function _LlicTextosPerDefecte {
     return @{
-        NoDisposa = @('No es disposa del document')
+        NoDisposa = @('No es disposa del document.')
         SiDisposa = @('Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])')
     }
 }
@@ -791,18 +795,27 @@ function _LlicEscriuPunt($sel, $punt, [int]$numero, $fields, [string]$estat, [bo
         _LlicEmetLinia $sel ([string]$linies[$i]) $vistos $false $emesos
     }
     # Sub-punts (per exemple, quines instal·lacions s'han de legalitzar).
+    #
+    # L'ENLLAC D'UN SUB-PUNT SENSE TEXT NO VA SAGNAT. Un sub-punt que nomes
+    # porta un enllac no penja de cap pic visible -no se n'ha arribat a emetre
+    # cap-, o sigui que sagnar-lo el deixava despenjat un centimetre a la dreta
+    # i sense res a sobre. Ho vaig veure comparant l'informe generat amb el fet
+    # a ma: era l'unic dels vuit hiperenllacos que sortia sagnat.
     $primerSub = $true
     foreach ($sub in @($punt.Subs)) {
+        $ambPic = $false
         foreach ($l in @(Apply-FieldsToLines $sub $fields)) {
             $pc = _SplitTextAndUrls ([string]$l)
             if (-not [string]::IsNullOrWhiteSpace($pc.Text)) {
                 if ($primerSub) { Format-Bullet $sel $pc.Text -IsChild -First; $primerSub = $false }
                 else { Format-Bullet $sel $pc.Text -IsChild }
+                $ambPic = $true
             }
             foreach ($u in @($pc.Urls)) {
                 $c = ([string]$u).Trim()
                 if ($vistos.Contains($c)) { continue }
-                [void]$vistos.Add($c); [void]$emesos.Add($c); Format-Url $sel $u -IsChild
+                [void]$vistos.Add($c); [void]$emesos.Add($c)
+                if ($ambPic) { Format-Url $sel $u -IsChild } else { Format-Url $sel $u }
             }
         }
     }
@@ -820,12 +833,17 @@ function _LlicEscriuPunt($sel, $punt, [int]$numero, $fields, [string]$estat, [bo
     # l'usuari anaven en verd, pero aquell color era una MARCA SEVA per saber que
     # havia de canviar a cada informe, no part del document: aqui van amb el
     # color de sempre (Format.ps1).
+    #
+    # I VA SEPARAT del cos del punt: -Separat hi posa al davant els mateixos
+    # 12 pt que separen un item del seu primer sub-punt. A l'informe fet a ma
+    # aquesta linia va separada als CINC punts, tant si al davant hi ha l'item
+    # com si hi ha un enllac; nomes la PRIMERA linia del comentari.
     $primerCom = $true
     foreach ($l in $comLinies) {
         $pp = _SplitTextAndUrls ([string]$l)
         if (-not [string]::IsNullOrWhiteSpace($pp.Text)) {
-            if ($primerCom -and $estat -eq 'no') { Format-Body $sel $pp.Text -Bold }
-            else { Format-Body $sel $pp.Text }
+            if ($primerCom -and $estat -eq 'no') { Format-Body $sel $pp.Text -Bold -Separat:$primerCom }
+            else { Format-Body $sel $pp.Text -Separat:$primerCom }
             $primerCom = $false
         }
         # Aqui SI que s'emeten: es el lloc que la frase anuncia.
