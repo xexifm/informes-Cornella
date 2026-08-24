@@ -3780,6 +3780,38 @@ AssertEq ([string]$objAD.Arguments) '"C:\clone\informes\suport\GenerarInforme.vb
 Assert ([string]$objAD.Arguments).StartsWith('"') 'acces directe: l''argument va entre cometes (la ruta pot portar espais)'
 AssertEq ([string]$objAD.Carpeta) 'C:\clone\informes' 'acces directe: la carpeta de treball es el clone'
 AssertEq ([string]$objAD.Icona) 'C:\clone\informes\suport\cornella.ico' 'acces directe: porta l''escut'
+# LA COPIA LOCAL DE L'ESCUT. El clone de l'usuari viu en una unitat de XARXA i
+# l'explorador no es de fiar carregant icones d'alli per a un element ancorat:
+# es queda amb la generica, que es el que li sortia.
+$objAD2 = Get-AccesDirecteObjectiu 'C:\clone\informes' 'C:\Windows' 'C:\Users\x\AppData\Local\InformesCornella'
+AssertEq ([string]$objAD2.Icona) 'C:\Users\x\AppData\Local\InformesCornella\cornella.ico' 'acces directe: l''escut, del disc local'
+AssertEq ([string]$objAD2.IconaOrigen) 'C:\clone\informes\suport\cornella.ico' 'acces directe: ...copiat del clone'
+AssertEq ([string]$objAD2.Arguments) ([string]$objAD.Arguments) 'acces directe: la copia de l''escut no canvia res mes'
+AssertEq ([string](Get-AccesDirecteObjectiu 'C:\x' 'C:\Windows' 'C:\y\').Icona) 'C:\y\cornella.ico' 'acces directe: barra final de la carpeta de l''escut'
+
+# LA ICONA DE LA FINESTRA. El .ico de l'Ajuntament porta TOTES les mides
+# comprimides en PNG i el GDI+ no les sap descomprimir: "new Icon(path)" dona
+# una icona BUIDA. Amb l'AppUserModelID propi, la barra de tasques va passar a
+# fer servir la icona de la finestra... i va quedar sense escut.
+$icoRepo = Join-Path (Split-Path -Parent $PSScriptRoot) 'cornella.ico'
+if (Test-Path -LiteralPath $icoRepo) {
+    $rawIco = [System.IO.File]::ReadAllBytes($icoRepo)
+    $frIco = _IcoTriaFrame $rawIco 32
+    Assert ($null -ne $frIco) 'cornella.ico: es un .ico valid'
+    Assert ([bool]$frIco.EsPng) 'cornella.ico: les imatges van comprimides en PNG (per aixo cal llegir-lo a ma)'
+    AssertEq ([int]$frIco.Amplada) 32 'cornella.ico: per a 32 px s''agafa el frame de 32'
+    Assert ([int](_IcoTriaFrame $rawIco 16).Amplada -eq 16) 'cornella.ico: ...i per a 16 px, el de 16'
+    Assert ([int](_IcoTriaFrame $rawIco 1000).Amplada -eq 256) 'cornella.ico: si cap no hi arriba, la mes gran'
+    AssertEq (_IcoTriaFrame @(1,2,3) 32) $null '_IcoTriaFrame: uns bytes que no son un .ico -> $null'
+    # ...i la funcio que en fa la icona ha d'existir i venir de UiComuns.
+    $srcUi2 = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'UiComuns.ps1') -Raw
+    Assert ($srcUi2.Contains('function _IconaDeIco')) 'UiComuns: hi ha _IconaDeIco'
+    Assert ($srcUi2.Contains('_IconaDeIco $iconPath 32')) 'UiComuns: la icona de l''app es fa amb ella (no amb new Icon)'
+    Assert (-not ($srcUi2 -match 'AppIcon\s*=\s*New-Object System\.Drawing\.Icon')) 'UiComuns: ja no es fa servir el constructor pelat'
+    $srcPdf2 = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'PdfSignar.ps1') -Raw
+    Assert (-not ($srcPdf2.Contains('function _IcoTriaFrame'))) 'PdfSignar: _IcoTriaFrame ha passat a UiComuns (no hi es dues vegades)'
+    Assert ($srcPdf2.Contains('_IcoTriaFrame $raw')) 'PdfSignar: ...i la segueix fent servir'
+}
 # L'IDENTIFICADOR D'APLICACIO. Es el que lliga la icona ANCORADA amb la finestra
 # del programa: sense ell, la drecera ancorada surt sense icona i en obrir-la
 # apareix un SEGON boto a la barra de tasques (va passar de debo).
@@ -3823,8 +3855,8 @@ Assert (Test-Path -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'co
 # El .bat que el crea: ASCII pur (els .bat amb accents es trenquen segons la
 # codepage) i sense cap '^' dins de cometes -dins de cometes el cmd el deixa
 # passar LITERAL i el que arriba al PowerShell ja no es el que havies escrit-.
-$batAD = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'Crear-acces-directe.bat'
-Assert (Test-Path -LiteralPath $batAD) 'acces directe: hi ha Crear-acces-directe.bat a l''arrel'
+$batAD = Join-Path (Split-Path -Parent $PSScriptRoot) 'Crear-acces-directe.bat'
+Assert (Test-Path -LiteralPath $batAD) 'acces directe: hi ha suport\Crear-acces-directe.bat'
 if (Test-Path -LiteralPath $batAD) {
     $txtAD = Get-Content -LiteralPath $batAD -Raw
     Assert (-not (@([char[]]$txtAD) | Where-Object { [int]$_ -gt 127 })) 'Crear-acces-directe.bat: ASCII pur'

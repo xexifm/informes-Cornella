@@ -14,7 +14,6 @@ el seguiment, planificar rutes d'inspecció i passar-los a PDF signat.
 informes-Cornella/
 ├── GenerarInforme.bat     ← DOBLE CLIC: el programa
 ├── Actualitzar.bat        ← DOBLE CLIC: baixar l'última versió i pujar els teus catàlegs
-├── Crear-acces-directe.bat ← DOBLE CLIC: l'accés directe per ancorar-lo a la barra de tasques
 ├── LLEGEIX-ME.md          ← això que estàs llegint
 │
 ├── ESTRUCTURALS/          ← les FONTS dels catàlegs (el que dona contingut als informes)
@@ -29,6 +28,7 @@ informes-Cornella/
 │
 ├── docs/                  ← el web del mòbil (GitHub Pages). No el toquis a mà.
 └── suport/                ← el codi. No cal tocar-lo.
+    └── Crear-acces-directe.bat ← DOBLE CLIC: l'accés directe per ancorar-lo a la barra de tasques
 ```
 
 Pots **moure la carpeta `informes-Cornella` on vulguis**: tot és relatiu. Les
@@ -66,7 +66,7 @@ prem **⚙ Configuració** i posa-hi les teves carpetes.
 
 Windows **no deixa ancorar un `.bat`** a la barra de tasques: només hi admet
 accessos directes que apuntin a un programa. Doble clic a
-**`Crear-acces-directe.bat`** i te'n deixa un a l'**escriptori** i al **menú
+**`suport\Crear-acces-directe.bat`** i te'n deixa un a l'**escriptori** i al **menú
 Inici**, amb l'escut de l'Ajuntament.
 
 Després, **clic dret** damunt de l'accés directe → **«Ancorar a la barra de

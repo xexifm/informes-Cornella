@@ -27,6 +27,96 @@
   No coneix res del motor d'informes: no hi posis logica de negoci.
 #>
 
+# Tria la millor imatge de dins d'un .ico i en retorna @{ Offset; Mida; Amplada;
+# EsPng } (o $null si el fitxer no es un .ico valid).
+#
+# Per que ens ho fem nosaltres: un .ico es un CONTENIDOR amb diverses mides a
+# dins, i el de l'Ajuntament les porta TOTES set comprimides en PNG (16, 24, 32,
+# 48, 64, 128 i 256 px). El .NET, amb icones aixi, va maldestre:
+# Icon.ToBitmap() no les descomprimeix be i el resultat surt buit — que es
+# exactament el que passava, l'escut no apareixia al caixeti i no ho deia
+# ningu, perque el dibuix va dins d'un try/catch. Llegint nosaltres la taula del
+# .ico podem agafar el PNG que ens convé i passar-lo a Image.FromStream, que si
+# que el sap llegir.
+#
+# Format del .ico: capcalera de 6 bytes (reservat, tipus, nombre d'imatges) i
+# despres una entrada de 16 bytes per imatge; l'amplada i l'alcada hi van en UN
+# sol byte, i el 0 vol dir 256. Funcio PURA (rep els bytes).
+function _IcoTriaFrame($bytes, [int]$midaVolguda) {
+    if ($null -eq $bytes -or $bytes.Length -lt 22) { return $null }
+    if ($bytes[0] -ne 0 -or $bytes[1] -ne 0 -or $bytes[2] -ne 1 -or $bytes[3] -ne 0) { return $null }
+    $n = [int]$bytes[4] + ([int]$bytes[5] * 256)
+    if ($n -le 0) { return $null }
+    $millor = $null
+    for ($i = 0; $i -lt $n; $i++) {
+        $o = 6 + ($i * 16)
+        if (($o + 16) -gt $bytes.Length) { break }
+        $ampl = [int]$bytes[$o]
+        if ($ampl -eq 0) { $ampl = 256 }
+        $mida = [BitConverter]::ToInt32($bytes, $o + 8)
+        $desp = [BitConverter]::ToInt32($bytes, $o + 12)
+        if ($mida -le 0 -or $desp -lt 0 -or ($desp + $mida) -gt $bytes.Length) { continue }
+        $esPng = ($mida -gt 8 -and $bytes[$desp] -eq 0x89 -and $bytes[$desp + 1] -eq 0x50 -and
+                  $bytes[$desp + 2] -eq 0x4E -and $bytes[$desp + 3] -eq 0x47)
+        $cand = @{ Offset = $desp; Mida = $mida; Amplada = $ampl; EsPng = $esPng }
+        if ($null -eq $millor) { $millor = $cand; continue }
+        # La mes petita que ja sigui prou gran; si cap no hi arriba, la mes gran
+        # (val mes reduir una imatge gran que no pas estirar-ne una de petita).
+        $mA = [int]$millor.Amplada
+        if ($mA -lt $midaVolguda) {
+            if ($ampl -gt $mA) { $millor = $cand }
+        } elseif ($ampl -ge $midaVolguda -and $ampl -lt $mA) {
+            $millor = $cand
+        }
+    }
+    return $millor
+}
+
+# UNA ICONA DE VERITAT a partir del .ico. Retorna $null si no se'n pot fer cap.
+#
+# PER QUE NO N'HI HA PROU AMB "New-Object System.Drawing.Icon($path)": el .ico de
+# l'Ajuntament porta TOTES les mides comprimides en PNG, i el GDI+ no les sap
+# descomprimir -el mateix que ja feia sortir l'escut BUIT al caixeti de la
+# signatura-. La finestra i la barra de tasques es quedaven sense escut, i com
+# que abans la barra agrupava el programa sota el PowerShell no es notava: hi
+# sortia la icona blava d'ell. En posar-hi AppUserModelID propi, la barra va
+# passar a fer servir la icona de la finestra... que era buida.
+#
+# Aixi que es llegeix la taula del .ico, s'agafa el PNG de la mida que toca i
+# se'n fa una icona amb GetHicon/FromHandle.
+function _IconaDeIco([string]$path, [int]$mida = 32) {
+    if (-not (Test-Path -LiteralPath $path)) { return $null }
+    $bytes = $null
+    try { $bytes = [System.IO.File]::ReadAllBytes($path) } catch { return $null }
+    $fr = _IcoTriaFrame $bytes $mida
+    # Un .ico amb imatges DIB de tota la vida: que ho faci el .NET, que ho sap.
+    if ($null -eq $fr -or -not $fr.EsPng) {
+        try { return (New-Object System.Drawing.Icon($path, (New-Object System.Drawing.Size($mida, $mida)))) } catch { return $null }
+    }
+    $tros = New-Object byte[] ([int]$fr.Mida)
+    [Array]::Copy($bytes, [int]$fr.Offset, $tros, 0, [int]$fr.Mida)
+    $ms = $null; $img = $null; $bmp = $null; $ic = $null
+    try {
+        $ms = New-Object System.IO.MemoryStream(, $tros)
+        $img = [System.Drawing.Image]::FromStream($ms)
+        $bmp = New-Object System.Drawing.Bitmap($img, $mida, $mida)
+        $h = $bmp.GetHicon()
+        # Icon.FromHandle NO es fa seva la nansa: se'n fa una copia gestionada
+        # (Clone) i s'allibera la nansa nativa de seguida, o si no es filtra.
+        $ic = [System.Drawing.Icon]::FromHandle($h)
+        $copia = [System.Drawing.Icon]$ic.Clone()
+        try { [void][CornellaApp.Icones]::DestroyIcon($h) } catch { }
+        return $copia
+    } catch {
+        return $null
+    } finally {
+        if ($null -ne $ic)  { try { $ic.Dispose() } catch { } }
+        if ($null -ne $bmp) { try { $bmp.Dispose() } catch { } }
+        if ($null -ne $img) { try { $img.Dispose() } catch { } }
+        if ($null -ne $ms)  { try { $ms.Dispose() } catch { } }
+    }
+}
+
 # Icona corporativa (escut de Cornella) per a TOTES les finestres i la
 # miniatura de la barra de tasques de Windows. Nomes en mode interactiu (en
 # headless no hi ha System.Drawing carregat). Es carrega un sol cop.
@@ -53,8 +143,16 @@ public static extern void SetCurrentProcessExplicitAppUserModelID([System.Runtim
         [CornellaApp.Shell]::SetCurrentProcessExplicitAppUserModelID([string]$Script:AppUserModelId)
     } catch { }
     try {
+        Add-Type -Namespace CornellaApp -Name Icones -MemberDefinition @'
+[System.Runtime.InteropServices.DllImport("user32.dll", SetLastError=true)]
+public static extern bool DestroyIcon(System.IntPtr hIcon);
+'@ -ErrorAction SilentlyContinue
+    } catch { }
+    try {
         $iconPath = Join-Path $ScriptRoot 'cornella.ico'
-        if (Test-Path -LiteralPath $iconPath) { $Script:AppIcon = New-Object System.Drawing.Icon($iconPath) }
+        # 32 px: es la mida que fa servir la barra de tasques (Windows l'escala
+        # sol per al titol de la finestra i per als DPI grans).
+        $Script:AppIcon = _IconaDeIco $iconPath 32
     } catch { $Script:AppIcon = $null }
 
     # Escut BLANC (per a la banda granat de capcalera de totes les pantalles).

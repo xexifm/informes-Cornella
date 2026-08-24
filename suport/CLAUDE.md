@@ -1654,6 +1654,27 @@ l'**escriptori** i al **menú Inici** (des d'allà se cerca i s'ancora).
     que es queden amb la icona genèrica.
   - **Si ja estava ancorat, s'ha de desancorar i tornar a ancorar**: Windows es
     queda la còpia del dia que es va ancorar. Ho diu el `.bat` i el `LLEGEIX-ME`.
+- **…I DESPRÉS ES VA PERDRE LA ICONA.** L'AppUserModelID va arreglar l'agrupació
+  i va destapar la segona meitat: **`New-Object System.Drawing.Icon($path)` dóna
+  una icona BUIDA amb aquest `.ico`**, perquè el de l'Ajuntament porta **les set
+  mides comprimides en PNG** i el GDI+ no les sap descomprimir — és exactament la
+  mateixa trampa que ja feia sortir l'escut buit al caixetí de la signatura.
+  Abans no es notava perquè la barra de tasques agrupava el programa sota el
+  PowerShell i hi sortia **la icona d'ell**; en donar-li identificador propi va
+  passar a fer servir la de la finestra, que era buida.
+  - **`_IcoTriaFrame` ha passat de `PdfSignar.ps1` a `UiComuns.ps1`**: ara la fan
+    servir dos mòduls, i allà és on van els helpers compartits. `PdfSignar` la
+    segueix cridant igual.
+  - **`_IconaDeIco`** (nova, a `UiComuns.ps1`): llegeix la taula del `.ico`,
+    agafa el PNG de la mida demanada i en fa una icona de veritat amb
+    `Bitmap.GetHicon()` + `Icon.FromHandle`. Com que `FromHandle` **no** es fa
+    seva la nansa, se'n fa un `Clone()` gestionat i es crida `DestroyIcon`.
+    Respatller a `Icon(path, Size)` si algun dia el `.ico` porta imatges DIB.
+  - **L'escut de la drecera es copia al disc LOCAL**
+    (`%LOCALAPPDATA%\InformesCornella\cornella.ico`) i l'`IconLocation` hi apunta:
+    **el clone de l'usuari viu en una unitat de xarxa** i l'explorador no és de
+    fiar carregant icones d'allà per a un element ancorat. Si la còpia falla, es
+    fa servir la del clone.
 - `Crear-acces-directe.bat` (arrel) i el pas 4 d'`Instalar.bat` el criden.
 - **Un `.bat` amb una ordre de PowerShell llarga és un niu d'errors**, i per això
   la feina és al `.ps1` (`Invoke-CrearAccesDirecte`). Concretament: **dins de

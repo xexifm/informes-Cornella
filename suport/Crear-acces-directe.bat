@@ -17,9 +17,11 @@ REM  La feina la fa suport\AccesDirecte.ps1: una ordre de PowerShell llarga dins
 REM  d'un .bat, amb cometes i canonades, es un niu d'errors.
 REM ===========================================================================
 
-cd /d "%~dp0"
+REM  Aquest .bat viu a suport\, o sigui que l'arrel del clone es la carpeta de
+REM  sobre: %~dp0.. (i el .ps1, aqui mateix).
+cd /d "%~dp0.."
 
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command ". '%~dp0suport\AccesDirecte.ps1'; Invoke-CrearAccesDirecte '%~dp0' | Out-Null"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command ". '%~dp0AccesDirecte.ps1'; Invoke-CrearAccesDirecte (Get-Location).Path | Out-Null"
 
 echo.
 echo ---------------------------------------------------------------------------

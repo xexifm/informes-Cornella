@@ -264,50 +264,9 @@ function _CaixetiEscutPath {
     return [string](Join-Path $d $Script:CaixetiEstil.EscutFitxer)
 }
 
-# Tria la millor imatge de dins d'un .ico i en retorna @{ Offset; Mida; Amplada;
-# EsPng } (o $null si el fitxer no es un .ico valid).
-#
-# Per que ens ho fem nosaltres: un .ico es un CONTENIDOR amb diverses mides a
-# dins, i el de l'Ajuntament les porta TOTES set comprimides en PNG (16, 24, 32,
-# 48, 64, 128 i 256 px). El .NET, amb icones aixi, va maldestre:
-# Icon.ToBitmap() no les descomprimeix be i el resultat surt buit — que es
-# exactament el que passava, l'escut no apareixia al caixeti i no ho deia
-# ningu, perque el dibuix va dins d'un try/catch. Llegint nosaltres la taula del
-# .ico podem agafar el PNG que ens convé i passar-lo a Image.FromStream, que si
-# que el sap llegir.
-#
-# Format del .ico: capcalera de 6 bytes (reservat, tipus, nombre d'imatges) i
-# despres una entrada de 16 bytes per imatge; l'amplada i l'alcada hi van en UN
-# sol byte, i el 0 vol dir 256. Funcio PURA (rep els bytes).
-function _IcoTriaFrame($bytes, [int]$midaVolguda) {
-    if ($null -eq $bytes -or $bytes.Length -lt 22) { return $null }
-    if ($bytes[0] -ne 0 -or $bytes[1] -ne 0 -or $bytes[2] -ne 1 -or $bytes[3] -ne 0) { return $null }
-    $n = [int]$bytes[4] + ([int]$bytes[5] * 256)
-    if ($n -le 0) { return $null }
-    $millor = $null
-    for ($i = 0; $i -lt $n; $i++) {
-        $o = 6 + ($i * 16)
-        if (($o + 16) -gt $bytes.Length) { break }
-        $ampl = [int]$bytes[$o]
-        if ($ampl -eq 0) { $ampl = 256 }
-        $mida = [BitConverter]::ToInt32($bytes, $o + 8)
-        $desp = [BitConverter]::ToInt32($bytes, $o + 12)
-        if ($mida -le 0 -or $desp -lt 0 -or ($desp + $mida) -gt $bytes.Length) { continue }
-        $esPng = ($mida -gt 8 -and $bytes[$desp] -eq 0x89 -and $bytes[$desp + 1] -eq 0x50 -and
-                  $bytes[$desp + 2] -eq 0x4E -and $bytes[$desp + 3] -eq 0x47)
-        $cand = @{ Offset = $desp; Mida = $mida; Amplada = $ampl; EsPng = $esPng }
-        if ($null -eq $millor) { $millor = $cand; continue }
-        # La mes petita que ja sigui prou gran; si cap no hi arriba, la mes gran
-        # (val mes reduir una imatge gran que no pas estirar-ne una de petita).
-        $mA = [int]$millor.Amplada
-        if ($mA -lt $midaVolguda) {
-            if ($ampl -gt $mA) { $millor = $cand }
-        } elseif ($ampl -ge $midaVolguda -and $ampl -lt $mA) {
-            $millor = $cand
-        }
-    }
-    return $millor
-}
+# NOTA: _IcoTriaFrame (llegir la taula d'un .ico i triar-ne la millor imatge)
+# ha passat a UiComuns.ps1: la fa servir tambe la icona de les finestres i de la
+# barra de tasques, i alli es on van els helpers compartits.
 
 # Dibuixa el caixeti amb UN intent concret i el retorna en base64 ('' si falla).
 # Separat de _BuildCaixetiImageBase64 perque aquella nomes decideix quin intent

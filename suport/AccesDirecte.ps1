@@ -50,17 +50,35 @@ $Script:AppUserModelId = 'Cornella.Informes.Generador'
 
 # ON APUNTA l'acces directe, a partir de l'arrel del clone. Funcio PURA: no toca
 # el disc, o sigui que es pot provar a qualsevol plataforma.
-function Get-AccesDirecteObjectiu([string]$repoRoot, [string]$systemRoot = '') {
+# $carpetaIcona: on ha de viure la COPIA LOCAL de l'escut (opcional). Vegeu
+# _AccesDirecteCarpetaIcona: el clone de l'usuari viu en una unitat de XARXA i
+# l'explorador de Windows no es de fiar carregant icones d'alli per a un element
+# ancorat -es queda amb la generica-. Amb una copia al disc de sempre, no falla.
+function Get-AccesDirecteObjectiu([string]$repoRoot, [string]$systemRoot = '', [string]$carpetaIcona = '') {
     if ([string]::IsNullOrWhiteSpace($systemRoot)) { $systemRoot = 'C:\Windows' }
     $sep = '\'
     $rr = ([string]$repoRoot).TrimEnd('\', '/')
-    return @{
-        Desti     = ($systemRoot.TrimEnd('\') + $sep + 'System32' + $sep + 'wscript.exe')
-        Arguments = ('"' + $rr + $sep + 'suport' + $sep + 'GenerarInforme.vbs"')
-        Carpeta   = $rr
-        Icona     = ($rr + $sep + 'suport' + $sep + 'cornella.ico')
-        Nom       = $Script:AccesDirecteNom
+    $icoOrigen = ($rr + $sep + 'suport' + $sep + 'cornella.ico')
+    $ico = $icoOrigen
+    if (-not [string]::IsNullOrWhiteSpace($carpetaIcona)) {
+        $ico = (([string]$carpetaIcona).TrimEnd('\', '/') + $sep + 'cornella.ico')
     }
+    return @{
+        Desti       = ($systemRoot.TrimEnd('\') + $sep + 'System32' + $sep + 'wscript.exe')
+        Arguments   = ('"' + $rr + $sep + 'suport' + $sep + 'GenerarInforme.vbs"')
+        Carpeta     = $rr
+        Icona       = $ico
+        IconaOrigen = $icoOrigen
+        Nom         = $Script:AccesDirecteNom
+    }
+}
+
+# On va la copia local de l'escut. El mateix lloc que la resta d'estat d'aquest
+# ordinador (%LOCALAPPDATA%\InformesCornella), que sobreviu a tornar a clonar.
+function _AccesDirecteCarpetaIcona {
+    if ($AppDataDir) { return [string]$AppDataDir }
+    if ([string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) { return '' }
+    return [string](Join-Path $env:LOCALAPPDATA 'InformesCornella')
 }
 
 # Els llocs on es deixa. Funcio PURA (rep les carpetes ja resoltes).
@@ -201,7 +219,17 @@ function Set-AccesDirecteAppId([string]$lnkPath, [string]$appId = '') {
 # Crea (o refresca) l'acces directe. Retorna @{ Ok; Fets; Errors }.
 function New-AccesDirecteInformes([string]$repoRoot = '') {
     if ([string]::IsNullOrWhiteSpace($repoRoot)) { $repoRoot = $RepoRoot }
-    $obj = Get-AccesDirecteObjectiu $repoRoot $env:SystemRoot
+    $obj = Get-AccesDirecteObjectiu $repoRoot $env:SystemRoot (_AccesDirecteCarpetaIcona)
+    # LA COPIA LOCAL DE L'ESCUT. Si no es pot fer, es fa servir el del clone (a
+    # una unitat local funciona igual de be).
+    try {
+        $carpIco = Split-Path -Parent ([string]$obj.Icona)
+        if (-not [string]::IsNullOrWhiteSpace($carpIco)) {
+            if (-not (Test-Path -LiteralPath $carpIco)) { New-Item -ItemType Directory -Path $carpIco -Force | Out-Null }
+            Copy-Item -LiteralPath ([string]$obj.IconaOrigen) -Destination ([string]$obj.Icona) -Force
+        }
+    } catch { $obj.Icona = [string]$obj.IconaOrigen }
+    if (-not (Test-Path -LiteralPath ([string]$obj.Icona))) { $obj.Icona = [string]$obj.IconaOrigen }
     $fets = New-Object System.Collections.ArrayList
     $errs = New-Object System.Collections.ArrayList
 

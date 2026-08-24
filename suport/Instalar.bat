@@ -168,7 +168,7 @@ echo.
 echo  A partir d'ara, dins d'aquesta carpeta:
 echo    - GenerarInforme.bat      =^> generar un informe
 echo    - Actualitzar.bat         =^> baixar l'ultima versio
-echo    - Crear-acces-directe.bat =^> refer l'acces directe
+echo    - suport\Crear-acces-directe.bat =^> refer l'acces directe
 echo.
 echo  Tens un acces directe a l'escriptori i al menu Inici. Per ancorar-lo
 echo  a la barra de tasques: clic dret damunt seu =^> "Ancorar a la barra
