@@ -1,10 +1,12 @@
-SECT|DOCUMENTACIÓ PROJECTE
+BLOC|DOCUMENTACIÓ PROJECTE
 AIRE|seccio
 BODY|La documentacio tecnica ve signada per:
 BULLET/CH/1r|Projecte
 BULLET/CH|Planols
 AIRE|item
-SECT|DOCUMENTACIÓ NECESSÀRIA ABANS DE LA RESOLUCIÓ DE L’ÒRGAN TÈCNIC AMBIENTAL
+BLOC|DOCUMENTACIÓ NECESSÀRIA ABANS DE LA RESOLUCIÓ DE L’ÒRGAN TÈCNIC AMBIENTAL
+AIRE|seccio
+SECT|Autoritzacions / Informes preceptius
 AIRE|seccio
 ITEM|1.|Sanitat. L’activitat està inclosa dins l’Annex del Decret 151/2017, de 17 d'octubre, pel qual s'estableixen els requisits i les garanties tecnicosanitàries comunes dels centres i serveis sanitaris i els procediments per a la seva autorització i registre. S’ha d’obtenir l’Autorització de funcionament (Departament de Salut de la Generalitat de Catalunya).
 URL|https://tramits.gencat.cat/ca/tramits/tramits-temes/Autoritzacio-de-centres-o-serveis-sanitaris
@@ -20,18 +22,54 @@ ITEM|3.|Comerç. L’activitat està inclosa dins el Decret Llei 1/2009, del 22 
 BODY/N/SEP|No es disposa de llicència. S’ha de sol·licitar en el següent enllaç:
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Llicencia-comercial?category=&moda=2
 AIRE|item
-SECT|DOCUMENTACIÓ NECESSÀRIA DESPRÉS DE LA RESOLUCIÓ DE L’ÒRGAN TÈCNIC AMBIENTAL EN ELS TERMINIS DE TEMPS ESPECIFICATS
+ITEM|4.|Esport. L’activitat està inclosa dins el DECRET LEGISLATIU 1/2000, de 31 de juliol, pel qual s'aprova el Text únic de la Llei de l'esport. S’ha d’haver iniciat el tràmit per obtenir l’informe previ de les actuacions en instal·lacions esportives (Consell Català de l’Esport).
+BODY/N/SEP|No es disposa de l’informe. S’ha de sol·licitar en el següent enllaç:
+URL|https://web.gencat.cat/ca/tramits/tramits-temes/22032-Informe-previ-al-Servei-dEquipaments-Esportius-per-a-la-realitzacio-en-installacions-esportives-a-Catalunya
+AIRE|item
+BLOC|Projecte
 AIRE|seccio
-ITEM|4.|Certificat Final d’Activitat.
+SECT|Requeriment pendent
+AIRE|seccio
+ITEM|5.|S’ha de donar resposta a l’anterior requeriment amb Núm. de registre: .
+BODY|COPIAR REQUERIMENT
+BODY|I a més a més, esmenar els següents punts:
+AIRE|item
+SECT|Classificació
+AIRE|seccio
+ITEM|6.|L’activitat està classificada segons l’Annex , epígraf  de la LLEI 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats.
+AIRE|item
+SECT|Desistiment comunicació
+AIRE|seccio
+ITEM|7.|La comunicació presenta els següents defectes de caràcter essencial:
+BODY|a) Les dades consignades no permeten d’identificar degudament el titular o tècnic i l’activitat exercida, ni les característiques que siguin rellevants per a determinar la normativa aplicable.
+BODY|b) Les dades consignades no són certes i s’han alterat voluntàriament per tal d’atribuir a la comunicació algun dels elements o requisits essencials necessaris.
+BODY|c) L’activitat no disposa d’alguna de les llicències o comunicacions sectorials o urbanístiques necessàries.
+BODY|d) No es presenta la documentació necessària o bé aquesta no s’adequa a l’objecte o a les finalitats de l’establiment o l’activitat.
+BODY|e) S’han omès l’informe i el certificat de l’acte de comprovació d’incendis o el permís d’abocament, o qualsevol altre informe o control previ preceptiu o necessari d’acord amb la normativa sectorial.
+AIRE|item
+BLOC|DOCUMENTACIÓ NECESSÀRIA DESPRÉS DE LA RESOLUCIÓ DE L’ÒRGAN TÈCNIC AMBIENTAL EN ELS TERMINIS DE TEMPS ESPECIFICATS
+AIRE|seccio
+ITEM|8.|Certificat Final d’Activitat.
 BODY|Quan: Abans d’iniciar l’activitat.
 AIRE|item
-ITEM|5.|Incendis. Acte de comprovació favorable en matèria d’incendis expedit per una Entitat Col·laboradora de l’Administració (EC-PCAA).
+ITEM|9.|Incendis. Acte de comprovació favorable en matèria d’incendis expedit per una Entitat Col·laboradora de l’Administració (EC-PCAA).
 URL|https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/entitats_col_laboradores_de_l_administracio/entitats-tecnics-habilitats/
 BODY|Quan: Abans d’iniciar l’activitat.
 AIRE|item
-ITEM|6.|Sanitat. Autorització de funcionament (Departament de Salut de la Generalitat de Catalunya).
+ITEM|10.|Sanitat. Autorització de funcionament (Departament de Salut de la Generalitat de Catalunya).
 URL|https://salutweb.gencat.cat/ca/tramits/tramits-temes/Autoritzacio-de-centres-o-serveis-sanitaris?moda=2
 BODY|Quan: Abans d’iniciar l’activitat.
+AIRE|item
+ITEM|11.|Educació. Autorització d’obertura de centres educatius privats  (Departament d’Educació).
+URL|https://educacio.gencat.cat/ca/tramits/tramits-temes/autoritzacio-obertura-privats?moda=2
+BODY|Quan: Abans d’iniciar l’activitat.
+AIRE|item
+ITEM|12.|Comerç. Comunicar l'inici d'activitat d'un establiment amb llicència comercial (Departament d’Empresa i Treball).
+URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Llicencia-comercial?category=&moda=3
+BODY|Quan: Abans d’iniciar l’activitat.
+AIRE|item
+ITEM|13.|Vector Aigua (AMB). Anàlisi de les aigües residuals (punt final d’abocament).
+BODY|Quan: Abans de tres mesos després de la data d’inici de l’activitat.
 AIRE|item
 AIRE|conclusions
 CONCLCAP|CONCLUSIONS

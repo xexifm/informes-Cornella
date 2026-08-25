@@ -1475,7 +1475,11 @@ AssertEq ([bool]($ep -like ('*signaturePositionOnPageUpperRightY=' + [int]$cxP.U
 # Si algu mou el caixeti, aquestes dues proves l'obliguen a saber respecte de que
 # l'esta movent.
 $refEscutDalt = 800.01
-$refTextDreta = 552.45
+# El marge dret del text NO es un numero congelat: surt de Format.ps1, que es qui
+# mana en el format del document. Amb un 552,45 escrit aqui, canviar el marge de
+# la plantilla hauria deixat el caixeti despenjat del text sense que ho digues
+# ningu -que es exactament el que va passar en passar a 2,5 cm.
+$refTextDreta = $Script:A4AmplePt - $Script:ReportFormatConfig.PageMarginRightPt
 Assert ([bool]([Math]::Abs([double]$cxP.URY - $refEscutDalt) -le 1.0)) 'AutoFirmaCaixetiPos: el dalt del caixeti va alineat amb la punta de l''escut de la capcalera'
 Assert ([bool]([Math]::Abs([double]$cxP.URX - $refTextDreta) -le 1.0)) 'AutoFirmaCaixetiPos: la dreta del caixeti va alineada amb el marge dret del text'
 AssertEq ([int]$cxP.URX - [int]$cxP.LLX) 200 'AutoFirmaCaixetiPos: l''amplada del caixeti no ha canviat (nomes s''ha mogut)'
@@ -2214,7 +2218,32 @@ AssertEq ([bool]($Script:VistaWordVersio -ge 3)) $true 'VistaWordVersio: versio 
 AssertEq ($Script:ReportFormatConfig.BodyFontName) 'Bookman Old Style' 'Format: el tipus de lletra base es Bookman Old Style'
 AssertEq ($Script:ReportFormatConfig.BodyAlignment) 3 'Format: justificat (3 = wdAlignParagraphJustify)'
 AssertEq ($Script:ReportFormatConfig.BaseLineSpacing) 1.15 'Format: interlineat 1,15 com la plantilla'
-AssertEq ([math]::Round($Script:ReportFormatConfig.PageMarginLeftPt, 2)) 85.05 'Format: marge esquerre = 1701 twips de la plantilla'
+# ELS MARGES HAN DE QUADRAR AMB LA PLANTILLA, i per aixo la prova els llegeix
+# d'ella en lloc de repetir-ne els numeros: l'informe COPIA '0 CAPCALERA.docx' i
+# les vistes surten d'un document nou amb $ReportFormatConfig. Si divergeixen,
+# la vista deixa de semblar-se a l'informe i no ho diria ningu.
+$capMargePath = Join-Path $EstructuralsDir '0 CAPCALERA.docx'
+if (Test-Path -LiteralPath $capMargePath) {
+    Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction SilentlyContinue
+    $zipM = [System.IO.Compression.ZipFile]::OpenRead($capMargePath)
+    try {
+        $entM = $zipM.GetEntry('word/document.xml')
+        $srM = New-Object System.IO.StreamReader($entM.Open())
+        $xmlM = $srM.ReadToEnd(); $srM.Close()
+    } finally { $zipM.Dispose() }
+    $mM = [regex]::Match($xmlM, '<w:pgMar[^/]*/>')
+    Assert $mM.Success 'Format: la plantilla porta el seu pgMar'
+    $twM = @{}
+    foreach ($mm in [regex]::Matches($mM.Value, 'w:(\w+)="(-?\d+)"')) { $twM[$mm.Groups[1].Value] = [int]$mm.Groups[2].Value }
+    # 20 twips = 1 pt. Mig punt de tolerancia: el Word arrodoneix.
+    AssertNear $Script:ReportFormatConfig.PageMarginLeftPt  ($twM['left']   / 20.0) 0.5 'Format: el marge esquerre quadra amb la plantilla'
+    AssertNear $Script:ReportFormatConfig.PageMarginRightPt ($twM['right']  / 20.0) 0.5 'Format: ...i el dret'
+    AssertNear $Script:ReportFormatConfig.PageMarginTopPt   ($twM['top']    / 20.0) 0.5 'Format: ...i el de dalt'
+    AssertNear $Script:ReportFormatConfig.PageMarginBottomPt ($twM['bottom'] / 20.0) 0.5 'Format: ...i el de baix'
+    # I que siguin els 2,5 cm que va demanar l'usuari (1 cm = 566,93 twips).
+    AssertNear ($twM['left'] / 566.93) 2.5 0.02 'Format: 2,5 cm de marge esquerre'
+    AssertNear ($twM['right'] / 566.93) 2.5 0.02 'Format: 2,5 cm de marge dret'
+}
 AssertEq ([bool](Get-Command Format-ApplyBaseStyle -ErrorAction SilentlyContinue)) $true 'Format-ApplyBaseStyle existeix (l''apliquen les vistes)'
 
 Write-Host "`n--- Migracio.ps1: carpeta 'local' ---"
@@ -2573,9 +2602,11 @@ if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path 
         try { [void](Build-LlicenciaDocument $wordG $modelF) } catch { Write-Host ("    EXCEPCIO ($fs): " + $_.Exception.Message) -ForegroundColor Red }
         $emF = @($global:emitCalls)
         # La documentacio del projecte va DALT DE TOT i fora de la numeracio.
-        $iProj = [Array]::FindIndex([string[]]$emF, [Predicate[string]]{ param($x) $x -like 'SECT|DOCUMENTACI* PROJECTE' })
-        $iAb   = [Array]::FindIndex([string[]]$emF, [Predicate[string]]{ param($x) $x -like 'SECT|*ABANS*' })
-        $iDe   = [Array]::FindIndex([string[]]$emF, [Predicate[string]]{ param($x) $x -like 'SECT|*DESPR*' })
+        # BLOC| = Format-BlockTitle: el nivell de mes amunt de l'informe (majuscules
+        # i subratllat). Les seccions de REQ1 que hi van a dins son SECT|.
+        $iProj = [Array]::FindIndex([string[]]$emF, [Predicate[string]]{ param($x) $x -like 'BLOC|DOCUMENTACI* PROJECTE' })
+        $iAb   = [Array]::FindIndex([string[]]$emF, [Predicate[string]]{ param($x) $x -like 'BLOC|*ABANS*' })
+        $iDe   = [Array]::FindIndex([string[]]$emF, [Predicate[string]]{ param($x) $x -like 'BLOC|*DESPR*' })
         Assert ($iProj -ge 0 -and $iProj -lt $iAb) ($fs + ': la documentacio del projecte va la primera')
         Assert ($iAb -ge 0 -and $iAb -lt $iDe) ($fs + ': ...despres ABANS i despres DESPRES')
         Assert (-not (@($emF) | Where-Object { $_ -like 'SUB|Documentaci*' })) ($fs + ': ja no hi ha el subtitol "Documentacio"')

@@ -75,9 +75,23 @@ function _DefaultCaixeti {
 #     el 806,52 on està col·locada la imatge del logo: aquella imatge porta 18
 #     píxels de blanc a dalt (de 199), que a la pàgina són 6,5 pt. Alineant amb
 #     el 806,52 el caixetí hauria quedat mig dit massa amunt.
-#   · Dreta (URX = 552) = el marge dret del text, tret del requadre de la "Nota:"
-#     de l'informe, que va de x=85,58 a x=552,45.
-$Script:AutoFirmaCaixetiPos = @{ Page = 1; LLX = 352; LLY = 752; URX = 552; URY = 800 }
+#   · Dreta = el marge dret del text. Aquest NO va escrit a pel: es calcula de
+#     l'amplada de l'A4 menys PageMarginRightPt de Format.ps1, que es qui mana en
+#     el format del document. Quan l'usuari va passar els marges de 1,5 a 2,5 cm
+#     (agost 2026), amb el 552 escrit al codi el caixeti s'hauria quedat 28 pt a
+#     la dreta del text i ningu no ho hauria dit.
+$Script:A4AmplePt = 595.276      # 21 cm
+
+function _CaixetiPosDefecte {
+    $cfg = $Script:ReportFormatConfig
+    $dreta = if ($null -ne $cfg -and $null -ne $cfg.PageMarginRightPt) {
+        [Math]::Round($Script:A4AmplePt - [double]$cfg.PageMarginRightPt, 2)
+    } else { 552 }
+    # L'amplada del requadre (200 pt) i l'alcada (48) no depenen del marge.
+    return @{ Page = 1; LLX = [Math]::Round($dreta - 200, 2); LLY = 752; URX = $dreta; URY = 800 }
+}
+
+$Script:AutoFirmaCaixetiPos = _CaixetiPosDefecte
 
 # Aspecte del caixetí-imatge. Tot el que es pot tocar sense entrar al codi.
 $Script:CaixetiEstil = @{

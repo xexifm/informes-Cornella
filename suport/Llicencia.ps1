@@ -305,6 +305,39 @@ function _LlicTextosPerDefecte {
 #   Orfes : claus que son a LLIC pero JA NO a REQ1. NO s'amaguen: si el lligam
 #           s'ha trencat (perque algu ha reanomenat un requeriment), el
 #           programa ho ha de dir en lloc de deixar-se un punt en silenci.
+# ON VIU CADA ITEM d'una llista de seccions (la de REQ1 o la que torna
+# Select-Items) i QUIN TEXT FIX l'encapcala. Funcio PURA.
+#
+# Retorna, per cada item: @{ Seccio; Subseccio; Intro; El }.
+#
+# PER QUE: als informes de Llicencia hi han de sortir la SECCIO i la SUBSECCIO
+# de REQ1 de cada punt, i els TEXTOS FIXOS que encapcalen una subseccio (p.ex.
+# "Segons l'article 3.1 de l'Ordenanca ... adjuntant la documentacio
+# complementaria:"). Abans els punts s'aplanaven i tot aixo es perdia: sortien
+# tots seguits, sense saber de quina part venien.
+#
+# L'INTRO nomes va davant del PRIMER punt que el segueix -exactament com fa
+# _WriteCatalegBody de REQ1- i una subseccio nova l'invalida.
+# El titol pot venir com a "Seccio - Subseccio" (el que munta
+# Build-SelectionFromKeys) o com a titol sol (el cataleg sencer).
+function _LlicItemsAmbUbicacio($seccions) {
+    $out = New-Object System.Collections.ArrayList
+    foreach ($sec in @($seccions)) {
+        $parts = ([string]$sec.Title) -split ' - ', 2
+        $nomSec = if ($parts.Count -eq 2) { $parts[0].Trim() } else { [string]$sec.Title }
+        $sub    = if ($parts.Count -eq 2) { $parts[1].Trim() } else { '' }
+        $intro = @()
+        foreach ($el in @($sec.Items)) {
+            if ([string]$el.Kind -eq 'subsection') { $sub = [string]$el.Short; $intro = @(); continue }
+            if ([string]$el.Kind -eq 'intro')      { $intro = @($el.BodyLines); continue }
+            if ([string]$el.Kind -ne 'item') { continue }
+            [void]$out.Add(@{ Seccio = $nomSec; Subseccio = $sub; Intro = $intro; El = $el })
+            $intro = @()
+        }
+    }
+    return $out.ToArray()
+}
+
 function _LlicPuntsPerBloc($llic, $idxReq1, [string]$bloc, $req1 = $null) {
     $punts = New-Object System.Collections.ArrayList
     $orfes = New-Object System.Collections.ArrayList
@@ -323,14 +356,11 @@ function _LlicPuntsPerBloc($llic, $idxReq1, [string]$bloc, $req1 = $null) {
                 if (-not [string]::IsNullOrWhiteSpace($c)) { $perClau[$c] = $it }
             }
         }
-        foreach ($sec in @($req1.Sections)) {
-            if (-not (_LlicEsSeccioAbans ([string]$sec.Title))) { continue }
-            $subAra = ''
-            foreach ($el in @($sec.Items)) {
-                if ([string]$el.Kind -eq 'subsection') { $subAra = [string]$el.Short; continue }
-                if ([string]$el.Kind -ne 'item') { continue }
-                if ([string]::IsNullOrWhiteSpace([string]$el.Short)) { continue }
-                $clau = _ItemKey $sec.Title $el.Short
+        $seccionsAbans = @(@($req1.Sections) | Where-Object { _LlicEsSeccioAbans ([string]$_.Title) })
+        foreach ($u in @(_LlicItemsAmbUbicacio $seccionsAbans)) {
+            $el = $u.El
+            if (-not [string]::IsNullOrWhiteSpace([string]$el.Short)) {
+                $clau = _ItemKey $u.Seccio $el.Short
                 $it = if ($perClau.ContainsKey($clau)) { $perClau[$clau] } else { $null }
                 $nod = if ($null -ne $it) { _LlicFill $it 'nodisposa' } else { $null }
                 $sid = if ($null -ne $it) { _LlicFill $it 'sidisposa' } else { $null }
@@ -343,7 +373,9 @@ function _LlicPuntsPerBloc($llic, $idxReq1, [string]$bloc, $req1 = $null) {
                 if (@($lSid).Count -eq 0) { $lSid = @($def.SiDisposa) }
                 [void]$punts.Add([pscustomobject]@{
                     Clau      = $clau
-                    Subseccio = $subAra
+                    Seccio    = [string]$u.Seccio
+                    Subseccio = [string]$u.Subseccio
+                    Intro     = @($u.Intro)
                     Titol     = [string]$el.Short
                     Condicio  = ''
                     Cos       = @($el.BodyLines)
@@ -385,10 +417,20 @@ function _LlicPuntsPerBloc($llic, $idxReq1, [string]$bloc, $req1 = $null) {
                 [void]$orfes.Add($clau)
                 continue
             }
+            # On viu cada item i quin text fix l'encapcala: aixi el bloc es porta
+            # la SECCIO, la SUBSECCIO i l'INTRO de REQ1, no nomes els punts.
+            $ubis = @{}
+            foreach ($u in @(_LlicItemsAmbUbicacio $req1.Sections)) {
+                $k = _ItemKey ([string]$u.Seccio) ([string]$u.El.Short)
+                if (-not $ubis.ContainsKey($k)) { $ubis[$k] = $u }
+            }
             foreach ($el in $delsSubs) {
                 $ub = _LlicUbicacioDeItem $req1 $el
+                $u = $ubis[[string]$ub.Clau]
                 [void]$punts.Add([pscustomobject]@{
                     Clau      = [string]$ub.Clau
+                    Seccio    = [string]$ub.Seccio
+                    Intro     = @($(if ($null -ne $u) { $u.Intro } else { @() }))
                     Subseccio = [string]$ub.Subseccio
                     Titol     = [string]$el.Short
                     Condicio  = [string]$it.condicio
@@ -403,8 +445,14 @@ function _LlicPuntsPerBloc($llic, $idxReq1, [string]$bloc, $req1 = $null) {
         }
 
         $cos = if ($esItem) { @($idxReq1[$clau].BodyLines) } else { @(_LlicCos $it) }
+        # La SECCIO surt de la clau ("Seccio::Item"). Els punts PROPIS de LLIC no
+        # en tenen cap i van al principi del bloc, sense capcalera.
+        $ubIt = if ($esItem -and $null -ne $req1) { _LlicUbicacioDeItem $req1 $idxReq1[$clau] } else { $null }
         [void]$punts.Add([pscustomobject]@{
             Clau      = $clau
+            Seccio    = [string]$(if ($null -ne $ubIt) { $ubIt.Seccio } else { '' })
+            Subseccio = [string]$(if ($null -ne $ubIt) { $ubIt.Subseccio } else { '' })
+            Intro     = @()
             Titol     = [string]$it.titol
             Condicio  = [string]$it.condicio
             Cos       = $cos
@@ -858,6 +906,52 @@ function _LlicEscriuPunt($sel, $punt, [int]$numero, $fields, [string]$estat, [bo
     }
 }
 
+# ESCRIU UNA LLISTA DE PUNTS AMB LA SEVA ESTRUCTURA DE REQ1: la SECCIO en
+# majuscules, la SUBSECCIO i el TEXT FIX que l'encapcala, i despres els punts.
+#
+# Abans els punts sortien tots seguits, sense saber de quina part de REQ1
+# venien, i els textos fixos d'una subseccio (p.ex. "Segons l'article 3.1 de
+# l'Ordenanca ... adjuntant la documentacio complementaria:") no sortien.
+#
+# La capcalera nomes s'escriu quan CANVIA, i nomes si hi ha algun punt a sota:
+# com que penja de cada punt, una seccio sense punts no pot sortir.
+#
+# $n va per REFERENCIA: la numeracio de l'informe es SEGUIDA de cap a peus, no
+# una llista nova per bloc.
+function _LlicEscriuPunts($sel, $punts, [ref]$n, $fields, [bool]$ambQuan) {
+    $secAra = $null
+    $subAra = $null
+    foreach ($p in @($punts)) {
+        $s  = [string]$p.Seccio
+        $sb = [string]$p.Subseccio
+        if ($s -ne $secAra) {
+            if (-not [string]::IsNullOrWhiteSpace($s)) {
+                Format-Section $sel $s
+                Format-Aire $sel 'seccio'
+            }
+            $secAra = $s
+            $subAra = $null      # una seccio nova reinicia la subseccio
+        }
+        if ($sb -ne $subAra) {
+            if (-not [string]::IsNullOrWhiteSpace($sb)) {
+                Format-Subsection $sel $sb
+                Format-Aire $sel 'subseccio'
+            }
+            $subAra = $sb
+            # NOMES si l'intro te text de debo: Apply-FieldsToLines pot tornar
+            # una linia buida i llavors sortiria l'aire sense res al davant.
+            $intro = @(@(Apply-FieldsToLines @($p.Intro) $fields) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
+            if ($intro.Count -gt 0) {
+                foreach ($l in $intro) { Write-Linia $sel ([string]$l) }
+                Format-Aire $sel 'intro'
+            }
+        }
+        $n.Value++
+        _LlicEscriuPunt $sel $p $n.Value $fields ([string]$p.Estat) $ambQuan
+        Format-Aire $sel 'item'
+    }
+}
+
 # Composa l'informe sencer i el desa. Retorna la ruta.
 #
 # $model porta tot el que ha triat l'usuari a l'assistent:
@@ -882,7 +976,7 @@ function Build-LlicenciaDocument($word, $model) {
         # en cos normal.
         $doc1 = [string]$model.Doc.Text
         if (-not [string]::IsNullOrWhiteSpace($doc1)) {
-            Format-Section $sel ('DOCUMENTACI' + [char]0x00D3 + ' PROJECTE')
+            Format-BlockTitle $sel ('DOCUMENTACI' + [char]0x00D3 + ' PROJECTE')
             Format-Aire $sel 'seccio'
             Format-Body $sel $doc1
             $primer = $true
@@ -896,38 +990,30 @@ function Build-LlicenciaDocument($word, $model) {
         # Els espais els mana Format.ps1 (Format-Aire 'seccio' / 'subseccio' /
         # 'item'), exactament com _WriteCatalegBody de REQ1: aqui no s'hi inventa
         # cap separacio.
-        Format-Section $sel (_LlicTitolAbans)
+        # ELS QUATRE TITOLS DE BLOC van amb Format-BlockTitle (MAJUSCULES i
+        # subratllat): son el nivell de mes amunt de l'informe, per sobre de les
+        # seccions de REQ1 que hi van a dins.
+        Format-BlockTitle $sel (_LlicTitolAbans)
         Format-Aire $sel 'seccio'
         $n = 0
-        foreach ($p in @($model.Abans)) {
-            $n++
-            _LlicEscriuPunt $sel $p $n $fields ([string]$p.Estat) $false
-            Format-Aire $sel 'item'
-        }
+        _LlicEscriuPunts $sel @($model.Abans) ([ref]$n) $fields $false
+
         # ---- PROJECTE: els requeriments normals de REQ1, com sempre ----
         $proj = @($model.Projecte)
         if ($proj.Count -gt 0) {
-            Format-Subsection $sel 'Projecte'
-            Format-Aire $sel 'subseccio'
-            foreach ($p in $proj) {
-                $n++
-                _LlicEscriuPunt $sel $p $n $fields '' $false
-                Format-Aire $sel 'item'
-            }
+            Format-BlockTitle $sel 'Projecte'
+            Format-Aire $sel 'seccio'
+            _LlicEscriuPunts $sel $proj ([ref]$n) $fields $false
         }
         # ---- DESPRES ----
+        # LA NUMERACIO CONTINUA la del bloc ABANS ($n NO es reinicia): a
+        # l'informe els punts van seguits de cap a peus, no llistes que tornen a
+        # comencar per 1.
         $desp = @($model.Despres)
         if ($desp.Count -gt 0) {
-            Format-Section $sel (_LlicTitolDespres)
+            Format-BlockTitle $sel (_LlicTitolDespres)
             Format-Aire $sel 'seccio'
-            # LA NUMERACIO CONTINUA la del bloc ABANS ($n NO es reinicia): a
-            # l'informe els punts van seguits de cap a peus, no dues llistes que
-            # tornen a comencar per 1.
-            foreach ($p in $desp) {
-                $n++
-                _LlicEscriuPunt $sel $p $n $fields ([string]$p.Estat) $true
-                Format-Aire $sel 'item'
-            }
+            _LlicEscriuPunts $sel $desp ([ref]$n) $fields $true
         }
 
         # ---- CONCLUSIO ----
@@ -940,7 +1026,7 @@ function Build-LlicenciaDocument($word, $model) {
         Format-Conclusion $sel (_LlicConclusioText ([string]$model.Fase) $ambCond)
         if ($ambCond -and [string]$model.Fase -eq 'favorable-pre') {
             Format-Spacer $sel
-            Format-Section $sel ('CONDICIONS LLIC' + [char]0x00C8 + 'NCIA')
+            Format-BlockTitle $sel ('CONDICIONS LLIC' + [char]0x00C8 + 'NCIA')
             foreach ($l in (([string]$model.Condicions) -split "`r?`n")) {
                 if ([string]::IsNullOrWhiteSpace($l)) { continue }
                 Format-Body $sel ([string]$l).Trim() -Bold
@@ -2128,16 +2214,18 @@ function Invoke-LlicenciaWizard {
 # mateixos punts que fa servir la composicio, per no tenir dos camins.
 function _LlicPuntsDeSeleccio($seleccio) {
     $out = New-Object System.Collections.ArrayList
-    foreach ($sec in @($seleccio)) {
-        foreach ($it in @($sec.Items)) {
-            $subs = New-Object System.Collections.ArrayList
-            foreach ($ch in @($it.Children)) { [void]$subs.Add(@($ch.BodyLines)) }
-            [void]$out.Add([pscustomobject]@{
-                Clau = ''; Titol = [string]$it.Short; Condicio = ''
-                Cos = @($it.BodyLines); NoDisposa = @(); SiDisposa = @()
-                Quan = @(); Subs = $subs.ToArray(); Estat = ''
-            })
-        }
+    # Amb la SECCIO, la SUBSECCIO i l'INTRO de cada punt: al bloc PROJECTE hi han
+    # de sortir igual que a REQ1, no una llista plana de punts.
+    foreach ($u in @(_LlicItemsAmbUbicacio $seleccio)) {
+        $it = $u.El
+        $subs = New-Object System.Collections.ArrayList
+        foreach ($ch in @($it.Children)) { [void]$subs.Add(@($ch.BodyLines)) }
+        [void]$out.Add([pscustomobject]@{
+            Clau = ''; Titol = [string]$it.Short; Condicio = ''
+            Seccio = [string]$u.Seccio; Subseccio = [string]$u.Subseccio; Intro = @($u.Intro)
+            Cos = @($it.BodyLines); NoDisposa = @(); SiDisposa = @()
+            Quan = @(); Subs = $subs.ToArray(); Estat = ''
+        })
     }
     return $out.ToArray()
 }

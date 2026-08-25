@@ -142,8 +142,14 @@ if ((Test-Path -LiteralPath $llicJson) -and (Test-Path -LiteralPath $req1Json)) 
     $req1    = Read-CatalegJson $req1Json
     $idx     = _LlicIndexReq1 $req1
     # Escenari FIX: els 3 primers punts de cada bloc, sempre els mateixos.
-    $bAbans  = @(@((_LlicPuntsPerBloc $llicCat $idx 'ABANS').Punts)   | Select-Object -First 3)
-    $bDespres= @(@((_LlicPuntsPerBloc $llicCat $idx 'DESPRES').Punts) | Select-Object -First 3)
+    # $req1 ES OBLIGATORI: sense ell el bloc ABANS no surt de REQ1 i els punts es
+    # queden sense SECCIO ni INTRO -o sigui que el fitxer d'or no representaria
+    # el que genera l'assistent, que si que l'hi passa.
+    $bAbans  = @(@((_LlicPuntsPerBloc $llicCat $idx 'ABANS'   $req1).Punts) | Select-Object -First 4)
+    $bDespres= @(@((_LlicPuntsPerBloc $llicCat $idx 'DESPRES' $req1).Punts) | Select-Object -First 6)
+    # I uns quants punts de PROJECTE, que venen de Select-Items (seccions
+    # senceres): es el bloc on es veu que la seccio de REQ1 hi ha de sortir.
+    $bProj = @(Build-SelectionFromKeys $req1.Sections (@(_GdTriaPrimers $req1 1) | Select-Object -First 3))
     $capcal  = @{ ID_GIA = '1457'; TITULAR = 'TITULAR DE PROVA SL'; CLASSIFICACIO = 'Llei 20/2009; Annex II; Epigraf 12.25' }
 
     foreach ($fase in @('requeriment', 'favorable-pre', 'favorable-post')) {
@@ -152,7 +158,7 @@ if ((Test-Path -LiteralPath $llicJson) -and (Test-Path -LiteralPath $req1Json)) 
         $model = @{
             Fase = $fase; EsProvisional = $false
             Header = $capcal; Fields = [ordered]@{}
-            Abans = $abans; Projecte = @(); Despres = $desp
+            Abans = $abans; Projecte = @(_LlicPuntsDeSeleccio $bProj); Despres = $desp
             Doc = @{ Text = 'La documentacio tecnica ve signada per:'; Items = @('Projecte', 'Planols') }
             Condicions = ''; Cataleg = $llicCat
         }

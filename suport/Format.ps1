@@ -49,11 +49,16 @@ $Script:ReportFormatConfig = @{
     BodyFontName         = 'Bookman Old Style'
     BodyAlignment        = 3        # 3 = wdAlignParagraphJustify (a la plantilla: jc="both")
     BaseLineSpacing      = 1.15     # plantilla: w:line="276" lineRule="auto" -> 1,15 linies
-    # Marges de pagina en PUNTS (plantilla, en twips: 1417/849/993/1701; 20 twips = 1 pt)
+    # Marges de pagina en PUNTS. Han de quadrar amb el sectPr de
+    # '0 CAPCALERA.docx' (en twips: 1417/1416/993/1418; 20 twips = 1 pt): la
+    # plantilla mana a l'informe -que la copia- i aquests valors manen a les
+    # VISTES, que surten d'un document nou. Si divergeixen, la vista deixa de
+    # semblar-se a l'informe.
+    # Esquerra i dreta: 2,5 cm (agost 2026; abans 3,0 / 1,5).
     PageMarginTopPt      = 70.85
-    PageMarginRightPt    = 42.45
+    PageMarginRightPt    = 70.80
     PageMarginBottomPt   = 49.65
-    PageMarginLeftPt     = 85.05
+    PageMarginLeftPt     = 70.90
 
     # Sangries (cm) a l'esquerra
     SectionIndentCm      = 0
@@ -195,13 +200,35 @@ function Format-Section {
     if ($text) { $sel.TypeText(([string]$text).ToUpper()) }
 }
 
+# SUBSECCIO: text normal, sense subratllat (decisio de l'usuari, agost 2026).
+# El subratllat ha passat al TITOL DE BLOC, que es el nivell de mes amunt.
 function Format-Subsection {
     param($sel, $text)
     [void]$sel.TypeParagraph()
     _Reset-Char $sel
     _Apply-Indent $sel $Script:ReportFormatConfig.SubsectionIndentCm
-    $sel.Font.Underline = 1
     $sel.TypeText([string]$text)
+}
+
+# TITOL DE BLOC: el nivell de MES AMUNT d'un informe, per sobre de les seccions
+# del cataleg. MAJUSCULES i SUBRATLLAT.
+#
+# Els informes de Llicencia en tenen quatre -DOCUMENTACIO PROJECTE, PROJECTE i
+# les dues de DOCUMENTACIO NECESSARIA ABANS/DESPRES- i, a dins de cada un, hi
+# van les seccions i subseccions de REQ1. Sense aquest nivell, el titol del bloc
+# i la seccio de REQ1 es veien igual i no es distingia que penjava de que.
+#
+# La jerarquia sencera:
+#   Format-BlockTitle   MAJUSCULES + subratllat   (bloc de l'informe)
+#   Format-Section      MAJUSCULES                (seccio del cataleg)
+#   Format-Subsection   tal qual                  (subseccio del cataleg)
+function Format-BlockTitle {
+    param($sel, $text)
+    [void]$sel.TypeParagraph()
+    _Reset-Char $sel
+    _Apply-Indent $sel $Script:ReportFormatConfig.SectionIndentCm
+    $sel.Font.Underline = 1
+    if ($text) { $sel.TypeText(([string]$text).ToUpper()) }
     $sel.Font.Underline = 0
 }
 

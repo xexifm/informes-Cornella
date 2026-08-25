@@ -75,7 +75,7 @@ function _VistaEsProtegit([string]$jsonPath) {
 #   4 -> separacio entre l'item i el seu PRIMER sub-punt (Format-Bullet -First)
 #   5 -> negreta del numero de l'item aplicada pel RANG (no s'encomana al cos)
 #        i sangria dels fills a 1 cm amb francesa de 0,5 cm
-$Script:VistaWordVersio = 7
+$Script:VistaWordVersio = 8
 
 function _VistaVersioPath {
     $base = [string]$env:LOCALAPPDATA
@@ -141,6 +141,7 @@ function _VistaNivell($sel, [int]$n) { Format-Nivell $sel $n }
 # --- Embolcalls: format de l'informe + nivell d'esquema ---------------------
 function _VSection($sel, [string]$t)  { Format-Section $sel $t;    _VistaNivell $sel 1 }
 function _VSubsection($sel, [string]$t) { Format-Subsection $sel $t; _VistaNivell $sel 2 }
+function _VBlockTitle($sel, [string]$t) { Format-BlockTitle $sel $t; _VistaNivell $sel 1 }
 function _VItem($sel, [string]$num, [string]$t) { Format-Item $sel $num $t; _VistaNivell $sel 3 }
 function _VBody($sel, [string]$t, [bool]$isChild = $false) {
     if ($isChild) { Format-Body $sel $t -IsChild } else { Format-Body $sel $t }
@@ -227,18 +228,24 @@ function _VistaLlicencia($sel, [string]$jsonPath) {
     )
     foreach ($b in $blocs) {
         $r = _LlicPuntsPerBloc $llic $idx ([string]$b.Clau) $req1
-        _VSection $sel ([string]$b.Titol)
+        # LA MATEIXA JERARQUIA QUE L'INFORME: titol de bloc (majuscules i
+        # subratllat), seccio de REQ1 (majuscules) i subseccio (tal qual).
+        _VBlockTitle $sel ([string]$b.Titol)
         _VAire $sel 'seccio'
-        $seccioAra = ''
+        $seccioAra = $null
+        $subAra = $null
         $n = 0
         foreach ($p in @($r.Punts)) {
-            $sec = _LlicSeccioDePunt $p
+            $sec = [string]$p.Seccio
+            $sub = [string]$p.Subseccio
             if ($sec -ne $seccioAra) {
+                if ($sec) { _VSection $sel $sec; _VAire $sel 'seccio' }
                 $seccioAra = $sec
-                if ($sec) {
-                    _VSubsection $sel ('de REQ1: ' + $sec)
-                    _VAire $sel 'subseccio'
-                }
+                $subAra = $null
+            }
+            if ($sub -ne $subAra) {
+                if ($sub) { _VSubsection $sel $sub; _VAire $sel 'subseccio' }
+                $subAra = $sub
             }
             $linies = @($p.Cos)
             $n++

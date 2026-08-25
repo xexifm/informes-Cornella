@@ -1,4 +1,6 @@
-SECT|DOCUMENTACIÓ NECESSÀRIA ABANS DE LA RESOLUCIÓ DE L’ÒRGAN TÈCNIC AMBIENTAL
+BLOC|DOCUMENTACIÓ NECESSÀRIA ABANS DE LA RESOLUCIÓ DE L’ÒRGAN TÈCNIC AMBIENTAL
+AIRE|seccio
+SECT|Autoritzacions / Informes preceptius
 AIRE|seccio
 ITEM|1.|Sanitat. L’activitat està inclosa dins l’Annex del Decret 151/2017, de 17 d'octubre, pel qual s'estableixen els requisits i les garanties tecnicosanitàries comunes dels centres i serveis sanitaris i els procediments per a la seva autorització i registre. S’ha d’obtenir l’Autorització de funcionament (Departament de Salut de la Generalitat de Catalunya).
 URL|https://tramits.gencat.cat/ca/tramits/tramits-temes/Autoritzacio-de-centres-o-serveis-sanitaris
@@ -13,6 +15,10 @@ AIRE|item
 ITEM|3.|Comerç. L’activitat està inclosa dins el Decret Llei 1/2009, del 22 de desembre, d'ordenació dels equipaments comercials. S’ha d’obtenir la llicència comercial d’implantació d’un establiment comercial (Departament d’Empresa i Treball).
 BODY/N/SEP|No es disposa de llicència. S’ha de sol·licitar en el següent enllaç:
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Llicencia-comercial?category=&moda=2
+AIRE|item
+ITEM|4.|Esport. L’activitat està inclosa dins el DECRET LEGISLATIU 1/2000, de 31 de juliol, pel qual s'aprova el Text únic de la Llei de l'esport. S’ha d’haver iniciat el tràmit per obtenir l’informe previ de les actuacions en instal·lacions esportives (Consell Català de l’Esport).
+BODY/N/SEP|No es disposa de l’informe. S’ha de sol·licitar en el següent enllaç:
+URL|https://web.gencat.cat/ca/tramits/tramits-temes/22032-Informe-previ-al-Servei-dEquipaments-Esportius-per-a-la-realitzacio-en-installacions-esportives-a-Catalunya
 AIRE|item
 AIRE|conclusions
 CONCLCAP|CONCLUSIONS

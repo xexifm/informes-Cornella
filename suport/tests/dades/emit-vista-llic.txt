@@ -1,12 +1,12 @@
-SECT|PUNTS PROPIS DE LLICÈNCIA (no son a REQ1)
+BLOC|PUNTS PROPIS DE LLICÈNCIA (no son a REQ1)
 ITEM|1.|Annex II Compatibilitat. Informe o certificat de compatibilitat urbanística signat pel Cap d’Àrea de Gestió de Política Territorial.
 BODY/CH|//[No es disposa]// No es disposa de l’informe o certificat. S’ha de demanar al departament de Política Territorial a través de la seu electrònica.
 BODY/CH|//[Es disposa]// Es disposa de l’informe o certificat (Id Firmadoc: [CAMP: Id Firmadoc]; Exp: [CAMP: Expedient])
 ITEM|2.|Llicència provisional Compatibilitat. Informe preceptiu per a l’autorització d’usos i obres provisionals per part de l’Àrea Metropolitana de Barcelona.
 BODY/CH|//[No es disposa]// No es disposa de l’autorització. S’ha d’enviar a l’ajuntament la documentació que s’indica a l’ANNEX 1.
 BODY/CH|//[Es disposa]// Es disposa de l’autorització (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient])
-SECT|DOCUMENTACIÓ NECESSÀRIA ABANS DE LA RESOLUCIÓ DE L’ÒRGAN TÈCNIC AMBIENTAL
-SUB|de REQ1: Autoritzacions / Informes preceptius
+BLOC|DOCUMENTACIÓ NECESSÀRIA ABANS DE LA RESOLUCIÓ DE L’ÒRGAN TÈCNIC AMBIENTAL
+SECT|Autoritzacions / Informes preceptius
 ITEM|1.|Sanitat. L’activitat està inclosa dins l’Annex del Decret 151/2017, de 17 d'octubre, pel qual s'estableixen els requisits i les garanties tecnicosanitàries comunes dels centres i serveis sanitaris i els procediments per a la seva autorització i registre. S’ha d’obtenir l’Autorització de funcionament (Departament de Salut de la Generalitat de Catalunya).
 URL|https://tramits.gencat.cat/ca/tramits/tramits-temes/Autoritzacio-de-centres-o-serveis-sanitaris
 BODY/CH|//[No es disposa]// No es disposa de l’autorització. S’ha de sol·licitar en el següent enllaç:
@@ -100,11 +100,12 @@ BODY/CH|//[Es disposa]// Es disposa de l’informe preliminar (Id Firmadoc: [CAM
 ITEM|19.|Mobilitat. L’activitat està inclosa dins l’Article 3 del Decret 344/2006, de 19 de setembre, de regulació dels estudis d'avaluació de la mobilitat generada. S’ha de presentar l’estudi d’avaluació de la mobilitat generada a l’ajuntament amb el contingut mínim determinat a l’Article 14 de l’esmentat Decret i obtenir l’informe preceptiu favorable de Guàrdia Urbana.
 BODY/CH|//[No es disposa]// No es disposa de l’informe preliminar.
 BODY/CH|//[Es disposa]// Es disposa de l’informe preliminar (Id Firmadoc: [CAMP: Id Firmadoc])
-SUB|de REQ1: Registres
+SECT|Registres
 ITEM|20.|Nucli zoològic. L’activitat està inclosa dins el Decret Legislatiu 2/2008, de 15 d'abril, pel qual s'aprova el Text refós de la Llei de protecció dels animals. S’ha d’inscriure l’activitat en el Registre de nucli zoològic.
 URL|https://territori.gencat.cat/ca/tramits/tramits-temes/Registre-dun-nucli-zoologic
 BODY/CH|//[No es disposa]// No es disposa del document.
 BODY/CH|//[Es disposa]// Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])
+SUB|Registre d'Agents de la Seguretat Industrial de Catalunya
 ITEM|21.|RASIC. El titular de l’activitat està inclòs dins l’Article 8 de la Llei 9/2014, del 31 de juliol, de la seguretat industrial dels establiments, les instal·lacions i els productes. S’ha de registrar en el següent enllaç:
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Empresa-installadora-mantenidora-i-o-reparadora-dinstallacions-industrials
 BODY/CH|//[No es disposa]// No es disposa del registre. S’ha de registrar en el següent enllaç:
@@ -115,10 +116,12 @@ ITEM|22.|RASIC Taller mecànic. El titular de l’activitat està inclòs dins l
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Taller-de-reparacio-de-vehicles-automobils
 BODY/CH|//[No es disposa]// No es disposa del document.
 BODY/CH|//[Es disposa]// Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])
+SUB|Activitats industrials
 ITEM|23.|Metalls preciosos. L’activitat és fabricant o importadora d'objectes fabricats amb metalls preciosos. Ha d’estar inscrita en el Registre de fabricants i/o importadors de metalls preciosos.
 URL|https://web.gencat.cat/ca/tramits/tramits-temes/Registre-de-fabricants-i-o-importadors-de-metalls-preciosos
 BODY/CH|//[No es disposa]// No es disposa del document.
 BODY/CH|//[Es disposa]// Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])
+SUB|Productes i establiments sanitaris
 ITEM|24.|Fabricació, distribució i venda de productes sanitaris. S’ha de sol·licitar la Comunicació de l’activitat de venda de productes sanitaris i/o de productes sanitaris per a diagnòstic in vitro
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Comunicacio-de-lactivitat-de-venda-de-productes-sanitaris-i-o-de-productes-sanitaris-per-a-diagnostic-in-vitro
 BODY/CH|//[No es disposa]// No es disposa del document.
@@ -153,6 +156,7 @@ ITEM|32.|Desfibril·ladors. S’ha de notificar la instal·lació inscrivint-la 
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Inscripcio-modificacio-i-cancellacio-de-les-dades-dels-desfibrilladors-externs-automatics-de-centres-no-sanitaris
 BODY/CH|//[No es disposa]// No es disposa del document.
 BODY/CH|//[Es disposa]// Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])
+SUB|Registres sanitaris
 ITEM|33.|L'activitat s'ha d'inscriure en el Registre sanitari d’indústries i productes alimentaris de Catalunya (RSIPAC).
 URL|https://web.gencat.cat/ca/tramits/tramits-temes/Registre-sanitari-dindustries-i-productes-alimentaris-de-Cataluya-RSIPAC
 BODY/CH|//[No es disposa]// No es disposa del document.
@@ -161,6 +165,7 @@ ITEM|34.|L’activitat ha de presentar la Declaració responsable en matèria de
 URL|https://www.seu-e.cat/ca/web/cornella/tramits-i-gestions/-/tramits/tramit/14387441?p_auth=xcFulVcY
 BODY/CH|//[No es disposa]// No es disposa del document.
 BODY/CH|//[Es disposa]// Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])
+SUB|Comerç
 ITEM|35.|Comerç de seguretat. S’ha de sol·licitar l’Autorització d'obertura, trasllat i comunicació de reformes d'establiments obligats a disposar de mesures de seguretat i/o de dispensa d'alguna de les mesures.
 URL|https://interior.gencat.cat/ca/tramits/tramits-temes/21558_-_Autoritzacio-dobertura-trasllat-i-comunicacio-de-reformes-destabliments-obligats-a-disposar-de-mesures-de-seguretat-i-o-de-dispensa-dalguna-de-les-mesures
 BODY/CH|//[No es disposa]// No es disposa del document.
@@ -169,7 +174,7 @@ ITEM|36.|API. El titular de l’activitat s’ha d’enregistrar en el Registre 
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Registre_Agents_Immobiliaris_Catalunya
 BODY/CH|//[No es disposa]// No es disposa del document.
 BODY/CH|//[Es disposa]// Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])
-SECT|DOCUMENTACIÓ NECESSÀRIA DESPRÉS DE LA RESOLUCIÓ DE L’ÒRGAN TÈCNIC AMBIENTAL EN ELS TERMINIS DE TEMPS ESPECIFICATS
+BLOC|DOCUMENTACIÓ NECESSÀRIA DESPRÉS DE LA RESOLUCIÓ DE L’ÒRGAN TÈCNIC AMBIENTAL EN ELS TERMINIS DE TEMPS ESPECIFICATS
 ITEM|1.|Certificat Final d’Activitat.
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
 ITEM|2.|Incendis. Acte de comprovació favorable en matèria d’incendis expedit per una Entitat Col·laboradora de l’Administració (EC-PCAA).
@@ -186,7 +191,8 @@ URL/CH|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/P
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
 ITEM|6.|Vector Aigua (AMB). Anàlisi de les aigües residuals (punt final d’abocament).
 BODY/CH|//[Quan]// Abans de tres mesos després de la data d’inici de l’activitat.
-SUB|de REQ1: Incendis
+SECT|Incendis
+SUB|Documentació (ITC SP)
 ITEM|7.|SP 136 Model A Certificat d’instal·lació de productes de limitació de la propagació d’incendis, adjuntant com a mínim:
 BODY|- Documents de subministrament del producte
 BODY|- Documents acreditatius de les prestacions del producte
@@ -207,14 +213,14 @@ BODY|- Documents de subministrament del producte
 BODY|- Documents acreditatius de les prestacions del producte
 URL|https://interior.gencat.cat/web/.content/home/030_arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/instruccions_tecniques_complementaries/documents/sp108.pdf
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-SUB|de REQ1: Pla d'Autoprotecció
+SECT|Pla d'Autoprotecció
 ITEM|11.|PAU. L’activitat està inclosa dins l’Annex I del Decret 30/2015, de 3 de març, pel qual s'aprova el catàleg d'activitats i centres obligats a adoptar mesures d'autoprotecció i es fixa el contingut d'aquestes mesures. S’ha d’elaborar el Pla d’Autoprotecció amb el contingut mínim determinat a l’Annex II de l’esmentat Decret i obtenir el certificat d’homologació del Pla d’Autoprotecció de Protecció civil [OPCIO: Competència PAU | de Catalunya | local].
 URL|https://canalempresa.gencat.cat/ca/02_serveis_per_temes/instal-lacions-i-seguretat/prevencio-accidents/plans-autoproteccio/
 BODY/CH|//[Quan]// Iniciar el tràmit abans de sis mesos després de la data d’inici de l’activitat.
 ITEM|12.|PAU. L’activitat està inclosa dins l’Annex I del Decret 30/2015, de 3 de març, pel qual s'aprova el catàleg d'activitats i centres obligats a adoptar mesures d'autoprotecció i es fixa el contingut d'aquestes mesures. S’ha de revisar el Pla d’Autoprotecció amb el contingut mínim determinat a l’Annex II de l’esmentat Decret i presentar l’informe favorable emès per Protecció civil [OPCIO: Competència PAU | de Catalunya | local].
 URL|https://canalempresa.gencat.cat/ca/02_serveis_per_temes/instal-lacions-i-seguretat/prevencio-accidents/plans-autoproteccio/
 BODY/CH|//[Quan]// Iniciar el tràmit abans de sis mesos després de la data d’inici de l’activitat.
-SUB|de REQ1: Controls inicials
+SECT|Controls inicials
 ITEM|13.|Annex III Llei 20/2009. Segons l’article 6 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha d’entregar una certificació tècnica inicial amb resultat favorable per part d’una Entitat Col·laboradora de l'Administració. El titular queda assabentat que els controls periòdics posteriors s'han d'efectuar cada vuit anys, tal i com s’indica a l’article 7 de la mateixa Ordenança.
 URL|https://www.gencat.cat/mediamb/ohec/eac_CA.pdf
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
@@ -226,7 +232,7 @@ BODY|- El CAE (Control Atmosfèric de l'Establiment)
 BODY|- L'informe reglamentari de mesures d'emissions a l’atmosfera
 URL|https://www.gencat.cat/mediamb/oaec/ec_atm_CA.pdf
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-SUB|de REQ1: Controls periòdics
+SECT|Controls periòdics
 ITEM|16.|Decret 112/2010. L’activitat es troba regulada pel DECRET 112/2010, de 31 d'agost, pel qual s'aprova el Reglament d'espectacles públics i activitats recreatives. S’ha de realitzar un control periòdic amb resultat favorable per part d’una Entitat Col·laboradora de l'Administració conforme l’article 8 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat. El titular queda assabentat que els controls periòdics posteriors s'han d'efectuar cada quatre anys, tal i com s’indica a l’article 132 del mateix Decret.
 URL|https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/entitats_col_laboradores_de_l_administracio/entitats-tecnics-habilitats/
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
@@ -245,7 +251,8 @@ URL|https://www.gencat.cat/mediamb/oaec/ec_atm_CA.pdf
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
 ITEM|21.|Vector Sòl. L’activitat està inclosa dins l’Annex I del //Real Decreto 9/2005, de 14 de enero, por el que se establece la relación de actividades potencialmente contaminantes del suelo y los criterios y estándares para la declaración de suelos contaminados//. S’ha de presentar l’informe de situació periòdic coincidint amb el termini de revisió de la llicència o, en defecte, cada 10 anys.
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-SUB|de REQ1: Instal·lacions
+SECT|Instal·lacions
+SUB|Legalitzacions
 ITEM|22.|Instal·lació d’autoconsum (fotovoltaica)
 URL|https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/03_energia/Autoconsum/
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
@@ -304,6 +311,7 @@ BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
 ITEM|38.|Instal·lacions de raigs X per a usos mèdics i veterinaris
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Registre-dinstallacions-de-raigs-X-per-a-usos-medics-i-veterinaris
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
+SUB|Inspeccions inicials
 ITEM|39.|Instal·lació fotovoltaica >25 kW. L’activitat està inclosa dins l’apartat 4.1 de la //ITC-BT-05 VERIFICACIONES E INSPECCIONES// del //Real Decreto 842/2002, de 2 de agosto, por el que se aprueba el Reglamento electrotécnico para baja tensión//. S’ha de presentar la inspecció inicial de la instal·lació fotovoltaica per part d’un organisme de control habilitat.
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
 ITEM|40.|Gas. L’activitat està inclosa dins l’article 2 del //Real Decreto 919/2006, de 28 de julio, por el que se aprueba el Reglamento técnico de distribución y utilización de combustibles gaseosos y sus instrucciones técnicas complementarias ICG 01 a 11//. S’ha de presentar la inspecció inicial de gas per una empresa instal·ladora de gas.
@@ -314,6 +322,7 @@ ITEM|42.|Baixa Tensió. L’activitat està inclosa dins l’apartat 4.1 de la I
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
 ITEM|43.|Ascensors. L’activitat està inclosa dins l’article 1 de //Real Decreto 355/2024, de 2 de abril, por el que se aprueba la Instrucción Técnica Complementaria ITC AEM 1 «Ascensores»//. S’ha de presentar la inspecció inicial de l’ascensor o ascensors per part d’un organisme de control habilitat.
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
+SUB|Inspeccions periòdiques
 ITEM|44.|Instal·lació fotovoltaica >25 kW. L’activitat està inclosa dins l’apartat 4.1 de la //ITC-BT-05 VERIFICACIONES E INSPECCIONES del Real Decreto 842/2002, de 2 de agosto, por el que se aprueba el Reglamento electrotécnico para baja tensión//. S’ha de presentar la inspecció periòdica de la instal·lació fotovoltaica per part d’un organisme de control habilitat (vigència 5 anys).
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
 ITEM|45.|Gas. L’activitat està inclosa dins l’article 2 del //Real Decreto 919/2006, de 28 de julio, por el que se aprueba el Reglamento técnico de distribución y utilización de combustibles gaseosos y sus instrucciones técnicas complementarias ICG 01 a 11//. S’ha de presentar la inspecció periòdica de gas per una empresa instal·ladora de gas (vigència 5 anys).
