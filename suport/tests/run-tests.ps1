@@ -4677,6 +4677,13 @@ Assert (_LlicPortaDocProjecte 'favorable-pre')  'Doc projecte: al favorable pre,
 Assert (_LlicPortaDocProjecte 'favorable-post') 'Doc projecte: al favorable post, tambe'
 Assert (-not (_LlicPortaDocProjecte 'requeriment')) 'Doc projecte: al requeriment, NO'
 Assert (-not (_LlicPortaDocProjecte 'mns')) 'Doc projecte: a la MNS tampoc'
+# I el bloc PROJECTE es EL CONTRARI: nomes al requeriment. Son complementaris.
+Assert (_LlicPortaProjecte 'requeriment') 'Bloc PROJECTE: al requeriment, si'
+Assert (-not (_LlicPortaProjecte 'favorable-pre'))  'Bloc PROJECTE: al favorable pre, NO'
+Assert (-not (_LlicPortaProjecte 'favorable-post')) 'Bloc PROJECTE: al favorable post, NO'
+foreach ($fx in @('requeriment', 'favorable-pre', 'favorable-post')) {
+    Assert ((_LlicPortaProjecte $fx) -ne (_LlicPortaDocProjecte $fx)) ('Complementaris a ' + $fx + ': o el bloc o la documentacio, mai tots dos')
+}
 
 # I sobre el document sencer: l'ordre i els dos comptadors.
 $llicOrd = $null
@@ -4732,8 +4739,9 @@ if ($null -ne $llicOrd -and $null -ne $req1Ord) {
     [void](Build-LlicenciaDocument $wdO $modelO)
     $emP = @($global:emitCalls)
     Assert ([bool]($emP[0] -like 'BLOC|DOCUMENTACI* PROJECTE')) 'Favorable: la doc del projecte va dalt de tot'
-    $blocsP = @($emP | Where-Object { $_ -like 'BLOC|*' })
-    Assert ([bool]($blocsP[1] -like 'BLOC|Projecte')) 'Favorable: ...i despres el bloc PROJECTE'
+    # I el bloc PROJECTE NO hi surt: aquells requeriments ja estan resolts.
+    Assert (-not ($emP | Where-Object { $_ -eq 'BLOC|Projecte' })) 'Favorable: el bloc PROJECTE no hi surt'
+    Assert (-not ($emP | Where-Object { $_ -match '^ITEM\|[A-Z]+\.\|' })) 'Favorable: ...i per tant cap punt amb lletra'
     $env:TEMP = $tmpO
 }
 

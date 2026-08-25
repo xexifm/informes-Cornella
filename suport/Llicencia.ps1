@@ -919,13 +919,22 @@ function _LlicEscriuPunt($sel, $punt, [string]$marca, $fields, [string]$estat, [
     }
 }
 
-# PORTA AQUEST INFORME LA DOCUMENTACIO DEL PROJECTE? Funcio PURA.
+# EL BLOC PROJECTE I LA DOCUMENTACIO DEL PROJECTE SON COMPLEMENTARIS, i les dues
+# regles van juntes perque son la mateixa idea vista de les dues bandes:
 #
-# Al REQUERIMENT no: s'hi demanen modificacions al projecte i als planols, o
-# sigui que aquella documentacio encara no es definitiva. Als FAVORABLES si, i
-# al principi de tot.
+#   REQUERIMENT   -> hi ha requeriments de projecte (bloc PROJECTE, amb lletres)
+#                    i per tant el projecte i els planols encara s'han de
+#                    modificar: la documentacio NO es definitiva i no hi surt.
+#   FAVORABLES    -> ja no queden requeriments de projecte (el bloc no hi surt)
+#                    i la documentacio ja es la bona: hi va, i dalt de tot.
+#
+# Funcions PURES, i la regla escrita en un sol lloc.
 function _LlicPortaDocProjecte([string]$fase) {
     return ([string]$fase -eq 'favorable-pre' -or [string]$fase -eq 'favorable-post')
+}
+
+function _LlicPortaProjecte([string]$fase) {
+    return ([string]$fase -eq 'requeriment')
 }
 
 # LA MARCA D'UN PUNT: "1." o "A.". Funcions PURES.
@@ -1050,18 +1059,21 @@ function Build-LlicenciaDocument($word, $model) {
         }
 
         # ---- PROJECTE ----
-        # VA EL PRIMER dels blocs de requeriments i amb LLETRES (A, B, C...).
-        # El motiu de les lletres no es estetic: quan aquests requeriments quedin
-        # resolts, el bloc desapareix i la resta de la documentacio ha de
-        # conservar la MATEIXA numeracio. Amb tot numerat, l'"1." passaria a ser
-        # una altra cosa i el titular no ho podria comparar amb el que ja tenia.
+        # NOMES AL REQUERIMENT (vegeu _LlicPortaProjecte): als favorables aquests
+        # requeriments ja estan resolts i el bloc no te cap sentit.
+        #
+        # Va EL PRIMER de tot i amb LLETRES (A, B, C...). El motiu de les lletres
+        # no es estetic: quan aquests requeriments quedin resolts, el bloc
+        # desapareix i la resta de la documentacio ha de conservar la MATEIXA
+        # numeracio. Amb tot numerat, l'"1." passaria a ser una altra cosa i el
+        # titular no ho podria comparar amb el que ja tenia.
         #
         # Els espais els mana Format.ps1 (Format-Aire 'seccio' / 'subseccio' /
         # 'item'), exactament com _WriteCatalegBody de REQ1: aqui no s'hi inventa
         # cap separacio. I ELS TITOLS DE BLOC van amb Format-BlockTitle
         # (MAJUSCULES i subratllat): son el nivell de mes amunt de l'informe, per
         # sobre de les seccions de REQ1 que hi van a dins.
-        $proj = @($model.Projecte)
+        $proj = if (_LlicPortaProjecte ([string]$model.Fase)) { @($model.Projecte) } else { @() }
         if ($proj.Count -gt 0) {
             Format-BlockTitle $sel 'Projecte'
             Format-Aire $sel 'seccio'

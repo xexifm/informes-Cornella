@@ -4,27 +4,6 @@ BODY|La documentacio tecnica ve signada per:
 BULLET/CH/1r|Projecte
 BULLET/CH|Planols
 AIRE|item
-BLOC|Projecte
-AIRE|seccio
-SECT|Requeriment pendent
-AIRE|seccio
-ITEM|A.|S’ha de donar resposta a l’anterior requeriment amb Núm. de registre: .
-BODY|COPIAR REQUERIMENT
-BODY|I a més a més, esmenar els següents punts:
-AIRE|item
-SECT|Classificació
-AIRE|seccio
-ITEM|B.|L’activitat està classificada segons l’Annex , epígraf  de la LLEI 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats.
-AIRE|item
-SECT|Desistiment comunicació
-AIRE|seccio
-ITEM|C.|La comunicació presenta els següents defectes de caràcter essencial:
-BODY|a) Les dades consignades no permeten d’identificar degudament el titular o tècnic i l’activitat exercida, ni les característiques que siguin rellevants per a determinar la normativa aplicable.
-BODY|b) Les dades consignades no són certes i s’han alterat voluntàriament per tal d’atribuir a la comunicació algun dels elements o requisits essencials necessaris.
-BODY|c) L’activitat no disposa d’alguna de les llicències o comunicacions sectorials o urbanístiques necessàries.
-BODY|d) No es presenta la documentació necessària o bé aquesta no s’adequa a l’objecte o a les finalitats de l’establiment o l’activitat.
-BODY|e) S’han omès l’informe i el certificat de l’acte de comprovació d’incendis o el permís d’abocament, o qualsevol altre informe o control previ preceptiu o necessari d’acord amb la normativa sectorial.
-AIRE|item
 BLOC|DOCUMENTACIÓ NECESSÀRIA ABANS DE LA RESOLUCIÓ DE L’ÒRGAN TÈCNIC AMBIENTAL
 AIRE|seccio
 SECT|Autoritzacions / Informes preceptius
