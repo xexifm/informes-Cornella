@@ -4394,4 +4394,66 @@ Write-Host "`n--- Write-Informe (l'aire i el -First els decideix el motor) ---"
     Assert $petat 'Motor: un tipus de bloc desconegut peta (no s''ho empassa)'
 }.Invoke() | Out-Null
 
+# ---------------------------------------------------------------------------
+# Una sola linia en blanc entre la capcalera i el cos
+# ---------------------------------------------------------------------------
+# La plantilla no en porta les mateixes a cada bloc (el generic i el de LLIC en
+# tenien DUES despres d'"INFORME", el d'ACT_EXTR una), i per aixo uns informes
+# sortien amb un forat mes gros que els altres.
+Write-Host "`n--- Capcalera: una sola linia en blanc al final ---"
+AssertEq (_CapBlancsQueSobren @('INFORME', '', '')) 1 'Capcalera: de dos blancs, en sobra un'
+AssertEq (_CapBlancsQueSobren @('INFORME', '')) 0 'Capcalera: amb un, no en sobra cap'
+AssertEq (_CapBlancsQueSobren @('INFORME')) 0 'Capcalera: sense cap, tampoc'
+AssertEq (_CapBlancsQueSobren @('INFORME', '', '', '')) 2 'Capcalera: de tres, en sobren dos'
+# El Word acaba cada paragraf amb \r (i les cel·les amb \a): han de comptar com a buits.
+AssertEq (_CapBlancsQueSobren @("INFORME`r", "`r", "   `r")) 1 'Capcalera: el \r del Word no fa que un blanc sembli text'
+AssertEq (_CapBlancsQueSobren @()) 0 'Capcalera: sense paragrafs, res a fer'
+# I que no es mengi text de debo.
+AssertEq (_CapBlancsQueSobren @('', 'INFORME')) 0 'Capcalera: si l''ultim porta text, no en sobra cap'
+
+# SOBRE LA PLANTILLA REAL: cada bloc ha d'acabar amb un sol blanc DESPRES de
+# normalitzar. Es la comprovacio que lliga la regla al fitxer de debo.
+$capBlancPath = Join-Path $EstructuralsDir '0 CAPCALERA.docx'
+if (Test-Path -LiteralPath $capBlancPath) {
+    Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction SilentlyContinue
+    $zipB = [System.IO.Compression.ZipFile]::OpenRead($capBlancPath)
+    try {
+        $entB = $zipB.GetEntry('word/document.xml')
+        $srB = New-Object System.IO.StreamReader($entB.Open())
+        $xmlB = $srB.ReadToEnd(); $srB.Close()
+    } finally { $zipB.Dispose() }
+    # Els paragrafs, en ordre, amb el seu text.
+    $parasB = @([regex]::Matches($xmlB, '<w:p\b(?:[^>]*/>|[^>]*>.*?</w:p>)', 'Singleline') | ForEach-Object {
+        (([regex]::Matches($_.Value, '<w:t[^>]*>(.*?)</w:t>', 'Singleline') | ForEach-Object { $_.Groups[1].Value }) -join '')
+    })
+    # Cada bloc va d'un marcador [[CAP:x]] al seguent; el generic, del principi
+    # al primer marcador.
+    $tallsB = @(0)
+    for ($i = 0; $i -lt $parasB.Count; $i++) {
+        if ((_CapMarcador $parasB[$i]) -ne '') { $tallsB += ($i + 1) }
+    }
+    $blocsB = @()
+    for ($k = 0; $k -lt $tallsB.Count; $k++) {
+        $ini = $tallsB[$k]
+        $fi = if ($k -lt ($tallsB.Count - 1)) { $tallsB[$k + 1] - 1 } else { $parasB.Count }
+        $blocsB += ,@($parasB[$ini..($fi - 1)])
+    }
+    AssertEq $blocsB.Count 3 'Capcalera: la plantilla te tres blocs (generic, ACT_EXTR, LLIC)'
+    foreach ($b in $blocsB) {
+        $q = @($b | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
+        $darrer = if ($q.Count) { [string]$q[$q.Count - 1] } else { '' }
+        # Cada bloc acaba amb "INFORME" i despres nomes blancs.
+        Assert ([bool]($darrer.Trim() -eq 'INFORME')) 'Capcalera: el bloc acaba amb INFORME'
+    }
+    # I despres de normalitzar, cap bloc no pot quedar amb mes d'un blanc.
+    foreach ($b in $blocsB) {
+        $sobren = _CapBlancsQueSobren $b
+        $blancs = 0
+        for ($i = @($b).Count - 1; $i -ge 0; $i--) {
+            if ([string]::IsNullOrWhiteSpace([string]@($b)[$i])) { $blancs++ } else { break }
+        }
+        AssertEq ($blancs - $sobren) 1 'Capcalera: el bloc queda amb UNA sola linia en blanc'
+    }
+}
+
 exit (Write-TestSummary 'RESULTAT')

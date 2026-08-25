@@ -77,6 +77,78 @@ ITEM|13.|Vector Aigua (AMB). Anàlisi de les aigües residuals (punt final d’a
 BODY|Quan: Abans de tres mesos després de la data d’inici de l’activitat.
 BODY/N/SEP|No es disposa de la documentació.
 AIRE|item
+SECT|Incendis
+AIRE|seccio
+SUB|Documentació (ITC SP)
+AIRE|subseccio
+BODY|Segons l’article 3.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha d’entregar la Certificació d'instal·lació o aplicació de productes de protecció passiva contra incendis adjuntant la corresponen documentació complementària:
+AIRE|intro
+ITEM|14.|SP 136 Model A Certificat d’instal·lació de productes de limitació de la propagació d’incendis, adjuntant com a mínim:
+BODY|- Documents de subministrament del producte
+BODY|- Documents acreditatius de les prestacions del producte
+URL|https://interior.gencat.cat/web/.content/home/030_arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/instruccions_tecniques_complementaries/documents/SP-136_A-Model-certificat-limitacio-propagacio.doc
+BODY|Quan: Abans d’iniciar l’activitat.
+BODY/N/SEP|No es disposa de la documentació.
+AIRE|item
+ITEM|15.|SP 136 Model B Certificat d’aplicació de productes de millora de la reacció al foc, adjuntant com a mínim:
+BODY|- Documents de subministrament del producte
+BODY|- Documents acreditatius de les prestacions del producte
+URL|https://interior.gencat.cat/web/.content/home/030_arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/instruccions_tecniques_complementaries/documents/SP-136_B-Model-certificat-millora-reaccio-al-foc.doc
+BODY|Quan: Abans d’iniciar l’activitat.
+BODY/N/SEP|No es disposa de la documentació.
+AIRE|item
+ITEM|16.|SP 136 Model C Certificat d'instal·lació o aplicació de productes de protecció d'estructures, adjuntant com a mínim:
+BODY|- Documents de subministrament del producte
+BODY|- Documents acreditatius de les prestacions del producte
+URL|https://interior.gencat.cat/web/.content/home/030_arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/instruccions_tecniques_complementaries/documents/SP-136_C-Model-certificat-proteccio-estructures.doc
+BODY|Quan: Abans d’iniciar l’activitat.
+BODY/N/SEP|No es disposa de la documentació.
+AIRE|item
+ITEM|17.|ITC SP 108. Segons l’article 3.2 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha de justificar el compliment de la SP 108. Lluernes en coberta en establiments industrials, adjuntant com a mínim:
+BODY|- Documents de subministrament del producte
+BODY|- Documents acreditatius de les prestacions del producte
+URL|https://interior.gencat.cat/web/.content/home/030_arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/instruccions_tecniques_complementaries/documents/sp108.pdf
+BODY|Quan: Abans d’iniciar l’activitat.
+BODY/N/SEP|No es disposa de la documentació.
+AIRE|item
+SECT|Pla d'Autoprotecció
+AIRE|seccio
+ITEM|18.|PAU. L’activitat està inclosa dins l’Annex I del Decret 30/2015, de 3 de març, pel qual s'aprova el catàleg d'activitats i centres obligats a adoptar mesures d'autoprotecció i es fixa el contingut d'aquestes mesures. S’ha d’elaborar el Pla d’Autoprotecció amb el contingut mínim determinat a l’Annex II de l’esmentat Decret i obtenir el certificat d’homologació del Pla d’Autoprotecció de Protecció civil .
+URL|https://canalempresa.gencat.cat/ca/02_serveis_per_temes/instal-lacions-i-seguretat/prevencio-accidents/plans-autoproteccio/
+BODY|Quan: Iniciar el tràmit abans de sis mesos després de la data d’inici de l’activitat.
+BODY/N/SEP|No es disposa de la documentació.
+AIRE|item
+ITEM|19.|PAU. L’activitat està inclosa dins l’Annex I del Decret 30/2015, de 3 de març, pel qual s'aprova el catàleg d'activitats i centres obligats a adoptar mesures d'autoprotecció i es fixa el contingut d'aquestes mesures. S’ha de revisar el Pla d’Autoprotecció amb el contingut mínim determinat a l’Annex II de l’esmentat Decret i presentar l’informe favorable emès per Protecció civil .
+URL|https://canalempresa.gencat.cat/ca/02_serveis_per_temes/instal-lacions-i-seguretat/prevencio-accidents/plans-autoproteccio/
+BODY|Quan: Iniciar el tràmit abans de sis mesos després de la data d’inici de l’activitat.
+BODY/N/SEP|No es disposa de la documentació.
+AIRE|item
+SECT|Controls inicials
+AIRE|seccio
+ITEM|20.|Annex III Llei 20/2009. Segons l’article 6 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha d’entregar una certificació tècnica inicial amb resultat favorable per part d’una Entitat Col·laboradora de l'Administració. El titular queda assabentat que els controls periòdics posteriors s'han d'efectuar cada vuit anys, tal i com s’indica a l’article 7 de la mateixa Ordenança.
+URL|https://www.gencat.cat/mediamb/ohec/eac_CA.pdf
+BODY|Quan: Abans d’iniciar l’activitat.
+BODY/N/SEP|No es disposa de la documentació.
+AIRE|item
+ITEM|21.|Annex II Llei 20/2009. L’activitat es troba regulada pel LLEI 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats. S’ha de realitzar un control inicial amb resultat favorable per part d’una Entitat Col·laboradora de l'Administració, com s’indica a l’Article 69 de la Llei. El titular queda assabentat que els controls periòdics posteriors s'han d'efectuar cada sis anys, tal i com s’indica a l’article 71 de la mateixa Llei.
+URL|https://www.gencat.cat/mediamb/ohec/eac_CA.pdf
+BODY|Quan: Abans d’iniciar l’activitat.
+BODY/N/SEP|No es disposa de la documentació.
+AIRE|item
+ITEM|22.|Vector Atmosfera. L’activitat està inclosa dins l’Annex IV de la //Ley 34/2007, de 15 de noviembre, de calidad del aire y protección de la atmosfera//. S’ha d’entregar, per part d’una Entitat de control en l’àmbit sectorial de la prevenció de la contaminació atmosfèrica [EC-A], tal i com s’indica a l’Article 16 del DECRET 139/2018, de 3 de juliol, sobre els règims d'intervenció ambiental atmosfèrica dels establiments on es desenvolupin activitats potencialment contaminants de l'atmosfera:
+BODY|- El CAE (Control Atmosfèric de l'Establiment)
+BODY|- L'informe reglamentari de mesures d'emissions a l’atmosfera
+URL|https://www.gencat.cat/mediamb/oaec/ec_atm_CA.pdf
+BODY|Quan: Abans d’iniciar l’activitat.
+BODY/N/SEP|No es disposa de la documentació.
+AIRE|item
+SECT|Controls periòdics
+AIRE|seccio
+ITEM|23.|Decret 112/2010. L’activitat es troba regulada pel DECRET 112/2010, de 31 d'agost, pel qual s'aprova el Reglament d'espectacles públics i activitats recreatives. S’ha de realitzar un control periòdic amb resultat favorable per part d’una Entitat Col·laboradora de l'Administració conforme l’article 8 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat. El titular queda assabentat que els controls periòdics posteriors s'han d'efectuar cada quatre anys, tal i com s’indica a l’article 132 del mateix Decret.
+URL|https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/entitats_col_laboradores_de_l_administracio/entitats-tecnics-habilitats/
+BODY|Quan: Abans d’iniciar l’activitat.
+BODY/N/SEP|No es disposa de la documentació.
+AIRE|item
 AIRE|conclusions
 CONCLCAP|CONCLUSIONS
 CONCL|**S’informa favorablement l’activitat i es dóna per tancat l’expedient.**

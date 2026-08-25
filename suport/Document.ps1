@@ -47,7 +47,9 @@ function Select-CapcaleraBlock($doc, [string]$which) {
             [void]$marcadors.Add(@{ Tipus = $tipus; Start = $p.Range.Start; End = $p.Range.End })
         }
     }
-    if ($marcadors.Count -eq 0) { return }   # capcalera d'un sol bloc: res a fer
+    # Capcalera d'un sol bloc: no hi ha res a retallar, pero la linia en blanc
+    # del final s'ha de normalitzar igualment.
+    if ($marcadors.Count -eq 0) { _CapNormalitzaFinal $doc; return }
 
     # Quin tros ens quedem: [inici, fi) del bloc demanat.
     $iniciBloc = 0
@@ -68,6 +70,43 @@ function Select-CapcaleraBlock($doc, [string]$which) {
     }
     if ($iniciBloc -gt 0) {
         $doc.Range(0, $iniciBloc).Delete() | Out-Null
+    }
+
+    # I una sola linia en blanc al final, sigui quin sigui el bloc.
+    _CapNormalitzaFinal $doc
+}
+
+# EXACTAMENT UNA LINIA EN BLANC entre la capcalera i el cos, a TOTS els informes.
+#
+# La plantilla no en porta les mateixes a cada bloc: el generic (REQ1, TERMINI) i
+# el de LLIC n'hi tenen DUES despres d'"INFORME", i el d'ACT_EXTR, una. Per aixo
+# uns informes sortien amb un forat mes gros que els altres.
+#
+# Es una regla de FORMAT, i per aixo viu al codi i no al .docx: aixi val per als
+# tres blocs alhora i no pot tornar el dia que algu editi la capcalera amb el
+# Word i hi deixi un paragraf buit de mes.
+#
+# PURA: rep els textos dels paragrafs i diu QUANTS blancs del final sobren.
+function _CapBlancsQueSobren($textos) {
+    $n = 0
+    for ($i = @($textos).Count - 1; $i -ge 0; $i--) {
+        $t = ([string]@($textos)[$i]).Trim([char]13, [char]10, [char]7, ' ')
+        if ([string]::IsNullOrWhiteSpace($t)) { $n++ } else { break }
+    }
+    if ($n -le 1) { return 0 }
+    return ($n - 1)
+}
+
+function _CapNormalitzaFinal($doc) {
+    $textos = New-Object System.Collections.ArrayList
+    foreach ($p in $doc.Paragraphs) { [void]$textos.Add([string]$p.Range.Text) }
+    $sobren = _CapBlancsQueSobren $textos.ToArray()
+    for ($k = 0; $k -lt $sobren; $k++) {
+        $n = $doc.Paragraphs.Count
+        if ($n -lt 2) { break }
+        # S'esborra el PENULTIM: l'ultima marca de paragraf d'un document de Word
+        # no es pot esborrar.
+        $doc.Paragraphs.Item($n - 1).Range.Delete() | Out-Null
     }
 }
 

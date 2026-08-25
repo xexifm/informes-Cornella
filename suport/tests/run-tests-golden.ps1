@@ -146,7 +146,11 @@ if ((Test-Path -LiteralPath $llicJson) -and (Test-Path -LiteralPath $req1Json)) 
     # queden sense SECCIO ni INTRO -o sigui que el fitxer d'or no representaria
     # el que genera l'assistent, que si que l'hi passa.
     $bAbans  = @(@((_LlicPuntsPerBloc $llicCat $idx 'ABANS'   $req1).Punts) | Select-Object -First 4)
-    $bDespres= @(@((_LlicPuntsPerBloc $llicCat $idx 'DESPRES' $req1).Punts) | Select-Object -First 6)
+    # PROU PUNTS per arribar a les seccions EXPANDIDES de REQ1: els sis primers
+    # son text propi de LLIC (sense seccio, com va decidir l'usuari) i les
+    # subseccions i els textos fixos comencen despres. Amb menys, el fitxer d'or
+    # no cobriria justament el que ha de vigilar.
+    $bDespres= @(@((_LlicPuntsPerBloc $llicCat $idx 'DESPRES' $req1).Punts) | Select-Object -First 16)
     # I uns quants punts de PROJECTE, que venen de Select-Items (seccions
     # senceres): es el bloc on es veu que la seccio de REQ1 hi ha de sortir.
     $bProj = @(Build-SelectionFromKeys $req1.Sections (@(_GdTriaPrimers $req1 1) | Select-Object -First 3))

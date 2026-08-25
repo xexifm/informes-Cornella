@@ -702,17 +702,15 @@ function _LlicPuntsAmbEstatFase($punts, [string]$fase) {
         $nod = @($p.NoDisposa); $sid = @($p.SiDisposa)
         if ($nod.Count -eq 0) { $nod = @($ef.NoDisposa) }
         if ($sid.Count -eq 0) { $sid = @($ef.SiDisposa) }
-        [void]$out.Add([pscustomobject]@{
-            Clau      = $p.Clau
-            Subseccio = $p.Subseccio
-            Titol     = $p.Titol
-            Condicio  = $p.Condicio
-            Cos       = @($p.Cos)
-            NoDisposa = $nod
-            SiDisposa = $sid
-            Quan      = @($p.Quan)
-            Subs      = @($p.Subs)
-        })
+        # LA COPIA ES 'Select-Object *', NO una llista de camps a ma. Aqui hi
+        # havia els nou camps enumerats i, en afegir-hi Seccio i Intro, es van
+        # PERDRE en silenci: el bloc DESPRES -el mes gros- sortia amb les
+        # subseccions pero sense les seccions ni els textos fixos. No petava:
+        # simplement faltaven. Ho va enxampar un fitxer d'or.
+        $c = $p | Select-Object *
+        $c.NoDisposa = $nod
+        $c.SiDisposa = $sid
+        [void]$out.Add($c)
     }
     return $out.ToArray()
 }
@@ -1691,11 +1689,15 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
                 if ($ambSubs -and -not [bool]$e.Subs[$k]) { continue }
                 [void]$subs.Add(@($p.Subs)[$k])
             }
-            [void]$sel.Add(([pscustomobject]@{
-                Clau = $p.Clau; Titol = $p.Titol; Condicio = $p.Condicio
-                Cos = $p.Cos; NoDisposa = $no; SiDisposa = $si
-                Quan = $p.Quan; Subs = $subs.ToArray(); Estat = [string]$e.Estat
-            }))
+            # 'Select-Object *' i no una llista de camps: el punt porta tambe la
+            # SECCIO, la SUBSECCIO i l'INTRO de REQ1, i enumerar-los aqui vol dir
+            # que el dia que se n'afegeixi un es perdi en silenci. Ja va passar.
+            $c = $p | Select-Object *
+            $c.NoDisposa = $no
+            $c.SiDisposa = $si
+            $c.Subs = $subs.ToArray()
+            $c | Add-Member NoteProperty Estat ([string]$e.Estat) -Force
+            [void]$sel.Add($c)
         }
         $res.Punts = $sel.ToArray()
         $res.Memoria = $mem
