@@ -82,13 +82,21 @@ function _DefaultCaixeti {
 #     la dreta del text i ningu no ho hauria dit.
 $Script:A4AmplePt = 595.276      # 21 cm
 
+# ELS QUATRE VALORS HAN DE SER ENTERS. AutoFirma llegeix
+# signaturePositionOnPage* com a NOMBRES ENTERS, i un "324.48" no li val: es
+# queda sense la configuracio del caixeti i la signatura surt INVISIBLE, sense
+# dir res. Va passar exactament aixo en fer que la dreta sortis del marge: el
+# calcul donava 524,476 i el caixeti va desapareixer.
+#
+# Mig punt no es veu, o sigui que arrodonir no costa res; el que costava era
+# el decimal.
 function _CaixetiPosDefecte {
     $cfg = $Script:ReportFormatConfig
     $dreta = if ($null -ne $cfg -and $null -ne $cfg.PageMarginRightPt) {
-        [Math]::Round($Script:A4AmplePt - [double]$cfg.PageMarginRightPt, 2)
+        [int][Math]::Round($Script:A4AmplePt - [double]$cfg.PageMarginRightPt, 0)
     } else { 552 }
     # L'amplada del requadre (200 pt) i l'alcada (48) no depenen del marge.
-    return @{ Page = 1; LLX = [Math]::Round($dreta - 200, 2); LLY = 752; URX = $dreta; URY = 800 }
+    return @{ Page = 1; LLX = ([int]$dreta - 200); LLY = 752; URX = [int]$dreta; URY = 800 }
 }
 
 $Script:AutoFirmaCaixetiPos = _CaixetiPosDefecte

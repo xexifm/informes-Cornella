@@ -974,6 +974,15 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
     de línia REALS com a `<LF>` i deixa els `\n` LITERALS tal qual. Abans tots
     dos sortien com a `\n` i el log no permetia saber quin era quin — que és
     justament el que calia per depurar.
+  - **ELS QUATRE VALORS DE POSICIÓ HAN DE SER ENTERS.** AutoFirma llegeix
+    `signaturePositionOnPage*` com a **nombres enters**: amb un `324.48` es
+    queda sense la configuració del caixetí i **la signatura surt INVISIBLE**,
+    sense cap error ni cap codi de sortida diferent. Va passar de debò en fer
+    que la dreta sortís del marge del text (`595,276 − 70,8 = 524,476`): el
+    caixetí va desaparèixer i el programa no ho va dir. Mig punt no es veu, o
+    sigui que arrodonir no costa res; el que costava era el decimal. Hi ha
+    prova que ho vigila —sobre el mapa i sobre les línies que es passen de
+    debò—, validada tornant a posar-hi els decimals.
   - **Posició: ALINEADA amb la capçalera de l'informe, i els números són
     MESURATS**, no posats a ull. Es descomprimeix el flux de contingut de la
     pàgina 1 d'un informe ja generat i se'n treu que: la imatge del logo es

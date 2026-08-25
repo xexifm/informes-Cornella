@@ -1482,6 +1482,21 @@ $refEscutDalt = 800.01
 $refTextDreta = $Script:A4AmplePt - $Script:ReportFormatConfig.PageMarginRightPt
 Assert ([bool]([Math]::Abs([double]$cxP.URY - $refEscutDalt) -le 1.0)) 'AutoFirmaCaixetiPos: el dalt del caixeti va alineat amb la punta de l''escut de la capcalera'
 Assert ([bool]([Math]::Abs([double]$cxP.URX - $refTextDreta) -le 1.0)) 'AutoFirmaCaixetiPos: la dreta del caixeti va alineada amb el marge dret del text'
+
+# ELS QUATRE VALORS HAN DE SER ENTERS, i aixo NO es cosmetica: AutoFirma llegeix
+# signaturePositionOnPage* com a nombres ENTERS. Amb un "324.48" es queda sense
+# la configuracio del caixeti i la signatura surt INVISIBLE, sense dir res ni
+# donar cap codi d'error. Va passar de debo en fer que la dreta sortis del marge
+# del text: el calcul donava 524,476 i el caixeti va desapareixer.
+foreach ($k in @('Page', 'LLX', 'LLY', 'URX', 'URY')) {
+    $v = $cxP[$k]
+    Assert ([bool]([double]$v -eq [Math]::Floor([double]$v))) ('AutoFirmaCaixetiPos: ' + $k + ' es un ENTER (AutoFirma no accepta decimals)')
+}
+# I el que se li passa de debo tampoc pot portar cap punt decimal.
+foreach ($ln in @(_AutoFirmaPosLines)) {
+    $val = ([string]$ln -split '=', 2)[1]
+    Assert ([bool]($val -match '^\d+$')) ('AutoFirmaPosLines: "' + $ln + '" ha de ser un enter pelat')
+}
 AssertEq ([int]$cxP.URX - [int]$cxP.LLX) 200 'AutoFirmaCaixetiPos: l''amplada del caixeti no ha canviat (nomes s''ha mogut)'
 AssertEq ([int]$cxP.URY - [int]$cxP.LLY) 48  'AutoFirmaCaixetiPos: l''alcada del caixeti no ha canviat (nomes s''ha mogut)'
 # SEPARADOR: el \n LITERAL (2 caracters), MAI un salt de linia real. Ho fa
