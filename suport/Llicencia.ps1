@@ -678,6 +678,22 @@ function _LlicObreIAvisa($word, [string]$out) {
 # Van juntes al mateix menu perque per a l'usuari son "l'informe de la
 # llicencia" i comparteixen capcalera; el que canvia es el document que en
 # surt, i d'aixo ja se n'ocupa cada modul.
+# QUINA FASE SURT MARCADA. Funcio PURA.
+#
+# Retorna $preFase si es de la llista, i si no la PRIMERA de la llista.
+#
+# ATENCIO al motiu: aqui hi havia un 'requeriment' escrit al codi com a
+# respatller. Des que MNS/Traspas te entrada propia, la seva llista NO en te
+# cap, i la pantalla petava amb "La propiedad 'Checked' no se encuentra en este
+# objeto" -perque $radios['requeriment'] era $null. Cap llista de fases pot
+# donar per fet quines fases porta.
+function _LlicFasePerDefecte($fases, [string]$preFase) {
+    $llista = @($fases)
+    if ($llista.Count -eq 0) { return '' }
+    foreach ($f in $llista) { if ([string]$f.Clau -eq [string]$preFase) { return [string]$preFase } }
+    return [string]$llista[0].Clau
+}
+
 function _LlicTotesLesFases {
     $out = New-Object System.Collections.ArrayList
     foreach ($f in @(_LlicFases)) { [void]$out.Add($f) }
@@ -1259,7 +1275,10 @@ function Select-LlicFase($preFase, $preProv, $fases = $null, [string]$titol = ''
         $radios[[string]$f.Clau] = $rb
         $y += 46
     }
-    if (-not ($radios.Values | Where-Object { $_.Checked })) { $radios['requeriment'].Checked = $true }
+    if (-not ($radios.Values | Where-Object { $_.Checked })) {
+        $perDefecte = _LlicFasePerDefecte $llista $preFase
+        if ($radios.ContainsKey($perDefecte)) { $radios[$perDefecte].Checked = $true }
+    }
 
     $cbProv = New-Object System.Windows.Forms.CheckBox
     $cbProv.Location = New-Object System.Drawing.Point(30, ($y + 6))
@@ -2052,7 +2071,10 @@ function Invoke-LlicenciaWizard($fases = $null, [string]$titol = '') {
     # $st.Fields es el diccionari de camps COMPARTIT de tot l'assistent (el
     # mateix paper que a Invoke-NouWizard): els [CAMP:]/[OPCIO:] s'hi omplen
     # alla on surten i despres la composicio els hi busca.
-    $st = @{ Fase = 'requeriment'; Prov = $false; Tecnic = @{}; Condicions = ''
+    # La fase inicial surt de la llista d'AQUEST assistent, no d'un literal: la
+    # de MNS/Traspas no te cap 'requeriment'.
+    $st = @{ Fase = (_LlicFasePerDefecte $(if ($null -ne $fases) { $fases } else { _LlicTotesLesFases }) 'requeriment')
+             Prov = $false; Tecnic = @{}; Condicions = ''
              Fields = [ordered]@{}
              # El que s'havia triat a cada pantalla de documentacio, per no
              # perdre-ho quan l'usuari torna ENRERE (era exactament el que

@@ -4799,6 +4799,23 @@ Assert ([bool]($wizSrc -match ($q + 'mnstraspas' + $q + '\s*\{'))) 'Menu: ...i e
 # I cada entrada ofereix NOMES les seves fases.
 AssertEq (@(_LlicFases).Count) 3 'Llicencia: tres fases (requeriment i els dos favorables)'
 AssertEq (@(_MnsFases).Count) 2  'MNS/Traspas: dues fases'
+# QUINA FASE SURT MARCADA. Aqui hi havia un 'requeriment' escrit al codi com a
+# respatller i, des que MNS/Traspas te entrada propia -i la seva llista no en te
+# cap-, la pantalla petava amb "La propiedad 'Checked' no se encuentra en este
+# objeto". Cap llista de fases pot donar per fet quines fases porta.
+AssertEq (_LlicFasePerDefecte (_LlicFases) 'requeriment') 'requeriment' 'Fase per defecte: si la preferida hi es, aquella'
+AssertEq (_LlicFasePerDefecte (_MnsFases) 'requeriment') 'mns' 'Fase per defecte: si NO hi es, la primera de la llista'
+AssertEq (_LlicFasePerDefecte (_MnsFases) 'traspas') 'traspas' 'Fase per defecte: respecta el que ja s''havia triat'
+AssertEq (_LlicFasePerDefecte @() 'requeriment') '' 'Fase per defecte: llista buida, cadena buida (i no peta)'
+AssertEq (_LlicFasePerDefecte (_LlicFases) '') 'requeriment' 'Fase per defecte: sense preferencia, la primera'
+# I que no torni a apareixer cap clau de fase escrita a pel com a respatller.
+$rxRad = '\$radios\[' + $q + '[a-z-]+' + $q + '\]'
+$radLit = @()
+foreach ($ln in ((Get-Content -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'Llicencia.ps1') -Raw) -split "`r?`n")) {
+    if ($ln.TrimStart().StartsWith('#')) { continue }   # els comentaris no compten
+    if ([regex]::IsMatch($ln, $rxRad)) { $radLit += $ln.Trim() }
+}
+AssertEq $radLit.Count 0 ('Select-LlicFase: cap radio buscat per una clau escrita al codi' + $(if ($radLit.Count) { ' -> ' + ($radLit -join ' | ') } else { '' }))
 AssertEq (@(_LlicTotesLesFases).Count) 5 '_LlicTotesLesFases: segueix ajuntant-les (la fan servir la base de dades i la vista)'
 foreach ($f in @(_MnsFases)) {
     Assert (-not (@(_LlicFases) | Where-Object { [string]$_.Clau -eq [string]$f.Clau })) ('Llicencia no ofereix la fase "' + $f.Clau + '"')
