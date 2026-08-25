@@ -816,7 +816,7 @@ function _LlicNomFitxer([datetime]$data, [string]$fase, [string]$idGia, [string]
 #
 # Tot el format surt de Format.ps1: aqui no s'hi inventa res. L'unic afegit es
 # el color, que Format-Body ja sap aplicar.
-function _LlicEscriuPunt($sel, $punt, [int]$numero, $fields, [string]$estat, [bool]$ambQuan) {
+function _LlicEscriuPunt($sel, $punt, [string]$marca, $fields, [string]$estat, [bool]$ambQuan) {
     # ON VA L'ENLLAC. El comentari acaba dient "...en el seguent enllac:", o
     # sigui que l'enllac ha d'anar JUST DESPRES d'aquella frase. Pero el cos de
     # l'item (que ve de REQ1) sol portar EL MATEIX enllac, i sortia abans -amb
@@ -849,7 +849,7 @@ function _LlicEscriuPunt($sel, $punt, [int]$numero, $fields, [string]$estat, [bo
     # El numero i el text van junts a Format-Item; l'URL que porti la PRIMERA
     # linia s'emet a part, com fa REQ1 (_WriteCatalegBody).
     $p0 = _SplitTextAndUrls ([string]$primera)
-    Format-Item $sel ([string]$numero + '.') $p0.Text
+    Format-Item $sel ([string]$marca) $p0.Text
     foreach ($u in @($p0.Urls)) {
         $c = ([string]$u).Trim()
         if ($vistos.Contains($c)) { continue }
@@ -919,6 +919,42 @@ function _LlicEscriuPunt($sel, $punt, [int]$numero, $fields, [string]$estat, [bo
     }
 }
 
+# PORTA AQUEST INFORME LA DOCUMENTACIO DEL PROJECTE? Funcio PURA.
+#
+# Al REQUERIMENT no: s'hi demanen modificacions al projecte i als planols, o
+# sigui que aquella documentacio encara no es definitiva. Als FAVORABLES si, i
+# al principi de tot.
+function _LlicPortaDocProjecte([string]$fase) {
+    return ([string]$fase -eq 'favorable-pre' -or [string]$fase -eq 'favorable-post')
+}
+
+# LA MARCA D'UN PUNT: "1." o "A.". Funcions PURES.
+#
+# EL BLOC PROJECTE VA AMB LLETRES i la resta amb numeros, i el motiu no es
+# estetic: quan els requeriments de projecte queden resolts han de desapareixer
+# de l'informe SENSE que la resta de la documentacio es renumeri. Amb tot
+# numerat, el dia que el bloc PROJECTE marxa, l'"1." passa a ser una altra cosa
+# i el titular no pot comparar-ho amb el que ja tenia.
+#
+# Passades les 26, segueix com les columnes de l'Excel: AA, AB... Aixi no hi ha
+# cap topall amagat.
+function _LlicLletra([int]$i) {
+    if ($i -le 0) { return '' }
+    $s = ''
+    $n = $i
+    while ($n -gt 0) {
+        $n--
+        $s = ([string][char](65 + ($n % 26))) + $s
+        $n = [int][Math]::Floor($n / 26)
+    }
+    return $s
+}
+
+function _LlicMarca([int]$i, [string]$estil) {
+    if ([string]$estil -eq 'lletra') { return ((_LlicLletra $i) + '.') }
+    return ([string]$i + '.')
+}
+
 # ESCRIU UNA LLISTA DE PUNTS AMB LA SEVA ESTRUCTURA DE REQ1: la SECCIO en
 # majuscules, la SUBSECCIO i el TEXT FIX que l'encapcala, i despres els punts.
 #
@@ -931,7 +967,7 @@ function _LlicEscriuPunt($sel, $punt, [int]$numero, $fields, [string]$estat, [bo
 #
 # $n va per REFERENCIA: la numeracio de l'informe es SEGUIDA de cap a peus, no
 # una llista nova per bloc.
-function _LlicEscriuPunts($sel, $punts, [ref]$n, $fields, [bool]$ambQuan) {
+function _LlicEscriuPunts($sel, $punts, [ref]$n, $fields, [bool]$ambQuan, [string]$estil = 'numero') {
     $secAra = $null
     $subAra = $null
     $introAra = $null
@@ -970,7 +1006,7 @@ function _LlicEscriuPunts($sel, $punts, [ref]$n, $fields, [bool]$ambQuan) {
             $introAra = $clauIntro
         }
         $n.Value++
-        _LlicEscriuPunt $sel $p $n.Value $fields ([string]$p.Estat) $ambQuan
+        _LlicEscriuPunt $sel $p (_LlicMarca $n.Value $estil) $fields ([string]$p.Estat) $ambQuan
         Format-Aire $sel 'item'
     }
 }
@@ -992,46 +1028,57 @@ function Build-LlicenciaDocument($word, $model) {
     return Write-InformeDocx $word $baseName 'LLIC' $header {
         param($sel)
         # ---- DOCUMENTACIO DEL PROJECTE ----
-        # VA LA PRIMERA i FORA de la numeracio: es el que el tecnic ha aportat,
-        # no un requeriment. Abans sortia al final del bloc ABANS, numerada i
-        # sota un subtitol subratllat "Documentacio"; a l'informe fet a ma va
-        # dalt de tot, amb el titol de seccio "DOCUMENTACIO PROJECTE" i el text
-        # en cos normal.
-        $doc1 = [string]$model.Doc.Text
-        if (-not [string]::IsNullOrWhiteSpace($doc1)) {
-            Format-BlockTitle $sel ('DOCUMENTACI' + [char]0x00D3 + ' PROJECTE')
-            Format-Aire $sel 'seccio'
-            Format-Body $sel $doc1
-            $primer = $true
-            foreach ($d in @($model.Doc.Items)) {
-                if ($primer) { Format-Bullet $sel ([string]$d) -IsChild -First; $primer = $false }
-                else { Format-Bullet $sel ([string]$d) -IsChild }
+        # NOMES ALS FAVORABLES, i alli va al principi de tot.
+        #
+        # Al REQUERIMENT no hi va: si s'estan demanant modificacions al projecte
+        # i als planols, aquella documentacio ENCARA NO ES DEFINITIVA i no te
+        # sentit donar-la per bona. Quan ho sera -al favorable pre i al post- hi
+        # surt, i dalt de tot. (Decisio de l'usuari, agost 2026.)
+        if (_LlicPortaDocProjecte ([string]$model.Fase)) {
+            $doc1 = [string]$model.Doc.Text
+            if (-not [string]::IsNullOrWhiteSpace($doc1)) {
+                Format-BlockTitle $sel ('DOCUMENTACI' + [char]0x00D3 + ' PROJECTE')
+                Format-Aire $sel 'seccio'
+                Format-Body $sel $doc1
+                $primer = $true
+                foreach ($d in @($model.Doc.Items)) {
+                    if ($primer) { Format-Bullet $sel ([string]$d) -IsChild -First; $primer = $false }
+                    else { Format-Bullet $sel ([string]$d) -IsChild }
+                }
+                Format-Aire $sel 'item'
             }
-            Format-Aire $sel 'item'
         }
-        # ---- ABANS ----
+
+        # ---- PROJECTE ----
+        # VA EL PRIMER dels blocs de requeriments i amb LLETRES (A, B, C...).
+        # El motiu de les lletres no es estetic: quan aquests requeriments quedin
+        # resolts, el bloc desapareix i la resta de la documentacio ha de
+        # conservar la MATEIXA numeracio. Amb tot numerat, l'"1." passaria a ser
+        # una altra cosa i el titular no ho podria comparar amb el que ja tenia.
+        #
         # Els espais els mana Format.ps1 (Format-Aire 'seccio' / 'subseccio' /
         # 'item'), exactament com _WriteCatalegBody de REQ1: aqui no s'hi inventa
-        # cap separacio.
-        # ELS QUATRE TITOLS DE BLOC van amb Format-BlockTitle (MAJUSCULES i
-        # subratllat): son el nivell de mes amunt de l'informe, per sobre de les
-        # seccions de REQ1 que hi van a dins.
+        # cap separacio. I ELS TITOLS DE BLOC van amb Format-BlockTitle
+        # (MAJUSCULES i subratllat): son el nivell de mes amunt de l'informe, per
+        # sobre de les seccions de REQ1 que hi van a dins.
+        $proj = @($model.Projecte)
+        if ($proj.Count -gt 0) {
+            Format-BlockTitle $sel 'Projecte'
+            Format-Aire $sel 'seccio'
+            $lletra = 0
+            _LlicEscriuPunts $sel $proj ([ref]$lletra) $fields $false 'lletra'
+        }
+
+        # ---- ABANS ----
         Format-BlockTitle $sel (_LlicTitolAbans)
         Format-Aire $sel 'seccio'
         $n = 0
         _LlicEscriuPunts $sel @($model.Abans) ([ref]$n) $fields $false
 
-        # ---- PROJECTE: els requeriments normals de REQ1, com sempre ----
-        $proj = @($model.Projecte)
-        if ($proj.Count -gt 0) {
-            Format-BlockTitle $sel 'Projecte'
-            Format-Aire $sel 'seccio'
-            _LlicEscriuPunts $sel $proj ([ref]$n) $fields $false
-        }
         # ---- DESPRES ----
-        # LA NUMERACIO CONTINUA la del bloc ABANS ($n NO es reinicia): a
-        # l'informe els punts van seguits de cap a peus, no llistes que tornen a
-        # comencar per 1.
+        # LA NUMERACIO CONTINUA la del bloc ABANS ($n NO es reinicia): els punts
+        # numerats van seguits de cap a peus. El bloc PROJECTE no hi compta: te
+        # el seu comptador de lletres.
         $desp = @($model.Despres)
         if ($desp.Count -gt 0) {
             Format-BlockTitle $sel (_LlicTitolDespres)

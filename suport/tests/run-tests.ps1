@@ -2607,7 +2607,14 @@ if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path 
         $iProj = [Array]::FindIndex([string[]]$emF, [Predicate[string]]{ param($x) $x -like 'BLOC|DOCUMENTACI* PROJECTE' })
         $iAb   = [Array]::FindIndex([string[]]$emF, [Predicate[string]]{ param($x) $x -like 'BLOC|*ABANS*' })
         $iDe   = [Array]::FindIndex([string[]]$emF, [Predicate[string]]{ param($x) $x -like 'BLOC|*DESPR*' })
-        Assert ($iProj -ge 0 -and $iProj -lt $iAb) ($fs + ': la documentacio del projecte va la primera')
+        # LA DOCUMENTACIO DEL PROJECTE NOMES VA ALS FAVORABLES, i alli dalt de tot.
+        # Al REQUERIMENT no hi va: s'hi demanen modificacions al projecte i als
+        # planols, o sigui que aquella documentacio encara no es definitiva.
+        if (_LlicPortaDocProjecte $fs) {
+            Assert ($iProj -ge 0 -and $iProj -lt $iAb) ($fs + ': la documentacio del projecte va la primera')
+        } else {
+            AssertEq $iProj -1 ($fs + ': al requeriment NO hi va la documentacio del projecte')
+        }
         Assert ($iAb -ge 0 -and $iAb -lt $iDe) ($fs + ': ...despres ABANS i despres DESPRES')
         Assert (-not (@($emF) | Where-Object { $_ -like 'SUB|Documentaci*' })) ($fs + ': ja no hi ha el subtitol "Documentacio"')
         # El bloc DESPRES: primer el "Quan:", despres si es disposa o no.
@@ -2682,7 +2689,7 @@ if (Test-Path -LiteralPath $llicPathX) {
         SiDisposa = @(); Quan = @(); Subs = @()
     }
     $global:emitCalls.Clear()
-    _LlicEscriuPunt $selU $puntU 2 ([ordered]@{}) 'no' $false
+    _LlicEscriuPunt $selU $puntU '2.' ([ordered]@{}) 'no' $false
     $emU = @($global:emitCalls)
     $iCom = [Array]::FindIndex([string[]]$emU, [Predicate[string]]{ param($x) $x -like 'BODY*|No es disposa*' })
     $iUrl = [Array]::FindIndex([string[]]$emU, [Predicate[string]]{ param($x) $x -like 'URL*' })
@@ -2696,7 +2703,7 @@ if (Test-Path -LiteralPath $llicPathX) {
         NoDisposa = @('No es disposa.'); SiDisposa = @(); Quan = @(); Subs = @()
     }
     $global:emitCalls.Clear()
-    _LlicEscriuPunt $selU $puntU2 1 ([ordered]@{}) 'no' $false
+    _LlicEscriuPunt $selU $puntU2 '1.' ([ordered]@{}) 'no' $false
     $emU2 = @($global:emitCalls)
     $iUrl2 = [Array]::FindIndex([string[]]$emU2, [Predicate[string]]{ param($x) $x -like 'URL*' })
     $iCom2 = [Array]::FindIndex([string[]]$emU2, [Predicate[string]]{ param($x) $x -like 'BODY*|No es disposa*' })
@@ -4062,7 +4069,7 @@ $puntF = [pscustomobject]@{
     Subs = @(, @('[[URL]] https://exemple.cat/nomes-enllac'))
 }
 $global:emitCalls.Clear()
-_LlicEscriuPunt $null $puntF 1 ([ordered]@{}) 'no' $false
+_LlicEscriuPunt $null $puntF '1.' ([ordered]@{}) 'no' $false
 $emF = @($global:emitCalls)
 # F1: la linia d'estat va SEPARADA (i en negreta, que ja hi era).
 Assert ([bool]($emF | Where-Object { $_ -like 'BODY/N/SEP|No es disposa*' })) 'F1: la linia d''estat va separada del cos del punt'
@@ -4070,7 +4077,7 @@ Assert ([bool]($emF | Where-Object { $_ -like 'BODY/N/SEP|No es disposa*' })) 'F
 $puntF2 = $puntF | Select-Object *
 $puntF2.NoDisposa = @('Primera linia.', 'Segona linia.')
 $global:emitCalls.Clear()
-_LlicEscriuPunt $null $puntF2 1 ([ordered]@{}) 'no' $false
+_LlicEscriuPunt $null $puntF2 '1.' ([ordered]@{}) 'no' $false
 $sepF = @(@($global:emitCalls) | Where-Object { $_ -like '*/SEP|*' })
 AssertEq $sepF.Count 1 'F1: nomes la primera linia del comentari va separada'
 # F3: l'enllac d'un sub-punt SENSE text no va sagnat.
@@ -4081,7 +4088,7 @@ Assert (-not ($emF | Where-Object { $_ -like 'URL/CH|*' })) 'F3: ...cap enllac d
 $puntF3 = $puntF | Select-Object *
 $puntF3.Subs = @(, @('Text del sub-punt', '[[URL]] https://exemple.cat/amb-pic'))
 $global:emitCalls.Clear()
-_LlicEscriuPunt $null $puntF3 1 ([ordered]@{}) 'no' $false
+_LlicEscriuPunt $null $puntF3 '1.' ([ordered]@{}) 'no' $false
 $emF3 = @($global:emitCalls)
 Assert ([bool]($emF3 | Where-Object { $_ -like 'BULLET/CH/1r|Text del sub-punt' })) 'F3: amb text, el sub-punt emet el seu pic'
 Assert ([bool]($emF3 | Where-Object { $_ -eq 'URL/CH|https://exemple.cat/amb-pic' })) 'F3: ...i llavors l''enllac SI que va sagnat'
@@ -4633,6 +4640,101 @@ if ($null -ne $req1TF -and $null -ne $llicTF) {
     & $comprova 'Vista LLIC' $global:emitCalls
 
     $env:TEMP = $tmpTF
+}
+
+# ---------------------------------------------------------------------------
+# Llicencia: PROJECTE va el primer i amb LLETRES; la doc del projecte, nomes
+# als favorables
+# ---------------------------------------------------------------------------
+# Les lletres NO son estetica: quan els requeriments de projecte queden
+# resolts, el bloc desapareix i la resta de la documentacio ha de conservar la
+# MATEIXA numeracio. Amb tot numerat, l'"1." passaria a ser una altra cosa i el
+# titular no ho podria comparar amb el que ja tenia.
+function _GdTriaPrimersOrd($parsed) {
+    $c = New-Object System.Collections.ArrayList
+    foreach ($sec in @($parsed.Sections)) {
+        foreach ($el in @($sec.Items)) {
+            if ([string]$el.Kind -eq 'subsection' -or [string]$el.Kind -eq 'intro') { continue }
+            [void]$c.Add((_ItemKey ([string]$sec.Title) ([string]$el.Short)))
+            break
+        }
+    }
+    return $c.ToArray()
+}
+Write-Host "`n--- Llicencia: PROJECTE amb lletres i la doc nomes als favorables ---"
+AssertEq (_LlicLletra 1) 'A'   '_LlicLletra: 1 -> A'
+AssertEq (_LlicLletra 4) 'D'   '_LlicLletra: 4 -> D'
+AssertEq (_LlicLletra 26) 'Z'  '_LlicLletra: 26 -> Z'
+AssertEq (_LlicLletra 27) 'AA' '_LlicLletra: 27 -> AA (com les columnes de l''Excel, sense topall)'
+AssertEq (_LlicLletra 28) 'AB' '_LlicLletra: 28 -> AB'
+AssertEq (_LlicLletra 52) 'AZ' '_LlicLletra: 52 -> AZ'
+AssertEq (_LlicLletra 53) 'BA' '_LlicLletra: 53 -> BA'
+AssertEq (_LlicLletra 0) ''    '_LlicLletra: 0 -> res'
+AssertEq (_LlicMarca 3 'numero') '3.' '_LlicMarca: numero'
+AssertEq (_LlicMarca 3 'lletra') 'C.' '_LlicMarca: lletra'
+AssertEq (_LlicMarca 3 '') '3.'       '_LlicMarca: per defecte, numero'
+Assert (_LlicPortaDocProjecte 'favorable-pre')  'Doc projecte: al favorable pre, si'
+Assert (_LlicPortaDocProjecte 'favorable-post') 'Doc projecte: al favorable post, tambe'
+Assert (-not (_LlicPortaDocProjecte 'requeriment')) 'Doc projecte: al requeriment, NO'
+Assert (-not (_LlicPortaDocProjecte 'mns')) 'Doc projecte: a la MNS tampoc'
+
+# I sobre el document sencer: l'ordre i els dos comptadors.
+$llicOrd = $null
+try { $llicOrd = Read-LlicCataleg (Join-Path $EstructuralsDir 'LLIC.json') } catch { }
+$req1Ord = $null
+try { $req1Ord = Read-CatalegJson (Join-Path $EstructuralsDir 'REQ1.json') } catch { }
+if ($null -ne $llicOrd -and $null -ne $req1Ord) {
+    . (Join-Path $PSScriptRoot 'FormatDoubles.ps1')
+    $sdO = [pscustomobject]@{ Range = [pscustomobject]@{ Start = 0; End = 0 } }
+    $sdO | Add-Member ScriptMethod EndKey { param($u) } -Force
+    $sdO | Add-Member ScriptMethod InsertBreak { param($b) } -Force
+    $ddO = [pscustomobject]@{}
+    $ddO | Add-Member ScriptMethod Activate {} -Force
+    $ddO | Add-Member ScriptMethod Save {} -Force
+    $ddO | Add-Member ScriptMethod Close { param($x) } -Force
+    $wdO = [pscustomobject]@{ Selection = $sdO }
+    $script:_docO = $ddO
+    function _ResolveOutputDir { return ([System.IO.Path]::GetTempPath()) }
+    function _GetUniqueOutputPath($d, $b) { return (Join-Path $d $b) }
+    function _OpenOutputDocument($w, $p) { return $script:_docO }
+    function Select-CapcaleraBlock($d, $w) { }
+    function Apply-HeaderReplacements { param($doc, $header) }
+    $tmpO = $env:TEMP
+    if ([string]::IsNullOrWhiteSpace($env:TEMP)) { $env:TEMP = [System.IO.Path]::GetTempPath() }
+
+    $idxO = _LlicIndexReq1 $req1Ord
+    $abansO = @(@((_LlicPuntsPerBloc $llicOrd $idxO 'ABANS' $req1Ord).Punts) | Select-Object -First 2 |
+                ForEach-Object { $_ | Select-Object * | Add-Member NoteProperty Estat 'no' -PassThru -Force })
+    $projO = @(_LlicPuntsDeSeleccio (Build-SelectionFromKeys $req1Ord.Sections (@(_GdTriaPrimersOrd $req1Ord) | Select-Object -First 3)))
+    $modelO = @{
+        Fase = 'requeriment'; EsProvisional = $false
+        Header = @{ ID_GIA = '1'; TITULAR = 'X'; CLASSIFICACIO = 'Y' }; Fields = [ordered]@{}
+        Abans = $abansO; Projecte = $projO; Despres = @()
+        Doc = @{ Text = 'Signada pel tecnic:'; Items = @('Projecte') }; Condicions = ''; Cataleg = $llicOrd
+    }
+    $global:emitCalls.Clear()
+    [void](Build-LlicenciaDocument $wdO $modelO)
+    $emO = @($global:emitCalls)
+    $blocsO = @($emO | Where-Object { $_ -like 'BLOC|*' })
+    Assert ([bool]($blocsO[0] -like 'BLOC|Projecte')) 'Ordre: PROJECTE va el PRIMER de tot al requeriment'
+    Assert (-not ($emO | Where-Object { $_ -like 'BLOC|DOCUMENTACI* PROJECTE' })) 'Ordre: al requeriment no hi ha la doc del projecte'
+    # PROJECTE amb lletres, ABANS amb numeros que comencen per 1.
+    $marquesO = @($emO | Where-Object { $_ -like 'ITEM|*' } | ForEach-Object { ($_ -split '\|')[1] })
+    Assert ([bool]($marquesO[0] -eq 'A.')) 'Marques: el bloc PROJECTE comenca per A.'
+    $numsO = @($marquesO | Where-Object { $_ -match '^\d+\.$' })
+    Assert ([bool]($numsO[0] -eq '1.')) 'Marques: la numeracio de la documentacio comenca per 1. (les lletres no hi compten)'
+    $lletresO = @($marquesO | Where-Object { $_ -match '^[A-Z]+\.$' })
+    AssertEq ($lletresO -join ',') 'A.,B.,C.' 'Marques: A., B., C. seguides'
+
+    # I al FAVORABLE, la doc del projecte hi es i va DALT DE TOT.
+    $modelO.Fase = 'favorable-pre'
+    $global:emitCalls.Clear()
+    [void](Build-LlicenciaDocument $wdO $modelO)
+    $emP = @($global:emitCalls)
+    Assert ([bool]($emP[0] -like 'BLOC|DOCUMENTACI* PROJECTE')) 'Favorable: la doc del projecte va dalt de tot'
+    $blocsP = @($emP | Where-Object { $_ -like 'BLOC|*' })
+    Assert ([bool]($blocsP[1] -like 'BLOC|Projecte')) 'Favorable: ...i despres el bloc PROJECTE'
+    $env:TEMP = $tmpO
 }
 
 exit (Write-TestSummary 'RESULTAT')
