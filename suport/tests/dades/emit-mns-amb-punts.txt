@@ -1,6 +1,8 @@
 BODY|En relació a la sol·licitud de Modificació NO Substancial presentada a l’Ajuntament de Cornellà de Llobregat on es justifiquen les següents modificacions:
 AIRE|item
 LLISTA|
+BODY|i un cop avaluades seguint els CRITERIS DE SUBSTANCIALITAT DE LES MODIFICACIONS DE LES ACTIVITATS DE LA LLEI 20/2009, DEL 4 DE DESEMBRE, DE PREVENCIÓ I CONTROL AMBIENTAL D'ACTIVITATS (Aprovats el 18 d’octubre de 2016 i modificats el 26 d’abril de 2018, el 27 de maig de 2020 i el 19 de desembre de 2023) en base a l’article 59.2 de la //Llei 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats//:
+AIRE|item
 BODY|**S’informa FAVORABLEMENT de la Modificació NO substancial presentada amb les següents observacions:**
 AIRE|item
 SECT|Requeriment pendent

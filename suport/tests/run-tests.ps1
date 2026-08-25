@@ -3657,8 +3657,22 @@ foreach ($fM in @('mns', 'traspas')) {
 # que l'escriu l'usuari a ma); el Traspas no en porta cap.
 AssertEq (@(@(_MnsParagrafs $catM 'mns' $false) | Where-Object { [string]$_.Tipus -eq 'llista' }).Count) 1 'mns: la llista de modificacions hi es sempre'
 AssertEq (@(@(_MnsParagrafs $catM 'traspas' $true) | Where-Object { [string]$_.Tipus -eq 'llista' }).Count) 0 'traspas: cap llista'
-# I fora el paragraf dels criteris de substancialitat, que no es al document bo.
-Assert (-not ((@(@(_MnsParagrafs $catM 'mns' $true) | ForEach-Object { @($_.Linies) }) -join ' ') -like '*CRITERIS DE SUBSTANCIALITAT*')) 'mns: fora el paragraf dels criteris de substancialitat'
+# EL PARAGRAF DELS CRITERIS DE SUBSTANCIALITAT HI ES, i va DESPRES de la llista
+# de modificacions i ABANS de la frase d'observacions. (El vaig treure quan el
+# _BE de l'agost no el portava; l'usuari l'ha tornat a posar, o sigui que ara
+# la prova diu el contrari i el text torna a viure al cataleg.)
+foreach ($ambObsM in @($true, $false)) {
+    $parasM = @(_MnsParagrafs $catM 'mns' $ambObsM)
+    $textM = @($parasM | ForEach-Object { @($_.Linies) -join ' ' })
+    $iCri = [Array]::FindIndex([string[]]$textM, [Predicate[string]]{ param($x) $x -like '*CRITERIS DE SUBSTANCIALITAT*' })
+    Assert ($iCri -ge 0) ('mns: hi ha el paragraf dels criteris de substancialitat (obs=' + $ambObsM + ')')
+    $iLli = [Array]::FindIndex([string[]]@($parasM | ForEach-Object { [string]$_.Tipus }), [Predicate[string]]{ param($x) $x -eq 'llista' })
+    Assert ($iLli -ge 0 -and $iCri -gt $iLli) 'mns: ...i va DESPRES de la llista de modificacions'
+    $iObs = [Array]::FindIndex([string[]]$textM, [Predicate[string]]{ param($x) $x -like '*S*informa FAVORABLEMENT*' })
+    Assert ($iObs -ge 0 -and $iCri -lt $iObs) 'mns: ...i ABANS de la frase d''observacions'
+}
+# Al TRASPAS no hi va: es una regla de la modificacio no substancial.
+Assert (-not ((@(@(_MnsParagrafs $catM 'traspas' $true) | ForEach-Object { @($_.Linies) }) -join ' ') -like '*CRITERIS DE SUBSTANCIALITAT*')) 'traspas: cap paragraf de criteris de substancialitat'
 AssertEq (@(_MnsParagrafs $null 'mns' $true).Count) 0 '_MnsParagrafs: sense cataleg, cap paragraf'
 
 # GENERACIO SENCERA amb el Word simulat.
@@ -4761,4 +4775,32 @@ if ($null -ne $llicOrd -and $null -ne $req1Ord) {
     $env:TEMP = $tmpO
 }
 
+# ---------------------------------------------------------------------------
+# L'ORDRE DELS INFORMES AL MENU, i que MNS/Traspas hi te entrada propia
+# ---------------------------------------------------------------------------
+# L'ordre el decideix l'usuari i es una llista, no una casualitat del codi.
+# Select-Mode es WinForms i les proves no el criden mai (vegeu CLAUDE.md), o
+# sigui que aixo es una prova de FONT: mira en quin ordre s'afegeixen les
+# entrades a $menu.
+Write-Host "`n--- El menu: ordre dels informes ---"
+$segSrc = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'Seguiment.ps1') -Raw
+$q = [char]39
+$rxMenu = '\$menu\.Add\(@\{\s*Action\s*=\s*' + $q + '([a-z]+)' + $q
+$accions = @([regex]::Matches($segSrc, $rxMenu) | ForEach-Object { $_.Groups[1].Value })
+# Les SIS entrades fixes, en ordre. La setena 'nou' que hi ha al codi es el
+# bucle del final ("qualsevol altre cataleg no llistat s'afegeix al final") i
+# no forma part de l'ordre.
+$ordreEsperat = @('nou', 'seguiment', 'llicencia', 'actextr', 'mnstraspas', 'nou')
+AssertEq (@($accions | Select-Object -First 6) -join ',') ($ordreEsperat -join ',') 'Menu: Nou, Seguiment, Llicencia, Act. extraordinaries, MNS/Traspas, Ampliacio termini'
+# MNS/Traspas ha de tenir entrada propia i el seu despatx.
+Assert ([bool]($accions -contains 'mnstraspas')) 'Menu: MNS/Traspas te entrada propia (ja no s''hi arriba des de dins de Llicencia)'
+$wizSrc = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'Wizard.ps1') -Raw
+Assert ([bool]($wizSrc -match ($q + 'mnstraspas' + $q + '\s*\{'))) 'Menu: ...i el despatxador la coneix'
+# I cada entrada ofereix NOMES les seves fases.
+AssertEq (@(_LlicFases).Count) 3 'Llicencia: tres fases (requeriment i els dos favorables)'
+AssertEq (@(_MnsFases).Count) 2  'MNS/Traspas: dues fases'
+AssertEq (@(_LlicTotesLesFases).Count) 5 '_LlicTotesLesFases: segueix ajuntant-les (la fan servir la base de dades i la vista)'
+foreach ($f in @(_MnsFases)) {
+    Assert (-not (@(_LlicFases) | Where-Object { [string]$_.Clau -eq [string]$f.Clau })) ('Llicencia no ofereix la fase "' + $f.Clau + '"')
+}
 exit (Write-TestSummary 'RESULTAT')

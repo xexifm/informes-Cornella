@@ -1222,9 +1222,14 @@ function _LlicEscriuAnnex1($sel, $llic) {
 # ASSISTENT (WinForms, nomes Windows)
 # ----------------------------------------------------------------------------
 # Pas 1: la FASE i si es llicencia provisional. Retorna @{ Nav; Fase; Prov }.
-function Select-LlicFase($preFase, $preProv) {
+# $fases: quines fases s'ofereixen. Des que la Modificacio NO Substancial i el
+# Traspas tenen entrada propia al menu, cada familia ensenya NOMES les seves:
+# _LlicFases per a Llicencia i _MnsFases per a MNS/Traspas. Amb $null les
+# ensenya totes (compatibilitat).
+function Select-LlicFase($preFase, $preProv, $fases = $null, [string]$titol = '') {
+    $llista = if ($null -ne $fases) { @($fases) } else { @(_LlicTotesLesFases) }
     $form = _NewForm
-    $form.Text = 'Llic' + [char]0x00E8 + 'ncia - Pas 1'
+    $form.Text = if ($titol) { $titol } else { 'Llic' + [char]0x00E8 + 'ncia - Pas 1' }
     $form.ClientSize = New-Object System.Drawing.Size(520, 330)
     $form.FormBorderStyle = 'FixedDialog'
     $form.MaximizeBox = $false
@@ -1232,16 +1237,12 @@ function Select-LlicFase($preFase, $preProv) {
     $lbl = New-Object System.Windows.Forms.Label
     $lbl.Location = New-Object System.Drawing.Point(20, 72)
     $lbl.Size = New-Object System.Drawing.Size(480, 20)
-    $lbl.Text = 'Quin informe de la llic' + [char]0x00E8 + 'ncia vols fer?'
+    $lbl.Text = 'Quin informe vols fer?'
     [void]$form.Controls.Add($lbl)
 
     $y = 98
     $radios = @{}
-    # LES CINC FASES: les tres de l'informe llarg (_LlicFases) i les dues
-    # curtes (_MnsFases: Modificacio NO Substancial i Traspas). Van al mateix
-    # menu perque comparteixen capcalera i tramit, encara que el document que
-    # en surt no s'assembli gens.
-    foreach ($f in @(_LlicTotesLesFases)) {
+    foreach ($f in @($llista)) {
         $rb = New-Object System.Windows.Forms.RadioButton
         $rb.Location = New-Object System.Drawing.Point(30, $y)
         $rb.Size = New-Object System.Drawing.Size(460, 22)
@@ -2033,7 +2034,11 @@ function Select-LlicCondicions([string]$pre) {
 # ----------------------------------------------------------------------------
 # PUNT D'ENTRADA (des del menu)
 # ----------------------------------------------------------------------------
-function Invoke-LlicenciaWizard {
+# $fases: quines fases ofereix aquest assistent. El menu principal en te DUES
+# entrades -Llicencia (_LlicFases) i Modificacio NO Substancial / Traspas
+# (_MnsFases)- i totes dues passen per aqui: comparteixen capcalera, tramit i
+# base de dades, i el que canvia es nomes el document que en surt.
+function Invoke-LlicenciaWizard($fases = $null, [string]$titol = '') {
     $llic = Read-LlicCataleg
     if ($null -eq $llic) {
         [System.Windows.Forms.MessageBox]::Show(
@@ -2060,7 +2065,7 @@ function Invoke-LlicenciaWizard {
         while ($true) {
             switch ($step) {
                 1 {
-                    $r = Select-LlicFase $st.Fase $st.Prov
+                    $r = Select-LlicFase $st.Fase $st.Prov $fases $titol
                     if ($r.Nav -ne 'fwd') { return }
                     $st.Fase = [string]$r.Fase
                     $st.Prov = [bool]$r.Prov

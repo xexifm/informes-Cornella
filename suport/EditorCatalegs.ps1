@@ -35,6 +35,27 @@
 # paragraf = @{runs=@(@{t;b;i});url}. 'clau' nomes te valor a ACT_EXTR (la [[KEY]]
 # funcional); als altres catalegs es queda buida i no s'escriu al JSON.
 
+# EL QUADRE DE LA CLAU VA SEMPRE DESPRES DE LA SEVA ETIQUETA.
+#
+# L'etiqueta canvia de text ('Clau:' a ACT_EXTR, "S'aplica a:" a la resta) i es
+# AutoSize, o sigui que canvia d'amplada. Amb el quadre en una x fixa, la de
+# "S'aplica a:" -que es mes ampla- s'hi ficava a sobre. Es el defecte recurrent
+# d'aquest projecte: coordenades a ma i un text que creix.
+#
+# La vora DRETA del quadre no es mou (Left + Width es invariant), o sigui que
+# l'ancoratge a la dreta segueix funcionant igual.
+function _Ed_ColocaClau($state) {
+    $lbl = $state.ClauLabel
+    $box = $state.ClauBox
+    if ($null -eq $lbl -or $null -eq $box) { return }
+    $dreta = $box.Left + $box.Width
+    $x = $lbl.Left + $lbl.Width + 8
+    if ($x -lt ($dreta - 60)) {
+        $box.Left = $x
+        $box.Width = ($dreta - $x)
+    }
+}
+
 function _Ed_ParasFromJson($paras) {
     $out = New-Object System.Collections.ArrayList
     foreach ($p in @($paras)) {
@@ -530,11 +551,13 @@ function _Ed_LoadEditor($state) {
         $aplica = _Ed_AplicaText $state.Model.familia $node
         if ($isActextr) {
             $state.ClauLabel.Text = 'Clau:'
+            _Ed_ColocaClau $state
             $state.ClauLabel.Visible = $true
             $state.ClauBox.Visible = $true
             $state.ClauBox.Text = [string]$node.clau
         } elseif (-not [string]::IsNullOrWhiteSpace($aplica)) {
             $state.ClauLabel.Text = "S'aplica a:"
+            _Ed_ColocaClau $state
             $state.ClauLabel.Visible = $true
             $state.ClauBox.Visible = $true
             $state.ClauBox.Text = $aplica
@@ -790,8 +813,11 @@ function Show-CatalegEditor([string]$focusDoc = '') {
 
     $cbDoc = New-Object System.Windows.Forms.ComboBox
     $cbDoc.DropDownStyle = 'DropDownList'
+    # AMPLE FINS ON ACABA L'ARBRE (x=16+360=376), no mes: amb 360 arribava a
+    # x=450 i es menjava l'etiqueta "Titol / etiqueta:" de la columna de la
+    # dreta, que comenca a $xR=396.
     $cbDoc.Location = New-Object System.Drawing.Point(90, $yTop)
-    $cbDoc.Size = New-Object System.Drawing.Size(360, 26)
+    $cbDoc.Size = New-Object System.Drawing.Size(286, 26)
     foreach ($d in $docs) { [void]$cbDoc.Items.Add($d.Label) }
     [void]$form.Controls.Add($cbDoc)
 

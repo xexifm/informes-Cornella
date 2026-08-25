@@ -1019,7 +1019,7 @@ function _LastRunText($jsonPath, $prop) {
 #
 # Accions que NO son eines (tipus d'informe i pantalles de sistema): no porten
 # segell. Qualsevol rajola NOVA en te automaticament, sense tocar cap llista.
-$Script:AccionsSenseSegell = @('nou', 'seguiment', 'actextr', 'llicencia', 'llicdb', 'config', 'editcataleg')
+$Script:AccionsSenseSegell = @('nou', 'seguiment', 'actextr', 'llicencia', 'mnstraspas', 'llicdb', 'config', 'editcataleg')
 
 # Excepcio: dues eines ja escriuen la seva PROPIA marca quan han treballat de
 # debo (la necessiten per anar en incremental), i aquella data es mes precisa que
@@ -1082,6 +1082,7 @@ function Select-Mode {
     # fitxer). U+00F3 = 'o' accent tancat; U+00E0 = 'a' accent obert.
     $aG = [char]0x00E0   # a accent obert
     $eG = [char]0x00E8   # e accent obert
+    $oG = [char]0x00F3   # o accent tancat
     $oT = [char]0x00F3   # o accent tancat
     $ampliacio      = 'Ampliaci' + $oT + ' termini'
     $extraordinaria = 'Activitats extraordin' + $aG + 'ries'
@@ -1092,15 +1093,18 @@ function Select-Mode {
     $icoTer = [System.Char]::ConvertFromUtf32(0x23F1)    # ⏱
     $icoExt = [System.Char]::ConvertFromUtf32(0x1F3AA)   # 🎪
     $icoLlic = [System.Char]::ConvertFromUtf32(0x1F4DC)  # rotlle: llicencia
+    $icoMns  = [System.Char]::ConvertFromUtf32(0x1F504)  # fletxes: modificacio / traspas
+    $mnsNom  = ('Modificaci' + $oG + ' No Substancial / Trasp' + $aG + 's')
 
     # Menu ORDENAT. Cada entrada: Action, Label (nom amic), Sub (descripcio
     # curta en gris), Icon (emoji del xip), Doc (xip del document a la dreta) i,
     # per a 'nou', el Cataleg (FileInfo). Els 'nou' nomes surten si el .docx hi es.
     $menu = New-Object System.Collections.ArrayList
+    # L'ORDRE DEL MENU EL DECIDEIX L'USUARI i es aquest (agost 2026):
+    #   1 Requeriment - Nou   2 Requeriment - Seguiment   3 Llicencia
+    #   4 Activitats extraordinaries   5 MNS / Traspas   6 Ampliacio termini
     if ($byName.ContainsKey('REQ1'))    { [void]$menu.Add(@{ Action='nou'; Label='Requeriment - Nou'; Sub=('Cat' + $aG + 'leg de defici' + $eG + 'ncies'); Icon=$icoNou; Doc='REQ1'; Cataleg=$byName['REQ1'] }) }
     [void]$menu.Add(@{ Action='seguiment'; Label='Requeriment - Seguiment'; Sub='Sobre un informe ja fet'; Icon=$icoSeg; Doc=''; Cataleg=$null })
-    if ($byName.ContainsKey('TERMINI')) { [void]$menu.Add(@{ Action='nou'; Label=$ampliacio; Sub='Informe de cos fix'; Icon=$icoTer; Doc='TERMINI'; Cataleg=$byName['TERMINI'] }) }
-    [void]$menu.Add(@{ Action='actextr'; Label=$extraordinaria; Sub='Decret 112/2010'; Icon=$icoExt; Doc='ACT_EXTR'; Cataleg=$null })
     # Llicencia: NO passa el cataleg (LLIC no es un cataleg de deficiencies sino
     # la capa propia de Llicencia sobre REQ1; vegeu Llicencia.ps1).
     $llicNom = 'Llic' + $eG + 'ncia (Annex II / LL Prov)'
@@ -1109,6 +1113,13 @@ function Select-Mode {
     # activitat per als informes seguents).
     [void]$menu.Add(@{ Action='llicencia'; Label=$llicNom; Sub='Requeriment i favorables'; Icon=$icoLlic; Doc='LLIC'; Cataleg=$null;
                        Extra=@{ Text='Dades'; Icon=([System.Char]::ConvertFromUtf32(0x1F5C2) + [char]0xFE0F); Action='llicdb' } })
+    [void]$menu.Add(@{ Action='actextr'; Label=$extraordinaria; Sub='Decret 112/2010'; Icon=$icoExt; Doc='ACT_EXTR'; Cataleg=$null })
+    # MNS / TRASPAS: ENTRADA PROPIA. Abans s'hi arribava des de dins de
+    # Llicencia (el pas 1 oferia les cinc fases juntes) i no es veia des del
+    # menu. Comparteixen capcalera, tramit i base de dades amb Llicencia -per
+    # aixo passen pel mateix assistent-, pero son informes a part.
+    [void]$menu.Add(@{ Action='mnstraspas'; Label=$mnsNom; Sub='Informes curts'; Icon=$icoMns; Doc='MNSTRAS'; Cataleg=$null })
+    if ($byName.ContainsKey('TERMINI')) { [void]$menu.Add(@{ Action='nou'; Label=$ampliacio; Sub='Informe de cos fix'; Icon=$icoTer; Doc='TERMINI'; Cataleg=$byName['TERMINI'] }) }
     # Qualsevol altre cataleg no llistat (p.ex. un REQ2 nou) s'afegeix al final.
     foreach ($c in $catalegs) {
         if ($c.BaseName -in 'REQ1','TERMINI') { continue }
