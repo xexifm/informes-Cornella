@@ -1,4 +1,4 @@
-{
+﻿{
     "tipus":  "capcalera",
     "familia":  "capcalera",
     "intro":  [
@@ -8,6 +8,7 @@
                   {
                       "tipus":  "seccio",
                       "titol":  "Capcalera - general",
+                      "clau":  "",
                       "cos":  [
                                   {
                                       "runs":  [
@@ -142,7 +143,13 @@
                                         "titol":  "",
                                         "clau":  "p7",
                                         "cos":  [
-
+                                                    {
+                                                        "runs":  [
+                                                                     {
+                                                                         "t":  ""
+                                                                     }
+                                                                 ]
+                                                    }
                                                 ],
                                         "fills":  [
 
@@ -170,7 +177,30 @@
                                         "titol":  "",
                                         "clau":  "p9",
                                         "cos":  [
+                                                    {
+                                                        "runs":  [
+                                                                     {
+                                                                         "t":  ""
+                                                                     }
+                                                                 ]
+                                                    }
+                                                ],
+                                        "fills":  [
 
+                                                  ]
+                                    },
+                                    {
+                                        "tipus":  "buida",
+                                        "titol":  "",
+                                        "clau":  "p10",
+                                        "cos":  [
+                                                    {
+                                                        "runs":  [
+                                                                     {
+                                                                         "t":  ""
+                                                                     }
+                                                                 ]
+                                                    }
                                                 ],
                                         "fills":  [
 
@@ -586,6 +616,23 @@
                                         "tipus":  "buida",
                                         "titol":  "",
                                         "clau":  "p35",
+                                        "cos":  [
+                                                    {
+                                                        "runs":  [
+                                                                     {
+                                                                         "t":  ""
+                                                                     }
+                                                                 ]
+                                                    }
+                                                ],
+                                        "fills":  [
+
+                                                  ]
+                                    },
+                                    {
+                                        "tipus":  "buida",
+                                        "titol":  "",
+                                        "clau":  "p36",
                                         "cos":  [
                                                     {
                                                         "runs":  [
