@@ -1,4 +1,4 @@
-BLOC|Projecte
+BLOC|REQUERIMENTS PROJECTE
 AIRE|seccio
 SECT|Requeriment pendent
 AIRE|seccio

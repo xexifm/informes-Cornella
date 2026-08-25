@@ -4693,6 +4693,7 @@ Assert (_LlicPortaDocProjecte 'favorable-post') 'Doc projecte: al favorable post
 Assert (-not (_LlicPortaDocProjecte 'requeriment')) 'Doc projecte: al requeriment, NO'
 Assert (-not (_LlicPortaDocProjecte 'mns')) 'Doc projecte: a la MNS tampoc'
 # I el bloc PROJECTE es EL CONTRARI: nomes al requeriment. Son complementaris.
+AssertEq (_LlicTitolProjecte) 'REQUERIMENTS PROJECTE' 'El bloc es diu REQUERIMENTS PROJECTE (no nomes PROJECTE)'
 Assert (_LlicPortaProjecte 'requeriment') 'Bloc PROJECTE: al requeriment, si'
 Assert (-not (_LlicPortaProjecte 'favorable-pre'))  'Bloc PROJECTE: al favorable pre, NO'
 Assert (-not (_LlicPortaProjecte 'favorable-post')) 'Bloc PROJECTE: al favorable post, NO'
@@ -4738,7 +4739,7 @@ if ($null -ne $llicOrd -and $null -ne $req1Ord) {
     [void](Build-LlicenciaDocument $wdO $modelO)
     $emO = @($global:emitCalls)
     $blocsO = @($emO | Where-Object { $_ -like 'BLOC|*' })
-    Assert ([bool]($blocsO[0] -like 'BLOC|Projecte')) 'Ordre: PROJECTE va el PRIMER de tot al requeriment'
+    AssertEq $blocsO[0] ('BLOC|' + (_LlicTitolProjecte)) 'Ordre: REQUERIMENTS PROJECTE va el PRIMER de tot al requeriment'
     Assert (-not ($emO | Where-Object { $_ -like 'BLOC|DOCUMENTACI* PROJECTE' })) 'Ordre: al requeriment no hi ha la doc del projecte'
     # PROJECTE amb lletres, ABANS amb numeros que comencen per 1.
     $marquesO = @($emO | Where-Object { $_ -like 'ITEM|*' } | ForEach-Object { ($_ -split '\|')[1] })
@@ -4755,7 +4756,7 @@ if ($null -ne $llicOrd -and $null -ne $req1Ord) {
     $emP = @($global:emitCalls)
     Assert ([bool]($emP[0] -like 'BLOC|DOCUMENTACI* PROJECTE')) 'Favorable: la doc del projecte va dalt de tot'
     # I el bloc PROJECTE NO hi surt: aquells requeriments ja estan resolts.
-    Assert (-not ($emP | Where-Object { $_ -eq 'BLOC|Projecte' })) 'Favorable: el bloc PROJECTE no hi surt'
+    Assert (-not ($emP | Where-Object { $_ -eq ('BLOC|' + (_LlicTitolProjecte)) })) 'Favorable: el bloc REQUERIMENTS PROJECTE no hi surt'
     Assert (-not ($emP | Where-Object { $_ -match '^ITEM\|[A-Z]+\.\|' })) 'Favorable: ...i per tant cap punt amb lletra'
     $env:TEMP = $tmpO
 }

@@ -91,6 +91,9 @@ function _LlicTitolAbans {
     return ('DOCUMENTACI' + [char]0x00D3 + ' NECESS' + [char]0x00C0 + 'RIA ABANS DE LA RESOLUCI' + [char]0x00D3 +
             ' DE L' + [char]0x2019 + [char]0x00D2 + 'RGAN T' + [char]0x00C8 + 'CNIC AMBIENTAL')
 }
+function _LlicTitolProjecte {
+    return 'REQUERIMENTS PROJECTE'
+}
 function _LlicTitolDespres {
     return ('DOCUMENTACI' + [char]0x00D3 + ' NECESS' + [char]0x00C0 + 'RIA DESPR' + [char]0x00C9 + 'S DE LA RESOLUCI' +
             [char]0x00D3 + ' DE L' + [char]0x2019 + [char]0x00D2 + 'RGAN T' + [char]0x00C8 + 'CNIC AMBIENTAL EN ELS ' +
@@ -1075,7 +1078,7 @@ function Build-LlicenciaDocument($word, $model) {
         # sobre de les seccions de REQ1 que hi van a dins.
         $proj = if (_LlicPortaProjecte ([string]$model.Fase)) { @($model.Projecte) } else { @() }
         if ($proj.Count -gt 0) {
-            Format-BlockTitle $sel 'Projecte'
+            Format-BlockTitle $sel (_LlicTitolProjecte)
             Format-Aire $sel 'seccio'
             $lletra = 0
             _LlicEscriuPunts $sel $proj ([ref]$lletra) $fields $false 'lletra'
