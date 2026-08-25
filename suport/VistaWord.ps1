@@ -234,6 +234,7 @@ function _VistaLlicencia($sel, [string]$jsonPath) {
         _VAire $sel 'seccio'
         $seccioAra = $null
         $subAra = $null
+        $introAra = $null
         $n = 0
         foreach ($p in @($r.Punts)) {
             $sec = [string]$p.Seccio
@@ -242,10 +243,22 @@ function _VistaLlicencia($sel, [string]$jsonPath) {
                 if ($sec) { _VSection $sel $sec; _VAire $sel 'seccio' }
                 $seccioAra = $sec
                 $subAra = $null
+                $introAra = $null
             }
             if ($sub -ne $subAra) {
                 if ($sub) { _VSubsection $sel $sub; _VAire $sel 'subseccio' }
                 $subAra = $sub
+                $introAra = $null
+            }
+            # EL TEXT FIX DE LA SUBSECCIO, igual que a l'informe: surt quan
+            # CANVIA, o sigui amb el primer punt del grup que s'escrigui. La
+            # vista ha d'ensenyar el mateix que el document.
+            $introV = @(@($p.Intro) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
+            $clauV = ($introV -join "`n")
+            if ($introV.Count -gt 0 -and $clauV -ne $introAra) {
+                foreach ($l in $introV) { _VLine $sel ([string]$l) }
+                _VAire $sel 'intro'
+                $introAra = $clauV
             }
             $linies = @($p.Cos)
             $n++

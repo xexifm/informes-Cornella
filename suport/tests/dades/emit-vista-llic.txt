@@ -193,6 +193,7 @@ ITEM|6.|Vector Aigua (AMB). Anàlisi de les aigües residuals (punt final d’ab
 BODY/CH|//[Quan]// Abans de tres mesos després de la data d’inici de l’activitat.
 SECT|Incendis
 SUB|Documentació (ITC SP)
+BODY|Segons l’article 3.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha d’entregar la Certificació d'instal·lació o aplicació de productes de protecció passiva contra incendis adjuntant la corresponen documentació complementària:
 ITEM|7.|SP 136 Model A Certificat d’instal·lació de productes de limitació de la propagació d’incendis, adjuntant com a mínim:
 BODY|- Documents de subministrament del producte
 BODY|- Documents acreditatius de les prestacions del producte
@@ -253,6 +254,7 @@ ITEM|21.|Vector Sòl. L’activitat està inclosa dins l’Annex I del //Real De
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
 SECT|Instal·lacions
 SUB|Legalitzacions
+BODY|Segons l’article 4 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha de presentar el certificat d’inscripció al Registre d'instal·lacions de Seguretat Industrial de Catalunya (RITSIC) de totes les instal·lacions que conformin l’activitat a nom del titular de l’activitat o el propietari de l’establiment:
 ITEM|22.|Instal·lació d’autoconsum (fotovoltaica)
 URL|https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/03_energia/Autoconsum/
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.

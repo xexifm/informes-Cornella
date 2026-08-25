@@ -4514,4 +4514,125 @@ AssertEq (@($ubX[2].Intro) -join '') '' 'Ubicacio: una subseccio nova buida l''i
     AssertEq @(@($global:emitCalls) | Where-Object { $_ -eq 'BODY|Segons l''article 4:' }).Count 1 'Text fix: surt UN sol cop per grup'
 }.Invoke() | Out-Null
 
+# ---------------------------------------------------------------------------
+# TOTS els informes que llegeixen REQ1 treuen els seus TEXTOS FIXOS
+# ---------------------------------------------------------------------------
+# El defecte del GIA 1484 (l'intro d'una subseccio que no sortia si no es
+# triava el PRIMER punt del grup) es va comprovar nomes a Llicencia, i encara
+# hi havia una familia mes amb el mateix problema: la VISTA de LLIC.
+#
+# Per aixo aquesta prova no mira UN informe: recorre TOTES les families que
+# poden portar punts de REQ1 i, a cada una, tria a posta el SEGON punt de cada
+# grup amb text fix i MAI el primer. Si algun dia s'afegeix una familia nova,
+# nomes cal afegir-la a la llista d'aqui sota.
+Write-Host "`n--- Els textos fixos de REQ1, a TOTES les families ---"
+$req1TF = $null
+try { $req1TF = Read-CatalegJson (Join-Path $EstructuralsDir 'REQ1.json') } catch { }
+$llicTF = $null
+try { $llicTF = Read-LlicCataleg (Join-Path $EstructuralsDir 'LLIC.json') } catch { }
+if ($null -ne $req1TF -and $null -ne $llicTF) {
+    . (Join-Path $PSScriptRoot 'FormatDoubles.ps1')
+
+    # Els grups amb text fix i com a minim DOS punts, i la clau del SEGON.
+    $grupsTF = New-Object System.Collections.ArrayList
+    foreach ($sec in $req1TF.Sections) {
+        $sub = ''; $intro = @(); $items = @()
+        $tanca = {
+            if (@($intro).Count -gt 0 -and @($items).Count -ge 2) {
+                [void]$grupsTF.Add(@{ Sec = [string]$sec.Title; Sub = $sub; Intro = $intro; Segon = $items[1] })
+            }
+        }
+        foreach ($el in $sec.Items) {
+            if ([string]$el.Kind -eq 'subsection') { & $tanca; $sub = [string]$el.Short; $intro = @(); $items = @(); continue }
+            if ([string]$el.Kind -eq 'intro')      { $intro = @($el.BodyLines); continue }
+            if ([string]$el.Kind -eq 'item')       { $items += $el }
+        }
+        & $tanca
+    }
+    Assert ($grupsTF.Count -ge 1) ('Textos fixos: REQ1 en te ' + $grupsTF.Count + ' de comprovables')
+    $clausTF = @($grupsTF | ForEach-Object { _ItemKey $_.Sec $_.Segon.Short })
+    $selTF   = Build-SelectionFromKeys $req1TF.Sections $clausTF
+
+    # Hi es, el text fix de cada grup, a la seqüencia emesa?
+    $comprova = {
+        param($nom, $crides)
+        foreach ($g in $grupsTF) {
+            $t = ([string]@($g.Intro)[0])
+            $cap = $t.Substring(0, [Math]::Min(30, $t.Length))
+            $hi = [bool](@($crides) | Where-Object { $_ -like ('*' + $cap + '*') })
+            Assert $hi ($nom + ': hi surt el text fix de "' + $g.Sub + '"')
+        }
+    }
+
+    # Word i entorn de mentida (nomes el que demanen els Build-*).
+    $sdTF = [pscustomobject]@{ Range = [pscustomobject]@{ Start = 0; End = 0 } }
+    $sdTF | Add-Member ScriptMethod EndKey { param($u) } -Force
+    $sdTF | Add-Member ScriptMethod InsertBreak { param($b) } -Force
+    $ddTF = [pscustomobject]@{}
+    $ddTF | Add-Member ScriptMethod Activate {} -Force
+    $ddTF | Add-Member ScriptMethod Save {} -Force
+    $ddTF | Add-Member ScriptMethod Close { param($x) } -Force
+    $wdTF = [pscustomobject]@{ Selection = $sdTF }
+    $script:_docTF = $ddTF
+    function _ResolveOutputDir { return ([System.IO.Path]::GetTempPath()) }
+    function _GetUniqueOutputPath($d, $b) { return (Join-Path $d $b) }
+    function _OpenOutputDocument($w, $p) { return $script:_docTF }
+    function Select-CapcaleraBlock($d, $w) { }
+    function Apply-HeaderReplacements { param($doc, $header) }
+    $tmpTF = $env:TEMP
+    if ([string]::IsNullOrWhiteSpace($env:TEMP)) { $env:TEMP = [System.IO.Path]::GetTempPath() }
+    $hdrTF = @{ ID_GIA = '1'; TITULAR = 'X'; CLASSIFICACIO = 'Y' }
+
+    # 1) REQ1 / TERMINI / Controls periodics / Paquet: tots componen amb
+    #    _WriteCatalegBody, o sigui que provant-lo els cobreix tots.
+    $global:emitCalls.Clear()
+    _WriteCatalegBody $sdTF $Script:ReportFormatConfig $selTF ([ordered]@{}) ''
+    & $comprova 'REQ1 (i Controls periodics i el paquet del mobil)' $global:emitCalls
+
+    # 2) MNS i TRASPAS
+    $mnsTF = $null
+    try { $mnsTF = _LoadEstructuralJson (Join-Path $EstructuralsDir 'MNSTRAS.json') } catch { }
+    if ($null -ne $mnsTF) {
+        foreach ($f in @('mns', 'traspas')) {
+            $global:emitCalls.Clear()
+            [void](Build-MnsDocument $wdTF @{ Fase = $f; Header = $hdrTF; Fields = [ordered]@{}; Cataleg = $mnsTF; Punts = $selTF })
+            & $comprova ('MNS/' + $f) $global:emitCalls
+        }
+    }
+
+    # 3) LLICENCIA, les tres fases. Es tria el SEGON punt de cada grup del bloc
+    #    DESPRES, mai el primer -que es exactament el cas que fallava.
+    $idxTF = _LlicIndexReq1 $req1TF
+    $totsTF = @((_LlicPuntsPerBloc $llicTF $idxTF 'DESPRES' $req1TF).Punts)
+    $vistTF = @{}; $despTF = @()
+    foreach ($p in $totsTF) {
+        if (@($p.Intro).Count -eq 0) { continue }
+        $k = [string]$p.Seccio + '::' + [string]$p.Subseccio
+        if (-not $vistTF.ContainsKey($k)) { $vistTF[$k] = 1; continue }   # SALTA el primer
+        if ($vistTF[$k] -eq 1) { $vistTF[$k] = 2; $despTF += $p }
+    }
+    Assert (@($despTF).Count -ge 1) 'Textos fixos: hi ha punts de Llicencia per comprovar (mai el primer del grup)'
+    foreach ($f in @('requeriment', 'favorable-pre', 'favorable-post')) {
+        $dTF = @(@(_LlicPuntsAmbEstatFase $despTF $f) | ForEach-Object { $_ | Add-Member NoteProperty Estat 'no' -PassThru -Force })
+        $global:emitCalls.Clear()
+        [void](Build-LlicenciaDocument $wdTF @{
+            Fase = $f; EsProvisional = $false; Header = $hdrTF; Fields = [ordered]@{}
+            Abans = @(); Projecte = @(); Despres = $dTF
+            Doc = @{ Text = ''; Items = @() }; Condicions = ''; Cataleg = $llicTF
+        })
+        & $comprova ('Llicencia/' + $f) $global:emitCalls
+    }
+
+    # 4) LES VISTES en Word. Han d'ensenyar el mateix que el document: aqui hi
+    #    havia el defecte que la comprovacio d'un sol informe no va veure.
+    $global:emitCalls.Clear()
+    _VistaCataleg $sdTF (Join-Path $EstructuralsDir 'REQ1.json') 'REQ1'
+    & $comprova 'Vista REQ1' $global:emitCalls
+    $global:emitCalls.Clear()
+    _VistaLlicencia $sdTF (Join-Path $EstructuralsDir 'LLIC.json')
+    & $comprova 'Vista LLIC' $global:emitCalls
+
+    $env:TEMP = $tmpTF
+}
+
 exit (Write-TestSummary 'RESULTAT')
