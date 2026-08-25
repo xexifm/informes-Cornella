@@ -4456,4 +4456,62 @@ if (Test-Path -LiteralPath $capBlancPath) {
     }
 }
 
+# ---------------------------------------------------------------------------
+# EL TEXT FIX D'UNA SUBSECCIO SURT ENCARA QUE NO ES TRIÏ EL PRIMER PUNT
+# ---------------------------------------------------------------------------
+# Defecte real (GIA 1484): l'intro de Instal·lacions / Legalitzacions -"Segons
+# l'article 4 de l'Ordenanca..."- penja del primer item del cataleg
+# ("RITSIC - fotovoltaica"). En un informe que nomes demanava la baixa tensio i
+# el PCI, el text fix NO sortia. A REQ1 no passa perque alli l'intro queda
+# PENDENT fins que surt un item, sigui quin sigui.
+Write-Host "`n--- Llicencia: el text fix d'una subseccio, com a REQ1 ---"
+# _LlicItemsAmbUbicacio: TOTS els items del grup es porten el mateix intro.
+$secX = [pscustomobject]@{
+    Title = 'Instal·lacions'
+    Items = @(
+        [pscustomobject]@{ Kind = 'subsection'; Short = 'Legalitzacions'; BodyLines = @(); Children = @() },
+        [pscustomobject]@{ Kind = 'intro'; Short = ''; BodyLines = @('Segons l''article 4:'); Children = @() },
+        [pscustomobject]@{ Kind = 'item'; Short = 'A'; BodyLines = @('Punt A.'); Children = @() },
+        [pscustomobject]@{ Kind = 'item'; Short = 'B'; BodyLines = @('Punt B.'); Children = @() },
+        [pscustomobject]@{ Kind = 'subsection'; Short = 'Inspeccions'; BodyLines = @(); Children = @() },
+        [pscustomobject]@{ Kind = 'item'; Short = 'C'; BodyLines = @('Punt C.'); Children = @() }
+    )
+}
+$ubX = @(_LlicItemsAmbUbicacio @($secX))
+AssertEq $ubX.Count 3 'Ubicacio: tres items'
+AssertEq (@($ubX[0].Intro) -join '') 'Segons l''article 4:' 'Ubicacio: el PRIMER item del grup porta l''intro'
+AssertEq (@($ubX[1].Intro) -join '') 'Segons l''article 4:' 'Ubicacio: ...i el SEGON tambe (si no es tria el primer, es perdria)'
+AssertEq (@($ubX[2].Intro) -join '') '' 'Ubicacio: una subseccio nova buida l''intro'
+
+# I l'escriptura: amb NOMES el segon punt, el text fix ha de sortir igualment.
+{
+    . (Join-Path $PSScriptRoot 'FormatDoubles.ps1')
+    $selX = [pscustomobject]@{}
+    $puntB = [pscustomobject]@{
+        Clau = 'Instal·lacions::B'; Seccio = 'Instal·lacions'; Subseccio = 'Legalitzacions'
+        Intro = @('Segons l''article 4:'); Titol = 'B'; Condicio = ''
+        Cos = @('Punt B.'); NoDisposa = @(); SiDisposa = @(); Quan = @(); Subs = @(); Estat = ''
+    }
+    $nX = 0
+    _LlicEscriuPunts $selX @($puntB) ([ref]$nX) ([ordered]@{}) $false
+    $eX = @($global:emitCalls)
+    Assert ([bool]($eX | Where-Object { $_ -eq 'SECT|Instal·lacions' }))   'Text fix: hi surt la seccio'
+    Assert ([bool]($eX | Where-Object { $_ -eq 'SUB|Legalitzacions' }))    'Text fix: hi surt la subseccio'
+    Assert ([bool]($eX | Where-Object { $_ -eq 'BODY|Segons l''article 4:' })) 'Text fix: ...I EL TEXT FIX, encara que no s''hagi triat el primer punt'
+    # I en l'ordre bo: seccio, subseccio, text fix, punt.
+    $ordre = @($eX | Where-Object { $_ -notlike 'AIRE|*' })
+    AssertEq $ordre[0] 'SECT|Instal·lacions' 'Text fix: primer la seccio'
+    AssertEq $ordre[1] 'SUB|Legalitzacions'  'Text fix: despres la subseccio'
+    AssertEq $ordre[2] 'BODY|Segons l''article 4:' 'Text fix: despres el text fix'
+    Assert ([bool]($ordre[3] -like 'ITEM|*')) 'Text fix: i despres el punt'
+
+    # NO es repeteix a cada punt del grup.
+    $global:emitCalls.Clear()
+    $puntA = $puntB | Select-Object *
+    $puntA.Titol = 'A'; $puntA.Cos = @('Punt A.')
+    $nX = 0
+    _LlicEscriuPunts $selX @($puntA, $puntB) ([ref]$nX) ([ordered]@{}) $false
+    AssertEq @(@($global:emitCalls) | Where-Object { $_ -eq 'BODY|Segons l''article 4:' }).Count 1 'Text fix: surt UN sol cop per grup'
+}.Invoke() | Out-Null
+
 exit (Write-TestSummary 'RESULTAT')

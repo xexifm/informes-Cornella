@@ -316,8 +316,24 @@ function _LlicTextosPerDefecte {
 # complementaria:"). Abans els punts s'aplanaven i tot aixo es perdia: sortien
 # tots seguits, sense saber de quina part venien.
 #
-# L'INTRO nomes va davant del PRIMER punt que el segueix -exactament com fa
-# _WriteCatalegBody de REQ1- i una subseccio nova l'invalida.
+# CADA ITEM ES PORTA L'INTRO QUE LI TOCA, no nomes el primer de la llista.
+#
+# Aixo es important i va fallar: si l'intro s'enganxa NOMES al primer item del
+# cataleg i l'usuari no tria aquell item, el text fix no surt. Va passar de debo
+# a Instal-lacions / Legalitzacions: l'intro ("Segons l'article 4 de
+# l'Ordenanca...") penja de "RITSIC - fotovoltaica", i en un informe que nomes
+# demanava la baixa tensio i el PCI no sortia enlloc.
+#
+# A REQ1 aixo no passa perque alli l'intro queda PENDENT fins que surt un item,
+# sigui quin sigui. Aqui es reprodueix igual: cada item es queda l'ultim intro
+# vist DINS DEL SEU GRUP, i qui l'escriu nomes el treu quan CANVIA (vegeu
+# _LlicEscriuPunts). Amb aixo:
+#   - si el primer item del grup no es tria, l'intro surt igualment amb el que
+#     surti primer;
+#   - i si un grup tingues dos intros, cada un sortiria davant dels seus items,
+#     exactament com faria REQ1.
+# Una subseccio nova (o una seccio nova) buida l'intro pendent.
+#
 # El titol pot venir com a "Seccio - Subseccio" (el que munta
 # Build-SelectionFromKeys) o com a titol sol (el cataleg sencer).
 function _LlicItemsAmbUbicacio($seccions) {
@@ -332,7 +348,6 @@ function _LlicItemsAmbUbicacio($seccions) {
             if ([string]$el.Kind -eq 'intro')      { $intro = @($el.BodyLines); continue }
             if ([string]$el.Kind -ne 'item') { continue }
             [void]$out.Add(@{ Seccio = $nomSec; Subseccio = $sub; Intro = $intro; El = $el })
-            $intro = @()
         }
     }
     return $out.ToArray()
@@ -919,6 +934,7 @@ function _LlicEscriuPunt($sel, $punt, [int]$numero, $fields, [string]$estat, [bo
 function _LlicEscriuPunts($sel, $punts, [ref]$n, $fields, [bool]$ambQuan) {
     $secAra = $null
     $subAra = $null
+    $introAra = $null
     foreach ($p in @($punts)) {
         $s  = [string]$p.Seccio
         $sb = [string]$p.Subseccio
@@ -928,7 +944,8 @@ function _LlicEscriuPunts($sel, $punts, [ref]$n, $fields, [bool]$ambQuan) {
                 Format-Aire $sel 'seccio'
             }
             $secAra = $s
-            $subAra = $null      # una seccio nova reinicia la subseccio
+            $subAra = $null      # una seccio nova reinicia la subseccio...
+            $introAra = $null    # ...i l'intro pendent
         }
         if ($sb -ne $subAra) {
             if (-not [string]::IsNullOrWhiteSpace($sb)) {
@@ -936,13 +953,21 @@ function _LlicEscriuPunts($sel, $punts, [ref]$n, $fields, [bool]$ambQuan) {
                 Format-Aire $sel 'subseccio'
             }
             $subAra = $sb
-            # NOMES si l'intro te text de debo: Apply-FieldsToLines pot tornar
-            # una linia buida i llavors sortiria l'aire sense res al davant.
-            $intro = @(@(Apply-FieldsToLines @($p.Intro) $fields) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
-            if ($intro.Count -gt 0) {
-                foreach ($l in $intro) { Write-Linia $sel ([string]$l) }
-                Format-Aire $sel 'intro'
-            }
+            $introAra = $null    # grup nou: l'intro s'ha de tornar a escriure
+        }
+        # L'INTRO SURT QUAN CANVIA, no quan canvia la subseccio: aixi surt amb el
+        # PRIMER punt que s'escrigui del grup encara que no sigui el primer del
+        # cataleg, i un grup amb dos intros els treu tots dos. Es la regla de
+        # REQ1 (alli l'intro queda pendent fins que surt un item).
+        #
+        # NOMES si te text de debo: Apply-FieldsToLines pot tornar una linia
+        # buida i llavors sortiria l'aire sense res al davant.
+        $intro = @(@(Apply-FieldsToLines @($p.Intro) $fields) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
+        $clauIntro = ($intro -join "`n")
+        if ($intro.Count -gt 0 -and $clauIntro -ne $introAra) {
+            foreach ($l in $intro) { Write-Linia $sel ([string]$l) }
+            Format-Aire $sel 'intro'
+            $introAra = $clauIntro
         }
         $n.Value++
         _LlicEscriuPunt $sel $p $n.Value $fields ([string]$p.Estat) $ambQuan
