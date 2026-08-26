@@ -949,11 +949,62 @@
                                                                          "t":  "RSCIEI. L’activitat es troba regulada pel "
                                                                      },
                                                                      {
-                                                                         "t":  "Real Decreto 2267/2004, de 3 de diciembre, por el que se aprueba el Reglamento de seguridad contra incendios en los establecimientos Industriales",
+                                                                         "t":  "Real Decreto 164/2025, de 4 de marzo, por el que se aprueba el Reglamento de seguridad contra incendios en los establecimientos industriales",
                                                                          "i":  true
                                                                      },
                                                                      {
-                                                                         "t":  ". S’ha de realitzar un control periòdic amb resultat favorable per part d’una Entitat de Control habilitada, com s’indica a l’Article 7 del Real Decret. Els controls periòdics posteriors s\u0027han d\u0027efectuar cada cinc anys, tal i com s’indica a l’Article 7 del mateix Real Decret."
+                                                                         "t":  ", que deroga el "
+                                                                     },
+                                                                     {
+                                                                         "t":  "Real Decreto 2267/2004, de 3 de diciembre",
+                                                                         "i":  true
+                                                                     },
+                                                                     {
+                                                                         "t":  ". S’ha de realitzar la inspecció periòdica de les instal·lacions per part d’un organisme de control habilitat, com a mínim cada cinc anys, tal com s’indica a l’article 13 del Reial decret. De la inspecció se n’aixeca acta, signada per la persona inspectora i pel titular, que ha d’estar a disposició de l’administració competent."
+                                                                     }
+                                                                 ]
+                                                    }
+                                                ],
+                                        "fills":  [
+
+                                                  ]
+                                    },
+                                    {
+                                        "tipus":  "item",
+                                        "titol":  "RSCIEI - adaptació establiments existents",
+                                        "cos":  [
+                                                    {
+                                                        "runs":  [
+                                                                     {
+                                                                         "t":  "RSCIEI. Els establiments industrials existents abans del 10 de maig de 2025 s’han d’adaptar a les inspeccions periòdiques de l’article 13 del "
+                                                                     },
+                                                                     {
+                                                                         "t":  "Real Decreto 164/2025, de 4 de marzo, por el que se aprueba el Reglamento de seguridad contra incendios en los establecimientos industriales",
+                                                                         "i":  true
+                                                                     },
+                                                                     {
+                                                                         "t":  " (disposició transitòria primera). Els que es van construir conforme al "
+                                                                     },
+                                                                     {
+                                                                         "t":  "Real Decreto 2267/2004, de 3 de diciembre",
+                                                                         "i":  true
+                                                                     },
+                                                                     {
+                                                                         "t":  " han d’adaptar el contingut i la periodicitat de les inspeccions al nou article 13, tenint en compte que els requisits constructius i de les instal·lacions segueixen sent els del reglament del 2004. Els construïts abans del Real Decreto 2267/2004 han de fer inspeccions periòdiques com a mínim cada cinc anys, limitades als equips i sistemes de protecció activa, amb la metodologia de l’article 22 del "
+                                                                     },
+                                                                     {
+                                                                         "t":  "Real Decreto 513/2017, de 22 de mayo",
+                                                                         "i":  true
+                                                                     },
+                                                                     {
+                                                                         "t":  "."
+                                                                     }
+                                                                 ]
+                                                    },
+                                                    {
+                                                        "runs":  [
+                                                                     {
+                                                                         "t":  "Queden exceptuats els establiments amb densitat de càrrega de foc ponderada i corregida (Qs) que no superi 42 MJ/m2, sempre que la superfície construïda sigui igual o inferior a 120 m2."
                                                                      }
                                                                  ]
                                                     }
@@ -4103,19 +4154,19 @@
                                         "fills":  [
                                                       {
                                                           "tipus":  "item",
-                                                          "titol":  "RSCIEI - distribució piles (Annex II 2.2)",
+                                                          "titol":  "RSCIEI - distribució piles (Annex II 1.6)",
                                                           "cos":  [
                                                                       {
                                                                           "runs":  [
                                                                                        {
-                                                                                           "t":  "Segons l’estipulat en el punt 2.2 de l’Annex II del "
+                                                                                           "t":  "Segons l’estipulat en el punt 1.6 de la Secció 1 de l’Annex II del "
                                                                                        },
                                                                                        {
-                                                                                           "t":  "REGLAMENTO DE SEGURIDAD CONTRA INCENDIOS EN LOS ESTABLECIMIENTOS INDUSTRIALES (RSCIEI) La distribución de los materiales combustibles en las áreas de incendio en configuraciones de tipo D y de tipo E deberán cumplir los siguientes requisitos",
+                                                                                           "t":  "REGLAMENTO DE SEGURIDAD CONTRA INCENDIOS EN LOS ESTABLECIMIENTOS INDUSTRIALES (RSCIEI)",
                                                                                            "i":  true
                                                                                        },
                                                                                        {
-                                                                                           "t":  ":"
+                                                                                           "t":  ", en les àrees d’incendi en espais oberts (configuració tipus D) la distribució dels materials combustibles ha de complir els requisits següents:"
                                                                                        }
                                                                                    ]
                                                                       }
@@ -4179,7 +4230,41 @@
                                                                                         {
                                                                                             "runs":  [
                                                                                                          {
-                                                                                                             "t":  "4º Longitud máxima de cada pila: 45 m si el pasillo entre pilas es ≥ 2,5 m; 20 m si el pasillo entre pilas es ≥ 1,5 m.",
+                                                                                                             "t":  "4º Longitud máxima de cada pila: 20 m. Si la anchura del pasillo entre pilas es mayor o igual a 2,5 m, la longitud máxima será de 45 m.",
+                                                                                                             "i":  true
+                                                                                                         }
+                                                                                                     ]
+                                                                                        }
+                                                                                    ],
+                                                                            "fills":  [
+
+                                                                                      ]
+                                                                        },
+                                                                        {
+                                                                            "tipus":  "subitem",
+                                                                            "titol":  "Pila - separació mínima entre piles",
+                                                                            "cos":  [
+                                                                                        {
+                                                                                            "runs":  [
+                                                                                                         {
+                                                                                                             "t":  "5º Separación mínima entre pilas: 1,5 m.",
+                                                                                                             "i":  true
+                                                                                                         }
+                                                                                                     ]
+                                                                                        }
+                                                                                    ],
+                                                                            "fills":  [
+
+                                                                                      ]
+                                                                        },
+                                                                        {
+                                                                            "tipus":  "subitem",
+                                                                            "titol":  "Pila - separació cada 65 m",
+                                                                            "cos":  [
+                                                                                        {
+                                                                                            "runs":  [
+                                                                                                         {
+                                                                                                             "t":  "6º Cada 65 m de almacenamiento se deberá disponer de una separación entre pilas de, al menos, 5 m de anchura. En el caso de que la altura de la pila sea mayor de 5 m, dicha separación deberá ampliarse a la misma distancia que dicha altura.",
                                                                                                              "i":  true
                                                                                                          }
                                                                                                      ]
@@ -4193,19 +4278,12 @@
                                                       },
                                                       {
                                                           "tipus":  "item",
-                                                          "titol":  "RSCIEI - evacuació i senyalització (Annex II 6.5)",
+                                                          "titol":  "RSCIEI - separació perimetral d’àrea (Annex II 1.5)",
                                                           "cos":  [
                                                                       {
                                                                           "runs":  [
                                                                                        {
-                                                                                           "t":  "Segons l’estipulat en el punt 6.5 de l’Annex II del RSCIEI "
-                                                                                       },
-                                                                                       {
-                                                                                           "t":  "Las disposiciones en materia de evacuación y señalización en los establecimientos industriales que estén ubicados en configuraciones de tipo D y E [...] cumplirán los requisitos siguientes",
-                                                                                           "i":  true
-                                                                                       },
-                                                                                       {
-                                                                                           "t":  ":"
+                                                                                           "t":  "Segons l’estipulat en el punt 1.5 de la Secció 1 de l’Annex II del RSCIEI, les àrees d’incendi en espais oberts de configuració tipus D (excepte les de risc baix nivell 1) han d’estar separades de la resta de zones del mateix establiment per una de les opcions següents:"
                                                                                        }
                                                                                    ]
                                                                       }
@@ -4213,12 +4291,12 @@
                                                           "fills":  [
                                                                         {
                                                                             "tipus":  "subitem",
-                                                                            "titol":  "Franja perimetral",
+                                                                            "titol":  "Separació perimetral",
                                                                             "cos":  [
                                                                                         {
                                                                                             "runs":  [
                                                                                                          {
-                                                                                                             "t":  "Anchura de la franja perimetral: la altura de la pila y como mínimo 5 m.",
+                                                                                                             "t":  "Separación mínima de 5 m entre el perímetro del área y los materiales combustibles almacenados en ella que puedan propagar un incendio. En el caso de que exista un almacenamiento de altura mayor de 5 m, la separación deberá ampliarse a la misma distancia que dicha altura.",
                                                                                                              "i":  true
                                                                                                          }
                                                                                                      ]
@@ -4230,12 +4308,12 @@
                                                                         },
                                                                         {
                                                                             "tipus":  "subitem",
-                                                                            "titol":  "Camins emergència - amplada",
+                                                                            "titol":  "Separació descoberta",
                                                                             "cos":  [
                                                                                         {
                                                                                             "runs":  [
                                                                                                          {
-                                                                                                             "t":  "Anchura para caminos de acceso de emergencia: 4,5 m",
+                                                                                                             "t":  "La separación perimetral deberá estar descubierta para permitir la rápida disipación del calor y humo, salvo que se justifique documentalmente que la cubierta no perjudica este objetivo.",
                                                                                                              "i":  true
                                                                                                          }
                                                                                                      ]
@@ -4247,12 +4325,12 @@
                                                                         },
                                                                         {
                                                                             "tipus":  "subitem",
-                                                                            "titol":  "Camins emergència - separació",
+                                                                            "titol":  "Alternativa - compartimentar",
                                                                             "cos":  [
                                                                                         {
                                                                                             "runs":  [
                                                                                                          {
-                                                                                                             "t":  "Separación máxima entre caminos de emergencia: 65 m",
+                                                                                                             "t":  "Cuando no exista dicha separación, deberán existir elementos compartimentadores que aseguren una resistencia al fuego mínima de EI 60, 90 o 120 en áreas de riesgo bajo, medio o alto respectivamente (o REI si tienen función portante).",
                                                                                                              "i":  true
                                                                                                          }
                                                                                                      ]
@@ -4264,12 +4342,12 @@
                                                                         },
                                                                         {
                                                                             "tipus":  "subitem",
-                                                                            "titol":  "Passadissos entre piles - amplada",
+                                                                            "titol":  "Camins d’emergència",
                                                                             "cos":  [
                                                                                         {
                                                                                             "runs":  [
                                                                                                          {
-                                                                                                             "t":  "Anchura mínima de pasillos entre pilas: 1,5 m",
+                                                                                                             "t":  "Las separaciones de 5 m de anchura citadas en los apartados 1.5 y 1.6 de la sección 1 deben poder servir de caminos de emergencia para la evacuación y para el acceso e intervención del personal de los Servicios de Extinción de Incendios y Salvamento.",
                                                                                                              "i":  true
                                                                                                          }
                                                                                                      ]

@@ -243,52 +243,55 @@ BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
 ITEM|18.|Annex III Llei 20/2009. S’ha de realitzar un control periòdic amb resultat favorable per part d’una Entitat Col·laboradora de l'Administració. Els controls periòdics posteriors s'han d'efectuar cada vuit anys, tal i com s’indica a l’article 7.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat (versió vigent des del 19 de juny de 2025).
 URL|https://www.gencat.cat/mediamb/ohec/eac_CA.pdf
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|19.|RSCIEI. L’activitat es troba regulada pel //Real Decreto 2267/2004, de 3 de diciembre, por el que se aprueba el Reglamento de seguridad contra incendios en los establecimientos Industriales//. S’ha de realitzar un control periòdic amb resultat favorable per part d’una Entitat de Control habilitada, com s’indica a l’Article 7 del Real Decret. Els controls periòdics posteriors s'han d'efectuar cada cinc anys, tal i com s’indica a l’Article 7 del mateix Real Decret.
+ITEM|19.|RSCIEI. L’activitat es troba regulada pel //Real Decreto 164/2025, de 4 de marzo, por el que se aprueba el Reglamento de seguridad contra incendios en los establecimientos industriales//, que deroga el //Real Decreto 2267/2004, de 3 de diciembre//. S’ha de realitzar la inspecció periòdica de les instal·lacions per part d’un organisme de control habilitat, com a mínim cada cinc anys, tal com s’indica a l’article 13 del Reial decret. De la inspecció se n’aixeca acta, signada per la persona inspectora i pel titular, que ha d’estar a disposició de l’administració competent.
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|20.|Vector Atmosfera. L'activitat està inclosa dins l'Annex IV de la //Ley 34/2007, de 15 de noviembre, de calidad del aire y proteccion de la atmosfera//. S'ha d'entregar, per part d'una Entitat de control en l’àmbit sectorial de la prevenció de la contaminació atmosfèrica [EC-A], tal i com s'indica a l'Article 16 del DECRET 139/2018, de 3 de juliol, sobre els règims d’intervenció ambiental atmosfèrica dels establiments on es desenvolupin activitats potencialment contaminants de l'atmosfera:
+ITEM|20.|RSCIEI. Els establiments industrials existents abans del 10 de maig de 2025 s’han d’adaptar a les inspeccions periòdiques de l’article 13 del //Real Decreto 164/2025, de 4 de marzo, por el que se aprueba el Reglamento de seguridad contra incendios en los establecimientos industriales// (disposició transitòria primera). Els que es van construir conforme al //Real Decreto 2267/2004, de 3 de diciembre// han d’adaptar el contingut i la periodicitat de les inspeccions al nou article 13, tenint en compte que els requisits constructius i de les instal·lacions segueixen sent els del reglament del 2004. Els construïts abans del Real Decreto 2267/2004 han de fer inspeccions periòdiques com a mínim cada cinc anys, limitades als equips i sistemes de protecció activa, amb la metodologia de l’article 22 del //Real Decreto 513/2017, de 22 de mayo//.
+BODY|Queden exceptuats els establiments amb densitat de càrrega de foc ponderada i corregida (Qs) que no superi 42 MJ/m2, sempre que la superfície construïda sigui igual o inferior a 120 m2.
+BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
+ITEM|21.|Vector Atmosfera. L'activitat està inclosa dins l'Annex IV de la //Ley 34/2007, de 15 de noviembre, de calidad del aire y proteccion de la atmosfera//. S'ha d'entregar, per part d'una Entitat de control en l’àmbit sectorial de la prevenció de la contaminació atmosfèrica [EC-A], tal i com s'indica a l'Article 16 del DECRET 139/2018, de 3 de juliol, sobre els règims d’intervenció ambiental atmosfèrica dels establiments on es desenvolupin activitats potencialment contaminants de l'atmosfera:
 BODY|- El CAE (Control Atmosfèric de l'Establiment)
 BODY|- L'informe reglamentari de mesures d'emissions a l’atmosfera
 URL|https://www.gencat.cat/mediamb/oaec/ec_atm_CA.pdf
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|21.|Vector Sòl. L’activitat està inclosa dins l’Annex I del //Real Decreto 9/2005, de 14 de enero, por el que se establece la relación de actividades potencialmente contaminantes del suelo y los criterios y estándares para la declaración de suelos contaminados//. S’ha de presentar l’informe de situació periòdic coincidint amb el termini de revisió de la llicència o, en defecte, cada 10 anys.
+ITEM|22.|Vector Sòl. L’activitat està inclosa dins l’Annex I del //Real Decreto 9/2005, de 14 de enero, por el que se establece la relación de actividades potencialmente contaminantes del suelo y los criterios y estándares para la declaración de suelos contaminados//. S’ha de presentar l’informe de situació periòdic coincidint amb el termini de revisió de la llicència o, en defecte, cada 10 anys.
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
 SECT|Instal·lacions
 SUB|Legalitzacions
 BODY|Segons l’article 4 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha de presentar el certificat d’inscripció al Registre d'instal·lacions de Seguretat Industrial de Catalunya (RITSIC) de totes les instal·lacions que conformin l’activitat a nom del titular de l’activitat o el propietari de l’establiment:
-ITEM|22.|Instal·lació d’autoconsum (fotovoltaica)
+ITEM|23.|Instal·lació d’autoconsum (fotovoltaica)
 URL|https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/03_energia/Autoconsum/
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|23.|Instal·lació de gas. Transport, emmagatzematge, distribució gas combustible
+ITEM|24.|Instal·lació de gas. Transport, emmagatzematge, distribució gas combustible
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Presentacio-de-la-declaracio-responsable-per-a-installacions-de-gasos-combustibles-posada-en-servei-modificacions-i-baixa?moda=1
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|24.|Instal·lació de gas. Instal·lacions receptores de gas i emmagatzematge GLP per a consum propi (ITC-ICG 07)
+ITEM|25.|Instal·lació de gas. Instal·lacions receptores de gas i emmagatzematge GLP per a consum propi (ITC-ICG 07)
 URL|https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_i_instal_lacions/03_instal_lacions/aigua_gas_i_electricitat/gas/sense_autoritzacio/
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|25.|Instal·lació de gas (Verificació per unitat)
+ITEM|26.|Instal·lació de gas (Verificació per unitat)
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Presentacio-de-la-declaracio-responsable-per-a-installacions-de-gasos-combustibles-posada-en-servei-modificacions-i-baixa?category=
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|26.|Instal·lació d'electricitat. Alta tensió
+ITEM|27.|Instal·lació d'electricitat. Alta tensió
 URL|https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_i_instal_lacions/03_instal_lacions/aigua_gas_i_electricitat/electricitat/alta_tensio/
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|27.|Instal·lació de baixa tensió
+ITEM|28.|Instal·lació de baixa tensió
 URL|https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_i_instal_lacions/03_instal_lacions/aigua_gas_i_electricitat/electricitat/baixa_tensio/
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|28.|Ascensors
+ITEM|29.|Ascensors
 URL|https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_i_instal_lacions/03_instal_lacions/ascensors_i_grues/ascensors/
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|29.|Instal·lacions tèrmiques en els edificis
+ITEM|30.|Instal·lacions tèrmiques en els edificis
 URL|https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_i_instal_lacions/03_instal_lacions/calefaccio_climatitzacio_i_fred_industrial/installacions_termiques_en_els_edificis/
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|30.|Instal·lacions de fred industrial
+ITEM|31.|Instal·lacions de fred industrial
 URL|https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_i_instal_lacions/03_instal_lacions/calefaccio_climatitzacio_i_fred_industrial/installacions_de_fred_industrial/
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|31.|Equips a pressió
+ITEM|32.|Equips a pressió
 URL|https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_i_instal_lacions/03_instal_lacions/equips_a_pressio/
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|32.|Instal·lacions de protecció contra incendis PCI
+ITEM|33.|Instal·lacions de protecció contra incendis PCI
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Installacions-de-proteccio-contra-incendis
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|33.|Emmagatzematge de productes químics. S'ha d'entregar una relació dels màxims productes emmagatzemats on s'indiqui, en una taula, el següent: Substància | Classificació (1) | Classe de perill (1) | Categoria (1) | Indicació de perill (2) | Capacitat d'emmagatzematge (3).
+ITEM|34.|Emmagatzematge de productes químics. S'ha d'entregar una relació dels màxims productes emmagatzemats on s'indiqui, en una taula, el següent: Substància | Classificació (1) | Classe de perill (1) | Categoria (1) | Indicació de perill (2) | Capacitat d'emmagatzematge (3).
 BODY|(1) Segons l'Annex I del Reglamento (CE) nº 1272/2008 del Parlamento Europeo y del Consejo.
 BODY|(2) Segons l'Annex III del Reglamento (CE) nº 1272/2008 del Parlamento Europeo y del Consejo.
 BODY|(3) Con respecto a las unidades: para los productos químicos sólidos, la masa en kilogramos (kg); para los productos químicos líquidos, el volumen en litros (l); para los gases licuados, los gases licuados refrigerados y los gases disueltos, la masa en kilogramos (kg); para los gases comprimidos, el volumen en Nm³.
@@ -298,60 +301,60 @@ URL/CH|https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_
 BODY/CH|L’aplicació, o no, del //Real Decreto 840/2015, de 21 de septiembre, por el que se aprueban medidas de control de los riesgos inherentes a los accidentes graves en los que intervengan sustancias peligrosas//.
 URL/CH|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Establiments-afectats-per-la-normativa-daccidents-greus?category=74c8c94c-a82c-11e3-a972-000c29052e2c
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|34.|Instal·lació petrolífera. ITC MI-IP 02 Parques de almacenamiento de líquidos petrolíferos
+ITEM|35.|Instal·lació petrolífera. ITC MI-IP 02 Parques de almacenamiento de líquidos petrolíferos
 URL|https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_i_instal_lacions/03_instal_lacions/productes_quimics_petrolifers/installacio-emmagatzematge-carburants-combustibles-liquids-benzineres/
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|35.|Instal·lació petrolífera. ITC MI-IP 03 Instalaciones petrolíferas para uso propio
+ITEM|36.|Instal·lació petrolífera. ITC MI-IP 03 Instalaciones petrolíferas para uso propio
 URL|https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_i_instal_lacions/03_instal_lacions/productes_quimics_petrolifers/productes-petrolifers-consum-propia-installacio/
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|36.|Instal·lació petrolífera. ITC MI-IP 04 Instalaciones para suministro a vehículos
+ITEM|37.|Instal·lació petrolífera. ITC MI-IP 04 Instalaciones para suministro a vehículos
 URL|https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_i_instal_lacions/03_instal_lacions/productes_quimics_petrolifers/installacio-emmagatzematge-carburants-combustibles-liquids-benzineres/
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|37.|Instal·lacions radioactives
+ITEM|38.|Instal·lacions radioactives
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Autoritzacio-dinstallacions-radioactives
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|38.|Instal·lacions de raigs X per a usos mèdics i veterinaris
+ITEM|39.|Instal·lacions de raigs X per a usos mèdics i veterinaris
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Registre-dinstallacions-de-raigs-X-per-a-usos-medics-i-veterinaris
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
 SUB|Inspeccions inicials
-ITEM|39.|Instal·lació fotovoltaica >25 kW. L’activitat està inclosa dins l’apartat 4.1 de la //ITC-BT-05 VERIFICACIONES E INSPECCIONES// del //Real Decreto 842/2002, de 2 de agosto, por el que se aprueba el Reglamento electrotécnico para baja tensión//. S’ha de presentar la inspecció inicial de la instal·lació fotovoltaica per part d’un organisme de control habilitat.
+ITEM|40.|Instal·lació fotovoltaica >25 kW. L’activitat està inclosa dins l’apartat 4.1 de la //ITC-BT-05 VERIFICACIONES E INSPECCIONES// del //Real Decreto 842/2002, de 2 de agosto, por el que se aprueba el Reglamento electrotécnico para baja tensión//. S’ha de presentar la inspecció inicial de la instal·lació fotovoltaica per part d’un organisme de control habilitat.
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|40.|Gas. L’activitat està inclosa dins l’article 2 del //Real Decreto 919/2006, de 28 de julio, por el que se aprueba el Reglamento técnico de distribución y utilización de combustibles gaseosos y sus instrucciones técnicas complementarias ICG 01 a 11//. S’ha de presentar la inspecció inicial de gas per una empresa instal·ladora de gas.
+ITEM|41.|Gas. L’activitat està inclosa dins l’article 2 del //Real Decreto 919/2006, de 28 de julio, por el que se aprueba el Reglamento técnico de distribución y utilización de combustibles gaseosos y sus instrucciones técnicas complementarias ICG 01 a 11//. S’ha de presentar la inspecció inicial de gas per una empresa instal·ladora de gas.
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|41.|Alta Tensió. L’activitat té una potència superior a 30 kV per tant està inclosa dins l’apartat 3 de la //INSTRUCCIÓN TÉCNICA COMPLEMENTARIA ITC-RAT 23 del Real Decreto 337/2014, de 9 de mayo, por el que se aprueban el Reglamento sobre condiciones técnicas y garantías de seguridad en instalaciones eléctricas de alta tensión y sus Instrucciones Técnicas Complementarias ITC-RAT 01 a 23//. S’ha de presentar la inspecció inicial d’Alta Tensió per part d’un organisme de control habilitat.
+ITEM|42.|Alta Tensió. L’activitat té una potència superior a 30 kV per tant està inclosa dins l’apartat 3 de la //INSTRUCCIÓN TÉCNICA COMPLEMENTARIA ITC-RAT 23 del Real Decreto 337/2014, de 9 de mayo, por el que se aprueban el Reglamento sobre condiciones técnicas y garantías de seguridad en instalaciones eléctricas de alta tensión y sus Instrucciones Técnicas Complementarias ITC-RAT 01 a 23//. S’ha de presentar la inspecció inicial d’Alta Tensió per part d’un organisme de control habilitat.
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|42.|Baixa Tensió. L’activitat està inclosa dins l’apartat 4.1 de la ITC-BT-05 VERIFICACIONES E INSPECCIONES del //Real Decreto 842/2002, de 2 de agosto, por el que se aprueba el Reglamento electrotécnico para baja tensión//. S’ha de presentar la inspecció inicial de Baixa Tensió per part d’un organisme de control habilitat.
+ITEM|43.|Baixa Tensió. L’activitat està inclosa dins l’apartat 4.1 de la ITC-BT-05 VERIFICACIONES E INSPECCIONES del //Real Decreto 842/2002, de 2 de agosto, por el que se aprueba el Reglamento electrotécnico para baja tensión//. S’ha de presentar la inspecció inicial de Baixa Tensió per part d’un organisme de control habilitat.
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|43.|Ascensors. L’activitat està inclosa dins l’article 1 de //Real Decreto 355/2024, de 2 de abril, por el que se aprueba la Instrucción Técnica Complementaria ITC AEM 1 «Ascensores»//. S’ha de presentar la inspecció inicial de l’ascensor o ascensors per part d’un organisme de control habilitat.
+ITEM|44.|Ascensors. L’activitat està inclosa dins l’article 1 de //Real Decreto 355/2024, de 2 de abril, por el que se aprueba la Instrucción Técnica Complementaria ITC AEM 1 «Ascensores»//. S’ha de presentar la inspecció inicial de l’ascensor o ascensors per part d’un organisme de control habilitat.
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
 SUB|Inspeccions periòdiques
-ITEM|44.|Instal·lació fotovoltaica >25 kW. L’activitat està inclosa dins l’apartat 4.1 de la //ITC-BT-05 VERIFICACIONES E INSPECCIONES del Real Decreto 842/2002, de 2 de agosto, por el que se aprueba el Reglamento electrotécnico para baja tensión//. S’ha de presentar la inspecció periòdica de la instal·lació fotovoltaica per part d’un organisme de control habilitat (vigència 5 anys).
+ITEM|45.|Instal·lació fotovoltaica >25 kW. L’activitat està inclosa dins l’apartat 4.1 de la //ITC-BT-05 VERIFICACIONES E INSPECCIONES del Real Decreto 842/2002, de 2 de agosto, por el que se aprueba el Reglamento electrotécnico para baja tensión//. S’ha de presentar la inspecció periòdica de la instal·lació fotovoltaica per part d’un organisme de control habilitat (vigència 5 anys).
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|45.|Gas. L’activitat està inclosa dins l’article 2 del //Real Decreto 919/2006, de 28 de julio, por el que se aprueba el Reglamento técnico de distribución y utilización de combustibles gaseosos y sus instrucciones técnicas complementarias ICG 01 a 11//. S’ha de presentar la inspecció periòdica de gas per una empresa instal·ladora de gas (vigència 5 anys).
+ITEM|46.|Gas. L’activitat està inclosa dins l’article 2 del //Real Decreto 919/2006, de 28 de julio, por el que se aprueba el Reglamento técnico de distribución y utilización de combustibles gaseosos y sus instrucciones técnicas complementarias ICG 01 a 11//. S’ha de presentar la inspecció periòdica de gas per una empresa instal·ladora de gas (vigència 5 anys).
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|46.|Alta Tensió. L’activitat té una potència superior a 30 kV per tant està inclosa dins l’apartat 3 de la //INSTRUCCIÓN TÉCNICA COMPLEMENTARIA ITC-RAT 23 del Real Decreto 337/2014, de 9 de mayo, por el que se aprueban el Reglamento sobre condiciones técnicas y garantías de seguridad en instalaciones eléctricas de alta tensión y sus Instrucciones Técnicas Complementarias ITC-RAT 01 a 23//. S’ha de presentar la inspecció periòdica d’Alta Tensió per part d’un organisme de control habilitat (vigència 3 anys).
+ITEM|47.|Alta Tensió. L’activitat té una potència superior a 30 kV per tant està inclosa dins l’apartat 3 de la //INSTRUCCIÓN TÉCNICA COMPLEMENTARIA ITC-RAT 23 del Real Decreto 337/2014, de 9 de mayo, por el que se aprueban el Reglamento sobre condiciones técnicas y garantías de seguridad en instalaciones eléctricas de alta tensión y sus Instrucciones Técnicas Complementarias ITC-RAT 01 a 23//. S’ha de presentar la inspecció periòdica d’Alta Tensió per part d’un organisme de control habilitat (vigència 3 anys).
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|47.|Baixa Tensió. L’activitat està inclosa dins l’apartat 4.1 de la //ITC-BT-05 VERIFICACIONES E INSPECCIONES del Real Decreto 842/2002, de 2 de agosto, por el que se aprueba el Reglamento electrotécnico para baja tensión//. S’ha de presentar la inspecció periòdica de Baixa Tensió per part d’un organisme de control habilitat (vigència 5 anys).
+ITEM|48.|Baixa Tensió. L’activitat està inclosa dins l’apartat 4.1 de la //ITC-BT-05 VERIFICACIONES E INSPECCIONES del Real Decreto 842/2002, de 2 de agosto, por el que se aprueba el Reglamento electrotécnico para baja tensión//. S’ha de presentar la inspecció periòdica de Baixa Tensió per part d’un organisme de control habilitat (vigència 5 anys).
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|48.|Ascensors. L’activitat està inclosa dins l’article 1 de //Real Decreto 355/2024, de 2 de abril, por el que se aprueba la Instrucción Técnica Complementaria ITC AEM 1 «Ascensores»//. S’ha de presentar la inspecció periòdica de l’ascensor o ascensors per part d’un organisme de control habilitat (vigència de 2 anys en ús industrial i pública concurrència, 4 anys en més de 20 habitatges o 4 plantes, 6 anys de vigència la resta de casos).
+ITEM|49.|Ascensors. L’activitat està inclosa dins l’article 1 de //Real Decreto 355/2024, de 2 de abril, por el que se aprueba la Instrucción Técnica Complementaria ITC AEM 1 «Ascensores»//. S’ha de presentar la inspecció periòdica de l’ascensor o ascensors per part d’un organisme de control habilitat (vigència de 2 anys en ús industrial i pública concurrència, 4 anys en més de 20 habitatges o 4 plantes, 6 anys de vigència la resta de casos).
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|49.|Instal·lacions tèrmiques. L’activitat està inclosa dins l’article 4.2 de la //INSTRUCCIÓN TÉCNICA IT 4. INSPECCIÓN del Real Decreto 1027/2007, de 20 de julio, por el que se aprueba el Reglamento de Instalaciones Térmicas en los Edificios//. S’ha de presentar la inspecció periòdica de la instal·lació tèrmica per part d’un organisme de control habilitat (vigència 4 anys).
+ITEM|50.|Instal·lacions tèrmiques. L’activitat està inclosa dins l’article 4.2 de la //INSTRUCCIÓN TÉCNICA IT 4. INSPECCIÓN del Real Decreto 1027/2007, de 20 de julio, por el que se aprueba el Reglamento de Instalaciones Térmicas en los Edificios//. S’ha de presentar la inspecció periòdica de la instal·lació tèrmica per part d’un organisme de control habilitat (vigència 4 anys).
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|50.|Instal·lacions de fred industrial. L’activitat està inclosa dins l’article 3 de la //INSTRUCCIÓN IF-14 del Real Decreto 552/2019, de 27 de septiembre, por el que se aprueban el Reglamento de seguridad para instalaciones frigoríficas y sus instrucciones técnicas complementarias//. S’ha de presentar la inspecció periòdica de la instal·lació de fred industrial per part d’un organisme de control habilitat (vigència 10 anys).
+ITEM|51.|Instal·lacions de fred industrial. L’activitat està inclosa dins l’article 3 de la //INSTRUCCIÓN IF-14 del Real Decreto 552/2019, de 27 de septiembre, por el que se aprueban el Reglamento de seguridad para instalaciones frigoríficas y sus instrucciones técnicas complementarias//. S’ha de presentar la inspecció periòdica de la instal·lació de fred industrial per part d’un organisme de control habilitat (vigència 10 anys).
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|51.|Equips a pressió. L’activitat està inclosa dins el //Real Decreto 809/2021, de 21 de septiembre, por el que se aprueba el Reglamento de equipos a presión y sus instrucciones técnicas complementarias//. S’ha de presentar la inspecció periòdica de l’equip a pressió per part d’un organisme de control habilitat (vigència 10 anys).
+ITEM|52.|Equips a pressió. L’activitat està inclosa dins el //Real Decreto 809/2021, de 21 de septiembre, por el que se aprueba el Reglamento de equipos a presión y sus instrucciones técnicas complementarias//. S’ha de presentar la inspecció periòdica de l’equip a pressió per part d’un organisme de control habilitat (vigència 10 anys).
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|52.|PCI. L’activitat està inclosa dins el //Real Decreto 513/2017, de 22 de mayo, por el que se aprueba el Reglamento de instalaciones de protección contra incendios//. S’ha de presentar la inspecció periòdica dels elements de protecció contra incendis per part d’un organisme de control habilitat (vigència 10 anys). En cas que els elements de protecció contra incendis estiguin instal·lats fa menys de 10 anys s’ha d’entregar un certificat de l'empresa instal·ladora, emès per un tècnic titulat competent designat per aquesta, en el qual es farà constar que la instal·lació s'ha realitzat de conformitat amb el que s'estableix en el Real Decret 513/2017 i d'acord amb el projecte o documentació tècnica.
+ITEM|53.|PCI. L’activitat està inclosa dins el //Real Decreto 513/2017, de 22 de mayo, por el que se aprueba el Reglamento de instalaciones de protección contra incendios//. S’ha de presentar la inspecció periòdica dels elements de protecció contra incendis per part d’un organisme de control habilitat (vigència 10 anys). En cas que els elements de protecció contra incendis estiguin instal·lats fa menys de 10 anys s’ha d’entregar un certificat de l'empresa instal·ladora, emès per un tècnic titulat competent designat per aquesta, en el qual es farà constar que la instal·lació s'ha realitzat de conformitat amb el que s'estableix en el Real Decret 513/2017 i d'acord amb el projecte o documentació tècnica.
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|53.|Emmagatzematge de productes químics. L’activitat està inclosa dins l’Article 1 i 2 del //Real Decreto 656/2017, de 23 de junio, por el que se aprueba el Reglamento de Almacenamiento de Productos Químicos y sus Instrucciones Técnicas Complementarias MIE APQ 0 a 10//. S’ha de presentar la inspecció periòdica de l’emmagatzematge de productes químics per part d’un organisme de control habilitat (vigència 5 anys).
+ITEM|54.|Emmagatzematge de productes químics. L’activitat està inclosa dins l’Article 1 i 2 del //Real Decreto 656/2017, de 23 de junio, por el que se aprueba el Reglamento de Almacenamiento de Productos Químicos y sus Instrucciones Técnicas Complementarias MIE APQ 0 a 10//. S’ha de presentar la inspecció periòdica de l’emmagatzematge de productes químics per part d’un organisme de control habilitat (vigència 5 anys).
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|54.|Instal·lació petrolífera. ITC MI-IP 02 Parques de almacenamiento de líquidos petrolíferos. L’activitat està inclosa dins l’Article 2 del //Real Decreto 2085/1994, de 20 de octubre, por el que se aprueba el Reglamento de Instalaciones Petrolíferas//. S’ha de presentar la inspecció periòdica de la instal·lació petrolífera per part d’un organisme de control habilitat (vigència 10 anys).
+ITEM|55.|Instal·lació petrolífera. ITC MI-IP 02 Parques de almacenamiento de líquidos petrolíferos. L’activitat està inclosa dins l’Article 2 del //Real Decreto 2085/1994, de 20 de octubre, por el que se aprueba el Reglamento de Instalaciones Petrolíferas//. S’ha de presentar la inspecció periòdica de la instal·lació petrolífera per part d’un organisme de control habilitat (vigència 10 anys).
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|55.|Instal·lació petrolífera. ITC MI-IP 03 Instalaciones petrolíferas para uso propio. L’activitat està inclosa dins l’Article 2 del //Real Decreto 1427/1997, de 15 de septiembre, por el que se aprueba la instrucción técnica complementaria MI-IP 03 «Instalaciones petrolíferas para uso propio»//. S’ha de presentar la inspecció periòdica de la instal·lació petrolífera per part d’un organisme de control habilitat (vigència 10 anys).
+ITEM|56.|Instal·lació petrolífera. ITC MI-IP 03 Instalaciones petrolíferas para uso propio. L’activitat està inclosa dins l’Article 2 del //Real Decreto 1427/1997, de 15 de septiembre, por el que se aprueba la instrucción técnica complementaria MI-IP 03 «Instalaciones petrolíferas para uso propio»//. S’ha de presentar la inspecció periòdica de la instal·lació petrolífera per part d’un organisme de control habilitat (vigència 10 anys).
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|56.|Instal·lació petrolífera. ITC MI-IP 04 Instalaciones para suministro a vehículos. L’activitat està inclosa dins del //Real Decreto 706/2017, de 7 de julio, por el que se aprueba la instrucción técnica complementaria MI-IP 04 "Instalaciones para suministro a vehículos" y se regulan determinados aspectos de la reglamentación de instalaciones petrolíferes//. S’ha de presentar la inspecció periòdica de la instal·lació petrolífera per part d’un organisme de control habilitat (vigència 5 anys).
+ITEM|57.|Instal·lació petrolífera. ITC MI-IP 04 Instalaciones para suministro a vehículos. L’activitat està inclosa dins del //Real Decreto 706/2017, de 7 de julio, por el que se aprueba la instrucción técnica complementaria MI-IP 04 "Instalaciones para suministro a vehículos" y se regulan determinados aspectos de la reglamentación de instalaciones petrolíferes//. S’ha de presentar la inspecció periòdica de la instal·lació petrolífera per part d’un organisme de control habilitat (vigència 5 anys).
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|57.|Instal·lacions de raigs X. L’activitat està inclosa dins l’Article 17 del //Real Decreto 1085/2009, de 3 de julio, por el que se aprueba el Reglamento sobre instalación y utilización de aparatos de rayos X con fines de diagnóstico médico//. S’ha de presentar la inspecció periòdica de la instal·lació de raigs X per part d’un organisme de control habilitat (vigència 5 anys).
+ITEM|58.|Instal·lacions de raigs X. L’activitat està inclosa dins l’Article 17 del //Real Decreto 1085/2009, de 3 de julio, por el que se aprueba el Reglamento sobre instalación y utilización de aparatos de rayos X con fines de diagnóstico médico//. S’ha de presentar la inspecció periòdica de la instal·lació de raigs X per part d’un organisme de control habilitat (vigència 5 anys).
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
 SECT|PROJECTE (la resta de REQ1)
 BODY|//Requeriment pendent (1 punts)//
