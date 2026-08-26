@@ -2800,12 +2800,26 @@
                                                       },
                                                       {
                                                           "tipus":  "item",
-                                                          "titol":  "ITC SP 108 - lluernes en coberta",
+                                                          "titol":  "RSCIEI - lluernes en coberta (Taula 2.1.4, Nota 7)",
                                                           "cos":  [
                                                                       {
                                                                           "runs":  [
                                                                                        {
-                                                                                           "t":  "ITC SP 108. Segons l’article 3.2 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha de justificar el compliment de la SP 108. Lluernes en coberta en establiments industrials, adjuntant com a mínim:"
+                                                                                           "t":  "Lluernes en coberta. Segons la taula 2.1.4 "
+                                                                                       },
+                                                                                       {
+                                                                                           "t":  "Clases de reacción al fuego de los elementos constructivos",
+                                                                                           "i":  true
+                                                                                       },
+                                                                                       {
+                                                                                           "t":  " de la Secció 1 de l’Annex II del "
+                                                                                       },
+                                                                                       {
+                                                                                           "t":  "Real Decreto 164/2025, de 4 de marzo",
+                                                                                           "i":  true
+                                                                                       },
+                                                                                       {
+                                                                                           "t":  " (RSCIEI) i la seva Nota 7, als lluernaris en general i als airejadors d’extracció natural de fum i calor que s’instal·lin a la coberta se’ls apliquen els mateixos requisits que als sostres i parets. Els lluernaris de grans dimensions en coberta han de ser sempre de classe B-s1,d0 o més favorable. Es consideren de grans dimensions els que tenen més de 10 m de longitud, o bé quan hi ha diversos lluernaris agrupats amb una separació entre ells inferior a 2 m que ocupen més de 10 m de longitud. S’ha de justificar el compliment adjuntant com a mínim:"
                                                                                        }
                                                                                    ]
                                                                       },
@@ -2822,14 +2836,6 @@
                                                                                            "t":  "- Documents acreditatius de les prestacions del producte"
                                                                                        }
                                                                                    ]
-                                                                      },
-                                                                      {
-                                                                          "runs":  [
-                                                                                       {
-                                                                                           "t":  "https://interior.gencat.cat/web/.content/home/030_arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/instruccions_tecniques_complementaries/documents/sp108.pdf"
-                                                                                       }
-                                                                                   ],
-                                                                          "url":  true
                                                                       }
                                                                   ],
                                                           "fills":  [
@@ -3109,6 +3115,358 @@
                                                                           "runs":  [
                                                                                        {
                                                                                            "t":  "Enllumenat emergència. Les instal·lacions d\u0027enllumenat d\u0027emergència seran conformes a les especificacions establertes en el Reglament Electrotècnic de Baixa Tensió, aprovat per Reial decret 842/2002, de 2 d\u0027agost, i en la Instrucció Tècnica Complementària ITC-BT-28."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      }
+                                                  ]
+                                    },
+                                    {
+                                        "tipus":  "subseccio",
+                                        "titol":  "RSCIEI",
+                                        "cos":  [
+
+                                                ],
+                                        "fills":  [
+                                                      {
+                                                          "tipus":  "text",
+                                                          "titol":  "",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "S’ha de justificar el compliment del "
+                                                                                       },
+                                                                                       {
+                                                                                           "t":  "Real Decreto 164/2025, de 4 de marzo, por el que se aprueba el Reglamento de seguridad contra incendios en los establecimientos industriales",
+                                                                                           "i":  true
+                                                                                       },
+                                                                                       {
+                                                                                           "t":  " (RSCIEI), més concretament:"
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "RSCIEI - Caracterització (Annex I)",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Caracterització. S’ha de justificar la configuració de cada edifici i espai obert de l’establiment (tipus A vertical, A horitzontal, B, C o D), la identificació dels sectors d’incendi (en edificis) i de les àrees d’incendi (en espais oberts) i, per a cada un, la densitat de càrrega de foc ponderada i corregida (Qs) amb el seu nivell de risc intrínsec i el subnivell d’1 a 8 de la taula 1.3.1 de l’Annex I. Els subnivells són una novetat del reglament: el Real Decreto 2267/2004 només en tenia tres, i les taules de l’Annex II hi van lligades."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "RSCIEI - Compatibilitat reglamentària (art. 4)",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Compatibilitat reglamentària. Quan dins l’establiment industrial hi convisquin activitats subsidiàries que s’identifiquin amb els usos definits al CTE DB SI, les zones on es desenvolupin han de complir el CTE DB SI i constituir un sector d’incendi independent del d’ús industrial quan superin: 250 m2 de superfície construïda en ús administratiu, comercial, docent, pública concurrència i zones d’allotjament; 100 m2 en aparcament; sempre en residencial habitatge i residencial públic; i 250 m2 entre tots ells si n’hi ha diversos adjacents o superposats. Aquestes zones segueixen formant part de l’establiment industrial i, per tant, entren dins de la inspecció periòdica del RSCIEI."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "RSCIEI - Superfície màxima del sector (Taula 2.1.1)",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Sectorització. S’ha de justificar que cap sector d’incendi no supera la màxima superfície construïda admissible de la taula 2.1.1 segons la seva configuració i el seu subnivell de risc. Cal aplicar-hi les notes de la taula: si el sector és sota rasant, 400 m2 (risc baix nivell 1) o la meitat dels valors de la taula; si la façana accessible de l’establiment és igual o superior al 50 % del seu perímetre, els valors es poden multiplicar per 1,25; i si hi ha ruixadors automàtics o un altre sistema fix d’extinció automàtica que cobreixi tot el sector, per 2. Les dues últimes es poden aplicar alhora (factor 2,5)."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "RSCIEI - Resistència al foc dels elements delimitadors (Taula 2.1.2)",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Sectorització. Els elements constructius que delimiten cada sector d’incendi han de tenir la resistència al foc de la taula 2.1.2, segons el nivell de risc intrínsec, la configuració i si la planta és sobre o sota rasant (de EI 30 a EI 180). Si l’element té també funció portant, ha de complir el valor REI corresponent."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "RSCIEI - Portes i portons de sectorització (Taula 2.1.2, Nota 3)",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Sectorització. Les portes i els portons que compartimenten sectors d’incendi han de tenir una resistència al foc EI2 igual, com a mínim, a la meitat de l’exigida a l’element que separa els dos sectors, o a la quarta part quan el pas es faci a través d’un vestíbul previ i de dues portes. Aquestes reduccions no s’apliquen als portons que no siguin fàcilment operables manualment ni als de més de 3 m d’ample o 4 m d’alt, on com a molt es pot reduir a la meitat i amb vestíbul previ i dues portes. Les portes i els elements compartimentadors mòbils previstos per quedar habitualment oberts han de disposar d’un sistema retenidor que en permeti el tancament automàtic en cas d’incendi."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "RSCIEI - Espais ocults i pas d’instal·lacions (Annex II, Secció 1, ap. 2)",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Espais ocults. La compartimentació ha de tenir continuïtat en els espais ocults (patinets, cambres, falsos sostres, terres elevats i galeries subterrànies de qualsevol tipus d’instal·lació), llevat que aquests estiguin compartimentats respecte dels primers com a mínim amb la mateixa resistència al foc. La resistència al foc s’ha de mantenir allà on els elements de compartimentació els travessin cables, canonades, conduccions o conductes de ventilació, excloses les penetracions de secció de pas que no superi els 50 cm2, amb una comporta tallafocs EI t o amb elements passants de la mateixa resistència que l’element travessat."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "RSCIEI - Reacció al foc dels revestiments (Taula 2.1.4)",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Reacció al foc. Els productes utilitzats com a revestiment o acabat superficial han de tenir, com a mínim, les prestacions de la taula 2.1.4 (sostres i parets / terres): zones ocupables en general C-s2,d0 / CFL-s1; passadissos i escales protegits B-s1,d0 / CFL-s1; aparcaments i sectors de nivell de risc intrínsec alt B-s1,d0 / BFL-s1; i espais ocults no estancs B-s3,d0 / BFL-s2. Només s’hi compten els que superin el 5 % de la superfície total del conjunt de les parets, dels sostres o dels terres del recinte."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "RSCIEI - Falsos sostres, terres elevats i cables (Annex II, Secció 1, ap. 3.2 i 3.3)",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Reacció al foc. Els productes situats a l’interior de falsos sostres o terres elevats, tant els d’aïllament tèrmic i condicionament acústic com els que constitueixin o revesteixin conductes d’aire condicionat o de ventilació, han de ser de classe B-s3,d0 o més favorable. Els cables situats a l’interior de falsos sostres, terres elevats i galeries subterrànies no compartimentades han de ser, com a mínim, de classe Cca-s1b,d1,a1."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "RSCIEI - Instal·lacions tècniques de serveis (Annex II, Secció 1, ap. 4)",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Instal·lacions de serveis. S’ha de justificar que les instal·lacions dels serveis elèctrics (inclosos els grups electrògens i els quadres), les de climatització i la resta de serveis de l’establiment compleixen les condicions que l’Annex II els exigeix dins d’un establiment industrial."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "RSCIEI - Mitgeres i separació amb altres establiments (Taula 2.2.1)",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Propagació exterior. Els elements separadors dels sectors d’incendi de l’establiment respecte d’altres establiments (mitgeres, murs, tancaments o forjats) han de tenir una resistència al foc mínima de EI 120 si el risc intrínsec és baix, EI 180 si és mitjà i EI 240 si és alt; REI si tenen també funció portant."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "RSCIEI - Façanes (Taula 2.2.2)",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Propagació exterior. S’ha de justificar la limitació de la propagació de l’incendi per façana, tant entre sectors d’incendi del mateix establiment com respecte dels establiments veïns, segons la taula 2.2.2 de la Secció 2 de l’Annex II."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "RSCIEI - Cobertes i trobada coberta-façana (Taula 2.2.3)",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Propagació exterior. A la trobada entre una coberta i una façana que pertanyin a sectors d’incendi o a establiments diferents, quan la façana tingui zones amb una resistència al foc inferior al 50 % de l’EI exigit, els materials que ocupin més del 10 % del revestiment o acabat exterior de les zones de coberta situades a menys de 5 m de la projecció vertical de la façana han de ser de classe BROOF (t1), inclosos els lluernaris, les claraboies i qualsevol altre element d’il·luminació o ventilació. Els valors d’alçada «h» en funció de la distància «d» són els de la taula 2.2.3 (d ≥ 2,50 m, h = 0; i fins a h = 5 m quan d = 0)."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "RSCIEI - Càlcul de l’ocupació (Annex II, Secció 3, ap. 2)",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Evacuació. L’ocupació «P» de cada sector d’incendi s’ha de deduir de les expressions de l’apartat 2 de la Secció 3 de l’Annex II: P = 1,10 p quan p \u003c 100; P = 110 + 1,05 (p – 100) quan 100 \u003c p \u003c 200; P = 215 + 1,03 (p – 200) quan 200 \u003c p \u003c 500; i P = 524 + 1,01 (p – 500) quan 500 \u003c p, on «p» és el nombre de persones que ocupa el sector segons la documentació laboral que reguli el funcionament de l’activitat. El resultat s’arrodoneix a l’enter immediatament superior."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "RSCIEI - Nombre de sortides (Annex II, Secció 3, ap. 3.1.1)",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Evacuació. Han de disposar de dues sortides alternatives com a mínim els sectors d’incendi de risc intrínsec alt de superfície construïda superior a 50 m2, i els de risc intrínsec mitjà o baix de superfície construïda superior a 50 m2 quan el seu nombre d’ocupants (P) sigui superior a 50 persones o quan estigui previst que els facin servir per evacuar més de 50 persones, incloent-hi els ocupants d’altres zones que hi hagin de passar per arribar a la sortida."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "RSCIEI - Longitud dels recorreguts d’evacuació (Taula 2.3.1)",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Evacuació. La longitud dels recorreguts d’evacuació fins a la sortida de planta o d’edifici no pot superar els valors de la taula 2.3.1, que prevalen sobre els de la taula 3.1 de la Secció SI 3 del CTE DB SI: amb una sola sortida, 50 m (risc baix), 35 m (mitjà) i 20 m (alt); amb dues o més sortides alternatives, 65 m, 50 m i 35 m respectivament. Els increments de la nota 4 no són acumulables: 25 % amb un sistema fix d’extinció automàtica, 25 % amb un sistema per al control de fums i de calor segons l’apartat 8.3 de l’Annex III, i fins al 100 % —amb un màxim de 90 m— en sectors situats a la planta de sortida amb dues o més sortides directes a l’exterior, alçada de sostre igual o superior a 8 m i extinció automàtica."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "RSCIEI - Espai de maniobra dels bombers (Annex II, Secció 4, ap. 1.3)",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Intervenció dels bombers. Els edificis amb una superfície ocupada en planta superior a 1.000 m2 o amb una alçada d’evacuació descendent superior a 9 m han de disposar, al llarg de les façanes on hi ha els accessos, d’un espai de maniobra per als vehicles dels Serveis d’Extinció d’Incendis i Salvament amb amplada mínima lliure de 6 m, alçada lliure la de l’edifici, separació màxima del vehicle a la façana de 15 m, distància màxima fins als accessos de 30 m, pendent màxim del 10 % i resistència al punxonament de 100 kN sobre 20 cm de diàmetre. Aquest espai s’ha de mantenir lliure de mobiliari urbà, arbrat, jardins i altres obstacles. Si l’edifici té columna seca, hi ha d’haver accés per a un vehicle autobomba a menys de 18 m de cada punt de connexió, i el punt ha de ser visible des del vehicle. A les vies d’accés sense sortida de més de 20 m de llargada hi ha d’haver espai de gir, per exemple una zona circular de radi igual o superior a 9 m."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "RSCIEI - Façana accessible (Annex II, Secció 4, ap. 2)",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Intervenció dels bombers. Les façanes amb espai de maniobra han de tenir la condició de façana accessible, amb buits que permetin accedir des de l’exterior a cada planta: ampit a una alçada no superior a 1,20 m respecte del nivell de la planta, dimensions mínimes de 0,80 m d’amplada i 1,20 m d’alçada, distància màxima entre els eixos verticals de dos buits consecutius de 25 m i, a la planta de sortida, almenys un accés a peu pla amb una dimensió vertical mínima de 2 m. No s’hi poden instal·lar elements que impedeixin o dificultin l’accés. La longitud de la façana accessible no pot ser inferior al 15 % del perímetre de la planta de l’edifici; en edificis de planta rectangular on un costat no hi arribi, cal disposar d’una altra zona de façana accessible amb el seu espai de maniobra, preferiblement al costat oposat."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "RSCIEI - Resistència al foc de l’estructura portant (Taula 2.5.1)",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Estructura. La resistència al foc dels elements estructurals principals amb funció portant no pot ser inferior a la de la taula 2.5.1, segons el nivell de risc intrínsec, la configuració i si la planta és sobre o sota rasant (de R 30 a R 180, amb els casos no admesos que la mateixa taula recull). Els elements secundaris —aquells el col·lapse dels quals no pot fer mal als ocupants ni comprometre l’estabilitat global de l’estructura, l’evacuació o la compartimentació— no necessiten protecció."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "RSCIEI - Cobertes lleugeres (Taules 2.5.2 i 2.5.3)",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Estructura. Per a l’estructura principal de les cobertes lleugeres no previstes per a l’evacuació dels ocupants es poden adoptar els valors de la taula 2.5.2 (R 15, R 30 i R 60 en tipus B i sense exigència, R 15 i R 30 en tipus C, segons el risc), sempre que es garanteixi l’evacuació, es justifiqui que la seva fallada no pot causar danys greus als edificis pròxims ni comprometre l’estabilitat de plantes inferiors ni la sectorització i, si el risc del sector és mitjà o alt, es disposi d’un sistema per al control de fums i de calor. En edificis sobre rasant d’una sola planta amb coberta lleugera, quan tot el sector estigui protegit amb extinció automàtica i control de fums i de calor, s’apliquen els valors de la taula 2.5.3."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "RSCIEI - Quan no cal justificar la resistència de l’estructura (Annex II, Secció 5, ap. 1.3.3 i 1.3.4)",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Estructura. Als edificis d’una sola planta que constitueixin un sol sector d’incendi, situats en edificis de tipus C separats almenys 10 m d’altres establiments i dels límits de parcel·les on es pugui edificar, lliures de mercaderies combustibles o elements intermedis que puguin propagar l’incendi, i protegits per un sistema fix d’extinció automàtica i un sistema per al control de fums i de calor, no cal justificar la resistència al foc de l’estructura. Quan s’aculli a aquesta excepció o a la taula 2.5.2, s’ha de senyalitzar als accessos de l’edifici perquè el personal dels Serveis d’Extinció d’Incendis i Salvament en tingui coneixement."
                                                                                        }
                                                                                    ]
                                                                       }

@@ -4590,9 +4590,17 @@ if ($null -ne $req1TF -and $null -ne $llicTF) {
     $selTF   = Build-SelectionFromKeys $req1TF.Sections $clausTF
 
     # Hi es, el text fix de cada grup, a la seqüencia emesa?
+    #
+    # $grups es OPCIONAL i per defecte son TOTS: les families que componen amb
+    # _WriteCatalegBody porten qualsevol punt de REQ1. Llicencia, en canvi, NO
+    # es queda totes les subseccions -nomes expandeix les que digui LLIC.json-,
+    # o sigui que alli s'hi passen NOMES els grups que aquell bloc porta. Si
+    # s'exigissin tots, afegir una subseccio nova a REQ1 faria petar aquesta
+    # prova sense que hi hagues cap defecte.
     $comprova = {
-        param($nom, $crides)
-        foreach ($g in $grupsTF) {
+        param($nom, $crides, $grups = $null)
+        if ($null -eq $grups) { $grups = $grupsTF }
+        foreach ($g in $grups) {
             $t = ([string]@($g.Intro)[0])
             $cap = $t.Substring(0, [Math]::Min(30, $t.Length))
             $hi = [bool](@($crides) | Where-Object { $_ -like ('*' + $cap + '*') })
@@ -4648,6 +4656,13 @@ if ($null -ne $req1TF -and $null -ne $llicTF) {
         if ($vistTF[$k] -eq 1) { $vistTF[$k] = 2; $despTF += $p }
     }
     Assert (@($despTF).Count -ge 1) 'Textos fixos: hi ha punts de Llicencia per comprovar (mai el primer del grup)'
+    # Els grups que el bloc DESPRES porta de debo: Llicencia nomes expandeix les
+    # subseccions que li diu LLIC.json, i exigir-hi la resta seria demanar un
+    # text que aquell informe no ha d'escriure.
+    $ubiTF = @{}
+    foreach ($p in $despTF) { $ubiTF[([string]$p.Seccio + '::' + [string]$p.Subseccio)] = $true }
+    $grupsLlicTF = @($grupsTF | Where-Object { $ubiTF.ContainsKey([string]$_.Sec + '::' + [string]$_.Sub) })
+    Assert (@($grupsLlicTF).Count -ge 1) 'Textos fixos: el bloc DESPRES de Llicencia en porta algun'
     foreach ($f in @('requeriment', 'favorable-pre', 'favorable-post')) {
         $dTF = @(@(_LlicPuntsAmbEstatFase $despTF $f) | ForEach-Object { $_ | Add-Member NoteProperty Estat 'no' -PassThru -Force })
         $global:emitCalls.Clear()
@@ -4656,7 +4671,7 @@ if ($null -ne $req1TF -and $null -ne $llicTF) {
             Abans = @(); Projecte = @(); Despres = $dTF
             Doc = @{ Text = ''; Items = @() }; Condicions = ''; Cataleg = $llicTF
         })
-        & $comprova ('Llicencia/' + $f) $global:emitCalls
+        & $comprova ('Llicencia/' + $f) $global:emitCalls $grupsLlicTF
     }
 
     # 4) LES VISTES en Word. Han d'ensenyar el mateix que el document: aqui hi

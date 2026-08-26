@@ -209,10 +209,9 @@ BODY|- Documents de subministrament del producte
 BODY|- Documents acreditatius de les prestacions del producte
 URL|https://interior.gencat.cat/web/.content/home/030_arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/instruccions_tecniques_complementaries/documents/SP-136_C-Model-certificat-proteccio-estructures.doc
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
-ITEM|10.|ITC SP 108. Segons l’article 3.2 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha de justificar el compliment de la SP 108. Lluernes en coberta en establiments industrials, adjuntant com a mínim:
+ITEM|10.|Lluernes en coberta. Segons la taula 2.1.4 //Clases de reacción al fuego de los elementos constructivos// de la Secció 1 de l’Annex II del //Real Decreto 164/2025, de 4 de marzo// (RSCIEI) i la seva Nota 7, als lluernaris en general i als airejadors d’extracció natural de fum i calor que s’instal·lin a la coberta se’ls apliquen els mateixos requisits que als sostres i parets. Els lluernaris de grans dimensions en coberta han de ser sempre de classe B-s1,d0 o més favorable. Es consideren de grans dimensions els que tenen més de 10 m de longitud, o bé quan hi ha diversos lluernaris agrupats amb una separació entre ells inferior a 2 m que ocupen més de 10 m de longitud. S’ha de justificar el compliment adjuntant com a mínim:
 BODY|- Documents de subministrament del producte
 BODY|- Documents acreditatius de les prestacions del producte
-URL|https://interior.gencat.cat/web/.content/home/030_arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/instruccions_tecniques_complementaries/documents/sp108.pdf
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
 SECT|Pla d'Autoprotecció
 ITEM|11.|PAU. L’activitat està inclosa dins l’Annex I del Decret 30/2015, de 3 de març, pel qual s'aprova el catàleg d'activitats i centres obligats a adoptar mesures d'autoprotecció i es fixa el contingut d'aquestes mesures. S’ha d’elaborar el Pla d’Autoprotecció amb el contingut mínim determinat a l’Annex II de l’esmentat Decret i obtenir el certificat d’homologació del Pla d’Autoprotecció de Protecció civil [OPCIO: Competència PAU | de Catalunya | local].
@@ -362,7 +361,7 @@ BODY|//Requeriment pendent (1 punts)//
 BODY|//Classificació (2 punts)//
 BODY|//Desistiment comunicació (1 punts)//
 BODY|//Estat de l’establiment (2 punts)//
-BODY|//Incendis (27 punts)//
+BODY|//Incendis (47 punts)//
 BODY|//Projecte (3 punts)//
 BODY|//Activitat (8 punts)//
 BODY|//Extracció de fums (11 punts)//
