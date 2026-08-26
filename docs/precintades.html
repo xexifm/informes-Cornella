@@ -22,8 +22,8 @@
   th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid #eee; vertical-align: top; }
   th { background: #f3f5f8; position: sticky; top: 0; }
   td.num { font-weight: bold; color: #fff; }
-  tr td.num { background: #c0392b; text-align: center; width: 30px; }
-  td.id { font-family: Consolas, monospace; color: #14365c; white-space: nowrap; }
+  tr td.num { background: #c0392b; text-align: center; white-space: nowrap;
+              font-family: Consolas, monospace; }
   td.act { font-weight: 600; }
   #bar { padding: 8px 16px; border-top: 1px solid #ddd; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   button { background: #14365c; color: #fff; border: 0; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 14px; }
@@ -63,7 +63,7 @@
     <h2>Llistat</h2>
     <div id="estat">Carregant dades…</div>
     <table id="taula" hidden>
-      <thead><tr><th>#</th><th>ID</th><th>Activitat</th><th>Adreça</th></tr></thead>
+      <thead><tr><th>ID</th><th>Activitat</th><th>Adreça</th></tr></thead>
       <tbody id="taula-body"></tbody>
     </table>
     <p style="font-size:11px;color:#777;margin:10px 14px;" id="peu"></p>
@@ -92,7 +92,10 @@
   fetch('dades/precintades.json', { cache: 'no-store' })
     .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
     .then(function (data) {
-      var acts = (data && data.Activitats) ? data.Activitats : [];
+      var acts = (data && data.Activitats) ? data.Activitats.slice() : [];
+      // Ordenem per ID Activitat DESCENDENT (el mes recent, ID mes alt, a dalt).
+      // El numero visible a la llista i al marcador es l'ID, no un correlatiu.
+      acts.sort(function (a, b) { return (parseInt(b.id, 10) || 0) - (parseInt(a.id, 10) || 0); });
       var estat = document.getElementById('estat');
 
       document.getElementById('meta-compte').textContent =
@@ -161,8 +164,7 @@
 
         var tr = document.createElement('tr');
         tr.innerHTML =
-          "<td class='num'>" + (i + 1) + "</td>" +
-          "<td class='id'>" + esc(a.id) + "</td>" +
+          "<td class='num'>" + esc(a.id) + "</td>" +
           "<td class='act'>" + esc(a.activitat) + "</td>" +
           "<td>" + (a.adreca && a.adreca.length ? esc(a.adreca) : '—') + "</td>";
         tr.style.cursor = 'pointer';
