@@ -345,6 +345,7 @@ BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
 ITEM|52.|Equips a pressió. L’activitat està inclosa dins el //Real Decreto 809/2021, de 21 de septiembre, por el que se aprueba el Reglamento de equipos a presión y sus instrucciones técnicas complementarias//. S’ha de presentar la inspecció periòdica de l’equip a pressió per part d’un organisme de control habilitat (vigència 10 anys).
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
 ITEM|53.|PCI. L’activitat està inclosa dins el //Real Decreto 513/2017, de 22 de mayo, por el que se aprueba el Reglamento de instalaciones de protección contra incendios//. S’ha de presentar la inspecció periòdica dels elements de protecció contra incendis per part d’un organisme de control habilitat (vigència 10 anys). En cas que els elements de protecció contra incendis estiguin instal·lats fa menys de 10 anys s’ha d’entregar un certificat de l'empresa instal·ladora, emès per un tècnic titulat competent designat per aquesta, en el qual es farà constar que la instal·lació s'ha realitzat de conformitat amb el que s'estableix en el Real Decret 513/2017 i d'acord amb el projecte o documentació tècnica.
+BODY|Queden exceptuats d’aquesta inspecció els establiments d’ús residencial habitatge, administratiu de menys de 2.000 m2, docent de menys de 2.000 m2, comercial de menys de 500 m2, pública concurrència de menys de 500 m2 i aparcament de menys de 500 m2, sempre que no hi conflueixin zones o locals de risc especial alt ni zones d’ús magatzem. Les inspeccions es realitzen seguint els procediments de la norma UNE 192005-2.
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
 ITEM|54.|Emmagatzematge de productes químics. L’activitat està inclosa dins l’Article 1 i 2 del //Real Decreto 656/2017, de 23 de junio, por el que se aprueba el Reglamento de Almacenamiento de Productos Químicos y sus Instrucciones Técnicas Complementarias MIE APQ 0 a 10//. S’ha de presentar la inspecció periòdica de l’emmagatzematge de productes químics per part d’un organisme de control habilitat (vigència 5 anys).
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
@@ -361,7 +362,7 @@ BODY|//Requeriment pendent (1 punts)//
 BODY|//Classificació (2 punts)//
 BODY|//Desistiment comunicació (1 punts)//
 BODY|//Estat de l’establiment (2 punts)//
-BODY|//Incendis (22 punts)//
+BODY|//Incendis (26 punts)//
 BODY|//Projecte (3 punts)//
 BODY|//Activitat (8 punts)//
 BODY|//Extracció de fums (11 punts)//

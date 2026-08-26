@@ -1942,6 +1942,13 @@
                                                                                            "t":  ". S’ha de presentar la inspecció periòdica dels elements de protecció contra incendis per part d’un organisme de control habilitat (vigència 10 anys). En cas que els elements de protecció contra incendis estiguin instal·lats fa menys de 10 anys s’ha d’entregar un certificat de l\u0027empresa instal·ladora, emès per un tècnic titulat competent designat per aquesta, en el qual es farà constar que la instal·lació s\u0027ha realitzat de conformitat amb el que s\u0027estableix en el Real Decret 513/2017 i d\u0027acord amb el projecte o documentació tècnica."
                                                                                        }
                                                                                    ]
+                                                                      },
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Queden exceptuats d’aquesta inspecció els establiments d’ús residencial habitatge, administratiu de menys de 2.000 m2, docent de menys de 2.000 m2, comercial de menys de 500 m2, pública concurrència de menys de 500 m2 i aparcament de menys de 500 m2, sempre que no hi conflueixin zones o locals de risc especial alt ni zones d’ús magatzem. Les inspeccions es realitzen seguint els procediments de la norma UNE 192005-2."
+                                                                                       }
+                                                                                   ]
                                                                       }
                                                                   ],
                                                           "fills":  [
@@ -2786,7 +2793,7 @@
                                                                       {
                                                                           "runs":  [
                                                                                        {
-                                                                                           "t":  "Posada en servei. Es requereix tenir subscrit un contracte de manteniment amb una empresa mantenidora degudament habilitada, que cobreixi, almenys, els manteniments dels equips i sistemes subjectes al RIPCI, segons correspongui."
+                                                                                           "t":  "Posada en servei. Abans de la posada en funcionament de les instal·lacions de protecció activa contra incendis s’ha de presentar davant l’òrgan competent en matèria d’indústria de la comunitat autònoma un certificat de l’empresa instal·ladora, emès per un tècnic titulat competent designat per aquesta, on es faci constar que la instal·lació s’ha realitzat de conformitat amb el Real Decreto 513/2017 i d’acord amb el projecte o documentació tècnica. A més, s’ha de tenir subscrit un contracte de manteniment amb una empresa mantenidora degudament habilitada que cobreixi, almenys, els manteniments dels equips i sistemes subjectes al Reglament. Excepcionalment, si el titular de la instal·lació s’habilita com a mantenidor i disposa dels mitjans i l’organització necessaris per efectuar el seu propi manteniment, i n’assumeix l’execució i la responsabilitat, queda eximit de contractar-lo."
                                                                                        }
                                                                                    ]
                                                                       }
@@ -2866,7 +2873,7 @@
                                                                       {
                                                                           "runs":  [
                                                                                        {
-                                                                                           "t":  "BIEs. La vàlvula d\u0027obertura manual i el sistema d\u0027obertura de l\u0027armari de la BIE, si n’hi ha, han d’estar situats com a màxim a 1,50 m. sobre el nivell del terra."
+                                                                                           "t":  "BIEs. La boquilla, la vàlvula d’obertura manual i el sistema d’obertura de l’armari de la BIE, si n’hi ha, han d’estar situats com a màxim a 1,50 m. sobre el nivell del terra."
                                                                                        }
                                                                                    ]
                                                                       }
@@ -2882,7 +2889,7 @@
                                                                       {
                                                                           "runs":  [
                                                                                        {
-                                                                                           "t":  "BIEs. Les BIE se situaran sempre a una distància màxima de 5 m de les sortides del sector d\u0027incendi, mesurada sobre un recorregut d\u0027evacuació, sense que constitueixin obstacle per a la seva utilització."
+                                                                                           "t":  "BIEs. Les BIE s’han de situar preferentment prop de les portes o sortides. Sempre s’ha de situar una BIE a una distància màxima de 5 m de cada sortida de sector d’incendi, mesurada sobre un recorregut d’evacuació, sense que constitueixin obstacle per a la seva utilització; llevat dels casos en què ja existeixi una altra BIE situada en una altra sortida d’aquell sector i aquesta cobreixi tota la superfície a protegir, o llevat que la legislació específica disposi una altra cosa."
                                                                                        }
                                                                                    ]
                                                                       }
@@ -2899,6 +2906,22 @@
                                                                           "runs":  [
                                                                                        {
                                                                                            "t":  "BIEs. Per a les BIE amb mànega semirígida o mànega plana, la separació màxima entre cada BIE i la seva més pròxima serà de 50 m. La distància des de qualsevol punt de l\u0027àrea protegida fins a la BIE més pròxima no haurà d\u0027excedir del radi d\u0027acció d\u0027aquesta. Tant la separació, com la distància màxima i el radi d\u0027acció es mesuraran seguint recorreguts d\u0027evacuació"
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "RIPCI - BIEs - radi d’acció i longitud de mànega",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "BIEs. El radi d’acció d’una BIE és la longitud de la seva mànega més 5 m. La longitud de la mànega no ha de superar els 20 m en el cas de mànega plana ni els 30 m en el cas de mànega semirígida."
                                                                                        }
                                                                                    ]
                                                                       }
@@ -2930,7 +2953,7 @@
                                                                       {
                                                                           "runs":  [
                                                                                        {
-                                                                                           "t":  "BIEs. Les BIEs de 45 mm han d’obtenir una pressió manomètrica entre 5,4 i 8,4 bar. Les BIEs de 25 mm han d’obtenir una pressió manomètrica entre 3,5 i 6,5 bar."
+                                                                                           "t":  "BIEs. Les BIE amb mànega semirígida (25 mm) han de proporcionar un cabal mínim de 85 litres/minut, cosa que per a K=42 implica una pressió mínima a l’entrada de la BIE de 4 bar (400 kPa). Les BIE amb mànega plana (45 mm) han de proporcionar un cabal mínim de 160 litres/minut, cosa que per a K=85 implica una pressió mínima a l’entrada de 3,5 bar (350 kPa). La pressió màxima a l’entrada no ha de superar en cap cas els 9 bar (900 kPa). Totes les mesures s’han de fer al manòmetre amb el flux d’aigua completament obert i la punta de llança en posició de raig compacte, i els requisits s’han de complir a totes les BIE del sistema."
                                                                                        }
                                                                                    ]
                                                                       }
@@ -2957,12 +2980,60 @@
                                                       },
                                                       {
                                                           "tipus":  "item",
+                                                          "titol":  "RIPCI - BIEs - substitució de mànegues (20 anys)",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "BIEs. Les mànegues contra incendis s’han de substituir com a mínim cada 20 anys, a comptar des de la seva posada en servei, llevat que el fabricant en certifiqui una durabilitat superior."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "RIPCI - Cuines comercials",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Cuines comercials. Els sistemes fixos automàtics per a l’extinció d’incendis en cuines comercials han d’estar certificats, abans de la seva instal·lació, d’acord amb l’article 5.2 del Real Decreto 513/2017, per justificar el compliment de la norma UNE-EN 17446; les condicions del seu disseny i instal·lació també han de ser conformes a aquesta norma. Els mecanismes de dispar i aturada manuals han d’estar senyalitzats. La instal·lació i el manteniment els ha de fer una empresa habilitada per al sistema fix corresponent."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
                                                           "titol":  "RIPCI - Senyalització PCI",
                                                           "cos":  [
                                                                       {
                                                                           "runs":  [
                                                                                        {
                                                                                            "t":  "Senyalització. La senyalització dels mitjans de protecció contra incendis d\u0027utilització manual i dels sistemes d\u0027alerta i alarma, hauran de complir la norma UNE 23033-1. Els senyals no definits en aquesta norma es podran dissenyar amb els mateixos criteris establerts en la norma UNE 23033-1, en la UNE 23032 i a la UNE-EN ISO 7010."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "RIPCI - Senyalització - visibilitat i substitució",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Senyalització. Els senyals s’han de col·locar de manera que siguin clarament visibles (posició, mida i tipus de senyal). Es poden utilitzar senyals no luminescents a l’exterior d’edificis i a la via pública; els senyals situats dins d’edificis que no siguin luminescents han d’estar il·luminats exteriorment i han de ser visibles fins i tot en cas de fallada del subministrament de l’enllumenat normal. Els senyals fotoluminescents s’han de substituir a partir dels 20 anys des de la seva fabricació, llevat que es justifiqui mitjançant mesurament sobre una mostra representativa, conforme a la norma UNE 23035-2, que aporten valors no inferiors als exigits."
                                                                                        }
                                                                                    ]
                                                                       }
@@ -3828,7 +3899,7 @@
                                                     {
                                                         "runs":  [
                                                                      {
-                                                                         "t":  "Campana. Segons l’article 11.7 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha d’instal·lar, i aportar la documentació corresponent, un sistema d’extinció automàtic a la campana d’extracció de la cuina perquè se superen els 20 kW de potència instal·lada i la cuina no està considerada un local de risc especial. El sistema s’ha d’instal·lar segons la norma UNE 17446."
+                                                                         "t":  "Campana. Segons l’article 11.7 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha d’instal·lar, i aportar la documentació corresponent, un sistema d’extinció automàtic a la campana d’extracció de la cuina perquè se superen els 20 kW de potència instal·lada i la cuina no està considerada un local de risc especial. El sistema s’ha d’instal·lar segons la norma UNE-EN 17446:2022."
                                                                      }
                                                                  ]
                                                     }
