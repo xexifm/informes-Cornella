@@ -2536,14 +2536,21 @@
                                                                          "t":  "S’ha de legalitzar l’activitat segons el CTE i no el RSCIEI, tal i com s’indica al CTE DB SI, "
                                                                      },
                                                                      {
-                                                                         "t":  " II Ámbito de aplicación III",
+                                                                         "t":  "II Ámbito de aplicación",
                                                                          "i":  true
                                                                      },
                                                                      {
                                                                          "t":  " i "
                                                                      },
                                                                      {
-                                                                         "t":  "Criterios generales de aplicación",
+                                                                         "t":  "III Criterios generales de aplicación",
+                                                                         "i":  true
+                                                                     },
+                                                                     {
+                                                                         "t":  ", i a l’article 2 del "
+                                                                     },
+                                                                     {
+                                                                         "t":  "Real Decreto 164/2025, de 4 de marzo",
                                                                          "i":  true
                                                                      },
                                                                      {
@@ -2566,14 +2573,21 @@
                                                                          "t":  "S’ha de legalitzar l’activitat segons el RSCIEI i no el CTE, tal i com s’indica al CTE DB SI, "
                                                                      },
                                                                      {
-                                                                         "t":  " II Ámbito de aplicación III",
+                                                                         "t":  "II Ámbito de aplicación",
                                                                          "i":  true
                                                                      },
                                                                      {
                                                                          "t":  " i "
                                                                      },
                                                                      {
-                                                                         "t":  "Criterios generales de aplicación",
+                                                                         "t":  "III Criterios generales de aplicación",
+                                                                         "i":  true
+                                                                     },
+                                                                     {
+                                                                         "t":  ", i a l’article 2 del "
+                                                                     },
+                                                                     {
+                                                                         "t":  "Real Decreto 164/2025, de 4 de marzo",
                                                                          "i":  true
                                                                      },
                                                                      {
@@ -2584,6 +2598,51 @@
                                                 ],
                                         "fills":  [
 
+                                                  ]
+                                    },
+                                    {
+                                        "tipus":  "item",
+                                        "titol":  "Ús Almacén - CTE i RSCIEI alhora",
+                                        "cos":  [
+                                                    {
+                                                        "runs":  [
+                                                                     {
+                                                                         "t":  "Ús magatzem. Segons el punt 5 dels "
+                                                                     },
+                                                                     {
+                                                                         "t":  "Criterios generales de aplicación",
+                                                                         "i":  true
+                                                                     },
+                                                                     {
+                                                                         "t":  " del CTE DB SI, en els edificis, establiments o zones d’ús Almacén el compliment de les exigències bàsiques de seguretat en cas d’incendi s’ha de realitzar aplicant la taula 1.1 "
+                                                                     },
+                                                                     {
+                                                                         "t":  "Condiciones de compartimentación en sectores de incendio",
+                                                                         "i":  true
+                                                                     },
+                                                                     {
+                                                                         "t":  " de la Secció SI 1 i la caracterització i els requisits constructius i dotacionals dels annexos I, II, III i IV del RSCIEI. L’ocupació, en canvi, es calcula amb la densitat d’ocupació de la taula 2.1 de la Secció SI 3 per a l’ús arxius, magatzems."
+                                                                     }
+                                                                 ]
+                                                    }
+                                                ],
+                                        "fills":  [
+                                                      {
+                                                          "tipus":  "subitem",
+                                                          "titol":  "Almacén - trasters i self-storage",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Els establiments l’activitat dels quals sigui el servei de lloguer de trasters i magatzems es consideren d’ús Almacén. Els seus sectors o àrees d’incendi es classifiquen com a nivell de risc intrínsec mitjà, subnivell 5, si l’alçada d’emmagatzematge és igual o inferior a 3 m, i com a alt si és superior a 3 m, calculant-ne en aquest cas el subnivell segons el RSCIEI."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      }
                                                   ]
                                     },
                                     {
@@ -3460,6 +3519,23 @@
                                                                             "fills":  [
 
                                                                                       ]
+                                                                        },
+                                                                        {
+                                                                            "tipus":  "subitem",
+                                                                            "titol":  "SI 4.2 - Señalizacion instalaciones manuales",
+                                                                            "cos":  [
+                                                                                        {
+                                                                                            "runs":  [
+                                                                                                         {
+                                                                                                             "t":  "2 Señalización de las instalaciones manuales de protección contra incendios",
+                                                                                                             "i":  true
+                                                                                                         }
+                                                                                                     ]
+                                                                                        }
+                                                                                    ],
+                                                                            "fills":  [
+
+                                                                                      ]
                                                                         }
                                                                     ]
                                                       },
@@ -3525,6 +3601,23 @@
                                                                       }
                                                                   ],
                                                           "fills":  [
+                                                                        {
+                                                                            "tipus":  "subitem",
+                                                                            "titol":  "SI 6.2 - Resistencia al fuego de la estructura",
+                                                                            "cos":  [
+                                                                                        {
+                                                                                            "runs":  [
+                                                                                                         {
+                                                                                                             "t":  "2 Resistencia al fuego de la estructura",
+                                                                                                             "i":  true
+                                                                                                         }
+                                                                                                     ]
+                                                                                        }
+                                                                                    ],
+                                                                            "fills":  [
+
+                                                                                      ]
+                                                                        },
                                                                         {
                                                                             "tipus":  "subitem",
                                                                             "titol":  "SI 6.3 - Elementos estructurales principales",

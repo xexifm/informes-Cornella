@@ -83,9 +83,9 @@ URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerT
 AIRE|item
 SECT|Incendis
 AIRE|seccio
-ITEM|19.|S’ha de legalitzar l’activitat segons el CTE i no el RSCIEI, tal i com s’indica al CTE DB SI, // II Ámbito de aplicación III// i //Criterios generales de aplicación//.
+ITEM|19.|S’ha de legalitzar l’activitat segons el CTE i no el RSCIEI, tal i com s’indica al CTE DB SI, //II Ámbito de aplicación// i //III Criterios generales de aplicación//, i a l’article 2 del //Real Decreto 164/2025, de 4 de marzo//.
 AIRE|item
-ITEM|20.|S’ha de legalitzar l’activitat segons el RSCIEI i no el CTE, tal i com s’indica al CTE DB SI, // II Ámbito de aplicación III// i //Criterios generales de aplicación//.
+ITEM|20.|S’ha de legalitzar l’activitat segons el RSCIEI i no el CTE, tal i com s’indica al CTE DB SI, //II Ámbito de aplicación// i //III Criterios generales de aplicación//, i a l’article 2 del //Real Decreto 164/2025, de 4 de marzo//.
 AIRE|item
 SECT|Projecte
 AIRE|seccio

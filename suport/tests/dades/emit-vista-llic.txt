@@ -362,7 +362,7 @@ BODY|//Requeriment pendent (1 punts)//
 BODY|//Classificació (2 punts)//
 BODY|//Desistiment comunicació (1 punts)//
 BODY|//Estat de l’establiment (2 punts)//
-BODY|//Incendis (26 punts)//
+BODY|//Incendis (27 punts)//
 BODY|//Projecte (3 punts)//
 BODY|//Activitat (8 punts)//
 BODY|//Extracció de fums (11 punts)//
