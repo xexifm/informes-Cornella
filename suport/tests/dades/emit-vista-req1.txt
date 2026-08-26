@@ -122,16 +122,14 @@ ITEM|33.|Annex III Llei 20/2009. S’ha de realitzar un control periòdic amb re
 URL|https://www.gencat.cat/mediamb/ohec/eac_CA.pdf
 AIRE|item
 ITEM|34.|RSCIEI. L’activitat es troba regulada pel //Real Decreto 164/2025, de 4 de marzo, por el que se aprueba el Reglamento de seguridad contra incendios en los establecimientos industriales//, que deroga el //Real Decreto 2267/2004, de 3 de diciembre//. S’ha de realitzar la inspecció periòdica de les instal·lacions per part d’un organisme de control habilitat, com a mínim cada cinc anys, tal com s’indica a l’article 13 del Reial decret. De la inspecció se n’aixeca acta, signada per la persona inspectora i pel titular, que ha d’estar a disposició de l’administració competent.
+BODY|Els establiments industrials existents abans del 10 de maig de 2025 s’hi han d’adaptar igualment (disposició transitòria primera), i els construïts abans del //Real Decreto 2267/2004, de 3 de diciembre// fan la inspecció cada cinc anys limitada als equips i sistemes de protecció activa. Queden exceptuats els establiments amb densitat de càrrega de foc ponderada i corregida (Qs) que no superi 42 MJ/m2, sempre que la superfície construïda sigui igual o inferior a 120 m2.
 AIRE|item
-ITEM|35.|RSCIEI. Els establiments industrials existents abans del 10 de maig de 2025 s’han d’adaptar a les inspeccions periòdiques de l’article 13 del //Real Decreto 164/2025, de 4 de marzo, por el que se aprueba el Reglamento de seguridad contra incendios en los establecimientos industriales// (disposició transitòria primera). Els que es van construir conforme al //Real Decreto 2267/2004, de 3 de diciembre// han d’adaptar el contingut i la periodicitat de les inspeccions al nou article 13, tenint en compte que els requisits constructius i de les instal·lacions segueixen sent els del reglament del 2004. Els construïts abans del Real Decreto 2267/2004 han de fer inspeccions periòdiques com a mínim cada cinc anys, limitades als equips i sistemes de protecció activa, amb la metodologia de l’article 22 del //Real Decreto 513/2017, de 22 de mayo//.
-BODY|Queden exceptuats els establiments amb densitat de càrrega de foc ponderada i corregida (Qs) que no superi 42 MJ/m2, sempre que la superfície construïda sigui igual o inferior a 120 m2.
-AIRE|item
-ITEM|36.|Vector Atmosfera. L'activitat està inclosa dins l'Annex IV de la //Ley 34/2007, de 15 de noviembre, de calidad del aire y proteccion de la atmosfera//. S'ha d'entregar, per part d'una Entitat de control en l’àmbit sectorial de la prevenció de la contaminació atmosfèrica [EC-A], tal i com s'indica a l'Article 16 del DECRET 139/2018, de 3 de juliol, sobre els règims d’intervenció ambiental atmosfèrica dels establiments on es desenvolupin activitats potencialment contaminants de l'atmosfera:
+ITEM|35.|Vector Atmosfera. L'activitat està inclosa dins l'Annex IV de la //Ley 34/2007, de 15 de noviembre, de calidad del aire y proteccion de la atmosfera//. S'ha d'entregar, per part d'una Entitat de control en l’àmbit sectorial de la prevenció de la contaminació atmosfèrica [EC-A], tal i com s'indica a l'Article 16 del DECRET 139/2018, de 3 de juliol, sobre els règims d’intervenció ambiental atmosfèrica dels establiments on es desenvolupin activitats potencialment contaminants de l'atmosfera:
 BODY|- El CAE (Control Atmosfèric de l'Establiment)
 BODY|- L'informe reglamentari de mesures d'emissions a l’atmosfera
 URL|https://www.gencat.cat/mediamb/oaec/ec_atm_CA.pdf
 AIRE|item
-ITEM|37.|Vector Sòl. L’activitat està inclosa dins l’Annex I del //Real Decreto 9/2005, de 14 de enero, por el que se establece la relación de actividades potencialmente contaminantes del suelo y los criterios y estándares para la declaración de suelos contaminados//. S’ha de presentar l’informe de situació periòdic coincidint amb el termini de revisió de la llicència o, en defecte, cada 10 anys.
+ITEM|36.|Vector Sòl. L’activitat està inclosa dins l’Annex I del //Real Decreto 9/2005, de 14 de enero, por el que se establece la relación de actividades potencialmente contaminantes del suelo y los criterios y estándares para la declaración de suelos contaminados//. S’ha de presentar l’informe de situació periòdic coincidint amb el termini de revisió de la llicència o, en defecte, cada 10 anys.
 AIRE|item
 SECT|Instal·lacions
 AIRE|seccio
@@ -139,40 +137,40 @@ SUB|Legalitzacions
 AIRE|subseccio
 BODY|Segons l’article 4 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha de presentar el certificat d’inscripció al Registre d'instal·lacions de Seguretat Industrial de Catalunya (RITSIC) de totes les instal·lacions que conformin l’activitat a nom del titular de l’activitat o el propietari de l’establiment:
 AIRE|intro
-ITEM|38.|Instal·lació d’autoconsum (fotovoltaica)
+ITEM|37.|Instal·lació d’autoconsum (fotovoltaica)
 URL|https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/03_energia/Autoconsum/
 AIRE|item
-ITEM|39.|Instal·lació de gas. Transport, emmagatzematge, distribució gas combustible
+ITEM|38.|Instal·lació de gas. Transport, emmagatzematge, distribució gas combustible
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Presentacio-de-la-declaracio-responsable-per-a-installacions-de-gasos-combustibles-posada-en-servei-modificacions-i-baixa?moda=1
 AIRE|item
-ITEM|40.|Instal·lació de gas. Instal·lacions receptores de gas i emmagatzematge GLP per a consum propi (ITC-ICG 07)
+ITEM|39.|Instal·lació de gas. Instal·lacions receptores de gas i emmagatzematge GLP per a consum propi (ITC-ICG 07)
 URL|https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_i_instal_lacions/03_instal_lacions/aigua_gas_i_electricitat/gas/sense_autoritzacio/
 AIRE|item
-ITEM|41.|Instal·lació de gas (Verificació per unitat)
+ITEM|40.|Instal·lació de gas (Verificació per unitat)
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Presentacio-de-la-declaracio-responsable-per-a-installacions-de-gasos-combustibles-posada-en-servei-modificacions-i-baixa?category=
 AIRE|item
-ITEM|42.|Instal·lació d'electricitat. Alta tensió
+ITEM|41.|Instal·lació d'electricitat. Alta tensió
 URL|https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_i_instal_lacions/03_instal_lacions/aigua_gas_i_electricitat/electricitat/alta_tensio/
 AIRE|item
-ITEM|43.|Instal·lació de baixa tensió
+ITEM|42.|Instal·lació de baixa tensió
 URL|https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_i_instal_lacions/03_instal_lacions/aigua_gas_i_electricitat/electricitat/baixa_tensio/
 AIRE|item
-ITEM|44.|Ascensors
+ITEM|43.|Ascensors
 URL|https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_i_instal_lacions/03_instal_lacions/ascensors_i_grues/ascensors/
 AIRE|item
-ITEM|45.|Instal·lacions tèrmiques en els edificis
+ITEM|44.|Instal·lacions tèrmiques en els edificis
 URL|https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_i_instal_lacions/03_instal_lacions/calefaccio_climatitzacio_i_fred_industrial/installacions_termiques_en_els_edificis/
 AIRE|item
-ITEM|46.|Instal·lacions de fred industrial
+ITEM|45.|Instal·lacions de fred industrial
 URL|https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_i_instal_lacions/03_instal_lacions/calefaccio_climatitzacio_i_fred_industrial/installacions_de_fred_industrial/
 AIRE|item
-ITEM|47.|Equips a pressió
+ITEM|46.|Equips a pressió
 URL|https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_i_instal_lacions/03_instal_lacions/equips_a_pressio/
 AIRE|item
-ITEM|48.|Instal·lacions de protecció contra incendis PCI
+ITEM|47.|Instal·lacions de protecció contra incendis PCI
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Installacions-de-proteccio-contra-incendis
 AIRE|item
-ITEM|49.|Emmagatzematge de productes químics. S'ha d'entregar una relació dels màxims productes emmagatzemats on s'indiqui, en una taula, el següent: Substància | Classificació (1) | Classe de perill (1) | Categoria (1) | Indicació de perill (2) | Capacitat d'emmagatzematge (3).
+ITEM|48.|Emmagatzematge de productes químics. S'ha d'entregar una relació dels màxims productes emmagatzemats on s'indiqui, en una taula, el següent: Substància | Classificació (1) | Classe de perill (1) | Categoria (1) | Indicació de perill (2) | Capacitat d'emmagatzematge (3).
 BODY|(1) Segons l'Annex I del Reglamento (CE) nº 1272/2008 del Parlamento Europeo y del Consejo.
 BODY|(2) Segons l'Annex III del Reglamento (CE) nº 1272/2008 del Parlamento Europeo y del Consejo.
 BODY|(3) Con respecto a las unidades: para los productos químicos sólidos, la masa en kilogramos (kg); para los productos químicos líquidos, el volumen en litros (l); para los gases licuados, los gases licuados refrigerados y los gases disueltos, la masa en kilogramos (kg); para los gases comprimidos, el volumen en Nm³.
@@ -182,274 +180,265 @@ URL/CH|https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_
 BULLET/CH|L’aplicació, o no, del //Real Decreto 840/2015, de 21 de septiembre, por el que se aprueban medidas de control de los riesgos inherentes a los accidentes graves en los que intervengan sustancias peligrosas//.
 URL/CH|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Establiments-afectats-per-la-normativa-daccidents-greus?category=74c8c94c-a82c-11e3-a972-000c29052e2c
 AIRE|item
-ITEM|50.|Instal·lació petrolífera. ITC MI-IP 02 Parques de almacenamiento de líquidos petrolíferos
+ITEM|49.|Instal·lació petrolífera. ITC MI-IP 02 Parques de almacenamiento de líquidos petrolíferos
 URL|https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_i_instal_lacions/03_instal_lacions/productes_quimics_petrolifers/installacio-emmagatzematge-carburants-combustibles-liquids-benzineres/
 AIRE|item
-ITEM|51.|Instal·lació petrolífera. ITC MI-IP 03 Instalaciones petrolíferas para uso propio
+ITEM|50.|Instal·lació petrolífera. ITC MI-IP 03 Instalaciones petrolíferas para uso propio
 URL|https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_i_instal_lacions/03_instal_lacions/productes_quimics_petrolifers/productes-petrolifers-consum-propia-installacio/
 AIRE|item
-ITEM|52.|Instal·lació petrolífera. ITC MI-IP 04 Instalaciones para suministro a vehículos
+ITEM|51.|Instal·lació petrolífera. ITC MI-IP 04 Instalaciones para suministro a vehículos
 URL|https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/05_construccio_i_instal_lacions/03_instal_lacions/productes_quimics_petrolifers/installacio-emmagatzematge-carburants-combustibles-liquids-benzineres/
 AIRE|item
-ITEM|53.|Instal·lacions radioactives
+ITEM|52.|Instal·lacions radioactives
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Autoritzacio-dinstallacions-radioactives
 AIRE|item
-ITEM|54.|Instal·lacions de raigs X per a usos mèdics i veterinaris
+ITEM|53.|Instal·lacions de raigs X per a usos mèdics i veterinaris
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Registre-dinstallacions-de-raigs-X-per-a-usos-medics-i-veterinaris
 AIRE|item
 SUB|Inspeccions inicials
 AIRE|subseccio
-ITEM|55.|Instal·lació fotovoltaica >25 kW. L’activitat està inclosa dins l’apartat 4.1 de la //ITC-BT-05 VERIFICACIONES E INSPECCIONES// del //Real Decreto 842/2002, de 2 de agosto, por el que se aprueba el Reglamento electrotécnico para baja tensión//. S’ha de presentar la inspecció inicial de la instal·lació fotovoltaica per part d’un organisme de control habilitat.
+ITEM|54.|Instal·lació fotovoltaica >25 kW. L’activitat està inclosa dins l’apartat 4.1 de la //ITC-BT-05 VERIFICACIONES E INSPECCIONES// del //Real Decreto 842/2002, de 2 de agosto, por el que se aprueba el Reglamento electrotécnico para baja tensión//. S’ha de presentar la inspecció inicial de la instal·lació fotovoltaica per part d’un organisme de control habilitat.
 AIRE|item
-ITEM|56.|Gas. L’activitat està inclosa dins l’article 2 del //Real Decreto 919/2006, de 28 de julio, por el que se aprueba el Reglamento técnico de distribución y utilización de combustibles gaseosos y sus instrucciones técnicas complementarias ICG 01 a 11//. S’ha de presentar la inspecció inicial de gas per una empresa instal·ladora de gas.
+ITEM|55.|Gas. L’activitat està inclosa dins l’article 2 del //Real Decreto 919/2006, de 28 de julio, por el que se aprueba el Reglamento técnico de distribución y utilización de combustibles gaseosos y sus instrucciones técnicas complementarias ICG 01 a 11//. S’ha de presentar la inspecció inicial de gas per una empresa instal·ladora de gas.
 AIRE|item
-ITEM|57.|Alta Tensió. L’activitat té una potència superior a 30 kV per tant està inclosa dins l’apartat 3 de la //INSTRUCCIÓN TÉCNICA COMPLEMENTARIA ITC-RAT 23 del Real Decreto 337/2014, de 9 de mayo, por el que se aprueban el Reglamento sobre condiciones técnicas y garantías de seguridad en instalaciones eléctricas de alta tensión y sus Instrucciones Técnicas Complementarias ITC-RAT 01 a 23//. S’ha de presentar la inspecció inicial d’Alta Tensió per part d’un organisme de control habilitat.
+ITEM|56.|Alta Tensió. L’activitat té una potència superior a 30 kV per tant està inclosa dins l’apartat 3 de la //INSTRUCCIÓN TÉCNICA COMPLEMENTARIA ITC-RAT 23 del Real Decreto 337/2014, de 9 de mayo, por el que se aprueban el Reglamento sobre condiciones técnicas y garantías de seguridad en instalaciones eléctricas de alta tensión y sus Instrucciones Técnicas Complementarias ITC-RAT 01 a 23//. S’ha de presentar la inspecció inicial d’Alta Tensió per part d’un organisme de control habilitat.
 AIRE|item
-ITEM|58.|Baixa Tensió. L’activitat està inclosa dins l’apartat 4.1 de la ITC-BT-05 VERIFICACIONES E INSPECCIONES del //Real Decreto 842/2002, de 2 de agosto, por el que se aprueba el Reglamento electrotécnico para baja tensión//. S’ha de presentar la inspecció inicial de Baixa Tensió per part d’un organisme de control habilitat.
+ITEM|57.|Baixa Tensió. L’activitat està inclosa dins l’apartat 4.1 de la ITC-BT-05 VERIFICACIONES E INSPECCIONES del //Real Decreto 842/2002, de 2 de agosto, por el que se aprueba el Reglamento electrotécnico para baja tensión//. S’ha de presentar la inspecció inicial de Baixa Tensió per part d’un organisme de control habilitat.
 AIRE|item
-ITEM|59.|Ascensors. L’activitat està inclosa dins l’article 1 de //Real Decreto 355/2024, de 2 de abril, por el que se aprueba la Instrucción Técnica Complementaria ITC AEM 1 «Ascensores»//. S’ha de presentar la inspecció inicial de l’ascensor o ascensors per part d’un organisme de control habilitat.
+ITEM|58.|Ascensors. L’activitat està inclosa dins l’article 1 de //Real Decreto 355/2024, de 2 de abril, por el que se aprueba la Instrucción Técnica Complementaria ITC AEM 1 «Ascensores»//. S’ha de presentar la inspecció inicial de l’ascensor o ascensors per part d’un organisme de control habilitat.
 AIRE|item
 SUB|Inspeccions periòdiques
 AIRE|subseccio
-ITEM|60.|Instal·lació fotovoltaica >25 kW. L’activitat està inclosa dins l’apartat 4.1 de la //ITC-BT-05 VERIFICACIONES E INSPECCIONES del Real Decreto 842/2002, de 2 de agosto, por el que se aprueba el Reglamento electrotécnico para baja tensión//. S’ha de presentar la inspecció periòdica de la instal·lació fotovoltaica per part d’un organisme de control habilitat (vigència 5 anys).
+ITEM|59.|Instal·lació fotovoltaica >25 kW. L’activitat està inclosa dins l’apartat 4.1 de la //ITC-BT-05 VERIFICACIONES E INSPECCIONES del Real Decreto 842/2002, de 2 de agosto, por el que se aprueba el Reglamento electrotécnico para baja tensión//. S’ha de presentar la inspecció periòdica de la instal·lació fotovoltaica per part d’un organisme de control habilitat (vigència 5 anys).
 AIRE|item
-ITEM|61.|Gas. L’activitat està inclosa dins l’article 2 del //Real Decreto 919/2006, de 28 de julio, por el que se aprueba el Reglamento técnico de distribución y utilización de combustibles gaseosos y sus instrucciones técnicas complementarias ICG 01 a 11//. S’ha de presentar la inspecció periòdica de gas per una empresa instal·ladora de gas (vigència 5 anys).
+ITEM|60.|Gas. L’activitat està inclosa dins l’article 2 del //Real Decreto 919/2006, de 28 de julio, por el que se aprueba el Reglamento técnico de distribución y utilización de combustibles gaseosos y sus instrucciones técnicas complementarias ICG 01 a 11//. S’ha de presentar la inspecció periòdica de gas per una empresa instal·ladora de gas (vigència 5 anys).
 AIRE|item
-ITEM|62.|Alta Tensió. L’activitat té una potència superior a 30 kV per tant està inclosa dins l’apartat 3 de la //INSTRUCCIÓN TÉCNICA COMPLEMENTARIA ITC-RAT 23 del Real Decreto 337/2014, de 9 de mayo, por el que se aprueban el Reglamento sobre condiciones técnicas y garantías de seguridad en instalaciones eléctricas de alta tensión y sus Instrucciones Técnicas Complementarias ITC-RAT 01 a 23//. S’ha de presentar la inspecció periòdica d’Alta Tensió per part d’un organisme de control habilitat (vigència 3 anys).
+ITEM|61.|Alta Tensió. L’activitat té una potència superior a 30 kV per tant està inclosa dins l’apartat 3 de la //INSTRUCCIÓN TÉCNICA COMPLEMENTARIA ITC-RAT 23 del Real Decreto 337/2014, de 9 de mayo, por el que se aprueban el Reglamento sobre condiciones técnicas y garantías de seguridad en instalaciones eléctricas de alta tensión y sus Instrucciones Técnicas Complementarias ITC-RAT 01 a 23//. S’ha de presentar la inspecció periòdica d’Alta Tensió per part d’un organisme de control habilitat (vigència 3 anys).
 AIRE|item
-ITEM|63.|Baixa Tensió. L’activitat està inclosa dins l’apartat 4.1 de la //ITC-BT-05 VERIFICACIONES E INSPECCIONES del Real Decreto 842/2002, de 2 de agosto, por el que se aprueba el Reglamento electrotécnico para baja tensión//. S’ha de presentar la inspecció periòdica de Baixa Tensió per part d’un organisme de control habilitat (vigència 5 anys).
+ITEM|62.|Baixa Tensió. L’activitat està inclosa dins l’apartat 4.1 de la //ITC-BT-05 VERIFICACIONES E INSPECCIONES del Real Decreto 842/2002, de 2 de agosto, por el que se aprueba el Reglamento electrotécnico para baja tensión//. S’ha de presentar la inspecció periòdica de Baixa Tensió per part d’un organisme de control habilitat (vigència 5 anys).
 AIRE|item
-ITEM|64.|Ascensors. L’activitat està inclosa dins l’article 1 de //Real Decreto 355/2024, de 2 de abril, por el que se aprueba la Instrucción Técnica Complementaria ITC AEM 1 «Ascensores»//. S’ha de presentar la inspecció periòdica de l’ascensor o ascensors per part d’un organisme de control habilitat (vigència de 2 anys en ús industrial i pública concurrència, 4 anys en més de 20 habitatges o 4 plantes, 6 anys de vigència la resta de casos).
+ITEM|63.|Ascensors. L’activitat està inclosa dins l’article 1 de //Real Decreto 355/2024, de 2 de abril, por el que se aprueba la Instrucción Técnica Complementaria ITC AEM 1 «Ascensores»//. S’ha de presentar la inspecció periòdica de l’ascensor o ascensors per part d’un organisme de control habilitat (vigència de 2 anys en ús industrial i pública concurrència, 4 anys en més de 20 habitatges o 4 plantes, 6 anys de vigència la resta de casos).
 AIRE|item
-ITEM|65.|Instal·lacions tèrmiques. L’activitat està inclosa dins l’article 4.2 de la //INSTRUCCIÓN TÉCNICA IT 4. INSPECCIÓN del Real Decreto 1027/2007, de 20 de julio, por el que se aprueba el Reglamento de Instalaciones Térmicas en los Edificios//. S’ha de presentar la inspecció periòdica de la instal·lació tèrmica per part d’un organisme de control habilitat (vigència 4 anys).
+ITEM|64.|Instal·lacions tèrmiques. L’activitat està inclosa dins l’article 4.2 de la //INSTRUCCIÓN TÉCNICA IT 4. INSPECCIÓN del Real Decreto 1027/2007, de 20 de julio, por el que se aprueba el Reglamento de Instalaciones Térmicas en los Edificios//. S’ha de presentar la inspecció periòdica de la instal·lació tèrmica per part d’un organisme de control habilitat (vigència 4 anys).
 AIRE|item
-ITEM|66.|Instal·lacions de fred industrial. L’activitat està inclosa dins l’article 3 de la //INSTRUCCIÓN IF-14 del Real Decreto 552/2019, de 27 de septiembre, por el que se aprueban el Reglamento de seguridad para instalaciones frigoríficas y sus instrucciones técnicas complementarias//. S’ha de presentar la inspecció periòdica de la instal·lació de fred industrial per part d’un organisme de control habilitat (vigència 10 anys).
+ITEM|65.|Instal·lacions de fred industrial. L’activitat està inclosa dins l’article 3 de la //INSTRUCCIÓN IF-14 del Real Decreto 552/2019, de 27 de septiembre, por el que se aprueban el Reglamento de seguridad para instalaciones frigoríficas y sus instrucciones técnicas complementarias//. S’ha de presentar la inspecció periòdica de la instal·lació de fred industrial per part d’un organisme de control habilitat (vigència 10 anys).
 AIRE|item
-ITEM|67.|Equips a pressió. L’activitat està inclosa dins el //Real Decreto 809/2021, de 21 de septiembre, por el que se aprueba el Reglamento de equipos a presión y sus instrucciones técnicas complementarias//. S’ha de presentar la inspecció periòdica de l’equip a pressió per part d’un organisme de control habilitat (vigència 10 anys).
+ITEM|66.|Equips a pressió. L’activitat està inclosa dins el //Real Decreto 809/2021, de 21 de septiembre, por el que se aprueba el Reglamento de equipos a presión y sus instrucciones técnicas complementarias//. S’ha de presentar la inspecció periòdica de l’equip a pressió per part d’un organisme de control habilitat (vigència 10 anys).
 AIRE|item
-ITEM|68.|PCI. L’activitat està inclosa dins el //Real Decreto 513/2017, de 22 de mayo, por el que se aprueba el Reglamento de instalaciones de protección contra incendios//. S’ha de presentar la inspecció periòdica dels elements de protecció contra incendis per part d’un organisme de control habilitat (vigència 10 anys). En cas que els elements de protecció contra incendis estiguin instal·lats fa menys de 10 anys s’ha d’entregar un certificat de l'empresa instal·ladora, emès per un tècnic titulat competent designat per aquesta, en el qual es farà constar que la instal·lació s'ha realitzat de conformitat amb el que s'estableix en el Real Decret 513/2017 i d'acord amb el projecte o documentació tècnica.
+ITEM|67.|PCI. L’activitat està inclosa dins el //Real Decreto 513/2017, de 22 de mayo, por el que se aprueba el Reglamento de instalaciones de protección contra incendios//. S’ha de presentar la inspecció periòdica dels elements de protecció contra incendis per part d’un organisme de control habilitat (vigència 10 anys). En cas que els elements de protecció contra incendis estiguin instal·lats fa menys de 10 anys s’ha d’entregar un certificat de l'empresa instal·ladora, emès per un tècnic titulat competent designat per aquesta, en el qual es farà constar que la instal·lació s'ha realitzat de conformitat amb el que s'estableix en el Real Decret 513/2017 i d'acord amb el projecte o documentació tècnica.
 BODY|Queden exceptuats d’aquesta inspecció els establiments d’ús residencial habitatge, administratiu de menys de 2.000 m2, docent de menys de 2.000 m2, comercial de menys de 500 m2, pública concurrència de menys de 500 m2 i aparcament de menys de 500 m2, sempre que no hi conflueixin zones o locals de risc especial alt ni zones d’ús magatzem. Les inspeccions es realitzen seguint els procediments de la norma UNE 192005-2.
 AIRE|item
-ITEM|69.|Emmagatzematge de productes químics. L’activitat està inclosa dins l’Article 1 i 2 del //Real Decreto 656/2017, de 23 de junio, por el que se aprueba el Reglamento de Almacenamiento de Productos Químicos y sus Instrucciones Técnicas Complementarias MIE APQ 0 a 10//. S’ha de presentar la inspecció periòdica de l’emmagatzematge de productes químics per part d’un organisme de control habilitat (vigència 5 anys).
+ITEM|68.|Emmagatzematge de productes químics. L’activitat està inclosa dins l’Article 1 i 2 del //Real Decreto 656/2017, de 23 de junio, por el que se aprueba el Reglamento de Almacenamiento de Productos Químicos y sus Instrucciones Técnicas Complementarias MIE APQ 0 a 10//. S’ha de presentar la inspecció periòdica de l’emmagatzematge de productes químics per part d’un organisme de control habilitat (vigència 5 anys).
 AIRE|item
-ITEM|70.|Instal·lació petrolífera. ITC MI-IP 02 Parques de almacenamiento de líquidos petrolíferos. L’activitat està inclosa dins l’Article 2 del //Real Decreto 2085/1994, de 20 de octubre, por el que se aprueba el Reglamento de Instalaciones Petrolíferas//. S’ha de presentar la inspecció periòdica de la instal·lació petrolífera per part d’un organisme de control habilitat (vigència 10 anys).
+ITEM|69.|Instal·lació petrolífera. ITC MI-IP 02 Parques de almacenamiento de líquidos petrolíferos. L’activitat està inclosa dins l’Article 2 del //Real Decreto 2085/1994, de 20 de octubre, por el que se aprueba el Reglamento de Instalaciones Petrolíferas//. S’ha de presentar la inspecció periòdica de la instal·lació petrolífera per part d’un organisme de control habilitat (vigència 10 anys).
 AIRE|item
-ITEM|71.|Instal·lació petrolífera. ITC MI-IP 03 Instalaciones petrolíferas para uso propio. L’activitat està inclosa dins l’Article 2 del //Real Decreto 1427/1997, de 15 de septiembre, por el que se aprueba la instrucción técnica complementaria MI-IP 03 «Instalaciones petrolíferas para uso propio»//. S’ha de presentar la inspecció periòdica de la instal·lació petrolífera per part d’un organisme de control habilitat (vigència 10 anys).
+ITEM|70.|Instal·lació petrolífera. ITC MI-IP 03 Instalaciones petrolíferas para uso propio. L’activitat està inclosa dins l’Article 2 del //Real Decreto 1427/1997, de 15 de septiembre, por el que se aprueba la instrucción técnica complementaria MI-IP 03 «Instalaciones petrolíferas para uso propio»//. S’ha de presentar la inspecció periòdica de la instal·lació petrolífera per part d’un organisme de control habilitat (vigència 10 anys).
 AIRE|item
-ITEM|72.|Instal·lació petrolífera. ITC MI-IP 04 Instalaciones para suministro a vehículos. L’activitat està inclosa dins del //Real Decreto 706/2017, de 7 de julio, por el que se aprueba la instrucción técnica complementaria MI-IP 04 "Instalaciones para suministro a vehículos" y se regulan determinados aspectos de la reglamentación de instalaciones petrolíferes//. S’ha de presentar la inspecció periòdica de la instal·lació petrolífera per part d’un organisme de control habilitat (vigència 5 anys).
+ITEM|71.|Instal·lació petrolífera. ITC MI-IP 04 Instalaciones para suministro a vehículos. L’activitat està inclosa dins del //Real Decreto 706/2017, de 7 de julio, por el que se aprueba la instrucción técnica complementaria MI-IP 04 "Instalaciones para suministro a vehículos" y se regulan determinados aspectos de la reglamentación de instalaciones petrolíferes//. S’ha de presentar la inspecció periòdica de la instal·lació petrolífera per part d’un organisme de control habilitat (vigència 5 anys).
 AIRE|item
-ITEM|73.|Instal·lacions de raigs X. L’activitat està inclosa dins l’Article 17 del //Real Decreto 1085/2009, de 3 de julio, por el que se aprueba el Reglamento sobre instalación y utilización de aparatos de rayos X con fines de diagnóstico médico//. S’ha de presentar la inspecció periòdica de la instal·lació de raigs X per part d’un organisme de control habilitat (vigència 5 anys).
+ITEM|72.|Instal·lacions de raigs X. L’activitat està inclosa dins l’Article 17 del //Real Decreto 1085/2009, de 3 de julio, por el que se aprueba el Reglamento sobre instalación y utilización de aparatos de rayos X con fines de diagnóstico médico//. S’ha de presentar la inspecció periòdica de la instal·lació de raigs X per part d’un organisme de control habilitat (vigència 5 anys).
 AIRE|item
 SECT|Registres
 AIRE|seccio
-ITEM|74.|Nucli zoològic. L’activitat està inclosa dins el Decret Legislatiu 2/2008, de 15 d'abril, pel qual s'aprova el Text refós de la Llei de protecció dels animals. S’ha d’inscriure l’activitat en el Registre de nucli zoològic.
+ITEM|73.|Nucli zoològic. L’activitat està inclosa dins el Decret Legislatiu 2/2008, de 15 d'abril, pel qual s'aprova el Text refós de la Llei de protecció dels animals. S’ha d’inscriure l’activitat en el Registre de nucli zoològic.
 URL|https://territori.gencat.cat/ca/tramits/tramits-temes/Registre-dun-nucli-zoologic
 AIRE|item
 SUB|Registre d'Agents de la Seguretat Industrial de Catalunya
 AIRE|subseccio
-ITEM|75.|RASIC. El titular de l’activitat està inclòs dins l’Article 8 de la Llei 9/2014, del 31 de juliol, de la seguretat industrial dels establiments, les instal·lacions i els productes. S’ha de registrar en el següent enllaç:
+ITEM|74.|RASIC. El titular de l’activitat està inclòs dins l’Article 8 de la Llei 9/2014, del 31 de juliol, de la seguretat industrial dels establiments, les instal·lacions i els productes. S’ha de registrar en el següent enllaç:
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Empresa-installadora-mantenidora-i-o-reparadora-dinstallacions-industrials
 AIRE|item
-ITEM|76.|RASIC Taller mecànic. El titular de l’activitat està inclòs dins l’Article 8 de la Llei 9/2014, del 31 de juliol, de la seguretat industrial dels establiments, les instal·lacions i els productes. S’ha de registrar en el següent enllaç:
+ITEM|75.|RASIC Taller mecànic. El titular de l’activitat està inclòs dins l’Article 8 de la Llei 9/2014, del 31 de juliol, de la seguretat industrial dels establiments, les instal·lacions i els productes. S’ha de registrar en el següent enllaç:
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Taller-de-reparacio-de-vehicles-automobils
 AIRE|item
 SUB|Activitats industrials
 AIRE|subseccio
-ITEM|77.|Metalls preciosos. L’activitat és fabricant o importadora d'objectes fabricats amb metalls preciosos. Ha d’estar inscrita en el Registre de fabricants i/o importadors de metalls preciosos.
+ITEM|76.|Metalls preciosos. L’activitat és fabricant o importadora d'objectes fabricats amb metalls preciosos. Ha d’estar inscrita en el Registre de fabricants i/o importadors de metalls preciosos.
 URL|https://web.gencat.cat/ca/tramits/tramits-temes/Registre-de-fabricants-i-o-importadors-de-metalls-preciosos
 AIRE|item
 SUB|Productes i establiments sanitaris
 AIRE|subseccio
-ITEM|78.|Fabricació, distribució i venda de productes sanitaris. S’ha de sol·licitar la Comunicació de l’activitat de venda de productes sanitaris i/o de productes sanitaris per a diagnòstic in vitro
+ITEM|77.|Fabricació, distribució i venda de productes sanitaris. S’ha de sol·licitar la Comunicació de l’activitat de venda de productes sanitaris i/o de productes sanitaris per a diagnòstic in vitro
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Comunicacio-de-lactivitat-de-venda-de-productes-sanitaris-i-o-de-productes-sanitaris-per-a-diagnostic-in-vitro
 AIRE|item
-ITEM|79.|Fabricació pròtesis dentals. S’ha de sol·licitar l’Autorització d'empreses fabricants de pròtesis dentals i altres productes sanitaris dentals a mida
+ITEM|78.|Fabricació pròtesis dentals. S’ha de sol·licitar l’Autorització d'empreses fabricants de pròtesis dentals i altres productes sanitaris dentals a mida
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Autoritzacio-dempreses-fabricants-de-protesis-dentals-i-altres-productes-sanitaris-dentals-a-mida
 AIRE|item
-ITEM|80.|Òptica. S’ha de sol·licitar l’Autorització dels establiments d’òptica o de les seccions d’òptica en oficines de farmàcia
+ITEM|79.|Òptica. S’ha de sol·licitar l’Autorització dels establiments d’òptica o de les seccions d’òptica en oficines de farmàcia
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Autoritzacio-dels-establiments-doptica-o-de-les-seccions-doptica-en-oficines-de-farmacia
 AIRE|item
-ITEM|81.|Ortopèdia i audiopròtesis. S’ha de sol·licitar l’Autorització dels establiments d'ortopèdia i d'audiopròtesis
+ITEM|80.|Ortopèdia i audiopròtesis. S’ha de sol·licitar l’Autorització dels establiments d'ortopèdia i d'audiopròtesis
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Autoritzacio-dels-establiments-dortopedia-i-daudioprotesis
 AIRE|item
-ITEM|82.|Fabricació ortopèdics. S’ha de sol·licitar l’Autorització sanitària d'empreses fabricants de productes sanitaris ortoprotètics a mida
+ITEM|81.|Fabricació ortopèdics. S’ha de sol·licitar l’Autorització sanitària d'empreses fabricants de productes sanitaris ortoprotètics a mida
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Autoritzacio-sanitaria-dempreses-fabricants-de-productes-sanitaris-ortoprotetics-a-mida
 AIRE|item
-ITEM|83.|Farmàcies i indústria farmacèutica. S’ha de presentar la sol·licitud d’obertura concedida pel Col·legi Oficial de Farmacèutics de Barcelona.
+ITEM|82.|Farmàcies i indústria farmacèutica. S’ha de presentar la sol·licitud d’obertura concedida pel Col·legi Oficial de Farmacèutics de Barcelona.
 AIRE|item
-ITEM|84.|Bancs solars. S’ha de presentar la declaració responsable per a instal·lacions de bancs solars (posada en servei, modificacions i baixa)
+ITEM|83.|Bancs solars. S’ha de presentar la declaració responsable per a instal·lacions de bancs solars (posada en servei, modificacions i baixa)
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Presentacio-de-la-declaracio-responsable-per-a-installacions-de-bancs-solars-posada-en-servei-modificacions-i-baixa
 AIRE|item
-ITEM|85.|Desfibril·ladors. S’ha de notificar la instal·lació inscrivint-la en el Registre de desfibril·ladors fora de l’àmbit sanitari.
+ITEM|84.|Desfibril·ladors. S’ha de notificar la instal·lació inscrivint-la en el Registre de desfibril·ladors fora de l’àmbit sanitari.
 AIRE|item
-ITEM|86.|Desfibril·ladors. S’ha de notificar la instal·lació inscrivint-la en el Registre de desfibril·ladors fora de l’àmbit sanitari.
+ITEM|85.|Desfibril·ladors. S’ha de notificar la instal·lació inscrivint-la en el Registre de desfibril·ladors fora de l’àmbit sanitari.
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Inscripcio-modificacio-i-cancellacio-de-les-dades-dels-desfibrilladors-externs-automatics-de-centres-no-sanitaris
 AIRE|item
 SUB|Registres sanitaris
 AIRE|subseccio
-ITEM|87.|L'activitat s'ha d'inscriure en el Registre sanitari d’indústries i productes alimentaris de Catalunya (RSIPAC).
+ITEM|86.|L'activitat s'ha d'inscriure en el Registre sanitari d’indústries i productes alimentaris de Catalunya (RSIPAC).
 URL|https://web.gencat.cat/ca/tramits/tramits-temes/Registre-sanitari-dindustries-i-productes-alimentaris-de-Cataluya-RSIPAC
 AIRE|item
-ITEM|88.|L’activitat ha de presentar la Declaració responsable en matèria de salut alimentària.
+ITEM|87.|L’activitat ha de presentar la Declaració responsable en matèria de salut alimentària.
 URL|https://www.seu-e.cat/ca/web/cornella/tramits-i-gestions/-/tramits/tramit/14387441?p_auth=xcFulVcY
 AIRE|item
 SUB|Comerç
 AIRE|subseccio
-ITEM|89.|Comerç de seguretat. S’ha de sol·licitar l’Autorització d'obertura, trasllat i comunicació de reformes d'establiments obligats a disposar de mesures de seguretat i/o de dispensa d'alguna de les mesures.
+ITEM|88.|Comerç de seguretat. S’ha de sol·licitar l’Autorització d'obertura, trasllat i comunicació de reformes d'establiments obligats a disposar de mesures de seguretat i/o de dispensa d'alguna de les mesures.
 URL|https://interior.gencat.cat/ca/tramits/tramits-temes/21558_-_Autoritzacio-dobertura-trasllat-i-comunicacio-de-reformes-destabliments-obligats-a-disposar-de-mesures-de-seguretat-i-o-de-dispensa-dalguna-de-les-mesures
 AIRE|item
-ITEM|90.|API. El titular de l’activitat s’ha d’enregistrar en el Registre d'agents immobiliaris de Catalunya.
+ITEM|89.|API. El titular de l’activitat s’ha d’enregistrar en el Registre d'agents immobiliaris de Catalunya.
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Registre_Agents_Immobiliaris_Catalunya
 AIRE|item
 SECT|Incendis
 AIRE|seccio
-ITEM|91.|S’ha de legalitzar l’activitat segons el CTE i no el RSCIEI, tal i com s’indica al CTE DB SI, //II Ámbito de aplicación// i //III Criterios generales de aplicación//, i a l’article 2 del //Real Decreto 164/2025, de 4 de marzo//.
+ITEM|90.|S’ha de legalitzar l’activitat segons el CTE i no el RSCIEI, tal i com s’indica al CTE DB SI, //II Ámbito de aplicación// i //III Criterios generales de aplicación//, i a l’article 2 del //Real Decreto 164/2025, de 4 de marzo//.
 AIRE|item
-ITEM|92.|S’ha de legalitzar l’activitat segons el RSCIEI i no el CTE, tal i com s’indica al CTE DB SI, //II Ámbito de aplicación// i //III Criterios generales de aplicación//, i a l’article 2 del //Real Decreto 164/2025, de 4 de marzo//.
+ITEM|91.|S’ha de legalitzar l’activitat segons el RSCIEI i no el CTE, tal i com s’indica al CTE DB SI, //II Ámbito de aplicación// i //III Criterios generales de aplicación//, i a l’article 2 del //Real Decreto 164/2025, de 4 de marzo//.
 AIRE|item
-ITEM|93.|Ús magatzem. Segons el punt 5 dels //Criterios generales de aplicación// del CTE DB SI, en els edificis, establiments o zones d’ús Almacén el compliment de les exigències bàsiques de seguretat en cas d’incendi s’ha de realitzar aplicant la taula 1.1 //Condiciones de compartimentación en sectores de incendio// de la Secció SI 1 i la caracterització i els requisits constructius i dotacionals dels annexos I, II, III i IV del RSCIEI. L’ocupació, en canvi, es calcula amb la densitat d’ocupació de la taula 2.1 de la Secció SI 3 per a l’ús arxius, magatzems.
+ITEM|92.|Ús magatzem. Segons el punt 5 dels //Criterios generales de aplicación// del CTE DB SI, en els edificis, establiments o zones d’ús Almacén el compliment de les exigències bàsiques de seguretat en cas d’incendi s’ha de realitzar aplicant la taula 1.1 //Condiciones de compartimentación en sectores de incendio// de la Secció SI 1 i la caracterització i els requisits constructius i dotacionals dels annexos I, II, III i IV del RSCIEI. L’ocupació, en canvi, es calcula amb la densitat d’ocupació de la taula 2.1 de la Secció SI 3 per a l’ús arxius, magatzems.
 BULLET/CH/1r|Els establiments l’activitat dels quals sigui el servei de lloguer de trasters i magatzems es consideren d’ús Almacén. Els seus sectors o àrees d’incendi es classifiquen com a nivell de risc intrínsec mitjà, subnivell 5, si l’alçada d’emmagatzematge és igual o inferior a 3 m, i com a alt si és superior a 3 m, calculant-ne en aquest cas el subnivell segons el RSCIEI.
 AIRE|item
-ITEM|94.|Evacuació. Les portes d’emergència han de ser practicables mentre l’activitat romangui oberta. S’ha d’entregar un certificat signat pel titular indicant que la porta que evacua a [CAMP: Adreça porta practicable evacuació] estarà practicable mentre l’activitat estigui oberta.
+ITEM|93.|Evacuació. Les portes d’emergència han de ser practicables mentre l’activitat romangui oberta. S’ha d’entregar un certificat signat pel titular indicant que la porta que evacua a [CAMP: Adreça porta practicable evacuació] estarà practicable mentre l’activitat estigui oberta.
 AIRE|item
 SUB|Documentació (ITC SP)
 AIRE|subseccio
 BODY|Segons l’article 3.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha d’entregar la Certificació d'instal·lació o aplicació de productes de protecció passiva contra incendis adjuntant la corresponen documentació complementària:
 AIRE|intro
-ITEM|95.|SP 136 Model A Certificat d’instal·lació de productes de limitació de la propagació d’incendis, adjuntant com a mínim:
+ITEM|94.|SP 136 Model A Certificat d’instal·lació de productes de limitació de la propagació d’incendis, adjuntant com a mínim:
 BODY|- Documents de subministrament del producte
 BODY|- Documents acreditatius de les prestacions del producte
 URL|https://interior.gencat.cat/web/.content/home/030_arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/instruccions_tecniques_complementaries/documents/SP-136_A-Model-certificat-limitacio-propagacio.doc
 AIRE|item
-ITEM|96.|SP 136 Model B Certificat d’aplicació de productes de millora de la reacció al foc, adjuntant com a mínim:
+ITEM|95.|SP 136 Model B Certificat d’aplicació de productes de millora de la reacció al foc, adjuntant com a mínim:
 BODY|- Documents de subministrament del producte
 BODY|- Documents acreditatius de les prestacions del producte
 URL|https://interior.gencat.cat/web/.content/home/030_arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/instruccions_tecniques_complementaries/documents/SP-136_B-Model-certificat-millora-reaccio-al-foc.doc
 AIRE|item
-ITEM|97.|SP 136 Model C Certificat d'instal·lació o aplicació de productes de protecció d'estructures, adjuntant com a mínim:
+ITEM|96.|SP 136 Model C Certificat d'instal·lació o aplicació de productes de protecció d'estructures, adjuntant com a mínim:
 BODY|- Documents de subministrament del producte
 BODY|- Documents acreditatius de les prestacions del producte
 URL|https://interior.gencat.cat/web/.content/home/030_arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/instruccions_tecniques_complementaries/documents/SP-136_C-Model-certificat-proteccio-estructures.doc
 AIRE|item
-ITEM|98.|Lluernes en coberta. Segons la taula 2.1.4 //Clases de reacción al fuego de los elementos constructivos// de la Secció 1 de l’Annex II del //Real Decreto 164/2025, de 4 de marzo// (RSCIEI) i la seva Nota 7, als lluernaris en general i als airejadors d’extracció natural de fum i calor que s’instal·lin a la coberta se’ls apliquen els mateixos requisits que als sostres i parets. Els lluernaris de grans dimensions en coberta han de ser sempre de classe B-s1,d0 o més favorable. Es consideren de grans dimensions els que tenen més de 10 m de longitud, o bé quan hi ha diversos lluernaris agrupats amb una separació entre ells inferior a 2 m que ocupen més de 10 m de longitud. S’ha de justificar el compliment adjuntant com a mínim:
+ITEM|97.|Lluernes en coberta. Segons la taula 2.1.4 //Clases de reacción al fuego de los elementos constructivos// de la Secció 1 de l’Annex II del //Real Decreto 164/2025, de 4 de marzo// (RSCIEI) i la seva Nota 7, als lluernaris en general i als airejadors d’extracció natural de fum i calor que s’instal·lin a la coberta se’ls apliquen els mateixos requisits que als sostres i parets. Els lluernaris de grans dimensions en coberta han de ser sempre de classe B-s1,d0 o més favorable. Es consideren de grans dimensions els que tenen més de 10 m de longitud, o bé quan hi ha diversos lluernaris agrupats amb una separació entre ells inferior a 2 m que ocupen més de 10 m de longitud. S’ha de justificar el compliment adjuntant com a mínim:
 BODY|- Documents de subministrament del producte
 BODY|- Documents acreditatius de les prestacions del producte
 AIRE|item
 SUB|RIPCI
 AIRE|subseccio
-ITEM|99.|Posada en servei. Abans de la posada en funcionament de les instal·lacions de protecció activa contra incendis s’ha de presentar davant l’òrgan competent en matèria d’indústria de la comunitat autònoma un certificat de l’empresa instal·ladora, emès per un tècnic titulat competent designat per aquesta, on es faci constar que la instal·lació s’ha realitzat de conformitat amb el Real Decreto 513/2017 i d’acord amb el projecte o documentació tècnica. A més, s’ha de tenir subscrit un contracte de manteniment amb una empresa mantenidora degudament habilitada que cobreixi, almenys, els manteniments dels equips i sistemes subjectes al Reglament. Excepcionalment, si el titular de la instal·lació s’habilita com a mantenidor i disposa dels mitjans i l’organització necessaris per efectuar el seu propi manteniment, i n’assumeix l’execució i la responsabilitat, queda eximit de contractar-lo.
+ITEM|98.|Posada en servei. Abans de la posada en funcionament de les instal·lacions de protecció activa contra incendis s’ha de presentar davant l’òrgan competent en matèria d’indústria de la comunitat autònoma un certificat de l’empresa instal·ladora, emès per un tècnic titulat competent designat per aquesta, on es faci constar que la instal·lació s’ha realitzat de conformitat amb el Real Decreto 513/2017 i d’acord amb el projecte o documentació tècnica. A més, s’ha de tenir subscrit un contracte de manteniment amb una empresa mantenidora degudament habilitada que cobreixi, almenys, els manteniments dels equips i sistemes subjectes al Reglament. Excepcionalment, si el titular de la instal·lació s’habilita com a mantenidor i disposa dels mitjans i l’organització necessaris per efectuar el seu propi manteniment, i n’assumeix l’execució i la responsabilitat, queda eximit de contractar-lo.
 AIRE|item
-ITEM|100.|Extintors. L'emplaçament dels extintors permetrà que siguin fàcilment visibles i accessibles, estaran situats pròxims als punts on s'estimi major probabilitat d'iniciar-se l'incendi i, si pot ser, pròxims a les sortides d'evacuació.
+ITEM|99.|Extintors. L'emplaçament dels extintors permetrà que siguin fàcilment visibles i accessibles, estaran situats pròxims als punts on s'estimi major probabilitat d'iniciar-se l'incendi i, si pot ser, pròxims a les sortides d'evacuació.
 AIRE|item
-ITEM|101.|Extintors. La part superior dels extintors ha de quedar situada entre 80cm i 120cm sobre el terra.
+ITEM|100.|Extintors. La part superior dels extintors ha de quedar situada entre 80cm i 120cm sobre el terra.
 AIRE|item
-ITEM|102.|Extintors. El recorregut màxim horitzontal des de qualsevol punt del sector d'incendi fins a l'extintor no pot superar els 15 m.
+ITEM|101.|Extintors. El recorregut màxim horitzontal des de qualsevol punt del sector d'incendi fins a l'extintor no pot superar els 15 m.
 AIRE|item
-ITEM|103.|Extintors. S’han de realitzar les operacions de manteniment segons el que s'estableix en el «Programa de Manteniment Anual» de la norma UNE 23120.
+ITEM|102.|Extintors. S’han de realitzar les operacions de manteniment segons el que s'estableix en el «Programa de Manteniment Anual» de la norma UNE 23120.
 AIRE|item
-ITEM|104.|BIEs. La boquilla, la vàlvula d’obertura manual i el sistema d’obertura de l’armari de la BIE, si n’hi ha, han d’estar situats com a màxim a 1,50 m. sobre el nivell del terra.
+ITEM|103.|BIEs. La boquilla, la vàlvula d’obertura manual i el sistema d’obertura de l’armari de la BIE, si n’hi ha, han d’estar situats com a màxim a 1,50 m. sobre el nivell del terra.
 AIRE|item
-ITEM|105.|BIEs. Les BIE s’han de situar preferentment prop de les portes o sortides. Sempre s’ha de situar una BIE a una distància màxima de 5 m de cada sortida de sector d’incendi, mesurada sobre un recorregut d’evacuació, sense que constitueixin obstacle per a la seva utilització; llevat dels casos en què ja existeixi una altra BIE situada en una altra sortida d’aquell sector i aquesta cobreixi tota la superfície a protegir, o llevat que la legislació específica disposi una altra cosa.
+ITEM|104.|BIEs. Les BIE s’han de situar preferentment prop de les portes o sortides. Sempre s’ha de situar una BIE a una distància màxima de 5 m de cada sortida de sector d’incendi, mesurada sobre un recorregut d’evacuació, sense que constitueixin obstacle per a la seva utilització; llevat dels casos en què ja existeixi una altra BIE situada en una altra sortida d’aquell sector i aquesta cobreixi tota la superfície a protegir, o llevat que la legislació específica disposi una altra cosa.
 AIRE|item
-ITEM|106.|BIEs. Per a les BIE amb mànega semirígida o mànega plana, la separació màxima entre cada BIE i la seva més pròxima serà de 50 m. La distància des de qualsevol punt de l'àrea protegida fins a la BIE més pròxima no haurà d'excedir del radi d'acció d'aquesta. Tant la separació, com la distància màxima i el radi d'acció es mesuraran seguint recorreguts d'evacuació
+ITEM|105.|BIEs. Per a les BIE amb mànega semirígida o mànega plana, la separació màxima entre cada BIE i la seva més pròxima serà de 50 m. La distància des de qualsevol punt de l'àrea protegida fins a la BIE més pròxima no haurà d'excedir del radi d'acció d'aquesta. Tant la separació, com la distància màxima i el radi d'acció es mesuraran seguint recorreguts d'evacuació. El radi d’acció d’una BIE és la longitud de la seva mànega més 5 m, i la longitud de la mànega no ha de superar els 20 m en el cas de mànega plana ni els 30 m en el cas de mànega semirígida.
 AIRE|item
-ITEM|107.|BIEs. El radi d’acció d’una BIE és la longitud de la seva mànega més 5 m. La longitud de la mànega no ha de superar els 20 m en el cas de mànega plana ni els 30 m en el cas de mànega semirígida.
+ITEM|106.|BIEs. S'haurà de mantenir al voltant de cada BIE una zona lliure d'obstacles, que permeti l'accés a ella i la seva maniobra sense dificultat.
 AIRE|item
-ITEM|108.|BIEs. S'haurà de mantenir al voltant de cada BIE una zona lliure d'obstacles, que permeti l'accés a ella i la seva maniobra sense dificultat.
+ITEM|107.|BIEs. Les BIE amb mànega semirígida (25 mm) han de proporcionar un cabal mínim de 85 litres/minut, cosa que per a K=42 implica una pressió mínima a l’entrada de la BIE de 4 bar (400 kPa). Les BIE amb mànega plana (45 mm) han de proporcionar un cabal mínim de 160 litres/minut, cosa que per a K=85 implica una pressió mínima a l’entrada de 3,5 bar (350 kPa). La pressió màxima a l’entrada no ha de superar en cap cas els 9 bar (900 kPa). Totes les mesures s’han de fer al manòmetre amb el flux d’aigua completament obert i la punta de llança en posició de raig compacte, i els requisits s’han de complir a totes les BIE del sistema.
 AIRE|item
-ITEM|109.|BIEs. Les BIE amb mànega semirígida (25 mm) han de proporcionar un cabal mínim de 85 litres/minut, cosa que per a K=42 implica una pressió mínima a l’entrada de la BIE de 4 bar (400 kPa). Les BIE amb mànega plana (45 mm) han de proporcionar un cabal mínim de 160 litres/minut, cosa que per a K=85 implica una pressió mínima a l’entrada de 3,5 bar (350 kPa). La pressió màxima a l’entrada no ha de superar en cap cas els 9 bar (900 kPa). Totes les mesures s’han de fer al manòmetre amb el flux d’aigua completament obert i la punta de llança en posició de raig compacte, i els requisits s’han de complir a totes les BIE del sistema.
+ITEM|108.|BIEs. S’han de realitzar les operacions d'inspecció i manteniment anuals segons el que s'estableix la UNE-EN 671-3.
 AIRE|item
-ITEM|110.|BIEs. S’han de realitzar les operacions d'inspecció i manteniment anuals segons el que s'estableix la UNE-EN 671-3.
+ITEM|109.|BIEs. Les mànegues contra incendis s’han de substituir com a mínim cada 20 anys, a comptar des de la seva posada en servei, llevat que el fabricant en certifiqui una durabilitat superior.
 AIRE|item
-ITEM|111.|BIEs. Les mànegues contra incendis s’han de substituir com a mínim cada 20 anys, a comptar des de la seva posada en servei, llevat que el fabricant en certifiqui una durabilitat superior.
+ITEM|110.|Senyalització. La senyalització dels mitjans de protecció contra incendis d'utilització manual i dels sistemes d'alerta i alarma, hauran de complir la norma UNE 23033-1. Els senyals no definits en aquesta norma es podran dissenyar amb els mateixos criteris establerts en la norma UNE 23033-1, en la UNE 23032 i a la UNE-EN ISO 7010.
+BODY|Els senyals s’han de col·locar de manera que siguin clarament visibles (posició, mida i tipus de senyal); els situats dins d’edificis que no siguin luminescents han d’estar il·luminats exteriorment i han de ser visibles fins i tot en cas de fallada de l’enllumenat normal. Els senyals fotoluminescents s’han de substituir a partir dels 20 anys des de la seva fabricació, llevat que es justifiqui, conforme a la norma UNE 23035-2, que aporten valors no inferiors als exigits.
 AIRE|item
-ITEM|112.|Cuines comercials. Els sistemes fixos automàtics per a l’extinció d’incendis en cuines comercials han d’estar certificats, abans de la seva instal·lació, d’acord amb l’article 5.2 del Real Decreto 513/2017, per justificar el compliment de la norma UNE-EN 17446; les condicions del seu disseny i instal·lació també han de ser conformes a aquesta norma. Els mecanismes de dispar i aturada manuals han d’estar senyalitzats. La instal·lació i el manteniment els ha de fer una empresa habilitada per al sistema fix corresponent.
-AIRE|item
-ITEM|113.|Senyalització. La senyalització dels mitjans de protecció contra incendis d'utilització manual i dels sistemes d'alerta i alarma, hauran de complir la norma UNE 23033-1. Els senyals no definits en aquesta norma es podran dissenyar amb els mateixos criteris establerts en la norma UNE 23033-1, en la UNE 23032 i a la UNE-EN ISO 7010.
-AIRE|item
-ITEM|114.|Senyalització. Els senyals s’han de col·locar de manera que siguin clarament visibles (posició, mida i tipus de senyal). Es poden utilitzar senyals no luminescents a l’exterior d’edificis i a la via pública; els senyals situats dins d’edificis que no siguin luminescents han d’estar il·luminats exteriorment i han de ser visibles fins i tot en cas de fallada del subministrament de l’enllumenat normal. Els senyals fotoluminescents s’han de substituir a partir dels 20 anys des de la seva fabricació, llevat que es justifiqui mitjançant mesurament sobre una mostra representativa, conforme a la norma UNE 23035-2, que aporten valors no inferiors als exigits.
-AIRE|item
-ITEM|115.|Enllumenat emergència. Les instal·lacions d'enllumenat d'emergència seran conformes a les especificacions establertes en el Reglament Electrotècnic de Baixa Tensió, aprovat per Reial decret 842/2002, de 2 d'agost, i en la Instrucció Tècnica Complementària ITC-BT-28.
+ITEM|111.|Enllumenat emergència. Les instal·lacions d'enllumenat d'emergència seran conformes a les especificacions establertes en el Reglament Electrotècnic de Baixa Tensió, aprovat per Reial decret 842/2002, de 2 d'agost, i en la Instrucció Tècnica Complementària ITC-BT-28.
 AIRE|item
 SUB|RSCIEI
 AIRE|subseccio
 BODY|S’ha de justificar el compliment del //Real Decreto 164/2025, de 4 de marzo, por el que se aprueba el Reglamento de seguridad contra incendios en los establecimientos industriales// (RSCIEI), més concretament:
 AIRE|intro
-ITEM|116.|Caracterització. S’ha de justificar la configuració de cada edifici i espai obert de l’establiment (tipus A vertical, A horitzontal, B, C o D), la identificació dels sectors d’incendi (en edificis) i de les àrees d’incendi (en espais oberts) i, per a cada un, la densitat de càrrega de foc ponderada i corregida (Qs) amb el seu nivell de risc intrínsec i el subnivell d’1 a 8 de la taula 1.3.1 de l’Annex I. Els subnivells són una novetat del reglament: el Real Decreto 2267/2004 només en tenia tres, i les taules de l’Annex II hi van lligades.
+ITEM|112.|Caracterització. S’ha de justificar la configuració de cada edifici i espai obert de l’establiment (tipus A vertical, A horitzontal, B, C o D), la identificació dels sectors d’incendi (en edificis) i de les àrees d’incendi (en espais oberts) i, per a cada un, la densitat de càrrega de foc ponderada i corregida (Qs) amb el seu nivell de risc intrínsec i el subnivell d’1 a 8 de la taula 1.3.1 de l’Annex I.
 AIRE|item
-ITEM|117.|Compatibilitat reglamentària. Quan dins l’establiment industrial hi convisquin activitats subsidiàries que s’identifiquin amb els usos definits al CTE DB SI, les zones on es desenvolupin han de complir el CTE DB SI i constituir un sector d’incendi independent del d’ús industrial quan superin: 250 m2 de superfície construïda en ús administratiu, comercial, docent, pública concurrència i zones d’allotjament; 100 m2 en aparcament; sempre en residencial habitatge i residencial públic; i 250 m2 entre tots ells si n’hi ha diversos adjacents o superposats. Aquestes zones segueixen formant part de l’establiment industrial i, per tant, entren dins de la inspecció periòdica del RSCIEI.
+ITEM|113.|Compatibilitat reglamentària. Quan dins l’establiment industrial hi convisquin activitats subsidiàries que s’identifiquin amb els usos definits al CTE DB SI, les zones on es desenvolupin han de complir el CTE DB SI i constituir un sector d’incendi independent del d’ús industrial quan superin: 250 m2 de superfície construïda en ús administratiu, comercial, docent, pública concurrència i zones d’allotjament; 100 m2 en aparcament; sempre en residencial habitatge i residencial públic; i 250 m2 entre tots ells si n’hi ha diversos adjacents o superposats. Aquestes zones segueixen formant part de l’establiment industrial i, per tant, entren dins de la inspecció periòdica del RSCIEI.
 AIRE|item
-ITEM|118.|Sectorització. S’ha de justificar que cap sector d’incendi no supera la màxima superfície construïda admissible de la taula 2.1.1 segons la seva configuració i el seu subnivell de risc. Cal aplicar-hi les notes de la taula: si el sector és sota rasant, 400 m2 (risc baix nivell 1) o la meitat dels valors de la taula; si la façana accessible de l’establiment és igual o superior al 50 % del seu perímetre, els valors es poden multiplicar per 1,25; i si hi ha ruixadors automàtics o un altre sistema fix d’extinció automàtica que cobreixi tot el sector, per 2. Les dues últimes es poden aplicar alhora (factor 2,5).
+ITEM|114.|Sectorització. S’ha de justificar que cap sector d’incendi no supera la màxima superfície construïda admissible de la taula 2.1.1, que per a una configuració de [OPCIO: Configuració | tipus A vertical | tipus A horitzontal | tipus B | tipus C] depèn del subnivell de risc intrínsec del sector.
 AIRE|item
-ITEM|119.|Sectorització. Els elements constructius que delimiten cada sector d’incendi han de tenir la resistència al foc de la taula 2.1.2, segons el nivell de risc intrínsec, la configuració i si la planta és sobre o sota rasant (de EI 30 a EI 180). Si l’element té també funció portant, ha de complir el valor REI corresponent.
+ITEM|115.|Sectorització. Els elements constructius que delimiten cada sector d’incendi han de tenir una resistència al foc [OPCIO: Resistència delimitadors | EI 30 | EI 60 | EI 90 | EI 120 | EI 180], segons la taula 2.1.2 i en funció del nivell de risc intrínsec, la configuració i si la planta és sobre o sota rasant. Si l’element té també funció portant, ha de complir el valor REI corresponent.
 AIRE|item
-ITEM|120.|Sectorització. Les portes i els portons que compartimenten sectors d’incendi han de tenir una resistència al foc EI2 igual, com a mínim, a la meitat de l’exigida a l’element que separa els dos sectors, o a la quarta part quan el pas es faci a través d’un vestíbul previ i de dues portes. Aquestes reduccions no s’apliquen als portons que no siguin fàcilment operables manualment ni als de més de 3 m d’ample o 4 m d’alt, on com a molt es pot reduir a la meitat i amb vestíbul previ i dues portes. Les portes i els elements compartimentadors mòbils previstos per quedar habitualment oberts han de disposar d’un sistema retenidor que en permeti el tancament automàtic en cas d’incendi.
+ITEM|116.|Sectorització. Les portes i els portons que compartimenten sectors d’incendi han de tenir una resistència al foc EI2 igual, com a mínim, a la meitat de l’exigida a l’element que separa els dos sectors, o a la quarta part quan el pas es faci a través d’un vestíbul previ i de dues portes. Aquestes reduccions no s’apliquen als portons que no siguin fàcilment operables manualment ni als de més de 3 m d’ample o 4 m d’alt, on com a molt es pot reduir a la meitat i amb vestíbul previ i dues portes. Les portes i els elements compartimentadors mòbils previstos per quedar habitualment oberts han de disposar d’un sistema retenidor que en permeti el tancament automàtic en cas d’incendi.
 AIRE|item
-ITEM|121.|Espais ocults. La compartimentació ha de tenir continuïtat en els espais ocults (patinets, cambres, falsos sostres, terres elevats i galeries subterrànies de qualsevol tipus d’instal·lació), llevat que aquests estiguin compartimentats respecte dels primers com a mínim amb la mateixa resistència al foc. La resistència al foc s’ha de mantenir allà on els elements de compartimentació els travessin cables, canonades, conduccions o conductes de ventilació, excloses les penetracions de secció de pas que no superi els 50 cm2, amb una comporta tallafocs EI t o amb elements passants de la mateixa resistència que l’element travessat.
+ITEM|117.|Espais ocults. La compartimentació ha de tenir continuïtat en els espais ocults (patinets, cambres, falsos sostres, terres elevats i galeries subterrànies de qualsevol tipus d’instal·lació), llevat que aquests estiguin compartimentats respecte dels primers com a mínim amb la mateixa resistència al foc. La resistència al foc s’ha de mantenir allà on els elements de compartimentació els travessin cables, canonades, conduccions o conductes de ventilació, excloses les penetracions de secció de pas que no superi els 50 cm2, amb una comporta tallafocs EI t o amb elements passants de la mateixa resistència que l’element travessat.
 AIRE|item
-ITEM|122.|Reacció al foc. Els productes utilitzats com a revestiment o acabat superficial han de tenir, com a mínim, les prestacions de la taula 2.1.4 (sostres i parets / terres): zones ocupables en general C-s2,d0 / CFL-s1; passadissos i escales protegits B-s1,d0 / CFL-s1; aparcaments i sectors de nivell de risc intrínsec alt B-s1,d0 / BFL-s1; i espais ocults no estancs B-s3,d0 / BFL-s2. Només s’hi compten els que superin el 5 % de la superfície total del conjunt de les parets, dels sostres o dels terres del recinte.
+ITEM|118.|Reacció al foc. Els productes utilitzats com a revestiment o acabat superficial han de tenir, com a mínim, les prestacions de la taula 2.1.4 (sostres i parets / terres): zones ocupables en general C-s2,d0 / CFL-s1; passadissos i escales protegits B-s1,d0 / CFL-s1; aparcaments i sectors de nivell de risc intrínsec alt B-s1,d0 / BFL-s1; i espais ocults no estancs B-s3,d0 / BFL-s2. Només s’hi compten els que superin el 5 % de la superfície total del conjunt de les parets, dels sostres o dels terres del recinte.
 AIRE|item
-ITEM|123.|Reacció al foc. Els productes situats a l’interior de falsos sostres o terres elevats, tant els d’aïllament tèrmic i condicionament acústic com els que constitueixin o revesteixin conductes d’aire condicionat o de ventilació, han de ser de classe B-s3,d0 o més favorable. Els cables situats a l’interior de falsos sostres, terres elevats i galeries subterrànies no compartimentades han de ser, com a mínim, de classe Cca-s1b,d1,a1.
+ITEM|119.|Reacció al foc. Els productes situats a l’interior de falsos sostres o terres elevats, tant els d’aïllament tèrmic i condicionament acústic com els que constitueixin o revesteixin conductes d’aire condicionat o de ventilació, han de ser de classe B-s3,d0 o més favorable. Els cables situats a l’interior de falsos sostres, terres elevats i galeries subterrànies no compartimentades han de ser, com a mínim, de classe Cca-s1b,d1,a1.
 AIRE|item
-ITEM|124.|Instal·lacions de serveis. S’ha de justificar que les instal·lacions dels serveis elèctrics (inclosos els grups electrògens i els quadres), les de climatització i la resta de serveis de l’establiment compleixen les condicions que l’Annex II els exigeix dins d’un establiment industrial.
+ITEM|120.|Propagació exterior. Els elements separadors dels sectors d’incendi de l’establiment respecte d’altres establiments (mitgeres, murs, tancaments o forjats) han de tenir una resistència al foc mínima de [OPCIO: Resistència mitgeres | EI 120 | EI 180 | EI 240], segons la taula 2.2.1. Si tenen també funció portant, han de complir el valor REI corresponent.
 AIRE|item
-ITEM|125.|Propagació exterior. Els elements separadors dels sectors d’incendi de l’establiment respecte d’altres establiments (mitgeres, murs, tancaments o forjats) han de tenir una resistència al foc mínima de EI 120 si el risc intrínsec és baix, EI 180 si és mitjà i EI 240 si és alt; REI si tenen també funció portant.
+ITEM|121.|Propagació exterior. S’ha de justificar la limitació de la propagació de l’incendi per façana, tant entre sectors d’incendi del mateix establiment com respecte dels establiments veïns, segons la taula 2.2.2 de la Secció 2 de l’Annex II.
 AIRE|item
-ITEM|126.|Propagació exterior. S’ha de justificar la limitació de la propagació de l’incendi per façana, tant entre sectors d’incendi del mateix establiment com respecte dels establiments veïns, segons la taula 2.2.2 de la Secció 2 de l’Annex II.
+ITEM|122.|Propagació exterior. A la trobada entre una coberta i una façana que pertanyin a sectors d’incendi o a establiments diferents, quan la façana tingui zones amb una resistència al foc inferior al 50 % de l’EI exigit, els materials que ocupin més del 10 % del revestiment o acabat exterior de les zones de coberta situades a menys de 5 m de la projecció vertical de la façana han de ser de classe BROOF (t1), inclosos els lluernaris, les claraboies i qualsevol altre element d’il·luminació o ventilació.
 AIRE|item
-ITEM|127.|Propagació exterior. A la trobada entre una coberta i una façana que pertanyin a sectors d’incendi o a establiments diferents, quan la façana tingui zones amb una resistència al foc inferior al 50 % de l’EI exigit, els materials que ocupin més del 10 % del revestiment o acabat exterior de les zones de coberta situades a menys de 5 m de la projecció vertical de la façana han de ser de classe BROOF (t1), inclosos els lluernaris, les claraboies i qualsevol altre element d’il·luminació o ventilació. Els valors d’alçada «h» en funció de la distància «d» són els de la taula 2.2.3 (d ≥ 2,50 m, h = 0; i fins a h = 5 m quan d = 0).
+ITEM|123.|Evacuació. L’ocupació «P» de cada sector d’incendi s’ha de deduir de les expressions de l’apartat 2 de la Secció 3 de l’Annex II.
 AIRE|item
-ITEM|128.|Evacuació. L’ocupació «P» de cada sector d’incendi s’ha de deduir de les expressions de l’apartat 2 de la Secció 3 de l’Annex II: P = 1,10 p quan p < 100; P = 110 + 1,05 (p – 100) quan 100 < p < 200; P = 215 + 1,03 (p – 200) quan 200 < p < 500; i P = 524 + 1,01 (p – 500) quan 500 < p, on «p» és el nombre de persones que ocupa el sector segons la documentació laboral que reguli el funcionament de l’activitat. El resultat s’arrodoneix a l’enter immediatament superior.
+ITEM|124.|Evacuació. Han de disposar de dues sortides alternatives com a mínim els sectors d’incendi de risc intrínsec alt de superfície construïda superior a 50 m2, i els de risc intrínsec mitjà o baix de superfície construïda superior a 50 m2 quan el seu nombre d’ocupants (P) sigui superior a 50 persones o quan estigui previst que els facin servir per evacuar més de 50 persones, incloent-hi els ocupants d’altres zones que hi hagin de passar per arribar a la sortida.
 AIRE|item
-ITEM|129.|Evacuació. Han de disposar de dues sortides alternatives com a mínim els sectors d’incendi de risc intrínsec alt de superfície construïda superior a 50 m2, i els de risc intrínsec mitjà o baix de superfície construïda superior a 50 m2 quan el seu nombre d’ocupants (P) sigui superior a 50 persones o quan estigui previst que els facin servir per evacuar més de 50 persones, incloent-hi els ocupants d’altres zones que hi hagin de passar per arribar a la sortida.
+ITEM|125.|Evacuació. La longitud dels recorreguts d’evacuació fins a la sortida de planta o d’edifici no pot superar els valors de la taula 2.3.1, que prevalen sobre els de la taula 3.1 de la Secció SI 3 del CTE DB SI: amb una sola sortida, 50 m (risc baix), 35 m (mitjà) i 20 m (alt); amb dues o més sortides alternatives, 65 m, 50 m i 35 m respectivament. Els increments de la nota 4 no són acumulables: 25 % amb un sistema fix d’extinció automàtica, 25 % amb un sistema per al control de fums i de calor segons l’apartat 8.3 de l’Annex III, i fins al 100 % —amb un màxim de 90 m— en sectors situats a la planta de sortida amb dues o més sortides directes a l’exterior, alçada de sostre igual o superior a 8 m i extinció automàtica.
 AIRE|item
-ITEM|130.|Evacuació. La longitud dels recorreguts d’evacuació fins a la sortida de planta o d’edifici no pot superar els valors de la taula 2.3.1, que prevalen sobre els de la taula 3.1 de la Secció SI 3 del CTE DB SI: amb una sola sortida, 50 m (risc baix), 35 m (mitjà) i 20 m (alt); amb dues o més sortides alternatives, 65 m, 50 m i 35 m respectivament. Els increments de la nota 4 no són acumulables: 25 % amb un sistema fix d’extinció automàtica, 25 % amb un sistema per al control de fums i de calor segons l’apartat 8.3 de l’Annex III, i fins al 100 % —amb un màxim de 90 m— en sectors situats a la planta de sortida amb dues o més sortides directes a l’exterior, alçada de sostre igual o superior a 8 m i extinció automàtica.
+ITEM|126.|Intervenció dels bombers. Els edificis amb una superfície ocupada en planta superior a 1.000 m2 o amb una alçada d’evacuació descendent superior a 9 m han de disposar, al llarg de les façanes on hi ha els accessos, d’un espai de maniobra per als vehicles dels Serveis d’Extinció d’Incendis i Salvament amb amplada mínima lliure de 6 m, alçada lliure la de l’edifici, separació màxima del vehicle a la façana de 15 m, distància màxima fins als accessos de 30 m, pendent màxim del 10 % i resistència al punxonament de 100 kN sobre 20 cm de diàmetre. Aquest espai s’ha de mantenir lliure de mobiliari urbà, arbrat, jardins i altres obstacles. Si l’edifici té columna seca, hi ha d’haver accés per a un vehicle autobomba a menys de 18 m de cada punt de connexió, i el punt ha de ser visible des del vehicle. A les vies d’accés sense sortida de més de 20 m de llargada hi ha d’haver espai de gir, per exemple una zona circular de radi igual o superior a 9 m.
 AIRE|item
-ITEM|131.|Intervenció dels bombers. Els edificis amb una superfície ocupada en planta superior a 1.000 m2 o amb una alçada d’evacuació descendent superior a 9 m han de disposar, al llarg de les façanes on hi ha els accessos, d’un espai de maniobra per als vehicles dels Serveis d’Extinció d’Incendis i Salvament amb amplada mínima lliure de 6 m, alçada lliure la de l’edifici, separació màxima del vehicle a la façana de 15 m, distància màxima fins als accessos de 30 m, pendent màxim del 10 % i resistència al punxonament de 100 kN sobre 20 cm de diàmetre. Aquest espai s’ha de mantenir lliure de mobiliari urbà, arbrat, jardins i altres obstacles. Si l’edifici té columna seca, hi ha d’haver accés per a un vehicle autobomba a menys de 18 m de cada punt de connexió, i el punt ha de ser visible des del vehicle. A les vies d’accés sense sortida de més de 20 m de llargada hi ha d’haver espai de gir, per exemple una zona circular de radi igual o superior a 9 m.
+ITEM|127.|Intervenció dels bombers. Les façanes amb espai de maniobra han de tenir la condició de façana accessible, amb buits que permetin accedir des de l’exterior a cada planta: ampit a una alçada no superior a 1,20 m respecte del nivell de la planta, dimensions mínimes de 0,80 m d’amplada i 1,20 m d’alçada, distància màxima entre els eixos verticals de dos buits consecutius de 25 m i, a la planta de sortida, almenys un accés a peu pla amb una dimensió vertical mínima de 2 m. No s’hi poden instal·lar elements que impedeixin o dificultin l’accés. La longitud de la façana accessible no pot ser inferior al 15 % del perímetre de la planta de l’edifici; en edificis de planta rectangular on un costat no hi arribi, cal disposar d’una altra zona de façana accessible amb el seu espai de maniobra, preferiblement al costat oposat.
 AIRE|item
-ITEM|132.|Intervenció dels bombers. Les façanes amb espai de maniobra han de tenir la condició de façana accessible, amb buits que permetin accedir des de l’exterior a cada planta: ampit a una alçada no superior a 1,20 m respecte del nivell de la planta, dimensions mínimes de 0,80 m d’amplada i 1,20 m d’alçada, distància màxima entre els eixos verticals de dos buits consecutius de 25 m i, a la planta de sortida, almenys un accés a peu pla amb una dimensió vertical mínima de 2 m. No s’hi poden instal·lar elements que impedeixin o dificultin l’accés. La longitud de la façana accessible no pot ser inferior al 15 % del perímetre de la planta de l’edifici; en edificis de planta rectangular on un costat no hi arribi, cal disposar d’una altra zona de façana accessible amb el seu espai de maniobra, preferiblement al costat oposat.
+ITEM|128.|Estructura. Els elements estructurals principals amb funció portant han de tenir una resistència al foc no inferior a [OPCIO: Resistència estructura | R 30 | R 60 | R 90 | R 120 | R 180], segons la taula 2.5.1 i en funció del nivell de risc intrínsec, la configuració i si la planta és sobre o sota rasant. Els elements secundaris —aquells el col·lapse dels quals no pot fer mal als ocupants ni comprometre l’estabilitat global de l’estructura, l’evacuació o la compartimentació— no necessiten protecció.
 AIRE|item
-ITEM|133.|Estructura. La resistència al foc dels elements estructurals principals amb funció portant no pot ser inferior a la de la taula 2.5.1, segons el nivell de risc intrínsec, la configuració i si la planta és sobre o sota rasant (de R 30 a R 180, amb els casos no admesos que la mateixa taula recull). Els elements secundaris —aquells el col·lapse dels quals no pot fer mal als ocupants ni comprometre l’estabilitat global de l’estructura, l’evacuació o la compartimentació— no necessiten protecció.
+ITEM|129.|Estructura. Per a l’estructura principal de les cobertes lleugeres no previstes per a l’evacuació dels ocupants es pot adoptar una resistència al foc de [OPCIO: Resistència coberta lleugera | sense exigència | R 15 | R 30 | R 60 | R 90 | R 120], segons les taules 2.5.2 i 2.5.3, sempre que es garanteixi l’evacuació, es justifiqui que la seva fallada no pot causar danys greus als edificis pròxims ni comprometre l’estabilitat de plantes inferiors ni la sectorització i, si el risc del sector és mitjà o alt, es disposi d’un sistema per al control de fums i de calor.
 AIRE|item
-ITEM|134.|Estructura. Per a l’estructura principal de les cobertes lleugeres no previstes per a l’evacuació dels ocupants es poden adoptar els valors de la taula 2.5.2 (R 15, R 30 i R 60 en tipus B i sense exigència, R 15 i R 30 en tipus C, segons el risc), sempre que es garanteixi l’evacuació, es justifiqui que la seva fallada no pot causar danys greus als edificis pròxims ni comprometre l’estabilitat de plantes inferiors ni la sectorització i, si el risc del sector és mitjà o alt, es disposi d’un sistema per al control de fums i de calor. En edificis sobre rasant d’una sola planta amb coberta lleugera, quan tot el sector estigui protegit amb extinció automàtica i control de fums i de calor, s’apliquen els valors de la taula 2.5.3.
-AIRE|item
-ITEM|135.|Estructura. Als edificis d’una sola planta que constitueixin un sol sector d’incendi, situats en edificis de tipus C separats almenys 10 m d’altres establiments i dels límits de parcel·les on es pugui edificar, lliures de mercaderies combustibles o elements intermedis que puguin propagar l’incendi, i protegits per un sistema fix d’extinció automàtica i un sistema per al control de fums i de calor, no cal justificar la resistència al foc de l’estructura. Quan s’aculli a aquesta excepció o a la taula 2.5.2, s’ha de senyalitzar als accessos de l’edifici perquè el personal dels Serveis d’Extinció d’Incendis i Salvament en tingui coneixement.
-AIRE|item
-ITEM|136.|Detecció i alarma. S’han d’instal·lar sistemes de detecció i d’alarma amb dispositius d’activació automàtica (detectors) i també manual (polsadors) als sectors on es desenvolupin activitats de fabricació amb superfície construïda igual o superior a 300 m2 (tipus AV o AH), 3.000 / 2.000 / 1.000 m2 (tipus B, risc baix, mitjà i alt) i 4.000 / 3.000 / 2.000 m2 (tipus C); i activitats d’emmagatzematge amb 150 m2 (tipus AV o AH), 1.500 / 1.000 / 500 m2 (tipus B) i 3.000 / 1.500 / 800 m2 (tipus C). Els sectors de risc baix nivell 1 en queden exclosos.
+ITEM|130.|Detecció i alarma. S’han d’instal·lar sistemes de detecció i d’alarma amb dispositius d’activació automàtica (detectors) i també manual (polsadors) als sectors on es desenvolupin activitats de fabricació amb superfície construïda igual o superior a 300 m2 (tipus AV o AH), 3.000 / 2.000 / 1.000 m2 (tipus B, risc baix, mitjà i alt) i 4.000 / 3.000 / 2.000 m2 (tipus C); i activitats d’emmagatzematge amb 150 m2 (tipus AV o AH), 1.500 / 1.000 / 500 m2 (tipus B) i 3.000 / 1.500 / 800 m2 (tipus C). Els sectors de risc baix nivell 1 en queden exclosos.
 BODY|Quan al sector hi hagi alhora fabricació i emmagatzematge permanent, la suma dels quocients entre la superfície de cada activitat i la superfície a partir de la qual la instal·lació és obligatòria ha de ser igual o superior a 1.
 BODY|Si segons l’anterior no són exigibles, s’han d’instal·lar sistemes amb polsadors manuals com a mínim als sectors de superfície construïda igual o superior a 400 m2. En tots els casos hi ha d’haver dispositius d’alarma. A més, quan la suma de la superfície construïda de tots els sectors d’un edifici sigui igual o superior a 10.000 m2 i la densitat d’ocupació superi les 3 persones per cada 100 m2, s’ha d’instal·lar un sistema de comunicació d’alarma per veu.
 AIRE|item
-ITEM|137.|Hidrants. S’ha de justificar la necessitat d’hidrants exteriors segons la taula 3.3.1, que els exigeix en funció de la configuració, la superfície del sector o àrea i el nivell de risc intrínsec: a partir de 300 i 1.000 m2 en tipus AV, de 600 i 1.000 m2 en tipus AH, de 1.000, 2.500 i 3.500 m2 en tipus B, de 2.500, 3.500 i 5.000 m2 en tipus C i de 5.000 m2 en tipus D. En risc baix nivell 1 no calen. En tot cas s’ha d’instal·lar com a mínim un hidrant per al omplert de camions si la superfície total de l’establiment —edificis i espais oberts— és igual o superior a 5.000 m2, llevat que tots els seus sectors i espais oberts siguin de risc baix nivell 1.
+ITEM|131.|Hidrants. S’ha de justificar la necessitat d’hidrants exteriors segons la taula 3.3.1, que els exigeix en funció de la configuració, la superfície del sector o àrea i el nivell de risc intrínsec: a partir de 300 i 1.000 m2 en tipus AV, de 600 i 1.000 m2 en tipus AH, de 1.000, 2.500 i 3.500 m2 en tipus B, de 2.500, 3.500 i 5.000 m2 en tipus C i de 5.000 m2 en tipus D. En risc baix nivell 1 no calen. En tot cas s’ha d’instal·lar com a mínim un hidrant per al omplert de camions si la superfície total de l’establiment —edificis i espais oberts— és igual o superior a 5.000 m2, llevat que tots els seus sectors i espais oberts siguin de risc baix nivell 1.
 AIRE|item
-ITEM|138.|Extintors. S’han d’instal·lar extintors portàtils a tots els sectors d’incendi. Per a foc de classe A, l’eficàcia mínima i la superfície màxima protegida són: 21 A fins a 600 m2 (risc baix), 21 A fins a 400 m2 (risc mitjà) i 34 A fins a 300 m2 (risc alt), amb un extintor més per cada 200 m2 o fracció en excés. Per a foc de classe B, segons el volum de combustibles líquids del sector: 113 B fins a 20 l, 113 B de 20 a 50 l, 144 B de 50 a 100 l i 233 B de 100 a 200 l; per sobre de 200 l s’hi afegeixen extintors mòbils sobre rodes d’eficàcia mínima II B (un fins a 750 l i dos per sobre). Si al sector hi conviuen les classes A i B, la dotació és la suma de les dues.
+ITEM|132.|Extintors. S’han d’instal·lar extintors portàtils a tots els sectors d’incendi. Per a foc de classe A, l’eficàcia mínima i la superfície màxima protegida són: 21 A fins a 600 m2 (risc baix), 21 A fins a 400 m2 (risc mitjà) i 34 A fins a 300 m2 (risc alt), amb un extintor més per cada 200 m2 o fracció en excés. Per a foc de classe B, segons el volum de combustibles líquids del sector: 113 B fins a 20 l, 113 B de 20 a 50 l, 144 B de 50 a 100 l i 233 B de 100 a 200 l; per sobre de 200 l s’hi afegeixen extintors mòbils sobre rodes d’eficàcia mínima II B (un fins a 750 l i dos per sobre). Si al sector hi conviuen les classes A i B, la dotació és la suma de les dues.
 BODY|El recorregut màxim horitzontal des de qualsevol punt del sector fins a l’extintor no pot superar els 15 m; a les àrees d’incendi en espais oberts (tipus D) es pot ampliar a 25 m, i no calen extintors a les àrees de risc baix nivell 1.
 AIRE|item
-ITEM|139.|BIEs. S’han d’instal·lar sistemes de boques d’incendi equipades als sectors de superfície construïda igual o superior a 300 m2 en configuracions de tipus AV; de 500 m2 (risc mitjà) i 200 m2 (risc alt) en tipus AH i B; i de 1.000 m2 (risc mitjà) i 500 m2 (risc alt) en tipus C. En tipus D, a les àrees de risc alt amb superfície ocupada igual o superior a 5.000 m2, comptant conjuntament les àrees de risc alt adjacents.
+ITEM|133.|BIEs. S’han d’instal·lar sistemes de boques d’incendi equipades als sectors de superfície construïda igual o superior a 300 m2 en configuracions de tipus AV; de 500 m2 (risc mitjà) i 200 m2 (risc alt) en tipus AH i B; i de 1.000 m2 (risc mitjà) i 500 m2 (risc alt) en tipus C. En tipus D, a les àrees de risc alt amb superfície ocupada igual o superior a 5.000 m2, comptant conjuntament les àrees de risc alt adjacents.
 BODY|El tipus de BIE depèn del nivell de risc intrínsec: de 25 mm en risc baix i mitjà, i de 45 mm en risc alt. S’admet instal·lar BIE de 25 mm amb presa addicional de 45 mm, i llavors es calcula hidràulicament com a BIE de 45 mm, dimensionant-la per als cabals i les pressions dels dos tipus.
 AIRE|item
-ITEM|140.|Columna seca. S’han d’instal·lar sistemes de columna seca als establiments industrials amb una alçada d’evacuació igual o superior a 15 m. Les columnes han de tenir boques de sortida a totes les plantes.
+ITEM|134.|Columna seca. S’han d’instal·lar sistemes de columna seca als establiments industrials amb una alçada d’evacuació igual o superior a 15 m. Les columnes han de tenir boques de sortida a totes les plantes.
 AIRE|item
-ITEM|141.|Extinció automàtica. S’han d’instal·lar sistemes fixos d’extinció automàtica, com ara ruixadors, als sectors amb activitats de fabricació de superfície construïda igual o superior a 500 m2 (tipus AV, risc mitjà); 1.500 m2 (risc mitjà) i 750 m2 (risc alt) en tipus AH; 2.500 m2 (risc mitjà) i 1.000 m2 (risc alt) en tipus B; i 3.500 m2 (risc mitjà) i 2.000 m2 (risc alt) en tipus C. Amb activitats d’emmagatzematge: 300 m2 (tipus AV, risc mitjà); 1.000 m2 (risc mitjà) i 600 m2 (risc alt) en tipus AH; 1.500 m2 (risc mitjà) i 800 m2 (risc alt) en tipus B; i 2.000 m2 (risc mitjà) i 1.000 m2 (risc alt) en tipus C. Amb les dues activitats al mateix sector, la suma dels quocients ha de ser igual o superior a 1.
+ITEM|135.|Extinció automàtica. S’han d’instal·lar sistemes fixos d’extinció automàtica, com ara ruixadors, als sectors amb activitats de fabricació de superfície construïda igual o superior a 500 m2 (tipus AV, risc mitjà); 1.500 m2 (risc mitjà) i 750 m2 (risc alt) en tipus AH; 2.500 m2 (risc mitjà) i 1.000 m2 (risc alt) en tipus B; i 3.500 m2 (risc mitjà) i 2.000 m2 (risc alt) en tipus C. Amb activitats d’emmagatzematge: 300 m2 (tipus AV, risc mitjà); 1.000 m2 (risc mitjà) i 600 m2 (risc alt) en tipus AH; 1.500 m2 (risc mitjà) i 800 m2 (risc alt) en tipus B; i 2.000 m2 (risc mitjà) i 1.000 m2 (risc alt) en tipus C. Amb les dues activitats al mateix sector, la suma dels quocients ha de ser igual o superior a 1.
 BODY|Els ruixadors es poden substituir per altres sistemes fixos d’extinció automàtica recollits al RIPCI sempre que siguin adequats i aportin com a mínim el mateix nivell de seguretat. Als recintes destinats a equips elèctrics o electrònics, centres de càlcul, bancs de dades o de control i anàlegs, on l’aigua pugui malmetre els equips, s’hi instal·laran preferentment sistemes per agents extintors gasosos, sempre que quedi garantida la seguretat i l’evacuació de les persones.
 AIRE|item
-ITEM|142.|Control de fums. S’han d’instal·lar sistemes per al control de fums i de calor als sectors amb activitats de fabricació de risc mitjà i superfície construïda igual o superior a 2.000 m2, o de risc alt i 1.000 m2; i amb activitats d’emmagatzematge de risc mitjà i 1.000 m2, o de risc alt i 800 m2. El disseny i l’execució s’han de fer segons l’apartat 13.1.a) de l’Annex I del RIPCI (sistemes basats en estratègies de flotabilitat).
+ITEM|136.|Control de fums. S’han d’instal·lar sistemes per al control de fums i de calor als sectors amb activitats de fabricació de risc mitjà i superfície construïda igual o superior a 2.000 m2, o de risc alt i 1.000 m2; i amb activitats d’emmagatzematge de risc mitjà i 1.000 m2, o de risc alt i 800 m2. El disseny i l’execució s’han de fer segons l’apartat 13.1.a) de l’Annex I del RIPCI (sistemes basats en estratègies de flotabilitat).
 BODY|Als sectors de risc mitjà o alt més petits que aquests llindars però de com a mínim 100 m2 s’hi ha d’instal·lar el sistema o, alternativament, buits de ventilació a raó de 0,5 m2 de superfície aerodinàmica per cada 200 m2 (fabricació sobre rasant), 150 m2 (fabricació sota rasant i emmagatzematge sobre rasant) o 100 m2 (emmagatzematge sota rasant), repartits uniformement a la part alta del sector i amb buits d’entrada d’aire a la part baixa en la mateixa proporció. Si la ventilació ha de ser forçada, s’ha de dimensionar per a 6, 9 o 12 renovacions per hora segons el cas i els extractors han de tenir classificació F 400 120.
 AIRE|item
-ITEM|143.|Enllumenat i senyalització. L’enllumenat d’emergència ha de complir els requisits aplicables de la secció 4 del Document Bàsic de Seguretat d’utilització i accessibilitat del Codi Tècnic de l’Edificació (CTE DB-SUA 4). Els mitjans de protecció contra incendis d’utilització manual —extintors, polsadors d’alarma, BIE i hidrants— s’han de senyalitzar per facilitar-ne la localització, conforme a la secció 2a de l’Annex I del RIPCI.
+ITEM|137.|Enllumenat i senyalització. L’enllumenat d’emergència ha de complir els requisits aplicables de la secció 4 del Document Bàsic de Seguretat d’utilització i accessibilitat del Codi Tècnic de l’Edificació (CTE DB-SUA 4). Els mitjans de protecció contra incendis d’utilització manual —extintors, polsadors d’alarma, BIE i hidrants— s’han de senyalitzar per facilitar-ne la localització, conforme a la secció 2a de l’Annex I del RIPCI.
 AIRE|item
 SUB|CTE DB SI
 AIRE|subseccio
-ITEM|144.|S’ha de justificar el CTE DB SI 1 Propagació interior, més específicament:
+ITEM|138.|S’ha de justificar el CTE DB SI 1 Propagació interior, més específicament:
 BULLET/CH/1r|//1 Compartimentación en sectores de incendio//
 BULLET/CH|//2 Locales y zonas de riesgo especial//
 BULLET/CH|//3 Espacios ocultos. Paso de instalaciones a través de elementos de compartimentación de incendios//
 BULLET/CH|//4 Reacción al fuego de los elementos constructivos, decorativos y de mobiliario//
 AIRE|item
-ITEM|145.|S’ha de justificar el CTE DB SI 2 Propagació exterior, més específicament:
+ITEM|139.|S’ha de justificar el CTE DB SI 2 Propagació exterior, més específicament:
 BULLET/CH/1r|//1 Medianerías y fachadas//
 BULLET/CH|//2 Cubiertas//
 AIRE|item
-ITEM|146.|S’ha de justificar el CTE DB SI 3 Evacuació d’ocupants, més específicament:
+ITEM|140.|S’ha de justificar el CTE DB SI 3 Evacuació d’ocupants, més específicament:
 BULLET/CH/1r|//1 Compatibilidad de los elementos de evacuación//
 BULLET/CH|//2 Cálculo de la ocupación//
 BULLET/CH|//3 Número de salidas y longitud de los recorridos de evacuación//
@@ -468,15 +457,15 @@ BULLET/CH|//7 Señalización de los medios de evacuación//
 BULLET/CH|//8 Control del humo de incendio//
 BULLET/CH|//9 Evacuación de personas con discapacidad en caso de incendio//
 AIRE|item
-ITEM|147.|S’ha de justificar el CTE DB SI 4 Instal·lacions de protecció contra incendis, més específicament:
+ITEM|141.|S’ha de justificar el CTE DB SI 4 Instal·lacions de protecció contra incendis, més específicament:
 BULLET/CH/1r|//1 Dotación de instalaciones de protección contra incendios//
 BULLET/CH|//2 Señalización de las instalaciones manuales de protección contra incendios//
 AIRE|item
-ITEM|148.|S’ha de justificar el CTE DB SI 5 Intervenció de bombers, més específicament:
+ITEM|142.|S’ha de justificar el CTE DB SI 5 Intervenció de bombers, més específicament:
 BULLET/CH/1r|//1 Condiciones de aproximación y entorno//
 BULLET/CH|//2 Accesibilidad por fachada//
 AIRE|item
-ITEM|149.|S’ha de justificar el CTE DB SI 6 Resistència al foc de l’estructura, més específicament:
+ITEM|143.|S’ha de justificar el CTE DB SI 6 Resistència al foc de l’estructura, més específicament:
 BULLET/CH/1r|//2 Resistencia al fuego de la estructura//
 BULLET/CH|//3 Elementos estructurales principales//
 BULLET/CH|//4 Elementos estructurales secundarios//
@@ -484,88 +473,89 @@ BULLET/CH|//6 Determinación de la resistencia al fuego//
 AIRE|item
 SECT|Projecte
 AIRE|seccio
-ITEM|150.|Llum. L’activitat està inclosa dins l’Article 3 del DECRET 190/2015, de 25 d'agost, de desplegament de la Llei 6/2001, de 31 de maig, d'ordenació ambiental de l'enllumenament per a la protecció del medi nocturn. S’ha d’entregar documentació que acrediti el compliment del requisits tècnics segons l’Annex 1 de l’esmentat Decret.
+ITEM|144.|Llum. L’activitat està inclosa dins l’Article 3 del DECRET 190/2015, de 25 d'agost, de desplegament de la Llei 6/2001, de 31 de maig, d'ordenació ambiental de l'enllumenament per a la protecció del medi nocturn. S’ha d’entregar documentació que acrediti el compliment del requisits tècnics segons l’Annex 1 de l’esmentat Decret.
 AIRE|item
-ITEM|151.|Modificació de l’activitat. L’activitat es regeix per la LLEI 18/2020, del 28 de desembre, de facilitació de l'activitat econòmica. S’ha de justificar si la modificació és substancial o no segons els criteris de l’Article 53 del Decret 131/2022, de 5 de juliol, del Reglament de la Llei de facilitació de l'activitat econòmica.
+ITEM|145.|Modificació de l’activitat. L’activitat es regeix per la LLEI 18/2020, del 28 de desembre, de facilitació de l'activitat econòmica. S’ha de justificar si la modificació és substancial o no segons els criteris de l’Article 53 del Decret 131/2022, de 5 de juliol, del Reglament de la Llei de facilitació de l'activitat econòmica.
 AIRE|item
-ITEM|152.|Modificació de l’activitat. L’activitat es regeix per la LLEI 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats. S’ha de justificar si la modificació és substancial o no segons els criteris del document ACTUALITZACIÓ DELS CRITERIS DE SUBSTANCIALITAT DE LES MODIFICACIONS DE LES ACTIVITATS DE LA LLEI 20/2009, DEL 4 DE DESEMBRE, DE PREVENCIÓ I CONTROL AMBIENTAL D'ACTIVITATS de la Generalitat de Catalunya.
+ITEM|146.|Modificació de l’activitat. L’activitat es regeix per la LLEI 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats. S’ha de justificar si la modificació és substancial o no segons els criteris del document ACTUALITZACIÓ DELS CRITERIS DE SUBSTANCIALITAT DE LES MODIFICACIONS DE LES ACTIVITATS DE LA LLEI 20/2009, DEL 4 DE DESEMBRE, DE PREVENCIÓ I CONTROL AMBIENTAL D'ACTIVITATS de la Generalitat de Catalunya.
 URL|https://mediambient.gencat.cat/ca/05_ambits_dactuacio/empresa_i_produccio_sostenible/prevencio_i_control_dactivitats/la_llei_de_prevencio_i_control_ambiental_dactivitats/llei_20_2009_pcaa/modificacions_de_les_activitats/
 AIRE|item
 SECT|Activitat
 AIRE|seccio
-ITEM|153.|S’han de tapiar aquelles zones sense ús de l’activitat i demostrar-ho adjuntant material fotogràfic.
+ITEM|147.|S’han de tapiar aquelles zones sense ús de l’activitat i demostrar-ho adjuntant material fotogràfic.
 AIRE|item
-ITEM|154.|No es pot fer ús d’aquelles zones que disposin d’una alçada inferior a 2,5m (a excepció dels magatzems i els lavabos que poden tenir 2,2m d’alçada). Exemples
+ITEM|148.|No es pot fer ús d’aquelles zones que disposin d’una alçada inferior a 2,5m (a excepció dels magatzems i els lavabos que poden tenir 2,2m d’alçada). Exemples
 AIRE|item
-ITEM|155.|Per les característiques del local i la normativa vigent, els passadissos han de ser 1,2m d’ample mínim. S’ha d’entregar una fotografia on es pugui observar que l’ample de tots els passadissos compleix.
+ITEM|149.|Per les característiques del local i la normativa vigent, els passadissos han de ser 1,2m d’ample mínim. S’ha d’entregar una fotografia on es pugui observar que l’ample de tots els passadissos compleix.
 AIRE|item
-ITEM|156.|Hi ha modificacions en l’activitat. S’ha de tramitar una modificació de l’activitat.
+ITEM|150.|Hi ha modificacions en l’activitat. S’ha de tramitar una modificació de l’activitat.
 AIRE|item
-ITEM|157.|D’acord amb el que disposa l’article 6.1 de l’Ordenança General de Convivència Ciutadana de Cornellà de Llobregat: L’Ajuntament de Cornellà de Llobregat vetllarà perquè no es consumeixin begudes alcohòliques en els espais públics. Es requereix al titular de l’activitat que retiri immediatament la barra que dona a la via pública i procedeixi al tancament del forat de façana que ara mateix ocupa aquesta barra.
+ITEM|151.|D’acord amb el que disposa l’article 6.1 de l’Ordenança General de Convivència Ciutadana de Cornellà de Llobregat: L’Ajuntament de Cornellà de Llobregat vetllarà perquè no es consumeixin begudes alcohòliques en els espais públics. Es requereix al titular de l’activitat que retiri immediatament la barra que dona a la via pública i procedeixi al tancament del forat de façana que ara mateix ocupa aquesta barra.
 AIRE|item
-ITEM|158.|No es disposa de farmaciola.
+ITEM|152.|No es disposa de farmaciola.
 AIRE|item
-ITEM|159.|No disposa de vestíbul previ entre el lavabo i la sala. En aquest s’ha de poder inscriure una cercle de 1,50m/1,20m (comprovar) de diàmetre lliure d’obstacles.
+ITEM|153.|No disposa de vestíbul previ entre el lavabo i la sala. En aquest s’ha de poder inscriure una cercle de 1,50m/1,20m (comprovar) de diàmetre lliure d’obstacles.
 AIRE|item
-ITEM|160.|Tots els lavabos han de disposar de sabó de mans i secamans.
+ITEM|154.|Tots els lavabos han de disposar de sabó de mans i secamans.
 AIRE|item
 SECT|Extracció de fums
 AIRE|seccio
-ITEM|161.|Elements de cocció. Segons l'article 11.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat les activitats de restauració que no tinguin extracció de fums fins a coberta únicament podran disposar dels següents elements de cocció: una planxa elèctrica de fins a 2.500 W de potència i fins a 40x40 cm de mesura; forns elèctrics de fins a 7.500 W de potència (suma de potències de tots els forns) i amb recollida de vapor per condensació. Si es disposen de més elements de cocció que els esmentats i no es disposa d’extracció de fums s'hauran de retirar immediatament. Si aquests elements de cocció creen molèsties al veïnat, s'hauran de prendre les mesures correctores que indiqui el tècnic municipal competent, podent comportar igualment la seva retirada.
+ITEM|155.|Elements de cocció. Segons l'article 11.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat les activitats de restauració que no tinguin extracció de fums fins a coberta únicament podran disposar dels següents elements de cocció: una planxa elèctrica de fins a 2.500 W de potència i fins a 40x40 cm de mesura; forns elèctrics de fins a 7.500 W de potència (suma de potències de tots els forns) i amb recollida de vapor per condensació. Si es disposen de més elements de cocció que els esmentats i no es disposa d’extracció de fums s'hauran de retirar immediatament. Si aquests elements de cocció creen molèsties al veïnat, s'hauran de prendre les mesures correctores que indiqui el tècnic municipal competent, podent comportar igualment la seva retirada.
 AIRE|item
-ITEM|162.|Sectorització. Segons l’article 11.3 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha de justificar, i aportar la documentació corresponent, el compliment del Document TINSCI DT 18 Sectorització de conductes d’extracció de fums de les cuines.
+ITEM|156.|Sectorització. Segons l’article 11.3 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha de justificar, i aportar la documentació corresponent, el compliment del Document TINSCI DT 18 Sectorització de conductes d’extracció de fums de les cuines.
 AIRE|item
-ITEM|163.|Xemeneia. Segons l’article 11.4 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha de justificar el compliment de l’apartat 6.2.1.3 de la norma UNE 123001 on s’especifica el següent: //El remate debe elevarse más de 1 m por encima de la parte más alta de cualquier edificación situada en un radio inferior a 10 m respecto a la salida de la chimenea//. S’ha d’aportar un plànol en planta de la coberta i un plànol en secció de l’edifici on es justifiqui.
+ITEM|157.|Xemeneia. Segons l’article 11.4 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha de justificar el compliment de l’apartat 6.2.1.3 de la norma UNE 123001 on s’especifica el següent: //El remate debe elevarse más de 1 m por encima de la parte más alta de cualquier edificación situada en un radio inferior a 10 m respecto a la salida de la chimenea//. S’ha d’aportar un plànol en planta de la coberta i un plànol en secció de l’edifici on es justifiqui.
 AIRE|item
-ITEM|164.|Neteja. Segons l’article 11.5 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha de justificar el compliment de l’apartat 12 de la norma UNE 123001 on s’especifica el següent: //Deben llevarse a cabo la limpieza de la chimenea y del conducto de unión con periodicidad mínima anual//. S’ha d’aportar un certificat de neteja.
+ITEM|158.|Neteja. Segons l’article 11.5 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha de justificar el compliment de l’apartat 12 de la norma UNE 123001 on s’especifica el següent: //Deben llevarse a cabo la limpieza de la chimenea y del conducto de unión con periodicidad mínima anual//. S’ha d’aportar un certificat de neteja.
 AIRE|item
-ITEM|165.|Estanqueïtat. Segons l’article 11.6 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha de justificar el compliment de l’apartat 12 de la norma UNE 123001 on s’especifica el següent: //Se debe verificar que se mantienen las condiciones iniciales de estanquidad del sistema, prestando especial atención a los puntos de unión entre los elementos, y al possible deterioro de las juntas de estanquidad, si las hubiera, con periodicidad mínima anual//. S’ha d’aportar un certificat d’estanqueïtat.
+ITEM|159.|Estanqueïtat. Segons l’article 11.6 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha de justificar el compliment de l’apartat 12 de la norma UNE 123001 on s’especifica el següent: //Se debe verificar que se mantienen las condiciones iniciales de estanquidad del sistema, prestando especial atención a los puntos de unión entre los elementos, y al possible deterioro de las juntas de estanquidad, si las hubiera, con periodicidad mínima anual//. S’ha d’aportar un certificat d’estanqueïtat.
 AIRE|item
-ITEM|166.|Campana. Segons l’article 11.7 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha d’instal·lar, i aportar la documentació corresponent, un sistema d’extinció automàtic a la campana d’extracció de la cuina perquè se superen els 20 kW de potència instal·lada i la cuina no està considerada un local de risc especial. El sistema s’ha d’instal·lar segons la norma UNE-EN 17446:2022.
+ITEM|160.|Campana. Segons l’article 11.7 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha d’instal·lar, i aportar la documentació corresponent, un sistema d’extinció automàtic a la campana d’extracció de la cuina perquè se superen els 20 kW de potència instal·lada i la cuina no està considerada un local de risc especial. El sistema s’ha d’instal·lar segons la norma UNE-EN 17446:2022.
+BODY|El sistema ha d’estar certificat, abans de la seva instal·lació, d’acord amb l’article 5.2 del Real Decreto 513/2017, per justificar el compliment d’aquesta norma, i els mecanismes de dispar i aturada manuals han d’estar senyalitzats. La instal·lació i el manteniment els ha de fer una empresa habilitada per al sistema fix corresponent.
 AIRE|item
-ITEM|167.|Campana. Segons l’article 11.9 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat no es permeten solucions tècniques substitutòries enfocades a reduir les olors a través de filtres del carbó actiu o qualsevol sistema que no sigui l’extracció mecànica tal i com s’indica a l’Article 11.9 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat. S’ha de retirar qualsevol sistema que no sigui l’extracció mecànica.
+ITEM|161.|Campana. Segons l’article 11.9 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat no es permeten solucions tècniques substitutòries enfocades a reduir les olors a través de filtres del carbó actiu o qualsevol sistema que no sigui l’extracció mecànica tal i com s’indica a l’Article 11.9 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat. S’ha de retirar qualsevol sistema que no sigui l’extracció mecànica.
 AIRE|item
-ITEM|168.|Campana. S’ha de justificar mitjançant documentació del producte que els ventiladors compleixen amb les especificacions de la norma UNE-EN 12101-3: 2016 “Especificacions per a airejadors extractors de fums i calor mecànics.” i tenen una classificació F400 90.
+ITEM|162.|Campana. S’ha de justificar mitjançant documentació del producte que els ventiladors compleixen amb les especificacions de la norma UNE-EN 12101-3: 2016 “Especificacions per a airejadors extractors de fums i calor mecànics.” i tenen una classificació F400 90.
 AIRE|item
-ITEM|169.|Vestíbul ignició. Segons l’article 12.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat els locals on hi hagi producció de fum per ignició de nova implantació o aquells que provoquin molèsties per olors hauran de disposar d’un vestíbul de separació entre la porta d'entrada i la sala principal. S’ha d’executar el vestíbul o presentar un certificat signat pel titular de l’activitat indicant que no es produirà fum per ignició dins l’activitat.
+ITEM|163.|Vestíbul ignició. Segons l’article 12.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat els locals on hi hagi producció de fum per ignició de nova implantació o aquells que provoquin molèsties per olors hauran de disposar d’un vestíbul de separació entre la porta d'entrada i la sala principal. S’ha d’executar el vestíbul o presentar un certificat signat pel titular de l’activitat indicant que no es produirà fum per ignició dins l’activitat.
 AIRE|item
-ITEM|170.|Extracció ignició. Segons l’article 12.2 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat tots els locals on hi hagi producció de fum per ignició hauran de disposar d’un sistema mecànic d’extracció d’aire dirigit a la coberta de l’edifici. Aquest sistema mecànic d’extracció ha d’abastir tant la sala principal com el vestíbul d’entrada, si en disposa. El sistema d’extracció ha d’estar en marxa durant l’horari d’obertura de l’activitat i les portes i finestres del local permanentment tancades. S’ha d’executar el sistema mecànic d’extracció o presentar un certificat signat pel titular de l’activitat indicant que no es produirà fum per ignició dins l’activitat.
+ITEM|164.|Extracció ignició. Segons l’article 12.2 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat tots els locals on hi hagi producció de fum per ignició hauran de disposar d’un sistema mecànic d’extracció d’aire dirigit a la coberta de l’edifici. Aquest sistema mecànic d’extracció ha d’abastir tant la sala principal com el vestíbul d’entrada, si en disposa. El sistema d’extracció ha d’estar en marxa durant l’horari d’obertura de l’activitat i les portes i finestres del local permanentment tancades. S’ha d’executar el sistema mecànic d’extracció o presentar un certificat signat pel titular de l’activitat indicant que no es produirà fum per ignició dins l’activitat.
 AIRE|item
-ITEM|171.|Elaboració menjar a domicili. Segons l’article 11.10 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat no es permet l’elaboració de menjars en domicilis privats per a la seva comercialització.
+ITEM|165.|Elaboració menjar a domicili. Segons l’article 11.10 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat no es permet l’elaboració de menjars en domicilis privats per a la seva comercialització.
 AIRE|item
 SECT|Denúncia
 AIRE|seccio
 SUB|Horari
 AIRE|subseccio
-ITEM|172.|Horari. Actualment s’està incomplint l’horari d’obertura perquè **l’activitat únicament pot obrir en horari diürn, és a dir de 7h a 23h**. S’ha de presentar un certificat signat pel titular indicant que coneix que l’horari d’obertura és de 7h a 23h. Si es vol obrir en horari nocturn s’haurà de presentar una sonometria nocturna.
+ITEM|166.|Horari. Actualment s’està incomplint l’horari d’obertura perquè **l’activitat únicament pot obrir en horari diürn, és a dir de 7h a 23h**. S’ha de presentar un certificat signat pel titular indicant que coneix que l’horari d’obertura és de 7h a 23h. Si es vol obrir en horari nocturn s’haurà de presentar una sonometria nocturna.
 AIRE|item
 SUB|Soroll
 AIRE|subseccio
-ITEM|173.|Soroll. Es portarà a terme un estudi acústic per part de l’ajuntament per comprovar que es compleixen els requisits referents a la contaminació acústica, de sorolls o vibracions, d’acord amb la normativa d’aplicació. En cas de resultat desfavorable, el titular haurà de fer les mesures pertinents per complir els requisits referents a la contaminació acústica i posteriorment contractar una Entitat de Control de la Prevenció de la Contaminació Acústica (EC-PCA) perquè ho verifiqui. A criteri de qui faci l’estudi acústic pot demanar al titular de l’activitat activar totes les fonts sonores de l’activitat al màxim rendiment.
+ITEM|167.|Soroll. Es portarà a terme un estudi acústic per part de l’ajuntament per comprovar que es compleixen els requisits referents a la contaminació acústica, de sorolls o vibracions, d’acord amb la normativa d’aplicació. En cas de resultat desfavorable, el titular haurà de fer les mesures pertinents per complir els requisits referents a la contaminació acústica i posteriorment contractar una Entitat de Control de la Prevenció de la Contaminació Acústica (EC-PCA) perquè ho verifiqui. A criteri de qui faci l’estudi acústic pot demanar al titular de l’activitat activar totes les fonts sonores de l’activitat al màxim rendiment.
 URL|https://www.gencat.cat/mediamb/ohec/epca_CA.pdf
 AIRE|item
-ITEM|174.|Soroll. Segons l’article 9.4 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat “El receptor ha de permetre l’accés de l’habitatge per poder realitzar totes les comprovacions i mesuraments necessaris. En cas contrari [OPCIO: Qui fa sonometria | la Guàrdia Urbana | l’EC-PCA] haurà d’aixecar una acta descrivint les fonts sonores del local i explicant el motiu pel qual no s’ha pogut accedir a l’habitatge adjuntant les proves pertinents”.
+ITEM|168.|Soroll. Segons l’article 9.4 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat “El receptor ha de permetre l’accés de l’habitatge per poder realitzar totes les comprovacions i mesuraments necessaris. En cas contrari [OPCIO: Qui fa sonometria | la Guàrdia Urbana | l’EC-PCA] haurà d’aixecar una acta descrivint les fonts sonores del local i explicant el motiu pel qual no s’ha pogut accedir a l’habitatge adjuntant les proves pertinents”.
 AIRE|item
-ITEM|175.|Terrassa. S’ha d’implementar algun sistema per posar i treure les taules i cadires de la terrassa que actualment es fa arrastrant.
+ITEM|169.|Terrassa. S’ha d’implementar algun sistema per posar i treure les taules i cadires de la terrassa que actualment es fa arrastrant.
 AIRE|item
 SUB|Olors
 AIRE|subseccio
-ITEM|176.|Elements de cocció. Segons l'article 11.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat les activitats de restauració que no tinguin extracció de fums fins a coberta únicament podran disposar dels següents elements de cocció: una planxa elèctrica de fins a 2.500 W de potència i fins a 40x40 cm de mesura; forns elèctrics de fins a 7.500 W de potència (suma de potències de tots els forns) i amb recollida de vapor per condensació. Si es disposen de més elements de cocció que els esmentats i no es disposa d’extracció de fums s'hauran de retirar immediatament. Si aquests elements de cocció creen molèsties al veïnat, s'hauran de prendre les mesures correctores que indiqui el tècnic municipal competent, podent comportar igualment la seva retirada. S’ha de:
+ITEM|170.|Elements de cocció. Segons l'article 11.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat les activitats de restauració que no tinguin extracció de fums fins a coberta únicament podran disposar dels següents elements de cocció: una planxa elèctrica de fins a 2.500 W de potència i fins a 40x40 cm de mesura; forns elèctrics de fins a 7.500 W de potència (suma de potències de tots els forns) i amb recollida de vapor per condensació. Si es disposen de més elements de cocció que els esmentats i no es disposa d’extracció de fums s'hauran de retirar immediatament. Si aquests elements de cocció creen molèsties al veïnat, s'hauran de prendre les mesures correctores que indiqui el tècnic municipal competent, podent comportar igualment la seva retirada. S’ha de:
 BULLET/CH/1r|Retirar tots aquells elements que no estiguin inclosos a l'article 11.1 de l’Ordenança.
 BULLET/CH|Presentar un certificat signat per un tècnic competent i pel titular indicant que els elements de cocció son els que es mencionen a l'article 11.1 de l’Ordenança. S’haurà de certificar les propietats dels elements de cocció per tal que coincideixin amb les propietats indicades a l'article 11.1 de l’Ordenança.
 BULLET/CH|Desinstal·lar la campana extractora i el conducte d’extracció que va fins a la façana.
 AIRE|item
 SUB|Calor
 AIRE|subseccio
-ITEM|177.|Calor. L'activitat incompleix l'article 10 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat. S'ha d’aïllar tèrmicament el focus de calor o fred (en aquest cas [CAMP: Focus de calor/fred (p. ex. l'aire condicionat)]) de manera que no pugui produir-se una variació de temperatura superior a 1 graus C en [OPCIO: Parament afectat | el terra del veí situat sobre el focus de calor | els balcons del veïns dels habitatges superiors].
+ITEM|171.|Calor. L'activitat incompleix l'article 10 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat. S'ha d’aïllar tèrmicament el focus de calor o fred (en aquest cas [CAMP: Focus de calor/fred (p. ex. l'aire condicionat)]) de manera que no pugui produir-se una variació de temperatura superior a 1 graus C en [OPCIO: Parament afectat | el terra del veí situat sobre el focus de calor | els balcons del veïns dels habitatges superiors].
 AIRE|item
 SUB|Accessibilitat
 AIRE|subseccio
-ITEM|178.|Accessibilitat. S’haurà de complir amb aquelles condicions que no es compleixen en la data indicada segons la 2.12. Taula resum de l’Annex 3e del DECRET 209/2023, de 28 de novembre, pel qual s'aprova el Codi d'accessibilitat de Catalunya:
+ITEM|172.|Accessibilitat. S’haurà de complir amb aquelles condicions que no es compleixen en la data indicada segons la 2.12. Taula resum de l’Annex 3e del DECRET 209/2023, de 28 de novembre, pel qual s'aprova el Codi d'accessibilitat de Catalunya:
 AIRE|item
 SUB|Emmagatzematge material exterior
 AIRE|subseccio
-ITEM|179.|Segons l’estipulat en el punt 1.6 de la Secció 1 de l’Annex II del //REGLAMENTO DE SEGURIDAD CONTRA INCENDIOS EN LOS ESTABLECIMIENTOS INDUSTRIALES (RSCIEI)//, en les àrees d’incendi en espais oberts (configuració tipus D) la distribució dels materials combustibles ha de complir els requisits següents:
+ITEM|173.|Segons l’estipulat en el punt 1.6 de la Secció 1 de l’Annex II del //REGLAMENTO DE SEGURIDAD CONTRA INCENDIOS EN LOS ESTABLECIMIENTOS INDUSTRIALES (RSCIEI)//, en les àrees d’incendi en espais oberts (configuració tipus D) la distribució dels materials combustibles ha de complir els requisits següents:
 BULLET/CH/1r|//1º Superficie máxima de cada pila: 500 m2.//
 BULLET/CH|//2º Volumen máximo de cada pila: 3500 m3.//
 BULLET/CH|//3º Altura máxima de cada pila: 15 m.//
@@ -573,7 +563,7 @@ BULLET/CH|//4º Longitud máxima de cada pila: 20 m. Si la anchura del pasillo e
 BULLET/CH|//5º Separación mínima entre pilas: 1,5 m.//
 BULLET/CH|//6º Cada 65 m de almacenamiento se deberá disponer de una separación entre pilas de, al menos, 5 m de anchura. En el caso de que la altura de la pila sea mayor de 5 m, dicha separación deberá ampliarse a la misma distancia que dicha altura.//
 AIRE|item
-ITEM|180.|Segons l’estipulat en el punt 1.5 de la Secció 1 de l’Annex II del RSCIEI, les àrees d’incendi en espais oberts de configuració tipus D (excepte les de risc baix nivell 1) han d’estar separades de la resta de zones del mateix establiment per una de les opcions següents:
+ITEM|174.|Segons l’estipulat en el punt 1.5 de la Secció 1 de l’Annex II del RSCIEI, les àrees d’incendi en espais oberts de configuració tipus D (excepte les de risc baix nivell 1) han d’estar separades de la resta de zones del mateix establiment per una de les opcions següents:
 BULLET/CH/1r|//Separación mínima de 5 m entre el perímetro del área y los materiales combustibles almacenados en ella que puedan propagar un incendio. En el caso de que exista un almacenamiento de altura mayor de 5 m, la separación deberá ampliarse a la misma distancia que dicha altura.//
 BULLET/CH|//La separación perimetral deberá estar descubierta para permitir la rápida disipación del calor y humo, salvo que se justifique documentalmente que la cubierta no perjudica este objetivo.//
 BULLET/CH|//Cuando no exista dicha separación, deberán existir elementos compartimentadores que aseguren una resistencia al fuego mínima de EI 60, 90 o 120 en áreas de riesgo bajo, medio o alto respectivamente (o REI si tienen función portante).//
@@ -581,7 +571,7 @@ BULLET/CH|//Las separaciones de 5 m de anchura citadas en los apartados 1.5 y 1.
 AIRE|item
 SECT|Documentació / Rètols
 AIRE|seccio
-ITEM|181.|S’ha de presentar la següent documentació:
+ITEM|175.|S’ha de presentar la següent documentació:
 BULLET/CH/1r|El canvi de titularitat de l’activitat a l’actual titular.
 BULLET/CH|El canvi de titularitat de l’autorització X a l’actual titular.
 BULLET/CH|El(s) plànol(s) de les plantes ocupades per l’activitat a escala normalitzada amb el detall de: la maquinària instal·lada, els recorreguts d’evacuació i senyalització dels corresponents, els equips i instal·lacions contra incendis, el compliment d’accessibilitat, resta de detalls que es considerin necessaris per explicar el compliment de requisits segons la normativa d’aplicació corresponent.
@@ -603,7 +593,7 @@ BODY/CH|- fins a 2.500: 1.600.000 EUR
 BODY/CH|- fins a 5.000: 2.000.000 EUR.
 BULLET/CH|El rebut de pagament de l’assegurança de Responsabilitat Civil.
 AIRE|item
-ITEM|182.|Manquen els següents rètols a l’exterior de l’establiment, mínim en català:
+ITEM|176.|Manquen els següents rètols a l’exterior de l’establiment, mínim en català:
 BULLET/CH/1r|El nom comercial de l’activitat.
 BULLET/CH|L’horari d’obertura i tancament, que es pugui veure clarament inclús si l’activitat està tancada.
 BULLET/CH|Aforament autoritzat.
@@ -611,7 +601,7 @@ BULLET/CH|Prohibit fumar.
 BULLET/CH|Llistat de preus.
 BULLET/CH|Informació ús de càmeres de seguretat.
 AIRE|item
-ITEM|183.|Manquen els següents rètols a l’exterior de l’establiment, mínim en català:
+ITEM|177.|Manquen els següents rètols a l’exterior de l’establiment, mínim en català:
 BULLET/CH/1r|Prohibició venta d’alcohol a menors d’edat.
 BULLET/CH|Prohibició venta tabac a menors d’edat.
 BULLET/CH|Prohibició de l’ús de màquines recreatives i atzar a menors d’edat.
@@ -621,15 +611,15 @@ BULLET/CH|La sortida de l’establiment on s’indiqui “SORTIDA”
 AIRE|item
 SECT|Accessibilitat
 AIRE|seccio
-ITEM|184.|Espai treballadors. No es compleix amb l’article Article 5.3º de l’Annex I.A del //Real Decreto 486/1997, de 14 de abril, por el que se establecen las disposiciones mínimas de seguridad y salud en los lugares de trabajo: “La anchura mínima de las puertas exteriores y de los pasillos será de 80 centímetros y 1 metro, respectivamente//. S’ha de redistribuir l’espai [CAMP: espai redistribuir treballadors].
+ITEM|178.|Espai treballadors. No es compleix amb l’article Article 5.3º de l’Annex I.A del //Real Decreto 486/1997, de 14 de abril, por el que se establecen las disposiciones mínimas de seguridad y salud en los lugares de trabajo: “La anchura mínima de las puertas exteriores y de los pasillos será de 80 centímetros y 1 metro, respectivamente//. S’ha de redistribuir l’espai [CAMP: espai redistribuir treballadors].
 AIRE|item
-ITEM|185.|Accés. S’ha de justificar el compliment de l’apartat 2 de l’Annex 3d del DECRET 209/2023, de 28 de novembre, pel qual s'aprova el Codi d'accessibilitat de Catalunya. Condició que ha de complir l’accés: [OPCIO: Accessibilitat accés | Accés practicable (segons l'apartat 2 de l'annex 3f) | Accés accessible (segons l'apartat 2 de l'annex 3c)].
+ITEM|179.|Accés. S’ha de justificar el compliment de l’apartat 2 de l’Annex 3d del DECRET 209/2023, de 28 de novembre, pel qual s'aprova el Codi d'accessibilitat de Catalunya. Condició que ha de complir l’accés: [OPCIO: Accessibilitat accés | Accés practicable (segons l'apartat 2 de l'annex 3f) | Accés accessible (segons l'apartat 2 de l'annex 3c)].
 AIRE|item
-ITEM|186.|Itineraris interiors. S’ha de justificar el compliment de l’apartat 3 de l’Annex 3d del DECRET 209/2023, de 28 de novembre, pel qual s'aprova el Codi d'accessibilitat de Catalunya. Condició que ha de complir l’itinerari: [OPCIO: Accessibilitat itinerari | Itinerari practicable (segons l'apartat 1 de l'annex 3f) | Itinerari  accessible (segons l'apartat 1 de l'annex 3c)].
+ITEM|180.|Itineraris interiors. S’ha de justificar el compliment de l’apartat 3 de l’Annex 3d del DECRET 209/2023, de 28 de novembre, pel qual s'aprova el Codi d'accessibilitat de Catalunya. Condició que ha de complir l’itinerari: [OPCIO: Accessibilitat itinerari | Itinerari practicable (segons l'apartat 1 de l'annex 3f) | Itinerari  accessible (segons l'apartat 1 de l'annex 3c)].
 AIRE|item
-ITEM|187.|Cambres higièniques. S’ha de justificar el compliment de l’apartat 4 de l’Annex 3d del DECRET 209/2023, de 28 de novembre, pel qual s'aprova el Codi d'accessibilitat de Catalunya. Condició que ha de complir la cambra higiènica: [OPCIO: Accessibilitat cambra higiènica | Usable (segons l'apartat 7.2 de l'annex 3f) | Practicable (segons l'apartat 7.1 de l'annex 3c)| Accessible (segons l'apartat 15.4 de l'annex 3c)].
+ITEM|181.|Cambres higièniques. S’ha de justificar el compliment de l’apartat 4 de l’Annex 3d del DECRET 209/2023, de 28 de novembre, pel qual s'aprova el Codi d'accessibilitat de Catalunya. Condició que ha de complir la cambra higiènica: [OPCIO: Accessibilitat cambra higiènica | Usable (segons l'apartat 7.2 de l'annex 3f) | Practicable (segons l'apartat 7.1 de l'annex 3c)| Accessible (segons l'apartat 15.4 de l'annex 3c)].
 AIRE|item
-ITEM|188.|S’ha de justificar en el projecte que hi ha els lavabos corresponents segons la normativa
+ITEM|182.|S’ha de justificar en el projecte que hi ha els lavabos corresponents segons la normativa
 AIRE|item
-ITEM|189.|S’haurà d’entregar a l’Ajuntament un nou projecte on es puguin observar les modificacions per esmenar les deficiències d’aquest informe.
+ITEM|183.|S’haurà d’entregar a l’Ajuntament un nou projecte on es puguin observar les modificacions per esmenar les deficiències d’aquest informe.
 AIRE|item

@@ -963,48 +963,18 @@
                                                                          "t":  ". S’ha de realitzar la inspecció periòdica de les instal·lacions per part d’un organisme de control habilitat, com a mínim cada cinc anys, tal com s’indica a l’article 13 del Reial decret. De la inspecció se n’aixeca acta, signada per la persona inspectora i pel titular, que ha d’estar a disposició de l’administració competent."
                                                                      }
                                                                  ]
-                                                    }
-                                                ],
-                                        "fills":  [
-
-                                                  ]
-                                    },
-                                    {
-                                        "tipus":  "item",
-                                        "titol":  "RSCIEI - adaptació establiments existents",
-                                        "cos":  [
+                                                    },
                                                     {
                                                         "runs":  [
                                                                      {
-                                                                         "t":  "RSCIEI. Els establiments industrials existents abans del 10 de maig de 2025 s’han d’adaptar a les inspeccions periòdiques de l’article 13 del "
-                                                                     },
-                                                                     {
-                                                                         "t":  "Real Decreto 164/2025, de 4 de marzo, por el que se aprueba el Reglamento de seguridad contra incendios en los establecimientos industriales",
-                                                                         "i":  true
-                                                                     },
-                                                                     {
-                                                                         "t":  " (disposició transitòria primera). Els que es van construir conforme al "
+                                                                         "t":  "Els establiments industrials existents abans del 10 de maig de 2025 s’hi han d’adaptar igualment (disposició transitòria primera), i els construïts abans del "
                                                                      },
                                                                      {
                                                                          "t":  "Real Decreto 2267/2004, de 3 de diciembre",
                                                                          "i":  true
                                                                      },
                                                                      {
-                                                                         "t":  " han d’adaptar el contingut i la periodicitat de les inspeccions al nou article 13, tenint en compte que els requisits constructius i de les instal·lacions segueixen sent els del reglament del 2004. Els construïts abans del Real Decreto 2267/2004 han de fer inspeccions periòdiques com a mínim cada cinc anys, limitades als equips i sistemes de protecció activa, amb la metodologia de l’article 22 del "
-                                                                     },
-                                                                     {
-                                                                         "t":  "Real Decreto 513/2017, de 22 de mayo",
-                                                                         "i":  true
-                                                                     },
-                                                                     {
-                                                                         "t":  "."
-                                                                     }
-                                                                 ]
-                                                    },
-                                                    {
-                                                        "runs":  [
-                                                                     {
-                                                                         "t":  "Queden exceptuats els establiments amb densitat de càrrega de foc ponderada i corregida (Qs) que no superi 42 MJ/m2, sempre que la superfície construïda sigui igual o inferior a 120 m2."
+                                                                         "t":  " fan la inspecció cada cinc anys limitada als equips i sistemes de protecció activa. Queden exceptuats els establiments amb densitat de càrrega de foc ponderada i corregida (Qs) que no superi 42 MJ/m2, sempre que la superfície construïda sigui igual o inferior a 120 m2."
                                                                      }
                                                                  ]
                                                     }
@@ -2970,23 +2940,7 @@
                                                                       {
                                                                           "runs":  [
                                                                                        {
-                                                                                           "t":  "BIEs. Per a les BIE amb mànega semirígida o mànega plana, la separació màxima entre cada BIE i la seva més pròxima serà de 50 m. La distància des de qualsevol punt de l\u0027àrea protegida fins a la BIE més pròxima no haurà d\u0027excedir del radi d\u0027acció d\u0027aquesta. Tant la separació, com la distància màxima i el radi d\u0027acció es mesuraran seguint recorreguts d\u0027evacuació"
-                                                                                       }
-                                                                                   ]
-                                                                      }
-                                                                  ],
-                                                          "fills":  [
-
-                                                                    ]
-                                                      },
-                                                      {
-                                                          "tipus":  "item",
-                                                          "titol":  "RIPCI - BIEs - radi d’acció i longitud de mànega",
-                                                          "cos":  [
-                                                                      {
-                                                                          "runs":  [
-                                                                                       {
-                                                                                           "t":  "BIEs. El radi d’acció d’una BIE és la longitud de la seva mànega més 5 m. La longitud de la mànega no ha de superar els 20 m en el cas de mànega plana ni els 30 m en el cas de mànega semirígida."
+                                                                                           "t":  "BIEs. Per a les BIE amb mànega semirígida o mànega plana, la separació màxima entre cada BIE i la seva més pròxima serà de 50 m. La distància des de qualsevol punt de l\u0027àrea protegida fins a la BIE més pròxima no haurà d\u0027excedir del radi d\u0027acció d\u0027aquesta. Tant la separació, com la distància màxima i el radi d\u0027acció es mesuraran seguint recorreguts d\u0027evacuació. El radi d’acció d’una BIE és la longitud de la seva mànega més 5 m, i la longitud de la mànega no ha de superar els 20 m en el cas de mànega plana ni els 30 m en el cas de mànega semirígida."
                                                                                        }
                                                                                    ]
                                                                       }
@@ -3061,22 +3015,6 @@
                                                       },
                                                       {
                                                           "tipus":  "item",
-                                                          "titol":  "RIPCI - Cuines comercials",
-                                                          "cos":  [
-                                                                      {
-                                                                          "runs":  [
-                                                                                       {
-                                                                                           "t":  "Cuines comercials. Els sistemes fixos automàtics per a l’extinció d’incendis en cuines comercials han d’estar certificats, abans de la seva instal·lació, d’acord amb l’article 5.2 del Real Decreto 513/2017, per justificar el compliment de la norma UNE-EN 17446; les condicions del seu disseny i instal·lació també han de ser conformes a aquesta norma. Els mecanismes de dispar i aturada manuals han d’estar senyalitzats. La instal·lació i el manteniment els ha de fer una empresa habilitada per al sistema fix corresponent."
-                                                                                       }
-                                                                                   ]
-                                                                      }
-                                                                  ],
-                                                          "fills":  [
-
-                                                                    ]
-                                                      },
-                                                      {
-                                                          "tipus":  "item",
                                                           "titol":  "RIPCI - Senyalització PCI",
                                                           "cos":  [
                                                                       {
@@ -3085,20 +3023,11 @@
                                                                                            "t":  "Senyalització. La senyalització dels mitjans de protecció contra incendis d\u0027utilització manual i dels sistemes d\u0027alerta i alarma, hauran de complir la norma UNE 23033-1. Els senyals no definits en aquesta norma es podran dissenyar amb els mateixos criteris establerts en la norma UNE 23033-1, en la UNE 23032 i a la UNE-EN ISO 7010."
                                                                                        }
                                                                                    ]
-                                                                      }
-                                                                  ],
-                                                          "fills":  [
-
-                                                                    ]
-                                                      },
-                                                      {
-                                                          "tipus":  "item",
-                                                          "titol":  "RIPCI - Senyalització - visibilitat i substitució",
-                                                          "cos":  [
+                                                                      },
                                                                       {
                                                                           "runs":  [
                                                                                        {
-                                                                                           "t":  "Senyalització. Els senyals s’han de col·locar de manera que siguin clarament visibles (posició, mida i tipus de senyal). Es poden utilitzar senyals no luminescents a l’exterior d’edificis i a la via pública; els senyals situats dins d’edificis que no siguin luminescents han d’estar il·luminats exteriorment i han de ser visibles fins i tot en cas de fallada del subministrament de l’enllumenat normal. Els senyals fotoluminescents s’han de substituir a partir dels 20 anys des de la seva fabricació, llevat que es justifiqui mitjançant mesurament sobre una mostra representativa, conforme a la norma UNE 23035-2, que aporten valors no inferiors als exigits."
+                                                                                           "t":  "Els senyals s’han de col·locar de manera que siguin clarament visibles (posició, mida i tipus de senyal); els situats dins d’edificis que no siguin luminescents han d’estar il·luminats exteriorment i han de ser visibles fins i tot en cas de fallada de l’enllumenat normal. Els senyals fotoluminescents s’han de substituir a partir dels 20 anys des de la seva fabricació, llevat que es justifiqui, conforme a la norma UNE 23035-2, que aporten valors no inferiors als exigits."
                                                                                        }
                                                                                    ]
                                                                       }
@@ -3162,7 +3091,7 @@
                                                                       {
                                                                           "runs":  [
                                                                                        {
-                                                                                           "t":  "Caracterització. S’ha de justificar la configuració de cada edifici i espai obert de l’establiment (tipus A vertical, A horitzontal, B, C o D), la identificació dels sectors d’incendi (en edificis) i de les àrees d’incendi (en espais oberts) i, per a cada un, la densitat de càrrega de foc ponderada i corregida (Qs) amb el seu nivell de risc intrínsec i el subnivell d’1 a 8 de la taula 1.3.1 de l’Annex I. Els subnivells són una novetat del reglament: el Real Decreto 2267/2004 només en tenia tres, i les taules de l’Annex II hi van lligades."
+                                                                                           "t":  "Caracterització. S’ha de justificar la configuració de cada edifici i espai obert de l’establiment (tipus A vertical, A horitzontal, B, C o D), la identificació dels sectors d’incendi (en edificis) i de les àrees d’incendi (en espais oberts) i, per a cada un, la densitat de càrrega de foc ponderada i corregida (Qs) amb el seu nivell de risc intrínsec i el subnivell d’1 a 8 de la taula 1.3.1 de l’Annex I."
                                                                                        }
                                                                                    ]
                                                                       }
@@ -3194,7 +3123,7 @@
                                                                       {
                                                                           "runs":  [
                                                                                        {
-                                                                                           "t":  "Sectorització. S’ha de justificar que cap sector d’incendi no supera la màxima superfície construïda admissible de la taula 2.1.1 segons la seva configuració i el seu subnivell de risc. Cal aplicar-hi les notes de la taula: si el sector és sota rasant, 400 m2 (risc baix nivell 1) o la meitat dels valors de la taula; si la façana accessible de l’establiment és igual o superior al 50 % del seu perímetre, els valors es poden multiplicar per 1,25; i si hi ha ruixadors automàtics o un altre sistema fix d’extinció automàtica que cobreixi tot el sector, per 2. Les dues últimes es poden aplicar alhora (factor 2,5)."
+                                                                                           "t":  "Sectorització. S’ha de justificar que cap sector d’incendi no supera la màxima superfície construïda admissible de la taula 2.1.1, que per a una configuració de [OPCIO: Configuració | tipus A vertical | tipus A horitzontal | tipus B | tipus C] depèn del subnivell de risc intrínsec del sector."
                                                                                        }
                                                                                    ]
                                                                       }
@@ -3210,7 +3139,7 @@
                                                                       {
                                                                           "runs":  [
                                                                                        {
-                                                                                           "t":  "Sectorització. Els elements constructius que delimiten cada sector d’incendi han de tenir la resistència al foc de la taula 2.1.2, segons el nivell de risc intrínsec, la configuració i si la planta és sobre o sota rasant (de EI 30 a EI 180). Si l’element té també funció portant, ha de complir el valor REI corresponent."
+                                                                                           "t":  "Sectorització. Els elements constructius que delimiten cada sector d’incendi han de tenir una resistència al foc [OPCIO: Resistència delimitadors | EI 30 | EI 60 | EI 90 | EI 120 | EI 180], segons la taula 2.1.2 i en funció del nivell de risc intrínsec, la configuració i si la planta és sobre o sota rasant. Si l’element té també funció portant, ha de complir el valor REI corresponent."
                                                                                        }
                                                                                    ]
                                                                       }
@@ -3285,28 +3214,12 @@
                                                       },
                                                       {
                                                           "tipus":  "item",
-                                                          "titol":  "RSCIEI - Instal·lacions tècniques de serveis (Annex II, Secció 1, ap. 4)",
-                                                          "cos":  [
-                                                                      {
-                                                                          "runs":  [
-                                                                                       {
-                                                                                           "t":  "Instal·lacions de serveis. S’ha de justificar que les instal·lacions dels serveis elèctrics (inclosos els grups electrògens i els quadres), les de climatització i la resta de serveis de l’establiment compleixen les condicions que l’Annex II els exigeix dins d’un establiment industrial."
-                                                                                       }
-                                                                                   ]
-                                                                      }
-                                                                  ],
-                                                          "fills":  [
-
-                                                                    ]
-                                                      },
-                                                      {
-                                                          "tipus":  "item",
                                                           "titol":  "RSCIEI - Mitgeres i separació amb altres establiments (Taula 2.2.1)",
                                                           "cos":  [
                                                                       {
                                                                           "runs":  [
                                                                                        {
-                                                                                           "t":  "Propagació exterior. Els elements separadors dels sectors d’incendi de l’establiment respecte d’altres establiments (mitgeres, murs, tancaments o forjats) han de tenir una resistència al foc mínima de EI 120 si el risc intrínsec és baix, EI 180 si és mitjà i EI 240 si és alt; REI si tenen també funció portant."
+                                                                                           "t":  "Propagació exterior. Els elements separadors dels sectors d’incendi de l’establiment respecte d’altres establiments (mitgeres, murs, tancaments o forjats) han de tenir una resistència al foc mínima de [OPCIO: Resistència mitgeres | EI 120 | EI 180 | EI 240], segons la taula 2.2.1. Si tenen també funció portant, han de complir el valor REI corresponent."
                                                                                        }
                                                                                    ]
                                                                       }
@@ -3338,7 +3251,7 @@
                                                                       {
                                                                           "runs":  [
                                                                                        {
-                                                                                           "t":  "Propagació exterior. A la trobada entre una coberta i una façana que pertanyin a sectors d’incendi o a establiments diferents, quan la façana tingui zones amb una resistència al foc inferior al 50 % de l’EI exigit, els materials que ocupin més del 10 % del revestiment o acabat exterior de les zones de coberta situades a menys de 5 m de la projecció vertical de la façana han de ser de classe BROOF (t1), inclosos els lluernaris, les claraboies i qualsevol altre element d’il·luminació o ventilació. Els valors d’alçada «h» en funció de la distància «d» són els de la taula 2.2.3 (d ≥ 2,50 m, h = 0; i fins a h = 5 m quan d = 0)."
+                                                                                           "t":  "Propagació exterior. A la trobada entre una coberta i una façana que pertanyin a sectors d’incendi o a establiments diferents, quan la façana tingui zones amb una resistència al foc inferior al 50 % de l’EI exigit, els materials que ocupin més del 10 % del revestiment o acabat exterior de les zones de coberta situades a menys de 5 m de la projecció vertical de la façana han de ser de classe BROOF (t1), inclosos els lluernaris, les claraboies i qualsevol altre element d’il·luminació o ventilació."
                                                                                        }
                                                                                    ]
                                                                       }
@@ -3354,7 +3267,7 @@
                                                                       {
                                                                           "runs":  [
                                                                                        {
-                                                                                           "t":  "Evacuació. L’ocupació «P» de cada sector d’incendi s’ha de deduir de les expressions de l’apartat 2 de la Secció 3 de l’Annex II: P = 1,10 p quan p \u003c 100; P = 110 + 1,05 (p – 100) quan 100 \u003c p \u003c 200; P = 215 + 1,03 (p – 200) quan 200 \u003c p \u003c 500; i P = 524 + 1,01 (p – 500) quan 500 \u003c p, on «p» és el nombre de persones que ocupa el sector segons la documentació laboral que reguli el funcionament de l’activitat. El resultat s’arrodoneix a l’enter immediatament superior."
+                                                                                           "t":  "Evacuació. L’ocupació «P» de cada sector d’incendi s’ha de deduir de les expressions de l’apartat 2 de la Secció 3 de l’Annex II."
                                                                                        }
                                                                                    ]
                                                                       }
@@ -3434,7 +3347,7 @@
                                                                       {
                                                                           "runs":  [
                                                                                        {
-                                                                                           "t":  "Estructura. La resistència al foc dels elements estructurals principals amb funció portant no pot ser inferior a la de la taula 2.5.1, segons el nivell de risc intrínsec, la configuració i si la planta és sobre o sota rasant (de R 30 a R 180, amb els casos no admesos que la mateixa taula recull). Els elements secundaris —aquells el col·lapse dels quals no pot fer mal als ocupants ni comprometre l’estabilitat global de l’estructura, l’evacuació o la compartimentació— no necessiten protecció."
+                                                                                           "t":  "Estructura. Els elements estructurals principals amb funció portant han de tenir una resistència al foc no inferior a [OPCIO: Resistència estructura | R 30 | R 60 | R 90 | R 120 | R 180], segons la taula 2.5.1 i en funció del nivell de risc intrínsec, la configuració i si la planta és sobre o sota rasant. Els elements secundaris —aquells el col·lapse dels quals no pot fer mal als ocupants ni comprometre l’estabilitat global de l’estructura, l’evacuació o la compartimentació— no necessiten protecció."
                                                                                        }
                                                                                    ]
                                                                       }
@@ -3450,23 +3363,7 @@
                                                                       {
                                                                           "runs":  [
                                                                                        {
-                                                                                           "t":  "Estructura. Per a l’estructura principal de les cobertes lleugeres no previstes per a l’evacuació dels ocupants es poden adoptar els valors de la taula 2.5.2 (R 15, R 30 i R 60 en tipus B i sense exigència, R 15 i R 30 en tipus C, segons el risc), sempre que es garanteixi l’evacuació, es justifiqui que la seva fallada no pot causar danys greus als edificis pròxims ni comprometre l’estabilitat de plantes inferiors ni la sectorització i, si el risc del sector és mitjà o alt, es disposi d’un sistema per al control de fums i de calor. En edificis sobre rasant d’una sola planta amb coberta lleugera, quan tot el sector estigui protegit amb extinció automàtica i control de fums i de calor, s’apliquen els valors de la taula 2.5.3."
-                                                                                       }
-                                                                                   ]
-                                                                      }
-                                                                  ],
-                                                          "fills":  [
-
-                                                                    ]
-                                                      },
-                                                      {
-                                                          "tipus":  "item",
-                                                          "titol":  "RSCIEI - Quan no cal justificar la resistència de l’estructura (Annex II, Secció 5, ap. 1.3.3 i 1.3.4)",
-                                                          "cos":  [
-                                                                      {
-                                                                          "runs":  [
-                                                                                       {
-                                                                                           "t":  "Estructura. Als edificis d’una sola planta que constitueixin un sol sector d’incendi, situats en edificis de tipus C separats almenys 10 m d’altres establiments i dels límits de parcel·les on es pugui edificar, lliures de mercaderies combustibles o elements intermedis que puguin propagar l’incendi, i protegits per un sistema fix d’extinció automàtica i un sistema per al control de fums i de calor, no cal justificar la resistència al foc de l’estructura. Quan s’aculli a aquesta excepció o a la taula 2.5.2, s’ha de senyalitzar als accessos de l’edifici perquè el personal dels Serveis d’Extinció d’Incendis i Salvament en tingui coneixement."
+                                                                                           "t":  "Estructura. Per a l’estructura principal de les cobertes lleugeres no previstes per a l’evacuació dels ocupants es pot adoptar una resistència al foc de [OPCIO: Resistència coberta lleugera | sense exigència | R 15 | R 30 | R 60 | R 90 | R 120], segons les taules 2.5.2 i 2.5.3, sempre que es garanteixi l’evacuació, es justifiqui que la seva fallada no pot causar danys greus als edificis pròxims ni comprometre l’estabilitat de plantes inferiors ni la sectorització i, si el risc del sector és mitjà o alt, es disposi d’un sistema per al control de fums i de calor."
                                                                                        }
                                                                                    ]
                                                                       }
@@ -4521,6 +4418,13 @@
                                                         "runs":  [
                                                                      {
                                                                          "t":  "Campana. Segons l’article 11.7 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha d’instal·lar, i aportar la documentació corresponent, un sistema d’extinció automàtic a la campana d’extracció de la cuina perquè se superen els 20 kW de potència instal·lada i la cuina no està considerada un local de risc especial. El sistema s’ha d’instal·lar segons la norma UNE-EN 17446:2022."
+                                                                     }
+                                                                 ]
+                                                    },
+                                                    {
+                                                        "runs":  [
+                                                                     {
+                                                                         "t":  "El sistema ha d’estar certificat, abans de la seva instal·lació, d’acord amb l’article 5.2 del Real Decreto 513/2017, per justificar el compliment d’aquesta norma, i els mecanismes de dispar i aturada manuals han d’estar senyalitzats. La instal·lació i el manteniment els ha de fer una empresa habilitada per al sistema fix corresponent."
                                                                      }
                                                                  ]
                                                     }
