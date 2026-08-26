@@ -3474,6 +3474,176 @@
                                                           "fills":  [
 
                                                                     ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "RSCIEI - Detecció i alarma (Annex III, ap. 1)",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Detecció i alarma. S’han d’instal·lar sistemes de detecció i d’alarma amb dispositius d’activació automàtica (detectors) i també manual (polsadors) als sectors on es desenvolupin activitats de fabricació amb superfície construïda igual o superior a 300 m2 (tipus AV o AH), 3.000 / 2.000 / 1.000 m2 (tipus B, risc baix, mitjà i alt) i 4.000 / 3.000 / 2.000 m2 (tipus C); i activitats d’emmagatzematge amb 150 m2 (tipus AV o AH), 1.500 / 1.000 / 500 m2 (tipus B) i 3.000 / 1.500 / 800 m2 (tipus C). Els sectors de risc baix nivell 1 en queden exclosos."
+                                                                                       }
+                                                                                   ]
+                                                                      },
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Quan al sector hi hagi alhora fabricació i emmagatzematge permanent, la suma dels quocients entre la superfície de cada activitat i la superfície a partir de la qual la instal·lació és obligatòria ha de ser igual o superior a 1."
+                                                                                       }
+                                                                                   ]
+                                                                      },
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Si segons l’anterior no són exigibles, s’han d’instal·lar sistemes amb polsadors manuals com a mínim als sectors de superfície construïda igual o superior a 400 m2. En tots els casos hi ha d’haver dispositius d’alarma. A més, quan la suma de la superfície construïda de tots els sectors d’un edifici sigui igual o superior a 10.000 m2 i la densitat d’ocupació superi les 3 persones per cada 100 m2, s’ha d’instal·lar un sistema de comunicació d’alarma per veu."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "RSCIEI - Hidrants exteriors (Annex III, ap. 3)",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Hidrants. S’ha de justificar la necessitat d’hidrants exteriors segons la taula 3.3.1, que els exigeix en funció de la configuració, la superfície del sector o àrea i el nivell de risc intrínsec: a partir de 300 i 1.000 m2 en tipus AV, de 600 i 1.000 m2 en tipus AH, de 1.000, 2.500 i 3.500 m2 en tipus B, de 2.500, 3.500 i 5.000 m2 en tipus C i de 5.000 m2 en tipus D. En risc baix nivell 1 no calen. En tot cas s’ha d’instal·lar com a mínim un hidrant per al omplert de camions si la superfície total de l’establiment —edificis i espais oberts— és igual o superior a 5.000 m2, llevat que tots els seus sectors i espais oberts siguin de risc baix nivell 1."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "RSCIEI - Extintors portàtils (Taules 3.4.1 i 3.4.2)",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Extintors. S’han d’instal·lar extintors portàtils a tots els sectors d’incendi. Per a foc de classe A, l’eficàcia mínima i la superfície màxima protegida són: 21 A fins a 600 m2 (risc baix), 21 A fins a 400 m2 (risc mitjà) i 34 A fins a 300 m2 (risc alt), amb un extintor més per cada 200 m2 o fracció en excés. Per a foc de classe B, segons el volum de combustibles líquids del sector: 113 B fins a 20 l, 113 B de 20 a 50 l, 144 B de 50 a 100 l i 233 B de 100 a 200 l; per sobre de 200 l s’hi afegeixen extintors mòbils sobre rodes d’eficàcia mínima II B (un fins a 750 l i dos per sobre). Si al sector hi conviuen les classes A i B, la dotació és la suma de les dues."
+                                                                                       }
+                                                                                   ]
+                                                                      },
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "El recorregut màxim horitzontal des de qualsevol punt del sector fins a l’extintor no pot superar els 15 m; a les àrees d’incendi en espais oberts (tipus D) es pot ampliar a 25 m, i no calen extintors a les àrees de risc baix nivell 1."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "RSCIEI - BIE: quan calen i de quin tipus (Annex III, ap. 5)",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "BIEs. S’han d’instal·lar sistemes de boques d’incendi equipades als sectors de superfície construïda igual o superior a 300 m2 en configuracions de tipus AV; de 500 m2 (risc mitjà) i 200 m2 (risc alt) en tipus AH i B; i de 1.000 m2 (risc mitjà) i 500 m2 (risc alt) en tipus C. En tipus D, a les àrees de risc alt amb superfície ocupada igual o superior a 5.000 m2, comptant conjuntament les àrees de risc alt adjacents."
+                                                                                       }
+                                                                                   ]
+                                                                      },
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "El tipus de BIE depèn del nivell de risc intrínsec: de 25 mm en risc baix i mitjà, i de 45 mm en risc alt. S’admet instal·lar BIE de 25 mm amb presa addicional de 45 mm, i llavors es calcula hidràulicament com a BIE de 45 mm, dimensionant-la per als cabals i les pressions dels dos tipus."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "RSCIEI - Columna seca (Annex III, ap. 6)",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Columna seca. S’han d’instal·lar sistemes de columna seca als establiments industrials amb una alçada d’evacuació igual o superior a 15 m. Les columnes han de tenir boques de sortida a totes les plantes."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "RSCIEI - Sistemes fixos d’extinció automàtica (Annex III, ap. 7)",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Extinció automàtica. S’han d’instal·lar sistemes fixos d’extinció automàtica, com ara ruixadors, als sectors amb activitats de fabricació de superfície construïda igual o superior a 500 m2 (tipus AV, risc mitjà); 1.500 m2 (risc mitjà) i 750 m2 (risc alt) en tipus AH; 2.500 m2 (risc mitjà) i 1.000 m2 (risc alt) en tipus B; i 3.500 m2 (risc mitjà) i 2.000 m2 (risc alt) en tipus C. Amb activitats d’emmagatzematge: 300 m2 (tipus AV, risc mitjà); 1.000 m2 (risc mitjà) i 600 m2 (risc alt) en tipus AH; 1.500 m2 (risc mitjà) i 800 m2 (risc alt) en tipus B; i 2.000 m2 (risc mitjà) i 1.000 m2 (risc alt) en tipus C. Amb les dues activitats al mateix sector, la suma dels quocients ha de ser igual o superior a 1."
+                                                                                       }
+                                                                                   ]
+                                                                      },
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Els ruixadors es poden substituir per altres sistemes fixos d’extinció automàtica recollits al RIPCI sempre que siguin adequats i aportin com a mínim el mateix nivell de seguretat. Als recintes destinats a equips elèctrics o electrònics, centres de càlcul, bancs de dades o de control i anàlegs, on l’aigua pugui malmetre els equips, s’hi instal·laran preferentment sistemes per agents extintors gasosos, sempre que quedi garantida la seguretat i l’evacuació de les persones."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "RSCIEI - Control de fums i de calor (Annex III, ap. 8)",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Control de fums. S’han d’instal·lar sistemes per al control de fums i de calor als sectors amb activitats de fabricació de risc mitjà i superfície construïda igual o superior a 2.000 m2, o de risc alt i 1.000 m2; i amb activitats d’emmagatzematge de risc mitjà i 1.000 m2, o de risc alt i 800 m2. El disseny i l’execució s’han de fer segons l’apartat 13.1.a) de l’Annex I del RIPCI (sistemes basats en estratègies de flotabilitat)."
+                                                                                       }
+                                                                                   ]
+                                                                      },
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Als sectors de risc mitjà o alt més petits que aquests llindars però de com a mínim 100 m2 s’hi ha d’instal·lar el sistema o, alternativament, buits de ventilació a raó de 0,5 m2 de superfície aerodinàmica per cada 200 m2 (fabricació sobre rasant), 150 m2 (fabricació sota rasant i emmagatzematge sobre rasant) o 100 m2 (emmagatzematge sota rasant), repartits uniformement a la part alta del sector i amb buits d’entrada d’aire a la part baixa en la mateixa proporció. Si la ventilació ha de ser forçada, s’ha de dimensionar per a 6, 9 o 12 renovacions per hora segons el cas i els extractors han de tenir classificació F 400 120."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "RSCIEI - Enllumenat d’emergència i senyalització (Annex III, ap. 9 i 10)",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Enllumenat i senyalització. L’enllumenat d’emergència ha de complir els requisits aplicables de la secció 4 del Document Bàsic de Seguretat d’utilització i accessibilitat del Codi Tècnic de l’Edificació (CTE DB-SUA 4). Els mitjans de protecció contra incendis d’utilització manual —extintors, polsadors d’alarma, BIE i hidrants— s’han de senyalitzar per facilitar-ne la localització, conforme a la secció 2a de l’Annex I del RIPCI."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
                                                       }
                                                   ]
                                     },
