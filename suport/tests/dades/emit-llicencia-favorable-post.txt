@@ -60,7 +60,7 @@ SECT|Incendis
 AIRE|seccio
 SUB|Documentació (ITC SP)
 AIRE|subseccio
-BODY|Segons l’article 3.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha d’entregar la Certificació d'instal·lació o aplicació de productes de protecció passiva contra incendis adjuntant la corresponen documentació complementària:
+BODY|Segons l’article 3.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat, en la comunicació d’inici de noves activitats o d’activitats en establiments que hagin canviat el seu ús i disposin de productes de protecció passiva contra incendis, i sempre que l’activitat no requereixi l’informe preceptiu per risc d’incendi per part del Cos de Bombers de la Generalitat de Catalunya, s’ha d’entregar la Certificació d'instal·lació o aplicació de productes de protecció passiva contra incendis adjuntant la corresponent documentació complementària:
 AIRE|intro
 ITEM|11.|SP 136 Model A Certificat d’instal·lació de productes de limitació de la propagació d’incendis, adjuntant com a mínim:
 BODY|- Documents de subministrament del producte
@@ -83,7 +83,7 @@ URL|https://interior.gencat.cat/web/.content/home/030_arees_dactuacio/bombers/pr
 BODY|Quan: Abans d’iniciar l’activitat.
 BODY/N/SEP|No es disposa de la documentació.
 AIRE|item
-ITEM|14.|Lluernes en coberta. Segons la taula 2.1.4 //Clases de reacción al fuego de los elementos constructivos// de la Secció 1 de l’Annex II del //Real Decreto 164/2025, de 4 de marzo// (RSCIEI) i la seva Nota 7, als lluernaris en general i als airejadors d’extracció natural de fum i calor que s’instal·lin a la coberta se’ls apliquen els mateixos requisits que als sostres i parets. Els lluernaris de grans dimensions en coberta han de ser sempre de classe B-s1,d0 o més favorable. Es consideren de grans dimensions els que tenen més de 10 m de longitud, o bé quan hi ha diversos lluernaris agrupats amb una separació entre ells inferior a 2 m que ocupen més de 10 m de longitud. S’ha de justificar el compliment adjuntant com a mínim:
+ITEM|14.|Lluernes en coberta. Segons la taula 2.1.4 //Clases de reacción al fuego de los elementos constructivos// de la Secció 1 de l’Annex II del //Real Decreto 164/2025, de 4 de marzo// (RSCIEI) i la seva Nota 7, als lluernaris en general i als airejadors d’extracció natural de fum i calor que s’instal·lin a la coberta se’ls apliquen els mateixos requisits que als sostres i parets. Els lluernaris de grans dimensions en coberta han de ser sempre de classe B-s1,d0 o més favorable. Es consideren de grans dimensions els que tenen més de 10 m de longitud, o bé quan hi ha diversos lluernaris agrupats amb una separació entre ells inferior a 2 m que ocupen més de 10 m de longitud. No cal justificar-ne la reacció al foc quan els lluernaris siguin de dimensions petites o moderades, estiguin col·locats separadament entre ells i el conjunt ocupi menys del 5 % del total dels sostres del recinte considerat (Nota 1 de la mateixa taula). En la resta de casos s’ha de justificar el compliment adjuntant com a mínim:
 BODY|- Documents de subministrament del producte
 BODY|- Documents acreditatius de les prestacions del producte
 BODY|Quan: Abans d’iniciar l’activitat.
@@ -122,7 +122,7 @@ BODY/N/SEP|No es disposa de la documentació.
 AIRE|item
 SECT|Controls periòdics
 AIRE|seccio
-ITEM|20.|Decret 112/2010. L’activitat es troba regulada pel DECRET 112/2010, de 31 d'agost, pel qual s'aprova el Reglament d'espectacles públics i activitats recreatives. S’ha de realitzar un control periòdic amb resultat favorable per part d’una Entitat Col·laboradora de l'Administració conforme l’article 8 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat. El titular queda assabentat que els controls periòdics posteriors s'han d'efectuar cada quatre anys, tal i com s’indica a l’article 132 del mateix Decret.
+ITEM|20.|Decret 112/2010. L’activitat es troba regulada pel DECRET 112/2010, de 31 d'agost, pel qual s'aprova el Reglament d'espectacles públics i activitats recreatives. S’ha de realitzar un control periòdic amb resultat favorable per part d’una Entitat Col·laboradora de l'Administració conforme l’article 8 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat. L’entitat de control no pot aixecar l’acta amb pronunciament favorable sense haver comprovat els aspectes de l’article 11 de la mateixa Ordenança. El titular queda assabentat que els controls periòdics posteriors s'han d'efectuar cada quatre anys, tal i com s’indica a l’article 132 del mateix Decret.
 URL|https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/entitats_col_laboradores_de_l_administracio/entitats-tecnics-habilitats/
 BODY|Quan: Abans d’iniciar l’activitat.
 BODY/N/SEP|No es disposa de la documentació.

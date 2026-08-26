@@ -53,7 +53,7 @@ URL|https://www.gencat.cat/mediamb/ohec/eac_CA.pdf
 AIRE|item
 SECT|Controls periòdics
 AIRE|seccio
-ITEM|13.|Decret 112/2010. L’activitat es troba regulada pel DECRET 112/2010, de 31 d'agost, pel qual s'aprova el Reglament d'espectacles públics i activitats recreatives. S’ha de realitzar un control periòdic amb resultat favorable per part d’una Entitat Col·laboradora de l'Administració conforme l’article 8 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat. El titular queda assabentat que els controls periòdics posteriors s'han d'efectuar cada quatre anys, tal i com s’indica a l’article 132 del mateix Decret.
+ITEM|13.|Decret 112/2010. L’activitat es troba regulada pel DECRET 112/2010, de 31 d'agost, pel qual s'aprova el Reglament d'espectacles públics i activitats recreatives. S’ha de realitzar un control periòdic amb resultat favorable per part d’una Entitat Col·laboradora de l'Administració conforme l’article 8 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat. L’entitat de control no pot aixecar l’acta amb pronunciament favorable sense haver comprovat els aspectes de l’article 11 de la mateixa Ordenança. El titular queda assabentat que els controls periòdics posteriors s'han d'efectuar cada quatre anys, tal i com s’indica a l’article 132 del mateix Decret.
 URL|https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/entitats_col_laboradores_de_l_administracio/entitats-tecnics-habilitats/
 AIRE|item
 ITEM|14.|Annex II Llei 20/2009. L’activitat es troba regulada per la LLEI 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats. S’ha de realitzar un control periòdic amb resultat favorable per part d’una Entitat Col·laboradora de l'Administració. Els controls periòdics posteriors s'han d'efectuar cada sis anys, tal i com s’indica a l’article 71 de la mateixa Llei.
@@ -63,7 +63,7 @@ SECT|Instal·lacions
 AIRE|seccio
 SUB|Legalitzacions
 AIRE|subseccio
-BODY|Segons l’article 4 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha de presentar el certificat d’inscripció al Registre d'instal·lacions de Seguretat Industrial de Catalunya (RITSIC) de totes les instal·lacions que conformin l’activitat a nom del titular de l’activitat o el propietari de l’establiment:
+BODY|Segons l’article 4 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha de presentar el certificat d’inscripció al Registre d'instal·lacions de Seguretat Industrial de Catalunya (RITSIC) de totes les instal·lacions que conformin l’activitat a nom del titular de l’activitat o el propietari de l’establiment, i també les inspeccions inicials o periòdiques estipulades per la normativa vigent:
 AIRE|intro
 ITEM|15.|Instal·lació d’autoconsum (fotovoltaica)
 URL|https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/03_energia/Autoconsum/
@@ -99,34 +99,40 @@ ITEM|23.|S’han de tapiar aquelles zones sense ús de l’activitat i demostrar
 AIRE|item
 ITEM|24.|No es pot fer ús d’aquelles zones que disposin d’una alçada inferior a 2,5m (a excepció dels magatzems i els lavabos que poden tenir 2,2m d’alçada). Exemples
 AIRE|item
+SECT|Vehicles de Mobilitat Personal (VMP)
+AIRE|seccio
+ITEM|25.|Detecció de fum. Segons l’article 13.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha d’instal·lar un sistema de detecció de fum i alarma d’incendis exterior d’acord amb la normativa vigent, com les normes UNE-EN 54 o UNE 23007 o qualsevol altra que les substitueixi. S’ha d’aportar el certificat d’instal·lació.
+AIRE|item
+ITEM|26.|Comunicació a bombers. Segons l’article 13.2 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat és recomanable que el sistema de detecció de fum estigui comunicat a un servei de bombers, mitjançant un dispositiu de transmissió d’alarma d’incendi.
+AIRE|item
 SECT|Extracció de fums
 AIRE|seccio
-ITEM|25.|Elements de cocció. Segons l'article 11.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat les activitats de restauració que no tinguin extracció de fums fins a coberta únicament podran disposar dels següents elements de cocció: una planxa elèctrica de fins a 2.500 W de potència i fins a 40x40 cm de mesura; forns elèctrics de fins a 7.500 W de potència (suma de potències de tots els forns) i amb recollida de vapor per condensació. Si es disposen de més elements de cocció que els esmentats i no es disposa d’extracció de fums s'hauran de retirar immediatament. Si aquests elements de cocció creen molèsties al veïnat, s'hauran de prendre les mesures correctores que indiqui el tècnic municipal competent, podent comportar igualment la seva retirada.
+ITEM|27.|Elements de cocció. Segons l'article 11.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat les activitats de restauració que no tinguin extracció de fums fins a coberta únicament podran disposar dels següents elements de cocció: una planxa elèctrica de fins a 2.500 W de potència i fins a 40x40 cm de mesura; forns elèctrics de fins a 7.500 W de potència (suma de potències de tots els forns) i amb recollida de vapor per condensació. Si es disposen de més elements de cocció que els esmentats i no es disposa d’extracció de fums fins a coberta s'hauran de retirar immediatament. Si aquests elements de cocció creen molèsties, s'hauran de prendre les mesures correctores que indiqui el tècnic municipal competent, podent comportar igualment la seva retirada.
 AIRE|item
-ITEM|26.|Sectorització. Segons l’article 11.3 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha de justificar, i aportar la documentació corresponent, el compliment del Document TINSCI DT 18 Sectorització de conductes d’extracció de fums de les cuines.
+ITEM|28.|Extracció comunicada. Segons l’article 11.2 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat l’activitat no pot disposar d’extracció de fums si aquesta no està correctament comunicada al departament d’Activitats. S’ha de comunicar la instal·lació d’extracció de fums al departament d’Activitats amb la documentació tècnica corresponent.
 AIRE|item
 SECT|Denúncia
 AIRE|seccio
 SUB|Horari
 AIRE|subseccio
-ITEM|27.|Horari. Actualment s’està incomplint l’horari d’obertura perquè **l’activitat únicament pot obrir en horari diürn, és a dir de 7h a 23h**. S’ha de presentar un certificat signat pel titular indicant que coneix que l’horari d’obertura és de 7h a 23h. Si es vol obrir en horari nocturn s’haurà de presentar una sonometria nocturna.
+ITEM|29.|Horari. Actualment s’està incomplint l’horari d’obertura perquè **l’activitat únicament pot obrir fora de l’horari nocturn, és a dir de 7 h a 23 h**. S’ha de presentar un certificat signat pel titular indicant que coneix que l’horari d’obertura és de 7 h a 23 h. Si es vol obrir en horari nocturn (de 23 h a 7 h) s’haurà de presentar una sonometria nocturna.
 AIRE|item
 SUB|Soroll
 AIRE|subseccio
-ITEM|28.|Soroll. Es portarà a terme un estudi acústic per part de l’ajuntament per comprovar que es compleixen els requisits referents a la contaminació acústica, de sorolls o vibracions, d’acord amb la normativa d’aplicació. En cas de resultat desfavorable, el titular haurà de fer les mesures pertinents per complir els requisits referents a la contaminació acústica i posteriorment contractar una Entitat de Control de la Prevenció de la Contaminació Acústica (EC-PCA) perquè ho verifiqui. A criteri de qui faci l’estudi acústic pot demanar al titular de l’activitat activar totes les fonts sonores de l’activitat al màxim rendiment.
+ITEM|30.|Soroll. Es portarà a terme un estudi acústic per part de l’ajuntament per comprovar que es compleixen els requisits referents a la contaminació acústica, de sorolls o vibracions, d’acord amb la normativa d’aplicació. En cas de resultat desfavorable, el titular haurà de fer les mesures pertinents per complir els requisits referents a la contaminació acústica i posteriorment contractar una Entitat de Control de la Prevenció de la Contaminació Acústica (EC-PCA) perquè ho verifiqui. A criteri de qui faci l’estudi acústic pot demanar al titular de l’activitat activar totes les fonts sonores de l’activitat al màxim rendiment.
 URL|https://www.gencat.cat/mediamb/ohec/epca_CA.pdf
 AIRE|item
 SECT|Documentació / Rètols
 AIRE|seccio
-ITEM|29.|S’ha de presentar la següent documentació:
+ITEM|31.|S’ha de presentar la següent documentació:
 AIRE|item
-ITEM|30.|Manquen els següents rètols a l’exterior de l’establiment, mínim en català:
+ITEM|32.|Manquen els següents rètols a l’exterior de l’establiment, mínim en català:
 AIRE|item
 SECT|Accessibilitat
 AIRE|seccio
-ITEM|31.|Espai treballadors. No es compleix amb l’article Article 5.3º de l’Annex I.A del //Real Decreto 486/1997, de 14 de abril, por el que se establecen las disposiciones mínimas de seguridad y salud en los lugares de trabajo: “La anchura mínima de las puertas exteriores y de los pasillos será de 80 centímetros y 1 metro, respectivamente//. S’ha de redistribuir l’espai .
+ITEM|33.|Espai treballadors. No es compleix amb l’article Article 5.3º de l’Annex I.A del //Real Decreto 486/1997, de 14 de abril, por el que se establecen las disposiciones mínimas de seguridad y salud en los lugares de trabajo: “La anchura mínima de las puertas exteriores y de los pasillos será de 80 centímetros y 1 metro, respectivamente//. S’ha de redistribuir l’espai .
 AIRE|item
-ITEM|32.|Accés. S’ha de justificar el compliment de l’apartat 2 de l’Annex 3d del DECRET 209/2023, de 28 de novembre, pel qual s'aprova el Codi d'accessibilitat de Catalunya. Condició que ha de complir l’accés: .
+ITEM|34.|Accés. S’ha de justificar el compliment de l’apartat 2 de l’Annex 3d del DECRET 209/2023, de 28 de novembre, pel qual s'aprova el Codi d'accessibilitat de Catalunya. Condició que ha de complir l’accés: .
 AIRE|item
 AIRE|conclusions
 CONCLCAP|CONCLUSIONS
