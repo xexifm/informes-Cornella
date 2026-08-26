@@ -2249,6 +2249,70 @@ commit i comparant el fitxer d'or a cada pas**.
   que ja s'havia fet servir en aquest projecte — i les suites de PowerShell les
   ha d'executar l'usuari a Windows.
 
+## Els requeriments d'INCENDIS de REQ1 (agost 2026)
+
+**El RSCIEI que citàvem estava DEROGAT.** El RD 2267/2004 el va substituir el
+**Real Decreto 164/2025, de 4 de marzo** (BOE 10/04/2025, en vigor el 10/05/2025),
+que a més **modifica el RIPCI (RD 513/2017) i el CTE DB SI**. Si algun dia
+tornen a sortir dubtes d'incendis, el punt de partida és aquest, no el del 2004.
+
+- **L'error que es requeria de debò**: les pressions de les BIE deien «45 mm
+  entre 5,4 i 8,4 bar; 25 mm entre 3,5 i 6,5 bar» — valors del **RD 1942/1993**,
+  derogat. El vigent lliga el mínim al cabal i a la K (25 mm K=42 → 4 bar;
+  45 mm K=85 → 3,5 bar) amb un **únic màxim de 9 bar**.
+- **Novetats estructurals del RD 164/2025** que toquen el que informem: els
+  nivells de risc intrínsec se subdivideixen en **8 subnivells** (abans 3); la
+  **configuració tipus E desapareix**; l'article 4 obliga les zones subsidiàries
+  de més de **250 m²** (100 m² d'aparcament) a ser sector independent sota el
+  CTE; i el CTE guanya l'**ús Almacén**, que compleix amb la taula 1.1 del DB SI 1
+  **més** els annexos I-IV del RSCIEI (els trasters de lloguer hi entren sempre).
+- **Quan aplica el RSCIEI, la inspecció del RIPCI ja va inclosa dins la del
+  RSCIEI** (ho diu la Guia Tècnica a l'article 13): no s'han de requerir totes
+  dues.
+
+### El lector de PDF del Drive TALLA el text
+`mcp__Google_Drive__read_file_content` retorna com a molt ~293.000 caràcters:
+del RSCIEI en donava fins a la pàgina **80 de 107**, i les **seccions 4 i 5 de
+l'Annex II** (intervenció dels bombers i resistència estructural) i **tot
+l'Annex III** quedaven fora. Amb el text truncat vaig arribar a escriure al pla
+que un requisit «no es podia confirmar».
+
+**La via bona**: `mcp__Google_Drive__download_file_content` retorna el fitxer en
+base64 i, com que passa del límit, **el harness el desa a un fitxer** en lloc de
+posar-lo al context. D'allà es descodifica i s'extreu amb `pypdf`:
+
+```
+json.load(<fitxer del tool-result>)['content'] -> base64.b64decode -> .pdf -> pypdf
+```
+
+`drive.google.com`, `boe.es` i `codigotecnico.org` els **bloqueja el proxy**
+d'aquest entorn (403 al CONNECT): no es poden baixar amb `curl`.
+
+### EDITAR ELS `.json` D'ESTRUCTURALS SENSE EMBRUTAR EL `git diff`
+Els catàlegs els desa l'editor amb el **`ConvertTo-Json -Depth 40` del Windows
+PowerShell 5.1**, que té un format propi: sagnat **alineat a la columna del
+valor**, **dos espais** després dels dos punts, i `'`, `>` i `&` escapats com a
+`\u0027`, `\u003e` i `\u0026`. Reescriure el fitxer amb el `json` de Python el
+canvia **sencer** i el diff deixa de servir per revisar res.
+
+`scratchpad/psjson.py` (de la sessió, no del repositori) imita aquell format, i
+**es valida amb l'anada i tornada sobre el fitxer real**: llegir `REQ1.json` i
+tornar-lo a serialitzar ha de donar **els mateixos bytes**. Si algun dia s'ha de
+tornar a fer una edició massiva d'un catàleg, aquest és el camí — i la
+comprovació d'anada i tornada, la condició per fiar-se'n.
+
+**Convenció de format del catàleg, respectada:** el text **citat en castellà**
+va en **cursiva**; el text de connexió en català, pla.
+
+### La prova dels textos fixos no pot exigir-los a TOTES les famílies
+La prova «els textos fixos de REQ1 a totes les famílies» descobreix **sola** cada
+subsecció amb text fix. En afegir `Incendis :: RSCIEI` va passar a vermell… i no
+hi havia cap defecte: **Llicència només expandeix les subseccions que li diu
+`LLIC.json`**, i aquella no n'és una. Ara a cada família s'hi comproven **només
+els grups que aquella família porta de debò** (`$grupsLlicTF`). Validat injectant
+el defecte original —que l'intro no s'emeti— i comprovant que torna a donar
+6 FAIL a les tres fases de Llicència.
+
 ## Plànol públic d'activitats precintades
 - `suport/rutes/Precintades.ps1` genera `docs/dades/precintades.json` a partir
   de l'Excel d'activitats (fulla "Estès"): les activitats amb el camp lliure
