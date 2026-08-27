@@ -453,6 +453,10 @@ if (-not $Script:HeadlessTest) { [void](Invoke-MigracioLocal $RepoRoot) }
 # Funcions pures testejables; la finestra (WinForms) nomes a Windows.
 . (Join-Path $ScriptRoot 'EmailTextos.ps1')
 
+# Eina "Enviar correu": obre la web del mobil precarregada amb l'ultim informe
+# per enviar el correu (mateix EmailJS que el mobil; no cal Private key).
+. (Join-Path $ScriptRoot 'EnviarCorreu.ps1')
+
 # Carreguem l'eina "Controls periodics" (llistat d'activitats amb control
 # periodic a partir de l'Excel). Nomes defineix funcions; segur en headless.
 . (Join-Path $ScriptRoot 'ControlsPeriodics.ps1')

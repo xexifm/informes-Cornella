@@ -45,6 +45,7 @@ function Main {
             'editcataleg'    { Show-CatalegEditor -focusDoc ([string]$sel.Doc) }   # editor dels ESTRUCTURALS (xip del document)
             'convertirpdf'   { Invoke-ConvertirPdf }   # converteix una carpeta de Word a PDF (i signa)
             'emailtextos'    { Invoke-EmailTextos }    # edita els textos del correu del mobil
+            'enviarcorreu'   { Invoke-EnviarCorreu }   # obre la web del mobil precarregada per enviar el correu
             'llicencia'  { Invoke-LlicenciaWizard (_LlicFases) ('Llic' + [char]0x00E8 + 'ncia - Pas 1') }
             # MNS / Traspas: el MATEIX assistent, nomes que amb les seves fases.
             # Comparteixen capcalera, tramit i base de dades amb Llicencia.

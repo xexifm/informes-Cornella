@@ -1373,6 +1373,7 @@ function Select-Mode {
     $tiCal   = [System.Char]::ConvertFromUtf32(0x1F4C5)   # 📅
     $tiPdf   = [System.Char]::ConvertFromUtf32(0x1F4C4)   # 📄
     $tiMail  = [System.Char]::ConvertFromUtf32(0x1F4E7)   # 📧
+    $tiSend  = [System.Char]::ConvertFromUtf32(0x1F4E4)   # 📤
     $tiList  = [System.Char]::ConvertFromUtf32(0x1F4CA)   # 📊
     $tiMap   = [System.Char]::ConvertFromUtf32(0x1F5FA)   # 🗺
     # EINES: utilitats generals.
@@ -1400,6 +1401,7 @@ function Select-Mode {
     # MOBIL: eines de l'app del mobil.
     $mobil = @(
         @{ Emoji = $tiMail;  Label = 'Textos del correu'; Kind = 'action'; Action = 'emailtextos' }
+        @{ Emoji = $tiSend;  Label = 'Enviar correu';     Kind = 'action'; Action = 'enviarcorreu' }
         @{ Emoji = $tiInbox; Label = ('Revisar m' + [char]0x00F2 + 'bil'); Kind = 'action'; Action = 'revisarmobil' }
     )
     $fTileIco   = New-Object System.Drawing.Font('Segoe UI Emoji', 14, [System.Drawing.FontStyle]::Regular)
