@@ -288,5 +288,9 @@ function Offer-EnviarCorreu($docxPath) {
     $r = [System.Windows.Forms.MessageBox]::Show(
         "Vols enviar ara el correu de requeriments al titular?",
         'Enviar correu', 'YesNo', 'Question')
-    if ($r -eq 'Yes') { Send-CorreuPerDocx $docxPath }
+    if ($r -ne 'Yes') { return }
+    if ([string]::IsNullOrWhiteSpace([string]$docxPath) -or -not (Test-Path -LiteralPath $docxPath)) {
+        $docxPath = _LatestDocx
+    }
+    Send-CorreuPerDocx $docxPath
 }

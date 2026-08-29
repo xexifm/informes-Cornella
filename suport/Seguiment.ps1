@@ -1983,6 +1983,10 @@ function Invoke-SeguimentFlow {
 
         # Obrir el resultat amb l'app per defecte (Word), sense COM.
         try { Invoke-Item -LiteralPath $outPath } catch { }
+
+        # Oferir enviar el correu al titular (què s'ha aportat i què no ja hi és
+        # al document de seguiment; el correu el llegeix d'allà).
+        Offer-EnviarCorreu $outPath
     }
     catch {
         [System.Windows.Forms.MessageBox]::Show("Error: $($_.Exception.Message)", 'Error', 'OK', 'Error') | Out-Null

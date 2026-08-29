@@ -205,6 +205,10 @@ function Invoke-NouWizard {
                     # Obrim Word en primer pla per a l'usuari
                     $word.Visible = $true
                     $word.Documents.Open($outPath) | Out-Null
+
+                    # Oferir enviar el correu de requeriments (mateix EmailJS que el mobil).
+                    Offer-EnviarCorreu $outPath
+
                     $step = 99   # surt del bucle
                 }
             }
