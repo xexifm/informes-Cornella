@@ -550,39 +550,11 @@
       if (window.Drive && Drive.reconnectarSilenci) {
         Drive.reconnectarSilenci().then(function (ok) { if (ok) estatDrive(true); });
       }
-      // Precàrrega des del PC (eina "Enviar correu"): si la URL porta un informe
-      // (#c=...), el carreguem i anem directament a la pantalla d'enviar.
-      var pre = llegirInformePrecarregat();
-      if (pre) { precarregarInforme(pre).catch(function () { anarA(0); }); }
-      else { anarA(0); }
+      anarA(0);
     }).catch(function (e) {
       $("carregant").innerHTML = '<span class="error">Error carregant les dades: ' + e.message +
         "<br>Comprova que el PC hagi pujat les dades (Actualitzar.bat) i que GitHub Pages estigui actiu.</span>";
     });
-  }
-
-  // ------- Precàrrega d'un informe des del PC (eina "Enviar correu") ----------
-  // El PC obre aquesta web amb l'últim informe al fragment: #c=<json url-encoded>.
-  // El fragment queda al navegador (no s'envia al servidor).
-  function llegirInformePrecarregat() {
-    try {
-      var h = location.hash || "";
-      var m = h.match(/[#&]c=([^&]+)/);
-      if (!m) return null;
-      return JSON.parse(decodeURIComponent(m[1]));
-    } catch (e) { return null; }
-  }
-
-  function precarregarInforme(d) {
-    estat.cataleg = d.CatalegBaseName || (asArray(manifest.Catalegs)[0] || null);
-    estat.header = d.Header || {};
-    estat.keys = new Set(asArray(d.SelectedKeys));
-    estat.conclTitles = new Set(asArray(d.ConclusionTexts));
-    estat.fieldValues = d.FieldValues || {};
-    if (d.Header && d.Header.EMAIL) { $("in-destinatari").value = d.Header.EMAIL; }
-    // Netegem el fragment perquè no es repeteixi en recarregar.
-    try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
-    return muntarFinal().then(function () { anarA(PASSOS.indexOf("final")); });
   }
 
   // ------- Pas 1: catàleg -----------------------------------------------------

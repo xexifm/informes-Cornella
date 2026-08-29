@@ -39,3 +39,6 @@ BASE DE DADES ACT_EXTR/
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# Carpeta local (secrets del PC: Private key EmailJS, etc.). No es puja mai.
+local/
