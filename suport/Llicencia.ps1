@@ -345,12 +345,26 @@ function _LlicItemsAmbUbicacio($seccions) {
         $parts = ([string]$sec.Title) -split ' - ', 2
         $nomSec = if ($parts.Count -eq 2) { $parts[0].Trim() } else { [string]$sec.Title }
         $sub    = if ($parts.Count -eq 2) { $parts[1].Trim() } else { '' }
+        # Un text fix d'ABANS de la primera subseccio es de la SECCIO i sobreviu
+        # als canvis de subseccio; el de DINS d'una subseccio mor amb ella.
+        # Mateixa regla que Build-CatalegBlocs (MotorInforme.ps1), i pel mateix
+        # motiu: sense aixo, un text posat a la seccio no sortiria MAI.
         $intro = @()
+        $introSec = @()
+        $dinsSub = $false
         foreach ($el in @($sec.Items)) {
-            if ([string]$el.Kind -eq 'subsection') { $sub = [string]$el.Short; $intro = @(); continue }
-            if ([string]$el.Kind -eq 'intro')      { $intro = @($el.BodyLines); continue }
+            if ([string]$el.Kind -eq 'subsection') {
+                $sub = [string]$el.Short; $dinsSub = $true; $intro = @(); continue
+            }
+            if ([string]$el.Kind -eq 'intro') {
+                if ($dinsSub) { $intro = @($el.BodyLines) } else { $introSec = @($el.BodyLines) }
+                continue
+            }
             if ([string]$el.Kind -ne 'item') { continue }
-            [void]$out.Add(@{ Seccio = $nomSec; Subseccio = $sub; Intro = $intro; El = $el })
+            $deSec = (@($intro).Count -eq 0 -and @($introSec).Count -gt 0)
+            $lines = if (@($intro).Count -gt 0) { @($intro) } else { @($introSec) }
+            [void]$out.Add(@{ Seccio = $nomSec; Subseccio = $sub; Intro = $lines
+                              IntroDeSeccio = $deSec; El = $el })
         }
     }
     return $out.ToArray()
@@ -394,6 +408,7 @@ function _LlicPuntsPerBloc($llic, $idxReq1, [string]$bloc, $req1 = $null) {
                     Seccio    = [string]$u.Seccio
                     Subseccio = [string]$u.Subseccio
                     Intro     = @($u.Intro)
+                    IntroDeSeccio = [bool]$u.IntroDeSeccio
                     Titol     = [string]$el.Short
                     Condicio  = ''
                     Cos       = @($el.BodyLines)
@@ -449,6 +464,7 @@ function _LlicPuntsPerBloc($llic, $idxReq1, [string]$bloc, $req1 = $null) {
                     Clau      = [string]$ub.Clau
                     Seccio    = [string]$ub.Seccio
                     Intro     = @($(if ($null -ne $u) { $u.Intro } else { @() }))
+                    IntroDeSeccio = [bool]$(if ($null -ne $u) { $u.IntroDeSeccio } else { $false })
                     Subseccio = [string]$ub.Subseccio
                     Titol     = [string]$el.Short
                     Condicio  = [string]$it.condicio
@@ -998,27 +1014,11 @@ function _LlicMarca([int]$i, [string]$estil) {
 function _LlicEscriuPunts($sel, $punts, [ref]$n, $fields, [bool]$ambQuan, [string]$estil = 'numero') {
     $secAra = $null
     $subAra = $null
-    $introAra = $null
+    $introAra = $null      # intro d'una SUBSECCIO: es reinicia a cada grup
+    $introSecAra = $null   # intro de la SECCIO: nomes es reinicia amb la seccio
     foreach ($p in @($punts)) {
         $s  = [string]$p.Seccio
         $sb = [string]$p.Subseccio
-        if ($s -ne $secAra) {
-            if (-not [string]::IsNullOrWhiteSpace($s)) {
-                Format-Section $sel $s
-                Format-Aire $sel 'seccio'
-            }
-            $secAra = $s
-            $subAra = $null      # una seccio nova reinicia la subseccio...
-            $introAra = $null    # ...i l'intro pendent
-        }
-        if ($sb -ne $subAra) {
-            if (-not [string]::IsNullOrWhiteSpace($sb)) {
-                Format-Subsection $sel $sb
-                Format-Aire $sel 'subseccio'
-            }
-            $subAra = $sb
-            $introAra = $null    # grup nou: l'intro s'ha de tornar a escriure
-        }
         # L'INTRO SURT QUAN CANVIA, no quan canvia la subseccio: aixi surt amb el
         # PRIMER punt que s'escrigui del grup encara que no sigui el primer del
         # cataleg, i un grup amb dos intros els treu tots dos. Es la regla de
@@ -1028,7 +1028,35 @@ function _LlicEscriuPunts($sel, $punts, [ref]$n, $fields, [bool]$ambQuan, [strin
         # buida i llavors sortiria l'aire sense res al davant.
         $intro = @(@(Apply-FieldsToLines @($p.Intro) $fields) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
         $clauIntro = ($intro -join "`n")
-        if ($intro.Count -gt 0 -and $clauIntro -ne $introAra) {
+        $deSeccio = [bool]$p.IntroDeSeccio
+
+        if ($s -ne $secAra) {
+            if (-not [string]::IsNullOrWhiteSpace($s)) {
+                Format-Section $sel $s
+                Format-Aire $sel 'seccio'
+            }
+            $secAra = $s
+            $subAra = $null      # una seccio nova reinicia la subseccio...
+            $introAra = $null    # ...i les dues intros pendents
+            $introSecAra = $null
+        }
+        # L'intro de la SECCIO va ABANS del titol de la subseccio -com a REQ1- i
+        # NO es reescriu a cada subseccio: introdueix tota la seccio. Sense el
+        # tracker propi sortia tres vegades a Instal-lacions.
+        if ($deSeccio -and $intro.Count -gt 0 -and $clauIntro -ne $introSecAra) {
+            foreach ($l in $intro) { Write-Linia $sel ([string]$l) }
+            Format-Aire $sel 'intro'
+            $introSecAra = $clauIntro
+        }
+        if ($sb -ne $subAra) {
+            if (-not [string]::IsNullOrWhiteSpace($sb)) {
+                Format-Subsection $sel $sb
+                Format-Aire $sel 'subseccio'
+            }
+            $subAra = $sb
+            $introAra = $null    # grup nou: l'intro s'ha de tornar a escriure
+        }
+        if (-not $deSeccio -and $intro.Count -gt 0 -and $clauIntro -ne $introAra) {
             foreach ($l in $intro) { Write-Linia $sel ([string]$l) }
             Format-Aire $sel 'intro'
             $introAra = $clauIntro
@@ -2339,6 +2367,7 @@ function _LlicPuntsDeSeleccio($seleccio) {
         [void]$out.Add([pscustomobject]@{
             Clau = ''; Titol = [string]$it.Short; Condicio = ''
             Seccio = [string]$u.Seccio; Subseccio = [string]$u.Subseccio; Intro = @($u.Intro)
+            IntroDeSeccio = [bool]$u.IntroDeSeccio
             Cos = @($it.BodyLines); NoDisposa = @(); SiDisposa = @()
             Quan = @(); Subs = $subs.ToArray(); Estat = ''
         })

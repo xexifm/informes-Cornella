@@ -204,7 +204,14 @@ function _Ed_TipusOptions([string]$familia, [string]$parentTipus) {
             if ([string]::IsNullOrEmpty($parentTipus)) { return @('seccio') }
             switch ($parentTipus) {
                 'seccio'    { return @('item', 'subseccio', 'text') }
-                'subseccio' { return @('item') }
+                # DINS D'UNA SUBSECCIO TAMBE HI POT ANAR UN TEXT FIX, i de fet
+                # n'hi ha (l'intro de "Documentacio (ITC SP)"): el lector els
+                # llegeix -_EmitCatalegItem baixa pels fills de la subseccio-,
+                # pero aqui nomes s'oferia 'item' i per tant el combo sortia
+                # BLOQUEJAT i no es podia ni crear ni desfer des del programa.
+                'subseccio' { return @('item', 'text') }
+                # Els fills d'un item els emet el lector SEMPRE com a subitem
+                # (pic), digui el que digui el tipus: oferir-ne mes seria mentir.
                 'item'      { return @('subitem') }
             }
             return @('item')
@@ -687,6 +694,94 @@ function _Ed_MoveNode($state, [int]$delta) {
     _Ed_SelectModelNode $state $node
 }
 
+# ---- Canviar de NIVELL un node (treure'l / ficar-lo dins) ------------------
+# L'editor deixava moure amunt i avall pero MAI canviar de nivell, i el combo del
+# Tipus surt bloquejat quan el pare nomes n'admet un (un item dins d'una
+# subseccio, un subitem dins d'un item...). Resultat: per passar un text de dins
+# d'una subseccio a la seccio calia editar el JSON a ma. Aixo son les dues
+# operacions que hi faltaven, les de qualsevol esquema: TREURE del pare i FICAR
+# dins del germa de sobre.
+
+# El PARE d'un node dins del model: @{ Llista; Index; Pare }, on 'Llista' es la
+# llista de germans que el conte, 'Index' la seva posicio i 'Pare' el node pare
+# ($null si es d'arrel). $null si no hi es. Funcio PURA (recursiva).
+# Retorna UN hashtable -no una col-leccio-, aixi que no pateix el desenrotllat
+# del pipeline que ha mossegat altres funcions d'aquest projecte.
+function _Ed_TrobaPare($llista, $node, $pare = $null) {
+    $l = @($llista)
+    for ($i = 0; $i -lt $l.Count; $i++) {
+        if ([object]::ReferenceEquals($l[$i], $node)) {
+            return @{ Llista = $llista; Index = $i; Pare = $pare }
+        }
+        $r = _Ed_TrobaPare $l[$i].fills $node $l[$i]
+        if ($null -ne $r) { return $r }
+    }
+    return $null
+}
+
+# El tipus que li toca a un node en canviar de pare: es queda el seu si alli es
+# valid, i si no, el primer que admeti el pare nou. Funcio PURA.
+function _Ed_TipusEnMoure([string]$familia, [string]$parentTipus, [string]$tipusActual) {
+    $opts = @(_Ed_TipusOptions $familia $parentTipus)
+    if ($opts -contains $tipusActual) { return $tipusActual }
+    return $opts[0]
+}
+
+# MOU un node de nivell dins del MODEL. Funcio PURA (nomes toca el model) i per
+# tant provable sense Windows; la interficie nomes hi posa el missatge.
+#   -1 = TREURE: surt del seu pare i queda just despres d'ell.
+#   +1 = FICAR : entra dins del germa que te just a sobre, com a ultim fill.
+# Retorna @{ Ok; Motiu } -Motiu buit si Ok-, mai llanca.
+function _Ed_MouNivell($model, $node, [int]$direccio) {
+    if ($null -eq $model -or $null -eq $node) { return @{ Ok = $false; Motiu = 'no hi ha node' } }
+    $p = _Ed_TrobaPare $model.nodes $node
+    if ($null -eq $p) { return @{ Ok = $false; Motiu = 'no hi ha node' } }
+    $fam = [string]$model.familia
+
+    if ($direccio -lt 0) {
+        if ($null -eq $p.Pare) {
+            return @{ Ok = $false; Motiu = ('Aquest node ja ' + [char]0x00E9 + 's del primer nivell.') }
+        }
+        $gp = _Ed_TrobaPare $model.nodes $p.Pare
+        if ($null -eq $gp) { return @{ Ok = $false; Motiu = 'no hi ha node' } }
+        $avi = if ($null -ne $gp.Pare) { [string]$gp.Pare.tipus } else { '' }
+        $node.tipus = _Ed_TipusEnMoure $fam $avi ([string]$node.tipus)
+        [void]$p.Llista.RemoveAt($p.Index)
+        $gp.Llista.Insert($gp.Index + 1, $node)
+        return @{ Ok = $true; Motiu = '' }
+    }
+
+    if ($p.Index -le 0) {
+        return @{ Ok = $false; Motiu = 'No hi ha cap node a sobre on ficar-lo.' }
+    }
+    $nouPare = @($p.Llista)[$p.Index - 1]
+    if (-not (_Ed_CanAddChild $fam $nouPare)) {
+        return @{ Ok = $false; Motiu = 'El node de sobre no pot tenir fills.' }
+    }
+    $node.tipus = _Ed_TipusEnMoure $fam ([string]$nouPare.tipus) ([string]$node.tipus)
+    [void]$p.Llista.RemoveAt($p.Index)
+    [void]$nouPare.fills.Add($node)
+    return @{ Ok = $true; Motiu = '' }
+}
+
+# Embolcall d'interficie: mou i, si no es pot, diu per que.
+function _Ed_CanviaNivell($state, [int]$direccio) {
+    _Ed_FlushEditor $state
+    $tag = $state.Bound
+    if ($null -eq $tag -or $tag.Kind -eq 'intro') { return }
+    $node = $tag.Node
+    $r = _Ed_MouNivell $state.Model $node $direccio
+    if (-not $r.Ok) {
+        if ([string]$r.Motiu -ne 'no hi ha node') {
+            [System.Windows.Forms.MessageBox]::Show([string]$r.Motiu, 'Editar catalegs', 'OK', 'Information') | Out-Null
+        }
+        return
+    }
+    $state.Dirty = $true
+    _Ed_BuildTree $state
+    _Ed_SelectModelNode $state $node
+}
+
 # ---- Carrega / desa document ----------------------------------------------
 function _Ed_LoadDoc($state, $doc) {
     $o = Get-Content -LiteralPath $doc.Path -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -707,6 +802,32 @@ function _Ed_LoadDoc($state, $doc) {
     }
 }
 
+# Refa les VISTES en Word dels catalegs EN SEGON PLA, en un proces a part.
+#
+# PER QUE NO ES FA EN DESAR: obrir el Word i redibuixar un cataleg sencer per
+# COM son centenars de crides -amb REQ1, 10-15 segons-, i es feia a CADA desat.
+# La vista es un .docx DERIVAT (nomes serveix per consultar el cataleg fora del
+# programa); el que compta, el JSON, ja s'ha escrit quan s'arriba aqui.
+#
+# Es llanca 'GeneraVistes.ps1', que ja mira quins JSON son mes nous que la seva
+# vista (_VistaCalRegenerar): per tant refa NOMES el que s'acaba de desar. Si
+# falla o no hi ha Word, no passa res: l'Actualitzar.bat les torna a mirar.
+#
+# LES COMETES LES POSEM NOSALTRES: a PowerShell 5.1 Start-Process -ArgumentList
+# NO enquota els elements, i el clone de l'usuari te espais a la ruta (vegeu
+# _ArgvToCommandLine a PdfSignar.ps1, mateixa trampa).
+function _Ed_RefrescaVistes {
+    try {
+        $script = [System.IO.Path]::Combine($ScriptRoot, 'GeneraVistes.ps1')
+        if (-not (Test-Path -LiteralPath $script)) { return $false }
+        # $args NO: es una variable AUTOMATICA de PowerShell (els arguments de
+        # la funcio) i assignar-la dins d'una funcio es demanar problemes.
+        $argv = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"' + $script + '"'))
+        Start-Process -FilePath 'powershell.exe' -ArgumentList $argv -WindowStyle Hidden | Out-Null
+        return $true
+    } catch { return $false }
+}
+
 function _Ed_SaveDoc($state) {
     _Ed_FlushEditor $state
     $doc = $state.CurrentDoc
@@ -714,42 +835,37 @@ function _Ed_SaveDoc($state) {
     $obj = _Ed_ModelToJson $state.Model
     $json = $obj | ConvertTo-Json -Depth 40
 
-    # Validacio: escriu a temporal i comprova que el lector corresponent no peta.
-    $tmp = [System.IO.Path]::GetTempFileName()
+    # Validacio: passa el JSON pel lector corresponent i comprova que no peta.
+    # Es parseja UN SOL COP i se li dona l'objecte: abans s'escrivia a un fitxer
+    # temporal i el lector el tornava a llegir del disc, que en un cataleg de mig
+    # mega son uns quants segons a cada desat i no aportaven res.
     try {
-        [System.IO.File]::WriteAllText($tmp, $json, (New-Object System.Text.UTF8Encoding($false)))
+        $parsed = $json | ConvertFrom-Json
         switch ([string]$state.Model.familia) {
-            'cataleg'     { [void](Read-CatalegJson $tmp) }
-            'conclusions' { [void](Read-ConclusionsJson $tmp '') }
-            'actextr'     { [void](Read-ActExtrRecordsJson $tmp) }
+            'cataleg'     { [void](Read-CatalegJson $parsed) }
+            'conclusions' { [void](Read-ConclusionsJson $parsed '') }
+            'actextr'     { [void](Read-ActExtrRecordsJson $parsed) }
         }
     } catch {
-        Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
         [System.Windows.Forms.MessageBox]::Show("No s'ha desat: el document no es valid.`n`n$($_.Exception.Message)", 'Editar catalegs', 'OK', 'Error') | Out-Null
         return
     }
-    Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
 
     try {
         if (Test-Path -LiteralPath $doc.Path) { Copy-Item -LiteralPath $doc.Path -Destination ($doc.Path + '.bak') -Force }
         [System.IO.File]::WriteAllText($doc.Path, $json, (New-Object System.Text.UTF8Encoding($false)))
         $state.Dirty = $false
-        # Refresquem la VISTA en Word del cataleg (el .docx del mateix nom), que
-        # serveix per consultar-lo sense obrir el programa. Si no hi ha Word, no
-        # passa res: el desat del JSON (que es el que compta) ja s'ha fet.
+        # LA VISTA EN WORD NO ES REFA AQUI, i es el motiu que desar trigues
+        # 10-15 segons: obrir el Word i redibuixar el cataleg sencer per COM son
+        # centenars de crides, i es feia a CADA desat. El JSON -que es l'unica
+        # cosa de la qual depen la generacio- ja esta escrit; la vista es un
+        # .docx de consulta, derivat, i es pot refer despres.
+        # Es marca com a PENDENT i es refa en SEGON PLA en tancar l'editor
+        # (_Ed_RefrescaVistes). Si no arriba a passar, l'Actualitzar.bat les
+        # regenera igualment al pas 4b: _VistaCalRegenerar mira si el JSON es
+        # mes nou que el .docx.
+        $state.VistaPendent = $true
         $avisVista = ''
-        try {
-            $w = $null
-            try { $w = New-Object -ComObject Word.Application } catch { $w = $null }
-            if ($null -ne $w) {
-                $w.Visible = $false
-                try { $w.DisplayAlerts = 0 } catch { }
-                try { [void](Export-VistaWord $w $doc.Path) } finally {
-                    try { $w.Quit() } catch { }
-                    try { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($w) | Out-Null } catch { }
-                }
-            }
-        } catch { $avisVista = "`n`n(No s'ha pogut refrescar la vista en Word: $($_.Exception.Message))" }
         # LA CAPCALERA, a mes, cap al .docx: el JSON nomes en porta el TEXT i qui
         # genera els informes es el document (escut, taula, tabulacions). Es fa
         # amb edicions de TEXT sobre word/document.xml -mai amb un serialitzador
@@ -799,7 +915,7 @@ function Show-CatalegEditor([string]$focusDoc = '') {
     $state = @{
         Model = $null; CurrentDoc = $null; Bound = $null; Dirty = $false; Busy = $false
         Tree = $null; TitolBox = $null; TipusCombo = $null; ClauLabel = $null; ClauBox = $null
-        Rtb = $null; RtbFont = $baseRtbFont
+        Rtb = $null; RtbFont = $baseRtbFont; TipusNota = $null; VistaPendent = $false
     }
 
     $yTop = 66
@@ -849,6 +965,9 @@ function Show-CatalegEditor([string]$focusDoc = '') {
     $btnDel    = & $mkStructBtn 'Eliminar'  180 $yStruct 90
     $btnUp     = & $mkStructBtn ([char]0x2191 + ' Pujar')  16 ($yStruct + 34) 120
     $btnDown   = & $mkStructBtn ([char]0x2193 + ' Baixar') 140 ($yStruct + 34) 120
+    # Canviar de NIVELL: treure el node del seu pare o ficar-lo dins del de sobre.
+    $btnOut    = & $mkStructBtn ([char]0x2190 + ' Treure')  16 ($yStruct + 68) 120
+    $btnIn     = & $mkStructBtn ([char]0x2192 + ' Ficar')  140 ($yStruct + 68) 120
 
     # Editor de la dreta: titol.
     $xR = 396
@@ -878,6 +997,22 @@ function Show-CatalegEditor([string]$focusDoc = '') {
     $cbMar.Size = New-Object System.Drawing.Size(160, 26)
     [void]$form.Controls.Add($cbMar)
     $state.TipusCombo = $cbMar
+
+    # El combo surt BLOQUEJAT quan el pare nomes admet un tipus (un item dins
+    # d'una subseccio, un subitem dins d'un item). Aixo desconcertava -"no em
+    # deixa canviar-ho"- perque no deia ni per que ni que hi ha una sortida:
+    # canviar-lo de NIVELL amb els botons de sota l'arbre.
+    $tip = New-Object System.Windows.Forms.ToolTip
+    $tip.AutoPopDelay = 12000
+    $txtTip = 'El tipus dep' + [char]0x00E8 + 'n d' + [char]0x2019 + 'on ' +
+              [char]0x00E9 + 's el node. Si nom' + [char]0x00E9 + 's hi ha una opci' +
+              [char]0x00F3 + ', canvia' + [char]0x2019 + 'l de nivell amb ' +
+              [char]0x2190 + ' Treure / ' + [char]0x2192 + ' Ficar.'
+    $tip.SetToolTip($cbMar, $txtTip)
+    $tip.SetToolTip($btnOut, ('Treu el node del seu pare i el deixa al nivell de sobre, just despr' +
+                              [char]0x00E9 + 's d' + [char]0x2019 + 'ell.'))
+    $tip.SetToolTip($btnIn, ('Fica el node dins del que t' + [char]0x00E9 +
+                             ' just a sobre, com a ' + [char]0x00FA + 'ltim fill.'))
 
     # Clau (nomes ACT_EXTR): la [[KEY]] funcional, BLOQUEJADA (nomes lectura).
     $lblClau = New-Object System.Windows.Forms.Label
@@ -989,6 +1124,8 @@ function Show-CatalegEditor([string]$focusDoc = '') {
     $btnDel.add_Click({ _Ed_DeleteNode $state }.GetNewClosure())
     $btnUp.add_Click({ _Ed_MoveNode $state -1 }.GetNewClosure())
     $btnDown.add_Click({ _Ed_MoveNode $state 1 }.GetNewClosure())
+    $btnOut.add_Click({ _Ed_CanviaNivell $state -1 }.GetNewClosure())
+    $btnIn.add_Click({ _Ed_CanviaNivell $state 1 }.GetNewClosure())
     $btnSave.add_Click({ _Ed_SaveDoc $state }.GetNewClosure())
     # Nomes tanca: el FormClosing ja demana si cal desar (evitem doble pregunta).
     $btnBack.add_Click({ $form.Close() }.GetNewClosure())
@@ -1024,4 +1161,7 @@ function Show-CatalegEditor([string]$focusDoc = '') {
 
     [void]$form.ShowDialog()
     $form.Dispose()
+    # La vista en Word dels catalegs desats es refa ARA i en segon pla: obrir el
+    # Word es el que feia que desar trigues 10-15 segons.
+    if ($state.VistaPendent) { _Ed_RefrescaVistes }
 }

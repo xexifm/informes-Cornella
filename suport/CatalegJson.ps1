@@ -54,9 +54,17 @@ function _JsonParaToBodyLine($p) {
     return $line
 }
 
-# Llegeix i cacheja el JSON d'un ESTRUCTURAL.
-function _LoadEstructuralJson($jsonPath) {
-    return (Get-Content -LiteralPath $jsonPath -Raw -Encoding UTF8 | ConvertFrom-Json)
+# Llegeix el JSON d'un ESTRUCTURAL.
+#
+# Accepta una RUTA o un objecte JA PARSEJAT (el que torna ConvertFrom-Json).
+# L'editor valida el que acaba de serialitzar cridant el lector: amb la ruta
+# calia escriure'l a un temporal i tornar-lo a llegir del disc, i en un cataleg
+# de mig mega aquell viatge d'anada i tornada es de segons a cada desat.
+function _LoadEstructuralJson($json) {
+    if ($json -is [string]) {
+        return (Get-Content -LiteralPath $json -Raw -Encoding UTF8 | ConvertFrom-Json)
+    }
+    return $json
 }
 
 # ----------------------------------------------------------------------------
@@ -103,8 +111,8 @@ function _EmitCatalegItem($node, $items) {
 }
 
 # Llegeix un cataleg i retorna el model que espera el motor.
-function Read-CatalegJson($jsonPath) {
-    $o = _LoadEstructuralJson $jsonPath
+function Read-CatalegJson($json) {
+    $o = _LoadEstructuralJson $json
     $sections = New-Object System.Collections.ArrayList
     foreach ($sec in @($o.nodes)) {
         $items = New-Object System.Collections.ArrayList
@@ -126,8 +134,8 @@ function Read-CatalegJson($jsonPath) {
 # ----------------------------------------------------------------------------
 # CONCLUSIONS -> model del motor (HeaderText; Selectable; Always)
 # ----------------------------------------------------------------------------
-function Read-ConclusionsJson($jsonPath, $reportType = $null) {
-    $o = _LoadEstructuralJson $jsonPath
+function Read-ConclusionsJson($json, $reportType = $null) {
+    $o = _LoadEstructuralJson $json
     $want = if ([string]::IsNullOrWhiteSpace($reportType)) { '' } else { _NormalizeText $reportType }
 
     $selectable = New-Object System.Collections.ArrayList
@@ -189,8 +197,8 @@ function _EmitActExtrRecords($node, $records) {
     foreach ($ch in @($node.fills)) { _EmitActExtrRecords $ch $records }
 }
 
-function Read-ActExtrRecordsJson($jsonPath) {
-    $o = _LoadEstructuralJson $jsonPath
+function Read-ActExtrRecordsJson($json) {
+    $o = _LoadEstructuralJson $json
     $records = New-Object System.Collections.ArrayList
     foreach ($sec in @($o.nodes)) {
         [void]$records.Add(@{ Text = [string]$sec.titol; Style = 'h1' })

@@ -1294,8 +1294,60 @@ AssertEq (_JsonParaToBodyLine @($cosBack)[0]) 'Text **fort** i //inclinat//' '_E
 # Tipus per familia i pare (vocabulari unificat).
 AssertEq (@(_Ed_TipusOptions 'cataleg' '') -join ',') 'seccio' '_Ed_TipusOptions cataleg arrel -> seccio'
 AssertEq (@(_Ed_TipusOptions 'cataleg' 'seccio') -join ',') 'item,subseccio,text' '_Ed_TipusOptions cataleg sota seccio'
-AssertEq (@(_Ed_TipusOptions 'cataleg' 'subseccio') -join ',') 'item' '_Ed_TipusOptions cataleg sota subseccio -> item'
+# Dins d'una subseccio hi pot anar un TEXT FIX (n'hi ha a REQ1: l'intro de
+# "Documentacio (ITC SP)"). Abans nomes s'oferia 'item' i, com que el combo del
+# Tipus es bloqueja quan nomes hi ha una opcio, des de l'editor no es podia ni
+# crear ni desfer una cosa que el lector si que llegeix.
+AssertEq (@(_Ed_TipusOptions 'cataleg' 'subseccio') -join ',') 'item,text' '_Ed_TipusOptions cataleg sota subseccio -> item i text'
 AssertEq (@(_Ed_TipusOptions 'cataleg' 'item') -join ',') 'subitem' '_Ed_TipusOptions cataleg sota item -> subitem'
+
+# --- Canviar de NIVELL un node (Treure / Ficar) ------------------------------
+$mvModel = @{
+    familia = 'cataleg'
+    intro = (New-Object System.Collections.ArrayList)
+    nodes = (New-Object System.Collections.ArrayList)
+}
+$mvSec = @{ tipus='seccio'; titol='S'; clau=''; cos=(New-Object System.Collections.ArrayList); fills=(New-Object System.Collections.ArrayList) }
+$mvSub = @{ tipus='subseccio'; titol='Sub'; clau=''; cos=(New-Object System.Collections.ArrayList); fills=(New-Object System.Collections.ArrayList) }
+$mvTxt = @{ tipus='text'; titol=''; clau=''; cos=(New-Object System.Collections.ArrayList); fills=(New-Object System.Collections.ArrayList) }
+$mvIt  = @{ tipus='item'; titol='I'; clau=''; cos=(New-Object System.Collections.ArrayList); fills=(New-Object System.Collections.ArrayList) }
+[void]$mvModel.nodes.Add($mvSec)
+[void]$mvSec.fills.Add($mvSub)
+[void]$mvSub.fills.Add($mvTxt)
+[void]$mvSub.fills.Add($mvIt)
+
+$mvP = _Ed_TrobaPare $mvModel.nodes $mvTxt
+Assert ($null -ne $mvP) '_Ed_TrobaPare troba un node imbricat'
+AssertEq ([string]$mvP.Pare.titol) 'Sub' '_Ed_TrobaPare: el pare es la subseccio'
+AssertEq ([string]$mvP.Index) '0' '_Ed_TrobaPare: la posicio dins dels germans'
+AssertEq ([string](_Ed_TrobaPare $mvModel.nodes $mvSec).Pare) '' '_Ed_TrobaPare: un node d arrel no te pare'
+Assert ($null -eq (_Ed_TrobaPare $mvModel.nodes @{ tipus='item' })) '_Ed_TrobaPare: un node que no hi es -> null'
+
+AssertEq (_Ed_TipusEnMoure 'cataleg' 'seccio' 'text') 'text' '_Ed_TipusEnMoure: si el tipus val al pare nou, es queda'
+AssertEq (_Ed_TipusEnMoure 'cataleg' 'item' 'text') 'subitem' '_Ed_TipusEnMoure: si no val, el primer del pare nou'
+
+# TREURE: el text fix surt de la subseccio i queda a la seccio, just despres.
+# Es EXACTAMENT el moviment que calia per posar l'article 4 de l'Ordenanca a la
+# seccio Instal-lacions i que no es podia fer des de l'editor.
+$mvR = _Ed_MouNivell $mvModel $mvTxt -1
+Assert ([bool]$mvR.Ok) '_Ed_MouNivell treure: es pot'
+AssertEq ([string]$mvSub.fills.Count) '1' '_Ed_MouNivell treure: surt de la subseccio'
+AssertEq ([string]$mvSec.fills.Count) '2' '_Ed_MouNivell treure: entra a la seccio'
+Assert ([object]::ReferenceEquals($mvSec.fills[1], $mvTxt)) '_Ed_MouNivell treure: queda DESPRES del pare'
+AssertEq ([string]$mvTxt.tipus) 'text' '_Ed_MouNivell treure: el tipus segueix valent a la seccio'
+
+# I torna a entrar: FICAR el posa dins del germa de sobre (la subseccio).
+$mvR2 = _Ed_MouNivell $mvModel $mvTxt 1
+Assert ([bool]$mvR2.Ok) '_Ed_MouNivell ficar: es pot'
+AssertEq ([string]$mvSec.fills.Count) '1' '_Ed_MouNivell ficar: surt de la seccio'
+AssertEq ([string]$mvSub.fills.Count) '2' '_Ed_MouNivell ficar: torna a la subseccio'
+
+# Un node d'arrel no es pot treure mes, i el primer germa no te on ficar-se.
+$mvR3 = _Ed_MouNivell $mvModel $mvSec -1
+Assert (-not [bool]$mvR3.Ok) '_Ed_MouNivell: un node d arrel no es pot treure'
+Assert ([string]$mvR3.Motiu -ne '') '_Ed_MouNivell: i diu per que'
+$mvR4 = _Ed_MouNivell $mvModel $mvSub 1
+Assert (-not [bool]$mvR4.Ok) '_Ed_MouNivell: el primer germa no te on ficar-se'
 AssertEq (@(_Ed_TipusOptions 'conclusions' '') -join ',') 'seccio,sempre' '_Ed_TipusOptions conclusions arrel'
 AssertEq (@(_Ed_TipusOptions 'conclusions' 'seccio') -join ',') 'item' '_Ed_TipusOptions conclusions sota seccio -> item'
 AssertEq (@(_Ed_TipusOptions 'actextr' '') -join ',') 'seccio' '_Ed_TipusOptions actextr arrel -> seccio'

@@ -235,27 +235,36 @@ function _VistaLlicencia($sel, [string]$jsonPath) {
         $seccioAra = $null
         $subAra = $null
         $introAra = $null
+        $introSecAra = $null
         $n = 0
         foreach ($p in @($r.Punts)) {
             $sec = [string]$p.Seccio
             $sub = [string]$p.Subseccio
+            # EL TEXT FIX, igual que a l'informe: surt quan CANVIA, o sigui amb
+            # el primer punt del grup que s'escrigui. La vista ha d'ensenyar el
+            # mateix que el document. El de la SECCIO va abans del titol de la
+            # subseccio i NO es repeteix a cada subseccio (vegeu _LlicEscriuPunts).
+            $introV = @(@($p.Intro) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
+            $clauV = ($introV -join "`n")
+            $deSeccio = [bool]$p.IntroDeSeccio
             if ($sec -ne $seccioAra) {
                 if ($sec) { _VSection $sel $sec; _VAire $sel 'seccio' }
                 $seccioAra = $sec
                 $subAra = $null
                 $introAra = $null
+                $introSecAra = $null
+            }
+            if ($deSeccio -and $introV.Count -gt 0 -and $clauV -ne $introSecAra) {
+                foreach ($l in $introV) { _VLine $sel ([string]$l) }
+                _VAire $sel 'intro'
+                $introSecAra = $clauV
             }
             if ($sub -ne $subAra) {
                 if ($sub) { _VSubsection $sel $sub; _VAire $sel 'subseccio' }
                 $subAra = $sub
                 $introAra = $null
             }
-            # EL TEXT FIX DE LA SUBSECCIO, igual que a l'informe: surt quan
-            # CANVIA, o sigui amb el primer punt del grup que s'escrigui. La
-            # vista ha d'ensenyar el mateix que el document.
-            $introV = @(@($p.Intro) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
-            $clauV = ($introV -join "`n")
-            if ($introV.Count -gt 0 -and $clauV -ne $introAra) {
+            if (-not $deSeccio -and $introV.Count -gt 0 -and $clauV -ne $introAra) {
                 foreach ($l in $introV) { _VLine $sel ([string]$l) }
                 _VAire $sel 'intro'
                 $introAra = $clauV

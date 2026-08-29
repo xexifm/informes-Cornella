@@ -2313,6 +2313,74 @@ els grups que aquella família porta de debò** (`$grupsLlicTF`). Validat inject
 el defecte original —que l'intro no s'emeti— i comprovant que torna a donar
 6 FAIL a les tres fases de Llicència.
 
+## Un TEXT FIX pot ser de la SECCIÓ, no només de la subsecció
+
+Ve d'una petició senzilla —moure l'intro de l'article 4 de dins de
+`Legalitzacions` a la secció `Instal·lacions`, perquè ara parla també de les
+inspeccions— i va destapar que **el text hauria desaparegut de tots els
+informes**.
+
+- La regla d'abans era: «una subsecció nova invalida l'intro pendent»
+  (`Build-CatalegBlocs`). Serveix perquè l'intro de la subsecció A no surti sobre
+  els ítems de la B. Però un intro posat a la **secció** queda abans del primer
+  marcador de subsecció, i els seus ítems pengen de les subseccions: el primer
+  `SUB` se l'enduia i **no sortia mai**.
+- Ara es distingeixen els dos casos: **abans de la primera subsecció = de la
+  secció** (sobreviu als canvis de subsecció, surt UN sol cop i **abans** del
+  títol de la subsecció); **dins d'una subsecció = d'aquella subsecció** (mor amb
+  ella, com sempre).
+- **La mateixa regla és a TRES llocs** i s'han de tocar els tres:
+  `Build-CatalegBlocs` (`MotorInforme.ps1`), `_LlicItemsAmbUbicacio` +
+  `_LlicEscriuPunts` (`Llicencia.ps1`) i `_VistaLlicencia` (`VistaWord.ps1`).
+  A Llicència l'intro viatja dins del punt (`Intro`), o sigui que cal el camp
+  **`IntroDeSeccio`** —i copiar-lo als **tres** llocs que munten el registre del
+  punt, que és on em vaig deixar dos i el text sortia **tres vegades**, una per
+  subsecció.
+- **Ho va enxampar el fitxer d'or i res més.** La suite no baixava; simplement el
+  paràgraf no hi era. És el defecte típic d'aquest projecte: no falla, empitjora
+  en silenci.
+
+## L'editor de catàlegs: desar era lent i el Tipus estava bloquejat
+
+Dues queixes de l'usuari, i totes dues tenien la mateixa arrel —fer feina cara al
+lloc equivocat.
+
+- **Desar trigava 10-15 segons** perquè `_Ed_SaveDoc` obria el **Word** i
+  redibuixava el catàleg sencer per COM **a cada desat**. Mesurat: el JSON
+  (model→objecte→text→validació) són ~350 ms en pwsh 7; la resta és Word.
+  - Ara la vista es marca **pendent** (`$state.VistaPendent`) i es refà **en
+    segon pla en tancar l'editor** (`_Ed_RefrescaVistes` llança
+    `GeneraVistes.ps1` amb `Start-Process -WindowStyle Hidden`). Com que
+    `Invoke-ExportarVistesWord` ja mira quins JSON són més nous que la seva vista
+    (`_VistaCalRegenerar`), refà **només** el que s'acaba de desar; i si no arriba
+    a passar, l'`Actualitzar.bat` les torna a mirar al pas 4b.
+  - **`GeneraVistes.ps1` té ara un mutex** (`Global\InformesCornella.GeneraVistes`):
+    ara el poden llançar l'editor i l'`Actualitzar.bat`, i **dos processos
+    conduint el Word alhora** (`Documents.Add` + `SaveAs`) és la manera de treure
+    una vista a mitges. Espera fins a 2 minuts; corre en segon pla i no bloqueja
+    ningú.
+  - **Les cometes les posem nosaltres** al `-File`: `Start-Process
+    -ArgumentList` no enquota (la trampa de sempre) i el clone té espais.
+  - La validació ja no escriu cap fitxer temporal: `_LoadEstructuralJson` accepta
+    **una ruta o un objecte ja parsejat**, i l'editor li passa el que acaba de
+    serialitzar. S'estalvia un `ConvertFrom-Json` sencer del fitxer.
+- **El desplegable «Tipus» sortia bloquejat** sempre que el pare només admetia un
+  tipus (un ítem dins d'una subsecció, un subítem dins d'un ítem). Dues coses:
+  1. `_Ed_TipusOptions 'cataleg' 'subseccio'` només oferia `item`, però el lector
+     **sí** que llegeix un `text` dins d'una subsecció (n'hi ha un a REQ1). Ara
+     ofereix `item, text` i el combo es desbloqueja allà.
+  2. El que faltava de debò era **canviar de nivell**: `← Treure` i `→ Ficar`
+     (sota l'arbre) treuen el node del seu pare o el fiquen dins del germà de
+     sobre, ajustant-ne el tipus (`_Ed_TipusEnMoure`). És el moviment que calia
+     per fer el canvi de la secció anterior i que obligava a editar el JSON a mà.
+  - La feina va a `_Ed_MouNivell`, **pura** (només toca el model) i provada sense
+    Windows; `_Ed_CanviaNivell` només hi posa el missatge. `_Ed_TrobaPare`
+    retorna **un hashtable**, no una col·lecció, per no caure al desenrotllat del
+    pipeline.
+  - El combo porta un **tooltip** que diu per què està bloquejat i on és la
+    sortida: bloquejar un control sense explicar-ho és el que feia que semblés
+    que el programa no deixava fer-hi res.
+
 ## Plànol públic d'activitats precintades
 - `suport/rutes/Precintades.ps1` genera `docs/dades/precintades.json` a partir
   de l'Excel d'activitats (fulla "Estès"): les activitats amb el camp lliure

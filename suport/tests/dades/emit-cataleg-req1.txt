@@ -61,10 +61,10 @@ URL|https://www.gencat.cat/mediamb/ohec/eac_CA.pdf
 AIRE|item
 SECT|Instal·lacions
 AIRE|seccio
-SUB|Legalitzacions
-AIRE|subseccio
 BODY|Segons l’article 4 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha de presentar el certificat d’inscripció al Registre d'instal·lacions de Seguretat Industrial de Catalunya (RITSIC) de totes les instal·lacions que conformin l’activitat a nom del titular de l’activitat o el propietari de l’establiment, i també les inspeccions inicials o periòdiques estipulades per la normativa vigent:
 AIRE|intro
+SUB|Certificats d'inscripció en el RITSIC
+AIRE|subseccio
 ITEM|15.|Instal·lació d’autoconsum (fotovoltaica)
 URL|https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/03_energia/Autoconsum/
 AIRE|item

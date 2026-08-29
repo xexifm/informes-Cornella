@@ -253,8 +253,8 @@ BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
 ITEM|21.|Vector Sòl. L’activitat està inclosa dins l’Annex I del //Real Decreto 9/2005, de 14 de enero, por el que se establece la relación de actividades potencialmente contaminantes del suelo y los criterios y estándares para la declaración de suelos contaminados//. S’ha de presentar l’informe de situació periòdic coincidint amb el termini de revisió de la llicència o, en defecte, cada 10 anys.
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.
 SECT|Instal·lacions
-SUB|Legalitzacions
 BODY|Segons l’article 4 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha de presentar el certificat d’inscripció al Registre d'instal·lacions de Seguretat Industrial de Catalunya (RITSIC) de totes les instal·lacions que conformin l’activitat a nom del titular de l’activitat o el propietari de l’establiment, i també les inspeccions inicials o periòdiques estipulades per la normativa vigent:
+SUB|Certificats d'inscripció en el RITSIC
 ITEM|22.|Instal·lació d’autoconsum (fotovoltaica)
 URL|https://canalempresa.gencat.cat/ca/03_sectors_d_activitat/03_energia/Autoconsum/
 BODY/CH|//[Quan]// Abans d’iniciar l’activitat.

@@ -368,16 +368,46 @@ function Build-CatalegBlocs($seccions, $fields, [string]$introText, [bool]$esCos
         # Les subseccions i les intros s'emeten TARD: nomes quan ve un item de
         # debo que les segueix. Si una seccio te 3 subseccions i nomes s'ha
         # triat un item de la tercera, no han de sortir les dues primeres
-        # buides. Una subseccio nova invalida l'intro pendent.
+        # buides.
+        #
+        # UN TEXT FIX ES DE LA SECCIO O DE LA SUBSECCIO, SEGONS ON ESTIGUI.
+        # Abans, QUALSEVOL subseccio invalidava l'intro pendent. Amb aixo, un
+        # text posat a la SECCIO -abans de la primera subseccio- no sortia MAI:
+        # els seus items pengen de les subseccions, i el primer marcador de
+        # subseccio ja se l'havia endut. Va passar de debo en moure el text de
+        # l'article 4 de l'Ordenanca de dins de "Certificats d'inscripcio en el
+        # RITSIC" a la seccio "Instal-lacions", que es on toca perque parla
+        # tambe de les inspeccions: el text va DESAPAREIXER de tots els
+        # informes, i nomes es va veure al fitxer d'or.
+        #   - intro d'ABANS de la primera subseccio -> es de la SECCIO: sobreviu
+        #     als canvis de subseccio i surt amb el PRIMER item que s'emeti.
+        #   - intro de DINS d'una subseccio -> es d'aquella subseccio i mor amb
+        #     ella (que es el que evitava que sortis damunt d'una altra).
         $subPendent = $null
         $introPendent = $null
+        $introSeccio = $null
+        $dinsSub = $false
         foreach ($el in @($sec.Items)) {
-            if ([string]$el.Kind -eq 'subsection') { $subPendent = $el; $introPendent = $null; continue }
-            if ([string]$el.Kind -eq 'intro')      { $introPendent = $el; continue }
+            if ([string]$el.Kind -eq 'subsection') {
+                $subPendent = $el; $dinsSub = $true; $introPendent = $null; continue
+            }
+            if ([string]$el.Kind -eq 'intro') {
+                if ($dinsSub) { $introPendent = $el } else { $introSeccio = $el }
+                continue
+            }
 
             $blocsItem = @(_BlocsDItem $el $fields ([ref]$num) $sc)
             if ($blocsItem.Count -eq 0) { continue }
 
+            # L'intro de la SECCIO va abans del titol de la subseccio: introdueix
+            # tot el que ve despres, no nomes el primer grup.
+            if ($null -ne $introSeccio) {
+                foreach ($ln in @(_LiniesDeNode $introSeccio $fields $sc)) {
+                    foreach ($x in @(_BlocsDeLinia ([string]$ln) $false)) { [void]$b.Add($x) }
+                }
+                [void]$b.Add(@{ T = 'aire'; Clau = 'intro' })
+                $introSeccio = $null
+            }
             if ($null -ne $subPendent) {
                 [void]$b.Add(@{ T = 'subseccio'; Text = [string]$subPendent.Short })
                 [void]$b.Add(@{ T = 'aire'; Clau = 'subseccio' })
