@@ -76,6 +76,10 @@ $ActivitatsDir = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\2_Contro
 # carregar aqui sense arrossegar el motor: Ruta.ps1 s'executa en un proces
 # PROPI i no carrega Motor.ps1.
 . (Join-Path $SuportDir 'Migracio.ps1')
+# Scroll vertical i ajust a la pantalla de les finestres. Modul SENSE efectes en
+# carregar-se: per aixo es pot compartir amb el proces del programa, que el
+# carrega des d'UiComuns.ps1.
+. (Join-Path $SuportDir 'UiFinestra.ps1')
 $RutesOutputDir = Get-LocalSubdir $RepoRoot 'Rutes'
 # Servidor de rutes OSRM. Per defecte el servidor public de demostracio
 # (router.project-osrm.org). NOMES s'hi envien coordenades (mai noms ni
@@ -880,6 +884,8 @@ function Show-IdInputForm([string]$dbLabel, [string]$baseLabel, [bool]$startFrom
     $form.Controls.Add($btnCancel)
     $form.CancelButton = $btnCancel
 
+    # Scroll vertical i ajust a la pantalla (vegeu suport/UiFinestra.ps1).
+    $form.add_Shown({ param($s, $e) _AjustaFinestraAPantalla $s })
     $result = $form.ShowDialog()
     if ($result -ne [System.Windows.Forms.DialogResult]::OK) { return $null }
     return [pscustomobject]@{
@@ -970,6 +976,8 @@ function Show-WarningsDialog($warnings, [int]$resolvedCount, [int]$totalIds) {
     $btnEdit.Add_Click($handler)
     $btnCancel.Add_Click($handler)
 
+    # Scroll vertical i ajust a la pantalla (vegeu suport/UiFinestra.ps1).
+    $form.add_Shown({ param($s, $e) _AjustaFinestraAPantalla $s })
     [void]$form.ShowDialog()
     return [string]$script:_warnChoice
 }

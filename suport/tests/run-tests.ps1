@@ -1301,6 +1301,59 @@ AssertEq (@(_Ed_TipusOptions 'cataleg' 'seccio') -join ',') 'item,subseccio,text
 AssertEq (@(_Ed_TipusOptions 'cataleg' 'subseccio') -join ',') 'item,text' '_Ed_TipusOptions cataleg sota subseccio -> item i text'
 AssertEq (@(_Ed_TipusOptions 'cataleg' 'item') -join ',') 'subitem' '_Ed_TipusOptions cataleg sota item -> subitem'
 
+# --- Scroll vertical i ajust a la pantalla (_MidaFinestraDinsPantalla) --------
+# El cas real: al PC de casa la pantalla es mes baixa i pantalles d'aquest
+# programa (l'editor de catalegs en fa 700 de minim) surten mes altes que l'area
+# de treball; els botons de baix quedaven fora i no s'hi podia arribar.
+
+# Si hi cap, no s'hi toca res.
+$scA = _MidaFinestraDinsPantalla 900 700 800 600 100 50 0 0 1920 1040
+Assert (-not [bool]$scA.Cal) 'Finestra: si hi cap, no cal tocar res'
+
+# Mes alta que l'area: s'encongeix a l'area.
+$scB = _MidaFinestraDinsPantalla 900 760 800 700 0 0 0 0 1366 728
+AssertEq ([string]$scB.H) '728' 'Finestra: l alcada es retalla a l area de treball'
+Assert ([bool]$scB.Cal) 'Finestra: i diu que cal aplicar-ho'
+
+# EL MinimumSize TAMBE: si no es baixa, el Windows no deixa encongir la finestra
+# i el retall de l alcada no serveix de res. Es la meitat que fa que funcioni.
+AssertEq ([string]$scB.MinH) '700' 'Finestra: un minim que hi cap no es toca'
+AssertEq ([string]$scB.MinW) '800' 'Finestra: l amplada minima, si hi cap, no es toca'
+$scB2 = _MidaFinestraDinsPantalla 900 800 800 760 0 0 0 0 1366 728
+AssertEq ([string]$scB2.MinH) '728' 'Finestra: un minim MES ALT que l area baixa fins a l area'
+AssertEq ([string]$scB2.H) '728' 'Finestra: i l alcada tambe'
+
+# La finestra ha de quedar SENCERA a dins: una centrada que sobresurt per baix
+# tambe sobresurt per dalt, i llavors ni la barra de titol es pot agafar.
+$scC = _MidaFinestraDinsPantalla 600 500 0 0 900 600 0 0 1366 728
+AssertEq ([string]$scC.Y) '228' 'Finestra: es puja perque no sobresurti per baix'
+AssertEq ([string]$scC.X) '766' 'Finestra: i es corre perque no sobresurti per la dreta'
+$scD = _MidaFinestraDinsPantalla 600 500 0 0 -80 -40 0 0 1366 728
+AssertEq ([string]$scD.X) '0' 'Finestra: mai per sobre de la vora esquerra'
+AssertEq ([string]$scD.Y) '0' 'Finestra: ni per sobre de la vora de dalt'
+
+# Una area mes petita que el minim: la mida final no pot ser mes gran que l area.
+$scE = _MidaFinestraDinsPantalla 970 700 836 700 0 0 0 0 800 600
+AssertEq ([string]$scE.W) '800' 'Finestra: amplada retallada encara que el minim fos mes gran'
+AssertEq ([string]$scE.H) '600' 'Finestra: alcada retallada encara que el minim fos mes gran'
+
+# PROVA DE FONT: cap pantalla es pot quedar sense l'ajust. Les del programa
+# passen totes per _NewForm; les que es fan a ma han de cridar-lo elles.
+$scFitxers = @(Get-ChildItem -Recurse -Filter '*.ps1' (Split-Path -Parent $PSScriptRoot) |
+               Where-Object { $_.FullName -notmatch '[\\/]tests[\\/]' })
+$scOrfes = New-Object System.Collections.ArrayList
+foreach ($scF in $scFitxers) {
+    $scT = Get-Content -LiteralPath $scF.FullName -Raw
+    if ($scF.Name -eq 'UiComuns.ps1' -or $scF.Name -eq 'UiFinestra.ps1') { continue }
+    $scN = ([regex]::Matches($scT, 'New-Object\s+System\.Windows\.Forms\.Form\b')).Count
+    if ($scN -eq 0) { continue }
+    $scA2 = ([regex]::Matches($scT, '_AjustaFinestraAPantalla')).Count
+    if ($scA2 -lt $scN) {
+        [void]$scOrfes.Add(($scF.Name + ": " + $scN + " finestres a ma, " + $scA2 + " ajustades"))
+    }
+}
+Assert ($scOrfes.Count -eq 0) ("Finestres a ma sense ajust a la pantalla: " + ($scOrfes -join '; '))
+
 # --- Canviar de NIVELL un node (Treure / Ficar) ------------------------------
 $mvModel = @{
     familia = 'cataleg'

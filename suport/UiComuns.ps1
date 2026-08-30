@@ -129,6 +129,12 @@ $Script:AppIcon = $null
 if (-not (Get-Command Get-AccesDirecteObjectiu -ErrorAction SilentlyContinue)) {
     try { . (Join-Path $ScriptRoot 'AccesDirecte.ps1') } catch { }
 }
+# L'ajust de la finestra a la pantalla viu a part perque el fa servir tambe el
+# planificador de rutes, que corre en un PROCES propi i no pot carregar aquest
+# modul (aqui s'hi executen coses: AppUserModelID, icona).
+if (-not (Get-Command _AjustaFinestraAPantalla -ErrorAction SilentlyContinue)) {
+    . (Join-Path $ScriptRoot 'UiFinestra.ps1')
+}
 if (-not $Script:HeadlessTest) {
     # AppUserModelID propi: sense aixo, la barra de tasques agrupa la finestra
     # sota el proces amfitrio (PowerShell) i mostra la SEVA icona blava. Amb un
@@ -208,8 +214,12 @@ function _NewForm {
     $f.MinimizeBox = $true
     $f.MaximizeBox = $true
     if ($null -ne $Script:AppIcon) { $f.Icon = $Script:AppIcon }
-    # Cada finestra es comprova a si mateixa en obrir-se (vegeu mes avall).
-    $f.add_Shown({ param($s, $e) _AvisaSolapaments $s }.GetNewClosure())
+    # Cada finestra es comprova a si mateixa en obrir-se (vegeu mes avall) i
+    # s'ajusta a la pantalla: SCROLL VERTICAL i, si cal, encongir-se perque hi
+    # capiga. En una pantalla mes baixa hi ha pantalles d'aquest programa que
+    # surten mes altes que l'area de treball i els botons de baix quedaven fora.
+    # Va al Shown i no aqui perque el ClientSize encara no es el definitiu.
+    $f.add_Shown({ param($s, $e) _AvisaSolapaments $s; _AjustaFinestraAPantalla $s }.GetNewClosure())
     return $f
 }
 

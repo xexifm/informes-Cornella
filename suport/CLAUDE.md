@@ -1722,6 +1722,51 @@ entrades de la documentació del projecte (que no pertanyen a cap bloc de punts)
 queien al codi dels blocs i petaven. Solució: `if` + `continue`, no `switch`.
 Hi ha una prova que ho deixa escrit **i comprovat** contra el propi PowerShell.
 
+## Que una finestra hi CAPIGA sempre (`suport/UiFinestra.ps1`)
+
+En una pantalla més baixa —el PC de casa, o el Windows amb l'escalat al 125%—
+diverses pantalles d'aquest programa surten **més altes que l'àrea de treball**,
+i els botons de baix queden fora i no s'hi pot arribar. Els casos: l'editor de
+catàlegs (`MinimumSize` 836×**700**), la base de llicències i el pas de
+documentació (client 1080×660), les actes extraordinàries (1160×**680**).
+
+Es resol en dos temps, i **calen tots dos**:
+
+1. **`AutoScroll = $true` a totes les finestres.** Si s'encongeixen i algun
+   control queda per sota, surt la barra vertical. Es deixa que WinForms calculi
+   sol la zona a recórrer (`AutoScrollMinSize` a zero): així una graella
+   `Dock='Fill'` **segueix encongint-se** com sempre en lloc d'estrenar una barra
+   que no calia.
+2. **Només quan la finestra no hi cap**: es retalla a l'àrea de treball i,
+   **abans**, se li baixa el `MinimumSize` —sense això el Windows es nega a
+   encongir-la i el pas 1 no serveix de res—. En aquest cas sí que s'hi fixa
+   `AutoScrollMinSize` = **l'alçada de disseny**, que és l'única manera de
+   garantir que s'arriba a tot, també al que està ancorat a baix (que si no puja
+   i es comprimeix). L'amplada es deixa a 0: els controls ancorats a la dreta ja
+   s'estrenyen sols i posar-hi l'amplada trauria una barra horitzontal inútil.
+   La finestra també es **corre** perquè quedi sencera dins de l'àrea: una
+   centrada que sobresurt per baix també sobresurt per dalt, i llavors ni la
+   barra de títol es pot agafar.
+
+- La decisió és **pura** (`_MidaFinestraDinsPantalla`) i es prova a Linux;
+  `_AjustaFinestraAPantalla` només l'aplica. Va al **`Shown`**, no abans: fins
+  llavors el `ClientSize` encara pot canviar.
+- **Per què un fitxer a part i no `UiComuns.ps1`**: el planificador de rutes
+  (`rutes/Ruta.ps1`, i `Coordenades.ps1` que el carrega) corre en un **procés
+  propi** i no pot carregar `UiComuns.ps1`, que **sí que executa coses en
+  carregar-se** (AppUserModelID, icona). `UiFinestra.ps1` només defineix
+  funcions, i per això el poden compartir els dos processos sense arrossegar-ne
+  els efectes.
+- Les pantalles del programa hi entren totes per `_NewForm`; les cinc finestres
+  que es fan a mà (dues a `Ruta.ps1`, dues a `Coordenades.ps1`, una a
+  `EnviarCorreu.ps1`) criden `_AjustaFinestraAPantalla` des del seu `Shown`.
+  **Hi ha una prova de FONT que compta els `New-Object …Forms.Form` de cada
+  fitxer i exigeix el mateix nombre de crides**, validada injectant una finestra
+  òrfena i comprovant que passa a vermell.
+- L'ordre al `Shown` importa: **primer `_AvisaSolapaments`, després l'ajust**.
+  Al revés, encongir la finestra faria que controls ancorats a baix es trepitgin
+  i sortirien avisos de solapament que no són cap defecte.
+
 ## Controls que es trepitgen: la tolerància
 `_TrobaSolapaments` avisava de pantalles que es veuen perfectament (una etiqueta
 que passa **un píxel** per sota d'un radio, el títol i el subtítol de la banda

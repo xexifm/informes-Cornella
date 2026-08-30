@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 <#
   EnviarCorreu.ps1 - Eina "Enviar correu" (secció MÒBIL).
 
@@ -229,6 +229,8 @@ function _DialegEnviar($build, $destinatariDefault) {
     $cancel.Location = New-Object System.Drawing.Point(450, 130); $cancel.Size = New-Object System.Drawing.Size(85, 30)
     $form.CancelButton = $cancel; $form.Controls.Add($cancel)
 
+    # Scroll vertical i ajust a la pantalla (vegeu suport/UiFinestra.ps1).
+    $form.add_Shown({ param($s, $e) _AjustaFinestraAPantalla $s })
     if ($form.ShowDialog() -ne 'OK') { return $null }
     return $tb.Text.Trim()
 }

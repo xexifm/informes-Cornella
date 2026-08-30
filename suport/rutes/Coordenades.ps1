@@ -1285,6 +1285,8 @@ function Show-CoordenadesForm([string]$dbLabel, $zonesApilades, $zonesTotes,
 
     & $omple
 
+    # Scroll vertical i ajust a la pantalla (vegeu suport/UiFinestra.ps1).
+    $form.add_Shown({ param($s, $e) _AjustaFinestraAPantalla $s })
     $res = $form.ShowDialog()
     if ($res -ne [System.Windows.Forms.DialogResult]::OK) { return $null }
     $noms = @()
@@ -1305,6 +1307,8 @@ function New-CoordProgress([int]$total) {
     $form.MinimizeBox = $false; $form.MaximizeBox = $false
     $form.ControlBox = $false
     if ($null -ne $Script:CoordIcon) { $form.Icon = $Script:CoordIcon }
+    # Scroll vertical i ajust a la pantalla (vegeu suport/UiFinestra.ps1).
+    $form.add_Shown({ param($s, $e) _AjustaFinestraAPantalla $s })
 
     $lbl = New-Object System.Windows.Forms.Label
     $lbl.Location = New-Object System.Drawing.Point(20, 18)
