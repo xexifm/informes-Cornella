@@ -1978,14 +1978,13 @@ function Invoke-SeguimentFlow {
                        -alwaysConclusions $conclAll.Always -fields $st.Fields `
                        -srcPath $sourcePath -sourceBaseName $sourceBase -roundDate $roundDt
 
-        [System.Windows.Forms.MessageBox]::Show(
-            "Informe de seguiment generat:`n$outPath", 'Finalitzat', 'OK', 'Information') | Out-Null
-
         # Obrir el resultat amb l'app per defecte (Word), sense COM.
         try { Invoke-Item -LiteralPath $outPath } catch { }
 
-        # Oferir enviar el correu al titular (què s'ha aportat i què no ja hi és
-        # al document de seguiment; el correu el llegeix d'allà).
+        # El diàleg d'enviament fusiona "Informe generat" + enviar correu (ruta,
+        # destinatari i CCO): no hi ha cap MessageBox "Finalitzat" previ. El què
+        # s'ha aportat i què no ja és al document de seguiment; el correu el
+        # llegeix d'allà.
         Offer-EnviarCorreu $outPath
     }
     catch {

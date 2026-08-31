@@ -27,11 +27,12 @@
     });
   }
 
-  function enviar(dest, assumpte, missatge) {
+  function enviar(dest, assumpte, missatge, bcc) {
     if (!configurat()) return Promise.reject(new Error("EmailJS no configurat."));
     return carregar().then(function () {
       return emailjs.send(CONFIG.EMAILJS_SERVICE_ID, CONFIG.EMAILJS_TEMPLATE_ID, {
         to_email: dest,
+        bcc: (bcc || ""),
         subject: assumpte,
         message: missatge,
         name: (CONFIG.EMAIL_FROM_NAME || "Ajuntament de Cornellà de Llobregat")

@@ -27,6 +27,15 @@
   var RE_CAMP = /\[CAMP:\s*([^\]]+?)\s*\]/g;
   var RE_OPCIO = /\[OPCIO:\s*([^\]]+?)\s*\]/g;
 
+  // Adreces de Còpia Oculta (CCO/Bcc). Les mateixes que el PC (EnviarCorreu.ps1
+  // $Script:CorreuBccOpcions). La 1a va marcada per defecte; les altres es trien.
+  var BCC_OPCIONS = [
+    { addr: "sfadurdom@aj-cornella.cat", def: true },
+    { addr: "rbaratoc@aj-cornella.cat", def: false },
+    { addr: "misalasj@aj-cornella.cat", def: false },
+    { addr: "hamadorp@aj-cornella.cat", def: false }
+  ];
+
   // _ParseOpcio: "nom | A | B" -> {name, options:[A,B]}
   function parseOpcio(raw) {
     var segs = raw.split("|");
@@ -900,7 +909,35 @@
       if (!$("in-destinatari").value) {
         $("in-destinatari").value = estat.header.EMAIL || ((window.CONFIG && CONFIG.EMAIL_DESTINATARI) || "");
       }
+      muntarBcc();
     });
+  }
+
+  // Pinta les caselles de Còpia Oculta (un sol cop). La 1a marcada per defecte.
+  function muntarBcc() {
+    var cont = $("bcc-opcions");
+    if (!cont || cont.childNodes.length) return;
+    BCC_OPCIONS.forEach(function (o) {
+      var lab = document.createElement("label");
+      lab.className = "bcc-item";
+      var cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.value = o.addr;
+      cb.checked = !!o.def;
+      lab.appendChild(cb);
+      lab.appendChild(document.createTextNode(" " + o.addr));
+      cont.appendChild(lab);
+    });
+  }
+
+  // Adreces CCO marcades, unides per coma (buit si cap).
+  function bccSeleccionat() {
+    var cont = $("bcc-opcions");
+    if (!cont) return "";
+    var addrs = [];
+    var cbs = cont.querySelectorAll("input[type=checkbox]");
+    for (var i = 0; i < cbs.length; i++) { if (cbs[i].checked) addrs.push(cbs[i].value); }
+    return addrs.join(",");
   }
 
   function assumpte() {
@@ -914,10 +951,11 @@
     if (!dest) { msg.innerHTML = '<span class="error">Indica un destinatari.</span>'; return; }
     if (window.Mail && Mail.configurat()) {
       // Enviament automàtic (un sol clic): enviem la versió HTML amb format.
+      var bcc = bccSeleccionat();
       msg.textContent = "Enviant…";
       $("btn-email").disabled = true;
-      Mail.enviar(dest, subj, estat.emailHTML || "").then(function () {
-        msg.innerHTML = "✅ Correu enviat a " + dest + ".";
+      Mail.enviar(dest, subj, estat.emailHTML || "", bcc).then(function () {
+        msg.innerHTML = "✅ Correu enviat a " + dest + "." + (bcc ? " (CCO: " + bcc + ")" : "");
       }).catch(function (e) {
         msg.innerHTML = '<span class="error">No s\'ha pogut enviar: ' + e.message + "</span>";
       }).then(function () { $("btn-email").disabled = false; });

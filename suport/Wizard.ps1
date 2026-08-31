@@ -198,15 +198,13 @@ function Invoke-NouWizard {
                         ConclusionTexts = @($st.Conclusions | ForEach-Object { $_.Title })
                     })
 
-                    [System.Windows.Forms.MessageBox]::Show(
-                        "Informe generat:`n$outPath",
-                        'Finalitzat', 'OK', 'Information') | Out-Null
-
                     # Obrim Word en primer pla per a l'usuari
                     $word.Visible = $true
                     $word.Documents.Open($outPath) | Out-Null
 
-                    # Oferir enviar el correu de requeriments (mateix EmailJS que el mobil).
+                    # El diàleg d'enviament fusiona "Informe generat" + enviar correu:
+                    # ensenya la ruta, el destinatari (titular) i les CCO. No hi ha
+                    # cap MessageBox "Finalitzat" previ (era una passa duplicada).
                     Offer-EnviarCorreu $outPath
 
                     $step = 99   # surt del bucle

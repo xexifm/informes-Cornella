@@ -161,13 +161,21 @@ function _BuildCorreu($requerimentsHtml, $header) {
 }
 
 # --- Enviament EmailJS --------------------------------------------------------
-function Send-EmailJs($cfg, $toEmail, $subject, $htmlMessage) {
+# Adreces disponibles per a Còpia Oculta (CCO). La primera va marcada per defecte.
+$Script:CorreuBccOpcions = @(
+    @{ Addr = 'sfadurdom@aj-cornella.cat'; Default = $true }
+    @{ Addr = 'rbaratoc@aj-cornella.cat';  Default = $false }
+    @{ Addr = 'misalasj@aj-cornella.cat';  Default = $false }
+    @{ Addr = 'hamadorp@aj-cornella.cat';  Default = $false }
+)
+
+function Send-EmailJs($cfg, $toEmail, $bcc, $subject, $htmlMessage) {
     $payload = @{
         service_id  = $cfg.ServiceId
         template_id = $cfg.TemplateId
         user_id     = $cfg.PublicKey
         accessToken = $cfg.PrivateKey
-        template_params = @{ to_email = $toEmail; subject = $subject; message = $htmlMessage; name = $cfg.FromName }
+        template_params = @{ to_email = $toEmail; bcc = $bcc; subject = $subject; message = $htmlMessage; name = $cfg.FromName }
     }
     $json  = $payload | ConvertTo-Json -Depth 6
     $bytes = [Text.Encoding]::UTF8.GetBytes($json)
@@ -188,51 +196,76 @@ function _LatestDocx {
 }
 
 # --- Diàleg d'enviament -------------------------------------------------------
-function _DialegEnviar($build, $destinatariDefault) {
+# Diàleg únic: fusiona el missatge "Informe generat" amb l'enviament del correu.
+# Torna @{ To = @(...); Bcc = @(...) } o $null si es cancel·la.
+function _DialegEnviar($build, $destinatariDefault, $docxPath) {
     $form = New-Object System.Windows.Forms.Form
-    $form.Text = 'Enviar correu de requeriments'
+    $form.Text = 'Informe generat - Enviar correu'
     $form.StartPosition = 'CenterScreen'
-    $form.Size = New-Object System.Drawing.Size(560, 220)
+    $form.FormBorderStyle = 'FixedDialog'
+    $form.Size = New-Object System.Drawing.Size(600, 420)
 
-    $lbl = New-Object System.Windows.Forms.Label
-    $lbl.Text = "Assumpte: $($build.Subject)"
-    $lbl.Location = New-Object System.Drawing.Point(15, 15)
-    $lbl.Size = New-Object System.Drawing.Size(520, 20)
-    $form.Controls.Add($lbl)
+    $lblInf = New-Object System.Windows.Forms.Label
+    $lblInf.Text = "Informe generat:`n$docxPath"
+    $lblInf.Location = New-Object System.Drawing.Point(15, 12)
+    $lblInf.Size = New-Object System.Drawing.Size(560, 42)
+    $form.Controls.Add($lblInf)
+
+    $lblA = New-Object System.Windows.Forms.Label
+    $lblA.Text = "Assumpte: $($build.Subject)"
+    $lblA.Location = New-Object System.Drawing.Point(15, 58)
+    $lblA.Size = New-Object System.Drawing.Size(560, 20)
+    $form.Controls.Add($lblA)
 
     $lblD = New-Object System.Windows.Forms.Label
-    $lblD.Text = 'Destinatari:'
-    $lblD.Location = New-Object System.Drawing.Point(15, 50)
-    $lblD.Size = New-Object System.Drawing.Size(90, 22)
+    $lblD.Text = "Destinataris (separa'ls amb ; si n'hi ha més d'un):"
+    $lblD.Location = New-Object System.Drawing.Point(15, 88)
+    $lblD.Size = New-Object System.Drawing.Size(560, 20)
     $form.Controls.Add($lblD)
 
     $tb = New-Object System.Windows.Forms.TextBox
-    $tb.Location = New-Object System.Drawing.Point(110, 48)
-    $tb.Size = New-Object System.Drawing.Size(425, 24)
+    $tb.Location = New-Object System.Drawing.Point(15, 110)
+    $tb.Size = New-Object System.Drawing.Size(560, 24)
     $tb.Text = [string]$destinatariDefault
     $form.Controls.Add($tb)
 
-    $info = New-Object System.Windows.Forms.Label
-    $info.Text = "S'enviara amb el mateix format i remitent que el mobil (EmailJS)."
-    $info.Location = New-Object System.Drawing.Point(15, 82)
-    $info.Size = New-Object System.Drawing.Size(520, 20)
-    $info.ForeColor = [System.Drawing.Color]::DimGray
-    $form.Controls.Add($info)
+    $lblB = New-Object System.Windows.Forms.Label
+    $lblB.Text = 'Còpia oculta (CCO):'
+    $lblB.Location = New-Object System.Drawing.Point(15, 146)
+    $lblB.Size = New-Object System.Drawing.Size(560, 20)
+    $form.Controls.Add($lblB)
+
+    $checks = @()
+    $y = 170
+    foreach ($opt in $Script:CorreuBccOpcions) {
+        $cb = New-Object System.Windows.Forms.CheckBox
+        $cb.Text = $opt.Addr
+        $cb.Checked = [bool]$opt.Default
+        $cb.Location = New-Object System.Drawing.Point(25, $y)
+        $cb.Size = New-Object System.Drawing.Size(540, 22)
+        $form.Controls.Add($cb)
+        $checks += $cb
+        $y += 26
+    }
 
     $ok = New-Object System.Windows.Forms.Button
     $ok.Text = 'Enviar'; $ok.DialogResult = 'OK'
-    $ok.Location = New-Object System.Drawing.Point(360, 130); $ok.Size = New-Object System.Drawing.Size(80, 30)
+    $ok.Location = New-Object System.Drawing.Point(390, 335); $ok.Size = New-Object System.Drawing.Size(90, 32)
     $form.AcceptButton = $ok; $form.Controls.Add($ok)
 
     $cancel = New-Object System.Windows.Forms.Button
-    $cancel.Text = 'Cancel·lar'; $cancel.DialogResult = 'Cancel'
-    $cancel.Location = New-Object System.Drawing.Point(450, 130); $cancel.Size = New-Object System.Drawing.Size(85, 30)
+    $cancel.Text = 'No enviar'; $cancel.DialogResult = 'Cancel'
+    $cancel.Location = New-Object System.Drawing.Point(485, 335); $cancel.Size = New-Object System.Drawing.Size(90, 32)
     $form.CancelButton = $cancel; $form.Controls.Add($cancel)
 
     # Scroll vertical i ajust a la pantalla (vegeu suport/UiFinestra.ps1).
     $form.add_Shown({ param($s, $e) _AjustaFinestraAPantalla $s })
     if ($form.ShowDialog() -ne 'OK') { return $null }
-    return $tb.Text.Trim()
+
+    $tos = @($tb.Text -split '[;,]' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+    $bccs = @()
+    foreach ($cb in $checks) { if ($cb.Checked) { $bccs += $cb.Text } }
+    return @{ To = $tos; Bcc = $bccs }
 }
 
 # Envia el correu per a un .docx concret. Reutilitzable (eina i final de generacio).
@@ -265,15 +298,19 @@ function Send-CorreuPerDocx($docxPath) {
     }
     $build = _BuildCorreu $reqHtml $header
 
-    $dest = _DialegEnviar $build ([string]$header['EMAIL'])
-    if ($null -eq $dest) { return }
-    if ([string]::IsNullOrWhiteSpace($dest)) {
-        [System.Windows.Forms.MessageBox]::Show('Indica un destinatari.','Enviar correu','OK','Warning') | Out-Null
+    $res = _DialegEnviar $build ([string]$header['EMAIL']) $docxPath
+    if ($null -eq $res) { return }
+    if (-not $res.To -or @($res.To).Count -eq 0) {
+        [System.Windows.Forms.MessageBox]::Show('Indica almenys un destinatari.','Enviar correu','OK','Warning') | Out-Null
         return
     }
+    $toStr  = ($res.To -join ',')
+    $bccStr = ($res.Bcc -join ',')
     try {
-        Send-EmailJs $cfg $dest $build.Subject $build.Html
-        [System.Windows.Forms.MessageBox]::Show("Correu enviat a $dest.",'Enviar correu','OK','Information') | Out-Null
+        Send-EmailJs $cfg $toStr $bccStr $build.Subject $build.Html
+        $resum = "Correu enviat a: $toStr"
+        if ($bccStr) { $resum += "`nCCO: $bccStr" }
+        [System.Windows.Forms.MessageBox]::Show($resum,'Enviar correu','OK','Information') | Out-Null
     } catch {
         [System.Windows.Forms.MessageBox]::Show("No s'ha pogut enviar:`n$($_.Exception.Message)",'Enviar correu','OK','Error') | Out-Null
     }
@@ -286,11 +323,9 @@ function Invoke-EnviarCorreu {
 }
 
 # Ofereix enviar el correu al final de generar un informe (normal o seguiment).
+# El diàleg d'enviament és la confirmació (ja fusionat amb "Informe generat"):
+# no es fa cap pregunta Sí/No prèvia. Si l'usuari no vol enviar, tanca el diàleg.
 function Offer-EnviarCorreu($docxPath) {
-    $r = [System.Windows.Forms.MessageBox]::Show(
-        "Vols enviar ara el correu de requeriments al titular?",
-        'Enviar correu', 'YesNo', 'Question')
-    if ($r -ne 'Yes') { return }
     if ([string]::IsNullOrWhiteSpace([string]$docxPath) -or -not (Test-Path -LiteralPath $docxPath)) {
         $docxPath = _LatestDocx
     }

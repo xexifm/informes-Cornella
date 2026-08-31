@@ -90,6 +90,11 @@ textarea { resize: vertical; }
 }
 .preview-box a { color: var(--brand); }
 
+/* Caselles de Còpia Oculta (CCO/Bcc) */
+.bcc-opcions { margin: 4px 0 12px; }
+.bcc-item { display: flex; align-items: center; gap: 6px; font-size: 13px; margin: 2px 0; font-weight: normal; }
+.bcc-item input { width: auto; margin: 0; }
+
 .fila { display: flex; gap: 8px; align-items: stretch; }
 .fila input { flex: 1 1 auto; min-width: 0; }     /* el número sempre visible */
 .fila button { flex: 0 0 auto; width: auto; white-space: nowrap; }
