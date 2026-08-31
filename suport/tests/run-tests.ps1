@@ -3072,6 +3072,18 @@ AssertEq ([bool]($eload.Contains('cos') -and ([string]$eload['cos']).Contains('s
 AssertEq ([bool]([string]$eload['cos'] -like '*{REQUERIMENTS}*')) $true '_LoadEmailTextos: el cos conserva {REQUERIMENTS}'
 AssertEq ([bool]([string]$eload['assumpte'] -like '*{ID_GIA}*')) $true '_LoadEmailTextos: assumpte conserva {ID_GIA}'
 
+Write-Host "`n--- EnviarCorreu.ps1: diagnostic d'error d'EmailJS (pura) ---"
+$e403 = _EmailJsErrorText 403 'API calls are disabled for non-browser applications' '(403) Prohibido'
+AssertEq ([bool]($e403 -like '*HTTP 403*')) $true '_EmailJsErrorText: mostra l''estat HTTP'
+AssertEq ([bool]($e403 -like '*non-browser applications*')) $true '_EmailJsErrorText: mostra el motiu real d''EmailJS (cos de la resposta)'
+AssertEq ([bool]($e403 -like '*Security*')) $true '_EmailJsErrorText: 403 dona la guia del panell (Account -> Security)'
+AssertEq ([bool]($e403 -like '*Private key*')) $true '_EmailJsErrorText: 403 recorda comprovar la Private key'
+$e200 = _EmailJsErrorText 500 'boom' ''
+AssertEq ([bool]($e200 -like '*Security*')) $false '_EmailJsErrorText: la guia del 403 NOMES surt en un 403'
+AssertEq ([bool]($e200 -like '*boom*')) $true '_EmailJsErrorText: mostra el cos tambe en altres estats'
+$eNoBody = _EmailJsErrorText 0 '' '(407) Proxy'
+AssertEq ([bool]($eNoBody -like '*(407) Proxy*')) $true '_EmailJsErrorText: sense estat ni cos, cau al missatge de .NET'
+
 Write-Host "`n--- ControlsCpEmail.ps1: avisos de control periodic per correu ---"
 $ccdef = _DefaultControlsCpEmail
 AssertEq (@($ccdef.Keys).Count) 2 '_DefaultControlsCpEmail: 2 claus (assumpte, cos)'

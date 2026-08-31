@@ -182,6 +182,55 @@ function Send-EmailJs($cfg, $toEmail, $bcc, $subject, $htmlMessage) {
     Invoke-RestMethod -Method Post -Uri 'https://api.emailjs.com/api/v1.0/email/send' -ContentType 'application/json' -Body $bytes | Out-Null
 }
 
+# Compon el missatge d'error d'un enviament fallit (PURA, testejable). EmailJS
+# torna el MOTIU real al cos de la resposta ("API calls are disabled for
+# non-browser applications", "The Public Key is invalid"...); sense això
+# l'usuari només veu el "(403) Prohibido" genèric de .NET, que no diu res.
+# El 403 típic d'aquest programa: EmailJS rebutja la crida perquè NO ve d'un
+# navegador (el PC envia des de PowerShell; el mòbil, des del navegador, sí que
+# passa). Es resol al panell d'EmailJS, no al codi.
+function _EmailJsErrorText([int]$status, [string]$body, [string]$fallback) {
+    $b = ([string]$body).Trim()
+    $lines = New-Object System.Collections.ArrayList
+    if ($status) { [void]$lines.Add("No s'ha pogut enviar (EmailJS, HTTP $status).") }
+    elseif ($fallback) { [void]$lines.Add("No s'ha pogut enviar: " + [string]$fallback) }
+    else { [void]$lines.Add("No s'ha pogut enviar el correu.") }
+    if ($b) { [void]$lines.Add("Resposta del servei: $b") }
+    if ($status -eq 403) {
+        [void]$lines.Add('')
+        [void]$lines.Add("El 403 (Prohibit) vol dir que EmailJS rebutja la crida des del PC. Comprova, al teu compte d'EmailJS (https://dashboard.emailjs.com):")
+        [void]$lines.Add(" 1) Account -> Security: activa 'Allow EmailJS API for non-browser applications'. Aquesta eina envia des del PC (PowerShell), no des del navegador, i per defecte EmailJS ho bloqueja.")
+        [void]$lines.Add(" 2) Que la Private key desada a local\emailjs.json sigui la correcta (Account -> General -> Private Key).")
+        [void]$lines.Add("El mòbil segueix enviant perquè ho fa des del navegador; el PC necessita aquest permís.")
+    }
+    return ($lines -join "`n")
+}
+
+# Extreu l'estat HTTP i el cos de la resposta d'un error d'Invoke-RestMethod i
+# en compon el missatge amb _EmailJsErrorText. (Toca .NET: no és pura.)
+function _EmailJsRespError($err) {
+    $status = 0
+    $body = ''
+    # A partir de PS 5.1, el cos de la resposta d'error sol venir a ErrorDetails.
+    try { if ($err.ErrorDetails -and $err.ErrorDetails.Message) { $body = [string]$err.ErrorDetails.Message } } catch { }
+    $resp = $null
+    try { $resp = $err.Exception.Response } catch { }
+    if ($resp) {
+        try { $status = [int]$resp.StatusCode } catch { }
+        if ([string]::IsNullOrEmpty($body)) {
+            try {
+                $reader = New-Object System.IO.StreamReader($resp.GetResponseStream())
+                $body = $reader.ReadToEnd(); $reader.Close()
+            } catch { }
+        }
+    }
+    if (-not $status) {
+        $m = [regex]::Match([string]$err.Exception.Message, '\((\d{3})\)')
+        if ($m.Success) { $status = [int]$m.Groups[1].Value }
+    }
+    return (_EmailJsErrorText $status $body ([string]$err.Exception.Message))
+}
+
 # --- Localitzar el .docx mes recent ------------------------------------------
 function _LatestDocx {
     $dir = if ($OutputDir) { [string]$OutputDir } else { Join-Path (_CorreuRepoRoot) 'Informes generats' }
@@ -312,7 +361,7 @@ function Send-CorreuPerDocx($docxPath) {
         if ($bccStr) { $resum += "`nCCO: $bccStr" }
         [System.Windows.Forms.MessageBox]::Show($resum,'Enviar correu','OK','Information') | Out-Null
     } catch {
-        [System.Windows.Forms.MessageBox]::Show("No s'ha pogut enviar:`n$($_.Exception.Message)",'Enviar correu','OK','Error') | Out-Null
+        [System.Windows.Forms.MessageBox]::Show((_EmailJsRespError $_),'Enviar correu','OK','Error') | Out-Null
     }
 }
 

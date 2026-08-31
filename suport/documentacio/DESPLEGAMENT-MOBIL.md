@@ -154,6 +154,16 @@ app), s'usa **EmailJS** (gratuït per a poc volum):
    ```
 6. (Recomanat) Al panell d'EmailJS, restringeix l'enviament al teu domini de
    Pages per evitar que algú altre faci servir la teva quota.
+7. **Perquè l'eina «Enviar correu» del PC funcioni** (no només el mòbil): el PC
+   envia des de PowerShell, no des del navegador, i EmailJS ho bloqueja per
+   defecte. A **Account → Security** activa **«Allow EmailJS API for non-browser
+   applications»** i desa la **Private key** (Account → General → Private Key) a
+   `local\emailjs.json`:
+   ```json
+   { "private_key": "la-teva-private-key" }
+   ```
+   Si no, en clicar «Enviar correu» al PC surt **«Error en el servidor remot:
+   (403) Prohibido»** (el mòbil sí que envia, perquè ho fa des del navegador).
 
 L'assumpte del correu surt sempre com **`GIA <id> Requeriments`**. Si no
 configures EmailJS, el botó torna al comportament d'obrir l'app de correu.
