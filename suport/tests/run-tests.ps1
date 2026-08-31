@@ -3084,6 +3084,23 @@ AssertEq ([bool]($e200 -like '*boom*')) $true '_EmailJsErrorText: mostra el cos 
 $eNoBody = _EmailJsErrorText 0 '' '(407) Proxy'
 AssertEq ([bool]($eNoBody -like '*(407) Proxy*')) $true '_EmailJsErrorText: sense estat ni cos, cau al missatge de .NET'
 
+Write-Host "`n--- EnviarCorreu.ps1: destinatari per defecte (Rao social + Rep. legal) ---"
+$d2 = _CorreuDestinatarisPerDefecte 'rao@x.cat' 'rep@x.cat'
+AssertEq $d2.Text 'rao@x.cat; rep@x.cat' '_CorreuDestinatarisPerDefecte: dues adreces diferents, totes dues'
+AssertEq $d2.Compte 2 '_CorreuDestinatarisPerDefecte: compta 2 quan son diferents'
+AssertEq ([bool]$d2.Duplicat) $false '_CorreuDestinatarisPerDefecte: diferents no es duplicat'
+$dDup = _CorreuDestinatarisPerDefecte 'Igual@X.cat' 'igual@x.CAT'
+AssertEq $dDup.Text 'Igual@X.cat' '_CorreuDestinatarisPerDefecte: mateixa adreca (ignora majuscules), nomes un cop'
+AssertEq ([bool]$dDup.Duplicat) $true '_CorreuDestinatarisPerDefecte: mateixa adreca marca Duplicat'
+$dRepBuit = _CorreuDestinatarisPerDefecte 'rao@x.cat' ''
+AssertEq $dRepBuit.Text 'rao@x.cat' '_CorreuDestinatarisPerDefecte: nomes Rao social si falta el Rep. legal'
+AssertEq ([bool]$dRepBuit.Duplicat) $false '_CorreuDestinatarisPerDefecte: una sola adreca no es duplicat'
+$dRaoBuit = _CorreuDestinatarisPerDefecte '  ' 'rep@x.cat'
+AssertEq $dRaoBuit.Text 'rep@x.cat' '_CorreuDestinatarisPerDefecte: nomes Rep. legal si falta la Rao social'
+$dBuit = _CorreuDestinatarisPerDefecte '' ''
+AssertEq $dBuit.Text '' '_CorreuDestinatarisPerDefecte: cap adreca, text buit'
+AssertEq $dBuit.Compte 0 '_CorreuDestinatarisPerDefecte: cap adreca, compte 0'
+
 Write-Host "`n--- ControlsCpEmail.ps1: avisos de control periodic per correu ---"
 $ccdef = _DefaultControlsCpEmail
 AssertEq (@($ccdef.Keys).Count) 2 '_DefaultControlsCpEmail: 2 claus (assumpte, cos)'

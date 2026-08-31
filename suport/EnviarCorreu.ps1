@@ -231,6 +231,43 @@ function _EmailJsRespError($err) {
     return (_EmailJsErrorText $status $body ([string]$err.Exception.Message))
 }
 
+# --- Destinatari per defecte (Rao social + Rep. legal de l'Excel) ------------
+# Combina les dues adreces de correu del titular. Dedupe SENSE distingir
+# majuscules i avisa (Duplicat) si son la mateixa: llavors nomes surt un cop.
+# PURA i testejable.
+function _CorreuDestinatarisPerDefecte([string]$raoEmail, [string]$repEmail) {
+    $llista = New-Object System.Collections.ArrayList
+    $vistes = @{}
+    $dup = $false
+    foreach ($e in @(([string]$raoEmail).Trim(), ([string]$repEmail).Trim())) {
+        if ([string]::IsNullOrWhiteSpace($e)) { continue }
+        $k = $e.ToLowerInvariant()
+        if ($vistes.ContainsKey($k)) { $dup = $true; continue }
+        $vistes[$k] = $true
+        [void]$llista.Add($e)
+    }
+    return @{ Text = ($llista -join '; '); Duplicat = $dup; Compte = $llista.Count }
+}
+
+# Busca les dues adreces del titular a l'Excel d'activitats per ID GIA. No es
+# fatal si no hi ha Excel: es retorna el que es tingui (o buit). (Toca COM.)
+function _CorreuEmailsActivitat($idGia) {
+    $out = @{ Rao = ''; Rep = '' }
+    if ([string]::IsNullOrWhiteSpace([string]$idGia)) { return $out }
+    try {
+        $xls = Find-LatestActivitatsExcel
+        if ($null -ne $xls) {
+            $cache = Initialize-ActivitatsCache $xls.File
+            $act = Get-ActivitatFromCache $cache $idGia
+            if ($null -ne $act) {
+                if ($act.ContainsKey('EMAIL'))     { $out.Rao = [string]$act['EMAIL'] }
+                if ($act.ContainsKey('EMAIL_REP')) { $out.Rep = [string]$act['EMAIL_REP'] }
+            }
+        }
+    } catch { }
+    return $out
+}
+
 # --- Localitzar el .docx mes recent ------------------------------------------
 function _LatestDocx {
     $dir = if ($OutputDir) { [string]$OutputDir } else { Join-Path (_CorreuRepoRoot) 'Informes generats' }
@@ -347,7 +384,18 @@ function Send-CorreuPerDocx($docxPath) {
     }
     $build = _BuildCorreu $reqHtml $header
 
-    $res = _DialegEnviar $build ([string]$header['EMAIL']) $docxPath
+    # Destinatari per defecte: Rao social + Rep. legal (columnes de l'Excel).
+    # Si son la mateixa adreca, nomes s'hi posa un cop i s'avisa.
+    $emails = _CorreuEmailsActivitat ([string]$header['ID_GIA'])
+    $def = _CorreuDestinatarisPerDefecte $emails.Rao $emails.Rep
+    $destinatariDefault = if ($def.Text) { $def.Text } else { [string]$header['EMAIL'] }
+    if ($def.Duplicat) {
+        [System.Windows.Forms.MessageBox]::Show(
+            "L'adreca de Rao social i la del Representant legal son la mateixa; s'ha posat una sola vegada.",
+            'Enviar correu', 'OK', 'Information') | Out-Null
+    }
+
+    $res = _DialegEnviar $build $destinatariDefault $docxPath
     if ($null -eq $res) { return }
     if (-not $res.To -or @($res.To).Count -eq 0) {
         [System.Windows.Forms.MessageBox]::Show('Indica almenys un destinatari.','Enviar correu','OK','Warning') | Out-Null

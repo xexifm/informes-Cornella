@@ -265,6 +265,11 @@ function Initialize-ActivitatsCache($excelFile) {
             # Classificacio de l'activitat, per a la capcalera de Llicencia.
             $colAnx  = _FindColIndex $data $cols @('classificacio general annex') $null
             $colApa  = _FindColIndex $data $cols @('classificacio general apartat') $null
+            # Correus del titular: Rao social i Representant legal (mateix criteri
+            # que l'eina Controls periodics). El de Rao social te fallback a la
+            # columna 25 (index historic conegut).
+            $colRaoMail = _FindColIndex $data $cols @('rao soc', 'mail')    $null; if ($colRaoMail -eq 0) { $colRaoMail = 25 }
+            $colRepMail = _FindColIndex $data $cols @('rep', 'leg', 'mail')  $null
             if ($colExp  -eq 0) { [void]$warnings.Add("No s'ha trobat la columna 'Num. expedient'.") }
             if ($colNum  -eq 0) { [void]$warnings.Add("No s'ha trobat la columna 'Num. registre entrada'.") }
             if ($colData -eq 0) { [void]$warnings.Add("No s'ha trobat la columna 'Data registre entrada'.") }
@@ -294,7 +299,8 @@ function Initialize-ActivitatsCache($excelFile) {
                 $porta    = & $get $r 56
                 $rao      = & $get $r 10
                 $raoMobil = & $get $r 23
-                $raoEmail = & $get $r 25
+                $raoEmail = & $get $r $colRaoMail
+                $repEmail = & $get $r $colRepMail
                 $actPrin  = & $get $r 94
                 $parts = @($tipusVia, $carrer, $numero, $lletra, $pis, $porta) |
                     Where-Object { $_ -and $_.Trim() -ne '' }
@@ -315,6 +321,7 @@ function Initialize-ActivitatsCache($excelFile) {
                     TITULAR       = $rao
                     MOBIL         = $raoMobil
                     EMAIL         = $raoEmail
+                    EMAIL_REP     = $repEmail
                     ADRECA        = $adreca
                     ACTIVITAT     = $actPrin
                     EXP_NUM       = $expNum
