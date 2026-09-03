@@ -3101,6 +3101,164 @@ $dBuit = _CorreuDestinatarisPerDefecte '' ''
 AssertEq $dBuit.Text '' '_CorreuDestinatarisPerDefecte: cap adreca, text buit'
 AssertEq $dBuit.Compte 0 '_CorreuDestinatarisPerDefecte: cap adreca, compte 0'
 
+Write-Host "`n--- EmailQuota.ps1: comptador d'EmailJS (pura) ---"
+AssertEq (_QuotaMesActual ([datetime]'2026-09-03')) '2026-09' '_QuotaMesActual: yyyy-MM'
+$qNou = _QuotaNormalitza $null '2026-09'
+AssertEq $qNou.enviats 0 '_QuotaNormalitza: sense registre, comptador a 0'
+AssertEq $qNou.limit 150 '_QuotaNormalitza: limit per defecte 150 (reserva de 50 sobre 200)'
+$qMateix = _QuotaNormalitza ([pscustomobject]@{ mes='2026-09'; enviats=12; limit=150 }) '2026-09'
+AssertEq $qMateix.enviats 12 '_QuotaNormalitza: mateix mes, es conserva el comptador'
+$qAltre = _QuotaNormalitza ([pscustomobject]@{ mes='2026-08'; enviats=140; limit=150 }) '2026-09'
+AssertEq $qAltre.enviats 0 '_QuotaNormalitza: mes NOU, el comptador es reinicia'
+AssertEq (_QuotaRestant $qMateix) 138 '_QuotaRestant: limit menys enviats'
+AssertEq (_QuotaRestant (_QuotaNormalitza ([pscustomobject]@{ mes='2026-09'; enviats=999; limit=150 }) '2026-09')) 0 '_QuotaRestant: mai negatiu'
+AssertEq ((_QuotaSuma $qMateix 3).enviats) 15 '_QuotaSuma: suma els enviaments'
+
+Write-Host "`n--- Recordatoris.ps1: campanyes i dates (pures) ---"
+$rcCamps = @(_RecCampanyes)
+AssertEq $rcCamps.Count 2 '_RecCampanyes: dues campanyes'
+AssertEq ($rcCamps[0].Clau) 'requeriments' '_RecCampanyes: la primera es requeriments'
+AssertEq ($rcCamps[1].Clau) 'precintes' '_RecCampanyes: la segona es precintes'
+AssertEq (@($rcCamps[0].Estats) -join ',') 'Requeriment' '_RecCampanyes: requeriments -> estat Requeriment'
+AssertEq (@($rcCamps[1].Estats) -join ',') 'Precinte / Cessament' '_RecCampanyes: precintes -> estat Precinte / Cessament'
+# Els estats de les dues campanyes han de ser DISJUNTS: una activitat no pot
+# rebre els dos recordatoris alhora.
+$rcTots = @($rcCamps[0].Estats) + @($rcCamps[1].Estats)
+AssertEq (@($rcTots | Sort-Object -Unique).Count) $rcTots.Count '_RecCampanyes: cap estat surt a dues campanyes'
+AssertEq ((_RecCampanyaPerClau 'precintes').Nom) 'Precintes' '_RecCampanyaPerClau: troba per clau'
+AssertEq ([string](_RecCampanyaPerClau 'inventada')) '' '_RecCampanyaPerClau: clau desconeguda -> null'
+
+$rcAvui = [datetime]'2026-09-03'
+AssertEq (_RecDiesDes '2026-09-03' $rcAvui) 0 '_RecDiesDes: avui = 0 dies'
+AssertEq (_RecDiesDes '2026-08-04' $rcAvui) 30 '_RecDiesDes: 30 dies'
+AssertEq (_RecDiesDes '' $rcAvui) -1 '_RecDiesDes: data buida -> -1'
+AssertEq (_RecDiesDes 'demà' $rcAvui) -1 '_RecDiesDes: data il-legible -> -1'
+
+Write-Host "`n--- Recordatoris.ps1: a qui li toca (pura) ---"
+function _RcAct($gia, $estat, $data) {
+    return [pscustomobject]@{
+        id_gia = $gia; titular = 'Titular ' + $gia; expedient = 'EXP'; estat_actual = $estat
+        informes = @([pscustomobject]@{ data = $data; conclusio_breu = $estat; ignorat = $false })
+    }
+}
+$rcCfg = @{ periodicitatDies = 60; esperaInicialDies = 30; maxPerTanda = 15 }
+$rcBuit = @{ ultim = ''; compte = 0; excloure = $false; enviaments = @() }
+
+$t1 = _RecToca (_RcAct '' 'Requeriment' '2026-01-01') $rcCfg $rcBuit $rcAvui
+AssertEq ([bool]$t1.Toca) $false '_RecToca: sense ID GIA no toca'
+AssertEq $t1.Motiu 'sense ID GIA' '_RecToca: i ho diu'
+
+$t2 = _RecToca (_RcAct '100' 'Requeriment' '2026-01-01') $rcCfg @{ ultim=''; compte=0; excloure=$true; enviaments=@() } $rcAvui
+AssertEq ([bool]$t2.Toca) $false '_RecToca: activitat exclosa no toca'
+
+$t3 = _RecToca (_RcAct '100' 'Requeriment' '2026-08-20') $rcCfg $rcBuit $rcAvui
+AssertEq ([bool]$t3.Toca) $false '_RecToca: dins de l''espera inicial no toca (14 de 30 dies)'
+
+# Just al limit de l'espera inicial: 30 dies -> SI que toca.
+$t4 = _RecToca (_RcAct '100' 'Requeriment' '2026-08-04') $rcCfg $rcBuit $rcAvui
+AssertEq ([bool]$t4.Toca) $true '_RecToca: just al limit de l''espera inicial, toca'
+
+$t5 = _RecToca (_RcAct '100' 'Requeriment' '2026-01-01') $rcCfg @{ ultim='2026-08-20'; compte=1; excloure=$false; enviaments=@() } $rcAvui
+AssertEq ([bool]$t5.Toca) $false '_RecToca: enviat fa 14 dies, encara no toca (cada 60)'
+
+# Just al limit de la periodicitat: 60 dies -> torna a tocar.
+$t6 = _RecToca (_RcAct '100' 'Requeriment' '2026-01-01') $rcCfg @{ ultim='2026-07-05'; compte=1; excloure=$false; enviaments=@() } $rcAvui
+AssertEq ([bool]$t6.Toca) $true '_RecToca: just al limit de la periodicitat, torna a tocar'
+
+$t7 = _RecToca (_RcAct '100' 'Requeriment' '') $rcCfg $rcBuit $rcAvui
+AssertEq ([bool]$t7.Toca) $false '_RecToca: sense data d''informe no toca'
+
+# Espera inicial 0: es pot avisar de seguida.
+$t8 = _RecToca (_RcAct '100' 'Requeriment' '2026-09-03') @{ periodicitatDies=60; esperaInicialDies=0; maxPerTanda=5 } $rcBuit $rcAvui
+AssertEq ([bool]$t8.Toca) $true '_RecToca: amb espera inicial 0, toca el mateix dia'
+
+Write-Host "`n--- Recordatoris.ps1: seleccio i ordre (pura) ---"
+$rcDb = [pscustomobject]@{
+    actualitzat_el = '2026-09-01T10:00:00'
+    activitats = @(
+        (_RcAct '100' 'Requeriment' '2026-01-10')
+        (_RcAct '200' 'Requeriment' '2026-02-10')
+        (_RcAct '300' 'Precinte / Cessament' '2026-01-05')
+        (_RcAct '400' 'Favorable' '2026-01-05')
+        (_RcAct ''    'Requeriment' '2026-01-05')
+    )
+}
+$rcHist = @{ '100' = @{ ultim='2026-06-01'; compte=2; excloure=$false; enviaments=@('2026-06-01') } }
+$rcRes = _RecDueActivitats $rcDb (_RecCampanyaPerClau 'requeriments') $rcCfg $rcHist $rcAvui
+$rcFiles = @($rcRes.Files)
+AssertEq $rcFiles.Count 3 '_RecDueActivitats: nomes les activitats en estat Requeriment'
+AssertEq $rcRes.SenseGia 1 '_RecDueActivitats: compta les que no tenen GIA'
+# Ordre: primer la que no ha rebut mai cap avis (ultim buit).
+AssertEq ([string]$rcFiles[0].Ultim) '' '_RecDueActivitats: els mai avisats van primer'
+AssertEq ([bool](@($rcFiles | Where-Object { $_.Id -eq '400' }).Count)) $false '_RecDueActivitats: un altre estat no hi entra'
+$rcPre = @(( _RecDueActivitats $rcDb (_RecCampanyaPerClau 'precintes') $rcCfg @{} $rcAvui).Files)
+AssertEq $rcPre.Count 1 '_RecDueActivitats: la campanya de precintes nomes veu els precintats'
+AssertEq ([string]$rcPre[0].Id) '300' '_RecDueActivitats: i es el GIA correcte'
+
+Write-Host "`n--- Recordatoris.ps1: textos, variables i historial ---"
+$rcTx = _RecDefaultTextos 'requeriments'
+AssertEq ([bool]([string]$rcTx['cos']).Contains('no cal que tingueu en compte aquest correu')) $true '_RecDefaultTextos: hi ha l''avis de "ja presentada" (CA)'
+AssertEq ([bool]([string]$rcTx['cos']).Contains('no tenga en cuenta este correo')) $true '_RecDefaultTextos: ...i en castella'
+AssertEq ([bool]([string]$rcTx['cos']).Contains('Article 5. Condicionant per a la transmissi')) $true '_RecDefaultTextos: hi ha l''article 5 de l''Ordenanca'
+AssertEq ([bool]([string]$rcTx['cos']).Contains('{ID_GIA}')) $true '_RecDefaultTextos: el cos identifica l''activitat amb {ID_GIA}'
+AssertEq ([bool]([string]$rcTx['assumpte']).Contains('{ID_GIA}')) $true '_RecDefaultTextos: l''assumpte porta {ID_GIA}'
+$rcTxP = _RecDefaultTextos 'precintes'
+AssertEq ([bool]([string]$rcTxP['cos']).Contains('Article 5. Condicionant per a la transmissi')) $true '_RecDefaultTextos: precintes tambe porta l''article 5'
+AssertEq ([bool]([string]$rcTxP['cos']).Contains('no cal que tingueu en compte aquest correu')) $true '_RecDefaultTextos: precintes tambe porta l''avis'
+Assert ([string]$rcTx['cos'] -ne [string]$rcTxP['cos']) 'Cada campanya te el seu text propi'
+
+$rcRow = [pscustomobject]@{ Id='1463'; Titular='Bar Pepe'; Adreca='C/ Major 1'; Activitat='BAR'; DataInforme='2026-01-10' }
+$rcFill = _RecFillPh 'GIA {ID_GIA} / {TITULAR} / {ADRECA} / {ACTIVITAT} / {DATA_INFORME}' $rcRow
+AssertEq $rcFill 'GIA 1463 / Bar Pepe / C/ Major 1 / BAR / 2026-01-10' '_RecFillPh: substitueix totes les variables'
+
+# Anada i tornada de l'historial AMB EL JSON PEL MIG: es on es trenca sempre
+# (ConvertFrom-Json torna PSCustomObjects, no hashtables).
+$h1 = _RecHistorialActualitza @{} '1463' '2026-09-03'
+AssertEq ([string]$h1['1463']['ultim']) '2026-09-03' '_RecHistorialActualitza: apunta la data'
+AssertEq ([int]$h1['1463']['compte']) 1 '_RecHistorialActualitza: compta 1'
+$h2 = _RecHistorialActualitza $h1 '1463' '2026-11-03'
+AssertEq ([int]$h2['1463']['compte']) 2 '_RecHistorialActualitza: el segon avis suma'
+AssertEq (@($h2['1463']['enviaments']).Count) 2 '_RecHistorialActualitza: guarda l''historial d''enviaments'
+$rcJson = ([pscustomobject]@{ historial = [pscustomobject]@{ requeriments = [pscustomobject]$h2 } }) | ConvertTo-Json -Depth 12
+$rcBack = $rcJson | ConvertFrom-Json
+$h3 = _RecHistorialAMapa $rcBack.historial.requeriments
+$e3 = _RecHistEntrada $h3 '1463'
+AssertEq ([string]$e3.ultim) '2026-11-03' 'Historial: sobreviu a l''anada i tornada pel JSON'
+AssertEq ([int]$e3.compte) 2 'Historial: el comptador sobreviu al JSON'
+$hExc = _RecHistorialExclou $h2 '1463' $true
+AssertEq ([bool](_RecHistEntrada $hExc '1463').excloure) $true '_RecHistorialExclou: marca l''exclusio'
+AssertEq ([int](_RecHistEntrada $hExc '1463').compte) 2 '_RecHistorialExclou: no perd el que ja hi havia'
+
+Write-Host "`n--- Recordatoris.ps1: configuracio i tasca programada ---"
+$rcDef = _RecDefaultConfig 'requeriments'
+AssertEq ([bool]$rcDef['actiu']) $false '_RecDefaultConfig: neix APAGADA (no envia res fins que l''encenguis)'
+AssertEq ([string]$rcDef['mode']) 'manual' '_RecDefaultConfig: neix en manual'
+$rcN = _RecNormalitzaConfig ([pscustomobject]@{ actiu=$true; mode='auto'; periodicitatDies=90 }) 'requeriments'
+AssertEq ([bool]$rcN['actiu']) $true '_RecNormalitzaConfig: respecta el que ve del JSON'
+AssertEq ([string]$rcN['mode']) 'auto' '_RecNormalitzaConfig: mode auto'
+AssertEq ([int]$rcN['periodicitatDies']) 90 '_RecNormalitzaConfig: periodicitat del JSON'
+AssertEq ([int]$rcN['maxPerTanda']) 15 '_RecNormalitzaConfig: el que no ve, del defecte'
+$rcN2 = _RecNormalitzaConfig ([pscustomobject]@{ periodicitatDies=0; mode='tonteria'; cos='' }) 'requeriments'
+AssertEq ([int]$rcN2['periodicitatDies']) 60 '_RecNormalitzaConfig: un valor absurd cau al defecte'
+AssertEq ([string]$rcN2['mode']) 'manual' '_RecNormalitzaConfig: un mode desconegut cau a manual'
+Assert ([string]$rcN2['cos'] -ne '') '_RecNormalitzaConfig: un cos buit no pot deixar el correu sense text'
+$rcN3 = _RecNormalitzaConfig ([pscustomobject]@{ esperaInicialDies=0 }) 'requeriments'
+AssertEq ([int]$rcN3['esperaInicialDies']) 0 '_RecNormalitzaConfig: espera inicial 0 SI que es valida'
+
+# Les rutes han d'anar ENTRE COMETES: el clone de l'usuari te espais.
+$rcTr = _RecSchtasksTr 'C:\Win\powershell.exe' 'I:\5.- Sergi Fadurdo\suport\RecordatorisAuto.ps1'
+AssertEq ([bool]$rcTr.Contains('"C:\Win\powershell.exe"')) $true '_RecSchtasksTr: l''executable va entre cometes'
+AssertEq ([bool]$rcTr.Contains('"I:\5.- Sergi Fadurdo\suport\RecordatorisAuto.ps1"')) $true '_RecSchtasksTr: el script (amb espais) va entre cometes'
+$rcArgv = @(_RecSchtasksArgv 'InformesCornella-Recordatoris' 'C:\p.exe' 'C:\s.ps1' '09:00')
+AssertEq ([string]$rcArgv[0]) '/Create' '_RecSchtasksArgv: crea la tasca'
+AssertEq ([bool]($rcArgv -contains '/F')) $true '_RecSchtasksArgv: /F per sobreescriure-la'
+$rcIdxSt = [array]::IndexOf($rcArgv, '/ST')
+Assert ($rcIdxSt -ge 0) '_RecSchtasksArgv: hi ha l''hora d''inici (/ST)'
+AssertEq ([string]$rcArgv[$rcIdxSt + 1]) '09:00' '_RecSchtasksArgv: i l''hora va just despres de /ST'
+
+AssertEq (_RecAntiguitatDb ([pscustomobject]@{ actualitzat_el='2026-08-04T09:00:00' }) $rcAvui) 30 '_RecAntiguitatDb: 30 dies'
+AssertEq (_RecAntiguitatDb ([pscustomobject]@{ }) $rcAvui) -1 '_RecAntiguitatDb: sense data -> -1'
+
 Write-Host "`n--- ControlsCpEmail.ps1: avisos de control periodic per correu ---"
 $ccdef = _DefaultControlsCpEmail
 AssertEq (@($ccdef.Keys).Count) 2 '_DefaultControlsCpEmail: 2 claus (assumpte, cos)'

@@ -1376,6 +1376,7 @@ function Select-Mode {
     $tiSend  = [System.Char]::ConvertFromUtf32(0x1F4E4)   # 📤
     $tiList  = [System.Char]::ConvertFromUtf32(0x1F4CA)   # 📊
     $tiMap   = [System.Char]::ConvertFromUtf32(0x1F5FA)   # 🗺
+    $tiBell  = [System.Char]::ConvertFromUtf32(0x1F514)   # 🔔
     # EINES: utilitats generals.
     $tools = @(
         @{ Emoji = $tiPin;   Label = 'Generar ruta';           Kind = 'action'; Action = 'ruta' }
@@ -1384,6 +1385,7 @@ function Select-Mode {
         # del seu segell d'ultima execucio.
         @{ Emoji = $tiLock;  Label = 'Activitats precintades'; Kind = 'url';    Action = 'precintades'; Url = $urlPrec }
         @{ Emoji = $tiCal;   Label = ('Controls peri' + [char]0x00F2 + 'dics'); Kind = 'action'; Action = 'controlsperiodics' }
+        @{ Emoji = $tiBell;  Label = 'Recordatoris'; Kind = 'action'; Action = 'recordatoris' }
     )
     # INFORMES: eines de la base d'informes + conversio a PDF.
     $reports = @(

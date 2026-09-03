@@ -35,6 +35,7 @@ function Main {
             'ruta'       { Start-RutaTool }   # llanca el planificador; torna al menu
             'coordenades' { Start-CoordenadesTool }   # mapa Excel vs facana; torna al menu
             'controlsperiodics' { Invoke-ControlsPeriodics }   # llistat d'activitats amb control periodic (Excel)
+            'recordatoris'   { Invoke-Recordatoris }    # avisos periodics als titulars amb tramits pendents
             'informesdb'     { Invoke-InformesDbScan }   # escaneja informes -> JSON; torna al menu
             'informesdbedit' { Invoke-InformesDbEdit }   # editor de la base d'informes
             'copiarinformes' { Invoke-CopiarInformes }   # copia incremental dels Word a la carpeta de copia

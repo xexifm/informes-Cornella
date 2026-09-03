@@ -384,6 +384,56 @@ aquell estat, perquè puguis actualitzar l'Excel.
 > Compte, que no és el mateix criteri que el de **Seguiment**: aquí sí que es
 > demana el «SI», i allà no.
 
+### Recordatoris als titulars (🔔)
+
+Botó **🔔 Recordatoris** (secció EINES). Envia recordatoris **periòdics** als
+titulars que tenen un tràmit pendent, segons l'estat de la base d'informes.
+
+Hi ha **dues campanyes independents**, una a cada pestanya:
+
+| Campanya | A qui escriu |
+|---|---|
+| **Requeriments** | activitats en estat *Requeriment* |
+| **Precintes** | activitats en estat *Precinte / Cessament* |
+
+Cada una té la seva **casella d'activa**, la seva **periodicitat** (cada quants
+dies es repeteix a la mateixa activitat), la seva **espera inicial** (dies que es
+deixen passar des de l'informe abans del primer avís, perquè el termini encara
+corre), el seu **topall per tanda** i el seu **text**, que pots editar amb
+*Editar text...*.
+
+El correu ja porta, de sèrie, l'avís que **si ja s'ha presentat la documentació
+no cal que en facin cas**, i l'**article 5 de l'Ordenança** (el que diu que no es
+pot transmetre l'activitat mentre hi hagi un expedient obert).
+
+**Com fer-ho servir la primera vegada:**
+
+1. Executa **🗃 Actualitzar base** (si no, treballaries amb dades velles).
+2. Obre **🔔 Recordatoris** i mira la llista.
+3. **Exporta el CSV i revisa'l** — és la manera de veure a qui escriuries
+   **sense escriure a ningú**.
+4. Posa el topall per tanda a 1 i envia'n un a una adreça teva per veure com
+   queda.
+5. Quan et convenci, puja el topall i activa la campanya.
+
+> **El límit de correus.** EmailJS només en deixa enviar **200 al mes**. El
+> programa en compta **150** i es planta: els altres 50 queden de reserva perquè
+> mai et quedis sense. El comptador de dalt de la finestra suma **tots** els
+> correus que surten del PC, també els de l'eina *Enviar correu*.
+
+> **Compte amb la base desfasada.** Si la base d'informes és vella, escriuries a
+> gent que ja ha complert. La finestra t'ho avisa en vermell a partir de 30 dies,
+> i el mode automàtic directament **no envia res** si passa dels 45.
+
+**Mode automàtic.** Cada campanya pot anar en *Manual* (tu obres l'eina i
+cliques *Enviar tanda*) o en *Automàtic*. Per a l'automàtic, el botó
+**Automàtic...** crea una tasca del Windows que cada dia a les 09:00 envia el que
+toqui. Només corre amb el PC engegat i la sessió iniciada, i **els correus surten
+sense que ningú els revisi**. El mateix botó també serveix per esborrar la tasca.
+
+Amb **Excloure / incloure** treus una activitat concreta dels recordatoris (per
+exemple, si en portes el seguiment per una altra via).
+
 ### Altres botons del menú
 
 - **🗃 Actualitzar base d'informes**: recorre els informes ja fets i n'extreu

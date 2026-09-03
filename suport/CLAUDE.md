@@ -2426,6 +2426,77 @@ lloc equivocat.
     sortida: bloquejar un control sense explicar-ho és el que feia que semblés
     que el programa no deixava fer-hi res.
 
+## Recordatoris periòdics als titulars (eina EINES)
+
+`suport/Recordatoris.ps1` + `suport/EmailQuota.ps1` + `suport/RecordatorisAuto.ps1`.
+Rajola 🔔 *Recordatoris* a EINES (acció `recordatoris`). Avisa periòdicament els
+titulars amb tràmits pendents, a partir de l'`estat_actual` de la base d'informes.
+
+- **DUES CAMPANYES INDEPENDENTS dins d'UNA sola eina** (decisió de l'usuari):
+  `requeriments` (estat `Requeriment`) i `precintes` (estat `Precinte / Cessament`),
+  cada una amb encesa/apagada, periodicitat, espera inicial, topall per tanda,
+  mode (manual/automàtic) i **text propi**. Es defineixen en UN SOL LLOC
+  (`_RecCampanyes`) — la finestra i l'execució automàtica hi beuen, així no es
+  poden desincronitzar — i hi ha prova que els seus estats són **disjunts**.
+- **La decisió de "a qui li toca" és PURA** (`_RecToca` / `_RecDueActivitats`) i
+  per tant es prova a Linux, que és tot el sentit d'haver-la separada de la
+  finestra. Ordre de les regles: sense GIA → fora (sense GIA no hi ha correu a
+  l'Excel; es compta a part, **mai en silenci**); exclosa a mà → fora; **espera
+  inicial** (el termini del requeriment encara corre); **periodicitat**.
+  La data surt de **`_InformeQueDeterminaEstat`** (`Informes.ps1`): l'estat i la
+  data han de venir del MATEIX informe, si no el correu diria una data que no
+  lliga amb el que s'hi explica.
+- **LA QUOTA D'EMAILJS ÉS EL CONDICIONANT DE TOT.** El pla gratuït són 200
+  correus/mes. `EmailQuota.ps1` en compta **150** (reserva de 50) i qui hi suma
+  és **`Send-EmailJs`**, no cada eina: així hi entren TOTS els enviaments del PC
+  (l'eina *Enviar correu* i els recordatoris), que és l'única manera que el
+  topall protegeixi de debò. Dues limitacions dites a la interfície: el mes
+  d'EmailJS es reinicia el **dia de facturació**, no l'1 (la reserva de 50 és el
+  coixí), i els correus enviats **des del mòbil** no es poden comptar des del PC.
+- **LA BASE D'INFORMES DESFASADA ÉS EL RISC REAL**, no la quota: amb un
+  `informes-db.json` vell s'escriuria a titulars que **ja han complert**, i això
+  no es pot desfer. Per això la finestra ensenya l'antiguitat i **avisa en
+  vermell** a partir de 30 dies, i el mode automàtic **es nega a enviar res** a
+  partir de 45 (`$Script:RecMaxAntiguitatDbDies`), ho apunta al registre i surt.
+- **Es desa DESPRÉS DE CADA enviament** (no al final de la tanda): si peta o es
+  cancel·la, el que ja ha sortit consta i no es torna a enviar. El `try/catch` va
+  **dins** del bucle (lliçó de la signatura), però un **401/403 atura la tanda
+  sencera**: si les claus no valen, els 14 correus següents fallaran igual i no
+  té sentit cremar-los.
+- **L'Excel es carrega UNA vegada per tanda** (`Initialize-ActivitatsCache` +
+  `Get-ActivitatFromCache`). `_CorreuEmailsActivitat` obre l'Excel a cada crida i
+  serveix per a UN correu; en una tanda de 15 seria inviable.
+- **Els destinataris els munta `_CorreuDestinatarisPerDefecte`** (`EnviarCorreu.ps1`),
+  que ja combina *Raó soc. E-mail* + *Rep. Leg. E-mail* i dedupe. La plantilla
+  d'EmailJS **no té camp CC**: les dues adreces van juntes a `to_email` separades
+  per coma. El BCC **no consumeix quota** (una crida = un correu).
+- **L'HTML no és una tercera còpia**: `_RecCosHtml` fa els `<div>` per línia i
+  cada línia passa per **`_TextToHtml`** (`EnviarCorreu.ps1`), que ja escapa i
+  aplica `**negreta**`, `//cursiva//` i l'autoenllaç. Es va triar `_TextToHtml` i
+  no `_ControlsCpLineHtml` perquè aquell **no fa cursiva**, i l'article 5 va citat
+  en cursiva.
+- **Dues coses del text estan blindades amb proves** perquè no es puguin perdre
+  editant-lo: l'**avís de «si ja ho heu presentat, no en feu cas»**
+  (`_RecAvisJaPresentat`, bilingüe) i l'**article 5 de l'Ordenança**
+  (`_RecArticle5`, literal, versió vigent des del 19/06/2025). Viuen en funcions
+  pròpies justament perquè una prova els pugui vigilar.
+- **La campanya neix APAGADA i en manual** (`_RecDefaultConfig`): una eina que
+  envia correus a ciutadans no es pot activar sola en actualitzar el programa.
+  Hi ha prova que ho vigila.
+- **Mode automàtic**: `RecordatorisAuto.ps1` és headless (patró de
+  `mobil/Vigilant.ps1`: `$MotorSenseGui = $true`, una passada i surt) i el llança
+  una **tasca del Windows** (`schtasks`) que es crea des del botó *Automàtic...*.
+  `_RecSchtasksTr`/`_RecSchtasksArgv` són pures i **enquoten les rutes**: el clone
+  té espais i `Start-Process -ArgumentList` no enquota (trampa de sempre).
+- **On es desa**: `%LOCALAPPDATA%\InformesCornella\recordatoris.json` (config +
+  historial) i `emailjs-quota.json`. **MAI al repositori**: porten ID GIA i dates
+  d'enviament, i el repositori és PÚBLIC. A `%LOCALAPPDATA%` i no a `local/`
+  perquè han de sobreviure a tornar a clonar.
+- `_RecHistorialAMapa` / `_RecObjAMapa` desfan el que fa `ConvertFrom-Json`
+  (PSCustomObjects): l'historial s'indexa per GIA i sense això `.ContainsKey` no
+  existiria i **es perdria tot en silenci**. Hi ha prova d'anada i tornada **amb
+  el JSON pel mig**, que és on aquest projecte s'ha trencat sempre.
+
 ## Plànol públic d'activitats precintades
 - `suport/rutes/Precintades.ps1` genera `docs/dades/precintades.json` a partir
   de l'Excel d'activitats (fulla "Estès"): les activitats amb el camp lliure

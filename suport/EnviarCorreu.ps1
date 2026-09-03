@@ -180,6 +180,10 @@ function Send-EmailJs($cfg, $toEmail, $bcc, $subject, $htmlMessage) {
     $json  = $payload | ConvertTo-Json -Depth 6
     $bytes = [Text.Encoding]::UTF8.GetBytes($json)
     Invoke-RestMethod -Method Post -Uri 'https://api.emailjs.com/api/v1.0/email/send' -ContentType 'application/json' -Body $bytes | Out-Null
+    # Un correu que ha SORTIT compta per a la quota mensual d'EmailJS (200 al
+    # pla gratuit). Es compta aqui, i no a cada eina, perque aixi hi entren
+    # TOTS els enviaments del PC: aquesta eina i els recordatoris.
+    _QuotaApunta 1
 }
 
 # Compon el missatge d'error d'un enviament fallit (PURA, testejable). EmailJS

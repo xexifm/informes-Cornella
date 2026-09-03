@@ -37,6 +37,9 @@
     PdfSignar.ps1       Word a PDF + signar   ActExtr.ps1       act. extraordinaries
     ControlsPeriodics.ps1 + ControlsCpEmail.ps1                 controls periodics
     EmailTextos.ps1     textos del correu     Configuracio.ps1  rutes d'aquest PC
+    EnviarCorreu.ps1    enviar el correu      EmailQuota.ps1    quota d'EmailJS
+    Recordatoris.ps1    recordatoris periodics als titulars (+ RecordatorisAuto.ps1,
+                        que corre sol des d'una tasca del Windows)
     rutes\Ruta.ps1      planificador de rutes (proces a part)
     rutes\Coordenades.ps1  mapa per repassar la geolocalitzacio dels establiments
 
@@ -453,6 +456,10 @@ if (-not $Script:HeadlessTest) { [void](Invoke-MigracioLocal $RepoRoot) }
 # Funcions pures testejables; la finestra (WinForms) nomes a Windows.
 . (Join-Path $ScriptRoot 'EmailTextos.ps1')
 
+# Comptador d'enviaments d'EmailJS (200/mes al pla gratuit, limit de seguretat
+# 150). Va ABANS d'EnviarCorreu.ps1, que hi suma cada correu que surt.
+. (Join-Path $ScriptRoot 'EmailQuota.ps1')
+
 # Eina "Enviar correu": obre la web del mobil precarregada amb l'ultim informe
 # per enviar el correu (mateix EmailJS que el mobil; no cal Private key).
 . (Join-Path $ScriptRoot 'EnviarCorreu.ps1')
@@ -464,6 +471,10 @@ if (-not $Script:HeadlessTest) { [void](Invoke-MigracioLocal $RepoRoot) }
 # Avisos de control periodic per correu (esborranys a Outlook) des de l'eina
 # Controls periodics. Funcions pures testejables; Outlook (COM)/WinForms a Windows.
 . (Join-Path $ScriptRoot 'ControlsCpEmail.ps1')
+
+# Eina "Recordatoris": avisos periodics als titulars amb tramits pendents, a
+# partir de l'estat de la base d'informes. Nomes defineix funcions.
+. (Join-Path $ScriptRoot 'Recordatoris.ps1')
 
 # Carreguem la pantalla de Configuracio (rutes d'aquest PC + actualitzar el
 # programa). Nomes defineix funcions (WinForms), segur en headless.
