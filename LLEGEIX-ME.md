@@ -594,7 +594,8 @@ La posada en marxa (Google Drive, credencials, web) és a
 
 - El **codi** és a `suport/`. El mapa dels mòduls és a la capçalera de
   `suport/Motor.ps1`; les decisions tècniques i el perquè de cada cosa, a
-  `suport/CLAUDE.md`.
+  `suport/CLAUDE.md` — que remet a tres documents més, a
+  `suport/documentacio/`, per a la signatura de PDF, la Llicència i les rutes.
 - **Proves**: `pwsh -File suport/tests/run-tests-all.ps1` (les passa totes sis;
   `run-tests.ps1` n'és només una). Amb
   `$env:GENINFORME_TEST = '1'` el motor només defineix funcions (ni finestres ni
