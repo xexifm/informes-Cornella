@@ -187,12 +187,6 @@ function _LlicEsSeccioAbans([string]$titol) {
     return $false
 }
 
-# La clau "Seccio::Item" d'un element de REQ1 ja parsejat. Funcio PURA: busca a
-# quina seccio pertany (el model pla no la porta a dins de l'element).
-function _LlicClauDeItem($req1, $el) {
-    return ([string](_LlicUbicacioDeItem $req1 $el).Clau)
-}
-
 # On viu un element de REQ1: @{ Clau; Seccio; Subseccio }. Funcio PURA.
 # El model pla no porta la seccio a dins de l'element, i la SUBSECCIO nomes es
 # sap recorrent la llista en ordre (Kind='subsection' i despres els seus items).
@@ -1372,69 +1366,6 @@ function Select-LlicFase($preFase, $preProv, $fases = $null, [string]$titol = ''
     [void]$form.Controls.Add($btnBack)
 
     [void](_AddBrandHeader $form ('Llic' + [char]0x00E8 + 'ncia (Annex II / LL Prov)') 'Tria quin informe vols fer' 56)
-    [void]$form.ShowDialog()
-    $form.Dispose()
-    return $res
-}
-
-# Les dades d'UN punt del qual ja es disposa: Id Firmadoc i, segons el punt,
-# Expedient / Referencia / Registre. Els noms surten del propi text del cataleg
-# (_LlicCampsDelText), o sigui que si algu n'hi afegeix un, aqui surt sol.
-# Retorna @{ Nav; Valors } .
-function Select-LlicDadesPunt([string]$titol, $camps, $valors) {
-    $camps = @($camps)
-    $form = _NewForm
-    $form.Text = 'Dades del document'
-    $form.FormBorderStyle = 'FixedDialog'
-    $form.MaximizeBox = $false
-
-    $lbl = New-Object System.Windows.Forms.Label
-    $lbl.Location = New-Object System.Drawing.Point(20, 68)
-    $lbl.Size = New-Object System.Drawing.Size(520, 34)
-    $lbl.Text = [string]$titol
-    [void]$form.Controls.Add($lbl)
-
-    $y = 112
-    $tb = @{}
-    foreach ($c in $camps) {
-        $l = New-Object System.Windows.Forms.Label
-        $l.Location = New-Object System.Drawing.Point(20, ($y + 3))
-        $l.Size = New-Object System.Drawing.Size(150, 20)
-        $l.Text = [string]$c + ':'
-        [void]$form.Controls.Add($l)
-        $t = New-Object System.Windows.Forms.TextBox
-        $t.Location = New-Object System.Drawing.Point(175, $y)
-        $t.Size = New-Object System.Drawing.Size(360, 22)
-        if ($null -ne $valors -and $valors.Contains([string]$c)) { $t.Text = [string]$valors[[string]$c] }
-        [void]$form.Controls.Add($t)
-        $tb[[string]$c] = $t
-        $y += 30
-    }
-
-    $res = @{ Nav = 'back'; Valors = @{} }
-    $btnOk = New-Object System.Windows.Forms.Button
-    $btnOk.Text = "D'acord"
-    $btnOk.Location = New-Object System.Drawing.Point(410, ($y + 12))
-    $btnOk.Size = New-Object System.Drawing.Size(125, 32)
-    _StylePrimaryButton $btnOk
-    $btnOk.add_Click({
-        foreach ($k in $tb.Keys) { $res.Valors[$k] = [string]$tb[$k].Text }
-        $res.Nav = 'fwd'
-        $form.DialogResult = 'OK'; $form.Close()
-    }.GetNewClosure())
-    [void]$form.Controls.Add($btnOk)
-    $form.AcceptButton = $btnOk
-
-    $btnC = New-Object System.Windows.Forms.Button
-    $btnC.Text = 'Cancel' + [char]0x00B7 + 'la'
-    $btnC.Location = New-Object System.Drawing.Point(20, ($y + 12))
-    $btnC.Size = New-Object System.Drawing.Size(115, 32)
-    _StyleSecondaryButton $btnC
-    $btnC.add_Click({ $form.Close() }.GetNewClosure())
-    [void]$form.Controls.Add($btnC)
-
-    $form.ClientSize = New-Object System.Drawing.Size(560, ($y + 60))
-    [void](_AddBrandHeader $form 'Dades del document' ('Id Firmadoc i, si escau, expedient o refer' + [char]0x00E8 + 'ncia') 56)
     [void]$form.ShowDialog()
     $form.Dispose()
     return $res

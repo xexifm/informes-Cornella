@@ -65,8 +65,6 @@ if (-not $Script:HeadlessTest) {
 # ----------------------------------------------------------------------------
 # Configuracio per defecte (sobreescriptible des de suport/config.ps1).
 # ----------------------------------------------------------------------------
-# Carpeta on viu l'Excel d'activitats a la xarxa de la feina.
-$ActivitatsDir = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\2_Controls Excels'
 # Carpeta on es desen els mapes de ruta generats: local\rutes-generades\ (dins
 # del clone pero fora del repositori; 'local' s'ignora sencera). Es fa servir un
 # nom propi ($RutesOutputDir, no $OutputDir) per NO barrejar-se amb la carpeta
@@ -81,6 +79,10 @@ $ActivitatsDir = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\2_Contro
 # carrega des d'UiComuns.ps1.
 . (Join-Path $SuportDir 'UiFinestra.ps1')
 $RutesOutputDir = Get-LocalSubdir $RepoRoot 'Rutes'
+# La carpeta de l'Excel d'activitats surt del MATEIX lloc que per al programa
+# (Migracio.ps1). Ha d'anar aqui, despres del dot-source, i no amb la resta de
+# valors per defecte de mes amunt.
+$ActivitatsDir  = Get-ActivitatsDirDefault
 # Servidor de rutes OSRM. Per defecte el servidor public de demostracio
 # (router.project-osrm.org). NOMES s'hi envien coordenades (mai noms ni
 # adreces). Si tens un OSRM propi, posa la seva URL base a config.ps1:

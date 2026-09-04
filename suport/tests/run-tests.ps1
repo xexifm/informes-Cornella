@@ -5235,6 +5235,48 @@ AssertEq ([regex]::Matches($appJs, 'introSeccio').Count -gt 0) $true 'app.js: di
 AssertEq ([regex]::Matches($appJs, 'dinsSub = true').Count) 2 'app.js: les DUES copies del recorregut marquen dinsSub'
 AssertEq ([regex]::Matches($appJs, 'introSeccio = el').Count) 2 'app.js: les DUES copies recullen l''intro de seccio'
 
+# 4. CODI MORT I DEFECTES SILENCIOSOS D'app.js (bloc P1 de l'auditoria).
+#    Els quatre venien de la mateixa familia: no peten, nomes fan una cosa
+#    diferent de la que sembla, i cap prova de PowerShell mira el comportament
+#    del JavaScript. Per aixo hi arriba el text del fitxer.
+#
+# 4a. 'prev-requeriments' es un <div>. Assignar-li '.value' NO fa res: la vista
+#     previa del correu es quedava a la pantalla en fer "Fet" i l'informe nou
+#     ensenyava el correu de l'anterior. Els tres altres punts del fitxer que hi
+#     escriuen ja feien servir .innerHTML; nomes el reinici anava amb .value.
+Assert (-not ($appJs.Contains('$("prev-requeriments").value'))) 'app.js: prev-requeriments es un div, mai .value'
+Assert ($appJs.Contains('$("prev-requeriments").innerHTML = "";')) 'app.js: el reinici buida la vista previa'
+
+# 4b. El comptador de passos ha de comptar els ABASTABLES. PASSOS en te 5 i el
+#     de cataleg se salta quan nomes n'hi ha un: deia "Pas 1 / 5" i no s'hi
+#     arribava mai. Amb passosAbastables() la navegacio i el comptador surten
+#     del MATEIX lloc i no es poden desincronitzar.
+Assert ($appJs.Contains('function passosAbastables')) 'app.js: el comptador compta els passos abastables'
+Assert ($appJs.Contains('"Pas " + (pos + 1) + " / " + abast.length')) 'app.js: el comptador fa servir els abastables'
+Assert (-not ($appJs.Contains('" / " + PASSOS.length'))) 'app.js: el comptador no fa servir el total cru'
+
+# 4c. Un ternari '? true : true' es una condicio que no decideix res -els dos
+#     costats son iguals-. Aqui amagava que #navegacio no s'amaga mai: es mostra
+#     un sol cop en carregar. La condicio feia pensar el contrari.
+Assert (-not ($appJs.Contains('? true : true'))) 'app.js: cap ternari amb les dues branques iguals'
+
+# 4d. Codi mort: collectFields/passId no els crida ningu, i estat.fieldOrder /
+#     fieldDefs no els llegeix ningu (els camps s'omplen INLINE, ja no tenen un
+#     pas propi). Els deixava aqui la versio del pas 5 que es va treure.
+foreach ($mort in @('function collectFields', 'function passId', 'fieldOrder', 'fieldDefs')) {
+    Assert (-not ($appJs.Contains($mort))) "app.js: no torna el codi mort del pas 5 ($mort)"
+}
+
+# 4e. ORIGEN, DATES i CLASSIFICACIO son <<placeholders>> de la capcalera que
+#     l'usuari NO omple: el mobil els pintava com a quadres de text buits. Es
+#     comprova contra el capcalera.json de debo, que es d'on surten.
+$capMobil = Read-JsonFile (Join-Path $rootRepo (Join-Path 'docs' (Join-Path 'dades' 'capcalera.json')))
+Assert ($null -ne $capMobil) 'app.js: hi ha docs/dades/capcalera.json'
+foreach ($ph in @('ORIGEN', 'DATES', 'CLASSIFICACIO')) {
+    Assert (@($capMobil.Placeholders) -contains $ph) "capcalera.json: encara publica $ph"
+    Assert ($appJs -match ("(?m)^\s*ORIGEN: 1, DATES: 1, CLASSIFICACIO: 1")) "app.js: HEADER_SKIP_GENERIC salta $ph"
+}
+
 Write-Host "`n--- docs/dades: el cataleg derivat no pot quedar-se enrere (guard) ---"
 # PER QUE. docs/dades/cataleg-REQ1.json es una copia DERIVADA d'ESTRUCTURALS que
 # viu al git, i es va quedar 6 commits enrere: al mobil hi faltaven 53

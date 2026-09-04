@@ -294,7 +294,7 @@ $ConclusionsPath = Join-Path $EstructuralsDir '0 CONCLUSIONS.json'
 # OutputDir per defecte: local\informes-generats\, dins del clone pero fora del
 # repositori (local\ s'ignora sencera). Es pot canviar a la Configuracio.
 $OutputDir              = Get-LocalSubdir $RepoRoot 'Informes'
-$ActivitatsDir          = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\2_Controls Excels'
+$ActivitatsDir          = Get-ActivitatsDirDefault
 $AlwaysConclusionsCount = 2
 
 # Carpeta on l'eina "Copiar informes" (menu INFORMES) fa una copia de seguretat

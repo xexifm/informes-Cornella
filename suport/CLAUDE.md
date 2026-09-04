@@ -25,12 +25,17 @@ En partir, verifica que la llista de noms de funció de tot `suport/` és idènt
 abans i després.
 
 ## EXECUTA LES PROVES. De debò, executa-les
-`suport/tests/run-tests.ps1` passa sencer **en un Linux sense Word ni Excel**:
+La suite passa sencera **en un Linux sense Word ni Excel**:
 
 ```
 apt-get install -y powershell   # o el tar.gz de github.com/PowerShell/PowerShell
-GENINFORME_TEST=1 pwsh -NoProfile -File suport/tests/run-tests.ps1
+GENINFORME_TEST=1 pwsh -NoProfile -File suport/tests/run-tests-all.ps1
 ```
+
+**`run-tests-all.ps1`, no `run-tests.ps1`**: hi ha SIS suites (`run-tests`,
+`-actextr`, `-golden`, `-ruta`, `-precintades`, `-coordenades`) i `run-tests.ps1`
+n'és només una. Executar-la sola deixa fora els fitxers d'or —que són la xarxa
+de seguretat del motor de composició— i el planificador de rutes.
 
 Val la pena insistir-hi perquè durant molt de temps **no es van executar mai**
 (en aquell contenidor no hi havia `pwsh` i es validava tot amb rèpliques en
@@ -1301,9 +1306,11 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   capçalera del document.
 - **Els comentaris «Es disposa» demanen DADES, i són per punt.** Al Word de
   l'usuari hi havia `XXX` on va l'Id Firmadoc i, segons el punt, l'Expedient /
-  Referència / Registre. Al catàleg són ara **`[CAMP: nom]`**, i la pantalla del
-  bloc ABANS té una columna **«Omplir…»** que obre `Select-LlicDadesPunt` amb
-  els camps que demani aquell text (`_LlicCampsDelText`, pura).
+  Referència / Registre. Al catàleg són ara **`[CAMP: nom]`**, i al bloc ABANS
+  els camps es pinten **inline** amb `_RenderRichInto` (`Camps.ps1`), la mateixa
+  funció que REQ1. (Abans hi havia una columna «Omplir…» que obria un diàleg,
+  `Select-LlicDadesPunt`; es va esborrar en passar la pantalla a llista+detall i
+  ara la funció tampoc no hi és.)
   - **No es fa servir el diccionari de camps compartit**: allà la clau és el
     NOM del camp, i «Id Firmadoc» val **una cosa diferent a cada document**. El
     valor es resol punt a punt (`_LlicAplicaCamps`, pura) i el punt se'n va amb
@@ -2001,9 +2008,12 @@ commit i comparant el fitxer d'or a cada pas**.
   El cos s'**aplana** a la mateixa cadena amb marques (`_RunsToMarkup`:
   `**negreta**`, `//cursiva//`, `[[URL]] …`) que ja entenen `Type-RichText`/
   `_SplitTextAndUrls` → **la generació des de JSON és idèntica a la del .docx**.
-  `Get-ParsedCataleg`, `Read-Conclusions` i `Parse-ActExtrTemplate` fan servir el
-  `.json` si existeix al costat del `.docx` (mateix nom), amb **fallback segur al
-  .docx** si el JSON falla. Els `.docx` es conserven (còpia de seguretat).
+  `Get-ParsedCataleg`, `Read-Conclusions` i `Parse-ActExtrTemplate` llegeixen
+  **NOMÉS el `.json`**. El respatller al `.docx` que hi havia aquí **es va
+  esborrar** —vegeu «Res de llegir `.docx` per treure'n contingut», més amunt—:
+  els `.docx` d'ESTRUCTURALS ja no són fonts sinó **vistes generades**, o sigui
+  que el respatller no hauria fallat, hauria generat un informe silenciosament
+  equivocat. Si el `.json` no hi és, peta amb un missatge clar.
 - **Conversió inicial**: els 5 JSON es van generar a partir dels `.docx` amb un
   convertidor (Python, a scratchpad) que replica `Parse-Cataleg`/
   `Read-Conclusions`/`Build-ActExtrBlocks` i **comprova byte a byte** que (a)

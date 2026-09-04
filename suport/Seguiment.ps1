@@ -47,8 +47,14 @@ $Script:WNS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
 
 # Format del text afegit pel seguiment (anotacions i conclusions): ha de ser
 # com l'estil Normal de REQ1 -> Bookman Old Style 11, justificat.
-$Script:SeguimentFontName     = 'Bookman Old Style'
-$Script:SeguimentFontHalfPt   = '22'   # 22 mig-punts = 11 pt
+# De $ReportFormatConfig (Format.ps1), que es qui mana en el format del
+# document. Abans eren dos literals, i per tant canviar la lletra a Format.ps1
+# NO arribava a les anotacions de seguiment: el document sortia amb dues fonts
+# diferents i no ho deia ningu. _AnnotationFormatTwips (mes avall) ja llegia la
+# configuracio i el seu comentari explica per que; aixo nomes acaba la feina.
+# El XML del Word vol la mida en MIG-PUNTS, d'aqui el x2.
+function _SeguimentFontName   { return [string]$Script:ReportFormatConfig.BodyFontName }
+function _SeguimentFontHalfPt { return [string]([int]([double]$Script:ReportFormatConfig.BodyFontSize * 2)) }
 
 # Frases per defecte del comentari segons la casella "Resolt" (editables).
 $Script:SeguimentPhraseResolt   = "S'aporta."
@@ -546,12 +552,12 @@ function _CollectParaRecordsXml($xmlInfo, $bodyParas) {
 function _ApplyBodyFontXml($xml, $rPr) {
     $w = $Script:WNS
     $rf = $xml.CreateElement('w','rFonts',$w)
-    [void]$rf.SetAttribute('ascii',$w,$Script:SeguimentFontName)
-    [void]$rf.SetAttribute('hAnsi',$w,$Script:SeguimentFontName)
-    [void]$rf.SetAttribute('cs',$w,$Script:SeguimentFontName)
+    [void]$rf.SetAttribute('ascii',$w,(_SeguimentFontName))
+    [void]$rf.SetAttribute('hAnsi',$w,(_SeguimentFontName))
+    [void]$rf.SetAttribute('cs',$w,(_SeguimentFontName))
     [void]$rPr.AppendChild($rf)
-    $sz   = $xml.CreateElement('w','sz',$w);   [void]$sz.SetAttribute('val',$w,$Script:SeguimentFontHalfPt);   [void]$rPr.AppendChild($sz)
-    $szCs = $xml.CreateElement('w','szCs',$w); [void]$szCs.SetAttribute('val',$w,$Script:SeguimentFontHalfPt); [void]$rPr.AppendChild($szCs)
+    $sz   = $xml.CreateElement('w','sz',$w);   [void]$sz.SetAttribute('val',$w,(_SeguimentFontHalfPt));   [void]$rPr.AppendChild($sz)
+    $szCs = $xml.CreateElement('w','szCs',$w); [void]$szCs.SetAttribute('val',$w,(_SeguimentFontHalfPt)); [void]$rPr.AppendChild($szCs)
 }
 
 # Un paragraf es d'enllac (URL) si conte un <w:hyperlink> o el text es una URL.
@@ -606,16 +612,16 @@ function _MakeBodyRunXml($xml, $text, [bool]$bold) {
     $r = $xml.CreateElement('w','r',$w)
     $rPr = $xml.CreateElement('w','rPr',$w)
     $rf = $xml.CreateElement('w','rFonts',$w)
-    [void]$rf.SetAttribute('ascii',$w,$Script:SeguimentFontName)
-    [void]$rf.SetAttribute('hAnsi',$w,$Script:SeguimentFontName)
-    [void]$rf.SetAttribute('cs',$w,$Script:SeguimentFontName)
+    [void]$rf.SetAttribute('ascii',$w,(_SeguimentFontName))
+    [void]$rf.SetAttribute('hAnsi',$w,(_SeguimentFontName))
+    [void]$rf.SetAttribute('cs',$w,(_SeguimentFontName))
     [void]$rPr.AppendChild($rf)
     if ($bold) {
         [void]$rPr.AppendChild($xml.CreateElement('w','b',$w))
         [void]$rPr.AppendChild($xml.CreateElement('w','bCs',$w))
     }
-    $sz   = $xml.CreateElement('w','sz',$w);   [void]$sz.SetAttribute('val',$w,$Script:SeguimentFontHalfPt);   [void]$rPr.AppendChild($sz)
-    $szCs = $xml.CreateElement('w','szCs',$w); [void]$szCs.SetAttribute('val',$w,$Script:SeguimentFontHalfPt); [void]$rPr.AppendChild($szCs)
+    $sz   = $xml.CreateElement('w','sz',$w);   [void]$sz.SetAttribute('val',$w,(_SeguimentFontHalfPt));   [void]$rPr.AppendChild($sz)
+    $szCs = $xml.CreateElement('w','szCs',$w); [void]$szCs.SetAttribute('val',$w,(_SeguimentFontHalfPt)); [void]$rPr.AppendChild($szCs)
     [void]$r.AppendChild($rPr)
     $t = $xml.CreateElement('w','t',$w)
     $xsp=$xml.CreateAttribute('xml','space','http://www.w3.org/XML/1998/namespace'); $xsp.Value='preserve'; [void]$t.Attributes.Append($xsp)

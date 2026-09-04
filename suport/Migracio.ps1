@@ -65,6 +65,19 @@ $Script:LocalSubdirs = [ordered]@{
 # Nota per a les proves: Join-Path resol la UNITAT, o sigui que fora de Windows
 # no se li pot passar 'C:\...' (peta amb "A drive with the name 'C' does not
 # exist"). Les proves fan servir una arrel valida a la plataforma on corren.
+# Carpeta on viu l'Excel d'activitats a la xarxa de la feina. ES EL VALOR PER
+# DEFECTE: config.ps1 i, per sobre, settings.json d'aquest PC el poden canviar.
+#
+# Viu aqui i NOMES aqui perque el necessiten DOS processos: el programa
+# (Motor.ps1) i el planificador de rutes (rutes\Ruta.ps1), que corre a part i no
+# carrega Motor.ps1. Tots dos ja carreguen aquest fitxer, que es on el projecte
+# ja te els altres noms de carpeta (vegeu $Script:LocalSubdirs aqui sobre).
+# Abans la ruta estava escrita a tots dos llocs, i el CLAUDE.md donava aquesta
+# duplicacio per resolta quan nomes ho estava per a les subcarpetes de local\.
+function Get-ActivitatsDirDefault {
+    return 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\2_Controls Excels'
+}
+
 function Get-LocalDir([string]$repoRoot) {
     return [string](Join-Path $repoRoot $Script:LocalDirName)
 }

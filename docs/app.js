@@ -150,21 +150,6 @@
     return result;
   }
 
-  // Get-FieldsFromSelection + Add-FieldsFromConclusions.
-  function collectFields(selSections, conclusions, always) {
-    var fields = {}, order = [];
-    selSections.forEach(function (sec) {
-      sec.Items.forEach(function (it) {
-        var allText = it.BodyLines.join(" ");
-        (it.Children || []).forEach(function (ch) { allText += " " + ch.BodyLines.join(" "); });
-        addFieldsFromText(fields, order, allText);
-      });
-    });
-    conclusions.forEach(function (c) { addFieldsFromText(fields, order, c.Body); });
-    always.forEach(function (a) { addFieldsFromText(fields, order, a); });
-    return { fields: fields, order: order };
-  }
-
   // Treu els marcadors de negreta/cursiva (en text pla del correu no es poden
   // representar, així que es mostren sense els símbols **...** i //...//).
   function stripMarkers(t) {
@@ -551,8 +536,6 @@
     header: {},                // ID_GIA, EXP_NUM, ...
     keys: new Set(),           // claus de deficiències seleccionades
     conclTitles: new Set(),    // títols de conclusions seleccionades
-    fieldOrder: [],            // ordre dels camps del pas 5
-    fieldDefs: {},             // name -> {type, options, ...}
     fieldValues: {}            // name -> valor
   };
 
@@ -563,9 +546,19 @@
 
   var HEADER_KEYS = ["ID_GIA", "EXP_NUM", "TITULAR", "ADRECA", "ACTIVITAT", "ORIGEN_TIPUS", "NUM_ANOTACIO", "DATA_ANOTACIO", "DATA_INSPECCIO"];
 
-  // Claus de capçalera que NO es mostren al bloc genèric "opcional" (les gestiona
-  // el bloc "Origen de l'informe" o són el camp principal / d'estat intern).
-  var HEADER_SKIP_GENERIC = { ID_GIA: 1, ORIGEN_TIPUS: 1, NUM_ANOTACIO: 1, DATA_ANOTACIO: 1, DATA_INSPECCIO: 1 };
+  // Claus de capcalera que NO es mostren al bloc generic "opcional".
+  //
+  // Els camps del bloc generic surten de capcalera.Placeholders, que son els
+  // <<...>> del 0 CAPCALERA.docx. Tres d'aquells NO els omple l'usuari:
+  //   ORIGEN        el munta el bloc "Origen de l'informe" (_BuildOrigenText).
+  //   DATES         nomes es d'actes extraordinaries, que el mobil no fa.
+  //   CLASSIFICACIO nomes es de Llicencia, i al PC surt sola de l'Excel.
+  // Sense aixo el mobil pintava tres quadres de text que no anaven enlloc: el
+  // que s'hi escrivia el trepitjava el PC en generar, o no s'usava mai.
+  var HEADER_SKIP_GENERIC = {
+    ID_GIA: 1, ORIGEN_TIPUS: 1, NUM_ANOTACIO: 1, DATA_ANOTACIO: 1, DATA_INSPECCIO: 1,
+    ORIGEN: 1, DATES: 1, CLASSIFICACIO: 1
+  };
 
   // ------- DOM ----------------------------------------------------------------
   function $(id) { return document.getElementById(id); }
@@ -1102,14 +1095,12 @@
     estat.keys = new Set();
     estat.conclTitles = new Set();
     estat.fieldValues = {};
-    estat.fieldOrder = [];
-    estat.fieldDefs = {};
     estat.header = {};
     $("in-gia").value = "";
     $("msg-cerca").textContent = "";
     $("msg-final").textContent = "";
     $("msg-email").textContent = "";
-    $("prev-requeriments").value = "";
+    $("prev-requeriments").innerHTML = "";
     $("chk-titular").checked = false;
     $("tit-rao").textContent = "—";
     $("tit-mobil").textContent = "—";
@@ -1126,19 +1117,32 @@
   }
 
   // ------- Navegació ----------------------------------------------------------
-  function passId(i) { return "pas-" + PASSOS[i]; }
+
+  // Un pas es SALTA si no s'hi pot arribar. Ara mateix només passa amb el de
+  // catàleg quan només n'hi ha un: no hi ha res a triar. El comptador ha de dir
+  // el mateix que la navegació -si es salta un pas i el total no ho recull, la
+  // pantalla diu "Pas 1 / 5" i l'usuari no arriba mai al 5-.
+  function passAbastable(idx) {
+    if (PASSOS[idx] === "cataleg") { return asArray(manifest.Catalegs).length > 1; }
+    return true;
+  }
+  function passosAbastables() {
+    var out = [];
+    PASSOS.forEach(function (p, idx) { if (passAbastable(idx)) { out.push(idx); } });
+    return out;
+  }
 
   function anarA(i) {
-    // salta el pas de catàleg si només n'hi ha un
-    if (PASSOS[i] === "cataleg" && asArray(manifest.Catalegs).length <= 1) {
+    if (!passAbastable(i)) {
       return anarA(i + (i >= passActual ? 1 : -1));
     }
     passActual = i;
     PASSOS.forEach(function (p, idx) { mostrar($("pas-" + p), idx === i); });
-    $("btn-enrere").disabled = (i === 0) || (i === 1 && asArray(manifest.Catalegs).length <= 1);
-    $("btn-seguent").textContent = (i === PASSOS.length - 1) ? "Fet" : "Següent";
-    $("pas-indicador").textContent = "Pas " + (i + 1) + " / " + PASSOS.length;
-    mostrar($("navegacio"), PASSOS[i] !== "final" ? true : true);
+    var abast = passosAbastables();
+    var pos = abast.indexOf(i);
+    $("btn-enrere").disabled = (pos <= 0);
+    $("btn-seguent").textContent = (pos === abast.length - 1) ? "Fet" : "Següent";
+    $("pas-indicador").textContent = "Pas " + (pos + 1) + " / " + abast.length;
   }
 
   function validarPas() {

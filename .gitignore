@@ -40,5 +40,8 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
-# Carpeta local (secrets del PC: Private key EmailJS, etc.). No es puja mai.
-local/
+# (La carpeta 'local/' ja s'exclou a dalt de tot, amb 'local/*' i la negacio
+# '!local/README.txt'. Aqui hi havia un segon 'local/' que ANUL-LAVA aquella
+# negacio: el git no entra dins d'un directori ignorat, o sigui que el README
+# que 'local/README.txt' i el CLAUDE.md donen per publicat no s'hi hauria tornat
+# a afegir mai. Comprovat amb 'git check-ignore -v --no-index local/README.txt'.)
