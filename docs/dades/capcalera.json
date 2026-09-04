@@ -1,12 +1,12 @@
 {
-  "Placeholders": [
-    "ID_GIA",
-    "EXP_NUM",
-    "ADRECA",
-    "ACTIVITAT",
-    "TITULAR",
-    "ORIGEN",
-    "DATES",
-    "CLASSIFICACIO"
-  ]
+    "Placeholders":  [
+                         "ID_GIA",
+                         "EXP_NUM",
+                         "ADRECA",
+                         "ACTIVITAT",
+                         "TITULAR",
+                         "ORIGEN",
+                         "DATES",
+                         "CLASSIFICACIO"
+                     ]
 }

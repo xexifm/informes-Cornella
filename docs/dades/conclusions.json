@@ -1,33 +1,33 @@
 {
-  "HeaderText": "CONCLUSIONS",
-  "Selectable": [
-    {
-      "Title": "Desistiment",
-      "Body": "Vist l’anterior, com que la comunicació presenta un o més defectes de caràcter essencial **s’ha de dictar una resolució que deixi sense efecte la comunicació i ordeni el cessament de l'activitat**."
-    },
-    {
-      "Title": "Terrassa projecte",
-      "Body": "La terrassa que apareix en el projecte no forma part d’aquest informe ni d’aquest expedient."
-    },
-    {
-      "Title": "Requeriment",
-      "Body": "Vist l’anterior, cal requerir l’esmena de les deficiències indicades, aportant la documentació corresponent i presentant la mateixa en un termini màxim de quinze dies, a comptar des de l’endemà de la recepció del requeriment."
-    },
-    {
-      "Title": "Mancances formals",
-      "Body": "Vist l’anterior, la comunicació presenta mancances formals que s’hauran d’esmenar per tal de poder iniciar l’activitat amb legalitat."
-    },
-    {
-      "Title": "Procediment d’esmena documentació",
-      "Body": "Vist l’anterior, s’inicia d’ofici el procediment d’esmena, disposant **d’un termini [OPCIO: Mesos procediment esmena | d’un mes | de dos mesos degut a la complexitat de les actuacions que s’han de dur a terme per a esmenar les deficiències o per a complir els requisits exigits per la normativa sectorial aplicable | de tres mesos degut a la complexitat de les actuacions que s’han de dur a terme per a esmenar les deficiències o per a complir els requisits exigits per la normativa sectorial aplicable]** per a esmenar els defectes constatats. En cas contrari és pertinent que la resolució del procediment administratiu determini el **cessament de l’activitat**."
-    },
-    {
-      "Title": "Precinte inspecció activitat",
-      "Body": "Tenint en consideració el risc greu o imminent de seguretat sobre les persones, béns i el medi ambient que genera l’activitat **és pertinent precintar [CAMP: què es precinta]** fins a esmenar les deficiències en el cas de no presentar la documentació requerida en el termini **[OPCIO: Mesos precinte | d’un mes | de dos mesos | de tres mesos]**."
-    }
-  ],
-  "Always": [
-    "Ho poso al seu coneixement als efectes oportuns,",
-    "Cornellà de Llobregat,"
-  ]
+    "HeaderText":  "CONCLUSIONS",
+    "Selectable":  [
+                       {
+                           "Title":  "Desistiment",
+                           "Body":  "Vist l’anterior, com que la comunicació presenta un o més defectes de caràcter essencial **s’ha de dictar una resolució que deixi sense efecte la comunicació i ordeni el cessament de l\u0027activitat**."
+                       },
+                       {
+                           "Title":  "Terrassa projecte",
+                           "Body":  "La terrassa que apareix en el projecte no forma part d’aquest informe ni d’aquest expedient."
+                       },
+                       {
+                           "Title":  "Requeriment",
+                           "Body":  "Vist l’anterior, cal requerir l’esmena de les deficiències indicades, aportant la documentació corresponent i presentant la mateixa en un termini màxim de quinze dies, a comptar des de l’endemà de la recepció del requeriment."
+                       },
+                       {
+                           "Title":  "Mancances formals",
+                           "Body":  "Vist l’anterior, la comunicació presenta mancances formals que s’hauran d’esmenar per tal de poder iniciar l’activitat amb legalitat."
+                       },
+                       {
+                           "Title":  "Procediment d’esmena documentació",
+                           "Body":  "Vist l’anterior, s’inicia d’ofici el procediment d’esmena, disposant **d’un termini [OPCIO: Mesos procediment esmena | d’un mes | de dos mesos degut a la complexitat de les actuacions que s’han de dur a terme per a esmenar les deficiències o per a complir els requisits exigits per la normativa sectorial aplicable | de tres mesos degut a la complexitat de les actuacions que s’han de dur a terme per a esmenar les deficiències o per a complir els requisits exigits per la normativa sectorial aplicable]** per a esmenar els defectes constatats. En cas contrari és pertinent que la resolució del procediment administratiu determini el **cessament de l’activitat**."
+                       },
+                       {
+                           "Title":  "Precinte inspecció activitat",
+                           "Body":  "Tenint en consideració el risc greu o imminent de seguretat sobre les persones, béns i el medi ambient que genera l’activitat **és pertinent precintar [CAMP: què es precinta]** fins a esmenar les deficiències en el cas de no presentar la documentació requerida en el termini **[OPCIO: Mesos precinte | d’un mes | de dos mesos | de tres mesos]**."
+                       }
+                   ],
+    "Always":  [
+                   "Ho poso al seu coneixement als efectes oportuns,",
+                   "Cornellà de Llobregat,"
+               ]
 }
