@@ -289,6 +289,159 @@ els llegís no fallaria — generaria un informe **silenciosament equivocat**. S
   reutilitza el de `Motor.ps1`; se li passa el text de cerca **ja net**
   (`.Trim().ToLower()`), que és el seu contracte.
 
+## El codi que estava CLONAT (i què va destapar desclonar-lo)
+
+Ve de l'auditoria d'arquitectura. La lliçó general: **cada còpia s'havia anat
+separant de les altres, i les diferències no eren variants volgudes sinó
+defectes**. Desclonar no era estètica — era la manera de trobar-los.
+
+### `suport/Excel.ps1` — un sol lector de la fulla «Estès»
+
+**SET** funcions feien la mateixa seqüència (obrir l'Excel per COM, buscar
+«Estès», llegir `UsedRange.Value2`, treure'n files/columnes/capçalera, tancar) i
+només es diferenciaven en **què** en treien: `Activitats.ps1`, `Informes.ps1`,
+`ControlsPeriodics.ps1`, `SeguimentGia.ps1`, `rutes/Ruta.ps1`,
+`rutes/Precintades.ps1`, `rutes/Coordenades.ps1`.
+
+Tres defectes que hi havia amagats, tots trobats **comparant les còpies**:
+
+1. **UN EXCEL.EXE ORFE.** Les tres còpies de `rutes/` feien `$wb.Close($false)`
+   i `$excel.Quit()` al `finally` **sense `try`**. Si el `Close` peta —i un
+   llibre obert des d'una unitat de xarxa ho pot fer— el `Quit` no s'executa
+   mai: queda un Excel corrent, invisible, amb el fitxer agafat. Les de
+   `suport/` sí que els embolicaven. Ara **cada pas del tancament va dins del
+   seu `try`**.
+2. **CAP GUARDA DEL `$null`** a les mateixes tres. `New-Object -ComObject` pot
+   tornar `$null` sense llançar, i llavors peta 40 línies més avall amb un
+   «mètode sobre NULL».
+3. El missatge de «no trobo la fulla» **només deia els noms de les pestanyes a
+   UNA de les set**. Ara sempre.
+
+- **`Read-FullaEstesa $fitxer { param($x) … }`**: el cos arriba com a
+  **scriptblock** i **sense `.GetNewClosure()`** — mateix patró i mateix motiu
+  que `Write-InformeDocx`. El context porta `Data`, `Rows`, `Cols`, `Headers`,
+  `Sheet` i `Noms`.
+- **Què NO decideix**: un Excel buit no és un error (el cos es crida igual amb 0
+  files i cada eina en torna el que li toca), i si l'Excel no arrenca **llança**
+  — els dos cridadors que volen un `@{ Ok=$false; Error }` s'ho emboliquen amb
+  un `catch`, que és una línia.
+- **NOMÉS DEFINEIX FUNCIONS**, i és el que permet carregar-lo des dels **dos
+  processos** (`rutes/Ruta.ps1` corre a part i no pot carregar `UiComuns.ps1`).
+  Mateix patró que `Json.ps1` i `UiFinestra.ps1`.
+- **`SeguimentGia` es queda amb la seva instància**, i està raonat al codi: no
+  només llegeix, també **copia la fulla a un llibre NOU** amb la mateixa
+  instància i l'exporta a PDF, o sigui que necessita l'Excel obert més enllà del
+  cos. Comparteix `_TrobaFullaEstesa`.
+
+**LA REGLA DE CONSUM, i està MESURADA.** El cridador **assigna primer** i després
+torna amb coma:
+
+```powershell
+function Read-XFromExcel($f) {
+    $out = Read-FullaEstesa $f { param($x) …; return ,@($registres) }
+    return ,@($out)
+}
+```
+
+**Mai `return (Read-FullaEstesa …)` directe**: allà hi ha DOS `return` seguits,
+el pipeline desenrotlla una capa a cada un, i una llista d'**UN SOL** registre
+arriba al cridador com l'objecte **pelat** (sortia un `PSCustomObject` on toca un
+`Object[]`). Amb l'assignació pel mig no passa, perquè assignar no desenrotlla.
+Dins de `Read-FullaEstesa` **no hi ha cap coma** al `return $resultat`, i també
+està comprovat: amb aquesta forma d'ús, posar-n'hi una no canvia res, i una coma
+que sembla que fa falta i no en fa només despista.
+
+**Un sol normalitzador**: `_NormalizeText` (45 usos) i `_RutaNormalize` (6) feien
+el mateix; l'única diferència real era `ToLower()` contra `ToLowerInvariant()`.
+Ara és **`_NormalitzaText` amb `ToLowerInvariant`**: un normalitzador que serveix
+per **comparar** no pot dependre de l'idioma del Windows.
+
+### El Word s'obre en UN sol lloc
+
+`New-WordApp` (`Motor.ps1`) ja feia tres coses que calen sempre: la guarda del
+`$null` amb un missatge útil, `Visible`/`DisplayAlerts`, i sobretot
+**`AutomationSecurity = 1`**, que és el que impedeix que el Word obri en **Vista
+protegida** els fitxers d'una unitat de xarxa — i els informes són a
+`I:\Activitats_Ordenances\…`, que és exactament el cas per al qual aquella línia
+hi és. **Quatre** llocs se la saltaven amb un `New-Object` a pèl i cada un hi
+perdia coses; el pitjor, `EnviarCorreu.ps1`, **no tenia cap guarda del `$null`**
+i el «mètode sobre NULL» arribava tal qual al quadre «Error llegint l'informe»
+que veu l'usuari. Ara tots quatre van amb `New-WordApp -Opcional` i **cada un es
+queda el seu missatge**, que és l'únic que difereix de debò.
+
+### El correu: `_CosAHtml` i `_OmpleVariables`
+
+`_RecCosHtml` (Recordatoris) i `_ControlsCpEmailHtml` (Controls periòdics) eren
+**idèntiques línia a línia**, el mateix estil inline inclòs; i hi havia **tres**
+bucles iguals per substituir les variables `{X}`. Ara l'HTML el fa `_CosAHtml` i
+el bucle `_OmpleVariables`; **el mapa de variables el segueix posant cada eina**,
+que és l'única cosa que difereix. Hi ha guard perquè l'estil inline no es torni a
+copiar.
+
+El defecte dels **dos URLs a la mateixa línia** que això va destapar està explicat
+a la secció de *Recordatoris periòdics*.
+
+### `Show-EditorAssumpteCos` — les tres pantalles d'«assumpte + cos»
+
+`Invoke-EmailTextos`, `Invoke-ControlsCpEmailTextos` i `Invoke-RecordatorisTextos`
+eren tres pantalles gairebé iguals **amb les mateixes coordenades**, ~100 línies
+cadascuna. Ara la pantalla és una, a `UiComuns.ps1`, i **el que difereix de debò
+es queda a la crida**: què vol dir **desar** i què vol dir **restaurar**, totes
+dues com a scriptblock.
+
+- **Els blocs `-Desa`/`-Restaurar` NO porten `.GetNewClosure()`, i és a posta.**
+  Es defineixen a cada eina i s'executen des d'un handler de la pantalla; està
+  **mesurat** que així segueixen veient els locals de qui els va escriure. Importa
+  perquè el `-Desa` dels textos del mòbil llegeix `$textos['bcc']` i, si li
+  arribés buit, **desar s'enduria la llista de CCO en silenci**. Hi ha prova,
+  validada substituint el bloc per un de `[scriptblock]::Create` (que no té scope
+  de definició) i comprovant que el valor hi arriba **buit**.
+- **Els salts de línia, en un sol lloc**: el `TextBox` multilínia de WinForms
+  només ensenya els salts com a CRLF i els cossos es desen amb LF. Abans cada
+  pantalla ho havia de recordar i **la de Recordatoris no ho feia**.
+- Desviacions unificades (totes de la de Recordatoris): l'ajuda anava **sota** el
+  quadre gran, la lletra era **Consolas**, i no normalitzava els salts.
+- En desar, la de Recordatoris **torna a llegir l'estat** abans d'escriure-hi: la
+  finestra ha estat oberta i l'enviament automàtic hi escriu l'historial.
+
+### Les finestres de progrés: per què NO s'han fos
+
+Semblava que n'hi havia **quatre** iguals (barra indeterminada). De prop, només
+**dues** ho són:
+
+| On | |
+|---|---|
+| `Informes.ps1` (Actualitzar base) | hi encaixa |
+| `ControlsPeriodics.ps1` | hi encaixa, però amb una altra mida (420×130 contra 560×170) |
+| `Informes.ps1` (Copiar informes) | porta **Cancel·lar** i la seva lògica |
+| `rutes/Coordenades.ps1` | porta **Cancel·lar** *i* corre al **procés a part**, que no pot carregar `UiComuns.ps1` |
+
+Fondre dues còpies de ~15 línies que ni tan sols tenen la mateixa geometria és el
+mateix cas que el constructor de graelles (vegeu més amunt): el genèric sortiria
+més complicat que les dues juntes. **Decidit que no**, i queda escrit perquè
+ningú no ho refaci a cegues.
+
+### Els guards que ho mantenen
+
+Tots **validats injectant el defecte** i comprovant que passen a vermell:
+
+1. Cap fitxer fora d'`Excel.ps1` (i `SeguimentGia`, raonat) obre l'Excel per COM.
+2. Cap fitxer fora de `Motor.ps1` obre el Word per COM, i `New-WordApp` conserva
+   l'`AutomationSecurity` i el `-Opcional`.
+3. L'estil inline del cos del correu viu en un sol lloc.
+4. Les tres eines de text passen per `Show-EditorAssumpteCos`, que està definida
+   una sola vegada.
+5. `Read-FullaEstesa` **tanca el llibre i surt de l'Excel encara que el cos
+   llanci** — la prova va amb un **doble de COM** (`pscustomobject` +
+   `Add-Member`, el patró de la prova de `Write-InformeDocx`), que és l'única
+   manera de provar-ho en un Linux sense Excel.
+
+**Una cosa que va sortir escrivint aquelles proves i val per a tota la suite:**
+en injectar el defecte de l'orfe, l'excepció **s'escapava i matava el bloc
+sencer**… i la suite seguia dient «0 FAIL», perquè només compta el que s'ha
+arribat a comprovar. Per això aquell bloc va dins d'un `try` que ho reporta com a
+fallada. És la mateixa lliçó del `throw` que va matar mitja suite.
+
 ## El clone viu en una unitat de XARXA: manteniment del git desactivat
 - El clone de l'usuari està a `\\fitxers\arrel\Activitats_Ordenances\...`. Allà, el
   **`geometric-repack`** que el git llança sol després d'un `fetch`/`push` **falla**:
