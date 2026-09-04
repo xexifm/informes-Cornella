@@ -15,8 +15,10 @@
   tot barrejat. Ara cada concepte te el seu fitxer i aqui nomes queda la base:
 
     -- el fil de l'aplicacio --
-    Wizard.ps1          Main (el menu) i l'assistent de "Requeriment - Nou"
-    Seguiment.ps1       pantalla inicial (mode+cataleg) i informe de seguiment
+    Wizard.ps1          Main (el despatxador) i l'assistent de "Requeriment - Nou"
+    Menu.ps1            Pas 1: la pantalla inicial (Select-Mode) i el segell
+                        d'ultima execucio de cada eina
+    Seguiment.ps1       l'informe de seguiment (anotacions sobre un d'anterior)
     Paquet.ps1          generar sense assistent, des d'un paquet del mobil
 
     -- els passos de l'assistent --
@@ -45,6 +47,8 @@
 
     -- comu --
     UiComuns.ps1        finestres, botons, la banda granat, _AddConfigRow
+    Docx.ps1            llegir/editar un .docx SENSE Word (ZIP + WordprocessingML)
+    Excel.ps1           llegir la fulla "Estes" de l'Excel d'activitats
     Settings.ps1        settings.json d'aquest ordinador
     DriveApi.ps1        client de Google Drive
 
@@ -267,11 +271,21 @@ function Start-CoordenadesTool {
 # li importa mes enlla d'aixo.
 . (Join-Path $ScriptRoot 'MotorInforme.ps1')
 
+# Llegir i editar un .docx SENSE Word (ZIP + WordprocessingML). Va ABANS de
+# Seguiment.ps1 i d'Informes.ps1, que son els dos que en fan servir les
+# primitives. Nomes defineix.
+. (Join-Path $ScriptRoot 'Docx.ps1')
+
 # Carreguem el modul de seguiment (Seguiment.ps1). Conte el mode "Informe de
 # seguiment" (afegir anotacions de resolucio sobre un informe anterior). Es
 # carrega tambe en mode headless perque les seves funcions pures es puguin
 # provar des dels tests.
 . (Join-Path $ScriptRoot 'Seguiment.ps1')
+
+# El menu principal (Select-Mode, Pas 1) i el segell d'ultima execucio de les
+# eines. Vivia dins de Seguiment.ps1 i no hi tenia res a veure: es la primera
+# pantalla del programa, la que crida Main (Wizard.ps1).
+. (Join-Path $ScriptRoot 'Menu.ps1')
 
 # Client de Google Drive per API (per al mode mobil SENSE Drive d'escriptori).
 # Nomes defineix funcions; no fa res en carregar-se. Les credencials viuen a

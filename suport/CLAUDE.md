@@ -442,6 +442,60 @@ sencer**… i la suite seguia dient «0 FAIL», perquè només compta el que s'h
 arribat a comprovar. Per això aquell bloc va dins d'un `try` que ho reporta com a
 fallada. És la mateixa lliçó del `throw` que va matar mitja suite.
 
+## On viu cada cosa: dos fitxers que estaven al lloc equivocat
+
+Del mateix repàs d'arquitectura. Aquí no hi havia còpies —hi havia codi
+**compartit vivint dins d'un dels seus clients**, que és el que fa que un
+projecte sembli més embolicat del que és.
+
+### El motor de composició depenia del seu client
+
+`Write-InformeDocx` (`MotorInforme.ps1`) és el motor genèric, i `Document.ps1`
+és el composador de REQ1: un dels seus clients. Però el motor cridava **cinc
+funcions que vivien al client** — `_ResolveOutputDir`, `_GetUniqueOutputPath`,
+`_OpenOutputDocument`, `Select-CapcaleraBlock`, `Apply-HeaderReplacements` — i
+**cap no és de REQ1**: `_ResolveOutputDir` la fan servir sis fitxers més. Eren
+allà només perquè és on es van estrenar. Ara són a `MotorInforme.ps1` amb els
+seus helpers privats (`_CapMarcador`, `_BuildOrigenText`…); si aquells s'hi
+haguessin quedat, el motor hi seguiria depenent per un altre camí.
+`_GetOutputFileName` sí que s'ha quedat a `Document.ps1`: només el fa servir
+`Build-Document`.
+
+### `Seguiment.ps1` tenia tres coses que no hi pintaven
+
+Eren 2.002 línies amb l'informe de seguiment, les primitives d'OOXML i **el menú
+principal del programa sencer**. Ara:
+
+| Fitxer | Què hi ha |
+|---|---|
+| **`Docx.ps1`** | Llegir i editar un `.docx` **sense Word** (ZIP + WordprocessingML) |
+| **`Menu.ps1`** | `Select-Mode` (Pas 1) i el segell d'última execució de les eines |
+| `Seguiment.ps1` | Només l'informe de seguiment |
+
+- **Que el menú estava mal posat ho deia la pròpia suite**: **quatre dels sis**
+  guards que llegien `Seguiment.ps1` eren guards del **menú** (el títol acotat
+  pel xip, el `$result.Choice` amb closure, el botó de la carpeta i l'ordre dels
+  informes). Ara apunten a `Menu.ps1`, i s'ha comprovat que hi segueixen
+  vermellejant quan s'hi injecta el defecte.
+- **`Docx.ps1` hi porta només el que sap d'OOXML i no sap res del seguiment.**
+  S'hi han quedat les que porten «Seguiment» a dins encara que toquin XML, i en
+  particular **`_ApplyBodyFontXml` i `_MakeBodyRunXml`, que criden
+  `_SeguimentFontName`** — escriuen amb la lletra d'aquell informe, no són
+  genèriques—, i `_CollectParaRecordsXml`, que decideix `IsBulletChild`,
+  vocabulari del model de seguiment i de ningú més.
+- `Informes.ps1` ja feia servir tres d'aquelles primitives: una eina depenia
+  d'una altra eina per una cosa que no és de cap de les dues.
+
+**Moure funcions entre fitxers és neutre** —tot va amb dot-source al mateix
+àmbit— i les dues comprovacions que ho demostren, totes dues fetes: la **llista
+de noms de funció de tot `suport/` idèntica** abans i després (783), i els **19
+fitxers d'or idèntics**.
+
+**Segona vegada que passa el mateix, i val la pena tenir-ho present**: en
+repuntar els guards, un d'ells va petar (`Substring` amb `-1`) i **va matar la
+resta de la suite**, que va acabar dient «0 proves, 0 fallades» en lloc de
+fallar. El resum només compta el que s'ha arribat a executar.
+
 ## El clone viu en una unitat de XARXA: manteniment del git desactivat
 - El clone de l'usuari està a `\\fitxers\arrel\Activitats_Ordenances\...`. Allà, el
   **`geometric-repack`** que el git llança sol després d'un `fetch`/`push` **falla**:
@@ -580,7 +634,7 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   `local\base-dades-activitats\informes-db.json` (dins de `local/`: mai es puja).
   Botons al menú: **🗃 Actualitzar** i **📋 Editar** (marc "Base d'informes").
 - Lectura de `.docx` **sense Word** (zip) reutilitzant les primitives de
-  `Seguiment.ps1` (`_LoadDocxXml`, `_ParagraphTextXml`). Lectura de `.doc`
+  **`Docx.ps1`** (`_LoadDocxXml`, `_ParagraphTextXml`). Lectura de `.doc`
   antics (Word 97-2003) via **Word COM** (`_ReadDocParagraphsWord`): instància
   creada mandrosament a `Invoke-InformesDbScan` només si cal reprocessar algun
   `.doc`, i tancada (`Quit()`) en un `finally`. Funcions de text PURES (dates,
@@ -689,7 +743,7 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   Una conclusio que diu que **NO** es pot donar per tancat/finalitzat (qualsevol
   "no es pot donar...") es **Requeriment** (pendent), no "FI Requeriment": la
   comprovacio del "no" va abans que la del "si" a `_ConclusioBreu`.
-- **Menú Pas 1 — 4 apartats de rajoles** (`Select-Mode`, `Seguiment.ps1`, helper
+- **Menú Pas 1 — 4 apartats de rajoles** (`Select-Mode`, `Menu.ps1`, helper
   `$addTileRow`; dispatch al `switch` de `Main`):
   - **EINES** (4): 📍 *Generar ruta* (`ruta`), 🗺 *Coordenades*
     (`coordenades`), 🔒 *Activitats precintades* (`url`, acció `precintades`
@@ -1795,7 +1849,7 @@ sortir malament de primera:
    el menú es tancava i **el programa sortia sense fer res** («es tanca el
    programa i no passa res més»). Ara va **després** de `$result` i **amb**
    closure, com tots els altres handlers de `Select-Mode`.
-   - Prova que ho vigila: **cada `$result.Choice =` de `Seguiment.ps1` ha
+   - Prova que ho vigila: **cada `$result.Choice =` de `Menu.ps1` ha
      d'anar després de la declaració i dins d'un bloc amb `.GetNewClosure()`**.
      Validada injectant el cas.
    - Ull amb la variant contrària: un scriptblock **sense** closure sí que
@@ -2188,7 +2242,7 @@ commit i comparant el fitxer d'or a cada pas**.
   afegir/eliminar/moure nodes. En desar s'escriu el JSON (sense BOM; `clau` només
   quan té valor) amb **validació** (re-llegeix amb el lector) i **còpia `.bak`** de
   seguretat; l'editor només ESCRIU, la generació no en depèn.
-  - **Punt d'entrada**: a la finestra principal (`Seguiment.ps1 Select-Mode`),
+  - **Punt d'entrada**: a la finestra principal (`Menu.ps1`, `Select-Mode`),
     el **xip del document** (REQ1/TERMINI/ACT_EXTR) dels botons de tipus d'informe
     porta un emoji d'editar ✏️; clicar-lo (hit-test del rectangle `DocChipRect`
     via `MouseClick`) obre l'editor centrat en aquell document. Dispatch:

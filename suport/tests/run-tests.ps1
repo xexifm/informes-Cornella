@@ -2559,7 +2559,7 @@ Assert (-not ($blocFase.Contains('Point(370, 286)'))) 'Select-LlicFase: ...i ja 
 # EL TITOL DE LA RAJOLA DEL MENU s'ha de dibuixar ACOTAT pels xips. Prova de
 # FONT (el menu nomes es pinta a Windows): el xip "Dades" tapava el "LL Prov" de
 # Llicencia perque el titol es dibuixava en un PUNT, sense limit d'amplada.
-$srcMenu = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'Seguiment.ps1') -Raw
+$srcMenu = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'Menu.ps1') -Raw
 $iPaint = $srcMenu.IndexOf('$paintHandler = {')
 $iFiPaint = $srcMenu.IndexOf('$result = @{ Choice = $null }')
 $paint = $srcMenu.Substring($iPaint, $iFiPaint - $iPaint)
@@ -4238,7 +4238,7 @@ AssertEq (_Ed_AplicaText 'capcalera' @{ tipus='etiqueta'; clau='p1'; titol='ID G
 # crea (nomes l'ambit de l'script). Els enllacos 'Capcalera'/'Conclusions' es
 # van posar ABANS de declarar $result i sense closure: "$result.Choice = ..."
 # queia sobre $null, el menu es tancava i el programa SORTIA sense fer res.
-$srcMenu2 = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'Seguiment.ps1') -Raw
+$srcMenu2 = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'Menu.ps1') -Raw
 $iDecl = $srcMenu2.IndexOf('$result = @{ Choice = $null }')
 Assert ($iDecl -ge 0) 'menu: $result es declara a Select-Mode'
 # Nomes les linies de CODI (una menció dins d'un comentari no compta).
@@ -4380,7 +4380,7 @@ if (Test-Path -LiteralPath $batAD) {
 
 # EL BOTO DE LA CARPETA del menu: la ruta NO pot estar escrita al codi, ha de
 # sortir de _ResolveOutputDir (que es el que mana la Configuracio).
-$srcMenu3 = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'Seguiment.ps1') -Raw
+$srcMenu3 = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'Menu.ps1') -Raw
 $iBtnC = $srcMenu3.IndexOf('$btnCarpeta = New-Object')
 Assert ($iBtnC -ge 0) 'menu: hi ha el boto de la carpeta dels informes'
 if ($iBtnC -ge 0) {
@@ -5135,7 +5135,7 @@ if ($null -ne $llicOrd -and $null -ne $req1Ord) {
 # sigui que aixo es una prova de FONT: mira en quin ordre s'afegeixen les
 # entrades a $menu.
 Write-Host "`n--- El menu: ordre dels informes ---"
-$segSrc = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'Seguiment.ps1') -Raw
+$segSrc = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'Menu.ps1') -Raw
 $q = [char]39
 $rxMenu = '\$menu\.Add\(@\{\s*Action\s*=\s*' + $q + '([a-z]+)' + $q
 $accions = @([regex]::Matches($segSrc, $rxMenu) | ForEach-Object { $_.Groups[1].Value })
