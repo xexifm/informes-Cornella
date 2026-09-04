@@ -5655,4 +5655,67 @@ foreach ($f in $ps1Tots) {
 AssertEq $copiesEstil 1 'l''estil del cos del correu viu en UN sol lloc (_CosAHtml)'
 
 
+Write-Host "`n--- L'editor d'assumpte + cos: una sola pantalla ---"
+# PER QUE. Hi havia TRES pantalles gairebe iguals, amb les MATEIXES coordenades
+# (textos del mobil, avis de control periodic, text d'una campanya de
+# recordatoris): ~100 linies cadascuna per pintar dues etiquetes, dos quadres,
+# una linia d'ajuda i tres botons. Ara la pantalla es Show-EditorAssumpteCos
+# (UiComuns.ps1) i cada eina hi posa NOMES el que difereix de debo: que vol dir
+# DESAR i que vol dir RESTAURAR, tots dos com a scriptblock.
+#
+# La finestra es WinForms i no es pot obrir aqui; el que si que es pot provar es
+# el mecanisme del qual depen tot: que un scriptblock passat com a PARAMETRE
+# segueixi veient els LOCALS de la funcio que el va escriure quan qui el crida es
+# un handler d'una altra funcio. Si no fos aixi, el bloc -Desa dels textos del
+# mobil rebria un $textos buit i DESAR S'ENDURIA LA LLISTA DE CCO en silenci.
+# Esta MESURAT que funciona sense .GetNewClosure() -per aixo no se n'hi ha posat
+# cap-, i aquesta prova ho deixa clavat: validada substituint el bloc per un de
+# fet amb [scriptblock]::Create, que no te scope de definicio, i comprovant que
+# el valor arriba BUIT.
+{
+  try {
+    function _EacMotor([scriptblock]$Desa, [scriptblock]$Restaurar) {
+        # El handler SI que porta closure, com els de la pantalla de debo.
+        $h = { "$(& $Desa 'v') | $(& $Restaurar)" }.GetNewClosure()
+        return (& $h)
+    }
+    function _EacCrider {
+        $textos = @{ bcc = 'CCO' }
+        $clau   = 'requeriments'
+        return (_EacMotor -Desa { param($v) "desa:$($textos.bcc)/$v" } -Restaurar { "rest:$clau" })
+    }
+    AssertEq (_EacCrider) 'desa:CCO/v | rest:requeriments' 'un scriptblock parametre veu els locals de qui el va escriure'
+  } catch {
+    Assert $false ("editor assumpte+cos: excepcio -> " + $_.Exception.Message)
+  }
+}.Invoke() | Out-Null
+
+# Les tres eines han de passar per la pantalla compartida, i cap d'elles pot
+# tornar a muntar-se la seva.
+$eacFitxers = @{
+    'EmailTextos.ps1'     = 'Invoke-EmailTextos'
+    'ControlsCpEmail.ps1' = 'Invoke-ControlsCpEmailTextos'
+    'Recordatoris.ps1'    = 'Invoke-RecordatorisTextos'
+}
+foreach ($nom in $eacFitxers.Keys) {
+    $t = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'suport' $nom)))
+    Assert ($t.Contains('Show-EditorAssumpteCos')) "$nom : $($eacFitxers[$nom]) passa per la pantalla compartida"
+    Assert (-not ($t -match "(?m)^\s*\`$lblH\.Font\s*=")) "$nom : ja no es torna a muntar la pantalla pel seu compte"
+}
+# ...i la pantalla viu en UN sol lloc.
+$copiesEac = 0
+foreach ($f in $ps1Tots) {
+    if ($f.FullName -like ('*' + [System.IO.Path]::DirectorySeparatorChar + 'tests' + [System.IO.Path]::DirectorySeparatorChar + '*')) { continue }
+    $copiesEac += ([regex]::Matches([System.IO.File]::ReadAllText($f.FullName), 'function Show-EditorAssumpteCos')).Count
+}
+AssertEq $copiesEac 1 'Show-EditorAssumpteCos esta definida UNA sola vegada'
+
+# El TextBox multilinia de WinForms nomes ensenya CRLF i els cossos es desen amb
+# LF. Ara la conversio es fa en UN sol lloc (abans cada pantalla ho havia de
+# recordar, i la de recordatoris NO ho feia).
+$srcUi = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'suport' 'UiComuns.ps1')))
+Assert ($srcUi.Contains('$Cos -replace "`r?`n", "`r`n"')) 'l''editor normalitza a CRLF en pintar'
+Assert ($srcUi.Contains('$tbC.Text -replace "`r`n", "`n"')) 'l''editor torna a LF en desar'
+
+
 exit (Write-TestSummary 'RESULTAT')

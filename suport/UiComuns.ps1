@@ -791,3 +791,147 @@ function _AddConfigRow($parent, [int]$y, [string]$labelText, [string]$initialVal
 
     return @{ TextBox = $tb; NextY = ($y + 8) }
 }
+
+# ----------------------------------------------------------------------------
+# Editor d'ASSUMPTE + COS d'un correu
+# ----------------------------------------------------------------------------
+# Hi havia TRES pantalles gairebe iguals, amb les MATEIXES coordenades:
+#
+#   Invoke-EmailTextos            (EmailTextos.ps1)     textos del mobil
+#   Invoke-ControlsCpEmailTextos  (ControlsCpEmail.ps1) avis de control periodic
+#   Invoke-RecordatorisTextos     (Recordatoris.ps1)    text d'una campanya
+#
+# ~100 linies cadascuna per pintar el mateix: dues etiquetes, un quadre d'una
+# linia, un de gran, una linia d'ajuda i tres botons. La regla del projecte ja hi
+# era: un helper d'interficie que fan servir dues pantalles va a UiComuns.
+#
+# EL QUE DIFEREIX DE DEBO ES QUEDA A LA CRIDA, i son dues coses: QUE VOL DIR
+# DESAR (una eina valida que el cos porti {REQUERIMENTS}, una altra escriu a
+# %LOCALAPPDATA%, una altra a la configuracio d'una campanya) i QUE VOL DIR
+# RESTAURAR (rellegir el fitxer desat, o tornar als valors de fabrica). Totes
+# dues arriben com a scriptblock, aixi que aquesta funcio no sap res de cap eina.
+#
+# Diferencies que NO s'han conservat perque eren desviacio i no decisio: la de
+# recordatoris tenia l'ajuda a SOTA del quadre gran (les altres dues, a sobre,
+# que es on es llegeix abans d'escriure), la lletra Consolas en lloc de la del
+# programa, i no normalitzava els salts de linia.
+#
+# ELS SALTS DE LINIA: el TextBox multilinia de WinForms nomes ensenya els salts
+# com a CRLF, i els cossos es desen amb LF. Es normalitza en pintar i es desfa en
+# desar, en UN sol lloc; abans cada pantalla ho havia de recordar (i la de
+# recordatoris no ho feia).
+#
+# Torna $true si s'ha desat alguna vegada.
+function Show-EditorAssumpteCos {
+    param(
+        [string]$TextFinestra,
+        [string]$Titol,
+        [string]$Subtitol,
+        [string]$Ajuda,
+        [string]$Assumpte,
+        [string]$Cos,
+        [string]$EtiquetaRestaurar = '',
+        [scriptblock]$Restaurar = $null,
+        [scriptblock]$Desa
+    )
+
+    # Hashtable i no una variable solta: les closures dels handlers copien els
+    # VALORS dels locals, i un hashtable si que es captura per referencia (es la
+    # trampa de .GetNewClosure() que ja hi ha documentada al CLAUDE.md).
+    $estat = @{ Desat = $false }
+
+    $form = _NewForm
+    $form.Text = $TextFinestra
+    $form.ClientSize = New-Object System.Drawing.Size(760, 620)
+    $form.MinimumSize = New-Object System.Drawing.Size(620, 470)
+
+    $lblA = New-Object System.Windows.Forms.Label
+    $lblA.Text = 'Assumpte del correu:'
+    $lblA.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
+    $lblA.Location = New-Object System.Drawing.Point(16, 70)
+    $lblA.AutoSize = $true
+    [void]$form.Controls.Add($lblA)
+
+    $tbA = New-Object System.Windows.Forms.TextBox
+    $tbA.Location = New-Object System.Drawing.Point(16, 92)
+    $tbA.Size = New-Object System.Drawing.Size(728, 24)
+    $tbA.Anchor = 'Top, Left, Right'
+    $tbA.Text = [string]$Assumpte
+    [void]$form.Controls.Add($tbA)
+
+    $lblC = New-Object System.Windows.Forms.Label
+    $lblC.Text = 'Cos del correu:'
+    $lblC.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
+    $lblC.Location = New-Object System.Drawing.Point(16, 126)
+    $lblC.AutoSize = $true
+    [void]$form.Controls.Add($lblC)
+
+    $lblH = New-Object System.Windows.Forms.Label
+    $lblH.Text = [string]$Ajuda
+    $lblH.Font = New-Object System.Drawing.Font('Segoe UI', 8, [System.Drawing.FontStyle]::Italic)
+    $lblH.ForeColor = [System.Drawing.Color]::FromArgb(120, 128, 138)
+    $lblH.Location = New-Object System.Drawing.Point(16, 146)
+    $lblH.AutoSize = $false
+    $lblH.Size = New-Object System.Drawing.Size(728, 16)
+    $lblH.Anchor = 'Top, Left, Right'
+    [void]$form.Controls.Add($lblH)
+
+    $tbC = New-Object System.Windows.Forms.TextBox
+    $tbC.Location = New-Object System.Drawing.Point(16, 166)
+    $tbC.Size = New-Object System.Drawing.Size(728, 396)
+    $tbC.Anchor = 'Top, Bottom, Left, Right'
+    $tbC.Multiline = $true
+    $tbC.ScrollBars = 'Vertical'
+    $tbC.WordWrap = $true
+    $tbC.AcceptsReturn = $true
+    $tbC.Font = New-Object System.Drawing.Font('Segoe UI', 9.5)
+    $tbC.Text = ([string]$Cos -replace "`r?`n", "`r`n")
+    [void]$form.Controls.Add($tbC)
+
+    $btnBack = New-Object System.Windows.Forms.Button
+    $btnBack.Text = 'Enrere'
+    $btnBack.Location = New-Object System.Drawing.Point(16, 578)
+    $btnBack.Size = New-Object System.Drawing.Size(110, 30)
+    $btnBack.Anchor = 'Bottom, Left'
+    _StyleSecondaryButton $btnBack
+    [void]$form.Controls.Add($btnBack)
+
+    if ($null -ne $Restaurar -and -not [string]::IsNullOrWhiteSpace($EtiquetaRestaurar)) {
+        $btnRest = New-Object System.Windows.Forms.Button
+        $btnRest.Text = [string]$EtiquetaRestaurar
+        $btnRest.Location = New-Object System.Drawing.Point(136, 578)
+        $btnRest.Size = New-Object System.Drawing.Size(210, 30)
+        $btnRest.Anchor = 'Bottom, Left'
+        _StyleSecondaryButton $btnRest
+        [void]$form.Controls.Add($btnRest)
+        $btnRest.add_Click({
+            $nou = & $Restaurar
+            if ($null -eq $nou) { return }
+            $tbA.Text = [string]$nou['assumpte']
+            $tbC.Text = ([string]$nou['cos'] -replace "`r?`n", "`r`n")
+        }.GetNewClosure())
+    }
+
+    $btnSave = New-Object System.Windows.Forms.Button
+    $btnSave.Text = 'Desar'
+    $btnSave.Location = New-Object System.Drawing.Point(624, 578)
+    $btnSave.Size = New-Object System.Drawing.Size(120, 30)
+    $btnSave.Anchor = 'Bottom, Right'
+    _StylePrimaryButton $btnSave
+    [void]$form.Controls.Add($btnSave)
+
+    [void](_AddBrandHeader $form $Titol $Subtitol)
+
+    $btnBack.add_Click({ $form.Close() }.GetNewClosure())
+    $btnSave.add_Click({
+        $valors = [ordered]@{
+            assumpte = [string]$tbA.Text
+            cos      = ([string]$tbC.Text -replace "`r`n", "`n")
+        }
+        if (& $Desa $valors) { $estat.Desat = $true }
+    }.GetNewClosure())
+
+    [void]$form.ShowDialog()
+    $form.Dispose()
+    return $estat.Desat
+}

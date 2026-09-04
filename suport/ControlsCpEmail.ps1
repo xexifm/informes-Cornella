@@ -240,101 +240,28 @@ function Invoke-ControlsCpEmailDrafts($rows) {
 function Invoke-ControlsCpEmailTextos {
     $textos = _LoadControlsCpEmail
 
-    $form = _NewForm
-    $form.Text = 'Text del correu (controls periodics)'
-    $form.ClientSize = New-Object System.Drawing.Size(760, 620)
-    $form.MinimumSize = New-Object System.Drawing.Size(620, 470)
-
-    $lblA = New-Object System.Windows.Forms.Label
-    $lblA.Text = 'Assumpte del correu:'
-    $lblA.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
-    $lblA.Location = New-Object System.Drawing.Point(16, 70)
-    $lblA.AutoSize = $true
-    [void]$form.Controls.Add($lblA)
-
-    $tbA = New-Object System.Windows.Forms.TextBox
-    $tbA.Location = New-Object System.Drawing.Point(16, 92)
-    $tbA.Size = New-Object System.Drawing.Size(728, 24)
-    $tbA.Anchor = 'Top, Left, Right'
-    $tbA.Text = [string]$textos['assumpte']
-    [void]$form.Controls.Add($tbA)
-
-    $lblC = New-Object System.Windows.Forms.Label
-    $lblC.Text = 'Cos del correu:'
-    $lblC.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
-    $lblC.Location = New-Object System.Drawing.Point(16, 126)
-    $lblC.AutoSize = $true
-    [void]$form.Controls.Add($lblC)
-
-    $lblH = New-Object System.Windows.Forms.Label
-    $lblH.Text = _ControlsCpEmailAjuda
-    $lblH.Font = New-Object System.Drawing.Font('Segoe UI', 8, [System.Drawing.FontStyle]::Italic)
-    $lblH.ForeColor = [System.Drawing.Color]::FromArgb(120, 128, 138)
-    $lblH.Location = New-Object System.Drawing.Point(16, 146)
-    $lblH.AutoSize = $false
-    $lblH.Size = New-Object System.Drawing.Size(728, 16)
-    $lblH.Anchor = 'Top, Left, Right'
-    [void]$form.Controls.Add($lblH)
-
-    $tbC = New-Object System.Windows.Forms.TextBox
-    $tbC.Location = New-Object System.Drawing.Point(16, 166)
-    $tbC.Size = New-Object System.Drawing.Size(728, 396)
-    $tbC.Anchor = 'Top, Bottom, Left, Right'
-    $tbC.Multiline = $true
-    $tbC.ScrollBars = 'Vertical'
-    $tbC.WordWrap = $true
-    $tbC.AcceptsReturn = $true
-    $tbC.Font = New-Object System.Drawing.Font('Segoe UI', 9.5)
-    # El TextBox multilinia nomes mostra CRLF; el cos es guarda amb LF.
-    $tbC.Text = [string]$textos['cos'] -replace "`r?`n", "`r`n"
-    [void]$form.Controls.Add($tbC)
-
-    $btnBack = New-Object System.Windows.Forms.Button
-    $btnBack.Text = 'Enrere'
-    $btnBack.Location = New-Object System.Drawing.Point(16, 578)
-    $btnBack.Size = New-Object System.Drawing.Size(110, 30)
-    $btnBack.Anchor = 'Bottom, Left'
-    _StyleSecondaryButton $btnBack
-    [void]$form.Controls.Add($btnBack)
-
-    $btnDefault = New-Object System.Windows.Forms.Button
-    $btnDefault.Text = 'Restaurar original'
-    $btnDefault.Location = New-Object System.Drawing.Point(136, 578)
-    $btnDefault.Size = New-Object System.Drawing.Size(150, 30)
-    $btnDefault.Anchor = 'Bottom, Left'
-    _StyleSecondaryButton $btnDefault
-    [void]$form.Controls.Add($btnDefault)
-
-    $btnSave = New-Object System.Windows.Forms.Button
-    $btnSave.Text = 'Desar'
-    $btnSave.Location = New-Object System.Drawing.Point(624, 578)
-    $btnSave.Size = New-Object System.Drawing.Size(120, 30)
-    $btnSave.Anchor = 'Bottom, Right'
-    _StylePrimaryButton $btnSave
-    [void]$form.Controls.Add($btnSave)
-
-    [void](_AddBrandHeader $form 'Text del correu' ('Avís de control peri' + [char]0x00F2 + 'dic ' + [char]0x00B7 + ' es desa en aquest ordinador'))
-
-    $btnBack.add_Click({ $form.Close() }.GetNewClosure())
-
-    $btnDefault.add_Click({
-        $r = [System.Windows.Forms.MessageBox]::Show('Vols recuperar el text original? (No es desa fins que premis Desar.)', 'Text del correu', 'YesNo', 'Question')
-        if ($r -ne [System.Windows.Forms.DialogResult]::Yes) { return }
-        $def = _DefaultControlsCpEmail
-        $tbA.Text = [string]$def['assumpte']
-        $tbC.Text = [string]$def['cos'] -replace "`r?`n", "`r`n"
-    }.GetNewClosure())
-
-    $btnSave.add_Click({
-        $out = [ordered]@{ assumpte = [string]$tbA.Text; cos = ([string]$tbC.Text -replace "`r`n", "`n") }
-        try {
-            _SaveControlsCpEmail $out
-            [System.Windows.Forms.MessageBox]::Show('Text desat en aquest ordinador.', 'Text del correu', 'OK', 'Information') | Out-Null
-        } catch {
-            [System.Windows.Forms.MessageBox]::Show("No s'ha pogut desar:`n$($_.Exception.Message)", 'Text del correu', 'OK', 'Error') | Out-Null
-        }
-    }.GetNewClosure())
-
-    [void]$form.ShowDialog()
-    $form.Dispose()
+    [void](Show-EditorAssumpteCos `
+        -TextFinestra 'Text del correu (controls periodics)' `
+        -Titol 'Text del correu' `
+        -Subtitol ('Av' + [char]0x00ED + 's de control peri' + [char]0x00F2 + 'dic ' + [char]0x00B7 + ' es desa en aquest ordinador') `
+        -Ajuda (_ControlsCpEmailAjuda) `
+        -Assumpte ([string]$textos['assumpte']) `
+        -Cos ([string]$textos['cos']) `
+        -EtiquetaRestaurar 'Restaurar original' `
+        -Restaurar {
+            $r = [System.Windows.Forms.MessageBox]::Show('Vols recuperar el text original? (No es desa fins que premis Desar.)', 'Text del correu', 'YesNo', 'Question')
+            if ($r -ne [System.Windows.Forms.DialogResult]::Yes) { return $null }
+            return (_DefaultControlsCpEmail)
+        } `
+        -Desa {
+            param($v)
+            try {
+                _SaveControlsCpEmail ([ordered]@{ assumpte = [string]$v['assumpte']; cos = [string]$v['cos'] })
+                [System.Windows.Forms.MessageBox]::Show('Text desat en aquest ordinador.', 'Text del correu', 'OK', 'Information') | Out-Null
+                return $true
+            } catch {
+                [System.Windows.Forms.MessageBox]::Show("No s'ha pogut desar:`n$($_.Exception.Message)", 'Text del correu', 'OK', 'Error') | Out-Null
+                return $false
+            }
+        })
 }

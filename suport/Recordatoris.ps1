@@ -653,99 +653,37 @@ function Invoke-RecordatorisTextos([string]$clau) {
     $estat = _RecLlegeix
     $cfg = $estat.campanyes[$clau]
 
-    $form = _NewForm
-    $form.Text = 'Text del recordatori - ' + $camp.Nom
-    $form.ClientSize = New-Object System.Drawing.Size(860, 620)
-    $form.MinimumSize = New-Object System.Drawing.Size(700, 480)
-
-    $panel = New-Object System.Windows.Forms.Panel
-    $panel.Dock = 'Fill'
-    $panel.Padding = New-Object System.Windows.Forms.Padding(16, 12, 16, 12)
-
-    $lblA = New-Object System.Windows.Forms.Label
-    $lblA.Text = 'Assumpte:'
-    $lblA.Location = New-Object System.Drawing.Point(16, 12)
-    $lblA.Size = New-Object System.Drawing.Size(120, 20)
-    $panel.Controls.Add($lblA)
-
-    $txtA = New-Object System.Windows.Forms.TextBox
-    $txtA.Location = New-Object System.Drawing.Point(16, 34)
-    $txtA.Size = New-Object System.Drawing.Size(812, 24)
-    $txtA.Anchor = 'Top,Left,Right'
-    $txtA.Text = [string]$cfg['assumpte']
-    $panel.Controls.Add($txtA)
-
-    $lblC = New-Object System.Windows.Forms.Label
-    $lblC.Text = 'Cos del correu:'
-    $lblC.Location = New-Object System.Drawing.Point(16, 66)
-    $lblC.Size = New-Object System.Drawing.Size(200, 20)
-    $panel.Controls.Add($lblC)
-
-    $txtC = New-Object System.Windows.Forms.TextBox
-    $txtC.Location = New-Object System.Drawing.Point(16, 88)
-    $txtC.Size = New-Object System.Drawing.Size(812, 430)
-    $txtC.Anchor = 'Top,Left,Right,Bottom'
-    $txtC.Multiline = $true
-    $txtC.ScrollBars = 'Vertical'
-    $txtC.AcceptsReturn = $true
-    $txtC.WordWrap = $true
-    $txtC.Font = New-Object System.Drawing.Font('Consolas', 9)
-    $txtC.Text = [string]$cfg['cos']
-    $panel.Controls.Add($txtC)
-
-    $lblH = New-Object System.Windows.Forms.Label
-    $lblH.Text = _RecAjuda
-    $lblH.Location = New-Object System.Drawing.Point(16, 524)
-    $lblH.Size = New-Object System.Drawing.Size(812, 34)
-    $lblH.Anchor = 'Left,Right,Bottom'
-    $lblH.ForeColor = [System.Drawing.Color]::FromArgb(107, 116, 128)
-    $panel.Controls.Add($lblH)
-
-    $btnDef = New-Object System.Windows.Forms.Button
-    $btnDef.Text = 'Restaurar el text per defecte'
-    $btnDef.Location = New-Object System.Drawing.Point(16, 562)
-    $btnDef.Size = New-Object System.Drawing.Size(210, 30)
-    $btnDef.Anchor = 'Left,Bottom'
-    $panel.Controls.Add($btnDef)
-
-    $btnOk = New-Object System.Windows.Forms.Button
-    $btnOk.Text = 'Desar'
-    $btnOk.Location = New-Object System.Drawing.Point(638, 562)
-    $btnOk.Size = New-Object System.Drawing.Size(90, 30)
-    $btnOk.Anchor = 'Right,Bottom'
-    $btnOk.DialogResult = 'OK'
-    $panel.Controls.Add($btnOk)
-
-    $btnNo = New-Object System.Windows.Forms.Button
-    $btnNo.Text = 'Cancel·lar'
-    $btnNo.Location = New-Object System.Drawing.Point(738, 562)
-    $btnNo.Size = New-Object System.Drawing.Size(90, 30)
-    $btnNo.Anchor = 'Right,Bottom'
-    $btnNo.DialogResult = 'Cancel'
-    $panel.Controls.Add($btnNo)
-
-    $form.Controls.Add($panel)
-    [void](_AddBrandHeader $form ('Recordatoris - ' + $camp.Nom) 'Text que rebrà el titular' 56)
-    $form.AcceptButton = $null
-    $form.CancelButton = $btnNo
-
-    $btnDef.add_Click({
-        $r = [System.Windows.Forms.MessageBox]::Show(
-            'Vols recuperar el text per defecte? Es perdrà el que hi ha ara.',
-            'Recordatoris', 'YesNo', 'Question')
-        if ($r -eq [System.Windows.Forms.DialogResult]::Yes) {
-            $d = _RecDefaultTextos $clau
-            $txtA.Text = [string]$d['assumpte']
-            $txtC.Text = [string]$d['cos']
-        }
-    }.GetNewClosure())
-
-    if ($form.ShowDialog() -ne 'OK') { return $false }
-
-    $estat.campanyes[$clau]['assumpte'] = [string]$txtA.Text
-    $estat.campanyes[$clau]['cos']      = [string]$txtC.Text
-    _RecDesa $estat
-    return $true
+    return (Show-EditorAssumpteCos `
+        -TextFinestra ('Text del recordatori - ' + $camp.Nom) `
+        -Titol ('Recordatoris - ' + $camp.Nom) `
+        -Subtitol ('Text que rebr' + [char]0x00E0 + ' el titular') `
+        -Ajuda (_RecAjuda) `
+        -Assumpte ([string]$cfg['assumpte']) `
+        -Cos ([string]$cfg['cos']) `
+        -EtiquetaRestaurar 'Restaurar el text per defecte' `
+        -Restaurar {
+            $r = [System.Windows.Forms.MessageBox]::Show(
+                'Vols recuperar el text per defecte? Es perdr' + [char]0x00E0 + ' el que hi ha ara.',
+                'Recordatoris', 'YesNo', 'Question')
+            if ($r -ne [System.Windows.Forms.DialogResult]::Yes) { return $null }
+            return (_RecDefaultTextos $clau)
+        } `
+        -Desa {
+            param($v)
+            # Es torna a LLEGIR l'estat abans de desar: la finestra ha estat
+            # oberta i el que hi ha al disc pot no ser el que es va llegir en
+            # obrir-la (l'enviament automatic hi escriu l'historial).
+            $ara = _RecLlegeix
+            $ara.campanyes[$clau]['assumpte'] = [string]$v['assumpte']
+            $ara.campanyes[$clau]['cos']      = [string]$v['cos']
+            try {
+                _RecDesa $ara
+                return $true
+            } catch {
+                [System.Windows.Forms.MessageBox]::Show("No s'ha pogut desar:`n$($_.Exception.Message)", 'Recordatoris', 'OK', 'Error') | Out-Null
+                return $false
+            }
+        })
 }
 
 # ----------------------------------------------------------------------------
