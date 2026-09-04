@@ -92,6 +92,10 @@ if not exist "ESTRUCTURALS\0 CAPCALERA.docx" (
     git checkout -- "ESTRUCTURALS/0 CAPCALERA.docx"
 )
 
+REM Aquest bloc nomes serveix per COMMITEJAR la feina local de l'usuari ABANS
+REM del stash (si no, el stash se l'enduria). La regeneracio AUTORITATIVA de
+REM docs\dades es fa DESPRES del pull, al pas 4c: la d'aqui es fa amb el cataleg
+REM d'abans d'actualitzar i pot quedar-se curta.
 if "%PLANTILLES_CANVIADES%"=="1" (
     echo Detectats canvis locals als catalegs d'ESTRUCTURALS.
     echo Regenerant les dades del mobil ^(docs\dades^) des dels catalegs...
@@ -255,8 +259,34 @@ echo.
 echo Actualitzant les vistes en Word dels catalegs...
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0suport\GeneraVistes.ps1"
 
-REM Pugem el que hagi quedat: els catalegs de l'usuari (les vistes ja no, que
-REM ara son locals i no es pugen).
+REM --- 4c. Regenerar les dades del mobil (docs\dades) des dels catalegs ---
+REM
+REM PER QUE AQUI I PER QUE SEMPRE. Abans aixo NOMES es feia al pas 2, i nomes
+REM si 'git status' veia canvis locals sense commitejar a ESTRUCTURALS. O sigui
+REM que quan el cataleg canviava en un commit que arribava pel PULL -que es com
+REM hi entren els canvis fets des d'un altre PC o des del repositori- la
+REM regeneracio NO s'executava MAI i docs\dades es quedava enrere en silenci.
+REM Va passar de debo: cataleg-REQ1.json es va quedar 6 commits i 5 dies enrere,
+REM sense la seccio de VMP i citant normativa d'incendis DEROGADA, mentre el PC
+REM generava be perque llegeix ESTRUCTURALS directament.
+REM
+REM Es el mateix motiu que ja fa que les vistes en Word vagin despres del pull
+REM (vegeu el comentari de just aqui sobre) i no s'hi havia aplicat.
+REM
+REM Es fa SEMPRE i sense cap comprovacio de frescor: es JSON -> JSON i triga un
+REM instant (a diferencia de les vistes, que obren el Word). Si no ha canviat
+REM res, els fitxers surten identics i el 'git commit' de just aqui sota no
+REM troba res a pujar. Aixi no hi ha cap condicio que es pugui tornar a quedar
+REM curta.
+echo.
+echo Regenerant les dades del mobil ^(docs\dades^) des dels catalegs...
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0suport\mobil\ExportaDades.ps1" -Plantilles
+if errorlevel 1 (
+    echo  Avis: no s'han pogut regenerar les dades del mobil. Continuo.
+)
+
+REM Pugem el que hagi quedat: els catalegs de l'usuari i les dades del mobil
+REM (les vistes ja no, que ara son locals i no es pugen).
 git add "ESTRUCTURALS/*.json" "docs/dades/*.json"
 git add -u -- ESTRUCTURALS
 git -c user.name="Generador d'informes" -c user.email="generador@local" commit -q -m "Catalegs actualitzats des de Actualitzar.bat" >nul 2>&1

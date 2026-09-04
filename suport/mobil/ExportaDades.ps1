@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 <#
 .SYNOPSIS
   Exporta les dades del programa a JSON perque el formulari web del mobil les
@@ -87,11 +87,31 @@ function _ItemToJson($el) {
     }
 }
 
+# Els placeholders que ja hi ha publicats a docs/dades/capcalera.json. Es el
+# fallback quan no hi ha Word: val mes deixar-los com estaven que publicar-ne
+# una llista BUIDA, que al mobil es veuria com "aquesta capcalera no te camps".
+function _CapcaleraPlaceholdersPublicats {
+    $p = Join-Path $WebDadesDir 'capcalera.json'
+    if (-not (Test-Path -LiteralPath $p)) { return ,[string[]]@() }
+    try {
+        $o = Get-Content -LiteralPath $p -Raw -Encoding UTF8 | ConvertFrom-Json
+        return ,[string[]]@($o.Placeholders)
+    } catch { return ,[string[]]@() }
+}
+
 function Export-Plantilles {
     if (-not (Test-Path -LiteralPath $WebDadesDir)) {
         New-Item -ItemType Directory -Path $WebDadesDir -Force | Out-Null
     }
-    $word = New-WordApp
+    # WORD S'OBRE TARD I NOMES SI CAL.
+    #
+    # Abans aquesta linia era "$word = New-WordApp" i, en un PC sense Word, la
+    # funcio moria aqui mateix: NO es regenerava RES -ni cataleg-*.json ni
+    # conclusions.json ni manifest.json-, que son JSON -> JSON purs i no toquen
+    # el Word per res. Aixo va ser una de les dues causes que docs/dades es
+    # quedes 6 commits enrere del cataleg de debo sense que ho digues ningu.
+    # L'unic tros que necessita Word es llegir els <<...>> de 0 CAPCALERA.docx.
+    $word = $null
     try {
         $catalegs = @(Get-Catalegs)
         if ($catalegs.Count -eq 0) {
@@ -152,18 +172,31 @@ function Export-Plantilles {
             Set-Content -LiteralPath (Join-Path $WebDadesDir 'conclusions.json') -Encoding UTF8
         Write-Host "  conclusions.json"
 
-        # Capcalera: placeholders <<...>> presents al 0 CAPCALERA.docx.
-        $headerFields = @()
+        # Capcalera: placeholders <<...>> presents al 0 CAPCALERA.docx. UNIC
+        # tros que necessita Word; si no hi es, conservem els ja publicats.
+        $headerFields = $null
         if (Test-Path -LiteralPath $HeaderPath) {
-            $doc = $word.Documents.Open($HeaderPath, $false, $true)
-            try {
-                $txt = [string]$doc.Content.Text
-                $seen = @{}
-                foreach ($m in ([regex]'<<\s*([A-Za-z0-9_]+)\s*>>').Matches($txt)) {
-                    $name = $m.Groups[1].Value
-                    if (-not $seen.ContainsKey($name)) { $seen[$name] = $true; $headerFields += $name }
-                }
-            } finally { $doc.Close($false) }
+            $word = New-WordApp -Opcional
+            if ($null -ne $word) {
+                $doc = $word.Documents.Open($HeaderPath, $false, $true)
+                try {
+                    $txt = [string]$doc.Content.Text
+                    $seen = @{}
+                    $headerFields = @()
+                    foreach ($m in ([regex]'<<\s*([A-Za-z0-9_]+)\s*>>').Matches($txt)) {
+                        $name = $m.Groups[1].Value
+                        if (-not $seen.ContainsKey($name)) { $seen[$name] = $true; $headerFields += $name }
+                    }
+                } finally { $doc.Close($false) }
+            }
+        }
+        if ($null -eq $headerFields) {
+            # SENSE @() al voltant: la funcio ja torna un [string[]] amb el
+            # 'return ,' que evita que PowerShell el desemboliqui. Embolcallar-lo
+            # una segona vegada el niava dins d'un altre array i capcalera.json
+            # sortia amb els 8 placeholders dins d'una llista d'un sol element.
+            $headerFields = _CapcaleraPlaceholdersPublicats
+            Write-Host "  (sense Word: conservo els $($headerFields.Count) placeholders ja publicats)"
         }
         ([pscustomobject]@{ Placeholders = @($headerFields) } | ConvertTo-Json -Depth 4) |
             Set-Content -LiteralPath (Join-Path $WebDadesDir 'capcalera.json') -Encoding UTF8

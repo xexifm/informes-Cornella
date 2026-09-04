@@ -547,6 +547,13 @@ function Enter-SingleInstance {
 # Word COM helpers
 # ----------------------------------------------------------------------------
 function New-WordApp {
+    # -Opcional: retorna $null en lloc d'avisar i sortir. Ho fa servir qui pot
+    # continuar SENSE Word (mobil/ExportaDades.ps1 nomes el necessita per llegir
+    # els <<...>> de 0 CAPCALERA.docx; el cataleg i les conclusions son JSON ->
+    # JSON purs). Abans no hi havia manera de dir-ho i qualsevol consulta a Word
+    # s'enduia tot el proces al davant.
+    param([switch]$Opcional)
+
     # Crea la instancia de Word. En alguns equips (Word no instal-lat, primera
     # execucio pendent, activacio, o COM trencat) New-Object pot FALLAR o
     # retornar $null sense llançar excepcio. Ho detectem aqui i donem un
@@ -555,6 +562,7 @@ function New-WordApp {
     $w = $null
     try { $w = New-Object -ComObject Word.Application } catch { $w = $null }
     if ($null -eq $w) {
+        if ($Opcional) { return $null }
         [System.Windows.Forms.MessageBox]::Show(
             "No s'ha pogut iniciar Microsoft Word." + [Environment]::NewLine + [Environment]::NewLine +
             "Comprova que:" + [Environment]::NewLine +
