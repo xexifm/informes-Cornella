@@ -5127,4 +5127,125 @@ AssertEq (@(_LlicTotesLesFases).Count) 5 '_LlicTotesLesFases: segueix ajuntant-l
 foreach ($f in @(_MnsFases)) {
     Assert (-not (@(_LlicFases) | Where-Object { [string]$_.Clau -eq [string]$f.Clau })) ('Llicencia no ofereix la fase "' + $f.Clau + '"')
 }
+
+# ============================================================================
+# GUARDS AFEGITS DESPRES DE L'AUDITORIA D'ARQUITECTURA
+# ============================================================================
+
+Write-Host "`n--- Tots els .ps1 PARSEGEN (guard) ---"
+# PER QUE. RecordatorisAuto.ps1 va estar-se amb un ParserError: hi havia
+# "$clau: ..." dins d'una cadena, i alli els dos punts els menja el parser com a
+# prefix d'ambit ($global:, $env:...). El fitxer NO es podia carregar de cap
+# manera, o sigui que el mode automatic dels recordatoris -el que corre sol des
+# d'una tasca del Windows- no havia funcionat mai. Cap prova el tocava perque
+# cap prova el CARREGAVA. Aquest guard els carrega tots, sense executar-ne res.
+$rootRepo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$ps1Tots  = @(Get-ChildItem -Path (Join-Path $rootRepo 'suport') -Recurse -Filter *.ps1 -File)
+Assert ($ps1Tots.Count -gt 40) "el guard de parseig veu tots els .ps1 ($($ps1Tots.Count))"
+$ambErrors = @()
+foreach ($f in $ps1Tots) {
+    $errsP = $null
+    [void][System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$null, [ref]$errsP)
+    if ($errsP -and $errsP.Count -gt 0) {
+        $ambErrors += ('{0}:{1} {2}' -f $f.Name, $errsP[0].Extent.StartLineNumber, $errsP[0].Message)
+    }
+}
+AssertEq $ambErrors.Count 0 ('cap .ps1 amb errors de sintaxi' + $(if ($ambErrors.Count) { ' -> ' + ($ambErrors -join ' | ') } else { '' }))
+
+Write-Host "`n--- Tots els .ps1 tenen BOM (guard) ---"
+# PER QUE. El Windows PowerShell 5.1 llegeix un .ps1 SENSE BOM com a ANSI i
+# corromp els literals accentuats. Precintades.ps1 documentava aquesta trampa i
+# la incomplia ell mateix: el missatge d'error de la fulla "Estes"/"Estes"
+# sortia amb mojibake a l'usuari. Amb BOM a tots, no pot tornar a passar.
+$senseBom = @()
+foreach ($f in $ps1Tots) {
+    $b3 = [System.IO.File]::ReadAllBytes($f.FullName)
+    if ($b3.Length -lt 3 -or $b3[0] -ne 0xEF -or $b3[1] -ne 0xBB -or $b3[2] -ne 0xBF) { $senseBom += $f.Name }
+}
+AssertEq $senseBom.Count 0 ('cap .ps1 sense BOM' + $(if ($senseBom.Count) { ' -> ' + ($senseBom -join ', ') } else { '' }))
+
+Write-Host "`n--- docs/app.js: paritat amb el motor del PC (guards) ---"
+# PER QUE. app.js diu que "replica EXACTAMENT" la logica del PC, pero no hi ha
+# cap prova que ho comprovi i havia divergit en quatre punts, tots ells defectes
+# que el PC ja havia patit, diagnosticat i corregit. Aquests guards no proven el
+# comportament del JavaScript (no hi ha arnes JS al projecte); vigilen que els
+# quatre arranjaments no es desfacin sense adonar-se'n.
+$appJs = Get-Content -LiteralPath (Join-Path $rootRepo (Join-Path 'docs' 'app.js')) -Raw
+
+# 1) Una opcio BUIDA es una opcio (Camps.ps1:45-53). Filtrar-la treia la manera
+#    de dir "res" i el text sortia SEMPRE.
+Assert (-not ($appJs.Contains('if (o !== "") opts.push(o)'))) 'app.js: parseOpcio no filtra les opcions buides'
+Assert ($appJs.Contains('OPCIO_ETIQUETA_BUIDA')) 'app.js: hi ha etiqueta per a l''opcio buida'
+Assert ($appJs.Contains('op.textContent = opcioEtiqueta(o)')) 'app.js: el desplegable pinta l''etiqueta i desa el valor'
+
+# 2) Els camps es resolen PER BLOC (Apply-FieldsToLines, Camps.ps1:132-149). Un
+#    [OPCIO:] partit per un Enter no es resol linia a linia i surt CRU al correu.
+Assert ($appJs.Contains('function applyFieldsToLines')) 'app.js: existeix applyFieldsToLines'
+Assert (-not ($appJs.Contains('applyFields(l, values)'))) 'app.js: cap camp resolt linia a linia'
+
+# 3) richTextOf uneix amb SALT DE LINIA (_RichTextOfBodyLines, Camps.ps1:327-337):
+#    el que es detecta i el que es resol han de veure el mateix text.
+Assert ($appJs.Contains('return parts.join("\n");')) 'app.js: richTextOf uneix amb salt de linia'
+
+# 4) Un text fix es de la SECCIO o de la SUBSECCIO segons on estigui
+#    (Build-CatalegBlocs, MotorInforme.ps1:373-412). Hi ha DUES copies del
+#    recorregut del cataleg dins d'app.js i totes dues ho han de fer igual.
+AssertEq ([regex]::Matches($appJs, 'introSeccio').Count -gt 0) $true 'app.js: distingeix l''intro de SECCIO'
+AssertEq ([regex]::Matches($appJs, 'dinsSub = true').Count) 2 'app.js: les DUES copies del recorregut marquen dinsSub'
+AssertEq ([regex]::Matches($appJs, 'introSeccio = el').Count) 2 'app.js: les DUES copies recullen l''intro de seccio'
+
+Write-Host "`n--- docs/dades: el cataleg derivat no pot quedar-se enrere (guard) ---"
+# PER QUE. docs/dades/cataleg-REQ1.json es una copia DERIVADA d'ESTRUCTURALS que
+# viu al git, i es va quedar 6 commits enrere: al mobil hi faltaven 53
+# requeriments (la seccio de VMP sencera) i encara citava normativa d'incendis
+# DEROGADA, mentre el PC generava be perque llegeix ESTRUCTURALS directament.
+# La regeneracio no es disparava mai quan el cataleg arribava per 'git pull'.
+# Aquesta prova compara els titols dels dos costats: si algu torna a publicar
+# una copia endarrerida, surt aqui i no a mans d'un titular.
+function _TitolsOrigen($node, $acc) {
+    foreach ($n in @($node)) {
+        if ($null -eq $n) { continue }
+        $t = [string]$n.titol
+        if (-not [string]::IsNullOrWhiteSpace($t)) { [void]$acc.Add($t.Trim()) }
+        if ($n.fills) { _TitolsOrigen $n.fills $acc }
+    }
+}
+function _TitolsDerivat($cat, $acc) {
+    foreach ($sec in @($cat.Sections)) {
+        if ($null -eq $sec) { continue }
+        $t = [string]$sec.Title
+        if (-not [string]::IsNullOrWhiteSpace($t)) { [void]$acc.Add($t.Trim()) }
+        foreach ($it in @($sec.Items)) {
+            if ($null -eq $it) { continue }
+            $s = [string]$it.Short
+            if (-not [string]::IsNullOrWhiteSpace($s)) { [void]$acc.Add($s.Trim()) }
+            foreach ($ch in @($it.Children)) {
+                if ($null -eq $ch) { continue }
+                $cs = [string]$ch.Short
+                if (-not [string]::IsNullOrWhiteSpace($cs)) { [void]$acc.Add($cs.Trim()) }
+            }
+        }
+    }
+}
+$dirDades = Join-Path $rootRepo (Join-Path 'docs' 'dades')
+$derivats = @(Get-ChildItem -Path $dirDades -Filter 'cataleg-*.json' -File -ErrorAction SilentlyContinue)
+Assert ($derivats.Count -ge 1) "hi ha catalegs derivats a docs/dades ($($derivats.Count))"
+foreach ($d in $derivats) {
+    $base = $d.BaseName -replace '^cataleg-', ''
+    $orig = Join-Path $rootRepo (Join-Path 'ESTRUCTURALS' ($base + '.json'))
+    Assert (Test-Path -LiteralPath $orig) "$base : el derivat te el seu origen a ESTRUCTURALS"
+    if (-not (Test-Path -LiteralPath $orig)) { continue }
+    $oJson = Get-Content -LiteralPath $orig -Raw -Encoding UTF8 | ConvertFrom-Json
+    $dJson = Get-Content -LiteralPath $d.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
+    $tO = New-Object System.Collections.ArrayList
+    $tD = New-Object System.Collections.ArrayList
+    _TitolsOrigen $oJson.nodes $tO
+    _TitolsDerivat $dJson $tD
+    $falten = @(@($tO) | Where-Object { $tD -notcontains $_ })
+    $sobren = @(@($tD) | Where-Object { $tO -notcontains $_ })
+    AssertEq $falten.Count 0 ("$base : cap titol de l'origen falta al derivat" + $(if ($falten.Count) { " (n'hi falten $($falten.Count), p.ex. '" + $falten[0] + "')" } else { '' }))
+    AssertEq $sobren.Count 0 ("$base : el derivat no te titols que ja no son a l'origen" + $(if ($sobren.Count) { " (n'hi sobren $($sobren.Count), p.ex. '" + $sobren[0] + "')" } else { '' }))
+}
+
+
 exit (Write-TestSummary 'RESULTAT')
