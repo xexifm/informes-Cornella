@@ -11,6 +11,11 @@ window.CONFIG = {
   GOOGLE_CLIENT_ID: "464628466232-k2l3frmi7r5aav82psjrlfltv68bqvmt.apps.googleusercontent.com",
   DRIVE_ENTRADA_FOLDER_ID: "1EZteYidosVE8iJeli4tNdRg6WxzOk5fn",   // carpeta on el mobil deixa els paquets
   DRIVE_DADES_FOLDER_ID: "1bRof2NwgLYKpzvUD0aGximQzZQkv73od",     // carpeta on el PC deixa activitats.json
+  // Aquesta nomes la fa servir el PC (el mobil no hi toca mai), pero viu aqui
+  // perque els tres IDs siguin al MATEIX lloc: abans aquest era a
+  // suport/config.ps1 i els altres dos hi eren TAMBE, o sigui que calia
+  // escriure'ls dues vegades, en dos formats i dos blocs del manual.
+  DRIVE_PROCESSATS_FOLDER_ID: "131iyeU0B9eWgDA8E6ncxixNFwx5Yz68X", // carpeta on el PC mou els paquets ja generats
 
   // ----- Correu (enviar els requeriments amb un sol clic, sense obrir res) ----
   // S'usa EmailJS (https://www.emailjs.com), gratuit per a poc volum. Crea un

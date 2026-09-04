@@ -5350,4 +5350,56 @@ try {
 }
 
 
+
+Write-Host "`n--- ConfigJs.ps1: PowerShell llegint docs/config.js ---"
+# PER QUE. _CorreuConfig portava QUATRE expressions regulars escampades, una per
+# clau, i cadascuna exigia cometes DOBLES i el nom literal. Amb cometes simples,
+# amb la clau comentada o amb una plantilla, la clau es quedava BUIDA en silenci
+# i l'enviament de correu deixava de funcionar sense dir per que. Zero proves.
+#
+# Aquesta prova fa correr el lector contra el docs/config.js DE DEBO: si algu el
+# reformata, ho diu la suite abans que es trenqui res.
+$cjRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$cjReal = Read-ConfigJs
+foreach ($cjK in @('EMAILJS_PUBLIC_KEY','EMAILJS_SERVICE_ID','EMAILJS_TEMPLATE_ID','EMAIL_FROM_NAME',
+                   'DRIVE_ENTRADA_FOLDER_ID','DRIVE_PROCESSATS_FOLDER_ID','DRIVE_DADES_FOLDER_ID',
+                   'GOOGLE_CLIENT_ID')) {
+    Assert (-not [string]::IsNullOrWhiteSpace((Get-ConfigJsValue $cjReal $cjK))) ("config.js real: hi ha " + $cjK)
+}
+
+# Els tres IDs de Drive han de venir d'AQUI i de cap altre lloc: abans estaven
+# duplicats a suport/config.ps1 i el manual demanava escriure'ls dues vegades.
+AssertEq (Get-ConfigJsValue $cjReal 'DRIVE_ENTRADA_FOLDER_ID') ([string]$DriveEntradaId) 'DriveEntradaId surt de config.js'
+AssertEq (Get-ConfigJsValue $cjReal 'DRIVE_PROCESSATS_FOLDER_ID') ([string]$DriveProcessatsId) 'DriveProcessatsId surt de config.js'
+AssertEq (Get-ConfigJsValue $cjReal 'DRIVE_DADES_FOLDER_ID') ([string]$DriveDadesId) 'DriveDadesId surt de config.js'
+
+# I que cap dels tres no torni a apareixer escrit a suport/config.ps1.
+$cjCfgPs1 = Get-Content -LiteralPath (Join-Path (Join-Path $cjRoot 'suport') 'config.ps1') -Raw -Encoding UTF8
+$cjDup = @()
+foreach ($cjV in @([string]$DriveEntradaId, [string]$DriveProcessatsId, [string]$DriveDadesId)) {
+    if (-not [string]::IsNullOrWhiteSpace($cjV) -and $cjCfgPs1.Contains($cjV)) { $cjDup += $cjV }
+}
+AssertEq $cjDup.Count 0 ('cap ID de Drive duplicat a config.ps1' + $(if ($cjDup.Count) { ' -> ' + ($cjDup -join ', ') } else { '' }))
+
+# --- Formats que el lector ha d'aguantar ---
+$cjText = @'
+// Un comentari qualsevol.
+window.CONFIG = {
+  AMB_DOBLES: "valor-doble",
+  AMB_SIMPLES: 'valor-simple',
+  // COMENTADA: "no-hauria-de-sortir",
+  BUIDA: "",
+  AMB_ESPAIS   :   "amb-espais"
+};
+'@
+$cjP = Read-ConfigJs $cjText
+AssertEq (Get-ConfigJsValue $cjP 'AMB_DOBLES') 'valor-doble' 'Read-ConfigJs: cometes dobles'
+AssertEq (Get-ConfigJsValue $cjP 'AMB_SIMPLES') 'valor-simple' 'Read-ConfigJs: cometes SIMPLES (abans es perdia)'
+AssertEq (Get-ConfigJsValue $cjP 'AMB_ESPAIS') 'amb-espais' 'Read-ConfigJs: espais al voltant dels dos punts'
+AssertEq (Get-ConfigJsValue $cjP 'COMENTADA' '(cap)') '(cap)' 'Read-ConfigJs: una linia comentada NO compta'
+AssertEq (Get-ConfigJsValue $cjP 'BUIDA' '(defecte)') '(defecte)' 'Get-ConfigJsValue: clau buida -> valor per defecte'
+AssertEq (Get-ConfigJsValue $cjP 'NO_HI_ES' '(defecte)') '(defecte)' 'Get-ConfigJsValue: clau inexistent -> valor per defecte'
+AssertEq ((Read-ConfigJs "// nomes un comentari`nres a veure").Count) 0 'Read-ConfigJs: text sense claus -> res, i no peta'
+
+
 exit (Write-TestSummary 'RESULTAT')

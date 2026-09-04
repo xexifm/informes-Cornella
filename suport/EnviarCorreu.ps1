@@ -25,15 +25,14 @@ function _CorreuRepoRoot {
 # --- Configuració (claus d'EmailJS) ------------------------------------------
 function _CorreuConfig {
     $repo = _CorreuRepoRoot
-    $cfgJs = Join-Path $repo (Join-Path 'docs' 'config.js')
-    $pub = ''; $svc = ''; $tpl = ''; $from = 'Ajuntament de Cornellà de Llobregat - Activitats'
-    if (Test-Path -LiteralPath $cfgJs) {
-        $t = Get-Content -LiteralPath $cfgJs -Raw -Encoding UTF8
-        if ($t -match 'EMAILJS_PUBLIC_KEY\s*:\s*"([^"]*)"')  { $pub = $matches[1] }
-        if ($t -match 'EMAILJS_SERVICE_ID\s*:\s*"([^"]*)"')  { $svc = $matches[1] }
-        if ($t -match 'EMAILJS_TEMPLATE_ID\s*:\s*"([^"]*)"') { $tpl = $matches[1] }
-        if ($t -match 'EMAIL_FROM_NAME\s*:\s*"([^"]*)"')     { $from = $matches[1] }
-    }
+    # Un sol lector (ConfigJs.ps1), no quatre regex escampats: cadascun exigia
+    # cometes dobles i el nom literal, i amb qualsevol reformat del .js la clau
+    # es quedava buida EN SILENCI. Ara hi ha prova contra el fitxer de debo.
+    $cjs = Read-ConfigJs
+    $pub = Get-ConfigJsValue $cjs 'EMAILJS_PUBLIC_KEY'
+    $svc = Get-ConfigJsValue $cjs 'EMAILJS_SERVICE_ID'
+    $tpl = Get-ConfigJsValue $cjs 'EMAILJS_TEMPLATE_ID'
+    $from = Get-ConfigJsValue $cjs 'EMAIL_FROM_NAME' 'Ajuntament de Cornellà de Llobregat - Activitats'
     # Private key: carpeta local/ (fora del repositori public).
     $priv = ''
     $pkPath = Join-Path $repo (Join-Path 'local' 'emailjs.json')

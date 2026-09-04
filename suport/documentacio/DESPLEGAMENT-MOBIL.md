@@ -81,11 +81,18 @@ Comprova abans que la xarxa deixa sortir cap a Google amb el test del bloc G.
    - Crea i copia el **Client ID** (acaba en `.apps.googleusercontent.com`).
 5. Edita **`docs/config.js`** i omple:
    ```js
-   GOOGLE_CLIENT_ID:        "....apps.googleusercontent.com",
-   DRIVE_ENTRADA_FOLDER_ID: "<ID carpeta Entrada>",
-   DRIVE_DADES_FOLDER_ID:   "<ID carpeta Dades>",
-   EMAIL_DESTINATARI:       "elteu@destinatari.cat"   // opcional
+   GOOGLE_CLIENT_ID:           "....apps.googleusercontent.com",
+   DRIVE_ENTRADA_FOLDER_ID:    "<ID carpeta Entrada>",
+   DRIVE_PROCESSATS_FOLDER_ID: "<ID carpeta Processats>",
+   DRIVE_DADES_FOLDER_ID:      "<ID carpeta Dades>",
+   EMAIL_DESTINATARI:          "elteu@destinatari.cat"   // opcional
    ```
+
+   > **Els tres IDs de carpeta només s'escriuen AQUÍ.** El PC els llegeix
+   > d'aquest mateix fitxer. Abans calia posar-los també a `suport/config.ps1`
+   > (pas G.3) i era fàcil que les dues còpies no coincidissin.
+   > `DRIVE_PROCESSATS_FOLDER_ID` només el fa servir el PC, però viu aquí perquè
+   > els tres siguin al mateix lloc.
 6. Puja el canvi de `config.js` (és codi, no plantilla): fes-ho via una sessió
    de Claude o un PR, o amb git si en saps. (`Actualitzar.bat` no puja codi.)
 
@@ -206,12 +213,10 @@ projecte de Google Cloud que el del mòbil): **Credencials → Crea credencials 
 ID de client OAuth → Aplicació d'escriptori**. Apunta el **Client ID** i el
 **Client Secret**.
 
-**G.3 — Posa els IDs de les tres carpetes** a `suport/config.ps1`:
-```powershell
-$DriveEntradaId    = '<ID carpeta Entrada>'
-$DriveProcessatsId = '<ID carpeta Processats>'
-$DriveDadesId      = '<ID carpeta Dades>'
-```
+**G.3 — Els IDs de les tres carpetes ja els has posat** al pas **C.5**, a
+`docs/config.js`. El PC els llegeix d'allà, així que **no s'han de tornar a
+escriure enlloc**. (Abans anaven també a `suport/config.ps1` i calia mantenir
+les dues còpies iguals a mà.)
 
 **G.4 — Autoritza el PC una sola vegada:**
 ```

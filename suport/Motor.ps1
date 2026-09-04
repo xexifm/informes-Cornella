@@ -154,6 +154,10 @@ $RepoRoot        = Split-Path -Parent $ScriptRoot
 # Load-AppSettings es crida al bloc de configuracio de mes avall.
 . (Join-Path $ScriptRoot 'Json.ps1')
 
+# Lector de docs\config.js (les claus de servei del mobil). Va aqui perque el
+# bloc de configuracio de mes avall n'hi treu els IDs de les carpetes de Drive.
+. (Join-Path $ScriptRoot 'ConfigJs.ps1')
+
 
 # ----------------------------------------------------------------------------
 # Eines integrades al menu (Pas 1): planificador de rutes i revisio del mobil.
@@ -324,9 +328,15 @@ $DriveBaseDir = if ($env:USERPROFILE) {
 # carpetes de Drive (es treuen de la URL de cada carpeta). Si estan buits i no
 # hi ha credencials (Authorize-Drive.ps1), s'usa el mode de carpeta local de
 # dalt. Es poden sobreescriure a config.ps1.
-$DriveEntradaId    = ''
-$DriveProcessatsId = ''
-$DriveDadesId      = ''
+# Surten de docs\config.js, que es l'UNIC lloc on s'escriuen: el navegador ja
+# els necessita alli, i tenir-ne una copia aqui volia dir que l'usuari havia
+# d'escriure els mateixos IDs dues vegades, en dos formats i dos blocs separats
+# del manual (DESPLEGAMENT-MOBIL.md C.5 i G.3). Es poden seguir sobreescrivint
+# a config.ps1 si algun dia cal.
+$Script:ConfigJs   = Read-ConfigJs
+$DriveEntradaId    = Get-ConfigJsValue $Script:ConfigJs 'DRIVE_ENTRADA_FOLDER_ID'
+$DriveProcessatsId = Get-ConfigJsValue $Script:ConfigJs 'DRIVE_PROCESSATS_FOLDER_ID'
+$DriveDadesId      = Get-ConfigJsValue $Script:ConfigJs 'DRIVE_DADES_FOLDER_ID'
 
 # Mode "Informe de seguiment": frases que marquen l'inici del bloc de
 # conclusions a esborrar de l'informe anterior. La deteccio es insensible a
