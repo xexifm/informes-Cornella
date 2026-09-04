@@ -51,17 +51,17 @@ try {
     foreach ($camp in @(_RecCampanyes)) {
         $clau = [string]$camp.Clau
         $cfg = $estat.campanyes[$clau]
-        if (-not [bool]$cfg['actiu']) { _RecLog "$clau: apagada, no es fa res."; continue }
-        if ([string]$cfg['mode'] -ne 'auto') { _RecLog "$clau: en mode manual, no es fa res."; continue }
+        if (-not [bool]$cfg['actiu']) { _RecLog "${clau}: apagada, no es fa res."; continue }
+        if ([string]$cfg['mode'] -ne 'auto') { _RecLog "${clau}: en mode manual, no es fa res."; continue }
 
         $r = _RecDueActivitats $db $camp $cfg $estat.historial[$clau] (Get-Date)
         $toca = @(@($r.Files) | Where-Object { $_.Toca -and -not $_.Excloure })
-        _RecLog "$clau: $($toca.Count) activitats toquen avui."
+        _RecLog "${clau}: $($toca.Count) activitats toquen avui."
         if ($toca.Count -eq 0) { continue }
 
         $res = Invoke-RecordatorisTanda $clau $toca $true
         $totalEnviats += [int]$res.Enviats
-        _RecLog ("$clau: enviats=$($res.Enviats) fallats=$($res.Fallats) " +
+        _RecLog ("${clau}: enviats=$($res.Enviats) fallats=$($res.Fallats) " +
                  "sense_correu=$($res.SenseCorreu)" + $(if ($res.Aturat) { " ATURAT: $($res.Motiu)" } else { '' }))
         # L'historial l'acaba d'escriure la tanda: el rellegim perquè la campanya
         # següent no treballi amb una còpia vella.
