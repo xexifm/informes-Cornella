@@ -3323,11 +3323,15 @@ $fila = [pscustomobject]@{ ActPrincipal='BAR'; Adreca='C/ Major 1'; Id='361'; Ra
 $sub = _FillControlsCpPh 'Activitat {ACTIVITAT} a {ADRECA} (GIA {ID_GIA}), data {PROPER_CP}' $fila
 AssertEq $sub 'Activitat BAR a C/ Major 1 (GIA 361), data 10/01/2026' '_FillControlsCpPh: substitueix les variables'
 # HTML: escapa, negreta i enllacos.
-AssertEq (_ControlsCpLineHtml 'a & b < c') 'a &amp; b &lt; c' '_ControlsCpLineHtml: escapa &, <'
-AssertEq (_ControlsCpLineHtml '**negreta**') '<b>negreta</b>' '_ControlsCpLineHtml: **negreta** -> <b>'
-AssertEq (_ControlsCpLineHtml 'veure http://x.cat/a ok') 'veure <a href="http://x.cat/a">http://x.cat/a</a> ok' '_ControlsCpLineHtml: enllac http -> <a>'
-$html = _ControlsCpEmailHtml "linia1`n`nlinia2"
-AssertEq ([bool]($html -like '*<div>linia1</div>*' -and $html -like '*<div>linia2</div>*')) $true '_ControlsCpEmailHtml: una linia = un <div>'
+# L'HTML d'aquest correu el fa ara _CosAHtml/_TextToHtml (EnviarCorreu.ps1),
+# les mateixes que els recordatoris. Abans hi havia _ControlsCpEmailHtml
+# -identica linia a linia a _RecCosHtml- i un _ControlsCpLineHtml propi.
+AssertEq (_TextToHtml 'a & b < c') 'a &amp; b &lt; c' 'correu: escapa &, <'
+AssertEq (_TextToHtml '**negreta**') '<b>negreta</b>' 'correu: **negreta** -> <b>'
+AssertEq (_TextToHtml 'veure http://x.cat/a ok') 'veure <a href="http://x.cat/a">http://x.cat/a</a> ok' 'correu: enllac http -> <a>'
+$html = _CosAHtml "linia1`n`nlinia2"
+AssertEq ([bool]($html -like '*<div>linia1</div>*' -and $html -like '*<div>linia2</div>*')) $true '_CosAHtml: una linia = un <div>'
+AssertEq ([bool]($html -like '*height:8px*')) $true '_CosAHtml: una linia buida es un espaiador'
 
 Write-Host "`n--- Informes.ps1: _EstatActualActivitat (estat = conclusio breu del darrer informe fiable, per data) ---"
 AssertEq (_EstatActualActivitat $null) '' '_EstatActualActivitat null -> buit'
@@ -5612,6 +5616,43 @@ AssertEq $obrenWord.Count 0 ('nomes Motor.ps1 obre el Word' + $(if ($obrenWord.C
 $srcMotor = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'suport' 'Motor.ps1')))
 Assert ($srcMotor.Contains('$w.AutomationSecurity = 1')) 'New-WordApp posa AutomationSecurity (res de Vista protegida)'
 Assert ($srcMotor.Contains('param([switch]$Opcional)')) 'New-WordApp te -Opcional (qui pot continuar sense Word)'
+
+
+Write-Host "`n--- El correu: una manera de fer HTML i una d'omplir variables ---"
+# PER QUE. _RecCosHtml (Recordatoris) i _ControlsCpEmailHtml (Controls
+# periodics) eren IDENTIQUES linia a linia, estil inline inclos; i hi havia TRES
+# bucles iguals per substituir les variables {X}. Ara l'HTML el fa _CosAHtml i el
+# bucle _OmpleVariables; el MAPA de variables el segueix posant cada eina, que es
+# l'unica cosa que difereix de debo.
+
+# ELS DOS URLs A LA MATEIXA LINIA. Aquest era un DEFECTE REAL, no una millora:
+# la cursiva es "//...//" i un "https://" en porta un "//" a dins, o sigui que
+# amb dues adreces seguides l'expressio es menjava tot el tros d'una a l'altra i
+# les destrossava totes dues. _TextToHtml ja la feien servir els recordatoris,
+# amb un text que l'usuari pot editar. Ara els URLs s'aparten abans de mirar la
+# negreta i la cursiva, i es tornen a posar al final.
+$dosUrls = _TextToHtml 'Mira https://a.cat i tambe https://b.cat aqui'
+Assert ($dosUrls.Contains('<a href="https://a.cat">')) 'dos URLs a una linia: el primer segueix sent un enllac'
+Assert ($dosUrls.Contains('<a href="https://b.cat">')) 'dos URLs a una linia: i el segon tambe'
+Assert (-not $dosUrls.Contains('<i>')) 'dos URLs a una linia: el "//" d''un http ja no obre cap cursiva'
+AssertEq (_TextToHtml 'amb //cursiva// de debo') 'amb <i>cursiva</i> de debo' 'la cursiva de debo segueix funcionant'
+AssertEq (_TextToHtml 'i **negreta** amb https://x.cat/a?b=1&c=2') 'i <b>negreta</b> amb <a href="https://x.cat/a?b=1&amp;c=2">https://x.cat/a?b=1&amp;c=2</a>' 'negreta i URL amb & escapat, tot alhora'
+AssertEq (_TextToHtml '') '' '_TextToHtml: text buit -> buit'
+
+# _OmpleVariables: nomes el bucle; el mapa el posa el crider.
+AssertEq (_OmpleVariables 'GIA {A} i {B}' ([ordered]@{ '{A}' = '1'; '{B}' = 'dos' })) 'GIA 1 i dos' '_OmpleVariables: substitueix les claus del mapa'
+AssertEq (_OmpleVariables 'sense res' ([ordered]@{})) 'sense res' '_OmpleVariables: mapa buit -> text igual'
+AssertEq (_OmpleVariables 'queda {NOCONEC}' ([ordered]@{ '{A}' = '1' })) 'queda {NOCONEC}' '_OmpleVariables: una clau que no hi es es queda tal qual'
+AssertEq (_OmpleVariables 'text' $null) 'text' '_OmpleVariables: sense mapa no peta'
+
+# Guard: cap tercera copia de l'estil inline del cos del correu.
+$copiesEstil = 0
+foreach ($f in $ps1Tots) {
+    if ($f.FullName -like ('*' + [System.IO.Path]::DirectorySeparatorChar + 'tests' + [System.IO.Path]::DirectorySeparatorChar + '*')) { continue }
+    $t = [System.IO.File]::ReadAllText($f.FullName)
+    $copiesEstil += ([regex]::Matches($t, 'font-family:Segoe UI,Arial,sans-serif;font-size:11pt')).Count
+}
+AssertEq $copiesEstil 1 'l''estil del cos del correu viu en UN sol lloc (_CosAHtml)'
 
 
 exit (Write-TestSummary 'RESULTAT')

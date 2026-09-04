@@ -49,19 +49,72 @@ function _EscHtml($s) {
     return ([string]$s).Replace('&','&amp;').Replace('<','&lt;').Replace('>','&gt;')
 }
 # Escapa, **negreta** -> <b>, //cursiva// -> <i>, i enllaça els URLs.
+#
+# ELS URLs S'APARTEN ABANS DE MIRAR LA CURSIVA, i no es un detall d'estil: la
+# cursiva es "//...//" i un "https://" en porta un de "//" a dins. Amb DUES
+# adreces a la mateixa linia, l'expressio de la cursiva es menjava tot el tros
+# d'una a l'altra:
+#
+#   Mira https://a.cat i tambe https://b.cat
+#   -> Mira https:<i>a.cat i tambe https:</i>b.cat        (les dues destrossades)
+#
+# No era hipotetic: aquesta funcio ja la fan servir els recordatoris, i el text
+# el pot editar l'usuari. Ara cada URL es substitueix per una marca amb caracters
+# de control -que no poden sortir en un text escrit a ma i que cap de les dues
+# expressions toca- i es torna a posar, ja com a enllac, al final.
 function _TextToHtml($s) {
     if ([string]::IsNullOrEmpty($s)) { return '' }
     $h = _EscHtml $s
+
+    $urls = New-Object System.Collections.ArrayList
+    $h = [regex]::Replace($h, '(https?://[^\s<]+)', {
+        param($m)
+        $i = $urls.Add($m.Groups[1].Value)
+        return ([char]1 + [string]$i + [char]1)
+    })
+
     $h = [regex]::Replace($h, '\*\*(.+?)\*\*', '<b>$1</b>')
     $h = [regex]::Replace($h, '//(.+?)//', '<i>$1</i>')
-    $h = [regex]::Replace($h, '(https?://[^\s<]+)', '<a href="$1">$1</a>')
+
+    for ($i = 0; $i -lt $urls.Count; $i++) {
+        $u = [string]$urls[$i]
+        $h = $h.Replace(([char]1 + [string]$i + [char]1), ('<a href="' + $u + '">' + $u + '</a>'))
+    }
     return $h.Replace("`r`n","`n").Replace("`n",'<br>')
 }
-function _NormCorreu($s) {
-    if ($null -eq $s) { return '' }
-    if (Get-Command _NormalitzaText -ErrorAction SilentlyContinue) { return (_NormalitzaText $s) }
-    $t = ([string]$s).Normalize([Text.NormalizationForm]::FormD)
-    return (($t -replace '\p{Mn}','').ToLower().Trim())
+
+# El COS sencer a HTML: una linia = un <div>, i una linia buida un espaiador.
+#
+# Aixo estava DUPLICAT linia a linia -_RecCosHtml (Recordatoris) i
+# _ControlsCpEmailHtml (Controls periodics), amb el mateix estil inline inclos-.
+# L'unica diferencia era la funcio de linia: els recordatoris ja passaven per
+# _TextToHtml i els controls periodics per un _ControlsCpLineHtml propi que feia
+# el mateix pero SENSE cursiva. Ara passen tots dos per _TextToHtml, o sigui que
+# els controls periodics guanyen la cursiva (i la proteccio dels URLs de dalt).
+function _CosAHtml([string]$cos) {
+    $lines = (([string]$cos) -replace "`r`n", "`n") -split "`n"
+    $sb = New-Object System.Text.StringBuilder
+    [void]$sb.Append('<div style="font-family:Segoe UI,Arial,sans-serif;font-size:11pt;color:#1d2733;line-height:1.4">')
+    foreach ($ln in $lines) {
+        if ([string]::IsNullOrWhiteSpace($ln)) {
+            [void]$sb.Append('<div style="height:8px;line-height:8px">&nbsp;</div>')
+        } else {
+            [void]$sb.Append('<div>' + (_TextToHtml $ln) + '</div>')
+        }
+    }
+    [void]$sb.Append('</div>')
+    return $sb.ToString()
+}
+
+# Substitueix les variables {X} d'un text. El MAPA el posa cada crider: les
+# claus i d'on surten els valors son diferents de debo a cada eina (una fila de
+# controls periodics, una de recordatoris, la capcalera d'un informe) i no s'han
+# d'unificar. El que estava copiat tres vegades era NOMES aquest bucle.
+function _OmpleVariables([string]$text, $mapa) {
+    $t = [string]$text
+    if ($null -eq $mapa) { return $t }
+    foreach ($k in @($mapa.Keys)) { $t = $t.Replace([string]$k, [string]$mapa[$k]) }
+    return $t
 }
 
 # --- Llegir el cos de requeriments del .docx generat --------------------------
@@ -71,7 +124,7 @@ function _DocxRequerimentsHtml($docxPath) {
     $phrases = if ($SeguimentConclusionPhrases) { @($SeguimentConclusionPhrases) } else {
         @("Vist l'anterior", 'Ho poso al seu coneixement', 'Cornella de Llobregat,', 'CONCLUSIONS')
     }
-    $phrN = $phrases | ForEach-Object { _NormCorreu $_ }
+    $phrN = $phrases | ForEach-Object { _NormalitzaText $_ }
 
     # New-WordApp (Motor.ps1) i no un New-Object a pel: aqui no hi havia CAP
     # guarda del $null -New-Object -ComObject pot tornar $null sense llancar- i
@@ -89,7 +142,7 @@ function _DocxRequerimentsHtml($docxPath) {
             foreach ($p in $doc.Paragraphs) {
                 $txt = ([string]$p.Range.Text).TrimEnd("`r","`n","`a"," ")
                 if ([string]::IsNullOrWhiteSpace($txt)) { continue }
-                $n = _NormCorreu $txt
+                $n = _NormalitzaText $txt
 
                 # Fi: primera frase de conclusions.
                 $isConcl = $false
@@ -144,11 +197,14 @@ function _CorreuTextos {
     return (_LoadEmailTextos)
 }
 function _FillVars([string]$s, $h) {
-    $today = (Get-Date).ToString('dd/MM/yyyy')
     $g = { param($k) if ($h -and $h.ContainsKey($k)) { [string]$h[$k] } else { '' } }
-    return $s.Replace('{ID_GIA}', (& $g 'ID_GIA')).Replace('{ADRECA}', (& $g 'ADRECA')).
-        Replace('{ACTIVITAT}', (& $g 'ACTIVITAT')).Replace('{TITULAR}', (& $g 'TITULAR')).
-        Replace('{DATA}', $today)
+    return (_OmpleVariables $s ([ordered]@{
+        '{ID_GIA}'    = (& $g 'ID_GIA')
+        '{ADRECA}'    = (& $g 'ADRECA')
+        '{ACTIVITAT}' = (& $g 'ACTIVITAT')
+        '{TITULAR}'   = (& $g 'TITULAR')
+        '{DATA}'      = (Get-Date).ToString('dd/MM/yyyy')
+    }))
 }
 function _BuildCorreu($requerimentsHtml, $header) {
     $tx = _CorreuTextos

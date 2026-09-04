@@ -2126,12 +2126,14 @@ commit i comparant el fitxer d'or a cada pas**.
   **Per a**, representant a **CC** (`_ControlsCpRecipients`; si en falta un, l'altre
   passa a To; les activitats sense correu vàlid es llisten com a omeses). El text és
   **editable** (assumpte + cos amb variables `{ACTIVITAT}{ADRECA}{ID_GIA}{TITULAR}`
-  `{PROPER_CP}{DATA_CONTROL}{DATA}` + `**negreta**` + enllaços) via el botó **"Editar
-  text"** (`Invoke-ControlsCpEmailTextos`, mateix patró que *Textos del correu*),
+  `{PROPER_CP}{DATA_CONTROL}{DATA}` + `**negreta**` + `//cursiva//` + enllaços) via
+  el botó **"Editar text"** (`Invoke-ControlsCpEmailTextos`, mateix patró que *Textos del correu*),
   però es desa **LOCALMENT** a `%LOCALAPPDATA%\InformesCornella\controls-cp-email.json`
   (fora del repo: cap dada personal, sobreviu a `Actualitzar.bat`). Funcions pures
-  testejades: `_DefaultControlsCpEmail`, `_ControlsCpRecipients`, `_FillControlsCpPh`,
-  `_ControlsCpLineHtml`/`_ControlsCpEmailHtml`. Outlook (COM) i finestres només a
+  testejades: `_DefaultControlsCpEmail`, `_ControlsCpRecipients`, `_FillControlsCpPh`.
+  L'HTML del cos el fa **`_CosAHtml`** (`EnviarCorreu.ps1`), la mateixa que els
+  recordatoris — i per tant aquest correu **també accepta `//cursiva//`**, cosa
+  que la còpia pròpia que hi havia no feia. Outlook (COM) i finestres només a
   Windows. Es dot-sourceja a `GenerarInforme.ps1` després de `ControlsPeriodics.ps1`.
 
 ## Eina «Coordenades» — Excel vs façana (`rutes/Coordenades.ps1` + `rutes/Geocodificador.ps1`)
@@ -2480,11 +2482,23 @@ titulars amb tràmits pendents, a partir de l'`estat_actual` de la base d'inform
   que ja combina *Raó soc. E-mail* + *Rep. Leg. E-mail* i dedupe. La plantilla
   d'EmailJS **no té camp CC**: les dues adreces van juntes a `to_email` separades
   per coma. El BCC **no consumeix quota** (una crida = un correu).
-- **L'HTML no és una tercera còpia**: `_RecCosHtml` fa els `<div>` per línia i
-  cada línia passa per **`_TextToHtml`** (`EnviarCorreu.ps1`), que ja escapa i
-  aplica `**negreta**`, `//cursiva//` i l'autoenllaç. Es va triar `_TextToHtml` i
-  no `_ControlsCpLineHtml` perquè aquell **no fa cursiva**, i l'article 5 va citat
-  en cursiva.
+- **L'HTML del cos viu en UN sol lloc**: `_CosAHtml` (`EnviarCorreu.ps1`) fa els
+  `<div>` per línia i cada línia passa per **`_TextToHtml`**, que escapa i aplica
+  `**negreta**`, `//cursiva//` i l'autoenllaç. Abans n'hi havia **dues còpies
+  idèntiques línia a línia** —aquesta i `_ControlsCpEmailHtml` dels controls
+  periòdics, amb el mateix estil inline— i una tercera funció de línia
+  (`_ControlsCpLineHtml`) que feia el mateix **sense cursiva**. Ara els dos
+  correus passen per la mateixa. Hi ha guard que l'estil inline no es torni a
+  copiar.
+- **ELS URLs S'APARTEN ABANS DE MIRAR LA CURSIVA, i és un defecte real que hi
+  havia.** La cursiva és `//...//` i un `https://` en porta un `//` a dins: amb
+  **dues adreces a la mateixa línia**, l'expressió es menjava tot el tros d'una a
+  l'altra i les destrossava totes dues —
+  `Mira https://a.cat i tambe https://b.cat` → `Mira https:<i>a.cat i tambe
+  https:</i>b.cat`—. No era hipotètic: `_TextToHtml` ja la feien servir els
+  recordatoris i el text el pot editar l'usuari. Ara cada URL es substitueix per
+  una marca amb caràcters de control (que cap de les dues expressions toca) i es
+  torna a posar, ja com a enllaç, al final. Hi ha prova.
 - **Dues coses del text estan blindades amb proves** perquè no es puguin perdre
   editant-lo: l'**avís de «si ja ho heu presentat, no en feu cas»**
   (`_RecAvisJaPresentat`, bilingüe) i l'**article 5 de l'Ordenança**

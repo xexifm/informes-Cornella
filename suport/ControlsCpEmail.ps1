@@ -76,7 +76,7 @@ function _DefaultControlsCpEmail {
 
 # Text d'ajuda amb les variables disponibles.
 function _ControlsCpEmailAjuda {
-    return ('Variables: {ACTIVITAT} {ADRECA} {ID_GIA} {TITULAR} {PROPER_CP} {DATA_CONTROL} {DATA}   ' + [char]0x00B7 + '   **negreta**   ' + [char]0x00B7 + '   els enllaços http es fan clicables')
+    return ('Variables: {ACTIVITAT} {ADRECA} {ID_GIA} {TITULAR} {PROPER_CP} {DATA_CONTROL} {DATA}   ' + [char]0x00B7 + '   **negreta**   ' + [char]0x00B7 + '   //cursiva//   ' + [char]0x00B7 + '   els enllaços http es fan clicables')
 }
 
 # Llegeix el JSON local (si hi es) fusionat sobre els valors per defecte.
@@ -117,47 +117,24 @@ function _ControlsCpRecipients([string]$raoEmail, [string]$repEmail) {
 }
 
 # Substitueix les variables del text amb les dades d'una fila d'activitat.
+# El MAPA es d'aqui (les claus i d'on surten els valors son d'aquesta eina); el
+# bucle el fa _OmpleVariables (EnviarCorreu.ps1), que estava copiat tres cops.
 function _FillControlsCpPh([string]$text, $row) {
-    $today = (Get-Date).ToString('dd/MM/yyyy')
-    $map = [ordered]@{
+    return (_OmpleVariables $text ([ordered]@{
         '{ACTIVITAT}'    = [string]$row.ActPrincipal
         '{ADRECA}'       = [string]$row.Adreca
         '{ID_GIA}'       = [string]$row.Id
         '{TITULAR}'      = [string]$row.RaoSocial
         '{PROPER_CP}'    = [string]$row.ProperCP
         '{DATA_CONTROL}' = [string]$row.DataControlPer
-        '{DATA}'         = $today
-    }
-    foreach ($k in @($map.Keys)) { $text = $text.Replace($k, [string]$map[$k]) }
-    return $text
+        '{DATA}'         = (Get-Date).ToString('dd/MM/yyyy')
+    }))
 }
 
-# Converteix una LINIA de text a HTML segur: escapa <>&, aplica **negreta** i fa
-# clicables els enllacos http(s).
-function _ControlsCpLineHtml([string]$line) {
-    $s = ([string]$line) -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;'
-    $s = [regex]::Replace($s, '\*\*(.+?)\*\*', '<b>$1</b>')
-    $s = [regex]::Replace($s, '(https?://[^\s<]+)', '<a href="$1">$1</a>')
-    return $s
-}
-
-# Converteix el cos (amb salts \n) a HTML (una linia = un <div>; linia buida =
-# espaiador) per a HTMLBody d'Outlook.
-function _ControlsCpEmailHtml([string]$cos) {
-    $norm = ([string]$cos) -replace "`r`n", "`n"
-    $lines = $norm -split "`n"
-    $sb = New-Object System.Text.StringBuilder
-    [void]$sb.Append('<div style="font-family:Segoe UI,Arial,sans-serif;font-size:11pt;color:#1d2733;line-height:1.4">')
-    foreach ($ln in $lines) {
-        if ([string]::IsNullOrWhiteSpace($ln)) {
-            [void]$sb.Append('<div style="height:8px;line-height:8px">&nbsp;</div>')
-        } else {
-            [void]$sb.Append('<div>' + (_ControlsCpLineHtml $ln) + '</div>')
-        }
-    }
-    [void]$sb.Append('</div>')
-    return $sb.ToString()
-}
+# L'HTML del cos el fa _CosAHtml (EnviarCorreu.ps1). Aqui hi havia
+# _ControlsCpEmailHtml, IDENTICA linia a linia a _RecCosHtml dels recordatoris
+# -mateix estil inline inclos-, i un _ControlsCpLineHtml propi que feia el mateix
+# que _TextToHtml pero SENSE cursiva. Ara aquest correu tambe accepta //cursiva//.
 
 # ----------------------------------------------------------------------------
 # OUTLOOK (COM) - nomes a Windows. Crea ESBORRANYS; MAI envia.
@@ -231,7 +208,7 @@ function Invoke-ControlsCpEmailDrafts($rows) {
                 $mail.To = $rec.To
                 if ($rec.Cc) { $mail.CC = $rec.Cc }
                 $mail.Subject = (_FillControlsCpPh $assTpl $r)
-                $mail.HTMLBody = (_ControlsCpEmailHtml (_FillControlsCpPh $cosTpl $r))
+                $mail.HTMLBody = (_CosAHtml (_FillControlsCpPh $cosTpl $r))
                 $mail.Save()   # queda a Esborranys; MAI Send()
                 $ok++
             } catch {

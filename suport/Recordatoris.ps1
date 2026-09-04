@@ -336,19 +336,16 @@ function _RecDueActivitats($db, $campanya, $cfg, $historialCampanya, [datetime]$
 }
 
 # Substitueix les variables del text amb les dades d'una fila. PURA.
+# El MAPA es d'aqui; el bucle el fa _OmpleVariables (EnviarCorreu.ps1).
 function _RecFillPh([string]$text, $row) {
-    $today = (Get-Date).ToString('dd/MM/yyyy')
-    $map = [ordered]@{
+    return (_OmpleVariables $text ([ordered]@{
         '{ID_GIA}'       = [string]$row.Id
         '{TITULAR}'      = [string]$row.Titular
         '{ADRECA}'       = [string]$row.Adreca
         '{ACTIVITAT}'    = [string]$row.Activitat
         '{DATA_INFORME}' = [string]$row.DataInforme
-        '{DATA}'         = $today
-    }
-    $t = [string]$text
-    foreach ($k in @($map.Keys)) { $t = $t.Replace($k, [string]$map[$k]) }
-    return $t
+        '{DATA}'         = (Get-Date).ToString('dd/MM/yyyy')
+    }))
 }
 
 # Apunta un enviament a l'historial (retorna el mapa NOU). PURA.
@@ -445,24 +442,8 @@ function _RecDesa($estat) {
     } catch { }
 }
 
-# Cos (multilínia) -> HTML. Una línia = un <div>; línia buida = espaiador.
-# Cada línia passa per _TextToHtml (EnviarCorreu.ps1), que ja escapa, aplica
-# **negreta** / //cursiva// i fa clicables els enllaços: no se'n fa cap còpia.
-function _RecCosHtml([string]$cos) {
-    $norm = ([string]$cos) -replace "`r`n", "`n"
-    $lines = $norm -split "`n"
-    $sb = New-Object System.Text.StringBuilder
-    [void]$sb.Append('<div style="font-family:Segoe UI,Arial,sans-serif;font-size:11pt;color:#1d2733;line-height:1.4">')
-    foreach ($ln in $lines) {
-        if ([string]::IsNullOrWhiteSpace($ln)) {
-            [void]$sb.Append('<div style="height:8px;line-height:8px">&nbsp;</div>')
-        } else {
-            [void]$sb.Append('<div>' + (_TextToHtml $ln) + '</div>')
-        }
-    }
-    [void]$sb.Append('</div>')
-    return $sb.ToString()
-}
+# L'HTML del cos el fa _CosAHtml (EnviarCorreu.ps1). Aqui hi havia _RecCosHtml,
+# identica linia a linia a la dels controls periodics.
 
 # Nom de la tasca programada del Windows (mode automàtic).
 $Script:RecTascaNom = 'InformesCornella-Recordatoris'
@@ -627,7 +608,7 @@ function Invoke-RecordatorisTanda([string]$clau, $rows, [bool]$silenci) {
 
             $assumpte = _RecFillPh ([string]$cfg['assumpte']) $row
             $cos      = _RecFillPh ([string]$cfg['cos']) $row
-            $html     = _RecCosHtml $cos
+            $html     = _CosAHtml $cos
             $to       = (([string]$row.Correus) -split '\s*;\s*' | Where-Object { $_ }) -join ','
 
             # El try/catch va DINS del bucle: un error d'una activitat no pot
