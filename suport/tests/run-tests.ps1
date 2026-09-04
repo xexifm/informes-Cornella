@@ -5718,4 +5718,48 @@ Assert ($srcUi.Contains('$Cos -replace "`r?`n", "`r`n"')) 'l''editor normalitza 
 Assert ($srcUi.Contains('$tbC.Text -replace "`r`n", "`n"')) 'l''editor torna a LF en desar'
 
 
+Write-Host "`n--- Cap .json s'escriu fora de Json.ps1 (guard) ---"
+# PER QUE. Quan tot el JSON va passar per Json.ps1 en va quedar UN de fora:
+# Activitats.ps1 escrivia activitats.json amb 'Set-Content -Encoding UTF8'. Hi
+# perdia dues coses i les dues es noten al disc:
+#
+#   1. BOM. Set-Content -Encoding UTF8 al PowerShell 5.1 n'hi posa, i el MATEIX
+#      contingut que puja a Drive (Save-DriveJson) no en porta: dues copies del
+#      mateix fitxer amb codificacio diferent.
+#   2. No era ATOMIC. I activitats.json es tota la base d'activitats del mobil:
+#      una escriptura interrompuda el deixa truncat, i tots els lectors tracten
+#      un JSON corrupte igual que un que no hi es. El mobil es quedaria sense
+#      base sense dir res.
+#
+# Es mira el codi de produccio: una linia amb Set-Content o WriteAllText que
+# tingui '.json' a la vista (la mateixa linia o les tres anteriors, que es on hi
+# sol anar el Join-Path del nom).
+$jsonAPel = @()
+foreach ($f in $ps1Tots) {
+    if ($f.FullName -like ('*' + [System.IO.Path]::DirectorySeparatorChar + 'tests' + [System.IO.Path]::DirectorySeparatorChar + '*')) { continue }
+    if ($f.Name -eq 'Json.ps1') { continue }
+    $ln = [System.IO.File]::ReadAllLines($f.FullName)
+    # Els comentaris de BLOC compten: la capcalera de Settings.ps1 explicava
+    # com es desava ABANS i el guard la va enxampar. (El comentari estava
+    # desfasat de debo -deia Set-Content i el codi ja feia Write-JsonFile-, o
+    # sigui que el guard va servir d'alguna cosa; pero no ha de mirar text.)
+    $dinsBloc = $false
+    for ($i = 0; $i -lt $ln.Count; $i++) {
+        $l = $ln[$i]
+        if ($l -match '<#') { $dinsBloc = $true }
+        if ($dinsBloc) { if ($l -match '#>') { $dinsBloc = $false }; continue }
+        if ($l -match '^\s*#') { continue }
+        if ($l -notmatch 'Set-Content|WriteAllText') { continue }
+        $desde = [Math]::Max(0, $i - 3)
+        $ctx = ($ln[$desde..$i] -join "`n")
+        if ($ctx -match '\.json') { $jsonAPel += ($f.Name + ':' + ($i + 1)) }
+    }
+}
+AssertEq $jsonAPel.Count 0 ('cap .json escrit fora de Json.ps1' + $(if ($jsonAPel.Count) { ' -> ' + ($jsonAPel -join ', ') } else { '' }))
+
+# I que activitats.json hi passi de debo.
+$srcAct = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'suport' 'Activitats.ps1')))
+Assert ($srcAct.Contains('Write-JsonText $outFile $json')) 'activitats.json s''escriu amb Write-JsonText (UTF-8 sense BOM i atomic)'
+
+
 exit (Write-TestSummary 'RESULTAT')

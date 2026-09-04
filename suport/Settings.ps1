@@ -19,9 +19,10 @@
 
     valor hardcodejat  <  suport/config.ps1 (compartit, git)  <  settings.json (aquest PC)
 
-  Mateix idioma que Save-LastReport/Load-LastReport (GenerarInforme.ps1): la
-  mateixa carpeta %LOCALAPPDATA%\InformesCornella, ConvertTo-Json/Set-Content
-  -Encoding UTF8 per desar, i try/catch silencios (mai peta) per llegir.
+  Mateix idioma que Save-LastReport/Load-LastReport: la mateixa carpeta
+  %LOCALAPPDATA%\InformesCornella, i try/catch silencios (mai peta) per llegir.
+  Per desar hi ha Write-JsonFile (Json.ps1), que es l'unica manera d'escriure
+  un .json a tot el programa: UTF-8 sense BOM i de manera atomica.
 #>
 
 $Script:SettingsDir  = Join-Path $env:LOCALAPPDATA 'InformesCornella'

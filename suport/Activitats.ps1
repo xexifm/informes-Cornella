@@ -405,8 +405,22 @@ function Export-ActivitatsToDrive($cache, $latest) {
         if (-not (Test-Path -LiteralPath $DriveDadesDir)) {
             New-Item -ItemType Directory -Path $DriveDadesDir -Force | Out-Null
         }
+        # Write-JsonText (Json.ps1) i NO un Set-Content: aquest era l'unic lloc
+        # de tot el programa que escrivia un .json pel seu compte, i es va
+        # quedar enrere quan tota la resta va passar pel lector unic. Hi perdia
+        # dues coses:
+        #
+        #   - Set-Content -Encoding UTF8 al PowerShell 5.1 hi posa BOM, mentre
+        #     que el MATEIX contingut que puja a Drive tres linies mes amunt
+        #     (Save-DriveJson) no en porta: dues copies del mateix fitxer amb
+        #     codificacio diferent.
+        #   - No era atomic. I aixo es tota la base d'activitats del mobil: una
+        #     escriptura interrompuda el deixa TRUNCAT, i tots els lectors
+        #     tracten un JSON corrupte igual que un que no hi es -tornen el
+        #     valor per defecte-, o sigui que el mobil es quedaria sense base
+        #     SENSE DIR RES.
         $outFile = Join-Path $DriveDadesDir 'activitats.json'
-        $json | Set-Content -LiteralPath $outFile -Encoding UTF8
+        Write-JsonText $outFile $json
         return $true
     } catch {
         Write-Host "Avis: no s'ha pogut exportar les activitats a Drive ($($_.Exception.Message))."
