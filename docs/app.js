@@ -36,14 +36,31 @@
     { addr: "hamadorp@aj-cornella.cat", def: false }
   ];
 
+  // El que es VEU al desplegable quan una opcio es BUIDA. Una fila en blanc no
+  // es distingeix d'un desplegable trencat; el que es DESA segueix sent "".
+  // Mateix contracte que el PC ($Script:OpcioEtiquetaBuida, Camps.ps1:30-37):
+  // les opcions es llegeixen pel VALOR, no per l'etiqueta, i els salts de linia
+  // nomes es col-lapsen per pintar-les.
+  var OPCIO_ETIQUETA_BUIDA = "(res)";
+  function opcioEtiqueta(valor) {
+    var s = String(valor === null || valor === undefined ? "" : valor);
+    if (!s.trim()) return OPCIO_ETIQUETA_BUIDA;
+    return s.replace(/\s+/g, " ").trim();
+  }
+
   // _ParseOpcio: "nom | A | B" -> {name, options:[A,B]}
+  //
+  // UNA OPCIO BUIDA ES UNA OPCIO: "Afegito? | | text" vol dir "res o aquest
+  // text". Filtrar-la treia la manera de dir que no i el text sortia SEMPRE, o
+  // sigui que el correu del mobil i l'informe del PC deien coses diferents per
+  // al mateix requeriment. El PC ho va corregir a Camps.ps1:45-53; aixo n'es el
+  // port. Com que l'opcio buida sol anar primera, tambe passa a ser el defecte.
   function parseOpcio(raw) {
     var segs = raw.split("|");
     var name = segs[0].trim();
     var opts = [];
     for (var i = 1; i < segs.length; i++) {
-      var o = segs[i].trim();
-      if (o !== "") opts.push(o);
+      opts.push(segs[i].trim());
     }
     return { name: name, options: opts };
   }
@@ -88,6 +105,18 @@
       return (values && values[name] !== undefined) ? String(values[name]) : "";
     });
     return out;
+  }
+
+  // ELS CAMPS ES RESOLEN PER BLOC, NO LINIA A LINIA (Apply-FieldsToLines,
+  // Camps.ps1:132-149). Cada paragraf del cataleg es una BodyLine. Si algu prem
+  // Enter DINS d'un [OPCIO: ...] -cosa que l'editor permet-, el marcador queda
+  // partit en dues linies i cap de les dues en te un de sencer: resolent linia
+  // a linia no s'hi troba res i el marcador surt TAL QUAL al correu del titular.
+  // Ajuntar, resoldre i tornar a partir arregla les dues cares del problema: el
+  // marcador partit es resol, i el salt de linia que hi hagi DINS del valor
+  // triat torna a sortir com a linia propia.
+  function applyFieldsToLines(lines, values) {
+    return applyFields(asArray(lines).join("\n"), values).split("\n");
   }
 
   // _SplitTextAndUrls: separa el text dels enllaços d'una línia.
@@ -207,14 +236,20 @@
   }
 
   // Text "ric" d'un element (item/fill): només la part de TEXT de cada BodyLine
-  // (els URLs no s'editen aquí), unit amb espais.
+  // (els URLs no s'editen aquí).
+  //
+  // Amb SALT DE LINIA, no amb espai (_RichTextOfBodyLines, Camps.ps1:327-337):
+  // la pantalla i el document han de veure EXACTAMENT el mateix text. Unint amb
+  // espai, un marcador partit per un Enter SI que es detectava aqui -el
+  // desplegable sortia i tot semblava correcte- pero despres no es resolia, i
+  // el valor triat no coincidia amb el que s'escrivia.
   function richTextOf(el) {
     var parts = [];
     asArray(el.BodyLines).forEach(function (ln) {
       var s = splitTextAndUrls(ln);
       if (s.text) parts.push(s.text);
     });
-    return parts.join(" ");
+    return parts.join("\n");
   }
 
   // Renderitza un text dins d'un contenidor barrejant text i controls inline
@@ -233,7 +268,7 @@
         sel.dataset.fieldname = seg.name;
         seg.options.forEach(function (o) {
           var op = document.createElement("option");
-          op.value = o; op.textContent = o;
+          op.value = o; op.textContent = opcioEtiqueta(o);
           sel.appendChild(op);
         });
         sel.value = (estat.fieldValues[seg.name] !== undefined) ? estat.fieldValues[seg.name] : (seg.options[0] || "");
@@ -262,6 +297,15 @@
     var lines = [];
     var n = 0;
     var lastSection = null;
+    // Emissio d'un node 'intro' (text fix): mateixa forma per al de la seccio i
+    // per al de la subseccio.
+    function emetIntro(node) {
+      applyFieldsToLines(node.BodyLines, values).forEach(function (l) {
+        var s = splitTextAndUrls(l);
+        if (s.text) lines.push(stripMarkers(s.text));
+        s.urls.forEach(function (u) { lines.push("   " + u); });
+      });
+    }
     selSections.forEach(function (sec) {
       // Secció / subsecció derivada del títol amb " - " (com fa el PC).
       var idx = sec.Title.indexOf(" - ");
@@ -275,25 +319,30 @@
       }
       if (subFromTitle) lines.push(subFromTitle);
 
-      var pendingSub = null, pendingIntro = null;
+      // UN TEXT FIX ES DE LA SECCIO O DE LA SUBSECCIO, SEGONS ON ESTIGUI
+      // (Build-CatalegBlocs, MotorInforme.ps1:373-412). Abans, QUALSEVOL
+      // subseccio invalidava l'intro pendent, i per tant un text posat a la
+      // SECCIO -abans de la primera subseccio- no sortia MAI: els seus items
+      // pengen de les subseccions, i el primer marcador de subseccio ja se
+      // l'havia endut.
+      //   - intro d'ABANS de la primera subseccio -> es de la SECCIO: sobreviu
+      //     als canvis de subseccio i surt amb el PRIMER item que s'emeti.
+      //   - intro de DINS d'una subseccio -> es d'aquella subseccio i mor amb ella.
+      var pendingSub = null, pendingIntro = null, introSeccio = null, dinsSub = false;
       sec.Items.forEach(function (el) {
-        if (el.Kind === "subsection") { pendingSub = el; pendingIntro = null; return; }
-        if (el.Kind === "intro") { pendingIntro = el; return; }
+        if (el.Kind === "subsection") { pendingSub = el; dinsSub = true; pendingIntro = null; return; }
+        if (el.Kind === "intro") { if (dinsSub) { pendingIntro = el; } else { introSeccio = el; } return; }
 
-        var itemLines = asArray(el.BodyLines).map(function (l) { return applyFields(l, values); });
         var hasChildren = !!(el.Children && el.Children.length > 0);
         if (!(el.Selected || hasChildren)) return;   // res a emetre per a aquest ítem
+        var itemLines = applyFieldsToLines(el.BodyLines, values);
 
-        // Subsecció/intro pendents: només quan ve un ítem real.
+        // Subsecció/intro pendents: només quan ve un ítem real. L'intro de la
+        // SECCIÓ va ABANS del títol de la subsecció: introdueix tot el que ve
+        // després, no només el primer grup.
+        if (introSeccio) { emetIntro(introSeccio); introSeccio = null; }
         if (pendingSub) { lines.push("· " + stripMarkers(pendingSub.Short)); pendingSub = null; }
-        if (pendingIntro) {
-          asArray(pendingIntro.BodyLines).forEach(function (l) {
-            var s = splitTextAndUrls(applyFields(l, values));
-            if (s.text) lines.push(stripMarkers(s.text));
-            s.urls.forEach(function (u) { lines.push("   " + u); });
-          });
-          pendingIntro = null;
-        }
+        if (pendingIntro) { emetIntro(pendingIntro); pendingIntro = null; }
 
         var itemWritten = false;
         if (itemLines.length > 0) {
@@ -310,7 +359,7 @@
         }
         if (hasChildren) {
           el.Children.forEach(function (ch) {
-            var childLines = asArray(ch.BodyLines).map(function (l) { return applyFields(l, values); });
+            var childLines = applyFieldsToLines(ch.BodyLines, values);
             if (!childLines.length) return;
             if (!itemWritten) { n++; itemWritten = true; }
             for (var j = 0; j < childLines.length; j++) {
@@ -430,6 +479,13 @@
   function buildRequirementsHTML(selSections, values) {
     var H = [];
     var n = 0, lastSection = null;
+    function emetIntroH(node) {
+      applyFieldsToLines(node.BodyLines, values).forEach(function (l) {
+        var s = splitTextAndUrls(l);
+        if (s.text) H.push('<div>' + mdHtml(s.text) + '</div>');
+        s.urls.forEach(function (u) { H.push(urlHtml(u)); });
+      });
+    }
     selSections.forEach(function (sec) {
       var idx = sec.Title.indexOf(" - ");
       var secName = idx >= 0 ? sec.Title.substring(0, idx).trim() : sec.Title.trim();
@@ -440,22 +496,25 @@
       }
       if (subT) H.push('<div style="text-decoration:underline;margin-top:4px">' + esc(subT) + '</div>');
 
-      var pendingSub = null, pendingIntro = null;
+      // UN TEXT FIX ES DE LA SECCIO O DE LA SUBSECCIO, SEGONS ON ESTIGUI
+      // (Build-CatalegBlocs, MotorInforme.ps1:373-412). Abans, QUALSEVOL
+      // subseccio invalidava l'intro pendent, i per tant un text posat a la
+      // SECCIO -abans de la primera subseccio- no sortia MAI: els seus items
+      // pengen de les subseccions, i el primer marcador de subseccio ja se
+      // l'havia endut.
+      //   - intro d'ABANS de la primera subseccio -> es de la SECCIO: sobreviu
+      //     als canvis de subseccio i surt amb el PRIMER item que s'emeti.
+      //   - intro de DINS d'una subseccio -> es d'aquella subseccio i mor amb ella.
+      var pendingSub = null, pendingIntro = null, introSeccio = null, dinsSub = false;
       sec.Items.forEach(function (el) {
-        if (el.Kind === "subsection") { pendingSub = el; pendingIntro = null; return; }
-        if (el.Kind === "intro") { pendingIntro = el; return; }
-        var itemLines = asArray(el.BodyLines).map(function (l) { return applyFields(l, values); });
+        if (el.Kind === "subsection") { pendingSub = el; dinsSub = true; pendingIntro = null; return; }
+        if (el.Kind === "intro") { if (dinsSub) { pendingIntro = el; } else { introSeccio = el; } return; }
         var hasChildren = !!(el.Children && el.Children.length > 0);
         if (!(el.Selected || hasChildren)) return;
+        var itemLines = applyFieldsToLines(el.BodyLines, values);
+        if (introSeccio) { emetIntroH(introSeccio); introSeccio = null; }
         if (pendingSub) { H.push('<div style="text-decoration:underline;margin-top:4px">' + esc(stripMarkers(pendingSub.Short)) + '</div>'); pendingSub = null; }
-        if (pendingIntro) {
-          asArray(pendingIntro.BodyLines).forEach(function (l) {
-            var s = splitTextAndUrls(applyFields(l, values));
-            if (s.text) H.push('<div>' + mdHtml(s.text) + '</div>');
-            s.urls.forEach(function (u) { H.push(urlHtml(u)); });
-          });
-          pendingIntro = null;
-        }
+        if (pendingIntro) { emetIntroH(pendingIntro); pendingIntro = null; }
         var itemWritten = false;
         if (itemLines.length > 0) {
           n++;
@@ -471,7 +530,7 @@
         }
         if (hasChildren) {
           el.Children.forEach(function (ch) {
-            var cl = asArray(ch.BodyLines).map(function (l) { return applyFields(l, values); });
+            var cl = applyFieldsToLines(ch.BodyLines, values);
             if (!cl.length) return;
             if (!itemWritten) { n++; itemWritten = true; }
             cl.forEach(function (cx) {
