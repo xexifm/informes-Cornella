@@ -5802,4 +5802,53 @@ $srcLlic = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'suport
 Assert (-not ($srcLlic -match 'function _LlicNomFitxer\([^)]*titular')) '_LlicNomFitxer ja no te el parametre mort $titular'
 
 
+Write-Host "`n--- Dos blocs mes que eren el mateix ---"
+# 1. LA CARCASSA DE LA FINESTRA DE PROGRES AMB CANCEL.LAR era identica -23
+#    linies, fins a les coordenades- a "Enviar correu (esborranys)" i a "Generar
+#    informes": nomes canviava el titol. Ara es Show-ProgresCancel (UiComuns.ps1).
+#    El que en fa una peca de debo es el detall delicat: el hashtable $cancel i
+#    el FormClosing que converteix el tancament en cancel.lacio mentre la tanda
+#    corre. Fer-ho malament no dona error, deixa el programa penjat.
+#    Les altres dues finestres amb Cancel.lar NO hi entren, i es a posta:
+#    "Copiar informes" (Informes.ps1) comenca en marquee i passa a continua a
+#    mig cami despres d'una confirmacio, i la de "Word a PDF" (PdfSignar.ps1) es
+#    d'una altra mida i porta la seva comptabilitat. Son parents, no la mateixa
+#    finestra. Per aixo el guard no compta copies: diu QUI ha de passar-hi i qui
+#    no pot tornar a muntar-se-la.
+$srcProg = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'suport' 'UiComuns.ps1')))
+Assert ($srcProg.Contains('function Show-ProgresCancel')) 'la finestra de progres amb Cancel.lar viu a UiComuns.ps1'
+foreach ($nom in @('ControlsCpEmail.ps1', 'ControlsPeriodics.ps1')) {
+    $t = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'suport' $nom)))
+    Assert ($t.Contains('Show-ProgresCancel')) "$nom passa per Show-ProgresCancel"
+    Assert (-not ($t.Contains('$cancel.Running) { $cancel.Flag = $true; $e.Cancel = $true }'))) "$nom ja no es munta la carcassa pel seu compte"
+}
+
+# 2. EL MODEL DE LA TRIA. _SeccionsTriades converteix l'estat de les caselles en
+#    la llista de seccions, i estava copiada linia a linia (42) a Paquet.ps1: la
+#    pantalla del Pas 3 i el cami "des d'un paquet del mobil" muntaven el mateix
+#    model pel seu compte. Si divergissin, el mobil i el PC generarien informes
+#    DIFERENTS amb la mateixa tria. Es pura, o sigui que es pot provar aqui.
+$secProva = @(
+    [pscustomobject]@{ Title = 'Incendis'; Items = @(
+        [pscustomobject]@{ Kind='intro'; Short='intro'; BodyLines=@('text'); Children=@() },
+        [pscustomobject]@{ Kind='item'; Short='BIE'; BodyLines=@('cos'); Children=@(
+            [pscustomobject]@{ Kind='child'; Short='fill1'; BodyLines=@('c1') },
+            [pscustomobject]@{ Kind='child'; Short='fill2'; BodyLines=@('c2') }) },
+        [pscustomobject]@{ Kind='item'; Short='Extintors'; BodyLines=@('cos'); Children=@() }
+    )}
+)
+$cs = @{}
+$cs[(_ItemKey 'Incendis' 'BIE')] = $true
+$cs[(_ItemKey 'Incendis' 'BIE' 'fill2')] = $true
+$tri = @(_SeccionsTriades $secProva $cs)
+AssertEq $tri.Count 1 '_SeccionsTriades: nomes la seccio que te alguna cosa triada'
+$itemsTri = @($tri[0].Items | Where-Object { $_.Kind -eq 'item' })
+AssertEq $itemsTri.Count 1 '_SeccionsTriades: nomes l''item marcat'
+AssertEq ([string]$itemsTri[0].Short) 'BIE' '_SeccionsTriades: i es el que toca'
+AssertEq (@($itemsTri[0].Children).Count) 1 '_SeccionsTriades: nomes el fill marcat'
+AssertEq ([string]@($itemsTri[0].Children)[0].Short) 'fill2' '_SeccionsTriades: i es el fill que toca'
+Assert ([bool](@($tri[0].Items | Where-Object { $_.Kind -eq 'intro' }).Count -ge 1)) '_SeccionsTriades: l''intro de la seccio es conserva'
+AssertEq (@(_SeccionsTriades $secProva @{}).Count) 0 '_SeccionsTriades: res marcat -> cap seccio'
+
+
 exit (Write-TestSummary 'RESULTAT')

@@ -399,53 +399,68 @@ function Select-Items {
     _CollectCheckStates $tv $checkStates
 
     # Construim el resultat en ordre del data, preservant subseccions/intros.
-    $result = New-Object System.Collections.ArrayList
-    foreach ($sec in $sections) {
-        $chosen = New-Object System.Collections.ArrayList
-        foreach ($el in $sec.Items) {
-            if ($el.Kind -in 'subsection','intro') {
-                [void]$chosen.Add([pscustomobject]@{
-                    Kind      = $el.Kind
-                    Short     = $el.Short
-                    BodyLines = $el.BodyLines
-                    Children  = @()
-                    Selected  = $false
-                })
-                continue
-            }
-            $itKey = (_ItemKey $sec.Title $el.Short)
-            $isSel = $checkStates.ContainsKey($itKey) -and $checkStates[$itKey]
-            $chosenChildren = New-Object System.Collections.ArrayList
-            foreach ($ch in $el.Children) {
-                $chKey = (_ItemKey $sec.Title $el.Short $ch.Short)
-                if ($checkStates.ContainsKey($chKey) -and $checkStates[$chKey]) {
-                    [void]$chosenChildren.Add($ch)
-                }
-            }
-            if ($isSel -or $chosenChildren.Count -gt 0) {
-                [void]$chosen.Add([pscustomobject]@{
-                    Kind      = 'item'
-                    Short     = $el.Short
-                    BodyLines = $el.BodyLines
-                    Children  = $chosenChildren
-                    Selected  = [bool]$isSel
-                })
-            }
-        }
-        $hasRealItem = $false
-        foreach ($x in $chosen) { if ($x.Kind -eq 'item') { $hasRealItem = $true; break } }
-        if ($hasRealItem) {
-            [void]$result.Add([pscustomobject]@{
-                Title = $sec.Title
-                Items = $chosen
-            })
-        }
-    }
+    $result = _SeccionsTriades $sections $checkStates
     if ($result.Count -eq 0 -and -not $permetreBuit) {
         [System.Windows.Forms.MessageBox]::Show('No s''ha seleccionat cap deficiencia.','Avis','OK','Warning') | Out-Null
         return [pscustomobject]@{ Nav='stay' }   # es torna a mostrar el Pas 3
     }
     return [pscustomobject]@{ Nav='next'; Data=$result }
+}
+
+# De l'estat de les caselles a la llista de seccions triades.
+#
+# PURA, i per aixo es pot provar sense finestres. Estava COPIADA linia a linia
+# (42) a Paquet.ps1: la pantalla del Pas 3 i el cami "des d'un paquet del mobil"
+# construeixen el mateix model i cap dels dos no ho ha de decidir pel seu compte
+# -si divergissin, el mobil i el PC generarien informes diferents amb la mateixa
+# tria-. El que si que es de cada crider es QUE fa amb el resultat: la pantalla
+# avisa si no s'ha triat res i torna un {Nav; Data}; el paquet el torna i prou.
+#
+# $checkStates: clau "Seccio::Item[::Fill]" -> $true si esta marcat.
+function _SeccionsTriades($sections, $checkStates) {
+$result = New-Object System.Collections.ArrayList
+foreach ($sec in $sections) {
+    $chosen = New-Object System.Collections.ArrayList
+    foreach ($el in $sec.Items) {
+        if ($el.Kind -in 'subsection','intro') {
+            [void]$chosen.Add([pscustomobject]@{
+                Kind      = $el.Kind
+                Short     = $el.Short
+                BodyLines = $el.BodyLines
+                Children  = @()
+                Selected  = $false
+            })
+            continue
+        }
+        $itKey = (_ItemKey $sec.Title $el.Short)
+        $isSel = $checkStates.ContainsKey($itKey) -and $checkStates[$itKey]
+        $chosenChildren = New-Object System.Collections.ArrayList
+        foreach ($ch in $el.Children) {
+            $chKey = (_ItemKey $sec.Title $el.Short $ch.Short)
+            if ($checkStates.ContainsKey($chKey) -and $checkStates[$chKey]) {
+                [void]$chosenChildren.Add($ch)
+            }
+        }
+        if ($isSel -or $chosenChildren.Count -gt 0) {
+            [void]$chosen.Add([pscustomobject]@{
+                Kind      = 'item'
+                Short     = $el.Short
+                BodyLines = $el.BodyLines
+                Children  = $chosenChildren
+                Selected  = [bool]$isSel
+            })
+        }
+    }
+    $hasRealItem = $false
+    foreach ($x in $chosen) { if ($x.Kind -eq 'item') { $hasRealItem = $true; break } }
+    if ($hasRealItem) {
+        [void]$result.Add([pscustomobject]@{
+            Title = $sec.Title
+            Items = $chosen
+        })
+    }
+}
+    return $result
 }
 
 # Extreu les claus "Seccio::Item[::Fill]" del resultat de Select-Items, per

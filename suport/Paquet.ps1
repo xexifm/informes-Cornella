@@ -39,49 +39,9 @@ function Build-SelectionFromKeys($sections, $selectedKeys) {
         $checkStates[[string]$k] = $true
     }
 
-    $result = New-Object System.Collections.ArrayList
-    foreach ($sec in $sections) {
-        $chosen = New-Object System.Collections.ArrayList
-        foreach ($el in $sec.Items) {
-            if ($el.Kind -in 'subsection','intro') {
-                [void]$chosen.Add([pscustomobject]@{
-                    Kind      = $el.Kind
-                    Short     = $el.Short
-                    BodyLines = $el.BodyLines
-                    Children  = @()
-                    Selected  = $false
-                })
-                continue
-            }
-            $itKey = (_ItemKey $sec.Title $el.Short)
-            $isSel = $checkStates.ContainsKey($itKey) -and $checkStates[$itKey]
-            $chosenChildren = New-Object System.Collections.ArrayList
-            foreach ($ch in $el.Children) {
-                $chKey = (_ItemKey $sec.Title $el.Short $ch.Short)
-                if ($checkStates.ContainsKey($chKey) -and $checkStates[$chKey]) {
-                    [void]$chosenChildren.Add($ch)
-                }
-            }
-            if ($isSel -or $chosenChildren.Count -gt 0) {
-                [void]$chosen.Add([pscustomobject]@{
-                    Kind      = 'item'
-                    Short     = $el.Short
-                    BodyLines = $el.BodyLines
-                    Children  = $chosenChildren
-                    Selected  = [bool]$isSel
-                })
-            }
-        }
-        $hasRealItem = $false
-        foreach ($x in $chosen) { if ($x.Kind -eq 'item') { $hasRealItem = $true; break } }
-        if ($hasRealItem) {
-            [void]$result.Add([pscustomobject]@{
-                Title = $sec.Title
-                Items = $chosen
-            })
-        }
-    }
-    return $result
+    # El model el munta _SeccionsTriades (SeleccioItems.ps1), la MATEIXA que fa
+    # servir la pantalla del Pas 3. Aixo estava copiat aqui linia a linia.
+    return (_SeccionsTriades $sections $checkStates)
 }
 
 # Reconstrueix la llista de conclusions triades a partir dels seus titols,

@@ -935,3 +935,56 @@ function Show-EditorAssumpteCos {
     $form.Dispose()
     return $estat.Desat
 }
+
+# ----------------------------------------------------------------------------
+# Finestra de progres amb Cancel.lar
+# ----------------------------------------------------------------------------
+# La carcassa era IDENTICA -23 linies, fins a les coordenades- a "Enviar correu
+# (esborranys)" (ControlsCpEmail.ps1) i a "Generar informes" (ControlsPeriodics.ps1):
+# nomes canviava el titol de la finestra.
+#
+# El que en fa una peca i no una copia mes es que el detall delicat es aqui: el
+# hashtable $cancel -hashtable i no una variable solta, perque les closures dels
+# handlers copien els VALORS dels locals- i el FormClosing, que impedeix tancar
+# la finestra mentre la tanda corre i ho converteix en una cancel.lacio. Fer-ho
+# malament no dona un error, deixa el programa penjat.
+#
+# NO hi entren les altres dues finestres amb Cancel.lar: "Copiar informes"
+# (Informes.ps1) comenca en marquee i passa a continua a mig cami despres d'una
+# confirmacio, i la de "Word a PDF" (PdfSignar.ps1) es d'una altra mida i porta
+# la seva propia comptabilitat. Son parents, no la mateixa finestra.
+#
+# Torna @{ Form; Label; Bar; Cancel }. El crider mou $r.Bar.Value i $r.Label.Text,
+# mira $r.Cancel.Flag a cada volta i, en acabar, ha de fer
+# $r.Cancel.Running = $false abans de $r.Form.Close().
+function Show-ProgresCancel([string]$titol, [int]$maxim) {
+    $cancel = @{ Flag = $false; Running = $true }
+
+    $form = _NewForm
+    $form.Text = [string]$titol
+    $form.Size = New-Object System.Drawing.Size(560, 170)
+    $form.FormBorderStyle = 'FixedDialog'; $form.MaximizeBox = $false
+
+    $lbl = New-Object System.Windows.Forms.Label
+    $lbl.Location = New-Object System.Drawing.Point(20, 18); $lbl.Size = New-Object System.Drawing.Size(510, 40)
+    $lbl.Text = 'Preparant...'
+    $form.Controls.Add($lbl)
+
+    $bar = New-Object System.Windows.Forms.ProgressBar
+    $bar.Location = New-Object System.Drawing.Point(20, 66); $bar.Size = New-Object System.Drawing.Size(510, 22)
+    $bar.Style = 'Continuous'; $bar.Minimum = 0; $bar.Maximum = [Math]::Max(1, $maxim)
+    $form.Controls.Add($bar)
+
+    $btnCancel = New-Object System.Windows.Forms.Button
+    $btnCancel.Text = 'Cancel' + [char]0x00B7 + 'lar'; $btnCancel.Size = New-Object System.Drawing.Size(120, 30)
+    $btnCancel.Location = New-Object System.Drawing.Point(410, 96)
+    _StyleSecondaryButton $btnCancel
+    $btnCancel.add_Click({ $cancel.Flag = $true }.GetNewClosure())
+    $form.Controls.Add($btnCancel)
+
+    $form.add_FormClosing({ param($s, $e) if ($cancel.Running) { $cancel.Flag = $true; $e.Cancel = $true } }.GetNewClosure())
+    $form.Show()
+    [System.Windows.Forms.Application]::DoEvents()
+
+    return @{ Form = $form; Label = $lbl; Bar = $bar; Cancel = $cancel }
+}

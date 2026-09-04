@@ -498,29 +498,13 @@ function Invoke-GenerarControlsPeriodics($rows) {
         'Generar informes', 'YesNo', 'Question')
     if ($rc -ne [System.Windows.Forms.DialogResult]::Yes) { return }
 
-    # Finestra de progrés amb Cancel·lar.
-    $cancel = @{ Flag = $false; Running = $true }
-    $form = _NewForm
-    $form.Text = 'Generar informes'
-    $form.Size = New-Object System.Drawing.Size(560, 170)
-    $form.FormBorderStyle = 'FixedDialog'; $form.MaximizeBox = $false
-    $lbl = New-Object System.Windows.Forms.Label
-    $lbl.Location = New-Object System.Drawing.Point(20, 18); $lbl.Size = New-Object System.Drawing.Size(510, 40)
-    $lbl.Text = 'Preparant...'
-    $form.Controls.Add($lbl)
-    $bar = New-Object System.Windows.Forms.ProgressBar
-    $bar.Location = New-Object System.Drawing.Point(20, 66); $bar.Size = New-Object System.Drawing.Size(510, 22)
-    $bar.Style = 'Continuous'; $bar.Minimum = 0; $bar.Maximum = [Math]::Max(1, $rows.Count)
-    $form.Controls.Add($bar)
-    $btnCancel = New-Object System.Windows.Forms.Button
-    $btnCancel.Text = 'Cancel·lar'; $btnCancel.Size = New-Object System.Drawing.Size(120, 30)
-    $btnCancel.Location = New-Object System.Drawing.Point(410, 96)
-    _StyleSecondaryButton $btnCancel
-    $btnCancel.add_Click({ $cancel.Flag = $true }.GetNewClosure())
-    $form.Controls.Add($btnCancel)
-    $form.add_FormClosing({ param($s, $e) if ($cancel.Running) { $cancel.Flag = $true; $e.Cancel = $true } }.GetNewClosure())
-    $form.Show()
-    [System.Windows.Forms.Application]::DoEvents()
+    # La carcassa (finestra + etiqueta + barra + Cancel.lar) es a UiComuns.ps1:
+    # era identica a la de "Enviar correu (esborranys)".
+    $pg     = Show-ProgresCancel 'Generar informes' $rows.Count
+    $cancel = $pg.Cancel
+    $form   = $pg.Form
+    $lbl    = $pg.Label
+    $bar    = $pg.Bar
 
     $ok = 0; $err = 0; $cancelled = $false
     $errDetalls = New-Object System.Collections.ArrayList
