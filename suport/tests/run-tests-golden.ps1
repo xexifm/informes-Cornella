@@ -24,6 +24,9 @@
 
 $env:GENINFORME_TEST = '1'
 $ErrorActionPreference = 'Stop'
+# A Linux no existeix LOCALAPPDATA; el donem perque el dot-source no falli
+# (mateix guard que run-tests.ps1 i run-tests-actextr.ps1).
+if ([string]::IsNullOrEmpty($env:LOCALAPPDATA)) { $env:LOCALAPPDATA = [System.IO.Path]::GetTempPath() }
 
 . (Join-Path $PSScriptRoot 'TestLib.ps1')
 . (Join-Path $PSScriptRoot 'Golden.ps1')

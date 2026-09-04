@@ -1,4 +1,4 @@
-# Proves automatiques de les funcions PURES de Precintades.ps1 (mapa public
+﻿# Proves automatiques de les funcions PURES de Precintades.ps1 (mapa public
 # d'activitats precintades).
 #
 # NO prova la part d'Excel (COM) ni l'escriptura del JSON al disc: aixo nomes
@@ -10,6 +10,9 @@
 #   pwsh -File suport/tests/run-tests-precintades.ps1
 
 $ErrorActionPreference = 'Stop'
+# A Linux no existeix LOCALAPPDATA; el donem perque el dot-source no falli
+# (mateix guard que run-tests.ps1 i run-tests-actextr.ps1).
+if ([string]::IsNullOrEmpty($env:LOCALAPPDATA)) { $env:LOCALAPPDATA = [System.IO.Path]::GetTempPath() }
 $env:PRECINTADES_TEST = '1'   # mode headless: nomes defineix funcions
 
 $scriptPath = Join-Path (Split-Path -Parent $PSScriptRoot) (Join-Path 'rutes' 'Precintades.ps1')

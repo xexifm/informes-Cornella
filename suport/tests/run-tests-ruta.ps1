@@ -1,4 +1,4 @@
-# Proves automatiques de les funcions PURES de Ruta.ps1 (planificador de rutes).
+﻿# Proves automatiques de les funcions PURES de Ruta.ps1 (planificador de rutes).
 #
 # NO prova la part d'Excel (COM), la crida a OSRM (xarxa) ni les finestres
 # (WinForms): aixo nomes funciona a Windows / amb connexio. Aqui es validen
@@ -9,6 +9,9 @@
 #   pwsh -File tests/run-tests-ruta.ps1
 
 $ErrorActionPreference = 'Stop'
+# A Linux no existeix LOCALAPPDATA; el donem perque el dot-source no falli
+# (mateix guard que run-tests.ps1 i run-tests-actextr.ps1).
+if ([string]::IsNullOrEmpty($env:LOCALAPPDATA)) { $env:LOCALAPPDATA = [System.IO.Path]::GetTempPath() }
 $env:RUTA_TEST = '1'   # mode headless: nomes defineix funcions, no obre res
 
 $scriptPath = Join-Path (Split-Path -Parent $PSScriptRoot) (Join-Path 'rutes' 'Ruta.ps1')

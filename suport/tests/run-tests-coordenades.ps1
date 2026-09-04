@@ -1,4 +1,4 @@
-# Proves automatiques de les funcions PURES de l'eina Coordenades
+﻿# Proves automatiques de les funcions PURES de l'eina Coordenades
 # (rutes/Coordenades.ps1 + rutes/Geocodificador.ps1).
 #
 # NO prova la part d'Excel (COM), la crida al Cadastre (xarxa) ni les finestres
@@ -16,6 +16,9 @@
 #   pwsh -File tests/run-tests-coordenades.ps1
 
 $ErrorActionPreference = 'Stop'
+# A Linux no existeix LOCALAPPDATA; el donem perque el dot-source no falli
+# (mateix guard que run-tests.ps1 i run-tests-actextr.ps1).
+if ([string]::IsNullOrEmpty($env:LOCALAPPDATA)) { $env:LOCALAPPDATA = [System.IO.Path]::GetTempPath() }
 $env:COORDENADES_TEST = '1'   # mode headless: nomes defineix funcions
 
 $scriptPath = Join-Path (Split-Path -Parent $PSScriptRoot) (Join-Path 'rutes' 'Coordenades.ps1')
