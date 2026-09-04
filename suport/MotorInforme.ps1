@@ -188,6 +188,31 @@ function Apply-HeaderReplacements($doc, $header) {
     }
 }
 
+
+# Treu del nom els caracters que Windows no admet en un fitxer.
+#
+# Hi havia TRES llocs que ho feien i NO deien el mateix: _GetOutputFileName
+# (Document.ps1) posava '_' i nomes sanejava el GIA, mentre que _LlicNomFitxer i
+# _MnsNomFitxer posaven '-' i sanejaven el nom sencer. O sigui que el mateix
+# caracter dolent donava un nom diferent segons quin informe fessis. Es queda
+# el '-' -el que feien dos dels tres- i sobre el nom SENCER.
+function _SanejaNomFitxer([string]$nom) {
+    return [regex]::Replace([string]$nom, '[\\/:*?"<>|]', '-')
+}
+
+# El nom d'un informe: data_Curt_GIA n.docx (el tros del GIA nomes si n'hi ha).
+#
+# _LlicNomFitxer i _MnsNomFitxer eren la MATEIXA funcio: nomes es diferenciaven
+# en com trien el $curt. Aixo es el que compartien; la tria es queda a cada una,
+# que es l'unica cosa que difereix de debo.
+function _NomInformeFitxer([datetime]$data, [string]$curt, [string]$idGia) {
+    $parts = New-Object System.Collections.ArrayList
+    [void]$parts.Add($data.ToString('yyyy-MM-dd'))
+    [void]$parts.Add([string]$curt)
+    if (-not [string]::IsNullOrWhiteSpace($idGia)) { [void]$parts.Add('GIA ' + $idGia.Trim()) }
+    return ((_SanejaNomFitxer ($parts -join '_')) + '.docx')
+}
+
 # A partir del nom base, retorna la ruta a $targetDir que no col·lisioni amb
 # cap fitxer existent. Si el primer ja existeix, prova "_2", "_3"... fins
 # trobar-ne un de lliure. Aixi pots fer diversos informes del mateix GIA el

@@ -161,13 +161,7 @@ function _MnsConclusions([string]$fase, [bool]$ambObservacions) {
 function _MnsNomFitxer([datetime]$data, [string]$fase, [string]$idGia) {
     $curt = 'LlicMNS'
     foreach ($f in @(_MnsFases)) { if ([string]$f.Clau -eq [string]$fase) { $curt = [string]$f.Curt } }
-    $parts = New-Object System.Collections.ArrayList
-    [void]$parts.Add($data.ToString('yyyy-MM-dd'))
-    [void]$parts.Add($curt)
-    if (-not [string]::IsNullOrWhiteSpace($idGia)) { [void]$parts.Add('GIA ' + $idGia.Trim()) }
-    $nom = ($parts -join '_')
-    $nom = [regex]::Replace($nom, '[\\/:*?"<>|]', '-')
-    return ($nom + '.docx')
+    return (_NomInformeFitxer $data $curt $idGia)
 }
 
 # ----------------------------------------------------------------------------

@@ -2318,11 +2318,11 @@ AssertEq (@(_LlicPuntsAmbEstatFase @() 'requeriment').Count) 0 '_LlicPuntsAmbEst
 
 # Nom del fitxer: data al principi, com la resta d'informes (aixi "Actualitzar
 # base d'informes" el reconeix).
-$nf = _LlicNomFitxer ([datetime]'2026-08-03') 'requeriment' '1433' 'MANUEL CRUZ'
-AssertEq $nf '2026-08-03_LlicReq_GIA 1433.docx' '_LlicNomFitxer: requeriment (sense titular)'
-Assert ([bool]((_LlicNomFitxer ([datetime]'2026-08-03') 'favorable-pre' '1' 'X') -like '*LlicFavPre*'))  '_LlicNomFitxer: favorable pre'
-Assert ([bool]((_LlicNomFitxer ([datetime]'2026-08-03') 'favorable-post' '1' 'X') -like '*LlicFavPost*')) '_LlicNomFitxer: favorable post'
-Assert (-not ((_LlicNomFitxer ([datetime]'2026-08-03') 'requeriment' '1' 'A/B:C') -match '[\\/:*?"<>|]')) '_LlicNomFitxer: fora els caracters que Windows no admet'
+$nf = _LlicNomFitxer ([datetime]'2026-08-03') 'requeriment' '1433'
+AssertEq $nf '2026-08-03_LlicReq_GIA 1433.docx' '_LlicNomFitxer: requeriment'
+Assert ([bool]((_LlicNomFitxer ([datetime]'2026-08-03') 'favorable-pre' '1') -like '*LlicFavPre*'))  '_LlicNomFitxer: favorable pre'
+Assert ([bool]((_LlicNomFitxer ([datetime]'2026-08-03') 'favorable-post' '1') -like '*LlicFavPost*')) '_LlicNomFitxer: favorable post'
+Assert (-not ((_LlicNomFitxer ([datetime]'2026-08-03') 'requeriment' 'A/B:C') -match '[\\/:*?"<>|]')) '_LlicNomFitxer: fora els caracters que Windows no admet'
 AssertEq (_VistaActExtrTitol '[[INCENDIS]] Incendis') 'Incendis  [INCENDIS]' '_VistaActExtrTitol: etiqueta + clau'
 AssertEq (_VistaActExtrTitol '[[MEMORIA_A]] ::CHILD:: a) Identificacio') 'a) Identificacio  [MEMORIA_A]' '_VistaActExtrTitol: treu el token'
 AssertEq (_VistaActExtrTitol '[[REQ_INTRO]]') 'REQ_INTRO' '_VistaActExtrTitol: sense etiqueta -> la clau'
@@ -2831,8 +2831,8 @@ if (Test-Path -LiteralPath $llicPathX) {
 }
 
 # El nom del fitxer NO porta el titular (l'usuari no el vol; ja surt a dins).
-$nfG = _LlicNomFitxer ([datetime]'2026-08-18') 'requeriment' '1457' 'EUROMASTER AUTOMOCION Y SERVICIOS SA'
-AssertEq $nfG '2026-08-18_LlicReq_GIA 1457.docx' '_LlicNomFitxer: sense el titular'
+$nfG = _LlicNomFitxer ([datetime]'2026-08-18') 'requeriment' '1457'
+AssertEq $nfG '2026-08-18_LlicReq_GIA 1457.docx' '_LlicNomFitxer: el nom no porta el titular'
 
 Write-Host "`n--- PdfCms.ps1: refer la signatura de dins del PDF ---"
 # Els informes signats amb l'AutoFirma nomes es validaven a l'ordinador que
@@ -5775,6 +5775,33 @@ AssertEq $jsonAPel.Count 0 ('cap .json escrit fora de Json.ps1' + $(if ($jsonAPe
 # I que activitats.json hi passi de debo.
 $srcAct = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'suport' 'Activitats.ps1')))
 Assert ($srcAct.Contains('Write-JsonText $outFile $json')) 'activitats.json s''escriu amb Write-JsonText (UTF-8 sense BOM i atomic)'
+
+
+Write-Host "`n--- El nom del fitxer de sortida: un sol sanejat ---"
+# PER QUE. Hi havia TRES funcions que feien el nom i NO deien el mateix:
+# _GetOutputFileName (Document.ps1) posava '_' i nomes sanejava el GIA;
+# _LlicNomFitxer i _MnsNomFitxer posaven '-' i sanejaven el nom sencer. El
+# MATEIX caracter dolent donava un nom diferent segons quin informe fessis.
+# Ara el sanejat es un (_SanejaNomFitxer) i les dues bessones -que nomes es
+# diferenciaven en com trien el $curt- comparteixen _NomInformeFitxer.
+AssertEq (_SanejaNomFitxer 'a/b:c*d?e"f<g>h|i\i') 'a-b-c-d-e-f-g-h-i-i' '_SanejaNomFitxer: tots els caracters que Windows no admet'
+AssertEq (_SanejaNomFitxer 'sense res a treure') 'sense res a treure' '_SanejaNomFitxer: no toca el que ja va be'
+AssertEq (_NomInformeFitxer ([datetime]'2026-09-04') 'LlicReq' '1433') '2026-09-04_LlicReq_GIA 1433.docx' '_NomInformeFitxer: data_curt_GIA'
+AssertEq (_NomInformeFitxer ([datetime]'2026-09-04') 'LlicReq' '')     '2026-09-04_LlicReq.docx'          '_NomInformeFitxer: sense GIA, sense el tros del GIA'
+
+# LES TRES han de sanejar IGUAL: es el que no passava.
+$sanejats = @(
+    (_GetOutputFileName 'REQ1' 'A/B'),
+    (_LlicNomFitxer ([datetime]'2026-09-04') 'requeriment' 'A/B'),
+    (_MnsNomFitxer  ([datetime]'2026-09-04') 'mns' 'A/B')
+)
+foreach ($n in $sanejats) { Assert ($n.Contains('A-B')) "les tres families sanegen igual ('-'): $n" }
+Assert (-not (($sanejats -join '') -match 'A_B')) 'cap familia sanejant amb "_" (era la discrepancia)'
+
+# El parametre $titular de _LlicNomFitxer era MORT: el crider i les proves el
+# passaven i el cos no el feia servir mai. Fora.
+$srcLlic = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'suport' 'Llicencia.ps1')))
+Assert (-not ($srcLlic -match 'function _LlicNomFitxer\([^)]*titular')) '_LlicNomFitxer ja no te el parametre mort $titular'
 
 
 exit (Write-TestSummary 'RESULTAT')

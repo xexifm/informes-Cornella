@@ -31,8 +31,11 @@ function _GetOutputFileName($catalegName, $gia) {
     if ($cat) { $cat = $cat.Substring(0,1).ToUpper() + $cat.Substring(1).ToLower() }
     else      { $cat = 'Informe' }
     if ([string]::IsNullOrWhiteSpace($gia)) { $gia = 's_n' }
-    $gia = ($gia -replace '[\\/:*?"<>|]','_').Trim()
-    return ("{0}_{1}_GIA {2}.docx" -f $today, $cat, $gia)
+    # El sanejat el fa _SanejaNomFitxer (MotorInforme.ps1), que es el mateix per
+    # a tots. Aqui posava '_' i les altres dues families '-': el mateix caracter
+    # dolent donava un nom diferent segons quin informe fessis. La FORMA del nom
+    # si que es d'aqui (la inicial en majuscula i el 's_n' quan no hi ha GIA).
+    return (_SanejaNomFitxer ("{0}_{1}_GIA {2}.docx" -f $today, $cat, $gia.Trim()))
 }
 
 # Escriu el cos del document (intro del cataleg + seccions amb items numerats).

@@ -819,20 +819,13 @@ function _LlicTextDocumentacio([string]$tecnic, [string]$numCol, [string]$colleg
 # data al principi (aixi "Actualitzar base d'informes" el reconeix).
 # El nom NO porta el titular (l'usuari no el vol): data_fase_GIA. El titular ja
 # surt a la capcalera del document.
-function _LlicNomFitxer([datetime]$data, [string]$fase, [string]$idGia, [string]$titular = '') {
+function _LlicNomFitxer([datetime]$data, [string]$fase, [string]$idGia) {
     $curt = switch ($fase) {
         'favorable-pre'  { 'LlicFavPre' }
         'favorable-post' { 'LlicFavPost' }
         default          { 'LlicReq' }
     }
-    $parts = New-Object System.Collections.ArrayList
-    [void]$parts.Add($data.ToString('yyyy-MM-dd'))
-    [void]$parts.Add($curt)
-    if (-not [string]::IsNullOrWhiteSpace($idGia)) { [void]$parts.Add('GIA ' + $idGia.Trim()) }
-    $nom = ($parts -join '_')
-    # Fora els caracters que Windows no admet en un nom de fitxer.
-    $nom = [regex]::Replace($nom, '[\\/:*?"<>|]', '-')
-    return ($nom + '.docx')
+    return (_NomInformeFitxer $data $curt $idGia)
 }
 
 # ----------------------------------------------------------------------------
@@ -1067,7 +1060,7 @@ function _LlicEscriuPunts($sel, $punts, [ref]$n, $fields, [bool]$ambQuan, [strin
 #   Condicions, Orfes.
 function Build-LlicenciaDocument($word, $model) {
     $header = $model.Header
-    $baseName = _LlicNomFitxer (Get-Date) ([string]$model.Fase) ([string]$header['ID_GIA']) ([string]$header['TITULAR'])
+    $baseName = _LlicNomFitxer (Get-Date) ([string]$model.Fase) ([string]$header['ID_GIA'])
     $cfg = $Script:ReportFormatConfig
     $fields = $model.Fields
 
