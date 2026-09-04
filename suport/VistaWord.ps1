@@ -526,14 +526,15 @@ function Invoke-ExportarVistesWord([switch]$Force) {
         return 0
     }
 
-    $word = $null
-    try { $word = New-Object -ComObject Word.Application } catch { $word = $null }
+    # -Opcional: aqui es pot continuar sense Word (no es genera cap vista i es
+    # diu). El que s'hi guanya respecte del New-Object a pel es
+    # l'AutomationSecurity de New-WordApp: sense ell, el Word obre en VISTA
+    # PROTEGIDA el que ve d'una unitat de xarxa i les modificacions no tiren.
+    $word = New-WordApp -Opcional
     if ($null -eq $word) {
         Write-Host "  Avis: no s'ha pogut obrir el Word; no s'han generat les vistes."
         return 0
     }
-    $word.Visible = $false
-    try { $word.DisplayAlerts = 0 } catch { }
     $n = 0
     try {
         foreach ($j in $jsons) {

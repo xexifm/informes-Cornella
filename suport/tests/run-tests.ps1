@@ -5581,4 +5581,37 @@ foreach ($f in $ps1Tots) {
 }
 AssertEq $obrenExcel.Count 0 ('nomes Excel.ps1 (i SeguimentGia) obren l''Excel' + $(if ($obrenExcel.Count) { ' -> ' + ($obrenExcel -join ', ') } else { '' }))
 
+Write-Host "`n--- Nomes Motor.ps1 obre el Word per COM (guard) ---"
+# PER QUE. New-WordApp (Motor.ps1) ja feia tres coses que calen sempre: la guarda
+# del $null amb un missatge que diu que passa, Visible/DisplayAlerts, i
+# AutomationSecurity = 1, que es el que impedeix que el Word obri en VISTA
+# PROTEGIDA els fitxers d'una unitat de xarxa. QUATRE llocs se la saltaven amb un
+# New-Object a pel:
+#
+#   EnviarCorreu.ps1       sense CAP guarda del $null, i sense AutomationSecurity
+#   VistaWord.ps1          guarda propia, sense AutomationSecurity
+#   Informes.ps1           guarda propia, sense AutomationSecurity  (.doc antics)
+#   ControlsPeriodics.ps1  copia sencera, amb un missatge pitjor
+#
+# I els informes viuen a "I:\...", que es exactament el cas per al qual
+# New-WordApp porta aquella linia. Aquest guard es el que impedeix que en torni a
+# apareixer un de nou sense adonar-se'n.
+$wordPermes = @('Motor.ps1')
+$obrenWord = @()
+foreach ($f in $ps1Tots) {
+    if ($f.FullName -like ('*' + [System.IO.Path]::DirectorySeparatorChar + 'tests' + [System.IO.Path]::DirectorySeparatorChar + '*')) { continue }
+    $t = [System.IO.File]::ReadAllText($f.FullName)
+    if ($t.Contains('New-Object -ComObject Word.Application') -and ($wordPermes -notcontains $f.Name)) {
+        $obrenWord += $f.Name
+    }
+}
+AssertEq $obrenWord.Count 0 ('nomes Motor.ps1 obre el Word' + $(if ($obrenWord.Count) { ' -> ' + ($obrenWord -join ', ') } else { '' }))
+
+# I que New-WordApp segueixi fent les tres coses: si algu li tragues
+# l'AutomationSecurity, els quatre criders ho perdrien tots alhora i en silenci.
+$srcMotor = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'suport' 'Motor.ps1')))
+Assert ($srcMotor.Contains('$w.AutomationSecurity = 1')) 'New-WordApp posa AutomationSecurity (res de Vista protegida)'
+Assert ($srcMotor.Contains('param([switch]$Opcional)')) 'New-WordApp te -Opcional (qui pot continuar sense Word)'
+
+
 exit (Write-TestSummary 'RESULTAT')

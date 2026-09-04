@@ -660,7 +660,11 @@ function Invoke-InformesDbScan {
                     $r = $prevByRuta[$ruta]
                 } else {
                     if ($f.Extension -ieq '.doc' -and $null -eq $wordApp) {
-                        try { $wordApp = New-Object -ComObject Word.Application; $wordApp.Visible = $false } catch { $wordApp = $null }
+                        # -Opcional: sense Word, _ReadInformeParagraphs torna @()
+                        # i l'informe es queda sense conclusio, pero l'escaneig
+                        # continua. New-WordApp hi afegeix l'AutomationSecurity,
+                        # que aqui compta: aquests .doc son a la unitat de xarxa.
+                        $wordApp = New-WordApp -Opcional
                     }
                     $r = Get-InformeData $f $expToGia $cache $wordApp
                     # Conservem l'"ignorat" i la "conclusio breu" que l'usuari

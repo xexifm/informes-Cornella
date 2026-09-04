@@ -532,13 +532,14 @@ function Invoke-GenerarControlsPeriodics($rows) {
     $errDetalls = New-Object System.Collections.ArrayList
     $word = $null
     try {
-        try { $word = New-Object -ComObject Word.Application } catch { $word = $null }
+        # -Opcional perque aqui es vol el MISSATGE d'aquesta eina, no el quadre
+        # generic de New-WordApp seguit d'un exit 1: l'usuari ha de tornar a la
+        # llista, no perdre el programa.
+        $word = New-WordApp -Opcional
         if ($null -eq $word) {
             [System.Windows.Forms.MessageBox]::Show("No s'ha pogut iniciar Microsoft Word.", 'Generar informes', 'OK', 'Error') | Out-Null
             return
         }
-        $word.Visible = $false; $word.DisplayAlerts = 0
-        try { $word.AutomationSecurity = 1 } catch { }
 
         # Cataleg REQ1 (una sola vegada) + conclusio "Requeriment" (grup REQ1).
         $parsed      = Get-ParsedCataleg -path $catPath

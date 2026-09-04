@@ -73,9 +73,14 @@ function _DocxRequerimentsHtml($docxPath) {
     }
     $phrN = $phrases | ForEach-Object { _NormCorreu $_ }
 
-    $word = New-Object -ComObject Word.Application
-    $word.Visible = $false
-    try { $word.DisplayAlerts = 0 } catch { }
+    # New-WordApp (Motor.ps1) i no un New-Object a pel: aqui no hi havia CAP
+    # guarda del $null -New-Object -ComObject pot tornar $null sense llancar- i
+    # llavors el '$word.Visible' de sota petava amb un "metode sobre NULL" que
+    # arribava tal qual al quadre d'error del crider. A mes, New-WordApp posa
+    # AutomationSecurity = 1, que es el que evita que el Word obri en VISTA
+    # PROTEGIDA els fitxers d'una unitat de xarxa -i els informes hi son-.
+    $word = New-WordApp -Opcional
+    if ($null -eq $word) { throw "No s'ha pogut iniciar Microsoft Word per llegir l'informe." }
     $out = New-Object System.Collections.ArrayList
     $started = $false
     try {
