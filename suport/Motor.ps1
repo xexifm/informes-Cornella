@@ -149,6 +149,11 @@ $RepoRoot        = Split-Path -Parent $ScriptRoot
 # que un modul hagi de dependre del punt d'entrada per dibuixar una pantalla.
 . (Join-Path $ScriptRoot 'UiComuns.ps1')
 
+# Llegir i escriure JSON: una sola manera per a tot el programa (sense BOM i
+# atomic). Va TAN AMUNT perque Settings.ps1 el fa servir mentre es carrega:
+# Load-AppSettings es crida al bloc de configuracio de mes avall.
+. (Join-Path $ScriptRoot 'Json.ps1')
+
 
 # ----------------------------------------------------------------------------
 # Eines integrades al menu (Pas 1): planificador de rutes i revisio del mobil.
@@ -609,21 +614,14 @@ function Save-LastReport($state) {
         Ensure-AppDataDir
         $state.Version   = 1
         $state.Timestamp = (Get-Date).ToString('o')
-        ($state | ConvertTo-Json -Depth 10) | Set-Content -LiteralPath $LastReportPath -Encoding UTF8
+        Write-JsonFile $LastReportPath $state 10
     } catch {
         # Si no podem desar, no es un error fatal. Continuem en silenci.
     }
 }
 
 function Load-LastReport {
-    if (-not (Test-Path -LiteralPath $LastReportPath)) { return $null }
-    try {
-        $raw = Get-Content -LiteralPath $LastReportPath -Raw -Encoding UTF8
-        if ([string]::IsNullOrWhiteSpace($raw)) { return $null }
-        return ($raw | ConvertFrom-Json)
-    } catch {
-        return $null
-    }
+    return (Read-JsonFile $LastReportPath)
 }
 
 # Construeix la clau "Seccio::Item" o "Seccio::Item::Fill" usada per

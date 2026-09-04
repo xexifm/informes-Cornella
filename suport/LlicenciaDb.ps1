@@ -46,30 +46,20 @@ function New-LlicenciaDb {
 }
 
 function Load-LlicenciaDb {
-    $path = Get-LlicenciaDbPath
-    if (-not (Test-Path -LiteralPath $path)) { return (New-LlicenciaDb) }
-    try {
-        $raw = Get-Content -LiteralPath $path -Raw -Encoding UTF8
-        if ([string]::IsNullOrWhiteSpace($raw)) { return (New-LlicenciaDb) }
-        $obj = $raw | ConvertFrom-Json
-        if ($null -eq $obj.Llicencies) {
-            Add-Member -InputObject $obj -NotePropertyName Llicencies -NotePropertyValue @() -Force
-        }
-        # ConvertFrom-Json desempaqueta els arrays d'un sol element.
-        $obj.Llicencies = @($obj.Llicencies)
-        return $obj
-    } catch {
-        # Una base il-legible no pot impedir fer l'informe: es comenca de zero.
-        return (New-LlicenciaDb)
+    # Una base il-legible no pot impedir fer l'informe: es comenca de zero.
+    $obj = Read-JsonFile (Get-LlicenciaDbPath)
+    if ($null -eq $obj) { return (New-LlicenciaDb) }
+    if ($null -eq $obj.Llicencies) {
+        Add-Member -InputObject $obj -NotePropertyName Llicencies -NotePropertyValue @() -Force
     }
+    # ConvertFrom-Json desempaqueta els arrays d'un sol element.
+    $obj.Llicencies = @($obj.Llicencies)
+    return $obj
 }
 
 function Save-LlicenciaDb($db) {
-    if (-not (Test-Path -LiteralPath $Script:LlicDbDir)) {
-        New-Item -ItemType Directory -Path $Script:LlicDbDir -Force | Out-Null
-    }
     $db.Version = 1
-    ($db | ConvertTo-Json -Depth 20) | Set-Content -LiteralPath (Get-LlicenciaDbPath) -Encoding UTF8
+    Write-JsonFile (Get-LlicenciaDbPath) $db 20
 }
 
 # ----------------------------------------------------------------------------

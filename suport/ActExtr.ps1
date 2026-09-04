@@ -565,32 +565,20 @@ function Get-ActExtrRegistryPath {
 }
 
 function Load-ActExtrRegistry {
-    $path = Get-ActExtrRegistryPath
-    if (-not (Test-Path -LiteralPath $path)) {
-        return [pscustomobject]@{ Version = 1; Activitats = @() }
+    $obj = Read-JsonFile (Get-ActExtrRegistryPath)
+    if ($null -eq $obj) { return [pscustomobject]@{ Version = 1; Activitats = @() } }
+    if ($null -eq $obj.Activitats) {
+        Add-Member -InputObject $obj -NotePropertyName Activitats -NotePropertyValue @() -Force
     }
-    try {
-        $raw = Get-Content -LiteralPath $path -Raw -Encoding UTF8
-        if ([string]::IsNullOrWhiteSpace($raw)) { return [pscustomobject]@{ Version=1; Activitats=@() } }
-        $obj = $raw | ConvertFrom-Json
-        if ($null -eq $obj.Activitats) {
-            Add-Member -InputObject $obj -NotePropertyName Activitats -NotePropertyValue @() -Force
-        }
-        # Forcem que Activitats sigui sempre un array (ConvertFrom-Json
-        # desempaqueta els arrays d'1 element).
-        $obj.Activitats = @($obj.Activitats)
-        return $obj
-    } catch {
-        return [pscustomobject]@{ Version = 1; Activitats = @() }
-    }
+    # Forcem que Activitats sigui sempre un array (ConvertFrom-Json
+    # desempaqueta els arrays d'1 element).
+    $obj.Activitats = @($obj.Activitats)
+    return $obj
 }
 
 function Save-ActExtrRegistry($registry) {
-    if (-not (Test-Path -LiteralPath $script:ActExtrRegistryDir)) {
-        New-Item -ItemType Directory -Path $script:ActExtrRegistryDir -Force | Out-Null
-    }
     $registry.Version = 1
-    ($registry | ConvertTo-Json -Depth 12) | Set-Content -LiteralPath (Get-ActExtrRegistryPath) -Encoding UTF8
+    Write-JsonFile (Get-ActExtrRegistryPath) $registry 12
 }
 
 # Cerca una activitat al registre per ID GIA. Retorna el PSObject o $null.

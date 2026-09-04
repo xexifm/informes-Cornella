@@ -5248,4 +5248,65 @@ foreach ($d in $derivats) {
 }
 
 
+
+Write-Host "`n--- Json.ps1: Read-JsonFile / Write-JsonFile ---"
+# PER QUE. Abans cada modul llegia i escrivia JSON pel seu compte: 17 llocs amb
+# BOM i 7 sense, cap escriptura atomica, i el mateix esquelet "carrega o valor
+# per defecte" copiat quatre cops. El perill de debo no era l'estetica: un desat
+# interromput deixa el fitxer TRUNCAT, i com que tots els lectors tracten un JSON
+# corrupte igual que un que no hi es, la base de llicencies es podia perdre
+# SENSE CAP AVIS.
+$jsDir = Join-Path ([System.IO.Path]::GetTempPath()) ('json-test-' + [Guid]::NewGuid().ToString('N'))
+try {
+    # --- Read-JsonFile: els quatre casos en que no hi ha res utilitzable ---
+    Assert ($null -eq (Read-JsonFile (Join-Path $jsDir 'no-hi-es.json'))) 'Read-JsonFile: fitxer inexistent -> $null'
+    Assert ($null -eq (Read-JsonFile '')) 'Read-JsonFile: ruta buida -> $null'
+    [void](New-Item -ItemType Directory -Path $jsDir -Force)
+    $jsBuit = Join-Path $jsDir 'buit.json'
+    [System.IO.File]::WriteAllText($jsBuit, '')
+    Assert ($null -eq (Read-JsonFile $jsBuit)) 'Read-JsonFile: fitxer buit -> $null'
+    [System.IO.File]::WriteAllText($jsBuit, "   `n  ")
+    Assert ($null -eq (Read-JsonFile $jsBuit)) 'Read-JsonFile: nomes espais -> $null'
+    $jsMal = Join-Path $jsDir 'corrupte.json'
+    [System.IO.File]::WriteAllText($jsMal, '{"a": 1, tallat')
+    Assert ($null -eq (Read-JsonFile $jsMal)) 'Read-JsonFile: JSON truncat -> $null (no peta)'
+
+    # --- Write-JsonFile: anada i tornada, sense BOM, i crea la carpeta ---
+    $jsSub = Join-Path (Join-Path $jsDir 'a') 'b'
+    $jsOut = Join-Path $jsSub 'dades.json'
+    $jsObj = [pscustomobject]@{
+        Version = 1
+        Nom     = "Accents: cal que hi siguin"
+        Llista  = @('u', 'dos')
+        Nested  = [pscustomobject]@{ Fons = [pscustomobject]@{ Valor = 42 } }
+    }
+    Write-JsonFile $jsOut $jsObj 8
+    Assert (Test-Path -LiteralPath $jsOut) 'Write-JsonFile: crea la carpeta de desti si cal'
+
+    $jsBytes = [System.IO.File]::ReadAllBytes($jsOut)
+    $jsTeBom = ($jsBytes.Length -ge 3 -and $jsBytes[0] -eq 0xEF -and $jsBytes[1] -eq 0xBB -and $jsBytes[2] -eq 0xBF)
+    AssertEq $jsTeBom $false 'Write-JsonFile: escriu UTF-8 SENSE BOM'
+
+    $jsLlegit = Read-JsonFile $jsOut
+    Assert ($null -ne $jsLlegit) 'Write-JsonFile + Read-JsonFile: anada i tornada'
+    AssertEq ([int]$jsLlegit.Version) 1 'anada i tornada: valor simple'
+    AssertEq ([string]$jsLlegit.Nom) 'Accents: cal que hi siguin' 'anada i tornada: accents intactes'
+    AssertEq (@($jsLlegit.Llista).Count) 2 'anada i tornada: la llista es conserva'
+    AssertEq ([int]$jsLlegit.Nested.Fons.Valor) 42 'anada i tornada: la -Depth arriba al fons'
+
+    # --- No queda cap temporal, i sobreescriure funciona ---
+    AssertEq (@(Get-ChildItem -Path $jsSub -Filter '*.tmp' -File).Count) 0 'Write-JsonFile: no deixa cap .tmp enrere'
+    Write-JsonFile $jsOut ([pscustomobject]@{ Version = 2 }) 4
+    AssertEq ([int](Read-JsonFile $jsOut).Version) 2 'Write-JsonFile: sobreescriu el fitxer existent'
+    AssertEq (@(Get-ChildItem -Path $jsSub -Filter '*.tmp' -File).Count) 0 'Write-JsonFile: tampoc en deixa en sobreescriure'
+
+    # --- La -Depth es del crider: massa poca TRUNCA (per aixo no te valor per defecte) ---
+    $jsFons = Join-Path $jsSub 'fons.json'
+    Write-JsonFile $jsFons $jsObj 2
+    Assert (([string](Read-JsonFile $jsFons).Nested.Fons) -notmatch '^\s*$') 'Write-JsonFile: amb -Depth curta el fons es trunca (contracte del crider)'
+} finally {
+    if (Test-Path -LiteralPath $jsDir) { Remove-Item -LiteralPath $jsDir -Recurse -Force -ErrorAction SilentlyContinue }
+}
+
+
 exit (Write-TestSummary 'RESULTAT')

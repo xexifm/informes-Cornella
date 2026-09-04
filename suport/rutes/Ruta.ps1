@@ -113,6 +113,7 @@ if (Test-Path -LiteralPath $configPath) {
 # GenerarInforme.ps1 -- mateixa pantalla "Configuracio", mateix settings.json
 # a %LOCALAPPDATA%, mai es puja a git). Es processos/scopes independents, aixi
 # que Ruta.ps1 llegeix l'override pel seu compte, igual que fa amb config.ps1.
+. (Join-Path $SuportDir 'Json.ps1')       # Settings.ps1 el fa servir
 . (Join-Path $SuportDir 'Settings.ps1')
 $Script:AppSettings = Load-AppSettings
 $ActivitatsDir  = _ResolveEffectiveValue $AppSettings.ActivitatsDir  $ActivitatsDir

@@ -32,16 +32,9 @@ $Script:SettingsPath = Join-Path $Script:SettingsDir 'settings.json'
 # $AppSettings.InformesDir sense comprovar res abans (PSCustomObject retorna
 # $null en una propietat que no existeix, no peta).
 function Load-AppSettings {
-    if (-not (Test-Path -LiteralPath $Script:SettingsPath)) { return [pscustomobject]@{} }
-    try {
-        $raw = Get-Content -LiteralPath $Script:SettingsPath -Raw -Encoding UTF8
-        if ([string]::IsNullOrWhiteSpace($raw)) { return [pscustomobject]@{} }
-        $obj = $raw | ConvertFrom-Json
-        if ($null -eq $obj) { return [pscustomobject]@{} }
-        return $obj
-    } catch {
-        return [pscustomobject]@{}
-    }
+    $obj = Read-JsonFile $Script:SettingsPath
+    if ($null -eq $obj) { return [pscustomobject]@{} }
+    return $obj
 }
 
 # Desa els overrides d'aquest ordinador (hashtable/objecte amb nomes les claus
@@ -49,10 +42,7 @@ function Load-AppSettings {
 # si cal. Retorna $true/$false segons si ha pogut desar.
 function Save-AppSettings($overrides) {
     try {
-        if (-not (Test-Path -LiteralPath $Script:SettingsDir)) {
-            New-Item -ItemType Directory -Path $Script:SettingsDir -Force | Out-Null
-        }
-        ($overrides | ConvertTo-Json -Depth 4) | Set-Content -LiteralPath $Script:SettingsPath -Encoding UTF8
+        Write-JsonFile $Script:SettingsPath $overrides 4
         return $true
     } catch {
         return $false
