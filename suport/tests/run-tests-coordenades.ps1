@@ -191,11 +191,6 @@ AssertNear $r.X 421968.09 0.001 'i es conserva la coordenada de l Excel'
 $r = Resolve-CoordEstabliment @() 'CADIS' '3' 421968.09 4579505.55
 AssertEq $r.Precisio 'cadastre' 'sense portals -> coordenada de l Excel'
 
-Write-Host "`n--- Get-PrecisioText ---"
-Assert ((Get-PrecisioText 'facana')       -match 'facana')   'text del portal exacte'
-Assert ((Get-PrecisioText 'facana-aprox') -match 'proper')   'text del portal aproximat'
-Assert ((Get-PrecisioText 'manual')       -match 'ma')       'text del punt mogut a ma'
-Assert ((Get-PrecisioText 'cadastre')     -match 'parcel')   'text del centre de parcel.la'
 
 Write-Host "`n--- Build-CatastroAdUrl ---"
 $url = Build-CatastroAdUrl '2295827DF2729E'

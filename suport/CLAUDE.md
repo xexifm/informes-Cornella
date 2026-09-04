@@ -924,8 +924,7 @@ de desplegament de l'usuari depèn que la feina arribi a `main`.
   L'editor (`Invoke-EmailTextos`) té 2 camps (assumpte + cos gran) i avisa si el
   cos no conté `{REQUERIMENTS}`. En desar, l'`Actualitzar.bat` publica
   `email-textos.json` (pas **2b**, commit ABANS del stash). Funcions pures a
-  `EmailTextos.ps1` (`_DefaultEmailTextos`, `_EmailTextosFields`,
-  `_LoadEmailTextos`, `_SaveEmailTextos`) amb tests; la finestra només a Windows.
+  `EmailTextos.ps1` (`_LoadEmailTextos`, `_SaveEmailTextos`) amb tests; la finestra només a Windows.
 - **Feedback del xip ✏️ (editor de catàlegs):** a `Select-Mode`, els botons de
   tipus d'informe tenen un xip clicable que obre l'editor; en passar-hi el ratolí
   (`add_MouseMove`/`add_MouseLeave` → `$entry.ChipHover`) el cursor passa a **mà**

@@ -475,6 +475,10 @@ AssertEq $cList.Number 1               '_ClassifyParagraph ListString aporta el 
 Assert ($cList.ViaList)                '_ClassifyParagraph auto-numerat: ViaList=true'
 
 Write-Host "`n--- Seguiment: _InferResolvedFromBold / _ShouldBeBold ---"
+# _ShouldBeBold era una COPIA OMBRA: la regla "mentre no estigui resolt, en
+# negreta" la feia el motor INLINE ('$commentBold = (-not $nowResolved)') i
+# aquesta funcio nomes la tenien viva les seves proves. O sigui que canviar-la
+# no canviava el document i la prova seguia verda. Ara el motor la crida.
 Assert (_InferResolvedFromBold 0)          '_InferResolvedFromBold 0 (res negreta) -> resolt'
 Assert (-not (_InferResolvedFromBold -1))  '_InferResolvedFromBold -1 (tot negreta) -> pendent'
 Assert (-not (_InferResolvedFromBold 9999999)) '_InferResolvedFromBold 9999999 (mixt) -> pendent'
@@ -541,9 +545,6 @@ $vd4 = _ValidateRoundDate ''
 Assert $vd4.Ok                              '_ValidateRoundDate buit -> Ok (avui)'
 Assert ($vd4.Normalized -match '^\d{2}/\d{2}/\d{4}$') '_ValidateRoundDate buit -> forma dd/MM/yyyy'
 
-Write-Host "`n--- Seguiment: _FormatAnnotationLine ---"
-AssertEq (_FormatAnnotationLine '01/06/2026' "No s'entrega.") "01/06/2026: No s'entrega." '_FormatAnnotationLine compon "data: comentari"'
-AssertEq (_FormatAnnotationLine '01/06/2026' '  espais  ') '01/06/2026: espais' '_FormatAnnotationLine fa trim del comentari'
 
 Write-Host "`n--- Seguiment: _SeguimentOutputName ---"
 $d = [datetime]'2026-06-05'
@@ -3072,9 +3073,6 @@ AssertEq ([bool](([string]$eload['cos']).Contains('seuelectronica'))) $true '_Lo
 # justament el que les copies hardcodejades s'havien deixat.
 AssertEq ([regex]::Matches([string]$eload['cos'], 'seuelectronica\.cornella\.cat').Count) 2 '_LoadEmailTextos: hi ha els dos enllacos de la seu (CA i ES)'
 
-$efields = @(_EmailTextosFields)
-AssertEq ($efields.Count) 2 '_EmailTextosFields: 2 camps (els que edita la pantalla)'
-AssertEq ((($efields | ForEach-Object { $_.Key }) -join ',')) 'assumpte,cos' '_EmailTextosFields: assumpte i cos, en aquest ordre'
 
 # Sense fitxer, PETA: es la regla que el projecte ja aplica als catalegs.
 $eTmpRoot = $RepoRoot

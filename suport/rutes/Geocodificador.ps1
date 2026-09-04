@@ -336,16 +336,6 @@ function Resolve-CoordEstabliment($portals, $carrer, $numero, [double]$utmX, [do
     return $tria
 }
 
-# Text curt per ensenyar a l'usuari (popup del mapa, columna de l'Excel).
-function Get-PrecisioText([string]$precisio) {
-    switch ($precisio) {
-        'facana'         { return 'portal (facana)' }
-        'facana-dubtosa' { return 'portal dubtos: n hi havia mes d un amb aquest numero' }
-        'facana-aprox'   { return 'portal mes proper (facana)' }
-        'manual'         { return 'moguda a ma' }
-        default          { return 'centre de la parcel.la (cadastre)' }
-    }
-}
 
 # ----------------------------------------------------------------------------
 # MEMORIA CAU EN DISC

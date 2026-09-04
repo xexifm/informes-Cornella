@@ -267,11 +267,6 @@ function _ValidateRoundDate($text) {
     return [pscustomobject]@{ Ok=$false; Normalized=$s }
 }
 
-# Format unic de la linia d'anotacio: "dd/MM/aaaa: comentari".
-function _FormatAnnotationLine($dateStr, $comment) {
-    $c = if ($null -eq $comment) { '' } else { ([string]$comment).Trim() }
-    return ('{0}: {1}' -f $dateStr, $c)
-}
 
 # Nom del fitxer de sortida del seguiment. La DATA es la d'AVUI (el dia que es
 # genera l'informe), no la de l'anotacio. S'incrementa el numero de ronda "Req":
@@ -692,7 +687,7 @@ function _ApplySeguimentTransform {
         # "S'aporta." repetit en rondes posteriors).
         $addLine = (-not ($wasResolved -and $nowResolved)) -and (-not [string]::IsNullOrWhiteSpace($comment))
         if ($addLine) {
-            $commentBold = (-not $nowResolved)                 # negreta nomes si pendent
+            $commentBold = _ShouldBeBold $nowResolved          # negreta nomes si pendent
             $spaceBefore = (-not $b.AnchorIsAnnotation)         # espai si es la 1a anotacio
             $isChild     = [bool]$req.IsChild                    # anotacio d'un sub-punt
             # L'espai de sota del bloc ha d'anar SEMPRE al seu ultim paragraf.

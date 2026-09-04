@@ -45,13 +45,6 @@ function _EmailTextosPath {
 # a un ciutada un text que no es el que toca. El fitxer esta al repositori, o
 # sigui que 'git checkout -- docs/dades/email-textos.json' el recupera.
 
-# Metadades dels camps (ordre + clau). Nomes assumpte i cos.
-function _EmailTextosFields {
-    return @(
-        @{ Key = 'assumpte'; Label = 'Assumpte del correu' }
-        @{ Key = 'cos';      Label = 'Cos del correu' }
-    )
-}
 
 # Text d'ajuda amb les variables disponibles.
 function _EmailTextosAjuda {
