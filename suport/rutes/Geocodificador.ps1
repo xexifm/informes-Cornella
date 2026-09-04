@@ -1,4 +1,4 @@
-<#
+﻿<#
   Geocodificador.ps1 - Coordenades de FACANA (portal) per a cada establiment.
 
   EL PROBLEMA QUE RESOL

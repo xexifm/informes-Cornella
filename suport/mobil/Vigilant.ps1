@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 <#
 .SYNOPSIS
   Revisa UNA vegada si han arribat informes del mobil (via Drive) i els genera.

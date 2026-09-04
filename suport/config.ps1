@@ -1,4 +1,4 @@
-# Configuracio local del generador d'informes.
+﻿# Configuracio local del generador d'informes.
 #
 # Aquest fitxer es OPCIONAL. Si existeix AL COSTAT de GenerarInforme.ps1
 # (dins de la carpeta suport/), el script l'ha de carregar i fa servir

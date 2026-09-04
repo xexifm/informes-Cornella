@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 <#
   DriveApi.ps1 - Client mínim de Google Drive (REST API) per al PC, SENSE
   Google Drive d'escriptori. S'autentica amb un "refresh token" (OAuth

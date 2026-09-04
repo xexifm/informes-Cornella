@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 <#
 .SYNOPSIS
   Refa la SIGNATURA de dins d'un PDF ja signat, exactament com la fa l'Adobe.

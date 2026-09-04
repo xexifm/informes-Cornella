@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 <#
 .SYNOPSIS
   La CAPCALERA dels informes, en JSON i editable des del programa.

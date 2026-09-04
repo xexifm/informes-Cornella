@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 <#
 .SYNOPSIS
   Autorització única perquè el PC pugui accedir al teu Google Drive per API

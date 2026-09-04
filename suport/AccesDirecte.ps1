@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 <#
 .SYNOPSIS
   Crea l'acces directe del programa, per poder-lo ANCORAR A LA BARRA DE TASQUES.

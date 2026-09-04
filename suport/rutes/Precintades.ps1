@@ -1,4 +1,4 @@
-<#
+﻿<#
   Precintades.ps1 - Generador de dades del PLANOL PUBLIC d'activitats precintades.
 
   Que fa:

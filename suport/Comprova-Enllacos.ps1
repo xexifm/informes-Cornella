@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 <#
 .SYNOPSIS
   Comprova els enllacos (URLs) dels catalegs i avisa dels que estan CAIGUTS.
