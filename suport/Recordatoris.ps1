@@ -164,7 +164,11 @@ function _RecDefaultConfig([string]$clau) {
         periodicitatDies  = 60
         esperaInicialDies = 30
         maxPerTanda       = 15
-        bcc               = @('sfadurdom@aj-cornella.cat')
+        # Les adreces de CCO surten del mateix lloc que les de l'eina "Enviar
+        # correu": la clau 'bcc' de docs\dades\email-textos.json. Aqui hi havia
+        # la primera d'aquelles quatre escrita a ma, que era la TERCERA copia de
+        # la mateixa llista al projecte. Es queden les marcades per defecte.
+        bcc               = @(@(_CorreuBccOpcions) | Where-Object { $_.Default } | ForEach-Object { [string]$_.Addr })
         assumpte          = [string]$tx['assumpte']
         cos               = [string]$tx['cos']
     }

@@ -127,14 +127,17 @@ function _DocxRequerimentsHtml($docxPath) {
 }
 
 # --- Embolcall del correu (plantilla email-textos.json) -----------------------
+# Els textos del correu. NOMES delega: qui els llegeix (i qui peta si no hi son)
+# es _LoadEmailTextos, a EmailTextos.ps1.
+#
+# Aqui hi havia un fallback propi que, si el JSON no s'hi trobava, tornava
+# 'cos = {REQUERIMENTS}': un correu al titular sense capcalera, sense les
+# instruccions de la seu i sense l'avis legal. Era la QUARTA copia dels textos i,
+# a mes, codi mort: Motor.ps1 carrega EmailTextos.ps1 (linia 457) abans que
+# aquest fitxer (465), o sigui que el Get-Command sempre encertava i aquella
+# branca no s'executava mai.
 function _CorreuTextos {
-    if (Get-Command _LoadEmailTextos -ErrorAction SilentlyContinue) { return (_LoadEmailTextos) }
-    $repo = _CorreuRepoRoot
-    $p = Join-Path $repo (Join-Path 'docs' (Join-Path 'dades' 'email-textos.json'))
-    if (Test-Path -LiteralPath $p) {
-        try { return (Get-Content -LiteralPath $p -Raw -Encoding UTF8 | ConvertFrom-Json) } catch { }
-    }
-    return ([pscustomobject]@{ assumpte = 'GIA {ID_GIA} Requeriments'; cos = '{REQUERIMENTS}' })
+    return (_LoadEmailTextos)
 }
 function _FillVars([string]$s, $h) {
     $today = (Get-Date).ToString('dd/MM/yyyy')
@@ -157,13 +160,15 @@ function _BuildCorreu($requerimentsHtml, $header) {
 }
 
 # --- Enviament EmailJS --------------------------------------------------------
-# Adreces disponibles per a Còpia Oculta (CCO). La primera va marcada per defecte.
-$Script:CorreuBccOpcions = @(
-    @{ Addr = 'sfadurdom@aj-cornella.cat'; Default = $true }
-    @{ Addr = 'rbaratoc@aj-cornella.cat';  Default = $false }
-    @{ Addr = 'misalasj@aj-cornella.cat';  Default = $false }
-    @{ Addr = 'hamadorp@aj-cornella.cat';  Default = $false }
-)
+# Adreces disponibles per a Copia Oculta (CCO). Surten de la clau 'bcc' de
+# docs\dades\email-textos.json, que es el mateix fitxer que porta l'assumpte i
+# el cos. Abans les quatre adreces estaven escrites aqui I a docs\app.js (i la
+# primera, una tercera vegada a Recordatoris.ps1): quatre adreces nominals de
+# treballadors, repetides a ma, en un repositori public.
+function _CorreuBccOpcions {
+    # Array PLA: el crider hi posa @() (vegeu _EmailBccDeJson).
+    try { return @((_LoadEmailTextos)['bcc']) } catch { return @() }
+}
 
 function Send-EmailJs($cfg, $toEmail, $bcc, $subject, $htmlMessage) {
     $payload = @{
@@ -323,7 +328,7 @@ function _DialegEnviar($build, $destinatariDefault, $docxPath) {
 
     $checks = @()
     $y = 170
-    foreach ($opt in $Script:CorreuBccOpcions) {
+    foreach ($opt in (_CorreuBccOpcions)) {
         $cb = New-Object System.Windows.Forms.CheckBox
         $cb.Text = $opt.Addr
         $cb.Checked = [bool]$opt.Default

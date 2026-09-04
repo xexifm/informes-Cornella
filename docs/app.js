@@ -27,15 +27,6 @@
   var RE_CAMP = /\[CAMP:\s*([^\]]+?)\s*\]/g;
   var RE_OPCIO = /\[OPCIO:\s*([^\]]+?)\s*\]/g;
 
-  // Adreces de Còpia Oculta (CCO/Bcc). Les mateixes que el PC (EnviarCorreu.ps1
-  // $Script:CorreuBccOpcions). La 1a va marcada per defecte; les altres es trien.
-  var BCC_OPCIONS = [
-    { addr: "sfadurdom@aj-cornella.cat", def: true },
-    { addr: "rbaratoc@aj-cornella.cat", def: false },
-    { addr: "misalasj@aj-cornella.cat", def: false },
-    { addr: "hamadorp@aj-cornella.cat", def: false }
-  ];
-
   // El que es VEU al desplegable quan una opcio es BUIDA. Una fila en blanc no
   // es distingeix d'un desplegable trencat; el que es DESA segueix sent "".
   // Mateix contracte que el PC ($Script:OpcioEtiquetaBuida, Camps.ps1:30-37):
@@ -385,42 +376,33 @@
   // requeriments seleccionats s'insereixen alla on posis la variable
   // {REQUERIMENTS}. Variables: {REQUERIMENTS} {ID_GIA} {ADRECA} {ACTIVITAT}
   // {TITULAR} {DATA}. El cos accepta **negreta** i els enllacos http(s) es
-  // tornen clicables sols. Aquests son els valors PER DEFECTE (fallback).
-  var EMAIL_TEXTOS_DEFAULT = {
-    assumpte: "GIA {ID_GIA} Requeriments",
-    cos: [
-      "ID GIA: {ID_GIA}",
-      "Adreça: {ADRECA}",
-      "Activitat: {ACTIVITAT}",
-      "Titular: {TITULAR}",
-      "",
-      "Aquestes són les deficiències que s'han detectat a la visita de l'activitat per part de l'Ajuntament el dia {DATA} i que s'han d'esmenar:",
-      "",
-      "{REQUERIMENTS}",
-      "",
-      "**Com presentar la documentació / Cómo presentar la documentación**",
-      "Heu de presentar **tota la documentació alhora** (important: no la presenteu per parts), mitjançant una **instància genèrica** de la seu electrònica de l'Ajuntament de Cornellà de Llobregat:",
-      "https://seuelectronica.cornella.cat/portal/entidades.do?ent_id=1&idioma=2",
-      "Debe presentar **toda la documentación a la vez** (importante: no la presente por partes), mediante una **instancia genérica** de la sede electrónica del Ayuntamiento de Cornellà de Llobregat.",
-      "Indiqueu que la instància va **a l'atenció del Departament d'Activitats** / Indique que la instancia va dirigida **a la atención del Departamento de Actividades**, i feu-hi constar: ID GIA {ID_GIA}, Adreça {ADRECA}, Titular {TITULAR}.",
-      "",
-      "________________________________________",
-      "",
-      "IMPORTANT: aquest és un correu automàtic i no s'admeten respostes. Aquest llistat NO és definitiu ni oficial i pot variar respecte del requeriment oficial que rebreu properament. Per a qualsevol consulta podeu adreçar-vos al Departament d'Activitats de l'Ajuntament de Cornellà de Llobregat (Carrer de l'Energia, 97) o trucar al 93 377 02 12, extensió 1227.",
-      "",
-      "IMPORTANTE: este es un correo automático y no se admiten respuestas. Este listado NO es definitivo ni oficial y puede variar respecto del requerimiento oficial que recibirá próximamente. Para cualquier consulta puede dirigirse al Departamento de Actividades del Ayuntamiento de Cornellà de Llobregat (Calle de l'Energia, 97) o llamar al 93 377 02 12, extensión 1227."
-    ].join("\n")
-  };
-  var emailTextos = EMAIL_TEXTOS_DEFAULT;   // se sobreescriu a inici() amb el JSON
+  // tornen clicables sols.
+  //
+  // EL JSON ES L'UNIC ORIGEN. Aqui hi havia una copia sencera dels textos com a
+  // fallback, i una tercera al PC (EmailTextos.ps1). El que les mantenia
+  // sincronitzades era un comentari, i van DIVERGIR: el JSON va guanyar
+  // l'enllac castella de la seu i les copies es van quedar enrere, o sigui que
+  // quan el fetch fallava s'enviava al titular una versio VELLA del correu
+  // sense adonar-se'n ningu. Ara, si no es poden llegir, no s'envia cap correu
+  // (vegeu emailTextosError) i la resta del formulari segueix funcionant: el
+  // paquet per al PC no els necessita.
+  var emailTextos = null;
+  var emailTextosError = "";
 
-  // Aplica el fitxer carregat sobre els valors per defecte (només claus amb text).
+  // Aplica el fitxer carregat. Sense fitxer o sense les claus obligatories, deixa
+  // emailTextos a null i apunta el motiu.
   function aplicarEmailTextos(obj) {
-    if (!obj) return;
-    var merged = {};
-    Object.keys(EMAIL_TEXTOS_DEFAULT).forEach(function (k) {
-      merged[k] = (obj[k] != null && String(obj[k]) !== "") ? obj[k] : EMAIL_TEXTOS_DEFAULT[k];
-    });
-    emailTextos = merged;
+    if (!obj) {
+      emailTextosError = "no s'han pogut carregar els textos del correu (dades/email-textos.json).";
+      return;
+    }
+    if (obj.assumpte == null || String(obj.assumpte) === "" ||
+        obj.cos == null || String(obj.cos) === "") {
+      emailTextosError = "els textos del correu no tenen assumpte o cos.";
+      return;
+    }
+    emailTextos = { assumpte: String(obj.assumpte), cos: String(obj.cos), bcc: asArray(obj.bcc) };
+    emailTextosError = "";
   }
 
   // Substitueix els placeholders {ID_GIA}, {ADRECA}, {ACTIVITAT}, {TITULAR}, {DATA}.
@@ -961,6 +943,20 @@
     return carregarCataleg().then(function (catalog) {
       recollirKeysDelDOM();
       var selSections = reconstructSelection(catalog, estat.keys);
+      // SENSE ELS TEXTOS NO S'ENVIA CAP CORREU. El paquet per al PC no els
+      // necessita, aixi que la resta del pas segueix funcionant: val mes que
+      // l'informe es pugui fer i el correu no, que no pas enviar al titular un
+      // text de reserva que no es el publicat.
+      if (!emailTextos) {
+        estat.emailHTML = "";
+        estat.emailText = "";
+        $("prev-requeriments").innerHTML = '<span class="error">' + esc(emailTextosError) +
+          " El paquet per al PC si que es pot enviar.</span>";
+        $("btn-email").disabled = true;
+        $("msg-email").innerHTML = '<span class="error">Enviament desactivat: ' + esc(emailTextosError) + "</span>";
+        return;
+      }
+      $("btn-email").disabled = false;
       estat.emailHTML = buildEmailHTML(selSections, estat.fieldValues);
       estat.emailText = buildEmailBody(selSections, estat.fieldValues);
       $("prev-requeriments").innerHTML = estat.emailHTML;
@@ -976,7 +972,10 @@
   function muntarBcc() {
     var cont = $("bcc-opcions");
     if (!cont || cont.childNodes.length) return;
-    BCC_OPCIONS.forEach(function (o) {
+    // Les adreces surten de la clau 'bcc' del mateix JSON que els textos: al PC
+    // les llegeix _CorreuBccOpcions (EnviarCorreu.ps1) d'aquell mateix lloc.
+    asArray(emailTextos && emailTextos.bcc).forEach(function (o) {
+      if (!o || !o.addr) return;
       var lab = document.createElement("label");
       lab.className = "bcc-item";
       var cb = document.createElement("input");
@@ -1000,10 +999,14 @@
   }
 
   function assumpte() {
-    return fillPh(emailTextos.assumpte, estat.header || {});
+    return emailTextos ? fillPh(emailTextos.assumpte, estat.header || {}) : "";
   }
 
   function enviarEmail() {
+    if (!emailTextos) {
+      $("msg-email").innerHTML = '<span class="error">' + esc(emailTextosError) + "</span>";
+      return;
+    }
     var dest = $("in-destinatari").value.trim();
     var subj = assumpte();
     var msg = $("msg-email");

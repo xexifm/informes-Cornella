@@ -3057,20 +3057,61 @@ AssertEq ([bool]($paths -contains 'suport/Motor.ps1')) $false '_ParseGitStatusPa
 AssertEq (@(_ParseGitStatusPaths @(' M ESTRUCTURALS/REQ1.json -> ESTRUCTURALS/NOU.json')).Count) 1 '_ParseGitStatusPaths: canvi de nom -> es queda amb el desti'
 AssertEq (_CatalegsBackupName ([datetime]'2026-07-28 11:39:41')) '20260728-113941' '_CatalegsBackupName: nom de carpeta per data'
 
-Write-Host "`n--- EmailTextos.ps1: funcions pures (textos del correu del mobil) ---"
-$edefs = _DefaultEmailTextos
-AssertEq (@($edefs.Keys).Count) 2 '_DefaultEmailTextos: 2 claus (assumpte, cos)'
-AssertEq ([bool]($edefs.Contains('assumpte') -and $edefs.Contains('cos'))) $true '_DefaultEmailTextos: te assumpte i cos'
-AssertEq ([bool]([string]$edefs['cos'] -like '*{REQUERIMENTS}*')) $true '_DefaultEmailTextos: el cos te la variable {REQUERIMENTS}'
-$efields = @(_EmailTextosFields)
-AssertEq ($efields.Count) 2 '_EmailTextosFields: 2 camps'
-$fkeys = ($efields | ForEach-Object { $_.Key }) -join ','
-$dkeys = (@($edefs.Keys)) -join ','
-AssertEq $fkeys $dkeys '_EmailTextosFields: claus i ordre coincideixen amb els defaults'
+Write-Host "`n--- EmailTextos.ps1: el JSON es l'unic origen dels textos ---"
+# Abans aqui es provava _DefaultEmailTextos, una copia dels textos escrita al
+# codi. N'hi havia tres (aquesta, la de docs\app.js i el JSON) i van divergir
+# sense que cap prova ho vegi, perque aquestes nomes miraven substrings. Ara es
+# prova el que importa: que el JSON es llegeix, que porta el que ha de portar, i
+# que si no hi es NO hi ha cap text de reserva a que caure.
 $eload = _LoadEmailTextos
-AssertEq ([bool]($eload.Contains('cos') -and ([string]$eload['cos']).Contains('seuelectronica'))) $true '_LoadEmailTextos: el cos conte l''enllac de la seu'
-AssertEq ([bool]([string]$eload['cos'] -like '*{REQUERIMENTS}*')) $true '_LoadEmailTextos: el cos conserva {REQUERIMENTS}'
-AssertEq ([bool]([string]$eload['assumpte'] -like '*{ID_GIA}*')) $true '_LoadEmailTextos: assumpte conserva {ID_GIA}'
+AssertEq ([bool]($eload.Contains('assumpte') -and $eload.Contains('cos') -and $eload.Contains('bcc'))) $true '_LoadEmailTextos: assumpte, cos i bcc'
+AssertEq ([bool]([string]$eload['cos'] -like '*{REQUERIMENTS}*')) $true '_LoadEmailTextos: el cos porta {REQUERIMENTS}'
+AssertEq ([bool]([string]$eload['assumpte'] -like '*{ID_GIA}*')) $true '_LoadEmailTextos: l''assumpte porta {ID_GIA}'
+AssertEq ([bool](([string]$eload['cos']).Contains('seuelectronica'))) $true '_LoadEmailTextos: el cos porta l''enllac de la seu'
+# Les DUES seus (catala i castella): l'enllac castella nomes era al JSON, i es
+# justament el que les copies hardcodejades s'havien deixat.
+AssertEq ([regex]::Matches([string]$eload['cos'], 'seuelectronica\.cornella\.cat').Count) 2 '_LoadEmailTextos: hi ha els dos enllacos de la seu (CA i ES)'
+
+$efields = @(_EmailTextosFields)
+AssertEq ($efields.Count) 2 '_EmailTextosFields: 2 camps (els que edita la pantalla)'
+AssertEq ((($efields | ForEach-Object { $_.Key }) -join ',')) 'assumpte,cos' '_EmailTextosFields: assumpte i cos, en aquest ordre'
+
+# Sense fitxer, PETA: es la regla que el projecte ja aplica als catalegs.
+$eTmpRoot = $RepoRoot
+try {
+    $RepoRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('sense-textos-' + [Guid]::NewGuid().ToString('N'))
+    $ePeta = $false
+    try { [void](_LoadEmailTextos) } catch { $ePeta = $true }
+    AssertEq $ePeta $true '_LoadEmailTextos: sense fitxer PETA (cap text de reserva)'
+} finally { $RepoRoot = $eTmpRoot }
+
+# La llista de CCO surt del mateix JSON, no del codi.
+$ebcc = @(_EmailBccDeJson (Read-JsonFile (_EmailTextosPath)))
+AssertEq ($ebcc.Count) 4 '_EmailBccDeJson: les 4 adreces surten del JSON'
+AssertEq (@($ebcc | Where-Object { $_.Default }).Count) 1 '_EmailBccDeJson: nomes una va marcada per defecte'
+AssertEq ([bool](@($ebcc)[0].Addr -like '*@*')) $true '_EmailBccDeJson: son adreces de correu'
+AssertEq (@(_EmailBccDeJson $null).Count) 0 '_EmailBccDeJson: sense objecte, llista buida'
+AssertEq (@(_EmailBccDeJson ([pscustomobject]@{ bcc = @() })).Count) 0 '_EmailBccDeJson: bcc buit, llista buida'
+
+Write-Host "`n--- Cap copia dels textos ni de les adreces al codi (guard) ---"
+# PER QUE. El comentari d'EmailTextos.ps1 deia "han de coincidir amb
+# EMAIL_TEXTOS_DEFAULT de docs\app.js i amb el email-textos.json": tres copies
+# lligades per un comentari. Aquest guard ho substitueix.
+$gRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$gFonts = @()
+$gFonts += @(Get-ChildItem -Path (Join-Path $gRoot 'suport') -Recurse -Filter *.ps1 -File | Where-Object { $_.FullName -notlike '*tests*' })
+$gFonts += @(Get-ChildItem -Path (Join-Path $gRoot 'docs') -Filter *.js -File)
+$gAmbAdreca = @()
+$gAmbTextos = @()
+foreach ($gf in $gFonts) {
+    $gt = Get-Content -LiteralPath $gf.FullName -Raw -Encoding UTF8
+    if ($gt -match '[A-Za-z0-9._%+-]+@aj-cornella\.cat') { $gAmbAdreca += $gf.Name }
+    # Un tros llarg i literal del cos del correu: si algu el torna a encastar,
+    # aquesta frase hi sera.
+    if ($gt.Contains('no la presenteu per parts')) { $gAmbTextos += $gf.Name }
+}
+AssertEq $gAmbAdreca.Count 0 ('cap adreca @aj-cornella.cat escrita al codi' + $(if ($gAmbAdreca.Count) { ' -> ' + ($gAmbAdreca -join ', ') } else { '' }))
+AssertEq $gAmbTextos.Count 0 ('cap copia del cos del correu al codi' + $(if ($gAmbTextos.Count) { ' -> ' + ($gAmbTextos -join ', ') } else { '' }))
 
 Write-Host "`n--- EnviarCorreu.ps1: diagnostic d'error d'EmailJS (pura) ---"
 $e403 = _EmailJsErrorText 403 'API calls are disabled for non-browser applications' '(403) Prohibido'
