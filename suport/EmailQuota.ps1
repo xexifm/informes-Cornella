@@ -73,11 +73,7 @@ function _QuotaSuma($reg, [int]$n) {
 function _QuotaLlegeix {
     $mes = _QuotaMesActual (Get-Date)
     $path = _QuotaPath
-    $reg = $null
-    if (Test-Path -LiteralPath $path) {
-        try { $reg = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json } catch { $reg = $null }
-    }
-    return (_QuotaNormalitza $reg $mes)
+    return (_QuotaNormalitza (Read-JsonFile $path) $mes)
 }
 
 # Escriu el comptador (UTF-8 sense BOM), creant la carpeta si cal.
@@ -86,9 +82,7 @@ function _QuotaDesa($reg) {
     $path = _QuotaPath
     $dir = Split-Path -Parent $path
     try {
-        if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
-        $json = ([pscustomobject]$reg) | ConvertTo-Json -Depth 5
-        [System.IO.File]::WriteAllText($path, $json, (New-Object System.Text.UTF8Encoding($false)))
+        Write-JsonFile $path ([pscustomobject]$reg) 5
     } catch { }
 }
 

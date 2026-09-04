@@ -55,7 +55,7 @@ function Get-CatalegUrls([string]$path) {
         $u = ([string]$u).Trim().TrimEnd('.', ',', ';', ')')
         if ($u -match '^https?://' -and -not $urls.Contains($u)) { [void]$urls.Add($u) }
     }
-    $o = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
+    $o = Read-JsonFile $path
     # Recorregut en profunditat: cada node pot tenir 'cos' (paragrafs) i 'fills'.
     $visita = {
         param($nodes)

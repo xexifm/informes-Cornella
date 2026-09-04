@@ -481,7 +481,7 @@ function Sync-CapcaleraJson([string]$docxPath = '', [string]$jsonPath = '') {
     if ([string]::IsNullOrWhiteSpace($jsonPath)) { $jsonPath = Get-CapcaleraJsonPath }
     $model = Build-CapcaleraJson $docxPath
     if ($null -eq $model) { return $false }
-    ($model | ConvertTo-Json -Depth 20) | Set-Content -LiteralPath $jsonPath -Encoding UTF8
+    Write-JsonFile $jsonPath $model 20
     return $true
 }
 
@@ -492,8 +492,7 @@ function Apply-CapcaleraJson([string]$jsonPath = '', [string]$docxPath = '') {
     if (-not (Test-Path -LiteralPath $jsonPath)) { return @{ Ok = $false; Motiu = 'no hi ha el JSON' } }
     $xml = _CapLlegeixDocumentXml $docxPath
     if ($null -eq $xml) { return @{ Ok = $false; Motiu = 'no s''ha pogut llegir el document' } }
-    $json = $null
-    try { $json = Get-Content -LiteralPath $jsonPath -Raw -Encoding UTF8 | ConvertFrom-Json } catch { }
+    $json = Read-JsonFile $jsonPath
     if ($null -eq $json) { return @{ Ok = $false; Motiu = 'el JSON no es valid' } }
     # LA LLETRA, de la configuracio de format: la capcalera era l'unic tros de
     # l'informe que no l'obeia (la porta escrita a cada <w:r> del .docx).

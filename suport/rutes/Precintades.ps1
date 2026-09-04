@@ -256,8 +256,9 @@ function Invoke-PrecintadesMain {
     # antiga, el mapa public no es degrada.
     $outPath = Join-Path $WebDadesDir 'precintades.json'
     $existingDate = [datetime]::MinValue
-    if (Test-Path -LiteralPath $outPath) {
-        try { $existingDate = _ParsePrecintadesDate ((Get-Content -LiteralPath $outPath -Raw -Encoding UTF8) | ConvertFrom-Json) } catch { $existingDate = [datetime]::MinValue }
+    $existingObj = Read-JsonFile $outPath
+    if ($null -ne $existingObj) {
+        try { $existingDate = _ParsePrecintadesDate $existingObj } catch { $existingDate = [datetime]::MinValue }
     }
     if (-not (Test-ShouldUpdatePrecintades $xls.Date $existingDate)) {
         Write-Host ("El mapa de precintades ja ve d'una base igual o mes nova ({0:yyyy-MM-dd}); no l'actualitzo." -f $existingDate)
@@ -268,11 +269,7 @@ function Invoke-PrecintadesMain {
     $records = Read-PrecintadesFromExcel $xls.File
     $obj = Build-PrecintadesObject $records $xls.File.Name
 
-    if (-not (Test-Path -LiteralPath $WebDadesDir)) {
-        New-Item -ItemType Directory -Path $WebDadesDir -Force | Out-Null
-    }
-    $json = ($obj | ConvertTo-Json -Depth 6)
-    [System.IO.File]::WriteAllText($outPath, $json, (New-Object System.Text.UTF8Encoding($false)))
+    Write-JsonFile $outPath $obj 6
     Write-Host "  precintades.json -> $outPath ($($obj.Comptador) activitats precintades)"
     return $true
 }

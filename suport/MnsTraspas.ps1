@@ -61,8 +61,7 @@ function _MnsCatalegPath {
 # si res).
 function Read-MnsCataleg([string]$path = '') {
     if ([string]::IsNullOrWhiteSpace($path)) { $path = _MnsCatalegPath }
-    if (-not (Test-Path -LiteralPath $path)) { return $null }
-    try { return (Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json) } catch { return $null }
+    return (Read-JsonFile $path)
 }
 
 # Les dues fases que aporta aquest modul, amb el mateix esquema que _LlicFases.

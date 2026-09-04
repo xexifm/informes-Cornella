@@ -996,8 +996,8 @@ function _FormatRunStamp([string]$iso) {
 function _LastRunText($jsonPath, $prop) {
     if ([string]::IsNullOrWhiteSpace($jsonPath) -or -not (Test-Path -LiteralPath $jsonPath -ErrorAction SilentlyContinue)) { return '(mai)' }
     try {
-        $o = Get-Content -LiteralPath $jsonPath -Raw -Encoding UTF8 | ConvertFrom-Json
-        if ($o.PSObject.Properties[$prop] -and -not [string]::IsNullOrWhiteSpace([string]$o.$prop)) {
+        $o = Read-JsonFile $jsonPath
+        if ($null -ne $o -and $o.PSObject.Properties[$prop] -and -not [string]::IsNullOrWhiteSpace([string]$o.$prop)) {
             return (_FormatRunStamp ([string]$o.$prop))
         }
     } catch { }
@@ -1044,15 +1044,15 @@ function _MarcaEinaUsada([string]$accio) {
         $dir = Split-Path -Parent $p
         if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
         $dades = [ordered]@{}
-        if (Test-Path -LiteralPath $p) {
-            $o = Get-Content -LiteralPath $p -Raw -Encoding UTF8 | ConvertFrom-Json
+        $o = Read-JsonFile $p
+        if ($null -ne $o) {
             foreach ($pr in $o.PSObject.Properties) { $dades[$pr.Name] = [string]$pr.Value }
         }
         $dades[$accio] = (Get-Date).ToString('o')
         # [pscustomobject] (i no el diccionari pelat): es l'idioma que ja fa
         # servir la resta del programa i a PowerShell 5.1 serialitza segur com un
         # objecte JSON, conservant l'ordre.
-        ([pscustomobject]$dades | ConvertTo-Json) | Set-Content -LiteralPath $p -Encoding UTF8
+        Write-JsonFile $p ([pscustomobject]$dades) 5
     } catch { }
 }
 

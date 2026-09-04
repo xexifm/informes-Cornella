@@ -784,7 +784,7 @@ function _Ed_CanviaNivell($state, [int]$direccio) {
 
 # ---- Carrega / desa document ----------------------------------------------
 function _Ed_LoadDoc($state, $doc) {
-    $o = Get-Content -LiteralPath $doc.Path -Raw -Encoding UTF8 | ConvertFrom-Json
+    $o = Read-JsonFile $doc.Path
     $state.Model = _Ed_JsonToModel $o
     $state.CurrentDoc = $doc
     $state.Bound = $null
@@ -853,7 +853,7 @@ function _Ed_SaveDoc($state) {
 
     try {
         if (Test-Path -LiteralPath $doc.Path) { Copy-Item -LiteralPath $doc.Path -Destination ($doc.Path + '.bak') -Force }
-        [System.IO.File]::WriteAllText($doc.Path, $json, (New-Object System.Text.UTF8Encoding($false)))
+        Write-JsonText $doc.Path $json
         $state.Dirty = $false
         # LA VISTA EN WORD NO ES REFA AQUI, i es el motiu que desar trigues
         # 10-15 segons: obrir el Word i redibuixar el cataleg sencer per COM son

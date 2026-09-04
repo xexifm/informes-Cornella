@@ -83,9 +83,9 @@ function _ControlsCpEmailAjuda {
 function _LoadControlsCpEmail {
     $def = _DefaultControlsCpEmail
     $path = _ControlsCpEmailPath
-    if (Test-Path -LiteralPath $path) {
+    $o = Read-JsonFile $path
+    if ($null -ne $o) {
         try {
-            $o = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
             foreach ($k in @($def.Keys)) {
                 if ($o.PSObject.Properties[$k] -and -not [string]::IsNullOrEmpty([string]$o.$k)) {
                     $def[$k] = [string]$o.$k
@@ -99,10 +99,7 @@ function _LoadControlsCpEmail {
 # Escriu el JSON local (UTF-8 sense BOM), creant la carpeta si cal.
 function _SaveControlsCpEmail($obj) {
     $path = _ControlsCpEmailPath
-    $dir = Split-Path -Parent $path
-    if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
-    $json = $obj | ConvertTo-Json -Depth 5
-    [System.IO.File]::WriteAllText($path, $json, (New-Object System.Text.UTF8Encoding($false)))
+    Write-JsonFile $path $obj 5
 }
 
 # Munta els destinataris: titular a "Per a" (To), representant a "CC". Si en

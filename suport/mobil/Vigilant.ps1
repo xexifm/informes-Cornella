@@ -159,7 +159,6 @@ Write-Host ("Fet. Pendents: {0}  -  Generats: {1}  -  Errors: {2}" -f $Script:Pe
 # Resum en JSON per al programa que ens ha llancat (si ens ha passat -ResultFile).
 if (-not [string]::IsNullOrWhiteSpace($ResultFile)) {
     try {
-        ([pscustomobject]@{ ok = $Script:GeneratsOk; err = $Script:GeneratsErr; pending = $Script:Pendents } |
-            ConvertTo-Json -Compress) | Set-Content -LiteralPath $ResultFile -Encoding UTF8
+        Write-JsonFile $ResultFile ([pscustomobject]@{ ok = $Script:GeneratsOk; err = $Script:GeneratsErr; pending = $Script:Pendents }) 5
     } catch { }
 }

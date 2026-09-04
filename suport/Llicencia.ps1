@@ -113,8 +113,7 @@ function _LlicCatalegPath {
 # fer com si res).
 function Read-LlicCataleg([string]$path = '') {
     if ([string]::IsNullOrWhiteSpace($path)) { $path = _LlicCatalegPath }
-    if (-not (Test-Path -LiteralPath $path)) { return $null }
-    try { return (Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json) } catch { return $null }
+    return (Read-JsonFile $path)
 }
 
 # Aplana el cos d'un node del JSON a les mateixes linies amb marques que fa

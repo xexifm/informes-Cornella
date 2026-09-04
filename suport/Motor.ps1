@@ -193,7 +193,7 @@ function Invoke-RevisarMobil {
     $ok = 0; $err = 0; $pend = 0
     try {
         if (Test-Path -LiteralPath $resFile) {
-            $r = (Get-Content -LiteralPath $resFile -Raw -Encoding UTF8 | ConvertFrom-Json)
+            $r = Read-JsonFile $resFile
             $ok = [int]$r.ok; $err = [int]$r.err; $pend = [int]$r.pending
             Remove-Item -LiteralPath $resFile -Force -ErrorAction SilentlyContinue
         }

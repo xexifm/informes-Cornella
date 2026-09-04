@@ -91,12 +91,9 @@ function _ItemToJson($el) {
 # fallback quan no hi ha Word: val mes deixar-los com estaven que publicar-ne
 # una llista BUIDA, que al mobil es veuria com "aquesta capcalera no te camps".
 function _CapcaleraPlaceholdersPublicats {
-    $p = Join-Path $WebDadesDir 'capcalera.json'
-    if (-not (Test-Path -LiteralPath $p)) { return ,[string[]]@() }
-    try {
-        $o = Get-Content -LiteralPath $p -Raw -Encoding UTF8 | ConvertFrom-Json
-        return ,[string[]]@($o.Placeholders)
-    } catch { return ,[string[]]@() }
+    $o = Read-JsonFile (Join-Path $WebDadesDir 'capcalera.json')
+    if ($null -eq $o) { return ,[string[]]@() }
+    return ,[string[]]@($o.Placeholders)
 }
 
 function Export-Plantilles {
@@ -137,8 +134,7 @@ function Export-Plantilles {
                 IntroText = $parsed.IntroText
                 Sections  = $sectionsJson
             }
-            $outFile = Join-Path $WebDadesDir ("cataleg-$($cat.BaseName).json")
-            ($obj | ConvertTo-Json -Depth 12) | Set-Content -LiteralPath $outFile -Encoding UTF8
+            Write-JsonFile (Join-Path $WebDadesDir ("cataleg-$($cat.BaseName).json")) $obj 12
             $catNames += $cat.BaseName
             Write-Host "  cataleg-$($cat.BaseName).json"
         }
@@ -168,8 +164,7 @@ function Export-Plantilles {
             Selectable = @($conclSel)
             Always     = @($conclAlways)
         }
-        ($conclObj | ConvertTo-Json -Depth 8) |
-            Set-Content -LiteralPath (Join-Path $WebDadesDir 'conclusions.json') -Encoding UTF8
+        Write-JsonFile (Join-Path $WebDadesDir 'conclusions.json') $conclObj 8
         Write-Host "  conclusions.json"
 
         # Capcalera: placeholders <<...>> presents al 0 CAPCALERA.docx. UNIC
@@ -198,17 +193,15 @@ function Export-Plantilles {
             $headerFields = _CapcaleraPlaceholdersPublicats
             Write-Host "  (sense Word: conservo els $($headerFields.Count) placeholders ja publicats)"
         }
-        ([pscustomobject]@{ Placeholders = @($headerFields) } | ConvertTo-Json -Depth 4) |
-            Set-Content -LiteralPath (Join-Path $WebDadesDir 'capcalera.json') -Encoding UTF8
+        Write-JsonFile (Join-Path $WebDadesDir 'capcalera.json') ([pscustomobject]@{ Placeholders = @($headerFields) }) 4
         Write-Host "  capcalera.json"
 
         # Manifest
-        ([pscustomobject]@{
+        Write-JsonFile (Join-Path $WebDadesDir 'manifest.json') ([pscustomobject]@{
             GeneratedAt  = (Get-Date).ToString('o')
             Catalegs     = @($catNames)
             HeaderFields = @($headerFields)
-        } | ConvertTo-Json -Depth 4) |
-            Set-Content -LiteralPath (Join-Path $WebDadesDir 'manifest.json') -Encoding UTF8
+        }) 4
         Write-Host "  manifest.json"
     } finally {
         Close-WordApp $word

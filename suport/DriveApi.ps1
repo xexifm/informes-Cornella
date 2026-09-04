@@ -27,25 +27,19 @@ function Get-DriveCredPath {
 }
 
 function Test-DriveApiConfigured {
-    $p = Get-DriveCredPath
-    if (-not (Test-Path -LiteralPath $p)) { return $false }
-    try {
-        $c = Get-Content -LiteralPath $p -Raw -Encoding UTF8 | ConvertFrom-Json
-        return [bool]($c.client_id -and $c.client_secret -and $c.refresh_token)
-    } catch { return $false }
+    $c = Read-JsonFile (Get-DriveCredPath)
+    if ($null -eq $c) { return $false }
+    return [bool]($c.client_id -and $c.client_secret -and $c.refresh_token)
 }
 
 function Get-DriveCredentials {
-    $p = Get-DriveCredPath
-    if (-not (Test-Path -LiteralPath $p)) { throw "No hi ha credencials de Drive. Executa Authorize-Drive.ps1 primer." }
-    return (Get-Content -LiteralPath $p -Raw -Encoding UTF8 | ConvertFrom-Json)
+    $c = Read-JsonFile (Get-DriveCredPath)
+    if ($null -eq $c) { throw "No hi ha credencials de Drive. Executa Authorize-Drive.ps1 primer." }
+    return $c
 }
 
 function Save-DriveCredentials($cred) {
-    $p = Get-DriveCredPath
-    $dir = Split-Path -Parent $p
-    if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
-    ($cred | ConvertTo-Json) | Set-Content -LiteralPath $p -Encoding UTF8
+    Write-JsonFile (Get-DriveCredPath) $cred 5
 }
 
 # Torna un access token vàlid, renovant-lo amb el refresh token si cal.

@@ -159,10 +159,8 @@ function _ActualitzaSettingsLocal([string]$repoRoot) {
     $p = $null
     try { $p = $Script:SettingsPath } catch { }
     if ([string]::IsNullOrWhiteSpace($p) -or -not (Test-Path -LiteralPath $p)) { return $false }
-    try {
-        $txt = Get-Content -LiteralPath $p -Raw -Encoding UTF8
-        $o = $txt | ConvertFrom-Json
-    } catch { return $false }
+    $o = Read-JsonFile $p
+    if ($null -eq $o) { return $false }
 
     $parells = @(
         @{ Camp = 'OutputDir';      Vell = (Join-Path $repoRoot 'Informes generats'); Nou = (Get-LocalSubdir $repoRoot 'Informes') }
@@ -179,7 +177,7 @@ function _ActualitzaSettingsLocal([string]$repoRoot) {
         }
     }
     if ($canviat) {
-        try { ($o | ConvertTo-Json -Depth 6) | Set-Content -LiteralPath $p -Encoding UTF8 } catch { return $false }
+        try { Write-JsonFile $p $o 6 } catch { return $false }
     }
     return $canviat
 }

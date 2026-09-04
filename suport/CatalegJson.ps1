@@ -61,9 +61,7 @@ function _JsonParaToBodyLine($p) {
 # calia escriure'l a un temporal i tornar-lo a llegir del disc, i en un cataleg
 # de mig mega aquell viatge d'anada i tornada es de segons a cada desat.
 function _LoadEstructuralJson($json) {
-    if ($json -is [string]) {
-        return (Get-Content -LiteralPath $json -Raw -Encoding UTF8 | ConvertFrom-Json)
-    }
+    if ($json -is [string]) { return (Read-JsonFile $json) }
     return $json
 }
 

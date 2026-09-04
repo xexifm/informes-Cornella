@@ -389,10 +389,8 @@ function Get-DriveActivitatsDate {
             return _ParseActivitatsDate $existing
         }
         $outFile = Join-Path $DriveDadesDir 'activitats.json'
-        if (Test-Path -LiteralPath $outFile) {
-            $existing = (Get-Content -LiteralPath $outFile -Raw -Encoding UTF8) | ConvertFrom-Json
-            return _ParseActivitatsDate $existing
-        }
+        $existing = Read-JsonFile $outFile
+        if ($null -ne $existing) { return _ParseActivitatsDate $existing }
         return [datetime]::MinValue
     } catch {
         return [datetime]::MinValue

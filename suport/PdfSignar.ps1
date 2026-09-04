@@ -857,9 +857,9 @@ function _PdfSignarLog([string]$text) {
 function _LoadPdfSignarState {
     $p = _PdfSignarStatePath
     $def = @{ folder = ''; sign = $false; signMode = 'adobe'; certFilter = ''; autofirma = ''; overwrite = $false; visibleSign = $true; caixeti = (_DefaultCaixeti); obrirRegistre = $false }
-    if (-not (Test-Path -LiteralPath $p)) { return $def }
+    $o = Read-JsonFile $p
+    if ($null -eq $o) { return $def }
     try {
-        $o = Get-Content -LiteralPath $p -Raw -Encoding UTF8 | ConvertFrom-Json
         foreach ($k in @('folder','certFilter','autofirma','caixeti','signMode')) { if ($o.PSObject.Properties[$k]) { $def[$k] = [string]$o.$k } }
         if ($o.PSObject.Properties['sign'])        { $def['sign'] = [bool]$o.sign }
         if ($o.PSObject.Properties['overwrite'])   { $def['overwrite'] = [bool]$o.overwrite }
@@ -872,9 +872,7 @@ function _LoadPdfSignarState {
 
 function _SavePdfSignarState($state) {
     try {
-        $dir = Split-Path -Parent (_PdfSignarStatePath)
-        if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
-        ($state | ConvertTo-Json) | Set-Content -LiteralPath (_PdfSignarStatePath) -Encoding UTF8
+        Write-JsonFile (_PdfSignarStatePath) $state 5
     } catch { }
 }
 

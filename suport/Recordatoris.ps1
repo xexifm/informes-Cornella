@@ -410,11 +410,7 @@ function _RecHistorialAMapa($o) {
 # Llegeix configuració + historial del disc, ja normalitzats. Mai llança.
 function _RecLlegeix {
     $out = @{ campanyes = @{}; historial = @{} }
-    $raw = $null
-    $path = _RecPath
-    if (Test-Path -LiteralPath $path) {
-        try { $raw = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json } catch { $raw = $null }
-    }
+    $raw = Read-JsonFile (_RecPath)
     $camps = @{}
     $hist  = @{}
     if ($null -ne $raw) {
@@ -438,13 +434,10 @@ function _RecDesa($estat) {
     $path = _RecPath
     $dir = Split-Path -Parent $path
     try {
-        if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
-        $obj = [pscustomobject]@{
+        Write-JsonFile $path ([pscustomobject]@{
             campanyes = [pscustomobject]$estat.campanyes
             historial = [pscustomobject]$estat.historial
-        }
-        $json = $obj | ConvertTo-Json -Depth 12
-        [System.IO.File]::WriteAllText($path, $json, (New-Object System.Text.UTF8Encoding($false)))
+        }) 12
     } catch { }
 }
 
@@ -502,7 +495,7 @@ function _RecAntiguitatDb($db, [datetime]$avui) {
 function _RecCarregaDb {
     $p = Join-Path $LocalActivitatsDir 'informes-db.json'
     if (-not (Test-Path -LiteralPath $p)) { return $null }
-    try { return (Get-Content -LiteralPath $p -Raw -Encoding UTF8 | ConvertFrom-Json) } catch { return $null }
+    return (Read-JsonFile $p)
 }
 
 # Escriu una línia al registre dels recordatoris (diagnòstic del mode automàtic).

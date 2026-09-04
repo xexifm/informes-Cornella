@@ -81,9 +81,9 @@ function _EmailTextosAjuda {
 function _LoadEmailTextos {
     $def = _DefaultEmailTextos
     $path = _EmailTextosPath
-    if (Test-Path -LiteralPath $path) {
+    $o = Read-JsonFile $path
+    if ($null -ne $o) {
         try {
-            $o = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
             foreach ($k in @($def.Keys)) {
                 if ($o.PSObject.Properties[$k] -and -not [string]::IsNullOrEmpty([string]$o.$k)) {
                     $def[$k] = [string]$o.$k
@@ -97,10 +97,7 @@ function _LoadEmailTextos {
 # Escriu el JSON (UTF-8 sense BOM). $obj = ordered hashtable amb les claus.
 function _SaveEmailTextos($obj) {
     $path = _EmailTextosPath
-    $dir = Split-Path -Parent $path
-    if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
-    $json = $obj | ConvertTo-Json -Depth 5
-    [System.IO.File]::WriteAllText($path, $json, (New-Object System.Text.UTF8Encoding($false)))
+    Write-JsonFile $path $obj 5
 }
 
 # ----------------------------------------------------------------------------

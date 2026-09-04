@@ -612,7 +612,7 @@ function Invoke-InformesDbScan {
         $generatEl  = (Get-Date).ToString('o')
         if (Test-Path -LiteralPath $outPath) {
             try {
-                $prevDb     = (Get-Content -LiteralPath $outPath -Raw -Encoding UTF8 | ConvertFrom-Json)
+                $prevDb     = Read-JsonFile $outPath
                 $prevByRuta = _FlattenInformesDb $prevDb
                 if ($prevDb.PSObject.Properties['actualitzat_el'] -and -not [string]::IsNullOrWhiteSpace([string]$prevDb.actualitzat_el)) {
                     try { $prevUtc = ([datetime]::Parse([string]$prevDb.actualitzat_el)).ToUniversalTime() } catch { $prevUtc = [datetime]::MinValue }
@@ -747,10 +747,7 @@ function Invoke-InformesDbScan {
             activitats     = $activitatsOrd
             a_revisar      = @($revisar)
         }
-        if (-not (Test-Path -LiteralPath $LocalActivitatsDir)) {
-            New-Item -ItemType Directory -Path $LocalActivitatsDir -Force | Out-Null
-        }
-        ($outObj | ConvertTo-Json -Depth 8) | Set-Content -LiteralPath $outPath -Encoding UTF8
+        Write-JsonFile $outPath $outObj 8
 
         $form.Close()
 
@@ -805,7 +802,7 @@ function Invoke-InformesDbEdit {
     }
     $db = $null
     try {
-        $db = (Get-Content -LiteralPath $outPath -Raw -Encoding UTF8 | ConvertFrom-Json)
+        $db = Read-JsonFile $outPath
     } catch {
         [System.Windows.Forms.MessageBox]::Show("No s'ha pogut llegir la base:`n$($_.Exception.Message)", 'Editar base d''informes', 'OK', 'Error') | Out-Null
         return
@@ -1012,7 +1009,7 @@ function Invoke-InformesDbEdit {
     # Desa la base (retorna $true si va be).
     $doSave = {
         try {
-            ($state.Db | ConvertTo-Json -Depth 8) | Set-Content -LiteralPath $state.Path -Encoding UTF8
+            Write-JsonFile $state.Path $state.Db 8
             $state.Dirty = $false
             return $true
         } catch {
@@ -1253,7 +1250,7 @@ function Invoke-CopiarInformes {
     $generatEl = (Get-Date).ToString('o')
     if (Test-Path -LiteralPath $stateFile) {
         try {
-            $st = (Get-Content -LiteralPath $stateFile -Raw -Encoding UTF8 | ConvertFrom-Json)
+            $st = Read-JsonFile $stateFile
             if ($st.PSObject.Properties['generat_el']) { $generatEl = [string]$st.generat_el }
             $prevDesti = if ($st.PSObject.Properties['desti']) { [string]$st.desti } else { '' }
             # Només reaprofitem la data si el destí és el mateix; si ha canviat,
@@ -1386,9 +1383,7 @@ function Invoke-CopiarInformes {
             desti      = $CopiaInformesDir
         }
         try {
-            $dirState = [System.IO.Path]::GetDirectoryName($stateFile)
-            if ($dirState -and -not (Test-Path -LiteralPath $dirState)) { New-Item -ItemType Directory -Path $dirState -Force | Out-Null }
-            ($newState | ConvertTo-Json) | Set-Content -LiteralPath $stateFile -Encoding UTF8
+            Write-JsonFile $stateFile $newState 5
         } catch { }
     }
 
@@ -1501,7 +1496,7 @@ function Invoke-ComprovarExcel {
         return
     }
     try {
-        $db = (Get-Content -LiteralPath $outPath -Raw -Encoding UTF8 | ConvertFrom-Json)
+        $db = Read-JsonFile $outPath
     } catch {
         [System.Windows.Forms.MessageBox]::Show("No s'ha pogut llegir la base d'informes:`n$($_.Exception.Message)", 'Comprovar Excel', 'OK', 'Error') | Out-Null
         return

@@ -37,12 +37,8 @@ function _CorreuConfig {
     # Private key: carpeta local/ (fora del repositori public).
     $priv = ''
     $pkPath = Join-Path $repo (Join-Path 'local' 'emailjs.json')
-    if (Test-Path -LiteralPath $pkPath) {
-        try {
-            $j = Get-Content -LiteralPath $pkPath -Raw -Encoding UTF8 | ConvertFrom-Json
-            if ($j.private_key) { $priv = [string]$j.private_key }
-        } catch { }
-    }
+    $j = Read-JsonFile $pkPath
+    if ($null -ne $j -and $j.private_key) { $priv = [string]$j.private_key }
     return [pscustomobject]@{
         PublicKey = $pub; ServiceId = $svc; TemplateId = $tpl; FromName = $from; PrivateKey = $priv
         PrivatePath = $pkPath

@@ -375,10 +375,8 @@ function Test-GeoCacheEntryValida($entry, [datetime]$ara) {
 }
 
 function Import-GeoCache {
-    $path = Get-GeoCachePath
-    if (-not (Test-Path -LiteralPath $path)) { return @{} }
     try {
-        $obj = (Get-Content -LiteralPath $path -Raw -Encoding UTF8) | ConvertFrom-Json
+        $obj = Read-JsonFile (Get-GeoCachePath)
         $out = @{}
         if ($null -ne $obj -and $null -ne $obj.Parcelles) {
             foreach ($p in $obj.Parcelles.PSObject.Properties) { $out[$p.Name] = $p.Value }
@@ -392,14 +390,9 @@ function Import-GeoCache {
 }
 
 function Export-GeoCache($cache) {
-    $path = Get-GeoCachePath
-    $dir = Split-Path -Parent $path
-    if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
     $parcelles = [ordered]@{}
     foreach ($k in @($cache.Keys | Sort-Object)) { $parcelles[$k] = $cache[$k] }
-    $obj = [ordered]@{ Versio = 1; Parcelles = $parcelles }
-    $json = ($obj | ConvertTo-Json -Depth 8)
-    [System.IO.File]::WriteAllText($path, $json, (New-Object System.Text.UTF8Encoding($false)))
+    Write-JsonFile (Get-GeoCachePath) ([ordered]@{ Versio = 1; Parcelles = $parcelles }) 8
 }
 
 # ----------------------------------------------------------------------------

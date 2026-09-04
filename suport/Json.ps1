@@ -63,17 +63,30 @@ function Read-JsonFile([string]$Path) {
 #
 # Crea la carpeta de desti si cal, que abans repetia cada _Save* pel seu compte.
 function Write-JsonFile([string]$Path, $Object, [int]$Depth) {
+    Write-JsonText $Path ($Object | ConvertTo-Json -Depth $Depth)
+}
+
+# El mateix, pero amb el JSON JA SERIALITZAT. Hi ha dos llocs que el tenen fet
+# molt abans d'escriure'l -l'editor de catalegs, que primer el valida tornant-lo
+# a llegir, i l'exportacio d'activitats, que el mateix text va tambe a Drive- i
+# passar-lo per ConvertTo-Json una segona vegada l'escaparia sencer dins d'una
+# cadena. Aquesta es la funcio que fa la feina; Write-JsonFile nomes serialitza
+# i delega, de manera que l'encoding i l'atomicitat son els mateixos per a tots.
+function Write-JsonText([string]$Path, [string]$Json) {
     $dir = Split-Path -Parent $Path
     if (-not [string]::IsNullOrWhiteSpace($dir) -and -not (Test-Path -LiteralPath $dir)) {
         New-Item -ItemType Directory -Path $dir -Force | Out-Null
     }
-    $json = $Object | ConvertTo-Json -Depth $Depth
 
     # ATOMIC: primer el temporal sencer, despres el moviment. Si el proces mor a
     # mig escriure, el que es fa malbe es el .tmp i el fitxer bo continua intacte.
     # El temporal va a LA MATEIXA CARPETA perque Move-Item entre volums no es
     # atomic (i %TEMP% sol ser en un altre volum que una unitat de xarxa).
+    # Amb SALT DE LINIA final. Set-Content n'hi posava un i WriteAllText no, o
+    # sigui que en migrar-ho tot aqui els fitxers el perdien i el git els marcava
+    # amb "\ No newline at end of file" a cada diff. Un fitxer de text acaba amb
+    # un salt de linia.
     $tmp = $Path + '.tmp'
-    [System.IO.File]::WriteAllText($tmp, $json, (New-Object System.Text.UTF8Encoding($false)))
+    [System.IO.File]::WriteAllText($tmp, ($Json + [Environment]::NewLine), (New-Object System.Text.UTF8Encoding($false)))
     Move-Item -LiteralPath $tmp -Destination $Path -Force
 }
