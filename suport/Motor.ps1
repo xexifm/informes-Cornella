@@ -158,6 +158,11 @@ $RepoRoot        = Split-Path -Parent $ScriptRoot
 # bloc de configuracio de mes avall n'hi treu els IDs de les carpetes de Drive.
 . (Join-Path $ScriptRoot 'ConfigJs.ps1')
 
+# Lector de la fulla "Estes" de l'Excel d'activitats, i _NormalitzaText. Va TAN
+# AMUNT perque el fa servir mig programa i perque nomes defineix funcions: es el
+# mateix fitxer que carrega rutes\Ruta.ps1, que corre en un proces a part.
+. (Join-Path $ScriptRoot 'Excel.ps1')
+
 
 # ----------------------------------------------------------------------------
 # Eines integrades al menu (Pas 1): planificador de rutes i revisio del mobil.

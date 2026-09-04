@@ -59,7 +59,7 @@ function _TextToHtml($s) {
 }
 function _NormCorreu($s) {
     if ($null -eq $s) { return '' }
-    if (Get-Command _NormalizeText -ErrorAction SilentlyContinue) { return (_NormalizeText $s) }
+    if (Get-Command _NormalitzaText -ErrorAction SilentlyContinue) { return (_NormalitzaText $s) }
     $t = ([string]$s).Normalize([Text.NormalizationForm]::FormD)
     return (($t -replace '\p{Mn}','').ToLower().Trim())
 }

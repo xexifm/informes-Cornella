@@ -24,7 +24,7 @@
 
   Es un modul del motor: es carrega (dot-source) des de GenerarInforme.ps1, aixi
   reutilitza les funcions de lectura de .docx sense Word (de Seguiment.ps1),
-  _NormalizeText i l'acces a l'Excel d'activitats (Find-LatestActivitatsExcel /
+  _NormalitzaText i l'acces a l'Excel d'activitats (Find-LatestActivitatsExcel /
   Initialize-ActivitatsCache). Les funcions de logica de text son PURES (operen
   sobre cadenes) perque es puguin provar en headless (Linux, sense Word); la
   lectura de .doc antics (Word COM) nomes es prova manualment a Windows.
@@ -99,7 +99,7 @@ function _ExtractIdGia($lines) {
 function _ExtractExpedient($lines) {
     foreach ($ln in $lines) {
         $s = [string]$ln
-        $nt = _NormalizeText $s
+        $nt = _NormalitzaText $s
         if ($nt -match '^exp') {
             $idx = $s.IndexOf(':')
             if ($idx -ge 0) { return $s.Substring($idx + 1).Trim() }
@@ -115,7 +115,7 @@ function _ExtractExpedient($lines) {
 # variants) la comparacio casa igual. Fem servir codepoints [char]0x.... per no
 # dependre de l'encoding amb que PowerShell 5.1 llegeix aquest fitxer.
 function _ConclNorm($s) {
-    $t = _NormalizeText $s
+    $t = _NormalitzaText $s
     $apos = @([char]0x0027, [char]0x2018, [char]0x2019, [char]0x02BC, [char]0x00B4, [char]0x0060)
     foreach ($a in $apos) { $t = $t.Replace([string]$a, '') }
     return $t
@@ -240,7 +240,7 @@ function _ExcelCampsPrecinteTrobats($map) {
     foreach ($gia in $map.Keys) {
         foreach ($p in @($map[$gia])) {
             $nom = [string]$p.Nom
-            $n = _NormalizeText $nom
+            $n = _NormalitzaText $nom
             if ($n -notmatch 'precinte|decret') { continue }
             if (-not $vistos.Contains($nom)) { [void]$vistos.Add($nom) }
         }
@@ -250,13 +250,13 @@ function _ExcelCampsPrecinteTrobats($map) {
 
 # PURA i testejable. $pairs = llista de @{ Nom; Valor } (els Camp Info d'una fila
 # de l'Excel). Retorna $true si algun te el Nom entre els objectius I el Valor
-# comenca per "SI". _NormalizeText es de GenerarInforme.ps1 (ja dot-sourcejat).
+# comenca per "SI". _NormalitzaText es de GenerarInforme.ps1 (ja dot-sourcejat).
 function _ExcelActivitatActualitzada($pairs) {
     if ($null -eq $pairs) { return $false }
     foreach ($p in $pairs) {
-        $nom = _NormalizeText ([string]$p.Nom)
+        $nom = _NormalitzaText ([string]$p.Nom)
         if ($Script:ExcelPrecinteCampNoms -contains $nom) {
-            $val = _NormalizeText ([string]$p.Valor)
+            $val = _NormalitzaText ([string]$p.Valor)
             if ($val -match '^si\b') { return $true }
         }
     }
@@ -270,13 +270,13 @@ function _FindCampInfoPairs($headers) {
     $h = @($headers)
     $pairs = @()
     for ($i = 0; $i -lt $h.Count; $i++) {
-        $n = _NormalizeText $h[$i]
+        $n = _NormalitzaText $h[$i]
         if ($n -match '^camp info\s+(\d+)\s*-\s*nom$') {
             $num = $Matches[1]
-            $target = _NormalizeText ("camp info $num - valor")
+            $target = _NormalitzaText ("camp info $num - valor")
             $valorCol = 0
             for ($j = 0; $j -lt $h.Count; $j++) {
-                if ((_NormalizeText $h[$j]) -eq $target) { $valorCol = $j + 1; break }
+                if ((_NormalitzaText $h[$j]) -eq $target) { $valorCol = $j + 1; break }
             }
             if ($valorCol -gt 0) { $pairs += @{ NomCol = ($i + 1); ValorCol = $valorCol } }
         }
@@ -1401,22 +1401,13 @@ function Invoke-CopiarInformes {
 function _ReadExcelCampInfoPerGia {
     $latest = Find-LatestActivitatsExcel
     if ($null -eq $latest) { return @{ Ok = $false; Error = "No s'ha trobat cap Excel d'activitats." } }
-    $excel = $null
-    try { $excel = New-Object -ComObject Excel.Application } catch { $excel = $null }
-    if ($null -eq $excel) { return @{ Ok = $false; Error = "No s'ha pogut iniciar Microsoft Excel." } }
-    $excel.Visible = $false
-    $excel.DisplayAlerts = $false
+    # Read-FullaEstesa LLANCA quan l'Excel no arrenca o la fulla no hi es; aqui
+    # el crider espera un @{ Ok = $false; Error }, o sigui que s'hi posa un catch.
     try {
-        $wb = $excel.Workbooks.Open($latest.File.FullName, 0, $true)   # ReadOnly
-        try {
-            $found = _FindEstesSheet $wb
-            $sh = $found.Sheet
-            if ($null -eq $sh) { return @{ Ok = $false; Error = "No s'ha trobat la fulla 'Estès' a l'Excel." } }
-            $data = $sh.UsedRange.Value2
+        return (Read-FullaEstesa $latest.File {
+            param($x)
+            $data = $x.Data; $rows = $x.Rows; $cols = $x.Cols; $headers = $x.Headers
             if ($null -eq $data) { return @{ Ok = $true; Map = @{} } }
-            $rows = $data.GetLength(0)
-            $cols = $data.GetLength(1)
-            $headers = @(); for ($c = 1; $c -le $cols; $c++) { $headers += [string]$data[1, $c] }
             $pairs = _FindCampInfoPairs $headers
             $map = @{}
             for ($r = 2; $r -le $rows; $r++) {
@@ -1436,14 +1427,9 @@ function _ReadExcelCampInfoPerGia {
                 $map[$gia] = $list
             }
             return @{ Ok = $true; Map = $map }
-        } finally {
-            try { $wb.Close($false) } catch { }
-        }
+        })
     } catch {
         return @{ Ok = $false; Error = $_.Exception.Message }
-    } finally {
-        try { $excel.Quit() } catch { }
-        try { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($excel) | Out-Null } catch { }
     }
 }
 
@@ -1572,7 +1558,7 @@ function Invoke-ComprovarExcel {
     if ($campsExcel.Count -gt 0) {
         [void]$sb.AppendLine("Camps de l'Excel que parlen de precinte o decret (per si s'han reanomenat):")
         foreach ($c in $campsExcel) {
-            $marca = if ($Script:ExcelPrecinteCampNoms -contains (_NormalizeText $c)) { '  <-- es el que es comprova' } else { '' }
+            $marca = if ($Script:ExcelPrecinteCampNoms -contains (_NormalitzaText $c)) { '  <-- es el que es comprova' } else { '' }
             [void]$sb.AppendLine("     - " + $c + $marca)
         }
     }

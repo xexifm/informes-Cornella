@@ -116,6 +116,7 @@ if (Test-Path -LiteralPath $configPath) {
 # a %LOCALAPPDATA%, mai es puja a git). Es processos/scopes independents, aixi
 # que Ruta.ps1 llegeix l'override pel seu compte, igual que fa amb config.ps1.
 . (Join-Path $SuportDir 'Json.ps1')       # Settings.ps1 el fa servir
+. (Join-Path $SuportDir 'Excel.ps1')      # Read-FullaEstesa + _NormalitzaText
 . (Join-Path $SuportDir 'Settings.ps1')
 $Script:AppSettings = Load-AppSettings
 $ActivitatsDir  = _ResolveEffectiveValue $AppSettings.ActivitatsDir  $ActivitatsDir
@@ -156,20 +157,6 @@ function _HtmlEncode($s) {
     return $t
 }
 
-# Normalitza text Unicode (sense diacritics, minuscules) per a comparacions.
-function _RutaNormalize($s) {
-    if ($null -eq $s) { return '' }
-    $t = ([string]$s).Normalize([System.Text.NormalizationForm]::FormD)
-    $sb = New-Object System.Text.StringBuilder
-    foreach ($ch in $t.ToCharArray()) {
-        if ([System.Globalization.CharUnicodeInfo]::GetUnicodeCategory($ch) -ne
-            [System.Globalization.UnicodeCategory]::NonSpacingMark) {
-            [void]$sb.Append($ch)
-        }
-    }
-    return $sb.ToString().Normalize([System.Text.NormalizationForm]::FormC).Trim().ToLowerInvariant()
-}
-
 # Cerca la columna (index 1-based) que te EXACTAMENT aquest nom de capcalera
 # (comparacio insensible a accents/majuscules/espais). 0 si no la troba.
 # $headers es un array 0-based de cadenes (l'index i correspon a la columna i+1).
@@ -179,9 +166,9 @@ function _RutaNormalize($s) {
 # d'utillatge comu de 'rutes/', perque la fan servir Precintades.ps1 i
 # Coordenades.ps1.
 function Find-HeaderColumn($headers, [string]$name) {
-    $target = _RutaNormalize $name
+    $target = _NormalitzaText $name
     for ($i = 0; $i -lt @($headers).Count; $i++) {
-        if ((_RutaNormalize $headers[$i]) -eq $target) { return $i + 1 }
+        if ((_NormalitzaText $headers[$i]) -eq $target) { return $i + 1 }
     }
     return 0
 }
@@ -723,64 +710,43 @@ function Find-LatestRutaExcel {
     return $null
 }
 
-# Localitza la fulla "Estes"/"Estès" acceptant variants Unicode.
-function _RutaFindEstesSheet($wb) {
-    foreach ($s in $wb.Sheets) {
-        if ((_RutaNormalize $s.Name) -eq 'estes') { return $s }
-    }
-    return $null
-}
-
 # Llegeix TOTA la fulla "Estes" i retorna una hashtable [string ID] ->
 # objecte amb UtmX, UtmY (cadenes crues) i les parts de l'adreca.
 function Read-ActivitatsForRoute($excelFile) {
-    $excel = New-Object -ComObject Excel.Application
-    $excel.Visible = $false
-    $excel.DisplayAlerts = $false
-    try {
-        $wb = $excel.Workbooks.Open($excelFile.FullName, 0, $true)  # ReadOnly
-        try {
-            $sh = _RutaFindEstesSheet $wb
-            if ($null -eq $sh) { throw "No s'ha trobat la fulla 'Estes'/'Estès' al fitxer Excel." }
-            $data = $sh.UsedRange.Value2
-            if ($null -eq $data) { return @{} }
-            $rows = $data.GetLength(0)
-            $cols = $data.GetLength(1)
-            $C = $Script:RutaColumns
-            $get = {
-                param($r, $c)
-                if ($c -lt 1 -or $c -gt $cols) { return '' }
-                $v = $data[$r, $c]
-                if ($null -eq $v) { return '' }
-                return ([string]$v).Trim()
-            }
-            $byId = @{}
-            for ($r = 2; $r -le $rows; $r++) {
-                $cell = $data[$r, $C.ID]
-                if ($null -eq $cell) { continue }
-                $id = if ($cell -is [double]) {
-                    if ([math]::Floor($cell) -eq $cell) { [string][int]$cell } else { [string]$cell }
-                } else { [string]$cell }
-                $id = $id.Trim()
-                if ($id -eq '') { continue }
-                $byId[$id] = [pscustomobject]@{
-                    Id       = $id
-                    UtmX     = & $get $r $C.UTMX
-                    UtmY     = & $get $r $C.UTMY
-                    TipusVia = & $get $r $C.TIPUS_VIA
-                    Carrer   = & $get $r $C.CARRER
-                    Numero   = & $get $r $C.NUMERO
-                    Lletra   = & $get $r $C.LLETRA
-                }
-            }
-            return $byId
-        } finally {
-            $wb.Close($false)
+    $out = Read-FullaEstesa $excelFile {
+        param($x)
+        $data = $x.Data; $rows = $x.Rows; $cols = $x.Cols
+        if ($null -eq $data) { return @{} }
+        $C = $Script:RutaColumns
+        $get = {
+            param($r, $c)
+            if ($c -lt 1 -or $c -gt $cols) { return '' }
+            $v = $data[$r, $c]
+            if ($null -eq $v) { return '' }
+            return ([string]$v).Trim()
         }
-    } finally {
-        $excel.Quit()
-        [System.Runtime.InteropServices.Marshal]::ReleaseComObject($excel) | Out-Null
+        $byId = @{}
+        for ($r = 2; $r -le $rows; $r++) {
+            $cell = $data[$r, $C.ID]
+            if ($null -eq $cell) { continue }
+            $id = if ($cell -is [double]) {
+                if ([math]::Floor($cell) -eq $cell) { [string][int]$cell } else { [string]$cell }
+            } else { [string]$cell }
+            $id = $id.Trim()
+            if ($id -eq '') { continue }
+            $byId[$id] = [pscustomobject]@{
+                Id       = $id
+                UtmX     = & $get $r $C.UTMX
+                UtmY     = & $get $r $C.UTMY
+                TipusVia = & $get $r $C.TIPUS_VIA
+                Carrer   = & $get $r $C.CARRER
+                Numero   = & $get $r $C.NUMERO
+                Lletra   = & $get $r $C.LLETRA
+            }
+        }
+        return $byId
     }
+    return $out
 }
 
 # Demana la ruta optimitzada a OSRM (servei /trip). Retorna el resultat de

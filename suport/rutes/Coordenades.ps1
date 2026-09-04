@@ -72,7 +72,7 @@ if (-not $Script:CoordHeadless) {
 
 # ----------------------------------------------------------------------------
 # Reutilitzem les funcions de Ruta.ps1 (Find-LatestRutaExcel, Find-HeaderColumn,
-# _RutaFindEstesSheet, ConvertTo-UtmNumber, Format-EmpAddress,
+# Read-FullaEstesa, ConvertTo-UtmNumber, Format-EmpAddress,
 # Convert-UtmToLatLon, _HtmlEncode). El carreguem en mode headless perque NOMES
 # defineixi funcions i no obri la seva finestra ni executi la seva Main.
 # Restaurem la variable d'entorn despres per no afectar la resta del proces.
@@ -1020,104 +1020,84 @@ pinta();
 # Les activitats SENSE coordenades s'ometen (no es poden situar al mapa) i es
 # compten a part.
 function Read-CoordenadesFromExcel($excelFile) {
-    $excel = New-Object -ComObject Excel.Application
-    $excel.Visible = $false
-    $excel.DisplayAlerts = $false
-    try {
-        $wb = $excel.Workbooks.Open($excelFile.FullName, 0, $true)  # ReadOnly
-        try {
-            $sh = _RutaFindEstesSheet $wb
-            if ($null -eq $sh) { throw "No s'ha trobat la fulla 'Estes'/'Estes' al fitxer Excel." }
-            $data = $sh.UsedRange.Value2
-            if ($null -eq $data) { return [pscustomobject]@{ Registres = @(); SenseCoord = 0; Impossibles = @() } }
-            $rows = $data.GetLength(0)
-            $cols = $data.GetLength(1)
+    $out = Read-FullaEstesa $excelFile {
+        param($x)
+        $data = $x.Data; $rows = $x.Rows; $cols = $x.Cols; $headers = $x.Headers
+        if ($null -eq $data) { return [pscustomobject]@{ Registres = @(); SenseCoord = 0; Impossibles = @() } }
 
-            # Capcalera (fila 1) -> array 0-based de noms de columna.
-            $headers = @()
-            for ($c = 1; $c -le $cols; $c++) {
-                $hv = $data[1, $c]
-                $headers += $(if ($null -eq $hv) { '' } else { ([string]$hv).Trim() })
-            }
+        # Columnes per NOM (mes robust que per index: si el GIA n'afegeix
+        # una al mig, res no es trenca). Els noms de cerca s'escriuen en
+        # ASCII SENSE accents: Find-HeaderColumn normalitza sense
+        # diacritics, aixi que 'Emp. Numero' encaixa amb 'Emp. Numero' real.
+        $colId   = Find-HeaderColumn $headers 'ID Activitat'
+        $colRc   = Find-HeaderColumn $headers 'Ref. cadastral'
+        $colUtmX = Find-HeaderColumn $headers 'UTM X'
+        $colUtmY = Find-HeaderColumn $headers 'UTM Y'
+        $colVia  = Find-HeaderColumn $headers 'Emp. Tipus via'
+        $colCarr = Find-HeaderColumn $headers 'Emp. Carrer'
+        $colNum  = Find-HeaderColumn $headers 'Emp. Numero'
+        $colLlet = Find-HeaderColumn $headers 'Emp. Lletra'
+        $colAct  = Find-HeaderColumn $headers 'Activitat principal'
+        $colNom  = Find-HeaderColumn $headers 'Nom comercial activitat'
 
-            # Columnes per NOM (mes robust que per index: si el GIA n'afegeix
-            # una al mig, res no es trenca). Els noms de cerca s'escriuen en
-            # ASCII SENSE accents: Find-HeaderColumn normalitza sense
-            # diacritics, aixi que 'Emp. Numero' encaixa amb 'Emp. Numero' real.
-            $colId   = Find-HeaderColumn $headers 'ID Activitat'
-            $colRc   = Find-HeaderColumn $headers 'Ref. cadastral'
-            $colUtmX = Find-HeaderColumn $headers 'UTM X'
-            $colUtmY = Find-HeaderColumn $headers 'UTM Y'
-            $colVia  = Find-HeaderColumn $headers 'Emp. Tipus via'
-            $colCarr = Find-HeaderColumn $headers 'Emp. Carrer'
-            $colNum  = Find-HeaderColumn $headers 'Emp. Numero'
-            $colLlet = Find-HeaderColumn $headers 'Emp. Lletra'
-            $colAct  = Find-HeaderColumn $headers 'Activitat principal'
-            $colNom  = Find-HeaderColumn $headers 'Nom comercial activitat'
-
-            if ($colUtmX -lt 1 -or $colUtmY -lt 1) {
-                throw "La fulla 'Estes' no te les columnes 'UTM X' i 'UTM Y'."
-            }
-
-            $get = {
-                param($r, $c)
-                if ($c -lt 1 -or $c -gt $cols) { return '' }
-                $v = $data[$r, $c]
-                if ($null -eq $v) { return '' }
-                return ([string]$v).Trim()
-            }
-
-            $registres = @()
-            $senseCoord = 0
-            $impossibles = @()
-            for ($r = 2; $r -le $rows; $r++) {
-                # ID Activitat (numero -> enter sense decimals, com a Ruta).
-                $idCell = if ($colId -ge 1 -and $colId -le $cols) { $data[$r, $colId] } else { $null }
-                $id = if ($idCell -is [double]) {
-                    if ([math]::Floor($idCell) -eq $idCell) { [string][int]$idCell } else { [string]$idCell }
-                } elseif ($null -ne $idCell) { ([string]$idCell).Trim() } else { '' }
-                if ($id -eq '') { continue }
-
-                $carrerRaw = & $get $r $colCarr
-                $numeroRaw = & $get $r $colNum
-
-                $x = ConvertTo-UtmNumber (& $get $r $colUtmX)
-                $y = ConvertTo-UtmNumber (& $get $r $colUtmY)
-                if ($null -eq $x -or $null -eq $y -or $x -eq 0 -or $y -eq 0) { $senseCoord++; continue }
-                # Coordenades que no poden ser d'aquest mon (al GIA n'hi ha: una
-                # activitat amb X=423,37, que son les xifres bones dividides per
-                # mil). Si es colessin, el mapa s'estiraria fins a l'Atlantic i
-                # la resta de punts quedarien tots en un pixel.
-                if (-not (Test-CoordPlausible $x $y)) {
-                    $impossibles += [pscustomobject]@{ Id = $id; X = $x; Y = $y; Adreca = (Format-EmpAddress (& $get $r $colVia) $carrerRaw $numeroRaw '') }
-                    continue
-                }
-
-                $nomCom = & $get $r $colNom
-                $actPri = & $get $r $colAct
-                $activitat = if ($nomCom -ne '' -and $actPri -ne '') { "$nomCom - $actPri" }
-                             elseif ($nomCom -ne '') { $nomCom }
-                             else { $actPri }
-
-                $registres += [pscustomobject]@{
-                    Id        = $id
-                    Rc        = (& $get $r $colRc)
-                    Adreca    = (Format-EmpAddress (& $get $r $colVia) $carrerRaw $numeroRaw (& $get $r $colLlet))
-                    Carrer    = $carrerRaw
-                    Numero    = $numeroRaw
-                    Activitat = $activitat
-                    UtmX      = $x
-                    UtmY      = $y
-                }
-            }
-            return [pscustomobject]@{ Registres = @($registres); SenseCoord = $senseCoord; Impossibles = @($impossibles) }
-        } finally {
-            $wb.Close($false)
+        if ($colUtmX -lt 1 -or $colUtmY -lt 1) {
+            throw "La fulla 'Estes' no te les columnes 'UTM X' i 'UTM Y'."
         }
-    } finally {
-        $excel.Quit()
-        [System.Runtime.InteropServices.Marshal]::ReleaseComObject($excel) | Out-Null
+
+        $get = {
+            param($r, $c)
+            if ($c -lt 1 -or $c -gt $cols) { return '' }
+            $v = $data[$r, $c]
+            if ($null -eq $v) { return '' }
+            return ([string]$v).Trim()
+        }
+
+        $registres = @()
+        $senseCoord = 0
+        $impossibles = @()
+        for ($r = 2; $r -le $rows; $r++) {
+            # ID Activitat (numero -> enter sense decimals, com a Ruta).
+            $idCell = if ($colId -ge 1 -and $colId -le $cols) { $data[$r, $colId] } else { $null }
+            $id = if ($idCell -is [double]) {
+                if ([math]::Floor($idCell) -eq $idCell) { [string][int]$idCell } else { [string]$idCell }
+            } elseif ($null -ne $idCell) { ([string]$idCell).Trim() } else { '' }
+            if ($id -eq '') { continue }
+
+            $carrerRaw = & $get $r $colCarr
+            $numeroRaw = & $get $r $colNum
+
+            $x = ConvertTo-UtmNumber (& $get $r $colUtmX)
+            $y = ConvertTo-UtmNumber (& $get $r $colUtmY)
+            if ($null -eq $x -or $null -eq $y -or $x -eq 0 -or $y -eq 0) { $senseCoord++; continue }
+            # Coordenades que no poden ser d'aquest mon (al GIA n'hi ha: una
+            # activitat amb X=423,37, que son les xifres bones dividides per
+            # mil). Si es colessin, el mapa s'estiraria fins a l'Atlantic i
+            # la resta de punts quedarien tots en un pixel.
+            if (-not (Test-CoordPlausible $x $y)) {
+                $impossibles += [pscustomobject]@{ Id = $id; X = $x; Y = $y; Adreca = (Format-EmpAddress (& $get $r $colVia) $carrerRaw $numeroRaw '') }
+                continue
+            }
+
+            $nomCom = & $get $r $colNom
+            $actPri = & $get $r $colAct
+            $activitat = if ($nomCom -ne '' -and $actPri -ne '') { "$nomCom - $actPri" }
+                         elseif ($nomCom -ne '') { $nomCom }
+                         else { $actPri }
+
+            $registres += [pscustomobject]@{
+                Id        = $id
+                Rc        = (& $get $r $colRc)
+                Adreca    = (Format-EmpAddress (& $get $r $colVia) $carrerRaw $numeroRaw (& $get $r $colLlet))
+                Carrer    = $carrerRaw
+                Numero    = $numeroRaw
+                Activitat = $activitat
+                UtmX      = $x
+                UtmY      = $y
+            }
+        }
+        return [pscustomobject]@{ Registres = @($registres); SenseCoord = $senseCoord; Impossibles = @($impossibles) }
     }
+    return $out
 }
 
 # ============================================================================

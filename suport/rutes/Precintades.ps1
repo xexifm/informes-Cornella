@@ -40,7 +40,7 @@ $RepoRoot   = Split-Path -Parent $SuportDir           # informes-Cornella/
 
 # ----------------------------------------------------------------------------
 # Reutilitzem les funcions de Ruta.ps1 (Convert-UtmToLatLon, Format-EmpAddress,
-# ConvertTo-UtmNumber, _RutaNormalize, Find-LatestRutaExcel, _RutaFindEstesSheet).
+# ConvertTo-UtmNumber, _NormalitzaText, Find-LatestRutaExcel, Read-FullaEstesa).
 # El carreguem en mode headless (RUTA_TEST) perque NOMES defineixi funcions i
 # no obri la seva finestra ni executi la seva Main. Restaurem la variable
 # d'entorn despres de carregar-lo per no afectar la resta del proces.
@@ -77,7 +77,7 @@ $Script:PrecCampNom = 'precinte activitat?'
 function Get-CampInfoPairs($headers) {
     $pairs = @()
     for ($i = 0; $i -lt @($headers).Count; $i++) {
-        $h = _RutaNormalize $headers[$i]
+        $h = _NormalitzaText $headers[$i]
         if ($h -match '^camp info\s+(\d+)\s*-\s*nom$') {
             $n = $Matches[1]
             $valorCol = Find-HeaderColumn $headers ("Camp Info $n - Valor")
@@ -93,8 +93,8 @@ function Get-CampInfoPairs($headers) {
 # "PRECINTE ACTIVITAT?" i el Valor comenca per "SI" (com a paraula: "SI",
 # "SI, ...", "SI ..."; NO "SITUACIO..."). Insensible a accents i majuscules.
 function Test-IsPrecintada([string]$nom, [string]$valor) {
-    if ((_RutaNormalize $nom) -ne $Script:PrecCampNom) { return $false }
-    $v = _RutaNormalize $valor
+    if ((_NormalitzaText $nom) -ne $Script:PrecCampNom) { return $false }
+    $v = _NormalitzaText $valor
     if ($v -eq '') { return $false }
     return [bool]($v -match '^si\b')
 }
@@ -156,88 +156,68 @@ function Test-ShouldUpdatePrecintades([datetime]$localDate, [datetime]$existingD
 # Llegeix la fulla "Estes" i retorna els registres de les activitats
 # PRECINTADES (array d'objectes {Id, ActivitatPrincipal, Adreca, Lat, Lon}).
 function Read-PrecintadesFromExcel($excelFile) {
-    $excel = New-Object -ComObject Excel.Application
-    $excel.Visible = $false
-    $excel.DisplayAlerts = $false
-    try {
-        $wb = $excel.Workbooks.Open($excelFile.FullName, 0, $true)  # ReadOnly
-        try {
-            $sh = _RutaFindEstesSheet $wb
-            if ($null -eq $sh) { throw "No s'ha trobat la fulla 'Estes'/'Estès' al fitxer Excel." }
-            $data = $sh.UsedRange.Value2
-            if ($null -eq $data) { return @() }
-            $rows = $data.GetLength(0)
-            $cols = $data.GetLength(1)
+    $out = Read-FullaEstesa $excelFile {
+        param($x)
+        $data = $x.Data; $rows = $x.Rows; $cols = $x.Cols; $headers = $x.Headers
+        if ($null -eq $data) { return ,@() }
 
-            # Capcalera (fila 1) -> array 0-based de noms de columna.
-            $headers = @()
-            for ($c = 1; $c -le $cols; $c++) {
-                $hv = $data[1, $c]
-                $headers += $(if ($null -eq $hv) { '' } else { ([string]$hv).Trim() })
-            }
+        # Columnes fixes (per NOM, mes robust que per index). IMPORTANT: els
+        # noms de cerca s'escriuen en ASCII SENSE accents ('Numero', no
+        # 'Número'). El Windows PowerShell 5.1 llegeix els .ps1 sense BOM com
+        # a ANSI i corromp els literals accentuats; a mes, Find-HeaderColumn
+        # normalitza sense diacritics, aixi que 'Emp. Numero' encaixa amb la
+        # capcalera real 'Emp. Número'. (Mateixa convencio que Ruta.ps1, que
+        # compara contra 'estes' i no 'Estès'.)
+        $colId   = Find-HeaderColumn $headers 'ID Activitat'
+        $colUtmX = Find-HeaderColumn $headers 'UTM X'
+        $colUtmY = Find-HeaderColumn $headers 'UTM Y'
+        $colVia  = Find-HeaderColumn $headers 'Emp. Tipus via'
+        $colCarr = Find-HeaderColumn $headers 'Emp. Carrer'
+        $colNum  = Find-HeaderColumn $headers 'Emp. Numero'
+        $colAct  = Find-HeaderColumn $headers 'Activitat principal'
+        $pairs   = Get-CampInfoPairs $headers
 
-            # Columnes fixes (per NOM, mes robust que per index). IMPORTANT: els
-            # noms de cerca s'escriuen en ASCII SENSE accents ('Numero', no
-            # 'Número'). El Windows PowerShell 5.1 llegeix els .ps1 sense BOM com
-            # a ANSI i corromp els literals accentuats; a mes, Find-HeaderColumn
-            # normalitza sense diacritics, aixi que 'Emp. Numero' encaixa amb la
-            # capcalera real 'Emp. Número'. (Mateixa convencio que Ruta.ps1, que
-            # compara contra 'estes' i no 'Estès'.)
-            $colId   = Find-HeaderColumn $headers 'ID Activitat'
-            $colUtmX = Find-HeaderColumn $headers 'UTM X'
-            $colUtmY = Find-HeaderColumn $headers 'UTM Y'
-            $colVia  = Find-HeaderColumn $headers 'Emp. Tipus via'
-            $colCarr = Find-HeaderColumn $headers 'Emp. Carrer'
-            $colNum  = Find-HeaderColumn $headers 'Emp. Numero'
-            $colAct  = Find-HeaderColumn $headers 'Activitat principal'
-            $pairs   = Get-CampInfoPairs $headers
-
-            $get = {
-                param($r, $c)
-                if ($c -lt 1 -or $c -gt $cols) { return '' }
-                $v = $data[$r, $c]
-                if ($null -eq $v) { return '' }
-                return ([string]$v).Trim()
-            }
-
-            $records = @()
-            for ($r = 2; $r -le $rows; $r++) {
-                # Es precintada si ALGUN parell Camp Info ho indica.
-                $isPrec = $false
-                foreach ($p in $pairs) {
-                    $nom   = & $get $r $p.NomCol
-                    $valor = & $get $r $p.ValorCol
-                    if (Test-IsPrecintada $nom $valor) { $isPrec = $true; break }
-                }
-                if (-not $isPrec) { continue }
-
-                # ID Activitat (numero -> enter sense decimals, com a Ruta).
-                $idCell = if ($colId -ge 1 -and $colId -le $cols) { $data[$r, $colId] } else { $null }
-                $id = if ($idCell -is [double]) {
-                    if ([math]::Floor($idCell) -eq $idCell) { [string][int]$idCell } else { [string]$idCell }
-                } elseif ($null -ne $idCell) { ([string]$idCell).Trim() } else { '' }
-
-                $x = ConvertTo-UtmNumber (& $get $r $colUtmX)
-                $y = ConvertTo-UtmNumber (& $get $r $colUtmY)
-                if ($null -eq $x -or $null -eq $y) { continue }   # sense coordenades: no es pot situar
-                $ll = Convert-UtmToLatLon $x $y 31 $true
-
-                $records += [pscustomobject]@{
-                    Id                = $id
-                    ActivitatPrincipal = (& $get $r $colAct)
-                    Adreca            = (Format-EmpAddress (& $get $r $colVia) (& $get $r $colCarr) (& $get $r $colNum) '')
-                    Lat               = $ll.Lat
-                    Lon               = $ll.Lon
-                }
-            }
-            return ,@($records)
-        } finally {
-            $wb.Close($false)
+        $get = {
+            param($r, $c)
+            if ($c -lt 1 -or $c -gt $cols) { return '' }
+            $v = $data[$r, $c]
+            if ($null -eq $v) { return '' }
+            return ([string]$v).Trim()
         }
-    } finally {
-        $excel.Quit()
-        [System.Runtime.InteropServices.Marshal]::ReleaseComObject($excel) | Out-Null
+
+        $records = @()
+        for ($r = 2; $r -le $rows; $r++) {
+            # Es precintada si ALGUN parell Camp Info ho indica.
+            $isPrec = $false
+            foreach ($p in $pairs) {
+                $nom   = & $get $r $p.NomCol
+                $valor = & $get $r $p.ValorCol
+                if (Test-IsPrecintada $nom $valor) { $isPrec = $true; break }
+            }
+            if (-not $isPrec) { continue }
+
+            # ID Activitat (numero -> enter sense decimals, com a Ruta).
+            $idCell = if ($colId -ge 1 -and $colId -le $cols) { $data[$r, $colId] } else { $null }
+            $id = if ($idCell -is [double]) {
+                if ([math]::Floor($idCell) -eq $idCell) { [string][int]$idCell } else { [string]$idCell }
+            } elseif ($null -ne $idCell) { ([string]$idCell).Trim() } else { '' }
+
+            $x = ConvertTo-UtmNumber (& $get $r $colUtmX)
+            $y = ConvertTo-UtmNumber (& $get $r $colUtmY)
+            if ($null -eq $x -or $null -eq $y) { continue }   # sense coordenades: no es pot situar
+            $ll = Convert-UtmToLatLon $x $y 31 $true
+
+            $records += [pscustomobject]@{
+                Id                = $id
+                ActivitatPrincipal = (& $get $r $colAct)
+                Adreca            = (Format-EmpAddress (& $get $r $colVia) (& $get $r $colCarr) (& $get $r $colNum) '')
+                Lat               = $ll.Lat
+                Lon               = $ll.Lon
+            }
+        }
+        return ,@($records)
     }
+    return ,@($out)
 }
 
 # ============================================================================

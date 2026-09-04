@@ -37,7 +37,7 @@
   mode headless de proves). Les funcions pures i les de manipulacio XML son
   testejables a Linux (sense Word); nomes els dialegs WinForms necessiten Windows.
 
-  Reutilitza de GenerarInforme.ps1: _NormalizeText,
+  Reutilitza de GenerarInforme.ps1: _NormalitzaText,
   Apply-Fields, Select-Conclusions (amb camps inline), Get-FieldValuesForSession,
   _ResolveOutputDir, _GetUniqueOutputPath.
 #>
@@ -236,7 +236,7 @@ function _FindConclusionStartIndex($paraTexts, [int]$lastReqEndIndex, $phrases) 
     if ($null -eq $paraTexts) { return -1 }
     $normPhrases = @()
     foreach ($ph in $phrases) {
-        $np = _NormalizeText $ph
+        $np = _NormalitzaText $ph
         if (-not [string]::IsNullOrWhiteSpace($np)) { $normPhrases += $np }
     }
     if ($normPhrases.Count -eq 0) { return -1 }
@@ -244,7 +244,7 @@ function _FindConclusionStartIndex($paraTexts, [int]$lastReqEndIndex, $phrases) 
     for ($i = 0; $i -lt $paraTexts.Count; $i++) {
         $paraIndex = $i + 1
         if ($paraIndex -le $lastReqEndIndex) { continue }
-        $nt = _NormalizeText $paraTexts[$i]
+        $nt = _NormalitzaText $paraTexts[$i]
         if ([string]::IsNullOrWhiteSpace($nt)) { continue }
         foreach ($np in $normPhrases) {
             if ($nt.Contains($np)) { return $paraIndex }

@@ -12,7 +12,7 @@
   Mostra una graella (mateixa estructura que "Editar base d'informes") amb les
   columnes demanades, filtrable per II / III / 561 i ordenable per columna;
   per defecte, ordenada per "Data llicencia/comunicacio" ascendent (mes antic
-  primer). Reutilitza helpers de GenerarInforme.ps1 (_FindEstesSheet,
+  primer). Reutilitza helpers de GenerarInforme.ps1 (Read-FullaEstesa,
   _FindColIndex, _FormatDateOnly, Find-LatestActivitatsExcel, _ResolveOutputDir,
   _GetUniqueOutputPath) i de la resta del programa (_NewForm, _AddBrandHeader,
   _StylePrimaryButton/_StyleSecondaryButton).
@@ -68,21 +68,13 @@ function _ParseCellDate($v) {
 function _ReadControlsPeriodics {
     $latest = Find-LatestActivitatsExcel
     if ($null -eq $latest) { return @{ Ok = $false; Error = "No s'ha trobat cap Excel d'activitats." } }
-    $excel = $null
-    try { $excel = New-Object -ComObject Excel.Application } catch { $excel = $null }
-    if ($null -eq $excel) { return @{ Ok = $false; Error = "No s'ha pogut iniciar Microsoft Excel." } }
-    $excel.Visible = $false
-    $excel.DisplayAlerts = $false
+    # Read-FullaEstesa LLANCA quan l'Excel no arrenca o la fulla no hi es; aqui
+    # el crider espera un @{ Ok = $false; Error }, o sigui que s'hi posa un catch.
     try {
-        $wb = $excel.Workbooks.Open($latest.File.FullName, 0, $true)   # ReadOnly
-        try {
-            $found = _FindEstesSheet $wb
-            $sh = $found.Sheet
-            if ($null -eq $sh) { return @{ Ok = $false; Error = "No s'ha trobat la fulla 'Estès' a l'Excel." } }
-            $data = $sh.UsedRange.Value2
+        return (Read-FullaEstesa $latest.File {
+            param($x)
+            $data = $x.Data; $rows = $x.Rows; $cols = $x.Cols
             if ($null -eq $data) { return @{ Ok = $true; Rows = @(); File = $latest.File.Name } }
-            $rows = $data.GetLength(0)
-            $cols = $data.GetLength(1)
 
             # Localitzacio de columnes pel TEXT de la capcalera (amb fallback a
             # l'index fix conegut quan cal).
@@ -168,14 +160,9 @@ function _ReadControlsPeriodics {
                 })
             }
             return @{ Ok = $true; Rows = @($out); File = $latest.File.Name }
-        } finally {
-            try { $wb.Close($false) } catch { }
-        }
+        })
     } catch {
         return @{ Ok = $false; Error = $_.Exception.Message }
-    } finally {
-        try { $excel.Quit() } catch { }
-        try { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($excel) | Out-Null } catch { }
     }
 }
 
@@ -476,10 +463,10 @@ function _ControlSectionTitle([string]$kind) {
 # coincideix amb $title i retorna les seves claus de seleccio (l'item + els seus
 # fills). Buit si no es troba. (Al parser, Titol 1 = seccio, Titol 2 = item.)
 function _FindItemKeysByTitle($parsed, [string]$title) {
-    $tnorm = _NormalizeText $title
+    $tnorm = _NormalitzaText $title
     foreach ($sec in $parsed.Sections) {
         foreach ($el in $sec.Items) {
-            if ($el.Kind -eq 'item' -and (_NormalizeText $el.Short) -eq $tnorm) {
+            if ($el.Kind -eq 'item' -and (_NormalitzaText $el.Short) -eq $tnorm) {
                 $keys = @((_ItemKey $sec.Title $el.Short))
                 foreach ($ch in $el.Children) { $keys += (_ItemKey $sec.Title $el.Short $ch.Short) }
                 return $keys

@@ -86,27 +86,20 @@ function Find-LatestActivitatsExcel {
     return $null
 }
 
-# Normalitza un text Unicode (sense diacritics, minuscules) per a comparacio.
-function _NormalizeText($s) {
-    if ($null -eq $s) { return '' }
-    $t = ([string]$s).Normalize([System.Text.NormalizationForm]::FormD)
-    return (($t -replace '\p{Mn}','').ToLower().Trim())
-}
-
 # Cerca l'index (1-based) de la columna a la fila de capcalera (fila 1) el text
 # de la qual conte TOTS els termes de $mustContain i CAP dels de $mustNotContain
 # (comparacio normalitzada: minuscules, sense accents). Retorna 0 si no es troba.
 function _FindColIndex($data, $cols, [string[]]$mustContain, [string[]]$mustNotContain) {
     for ($c = 1; $c -le $cols; $c++) {
-        $h = _NormalizeText $data[1, $c]
+        $h = _NormalitzaText $data[1, $c]
         if ([string]::IsNullOrWhiteSpace($h)) { continue }
         $ok = $true
         foreach ($m in $mustContain) {
-            if (-not $h.Contains((_NormalizeText $m))) { $ok = $false; break }
+            if (-not $h.Contains((_NormalitzaText $m))) { $ok = $false; break }
         }
         if ($ok -and $null -ne $mustNotContain) {
             foreach ($m in $mustNotContain) {
-                if ($h.Contains((_NormalizeText $m))) { $ok = $false; break }
+                if ($h.Contains((_NormalitzaText $m))) { $ok = $false; break }
             }
         }
         if ($ok) { return $c }
@@ -178,16 +171,6 @@ function _ClassificacioText($annex, $apartat) {
     return ($parts -join '; ')
 }
 
-# Localitza la fulla "Estes"/"Estès" del workbook acceptant variants Unicode.
-function _FindEstesSheet($wb) {
-    $sheetNames = @()
-    foreach ($s in $wb.Sheets) {
-        $sheetNames += $s.Name
-        if ((_NormalizeText $s.Name) -eq 'estes') { return @{ Sheet=$s; Names=$sheetNames } }
-    }
-    return @{ Sheet=$null; Names=$sheetNames }
-}
-
 # Valida la fila de capcalera comparant els textos esperats. Retorna una
 # llista (potser buida) d'avisos en text per mostrar a l'usuari.
 function _ValidateActivitatsHeaders($data, $rows, $cols) {
@@ -200,8 +183,8 @@ function _ValidateActivitatsHeaders($data, $rows, $cols) {
             continue
         }
         $cell = $data[1, $idx]
-        $cellN = _NormalizeText $cell
-        $hintN = _NormalizeText $col.HeaderHint
+        $cellN = _NormalitzaText $cell
+        $hintN = _NormalitzaText $col.HeaderHint
         if ([string]::IsNullOrWhiteSpace($cellN) -or -not $cellN.Contains($hintN.Split(' ')[0])) {
             [void]$warnings.Add("La columna $idx esperava '$($col.HeaderHint)' pero te '$cell'.")
         }
@@ -224,120 +207,98 @@ function Initialize-ActivitatsCache($excelFile) {
     # Igual que amb Word: si Excel no esta disponible, New-Object pot fallar o
     # retornar $null. Donem un missatge clar (aquest error es propaga a
     # Get-HeaderData, que ja mostra "Error llegint l'Excel").
-    $excel = $null
-    try { $excel = New-Object -ComObject Excel.Application } catch { $excel = $null }
-    if ($null -eq $excel) {
-        throw "No s'ha pogut iniciar Microsoft Excel. Comprova que estigui instal-lat i obert almenys un cop."
-    }
-    $excel.Visible = $false
-    $excel.DisplayAlerts = $false
-    try {
-        $wb = $excel.Workbooks.Open($excelFile.FullName, 0, $true)  # ReadOnly
-        try {
-            $found = _FindEstesSheet $wb
-            $sh = $found.Sheet
-            if ($null -eq $sh) {
-                throw "No s'ha trobat la fulla 'Estes'/'Estès' al fitxer Excel. Fulles disponibles: $($found.Names -join ', ')"
-            }
-            $used = $sh.UsedRange
-            $data = $used.Value2
-            if ($null -eq $data) {
-                return [pscustomobject]@{ ById = @{}; Warnings = @("L'Excel sembla buit.") }
-            }
-            $rows = $data.GetLength(0)
-            $cols = $data.GetLength(1)
-
-            # Avisos de validacio. Construim un ArrayList REAL aqui (no podem
-            # assignar directament el retorn de _ValidateActivitatsHeaders: en
-            # retornar un ArrayList, PowerShell el desempaqueta i, si es buit,
-            # $warnings quedaria $null i $warnings.Add()/.ToArray() petarien).
-            $warnings = New-Object System.Collections.ArrayList
-            foreach ($w in (_ValidateActivitatsHeaders $data $rows $cols)) {
-                if ($null -ne $w) { [void]$warnings.Add($w) }
-            }
-
-            # Columnes localitzades pel TEXT de la capcalera (mes robust que un
-            # index fix). Si l'Excel canvia l'ordre de columnes, segueix
-            # funcionant mentre el nom es mantingui.
-            $colExp  = _FindColIndex $data $cols @('expedient') $null
-            $colNum  = _FindColIndex $data $cols @('registre','entrada') @('data')
-            $colData = _FindColIndex $data $cols @('data','registre','entrada') $null
-            # Classificacio de l'activitat, per a la capcalera de Llicencia.
-            $colAnx  = _FindColIndex $data $cols @('classificacio general annex') $null
-            $colApa  = _FindColIndex $data $cols @('classificacio general apartat') $null
-            # Correus del titular: Rao social i Representant legal (mateix criteri
-            # que l'eina Controls periodics). El de Rao social te fallback a la
-            # columna 25 (index historic conegut).
-            $colRaoMail = _FindColIndex $data $cols @('rao soc', 'mail')    $null; if ($colRaoMail -eq 0) { $colRaoMail = 25 }
-            $colRepMail = _FindColIndex $data $cols @('rep', 'leg', 'mail')  $null
-            if ($colExp  -eq 0) { [void]$warnings.Add("No s'ha trobat la columna 'Num. expedient'.") }
-            if ($colNum  -eq 0) { [void]$warnings.Add("No s'ha trobat la columna 'Num. registre entrada'.") }
-            if ($colData -eq 0) { [void]$warnings.Add("No s'ha trobat la columna 'Data registre entrada'.") }
-
-            # Index per ID (columna 1).
-            $byId = @{}
-            $get = {
-                param($r, $c)
-                if ($c -lt 1 -or $c -gt $cols) { return '' }
-                $v = $data[$r, $c]
-                if ($null -eq $v) { return '' }
-                return ([string]$v).Trim()
-            }
-            for ($r = 2; $r -le $rows; $r++) {
-                $cell = $data[$r, 1]
-                if ($null -eq $cell) { continue }
-                $id = if ($cell -is [double]) {
-                    if ([math]::Floor($cell) -eq $cell) { [string][int]$cell } else { [string]$cell }
-                } else { [string]$cell }
-                if ([string]::IsNullOrWhiteSpace($id)) { continue }
-
-                $tipusVia = & $get $r 48
-                $carrer   = & $get $r 49
-                $numero   = & $get $r 50
-                $lletra   = & $get $r 52
-                $pis      = & $get $r 55
-                $porta    = & $get $r 56
-                $rao      = & $get $r 10
-                $raoMobil = & $get $r 23
-                $raoEmail = & $get $r $colRaoMail
-                $repEmail = & $get $r $colRepMail
-                $actPrin  = & $get $r 94
-                $parts = @($tipusVia, $carrer, $numero, $lletra, $pis, $porta) |
-                    Where-Object { $_ -and $_.Trim() -ne '' }
-                # Construim l'accent amb el codepoint Unicode explicit (U+00C0,
-                # 'A' amb accent greu) per evitar que la lletra accentuada del
-                # literal es corrompi segons l'encoding amb que PowerShell 5.1
-                # llegeix aquest fitxer (sortia "CORNELLÃ€").
-                $ciutat = "CORNELL$([char]0x00C0) DE LLOBREGAT"
-                $adreca = ($parts -join ' ') + ", $ciutat"
-
-                $expNum = if ($colExp  -gt 0) { _CellToString  $data[$r, $colExp] }  else { '' }
-                $numAno = if ($colNum  -gt 0) { _CellToString  $data[$r, $colNum] }  else { '' }
-                $datAno = if ($colData -gt 0) { _FormatDateOnly $data[$r, $colData] } else { '' }
-                $anx    = if ($colAnx  -gt 0) { _CellToString  $data[$r, $colAnx] }  else { '' }
-                $apa    = if ($colApa  -gt 0) { _CellToString  $data[$r, $colApa] }  else { '' }
-
-                $byId[$id] = @{
-                    TITULAR       = $rao
-                    MOBIL         = $raoMobil
-                    EMAIL         = $raoEmail
-                    EMAIL_REP     = $repEmail
-                    ADRECA        = $adreca
-                    ACTIVITAT     = $actPrin
-                    EXP_NUM       = $expNum
-                    NUM_ANOTACIO  = $numAno
-                    DATA_ANOTACIO = $datAno
-                    CLASSIFICACIO = (_ClassificacioText $anx $apa)
-                }
-            }
-            return [pscustomobject]@{ ById = $byId; Warnings = $warnings.ToArray() }
-        } finally {
-            $wb.Close($false)
+    return (Read-FullaEstesa $excelFile {
+        param($x)
+        $data = $x.Data; $rows = $x.Rows; $cols = $x.Cols
+        if ($null -eq $data) {
+            return [pscustomobject]@{ ById = @{}; Warnings = @("L'Excel sembla buit.") }
         }
-    } finally {
-        try { $excel.Quit() } catch { }
-        [System.Runtime.InteropServices.Marshal]::ReleaseComObject($excel) | Out-Null
-    }
+
+        # Avisos de validacio. Construim un ArrayList REAL aqui (no podem
+        # assignar directament el retorn de _ValidateActivitatsHeaders: en
+        # retornar un ArrayList, PowerShell el desempaqueta i, si es buit,
+        # $warnings quedaria $null i $warnings.Add()/.ToArray() petarien).
+        $warnings = New-Object System.Collections.ArrayList
+        foreach ($w in (_ValidateActivitatsHeaders $data $rows $cols)) {
+            if ($null -ne $w) { [void]$warnings.Add($w) }
+        }
+
+        # Columnes localitzades pel TEXT de la capcalera (mes robust que un
+        # index fix). Si l'Excel canvia l'ordre de columnes, segueix
+        # funcionant mentre el nom es mantingui.
+        $colExp  = _FindColIndex $data $cols @('expedient') $null
+        $colNum  = _FindColIndex $data $cols @('registre','entrada') @('data')
+        $colData = _FindColIndex $data $cols @('data','registre','entrada') $null
+        # Classificacio de l'activitat, per a la capcalera de Llicencia.
+        $colAnx  = _FindColIndex $data $cols @('classificacio general annex') $null
+        $colApa  = _FindColIndex $data $cols @('classificacio general apartat') $null
+        # Correus del titular: Rao social i Representant legal (mateix criteri
+        # que l'eina Controls periodics). El de Rao social te fallback a la
+        # columna 25 (index historic conegut).
+        $colRaoMail = _FindColIndex $data $cols @('rao soc', 'mail')    $null; if ($colRaoMail -eq 0) { $colRaoMail = 25 }
+        $colRepMail = _FindColIndex $data $cols @('rep', 'leg', 'mail')  $null
+        if ($colExp  -eq 0) { [void]$warnings.Add("No s'ha trobat la columna 'Num. expedient'.") }
+        if ($colNum  -eq 0) { [void]$warnings.Add("No s'ha trobat la columna 'Num. registre entrada'.") }
+        if ($colData -eq 0) { [void]$warnings.Add("No s'ha trobat la columna 'Data registre entrada'.") }
+
+        # Index per ID (columna 1).
+        $byId = @{}
+        $get = {
+            param($r, $c)
+            if ($c -lt 1 -or $c -gt $cols) { return '' }
+            $v = $data[$r, $c]
+            if ($null -eq $v) { return '' }
+            return ([string]$v).Trim()
+        }
+        for ($r = 2; $r -le $rows; $r++) {
+            $cell = $data[$r, 1]
+            if ($null -eq $cell) { continue }
+            $id = if ($cell -is [double]) {
+                if ([math]::Floor($cell) -eq $cell) { [string][int]$cell } else { [string]$cell }
+            } else { [string]$cell }
+            if ([string]::IsNullOrWhiteSpace($id)) { continue }
+
+            $tipusVia = & $get $r 48
+            $carrer   = & $get $r 49
+            $numero   = & $get $r 50
+            $lletra   = & $get $r 52
+            $pis      = & $get $r 55
+            $porta    = & $get $r 56
+            $rao      = & $get $r 10
+            $raoMobil = & $get $r 23
+            $raoEmail = & $get $r $colRaoMail
+            $repEmail = & $get $r $colRepMail
+            $actPrin  = & $get $r 94
+            $parts = @($tipusVia, $carrer, $numero, $lletra, $pis, $porta) |
+                Where-Object { $_ -and $_.Trim() -ne '' }
+            # Construim l'accent amb el codepoint Unicode explicit (U+00C0,
+            # 'A' amb accent greu) per evitar que la lletra accentuada del
+            # literal es corrompi segons l'encoding amb que PowerShell 5.1
+            # llegeix aquest fitxer (sortia "CORNELLÃ€").
+            $ciutat = "CORNELL$([char]0x00C0) DE LLOBREGAT"
+            $adreca = ($parts -join ' ') + ", $ciutat"
+
+            $expNum = if ($colExp  -gt 0) { _CellToString  $data[$r, $colExp] }  else { '' }
+            $numAno = if ($colNum  -gt 0) { _CellToString  $data[$r, $colNum] }  else { '' }
+            $datAno = if ($colData -gt 0) { _FormatDateOnly $data[$r, $colData] } else { '' }
+            $anx    = if ($colAnx  -gt 0) { _CellToString  $data[$r, $colAnx] }  else { '' }
+            $apa    = if ($colApa  -gt 0) { _CellToString  $data[$r, $colApa] }  else { '' }
+
+            $byId[$id] = @{
+                TITULAR       = $rao
+                MOBIL         = $raoMobil
+                EMAIL         = $raoEmail
+                EMAIL_REP     = $repEmail
+                ADRECA        = $adreca
+                ACTIVITAT     = $actPrin
+                EXP_NUM       = $expNum
+                NUM_ANOTACIO  = $numAno
+                DATA_ANOTACIO = $datAno
+                CLASSIFICACIO = (_ClassificacioText $anx $apa)
+            }
+        }
+        return [pscustomobject]@{ ById = $byId; Warnings = $warnings.ToArray() }
+    })
 }
 
 # Cerca una activitat per ID al cache precarregat. Retorna $null si no es troba.

@@ -21,10 +21,10 @@ $scriptPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'Motor.ps1'
 
 . (Join-Path $PSScriptRoot 'TestLib.ps1')   # Assert / AssertEq / Write-TestSummary
 
-Write-Host "`n--- _NormalizeText ---"
-AssertEq (_NormalizeText 'Estès')            'estes'           '_NormalizeText treu accents i minuscula'
-AssertEq (_NormalizeText '  ÀCTIVITAT  ')    'activitat'       '_NormalizeText trim + accents'
-AssertEq (_NormalizeText $null)              ''                '_NormalizeText null -> buit'
+Write-Host "`n--- _NormalitzaText ---"
+AssertEq (_NormalitzaText 'Estès')            'estes'           '_NormalitzaText treu accents i minuscula'
+AssertEq (_NormalitzaText '  ÀCTIVITAT  ')    'activitat'       '_NormalitzaText trim + accents'
+AssertEq (_NormalitzaText $null)              ''                '_NormalitzaText null -> buit'
 
 Write-Host "`n--- _CellToString ---"
 AssertEq (_CellToString ([double]1000))      '1000'            '_CellToString enter sense decimals'
@@ -5443,5 +5443,142 @@ AssertEq (Get-ConfigJsValue $cjP 'BUIDA' '(defecte)') '(defecte)' 'Get-ConfigJsV
 AssertEq (Get-ConfigJsValue $cjP 'NO_HI_ES' '(defecte)') '(defecte)' 'Get-ConfigJsValue: clau inexistent -> valor per defecte'
 AssertEq ((Read-ConfigJs "// nomes un comentari`nres a veure").Count) 0 'Read-ConfigJs: text sense claus -> res, i no peta'
 
+
+Write-Host "`n--- Excel.ps1: la seqüencia compartida de la fulla Estesa ---"
+# PER QUE. Set funcions obrien l'Excel, buscaven la fulla "Estes", en llegien la
+# matriu i tancaven, cada una amb la seva copia de vint linies. Ara la seqüencia
+# es UNA, i aquestes proves la fan correr amb un DOBLE de COM -pscustomobject +
+# Add-Member, el mateix patro que la prova de Write-InformeDocx-, que es l'unica
+# manera de provar-la en un Linux sense Excel.
+#
+# TOT EL BLOC VA DINS D'UN try. Sense aixo, una excepcio que s'escapi -per
+# exemple si el tancament de Read-FullaEstesa tornes a petar dins del finally-
+# MATA el bloc sencer i les asercions de despres no s'executen mai... i la suite
+# segueix dient "0 FAIL", perque nomes compta el que s'ha arribat a comprovar.
+# Es la mateixa lliçó del throw que va matar mitja suite (vegeu CLAUDE.md).
+{
+  try {
+    # L'Excel torna una matriu 2D amb els indexs comencant per 1. PowerShell no
+    # tria l'overload de tres arguments d'Array::CreateInstance (aplana els dos
+    # int[] en un de sol), aixi que la demanem per reflexio. I la coma del
+    # 'return' es obligatoria: una matriu 2D retornada d'una funcio l'aplana el
+    # pipeline igual que una llista.
+    $ci = [Array].GetMethod('CreateInstance', [Type[]]@([Type], [int[]], [int[]]))
+    function _XlMatriu([int]$files, [int]$cols) {
+        return ,($ci.Invoke($null, @([object], [int[]]@($files, $cols), [int[]]@(1, 1))))
+    }
+    function _XlDoble([int]$nFiles, [int]$nCols, [string]$nomFulla = 'Estes') {
+        $m = $null
+        if ($nFiles -ge 0) {
+            $m = _XlMatriu ($nFiles + 1) $nCols
+            for ($c = 1; $c -le $nCols; $c++) { $m[1, $c] = "H$c" }
+            # PARENTESIS a ($i+1): la coma lliga mes fort que el +, i "$m[$i+1, $c]"
+            # es llegiria com "$m[$i + (1,$c)]". Trampa ja documentada al CLAUDE.md.
+            for ($i = 1; $i -le $nFiles; $i++) {
+                for ($c = 1; $c -le $nCols; $c++) { $m[($i + 1), $c] = "r${i}c$c" }
+            }
+        }
+        $sh = [pscustomobject]@{ Name = $nomFulla; UsedRange = [pscustomobject]@{ Value2 = $m } }
+        $wb = [pscustomobject]@{ Sheets = @($sh) }
+        $wb | Add-Member ScriptMethod Close { param($q) $script:_xlTancat++ } -Force
+        $wbs = [pscustomobject]@{}
+        $wbs | Add-Member ScriptMethod Open { param($p, $a, $b) $wb }.GetNewClosure() -Force
+        $ex = [pscustomobject]@{ Visible = $true; DisplayAlerts = $true; Workbooks = $wbs }
+        $ex | Add-Member ScriptMethod Quit { $script:_xlQuit++ } -Force
+        $script:_xlFals = $ex; $script:_xlTancat = 0; $script:_xlQuit = 0
+    }
+    # Substitueix NOMES la creacio de l'Excel; tota la resta de Read-FullaEstesa
+    # es el codi de produccio tal qual.
+    $srcXl = Get-Content -LiteralPath (Join-Path $rootRepo (Join-Path 'suport' 'Excel.ps1')) -Raw
+    $srcXl = $srcXl.Replace(
+        'try { $excel = New-Object -ComObject Excel.Application } catch { $excel = $null }',
+        '$excel = $script:_xlFals')
+    Invoke-Expression $srcXl
+    $fx = [pscustomobject]@{ FullName = 'prova.xlsx' }
+
+    # 1. LA FORMA DE CONSUMIR-LA. El cos torna ,@(...) i el crider ASSIGNA i
+    #    torna ,@($out). El cas d'UN SOL registre es l'unic que distingeix la
+    #    forma bona de la dolenta: amb 'return (Read-FullaEstesa ...)' directe
+    #    hi arribava l'objecte PELAT en lloc d'un array.
+    function _XlLlegeix($f) {
+        $out = Read-FullaEstesa $f {
+            param($x)
+            $recs = @()
+            for ($r = 2; $r -le $x.Rows; $r++) { $recs += [pscustomobject]@{ Id = $x.Data[$r, 1] } }
+            return ,@($recs)
+        }
+        return ,@($out)
+    }
+    # S'ASSIGNA primer, que es com ho fan els tres criders de debo
+    # (Precintades:249, Ruta:977, Coordenades:1344). Amb '@(_XlLlegeix $fx).Count'
+    # a pel el compte dona SEMPRE 1: el pipeline desenrotlla el resultat i l'@()
+    # el torna a embolcallar. La regla val tambe aqui.
+    foreach ($n in 0, 1, 2, 5) {
+        _XlDoble $n 2
+        $recs = _XlLlegeix $fx
+        AssertEq (@($recs).Count) $n "Read-FullaEstesa: $n registres arriben sencers al crider"
+    }
+    _XlDoble 1 2
+    $un = _XlLlegeix $fx
+    AssertEq ([string](@($un)[0].Id)) 'r1c1' 'Read-FullaEstesa: amb UN registre no arriba l''objecte pelat'
+
+    # 2. Les capcaleres de la fila 1, consumides dins del cos.
+    foreach ($nc in 1, 2, 5) {
+        _XlDoble 2 $nc
+        $h = Read-FullaEstesa $fx { param($x) return "$(@($x.Headers).Count)|$($x.Headers[0])" }
+        AssertEq $h "$nc|H1" "_HeadersDeFila1: $nc columnes (el cas d'1 es el que enxampa la cadena pelada)"
+    }
+
+    # 3. Un Excel BUIT no es un error: el cos es crida igual i decideix ell.
+    _XlDoble -1 0
+    $buit = Read-FullaEstesa $fx { param($x) "$($x.Rows)|$($x.Cols)|$(@($x.Headers).Count)" }
+    AssertEq $buit '0|0|0' 'Read-FullaEstesa: Excel buit -> el cos rep 0 files i decideix'
+
+    # 4. EL DEFECTE DE L'ORFE. Les tres copies de rutes/ feien el Close i el Quit
+    #    SENSE try: si el Close petava, el Quit no s'executava i quedava un
+    #    EXCEL.EXE corrent amb el fitxer agafat. Aqui es comprova que es tanca
+    #    tot i que el cos LLANCI.
+    _XlDoble 3 2
+    $peto = ''
+    try { Read-FullaEstesa $fx { param($x) throw 'el cos peta' } } catch { $peto = $_.Exception.Message }
+    AssertEq $peto 'el cos peta' 'Read-FullaEstesa: l''error del cos es propaga'
+    AssertEq $script:_xlTancat 1 'Read-FullaEstesa: tanca el llibre encara que el cos peti'
+    AssertEq $script:_xlQuit   1 'Read-FullaEstesa: ...i surt de l''Excel (res d''EXCEL.EXE orfe)'
+
+    # 5. Si la fulla no hi es, el missatge diu com es diuen les que hi ha.
+    _XlDoble 2 2 'Resum'
+    $errF = ''
+    try { Read-FullaEstesa $fx { param($x) 1 } } catch { $errF = $_.Exception.Message }
+    Assert ($errF.Contains('Resum')) 'Read-FullaEstesa: si no troba la fulla, diu quines hi ha'
+
+    # 6. _NormalitzaText: un sol normalitzador per als DOS processos.
+    AssertEq (_NormalitzaText ('  Est' + [char]0x00E8 + 's  ')) 'estes' '_NormalitzaText: sense accents, sense espais, en minuscules'
+    AssertEq (_NormalitzaText $null) '' '_NormalitzaText: $null -> cadena buida'
+  } catch {
+    Assert $false ("Excel.ps1: una excepcio s'ha escapat del bloc de proves -> " + $_.Exception.Message)
+  }
+}.Invoke() | Out-Null
+
+Write-Host "`n--- Nomes Excel.ps1 obre l'Excel per COM (guard) ---"
+# PER QUE. Set funcions creaven la seva propia instancia d'Excel i tres d'elles
+# ni comprovaven el $null ni protegien el tancament. Amb un sol lloc, arreglar-ho
+# alla val per a totes; aquest guard es el que impedeix que en torni a apareixer
+# una de nova sense adonar-se'n.
+#
+# SeguimentGia.ps1 es l'UNICA excepcio, i esta raonada al seu codi: no nomes
+# llegeix, tambe copia la fulla dins d'un llibre NOU amb la mateixa instancia i
+# l'exporta a PDF, o sigui que necessita l'Excel obert mes enlla del cos.
+# Es mira NOMES el codi de produccio: les proves parlen del literal per forca
+# (l'han de substituir pel doble), i comptar-les seria un fals positiu.
+$excelPermes = @('Excel.ps1', 'SeguimentGia.ps1')
+$obrenExcel = @()
+foreach ($f in $ps1Tots) {
+    if ($f.FullName -like ('*' + [System.IO.Path]::DirectorySeparatorChar + 'tests' + [System.IO.Path]::DirectorySeparatorChar + '*')) { continue }
+    $t = [System.IO.File]::ReadAllText($f.FullName)
+    if ($t.Contains('New-Object -ComObject Excel.Application') -and ($excelPermes -notcontains $f.Name)) {
+        $obrenExcel += $f.Name
+    }
+}
+AssertEq $obrenExcel.Count 0 ('nomes Excel.ps1 (i SeguimentGia) obren l''Excel' + $(if ($obrenExcel.Count) { ' -> ' + ($obrenExcel -join ', ') } else { '' }))
 
 exit (Write-TestSummary 'RESULTAT')

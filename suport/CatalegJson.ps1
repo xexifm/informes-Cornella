@@ -134,14 +134,14 @@ function Read-CatalegJson($json) {
 # ----------------------------------------------------------------------------
 function Read-ConclusionsJson($json, $reportType = $null) {
     $o = _LoadEstructuralJson $json
-    $want = if ([string]::IsNullOrWhiteSpace($reportType)) { '' } else { _NormalizeText $reportType }
+    $want = if ([string]::IsNullOrWhiteSpace($reportType)) { '' } else { _NormalitzaText $reportType }
 
     $selectable = New-Object System.Collections.ArrayList
     $always = New-Object System.Collections.ArrayList
     foreach ($n in @($o.nodes)) {
         $tp = [string]$n.tipus
         if ($tp -eq 'seccio') {
-            $inGroup = ($want -eq '') -or ((_NormalizeText $n.titol) -eq $want)
+            $inGroup = ($want -eq '') -or ((_NormalitzaText $n.titol) -eq $want)
             if ($inGroup) {
                 foreach ($c in @($n.fills)) {
                     [void]$selectable.Add([pscustomobject]@{

@@ -116,9 +116,9 @@ function _SgOpcionsExport {
 
 # Cert si la seleccio inclou la copia de la base de dades.
 function _SgSeleccioTeEstes($seleccio) {
-    $n = _NormalizeText (_SgNomEstes)
+    $n = _NormalitzaText (_SgNomEstes)
     foreach ($s in @($seleccio)) {
-        if ((_NormalizeText $s) -eq $n) { return $true }
+        if ((_NormalitzaText $s) -eq $n) { return $true }
     }
     return $false
 }
@@ -128,12 +128,12 @@ function _SgSeleccioTeEstes($seleccio) {
 function _SgFullesTriades($seleccio) {
     $tri = @{}
     foreach ($s in @($seleccio)) {
-        $k = _NormalizeText $s
+        $k = _NormalitzaText $s
         if (-not [string]::IsNullOrWhiteSpace($k)) { $tri[$k] = $true }
     }
     $out = New-Object System.Collections.ArrayList
     foreach ($d in @(_SgFullesDef)) {
-        if ($tri.ContainsKey((_NormalizeText $d.Nom))) { [void]$out.Add($d) }
+        if ($tri.ContainsKey((_NormalitzaText $d.Nom))) { [void]$out.Add($d) }
     }
     return $out.ToArray()
 }
@@ -143,10 +143,10 @@ function _SgFullesTriades($seleccio) {
 # capceleres repetides ('Classificacio general annex' hi surt dues vegades) i la
 # plantilla mostra sempre la primera. 0 si no hi es. $headers es 0-based.
 function _SgColIndex($headers, [string]$nom) {
-    $t = _NormalizeText $nom
+    $t = _NormalitzaText $nom
     $h = @($headers)
     for ($i = 0; $i -lt $h.Count; $i++) {
-        if ((_NormalizeText $h[$i]) -eq $t) { return ($i + 1) }
+        if ((_NormalitzaText $h[$i]) -eq $t) { return ($i + 1) }
     }
     return 0
 }
@@ -187,11 +187,11 @@ function _SgAplanaPairs($pairs) {
 # Es l'equivalent del MATCH(criteri, P:FZ, 0) de la plantilla.
 function _SgCampInfoCoincident($pairs, $fila, [string]$camp) {
     if ($null -eq $pairs -or $null -eq $fila) { return $null }
-    $t = _NormalizeText $camp
+    $t = _NormalitzaText $camp
     foreach ($p in @($pairs)) {
         $i = [int]$p.NomCol - 1
         if ($i -lt 0 -or $i -ge @($fila).Count) { continue }
-        if ((_NormalizeText $fila[$i]) -eq $t) { return $p }
+        if ((_NormalitzaText $fila[$i]) -eq $t) { return $p }
     }
     return $null
 }
@@ -203,7 +203,7 @@ function _SgCampInfoCoincident($pairs, $fila, [string]$camp) {
 # sigui que no canvia res, pero es deixa dit.
 function _SgAnnexCoincideix([string]$classificacio, [string]$descripcio) {
     if ([string]::IsNullOrWhiteSpace($descripcio)) { return $false }
-    return ((_NormalizeText $classificacio) -eq 'ii')
+    return ((_NormalitzaText $classificacio) -eq 'ii')
 }
 
 # Titol de la fila 1: "ACTIVITAT PRECINTADA? 30/07/2026".
@@ -235,17 +235,17 @@ function _SgFilesPerFulla($def, $headers, $files, $pairs) {
     foreach ($c in @($def.Cols)) { $idx += (_SgColIndex $headers $c) }
     $iGia = _SgColIndex $headers 'ID Activitat'
     $esData = @{}
-    foreach ($d in @($def.DataCols)) { $esData[(_NormalizeText $d)] = $true }
+    foreach ($d in @($def.DataCols)) { $esData[(_NormalitzaText $d)] = $true }
 
     # ANNEX II: la classificacio del CRITERI es la SEGONA columna amb aquest nom.
     $iClassCrit = 0
     $iDescr = 0
     if ($def.Tipus -eq 'annex') {
-        $nomClass = _NormalizeText ('Classificaci' + [char]0x00F3 + ' general annex')
+        $nomClass = _NormalitzaText ('Classificaci' + [char]0x00F3 + ' general annex')
         $vistes = 0
         $h = @($headers)
         for ($i = 0; $i -lt $h.Count; $i++) {
-            if ((_NormalizeText $h[$i]) -eq $nomClass) {
+            if ((_NormalitzaText $h[$i]) -eq $nomClass) {
                 $vistes++
                 if ($vistes -eq 2) { $iClassCrit = $i + 1; break }
             }
@@ -284,7 +284,7 @@ function _SgFilesPerFulla($def, $headers, $files, $pairs) {
             if ($null -ne $ciPair -and $nomCol -eq 'Camp Info 1 - Nom')   { [void]$rec.Add((& $cel $fila $ciPair.NomCol));   continue }
             if ($null -ne $ciPair -and $nomCol -eq 'Camp Info 1 - Valor') { [void]$rec.Add((& $cel $fila $ciPair.ValorCol)); continue }
             $v = & $cel $fila $idx[$k]
-            if ($esData.ContainsKey((_NormalizeText $nomCol))) { $v = _FormatDateOnly $v }
+            if ($esData.ContainsKey((_NormalitzaText $nomCol))) { $v = _FormatDateOnly $v }
             [void]$rec.Add($v)
         }
         [void]$out.Add($rec.ToArray())
@@ -563,10 +563,15 @@ function _SgConstruirLlibre($seleccio) {
     try {
         $wbOrig = $excel.Workbooks.Open($latest.File.FullName, 0, $true)   # ReadOnly
         $pas = ("localitzant la fulla 'Est" + [char]0x00E8 + "s'")
-        $found = _FindEstesSheet $wbOrig
+        # NO passa per Read-FullaEstesa i es a posta: aquesta eina no nomes
+        # LLEGEIX, tambe COPIA la fulla dins d'un llibre NOU amb la MATEIXA
+        # instancia d'Excel, i despres l'exporta a PDF. Read-FullaEstesa tanca
+        # l'Excel en sortir del cos, o sigui que aqui no hi cap. El que si que
+        # comparteix es com es troba la fulla.
+        $found = _TrobaFullaEstesa $wbOrig
         $shOrig = $found.Sheet
         if ($null -eq $shOrig) {
-            return @{ Ok=$false; Error=("No s'ha trobat la fulla 'Est" + [char]0x00E8 + "s' a l'Excel d'activitats.") }
+            return @{ Ok=$false; Error=("No s'ha trobat la fulla 'Est" + [char]0x00E8 + "s' a l'Excel d'activitats. Fulles disponibles: " + (@($found.Noms) -join ', ')) }
         }
 
         # 1) Llegim la taula sencera d'una sola vegada (molt mes rapid que anar

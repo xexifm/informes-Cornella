@@ -40,7 +40,7 @@
   plantilla, inclusio de blocs) son testejables a Linux sense Word.
 
   Reutilitza de GenerarInforme.ps1 / Format.ps1 / MotorInforme.ps1:
-  _NormalizeText, _SplitTextAndUrls, Write-InformeDocx (obrir la plantilla,
+  _NormalitzaText, _SplitTextAndUrls, Write-InformeDocx (obrir la plantilla,
   escriure el cos i desar), les funcions Format-* i $ReportFormatConfig.
 
   CONVENCIO ASCII: per evitar problemes d'encoding de PowerShell 5.1, el codi
@@ -155,7 +155,7 @@ function Get-ActExtrPolissaRC([double]$aforament, [bool]$parcialSotaRasant, [boo
 # Normalitza una resposta Si/No a 'Si' o 'No' (accepta variants: si, s, yes,
 # true, compleix...). Per defecte 'No'.
 function _ActExtrYesNo($v) {
-    $n = _NormalizeText ([string]$v)
+    $n = _NormalitzaText ([string]$v)
     if ($n -in @('si','s','yes','y','true','1','compleix')) { return 'Si' }
     return 'No'
 }
