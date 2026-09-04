@@ -13,6 +13,7 @@ hipotesis ja descartades- viuen ara a part:
 | `suport/Llicencia.ps1`, `LlicenciaDb.ps1`, `MnsTraspas.ps1`, `ESTRUCTURALS/LLIC.json` | **`suport/documentacio/llicencia.md`** |
 | `suport/rutes/` (rutes, coordenades, el planol public de precintades) | **`suport/documentacio/rutes-i-mapes.md`** |
 | Posar el mobil en marxa (Drive, EmailJS, GitHub Pages) | **`suport/documentacio/DESPLEGAMENT-MOBIL.md`** |
+| Provar el programa al PC despres d'una tanda de canvis | **`suport/documentacio/provar-al-pc.md`** (porta un prompt per enganxar) |
 
 **No hi son per estalviar espai, hi son perque es llegeixin.** Si toques un
 d'aquells fitxers sense llegir el seu document, et trobaras reproduint una cosa
@@ -22,6 +23,106 @@ tres informes que resulta que son el mateix document.
 El que queda aqui es el que val per a TOT el projecte: com executar les proves,
 les trampes del llenguatge, `local/` i la privadesa, l'arquitectura, i les
 lliçons que no son de cap modul concret.
+
+## LES REGLES D'ARQUITECTURA (i com es fan complir)
+
+Surten d'un repàs sencer del projecte i de les coses que s'hi van trobar. **No
+són preferències d'estil: cada una ve d'un defecte real que hi havia**, i la
+majoria tenen un *guard* a la suite que les vigila. Si escrius codi nou aquí,
+segueix-les; si en trobes una que no es compleix, és un defecte, no una
+excepció.
+
+### 1. Una cosa, un sol lloc — i si n'hi ha dues, compara-les
+
+La lliçó de tot el repàs: **quan una cosa està escrita dues vegades, les dues
+còpies ja han divergit**, i les diferències no són variants volgudes sinó
+defectes. Va passar amb tot el que es va mirar:
+
+- Els textos del correu (tres còpies) → **el JSON ja tenia un enllaç que les
+  altres dues havien perdut**.
+- Set lectors de l'Excel → **tres deixaven un `EXCEL.EXE` orfe** i no
+  comprovaven el `$null`.
+- Cinc obertures del Word → **tres es deixaven l'`AutomationSecurity`**, que és
+  el que evita la Vista protegida a la unitat de xarxa.
+- Dues funcions d'HTML del correu → en unificar-les va sortir que **dos URLs a
+  la mateixa línia es destrossaven**.
+
+**Per tant: abans d'escriure una funció, `grep` del que vulguis fer.** I si
+n'has d'unificar dues, **compara-les línia a línia primer**: la diferència sol
+ser el defecte que busques.
+
+### 2. Unifica el que és igual; deixa a la crida el que difereix
+
+L'error contrari també es paga. Una funció compartida amb vuit paràmetres per
+cobrir tres casos és pitjor que les tres còpies. La regla que ha funcionat:
+
+- **El que és literalment el mateix** (obrir l'Excel, muntar l'HTML d'un cos,
+  pintar una pantalla d'assumpte + cos) va a un sol lloc.
+- **El que difereix de debò** es queda a la crida, sovint com a **scriptblock**:
+  què vol dir «desar», quines columnes es llegeixen, quin mapa de variables.
+
+I hi ha coses que **NO s'han d'unificar, i queda escrit per què**: les dues
+graelles (el genèric sortiria més complicat que les dues pantalles juntes) i les
+finestres de progrés (només dues són iguals, i amb geometries diferents). **Una
+decisió de no fer-ho també s'escriu**, si no algú la refarà a cegues.
+
+### 3. Un mòdul no pot dependre del seu client
+
+`Write-InformeDocx` (el motor) cridava cinc funcions de `Document.ps1` (un dels
+seus clients). Si el genèric necessita alguna cosa del particular, **la cosa és
+del genèric i s'ha de moure**, amb els seus helpers privats.
+
+**Moure funcions entre fitxers és barat i segur** —tot va amb dot-source al
+mateix àmbit—, i hi ha dues comprovacions que ho demostren i s'han de fer:
+
+1. La **llista de noms de funció** de tot `suport/` idèntica abans i després.
+2. Els **19 fitxers d'or** idèntics.
+
+### 4. Cada fitxer, una cosa
+
+`Seguiment.ps1` tenia l'informe de seguiment, les primitives d'OOXML **i el menú
+principal del programa**. El senyal d'alarma no va ser la mida: va ser que
+**quatre dels sis guards que llegien aquell fitxer eren guards del menú**.
+
+Si per parlar del que fa un fitxer necessites la paraula «i», mira-t'ho.
+
+### 5. El que és de dos processos, en un fitxer que NOMÉS defineix
+
+`rutes/Ruta.ps1` corre en un procés propi i **no pot carregar `UiComuns.ps1`**,
+que executa coses en carregar-se (AppUserModelID, icona). Per això
+`UiFinestra.ps1`, `Json.ps1`, `Excel.ps1` i `Docx.ps1` **només defineixen
+funcions**: és l'única manera que els puguin compartir els dos processos. Si
+escrius un fitxer compartit, que no executi res en carregar-se.
+
+### 6. Un guard per cada cosa que es pot desfer sense adonar-se'n
+
+El projecte té l'historial de defectes que **no fallen, empitjoren en silenci**.
+Contra això la suite té *guards* de font: cap Excel fora d'`Excel.ps1`, cap Word
+fora de `Motor.ps1`, cap format fora de `Format.ps1`, l'estil del correu en un
+sol lloc, tots els `.ps1` parsegen i tenen BOM…
+
+**Un guard nou s'ha de VALIDAR INJECTANT EL DEFECTE** i comprovant que passa a
+vermell. Un guard que no s'ha vist fallar no se sap si vigila res.
+
+### 7. Mesura-ho, no ho dedueixis
+
+Sobretot amb les trampes del PowerShell (el desenrotllat dels arrays, les
+closures, la coma que lliga més que el `+`). En aquest repàs, **raonar va donar
+la resposta equivocada tres vegades**: una coma que semblava imprescindible i no
+feia res, un `.GetNewClosure()` que semblava necessari i no ho era, i una funció
+que semblava morta i la cridava un altre fitxer. Les tres es van resoldre
+executant-ho.
+
+**Corol·lari**: una excepció que s'escapa d'un bloc de proves **el mata sencer**
+i la suite segueix dient «0 FAIL», perquè només compta el que s'arriba a
+executar. Ha passat dues vegades. Els blocs llargs van dins d'un `try` que ho
+reporta com a fallada.
+
+### 8. Digues per què, no què
+
+Els comentaris d'aquest projecte expliquen **quin defecte hi havia** i **què es
+va provar i descartar**. És el que fa que no es repeteixi. Un comentari que
+només tradueix el codi a paraules no serveix de res.
 
 ## On és cada cosa (mapa de mòduls)
 `Motor.ps1` havia arribat a **3.316 línies i 70 funcions**, amb la configuració,
