@@ -177,13 +177,7 @@ function Read-PrecintadesFromExcel($excelFile) {
         $colAct  = Find-HeaderColumn $headers 'Activitat principal'
         $pairs   = Get-CampInfoPairs $headers
 
-        $get = {
-            param($r, $c)
-            if ($c -lt 1 -or $c -gt $cols) { return '' }
-            $v = $data[$r, $c]
-            if ($null -eq $v) { return '' }
-            return ([string]$v).Trim()
-        }
+        $get = $x.Cel   # el lector de cel·la ve amb el context (Excel.ps1)
 
         $records = @()
         for ($r = 2; $r -le $rows; $r++) {

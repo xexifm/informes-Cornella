@@ -100,13 +100,7 @@ function _ReadControlsPeriodics {
                 return @{ Ok = $false; Error = "No s'han trobat les columnes 'Classificació general annex' ni 'Classificació general Apartat' a la fulla Estès." }
             }
 
-            $get = {
-                param($r, $c)
-                if ($c -lt 1 -or $c -gt $cols) { return '' }
-                $v = $data[$r, $c]
-                if ($null -eq $v) { return '' }
-                return ([string]$v).Trim()
-            }
+            $get = $x.Cel   # el lector de cel·la ve amb el context (Excel.ps1)
             $getDate = {
                 param($r, $c)
                 if ($c -lt 1 -or $c -gt $cols) { return '' }

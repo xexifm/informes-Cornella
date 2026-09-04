@@ -5526,6 +5526,21 @@ Write-Host "`n--- Excel.ps1: la seqüencia compartida de la fulla Estesa ---"
     $un = _XlLlegeix $fx
     AssertEq ([string](@($un)[0].Id)) 'r1c1' 'Read-FullaEstesa: amb UN registre no arriba l''objecte pelat'
 
+    # 1b. EL LECTOR DE CEL.LA ve amb el context. Estava copiat als CINC cossos
+    #     -Activitats, ControlsPeriodics, Ruta, Precintades i Coordenades-,
+    #     identic fins a l'espaiat. Es comprova que retalla, que tolera els
+    #     nulls i el fora de rang, i -aixo es el que calia mesurar- que el
+    #     $data i el $cols que el COS es declara pel seu compte NO el despisten:
+    #     el bloc porta .GetNewClosure() i es queda els de Read-FullaEstesa.
+    _XlDoble 2 2
+    $celR = Read-FullaEstesa $fx {
+        param($x)
+        $get = $x.Cel
+        $data = 'JO SOC UN ALTRE'; $cols = 1
+        return "[$(& $get 2 1)][$(& $get 2 9)][$(& $get 3 2)]"
+    }
+    AssertEq $celR '[r1c1][][r2c2]' '$x.Cel: llegeix, i el $data del cos no el despista'
+
     # 2. Les capcaleres de la fila 1, consumides dins del cos.
     foreach ($nc in 1, 2, 5) {
         _XlDoble 2 $nc

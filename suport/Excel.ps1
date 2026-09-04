@@ -151,11 +151,38 @@ function Read-FullaEstesa($excelFile, [scriptblock]$cos) {
         $rows = 0; $cols = 0
         if ($null -ne $data) { $rows = $data.GetLength(0); $cols = $data.GetLength(1) }
 
+        # Cel: llegeix UNA cel·la ja retallada, o '' si la fila/columna no hi
+        # es. Aquest bloc estava copiat als CINC cossos -Activitats,
+        # ControlsPeriodics, Ruta, Precintades i Coordenades-, identic fins a
+        # l'espaiat: es va unificar la carcassa i es va deixar el helper a dins
+        # de cada cos. Ara ve amb el context.
+        #
+        # EL .GetNewClosure() ES OBLIGATORI, i esta MESURAT: sense ell, el bloc
+        # resol $data i $cols quan es crida, i els cossos es declaren els SEUS
+        # ($data = $x.Data). Amb un cos que faci aixo -i en fan tots- el lector
+        # acabaria indexant la variable del cos: a la prova, treure la closure
+        # fa que '$get 2 1' torni 'O' en lloc del valor de la cel·la.
+        #
+        # Compte que aixo va AL REVES que els blocs -Desa/-Restaurar de
+        # Show-EditorAssumpteCos, que NO en porten: alla el bloc s'escriu al
+        # crider i s'executa a la funcio compartida (i per tant ja veu els
+        # locals de qui el va escriure); aqui s'escriu a la funcio compartida i
+        # s'executa al crider. La direccio decideix la resposta, i per aixo cada
+        # cas te la seva prova.
+        $cel = {
+            param($r, $c)
+            if ($c -lt 1 -or $c -gt $cols) { return '' }
+            $v = $data[$r, $c]
+            if ($null -eq $v) { return '' }
+            return ([string]$v).Trim()
+        }.GetNewClosure()
+
         $resultat = & $cos @{
             Data    = $data
             Rows    = $rows
             Cols    = $cols
             Headers = (_HeadersDeFila1 $data $cols)
+            Cel     = $cel
             Sheet   = $sh
             Noms    = @($trobada.Noms)
         }

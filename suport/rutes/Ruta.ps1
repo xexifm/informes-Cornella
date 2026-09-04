@@ -718,13 +718,7 @@ function Read-ActivitatsForRoute($excelFile) {
         $data = $x.Data; $rows = $x.Rows; $cols = $x.Cols
         if ($null -eq $data) { return @{} }
         $C = $Script:RutaColumns
-        $get = {
-            param($r, $c)
-            if ($c -lt 1 -or $c -gt $cols) { return '' }
-            $v = $data[$r, $c]
-            if ($null -eq $v) { return '' }
-            return ([string]$v).Trim()
-        }
+        $get = $x.Cel   # el lector de cel·la ve amb el context (Excel.ps1)
         $byId = @{}
         for ($r = 2; $r -le $rows; $r++) {
             $cell = $data[$r, $C.ID]

@@ -243,13 +243,7 @@ function Initialize-ActivitatsCache($excelFile) {
 
         # Index per ID (columna 1).
         $byId = @{}
-        $get = {
-            param($r, $c)
-            if ($c -lt 1 -or $c -gt $cols) { return '' }
-            $v = $data[$r, $c]
-            if ($null -eq $v) { return '' }
-            return ([string]$v).Trim()
-        }
+        $get = $x.Cel   # el lector de cel·la ve amb el context (Excel.ps1)
         for ($r = 2; $r -le $rows; $r++) {
             $cell = $data[$r, 1]
             if ($null -eq $cell) { continue }
