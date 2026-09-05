@@ -35,8 +35,18 @@ function _LastRunText($jsonPath, $prop) {
     if ([string]::IsNullOrWhiteSpace($jsonPath) -or -not (Test-Path -LiteralPath $jsonPath -ErrorAction SilentlyContinue)) { return '(mai)' }
     try {
         $o = Read-JsonFile $jsonPath
-        if ($null -ne $o -and $o.PSObject.Properties[$prop] -and -not [string]::IsNullOrWhiteSpace([string]$o.$prop)) {
-            return (_FormatRunStamp ([string]$o.$prop))
+        if ($null -ne $o -and $o.PSObject.Properties[$prop]) {
+            $val = $o.$prop
+            # El ConvertFrom-Json del PowerShell 5.1 (produccio) deixa la marca ISO
+            # com a CADENA; el del pwsh 7 (la suite) la converteix a [datetime]. Un
+            # [datetime] a [string] surt en el format de la CULTURA de la maquina
+            # (p.ex. 07/28/2026), que _FormatRunStamp no pot tornar a parsejar en una
+            # cultura d/M/y i acaba a '(mai)'. Es normalitza a ISO round-trip perque
+            # els dos motors passin igual pel formatador unic.
+            if ($val -is [datetime]) { $val = $val.ToString('o') }
+            if (-not [string]::IsNullOrWhiteSpace([string]$val)) {
+                return (_FormatRunStamp ([string]$val))
+            }
         }
     } catch { }
     return '(mai)'
