@@ -222,10 +222,22 @@ function _BuildCorreu($requerimentsHtml, $header) {
 # Colors dels botons d'accio del dialeg: blau mari per ENVIAR i vermell per NO
 # ENVIAR. Son dues accions oposades i irreversibles (un correu no es pot
 # desenviar): el color ha de dir quina es quina d'un cop d'ull.
-$Script:CorreuBlauMari      = [System.Drawing.Color]::FromArgb(16, 42, 87)
-$Script:CorreuBlauMariHover = [System.Drawing.Color]::FromArgb(28, 62, 120)
-$Script:CorreuVermell       = [System.Drawing.Color]::FromArgb(176, 0, 32)
-$Script:CorreuVermellHover  = [System.Drawing.Color]::FromArgb(208, 26, 58)
+#
+# NOMES en interactiu, com $Script:BrandMaroon (UiComuns.ps1): en headless
+# (Actualitzar.bat, les proves, RecordatorisAuto) System.Drawing NO esta
+# carregat i [System.Drawing.Color] peta EN CARREGAR el fitxer, o sigui que
+# s'endu el motor sencer. Va passar: "No se encuentra el tipo
+# [System.Drawing.Color]" a les vistes en Word, les dades del mobil i el Drive.
+$Script:CorreuBlauMari      = $null
+$Script:CorreuBlauMariHover = $null
+$Script:CorreuVermell       = $null
+$Script:CorreuVermellHover  = $null
+if (-not $Script:HeadlessTest) {
+    $Script:CorreuBlauMari      = [System.Drawing.Color]::FromArgb(16, 42, 87)
+    $Script:CorreuBlauMariHover = [System.Drawing.Color]::FromArgb(28, 62, 120)
+    $Script:CorreuVermell       = [System.Drawing.Color]::FromArgb(176, 0, 32)
+    $Script:CorreuVermellHover  = [System.Drawing.Color]::FromArgb(208, 26, 58)
+}
 
 # --- Enviament EmailJS --------------------------------------------------------
 # Adreces disponibles per a Copia Oculta (CCO). Surten de la clau 'bcc' de

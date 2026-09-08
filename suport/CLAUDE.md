@@ -794,6 +794,28 @@ destinataris d'una altra activitat.
   nou a `UiComuns.ps1` al costat de `_StylePrimaryButton` — no una tercera còpia
   de l'estil). Un correu **no es pot desenviar**: les dues accions oposades han
   de distingir-se d'un cop d'ull.
+- **I AQUELLS COLORS VAN TRENCAR EL PROGRAMA EN HEADLESS.** Es van posar a
+  **àmbit d'script**, i allà `[System.Drawing.Color]` s'avalua **en carregar el
+  fitxer**: en headless (`Actualitzar.bat`, `RecordatorisAuto`, les proves)
+  `Motor.ps1` no fa l'`Add-Type`, i el motor **sencer** peta amb *«No se
+  encuentra el tipo [System.Drawing.Color]»*. L'usuari es va quedar sense vistes
+  en Word, sense dades del mòbil i sense refresc del Drive a cada actualització.
+  - **La convenció ja hi era i no es va seguir**: `$Script:BrandMaroon`
+    (`UiComuns.ps1`) i `$Script:ConfigUiAccent` (`Configuracio.ps1`) declaren a
+    `$null` i omplen **dins d'un `if (-not $Script:HeadlessTest)`**. Dins d'una
+    **funció** sí que hi poden anar: només s'avalua en cridar-la, i aquestes les
+    crida només la interfície.
+  - **PER QUÈ LA SUITE NO HO VA VEURE, i és el que cal recordar**: al **pwsh 7
+    de Linux** `System.Drawing.Color` viu a `System.Drawing.Primitives`, que és
+    del framework i sempre hi és → resolia bé. Al **Windows PowerShell 5.1** viu
+    a `System.Drawing.dll`, que en headless no s'ha carregat → peta. **Un tipus
+    de .NET pot estar en assemblatges diferents entre 5.1 i 7**: que la suite
+    passi a Linux no vol dir que el fitxer es pugui carregar al PC.
+  - **Guard** (`06-guards.ps1`, validat injectant el defecte i comprovant que
+    diu fitxer i línia): recorre l'AST de tot `suport/` i falla si un
+    `[System.Drawing.*]` o `[System.Windows.Forms.*]` queda a **àmbit d'script**
+    sense estar dins d'una funció ni d'un `if` que miri una bandera de headless.
+    Sobre el codi d'avui: **zero falsos positius** (tots els altres ja hi eren).
 
 ## Base d'informes (informes-db.json)
 - El motor de la base d'informes és `suport/Informes.ps1`: escaneja `$InformesDir`

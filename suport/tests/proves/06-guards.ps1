@@ -720,3 +720,54 @@ AssertEq (@($itemsTri[0].Children).Count) 1 '_SeccionsTriades: nomes el fill mar
 AssertEq ([string]@($itemsTri[0].Children)[0].Short) 'fill2' '_SeccionsTriades: i es el fill que toca'
 Assert ([bool](@($tri[0].Items | Where-Object { $_.Kind -eq 'intro' }).Count -ge 1)) '_SeccionsTriades: l''intro de la seccio es conserva'
 AssertEq (@(_SeccionsTriades $secProva @{}).Count) 0 '_SeccionsTriades: res marcat -> cap seccio'
+
+# ----------------------------------------------------------------------------
+# GUARD: System.Drawing / WinForms NO es poden TOCAR en carregar el fitxer
+# ----------------------------------------------------------------------------
+# En headless (Actualitzar.bat, RecordatorisAuto, les proves) Motor.ps1 NO fa
+# l'Add-Type de System.Windows.Forms ni System.Drawing. Un
+# [System.Drawing.Color] a AMBIT D'SCRIPT s'avalua EN CARREGAR el fitxer i
+# llavors peta amb "No se encuentra el tipo [System.Drawing.Color]" -- i s'endu
+# el motor SENCER, no nomes aquella eina.
+#
+# Va passar de debo (setembre 2026): quatre colors de botons a EnviarCorreu.ps1
+# a ambit d'script van deixar l'usuari sense vistes en Word, sense dades del
+# mobil i sense refresc del Drive a cada Actualitzar.bat. La suite NO ho va
+# veure perque al pwsh 7 de Linux System.Drawing.Color viu a
+# System.Drawing.Primitives (sempre carregada) i al PowerShell 5.1 del Windows
+# viu a System.Drawing.dll (que allà no s'ha carregat).
+#
+# La convencio del projecte ja hi era ($Script:BrandMaroon a UiComuns.ps1):
+# declarar a $null i omplir dins d'un "if (-not $Script:...Headless...)".
+# Dins d'una FUNCIO si que hi poden anar: nomes s'avalua quan es crida, i
+# aquestes nomes les crida la interficie.
+Write-Host "`n--- Guard: cap System.Drawing/WinForms avaluat en carregar ---"
+$dwFora = New-Object System.Collections.ArrayList
+$dwArrel = Split-Path -Parent $TestsDir
+Get-ChildItem -Recurse -Filter '*.ps1' $dwArrel |
+    Where-Object { $_.FullName -notmatch '[\\/]tests[\\/]' } | ForEach-Object {
+    $dwF = $_
+    $dwAst = [System.Management.Automation.Language.Parser]::ParseFile($dwF.FullName, [ref]$null, [ref]$null)
+    foreach ($dwT in $dwAst.FindAll({ param($x) $x -is [System.Management.Automation.Language.TypeExpressionAst] }, $true)) {
+        $dwNom = [string]$dwT.TypeName.FullName
+        if ($dwNom -notmatch '^System\.(Drawing|Windows\.Forms)\.') { continue }
+        # Pujant per l'arbre: dins d'una funcio -> be (no s'avalua en carregar);
+        # dins d'un if que miri una bandera de headless -> be (esta protegit).
+        $dwP = $dwT.Parent
+        $dwOk = $false
+        while ($null -ne $dwP) {
+            if ($dwP -is [System.Management.Automation.Language.FunctionDefinitionAst]) { $dwOk = $true; break }
+            if ($dwP -is [System.Management.Automation.Language.IfStatementAst]) {
+                foreach ($dwC in $dwP.Clauses) {
+                    if ([string]$dwC.Item1.Extent.Text -match 'Headless') { $dwOk = $true; break }
+                }
+                if ($dwOk) { break }
+            }
+            $dwP = $dwP.Parent
+        }
+        if (-not $dwOk) {
+            [void]$dwFora.Add(($dwF.Name + ':' + $dwT.Extent.StartLineNumber + ' ' + $dwNom))
+        }
+    }
+}
+Assert ($dwFora.Count -eq 0) ("System.Drawing/WinForms avaluat en carregar (peta en headless): " + ($dwFora -join '; '))
