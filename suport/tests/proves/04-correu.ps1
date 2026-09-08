@@ -85,6 +85,57 @@ $dBuit = _CorreuDestinatarisPerDefecte '' ''
 AssertEq $dBuit.Text '' '_CorreuDestinatarisPerDefecte: cap adreca, text buit'
 AssertEq $dBuit.Compte 0 '_CorreuDestinatarisPerDefecte: cap adreca, compte 0'
 
+Write-Host "`n--- EnviarCorreu.ps1: de quina activitat es l'informe (pura) ---"
+# El nom real que fa _GetOutputFileName / _SeguimentOutputName.
+AssertEq (_GiaDelNomFitxer '2026-09-08_Req2_GIA 1466') '1466' '_GiaDelNomFitxer: nom d''un seguiment'
+AssertEq (_GiaDelNomFitxer '2026-05-29_Req1_GIA 1379') '1379' '_GiaDelNomFitxer: nom d''un requeriment nou'
+# _GetUniqueOutputPath hi afegeix "_2", "_3"...: NO forma part de l'id.
+AssertEq (_GiaDelNomFitxer '2026-09-08_Req2_GIA 1466_2') '1466' '_GiaDelNomFitxer: el sufix d''unicitat no entra a l''id'
+AssertEq (_GiaDelNomFitxer '2026-01-02_LlicReq_GIA 900_Bar Pepe') '900' '_GiaDelNomFitxer: encara que hi vagi text al darrere'
+AssertEq (_GiaDelNomFitxer 'informe antic sense res') '' '_GiaDelNomFitxer: sense GIA, cadena buida'
+AssertEq (_GiaDelNomFitxer '') '' '_GiaDelNomFitxer: nom buit, cadena buida'
+
+# La regla de decisio: el nom i la capcalera del document.
+$g1 = _CorreuGiaDecideix '1466' '1466'
+AssertEq $g1.Gia '1466' '_CorreuGiaDecideix: tots dos coincideixen'
+AssertEq ([bool]$g1.CalPreguntar) $false '_CorreuGiaDecideix: ...i no cal preguntar'
+$g2 = _CorreuGiaDecideix '1466' ''
+AssertEq $g2.Gia '1466' '_CorreuGiaDecideix: nomes el nom del fitxer'
+AssertEq ([bool]$g2.CalPreguntar) $false '_CorreuGiaDecideix: nomes el nom, no cal preguntar'
+$g3 = _CorreuGiaDecideix '' '1466'
+AssertEq $g3.Gia '1466' '_CorreuGiaDecideix: nomes la capcalera'
+AssertEq ([bool]$g3.CalPreguntar) $false '_CorreuGiaDecideix: nomes la capcalera, no cal preguntar'
+# Informe antic sense ID GIA enlloc -> s'ha de PREGUNTAR, mai endevinar.
+$g4 = _CorreuGiaDecideix '' ''
+AssertEq $g4.Gia '' '_CorreuGiaDecideix: cap dels dos, res'
+AssertEq ([bool]$g4.CalPreguntar) $true '_CorreuGiaDecideix: cap dels dos -> preguntar'
+# Discrepancia -> tampoc s'endevina: es pregunta i es diu que ha passat.
+$g5 = _CorreuGiaDecideix '1000' '1466'
+AssertEq ([bool]$g5.CalPreguntar) $true '_CorreuGiaDecideix: si no coincideixen, preguntar'
+AssertEq $g5.Gia '1466' '_CorreuGiaDecideix: proposa el de la capcalera (es el contingut de l''informe)'
+AssertEq ([bool]($g5.Motiu -like '*1000*' -and $g5.Motiu -like '*1466*')) $true '_CorreuGiaDecideix: el motiu diu els DOS valors'
+
+Write-Host "`n--- EnviarCorreu.ps1: la capcalera del correu surt del DOCUMENT ---"
+$ecAct = @{ TITULAR = 'Bar del GIA 1466'; ADRECA = 'C/ Nou 3'; ACTIVITAT = 'BAR'
+            EMAIL = 'rao@x.cat'; EMAIL_REP = 'rep@x.cat'; EXP_NUM = 'EXP-1466' }
+# L'ultim informe generat era d'UNA ALTRA activitat: no pot colar-se res seu.
+$ecRepAltre = @{ ID_GIA = '1000'; TITULAR = 'Bar del GIA 1000'; ADRECA = 'C/ Vell 1'
+                 EMAIL = 'altre@x.cat'; NUM_ANOTACIO = '12345' }
+$hA = _CorreuHeaderMerge '1466' $ecAct $ecRepAltre
+AssertEq ([string]$hA['ID_GIA']) '1466' 'Capcalera: l''ID GIA es el del document'
+AssertEq ([string]$hA['TITULAR']) 'Bar del GIA 1466' 'Capcalera: el titular surt de l''Excel'
+AssertEq ([string]$hA['EMAIL']) 'rao@x.cat' 'Capcalera: el correu surt de l''Excel'
+AssertEq ([bool]$hA.ContainsKey('NUM_ANOTACIO')) $false 'Capcalera: NO s''agafa res de l''informe d''una ALTRA activitat'
+# Mateixa activitat: si que s'aprofita el que l'Excel no te.
+$ecRepMateix = @{ ID_GIA = '1466'; NUM_ANOTACIO = '999'; DATA_ANOTACIO = '01/09/2026'; TITULAR = 'No em facis cas' }
+$hB = _CorreuHeaderMerge '1466' $ecAct $ecRepMateix
+AssertEq ([string]$hB['NUM_ANOTACIO']) '999' 'Capcalera: del MATEIX GIA si que s''agafa el que l''Excel no te'
+AssertEq ([string]$hB['TITULAR']) 'Bar del GIA 1466' 'Capcalera: pero l''Excel mana sobre l''informe anterior'
+# Sense fitxa a l'Excel: com a minim l'ID GIA ha de ser correcte.
+$hC = _CorreuHeaderMerge '777' $null $ecRepAltre
+AssertEq ([string]$hC['ID_GIA']) '777' 'Capcalera: sense Excel, l''ID GIA segueix sent el del document'
+AssertEq ([string]$hC['TITULAR']) '' 'Capcalera: sense Excel i sense informe del mateix GIA, res inventat'
+
 Write-Host "`n--- EmailQuota.ps1: comptador d'EmailJS (pura) ---"
 AssertEq (_QuotaMesActual ([datetime]'2026-09-03')) '2026-09' '_QuotaMesActual: yyyy-MM'
 $qNou = _QuotaNormalitza $null '2026-09'

@@ -750,6 +750,51 @@ Per tant, **al final de cada sessió**:
 Si tens dubtes sobre si pots fer push a `main`, pregunta-ho; però el model
 de desplegament de l'usuari depèn que la feina arribi a `main`.
 
+## «Enviar correu»: el GIA surt del DOCUMENT, no de l'últim informe
+
+Bug real i vistós (setembre 2026): l'usuari genera un **Seguiment** del GIA 1466
+i el diàleg d'enviar surt amb l'assumpte **«GIA 1000 Requeriments»** i els
+destinataris d'una altra activitat.
+
+- **La causa**: `Send-CorreuPerDocx` muntava tota la capçalera amb
+  `Load-LastReport`, que és **l'últim informe fet amb l'ASSISTENT**. Un informe
+  de *Seguiment* no hi passa (no desa capçalera), o sigui que allà encara hi
+  havia el «Requeriment - Nou» d'abans. **El fitxer que s'enviava i les dades del
+  correu venien de dues activitats diferents** — i res no ho deia. És la regla 1
+  d'aquest document al revés: dues fonts per a la mateixa cosa, i ningú les
+  comparava.
+- **La regla ara**: el GIA surt del **document que s'envia**, per aquest ordre:
+  1. el **nom del fitxer** (`_GiaDelNomFitxer`, pura) — els noms els fa
+     `_GetOutputFileName` (`..._GIA <id>.docx`) i `_SeguimentOutputName` els
+     **conserva**. Només s'agafen els **dígits** de darrere de «GIA»: el sufix
+     d'unicitat `_2`/`_3` de `_GetUniqueOutputPath` NO és part de l'id;
+  2. la **capçalera del document** (`_ReadDocxParagraphs` + `_ExtractIdGia`, les
+     dues ja existien a `Informes.ps1`).
+- **`_CorreuGiaDecideix` (pura) NO ENDEVINA MAI**: si no en troba cap (informes
+  antics sense ID GIA) **o si els dos no coincideixen**, retorna
+  `CalPreguntar = $true` i `_DemanaIdGia` ho demana, dient **els dos valors** que
+  ha vist. Cancel·lar vol dir **no enviar**: val més no enviar que enviar a qui
+  no és.
+- **La capçalera es reconstrueix des de l'EXCEL per aquell GIA**
+  (`_CorreuHeaderMerge`, pura). La de `Load-LastReport` només s'aprofita **si el
+  seu `ID_GIA` és el mateix** —i només per omplir el que l'Excel no té (núm.
+  d'anotació)—, mai per trepitjar l'Excel. Això arregla alhora l'assumpte
+  (`{ID_GIA}`) i les variables `{TITULAR}`/`{ADRECA}`/`{ACTIVITAT}`, no només els
+  destinataris.
+- **El GIA es mira ABANS de llegir el cos**: la capçalera es llegeix del `.docx`
+  com a **ZIP** (sense Word), i el cos sí que obre el Word. Així, si s'ha de
+  preguntar o es cancel·la, no s'ha obert el Word per res.
+- Si el GIA no és a l'Excel, **s'avisa i es continua** amb el destinatari a mà:
+  aturar-ho seria pitjor que deixar enviar-lo.
+- `_CorreuEmailsActivitat` s'ha esborrat: obria l'Excel per treure NOMÉS els dos
+  correus i ara `_CorreuActivitatPerGia` retorna la fitxa sencera (una sola
+  obertura) que alimenta capçalera i destinataris alhora.
+- **Colors dels botons**: blau marí «Enviar» / vermell «No enviar»
+  (`$Script:CorreuBlauMari` / `$Script:CorreuVermell` + **`_StyleAccentButton`**,
+  nou a `UiComuns.ps1` al costat de `_StylePrimaryButton` — no una tercera còpia
+  de l'estil). Un correu **no es pot desenviar**: les dues accions oposades han
+  de distingir-se d'un cop d'ull.
+
 ## Base d'informes (informes-db.json)
 - El motor de la base d'informes és `suport/Informes.ps1`: escaneja `$InformesDir`
   (per defecte `...\5.- Sergi Fadurdo\Informes`) i, per cada informe (`.docx` o

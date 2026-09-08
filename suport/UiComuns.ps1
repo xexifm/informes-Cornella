@@ -448,6 +448,18 @@ function _StylePrimaryButton($btn) {
     $btn.Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
     $btn.Cursor = 'Hand'
 }
+# Boto d'ACCENT amb un color propi (blau mari per confirmar, vermell per
+# descartar...). Mateixa carcassa que _StylePrimaryButton: aixi el color es
+# l'unica cosa que canvia i no hi ha una tercera copia de l'estil escampada.
+function _StyleAccentButton($btn, $fons, $fonsHover) {
+    $btn.FlatStyle = 'Flat'
+    $btn.BackColor = $fons
+    $btn.ForeColor = [System.Drawing.Color]::White
+    $btn.FlatAppearance.BorderSize = 0
+    if ($null -ne $fonsHover) { $btn.FlatAppearance.MouseOverBackColor = $fonsHover }
+    $btn.Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
+    $btn.Cursor = 'Hand'
+}
 function _StyleSecondaryButton($btn) {
     $btn.FlatStyle = 'Flat'
     $btn.BackColor = [System.Drawing.Color]::White

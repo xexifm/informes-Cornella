@@ -219,6 +219,14 @@ function _BuildCorreu($requerimentsHtml, $header) {
     return [pscustomobject]@{ Subject = $subject; Html = $html }
 }
 
+# Colors dels botons d'accio del dialeg: blau mari per ENVIAR i vermell per NO
+# ENVIAR. Son dues accions oposades i irreversibles (un correu no es pot
+# desenviar): el color ha de dir quina es quina d'un cop d'ull.
+$Script:CorreuBlauMari      = [System.Drawing.Color]::FromArgb(16, 42, 87)
+$Script:CorreuBlauMariHover = [System.Drawing.Color]::FromArgb(28, 62, 120)
+$Script:CorreuVermell       = [System.Drawing.Color]::FromArgb(176, 0, 32)
+$Script:CorreuVermellHover  = [System.Drawing.Color]::FromArgb(208, 26, 58)
+
 # --- Enviament EmailJS --------------------------------------------------------
 # Adreces disponibles per a Copia Oculta (CCO). Surten de la clau 'bcc' de
 # docs\dades\email-textos.json, que es el mateix fitxer que porta l'assumpte i
@@ -314,23 +322,143 @@ function _CorreuDestinatarisPerDefecte([string]$raoEmail, [string]$repEmail) {
     return @{ Text = ($llista -join '; '); Duplicat = $dup; Compte = $llista.Count }
 }
 
-# Busca les dues adreces del titular a l'Excel d'activitats per ID GIA. No es
-# fatal si no hi ha Excel: es retorna el que es tingui (o buit). (Toca COM.)
-function _CorreuEmailsActivitat($idGia) {
-    $out = @{ Rao = ''; Rep = '' }
-    if ([string]::IsNullOrWhiteSpace([string]$idGia)) { return $out }
+# --- DE QUINA ACTIVITAT és aquest informe? -----------------------------------
+# El GIA ha de sortir del DOCUMENT QUE S'ENVIA, mai de l'últim informe generat:
+# un informe de Seguiment no passa per l'assistent, i Load-LastReport encara
+# tenia la capçalera d'un "Requeriment - Nou" anterior. Resultat real: es va
+# obrir el correu del GIA 1466 amb l'assumpte i els destinataris del GIA 1000.
+
+# Treu l'ID GIA del NOM del fitxer ("2026-09-08_Req2_GIA 1466.docx" -> "1466").
+# Els noms els fa _GetOutputFileName ("..._GIA <id>.docx") i el Seguiment els
+# conserva. El sufix d'unicitat ("_2", "_3"...) NO forma part de l'id: per això
+# només s'agafen els dígits que van just darrere de "GIA". PURA.
+function _GiaDelNomFitxer([string]$nom) {
+    if ([string]::IsNullOrWhiteSpace($nom)) { return '' }
+    $m = [regex]::Match([string]$nom, '(?i)GIA[\s_-]*([0-9]+)')
+    if (-not $m.Success) { return '' }
+    return $m.Groups[1].Value
+}
+
+# Decideix quin ID GIA val, comparant el del nom del fitxer i el de la
+# capçalera del document. PURA i testejable: és tota la regla de decisió.
+#   · cap dels dos           -> preguntar (informes antics sense ID GIA)
+#   · només un               -> aquell
+#   · tots dos i coincideixen-> aquell
+#   · tots dos i difereixen  -> preguntar (no ho tenim clar; mai endevinar)
+function _CorreuGiaDecideix([string]$giaNom, [string]$giaDoc) {
+    $n = ([string]$giaNom).Trim()
+    $d = ([string]$giaDoc).Trim()
+    if ($n -eq '' -and $d -eq '') {
+        return @{ Gia = ''; CalPreguntar = $true; Motiu = "no s'ha trobat cap ID GIA ni al nom del fitxer ni a la capçalera." }
+    }
+    if ($n -eq '') { return @{ Gia = $d; CalPreguntar = $false; Motiu = 'de la capçalera del document' } }
+    if ($d -eq '') { return @{ Gia = $n; CalPreguntar = $false; Motiu = 'del nom del fitxer' } }
+    if ($n -eq $d) { return @{ Gia = $d; CalPreguntar = $false; Motiu = 'del nom del fitxer i de la capçalera' } }
+    return @{ Gia = $d; CalPreguntar = $true
+              Motiu = "el nom del fitxer diu GIA $n i la capçalera del document diu GIA $d." }
+}
+
+# Llegeix l'ID GIA del document (nom + capçalera). La capçalera es llegeix del
+# .docx com a ZIP (_ReadDocxParagraphs), SENSE obrir el Word: així es pot
+# preguntar abans de posar-se a llegir el cos, que sí que costa.
+function _CorreuGiaDelDocx($docxPath) {
+    $giaNom = ''
+    try { $giaNom = _GiaDelNomFitxer ([System.IO.Path]::GetFileNameWithoutExtension([string]$docxPath)) } catch { }
+    $giaDoc = ''
+    try {
+        $lines = @(_ReadDocxParagraphs $docxPath)
+        $giaDoc = _ExtractIdGia $lines
+    } catch { $giaDoc = '' }
+    return (_CorreuGiaDecideix $giaNom $giaDoc)
+}
+
+# Demana l'ID GIA quan no es pot deduir amb prou seguretat. Torna '' si es
+# cancel·la (i llavors no s'envia res: val més no enviar que enviar a qui no és).
+function _DemanaIdGia($docxPath, $info) {
+    $form = _NewForm
+    $form.Text = 'Enviar correu - de quina activitat és?'
+    $form.FormBorderStyle = 'FixedDialog'
+    $form.ClientSize = New-Object System.Drawing.Size(560, 230)
+
+    $lbl = New-Object System.Windows.Forms.Label
+    $lbl.Location = New-Object System.Drawing.Point(16, 14)
+    $lbl.Size = New-Object System.Drawing.Size(528, 96)
+    $lbl.Text = ("No es pot saber del cert de quina activitat és aquest informe:`n" +
+                 [System.IO.Path]::GetFileName([string]$docxPath) + "`n`n" +
+                 [string]$info.Motiu + "`n`n" +
+                 "Escriu l'ID GIA de l'activitat perquè el correu vagi al titular correcte.")
+    $form.Controls.Add($lbl)
+
+    $lblG = New-Object System.Windows.Forms.Label
+    $lblG.Text = 'ID GIA:'
+    $lblG.Location = New-Object System.Drawing.Point(16, 120)
+    $lblG.Size = New-Object System.Drawing.Size(60, 22)
+    $form.Controls.Add($lblG)
+
+    $tb = New-Object System.Windows.Forms.TextBox
+    $tb.Location = New-Object System.Drawing.Point(80, 118)
+    $tb.Size = New-Object System.Drawing.Size(140, 24)
+    $tb.Text = [string]$info.Gia
+    $form.Controls.Add($tb)
+
+    $ok = New-Object System.Windows.Forms.Button
+    $ok.Text = 'Continuar'; $ok.DialogResult = 'OK'
+    $ok.Location = New-Object System.Drawing.Point(344, 180)
+    $ok.Size = New-Object System.Drawing.Size(100, 32)
+    _StyleAccentButton $ok $Script:CorreuBlauMari $Script:CorreuBlauMariHover
+    $form.AcceptButton = $ok; $form.Controls.Add($ok)
+
+    $no = New-Object System.Windows.Forms.Button
+    $no.Text = 'Cancel·lar'; $no.DialogResult = 'Cancel'
+    $no.Location = New-Object System.Drawing.Point(452, 180)
+    $no.Size = New-Object System.Drawing.Size(92, 32)
+    _StyleAccentButton $no $Script:CorreuVermell $Script:CorreuVermellHover
+    $form.CancelButton = $no; $form.Controls.Add($no)
+
+    if ($form.ShowDialog() -ne 'OK') { return '' }
+    return ([string]$tb.Text).Trim()
+}
+
+# Fitxa de l'activitat a l'Excel per ID GIA (UNA sola obertura de l'Excel).
+function _CorreuActivitatPerGia([string]$gia) {
+    if ([string]::IsNullOrWhiteSpace($gia)) { return $null }
     try {
         $xls = Find-LatestActivitatsExcel
-        if ($null -ne $xls) {
-            $cache = Initialize-ActivitatsCache $xls.File
-            $act = Get-ActivitatFromCache $cache $idGia
-            if ($null -ne $act) {
-                if ($act.ContainsKey('EMAIL'))     { $out.Rao = [string]$act['EMAIL'] }
-                if ($act.ContainsKey('EMAIL_REP')) { $out.Rep = [string]$act['EMAIL_REP'] }
-            }
+        if ($null -eq $xls) { return $null }
+        $cache = Initialize-ActivitatsCache $xls.File
+        return (Get-ActivitatFromCache $cache $gia)
+    } catch { return $null }
+}
+
+# Munta la capçalera del correu per a un GIA concret. PURA.
+#  · l'ID GIA mana: és el del document que s'envia;
+#  · les dades surten de l'EXCEL (titular, adreça, activitat...);
+#  · la capçalera de l'últim informe només s'aprofita si és del MATEIX GIA
+#    (porta coses que l'Excel no té, com el núm. d'anotació), i mai per
+#    trepitjar el que ja ha dit l'Excel.
+function _CorreuHeaderMerge([string]$gia, $act, $repHeader) {
+    $h = @{ ID_GIA = [string]$gia }
+    $camps = @('TITULAR', 'ADRECA', 'ACTIVITAT', 'EXP_NUM', 'EMAIL', 'EMAIL_REP',
+               'NUM_ANOTACIO', 'DATA_ANOTACIO', 'CLASSIFICACIO')
+    if ($null -ne $act) {
+        foreach ($k in $camps) {
+            try { if ($act.ContainsKey($k)) { $h[$k] = [string]$act[$k] } } catch { }
         }
-    } catch { }
-    return $out
+    }
+    # L'últim informe NOMÉS si parla de la mateixa activitat.
+    $repGia = ''
+    if ($null -ne $repHeader) {
+        try { $repGia = [string]$repHeader['ID_GIA'] } catch { }
+    }
+    if ($repGia -ne '' -and $repGia -eq [string]$gia) {
+        foreach ($k in $camps) {
+            $actual = ''
+            if ($h.ContainsKey($k)) { $actual = [string]$h[$k] }
+            if (-not [string]::IsNullOrWhiteSpace($actual)) { continue }
+            try { if ($repHeader.ContainsKey($k)) { $h[$k] = [string]$repHeader[$k] } } catch { }
+        }
+    }
+    return $h
 }
 
 # --- Localitzar el .docx mes recent ------------------------------------------
@@ -399,14 +527,18 @@ function _DialegEnviar($build, $destinatariDefault, $docxPath) {
         $y += 26
     }
 
+    # Blau mari = enviar, vermell = no enviar. Un correu no es pot desenviar:
+    # les dues accions han de ser distingibles d'un cop d'ull.
     $ok = New-Object System.Windows.Forms.Button
     $ok.Text = 'Enviar'; $ok.DialogResult = 'OK'
     $ok.Location = New-Object System.Drawing.Point(390, 335); $ok.Size = New-Object System.Drawing.Size(90, 32)
+    _StyleAccentButton $ok $Script:CorreuBlauMari $Script:CorreuBlauMariHover
     $form.AcceptButton = $ok; $form.Controls.Add($ok)
 
     $cancel = New-Object System.Windows.Forms.Button
     $cancel.Text = 'No enviar'; $cancel.DialogResult = 'Cancel'
     $cancel.Location = New-Object System.Drawing.Point(485, 335); $cancel.Size = New-Object System.Drawing.Size(90, 32)
+    _StyleAccentButton $cancel $Script:CorreuVermell $Script:CorreuVermellHover
     $form.CancelButton = $cancel; $form.Controls.Add($cancel)
 
     # Scroll vertical i ajust a la pantalla (vegeu suport/UiFinestra.ps1).
@@ -437,9 +569,33 @@ function Send-CorreuPerDocx($docxPath) {
         return
     }
 
+    # De QUINA ACTIVITAT es aquest informe? Surt del document que s'envia (nom
+    # del fitxer + capcalera), NO de l'ultim informe generat: un Seguiment no
+    # passa per l'assistent i Load-LastReport encara duia una altra activitat.
+    # Es mira ABANS de llegir el cos (que obre el Word i costa): si s'ha de
+    # preguntar o es cancel.la, no s'ha fet feina de franc.
+    $giaInfo = _CorreuGiaDelDocx $docxPath
+    $gia = [string]$giaInfo.Gia
+    if ($giaInfo.CalPreguntar) { $gia = _DemanaIdGia $docxPath $giaInfo }
+    if ([string]::IsNullOrWhiteSpace($gia)) { return }
+
+    # Les dades del correu surten de l'Excel per aquest GIA. La capcalera de
+    # l'ultim informe nomes s'aprofita si parla de la MATEIXA activitat.
+    $act = _CorreuActivitatPerGia $gia
+    $repHeader = $null
     $rep = if (Get-Command Load-LastReport -ErrorAction SilentlyContinue) { Load-LastReport } else { $null }
-    $header = @{}
-    if ($rep -and $rep.Header) { foreach ($p in $rep.Header.PSObject.Properties) { $header[$p.Name] = $p.Value } }
+    if ($rep -and $rep.Header) {
+        $repHeader = @{}
+        foreach ($p in $rep.Header.PSObject.Properties) { $repHeader[$p.Name] = $p.Value }
+    }
+    $header = _CorreuHeaderMerge $gia $act $repHeader
+
+    if ($null -eq $act) {
+        [System.Windows.Forms.MessageBox]::Show(
+            ("L'ID GIA $gia no s'ha trobat a l'Excel d'activitats.`n`n" +
+             "El correu s'enviara igual, pero hauras d'escriure el destinatari a ma."),
+            'Enviar correu', 'OK', 'Warning') | Out-Null
+    }
 
     try {
         $reqHtml = _DocxRequerimentsHtml $docxPath
@@ -451,9 +607,8 @@ function Send-CorreuPerDocx($docxPath) {
 
     # Destinatari per defecte: Rao social + Rep. legal (columnes de l'Excel).
     # Si son la mateixa adreca, nomes s'hi posa un cop i s'avisa.
-    $emails = _CorreuEmailsActivitat ([string]$header['ID_GIA'])
-    $def = _CorreuDestinatarisPerDefecte $emails.Rao $emails.Rep
-    $destinatariDefault = if ($def.Text) { $def.Text } else { [string]$header['EMAIL'] }
+    $def = _CorreuDestinatarisPerDefecte ([string]$header['EMAIL']) ([string]$header['EMAIL_REP'])
+    $destinatariDefault = [string]$def.Text
     if ($def.Duplicat) {
         [System.Windows.Forms.MessageBox]::Show(
             "L'adreca de Rao social i la del Representant legal son la mateixa; s'ha posat una sola vegada.",
