@@ -139,6 +139,14 @@ el resum:
 | `Activitats.ps1` | Excel d'activitats: caché per ID GIA + pujada a Drive |
 | `Paquet.ps1` | generar sense assistent (mòbil) |
 | `Migracio.ps1` | rutes de `local/` (`Get-LocalSubdir`) + endreç de les carpetes velles |
+| `CopiaInformesAuto.ps1` | la passada automàtica de *Copiar informes* (procés a part, sense interfície) |
+
+**Llançar un script d'aquest mateix `suport/` en segon pla** es fa en un sol
+lloc: `Start-ScriptSegonPla` (`Motor.ps1`). El fan servir les **vistes en Word**
+(en tancar l'editor de catàlegs) i la **còpia automàtica**; la trampa de les
+cometes del `Start-Process` a PowerShell 5.1 no pot estar escrita dues vegades.
+`Invoke-RevisarMobil` **no** hi entra, i és a posta: espera el resultat, li passa
+arguments i de vegades ha de ser visible.
 
 **Partir un fitxer és barat i segur**: tot va amb dot-source al **mateix àmbit**,
 o sigui que moure una funció d'un fitxer a un altre no en canvia el comportament.
@@ -976,6 +984,30 @@ destinataris d'una altra activitat.
     la marca es desa en hora LOCAL amb desplaçament, o sigui que una asserció amb
     una cadena fixa falla si la màquina va en una altra zona horària — s'ha de
     comprovar l'anada i tornada.
+- **L'interruptor A/M de «Copiar informes»** (menú, setembre 2026). L'única
+  rajola amb commutador (`Interruptor = $true` a la seva entrada). Va **a
+  l'espai del segell**: la data on hi havia la data i la pastilla A/M **on hi
+  havia l'hora** (l'hora de l'última còpia no interessava). Ni un píxel més que
+  les altres rajoles.
+  - **A verd** = automàtic · **M gris** = manual. I **la data també parla**:
+    verda si l'última còpia la va fer l'automàtic, grisa si la vas fer tu — així
+    es veu si l'automàtic treballa de debò o només està encès.
+  - És un `Panel` **dibuixat a mà** (un `Label` no pot portar la pastilla), amb
+    el mateix patró de *hit-test* que el xip ✏️ de les rajoles: el rectangle del
+    commutador el guarda el **Paint** (`$auto.Rect`), que és l'únic que sap on ha
+    quedat després de centrar data + pastilla.
+  - La pastilla són **dos semicercles i un rectangle**: el GDI+ no té rectangle
+    arrodonit i un `GraphicsPath` serien vint línies per a 24×12 px.
+  - El rellotge és un **`Timer` de WinForms d'un minut** (mai un bucle: el menú
+    ha de respondre) i **mor amb la finestra** (`FormClosed` → `Stop`+`Dispose`):
+    un timer viu disparant sobre controls destruïts peta dins del bucle de
+    missatges, on no ho veu ningú. La primera comprovació és al `Shown` (és la
+    de «en obrir el programa»).
+  - `_FormatRunStamp` va guanyar un segon paràmetre (`$ambHora`) i `_LastRunText`
+    / `_LastRunEina` s'han partit en **ISO + format** (`_LastRunIso`,
+    `_LastRunIsoEina`): l'interruptor vol **la mateixa marca** amb un altre
+    format, i duplicar la cerca era la manera que un dia els dos segells
+    diguessin coses diferents.
 - **Textos del correu del mòbil** (`Invoke-EmailTextos`, `suport/EmailTextos.ps1`,
   rajola 📧 a MÒBIL, acció `emailtextos`): editor dels textos que l'app mòbil
   envia al titular per EmailJS. Viuen a **`docs/dades/email-textos.json`** (sense
@@ -1015,6 +1047,42 @@ destinataris d'una altra activitat.
   Mostra una **finestra de progrés amb botó Cancel·lar** i **confirma abans de
   copiar** (amb el nombre d'informes) — mai comença "a cegues". Si es cancel·la,
   NO desa `copiat_el` (la propera vegada torna a comprovar el que faltava).
+- **Copiar informes, mode AUTOMÀTIC** (interruptor **A/M** del menú, setembre
+  2026). La mateixa còpia es fa de dues maneres i per això la feina viu en
+  **quatre funcions sense cap finestra** (`_CopiaInformesPrepara`,
+  `_CopiaInformesCerca`, `_CopiaInformesTria`, `_CopiaInformesCopia`); el que
+  difereix —avisar, preguntar, pintar la barra— es queda a la crida, en
+  **scriptblocks**. Hi ha **un sol `Copy-Item` a tot `Informes.ps1`**, i un guard
+  ho vigila: si el manual i l'automàtic es munten cada un el seu bucle, un dia
+  copiaran coses diferents.
+  - **Quan toca: UNA sola pregunta**, `_CopiaAutoToca` (pura, amb proves) —
+    «des de l'últim **venciment** (les 14:30 que tocaven), s'ha fet cap passada
+    automàtica?». Serveix per als dos casos que va demanar l'usuari (el rellotge
+    de les 14:30 amb el programa obert, i la passada perduda que es recupera en
+    obrir-lo) **i** per al que s'escapava de tots dos: obrir el programa a la
+    tarda el mateix dia que no s'ha fet. Amb dues regles separades, aquell cas
+    es perdia fins l'endemà.
+  - **En un PROCÉS A PART** (`suport/CopiaInformesAuto.ps1`, llançat per
+    `Start-ScriptSegonPla`): recórrer la carpeta d'informes pot trigar, i fet
+    dins del menú la finestra es quedaria **congelada** —el contrari de «no es
+    veurà res»— i, amb els `DoEvents`, l'usuari podria obrir una eina a mig
+    copiar. El fill agafa un mutex `Global\InformesCornella.CopiaInformesAuto`
+    i **no espera**: si ja n'hi ha un fent la feina, plega.
+  - **L'estat** (`copia-informes-state.json`) hi afegeix tres claus: `auto`
+    (l'interruptor), `auto_el` (**l'última passada, encara que no copiés res** —
+    és el que evita que es repeteixi cada minut) i `mode` (`auto`/`manual`: qui
+    va fer l'última còpia de debò). Una passada que no copia res **no** toca
+    `mode`, si no la data del menú deixaria de dir res.
+  - **`_CopiaInformesDesaEstat` desa NOMÉS les claus que li dones**, damunt del
+    que ja hi ha: engegar l'interruptor no pot esborrar la data de l'última
+    còpia, ni al revés.
+  - **La rajola copia SEMPRE**, digui el que digui l'interruptor (ho va demanar
+    l'usuari amb totes les lletres). El commutador és un control **a part** —el
+    segell de sota— i el seu clic es mira contra el **seu rectangle**; un guard
+    comprova que el clic de la rajola no consulta l'interruptor.
+  - Diagnòstic a `%LOCALAPPDATA%\InformesCornella\copia-informes-log.txt`
+    (`_CopiaAutoLog`): d'un mode que no ensenya res, si no és per aquest fitxer
+    no se'n sap res.
 - **Comprovar Excel** (`Invoke-ComprovarExcel`, `Informes.ps1`): per cada
   activitat en Estat `Precinte / Cessament` de la base d'informes, comprova que a
   l'Excel (fulla "Estès", indexat per GIA = col 1) tingui un **Camp Info** amb
@@ -1204,6 +1272,25 @@ mateixa volta del bucle. Va passar al desat de la base de llicències: les
 entrades de la documentació del projecte (que no pertanyen a cap bloc de punts)
 queien al codi dels blocs i petaven. Solució: `if` + `continue`, no `switch`.
 Hi ha una prova que ho deixa escrit **i comprovat** contra el propi PowerShell.
+
+### `break` dins d'un `ForEach-Object` NO és local: se'n va CAP AMUNT
+Atura el pipeline i, si dins de la funció no hi ha cap bucle, **trenca el bucle
+de qui l'ha cridada**. A *Copiar informes*, la cerca cancel·lable feia
+`... | ForEach-Object { ... break }` dins d'`Invoke-CopiarInformes`: cancel·lar
+durant la cerca es carregava el **`while ($true)` de `Main`** i **tancava el
+programa sencer** —sense error, sense res—. La solució és donar-li un bucle per
+trencar allà mateix:
+
+```powershell
+do {
+    Get-ChildItem ... | ForEach-Object { ...; if (cancel) { $stop = $true; break } }
+} while ($false)
+```
+
+Hi ha **dues** proves: una que ho comprova contra el propi PowerShell (amb bucle
+i sense) i un guard de font que exigeix el `do { } while ($false)` al voltant del
+pipeline de `_CopiaInformesCerca`. Compte perquè és **contagiós**: qualsevol
+`break` que posis dins d'un `ForEach-Object` té aquest comportament.
 
 ## Que una finestra hi CAPIGA sempre (`suport/UiFinestra.ps1`)
 

@@ -25,31 +25,36 @@
 #
 # Formata una marca de temps ISO per mostrar-la (petita) sota les rajoles del
 # menu. '(mai)' si es buida o no es pot llegir. Funcio PURA (testejable).
-function _FormatRunStamp([string]$iso) {
+#
+# $ambHora = $false dona NOMES LA DATA. La fa servir la rajola "Copiar informes",
+# que a l'espai de l'hora hi te l'interruptor A/M (l'hora, alli, no interessa).
+function _FormatRunStamp([string]$iso, [bool]$ambHora = $true) {
     if ([string]::IsNullOrWhiteSpace($iso)) { return '(mai)' }
-    try { return ([datetime]::Parse($iso)).ToString('dd/MM/yy HH:mm') } catch { return '(mai)' }
+    $fmt = if ($ambHora) { 'dd/MM/yy HH:mm' } else { 'dd/MM/yy' }
+    try { return ([datetime]::Parse($iso)).ToString($fmt) } catch { return '(mai)' }
 }
 
-# Llegeix una marca de temps d'"ultima execucio" d'un JSON d'estat i la formata.
-function _LastRunText($jsonPath, $prop) {
-    if ([string]::IsNullOrWhiteSpace($jsonPath) -or -not (Test-Path -LiteralPath $jsonPath -ErrorAction SilentlyContinue)) { return '(mai)' }
+# Llegeix una marca de temps d'"ultima execucio" d'un JSON d'estat. Torna el
+# text ISO tal qual (o '' si no hi es): QUI la formata decideix si vol l'hora,
+# i aixi el segell normal i el de l'interruptor llegeixen pel mateix cami.
+function _LastRunIso($jsonPath, $prop) {
+    if ([string]::IsNullOrWhiteSpace($jsonPath) -or -not (Test-Path -LiteralPath $jsonPath -ErrorAction SilentlyContinue)) { return '' }
     try {
         $o = Read-JsonFile $jsonPath
         if ($null -ne $o -and $o.PSObject.Properties[$prop]) {
-            $val = $o.$prop
-            # El ConvertFrom-Json del PowerShell 5.1 (produccio) deixa la marca ISO
-            # com a CADENA; el del pwsh 7 (la suite) la converteix a [datetime]. Un
-            # [datetime] a [string] surt en el format de la CULTURA de la maquina
-            # (p.ex. 07/28/2026), que _FormatRunStamp no pot tornar a parsejar en una
-            # cultura d/M/y i acaba a '(mai)'. Es normalitza a ISO round-trip perque
-            # els dos motors passin igual pel formatador unic.
-            if ($val -is [datetime]) { $val = $val.ToString('o') }
-            if (-not [string]::IsNullOrWhiteSpace([string]$val)) {
-                return (_FormatRunStamp ([string]$val))
-            }
+            # Read-JsonIso (Json.ps1): el 5.1 deixa la marca com a cadena i el
+            # pwsh 7 la converteix a [datetime], i un [datetime] a [string] surt
+            # en el format de la CULTURA de la maquina -que _FormatRunStamp ja no
+            # sap tornar a parsejar-. Normalitzar-ho es de tothom qui llegeix una
+            # data d'un estat, per aixo es fa en UN sol lloc.
+            return [string](Read-JsonIso $o.$prop)
         }
     } catch { }
-    return '(mai)'
+    return ''
+}
+
+function _LastRunText($jsonPath, $prop) {
+    return (_FormatRunStamp (_LastRunIso $jsonPath $prop))
 }
 
 # ----------------------------------------------------------------------------
@@ -104,15 +109,22 @@ function _MarcaEinaUsada([string]$accio) {
     } catch { }
 }
 
-# El text del segell d'una eina.
-function _LastRunEina([string]$accio) {
-    if ([string]::IsNullOrWhiteSpace($accio)) { return '(mai)' }
+# La marca (ISO) del segell d'una eina, i el text que se'n pinta. Van partides
+# perque l'interruptor de "Copiar informes" vol LA MATEIXA marca amb un altre
+# format (data sola): duplicar la cerca hauria estat la manera que un dia els
+# dos segells diguessin coses diferents.
+function _LastRunIsoEina([string]$accio) {
+    if ([string]::IsNullOrWhiteSpace($accio)) { return '' }
     if ($Script:SegellPropi.Contains($accio) -and -not [string]::IsNullOrWhiteSpace($LocalActivitatsDir)) {
         $d = $Script:SegellPropi[$accio]
-        $t = _LastRunText (Join-Path $LocalActivitatsDir $d.Fitxer) $d.Prop
-        if ($t -ne '(mai)') { return $t }
+        $t = _LastRunIso (Join-Path $LocalActivitatsDir $d.Fitxer) $d.Prop
+        if (-not [string]::IsNullOrWhiteSpace($t)) { return $t }
     }
-    return (_LastRunText (_EinesStatePath) $accio)
+    return (_LastRunIso (_EinesStatePath) $accio)
+}
+
+function _LastRunEina([string]$accio) {
+    return (_FormatRunStamp (_LastRunIsoEina $accio))
 }
 
 # Retorna @{ Action='nou'|'seguiment'|'actextr'; Cataleg=<FileInfo|$null> }.
@@ -439,7 +451,9 @@ function Select-Mode {
     $reports = @(
         @{ Emoji = $tiBox;   Label = 'Actualitzar base'; Kind = 'action'; Action = 'informesdb' }
         @{ Emoji = $tiClip;  Label = 'Editar base';      Kind = 'action'; Action = 'informesdbedit' }
-        @{ Emoji = $tiCopy;  Label = 'Copiar informes';  Kind = 'action'; Action = 'copiarinformes' }
+        # L'UNICA rajola amb INTERRUPTOR: sota seu, on les altres tenen l'hora,
+        # hi va el commutador A/M del mode automatic (vegeu mes avall).
+        @{ Emoji = $tiCopy;  Label = 'Copiar informes';  Kind = 'action'; Action = 'copiarinformes'; Interruptor = $true }
         @{ Emoji = $tiPdf;   Label = 'Word a PDF';       Kind = 'action'; Action = 'convertirpdf' }
     )
     # GIA: eines que parlen de la base de dades d'ACTIVITATS (el GIA), no dels
@@ -498,6 +512,129 @@ function Select-Mode {
     # de fila, el segell hauria anat a la rajola equivocada.
     $fStamp = New-Object System.Drawing.Font('Segoe UI', 7)
     $colStamp = [System.Drawing.Color]::FromArgb(120, 128, 138)
+    $ttEines = New-Object System.Windows.Forms.ToolTip
+    # ------------------------------------------------------------------------
+    # L'INTERRUPTOR A/M de "Copiar informes" (mode automatic)
+    # ------------------------------------------------------------------------
+    # Va A L'ESPAI DEL SEGELL d'aquella rajola: la data on hi havia la data i el
+    # commutador on hi havia l'hora, que es el que l'usuari va demanar (l'hora
+    # de l'ultima copia no li interessa). No ocupa ni un pixel mes que les
+    # altres rajoles.
+    #
+    #   A (verd)  mode automatic: cada dia a les 14:30 amb el programa obert i,
+    #             si aquell venciment no s'ha servit, en obrir el programa. Es
+    #             fa en segon pla i no s'hi veu res (Invoke-CopiaAutoSiToca).
+    #   M (gris)  mode manual: nomes es copia quan cliques la rajola.
+    #
+    # I LA DATA DIU QUI VA FER L'ULTIMA COPIA: verda si la va fer el mode
+    # automatic, grisa si la vas fer tu. Aixi, d'un cop d'ull, se sap si
+    # l'automatic esta treballant de debo o nomes esta ences.
+    #
+    # LA RAJOLA SEGUEIX COPIANT SEMPRE, digui el que digui l'interruptor: el
+    # commutador es un control a part (el clic es mira contra el seu rectangle),
+    # o sigui que clicar la rajola mai el toca ni al reves.
+    $colAuto     = [System.Drawing.Color]::FromArgb(46, 160, 67)    # verd de la pastilla
+    $colAutoText = [System.Drawing.Color]::FromArgb(26, 122, 55)    # el mateix verd, mes fosc: a 7pt el clar no es llegeix
+    $colManual   = [System.Drawing.Color]::FromArgb(150, 155, 163)  # gris de la pastilla
+    $fSwitch = New-Object System.Drawing.Font('Segoe UI', 6, [System.Drawing.FontStyle]::Bold)
+
+    # L'estat que pinta l'interruptor, en UN hashtable: aixi el rellotge i el
+    # clic el refresquen sense haver de tornar a muntar cap control (i el
+    # scriptblock del Paint el veu igual, sigui quan sigui que es dibuixi).
+    $auto = @{ On = $false; Data = '(mai)'; Verd = $false; Ctl = $null; Rect = $null; Tip = $null }
+    $refrescaAuto = {
+        $auto.On   = [bool](_CopiaAutoActiu)
+        $auto.Verd = ([string](_CopiaInformesUltimMode) -eq 'auto')
+        $auto.Data = [string](_FormatRunStamp (_LastRunIsoEina 'copiarinformes') $false)
+        if ($null -ne $auto.Ctl) {
+            $auto.Ctl.Invalidate()
+            if ($null -ne $auto.Tip) {
+                $q = if ($auto.On) {
+                    "Mode AUTOMATIC: es copia sol cada dia a les 14:30 (i en obrir el programa, si aquell dia no s'ha arribat a fer). Clica per passar a manual."
+                } else {
+                    "Mode MANUAL: nomes es copia quan cliques la rajola. Clica per posar-ho en automatic."
+                }
+                $auto.Tip.SetToolTip($auto.Ctl, $q)
+            }
+        }
+    }.GetNewClosure()
+
+    # La pastilla es dibuixa amb DOS SEMICERCLES I UN RECTANGLE: el GDI+ no te
+    # rectangle arrodonit i muntar-ne un amb GraphicsPath serien vint linies mes
+    # per a 24x12 pixels.
+    $autoPaint = {
+        param($s, $e)
+        $g = $e.Graphics
+        $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+        $rc = $s.ClientRectangle
+        $flN = [System.Windows.Forms.TextFormatFlags]::NoPadding
+        $flC = [System.Windows.Forms.TextFormatFlags]::HorizontalCenter -bor [System.Windows.Forms.TextFormatFlags]::VerticalCenter -bor $flN
+        $flV = [System.Windows.Forms.TextFormatFlags]::VerticalCenter -bor $flN
+        $pw = 24; $ph = 12; $gap = 5
+        $txt = [string]$auto.Data
+        $szT = [System.Windows.Forms.TextRenderer]::MeasureText($g, $txt, $fStamp, [System.Drawing.Size]::Empty, $flN)
+        $x0 = [int](($rc.Width - ($szT.Width + $gap + $pw)) / 2)
+        if ($x0 -lt 0) { $x0 = 0 }
+
+        # La data, verda si l'ultima copia la va fer el mode automatic.
+        $colTxt = if ($auto.Verd) { $colAutoText } else { $colStamp }
+        $rT = New-Object System.Drawing.Rectangle($x0, 0, $szT.Width, $rc.Height)
+        [System.Windows.Forms.TextRenderer]::DrawText($g, $txt, $fStamp, $rT, $colTxt, $flV)
+
+        $px = $x0 + $szT.Width + $gap
+        $py = [int](($rc.Height - $ph) / 2)
+        $col = if ($auto.On) { $colAuto } else { $colManual }
+        $br = New-Object System.Drawing.SolidBrush($col)
+        $g.FillEllipse($br, $px, $py, $ph, $ph)
+        $g.FillEllipse($br, ($px + $pw - $ph), $py, $ph, $ph)
+        $g.FillRectangle($br, ($px + [int]($ph / 2)), $py, ($pw - $ph), $ph)
+        $br.Dispose()
+
+        # El boto blanc al costat que toca i la lletra a l'altre: A a l'esquerra
+        # amb el boto a la dreta (ences), M a la dreta amb el boto a l'esquerra.
+        $kn = $ph - 4
+        $kx = if ($auto.On) { $px + $pw - $ph + 2 } else { $px + 2 }
+        $bw = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::White)
+        $g.FillEllipse($bw, $kx, ($py + 2), $kn, $kn)
+        $bw.Dispose()
+        $lletra = if ($auto.On) { 'A' } else { 'M' }
+        $lx = if ($auto.On) { $px } else { $px + $pw - $ph }
+        $rLl = New-Object System.Drawing.Rectangle($lx, $py, $ph, $ph)
+        [System.Windows.Forms.TextRenderer]::DrawText($g, $lletra, $fSwitch, $rLl, [System.Drawing.Color]::White, $flC)
+
+        # El rectangle del clic el guarda el PAINT (com els xips de les rajoles):
+        # es l'unic lloc que sap on ha quedat la pastilla despres de centrar-ho
+        # tot segons l'ample que ocupi la data.
+        $auto.Rect = New-Object System.Drawing.Rectangle(($px - 3), 0, ($pw + 6), $rc.Height)
+    }.GetNewClosure()
+
+    $autoClick = {
+        param($s, $e)
+        if ($null -eq $auto.Rect -or -not $auto.Rect.Contains($e.Location)) { return }
+        $nou = -not $auto.On
+        # Sense carpeta de copia no hi ha res a automatitzar, i deixar-ho ences
+        # sense desti seria un automatic que no fa res i no ho diu.
+        if ($nou -and [string]::IsNullOrWhiteSpace($CopiaInformesDir)) {
+            [System.Windows.Forms.MessageBox]::Show(
+                "Per copiar els informes sols cal dir on s'han de copiar.`n`nVes a  " + [char]0x2699 + " Configuraci" + [char]0x00F3 + " i indica 'Carpeta on copiar els informes'.",
+                'Copiar informes', 'OK', 'Information') | Out-Null
+            return
+        }
+        [void](_CopiaAutoDesaActiu $nou)
+        & $refrescaAuto
+        # En engegar-lo, si el venciment d'avui ja ha passat i ningu no l'ha
+        # servit, la passada surt ARA (esperar a dema no seria "automatic").
+        if ($nou) { [void](Invoke-CopiaAutoSiToca) }
+    }.GetNewClosure()
+
+    # Feedback de que es clicable, igual que el xip de l'editor de catalegs.
+    $autoMove = {
+        param($s, $e)
+        $sobre = ($null -ne $auto.Rect -and $auto.Rect.Contains($e.Location))
+        $c = if ($sobre) { [System.Windows.Forms.Cursors]::Hand } else { [System.Windows.Forms.Cursors]::Default }
+        if ($s.Cursor -ne $c) { $s.Cursor = $c }
+    }.GetNewClosure()
+
     # Dibuixa una fila de rajoles amb el seu segell a l'alcada $y actual i retorna
     # la $y seguent (helper unic: el fan servir les quatre files).
     $addTileRow = {
@@ -517,17 +654,35 @@ function Select-Mode {
             $tb.add_Click($tileClick)
             [void]$form.Controls.Add($tb)
 
-            $lblS = New-Object System.Windows.Forms.Label
-            $lblS.Text = [string](_LastRunEina ([string]$tool.Action))
-            $lblS.Font = $fStamp
-            $lblS.ForeColor = $colStamp
-            $lblS.TextAlign = 'MiddleCenter'
-            $lblS.Location = New-Object System.Drawing.Point($tx, ($yRow + $tileH + 2))
-            $lblS.Size = New-Object System.Drawing.Size($tileW, 14)
-            [void]$form.Controls.Add($lblS)
-            # El guardem a la propia rajola: la d'enllac (precintades) no tanca el
-            # menu i s'ha de poder refrescar el seu segell alli mateix.
-            $tool.StampLabel = $lblS
+            if ([bool]$tool.Interruptor) {
+                # MATEIX ESPAI que el segell de les altres: data + interruptor
+                # A/M alla on elles tenen data + hora. Es un Panel dibuixat a ma
+                # (un Label no pot portar la pastilla) i el clic es mira contra
+                # el rectangle del commutador, no contra tot el control.
+                $pnS = New-Object System.Windows.Forms.Panel
+                $pnS.Location = New-Object System.Drawing.Point($tx, ($yRow + $tileH + 1))
+                $pnS.Size = New-Object System.Drawing.Size($tileW, 15)
+                $pnS.BackColor = $form.BackColor
+                $pnS.add_Paint($autoPaint)
+                $pnS.add_MouseClick($autoClick)
+                $pnS.add_MouseMove($autoMove)
+                [void]$form.Controls.Add($pnS)
+                $auto.Ctl = $pnS
+                $auto.Tip = $ttEines
+                & $refrescaAuto
+            } else {
+                $lblS = New-Object System.Windows.Forms.Label
+                $lblS.Text = [string](_LastRunEina ([string]$tool.Action))
+                $lblS.Font = $fStamp
+                $lblS.ForeColor = $colStamp
+                $lblS.TextAlign = 'MiddleCenter'
+                $lblS.Location = New-Object System.Drawing.Point($tx, ($yRow + $tileH + 2))
+                $lblS.Size = New-Object System.Drawing.Size($tileW, 14)
+                [void]$form.Controls.Add($lblS)
+                # El guardem a la propia rajola: la d'enllac (precintades) no tanca
+                # el menu i s'ha de poder refrescar el seu segell alli mateix.
+                $tool.StampLabel = $lblS
+            }
 
             $tx += $tileW + $tileGap
         }
@@ -660,6 +815,33 @@ function Select-Mode {
     }.GetNewClosure())
     [void]$band.Controls.Add($btnConfig)
     $ttBand.SetToolTip($btnConfig, 'Configuracio')
+
+    # ------------------------------------------------------------------------
+    # EL RELLOTGE del mode automatic de "Copiar informes"
+    # ------------------------------------------------------------------------
+    # Un Timer de WinForms i no un bucle: el menu ha de seguir responent. Cada
+    # minut demana a Invoke-CopiaAutoSiToca si toca la passada -ell ho decideix
+    # tot: si l'interruptor esta ences i si el venciment de les 14:30 encara no
+    # s'ha servit- i despres refresca el segell, que es l'unica cosa que es veu
+    # quan la copia ja s'ha fet.
+    #
+    # LA PRIMERA COMPROVACIO ES AL 'Shown', no aqui: es la de "en obrir el
+    # programa". Com que el menu es torna a obrir a cada volta de Main, tambe
+    # es mira en tornar de qualsevol eina; repetir-ho no costa res perque la
+    # marca 'auto_el' ja diu que aquell venciment esta servit.
+    $tmrAuto = New-Object System.Windows.Forms.Timer
+    $tmrAuto.Interval = 60000
+    $tmrAuto.add_Tick({
+        [void](Invoke-CopiaAutoSiToca)
+        & $refrescaAuto
+    }.GetNewClosure())
+    $form.add_Shown({
+        [void](Invoke-CopiaAutoSiToca)
+        $tmrAuto.Start()
+    }.GetNewClosure())
+    # El rellotge MOR AMB LA FINESTRA: un Timer viu que dispari sobre controls
+    # ja destruits es una excepcio dins del bucle de missatges.
+    $form.add_FormClosed({ try { $tmrAuto.Stop(); $tmrAuto.Dispose() } catch { } }.GetNewClosure())
 
     $res = $form.ShowDialog()
     if ($res -ne 'OK' -or $null -eq $result.Choice) { exit 0 }

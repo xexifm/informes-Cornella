@@ -78,6 +78,89 @@ foreach ($f in $ps1Tots) {
 }
 AssertEq $senseBom.Count 0 ('cap .ps1 sense BOM' + $(if ($senseBom.Count) { ' -> ' + ($senseBom -join ', ') } else { '' }))
 
+Write-Host "`n--- Copiar informes: manual i automatic, una sola copia ---"
+# PER QUE. L'eina es fa de dues maneres (la rajola, amb finestra i confirmacio,
+# i la passada automatica de les 14:30, muda i en un proces a part). Si cada una
+# es munta el seu bucle de copia, un dia divergiran: la de sempre passa per
+# aqui, la nova no, i els informes copiats deixen de ser els mateixos. Nomes hi
+# ha UN Copy-Item a tot el fitxer i es el del nucli (_CopiaInformesCopia).
+$srcInf = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'suport' 'Informes.ps1')))
+AssertEq (@([regex]::Matches($srcInf, 'Copy-Item')).Count) 1 'Copiar informes: un sol Copy-Item a Informes.ps1 (el del nucli)'
+foreach ($fn in @('_CopiaInformesPrepara', '_CopiaInformesCerca', '_CopiaInformesTria', '_CopiaInformesCopia')) {
+    Assert ($srcInf.Contains('function ' + $fn)) ("Copiar informes: el nucli sense finestres te " + $fn)
+}
+# El mode AUTOMATIC no ensenya res: "es fara en segon pla (no es veura res)".
+$iAuto = $srcInf.IndexOf('function Invoke-CopiarInformesAuto')
+Assert ($iAuto -gt 0) 'Copiar informes: hi ha la passada automatica'
+$trosAuto = $srcInf.Substring($iAuto, [Math]::Min(2000, $srcInf.Length - $iAuto))
+Assert (-not $trosAuto.Contains('MessageBox')) 'Copiar informes (auto): cap finestra ni cap pregunta'
+Assert (-not $trosAuto.Contains('_NewForm'))   'Copiar informes (auto): ...ni cap formulari'
+
+# EL 'break' DINS D'UN ForEach-Object NO ES LOCAL. Aixo no es una preferencia:
+# es el llenguatge, i aqui es va emportar el programa sencer. La cerca
+# d'informes es cancel-lable i el 'break' que aturava el pipeline, en no trobar
+# cap bucle dins de la funcio, se n'anava cap amunt i trencava el 'while ($true)'
+# de Main: cancel-lar la cerca TANCAVA EL PROGRAMA. El 'do { } while ($false)'
+# li dona un bucle per trencar alli mateix.
+#
+# Primer la comprovacio del propi llenguatge (mesurar-ho, no deduir-ho):
+$provaBrk = New-Object System.Collections.ArrayList
+function _ProvaBreakSenseBucle { 1..5 | ForEach-Object { if ($_ -eq 2) { break } } }
+function _ProvaBreakAmbBucle   { do { 1..5 | ForEach-Object { if ($_ -eq 2) { break } } } while ($false) }
+foreach ($v in 1..3) {
+    _ProvaBreakAmbBucle
+    [void]$provaBrk.Add($v)
+}
+AssertEq ($provaBrk -join ',') '1,2,3' "'break' dins d'un ForEach-Object amb do/while(false): el bucle de fora sobreviu"
+$provaBrk2 = New-Object System.Collections.ArrayList
+foreach ($v in 1..3) {
+    # L'Add va ABANS: el 'break' se'n va sense tornar, o sigui que el que hi
+    # hagues despres de la crida no s'executaria mai (una altra manera de
+    # perdre feina sense veure cap error).
+    [void]$provaBrk2.Add($v)
+    _ProvaBreakSenseBucle
+}
+AssertEq ($provaBrk2 -join ',') '1' "'break' dins d'un ForEach-Object SENSE bucle propi: es carrega el foreach de fora (per aixo hi ha el do/while)"
+# ...i despres el guard sobre el codi que ho patia.
+$iCerca = $srcInf.IndexOf('function _CopiaInformesCerca')
+Assert ($iCerca -gt 0) 'Copiar informes: hi ha la cerca'
+$trosCerca = $srcInf.Substring($iCerca, [Math]::Min(1400, $srcInf.Length - $iCerca))
+$iDo  = $trosCerca.IndexOf('do {')
+$iGci = $trosCerca.IndexOf('Get-ChildItem')
+$iBrk = $trosCerca.IndexOf('break')
+$iWhl = $trosCerca.IndexOf('} while ($false)')
+Assert ($iDo -ge 0 -and $iGci -gt $iDo -and $iBrk -gt $iGci -and $iWhl -gt $iBrk) 'la cerca cancel-lable te el seu bucle propi (do/while(false)) al voltant del pipeline'
+
+Write-Host "`n--- El menu: l'interruptor A/M i la rajola son coses diferents ---"
+# PER QUE. L'usuari ho va dir amb totes les lletres: "independentment de si esta
+# en automatic o manual, si es clica l'eina s'ha d'executar igualment". El
+# commutador es un control A PART (el segell de sota la rajola) i el seu clic
+# es mira contra el SEU rectangle; el de la rajola no el consulta per res.
+$srcMenu4 = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'suport' 'Menu.ps1')))
+$iTileClick = $srcMenu4.IndexOf('$tileClick = {')
+Assert ($iTileClick -gt 0) 'menu: hi ha el clic de les rajoles'
+$trosTile = $srcMenu4.Substring($iTileClick, [Math]::Min(900, $srcMenu4.Length - $iTileClick))
+Assert (-not $trosTile.Contains('$auto.')) 'menu: el clic de la rajola no mira l''interruptor (copia sempre)'
+$iAutoClick = $srcMenu4.IndexOf('$autoClick = {')
+Assert ($iAutoClick -gt 0) 'menu: hi ha el clic de l''interruptor'
+$trosAutoClick = $srcMenu4.Substring($iAutoClick, [Math]::Min(400, $srcMenu4.Length - $iAutoClick))
+Assert ($trosAutoClick.Contains('$auto.Rect.Contains($e.Location)')) 'menu: l''interruptor nomes reacciona dins del seu rectangle'
+# El rellotge ha de morir amb la finestra: un Timer viu disparant sobre controls
+# destruits peta dins del bucle de missatges, on ningu no el veu.
+Assert ($srcMenu4.Contains('$form.add_FormClosed({ try { $tmrAuto.Stop(); $tmrAuto.Dispose() } catch { } }')) 'menu: el rellotge de l''automatic s''atura en tancar el menu'
+
+Write-Host "`n--- Llancar un script en segon pla: un sol lloc ---"
+# PER QUE. Les cometes del Start-Process a PowerShell 5.1 (-ArgumentList no
+# enquota res, i el clone de l'usuari te espais a la ruta) son prou fines per no
+# tenir-les escrites dues vegades. Les vistes en Word i la copia automatica en
+# depenen; Invoke-RevisarMobil NO hi entra i esta dit per que (espera el resultat,
+# li passa arguments i de vegades ha de ser visible).
+$srcMotor4 = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'suport' 'Motor.ps1')))
+Assert ($srcMotor4.Contains('function Start-ScriptSegonPla')) 'Start-ScriptSegonPla viu a Motor.ps1'
+$srcEdit4 = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'suport' 'EditorCatalegs.ps1')))
+Assert ($srcEdit4.Contains('Start-ScriptSegonPla')) 'les vistes en Word passen per Start-ScriptSegonPla'
+Assert (-not ($srcEdit4 -match "Start-Process -FilePath 'powershell\.exe'")) 'EditorCatalegs.ps1 ja no es munta el llancador pel seu compte'
+
 Write-Host "`n--- docs/app.js: paritat amb el motor del PC (guards) ---"
 # PER QUE. app.js diu que "replica EXACTAMENT" la logica del PC, pero no hi ha
 # cap prova que ho comprovi i havia divergit en quatre punts, tots ells defectes

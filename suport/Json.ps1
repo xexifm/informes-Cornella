@@ -54,6 +54,23 @@ function Read-JsonFile([string]$Path) {
     }
 }
 
+# Normalitza a text ISO una marca de temps que ve d'un JSON.
+#
+# PER QUE: el ConvertFrom-Json del Windows PowerShell 5.1 (produccio) deixa la
+# marca com a CADENA, i el del pwsh 7 (la suite) la converteix a [datetime]. Un
+# [datetime] passat a [string] surt en el format de la CULTURA de la maquina
+# (p.ex. 07/28/2026), que despres ja no es pot tornar a parsejar en una cultura
+# d/M/y: el segell del menu queia a '(mai)'. Amb el round-trip ('o') els dos
+# motors donen el mateix text i qualsevol parsejador el sap llegir.
+#
+# Ho necessita tothom qui llegeix una data d'un estat (el segell del menu i
+# l'estat de "Copiar informes"), per aixo viu aqui i no a cap d'ells. PURA.
+function Read-JsonIso($val) {
+    if ($null -eq $val) { return '' }
+    if ($val -is [datetime]) { return $val.ToString('o') }
+    return [string]$val
+}
+
 # Escriu un objecte com a JSON: UTF-8 SENSE BOM i de manera ATOMICA.
 #
 # -Depth es el mateix del ConvertTo-Json i cada crider hi posa el seu (les bases

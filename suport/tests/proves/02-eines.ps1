@@ -167,6 +167,146 @@ AssertEq $pairsCI[1].NomCol 4 '_FindCampInfoPairs parell 2 NomCol=4'
 AssertEq $pairsCI[1].ValorCol 6 '_FindCampInfoPairs parell 2 ValorCol=6 (salta la Unitat)'
 AssertEq ((_FindCampInfoPairs @('ID','Titular','Adreça')).Count) 0 '_FindCampInfoPairs sense Camp Info -> 0 parells'
 
+Write-Host "`n--- Informes.ps1: Copiar informes en AUTOMATIC (quan toca) ---"
+# LA REGLA, en una sola pregunta: "des de l'ultim VENCIMENT (les 14:30 que
+# tocaven), s'ha fet cap passada automatica?". Serveix per als dos casos que va
+# demanar l'usuari -el rellotge de les 14:30 amb el programa obert i la passada
+# perduda que es recupera en obrir-lo- i, de propina, per al que s'escapava de
+# tots dos: obrir el programa a la tarda el mateix dia que no s'ha fet.
+$ahir  = [datetime]'2026-09-07T14:30:00'
+$avui  = [datetime]'2026-09-08T14:30:00'
+AssertEq (_CopiaAutoVenciment ([datetime]'2026-09-08T09:00:00')) $ahir '_CopiaAutoVenciment: abans de les 14:30, el venciment es el d''ahir'
+AssertEq (_CopiaAutoVenciment ([datetime]'2026-09-08T14:30:00')) $avui '_CopiaAutoVenciment: a les 14:30 en punt, ja es el d''avui'
+AssertEq (_CopiaAutoVenciment ([datetime]'2026-09-08T23:59:00')) $avui '_CopiaAutoVenciment: a la nit, el d''avui'
+AssertEq (_CopiaAutoVenciment ([datetime]'2026-03-01T00:10:00')) ([datetime]'2026-02-28T14:30:00') '_CopiaAutoVenciment: creua el canvi de mes sol'
+
+Assert (_CopiaAutoToca ([datetime]'2026-09-08T09:00:00') '') 'toca: no s''ha fet mai'
+Assert (_CopiaAutoToca ([datetime]'2026-09-08T09:00:00') 'aixo no es una data') 'toca: una marca il-legible val com si no n''hi hagues'
+# El rellotge: el menu obert quan arriben les 14:30.
+Assert (_CopiaAutoToca ([datetime]'2026-09-08T14:30:00') ([datetime]'2026-09-07T14:30:05').ToString('o')) 'toca: arriben les 14:30 i l''ultima es la d''ahir'
+Assert (-not (_CopiaAutoToca ([datetime]'2026-09-08T14:31:00') ([datetime]'2026-09-08T14:30:05').ToString('o'))) 'NO toca: la d''avui ja esta feta'
+# En obrir el programa: ahir no es va fer (PC apagat).
+Assert (_CopiaAutoToca ([datetime]'2026-09-08T09:00:00') ([datetime]'2026-09-06T14:30:05').ToString('o')) 'toca: ahir no es va fer, es recupera en obrir'
+Assert (-not (_CopiaAutoToca ([datetime]'2026-09-08T09:00:00') ([datetime]'2026-09-07T14:30:05').ToString('o'))) 'NO toca: ahir SI que es va fer i encara no son les 14:30'
+# El cas que es perdia amb dues regles separades (una per al rellotge i una per
+# a l'arrencada): obres a la tarda i la passada d'avui no s'ha arribat a fer.
+Assert (_CopiaAutoToca ([datetime]'2026-09-08T16:00:00') ([datetime]'2026-09-07T14:30:05').ToString('o')) 'toca: obres a les 16:00 i la d''avui no s''ha fet (no s''espera a dema)'
+
+Write-Host "`n--- Informes.ps1: Copiar informes, l'estat i la tria ---"
+$copiaDir = Join-Path ([System.IO.Path]::GetTempPath()) ('copia-' + [guid]::NewGuid().ToString('N'))
+[void](New-Item -ItemType Directory -Path $copiaDir -Force)
+$LocalActivitatsDirVellC = $LocalActivitatsDir
+$LocalActivitatsDir = $copiaDir
+try {
+    $e0 = _CopiaInformesEstat
+    AssertEq ([string]$e0['copiat_el']) '' 'estat: sense fitxer, totes les claus buides'
+    AssertEq ([bool]$e0['auto']) $false 'estat: l''interruptor arrenca apagat'
+    # Desa NOMES la clau que li dones i conserva la resta: l'interruptor no pot
+    # esborrar la data de l'ultima copia, ni al reves.
+    [void](_CopiaInformesDesaEstat @{ copiat_el = '2026-09-01T10:00:00'; desti = 'D:\Copia'; mode = 'manual' })
+    [void](_CopiaAutoDesaActiu $true)
+    $e1 = _CopiaInformesEstat
+    AssertEq ([bool]$e1['auto']) $true 'estat: l''interruptor es desa'
+    AssertEq ([string]$e1['mode']) 'manual' 'estat: ...i no s''ha endut la marca de l''ultima copia'
+    AssertEq (_CopiaAutoActiu) $true '_CopiaAutoActiu llegeix l''interruptor'
+    AssertEq (_CopiaInformesUltimMode) 'manual' '_CopiaInformesUltimMode: qui va fer l''ultima copia'
+    [void](_CopiaAutoDesaActiu $false)
+    AssertEq (_CopiaAutoActiu) $false 'estat: l''interruptor s''apaga'
+    # Es compara la DATA i no el text: el ConvertFrom-Json del pwsh 7 torna un
+    # [datetime] i Read-JsonIso el normalitza a ISO round-trip ('...0000000'),
+    # mentre que el del 5.1 el deixa tal com es va escriure.
+    $eApagat = _CopiaInformesEstat
+    AssertEq ([datetime]$eApagat['copiat_el']) ([datetime]'2026-09-01T10:00:00') 'estat: apagar-lo tampoc no toca la data'
+
+    # Des de quina data es miren els fitxers.
+    $eD = _CopiaInformesEstat
+    AssertEq (_CopiaInformesDesDe $eD 'D:\Copia') ([datetime]'2026-09-01T10:00:00').ToUniversalTime() '_CopiaInformesDesDe: la data de l''ultima copia al MATEIX desti'
+    AssertEq (_CopiaInformesDesDe $eD 'D:\Altra') ([datetime]::MinValue) '_CopiaInformesDesDe: si el desti ha canviat, es torna a mirar TOT'
+    AssertEq (_CopiaInformesDesDe @{ desti = 'D:\Copia'; copiat_el = '' } 'D:\Copia') ([datetime]::MinValue) '_CopiaInformesDesDe: sense data, tot'
+    AssertEq (_CopiaInformesDesDe @{ desti = 'D:\Copia'; copiat_el = 'no es una data' } 'D:\Copia') ([datetime]::MinValue) '_CopiaInformesDesDe: data il-legible, tot'
+
+    # La tria: nomes els modificats DESPRES i que no siguin ja al desti.
+    $desti = Join-Path $copiaDir 'desti'
+    [void](New-Item -ItemType Directory -Path $desti -Force)
+    Set-Content -LiteralPath (Join-Path $desti '2026-09-03_Req_A.docx') -Value 'ja hi es'
+    $mkF = {
+        param($nom, $quan)
+        $p = Join-Path $copiaDir $nom
+        Set-Content -LiteralPath $p -Value 'x'
+        $it = Get-Item -LiteralPath $p
+        $it.LastWriteTimeUtc = $quan
+        return $it
+    }
+    $fVell = & $mkF '2026-09-01_Req_V.docx' ([datetime]'2026-08-01T00:00:00Z')
+    $fNou  = & $mkF '2026-09-02_Req_N.docx' ([datetime]'2026-09-05T00:00:00Z')
+    $fJa   = & $mkF '2026-09-03_Req_A.docx' ([datetime]'2026-09-05T00:00:00Z')
+    $tria = _CopiaInformesTria @($fVell, $fNou, $fJa) ([datetime]'2026-09-02T00:00:00Z') $desti
+    AssertEq @($tria.ToCopy).Count 1 '_CopiaInformesTria: nomes el modificat despres i que no hi es'
+    AssertEq ([string]@($tria.ToCopy)[0].Name) '2026-09-02_Req_N.docx' '_CopiaInformesTria: ...i es el que toca'
+    AssertEq ([int]$tria.Skipped) 1 '_CopiaInformesTria: el que ja hi era compta com a omes'
+
+    # La copia de debo (la que comparteixen el manual i l'automatic).
+    $resC = _CopiaInformesCopia @($tria.ToCopy) $desti $null
+    AssertEq ([int]$resC.Copied) 1 '_CopiaInformesCopia: copia el que se li dona'
+    AssertEq ([int]$resC.Errors) 0 '_CopiaInformesCopia: sense errors'
+    Assert (Test-Path -LiteralPath (Join-Path $desti '2026-09-02_Req_N.docx')) '_CopiaInformesCopia: el fitxer es al desti'
+    # I el callback pot aturar-la (es el boto Cancel.lar del mode manual).
+    $resX = _CopiaInformesCopia @($fVell, $fNou) $desti { param($fets, $total, $cop, $err) return $false }
+    AssertEq ([bool]$resX.Cancelled) $true '_CopiaInformesCopia: el callback pot cancel-lar'
+    AssertEq ([int]$resX.Copied) 1 '_CopiaInformesCopia: ...i s''atura al primer'
+} finally {
+    $LocalActivitatsDir = $LocalActivitatsDirVellC
+    Remove-Item -LiteralPath $copiaDir -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+Write-Host "`n--- Informes.ps1: la passada automatica sencera (sense cap finestra) ---"
+# D'extrem a extrem: preparar, cercar, triar, copiar i desar l'estat. Es pot fer
+# a Linux perque el mode automatic NO toca WinForms enlloc -que es justament el
+# que ha de complir- i nomes fa servir el disc.
+$e2e = Join-Path ([System.IO.Path]::GetTempPath()) ('copia-e2e-' + [guid]::NewGuid().ToString('N'))
+$e2eInf = Join-Path $e2e 'informes'
+$e2eCop = Join-Path $e2e 'copia'
+$e2eLoc = Join-Path $e2e 'local'
+foreach ($d in @($e2eInf, $e2eLoc)) { [void](New-Item -ItemType Directory -Path $d -Force) }
+$InformesDirVell = $InformesDir; $CopiaInformesDirVell = $CopiaInformesDir; $LocalActivitatsDirVellE = $LocalActivitatsDir
+$InformesDir = $e2eInf; $CopiaInformesDir = $e2eCop; $LocalActivitatsDir = $e2eLoc
+try {
+    Set-Content -LiteralPath (Join-Path $e2eInf '2026-09-01_Req_A.docx') -Value 'a'
+    Set-Content -LiteralPath (Join-Path $e2eInf 'plantilla sense data.docx') -Value 'b'
+    Set-Content -LiteralPath (Join-Path $e2eInf '~$2026-09-02_Req_B.docx') -Value 'c'
+    $r1 = Invoke-CopiarInformesAuto
+    AssertEq ([bool]$r1.Ok) $true 'auto: la passada acaba be'
+    AssertEq ([int]$r1.Trobats) 1 'auto: nomes compta els INFORMES (data al nom, ni temporals ni plantilles)'
+    AssertEq ([int]$r1.Copiats) 1 'auto: copia el que hi ha de nou'
+    Assert (Test-Path -LiteralPath (Join-Path $e2eCop '2026-09-01_Req_A.docx')) 'auto: el fitxer arriba al desti'
+    Assert (-not (Test-Path -LiteralPath (Join-Path $e2eCop 'plantilla sense data.docx'))) 'auto: el que no es un informe no es copia'
+    $eA = _CopiaInformesEstat
+    AssertEq ([string]$eA['mode']) 'auto' 'auto: l''estat diu que l''ultima copia la va fer l''automatic (data en verd al menu)'
+    Assert (-not [string]::IsNullOrWhiteSpace([string]$eA['auto_el'])) 'auto: queda apuntada la passada (el venciment ja esta servit)'
+    Assert (-not (_CopiaAutoToca (Get-Date) $eA['auto_el'])) 'auto: i per tant no es torna a llancar tot seguit'
+    # Incremental: sense res nou no copia res i NO reescriu qui va fer l'ultima
+    # copia (si no, la data del menu deixaria de dir res).
+    [void](_CopiaInformesDesaEstat @{ mode = 'manual' })
+    $r2 = Invoke-CopiarInformesAuto
+    AssertEq ([int]$r2.Copiats) 0 'auto: una segona passada seguida no copia res'
+    AssertEq ([string](_CopiaInformesEstat)['mode']) 'manual' 'auto: una passada que no copia res no toca el mode de l''ultima copia'
+    # Un informe nou si que el copia.
+    Set-Content -LiteralPath (Join-Path $e2eInf '2026-09-05_Req_C.docx') -Value 'd'
+    $r3 = Invoke-CopiarInformesAuto
+    AssertEq ([int]$r3.Copiats) 1 'auto: un informe nou si que es copia'
+    AssertEq ([string](_CopiaInformesEstat)['mode']) 'auto' 'auto: ...i llavors si que consta que l''ha fet l''automatic'
+    # Sense carpeta de copia no fa res, pero apunta la passada (si no, el menu
+    # la tornaria a llancar cada minut).
+    $CopiaInformesDir = ''
+    [void](_CopiaInformesDesaEstat @{ auto_el = '' })
+    $r4 = Invoke-CopiarInformesAuto
+    AssertEq ([bool]$r4.Ok) $false 'auto: sense carpeta de copia, no fa res'
+    Assert (-not [string]::IsNullOrWhiteSpace([string](_CopiaInformesEstat)['auto_el'])) 'auto: ...pero apunta la passada igualment (no s''hi insisteix cada minut)'
+} finally {
+    $InformesDir = $InformesDirVell; $CopiaInformesDir = $CopiaInformesDirVell; $LocalActivitatsDir = $LocalActivitatsDirVellE
+    Remove-Item -LiteralPath $e2e -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 Write-Host "`n--- ControlsPeriodics.ps1: _ControlPeriodicClassify (annex II/III o apartat 561) ---"
 AssertEq (_ControlPeriodicClassify 'II' '').Qualifies      $true  '_ControlPeriodicClassify annex II -> qualifica'
 AssertEq (_ControlPeriodicClassify 'II' '').IsII           $true  '_ControlPeriodicClassify annex II -> IsII'

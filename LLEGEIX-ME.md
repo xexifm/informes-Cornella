@@ -448,6 +448,35 @@ que la vas obrir** (o `(mai)`). Serveix per no haver de recordar si ja havies
 passat, per exemple, el *Comprovar Excel* aquesta setmana. Es desa a
 `local/base-dades-activitats/eines-state.json` i no es puja mai.
 
+### Copiar informes sol cada dia (l'interruptor **A** / **M**)
+
+Sota la rajola **📁 Copiar informes**, allà on les altres eines tenen l'hora, hi
+ha un **interruptor petit**:
+
+| | Què vol dir |
+|---|---|
+| **A** (verd) | **Automàtic.** Amb el programa obert, cada dia **a les 14:30** es copien sols els informes nous. Si aquell dia el PC estava apagat i no s'ha arribat a fer, es fa **en obrir el programa**. |
+| **M** (gris) | **Manual.** Només es copia quan cliques la rajola. |
+
+Es canvia clicant-hi al damunt. **La rajola segueix funcionant igual en tots dos
+casos**: si la cliques, la còpia es fa al moment, estigui en A o en M.
+
+La còpia automàtica **es fa en segon pla i no es veu res**: cap finestra, cap
+pregunta i cap barra de progrés. No pregunta perquè no fa res que es pugui
+desfer: copia els informes nous a la carpeta de còpia i **mai esborra res**.
+
+**La data que hi ha al costat de l'interruptor et diu qui va fer l'última
+còpia**: si surt **en verd**, la va fer sola; si surt en gris, la vas fer tu. Així
+d'un cop d'ull saps si l'automàtic està treballant de debò o només està encès.
+
+> Per posar-lo en **A** cal tenir configurada la **carpeta on copiar els
+> informes** (⚙ *Configuració*). Si no hi és, el programa t'ho diu i es queda en
+> manual.
+
+> Si mai vols saber què ha fet, hi ha un registre a
+> `%LOCALAPPDATA%\InformesCornella\copia-informes-log.txt` amb una línia per
+> passada.
+
 ---
 
 ## 4. Editar els catàlegs

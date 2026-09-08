@@ -813,19 +813,11 @@ function _Ed_LoadDoc($state, $doc) {
 # vista (_VistaCalRegenerar): per tant refa NOMES el que s'acaba de desar. Si
 # falla o no hi ha Word, no passa res: l'Actualitzar.bat les torna a mirar.
 #
-# LES COMETES LES POSEM NOSALTRES: a PowerShell 5.1 Start-Process -ArgumentList
-# NO enquota els elements, i el clone de l'usuari te espais a la ruta (vegeu
-# _ArgvToCommandLine a PdfSignar.ps1, mateixa trampa).
+# QUI EL LLANCA es Start-ScriptSegonPla (Motor.ps1), que es el mateix que fa
+# servir la passada automatica de "Copiar informes": alli hi ha la trampa de les
+# cometes del Start-Process, escrita un sol cop.
 function _Ed_RefrescaVistes {
-    try {
-        $script = [System.IO.Path]::Combine($ScriptRoot, 'GeneraVistes.ps1')
-        if (-not (Test-Path -LiteralPath $script)) { return $false }
-        # $args NO: es una variable AUTOMATICA de PowerShell (els arguments de
-        # la funcio) i assignar-la dins d'una funcio es demanar problemes.
-        $argv = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"' + $script + '"'))
-        Start-Process -FilePath 'powershell.exe' -ArgumentList $argv -WindowStyle Hidden | Out-Null
-        return $true
-    } catch { return $false }
+    return ($null -ne (Start-ScriptSegonPla 'GeneraVistes.ps1'))
 }
 
 function _Ed_SaveDoc($state) {
