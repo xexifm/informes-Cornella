@@ -5,14 +5,29 @@ AIRE|seccio
 ITEM|1.|S’ha de donar resposta a l’anterior requeriment amb Núm. de registre: [CAMP: Registre sortida (S-202X-XXXX)].
 BODY|COPIAR REQUERIMENT
 BODY|I a més a més, esmenar els següents punts:
+AJUDA|Norma: Llei 39/2015, d’1 d’octubre, del procediment administratiu comú de les administracions públiques, art. 68.1 i 73.1.
+AJUDA|Criteri: Es requereix quan consta un requeriment anterior amb registre de sortida i ha vençut el termini sense resposta, o la resposta no cobreix tots els punts. El termini general d’esmena és de 10 dies hàbils, ampliable a 15 si la complexitat ho justifica. Cal repetir els punts no esmenats: un requeriment nou no deixa sense efecte l’anterior.
+AJUDA|A qui s'aplica: Sempre que hi hagi un requeriment previ obert.
+AJUDA|Competencia: Ajuntament (òrgan que va dictar el requeriment).
+AJUDA|Revisat: 2026-09
 AIRE|item
 SECT|Classificació
 AIRE|seccio
 ITEM|2.|L’activitat està classificada segons l’Annex [OPCIO: Annex | II | III], epígraf [CAMP: Epígraf L20] de la LLEI 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats.
 BODY|[OPCIO: Afegitó? | | Article 7.2 de la LLEI 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats:
 BODY|2. Si una mateixa persona o una mateixa empresa sol·licita exercir diverses activitats en un mateix centre o en un mateix establiment subjectes a diferents règims d'intervenció establerts en aquesta llei, la sol·licitud s'ha de tramitar i resoldre en una sola autorització o llicència ambientals, i s'ha d'aplicar el règim que correspon a les activitats amb grau d'incidència ambiental més elevat.]
+AJUDA|Norma: Llei 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats (PCAA), art. 7 i annexos I, II i III.
+AJUDA|Criteri: No és una deficiència en si: fixa el règim d’intervenció i, amb ell, quins controls es poden exigir (annex I.2 cada 4 anys, annex II cada 6). Si una mateixa persona exerceix diverses activitats al mateix establiment, s’aplica el règim de la de més incidència ambiental (art. 7.2). Si l’epígraf declarat no es correspon amb l’activitat real, això sí és requeriment.
+AJUDA|A qui s'aplica: Totes les activitats incloses als annexos de la Llei 20/2009, noves i existents.
+AJUDA|Competencia: Ajuntament per als annexos II i III; OGAU per a l’annex I.
+AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|3.|L’activitat està classificada segons l’epígraf [CAMP: epígraf L18] de la LLEI 18/2020, del 28 de desembre, de facilitació de l'activitat econòmica.
+AJUDA|Norma: Llei 18/2020, del 28 de desembre, de facilitació de l’activitat econòmica, art. 5 i annex.
+AJUDA|Criteri: Per a les activitats de l’annex el règim és de COMUNICACIÓ amb certificat tècnic (la declaració responsable va quedar eliminada). Es requereix quan l’epígraf declarat no és el que correspon a l’activitat real, perquè en depèn la documentació exigible. No es requereix per una simple imprecisió de redacció.
+AJUDA|A qui s'aplica: Activitats de l’annex de la Llei 18/2020, noves i modificacions substancials.
+AJUDA|Competencia: Ajuntament.
+AJUDA|Revisat: 2026-09
 AIRE|item
 SECT|Desistiment comunicació
 AIRE|seccio
@@ -22,114 +37,284 @@ BODY|b) Les dades consignades no són certes i s’han alterat voluntàriament p
 BODY|c) L’activitat no disposa d’alguna de les llicències o comunicacions sectorials o urbanístiques necessàries.
 BODY|d) No es presenta la documentació necessària o bé aquesta no s’adequa a l’objecte o a les finalitats de l’establiment o l’activitat.
 BODY|e) S’han omès l’informe i el certificat de l’acte de comprovació d’incendis o el permís d’abocament, o qualsevol altre informe o control previ preceptiu o necessari d’acord amb la normativa sectorial.
+AJUDA|Norma: Llei 18/2020, art. 13 i 16; Llei 39/2015, art. 68 i 69.4.
+AJUDA|Criteri: Els defectes ESSENCIALS (a-e) impedeixen que la comunicació desplegui efectes: sense esmena en termini, es té per desistida. Els defectes no essencials es requereixen però NO aturen l’activitat. La diferència és la que decideix si es pot ordenar el cessament: cal motivar per quina lletra s’hi encaixa.
+AJUDA|A qui s'aplica: Comunicacions d’inici i de modificació substancial.
+AJUDA|Competencia: Ajuntament.
+AJUDA|Revisat: 2026-09
 AIRE|item
 SECT|Estat de l’establiment
 AIRE|seccio
 ITEM|5.|Higiene. S'incompleixen greument les condicions sanitàries, de salubritat i d'higiene. S’haurà de portar a terme una neteja integral de [CAMP: A netejar (p. ex. l'establiment)].
+AJUDA|Norma: Reglament (CE) 852/2004, annex II, cap. I i II, per a establiments alimentaris; RD 1021/2022 per al comerç al detall; a la resta, la normativa municipal de salubritat.
+AJUDA|Criteri: Es requereix quan l’incompliment és GREU i constatable (brutícia acumulada, presència de plagues, superfícies no netejables). Cal descriure a l’acta què s’ha observat i on: un requeriment de neteja sense fets concrets no se sosté. Si hi ha risc per a la salut, la via no és el requeriment sinó la mesura provisional.
+AJUDA|A qui s'aplica: Totes les activitats en funcionament.
+AJUDA|Competencia: Ajuntament (salubritat); Salut Pública si hi ha risc alimentari.
+AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|6.|Residus. S’ha de complir amb l’Article 21 de la Llei 7/2022, de 8 d'abril, de residus i sòls contaminats per a una economia circular on s’indica que s’ha de “Disposar d'una zona habilitada i identificada per a l'emmagatzematge correcte dels residus que reuneixi les condicions adequades d'higiene i seguretat mentre estiguin en el seu poder. En el cas d'emmagatzematge de residus perillosos aquests han d'estar protegits de la intempèrie i amb sistemes de retenció d'abocaments i vessaments.”
+AJUDA|Norma: Llei 7/2022, de 8 d’abril, de residus i sòls contaminats per a una economia circular, art. 21; Decret legislatiu 1/2009, de residus de Catalunya.
+AJUDA|Criteri: Es requereix quan no hi ha zona identificada per als residus, o quan els perillosos no estan protegits de la intempèrie i sense sistema de retenció de vessaments. La recollida separada per fraccions és exigible a tots els productors de residus comercials.
+AJUDA|A qui s'aplica: Totes les activitats en funcionament (obligació d’aplicació directa, no lligada al títol habilitant).
+AJUDA|Competencia: Ajuntament; ARC per als productors inscrits i els residus perillosos.
+AJUDA|Revisat: 2026-09
 AIRE|item
 SECT|Autoritzacions / Informes preceptius
 AIRE|seccio
 ITEM|7.|Sanitat. L’activitat està inclosa dins l’Annex del Decret 151/2017, de 17 d'octubre, pel qual s'estableixen els requisits i les garanties tecnicosanitàries comunes dels centres i serveis sanitaris i els procediments per a la seva autorització i registre. S’ha d’obtenir l’Autorització de funcionament (Departament de Salut de la Generalitat de Catalunya).
 URL|https://tramits.gencat.cat/ca/tramits/tramits-temes/Autoritzacio-de-centres-o-serveis-sanitaris
+AJUDA|Norma: Decret 151/2017, de 17 d’octubre, requisits i garanties tecnicosanitàries dels centres i serveis sanitaris, annex (classificació C.1 a C.3 i unitats U.x).
+AJUDA|Criteri: Es requereix si l’activitat encaixa en alguna categoria de l’annex: consultes mèdiques, clíniques dentals, podologia, fisioteràpia, centres de reconeixement, estètica amb tècniques mèdiques. NO hi entren els centres de bellesa sense acte mèdic ni els gimnasos sense servei sanitari. L’autorització és PRÈVIA al funcionament.
+AJUDA|A qui s'aplica: Noves activitats, canvis de titularitat i modificacions de l’oferta de serveis.
+AJUDA|Competencia: Departament de Salut. L’Ajuntament comprova que es té i en dona trasllat.
+AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|8.|Educació. L’activitat està inclosa dins el Decret 122/2012, de 9 d'octubre, del procediment d'autorització i de comunicació prèvia per a l'obertura de centres educatius privats. S’ha d’obtenir l’Autorització d’obertura de centres educatius privats  (Departament d’Educació).
 URL|https://educacio.gencat.cat/ca/tramits/tramits-temes/autoritzacio-obertura-privats
+AJUDA|Norma: Decret 122/2012, de 9 d’octubre, d’autorització i comunicació prèvia per a l’obertura de centres educatius privats.
+AJUDA|Criteri: Sempre que s’imparteixin ensenyaments del sistema educatiu (infantil, primària, ESO, batxillerat, FP, educació especial, adults). Els ensenyaments NO reglats de música, dansa i arts escèniques van per comunicació prèvia, no per autorització. Les acadèmies de reforç i les autoescoles queden fora d’aquest Decret.
+AJUDA|A qui s'aplica: Noves activitats i qualsevol canvi de local, ensenyaments, capacitat, titularitat o denominació.
+AJUDA|Competencia: Departament d’Educació. L’Ajuntament comprova que es té.
+AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|9.|Comerç. L’activitat està inclosa dins el Decret Llei 1/2009, del 22 de desembre, d'ordenació dels equipaments comercials. S’ha d’obtenir la llicència comercial d’implantació d’un establiment comercial (Departament d’Empresa i Treball).
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Llicencia-comercial?category=&moda=2
+AJUDA|Norma: Decret llei 1/2009, del 22 de desembre, d’ordenació dels equipaments comercials, art. 9; Llei 18/2017, de comerç, serveis i fires.
+AJUDA|Criteri: Llindars de SUPERFÍCIE DE VENDA: 2.500 m2 amb caràcter general; 5.000 m2 en establiments comercials singulars; i 800 m2 FORA de la trama urbana consolidada, però NOMÉS en els supòsits d’excepció de l’art. 9.3.a) i 9.3.b). Cornellà és dins de TUC, o sigui que el llindar de 800 m2 pràcticament no s’activa: abans de requerir-lo, comprova la ubicació.
+AJUDA|A qui s'aplica: Noves implantacions, canvis d’activitat i ampliacions que superin el llindar abans o després.
+AJUDA|Competencia: Departament d’Empresa i Treball. L’Ajuntament comprova que es té.
+AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|10.|Esport. L’activitat està inclosa dins el DECRET LEGISLATIU 1/2000, de 31 de juliol, pel qual s'aprova el Text únic de la Llei de l'esport. S’ha d’haver iniciat el tràmit per obtenir l’informe previ de les actuacions en instal·lacions esportives (Consell Català de l’Esport).
 URL|https://web.gencat.cat/ca/tramits/tramits-temes/22032-Informe-previ-al-Servei-dEquipaments-Esportius-per-a-la-realitzacio-en-installacions-esportives-a-Catalunya
+AJUDA|Norma: Decret legislatiu 1/2000, de 31 de juliol, Text únic de la Llei de l’esport, i normativa d’equipaments esportius.
+AJUDA|Criteri: L’informe del Consell Català de l’Esport és PREVI a l’obra o instal·lació esportiva. Es requereix acreditar que el tràmit s’ha iniciat. No s’exigeix a un gimnàs convencional dins d’un local comercial sense obra d’equipament esportiu.
+AJUDA|A qui s'aplica: Noves instal·lacions esportives i reformes que n’alterin la tipologia.
+AJUDA|Competencia: Consell Català de l’Esport. L’Ajuntament comprova que s’ha iniciat el tràmit.
+AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|11.|Incendis. L’activitat està inclosa dins l’Annex I de la Llei 3/2010, del 18 de febrer, de prevenció i seguretat en matèria d'incendis en establiments, activitats, infraestructures i edificis. S’ha de presentar l’acte de comprovació per una entitat col·laboradora
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/23705_-_Informe-de-prevencio-i-seguretat-en-materia-dincendis
+AJUDA|Norma: Llei 3/2010, del 18 de febrer, de prevenció i seguretat en matèria d’incendis, annex I (i annex 2 per a l’ús industrial), art. 22 a 24.
+AJUDA|Criteri: Només per a les activitats de l’annex I: docent >15 m o >2.000 m2 (>300 m2 en escoles bressol), sanitari, hospitalari, residencial públic >20 places, comercial >750 m2 sota edifici o >2.000 m2, pública concurrència >500 m2 o aforament >500, aparcament >750 m2 sota edifici o >2.000 m2, edificis amb alçada d’evacuació >=28 m, i industrial segons l’annex 2. Fora de l’annex I el control és MUNICIPAL i no cal informe de la Generalitat. L’acte de comprovació el fa una entitat col·laboradora, no els Bombers.
+AJUDA|A qui s'aplica: Noves activitats i modificacions amb canvi significatiu del risc d’incendi.
+AJUDA|Competencia: DGPEIS (informe previ) + entitat col·laboradora (acte de comprovació). L’Ajuntament els exigeix com a documentació.
+AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|12.|Impacte ambiental. L’activitat està inclosa dins l’Article 7 de la //Ley 21/2013, de 9 de diciembre, de evaluación ambiental//. S’ha de presentar l’estudi d'impacte ambiental a l’ajuntament amb el contingut determinat a l'Annex VI de l’esmentada Llei per obtenir posteriorment l’informe favorable per part de l’OGAU.
+AJUDA|Norma: Llei 21/2013, de 9 de desembre, d’avaluació ambiental, art. 7 i annexos I, II i VI; Llei 20/2009, annex V.
+AJUDA|Criteri: Avaluació ORDINÀRIA per als projectes de l’annex I; SIMPLIFICADA per als de l’annex II i per als que puguin afectar la Xarxa Natura 2000. També hi entra qualsevol modificació que, per si sola, arribi als llindars de l’annex I. És excepcional en activitats urbanes: abans de requerir-ho, comprova l’epígraf exacte.
+AJUDA|A qui s'aplica: Projectes nous i modificacions que assoleixin els llindars.
+AJUDA|Competencia: OGAU (òrgan ambiental). L’estudi es presenta a l’Ajuntament en les activitats de l’annex II.
+AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|13.|Zona inundable fluvial T500. És una activitat crítica situada en zona de perill d’inundació fluvial T500. S’ha d’obtenir l’informe relacionat amb el vector aigua (Agència Catalana de l’Aigua).
 URL|https://aca.gencat.cat/ca/tramits/Informes-relacionats-amb-el-vector-aigua?moda=1
+AJUDA|Norma: Llei 20/2009, annex VI.1; Reial decret legislatiu 1/2001, text refós de la Llei d’aigües, i planejament d’espais fluvials.
+AJUDA|Criteri: Es requereix quan l’activitat és CRÍTICA (emmagatzematge de productes químics, pública concurrència amb aforament alt, serveis essencials) I està en zona de perill d’inundació T500. Cal comprovar les dues coses al visor de l’ACA: una activitat no crítica en zona inundable no genera aquest informe.
+AJUDA|A qui s'aplica: Noves implantacions i canvis d’activitat en zona inundable.
+AJUDA|Competencia: Agència Catalana de l’Aigua. L’Ajuntament comprova que es té.
+AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|14.|Vector Aigua (ACA). L’activitat està inclosa dins l’Annex VI.1 de la Llei 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats. S’ha de presentar un projecte tècnic [OPCIO: Destinatari del projecte ACA | a l'ajuntament (per ser un Annex II) | a l'ACA] amb el contingut determinat a l’Annex III del Decret 130/2003, de 13 de maig, pel qual s'aprova el Reglament dels serveis públics de sanejament per obtenir posteriorment l’autorització d’abocaments d’aigües residuals (Agència Catalana de l’Aigua).
 URL|https://aca.gencat.cat/ca/tramits/Autoritzacions-dabocaments-daiguees-residuals
+AJUDA|Norma: Llei 20/2009, annex VI.1; Decret 130/2003, Reglament dels serveis públics de sanejament, annex III.
+AJUDA|Criteri: Informe de l’ACA quan hi ha abocament directe o indirecte a aigües subterrànies, directe a aigües superficials o al domini marítim i terrestre. Els abocaments a la xarxa de sanejament de Cornellà NO són de l’ACA: van a l’AMB (vegeu el punt següent). Confondre-ho és l’error més freqüent d’aquest bloc.
+AJUDA|A qui s'aplica: Noves activitats i modificacions que alterin l’abocament.
+AJUDA|Competencia: Agència Catalana de l’Aigua.
+AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|15.|Vector Aigua (ACA). L’activitat disposa d’un volum anual d'aigua superior a 1.000 m3, i es troba inclosa en les seccions B, C i D i els grups A032, E360, E383 i J581 de la Classificació catalana d'activitats econòmiques (CCAE-2009). S’ha de presentar la Declaració de l'Ús i la Contaminació de l'Aigua (DUCA).
 URL|https://web.gencat.cat/ca/tramits/tramits-temes/Declaracio-de-lUs-i-la-Contaminacio-de-lAigua-DUCA
+AJUDA|Norma: Decret legislatiu 3/2003, text refós de la legislació en matèria d’aigües de Catalunya; CCAE-2009 (Decret 137/2008).
+AJUDA|Criteri: Llindar acumulatiu: volum anual d’aigua superior a 1.000 m3 I activitat de les seccions B, C o D o dels grups A032, E360, E383 o J581 de la CCAE-2009. Si el consum és inferior o el CCAE no hi és, NO es requereix. La DUCA és una declaració periòdica, no una autorització d’obertura.
+AJUDA|A qui s'aplica: Activitats industrials i assimilables en funcionament.
+AJUDA|Competencia: Agència Catalana de l’Aigua.
+AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|16.|Vector Aigua (AMB). L’activitat està inclosa dins l’Article 22 o l’Annex 4 del Reglament Metropolità d’Abocament d’Aigües Residuals (RMAAR, Exp 944/18). S’ha de presentar l’autorització d’abocaments d’aigües (Àrea Metropolitana de Barcelona).
 URL|https://tramitaiguesresiduals.amb.cat/mod/sol/index.php
+AJUDA|Norma: Reglament metropolità d’abocament d’aigües residuals (RMAAR, Exp. 944/18), art. 22 i annex 4.
+AJUDA|Criteri: És el cas NORMAL a Cornellà, perquè s’aboca a la xarxa de sanejament metropolitana. Dos supòsits: cabal d’abocament superior a 6.000 m3/any, o activitat de les seccions B, C, D i E de la CCAE (codis 05XX-39XX) sigui quin sigui el cabal. Si només s’hi aboquen aigües sanitàries, el procediment és SIMPLIFICAT (art. 22.2) i no cal el projecte complet.
+AJUDA|A qui s'aplica: Noves activitats i modificacions que alterin l’abocament.
+AJUDA|Competencia: Àrea Metropolitana de Barcelona.
+AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|17.|Vector Residus. L’activitat està inclosa dins l’Annex VI.2 de la Llei 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats. S’ha de presentar un projecte tècnic a l’ajuntament amb el contingut determinat a l'Annex IX i X de la //Ley 7/2022, de 8 de abril, de residuos y suelos contaminados para una economía circular// per obtenir posteriorment l’informe preceptiu favorable (Agència de Residus de Catalunya).
+AJUDA|Norma: Llei 20/2009, annex VI.2; Llei 7/2022, annexos IV i V (operacions de valorització i eliminació).
+AJUDA|Criteri: Només per a activitats de GESTIÓ de residus: dipòsits de runes, plantes de residus municipals que no siguin deixalleries, i els epígrafs 10.9, 10.10 i 10.11 de l’annex II a partir de 2.000 t, i els 10.1, 10.2 (excepte deixalleries), 10.5, 10.7 i 10.8. Ser simple PRODUCTOR de residus no genera aquest informe.
+AJUDA|A qui s'aplica: Noves activitats de gestió i modificacions substancials.
+AJUDA|Competencia: Agència de Residus de Catalunya. El projecte es presenta a l’Ajuntament en les activitats de l’annex II.
+AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|18.|Vector Residus. L’establiment de l’activitat ha d’estar donat d’alta al Sistema Documental de Residus (SDR) i disposar d’un gestor de residus.
 URL|https://sdr.arc.cat/sdr/GetLogin.do
+AJUDA|Norma: Decret 197/2016, de comunicació prèvia en matèria de residus i registres de productors i gestors; Llei 7/2022, art. 65 (arxiu cronològic).
+AJUDA|Criteri: S’han d’inscriure com a productors els que generen residus PERILLOSOS (qualsevol quantitat) i els que superen 1.000 t/any de no perillosos. La resta d’activitats han de tenir gestor autoritzat i justificants de lliurament, però no alta al SDR. Demana els albarans abans de requerir l’alta.
+AJUDA|A qui s'aplica: Activitats en funcionament que produeixin residus perillosos.
+AJUDA|Competencia: Agència de Residus de Catalunya.
+AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|19.|Vector Atmosfera. Grups A i B. L’activitat està inclosa dins l’Annex VI.3 de la Llei 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats. S’ha de presentar un projecte tècnic a l’ajuntament amb el contingut mínim determinat a la web de Medi Ambient i Sostenibilitat per obtenir posteriorment l’informe preceptiu favorable (Direcció General de Canvi Climàtic i Qualitat Ambiental). Grup CAPCA: [CAMP: Grup CAPCA].
 URL|https://mediambient.gencat.cat/web/.content/home/ambits_dactuacio/atmosfera/emissions_industrials/guia_emissions_permisos/Juny-2018-contingut-minim.doc
+AJUDA|Norma: Llei 20/2009, annex VI.3; Llei 34/2007, de qualitat de l’aire, annex IV (CAPCA), actualitzat pel RD 100/2011; Decret 139/2018, art. 7.
+AJUDA|Criteri: Informe preceptiu per a les activitats de l’annex II classificades als grups A o B del CAPCA. El grup s’ha de justificar amb el codi CAPCA del focus, no per aproximació: comprova’l al catàleg abans de requerir res.
+AJUDA|A qui s'aplica: Noves activitats i modificacions que alterin els focus emissors.
+AJUDA|Competencia: Direcció General de Qualitat Ambiental i Canvi Climàtic. El projecte es presenta a l’Ajuntament.
+AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|20.|Vector Atmosfera. Grup C - llicència. Per tal d’emetre un permís ambiental és necessari disposar de la informació imprescindible per poder fixar els límits d’emissió a l’atmosfera i les prescripcions tècniques. S’ha de redactar un document amb el contingut mínim en matèria d’emissions a l’atmosfera dels projectes d’activitats. Grup CAPCA: [CAMP: Grup CAPCA].
 URL|https://mediambient.gencat.cat/web/.content/home/ambits_dactuacio/atmosfera/emissions_industrials/guia_emissions_permisos/Juny-2018-contingut-minim.doc
+AJUDA|Norma: Decret 139/2018, art. 4.2 i 13; Llei 34/2007, annex IV (CAPCA) i RD 100/2011.
+AJUDA|Criteri: Els establiments del grup C sotmesos a LLICÈNCIA ambiental són competència municipal: cal el document de contingut mínim en matèria d’emissions per poder fixar els límits al permís. No es demana el mateix que als grups A i B.
+AJUDA|A qui s'aplica: Noves llicències ambientals i modificacions dels focus.
+AJUDA|Competencia: Ajuntament (art. 4.2 del Decret 139/2018).
+AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|21.|Vector Atmosfera. Grup C - comunicació. Segons la Disposició addicional Segona del DECRET 139/2018, de 3 de juliol, sobre els règims d'intervenció ambiental atmosfèrica dels establiments on es desenvolupin activitats potencialment contaminants de l'atmosfera: Els establiments sotmesos per la Llei 20/2009, de 4 de desembre, a comunicació i classificats en el grup C d'acord amb l'article 7 no han de realitzar la notificació d'emissions que estableix l'article 12. No obstant això, aquests establiments estan obligats a presentar, juntament amb la comunicació, una memòria tècnica i un informe de control d'una entitat col·laboradora de l'Administració en matèria de medi ambient, d'acord amb el que estableix l'article 13.2 i 13.3. Grup CAPCA: [CAMP: Grup CAPCA].
+AJUDA|Norma: Decret 139/2018, disposició addicional segona i art. 13.2 i 13.3.
+AJUDA|Criteri: Els establiments del grup C sotmesos a COMUNICACIÓ no han de fer la notificació d’emissions de l’art. 12, però SÍ han de presentar memòria tècnica i informe de control d’una entitat col·laboradora. És l’excepció que més sovint es requereix malament: no els demanis la notificació d’emissions.
+AJUDA|A qui s'aplica: Comunicacions d’inici i modificacions dels focus.
+AJUDA|Competencia: Ajuntament.
+AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|22.|Soroll. L’activitat està inclosa dins l’Annex I del Decret 112/2010, de 31 d'agost, pel qual s'aprova el Reglament d'espectacles públics i activitats recreatives o és susceptible de generar contaminació acústica per soroll. S’han de presentar les mesures in situ de comprovació de les exigències d’acústica ambiental i de qualitat en l’edificació realitzades per una Entitat de Protecció de la Contaminació Acústica [EC-PCA] segons l’article 9 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat (versió vigent des del 19 de juny de 2025). Les mesures in situ consistiran en comprovar:
 BODY|- Immissió sonora aplicable a l'ambient exterior
 BODY|- Immissió sonora aplicable a l'ambient interior
 URL|https://www.gencat.cat/mediamb/oaec/epca_CA.pdf
+AJUDA|Norma: Llei 16/2002, de protecció contra la contaminació acústica; Decret 176/2009, que n’aprova el Reglament; Decret 112/2010, annex I; Ordenança municipal d’intervenció en les activitats de Cornellà, art. 9.
+AJUDA|Criteri: Dos supòsits: activitats de l’annex I del Decret 112/2010 (espectacles i recreatives) i qualsevol activitat susceptible de generar soroll a la qual se li requereixi. Les mesures les ha de fer una EC-PCA habilitada. Per emular l’ocupació s’aplica soroll rosa a 70 dB(A), i a 80 dB(A) en activitats del Decret 112/2010. Cal comprovar immissió a l’ambient exterior i a l’interior dels habitatges afectats.
+AJUDA|A qui s'aplica: Activitats noves, modificacions i activitats existents amb denúncia o indici de molèstia.
+AJUDA|Competencia: Ajuntament.
+AJUDA|Revisat: 2026-09
 BULLET/CH/1r|Immissió de les vibracions als interiors dels edificis
+AJUDA|Norma: Decret 176/2009, annex 3 (valors límit d’immissió de vibracions a l’interior dels edificis).
+AJUDA|Criteri: Es demana com a part de l’estudi acústic quan hi ha maquinària amb transmissió estructural: compressors, equips de clima, cambres frigorífiques, ascensors o altaveus sobre forjat. No es requereix de manera automàtica en tots els estudis acústics.
+AJUDA|A qui s'aplica: Activitats amb maquinària solidària a l’estructura de l’edifici.
+AJUDA|Competencia: Ajuntament.
+AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|23.|Olors. S’ha de presentar un estudi d’avaluació de l’impacte odorífer de l’activitat sobre l’entorn. S’han de quantificar els nivells d’olors en immissió i avaluar-los mitjançant els valors límit d’immissió de l’Annex II del model d’Ordenança tipus reguladora de la contaminació odorífera de la Diputació de Barcelona.
+AJUDA|Norma: No hi ha llindars normatius estatals ni catalans exigibles: s’aplica el model d’Ordenança tipus reguladora de la contaminació odorífera de la Diputació de Barcelona, annex II, i l’ordenança municipal si l’ha incorporat.
+AJUDA|Criteri: AQUEST ÉS EL PUNT MÉS FEBLE DE TOT EL CATÀLEG: mentre l’Ajuntament no hagi aprovat l’ordenança d’olors, els valors del model NO són directament exigibles i el requeriment s’ha de fonamentar en la molèstia acreditada (art. 6 de l’Ordenança d’intervenció i règim de molèsties), no en un límit numèric. Verifica si Cornellà ja l’ha aprovada abans de citar valors.
+AJUDA|A qui s'aplica: Activitats amb focus odorífer i molèstia acreditada.
+AJUDA|Competencia: Ajuntament.
+AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|24.|Vector Sòl. L’activitat està inclosa dins l’Annex I del //Real Decreto 9/2005, de 14 de enero, por el que se establece la relación de actividades potencialmente contaminantes del suelo y los criterios y estándares para la declaración de suelos contaminados//. S’ha de presentar l’informe preliminar de situació del sòl amb el contingut mínim determinat a l’Annex II de l’esmentat Real Decret en els casos següents:
 BODY|- Quan s’ha realitzat un canvi substancial en l’activitat i/o instal·lacions.
 BODY|- Quan se cessa l’activitat.
 BODY|- Quan se sol·licita una activitat no potencialment contaminant del sòl en una situació on abans hi havia una activitat potencialment contaminant del sòl.
 BODY|- Quan hi ha un canvi d’ús del sòl.
+AJUDA|Norma: RD 9/2005, de 14 de gener, activitats potencialment contaminants del sòl, art. 3 i annexos I i II; Llei 7/2022, títol VIII.
+AJUDA|Criteri: Cal IPS si l’activitat és a l’annex I (pel seu CNAE i abast), o si produeix, manipula o emmagatzema més de 10 t/any de substàncies perilloses, o si té emmagatzematge de combustible per a ús propi amb consum anual mitjà >300.000 l i volum total >=50.000 l. Els quatre moments que l’activen són: modificació substancial, cessament, implantació d’una activitat no contaminant on n’hi havia una de contaminant, i canvi d’ús del sòl.
+AJUDA|A qui s'aplica: Activitats de l’annex I, en els quatre supòsits indicats.
+AJUDA|Competencia: Agència de Residus de Catalunya. L’informe es presenta a través de l’Ajuntament.
+AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|25.|Mobilitat. L’activitat està inclosa dins l’Article 3 del Decret 344/2006, de 19 de setembre, de regulació dels estudis d'avaluació de la mobilitat generada. S’ha de presentar l’estudi d’avaluació de la mobilitat generada a l’ajuntament amb el contingut mínim determinat a l’Article 14 de l’esmentat Decret i obtenir l’informe preceptiu favorable de Guàrdia Urbana.
+AJUDA|Norma: Decret 344/2006, de 19 de setembre, de regulació dels estudis d’avaluació de la mobilitat generada, art. 3 i 14.
+AJUDA|Criteri: Llindars de l’art. 3: implantacions singulars i, en sòl urbà, establiments comercials de més de 5.000 m2 de superfície de venda, equipaments i activitats que generin més de 5.000 desplaçaments/dia. Per sota dels llindars NO es requereix. L’informe de Guàrdia Urbana és intern i no s’ha d’exigir al titular.
+AJUDA|A qui s'aplica: Noves implantacions i ampliacions que superin els llindars.
+AJUDA|Competencia: Ajuntament (i ATM en implantacions singulars).
+AJUDA|Revisat: 2026-09
 AIRE|item
 SECT|Pla d'Autoprotecció
 AIRE|seccio
 ITEM|26.|PAU. L’activitat està inclosa dins l’Annex I del Decret 30/2015, de 3 de març, pel qual s'aprova el catàleg d'activitats i centres obligats a adoptar mesures d'autoprotecció i es fixa el contingut d'aquestes mesures. S’ha d’elaborar el Pla d’Autoprotecció amb el contingut mínim determinat a l’Annex II de l’esmentat Decret i obtenir el certificat d’homologació del Pla d’Autoprotecció de Protecció civil [OPCIO: Competència PAU | de Catalunya | local].
 URL|https://canalempresa.gencat.cat/ca/02_serveis_per_temes/instal-lacions-i-seguretat/prevencio-accidents/plans-autoproteccio/
+AJUDA|Norma: Decret 30/2015, de 3 de març, catàleg d’activitats obligades a adoptar mesures d’autoprotecció, annexos I i II.
+AJUDA|Criteri: Apartat A de l’annex I: interès per a la protecció civil de CATALUNYA (homologació per la Generalitat). Apartat B: interès LOCAL (homologació municipal). Els llindars són per aforament, alçada, capacitat o quantitat de substància: comprova l’epígraf concret abans de requerir-lo, i digues a la resolució quin és. El PAU s’ha de registrar a Hermes.
+AJUDA|A qui s'aplica: Activitats de l’annex I, noves i existents.
+AJUDA|Competencia: Protecció Civil de la Generalitat (apartat A) o Ajuntament (apartat B).
+AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|27.|PAU. L’activitat està inclosa dins l’Annex I del Decret 30/2015, de 3 de març, pel qual s'aprova el catàleg d'activitats i centres obligats a adoptar mesures d'autoprotecció i es fixa el contingut d'aquestes mesures. S’ha de revisar el Pla d’Autoprotecció amb el contingut mínim determinat a l’Annex II de l’esmentat Decret i presentar l’informe favorable emès per Protecció civil [OPCIO: Competència PAU | de Catalunya | local].
 URL|https://canalempresa.gencat.cat/ca/02_serveis_per_temes/instal-lacions-i-seguretat/prevencio-accidents/plans-autoproteccio/
+AJUDA|Norma: Decret 30/2015, art. 6.1 i 6.2.
+AJUDA|Criteri: Revisió obligatòria com a MÍNIM cada quatre anys i, a més, sempre que hi hagi una modificació substancial. Els establiments sotmesos a la normativa d’accidents greus (Seveso) es revisen segons la seva normativa específica, no cada quatre anys. Entre revisions, el titular ha de mantenir el pla actualitzat i comunicar els canvis de dades.
+AJUDA|A qui s'aplica: Activitats que ja tenen PAU homologat.
+AJUDA|Competencia: Protecció Civil de la Generalitat o Ajuntament, segons l’apartat de l’annex I.
+AJUDA|Revisat: 2026-09
 AIRE|item
 SECT|Controls inicials
 AIRE|seccio
 ITEM|28.|Annex III Llei 20/2009. Segons l’article 6 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha d’entregar una certificació tècnica inicial amb resultat favorable per part d’una Entitat Col·laboradora de l'Administració. El titular queda assabentat que els controls periòdics posteriors s'han d'efectuar cada vuit anys, tal i com s’indica a l’article 7 de la mateixa Ordenança.
 URL|https://www.gencat.cat/mediamb/ohec/eac_CA.pdf
+AJUDA|Norma: Ordenança municipal d’intervenció en les activitats de Cornellà, art. 6 i 7 (versió vigent des del 19 de juny de 2025).
+AJUDA|Criteri: Certificació tècnica inicial favorable d’una entitat col·laboradora. És una exigència d’ORDENANÇA MUNICIPAL, no de la Llei 20/2009: per això la periodicitat posterior és de vuit anys i no de sis. Cita sempre l’ordenança, perquè un tècnic que busqui aquest termini a la Llei no el trobarà.
+AJUDA|A qui s'aplica: Activitats de l’annex III, noves i modificacions substancials.
+AJUDA|Competencia: Ajuntament.
+AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|29.|Annex II Llei 20/2009. L’activitat es troba regulada pel LLEI 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats. S’ha de realitzar un control inicial amb resultat favorable per part d’una Entitat Col·laboradora de l'Administració, com s’indica a l’Article 69 de la Llei. El titular queda assabentat que els controls periòdics posteriors s'han d'efectuar cada sis anys, tal i com s’indica a l’article 71 de la mateixa Llei.
 URL|https://www.gencat.cat/mediamb/ohec/eac_CA.pdf
+AJUDA|Norma: Llei 20/2009, art. 69 (control inicial) i 71 (periòdic).
+AJUDA|Criteri: El control inicial l’ha de fer una entitat col·laboradora, tret que l’Ajuntament n’encomani els de l’annex II als serveis tècnics municipals. Si en acabar el període de posada en marxa no s’ha fet o el resultat és desfavorable, l’activitat HA DE CESSAR (art. 69.3): aquí la via no és només el requeriment.
+AJUDA|A qui s'aplica: Activitats de l’annex II, a l’inici i després de modificacions substancials.
+AJUDA|Competencia: Ajuntament.
+AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|30.|Vector Atmosfera. L’activitat està inclosa dins l’Annex IV de la //Ley 34/2007, de 15 de noviembre, de calidad del aire y protección de la atmosfera//. S’ha d’entregar, per part d’una Entitat de control en l’àmbit sectorial de la prevenció de la contaminació atmosfèrica [EC-A], tal i com s’indica a l’Article 16 del DECRET 139/2018, de 3 de juliol, sobre els règims d'intervenció ambiental atmosfèrica dels establiments on es desenvolupin activitats potencialment contaminants de l'atmosfera:
 BODY|- El CAE (Control Atmosfèric de l'Establiment)
 BODY|- L'informe reglamentari de mesures d'emissions a l’atmosfera
 URL|https://www.gencat.cat/mediamb/oaec/ec_atm_CA.pdf
+AJUDA|Norma: Decret 139/2018, art. 16 i 9.6; Llei 34/2007, annex IV (CAPCA) i RD 100/2011.
+AJUDA|Criteri: CAE i informe de mesures d’emissions per una EC-A habilitada. ATENCIÓ: els establiments del grup C NO fan control inicial (disposició addicional segona del Decret 139/2018). Requerir-lo a un grup C és l’error clàssic d’aquest apartat.
+AJUDA|A qui s'aplica: Establiments dels grups A i B, a l’inici de l’activitat.
+AJUDA|Competencia: Ajuntament per al grup C; DGQACC per als grups A i B.
+AJUDA|Revisat: 2026-09
 AIRE|item
 SECT|Controls periòdics
 AIRE|seccio
 ITEM|31.|Decret 112/2010. L’activitat es troba regulada pel DECRET 112/2010, de 31 d'agost, pel qual s'aprova el Reglament d'espectacles públics i activitats recreatives. S’ha de realitzar un control periòdic amb resultat favorable per part d’una Entitat Col·laboradora de l'Administració conforme l’article 8 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat. L’entitat de control no pot aixecar l’acta amb pronunciament favorable sense haver comprovat els aspectes de l’article 11 de la mateixa Ordenança. El titular queda assabentat que els controls periòdics posteriors s'han d'efectuar cada quatre anys, tal i com s’indica a l’article 132 del mateix Decret.
 URL|https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/entitats_col_laboradores_de_l_administracio/entitats-tecnics-habilitats/
+AJUDA|Norma: Decret 112/2010, art. 132; Ordenança municipal d’intervenció en les activitats de Cornellà, art. 8 i 11.
+AJUDA|Criteri: Cada quatre anys, comptats des de l’atorgament de la llicència o l’autorització, des de la comunicació prèvia o des de la darrera acta de control. L’acta s’ha d’aixecar ABANS que venci el termini: si ja ha vençut, el requeriment és immediat. L’entitat de control no pot aixecar acta favorable sense haver comprovat els aspectes de l’art. 11 de l’Ordenança.
+AJUDA|A qui s'aplica: Espectacles públics i activitats recreatives en funcionament.
+AJUDA|Competencia: Ajuntament.
+AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|32.|Annex II Llei 20/2009. L’activitat es troba regulada per la LLEI 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats. S’ha de realitzar un control periòdic amb resultat favorable per part d’una Entitat Col·laboradora de l'Administració. Els controls periòdics posteriors s'han d'efectuar cada sis anys, tal i com s’indica a l’article 71 de la mateixa Llei.
 URL|https://www.gencat.cat/mediamb/ohec/eac_CA.pdf
+AJUDA|Norma: Llei 20/2009, art. 71.2.
+AJUDA|Criteri: Cada sis anys, si la llicència no en fixa un altre termini. Quan la llicència en fixa un de diferent, mana la llicència: mira-la abans de requerir. Els terminis s’han de coordinar amb els altres controls sectorials (atmosfera, incendis) per no duplicar visites.
+AJUDA|A qui s'aplica: Activitats de l’annex II en funcionament.
+AJUDA|Competencia: Ajuntament.
+AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|33.|Annex III Llei 20/2009. S’ha de realitzar un control periòdic amb resultat favorable per part d’una Entitat Col·laboradora de l'Administració. Els controls periòdics posteriors s'han d'efectuar cada vuit anys, tal i com s’indica a l’article 7.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat (versió vigent des del 19 de juny de 2025).
 URL|https://www.gencat.cat/mediamb/ohec/eac_CA.pdf
+AJUDA|Norma: Ordenança municipal d’intervenció en les activitats de Cornellà, art. 7.1 (versió vigent des del 19 de juny de 2025).
+AJUDA|Criteri: Cada vuit anys. Termini d’ORDENANÇA: la Llei 20/2009 no sotmet l’annex III a control periòdic, o sigui que aquest requeriment només se sosté citant l’ordenança municipal.
+AJUDA|A qui s'aplica: Activitats de l’annex III en funcionament.
+AJUDA|Competencia: Ajuntament.
+AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|34.|RSCIEI. L’activitat es troba regulada pel //Real Decreto 164/2025, de 4 de marzo, por el que se aprueba el Reglamento de seguridad contra incendios en los establecimientos industriales//, que deroga el //Real Decreto 2267/2004, de 3 de diciembre//. S’ha de realitzar la inspecció periòdica de les instal·lacions per part d’un organisme de control habilitat, com a mínim cada cinc anys, tal com s’indica a l’article 13 del Reial decret. De la inspecció se n’aixeca acta, signada per la persona inspectora i pel titular, que ha d’estar a disposició de l’administració competent.
 BODY|Els establiments industrials existents abans del 10 de maig de 2025 s’hi han d’adaptar igualment (disposició transitòria primera), i els construïts abans del //Real Decreto 2267/2004, de 3 de diciembre// fan la inspecció cada cinc anys limitada als equips i sistemes de protecció activa. Queden exceptuats els establiments amb densitat de càrrega de foc ponderada i corregida (Qs) que no superi 42 MJ/m2, sempre que la superfície construïda sigui igual o inferior a 120 m2.
+AJUDA|Norma: RD 164/2025, de 4 de març, Reglament de seguretat contra incendis en establiments industrials, art. 13 i disposició transitòria primera (deroga el RD 2267/2004).
+AJUDA|Criteri: Inspecció per organisme de control habilitat com a mínim cada CINC anys, sigui quin sigui el nivell de risc intrínsec (el RD 164/2025 unifica el que abans eren 5/3/2 anys segons risc baix, mitjà o alt). Els establiments anteriors al 10 de maig de 2025 s’hi han d’adaptar igualment; els anteriors al RD 2267/2004 fan la inspecció limitada als equips i sistemes de protecció activa.
+AJUDA|A qui s'aplica: Establiments industrials en funcionament, inclosos els existents.
+AJUDA|Competencia: Indústria (Generalitat). L’Ajuntament comprova que l’acta existeix i és vigent.
+AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|35.|Vector Atmosfera. L'activitat està inclosa dins l'Annex IV de la //Ley 34/2007, de 15 de noviembre, de calidad del aire y proteccion de la atmosfera//. S'ha d'entregar, per part d'una Entitat de control en l’àmbit sectorial de la prevenció de la contaminació atmosfèrica [EC-A], tal i com s'indica a l'Article 16 del DECRET 139/2018, de 3 de juliol, sobre els règims d’intervenció ambiental atmosfèrica dels establiments on es desenvolupin activitats potencialment contaminants de l'atmosfera:
 BODY|- El CAE (Control Atmosfèric de l'Establiment)
 BODY|- L'informe reglamentari de mesures d'emissions a l’atmosfera
 URL|https://www.gencat.cat/mediamb/oaec/ec_atm_CA.pdf
+AJUDA|Norma: Decret 139/2018, art. 16.3; Llei 34/2007, annex IV (CAPCA) i RD 100/2011.
+AJUDA|Criteri: Periodicitat segons grup: A cada dos anys, B cada tres, C cada cinc. El control el fa una EC-A habilitada. Comprova el grup al CAPCA abans de posar el termini: posar-ne un que no toca converteix el requeriment en indefensable.
+AJUDA|A qui s'aplica: Establiments amb focus emissors catalogats, en funcionament.
+AJUDA|Competencia: Ajuntament per al grup C; DGQACC per als grups A i B.
+AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|36.|Vector Sòl. L’activitat està inclosa dins l’Annex I del //Real Decreto 9/2005, de 14 de enero, por el que se establece la relación de actividades potencialmente contaminantes del suelo y los criterios y estándares para la declaración de suelos contaminados//. S’ha de presentar l’informe de situació periòdic coincidint amb el termini de revisió de la llicència o, en defecte, cada 10 anys.
+AJUDA|Norma: RD 9/2005, art. 3.4; Llei 7/2022, títol VIII.
+AJUDA|Criteri: L’informe de situació periòdic coincideix amb el termini de revisió de la llicència ambiental i, si no n’hi ha, cada deu anys. Només és exigible a les activitats de l’annex I del RD 9/2005 que ja van haver de presentar l’IPS.
+AJUDA|A qui s'aplica: Activitats potencialment contaminants del sòl en funcionament.
+AJUDA|Competencia: Agència de Residus de Catalunya.
+AJUDA|Revisat: 2026-09
 AIRE|item
 SECT|Instal·lacions
 AIRE|seccio
