@@ -1124,6 +1124,45 @@ destinataris d'una altra activitat.
   GUI, escriu directament a `%LOCALAPPDATA%\InformesCornella\settings.json`
   (`{"InformesDir": "F:\\...\\Informes", "ActivitatsDir": "F:\\...\\2_Controls Excels"}`).
 
+## La FITXA D'AJUDA d'un requeriment: l'interruptor va al costat segur
+
+Cada node d'un catàleg pot portar una clau `ajuda` amb cinc camps (`norma`,
+`criteri`, `aplica`, `competencia`, `revisat`). Es veu al **Pas 3** (icona ⓘ) i
+a la **vista en Word**, en gris. **A l'informe del titular no hi pot sortir
+mai**: la fitxa porta el criteri intern —"competència: Indústria; l'Ajuntament
+només ho constata"— i en un document municipal seria explicar-li per què no es
+pot exigir el que se li acaba de demanar.
+
+**El disseny que ho garanteix, i que no s'ha de girar:** `Build-CatalegBlocs`
+té `-AmbAjuda`, **per defecte FALS**, i només el posa `VistaWord.ps1`. És a dir:
+**l'informe no ha de treure res, és la vista qui ho ha d'afegir**. Fet a
+l'inrevés —emetre-ho sempre i que l'informe ho filtri— un oblit deixaria la
+fitxa DINS de l'informe; així, un oblit la deixa fora, que és el costat barat de
+l'error. Hi ha un guard que comprova que `-AmbAjuda` només es crida a
+`VistaWord.ps1` i un altre que cap `cataleg-*.json` de `docs/dades` (el mòbil)
+no en porti.
+
+Tres detalls que ja van costar una volta:
+
+- **`Format-AjudaLinies` (CatalegJson.ps1) és l'ÚNIC lloc** que decideix com es
+  llegeix una fitxa. La pantalla i la vista en Word la criden totes dues: si
+  cadascuna es fes les seves etiquetes, tornaríem a tenir una vista que diu una
+  cosa i un document que en diu una altra (vegeu `_VistaCataleg`).
+- **Una fitxa buida val com si no n'hi hagués.** `Read-AjudaNode` torna `$null`
+  si els cinc camps són en blanc, i `_Ed_AjudaToJson` no l'escriu. Si no, la ⓘ
+  sortiria als 254 punts i no voldria dir res.
+- **El clic de la ⓘ es detecta amb `HitTest`**, no comparant coordenades. Un
+  `TreeNode.Bounds` **només cobreix el text**: la imatge en queda fora i el clic
+  no encertaria mai. `TreeViewHitTestLocations` distingeix `StateImage` (la
+  casella), `Image` (la ⓘ) i `Label` (el text), i per això clicar la ⓘ tampoc no
+  marca ni desmarca el requeriment.
+
+**En canviar una norma** cal tocar el text del punt *i* la seva fitxa, i posar
+la data nova a `revisat`. El guard de `06-guards.ps1` comprova que cap fitxa no
+es quedi sense `norma` ni `criteri`, que `revisat` sigui `AAAA-MM` i que cap
+camp estigui mal escrit —un `competència` amb accent es llegiria com a buit
+sense dir-ho ningú.
+
 ## Llicència, MNS i Traspàs → un document a part
 
 Tot això (l'assistent, `LLIC.json`, la base de dades de llicències, els tres

@@ -93,7 +93,7 @@ seguirà sense icona i obrirà un segon botó.
 |-----|--------|
 | 1 | **Menú**: tries alhora QUÈ vols fer i, si és un informe nou, el catàleg. |
 | 2 | **Dades de la capçalera**. Si escrius un ID GIA que és a l'Excel, s'omple sol. |
-| 3 | **Marcar les deficiències** (arbre amb filtre). En marcar-ne una, el text surt a la dreta i, si té opcions o camps, els omples **allà mateix**. |
+| 3 | **Marcar les deficiències** (arbre amb filtre). En marcar-ne una, el text surt a la dreta i, si té opcions o camps, els omples **allà mateix**. Els punts amb una **ⓘ** al davant porten fitxa d'ajuda: clica-la (o prem **F1**) i et diu si allò s'ha de requerir o no. |
 | 4 | **Triar les conclusions**, també amb els camps dins del propi text. |
 | 5 | Es genera el `.docx` i s'obre amb el Word. |
 
@@ -506,6 +506,32 @@ dins, cada bloc et diu **a quin tipus d'informe s'aplica**.
 
 Un enllaç (URL) es marca com a tal a l'editor i surt a l'informe com a
 hipervincle, en cos més petit.
+
+### La fitxa d'ajuda de cada requeriment (el botó **ⓘ**)
+
+Cada ítem i sub-punt d'un catàleg pot portar una **fitxa d'ajuda**: el criteri
+per decidir si allò s'ha de requerir o no, sense haver d'anar a buscar el Word
+d'inspeccions. Té **cinc camps**, sempre els mateixos:
+
+| Camp | Què hi va |
+|---|---|
+| **Norma** | La norma i l'article exactes. |
+| **Criteri** | El llindar, la periodicitat, l'excepció — el que decideix. |
+| **A qui s'aplica** | Activitat nova, existent, modificació… És el camp que evita exigir normativa posterior a una activitat legalitzada abans. |
+| **Competència** | Qui ho pot exigir. Mitja secció d'Autoritzacions són obligacions d'altres administracions: allà l'Ajuntament **constata i dona trasllat**. |
+| **Revisat** | `AAAA-MM`. Serveix per saber quines fitxes s'han quedat endarrerides quan canvia una norma. |
+
+**On es veu:** al **Pas 3**, amb la icona **ⓘ** que surt al davant dels punts que
+en tenen (clic o **F1**); i a la **vista en Word** del catàleg, en gris sota cada
+punt. **A l'informe del titular no hi surt mai** — és material de consulta teu.
+
+**Com s'omple:** a **✏ Editar catàlegs**, amb el botó **ⓘ Fitxa d'ajuda** de la
+barra del cos. Surt amb un **✓** quan el punt ja en té. Si esborres tots cinc
+camps, la fitxa desapareix i la **ⓘ** deixa de sortir al Pas 3.
+
+> Quan canviï una norma, el que has de tocar és **la fitxa i el text del punt**,
+> i posar la data nova a *Revisat*. Les proves comproven que cap fitxa no es
+> queda sense norma ni sense criteri, i que la data té el format `AAAA-MM`.
 
 Quan deses, el programa **regenera les vistes en Word** i, en fer
 `Actualitzar.bat`, **puja els teus catàlegs al GitHub**. Els teus canvis
