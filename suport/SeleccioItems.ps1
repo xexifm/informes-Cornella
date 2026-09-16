@@ -54,6 +54,15 @@ function _GetItemTooltip($el) {
     return $tip
 }
 
+# Quina imatge li toca a un node de l'arbre: la (i) si el requeriment porta
+# fitxa d'ajuda, i la buida si no. PURA (torna un index), i per aixo es pot
+# provar sense finestres.
+function _AjudaImgIndex($el) {
+    if ($null -eq $el) { return $Script:AjudaImgBuida }
+    if ($null -eq $el.Ajuda) { return $Script:AjudaImgBuida }
+    return $Script:AjudaImgInfo
+}
+
 function _RebuildTree($tv, $sections, $needle, $checkStates) {
     $tv.BeginUpdate()
     $script:_propagating = $true
@@ -95,6 +104,7 @@ function _RebuildTree($tv, $sections, $needle, $checkStates) {
             $secNode = New-Object System.Windows.Forms.TreeNode($sec.Title)
             $secNode.Tag = @{ Kind = 'Section'; Ref = $sec; Key = $sec.Title }
             $secNode.NodeFont = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
+            $secNode.ImageIndex = $Script:AjudaImgBuida; $secNode.SelectedImageIndex = $Script:AjudaImgBuida
             $stKey = "SECT::$($sec.Title)"
             if ($checkStates.ContainsKey($stKey)) { $secNode.Checked = $checkStates[$stKey] }
             [void]$tv.Nodes.Add($secNode)
@@ -106,6 +116,7 @@ function _RebuildTree($tv, $sections, $needle, $checkStates) {
                     $subNode = New-Object System.Windows.Forms.TreeNode($n.El.Short)
                     $subNode.Tag = @{ Kind = 'Subsection'; Ref = $n.El }
                     $subNode.NodeFont = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Underline)
+                    $subNode.ImageIndex = $Script:AjudaImgBuida; $subNode.SelectedImageIndex = $Script:AjudaImgBuida
                     [void]$secNode.Nodes.Add($subNode)
                     $container = $subNode
                     continue
@@ -117,6 +128,8 @@ function _RebuildTree($tv, $sections, $needle, $checkStates) {
                 $itNode.Tag = @{ Kind = 'Item'; Ref = $n.El; SectionTitle = $sec.Title }
                 $itNode.NodeFont = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Regular)
                 $itNode.ToolTipText = _GetItemTooltip $n.El
+                $idx = _AjudaImgIndex $n.El
+                $itNode.ImageIndex = $idx; $itNode.SelectedImageIndex = $idx
                 $itKey = (_ItemKey $sec.Title $n.El.Short)
                 if ($checkStates.ContainsKey($itKey)) { $itNode.Checked = $checkStates[$itKey] }
                 [void]$container.Nodes.Add($itNode)
@@ -125,6 +138,8 @@ function _RebuildTree($tv, $sections, $needle, $checkStates) {
                     $chNode.Tag = @{ Kind = 'Child'; Ref = $ch; SectionTitle = $sec.Title; ParentShort = $n.El.Short }
                     $chNode.NodeFont = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Regular)
                     $chNode.ToolTipText = _GetItemTooltip $ch
+                    $cidx = _AjudaImgIndex $ch
+                    $chNode.ImageIndex = $cidx; $chNode.SelectedImageIndex = $cidx
                     $chKey = (_ItemKey $sec.Title $n.El.Short $ch.Short)
                     if ($checkStates.ContainsKey($chKey)) { $chNode.Checked = $checkStates[$chKey] }
                     [void]$itNode.Nodes.Add($chNode)
@@ -200,6 +215,7 @@ function Select-Items {
     $btnClear.add_Click({ $tbFilter.Text = '' })
     $form.Controls.Add($btnClear)
 
+
     $tv = New-Object System.Windows.Forms.TreeView
     $tv.Location = New-Object System.Drawing.Point(10, (40 + $topOffset))
     $tv.Size = New-Object System.Drawing.Size(560, 610)
@@ -211,6 +227,10 @@ function Select-Items {
     # evita el bug de WinForms en que un node amb NodeFont mes ample que el
     # font del control surt retallat. Items i fills posen NodeFont regular.
     $tv.Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
+    # El boto (i) de cada requeriment que te fitxa d'ajuda. L'ImageList s'ha
+    # d'assignar ABANS del primer _RebuildTree: si es posa despres, els nodes ja
+    # creats es queden amb l'espai de la imatge sense reservar i l'arbre salta.
+    $tv.ImageList = _AjudaImageList
     $form.Controls.Add($tv)
 
     # Panell de detall (dreta): mostra el TEXT de les deficiencies marcades amb
@@ -353,6 +373,34 @@ function Select-Items {
         & $refreshDetail
     })
 
+    # La fitxa d'ajuda: clic a la (i), o F1 sobre el requeriment seleccionat.
+    #
+    # LA ZONA DE CLIC LA DIU EL HITTEST, no una comparacio de coordenades a ma.
+    # Un TreeView te tres zones per node -la casella (StateImage), la imatge
+    # (Image) i el text (Label)- i el .NET ja les sap. Calculant-ho a ma amb
+    # $e.Node.Bounds (que NOMES cobreix el text) la (i) queda fora del rectangle
+    # i el clic no encertaria mai. Com que la casella es una zona diferent,
+    # clicar la (i) tampoc no marca ni desmarca el requeriment.
+    $mostraAjuda = {
+        param($node)
+        if ($null -eq $node -or $null -eq $node.Tag) { return }
+        $el = $node.Tag.Ref
+        if ($null -eq $el -or $null -eq $el.Ajuda) { return }
+        Show-Ajuda ([string]$el.Short) $el.Ajuda $form
+    }
+    $tv.add_NodeMouseClick({
+        param($sender, $e)
+        $hit = $sender.HitTest($e.X, $e.Y)
+        if ($hit.Location -ne [System.Windows.Forms.TreeViewHitTestLocations]::Image) { return }
+        & $mostraAjuda $e.Node
+    }.GetNewClosure())
+    $tv.add_KeyDown({
+        param($sender, $e)
+        if ($e.KeyCode -ne [System.Windows.Forms.Keys]::F1) { return }
+        $e.Handled = $true
+        & $mostraAjuda $sender.SelectedNode
+    }.GetNewClosure())
+
     # Refilter en temps real (debouncing simple: rebuild a cada keystroke;
     # amb 131 items va fluid)
     $tbFilter.add_TextChanged({
@@ -376,6 +424,19 @@ function Select-Items {
     $back.Anchor = 'Bottom, Left'
     _StyleSecondaryButton $back
     $form.Controls.Add($back)
+
+    # Que el boto (i) existeix s'ha de DIR: una icona de 16 px que nomes surt a
+    # alguns nodes no la busca ningu si no sap que hi es. Va a la franja de sota
+    # -entre els dos botons, que es l'unic espai ample que queda lliure- i no a
+    # la fila del filtre, on trepitjaria el rotol del panell de detall (i
+    # _AvisaSolapaments ho cantaria a cada obertura de la pantalla).
+    $lblAjuda = New-Object System.Windows.Forms.Label
+    $lblAjuda.Text = ('Clica la ' + [char]0x24D8 + ' d''un punt (o prem F1) per veure quan s''ha de requerir.')
+    $lblAjuda.Location = New-Object System.Drawing.Point(125, 748)
+    $lblAjuda.AutoSize = $true
+    $lblAjuda.ForeColor = [System.Drawing.Color]::DimGray
+    $lblAjuda.Anchor = 'Bottom, Left'
+    $form.Controls.Add($lblAjuda)
 
     $ok = New-Object System.Windows.Forms.Button
     $ok.Text = ('Seg' + [char]0x00FC + 'ent ' + [char]0x2192)

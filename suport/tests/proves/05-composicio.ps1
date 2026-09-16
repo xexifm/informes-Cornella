@@ -1605,3 +1605,93 @@ if ($null -ne $llicOrd -and $null -ne $req1Ord) {
 # Select-Mode es WinForms i les proves no el criden mai (vegeu CLAUDE.md), o
 # sigui que aixo es una prova de FONT: mira en quin ordre s'afegeixen les
 # entrades a $menu.
+
+# ---------------------------------------------------------------------------
+# LA FITXA D'AJUDA: a la VISTA si, a l'INFORME mai
+# ---------------------------------------------------------------------------
+# Aquesta es LA prova d'aquesta funcio. La fitxa diu coses com "competencia:
+# Industria, l'Ajuntament nomes ho constata": si un dia s'escapes a l'informe
+# que se li dona al titular, seria un document municipal explicant per que no
+# pot exigir el que hi acaba de posar. Per aixo l'interruptor es -AmbAjuda i va
+# per defecte a fals: l'informe no ha de treure res, es la vista qui ho afegeix.
+. (Join-Path $TestsDir 'FormatDoubles.ps1')
+
+$ajudaEx = [pscustomobject]@{
+    Norma = 'RD 513/2017, art. 22'; Criteri = 'Cada 10 anys'; Aplica = 'Existents'
+    Competencia = 'Ajuntament'; Revisat = '2026-09'
+}
+$secAj = @(
+    [pscustomobject]@{
+        Title = 'Instal-lacions'
+        Items = @(
+            [pscustomobject]@{
+                Kind = 'item'; Short = 'PCI'; Selected = $true
+                BodyLines = @('Cal acreditar la inspeccio periodica de les instal-lacions de PCI.')
+                Ajuda = $ajudaEx
+                Children = @(
+                    [pscustomobject]@{
+                        Kind = 'child'; Short = 'Extintors'; Selected = $true
+                        BodyLines = @('Els extintors han d''estar revisats.')
+                        Ajuda = [pscustomobject]@{ Norma = 'RIPCI ap. 2'; Criteri = 'Anual'; Aplica = ''; Competencia = ''; Revisat = '' }
+                        Children = @()
+                    }
+                )
+            }
+        )
+    }
+)
+
+# Compta els blocs 'ajuda' de TOT arreu: al primer nivell i dins de les
+# 'unitat'. Si nomes es miressin els de dalt, la prova de l'informe passaria
+# sempre -alli no n'hi ha mai cap- i no vigilaria res.
+function _ComptaAjuda($blocs) {
+    $n = 0
+    foreach ($b in @($blocs)) {
+        if ([string]$b.T -eq 'ajuda') { $n++ }
+        if ([string]$b.T -eq 'unitat') { $n += (_ComptaAjuda $b.Blocs) }
+    }
+    return $n
+}
+
+$blocsInforme = @(Build-CatalegBlocs $secAj @{} '' $false @())
+AssertEq (_ComptaAjuda $blocsInforme) 0 'Ajuda: SENSE -AmbAjuda no s''emet cap bloc d''ajuda EN CAP NIVELL (informe del titular)'
+
+$blocsVista = @(Build-CatalegBlocs $secAj @{} '' $false @() -AmbAjuda)
+# Els blocs d'un item van DINS d'un bloc 'unitat' (es el que fa que l'aire vagi
+# despres de l'item sencer), o sigui que la fitxa s'ha de buscar alli dins i no
+# al primer nivell de la llista.
+$ajB = @()
+foreach ($u in @($blocsVista | Where-Object { $_.T -eq 'unitat' })) {
+    $ajB += @(@($u.Blocs) | Where-Object { $_.T -eq 'ajuda' })
+}
+AssertEq $ajB.Count 7 'Ajuda: amb -AmbAjuda surten les 5 linies de l''item i les 2 del fill'
+AssertEq ([string]$ajB[0].Text) 'Norma: RD 513/2017, art. 22' 'Ajuda: la primera linia de l''item es la norma'
+
+# L'ORDRE: la fitxa de l'item va despres del seu text i ABANS del sub-punt.
+# Llegida al final -darrere dels fills- no es sabria a que es refereix.
+$unitat = @($blocsVista | Where-Object { $_.T -eq 'unitat' })[0]
+$seq = @(@($unitat.Blocs) | ForEach-Object { [string]$_.T })
+$iItem = [Array]::IndexOf($seq, 'item')
+$iPic  = [Array]::IndexOf($seq, 'pic')
+$iAj   = [Array]::IndexOf($seq, 'ajuda')
+Assert ([bool]($iItem -lt $iAj -and $iAj -lt $iPic)) 'Ajuda: la fitxa de l''item va entre el text de l''item i el primer sub-punt'
+
+# I el motor la sap escriure: bloc 'ajuda' -> Format-Ajuda (gris, a la vista).
+$global:emitCalls.Clear()
+[void](Write-Informe $null $blocsVista)
+$emAj = @($global:emitCalls | Where-Object { $_ -like 'AJUDA|*' })
+AssertEq $emAj.Count 7 'Ajuda: Write-Informe crida Format-Ajuda per cada linia de fitxa'
+AssertEq $emAj[0] 'AJUDA|Norma: RD 513/2017, art. 22' 'Ajuda: Format-Ajuda rep la linia sencera "Etiqueta: valor"'
+
+# Un item que NO s'escriu (ni text ni fills amb text) no ha de deixar anar la
+# seva fitxa solta pel document.
+$secOrfe = @(
+    [pscustomobject]@{
+        Title = 'Buida'
+        Items = @([pscustomobject]@{
+            Kind = 'item'; Short = 'Sense cos'; Selected = $true
+            BodyLines = @(); Ajuda = $ajudaEx; Children = @()
+        })
+    }
+)
+AssertEq (@(Build-CatalegBlocs $secOrfe @{} '' $false @() -AmbAjuda | Where-Object { $_.T -eq 'ajuda' }).Count) 0 'Ajuda: un item que no escriu res no deixa la fitxa orfe'

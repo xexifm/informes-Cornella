@@ -358,7 +358,11 @@ function _VistaCataleg($sel, [string]$jsonPath, [string]$nom) {
     # vista del CATALEG, no l'informe d'una activitat: resoldre'ls amb un
     # diccionari buit els deixaria en blanc i la vista perdria el que hi vas a
     # mirar.
-    $blocs = Build-CatalegBlocs $parsed.Sections $null ([string]$parsed.IntroText) ([bool]$parsed.IsFixedBody) @($parsed.FixedBodyLines) -SenseCamps
+    # -AmbAjuda: la vista es el document que l'inspector consulta quan dubta si
+    # ha de requerir una cosa o no, o sigui que es EL LLOC de la fitxa de
+    # criteri. A l'informe del titular no hi arriba: aquest interruptor nomes el
+    # posa aqui.
+    $blocs = Build-CatalegBlocs $parsed.Sections $null ([string]$parsed.IntroText) ([bool]$parsed.IsFixedBody) @($parsed.FixedBodyLines) -SenseCamps -AmbAjuda
     [void](Write-Informe $sel $blocs -AmbNivells)
 }
 

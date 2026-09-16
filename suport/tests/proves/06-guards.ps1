@@ -854,3 +854,65 @@ Get-ChildItem -Recurse -Filter '*.ps1' $dwArrel |
     }
 }
 Assert ($dwFora.Count -eq 0) ("System.Drawing/WinForms avaluat en carregar (peta en headless): " + ($dwFora -join '; '))
+
+Write-Host "`n--- La FITXA D'AJUDA no pot arribar a l'informe del titular ---"
+# PER QUE UN GUARD I NO NOMES LA PROVA DE COMPOSICIO. La prova de 05 comprova el
+# comportament d'AVUI: que sense -AmbAjuda no s'emet res. El que ha de durar es
+# que NINGU no posi mai aquell interruptor al cami de l'informe. La fitxa porta
+# el criteri intern ("competencia: Industria; l'Ajuntament nomes ho constata") i
+# a l'informe del titular seria un document municipal explicant per que no pot
+# exigir el que hi acaba de demanar.
+$fitxersPs = @(Get-ChildItem -Path (Join-Path $rootRepo 'suport') -Filter '*.ps1' -Recurse -File |
+               Where-Object { $_.FullName -notmatch '[\\/]tests[\\/]' })
+# Es busquen les CRIDES (una linia que crida Build-CatalegBlocs passant-li
+# -AmbAjuda), no la paraula: la declaracio de la funcio i els comentaris que
+# expliquen l'interruptor tambe la porten i no son cap perill.
+$ambAjuda = @()
+foreach ($f in $fitxersPs) {
+    foreach ($ln in @([System.IO.File]::ReadAllLines($f.FullName))) {
+        if ($ln -match 'Build-CatalegBlocs' -and $ln -match '\-AmbAjuda') { $ambAjuda += $f.Name; break }
+    }
+}
+AssertEq ($ambAjuda -join ',') 'VistaWord.ps1' 'Build-CatalegBlocs -AmbAjuda nomes es crida a VistaWord.ps1 (la vista de consulta)'
+
+# I el cataleg que es publica al mobil tampoc no se l'endu: alla el formulari
+# nomes ha de tenir el text del requeriment.
+$dirDadesAj = Join-Path $rootRepo (Join-Path 'docs' 'dades')
+foreach ($d in @(Get-ChildItem -Path $dirDadesAj -Filter 'cataleg-*.json' -File -ErrorAction SilentlyContinue)) {
+    $cru = [System.IO.File]::ReadAllText($d.FullName)
+    Assert (-not ($cru -match '"[Aa]juda"')) ($d.Name + ' : el cataleg del mobil no porta fitxes d''ajuda')
+}
+
+Write-Host "`n--- Les fitxes d'ajuda dels ESTRUCTURALS estan ben formades ---"
+# Un camp mal escrit ("competència" amb accent, "revisió" en lloc de "revisat")
+# no peta: es llegeix com a buit i la fitxa surt incompleta SENSE dir res. Aixo
+# ho caca aqui.
+$camps = @('norma', 'criteri', 'aplica', 'competencia', 'revisat')
+function _GuardAjuda($nodes, $ruta, $acc) {
+    foreach ($n in @($nodes)) {
+        if ($null -eq $n) { continue }
+        $on = ($ruta + ' > ' + [string]$n.titol)
+        if ($null -ne $n.ajuda) {
+            $claus = @($n.ajuda.PSObject.Properties.Name)
+            foreach ($k in $claus) {
+                if ($camps -notcontains $k) { [void]$acc.Add($on + ' : camp desconegut "' + $k + '"') }
+            }
+            if ([string]::IsNullOrWhiteSpace([string]$n.ajuda.norma))   { [void]$acc.Add($on + ' : fitxa sense norma') }
+            if ([string]::IsNullOrWhiteSpace([string]$n.ajuda.criteri)) { [void]$acc.Add($on + ' : fitxa sense criteri') }
+            $rev = [string]$n.ajuda.revisat
+            if (-not [string]::IsNullOrWhiteSpace($rev) -and $rev -notmatch '^\d{4}-\d{2}$') {
+                [void]$acc.Add($on + ' : "revisat" ha de ser AAAA-MM i es "' + $rev + '"')
+            }
+            if ([string]$n.tipus -notin @('item', 'subitem')) {
+                [void]$acc.Add($on + ' : nomes els items i subitems poden portar fitxa (es "' + [string]$n.tipus + '")')
+            }
+        }
+        if ($n.fills) { _GuardAjuda $n.fills $on $acc }
+    }
+}
+$problemes = New-Object System.Collections.ArrayList
+foreach ($j in @(Get-ChildItem -Path (Join-Path $rootRepo 'ESTRUCTURALS') -Filter '*.json' -File)) {
+    $oj = Get-Content -LiteralPath $j.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
+    _GuardAjuda $oj.nodes $j.BaseName $problemes
+}
+AssertEq $problemes.Count 0 ("cap fitxa d'ajuda mal formada" + $(if ($problemes.Count) { " (n'hi ha $($problemes.Count), p.ex. " + $problemes[0] + ')' } else { '' }))

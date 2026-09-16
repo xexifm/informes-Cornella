@@ -466,6 +466,7 @@ function _WriteBlocs($sel, $blocs, $estat, [bool]$ambNivells) {
             'etiqueta'     { Format-Label $sel ([string]$b.Text) }
             'item'         { Format-Item $sel ([string]$b.Num) ([string]$b.Text) }
             'nota'         { Format-Note $sel ([string]$b.Text) }
+            'ajuda'        { Format-Ajuda $sel ([string]$b.Text) }
             'conclusio'    { Format-Conclusion $sel ([string]$b.Text) }
             'conclusiocap' { Format-ConclusionHeader $sel ([string]$b.Text) }
             'llista'       { Format-ListItem $sel ([string]$b.Text) }
@@ -534,7 +535,22 @@ function _LiniesDeNode($node, $fields, [bool]$senseCamps) {
     return @(Apply-FieldsToLines $node.BodyLines $fields)
 }
 
-function _BlocsDItem($el, $fields, [ref]$num, [bool]$senseCamps = $false) {
+# Els blocs de la FITXA D'AJUDA d'un node, o cap si no en te.
+#
+# $ambAjuda ES OBLIGATORI I PER DEFECTE FALS: la fitxa es material de consulta
+# de l'inspector i no ha de sortir MAI a l'informe del titular. Fer-ho aixi -que
+# l'informe no hagi de treure res, sino que la vista ho hagi d'afegir- vol dir
+# que un oblit futur deixa la fitxa FORA, que es el costat segur de l'error.
+function _BlocsDAjuda($node, [bool]$ambAjuda) {
+    if (-not $ambAjuda) { return @() }
+    $out = New-Object System.Collections.ArrayList
+    foreach ($l in @(Format-AjudaLinies $node.Ajuda)) {
+        [void]$out.Add(@{ T = 'ajuda'; Text = [string]$l })
+    }
+    return $out.ToArray()
+}
+
+function _BlocsDItem($el, $fields, [ref]$num, [bool]$senseCamps = $false, [bool]$ambAjuda = $false) {
     $dins = New-Object System.Collections.ArrayList
     $linies = @(_LiniesDeNode $el $fields $senseCamps)
     $fills = @($el.Children)
@@ -552,6 +568,14 @@ function _BlocsDItem($el, $fields, [ref]$num, [bool]$senseCamps = $false) {
         $escrit = $true
     }
 
+    # La fitxa de l'item va DESPRES del seu text i ABANS dels sub-punts: el
+    # criteri es de l'item sencer, i llegir-lo al final -despres dels fills- no
+    # diria a que es refereix. Si l'item acaba no escrivint res, $dins es
+    # descarta sencer i la fitxa se'n va amb ell.
+    if ($escrit -or $fills.Count -gt 0) {
+        foreach ($x in @(_BlocsDAjuda $el $ambAjuda)) { [void]$dins.Add($x) }
+    }
+
     foreach ($ch in $fills) {
         $cl = @(_LiniesDeNode $ch $fields $senseCamps)
         if ($cl.Count -eq 0) { continue }
@@ -566,15 +590,19 @@ function _BlocsDItem($el, $fields, [ref]$num, [bool]$senseCamps = $false) {
         for ($i = 1; $i -lt $cl.Count; $i++) {
             foreach ($x in @(_BlocsDeLinia ([string]$cl[$i]) $true)) { [void]$dins.Add($x) }
         }
+        foreach ($x in @(_BlocsDAjuda $ch $ambAjuda)) { [void]$dins.Add($x) }
     }
 
     if (-not $escrit) { return @() }
     return @(@{ T = 'unitat'; Blocs = $dins.ToArray() })
 }
 
-function Build-CatalegBlocs($seccions, $fields, [string]$introText, [bool]$esCosFix = $false, $liniesCosFix = @(), [switch]$SenseCamps) {
+# -AmbAjuda: hi afegeix les FITXES D'AJUDA dels requeriments (nomes les demana la
+# vista en Word del cataleg; l'informe d'una activitat, mai).
+function Build-CatalegBlocs($seccions, $fields, [string]$introText, [bool]$esCosFix = $false, $liniesCosFix = @(), [switch]$SenseCamps, [switch]$AmbAjuda) {
     $b = New-Object System.Collections.ArrayList
     $sc = [bool]$SenseCamps
+    $aj = [bool]$AmbAjuda
 
     # Informe de COS FIX (TERMINI): no hi ha seccions ni items a numerar; el cos
     # son els paragrafs del cataleg amb els camps resolts.
@@ -649,7 +677,7 @@ function Build-CatalegBlocs($seccions, $fields, [string]$introText, [bool]$esCos
                 continue
             }
 
-            $blocsItem = @(_BlocsDItem $el $fields ([ref]$num) $sc)
+            $blocsItem = @(_BlocsDItem $el $fields ([ref]$num) $sc $aj)
             if ($blocsItem.Count -eq 0) { continue }
 
             # L'intro de la SECCIO va abans del titol de la subseccio: introdueix

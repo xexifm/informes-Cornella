@@ -69,6 +69,19 @@ function _Ed_ParasFromJson($paras) {
     return ,$out
 }
 
+# La fitxa d'ajuda d'un node -> hashtable pla amb els CINC camps sempre
+# presents (encara que siguin buits). Sempre presents a posta: el panell de
+# l'editor n'escriu els cinc quadres i, si algun no hi fos, s'hi hauria de
+# comprovar el $null a cada lectura.
+function _Ed_AjudaFromJson($a) {
+    $h = @{}
+    foreach ($c in $Script:AjudaCamps) {
+        $v = if ($null -eq $a) { '' } else { [string]$a.$c }
+        $h[$c] = if ($null -eq $v) { '' } else { $v }
+    }
+    return $h
+}
+
 function _Ed_NodesFromJson($nodes) {
     $out = New-Object System.Collections.ArrayList
     foreach ($n in @($nodes)) {
@@ -76,6 +89,7 @@ function _Ed_NodesFromJson($nodes) {
             tipus = [string]$n.tipus
             titol = [string]$n.titol
             clau  = [string]$n.clau
+            ajuda = (_Ed_AjudaFromJson $n.ajuda)
             cos   = (_Ed_ParasFromJson $n.cos)
             fills = (_Ed_NodesFromJson $n.fills)
         })
@@ -110,16 +124,39 @@ function _Ed_ParasToJson($paras) {
     return ,$arr
 }
 
+# La fitxa d'ajuda -> l'objecte del JSON, o $null si es BUIDA.
+#
+# Una fitxa buida NO s'escriu: si s'escrivissin els cinc camps en blanc a cada
+# node, el cataleg s'ompliria de soroll i el lector hauria de distingir "fitxa
+# sense omplir" de "sense fitxa" -que a efectes del boto (i) es el mateix-.
+function _Ed_AjudaToJson($a) {
+    if ($null -eq $a) { return $null }
+    $o = [ordered]@{}
+    $teRes = $false
+    foreach ($c in $Script:AjudaCamps) {
+        $v = ([string]$a[$c])
+        if ($null -eq $v) { $v = '' }
+        $v = $v.Trim()
+        if (-not [string]::IsNullOrWhiteSpace($v)) { $teRes = $true }
+        $o[$c] = $v
+    }
+    if (-not $teRes) { return $null }
+    return $o
+}
+
 function _Ed_NodesToJson($nodes) {
     $arr = @()
     foreach ($n in @($nodes)) {
-        # Ordre de claus identic al dels JSON generats: tipus, titol, [clau], cos,
-        # fills. 'clau' nomes s'escriu si te valor (ACT_EXTR).
+        # Ordre de claus identic al dels JSON generats: tipus, titol, [clau],
+        # [ajuda], cos, fills. 'clau' nomes s'escriu si te valor (ACT_EXTR) i
+        # 'ajuda' nomes si la fitxa te algun camp omplert.
         $no = [ordered]@{
             tipus = [string]$n.tipus
             titol = [string]$n.titol
         }
         if (-not [string]::IsNullOrEmpty([string]$n.clau)) { $no.clau = [string]$n.clau }
+        $aj = _Ed_AjudaToJson $n.ajuda
+        if ($null -ne $aj) { $no.ajuda = $aj }
         $no.cos   = (_Ed_ParasToJson $n.cos)
         $no.fills = (_Ed_NodesToJson $n.fills)
         $arr += ,$no
@@ -526,6 +563,7 @@ function _Ed_LoadEditor($state) {
         $state.ClauBox.Text = ''
         $state.Rtb.Clear()
         $state.Rtb.Enabled = $false
+        _Ed_RefrescaBotoAjuda $state $null
         $state.Busy = $false
         return
     }
@@ -539,6 +577,7 @@ function _Ed_LoadEditor($state) {
         $state.ClauBox.Text = ''
         $state.Rtb.Enabled = $true
         _Ed_RenderRichToRtb $state.Rtb (_Ed_CosToRich $state.Model.intro) $state.RtbFont
+        _Ed_RefrescaBotoAjuda $state $null
     } else {
         $node = $tag.Node
         $state.TitolBox.Enabled = $true
@@ -575,8 +614,25 @@ function _Ed_LoadEditor($state) {
         }
         $state.Rtb.Enabled = $true
         _Ed_RenderRichToRtb $state.Rtb (_Ed_CosToRich $node.cos) $state.RtbFont
+        _Ed_RefrescaBotoAjuda $state $node
     }
     $state.Busy = $false
+}
+
+# El boto de la fitxa: habilitat nomes als requeriments, i amb un vist quan ja
+# te fitxa. El TEXT ho ha de dir: un boto que nomes canvia de color no es veu
+# entre 254 punts, i saber quins ja estan documentats es justament el que fa
+# falta mentre s'omplen.
+function _Ed_RefrescaBotoAjuda($state, $node) {
+    if ($null -eq $state.AjudaBtn) { return }
+    $admet = Test-EdAdmetAjuda ([string]$state.Model.familia) $node
+    $state.AjudaBtn.Enabled = $admet
+    if (-not $admet) {
+        $state.AjudaBtn.Text = ([char]0x24D8 + ' Fitxa d''ajuda')
+        return
+    }
+    $te = Test-EdTeAjuda $node.ajuda
+    $state.AjudaBtn.Text = ([char]0x24D8 + ' Fitxa d''ajuda' + $(if ($te) { ' ' + [char]0x2713 } else { '' }))
 }
 
 function _Ed_FlushEditor($state) {
@@ -619,6 +675,7 @@ function _Ed_OnTreeSelect($state) {
 function _Ed_NewNode([string]$tipus) {
     return @{
         tipus = $tipus; titol = ''; clau = ''
+        ajuda = (_Ed_AjudaFromJson $null)
         cos = (New-Object System.Collections.ArrayList)
         fills = (New-Object System.Collections.ArrayList)
     }
@@ -890,6 +947,118 @@ function _Ed_ConfirmDiscard($state) {
 # ---- Finestra principal ---------------------------------------------------
 # $focusDoc: clau del document a obrir de bon principi (REQ1, TERMINI,
 # ACT_EXTR[_REQ/_FAV], '0 CONCLUSIONS'...). ACT_EXTR sol -> ACT_EXTR_REQ.
+# ---- La fitxa d'ajuda d'un requeriment (finestra a part) --------------------
+# EN UNA FINESTRA I NO AL PANELL: el panell de la dreta ja porta titol, tipus,
+# clau i el cos, i encabir-hi cinc quadres mes voldria dir encongir el cos, que
+# es el que s'edita el 99% del temps. Aixi, a mes, la fitxa es pot desar o
+# descartar sencera.
+#
+# Torna la fitxa nova (hashtable amb els cinc camps) o $null si es cancel·la.
+function Show-EditorAjuda([string]$titol, $ajuda, $owner = $null) {
+    $etiquetes = [ordered]@{
+        norma       = 'Norma i article'
+        criteri     = 'Criteri (llindar, periodicitat...)'
+        aplica      = "A qui s'aplica (nova / existent / modificacio)"
+        competencia = 'Competencia (qui ho pot exigir)'
+        revisat     = 'Revisat (AAAA-MM)'
+    }
+    # Els tres primers camps son text llarg; els dos ultims, una linia.
+    $altures = @{ norma = 46; criteri = 120; aplica = 46; competencia = 46; revisat = 26 }
+
+    $form = _NewForm
+    $form.Text = 'Fitxa d''ajuda del requeriment'
+    $form.Size = New-Object System.Drawing.Size(720, 640)
+    $form.MinimumSize = New-Object System.Drawing.Size(560, 480)
+
+    $lbl = New-Object System.Windows.Forms.Label
+    $lbl.Text = [string]$titol
+    $lbl.Location = New-Object System.Drawing.Point(14, 12)
+    $lbl.Size = New-Object System.Drawing.Size(680, 36)
+    $lbl.Font = New-Object System.Drawing.Font('Segoe UI', 11, [System.Drawing.FontStyle]::Bold)
+    $lbl.Anchor = 'Top, Left, Right'
+    [void]$form.Controls.Add($lbl)
+
+    $boxes = @{}
+    $y = 54
+    foreach ($c in $etiquetes.Keys) {
+        $l = New-Object System.Windows.Forms.Label
+        $l.Text = ([string]$etiquetes[$c] + ':')
+        $l.Location = New-Object System.Drawing.Point(14, $y)
+        $l.AutoSize = $true
+        [void]$form.Controls.Add($l)
+        $y += 20
+
+        $h = [int]$altures[$c]
+        $tb = New-Object System.Windows.Forms.TextBox
+        $tb.Multiline = ($h -gt 26)
+        $tb.ScrollBars = $(if ($h -gt 26) { 'Vertical' } else { 'None' })
+        $tb.Location = New-Object System.Drawing.Point(14, $y)
+        $tb.Size = New-Object System.Drawing.Size(676, $h)
+        $tb.Anchor = 'Top, Left, Right'
+        $tb.Text = $(if ($null -eq $ajuda) { '' } else { [string]$ajuda[$c] })
+        [void]$form.Controls.Add($tb)
+        $boxes[$c] = $tb
+        $y += $h + 10
+    }
+
+    $btnBuida = New-Object System.Windows.Forms.Button
+    $btnBuida.Text = 'Buidar la fitxa'
+    $btnBuida.Size = New-Object System.Drawing.Size(130, 30)
+    $btnBuida.Location = New-Object System.Drawing.Point(14, ($y + 8))
+    $btnBuida.Anchor = 'Top, Left'
+    _StyleSecondaryButton $btnBuida
+    $btnBuida.add_Click({ foreach ($k in @($boxes.Keys)) { $boxes[$k].Text = '' } }.GetNewClosure())
+    [void]$form.Controls.Add($btnBuida)
+
+    $btnCancel = New-Object System.Windows.Forms.Button
+    $btnCancel.Text = 'Cancel' + [char]0x00B7 + 'lar'
+    $btnCancel.Size = New-Object System.Drawing.Size(110, 30)
+    $btnCancel.Location = New-Object System.Drawing.Point(440, ($y + 8))
+    $btnCancel.DialogResult = 'Cancel'
+    $btnCancel.Anchor = 'Top, Right'
+    _StyleSecondaryButton $btnCancel
+    [void]$form.Controls.Add($btnCancel)
+
+    $btnOk = New-Object System.Windows.Forms.Button
+    $btnOk.Text = 'Desa la fitxa'
+    $btnOk.Size = New-Object System.Drawing.Size(130, 30)
+    $btnOk.Location = New-Object System.Drawing.Point(560, ($y + 8))
+    $btnOk.DialogResult = 'OK'
+    $btnOk.Anchor = 'Top, Right'
+    _StylePrimaryButton $btnOk
+    [void]$form.Controls.Add($btnOk)
+
+    $form.AcceptButton = $btnOk
+    $form.CancelButton = $btnCancel
+
+    $res = if ($null -ne $owner) { $form.ShowDialog($owner) } else { $form.ShowDialog() }
+    if ($res -ne 'OK') { return $null }
+
+    $nova = @{}
+    foreach ($c in $Script:AjudaCamps) { $nova[$c] = ([string]$boxes[$c].Text).Trim() }
+    return $nova
+}
+
+# El node seleccionat pot tenir fitxa d'ajuda?
+#
+# Nomes els REQUERIMENTS d'un cataleg: un titol de seccio o una subseccio no es
+# requereixen, i a les altres families (conclusions, actextr, llicencia) la
+# fitxa no vol dir res. PURA.
+function Test-EdAdmetAjuda([string]$familia, $node) {
+    if ([string]$familia -ne 'cataleg') { return $false }
+    if ($null -eq $node) { return $false }
+    return ([string]$node.tipus -in @('item', 'subitem'))
+}
+
+# Te la fitxa algun camp omplert? PURA.
+function Test-EdTeAjuda($ajuda) {
+    if ($null -eq $ajuda) { return $false }
+    foreach ($c in $Script:AjudaCamps) {
+        if (-not [string]::IsNullOrWhiteSpace([string]$ajuda[$c])) { return $true }
+    }
+    return $false
+}
+
 function Show-CatalegEditor([string]$focusDoc = '') {
     $docs = @(_Ed_DocList)
     if ($docs.Count -eq 0) {
@@ -908,6 +1077,7 @@ function Show-CatalegEditor([string]$focusDoc = '') {
         Model = $null; CurrentDoc = $null; Bound = $null; Dirty = $false; Busy = $false
         Tree = $null; TitolBox = $null; TipusCombo = $null; ClauLabel = $null; ClauBox = $null
         Rtb = $null; RtbFont = $baseRtbFont; TipusNota = $null; VistaPendent = $false
+        AjudaBtn = $null
     }
 
     $yTop = 66
@@ -1048,6 +1218,17 @@ function Show-CatalegEditor([string]$focusDoc = '') {
     $btnOpcio  = & $mkToolBtn '[OPCIO]'  ($xR + 180) 78 $false
     $btnLink   = & $mkToolBtn ([System.Char]::ConvertFromUtf32(0x1F517) + ' Enlla' + [char]0x00E7) ($xR + 264) 100 $false
 
+    # La FITXA D'AJUDA del requeriment. Va a la barra del cos i no al bloc de
+    # dalt perque es contingut del punt, no estructura; i ancorada a la dreta
+    # perque segueixi la vora del quadre del titol quan la finestra creix.
+    $btnAjuda = New-Object System.Windows.Forms.Button
+    $btnAjuda.Location = New-Object System.Drawing.Point(($xR + 374), $yTool)
+    $btnAjuda.Size = New-Object System.Drawing.Size(180, 28)
+    $btnAjuda.Anchor = 'Top, Right'
+    _StyleSecondaryButton $btnAjuda
+    [void]$form.Controls.Add($btnAjuda)
+    $state.AjudaBtn = $btnAjuda
+
     # Cos (RichTextBox).
     $lblCos = New-Object System.Windows.Forms.Label
     $lblCos.Text = 'Cos (selecciona i prem N/C per negreta/cursiva):'
@@ -1098,6 +1279,22 @@ function Show-CatalegEditor([string]$focusDoc = '') {
         _Ed_InsertPlain $state.Rtb '[[URL]] https://' $state.RtbFont
         $state.Dirty = $true
     }.GetNewClosure())
+    $btnAjuda.add_Click({
+        $tag = $state.Bound
+        if ($null -eq $tag -or $tag.Kind -ne 'node') { return }
+        $node = $tag.Node
+        if (-not (Test-EdAdmetAjuda ([string]$state.Model.familia) $node)) { return }
+        # El titol que es veu a la finestra ha de ser el que s'esta escrivint al
+        # quadre, no el que hi havia desat: si no, obrir la fitxa just despres de
+        # reanomenar el punt ensenyaria el nom vell.
+        $titol = ([string]$state.TitolBox.Text).Trim()
+        if ([string]::IsNullOrWhiteSpace($titol)) { $titol = '(sense titol)' }
+        $nova = Show-EditorAjuda $titol $node.ajuda $form
+        if ($null -eq $nova) { return }
+        $node.ajuda = $nova
+        $state.Dirty = $true
+        _Ed_RefrescaBotoAjuda $state $node
+    }.GetNewClosure())
     $rtb.add_TextChanged({ if (-not $state.Busy) { $state.Dirty = $true } }.GetNewClosure())
     $tbTit.add_TextChanged({ if (-not $state.Busy) { $state.Dirty = $true; _Ed_RelabelSelected $state } }.GetNewClosure())
     $cbMar.add_SelectedIndexChanged({
@@ -1107,6 +1304,9 @@ function Show-CatalegEditor([string]$focusDoc = '') {
         $tag = $state.Bound
         if ($null -ne $tag -and $tag.Kind -eq 'node' -and $null -ne $state.TipusCombo.SelectedItem) {
             $tag.Node.tipus = [string]$state.TipusCombo.SelectedItem
+            # Canviar el tipus pot treure (o donar) dret a fitxa: una seccio no
+            # en te i un item si.
+            _Ed_RefrescaBotoAjuda $state $tag.Node
         }
         _Ed_RelabelSelected $state
     }.GetNewClosure())

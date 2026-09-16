@@ -41,5 +41,6 @@ function Format-ListItem   { param($s,$t) [void]$global:emitCalls.Add("LLISTA|$t
 function Format-Conclusion { param($s,$t) [void]$global:emitCalls.Add("CONCL|$t") }
 function Format-ConclusionHeader { param($s,$t) [void]$global:emitCalls.Add("CONCLCAP|$t") }
 function Format-Note       { param($s,$t) [void]$global:emitCalls.Add("NOTE|$t") }
+function Format-Ajuda      { param($s,$t) [void]$global:emitCalls.Add("AJUDA|$t") }
 function Format-Label      { param($s,$t) [void]$global:emitCalls.Add("LABEL|$t") }
 function Format-Plain      { param($s,$t,[switch]$Bold,[int]$Size=0) [void]$global:emitCalls.Add('PLA' + $(if($Bold){'/N'}else{''}) + $(if($Size -gt 0){"/sz$Size"}else{''}) + "|$t") }

@@ -8,9 +8,10 @@
   es guarden amb la MATEIXA estructura JSON, editable des del mateix programa:
 
     { "tipus","familia","intro":[<paragraf>],
-      "nodes":[ {"tipus","titol","clau"?,"cos":[<paragraf>],"fills":[<node>]} ] }
+      "nodes":[ {"tipus","titol","clau"?,"ajuda"?,"cos":[<paragraf>],"fills":[<node>]} ] }
 
     <paragraf> = { "runs":[ {"t","b","i"} ], "url": bool }
+    <ajuda>    = { "norma","criteri","aplica","competencia","revisat" }
 
   El "tipus" de cada node (mateix vocabulari a tots els catalegs) + la 'familia'
   donen la semantica. Vocabulari:
@@ -24,6 +25,12 @@
     - nota/etiqueta/capcalera/paragraf : (actextr) estils ::NOTE::/::LABEL::/
                    ::HEADER::/::CONC:: de l'informe favorable.
   A ACT_EXTR, 'clau' es la [[KEY]] funcional (Decret 112); mai es toca aqui.
+
+  L''AJUDA' es la fitxa de criteri d'un requeriment: que diu la norma, quan s'ha
+  d'exigir, a qui aplica i qui es competent per exigir-ho. NO ES TEXT DE
+  L'INFORME i no ha de sortir-hi MAI: viu a part del 'cos' justament perque el
+  motor de composicio nomes llegeix el cos. Es veu al Pas 3 (boto d'informacio
+  de cada requeriment) i a la vista en Word del cataleg, en gris.
 
   Aquest modul llegeix el JSON i el converteix al MATEIX model en memoria que
   retornava el lector de .docx (ja esborrat) i Build-ActExtrBlocks, de manera que
@@ -54,6 +61,66 @@ function _JsonParaToBodyLine($p) {
     return $line
 }
 
+# ----------------------------------------------------------------------------
+# LA FITXA D'AJUDA d'un node
+# ----------------------------------------------------------------------------
+# Els CINC camps son fixos i sempre els mateixos. No es un text lliure a posta:
+# la pregunta que ha de respondre la fitxa ("ho requereixo o no?") te sempre les
+# mateixes quatre parts -que diu la norma, quin es el llindar, a quines
+# activitats s'aplica i qui es competent per exigir-ho- i un text seguit les
+# barreja. El cinque, 'revisat', es el que permet saber quines fitxes s'han
+# quedat endarrerides quan canvia una norma.
+$Script:AjudaCamps = @('norma', 'criteri', 'aplica', 'competencia', 'revisat')
+
+# La fitxa d'ajuda d'un node del JSON -> objecte normalitzat, o $null si no n'hi
+# ha. Torna $null tambe quan hi es pero es BUIDA: aixi qui la consulta nomes ha
+# de mirar si es $null, i el Pas 3 no pinta el boto d'un requeriment que encara
+# no te fitxa.
+function Read-AjudaNode($node) {
+    if ($null -eq $node) { return $null }
+    $a = $node.ajuda
+    if ($null -eq $a) { return $null }
+    $vals = [ordered]@{}
+    $teRes = $false
+    foreach ($c in $Script:AjudaCamps) {
+        $v = [string]$a.$c
+        if (-not [string]::IsNullOrWhiteSpace($v)) { $teRes = $true } else { $v = '' }
+        $vals[$c] = $v.Trim()
+    }
+    if (-not $teRes) { return $null }
+    return [pscustomobject]@{
+        Norma       = [string]$vals['norma']
+        Criteri     = [string]$vals['criteri']
+        Aplica      = [string]$vals['aplica']
+        Competencia = [string]$vals['competencia']
+        Revisat     = [string]$vals['revisat']
+    }
+}
+
+# La fitxa d'ajuda -> les linies "Etiqueta: valor" que en veuen l'usuari (Pas 3)
+# i la vista en Word. UNA SOLA funcio perque les dues pantalles no puguin
+# ensenyar coses diferents de la mateixa fitxa, que es el defecte que ja va
+# passar amb la vista dels catalegs i el document.
+#
+# PURA: no toca ni Word ni WinForms, o sigui que es prova en headless.
+function Format-AjudaLinies($ajuda) {
+    $out = New-Object System.Collections.ArrayList
+    if ($null -eq $ajuda) { return $out.ToArray() }
+    $etiquetes = [ordered]@{
+        Norma       = 'Norma'
+        Criteri     = 'Criteri'
+        Aplica      = "A qui s'aplica"
+        Competencia = 'Competencia'
+        Revisat     = 'Revisat'
+    }
+    foreach ($prop in $etiquetes.Keys) {
+        $v = [string]$ajuda.$prop
+        if ([string]::IsNullOrWhiteSpace($v)) { continue }
+        [void]$out.Add(($etiquetes[$prop] + ': ' + $v))
+    }
+    return $out.ToArray()
+}
+
 # Llegeix el JSON d'un ESTRUCTURAL.
 #
 # Accepta una RUTA o un objecte JA PARSEJAT (el que torna ConvertFrom-Json).
@@ -82,6 +149,7 @@ function _EmitCatalegItem($node, $items) {
         [void]$items.Add([pscustomobject]@{
             Kind = 'subsection'; Short = [string]$node.titol
             BodyLines = $body; Children = (New-Object System.Collections.ArrayList)
+            Ajuda = $null
         })
         foreach ($ch in @($node.fills)) { _EmitCatalegItem $ch $items }
     }
@@ -89,6 +157,7 @@ function _EmitCatalegItem($node, $items) {
         [void]$items.Add([pscustomobject]@{
             Kind = 'intro'; Short = [string]$node.titol
             BodyLines = $body; Children = (New-Object System.Collections.ArrayList)
+            Ajuda = $null
         })
     }
     else {   # item
@@ -99,11 +168,13 @@ function _EmitCatalegItem($node, $items) {
             [void]$children.Add([pscustomobject]@{
                 Kind = 'child'; Short = [string]$ch.titol
                 BodyLines = $cbody; Children = (New-Object System.Collections.ArrayList)
+                Ajuda = (Read-AjudaNode $ch)
             })
         }
         [void]$items.Add([pscustomobject]@{
             Kind = 'item'; Short = [string]$node.titol
             BodyLines = $body; Children = $children
+            Ajuda = (Read-AjudaNode $node)
         })
     }
 }

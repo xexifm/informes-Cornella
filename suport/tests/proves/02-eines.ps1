@@ -380,6 +380,33 @@ if (Test-Path -LiteralPath $req1Json) {
 } else {
     Write-Host "  (omes: no hi ha REQ1.json)" -ForegroundColor Yellow
 }
+Write-Host "`n--- CatalegJson.ps1: la FITXA D'AJUDA (Read-AjudaNode / Format-AjudaLinies) ---"
+# La fitxa es el que respon "ho requereixo o no?" al Pas 3. Les dues regles que
+# importen: una fitxa BUIDA val tant com no tenir-ne (o el boto (i) sortiria a
+# tots els punts), i les linies que en surten han de sortir SEMPRE en el mateix
+# ordre -la pantalla i la vista en Word les treuen de la mateixa funcio.
+AssertEq (Read-AjudaNode $null) $null 'Read-AjudaNode: node nul -> $null'
+AssertEq (Read-AjudaNode ([pscustomobject]@{ titol = 'x' })) $null 'Read-AjudaNode: sense clau ajuda -> $null'
+$ajBuida = [pscustomobject]@{ ajuda = [pscustomobject]@{ norma = ''; criteri = '  '; aplica = $null; competencia = ''; revisat = '' } }
+AssertEq (Read-AjudaNode $ajBuida) $null 'Read-AjudaNode: fitxa amb tots els camps en blanc -> $null (val com si no n''hi hagues)'
+$ajPlena = [pscustomobject]@{ ajuda = [pscustomobject]@{
+    norma = ' RD 355/2024, art. 11.4 '; criteri = '2, 4 o 6 anys'; aplica = 'Totes les existents'
+    competencia = 'Industria'; revisat = '2026-09' } }
+$aj = Read-AjudaNode $ajPlena
+AssertEq $aj.Norma 'RD 355/2024, art. 11.4' 'Read-AjudaNode: retalla els espais dels extrems'
+AssertEq $aj.Revisat '2026-09' 'Read-AjudaNode: llegeix la data de revisio'
+$ajParcial = Read-AjudaNode ([pscustomobject]@{ ajuda = [pscustomobject]@{ norma = 'Nomes norma' } })
+AssertEq ([bool]($null -ne $ajParcial)) $true 'Read-AjudaNode: amb un sol camp omplert ja es una fitxa'
+AssertEq $ajParcial.Criteri '' 'Read-AjudaNode: els camps que falten queden en blanc, no a $null'
+
+AssertEq (@(Format-AjudaLinies $null).Count) 0 'Format-AjudaLinies: sense fitxa -> cap linia'
+$lin = @(Format-AjudaLinies $aj)
+AssertEq $lin.Count 5 'Format-AjudaLinies: una linia per camp omplert'
+AssertEq $lin[0] 'Norma: RD 355/2024, art. 11.4' 'Format-AjudaLinies: la norma va la primera'
+AssertEq $lin[1] 'Criteri: 2, 4 o 6 anys' 'Format-AjudaLinies: el criteri va el segon'
+AssertEq $lin[4] 'Revisat: 2026-09' 'Format-AjudaLinies: la revisio va l''ultima'
+AssertEq (@(Format-AjudaLinies $ajParcial).Count) 1 'Format-AjudaLinies: els camps en blanc no fan linia'
+
 $conJson = Join-Path $EstructuralsDir '0 CONCLUSIONS.json'
 if (Test-Path -LiteralPath $conJson) {
     $conReq = Read-ConclusionsJson $conJson 'REQ1'
@@ -556,6 +583,34 @@ AssertEq ([bool](_Ed_CanAddChild 'llicencia' @{tipus='item'})) $true '_Ed_CanAdd
 AssertEq (_Ed_ChildTipus 'llicencia' 'item') 'nodisposa' '_Ed_ChildTipus llicencia item -> nodisposa'
 # Etiqueta d'arbre: [tipus] titol (vocabulari nou, sense [[KEY]] ni ::CHILD::).
 AssertEq (_Ed_NodeLabel @{tipus='item';titol='Incendis';clau='INCENDIS';cos=@()}) '[item] Incendis' '_Ed_NodeLabel [tipus] titol'
+
+Write-Host "`n--- EditorCatalegs.ps1: la FITXA D'AJUDA ---"
+# Qui pot tenir fitxa: nomes els REQUERIMENTS d'un cataleg. Una seccio no es
+# requereix, i a les altres families la fitxa no vol dir res.
+AssertEq ([bool](Test-EdAdmetAjuda 'cataleg' @{tipus='item'}))      $true  'Test-EdAdmetAjuda: un item de cataleg si'
+AssertEq ([bool](Test-EdAdmetAjuda 'cataleg' @{tipus='subitem'}))   $true  'Test-EdAdmetAjuda: un subitem de cataleg si'
+AssertEq ([bool](Test-EdAdmetAjuda 'cataleg' @{tipus='seccio'}))    $false 'Test-EdAdmetAjuda: una seccio no'
+AssertEq ([bool](Test-EdAdmetAjuda 'cataleg' @{tipus='subseccio'})) $false 'Test-EdAdmetAjuda: una subseccio no'
+AssertEq ([bool](Test-EdAdmetAjuda 'actextr' @{tipus='item'}))      $false 'Test-EdAdmetAjuda: a ACT_EXTR no'
+AssertEq ([bool](Test-EdAdmetAjuda 'llicencia' @{tipus='item'}))    $false 'Test-EdAdmetAjuda: a LLIC no'
+AssertEq ([bool](Test-EdAdmetAjuda 'cataleg' $null))                $false 'Test-EdAdmetAjuda: sense node, no'
+
+$edBuida = _Ed_AjudaFromJson $null
+AssertEq $edBuida.Count 5 '_Ed_AjudaFromJson: sense fitxa -> els cinc camps en blanc'
+AssertEq ([bool](Test-EdTeAjuda $edBuida)) $false 'Test-EdTeAjuda: cinc camps en blanc -> no en te'
+AssertEq (_Ed_AjudaToJson $edBuida) $null '_Ed_AjudaToJson: una fitxa buida NO s''escriu al JSON'
+AssertEq (_Ed_AjudaToJson $null) $null '_Ed_AjudaToJson: $null -> $null'
+
+$edPlena = _Ed_AjudaFromJson ([pscustomobject]@{ norma = ' Llei 20/2009, art. 71 '; criteri = 'Cada 6 anys' })
+AssertEq $edPlena['norma'] ' Llei 20/2009, art. 71 ' '_Ed_AjudaFromJson: no toca el text (el retall es fa en desar)'
+AssertEq ([bool](Test-EdTeAjuda $edPlena)) $true 'Test-EdTeAjuda: amb un camp omplert ja en te'
+$edJson = _Ed_AjudaToJson $edPlena
+AssertEq $edJson.norma 'Llei 20/2009, art. 71' '_Ed_AjudaToJson: retalla els espais dels extrems'
+AssertEq $edJson.aplica '' '_Ed_AjudaToJson: escriu tots cinc camps encara que n''hi hagi de buits'
+AssertEq ([bool](@($edJson.Keys) -join ',') -eq 'norma,criteri,aplica,competencia,revisat') $true '_Ed_AjudaToJson: ordre de claus fix'
+# I el que es desa es el que torna a llegir el motor: aquest es el round-trip.
+$tornada = Read-AjudaNode ([pscustomobject]@{ ajuda = ([pscustomobject]$edJson) })
+AssertEq $tornada.Norma 'Llei 20/2009, art. 71' 'Fitxa: el que desa l''editor es el que llegeix el Pas 3'
 
 Write-Host "`n--- EditorCatalegs.ps1: model<->JSON sense perdues (els 5 ESTRUCTURALS) ---"
 foreach ($docKey in @('REQ1', 'TERMINI', '0 CONCLUSIONS', 'ACT_EXTR_REQ', 'ACT_EXTR_FAV', 'MNSTRAS')) {

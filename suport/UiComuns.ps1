@@ -1000,3 +1000,107 @@ function Show-ProgresCancel([string]$titol, [int]$maxim) {
 
     return @{ Form = $form; Label = $lbl; Bar = $bar; Cancel = $cancel }
 }
+
+# ----------------------------------------------------------------------------
+# LA FITXA D'AJUDA D'UN REQUERIMENT
+# ----------------------------------------------------------------------------
+# El boto d'informacio del Pas 3 i la finestra que obre. Viuen aqui i no a
+# SeleccioItems.ps1 perque no son del Pas 3: son "ensenyar una fitxa d'ajuda", i
+# l'editor de catalegs tambe la vol per previsualitzar el que s'hi acaba
+# d'escriure. Si es quedessin alla, la segona pantalla en faria una copia -que
+# es exactament com van neixer les tres copies d'escriure una linia de cataleg.
+
+# La icona (i) de 16x16 es DIBUIXA, no es un fitxer.
+#
+# Un .png al repositori voldria dir un binari que ningu no pot revisar en un
+# diff, que s'ha de refer a ma si canvia el color de la casa i que cal recordar
+# d'empaquetar. Son quatre linies de GDI+ i el color surt de $Script:BrandMaroon
+# i prou.
+#
+# L'INDEX 0 ES UNA IMATGE BUIDA a posta: un TreeView amb ImageList pinta la
+# imatge 0 a TOTS els nodes que no en demanen cap altra. Amb un buit a l'index 0
+# i la (i) a l'1, els requeriments sense fitxa surten nets i -com que l'espai
+# queda reservat igual- els titols de tots els nodes segueixen alineats.
+function _AjudaImageList {
+    $il = New-Object System.Windows.Forms.ImageList
+    $il.ImageSize = New-Object System.Drawing.Size(16, 16)
+    $il.ColorDepth = 'Depth32Bit'
+
+    $buit = New-Object System.Drawing.Bitmap 16, 16
+    $il.Images.Add($buit)
+
+    $bmp = New-Object System.Drawing.Bitmap 16, 16
+    $g = [System.Drawing.Graphics]::FromImage($bmp)
+    try {
+        $g.SmoothingMode = 'AntiAlias'
+        $g.TextRenderingHint = 'AntiAliasGridFit'
+        $blau = [System.Drawing.Color]::FromArgb(0, 102, 178)
+        $pinzell = New-Object System.Drawing.SolidBrush $blau
+        try { $g.FillEllipse($pinzell, 0, 0, 15, 15) } finally { $pinzell.Dispose() }
+        $lletra = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
+        $blanc = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::White)
+        $fmt = New-Object System.Drawing.StringFormat
+        $fmt.Alignment = 'Center'; $fmt.LineAlignment = 'Center'
+        try {
+            $rect = New-Object System.Drawing.RectangleF 0, 0, 16, 16
+            $g.DrawString('i', $lletra, $blanc, $rect, $fmt)
+        } finally { $lletra.Dispose(); $blanc.Dispose(); $fmt.Dispose() }
+    } finally { $g.Dispose() }
+    $il.Images.Add($bmp)
+
+    return $il
+}
+
+$Script:AjudaImgBuida = 0
+$Script:AjudaImgInfo  = 1
+
+# Finestra de la fitxa: el titol del requeriment i les linies "Etiqueta: valor".
+#
+# El text va en un TextBox de nomes lectura i no en Labels: aixi es pot
+# SELECCIONAR I COPIAR -que es la meitat de la gracia, enganxar la referencia de
+# la norma al requeriment- i, si la fitxa es llarga, surt barra de desplacament
+# en lloc de desbordar la finestra.
+function Show-Ajuda([string]$titol, $ajuda, $owner = $null) {
+    $linies = @(Format-AjudaLinies $ajuda)
+    if ($linies.Count -eq 0) { return }
+
+    $form = _NewForm
+    $form.Text = 'Quan s''ha de requerir'
+    $form.Size = New-Object System.Drawing.Size(660, 460)
+    $form.MinimumSize = New-Object System.Drawing.Size(460, 300)
+
+    $lblTitol = New-Object System.Windows.Forms.Label
+    $lblTitol.Text = [string]$titol
+    $lblTitol.Location = New-Object System.Drawing.Point(14, 14)
+    $lblTitol.Size = New-Object System.Drawing.Size(620, 40)
+    $lblTitol.Font = New-Object System.Drawing.Font('Segoe UI', 11, [System.Drawing.FontStyle]::Bold)
+    $lblTitol.Anchor = 'Top, Left, Right'
+    $form.Controls.Add($lblTitol)
+
+    $tb = New-Object System.Windows.Forms.TextBox
+    $tb.Multiline = $true
+    $tb.ReadOnly = $true
+    $tb.ScrollBars = 'Vertical'
+    $tb.BackColor = [System.Drawing.Color]::White
+    $tb.Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Regular)
+    $tb.Location = New-Object System.Drawing.Point(14, 60)
+    $tb.Size = New-Object System.Drawing.Size(620, 310)
+    $tb.Anchor = 'Top, Bottom, Left, Right'
+    # Una linia en blanc entre camps: son cinc blocs de text, no una llista.
+    $tb.Text = ($linies -join ([Environment]::NewLine + [Environment]::NewLine))
+    $tb.Select(0, 0)
+    $form.Controls.Add($tb)
+
+    $btn = New-Object System.Windows.Forms.Button
+    $btn.Text = 'Tanca'
+    $btn.Size = New-Object System.Drawing.Size(100, 30)
+    $btn.Location = New-Object System.Drawing.Point(534, 382)
+    $btn.DialogResult = 'OK'
+    $btn.Anchor = 'Bottom, Right'
+    _StylePrimaryButton $btn
+    $form.Controls.Add($btn)
+    $form.AcceptButton = $btn
+    $form.CancelButton = $btn
+
+    if ($null -ne $owner) { [void]$form.ShowDialog($owner) } else { [void]$form.ShowDialog() }
+}

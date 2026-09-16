@@ -83,6 +83,15 @@ $Script:ReportFormatConfig = @{
     NoteIndentCm         = 1.25   # sub-paragraf sagnat sense pic (Format-Note)
     LabelSpaceAfterPt    = 12     # espai sota una etiqueta de subseccio (Format-Label)
 
+    # FITXA D'AJUDA d'un requeriment (Format-Ajuda). NOMES SURT A LES VISTES
+    # dels catalegs, mai a l'informe d'una activitat: es material de consulta de
+    # l'inspector. Va en gris i mes petita justament perque, si algu la veu en
+    # un full imprès, es vegi a l'acte que no forma part del requeriment.
+    AjudaIndentCm        = 1.25
+    AjudaFontSize        = 9
+    AjudaSpaceBeforePt   = 4
+    AjudaColorRgb        = 8421504   # gris mitja (128,128,128) en format Word BGR
+
     # Separacio entre un item numerat i el seu PRIMER sub-punt. Sense aixo el
     # sub-punt queda enganxat al text de l'item (12 pt = 240 twips al XML).
     # Els sub-punts entre ells segueixen amb BulletSpaceBeforePt.
@@ -345,6 +354,38 @@ function Format-Note {
     _Apply-Indent $sel $Script:ReportFormatConfig.NoteIndentCm
     try { $sel.ParagraphFormat.SpaceBefore = [double]$Script:ReportFormatConfig.BulletSpaceBeforePt } catch { }
     if ($text) { Type-RichText $sel $text }
+}
+
+# Una linia de la FITXA D'AJUDA d'un requeriment ("Norma: ...", "Criteri: ...").
+# Gris i mes petita que el cos, sagnada com una nota.
+#
+# NO ES TEXT DE L'INFORME. Nomes la crida la VISTA en Word d'un cataleg
+# (VistaWord.ps1), que es el document de consulta de l'inspector; l'informe que
+# es dona al titular no la pot arribar a demanar mai perque Build-CatalegBlocs
+# nomes emet els blocs d'ajuda quan se li passa -AmbAjuda, i qui genera
+# l'informe no ho fa. El gris no es decoracio: es el que fa que, en un full
+# imprès, es vegi de cop que allo no forma part del requeriment.
+#
+# El color es posa al RANG del que s'acaba d'escriure i no a la Selection
+# sencera: si es deixes enganxat a $sel, el paragraf seguent l'heretaria, que es
+# el mateix parany que ja documenta Format-Nivell amb l'OutlineLevel.
+function Format-Ajuda {
+    param($sel, [string]$text)
+    [void]$sel.TypeParagraph()
+    _Reset-Char $sel
+    _Apply-Indent $sel $Script:ReportFormatConfig.AjudaIndentCm
+    try { $sel.ParagraphFormat.SpaceBefore = [double]$Script:ReportFormatConfig.AjudaSpaceBeforePt } catch { }
+    $ini = $sel.Range.Start
+    if ($text) { Type-RichText $sel $text }
+    $fi = $sel.Range.End
+    if ($fi -gt $ini) {
+        try {
+            $rng = $sel.Document.Range($ini, $fi)
+            $rng.Font.Size  = [double]$Script:ReportFormatConfig.AjudaFontSize
+            $rng.Font.Italic = $true
+            $rng.Font.Color = [int]$Script:ReportFormatConfig.AjudaColorRgb
+        } catch { }
+    }
 }
 
 # Etiqueta de subseccio dins del cos (p.ex. "RETOLS INFORMATIUS"): text normal
