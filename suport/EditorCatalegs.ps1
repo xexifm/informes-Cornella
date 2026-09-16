@@ -628,11 +628,11 @@ function _Ed_RefrescaBotoAjuda($state, $node) {
     $admet = Test-EdAdmetAjuda ([string]$state.Model.familia) $node
     $state.AjudaBtn.Enabled = $admet
     if (-not $admet) {
-        $state.AjudaBtn.Text = ([char]0x24D8 + ' Fitxa d''ajuda')
+        $state.AjudaBtn.Text = [string][char]0x24D8
         return
     }
     $te = Test-EdTeAjuda $node.ajuda
-    $state.AjudaBtn.Text = ([char]0x24D8 + ' Fitxa d''ajuda' + $(if ($te) { ' ' + [char]0x2713 } else { '' }))
+    $state.AjudaBtn.Text = ([string][char]0x24D8 + $(if ($te) { ' ' + [char]0x2713 } else { '' }))
 }
 
 function _Ed_FlushEditor($state) {
@@ -1219,13 +1219,23 @@ function Show-CatalegEditor([string]$focusDoc = '') {
     $btnLink   = & $mkToolBtn ([System.Char]::ConvertFromUtf32(0x1F517) + ' Enlla' + [char]0x00E7) ($xR + 264) 100 $false
 
     # La FITXA D'AJUDA del requeriment. Va a la barra del cos i no al bloc de
-    # dalt perque es contingut del punt, no estructura; i ancorada a la dreta
-    # perque segueixi la vora del quadre del titol quan la finestra creix.
+    # dalt perque es contingut del punt, no estructura.
+    #
+    # COMPACTE I ANCORAT A L'ESQUERRA, no ample i ancorat a la dreta. Amb
+    # 'Top, Right' seguiria la vora dreta i, a la mida MINIMA de la finestra
+    # (836 px de forma, ~820 de client), se n'aniria a sobre del boto d'enllac;
+    # i ample i ancorat a l'esquerra quedaria tallat. Amb 52 px acaba a 818 i hi
+    # cap sempre. El que diu que es el boto ho diu el ToolTip, com ja fa el
+    # combo de tipus d'aqui al costat.
     $btnAjuda = New-Object System.Windows.Forms.Button
-    $btnAjuda.Location = New-Object System.Drawing.Point(($xR + 374), $yTool)
-    $btnAjuda.Size = New-Object System.Drawing.Size(180, 28)
-    $btnAjuda.Anchor = 'Top, Right'
+    $btnAjuda.Location = New-Object System.Drawing.Point(($xR + 370), $yTool)
+    $btnAjuda.Size = New-Object System.Drawing.Size(52, 28)
+    $btnAjuda.Anchor = 'Top, Left'
     _StyleSecondaryButton $btnAjuda
+    $tip.SetToolTip($btnAjuda, ('Fitxa d' + [char]0x2019 + 'ajuda: la norma, el criteri, a qui s' +
+                                [char]0x2019 + 'aplica i qui es competent. Surt al Pas 3 amb el bot' +
+                                [char]0x00F3 + ' ' + [char]0x24D8 + ' i a la vista en Word, en gris; a l' +
+                                [char]0x2019 + 'informe del titular, mai.'))
     [void]$form.Controls.Add($btnAjuda)
     $state.AjudaBtn = $btnAjuda
 

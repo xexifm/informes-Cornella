@@ -525,9 +525,11 @@ d'inspeccions. Té **cinc camps**, sempre els mateixos:
 en tenen (clic o **F1**); i a la **vista en Word** del catàleg, en gris sota cada
 punt. **A l'informe del titular no hi surt mai** — és material de consulta teu.
 
-**Com s'omple:** a **✏ Editar catàlegs**, amb el botó **ⓘ Fitxa d'ajuda** de la
-barra del cos. Surt amb un **✓** quan el punt ja en té. Si esborres tots cinc
-camps, la fitxa desapareix i la **ⓘ** deixa de sortir al Pas 3.
+**Com s'omple:** a **✏ Editar catàlegs**, amb el botó **ⓘ** que hi ha al final
+de la barra del cos (passa-hi el ratolí per sobre i t'ho diu). Surt com a
+**ⓘ ✓** quan el punt ja en té, i queda apagat als títols de secció i de
+subsecció, que no es requereixen. Si esborres tots cinc camps, la fitxa
+desapareix i la **ⓘ** deixa de sortir al Pas 3.
 
 > Quan canviï una norma, el que has de tocar és **la fitxa i el text del punt**,
 > i posar la data nova a *Revisat*. Les proves comproven que cap fitxa no es
