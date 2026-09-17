@@ -13,7 +13,18 @@
 
   El crida Actualitzar.bat. Necessita Word instal·lat; si no hi es, avisa i
   no fa res (mai atura l'actualitzacio).
+
+.PARAMETER Forca
+  Regenera TOTES les vistes encara que el .json no sigui mes nou que el .docx.
+  Normalment no cal: el pas 4b de l'Actualitzar.bat ja les refa quan toca, i un
+  canvi en COM es veuen les vistes s'anuncia pujant $Script:VistaWordVersio.
+  Serveix per a quan una vista s'ha quedat enrere i no se sap per que -el .docx
+  obert amb el Word en el moment de generar-lo, una data de fitxer rara despres
+  de copiar la carpeta- i es vol descartar aquesta branca:
+
+      powershell -NoProfile -ExecutionPolicy Bypass -File suport\GeneraVistes.ps1 -Forca
 #>
+param([switch]$Forca)
 
 $ErrorActionPreference = 'Stop'
 
@@ -41,8 +52,9 @@ if (-not $tinc) {
 }
 
 try {
-    $n = Invoke-ExportarVistesWord
+    $n = Invoke-ExportarVistesWord -Force:$Forca
     if ($n -gt 0) { Write-Host ("  {0} vistes de cataleg actualitzades." -f $n) }
+    elseif ($Forca) { Write-Host "  No s'ha generat cap vista (mira si hi ha cap avis aqui sobre)." }
 } catch {
     Write-Host ("  Avis: no s'han pogut generar les vistes (" + $_.Exception.Message + ").")
 } finally {
