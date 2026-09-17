@@ -889,31 +889,10 @@ Format-Section $selSec 'Instal·lacions'
 AssertEq $global:secOps.Count 1                          'Format-Section: 1 sola crida a TypeText'
 AssertEq $global:secOps[0]    '-:INSTAL·LACIONS'         'Format-Section: text en MAJUSCULES, SENSE negreta'
 
-Write-Host "`n--- _GetItemTooltip (text per al tooltip del Pas 3 sense enllacos) ---"
-$el1 = [pscustomobject]@{ BodyLines = @(
-    'Instal·lacio de baixa tensio. Veure document.',
-    '[[URL]] https://canalempresa.gencat.cat/...'
-)}
-AssertEq (_GetItemTooltip $el1) 'Instal·lacio de baixa tensio. Veure document.' '_GetItemTooltip: descarta linies [[URL]]'
-
-$el2 = [pscustomobject]@{ BodyLines = @(
-    'Text principal.',
-    'https://example.com/url',
-    'Comentari extra.'
-)}
-$tip2 = _GetItemTooltip $el2
-Assert ($tip2.Contains('Text principal.'))   '_GetItemTooltip: conserva el text principal'
-Assert ($tip2.Contains('Comentari extra.'))  '_GetItemTooltip: conserva text extra (no-URL)'
-Assert (-not $tip2.Contains('http'))         '_GetItemTooltip: descarta linies URL-only'
-
-$el3 = [pscustomobject]@{ BodyLines = @('Mirar https://x.cat/y al final.') }
-$tip3 = _GetItemTooltip $el3
-AssertEq $tip3 'Mirar'                       '_GetItemTooltip: linies mixtes -> nomes la part de text'
-
-$el4 = [pscustomobject]@{ BodyLines = @() }
-AssertEq (_GetItemTooltip $el4) ''           '_GetItemTooltip: cap linia -> buit'
-
-AssertEq (_GetItemTooltip $null) ''          '_GetItemTooltip: null -> buit'
+# _GetItemTooltip ja no existeix: el Pas 3 no te tooltip (el globus saltava
+# tota l'estona amb 254 punts a l'arbre). El text del requeriment es llegeix
+# al panell de la dreta i el criteri, a la fitxa d'ajuda. Vegeu el guard de
+# 06-guards.ps1, que vigila que no hi torni.
 
 Write-Host "`n--- Mode paquet: Build-SelectionFromKeys (reconstruir Pas 3 sense UI) ---"
 # Cataleg de prova amb 2 seccions, items, un fill i una subseccio.

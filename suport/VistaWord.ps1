@@ -75,7 +75,8 @@ function _VistaEsProtegit([string]$jsonPath) {
 #   4 -> separacio entre l'item i el seu PRIMER sub-punt (Format-Bullet -First)
 #   5 -> negreta del numero de l'item aplicada pel RANG (no s'encomana al cos)
 #        i sangria dels fills a 1 cm amb francesa de 0,5 cm
-$Script:VistaWordVersio = 8
+#   9 -> la FITXA D'AJUDA de cada requeriment, en gris (Format-Ajuda)
+$Script:VistaWordVersio = 9
 
 function _VistaVersioPath {
     $base = [string]$env:LOCALAPPDATA

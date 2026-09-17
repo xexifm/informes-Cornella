@@ -93,7 +93,7 @@ seguirà sense icona i obrirà un segon botó.
 |-----|--------|
 | 1 | **Menú**: tries alhora QUÈ vols fer i, si és un informe nou, el catàleg. |
 | 2 | **Dades de la capçalera**. Si escrius un ID GIA que és a l'Excel, s'omple sol. |
-| 3 | **Marcar les deficiències** (arbre amb filtre). En marcar-ne una, el text surt a la dreta i, si té opcions o camps, els omples **allà mateix**. Els punts amb una **ⓘ** al davant porten fitxa d'ajuda: clica-la (o prem **F1**) i et diu si allò s'ha de requerir o no. |
+| 3 | **Marcar les deficiències** (arbre amb filtre). En marcar-ne una, el text surt a la dreta i, si té opcions o camps, els omples **allà mateix**. Els punts amb una **ⓘ** al davant porten fitxa d'ajuda: el punter es torna una mà quan hi passes per sobre; clica-la (o prem **F1**) i et diu si allò s'ha de requerir o no. |
 | 4 | **Triar les conclusions**, també amb els camps dins del propi text. |
 | 5 | Es genera el `.docx` i s'obre amb el Word. |
 

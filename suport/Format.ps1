@@ -90,7 +90,10 @@ $Script:ReportFormatConfig = @{
     AjudaIndentCm        = 1.25
     AjudaFontSize        = 9
     AjudaSpaceBeforePt   = 4
-    AjudaColorRgb        = 8421504   # gris mitja (128,128,128) en format Word BGR
+    # 8421504 = 0x808080 = wdColorGray50. El Word el vol en BGR, pero en un gris
+    # els tres canals son iguals i per tant BGR i RGB donen el mateix: aixo
+    # estalvia l'error classic de posar-hi un color i veure'l canviat de to.
+    AjudaColorRgb        = 8421504
 
     # Separacio entre un item numerat i el seu PRIMER sub-punt. Sense aixo el
     # sub-punt queda enganxat al text de l'item (12 pt = 240 twips al XML).
@@ -136,11 +139,21 @@ function _CmToPoints { param([double]$cm) return ($cm * 28.346456692913385) }
 function _PtToTwips { param([double]$pt) return [int][Math]::Round($pt * 20) }
 function _CmToTwips { param([double]$cm) return [int][Math]::Round($cm * 1440 / 2.54) }
 
+# wdColorAutomatic: el color "heretat" (negre, en aquests documents).
+$Script:WdColorAutomatic = -16777216
+
 function _Reset-Char($sel) {
     $sel.Font.Bold = 0
     $sel.Font.Italic = 0
     $sel.Font.Underline = 0  # wdUnderlineNone
     $sel.Font.Size = $Script:ReportFormatConfig.BodyFontSize
+    # EL COLOR TAMBE. Aixo hi faltava, i fins que no va haver-hi un Format-* que
+    # en posava un (Format-Ajuda, el gris de la fitxa) no podia fer mal: amb el
+    # gris, en canvi, el Word se l'encomana al paragraf seguent i la vista
+    # sencera es tornava grisa a partir de la primera fitxa. La resta de
+    # Format-* ja donaven per fet que comencen en color automatic; ara es
+    # veritat.
+    try { $sel.Font.Color = $Script:WdColorAutomatic } catch { }
     # Tipus de lletra EXPLICIT a cada text: mai ha de sortir la Calibri del tema
     # d'un document nou. A l'informe coincideix amb el que ja hereta de la
     # plantilla, o sigui que no en canvia res.

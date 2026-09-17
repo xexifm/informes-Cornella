@@ -916,3 +916,26 @@ foreach ($j in @(Get-ChildItem -Path (Join-Path $rootRepo 'ESTRUCTURALS') -Filte
     _GuardAjuda $oj.nodes $j.BaseName $problemes
 }
 AssertEq $problemes.Count 0 ("cap fitxa d'ajuda mal formada" + $(if ($problemes.Count) { " (n'hi ha $($problemes.Count), p.ex. " + $problemes[0] + ')' } else { '' }))
+
+Write-Host "`n--- El Pas 3 no ha de tornar a tenir tooltip als nodes ---"
+# Amb 254 punts a l'arbre, el globus del tooltip saltava mentre baixaves la
+# llista i tapava els punts del costat. El text del requeriment es llegeix al
+# panell de la dreta i el criteri, a la fitxa d'ajuda: cap dels dos vol un
+# tooltip. Es un canvi facil de desfer sense adonar-se'n (una linia), per aixo
+# hi ha guard.
+$srcSel = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'suport' 'SeleccioItems.ps1')))
+Assert (-not ($srcSel -match 'ShowNodeToolTips')) 'SeleccioItems.ps1: l''arbre del Pas 3 no activa els tooltips de node'
+Assert (-not ($srcSel -match '\.ToolTipText\s*=')) 'SeleccioItems.ps1: cap node del Pas 3 no posa ToolTipText'
+# ...pero el de Llicencia SI que en te: alli l'arbre es d'un sol informe i el
+# tooltip hi segueix sent util. Si aixo canvies, el guard de dalt seria mentida.
+$srcLl = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'suport' 'Llicencia.ps1')))
+Assert ($srcLl -match 'ShowNodeToolTips') 'Llicencia.ps1: l''arbre de Llicencia si que conserva els tooltips'
+
+Write-Host "`n--- La VERSIO de les vistes puja quan canvia com es veuen ---"
+# Les vistes nomes es regeneren si el JSON es mes nou que el .docx; si canvia el
+# FORMAT i no es puja la versio, les que ja existeixen es queden amb l'aspecte
+# antic per sempre. Va passar amb la fitxa d'ajuda: el gris no sortia perque el
+# .docx de l'usuari no es refeia mai.
+$srcVw = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'suport' 'VistaWord.ps1')))
+Assert ($srcVw -match 'Format-Ajuda|AmbAjuda') 'VistaWord.ps1: la vista demana la fitxa d''ajuda'
+Assert ([bool]($Script:VistaWordVersio -ge 9)) ('VistaWordVersio >= 9 (la fitxa d''ajuda en gris); ara es ' + $Script:VistaWordVersio)

@@ -26,33 +26,14 @@ function _TextMatches($text, $needle) {
     return $text.ToLower().Contains($needle.ToLower())
 }
 
-# Reconstrueix el TreeView segons el text de filtre. Preserva check states
-# (passats en una hashtable [key] -> bool) i els actualitza durant la construccio.
-# Bloquegem la propagacio automatica de check durant el rebuild perque
-# marcar nodes programmaticament dispara l'event AfterCheck.
-# Construeix el text del tooltip d'un item (o fill) del TreeView del Pas 3:
-# concatena les BodyLines descartant els enllacos (URL-only i URLs incrustats)
-# perque l'usuari pugui veure el text de l'item en passar el ratolí. Aplica
-# una mica de neteja per fer-lo llegible i el limita a 600 caracters per
-# evitar tooltips desmesurats.
-function _GetItemTooltip($el) {
-    if ($null -eq $el -or $null -eq $el.BodyLines) { return '' }
-    $parts = New-Object System.Collections.ArrayList
-    foreach ($ln in $el.BodyLines) {
-        $s = [string]$ln
-        if ([string]::IsNullOrWhiteSpace($s)) { continue }
-        # Linies marcades per Cita: tota la linia es URL.
-        if ($s.StartsWith('[[URL]] ')) { continue }
-        # Linies que son nomes URL.
-        if ($s.Trim() -match '^https?://') { continue }
-        # Linia mixta: extreu nomes el text (descarta URLs incrustats).
-        $p = _SplitTextAndUrls $s
-        if (-not [string]::IsNullOrWhiteSpace($p.Text)) { [void]$parts.Add($p.Text) }
-    }
-    $tip = ($parts -join [Environment]::NewLine)
-    if ($tip.Length -gt 600) { $tip = $tip.Substring(0, 600) + '...' }
-    return $tip
-}
+# EL PAS 3 NO TE TOOLTIP. Aqui hi havia _GetItemTooltip, que ensenyava el text
+# del requeriment en passar-hi el ratolí per sobre, retallat a 600 caracters.
+# S'ha tret: amb 254 punts a l'arbre, el globus saltava tota l'estona mentre
+# baixaves la llista i tapava justament els punts del costat. El text del
+# requeriment ja es veu SENCER al panell de la dreta en marcar-lo, que es on
+# s'ha de llegir, i el criteri per decidir si s'ha de requerir viu a la fitxa
+# d'ajuda (boto (i)). Les tooltips que queden al programa son les dels BOTONS,
+# que expliquen que fa un control i no repeteixen contingut.
 
 # Quina imatge li toca a un node de l'arbre: la (i) si el requeriment porta
 # fitxa d'ajuda, i la buida si no. PURA (torna un index), i per aixo es pot
@@ -63,6 +44,10 @@ function _AjudaImgIndex($el) {
     return $Script:AjudaImgInfo
 }
 
+# Reconstrueix el TreeView segons el text de filtre. Preserva check states
+# (passats en una hashtable [key] -> bool) i els actualitza durant la construccio.
+# Bloquegem la propagacio automatica de check durant el rebuild perque
+# marcar nodes programmaticament dispara l'event AfterCheck.
 function _RebuildTree($tv, $sections, $needle, $checkStates) {
     $tv.BeginUpdate()
     $script:_propagating = $true
@@ -127,7 +112,6 @@ function _RebuildTree($tv, $sections, $needle, $checkStates) {
                 $itNode = New-Object System.Windows.Forms.TreeNode($n.El.Short)
                 $itNode.Tag = @{ Kind = 'Item'; Ref = $n.El; SectionTitle = $sec.Title }
                 $itNode.NodeFont = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Regular)
-                $itNode.ToolTipText = _GetItemTooltip $n.El
                 $idx = _AjudaImgIndex $n.El
                 $itNode.ImageIndex = $idx; $itNode.SelectedImageIndex = $idx
                 $itKey = (_ItemKey $sec.Title $n.El.Short)
@@ -137,7 +121,6 @@ function _RebuildTree($tv, $sections, $needle, $checkStates) {
                     $chNode = New-Object System.Windows.Forms.TreeNode($ch.Short)
                     $chNode.Tag = @{ Kind = 'Child'; Ref = $ch; SectionTitle = $sec.Title; ParentShort = $n.El.Short }
                     $chNode.NodeFont = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Regular)
-                    $chNode.ToolTipText = _GetItemTooltip $ch
                     $cidx = _AjudaImgIndex $ch
                     $chNode.ImageIndex = $cidx; $chNode.SelectedImageIndex = $cidx
                     $chKey = (_ItemKey $sec.Title $n.El.Short $ch.Short)
@@ -221,7 +204,6 @@ function Select-Items {
     $tv.Size = New-Object System.Drawing.Size(560, 610)
     $tv.CheckBoxes = $true
     $tv.HideSelection = $false
-    $tv.ShowNodeToolTips = $true
     $tv.Anchor = 'Top, Bottom, Left'
     # El font base es la negreta mes ampla que faran servir les seccions. Aixo
     # evita el bug de WinForms en que un node amb NodeFont mes ample que el
@@ -399,6 +381,38 @@ function Select-Items {
         if ($e.KeyCode -ne [System.Windows.Forms.Keys]::F1) { return }
         $e.Handled = $true
         & $mostraAjuda $sender.SelectedNode
+    }.GetNewClosure())
+
+    # EL CURSOR DE MA sobre la (i): es l'unic que diu que allo es clicable. Una
+    # icona de 16 px enmig d'un arbre de caselles no ho sembla, i sense cap
+    # senyal l'usuari no hi clica mai.
+    #
+    # Es guarda l'estat ($sobreLaI) i nomes es toca .Cursor quan CANVIA: el
+    # MouseMove salta desenes de vegades per segon i assignar-lo a cada volta fa
+    # parpellejar el punter. El cursor es del CONTROL sencer -WinForms no en te
+    # de per node-, per aixo s'ha de tornar a 'Default' en sortir de la icona.
+    $sobreLaI = @{ Valor = $false }
+    $tv.add_MouseMove({
+        param($sender, $e)
+        $hit = $sender.HitTest($e.X, $e.Y)
+        $ara = $false
+        if ($hit.Location -eq [System.Windows.Forms.TreeViewHitTestLocations]::Image -and
+            $null -ne $hit.Node -and $null -ne $hit.Node.Tag) {
+            $el = $hit.Node.Tag.Ref
+            $ara = ($null -ne $el -and $null -ne $el.Ajuda)
+        }
+        if ($ara -eq $sobreLaI.Valor) { return }
+        $sobreLaI.Valor = $ara
+        $sender.Cursor = if ($ara) { [System.Windows.Forms.Cursors]::Hand }
+                         else      { [System.Windows.Forms.Cursors]::Default }
+    }.GetNewClosure())
+    # En sortir de l'arbre pel cantó de la icona no hi ha cap MouseMove mes, i
+    # el punter es quedaria en forma de ma damunt del que hi hagi al costat.
+    $tv.add_MouseLeave({
+        param($sender, $e)
+        if (-not $sobreLaI.Valor) { return }
+        $sobreLaI.Valor = $false
+        $sender.Cursor = [System.Windows.Forms.Cursors]::Default
     }.GetNewClosure())
 
     # Refilter en temps real (debouncing simple: rebuild a cada keystroke;

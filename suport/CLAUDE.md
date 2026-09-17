@@ -1155,7 +1155,32 @@ Tres detalls que ja van costar una volta:
   `TreeNode.Bounds` **només cobreix el text**: la imatge en queda fora i el clic
   no encertaria mai. `TreeViewHitTestLocations` distingeix `StateImage` (la
   casella), `Image` (la ⓘ) i `Label` (el text), i per això clicar la ⓘ tampoc no
-  marca ni desmarca el requeriment.
+  marca ni desmarca el requeriment. El **cursor de mà** surt del mateix
+  `HitTest` al `MouseMove`, i es toca `.Cursor` **només quan canvia**: el
+  `MouseMove` salta desenes de cops per segon i assignar-lo sempre fa
+  parpellejar el punter. El `MouseLeave` el torna a `Default`, perquè sortint de
+  l'arbre per sobre de la icona ja no arriba cap `MouseMove` més.
+
+**El Pas 3 NO té tooltip de node** (`ShowNodeToolTips`/`ToolTipText`) i hi ha un
+guard que ho vigila: amb 254 punts, el globus saltava mentre baixaves la llista
+i tapava els del costat. El text es llegeix al panell de la dreta i el criteri, a
+la fitxa. L'arbre de **Llicència sí que en conserva** —és un sol informe— i el
+guard també ho comprova, perquè si allò canviés el primer guard seria mentida.
+
+### I SI CANVIES COM ES VEU UNA VISTA, PUJA `$Script:VistaWordVersio`
+
+Ja ho diu el comentari de `VistaWord.ps1`, i **així i tot es va oblidar** en
+afegir la fitxa d'ajuda: les vistes només es regeneren quan el JSON és més nou
+que el `.docx`, o sigui que el `REQ1.docx` de l'usuari no es refeia mai i el
+gris no apareixia. Pujar la versió força una regeneració de totes, un sol cop.
+El guard de `06-guards.ps1` ara exigeix `>= 9`; si tornes a canviar el format,
+puja-la i actualitza el guard.
+
+I una que va sortir d'aquí: **`_Reset-Char` no restablia el COLOR**. Mentre cap
+`Format-*` no en posava cap, no podia fer mal; amb el gris de la fitxa, el Word
+se l'encomana al paràgraf següent i la vista sencera es tornava grisa a partir
+de la primera fitxa. Ara el restableix a `wdColorAutomatic`, que és el que tots
+els `Format-*` ja donaven per fet.
 
 **En canviar una norma** cal tocar el text del punt *i* la seva fitxa, i posar
 la data nova a `revisat`. El guard de `06-guards.ps1` comprova que cap fitxa no
