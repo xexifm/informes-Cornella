@@ -390,7 +390,8 @@ AssertEq (Read-AjudaNode ([pscustomobject]@{ titol = 'x' })) $null 'Read-AjudaNo
 $ajBuida = [pscustomobject]@{ ajuda = [pscustomobject]@{ norma = ''; criteri = '  '; aplica = $null; competencia = ''; revisat = '' } }
 AssertEq (Read-AjudaNode $ajBuida) $null 'Read-AjudaNode: fitxa amb tots els camps en blanc -> $null (val com si no n''hi hagues)'
 $ajPlena = [pscustomobject]@{ ajuda = [pscustomobject]@{
-    norma = ' RD 355/2024, art. 11.4 '; criteri = '2, 4 o 6 anys'; aplica = 'Totes les existents'
+    norma = ' RD 355/2024, art. 11.4 '; enllac = 'https://www.boe.es/eli/es/rd/2024/04/02/355/con'
+    criteri = '2, 4 o 6 anys'; vigencia = 'Cada 2, 4 o 6 anys'; aplica = 'Totes les existents'
     competencia = 'Industria'; revisat = '2026-09' } }
 $aj = Read-AjudaNode $ajPlena
 AssertEq $aj.Norma 'RD 355/2024, art. 11.4' 'Read-AjudaNode: retalla els espais dels extrems'
@@ -401,10 +402,13 @@ AssertEq $ajParcial.Criteri '' 'Read-AjudaNode: els camps que falten queden en b
 
 AssertEq (@(Format-AjudaLinies $null).Count) 0 'Format-AjudaLinies: sense fitxa -> cap linia'
 $lin = @(Format-AjudaLinies $aj)
-AssertEq $lin.Count 5 'Format-AjudaLinies: una linia per camp omplert'
+AssertEq $lin.Count 6 'Format-AjudaLinies: una linia per camp de text omplert (l''enllac no en fa: es un hipervincle)'
 AssertEq $lin[0] 'Norma: RD 355/2024, art. 11.4' 'Format-AjudaLinies: la norma va la primera'
 AssertEq $lin[1] 'Criteri: 2, 4 o 6 anys' 'Format-AjudaLinies: el criteri va el segon'
-AssertEq $lin[4] 'Revisat: 2026-09' 'Format-AjudaLinies: la revisio va l''ultima'
+AssertEq $lin[2] 'Vigencia: Cada 2, 4 o 6 anys' 'Format-AjudaLinies: la vigencia va darrere del criteri'
+AssertEq $lin[5] 'Revisat: 2026-09' 'Format-AjudaLinies: la revisio va l''ultima'
+Assert (-not ($lin -match '^https')) 'Format-AjudaLinies: l''enllac NO surt com a text (el pinta Format-Url)'
+AssertEq $aj.Enllac 'https://www.boe.es/eli/es/rd/2024/04/02/355/con' 'Read-AjudaNode: llegeix l''enllac al text consolidat'
 AssertEq (@(Format-AjudaLinies $ajParcial).Count) 1 'Format-AjudaLinies: els camps en blanc no fan linia'
 
 $conJson = Join-Path $EstructuralsDir '0 CONCLUSIONS.json'
@@ -596,7 +600,7 @@ AssertEq ([bool](Test-EdAdmetAjuda 'llicencia' @{tipus='item'}))    $false 'Test
 AssertEq ([bool](Test-EdAdmetAjuda 'cataleg' $null))                $false 'Test-EdAdmetAjuda: sense node, no'
 
 $edBuida = _Ed_AjudaFromJson $null
-AssertEq $edBuida.Count 5 '_Ed_AjudaFromJson: sense fitxa -> els cinc camps en blanc'
+AssertEq $edBuida.Count 7 '_Ed_AjudaFromJson: sense fitxa -> els set camps en blanc'
 AssertEq ([bool](Test-EdTeAjuda $edBuida)) $false 'Test-EdTeAjuda: cinc camps en blanc -> no en te'
 AssertEq (_Ed_AjudaToJson $edBuida) $null '_Ed_AjudaToJson: una fitxa buida NO s''escriu al JSON'
 AssertEq (_Ed_AjudaToJson $null) $null '_Ed_AjudaToJson: $null -> $null'
@@ -607,7 +611,7 @@ AssertEq ([bool](Test-EdTeAjuda $edPlena)) $true 'Test-EdTeAjuda: amb un camp om
 $edJson = _Ed_AjudaToJson $edPlena
 AssertEq $edJson.norma 'Llei 20/2009, art. 71' '_Ed_AjudaToJson: retalla els espais dels extrems'
 AssertEq $edJson.aplica '' '_Ed_AjudaToJson: escriu tots cinc camps encara que n''hi hagi de buits'
-AssertEq ([bool](@($edJson.Keys) -join ',') -eq 'norma,criteri,aplica,competencia,revisat') $true '_Ed_AjudaToJson: ordre de claus fix'
+AssertEq (@($edJson.Keys) -join ',') 'norma,enllac,criteri,vigencia,aplica,competencia,revisat' '_Ed_AjudaToJson: ordre de claus fix'
 # I el que es desa es el que torna a llegir el motor: aquest es el round-trip.
 $tornada = Read-AjudaNode ([pscustomobject]@{ ajuda = ([pscustomobject]$edJson) })
 AssertEq $tornada.Norma 'Llei 20/2009, art. 71' 'Fitxa: el que desa l''editor es el que llegeix el Pas 3'

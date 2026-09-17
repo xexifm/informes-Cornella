@@ -957,23 +957,25 @@ function _Ed_ConfirmDiscard($state) {
 function Show-EditorAjuda([string]$titol, $ajuda, $owner = $null) {
     $etiquetes = [ordered]@{
         norma       = 'Norma i article'
-        criteri     = 'Criteri (llindar, periodicitat...)'
+        enllac      = 'Enllac al text consolidat (BOE /eli/... o Portal Juridic /eli/es-ct/...)'
+        criteri     = 'Criteri (llindar, excepcions, quan SI i quan NO)'
+        vigencia    = 'Vigencia (una sola vegada / cada N anys / permanent)'
         aplica      = "A qui s'aplica (nova / existent / modificacio)"
         competencia = 'Competencia (qui ho pot exigir)'
         revisat     = 'Revisat (AAAA-MM)'
     }
-    # Els tres primers camps son text llarg; els dos ultims, una linia.
-    $altures = @{ norma = 46; criteri = 120; aplica = 46; competencia = 46; revisat = 26 }
+    $altures = @{ norma = 46; enllac = 26; criteri = 130; vigencia = 26
+                  aplica = 46; competencia = 46; revisat = 26 }
 
     $form = _NewForm
     $form.Text = 'Fitxa d''ajuda del requeriment'
-    $form.Size = New-Object System.Drawing.Size(720, 640)
-    $form.MinimumSize = New-Object System.Drawing.Size(560, 480)
+    $form.Size = New-Object System.Drawing.Size(740, 780)
+    $form.MinimumSize = New-Object System.Drawing.Size(560, 560)
 
     $lbl = New-Object System.Windows.Forms.Label
     $lbl.Text = [string]$titol
     $lbl.Location = New-Object System.Drawing.Point(14, 12)
-    $lbl.Size = New-Object System.Drawing.Size(680, 36)
+    $lbl.Size = New-Object System.Drawing.Size(700, 36)
     $lbl.Font = New-Object System.Drawing.Font('Segoe UI', 11, [System.Drawing.FontStyle]::Bold)
     $lbl.Anchor = 'Top, Left, Right'
     [void]$form.Controls.Add($lbl)
@@ -993,7 +995,7 @@ function Show-EditorAjuda([string]$titol, $ajuda, $owner = $null) {
         $tb.Multiline = ($h -gt 26)
         $tb.ScrollBars = $(if ($h -gt 26) { 'Vertical' } else { 'None' })
         $tb.Location = New-Object System.Drawing.Point(14, $y)
-        $tb.Size = New-Object System.Drawing.Size(676, $h)
+        $tb.Size = New-Object System.Drawing.Size(696, $h)
         $tb.Anchor = 'Top, Left, Right'
         $tb.Text = $(if ($null -eq $ajuda) { '' } else { [string]$ajuda[$c] })
         [void]$form.Controls.Add($tb)
@@ -1013,7 +1015,7 @@ function Show-EditorAjuda([string]$titol, $ajuda, $owner = $null) {
     $btnCancel = New-Object System.Windows.Forms.Button
     $btnCancel.Text = 'Cancel' + [char]0x00B7 + 'lar'
     $btnCancel.Size = New-Object System.Drawing.Size(110, 30)
-    $btnCancel.Location = New-Object System.Drawing.Point(440, ($y + 8))
+    $btnCancel.Location = New-Object System.Drawing.Point(460, ($y + 8))
     $btnCancel.DialogResult = 'Cancel'
     $btnCancel.Anchor = 'Top, Right'
     _StyleSecondaryButton $btnCancel
@@ -1022,7 +1024,7 @@ function Show-EditorAjuda([string]$titol, $ajuda, $owner = $null) {
     $btnOk = New-Object System.Windows.Forms.Button
     $btnOk.Text = 'Desa la fitxa'
     $btnOk.Size = New-Object System.Drawing.Size(130, 30)
-    $btnOk.Location = New-Object System.Drawing.Point(560, ($y + 8))
+    $btnOk.Location = New-Object System.Drawing.Point(580, ($y + 8))
     $btnOk.DialogResult = 'OK'
     $btnOk.Anchor = 'Top, Right'
     _StylePrimaryButton $btnOk

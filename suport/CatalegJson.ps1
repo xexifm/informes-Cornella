@@ -70,7 +70,14 @@ function _JsonParaToBodyLine($p) {
 # activitats s'aplica i qui es competent per exigir-ho- i un text seguit les
 # barreja. El cinque, 'revisat', es el que permet saber quines fitxes s'han
 # quedat endarrerides quan canvia una norma.
-$Script:AjudaCamps = @('norma', 'criteri', 'aplica', 'competencia', 'revisat')
+$Script:AjudaCamps = @('norma', 'enllac', 'criteri', 'vigencia', 'aplica', 'competencia', 'revisat')
+
+# Els camps que NO son una linia "Etiqueta: valor".
+#
+# 'enllac' es un HIPERVINCLE: a la vista en Word l'escriu Format-Url (el mateix
+# que qualsevol altre enllac del cataleg) i a la pantalla es un boto. Si sortis
+# tambe com a text, el mateix URL es veuria dues vegades seguides.
+$Script:AjudaCampsNoText = @('enllac')
 
 # La fitxa d'ajuda d'un node del JSON -> objecte normalitzat, o $null si no n'hi
 # ha. Torna $null tambe quan hi es pero es BUIDA: aixi qui la consulta nomes ha
@@ -90,7 +97,9 @@ function Read-AjudaNode($node) {
     if (-not $teRes) { return $null }
     return [pscustomobject]@{
         Norma       = [string]$vals['norma']
+        Enllac      = [string]$vals['enllac']
         Criteri     = [string]$vals['criteri']
+        Vigencia    = [string]$vals['vigencia']
         Aplica      = [string]$vals['aplica']
         Competencia = [string]$vals['competencia']
         Revisat     = [string]$vals['revisat']
@@ -109,6 +118,7 @@ function Format-AjudaLinies($ajuda) {
     $etiquetes = [ordered]@{
         Norma       = 'Norma'
         Criteri     = 'Criteri'
+        Vigencia    = 'Vigencia'
         Aplica      = "A qui s'aplica"
         Competencia = 'Competencia'
         Revisat     = 'Revisat'

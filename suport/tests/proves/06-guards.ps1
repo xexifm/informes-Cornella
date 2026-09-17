@@ -887,7 +887,7 @@ Write-Host "`n--- Les fitxes d'ajuda dels ESTRUCTURALS estan ben formades ---"
 # Un camp mal escrit ("competència" amb accent, "revisió" en lloc de "revisat")
 # no peta: es llegeix com a buit i la fitxa surt incompleta SENSE dir res. Aixo
 # ho caca aqui.
-$camps = @('norma', 'criteri', 'aplica', 'competencia', 'revisat')
+$camps = @('norma', 'enllac', 'criteri', 'vigencia', 'aplica', 'competencia', 'revisat')
 function _GuardAjuda($nodes, $ruta, $acc) {
     foreach ($n in @($nodes)) {
         if ($null -eq $n) { continue }
@@ -897,8 +897,17 @@ function _GuardAjuda($nodes, $ruta, $acc) {
             foreach ($k in $claus) {
                 if ($camps -notcontains $k) { [void]$acc.Add($on + ' : camp desconegut "' + $k + '"') }
             }
-            if ([string]::IsNullOrWhiteSpace([string]$n.ajuda.norma))   { [void]$acc.Add($on + ' : fitxa sense norma') }
-            if ([string]::IsNullOrWhiteSpace([string]$n.ajuda.criteri)) { [void]$acc.Add($on + ' : fitxa sense criteri') }
+            if ([string]::IsNullOrWhiteSpace([string]$n.ajuda.norma))    { [void]$acc.Add($on + ' : fitxa sense norma') }
+            if ([string]::IsNullOrWhiteSpace([string]$n.ajuda.criteri))  { [void]$acc.Add($on + ' : fitxa sense criteri') }
+            if ([string]::IsNullOrWhiteSpace([string]$n.ajuda.vigencia)) { [void]$acc.Add($on + ' : fitxa sense vigencia') }
+            # L'enllac pot ser BUIT -una ordenança municipal o una norma UNE no
+            # tenen text consolidat en linia-, pero si hi es ha de ser un URL:
+            # una referencia a mitges no obriria res i no es veuria fins que algu
+            # hi cliques.
+            $urlAj = [string]$n.ajuda.enllac
+            if (-not [string]::IsNullOrWhiteSpace($urlAj) -and $urlAj -notmatch '^https://') {
+                [void]$acc.Add($on + ' : l''enllac ha de comencar per https:// i es "' + $urlAj + '"')
+            }
             $rev = [string]$n.ajuda.revisat
             if (-not [string]::IsNullOrWhiteSpace($rev) -and $rev -notmatch '^\d{4}-\d{2}$') {
                 [void]$acc.Add($on + ' : "revisat" ha de ser AAAA-MM i es "' + $rev + '"')
@@ -938,4 +947,4 @@ Write-Host "`n--- La VERSIO de les vistes puja quan canvia com es veuen ---"
 # .docx de l'usuari no es refeia mai.
 $srcVw = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'suport' 'VistaWord.ps1')))
 Assert ($srcVw -match 'Format-Ajuda|AmbAjuda') 'VistaWord.ps1: la vista demana la fitxa d''ajuda'
-Assert ([bool]($Script:VistaWordVersio -ge 9)) ('VistaWordVersio >= 9 (la fitxa d''ajuda en gris); ara es ' + $Script:VistaWordVersio)
+Assert ([bool]($Script:VistaWordVersio -ge 10)) ('VistaWordVersio >= 10 (fitxa sense sangria, amb vigencia i enllac); ara es ' + $Script:VistaWordVersio)

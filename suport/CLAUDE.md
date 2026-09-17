@@ -1126,8 +1126,8 @@ destinataris d'una altra activitat.
 
 ## La FITXA D'AJUDA d'un requeriment: l'interruptor va al costat segur
 
-Cada node d'un catàleg pot portar una clau `ajuda` amb cinc camps (`norma`,
-`criteri`, `aplica`, `competencia`, `revisat`). Es veu al **Pas 3** (icona ⓘ) i
+Cada node d'un catàleg pot portar una clau `ajuda` amb set camps (`norma`,
+`enllac`, `criteri`, `vigencia`, `aplica`, `competencia`, `revisat`). Es veu al **Pas 3** (icona ⓘ) i
 a la **vista en Word**, en gris. **A l'informe del titular no hi pot sortir
 mai**: la fitxa porta el criteri intern —"competència: Indústria; l'Ajuntament
 només ho constata"— i en un document municipal seria explicar-li per què no es
@@ -1160,6 +1160,16 @@ Tres detalls que ja van costar una volta:
   `MouseMove` salta desenes de cops per segon i assignar-lo sempre fa
   parpellejar el punter. El `MouseLeave` el torna a `Default`, perquè sortint de
   l'arbre per sobre de la icona ja no arriba cap `MouseMove` més.
+
+**L'`enllac` és l'únic camp que NO és una línia de text** (és a
+`$Script:AjudaCampsNoText`): a la vista el pinta `Format-Url`, com qualsevol
+altre enllaç del catàleg, i al Pas 3 és un botó. Si sortís també com a text, el
+mateix URL es veuria dues vegades seguides. Els permalinks es construeixen amb
+l'esquema **ELI**, que publiquen tant el BOE (`/eli/es/{tipus}/{any}/{mes}/{dia}/{num}/con`)
+com el Portal Jurídic (`/eli/es-ct/{tipus}/{any}/{mes}/{dia}/{num}`); 34 de les
+254 fitxes no en tenen, perquè una ordenança municipal, les OME o una norma UNE
+no tenen text consolidat en línia, i el guard ho admet sempre que el camp sigui
+buit o comenci per `https://`.
 
 **El Pas 3 NO té tooltip de node** (`ShowNodeToolTips`/`ToolTipText`) i hi ha un
 guard que ho vigila: amb 254 punts, el globus saltava mentre baixaves la llista

@@ -87,7 +87,10 @@ $Script:ReportFormatConfig = @{
     # dels catalegs, mai a l'informe d'una activitat: es material de consulta de
     # l'inspector. Va en gris i mes petita justament perque, si algu la veu en
     # un full imprès, es vegi a l'acte que no forma part del requeriment.
-    AjudaIndentCm        = 1.25
+    # SENSE SANGRIA, com la resta del cos. Anava a 1,25 cm perque semblava que
+    # una nota havia de quedar "endins", pero al costat d'items que comencen a 0
+    # el bloc gris quedava desplaçat i feia dents de serra a cada requeriment.
+    AjudaIndentCm        = 0
     AjudaFontSize        = 9
     AjudaSpaceBeforePt   = 4
     # 8421504 = 0x808080 = wdColorGray50. El Word el vol en BGR, pero en un gris

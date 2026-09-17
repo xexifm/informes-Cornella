@@ -76,7 +76,9 @@ function _VistaEsProtegit([string]$jsonPath) {
 #   5 -> negreta del numero de l'item aplicada pel RANG (no s'encomana al cos)
 #        i sangria dels fills a 1 cm amb francesa de 0,5 cm
 #   9 -> la FITXA D'AJUDA de cada requeriment, en gris (Format-Ajuda)
-$Script:VistaWordVersio = 9
+#  10 -> la fitxa sense sangria (com la resta del cos), amb la VIGENCIA i amb
+#        l'ENLLAC al text consolidat de la norma com a hipervincle
+$Script:VistaWordVersio = 10
 
 function _VistaVersioPath {
     $base = [string]$env:LOCALAPPDATA

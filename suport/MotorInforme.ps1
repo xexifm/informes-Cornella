@@ -546,6 +546,14 @@ function _BlocsDAjuda($node, [bool]$ambAjuda) {
     $out = New-Object System.Collections.ArrayList
     foreach ($l in @(Format-AjudaLinies $node.Ajuda)) {
         [void]$out.Add(@{ T = 'ajuda'; Text = [string]$l })
+        # L'ENLLAC AL TEXT CONSOLIDAT va just sota la linia de la norma, que es
+        # a que es refereix, i com a bloc 'enllac': aixi el Word l'escriu amb
+        # Format-Url -hipervincle de debo, clicable- i no com a text gris. Es el
+        # mateix cami que ja fan els enllacos del cos del cataleg; una copia amb
+        # el color a ma hauria divergit a la primera.
+        if ($l -like 'Norma:*' -and -not [string]::IsNullOrWhiteSpace($node.Ajuda.Enllac)) {
+            [void]$out.Add(@{ T = 'enllac'; Url = [string]$node.Ajuda.Enllac })
+        }
     }
     return $out.ToArray()
 }

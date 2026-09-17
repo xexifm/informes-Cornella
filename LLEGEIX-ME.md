@@ -516,10 +516,17 @@ d'inspeccions. Té **cinc camps**, sempre els mateixos:
 | Camp | Què hi va |
 |---|---|
 | **Norma** | La norma i l'article exactes. |
-| **Criteri** | El llindar, la periodicitat, l'excepció — el que decideix. |
+| **Enllaç** | El **text consolidat** de la norma. A la vista en Word surt com a hipervincle sota la línia de la norma; al Pas 3, com a botó **🔗 Obre la norma**. 220 de les 254 fitxes en tenen; les que no, són ordenances municipals, les OME i normes UNE, que no tenen text consolidat en línia. |
+| **Criteri** | El llindar, l'excepció, **quan sí i quan no**. |
+| **Vigència** | Si és d'una sola vegada o s'ha d'anar renovant, i cada quant. |
 | **A qui s'aplica** | Activitat nova, existent, modificació… És el camp que evita exigir normativa posterior a una activitat legalitzada abans. |
 | **Competència** | Qui ho pot exigir. Mitja secció d'Autoritzacions són obligacions d'altres administracions: allà l'Ajuntament **constata i dona trasllat**. |
 | **Revisat** | `AAAA-MM`. Serveix per saber quines fitxes s'han quedat endarrerides quan canvia una norma. |
+
+> **Els enllaços es construeixen sols.** Tant el BOE com el Portal Jurídic
+> publiquen permalinks **ELI**: `boe.es/eli/es/rd/2017/05/22/513/con` i
+> `portaljuridic.gencat.cat/eli/es-ct/d/2023/11/28/209`. Si has d'afegir la
+> d'una norma nova, segueix el mateix patró: tipus, any, mes, dia i número.
 
 **On es veu:** al **Pas 3**, amb la icona **ⓘ** que surt al davant dels punts que
 en tenen (clic o **F1**); i a la **vista en Word** del catàleg, en gris sota cada

@@ -1091,6 +1091,37 @@ function Show-Ajuda([string]$titol, $ajuda, $owner = $null) {
     $tb.Select(0, 0)
     $form.Controls.Add($tb)
 
+    # OBRIR EL TEXT CONSOLIDAT de la norma. Es el motiu de tenir l'enllac: quan
+    # el criteri no resol el dubte, el pas seguent es llegir l'article, i haver
+    # d'anar a buscar-lo al cercador del BOE o del Portal Juridic es justament el
+    # que fa que no s'hi vagi. Nomes surt si la fitxa en porta: no totes en
+    # poden tenir -una ordenança municipal o una norma UNE no tenen permalink-.
+    $urlNorma = if ($null -eq $ajuda) { '' } else { [string]$ajuda.Enllac }
+    if (-not [string]::IsNullOrWhiteSpace($urlNorma)) {
+        $btnNorma = New-Object System.Windows.Forms.Button
+        $btnNorma.Text = ([System.Char]::ConvertFromUtf32(0x1F517) + ' Obre la norma')
+        $btnNorma.Size = New-Object System.Drawing.Size(170, 30)
+        $btnNorma.Location = New-Object System.Drawing.Point(14, 382)
+        $btnNorma.Anchor = 'Bottom, Left'
+        _StyleSecondaryButton $btnNorma
+        $btnNorma.add_Click({
+            # Start-Process amb l'URL obre el navegador per defecte. Dins d'un
+            # try: si el sistema no te cap navegador associat, val mes no fer res
+            # que rebentar la finestra d'ajuda.
+            try { Start-Process $urlNorma } catch { }
+        }.GetNewClosure())
+        $form.Controls.Add($btnNorma)
+
+        $lblUrl = New-Object System.Windows.Forms.Label
+        $lblUrl.Text = $urlNorma
+        $lblUrl.Location = New-Object System.Drawing.Point(190, 389)
+        $lblUrl.Size = New-Object System.Drawing.Size(330, 18)
+        $lblUrl.AutoEllipsis = $true
+        $lblUrl.ForeColor = [System.Drawing.Color]::DimGray
+        $lblUrl.Anchor = 'Bottom, Left'
+        $form.Controls.Add($lblUrl)
+    }
+
     $btn = New-Object System.Windows.Forms.Button
     $btn.Text = 'Tanca'
     $btn.Size = New-Object System.Drawing.Size(100, 30)
