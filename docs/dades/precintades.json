@@ -1,8 +1,8 @@
 {
-    "GeneratedAt":  "2026-08-31T08:16:22.9449341+02:00",
-    "Font":  "2026-08-27 ACTIVITATS.xls",
-    "SourceDate":  "2026-08-27",
-    "Comptador":  23,
+    "GeneratedAt":  "2026-09-18T10:42:51.9172550+02:00",
+    "Font":  "2026-09-18 ACTIVITATS.xls",
+    "SourceDate":  "2026-09-18",
+    "Comptador":  22,
     "Activitats":  [
                        {
                            "id":  "1369",
@@ -10,13 +10,6 @@
                            "adreca":  "PG FERROCARRILS CATALANS 24",
                            "lat":  41.351565110207048,
                            "lon":  2.0689570694785369
-                       },
-                       {
-                           "id":  "1367",
-                           "activitat":  "LABORATORI PROTESIS DENTAL",
-                           "adreca":  "C DOCTOR ARUS 2",
-                           "lat":  41.362293230284088,
-                           "lon":  2.0827839558582451
                        },
                        {
                            "id":  "1310",
