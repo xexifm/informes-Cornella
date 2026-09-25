@@ -315,6 +315,22 @@ function _VistaLlicencia($sel, [string]$jsonPath) {
         _VAire $sel 'item'
     }
 
+    # QUI POSA CONDICIONS (la llista del pas de les condicions dels favorables),
+    # amb el punt de REQ1 que en proposa cada un. Surt de _LlicActorsCondicions,
+    # la mateixa funcio que la pantalla.
+    $actorsV = @(_LlicActorsCondicions $llic)
+    if ($actorsV.Count -gt 0) {
+        _VSection $sel 'CONDICIONS (qui les posa)'
+        _VAire $sel 'seccio'
+        $ia = 0
+        foreach ($a in $actorsV) {
+            $ia++
+            _VItem $sel ((_LlicLletra $ia).ToLower() + '.') ([string]$a.Nom)
+            foreach ($c in @($a.Claus)) { _VLine $sel ('//[Es proposa si es disposa de]// ' + [string]$c) $true }
+            _VAire $sel 'item'
+        }
+    }
+
     # L'ANNEX 1, tal com surt a l'informe.
     $secAnnex = _LlicSeccioAnnex1 $llic
     if ($null -ne $secAnnex) {

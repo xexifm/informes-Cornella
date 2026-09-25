@@ -369,6 +369,28 @@ BODY|//Extracció de fums (12 punts)//
 BODY|//Denúncia (9 punts)//
 BODY|//Documentació / Rètols (3 punts)//
 BODY|//Accessibilitat (6 punts)//
+SECT|CONDICIONS (qui les posa)
+ITEM|a.|OGAU
+BODY/CH|//[Es proposa si es disposa de]// Autoritzacions / Informes preceptius::Impacte ambiental
+ITEM|b.|Agència de Residus de Catalunya
+BODY/CH|//[Es proposa si es disposa de]// Autoritzacions / Informes preceptius::Vector Residus (ARC)
+ITEM|c.|Direcció General de Canvi Climàtic i Qualitat Ambiental
+BODY/CH|//[Es proposa si es disposa de]// Autoritzacions / Informes preceptius::Vector Atmosfera - Grup A/B
+ITEM|d.|Agència Catalana de l’Aigua
+BODY/CH|//[Es proposa si es disposa de]// Autoritzacions / Informes preceptius::Vector Aigua (ACA) - Zona inundable fluvial T500
+BODY/CH|//[Es proposa si es disposa de]// Autoritzacions / Informes preceptius::Vector Aigua (ACA) - abocaments
+ITEM|e.|Àrea Metropolitana de Barcelona
+BODY/CH|//[Es proposa si es disposa de]// Autoritzacions / Informes preceptius::Vector Aigua (AMB) - abocaments
+ITEM|f.|Departament de Salut
+BODY/CH|//[Es proposa si es disposa de]// Autoritzacions / Informes preceptius::Sanitat
+ITEM|g.|Departament d’Educació
+BODY/CH|//[Es proposa si es disposa de]// Autoritzacions / Informes preceptius::Educació
+ITEM|h.|Departament d’Empresa i Treball
+BODY/CH|//[Es proposa si es disposa de]// Autoritzacions / Informes preceptius::Comerç
+ITEM|i.|Consell Català de l’Esport
+BODY/CH|//[Es proposa si es disposa de]// Autoritzacions / Informes preceptius::Esport
+ITEM|j.|Guàrdia Urbana
+BODY/CH|//[Es proposa si es disposa de]// Autoritzacions / Informes preceptius::Mobilitat
 SECT|ANNEX 1. Documentació per demanar l’autorització d’usos i obres provisionals
 BODY|1. Instància d’entrada a l’Ajuntament per part de la persona interessada sol·licitant la llicència d’obres i usos de caràcter provisional.
 BODY|S’ha d’aportar la memòria que es comenta en el següent. No és necessari el projecte visat, únicament un document on s’expliquin quins usos es volen dur a terme i la descripció de les obres el més detallat possible per valorar si aquestes són les mínimes imprescindibles, a més de la descripció de les obres de desmuntatge.

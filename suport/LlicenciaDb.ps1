@@ -199,6 +199,11 @@ function ConvertTo-LlicenciaRecord($st, $historial = @()) {
     $header = _LlicDbAMapa $h['Header']
     $hist = New-Object System.Collections.ArrayList
     foreach ($x in @($historial)) { [void]$hist.Add($x) }
+    # (Una VARIABLE i no un $(if ...) dins del literal: el $() desenrotlla, i
+    # una llista buida hi arribaria com a $null i una d'un sol actor com a
+    # text pelat.)
+    $condA = $null
+    if ($null -ne $h['CondActors']) { $condA = [string[]]@(@($h['CondActors']) | ForEach-Object { [string]$_ }) }
     return [ordered]@{
         IdGia         = [string]$header['ID_GIA']
         Actualitzat   = (Get-Date).ToString('o')
@@ -215,10 +220,11 @@ function ConvertTo-LlicenciaRecord($st, $historial = @()) {
         ProjVals      = (_LlicDbAMapa $h['ProjVals'])
         Tecnic        = (_LlicDbAMapa $h['Tecnic'])
         TecnicDocs    = (ConvertTo-LlicenciaDocs $h['TecnicDocs'])
-        # Si l'ultim informe portava condicions. Nomes es un SI/NO: les
-        # condicions les escriu l'usuari al Word, i la casella no es torna a
-        # carregar (va al pas 1, abans de saber de quina llicencia es tracta).
-        AmbCondicions = [bool]$h['AmbCondicions']
+        # Els ACTORS que posen condicions (OGAU, Agencia de Residus...), tal
+        # com es van marcar. $null = aquell assistent no hi va passar mai (un
+        # requeriment sol): no es el mateix que una llista buida, que vol dir
+        # "s'hi va passar i no n'hi havia cap".
+        CondicionsActors = $condA
         Historial     = $hist.ToArray()
     }
 }
@@ -237,9 +243,13 @@ function Restore-LlicenciaState($record, $st) {
     $st['ProjVals']   = _LlicDbAMapa $r['ProjVals']
     $st['Tecnic']     = _LlicDbAMapa $r['Tecnic']
     $st['TecnicDocs'] = ConvertTo-LlicenciaDocs $r['TecnicDocs']
-    # LES CONDICIONS NO ES RECUPEREN: la casella es tria al pas 1, i la base es
-    # llegeix en sortir del pas 2 (quan ja se sap l'ID GIA). Recuperar-la aqui
-    # trepitjaria el que l'usuari acaba de marcar.
+    # ELS ACTORS DE LES CONDICIONS: el pas va DESPRES de llegir la base, o
+    # sigui que recuperar-los no trepitja res. Nomes si la fitxa en te una
+    # llista (encara que sigui buida); si no, el pas en proposara segons el
+    # bloc ABANS.
+    if ($null -ne $r['CondicionsActors']) {
+        $st['CondActors'] = @(@($r['CondicionsActors']) | ForEach-Object { [string]$_ })
+    }
     return $st
 }
 
@@ -613,8 +623,9 @@ function Show-LlicenciaDb {
         $altres = New-Object System.Collections.ArrayList
         $nProj = @($rec.ProjKeys).Count
         if ($nProj -gt 0) { [void]$altres.Add('Punts del projecte triats: ' + $nProj) }
-        if ([bool]$rec.AmbCondicions) {
-            [void]$altres.Add('Amb condicions')
+        $actC = @(@($rec.CondicionsActors) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
+        if ($actC.Count -gt 0) {
+            [void]$altres.Add('Condicions de: ' + ($actC -join ', '))
         } elseif (-not [string]::IsNullOrWhiteSpace([string]$rec.Condicions)) {
             # Fitxes d'abans de la casella: hi havia el text de les condicions.
             $c = [string]$rec.Condicions

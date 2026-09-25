@@ -784,20 +784,80 @@ function _LlicCalAnnex1($punts, [bool]$esProvisional) {
 }
 
 # QUINES FASES PODEN PORTAR CONDICIONS: els dos favorables. Funcio PURA, i
-# l'unic lloc que ho diu: la casella del pas 1, la conclusio i el bloc
-# CONDICIONS LLICENCIA ho pregunten aqui.
+# l'unic lloc que ho diu: el pas de les condicions i la conclusio ho pregunten
+# aqui.
 function _LlicAdmetCondicions([string]$fase) {
     return ([string]$fase -eq 'favorable-pre' -or [string]$fase -eq 'favorable-post')
+}
+
+# ELS ACTORS QUE POSEN CONDICIONS. Funcio PURA.
+#
+# Les condicions d'una llicencia no les escriu l'Ajuntament: les posen els
+# organismes que emeten els informes preceptius (OGAU, Agencia de Residus de
+# Catalunya, Direccio General de Canvi Climatic...), i l'informe nomes diu QUINS
+# son -els seus informes van adjunts a continuacio-. Per aixo el pas de les
+# condicions es una LLISTA d'actors per marcar, i n'hi ha prou amb un de marcat
+# perque l'informe porti condicions.
+#
+# LA LLISTA VIU AL CATALEG (seccio CONDICIONS de LLIC.json), no al codi: cada
+# item es un actor (el titol, tal com surt a l'informe) i la seva CLAU apunta al
+# punt de REQ1 que el fa intervenir. Un actor pot sortir diverses vegades amb
+# claus diferents (l'ACA, per exemple, en te dues): aqui es fonen en un de sol.
+#
+# Retorna, en l'ordre del cataleg: @{ Nom; Claus[] }.
+function _LlicActorsCondicions($llic) {
+    $out = New-Object System.Collections.ArrayList
+    $perNom = @{}
+    if ($null -eq $llic) { return $out.ToArray() }
+    foreach ($sec in @($llic.nodes)) {
+        if (([string]$sec.titol).Trim().ToUpper() -ne 'CONDICIONS') { continue }
+        foreach ($it in @($sec.fills)) {
+            $nom = ([string]$it.titol).Trim()
+            if ([string]::IsNullOrWhiteSpace($nom)) { continue }
+            $k = $nom.ToLowerInvariant()
+            if (-not $perNom.ContainsKey($k)) {
+                $a = @{ Nom = $nom; Claus = (New-Object System.Collections.ArrayList) }
+                $perNom[$k] = $a
+                [void]$out.Add($a)
+            }
+            $c = [string]$it.clau
+            if (-not [string]::IsNullOrWhiteSpace($c) -and -not $perNom[$k].Claus.Contains($c)) {
+                [void]$perNom[$k].Claus.Add($c)
+            }
+        }
+    }
+    return $out.ToArray()
+}
+
+# QUINS ACTORS SURTEN MARCATS la primera vegada. Funcio PURA.
+#
+# Els que tenen algun dels seus punts marcat al bloc ABANS amb "Es disposa":
+# si ja hi ha l'informe preceptiu, es que l'organisme l'ha emes, i es aquell
+# informe el que porta les condicions. Es nomes el punt de partida: l'usuari
+# ho pot canviar tot.
+function _LlicActorsPerDefecte($actors, $abans) {
+    $ambInforme = @{}
+    foreach ($p in @($abans)) {
+        if ($null -eq $p) { continue }
+        if ([string]$p.Estat -ne 'si') { continue }
+        $c = [string]$p.Clau
+        if (-not [string]::IsNullOrWhiteSpace($c)) { $ambInforme[$c] = $true }
+    }
+    $out = New-Object System.Collections.ArrayList
+    foreach ($a in @($actors)) {
+        foreach ($c in @($a.Claus)) {
+            if ($ambInforme.ContainsKey([string]$c)) { [void]$out.Add([string]$a.Nom); break }
+        }
+    }
+    return $out.ToArray()
 }
 
 # Text de la conclusio d'una fase. Funcio PURA.
 #
 # ELS DOS FAVORABLES PODEN PORTAR CONDICIONS, i llavors la frase ho anuncia
-# ("...sota les seguents condicions"). Es una CASELLA del pas 1, no un text: les
-# condicions les escriu l'usuari al Word (sota el titol CONDICIONS LLICENCIA,
-# que el programa hi deixa posat). Abans hi havia una pantalla per escriure-les,
-# nomes al pre, i l'usuari la va treure (setembre 2026): l'unic que calia saber
-# es SI n'hi ha, perque es el que canvia la conclusio.
+# ("...sota les condicions que es determinen en els seguents informes (adjunts a
+# continuacio):") i a sota hi van els actors que les posen. Hi ha condicions
+# quan s'ha marcat com a minim un actor al pas de les condicions.
 function _LlicConclusioText([string]$fase, [bool]$ambCondicions) {
     # EL TEXT VE DEL CATALEG, del grup 'LLIC' de '0 CONCLUSIONS.json', i el titol
     # de cada entrada es la CLAU DE LA FASE. Abans era al codi (_LlicFases), o
@@ -1075,7 +1135,7 @@ function _LlicEscriuPunts($sel, $punts, [ref]$n, $fields, [bool]$ambQuan, [strin
 #
 # $model porta tot el que ha triat l'usuari a l'assistent:
 #   Fase, EsProvisional, Header, Fields, Abans, Projecte, Despres, Doc,
-#   AmbCondicions, Orfes.
+#   CondicionsActors (noms dels actors marcats), Orfes.
 function Build-LlicenciaDocument($word, $model) {
     $header = $model.Header
     $baseName = _LlicNomFitxer (Get-Date) ([string]$model.Fase) ([string]$header['ID_GIA'])
@@ -1150,19 +1210,24 @@ function Build-LlicenciaDocument($word, $model) {
         }
 
         # ---- CONCLUSIO ----
-        $ambCond = ([bool]$model.AmbCondicions -and (_LlicAdmetCondicions ([string]$model.Fase)))
+        $actorsCond = @(@($model.CondicionsActors) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
+        $ambCond = ($actorsCond.Count -gt 0 -and (_LlicAdmetCondicions ([string]$model.Fase)))
         # Mateix bloc que REQ1 (_WriteConclusionsBlock): capcalera CONCLUSIONS
         # centrada i en negreta, i la conclusio en negreta -que aqui ve del **...**
         # del cataleg, exactament com a REQ1: el text ja no es del codi.
         Format-Aire $sel 'conclusions'
         Format-ConclusionHeader $sel 'CONCLUSIONS'
         Format-Conclusion $sel (_LlicConclusioText ([string]$model.Fase) $ambCond)
-        # La conclusio diu "sota les seguents condicions": el titol hi queda
-        # posat i, a sota, un paragraf BUIT on l'usuari les escriu al Word.
+        # ELS ACTORS, sota la conclusio que els anuncia ("...en els seguents
+        # informes (adjunts a continuacio):"). Amb LLETRES minuscules com al Word
+        # de l'usuari (a., b., c.), escrites com a TEXT -com tota la numeracio
+        # d'aquests informes-. Les condicions no s'escriuen: son als informes
+        # d'aquells organismes, que van adjunts darrere.
         if ($ambCond) {
-            Format-Spacer $sel
-            Format-BlockTitle $sel ('CONDICIONS LLIC' + [char]0x00C8 + 'NCIA')
-            Format-Spacer $sel
+            for ($i = 0; $i -lt $actorsCond.Count; $i++) {
+                Format-Item $sel ((_LlicLletra ($i + 1)).ToLower() + '.') ([string]$actorsCond[$i])
+                Format-Aire $sel 'item'
+            }
         }
         # El tancament: del cataleg, com tots els altres informes (Write-Tancament).
         Write-Tancament $sel $fields
@@ -1273,7 +1338,7 @@ function _LlicEscriuAnnex1($sel, $llic) {
 # Traspas tenen entrada propia al menu, cada familia ensenya NOMES les seves:
 # _LlicFases per a Llicencia i _MnsFases per a MNS/Traspas. Amb $null les
 # ensenya totes (compatibilitat).
-function Select-LlicFase($preFase, $preProv, $fases = $null, [string]$titol = '', $preCond = $false) {
+function Select-LlicFase($preFase, $preProv, $fases = $null, [string]$titol = '') {
     $llista = if ($null -ne $fases) { @($fases) } else { @(_LlicTotesLesFases) }
     $form = _NewForm
     $form.Text = if ($titol) { $titol } else { 'Llic' + [char]0x00E8 + 'ncia - Pas 1' }
@@ -1327,26 +1392,6 @@ function Select-LlicFase($preFase, $preProv, $fases = $null, [string]$titol = ''
                   'hi afegeix l' + [char]0x2019 + 'ANNEX 1.')
     [void]$form.Controls.Add($lbl2)
 
-    # AMB CONDICIONS: nomes als dos favorables (_LlicAdmetCondicions). Es una
-    # casella i prou -les condicions s'escriuen al Word-: el que canvia es la
-    # conclusio i que hi surti el titol CONDICIONS LLICENCIA.
-    $cbCond = New-Object System.Windows.Forms.CheckBox
-    $cbCond.Location = New-Object System.Drawing.Point(30, ($lbl2.Bottom + 8))
-    $cbCond.AutoSize = $true
-    $cbCond.Text = 'Amb condicions'
-    $cbCond.Checked = [bool]$preCond
-    [void]$form.Controls.Add($cbCond)
-
-    $lbl3 = New-Object System.Windows.Forms.Label
-    $lbl3.Location = New-Object System.Drawing.Point(50, ($cbCond.Top + 22))
-    $lbl3.Size = New-Object System.Drawing.Size(450, 32)
-    $lbl3.ForeColor = [System.Drawing.Color]::FromArgb(120, 128, 138)
-    $lbl3.Font = New-Object System.Drawing.Font('Segoe UI', 8)
-    $lbl3.Text = ('Nom' + [char]0x00E9 + 's als favorables. La conclusi' + [char]0x00F3 + ' hi afegeix "sota les seg' +
-                  [char]0x00FC + 'ents condicions" i hi queda el t' + [char]0x00ED + 'tol CONDICIONS LLIC' +
-                  [char]0x00C8 + 'NCIA per escriure-les al Word.')
-    [void]$form.Controls.Add($lbl3)
-
     # La casella "Llicencia provisional" nomes te sentit a l'informe llarg: als
     # dos curts no canvia res del document, i deixar-la activa nomes despista.
     #
@@ -1357,19 +1402,9 @@ function Select-LlicFase($preFase, $preProv, $fases = $null, [string]$titol = ''
     $fnFase = @{}
     $fnFase.Refresca = {
         $curta = $false
-        $admetCond = $false
-        foreach ($k in @($radios.Keys)) {
-            if (-not $radios[$k].Checked) { continue }
-            if (_MnsEsFase $k) { $curta = $true }
-            if (_LlicAdmetCondicions $k) { $admetCond = $true }
-        }
+        foreach ($k in @($radios.Keys)) { if ($radios[$k].Checked -and (_MnsEsFase $k)) { $curta = $true } }
         $cbProv.Enabled = (-not $curta)
         $lbl2.Visible = (-not $curta)
-        # Desactivada pero SENSE desmarcar: si l'usuari passa pel requeriment i
-        # torna al favorable, el que havia marcat hi segueix. La composicio ja
-        # ignora la casella fora dels favorables.
-        $cbCond.Enabled = $admetCond
-        $lbl3.Visible = $admetCond
     }.GetNewClosure()
     foreach ($k in @($radios.Keys)) {
         $radios[$k].add_CheckedChanged({ & $fnFase.Refresca }.GetNewClosure())
@@ -1378,10 +1413,9 @@ function Select-LlicFase($preFase, $preProv, $fases = $null, [string]$titol = ''
 
     # ELS BOTONS, SOTA L'ULTIMA ETIQUETA. Estaven clavats a y=286 i la nota de
     # la llicencia provisional (y=264, alt 32) els trepitjava. Ara surten del
-    # peu real de l'ultima etiqueta ($lbl3, la de les condicions), o sigui que
-    # si hi afegim una fase o una linia de text baixen sols i la finestra creix
-    # amb ells.
-    $yBotons = $lbl3.Bottom + 14
+    # peu real de $lbl2, o sigui que si hi afegim una fase o una linia de text
+    # baixen sols i la finestra creix amb ells.
+    $yBotons = $lbl2.Bottom + 14
     $form.ClientSize = New-Object System.Drawing.Size(520, ($yBotons + 32 + 16))
 
     $res = @{ Nav = 'back' }
@@ -1393,7 +1427,6 @@ function Select-LlicFase($preFase, $preProv, $fases = $null, [string]$titol = ''
     $btnOk.add_Click({
         foreach ($k in $radios.Keys) { if ($radios[$k].Checked) { $res.Fase = $k } }
         $res.Prov = [bool]$cbProv.Checked
-        $res.AmbCondicions = [bool]$cbCond.Checked
         $res.Nav = 'fwd'
         $form.DialogResult = 'OK'; $form.Close()
     }.GetNewClosure())
@@ -2022,6 +2055,78 @@ function Select-LlicTecnic($pre, $preDocs = $null) {
     return $res
 }
 
+# Pas de les CONDICIONS (nomes als favorables): QUINS ACTORS les posen.
+#
+# Abans era un quadre de text lliure (i despres, una casella al pas 1). L'usuari
+# va explicar que les condicions les posen els organismes que informen els
+# punts d'Autoritzacions / Informes preceptius, i que el que ha de dir l'informe
+# es QUINS: els seus informes van adjunts darrere. Una llista per marcar, i amb
+# un de marcat ja hi ha condicions.
+#
+# Retorna @{ Nav; Actors } (els noms marcats, en l'ordre de la llista).
+function Select-LlicCondicions($actors, $marcats) {
+    $actors = @($actors)
+    $form = _NewForm
+    $form.Text = 'Condicions de la llic' + [char]0x00E8 + 'ncia'
+    $form.ClientSize = New-Object System.Drawing.Size(560, 460)
+    $form.StartPosition = 'CenterScreen'
+
+    $lbl = New-Object System.Windows.Forms.Label
+    $lbl.Location = New-Object System.Drawing.Point(20, 70)
+    $lbl.Size = New-Object System.Drawing.Size(520, 52)
+    $lbl.Text = ('Marca qui posa condicions (els seus informes van adjunts darrere de l' + [char]0x2019 + 'informe). ' +
+                 'Si no en marques cap, la conclusi' + [char]0x00F3 + ' no parla de condicions. ' +
+                 'Surten marcats els que tenen l' + [char]0x2019 + 'informe preceptiu com a "Es disposa".')
+    [void]$form.Controls.Add($lbl)
+
+    $llista = New-Object System.Windows.Forms.CheckedListBox
+    $llista.Location = New-Object System.Drawing.Point(20, 128)
+    $llista.Size = New-Object System.Drawing.Size(520, 262)
+    $llista.Anchor = 'Top,Bottom,Left,Right'
+    $llista.CheckOnClick = $true
+    $llista.IntegralHeight = $false
+    $marcatsSet = @{}
+    foreach ($m in @($marcats)) { $marcatsSet[([string]$m).Trim().ToLowerInvariant()] = $true }
+    foreach ($a in $actors) {
+        $i = $llista.Items.Add([string]$a.Nom)
+        if ($marcatsSet.ContainsKey(([string]$a.Nom).Trim().ToLowerInvariant())) { $llista.SetItemChecked($i, $true) }
+    }
+    [void]$form.Controls.Add($llista)
+
+    $res = @{ Nav = 'back'; Actors = @() }
+    $btnOk = New-Object System.Windows.Forms.Button
+    $btnOk.Text = 'Continuar'
+    $btnOk.Location = New-Object System.Drawing.Point(410, 408)
+    $btnOk.Size = New-Object System.Drawing.Size(130, 32)
+    $btnOk.Anchor = 'Bottom,Right'
+    _StylePrimaryButton $btnOk
+    $btnOk.add_Click({
+        # En l'ordre de la LLISTA (el del cataleg), no en el que s'han clicat.
+        $tri = New-Object System.Collections.ArrayList
+        for ($i = 0; $i -lt $llista.Items.Count; $i++) {
+            if ($llista.GetItemChecked($i)) { [void]$tri.Add([string]$llista.Items[$i]) }
+        }
+        $res.Actors = $tri.ToArray()
+        $res.Nav = 'fwd'
+        $form.DialogResult = 'OK'; $form.Close()
+    }.GetNewClosure())
+    [void]$form.Controls.Add($btnOk)
+
+    $btnBack = New-Object System.Windows.Forms.Button
+    $btnBack.Text = [string][char]0x2190 + ' Enrere'
+    $btnBack.Location = New-Object System.Drawing.Point(20, 408)
+    $btnBack.Size = New-Object System.Drawing.Size(115, 32)
+    $btnBack.Anchor = 'Bottom,Left'
+    _StyleSecondaryButton $btnBack
+    $btnBack.add_Click({ $form.Close() }.GetNewClosure())
+    [void]$form.Controls.Add($btnBack)
+
+    [void](_AddBrandHeader $form 'Condicions' ('Qui les posa (nom' + [char]0x00E9 + 's als favorables)') 56)
+    [void]$form.ShowDialog()
+    $form.Dispose()
+    return $res
+}
+
 # ----------------------------------------------------------------------------
 # PUNT D'ENTRADA (des del menu)
 # ----------------------------------------------------------------------------
@@ -2046,7 +2151,10 @@ function Invoke-LlicenciaWizard($fases = $null, [string]$titol = '') {
     # La fase inicial surt de la llista d'AQUEST assistent, no d'un literal: la
     # de MNS/Traspas no te cap 'requeriment'.
     $st = @{ Fase = (_LlicFasePerDefecte $(if ($null -ne $fases) { $fases } else { _LlicTotesLesFases }) 'requeriment')
-             Prov = $false; Tecnic = @{}; AmbCondicions = $false
+             Prov = $false; Tecnic = @{}
+             # Els actors marcats al pas de les condicions. $null = encara no
+             # s'hi ha passat (i llavors se'n proposen segons el bloc ABANS).
+             CondActors = $null
              Fields = [ordered]@{}
              # El que s'havia triat a cada pantalla de documentacio, per no
              # perdre-ho quan l'usuari torna ENRERE (era exactament el que
@@ -2059,11 +2167,10 @@ function Invoke-LlicenciaWizard($fases = $null, [string]$titol = '') {
         while ($true) {
             switch ($step) {
                 1 {
-                    $r = Select-LlicFase $st.Fase $st.Prov $fases $titol $st.AmbCondicions
+                    $r = Select-LlicFase $st.Fase $st.Prov $fases $titol
                     if ($r.Nav -ne 'fwd') { return }
                     $st.Fase = [string]$r.Fase
                     $st.Prov = [bool]$r.Prov
-                    $st.AmbCondicions = [bool]$r.AmbCondicions
                     $step = 2
                 }
                 2 {
@@ -2222,12 +2329,24 @@ function Invoke-LlicenciaWizard($fases = $null, [string]$titol = '') {
                     if ($r.Nav -ne 'fwd') { $step = 6; break }
                     $st.Despres = $r.Punts
                     $st.MemDespres = $r.Memoria
-                    # (El pas 8 era la pantalla de les condicions; ara es una
-                    # casella del pas 1.)
+                    $step = 8
+                }
+                8 {
+                    # LES CONDICIONS, despres de tota la documentacio: la tria
+                    # per defecte surt del bloc ABANS (els informes preceptius
+                    # que ja es tenen), o sigui que ha d'anar darrere.
+                    if (-not (_LlicAdmetCondicions ([string]$st.Fase))) { $step = 9; break }
+                    $actors = @(_LlicActorsCondicions $llic)
+                    $pre = if ($null -ne $st.CondActors) { @($st.CondActors) } else { @(_LlicActorsPerDefecte $actors $st.Abans) }
+                    $r = Select-LlicCondicions $actors $pre
+                    if ($r.Nav -ne 'fwd') { $step = 7; break }
+                    $st.CondActors = @($r.Actors)
                     $step = 9
                 }
                 9 {
                     if ($null -eq $word) { $word = New-WordApp }
+                    # Fora dels favorables, cap actor (encara que la memoria en porti).
+                    $actorsModel = if (_LlicAdmetCondicions ([string]$st.Fase)) { @($st.CondActors) } else { @() }
                     # Els camps [CAMP: ...] dels textos triats.
                     $model = @{
                         Fase = [string]$st.Fase
@@ -2238,7 +2357,7 @@ function Invoke-LlicenciaWizard($fases = $null, [string]$titol = '') {
                         Projecte = @(_LlicPuntsDeSeleccio $st.ProjSel)
                         Despres = @($st.Despres)
                         Doc = $(if ($null -ne $st.Doc) { $st.Doc } else { @{ Text = ''; Items = @() } })
-                        AmbCondicions = [bool]$st.AmbCondicions
+                        CondicionsActors = $actorsModel
                         Cataleg = $llic
                     }
                     $out = Build-LlicenciaDocument $word $model

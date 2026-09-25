@@ -340,7 +340,7 @@
             {
               "runs": [
                 {
-                  "t": "S’informa favorablement a l’espera de rebre la citada documentació en els terminis de temps especificats per poder donar per tancat l’expedient i sota les següents condicions.",
+                  "t": "S’informa favorablement a l’espera de rebre la citada documentació en els terminis de temps especificats per poder donar per tancat l’expedient i sota les condicions que es determinen en els següents informes (adjunts a continuació):",
                   "b": true
                 }
               ]
@@ -370,7 +370,7 @@
             {
               "runs": [
                 {
-                  "t": "S’informa favorablement l’activitat, sota les següents condicions, i es dóna per tancat l’expedient.",
+                  "t": "S’informa favorablement l’activitat i es dóna per tancat l’expedient sota les condicions que es determinen en els següents informes (adjunts a continuació):",
                   "b": true
                 }
               ]

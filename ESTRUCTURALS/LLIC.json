@@ -1354,6 +1354,90 @@
           "fills": []
         }
       ]
+    },
+    {
+      "tipus": "seccio",
+      "titol": "CONDICIONS",
+      "cos": [],
+      "fills": [
+        {
+          "tipus": "item",
+          "titol": "OGAU",
+          "clau": "Autoritzacions / Informes preceptius::Impacte ambiental",
+          "cos": [],
+          "fills": []
+        },
+        {
+          "tipus": "item",
+          "titol": "Agència de Residus de Catalunya",
+          "clau": "Autoritzacions / Informes preceptius::Vector Residus (ARC)",
+          "cos": [],
+          "fills": []
+        },
+        {
+          "tipus": "item",
+          "titol": "Direcció General de Canvi Climàtic i Qualitat Ambiental",
+          "clau": "Autoritzacions / Informes preceptius::Vector Atmosfera - Grup A/B",
+          "cos": [],
+          "fills": []
+        },
+        {
+          "tipus": "item",
+          "titol": "Agència Catalana de l’Aigua",
+          "clau": "Autoritzacions / Informes preceptius::Vector Aigua (ACA) - Zona inundable fluvial T500",
+          "cos": [],
+          "fills": []
+        },
+        {
+          "tipus": "item",
+          "titol": "Agència Catalana de l’Aigua",
+          "clau": "Autoritzacions / Informes preceptius::Vector Aigua (ACA) - abocaments",
+          "cos": [],
+          "fills": []
+        },
+        {
+          "tipus": "item",
+          "titol": "Àrea Metropolitana de Barcelona",
+          "clau": "Autoritzacions / Informes preceptius::Vector Aigua (AMB) - abocaments",
+          "cos": [],
+          "fills": []
+        },
+        {
+          "tipus": "item",
+          "titol": "Departament de Salut",
+          "clau": "Autoritzacions / Informes preceptius::Sanitat",
+          "cos": [],
+          "fills": []
+        },
+        {
+          "tipus": "item",
+          "titol": "Departament d’Educació",
+          "clau": "Autoritzacions / Informes preceptius::Educació",
+          "cos": [],
+          "fills": []
+        },
+        {
+          "tipus": "item",
+          "titol": "Departament d’Empresa i Treball",
+          "clau": "Autoritzacions / Informes preceptius::Comerç",
+          "cos": [],
+          "fills": []
+        },
+        {
+          "tipus": "item",
+          "titol": "Consell Català de l’Esport",
+          "clau": "Autoritzacions / Informes preceptius::Esport",
+          "cos": [],
+          "fills": []
+        },
+        {
+          "tipus": "item",
+          "titol": "Guàrdia Urbana",
+          "clau": "Autoritzacions / Informes preceptius::Mobilitat",
+          "cos": [],
+          "fills": []
+        }
+      ]
     }
   ]
 }

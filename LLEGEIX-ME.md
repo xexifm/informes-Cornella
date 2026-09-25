@@ -127,16 +127,23 @@ final — però **només** a la fase de Requeriment, i **només si encara no es
 disposa** d'aquella autorització: l'annex diu com demanar-la, i si ja la tens no
 hi pinta res. (La casella no s'aplica als dos informes curts.)
 
-Als dos **favorables** hi ha també la casella **«Amb condicions»**. Si la marques,
-la conclusió hi afegeix «…sota les següents condicions» i, a sota, hi queda el
-títol **CONDICIONS LLICÈNCIA** amb una línia buida perquè hi escriguis les
-condicions al Word. Sense marcar-la, ni una cosa ni l'altra.
 
 Passos: fase → capçalera (amb la **Classificació** ja omplerta des de l'Excel:
 `Llei 20/2009; Annex II; Epígraf …`) → documentació **abans** de la resolució →
 **Projecte** (la mateixa pantalla de deficiències de sempre) → dades del tècnic
 redactor i els Id Firmadoc → documentació **després** de la resolució (amb el
-«Quan:»).
+«Quan:») → i, als dos favorables, **qui posa condicions**.
+
+**Les condicions.** Als favorables, l'últim pas és una llista dels organismes
+que informen els punts d'*Autoritzacions / Informes preceptius* (OGAU, Agència
+de Residus de Catalunya, Direcció General de Canvi Climàtic i Qualitat
+Ambiental…). Surten ja marcats els que tenen l'informe preceptiu com a «Es
+disposa». Si en marques algun, la conclusió diu «…sota les condicions que es
+determinen en els següents informes (adjunts a continuació):» i a sota hi
+surten els que has marcat (a., b., c.…); els seus informes els adjuntes tu
+darrere. Si no en marques cap, la conclusió no parla de condicions. La llista
+és a `LLIC.json` (secció `CONDICIONS`) i la pots ampliar des de l'editor de
+catàlegs.
 
 La diferència amb un requeriment normal és que aquí els punts **no són
 deficiències sinó documentació**, i surten tant si es té com si no: de cada punt
@@ -170,7 +177,8 @@ Els informes d'una llicència van en cadena: primer el requeriment, després el
 favorable pre i després el post. El programa **se'n recorda**: quan poses un
 **ID GIA** que ja té un informe de llicència fet, t'avisa i **surt tot omplert**
 —el que aplicava, si es disposava o no de cada document, els **Id Firmadoc**,
-els expedients, les referències, els punts del Projecte i el tècnic redactor—. Ho pots canviar tot; només hi és perquè no ho hagis de tornar
+els expedients, les referències, els punts del Projecte, el tècnic redactor i
+qui posava condicions—. Ho pots canviar tot; només hi és perquè no ho hagis de tornar
 a escriure.
 
 Es desa sol quan generes l'informe, a

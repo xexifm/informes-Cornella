@@ -117,12 +117,12 @@ $cPreSense = _LlicConclusioText 'favorable-pre' $false
 $cPreAmb   = _LlicConclusioText 'favorable-pre' $true
 Assert ([bool]($cPreSense -like '*tancat l*expedient.*')) '_LlicConclusioText: pre SENSE condicions acaba amb punt'
 Assert (-not ($cPreSense -like '*sota les seg*'))        '_LlicConclusioText: pre sense condicions NO promet condicions'
-Assert ([bool]($cPreAmb -like '*i sota les seg*ents condicions.*')) '_LlicConclusioText: pre AMB condicions hi afegeix la coda'
+Assert ([bool]($cPreAmb -like '*i sota les condicions que es determinen en els seg*ents informes (adjunts a continuaci*):*')) '_LlicConclusioText: pre AMB condicions anuncia els informes adjunts'
 $cPost = _LlicConclusioText 'favorable-post' $false
 Assert ([bool]($cPost -like '*per tancat l*expedient.*')) '_LlicConclusioText: post tanca l''expedient'
 Assert (-not ($cPost -like '*sota les seg*'))             '_LlicConclusioText: post sense condicions NO promet condicions'
 $cPostAmb = _LlicConclusioText 'favorable-post' $true
-Assert ([bool]($cPostAmb -like '*sota les seg*ents condicions*')) '_LlicConclusioText: post AMB condicions tambe ho anuncia'
+Assert ([bool]($cPostAmb -like '*sota les condicions que es determinen en els seg*ents informes (adjunts a continuaci*):*')) '_LlicConclusioText: post AMB condicions tambe ho anuncia'
 Assert ([bool]($cPostAmb -like '*per tancat l*expedient*'))       '_LlicConclusioText: ...i segueix tancant l''expedient'
 # Al requeriment no hi ha condicions: la casella no hi canvia res.
 AssertEq (_LlicConclusioText 'requeriment' $true) $cReq '_LlicConclusioText: al requeriment la casella no hi fa res'
@@ -132,7 +132,28 @@ Assert (_LlicAdmetCondicions 'favorable-post')      '_LlicAdmetCondicions: el po
 Assert (-not (_LlicAdmetCondicions 'mns'))          '_LlicAdmetCondicions: els curts no'
 # LA PANTALLA DE TEXT DE LES CONDICIONS JA NO HI ES (setembre 2026): nomes cal
 # saber SI n'hi ha. Les condicions s'escriuen al Word.
-Assert (-not (Get-Command Select-LlicCondicions -ErrorAction SilentlyContinue)) 'Llicencia: ja no hi ha la pantalla per escriure les condicions'
+# ELS ACTORS QUE POSEN CONDICIONS surten del cataleg (seccio CONDICIONS de
+# LLIC.json), un per nom encara que en tingui mes d'un punt.
+$llicAct = Read-LlicCataleg
+$actC = @(_LlicActorsCondicions $llicAct)
+$nomsC = @($actC | ForEach-Object { [string]$_.Nom })
+foreach ($n in @('OGAU', 'Ag*ncia de Residus de Catalunya', 'Direcci* General de Canvi Clim*tic i Qualitat Ambiental')) {
+    Assert ([bool](@($nomsC | Where-Object { $_ -like $n }).Count -eq 1)) ('actors de les condicions: hi es "' + $n + '"')
+}
+AssertEq $nomsC.Count (@($nomsC | Sort-Object -Unique).Count) 'actors de les condicions: cap de repetit'
+$aca = @($actC | Where-Object { [string]$_.Nom -like 'Ag*ncia Catalana de l*Aigua' })
+Assert ($aca.Count -eq 1 -and @($aca[0].Claus).Count -eq 2) 'actors de les condicions: l''ACA surt un cop, amb els seus dos punts'
+AssertEq @(_LlicActorsCondicions $null).Count 0 '_LlicActorsCondicions: sense cataleg, cap'
+# Proposats: els que tenen el seu punt ABANS amb "Es disposa".
+$abansAct = @(
+    [pscustomobject]@{ Clau = 'Autoritzacions / Informes preceptius::Impacte ambiental'; Estat = 'si' },
+    [pscustomobject]@{ Clau = 'Autoritzacions / Informes preceptius::Vector Residus (ARC)'; Estat = 'no' },
+    [pscustomobject]@{ Clau = 'Autoritzacions / Informes preceptius::Vector Aigua (ACA) - abocaments'; Estat = 'si' })
+$propC = @(_LlicActorsPerDefecte $actC $abansAct)
+Assert ($propC -contains 'OGAU') '_LlicActorsPerDefecte: amb l''informe (Es disposa), es proposa'
+Assert (-not (@($propC | Where-Object { $_ -like '*Residus*' }))) '_LlicActorsPerDefecte: sense l''informe (No es disposa), no'
+AssertEq @($propC | Where-Object { $_ -like '*Aigua*' }).Count 1 '_LlicActorsPerDefecte: n''hi ha prou amb UN dels seus punts'
+AssertEq @(_LlicActorsPerDefecte $actC @()).Count 0 '_LlicActorsPerDefecte: sense punts, cap'
 # EL TEXT VE DEL CATALEG, no del codi: hi ha de portar la negreta del **...**
 # (com les de REQ1) i no pot quedar cap frase de conclusio escrita al programa.
 Assert ([bool]($cPost -like '`*`**')) '_LlicConclusioText: la negreta ve del cataleg (**...**)'
@@ -538,7 +559,7 @@ if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path 
         Header = @{ ID_GIA = '357'; TITULAR = 'PROVA SL'; CLASSIFICACIO = 'Llei 20/2009; Annex II' }
         Fields = [ordered]@{}
         Abans = $unPunt; Projecte = @(); Despres = $unDesp
-        Doc = @{ Text = ''; Items = @() }; AmbCondicions = $false; Cataleg = $llicG
+        Doc = @{ Text = ''; Items = @() }; CondicionsActors = @(); Cataleg = $llicG
     }
     $global:emitCalls.Clear()
     $petaG = $false
@@ -585,7 +606,7 @@ if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path 
         Fields = [ordered]@{}
         Abans = $unPunt; Projecte = @()
         Doc = @{ Text = 'Documentacio signada pel tecnic X.'; Items = @('Projecte (Id Firmadoc: 1)') }
-        AmbCondicions = $false; Cataleg = $llicG
+        CondicionsActors = @(); Cataleg = $llicG
     }
     foreach ($fs in @('requeriment', 'favorable-pre', 'favorable-post')) {
         $modelF.Fase = $fs
@@ -652,31 +673,32 @@ if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path 
     Assert (-not ($emPost | Where-Object { $_ -match '\[CAMP:' })) 'favorable-post: cap marcador de camp literal'
     Assert (-not ($emPost | Where-Object { $_ -like '*haver comprovat la seg*ent documentaci*' })) 'favorable-post: ja no es un informe a part'
 
-    # ---- LES CONDICIONS: una casella, als dos favorables ------------------
-    # Amb la casella, la conclusio ho anuncia i hi queda el titol CONDICIONS
-    # LLICENCIA (les condicions s'escriuen al Word). Sense, res de tot aixo. Al
-    # requeriment la casella no hi fa res.
+    # ---- LES CONDICIONS: quins actors les posen, als dos favorables --------
+    # Amb algun actor marcat, la conclusio ho anuncia ("...en els seguents
+    # informes (adjunts a continuacio):") i a sota van els actors amb lletres
+    # minuscules. Sense cap, res de tot aixo. Al requeriment no hi fa res.
     foreach ($fs in @('requeriment', 'favorable-pre', 'favorable-post')) {
-        foreach ($ambC in @($true, $false)) {
+        foreach ($act in @(@('OGAU', 'Agencia de Residus de Catalunya'), @())) {
             $modelF.Fase = $fs
-            $modelF.AmbCondicions = $ambC
+            $modelF.CondicionsActors = $act
             $modelF.Despres = @()
             $global:emitCalls.Clear()
             [void](Build-LlicenciaDocument $wordG $modelF)
             $emC = @($global:emitCalls)
-            $hiHa = ($ambC -and $fs -ne 'requeriment')
-            $titolC = @($emC | Where-Object { $_ -like 'BLOC|CONDICIONS LLIC*NCIA' })
-            AssertEq $titolC.Count $(if ($hiHa) { 1 } else { 0 }) ("$fs amb condicions=$($ambC): el titol CONDICIONS LLICENCIA")
+            $hiHa = (@($act).Count -gt 0 -and $fs -ne 'requeriment')
             $concl = [string](@($emC | Where-Object { $_ -like 'CONCL|*' }) | Select-Object -First 1)
-            AssertEq ([bool]($concl -like '*sota les seg*ents condicions*')) $hiHa ("$fs amb condicions=$($ambC): la conclusio ho anuncia")
+            AssertEq ([bool]($concl -like '*sota les condicions que es determinen en els seg*ents informes (adjunts a continuaci*):*')) $hiHa ("$fs amb $(@($act).Count) actors: la conclusio anuncia els informes adjunts")
+            $iCo = [Array]::IndexOf([string[]]$emC, $concl)
+            $darrere = @($emC[($iCo + 1)..($emC.Count - 1)] | Where-Object { $_ -like 'ITEM|*' })
             if ($hiHa) {
-                $iCo = [Array]::IndexOf([string[]]$emC, $concl)
-                $iTi = [Array]::IndexOf([string[]]$emC, [string]$titolC[0])
-                Assert ($iTi -gt $iCo) ("$($fs): el titol de les condicions va DESPRES de la conclusio")
+                AssertEq ($darrere -join ' / ') 'ITEM|a.|OGAU / ITEM|b.|Agencia de Residus de Catalunya' ("$($fs): els actors, darrere la conclusio i amb lletres minuscules")
+            } else {
+                AssertEq $darrere.Count 0 ("$fs amb $(@($act).Count) actors: cap actor darrere la conclusio")
             }
+            Assert (-not (@($emC | Where-Object { $_ -like 'BLOC|CONDICIONS*' }))) ("$($fs): ja no hi ha el titol CONDICIONS LLICENCIA")
         }
     }
-    $modelF.AmbCondicions = $false
+    $modelF.CondicionsActors = @()
 
     $modelG.EsProvisional = $true
     $global:emitCalls.Clear()

@@ -167,7 +167,7 @@ if ((Test-Path -LiteralPath $llicJson) -and (Test-Path -LiteralPath $req1Json)) 
             Header = $capcal; Fields = [ordered]@{}
             Abans = $abans; Projecte = @(_LlicPuntsDeSeleccio $bProj); Despres = $desp
             Doc = @{ Text = 'La documentacio tecnica ve signada per:'; Items = @('Projecte', 'Planols') }
-            AmbCondicions = $false; Cataleg = $llicCat
+            CondicionsActors = @(); Cataleg = $llicCat
         }
         _GdNet
         [void](Build-LlicenciaDocument $wordD $model)
@@ -180,7 +180,7 @@ if ((Test-Path -LiteralPath $llicJson) -and (Test-Path -LiteralPath $req1Json)) 
         Fase = 'requeriment'; EsProvisional = $true
         Header = $capcal; Fields = [ordered]@{}
         Abans = $abansP; Projecte = @(); Despres = @()
-        Doc = @{ Text = ''; Items = @() }; AmbCondicions = $false; Cataleg = $llicCat
+        Doc = @{ Text = ''; Items = @() }; CondicionsActors = @(); Cataleg = $llicCat
     }
     _GdNet
     [void](Build-LlicenciaDocument $wordD $modelP)

@@ -529,26 +529,43 @@ bloc DESPRÉS**:
   cada informe. Ara van a `$st.TecnicDocs` i a la base de dades de llicències
   (`ConvertTo-LlicenciaDocs`), i la pantalla surt ja marcada.
 
-## Les CONDICIONS són una CASELLA, no un text (setembre 2026)
-- Abans hi havia un pas 8 amb un quadre de text lliure (`Select-LlicCondicions`),
-  **només al pre**, i el que s'hi escrivia sortia en negreta sota el títol
-  `CONDICIONS LLICÈNCIA`. L'usuari el va treure: les condicions les escriu al
-  Word, i l'únic que calia saber és **si n'hi ha**, perquè és el que canvia la
-  conclusió.
-- Ara és la casella **«Amb condicions»** del **pas 1**, al costat de «Llicència
-  provisional», i val per als **dos favorables** (`_LlicAdmetCondicions`, pura:
-  l'únic lloc que ho diu). Amb la casella: la conclusió és la
-  `<fase>-condicions` de `0 CONCLUSIONS.json` (grup `LLIC`; la del post,
-  `favorable-post-condicions`, és nova) i, darrere, el títol
-  `CONDICIONS LLICÈNCIA` amb un paràgraf buit per escriure-hi.
+## Les CONDICIONS: QUI les posa, no què diuen (setembre 2026)
+Tres versions el mateix mes, i val la pena saber per què:
+1. Un pas 8 amb **text lliure**, només al pre, que sortia en negreta sota
+   `CONDICIONS LLICÈNCIA`.
+2. Una **casella** «Amb condicions» al pas 1 (sí/no).
+3. **Ara**: un **llistat d'actors** al pas 8, després de tota la documentació.
+   L'usuari ho va aclarir: les condicions no les escriu l'Ajuntament, les posen
+   els **organismes que informen els punts d'Autoritzacions / Informes
+   preceptius** (OGAU, Agència de Residus de Catalunya, Direcció General de
+   Canvi Climàtic i Qualitat Ambiental…), i els seus informes van **adjunts
+   darrere** del nostre. L'informe només ha de dir **quins** són.
+
+Com està fet:
+- **La llista viu a `LLIC.json`, secció `CONDICIONS`**: un item per actor, amb
+  el **títol tal com surt a l'informe** i la **clau** del punt de REQ1 que el fa
+  intervenir. Un actor amb dos punts (l'ACA) són dos items amb el mateix títol;
+  `_LlicActorsCondicions` (pura) els fon. Afegir-ne un és editar el catàleg.
+- **Surten marcats** els actors que tenen algun dels seus punts marcat al bloc
+  ABANS amb **«Es disposa»** (`_LlicActorsPerDefecte`, pura): si ja hi ha
+  l'informe preceptiu, és aquell informe el que porta les condicions. Per això
+  el pas va **després** del bloc ABANS i no al pas 1.
+- **N'hi ha prou amb un de marcat** perquè hi hagi condicions. La conclusió és
+  llavors la `<fase>-condicions` de `0 CONCLUSIONS.json` («…sota les condicions
+  que es determinen en els següents informes (adjunts a continuació):») i a
+  sota hi van els actors amb **lletres minúscules** (`a.`, `b.`…, amb
+  `Format-Item`, com el Word de l'usuari). Ja **no** hi ha el títol
+  `CONDICIONS LLICÈNCIA`.
+- `_LlicAdmetCondicions` (pura) diu quines fases hi passen: els dos favorables.
+- **Es recorda a la base de dades** (`CondicionsActors`). `$null` («no s'hi ha
+  passat mai», un requeriment sol) **no és** una llista buida («s'hi va passar i
+  no n'hi havia cap»): amb `$null` es proposen des del bloc ABANS; amb la
+  llista, mana la llista. Compte: al literal del registre es fa servir una
+  **variable** i no un `$(if …)`, que desenrotllaria la llista buida a `$null` i
+  la d'un sol actor a text pelat. Hi ha prova d'anada i tornada per als tres
+  casos amb el JSON pel mig.
 - Si el catàleg de l'usuari encara no té la `<fase>-condicions`,
-  `_LlicConclusioText` cau a la de la fase: val més una conclusió sense la coda
-  que cap conclusió.
-- **La casella NO es recupera de la base de dades**: la base es llegeix en
-  sortir del pas 2 (quan ja se sap l'ID GIA), i recuperar-la trepitjaria el que
-  l'usuari acaba de marcar al pas 1. La fitxa sí que desa `AmbCondicions` (i el
-  detall ho ensenya); les fitxes velles, amb el text de `Condicions`, es
-  segueixen ensenyant.
+  `_LlicConclusioText` cau a la de la fase.
 
 ## El registre de camps de la pantalla de documentació, UN PER PINTADA
 - L'informe `LlicFavPre` del **GIA 924** va sortir amb el **mateix** «Id
