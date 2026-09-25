@@ -130,31 +130,16 @@ function Invoke-ConfiguracioScreen {
     }.GetNewClosure())
     [void]$grpMant.Controls.Add($btnActualitzar)
 
-    # ---- Barra inferior: Desar / Restaura / Tancar -----------------------
+    # ---- Barra inferior: Tancar / Restaura ... Desar ---------------------
     $botPanel = New-Object System.Windows.Forms.Panel
     $botPanel.Dock = 'Bottom'
     $botPanel.Height = 52
 
-    $btnDesar = New-Object System.Windows.Forms.Button
-    $btnDesar.Text = 'Desar'
-    $btnDesar.Size = New-Object System.Drawing.Size(110, 32)
-    $btnDesar.Location = New-Object System.Drawing.Point(14, 10)
-    _StylePrimaryButton $btnDesar
-    [void]$botPanel.Controls.Add($btnDesar)
-
-    $btnRestaura = New-Object System.Windows.Forms.Button
-    $btnRestaura.Text = 'Restaura els valors per defecte'
-    $btnRestaura.Size = New-Object System.Drawing.Size(210, 32)
-    $btnRestaura.Location = New-Object System.Drawing.Point(134, 10)
-    _StyleSecondaryButton $btnRestaura
-    [void]$botPanel.Controls.Add($btnRestaura)
-
-    $btnTancar = New-Object System.Windows.Forms.Button
-    $btnTancar.Text = 'Tancar'
-    $btnTancar.Size = New-Object System.Drawing.Size(110, 32)
-    $btnTancar.Location = New-Object System.Drawing.Point(354, 10)
-    _StyleSecondaryButton $btnTancar
-    [void]$botPanel.Controls.Add($btnTancar)
+    $peu = _AddPeuBotons $form @(
+        @{ Nom = 'Tancar'; Text = 'Tancar' },
+        @{ Nom = 'Restaura'; Text = 'Restaura els valors per defecte' }) @(
+        @{ Nom = 'Desar'; Text = 'Desar'; Estil = 'primari' }) 10 $botPanel
+    $btnTancar = $peu.Tancar; $btnRestaura = $peu.Restaura; $btnDesar = $peu.Desar
 
     $btnRestaura.add_Click({
         $tbInformes.Text   = $Script:DefaultInformesDir

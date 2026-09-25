@@ -437,39 +437,6 @@ function _AddStepBar($form, [int]$active) {
     return $bar
 }
 
-# Estil de boto PRIMARI (granat ple, text blanc) i SECUNDARI (blanc, text/vora
-# granat). Reutilitzables a totes les pantalles del redisseny.
-function _StylePrimaryButton($btn) {
-    $btn.FlatStyle = 'Flat'
-    $btn.BackColor = $Script:BrandMaroon
-    $btn.ForeColor = [System.Drawing.Color]::White
-    $btn.FlatAppearance.BorderSize = 0
-    $btn.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(138, 20, 38)
-    $btn.Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
-    $btn.Cursor = 'Hand'
-}
-# Boto d'ACCENT amb un color propi (blau mari per confirmar, vermell per
-# descartar...). Mateixa carcassa que _StylePrimaryButton: aixi el color es
-# l'unica cosa que canvia i no hi ha una tercera copia de l'estil escampada.
-function _StyleAccentButton($btn, $fons, $fonsHover) {
-    $btn.FlatStyle = 'Flat'
-    $btn.BackColor = $fons
-    $btn.ForeColor = [System.Drawing.Color]::White
-    $btn.FlatAppearance.BorderSize = 0
-    if ($null -ne $fonsHover) { $btn.FlatAppearance.MouseOverBackColor = $fonsHover }
-    $btn.Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
-    $btn.Cursor = 'Hand'
-}
-function _StyleSecondaryButton($btn) {
-    $btn.FlatStyle = 'Flat'
-    $btn.BackColor = [System.Drawing.Color]::White
-    $btn.ForeColor = $Script:BrandMaroon
-    $btn.FlatAppearance.BorderColor = $Script:BrandMaroon
-    $btn.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(247, 231, 234)
-    $btn.Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Regular)
-    $btn.Cursor = 'Hand'
-}
-
 # Filtre desplegable de SELECCIO MULTIPLE (WinForms no en te de natiu): un boto
 # que sembla un desplegable i, en clicar-lo, obre un menu amb items marcables
 # (checkbox). El menu no es tanca en marcar (nomes en clicar fora / Escape).
@@ -900,22 +867,17 @@ function Show-EditorAssumpteCos {
     $tbC.Text = ([string]$Cos -replace "`r?`n", "`r`n")
     [void]$form.Controls.Add($tbC)
 
-    $btnBack = New-Object System.Windows.Forms.Button
-    $btnBack.Text = 'Enrere'
-    $btnBack.Location = New-Object System.Drawing.Point(16, 578)
-    $btnBack.Size = New-Object System.Drawing.Size(110, 30)
-    $btnBack.Anchor = 'Bottom, Left'
-    _StyleSecondaryButton $btnBack
-    [void]$form.Controls.Add($btnBack)
+    # El boto de restaurar nomes hi es si qui crida sap restaurar (un $null a la
+    # llista, _AddPeuBotons se'l salta).
+    $specRest = $null
+    if ($null -ne $Restaurar -and -not [string]::IsNullOrWhiteSpace($EtiquetaRestaurar)) {
+        $specRest = @{ Nom = 'Rest'; Text = [string]$EtiquetaRestaurar }
+    }
+    $peu = _AddPeuBotons $form @(@{ Nom = 'Enrere'; Text = (_TxtEnrere) }, $specRest) @(
+        @{ Nom = 'Desar'; Text = 'Desar'; Estil = 'primari' }) 578 -Ancorat
+    $btnBack = $peu.Enrere; $btnRest = $peu.Rest; $btnSave = $peu.Desar
 
     if ($null -ne $Restaurar -and -not [string]::IsNullOrWhiteSpace($EtiquetaRestaurar)) {
-        $btnRest = New-Object System.Windows.Forms.Button
-        $btnRest.Text = [string]$EtiquetaRestaurar
-        $btnRest.Location = New-Object System.Drawing.Point(136, 578)
-        $btnRest.Size = New-Object System.Drawing.Size(210, 30)
-        $btnRest.Anchor = 'Bottom, Left'
-        _StyleSecondaryButton $btnRest
-        [void]$form.Controls.Add($btnRest)
         $btnRest.add_Click({
             $nou = & $Restaurar
             if ($null -eq $nou) { return }
@@ -923,14 +885,6 @@ function Show-EditorAssumpteCos {
             $tbC.Text = ([string]$nou['cos'] -replace "`r?`n", "`r`n")
         }.GetNewClosure())
     }
-
-    $btnSave = New-Object System.Windows.Forms.Button
-    $btnSave.Text = 'Desar'
-    $btnSave.Location = New-Object System.Drawing.Point(624, 578)
-    $btnSave.Size = New-Object System.Drawing.Size(120, 30)
-    $btnSave.Anchor = 'Bottom, Right'
-    _StylePrimaryButton $btnSave
-    [void]$form.Controls.Add($btnSave)
 
     [void](_AddBrandHeader $form $Titol $Subtitol)
 
@@ -987,12 +941,8 @@ function Show-ProgresCancel([string]$titol, [int]$maxim) {
     $bar.Style = 'Continuous'; $bar.Minimum = 0; $bar.Maximum = [Math]::Max(1, $maxim)
     $form.Controls.Add($bar)
 
-    $btnCancel = New-Object System.Windows.Forms.Button
-    $btnCancel.Text = 'Cancel' + [char]0x00B7 + 'lar'; $btnCancel.Size = New-Object System.Drawing.Size(120, 30)
-    $btnCancel.Location = New-Object System.Drawing.Point(410, 96)
-    _StyleSecondaryButton $btnCancel
+    $btnCancel = (_AddPeuBotons $form @(@{ Nom = 'Cancel'; Text = ('Cancel' + [char]0x00B7 + 'lar') }) @() 96).Cancel
     $btnCancel.add_Click({ $cancel.Flag = $true }.GetNewClosure())
-    $form.Controls.Add($btnCancel)
 
     $form.add_FormClosing({ param($s, $e) if ($cancel.Running) { $cancel.Flag = $true; $e.Cancel = $true } }.GetNewClosure())
     $form.Show()
@@ -1097,41 +1047,28 @@ function Show-Ajuda([string]$titol, $ajuda, $owner = $null) {
     # que fa que no s'hi vagi. Nomes surt si la fitxa en porta: no totes en
     # poden tenir -una ordenança municipal o una norma UNE no tenen permalink-.
     $urlNorma = if ($null -eq $ajuda) { '' } else { [string]$ajuda.Enllac }
+    $specNorma = $null
     if (-not [string]::IsNullOrWhiteSpace($urlNorma)) {
-        $btnNorma = New-Object System.Windows.Forms.Button
-        $btnNorma.Text = ([System.Char]::ConvertFromUtf32(0x1F517) + ' Obre la norma')
-        $btnNorma.Size = New-Object System.Drawing.Size(170, 30)
-        $btnNorma.Location = New-Object System.Drawing.Point(14, 382)
-        $btnNorma.Anchor = 'Bottom, Left'
-        _StyleSecondaryButton $btnNorma
-        $btnNorma.add_Click({
+        $specNorma = @{ Nom = 'Norma'; Text = ([System.Char]::ConvertFromUtf32(0x1F517) + ' Obre la norma'); Clic = {
             # Start-Process amb l'URL obre el navegador per defecte. Dins d'un
             # try: si el sistema no te cap navegador associat, val mes no fer res
             # que rebentar la finestra d'ajuda.
             try { Start-Process $urlNorma } catch { }
-        }.GetNewClosure())
-        $form.Controls.Add($btnNorma)
-
+        }.GetNewClosure() }
+    }
+    # Tanca es l'unica sortida: Intro i Esc.
+    $peu = _AddPeuBotons $form @(
+        @{ Nom = 'Tanca'; Text = 'Tanca'; Resultat = 'OK'; Intro = $true; Esc = $true }, $specNorma) @() 382 -Ancorat
+    if ($null -ne $specNorma) {
         $lblUrl = New-Object System.Windows.Forms.Label
         $lblUrl.Text = $urlNorma
-        $lblUrl.Location = New-Object System.Drawing.Point(190, 389)
-        $lblUrl.Size = New-Object System.Drawing.Size(330, 18)
+        $lblUrl.Location = New-Object System.Drawing.Point(($peu.Norma.Right + 10), 389)
+        $lblUrl.Size = New-Object System.Drawing.Size(([int]$form.ClientSize.Width - $peu.Norma.Right - 25), 18)
         $lblUrl.AutoEllipsis = $true
         $lblUrl.ForeColor = [System.Drawing.Color]::DimGray
         $lblUrl.Anchor = 'Bottom, Left'
         $form.Controls.Add($lblUrl)
     }
-
-    $btn = New-Object System.Windows.Forms.Button
-    $btn.Text = 'Tanca'
-    $btn.Size = New-Object System.Drawing.Size(100, 30)
-    $btn.Location = New-Object System.Drawing.Point(534, 382)
-    $btn.DialogResult = 'OK'
-    $btn.Anchor = 'Bottom, Right'
-    _StylePrimaryButton $btn
-    $form.Controls.Add($btn)
-    $form.AcceptButton = $btn
-    $form.CancelButton = $btn
 
     if ($null -ne $owner) { [void]$form.ShowDialog($owner) } else { [void]$form.ShowDialog() }
 }

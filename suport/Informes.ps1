@@ -951,32 +951,16 @@ function Invoke-InformesDbEdit {
     # Barra inferior: botons.
     $botPanel = New-Object System.Windows.Forms.Panel
     $botPanel.Dock = 'Bottom'; $botPanel.Height = 48
-    $btnDesar = New-Object System.Windows.Forms.Button
-    $btnDesar.Text = 'Desar'; $btnDesar.Size = New-Object System.Drawing.Size(120, 30)
-    $btnDesar.Location = New-Object System.Drawing.Point(10, 9)
-    _StylePrimaryButton $btnDesar
-    $btnDesar.add_Click({
-        if (& $doSave) {
-            [System.Windows.Forms.MessageBox]::Show('Canvis desats.', 'Editar base d''informes', 'OK', 'Information') | Out-Null
-        }
-    }.GetNewClosure())
-    $btnTancar = New-Object System.Windows.Forms.Button
-    $btnTancar.Text = ([char]0x2190 + ' Enrere'); $btnTancar.Size = New-Object System.Drawing.Size(120, 30)
-    $btnTancar.Location = New-Object System.Drawing.Point(140, 9)
-    _StyleSecondaryButton $btnTancar
-    $btnTancar.add_Click({ $form.Close() }.GetNewClosure())
-
     # Exportar a CSV els llistats d'activitats en Estat Requeriment i Precinte /
     # Cessament (usa l'estat en memoria, que ja reflecteix els canvis no desats).
-    $btnExport = New-Object System.Windows.Forms.Button
-    $btnExport.Text = 'Exportar llistats (CSV)'; $btnExport.Size = New-Object System.Drawing.Size(190, 30)
-    $btnExport.Location = New-Object System.Drawing.Point(275, 9)
-    _StyleSecondaryButton $btnExport
-    $btnExport.add_Click({ Export-EstatsActivitats $state.Db }.GetNewClosure())
-
-    $botPanel.Controls.Add($btnDesar)
-    $botPanel.Controls.Add($btnTancar)
-    $botPanel.Controls.Add($btnExport)
+    [void](_AddPeuBotons $form @(
+        @{ Nom = 'Enrere'; Text = (_TxtEnrere); Clic = { $form.Close() }.GetNewClosure() },
+        @{ Nom = 'Export'; Text = 'Exportar llistats (CSV)'; Clic = { Export-EstatsActivitats $state.Db }.GetNewClosure() }) @(
+        @{ Nom = 'Desar'; Text = 'Desar'; Estil = 'primari'; Clic = {
+            if (& $doSave) {
+                [System.Windows.Forms.MessageBox]::Show('Canvis desats.', 'Editar base d''informes', 'OK', 'Information') | Out-Null
+            }
+        }.GetNewClosure() }) 8 $botPanel)
 
     # Obrir l'informe en clicar el boto "Obrir".
     $grid.add_CellContentClick({

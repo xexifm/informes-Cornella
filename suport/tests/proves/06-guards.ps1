@@ -1219,3 +1219,25 @@ foreach ($a in @($depsFitxer.Keys | Sort-Object)) {
     }
 }
 AssertEq ($cicles -join ' | ') '' 'cap cicle de dependencies entre fitxers de suport/'
+
+# EL PEU DE BOTONS ES UN DE SOL (_AddPeuBotons, UiFinestra.ps1). Abans cada
+# finestra se'l feia: mides de 28 a 34, el sortir a l'esquerra o a la dreta
+# segons la finestra, i n'hi havia sense estil. Un boto de peu fet a ma
+# ("$btn.Text = 'Enrere'") tornaria a comencar-ho.
+$peuAMa = New-Object System.Collections.ArrayList
+foreach ($f in @(Get-ChildItem -Path $arrelSuport -Recurse -Filter *.ps1 -File)) {
+    $rel = $f.FullName.Substring($arrelSuport.Length + 1).Replace('\', '/')
+    if ($rel.StartsWith('tests/') -or $rel -eq 'UiFinestra.ps1') { continue }
+    # Nomes les variables que SON botons (un "$form.Text = 'Seguiment'" no ho es).
+    $linies = [System.IO.File]::ReadAllLines($f.FullName)
+    $botons = @{}
+    foreach ($l in $linies) {
+        if ($l -match '^\s*\$(\w+)\s*=\s*New-Object\s+(System\.)?Windows\.Forms\.Button') { $botons[$Matches[1]] = $true }
+    }
+    for ($nL = 0; $nL -lt $linies.Count; $nL++) {
+        if ($linies[$nL] -match '^\s*\$(\w+)\.Text\s*=.*(Enrere|Continuar|Seg\S*ent|Tancar|Tanca''|Cancel|Desar|No enviar)' -and $botons.ContainsKey($Matches[1])) {
+            [void]$peuAMa.Add($rel + ':' + ($nL + 1))
+        }
+    }
+}
+AssertEq ($peuAMa -join ', ') '' 'cap boto de peu fet a ma: tots passen per _AddPeuBotons'

@@ -97,26 +97,17 @@ function Select-LlicFase($preFase, $preProv, $fases = $null, [string]$titol = ''
     $form.ClientSize = New-Object System.Drawing.Size(520, ($yBotons + 32 + 16))
 
     $res = @{ Nav = 'back' }
-    $btnOk = New-Object System.Windows.Forms.Button
-    $btnOk.Text = 'Continuar'
-    $btnOk.Location = New-Object System.Drawing.Point(370, $yBotons)
-    $btnOk.Size = New-Object System.Drawing.Size(130, 32)
-    _StylePrimaryButton $btnOk
+    $peu = _AddPeuBotons $form @(@{ Nom = 'Enrere'; Text = (_TxtEnrere) }) @(
+        @{ Nom = 'Ok'; Text = 'Continuar'; Estil = 'primari' }) $yBotons
+    $btnOk = $peu.Ok; $btnBack = $peu.Enrere
     $btnOk.add_Click({
         foreach ($k in $radios.Keys) { if ($radios[$k].Checked) { $res.Fase = $k } }
         $res.Prov = [bool]$cbProv.Checked
         $res.Nav = 'fwd'
         $form.DialogResult = 'OK'; $form.Close()
     }.GetNewClosure())
-    [void]$form.Controls.Add($btnOk)
 
-    $btnBack = New-Object System.Windows.Forms.Button
-    $btnBack.Text = [string][char]0x2190 + ' Enrere'
-    $btnBack.Location = New-Object System.Drawing.Point(20, $yBotons)
-    $btnBack.Size = New-Object System.Drawing.Size(110, 32)
-    _StyleSecondaryButton $btnBack
     $btnBack.add_Click({ $form.Close() }.GetNewClosure())
-    [void]$form.Controls.Add($btnBack)
 
     [void](_AddBrandHeader $form ('Llic' + [char]0x00E8 + 'ncia (Annex II / LL Prov)') 'Tria quin informe vols fer' 56)
     [void]$form.ShowDialog()
@@ -489,12 +480,12 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
 
     # ---- Botons -----------------------------------------------------------
     $res = @{ Nav = 'back'; Punts = @(); Memoria = $null }
-    $btnOk = New-Object System.Windows.Forms.Button
-    $btnOk.Text = 'Continuar'
-    $btnOk.Location = New-Object System.Drawing.Point(941, 606)
-    $btnOk.Size = New-Object System.Drawing.Size(125, 34)
-    $btnOk.Anchor = 'Bottom,Right'
-    _StylePrimaryButton $btnOk
+    $peu = _AddPeuBotons $form @(
+        @{ Nom = 'Enrere'; Text = (_TxtEnrere) },
+        @{ Nom = 'Tot'; Text = 'Marcar-ho tot' },
+        @{ Nom = 'Cap'; Text = 'Desmarcar-ho tot' }) @(
+        @{ Nom = 'Ok'; Text = 'Continuar'; Estil = 'primari' }) 606 -Ancorat
+    $btnOk = $peu.Ok; $btnBack = $peu.Enrere; $btnTot = $peu.Tot; $btnCap = $peu.Cap
     $btnOk.add_Click({
         $sel = New-Object System.Collections.ArrayList
         $mem = @{}
@@ -544,39 +535,17 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
         $res.Nav = 'fwd'
         $form.DialogResult = 'OK'; $form.Close()
     }.GetNewClosure())
-    [void]$form.Controls.Add($btnOk)
 
-    $btnBack = New-Object System.Windows.Forms.Button
-    $btnBack.Text = [string][char]0x2190 + ' Enrere'
-    $btnBack.Location = New-Object System.Drawing.Point(14, 606)
-    $btnBack.Size = New-Object System.Drawing.Size(115, 34)
-    $btnBack.Anchor = 'Bottom,Left'
-    _StyleSecondaryButton $btnBack
     $btnBack.add_Click({ $form.Close() }.GetNewClosure())
-    [void]$form.Controls.Add($btnBack)
 
     $fn.MarcaTot = {
         param($valor)
         for ($i = 0; $i -lt $punts.Count; $i++) { $st[$i].Marcat = $valor }
         & $fn.Omple $cerca.Text
     }.GetNewClosure()
-    $btnTot = New-Object System.Windows.Forms.Button
-    $btnTot.Text = 'Marcar-ho tot'
-    $btnTot.Location = New-Object System.Drawing.Point(139, 606)
-    $btnTot.Size = New-Object System.Drawing.Size(125, 34)
-    $btnTot.Anchor = 'Bottom,Left'
-    _StyleSecondaryButton $btnTot
     $btnTot.add_Click({ & $fn.MarcaTot $true }.GetNewClosure())
-    [void]$form.Controls.Add($btnTot)
 
-    $btnCap = New-Object System.Windows.Forms.Button
-    $btnCap.Text = 'Desmarcar-ho tot'
-    $btnCap.Location = New-Object System.Drawing.Point(272, 606)
-    $btnCap.Size = New-Object System.Drawing.Size(140, 34)
-    $btnCap.Anchor = 'Bottom,Left'
-    _StyleSecondaryButton $btnCap
     $btnCap.add_Click({ & $fn.MarcaTot $false }.GetNewClosure())
-    [void]$form.Controls.Add($btnCap)
 
     [void](_AddBrandHeader $form $titol $subtitol 56)
     [void]$form.ShowDialog()
@@ -656,11 +625,9 @@ function Select-LlicTecnic($pre, $preDocs = $null) {
     }
 
     $res = @{ Nav = 'back'; Text = ''; Items = @(); Camps = @{}; Docs = (_LlicDocsBuits) }
-    $btnOk = New-Object System.Windows.Forms.Button
-    $btnOk.Text = 'Continuar'
-    $btnOk.Location = New-Object System.Drawing.Point(465, 380)
-    $btnOk.Size = New-Object System.Drawing.Size(130, 32)
-    _StylePrimaryButton $btnOk
+    $peu = _AddPeuBotons $form @(@{ Nom = 'Enrere'; Text = (_TxtEnrere) }) @(
+        @{ Nom = 'Ok'; Text = 'Continuar'; Estil = 'primari' }) 380
+    $btnOk = $peu.Ok; $btnBack = $peu.Enrere
     $btnOk.add_Click({
         $res.Text = _LlicTextDocumentacio $tb['Tecnic'].Text $tb['NumCol'].Text $tb['Collegi'].Text $tb['Data'].Text
         $tria = [ordered]@{}
@@ -676,15 +643,8 @@ function Select-LlicTecnic($pre, $preDocs = $null) {
         $res.Nav = 'fwd'
         $form.DialogResult = 'OK'; $form.Close()
     }.GetNewClosure())
-    [void]$form.Controls.Add($btnOk)
 
-    $btnBack = New-Object System.Windows.Forms.Button
-    $btnBack.Text = [string][char]0x2190 + ' Enrere'
-    $btnBack.Location = New-Object System.Drawing.Point(20, 380)
-    $btnBack.Size = New-Object System.Drawing.Size(115, 32)
-    _StyleSecondaryButton $btnBack
     $btnBack.add_Click({ $form.Close() }.GetNewClosure())
-    [void]$form.Controls.Add($btnBack)
 
     [void](_AddBrandHeader $form ('Documentaci' + [char]0x00F3) ('Qui ha signat el projecte i amb quin Id Firmadoc') 56)
     [void]$form.ShowDialog()
@@ -768,12 +728,9 @@ function Select-LlicCondicions($actors, $marcats, $pdfs = $null) {
     }
 
     $res = @{ Nav = 'back'; Actors = @(); Pdfs = @{} }
-    $btnOk = New-Object System.Windows.Forms.Button
-    $btnOk.Text = 'Continuar'
-    $btnOk.Location = New-Object System.Drawing.Point(550, 448)
-    $btnOk.Size = New-Object System.Drawing.Size(130, 32)
-    $btnOk.Anchor = 'Bottom,Right'
-    _StylePrimaryButton $btnOk
+    $peu = _AddPeuBotons $form @(@{ Nom = 'Enrere'; Text = (_TxtEnrere) }) @(
+        @{ Nom = 'Ok'; Text = 'Continuar'; Estil = 'primari' }) 448 -Ancorat
+    $btnOk = $peu.Ok; $btnBack = $peu.Enrere
     $btnOk.add_Click({
         # En l'ordre de la LLISTA (el del cataleg), no en el que s'han clicat.
         $tri = New-Object System.Collections.ArrayList
@@ -800,16 +757,8 @@ function Select-LlicCondicions($actors, $marcats, $pdfs = $null) {
         $res.Nav = 'fwd'
         $form.DialogResult = 'OK'; $form.Close()
     }.GetNewClosure())
-    [void]$form.Controls.Add($btnOk)
 
-    $btnBack = New-Object System.Windows.Forms.Button
-    $btnBack.Text = [string][char]0x2190 + ' Enrere'
-    $btnBack.Location = New-Object System.Drawing.Point(20, 448)
-    $btnBack.Size = New-Object System.Drawing.Size(115, 32)
-    $btnBack.Anchor = 'Bottom,Left'
-    _StyleSecondaryButton $btnBack
     $btnBack.add_Click({ $form.Close() }.GetNewClosure())
-    [void]$form.Controls.Add($btnBack)
 
     [void](_AddBrandHeader $form 'Condicions' ('Qui les posa i el seu informe (nom' + [char]0x00E9 + 's als favorables)') 56)
     [void]$form.ShowDialog()

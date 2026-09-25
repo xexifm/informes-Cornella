@@ -805,22 +805,8 @@ function Select-ConclusionCutManually {
     $form.Controls.Add($list)
 
     # Enrere (torna al menu inicial) SEMPRE a baix a l'esquerra.
-    $btnBack = New-Object System.Windows.Forms.Button
-    $btnBack.Text = 'Enrere'
-    $btnBack.Location = New-Object System.Drawing.Point(15, 405)
-    $btnBack.Size = New-Object System.Drawing.Size(90, 30)
-    $btnBack.Anchor = 'Bottom, Left'
-    $btnBack.DialogResult = 'Retry'
-    $form.Controls.Add($btnBack)
-
-    $btnOk = New-Object System.Windows.Forms.Button
-    $btnOk.Text = 'Continuar'
-    $btnOk.Location = New-Object System.Drawing.Point(600, 405)
-    $btnOk.Size = New-Object System.Drawing.Size(95, 30)
-    $btnOk.Anchor = 'Bottom, Right'
-    $btnOk.DialogResult = 'OK'
-    $form.AcceptButton = $btnOk
-    $form.Controls.Add($btnOk)
+    [void](_AddPeuBotons $form @(@{ Nom = 'Enrere'; Text = (_TxtEnrere); Resultat = 'Retry' }) @(
+        @{ Nom = 'Ok'; Text = 'Continuar'; Estil = 'primari'; Resultat = 'OK'; Intro = $true }) 405 -Ancorat)
 
     $res = $form.ShowDialog()
     # Enrere o tancar la finestra: no fem res (Invoke-SeguimentFlow torna al menu).
@@ -851,20 +837,8 @@ function Prompt-RoundDate {
     $tb.Text = $default
     $form.Controls.Add($tb)
 
-    $back = New-Object System.Windows.Forms.Button
-    $back.Text = 'Enrere'
-    $back.Location = New-Object System.Drawing.Point(15, 110)
-    $back.Size = New-Object System.Drawing.Size(90, 28)
-    $back.DialogResult = 'Retry'
-    $form.Controls.Add($back)
-
-    $ok = New-Object System.Windows.Forms.Button
-    $ok.Text = 'Seguent'
-    $ok.Location = New-Object System.Drawing.Point(295, 110)
-    $ok.Size = New-Object System.Drawing.Size(90, 28)
-    $ok.DialogResult = 'OK'
-    $form.AcceptButton = $ok
-    $form.Controls.Add($ok)
+    [void](_AddPeuBotons $form @(@{ Nom = 'Enrere'; Text = (_TxtEnrere); Resultat = 'Retry' }) @(
+        @{ Nom = 'Ok'; Text = (_TxtSeguent); Estil = 'primari'; Resultat = 'OK'; Intro = $true }) 110)
 
     while ($true) {
         $res = $form.ShowDialog()
@@ -983,22 +957,8 @@ function Prompt-SeguimentComments {
         $rows += [pscustomobject]@{ Comment=$tb; Resolved=$cb }
     }
 
-    $back = New-Object System.Windows.Forms.Button
-    $back.Text = 'Enrere'
-    $back.Location = New-Object System.Drawing.Point(15, 555)
-    $back.Size = New-Object System.Drawing.Size(90, 30)
-    $back.Anchor = 'Bottom, Left'
-    $back.DialogResult = 'Retry'
-    $form.Controls.Add($back)
-
-    $ok = New-Object System.Windows.Forms.Button
-    $ok.Text = 'Seguent'
-    $ok.Location = New-Object System.Drawing.Point(735, 555)
-    $ok.Size = New-Object System.Drawing.Size(95, 30)
-    $ok.Anchor = 'Bottom, Right'
-    $ok.DialogResult = 'OK'
-    $form.AcceptButton = $ok
-    $form.Controls.Add($ok)
+    [void](_AddPeuBotons $form @(@{ Nom = 'Enrere'; Text = (_TxtEnrere); Resultat = 'Retry' }) @(
+        @{ Nom = 'Ok'; Text = (_TxtSeguent); Estil = 'primari'; Resultat = 'OK'; Intro = $true }) 555 -Ancorat)
 
     $res = $form.ShowDialog()
     if ($res -eq 'Retry') { return [pscustomobject]@{ Nav='back' } }

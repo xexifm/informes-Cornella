@@ -108,3 +108,156 @@ function _AjustaFinestraAPantalla($f) {
         $f.Location = New-Object System.Drawing.Point([int]$r.X, [int]$r.Y)
     } catch { }
 }
+
+# Estil de boto PRIMARI (granat ple, text blanc) i SECUNDARI (blanc, text/vora
+# granat). Reutilitzables a totes les pantalles del redisseny.
+#
+# Viuen AQUI i no a UiComuns.ps1 perque els fa servir _AddPeuBotons, que tambe
+# corre al proces de rutes. El granat ($Script:BrandMaroon) el defineix
+# UiComuns en carregar-se; al proces de rutes no hi es i _AddPeuBotons deixa els
+# botons amb l'aspecte del sistema, com hi eren.
+function _StylePrimaryButton($btn) {
+    $btn.FlatStyle = 'Flat'
+    $btn.BackColor = $Script:BrandMaroon
+    $btn.ForeColor = [System.Drawing.Color]::White
+    $btn.FlatAppearance.BorderSize = 0
+    $btn.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(138, 20, 38)
+    $btn.Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
+    $btn.Cursor = 'Hand'
+}
+# Boto d'ACCENT amb un color propi (blau mari per confirmar, vermell per
+# descartar...). Mateixa carcassa que _StylePrimaryButton: aixi el color es
+# l'unica cosa que canvia i no hi ha una tercera copia de l'estil escampada.
+function _StyleAccentButton($btn, $fons, $fonsHover) {
+    $btn.FlatStyle = 'Flat'
+    $btn.BackColor = $fons
+    $btn.ForeColor = [System.Drawing.Color]::White
+    $btn.FlatAppearance.BorderSize = 0
+    if ($null -ne $fonsHover) { $btn.FlatAppearance.MouseOverBackColor = $fonsHover }
+    $btn.Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
+    $btn.Cursor = 'Hand'
+}
+function _StyleSecondaryButton($btn) {
+    $btn.FlatStyle = 'Flat'
+    $btn.BackColor = [System.Drawing.Color]::White
+    $btn.ForeColor = $Script:BrandMaroon
+    $btn.FlatAppearance.BorderColor = $Script:BrandMaroon
+    $btn.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(247, 231, 234)
+    $btn.Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Regular)
+    $btn.Cursor = 'Hand'
+}
+
+# ----------------------------------------------------------------------------
+# EL PEU DE BOTONS, igual a totes les finestres
+# ----------------------------------------------------------------------------
+# Abans cada finestra se'l feia a ma: 18 "Enrere", 11 "Continuar/Seguent" i 21
+# "Cancel.lar/Tancar", cadascun amb la seva mida (28, 30, 32 o 34 d'alt), la
+# seva posicio, el seu estil (o cap: n'hi havia sense estil) i el sortir a
+# l'esquerra en unes finestres i a la dreta en d'altres.
+#
+# LA CONVENCIO, una per a totes:
+#   - a l'ESQUERRA, el que fa SORTIR o TORNAR (Enrere, Tancar, Cancel.lar) i, al
+#     costat, les accions auxiliars (Marcar-ho tot, Exportar, Esborrar...);
+#   - a la DRETA, el que fa AVANCAR; l'accio principal, la del tot a la dreta i
+#     en granat ple;
+#   - 32 d'alt, 15 de marge, 10 entre botons i l'amplada que demana el text;
+#   - Intro = l'accio principal, Esc = sortir (qui ho vol, ho diu a l'spec).
+#
+# Cada boto es un hashtable:
+#   Nom        clau amb que es torna (per activar-lo, desactivar-lo...)
+#   Text       el que hi posa
+#   Estil      'primari' | 'secundari' (per defecte) | 'accent'
+#   Fons, FonsHover  nomes per a 'accent'
+#   Resultat   DialogResult ('OK', 'Cancel', 'Retry'...), si en porta
+#   Clic       scriptblock del Click, si en porta
+#   Intro/Esc  $true -> AcceptButton / CancelButton de la finestra
+#   Ample      amplada fixa (si no, la del text)
+# Torna un hashtable Nom -> boto.
+#
+# $form es la finestra (per a l'Intro i l'Esc; en una pestanya, la pestanya);
+# $pare, on van els botons (la finestra o un panell de peu); $y, la fila.
+# -Ancorat els enganxa a baix (per a finestres que es poden fer mes grans).
+
+function _TxtEnrere  { return ([string][char]0x2190 + ' Enrere') }
+function _TxtSeguent { return ('Seg' + [char]0x00FC + 'ent ' + [char]0x2192) }
+
+# On va cada boto. PURA (es prova a Linux): rep l'amplada del contenidor i les
+# de cada grup, i torna les X. El grup de la dreta es llegeix d'esquerra a
+# dreta, com es veura: el darrer es el que queda enganxat al marge.
+function _PeuPosicions([int]$ample, [int[]]$esquerra, [int[]]$dreta, [int]$marge = 15, [int]$sep = 10) {
+    $xe = New-Object System.Collections.ArrayList
+    $x = $marge
+    foreach ($w in @($esquerra)) { [void]$xe.Add($x); $x += $w + $sep }
+    $xd = New-Object System.Collections.ArrayList
+    $x = $ample - $marge
+    $amples = @($dreta)
+    for ($i = $amples.Count - 1; $i -ge 0; $i--) { $x -= $amples[$i]; [void]$xd.Insert(0, $x); $x -= $sep }
+    return @{ Esquerra = $xe.ToArray(); Dreta = $xd.ToArray() }
+}
+
+# L'amplada d'un boto amb aquest text: la que demana el text i, com a minim,
+# 100 (que "OK" i "Tancar" no quedin esquifits). PURA si se li dona la mida
+# del text.
+function _PeuAmple([int]$ampleText, [int]$fix = 0) {
+    if ($fix -gt 0) { return $fix }
+    return [Math]::Max(100, $ampleText + 32)
+}
+
+function _AddPeuBotons($form, $esquerra, $dreta, [int]$y, $pare = $null, [switch]$Ancorat) {
+    if ($null -eq $pare) { $pare = $form }
+    $out = @{}
+    $fets = @{ Left = (New-Object System.Collections.ArrayList); Right = (New-Object System.Collections.ArrayList) }
+    foreach ($g in @(@{ Specs = @($esquerra); Costat = 'Left' }, @{ Specs = @($dreta); Costat = 'Right' })) {
+        foreach ($s in @($g.Specs)) {
+            if ($null -eq $s) { continue }
+            $b = New-Object System.Windows.Forms.Button
+            $b.Text = [string]$s.Text
+            $estil = if ($s.Estil) { [string]$s.Estil } else { 'secundari' }
+            if ($null -ne $Script:BrandMaroon) {
+                switch ($estil) {
+                    'primari' { _StylePrimaryButton $b }
+                    'accent'  { _StyleAccentButton $b $s.Fons $s.FonsHover }
+                    default   { _StyleSecondaryButton $b }
+                }
+            }
+            $ampleText = [System.Windows.Forms.TextRenderer]::MeasureText($b.Text, $b.Font).Width
+            $b.Size = New-Object System.Drawing.Size((_PeuAmple $ampleText ([int]$s.Ample)), 32)
+            if ($s.Resultat) { $b.DialogResult = [string]$s.Resultat }
+            if ($s.Clic) { $b.add_Click($s.Clic) }
+            if ($s.Intro) { $form.AcceptButton = $b }
+            if ($s.Esc) { $form.CancelButton = $b }
+            $out[[string]$s.Nom] = $b
+            [void]$fets[$g.Costat].Add($b)
+        }
+    }
+    $amplesE = [int[]]@($fets.Left | ForEach-Object { [int]$_.Width })
+    $amplesD = [int[]]@($fets.Right | ForEach-Object { [int]$_.Width })
+    # ELS DE LA DRETA ES RECOLOQUEN A CADA CANVI DE MIDA, no amb l'Anchor.
+    # L'ancoratge a la dreta es calcula contra l'amplada que el contenidor te
+    # EN AQUELL MOMENT, i un panell de peu amb Dock (o una pestanya) encara no
+    # te la bona quan s'hi posen els botons: fa 200 d'ample, i un boto posat a
+    # x=900 s'hi quedaria a -700 de la vora per sempre. Recalcular-ho al Resize
+    # no depen de quan s'ha fet el layout.
+    $vert = if ($Ancorat) { 'Bottom' } else { 'Top' }
+    $col = @{ Pare = $pare; Esq = @($fets.Left); Dre = @($fets.Right); AE = $amplesE; AD = $amplesD }
+    $col.Posa = {
+        $pos = _PeuPosicions ([int]$col.Pare.ClientSize.Width) $col.AE $col.AD
+        for ($i = 0; $i -lt $col.Dre.Count; $i++) { $col.Dre[$i].Left = [int]$pos.Dreta[$i] }
+        return $pos
+    }.GetNewClosure()
+    $pos = & $col.Posa
+    for ($i = 0; $i -lt $col.Esq.Count; $i++) {
+        $b = $col.Esq[$i]
+        $b.Location = New-Object System.Drawing.Point([int]$pos.Esquerra[$i], $y)
+        $b.Anchor = ($vert + ', Left')
+        [void]$pare.Controls.Add($b)
+    }
+    for ($i = 0; $i -lt $col.Dre.Count; $i++) {
+        $b = $col.Dre[$i]
+        $b.Location = New-Object System.Drawing.Point([int]$pos.Dreta[$i], $y)
+        $b.Anchor = ($vert + ', Left')
+        [void]$pare.Controls.Add($b)
+    }
+    if ($col.Dre.Count -gt 0) { $pare.add_Resize({ [void](& $col.Posa) }.GetNewClosure()) }
+    return $out
+}

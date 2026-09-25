@@ -1003,35 +1003,10 @@ function Show-EditorAjuda([string]$titol, $ajuda, $owner = $null) {
         $y += $h + 10
     }
 
-    $btnBuida = New-Object System.Windows.Forms.Button
-    $btnBuida.Text = 'Buidar la fitxa'
-    $btnBuida.Size = New-Object System.Drawing.Size(130, 30)
-    $btnBuida.Location = New-Object System.Drawing.Point(14, ($y + 8))
-    $btnBuida.Anchor = 'Top, Left'
-    _StyleSecondaryButton $btnBuida
-    $btnBuida.add_Click({ foreach ($k in @($boxes.Keys)) { $boxes[$k].Text = '' } }.GetNewClosure())
-    [void]$form.Controls.Add($btnBuida)
-
-    $btnCancel = New-Object System.Windows.Forms.Button
-    $btnCancel.Text = 'Cancel' + [char]0x00B7 + 'lar'
-    $btnCancel.Size = New-Object System.Drawing.Size(110, 30)
-    $btnCancel.Location = New-Object System.Drawing.Point(460, ($y + 8))
-    $btnCancel.DialogResult = 'Cancel'
-    $btnCancel.Anchor = 'Top, Right'
-    _StyleSecondaryButton $btnCancel
-    [void]$form.Controls.Add($btnCancel)
-
-    $btnOk = New-Object System.Windows.Forms.Button
-    $btnOk.Text = 'Desa la fitxa'
-    $btnOk.Size = New-Object System.Drawing.Size(130, 30)
-    $btnOk.Location = New-Object System.Drawing.Point(580, ($y + 8))
-    $btnOk.DialogResult = 'OK'
-    $btnOk.Anchor = 'Top, Right'
-    _StylePrimaryButton $btnOk
-    [void]$form.Controls.Add($btnOk)
-
-    $form.AcceptButton = $btnOk
-    $form.CancelButton = $btnCancel
+    [void](_AddPeuBotons $form @(
+        @{ Nom = 'Cancel'; Text = ('Cancel' + [char]0x00B7 + 'lar'); Resultat = 'Cancel'; Esc = $true },
+        @{ Nom = 'Buida'; Text = 'Buidar la fitxa'; Clic = { foreach ($k in @($boxes.Keys)) { $boxes[$k].Text = '' } }.GetNewClosure() }) @(
+        @{ Nom = 'Ok'; Text = 'Desa la fitxa'; Estil = 'primari'; Resultat = 'OK'; Intro = $true }) ($y + 8))
 
     $res = if ($null -ne $owner) { $form.ShowDialog($owner) } else { $form.ShowDialog() }
     if ($res -ne 'OK') { return $null }
@@ -1260,21 +1235,9 @@ function Show-CatalegEditor([string]$focusDoc = '') {
     $state.Rtb = $rtb
 
     # Barra inferior: Enrere / Desar.
-    $btnBack = New-Object System.Windows.Forms.Button
-    $btnBack.Text = 'Enrere'
-    $btnBack.Location = New-Object System.Drawing.Point(16, 620)
-    $btnBack.Size = New-Object System.Drawing.Size(110, 30)
-    $btnBack.Anchor = 'Bottom, Left'
-    _StyleSecondaryButton $btnBack
-    [void]$form.Controls.Add($btnBack)
-
-    $btnSave = New-Object System.Windows.Forms.Button
-    $btnSave.Text = 'Desar'
-    $btnSave.Location = New-Object System.Drawing.Point(834, 620)
-    $btnSave.Size = New-Object System.Drawing.Size(120, 30)
-    $btnSave.Anchor = 'Bottom, Right'
-    _StylePrimaryButton $btnSave
-    [void]$form.Controls.Add($btnSave)
+    $peu = _AddPeuBotons $form @(@{ Nom = 'Enrere'; Text = (_TxtEnrere) }) @(
+        @{ Nom = 'Desar'; Text = 'Desar'; Estil = 'primari' }) 620 -Ancorat
+    $btnBack = $peu.Enrere; $btnSave = $peu.Desar
 
     # Capcalera de marca (Dock=Top): s'afegeix DESPRES dels controls absoluts.
     [void](_AddBrandHeader $form ('Editar cat' + [char]0x00E0 + 'legs') ('Format estàndard únic ' + [char]0x00B7 + ' es desa al JSON'))

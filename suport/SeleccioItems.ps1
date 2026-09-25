@@ -430,14 +430,8 @@ function Select-Items {
     # Detall inicial (mostra els ja marcats per precarrega).
     & $refreshDetail
 
-    $back = New-Object System.Windows.Forms.Button
-    $back.Text = ([char]0x2190 + ' Enrere')
-    $back.Location = New-Object System.Drawing.Point(10, 740)
-    $back.Size = New-Object System.Drawing.Size(100, 30)
-    $back.DialogResult = 'Retry'
-    $back.Anchor = 'Bottom, Left'
-    _StyleSecondaryButton $back
-    $form.Controls.Add($back)
+    $peu = _AddPeuBotons $form @(@{ Nom = 'Enrere'; Text = (_TxtEnrere); Resultat = 'Retry' }) @(
+        @{ Nom = 'Ok'; Text = (_TxtSeguent); Estil = 'primari'; Resultat = 'OK'; Intro = $true }) 740 -Ancorat
 
     # Que el boto (i) existeix s'ha de DIR: una icona de 16 px que nomes surt a
     # alguns nodes no la busca ningu si no sap que hi es. Va a la franja de sota
@@ -446,21 +440,11 @@ function Select-Items {
     # _AvisaSolapaments ho cantaria a cada obertura de la pantalla).
     $lblAjuda = New-Object System.Windows.Forms.Label
     $lblAjuda.Text = ('Clica la ' + [char]0x24D8 + ' d''un punt (o prem F1) per veure quan s''ha de requerir.')
-    $lblAjuda.Location = New-Object System.Drawing.Point(125, 748)
+    $lblAjuda.Location = New-Object System.Drawing.Point(($peu.Enrere.Right + 15), 748)
     $lblAjuda.AutoSize = $true
     $lblAjuda.ForeColor = [System.Drawing.Color]::DimGray
     $lblAjuda.Anchor = 'Bottom, Left'
     $form.Controls.Add($lblAjuda)
-
-    $ok = New-Object System.Windows.Forms.Button
-    $ok.Text = ('Seg' + [char]0x00FC + 'ent ' + [char]0x2192)
-    $ok.Location = New-Object System.Drawing.Point(1050, 740)
-    $ok.Size = New-Object System.Drawing.Size(110, 30)
-    $ok.DialogResult = 'OK'
-    $ok.Anchor = 'Bottom, Right'
-    _StylePrimaryButton $ok
-    $form.AcceptButton = $ok
-    $form.Controls.Add($ok)
 
     [void](_AddStepBar $form 3)
     [void](_AddBrandHeader $form ("Defici" + [char]0x00E8 + "ncies de l'activitat") $null 44)
@@ -665,24 +649,8 @@ function Select-Conclusions {
         }
     })
 
-    $back = New-Object System.Windows.Forms.Button
-    $back.Text = ([char]0x2190 + ' Enrere')
-    $back.Location = New-Object System.Drawing.Point(15, 670)
-    $back.Size = New-Object System.Drawing.Size(100, 30)
-    $back.DialogResult = 'Retry'
-    $back.Anchor = 'Bottom, Left'
-    _StyleSecondaryButton $back
-    $form.Controls.Add($back)
-
-    $ok = New-Object System.Windows.Forms.Button
-    $ok.Text = ('Generar informe ' + [char]0x2192)
-    $ok.Location = New-Object System.Drawing.Point(775, 670)
-    $ok.Size = New-Object System.Drawing.Size(135, 30)
-    $ok.DialogResult = 'OK'
-    $ok.Anchor = 'Bottom, Right'
-    _StylePrimaryButton $ok
-    $form.AcceptButton = $ok
-    $form.Controls.Add($ok)
+    [void](_AddPeuBotons $form @(@{ Nom = 'Enrere'; Text = (_TxtEnrere); Resultat = 'Retry' }) @(
+        @{ Nom = 'Ok'; Text = ('Generar informe ' + [char]0x2192); Estil = 'primari'; Resultat = 'OK'; Intro = $true }) 670 -Ancorat)
 
     [void](_AddStepBar $form 4)
     [void](_AddBrandHeader $form "Conclusions de l'informe" $null 44)

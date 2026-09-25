@@ -818,21 +818,11 @@ function Show-LlicenciaDb {
     $form.add_Shown({ & $fn.TriaPrimera }.GetNewClosure())
 
     # ---- Botons ------------------------------------------------------------
-    $btnTanca = New-Object System.Windows.Forms.Button
-    $btnTanca.Text = 'Tancar'
-    $btnTanca.Location = New-Object System.Drawing.Point(941, 606)
-    $btnTanca.Size = New-Object System.Drawing.Size(125, 34)
-    $btnTanca.Anchor = 'Bottom,Right'
-    _StylePrimaryButton $btnTanca
-    $btnTanca.add_Click({ $form.Close() }.GetNewClosure())
-    [void]$form.Controls.Add($btnTanca)
-
-    $btnDesa = New-Object System.Windows.Forms.Button
-    $btnDesa.Text = 'Desar els canvis'
-    $btnDesa.Location = New-Object System.Drawing.Point(786, 606)
-    $btnDesa.Size = New-Object System.Drawing.Size(145, 34)
-    $btnDesa.Anchor = 'Bottom,Right'
-    _StyleSecondaryButton $btnDesa
+    $peu = _AddPeuBotons $form @(
+        @{ Nom = 'Tancar'; Text = 'Tancar'; Clic = { $form.Close() }.GetNewClosure() },
+        @{ Nom = 'Esborra'; Text = 'Esborrar la fitxa' }) @(
+        @{ Nom = 'Desa'; Text = 'Desar els canvis'; Estil = 'primari' }) 606 -Ancorat
+    $btnDesa = $peu.Desa; $btnEsb = $peu.Esborra
     $btnDesa.add_Click({
         $id = & $fn.IdTriat
         if ([string]::IsNullOrWhiteSpace($id)) { return }
@@ -840,14 +830,7 @@ function Show-LlicenciaDb {
         $msg = if ($n -gt 0) { "S'han desat $n canvi(s)." } else { 'No hi havia res per canviar.' }
         [System.Windows.Forms.MessageBox]::Show($msg, 'Base de dades', 'OK', 'Information') | Out-Null
     }.GetNewClosure())
-    [void]$form.Controls.Add($btnDesa)
 
-    $btnEsb = New-Object System.Windows.Forms.Button
-    $btnEsb.Text = 'Esborrar la fitxa'
-    $btnEsb.Location = New-Object System.Drawing.Point(14, 606)
-    $btnEsb.Size = New-Object System.Drawing.Size(150, 34)
-    $btnEsb.Anchor = 'Bottom,Left'
-    _StyleSecondaryButton $btnEsb
     $btnEsb.add_Click({
         $id = & $fn.IdTriat
         if ([string]::IsNullOrWhiteSpace($id)) { return }
@@ -862,7 +845,6 @@ function Show-LlicenciaDb {
         $panDret.Controls.Clear()
         & $fn.TriaPrimera
     }.GetNewClosure())
-    [void]$form.Controls.Add($btnEsb)
 
     [void](_AddBrandHeader $form ('Base de dades de llic' + [char]0x00E8 + 'ncies') `
             ('El que es recorda de cada activitat per als informes seg' + [char]0x00FC + 'ents') 56)

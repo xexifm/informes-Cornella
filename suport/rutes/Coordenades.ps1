@@ -1239,21 +1239,8 @@ function Show-CoordenadesForm([string]$dbLabel, $zonesApilades, $zonesTotes,
         $y += 22
     }
 
-    $btnOk = New-Object System.Windows.Forms.Button
-    $btnOk.Text = 'Generar mapa'
-    $btnOk.Size = New-Object System.Drawing.Size(130, 32)
-    $btnOk.Location = New-Object System.Drawing.Point(295, $y)
-    $btnOk.DialogResult = [System.Windows.Forms.DialogResult]::OK
-    $form.Controls.Add($btnOk)
-    $form.AcceptButton = $btnOk
-
-    $btnCancel = New-Object System.Windows.Forms.Button
-    $btnCancel.Text = 'Enrere'
-    $btnCancel.Size = New-Object System.Drawing.Size(130, 32)
-    $btnCancel.Location = New-Object System.Drawing.Point(435, $y)
-    $btnCancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
-    $form.Controls.Add($btnCancel)
-    $form.CancelButton = $btnCancel
+    [void](_AddPeuBotons $form @(@{ Nom = 'Enrere'; Text = (_TxtEnrere); Resultat = 'Cancel'; Esc = $true }) @(
+        @{ Nom = 'Ok'; Text = 'Generar mapa'; Estil = 'primari'; Resultat = 'OK'; Intro = $true }) $y)
 
     $form.ClientSize = New-Object System.Drawing.Size(580, ($y + 46))
 
@@ -1297,12 +1284,7 @@ function New-CoordProgress([int]$total) {
     $bar.Maximum = [math]::Max($total, 1)
     $form.Controls.Add($bar)
 
-    $btn = New-Object System.Windows.Forms.Button
-    $btn.Text = 'Cancel·lar'
-    $btn.Size = New-Object System.Drawing.Size(120, 30)
-    $btn.Location = New-Object System.Drawing.Point(410, 100)
-    $btn.add_Click({ $Script:CoordCancelat = $true })
-    $form.Controls.Add($btn)
+    [void](_AddPeuBotons $form @(@{ Nom = 'Cancel'; Text = 'Cancel·lar'; Clic = { $Script:CoordCancelat = $true } }) @() 98)
 
     $form.Show()
     [System.Windows.Forms.Application]::DoEvents()

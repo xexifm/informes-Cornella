@@ -466,6 +466,19 @@ AssertEq (@(_Ed_TipusOptions 'cataleg' 'seccio') -join ',') 'item,subseccio,text
 AssertEq (@(_Ed_TipusOptions 'cataleg' 'subseccio') -join ',') 'item,text' '_Ed_TipusOptions cataleg sota subseccio -> item i text'
 AssertEq (@(_Ed_TipusOptions 'cataleg' 'item') -join ',') 'subitem' '_Ed_TipusOptions cataleg sota item -> subitem'
 
+# --- El peu de botons comu (_PeuPosicions / _PeuAmple, UiFinestra.ps1) --------
+# Sortir a l'esquerra, avancar a la dreta; 15 de marge i 10 entre botons.
+$pp = _PeuPosicions 700 @(100, 120) @(110, 130)
+AssertEq (@($pp.Esquerra) -join ',') '15,125' 'Peu: els de l''esquerra, des del marge i seguits'
+AssertEq (@($pp.Dreta) -join ',') '435,555' 'Peu: els de la dreta, el darrer enganxat al marge (700-15-130=555)'
+$pp0 = _PeuPosicions 500 @() @(100)
+AssertEq (@($pp0.Esquerra).Count) 0 'Peu: sense botons a l''esquerra, cap posicio'
+AssertEq (@($pp0.Dreta) -join ',') '385' 'Peu: un sol boto a la dreta'
+AssertEq (_PeuAmple 40) 100 'Peu: un text curt ("OK", "Tancar") no fa un boto esquifit'
+AssertEq (_PeuAmple 150) 182 'Peu: un text llarg, el text i 16 de cada costat'
+AssertEq (_PeuAmple 150 90) 90 'Peu: una amplada fixa mana'
+Assert ((_TxtEnrere).EndsWith(' Enrere') -and [int][char](_TxtEnrere)[0] -eq 0x2190) 'Peu: "<- Enrere" amb la fletxa'
+
 # --- Scroll vertical i ajust a la pantalla (_MidaFinestraDinsPantalla) --------
 # El cas real: al PC de casa la pantalla es mes baixa i pantalles d'aquest
 # programa (l'editor de catalegs en fa 700 de minim) surten mes altes que l'area

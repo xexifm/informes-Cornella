@@ -65,18 +65,22 @@ Totes toquen codi que **només corre a Windows** (WinForms, Word, AutoFirma): ca
 prova de Linux no les pot validar i canvien, encara que sigui poc, el que es veu.
 Per això no s'han fet sense la teva confirmació.
 
-### 3.1 Peu de botons comú (benefici alt, risc baix-mitjà) — **proposat**
-- **Xifres**: 18 botons «Enrere», 11 «Continuar/Següent», 21 «Cancel·lar/Tancar»,
-  58 crides a `_StylePrimaryButton`/`_StyleSecondaryButton`, cadascun amb la
-  seva `Size`, `Location`, `DialogResult`, `AcceptButton`/`CancelButton` a mà.
-- **Proposta**: `_AddPeuBotons $form @{ Enrere = ...; Endavant = ...; Cancel = ... }`
-  a `UiComuns.ps1`, ancorat a baix a la dreta, que posa mides, estils, tecles
-  (Intro/Esc) i retorna els botons. Es passaria finestra per finestra.
-- **Pot trencar**: la posició dels botons (alguna finestra els té en un lloc
-  concret per un motiu), el `DialogResult` d'alguna pantalla que en fa servir un
-  de diferent. **Es veu diferent**: potser uns píxels.
-- **Com es demostra**: a Linux, només el guard «cap `New-Object ...Button` amb
-  text Enrere/Continuar fora d'`UiComuns`»; la resta, obrint cada finestra al PC.
+### 3.1 Peu de botons comú — **fet** (a petició de l'usuari)
+- `_AddPeuBotons` (`UiFinestra.ps1`, perquè també el fa servir el procés de
+  rutes; els `_Style*Button` hi van anar amb ell). **Convenció**: sortir o tornar
+  a l'esquerra, avançar a la dreta, l'acció principal al capdavall de la dreta i
+  en granat; 32 d'alt, 15 de marge, 10 entre botons, amplada segons el text.
+- 36 peus (totes les finestres i diàlegs amb botons de sortir/avançar): 626
+  línies fora, 305 dins. Els de la dreta es
+  recol·loquen a cada canvi de mida (un panell amb `Dock` o una pestanya encara
+  no tenen l'amplada bona quan s'hi posen).
+- Canvis que es veuen: els botons que no tenien estil (Seguiment, ACT_EXTR,
+  rutes) ara el tenen (al procés de rutes no hi ha el granat i es queden amb
+  l'aspecte del sistema); «Enrere» porta sempre la fletxa; «Seguent» ja porta
+  la ü; a Enviar correu, «No enviar» i «Enviar» van cadascun a una punta.
+- Proves: la col·locació (`_PeuPosicions`, `_PeuAmple`) és pura i es prova a
+  Linux; guard: cap botó de peu fet a mà fora d'`UiFinestra.ps1`. La resta, al
+  PC (i `_AvisaSolapaments` avisa sol si un botó en trepitja un altre).
 
 ### 3.2 Partir `PdfSignar.ps1` (1.521 l.) — **proposat, toca la signatura**
 Word → PDF, AutoFirma (amb els reintents) i el registre són tres coses. Seria un

@@ -413,19 +413,9 @@ function _DemanaIdGia($docxPath, $info) {
     $tb.Text = [string]$info.Gia
     $form.Controls.Add($tb)
 
-    $ok = New-Object System.Windows.Forms.Button
-    $ok.Text = 'Continuar'; $ok.DialogResult = 'OK'
-    $ok.Location = New-Object System.Drawing.Point(344, 180)
-    $ok.Size = New-Object System.Drawing.Size(100, 32)
-    _StyleAccentButton $ok $Script:CorreuBlauMari $Script:CorreuBlauMariHover
-    $form.AcceptButton = $ok; $form.Controls.Add($ok)
-
-    $no = New-Object System.Windows.Forms.Button
-    $no.Text = 'Cancel·lar'; $no.DialogResult = 'Cancel'
-    $no.Location = New-Object System.Drawing.Point(452, 180)
-    $no.Size = New-Object System.Drawing.Size(92, 32)
-    _StyleAccentButton $no $Script:CorreuVermell $Script:CorreuVermellHover
-    $form.CancelButton = $no; $form.Controls.Add($no)
+    [void](_AddPeuBotons $form @(
+        @{ Nom = 'No'; Text = 'Cancel·lar'; Resultat = 'Cancel'; Esc = $true; Estil = 'accent'; Fons = $Script:CorreuVermell; FonsHover = $Script:CorreuVermellHover }) @(
+        @{ Nom = 'Ok'; Text = 'Continuar'; Resultat = 'OK'; Intro = $true; Estil = 'accent'; Fons = $Script:CorreuBlauMari; FonsHover = $Script:CorreuBlauMariHover }) 180)
 
     if ($form.ShowDialog() -ne 'OK') { return '' }
     return ([string]$tb.Text).Trim()
@@ -540,18 +530,11 @@ function _DialegEnviar($build, $destinatariDefault, $docxPath) {
     }
 
     # Blau mari = enviar, vermell = no enviar. Un correu no es pot desenviar:
-    # les dues accions han de ser distingibles d'un cop d'ull.
-    $ok = New-Object System.Windows.Forms.Button
-    $ok.Text = 'Enviar'; $ok.DialogResult = 'OK'
-    $ok.Location = New-Object System.Drawing.Point(390, 335); $ok.Size = New-Object System.Drawing.Size(90, 32)
-    _StyleAccentButton $ok $Script:CorreuBlauMari $Script:CorreuBlauMariHover
-    $form.AcceptButton = $ok; $form.Controls.Add($ok)
-
-    $cancel = New-Object System.Windows.Forms.Button
-    $cancel.Text = 'No enviar'; $cancel.DialogResult = 'Cancel'
-    $cancel.Location = New-Object System.Drawing.Point(485, 335); $cancel.Size = New-Object System.Drawing.Size(90, 32)
-    _StyleAccentButton $cancel $Script:CorreuVermell $Script:CorreuVermellHover
-    $form.CancelButton = $cancel; $form.Controls.Add($cancel)
+    # les dues accions han de ser distingibles d'un cop d'ull, i per aixo
+    # tambe van cadascuna a una punta del peu.
+    [void](_AddPeuBotons $form @(
+        @{ Nom = 'No'; Text = 'No enviar'; Resultat = 'Cancel'; Esc = $true; Estil = 'accent'; Fons = $Script:CorreuVermell; FonsHover = $Script:CorreuVermellHover }) @(
+        @{ Nom = 'Ok'; Text = 'Enviar'; Resultat = 'OK'; Intro = $true; Estil = 'accent'; Fons = $Script:CorreuBlauMari; FonsHover = $Script:CorreuBlauMariHover }) 335)
 
     # Scroll vertical i ajust a la pantalla (vegeu suport/UiFinestra.ps1).
     $form.add_Shown({ param($s, $e) _AjustaFinestraAPantalla $s })

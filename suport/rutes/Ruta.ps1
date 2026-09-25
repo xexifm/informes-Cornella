@@ -831,21 +831,8 @@ function Show-IdInputForm([string]$dbLabel, [string]$baseLabel, [bool]$startFrom
     $lblHint.ForeColor = [System.Drawing.Color]::FromArgb(90, 90, 90)
     $form.Controls.Add($lblHint)
 
-    $btnOk = New-Object System.Windows.Forms.Button
-    $btnOk.Text = 'Generar ruta'
-    $btnOk.Size = New-Object System.Drawing.Size(120, 32)
-    $btnOk.Location = New-Object System.Drawing.Point(255, 396)
-    $btnOk.DialogResult = [System.Windows.Forms.DialogResult]::OK
-    $form.Controls.Add($btnOk)
-    $form.AcceptButton = $btnOk
-
-    $btnCancel = New-Object System.Windows.Forms.Button
-    $btnCancel.Text = 'Enrere'
-    $btnCancel.Size = New-Object System.Drawing.Size(120, 32)
-    $btnCancel.Location = New-Object System.Drawing.Point(380, 396)
-    $btnCancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
-    $form.Controls.Add($btnCancel)
-    $form.CancelButton = $btnCancel
+    [void](_AddPeuBotons $form @(@{ Nom = 'Enrere'; Text = (_TxtEnrere); Resultat = 'Cancel'; Esc = $true }) @(
+        @{ Nom = 'Ok'; Text = 'Generar ruta'; Estil = 'primari'; Resultat = 'OK'; Intro = $true }) 396)
 
     # Scroll vertical i ajust a la pantalla (vegeu suport/UiFinestra.ps1).
     $form.add_Shown({ param($s, $e) _AjustaFinestraAPantalla $s })
@@ -907,31 +894,16 @@ function Show-WarningsDialog($warnings, [int]$resolvedCount, [int]$totalIds) {
     }
     $form.Controls.Add($lblCount)
 
-    # Mida i ordre: Continuar (recomanat si hi ha activitats resoltes) | Editar | Cancel·lar
-    $btnContinue = New-Object System.Windows.Forms.Button
-    $btnContinue.Text = if ($resolvedCount -gt 0) { "Continuar amb $resolvedCount activitat(s)" } else { "Continuar" }
-    $btnContinue.Size = New-Object System.Drawing.Size(220, 32)
-    $btnContinue.Location = New-Object System.Drawing.Point(15, 280)
+    # Cancel·lar a l'esquerra; Editar i Continuar (el recomanat si hi ha activitats resoltes) a la dreta.
+    $txtCont = if ($resolvedCount -gt 0) { "Continuar amb $resolvedCount activitat(s)" } else { "Continuar" }
+    $peu = _AddPeuBotons $form @(@{ Nom = 'Cancel'; Text = 'Cancel·lar'; Esc = $true }) @(
+        @{ Nom = 'Edit'; Text = 'Editar la llista'; Intro = ($resolvedCount -eq 0) },
+        @{ Nom = 'Cont'; Text = $txtCont; Estil = 'primari'; Intro = ($resolvedCount -gt 0) }) 280
+    $btnContinue = $peu.Cont; $btnEdit = $peu.Edit; $btnCancel = $peu.Cancel
     $btnContinue.Enabled = ($resolvedCount -gt 0)
     $btnContinue.Tag = 'continue'
-    $form.Controls.Add($btnContinue)
-    if ($resolvedCount -gt 0) { $form.AcceptButton = $btnContinue }
-
-    $btnEdit = New-Object System.Windows.Forms.Button
-    $btnEdit.Text = 'Editar la llista'
-    $btnEdit.Size = New-Object System.Drawing.Size(140, 32)
-    $btnEdit.Location = New-Object System.Drawing.Point(245, 280)
     $btnEdit.Tag = 'edit'
-    $form.Controls.Add($btnEdit)
-    if ($resolvedCount -eq 0) { $form.AcceptButton = $btnEdit }
-
-    $btnCancel = New-Object System.Windows.Forms.Button
-    $btnCancel.Text = 'Cancel·lar'
-    $btnCancel.Size = New-Object System.Drawing.Size(120, 32)
-    $btnCancel.Location = New-Object System.Drawing.Point(395, 280)
     $btnCancel.Tag = 'cancel'
-    $form.Controls.Add($btnCancel)
-    $form.CancelButton = $btnCancel
 
     $script:_warnChoice = 'cancel'
     $handler = { $script:_warnChoice = $this.Tag; $form.Close() }.GetNewClosure()

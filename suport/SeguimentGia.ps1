@@ -789,27 +789,12 @@ function Invoke-SeguimentGia {
                   "Necessita l'Excel treballant una estona: pot trigar.")
     [void]$form.Controls.Add($lbl2)
 
-    $btnXls = New-Object System.Windows.Forms.Button
-    $btnXls.Text = 'Exportar a Excel'
-    $btnXls.Location = New-Object System.Drawing.Point(20, 292)
-    $btnXls.Size = New-Object System.Drawing.Size(150, 32)
-    _StylePrimaryButton $btnXls
-    [void]$form.Controls.Add($btnXls)
+    $peu = _AddPeuBotons $form @(@{ Nom = 'Tanca'; Text = 'Tancar' }) @(
+        @{ Nom = 'Pdf'; Text = 'Exportar a PDF' },
+        @{ Nom = 'Xls'; Text = 'Exportar a Excel'; Estil = 'primari' }) 292
+    $btnXls = $peu.Xls; $btnPdf = $peu.Pdf; $btnTanca = $peu.Tanca
 
-    $btnPdf = New-Object System.Windows.Forms.Button
-    $btnPdf.Text = 'Exportar a PDF'
-    $btnPdf.Location = New-Object System.Drawing.Point(180, 292)
-    $btnPdf.Size = New-Object System.Drawing.Size(150, 32)
-    _StyleSecondaryButton $btnPdf
-    [void]$form.Controls.Add($btnPdf)
-
-    $btnTanca = New-Object System.Windows.Forms.Button
-    $btnTanca.Text = 'Tancar'
-    $btnTanca.Location = New-Object System.Drawing.Point(362, 292)
-    $btnTanca.Size = New-Object System.Drawing.Size(88, 32)
-    _StyleSecondaryButton $btnTanca
     $btnTanca.add_Click({ $form.Close() }.GetNewClosure())
-    [void]$form.Controls.Add($btnTanca)
 
     # Mentre l'Excel treballa, els botons queden desactivats i el cursor en
     # espera: si no, es pot clicar dues vegades i s'obren dos Excel.

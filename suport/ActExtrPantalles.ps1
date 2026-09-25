@@ -57,26 +57,10 @@ function Show-ActExtrList($registry) {
     $form.Controls.Add($lv)
 
     # Enrere (torna al menu inicial) SEMPRE a baix a l'esquerra.
-    $btnBack = New-Object System.Windows.Forms.Button
-    $btnBack.Text = 'Enrere'
-    $btnBack.Location = New-Object System.Drawing.Point(15, 455)
-    $btnBack.Size = New-Object System.Drawing.Size(90, 32)
-    $btnBack.Anchor = 'Bottom, Left'
-    $form.Controls.Add($btnBack)
-
-    $btnNew = New-Object System.Windows.Forms.Button
-    $btnNew.Text = 'Nova activitat'
-    $btnNew.Location = New-Object System.Drawing.Point(115, 455)
-    $btnNew.Size = New-Object System.Drawing.Size(150, 32)
-    $btnNew.Anchor = 'Bottom, Left'
-    $form.Controls.Add($btnNew)
-
-    $btnOpen = New-Object System.Windows.Forms.Button
-    $btnOpen.Text = 'Obrir / continuar'
-    $btnOpen.Location = New-Object System.Drawing.Point(275, 455)
-    $btnOpen.Size = New-Object System.Drawing.Size(160, 32)
-    $btnOpen.Anchor = 'Bottom, Left'
-    $form.Controls.Add($btnOpen)
+    $peu = _AddPeuBotons $form @(@{ Nom = 'Enrere'; Text = (_TxtEnrere) }) @(
+        @{ Nom = 'Nova'; Text = 'Nova activitat' },
+        @{ Nom = 'Obrir'; Text = 'Obrir / continuar'; Estil = 'primari' }) 455 -Ancorat
+    $btnBack = $peu.Enrere; $btnNew = $peu.Nova; $btnOpen = $peu.Obrir
 
     # 'exit' (Enrere o tancar la finestra) fa que Invoke-ActExtrFlow torni al
     # menu inicial (el programa no es tanca; nomes es tanca des del Pas 1).
@@ -143,19 +127,9 @@ function Get-ActExtrHeader {
     }
     if ($lockId) { $controls['ID_GIA'].ReadOnly = $true }
 
-    $back = New-Object System.Windows.Forms.Button
-    $back.Text = 'Enrere'
-    $back.Location = New-Object System.Drawing.Point(15, $y)
-    $back.Size = New-Object System.Drawing.Size(90, 30)
-    $back.DialogResult = 'Retry'
-    [void]$form.Controls.Add($back)
-
-    $ok = New-Object System.Windows.Forms.Button
-    $ok.Text = 'Seguent'
-    $ok.Location = New-Object System.Drawing.Point(575, $y)
-    $ok.Size = New-Object System.Drawing.Size(95, 30)
-    $form.AcceptButton = $ok
-    [void]$form.Controls.Add($ok)
+    $peu = _AddPeuBotons $form @(@{ Nom = 'Enrere'; Text = (_TxtEnrere); Resultat = 'Retry' }) @(
+        @{ Nom = 'Ok'; Text = (_TxtSeguent); Estil = 'primari'; Intro = $true }) $y
+    $ok = $peu.Ok
 
     $data = $null
     $ok.add_Click({
@@ -214,31 +188,14 @@ function Edit-ActExtrDocumentacio {
     $bottom.Height = 50
     $form.Controls.Add($bottom)
 
-    $btnBack = New-Object System.Windows.Forms.Button
-    $btnBack.Text = 'Enrere'
-    $btnBack.Location = New-Object System.Drawing.Point(12, 9)
-    $btnBack.Size = New-Object System.Drawing.Size(90, 32)
-    $bottom.Controls.Add($btnBack)
-
-    $btnSave = New-Object System.Windows.Forms.Button
-    $btnSave.Text = 'Desar'
-    $btnSave.Location = New-Object System.Drawing.Point(110, 9)
-    $btnSave.Size = New-Object System.Drawing.Size(110, 32)
-    $bottom.Controls.Add($btnSave)
-
-    $btnReq = New-Object System.Windows.Forms.Button
-    $btnReq.Text = 'Generar requeriment'
-    $btnReq.Location = New-Object System.Drawing.Point(($form.ClientSize.Width - 390), 9)
-    $btnReq.Size = New-Object System.Drawing.Size(185, 32)
-    $btnReq.Anchor = 'Top, Right'
-    $bottom.Controls.Add($btnReq)
-
-    $btnFav = New-Object System.Windows.Forms.Button
-    $btnFav.Text = 'Generar informe favorable'
-    $btnFav.Location = New-Object System.Drawing.Point(($form.ClientSize.Width - 200), 9)
-    $btnFav.Size = New-Object System.Drawing.Size(190, 32)
-    $btnFav.Anchor = 'Top, Right'
-    $bottom.Controls.Add($btnFav)
+    # Els dos informes son les dues sortides bones d'aquesta pantalla: tots dos
+    # en granat, a la dreta.
+    $peu = _AddPeuBotons $form @(
+        @{ Nom = 'Enrere'; Text = (_TxtEnrere) },
+        @{ Nom = 'Desar'; Text = 'Desar' }) @(
+        @{ Nom = 'Req'; Text = 'Generar requeriment'; Estil = 'primari' },
+        @{ Nom = 'Fav'; Text = 'Generar informe favorable'; Estil = 'primari' }) 9 $bottom
+    $btnBack = $peu.Enrere; $btnSave = $peu.Desar; $btnReq = $peu.Req; $btnFav = $peu.Fav
 
     # --- Esquerra: preguntes de classificacio (amb scroll propi) ---
     $gbQ = New-Object System.Windows.Forms.GroupBox

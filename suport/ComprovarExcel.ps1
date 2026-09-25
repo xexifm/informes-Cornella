@@ -120,12 +120,7 @@ function _ShowResultatWindow($titol, $subtitol, $text) {
 
     $bot = New-Object System.Windows.Forms.Panel
     $bot.Dock = 'Bottom'; $bot.Height = 46
-    $btn = New-Object System.Windows.Forms.Button
-    $btn.Text = 'Tancar'; $btn.Size = New-Object System.Drawing.Size(110, 30)
-    $btn.Location = New-Object System.Drawing.Point(10, 8)
-    _StyleSecondaryButton $btn
-    $btn.add_Click({ $form.Close() }.GetNewClosure())
-    $bot.Controls.Add($btn)
+    [void](_AddPeuBotons $form @(@{ Nom = 'Tancar'; Text = 'Tancar'; Clic = { $form.Close() }.GetNewClosure() }) @() 7 $bot)
 
     $form.Controls.Add($tb)
     $form.Controls.Add($bot)

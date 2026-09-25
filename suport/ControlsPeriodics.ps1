@@ -303,49 +303,25 @@ function Show-ControlsPeriodicsWindow($allRows, [string]$fileName) {
     # Col 0 = casella "Generar": no s'ordena (minCol = 1).
     _EnableHeaderSort $grid $state 1 @() { & $fill }
 
-    # ---- Barra inferior: Exportar / Tancar ------------------------------
+    # ---- Barra inferior: Tancar / Exportar / Editar text ... Correu / Generar --
     $botPanel = New-Object System.Windows.Forms.Panel
     $botPanel.Dock = 'Bottom'; $botPanel.Height = 48
-    $btnExport = New-Object System.Windows.Forms.Button
-    $btnExport.Text = 'Exportar (CSV)'; $btnExport.Size = New-Object System.Drawing.Size(150, 30)
-    $btnExport.Location = New-Object System.Drawing.Point(10, 9)
-    _StyleSecondaryButton $btnExport
-    $btnExport.add_Click({ _ExportControlsPeriodics $grid $colsMeta }.GetNewClosure())
-    $botPanel.Controls.Add($btnExport)
-    $btnGenerar = New-Object System.Windows.Forms.Button
-    $btnGenerar.Text = 'Generar informes'; $btnGenerar.Size = New-Object System.Drawing.Size(160, 30)
-    $btnGenerar.Location = New-Object System.Drawing.Point(170, 9)
-    _StylePrimaryButton $btnGenerar
-    $btnGenerar.add_Click({
-        $triades = @()
-        foreach ($r in $allRows) { if ($r.Sel) { $triades += $r } }
-        Invoke-GenerarControlsPeriodics $triades
-    }.GetNewClosure())
-    $botPanel.Controls.Add($btnGenerar)
-    # Enviar correu als titulars de les activitats marcades (esborranys a Outlook).
-    $btnCorreu = New-Object System.Windows.Forms.Button
-    $btnCorreu.Text = 'Enviar correu (esborranys)'; $btnCorreu.Size = New-Object System.Drawing.Size(200, 30)
-    $btnCorreu.Location = New-Object System.Drawing.Point(340, 9)
-    _StylePrimaryButton $btnCorreu
-    $btnCorreu.add_Click({
-        $triades = @()
-        foreach ($r in $allRows) { if ($r.Sel) { $triades += $r } }
-        Invoke-ControlsCpEmailDrafts $triades
-    }.GetNewClosure())
-    $botPanel.Controls.Add($btnCorreu)
-    # Editar el text del correu (assumpte + cos amb variables).
-    $btnText = New-Object System.Windows.Forms.Button
-    $btnText.Text = 'Editar text'; $btnText.Size = New-Object System.Drawing.Size(120, 30)
-    $btnText.Location = New-Object System.Drawing.Point(550, 9)
-    _StyleSecondaryButton $btnText
-    $btnText.add_Click({ Invoke-ControlsCpEmailTextos }.GetNewClosure())
-    $botPanel.Controls.Add($btnText)
-    $btnTancar = New-Object System.Windows.Forms.Button
-    $btnTancar.Text = 'Tancar'; $btnTancar.Size = New-Object System.Drawing.Size(120, 30)
-    $btnTancar.Location = New-Object System.Drawing.Point(690, 9)
-    _StyleSecondaryButton $btnTancar
-    $btnTancar.add_Click({ $form.Close() }.GetNewClosure())
-    $botPanel.Controls.Add($btnTancar)
+    [void](_AddPeuBotons $form @(
+        @{ Nom = 'Tancar'; Text = 'Tancar'; Clic = { $form.Close() }.GetNewClosure() },
+        @{ Nom = 'Export'; Text = 'Exportar (CSV)'; Clic = { _ExportControlsPeriodics $grid $colsMeta }.GetNewClosure() },
+        # Editar el text del correu (assumpte + cos amb variables).
+        @{ Nom = 'Text'; Text = 'Editar text'; Clic = { Invoke-ControlsCpEmailTextos }.GetNewClosure() }) @(
+        # Enviar correu als titulars de les activitats marcades (esborranys a Outlook).
+        @{ Nom = 'Correu'; Text = 'Enviar correu (esborranys)'; Estil = 'primari'; Clic = {
+            $triades = @()
+            foreach ($r in $allRows) { if ($r.Sel) { $triades += $r } }
+            Invoke-ControlsCpEmailDrafts $triades
+        }.GetNewClosure() },
+        @{ Nom = 'Generar'; Text = 'Generar informes'; Estil = 'primari'; Clic = {
+            $triades = @()
+            foreach ($r in $allRows) { if ($r.Sel) { $triades += $r } }
+            Invoke-GenerarControlsPeriodics $triades
+        }.GetNewClosure() }) 8 $botPanel)
 
     # Ordre d'afegit: Fill (centre), Top, Bottom, i la banda l'ultima (a dalt).
     $form.Controls.Add($grid)

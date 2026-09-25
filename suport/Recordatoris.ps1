@@ -562,12 +562,7 @@ function Invoke-RecordatorisTanda([string]$clau, $rows, [bool]$silenci) {
         $bar.Size = New-Object System.Drawing.Size(428, 18)
         $bar.Minimum = 0; $bar.Maximum = [Math]::Max(1, $limitAra)
         $form.Controls.Add($bar)
-        $btn = New-Object System.Windows.Forms.Button
-        $btn.Text = 'Cancel·lar'
-        $btn.Location = New-Object System.Drawing.Point(354, 90)
-        $btn.Size = New-Object System.Drawing.Size(90, 28)
-        $btn.add_Click({ $st.Cancel = $true }.GetNewClosure())
-        $form.Controls.Add($btn)
+        [void](_AddPeuBotons $form @(@{ Nom = 'Cancel'; Text = 'Cancel·lar'; Clic = { $st.Cancel = $true }.GetNewClosure() }) @() 90)
         $form.Show(); [System.Windows.Forms.Application]::DoEvents()
     }
 
@@ -876,21 +871,13 @@ function _RecMuntaTab($tab, $camp, $estat, $db) {
 
     $bot = New-Object System.Windows.Forms.Panel
     $bot.Dock = 'Bottom'; $bot.Height = 48
-    $mkBtn = {
-        param($text, $x, $w)
-        $b = New-Object System.Windows.Forms.Button
-        $b.Text = $text
-        $b.Location = New-Object System.Drawing.Point($x, 9)
-        $b.Size = New-Object System.Drawing.Size($w, 30)
-        $bot.Controls.Add($b)
-        return $b
-    }
-    $btnText = & $mkBtn 'Editar text...'      16  120
-    $btnCsv  = & $mkBtn 'Exportar CSV'        144 110
-    $btnExc  = & $mkBtn 'Excloure / incloure' 262 150
-    $btnAuto = & $mkBtn 'Automàtic...'        420 110
-    $btnSend = & $mkBtn 'Enviar tanda'        870 140
-    $btnSend.Anchor = 'Top,Right'
+    $peu = _AddPeuBotons $tab @(
+        @{ Nom = 'Text'; Text = 'Editar text...' },
+        @{ Nom = 'Csv'; Text = 'Exportar CSV' },
+        @{ Nom = 'Exc'; Text = 'Excloure / incloure' },
+        @{ Nom = 'Auto'; Text = 'Automàtic...' }) @(
+        @{ Nom = 'Send'; Text = 'Enviar tanda'; Estil = 'primari' }) 8 $bot
+    $btnText = $peu.Text; $btnCsv = $peu.Csv; $btnExc = $peu.Exc; $btnAuto = $peu.Auto; $btnSend = $peu.Send
 
     # --- Funcions de la pestanya --------------------------------------------
     $txtCerca = _AddSearchBox $top 240 48 300 'Cerca:' { & $fn.Pinta }

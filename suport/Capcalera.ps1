@@ -126,28 +126,11 @@ function _BuildHeaderForm($excelInfo) {
     $rbDoc.add_CheckedChanged($applyOrigen)
     & $applyOrigen
 
-    $back = New-Object System.Windows.Forms.Button
-    $back.Text = 'Enrere'
-    $back.Location = New-Object System.Drawing.Point(15, $y)
-    $back.Size = New-Object System.Drawing.Size(90, 30)
-    $back.DialogResult = 'Retry'
-    _StyleSecondaryButton $back
-    [void]$form.Controls.Add($back)
-
-    $recover = New-Object System.Windows.Forms.Button
-    $recover.Text = ([char]0x21BA + " Recuperar dades ultim informe")
-    $recover.Location = New-Object System.Drawing.Point(115, $y)
-    $recover.Size = New-Object System.Drawing.Size(250, 30)
-    _StyleSecondaryButton $recover
-    [void]$form.Controls.Add($recover)
-
-    $ok = New-Object System.Windows.Forms.Button
-    $ok.Text = ('Seg' + [char]0x00FC + 'ent ' + [char]0x2192)   # Següent →
-    $ok.Location = New-Object System.Drawing.Point(575, $y)
-    $ok.Size = New-Object System.Drawing.Size(110, 30)
-    _StylePrimaryButton $ok
-    $form.AcceptButton = $ok
-    [void]$form.Controls.Add($ok)
+    $peu = _AddPeuBotons $form @(
+        @{ Nom = 'Enrere'; Text = (_TxtEnrere); Resultat = 'Retry' },
+        @{ Nom = 'Recupera'; Text = ([char]0x21BA + " Recuperar dades ultim informe") }) @(
+        @{ Nom = 'Ok'; Text = (_TxtSeguent); Estil = 'primari'; Intro = $true }) $y
+    $back = $peu.Enrere; $recover = $peu.Recupera; $ok = $peu.Ok
 
     # Barra de passos (pas 2 actiu) + banda granat. La banda s'afegeix DESPRES
     # per quedar a dalt de tot; les dues son Dock=Top.

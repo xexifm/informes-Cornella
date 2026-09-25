@@ -170,7 +170,7 @@ només fa servir el codi nou no simplifica res.
 | un **informe** o una família nova | un `Build-<Familia>Blocs` **pur** (torna la llista de blocs) + `Write-Informe` (`MotorInforme.ps1`). Mai `Format-*` directe: hi ha guard. Prova d'or a `tests/dades/emit-*.txt` |
 | la **vista en Word** d'un catàleg | els mateixos blocs + `Write-Informe -AmbNivells` (com `Build-LlicVistaBlocs`) |
 | un **format de paràgraf** nou (sagnia, espai, estil) | una constant o un `_*` de `Format.ps1`, aplicat **al rang**; mai al cursor |
-| una **pantalla** | `_NewForm`, `_AddBrandHeader`, `_StylePrimaryButton`/`_StyleSecondaryButton`, `_StyleListGrid`, `_AddSearchBox` (`UiComuns.ps1`); que hi capiga: `_AjustaFinestraAPantalla` (`UiFinestra.ps1`) |
+| una **pantalla** | `_NewForm`, `_AddBrandHeader`, `_StyleListGrid`, `_AddSearchBox` (`UiComuns.ps1`); els botons de baix, **sempre** amb `_AddPeuBotons` (sortir a l'esquerra, avançar a la dreta; hi ha guard); que hi capiga: `_AjustaFinestraAPantalla` (tots dos a `UiFinestra.ps1`) |
 | una **feina llarga** amb barra | `Show-ProgresCancel`; en segon pla, `Start-ScriptSegonPla` (`Motor.ps1`) |
 | llegir o desar **JSON** | `Read-JsonFile` / `Write-JsonFile` (atòmic, sense BOM) i `ConvertTo-Mapa` per passar-lo a hashtable (`Json.ps1`) |
 | una **carpeta** dins de `local/` | una clau nova a `Get-LocalSubdir` (`Migracio.ps1`), no un `Join-Path` a mà |
@@ -293,7 +293,8 @@ els llegís no fallaria — generaria un informe **silenciosament equivocat**. S
   carreguis WinForms" i la fan servir les proves.
 - **`suport/UiComuns.ps1`** = helpers de WinForms compartits; **es carrega el
   primer** de tots els mòduls i no coneix res del motor. Hi viuen `_NewForm`,
-  `_AddBrandHeader`, `_AddStepBar`, `_StylePrimaryButton`/`_StyleSecondaryButton`,
+  `_AddBrandHeader`, `_AddStepBar` (els `_Style*Button` i el peu de botons
+  `_AddPeuBotons` són a `UiFinestra.ps1`, que també carrega el procés de rutes),
   **`_MakeMultiFilter`** (abans al punt d'entrada) i **`_AddConfigRow`** (abans
   a `Configuracio.ps1`). Regla: si un helper d'interfície el fan servir dues
   pantalles, va aquí — mai a la pantalla que el va estrenar.

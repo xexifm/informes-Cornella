@@ -225,13 +225,7 @@ function Invoke-CopiarInformes {
     $bar.Size = New-Object System.Drawing.Size(510, 22)
     $bar.Style = 'Marquee'
     $form.Controls.Add($bar)
-    $btnCancel = New-Object System.Windows.Forms.Button
-    $btnCancel.Text = 'Cancel·lar'
-    $btnCancel.Size = New-Object System.Drawing.Size(120, 30)
-    $btnCancel.Location = New-Object System.Drawing.Point(410, 118)
-    _StyleSecondaryButton $btnCancel
-    $btnCancel.add_Click({ $cancel.Flag = $true }.GetNewClosure())
-    $form.Controls.Add($btnCancel)
+    [void](_AddPeuBotons $form @(@{ Nom = 'Cancel'; Text = 'Cancel·lar'; Clic = { $cancel.Flag = $true }.GetNewClosure() }) @() 116)
     $form.add_FormClosing({
         param($s, $e)
         if ($cancel.Running) { $cancel.Flag = $true; $e.Cancel = $true }  # X = cancel·lar; el tancament real el fa el 'finally'

@@ -52,7 +52,8 @@
     rutes\Coordenades.ps1  mapa per repassar la geolocalitzacio dels establiments
 
     -- comu --
-    UiComuns.ps1        finestres, botons, la banda granat, _AddConfigRow
+    UiComuns.ps1        finestres, la banda granat, _AddConfigRow (el peu de
+                        botons i els estils, a UiFinestra.ps1)
     Docx.ps1            llegir/editar un .docx SENSE Word (ZIP + WordprocessingML)
     Excel.ps1           llegir la fulla "Estes" de l'Excel d'activitats
     Settings.ps1        settings.json d'aquest ordinador

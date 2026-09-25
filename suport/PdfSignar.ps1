@@ -1064,22 +1064,11 @@ function _ShowConvertPdfOptions {
     $yBotons = $y + $tbCx.Height + 14
     $form.ClientSize = New-Object System.Drawing.Size($Script:PdfDlgAmple, ($yBotons + 44))
 
-    $btnGo = New-Object System.Windows.Forms.Button
-    $btnGo.Text = 'Comença'
-    $btnGo.Location = New-Object System.Drawing.Point(($Script:PdfDlgAmple - 230), $yBotons)
-    $btnGo.Size = New-Object System.Drawing.Size(120, 30)
-    $btnGo.Anchor = 'Bottom, Right'
-    _StylePrimaryButton $btnGo
-    [void]$form.Controls.Add($btnGo)
+    $peu = _AddPeuBotons $form @(@{ Nom = 'Tanca'; Text = 'Tanca' }) @(
+        @{ Nom = 'Go'; Text = ('Comen' + [char]0x00E7 + 'a'); Estil = 'primari' }) $yBotons -Ancorat
+    $btnGo = $peu.Go; $btnCancel = $peu.Tanca
 
-    $btnCancel = New-Object System.Windows.Forms.Button
-    $btnCancel.Text = 'Tanca'
-    $btnCancel.Location = New-Object System.Drawing.Point(($Script:PdfDlgAmple - 104), $yBotons)
-    $btnCancel.Size = New-Object System.Drawing.Size(88, 30)
-    $btnCancel.Anchor = 'Bottom, Right'
-    _StyleSecondaryButton $btnCancel
     $btnCancel.add_Click({ $form.DialogResult = 'Cancel'; $form.Close() }.GetNewClosure())
-    [void]$form.Controls.Add($btnCancel)
 
     $result = @{ Value = $null }
     $btnGo.add_Click({
@@ -1213,13 +1202,8 @@ function _RunConvertPdf($opts) {
     $bar.Size = New-Object System.Drawing.Size(530, 22)
     $bar.Style = 'Continuous'; $bar.Minimum = 0; $bar.Maximum = [Math]::Max(1, $files.Count); $bar.Value = 0
     $form.Controls.Add($bar)
-    $btnCancel = New-Object System.Windows.Forms.Button
-    $btnCancel.Text = 'Cancel·lar'
-    $btnCancel.Size = New-Object System.Drawing.Size(120, 30)
-    $btnCancel.Location = New-Object System.Drawing.Point(430, 124)
-    _StyleSecondaryButton $btnCancel
+    $btnCancel = (_AddPeuBotons $form @(@{ Nom = 'Cancel'; Text = ('Cancel' + [char]0x00B7 + 'lar') }) @() 122).Cancel
     $btnCancel.add_Click({ $cancel.Flag = $true }.GetNewClosure())
-    $form.Controls.Add($btnCancel)
     $form.add_FormClosing({
         param($s, $e)
         if ($cancel.Running) { $cancel.Flag = $true; $e.Cancel = $true }
