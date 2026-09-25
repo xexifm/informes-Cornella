@@ -38,7 +38,8 @@
 
     -- eines del menu --
     EditorCatalegs.ps1  editar els catalegs   VistaWord.ps1     vistes en Word
-    PdfSignar.ps1       Word a PDF + signar   ActExtr.ps1       act. extraordinaries
+    PdfSignar.ps1       Word a PDF + signar   ActExtr*.ps1      act. extraordinaries
+                        (Dades, Blocs, Pantalles i l'orquestrador, com Llicencia)
     PdfUnio.ps1         ajuntar l'informe de llicencia amb els PDF dels organismes
     Llicencia*.ps1      Dades (pures), Blocs (l'informe), Pantalles i l'assistent
     LlicenciaDb.ps1     la memoria de cada llicencia entre informes
@@ -60,7 +61,7 @@
   Tot va amb DOT-SOURCE al mateix ambit: una funcio d'un modul veu les dels
   altres i les variables d'aqui. Per aixo l'ORDRE de carrega importa nomes per
   als moduls que calculen alguna cosa EN CARREGAR-SE (Activitats.ps1 i
-  ActExtr.ps1 en calculen rutes): han d'anar despres del bloc de rutes.
+  ActExtrDades.ps1 en calculen rutes): han d'anar despres del bloc de rutes.
 
   Flux del programa:
     1. Trias mode i cataleg (Seguiment.ps1, Select-Mode).
@@ -421,10 +422,13 @@ $CopiaInformesDir = _ResolveEffectiveValue $AppSettings.CopiaInformesDir $CopiaI
 # Test-Path. En headless no cal (els tests no volen tocar el disc del clone).
 if (-not $Script:HeadlessTest) { [void](Invoke-MigracioLocal $RepoRoot) }
 
-# Carreguem el modul ACT_EXTR (ActExtr.ps1): mode "Activitats extraordinaries"
+# Carreguem el modul ACT_EXTR (ActExtr*.ps1): mode "Activitats extraordinaries"
 # (Decret 112/2010). Es carrega DESPRES de $RepoRoot, $EstructuralsDir i del
 # config (perque pugui calcular les rutes del registre/plantilles i deixar que
 # config.ps1 les sobreescrigui). Tambe en headless, per als tests de la logica.
+. (Join-Path $ScriptRoot 'ActExtrDades.ps1')     # calcula les rutes: el primer
+. (Join-Path $ScriptRoot 'ActExtrBlocs.ps1')
+. (Join-Path $ScriptRoot 'ActExtrPantalles.ps1')
 . (Join-Path $ScriptRoot 'ActExtr.ps1')
 
 # Carreguem el modul d'escaneig d'informes (Informes.ps1): construeix la base de

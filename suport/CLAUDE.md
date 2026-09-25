@@ -155,7 +155,7 @@ arguments i de vegades ha de ser visible.
 o sigui que moure una funció d'un fitxer a un altre no en canvia el comportament.
 L'únic que compta és l'**ordre de càrrega**, i només per als mòduls que
 **calculen alguna cosa en carregar-se** (`Activitats.ps1` → `$LocalActivitatsDir`,
-`ActExtr.ps1` → rutes del registre): han d'anar **després** del bloc de rutes.
+`ActExtrDades.ps1` → rutes del registre): han d'anar **després** del bloc de rutes.
 En partir, verifica que la llista de noms de funció de tot `suport/` és idèntica
 abans i després.
 

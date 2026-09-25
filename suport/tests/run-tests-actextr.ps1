@@ -1,4 +1,4 @@
-﻿# Proves automatiques de les funcions PURES del mode ACT_EXTR (ActExtr.ps1).
+﻿# Proves automatiques de les funcions PURES del mode ACT_EXTR (ActExtr*.ps1).
 #
 # NO prova la part de Word (COM) ni les finestres (WinForms): aixo nomes es pot
 # provar a Windows amb Office. Aqui es valida la LOGICA del Decret 112/2010
@@ -9,7 +9,7 @@
 #   pwsh -File suport/tests/run-tests-actextr.ps1
 #
 # Carrega Motor.ps1 en mode "headless" (GENINFORME_TEST=1), que al seu torn fa
-# dot-source d'ActExtr.ps1.
+# dot-source dels ActExtr*.ps1.
 
 $ErrorActionPreference = 'Stop'
 $env:GENINFORME_TEST = '1'
