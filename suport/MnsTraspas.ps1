@@ -165,45 +165,50 @@ function _MnsNomFitxer([datetime]$data, [string]$fase, [string]$idGia) {
 }
 
 # ----------------------------------------------------------------------------
-# COMPOSICIO DEL DOCUMENT (Word COM)
+# COMPOSICIO DEL DOCUMENT: BLOCS PURS + Write-Informe (MotorInforme.ps1)
 # ----------------------------------------------------------------------------
+# L'informe sencer en blocs. Funcio PURA. $model: Fase, Header, Fields, Punts
+# (les seccions de REQ1 triades) i Cataleg (MNSTRAS.json).
+function Build-MnsBlocs($model) {
+    $b = New-Object System.Collections.ArrayList
+    $fields = $model.Fields
+    # HI HA PUNTS DE REQ1? Es l'unica cosa que decideix la frase i la conclusio.
+    $seccions = @($model.Punts)
+    $amb = ($seccions.Count -gt 0)
+
+    foreach ($p in @(_MnsParagrafs $model.Cataleg ([string]$model.Fase) $amb)) {
+        if ([string]$p.Tipus -eq 'llista') {
+            # El paragraf de llista va BUIT: l'omple l'usuari al Word.
+            [void]$b.Add(@{ T = 'llista'; Text = '' })
+            continue
+        }
+        foreach ($l in @(Apply-FieldsToLines $p.Linies $fields)) {
+            foreach ($x in @(_BlocsDeLinia ([string]$l) $false)) { [void]$b.Add($x) }
+        }
+        [void]$b.Add(@{ T = 'aire'; Clau = 'item' })
+    }
+
+    # ELS PUNTS DE REQ1, amb la MATEIXA funcio que els informes de REQ1: el
+    # format es identic per construccio i no n'hi ha cap copia.
+    if ($amb) { foreach ($x in @(Build-CatalegBlocs $seccions $fields '')) { [void]$b.Add($x) } }
+
+    # CONCLUSIONS. El bloc nomes surt si te alguna linia; el tancament hi va
+    # sempre, com a la resta d'informes (son els nodes 'sempre' del cataleg).
+    $concl = @(_MnsConclusions ([string]$model.Fase) $amb)
+    $cap = if ($concl.Count -gt 0) { 'CONCLUSIONS' } else { '' }
+    foreach ($x in @(_BlocsConclusions $cap $concl (Get-TextTancament) $fields)) { [void]$b.Add($x) }
+    return $b.ToArray()
+}
+
 function Build-MnsDocument($word, $model) {
     $header = $model.Header
     $baseName = _MnsNomFitxer (Get-Date) ([string]$model.Fase) ([string]$header['ID_GIA'])
-    $cfg = $Script:ReportFormatConfig
-    $fields = $model.Fields
-
+    $blocs = Build-MnsBlocs $model
     # LA MATEIXA CAPCALERA que la resta d'informes de Llicencia (porta la linia
     # "Classificacio:"), tal com va demanar l'usuari.
     return Write-InformeDocx $word $baseName 'LLIC' $header {
         param($sel)
-        # HI HA PUNTS DE REQ1? Es l'unica cosa que decideix la frase i la conclusio.
-        $seccions = @($model.Punts)
-        $amb = ($seccions.Count -gt 0)
-
-        foreach ($p in @(_MnsParagrafs $model.Cataleg ([string]$model.Fase) $amb)) {
-            if ([string]$p.Tipus -eq 'llista') {
-                # El paragraf de llista va BUIT: l'omple l'usuari al Word.
-                Format-ListItem $sel ''
-                continue
-            }
-            foreach ($l in @(Apply-FieldsToLines $p.Linies $fields)) {
-                $pp = _SplitTextAndUrls ([string]$l)
-                if (-not [string]::IsNullOrWhiteSpace($pp.Text)) { Format-Body $sel $pp.Text }
-                foreach ($u in @($pp.Urls)) { Format-Url $sel $u }
-            }
-            Format-Aire $sel 'item'
-        }
-
-        # ELS PUNTS DE REQ1, amb la MATEIXA funcio que els informes de REQ1: el
-        # format es identic per construccio i no n'hi ha cap copia.
-        if ($amb) { _WriteCatalegBody $sel $cfg $seccions $fields '' }
-
-        # CONCLUSIONS. El bloc nomes surt si te alguna linia; el tancament hi va
-        # sempre, com a la resta d'informes (son els nodes 'sempre' del cataleg).
-        $concl = @(_MnsConclusions ([string]$model.Fase) $amb)
-        $cap = if ($concl.Count -gt 0) { 'CONCLUSIONS' } else { '' }
-        _WriteConclusionsBlock $sel $cfg $cap $concl (Get-TextTancament) $fields
+        [void](Write-Informe $sel $blocs)
     }
 }
 

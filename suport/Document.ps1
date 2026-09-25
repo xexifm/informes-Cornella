@@ -78,10 +78,13 @@ function Write-Tancament($sel, $fields = $null) {
     [void](Write-Informe $sel (_BlocsTancament $fields))
 }
 
-function _WriteConclusionsBlock($sel, $cfg, $headerText, $conclusions, $alwaysConclusions, $fields) {
+# EL BLOC DE CONCLUSIONS en blocs (titol, conclusions i les frases de sempre).
+# PURA: la fan servir REQ1/TERMINI (_WriteConclusionsBlock) i MNS/Traspas.
+function _BlocsConclusions($headerText, $conclusions, $alwaysConclusions, $fields) {
+    $conclusions = @($conclusions); $alwaysConclusions = @($alwaysConclusions)
     $hasBody = ($conclusions.Count -gt 0) -or ($alwaysConclusions.Count -gt 0)
     $hasHead = -not [string]::IsNullOrWhiteSpace($headerText)
-    if (-not $hasBody -and -not $hasHead) { return }
+    if (-not $hasBody -and -not $hasHead) { return @() }
 
     $b = New-Object System.Collections.ArrayList
     [void]$b.Add(@{ T = 'aire'; Clau = 'conclusions' })
@@ -93,7 +96,11 @@ function _WriteConclusionsBlock($sel, $cfg, $headerText, $conclusions, $alwaysCo
     foreach ($a in $alwaysConclusions) {
         foreach ($x in @(_BlocsConclusio (Apply-Fields -text ([string]$a) -fields $fields))) { [void]$b.Add($x) }
     }
-    [void](Write-Informe $sel $b.ToArray())
+    return $b.ToArray()
+}
+
+function _WriteConclusionsBlock($sel, $cfg, $headerText, $conclusions, $alwaysConclusions, $fields) {
+    [void](Write-Informe $sel @(_BlocsConclusions $headerText $conclusions $alwaysConclusions $fields))
 }
 
 function Build-Document($word, $header, $selectedSections, $fields, $conclusions, $alwaysConclusions, $catalegName, $introText, $conclusionsHeaderText, $isFixedBody = $false, $fixedBodyLines = @()) {

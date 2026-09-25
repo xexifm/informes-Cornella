@@ -1610,14 +1610,21 @@ vista de `LLIC.json` (`Build-LlicVistaBlocs`, `VistaWord.ps1`) fa servir la
 - Guards: `Llicencia.ps1` sense cap `Format-*` directe, i la variable de l'intro
   de secció només dins de `_LlicBlocsPunts` (validats injectant el defecte).
 
-### Què queda per migrar (i per què no corre pressa)
-`MnsTraspas.ps1` i `ActExtr.ps1` encara criden les `Format-*` directament
-(Llicència ja no: vegeu la secció d'aquí sobre). **No és duplicació**: totes tres ja passen per
-`Format-Aire`, `Write-Linia` i, quan escriuen punts de catàleg, per
-`_WriteCatalegBody`. El que els queda és lògica **pròpia** (la frase
-d'observacions de MNS, el repartiment per token d'ACT_EXTR, i l'ordre dels
-enllaços respecte del comentari a Llicència). Si es migren, **una família per
-commit i comparant el fitxer d'or a cada pas**.
+### TOTS els informes passen pel motor (setembre 2026)
+Llicència (`Build-LlicenciaBlocs`), MNS/Traspàs (`Build-MnsBlocs`) i ACT_EXTR
+(`Build-ActExtrBlocs`) ja són blocs purs com REQ1: **cap família crida les
+`Format-*` directament** i hi ha guard que ho vigila (validat injectant-ne una).
+Es va fer una família per commit i amb els fitxers d'or idèntics a cada pas.
+- **ACT_EXTR decideix ell el primer sub-punt**: allà obre unitat QUALSEVOL text
+  que no sigui sub-punt, i els seus pics de 1r nivell no porten mai la separació
+  gran. El bloc `pic` accepta per això un `First` ja decidit; si no el porta,
+  el decideix el motor, com a la resta d'informes.
+- `_WriteActExtrBody` / `_WriteActExtrBodyFav` es queden com a embolcalls
+  (les proves hi entren per aquí).
+- Les **vistes** d'ACT_EXTR, MNS i conclusions encara escriuen amb els
+  embolcalls `_V*` (`VistaWord.ps1`). No és duplicació de cap regla d'informe:
+  cada una ensenya un catàleg a la seva manera. Si mai s'hi ha de tocar, el camí
+  és el de la vista de LLIC (`Build-LlicVistaBlocs` + `Write-Informe -AmbNivells`).
 
 ## ESTRUCTURALS en JSON — FORMAT ESTÀNDARD ÚNIC, editable des del programa
 - **Objectiu (petició de l'usuari):** deixar de dependre del Word "rudimentari";

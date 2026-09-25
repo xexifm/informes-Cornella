@@ -1110,10 +1110,14 @@ Write-Host "`n--- Llicencia es munta amb BLOCS, i la regla de seccions es UNA --
 # LLIC.json) que s'havien de tocar alhora: un text fix va arribar a sortir tres
 # vegades, i la vista escrivia "[[URL]]" com a text. Ara l'informe i la vista
 # fan servir _LlicBlocsPunts i Write-Informe.
-$astLl = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $rootRepo (Join-Path 'suport' 'Llicencia.ps1')), [ref]$null, [ref]$null)
-$fmtLl = @($astLl.FindAll({ param($a) $a -is [System.Management.Automation.Language.CommandAst] -and ([string]$a.GetCommandName()) -like 'Format-*' }, $true) |
-          ForEach-Object { $_.GetCommandName() + ' (linia ' + $_.Extent.StartLineNumber + ')' })
-AssertEq ($fmtLl -join ', ') '' 'Llicencia.ps1: cap Format-* directe (tot passa per Write-Informe)'
+# I LES TRES FAMILIES QUE ESCRIVIEN PEL SEU COMPTE (Llicencia, MNS/Traspas i
+# ACT_EXTR) ja no ho fan: els seus Build-*Blocs son purs i escriu Write-Informe.
+foreach ($fam in @('Llicencia.ps1', 'MnsTraspas.ps1', 'ActExtr.ps1')) {
+    $astLl = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $rootRepo (Join-Path 'suport' $fam)), [ref]$null, [ref]$null)
+    $fmtLl = @($astLl.FindAll({ param($a) $a -is [System.Management.Automation.Language.CommandAst] -and ([string]$a.GetCommandName()) -like 'Format-*' }, $true) |
+              ForEach-Object { $_.GetCommandName() + ' (linia ' + $_.Extent.StartLineNumber + ')' })
+    AssertEq ($fmtLl -join ', ') '' ($fam + ': cap Format-* directe (tot passa per Write-Informe)')
+}
 foreach ($fv in @('VistaWord.ps1', 'Llicencia.ps1', 'MotorInforme.ps1', 'Document.ps1')) {
     $astV = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $rootRepo (Join-Path 'suport' $fv)), [ref]$null, [ref]$null)
     $usos = @($astV.FindAll({ param($a) $a -is [System.Management.Automation.Language.VariableExpressionAst] -and $a.VariablePath.UserPath -eq 'introSecAra' }, $true))

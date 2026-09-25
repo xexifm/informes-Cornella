@@ -387,7 +387,8 @@ function Write-Linia($sel, [string]$linia, [switch]$IsChild, $vistos = $null, $e
 #   etiqueta      Text                    rotul dins del cos
 #   item          Num, Text               punt numerat
 #   cos           Text, Fill, Negreta, Separat
-#   pic           Text, Fill              vinyeta (el -First el posa el motor)
+#   pic           Text, Fill[, First]     vinyeta (el -First el posa el motor,
+#                                         tret que el bloc ja el porti: ACT_EXTR)
 #   nota          Text                    sub-paragraf sagnat sense pic
 #   enllac        Url, Fill               hipervincle
 #   pla           Text, Negreta, Cos      text pla (ANNEX 1)
@@ -496,7 +497,12 @@ function _WriteBlocs($sel, $blocs, $estat, [bool]$ambNivells) {
             'pic' {
                 # EL -First EL DECIDEIX EL MOTOR, no qui munta els blocs: es
                 # l'unic que sap si aquest sub-punt obre la llista d'una unitat.
-                $primer = [bool]$estat.PrimerFill
+                #
+                # EXCEPCIO: un bloc pot portar el 'First' JA DECIDIT. Nomes ho fa
+                # ACT_EXTR, que te una regla propia per saber que obre una unitat
+                # (qualsevol text que no sigui sub-punt) i pics de 1r nivell que
+                # no el porten mai.
+                $primer = if ($b.ContainsKey('First')) { [bool]$b.First } else { [bool]$estat.PrimerFill }
                 if ($fill) { Format-Bullet $sel ([string]$b.Text) -IsChild -First:$primer }
                 else       { Format-Bullet $sel ([string]$b.Text) -First:$primer }
                 $estat.PrimerFill = $false

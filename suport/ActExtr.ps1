@@ -696,9 +696,25 @@ function _GetActExtrOutputFileName([string]$tipus, [string]$gia, [string]$activi
 #     (Titol 1 de la plantilla). Aixi la llista surt compacta, com el document
 #     de referencia.
 function _WriteActExtrBody($sel, $blocks, $mode, $ctx, $computed) {
-    if ($mode -eq 'fav') { _WriteActExtrBodyFav $sel $blocks $ctx $computed; return }
+    [void](Write-Informe $sel @(Build-ActExtrBlocs $blocks $mode $ctx $computed))
+}
+
+function _WriteActExtrBodyFav($sel, $blocks, $ctx, $computed) {
+    [void](Write-Informe $sel @(Build-ActExtrBlocs $blocks 'fav' $ctx $computed))
+}
+
+# EL COS D'ACT_EXTR EN BLOCS. Funcio PURA (es prova a Linux comptant blocs); qui
+# ho escriu es Write-Informe, com a la resta d'informes. Abans aquestes dues
+# regles escrivien directament al Word, i eren les ultimes del programa.
+#
+# El PRIMER SUB-PUNT d'una unitat (12 pt en lloc de 6) aqui el decideix aquesta
+# funcio i el passa al bloc ('First'): a ACT_EXTR obre unitat QUALSEVOL text que
+# no sigui un sub-punt, i el motor nomes ho sap fer amb blocs 'unitat'.
+function Build-ActExtrBlocs($blocks, $mode, $ctx, $computed) {
+    if ($mode -eq 'fav') { return @(_ActExtrBlocsFav $blocks $ctx $computed) }
 
     # ---- REQUERIMENT ----
+    $out = New-Object System.Collections.ArrayList
     $num0 = 0   # comptador d'items de 1r nivell (continu)
     $first = $true
     $primerFill = $false   # el seguent sub-punt es el primer de la seva unitat?
@@ -711,9 +727,7 @@ function _WriteActExtrBody($sel, $blocks, $mode, $ctx, $computed) {
             if ($c.IsUrl) {
                 $u = $resolved
                 if ($u.StartsWith('[[URL]] ')) { $u = $u.Substring('[[URL]] '.Length).Trim() }
-                if (-not [string]::IsNullOrWhiteSpace($u)) {
-                    if ($kind -eq 'child') { Format-Url $sel $u -IsChild } else { Format-Url $sel $u }
-                }
+                if (-not [string]::IsNullOrWhiteSpace($u)) { [void]$out.Add(@{ T = 'enllac'; Url = $u; Fill = ($kind -eq 'child') }) }
                 continue
             }
 
@@ -721,50 +735,42 @@ function _WriteActExtrBody($sel, $blocks, $mode, $ctx, $computed) {
             if ([string]::IsNullOrWhiteSpace($parts.Text) -and @($parts.Urls).Count -eq 0) { continue }
 
             if ($kind -eq 'child') {
-                # -First al PRIMER sub-punt que penja d'una unitat: el separa
-                # amb PrimerSubpuntSpaceBeforePt (12 pt) en lloc de BulletSpaceBeforePt
-                # (6 pt), com a tota la resta del programa. Aqui no s'hi posava
-                # i el primer sub-punt quedava enganxat al text de l'item.
                 if (-not [string]::IsNullOrWhiteSpace($parts.Text)) {
-                    Format-Bullet $sel $parts.Text -IsChild -First:$primerFill
+                    [void]$out.Add(@{ T = 'pic'; Text = $parts.Text; Fill = $true; First = $primerFill })
                     $primerFill = $false
                 }
-                foreach ($x in $parts.Urls) { Format-Url $sel $x -IsChild }
+                foreach ($x in $parts.Urls) { [void]$out.Add(@{ T = 'enllac'; Url = $x; Fill = $true }) }
                 $first = $false
                 continue
             }
 
-            # Unitat nova (item o paragraf de cos): linia en blanc al davant si
-            # no es la primera unitat del document.
-            #
-            # ES LA MATEIXA BANDERA QUE L'AIRE ENTRE ITEMS DE REQ1 ('item'):
-            # separar una unitat de la seguent es la mateixa decisio de format,
-            # i abans aqui anava a la fixa -o sigui que apagar-la a REQ1 no
-            # tocava ACT_EXTR-. L'unica diferencia es que aqui l'aire va DAVANT
-            # de la unitat i no darrere, i per aixo el document no acaba amb un
-            # paragraf en blanc de mes.
-            if (-not $first) { Format-Aire $sel 'item' }
+            # Unitat nova (item o paragraf de cos): linia en blanc al DAVANT si
+            # no es la primera unitat del document. La mateixa bandera que l'aire
+            # entre items de REQ1 ('item'); aqui va davant i no darrere, i per
+            # aixo el document no acaba amb un paragraf en blanc de mes.
+            if (-not $first) { [void]$out.Add(@{ T = 'aire'; Clau = 'item' }) }
             if ($kind -eq 'item') {
                 $num0++
-                if (-not [string]::IsNullOrWhiteSpace($parts.Text)) { Format-Item $sel "$num0." $parts.Text }
-                foreach ($x in $parts.Urls) { Format-Url $sel $x }
+                if (-not [string]::IsNullOrWhiteSpace($parts.Text)) { [void]$out.Add(@{ T = 'item'; Num = "$num0."; Text = $parts.Text }) }
             } else {
                 # "Ho poso al seu coneixement..." sempre separat (Format.ps1).
-                if (_EsFraseTancament $parts.Text) { Format-SeparaAnterior $sel }
-                if (-not [string]::IsNullOrWhiteSpace($parts.Text)) { Format-Body $sel $parts.Text }
-                foreach ($x in $parts.Urls) { Format-Url $sel $x }
+                if (_EsFraseTancament $parts.Text) { [void]$out.Add(@{ T = 'separa' }) }
+                if (-not [string]::IsNullOrWhiteSpace($parts.Text)) { [void]$out.Add(@{ T = 'cos'; Text = $parts.Text }) }
             }
+            foreach ($x in $parts.Urls) { [void]$out.Add(@{ T = 'enllac'; Url = $x }) }
             # La unitat que ve de tancar-se es la mare dels sub-punts seguents.
             $primerFill = $true
             $first = $false
         }
     }
+    return $out.ToArray()
 }
 
-# Emissio del cos de l'INFORME FAVORABLE (espaiat per seccions; vegeu
-# _WriteActExtrBody). Els punts van amb PIC i separats per SpaceBefore; entre
-# seccions (canvi de Titol 1 de la plantilla) s'hi posa una linia en blanc.
-function _WriteActExtrBodyFav($sel, $blocks, $ctx, $computed) {
+# El cos de l'INFORME FAVORABLE en blocs (espaiat per seccions). Els punts van
+# amb PIC i separats per SpaceBefore; entre seccions (canvi de Titol 1 de la
+# plantilla) s'hi posa una linia en blanc. Funcio PURA.
+function _ActExtrBlocsFav($blocks, $ctx, $computed) {
+    $out = New-Object System.Collections.ArrayList
     $firstBlock  = $true
     $prevSection = -1
     $primerFill  = $false   # el seguent sub-punt es el primer de la seva unitat?
@@ -773,7 +779,7 @@ function _WriteActExtrBodyFav($sel, $blocks, $ctx, $computed) {
         $kind = [string]$block.Kind
         # Linia en blanc nomes al canvi de seccio (no dins d'una seccio): la
         # mateixa bandera que separa les seccions a la resta d'informes.
-        if ((-not $firstBlock) -and ([int]$block.Section -ne [int]$prevSection)) { Format-Aire $sel 'seccio' }
+        if ((-not $firstBlock) -and ([int]$block.Section -ne [int]$prevSection)) { [void]$out.Add(@{ T = 'aire'; Clau = 'seccio' }) }
 
         foreach ($c in $block.Contents) {
             $resolved = Resolve-ActExtrTokens ([string]$c.Text) $computed
@@ -781,9 +787,7 @@ function _WriteActExtrBodyFav($sel, $blocks, $ctx, $computed) {
             if ($c.IsUrl) {
                 $u = $resolved
                 if ($u.StartsWith('[[URL]] ')) { $u = $u.Substring('[[URL]] '.Length).Trim() }
-                if (-not [string]::IsNullOrWhiteSpace($u)) {
-                    if ($kind -eq 'child') { Format-Url $sel $u -IsChild } else { Format-Url $sel $u }
-                }
+                if (-not [string]::IsNullOrWhiteSpace($u)) { [void]$out.Add(@{ T = 'enllac'; Url = $u; Fill = ($kind -eq 'child') }) }
                 continue
             }
 
@@ -791,25 +795,31 @@ function _WriteActExtrBodyFav($sel, $blocks, $ctx, $computed) {
             if ([string]::IsNullOrWhiteSpace($parts.Text) -and @($parts.Urls).Count -eq 0) { continue }
             $txt = $parts.Text
 
-            # -First al PRIMER sub-punt de cada unitat (12 pt en lloc de 6),
-            # com a tota la resta del programa. Qualsevol contingut que NO sigui
-            # un sub-punt obre unitat nova.
             # "Ho poso al seu coneixement..." sempre separat (Format.ps1).
-            if (_EsFraseTancament $txt) { Format-SeparaAnterior $sel }
+            if (_EsFraseTancament $txt) { [void]$out.Add(@{ T = 'separa' }) }
+            # -First al PRIMER sub-punt de cada unitat (12 pt en lloc de 6).
+            # Qualsevol contingut que NO sigui un sub-punt obre unitat nova.
             if ($kind -eq 'child') {
                 if ($txt) {
-                    Format-Bullet $sel $txt -IsChild -First:$primerFill
+                    [void]$out.Add(@{ T = 'pic'; Text = $txt; Fill = $true; First = $primerFill })
                     $primerFill = $false
                 }
-                foreach ($x in $parts.Urls) { Format-Url $sel $x -IsChild }
+                foreach ($x in $parts.Urls) { [void]$out.Add(@{ T = 'enllac'; Url = $x; Fill = $true }) }
             } else {
+                # Els enllacos d'una NOTA van sagnats (de fill); la resta, no.
+                $urlFill = $false
                 switch ($kind) {
-                    'note'   { if ($txt) { Format-Note $sel $txt };            foreach ($x in $parts.Urls) { Format-Url $sel $x -IsChild } }
-                    'label'  { if ($txt) { Format-Label $sel $txt };           foreach ($x in $parts.Urls) { Format-Url $sel $x } }
-                    'header' { if ($txt) { Format-ConclusionHeader $sel $txt } }
-                    'conc'   { if ($txt) { Format-Conclusion $sel $txt };      foreach ($x in $parts.Urls) { Format-Url $sel $x } }
-                    'text'   { if ($txt) { Format-Body $sel $txt };            foreach ($x in $parts.Urls) { Format-Url $sel $x } }
-                    default  { if ($txt) { Format-Bullet $sel $txt };          foreach ($x in $parts.Urls) { Format-Url $sel $x } }  # 'item'
+                    'note'   { if ($txt) { [void]$out.Add(@{ T = 'nota'; Text = $txt }) }; $urlFill = $true }
+                    'label'  { if ($txt) { [void]$out.Add(@{ T = 'etiqueta'; Text = $txt }) } }
+                    'header' { if ($txt) { [void]$out.Add(@{ T = 'conclusiocap'; Text = $txt }) } }
+                    'conc'   { if ($txt) { [void]$out.Add(@{ T = 'conclusio'; Text = $txt }) } }
+                    'text'   { if ($txt) { [void]$out.Add(@{ T = 'cos'; Text = $txt }) } }
+                    # 'item': pic de 1r nivell, que MAI porta la separacio gran.
+                    default  { if ($txt) { [void]$out.Add(@{ T = 'pic'; Text = $txt; First = $false }) } }
+                }
+                # Un 'header' no escrivia els seus enllacos (sempre ha estat aixi).
+                if ($kind -ne 'header') {
+                    foreach ($x in $parts.Urls) { [void]$out.Add(@{ T = 'enllac'; Url = $x; Fill = $urlFill }) }
                 }
                 $primerFill = $true
             }
@@ -817,6 +827,7 @@ function _WriteActExtrBodyFav($sel, $blocks, $ctx, $computed) {
         $prevSection = [int]$block.Section
         $firstBlock  = $false
     }
+    return $out.ToArray()
 }
 
 # Genera el document (requeriment o informe favorable) i retorna la ruta del
