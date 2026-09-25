@@ -152,28 +152,9 @@ function _LlicPortaProjecte([string]$fase) {
     return ([string]$fase -eq 'requeriment')
 }
 
-# LA MARCA D'UN PUNT: "1." o "A.". Funcions PURES.
-#
-# EL BLOC PROJECTE VA AMB LLETRES i la resta amb numeros, i el motiu no es
-# estetic: quan els requeriments de projecte queden resolts han de desapareixer
-# de l'informe SENSE que la resta de la documentacio es renumeri. Amb tot
-# numerat, el dia que el bloc PROJECTE marxa, l'"1." passa a ser una altra cosa
-# i el titular no pot comparar-ho amb el que ja tenia.
-#
-# Passades les 26, segueix com les columnes de l'Excel: AA, AB... Aixi no hi ha
-# cap topall amagat.
-function _LlicLletra([int]$i) {
-    if ($i -le 0) { return '' }
-    $s = ''
-    $n = $i
-    while ($n -gt 0) {
-        $n--
-        $s = ([string][char](65 + ($n % 26))) + $s
-        $n = [int][Math]::Floor($n / 26)
-    }
-    return $s
-}
-
+# LA MARCA D'UN PUNT: "1." o "A.". PURA. La lletra la fa _LlicLletra
+# (LlicenciaDades.ps1): tambe dona nom als adjunts, i si fos aqui les dades
+# dependrien de la composicio.
 function _LlicMarca([int]$i, [string]$estil) {
     if ([string]$estil -eq 'lletra') { return ((_LlicLletra $i) + '.') }
     return ([string]$i + '.')

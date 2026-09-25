@@ -886,6 +886,29 @@ function _LlicItemsDocsSignats($docs) {
     return $out.ToArray()
 }
 
+# LA LLETRA D'UN PUNT ("A", "B"... "AA"). PURA. La fan servir la marca dels
+# punts (_LlicMarca, LlicenciaBlocs.ps1) i el nom dels adjunts (a.OGAU.pdf).
+#
+# EL BLOC PROJECTE VA AMB LLETRES i la resta amb numeros, i el motiu no es
+# estetic: quan els requeriments de projecte queden resolts han de desapareixer
+# de l'informe SENSE que la resta de la documentacio es renumeri. Amb tot
+# numerat, el dia que el bloc PROJECTE marxa, l'"1." passa a ser una altra cosa
+# i el titular no pot comparar-ho amb el que ja tenia.
+#
+# Passades les 26, segueix com les columnes de l'Excel: AA, AB... Aixi no hi ha
+# cap topall amagat.
+function _LlicLletra([int]$i) {
+    if ($i -le 0) { return '' }
+    $s = ''
+    $n = $i
+    while ($n -gt 0) {
+        $n--
+        $s = ([string][char](65 + ($n % 26))) + $s
+        $n = [int][Math]::Floor($n / 26)
+    }
+    return $s
+}
+
 # ELS ADJUNTS: els informes dels organismes que posen les condicions, que van
 # darrere del nostre quan es passa a PDF (PdfUnio.ps1).
 #

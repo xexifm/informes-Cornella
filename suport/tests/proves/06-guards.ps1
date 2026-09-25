@@ -1166,6 +1166,7 @@ $arrelSuport = Join-Path $rootRepo 'suport'
 $massaGrans = New-Object System.Collections.ArrayList
 $fnsVistes = @{}
 $fnsRepes = New-Object System.Collections.ArrayList
+$astsGuard = @{}
 foreach ($f in @(Get-ChildItem -Path $arrelSuport -Recurse -Filter *.ps1 -File)) {
     $rel = $f.FullName.Substring($arrelSuport.Length + 1).Replace('\', '/')
     if ($rel.StartsWith('tests/')) { continue }
@@ -1175,6 +1176,7 @@ foreach ($f in @(Get-ChildItem -Path $arrelSuport -Recurse -Filter *.ps1 -File))
     # Tot va amb dot-source al MATEIX ambit: dues funcions amb el mateix nom no
     # donen cap error, guanya la darrera carregada i l'altra desapareix en silenci.
     $astF = [System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$null, [ref]$null)
+    $astsGuard[$rel] = $astF
     foreach ($fd in @($astF.FindAll({ param($a) $a -is [System.Management.Automation.Language.FunctionDefinitionAst] }, $true))) {
         if ($fnsVistes.ContainsKey($fd.Name) -and $fnsVistes[$fd.Name] -ne $rel) {
             [void]$fnsRepes.Add($fd.Name + ' (' + $fnsVistes[$fd.Name] + ' i ' + $rel + ')')
@@ -1184,3 +1186,38 @@ foreach ($f in @(Get-ChildItem -Path $arrelSuport -Recurse -Filter *.ps1 -File))
 }
 AssertEq ($massaGrans -join ', ') '' ('cap fitxer de suport/ passa de ' + $Script:MidaMaxFitxer + ' linies (o del sostre de la seva excepcio)')
 AssertEq ($fnsRepes -join ', ') '' 'cap nom de funcio definit a dos fitxers (el darrer carregat guanyaria en silenci)'
+
+# CAP CICLE ENTRE FITXERS. Si A crida B i B crida A, cap dels dos no es pot
+# entendre ni provar sol, i el seguent canvi els acaba barrejant. L'unic cicle
+# que hi havia (LlicenciaDades <-> LlicenciaBlocs, per _LlicLletra) es va trencar
+# movent la funcio a les dades. Si en surt un, la funcio compartida va al fitxer
+# de mes avall (el generic), no al client.
+$depsFitxer = @{}
+foreach ($rel in $astsGuard.Keys) {
+    $depsFitxer[$rel] = @{}
+    foreach ($ca in @($astsGuard[$rel].FindAll({ param($a) $a -is [System.Management.Automation.Language.CommandAst] }, $true))) {
+        $nm = $ca.GetCommandName()
+        if ($nm -and $fnsVistes.ContainsKey($nm) -and $fnsVistes[$nm] -ne $rel) { $depsFitxer[$rel][$fnsVistes[$nm]] = $true }
+    }
+}
+$cicles = New-Object System.Collections.ArrayList
+foreach ($a in @($depsFitxer.Keys | Sort-Object)) {
+    foreach ($b in @($depsFitxer[$a].Keys | Sort-Object)) {
+        if ($a -ge $b -and $depsFitxer.ContainsKey($b) -and $depsFitxer[$b].ContainsKey($a)) { continue }   # la parella ja s'ha dit
+        # Arriba $b a $a? (recorregut en amplada)
+        $vist = @{ $b = $true }
+        $cua = New-Object System.Collections.Queue
+        $cua.Enqueue($b)
+        $torna = $false
+        while ($cua.Count -gt 0 -and -not $torna) {
+            $x = $cua.Dequeue()
+            if (-not $depsFitxer.ContainsKey($x)) { continue }
+            foreach ($y in @($depsFitxer[$x].Keys)) {
+                if ($y -eq $a) { $torna = $true; break }
+                if (-not $vist.ContainsKey($y)) { $vist[$y] = $true; $cua.Enqueue($y) }
+            }
+        }
+        if ($torna) { [void]$cicles.Add("$a -> $b -> ... -> $a") }
+    }
+}
+AssertEq ($cicles -join ' | ') '' 'cap cicle de dependencies entre fitxers de suport/'
