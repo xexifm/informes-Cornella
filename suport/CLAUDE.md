@@ -1036,7 +1036,8 @@ destinataris d'una altra activitat.
   `Requeriment` i `Precinte / Cessament`: Estat, GIA, Titular, Adreça (creuada
   amb l'Excel per GIA), Expedient, Data informe, Conclusió breu. Filtrable a
   Excel per la columna Estat.
-- **Copiar informes** (`Invoke-CopiarInformes`, `Informes.ps1`): còpia **plana**
+- **Copiar informes** (`Invoke-CopiarInformes`, `CopiaInformes.ps1`; fins a la
+  revisió d'arquitectura de setembre 2026 vivia a `Informes.ps1`): còpia **plana**
   (tots els Word a una sola carpeta) i **incremental** de `$InformesDir` a
   `$CopiaInformesDir` (nova carpeta configurable, vegeu Configuració). **Només
   copia INFORMES**: `.doc`/`.docx` (ignora `~$…`) **amb data al principi del
@@ -1084,7 +1085,7 @@ destinataris d'una altra activitat.
   - Diagnòstic a `%LOCALAPPDATA%\InformesCornella\copia-informes-log.txt`
     (`_CopiaAutoLog`): d'un mode que no ensenya res, si no és per aquest fitxer
     no se'n sap res.
-- **Comprovar Excel** (`Invoke-ComprovarExcel`, `Informes.ps1`): per cada
+- **Comprovar Excel** (`Invoke-ComprovarExcel`, `ComprovarExcel.ps1`; abans a `Informes.ps1`): per cada
   activitat en Estat `Precinte / Cessament` de la base d'informes, comprova que a
   l'Excel (fulla "Estès", indexat per GIA = col 1) tingui un **Camp Info** amb
   Nom ∈ `$Script:ExcelPrecinteCampNoms` (`requerit per decret?` / `precinte?`) i

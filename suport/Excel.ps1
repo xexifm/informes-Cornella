@@ -199,3 +199,29 @@ function Read-FullaEstesa($excelFile, [scriptblock]$cos) {
         }
     }
 }
+
+# ----------------------------------------------------------------------------
+# Els "Camp Info" de l'Excel d'activitats (parelles Nom/Valor). El fan servir
+# "Comprovar Excel" i "Seguiment"; vivia a Informes.ps1 i una eina depenia de
+# l'altra per una cosa que no es de cap de les dues.
+# ----------------------------------------------------------------------------
+# PURA i testejable. A partir de la fila de capcaleres (array 0-based de textos),
+# localitza els parells de columnes "Camp Info N - Nom" / "Camp Info N - Valor"
+# i retorna una llista de @{ NomCol; ValorCol } (indexs 1-based, com Excel).
+function _FindCampInfoPairs($headers) {
+    $h = @($headers)
+    $pairs = @()
+    for ($i = 0; $i -lt $h.Count; $i++) {
+        $n = _NormalitzaText $h[$i]
+        if ($n -match '^camp info\s+(\d+)\s*-\s*nom$') {
+            $num = $Matches[1]
+            $target = _NormalitzaText ("camp info $num - valor")
+            $valorCol = 0
+            for ($j = 0; $j -lt $h.Count; $j++) {
+                if ((_NormalitzaText $h[$j]) -eq $target) { $valorCol = $j + 1; break }
+            }
+            if ($valorCol -gt 0) { $pairs += @{ NomCol = ($i + 1); ValorCol = $valorCol } }
+        }
+    }
+    return ,@($pairs)
+}

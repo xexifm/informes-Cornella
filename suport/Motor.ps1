@@ -32,12 +32,16 @@
     CatalegJson.ps1     lectura dels catalegs (ESTRUCTURALS\*.json)
     Activitats.ps1      Excel d'activitats: cache per ID GIA + pujada a Drive
     Informes.ps1        escaneig dels informes ja fets (informes-db.json)
+    CopiaInformes.ps1   eina "Copiar informes" (a ma i automatic)
+    ComprovarExcel.ps1  eina "Comprovar Excel" (precintes contra l'Excel)
     Migracio.ps1        rutes de local\ i endrec de les carpetes velles
 
     -- eines del menu --
     EditorCatalegs.ps1  editar els catalegs   VistaWord.ps1     vistes en Word
     PdfSignar.ps1       Word a PDF + signar   ActExtr.ps1       act. extraordinaries
     PdfUnio.ps1         ajuntar l'informe de llicencia amb els PDF dels organismes
+    Llicencia*.ps1      Dades (pures), Blocs (l'informe), Pantalles i l'assistent
+    LlicenciaDb.ps1     la memoria de cada llicencia entre informes
     ControlsPeriodics.ps1 + ControlsCpEmail.ps1                 controls periodics
     EmailTextos.ps1     textos del correu     Configuracio.ps1  rutes d'aquest PC
     EnviarCorreu.ps1    enviar el correu      EmailQuota.ps1    quota d'EmailJS
@@ -427,6 +431,9 @@ if (-not $Script:HeadlessTest) { [void](Invoke-MigracioLocal $RepoRoot) }
 # dades JSON (ID GIA + data + conclusio) a partir de la carpeta d'informes. Es
 # carrega tambe en headless perque els tests provin la logica de text pura.
 . (Join-Path $ScriptRoot 'Informes.ps1')
+# Les dues eines que vivien dins d'Informes.ps1 (revisio d'arquitectura):
+. (Join-Path $ScriptRoot 'CopiaInformes.ps1')
+. (Join-Path $ScriptRoot 'ComprovarExcel.ps1')
 
 # Lector dels ESTRUCTURALS en JSON (format estandard unic). Nomes defineix
 # funcions; segur en headless. Es carrega abans que s'usi (Get-ParsedCataleg/

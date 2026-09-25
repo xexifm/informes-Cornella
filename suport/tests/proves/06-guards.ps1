@@ -84,8 +84,8 @@ Write-Host "`n--- Copiar informes: manual i automatic, una sola copia ---"
 # es munta el seu bucle de copia, un dia divergiran: la de sempre passa per
 # aqui, la nova no, i els informes copiats deixen de ser els mateixos. Nomes hi
 # ha UN Copy-Item a tot el fitxer i es el del nucli (_CopiaInformesCopia).
-$srcInf = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'suport' 'Informes.ps1')))
-AssertEq (@([regex]::Matches($srcInf, 'Copy-Item')).Count) 1 'Copiar informes: un sol Copy-Item a Informes.ps1 (el del nucli)'
+$srcInf = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'suport' 'CopiaInformes.ps1')))
+AssertEq (@([regex]::Matches($srcInf, 'Copy-Item')).Count) 1 'Copiar informes: un sol Copy-Item a CopiaInformes.ps1 (el del nucli)'
 foreach ($fn in @('_CopiaInformesPrepara', '_CopiaInformesCerca', '_CopiaInformesTria', '_CopiaInformesCopia')) {
     Assert ($srcInf.Contains('function ' + $fn)) ("Copiar informes: el nucli sense finestres te " + $fn)
 }
