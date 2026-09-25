@@ -157,7 +157,7 @@ AssertEq @(_LlicActorsPerDefecte $actC @()).Count 0 '_LlicActorsPerDefecte: sens
 # EL TEXT VE DEL CATALEG, no del codi: hi ha de portar la negreta del **...**
 # (com les de REQ1) i no pot quedar cap frase de conclusio escrita al programa.
 Assert ([bool]($cPost -like '`*`**')) '_LlicConclusioText: la negreta ve del cataleg (**...**)'
-$srcLlicC = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $TestsDir) 'Llicencia.ps1') -Raw
+$srcLlicC = _SrcLlicencia
 Assert (-not ($srcLlicC -match 'Conclusio\s*=')) 'Llicencia: cap text de conclusio escrit al codi'
 Assert (-not ($srcLlicC.Contains('Ho poso al seu coneixement'))) 'Llicencia: ni el tancament'
 $srcMnsC = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $TestsDir) 'MnsTraspas.ps1') -Raw
@@ -451,7 +451,7 @@ AssertEq (@(_TrobaSolapaments $rcMolt).Count) 1 '_TrobaSolapaments: etiqueta sot
 
 # ...i la pantalla que ho patia: els botons del Pas 1 de Llicencia ja no van a
 # una Y clavada al codi, surten del peu de l'etiqueta.
-$srcLlic = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $TestsDir) 'Llicencia.ps1') -Raw
+$srcLlic = _SrcLlicencia
 $iFase = $srcLlic.IndexOf('function Select-LlicFase')
 $blocFase = $srcLlic.Substring($iFase, 4000)
 Assert ($blocFase.Contains('$lbl2.Bottom')) 'Select-LlicFase: els botons surten del peu de l''etiqueta'

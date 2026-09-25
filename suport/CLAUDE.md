@@ -10,7 +10,7 @@ hipotesis ja descartades- viuen ara a part:
 | Abans de tocar... | Llegeix |
 |---|---|
 | `suport/PdfSignar.ps1`, `suport/PdfCms.ps1` (Word a PDF, AutoFirma, la validesa de la signatura) | **`suport/documentacio/signatura-pdf.md`** |
-| `suport/Llicencia.ps1`, `LlicenciaDb.ps1`, `MnsTraspas.ps1`, `ESTRUCTURALS/LLIC.json` | **`suport/documentacio/llicencia.md`** |
+| `suport/Llicencia*.ps1` (Dades, Blocs, Pantalles i l'assistent), `LlicenciaDb.ps1`, `MnsTraspas.ps1`, `ESTRUCTURALS/LLIC.json` | **`suport/documentacio/llicencia.md`** |
 | `suport/rutes/` (rutes, coordenades, el planol public de precintades) | **`suport/documentacio/rutes-i-mapes.md`** |
 | Posar el mobil en marxa (Drive, EmailJS, GitHub Pages) | **`suport/documentacio/DESPLEGAMENT-MOBIL.md`** |
 | Provar el programa al PC despres d'una tanda de canvis | **`suport/documentacio/provar-al-pc.md`** (porta un prompt per enganxar) |

@@ -37,6 +37,18 @@ $scriptPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'Motor.ps1'
 # ni l'arrel del repositori.
 $TestsDir = $PSScriptRoot
 
+# EL CODI D'UN MODUL que viu en diversos fitxers (Llicencia en son quatre des de
+# la revisio d'arquitectura). Les proves de FONT el llegeixen sencer: aixi moure
+# una funcio d'un fitxer a un altre del mateix modul no les enganya.
+function _SrcModul([string]$patro) {
+    $dir = Split-Path -Parent $TestsDir
+    $t = foreach ($f in @(Get-ChildItem -LiteralPath $dir -Filter $patro -File | Sort-Object Name)) { [System.IO.File]::ReadAllText($f.FullName) }
+    return ($t -join "`n")
+}
+# El modul de Llicencia (sense LlicenciaDb.ps1, que es la base de dades).
+function _SrcLlicencia { return ((@('LlicenciaDades.ps1', 'LlicenciaBlocs.ps1', 'LlicenciaPantalles.ps1', 'Llicencia.ps1') | ForEach-Object { [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) $_)) }) -join "`n") }
+$Script:FitxersLlicencia = @('LlicenciaDades.ps1', 'LlicenciaBlocs.ps1', 'LlicenciaPantalles.ps1', 'Llicencia.ps1')
+
 foreach ($area in @('01-motor', '02-eines', '03-llicencia', '04-correu', '05-composicio', '06-guards', '07-pdfunio')) {
     . (Join-Path $PSScriptRoot (Join-Path 'proves' ($area + '.ps1')))
 }

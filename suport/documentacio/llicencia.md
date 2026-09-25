@@ -1,8 +1,13 @@
 # Llicència (Annex II / LL Prov), MNS i Traspàs
 
 > Ve de `suport/CLAUDE.md`, que s'havia fet massa gros per llegir-lo
-> sencer. **Llegeix-lo ABANS de tocar `suport/Llicencia.ps1`, `LlicenciaDb.ps1`,
+> sencer. **Llegeix-lo ABANS de tocar `suport/Llicencia*.ps1`, `LlicenciaDb.ps1`,
 > `MnsTraspas.ps1` o `ESTRUCTURALS/LLIC.json`**
+>
+> **El mòdul són quatre fitxers** (setembre 2026; abans un de 2.550 línies):
+> `LlicenciaDades.ps1` (funcions pures), `LlicenciaBlocs.ps1` (què s'escriu a
+> l'informe), `LlicenciaPantalles.ps1` (WinForms) i `Llicencia.ps1` (l'assistent).
+> Quan aquest document diu «`Llicencia.ps1`» d'una funció, és al que li toca.
 
 ## Llicència (Annex II / LL Prov) — `suport/Llicencia.ps1` + `ESTRUCTURALS/LLIC.json`
 - **No és un informe, són TRES** (`_LlicFases`): *requeriment* (el que es fa el

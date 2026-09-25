@@ -32,7 +32,7 @@ AssertEq (_LlicFasePerDefecte (_LlicFases) '') 'requeriment' 'Fase per defecte: 
 # I que no torni a apareixer cap clau de fase escrita a pel com a respatller.
 $rxRad = '\$radios\[' + $q + '[a-z-]+' + $q + '\]'
 $radLit = @()
-foreach ($ln in ((Get-Content -LiteralPath (Join-Path (Split-Path -Parent $TestsDir) 'Llicencia.ps1') -Raw) -split "`r?`n")) {
+foreach ($ln in ((_SrcLlicencia) -split "`r?`n")) {
     if ($ln.TrimStart().StartsWith('#')) { continue }   # els comentaris no compten
     if ([regex]::IsMatch($ln, $rxRad)) { $radLit += $ln.Trim() }
 }
@@ -752,7 +752,7 @@ Assert (-not (($sanejats -join '') -match 'A_B')) 'cap familia sanejant amb "_" 
 
 # El parametre $titular de _LlicNomFitxer era MORT: el crider i les proves el
 # passaven i el cos no el feia servir mai. Fora.
-$srcLlic = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'suport' 'Llicencia.ps1')))
+$srcLlic = _SrcLlicencia
 Assert (-not ($srcLlic -match 'function _LlicNomFitxer\([^)]*titular')) '_LlicNomFitxer ja no te el parametre mort $titular'
 
 
@@ -937,7 +937,7 @@ Assert (-not ($srcSel -match 'ShowNodeToolTips')) 'SeleccioItems.ps1: l''arbre d
 Assert (-not ($srcSel -match '\.ToolTipText\s*=')) 'SeleccioItems.ps1: cap node del Pas 3 no posa ToolTipText'
 # ...pero el de Llicencia SI que en te: alli l'arbre es d'un sol informe i el
 # tooltip hi segueix sent util. Si aixo canvies, el guard de dalt seria mentida.
-$srcLl = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'suport' 'Llicencia.ps1')))
+$srcLl = _SrcLlicencia
 Assert ($srcLl -match 'ShowNodeToolTips') 'Llicencia.ps1: l''arbre de Llicencia si que conserva els tooltips'
 
 Write-Host "`n--- La VERSIO de les vistes puja quan canvia com es veuen ---"
@@ -961,8 +961,7 @@ Write-Host "`n--- Llicencia: els camps de cada punt NO es sincronitzen amb els d
 # LA REGLA, dita pel parser: a Llicencia.ps1, el registre que es passa a
 # _RenderRichInto s'ha de crear (_NewFieldRegistry) DINS del mateix scriptblock
 # que el fa servir -la pintada d'un sol punt-, no a fora.
-$astLlR = [System.Management.Automation.Language.Parser]::ParseFile(
-    (Join-Path $rootRepo (Join-Path 'suport' 'Llicencia.ps1')), [ref]$null, [ref]$null)
+$astLlR = [System.Management.Automation.Language.Parser]::ParseInput((_SrcLlicencia), [ref]$null, [ref]$null)
 $crRender = @($astLlR.FindAll({ param($a)
     $a -is [System.Management.Automation.Language.CommandAst] -and $a.GetCommandName() -eq '_RenderRichInto' }, $true))
 Assert ($crRender.Count -ge 1) 'Llicencia.ps1: el guard troba les crides a _RenderRichInto'
@@ -1112,16 +1111,16 @@ Write-Host "`n--- Llicencia es munta amb BLOCS, i la regla de seccions es UNA --
 # fan servir _LlicBlocsPunts i Write-Informe.
 # I LES TRES FAMILIES QUE ESCRIVIEN PEL SEU COMPTE (Llicencia, MNS/Traspas i
 # ACT_EXTR) ja no ho fan: els seus Build-*Blocs son purs i escriu Write-Informe.
-foreach ($fam in @('Llicencia.ps1', 'MnsTraspas.ps1', 'ActExtr.ps1')) {
+foreach ($fam in @($Script:FitxersLlicencia + @('MnsTraspas.ps1', 'ActExtr.ps1'))) {
     $astLl = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $rootRepo (Join-Path 'suport' $fam)), [ref]$null, [ref]$null)
     $fmtLl = @($astLl.FindAll({ param($a) $a -is [System.Management.Automation.Language.CommandAst] -and ([string]$a.GetCommandName()) -like 'Format-*' }, $true) |
               ForEach-Object { $_.GetCommandName() + ' (linia ' + $_.Extent.StartLineNumber + ')' })
     AssertEq ($fmtLl -join ', ') '' ($fam + ': cap Format-* directe (tot passa per Write-Informe)')
 }
-foreach ($fv in @('VistaWord.ps1', 'Llicencia.ps1', 'MotorInforme.ps1', 'Document.ps1')) {
+foreach ($fv in @(@('VistaWord.ps1', 'MotorInforme.ps1', 'Document.ps1') + $Script:FitxersLlicencia)) {
     $astV = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $rootRepo (Join-Path 'suport' $fv)), [ref]$null, [ref]$null)
     $usos = @($astV.FindAll({ param($a) $a -is [System.Management.Automation.Language.VariableExpressionAst] -and $a.VariablePath.UserPath -eq 'introSecAra' }, $true))
     $fns = @($usos | ForEach-Object { $x = $_.Parent; while ($null -ne $x -and -not ($x -is [System.Management.Automation.Language.FunctionDefinitionAst])) { $x = $x.Parent }; if ($x) { $x.Name } } | Select-Object -Unique)
-    $esperat = if ($fv -eq 'Llicencia.ps1') { '_LlicBlocsPunts' } else { '' }
+    $esperat = if ($fv -eq 'LlicenciaBlocs.ps1') { '_LlicBlocsPunts' } else { '' }
     AssertEq ($fns -join ',') $esperat ("la regla del text fix de SECCIO de Llicencia nomes a _LlicBlocsPunts ($fv)")
 }

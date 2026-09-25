@@ -1318,7 +1318,7 @@ if (Test-Path -LiteralPath $llicPathX) {
 # d'un panell) i la graella, posada directament al formulari, ocupava TOTA la
 # finestra i tapava els botons. Prova de FONT: despres de l'estil, el Dock s'ha
 # de desfer i la posicio s'ha de fixar DESPRES (abans, l'estil la trepitjava).
-$srcLlic = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $TestsDir) 'Llicencia.ps1') -Raw
+$srcLlic = _SrcLlicencia
 # La pantalla de documentacio ja NO es una graella: es llista + detall, com
 # Select-Items, per poder omplir els camps INLINE (i per aixo tampoc pot
 # tornar a passar que el Dock='Fill' de _StyleListGrid tapi els botons).

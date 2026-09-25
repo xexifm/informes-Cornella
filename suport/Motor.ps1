@@ -485,6 +485,12 @@ if (-not $Script:HeadlessTest) { [void](Invoke-MigracioLocal $RepoRoot) }
 # text). Va ABANS de l'editor de catalegs, que la sincronitza en obrir-se.
 . (Join-Path $ScriptRoot 'CapcaleraJson.ps1')
 . (Join-Path $ScriptRoot 'LlicenciaDb.ps1')
+# Llicencia son QUATRE fitxers, un per cosa: les dades (pures), els blocs de
+# l'informe, les pantalles i l'assistent. Van en aquest ordre per llegibilitat;
+# nomes defineixen funcions, o sigui que l'ordre no canvia res.
+. (Join-Path $ScriptRoot 'LlicenciaDades.ps1')
+. (Join-Path $ScriptRoot 'LlicenciaBlocs.ps1')
+. (Join-Path $ScriptRoot 'LlicenciaPantalles.ps1')
 . (Join-Path $ScriptRoot 'Llicencia.ps1')
 # Els dos informes CURTS de llicencia (Modificacio NO Substancial i Traspas).
 # Van despres de Llicencia.ps1: la pantalla del pas 1 hi ajunta les seves fases.
