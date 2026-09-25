@@ -78,7 +78,7 @@ function _VistaEsProtegit([string]$jsonPath) {
 #   9 -> la FITXA D'AJUDA de cada requeriment, en gris (Format-Ajuda)
 #  10 -> la fitxa sense sangria (com la resta del cos), amb la VIGENCIA i amb
 #        l'ENLLAC al text consolidat de la norma com a hipervincle
-$Script:VistaWordVersio = 10
+$Script:VistaWordVersio = 11
 
 function _VistaVersioPath {
     $base = [string]$env:LOCALAPPDATA
@@ -144,7 +144,6 @@ function _VistaNivell($sel, [int]$n) { Format-Nivell $sel $n }
 # --- Embolcalls: format de l'informe + nivell d'esquema ---------------------
 function _VSection($sel, [string]$t)  { Format-Section $sel $t;    _VistaNivell $sel 1 }
 function _VSubsection($sel, [string]$t) { Format-Subsection $sel $t; _VistaNivell $sel 2 }
-function _VBlockTitle($sel, [string]$t) { Format-BlockTitle $sel $t; _VistaNivell $sel 1 }
 function _VItem($sel, [string]$num, [string]$t) { Format-Item $sel $num $t; _VistaNivell $sel 3 }
 function _VBody($sel, [string]$t, [bool]$isChild = $false) {
     if ($isChild) { Format-Body $sel $t -IsChild } else { Format-Body $sel $t }
@@ -217,125 +216,103 @@ function _VistaMnsTraspas($sel, [string]$jsonPath) {
     }
 }
 
-function _VistaLlicencia($sel, [string]$jsonPath) {
-    $cfg = $Script:ReportFormatConfig
-    $llic = Read-LlicCataleg $jsonPath
-    $req1Path = Join-Path (Split-Path -Parent $jsonPath) 'REQ1.json'
-    $req1 = if (Test-Path -LiteralPath $req1Path) { Read-CatalegJson $req1Path } else { $null }
-    $idx = _LlicIndexReq1 $req1
+# UN PUNT a la VISTA de LLIC: el text de REQ1 (o el propi) i, a sota i en
+# cursiva, el que hi afegeix LLIC ([No es disposa], [Es disposa], [Quan]). Els
+# [CAMP:] es veuen tal qual. Funcio PURA.
+#
+# EL COMENTARI ES PARTEIX EN TEXT I ENLLAC ABANS DE POSAR-HI L'ETIQUETA. Abans
+# s'hi enganxava "//[No es disposa]// " al davant de la linia sencera, i una
+# linia que era NOMES un enllac ("[[URL]] https://...") deixava de comencar per
+# [[URL]]: a la vista sortia "[No es disposa] [[URL]]" escrit com a text. Es veu
+# al fitxer d'or de la vista d'abans d'unificar-la amb l'informe.
+function _LlicVistaBlocsDePunt($p, [string]$marca) {
+    $out = New-Object System.Collections.ArrayList
+    $linies = @($p.Cos)
+    if ($linies.Count -gt 0) {
+        $p0 = _SplitTextAndUrls ([string]$linies[0])
+        [void]$out.Add(@{ T = 'item'; Num = $marca; Text = [string]$p0.Text })
+        foreach ($u in @($p0.Urls)) { [void]$out.Add(@{ T = 'enllac'; Url = $u }) }
+        for ($i = 1; $i -lt $linies.Count; $i++) { foreach ($x in @(_BlocsDeLinia ([string]$linies[$i]) $false)) { [void]$out.Add($x) } }
+    } else {
+        [void]$out.Add(@{ T = 'item'; Num = $marca; Text = [string]$p.Titol })
+    }
+    foreach ($sub in @($p.Subs)) {
+        foreach ($l in @($sub)) { foreach ($x in @(_BlocsDeLinia ([string]$l) $true)) { [void]$out.Add($x) } }
+    }
+    foreach ($par in @(
+        @{ E = 'No es disposa'; L = @($p.NoDisposa) },
+        @{ E = 'Es disposa';    L = @($p.SiDisposa) },
+        @{ E = 'Quan';          L = @($p.Quan) })) {
+        foreach ($l in @($par.L)) {
+            if ([string]::IsNullOrWhiteSpace([string]$l)) { continue }
+            $pp = _SplitTextAndUrls ([string]$l)
+            if (-not [string]::IsNullOrWhiteSpace($pp.Text)) {
+                [void]$out.Add(@{ T = 'cos'; Text = ('//[' + [string]$par.E + ']// ' + [string]$pp.Text); Fill = $true })
+            }
+            foreach ($u in @($pp.Urls)) { [void]$out.Add(@{ T = 'enllac'; Url = $u; Fill = $true }) }
+        }
+    }
+    return $out.ToArray()
+}
 
-    $blocs = @(
+# LA VISTA DE LLIC.json, en blocs. Funcio PURA.
+#
+# Cada bloc (PROPIS / ABANS / DESPRES) amb TOTS els seus punts, amb la MATEIXA
+# estructura que l'informe: la fa _LlicBlocsPunts, la mateixa funcio. Abans la
+# vista en tenia una copia i s'havia de tocar alhora que l'informe i que REQ1.
+function Build-LlicVistaBlocs($llic, $req1) {
+    $b = New-Object System.Collections.ArrayList
+    $idx = _LlicIndexReq1 $req1
+    $puntVista = { param($p, $marca) _LlicVistaBlocsDePunt $p $marca }
+    foreach ($bl in @(
         @{ Clau = 'PROPIS';  Titol = 'PUNTS PROPIS DE LLIC' + [char]0x00C8 + 'NCIA (no son a REQ1)' },
         @{ Clau = 'ABANS';   Titol = (_LlicTitolAbans) },
-        @{ Clau = 'DESPRES'; Titol = (_LlicTitolDespres) }
-    )
-    foreach ($b in $blocs) {
-        $r = _LlicPuntsPerBloc $llic $idx ([string]$b.Clau) $req1
-        # LA MATEIXA JERARQUIA QUE L'INFORME: titol de bloc (majuscules i
-        # subratllat), seccio de REQ1 (majuscules) i subseccio (tal qual).
-        _VBlockTitle $sel ([string]$b.Titol)
-        _VAire $sel 'seccio'
-        $seccioAra = $null
-        $subAra = $null
-        $introAra = $null
-        $introSecAra = $null
-        $n = 0
-        foreach ($p in @($r.Punts)) {
-            $sec = [string]$p.Seccio
-            $sub = [string]$p.Subseccio
-            # EL TEXT FIX, igual que a l'informe: surt quan CANVIA, o sigui amb
-            # el primer punt del grup que s'escrigui. La vista ha d'ensenyar el
-            # mateix que el document. El de la SECCIO va abans del titol de la
-            # subseccio i NO es repeteix a cada subseccio (vegeu _LlicEscriuPunts).
-            $introV = @(@($p.Intro) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
-            $clauV = ($introV -join "`n")
-            $deSeccio = [bool]$p.IntroDeSeccio
-            if ($sec -ne $seccioAra) {
-                if ($sec) { _VSection $sel $sec; _VAire $sel 'seccio' }
-                $seccioAra = $sec
-                $subAra = $null
-                $introAra = $null
-                $introSecAra = $null
-            }
-            if ($deSeccio -and $introV.Count -gt 0 -and $clauV -ne $introSecAra) {
-                foreach ($l in $introV) { _VLine $sel ([string]$l) }
-                _VAire $sel 'intro'
-                $introSecAra = $clauV
-            }
-            if ($sub -ne $subAra) {
-                if ($sub) { _VSubsection $sel $sub; _VAire $sel 'subseccio' }
-                $subAra = $sub
-                $introAra = $null
-            }
-            if (-not $deSeccio -and $introV.Count -gt 0 -and $clauV -ne $introAra) {
-                foreach ($l in $introV) { _VLine $sel ([string]$l) }
-                _VAire $sel 'intro'
-                $introAra = $clauV
-            }
-            $linies = @($p.Cos)
-            $n++
-            if ($linies.Count -gt 0) {
-                $p0 = _SplitTextAndUrls ([string]$linies[0])
-                _VItem $sel ("$n.") ([string]$p0.Text)
-                foreach ($u in $p0.Urls) { _VUrl $sel $u }
-                for ($i = 1; $i -lt $linies.Count; $i++) { _VLine $sel ([string]$linies[$i]) }
-            } else {
-                _VItem $sel ("$n.") ([string]$p.Titol)
-            }
-            foreach ($sub in @($p.Subs)) {
-                foreach ($l in @($sub)) { _VLine $sel ([string]$l) $true }
-            }
-            foreach ($par in @(
-                @{ E = 'No es disposa'; L = @($p.NoDisposa) },
-                @{ E = 'Es disposa';    L = @($p.SiDisposa) },
-                @{ E = 'Quan';          L = @($p.Quan) })) {
-                foreach ($l in @($par.L)) {
-                    if ([string]::IsNullOrWhiteSpace([string]$l)) { continue }
-                    _VLine $sel ('//[' + [string]$par.E + ']// ' + [string]$l) $true
-                }
-            }
-            _VAire $sel 'item'
-        }
+        @{ Clau = 'DESPRES'; Titol = (_LlicTitolDespres) })) {
+        $r = _LlicPuntsPerBloc $llic $idx ([string]$bl.Clau) $req1
+        [void]$b.Add(@{ T = 'titolbloc'; Text = [string]$bl.Titol })
+        [void]$b.Add(@{ T = 'aire'; Clau = 'seccio' })
+        $n = 0   # a la vista, cada bloc numera des de l'1
+        foreach ($x in @(_LlicBlocsPunts @($r.Punts) ([ref]$n) $null 'numero' $puntVista $true)) { [void]$b.Add($x) }
         if (@($r.Orfes).Count -gt 0) {
-            _VBody $sel ('**Claus que ja NO son a REQ1: ' + (@($r.Orfes) -join ' | ') + '**')
-            _VAire $sel 'item'
+            $txt = '**Claus que ja NO son a REQ1: ' + (@($r.Orfes) -join ' | ') + '**'
+            [void]$b.Add(@{ T = 'unitat'; Blocs = @(@{ T = 'cos'; Text = $txt }) })
         }
     }
 
     # El PROJECTE: la resta de REQ1, la que no es demana ni abans ni despres.
     if ($null -ne $req1) {
-        _VSection $sel 'PROJECTE (la resta de REQ1)'
-        _VAire $sel 'seccio'
+        [void]$b.Add(@{ T = 'seccio'; Text = 'PROJECTE (la resta de REQ1)' })
+        [void]$b.Add(@{ T = 'aire'; Clau = 'seccio' })
         $senseAbans = @(@($req1.Sections) | Where-Object { -not (_LlicEsSeccioAbans ([string]$_.Title)) })
         $secProj = @(_LlicSeccionsSenseSubseccions $senseAbans (_LlicSeccionsExpandides $llic $idx))
+        $u = New-Object System.Collections.ArrayList
         foreach ($sc in $secProj) {
-            _VBody $sel ('//' + [string]$sc.Title + ' (' +
-                         @($sc.Items | Where-Object { [string]$_.Kind -eq 'item' }).Count + ' punts)//')
+            [void]$u.Add(@{ T = 'cos'; Text = ('//' + [string]$sc.Title + ' (' + @($sc.Items | Where-Object { [string]$_.Kind -eq 'item' }).Count + ' punts)//') })
         }
-        _VAire $sel 'item'
+        [void]$b.Add(@{ T = 'unitat'; Blocs = $u.ToArray() })
     }
 
-    # QUI POSA CONDICIONS (la llista del pas de les condicions dels favorables),
-    # amb el punt de REQ1 que en proposa cada un. Surt de _LlicActorsCondicions,
-    # la mateixa funcio que la pantalla.
+    # QUI POSA CONDICIONS, amb el punt de REQ1 que en proposa cada un. Surt de
+    # _LlicActorsCondicions, la mateixa funcio que la pantalla.
     $actorsV = @(_LlicActorsCondicions $llic)
     if ($actorsV.Count -gt 0) {
-        _VSection $sel 'CONDICIONS (qui les posa)'
-        _VAire $sel 'seccio'
+        [void]$b.Add(@{ T = 'seccio'; Text = 'CONDICIONS (qui les posa)' })
+        [void]$b.Add(@{ T = 'aire'; Clau = 'seccio' })
         $ia = 0
         foreach ($a in $actorsV) {
             $ia++
-            _VItem $sel ((_LlicLletra $ia).ToLower() + '.') ([string]$a.Nom)
-            foreach ($c in @($a.Claus)) { _VLine $sel ('//[Es proposa si es disposa de]// ' + [string]$c) $true }
-            _VAire $sel 'item'
+            $u = New-Object System.Collections.ArrayList
+            [void]$u.Add(@{ T = 'item'; Num = ((_LlicLletra $ia).ToLower() + '.'); Text = [string]$a.Nom })
+            foreach ($c in @($a.Claus)) { [void]$u.Add(@{ T = 'cos'; Text = ('//[Es proposa si es disposa de]// ' + [string]$c); Fill = $true }) }
+            [void]$b.Add(@{ T = 'unitat'; Blocs = $u.ToArray() })
         }
     }
 
-    # L'ANNEX 1, tal com surt a l'informe.
+    # L'ANNEX 1 (a la vista, text corrent amb la marca al davant).
     $secAnnex = _LlicSeccioAnnex1 $llic
     if ($null -ne $secAnnex) {
-        _VSection $sel ([string]$secAnnex.titol)
-        _VAire $sel 'seccio'
+        [void]$b.Add(@{ T = 'seccio'; Text = [string]$secAnnex.titol })
+        [void]$b.Add(@{ T = 'aire'; Clau = 'seccio' })
         $num = 0
         foreach ($nd in @($secAnnex.fills)) {
             $marca = ''
@@ -344,11 +321,19 @@ function _VistaLlicencia($sel, [string]$jsonPath) {
             elseif ($tip -eq 'subitem') { $marca = '- ' }
             $primera = $true
             foreach ($l in @(_LlicCos $nd)) {
-                _VLine $sel ($(if ($primera) { $marca } else { '' }) + [string]$l)
+                foreach ($x in @(_BlocsDeLinia ($(if ($primera) { $marca } else { '' }) + [string]$l) $false)) { [void]$b.Add($x) }
                 $primera = $false
             }
         }
     }
+    return $b.ToArray()
+}
+
+function _VistaLlicencia($sel, [string]$jsonPath) {
+    $llic = Read-LlicCataleg $jsonPath
+    $req1Path = Join-Path (Split-Path -Parent $jsonPath) 'REQ1.json'
+    $req1 = if (Test-Path -LiteralPath $req1Path) { Read-CatalegJson $req1Path } else { $null }
+    [void](Write-Informe $sel (Build-LlicVistaBlocs $llic $req1) -AmbNivells)
 }
 
 # ---- Vista d'un CATALEG (REQ1, TERMINI...) ---------------------------------

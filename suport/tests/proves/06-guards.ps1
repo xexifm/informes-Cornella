@@ -947,7 +947,7 @@ Write-Host "`n--- La VERSIO de les vistes puja quan canvia com es veuen ---"
 # .docx de l'usuari no es refeia mai.
 $srcVw = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'suport' 'VistaWord.ps1')))
 Assert ($srcVw -match 'Format-Ajuda|AmbAjuda') 'VistaWord.ps1: la vista demana la fitxa d''ajuda'
-Assert ([bool]($Script:VistaWordVersio -ge 10)) ('VistaWordVersio >= 10 (fitxa sense sangria, amb vigencia i enllac); ara es ' + $Script:VistaWordVersio)
+Assert ([bool]($Script:VistaWordVersio -ge 11)) ('VistaWordVersio >= 11 (la vista de LLIC ja no escriu "[[URL]]" com a text); ara es ' + $Script:VistaWordVersio)
 
 Write-Host "`n--- Llicencia: els camps de cada punt NO es sincronitzen amb els dels altres ---"
 # El registre de camps (Camps.ps1) SINCRONITZA els controls que porten el mateix
@@ -1103,3 +1103,21 @@ public class FakeWordSel {
 $srcFmt = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'Format.ps1'))
 $alCursor = @([regex]::Matches($srcFmt, '(?m)^[^#\r\n]*\$sel\.Font\.(Bold|Italic|Underline)\s*=\s*(1|\$true)') | ForEach-Object { $_.Value.Trim() })
 AssertEq ($alCursor -join ' | ') '' 'Format.ps1: cap "$sel.Font.X = 1" (el format va al rang)'
+
+Write-Host "`n--- Llicencia es munta amb BLOCS, i la regla de seccions es UNA ---"
+# Llicencia escrivia el document pel seu compte, i la regla de seccions,
+# subseccions i textos fixos era a TRES llocs (REQ1, l'informe i la vista de
+# LLIC.json) que s'havien de tocar alhora: un text fix va arribar a sortir tres
+# vegades, i la vista escrivia "[[URL]]" com a text. Ara l'informe i la vista
+# fan servir _LlicBlocsPunts i Write-Informe.
+$astLl = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $rootRepo (Join-Path 'suport' 'Llicencia.ps1')), [ref]$null, [ref]$null)
+$fmtLl = @($astLl.FindAll({ param($a) $a -is [System.Management.Automation.Language.CommandAst] -and ([string]$a.GetCommandName()) -like 'Format-*' }, $true) |
+          ForEach-Object { $_.GetCommandName() + ' (linia ' + $_.Extent.StartLineNumber + ')' })
+AssertEq ($fmtLl -join ', ') '' 'Llicencia.ps1: cap Format-* directe (tot passa per Write-Informe)'
+foreach ($fv in @('VistaWord.ps1', 'Llicencia.ps1', 'MotorInforme.ps1', 'Document.ps1')) {
+    $astV = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $rootRepo (Join-Path 'suport' $fv)), [ref]$null, [ref]$null)
+    $usos = @($astV.FindAll({ param($a) $a -is [System.Management.Automation.Language.VariableExpressionAst] -and $a.VariablePath.UserPath -eq 'introSecAra' }, $true))
+    $fns = @($usos | ForEach-Object { $x = $_.Parent; while ($null -ne $x -and -not ($x -is [System.Management.Automation.Language.FunctionDefinitionAst])) { $x = $x.Parent }; if ($x) { $x.Name } } | Select-Object -Unique)
+    $esperat = if ($fv -eq 'Llicencia.ps1') { '_LlicBlocsPunts' } else { '' }
+    AssertEq ($fns -join ',') $esperat ("la regla del text fix de SECCIO de Llicencia nomes a _LlicBlocsPunts ($fv)")
+}

@@ -928,7 +928,7 @@ $puntF = [pscustomobject]@{
     Subs = @(, @('[[URL]] https://exemple.cat/nomes-enllac'))
 }
 $global:emitCalls.Clear()
-_LlicEscriuPunt $null $puntF '1.' ([ordered]@{}) 'no' $false
+[void](Write-Informe $null @(@{ T = 'unitat'; Blocs = @(_LlicBlocsDePunt $puntF '1.' ([ordered]@{}) 'no' $false) }))
 $emF = @($global:emitCalls)
 # F1: la linia d'estat va SEPARADA (i en negreta, que ja hi era).
 Assert ([bool]($emF | Where-Object { $_ -like 'BODY/N/SEP|No es disposa*' })) 'F1: la linia d''estat va separada del cos del punt'
@@ -936,7 +936,7 @@ Assert ([bool]($emF | Where-Object { $_ -like 'BODY/N/SEP|No es disposa*' })) 'F
 $puntF2 = $puntF | Select-Object *
 $puntF2.NoDisposa = @('Primera linia.', 'Segona linia.')
 $global:emitCalls.Clear()
-_LlicEscriuPunt $null $puntF2 '1.' ([ordered]@{}) 'no' $false
+[void](Write-Informe $null @(@{ T = 'unitat'; Blocs = @(_LlicBlocsDePunt $puntF2 '1.' ([ordered]@{}) 'no' $false) }))
 $sepF = @(@($global:emitCalls) | Where-Object { $_ -like '*/SEP|*' })
 AssertEq $sepF.Count 1 'F1: nomes la primera linia del comentari va separada'
 # F3: l'enllac d'un sub-punt SENSE text no va sagnat.
@@ -947,7 +947,7 @@ Assert (-not ($emF | Where-Object { $_ -like 'URL/CH|*' })) 'F3: ...cap enllac d
 $puntF3 = $puntF | Select-Object *
 $puntF3.Subs = @(, @('Text del sub-punt', '[[URL]] https://exemple.cat/amb-pic'))
 $global:emitCalls.Clear()
-_LlicEscriuPunt $null $puntF3 '1.' ([ordered]@{}) 'no' $false
+[void](Write-Informe $null @(@{ T = 'unitat'; Blocs = @(_LlicBlocsDePunt $puntF3 '1.' ([ordered]@{}) 'no' $false) }))
 $emF3 = @($global:emitCalls)
 Assert ([bool]($emF3 | Where-Object { $_ -like 'BULLET/CH/1r|Text del sub-punt' })) 'F3: amb text, el sub-punt emet el seu pic'
 Assert ([bool]($emF3 | Where-Object { $_ -eq 'URL/CH|https://exemple.cat/amb-pic' })) 'F3: ...i llavors l''enllac SI que va sagnat'
@@ -1359,7 +1359,7 @@ AssertEq (@($ubX[2].Intro) -join '') '' 'Ubicacio: una subseccio nova buida l''i
         Cos = @('Punt B.'); NoDisposa = @(); SiDisposa = @(); Quan = @(); Subs = @(); Estat = ''
     }
     $nX = 0
-    _LlicEscriuPunts $selX @($puntB) ([ref]$nX) ([ordered]@{}) $false
+    [void](Write-Informe $selX @(_LlicBlocsPunts @($puntB) ([ref]$nX) ([ordered]@{}) 'numero' { param($pp, $mm) _LlicBlocsDePunt $pp $mm ([ordered]@{}) ([string]$pp.Estat) $false }))
     $eX = @($global:emitCalls)
     Assert ([bool]($eX | Where-Object { $_ -eq 'SECT|Instal·lacions' }))   'Text fix: hi surt la seccio'
     Assert ([bool]($eX | Where-Object { $_ -eq 'SUB|Legalitzacions' }))    'Text fix: hi surt la subseccio'
@@ -1376,7 +1376,7 @@ AssertEq (@($ubX[2].Intro) -join '') '' 'Ubicacio: una subseccio nova buida l''i
     $puntA = $puntB | Select-Object *
     $puntA.Titol = 'A'; $puntA.Cos = @('Punt A.')
     $nX = 0
-    _LlicEscriuPunts $selX @($puntA, $puntB) ([ref]$nX) ([ordered]@{}) $false
+    [void](Write-Informe $selX @(_LlicBlocsPunts @($puntA, $puntB) ([ref]$nX) ([ordered]@{}) 'numero' { param($pp, $mm) _LlicBlocsDePunt $pp $mm ([ordered]@{}) ([string]$pp.Estat) $false }))
     AssertEq @(@($global:emitCalls) | Where-Object { $_ -eq 'BODY|Segons l''article 4:' }).Count 1 'Text fix: surt UN sol cop per grup'
 }.Invoke() | Out-Null
 

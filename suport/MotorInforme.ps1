@@ -337,7 +337,7 @@ function Write-InformeDocx($word, [string]$baseName, [string]$capBloc, $header, 
 #              solen portar el mateix enllac i sortia dues vegades seguides. Amb
 #              $null (REQ1) no es dedupa res, que es el comportament de sempre.
 #   $emesos  : on s'apunten els enllacos que s'han arribat a escriure. Serveix a
-#              _LlicEscriuPunt per saber quins ha de deixar per despres del
+#              _LlicBlocsDePunt per saber quins ha de deixar per despres del
 #              comentari (l'enllac va DESPRES de la frase que l'anuncia).
 #
 # La linia ha d'arribar JA RESOLTA (els [CAMP:]/[OPCIO:] es resolen per BLOC,
@@ -367,7 +367,7 @@ function Write-Linia($sel, [string]$linia, [switch]$IsChild, $vistos = $null, $e
 # EL MOTOR: UN DOCUMENT ES UNA LLISTA DE BLOCS
 # ----------------------------------------------------------------------------
 # Fins ara, "escriure un punt" (numero + cos + fills + enllacos) estava escrit
-# TRES vegades: _WriteCatalegBody (Document.ps1), _LlicEscriuPunt
+# TRES vegades: _WriteCatalegBody (Document.ps1), _LlicEscriuPunt (ara _LlicBlocsDePunt)
 # (Llicencia.ps1) i _VistaCataleg (VistaWord.ps1). Les dues primeres son el
 # mateix algorisme; la tercera tambe, nomes que amb el nivell d'esquema a sobre.
 # I cada copia decidia pel seu compte l'aire i quin sub-punt era el primer.
@@ -380,6 +380,8 @@ function Write-Linia($sel, [string]$linia, [switch]$IsChild, $vistos = $null, $e
 # El pas 1 es prova a Linux sense Word ni dobles: es una llista de hashtables.
 #
 # VOCABULARI (la clau 'T' de cada bloc):
+#   titolbloc     Text                    titol de BLOC (MAJUSCULES i subratllat):
+#                                         el nivell de dalt de Llicencia
 #   seccio        Text                    titol de seccio (MAJUSCULES)
 #   subseccio     Text                    subseccio (subratllada)
 #   etiqueta      Text                    rotul dins del cos
@@ -396,6 +398,9 @@ function Write-Linia($sel, [string]$linia, [switch]$IsChild, $vistos = $null, $e
 #   aire          Clau                    espai entre blocs SI la bandera ho diu
 #   espai                                 linia en blanc SEMPRE (cos fix, ANNEX 1)
 #   saltpagina                            pagina nova
+#   separa                                linia en blanc NOMES si l'anterior no
+#                                         ho es (davant de "Ho poso al seu
+#                                         coneixement...", vegeu Format.ps1)
 #   unitat        Blocs                   UN PUNT SENCER (vegeu mes avall)
 #
 # 'unitat' es el bloc que fa que aixo funcioni:
@@ -409,6 +414,7 @@ function Write-Linia($sel, [string]$linia, [switch]$IsChild, $vistos = $null, $e
 # que es el que fa navegable una VISTA de cataleg al panell del Word. Els
 # informes NO el porten, i per aixo es una opcio i no el comportament normal.
 $Script:NivellPerTipus = @{
+    'titolbloc' = 1
     'seccio'    = 1
     'subseccio' = 2
     'item'      = 3
@@ -459,8 +465,14 @@ function _WriteBlocs($sel, $blocs, $estat, [bool]$ambNivells) {
             continue
         }
         if ($t -eq 'saltpagina') { Format-SaltPagina $sel; continue }
+        if ($t -eq 'separa') {
+            Format-SeparaAnterior $sel
+            if ($ambNivells) { Format-Nivell $sel $Script:WdOutlineBody }
+            continue
+        }
 
         switch ($t) {
+            'titolbloc'    { Format-BlockTitle $sel ([string]$b.Text) }
             'seccio'       { Format-Section $sel ([string]$b.Text) }
             'subseccio'    { Format-Subsection $sel ([string]$b.Text) }
             'etiqueta'     { Format-Label $sel ([string]$b.Text) }

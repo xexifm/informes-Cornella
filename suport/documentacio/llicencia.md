@@ -570,6 +570,15 @@ Com està fet:
 - Si el catàleg de l'usuari encara no té la `<fase>-condicions`,
   `_LlicConclusioText` cau a la de la fase.
 
+## La composició és en BLOCS (setembre 2026)
+L'informe (`Build-LlicenciaBlocs`) i la vista de `LLIC.json`
+(`Build-LlicVistaBlocs`) són llistes de blocs purs que escriu `Write-Informe`
+(`MotorInforme.ps1`), i la regla de seccions/subseccions/textos fixos és **una
+sola** funció, `_LlicBlocsPunts`. Les regles d'aquest document (l'enllaç
+després del comentari, el «Quan:» abans, la numeració seguida, les lletres del
+PROJECTE, l'ANNEX 1 pla…) segueixen igual: ara viuen a `_LlicBlocsDePunt`,
+`_LlicBlocsPunts` i `_LlicBlocsAnnex1`. Detalls a `suport/CLAUDE.md`.
+
 ## Els INFORMES DELS ORGANISMES, adjunts darrere del nostre
 - A la pantalla de condicions, cada actor té un **«PDF…»**. En continuar, el PDF
   triat es **copia** a `local\base-dades-llicencies\GIA <id>\a.OGAU.pdf`

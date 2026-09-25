@@ -53,12 +53,29 @@ function Get-TextTancament {
     try { return @((Read-Conclusions $ConclusionsPath).Always) } catch { return @() }
 }
 
-function Write-Tancament($sel, $fields = $null) {
+# UNA CONCLUSIO en blocs: si es la frase de tancament ("Ho poso al seu
+# coneixement..."), amb la separacio al davant. PURA. Es l'UNIC lloc que aplica
+# aquesta regla per als informes que passen pel motor (REQ1, TERMINI, MNS,
+# Traspas i Llicencia); ACT_EXTR encara escriu pel seu compte i la hi aplica alla.
+function _BlocsConclusio([string]$text) {
+    $out = New-Object System.Collections.ArrayList
+    if (_EsFraseTancament $text) { [void]$out.Add(@{ T = 'separa' }) }
+    [void]$out.Add(@{ T = 'conclusio'; Text = $text })
+    return $out.ToArray()
+}
+
+# El TANCAMENT ("Ho poso al seu coneixement...", "Cornella de Llobregat,") en
+# blocs, amb els camps resolts. PURA.
+function _BlocsTancament($fields = $null) {
+    $out = New-Object System.Collections.ArrayList
     foreach ($l in @(Get-TextTancament)) {
-        $t = Apply-Fields -text ([string]$l) -fields $fields
-        if (_EsFraseTancament $t) { Format-SeparaAnterior $sel }
-        Format-Conclusion $sel $t
+        foreach ($x in @(_BlocsConclusio (Apply-Fields -text ([string]$l) -fields $fields))) { [void]$out.Add($x) }
     }
+    return $out.ToArray()
+}
+
+function Write-Tancament($sel, $fields = $null) {
+    [void](Write-Informe $sel (_BlocsTancament $fields))
 }
 
 function _WriteConclusionsBlock($sel, $cfg, $headerText, $conclusions, $alwaysConclusions, $fields) {
@@ -66,24 +83,17 @@ function _WriteConclusionsBlock($sel, $cfg, $headerText, $conclusions, $alwaysCo
     $hasHead = -not [string]::IsNullOrWhiteSpace($headerText)
     if (-not $hasBody -and -not $hasHead) { return }
 
-    Format-Aire $sel 'conclusions'
-
-    if ($hasHead) {
-        Format-ConclusionHeader $sel $headerText
-    }
-
+    $b = New-Object System.Collections.ArrayList
+    [void]$b.Add(@{ T = 'aire'; Clau = 'conclusions' })
+    if ($hasHead) { [void]$b.Add(@{ T = 'conclusiocap'; Text = $headerText }) }
     foreach ($c in $conclusions) {
         $txt = if ($c -is [string]) { $c } else { [string]$c.Body }
-        $resolved = Apply-Fields -text $txt -fields $fields
-        if (_EsFraseTancament $resolved) { Format-SeparaAnterior $sel }
-        Format-Conclusion $sel $resolved
+        foreach ($x in @(_BlocsConclusio (Apply-Fields -text $txt -fields $fields))) { [void]$b.Add($x) }
     }
     foreach ($a in $alwaysConclusions) {
-        $resolved = Apply-Fields -text ([string]$a) -fields $fields
-        # "Ho poso al seu coneixement..." sempre separat (Format.ps1).
-        if (_EsFraseTancament $resolved) { Format-SeparaAnterior $sel }
-        Format-Conclusion $sel $resolved
+        foreach ($x in @(_BlocsConclusio (Apply-Fields -text ([string]$a) -fields $fields))) { [void]$b.Add($x) }
     }
+    [void](Write-Informe $sel $b.ToArray())
 }
 
 function Build-Document($word, $header, $selectedSections, $fields, $conclusions, $alwaysConclusions, $catalegName, $introText, $conclusionsHeaderText, $isFixedBody = $false, $fixedBodyLines = @()) {

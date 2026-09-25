@@ -1589,9 +1589,30 @@ CONCLCAP|CONCLUSIONS
   dues vegades el mateix dia (els `[CAMP:]` que es buidaven, i un paràgraf
   duplicat a la vista de TERMINI que hi era des de sempre).
 
+### LLICÈNCIA JA ES MUNTA AMB BLOCS (setembre 2026)
+`Build-LlicenciaBlocs` (pura) → `Write-Informe`, com REQ1. Les peces:
+`_LlicBlocsDePunt` (un punt: item, sub-punts, «(Quan: …)», comentari i l'ordre
+dels enllaços), **`_LlicBlocsPunts`** (seccions, subseccions i textos fixos; el
+com s'escriu cada punt li arriba com a scriptblock) i `_LlicBlocsAnnex1`. La
+vista de `LLIC.json` (`Build-LlicVistaBlocs`, `VistaWord.ps1`) fa servir la
+**mateixa** `_LlicBlocsPunts`: la regla de seccions ja no és a tres llocs.
+- Els 4 fitxers d'or de Llicència, **idèntics**. El de la vista canvia en dues
+  coses i només aquestes (comprovat per programa): surten les línies `AIRE|`
+  —abans la vista posava l'aire per `_VAire`, que els dobles no enregistren; el
+  document és el mateix— i s'arregla un defecte que hi havia: el comentari
+  s'etiquetava («[No es disposa] ») **abans** de separar-ne l'enllaç, i una
+  línia que era només un enllaç sortia com a «[No es disposa] [[URL]]» escrit.
+- Blocs nous al motor: **`titolbloc`** (Format-BlockTitle) i **`separa`**
+  (Format-SeparaAnterior). Les conclusions i el tancament (`_BlocsConclusio`,
+  `_BlocsTancament`, `Document.ps1`) també són blocs: la regla de la separació
+  de «Ho poso al seu coneixement» és a **un** lloc per a REQ1, TERMINI, MNS,
+  Traspàs i Llicència.
+- Guards: `Llicencia.ps1` sense cap `Format-*` directe, i la variable de l'intro
+  de secció només dins de `_LlicBlocsPunts` (validats injectant el defecte).
+
 ### Què queda per migrar (i per què no corre pressa)
-`MnsTraspas.ps1`, `ActExtr.ps1` i `_LlicEscriuPunt` encara criden les
-`Format-*` directament. **No és duplicació**: totes tres ja passen per
+`MnsTraspas.ps1` i `ActExtr.ps1` encara criden les `Format-*` directament
+(Llicència ja no: vegeu la secció d'aquí sobre). **No és duplicació**: totes tres ja passen per
 `Format-Aire`, `Write-Linia` i, quan escriuen punts de catàleg, per
 `_WriteCatalegBody`. El que els queda és lògica **pròpia** (la frase
 d'observacions de MNS, el repartiment per token d'ACT_EXTR, i l'ordre dels

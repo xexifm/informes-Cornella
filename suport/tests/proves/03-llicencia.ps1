@@ -752,7 +752,7 @@ if (Test-Path -LiteralPath $llicPathX) {
         SiDisposa = @(); Quan = @(); Subs = @()
     }
     $global:emitCalls.Clear()
-    _LlicEscriuPunt $selU $puntU '2.' ([ordered]@{}) 'no' $false
+    [void](Write-Informe $selU @(@{ T = 'unitat'; Blocs = @(_LlicBlocsDePunt $puntU '2.' ([ordered]@{}) 'no' $false) }))
     $emU = @($global:emitCalls)
     $iCom = [Array]::FindIndex([string[]]$emU, [Predicate[string]]{ param($x) $x -like 'BODY*|No es disposa*' })
     $iUrl = [Array]::FindIndex([string[]]$emU, [Predicate[string]]{ param($x) $x -like 'URL*' })
@@ -766,7 +766,7 @@ if (Test-Path -LiteralPath $llicPathX) {
         NoDisposa = @('No es disposa.'); SiDisposa = @(); Quan = @(); Subs = @()
     }
     $global:emitCalls.Clear()
-    _LlicEscriuPunt $selU $puntU2 '1.' ([ordered]@{}) 'no' $false
+    [void](Write-Informe $selU @(@{ T = 'unitat'; Blocs = @(_LlicBlocsDePunt $puntU2 '1.' ([ordered]@{}) 'no' $false) }))
     $emU2 = @($global:emitCalls)
     $iUrl2 = [Array]::FindIndex([string[]]$emU2, [Predicate[string]]{ param($x) $x -like 'URL*' })
     $iCom2 = [Array]::FindIndex([string[]]$emU2, [Predicate[string]]{ param($x) $x -like 'BODY*|No es disposa*' })
