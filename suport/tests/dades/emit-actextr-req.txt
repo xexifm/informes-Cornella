@@ -27,6 +27,7 @@ BULLET/CH|Indicació de les mesures adoptades, incloses la contractació del per
 BULLET/CH|Declaració responsable de disposar de la pòlissa d'assegurances que dóna cobertura a la responsabilitat civil que pugui derivar-se de l'organització i realització de l'espectacle o de l'activitat recreativa.
 BULLET/CH|Identificació de la persona o persones titulars de la disponibilitat de l'establiment, recinte o espai obert i, en cas que no sigui la mateixa persona promotora o organitzadora, document que expressi la seva conformitat amb l'espectacle públic o amb activitat recreativa projectats.
 AIRE|item
+SEPARA|
 BODY|Ho poso al seu coneixement als efectes oportuns,
 AIRE|item
 BODY|Cornellà de Llobregat,

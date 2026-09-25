@@ -114,5 +114,6 @@ AIRE|item
 AIRE|conclusions
 CONCLCAP|CONCLUSIONS
 CONCL|**S’informa favorablement a l’espera de rebre la citada documentació en els terminis de temps especificats per poder donar per tancat l’expedient.**
+SEPARA|
 CONCL|Ho poso al seu coneixement als efectes oportuns,
 CONCL|Cornellà de Llobregat,

@@ -1476,6 +1476,16 @@ quan el destí és una unitat de xarxa) → bloc de capçalera → `<<PLACEHOLDE
   només ho feia ACT_EXTR; les altres tres deixaven el Word amb un document
   obert i el `%TEMP%` brut.
 
+### «Ho poso al seu coneixement» SEMPRE separat de la frase d'abans
+Petició de l'usuari (setembre 2026): quedava enganxat a la conclusió. Cada
+informe hi arriba per un camí diferent (conclusions de REQ1/TERMINI/MNS,
+`Write-Tancament` de Llicència, els dos cossos d'ACT_EXTR) i en uns ja hi havia
+un paràgraf buit al davant. Per això no es posa un espai a cegues:
+`Format-SeparaAnterior` (`Format.ps1`) mira el paràgraf on és i **només** en posa
+un si no és buit, i `_EsFraseTancament` (pura) reconeix la frase. Guard a
+`06-guards.ps1` sobre els fitxers d'or de **tots** els informes (validat traient
+la separació d'un).
+
 ### `Format-Aire` i les banderes
 La clau és el **nom del bloc que s'acaba d'escriure** (`seccio`, `subseccio`,
 `item`, `intro`, `introparagraf`, `conclusions`) i `$Script:AireFlagPerClau` la

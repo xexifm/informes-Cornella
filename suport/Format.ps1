@@ -488,6 +488,31 @@ function Format-Spacer {
     _Apply-Indent $sel 0
 }
 
+# LA FRASE DE TANCAMENT ("Ho poso al seu coneixement als efectes oportuns,")
+# VA SEMPRE SEPARADA de la frase d'abans per UNA linia en blanc (petició de
+# l'usuari, setembre 2026: a molts informes quedava enganxada a la conclusio).
+#
+# Cada informe hi arriba per un cami diferent (les conclusions de REQ1/TERMINI/
+# MNS, el tancament de Llicencia, els dos d'ACT_EXTR) i en uns hi havia ja un
+# paragraf buit al davant i en altres no. Per aixo no es posa un espai a cegues:
+# Format-SeparaAnterior mira el paragraf on es (l'ultim escrit) i nomes n'hi
+# posa un si NO es buit. Aixi sempre n'hi ha exactament un, vingui d'on vingui.
+#
+# _EsFraseTancament es PURA: la frase es reconeix pel principi, sense
+# negretes ni majuscules, perque ve del cataleg i s'hi pot editar.
+function _EsFraseTancament([string]$text) {
+    $t = ([string]$text).Replace('**', '').Replace('//', '').Trim().ToLowerInvariant()
+    return $t.StartsWith('ho poso al seu coneixement')
+}
+
+function Format-SeparaAnterior {
+    param($sel)
+    $t = ''
+    try { $t = [string]$sel.Paragraphs.Item(1).Range.Text } catch { $t = 'x' }
+    if ([string]::IsNullOrWhiteSpace($t.Trim([char]13, [char]10, [char]7, [char]11, [char]12, ' ', [char]9))) { return }
+    Format-Spacer $sel
+}
+
 # L'AIRE ENTRE BLOCS, PER NOM. Abans cada informe escrivia
 #   if ($cfg.SpacerAfterSection) { Format-Spacer $sel }
 # i n'hi havia TRENTA-QUATRE d'aquests escampats per Document.ps1,

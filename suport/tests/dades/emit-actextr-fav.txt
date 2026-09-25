@@ -36,5 +36,6 @@ BODY|CONDICIONANTS LLICÈNCIA
 AIRE|seccio
 CONCLCAP|CONCLUSIONS
 CONCL|El titular és responsable d’executar i mantenir les mesures de seguretat indicades en la memòria, en el Pla d’Autoprotecció i les previstes en la documentació tècnica, establertes per la reglamentació d’aplicació segons escaigui, i de donar compliment als límits acústics exteriors establerts per l’Ajuntament de Cornellà de Llobregat.
+SEPARA|
 CONCL|Ho poso al seu coneixement als efectes oportuns,
 CONCL|Cornellà de Llobregat,

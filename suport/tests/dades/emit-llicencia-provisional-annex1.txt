@@ -23,6 +23,7 @@ AIRE|item
 AIRE|conclusions
 CONCLCAP|CONCLUSIONS
 CONCL|**Cal requerir l’esmena de les deficiències indicades, aportant la documentació corresponent.**
+SEPARA|
 CONCL|Ho poso al seu coneixement als efectes oportuns,
 CONCL|Cornellà de Llobregat,
 PLA/N|ANNEX 1. Documentació per demanar l’autorització d’usos i obres provisionals

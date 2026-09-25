@@ -749,6 +749,8 @@ function _WriteActExtrBody($sel, $blocks, $mode, $ctx, $computed) {
                 if (-not [string]::IsNullOrWhiteSpace($parts.Text)) { Format-Item $sel "$num0." $parts.Text }
                 foreach ($x in $parts.Urls) { Format-Url $sel $x }
             } else {
+                # "Ho poso al seu coneixement..." sempre separat (Format.ps1).
+                if (_EsFraseTancament $parts.Text) { Format-SeparaAnterior $sel }
                 if (-not [string]::IsNullOrWhiteSpace($parts.Text)) { Format-Body $sel $parts.Text }
                 foreach ($x in $parts.Urls) { Format-Url $sel $x }
             }
@@ -792,6 +794,8 @@ function _WriteActExtrBodyFav($sel, $blocks, $ctx, $computed) {
             # -First al PRIMER sub-punt de cada unitat (12 pt en lloc de 6),
             # com a tota la resta del programa. Qualsevol contingut que NO sigui
             # un sub-punt obre unitat nova.
+            # "Ho poso al seu coneixement..." sempre separat (Format.ps1).
+            if (_EsFraseTancament $txt) { Format-SeparaAnterior $sel }
             if ($kind -eq 'child') {
                 if ($txt) {
                     Format-Bullet $sel $txt -IsChild -First:$primerFill

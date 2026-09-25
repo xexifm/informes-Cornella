@@ -55,7 +55,9 @@ function Get-TextTancament {
 
 function Write-Tancament($sel, $fields = $null) {
     foreach ($l in @(Get-TextTancament)) {
-        Format-Conclusion $sel (Apply-Fields -text ([string]$l) -fields $fields)
+        $t = Apply-Fields -text ([string]$l) -fields $fields
+        if (_EsFraseTancament $t) { Format-SeparaAnterior $sel }
+        Format-Conclusion $sel $t
     }
 }
 
@@ -73,10 +75,13 @@ function _WriteConclusionsBlock($sel, $cfg, $headerText, $conclusions, $alwaysCo
     foreach ($c in $conclusions) {
         $txt = if ($c -is [string]) { $c } else { [string]$c.Body }
         $resolved = Apply-Fields -text $txt -fields $fields
+        if (_EsFraseTancament $resolved) { Format-SeparaAnterior $sel }
         Format-Conclusion $sel $resolved
     }
     foreach ($a in $alwaysConclusions) {
         $resolved = Apply-Fields -text ([string]$a) -fields $fields
+        # "Ho poso al seu coneixement..." sempre separat (Format.ps1).
+        if (_EsFraseTancament $resolved) { Format-SeparaAnterior $sel }
         Format-Conclusion $sel $resolved
     }
 }

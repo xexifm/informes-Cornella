@@ -137,5 +137,6 @@ AIRE|item
 AIRE|conclusions
 CONCLCAP|CONCLUSIONS
 CONCL|Vist l’anterior, cal requerir l’esmena de les deficiències indicades, aportant la documentació corresponent i presentant la mateixa en un termini màxim de quinze dies, a comptar des de l’endemà de la recepció del requeriment.
+SEPARA|
 CONCL|Ho poso al seu coneixement als efectes oportuns,
 CONCL|Cornellà de Llobregat,

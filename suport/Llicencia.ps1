@@ -915,16 +915,15 @@ function _LlicNomFitxer([datetime]$data, [string]$fase, [string]$idGia) {
 #
 # Tot el format surt de Format.ps1: aqui no s'hi inventa res. L'unic afegit es
 # el color, que Format-Body ja sap aplicar.
-# EL TEXT DEL "Quan:" segons la fase. Funcio PURA.
+# EL TEXT DEL "Quan:". Funcio PURA.
 #
-# Al favorable PRE va ENTRE PARENTESIS i sense el punt final:
-# "(Quan: Abans d'iniciar l'activitat)" -decisio de l'usuari, setembre 2026-.
-# Alla el punt no diu si es te o no el document (vegeu _LlicEstatDespres): el
-# termini es nomes un aclariment del punt. A la resta de fases, com sempre.
-function _LlicTextQuan([string]$quan, [string]$fase) {
+# ENTRE PARENTESIS i sense el punt final, a les TRES fases:
+# "(Quan: Abans d'iniciar l'activitat)" -decisio de l'usuari, setembre 2026;
+# primer nomes al pre i despres a tots-. El $fase es queda per si algun dia
+# ha de tornar a ser diferent en alguna fase.
+function _LlicTextQuan([string]$quan, [string]$fase = '') {
     $q = ([string]$quan).Trim()
-    if ([string]$fase -eq 'favorable-pre') { return ('(Quan: ' + $q.TrimEnd('.').TrimEnd() + ')') }
-    return ('Quan: ' + $q)
+    return ('(Quan: ' + $q.TrimEnd('.').TrimEnd() + ')')
 }
 
 function _LlicEscriuPunt($sel, $punt, [string]$marca, $fields, [string]$estat, [bool]$ambQuan, [string]$fase = '') {

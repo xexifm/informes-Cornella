@@ -985,3 +985,26 @@ foreach ($cr in $crRender) {
     if ($creat.Count -eq 0) { $malRegistre += ('linia ' + $cr.Extent.StartLineNumber + ': $' + $nomReg + ' ve de fora de la pintada') }
 }
 AssertEq $malRegistre.Count 0 ('Llicencia.ps1: cada pintada fa el SEU registre de camps' + $(if ($malRegistre.Count) { ' -> ' + ($malRegistre -join ' | ') } else { '' }))
+
+Write-Host "`n--- 'Ho poso al seu coneixement' sempre separat de la frase d'abans ---"
+# Peticio de l'usuari (setembre 2026): la frase de tancament quedava enganxada
+# a la conclusio. Cada informe hi arriba per un cami diferent (conclusions de
+# REQ1/TERMINI/MNS, tancament de Llicencia, els dos d'ACT_EXTR), o sigui que es
+# vigila sobre els FITXERS D'OR de tots els informes: just davant de la frase hi
+# ha d'haver la crida a Format-SeparaAnterior (que posa la linia en blanc si no
+# n'hi ha ja una). Les vistes no hi entren: no son informes.
+$dirOr = Join-Path $TestsDir 'dades'
+$senseSep = @()
+$ambFrase = 0
+foreach ($fo in @(Get-ChildItem -LiteralPath $dirOr -Filter 'emit-*.txt' | Where-Object { $_.Name -notlike 'emit-vista-*' })) {
+    $lin = @([System.IO.File]::ReadAllLines($fo.FullName))
+    for ($i = 0; $i -lt $lin.Count; $i++) {
+        if ($lin[$i] -notmatch '\|Ho poso al seu coneixement') { continue }
+        $ambFrase++
+        if ($i -eq 0 -or $lin[$i - 1] -ne 'SEPARA|') { $senseSep += $fo.Name }
+    }
+}
+Assert ($ambFrase -ge 10) "el guard troba la frase de tancament als informes ($ambFrase)"
+AssertEq ($senseSep -join ', ') '' 'tots els informes separen "Ho poso al seu coneixement" de la frase d''abans'
+Assert (_EsFraseTancament '**Ho poso al seu coneixement als efectes oportuns,**') '_EsFraseTancament: la reconeix amb negreta'
+Assert (-not (_EsFraseTancament 'Cornella de Llobregat,')) '_EsFraseTancament: la resta no'

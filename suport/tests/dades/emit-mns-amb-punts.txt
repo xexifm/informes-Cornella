@@ -19,5 +19,6 @@ AIRE|conclusions
 CONCLCAP|CONCLUSIONS
 CONCL|D’acord amb l’article 59.1.d de la Llei 20/2009 aquestes Modificacions NO Substancials han de figurar a les posteriors actes dels controls periòdics.
 CONCL|Vist l’anterior, cal requerir l’esmena de les deficiències indicades, aportant la documentació corresponent i presentant la mateixa en un termini màxim de quinze dies, a comptar des de l’endemà de la recepció del requeriment.
+SEPARA|
 CONCL|Ho poso al seu coneixement als efectes oportuns,
 CONCL|Cornellà de Llobregat,
