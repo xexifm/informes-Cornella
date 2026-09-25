@@ -3,6 +3,9 @@
 > Per enganxar tal qual en una sessió nova de Claude Code (web) sobre aquest
 > repositori. Es pot tornar a fer servir cada cop que el programa hagi crescut:
 > les xifres de sota són de setembre 2026 i la sessió les ha de tornar a mesurar.
+> La primera execució (setembre 2026) i el que va quedar proposat són a
+> `arquitectura.md`: llegeix-lo abans, per no tornar a proposar el que ja es va
+> descartar.
 
 ---
 
