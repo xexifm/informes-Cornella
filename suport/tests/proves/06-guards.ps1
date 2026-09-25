@@ -1137,3 +1137,44 @@ foreach ($fv in @(@('VistaWord.ps1', 'MotorInforme.ps1', 'Document.ps1') + $Scri
     $esperat = if ($fv -eq 'LlicenciaBlocs.ps1') { '_LlicBlocsPunts' } else { '' }
     AssertEq ($fns -join ',') $esperat ("la regla del text fix de SECCIO de Llicencia nomes a _LlicBlocsPunts ($fv)")
 }
+
+Write-Host "`n--- Perque no torni a creixer: mida maxima per fitxer i noms de funcio unics ---"
+# Llicencia.ps1 va arribar a 2.550 linies (dades + blocs + cinc pantalles +
+# l'assistent) i Informes.ps1 a 1.800 (quatre eines en un fitxer) abans no es
+# van partir. A partir de 1.200 linies un fitxer ja fa mes d'una cosa: si en
+# necessites mes, parteix-lo per responsabilitats (mira LlicenciaDades/Blocs/
+# Pantalles) en lloc d'apujar el limit. Les EXCEPCIONS tenen sostre propi, un
+# pel damunt del que fan ara, perque tampoc no creixin sense pensar-hi:
+#   PdfSignar.ps1       tot el cicle de signar (AutoFirma, reintents, registre)
+#   rutes/Coordenades.ps1  proces a part que ha de ser autosuficient
+#   ActExtr.ps1         assistent + dades de la familia, lligats pel $ctx
+#   EditorCatalegs.ps1  una sola finestra amb molts controls WinForms
+$Script:MidaMaxFitxer = 1200
+$Script:MidaExcepcions = @{
+    'PdfSignar.ps1'         = 1600
+    'rutes/Coordenades.ps1' = 1550
+    'ActExtr.ps1'           = 1450
+    'EditorCatalegs.ps1'    = 1450
+}
+$arrelSuport = Join-Path $rootRepo 'suport'
+$massaGrans = New-Object System.Collections.ArrayList
+$fnsVistes = @{}
+$fnsRepes = New-Object System.Collections.ArrayList
+foreach ($f in @(Get-ChildItem -Path $arrelSuport -Recurse -Filter *.ps1 -File)) {
+    $rel = $f.FullName.Substring($arrelSuport.Length + 1).Replace('\', '/')
+    if ($rel.StartsWith('tests/')) { continue }
+    $n = @([System.IO.File]::ReadAllLines($f.FullName)).Count
+    $max = if ($Script:MidaExcepcions.ContainsKey($rel)) { $Script:MidaExcepcions[$rel] } else { $Script:MidaMaxFitxer }
+    if ($n -gt $max) { [void]$massaGrans.Add("$rel ($n > $max)") }
+    # Tot va amb dot-source al MATEIX ambit: dues funcions amb el mateix nom no
+    # donen cap error, guanya la darrera carregada i l'altra desapareix en silenci.
+    $astF = [System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$null, [ref]$null)
+    foreach ($fd in @($astF.FindAll({ param($a) $a -is [System.Management.Automation.Language.FunctionDefinitionAst] }, $true))) {
+        if ($fnsVistes.ContainsKey($fd.Name) -and $fnsVistes[$fd.Name] -ne $rel) {
+            [void]$fnsRepes.Add($fd.Name + ' (' + $fnsVistes[$fd.Name] + ' i ' + $rel + ')')
+        }
+        $fnsVistes[$fd.Name] = $rel
+    }
+}
+AssertEq ($massaGrans -join ', ') '' ('cap fitxer de suport/ passa de ' + $Script:MidaMaxFitxer + ' linies (o del sostre de la seva excepcio)')
+AssertEq ($fnsRepes -join ', ') '' 'cap nom de funcio definit a dos fitxers (el darrer carregat guanyaria en silenci)'
