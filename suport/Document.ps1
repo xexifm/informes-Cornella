@@ -74,9 +74,6 @@ function _BlocsTancament($fields = $null) {
     return $out.ToArray()
 }
 
-function Write-Tancament($sel, $fields = $null) {
-    [void](Write-Informe $sel (_BlocsTancament $fields))
-}
 
 # EL BLOC DE CONCLUSIONS en blocs (titol, conclusions i les frases de sempre).
 # PURA: la fan servir REQ1/TERMINI (_WriteConclusionsBlock) i MNS/Traspas.

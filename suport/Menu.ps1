@@ -53,9 +53,6 @@ function _LastRunIso($jsonPath, $prop) {
     return ''
 }
 
-function _LastRunText($jsonPath, $prop) {
-    return (_FormatRunStamp (_LastRunIso $jsonPath $prop))
-}
 
 # ----------------------------------------------------------------------------
 # SEGELL D'ULTIMA EXECUCIO DE LES EINES

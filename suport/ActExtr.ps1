@@ -699,9 +699,6 @@ function _WriteActExtrBody($sel, $blocks, $mode, $ctx, $computed) {
     [void](Write-Informe $sel @(Build-ActExtrBlocs $blocks $mode $ctx $computed))
 }
 
-function _WriteActExtrBodyFav($sel, $blocks, $ctx, $computed) {
-    [void](Write-Informe $sel @(Build-ActExtrBlocs $blocks 'fav' $ctx $computed))
-}
 
 # EL COS D'ACT_EXTR EN BLOCS. Funcio PURA (es prova a Linux comptant blocs); qui
 # ho escriu es Write-Informe, com a la resta d'informes. Abans aquestes dues

@@ -1069,72 +1069,25 @@ foreach ($f in @(Get-ChildItem -Path $srcAireDir -Filter '*.ps1' -File)) {
 AssertEq $llegeixen.Count 0 ('Cap informe llegeix les banderes d''aire pel seu compte' + $(if ($llegeixen.Count) { ' -> ' + ($llegeixen -join ' | ') } else { '' }))
 
 # ---------------------------------------------------------------------------
-# Write-Linia: escriure una linia de cataleg, un sol cop
+# UNA LINIA DE CATALEG en blocs: _BlocsDeLinia (MotorInforme.ps1)
 # ---------------------------------------------------------------------------
 # N'hi havia tres copies ($emitLine a Document.ps1, _LlicEmetLinia a
-# Llicencia.ps1 i _VLine a VistaWord.ps1). Les dues primeres nomes es
-# diferenciaven en si deduplicaven els enllacos.
-Write-Host "`n--- Write-Linia (text + enllacos) ---"
-{
-    . (Join-Path $TestsDir 'FormatDoubles.ps1')
-    $selL = [pscustomobject]@{}
-    $U1 = 'https://exemple.cat/u1'
-    $U2 = 'https://exemple.cat/u2'
-
-    # Text i enllac: el text va com a cos i l'enllac en paragraf propi.
-    # (El prefix '[[URL]] ' nomes val quan es TOTA la linia; enmig d'un text,
-    # l'URL es detecta pel contingut. Vegeu _SplitTextAndUrls.)
-    Write-Linia $selL ('Cal presentar el document. ' + $U1)
-    $e = @($global:emitCalls)
-    AssertEq $e.Count 2 'Write-Linia: text + enllac son dos paragrafs'
-    Assert ([bool]($e[0] -eq 'BODY|Cal presentar el document.')) 'Write-Linia: el text va com a cos'
-    Assert ([bool]($e[1] -eq ('URL|' + $U1)))                    'Write-Linia: ...i l''enllac despres'
-
-    # -IsChild: cos i enllac sagnats.
-    $global:emitCalls.Clear()
-    Write-Linia $selL ('Sub-punt. ' + $U1) -IsChild
-    $e = @($global:emitCalls)
-    Assert ([bool]($e[0] -eq 'BODY/CH|Sub-punt.')) 'Write-Linia: -IsChild sagna el cos'
-    Assert ([bool]($e[1] -eq ('URL/CH|' + $U1)))   'Write-Linia: ...i l''enllac'
-
-    # Una linia buida no escriu res (ni un paragraf en blanc).
-    $global:emitCalls.Clear()
-    Write-Linia $selL '   '
-    AssertEq @($global:emitCalls).Count 0 'Write-Linia: una linia buida no escriu res'
-
-    # Un enllac SOL (sense text) no emet cap cos buit.
-    $global:emitCalls.Clear()
-    Write-Linia $selL ('[[URL]] ' + $U1)
-    $e = @($global:emitCalls)
-    AssertEq $e.Count 1 'Write-Linia: un enllac sol (prefix [[URL]]) no emet cap cos buit'
-    Assert ([bool]($e[0] -eq ('URL|' + $U1))) 'Write-Linia: ...nomes l''enllac'
-
-    # DEDUPLICACIO: nomes quan se li passa el conjunt $vistos (Llicencia). Amb
-    # $null (REQ1) no es dedupa res, que es el comportament de sempre.
-    $global:emitCalls.Clear()
-    Write-Linia $selL ('A. ' + $U1)
-    Write-Linia $selL ('B. ' + $U1)
-    AssertEq @(@($global:emitCalls) | Where-Object { $_ -like 'URL|*' }).Count 2 'Write-Linia: sense $vistos, l''enllac repetit surt dues vegades'
-
-    $vistos = New-Object System.Collections.Generic.HashSet[string]
-    $global:emitCalls.Clear()
-    Write-Linia $selL ('A. ' + $U1) $vistos
-    Write-Linia $selL ('B. ' + $U1) $vistos
-    Write-Linia $selL ('C. ' + $U2) $vistos
-    $urls = @(@($global:emitCalls) | Where-Object { $_ -like 'URL|*' })
-    AssertEq $urls.Count 2 'Write-Linia: amb $vistos, l''enllac repetit NO es torna a escriure'
-    Assert ([bool]($urls[1] -eq ('URL|' + $U2))) 'Write-Linia: ...i el nou si'
-    # ...pero els tres COSSOS hi son: dedupliquem enllacos, no text.
-    AssertEq @(@($global:emitCalls) | Where-Object { $_ -like 'BODY|*' }).Count 3 'Write-Linia: el text no es dedupica mai'
-
-    # $emesos: on s'apunta el que s'ha arribat a escriure (Llicencia el fa servir
-    # per saber quins enllacos ha de deixar per DESPRES del comentari).
-    $vistos2 = New-Object System.Collections.Generic.HashSet[string]
-    $emesos = New-Object System.Collections.Generic.HashSet[string]
-    $global:emitCalls.Clear()
-    Write-Linia $selL ('A. ' + $U1) $vistos2 $emesos
-    Assert ($emesos.Contains($U1)) 'Write-Linia: $emesos recull els enllacos escrits'
-}.Invoke() | Out-Null
+# Llicencia.ps1 i _VLine a VistaWord.ps1), que van passar a Write-Linia. Des que
+# tots els informes son blocs, l'unica que queda es _BlocsDeLinia; Write-Linia
+# es va esborrar a la revisio d'arquitectura (ningu no la cridava). La
+# deduplicacio d'enllacos de Llicencia viu a _LlicBlocsDePunt i te les seves
+# proves a 03-llicencia.ps1.
+Write-Host "`n--- _BlocsDeLinia (text + enllacos) ---"
+$U1 = 'https://exemple.cat/u1'
+$bl = @(_BlocsDeLinia ('Cal presentar el document. ' + $U1) $false)
+AssertEq $bl.Count 2 '_BlocsDeLinia: text + enllac son dos blocs'
+Assert ([string]$bl[0].T -eq 'cos' -and [string]$bl[0].Text -eq 'Cal presentar el document.') '_BlocsDeLinia: el text va com a cos'
+Assert ([string]$bl[1].T -eq 'enllac' -and [string]$bl[1].Url -eq $U1) '_BlocsDeLinia: ...i l''enllac despres'
+$blF = @(_BlocsDeLinia ('Sub-punt. ' + $U1) $true)
+Assert ([bool]$blF[0].Fill -and [bool]$blF[1].Fill) '_BlocsDeLinia: com a fill, cos i enllac sagnats'
+AssertEq @(_BlocsDeLinia '   ' $false).Count 0 '_BlocsDeLinia: una linia buida no dona res'
+$blU = @(_BlocsDeLinia ('[[URL]] ' + $U1) $false)
+Assert ($blU.Count -eq 1 -and [string]$blU[0].T -eq 'enllac') '_BlocsDeLinia: un enllac sol no dona cap cos buit'
 
 # ---------------------------------------------------------------------------
 # L'alineat i els espais surten de la CONFIGURACIO, no de literals

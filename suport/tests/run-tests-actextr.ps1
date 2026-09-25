@@ -277,7 +277,7 @@ Write-Host "`n--- ACT_EXTR: l'aire surt de la configuracio ---"
 
     # FAVORABLE: aire NOMES al canvi de seccio.
     $global:emitCalls.Clear()
-    _WriteActExtrBodyFav $selA $blocsA $ctxA @{}
+    _WriteActExtrBody $selA $blocsA 'fav' $ctxA @{}
     $emF = @($global:emitCalls)
     AssertEq @($emF | Where-Object { $_ -eq 'AIRE|seccio' }).Count 1 'ACT_EXTR fav: aire nomes al canvi de seccio'
     Assert ([bool]($emF[0] -notlike 'AIRE*')) 'ACT_EXTR fav: cap aire davant del primer bloc'
@@ -286,7 +286,7 @@ Write-Host "`n--- ACT_EXTR: l'aire surt de la configuracio ---"
     try {
         $Script:ReportFormatConfig.SpacerAfterSection = $false
         $global:emitCalls.Clear()
-        _WriteActExtrBodyFav $selA $blocsA $ctxA @{}
+        _WriteActExtrBody $selA $blocsA 'fav' $ctxA @{}
         AssertEq @(@($global:emitCalls) | Where-Object { $_ -like 'AIRE*' }).Count 0 'ACT_EXTR fav: amb la bandera a fals, cap aire'
     } finally { $Script:ReportFormatConfig.SpacerAfterSection = $abansSec }
 }.Invoke() | Out-Null
@@ -325,7 +325,7 @@ Write-Host "`n--- ACT_EXTR: -First al primer sub-punt ---"
     # 'child' (mesurat), o sigui que alli el canvi encara no es nota; la regla hi
     # es igualment perque el dia que n'hi hagi un no torni a quedar a 6 pt.
     $global:emitCalls.Clear()
-    _WriteActExtrBodyFav $selB $blocsB $ctxB @{}
+    _WriteActExtrBody $selB $blocsB 'fav' $ctxB @{}
     $picsF = @(@($global:emitCalls) | Where-Object { $_ -like 'BULLET/CH*' })
     AssertEq $picsF.Count 3 'ACT_EXTR fav -First: tres sub-punts'
     Assert ([bool]($picsF[0] -like '*/1r|Fill u.'))  'ACT_EXTR fav -First: el primer fill va a 12 pt'

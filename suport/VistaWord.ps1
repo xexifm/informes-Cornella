@@ -168,12 +168,9 @@ function _VAire($sel, [string]$clau) { if (Test-FormatAire $clau) { _VSpacer $se
 
 # Escriu una linia de cos separant text i URLs, com fa el motor (_SplitTextAndUrls).
 #
-# PER QUE NO ES Write-Linia (MotorInforme.ps1), que fa exactament aixo: perque
-# aqui cada paragraf ha de rebre a mes el seu NIVELL D'ESQUEMA, i el Word
-# l'HERETA del paragraf anterior. Posar-lo un sol cop al final deixaria els
-# d'abans al nivell equivocat, o sigui que ha d'anar paragraf a paragraf
-# (_VBody / _VUrl). Es fon amb la resta quan el motor de blocs sapiga de
-# nivells; vegeu la fase 2 del pla.
+# Nomes la fan servir les vistes que encara no son blocs (ACT_EXTR, MNS,
+# conclusions). Les que ho son (REQ1, TERMINI, LLIC) fan servir _BlocsDeLinia +
+# Write-Informe -AmbNivells, que ja posa el nivell d'esquema a cada paragraf.
 function _VLine($sel, [string]$line, [bool]$isChild = $false) {
     if ([string]::IsNullOrWhiteSpace($line)) { return }
     $parts = _SplitTextAndUrls $line

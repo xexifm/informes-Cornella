@@ -321,47 +321,19 @@ function Write-InformeDocx($word, [string]$baseName, [string]$capBloc, $header, 
 }
 
 # ----------------------------------------------------------------------------
-# ESCRIURE UNA LINIA DE CATALEG
+# UNA LINIA DE CATALEG: text i enllacos barrejats ("[[URL]] ...")
 # ----------------------------------------------------------------------------
-# Una linia del cataleg pot portar text i enllacos barrejats ("[[URL]] ..."). El
-# motor els separa: el text va com a cos i CADA enllac com a hipervincle en
-# paragraf propi.
-#
-# N'hi havia TRES copies -$emitLine (Document.ps1), _LlicEmetLinia (Llicencia.ps1)
-# i _VLine (VistaWord.ps1)-, i les dues primeres nomes es diferenciaven en si
-# deduplicaven els enllacos o no.
-#
-#   -IsChild : sagnia de sub-nivell (el cos i l'enllac d'un fill).
-#   $vistos  : conjunt d'enllacos ja emesos EN AQUEST PUNT, per no repetir-los.
-#              A Llicencia cal: el text de REQ1 i el comentari "No es disposa..."
-#              solen portar el mateix enllac i sortia dues vegades seguides. Amb
-#              $null (REQ1) no es dedupa res, que es el comportament de sempre.
-#   $emesos  : on s'apunten els enllacos que s'han arribat a escriure. Serveix a
-#              _LlicBlocsDePunt per saber quins ha de deixar per despres del
-#              comentari (l'enllac va DESPRES de la frase que l'anuncia).
-#
-# La linia ha d'arribar JA RESOLTA (els [CAMP:]/[OPCIO:] es resolen per BLOC,
-# no linia a linia: vegeu Apply-FieldsToLines).
+# El text va com a cos i CADA enllac com a hipervincle en paragraf propi. Ho fa
+# _BlocsDeLinia (mes avall). N'hi havia TRES copies -$emitLine (Document.ps1),
+# _LlicEmetLinia (Llicencia) i _VLine (VistaWord.ps1)-; despres va ser
+# Write-Linia, que es va esborrar quan tots els informes van passar a blocs
+# (revisio d'arquitectura, setembre 2026). La deduplicacio d'enllacos que
+# necessita Llicencia es a _LlicBlocsDePunt.
 #
 # ELS ENLLACOS ES DETECTEN AMB _SplitTextAndUrls, MAI A MA. Llicencia va tenir
 # un _EsUrl fet amb -like '[[URL]]*', i en un patro de -like '[[URL]' es una
 # CLASSE DE CARACTERS: no coincidia mai, el marcador [[URL]] sortia TAL QUAL a
-# l'informe i l'enllac no era hipervincle. (Vegeu CLAUDE.md: aquesta trampa ja
-# ha sortit tres vegades en aquest projecte.)
-function Write-Linia($sel, [string]$linia, [switch]$IsChild, $vistos = $null, $emesos = $null) {
-    if ([string]::IsNullOrWhiteSpace($linia)) { return }
-    $parts = _SplitTextAndUrls $linia
-    if (-not [string]::IsNullOrWhiteSpace($parts.Text)) {
-        if ($IsChild) { Format-Body $sel $parts.Text -IsChild } else { Format-Body $sel $parts.Text }
-    }
-    foreach ($u in @($parts.Urls)) {
-        $clau = ([string]$u).Trim()
-        if ($null -ne $vistos -and $vistos.Contains($clau)) { continue }
-        if ($null -ne $vistos) { [void]$vistos.Add($clau) }
-        if ($null -ne $emesos) { [void]$emesos.Add($clau) }
-        if ($IsChild) { Format-Url $sel $u -IsChild } else { Format-Url $sel $u }
-    }
-}
+# l'informe i l'enllac no era hipervincle.
 
 # ----------------------------------------------------------------------------
 # EL MOTOR: UN DOCUMENT ES UNA LLISTA DE BLOCS
