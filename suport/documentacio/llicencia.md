@@ -490,6 +490,9 @@ bloc DESPRÉS**:
   el seu «Quan:». Només el **post** diu si es té o no. `_LlicEstatDespres`
   tracta el pre com el requeriment (`AmbEstat = $false`) i la pantalla del pas 7
   surt sense els dos botons.
+  - **Al pre, el «Quan:» va entre parèntesis i sense punt final**:
+    «(Quan: Abans d'iniciar l'activitat)», i igual amb qualsevol altre termini
+    (`_LlicTextQuan`, pura). Al requeriment i al post, com sempre.
   - **Una pantalla que no pregunta l'estat, ni el diu ni el recorda**
     (`Select-LlicDocumentacio`): el punt surt amb `Estat = ''` —encara que la
     memòria en porti un— i a la memòria s'hi torna a desar el que hi havia. Si

@@ -915,7 +915,19 @@ function _LlicNomFitxer([datetime]$data, [string]$fase, [string]$idGia) {
 #
 # Tot el format surt de Format.ps1: aqui no s'hi inventa res. L'unic afegit es
 # el color, que Format-Body ja sap aplicar.
-function _LlicEscriuPunt($sel, $punt, [string]$marca, $fields, [string]$estat, [bool]$ambQuan) {
+# EL TEXT DEL "Quan:" segons la fase. Funcio PURA.
+#
+# Al favorable PRE va ENTRE PARENTESIS i sense el punt final:
+# "(Quan: Abans d'iniciar l'activitat)" -decisio de l'usuari, setembre 2026-.
+# Alla el punt no diu si es te o no el document (vegeu _LlicEstatDespres): el
+# termini es nomes un aclariment del punt. A la resta de fases, com sempre.
+function _LlicTextQuan([string]$quan, [string]$fase) {
+    $q = ([string]$quan).Trim()
+    if ([string]$fase -eq 'favorable-pre') { return ('(Quan: ' + $q.TrimEnd('.').TrimEnd() + ')') }
+    return ('Quan: ' + $q)
+}
+
+function _LlicEscriuPunt($sel, $punt, [string]$marca, $fields, [string]$estat, [bool]$ambQuan, [string]$fase = '') {
     # ON VA L'ENLLAC. El comentari acaba dient "...en el seguent enllac:", o
     # sigui que l'enllac ha d'anar JUST DESPRES d'aquella frase. Pero el cos de
     # l'item (que ve de REQ1) sol portar EL MATEIX enllac, i sortia abans -amb
@@ -988,7 +1000,7 @@ function _LlicEscriuPunt($sel, $punt, [string]$marca, $fields, [string]$estat, [
     if ($ambQuan) {
         foreach ($l in @(Apply-FieldsToLines $punt.Quan $fields)) {
             if ([string]::IsNullOrWhiteSpace($l)) { continue }
-            Format-Body $sel ('Quan: ' + [string]$l)
+            Format-Body $sel (_LlicTextQuan ([string]$l) $fase)
         }
     }
 
@@ -1075,7 +1087,7 @@ function _LlicMarca([int]$i, [string]$estil) {
 #
 # $n va per REFERENCIA: la numeracio de l'informe es SEGUIDA de cap a peus, no
 # una llista nova per bloc.
-function _LlicEscriuPunts($sel, $punts, [ref]$n, $fields, [bool]$ambQuan, [string]$estil = 'numero') {
+function _LlicEscriuPunts($sel, $punts, [ref]$n, $fields, [bool]$ambQuan, [string]$estil = 'numero', [string]$fase = '') {
     $secAra = $null
     $subAra = $null
     $introAra = $null      # intro d'una SUBSECCIO: es reinicia a cada grup
@@ -1126,7 +1138,7 @@ function _LlicEscriuPunts($sel, $punts, [ref]$n, $fields, [bool]$ambQuan, [strin
             $introAra = $clauIntro
         }
         $n.Value++
-        _LlicEscriuPunt $sel $p (_LlicMarca $n.Value $estil) $fields ([string]$p.Estat) $ambQuan
+        _LlicEscriuPunt $sel $p (_LlicMarca $n.Value $estil) $fields ([string]$p.Estat) $ambQuan $fase
         Format-Aire $sel 'item'
     }
 }
@@ -1206,7 +1218,7 @@ function Build-LlicenciaDocument($word, $model) {
         if ($desp.Count -gt 0) {
             Format-BlockTitle $sel (_LlicTitolDespres)
             Format-Aire $sel 'seccio'
-            _LlicEscriuPunts $sel $desp ([ref]$n) $fields $true
+            _LlicEscriuPunts $sel $desp ([ref]$n) $fields $true 'numero' ([string]$model.Fase)
         }
 
         # ---- CONCLUSIO ----

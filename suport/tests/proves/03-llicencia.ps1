@@ -211,6 +211,13 @@ AssertEq (@($rFase[0].Quan) -join ' ') 'q' '_LlicPuntsAmbEstatFase: el "Quan:" n
 AssertEq (@($pFase[0].NoDisposa).Count) 0 '_LlicPuntsAmbEstatFase: no modifica el que li arriba'
 AssertEq (@(_LlicPuntsAmbEstatFase @() 'requeriment').Count) 0 '_LlicPuntsAmbEstatFase: sense punts, cap'
 
+# EL "Quan:" AL FAVORABLE PRE va entre parentesis i sense el punt final; a la
+# resta de fases, com sempre.
+AssertEq (_LlicTextQuan ('Abans d' + [char]0x2019 + 'iniciar l' + [char]0x2019 + 'activitat.') 'favorable-pre') ('(Quan: Abans d' + [char]0x2019 + 'iniciar l' + [char]0x2019 + 'activitat)') '_LlicTextQuan: al pre, entre parentesis i sense punt'
+AssertEq (_LlicTextQuan 'Iniciar el tramit abans de sis mesos.' 'favorable-pre') '(Quan: Iniciar el tramit abans de sis mesos)' '_LlicTextQuan: al pre, TOTS els terminis igual'
+AssertEq (_LlicTextQuan 'Abans de tot.' 'favorable-post') 'Quan: Abans de tot.' '_LlicTextQuan: al post, com sempre'
+AssertEq (_LlicTextQuan 'Abans de tot.' 'requeriment') 'Quan: Abans de tot.' '_LlicTextQuan: al requeriment, com sempre'
+
 # Nom del fitxer: data al principi, com la resta d'informes (aixi "Actualitzar
 # base d'informes" el reconeix).
 $nf = _LlicNomFitxer ([datetime]'2026-08-03') 'requeriment' '1433'
@@ -634,8 +641,11 @@ if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path 
         Assert (-not (@($emF) | Where-Object { $_ -like 'SUB|Documentaci*' })) ($fs + ': ja no hi ha el subtitol "Documentacio"')
         # El bloc DESPRES: primer el "Quan:", despres si es disposa o no.
         $bloc = @($emF[$iDe..($emF.Count - 1)])
-        $iQuan = [Array]::FindIndex([string[]]$bloc, [Predicate[string]]{ param($x) $x -like 'BODY|Quan: *' })
+        $iQuan = [Array]::FindIndex([string[]]$bloc, [Predicate[string]]{ param($x) $x -like 'BODY|*Quan: *' })
         Assert ($iQuan -ge 0) ($fs + ': el bloc DESPRES porta el "Quan:"')
+        # Al pre, entre parentesis; a la resta, com sempre.
+        $esperatQ = if ($fs -eq 'favorable-pre') { 'BODY|(Quan: *)' } else { 'BODY|Quan: *' }
+        Assert ([bool]($bloc[$iQuan] -like $esperatQ)) ($fs + ': el "Quan:" amb el format de la fase (' + $bloc[$iQuan] + ')')
         $iEstat = [Array]::FindIndex([string[]]$bloc, [Predicate[string]]{ param($x) $x -like '*es disposa*' })
         if ([string]$ef.Estat -eq '') {
             AssertEq $iEstat -1 ($fs + ': no es diu si es disposa o no (nomes ho diu el post)')
