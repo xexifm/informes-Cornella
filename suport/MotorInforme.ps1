@@ -325,7 +325,7 @@ function Write-InformeDocx($word, [string]$baseName, [string]$capBloc, $header, 
 # ----------------------------------------------------------------------------
 # El text va com a cos i CADA enllac com a hipervincle en paragraf propi. Ho fa
 # _BlocsDeLinia (mes avall). N'hi havia TRES copies -$emitLine (Document.ps1),
-# _LlicEmetLinia (Llicencia) i _VLine (VistaWord.ps1)-; despres va ser
+# _LlicEmetLinia (Llicencia) i _VLine (la vista, ja esborrat)-; despres va ser
 # Write-Linia, que es va esborrar quan tots els informes van passar a blocs
 # (revisio d'arquitectura, setembre 2026). La deduplicacio d'enllacos que
 # necessita Llicencia es a _LlicBlocsDePunt.
@@ -427,9 +427,13 @@ function _WriteBlocs($sel, $blocs, $estat, [bool]$ambNivells) {
         # tornar el nivell d'esquema a cos: el Word l'HERETA, i un espaiador
         # despres d'un titol es quedaria a nivell 1 i sortiria com una entrada
         # buida al panell de navegacio.
+        #
+        # PERO NOMES SI L'AIRE S'HA ESCRIT. Si l'interruptor esta apagat no hi ha
+        # paragraf nou, el cursor es encara al TITOL que s'acaba d'escriure, i
+        # posar-li el nivell de cos el treia del panell de navegacio.
         if ($t -eq 'aire') {
             Format-Aire $sel ([string]$b.Clau)
-            if ($ambNivells) { Format-Nivell $sel $Script:WdOutlineBody }
+            if ($ambNivells -and (Test-FormatAire ([string]$b.Clau))) { Format-Nivell $sel $Script:WdOutlineBody }
             continue
         }
         if ($t -eq 'espai') {

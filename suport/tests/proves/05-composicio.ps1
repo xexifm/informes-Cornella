@@ -1670,3 +1670,48 @@ $secOrfe = @(
     }
 )
 AssertEq (@(Build-CatalegBlocs $secOrfe @{} '' $false @() -AmbAjuda | Where-Object { $_.T -eq 'ajuda' }).Count) 0 'Ajuda: un item que no escriu res no deixa la fitxa orfe'
+
+Write-Host "`n--- Vistes en blocs: ACT_EXTR, MNS/Traspas i conclusions (pures) ---"
+# Totes les vistes passen per Write-Informe -AmbNivells; aqui es prova la part
+# PURA, que decideix quins blocs hi van. El que escriuen es mira als fitxers d'or.
+$recAE = @(
+    [pscustomobject]@{ Style = 'h1'; Text = '[[A]] ::CHILD:: Fills' },
+    [pscustomobject]@{ Style = 'p';  Text = 'Fill u' },
+    [pscustomobject]@{ Style = 'url'; Text = 'https://exemple.cat' },
+    [pscustomobject]@{ Style = 'h2'; Text = '[[K]] ::NOTE:: nota' },
+    [pscustomobject]@{ Style = 'p';  Text = 'Una nota' },
+    [pscustomobject]@{ Style = 'h2'; Text = '[[L]] ::CHILD:: altre' },
+    [pscustomobject]@{ Style = 'p';  Text = 'Fill dos' },
+    [pscustomobject]@{ Style = 'p';  Text = 'Fill tres' },
+    [pscustomobject]@{ Style = 'p';  Text = '' })
+$bAE = @(Build-ActExtrVistaBlocs $recAE)
+AssertEq (@($bAE | ForEach-Object { [string]$_.T }) -join ',') 'espai,seccio,espai,pic,enllac,subseccio,nota,subseccio,pic,pic' 'Build-ActExtrVistaBlocs: el tipus de cada bloc surt del TOKEN'
+AssertEq ([bool]$bAE[4].Fill) $true 'Build-ActExtrVistaBlocs: l''enllac d''un bloc ::CHILD:: va sagnat'
+AssertEq ([bool]$bAE[8].First) $true 'Build-ActExtrVistaBlocs: el sub-punt que segueix una nota obre llista'
+AssertEq ([bool]$bAE[9].First) $false 'Build-ActExtrVistaBlocs: ...i el seguent no'
+$oCon = [pscustomobject]@{
+    intro = @()
+    nodes = @(
+        [pscustomobject]@{ tipus = 'grup'; titol = 'REQ1'; fills = @([pscustomobject]@{ cos = @(
+            [pscustomobject]@{ runs = @([pscustomobject]@{ t = 'Primera' }) },
+            [pscustomobject]@{ runs = @([pscustomobject]@{ t = 'https://a.cat' }); url = $true }) }) },
+        [pscustomobject]@{ tipus = 'sempre'; cos = @([pscustomobject]@{ runs = @([pscustomobject]@{ t = 'Ho poso al seu coneixement' }) }) }) }
+$bCon = @(Build-ConclusionsVistaBlocs $oCon)
+AssertEq (@($bCon | ForEach-Object { [string]$_.T }) -join ',') 'espai,seccio,espai,item,enllac,espai,espai,seccio,espai,cos' 'Build-ConclusionsVistaBlocs: grup numerat + frases de sempre al final'
+AssertEq ([string]$bCon[3].Num) '1.' 'Build-ConclusionsVistaBlocs: cada conclusio numerada'
+
+# Amb l'aire APAGAT no hi ha paragraf nou: el cursor es encara al titol, i
+# posar-li el nivell de cos el treia del panell de navegacio de la vista.
+{
+    . (Join-Path $TestsDir 'FormatDoubles.ps1')
+    $selN = [pscustomobject]@{ ParagraphFormat = [pscustomobject]@{ OutlineLevel = 0 } }
+    $abansAire = $Script:ReportFormatConfig.SpacerAfterSection
+    try {
+        $Script:ReportFormatConfig.SpacerAfterSection = $false
+        [void](Write-Informe $selN @(@{ T = 'seccio'; Text = 'T' }, @{ T = 'aire'; Clau = 'seccio' }) -AmbNivells)
+        AssertEq ([int]$selN.ParagraphFormat.OutlineLevel) 1 'Vista amb l''aire apagat: el titol es queda amb el seu nivell d''esquema'
+        $Script:ReportFormatConfig.SpacerAfterSection = $true
+        [void](Write-Informe $selN @(@{ T = 'seccio'; Text = 'T' }, @{ T = 'aire'; Clau = 'seccio' }) -AmbNivells)
+        AssertEq ([int]$selN.ParagraphFormat.OutlineLevel) $Script:WdOutlineBody 'Vista amb l''aire ences: l''espai torna el nivell a cos'
+    } finally { $Script:ReportFormatConfig.SpacerAfterSection = $abansAire }
+}.Invoke() | Out-Null

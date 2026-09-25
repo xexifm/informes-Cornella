@@ -1130,6 +1130,12 @@ foreach ($fam in @($Script:FitxersLlicencia + @('MnsTraspas.ps1', 'ActExtr.ps1')
               ForEach-Object { $_.GetCommandName() + ' (linia ' + $_.Extent.StartLineNumber + ')' })
     AssertEq ($fmtLl -join ', ') '' ($fam + ': cap Format-* directe (tot passa per Write-Informe)')
 }
+# I LES VISTES: tenien onze embolcalls propis (_VSection, _VBody...) que repetien
+# el motor. L'unic Format-* que hi queda es l'estil base del document nou.
+$astVw = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $rootRepo (Join-Path 'suport' 'VistaWord.ps1')), [ref]$null, [ref]$null)
+$fmtVw = @($astVw.FindAll({ param($a) $a -is [System.Management.Automation.Language.CommandAst] -and ([string]$a.GetCommandName()) -like 'Format-*' -and $a.GetCommandName() -ne 'Format-ApplyBaseStyle' }, $true) |
+          ForEach-Object { $_.GetCommandName() + ' (linia ' + $_.Extent.StartLineNumber + ')' })
+AssertEq ($fmtVw -join ', ') '' 'VistaWord.ps1: cap Format-* directe (les vistes son blocs + Write-Informe -AmbNivells)'
 foreach ($fv in @(@('VistaWord.ps1', 'MotorInforme.ps1', 'Document.ps1') + $Script:FitxersLlicencia)) {
     $astV = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $rootRepo (Join-Path 'suport' $fv)), [ref]$null, [ref]$null)
     $usos = @($astV.FindAll({ param($a) $a -is [System.Management.Automation.Language.VariableExpressionAst] -and $a.VariablePath.UserPath -eq 'introSecAra' }, $true))

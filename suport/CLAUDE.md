@@ -999,7 +999,7 @@ els Build-*Blocs  QUÈ s'escriu             (purs: es proven sense Word)
 | Duplicitat | Còpies | On viu ara |
 |---|---|---|
 | Obrir/desar el `.docx` (~20 l.) | 4 (`Build-Document`, `Build-ActExtrDocument`, `Build-LlicenciaDocument`, `Build-MnsDocument`) | `Write-InformeDocx` |
-| Escriure una línia (text + enllaços) | 3 (`$emitLine`, `_LlicEmetLinia`, `_VLine`) | `Write-Linia` |
+| Escriure una línia (text + enllaços) | 3 (`$emitLine`, `_LlicEmetLinia`, `_VLine`) | `_BlocsDeLinia` (blocs `cos` + `enllac`) |
 | Escriure un punt (número + cos + fills + URLs) | 2 (`_WriteCatalegBody`, `_VistaCataleg`) | `Build-CatalegBlocs` + `Write-Informe` |
 | `if ($cfg.SpacerAfterX) { Format-Spacer }` | **34** | `Format-Aire $sel '<clau>'` |
 | Salt de pàgina i `OutlineLevel` a pèl | 2 fitxers | `Format-SaltPagina` / `Format-Nivell` |
@@ -1058,8 +1058,14 @@ mal escrit no pot afegir una línia en blanc a un informe en silenci.
 - **`Test-FormatAire` és pura** i es prova sense Word.
 - **`aire` ≠ `espai`**: `aire` depèn d'una bandera; `espai` és una línia en
   blanc **sempre** (el cos fix de TERMINI, l'ANNEX 1).
-- Les **vistes** tenen `_VAire`, que passa per `_VSpacer` per tornar el nivell
-  d'esquema a cos.
+- A les **vistes** (`-AmbNivells`), l'`aire` torna el nivell d'esquema a cos
+  **només si s'ha escrit**: amb l'interruptor apagat el cursor és encara al
+  títol, i abans li posava nivell de cos i el treia del panell de navegació.
+- **Totes** les vistes són blocs: `Build-CatalegBlocs`, `Build-LlicVistaBlocs`,
+  `Build-ActExtrVistaBlocs`, `Build-MnsVistaBlocs` i
+  `Build-ConclusionsVistaBlocs` (pures) + `Write-Informe -AmbNivells`. Els
+  onze embolcalls `_V*` es van esborrar (setembre 2026); el fitxer d'or de la
+  vista de MNS/Traspàs només hi va guanyar les línies `AIRE|`.
 
 ### El vocabulari de blocs (`Write-Informe`)
 `seccio`, `subseccio`, `etiqueta`, `item`, `cos`, `pic`, `nota`, `enllac`,

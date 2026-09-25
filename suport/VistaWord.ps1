@@ -78,7 +78,10 @@ function _VistaEsProtegit([string]$jsonPath) {
 #   9 -> la FITXA D'AJUDA de cada requeriment, en gris (Format-Ajuda)
 #  10 -> la fitxa sense sangria (com la resta del cos), amb la VIGENCIA i amb
 #        l'ENLLAC al text consolidat de la norma com a hipervincle
-$Script:VistaWordVersio = 11
+#  11 -> la de LLIC en blocs (els enllacos surten com a enllacos)
+#  12 -> ACT_EXTR, MNS i conclusions tambe en blocs; amb l'aire apagat, els
+#        titols ja no perden el nivell d'esquema (sortien del panell)
+$Script:VistaWordVersio = 12
 
 function _VistaVersioPath {
     $base = [string]$env:LOCALAPPDATA
@@ -127,56 +130,17 @@ function _VistaActExtrTitol([string]$h2) {
 }
 
 # ----------------------------------------------------------------------------
-# ESCRIPTURA A WORD (COM) - nomes Windows
+# TOTES LES VISTES SON BLOCS + Write-Informe -AmbNivells
 # ----------------------------------------------------------------------------
-# El format es EXACTAMENT el de l'informe: totes les funcions de sota criden les
-# Format-* de Format.ps1 (les mateixes que fa servir Build-Document), aixi la
-# vista es veu igual que sortiria el document generat.
+# El format es EXACTAMENT el de l'informe perque qui escriu es el mateix motor
+# (Write-Informe, MotorInforme.ps1). -AmbNivells hi afegeix el NIVELL D'ESQUEMA
+# (OutlineLevel) de cada paragraf perque la vista sigui navegable des del panell
+# del Word; no en canvia l'aspecte.
 #
-# A mes, cada titol rep un NIVELL D'ESQUEMA (OutlineLevel) perque surti al panell
-# de navegacio del Word. L'OutlineLevel NO canvia com es veu el paragraf: nomes
-# el fa navegable. Compte: el Word HERETA el nivell al paragraf seguent, per aixo
-# el cos el torna sempre a 10 (wdOutlineLevelBodyText).
-# $Script:WdOutlineBody i Format-Nivell viuen a Format.ps1: tocar el Word per
-# format es cosa d'aquell modul, i aixi no en queda cap copia aqui.
-function _VistaNivell($sel, [int]$n) { Format-Nivell $sel $n }
-
-# --- Embolcalls: format de l'informe + nivell d'esquema ---------------------
-function _VSection($sel, [string]$t)  { Format-Section $sel $t;    _VistaNivell $sel 1 }
-function _VSubsection($sel, [string]$t) { Format-Subsection $sel $t; _VistaNivell $sel 2 }
-function _VItem($sel, [string]$num, [string]$t) { Format-Item $sel $num $t; _VistaNivell $sel 3 }
-function _VBody($sel, [string]$t, [bool]$isChild = $false) {
-    if ($isChild) { Format-Body $sel $t -IsChild } else { Format-Body $sel $t }
-    _VistaNivell $sel $Script:WdOutlineBody
-}
-function _VUrl($sel, [string]$u, [bool]$isChild = $false) {
-    if ($isChild) { Format-Url $sel $u -IsChild } else { Format-Url $sel $u }
-    _VistaNivell $sel $Script:WdOutlineBody
-}
-function _VBullet($sel, [string]$t, [bool]$isChild = $true, [bool]$first = $false) {
-    if ($isChild) { Format-Bullet $sel $t -IsChild -First:$first } else { Format-Bullet $sel $t -First:$first }
-    _VistaNivell $sel $Script:WdOutlineBody
-}
-function _VNote($sel, [string]$t)  { Format-Note $sel $t;  _VistaNivell $sel $Script:WdOutlineBody }
-function _VLabel($sel, [string]$t) { Format-Label $sel $t; _VistaNivell $sel $Script:WdOutlineBody }
-function _VConcl($sel, [string]$t) { Format-Conclusion $sel $t; _VistaNivell $sel $Script:WdOutlineBody }
-function _VConclCap($sel, [string]$t) { Format-ConclusionHeader $sel $t; _VistaNivell $sel $Script:WdOutlineBody }
-function _VSpacer($sel) { Format-Spacer $sel; _VistaNivell $sel $Script:WdOutlineBody }
-# I la versio per NOM de bloc (Format-Aire), que es la que decideix si hi va
-# aire o no. Vegeu $Script:AireFlagPerClau a Format.ps1.
-function _VAire($sel, [string]$clau) { if (Test-FormatAire $clau) { _VSpacer $sel } }
-
-# Escriu una linia de cos separant text i URLs, com fa el motor (_SplitTextAndUrls).
-#
-# Nomes la fan servir les vistes que encara no son blocs (ACT_EXTR, MNS,
-# conclusions). Les que ho son (REQ1, TERMINI, LLIC) fan servir _BlocsDeLinia +
-# Write-Informe -AmbNivells, que ja posa el nivell d'esquema a cada paragraf.
-function _VLine($sel, [string]$line, [bool]$isChild = $false) {
-    if ([string]::IsNullOrWhiteSpace($line)) { return }
-    $parts = _SplitTextAndUrls $line
-    if (-not [string]::IsNullOrWhiteSpace($parts.Text)) { _VBody $sel $parts.Text $isChild }
-    foreach ($u in $parts.Urls) { _VUrl $sel $u $isChild }
-}
+# Abans les vistes d'ACT_EXTR, MNS/Traspas i conclusions escrivien amb onze
+# embolcalls propis (_VSection, _VBody, _VBullet...) que repetien, un per un, el
+# que ja fa el motor. Ara cada vista es un Build-*VistaBlocs PUR (es prova a
+# Linux comptant blocs) i la funcio _Vista* nomes llegeix el cataleg i escriu.
 
 # ---- Vista del cataleg de LLICENCIA ----------------------------------------
 # Ensenya el que Llicencia produira: cada bloc (ABANS / PROJECTE / DESPRES /
@@ -189,28 +153,34 @@ function _VLine($sel, [string]$line, [bool]$isChild = $false) {
 # La vista dels dos informes CURTS de llicencia (MNSTRAS.json). Ensenya cada un
 # amb les DUES variants -amb observacions i sense-, que es l'unica cosa que hi
 # canvia, i marca on va la llista que l'usuari omple al Word.
-function _VistaMnsTraspas($sel, [string]$jsonPath) {
-    $cfg = $Script:ReportFormatConfig
-    $cat = Read-MnsCataleg $jsonPath
+function Build-MnsVistaBlocs($cat) {
+    $b = New-Object System.Collections.ArrayList
     foreach ($f in @(_MnsFases)) {
-        _VSection $sel ([string]$f.Nom)
-        _VAire $sel 'seccio'
+        [void]$b.Add(@{ T = 'seccio'; Text = [string]$f.Nom })
+        [void]$b.Add(@{ T = 'aire'; Clau = 'seccio' })
         foreach ($v in @(@{ Amb = $false; Nom = 'sense observacions' }, @{ Amb = $true; Nom = 'amb observacions' })) {
-            _VSubsection $sel ([string]$v.Nom)
-            _VAire $sel 'subseccio'
+            [void]$b.Add(@{ T = 'subseccio'; Text = [string]$v.Nom })
+            [void]$b.Add(@{ T = 'aire'; Clau = 'subseccio' })
             foreach ($p in @(_MnsParagrafs $cat ([string]$f.Clau) ([bool]$v.Amb))) {
                 if ([string]$p.Tipus -eq 'llista') {
-                    _VBody $sel ('//(aqui hi va una llista de Word buida, per omplir-la a ma)//')
+                    [void]$b.Add(@{ T = 'cos'; Text = '//(aqui hi va una llista de Word buida, per omplir-la a ma)//' })
                     continue
                 }
+                # Nomes el TEXT: la vista d'aquests dos informes mai no ha
+                # ensenyat els enllacos (no en porten).
                 foreach ($l in @($p.Linies)) {
                     $pp = _SplitTextAndUrls ([string]$l)
-                    if (-not [string]::IsNullOrWhiteSpace($pp.Text)) { _VBody $sel $pp.Text }
+                    if (-not [string]::IsNullOrWhiteSpace($pp.Text)) { [void]$b.Add(@{ T = 'cos'; Text = [string]$pp.Text }) }
                 }
             }
-            _VAire $sel 'item'
+            [void]$b.Add(@{ T = 'aire'; Clau = 'item' })
         }
     }
+    return $b.ToArray()
+}
+
+function _VistaMnsTraspas($sel, [string]$jsonPath) {
+    [void](Write-Informe $sel (Build-MnsVistaBlocs (Read-MnsCataleg $jsonPath)) -AmbNivells)
 }
 
 # UN PUNT a la VISTA de LLIC: el text de REQ1 (o el propi) i, a sota i en
@@ -368,12 +338,13 @@ function _VistaCataleg($sel, [string]$jsonPath, [string]$nom) {
 }
 
 # ---- Vista de les CONCLUSIONS ----------------------------------------------
-function _VistaConclusions($sel, [string]$jsonPath) {
-    $o = _LoadEstructuralJson $jsonPath
+# $o es el JSON de 0 CONCLUSIONS.json tal com el torna _LoadEstructuralJson.
+function Build-ConclusionsVistaBlocs($o) {
+    $b = New-Object System.Collections.ArrayList
     $sempre = New-Object System.Collections.ArrayList
     foreach ($p in @($o.intro)) {
         $t = _JsonParaToBodyLine $p
-        if (-not [string]::IsNullOrWhiteSpace($t)) { _VSection $sel $t }
+        if (-not [string]::IsNullOrWhiteSpace($t)) { [void]$b.Add(@{ T = 'seccio'; Text = [string]$t }) }
     }
     foreach ($n in @($o.nodes)) {
         if ([string]$n.tipus -eq 'sempre') {
@@ -381,25 +352,32 @@ function _VistaConclusions($sel, [string]$jsonPath) {
             continue
         }
         # Grup = tipus d'informe (REQ1, SEGUIMENT, TERMINI...).
-        _VSpacer $sel
-        _VSection $sel ('Conclusions de ' + [string]$n.titol)
-        _VSpacer $sel
+        [void]$b.Add(@{ T = 'espai' })
+        [void]$b.Add(@{ T = 'seccio'; Text = ('Conclusions de ' + [string]$n.titol) })
+        [void]$b.Add(@{ T = 'espai' })
         $num = 0
         foreach ($c in @($n.fills)) {
             $num++
             $cos = @($c.cos)
             $primera = if ($cos.Count -gt 0) { _JsonParaToBodyLine $cos[0] } else { '' }
-            _VItem $sel ("$num.") ([string]$primera)
-            for ($i = 1; $i -lt $cos.Count; $i++) { _VLine $sel (_JsonParaToBodyLine $cos[$i]) }
-            _VSpacer $sel
+            [void]$b.Add(@{ T = 'item'; Num = "$num."; Text = [string]$primera })
+            for ($i = 1; $i -lt $cos.Count; $i++) {
+                foreach ($x in @(_BlocsDeLinia (_JsonParaToBodyLine $cos[$i]) $false)) { [void]$b.Add($x) }
+            }
+            [void]$b.Add(@{ T = 'espai' })
         }
     }
     if ($sempre.Count -gt 0) {
-        _VSpacer $sel
-        _VSection $sel 'Frases que surten sempre'
-        _VSpacer $sel
-        foreach ($l in $sempre) { _VLine $sel ([string]$l) }
+        [void]$b.Add(@{ T = 'espai' })
+        [void]$b.Add(@{ T = 'seccio'; Text = 'Frases que surten sempre' })
+        [void]$b.Add(@{ T = 'espai' })
+        foreach ($l in $sempre) { foreach ($x in @(_BlocsDeLinia ([string]$l) $false)) { [void]$b.Add($x) } }
     }
+    return $b.ToArray()
+}
+
+function _VistaConclusions($sel, [string]$jsonPath) {
+    [void](Write-Informe $sel (Build-ConclusionsVistaBlocs (_LoadEstructuralJson $jsonPath)) -AmbNivells)
 }
 
 # ---- Vista d'una plantilla ACT_EXTR ----------------------------------------
@@ -411,35 +389,26 @@ function _VistaConclusions($sel, [string]$jsonPath) {
 # i les conclusions de l'informe favorable-, o sigui que ensenyava una cosa i el
 # document en generava una altra. Una vista que no s'assembla al que surt no
 # serveix per consultar-la, que es tot el motiu de tenir-la.
-function _VActExtrContingut($sel, [string]$kind, [string]$txt, [ref]$primerFill) {
-    if ([string]::IsNullOrWhiteSpace($txt)) { return }
-    if ($kind -eq 'child') {
-        _VBullet $sel $txt $true ([bool]$primerFill.Value)
-        $primerFill.Value = $false
-        return
-    }
-    switch ($kind) {
-        'note'   { _VNote $sel $txt }
-        'label'  { _VLabel $sel $txt }
-        'header' { _VConclCap $sel $txt }
-        'conc'   { _VConcl $sel $txt }
-        'text'   { _VBody $sel $txt }
-        default  { _VBullet $sel $txt $false }   # 'item': pic de primer nivell
-    }
-    $primerFill.Value = $true
+#
+# Els pics porten el 'First' JA DECIDIT (l'excepcio que Write-Informe accepta
+# nomes per a ACT_EXTR): el primer sub-punt es el que segueix qualsevol cosa que
+# no sigui un sub-punt, i els pics de 1r nivell no el porten mai.
+$Script:VistaActExtrTipus = @{
+    'note' = 'nota'; 'label' = 'etiqueta'; 'header' = 'conclusiocap'; 'conc' = 'conclusio'; 'text' = 'cos'
 }
 
-function _VistaActExtr($sel, [string]$jsonPath, [string]$nom) {
-    $records = @(Read-ActExtrRecordsJson $jsonPath)
+# $records surt de Read-ActExtrRecordsJson. Funcio PURA.
+function Build-ActExtrVistaBlocs($records) {
+    $b = New-Object System.Collections.ArrayList
     $kind = 'item'
     $primerFill = $false
-    foreach ($r in $records) {
+    foreach ($r in @($records)) {
         $txt = [string]$r.Text
         switch ([string]$r.Style) {
             'h1' {
-                _VSpacer $sel
-                _VSection $sel (_VistaActExtrTitol $txt)
-                _VSpacer $sel
+                [void]$b.Add(@{ T = 'espai' })
+                [void]$b.Add(@{ T = 'seccio'; Text = (_VistaActExtrTitol $txt) })
+                [void]$b.Add(@{ T = 'espai' })
                 $mk = _ParseActExtrMarker $txt
                 $kind = if ($null -ne $mk) { [string]$mk.Kind } else { 'item' }
             }
@@ -447,7 +416,7 @@ function _VistaActExtr($sel, [string]$jsonPath, [string]$nom) {
                 # La capcalera del bloc ("[[CLAU]] ::TOKEN:: etiqueta") no surt a
                 # l'informe: al document nomes hi va el CONTINGUT. A la vista si
                 # que la posem (subratllada) per saber quin bloc es cadascun.
-                _VSubsection $sel (_VistaActExtrTitol $txt)
+                [void]$b.Add(@{ T = 'subseccio'; Text = (_VistaActExtrTitol $txt) })
                 $mk = _ParseActExtrMarker $txt
                 $kind = if ($null -ne $mk) { [string]$mk.Kind } else { 'item' }
                 # $primerFill NO es reinicia aqui: al document les capcaleres de
@@ -455,14 +424,27 @@ function _VistaActExtr($sel, [string]$jsonPath, [string]$nom) {
                 # 'child' segueix penjant de la unitat anterior. Reiniciar-lo
                 # faria que a la vista cap sub-punt no sortis mai com a primer.
             }
-            'url' { _VUrl $sel $txt ($kind -eq 'child') }
+            'url' { [void]$b.Add(@{ T = 'enllac'; Url = $txt; Fill = ($kind -eq 'child') }) }
             default {
-                $pf = $primerFill
-                _VActExtrContingut $sel $kind $txt ([ref]$pf)
-                $primerFill = $pf
+                # Sense break ni continue: dins d'un switch no fan el que sembla.
+                if ([string]::IsNullOrWhiteSpace($txt)) {
+                } elseif ($kind -eq 'child') {
+                    [void]$b.Add(@{ T = 'pic'; Text = $txt; Fill = $true; First = $primerFill })
+                    $primerFill = $false
+                } else {
+                    $tipus = $Script:VistaActExtrTipus[$kind]
+                    if ($null -ne $tipus) { [void]$b.Add(@{ T = $tipus; Text = $txt }) }
+                    else { [void]$b.Add(@{ T = 'pic'; Text = $txt; Fill = $false; First = $false }) }   # 'item': pic de primer nivell
+                    $primerFill = $true
+                }
             }
         }
     }
+    return $b.ToArray()
+}
+
+function _VistaActExtr($sel, [string]$jsonPath, [string]$nom) {
+    [void](Write-Informe $sel (Build-ActExtrVistaBlocs @(Read-ActExtrRecordsJson $jsonPath)) -AmbNivells)
 }
 
 # ---- Genera la vista d'UN cataleg ------------------------------------------
@@ -498,8 +480,8 @@ function Export-VistaWord($word, [string]$jsonPath) {
             default       { _VistaCataleg $sel $jsonPath $nom }
         }
         # Nota final: que quedi clar que es una vista generada i que no s'edita.
-        _VSpacer $sel
-        _VBody $sel ("//Vista generada autom" + [char]0x00E0 + "ticament des de " + [System.IO.Path]::GetFileName($jsonPath) + " el " + (Get-Date).ToString('dd/MM/yyyy HH:mm') + ". No l'editis: els canvis es fan des de l'editor de cat" + [char]0x00E0 + "legs del programa.//")
+        $nota = "//Vista generada autom" + [char]0x00E0 + "ticament des de " + [System.IO.Path]::GetFileName($jsonPath) + " el " + (Get-Date).ToString('dd/MM/yyyy HH:mm') + ". No l'editis: els canvis es fan des de l'editor de cat" + [char]0x00E0 + "legs del programa.//"
+        [void](Write-Informe $sel @(@{ T = 'espai' }, @{ T = 'cos'; Text = $nota }) -AmbNivells)
         $doc.SaveAs([ref]$out, [ref]16)   # 16 = wdFormatDocumentDefault (.docx)
         return $true
     } finally {
