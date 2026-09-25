@@ -14,6 +14,7 @@ hipotesis ja descartades- viuen ara a part:
 | `suport/rutes/` (rutes, coordenades, el planol public de precintades) | **`suport/documentacio/rutes-i-mapes.md`** |
 | Posar el mobil en marxa (Drive, EmailJS, GitHub Pages) | **`suport/documentacio/DESPLEGAMENT-MOBIL.md`** |
 | Provar el programa al PC despres d'una tanda de canvis | **`suport/documentacio/provar-al-pc.md`** (porta un prompt per enganxar) |
+| Revisar i simplificar l'arquitectura (quan el programa hagi crescut) | **`suport/documentacio/revisio-arquitectura.md`** (prompt per enganxar) |
 
 **No hi son per estalviar espai, hi son perque es llegeixin.** Si toques un
 d'aquells fitxers sense llegir el seu document, et trobaras reproduint una cosa
