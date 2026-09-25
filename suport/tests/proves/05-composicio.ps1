@@ -339,6 +339,14 @@ if ($null -ne $llicEd -and $null -ne $req1Ed) {
     $clausEd = @(@($abEd) | ForEach-Object { [string]$_.Clau })
     AssertEq (@($clausEd | Select-Object -Unique).Count) $clausEd.Count 'Get-LlicenciaPuntsEditables: cap clau repetida'
     Assert (-not (@($abEd) | Where-Object { [string]::IsNullOrWhiteSpace([string]$_.Titol) })) 'Get-LlicenciaPuntsEditables: tots tenen titol'
+    # EL MATEIX ORDRE QUE L'INFORME: la compatibilitat (punts PROPIS) va PRIMER.
+    # Abans no hi era i a la base de dades sortia al final, amb la clau "#..."
+    # com a nom.
+    $propisEd = @((_LlicPuntsPerBloc $llicEd (_LlicIndexReq1 $req1Ed) 'PROPIS').Punts)
+    Assert ($propisEd.Count -ge 1) 'Get-LlicenciaPuntsEditables: hi ha punts propis per comprovar'
+    AssertEq (@($abEd | Select-Object -First $propisEd.Count | ForEach-Object { [string]$_.Clau }) -join ' | ') (@($propisEd | ForEach-Object { _LlicClauPunt $_ }) -join ' | ') 'Get-LlicenciaPuntsEditables: la compatibilitat va PRIMER a ABANS, com a l''informe'
+    Assert ([bool](@($abEd)[0].Titol -like '*Compatibilitat*')) 'Get-LlicenciaPuntsEditables: ...amb el seu titol, no la clau interna'
+    AssertEq (@(@($abEd)[0].Camps) -join ',') 'Id Firmadoc,Expedient' 'Get-LlicenciaPuntsEditables: ...i els seus camps, en l''ordre del text'
     # El punt amb dades propies (SDR) demana els SEUS camps, no nomes el firmadoc.
     $sdrEd = @(@($abEd) | Where-Object { @($_.Camps) -contains 'NIMA' })
     Assert ($sdrEd.Count -ge 1) 'Get-LlicenciaPuntsEditables: els camps propis del punt (NIMA) tambe hi surten'

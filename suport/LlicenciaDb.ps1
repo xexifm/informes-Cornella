@@ -335,7 +335,16 @@ function Get-LlicenciaPuntsEditables($llic, $req1) {
     foreach ($b in @(@{ P = 'Abans'; B = 'ABANS' }, @{ P = 'Despres'; B = 'DESPRES' })) {
         $llista = New-Object System.Collections.ArrayList
         $vistes = @{}
-        foreach ($p in @((_LlicPuntsPerBloc $llic $idx ([string]$b.B) $req1).Punts)) {
+        # EL MATEIX ORDRE QUE L'INFORME: al bloc ABANS, primer els punts PROPIS
+        # de Llicencia (la compatibilitat urbanistica) i despres els de REQ1
+        # (Invoke-LlicenciaWizard: $st.AbansTots = PROPIS + ABANS). Abans aquests
+        # dos punts no eren a la llista, i a la base de dades sortien al FINAL,
+        # com a punts desconeguts i amb la clau interna ("#Annex II...") per nom.
+        # Hi van tots dos (el d'Annex II i el de la provisional): aqui no se sap
+        # quina llicencia es, i per defecte nomes es veuen els marcats.
+        $punts = @((_LlicPuntsPerBloc $llic $idx ([string]$b.B) $req1).Punts)
+        if ([string]$b.B -eq 'ABANS') { $punts = @((_LlicPuntsPerBloc $llic $idx 'PROPIS').Punts) + $punts }
+        foreach ($p in $punts) {
             $clau = _LlicClauPunt $p
             if ($vistes.ContainsKey($clau)) { continue }
             $vistes[$clau] = $true
