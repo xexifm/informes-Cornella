@@ -567,6 +567,43 @@ Com està fet:
 - Si el catàleg de l'usuari encara no té la `<fase>-condicions`,
   `_LlicConclusioText` cau a la de la fase.
 
+## Els INFORMES DELS ORGANISMES, adjunts darrere del nostre
+- A la pantalla de condicions, cada actor té un **«PDF…»**. En continuar, el PDF
+  triat es **copia** a `local\base-dades-llicencies\GIA <id>\a.OGAU.pdf`
+  (`Copy-LlicAdjunts`, `_LlicNomAdjunt`, `_LlicCarpetaAdjunts`; decisió de
+  l'usuari). La lletra és la que té l'actor **a l'informe**; si en un informe
+  posterior canvia, es fa una còpia amb el nom nou i la vella es queda (un
+  informe anterior hi apunta). Una ruta que falla (no hi és, no és un PDF) es
+  diu **en aquell moment** i es torna a la pantalla.
+- La base de dades recorda el PDF de cada actor (`CondicionsPdf`) i, a cada
+  entrada de l'**historial**, els **adjunts** d'aquell informe (`Adjunts`).
+- **Qui els ajunta és «Word a PDF»**, no l'assistent: l'informe es genera en
+  Word i es retoca, i els adjunts han d'anar al PDF final. Just després de
+  convertir i **abans de signar** (`_PdfAdjuntaLlicencia`, `PdfSignar.ps1`), es
+  busca el `.docx` a l'historial **pel nom del fitxer** (sense carpeta:
+  `Get-LlicenciaAdjuntsDeInforme`) i s'hi ajunten. Si en falta algun o no es pot
+  ajuntar, **aquell PDF no es signa** i el resum ho diu: un informe que anuncia
+  uns adjunts que no hi són no pot sortir signat com si fos complet.
+- **L'ajuntament és codi propi, `suport/PdfUnio.ps1`** (C# compilat en viu amb
+  `Add-Type`, C# 5). Es va provar **PDFsharp 1.50 i 1.51**: amb un PDF signat
+  en revisió incremental damunt d'un flux d'objectes llegeix la pàgina VELLA i
+  **la signatura desapareix sense error** — el format que fan servir els
+  signadors. PDFsharp 6 ho llegeix bé però per a .NET Framework arrossega
+  diverses DLL amb conflictes de versions dins del PowerShell 5.1.
+- **Les signatures dels adjunts s'APLANEN.** Un camp de signatura copiat a un
+  PDF nou ja no quadra amb els bytes que va signar: l'Adobe diria «signatura no
+  vàlida». L'aparença de cada signatura visible passa al contingut de la pàgina
+  (algorisme de l'ISO 32000 §12.5.5: BBox × Matrix → Rect) i el camp es treu;
+  les invisibles es treuen i prou. Els originals, vàlids, queden a la carpeta.
+- **Com es va validar** (a `scratchpad`, amb pyhanko/pymupdf): cada pàgina del
+  PDF unit es renderitza **píxel a píxel igual** que l'original (signatures
+  incloses), 0 camps de signatura, i el PDF unit **es pot tornar a signar** amb
+  resultat vàlid, intacte i cobrint tot el fitxer. Casos: revisió incremental
+  sobre flux d'objectes, dues revisions, recursos heretats, pàgina girada,
+  enllaç intern, linearitzat, brossa davant del `%PDF-`, taula xref malmesa i
+  PDF xifrat (s'avisa). Els mateixos fitxers són a `tests/dades/pdf/` i la
+  suite (`07-pdfunio.ps1`) en comprova l'estructura.
+
 ## El registre de camps de la pantalla de documentació, UN PER PINTADA
 - L'informe `LlicFavPre` del **GIA 924** va sortir amb el **mateix** «Id
   Firmadoc: 9887463» als cinc punts d'ABANS. No era la composició: era la

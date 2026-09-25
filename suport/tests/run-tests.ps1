@@ -37,7 +37,7 @@ $scriptPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'Motor.ps1'
 # ni l'arrel del repositori.
 $TestsDir = $PSScriptRoot
 
-foreach ($area in @('01-motor', '02-eines', '03-llicencia', '04-correu', '05-composicio', '06-guards')) {
+foreach ($area in @('01-motor', '02-eines', '03-llicencia', '04-correu', '05-composicio', '06-guards', '07-pdfunio')) {
     . (Join-Path $PSScriptRoot (Join-Path 'proves' ($area + '.ps1')))
 }
 

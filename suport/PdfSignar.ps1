@@ -1131,6 +1131,40 @@ function _ShowConvertPdfOptions {
 # ----------------------------------------------------------------------------
 # Execució: converteix (i signa) amb barra de progrés i cancel·lació.
 # ----------------------------------------------------------------------------
+# ELS ADJUNTS D'UN INFORME DE LLICENCIA: els PDF dels organismes que posen les
+# condicions, que van DARRERE de l'informe (vegeu Copy-LlicAdjunts,
+# Llicencia.ps1). Quins son ho diu l'historial de la base de llicencies, pel
+# nom del .docx. Retorna @{ Fet; Adjunts; Error; Info }:
+#   Fet = $false i Error buit -> aquest informe no en porta (el cas normal);
+#   Error ple                 -> NO s'ha ajuntat, i no s'ha de signar: un
+#                                informe que anuncia uns adjunts que no hi son
+#                                no pot sortir signat com si fos complet.
+# $db es pot passar ja carregada (les proves); si no, es llegeix.
+function _PdfAdjuntaLlicencia([string]$docPath, [string]$pdf, $db = $null) {
+    $res = @{ Fet = $false; Adjunts = @(); Error = ''; Info = $null }
+    if ($null -eq $db) { try { $db = Load-LlicenciaDb } catch { return $res } }
+    $adj = @(Get-LlicenciaAdjuntsDeInforme $db $docPath)
+    if ($adj.Count -eq 0) { return $res }
+    $res.Adjunts = $adj
+    $falten = @($adj | Where-Object { -not (Test-Path -LiteralPath $_ -PathType Leaf) })
+    if ($falten.Count -gt 0) {
+        $res.Error = ('falten adjunts: ' + ((@($falten) | ForEach-Object { Split-Path -Leaf $_ }) -join ', '))
+        return $res
+    }
+    # A un fitxer temporal i despres al seu lloc: si peta a mitges, el PDF de
+    # l'informe es queda com estava.
+    $tmp = $pdf + '.ajuntant.pdf'
+    try {
+        $res.Info = Join-PdfAmbAdjunts $pdf $adj $tmp
+        Move-Item -LiteralPath $tmp -Destination $pdf -Force
+        $res.Fet = $true
+    } catch {
+        $res.Error = $_.Exception.Message
+        try { if (Test-Path -LiteralPath $tmp) { Remove-Item -LiteralPath $tmp -Force } } catch { }
+    }
+    return $res
+}
+
 function _RunConvertPdf($opts) {
     # Defensa: si $opts arribés embolcallat en un array, agafem l'element real.
     if ($opts -is [System.Array]) { $opts = @($opts)[-1] }
@@ -1197,6 +1231,8 @@ function _RunConvertPdf($opts) {
     # Caixetí de signatura visible (buit = signatura invisible, com abans).
     $caixeti = if ([bool]$opts.VisibleSign) { [string]$opts.Caixeti } else { '' }
     $converted = 0; $skipped = 0; $signed = 0; $errors = 0; $done = 0
+    # Informes de llicencia amb els PDF dels organismes ajuntats al darrere.
+    $ambAdjunts = 0
     # El certificat amb que refarem el CMS (PdfCms.ps1). Si no se n'ha triat cap
     # del desplegable no es pot refer: AutoFirma el triaria ell i aqui no sabem
     # quin es. En aquest cas es deixa la signatura tal com la fa l'AutoFirma.
@@ -1248,6 +1284,23 @@ function _RunConvertPdf($opts) {
                     $errors++
                     [void]$errDetalls.Add(("PDF: {0} -> {1}" -f $f.Name, $_.Exception.Message))
                     continue
+                }
+                # 1b. Els ADJUNTS (nomes informes de llicencia amb condicions),
+                # ABANS de signar: la firma ha de cobrir el document sencer. Si
+                # no es poden ajuntar, aquest PDF NO es signa.
+                $lbl.Text = ("Ajuntant els informes adjunts {0} de {1}...`n{2}" -f $done, $files.Count, $f.Name)
+                [System.Windows.Forms.Application]::DoEvents()
+                $aj = _PdfAdjuntaLlicencia $f.FullName $pdf
+                if ($aj.Error) {
+                    $errors++
+                    [void]$errDetalls.Add(("Adjunts: {0} -> {1} (NO s'ha signat)" -f $f.Name, $aj.Error))
+                    _PdfSignarLog ("ADJUNTS NO AJUNTATS " + $f.Name + " -> " + $aj.Error)
+                    continue
+                }
+                if ($aj.Fet) {
+                    $ambAdjunts++
+                    _PdfSignarLog ("ADJUNTS " + $f.Name + ": " + @($aj.Adjunts).Count + " PDF, " + $aj.Info.Pagines +
+                                   " pagines, " + $aj.Info.Aplanades + " signatures aplanades")
                 }
             } else {
                 $skipped++
@@ -1416,6 +1469,9 @@ function _RunConvertPdf($opts) {
     if ($cancel.Flag) { [void]$msg.AppendLine('Cancel·lat.') ; [void]$msg.AppendLine('') }
     [void]$msg.AppendLine(("PDF generats: {0}" -f $converted))
     [void]$msg.AppendLine(("Ja estaven al dia (saltats): {0}" -f $skipped))
+    if ($ambAdjunts -gt 0) {
+        [void]$msg.AppendLine(("Informes de llic" + [char]0x00E8 + "ncia amb els informes dels organismes ajuntats: {0}" -f $ambAdjunts))
+    }
     if ($opts.Sign -and [string]$opts.SignMode -eq 'adobe') {
         [void]$msg.AppendLine(("PDF signats a l'Adobe (comprovats): {0}" -f $signed))
         if ($senseFirmaAdobe -gt 0) {

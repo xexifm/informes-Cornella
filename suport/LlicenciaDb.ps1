@@ -225,6 +225,8 @@ function ConvertTo-LlicenciaRecord($st, $historial = @()) {
         # requeriment sol): no es el mateix que una llista buida, que vol dir
         # "s'hi va passar i no n'hi havia cap".
         CondicionsActors = $condA
+        # El PDF de cada actor (la copia local): nom -> ruta.
+        CondicionsPdf = (_LlicDbAMapa $h['CondPdfs'])
         Historial     = $hist.ToArray()
     }
 }
@@ -250,16 +252,46 @@ function Restore-LlicenciaState($record, $st) {
     if ($null -ne $r['CondicionsActors']) {
         $st['CondActors'] = @(@($r['CondicionsActors']) | ForEach-Object { [string]$_ })
     }
+    if ($null -ne $r['CondicionsPdf']) { $st['CondPdfs'] = _LlicDbAMapa $r['CondicionsPdf'] }
     return $st
 }
 
 # Una linia d'historial. PURA.
-function New-LlicenciaHistorial([string]$fase, [string]$fitxer) {
+# $adjunts: els PDF que van DARRERE d'aquest informe (els dels organismes que
+# posen condicions), en ordre. Es el que "Word a PDF" hi ajuntara.
+function New-LlicenciaHistorial([string]$fase, [string]$fitxer, $adjunts = @()) {
     return [ordered]@{
-        Data   = (Get-Date).ToString('o')
-        Fase   = $fase
-        Fitxer = $fitxer
+        Data    = (Get-Date).ToString('o')
+        Fase    = $fase
+        Fitxer  = $fitxer
+        Adjunts = [string[]]@(@($adjunts) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | ForEach-Object { [string]$_ })
     }
+}
+
+# QUINS PDF VAN DARRERE D'UN INFORME. Funcio PURA (sobre la base ja carregada).
+#
+# Es busca l'informe PEL NOM DEL FITXER (sense la carpeta: l'usuari el pot haver
+# mogut) a l'historial de totes les llicencies, i mana l'entrada MES NOVA. Si no
+# hi es, o no porta adjunts, retorna una llista buida: no tots els informes en
+# tenen, i els que no son de llicencia no hi son mai.
+function Get-LlicenciaAdjuntsDeInforme($db, [string]$fitxer) {
+    $fulla = [System.IO.Path]::GetFileNameWithoutExtension(([string]$fitxer).Replace('\', '/').Split('/')[-1])
+    $millor = $null; $millorData = [datetime]::MinValue
+    if ($null -eq $db) { return @() }
+    foreach ($rec in @($db.Llicencies)) {
+        $r = _LlicDbAMapa $rec
+        foreach ($h in @($r['Historial'])) {
+            if ($null -eq $h) { continue }
+            $hh = _LlicDbAMapa $h
+            $f = ([string]$hh['Fitxer']).Replace('\', '/').Split('/')[-1]
+            if ([System.IO.Path]::GetFileNameWithoutExtension($f) -ine $fulla) { continue }
+            $d = [datetime]::MinValue
+            [void][datetime]::TryParse([string]$hh['Data'], [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::RoundtripKind, [ref]$d)
+            if ($null -eq $millor -or $d -ge $millorData) { $millor = $hh; $millorData = $d }
+        }
+    }
+    if ($null -eq $millor) { return @() }
+    return [string[]]@(@($millor['Adjunts']) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | ForEach-Object { [string]$_ })
 }
 
 # La data d'actualitzacio d'una fitxa, en format llegible. PURA.

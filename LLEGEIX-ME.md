@@ -145,6 +145,16 @@ darrere. Si no en marques cap, la conclusió no parla de condicions. La llista
 és a `LLIC.json` (secció `CONDICIONS`) i la pots ampliar des de l'editor de
 catàlegs.
 
+Al costat de cada organisme hi ha el botó **«PDF…»** per triar el seu informe.
+El programa en guarda una còpia a
+`local\base-dades-llicencies\GIA 924\a.OGAU.pdf` (la lletra és la de l'informe)
+i se'n recorda per al post. Quan passis l'informe a PDF amb **📄 Word a PDF**,
+aquests informes s'hi afegeixen **darrere** abans de signar. Les seves
+signatures s'hi continuen **veient** però ja no són camps de signatura, o sigui
+que l'Adobe no dirà «signatura no vàlida»; els originals signats queden a la
+carpeta de la llicència. Si algun adjunt no hi és, aquell PDF no es signa i el
+resum t'ho diu.
+
 La diferència amb un requeriment normal és que aquí els punts **no són
 deficiències sinó documentació**, i surten tant si es té com si no: de cada punt
 tries **«No es disposa…»** (surt en negreta) o **«Es disposa… (Id Firmadoc: …)»**.

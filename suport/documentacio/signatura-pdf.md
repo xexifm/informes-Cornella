@@ -389,6 +389,13 @@ està provat i descartat.
     porten el nom i l'adreça del titular — i aquest repositori és PÚBLIC. (S'hi
     ignora pel nom exacte, no `*.txt`, perquè el `README.txt` d'aquella carpeta sí
     que va al repositori.)
+  - **Els INFORMES DE LLICÈNCIA porten ADJUNTS** (setembre 2026): si el `.docx`
+    és a l'historial de la base de llicències amb adjunts (els informes dels
+    organismes que posen condicions), s'hi ajunten **just després de convertir i
+    abans de signar** (`_PdfAdjuntaLlicencia`, `PdfUnio.ps1`), perquè la firma
+    cobreixi el document sencer. Si falla, aquell PDF **no es signa**. Només es
+    fa quan el PDF es genera en aquella passada (un de saltat per estar al dia ja
+    els porta). Detalls a `llicencia.md`.
   - **Carpeta O document**: el quadre accepta una **carpeta** (tots els Word de dins
     i subcarpetes) o **un sol document** Word; hi ha dos botons (Carpeta / Document).
     `_RunConvertPdf` ho distingeix amb `Test-Path -PathType Leaf`.

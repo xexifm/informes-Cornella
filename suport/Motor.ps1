@@ -37,6 +37,7 @@
     -- eines del menu --
     EditorCatalegs.ps1  editar els catalegs   VistaWord.ps1     vistes en Word
     PdfSignar.ps1       Word a PDF + signar   ActExtr.ps1       act. extraordinaries
+    PdfUnio.ps1         ajuntar l'informe de llicencia amb els PDF dels organismes
     ControlsPeriodics.ps1 + ControlsCpEmail.ps1                 controls periodics
     EmailTextos.ps1     textos del correu     Configuracio.ps1  rutes d'aquest PC
     EnviarCorreu.ps1    enviar el correu      EmailQuota.ps1    quota d'EmailJS
@@ -464,6 +465,9 @@ if (-not $Script:HeadlessTest) { [void](Invoke-MigracioLocal $RepoRoot) }
 
 # Eina "Convertir informes a PDF (i signar)". Funcions pures (rutes, arguments
 # d'AutoFirma) testejables; Word (COM) i AutoFirma nomes s'executen a Windows.
+# PdfUnio.ps1 ajunta l'informe de llicencia amb els informes dels organismes
+# (nomes defineix: el C# es compila el primer cop que es fa servir).
+. (Join-Path $ScriptRoot 'PdfUnio.ps1')
 . (Join-Path $ScriptRoot 'PdfCms.ps1')
 . (Join-Path $ScriptRoot 'PdfSignar.ps1')
 

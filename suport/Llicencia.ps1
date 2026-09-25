@@ -2055,7 +2055,88 @@ function Select-LlicTecnic($pre, $preDocs = $null) {
     return $res
 }
 
-# Pas de les CONDICIONS (nomes als favorables): QUINS ACTORS les posen.
+# ELS ADJUNTS: els informes dels organismes que posen les condicions, que van
+# darrere del nostre quan es passa a PDF (PdfUnio.ps1).
+#
+# Quan l'usuari en tria un, se'n fa una COPIA LOCAL a la carpeta de la llicencia
+# -local\base-dades-llicencies\GIA <id>\a.OGAU.pdf- (decisio de l'usuari): els
+# originals solen ser a la unitat de xarxa o a Descarregues, i quan es passi
+# l'informe a PDF, potser dies despres, han de ser-hi encara. A la carpeta hi
+# queden, a mes, els originals SIGNATS i valids: al PDF ajuntat les seves
+# signatures nomes hi son com a imatge.
+
+# El nom de la copia: "a.OGAU.pdf". La lletra es la de l'informe (a., b., c...).
+# Funcio PURA. Es treuen els caracters que el Windows no admet en un nom.
+function _LlicNomAdjunt([int]$i, [string]$nom) {
+    $n = ([string]$nom).Trim()
+    foreach ($c in @('\', '/', ':', '*', '?', '"', '<', '>', '|')) { $n = $n.Replace($c, '-') }
+    $n = [regex]::Replace($n, '[\x00-\x1F]', '')
+    $n = $n.TrimEnd('.', ' ')
+    return ((_LlicLletra $i).ToLower() + '.' + $n + '.pdf')
+}
+
+# La carpeta dels adjunts d'una llicencia: "GIA 924", al costat de la base de
+# dades de llicencies. Funcio PURA.
+function _LlicCarpetaAdjunts([string]$idGia) {
+    $id = ([string]$idGia).Trim()
+    foreach ($c in @('\', '/', ':', '*', '?', '"', '<', '>', '|')) { $id = $id.Replace($c, '-') }
+    if ([string]::IsNullOrWhiteSpace($id)) { $id = 'sense GIA' }
+    return [string](Join-Path $Script:LlicDbDir ('GIA ' + $id))
+}
+
+# Es un PDF? Nomes s'hi mira la capcalera ("%PDF-" al primer KB): triar un
+# .docx amb extensio canviada no s'ha de descobrir el dia de passar-ho a PDF.
+function _LlicEsPdf([string]$path) {
+    try {
+        $fs = [System.IO.File]::OpenRead($path)
+        try {
+            $buf = New-Object byte[] 1024
+            $n = $fs.Read($buf, 0, $buf.Length)
+            return ([System.Text.Encoding]::ASCII.GetString($buf, 0, $n).Contains('%PDF-'))
+        } finally { $fs.Dispose() }
+    } catch { return $false }
+}
+
+# Copia els PDF dels actors MARCATS a la carpeta de la llicencia, amb la lletra
+# que tindran a l'informe. $actors: noms marcats EN ORDRE; $fonts: nom -> ruta
+# triada. Retorna @{ Pdfs (nom -> copia local); Llista (les copies, en ordre);
+# Errors }.
+#
+# Si la ruta triada JA ES la copia (ve de la memoria) i la lletra no ha canviat,
+# no es torna a copiar. Si la lletra ha canviat, es copia amb el nom nou i la
+# vella es deixa: un informe anterior hi pot apuntar.
+function Copy-LlicAdjunts([string]$idGia, $actors, $fonts) {
+    $pdfs = @{}
+    if ($null -ne $fonts) { foreach ($k in @($fonts.Keys)) { $pdfs[[string]$k] = [string]$fonts[$k] } }
+    $llista = New-Object System.Collections.ArrayList
+    $errors = New-Object System.Collections.ArrayList
+    $carpeta = _LlicCarpetaAdjunts $idGia
+    $i = 0
+    foreach ($nom in @($actors)) {
+        $i++
+        $font = if ($pdfs.ContainsKey([string]$nom)) { [string]$pdfs[[string]$nom] } else { '' }
+        if ([string]::IsNullOrWhiteSpace($font)) { continue }
+        if (-not (Test-Path -LiteralPath $font -PathType Leaf)) { [void]$errors.Add(([string]$nom + ': no trobo el fitxer ' + $font)); continue }
+        if (-not (_LlicEsPdf $font)) { [void]$errors.Add(([string]$nom + ': no es un PDF (' + (Split-Path -Leaf $font) + ')')); continue }
+        $desti = [string](Join-Path $carpeta (_LlicNomAdjunt $i ([string]$nom)))
+        $mateix = $false
+        try { $mateix = ([System.IO.Path]::GetFullPath($font) -ieq [System.IO.Path]::GetFullPath($desti)) } catch { }
+        if (-not $mateix) {
+            try {
+                if (-not (Test-Path -LiteralPath $carpeta)) { [void](New-Item -ItemType Directory -Path $carpeta -Force) }
+                Copy-Item -LiteralPath $font -Destination $desti -Force -ErrorAction Stop
+            } catch {
+                [void]$errors.Add(([string]$nom + ': no s''ha pogut copiar -> ' + $_.Exception.Message)); continue
+            }
+        }
+        $pdfs[[string]$nom] = $desti
+        [void]$llista.Add($desti)
+    }
+    return @{ Pdfs = $pdfs; Llista = $llista.ToArray(); Errors = $errors.ToArray() }
+}
+
+# Pas de les CONDICIONS (nomes als favorables): QUINS ACTORS les posen i, de
+# cada un, el PDF del seu informe.
 #
 # Abans era un quadre de text lliure (i despres, una casella al pas 1). L'usuari
 # va explicar que les condicions les posen els organismes que informen els
@@ -2063,50 +2144,102 @@ function Select-LlicTecnic($pre, $preDocs = $null) {
 # es QUINS: els seus informes van adjunts darrere. Una llista per marcar, i amb
 # un de marcat ja hi ha condicions.
 #
-# Retorna @{ Nav; Actors } (els noms marcats, en l'ordre de la llista).
-function Select-LlicCondicions($actors, $marcats) {
+# $pdfs: nom -> ruta ja triada (la copia local, si ve de la memoria).
+# Retorna @{ Nav; Actors (els noms marcats, en l'ordre de la llista); Pdfs }.
+function Select-LlicCondicions($actors, $marcats, $pdfs = $null) {
     $actors = @($actors)
     $form = _NewForm
     $form.Text = 'Condicions de la llic' + [char]0x00E8 + 'ncia'
-    $form.ClientSize = New-Object System.Drawing.Size(560, 460)
+    $form.ClientSize = New-Object System.Drawing.Size(700, 500)
     $form.StartPosition = 'CenterScreen'
 
     $lbl = New-Object System.Windows.Forms.Label
     $lbl.Location = New-Object System.Drawing.Point(20, 70)
-    $lbl.Size = New-Object System.Drawing.Size(520, 52)
-    $lbl.Text = ('Marca qui posa condicions (els seus informes van adjunts darrere de l' + [char]0x2019 + 'informe). ' +
-                 'Si no en marques cap, la conclusi' + [char]0x00F3 + ' no parla de condicions. ' +
-                 'Surten marcats els que tenen l' + [char]0x2019 + 'informe preceptiu com a "Es disposa".')
+    $lbl.Size = New-Object System.Drawing.Size(660, 52)
+    $lbl.Text = ('Marca qui posa condicions i tria el PDF del seu informe: en passar l' + [char]0x2019 + 'informe a PDF ' +
+                 's' + [char]0x2019 + 'hi afegira darrere. Si no en marques cap, la conclusi' + [char]0x00F3 +
+                 ' no parla de condicions. Surten marcats els que tenen l' + [char]0x2019 + 'informe preceptiu com a "Es disposa".')
     [void]$form.Controls.Add($lbl)
 
-    $llista = New-Object System.Windows.Forms.CheckedListBox
-    $llista.Location = New-Object System.Drawing.Point(20, 128)
-    $llista.Size = New-Object System.Drawing.Size(520, 262)
-    $llista.Anchor = 'Top,Bottom,Left,Right'
-    $llista.CheckOnClick = $true
-    $llista.IntegralHeight = $false
+    $pan = New-Object System.Windows.Forms.Panel
+    $pan.Location = New-Object System.Drawing.Point(20, 128)
+    $pan.Size = New-Object System.Drawing.Size(660, 302)
+    $pan.Anchor = 'Top,Bottom,Left,Right'
+    $pan.AutoScroll = $true
+    $pan.BorderStyle = 'FixedSingle'
+    $pan.BackColor = [System.Drawing.Color]::White
+    [void]$form.Controls.Add($pan)
+
     $marcatsSet = @{}
     foreach ($m in @($marcats)) { $marcatsSet[([string]$m).Trim().ToLowerInvariant()] = $true }
+    $files = New-Object System.Collections.ArrayList
+    $y = 8
     foreach ($a in $actors) {
-        $i = $llista.Items.Add([string]$a.Nom)
-        if ($marcatsSet.ContainsKey(([string]$a.Nom).Trim().ToLowerInvariant())) { $llista.SetItemChecked($i, $true) }
+        $nom = [string]$a.Nom
+        $cb = New-Object System.Windows.Forms.CheckBox
+        $cb.Location = New-Object System.Drawing.Point(8, ($y + 2))
+        $cb.Size = New-Object System.Drawing.Size(290, 22)
+        $cb.AutoEllipsis = $true
+        $cb.Text = $nom
+        $cb.Checked = $marcatsSet.ContainsKey($nom.Trim().ToLowerInvariant())
+        [void]$pan.Controls.Add($cb)
+        $tb = New-Object System.Windows.Forms.TextBox
+        $tb.Location = New-Object System.Drawing.Point(304, $y)
+        $tb.Size = New-Object System.Drawing.Size(250, 24)
+        if ($null -ne $pdfs -and $pdfs.Contains($nom)) { $tb.Text = [string]$pdfs[$nom] }
+        [void]$pan.Controls.Add($tb)
+        $bt = New-Object System.Windows.Forms.Button
+        $bt.Location = New-Object System.Drawing.Point(560, ($y - 1))
+        $bt.Size = New-Object System.Drawing.Size(70, 26)
+        $bt.Text = 'PDF' + [char]0x2026
+        _StyleSecondaryButton $bt
+        # Triar un PDF marca l'actor: si t'hi has molestat, es que hi va.
+        $bt.add_Click({
+            $dlg = New-Object System.Windows.Forms.OpenFileDialog
+            $dlg.Filter = 'PDF (*.pdf)|*.pdf'
+            $dlg.Title = 'Informe de: ' + $cb.Text
+            try {
+                $dir = Split-Path -Parent $tb.Text
+                if ($dir -and (Test-Path -LiteralPath $dir)) { $dlg.InitialDirectory = $dir }
+            } catch { }
+            if ($dlg.ShowDialog() -eq 'OK') { $tb.Text = $dlg.FileName; $cb.Checked = $true }
+            $dlg.Dispose()
+        }.GetNewClosure())
+        [void]$pan.Controls.Add($bt)
+        [void]$files.Add(@{ Nom = $nom; Cb = $cb; Tb = $tb })
+        $y += 32
     }
-    [void]$form.Controls.Add($llista)
 
-    $res = @{ Nav = 'back'; Actors = @() }
+    $res = @{ Nav = 'back'; Actors = @(); Pdfs = @{} }
     $btnOk = New-Object System.Windows.Forms.Button
     $btnOk.Text = 'Continuar'
-    $btnOk.Location = New-Object System.Drawing.Point(410, 408)
+    $btnOk.Location = New-Object System.Drawing.Point(550, 448)
     $btnOk.Size = New-Object System.Drawing.Size(130, 32)
     $btnOk.Anchor = 'Bottom,Right'
     _StylePrimaryButton $btnOk
     $btnOk.add_Click({
         # En l'ordre de la LLISTA (el del cataleg), no en el que s'han clicat.
         $tri = New-Object System.Collections.ArrayList
-        for ($i = 0; $i -lt $llista.Items.Count; $i++) {
-            if ($llista.GetItemChecked($i)) { [void]$tri.Add([string]$llista.Items[$i]) }
+        $rutes = @{}
+        $sensePdf = New-Object System.Collections.ArrayList
+        foreach ($f in $files) {
+            $ruta = ([string]$f.Tb.Text).Trim().Trim('"')
+            # Es recorden TOTES les rutes, tambe les dels no marcats: desmarcar
+            # un actor un moment no ha de fer perdre el seu PDF.
+            if ($ruta) { $rutes[[string]$f.Nom] = $ruta }
+            if (-not $f.Cb.Checked) { continue }
+            [void]$tri.Add([string]$f.Nom)
+            if (-not $ruta) { [void]$sensePdf.Add([string]$f.Nom) }
+        }
+        if ($sensePdf.Count -gt 0) {
+            $r = [System.Windows.Forms.MessageBox]::Show(
+                ("D'aquests no has triat el PDF:`n`n  " + ($sensePdf -join "`n  ") + "`n`n" +
+                 "L'informe els anomenara, pero quan el passis a PDF no s'hi adjuntara el seu informe.`n`nContinuar igualment?"),
+                'Condicions', 'YesNo', 'Warning')
+            if ($r -ne 'Yes') { return }
         }
         $res.Actors = $tri.ToArray()
+        $res.Pdfs = $rutes
         $res.Nav = 'fwd'
         $form.DialogResult = 'OK'; $form.Close()
     }.GetNewClosure())
@@ -2114,14 +2247,14 @@ function Select-LlicCondicions($actors, $marcats) {
 
     $btnBack = New-Object System.Windows.Forms.Button
     $btnBack.Text = [string][char]0x2190 + ' Enrere'
-    $btnBack.Location = New-Object System.Drawing.Point(20, 408)
+    $btnBack.Location = New-Object System.Drawing.Point(20, 448)
     $btnBack.Size = New-Object System.Drawing.Size(115, 32)
     $btnBack.Anchor = 'Bottom,Left'
     _StyleSecondaryButton $btnBack
     $btnBack.add_Click({ $form.Close() }.GetNewClosure())
     [void]$form.Controls.Add($btnBack)
 
-    [void](_AddBrandHeader $form 'Condicions' ('Qui les posa (nom' + [char]0x00E9 + 's als favorables)') 56)
+    [void](_AddBrandHeader $form 'Condicions' ('Qui les posa i el seu informe (nom' + [char]0x00E9 + 's als favorables)') 56)
     [void]$form.ShowDialog()
     $form.Dispose()
     return $res
@@ -2338,15 +2471,32 @@ function Invoke-LlicenciaWizard($fases = $null, [string]$titol = '') {
                     if (-not (_LlicAdmetCondicions ([string]$st.Fase))) { $step = 9; break }
                     $actors = @(_LlicActorsCondicions $llic)
                     $pre = if ($null -ne $st.CondActors) { @($st.CondActors) } else { @(_LlicActorsPerDefecte $actors $st.Abans) }
-                    $r = Select-LlicCondicions $actors $pre
+                    $r = Select-LlicCondicions $actors $pre $st.CondPdfs
                     if ($r.Nav -ne 'fwd') { $step = 7; break }
+                    # LA COPIA LOCAL dels PDF triats (local\base-dades-llicencies\
+                    # GIA <id>\a.OGAU.pdf). Si en falla alguna, es diu i es torna
+                    # a la pantalla: val mes saber-ho ara que el dia de passar-ho
+                    # a PDF.
+                    $cp = Copy-LlicAdjunts ([string]$st.Header['ID_GIA']) @($r.Actors) $r.Pdfs
+                    if (@($cp.Errors).Count -gt 0) {
+                        [System.Windows.Forms.MessageBox]::Show(
+                            ("No s'han pogut guardar aquests PDF:`n`n  " + (@($cp.Errors) -join "`n  ")),
+                            'Condicions', 'OK', 'Warning') | Out-Null
+                        $st.CondActors = @($r.Actors)
+                        $st.CondPdfs = $r.Pdfs
+                        break
+                    }
                     $st.CondActors = @($r.Actors)
+                    $st.CondPdfs = $cp.Pdfs
+                    $st.CondAdjunts = @($cp.Llista)
                     $step = 9
                 }
                 9 {
                     if ($null -eq $word) { $word = New-WordApp }
-                    # Fora dels favorables, cap actor (encara que la memoria en porti).
+                    # Fora dels favorables, cap actor ni cap adjunt (encara que la
+                    # memoria en porti).
                     $actorsModel = if (_LlicAdmetCondicions ([string]$st.Fase)) { @($st.CondActors) } else { @() }
+                    $adjuntsModel = if (_LlicAdmetCondicions ([string]$st.Fase)) { @($st.CondAdjunts) } else { @() }
                     # Els camps [CAMP: ...] dels textos triats.
                     $model = @{
                         Fase = [string]$st.Fase
@@ -2382,7 +2532,9 @@ function Invoke-LlicenciaWizard($fases = $null, [string]$titol = '') {
                         $vell = Get-LlicenciaRecord $db ([string]$st.Header['ID_GIA'])
                         $hist = New-Object System.Collections.ArrayList
                         if ($null -ne $vell) { foreach ($x in @($vell.Historial)) { [void]$hist.Add($x) } }
-                        [void]$hist.Add((New-LlicenciaHistorial ([string]$st.Fase) ([string]$out)))
+                        # Amb els ADJUNTS d'aquest informe: "Word a PDF" els hi
+                        # buscara per saber que ha d'ajuntar-hi (PdfSignar.ps1).
+                        [void]$hist.Add((New-LlicenciaHistorial ([string]$st.Fase) ([string]$out) $adjuntsModel))
                         [void](Set-LlicenciaRecord $db (ConvertTo-LlicenciaRecord $st $hist.ToArray()))
                         Save-LlicenciaDb $db
                     } catch {
