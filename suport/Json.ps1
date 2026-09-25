@@ -71,6 +71,26 @@ function Read-JsonIso($val) {
     return [string]$val
 }
 
+# Un mapa qualsevol (hashtable o PSCustomObject sortit del JSON) a hashtable, UN
+# nivell. ConvertFrom-Json torna PSCustomObjects i qui llegeix vol hashtables
+# (.ContainsKey, .Keys, indexar per GIA): sense aixo, la base de llicencies no es
+# podia llegir i l'historial de recordatoris es perdia en silenci. Les claus
+# surten SEMPRE en text, perque les d'un hashtable numeric no sobreviuen el pas
+# per JSON. Abans n'hi havia tres copies (ConvertTo-Mapa, ConvertTo-Mapa i dues
+# d'inline a la llicencia) amb diferencies que no volien dir res. PURA.
+function ConvertTo-Mapa($o) {
+    $h = @{}
+    if ($null -eq $o) { return $h }
+    if ($o -is [System.Collections.IDictionary]) {
+        foreach ($k in @($o.Keys)) { $h[[string]$k] = $o[$k] }
+        return $h
+    }
+    try {
+        foreach ($p in @($o.PSObject.Properties)) { $h[[string]$p.Name] = $p.Value }
+    } catch { }
+    return $h
+}
+
 # Escriu un objecte com a JSON: UTF-8 SENSE BOM i de manera ATOMICA.
 #
 # -Depth es el mateix del ConvertTo-Json i cada crider hi posa el seu (les bases

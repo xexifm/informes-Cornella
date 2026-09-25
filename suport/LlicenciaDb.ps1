@@ -107,20 +107,6 @@ function Remove-LlicenciaRecord($db, [string]$idGia) {
 # ----------------------------------------------------------------------------
 # $st de l'assistent <-> fitxa de la base (totes dues PURES)
 # ----------------------------------------------------------------------------
-# Un mapa qualsevol (hashtable o PSCustomObject sortit del JSON) a hashtable.
-# ConvertFrom-Json torna PSCustomObjects i l'assistent treballa amb hashtables;
-# sense aixo, la primera cosa que es llegiria de la base petaria.
-function _LlicDbAMapa($o) {
-    $h = @{}
-    if ($null -eq $o) { return $h }
-    if ($o -is [System.Collections.IDictionary]) {
-        foreach ($k in @($o.Keys)) { $h[[string]$k] = $o[$k] }
-        return $h
-    }
-    foreach ($p in @($o.PSObject.Properties)) { $h[[string]$p.Name] = $p.Value }
-    return $h
-}
-
 # La memoria d'un bloc de documentacio (ABANS o DESPRES) a una forma DESABLE.
 #
 # Els sub-punts es desen amb la CLAU EN TEXT ("0", "1"...): les claus d'un
@@ -129,15 +115,15 @@ function _LlicDbAMapa($o) {
 function ConvertTo-LlicenciaMemoria($mem) {
     $out = [ordered]@{}
     if ($null -eq $mem) { return $out }
-    foreach ($k in @((_LlicDbAMapa $mem).Keys)) {
-        $e = _LlicDbAMapa ((_LlicDbAMapa $mem)[$k])
+    foreach ($k in @((ConvertTo-Mapa $mem).Keys)) {
+        $e = ConvertTo-Mapa ((ConvertTo-Mapa $mem)[$k])
         $vals = [ordered]@{}
-        foreach ($n in @((_LlicDbAMapa $e['Valors']).Keys)) {
-            $vals[[string]$n] = [string](_LlicDbAMapa $e['Valors'])[$n]
+        foreach ($n in @((ConvertTo-Mapa $e['Valors']).Keys)) {
+            $vals[[string]$n] = [string](ConvertTo-Mapa $e['Valors'])[$n]
         }
         $subs = [ordered]@{}
-        foreach ($n in @((_LlicDbAMapa $e['Subs']).Keys)) {
-            $subs[[string]$n] = [bool](_LlicDbAMapa $e['Subs'])[$n]
+        foreach ($n in @((ConvertTo-Mapa $e['Subs']).Keys)) {
+            $subs[[string]$n] = [bool](ConvertTo-Mapa $e['Subs'])[$n]
         }
         $out[[string]$k] = [ordered]@{
             Marcat = [bool]$e['Marcat']
@@ -158,8 +144,8 @@ function ConvertTo-LlicenciaMemoria($mem) {
 # PSCustomObjects).
 function ConvertTo-LlicenciaDocs($docs) {
     $out = [ordered]@{}
-    foreach ($k in @((_LlicDbAMapa $docs).Keys)) {
-        $e = _LlicDbAMapa ((_LlicDbAMapa $docs)[$k])
+    foreach ($k in @((ConvertTo-Mapa $docs).Keys)) {
+        $e = ConvertTo-Mapa ((ConvertTo-Mapa $docs)[$k])
         $out[[string]$k] = [ordered]@{
             Marcat = [bool]$e['Marcat']
             Id     = [string]$e['Id']
@@ -173,14 +159,14 @@ function ConvertTo-LlicenciaDocs($docs) {
 function ConvertFrom-LlicenciaMemoria($mem) {
     $out = @{}
     if ($null -eq $mem) { return $out }
-    $m = _LlicDbAMapa $mem
+    $m = ConvertTo-Mapa $mem
     foreach ($k in @($m.Keys)) {
-        $e = _LlicDbAMapa $m[$k]
+        $e = ConvertTo-Mapa $m[$k]
         $vals = @{}
-        $mv = _LlicDbAMapa $e['Valors']
+        $mv = ConvertTo-Mapa $e['Valors']
         foreach ($n in @($mv.Keys)) { $vals[[string]$n] = [string]$mv[$n] }
         $subs = @{}
-        $ms = _LlicDbAMapa $e['Subs']
+        $ms = ConvertTo-Mapa $e['Subs']
         foreach ($n in @($ms.Keys)) {
             $i = 0
             if ([int]::TryParse([string]$n, [ref]$i)) { $subs[$i] = [bool]$ms[$n] }
@@ -195,8 +181,8 @@ function ConvertFrom-LlicenciaMemoria($mem) {
 # $historial: les entrades que ja hi havia (per anar-hi afegint els informes
 # generats sense perdre els anteriors).
 function ConvertTo-LlicenciaRecord($st, $historial = @()) {
-    $h = _LlicDbAMapa $st
-    $header = _LlicDbAMapa $h['Header']
+    $h = ConvertTo-Mapa $st
+    $header = ConvertTo-Mapa $h['Header']
     $hist = New-Object System.Collections.ArrayList
     foreach ($x in @($historial)) { [void]$hist.Add($x) }
     # (Una VARIABLE i no un $(if ...) dins del literal: el $() desenrotlla, i
@@ -213,12 +199,12 @@ function ConvertTo-LlicenciaRecord($st, $historial = @()) {
         Fase          = [string]$h['Fase']
         EsProvisional = [bool]$h['Prov']
         Classificacio = [string]$header['CLASSIFICACIO']
-        Header        = (_LlicDbAMapa $h['Header'])
+        Header        = (ConvertTo-Mapa $h['Header'])
         Abans         = (ConvertTo-LlicenciaMemoria $h['MemAbans'])
         Despres       = (ConvertTo-LlicenciaMemoria $h['MemDespres'])
         ProjKeys      = @($h['ProjKeys'])
-        ProjVals      = (_LlicDbAMapa $h['ProjVals'])
-        Tecnic        = (_LlicDbAMapa $h['Tecnic'])
+        ProjVals      = (ConvertTo-Mapa $h['ProjVals'])
+        Tecnic        = (ConvertTo-Mapa $h['Tecnic'])
         TecnicDocs    = (ConvertTo-LlicenciaDocs $h['TecnicDocs'])
         # Els ACTORS que posen condicions (OGAU, Agencia de Residus...), tal
         # com es van marcar. $null = aquell assistent no hi va passar mai (un
@@ -226,7 +212,7 @@ function ConvertTo-LlicenciaRecord($st, $historial = @()) {
         # "s'hi va passar i no n'hi havia cap".
         CondicionsActors = $condA
         # El PDF de cada actor (la copia local): nom -> ruta.
-        CondicionsPdf = (_LlicDbAMapa $h['CondPdfs'])
+        CondicionsPdf = (ConvertTo-Mapa $h['CondPdfs'])
         Historial     = $hist.ToArray()
     }
 }
@@ -238,12 +224,12 @@ function ConvertTo-LlicenciaRecord($st, $historial = @()) {
 # ID GIA a Get-HeaderData, i el que hi ha a la base pot ser mes vell.
 function Restore-LlicenciaState($record, $st) {
     if ($null -eq $record) { return $st }
-    $r = _LlicDbAMapa $record
+    $r = ConvertTo-Mapa $record
     $st['MemAbans']   = ConvertFrom-LlicenciaMemoria $r['Abans']
     $st['MemDespres'] = ConvertFrom-LlicenciaMemoria $r['Despres']
     $st['ProjKeys']   = @($r['ProjKeys'])
-    $st['ProjVals']   = _LlicDbAMapa $r['ProjVals']
-    $st['Tecnic']     = _LlicDbAMapa $r['Tecnic']
+    $st['ProjVals']   = ConvertTo-Mapa $r['ProjVals']
+    $st['Tecnic']     = ConvertTo-Mapa $r['Tecnic']
     $st['TecnicDocs'] = ConvertTo-LlicenciaDocs $r['TecnicDocs']
     # ELS ACTORS DE LES CONDICIONS: el pas va DESPRES de llegir la base, o
     # sigui que recuperar-los no trepitja res. Nomes si la fitxa en te una
@@ -252,7 +238,7 @@ function Restore-LlicenciaState($record, $st) {
     if ($null -ne $r['CondicionsActors']) {
         $st['CondActors'] = @(@($r['CondicionsActors']) | ForEach-Object { [string]$_ })
     }
-    if ($null -ne $r['CondicionsPdf']) { $st['CondPdfs'] = _LlicDbAMapa $r['CondicionsPdf'] }
+    if ($null -ne $r['CondicionsPdf']) { $st['CondPdfs'] = ConvertTo-Mapa $r['CondicionsPdf'] }
     return $st
 }
 
@@ -279,10 +265,10 @@ function Get-LlicenciaAdjuntsDeInforme($db, [string]$fitxer) {
     $millor = $null; $millorData = [datetime]::MinValue
     if ($null -eq $db) { return @() }
     foreach ($rec in @($db.Llicencies)) {
-        $r = _LlicDbAMapa $rec
+        $r = ConvertTo-Mapa $rec
         foreach ($h in @($r['Historial'])) {
             if ($null -eq $h) { continue }
-            $hh = _LlicDbAMapa $h
+            $hh = ConvertTo-Mapa $h
             $f = ([string]$hh['Fitxer']).Replace('\', '/').Split('/')[-1]
             if ([System.IO.Path]::GetFileNameWithoutExtension($f) -ine $fulla) { continue }
             $d = [datetime]::MinValue
@@ -297,7 +283,7 @@ function Get-LlicenciaAdjuntsDeInforme($db, [string]$fitxer) {
 # La data d'actualitzacio d'una fitxa, en format llegible. PURA.
 function Get-LlicenciaDataText($record) {
     if ($null -eq $record) { return '' }
-    $r = _LlicDbAMapa $record
+    $r = ConvertTo-Mapa $record
     $d = [datetime]::MinValue
     if ([datetime]::TryParse([string]$r['Actualitzat'], [ref]$d)) { return $d.ToString('dd/MM/yyyy') }
     return ''
@@ -305,9 +291,9 @@ function Get-LlicenciaDataText($record) {
 
 # El resum d'una fitxa per a la llista. PURA.
 function Get-LlicenciaResum($record) {
-    $r = _LlicDbAMapa $record
-    $nAb = @((_LlicDbAMapa $r['Abans']).Keys | Where-Object { [bool](_LlicDbAMapa ((_LlicDbAMapa $r['Abans'])[$_]))['Marcat'] }).Count
-    $nDe = @((_LlicDbAMapa $r['Despres']).Keys | Where-Object { [bool](_LlicDbAMapa ((_LlicDbAMapa $r['Despres'])[$_]))['Marcat'] }).Count
+    $r = ConvertTo-Mapa $record
+    $nAb = @((ConvertTo-Mapa $r['Abans']).Keys | Where-Object { [bool](ConvertTo-Mapa ((ConvertTo-Mapa $r['Abans'])[$_]))['Marcat'] }).Count
+    $nDe = @((ConvertTo-Mapa $r['Despres']).Keys | Where-Object { [bool](ConvertTo-Mapa ((ConvertTo-Mapa $r['Despres'])[$_]))['Marcat'] }).Count
     return [pscustomobject]@{
         IdGia     = [string]$r['IdGia']
         Titular   = [string]$r['Titular']
@@ -363,16 +349,16 @@ function Get-LlicenciaPuntsEditables($llic, $req1) {
 # son PSCustomObject i escriure-hi a sobre demanaria Add-Member a cada nivell.
 function _LlicDbMemEditable($obj) {
     $out = @{}
-    $m = _LlicDbAMapa $obj
+    $m = ConvertTo-Mapa $obj
     foreach ($k in @($m.Keys)) {
-        $e = _LlicDbAMapa $m[$k]
+        $e = ConvertTo-Mapa $m[$k]
         $vals = @{}
-        foreach ($n in @((_LlicDbAMapa $e['Valors']).Keys)) {
-            $vals[[string]$n] = [string](_LlicDbAMapa $e['Valors'])[$n]
+        foreach ($n in @((ConvertTo-Mapa $e['Valors']).Keys)) {
+            $vals[[string]$n] = [string](ConvertTo-Mapa $e['Valors'])[$n]
         }
         $subs = @{}
-        foreach ($n in @((_LlicDbAMapa $e['Subs']).Keys)) {
-            $subs[[string]$n] = [bool](_LlicDbAMapa $e['Subs'])[$n]
+        foreach ($n in @((ConvertTo-Mapa $e['Subs']).Keys)) {
+            $subs[[string]$n] = [bool](ConvertTo-Mapa $e['Subs'])[$n]
         }
         $out[[string]$k] = @{
             Marcat = [bool]$e['Marcat']
@@ -527,7 +513,7 @@ function Show-LlicenciaDb {
         [void]$panDret.Controls.Add($lbPr)
         $y += 24
 
-        $tec = _LlicDbAMapa $rec.Tecnic
+        $tec = ConvertTo-Mapa $rec.Tecnic
         foreach ($c in @(
             @{ K = 'Tecnic';  L = 'T' + [char]0x00E8 + 'cnic redactor:' },
             @{ K = 'NumCol';  L = 'N' + [char]0x00FA + 'm. col' + [char]0x00B7 + 'legiat:' },
@@ -547,9 +533,9 @@ function Show-LlicenciaDb {
             $y += 26
         }
 
-        $docsRec = _LlicDbAMapa $rec.TecnicDocs
+        $docsRec = ConvertTo-Mapa $rec.TecnicDocs
         foreach ($d in @(_LlicDocsSignats)) {
-            $e = _LlicDbAMapa $docsRec[[string]$d]
+            $e = ConvertTo-Mapa $docsRec[[string]$d]
             $cbD = New-Object System.Windows.Forms.CheckBox
             $cbD.Location = New-Object System.Drawing.Point(20, ($y + 2))
             $cbD.Size = New-Object System.Drawing.Size(120, 22)
@@ -674,7 +660,7 @@ function Show-LlicenciaDb {
             [void]$altres.Add('Condicions: ' + $c)
         }
         foreach ($h in @($rec.Historial)) {
-            $hh = _LlicDbAMapa $h
+            $hh = ConvertTo-Mapa $h
             [void]$altres.Add('Informe generat: ' + [string]$hh['Fase'] + '  ' + [char]0x00B7 + '  ' +
                               (Split-Path -Leaf ([string]$hh['Fitxer'])))
         }
@@ -721,10 +707,10 @@ function Show-LlicenciaDb {
         foreach ($prop in @('Abans','Despres')) { $mems[$prop] = _LlicDbMemEditable $rec.$prop }
         # La documentacio del projecte va a part (no es un bloc de punts).
         $tecNou = @{}
-        foreach ($k in @((_LlicDbAMapa $rec.Tecnic).Keys)) { $tecNou[[string]$k] = [string](_LlicDbAMapa $rec.Tecnic)[$k] }
+        foreach ($k in @((ConvertTo-Mapa $rec.Tecnic).Keys)) { $tecNou[[string]$k] = [string](ConvertTo-Mapa $rec.Tecnic)[$k] }
         $docsNous = @{}
-        foreach ($k in @((_LlicDbAMapa $rec.TecnicDocs).Keys)) {
-            $e = _LlicDbAMapa ((_LlicDbAMapa $rec.TecnicDocs)[$k])
+        foreach ($k in @((ConvertTo-Mapa $rec.TecnicDocs).Keys)) {
+            $e = ConvertTo-Mapa ((ConvertTo-Mapa $rec.TecnicDocs)[$k])
             $docsNous[[string]$k] = @{ Marcat = [bool]$e['Marcat']; Id = [string]$e['Id'] }
         }
         $tocaProjecte = $false

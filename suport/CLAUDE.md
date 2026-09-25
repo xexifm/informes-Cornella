@@ -2052,7 +2052,7 @@ titulars amb tràmits pendents, a partir de l'`estat_actual` de la base d'inform
   historial) i `emailjs-quota.json`. **MAI al repositori**: porten ID GIA i dates
   d'enviament, i el repositori és PÚBLIC. A `%LOCALAPPDATA%` i no a `local/`
   perquè han de sobreviure a tornar a clonar.
-- `_RecHistorialAMapa` / `_RecObjAMapa` desfan el que fa `ConvertFrom-Json`
+- `_RecHistorialAMapa` / `ConvertTo-Mapa` (Json.ps1) desfan el que fa `ConvertFrom-Json`
   (PSCustomObjects): l'historial s'indexa per GIA i sense això `.ContainsKey` no
   existiria i **es perdria tot en silenci**. Hi ha prova d'anada i tornada **amb
   el JSON pel mig**, que és on aquest projecte s'ha trencat sempre.

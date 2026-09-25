@@ -625,12 +625,7 @@ function Select-LlicTecnic($pre, $preDocs = $null) {
     # EL QUE JA S'HAVIA TRIAT. Sense aixo, tornar Enrere o fer el segon informe
     # de la mateixa llicencia obligava a tornar a marcar-ho i a reescriure els
     # Id Firmadoc.
-    $preD = @{}
-    if ($preDocs -is [System.Collections.IDictionary]) {
-        foreach ($k in @($preDocs.Keys)) { $preD[[string]$k] = $preDocs[$k] }
-    } elseif ($null -ne $preDocs) {
-        foreach ($pr in @($preDocs.PSObject.Properties)) { $preD[[string]$pr.Name] = $pr.Value }
-    }
+    $preD = ConvertTo-Mapa $preDocs
     $cbDoc = @{}
     $tbDoc = @{}
     foreach ($d in $docs) {

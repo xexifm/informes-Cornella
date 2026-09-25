@@ -288,6 +288,19 @@ foreach ($d in $derivats) {
 
 
 
+Write-Host "`n--- Json.ps1: ConvertTo-Mapa ---"
+# Una sola funcio per a tot el que llegeix un mapa del JSON (abans n'hi havia
+# tres copies). Els quatre casos que es troba de debo.
+AssertEq (ConvertTo-Mapa $null).Count 0 'ConvertTo-Mapa: $null -> mapa buit'
+$cmJ = ConvertTo-Mapa ('{"361":{"a":1},"b":"x"}' | ConvertFrom-Json)
+Assert ($cmJ -is [hashtable]) 'ConvertTo-Mapa: un PSCustomObject del JSON -> hashtable'
+Assert ($cmJ.ContainsKey('361')) 'ConvertTo-Mapa: ...indexable per GIA (clau en text)'
+AssertEq ([string]$cmJ['b']) 'x' 'ConvertTo-Mapa: ...amb els valors'
+$cmH = ConvertTo-Mapa @{ 0 = 'zero' }
+Assert ($cmH.ContainsKey('0')) 'ConvertTo-Mapa: claus numeriques d''un hashtable -> text'
+$cmO = ConvertTo-Mapa ([ordered]@{ k = 'v' })
+AssertEq (@($cmO.Keys) -join ',') 'k' 'ConvertTo-Mapa: un [ordered] es un diccionari, no un objecte (no surten Count/Keys...)'
+
 Write-Host "`n--- Json.ps1: Read-JsonFile / Write-JsonFile ---"
 # PER QUE. Abans cada modul llegia i escrivia JSON pel seu compte: 17 llocs amb
 # BOM i 7 sense, cap escriptura atomica, i el mateix esquelet "carrega o valor

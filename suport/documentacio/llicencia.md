@@ -174,7 +174,7 @@
   - **Es desa al pas 9**, després de generar, dins d'un `try`: un error desant
     la memòria no pot fer perdre un informe que ja està fet.
   - `ConvertFrom-Json` torna **PSCustomObjects** i converteix les claus
-    numèriques dels sub-punts en **text**; `_LlicDbAMapa` i
+    numèriques dels sub-punts en **text**; `ConvertTo-Mapa` (Json.ps1) i
     `ConvertFrom-LlicenciaMemoria` ho desfan. Hi ha prova d'anada i tornada
     **amb el JSON pel mig**, que és on es trencava.
 - **El xip «Dades» del menú.** La fila de Llicència té ara **dos** xips

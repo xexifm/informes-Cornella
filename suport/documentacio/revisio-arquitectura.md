@@ -44,8 +44,8 @@ Fes-ho amb eines, no a ull, i posa les xifres a l'informe:
 - **Duplicació**: busca blocs de codi quasi iguals (normalitza els espais i
   compara finestres de 6–10 línies) i funcions que fan el mateix amb noms
   diferents. Candidats coneguts per verificar:
-  - els convertidors «PSCustomObject del JSON → hashtable» (`_LlicDbAMapa`,
-    `_RecHistorialAMapa`, `_RecObjAMapa` i els que hi hagi);
+  - els convertidors «PSCustomObject del JSON → hashtable» (fet al setembre
+    2026: `ConvertTo-Mapa` de `Json.ps1`; mira que no n'hagin tornat a sortir);
   - el peu de les pantalles («← Enrere» / «Continuar», amb les mateixes mides i
     estils, repetit a gairebé totes les finestres) i les pantalles de llista +
     detall (`Select-LlicDocumentacio`, `Show-LlicenciaDb`, `Select-Items`);

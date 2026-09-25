@@ -869,12 +869,7 @@ function _LlicDocsBuits {
 # Les linies que van a l'informe a partir d'aquell mapa. Funcio PURA.
 function _LlicItemsDocsSignats($docs) {
     $out = New-Object System.Collections.ArrayList
-    $m = @{}
-    if ($docs -is [System.Collections.IDictionary]) {
-        foreach ($k in @($docs.Keys)) { $m[[string]$k] = $docs[$k] }
-    } elseif ($null -ne $docs) {
-        foreach ($pr in @($docs.PSObject.Properties)) { $m[[string]$pr.Name] = $pr.Value }
-    }
+    $m = ConvertTo-Mapa $docs
     # EN L'ORDRE DEL CATALEG, no el del mapa: un hashtable no en te, i a
     # l'informe els documents han de sortir sempre igual.
     foreach ($d in @(_LlicDocsSignats)) {

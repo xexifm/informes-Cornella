@@ -408,8 +408,8 @@ $stD = @{ Header = @{ ID_GIA = '1457' }; TecnicDocs = $docsT }
 $recD = ConvertTo-LlicenciaRecord $stD
 $stD2 = @{}
 [void](Restore-LlicenciaState (($recD | ConvertTo-Json -Depth 20) | ConvertFrom-Json) $stD2)
-AssertEq ([bool](_LlicDbAMapa $stD2['TecnicDocs'])['Projecte']['Marcat']) $true 'base de dades: els documents signats es recorden'
-AssertEq ([string](_LlicDbAMapa $stD2['TecnicDocs'])['Projecte']['Id']) '9741790' 'base de dades: ...amb el seu Id Firmadoc'
+AssertEq ([bool](ConvertTo-Mapa $stD2['TecnicDocs'])['Projecte']['Marcat']) $true 'base de dades: els documents signats es recorden'
+AssertEq ([string](ConvertTo-Mapa $stD2['TecnicDocs'])['Projecte']['Id']) '9741790' 'base de dades: ...amb el seu Id Firmadoc'
 
 # ---------------------------------------------------------------------------
 # MODIFICACIO NO SUBSTANCIAL i TRASPAS (MnsTraspas.ps1 + MNSTRAS.json)

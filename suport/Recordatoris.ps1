@@ -384,27 +384,11 @@ function _RecHistorialExclou($historialCampanya, [string]$gia, [bool]$excloure) 
     return $h
 }
 
-# PSCustomObject (del ConvertFrom-Json) -> hashtable, recursiu on cal. El JSON
-# torna PSCustomObjects i l'historial s'indexa per GIA: sense això, .ContainsKey
-# no existeix i tot l'historial es perdria en silenci.
-function _RecObjAMapa($o) {
-    $m = @{}
-    if ($null -eq $o) { return $m }
-    if ($o -is [hashtable]) {
-        foreach ($k in @($o.Keys)) { $m[[string]$k] = $o[$k] }
-        return $m
-    }
-    try {
-        foreach ($p in $o.PSObject.Properties) { $m[[string]$p.Name] = $p.Value }
-    } catch { }
-    return $m
-}
-
 # Historial d'una campanya: mapa GIA -> mapa d'entrada. PURA.
 function _RecHistorialAMapa($o) {
     $out = @{}
-    $top = _RecObjAMapa $o
-    foreach ($k in @($top.Keys)) { $out[[string]$k] = _RecObjAMapa $top[$k] }
+    $top = ConvertTo-Mapa $o
+    foreach ($k in @($top.Keys)) { $out[[string]$k] = ConvertTo-Mapa $top[$k] }
     return $out
 }
 
@@ -415,8 +399,8 @@ function _RecLlegeix {
     $camps = @{}
     $hist  = @{}
     if ($null -ne $raw) {
-        try { $camps = _RecObjAMapa $raw.campanyes } catch { }
-        try { $hist  = _RecObjAMapa $raw.historial } catch { }
+        try { $camps = ConvertTo-Mapa $raw.campanyes } catch { }
+        try { $hist  = ConvertTo-Mapa $raw.historial } catch { }
     }
     foreach ($c in @(_RecCampanyes)) {
         $cfgRaw = $null
