@@ -11,7 +11,7 @@
     2. FAVORABLE PRE         "S'informa favorablement a l'espera de rebre la
                               citada documentacio..." (+ condicions, opcional)
     3. FAVORABLE POST        "S'informa favorablement l'activitat i es dona per
-                              tancat l'expedient."
+                              tancat l'expedient." (+ condicions, opcional)
 
   El primer es opcional, pero es fa gairebe sempre.
 
@@ -720,15 +720,22 @@ function _LlicTotesLesFases {
 # BLOC DESPRES:
 #
 #   requeriment    -> res (encara no toca dir si es te o no)
-#   favorable-pre  -> "No es disposa de la documentacio." (en negreta: falta)
-#   favorable-post -> "Es disposa del document (Id Firmadoc: ...)"
+#   favorable-pre  -> res (TAMPOC: vegeu a sota)
+#   favorable-post -> "Es disposa del document (Id Firmadoc: ...)" o, si algun
+#                     encara falta, "No es disposa de la documentacio."
 #
 # ...i la conclusio, que ja la decidia _LlicConclusioText.
+#
+# EL PRE NO DIU "No es disposa de la documentacio." Hi era, en negreta, a tots
+# els punts del bloc, i l'usuari ho va treure (setembre 2026): al pre-llicencia
+# la documentacio de DESPRES de la resolucio encara no toca tenir-la -el bloc ja
+# diu "en els terminis de temps especificats" i cada punt porta el seu "Quan:"-,
+# o sigui que dir de cada punt que falta no aporta res. Quedar-se o no amb el
+# document nomes es diu al POST, que es quan es comprova.
 function _LlicEstatDespres([string]$fase) {
     $sid = @('Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])')
     $nod = @('No es disposa de la documentaci' + [char]0x00F3 + '.')
     switch ([string]$fase) {
-        'favorable-pre'  { return @{ Estat = 'no'; NoDisposa = $nod; SiDisposa = $sid; AmbEstat = $true;  AmbDades = $true } }
         'favorable-post' { return @{ Estat = 'si'; NoDisposa = $nod; SiDisposa = $sid; AmbEstat = $true;  AmbDades = $true } }
     }
     return @{ Estat = ''; NoDisposa = @(); SiDisposa = @(); AmbEstat = $false; AmbDades = $false }
@@ -776,27 +783,38 @@ function _LlicCalAnnex1($punts, [bool]$esProvisional) {
     return $true
 }
 
-# Text de la conclusio d'una fase.
-#   - Al favorable PRE, la coda " i sota les seguents condicions" es OPCIONAL:
-#     no sempre n'hi ha. Sense condicions, la frase acaba amb un punt.
-#   - Al favorable POST i si es llicencia provisional, s'hi afegeix la visita
-#     d'inspeccio.
-# Funcio PURA.
+# QUINES FASES PODEN PORTAR CONDICIONS: els dos favorables. Funcio PURA, i
+# l'unic lloc que ho diu: la casella del pas 1, la conclusio i el bloc
+# CONDICIONS LLICENCIA ho pregunten aqui.
+function _LlicAdmetCondicions([string]$fase) {
+    return ([string]$fase -eq 'favorable-pre' -or [string]$fase -eq 'favorable-post')
+}
+
+# Text de la conclusio d'una fase. Funcio PURA.
+#
+# ELS DOS FAVORABLES PODEN PORTAR CONDICIONS, i llavors la frase ho anuncia
+# ("...sota les seguents condicions"). Es una CASELLA del pas 1, no un text: les
+# condicions les escriu l'usuari al Word (sota el titol CONDICIONS LLICENCIA,
+# que el programa hi deixa posat). Abans hi havia una pantalla per escriure-les,
+# nomes al pre, i l'usuari la va treure (setembre 2026): l'unic que calia saber
+# es SI n'hi ha, perque es el que canvia la conclusio.
 function _LlicConclusioText([string]$fase, [bool]$ambCondicions) {
     # EL TEXT VE DEL CATALEG, del grup 'LLIC' de '0 CONCLUSIONS.json', i el titol
     # de cada entrada es la CLAU DE LA FASE. Abans era al codi (_LlicFases), o
     # sigui que canviar una conclusio de llicencia volia dir tocar el programa
     # mentre que les de REQ1 s'editaven des de l'editor de catalegs.
     #
-    # El favorable PRE en te dues: amb condicions i sense (la coda " i sota les
-    # seguents condicions" no sempre hi va).
-    $titol = [string]$fase
-    if ($fase -eq 'favorable-pre' -and $ambCondicions) { $titol = 'favorable-pre-condicions' }
+    # Amb condicions, l'entrada es '<fase>-condicions'. Si el cataleg no la te
+    # (un 0 CONCLUSIONS.json de l'usuari encara sense actualitzar), es fa servir
+    # la de la fase: val mes una conclusio sense la coda que cap conclusio.
     $c = $null
     try { $c = Read-Conclusions $ConclusionsPath 'LLIC' } catch { $c = $null }
-    if ($null -ne $c) {
+    if ($null -eq $c) { return '' }
+    $titols = @([string]$fase)
+    if ($ambCondicions -and (_LlicAdmetCondicions $fase)) { $titols = @(([string]$fase + '-condicions'), [string]$fase) }
+    foreach ($t in $titols) {
         foreach ($x in @($c.Selectable)) {
-            if ([string]$x.Title -eq $titol) { return [string]$x.Body }
+            if ([string]$x.Title -eq $t) { return [string]$x.Body }
         }
     }
     return ''
@@ -1057,7 +1075,7 @@ function _LlicEscriuPunts($sel, $punts, [ref]$n, $fields, [bool]$ambQuan, [strin
 #
 # $model porta tot el que ha triat l'usuari a l'assistent:
 #   Fase, EsProvisional, Header, Fields, Abans, Projecte, Despres, Doc,
-#   Condicions, Orfes.
+#   AmbCondicions, Orfes.
 function Build-LlicenciaDocument($word, $model) {
     $header = $model.Header
     $baseName = _LlicNomFitxer (Get-Date) ([string]$model.Fase) ([string]$header['ID_GIA'])
@@ -1132,20 +1150,19 @@ function Build-LlicenciaDocument($word, $model) {
         }
 
         # ---- CONCLUSIO ----
-        $ambCond = (-not [string]::IsNullOrWhiteSpace([string]$model.Condicions))
+        $ambCond = ([bool]$model.AmbCondicions -and (_LlicAdmetCondicions ([string]$model.Fase)))
         # Mateix bloc que REQ1 (_WriteConclusionsBlock): capcalera CONCLUSIONS
         # centrada i en negreta, i la conclusio en negreta -que aqui ve del **...**
         # del cataleg, exactament com a REQ1: el text ja no es del codi.
         Format-Aire $sel 'conclusions'
         Format-ConclusionHeader $sel 'CONCLUSIONS'
         Format-Conclusion $sel (_LlicConclusioText ([string]$model.Fase) $ambCond)
-        if ($ambCond -and [string]$model.Fase -eq 'favorable-pre') {
+        # La conclusio diu "sota les seguents condicions": el titol hi queda
+        # posat i, a sota, un paragraf BUIT on l'usuari les escriu al Word.
+        if ($ambCond) {
             Format-Spacer $sel
             Format-BlockTitle $sel ('CONDICIONS LLIC' + [char]0x00C8 + 'NCIA')
-            foreach ($l in (([string]$model.Condicions) -split "`r?`n")) {
-                if ([string]::IsNullOrWhiteSpace($l)) { continue }
-                Format-Body $sel ([string]$l).Trim() -Bold
-            }
+            Format-Spacer $sel
         }
         # El tancament: del cataleg, com tots els altres informes (Write-Tancament).
         Write-Tancament $sel $fields
@@ -1256,7 +1273,7 @@ function _LlicEscriuAnnex1($sel, $llic) {
 # Traspas tenen entrada propia al menu, cada familia ensenya NOMES les seves:
 # _LlicFases per a Llicencia i _MnsFases per a MNS/Traspas. Amb $null les
 # ensenya totes (compatibilitat).
-function Select-LlicFase($preFase, $preProv, $fases = $null, [string]$titol = '') {
+function Select-LlicFase($preFase, $preProv, $fases = $null, [string]$titol = '', $preCond = $false) {
     $llista = if ($null -ne $fases) { @($fases) } else { @(_LlicTotesLesFases) }
     $form = _NewForm
     $form.Text = if ($titol) { $titol } else { 'Llic' + [char]0x00E8 + 'ncia - Pas 1' }
@@ -1310,6 +1327,26 @@ function Select-LlicFase($preFase, $preProv, $fases = $null, [string]$titol = ''
                   'hi afegeix l' + [char]0x2019 + 'ANNEX 1.')
     [void]$form.Controls.Add($lbl2)
 
+    # AMB CONDICIONS: nomes als dos favorables (_LlicAdmetCondicions). Es una
+    # casella i prou -les condicions s'escriuen al Word-: el que canvia es la
+    # conclusio i que hi surti el titol CONDICIONS LLICENCIA.
+    $cbCond = New-Object System.Windows.Forms.CheckBox
+    $cbCond.Location = New-Object System.Drawing.Point(30, ($lbl2.Bottom + 8))
+    $cbCond.AutoSize = $true
+    $cbCond.Text = 'Amb condicions'
+    $cbCond.Checked = [bool]$preCond
+    [void]$form.Controls.Add($cbCond)
+
+    $lbl3 = New-Object System.Windows.Forms.Label
+    $lbl3.Location = New-Object System.Drawing.Point(50, ($cbCond.Top + 22))
+    $lbl3.Size = New-Object System.Drawing.Size(450, 32)
+    $lbl3.ForeColor = [System.Drawing.Color]::FromArgb(120, 128, 138)
+    $lbl3.Font = New-Object System.Drawing.Font('Segoe UI', 8)
+    $lbl3.Text = ('Nom' + [char]0x00E9 + 's als favorables. La conclusi' + [char]0x00F3 + ' hi afegeix "sota les seg' +
+                  [char]0x00FC + 'ents condicions" i hi queda el t' + [char]0x00ED + 'tol CONDICIONS LLIC' +
+                  [char]0x00C8 + 'NCIA per escriure-les al Word.')
+    [void]$form.Controls.Add($lbl3)
+
     # La casella "Llicencia provisional" nomes te sentit a l'informe llarg: als
     # dos curts no canvia res del document, i deixar-la activa nomes despista.
     #
@@ -1320,9 +1357,19 @@ function Select-LlicFase($preFase, $preProv, $fases = $null, [string]$titol = ''
     $fnFase = @{}
     $fnFase.Refresca = {
         $curta = $false
-        foreach ($k in @($radios.Keys)) { if ($radios[$k].Checked -and (_MnsEsFase $k)) { $curta = $true } }
+        $admetCond = $false
+        foreach ($k in @($radios.Keys)) {
+            if (-not $radios[$k].Checked) { continue }
+            if (_MnsEsFase $k) { $curta = $true }
+            if (_LlicAdmetCondicions $k) { $admetCond = $true }
+        }
         $cbProv.Enabled = (-not $curta)
         $lbl2.Visible = (-not $curta)
+        # Desactivada pero SENSE desmarcar: si l'usuari passa pel requeriment i
+        # torna al favorable, el que havia marcat hi segueix. La composicio ja
+        # ignora la casella fora dels favorables.
+        $cbCond.Enabled = $admetCond
+        $lbl3.Visible = $admetCond
     }.GetNewClosure()
     foreach ($k in @($radios.Keys)) {
         $radios[$k].add_CheckedChanged({ & $fnFase.Refresca }.GetNewClosure())
@@ -1331,9 +1378,10 @@ function Select-LlicFase($preFase, $preProv, $fases = $null, [string]$titol = ''
 
     # ELS BOTONS, SOTA L'ULTIMA ETIQUETA. Estaven clavats a y=286 i la nota de
     # la llicencia provisional (y=264, alt 32) els trepitjava. Ara surten del
-    # peu real de $lbl2, o sigui que si hi afegim una fase o una linia de text
-    # baixen sols i la finestra creix amb ells.
-    $yBotons = $lbl2.Bottom + 14
+    # peu real de l'ultima etiqueta ($lbl3, la de les condicions), o sigui que
+    # si hi afegim una fase o una linia de text baixen sols i la finestra creix
+    # amb ells.
+    $yBotons = $lbl3.Bottom + 14
     $form.ClientSize = New-Object System.Drawing.Size(520, ($yBotons + 32 + 16))
 
     $res = @{ Nav = 'back' }
@@ -1345,6 +1393,7 @@ function Select-LlicFase($preFase, $preProv, $fases = $null, [string]$titol = ''
     $btnOk.add_Click({
         foreach ($k in $radios.Keys) { if ($radios[$k].Checked) { $res.Fase = $k } }
         $res.Prov = [bool]$cbProv.Checked
+        $res.AmbCondicions = [bool]$cbCond.Checked
         $res.Nav = 'fwd'
         $form.DialogResult = 'OK'; $form.Close()
     }.GetNewClosure())
@@ -1412,10 +1461,16 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
         #          JSON; el mapa pla si, i _RenderRichInto ja el sap llegir com a
         #          $preload (_GetPreloadValue, Camps.ps1).
         $ini = if ([string]::IsNullOrWhiteSpace($estatPerDefecte)) { 'no' } else { [string]$estatPerDefecte }
-        $e = @{ Marcat = $marcatPerDefecte; Estat = $ini; Camps = [ordered]@{}; Valors = @{}; Subs = @{} }
+        # EstatPrevi: el que deia la memoria, tal qual. Una pantalla que NO
+        # pregunta l'estat (requeriment, favorable pre) el torna a desar com
+        # l'ha trobat: si hi desava el seu 'no' per defecte, el POST sortia amb
+        # "No es disposa" marcat a tots els punts en lloc del seu 'si'.
+        $e = @{ Marcat = $marcatPerDefecte; Estat = $ini; EstatPrevi = ''; Camps = [ordered]@{}; Valors = @{}; Subs = @{} }
         if ($null -ne $preSel -and $preSel.Contains($clau)) {
             $e.Marcat = [bool]$preSel[$clau].Marcat
-            $e.Estat  = [string]$preSel[$clau].Estat
+            $e.EstatPrevi = [string]$preSel[$clau].Estat
+            # Buit = la pantalla d'on ve no el preguntava: mana el de la fase.
+            if (-not [string]::IsNullOrWhiteSpace($e.EstatPrevi)) { $e.Estat = $e.EstatPrevi }
             if ($null -ne $preSel[$clau].Valors) { $e.Valors = $preSel[$clau].Valors }
             if ($null -ne $preSel[$clau].Subs)   { $e.Subs   = $preSel[$clau].Subs }
         }
@@ -1474,8 +1529,6 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
     $panDret.BorderStyle = 'FixedSingle'
     $panDret.BackColor = [System.Drawing.Color]::White
     [void]$form.Controls.Add($panDret)
-
-    $fldRegistry = _NewFieldRegistry
 
     # Reconstrueix l'arbre segons el filtre. L'estat de les caselles NO viu a
     # l'arbre sino a $st: aixi el filtre no en pot perdre cap.
@@ -1557,6 +1610,18 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
         $p = $punts[$idx]
         $e = $st[$idx]
         $y = 10
+        # UN REGISTRE DE CAMPS NOU A CADA PINTADA, mai un de tota la pantalla.
+        #
+        # El registre (Camps.ps1) SINCRONITZA els controls que porten el MATEIX
+        # nom de camp: escriure en un "Id Firmadoc" copia el text a tots els
+        # altres "Id Firmadoc" que hi hagi registrats. Es el que vol REQ1, on un
+        # camp val el mateix a tot l'informe. Aqui NO: cada punt es un document
+        # diferent. Amb un registre de tota la pantalla, els quadres dels punts
+        # ja visitats (trets del panell pero vius, amb el seu handler) rebien
+        # el text del punt nou i l'escrivien al SEU punt: l'informe del GIA 924
+        # va sortir amb el mateix Id Firmadoc (9887463) als cinc punts d'ABANS.
+        # Hi ha un guard que ho vigila (06-guards.ps1).
+        $fldRegistry = _NewFieldRegistry
 
         # El text sencer del punt.
         $lbT = New-Object System.Windows.Forms.Label
@@ -1736,11 +1801,17 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
             foreach ($k in @($e.Valors.Keys)) { $vals[[string]$k] = [string]$e.Valors[$k] }
             foreach ($k in @($e.Camps.Keys))  { $vals[[string]$k] = [string]$e.Camps[$k].Value }
             $e.Valors = $vals
-            $mem[$clau] = @{ Marcat = $e.Marcat; Estat = $e.Estat; Valors = $vals; Subs = $e.Subs }
+            # Si aquesta pantalla no pregunta l'estat, ni el recorda ni el diu:
+            # es desa el que hi havia i el punt surt SENSE estat (cap "No es
+            # disposa..." ni "Es disposa..." a l'informe, digui el que digui el
+            # cataleg).
+            $estatMem = if ($ambEstat) { [string]$e.Estat } else { [string]$e.EstatPrevi }
+            $estatPunt = if ($ambEstat) { [string]$e.Estat } else { '' }
+            $mem[$clau] = @{ Marcat = $e.Marcat; Estat = $estatMem; Valors = $vals; Subs = $e.Subs }
             if (-not $e.Marcat) { continue }
             $si = @($p.SiDisposa); $no = @($p.NoDisposa)
-            if ([string]$e.Estat -eq 'si') { $si = @(_LlicAplicaCamps $p.SiDisposa $vals) }
-            else                           { $no = @(_LlicAplicaCamps $p.NoDisposa $vals) }
+            if ($estatPunt -eq 'si') { $si = @(_LlicAplicaCamps $p.SiDisposa $vals) }
+            else                     { $no = @(_LlicAplicaCamps $p.NoDisposa $vals) }
             # Nomes els sub-punts triats.
             $subs = New-Object System.Collections.ArrayList
             for ($k = 0; $k -lt @($p.Subs).Count; $k++) {
@@ -1754,7 +1825,7 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
             $c.NoDisposa = $no
             $c.SiDisposa = $si
             $c.Subs = $subs.ToArray()
-            $c | Add-Member NoteProperty Estat ([string]$e.Estat) -Force
+            $c | Add-Member NoteProperty Estat $estatPunt -Force
             [void]$sel.Add($c)
         }
         $res.Punts = $sel.ToArray()
@@ -1951,56 +2022,6 @@ function Select-LlicTecnic($pre, $preDocs = $null) {
     return $res
 }
 
-# Pas de les CONDICIONS (nomes al favorable pre-llicencia): quadre de text
-# lliure. Buit = la conclusio acaba sense "i sota les seguents condicions".
-function Select-LlicCondicions([string]$pre) {
-    $form = _NewForm
-    $form.Text = 'Condicions de la llic' + [char]0x00E8 + 'ncia'
-    $form.ClientSize = New-Object System.Drawing.Size(660, 440)
-    $form.StartPosition = 'CenterScreen'
-
-    $lbl = New-Object System.Windows.Forms.Label
-    $lbl.Location = New-Object System.Drawing.Point(20, 70)
-    $lbl.Size = New-Object System.Drawing.Size(620, 36)
-    $lbl.Text = ('Una condici' + [char]0x00F3 + ' per l' + [char]0x00ED + 'nia. Si ho deixes BUIT, la conclusi' +
-                 [char]0x00F3 + ' acaba a "...donar per tancat l' + [char]0x2019 + 'expedient." i no surt' + "`r`n" +
-                 'el bloc CONDICIONS LLIC' + [char]0x00C8 + 'NCIA.')
-    [void]$form.Controls.Add($lbl)
-
-    $tb = New-Object System.Windows.Forms.TextBox
-    $tb.Location = New-Object System.Drawing.Point(20, 112)
-    $tb.Size = New-Object System.Drawing.Size(620, 264)
-    $tb.Multiline = $true
-    $tb.ScrollBars = 'Vertical'
-    $tb.Anchor = 'Top,Bottom,Left,Right'
-    $tb.Text = [string]$pre
-    [void]$form.Controls.Add($tb)
-
-    $res = @{ Nav = 'back'; Text = '' }
-    $btnOk = New-Object System.Windows.Forms.Button
-    $btnOk.Text = 'Continuar'
-    $btnOk.Location = New-Object System.Drawing.Point(510, 390)
-    $btnOk.Size = New-Object System.Drawing.Size(130, 32)
-    $btnOk.Anchor = 'Bottom,Right'
-    _StylePrimaryButton $btnOk
-    $btnOk.add_Click({ $res.Text = [string]$tb.Text; $res.Nav = 'fwd'; $form.DialogResult = 'OK'; $form.Close() }.GetNewClosure())
-    [void]$form.Controls.Add($btnOk)
-
-    $btnBack = New-Object System.Windows.Forms.Button
-    $btnBack.Text = [string][char]0x2190 + ' Enrere'
-    $btnBack.Location = New-Object System.Drawing.Point(20, 390)
-    $btnBack.Size = New-Object System.Drawing.Size(115, 32)
-    $btnBack.Anchor = 'Bottom,Left'
-    _StyleSecondaryButton $btnBack
-    $btnBack.add_Click({ $form.Close() }.GetNewClosure())
-    [void]$form.Controls.Add($btnBack)
-
-    [void](_AddBrandHeader $form 'Condicions' ('Nom' + [char]0x00E9 + 's al favorable pre-llic' + [char]0x00E8 + 'ncia') 56)
-    [void]$form.ShowDialog()
-    $form.Dispose()
-    return $res
-}
-
 # ----------------------------------------------------------------------------
 # PUNT D'ENTRADA (des del menu)
 # ----------------------------------------------------------------------------
@@ -2025,7 +2046,7 @@ function Invoke-LlicenciaWizard($fases = $null, [string]$titol = '') {
     # La fase inicial surt de la llista d'AQUEST assistent, no d'un literal: la
     # de MNS/Traspas no te cap 'requeriment'.
     $st = @{ Fase = (_LlicFasePerDefecte $(if ($null -ne $fases) { $fases } else { _LlicTotesLesFases }) 'requeriment')
-             Prov = $false; Tecnic = @{}; Condicions = ''
+             Prov = $false; Tecnic = @{}; AmbCondicions = $false
              Fields = [ordered]@{}
              # El que s'havia triat a cada pantalla de documentacio, per no
              # perdre-ho quan l'usuari torna ENRERE (era exactament el que
@@ -2038,10 +2059,11 @@ function Invoke-LlicenciaWizard($fases = $null, [string]$titol = '') {
         while ($true) {
             switch ($step) {
                 1 {
-                    $r = Select-LlicFase $st.Fase $st.Prov $fases $titol
+                    $r = Select-LlicFase $st.Fase $st.Prov $fases $titol $st.AmbCondicions
                     if ($r.Nav -ne 'fwd') { return }
                     $st.Fase = [string]$r.Fase
                     $st.Prov = [bool]$r.Prov
+                    $st.AmbCondicions = [bool]$r.AmbCondicions
                     $step = 2
                 }
                 2 {
@@ -2139,8 +2161,8 @@ function Invoke-LlicenciaWizard($fases = $null, [string]$titol = '') {
                     # Els condicionals entren segons el tipus de llicencia.
                     $cond = @(@($bPropis.Punts) | Where-Object { _LlicCondicioEntra ([string]$_.Condicio) ([bool]$st.Prov) })
                     $st.AbansTots = @($cond) + @($bAbans.Punts)
-                    # ELS TEXTOS DE LA FASE al bloc DESPRES ("No es disposa de la
-                    # documentacio." al favorable pre, "Es disposa..." al post).
+                    # ELS TEXTOS DE LA FASE al bloc DESPRES (nomes al post: "Es
+                    # disposa..." o "No es disposa de la documentacio.").
                     # S'apliquen AQUI perque la pantalla del pas 7 i el document
                     # facin servir EXACTAMENT els mateixos punts.
                     $st.DespresTots = @(_LlicPuntsAmbEstatFase $bDesp.Punts ([string]$st.Fase))
@@ -2188,8 +2210,8 @@ function Invoke-LlicenciaWizard($fases = $null, [string]$titol = '') {
                 7 {
                     # LA MATEIXA PANTALLA PER A LES TRES FASES. Nomes canvia si
                     # es demana l'estat de cada punt (i les seves dades), que ho
-                    # decideix _LlicEstatDespres: al requeriment encara no toca
-                    # dir si es te o no; al favorable pre i post, si.
+                    # decideix _LlicEstatDespres: al requeriment i al favorable
+                    # pre encara no toca dir si es te o no; al post, si.
                     $ef = _LlicEstatDespres ([string]$st.Fase)
                     $titol = 'Documentaci' + [char]0x00F3 + ' DESPR' + [char]0x00C9 + 'S de la resoluci' + [char]0x00F3
                     $sub = "Marca la que entra a l'informe"
@@ -2200,13 +2222,8 @@ function Invoke-LlicenciaWizard($fases = $null, [string]$titol = '') {
                     if ($r.Nav -ne 'fwd') { $step = 6; break }
                     $st.Despres = $r.Punts
                     $st.MemDespres = $r.Memoria
-                    $step = 8
-                }
-                8 {
-                    if ([string]$st.Fase -ne 'favorable-pre') { $step = 9; break }
-                    $r = Select-LlicCondicions $st.Condicions
-                    if ($r.Nav -ne 'fwd') { $step = 7; break }
-                    $st.Condicions = [string]$r.Text
+                    # (El pas 8 era la pantalla de les condicions; ara es una
+                    # casella del pas 1.)
                     $step = 9
                 }
                 9 {
@@ -2221,7 +2238,7 @@ function Invoke-LlicenciaWizard($fases = $null, [string]$titol = '') {
                         Projecte = @(_LlicPuntsDeSeleccio $st.ProjSel)
                         Despres = @($st.Despres)
                         Doc = $(if ($null -ne $st.Doc) { $st.Doc } else { @{ Text = ''; Items = @() } })
-                        Condicions = [string]$st.Condicions
+                        AmbCondicions = [bool]$st.AmbCondicions
                         Cataleg = $llic
                     }
                     $out = Build-LlicenciaDocument $word $model

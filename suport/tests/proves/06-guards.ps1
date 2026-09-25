@@ -948,3 +948,40 @@ Write-Host "`n--- La VERSIO de les vistes puja quan canvia com es veuen ---"
 $srcVw = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'suport' 'VistaWord.ps1')))
 Assert ($srcVw -match 'Format-Ajuda|AmbAjuda') 'VistaWord.ps1: la vista demana la fitxa d''ajuda'
 Assert ([bool]($Script:VistaWordVersio -ge 10)) ('VistaWordVersio >= 10 (fitxa sense sangria, amb vigencia i enllac); ara es ' + $Script:VistaWordVersio)
+
+Write-Host "`n--- Llicencia: els camps de cada punt NO es sincronitzen amb els dels altres ---"
+# El registre de camps (Camps.ps1) SINCRONITZA els controls que porten el mateix
+# nom: a REQ1 es el que toca, un camp val el mateix a tot l'informe. A la
+# pantalla de documentacio de Llicencia cada punt es un document diferent i el
+# seu "Id Firmadoc" tambe. El registre era UN per a tota la pantalla, i els
+# quadres dels punts ja visitats (trets del panell pero vius) rebien el que
+# s'escrivia al punt nou: l'informe del GIA 924 va sortir amb el mateix Id
+# Firmadoc als cinc punts d'ABANS.
+#
+# LA REGLA, dita pel parser: a Llicencia.ps1, el registre que es passa a
+# _RenderRichInto s'ha de crear (_NewFieldRegistry) DINS del mateix scriptblock
+# que el fa servir -la pintada d'un sol punt-, no a fora.
+$astLlR = [System.Management.Automation.Language.Parser]::ParseFile(
+    (Join-Path $rootRepo (Join-Path 'suport' 'Llicencia.ps1')), [ref]$null, [ref]$null)
+$crRender = @($astLlR.FindAll({ param($a)
+    $a -is [System.Management.Automation.Language.CommandAst] -and $a.GetCommandName() -eq '_RenderRichInto' }, $true))
+Assert ($crRender.Count -ge 1) 'Llicencia.ps1: el guard troba les crides a _RenderRichInto'
+$malRegistre = @()
+foreach ($cr in $crRender) {
+    $els = @($cr.CommandElements)
+    $argReg = $els[$els.Count - 1]
+    if (-not ($argReg -is [System.Management.Automation.Language.VariableExpressionAst])) {
+        $malRegistre += ('linia ' + $cr.Extent.StartLineNumber + ': el registre no es una variable'); continue
+    }
+    $nomReg = $argReg.VariablePath.UserPath
+    # El scriptblock mes proper que conte la crida.
+    $blocR = $cr.Parent
+    while ($null -ne $blocR -and -not ($blocR -is [System.Management.Automation.Language.ScriptBlockAst])) { $blocR = $blocR.Parent }
+    $creat = @($blocR.FindAll({ param($a)
+        $a -is [System.Management.Automation.Language.AssignmentStatementAst] -and
+        $a.Left -is [System.Management.Automation.Language.VariableExpressionAst] -and
+        $a.Left.VariablePath.UserPath -eq $nomReg -and
+        $a.Right.Extent.Text -match '_NewFieldRegistry' }, $true))
+    if ($creat.Count -eq 0) { $malRegistre += ('linia ' + $cr.Extent.StartLineNumber + ': $' + $nomReg + ' ve de fora de la pintada') }
+}
+AssertEq $malRegistre.Count 0 ('Llicencia.ps1: cada pintada fa el SEU registre de camps' + $(if ($malRegistre.Count) { ' -> ' + ($malRegistre -join ' | ') } else { '' }))

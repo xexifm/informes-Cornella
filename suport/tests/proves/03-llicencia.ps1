@@ -109,8 +109,8 @@ Assert (_LlicCondicioEntra 'provisional' $true)     '_LlicCondicioEntra: el de l
 Assert (-not (_LlicCondicioEntra 'provisional' $false)) '_LlicCondicioEntra: ...i no si no ho es'
 Assert (_LlicCondicioEntra '' $true)                '_LlicCondicioEntra: sense condicio, entra sempre'
 Assert (_LlicCondicioEntra '' $false)               '_LlicCondicioEntra: sense condicio, tambe sense provisional'
-# La conclusio de cada fase. Al favorable PRE, la coda de les condicions es
-# OPCIONAL: sense condicions la frase ha d'acabar amb un punt.
+# La conclusio de cada fase. Als dos FAVORABLES, la coda de les condicions es
+# OPCIONAL (una casella del pas 1): sense condicions la frase acaba amb un punt.
 $cReq = _LlicConclusioText 'requeriment' $false
 Assert ([bool]($cReq -like '*esmena de les defici*')) '_LlicConclusioText: requeriment'
 $cPreSense = _LlicConclusioText 'favorable-pre' $false
@@ -120,6 +120,19 @@ Assert (-not ($cPreSense -like '*sota les seg*'))        '_LlicConclusioText: pr
 Assert ([bool]($cPreAmb -like '*i sota les seg*ents condicions.*')) '_LlicConclusioText: pre AMB condicions hi afegeix la coda'
 $cPost = _LlicConclusioText 'favorable-post' $false
 Assert ([bool]($cPost -like '*per tancat l*expedient.*')) '_LlicConclusioText: post tanca l''expedient'
+Assert (-not ($cPost -like '*sota les seg*'))             '_LlicConclusioText: post sense condicions NO promet condicions'
+$cPostAmb = _LlicConclusioText 'favorable-post' $true
+Assert ([bool]($cPostAmb -like '*sota les seg*ents condicions*')) '_LlicConclusioText: post AMB condicions tambe ho anuncia'
+Assert ([bool]($cPostAmb -like '*per tancat l*expedient*'))       '_LlicConclusioText: ...i segueix tancant l''expedient'
+# Al requeriment no hi ha condicions: la casella no hi canvia res.
+AssertEq (_LlicConclusioText 'requeriment' $true) $cReq '_LlicConclusioText: al requeriment la casella no hi fa res'
+Assert (-not (_LlicAdmetCondicions 'requeriment')) '_LlicAdmetCondicions: el requeriment no'
+Assert (_LlicAdmetCondicions 'favorable-pre')       '_LlicAdmetCondicions: el pre si'
+Assert (_LlicAdmetCondicions 'favorable-post')      '_LlicAdmetCondicions: el post si'
+Assert (-not (_LlicAdmetCondicions 'mns'))          '_LlicAdmetCondicions: els curts no'
+# LA PANTALLA DE TEXT DE LES CONDICIONS JA NO HI ES (setembre 2026): nomes cal
+# saber SI n'hi ha. Les condicions s'escriuen al Word.
+Assert (-not (Get-Command Select-LlicCondicions -ErrorAction SilentlyContinue)) 'Llicencia: ja no hi ha la pantalla per escriure les condicions'
 # EL TEXT VE DEL CATALEG, no del codi: hi ha de portar la negreta del **...**
 # (com les de REQ1) i no pot quedar cap frase de conclusio escrita al programa.
 Assert ([bool]($cPost -like '`*`**')) '_LlicConclusioText: la negreta ve del cataleg (**...**)'
@@ -128,10 +141,11 @@ Assert (-not ($srcLlicC -match 'Conclusio\s*=')) 'Llicencia: cap text de conclus
 Assert (-not ($srcLlicC.Contains('Ho poso al seu coneixement'))) 'Llicencia: ni el tancament'
 $srcMnsC = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $TestsDir) 'MnsTraspas.ps1') -Raw
 Assert (-not ($srcMnsC.Contains('Ho poso al seu coneixement'))) 'MnsTraspas: ni el tancament'
-# ...i el cataleg els te tots quatre, un per fase (i el pre, amb i sense condicions).
+# ...i el cataleg les te totes, una per fase (i els dos favorables, amb i sense
+# condicions).
 $grLlic = Read-Conclusions $Global:ConclusionsPath 'LLIC'
-AssertEq (@($grLlic.Selectable).Count) 4 'cataleg: el grup LLIC porta les quatre conclusions'
-foreach ($fLl in @('requeriment', 'favorable-pre', 'favorable-pre-condicions', 'favorable-post')) {
+AssertEq (@($grLlic.Selectable).Count) 5 'cataleg: el grup LLIC porta les cinc conclusions'
+foreach ($fLl in @('requeriment', 'favorable-pre', 'favorable-pre-condicions', 'favorable-post', 'favorable-post-condicions')) {
     Assert ([bool](@($grLlic.Selectable) | Where-Object { [string]$_.Title -eq $fLl })) ('cataleg: hi ha la conclusio "' + $fLl + '"')
 }
 AssertEq (_LlicConclusioText 'no-existeix' $false) '' '_LlicConclusioText: fase desconeguda -> buit'
@@ -150,9 +164,14 @@ $efPre  = _LlicEstatDespres 'favorable-pre'
 $efPost = _LlicEstatDespres 'favorable-post'
 AssertEq ([string]$efReq.Estat) '' '_LlicEstatDespres: al requeriment no es diu si es te o no'
 AssertEq ([bool]$efReq.AmbEstat) $false '_LlicEstatDespres: ...i per tant no es demana'
-AssertEq ([string]$efPre.Estat) 'no' '_LlicEstatDespres: al favorable pre, per defecte NO es disposa'
+# AL PRE TAMPOC (setembre 2026): "No es disposa de la documentacio." a cada punt
+# del bloc DESPRES no deia res -la documentacio de despres de la resolucio
+# encara no toca tenir-la-. Nomes el POST diu si es te o no.
+AssertEq ([string]$efPre.Estat) '' '_LlicEstatDespres: al favorable pre tampoc es diu si es te o no'
+AssertEq ([bool]$efPre.AmbEstat) $false '_LlicEstatDespres: ...ni es demana'
+AssertEq (@($efPre.NoDisposa).Count) 0 '_LlicEstatDespres: el pre no porta cap "No es disposa..."'
 AssertEq ([string]$efPost.Estat) 'si' '_LlicEstatDespres: al favorable post, per defecte SI'
-Assert ([bool]((@($efPre.NoDisposa) -join ' ') -like 'No es disposa de la documentaci*.')) '_LlicEstatDespres: el text del pre'
+Assert ([bool]((@($efPost.NoDisposa) -join ' ') -like 'No es disposa de la documentaci*.')) '_LlicEstatDespres: el post pot dir que encara falta'
 Assert ([bool]((@($efPost.SiDisposa) -join ' ') -like '*`[CAMP: Id Firmadoc`]*')) '_LlicEstatDespres: el post demana l''Id Firmadoc'
 Assert ([bool]$efPost.AmbDades) '_LlicEstatDespres: ...i per aixo la pantalla demana dades'
 AssertEq ([string](_LlicEstatDespres 'no-existeix').Estat) '' '_LlicEstatDespres: fase desconeguda -> res'
@@ -162,7 +181,7 @@ AssertEq ([string](_LlicEstatDespres 'no-existeix').Estat) '' '_LlicEstatDespres
 $pFase = @(
     [pscustomobject]@{ Clau='A'; Subseccio=''; Titol='Sense text'; Condicio=''; Cos=@('x'); NoDisposa=@(); SiDisposa=@(); Quan=@('q'); Subs=@() },
     [pscustomobject]@{ Clau='B'; Subseccio=''; Titol='Amb text';   Condicio=''; Cos=@('y'); NoDisposa=@('El seu propi'); SiDisposa=@('El seu propi si'); Quan=@(); Subs=@() })
-$rFase = @(_LlicPuntsAmbEstatFase $pFase 'favorable-pre')
+$rFase = @(_LlicPuntsAmbEstatFase $pFase 'favorable-post')
 AssertEq $rFase.Count 2 '_LlicPuntsAmbEstatFase: no perd cap punt'
 Assert ([bool]((@($rFase[0].NoDisposa) -join ' ') -like 'No es disposa de la documentaci*')) '_LlicPuntsAmbEstatFase: el que no en te, agafa el de la fase'
 AssertEq (@($rFase[1].NoDisposa) -join ' ') 'El seu propi' '_LlicPuntsAmbEstatFase: el que en te, se''l queda'
@@ -519,7 +538,7 @@ if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path 
         Header = @{ ID_GIA = '357'; TITULAR = 'PROVA SL'; CLASSIFICACIO = 'Llei 20/2009; Annex II' }
         Fields = [ordered]@{}
         Abans = $unPunt; Projecte = @(); Despres = $unDesp
-        Doc = @{ Text = ''; Items = @() }; Condicions = ''; Cataleg = $llicG
+        Doc = @{ Text = ''; Items = @() }; AmbCondicions = $false; Cataleg = $llicG
     }
     $global:emitCalls.Clear()
     $petaG = $false
@@ -566,7 +585,7 @@ if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path 
         Fields = [ordered]@{}
         Abans = $unPunt; Projecte = @()
         Doc = @{ Text = 'Documentacio signada pel tecnic X.'; Items = @('Projecte (Id Firmadoc: 1)') }
-        Condicions = ''; Cataleg = $llicG
+        AmbCondicions = $false; Cataleg = $llicG
     }
     foreach ($fs in @('requeriment', 'favorable-pre', 'favorable-post')) {
         $modelF.Fase = $fs
@@ -598,7 +617,7 @@ if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path 
         Assert ($iQuan -ge 0) ($fs + ': el bloc DESPRES porta el "Quan:"')
         $iEstat = [Array]::FindIndex([string[]]$bloc, [Predicate[string]]{ param($x) $x -like '*es disposa*' })
         if ([string]$ef.Estat -eq '') {
-            AssertEq $iEstat -1 ($fs + ': al requeriment no es diu si es disposa o no')
+            AssertEq $iEstat -1 ($fs + ': no es diu si es disposa o no (nomes ho diu el post)')
         } else {
             Assert ($iEstat -gt $iQuan) ($fs + ': "es disposa" va DESPRES del "Quan:"')
         }
@@ -606,12 +625,24 @@ if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path 
         $numsF = @($emF | Where-Object { $_ -like 'ITEM|*' } | ForEach-Object { [int](($_ -split '\|')[1] -replace '\.', '') })
         AssertEq ($numsF -join ',') ((1..$numsF.Count) -join ',') ($fs + ': la numeracio va seguida')
     }
-    # El pre-llicencia diu que FALTA (negreta) i el post que ja hi es (normal).
+    # EL PRE NO DIU RES DEL BLOC DESPRES (setembre 2026): ni "No es disposa de
+    # la documentacio." ni "Es disposa...", encara que el punt arribi amb un
+    # estat (d'una memoria vella, per exemple).
     $modelF.Fase = 'favorable-pre'
     $modelF.Despres = @(@(_LlicPuntsAmbEstatFase (@($bDG)[0]) 'favorable-pre') | ForEach-Object { $_ | Add-Member NoteProperty Estat 'no' -PassThru -Force })
     $global:emitCalls.Clear()
     [void](Build-LlicenciaDocument $wordG $modelF)
-    Assert ([bool](@($global:emitCalls) | Where-Object { $_ -like 'BODY/N/SEP|No es disposa de la documentaci*' })) 'favorable-pre: "No es disposa de la documentacio.", en negreta i separada'
+    $emPre = @($global:emitCalls)
+    $iDePre = [Array]::FindIndex([string[]]$emPre, [Predicate[string]]{ param($x) $x -like 'BLOC|*DESPR*' })
+    Assert ($iDePre -ge 0) 'favorable-pre: el bloc DESPRES hi es'
+    Assert (-not (@($emPre[$iDePre..($emPre.Count - 1)]) | Where-Object { $_ -like '*es disposa*' })) 'favorable-pre: el bloc DESPRES no diu "No es disposa de la documentacio."'
+    # ...i el POST si: si un document encara falta, "No es disposa de la
+    # documentacio." en negreta i separada; si ja hi es, "Es disposa..." normal.
+    $modelF.Fase = 'favorable-post'
+    $modelF.Despres = @(@(_LlicPuntsAmbEstatFase (@($bDG)[0]) 'favorable-post') | ForEach-Object { $_ | Add-Member NoteProperty Estat 'no' -PassThru -Force })
+    $global:emitCalls.Clear()
+    [void](Build-LlicenciaDocument $wordG $modelF)
+    Assert ([bool](@($global:emitCalls) | Where-Object { $_ -like 'BODY/N/SEP|No es disposa de la documentaci*' })) 'favorable-post: "No es disposa de la documentacio.", en negreta i separada'
     $modelF.Fase = 'favorable-post'
     $modelF.Despres = @(@(_LlicPuntsAmbEstatFase (@($bDG)[0]) 'favorable-post') | ForEach-Object { $_ | Add-Member NoteProperty Estat 'si' -PassThru -Force })
     $global:emitCalls.Clear()
@@ -620,6 +651,32 @@ if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path 
     Assert ([bool]($emPost | Where-Object { $_ -like 'BODY/SEP|Es disposa del document*' })) 'favorable-post: "Es disposa del document", separada i SENSE negreta'
     Assert (-not ($emPost | Where-Object { $_ -match '\[CAMP:' })) 'favorable-post: cap marcador de camp literal'
     Assert (-not ($emPost | Where-Object { $_ -like '*haver comprovat la seg*ent documentaci*' })) 'favorable-post: ja no es un informe a part'
+
+    # ---- LES CONDICIONS: una casella, als dos favorables ------------------
+    # Amb la casella, la conclusio ho anuncia i hi queda el titol CONDICIONS
+    # LLICENCIA (les condicions s'escriuen al Word). Sense, res de tot aixo. Al
+    # requeriment la casella no hi fa res.
+    foreach ($fs in @('requeriment', 'favorable-pre', 'favorable-post')) {
+        foreach ($ambC in @($true, $false)) {
+            $modelF.Fase = $fs
+            $modelF.AmbCondicions = $ambC
+            $modelF.Despres = @()
+            $global:emitCalls.Clear()
+            [void](Build-LlicenciaDocument $wordG $modelF)
+            $emC = @($global:emitCalls)
+            $hiHa = ($ambC -and $fs -ne 'requeriment')
+            $titolC = @($emC | Where-Object { $_ -like 'BLOC|CONDICIONS LLIC*NCIA' })
+            AssertEq $titolC.Count $(if ($hiHa) { 1 } else { 0 }) ("$fs amb condicions=$($ambC): el titol CONDICIONS LLICENCIA")
+            $concl = [string](@($emC | Where-Object { $_ -like 'CONCL|*' }) | Select-Object -First 1)
+            AssertEq ([bool]($concl -like '*sota les seg*ents condicions*')) $hiHa ("$fs amb condicions=$($ambC): la conclusio ho anuncia")
+            if ($hiHa) {
+                $iCo = [Array]::IndexOf([string[]]$emC, $concl)
+                $iTi = [Array]::IndexOf([string[]]$emC, [string]$titolC[0])
+                Assert ($iTi -gt $iCo) ("$($fs): el titol de les condicions va DESPRES de la conclusio")
+            }
+        }
+    }
+    $modelF.AmbCondicions = $false
 
     $modelG.EsProvisional = $true
     $global:emitCalls.Clear()

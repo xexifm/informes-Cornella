@@ -252,7 +252,7 @@ Assert ($null -ne (Get-LlicenciaRecord $dbT '999'))  'Remove-LlicenciaRecord: ..
 # ANADA I TORNADA amb ConvertTo-Json pel mig, que es com viura de debo: el JSON
 # torna PSCustomObjects i les claus numeriques dels sub-punts tornen com a text.
 $stT = @{
-    Fase = 'requeriment'; Prov = $true; Condicions = 'les de sempre'
+    Fase = 'favorable-pre'; Prov = $true; AmbCondicions = $true
     Header = @{ ID_GIA = '1463'; TITULAR = 'ZEROCATORZE'; ADRECA = 'CAMI 12'; ACTIVITAT = 'TALLER'; CLASSIFICACIO = 'Llei 20/2009' }
     MemAbans = @{
         'Autoritzacions / Informes preceptius::Sanitat' = @{ Marcat = $true;  Estat = 'si'; Valors = @{ 'Id Firmadoc' = 'FD-777' }; Subs = @{} }
@@ -280,7 +280,11 @@ Assert ((@($stR.MemDespres['#PAU'].Subs.Keys)[0]) -is [int]) 'anada i tornada: l
 AssertEq (@($stR.ProjKeys) -join '|') 'Projecte::A|Projecte::B' 'anada i tornada: els punts del projecte'
 AssertEq ([string]$stR.ProjVals['Epigraf']) '12.3' 'anada i tornada: els camps del projecte'
 AssertEq ([string]$stR.Tecnic['Tecnic']) 'Nom' 'anada i tornada: el tecnic redactor'
-AssertEq ([string]$stR.Condicions) 'les de sempre' 'anada i tornada: les condicions'
+AssertEq ([bool]$recJ.AmbCondicions) $true 'la fitxa desa si l''informe portava condicions'
+# ...pero NO es recupera: la casella es del pas 1, que va ABANS de llegir la
+# base, i recuperar-la trepitjaria el que l'usuari acaba de marcar.
+Assert (-not $stR.ContainsKey('AmbCondicions')) 'Restore-LlicenciaState: no trepitja la casella de les condicions'
+Assert (-not $stR.ContainsKey('Condicions'))    'Restore-LlicenciaState: ni torna a posar el text d''abans'
 # La capcalera NO es toca: l'omple l'Excel per ID GIA i la de la base pot ser vella.
 AssertEq ([string]$stR.Header['ID_GIA']) '1463' 'Restore-LlicenciaState: no toca la capcalera'
 # El resum per a la llista.
@@ -1477,7 +1481,7 @@ if ($null -ne $req1TF -and $null -ne $llicTF) {
         [void](Build-LlicenciaDocument $wdTF @{
             Fase = $f; EsProvisional = $false; Header = $hdrTF; Fields = [ordered]@{}
             Abans = @(); Projecte = @(); Despres = $dTF
-            Doc = @{ Text = ''; Items = @() }; Condicions = ''; Cataleg = $llicTF
+            Doc = @{ Text = ''; Items = @() }; AmbCondicions = $false; Cataleg = $llicTF
         })
         & $comprova ('Llicencia/' + $f) $global:emitCalls $grupsLlicTF
     }
@@ -1570,7 +1574,7 @@ if ($null -ne $llicOrd -and $null -ne $req1Ord) {
         Fase = 'requeriment'; EsProvisional = $false
         Header = @{ ID_GIA = '1'; TITULAR = 'X'; CLASSIFICACIO = 'Y' }; Fields = [ordered]@{}
         Abans = $abansO; Projecte = $projO; Despres = @()
-        Doc = @{ Text = 'Signada pel tecnic:'; Items = @('Projecte') }; Condicions = ''; Cataleg = $llicOrd
+        Doc = @{ Text = 'Signada pel tecnic:'; Items = @('Projecte') }; AmbCondicions = $false; Cataleg = $llicOrd
     }
     $global:emitCalls.Clear()
     [void](Build-LlicenciaDocument $wdO $modelO)

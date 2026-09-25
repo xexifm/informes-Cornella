@@ -127,12 +127,16 @@ final — però **només** a la fase de Requeriment, i **només si encara no es
 disposa** d'aquella autorització: l'annex diu com demanar-la, i si ja la tens no
 hi pinta res. (La casella no s'aplica als dos informes curts.)
 
+Als dos **favorables** hi ha també la casella **«Amb condicions»**. Si la marques,
+la conclusió hi afegeix «…sota les següents condicions» i, a sota, hi queda el
+títol **CONDICIONS LLICÈNCIA** amb una línia buida perquè hi escriguis les
+condicions al Word. Sense marcar-la, ni una cosa ni l'altra.
+
 Passos: fase → capçalera (amb la **Classificació** ja omplerta des de l'Excel:
 `Llei 20/2009; Annex II; Epígraf …`) → documentació **abans** de la resolució →
 **Projecte** (la mateixa pantalla de deficiències de sempre) → dades del tècnic
 redactor i els Id Firmadoc → documentació **després** de la resolució (amb el
-«Quan:») → i, si és el favorable pre, les **condicions** de la llicència, en un
-quadre de text lliure.
+«Quan:»).
 
 La diferència amb un requeriment normal és que aquí els punts **no són
 deficiències sinó documentació**, i surten tant si es té com si no: de cada punt
@@ -166,8 +170,7 @@ Els informes d'una llicència van en cadena: primer el requeriment, després el
 favorable pre i després el post. El programa **se'n recorda**: quan poses un
 **ID GIA** que ja té un informe de llicència fet, t'avisa i **surt tot omplert**
 —el que aplicava, si es disposava o no de cada document, els **Id Firmadoc**,
-els expedients, les referències, els punts del Projecte, el tècnic redactor i
-les condicions—. Ho pots canviar tot; només hi és perquè no ho hagis de tornar
+els expedients, les referències, els punts del Projecte i el tècnic redactor—. Ho pots canviar tot; només hi és perquè no ho hagis de tornar
 a escriure.
 
 Es desa sol quan generes l'informe, a
@@ -195,11 +198,12 @@ els seus «Quan:»). L'única cosa que canvia és què diu de cada punt del bloc
 | Informe | Sota el «Quan:» |
 |---|---|
 | Requeriment | res |
-| Favorable pre-llicència | **No es disposa de la documentació.** |
-| Favorable post-llicència | Es disposa del document (Id Firmadoc: …) |
+| Favorable pre-llicència | res |
+| Favorable post-llicència | Es disposa del document (Id Firmadoc: …) — o, si encara falta, **No es disposa de la documentació.** |
 
-Al pre i al post, doncs, el bloc de després també et deixa dir de cada punt si es
-disposa del document i posar-hi l'**Id Firmadoc**.
+Al post, doncs, el bloc de després també et deixa dir de cada punt si es disposa
+del document i posar-hi l'**Id Firmadoc**. Al pre no: aquella documentació
+encara no toca tenir-la, i cada punt ja diu **quan** s'ha de presentar.
 
 La **documentació del projecte** (el tècnic redactor i els documents signats) va
 **dalt de tot**, sota el títol `DOCUMENTACIÓ PROJECTE` i **fora de la

@@ -215,7 +215,10 @@ function ConvertTo-LlicenciaRecord($st, $historial = @()) {
         ProjVals      = (_LlicDbAMapa $h['ProjVals'])
         Tecnic        = (_LlicDbAMapa $h['Tecnic'])
         TecnicDocs    = (ConvertTo-LlicenciaDocs $h['TecnicDocs'])
-        Condicions    = [string]$h['Condicions']
+        # Si l'ultim informe portava condicions. Nomes es un SI/NO: les
+        # condicions les escriu l'usuari al Word, i la casella no es torna a
+        # carregar (va al pas 1, abans de saber de quina llicencia es tracta).
+        AmbCondicions = [bool]$h['AmbCondicions']
         Historial     = $hist.ToArray()
     }
 }
@@ -234,7 +237,9 @@ function Restore-LlicenciaState($record, $st) {
     $st['ProjVals']   = _LlicDbAMapa $r['ProjVals']
     $st['Tecnic']     = _LlicDbAMapa $r['Tecnic']
     $st['TecnicDocs'] = ConvertTo-LlicenciaDocs $r['TecnicDocs']
-    $st['Condicions'] = [string]$r['Condicions']
+    # LES CONDICIONS NO ES RECUPEREN: la casella es tria al pas 1, i la base es
+    # llegeix en sortir del pas 2 (quan ja se sap l'ID GIA). Recuperar-la aqui
+    # trepitjaria el que l'usuari acaba de marcar.
     return $st
 }
 
@@ -608,7 +613,10 @@ function Show-LlicenciaDb {
         $altres = New-Object System.Collections.ArrayList
         $nProj = @($rec.ProjKeys).Count
         if ($nProj -gt 0) { [void]$altres.Add('Punts del projecte triats: ' + $nProj) }
-        if (-not [string]::IsNullOrWhiteSpace([string]$rec.Condicions)) {
+        if ([bool]$rec.AmbCondicions) {
+            [void]$altres.Add('Amb condicions')
+        } elseif (-not [string]::IsNullOrWhiteSpace([string]$rec.Condicions)) {
+            # Fitxes d'abans de la casella: hi havia el text de les condicions.
             $c = [string]$rec.Condicions
             if ($c.Length -gt 200) { $c = $c.Substring(0, 200) + [char]0x2026 }
             [void]$altres.Add('Condicions: ' + $c)

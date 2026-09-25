@@ -481,8 +481,20 @@ bloc DESPRÉS**:
 | Fase | Sota el «Quan:» |
 |---|---|
 | `requeriment` | res (encara no toca dir si es té o no) |
-| `favorable-pre` | **No es disposa de la documentació.** (negreta: falta) |
-| `favorable-post` | Es disposa del document (Id Firmadoc: …) |
+| `favorable-pre` | res (**des del setembre 2026**; vegeu a sota) |
+| `favorable-post` | Es disposa del document (Id Firmadoc: …) — o **No es disposa de la documentació.** (negreta) si encara falta |
+
+- **El pre ja no diu «No es disposa de la documentació.»** Hi era, en negreta, a
+  tots els punts del bloc DESPRÉS, i l'usuari el va fer treure: la documentació
+  de després de la resolució encara no toca tenir-la al pre, i cada punt ja diu
+  el seu «Quan:». Només el **post** diu si es té o no. `_LlicEstatDespres`
+  tracta el pre com el requeriment (`AmbEstat = $false`) i la pantalla del pas 7
+  surt sense els dos botons.
+  - **Una pantalla que no pregunta l'estat, ni el diu ni el recorda**
+    (`Select-LlicDocumentacio`): el punt surt amb `Estat = ''` —encara que la
+    memòria en porti un— i a la memòria s'hi torna a desar el que hi havia. Si
+    s'hi desés el `'no'` per defecte, el post sortiria amb «No es disposa» marcat
+    a tots els punts en lloc del seu `'si'`.
 
 - Ho decideix **`_LlicEstatDespres`** (pura) i ho aplica **`_LlicPuntsAmbEstatFase`**
   al **pas 3** de l'assistent, de manera que **la pantalla del pas 7 i el
@@ -516,6 +528,44 @@ bloc DESPRÉS**:
   Annexos i el seu Id Firmadoc no es desaven enlloc i calia tornar-ho a marcar a
   cada informe. Ara van a `$st.TecnicDocs` i a la base de dades de llicències
   (`ConvertTo-LlicenciaDocs`), i la pantalla surt ja marcada.
+
+## Les CONDICIONS són una CASELLA, no un text (setembre 2026)
+- Abans hi havia un pas 8 amb un quadre de text lliure (`Select-LlicCondicions`),
+  **només al pre**, i el que s'hi escrivia sortia en negreta sota el títol
+  `CONDICIONS LLICÈNCIA`. L'usuari el va treure: les condicions les escriu al
+  Word, i l'únic que calia saber és **si n'hi ha**, perquè és el que canvia la
+  conclusió.
+- Ara és la casella **«Amb condicions»** del **pas 1**, al costat de «Llicència
+  provisional», i val per als **dos favorables** (`_LlicAdmetCondicions`, pura:
+  l'únic lloc que ho diu). Amb la casella: la conclusió és la
+  `<fase>-condicions` de `0 CONCLUSIONS.json` (grup `LLIC`; la del post,
+  `favorable-post-condicions`, és nova) i, darrere, el títol
+  `CONDICIONS LLICÈNCIA` amb un paràgraf buit per escriure-hi.
+- Si el catàleg de l'usuari encara no té la `<fase>-condicions`,
+  `_LlicConclusioText` cau a la de la fase: val més una conclusió sense la coda
+  que cap conclusió.
+- **La casella NO es recupera de la base de dades**: la base es llegeix en
+  sortir del pas 2 (quan ja se sap l'ID GIA), i recuperar-la trepitjaria el que
+  l'usuari acaba de marcar al pas 1. La fitxa sí que desa `AmbCondicions` (i el
+  detall ho ensenya); les fitxes velles, amb el text de `Condicions`, es
+  segueixen ensenyant.
+
+## El registre de camps de la pantalla de documentació, UN PER PINTADA
+- L'informe `LlicFavPre` del **GIA 924** va sortir amb el **mateix** «Id
+  Firmadoc: 9887463» als cinc punts d'ABANS. No era la composició: era la
+  pantalla. `Select-LlicDocumentacio` feia **un** registre de camps
+  (`_NewFieldRegistry`, `Camps.ps1`) per a tota la finestra, i el registre
+  **sincronitza** els controls amb el mateix nom de camp —és el que vol REQ1,
+  on un camp val el mateix a tot l'informe—. `$panDret.Controls.Clear()` treu
+  els quadres del punt anterior del panell però **no del registre**, i segueixen
+  vius amb el seu handler: escriure l'Id Firmadoc d'un punt l'escrivia també a
+  tots els punts ja visitats.
+- Ara `$fn.Pinta` fa **el seu** registre. Un guard AST (`06-guards.ps1`) exigeix
+  que el registre que es passa a `_RenderRichInto` a `Llicencia.ps1` es creï
+  dins del mateix scriptblock; validat tornant-lo a posar a fora.
+- **Les fitxes ja desades amb el valor repetit** (la del 924) no s'arreglen
+  soles: s'han de corregir a la base de dades (xip «Dades») o a la pantalla del
+  proper informe.
 
 ## Modificació NO Substancial i Traspàs (`suport/MnsTraspas.ps1`)
 Dos informes **curts** que van al **mateix menú** que els tres de sempre (pas 1
