@@ -1008,3 +1008,98 @@ Assert ($ambFrase -ge 10) "el guard troba la frase de tancament als informes ($a
 AssertEq ($senseSep -join ', ') '' 'tots els informes separen "Ho poso al seu coneixement" de la frase d''abans'
 Assert (_EsFraseTancament '**Ho poso al seu coneixement als efectes oportuns,**') '_EsFraseTancament: la reconeix amb negreta'
 Assert (-not (_EsFraseTancament 'Cornella de Llobregat,')) '_EsFraseTancament: la resta no'
+
+Write-Host "`n--- Format.ps1: el format va AL RANG, mai al cursor ---"
+# LA TRAMPA: activar el format al cursor ($sel.Font.Bold = 1), escriure i
+# desactivar-lo. El "desactivar" actua sobre el format d'escriptura del punt
+# d'insercio i el Word no sempre l'hi aplica: sortien items SENCERS en negreta.
+# Format-Item es va arreglar; el titol de bloc, el de CONCLUSIONS, la mida dels
+# enllacos i la negreta/cursiva del text (Type-RichText) encara ho feien aixi
+# fins que es va unificar tot a _EscriuRang.
+#
+# Aqui es fan servir les funcions DE DEBO de Format.ps1 (no els dobles de
+# FormatDoubles.ps1) contra un Word SIMULAT que apunta cada canvi de format i a
+# qui s'ha fet: al cursor ("cursor.") o a un tros de text ("rang[a,b].").
+if (-not ('FakeWordSel' -as [type])) {
+    Add-Type -TypeDefinition @'
+using System; using System.Collections.Generic; using System.Text;
+public class FakeLog { public List<string> L = new List<string>(); }
+public class FakeFont {
+    FakeLog log; string qui;
+    public FakeFont(FakeLog l, string q) { log = l; qui = q; }
+    void P(string n, object v) { log.L.Add(qui + "." + n + "=" + Convert.ToString(v, System.Globalization.CultureInfo.InvariantCulture)); }
+    object b, i, u, s, c, n;
+    public object Bold { get { return b; } set { b = value; P("Bold", value); } }
+    public object Italic { get { return i; } set { i = value; P("Italic", value); } }
+    public object Underline { get { return u; } set { u = value; P("Underline", value); } }
+    public object Size { get { return s; } set { s = value; P("Size", value); } }
+    public object Color { get { return c; } set { c = value; P("Color", value); } }
+    public object Name { get { return n; } set { n = value; } }
+}
+public class FakeListFormat { public void RemoveNumbers() { } public void ApplyNumberDefault() { } }
+public class FakeRange {
+    public int Start; public int End; public FakeFont Font; public FakeListFormat ListFormat = new FakeListFormat(); public string Text;
+}
+public class FakeHyperlink { public FakeRange Range; }
+public class FakeHyperlinks { FakeDoc d; public FakeHyperlinks(FakeDoc x) { d = x; } public FakeHyperlink Add(FakeRange r, string url) { d.Log.L.Add("enllac[" + r.Start + "," + r.End + "]"); FakeHyperlink h = new FakeHyperlink(); h.Range = r; return h; } }
+public class FakeDoc {
+    public StringBuilder Text = new StringBuilder(); public FakeLog Log = new FakeLog(); public FakeHyperlinks Hyperlinks;
+    public FakeDoc() { Hyperlinks = new FakeHyperlinks(this); }
+    public FakeRange Range(int a, int b) { FakeRange r = new FakeRange(); r.Start = a; r.End = b; r.Font = new FakeFont(Log, "rang[" + a + "," + b + "]"); r.Text = Text.ToString(a, b - a); return r; }
+}
+public class FakePara { public double LeftIndent, FirstLineIndent, SpaceBefore, SpaceAfter; public object Alignment, OutlineLevel; }
+public class FakeParagraphs { FakeDoc d; public FakeParagraphs(FakeDoc x) { d = x; }
+    public FakeRange Item(int i) { string t = d.Text.ToString(); int k = t.LastIndexOf('\r'); FakeRange r = new FakeRange(); r.Text = t.Substring(k + 1) + "\r"; return r; } }
+public class FakeWordSel {
+    public FakeDoc Document = new FakeDoc(); public FakeFont Font; public FakePara ParagraphFormat = new FakePara(); public FakeParagraphs Paragraphs;
+    public FakeWordSel() { Font = new FakeFont(Document.Log, "cursor"); Paragraphs = new FakeParagraphs(Document); }
+    public FakeRange Range { get { int p = Document.Text.Length; FakeRange r = new FakeRange(); r.Start = p; r.End = p; r.Font = Font; return r; } }
+    public void TypeText(string t) { Document.Text.Append(t); }
+    public void TypeParagraph() { Document.Text.Append('\r'); }
+}
+'@
+}
+& {
+    # Les funcions DE DEBO, en aquest ambit (tapen els dobles nomes aqui dins).
+    . (Join-Path (Split-Path -Parent $TestsDir) 'Format.ps1')
+    $fs = New-Object FakeWordSel
+    Format-Item $fs '1.' 'Cal **aportar** el //certificat// ara'
+    Format-BlockTitle $fs 'Documentacio abans'
+    Format-ConclusionHeader $fs 'CONCLUSIONS'
+    Format-Url $fs 'https://exemple.cat/x'
+    Format-Body $fs 'No es disposa' -Bold
+    Format-Plain $fs 'Petit' -Size 9
+    Format-Ajuda $fs 'Fitxa'
+    Format-Bullet $fs 'Un **pic**' -IsChild -First
+    Format-Section $fs 'seccio'; Format-Subsection $fs 'Sub'; Format-Note $fs 'nota'; Format-Label $fs 'etiqueta'
+    Format-Conclusion $fs 'Ho poso'; Format-ListItem $fs 'l'; Format-Spacer $fs
+    $log = @($fs.Document.Log.L)
+    $txt = $fs.Document.Text.ToString()
+    # Cap format ACTIVAT al cursor: nomes els "=0" del reset i la mida del cos.
+    $cursorMal = @($log | Where-Object { $_ -match '^cursor\.(Bold|Italic|Underline)=(?!0$)' -or ($_ -match '^cursor\.Size=' -and $_ -ne ('cursor.Size=' + $Script:ReportFormatConfig.BodyFontSize)) -or ($_ -match '^cursor\.Color=' -and $_ -ne ('cursor.Color=' + $Script:WdColorAutomatic)) })
+    AssertEq ($cursorMal -join ' | ') '' 'Format.ps1: cap Format-* activa negreta/cursiva/subratllat/mida AL CURSOR'
+    # I el que toca, al RANG EXACTE.
+    function _RangDe([string]$tros) { $i = $txt.IndexOf($tros); return ('rang[' + $i + ',' + ($i + $tros.Length) + ']') }
+    Assert ($txt.Contains('1. Cal aportar el certificat ara')) 'Format.ps1: el text surt sense les marques ** i //'
+    Assert ($log -contains ((_RangDe '1. ') + '.Bold=True')) 'Format-Item: el numero en negreta, al seu rang'
+    Assert ($log -contains ((_RangDe 'aportar') + '.Bold=True')) 'Type-RichText: la **negreta** al rang del tros'
+    Assert ($log -contains ((_RangDe 'certificat') + '.Italic=True')) 'Type-RichText: la //cursiva// al rang del tros'
+    # (Amb .StartsWith i no amb -like: "rang[12,20]" porta claudators, i en un
+    # patro de -like son una CLASSE DE CARACTERS -la trampa de sempre-.)
+    $negOk = @('1. ', 'aportar', 'CONCLUSIONS', 'No es disposa', 'pic') | ForEach-Object { (_RangDe $_) + '.Bold=True' }
+    $negAltres = @($log | Where-Object { $_.StartsWith('rang') -and $_.EndsWith('.Bold=True') -and -not ($negOk -contains $_) })
+    AssertEq ($negAltres -join ' | ') '' 'Format.ps1: cap altre tros en negreta'
+    Assert ($log -contains ((_RangDe 'DOCUMENTACIO ABANS') + '.Underline=1')) 'Format-BlockTitle: el subratllat, al rang del titol'
+    Assert ($log -contains ((_RangDe 'CONCLUSIONS') + '.Bold=True')) 'Format-ConclusionHeader: la negreta, al rang'
+    Assert ($log -contains ((_RangDe 'https://exemple.cat/x') + '.Size=' + $Script:ReportFormatConfig.UrlFontSize)) 'Format-Url: la mida de l''enllac, al rang'
+    Assert ($log -contains ('enllac[' + $txt.IndexOf('https://exemple.cat/x') + ',' + ($txt.IndexOf('https://exemple.cat/x') + 21) + ']')) 'Format-Url: l''hipervincle, sobre el mateix rang'
+    Assert ($log -contains ((_RangDe 'No es disposa') + '.Bold=True')) 'Format-Body -Bold: al rang'
+    Assert ($log -contains ((_RangDe 'Petit') + '.Size=9')) 'Format-Plain -Size: al rang'
+    Assert ($log -contains ((_RangDe 'Fitxa') + '.Italic=True')) 'Format-Ajuda: la cursiva grisa, al rang'
+    Assert ($txt.Contains([string]([char]0x2022) + "`tUn pic")) 'Format-Bullet: pic + tabulador + text'
+    AssertEq ([regex]::Matches($txt, "`r").Count) 15 'Format.ps1: cada Format-* obre UN paragraf (15 crides, 15 paragrafs)'
+}
+# I el guard de font, per si algu hi torna: cap activacio al cursor a Format.ps1.
+$srcFmt = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'Format.ps1'))
+$alCursor = @([regex]::Matches($srcFmt, '(?m)^[^#\r\n]*\$sel\.Font\.(Bold|Italic|Underline)\s*=\s*(1|\$true)') | ForEach-Object { $_.Value.Trim() })
+AssertEq ($alCursor -join ' | ') '' 'Format.ps1: cap "$sel.Font.X = 1" (el format va al rang)'

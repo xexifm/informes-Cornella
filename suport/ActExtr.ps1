@@ -722,7 +722,7 @@ function _WriteActExtrBody($sel, $blocks, $mode, $ctx, $computed) {
 
             if ($kind -eq 'child') {
                 # -First al PRIMER sub-punt que penja d'una unitat: el separa
-                # amb ItemSpaceAfterPt (12 pt) en lloc de BulletSpaceBeforePt
+                # amb PrimerSubpuntSpaceBeforePt (12 pt) en lloc de BulletSpaceBeforePt
                 # (6 pt), com a tota la resta del programa. Aqui no s'hi posava
                 # i el primer sub-punt quedava enganxat al text de l'item.
                 if (-not [string]::IsNullOrWhiteSpace($parts.Text)) {

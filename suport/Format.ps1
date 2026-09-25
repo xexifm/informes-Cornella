@@ -24,15 +24,29 @@
     Format-Spacer $sel               -> linia buida per separar blocs
     Format-Conclusion $sel "..."     -> paragraf de conclusio
 
-  Totes les funcions Format-X comencen amb TypeParagraph() i fan reset
-  del format de caracter (negreta/cursiva/subratllat/mida) abans d'aplicar
-  l'estil propi.
+  Totes les funcions Format-X comencen amb _NouParagraf (paragraf nou, format
+  de caracter net i sagnia) i escriuen amb _EscriuRang, que retorna el rang
+  escrit: la negreta, el subratllat, la mida o el color es posen AL RANG, mai
+  al cursor (vegeu _EscriuRang).
 
 .NOTES
   Les sangries es defineixen en centimetres a $ReportFormatConfig. La
   funcio _CmToPoints fa la conversio a punts que utilitza Word internament
   (1 cm = 28.346 punts).
 #>
+
+# LES SAGNIES QUE HAN DE COINCIDIR, escrites UN sol cop. Abans cada clau
+# portava el seu numero i el comentari deia "ha de ser el mateix que...": si
+# algu en canviava una, les altres no la seguien i els blocs quedaven
+# desalineats sense que res petes. Les claus es mantenen (cada una es pot seguir
+# tocant a part, i Seguiment.ps1 i les proves les fan servir); el que es
+# comparteix es el valor PER DEFECTE.
+#   PIC  : el text dels punts amb pic de 1r nivell, les notes i les anotacions
+#          del seguiment d'un sub-punt (1,25 cm = 709 twips).
+#   FILL : les sub-linies, els enllacos i les vinyetes dels FILLS d'un item
+#          (1 cm = 567 twips).
+$Script:FmtSagniaPicCm  = 1.25
+$Script:FmtSagniaFillCm = 1.0
 
 # Configuracio per defecte. Es pot modificar abans de cridar Build-Document.
 $Script:ReportFormatConfig = @{
@@ -64,23 +78,23 @@ $Script:ReportFormatConfig = @{
     SectionIndentCm      = 0
     SubsectionIndentCm   = 0
     ItemIndentCm         = 0
-    ChildIndentCm        = 1
+    ChildIndentCm        = $Script:FmtSagniaFillCm
     ConclusionIndentCm   = 0
 
     # Vinyetes (Format-Bullet): sangria francesa (hanging) i espaiat propi,
     # per reproduir el format de llista de l'informe favorable (pic al primer
     # nivell de sangria i text al segon; separacio per SpaceBefore, sense
     # linies en blanc entre punts). Valors en cm / punts.
-    BulletIndentCm       = 1.25   # sangria esquerra del text (1r nivell)
+    BulletIndentCm       = $Script:FmtSagniaPicCm   # sangria esquerra del text (1r nivell)
     BulletHangCm         = 0.62   # sangria francesa (el pic queda a l'esquerra)
     # Sub-nivell (els FILLS d'un item numerat). El text s'alinea a 1 cm, igual
     # que ChildIndentCm, que es el que fan servir les sub-linies i els enllacos
     # del fill (Format-Body/-Url -IsChild): aixi tot el bloc del fill queda
     # alineat. Al XML: w:ind left="567" hanging="283".
-    BulletChildIndentCm  = 1.0
+    BulletChildIndentCm  = $Script:FmtSagniaFillCm
     BulletChildHangCm    = 0.5
     BulletSpaceBeforePt  = 6      # separacio entre punts (en lloc de linia buida)
-    NoteIndentCm         = 1.25   # sub-paragraf sagnat sense pic (Format-Note)
+    NoteIndentCm         = $Script:FmtSagniaPicCm   # sub-paragraf sagnat sense pic (Format-Note)
     LabelSpaceAfterPt    = 12     # espai sota una etiqueta de subseccio (Format-Label)
 
     # FITXA D'AJUDA d'un requeriment (Format-Ajuda). NOMES SURT A LES VISTES
@@ -101,7 +115,10 @@ $Script:ReportFormatConfig = @{
     # Separacio entre un item numerat i el seu PRIMER sub-punt. Sense aixo el
     # sub-punt queda enganxat al text de l'item (12 pt = 240 twips al XML).
     # Els sub-punts entre ells segueixen amb BulletSpaceBeforePt.
-    ItemSpaceAfterPt        = 12
+    # S'APLICA COM A ESPAI ABANS del sub-punt (i de la linia "Es disposa..." de
+    # Llicencia, Format-Body -Separat). Es deia ItemSpaceAfterPt, que diu el
+    # contrari del que fa: canviat de nom en unificar el format.
+    PrimerSubpuntSpaceBeforePt = 12
 
     # Anotacions datades de l'informe de SEGUIMENT. Seguiment.ps1 escriu el XML
     # directament (sense Word), pero els valors de FORMAT viuen aqui: el format
@@ -111,7 +128,7 @@ $Script:ReportFormatConfig = @{
     #     EXPLICITA perque, en forcar numId=0 perque l'anotacio no s'enumeri, es
     #     perd la sagnia que aportava la numeracio.
     #   - L'anotacio d'un requeriment de primer nivell NO se sagna.
-    AnnotationIndentCm      = 1.25
+    AnnotationIndentCm      = $Script:FmtSagniaPicCm
     AnnotationSpaceBeforePt = 10
     AnnotationSpaceAfterPt  = 12
 
@@ -181,6 +198,44 @@ function _Apply-Indent($sel, $cm) {
     try { $sel.ParagraphFormat.SpaceAfter  = 0 } catch { }
 }
 
+# ============================================================================
+# LES DUES PECES QUE FAN SERVIR TOTS ELS Format-*
+# ============================================================================
+# _NouParagraf: paragraf nou, format de caracter net i sagnia. Era el mateix
+# pròleg de tres linies copiat a CATORZE funcions.
+function _NouParagraf($sel, $cm) {
+    [void]$sel.TypeParagraph()
+    _Reset-Char $sel
+    _Apply-Indent $sel $cm
+}
+
+# _EscriuRang: escriu el text i en RETORNA EL RANG, per aplicar-hi el format A
+# SOBRE (negreta, subratllat, mida, color...). $null si no s'ha escrit res.
+#
+# EL FORMAT ES POSA AL RANG, MAI AL CURSOR. Activar-lo al punt d'insercio
+# ($sel.Font.Bold = 1), escriure i desactivar-lo es la trampa que feia sortir
+# items SENCERS en negreta: el "desactivar" actua sobre el format d'escriptura
+# del cursor i el Word no sempre l'hi aplica. Format-Item ja s'havia arreglat
+# aixi; el titol de bloc, el de CONCLUSIONS, la mida dels enllacos i la
+# negreta/cursiva del text encara ho feien al cursor. Hi ha guard que ho vigila.
+#
+# -Pla: el text tal qual (sense **negreta** ni //cursiva//).
+function _EscriuRang($sel, [string]$text, [switch]$Pla) {
+    if ([string]::IsNullOrEmpty($text)) { return $null }
+    $ini = $sel.Range.Start
+    if ($Pla) { $sel.TypeText($text) } else { Type-RichText $sel $text }
+    $fi = $sel.Range.End
+    if ($fi -le $ini) { return $null }
+    try { return $sel.Document.Range($ini, $fi) } catch { return $null }
+}
+
+# La sagnia d'una linia normal o d'un FILL.
+function _SagniaLinia([bool]$fill) {
+    if ($fill) { return $Script:ReportFormatConfig.ChildIndentCm }
+    return $Script:ReportFormatConfig.ItemIndentCm
+}
+
+
 # Deixa un document NOU amb la MATEIXA base que la plantilla de l'informe:
 # Bookman Old Style, cos 11, justificat, interlineat 1,15 i els marges de la
 # plantilla. Sense aixo, un document creat amb Documents.Add() surt en Calibri
@@ -218,21 +273,16 @@ function Format-ApplyBaseStyle($doc) {
 
 function Format-Section {
     param($sel, $text)
-    [void]$sel.TypeParagraph()
-    _Reset-Char $sel
-    _Apply-Indent $sel $Script:ReportFormatConfig.SectionIndentCm
-    # Seccions: sense negreta, en MAJUSCULES.
-    if ($text) { $sel.TypeText(([string]$text).ToUpper()) }
+    _NouParagraf $sel $Script:ReportFormatConfig.SectionIndentCm
+    [void](_EscriuRang $sel ([string]$text).ToUpper() -Pla)
 }
 
 # SUBSECCIO: text normal, sense subratllat (decisio de l'usuari, agost 2026).
 # El subratllat ha passat al TITOL DE BLOC, que es el nivell de mes amunt.
 function Format-Subsection {
     param($sel, $text)
-    [void]$sel.TypeParagraph()
-    _Reset-Char $sel
-    _Apply-Indent $sel $Script:ReportFormatConfig.SubsectionIndentCm
-    $sel.TypeText([string]$text)
+    _NouParagraf $sel $Script:ReportFormatConfig.SubsectionIndentCm
+    [void](_EscriuRang $sel ([string]$text) -Pla)
 }
 
 # TITOL DE BLOC: el nivell de MES AMUNT d'un informe, per sobre de les seccions
@@ -249,39 +299,19 @@ function Format-Subsection {
 #   Format-Subsection   tal qual                  (subseccio del cataleg)
 function Format-BlockTitle {
     param($sel, $text)
-    [void]$sel.TypeParagraph()
-    _Reset-Char $sel
-    _Apply-Indent $sel $Script:ReportFormatConfig.SectionIndentCm
-    $sel.Font.Underline = 1
-    if ($text) { $sel.TypeText(([string]$text).ToUpper()) }
-    $sel.Font.Underline = 0
+    _NouParagraf $sel $Script:ReportFormatConfig.SectionIndentCm
+    $r = _EscriuRang $sel ([string]$text).ToUpper() -Pla
+    if ($null -ne $r) { try { $r.Font.Underline = 1 } catch { } }   # 1 = wdUnderlineSingle
 }
 
 function Format-Item {
     param($sel, [string]$number, [string]$text, [switch]$IsChild)
-    [void]$sel.TypeParagraph()
-    _Reset-Char $sel
-    $indent = if ($IsChild) { $Script:ReportFormatConfig.ChildIndentCm }
-              else          { $Script:ReportFormatConfig.ItemIndentCm }
-    _Apply-Indent $sel $indent
-    # El numero s'escriu SENSE negreta i despres es posa en negreta pel RANG.
-    #
-    # Abans es feia amb $sel.Font.Bold = 1 / TypeText / = 0. El problema: el
-    # "Bold = 0" actua sobre el FORMAT D'ESCRIPTURA del punt d'insercio, i el
-    # Word no sempre l'hi aplica (depen del que hi hagi al paragraf anterior).
-    # Quan no l'aplicava, tot el text de l'item sortia en negreta i el numero i
-    # el text quedaven en un sol <w:r> (es veia, p.ex., a tots els items de
-    # CONTROLS INICIALS i CONTROLS PERIODICS de la vista de REQ1). Fent-ho pel
-    # rang, la negreta NOMES pot tocar el numero: el punt d'insercio no queda
-    # mai en negreta i el cos no se la pot encomanar. La negreta INLINE del cos
-    # (**...** de Type-RichText) no es toca.
-    $numStart = $sel.Range.Start
-    $sel.TypeText("$number ")
-    $numEnd = $sel.Range.End
-    if ($text) { Type-RichText $sel $text }
-    if ($numEnd -gt $numStart) {
-        try { $sel.Document.Range($numStart, $numEnd).Font.Bold = $true } catch { }
-    }
+    _NouParagraf $sel (_SagniaLinia $IsChild)
+    # El numero en negreta PEL RANG (vegeu _EscriuRang): nomes pot tocar el
+    # numero, i el cos no se la pot encomanar.
+    $rNum = _EscriuRang $sel ("$number ") -Pla
+    [void](_EscriuRang $sel $text)
+    if ($null -ne $rNum) { try { $rNum.Font.Bold = $true } catch { } }
 }
 
 # -Bold: negreta a TOT el paragraf. Nomes el fa servir l'informe de LLICENCIA
@@ -293,7 +323,7 @@ function Format-Item {
 # l'aplica (es la mateixa trampa que feia sortir en negreta tot un item a
 # Format-Item).
 # -Separat: hi posa al davant l'espai que separa un ITEM del que hi penja
-# (ItemSpaceAfterPt, els mateixos 12 pt que Format-Bullet -First). El fa servir
+# (PrimerSubpuntSpaceBeforePt, els mateixos 12 pt que Format-Bullet -First). El fa servir
 # la linia "No es disposa... / Es disposa..." de cada punt de Llicencia, que a
 # l'informe fet a ma va separada del cos del punt.
 #
@@ -303,23 +333,12 @@ function Format-Item {
 # l'item del seu propi cos.
 function Format-Body {
     param($sel, [string]$text, [switch]$IsChild, [switch]$Bold, [switch]$Separat)
-    [void]$sel.TypeParagraph()
-    _Reset-Char $sel
-    $indent = if ($IsChild) { $Script:ReportFormatConfig.ChildIndentCm }
-              else          { $Script:ReportFormatConfig.ItemIndentCm }
-    _Apply-Indent $sel $indent
+    _NouParagraf $sel (_SagniaLinia $IsChild)
     if ($Separat) {
-        try { $sel.ParagraphFormat.SpaceBefore = [double]$Script:ReportFormatConfig.ItemSpaceAfterPt } catch { }
+        try { $sel.ParagraphFormat.SpaceBefore = [double]$Script:ReportFormatConfig.PrimerSubpuntSpaceBeforePt } catch { }
     }
-    $ini = $sel.Range.Start
-    if ($text) { Type-RichText $sel $text }
-    $fi = $sel.Range.End
-    if ($fi -gt $ini) {
-        try {
-            $rng = $sel.Document.Range($ini, $fi)
-            if ($Bold) { $rng.Font.Bold = $true }
-        } catch { }
-    }
+    $r = _EscriuRang $sel $text
+    if ($Bold -and $null -ne $r) { try { $r.Font.Bold = $true } catch { } }
 }
 
 # Item amb pic (vinyeta) en lloc de numero. S'usa per a llistes que han d'anar
@@ -330,7 +349,7 @@ function Format-Body {
 #
 # -First marca el PRIMER punt d'una llista (el que penja directament d'un item
 # numerat): en lloc de la separacio curta entre punts (BulletSpaceBeforePt) hi
-# posa ItemSpaceAfterPt, perque el sub-punt no quedi enganxat al text de l'item.
+# posa PrimerSubpuntSpaceBeforePt, perque el sub-punt no quedi enganxat al text de l'item.
 function Format-Bullet {
     param($sel, [string]$text, [switch]$IsChild, [switch]$First)
     [void]$sel.TypeParagraph()
@@ -352,24 +371,22 @@ function Format-Bullet {
     try { $sel.ParagraphFormat.Alignment = $Script:ReportFormatConfig.BodyAlignment } catch { }
     # Separacio entre punts amb SpaceBefore (no linies en blanc): aixi la
     # llista surt compacta i amb el mateix aire que el document de referencia.
-    # El primer punt de la llista se separa mes (ItemSpaceAfterPt) de l'item.
-    $before = if ($First) { $Script:ReportFormatConfig.ItemSpaceAfterPt }
+    # El primer punt de la llista se separa mes (PrimerSubpuntSpaceBeforePt) de l'item.
+    $before = if ($First) { $Script:ReportFormatConfig.PrimerSubpuntSpaceBeforePt }
               else        { $Script:ReportFormatConfig.BulletSpaceBeforePt }
     try { $sel.ParagraphFormat.SpaceBefore = [double]$before } catch { }
     # Pic Unicode (U+2022) escrit per codepoint per no dependre de l'encoding.
-    $sel.TypeText([string]([char]0x2022) + "`t")
-    if ($text) { Type-RichText $sel $text }
+    [void](_EscriuRang $sel ([string]([char]0x2022) + "`t") -Pla)
+    [void](_EscriuRang $sel $text)
 }
 
 # Sub-paragraf sagnat SENSE pic (p.ex. la nota del "Dret d'admissio" a
 # l'informe favorable): mateixa sangria que un punt pero sense vinyeta.
 function Format-Note {
     param($sel, [string]$text)
-    [void]$sel.TypeParagraph()
-    _Reset-Char $sel
-    _Apply-Indent $sel $Script:ReportFormatConfig.NoteIndentCm
+    _NouParagraf $sel $Script:ReportFormatConfig.NoteIndentCm
     try { $sel.ParagraphFormat.SpaceBefore = [double]$Script:ReportFormatConfig.BulletSpaceBeforePt } catch { }
-    if ($text) { Type-RichText $sel $text }
+    [void](_EscriuRang $sel $text)
 }
 
 # Una linia de la FITXA D'AJUDA d'un requeriment ("Norma: ...", "Criteri: ...").
@@ -387,19 +404,14 @@ function Format-Note {
 # el mateix parany que ja documenta Format-Nivell amb l'OutlineLevel.
 function Format-Ajuda {
     param($sel, [string]$text)
-    [void]$sel.TypeParagraph()
-    _Reset-Char $sel
-    _Apply-Indent $sel $Script:ReportFormatConfig.AjudaIndentCm
+    _NouParagraf $sel $Script:ReportFormatConfig.AjudaIndentCm
     try { $sel.ParagraphFormat.SpaceBefore = [double]$Script:ReportFormatConfig.AjudaSpaceBeforePt } catch { }
-    $ini = $sel.Range.Start
-    if ($text) { Type-RichText $sel $text }
-    $fi = $sel.Range.End
-    if ($fi -gt $ini) {
+    $r = _EscriuRang $sel $text
+    if ($null -ne $r) {
         try {
-            $rng = $sel.Document.Range($ini, $fi)
-            $rng.Font.Size  = [double]$Script:ReportFormatConfig.AjudaFontSize
-            $rng.Font.Italic = $true
-            $rng.Font.Color = [int]$Script:ReportFormatConfig.AjudaColorRgb
+            $r.Font.Size   = [double]$Script:ReportFormatConfig.AjudaFontSize
+            $r.Font.Italic = $true
+            $r.Font.Color  = [int]$Script:ReportFormatConfig.AjudaColorRgb
         } catch { }
     }
 }
@@ -409,30 +421,23 @@ function Format-Ajuda {
 # seccio te un rotul propi seguit del seu contingut sense linia en blanc.
 function Format-Label {
     param($sel, [string]$text)
-    [void]$sel.TypeParagraph()
-    _Reset-Char $sel
-    _Apply-Indent $sel 0
+    _NouParagraf $sel 0
     try { $sel.ParagraphFormat.SpaceAfter = [double]$Script:ReportFormatConfig.LabelSpaceAfterPt } catch { }
-    if ($text) { Type-RichText $sel $text }
+    [void](_EscriuRang $sel $text)
 }
 
 function Format-Url {
     param($sel, [string]$url, [switch]$IsChild)
-    [void]$sel.TypeParagraph()
-    _Reset-Char $sel
-    $indent = if ($IsChild) { $Script:ReportFormatConfig.ChildIndentCm }
-              else          { $Script:ReportFormatConfig.ItemIndentCm }
-    _Apply-Indent $sel $indent
-    $sel.Font.Size = $Script:ReportFormatConfig.UrlFontSize
-    $startPos = $sel.Range.Start
-    $sel.TypeText($url)
-    $endPos = $sel.Range.End
+    _NouParagraf $sel (_SagniaLinia $IsChild)
+    $r = _EscriuRang $sel $url -Pla
+    if ($null -eq $r) { return }
+    # La mida, AL RANG (abans es canviava la del cursor i es tornava a posar).
+    try { $r.Font.Size = [double]$Script:ReportFormatConfig.UrlFontSize } catch { }
     try {
-        $doc = $sel.Document
-        $rng = $doc.Range($startPos, $endPos)
-        [void]$doc.Hyperlinks.Add($rng, $url)
+        $h = $sel.Document.Hyperlinks.Add($r, $url)
+        # L'hipervincle pot tornar a escriure el text: la mida, un altre cop.
+        try { $h.Range.Font.Size = [double]$Script:ReportFormatConfig.UrlFontSize } catch { }
     } catch { }
-    $sel.Font.Size = $Script:ReportFormatConfig.BodyFontSize
 }
 
 # Paragraf PLA: sense sagnia, sense pic, sense numero i sense espaiats propis.
@@ -442,17 +447,11 @@ function Format-Url {
 #   -Size  : cos en punts (0 = el del document)
 function Format-Plain {
     param($sel, [string]$text, [switch]$Bold, [int]$Size = 0)
-    [void]$sel.TypeParagraph()
-    _Reset-Char $sel
-    _Apply-Indent $sel 0
-    if ($Size -gt 0) { try { $sel.Font.Size = $Size } catch { } }
-    $ini = $sel.Range.Start
-    if ($text) { Type-RichText $sel $text }
-    $fi = $sel.Range.End
-    if ($Bold -and $fi -gt $ini) {
-        try { $sel.Document.Range($ini, $fi).Font.Bold = $true } catch { }
-    }
-    if ($Size -gt 0) { try { $sel.Font.Size = $Script:ReportFormatConfig.BodyFontSize } catch { } }
+    _NouParagraf $sel 0
+    $r = _EscriuRang $sel $text
+    if ($null -eq $r) { return }
+    if ($Bold) { try { $r.Font.Bold = $true } catch { } }
+    if ($Size -gt 0) { try { $r.Font.Size = $Size } catch { } }
 }
 
 # CONTINUA EL PARAGRAF que s'acaba d'escriure, en comptes d'obrir-ne un de nou.
@@ -474,18 +473,14 @@ function Format-Append {
 # Word li continui la llista sol.
 function Format-ListItem {
     param($sel, [string]$text = '')
-    [void]$sel.TypeParagraph()
-    _Reset-Char $sel
-    _Apply-Indent $sel 0
+    _NouParagraf $sel 0
     try { $sel.Range.ListFormat.ApplyNumberDefault() } catch { }
-    if ($text) { Type-RichText $sel $text }
+    [void](_EscriuRang $sel $text)
 }
 
 function Format-Spacer {
     param($sel)
-    [void]$sel.TypeParagraph()
-    _Reset-Char $sel
-    _Apply-Indent $sel 0
+    _NouParagraf $sel 0
 }
 
 # LA FRASE DE TANCAMENT ("Ho poso al seu coneixement als efectes oportuns,")
@@ -568,18 +563,12 @@ function Format-Nivell($sel, [int]$n) {
 
 function Format-Conclusion {
     param($sel, [string]$text)
-    [void]$sel.TypeParagraph()
-    _Reset-Char $sel
-    # _Apply-Indent ja hi posa BodyAlignment, i aixo es el que treu el "center"
-    # que deixa Format-ConclusionHeader (CONCLUSIONS centrat). Abans hi havia un
-    # 3 escrit aqui: amb ell, canviar BodyAlignment no tocava les conclusions.
-    _Apply-Indent $sel $Script:ReportFormatConfig.ConclusionIndentCm
+    _NouParagraf $sel $Script:ReportFormatConfig.ConclusionIndentCm
     # "Space After" propi del paragraf (en punts). Es robust a la
     # compactacio visual del Word que feia que els paragrafs buits no
     # es veiessin entre conclusions.
-    $sa = [double]$Script:ReportFormatConfig.ConclusionSpaceAfterPt
-    try { $sel.ParagraphFormat.SpaceAfter = $sa } catch { }
-    if ($text) { Type-RichText $sel $text }
+    try { $sel.ParagraphFormat.SpaceAfter = [double]$Script:ReportFormatConfig.ConclusionSpaceAfterPt } catch { }
+    [void](_EscriuRang $sel $text)
 }
 
 # Titol del bloc de conclusions: text centrat i en negreta.
@@ -588,14 +577,11 @@ function Format-Conclusion {
 # i la resta de Format-* es defineixen amb el seu Alignment explicit.
 function Format-ConclusionHeader {
     param($sel, [string]$text)
-    [void]$sel.TypeParagraph()
-    _Reset-Char $sel
-    _Apply-Indent $sel 0
+    _NouParagraf $sel 0
     try { $sel.ParagraphFormat.Alignment = 1 } catch { }   # 1 = wdAlignParagraphCenter
     try { $sel.ParagraphFormat.SpaceAfter = [double]$Script:ReportFormatConfig.ConclusionHeaderSpaceAfterPt } catch { }
-    $sel.Font.Bold = 1
-    if ($text) { $sel.TypeText($text) }
-    $sel.Font.Bold = 0
+    $r = _EscriuRang $sel $text -Pla
+    if ($null -ne $r) { try { $r.Font.Bold = $true } catch { } }
 }
 
 # Type-RichText: escriu text al document interpretant marcadors inline:
@@ -605,27 +591,27 @@ function Format-ConclusionHeader {
 function Type-RichText {
     param($sel, [string]$text)
     if ([string]::IsNullOrEmpty($text)) { return }
-    # Regex: captura segments alternatius (text normal o marcat).
-    # Es no-greedy per als marcadors.
-    $pattern = '\*\*(.+?)\*\*|//(.+?)//'
-    $rx = [regex]$pattern
+    # Primer s'escriu TOT el text (sense les marques) apuntant on comenca i on
+    # acaba cada tros marcat; la negreta i la cursiva es posen DESPRES, al rang
+    # de cada tros. Mai al cursor: vegeu _EscriuRang.
+    $rx = [regex]'\*\*(.+?)\*\*|//(.+?)//'
+    $trossos = New-Object System.Collections.ArrayList
     $pos = 0
     foreach ($m in $rx.Matches($text)) {
-        if ($m.Index -gt $pos) {
-            $sel.TypeText($text.Substring($pos, $m.Index - $pos))
-        }
-        if ($m.Groups[1].Success) {
-            $sel.Font.Bold = 1
-            $sel.TypeText($m.Groups[1].Value)
-            $sel.Font.Bold = 0
-        } elseif ($m.Groups[2].Success) {
-            $sel.Font.Italic = 1
-            $sel.TypeText($m.Groups[2].Value)
-            $sel.Font.Italic = 0
-        }
+        if ($m.Index -gt $pos) { $sel.TypeText($text.Substring($pos, $m.Index - $pos)) }
+        $negreta = $m.Groups[1].Success
+        $t = if ($negreta) { $m.Groups[1].Value } else { $m.Groups[2].Value }
+        $ini = $sel.Range.Start
+        $sel.TypeText($t)
+        [void]$trossos.Add(@{ Ini = $ini; Fi = $sel.Range.End; Negreta = $negreta })
         $pos = $m.Index + $m.Length
     }
-    if ($pos -lt $text.Length) {
-        $sel.TypeText($text.Substring($pos))
+    if ($pos -lt $text.Length) { $sel.TypeText($text.Substring($pos)) }
+    foreach ($t in $trossos) {
+        if ($t.Fi -le $t.Ini) { continue }
+        try {
+            $r = $sel.Document.Range($t.Ini, $t.Fi)
+            if ($t.Negreta) { $r.Font.Bold = $true } else { $r.Font.Italic = $true }
+        } catch { }
     }
 }

@@ -294,7 +294,7 @@ Write-Host "`n--- ACT_EXTR: l'aire surt de la configuracio ---"
 # ---------------------------------------------------------------------------
 # ACT_EXTR: el PRIMER sub-punt d'una unitat va a 12 pt, no a 6
 # ---------------------------------------------------------------------------
-# Format-Bullet -First aplica ItemSpaceAfterPt (12 pt) en lloc de
+# Format-Bullet -First aplica PrimerSubpuntSpaceBeforePt (12 pt) en lloc de
 # BulletSpaceBeforePt (6 pt) al primer sub-punt que penja d'una unitat. Tot el
 # programa ho fa; ACT_EXTR era l'unic que no, i el seu primer sub-punt quedava
 # enganxat al text de l'item.

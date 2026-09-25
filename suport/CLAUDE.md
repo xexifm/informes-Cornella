@@ -878,7 +878,7 @@ destinataris d'una altra activitat.
   `<w:pPr>` (`pStyle, numPr, spacing, ind`) es respecta: fora d'ordre el Word
   es queixa del document.
 - **Separació ítem → primer sub-punt:** `Format-Bullet -First` (`Format.ps1`)
-  aplica `ItemSpaceAfterPt` (12 pt) en lloc de `BulletSpaceBeforePt` (6 pt) al
+  aplica `PrimerSubpuntSpaceBeforePt` (12 pt) en lloc de `BulletSpaceBeforePt` (6 pt) al
   **primer** punt que penja d'un ítem numerat, perquè no quedi enganxat al text
   de l'ítem; els punts següents entre ells mantenen els 6 pt. `Motor.ps1` marca
   el primer fill EMÈS (no el primer del catàleg: els fills sense línies es
@@ -1475,6 +1475,30 @@ quan el destí és una unitat de xarxa) → bloc de capçalera → `<<PLACEHOLDE
 - **Si el cos peta, el document es tanca** abans de rellançar l'error. Abans
   només ho feia ACT_EXTR; les altres tres deixaven el Word amb un document
   obert i el `%TEMP%` brut.
+
+### Format.ps1 unificat: `_NouParagraf` + `_EscriuRang`, i el format AL RANG
+Repàs de setembre 2026, sense canviar cap document (els 19 fitxers d'or idèntics):
+- **Tots els `Format-*` comencen amb `_NouParagraf`** (paràgraf nou, format de
+  caràcter net, sagnia): era el mateix pròleg copiat a catorze funcions.
+  `Format-Bullet` **no** hi passa a posta (sagnia francesa i espai d'abans propis).
+- **Tot s'escriu amb `_EscriuRang`, que retorna el rang escrit**, i la negreta,
+  el subratllat, la mida o el color es posen **al rang, mai al cursor**. Activar
+  el format al cursor, escriure i desactivar-lo és la trampa que feia sortir
+  ítems sencers en negreta; `Format-Item` ja s'havia arreglat, però el títol de
+  bloc, el de CONCLUSIONS, la mida dels enllaços i `Type-RichText` (**negreta**
+  i //cursiva// del catàleg) encara ho feien així. **Important**: dins d'un
+  paràgraf, primer s'escriu tot i després es formata; si s'escrivís darrere d'un
+  tros ja formatat, el Word podria encomanar-ne el format al text nou.
+- **Guard amb el Word SIMULAT** (`06-guards.ps1`): es carreguen les funcions de
+  debò de `Format.ps1` (no els dobles) contra un `Selection` fals en C# que
+  apunta cada canvi de format i **a qui** (cursor o rang). Validat tornant a posar
+  la negreta al cursor al títol CONCLUSIONS. La prova antiga de `Type-RichText`
+  mirava l'estat del cursor en escriure; ara mira el format **final** de cada tros.
+- **Les sagnies que han de coincidir, escrites un cop** (`$Script:FmtSagniaPicCm`,
+  `$Script:FmtSagniaFillCm`): les claus es mantenen (Seguiment i les proves en
+  toquen alguna a part), el que es comparteix és el valor per defecte.
+- `ItemSpaceAfterPt` → **`PrimerSubpuntSpaceBeforePt`**: s'aplica com a espai
+  ABANS del primer sub-punt; el nom deia el contrari.
 
 ### «Ho poso al seu coneixement» SEMPRE separat de la frase d'abans
 Petició de l'usuari (setembre 2026): quedava enganxat a la conclusió. Cada

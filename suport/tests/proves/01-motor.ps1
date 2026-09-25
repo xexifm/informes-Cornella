@@ -194,7 +194,7 @@ $cfgB = $Script:ReportFormatConfig
 AssertEq (_CmToTwips $cfgB.BulletChildIndentCm) 567 'Fill: sangria esquerra 1 cm = 567 twips'
 AssertEq (_CmToTwips $cfgB.BulletChildHangCm)   283 'Fill: sangria francesa 0,5 cm = 283 twips'
 AssertEq (_CmToTwips $cfgB.ChildIndentCm)       567 'Fill: la vinyeta s alinea amb les sub-linies i els enllacos del fill'
-AssertEq (_PtToTwips $cfgB.ItemSpaceAfterPt)    240 'Fill: separacio amb l item = 12 pt = 240 twips'
+AssertEq (_PtToTwips $cfgB.PrimerSubpuntSpaceBeforePt)    240 'Fill: separacio amb l item = 12 pt = 240 twips'
 AssertEq (_PtToTwips $cfgB.BulletSpaceBeforePt) 120 'Fill: separacio entre punts = 6 pt = 120 twips'
 
 Write-Host "`n--- OPCIO se substitueix dins emit (regressio) ---"
@@ -362,41 +362,72 @@ Add-FieldsFromConclusions $fc2 @([pscustomobject]@{ Title='[CAMP: NoVull]'; Body
 AssertEq $fc2.Count 0                      "Add-FieldsFromConclusions IGNORA el Title (nomes mira Body)"
 
 Write-Host "`n--- Type-RichText (negreta **text** i cursiva //text//) ---"
-# Mock minim de $sel per capturar el que es teclejaria
+# Mock minim de $sel: apunta cada tros escrit i els RANGS on es posa negreta o
+# cursiva. $global:typed diu el format FINAL de cada tros ("B-", "-I", "--"),
+# que es el que importa -no com s'hi arriba-. Abans el mock mirava l'estat del
+# CURSOR en escriure; des que el format va al rang (Format.ps1, _EscriuRang)
+# aquella manera de mirar-ho ja no diu res.
 $global:typed = New-Object System.Collections.ArrayList
-$selMock = New-Object PSObject -Property @{
-    Font = New-Object PSObject -Property @{ Bold = 0; Italic = 0 }
-}
+$global:rtTrossos = New-Object System.Collections.ArrayList
+$global:rtRangs = New-Object System.Collections.ArrayList
+$global:rtPos = 0
+$selMock = New-Object PSObject -Property @{ Font = New-Object PSObject -Property @{ Bold = 0; Italic = 0 } }
 Add-Member -InputObject $selMock -MemberType ScriptMethod -Name TypeText -Value {
     param($t)
-    $b = if ($this.Font.Bold -eq 1) { 'B' } else { '-' }
-    $i = if ($this.Font.Italic -eq 1) { 'I' } else { '-' }
-    [void]$global:typed.Add(("{0}{1}:{2}" -f $b, $i, $t))
+    [void]$global:rtTrossos.Add(@{ A = $global:rtPos; B = $global:rtPos + $t.Length; T = $t })
+    $global:rtPos += $t.Length
 }
+Add-Member -InputObject $selMock -MemberType ScriptProperty -Name Range -Value { [pscustomobject]@{ Start = $global:rtPos; End = $global:rtPos } }
+$docMock = New-Object PSObject
+Add-Member -InputObject $docMock -MemberType ScriptMethod -Name Range -Value {
+    param($a, $b)
+    $r = [pscustomobject]@{ A = $a; B = $b; Font = [pscustomobject]@{ Bold = $false; Italic = $false } }
+    [void]$global:rtRangs.Add($r)
+    return $r
+}
+Add-Member -InputObject $selMock -MemberType NoteProperty -Name Document -Value $docMock
+function _RtResultat {
+    foreach ($t in $global:rtTrossos) {
+        $b = '-'; $i = '-'
+        foreach ($r in $global:rtRangs) {
+            if ($r.A -le $t.A -and $r.B -ge $t.B) {
+                if ([bool]$r.Font.Bold) { $b = 'B' }
+                if ([bool]$r.Font.Italic) { $i = 'I' }
+            }
+        }
+        [void]$global:typed.Add(("{0}{1}:{2}" -f $b, $i, $t.T))
+    }
+}
+function _RtBuida { $global:typed.Clear(); $global:rtTrossos.Clear(); $global:rtRangs.Clear(); $global:rtPos = 0 }
 
 # Cas 1: tot text normal
-$global:typed.Clear()
+_RtBuida
 Type-RichText $selMock 'text normal'
+_RtResultat
 AssertEq ($global:typed -join '|') '--:text normal' 'Type-RichText: text normal'
 
 # Cas 2: negreta entremig
-$global:typed.Clear()
+_RtBuida
 Type-RichText $selMock 'abans **negreta** despres'
+_RtResultat
 AssertEq ($global:typed -join '|') '--:abans |B-:negreta|--: despres' 'Type-RichText: negreta entremig'
 
 # Cas 3: cursiva al final
-$global:typed.Clear()
+_RtBuida
 Type-RichText $selMock 'abans //cursiva//'
+_RtResultat
 AssertEq ($global:typed -join '|') '--:abans |-I:cursiva' 'Type-RichText: cursiva al final'
 
 # Cas 4: barreja
-$global:typed.Clear()
+_RtBuida
 Type-RichText $selMock '**neg** mig //cur//'
+_RtResultat
 AssertEq ($global:typed -join '|') 'B-:neg|--: mig |-I:cur' 'Type-RichText: barreja de negreta i cursiva'
 
 # Cas 5: cap marcador, text buit
-$global:typed.Clear()
+_RtBuida
 Type-RichText $selMock ''
+_RtResultat
 AssertEq $global:typed.Count 0 'Type-RichText: text buit no fa res'
 
 Write-Host "`n--- Find-LatestActivitatsExcel (primary -> fallback local) ---"
