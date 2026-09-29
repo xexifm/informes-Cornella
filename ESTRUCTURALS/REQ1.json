@@ -269,6 +269,30 @@
                       "fills":  [
                                     {
                                         "tipus":  "item",
+                                        "titol":  "Tatuatge, pírcing i micropigmentació",
+                                        "cos":  [
+                                                    {
+                                                        "runs":  [
+                                                                     {
+                                                                         "t":  "Tatuatge, pírcing i micropigmentació. L’activitat està inclosa dins l’àmbit d’aplicació del Decret 90/2008, de 22 d\u0027abril, pel qual es regulen les pràctiques de tatuatge, micropigmentació i pírcing, així com els requisits higienicosanitaris que han de complir els establiments on es realitzen aquestes pràctiques. S’ha d’obtenir l’autorització sanitària de l’establiment (Salut Pública - Ajuntament de Cornellà de Llobregat)."
+                                                                     }
+                                                                 ]
+                                                    },
+                                                    {
+                                                        "runs":  [
+                                                                     {
+                                                                         "t":  "https://tramits.cornella.cat/Fitxa.aspx?codiTramit=20001"
+                                                                     }
+                                                                 ],
+                                                        "url":  true
+                                                    }
+                                                ],
+                                        "fills":  [
+
+                                                  ]
+                                    },
+                                    {
+                                        "tipus":  "item",
                                         "titol":  "Sanitat",
                                         "ajuda":  {
                                                       "norma":  "Decret 151/2017, del 17 d’octubre, pel qual s’estableixen els requisits i les garanties tecnicosanitàries dels centres i serveis sanitaris, annex (classificació de centres i serveis sanitaris)",
@@ -5736,21 +5760,6 @@
                                                         "runs":  [
                                                                      {
                                                                          "t":  "https://docs.google.com/spreadsheets/d/1v_2KPHh1Req9uS0aZ_fvPvVmSE7iYztI/edit?usp=sharing\u0026ouid=101283652692857866760\u0026rtpof=true\u0026sd=true"
-                                                                     }
-                                                                 ],
-                                                        "url":  true
-                                                    },
-                                                    {
-                                                        "runs":  [
-                                                                     {
-                                                                         "t":  "Document:"
-                                                                     }
-                                                                 ]
-                                                    },
-                                                    {
-                                                        "runs":  [
-                                                                     {
-                                                                         "t":  "https://mediambient.gencat.cat/ca/05_ambits_dactuacio/empresa_i_produccio_sostenible/prevencio_i_control_dactivitats/la_llei_de_prevencio_i_control_ambiental_dactivitats/llei_20_2009_pcaa/modificacions_de_les_activitats/"
                                                                      }
                                                                  ],
                                                         "url":  true

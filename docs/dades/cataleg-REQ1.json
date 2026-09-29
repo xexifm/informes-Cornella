@@ -96,6 +96,17 @@
                          "Items":  [
                                        {
                                            "Kind":  "item",
+                                           "Short":  "Tatuatge, pírcing i micropigmentació",
+                                           "BodyLines":  [
+                                                             "Tatuatge, pírcing i micropigmentació. L’activitat està inclosa dins l’àmbit d’aplicació del Decret 90/2008, de 22 d\u0027abril, pel qual es regulen les pràctiques de tatuatge, micropigmentació i pírcing, així com els requisits higienicosanitaris que han de complir els establiments on es realitzen aquestes pràctiques. S’ha d’obtenir l’autorització sanitària de l’establiment (Salut Pública - Ajuntament de Cornellà de Llobregat).",
+                                                             "[[URL]] https://tramits.cornella.cat/Fitxa.aspx?codiTramit=20001"
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
                                            "Short":  "Sanitat",
                                            "BodyLines":  [
                                                              "Sanitat. L’activitat està inclosa dins l’Annex del Decret 151/2017, de 17 d\u0027octubre, pel qual s\u0027estableixen els requisits i les garanties tecnicosanitàries comunes dels centres i serveis sanitaris i els procediments per a la seva autorització i registre. S’ha d’obtenir l’Autorització de funcionament (Departament de Salut de la Generalitat de Catalunya).",
@@ -1961,9 +1972,7 @@
                                            "Short":  "Modificació activitat - Llei 20/2009",
                                            "BodyLines":  [
                                                              "Modificació de l’activitat. L’activitat es regeix per la LLEI 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats. S’ha de justificar si la modificació és substancial o no segons els criteris del document ACTUALITZACIÓ DELS CRITERIS DE SUBSTANCIALITAT DE LES MODIFICACIONS DE LES ACTIVITATS DE LA LLEI 20/2009, DEL 4 DE DESEMBRE, DE PREVENCIÓ I CONTROL AMBIENTAL D\u0027ACTIVITATS de la Generalitat de Catalunya. S\u0027ha d\u0027entregar la següent taula degudament complimentada:",
-                                                             "[[URL]] https://docs.google.com/spreadsheets/d/1v_2KPHh1Req9uS0aZ_fvPvVmSE7iYztI/edit?usp=sharing\u0026ouid=101283652692857866760\u0026rtpof=true\u0026sd=true",
-                                                             "Document:",
-                                                             "[[URL]] https://mediambient.gencat.cat/ca/05_ambits_dactuacio/empresa_i_produccio_sostenible/prevencio_i_control_dactivitats/la_llei_de_prevencio_i_control_ambiental_dactivitats/llei_20_2009_pcaa/modificacions_de_les_activitats/"
+                                                             "[[URL]] https://docs.google.com/spreadsheets/d/1v_2KPHh1Req9uS0aZ_fvPvVmSE7iYztI/edit?usp=sharing\u0026ouid=101283652692857866760\u0026rtpof=true\u0026sd=true"
                                                          ],
                                            "Children":  [
 
