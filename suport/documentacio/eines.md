@@ -267,7 +267,7 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
     la documentación» en **una línia, en vermell**; a sota, el bloc CATALÀ i el
     bloc ESPAÑOL (títols sense negreta), cadascun amb tota la seva informació
     (la instància, a qui va dirigida i l'avís IMPORTANT), en lloc de les frases
-    barrejades. Res del peu en negreta. El vermell és una
+    barrejades. Res del peu en negreta, i sense línia separadora. El vermell és una
     marca nova dels textos del correu, **`!!text!!`** (`_TextToHtml` i
     `correu.js`), que també entenen els recordatoris i els controls periòdics.
 
