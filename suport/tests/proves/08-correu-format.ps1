@@ -80,18 +80,19 @@ $cfTxReal = _LoadEmailTextos
 foreach ($k in @('introDoc', 'introDocSenseAnotacio', 'introInsp')) { Assert (-not [string]::IsNullOrWhiteSpace([string]$cfTxReal[$k])) "email-textos.json porta $k" }
 Assert (-not ([string]$cfTxReal['introDoc']).Contains('visita')) 'email-textos.json: la frase de documentacio aportada no parla de la visita'
 foreach ($v in @('{CAPCALERA}', '{INTRO}', '{REQUERIMENTS}')) { Assert (([string]$cfTxReal['cos']).Contains($v)) "email-textos.json: el cos porta $v" }
-# El peu: primer TOT el catala i despres TOT el castella (peticio de l'usuari,
-# setembre 2026: abans anaven barrejats), el "Com presentar" en vermell i el
-# text sense negreta.
+# El peu (peticio de l'usuari, setembre 2026): "Com presentar la documentacio /
+# Como presentar la documentacion" en UNA linia i en vermell; a sota, el bloc
+# CATALA i el bloc ESPANOL, cadascun amb tota la seva informacio (abans anaven
+# barrejats), i res en negreta.
 $cfPeu = [string]$cfTxReal['cos']
 $cfPeu = $cfPeu.Substring($cfPeu.IndexOf('{REQUERIMENTS}'))
-$cfIxCa = $cfPeu.IndexOf('**CATAL'); $cfIxEs = $cfPeu.IndexOf('**CASTELL')
-Assert ($cfIxCa -gt 0 -and $cfIxEs -gt $cfIxCa) 'email-textos.json: el bloc CATALA i despres el CASTELLA'
-Assert ($cfPeu.Contains('!!Com presentar la documentaci') -and $cfPeu.Contains('!!C' + [char]0x00F3 + 'mo presentar la documentaci')) 'email-textos.json: "Com presentar" en vermell, en cada idioma'
-$cfCa = $cfPeu.Substring(0, $cfIxEs); $cfEs = $cfPeu.Substring($cfIxEs)
+Assert ($cfPeu.Contains('!!Com presentar la documentaci' + [char]0x00F3 + ' / C' + [char]0x00F3 + 'mo presentar la documentaci' + [char]0x00F3 + 'n!!')) 'email-textos.json: "Com presentar / Como presentar" en una linia i en vermell'
+$cfIxCa = $cfPeu.IndexOf("`nCATAL"); $cfIxEs = $cfPeu.IndexOf("`nESPA")
+Assert ($cfIxCa -gt 0 -and $cfIxEs -gt $cfIxCa) 'email-textos.json: el bloc CATALA i despres el ESPANOL'
+$cfCa = $cfPeu.Substring($cfIxCa, $cfIxEs - $cfIxCa); $cfEs = $cfPeu.Substring($cfIxEs)
 Assert ($cfCa.Contains('idioma=2') -and $cfCa.Contains('IMPORTANT:') -and -not $cfCa.Contains('IMPORTANTE')) 'email-textos.json: el bloc catala ho porta tot en catala'
-Assert ($cfEs.Contains('idioma=1') -and $cfEs.Contains('IMPORTANTE:') -and -not $cfEs.Contains('Heu de presentar')) 'email-textos.json: el bloc castella ho porta tot en castella'
-AssertEq ([regex]::Matches($cfPeu, '\*\*').Count) 4 'email-textos.json: al peu, negreta NOMES als dos titols d''idioma'
+Assert ($cfEs.Contains('idioma=1') -and $cfEs.Contains('IMPORTANTE:') -and -not $cfEs.Contains('Heu de presentar')) 'email-textos.json: el bloc espanyol ho porta tot en castella'
+AssertEq ([regex]::Matches($cfPeu, '\*\*').Count) 0 'email-textos.json: al peu, cap negreta'
 
 # Dins d'un try: una excepcio aqui mataria la resta de la suite i el resum
 # seguiria dient "0 FAIL" (ja ha passat dues vegades en aquest projecte).

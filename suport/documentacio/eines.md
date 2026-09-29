@@ -263,10 +263,11 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
     encara llegeix `_InferResolvedFromBold`): `_CorreuSenseNegretaSeguiment`
     treu la negreta d'un punt que la té **sencera** i la torna a posar només al
     número. Un punt amb una part en negreta (del catàleg) no es toca.
-  - **El peu, per idiomes**: primer tot el bloc CATALÀ i després tot el
-    CASTELLÀ (títol, «Com presentar…», la instància, a qui va dirigida i
-    l'avís IMPORTANT), en lloc de les frases barrejades. «Com presentar…» va en
-    **vermell** i sense negreta, i el text sense negreta. El vermell és una
+  - **El peu, per idiomes**: «Com presentar la documentació / Cómo presentar
+    la documentación» en **una línia, en vermell**; a sota, el bloc CATALÀ i el
+    bloc ESPAÑOL (títols sense negreta), cadascun amb tota la seva informació
+    (la instància, a qui va dirigida i l'avís IMPORTANT), en lloc de les frases
+    barrejades. Res del peu en negreta. El vermell és una
     marca nova dels textos del correu, **`!!text!!`** (`_TextToHtml` i
     `correu.js`), que també entenen els recordatoris i els controls periòdics.
 
