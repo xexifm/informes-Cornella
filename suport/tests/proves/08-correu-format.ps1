@@ -36,8 +36,11 @@ AssertEq (_CorreuNum 6.5) '6.5' '_CorreuNum: punt decimal sempre (en catala seri
 # una sagnia a Format.ps1 i no regenera les dades, el mobil divergiria.
 $cfPub = Read-JsonFile (Join-Path $cfDades 'correu-format.json')
 Assert ($null -ne $cfPub) 'docs/dades/correu-format.json existeix'
-$cfA = ($cfPub | ConvertTo-Json -Depth 6 -Compress)
-$cfB = (($cfFmt | ConvertTo-Json -Depth 6) | ConvertFrom-Json | ConvertTo-Json -Depth 6 -Compress)
+# Es compara el CONTINGUT, no com s'escriu el numero: el PowerShell 5.1 de
+# l'usuari desa un 11 on el 7 d'aqui escriu 11.0 (Actualitzar.bat el regenera).
+$cfNum = { param($j) [regex]::Replace($j, '(?<=[:\[,])(-?\d+)\.0(?=[,}\]])', '$1') }
+$cfA = & $cfNum ($cfPub | ConvertTo-Json -Depth 6 -Compress)
+$cfB = & $cfNum (($cfFmt | ConvertTo-Json -Depth 6) | ConvertFrom-Json | ConvertTo-Json -Depth 6 -Compress)
 AssertEq $cfA $cfB 'docs/dades/correu-format.json esta al dia amb _CorreuFormat (si no: ExportaDades -Plantilles)'
 
 Write-Host "`n--- CorreuFormat.ps1: la capcalera del correu es la de '0 CAPCALERA' ---"

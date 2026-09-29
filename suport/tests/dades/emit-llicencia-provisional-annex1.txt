@@ -2,23 +2,23 @@ BLOC|DOCUMENTACIÓ NECESSÀRIA ABANS DE LA RESOLUCIÓ DE L’ÒRGAN TÈCNIC AMBI
 AIRE|seccio
 SECT|Autoritzacions / Informes preceptius
 AIRE|seccio
-ITEM|1.|Sanitat. L’activitat està inclosa dins l’Annex del Decret 151/2017, de 17 d'octubre, pel qual s'estableixen els requisits i les garanties tecnicosanitàries comunes dels centres i serveis sanitaris i els procediments per a la seva autorització i registre. S’ha d’obtenir l’Autorització de funcionament (Departament de Salut de la Generalitat de Catalunya).
+ITEM|1.|Tatuatge, pírcing i micropigmentació. L’activitat està inclosa dins l’àmbit d’aplicació del Decret 90/2008, de 22 d'abril, pel qual es regulen les pràctiques de tatuatge, micropigmentació i pírcing, així com els requisits higienicosanitaris que han de complir els establiments on es realitzen aquestes pràctiques. S’ha d’obtenir l’autorització sanitària de l’establiment (Salut Pública - Ajuntament de Cornellà de Llobregat).
+URL|https://tramits.cornella.cat/Fitxa.aspx?codiTramit=20001
+BODY/N/SEP|No es disposa del document.
+AIRE|item
+ITEM|2.|Sanitat. L’activitat està inclosa dins l’Annex del Decret 151/2017, de 17 d'octubre, pel qual s'estableixen els requisits i les garanties tecnicosanitàries comunes dels centres i serveis sanitaris i els procediments per a la seva autorització i registre. S’ha d’obtenir l’Autorització de funcionament (Departament de Salut de la Generalitat de Catalunya).
 URL|https://tramits.gencat.cat/ca/tramits/tramits-temes/Autoritzacio-de-centres-o-serveis-sanitaris
 BODY/N/SEP|No es disposa de l’autorització. S’ha de sol·licitar en el següent enllaç:
 URL|https://salutweb.gencat.cat/ca/tramits/tramits-temes/Autoritzacio-de-centres-o-serveis-sanitaris?moda=1
 AIRE|item
-ITEM|2.|Educació. L’activitat està inclosa dins el Decret 122/2012, de 9 d'octubre, del procediment d'autorització i de comunicació prèvia per a l'obertura de centres educatius privats. S’ha d’obtenir l’Autorització d’obertura de centres educatius privats  (Departament d’Educació).
+ITEM|3.|Educació. L’activitat està inclosa dins el Decret 122/2012, de 9 d'octubre, del procediment d'autorització i de comunicació prèvia per a l'obertura de centres educatius privats. S’ha d’obtenir l’Autorització d’obertura de centres educatius privats  (Departament d’Educació).
 URL|https://educacio.gencat.cat/ca/tramits/tramits-temes/autoritzacio-obertura-privats
 BODY/N/SEP|No es disposa de l’autorització. S’ha de sol·licitar en el següent enllaç:
 URL|https://educacio.gencat.cat/ca/tramits/tramits-temes/autoritzacio-obertura-privats?moda=1
 AIRE|item
-ITEM|3.|Comerç. L’activitat està inclosa dins el Decret Llei 1/2009, del 22 de desembre, d'ordenació dels equipaments comercials. S’ha d’obtenir la llicència comercial d’implantació d’un establiment comercial (Departament d’Empresa i Treball).
+ITEM|4.|Comerç. L’activitat està inclosa dins el Decret Llei 1/2009, del 22 de desembre, d'ordenació dels equipaments comercials. S’ha d’obtenir la llicència comercial d’implantació d’un establiment comercial (Departament d’Empresa i Treball).
 BODY/N/SEP|No es disposa de llicència. S’ha de sol·licitar en el següent enllaç:
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Llicencia-comercial?category=&moda=2
-AIRE|item
-ITEM|4.|Esport. L’activitat està inclosa dins el DECRET LEGISLATIU 1/2000, de 31 de juliol, pel qual s'aprova el Text únic de la Llei de l'esport. S’ha d’haver iniciat el tràmit per obtenir l’informe previ de les actuacions en instal·lacions esportives (Consell Català de l’Esport).
-BODY/N/SEP|No es disposa de l’informe. S’ha de sol·licitar en el següent enllaç:
-URL|https://web.gencat.cat/ca/tramits/tramits-temes/22032-Informe-previ-al-Servei-dEquipaments-Esportius-per-a-la-realitzacio-en-installacions-esportives-a-Catalunya
 AIRE|item
 AIRE|conclusions
 CONCLCAP|CONCLUSIONS
