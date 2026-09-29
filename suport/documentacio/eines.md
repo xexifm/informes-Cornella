@@ -461,6 +461,14 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
     `_LastRunIsoEina`): l'interruptor vol **la mateixa marca** amb un altre
     format, i duplicar la cerca era la manera que un dia els dos segells
     diguessin coses diferents.
+- **El «?» d'ajuda de cada rajola** (menú, setembre 2026, demanat per l'usuari).
+  Cada rajola d'eina porta a la cantonada de dalt a la dreta una rodona amb un
+  «?» (dibuixada al `Paint` de la rajola, sense emoji). El clic es mira contra
+  `$t.AjudaRect`, que guarda el `Paint`, i mostra el text en un `MessageBox`
+  **sense obrir l'eina**. Els textos són a `$Script:AjudaEines` (`Menu.ps1`,
+  indexats per acció, com el segell) i es llegeixen amb `_AjudaEina`. Prova a
+  `04-correu.ps1`: **cada** acció de les rajoles del menu té text, no n'hi ha cap
+  de sobrant i cap passa de 220 caràcters (validada traient-ne un).
 - **Textos del correu del mòbil** (`Invoke-EmailTextos`, `suport/EmailTextos.ps1`,
   rajola 📧 a MÒBIL, acció `emailtextos`): editor dels textos que l'app mòbil
   envia al titular per EmailJS. Viuen a **`docs/dades/email-textos.json`** (sense

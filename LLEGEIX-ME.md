@@ -463,6 +463,11 @@ exemple, si en portes el seguiment per una altra via).
 - **📋 Editar base d'informes**, **📥 Revisar entrades del mòbil**,
   **⏱ Controls periòdics**, **Activitats extraordinàries**.
 
+### El «?» de cada eina
+
+Cada rajola d'eina té a la cantonada de dalt a la dreta un **?** petit. Si hi
+cliques, et diu en una o dues frases què fa aquella eina, **sense obrir-la**.
+
 ### Sota cada eina, quan la vas fer servir
 
 A totes les eines del menú hi surt, en gris i lletra petita, **l'última vegada

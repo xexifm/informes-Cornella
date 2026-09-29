@@ -124,6 +124,35 @@ function _LastRunEina([string]$accio) {
     return (_FormatRunStamp (_LastRunIsoEina $accio))
 }
 
+# ----------------------------------------------------------------------------
+# L'AJUDA DE CADA EINA (el "?" petit de la cantonada de cada rajola)
+# ----------------------------------------------------------------------------
+# Una o dues frases que diuen QUE FA l'eina, indexades per ACCIO, com el segell.
+# Clicar el "?" mostra el text i NO obre l'eina. Hi ha prova que CADA rajola del
+# menu en te: una eina nova sense text fa petar les proves, no surt sense ajuda.
+# Cometes dobles i apostrof recte: el tipografic tanca un literal amb '...'.
+$Script:AjudaEines = @{
+    ruta              = "Escrius els ID GIA de les activitats que vols visitar i et calcula la ruta més curta des de la base, amb un mapa numerat que pots imprimir."
+    coordenades       = "Repassa per zones, sobre un mapa, on hi ha cada activitat i et deixa corregir-ne la posició. Et baixes un Excel amb les coordenades noves: no toca l'Excel d'activitats."
+    precintades       = "Obre al navegador el mapa i el llistat públic de les activitats precintades."
+    controlsperiodics = "Llista les activitats de l'annex II, III o de l'apartat 561 amb les dates dels controls periòdics (primer les que toquen abans). En pots generar els informes i els correus."
+    recordatoris      = "Envia recordatoris periòdics per correu als titulars que tenen un requeriment o un precinte pendent, segons la base d'informes."
+    informesdb        = "Recorre la carpeta dels informes fets i n'actualitza la base: la data, l'ID GIA i la conclusió de cada un. Fes-ho abans de les eines que la fan servir."
+    informesdbedit    = "Mostra la base d'informes amb l'estat de cada activitat, amb filtres i exportació a CSV. Hi pots corregir la conclusió breu d'un informe o fer que s'ignori."
+    copiarinformes    = "Copia els informes nous a la carpeta de còpia, tots junts, sense esborrar mai res. L'interruptor A/M de sota ho fa sol cada dia a les 14:30."
+    convertirpdf      = "Converteix un informe de Word (o una carpeta sencera) a PDF i, si ho marques, el signa amb l'Adobe o amb AutoFirma."
+    comprovarexcel    = "Comprova que les activitats que la base d'informes té en Precinte / Cessament també ho tinguin marcat a l'Excel d'activitats, i et llista les que no."
+    seguimentgia      = "Fa els llistats de seguiment de la base d'activitats (precintes, denúncies, requerits per decret, sonometria i annex II), en Excel o en PDF."
+    emailtextos       = "Edita l'assumpte i el text del correu de requeriments que s'envia al titular, des del mòbil i des d'Enviar correu."
+    enviarcorreu      = "Envia al titular, des de l'ordinador, el correu amb els requeriments d'un informe ja fet, amb el mateix format que el del mòbil."
+    revisarmobil      = "Mira si han arribat informes preparats des del mòbil (per Google Drive) i en fa el Word."
+}
+
+function _AjudaEina([string]$accio) {
+    if ([string]::IsNullOrWhiteSpace($accio) -or -not $Script:AjudaEines.Contains($accio)) { return '' }
+    return [string]$Script:AjudaEines[$accio]
+}
+
 # Retorna @{ Action='nou'|'seguiment'|'actextr'; Cataleg=<FileInfo|$null> }.
 # Per a 'nou', Cataleg es el .docx triat (ja no cal un segon pas de tria).
 # Tancar la finestra (X) avorta (exit 0).
@@ -469,6 +498,9 @@ function Select-Mode {
     $fTileTxt   = New-Object System.Drawing.Font('Segoe UI', 8, [System.Drawing.FontStyle]::Regular)
     $tileBorder = [System.Drawing.Color]::FromArgb(214, 219, 225)
     $tileTxtCol = [System.Drawing.Color]::FromArgb(107, 116, 128)
+    $fAjuda        = New-Object System.Drawing.Font('Segoe UI', 7, [System.Drawing.FontStyle]::Bold)
+    $colAjuda      = [System.Drawing.Color]::FromArgb(247, 231, 234)
+    $colAjudaHover = [System.Drawing.Color]::FromArgb(166, 26, 47)
     $tilePaint = {
         param($s, $e)
         $t = $s.Tag
@@ -481,10 +513,33 @@ function Select-Mode {
         [System.Windows.Forms.TextRenderer]::DrawText($g, $t.Emoji, $fTileIco, $emRect, [System.Drawing.Color]::Black, $flC)
         $lbRect = New-Object System.Drawing.Rectangle(2, 29, ($rc.Width - 4), ($rc.Height - 31))
         [System.Windows.Forms.TextRenderer]::DrawText($g, $t.Label, $fTileTxt, $lbRect, $tileTxtCol, $flW)
+        # El "?" de l'ajuda, a la cantonada de dalt a la dreta: rodona granat
+        # suau, i granat plena quan hi passa el ratoli (com els xips de dalt).
+        # Un "?" normal, no un emoji: amb la Segoe UI surt sempre.
+        $t.AjudaRect = $null
+        if (-not [string]::IsNullOrWhiteSpace([string]$t.Ajuda)) {
+            $hr = New-Object System.Drawing.Rectangle(($rc.Width - 17), 3, 14, 14)
+            $bH = New-Object System.Drawing.SolidBrush($(if ($t.AjudaHover) { $colAjudaHover } else { $colAjuda }))
+            $g.FillEllipse($bH, $hr)
+            $bH.Dispose()
+            $flH = [System.Windows.Forms.TextFormatFlags]::HorizontalCenter -bor [System.Windows.Forms.TextFormatFlags]::VerticalCenter -bor [System.Windows.Forms.TextFormatFlags]::NoPadding
+            $colQ = if ($t.AjudaHover) { [System.Drawing.Color]::White } else { $colAjudaHover }
+            [System.Windows.Forms.TextRenderer]::DrawText($g, '?', $fAjuda, $hr, $colQ, $flH)
+            # Una mica mes gran que el dibuix: 14 pixels son poc per encertar-hi.
+            $t.AjudaRect = New-Object System.Drawing.Rectangle(($hr.X - 3), 0, ($hr.Width + 6), ($hr.Height + 6))
+        }
     }.GetNewClosure()
     $tileClick = {
         param($s, $e)
         $t = $s.Tag
+        # Clic al "?": nomes l'explicacio, l'eina NO s'obre. El Click no porta
+        # coordenades; les donen la posicio del ratoli i el rectangle que ha
+        # guardat el Paint.
+        $pos = $s.PointToClient([System.Windows.Forms.Control]::MousePosition)
+        if ($null -ne $t.AjudaRect -and $t.AjudaRect.Contains($pos)) {
+            [System.Windows.Forms.MessageBox]::Show([string]$t.Ajuda, [string]$t.Label, 'OK', 'Information') | Out-Null
+            return
+        }
         if ($t.Kind -eq 'url') {
             try {
                 Start-Process $t.Url | Out-Null
@@ -500,6 +555,23 @@ function Select-Mode {
             $form.DialogResult = 'OK'
             $form.Close()
         }
+    }.GetNewClosure()
+    # El "?" es ressalta i el cursor passa a "ma" quan el ratoli hi es a sobre
+    # (nomes es repinta quan canvia, com el xip de l'editor de catalegs).
+    $tileMove = {
+        param($s, $e)
+        $t = $s.Tag
+        $sobre = ($null -ne $t.AjudaRect -and $t.AjudaRect.Contains($e.Location))
+        if ($sobre -ne [bool]$t.AjudaHover) {
+            $t.AjudaHover = $sobre
+            $s.Cursor = if ($sobre) { [System.Windows.Forms.Cursors]::Hand } else { [System.Windows.Forms.Cursors]::Default }
+            $s.Invalidate()
+        }
+    }.GetNewClosure()
+    $tileLeave = {
+        param($s, $e)
+        $t = $s.Tag
+        if ([bool]$t.AjudaHover) { $t.AjudaHover = $false; $s.Cursor = [System.Windows.Forms.Cursors]::Default; $s.Invalidate() }
     }.GetNewClosure()
     $tileW = 80; $tileH = 58; $tileGap = 7
     # Sota CADA rajola, en petit, l'ultima vegada que s'ha fet servir l'eina
@@ -647,8 +719,11 @@ function Select-Mode {
             $tb.BackColor = [System.Drawing.Color]::White
             $tb.FlatAppearance.BorderColor = $tileBorder
             $tb.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(250, 240, 242)
+            $tool.Ajuda = _AjudaEina ([string]$tool.Action)
             $tb.add_Paint($tilePaint)
             $tb.add_Click($tileClick)
+            $tb.add_MouseMove($tileMove)
+            $tb.add_MouseLeave($tileLeave)
             [void]$form.Controls.Add($tb)
 
             if ([bool]$tool.Interruptor) {

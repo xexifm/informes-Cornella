@@ -473,6 +473,22 @@ try {
     Remove-Item -LiteralPath $segellDir -Recurse -Force -ErrorAction SilentlyContinue
 }
 
+Write-Host "`n--- Menu.ps1: el ""?"" d'ajuda de cada rajola d'eina ---"
+# Les accions de les rajoles es llegeixen del codi del menu (les linies
+# "@{ Emoji = ...; Action = '...' }"): una rajola nova sense text d'ajuda fa
+# petar aquesta prova en lloc de sortir amb el "?" sense res.
+$srcMenuAj = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $TestsDir) 'Menu.ps1') -Raw
+$accionsRajola = @([regex]::Matches($srcMenuAj, "(?m)^\s*@\{ Emoji = .*?Action = '(\w+)'") | ForEach-Object { $_.Groups[1].Value })
+Assert ($accionsRajola.Count -ge 14) ('ajuda eines: es troben les rajoles del menu (' + $accionsRajola.Count + ')')
+$senseAjuda = @($accionsRajola | Where-Object { [string]::IsNullOrWhiteSpace((_AjudaEina $_)) })
+AssertEq ($senseAjuda -join ', ') '' 'ajuda eines: CADA rajola te el seu text'
+$sobrants = @($Script:AjudaEines.Keys | Where-Object { $_ -notin $accionsRajola })
+AssertEq ($sobrants -join ', ') '' 'ajuda eines: cap text d''una eina que ja no hi es'
+$llargues = @($accionsRajola | Where-Object { (_AjudaEina $_).Length -gt 220 })
+AssertEq ($llargues -join ', ') '' 'ajuda eines: textos BREUS (fins a 220 caracters)'
+AssertEq (_AjudaEina 'einaqueno') '' '_AjudaEina: una accio desconeguda -> buit'
+AssertEq (_AjudaEina '') '' '_AjudaEina: buit -> buit'
+
 Write-Host "`n--- Informes.ps1: _NormalitzaExpedient / Build-ExpedientToGiaMap ---"
 AssertEq (_NormalitzaExpedient '2025/1/2563')  '2025-1-2563' '_NormalitzaExpedient barres -> guions'
 AssertEq (_NormalitzaExpedient '2025-01-2563') '2025-1-2563' '_NormalitzaExpedient treu zeros inicials'
