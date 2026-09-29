@@ -551,8 +551,9 @@ function _CorreuParagrafDocxHtml($p, $fmt) {
 #   Html:      el cos, DES DE DESPRES de la frase "...deficiencies... esmenar"
 #              (la del cataleg: el correu ja porta la seva, {INTRO}) i fins a la
 #              frase de tancament ("Ho poso al seu coneixement", "Cornella de
-#              Llobregat,"), CONCLUSIONS incloses. Sense la frase, des de
-#              despres d'"INFORME".
+#              Llobregat,") o fins al titol CONCLUSIONS: les conclusions NO van
+#              al correu (ni al del mobil). Sense la frase, des de despres
+#              d'"INFORME".
 # Abans es llegia amb el Word i es comencava al primer paragraf en MAJUSCULES:
 # "ID GIA: 1398" ho es, i el correu repetia tota la capcalera, "INFORME" i la
 # nota de l'Ordenanca.
@@ -577,18 +578,13 @@ function _CorreuDocxLlegeix([string]$xml, $fmt) {
     $fi = $ps.Count
     for ($i = $ini; $i -lt $ps.Count; $i++) {
         $t = [string]$ps[$i].Text
-        if ((_EsFraseTancament $t) -or (_NormalitzaText $t).Trim().StartsWith('cornella de llobregat,')) { $fi = $i; break }
+        $n = (_NormalitzaText $t).Trim()
+        if ((_EsFraseTancament $t) -or $n.StartsWith('cornella de llobregat,') -or $n -match '^conclusi(o|ons)$') { $fi = $i; break }
     }
-    # Fora els paragrafs buits dels extrems, i un "CONCLUSIONS" que es queda sol
-    # (l'informe el porta encara que no s'hagi triat cap conclusio: el que ve a
-    # sota es el tancament, que al correu no hi va).
+    # Fora els paragrafs buits dels extrems.
     $buit = { param($j) [string]::IsNullOrWhiteSpace([string]$ps[$j].Text) }
     while ($ini -lt $fi -and (& $buit $ini)) { $ini++ }
     while ($fi -gt $ini -and (& $buit ($fi - 1))) { $fi-- }
-    if ($fi -gt $ini -and ([string]$ps[$fi - 1].Text).Trim() -ceq 'CONCLUSIONS') {
-        $fi--
-        while ($fi -gt $ini -and (& $buit ($fi - 1))) { $fi-- }
-    }
     $sb = New-Object System.Text.StringBuilder
     for ($i = $ini; $i -lt $fi; $i++) { [void]$sb.Append((_CorreuParagrafDocxHtml $ps[$i] $fmt)) }
     return @{ Capcalera = $cap; Html = $sb.ToString() }

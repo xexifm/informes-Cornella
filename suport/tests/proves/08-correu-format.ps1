@@ -125,8 +125,8 @@ Write-Host "`n--- CorreuFormat.ps1: el .docx de l'informe, sense Word ---"
 # Un document.xml com el que escriu el Word: la capcalera amb tabulador,
 # INFORME, la nota, la frase del cataleg, una seccio, un punt amb el numero en
 # negreta, l'enllac a 10 pt, un sub-punt amb pic i sagnia francesa, una
-# anotacio de seguiment amb el comentari en negreta, les conclusions i el
-# tancament.
+# anotacio de seguiment amb el comentari en negreta, les conclusions (que NO
+# van al correu) i el tancament.
 $cfW = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
 $cfP = { param($ppr, $runs) "<w:p><w:pPr>$ppr</w:pPr>$runs</w:p>" }
 $cfR = { param($t, $rpr) "<w:r><w:rPr>$rpr</w:rPr><w:t xml:space=`"preserve`">$t</w:t></w:r>" }
@@ -169,13 +169,14 @@ Assert ($cfLl.Html.Contains('<b>2. </b>Punt pendent del seguiment')) '_CorreuDoc
 Assert ($cfLl.Html.Contains('3. Amb <b>negreta del cataleg</b>')) '_CorreuDocxLlegeix: la negreta d''una part del punt (cataleg) es queda'
 Assert ($cfLl.Html.Contains('07/09/2026: <b>No s''aporta.</b>')) '_CorreuDocxLlegeix: l''anotacio del seguiment, amb el comentari en negreta'
 Assert ($cfLl.Html.Contains('margin:10pt 0 12pt 0px')) '_CorreuDocxLlegeix: els espais de l''anotacio, del .docx'
-Assert ($cfLl.Html.Contains('text-align:center"><b>CONCLUSIONS</b>')) '_CorreuDocxLlegeix: CONCLUSIONS centrat i en negreta'
-Assert ($cfLl.Html.Contains('cal requerir')) '_CorreuDocxLlegeix: les conclusions HI SON'
+Assert (-not $cfLl.Html.Contains('CONCLUSIONS')) '_CorreuDocxLlegeix: el titol CONCLUSIONS NO hi es'
+Assert (-not $cfLl.Html.Contains('cal requerir')) '_CorreuDocxLlegeix: les conclusions NO hi son (ni al mobil)'
 Assert (-not $cfLl.Html.Contains('Ho poso') -and -not $cfLl.Html.Contains('Llobregat, 29')) '_CorreuDocxLlegeix: el tancament i la signatura, NO'
 Assert (-not $cfLl.Html.EndsWith('&nbsp;</p>')) '_CorreuDocxLlegeix: sense linies en blanc al final'
-# Un "CONCLUSIONS" que es queda sol (cap conclusio triada) no surt.
-$cfSol = _CorreuDocxLlegeix ($cfXml.Replace((& $cfP '<w:spacing w:after="240"/>' (& $cfR 'Vist l&#8217;anterior, cal requerir l&#8217;esmena.' '')), '')) $cfFmt
-Assert (-not $cfSol.Html.Contains('CONCLUSIONS')) '_CorreuDocxLlegeix: un CONCLUSIONS sense cap conclusio no surt'
+Assert ($cfLl.Html.Contains('No s''aporta.')) '_CorreuDocxLlegeix: el que hi ha just abans de CONCLUSIONS, SI'
+# Un informe sense conclusions (sense el titol) s'atura igualment al tancament.
+$cfSense = _CorreuDocxLlegeix ($cfXml.Replace((& $cfP '<w:jc w:val="center"/><w:spacing w:after="240"/>' (& $cfR 'CONCLUSIONS' '<w:b/>')), '')) $cfFmt
+Assert ($cfSense.Html.Contains('cal requerir') -and -not $cfSense.Html.Contains('Ho poso')) '_CorreuDocxLlegeix: sense titol CONCLUSIONS, fins al tancament'
 
 Write-Host "`n--- EnviarCorreu.ps1: el correu sencer del PC ---"
 $cfC = _BuildCorreu $cfXml @{ ID_GIA = '1398'; ADRECA = 'C VISTALEGRE 24-26'; ACTIVITAT = 'APARCAMENT'; TITULAR = 'MEGADOCAR SL' } '29/09/2026'
@@ -225,8 +226,7 @@ if ($null -eq $cfNode) {
             }
             $cfSel += [pscustomobject]@{ Title = [string]$sec.Title; Items = $its }
         }
-        $cfConcl = @(('Vist l' + [char]0x2019 + 'anterior, cal requerir l' + [char]0x2019 + 'esmena.'), 'La terrassa **no** forma part d''aquest informe.')
-        $cfBlocsPc = @(Build-CatalegBlocs $cfSel @{} '') + @(_BlocsConclusions 'CONCLUSIONS' $cfConcl @() @{})
+        $cfBlocsPc = @(Build-CatalegBlocs $cfSel @{} '')
         $cfHtmlPc = _CorreuBlocsAHtml $cfBlocsPc $cfFmt
         $cfLinCap = @(@{ Etiqueta = 'ID GIA:'; Valor = '118' }, @{ Etiqueta = 'Objecte:'; Valor = ('Visita inspecci' + [char]0x00F3 + ' 29/09/2026') })
         $cfCapPc = _CorreuCapcaleraHtml $cfLinCap $cfFmt 'INFORME'
@@ -234,7 +234,7 @@ if ($null -eq $cfNode) {
 
         $cfTmp = Join-Path ([System.IO.Path]::GetTempPath()) ('correu-creuat-' + [Guid]::NewGuid().ToString('N'))
         New-Item -ItemType Directory -Path $cfTmp -Force | Out-Null
-        [System.IO.File]::WriteAllText((Join-Path $cfTmp 'in.json'), (([ordered]@{ Sel = $cfSel; Concl = $cfConcl; Cap = $cfLinCap } | ConvertTo-Json -Depth 12)), (New-Object System.Text.UTF8Encoding($false)))
+        [System.IO.File]::WriteAllText((Join-Path $cfTmp 'in.json'), (([ordered]@{ Sel = $cfSel; Cap = $cfLinCap } | ConvertTo-Json -Depth 12)), (New-Object System.Text.UTF8Encoding($false)))
         $cfJs = @"
 var C = require(process.argv[2]), fs = require('fs');
 var inp = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'));
@@ -243,7 +243,7 @@ function arr(x) { return x == null ? [] : (Array.isArray(x) ? x : [x]); }
 var sel = arr(inp.Sel).map(function (s) { return { Title: s.Title, Items: arr(s.Items).map(function (i) {
   return { Kind: i.Kind, Short: i.Short, BodyLines: arr(i.BodyLines), Selected: i.Selected,
            Children: arr(i.Children).map(function (c) { return { Kind: c.Kind, Short: c.Short, BodyLines: arr(c.BodyLines) }; }) }; }) }; });
-var blocs = C.blocsDeSeleccio(sel, function (n) { return arr(n.BodyLines); }).concat(C.blocsConclusions('CONCLUSIONS', arr(inp.Concl)));
+var blocs = C.blocsDeSeleccio(sel, function (n) { return arr(n.BodyLines); });
 fs.writeFileSync(process.argv[5], JSON.stringify({
   req: C.blocsAHtml(blocs, fmt),
   cap: C.capcaleraHtml(arr(inp.Cap), fmt, 'INFORME'),
@@ -257,7 +257,7 @@ fs.writeFileSync(process.argv[5], JSON.stringify({
         $cfDif = -1
         for ($i = 0; $i -lt [Math]::Min($cfHtmlPc.Length, ([string]$cfOut.req).Length); $i++) { if ($cfHtmlPc[$i] -ne ([string]$cfOut.req)[$i]) { $cfDif = $i; break } }
         if ($cfDif -ge 0) { Write-Host ('    PC:    ' + $cfHtmlPc.Substring([Math]::Max(0, $cfDif - 80), 200)); Write-Host ('    mobil: ' + ([string]$cfOut.req).Substring([Math]::Max(0, $cfDif - 80), 200)) }
-        AssertEq ([string]$cfOut.req) $cfHtmlPc 'creuat: els requeriments i les conclusions, IGUALS al mobil i al PC'
+        AssertEq ([string]$cfOut.req) $cfHtmlPc 'creuat: els requeriments, IGUALS al mobil i al PC'
         AssertEq ([string]$cfOut.cap) $cfCapPc 'creuat: la capcalera, IGUAL al mobil i al PC'
         AssertEq ([string]$cfOut.cos) $cfCosPc 'creuat: el cos del correu, IGUAL al mobil i al PC'
         Remove-Item -LiteralPath $cfTmp -Recurse -Force -ErrorAction SilentlyContinue

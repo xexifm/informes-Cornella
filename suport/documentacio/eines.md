@@ -231,8 +231,8 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
   - el **cos** té el format de l'informe: secció en majúscules sense negreta,
     número en negreta, enllaç sense sagnar a 10 pt, sub-punts amb pic i sagnia
     francesa (12 pt el primer, 6 els altres), una línia en blanc després de cada
-    punt, CONCLUSIONS centrat i les conclusions triades. **Sense** «Ho poso al
-    seu coneixement» ni la signatura.
+    punt. **Sense** conclusions (vegeu la tercera ronda), ni «Ho poso al seu
+    coneixement» ni la signatura.
 - **Com es garanteix que coincideixin** (`suport/CorreuFormat.ps1` i
   `docs/correu.js`, que n'és la còpia en JavaScript):
   - les mides surten de `$ReportFormatConfig` (`_CorreuFormat`) i el mòbil llegeix
@@ -270,6 +270,13 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
     barrejades. Res del peu en negreta, i sense línia separadora. El vermell és una
     marca nova dels textos del correu, **`!!text!!`** (`_TextToHtml` i
     `correu.js`), que també entenen els recordatoris i els controls periòdics.
+- **Tercera ronda (setembre 2026): fora les conclusions**, demanat per l'usuari,
+  al PC i al mòbil. El PC deixa de llegir el `.docx` al títol **CONCLUSIONS**
+  (`_CorreuDocxLlegeix`: «conclusions» o «conclusió», normalitzat; si l'informe
+  no el porta, s'atura a la frase de tancament com abans). El mòbil ja no afegeix
+  les conclusions triades al Pas 4 ni a l'HTML ni al text pla (han desaparegut
+  `blocsConclusions` de `correu.js` i `conclusionsTriades` d'`app.js`); les
+  conclusions continuen anant a l'**informe**. Guard a `06-guards.ps1`.
 
 ## Base d'informes (informes-db.json)
 - El motor de la base d'informes és `suport/Informes.ps1`: escaneja `$InformesDir`

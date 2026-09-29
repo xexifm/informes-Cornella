@@ -150,7 +150,7 @@ function _CorreuValorsCapcalera($linies, $capDocx, $header) {
 #   - Capcalera: les linies de '0 CAPCALERA' (ID GIA ... Objecte).
 #   - {INTRO}: "documentacio aportada" o "visita", segons l'Objecte de l'informe.
 #     Una visita sense data agafa la d'avui (tambe a l'Objecte del correu).
-#   - {REQUERIMENTS}: el cos de l'informe, conclusions incloses.
+#   - {REQUERIMENTS}: el cos de l'informe, SENSE les conclusions.
 function _BuildCorreu([string]$documentXml, $header, [string]$avui) {
     $tx  = _CorreuTextos
     $fmt = _CorreuFormat

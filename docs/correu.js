@@ -45,12 +45,6 @@
     return { text: text, urls: urls };
   }
 
-  // _EsFraseTancament (Format.ps1).
-  function esFraseTancament(t) {
-    return String(t == null ? "" : t).split("**").join("").split("//").join("").trim().toLowerCase()
-      .indexOf("ho poso al seu coneixement") === 0;
-  }
-
   // --- El contracte d'un paragraf (_CorreuParagrafHtml) ----------------------
   function num(x) { return String(Number(x)); }
   function base(fmt) {
@@ -190,21 +184,6 @@
     return b;
   }
 
-  // Les conclusions triades (_BlocsConclusions sense el tancament: "Ho poso al
-  // seu coneixement" i "Cornella de Llobregat," no van al correu). Sense cap
-  // conclusio no hi ha bloc: un "CONCLUSIONS" sol no diu res.
-  function blocsConclusions(titol, textos) {
-    textos = (textos || []).filter(function (t) { return String(t || "").trim() !== ""; });
-    if (!textos.length) return [];
-    var b = [{ T: "aire", Clau: "conclusions" }];
-    if (String(titol || "").trim() !== "") b.push({ T: "conclusiocap", Text: titol });
-    textos.forEach(function (t) {
-      if (esFraseTancament(t)) b.push({ T: "separa" });
-      b.push({ T: "conclusio", Text: t });
-    });
-    return b;
-  }
-
   // --- Capcalera, origen i frase d'introduccio --------------------------------
   function omplePlantilla(pl, valors) {
     return String(pl == null ? "" : pl).replace(/<<\s*([A-Za-z0-9_]+)\s*>>/g, function (_, k) {
@@ -255,7 +234,7 @@
 
   var Correu = {
     esc: esc, textHtml: textHtml, splitTextAndUrls: splitTextAndUrls,
-    blocsAHtml: blocsAHtml, blocsDeSeleccio: blocsDeSeleccio, blocsConclusions: blocsConclusions,
+    blocsAHtml: blocsAHtml, blocsDeSeleccio: blocsDeSeleccio,
     omplePlantilla: omplePlantilla, origenText: origenText, capcaleraHtml: capcaleraHtml,
     intro: intro, cosAHtml: cosAHtml
   };

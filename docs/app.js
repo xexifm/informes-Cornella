@@ -416,22 +416,13 @@
     return { linies: linies, intro: Correu.intro(emailTextos, o, avui) };
   }
 
-  // Les conclusions triades al Pas 4, en l'ordre del cataleg i amb els camps
-  // resolts (Build-ConclusionsFromTitles + _BlocsConclusions del PC).
-  function conclusionsTriades(values) {
-    return asArray(conclusions.Selectable).filter(function (c) { return estat.conclTitles.has(c.Title); })
-      .map(function (c) { return applyFields(c.Body, values); });
-  }
-
   // Cos del correu en TEXT pla (fallback mailto): el mateix cos, amb la
   // capcalera com a linies "Etiqueta Valor" i **marques** tretes.
   function buildEmailBody(selSections, values) {
     var h = estat.header || {}, d = dadesCorreu();
     var cap = d.linies.filter(function (l) { return String(l.Valor || "").trim() !== ""; })
       .map(function (l) { return l.Etiqueta + " " + l.Valor; }).join("\n") + (capcalera.Titol ? "\n\n" + capcalera.Titol : "");
-    var concl = conclusionsTriades(values);
-    var req = buildRequirementsList(selSections, values) +
-      (concl.length ? "\n\n" + (conclusions.HeaderText || "") + "\n" + concl.map(stripMarkers).join("\n") : "");
+    var req = buildRequirementsList(selSections, values);
     return stripMarkers(fillPh(emailTextos.cos, h).replace(/\{INTRO\}/g, d.intro))
       .replace("{CAPCALERA}", cap).replace("{REQUERIMENTS}", req);
   }
@@ -439,16 +430,16 @@
   // ------- Versió HTML del correu (per a EmailJS i la previsualització) --------
   // EL FORMAT ES EL DE L'INFORME DE REQ1, I EL MATEIX QUE EL CORREU DEL PC.
   // Abans aqui hi havia un pintor propi (seccions en negreta, subseccions
-  // subratllades, enllacos sagnats, cap linia en blanc entre punts, cap
-  // conclusio) que no s'assemblava ni a l'informe ni al correu del PC. Ara els
+  // subratllades, enllacos sagnats, cap linia en blanc entre punts) que no
+  // s'assemblava ni a l'informe ni al correu del PC. Ara els
   // blocs i l'HTML els fa correu.js, que es la copia de CorreuFormat.ps1 (hi ha
   // prova que dona el mateix HTML), amb les mides de dades/correu-format.json.
   function esc(s) { return Correu.esc(s); }
 
   function buildEmailHTML(selSections, values) {
     var h = estat.header || {}, d = dadesCorreu();
-    var blocs = Correu.blocsDeSeleccio(selSections, function (node) { return applyFieldsToLines(node.BodyLines, values); })
-      .concat(Correu.blocsConclusions(conclusions.HeaderText, conclusionsTriades(values)));
+    // Les conclusions NO van al correu (tampoc al del PC): nomes a l'informe.
+    var blocs = Correu.blocsDeSeleccio(selSections, function (node) { return applyFieldsToLines(node.BodyLines, values); });
     return Correu.cosAHtml(emailTextos.cos,
       function (l) { return fillPh(l, h).replace(/\{INTRO\}/g, d.intro); },
       Correu.capcaleraHtml(d.linies, correuFormat, capcalera.Titol), Correu.blocsAHtml(blocs, correuFormat), correuFormat);

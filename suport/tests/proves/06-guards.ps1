@@ -193,6 +193,11 @@ $mobilJs = $appJs + "`n" + $correuJs
 AssertEq ([regex]::Matches($mobilJs, 'introSeccio').Count -gt 0) $true 'mobil: distingeix l''intro de SECCIO'
 AssertEq ([regex]::Matches($mobilJs, 'dinsSub = true').Count) 2 'mobil: les DUES copies del recorregut marquen dinsSub'
 AssertEq ([regex]::Matches($mobilJs, 'introSeccio = el').Count) 2 'mobil: les DUES copies recullen l''intro de seccio'
+# Les conclusions NO van al correu (peticio de l'usuari, setembre 2026): el PC
+# s'atura al titol CONCLUSIONS del .docx i el mobil no les ha d'afegir.
+$fnCorreuMobil = [regex]::Match($appJs, '(?s)function buildEmailBody\(.*?function buildEmailHTML\(.*?\n  \}')
+Assert $fnCorreuMobil.Success 'mobil: es troben buildEmailBody i buildEmailHTML'
+Assert (-not (($fnCorreuMobil.Value -replace '(?m)^\s*//.*$', '') -match '(?i)conclusi')) 'mobil: el correu NO porta conclusions (ni en HTML ni en text pla)'
 
 # 4. CODI MORT I DEFECTES SILENCIOSOS D'app.js (bloc P1 de l'auditoria).
 #    Els quatre venien de la mateixa familia: no peten, nomes fan una cosa
