@@ -1,121 +1,121 @@
 {
-  "Lletra": "Calibri, Arial, sans-serif",
-  "MidaPt": 11.0,
-  "InterlineatPct": 115,
-  "Alinea": "justify",
-  "EtiquetaPx": 104,
-  "Aire": {
-    "conclusions": true,
-    "intro": true,
-    "introparagraf": true,
-    "item": true,
-    "seccio": true,
-    "subseccio": true
-  },
-  "Blocs": {
-    "seccio": {
-      "Esq": 0,
-      "Penjat": 0,
-      "Abans": 0.0,
-      "Despres": 0.0,
-      "Alinea": "justify",
-      "MidaPt": 0.0
-    },
-    "subseccio": {
-      "Esq": 0,
-      "Penjat": 0,
-      "Abans": 0.0,
-      "Despres": 0.0,
-      "Alinea": "justify",
-      "MidaPt": 0.0
-    },
-    "item": {
-      "Esq": 0,
-      "Penjat": 0,
-      "Abans": 0.0,
-      "Despres": 0.0,
-      "Alinea": "justify",
-      "MidaPt": 0.0
-    },
-    "cos": {
-      "Esq": 0,
-      "Penjat": 0,
-      "Abans": 0.0,
-      "Despres": 0.0,
-      "Alinea": "justify",
-      "MidaPt": 0.0
-    },
-    "cosFill": {
-      "Esq": 38,
-      "Penjat": 0,
-      "Abans": 0.0,
-      "Despres": 0.0,
-      "Alinea": "justify",
-      "MidaPt": 0.0
-    },
-    "enllac": {
-      "Esq": 0,
-      "Penjat": 0,
-      "Abans": 0.0,
-      "Despres": 0.0,
-      "Alinea": "justify",
-      "MidaPt": 10.0
-    },
-    "enllacFill": {
-      "Esq": 38,
-      "Penjat": 0,
-      "Abans": 0.0,
-      "Despres": 0.0,
-      "Alinea": "justify",
-      "MidaPt": 10.0
-    },
-    "pic": {
-      "Esq": 47,
-      "Penjat": 23,
-      "Abans": 6.0,
-      "Despres": 0.0,
-      "Alinea": "justify",
-      "MidaPt": 0.0
-    },
-    "picPrimer": {
-      "Esq": 47,
-      "Penjat": 23,
-      "Abans": 12.0,
-      "Despres": 0.0,
-      "Alinea": "justify",
-      "MidaPt": 0.0
-    },
-    "picFill": {
-      "Esq": 38,
-      "Penjat": 19,
-      "Abans": 6.0,
-      "Despres": 0.0,
-      "Alinea": "justify",
-      "MidaPt": 0.0
-    },
-    "picFillPrimer": {
-      "Esq": 38,
-      "Penjat": 19,
-      "Abans": 12.0,
-      "Despres": 0.0,
-      "Alinea": "justify",
-      "MidaPt": 0.0
-    },
-    "conclusiocap": {
-      "Esq": 0,
-      "Penjat": 0,
-      "Abans": 0.0,
-      "Despres": 12.0,
-      "Alinea": "center",
-      "MidaPt": 0.0
-    },
-    "conclusio": {
-      "Esq": 0,
-      "Penjat": 0,
-      "Abans": 0.0,
-      "Despres": 12.0,
-      "Alinea": "justify",
-      "MidaPt": 0.0
-    }
-  }
+    "Lletra":  "Calibri, Arial, sans-serif",
+    "MidaPt":  11,
+    "InterlineatPct":  115,
+    "Alinea":  "justify",
+    "EtiquetaPx":  104,
+    "Aire":  {
+                 "conclusions":  true,
+                 "intro":  true,
+                 "introparagraf":  true,
+                 "item":  true,
+                 "seccio":  true,
+                 "subseccio":  true
+             },
+    "Blocs":  {
+                  "seccio":  {
+                                 "Esq":  0,
+                                 "Penjat":  0,
+                                 "Abans":  0,
+                                 "Despres":  0,
+                                 "Alinea":  "justify",
+                                 "MidaPt":  0
+                             },
+                  "subseccio":  {
+                                    "Esq":  0,
+                                    "Penjat":  0,
+                                    "Abans":  0,
+                                    "Despres":  0,
+                                    "Alinea":  "justify",
+                                    "MidaPt":  0
+                                },
+                  "item":  {
+                               "Esq":  0,
+                               "Penjat":  0,
+                               "Abans":  0,
+                               "Despres":  0,
+                               "Alinea":  "justify",
+                               "MidaPt":  0
+                           },
+                  "cos":  {
+                              "Esq":  0,
+                              "Penjat":  0,
+                              "Abans":  0,
+                              "Despres":  0,
+                              "Alinea":  "justify",
+                              "MidaPt":  0
+                          },
+                  "cosFill":  {
+                                  "Esq":  38,
+                                  "Penjat":  0,
+                                  "Abans":  0,
+                                  "Despres":  0,
+                                  "Alinea":  "justify",
+                                  "MidaPt":  0
+                              },
+                  "enllac":  {
+                                 "Esq":  0,
+                                 "Penjat":  0,
+                                 "Abans":  0,
+                                 "Despres":  0,
+                                 "Alinea":  "justify",
+                                 "MidaPt":  10
+                             },
+                  "enllacFill":  {
+                                     "Esq":  38,
+                                     "Penjat":  0,
+                                     "Abans":  0,
+                                     "Despres":  0,
+                                     "Alinea":  "justify",
+                                     "MidaPt":  10
+                                 },
+                  "pic":  {
+                              "Esq":  47,
+                              "Penjat":  23,
+                              "Abans":  6,
+                              "Despres":  0,
+                              "Alinea":  "justify",
+                              "MidaPt":  0
+                          },
+                  "picPrimer":  {
+                                    "Esq":  47,
+                                    "Penjat":  23,
+                                    "Abans":  12,
+                                    "Despres":  0,
+                                    "Alinea":  "justify",
+                                    "MidaPt":  0
+                                },
+                  "picFill":  {
+                                  "Esq":  38,
+                                  "Penjat":  19,
+                                  "Abans":  6,
+                                  "Despres":  0,
+                                  "Alinea":  "justify",
+                                  "MidaPt":  0
+                              },
+                  "picFillPrimer":  {
+                                        "Esq":  38,
+                                        "Penjat":  19,
+                                        "Abans":  12,
+                                        "Despres":  0,
+                                        "Alinea":  "justify",
+                                        "MidaPt":  0
+                                    },
+                  "conclusiocap":  {
+                                       "Esq":  0,
+                                       "Penjat":  0,
+                                       "Abans":  0,
+                                       "Despres":  12,
+                                       "Alinea":  "center",
+                                       "MidaPt":  0
+                                   },
+                  "conclusio":  {
+                                    "Esq":  0,
+                                    "Penjat":  0,
+                                    "Abans":  0,
+                                    "Despres":  12,
+                                    "Alinea":  "justify",
+                                    "MidaPt":  0
+                                }
+              }
 }

@@ -1,43 +1,43 @@
 {
-  "Placeholders": [
-    "ID_GIA",
-    "EXP_NUM",
-    "ADRECA",
-    "ACTIVITAT",
-    "TITULAR",
-    "ORIGEN",
-    "DATES",
-    "CLASSIFICACIO"
-  ],
-  "Correu": [
-    {
-      "Etiqueta": "ID GIA:",
-      "Plantilla": "<<ID_GIA>>"
-    },
-    {
-      "Etiqueta": "Exp. Núm:",
-      "Plantilla": "<<EXP_NUM>>"
-    },
-    {
-      "Etiqueta": "Adreça:",
-      "Plantilla": "<<ADRECA>>"
-    },
-    {
-      "Etiqueta": "Activitat:",
-      "Plantilla": "<<ACTIVITAT>>"
-    },
-    {
-      "Etiqueta": "Titular:",
-      "Plantilla": "<<TITULAR>>"
-    },
-    {
-      "Etiqueta": "Objecte:",
-      "Plantilla": "<<ORIGEN>>"
-    }
-  ],
-  "Titol": "INFORME",
-  "Origen": {
-    "doc": "Doc. aportada amb Núm. d’anotació <<NUM_ANOTACIO>> del <<DATA_ANOTACIO>>",
-    "insp": "Visita inspecció <<DATA_INSPECCIO>>"
-  }
+    "Placeholders":  [
+                         "ID_GIA",
+                         "EXP_NUM",
+                         "ADRECA",
+                         "ACTIVITAT",
+                         "TITULAR",
+                         "ORIGEN",
+                         "DATES",
+                         "CLASSIFICACIO"
+                     ],
+    "Correu":  [
+                   {
+                       "Etiqueta":  "ID GIA:",
+                       "Plantilla":  "\u003c\u003cID_GIA\u003e\u003e"
+                   },
+                   {
+                       "Etiqueta":  "Exp. Núm:",
+                       "Plantilla":  "\u003c\u003cEXP_NUM\u003e\u003e"
+                   },
+                   {
+                       "Etiqueta":  "Adreça:",
+                       "Plantilla":  "\u003c\u003cADRECA\u003e\u003e"
+                   },
+                   {
+                       "Etiqueta":  "Activitat:",
+                       "Plantilla":  "\u003c\u003cACTIVITAT\u003e\u003e"
+                   },
+                   {
+                       "Etiqueta":  "Titular:",
+                       "Plantilla":  "\u003c\u003cTITULAR\u003e\u003e"
+                   },
+                   {
+                       "Etiqueta":  "Objecte:",
+                       "Plantilla":  "\u003c\u003cORIGEN\u003e\u003e"
+                   }
+               ],
+    "Titol":  "INFORME",
+    "Origen":  {
+                   "doc":  "Doc. aportada amb Núm. d’anotació \u003c\u003cNUM_ANOTACIO\u003e\u003e del \u003c\u003cDATA_ANOTACIO\u003e\u003e",
+                   "insp":  "Visita inspecció \u003c\u003cDATA_INSPECCIO\u003e\u003e"
+               }
 }
