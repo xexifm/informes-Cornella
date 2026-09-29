@@ -593,7 +593,7 @@
       if (window.Drive && Drive.reconnectarSilenci) {
         Drive.reconnectarSilenci().then(function (ok) { if (ok) estatDrive(true); });
       }
-      anarA(0);
+      anarA(passosAbastables()[0]);
     }).catch(function (e) {
       $("carregant").innerHTML = '<span class="error">Error carregant les dades: ' + e.message +
         "<br>Comprova que el PC hagi pujat les dades (Actualitzar.bat) i que GitHub Pages estigui actiu.</span>";
@@ -1112,7 +1112,10 @@
     renderCampsOrigen();
     $("arbre-def").innerHTML = "";
     $("llista-concl").innerHTML = "";
-    anarA(0);
+    // Al PRIMER pas que s'hi pot arribar, no a l'index 0 a cegues. Amb un sol
+    // cataleg el pas 0 se salta, i anar al 0 des del pas final (passActual = 4)
+    // saltava ENRERE fins a -1: una pantalla buida que deia "Pas 0 / 4".
+    anarA(passosAbastables()[0]);
     window.scrollTo(0, 0);
   }
 
@@ -1133,6 +1136,10 @@
   }
 
   function anarA(i) {
+    // Mai fora de la llista de passos: un index fora de rang no es cap pas.
+    var abastables = passosAbastables();
+    if (i < abastables[0]) i = abastables[0];
+    if (i > abastables[abastables.length - 1]) i = abastables[abastables.length - 1];
     if (!passAbastable(i)) {
       return anarA(i + (i >= passActual ? 1 : -1));
     }

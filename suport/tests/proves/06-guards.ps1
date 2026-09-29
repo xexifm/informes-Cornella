@@ -210,6 +210,11 @@ Assert ($appJs.Contains('$("prev-requeriments").innerHTML = "";')) 'app.js: el r
 Assert ($appJs.Contains('function passosAbastables')) 'app.js: el comptador compta els passos abastables'
 Assert ($appJs.Contains('"Pas " + (pos + 1) + " / " + abast.length')) 'app.js: el comptador fa servir els abastables'
 Assert (-not ($appJs.Contains('" / " + PASSOS.length'))) 'app.js: el comptador no fa servir el total cru'
+# 4b'. "Fet" torna al PRIMER pas abastable. El reinici feia anarA(0) des del pas
+#      final: amb un sol cataleg el 0 se salta i, com que 0 < passActual, el salt
+#      anava ENRERE fins a -1, una pantalla buida que deia "Pas 0 / 4".
+Assert (-not ($appJs.Contains('anarA(0)'))) 'app.js: el reinici no va a l''index 0 a cegues'
+Assert ($appJs.Contains('anarA(passosAbastables()[0])')) 'app.js: el reinici va al primer pas abastable'
 
 # 4c. Un ternari '? true : true' es una condicio que no decideix res -els dos
 #     costats son iguals-. Aqui amagava que #navegacio no s'amaga mai: es mostra

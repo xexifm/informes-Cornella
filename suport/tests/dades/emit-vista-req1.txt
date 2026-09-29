@@ -1682,7 +1682,9 @@ AJUDA|A qui s'aplica: Activitats de la Llei 18/2020 que han canviat respecte del
 AJUDA|Competencia: Ajuntament (competència pròpia).
 AJUDA|Revisat: 2026-09
 AIRE|item
-ITEM|147.|Modificació de l’activitat. L’activitat es regeix per la LLEI 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats. S’ha de justificar si la modificació és substancial o no segons els criteris del document ACTUALITZACIÓ DELS CRITERIS DE SUBSTANCIALITAT DE LES MODIFICACIONS DE LES ACTIVITATS DE LA LLEI 20/2009, DEL 4 DE DESEMBRE, DE PREVENCIÓ I CONTROL AMBIENTAL D'ACTIVITATS de la Generalitat de Catalunya.
+ITEM|147.|Modificació de l’activitat. L’activitat es regeix per la LLEI 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats. S’ha de justificar si la modificació és substancial o no segons els criteris del document ACTUALITZACIÓ DELS CRITERIS DE SUBSTANCIALITAT DE LES MODIFICACIONS DE LES ACTIVITATS DE LA LLEI 20/2009, DEL 4 DE DESEMBRE, DE PREVENCIÓ I CONTROL AMBIENTAL D'ACTIVITATS de la Generalitat de Catalunya. S'ha d'entregar la següent taula degudament complimentada:
+URL|https://docs.google.com/spreadsheets/d/1v_2KPHh1Req9uS0aZ_fvPvVmSE7iYztI/edit?usp=sharing&ouid=101283652692857866760&rtpof=true&sd=true
+BODY|Document:
 URL|https://mediambient.gencat.cat/ca/05_ambits_dactuacio/empresa_i_produccio_sostenible/prevencio_i_control_dactivitats/la_llei_de_prevencio_i_control_ambiental_dactivitats/llei_20_2009_pcaa/modificacions_de_les_activitats/
 AJUDA|Norma: Llei 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats, art. 59 i 60. Criteris: document «Actualització dels criteris de substancialitat» del Departament de Territori
 URL|https://portaljuridic.gencat.cat/eli/es-ct/l/2009/12/04/20
