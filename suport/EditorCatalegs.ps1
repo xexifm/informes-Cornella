@@ -628,11 +628,11 @@ function _Ed_RefrescaBotoAjuda($state, $node) {
     $admet = Test-EdAdmetAjuda ([string]$state.Model.familia) $node
     $state.AjudaBtn.Enabled = $admet
     if (-not $admet) {
-        $state.AjudaBtn.Text = [string][char]0x24D8
+        _PosaIcona $state.AjudaBtn ([string][char]0x24D8) ''
         return
     }
     $te = Test-EdTeAjuda $node.ajuda
-    $state.AjudaBtn.Text = ([string][char]0x24D8 + $(if ($te) { ' ' + [char]0x2713 } else { '' }))
+    _PosaIcona $state.AjudaBtn ([string][char]0x24D8 + $(if ($te) { ' ' + [char]0x2713 } else { '' })) ''
 }
 
 function _Ed_FlushEditor($state) {
@@ -1193,7 +1193,8 @@ function Show-CatalegEditor([string]$focusDoc = '') {
     $btnItal.Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Italic)
     $btnCamp   = & $mkToolBtn '[CAMP]'   ($xR + 96) 78 $false
     $btnOpcio  = & $mkToolBtn '[OPCIO]'  ($xR + 180) 78 $false
-    $btnLink   = & $mkToolBtn ([System.Char]::ConvertFromUtf32(0x1F517) + ' Enlla' + [char]0x00E7) ($xR + 264) 100 $false
+    $btnLink   = & $mkToolBtn ('Enlla' + [char]0x00E7) ($xR + 264) 100 $false
+    _PosaIcona $btnLink ([System.Char]::ConvertFromUtf32(0x1F517))
 
     # La FITXA D'AJUDA del requeriment. Va a la barra del cos i no al bloc de
     # dalt perque es contingut del punt, no estructura.
@@ -1211,7 +1212,7 @@ function Show-CatalegEditor([string]$focusDoc = '') {
     _StyleSecondaryButton $btnAjuda
     $tip.SetToolTip($btnAjuda, ('Fitxa d' + [char]0x2019 + 'ajuda: la norma, el criteri, a qui s' +
                                 [char]0x2019 + 'aplica i qui es competent. Surt al Pas 3 amb el bot' +
-                                [char]0x00F3 + ' ' + [char]0x24D8 + ' i a la vista en Word, en gris; a l' +
+                                [char]0x00F3 + ' d' + [char]0x2019 + 'informaci' + [char]0x00F3 + ' i a la vista en Word, en gris; a l' +
                                 [char]0x2019 + 'informe del titular, mai.'))
     [void]$form.Controls.Add($btnAjuda)
     $state.AjudaBtn = $btnAjuda

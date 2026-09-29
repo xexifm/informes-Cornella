@@ -806,6 +806,15 @@ sortir malament de primera:
    programa el llapis `✏️` sortia com un **quadrat**. Als xips de les rajoles sí
    que n'hi ha perquè allà es dibuixa a part, amb `Segoe UI Emoji`
    (`TextRenderer.DrawText`). Als enllaços: **sense emoji**.
+   **I passava a TOT el programa** (setembre 2026: «Obre la norma», «Recuperar
+   dades», els ✓/⚠ de Configuració, la ⓘ de l'editor…). Ara hi ha
+   **`_PosaIcona`** (`UiFinestra.ps1`): dibuixa el símbol amb `Segoe UI Emoji`
+   en una imatge i la posa al costat del text (a `_AddPeuBotons`, la clau
+   `Icona`). Les fletxes ← → ↑ ↓ sí que hi són a la Segoe UI. **Guard** a
+   `06-guards.ps1`: cap símbol al text d'un control sense passar per aquí
+   (validat tornant a posar la cadena d'enllaç a «Obre la norma»). Dins d'una
+   frase (una etiqueta, un tooltip, un MessageBox) no hi ha manera de posar-hi
+   la imatge: allà **es diu amb paraules**.
 2. **Un scriptblock SENSE `.GetNewClosure()` no veu els LOCALS de la funció que
    el crea**, només l'àmbit de l'script. El bloc es va posar **abans** de
    declarar `$result` i sense closure: `$result.Choice = …` queia sobre `$null`,

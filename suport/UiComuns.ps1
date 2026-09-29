@@ -465,9 +465,8 @@ function _MakeMultiFilter($parent, [int]$x, [int]$y, [int]$width, [string]$allLa
     $refresh = {
         $sel = @()
         foreach ($it in $menu.Items) { if ($it.Checked) { $sel += [string]$it.Text } }
-        if ($sel.Count -eq 0)      { $btn.Text = $allLabel + '   ' + $arrow }
-        elseif ($sel.Count -le 2)  { $btn.Text = ($sel -join ', ') + '   ' + $arrow }
-        else                       { $btn.Text = ('' + $sel.Count + ' triats   ' + $arrow) }
+        $txt = if ($sel.Count -eq 0) { $allLabel } elseif ($sel.Count -le 2) { ($sel -join ', ') } else { ('' + $sel.Count + ' triats') }
+        _PosaIcona $btn ([string]$arrow) ($txt + '  ') -Despres
     }.GetNewClosure()
 
     foreach ($opt in $options) {
@@ -743,6 +742,7 @@ function _AddConfigRow($parent, [int]$y, [string]$labelText, [string]$initialVal
     $refreshStatus = {
         $p = $tb.Text.Trim()
         if ([string]::IsNullOrWhiteSpace($p)) {
+            _TreuIcona $status
             $status.Text = "(buit: es fara servir el valor per defecte)"
             $status.ForeColor = [System.Drawing.Color]::Gray
             return
@@ -752,12 +752,11 @@ function _AddConfigRow($parent, [int]$y, [string]$labelText, [string]$initialVal
         if ($ok) {
             $esFitxer = $false
             try { $esFitxer = Test-Path -LiteralPath $p -PathType Leaf } catch { }
-            if ($esFitxer) { $status.Text = "$([char]0x2713) Document trobat" }
-            else           { $status.Text = "$([char]0x2713) Trobada" }
             $status.ForeColor = [System.Drawing.Color]::SeaGreen
+            _PosaIcona $status ([string][char]0x2713) $(if ($esFitxer) { 'Document trobat' } else { 'Trobada' })
         } else {
-            $status.Text = "$([char]0x26A0) No trobada ara (es pot desar igualment)"
             $status.ForeColor = [System.Drawing.Color]::DarkOrange
+            _PosaIcona $status ([string][char]0x26A0) 'No trobada ara (es pot desar igualment)'
         }
     }.GetNewClosure()
     $tb.add_TextChanged($refreshStatus)
@@ -1049,7 +1048,7 @@ function Show-Ajuda([string]$titol, $ajuda, $owner = $null) {
     $urlNorma = if ($null -eq $ajuda) { '' } else { [string]$ajuda.Enllac }
     $specNorma = $null
     if (-not [string]::IsNullOrWhiteSpace($urlNorma)) {
-        $specNorma = @{ Nom = 'Norma'; Text = ([System.Char]::ConvertFromUtf32(0x1F517) + ' Obre la norma'); Clic = {
+        $specNorma = @{ Nom = 'Norma'; Text = 'Obre la norma'; Icona = [System.Char]::ConvertFromUtf32(0x1F517); Clic = {
             # Start-Process amb l'URL obre el navegador per defecte. Dins d'un
             # try: si el sistema no te cap navegador associat, val mes no fer res
             # que rebentar la finestra d'ajuda.

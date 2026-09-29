@@ -987,11 +987,11 @@ function _ShowConvertPdfOptions {
     $lblAF.AutoSize = $true
     $lblAF.Font = New-Object System.Drawing.Font('Segoe UI', 8.5, [System.Drawing.FontStyle]::Regular)
     if ([string]::IsNullOrWhiteSpace($autofirma)) {
-        $lblAF.Text = ([char]0x26A0 + ' AutoFirma no trobat. Instal·la''l o desmarca la signatura.')
         $lblAF.ForeColor = [System.Drawing.Color]::Firebrick
+        _PosaIcona $lblAF ([string][char]0x26A0) 'AutoFirma no trobat. Instal·la''l o desmarca la signatura.'
     } else {
-        $lblAF.Text = ([char]0x2713 + ' AutoFirma: ' + $autofirma)
         $lblAF.ForeColor = [System.Drawing.Color]::SeaGreen
+        _PosaIcona $lblAF ([string][char]0x2713) ('AutoFirma: ' + $autofirma)
     }
     [void]$form.Controls.Add($lblAF)
     $y += 40

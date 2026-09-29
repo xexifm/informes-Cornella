@@ -128,7 +128,7 @@ function _BuildHeaderForm($excelInfo) {
 
     $peu = _AddPeuBotons $form @(
         @{ Nom = 'Enrere'; Text = (_TxtEnrere); Resultat = 'Retry' },
-        @{ Nom = 'Recupera'; Text = ([char]0x21BA + " Recuperar dades ultim informe") }) @(
+        @{ Nom = 'Recupera'; Text = 'Recuperar dades ultim informe'; Icona = [string][char]0x21BA }) @(
         @{ Nom = 'Ok'; Text = (_TxtSeguent); Estil = 'primari'; Intro = $true }) $y
     $back = $peu.Enrere; $recover = $peu.Recupera; $ok = $peu.Ok
 

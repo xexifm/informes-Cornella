@@ -102,10 +102,10 @@ function Invoke-ConfiguracioScreen {
     [void]$grpMant.Controls.Add($lblVer)
 
     $btnActualitzar = New-Object System.Windows.Forms.Button
-    $btnActualitzar.Text = "$([char]0x21BB) Actualitzar el programa"
     $btnActualitzar.Location = New-Object System.Drawing.Point(14, 52)
     $btnActualitzar.Size = New-Object System.Drawing.Size(260, 32)
     _StyleSecondaryButton $btnActualitzar
+    _PosaIcona $btnActualitzar ([string][char]0x21BB) 'Actualitzar el programa'
     $btnActualitzar.add_Click({
         $batPath = Join-Path $RepoRoot 'Actualitzar.bat'
         if (-not (Test-Path -LiteralPath $batPath)) {

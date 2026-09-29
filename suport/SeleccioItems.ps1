@@ -439,7 +439,9 @@ function Select-Items {
     # la fila del filtre, on trepitjaria el rotol del panell de detall (i
     # _AvisaSolapaments ho cantaria a cada obertura de la pantalla).
     $lblAjuda = New-Object System.Windows.Forms.Label
-    $lblAjuda.Text = ('Clica la ' + [char]0x24D8 + ' d''un punt (o prem F1) per veure quan s''ha de requerir.')
+    # Sense la i en cercle al mig de la frase: la lletra de l'etiqueta no la te
+    # i sortia un quadrat (vegeu _PosaIcona, UiFinestra.ps1).
+    $lblAjuda.Text = ('Clica la icona d''informaci' + [char]0x00F3 + ' d''un punt (o prem F1) per veure quan s''ha de requerir.')
     $lblAjuda.Location = New-Object System.Drawing.Point(($peu.Enrere.Right + 15), 748)
     $lblAjuda.AutoSize = $true
     $lblAjuda.ForeColor = [System.Drawing.Color]::DimGray

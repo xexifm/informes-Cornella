@@ -1249,3 +1249,43 @@ foreach ($f in @(Get-ChildItem -Path $arrelSuport -Recurse -Filter *.ps1 -File))
     }
 }
 AssertEq ($peuAMa -join ', ') '' 'cap boto de peu fet a ma: tots passen per _AddPeuBotons'
+
+Write-Host "`n--- Cap emoji ni simbol al text d'un control sense _PosaIcona (guard) ---"
+# PER QUE. Un control de WinForms te UNA sola lletra per a tot el text, i la del
+# programa (Segoe UI) no porta els emojis ni molts simbols: "Obre la norma" amb
+# la cadena d'enllac, "Recuperar dades" amb la fletxa en cercle, els vistos de
+# Configuracio... sortien amb un QUADRAT (l'usuari, setembre 2026). Ara passen
+# per _PosaIcona (UiFinestra.ps1), que el dibuixa amb 'Segoe UI Emoji'. Les
+# fletxes <- -> amunt i avall SI que hi son a la Segoe UI i es poden fer servir.
+# Les linies que es permeten: les que ja passen per _PosaIcona (o per la clau
+# Icona d'un peu de botons) i les del menu que es dibuixen amb la lletra
+# d'emojis (icones de les rajoles i botons d'un sol emoji de la banda).
+$simbPermes = { param([int]$cp) ($cp -lt 0x2100) -or ($cp -ge 0x2190 -and $cp -le 0x2193) -or ($cp -eq 0xFE0F) }
+$liniaPermesa = '_PosaIcona|Icona\s*=|\$ico\w*\s*=|\$ti\w+\s*=|\$pencil\s*=|Icon\s*=|\$arrow\s*=|\$btn(Ajuda|Carpeta|Config)\.Text'
+$simbDolents = New-Object System.Collections.ArrayList
+foreach ($f in @(Get-ChildItem -LiteralPath (Join-Path $rootRepo 'suport') -Recurse -Filter '*.ps1' -File | Where-Object { $_.FullName -notmatch '[\\/]tests[\\/]' })) {
+    $n = 0
+    $dinsComentari = $false
+    foreach ($l in [System.IO.File]::ReadAllLines($f.FullName)) {
+        $n++
+        if ($dinsComentari) { if ($l.Contains('#>')) { $dinsComentari = $false }; continue }
+        if ($l.TrimStart().StartsWith('<#')) { if (-not $l.Contains('#>')) { $dinsComentari = $true }; continue }
+        if ($l.TrimStart().StartsWith('#')) { continue }
+        if ($l -match $liniaPermesa) { continue }
+        $cps = New-Object System.Collections.ArrayList
+        foreach ($m in [regex]::Matches($l, 'ConvertFromUtf32\(\s*0x([0-9A-Fa-f]+)\s*\)|\[char\]\s*0x([0-9A-Fa-f]{4})')) {
+            $hex = if ($m.Groups[1].Success) { $m.Groups[1].Value } else { $m.Groups[2].Value }
+            [void]$cps.Add([Convert]::ToInt32($hex, 16))
+        }
+        for ($i = 0; $i -lt $l.Length; $i++) {
+            $c = [int]$l[$i]
+            if ([char]::IsHighSurrogate($l[$i]) -and $i + 1 -lt $l.Length) { [void]$cps.Add([char]::ConvertToUtf32($l[$i], $l[$i + 1])); $i++; continue }
+            [void]$cps.Add($c)
+        }
+        foreach ($cp in $cps) {
+            if (-not (& $simbPermes $cp)) { [void]$simbDolents.Add(('{0}:{1} U+{2:X4}' -f $f.Name, $n, $cp)); break }
+        }
+    }
+}
+AssertEq ($simbDolents -join ', ') '' 'cap emoji ni simbol al text d''un control sense _PosaIcona'
+

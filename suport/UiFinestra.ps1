@@ -172,11 +172,88 @@ function _StyleSecondaryButton($btn) {
 #   Clic       scriptblock del Click, si en porta
 #   Intro/Esc  $true -> AcceptButton / CancelButton de la finestra
 #   Ample      amplada fixa (si no, la del text)
+#   Icona      un emoji o simbol al davant del text (vegeu _PosaIcona)
 # Torna un hashtable Nom -> boto.
 #
 # $form es la finestra (per a l'Intro i l'Esc; en una pestanya, la pestanya);
 # $pare, on van els botons (la finestra o un panell de peu); $y, la fila.
 # -Ancorat els enganxa a baix (per a finestres que es poden fer mes grans).
+
+# EMOJIS I SIMBOLS DINS D'UN BOTO O D'UNA ETIQUETA (setembre 2026).
+# Un control de WinForms te UNA sola lletra per a tot el text, i la del programa
+# (Segoe UI) no porta els emojis ni una colla de simbols: "Obre la norma" amb la
+# cadena d'enllac, "Recuperar dades" amb la fletxa en cercle, els vistos i els
+# avisos de Configuracio... sortien amb un QUADRAT. Els que si que es veien son
+# els que es dibuixen amb 'Segoe UI Emoji': les icones de les rajoles del menu i
+# els botons d'un sol emoji de la banda granat.
+#
+# _PosaIcona fa el mateix per a qualsevol control: dibuixa el simbol a part,
+# amb aquella lletra i el color del text, en una imatge que es posa AL COSTAT
+# del text. Les fletxes <- -> i les de pujar i baixar si que hi son a la Segoe
+# UI i no cal (les fan servir tots els peus de botons). Hi ha guard
+# (06-guards.ps1): cap simbol mes enlla d'aquelles fletxes pot anar al .Text
+# d'un control si no passa per aqui o per la lletra d'emojis.
+$Script:IconaLletra = 'Segoe UI Emoji'
+
+function _BitmapIcona([string]$simbol, [single]$midaPt, [System.Drawing.Color]$color) {
+    $f = New-Object System.Drawing.Font($Script:IconaLletra, $midaPt, [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Point)
+    $fmt = [System.Drawing.StringFormat]::GenericTypographic
+    try {
+        # Mida amb la MATEIXA API que dibuixa (GDI+): la de TextRenderer (GDI)
+        # dona una amplada diferent i el simbol quedava retallat.
+        $tmp = New-Object System.Drawing.Bitmap(1, 1)
+        $gm = [System.Drawing.Graphics]::FromImage($tmp)
+        try { $mida = $gm.MeasureString($simbol, $f, 400, $fmt) } finally { $gm.Dispose(); $tmp.Dispose() }
+        $w = [int][Math]::Ceiling($mida.Width) + 2
+        $h = [int][Math]::Ceiling($mida.Height) + 2
+        $bmp = New-Object System.Drawing.Bitmap([Math]::Max(1, $w), [Math]::Max(1, $h))
+        $g = [System.Drawing.Graphics]::FromImage($bmp)
+        try {
+            # Fons TRANSPARENT i suavitzat en grisos (no ClearType): el boto
+            # canvia de color en passar-hi el ratoli i la imatge l'ha de seguir.
+            $g.Clear([System.Drawing.Color]::Transparent)
+            $g.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::AntiAliasGridFit
+            $br = New-Object System.Drawing.SolidBrush($color)
+            try { $g.DrawString($simbol, $f, $br, 1, 1, $fmt) } finally { $br.Dispose() }
+        } finally { $g.Dispose() }
+        $bmp.Tag = 'icona'
+        return $bmp
+    } finally { $f.Dispose() }
+}
+
+# Treu la icona que hi hagi posat _PosaIcona (un estat que ja no en porta).
+function _TreuIcona($ctl) {
+    $vella = $ctl.Image
+    $ctl.Image = $null
+    if ($null -ne $vella -and [string]$vella.Tag -eq 'icona') { $vella.Dispose() }
+}
+
+# Posa $simbol com a imatge al costat del text d'un boto (o casella) o d'una
+# etiqueta. $text, si hi es, substitueix el text del control. -Despres, el
+# simbol va al darrere (el triangle d'un desplegable). Crida-la DESPRES de
+# posar el color del text: la icona el copia.
+function _PosaIcona($ctl, [string]$simbol, $text = $null, [switch]$Despres) {
+    _TreuIcona $ctl
+    if ($null -ne $text) { $ctl.Text = [string]$text }
+    $color = $ctl.ForeColor
+    if ($color.IsEmpty) { $color = [System.Drawing.SystemColors]::ControlText }
+    $img = _BitmapIcona $simbol ([single]$ctl.Font.SizeInPoints) $color
+    if ($ctl -is [System.Windows.Forms.ButtonBase]) {
+        $ctl.Image = $img
+        $ctl.ImageAlign = $ctl.TextAlign
+        $ctl.TextImageRelation = if ($Despres) { 'TextBeforeImage' } else { 'ImageBeforeText' }
+        return
+    }
+    # Una ETIQUETA no sap posar la imatge al costat del text: la dibuixa a sobre.
+    # Se li deixa lloc amb espais, que es l'unica cosa que no depen de la mida
+    # de l'etiqueta (n'hi ha d'AutoSize i de mida fixa).
+    $ctl.Image = $img
+    $ctl.ImageAlign = if ($Despres) { 'TopRight' } else { 'TopLeft' }
+    $espai = [Math]::Max(1, [System.Windows.Forms.TextRenderer]::MeasureText('a a', $ctl.Font).Width - [System.Windows.Forms.TextRenderer]::MeasureText('aa', $ctl.Font).Width)
+    $n = [int][Math]::Ceiling(($img.Width + 3) / $espai)
+    $buit = ([string][char]0x00A0) * $n
+    $ctl.Text = if ($Despres) { [string]$ctl.Text + $buit } else { $buit + [string]$ctl.Text }
+}
 
 function _TxtEnrere  { return ([string][char]0x2190 + ' Enrere') }
 function _TxtSeguent { return ('Seg' + [char]0x00FC + 'ent ' + [char]0x2192) }
@@ -221,6 +298,10 @@ function _AddPeuBotons($form, $esquerra, $dreta, [int]$y, $pare = $null, [switch
                 }
             }
             $ampleText = [System.Windows.Forms.TextRenderer]::MeasureText($b.Text, $b.Font).Width
+            if ($s.Icona -and $null -ne $Script:BrandMaroon) {
+                _PosaIcona $b ([string]$s.Icona)
+                $ampleText += $b.Image.Width + 4
+            }
             $b.Size = New-Object System.Drawing.Size((_PeuAmple $ampleText ([int]$s.Ample)), 32)
             if ($s.Resultat) { $b.DialogResult = [string]$s.Resultat }
             if ($s.Clic) { $b.add_Click($s.Clic) }

@@ -613,7 +613,7 @@ function Select-Mode {
         # sense desti seria un automatic que no fa res i no ho diu.
         if ($nou -and [string]::IsNullOrWhiteSpace($CopiaInformesDir)) {
             [System.Windows.Forms.MessageBox]::Show(
-                "Per copiar els informes sols cal dir on s'han de copiar.`n`nVes a  " + [char]0x2699 + " Configuraci" + [char]0x00F3 + " i indica 'Carpeta on copiar els informes'.",
+                "Per copiar els informes sols cal dir on s'han de copiar.`n`nVes a Configuraci" + [char]0x00F3 + " (el bot" + [char]0x00F3 + " de la roda, a dalt a la dreta) i indica 'Carpeta on copiar els informes'.",
                 'Copiar informes', 'OK', 'Information') | Out-Null
             return
         }

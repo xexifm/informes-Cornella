@@ -96,7 +96,7 @@ function _CopiaInformesDesaEstat($canvis) {
 # icona; l'automàtic escriu l'error al registre i no fa res més.
 function _CopiaInformesPrepara {
     if ([string]::IsNullOrWhiteSpace($CopiaInformesDir)) {
-        return @{ Ok = $false; Icona = 'Information'; Error = "No s'ha configurat cap carpeta de còpia.`n`nVes a  ⚙ Configuració  i indica 'Carpeta on copiar els informes'." }
+        return @{ Ok = $false; Icona = 'Information'; Error = "No s'ha configurat cap carpeta de còpia.`n`nVes a Configuració (el botó de la roda, a dalt a la dreta) i indica 'Carpeta on copiar els informes'." }
     }
     if ([string]::IsNullOrWhiteSpace($InformesDir) -or -not (Test-Path -LiteralPath $InformesDir -ErrorAction SilentlyContinue)) {
         return @{ Ok = $false; Icona = 'Warning'; Error = "No s'ha trobat la carpeta d'informes:`n$InformesDir" }
