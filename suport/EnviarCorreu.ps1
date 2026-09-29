@@ -334,6 +334,25 @@ function _CorreuDestinatarisPerDefecte([string]$raoEmail, [string]$repEmail) {
     return @{ Text = ($llista -join '; '); Duplicat = $dup; Compte = $llista.Count }
 }
 
+# Destinatari BUIT = correu de prova per a un mateix. L'usuari esborrava el
+# destinatari per rebre'l nomes ell en CCO i el dialeg ho aturava ("Indica
+# almenys un destinatari"). No es pot enviar nomes en CCO: la plantilla
+# d'EmailJS necessita un To_Email i, buit, el servei torna "The recipients
+# address is empty". Per aixo l'adreca propia passa a ser el destinatari.
+# L'adreca propia es la CCO marcada per defecte a email-textos.json: cap
+# adreca escrita al codi (el repositori es public). Es treu de la CCO perque
+# no arribi dues vegades. Sense cap CCO per defecte, To queda buit i el
+# cridador ho atura com sempre. PURA.
+function _CorreuDestinatariBuit($tos, $bccs, $opcions) {
+    $tos  = @(@($tos) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
+    $bccs = @(@($bccs) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
+    if ($tos.Count -gt 0) { return @{ To = $tos; Bcc = $bccs; Prova = $false } }
+    $jo = @(@($opcions) | Where-Object { $_.Default } | ForEach-Object { ([string]$_.Addr).Trim() } | Where-Object { $_ }) | Select-Object -First 1
+    if (-not $jo) { return @{ To = @(); Bcc = $bccs; Prova = $false } }
+    $resta = @($bccs | Where-Object { ([string]$_).Trim().ToLowerInvariant() -ne $jo.ToLowerInvariant() })
+    return @{ To = @($jo); Bcc = $resta; Prova = $true }
+}
+
 # --- DE QUINA ACTIVITAT és aquest informe? -----------------------------------
 # El GIA ha de sortir del DOCUMENT QUE S'ENVIA, mai de l'últim informe generat:
 # un informe de Seguiment no passa per l'assistent, i Load-LastReport encara
@@ -499,7 +518,7 @@ function _DialegEnviar($build, $destinatariDefault, $docxPath) {
     $form.Controls.Add($lblA)
 
     $lblD = New-Object System.Windows.Forms.Label
-    $lblD.Text = "Destinataris (separa'ls amb ; si n'hi ha més d'un):"
+    $lblD.Text = "Destinataris (separa'ls amb ;). Si ho deixes buit, t'arriba només a tu:"
     $lblD.Location = New-Object System.Drawing.Point(15, 88)
     $lblD.Size = New-Object System.Drawing.Size(560, 20)
     $form.Controls.Add($lblD)
@@ -612,6 +631,7 @@ function Send-CorreuPerDocx($docxPath) {
 
     $res = _DialegEnviar $build $destinatariDefault $docxPath
     if ($null -eq $res) { return }
+    $res = _CorreuDestinatariBuit $res.To $res.Bcc @(_CorreuBccOpcions)
     if (-not $res.To -or @($res.To).Count -eq 0) {
         [System.Windows.Forms.MessageBox]::Show('Indica almenys un destinatari.','Enviar correu','OK','Warning') | Out-Null
         return
@@ -620,7 +640,7 @@ function Send-CorreuPerDocx($docxPath) {
     $bccStr = ($res.Bcc -join ',')
     try {
         Send-EmailJs $cfg $toStr $bccStr $build.Subject $build.Html
-        $resum = "Correu enviat a: $toStr"
+        $resum = if ($res.Prova) { "Correu de prova enviat només a: $toStr" } else { "Correu enviat a: $toStr" }
         if ($bccStr) { $resum += "`nCCO: $bccStr" }
         [System.Windows.Forms.MessageBox]::Show($resum,'Enviar correu','OK','Information') | Out-Null
     } catch {

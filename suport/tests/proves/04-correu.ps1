@@ -85,6 +85,24 @@ $dBuit = _CorreuDestinatarisPerDefecte '' ''
 AssertEq $dBuit.Text '' '_CorreuDestinatarisPerDefecte: cap adreca, text buit'
 AssertEq $dBuit.Compte 0 '_CorreuDestinatarisPerDefecte: cap adreca, compte 0'
 
+Write-Host "`n--- EnviarCorreu.ps1: destinatari buit = correu de prova per a un mateix ---"
+$opsJo = @(@{ Addr = 'Jo@X.cat'; Default = $true }, @{ Addr = 'altre@x.cat'; Default = $false })
+$rNormal = _CorreuDestinatariBuit @('tit@x.cat') @('jo@x.cat') $opsJo
+AssertEq ($rNormal.To -join ',') 'tit@x.cat' '_CorreuDestinatariBuit: amb destinatari, no toca el To'
+AssertEq ($rNormal.Bcc -join ',') 'jo@x.cat' '_CorreuDestinatariBuit: amb destinatari, no toca la CCO'
+AssertEq ([bool]$rNormal.Prova) $false '_CorreuDestinatariBuit: amb destinatari no es prova'
+$rProva = _CorreuDestinatariBuit @() @('jo@x.cat', 'altre@x.cat') $opsJo
+AssertEq ($rProva.To -join ',') 'Jo@X.cat' '_CorreuDestinatariBuit: buit -> la CCO per defecte passa a destinatari'
+AssertEq ($rProva.Bcc -join ',') 'altre@x.cat' '_CorreuDestinatariBuit: i surt de la CCO (no arriba dos cops); les altres CCO es queden'
+AssertEq ([bool]$rProva.Prova) $true '_CorreuDestinatariBuit: buit marca Prova'
+$rBlancs = _CorreuDestinatariBuit @('  ') @() $opsJo
+AssertEq ($rBlancs.To -join ',') 'Jo@X.cat' '_CorreuDestinatariBuit: nomes espais compta com a buit'
+AssertEq @($rBlancs.Bcc).Count 0 '_CorreuDestinatariBuit: sense CCO marcades, CCO buida'
+$rSenseDef = _CorreuDestinatariBuit @() @('altre@x.cat') @(@{ Addr = 'altre@x.cat'; Default = $false })
+AssertEq @($rSenseDef.To).Count 0 '_CorreuDestinatariBuit: sense CCO per defecte, To buit (el cridador ho atura)'
+$rReal = _CorreuDestinatariBuit @() @() @(_CorreuBccOpcions)
+AssertEq @($rReal.To).Count 1 '_CorreuDestinatariBuit: amb email-textos.json real, hi ha adreca propia'
+
 Write-Host "`n--- EnviarCorreu.ps1: de quina activitat es l'informe (pura) ---"
 # El nom real que fa _GetOutputFileName / _SeguimentOutputName.
 AssertEq (_GiaDelNomFitxer '2026-09-08_Req2_GIA 1466') '1466' '_GiaDelNomFitxer: nom d''un seguiment'

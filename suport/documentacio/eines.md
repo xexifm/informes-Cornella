@@ -196,6 +196,17 @@ destinataris d'una altra activitat.
     sense estar dins d'una funció ni d'un `if` que miri una bandera de headless.
     Sobre el codi d'avui: **zero falsos positius** (tots els altres ja hi eren).
 
+### Destinatari buit = correu de prova per a tu
+
+L'usuari esborrava el destinatari per rebre el correu només ell en CCO i el
+diàleg ho aturava («Indica almenys un destinatari»). **No es pot enviar només en
+CCO**: la plantilla d'EmailJS necessita el `to_email` i, buit, el servei el
+rebutja. Per això `_CorreuDestinatariBuit` (pura): si el destinatari és buit, la
+**CCO marcada per defecte** a `docs/dades/email-textos.json` passa a ser el
+destinatari i **surt de la CCO** (no arriba dos cops). L'adreça no és al codi
+(repositori públic). Si no hi ha cap CCO per defecte, es manté l'avís. El mòbil
+(`docs/app.js`) encara exigeix destinatari.
+
 ## Base d'informes (informes-db.json)
 - El motor de la base d'informes és `suport/Informes.ps1`: escaneja `$InformesDir`
   (per defecte `...\5.- Sergi Fadurdo\Informes`) i, per cada informe (`.docx` o
