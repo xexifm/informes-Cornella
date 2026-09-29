@@ -186,10 +186,13 @@ Assert ($appJs.Contains('return parts.join("\n");')) 'app.js: richTextOf uneix a
 
 # 4) Un text fix es de la SECCIO o de la SUBSECCIO segons on estigui
 #    (Build-CatalegBlocs, MotorInforme.ps1:373-412). Hi ha DUES copies del
-#    recorregut del cataleg dins d'app.js i totes dues ho han de fer igual.
-AssertEq ([regex]::Matches($appJs, 'introSeccio').Count -gt 0) $true 'app.js: distingeix l''intro de SECCIO'
-AssertEq ([regex]::Matches($appJs, 'dinsSub = true').Count) 2 'app.js: les DUES copies del recorregut marquen dinsSub'
-AssertEq ([regex]::Matches($appJs, 'introSeccio = el').Count) 2 'app.js: les DUES copies recullen l''intro de seccio'
+#    recorregut del cataleg al mobil -la llista en text pla (app.js) i els
+#    blocs del correu (correu.js)- i totes dues ho han de fer igual.
+$correuJs = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'docs' 'correu.js')))
+$mobilJs = $appJs + "`n" + $correuJs
+AssertEq ([regex]::Matches($mobilJs, 'introSeccio').Count -gt 0) $true 'mobil: distingeix l''intro de SECCIO'
+AssertEq ([regex]::Matches($mobilJs, 'dinsSub = true').Count) 2 'mobil: les DUES copies del recorregut marquen dinsSub'
+AssertEq ([regex]::Matches($mobilJs, 'introSeccio = el').Count) 2 'mobil: les DUES copies recullen l''intro de seccio'
 
 # 4. CODI MORT I DEFECTES SILENCIOSOS D'app.js (bloc P1 de l'auditoria).
 #    Els quatre venien de la mateixa familia: no peten, nomes fan una cosa

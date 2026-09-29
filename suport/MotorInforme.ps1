@@ -128,6 +128,15 @@ function _CapNormalitzaFinal($doc) {
 #   'doc'  -> "Doc. aportada amb Num. d'anotacio <NUM_ANOTACIO> del <DATA_ANOTACIO>"
 #   'insp' -> "Visita inspeccio <DATA_INSPECCIO>"
 #   'cap'  -> '' (sense Objecte; p.ex. requeriments de control periodic)
+# LES PLANTILLES, en UN sol lloc: les fa servir _BuildOrigenText per escriure
+# la linia i _OrigenDesDeText (CorreuFormat.ps1) per llegir-la al reves -el
+# correu del PC en treu si l'informe es de documentacio aportada o d'una visita-.
+# Tambe es publiquen al mobil (docs\dades\capcalera.json, "Origen").
+$Script:OrigenPlantilles = [ordered]@{
+    doc  = ('Doc. aportada amb N' + [char]0x00FA + 'm. d' + [char]0x2019 + 'anotaci' + [char]0x00F3 + ' <<NUM_ANOTACIO>> del <<DATA_ANOTACIO>>')
+    insp = ('Visita inspecci' + [char]0x00F3 + ' <<DATA_INSPECCIO>>')
+}
+
 function _BuildOrigenText($header) {
     $get = {
         param($k)
@@ -138,11 +147,8 @@ function _BuildOrigenText($header) {
     }
     $tipus = (& $get 'ORIGEN_TIPUS'); if ([string]::IsNullOrWhiteSpace($tipus)) { $tipus = 'doc' }
     if ($tipus -eq 'cap')  { return '' }
-    if ($tipus -eq 'insp') {
-        return 'Visita inspecci' + [char]0x00F3 + ' ' + (& $get 'DATA_INSPECCIO')
-    }
-    return 'Doc. aportada amb N' + [char]0x00FA + 'm. d' + [char]0x2019 + 'anotaci' + [char]0x00F3 +
-           ' ' + (& $get 'NUM_ANOTACIO') + ' del ' + (& $get 'DATA_ANOTACIO')
+    $pl = if ($tipus -eq 'insp') { [string]$Script:OrigenPlantilles['insp'] } else { [string]$Script:OrigenPlantilles['doc'] }
+    return [regex]::Replace($pl, '<<([A-Za-z0-9_]+)>>', { param($m) (& $get $m.Groups[1].Value) })
 }
 
 function Apply-HeaderReplacements($doc, $header) {

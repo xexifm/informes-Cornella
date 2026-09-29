@@ -271,6 +271,17 @@ No es pot detectar amb una prova pura (`-is [string]`, `.GetType()` i
 `.psobject.BaseObject` diuen `String` en tots dos casos), o sigui que la regla
 és: **si un valor ha d'anar a un `[ref]` d'una crida COM, força'n el tipus**.
 
+## Dues trampes del PowerShell que han costat una volta (setembre 2026)
+- **`$B` i `$b` són la MATEIXA variable.** Els noms de variable no distingeixen
+  majúscules: un `$B = $fmt.Blocs` dins d'un bucle que feia servir `$b` per al
+  bloc actual el trepitjava, i petava amb un error que no tenia res a veure.
+  Al JavaScript (`docs/correu.js`) sí que són dues.
+- **L'apòstrof tipogràfic (’, U+2019) tanca una cadena entre cometes simples.**
+  `'Doc. aportada amb Núm. d’anotació'` no parseja. Al codi, `[char]0x2019`
+  (com fa `$Script:OrigenPlantilles`); en una cadena simple, doblat (`’’`).
+- I `R` és un àlies d'`Invoke-History`: una funció d'ajuda que es digui `R` no
+  es crida mai.
+
 ## Res de llegir `.docx` per treure'n contingut
 El lector de `.docx` (`Parse-Cataleg`, les branques `.docx` de `Read-Conclusions`
 i `Parse-ActExtrTemplate`, `Read-ConclusionsXml`, `Test-StyleMatch`) es va

@@ -11,7 +11,9 @@
        - cataleg-<BaseName>.json  (un per cada cataleg amb deficiencies a triar;
                                    els informes de cos fix com TERMINI s'ometen)
        - conclusions.json         (nomes les dels tipus exportats al mobil)
-       - capcalera.json           (placeholders <<...>> detectats)
+       - capcalera.json           (placeholders <<...>> detectats i les linies
+                                   de la capcalera del correu)
+       - correu-format.json       (les mides del correu, de Format.ps1)
        - manifest.json            (llista de catalegs + data de generacio)
      Aquests fitxers SI es pugen al GitHub public (GitHub Pages els serveix al
      mobil des de la carpeta /docs). Els refresca i puja Actualitzar.bat.
@@ -94,6 +96,19 @@ function _CapcaleraPlaceholdersPublicats {
     $o = Read-JsonFile (Join-Path $WebDadesDir 'capcalera.json')
     if ($null -eq $o) { return ,[string[]]@() }
     return ,[string[]]@($o.Placeholders)
+}
+
+# capcalera.json: els placeholders del Pas 2 i, per al CORREU, les linies amb
+# etiqueta de '0 CAPCALERA' (ID GIA ... Objecte) i les plantilles de l'Objecte.
+# El PC munta la capcalera del correu amb les MATEIXES dues coses
+# (_CorreuCapcaleraLinies, $Script:OrigenPlantilles): aixi els dos correus
+# porten les mateixes linies i en el mateix ordre.
+function _CapcaleraMobil($placeholders) {
+    return [pscustomobject]@{
+        Placeholders = @($placeholders)
+        Correu       = @(_CorreuCapcaleraLinies (Read-JsonFile (Get-CapcaleraJsonPath)))
+        Origen       = [pscustomobject]$Script:OrigenPlantilles
+    }
 }
 
 function Export-Plantilles {
@@ -193,8 +208,13 @@ function Export-Plantilles {
             $headerFields = _CapcaleraPlaceholdersPublicats
             Write-Host "  (sense Word: conservo els $($headerFields.Count) placeholders ja publicats)"
         }
-        Write-JsonFile (Join-Path $WebDadesDir 'capcalera.json') ([pscustomobject]@{ Placeholders = @($headerFields) }) 4
+        Write-JsonFile (Join-Path $WebDadesDir 'capcalera.json') (_CapcaleraMobil $headerFields) 4
         Write-Host "  capcalera.json"
+
+        # El FORMAT del correu (el de l'informe de REQ1): les mides surten de
+        # $ReportFormatConfig i el mobil les llegeix d'aqui (docs\correu.js).
+        Write-JsonFile (Join-Path $WebDadesDir 'correu-format.json') (_CorreuFormat) 5
+        Write-Host "  correu-format.json"
 
         # Manifest
         Write-JsonFile (Join-Path $WebDadesDir 'manifest.json') ([pscustomobject]@{

@@ -11,6 +11,10 @@
   (que ja puja docs\dades\email-textos.json, pas 2b).
 
   Variables disponibles al cos i a l'assumpte:
+    {CAPCALERA}     les dades de l'activitat, com a la capcalera de l'informe
+                    ('0 CAPCALERA'); sola a la seva linia
+    {INTRO}         la frase que introdueix els requeriments segons l'origen
+                    (introDoc / introDocSenseAnotacio / introInsp del JSON)
     {REQUERIMENTS}  la llista de requeriments (deficiències) seleccionats
     {ID_GIA} {ADRECA} {ACTIVITAT} {TITULAR}   dades de l'activitat
     {DATA}          data d'avui (dd/MM/yyyy)
@@ -48,8 +52,11 @@ function _EmailTextosPath {
 
 # Text d'ajuda amb les variables disponibles.
 function _EmailTextosAjuda {
-    return ('Variables: {REQUERIMENTS} = els requeriments  ' + [char]0x00B7 + '  {ID_GIA} {ADRECA} {ACTIVITAT} {TITULAR} {DATA}   ' + [char]0x00B7 + '   **negreta**   ' + [char]0x00B7 + '   els enllacos http es fan clicables')
+    return ('Variables: {CAPCALERA} = les dades de l''activitat (com a l''informe)  ' + [char]0x00B7 + '  {INTRO} = la frase segons l''origen  ' + [char]0x00B7 + '  {REQUERIMENTS} = els requeriments  ' + [char]0x00B7 + '  {ID_GIA} {EXP_NUM} {ADRECA} {ACTIVITAT} {TITULAR} {DATA}   ' + [char]0x00B7 + '   **negreta**   ' + [char]0x00B7 + '   els enllacos http es fan clicables')
 }
+
+# Les frases que introdueixen els requeriments segons l'origen de l'informe.
+$Script:EmailTextosIntroClaus = @('introDoc', 'introDocSenseAnotacio', 'introInsp')
 
 # Llegeix els textos del correu. Torna un ordered hashtable amb assumpte, cos i
 # bcc. PETA si el fitxer no hi es, no es valid o li falta alguna clau: no hi ha
@@ -70,6 +77,11 @@ function _LoadEmailTextos {
         $d[$k] = [string]$o.$k
     }
     $d['bcc'] = @(_EmailBccDeJson $o)
+    # Les frases de {INTRO} (vegeu _CorreuIntro, CorreuFormat.ps1). No son
+    # obligatories: un cos que no porta {INTRO} no les fa servir.
+    foreach ($k in $Script:EmailTextosIntroClaus) {
+        $d[$k] = if ($o.PSObject.Properties[$k]) { [string]$o.$k } else { '' }
+    }
     return ,$d
 }
 
@@ -138,6 +150,8 @@ function Invoke-EmailTextos {
                 cos      = [string]$v['cos']
                 bcc      = @(@($textos['bcc']) | ForEach-Object { [pscustomobject]@{ addr = [string]$_.Addr; def = [bool]$_.Default } })
             }
+            # Les frases de {INTRO} tampoc no s'editen aqui: el mateix motiu.
+            foreach ($k in $Script:EmailTextosIntroClaus) { $out[$k] = [string]$textos[$k] }
             try {
                 _SaveEmailTextos $out
                 [System.Windows.Forms.MessageBox]::Show("Textos desats.`n`nEs publicaran al mobil la propera vegada que facis Actualitzar.", 'Textos del correu', 'OK', 'Information') | Out-Null

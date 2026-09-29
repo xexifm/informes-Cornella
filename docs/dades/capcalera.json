@@ -1,12 +1,42 @@
 {
-    "Placeholders":  [
-                         "ID_GIA",
-                         "EXP_NUM",
-                         "ADRECA",
-                         "ACTIVITAT",
-                         "TITULAR",
-                         "ORIGEN",
-                         "DATES",
-                         "CLASSIFICACIO"
-                     ]
+  "Placeholders": [
+    "ID_GIA",
+    "EXP_NUM",
+    "ADRECA",
+    "ACTIVITAT",
+    "TITULAR",
+    "ORIGEN",
+    "DATES",
+    "CLASSIFICACIO"
+  ],
+  "Correu": [
+    {
+      "Etiqueta": "ID GIA:",
+      "Plantilla": "<<ID_GIA>>"
+    },
+    {
+      "Etiqueta": "Exp. Núm:",
+      "Plantilla": "<<EXP_NUM>>"
+    },
+    {
+      "Etiqueta": "Adreça:",
+      "Plantilla": "<<ADRECA>>"
+    },
+    {
+      "Etiqueta": "Activitat:",
+      "Plantilla": "<<ACTIVITAT>>"
+    },
+    {
+      "Etiqueta": "Titular:",
+      "Plantilla": "<<TITULAR>>"
+    },
+    {
+      "Etiqueta": "Objecte:",
+      "Plantilla": "<<ORIGEN>>"
+    }
+  ],
+  "Origen": {
+    "doc": "Doc. aportada amb Núm. d’anotació <<NUM_ANOTACIO>> del <<DATA_ANOTACIO>>",
+    "insp": "Visita inspecció <<DATA_INSPECCIO>>"
+  }
 }

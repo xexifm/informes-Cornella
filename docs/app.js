@@ -110,17 +110,9 @@
     return applyFields(asArray(lines).join("\n"), values).split("\n");
   }
 
-  // _SplitTextAndUrls: separa el text dels enllaços d'una línia.
-  function splitTextAndUrls(line) {
-    if (!line) return { text: "", urls: [] };
-    if (line.indexOf("[[URL]] ") === 0) return { text: "", urls: [line.substring(8).trim()] };
-    var tokens = line.split(/\s+/);
-    var urls = tokens.filter(function (t) { return /^https?:\/\//i.test(t); });
-    if (!urls.length) return { text: line, urls: [] };
-    var idx = line.search(/https?:\/\//i);
-    var text = (idx >= 0 ? line.substring(0, idx) : line).trim();
-    return { text: text, urls: urls };
-  }
+  // _SplitTextAndUrls: separa el text dels enllaços d'una línia. Viu a
+  // correu.js: el correu i la resta de l'app l'han de partir igual.
+  function splitTextAndUrls(line) { return Correu.splitTextAndUrls(line); }
 
   // Build-SelectionFromKeys: reconstrueix la selecció (seccions amb items).
   function reconstructSelection(catalog, keysSet) {
@@ -386,7 +378,9 @@
       emailTextosError = "els textos del correu no tenen assumpte o cos.";
       return;
     }
-    emailTextos = { assumpte: String(obj.assumpte), cos: String(obj.cos), bcc: asArray(obj.bcc) };
+    emailTextos = { assumpte: String(obj.assumpte), cos: String(obj.cos), bcc: asArray(obj.bcc),
+                    introDoc: String(obj.introDoc || ""), introDocSenseAnotacio: String(obj.introDocSenseAnotacio || ""),
+                    introInsp: String(obj.introInsp || "") };
     emailTextosError = "";
   }
 
@@ -395,141 +389,74 @@
     h = h || {};
     return String(s == null ? "" : s)
       .replace(/\{ID_GIA\}/g, h.ID_GIA || "")
+      .replace(/\{EXP_NUM\}/g, h.EXP_NUM || "")
       .replace(/\{ADRECA\}/g, h.ADRECA || "")
       .replace(/\{ACTIVITAT\}/g, h.ACTIVITAT || "")
       .replace(/\{TITULAR\}/g, h.TITULAR || "")
       .replace(/\{DATA\}/g, avuiDDMMYYYY());
   }
 
-  // Converteix una línia de cos a HTML: escapa, **negreta** -> <b> i els URLs
-  // http(s) es tornen enllaços clicables.
-  function autolinkHtml(s) {
-    var re = /(https?:\/\/[^\s]+)/g, out = "", last = 0, m;
-    while ((m = re.exec(s)) !== null) {
-      out += mdHtml(s.substring(last, m.index));
-      out += '<a href="' + esc(m[1]) + '">' + esc(m[1]) + '</a>';
-      last = re.lastIndex;
-    }
-    out += mdHtml(s.substring(last));
-    return out;
+  // LES DADES DEL CORREU que comparteixen la versio HTML i la de text pla: les
+  // linies de la capcalera ('0 CAPCALERA': ID GIA ... Objecte) i la frase que
+  // introdueix els requeriments segons l'origen. Al mobil l'origen per defecte
+  // es la visita; sense data d'inspeccio, la d'avui (tambe a l'Objecte).
+  function dadesCorreu() {
+    var h = estat.header || {}, avui = avuiDDMMYYYY();
+    var o = {
+      ORIGEN_TIPUS: h.ORIGEN_TIPUS || "insp",
+      NUM_ANOTACIO: h.NUM_ANOTACIO || "", DATA_ANOTACIO: h.DATA_ANOTACIO || "",
+      DATA_INSPECCIO: h.DATA_INSPECCIO || avui
+    };
+    var valors = {};
+    Object.keys(h).forEach(function (k) { valors[k] = h[k]; });
+    valors.ORIGEN = Correu.origenText(capcalera.Origen || {}, o);
+    var linies = asArray(capcalera.Correu).map(function (l) {
+      return { Etiqueta: l.Etiqueta, Valor: Correu.omplePlantilla(l.Plantilla, valors) };
+    });
+    return { linies: linies, intro: Correu.intro(emailTextos, o, avui) };
   }
 
-  // Cos del correu en TEXT pla (fallback mailto). El cos editable amb la variable
-  // {REQUERIMENTS} substituïda per la llista de requeriments; **marques** tretes.
+  // Les conclusions triades al Pas 4, en l'ordre del cataleg i amb els camps
+  // resolts (Build-ConclusionsFromTitles + _BlocsConclusions del PC).
+  function conclusionsTriades(values) {
+    return asArray(conclusions.Selectable).filter(function (c) { return estat.conclTitles.has(c.Title); })
+      .map(function (c) { return applyFields(c.Body, values); });
+  }
+
+  // Cos del correu en TEXT pla (fallback mailto): el mateix cos, amb la
+  // capcalera com a linies "Etiqueta Valor" i **marques** tretes.
   function buildEmailBody(selSections, values) {
-    var h = estat.header || {};
-    var parts = fillPh(emailTextos.cos, h).split("{REQUERIMENTS}");
-    var out = [];
-    for (var i = 0; i < parts.length; i++) {
-      out.push(stripMarkers(parts[i]));
-      if (i < parts.length - 1) out.push(buildRequirementsList(selSections, values));
-    }
-    return out.join("");
+    var h = estat.header || {}, d = dadesCorreu();
+    var cap = d.linies.filter(function (l) { return String(l.Valor || "").trim() !== ""; })
+      .map(function (l) { return l.Etiqueta + " " + l.Valor; }).join("\n");
+    var concl = conclusionsTriades(values);
+    var req = buildRequirementsList(selSections, values) +
+      (concl.length ? "\n\n" + (conclusions.HeaderText || "") + "\n" + concl.map(stripMarkers).join("\n") : "");
+    return stripMarkers(fillPh(emailTextos.cos, h).replace(/\{INTRO\}/g, d.intro))
+      .replace("{CAPCALERA}", cap).replace("{REQUERIMENTS}", req);
   }
 
   // ------- Versió HTML del correu (per a EmailJS i la previsualització) --------
-  function esc(s) {
-    return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  }
-  // **negreta** -> <b>, //cursiva// -> <i> (després d'escapar l'HTML).
-  function mdHtml(s) {
-    return esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\/\/(.+?)\/\//g, "<i>$1</i>");
-  }
-  function urlHtml(u, ml) {
-    var m = ml ? (' style="margin-left:' + ml + 'px"') : '';
-    return '<div' + m + '><a href="' + esc(u) + '">' + esc(u) + '</a></div>';
-  }
-
-  // Requeriments en HTML (mateixa estructura que buildRequirementsList, però amb
-  // format: seccions en negreta, SUBSECCIONS SUBRATLLADES, negreta/cursiva i
-  // enllaços, per assemblar-se a l'informe de Word).
-  function buildRequirementsHTML(selSections, values) {
-    var H = [];
-    var n = 0, lastSection = null;
-    function emetIntroH(node) {
-      applyFieldsToLines(node.BodyLines, values).forEach(function (l) {
-        var s = splitTextAndUrls(l);
-        if (s.text) H.push('<div>' + mdHtml(s.text) + '</div>');
-        s.urls.forEach(function (u) { H.push(urlHtml(u)); });
-      });
-    }
-    selSections.forEach(function (sec) {
-      var idx = sec.Title.indexOf(" - ");
-      var secName = idx >= 0 ? sec.Title.substring(0, idx).trim() : sec.Title.trim();
-      var subT = idx >= 0 ? sec.Title.substring(idx + 3).trim() : null;
-      if (secName !== lastSection) {
-        H.push('<div style="font-weight:bold;margin-top:12px">' + esc(secName.toUpperCase()) + '</div>');
-        lastSection = secName;
-      }
-      if (subT) H.push('<div style="text-decoration:underline;margin-top:4px">' + esc(subT) + '</div>');
-
-      // UN TEXT FIX ES DE LA SECCIO O DE LA SUBSECCIO, SEGONS ON ESTIGUI
-      // (Build-CatalegBlocs, MotorInforme.ps1:373-412). Abans, QUALSEVOL
-      // subseccio invalidava l'intro pendent, i per tant un text posat a la
-      // SECCIO -abans de la primera subseccio- no sortia MAI: els seus items
-      // pengen de les subseccions, i el primer marcador de subseccio ja se
-      // l'havia endut.
-      //   - intro d'ABANS de la primera subseccio -> es de la SECCIO: sobreviu
-      //     als canvis de subseccio i surt amb el PRIMER item que s'emeti.
-      //   - intro de DINS d'una subseccio -> es d'aquella subseccio i mor amb ella.
-      var pendingSub = null, pendingIntro = null, introSeccio = null, dinsSub = false;
-      sec.Items.forEach(function (el) {
-        if (el.Kind === "subsection") { pendingSub = el; dinsSub = true; pendingIntro = null; return; }
-        if (el.Kind === "intro") { if (dinsSub) { pendingIntro = el; } else { introSeccio = el; } return; }
-        var hasChildren = !!(el.Children && el.Children.length > 0);
-        if (!(el.Selected || hasChildren)) return;
-        var itemLines = applyFieldsToLines(el.BodyLines, values);
-        if (introSeccio) { emetIntroH(introSeccio); introSeccio = null; }
-        if (pendingSub) { H.push('<div style="text-decoration:underline;margin-top:4px">' + esc(stripMarkers(pendingSub.Short)) + '</div>'); pendingSub = null; }
-        if (pendingIntro) { emetIntroH(pendingIntro); pendingIntro = null; }
-        var itemWritten = false;
-        if (itemLines.length > 0) {
-          n++;
-          var p0 = splitTextAndUrls(itemLines[0]);
-          H.push('<div style="margin-top:6px">' + n + '. ' + mdHtml(p0.text) + '</div>');
-          p0.urls.forEach(function (u) { H.push(urlHtml(u, 18)); });
-          for (var i = 1; i < itemLines.length; i++) {
-            var s = splitTextAndUrls(itemLines[i]);
-            if (s.text) H.push('<div style="margin-left:18px">' + mdHtml(s.text) + '</div>');
-            s.urls.forEach(function (u) { H.push(urlHtml(u, 18)); });
-          }
-          itemWritten = true;
-        }
-        if (hasChildren) {
-          el.Children.forEach(function (ch) {
-            var cl = applyFieldsToLines(ch.BodyLines, values);
-            if (!cl.length) return;
-            if (!itemWritten) { n++; itemWritten = true; }
-            cl.forEach(function (cx) {
-              var s = splitTextAndUrls(cx);
-              if (s.text) H.push('<div style="margin-left:24px">- ' + mdHtml(s.text) + '</div>');
-              s.urls.forEach(function (u) { H.push(urlHtml(u, 24)); });
-            });
-          });
-        }
-      });
-    });
-    return H.join("\n");
-  }
+  // EL FORMAT ES EL DE L'INFORME DE REQ1, I EL MATEIX QUE EL CORREU DEL PC.
+  // Abans aqui hi havia un pintor propi (seccions en negreta, subseccions
+  // subratllades, enllacos sagnats, cap linia en blanc entre punts, cap
+  // conclusio) que no s'assemblava ni a l'informe ni al correu del PC. Ara els
+  // blocs i l'HTML els fa correu.js, que es la copia de CorreuFormat.ps1 (hi ha
+  // prova que dona el mateix HTML), amb les mides de dades/correu-format.json.
+  function esc(s) { return Correu.esc(s); }
 
   function buildEmailHTML(selSections, values) {
-    var h = estat.header || {};
-    var parts = fillPh(emailTextos.cos, h).split("{REQUERIMENTS}");
-    var H = [];
-    for (var i = 0; i < parts.length; i++) {
-      // Cada línia del cos -> un <div> (línia buida = petit espai).
-      parts[i].split("\n").forEach(function (l) {
-        if (l.trim() === "") { H.push('<div style="height:8px"></div>'); }
-        else { H.push('<div>' + autolinkHtml(l) + '</div>'); }
-      });
-      if (i < parts.length - 1) H.push(buildRequirementsHTML(selSections, values));
-    }
-    return '<div style="font-family:Calibri,Arial,sans-serif;font-size:14px;line-height:1.4">' + H.join("\n") + '</div>';
+    var h = estat.header || {}, d = dadesCorreu();
+    var blocs = Correu.blocsDeSeleccio(selSections, function (node) { return applyFieldsToLines(node.BodyLines, values); })
+      .concat(Correu.blocsConclusions(conclusions.HeaderText, conclusionsTriades(values)));
+    return Correu.cosAHtml(emailTextos.cos,
+      function (l) { return fillPh(l, h).replace(/\{INTRO\}/g, d.intro); },
+      Correu.capcaleraHtml(d.linies, correuFormat), Correu.blocsAHtml(blocs, correuFormat), correuFormat);
   }
 
   // ------- Estat de l'aplicació ----------------------------------------------
 
-  var manifest = null, conclusions = null, capcalera = null;
+  var manifest = null, conclusions = null, capcalera = null, correuFormat = null;
   var catalegCache = {};       // baseName -> JSON del catàleg
   var estat = {
     cataleg: null,             // baseName
@@ -577,12 +504,20 @@
       carregarJson("dades/manifest.json"),
       carregarJson("dades/conclusions.json").catch(function () { return { HeaderText: "", Selectable: [], Always: [] }; }),
       carregarJson("dades/capcalera.json").catch(function () { return { Placeholders: HEADER_KEYS }; }),
-      carregarJson("dades/email-textos.json").catch(function () { return null; })
+      carregarJson("dades/email-textos.json").catch(function () { return null; }),
+      carregarJson("dades/correu-format.json").catch(function () { return null; })
     ]).then(function (res) {
       manifest = res[0];
       conclusions = res[1];
       capcalera = res[2];
       aplicarEmailTextos(res[3]);
+      correuFormat = res[4];
+      // SENSE EL FORMAT O LA CAPCALERA NO HI HA CORREU, com sense els textos:
+      // un correu amb un format inventat aqui seria una segona copia.
+      if (emailTextos && (!correuFormat || !asArray(capcalera.Correu).length)) {
+        emailTextos = null;
+        emailTextosError = "no s'ha pogut carregar el format del correu (dades/correu-format.json o dades/capcalera.json).";
+      }
       $("carregant").classList.add("ocult");
       mostrar($("navegacio"), true);
       muntarCataleg();
@@ -935,6 +870,7 @@
   function muntarFinal() {
     return carregarCataleg().then(function (catalog) {
       recollirKeysDelDOM();
+      recollirConclTitlesDelDOM();
       var selSections = reconstructSelection(catalog, estat.keys);
       // SENSE ELS TEXTOS NO S'ENVIA CAP CORREU. El paquet per al PC no els
       // necessita, aixi que la resta del pas segueix funcionant: val mes que

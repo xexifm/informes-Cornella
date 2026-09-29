@@ -46,6 +46,7 @@
     ControlsPeriodics.ps1 + ControlsCpEmail.ps1                 controls periodics
     EmailTextos.ps1     textos del correu     Configuracio.ps1  rutes d'aquest PC
     EnviarCorreu.ps1    enviar el correu      EmailQuota.ps1    quota d'EmailJS
+    CorreuFormat.ps1    el format del correu (el de REQ1; el mateix al mobil)
     Recordatoris.ps1    recordatoris periodics als titulars (+ RecordatorisAuto.ps1,
                         que corre sol des d'una tasca del Windows)
     rutes\Ruta.ps1      planificador de rutes (proces a part)
@@ -515,6 +516,10 @@ if (-not $Script:HeadlessTest) { [void](Invoke-MigracioLocal $RepoRoot) }
 # Comptador d'enviaments d'EmailJS (200/mes al pla gratuit, limit de seguretat
 # 150). Va ABANS d'EnviarCorreu.ps1, que hi suma cada correu que surt.
 . (Join-Path $ScriptRoot 'EmailQuota.ps1')
+
+# El FORMAT del correu (el de l'informe de REQ1), comu al PC i al mobil. Nomes
+# defineix funcions; va abans d'EnviarCorreu.ps1, que el fa servir.
+. (Join-Path $ScriptRoot 'CorreuFormat.ps1')
 
 # Eina "Enviar correu": obre la web del mobil precarregada amb l'ultim informe
 # per enviar el correu (mateix EmailJS que el mobil; no cal Private key).

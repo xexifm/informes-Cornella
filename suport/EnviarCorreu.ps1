@@ -44,44 +44,10 @@ function _CorreuConfig {
     }
 }
 
-# --- Utils de text -> HTML ----------------------------------------------------
-function _EscHtml($s) {
-    return ([string]$s).Replace('&','&amp;').Replace('<','&lt;').Replace('>','&gt;')
-}
-# Escapa, **negreta** -> <b>, //cursiva// -> <i>, i enllaça els URLs.
-#
-# ELS URLs S'APARTEN ABANS DE MIRAR LA CURSIVA, i no es un detall d'estil: la
-# cursiva es "//...//" i un "https://" en porta un de "//" a dins. Amb DUES
-# adreces a la mateixa linia, l'expressio de la cursiva es menjava tot el tros
-# d'una a l'altra:
-#
-#   Mira https://a.cat i tambe https://b.cat
-#   -> Mira https:<i>a.cat i tambe https:</i>b.cat        (les dues destrossades)
-#
-# No era hipotetic: aquesta funcio ja la fan servir els recordatoris, i el text
-# el pot editar l'usuari. Ara cada URL es substitueix per una marca amb caracters
-# de control -que no poden sortir en un text escrit a ma i que cap de les dues
-# expressions toca- i es torna a posar, ja com a enllac, al final.
-function _TextToHtml($s) {
-    if ([string]::IsNullOrEmpty($s)) { return '' }
-    $h = _EscHtml $s
-
-    $urls = New-Object System.Collections.ArrayList
-    $h = [regex]::Replace($h, '(https?://[^\s<]+)', {
-        param($m)
-        $i = $urls.Add($m.Groups[1].Value)
-        return ([char]1 + [string]$i + [char]1)
-    })
-
-    $h = [regex]::Replace($h, '\*\*(.+?)\*\*', '<b>$1</b>')
-    $h = [regex]::Replace($h, '//(.+?)//', '<i>$1</i>')
-
-    for ($i = 0; $i -lt $urls.Count; $i++) {
-        $u = [string]$urls[$i]
-        $h = $h.Replace(([char]1 + [string]$i + [char]1), ('<a href="' + $u + '">' + $u + '</a>'))
-    }
-    return $h.Replace("`r`n","`n").Replace("`n",'<br>')
-}
+# --- Utils de text -> HTML ---------------------------------------------------
+# _EscHtml i _TextToHtml viuen a CorreuFormat.ps1: les fa servir tambe el
+# format del correu de requeriments, i CorreuFormat es la capa de sota (si
+# fossin aqui, els dos fitxers dependrien l'un de l'altre).
 
 # El COS sencer a HTML: una linia = un <div>, i una linia buida un espaiador.
 #
@@ -117,70 +83,27 @@ function _OmpleVariables([string]$text, $mapa) {
     return $t
 }
 
-# --- Llegir el cos de requeriments del .docx generat --------------------------
-# Recorre els paragrafs: comença despres de la intro de deficiencies (o del
-# primer titol/numero) i acaba abans de les conclusions. Torna HTML.
-function _DocxRequerimentsHtml($docxPath) {
-    $phrases = if ($SeguimentConclusionPhrases) { @($SeguimentConclusionPhrases) } else {
-        @("Vist l'anterior", 'Ho poso al seu coneixement', 'Cornella de Llobregat,', 'CONCLUSIONS')
-    }
-    $phrN = $phrases | ForEach-Object { _NormalitzaText $_ }
-
-    # New-WordApp (Motor.ps1) i no un New-Object a pel: aqui no hi havia CAP
-    # guarda del $null -New-Object -ComObject pot tornar $null sense llancar- i
-    # llavors el '$word.Visible' de sota petava amb un "metode sobre NULL" que
-    # arribava tal qual al quadre d'error del crider. A mes, New-WordApp posa
-    # AutomationSecurity = 1, que es el que evita que el Word obri en VISTA
-    # PROTEGIDA els fitxers d'una unitat de xarxa -i els informes hi son-.
-    $word = New-WordApp -Opcional
-    if ($null -eq $word) { throw "No s'ha pogut iniciar Microsoft Word per llegir l'informe." }
-    $out = New-Object System.Collections.ArrayList
-    $started = $false
+# --- Llegir l'informe (.docx) SENSE Word -----------------------------------
+# Abans s'obria el Word per llegir-lo paragraf a paragraf i es comencava al
+# primer paragraf en MAJUSCULES: "ID GIA: 1398" ho es, i el correu repetia la
+# capcalera sencera, "INFORME" i la nota de l'Ordenanca. Ara es llegeix el XML
+# (_CorreuDocxLlegeix, CorreuFormat.ps1): mes rapid, sense Word, provat a Linux,
+# i amb la sagnia, els espais i la negreta de debo de cada paragraf.
+#
+# FileShare.ReadWrite: l'informe pot estar obert al Word (l'usuari l'ha retocat
+# abans d'enviar-lo) i un ZipFile.OpenRead a pel no el podria obrir.
+function _CorreuDocumentXml([string]$docxPath) {
+    Add-Type -AssemblyName System.IO.Compression -ErrorAction SilentlyContinue | Out-Null
+    $fs = New-Object System.IO.FileStream($docxPath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, ([System.IO.FileShare]::ReadWrite -bor [System.IO.FileShare]::Delete))
     try {
-        $doc = $word.Documents.Open($docxPath, $false, $true)   # ReadOnly
+        $zip = New-Object System.IO.Compression.ZipArchive($fs, [System.IO.Compression.ZipArchiveMode]::Read)
         try {
-            foreach ($p in $doc.Paragraphs) {
-                $txt = ([string]$p.Range.Text).TrimEnd("`r","`n","`a"," ")
-                if ([string]::IsNullOrWhiteSpace($txt)) { continue }
-                $n = _NormalitzaText $txt
-
-                # Fi: primera frase de conclusions.
-                $isConcl = $false
-                foreach ($pn in $phrN) { if ($pn -and $n.StartsWith($pn)) { $isConcl = $true; break } }
-                if ($isConcl) { break }
-
-                $isCaps = ($txt -cmatch '\p{Lu}') -and -not ($txt -cmatch '\p{Ll}')
-                $isNum  = $txt -match '^\s*\d+\.\s'
-                $isUrl  = $txt -match '^\s*https?://'
-
-                if (-not $started) {
-                    # Comença despres de la intro ("...deficiencies... esmenar...")
-                    if ($n -match 'defici' -and $n -match 'esmenar') { $started = $true; continue }
-                    if ($isCaps -or $isNum) { $started = $true }  # o al primer titol/numero
-                    else { continue }
-                }
-
-                # Subratllat -> subseccio.
-                $isUnder = $false
-                try { $u = $p.Range.Font.Underline; if ($u -ne 0 -and $u -ne 9999999) { $isUnder = $true } } catch { }
-
-                if ($isCaps) {
-                    [void]$out.Add('<div style="font-weight:bold;margin-top:12px">' + (_EscHtml $txt) + '</div>')
-                } elseif ($isUrl) {
-                    [void]$out.Add('<div><a href="' + (_EscHtml $txt) + '">' + (_EscHtml $txt) + '</a></div>')
-                } elseif ($isUnder -and -not $isNum) {
-                    [void]$out.Add('<div style="text-decoration:underline;margin-top:4px">' + (_EscHtml $txt) + '</div>')
-                } else {
-                    $mt = if ($isNum) { 'margin-top:6px' } else { 'margin-left:18px' }
-                    [void]$out.Add('<div style="' + $mt + '">' + (_TextToHtml $txt) + '</div>')
-                }
-            }
-        } finally { $doc.Close($false) }
-    } finally {
-        try { $word.Quit() } catch { }
-        [System.Runtime.InteropServices.Marshal]::ReleaseComObject($word) | Out-Null
-    }
-    return ($out -join "`n")
+            $entry = $zip.GetEntry('word/document.xml')
+            if ($null -eq $entry) { throw "El fitxer no sembla un .docx valid (falta word/document.xml)." }
+            $sr = New-Object System.IO.StreamReader($entry.Open(), [System.Text.Encoding]::UTF8)
+            try { return $sr.ReadToEnd() } finally { $sr.Close() }
+        } finally { $zip.Dispose() }
+    } finally { $fs.Dispose() }
 }
 
 # --- Embolcall del correu (plantilla email-textos.json) -----------------------
@@ -200,23 +123,58 @@ function _FillVars([string]$s, $h) {
     $g = { param($k) if ($h -and $h.ContainsKey($k)) { [string]$h[$k] } else { '' } }
     return (_OmpleVariables $s ([ordered]@{
         '{ID_GIA}'    = (& $g 'ID_GIA')
+        '{EXP_NUM}'   = (& $g 'EXP_NUM')
         '{ADRECA}'    = (& $g 'ADRECA')
         '{ACTIVITAT}' = (& $g 'ACTIVITAT')
         '{TITULAR}'   = (& $g 'TITULAR')
         '{DATA}'      = (Get-Date).ToString('dd/MM/yyyy')
     }))
 }
-function _BuildCorreu($requerimentsHtml, $header) {
-    $tx = _CorreuTextos
-    $subject = _FillVars ([string]$tx.assumpte) $header
-    $cos = _FillVars ([string]$tx.cos) $header
-    $parts = $cos -split '\{REQUERIMENTS\}', 2
-    $html = '<div style="font-family:Calibri,Arial,sans-serif;font-size:14px;line-height:1.4">'
-    $html += _TextToHtml $parts[0]
-    $html += $requerimentsHtml
-    if ($parts.Count -gt 1) { $html += _TextToHtml $parts[1] }
-    $html += '</div>'
-    return [pscustomobject]@{ Subject = $subject; Html = $html }
+
+# Els valors de la capcalera del correu: els de l'INFORME que s'envia (el que
+# diu el document) i, si alla no hi son, els de l'Excel. PURA.
+function _CorreuValorsCapcalera($linies, $capDocx, $header) {
+    $out = @()
+    foreach ($l in @($linies)) {
+        $k = _CorreuClauEtiqueta ([string]$l.Etiqueta)
+        $v = ''
+        if ($null -ne $capDocx -and $capDocx.Contains($k)) { $v = [string]$capDocx[$k] }
+        if ([string]::IsNullOrWhiteSpace($v)) { $v = _CorreuOmplePlantilla ([string]$l.Plantilla) $header }
+        $out += [pscustomobject]@{ Etiqueta = [string]$l.Etiqueta; Plantilla = [string]$l.Plantilla; Valor = [string]$v }
+    }
+    return $out
+}
+
+# EL CORREU SENCER a partir del document.xml de l'informe. $avui arriba de fora
+# (dd/MM/yyyy) perque es pugui provar. Torna @{ Subject; Html; Intro }.
+#   - Capcalera: les linies de '0 CAPCALERA' (ID GIA ... Objecte).
+#   - {INTRO}: "documentacio aportada" o "visita", segons l'Objecte de l'informe.
+#     Una visita sense data agafa la d'avui (tambe a l'Objecte del correu).
+#   - {REQUERIMENTS}: el cos de l'informe, conclusions incloses.
+function _BuildCorreu([string]$documentXml, $header, [string]$avui) {
+    $tx  = _CorreuTextos
+    $fmt = _CorreuFormat
+    $doc = _CorreuDocxLlegeix $documentXml $fmt
+    $linies = @(_CorreuValorsCapcalera (_CorreuCapcaleraLinies (Read-JsonFile (Get-CapcaleraJsonPath))) $doc.Capcalera $header)
+    $lo = @($linies | Where-Object { $_.Plantilla -match '<<\s*ORIGEN\s*>>' }) | Select-Object -First 1
+    $origen = _OrigenDesDeText $(if ($null -ne $lo) { $lo.Valor } else { '' })
+    if ($origen.ORIGEN_TIPUS -eq 'insp' -and [string]::IsNullOrWhiteSpace($origen.DATA_INSPECCIO)) {
+        $origen.DATA_INSPECCIO = $avui
+        $lo.Valor = _BuildOrigenText $origen
+    }
+    $intro = _CorreuIntro $tx $origen $avui
+    # Les variables del cos ({ADRECA}, {TITULAR}... del peu): les de l'Excel i,
+    # si alla no hi son, les de la capcalera de l'informe. Si no, el peu deia
+    # "feu-hi constar: ID GIA 1398, Adreca , Titular ." amb l'informe al davant.
+    $vars = @{}
+    if ($null -ne $header) { foreach ($k in @($header.Keys)) { $vars[[string]$k] = $header[$k] } }
+    foreach ($l in $linies) {
+        $mt = [regex]::Match([string]$l.Plantilla, '^<<\s*([A-Za-z0-9_]+)\s*>>$')
+        if ($mt.Success -and [string]::IsNullOrWhiteSpace([string]$vars[$mt.Groups[1].Value])) { $vars[$mt.Groups[1].Value] = [string]$l.Valor }
+    }
+    $omple = { param($s) (_FillVars ([string]$s) $vars).Replace('{INTRO}', $intro) }
+    $html = _CorreuCosAHtml ([string]$tx.cos) $omple (_CorreuCapcaleraHtml $linies $fmt) ([string]$doc.Html) $fmt
+    return [pscustomobject]@{ Subject = (_FillVars ([string]$tx.assumpte) $vars); Html = $html; Intro = $intro }
 }
 
 # Colors dels botons d'accio del dialeg: blau mari per ENVIAR i vermell per NO
@@ -586,8 +544,8 @@ function Send-CorreuPerDocx($docxPath) {
     # De QUINA ACTIVITAT es aquest informe? Surt del document que s'envia (nom
     # del fitxer + capcalera), NO de l'ultim informe generat: un Seguiment no
     # passa per l'assistent i Load-LastReport encara duia una altra activitat.
-    # Es mira ABANS de llegir el cos (que obre el Word i costa): si s'ha de
-    # preguntar o es cancel.la, no s'ha fet feina de franc.
+    # Es mira ABANS de llegir el cos: si s'ha de preguntar o es cancel.la, no
+    # s'ha fet feina de franc (l'Excel de l'activitat).
     $giaInfo = _CorreuGiaDelDocx $docxPath
     $gia = [string]$giaInfo.Gia
     if ($giaInfo.CalPreguntar) { $gia = _DemanaIdGia $docxPath $giaInfo }
@@ -612,12 +570,11 @@ function Send-CorreuPerDocx($docxPath) {
     }
 
     try {
-        $reqHtml = _DocxRequerimentsHtml $docxPath
+        $build = _BuildCorreu (_CorreuDocumentXml $docxPath) $header ((Get-Date).ToString('dd/MM/yyyy'))
     } catch {
         [System.Windows.Forms.MessageBox]::Show("Error llegint l'informe:`n$($_.Exception.Message)",'Enviar correu','OK','Error') | Out-Null
         return
     }
-    $build = _BuildCorreu $reqHtml $header
 
     # Destinatari per defecte: Rao social + Rep. legal (columnes de l'Excel).
     # Si son la mateixa adreca, nomes s'hi posa un cop i s'avisa.

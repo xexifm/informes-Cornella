@@ -160,9 +160,9 @@ destinataris d'una altra activitat.
   d'anotació)—, mai per trepitjar l'Excel. Això arregla alhora l'assumpte
   (`{ID_GIA}`) i les variables `{TITULAR}`/`{ADRECA}`/`{ACTIVITAT}`, no només els
   destinataris.
-- **El GIA es mira ABANS de llegir el cos**: la capçalera es llegeix del `.docx`
-  com a **ZIP** (sense Word), i el cos sí que obre el Word. Així, si s'ha de
-  preguntar o es cancel·la, no s'ha obert el Word per res.
+- **El GIA es mira ABANS de llegir el cos**: si s'ha de preguntar o es
+  cancel·la, no s'ha fet feina de franc. (Ara el cos tampoc no obre el Word:
+  vegeu *El format del correu*, més avall.)
 - Si el GIA no és a l'Excel, **s'avisa i es continua** amb el destinatari a mà:
   aturar-ho seria pitjor que deixar enviar-lo.
 - `_CorreuEmailsActivitat` s'ha esborrat: obria l'Excel per treure NOMÉS els dos
@@ -206,6 +206,53 @@ rebutja. Per això `_CorreuDestinatariBuit` (pura): si el destinatari és buit, 
 destinatari i **surt de la CCO** (no arriba dos cops). L'adreça no és al codi
 (repositori públic). Si no hi ha cap CCO per defecte, es manté l'avís. El mòbil
 (`docs/app.js`) encara exigeix destinatari.
+
+## El format del correu: el de REQ1, i el mateix al PC i al mòbil
+
+Petició de l'usuari (setembre 2026), amb dos correus de prova del GIA 1398 al
+davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
+
+- **Què passava.** Cada un pintava pel seu compte. El PC obria el Word i
+  **començava al primer paràgraf en majúscules**: «ID GIA: 1398» ho és, i el
+  correu repetia la capçalera sencera, «INFORME» i la nota de l'Ordenança, i
+  sagnava totes les línies de cos. El mòbil posava les seccions en negreta, els
+  enllaços sagnats, cap línia en blanc entre punts i **cap conclusió**. I tots
+  dos deien «s'han detectat a la visita…» encara que l'informe fos de
+  documentació aportada.
+- **Ara**:
+  - la **capçalera del correu** són les línies amb etiqueta de `0 CAPCALERA`
+    (ID GIA, Exp. Núm., Adreça, Activitat, Titular, Objecte), en taula perquè
+    l'Outlook respecti la columna (2,75 cm, la sagnia de la plantilla; hi ha
+    guard). Una línia sense valor no surt;
+  - `{INTRO}` tria la frase segons l'**Objecte**: `introDoc` (amb el núm. i la
+    data d'anotació), `introDocSenseAnotacio` o `introInsp` (sense data, la
+    d'avui, també a l'Objecte). Les frases són a `email-textos.json`; l'editor
+    de textos no les edita però **les conserva en desar**, com el `bcc`;
+  - el **cos** té el format de l'informe: secció en majúscules sense negreta,
+    número en negreta, enllaç sense sagnar a 10 pt, sub-punts amb pic i sagnia
+    francesa (12 pt el primer, 6 els altres), una línia en blanc després de cada
+    punt, CONCLUSIONS centrat i les conclusions triades. **Sense** «Ho poso al
+    seu coneixement» ni la signatura.
+- **Com es garanteix que coincideixin** (`suport/CorreuFormat.ps1` i
+  `docs/correu.js`, que n'és la còpia en JavaScript):
+  - les mides surten de `$ReportFormatConfig` (`_CorreuFormat`) i el mòbil llegeix
+    les mateixes de `docs/dades/correu-format.json`, que genera `ExportaDades`.
+    Guard: el fitxer publicat ha de ser igual a `_CorreuFormat`;
+  - les línies de la capçalera i les plantilles de l'Objecte
+    (`$Script:OrigenPlantilles`, ara en un sol lloc a `MotorInforme.ps1`) van a
+    `docs/dades/capcalera.json` (`Correu`, `Origen`);
+  - **prova creuada amb Node** (`tests/proves/08-correu-format.ps1`): la selecció
+    de REQ1 sencera (els punts sense camps) passa per `Build-CatalegBlocs` +
+    `_CorreuBlocsAHtml` i per `correu.js`, i l'HTML ha de ser **idèntic** (uns
+    180.000 caràcters). Validada injectant un defecte a `correu.js`. Sense Node
+    diu `OMES`.
+- **El PC llegeix el `.docx` sense Word** (`_CorreuDocxLlegeix`, XML): respecta la
+  sagnia, els espais i la negreta **de cada paràgraf**, que és el que cal per a un
+  informe de seguiment (anotacions datades, punts pendents en negreta), i
+  comença **després** de la frase del catàleg («…deficiències… esmenar»). S'obre
+  amb `FileShare.ReadWrite`: l'informe pot ser obert al Word.
+- **El peu** («feu-hi constar: ID GIA …, Adreça …, Titular …») agafa de la
+  capçalera de l'informe el que l'Excel no té.
 
 ## Base d'informes (informes-db.json)
 - El motor de la base d'informes és `suport/Informes.ps1`: escaneja `$InformesDir`
