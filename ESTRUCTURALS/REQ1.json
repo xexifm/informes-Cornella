@@ -405,7 +405,7 @@
                                         "ajuda":  {
                                                       "norma":  "Llei 3/2010, del 18 de febrer, de prevenció i seguretat en matèria d’incendis en establiments, activitats, infraestructures i edificis, annex I (i annex 2 per a l’ús industrial), art. 22 a 24",
                                                       "enllac":  "https://portaljuridic.gencat.cat/eli/es-ct/l/2010/02/18/3",
-                                                      "criteri":  "NOMÉS per a les activitats de l’annex I. Els llindars: docent amb alçada d’evacuació >15 m o >2.000 m2 (>300 m2 en escoles bressol); sanitari ambulatori amb alçada >15 m i >750 m2 per planta; hospitalari; residencial públic >20 places; comercial >750 m2 sota edifici de qualsevol ús i tots els >2.000 m2; pública concurrència >500 m2 o aforament >500 persones; aparcament >750 m2 sota edifici o >2.000 m2 o amb dues o més plantes sota rasant; edificis amb alçada d’evacuació >=28 m sigui quin sigui l’ús; establiments d’espectacles públics; i industrials segons la taula de l’annex 2. FORA de l’annex I el control és MUNICIPAL i no cal informe de la Generalitat: aquest és el cas de la majoria d’activitats de Cornellà. L’acte de comprovació el fa una ENTITAT COL·LABORADORA, no els Bombers.",
+                                                      "criteri":  "NOMÉS per a les activitats de l’annex I. Els llindars: docent amb alçada d’evacuació \u003e15 m o \u003e2.000 m2 (\u003e300 m2 en escoles bressol); sanitari ambulatori amb alçada \u003e15 m i \u003e750 m2 per planta; hospitalari; residencial públic \u003e20 places; comercial \u003e750 m2 sota edifici de qualsevol ús i tots els \u003e2.000 m2; pública concurrència \u003e500 m2 o aforament \u003e500 persones; aparcament \u003e750 m2 sota edifici o \u003e2.000 m2 o amb dues o més plantes sota rasant; edificis amb alçada d’evacuació \u003e=28 m sigui quin sigui l’ús; establiments d’espectacles públics; i industrials segons la taula de l’annex 2. FORA de l’annex I el control és MUNICIPAL i no cal informe de la Generalitat: aquest és el cas de la majoria d’activitats de Cornellà. L’acte de comprovació el fa una ENTITAT COL·LABORADORA, no els Bombers.",
                                                       "vigencia":  "Una sola vegada: no caduca. S’ha de refer si hi ha modificació substancial o canvi de titular. L’acte de comprovació es refà si hi ha canvi significatiu del risc d’incendi.",
                                                       "aplica":  "Noves activitats i modificacions amb canvi significatiu del risc.",
                                                       "competencia":  "DGPEIS (informe previ) i entitat col·laboradora (acte de comprovació). L’Ajuntament els exigeix com a documentació.",
@@ -1422,7 +1422,7 @@
                                                           "ajuda":  {
                                                                         "norma":  "Real Decreto 244/2019, de 5 de abril, por el que se regulan las condiciones administrativas, técnicas y económicas del autoconsumo de energía eléctrica. art. 4 de l’Ordenança municipal d’activitats",
                                                                         "enllac":  "https://www.boe.es/eli/es/rd/2019/04/05/244/con",
-                                                                        "criteri":  "Cal el certificat d’inscripció al RITSIC de TOTA instal·lació d’autoconsum, amb excedents o sense, sigui quina sigui la potència. El que depèn de la potència és la INSPECCIÓ (>25 kW), no la inscripció. Sense excedents: un sol subjecte (el consumidor). Amb excedents: consumidor i productor.",
+                                                                        "criteri":  "Cal el certificat d’inscripció al RITSIC de TOTA instal·lació d’autoconsum, amb excedents o sense, sigui quina sigui la potència. El que depèn de la potència és la INSPECCIÓ (\u003e25 kW), no la inscripció. Sense excedents: un sol subjecte (el consumidor). Amb excedents: consumidor i productor.",
                                                                         "vigencia":  "Inscripció: una sola vegada. S’ha de refer amb qualsevol modificació de la instal·lació i amb el canvi de titular.",
                                                                         "aplica":  "Totes les instal·lacions en ús, també les anteriors a l’activitat actual.",
                                                                         "competencia":  "Indústria (Generalitat). L’Ajuntament comprova que el certificat existeix, és vigent i va a nom del titular.",
@@ -2298,7 +2298,7 @@
                                                           "ajuda":  {
                                                                         "norma":  "Real Decreto 842/2002, de 2 de agosto, por el que se aprueba el Reglamento electrotécnico para baja tensión, ITC-BT-05, ap. 4.2",
                                                                         "enllac":  "https://www.boe.es/eli/es/rd/2002/08/02/842/con",
-                                                                        "criteri":  "Només a les instal·lacions que van necessitar inspecció inicial (>25 kW). El termini compta des de la inspecció anterior, no des de la posada en servei.",
+                                                                        "criteri":  "Només a les instal·lacions que van necessitar inspecció inicial (\u003e25 kW). El termini compta des de la inspecció anterior, no des de la posada en servei.",
                                                                         "vigencia":  "CADA 5 ANYS.",
                                                                         "aplica":  "Instal·lacions en ús de més de 25 kW.",
                                                                         "competencia":  "Indústria (Generalitat). L’Ajuntament comprova que el certificat existeix, és vigent i va a nom del titular.",
@@ -2459,7 +2459,7 @@
                                                                         "norma":  "Real Decreto 1027/2007, de 20 de julio, por el que se aprueba el Reglamento de Instalaciones Térmicas en los Edificios (RITE), IT 4.2 i IT 4.3",
                                                                         "enllac":  "https://www.boe.es/eli/es/rd/2007/07/20/1027/con",
                                                                         "criteri":  "La potència es compta SUMANT la de tots els generadors del mateix tipus, no equip per equip. Calor i fred van per separat: una instal·lació pot necessitar la de fred i no la de calor. A més, quan la instal·lació passa dels 15 anys i supera els 70 kW cal la inspecció de la instal·lació SENCERA.",
-                                                                        "vigencia":  "CADA 4 ANYS els generadors de calor >70 kW; CADA 4 ANYS els de fred >70 kW; CADA 15 ANYS la instal·lació completa (a partir dels 15 anys d’antiguitat).",
+                                                                        "vigencia":  "CADA 4 ANYS els generadors de calor \u003e70 kW; CADA 4 ANYS els de fred \u003e70 kW; CADA 15 ANYS la instal·lació completa (a partir dels 15 anys d’antiguitat).",
                                                                         "aplica":  "Instal·lacions tèrmiques en ús per damunt de 70 kW.",
                                                                         "competencia":  "Indústria (Generalitat). L’Ajuntament comprova que el certificat existeix, és vigent i va a nom del titular.",
                                                                         "revisat":  "2026-09"
@@ -2491,7 +2491,7 @@
                                                                         "norma":  "Real Decreto 552/2019, de 27 de septiembre, Reglamento de seguridad para instalaciones frigoríficas, instrucció IF-14, art. 3. Gasos fluorats: RD 115/2017",
                                                                         "enllac":  "https://www.boe.es/eli/es/rd/2019/09/27/552/con",
                                                                         "criteri":  "La inspecció reglamentària de nivell 2 va cada 10 anys, però els controls de FUITES de gasos fluorats són molt més freqüents i es confonen sovint amb ella: són dues coses diferents i totes dues exigibles. La inspecció també comprova que es compleix la normativa de legionel·la (avui RD 487/2022, que va derogar el RD 865/2003) i els equips a pressió de la instal·lació.",
-                                                                        "vigencia":  "Inspecció: CADA 10 ANYS (nivell 2). Control de fuites: CADA 5 ANYS (50-500 t CO2e), CADA 2 (500-5.000) i ANUAL (>5.000).",
+                                                                        "vigencia":  "Inspecció: CADA 10 ANYS (nivell 2). Control de fuites: CADA 5 ANYS (50-500 t CO2e), CADA 2 (500-5.000) i ANUAL (\u003e5.000).",
                                                                         "aplica":  "Instal·lacions frigorífiques en ús.",
                                                                         "competencia":  "Indústria (Generalitat). L’Ajuntament comprova que el certificat existeix, és vigent i va a nom del titular.",
                                                                         "revisat":  "2026-09"
@@ -4899,7 +4899,7 @@
                                                                             "ajuda":  {
                                                                                           "norma":  "Real Decreto 314/2006, de 17 de marzo, por el que se aprueba el Código Técnico de la Edificación, de 17 de març, pel qual s’aprova el Codi tècnic de l’edificació, document bàsic DB SI 1, ap. 2 i taula 2.1",
                                                                                           "enllac":  "https://www.boe.es/eli/es/rd/2006/03/17/314/con",
-                                                                                          "criteri":  "Classificació en risc BAIX, MITJÀ o ALT i condicions de la taula 2.2 (resistència, vestíbul d’independència, recorregut màxim). Els casos que surten cada dia: CUINA a partir de 20 kW de potència instal·lada (20-30 baix, 30-50 mitjà, >50 alt), magatzem de residus, sala de calderes i sala de comptadors. El càlcul de la potència de cuina suma tot el que pot entrar en combustió (fogons, planxa, fregidora, forns).",
+                                                                                          "criteri":  "Classificació en risc BAIX, MITJÀ o ALT i condicions de la taula 2.2 (resistència, vestíbul d’independència, recorregut màxim). Els casos que surten cada dia: CUINA a partir de 20 kW de potència instal·lada (20-30 baix, 30-50 mitjà, \u003e50 alt), magatzem de residus, sala de calderes i sala de comptadors. El càlcul de la potència de cuina suma tot el que pot entrar en combustió (fogons, planxa, fregidora, forns).",
                                                                                           "vigencia":  "Una sola vegada: es resol amb l’obra i no caduca. Es torna a mirar si hi ha reforma, ampliació o canvi d’ús.",
                                                                                           "aplica":  "Obra nova, ampliació, reforma i canvi d’ús. En una activitat existent legalitzada amb normativa anterior NO es pot exigir l’adaptació al CTE vigent tret que hi hagi obra que afecti aquest element o un risc greu acreditat: comprova la data del títol abans de requerir.",
                                                                                           "competencia":  "Ajuntament; DGPEIS en les activitats de l’annex I de la Llei 3/2010.",
@@ -5155,7 +5155,7 @@
                                                                             "ajuda":  {
                                                                                           "norma":  "Real Decreto 314/2006, de 17 de marzo, por el que se aprueba el Código Técnico de la Edificación, de 17 de març, pel qual s’aprova el Codi tècnic de l’edificació, document bàsic DB SI 3, ap. 4 i taula 4.1",
                                                                                           "enllac":  "https://www.boe.es/eli/es/rd/2006/03/17/314/con",
-                                                                                          "criteri":  "Amplada de portes i passadissos A >= P/200, amb mínims de 0,80 m per full de porta i 1,00 m en passadissos i portes (0,80 m en el cas general de local). En supermercats, els passadissos entre caixes i prestatgeries tenen valors propis segons si hi ha carros i segons la superfície.",
+                                                                                          "criteri":  "Amplada de portes i passadissos A \u003e= P/200, amb mínims de 0,80 m per full de porta i 1,00 m en passadissos i portes (0,80 m en el cas general de local). En supermercats, els passadissos entre caixes i prestatgeries tenen valors propis segons si hi ha carros i segons la superfície.",
                                                                                           "vigencia":  "Una sola vegada: es resol amb l’obra i no caduca. Es torna a mirar si hi ha reforma, ampliació o canvi d’ús.",
                                                                                           "aplica":  "Obra nova, ampliació, reforma i canvi d’ús. En una activitat existent legalitzada amb normativa anterior NO es pot exigir l’adaptació al CTE vigent tret que hi hagi obra que afecti aquest element o un risc greu acreditat: comprova la data del títol abans de requerir.",
                                                                                           "competencia":  "Ajuntament; DGPEIS en les activitats de l’annex I de la Llei 3/2010.",
@@ -5475,7 +5475,7 @@
                                                                             "ajuda":  {
                                                                                           "norma":  "Real Decreto 314/2006, de 17 de marzo, por el que se aprueba el Código Técnico de la Edificación, de 17 de març, pel qual s’aprova el Codi tècnic de l’edificació, document bàsic DB SI 5, ap. 1",
                                                                                           "enllac":  "https://www.boe.es/eli/es/rd/2006/03/17/314/con",
-                                                                                          "criteri":  "Vials d’aproximació (amplada lliure, alçada, capacitat portant) i espai de maniobra en edificis amb alçada d’evacuació >9 m. Ocupar l’espai de maniobra és un incompliment d’ÚS i es pot requerir a qualsevol activitat.",
+                                                                                          "criteri":  "Vials d’aproximació (amplada lliure, alçada, capacitat portant) i espai de maniobra en edificis amb alçada d’evacuació \u003e9 m. Ocupar l’espai de maniobra és un incompliment d’ÚS i es pot requerir a qualsevol activitat.",
                                                                                           "vigencia":  "Una sola vegada: es resol amb l’obra i no caduca. Es torna a mirar si hi ha reforma, ampliació o canvi d’ús.",
                                                                                           "aplica":  "Dimensionament, en obra nova; ocupació de l’espai, a totes les activitats en funcionament.",
                                                                                           "competencia":  "Ajuntament; DGPEIS en les activitats de l’annex I de la Llei 3/2010.",
@@ -5728,7 +5728,22 @@
                                                     {
                                                         "runs":  [
                                                                      {
-                                                                         "t":  "Modificació de l’activitat. L’activitat es regeix per la LLEI 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats. S’ha de justificar si la modificació és substancial o no segons els criteris del document ACTUALITZACIÓ DELS CRITERIS DE SUBSTANCIALITAT DE LES MODIFICACIONS DE LES ACTIVITATS DE LA LLEI 20/2009, DEL 4 DE DESEMBRE, DE PREVENCIÓ I CONTROL AMBIENTAL D\u0027ACTIVITATS de la Generalitat de Catalunya."
+                                                                         "t":  "Modificació de l’activitat. L’activitat es regeix per la LLEI 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats. S’ha de justificar si la modificació és substancial o no segons els criteris del document ACTUALITZACIÓ DELS CRITERIS DE SUBSTANCIALITAT DE LES MODIFICACIONS DE LES ACTIVITATS DE LA LLEI 20/2009, DEL 4 DE DESEMBRE, DE PREVENCIÓ I CONTROL AMBIENTAL D\u0027ACTIVITATS de la Generalitat de Catalunya. S\u0027ha d\u0027entregar la següent taula degudament complimentada:"
+                                                                     }
+                                                                 ]
+                                                    },
+                                                    {
+                                                        "runs":  [
+                                                                     {
+                                                                         "t":  "https://docs.google.com/spreadsheets/d/1v_2KPHh1Req9uS0aZ_fvPvVmSE7iYztI/edit?usp=sharing\u0026ouid=101283652692857866760\u0026rtpof=true\u0026sd=true"
+                                                                     }
+                                                                 ],
+                                                        "url":  true
+                                                    },
+                                                    {
+                                                        "runs":  [
+                                                                     {
+                                                                         "t":  "Document:"
                                                                      }
                                                                  ]
                                                     },
@@ -5810,7 +5825,7 @@
                                         "ajuda":  {
                                                       "norma":  "Real Decreto 314/2006, de 17 de marzo, por el que se aprueba el Código Técnico de la Edificación, DB SI 3, ap. 4 i taula 4.1. Itineraris accessibles: Decret 209/2023",
                                                       "enllac":  "https://www.boe.es/eli/es/rd/2006/03/17/314/con",
-                                                      "criteri":  "El valor EXIGIBLE surt de l’ocupació (A >= P/200) i del Codi d’accessibilitat si el passadís forma part d’un itinerari accessible; 1,20 m és el que s’acostuma a requerir, però digues d’on surt el número. EN COMERÇ D’ALIMENTS hi ha valors propis segons la superfície: amb S<400 m2, passadís sense carros >1,20 m i amb carros >1,40 m; amb S>400 m2, sense carros >1,40 m i amb carros >1,80 m. I si hi ha transport de productes amb carros, entre les bateries de més de 10 caixes de cobrament i les prestatgeries cal >3 m (S<400 m2) o >4 m (S>400 m2).",
+                                                      "criteri":  "El valor EXIGIBLE surt de l’ocupació (A \u003e= P/200) i del Codi d’accessibilitat si el passadís forma part d’un itinerari accessible; 1,20 m és el que s’acostuma a requerir, però digues d’on surt el número. EN COMERÇ D’ALIMENTS hi ha valors propis segons la superfície: amb S\u003c400 m2, passadís sense carros \u003e1,20 m i amb carros \u003e1,40 m; amb S\u003e400 m2, sense carros \u003e1,40 m i amb carros \u003e1,80 m. I si hi ha transport de productes amb carros, entre les bateries de més de 10 caixes de cobrament i les prestatgeries cal \u003e3 m (S\u003c400 m2) o \u003e4 m (S\u003e400 m2).",
                                                       "vigencia":  "Una sola vegada: es resol amb l’obra i no caduca. Es torna a mirar si hi ha reforma o canvi d’ús. L’obstrucció d’un passadís existent, en canvi, és exigible sempre.",
                                                       "aplica":  "Obra nova i canvis de distribució; l’obstrucció, a qualsevol activitat en funcionament.",
                                                       "competencia":  "Ajuntament (competència pròpia).",
@@ -6260,7 +6275,7 @@
                                         "ajuda":  {
                                                       "norma":  "Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat, art. 11.7. Cuines com a local de risc especial: CTE DB SI 1, taula 2.1",
                                                       "enllac":  "",
-                                                      "criteri":  "Sistema d’extinció automàtica a la campana quan se superen els 20 kW de potència instal·lada i la cuina NO està compartimentada. La potència es calcula SUMANT tot el que pot entrar en combustió: fogons, planxa, fregidora, forns i màquines de kebab. Si la cuina està compartimentada com a local de risc especial, el criteri canvia: mira-ho abans de requerir-ho. Recorda els llindars del CTE: 20-30 kW risc baix, 30-50 mitjà, >50 alt.",
+                                                      "criteri":  "Sistema d’extinció automàtica a la campana quan se superen els 20 kW de potència instal·lada i la cuina NO està compartimentada. La potència es calcula SUMANT tot el que pot entrar en combustió: fogons, planxa, fregidora, forns i màquines de kebab. Si la cuina està compartimentada com a local de risc especial, el criteri canvia: mira-ho abans de requerir-ho. Recorda els llindars del CTE: 20-30 kW risc baix, 30-50 mitjà, \u003e50 alt.",
                                                       "vigencia":  "Una sola vegada: es resol amb l’obra i no caduca. Es torna a mirar si hi ha reforma o canvi de maquinària.",
                                                       "aplica":  "Instal·lacions noves i reformes; també quan s’ha ampliat la maquinària per damunt del llindar.",
                                                       "competencia":  "Ajuntament (competència pròpia).",
@@ -6317,7 +6332,7 @@
                                         "ajuda":  {
                                                       "norma":  "Normes UNE (no tenen text consolidat d’accés lliure), norma UNE-EN 12101-3:2016. Exigència derivada del CTE DB SI 1 i DB SI 3",
                                                       "enllac":  "",
-                                                      "criteri":  "El ventilador ha de resistir 400 ºC durant 90 minuts (classificació F400 90) i s’acredita amb la documentació del PRODUCTE, no amb el certificat de l’instal·lador. Exigible quan la cuina és local de risc especial per potència (>20 kW).",
+                                                      "criteri":  "El ventilador ha de resistir 400 ºC durant 90 minuts (classificació F400 90) i s’acredita amb la documentació del PRODUCTE, no amb el certificat de l’instal·lador. Exigible quan la cuina és local de risc especial per potència (\u003e20 kW).",
                                                       "vigencia":  "Una sola vegada: es resol amb l’obra i no caduca. Es torna a mirar si hi ha reforma o canvi de maquinària.",
                                                       "aplica":  "Instal·lacions noves i reformes; en existents, quan la cuina supera el llindar de risc especial.",
                                                       "competencia":  "Ajuntament (competència pròpia).",
@@ -7912,7 +7927,7 @@
                                         "ajuda":  {
                                                       "norma":  "Ordenances metropolitanes d’edificació (OME). Treballadors: RD 486/1997, annex V; recreatives: Decret 112/2010, art. 47",
                                                       "enllac":  "",
-                                                      "criteri":  "TRES fonts diferents segons de qui siguin els lavabos, i has de dir quina apliques. PÚBLIC (OME): local de 1a categoria amb S<500 m2, mínim 1 lavabo públic amb 1 inodor i 1 rentamans, sense vestíbul d’independència; local de 2a categoria amb S>500 m2, mínim 2, amb 1 inodor i 1 rentamans per cada 300 m2 o fracció i amb vestíbul. TREBALLADORS (RD 486/1997, annex V): amb menys de 10 treballadors, 1 inodor i 1 rentamans, que pot ser el mateix que el públic; amb més de 10, 1 rentamans per cada 10 persones, 1 inodor per cada 25 homes i 1 per cada 15 dones, i vestidors de 2 m2 per persona separats per sexes. RECREATIVES (Decret 112/2010, art. 47): per aforament. El règim dels treballadors és LABORAL i la competència, d’Inspecció de Treball.",
+                                                      "criteri":  "TRES fonts diferents segons de qui siguin els lavabos, i has de dir quina apliques. PÚBLIC (OME): local de 1a categoria amb S\u003c500 m2, mínim 1 lavabo públic amb 1 inodor i 1 rentamans, sense vestíbul d’independència; local de 2a categoria amb S\u003e500 m2, mínim 2, amb 1 inodor i 1 rentamans per cada 300 m2 o fracció i amb vestíbul. TREBALLADORS (RD 486/1997, annex V): amb menys de 10 treballadors, 1 inodor i 1 rentamans, que pot ser el mateix que el públic; amb més de 10, 1 rentamans per cada 10 persones, 1 inodor per cada 25 homes i 1 per cada 15 dones, i vestidors de 2 m2 per persona separats per sexes. RECREATIVES (Decret 112/2010, art. 47): per aforament. El règim dels treballadors és LABORAL i la competència, d’Inspecció de Treball.",
                                                       "vigencia":  "Una sola vegada: es resol amb l’obra i no caduca. Es torna a mirar si hi ha reforma o canvi d’ús.",
                                                       "aplica":  "Obra nova i reforma; en existents, quan la dotació és inferior a la del títol.",
                                                       "competencia":  "Ajuntament (dotació pública i accessibilitat); Inspecció de Treball (dotació de personal).",
