@@ -253,6 +253,22 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
   amb `FileShare.ReadWrite`: l'informe pot ser obert al Word.
 - **El peu** («feu-hi constar: ID GIA …, Adreça …, Titular …») agafa de la
   capçalera de l'informe el que l'Excel no té.
+- **Segona ronda (setembre 2026)**, demanada per l'usuari:
+  - **INFORME** sota la capçalera, centrat i en negreta, com a l'informe. El
+    text surt de `0 CAPCALERA` (`_CorreuCapcaleraTitol`: el primer text després
+    de l'última línia amb etiqueta) i el mòbil el llegeix de `capcalera.json`
+    (`Titol`).
+  - **Seguiment: negreta NOMÉS al comentari** («No s'aporta.»). El seguiment
+    actual ja no posa el punt en negreta, però els d'abans sí (la marca que
+    encara llegeix `_InferResolvedFromBold`): `_CorreuSenseNegretaSeguiment`
+    treu la negreta d'un punt que la té **sencera** i la torna a posar només al
+    número. Un punt amb una part en negreta (del catàleg) no es toca.
+  - **El peu, per idiomes**: primer tot el bloc CATALÀ i després tot el
+    CASTELLÀ (títol, «Com presentar…», la instància, a qui va dirigida i
+    l'avís IMPORTANT), en lloc de les frases barrejades. «Com presentar…» va en
+    **vermell** i sense negreta, i el text sense negreta. El vermell és una
+    marca nova dels textos del correu, **`!!text!!`** (`_TextToHtml` i
+    `correu.js`), que també entenen els recordatoris i els controls periòdics.
 
 ## Base d'informes (informes-db.json)
 - El motor de la base d'informes és `suport/Informes.ps1`: escaneja `$InformesDir`

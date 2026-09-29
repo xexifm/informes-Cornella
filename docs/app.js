@@ -146,7 +146,7 @@
   // representar, així que es mostren sense els símbols **...** i //...//).
   function stripMarkers(t) {
     if (!t) return "";
-    return String(t).replace(/\*\*(.+?)\*\*/g, "$1").replace(/\/\/(.+?)\/\//g, "$1");
+    return String(t).replace(/\*\*(.+?)\*\*/g, "$1").replace(/\/\/(.+?)\/\//g, "$1").replace(/!!(.+?)!!/g, "$1");
   }
 
   // ------- Camps inline (opcions/text dins del propi text) --------------------
@@ -428,7 +428,7 @@
   function buildEmailBody(selSections, values) {
     var h = estat.header || {}, d = dadesCorreu();
     var cap = d.linies.filter(function (l) { return String(l.Valor || "").trim() !== ""; })
-      .map(function (l) { return l.Etiqueta + " " + l.Valor; }).join("\n");
+      .map(function (l) { return l.Etiqueta + " " + l.Valor; }).join("\n") + (capcalera.Titol ? "\n\n" + capcalera.Titol : "");
     var concl = conclusionsTriades(values);
     var req = buildRequirementsList(selSections, values) +
       (concl.length ? "\n\n" + (conclusions.HeaderText || "") + "\n" + concl.map(stripMarkers).join("\n") : "");
@@ -451,7 +451,7 @@
       .concat(Correu.blocsConclusions(conclusions.HeaderText, conclusionsTriades(values)));
     return Correu.cosAHtml(emailTextos.cos,
       function (l) { return fillPh(l, h).replace(/\{INTRO\}/g, d.intro); },
-      Correu.capcaleraHtml(d.linies, correuFormat), Correu.blocsAHtml(blocs, correuFormat), correuFormat);
+      Correu.capcaleraHtml(d.linies, correuFormat, capcalera.Titol), Correu.blocsAHtml(blocs, correuFormat), correuFormat);
   }
 
   // ------- Estat de l'aplicació ----------------------------------------------

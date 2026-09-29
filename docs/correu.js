@@ -25,7 +25,8 @@
     var h = esc(s);
     var urls = [];
     h = h.replace(/(https?:\/\/[^\s<]+)/g, function (u) { urls.push(u); return "\u0001" + (urls.length - 1) + "\u0001"; });
-    h = h.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\/\/(.+?)\/\//g, "<i>$1</i>");
+    h = h.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\/\/(.+?)\/\//g, "<i>$1</i>")
+      .replace(/!!(.+?)!!/g, '<span style="color:#C00000">$1</span>');
     for (var i = 0; i < urls.length; i++) {
       h = h.split("\u0001" + i + "\u0001").join('<a href="' + urls[i] + '">' + urls[i] + "</a>");
     }
@@ -216,12 +217,17 @@
     if (tipus === "cap") return "";
     return omplePlantilla(tipus === "insp" ? plantilles.insp : plantilles.doc, h);
   }
-  // _CorreuCapcaleraHtml: les linies SENSE valor no surten.
-  function capcaleraHtml(linies, fmt) {
+  // _CorreuCapcaleraHtml: les linies SENSE valor no surten; a sota, el titol
+  // ("INFORME") centrat i en negreta.
+  function capcaleraHtml(linies, fmt, titol) {
     var px = Number(fmt.EtiquetaPx) | 0, m = { Esq: px, Penjat: px, Abans: 0, Despres: 0, Alinea: "left" };
-    return (linies || []).filter(function (l) { return String(l.Valor || "").trim() !== ""; }).map(function (l) {
+    var h = (linies || []).filter(function (l) { return String(l.Valor || "").trim() !== ""; }).map(function (l) {
       return paragraf(esc(String(l.Valor).trim()), m, fmt, "<b>" + esc(l.Etiqueta) + "</b>");
     }).join("");
+    if (String(titol || "").trim() !== "") {
+      h += buit(fmt) + paragraf("<b>" + esc(String(titol).trim()) + "</b>", { Esq: 0, Penjat: 0, Abans: 0, Despres: 0, Alinea: "center" }, fmt);
+    }
+    return h;
   }
   // _CorreuIntro.
   function intro(textos, o, avui) {

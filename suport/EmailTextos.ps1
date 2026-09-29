@@ -52,7 +52,7 @@ function _EmailTextosPath {
 
 # Text d'ajuda amb les variables disponibles.
 function _EmailTextosAjuda {
-    return ('Variables: {CAPCALERA} = les dades de l''activitat (com a l''informe)  ' + [char]0x00B7 + '  {INTRO} = la frase segons l''origen  ' + [char]0x00B7 + '  {REQUERIMENTS} = els requeriments  ' + [char]0x00B7 + '  {ID_GIA} {EXP_NUM} {ADRECA} {ACTIVITAT} {TITULAR} {DATA}   ' + [char]0x00B7 + '   **negreta**   ' + [char]0x00B7 + '   els enllacos http es fan clicables')
+    return ('Variables: {CAPCALERA} = les dades de l''activitat (com a l''informe)  ' + [char]0x00B7 + '  {INTRO} = la frase segons l''origen  ' + [char]0x00B7 + '  {REQUERIMENTS} = els requeriments  ' + [char]0x00B7 + '  {ID_GIA} {EXP_NUM} {ADRECA} {ACTIVITAT} {TITULAR} {DATA}   ' + [char]0x00B7 + '   **negreta**  //cursiva//  !!vermell!!   ' + [char]0x00B7 + '   els enllacos http es fan clicables')
 }
 
 # Les frases que introdueixen els requeriments segons l'origen de l'informe.

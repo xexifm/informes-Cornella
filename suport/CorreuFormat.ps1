@@ -72,6 +72,9 @@ function _TextToHtml($s) {
 
     $h = [regex]::Replace($h, '\*\*(.+?)\*\*', '<b>$1</b>')
     $h = [regex]::Replace($h, '//(.+?)//', '<i>$1</i>')
+    # !!vermell!!: peticio de l'usuari (setembre 2026) per al "Com presentar la
+    # documentacio" del correu. El mateix vermell a docs\correu.js.
+    $h = [regex]::Replace($h, '!!(.+?)!!', '<span style="color:#C00000">$1</span>')
 
     for ($i = 0; $i -lt $urls.Count; $i++) {
         $u = [string]$urls[$i]
@@ -270,15 +273,39 @@ function _CorreuOmplePlantilla([string]$plantilla, $valors) {
     })
 }
 
+# El TITOL que va sota les linies de la capcalera ("INFORME"): el primer text
+# sense etiqueta DESPRES de l'ultima linia amb etiqueta del bloc generic. PURA.
+function _CorreuCapcaleraTitol($capJson) {
+    if ($null -eq $capJson) { return '' }
+    $gen = @(@($capJson.nodes) | Where-Object { [string]$_.tipus -eq 'seccio' }) | Select-Object -First 1
+    if ($null -eq $gen) { return '' }
+    $fills = @($gen.fills)
+    $ultima = -1
+    for ($i = 0; $i -lt $fills.Count; $i++) { if ([string]$fills[$i].tipus -eq 'etiqueta') { $ultima = $i } }
+    for ($i = $ultima + 1; $i -lt $fills.Count; $i++) {
+        if ([string]$fills[$i].tipus -ne 'text') { continue }
+        $t = ''
+        foreach ($p in @($fills[$i].cos)) { foreach ($r in @($p.runs)) { $t += [string]$r.t } }
+        if (-not [string]::IsNullOrWhiteSpace($t)) { return $t.Trim() }
+    }
+    return ''
+}
+
 # Les linies amb valor -> la taula de la capcalera. Una linia SENSE valor no
 # surt (un "Objecte:" buit al correu no diu res). $linies = @(@{Etiqueta; Valor}).
-function _CorreuCapcaleraHtml($linies, $fmt) {
+# Amb $titol, a sota, una linia en blanc i el titol ("INFORME") centrat i en
+# negreta, com a l'informe (peticio de l'usuari, setembre 2026).
+function _CorreuCapcaleraHtml($linies, $fmt, [string]$titol = '') {
     $sb = New-Object System.Text.StringBuilder
     $px = [int]$fmt.EtiquetaPx
     $m = @{ Esq = $px; Penjat = $px; Abans = 0; Despres = 0; Alinea = 'left' }
     foreach ($l in @($linies)) {
         if ([string]::IsNullOrWhiteSpace([string]$l.Valor)) { continue }
         [void]$sb.Append((_CorreuParagrafHtml (_EscHtml ([string]$l.Valor).Trim()) $m $fmt ('<b>' + (_EscHtml ([string]$l.Etiqueta)) + '</b>')))
+    }
+    if (-not [string]::IsNullOrWhiteSpace($titol)) {
+        [void]$sb.Append((_CorreuBuitHtml $fmt))
+        [void]$sb.Append((_CorreuParagrafHtml ('<b>' + (_EscHtml $titol.Trim()) + '</b>') @{ Esq = 0; Penjat = 0; Abans = 0; Despres = 0; Alinea = 'center' } $fmt))
     }
     return $sb.ToString()
 }
@@ -458,8 +485,40 @@ function _CorreuRunsHtml($runs, $fmt) {
 }
 
 # Un paragraf del .docx -> HTML, amb el MATEIX contracte que els blocs.
+# UN REQUERIMENT (o un sub-punt) TOT EN NEGRETA ES LA MARCA DEL SEGUIMENT, no
+# format de l'informe. Els seguiments d'abans posaven en negreta el punt sencer
+# mentre era pendent (_InferResolvedFromBold en llegeix encara la marca); al
+# correu nomes hi ha d'anar el comentari ("No s'aporta.") (peticio de l'usuari,
+# setembre 2026). Es treu la negreta i es torna a posar NOMES al numero, que es
+# com surt a REQ1. Un punt amb una part en negreta (**...** del cataleg) no es
+# toca. PURA.
+function _CorreuSenseNegretaSeguiment($p) {
+    $t = [string]$p.Text
+    $mNum = [regex]::Match($t, '^\s*\d+\.\s')
+    $esPunt = $mNum.Success -or $t.TrimStart().StartsWith([string][char]0x2022)
+    if (-not $esPunt) { return $p.Runs }
+    $ambText = @(@($p.Runs) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_.Text) })
+    if ($ambText.Count -eq 0 -or @($ambText | Where-Object { -not $_.B }).Count -gt 0) { return $p.Runs }
+    $out = New-Object System.Collections.ArrayList
+    $queda = if ($mNum.Success) { $mNum.Length } else { 0 }
+    foreach ($r in @($p.Runs)) {
+        $txt = [string]$r.Text
+        if ($queda -gt 0) {
+            $n = [Math]::Min($queda, $txt.Length)
+            [void]$out.Add(@{ Text = $txt.Substring(0, $n); B = $true; I = $r.I; U = $r.U; Sz = $r.Sz })
+            $queda -= $n
+            $txt = $txt.Substring($n)
+            if ($txt.Length -eq 0) { continue }
+        }
+        [void]$out.Add(@{ Text = $txt; B = $false; I = $r.I; U = $r.U; Sz = $r.Sz })
+    }
+    return $out.ToArray()
+}
+
 function _CorreuParagrafDocxHtml($p, $fmt) {
     if ([string]::IsNullOrWhiteSpace([string]$p.Text)) { return (_CorreuBuitHtml $fmt) }
+    $p = @{ Text = $p.Text; Runs = @(_CorreuSenseNegretaSeguiment $p); Esq = $p.Esq; Penjat = $p.Penjat
+            Abans = $p.Abans; Despres = $p.Despres; Alinea = $p.Alinea }
     $m = @{ Esq = $p.Esq; Penjat = $p.Penjat; Abans = $p.Abans; Despres = $p.Despres
             Alinea = $(if ($p.Alinea) { $p.Alinea } else { [string]$fmt.Alinea }) }
     $t = ([string]$p.Text).Trim()

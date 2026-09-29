@@ -35,6 +35,7 @@
       "Plantilla": "<<ORIGEN>>"
     }
   ],
+  "Titol": "INFORME",
   "Origen": {
     "doc": "Doc. aportada amb Núm. d’anotació <<NUM_ANOTACIO>> del <<DATA_ANOTACIO>>",
     "insp": "Visita inspecció <<DATA_INSPECCIO>>"

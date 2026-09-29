@@ -155,7 +155,8 @@ function _BuildCorreu([string]$documentXml, $header, [string]$avui) {
     $tx  = _CorreuTextos
     $fmt = _CorreuFormat
     $doc = _CorreuDocxLlegeix $documentXml $fmt
-    $linies = @(_CorreuValorsCapcalera (_CorreuCapcaleraLinies (Read-JsonFile (Get-CapcaleraJsonPath))) $doc.Capcalera $header)
+    $capJson = Read-JsonFile (Get-CapcaleraJsonPath)
+    $linies = @(_CorreuValorsCapcalera (_CorreuCapcaleraLinies $capJson) $doc.Capcalera $header)
     $lo = @($linies | Where-Object { $_.Plantilla -match '<<\s*ORIGEN\s*>>' }) | Select-Object -First 1
     $origen = _OrigenDesDeText $(if ($null -ne $lo) { $lo.Valor } else { '' })
     if ($origen.ORIGEN_TIPUS -eq 'insp' -and [string]::IsNullOrWhiteSpace($origen.DATA_INSPECCIO)) {
@@ -173,7 +174,7 @@ function _BuildCorreu([string]$documentXml, $header, [string]$avui) {
         if ($mt.Success -and [string]::IsNullOrWhiteSpace([string]$vars[$mt.Groups[1].Value])) { $vars[$mt.Groups[1].Value] = [string]$l.Valor }
     }
     $omple = { param($s) (_FillVars ([string]$s) $vars).Replace('{INTRO}', $intro) }
-    $html = _CorreuCosAHtml ([string]$tx.cos) $omple (_CorreuCapcaleraHtml $linies $fmt) ([string]$doc.Html) $fmt
+    $html = _CorreuCosAHtml ([string]$tx.cos) $omple (_CorreuCapcaleraHtml $linies $fmt (_CorreuCapcaleraTitol $capJson)) ([string]$doc.Html) $fmt
     return [pscustomobject]@{ Subject = (_FillVars ([string]$tx.assumpte) $vars); Html = $html; Intro = $intro }
 }
 

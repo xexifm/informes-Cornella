@@ -107,6 +107,7 @@ function _CapcaleraMobil($placeholders) {
     return [pscustomobject]@{
         Placeholders = @($placeholders)
         Correu       = @(_CorreuCapcaleraLinies (Read-JsonFile (Get-CapcaleraJsonPath)))
+        Titol        = [string](_CorreuCapcaleraTitol (Read-JsonFile (Get-CapcaleraJsonPath)))
         Origen       = [pscustomobject]$Script:OrigenPlantilles
     }
 }

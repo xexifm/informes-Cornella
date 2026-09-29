@@ -52,6 +52,11 @@ AssertEq ([string]$cfCapPub.Origen.insp) ([string]$Script:OrigenPlantilles['insp
 $cfCapXml = _ReadDocxPartText (Get-CapcaleraDocxPath) 'word/document.xml'
 $cfMid = [regex]::Match($cfCapXml, '<w:p[ >](?:(?!</w:p>).)*?&lt;&lt;ID_GIA&gt;&gt;', 'Singleline')
 AssertEq ([regex]::Match($cfMid.Value, 'w:hanging="(\d+)"').Groups[1].Value) ([string]$Script:CorreuCapcaleraTwips) 'la columna de l''etiqueta del correu = la sagnia francesa de 0 CAPCALERA.docx'
+AssertEq (_CorreuCapcaleraTitol (Read-JsonFile (Get-CapcaleraJsonPath))) 'INFORME' '_CorreuCapcaleraTitol: el titol de sota la capcalera, de 0 CAPCALERA'
+AssertEq ([string]$cfCapPub.Titol) 'INFORME' 'capcalera.json: el mobil te el mateix titol'
+$cfTitHtml = _CorreuCapcaleraHtml @([pscustomobject]@{ Etiqueta = 'ID GIA:'; Valor = '1398' }) $cfFmt 'INFORME'
+Assert ($cfTitHtml.Contains('text-align:center"><b>INFORME</b></p>')) '_CorreuCapcaleraHtml: INFORME centrat i en negreta (com a l''informe)'
+Assert ($cfTitHtml.IndexOf('1398') -lt $cfTitHtml.IndexOf('INFORME')) '_CorreuCapcaleraHtml: INFORME va DESPRES de les linies'
 $cfCapHtml = _CorreuCapcaleraHtml @([pscustomobject]@{ Etiqueta = 'ID GIA:'; Valor = '1398' }, [pscustomobject]@{ Etiqueta = 'Objecte:'; Valor = '' }) $cfFmt
 Assert ($cfCapHtml.Contains('<b>ID GIA:</b>') -and $cfCapHtml.Contains('1398')) '_CorreuCapcaleraHtml: etiqueta en negreta i valor'
 Assert (-not $cfCapHtml.Contains('Objecte')) '_CorreuCapcaleraHtml: una linia sense valor no surt'
@@ -70,10 +75,23 @@ AssertEq (_CorreuIntro $cfTx @{ ORIGEN_TIPUS = 'doc'; NUM_ANOTACIO = '' } '01/01
 AssertEq (_CorreuIntro $cfTx @{ ORIGEN_TIPUS = '' } '01/01/2027') 'DS' '_CorreuIntro: sense Objecte -> documentacio aportada (MAI "la visita")'
 AssertEq (_CorreuIntro $cfTx $cfIns '01/01/2027') 'V 29/09/2026' '_CorreuIntro: visita amb la seva data'
 AssertEq (_CorreuIntro $cfTx @{ ORIGEN_TIPUS = 'insp'; DATA_INSPECCIO = '' } '01/01/2027') 'V 01/01/2027' '_CorreuIntro: visita sense data -> la d''avui (peticio de l''usuari)'
+AssertEq (_TextToHtml 'a !!vermell!! b') 'a <span style="color:#C00000">vermell</span> b' '_TextToHtml: !!vermell!!'
 $cfTxReal = _LoadEmailTextos
 foreach ($k in @('introDoc', 'introDocSenseAnotacio', 'introInsp')) { Assert (-not [string]::IsNullOrWhiteSpace([string]$cfTxReal[$k])) "email-textos.json porta $k" }
 Assert (-not ([string]$cfTxReal['introDoc']).Contains('visita')) 'email-textos.json: la frase de documentacio aportada no parla de la visita'
 foreach ($v in @('{CAPCALERA}', '{INTRO}', '{REQUERIMENTS}')) { Assert (([string]$cfTxReal['cos']).Contains($v)) "email-textos.json: el cos porta $v" }
+# El peu: primer TOT el catala i despres TOT el castella (peticio de l'usuari,
+# setembre 2026: abans anaven barrejats), el "Com presentar" en vermell i el
+# text sense negreta.
+$cfPeu = [string]$cfTxReal['cos']
+$cfPeu = $cfPeu.Substring($cfPeu.IndexOf('{REQUERIMENTS}'))
+$cfIxCa = $cfPeu.IndexOf('**CATAL'); $cfIxEs = $cfPeu.IndexOf('**CASTELL')
+Assert ($cfIxCa -gt 0 -and $cfIxEs -gt $cfIxCa) 'email-textos.json: el bloc CATALA i despres el CASTELLA'
+Assert ($cfPeu.Contains('!!Com presentar la documentaci') -and $cfPeu.Contains('!!C' + [char]0x00F3 + 'mo presentar la documentaci')) 'email-textos.json: "Com presentar" en vermell, en cada idioma'
+$cfCa = $cfPeu.Substring(0, $cfIxEs); $cfEs = $cfPeu.Substring($cfIxEs)
+Assert ($cfCa.Contains('idioma=2') -and $cfCa.Contains('IMPORTANT:') -and -not $cfCa.Contains('IMPORTANTE')) 'email-textos.json: el bloc catala ho porta tot en catala'
+Assert ($cfEs.Contains('idioma=1') -and $cfEs.Contains('IMPORTANTE:') -and -not $cfEs.Contains('Heu de presentar')) 'email-textos.json: el bloc castella ho porta tot en castella'
+AssertEq ([regex]::Matches($cfPeu, '\*\*').Count) 4 'email-textos.json: al peu, negreta NOMES als dos titols d''idioma'
 
 # Dins d'un try: una excepcio aqui mataria la resta de la suite i el resum
 # seguiria dient "0 FAIL" (ja ha passat dues vegades en aquest projecte).
@@ -120,6 +138,8 @@ $cfXml = "<w:document $cfW><w:body>" +
     (& $cfP '' '') +
     (& $cfP '' (& $cfR 'INSTAL&#183;LACIONS' '')) + (& $cfP '' '') +
     (& $cfP '' ((& $cfR '1. ' '<w:b/>') + (& $cfR 'Ascensors' ''))) +
+    (& $cfP '' ((& $cfR '2. Punt pen' '<w:b/>') + (& $cfR 'dent del seguiment' '<w:b/>'))) +
+    (& $cfP '' ((& $cfR '3. Amb ' '') + (& $cfR 'negreta del cataleg' '<w:b/>'))) +
     (& $cfP '' ((& $cfR 'https://canal' '<w:sz w:val="20"/>') + (& $cfR 'empresa.cat/a' '<w:sz w:val="20"/>'))) +
     (& $cfP '<w:spacing w:before="240"/><w:ind w:left="567" w:hanging="283"/>' ((& $cfR ([string][char]0x2022) '') + $cfTab + (& $cfR 'Sub-punt' ''))) +
     (& $cfP '<w:spacing w:before="200" w:after="240"/>' ((& $cfR '07/09/2026: ' '') + (& $cfR 'No s''aporta.' '<w:b/>'))) +
@@ -141,6 +161,8 @@ Assert ($cfLl.Html.StartsWith('<p') -and $cfLl.Html.Contains('INSTAL')) '_Correu
 Assert ($cfLl.Html.Contains('<b>1. </b>Ascensors')) '_CorreuDocxLlegeix: la negreta del numero, del .docx'
 Assert ($cfLl.Html.Contains('<a href="https://canalempresa.cat/a" style="font-size:10pt;word-break:break-all">')) '_CorreuDocxLlegeix: un URL partit en dos runs surt sencer, a 10 pt'
 Assert ($cfLl.Html.Contains('<table') -and $cfLl.Html.Contains('Sub-punt')) '_CorreuDocxLlegeix: el pic amb sagnia francesa, com els blocs'
+Assert ($cfLl.Html.Contains('<b>2. </b>Punt pendent del seguiment')) '_CorreuDocxLlegeix: un punt TOT en negreta (seguiment antic) -> negreta NOMES al numero'
+Assert ($cfLl.Html.Contains('3. Amb <b>negreta del cataleg</b>')) '_CorreuDocxLlegeix: la negreta d''una part del punt (cataleg) es queda'
 Assert ($cfLl.Html.Contains('07/09/2026: <b>No s''aporta.</b>')) '_CorreuDocxLlegeix: l''anotacio del seguiment, amb el comentari en negreta'
 Assert ($cfLl.Html.Contains('margin:10pt 0 12pt 0px')) '_CorreuDocxLlegeix: els espais de l''anotacio, del .docx'
 Assert ($cfLl.Html.Contains('text-align:center"><b>CONCLUSIONS</b>')) '_CorreuDocxLlegeix: CONCLUSIONS centrat i en negreta'
@@ -203,8 +225,8 @@ if ($null -eq $cfNode) {
         $cfBlocsPc = @(Build-CatalegBlocs $cfSel @{} '') + @(_BlocsConclusions 'CONCLUSIONS' $cfConcl @() @{})
         $cfHtmlPc = _CorreuBlocsAHtml $cfBlocsPc $cfFmt
         $cfLinCap = @(@{ Etiqueta = 'ID GIA:'; Valor = '118' }, @{ Etiqueta = 'Objecte:'; Valor = ('Visita inspecci' + [char]0x00F3 + ' 29/09/2026') })
-        $cfCapPc = _CorreuCapcaleraHtml $cfLinCap $cfFmt
-        $cfCosPc = _CorreuCosAHtml "{CAPCALERA}`n`nHola {X}`n{REQUERIMENTS}`nhttps://seu.cat/a?b=1&c=2" { param($s) $s.Replace('{X}', 'Y') } 'CAP' 'REQ' $cfFmt
+        $cfCapPc = _CorreuCapcaleraHtml $cfLinCap $cfFmt 'INFORME'
+        $cfCosPc = _CorreuCosAHtml "{CAPCALERA}`n`nHola {X} !!vermell!!`n{REQUERIMENTS}`nhttps://seu.cat/a?b=1&c=2" { param($s) $s.Replace('{X}', 'Y') } 'CAP' 'REQ' $cfFmt
 
         $cfTmp = Join-Path ([System.IO.Path]::GetTempPath()) ('correu-creuat-' + [Guid]::NewGuid().ToString('N'))
         New-Item -ItemType Directory -Path $cfTmp -Force | Out-Null
@@ -220,8 +242,8 @@ var sel = arr(inp.Sel).map(function (s) { return { Title: s.Title, Items: arr(s.
 var blocs = C.blocsDeSeleccio(sel, function (n) { return arr(n.BodyLines); }).concat(C.blocsConclusions('CONCLUSIONS', arr(inp.Concl)));
 fs.writeFileSync(process.argv[5], JSON.stringify({
   req: C.blocsAHtml(blocs, fmt),
-  cap: C.capcaleraHtml(arr(inp.Cap), fmt),
-  cos: C.cosAHtml('{CAPCALERA}\n\nHola {X}\n{REQUERIMENTS}\nhttps://seu.cat/a?b=1&c=2', function (s) { return s.replace('{X}', 'Y'); }, 'CAP', 'REQ', fmt)
+  cap: C.capcaleraHtml(arr(inp.Cap), fmt, 'INFORME'),
+  cos: C.cosAHtml('{CAPCALERA}\n\nHola {X} !!vermell!!\n{REQUERIMENTS}\nhttps://seu.cat/a?b=1&c=2', function (s) { return s.replace('{X}', 'Y'); }, 'CAP', 'REQ', fmt)
 }));
 "@
         [System.IO.File]::WriteAllText((Join-Path $cfTmp 't.js'), $cfJs, (New-Object System.Text.UTF8Encoding($false)))
