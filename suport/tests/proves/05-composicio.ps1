@@ -297,6 +297,27 @@ $stN = @{ Header = @{ ID_GIA = '1' } }
 Assert (-not $stN.ContainsKey('CondActors')) 'anada i tornada: sense haver passat pel pas, no es recupera res (i es proposen)'
 # La capcalera NO es toca: l'omple l'Excel per ID GIA i la de la base pot ser vella.
 AssertEq ([string]$stR.Header['ID_GIA']) '1463' 'Restore-LlicenciaState: no toca la capcalera'
+# EL BOTO "Generar" d'una fila de la base de llicencies.
+$genJ = Get-LlicenciaGenerarDades $recJ
+AssertEq ([string]$genJ.Header['ID_GIA']) '1463' 'Generar: l''ID GIA de la fitxa'
+AssertEq ([string]$genJ.Header['TITULAR']) 'ZEROCATORZE' 'Generar: el titular, per si l''Excel ja no porta l''activitat'
+AssertEq ([string]$genJ.Fase) 'favorable-pre' 'Generar: la fase de l''ultim informe, ja triada al Pas 1'
+AssertEq ([bool]$genJ.Prov) $true 'Generar: el tipus (llicencia provisional)'
+AssertEq ([bool]$genJ.Mns) $false 'Generar: una llicencia obre l''assistent de LLICENCIA'
+Assert (-not $genJ.Header.Contains('NUM_ANOTACIO') -and -not $genJ.Header.Contains('ORIGEN_TIPUS')) 'Generar: res de l''origen de l''informe anterior (cada informe te el seu)'
+$genM = Get-LlicenciaGenerarDades ([pscustomobject]@{ IdGia = '77'; Fase = 'traspas'; Titular = 'NOU SL'; Header = $null })
+AssertEq ([bool]$genM.Mns) $true 'Generar: una fitxa de Traspas obre l''assistent de MNS / Traspas'
+AssertEq ([string]$genM.Header['TITULAR']) 'NOU SL' 'Generar: sense capcalera desada, el titular de la fitxa'
+Assert ($null -eq (Get-LlicenciaGenerarDades $null)) 'Generar: sense fitxa -> $null'
+Assert ($null -eq (Get-LlicenciaGenerarDades ([pscustomobject]@{ IdGia = ' ' }))) 'Generar: sense ID GIA -> $null'
+Assert ((_LlicTitolAssistent $true).Contains('Trasp') -and (_LlicTitolAssistent $false).StartsWith('Llic')) '_LlicTitolAssistent: el titol de cada assistent'
+# La cadena sencera: la pantalla torna el que diu el boto i Main obre l'assistent.
+$srcWizLl = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $TestsDir) 'Wizard.ps1') -Raw
+Assert ($srcWizLl -match "'llicdb'\s*\{\s*\`$gen = Show-LlicenciaDb;\s*if \(\`$null -ne \`$gen\) \{ Invoke-LlicenciaDesDeFitxa \`$gen \}") 'Generar: Main obre l''assistent amb el que torna la base'
+$srcDbLl = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $TestsDir) 'LlicenciaDb.ps1') -Raw
+Assert ($srcDbLl -match 'return \$ui\.Generar\s*\}\s*$') 'Generar: Show-LlicenciaDb torna la tria del boto'
+Assert ($srcDbLl.Contains('[void](& $fn.Omple)') -and $srcDbLl.Contains('[void](& $fn.TriaPrimera)')) 'Generar: res mes surt de Show-LlicenciaDb (el retorn seria una llista)'
+
 # El resum per a la llista.
 $resT = Get-LlicenciaResum $recJ
 AssertEq ([string]$resT.IdGia) '1463' 'Get-LlicenciaResum: ID GIA'

@@ -304,6 +304,41 @@ function Get-LlicenciaResum($record) {
     }
 }
 
+# EL BOTO "Generar" D'UNA FILA: amb que s'obre l'assistent. Funcio PURA.
+#
+# Retorna @{ Mns; Fase; Prov; Header } o $null:
+#   Mns    = la fitxa es d'una Modificacio NO Substancial / Traspas: s'obre
+#            AQUELL assistent, no el de Llicencia.
+#   Fase   = la de l'ultim informe, ja triada al Pas 1 (l'usuari la canvia alla
+#            si toca la seguent: no es pot endevinar si ara va un altre
+#            requeriment o el favorable).
+#   Header = l'ID GIA i, per si l'Excel ja no porta l'activitat, el titular,
+#            l'adreca, l'activitat i l'expedient de la fitxa. Get-HeaderData
+#            -Cerca els torna a llegir de l'Excel, que mana perque es mes nou.
+# La resta (documentacio, tecnic, projecte, condicions) ja la recupera
+# l'assistent de la base per ID GIA, com quan s'hi arriba des del menu.
+function Get-LlicenciaGenerarDades($record) {
+    if ($null -eq $record) { return $null }
+    $r = ConvertTo-Mapa $record
+    $id = ([string]$r['IdGia']).Trim()
+    if ([string]::IsNullOrWhiteSpace($id)) { return $null }
+    $h = ConvertTo-Mapa $r['Header']
+    $pre = [ordered]@{ ID_GIA = $id }
+    foreach ($k in @(@{ H = 'TITULAR'; R = 'Titular' }, @{ H = 'ADRECA'; R = 'Adreca' },
+                     @{ H = 'ACTIVITAT'; R = 'Activitat' }, @{ H = 'EXP_NUM'; R = '' })) {
+        $v = [string]$h[[string]$k.H]
+        if ([string]::IsNullOrWhiteSpace($v) -and $k.R) { $v = [string]$r[[string]$k.R] }
+        if (-not [string]::IsNullOrWhiteSpace($v)) { $pre[[string]$k.H] = $v }
+    }
+    $fase = [string]$r['Fase']
+    return @{
+        Mns    = [bool](_MnsEsFase $fase)
+        Fase   = $fase
+        Prov   = [bool]$r['EsProvisional']
+        Header = $pre
+    }
+}
+
 # ELS PUNTS DEL CATALEG amb els CAMPS que demana cadascun. Funcio PURA.
 #
 # PER QUE: la pantalla de consulta nomes sabia pintar les dades JA DESADES, o
@@ -384,20 +419,22 @@ function Show-LlicenciaDb {
 
     $form = _NewForm
     $form.Text = 'Base de dades de llic' + [char]0x00E8 + 'ncies'
-    $form.ClientSize = New-Object System.Drawing.Size(1080, 660)
+    $form.ClientSize = New-Object System.Drawing.Size(1150, 660)
     $form.StartPosition = 'CenterScreen'
-    $form.MinimumSize = New-Object System.Drawing.Size(860, 520)
+    $form.MinimumSize = New-Object System.Drawing.Size(930, 520)
 
     # Vegeu CLAUDE.md: les funcions de la pantalla van totes en un hashtable,
     # perque .GetNewClosure() nomes copia els locals i una closure que en cridi
     # una altra es quedaria amb $null.
     $fn = @{}
-    $ui = @{ Busy = $false }
+    # Pintat: l'ID GIA de la fitxa que hi ha al detall. Generar: el que torna la
+    # pantalla quan es prem "Generar" (l'assistent l'obre Main, en tancar-la).
+    $ui = @{ Busy = $false; Pintat = ''; Generar = $null }
 
     # ---- Esquerra: la llista ----------------------------------------------
     $panEsq = New-Object System.Windows.Forms.Panel
     $panEsq.Location = New-Object System.Drawing.Point(14, 66)
-    $panEsq.Size = New-Object System.Drawing.Size(430, 520)
+    $panEsq.Size = New-Object System.Drawing.Size(500, 520)
     $panEsq.Anchor = 'Top,Bottom,Left'
     [void]$form.Controls.Add($panEsq)
 
@@ -407,7 +444,7 @@ function Show-LlicenciaDb {
     [void]$panEsq.Controls.Add($graella)
     foreach ($c in @(
         @{ N = 'IdGia';    T = 'ID GIA';  W = 70 },
-        @{ N = 'Titular';  T = 'Titular'; W = 170 },
+        @{ N = 'Titular';  T = 'Titular'; W = 150 },
         @{ N = 'Fase';     T = 'Fase';    W = 95 },
         @{ N = 'Data';     T = 'Data';    W = 80 })) {
         $col = New-Object System.Windows.Forms.DataGridViewTextBoxColumn
@@ -416,10 +453,23 @@ function Show-LlicenciaDb {
         $col.Width = [int]$c.W
         [void]$graella.Columns.Add($col)
     }
+    # UN BOTO A CADA FILA per fer l'informe seguent d'aquella activitat: obre
+    # l'assistent (Llicencia o MNS/Traspas, segons la fitxa) amb l'ID GIA ja
+    # posat i la capcalera llegida de l'Excel. El titular s'emporta el que sobra
+    # d'amplada (Fill): aixi el boto no queda mai tallat per la barra.
+    $graella.Columns['Titular'].AutoSizeMode = 'Fill'
+    $colGen = New-Object System.Windows.Forms.DataGridViewButtonColumn
+    $colGen.Name = 'Generar'
+    $colGen.HeaderText = 'Informe'
+    $colGen.Text = 'Generar'
+    $colGen.UseColumnTextForButtonValue = $true
+    $colGen.Width = 72
+    $colGen.FlatStyle = 'Flat'
+    [void]$graella.Columns.Add($colGen)
 
     # ---- Dreta: el detall --------------------------------------------------
     $panDret = New-Object System.Windows.Forms.Panel
-    $panDret.Location = New-Object System.Drawing.Point(456, 66)
+    $panDret.Location = New-Object System.Drawing.Point(526, 66)
     $panDret.Size = New-Object System.Drawing.Size(610, 520)
     $panDret.Anchor = 'Top,Bottom,Left,Right'
     $panDret.AutoScroll = $true
@@ -457,7 +507,7 @@ function Show-LlicenciaDb {
     } catch { $cat = $null }
 
     $chkTots = New-Object System.Windows.Forms.CheckBox
-    $chkTots.Location = New-Object System.Drawing.Point(456, 592)
+    $chkTots.Location = New-Object System.Drawing.Point(526, 592)
     $chkTots.AutoSize = $true
     $chkTots.Anchor = 'Bottom,Left'
     $chkTots.Text = 'Mostra TOTS els punts del cat' + [char]0x00E0 + 'leg (no nom' + [char]0x00E9 + 's els marcats)'
@@ -467,7 +517,9 @@ function Show-LlicenciaDb {
         param($idGia)
         $panDret.Controls.Clear()
         $edicions.Clear()
+        $ui.Pintat = ''
         $rec = Get-LlicenciaRecord $db ([string]$idGia)
+        if ($null -ne $rec) { $ui.Pintat = [string]$idGia }
         if ($null -eq $rec) {
             # Mai en silenci: si no es troba la fitxa, que es vegi.
             $avis = New-Object System.Windows.Forms.Label
@@ -791,9 +843,36 @@ function Show-LlicenciaDb {
     }.GetNewClosure())
     # ...i tambe al clic: si la fila JA estava seleccionada, SelectionChanged no
     # es dispara i el detall no es tornava a pintar mai.
+    # El clic al boto "Generar" NO repinta: el detall ja es el d'aquella fila (el
+    # clic l'ha seleccionada) i repintar-lo esborraria el que s'hi estigues
+    # escrivint abans de desar-ho.
     $graella.add_CellClick({
+        param($s, $e)
         if ($ui.Busy) { return }
+        if ($e.ColumnIndex -eq $colGen.Index -and [string](& $fn.IdTriat) -eq [string]$ui.Pintat) { return }
         & $fn.Pinta (& $fn.IdTriat)
+    }.GetNewClosure())
+
+    $graella.add_CellContentClick({
+        param($s, $e)
+        if ($ui.Busy -or $e.RowIndex -lt 0 -or $e.ColumnIndex -ne $colGen.Index) { return }
+        if ($e.RowIndex -ge $mapa.Count) { return }
+        $id = [string]$mapa[$e.RowIndex]
+        # EL QUE S'HAGI ESCRIT AL DETALL I NO S'HAGI DESAT, ES DESA: l'assistent
+        # llegeix la fitxa de la base, i generar l'informe sense els Id Firmadoc
+        # que s'acaben d'escriure seria el pitjor que podria passar.
+        if ($id -eq [string]$ui.Pintat) {
+            try { [void](& $fn.Desa $id) } catch {
+                [System.Windows.Forms.MessageBox]::Show(
+                    ("No s'han pogut desar els canvis de la fitxa:`n`n" + $_.Exception.Message),
+                    'Base de dades', 'OK', 'Error') | Out-Null
+                return
+            }
+        }
+        $gen = Get-LlicenciaGenerarDades (Get-LlicenciaRecord $db $id)
+        if ($null -eq $gen) { return }
+        $ui.Generar = $gen
+        $form.Close()
     }.GetNewClosure())
 
     # La PRIMERA fila: cal moure-hi el CurrentCell (no nomes .Selected), si no
@@ -811,8 +890,8 @@ function Show-LlicenciaDb {
         & $fn.Pinta (& $fn.IdTriat)
     }.GetNewClosure()
 
-    & $fn.Omple
-    & $fn.TriaPrimera
+    [void](& $fn.Omple)
+    [void](& $fn.TriaPrimera)
     # El detall es torna a pintar quan la finestra ja te handle: abans de
     # mostrar-la, el CurrentCell encara pot no estar posat.
     $form.add_Shown({ & $fn.TriaPrimera }.GetNewClosure())
@@ -850,4 +929,6 @@ function Show-LlicenciaDb {
             ('El que es recorda de cada activitat per als informes seg' + [char]0x00FC + 'ents') 56)
     [void]$form.ShowDialog()
     $form.Dispose()
+    # $null si s'ha tancat sense prem "Generar".
+    return $ui.Generar
 }

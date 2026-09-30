@@ -201,6 +201,14 @@ cada activitat, **corregir una dada** que s'hagués entrat malament i esborrar l
 fitxa d'una llicència. Esborrar la fitxa no toca cap informe ja generat: només
 es perd la memòria per al següent.
 
+Cada fila de la llista té un botó **Generar**: fa l'informe següent d'aquella
+activitat sense haver de buscar-la. S'obre l'assistent de sempre (el de
+Llicència o el de Modificació No Substancial / Traspàs, segons la fitxa) amb la
+fase de l'últim informe ja triada (canvia-la al Pas 1 si ara toca una altra) i,
+al Pas 2, l'ID GIA posat i la capçalera omplerta de l'Excel. La resta surt de
+la fitxa, com sempre. Si havies canviat alguna dada de la fitxa sense desar-la,
+es desa abans d'obrir l'assistent.
+
 Al bloc de **després** de la resolució les caselles surten **totes marcades** (és
 com tenies el Word: hi eren totes i n'anaves esborrant); hi ha **«Marcar-ho
 tot»** i **«Desmarcar-ho tot»**. Al bloc d'**abans** surten desmarcades, perquè

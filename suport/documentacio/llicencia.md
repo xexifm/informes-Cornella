@@ -181,6 +181,19 @@
   clicables: el `✏️ LLIC` de sempre i un de nou que obre la base de dades
   (`Extra` a l'entrada del menú → `ExtraChipRect`, mateix hit-test i hover que
   `DocChipRect`; acció `llicdb`).
+- **El botó «Generar» de cada fila de la base** (setembre 2026, demanat per
+  l'usuari). Columna de botons a la graella de `Show-LlicenciaDb`. El clic desa
+  primer el que hi hagi al detall d'aquella fitxa (`$fn.Desa`, perquè
+  l'assistent la llegeix de la base), tanca la finestra i **torna**
+  `Get-LlicenciaGenerarDades` (pura: `Mns`, `Fase`, `Prov`, `Header` amb l'ID
+  GIA i, per si l'Excel ja no porta l'activitat, titular/adreça/activitat/
+  expedient; res de l'origen de l'informe anterior). `Main` crida
+  `Invoke-LlicenciaDesDeFitxa`, que obre `Invoke-LlicenciaWizard` amb
+  `$preHeader/$preFase/$preProv` (l'assistent de MNS/Traspàs si la fase ho és).
+  Al pas 2, `Get-HeaderData -Cerca` busca l'ID GIA a l'Excel en obrir la
+  finestra, **només el primer cop** (`$st.CercaHeader`): tornant Enrere mana el
+  que s'hi hagi escrit. El clic al botó no repinta el detall (`CellClick`), que
+  esborraria el que s'estigués escrivint. Proves a `05-composicio.ps1`.
 - **`LLIC.json` TÉ vista en Word** (`_VistaLlicencia`, `VistaWord.ps1`): abans
   era l'únic catàleg sense, i no es podia consultar fora del programa. Ensenya
   cada bloc amb **tots** els seus punts ja resolts contra REQ1 i, en cursiva, el

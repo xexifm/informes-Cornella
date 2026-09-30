@@ -183,8 +183,12 @@ function _PreloadHeaderControls($controls, $preload) {
     }
 }
 
+# -Cerca: en obrir la finestra, busca l'ID GIA precarregat a l'Excel (com si
+# s'hagues premut "Cercar"). Ho fa servir el boto "Generar" de la base de
+# llicencies: arriba NOMES amb l'activitat, i la resta de la capcalera ha de
+# sortir de l'Excel. Si l'Excel no la porta, es queda el que venia precarregat.
 function Get-HeaderData {
-    param($preload = $null)
+    param($preload = $null, [switch]$Cerca)
 
     $latest = Find-LatestActivitatsExcel
     if ($null -eq $latest) {
@@ -288,6 +292,11 @@ function Get-HeaderData {
     }
 
     $btnSearch.add_Click({ [void](& $doSearch) })
+
+    if ($Cerca) {
+        $idPre = $controls['ID_GIA'].Text.Trim()
+        if ($idPre -and $null -ne (Get-ActivitatFromCache $actCache $idPre)) { [void](& $doSearch) }
+    }
 
     $script:_headerData = $null
     $ok.add_Click({

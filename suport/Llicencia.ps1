@@ -53,6 +53,20 @@ function _LlicObreIAvisa($word, [string]$out) {
     $word.Documents.Open($out) | Out-Null
 }
 
+# EL TITOL DE CADA ASSISTENT (el menu i la base de llicencies hi entren tots dos).
+function _LlicTitolAssistent([bool]$mns) {
+    if ($mns) { return ('Modificaci' + [char]0x00F3 + ' NO Substancial / Trasp' + [char]0x00E0 + 's - Pas 1') }
+    return ('Llic' + [char]0x00E8 + 'ncia - Pas 1')
+}
+
+# DES D'UNA FITXA DE LA BASE (boto "Generar" de Show-LlicenciaDb): l'assistent
+# que toca segons la fitxa, amb $gen de Get-LlicenciaGenerarDades.
+function Invoke-LlicenciaDesDeFitxa($gen) {
+    if ($null -eq $gen) { return }
+    $fases = if ([bool]$gen.Mns) { _MnsFases } else { _LlicFases }
+    Invoke-LlicenciaWizard $fases (_LlicTitolAssistent ([bool]$gen.Mns)) $gen.Header ([string]$gen.Fase) ([bool]$gen.Prov)
+}
+
 # ----------------------------------------------------------------------------
 # PUNT D'ENTRADA (des del menu)
 # ----------------------------------------------------------------------------
@@ -60,7 +74,11 @@ function _LlicObreIAvisa($word, [string]$out) {
 # entrades -Llicencia (_LlicFases) i Modificacio NO Substancial / Traspas
 # (_MnsFases)- i totes dues passen per aqui: comparteixen capcalera, tramit i
 # base de dades, i el que canvia es nomes el document que en surt.
-function Invoke-LlicenciaWizard($fases = $null, [string]$titol = '') {
+# $preHeader / $preFase / $preProv: l'assistent obert des d'una fitxa de la
+# base de llicencies (boto "Generar"): l'activitat, la fase i el tipus ja
+# triats. La capcalera es busca a l'Excel NOMES el primer cop que s'hi passa:
+# si l'usuari hi torna Enrere, el que hi hagi escrit mana.
+function Invoke-LlicenciaWizard($fases = $null, [string]$titol = '', $preHeader = $null, [string]$preFase = '', $preProv = $null) {
     $llic = Read-LlicCataleg
     if ($null -eq $llic) {
         [System.Windows.Forms.MessageBox]::Show(
@@ -76,8 +94,10 @@ function Invoke-LlicenciaWizard($fases = $null, [string]$titol = '') {
     # alla on surten i despres la composicio els hi busca.
     # La fase inicial surt de la llista d'AQUEST assistent, no d'un literal: la
     # de MNS/Traspas no te cap 'requeriment'.
-    $st = @{ Fase = (_LlicFasePerDefecte $(if ($null -ne $fases) { $fases } else { _LlicTotesLesFases }) 'requeriment')
-             Prov = $false; Tecnic = @{}
+    $faseIni = if ($preFase) { $preFase } else { 'requeriment' }
+    $st = @{ Fase = (_LlicFasePerDefecte $(if ($null -ne $fases) { $fases } else { _LlicTotesLesFases }) $faseIni)
+             Prov = [bool]$preProv; Tecnic = @{}
+             HeaderPre = $preHeader; CercaHeader = ($null -ne $preHeader)
              # Els actors marcats al pas de les condicions. $null = encara no
              # s'hi ha passat (i llavors se'n proposen segons el bloc ABANS).
              CondActors = $null
@@ -100,7 +120,8 @@ function Invoke-LlicenciaWizard($fases = $null, [string]$titol = '') {
                     $step = 2
                 }
                 2 {
-                    $r = Get-HeaderData -preload $st.HeaderPre
+                    $r = Get-HeaderData -preload $st.HeaderPre -Cerca:([bool]$st.CercaHeader)
+                    $st.CercaHeader = $false
                     if ($r.Nav -eq 'back') { $step = 1; break }
                     $st.Header = $r.Data
                     $st.HeaderPre = $r.Data
