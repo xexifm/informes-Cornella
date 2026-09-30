@@ -1,43 +1,15 @@
 {
-    "GeneratedAt":  "2026-09-18T10:42:51.9172550+02:00",
-    "Font":  "2026-09-18 ACTIVITATS.xls",
-    "SourceDate":  "2026-09-18",
-    "Comptador":  22,
+    "GeneratedAt":  "2026-09-30T11:21:00.4884067+02:00",
+    "Font":  "2026-09-29 ACTIVITATS.xls",
+    "SourceDate":  "2026-09-29",
+    "Comptador":  13,
     "Activitats":  [
-                       {
-                           "id":  "1369",
-                           "activitat":  "MAGATZEM I GARATGE",
-                           "adreca":  "PG FERROCARRILS CATALANS 24",
-                           "lat":  41.351565110207048,
-                           "lon":  2.0689570694785369
-                       },
-                       {
-                           "id":  "1310",
-                           "activitat":  "BAR",
-                           "adreca":  "PG FERROCARRILS CATALANS 188",
-                           "lat":  41.352600444495529,
-                           "lon":  2.0857316442335083
-                       },
                        {
                            "id":  "1141",
                            "activitat":  "TALLER MECÀNIC",
                            "adreca":  "C URBANITZACIO PALOU 13",
                            "lat":  41.366946313504371,
                            "lon":  2.0817535776861691
-                       },
-                       {
-                           "id":  "996",
-                           "activitat":  "BAR",
-                           "adreca":  "C FLORIDA (LA) 38",
-                           "lat":  41.357191621560929,
-                           "lon":  2.0752075170536646
-                       },
-                       {
-                           "id":  "907",
-                           "activitat":  "BAR RESTAURANT",
-                           "adreca":  "PL PAU 4",
-                           "lat":  41.3510468408845,
-                           "lon":  2.0855750309950931
                        },
                        {
                            "id":  "776",
@@ -52,20 +24,6 @@
                            "adreca":  "C VISTALEGRE 40",
                            "lat":  41.36217355577017,
                            "lon":  2.0753598414585244
-                       },
-                       {
-                           "id":  "660",
-                           "activitat":  "BAR RESTAURANT",
-                           "adreca":  "C SANT JERONI 21",
-                           "lat":  41.351284806411087,
-                           "lon":  2.0741500038243221
-                       },
-                       {
-                           "id":  "659",
-                           "activitat":  "",
-                           "adreca":  "C FRANCESC MORAGAS 1",
-                           "lat":  41.351511959962792,
-                           "lon":  2.074920801741718
                        },
                        {
                            "id":  "641",
@@ -89,18 +47,11 @@
                            "lon":  2.0811062198226429
                        },
                        {
-                           "id":  "334",
-                           "activitat":  "CENTRE DE CULTE",
-                           "adreca":  "C BELLATERRA 35",
-                           "lat":  41.357945543416918,
-                           "lon":  2.0737281602346243
-                       },
-                       {
-                           "id":  "319",
-                           "activitat":  "TALLER MECÀNIC",
-                           "adreca":  "AV FAMA 51",
-                           "lat":  41.3515680725566,
-                           "lon":  2.0828314803413934
+                           "id":  "357",
+                           "activitat":  "GIMNÀS",
+                           "adreca":  "C JOAN MARAGALL 21",
+                           "lat":  41.358722055491143,
+                           "lon":  2.0709425773282621
                        },
                        {
                            "id":  "282",
@@ -108,13 +59,6 @@
                            "adreca":  "C LASARTE 1",
                            "lat":  41.356538358118009,
                            "lon":  2.0681125997587322
-                       },
-                       {
-                           "id":  "231",
-                           "activitat":  "BAR RESTAURANT",
-                           "adreca":  "C NOGUERA (LA) 76",
-                           "lat":  41.3530526943505,
-                           "lon":  2.0880451500898416
                        },
                        {
                            "id":  "200",
@@ -136,13 +80,6 @@
                            "adreca":  "CAMI CAMP DE L\u0027EMPEDRAT 3",
                            "lat":  41.356019278624281,
                            "lon":  2.087595964502988
-                       },
-                       {
-                           "id":  "60",
-                           "activitat":  "BAR",
-                           "adreca":  "C RAMONEDA 69",
-                           "lat":  41.362590491992641,
-                           "lon":  2.0779390550922447
                        },
                        {
                            "id":  "34",
