@@ -145,6 +145,7 @@ $Script:AjudaEines = @{
     seguimentgia      = "Fa els llistats de seguiment de la base d'activitats (precintes, denúncies, requerits per decret, sonometria i annex II), en Excel o en PDF."
     emailtextos       = "Edita l'assumpte i el text del correu de requeriments que s'envia al titular, des del mòbil i des d'Enviar correu."
     enviarcorreu      = "Envia al titular, des de l'ordinador, el correu amb els requeriments d'un informe ja fet, amb el mateix format que el del mòbil."
+    normativa         = "Baixa a la carpeta local\normativa el text vigent de totes les normes (les de REQ1 i les dels marcadors), cada una amb un nom que diu de quin tema és, i en fa un índex en Excel."
     revisarmobil      = "Mira si han arribat informes preparats des del mòbil (per Google Drive) i en fa el Word."
 }
 
@@ -463,6 +464,7 @@ function Select-Mode {
     $tiList  = [System.Char]::ConvertFromUtf32(0x1F4CA)   # 📊
     $tiMap   = [System.Char]::ConvertFromUtf32(0x1F5FA)   # 🗺
     $tiBell  = [System.Char]::ConvertFromUtf32(0x1F514)   # 🔔
+    $tiLlibres = [System.Char]::ConvertFromUtf32(0x1F4DA) # 📚
     # EINES: utilitats generals.
     $tools = @(
         @{ Emoji = $tiPin;   Label = 'Generar ruta';           Kind = 'action'; Action = 'ruta' }
@@ -472,6 +474,7 @@ function Select-Mode {
         @{ Emoji = $tiLock;  Label = 'Activitats precintades'; Kind = 'url';    Action = 'precintades'; Url = $urlPrec }
         @{ Emoji = $tiCal;   Label = ('Controls peri' + [char]0x00F2 + 'dics'); Kind = 'action'; Action = 'controlsperiodics' }
         @{ Emoji = $tiBell;  Label = 'Recordatoris'; Kind = 'action'; Action = 'recordatoris' }
+        @{ Emoji = $tiLlibres; Label = 'Normativa';  Kind = 'action'; Action = 'normativa' }
     )
     # INFORMES: eines de la base d'informes + conversio a PDF.
     $reports = @(

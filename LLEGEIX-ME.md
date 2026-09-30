@@ -342,6 +342,45 @@ si marques **«Signar els PDF amb AutoFirma»**, els signa sols, sense clics.
   ha. Si alguna vegada cal saber què ha passat amb una signatura, hi ha un
   registre a `local\base-dades-activitats\pdf-signar-log.txt`.
 
+### Normativa (📚)
+
+Botó **📚 Normativa** (secció EINES). Baixa a la carpeta
+**`local\normativa`** el text **vigent** (consolidat) de totes les normes que
+cita REQ1 i de les dels teus marcadors de Chrome: unes 165. Tot va a **una sola
+carpeta** i el **nom** del fitxer diu de què és, amb la mateixa classificació
+que els marcadors:
+
+```
+Vector ambiental_Residus_2016_Decret 197-2016 Comunicació prèvia i registres productors i gestors.pdf
+Instal·lacions_Ascensors_2024_RD 355-2024 ITC AEM 1 Ascensores.pdf
+Incendis_Antic_2004_RD 2267-2004 RSCIEI anterior (derogat pel RD 164-2025).pdf
+```
+
+Ordenat per nom, queden agrupades per àmbit, dins de cada àmbit per tema i dins
+de cada tema per any. Les derogades que encara es consulten porten el tema
+**Antic**.
+
+- **La primera vegada** triga una estona (són moltes normes). Les del BOE es
+  baixen en PDF; les del Portal Jurídic i les ordenances es desen com a PDF des
+  de la pàgina web, amb l'Edge sense finestra.
+- **Es manté al dia sola**: cada vegada que la fas servir, les del BOE es tornen a
+  baixar si el BOE n'ha publicat una actualització, i la resta si fa més de mig
+  any que es van baixar. **La versió anterior no es perd**: va a la subcarpeta
+  `anteriors` amb la data fins a la qual va ser la bona.
+- **L'índex** (`0 Index normativa.xlsx`, a la mateixa carpeta) té cada norma amb
+  el seu fitxer (clic i s'obre), l'enllaç web, la versió, quan es va baixar, si ha
+  anat bé i **a quins punts de REQ1 surt**. Es pot filtrar.
+- **A la fitxa d'ajuda (ⓘ) de cada requeriment** hi ha el botó **«Obre el PDF
+  desat»** quan la norma ja és a la carpeta.
+- Algunes normes no tenen cap enllaç per baixar-les (l'Ordenança d'activitats de
+  Cornellà i l'ordenança tipus d'olors de la Diputació): a l'índex surten com a
+  **«Sense enllaç: desa-la a mà amb aquest nom»**. Si les guardes a la carpeta
+  amb el nom que diu l'índex, el programa ja les troba.
+- Si alguna falla, l'índex en diu el motiu i es torna a provar la vegada següent.
+  Passa-me'l si en veus alguna que no se solucioni.
+
+La llista de normes i la classificació són a `suport/normativa.json`.
+
 ### Seguiment (fila GIA)
 
 Botó **📊 Seguiment**. Genera els cinc llistats de seguiment a partir de la base

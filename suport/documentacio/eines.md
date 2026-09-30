@@ -767,3 +767,41 @@ titulars amb tràmits pendents, a partir de l'`estat_actual` de la base d'inform
   (PSCustomObjects): l'historial s'indexa per GIA i sense això `.ContainsKey` no
   existiria i **es perdria tot en silenci**. Hi ha prova d'anada i tornada **amb
   el JSON pel mig**, que és on aquest projecte s'ha trencat sempre.
+
+## Normativa (eina EINES, setembre 2026)
+Petició de l'usuari: tota la normativa de REQ1 **i la dels seus marcadors de
+Chrome** (carpeta *Aj. Cornellà*) en una sola carpeta, classificada pel nom
+(«Vector ambiental_Residus_Decret XXX»). Preguntat i confirmat: rajola al menú,
+**text consolidat**, índex en Excel, que s'actualitzi sola, l'any al nom i
+l'enllaç des de la fitxa d'ajuda.
+- **`suport/normativa.json`** (al repositori, sense res personal: hi ha guard
+  contra enllaços de OneDrive i adreces): ~165 normes amb `Ambit`, `Tema`, `Any`,
+  `Tipus`, `Num`, `Titol`, `Url`, `Derogada` i, per a les que no tenen número
+  (ordenances, DB del CTE…), `Claus`. Es va generar amb un script de la sessió a
+  partir de les fitxes de REQ1 (que ja porten URL ELI) i dels marcadors.
+- **`NormativaDades.ps1`** (pur): el nom del fitxer, la font (`boe`/`pdf`/`web`/
+  `manual`), la informació de la pàgina del BOE (id, data d'última actualització,
+  PDF original), quan cal tornar a baixar, l'índex `.xlsx` **fet a mà en
+  OpenXML** (sense Excel; enllaços amb la fórmula `HYPERLINK` relativa) i com es
+  reconeix una norma dins d'un text (`_NormativaNormText` porta «Real Decreto»,
+  «Reial Decret» i «RD» a la mateixa forma; el número ha d'anar sencer).
+  **Està partit de `Normativa.ps1`** perquè `Show-Ajuda` (`UiComuns.ps1`) en
+  necessita la cerca i, en un sol fitxer, `UiComuns` i `Normativa` dependrien
+  l'un de l'altre (el guard de cicles ho va enxampar).
+- **`Normativa.ps1`** (només Windows): les baixades i la finestra. BOE → pàgina
+  → `/buscar/pdf/<any>/<id>-consolidado.pdf` (o l'original si no n'hi ha).
+  Portal Jurídic, CIDO i altres pàgines → **Edge headless `--print-to-pdf`** amb
+  un **perfil propi** (`--user-data-dir`: si l'Edge de l'usuari és obert, sense
+  això l'ordre se li'n va a ell i torna sense fer res). Un PDF de menys de 20 KB
+  es dona per fallat (pàgina no carregada).
+- **No s'ha pogut provar cap baixada des d'aquí**: el proxy d'aquest entorn
+  bloqueja el BOE, el Portal Jurídic, EUR-Lex i cornella.cat. L'índex diu el
+  motiu de cada fallada perquè l'usuari ho pugui passar.
+- **Actualitzar sola**: BOE per la data d'última actualització; la resta, cada
+  `$Script:NormativaDiesRefresc` (180) dies. L'anterior va a `anteriors\` amb la
+  data si de debò canvia (BOE: nova data; web: la mida canvia més d'un 2 %,
+  perquè imprimir la mateixa pàgina dues vegades no dona els mateixos bytes).
+- Proves a `tests/proves/09-normativa.ps1`, entre elles que **la norma de cada
+  fitxa d'ajuda de REQ1 és al catàleg** (validada traient el Decret 197/2016).
+  El punt nou de tatuatge **no té fitxa d'ajuda**, o sigui que aquesta prova no
+  el mira; el Decret 90/2008 hi és igualment (és als marcadors).

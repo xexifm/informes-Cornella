@@ -40,6 +40,7 @@
     EditorCatalegs.ps1  editar els catalegs   VistaWord.ps1     vistes en Word
     PdfSignar.ps1       Word a PDF + signar   ActExtr*.ps1      act. extraordinaries
                         (Dades, Blocs, Pantalles i l'orquestrador, com Llicencia)
+    Normativa*.ps1      eina Normativa: Dades (cataleg, noms, index; pur) i les baixades
     PdfUnio.ps1         ajuntar l'informe de llicencia amb els PDF dels organismes
     Llicencia*.ps1      Dades (pures), Blocs (l'informe), Pantalles i l'assistent
     LlicenciaDb.ps1     la memoria de cada llicencia entre informes
@@ -483,6 +484,11 @@ if (-not $Script:HeadlessTest) { [void](Invoke-MigracioLocal $RepoRoot) }
 . (Join-Path $ScriptRoot 'PdfUnio.ps1')
 . (Join-Path $ScriptRoot 'PdfCms.ps1')
 . (Join-Path $ScriptRoot 'PdfSignar.ps1')
+
+# Eina "Normativa": el cataleg suport\normativa.json, el nom de cada fitxer i
+# l'index en Excel son funcions pures; les baixades (xarxa i Edge), nomes a Windows.
+. (Join-Path $ScriptRoot 'NormativaDades.ps1')
+. (Join-Path $ScriptRoot 'Normativa.ps1')
 
 # Eina "Seguiment" (fila GIA): els cinc llistats de seguiment de la base de
 # dades d'activitats, en Excel o en PDF. Les funcions de dades son pures i es

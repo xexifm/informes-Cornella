@@ -1,0 +1,1723 @@
+{
+ "Versio": 1,
+ "Nota": "Cataleg de la normativa que es baixa a local\\normativa (eina Normativa del menu). Ambit, Tema, Any, Tipus, Num i Titol fan el nom del fitxer; Url, d'on es baixa (buida = s'ha de desar a ma amb el nom que diu l'index). Claus: com es reconeix la norma en un text quan no te numero.",
+ "Normes": [
+  {
+   "Id": "Ley 21/2013",
+   "Ambit": "Vector ambiental",
+   "Tema": "Impacte ambiental",
+   "Tipus": "Ley",
+   "Num": "21/2013",
+   "Any": "2013",
+   "Titol": "Evaluación ambiental",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2013-12913"
+  },
+  {
+   "Id": "Decret legislatiu 3/2003",
+   "Ambit": "Vector ambiental",
+   "Tema": "Aigua",
+   "Tipus": "Decret legislatiu",
+   "Num": "3/2003",
+   "Any": "2003",
+   "Titol": "Text refós legislació aigües Catalunya",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/dlg/2003/11/04/3"
+  },
+  {
+   "Id": "Decret 130/2003",
+   "Ambit": "Vector ambiental",
+   "Tema": "Aigua",
+   "Tipus": "Decret",
+   "Num": "130/2003",
+   "Any": "2003",
+   "Titol": "Reglament serveis públics de sanejament",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=322238"
+  },
+  {
+   "Id": "Decret 103/2000",
+   "Ambit": "Vector ambiental",
+   "Tema": "Aigua",
+   "Tipus": "Decret",
+   "Num": "103/2000",
+   "Any": "2000",
+   "Titol": "Reglament tributs ACA",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=229687"
+  },
+  {
+   "Id": "Decret 47/2005",
+   "Ambit": "Vector ambiental",
+   "Tema": "Aigua",
+   "Tipus": "Decret",
+   "Num": "47/2005",
+   "Any": "2005",
+   "Titol": "Modificació reglament tributs ACA",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=350125"
+  },
+  {
+   "Id": "Reglament RMAAR",
+   "Ambit": "Vector ambiental",
+   "Tema": "Aigua",
+   "Tipus": "Reglament",
+   "Num": "RMAAR",
+   "Any": "",
+   "Titol": "Abocament d’aigües residuals (AMB)",
+   "Url": "https://www.aiguesdebarcelona.cat/documents/20126/0/Reglament+metropolit%C3%A0+d%E2%80%99abocament+d%E2%80%99aig%C3%BCes+residuals.pdf/49390971-b7ce-5804-e4df-75e0bd09c4e2?t=1565772365533",
+   "Claus": [
+    "rmaar",
+    "reglament metropolita d’abocament"
+   ]
+  },
+  {
+   "Id": "Decret legislatiu 1/2009",
+   "Ambit": "Vector ambiental",
+   "Tema": "Residus",
+   "Tipus": "Decret legislatiu",
+   "Num": "1/2009",
+   "Any": "2009",
+   "Titol": "Text refós Llei reguladora dels residus",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=497897"
+  },
+  {
+   "Id": "Ley 7/2022",
+   "Ambit": "Vector ambiental",
+   "Tema": "Residus",
+   "Tipus": "Ley",
+   "Num": "7/2022",
+   "Any": "2022",
+   "Titol": "Residuos y suelos contaminados",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2022-5809"
+  },
+  {
+   "Id": "Decret 197/2016",
+   "Ambit": "Vector ambiental",
+   "Tema": "Residus",
+   "Tipus": "Decret",
+   "Num": "197/2016",
+   "Any": "2016",
+   "Titol": "Comunicació prèvia i registres productors i gestors",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=718399"
+  },
+  {
+   "Id": "Decret 152/2017",
+   "Ambit": "Vector ambiental",
+   "Tema": "Residus",
+   "Tipus": "Decret",
+   "Num": "152/2017",
+   "Any": "2017",
+   "Titol": "Classificació, codificació i vies de gestió dels residus",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=799716"
+  },
+  {
+   "Id": "Decret 27/1999",
+   "Ambit": "Vector ambiental",
+   "Tema": "Residus",
+   "Tipus": "Decret",
+   "Num": "27/1999",
+   "Any": "1999",
+   "Titol": "Gestió dels residus sanitaris",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=187544"
+  },
+  {
+   "Id": "Decret 93/1999",
+   "Ambit": "Vector ambiental",
+   "Tema": "Residus",
+   "Tipus": "Decret",
+   "Num": "93/1999",
+   "Any": "1999",
+   "Titol": "Procediments de gestió de residus",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=184377"
+  },
+  {
+   "Id": "RD 553/2020",
+   "Ambit": "Vector ambiental",
+   "Tema": "Residus",
+   "Tipus": "RD",
+   "Num": "553/2020",
+   "Any": "2020",
+   "Titol": "Traslado de residuos en el interior del Estado",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2020-6422"
+  },
+  {
+   "Id": "RD 363/1995",
+   "Ambit": "Vector ambiental",
+   "Tema": "Residus",
+   "Tipus": "RD",
+   "Num": "363/1995",
+   "Any": "1995",
+   "Titol": "Sustancias peligrosas",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-1995-13535"
+  },
+  {
+   "Id": "RD 9/2005",
+   "Ambit": "Vector ambiental",
+   "Tema": "Sòl",
+   "Tipus": "RD",
+   "Num": "9/2005",
+   "Any": "2005",
+   "Titol": "Actividades potencialmente contaminantes del suelo",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2005-895"
+  },
+  {
+   "Id": "Ley 34/2007",
+   "Ambit": "Vector ambiental",
+   "Tema": "Aire",
+   "Tipus": "Ley",
+   "Num": "34/2007",
+   "Any": "2007",
+   "Titol": "Calidad del aire y protección de la atmósfera",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2007-19744"
+  },
+  {
+   "Id": "RD 100/2011",
+   "Ambit": "Vector ambiental",
+   "Tema": "Aire",
+   "Tipus": "RD",
+   "Num": "100/2011",
+   "Any": "2011",
+   "Titol": "Actualización del CAPCA",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2011-1643"
+  },
+  {
+   "Id": "Decret 139/2018",
+   "Ambit": "Vector ambiental",
+   "Tema": "Aire",
+   "Tipus": "Decret",
+   "Num": "139/2018",
+   "Any": "2018",
+   "Titol": "Règims d’intervenció ambiental atmosfèrica",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=822070"
+  },
+  {
+   "Id": "RD 117/2003",
+   "Ambit": "Vector ambiental",
+   "Tema": "Aire",
+   "Tipus": "RD",
+   "Num": "117/2003",
+   "Any": "2003",
+   "Titol": "Limitación de emisiones de COV",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2003-2515"
+  },
+  {
+   "Id": "RD 815/2013",
+   "Ambit": "Vector ambiental",
+   "Tema": "Aire",
+   "Tipus": "RD",
+   "Num": "815/2013",
+   "Any": "2013",
+   "Titol": "Reglamento de emisiones industriales",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2013-10949"
+  },
+  {
+   "Id": "RD 1042/2017",
+   "Ambit": "Vector ambiental",
+   "Tema": "Aire",
+   "Tipus": "RD",
+   "Num": "1042/2017",
+   "Any": "2017",
+   "Titol": "Limitación de emisiones de instalaciones de combustión medianas",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2017-15368"
+  },
+  {
+   "Id": "Directiva 2010/75/UE",
+   "Ambit": "Vector ambiental",
+   "Tema": "Aire",
+   "Tipus": "Directiva",
+   "Num": "2010/75/UE",
+   "Any": "2010",
+   "Titol": "Emisiones industriales",
+   "Url": "https://eur-lex.europa.eu/legal-content/ES/TXT/PDF/?uri=CELEX:32010L0075"
+  },
+  {
+   "Id": "Llei 16/2002",
+   "Ambit": "Vector ambiental",
+   "Tema": "Soroll",
+   "Tipus": "Llei",
+   "Num": "16/2002",
+   "Any": "2002",
+   "Titol": "Protecció contra la contaminació acústica",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/l/2002/06/28/16"
+  },
+  {
+   "Id": "Decret 176/2009",
+   "Ambit": "Vector ambiental",
+   "Tema": "Soroll",
+   "Tipus": "Decret",
+   "Num": "176/2009",
+   "Any": "2009",
+   "Titol": "Reglament de la Llei 16/2002 de contaminació acústica",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/d/2009/11/10/176"
+  },
+  {
+   "Id": "RD 1367/2007",
+   "Ambit": "Vector ambiental",
+   "Tema": "Soroll",
+   "Tipus": "RD",
+   "Num": "1367/2007",
+   "Any": "2007",
+   "Titol": "Zonificación acústica, objetivos de calidad y emisiones",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2007-18397"
+  },
+  {
+   "Id": "Ordenança tipus DIBA soroll",
+   "Ambit": "Vector ambiental",
+   "Tema": "Soroll",
+   "Tipus": "Ordenança tipus DIBA",
+   "Num": "",
+   "Any": "2014",
+   "Titol": "Soroll i vibracions",
+   "Url": "https://xarxaenxarxa.diba.cat/sites/xarxaenxarxa.diba.cat/files/ordenanca_model_a_annexos_d176.pdf"
+  },
+  {
+   "Id": "Llei 6/2001",
+   "Ambit": "Vector ambiental",
+   "Tema": "Llum",
+   "Tipus": "Llei",
+   "Num": "6/2001",
+   "Any": "2001",
+   "Titol": "Ordenació ambiental de l’enllumenament",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=259200"
+  },
+  {
+   "Id": "Decret 190/2015",
+   "Ambit": "Vector ambiental",
+   "Tema": "Llum",
+   "Tipus": "Decret",
+   "Num": "190/2015",
+   "Any": "2015",
+   "Titol": "Desplegament de la Llei 6/2001 (medi nocturn)",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/d/2015/08/25/190"
+  },
+  {
+   "Id": "Ordenança tipus DIBA olors",
+   "Ambit": "Vector ambiental",
+   "Tema": "Olors",
+   "Tipus": "Ordenança tipus DIBA",
+   "Num": "",
+   "Any": "",
+   "Titol": "Contaminació odorífera",
+   "Url": "",
+   "Claus": [
+    "contaminacio odorifera"
+   ]
+  },
+  {
+   "Id": "Ley 21/1992",
+   "Ambit": "Instal·lacions",
+   "Tema": "General",
+   "Tipus": "Ley",
+   "Num": "21/1992",
+   "Any": "1992",
+   "Titol": "Industria",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-1992-17363"
+  },
+  {
+   "Id": "Llei 9/2014",
+   "Ambit": "Instal·lacions",
+   "Tema": "General",
+   "Tipus": "Llei",
+   "Num": "9/2014",
+   "Any": "2014",
+   "Titol": "Seguretat industrial dels establiments i instal·lacions",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/l/2014/07/31/9"
+  },
+  {
+   "Id": "Decret 192/2023",
+   "Ambit": "Instal·lacions",
+   "Tema": "General",
+   "Tipus": "Decret",
+   "Num": "192/2023",
+   "Any": "2023",
+   "Titol": "Seguretat industrial d’establiments, instal·lacions i productes",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=971700"
+  },
+  {
+   "Id": "Nota aclaridora 30-04-2024",
+   "Ambit": "Instal·lacions",
+   "Tema": "General",
+   "Tipus": "Nota aclaridora",
+   "Num": "30-04-2024",
+   "Any": "2024",
+   "Titol": "Article 9 del Decret 192/2023",
+   "Url": "https://empresa.gencat.cat/web/.content/17-seguretat-industrial/normativa/disposicions-generals/Certificats-professionals-o-disposicions-generals/Notes-informatives/24-04-30-Acc-Nota-aclaridora-Article-9-Decret-192_2023-seguretat_industrial-sig.pdf"
+  },
+  {
+   "Id": "RD 244/2019",
+   "Ambit": "Instal·lacions",
+   "Tema": "Autoconsum",
+   "Tipus": "RD",
+   "Num": "244/2019",
+   "Any": "2019",
+   "Titol": "Autoconsumo de energía eléctrica",
+   "Url": "https://www.boe.es/eli/es/rd/2019/04/05/244/con"
+  },
+  {
+   "Id": "RD 919/2006",
+   "Ambit": "Instal·lacions",
+   "Tema": "Gas",
+   "Tipus": "RD",
+   "Num": "919/2006",
+   "Any": "2006",
+   "Titol": "Reglamento técnico de combustibles gaseosos",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2006-15345"
+  },
+  {
+   "Id": "Ley 34/1998",
+   "Ambit": "Instal·lacions",
+   "Tema": "Gas",
+   "Tipus": "Ley",
+   "Num": "34/1998",
+   "Any": "1998",
+   "Titol": "Sector de hidrocarburos",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-1998-23284"
+  },
+  {
+   "Id": "RD 842/2002",
+   "Ambit": "Instal·lacions",
+   "Tema": "Baixa tensió",
+   "Tipus": "RD",
+   "Num": "842/2002",
+   "Any": "2002",
+   "Titol": "Reglamento electrotécnico para baja tensión (REBT)",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2002-18099"
+  },
+  {
+   "Id": "RD 337/2014",
+   "Ambit": "Instal·lacions",
+   "Tema": "Alta tensió",
+   "Tipus": "RD",
+   "Num": "337/2014",
+   "Any": "2014",
+   "Titol": "Instalaciones eléctricas de alta tensión (ITC-RAT)",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2014-6084"
+  },
+  {
+   "Id": "Ley 24/2013",
+   "Ambit": "Instal·lacions",
+   "Tema": "Alta tensió",
+   "Tipus": "Ley",
+   "Num": "24/2013",
+   "Any": "2013",
+   "Titol": "Sector eléctrico",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2013-13645"
+  },
+  {
+   "Id": "RDL 29/2021",
+   "Ambit": "Instal·lacions",
+   "Tema": "Vehicle elèctric",
+   "Tipus": "RDL",
+   "Num": "29/2021",
+   "Any": "2021",
+   "Titol": "Movilidad eléctrica, autoconsumo y renovables",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2021-21096"
+  },
+  {
+   "Id": "RD 355/2024",
+   "Ambit": "Instal·lacions",
+   "Tema": "Ascensors",
+   "Tipus": "RD",
+   "Num": "355/2024",
+   "Any": "2024",
+   "Titol": "ITC AEM 1 Ascensores",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2024-7258"
+  },
+  {
+   "Id": "RD 1644/2008",
+   "Ambit": "Instal·lacions",
+   "Tema": "Ascensors",
+   "Tipus": "RD",
+   "Num": "1644/2008",
+   "Any": "2008",
+   "Titol": "Comercialización y puesta en servicio de máquinas",
+   "Url": "https://www.boe.es/eli/es/rd/2008/10/10/1644/con"
+  },
+  {
+   "Id": "RD 203/2016",
+   "Ambit": "Instal·lacions",
+   "Tema": "Ascensors",
+   "Tipus": "RD",
+   "Num": "203/2016",
+   "Any": "2016",
+   "Titol": "Requisitos esenciales de ascensores",
+   "Url": "https://www.boe.es/eli/es/rd/2016/05/20/203/con"
+  },
+  {
+   "Id": "RD 1027/2007",
+   "Ambit": "Instal·lacions",
+   "Tema": "Tèrmiques",
+   "Tipus": "RD",
+   "Num": "1027/2007",
+   "Any": "2007",
+   "Titol": "Reglamento de Instalaciones Térmicas (RITE)",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2007-15820"
+  },
+  {
+   "Id": "Decret 21/2006",
+   "Ambit": "Instal·lacions",
+   "Tema": "Tèrmiques",
+   "Tipus": "Decret",
+   "Num": "21/2006",
+   "Any": "2006",
+   "Titol": "Criteris ambientals i d’ecoeficiència en edificis",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=406954"
+  },
+  {
+   "Id": "RD 487/2022",
+   "Ambit": "Instal·lacions",
+   "Tema": "Tèrmiques",
+   "Tipus": "RD",
+   "Num": "487/2022",
+   "Any": "2022",
+   "Titol": "Prevención y control de la legionelosis",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2022-10297"
+  },
+  {
+   "Id": "RD 552/2019",
+   "Ambit": "Instal·lacions",
+   "Tema": "Fred industrial",
+   "Tipus": "RD",
+   "Num": "552/2019",
+   "Any": "2019",
+   "Titol": "Reglamento de seguridad para instalaciones frigoríficas",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2019-15228"
+  },
+  {
+   "Id": "RD 115/2017",
+   "Ambit": "Instal·lacions",
+   "Tema": "Fred industrial",
+   "Tipus": "RD",
+   "Num": "115/2017",
+   "Any": "2017",
+   "Titol": "Gases fluorados",
+   "Url": "https://www.boe.es/eli/es/rd/2017/02/17/115/con"
+  },
+  {
+   "Id": "RD 809/2021",
+   "Ambit": "Instal·lacions",
+   "Tema": "Equips a pressió",
+   "Tipus": "RD",
+   "Num": "809/2021",
+   "Any": "2021",
+   "Titol": "Reglamento de equipos a presión",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2021-16407"
+  },
+  {
+   "Id": "RD 709/2015",
+   "Ambit": "Instal·lacions",
+   "Tema": "Equips a pressió",
+   "Tipus": "RD",
+   "Num": "709/2015",
+   "Any": "2015",
+   "Titol": "Comercialización de equipos a presión",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-9527"
+  },
+  {
+   "Id": "RD 513/2017",
+   "Ambit": "Instal·lacions",
+   "Tema": "PCI",
+   "Tipus": "RD",
+   "Num": "513/2017",
+   "Any": "2017",
+   "Titol": "Reglamento de instalaciones de protección contra incendios (RIPCI)",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2017-6606"
+  },
+  {
+   "Id": "RD 656/2017",
+   "Ambit": "Instal·lacions",
+   "Tema": "Químics",
+   "Tipus": "RD",
+   "Num": "656/2017",
+   "Any": "2017",
+   "Titol": "Reglamento de almacenamiento de productos químicos (APQ)",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2017-8755"
+  },
+  {
+   "Id": "Reglament (CE) 1907/2006",
+   "Ambit": "Instal·lacions",
+   "Tema": "Químics",
+   "Tipus": "Reglament (CE)",
+   "Num": "1907/2006",
+   "Any": "2006",
+   "Titol": "REACH",
+   "Url": "https://eur-lex.europa.eu/legal-content/ES/TXT/PDF/?uri=CELEX:32006R1907"
+  },
+  {
+   "Id": "Reglament (CE) 1272/2008",
+   "Ambit": "Instal·lacions",
+   "Tema": "Químics",
+   "Tipus": "Reglament (CE)",
+   "Num": "1272/2008",
+   "Any": "2008",
+   "Titol": "CLP clasificación y etiquetado",
+   "Url": "https://eur-lex.europa.eu/legal-content/ES/TXT/PDF/?uri=CELEX:32008R1272"
+  },
+  {
+   "Id": "RD 2085/1994",
+   "Ambit": "Instal·lacions",
+   "Tema": "Petroli",
+   "Tipus": "RD",
+   "Num": "2085/1994",
+   "Any": "1994",
+   "Titol": "Reglamento de instalaciones petrolíferas",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-1995-2122"
+  },
+  {
+   "Id": "RD 1562/1998",
+   "Ambit": "Instal·lacions",
+   "Tema": "Petroli",
+   "Tipus": "RD",
+   "Num": "1562/1998",
+   "Any": "1998",
+   "Titol": "ITC MI-IP 02 Parques de almacenamiento",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-1998-19183"
+  },
+  {
+   "Id": "RD 1427/1997",
+   "Ambit": "Instal·lacions",
+   "Tema": "Petroli",
+   "Tipus": "RD",
+   "Num": "1427/1997",
+   "Any": "1997",
+   "Titol": "ITC MI-IP 03 Instalaciones para uso propio",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-1997-22316"
+  },
+  {
+   "Id": "RD 706/2017",
+   "Ambit": "Instal·lacions",
+   "Tema": "Petroli",
+   "Tipus": "RD",
+   "Num": "706/2017",
+   "Any": "2017",
+   "Titol": "ITC MI-IP 04 Suministro a vehículos",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2017-9188"
+  },
+  {
+   "Id": "RD 1836/1999",
+   "Ambit": "Instal·lacions",
+   "Tema": "Radioactives",
+   "Tipus": "RD",
+   "Num": "1836/1999",
+   "Any": "1999",
+   "Titol": "Reglamento de instalaciones nucleares y radiactivas",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-1999-24924"
+  },
+  {
+   "Id": "RD 1085/2009",
+   "Ambit": "Instal·lacions",
+   "Tema": "Raigs X",
+   "Tipus": "RD",
+   "Num": "1085/2009",
+   "Any": "2009",
+   "Titol": "Aparatos de rayos X de diagnóstico médico",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2009-11932"
+  },
+  {
+   "Id": "RD 989/2015",
+   "Ambit": "Instal·lacions",
+   "Tema": "Pirotècnia",
+   "Tipus": "RD",
+   "Num": "989/2015",
+   "Any": "2015",
+   "Titol": "Artículos pirotécnicos y cartuchería",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-12054"
+  },
+  {
+   "Id": "RD 130/2017",
+   "Ambit": "Instal·lacions",
+   "Tema": "Explosius",
+   "Tipus": "RD",
+   "Num": "130/2017",
+   "Any": "2017",
+   "Titol": "Reglamento de explosivos",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2017-2313"
+  },
+  {
+   "Id": "RD 865/2003",
+   "Ambit": "Instal·lacions",
+   "Tema": "Antic",
+   "Tipus": "RD",
+   "Num": "865/2003",
+   "Any": "2003",
+   "Titol": "Legionelosis (derogat pel RD 487/2022)",
+   "Url": "https://www.boe.es/eli/es/rd/2003/07/04/865/con",
+   "Derogada": true
+  },
+  {
+   "Id": "RD 2060/2008",
+   "Ambit": "Instal·lacions",
+   "Tema": "Antic",
+   "Tipus": "RD",
+   "Num": "2060/2008",
+   "Any": "2008",
+   "Titol": "Equipos a presión (derogat pel RD 809/2021)",
+   "Url": "https://www.boe.es/eli/es/rd/2008/12/12/2060/con",
+   "Derogada": true
+  },
+  {
+   "Id": "RD 138/2011",
+   "Ambit": "Instal·lacions",
+   "Tema": "Antic",
+   "Tipus": "RD",
+   "Num": "138/2011",
+   "Any": "2011",
+   "Titol": "Instalaciones frigoríficas (derogat pel RD 552/2019)",
+   "Url": "https://www.boe.es/eli/es/rd/2011/02/04/138/con",
+   "Derogada": true
+  },
+  {
+   "Id": "Llei 3/2010",
+   "Ambit": "Incendis",
+   "Tema": "",
+   "Tipus": "Llei",
+   "Num": "3/2010",
+   "Any": "2010",
+   "Titol": "Prevenció i seguretat en matèria d’incendis",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/l/2010/02/18/3"
+  },
+  {
+   "Id": "RD 164/2025",
+   "Ambit": "Incendis",
+   "Tema": "RSCIEI",
+   "Tipus": "RD",
+   "Num": "164/2025",
+   "Any": "2025",
+   "Titol": "Seguridad contra incendios en establecimientos industriales",
+   "Url": "https://www.boe.es/eli/es/rd/2025/03/04/164/con"
+  },
+  {
+   "Id": "Ordre ISP/17/2025",
+   "Ambit": "Incendis",
+   "Tema": "",
+   "Tipus": "Ordre",
+   "Num": "ISP/17/2025",
+   "Any": "2025",
+   "Titol": "Documentació tècnica per a l’informe de Bombers",
+   "Url": "https://dogc.gencat.cat/ca/document-del-dogc/?documentId=1007433"
+  },
+  {
+   "Id": "Nota aclaridora NA-PCI 1/2025",
+   "Ambit": "Incendis",
+   "Tema": "RSCIEI",
+   "Tipus": "Nota aclaridora",
+   "Num": "NA-PCI 1/2025",
+   "Any": "2025",
+   "Titol": "Inspeccions RSCIEI i RIPCI",
+   "Url": "https://interior.gencat.cat/web/.content/home/030_arees_dactuacio/bombers/prevencio_d_incendis/nota_aclaridora_na_pci_1_2025.pdf"
+  },
+  {
+   "Id": "Nota aclaridora NA-PCI 1/2019",
+   "Ambit": "Incendis",
+   "Tema": "Antic",
+   "Tipus": "Nota aclaridora",
+   "Num": "NA-PCI 1/2019",
+   "Any": "2019",
+   "Titol": "Inspeccions periòdiques PCI en establiments industrials",
+   "Url": "https://empresa.gencat.cat/web/.content/17-seguretat-industrial/normativa/installacions-industrials/Installacions-de-proteccio-contra-incendis/Notes-informatives/2019/Nota-aclaridora-PCI-1-2019.pdf",
+   "Derogada": true
+  },
+  {
+   "Id": "RD 2267/2004",
+   "Ambit": "Incendis",
+   "Tema": "Antic",
+   "Tipus": "RD",
+   "Num": "2267/2004",
+   "Any": "2004",
+   "Titol": "RSCIEI anterior (derogat pel RD 164/2025)",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2004-21216",
+   "Derogada": true
+  },
+  {
+   "Id": "Decret 241/1994",
+   "Ambit": "Incendis",
+   "Tema": "Antic",
+   "Tipus": "Decret",
+   "Num": "241/1994",
+   "Any": "1994",
+   "Titol": "Complement de la NBE-CPI/91",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=121362",
+   "Derogada": true
+  },
+  {
+   "Id": "Decret 136/1999",
+   "Ambit": "Incendis",
+   "Tema": "Antic",
+   "Tipus": "Decret",
+   "Num": "136/1999",
+   "Any": "1999",
+   "Titol": "Desplegament de la Llei 3/1998",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=186622",
+   "Derogada": true
+  },
+  {
+   "Id": "Decret 143/2003",
+   "Ambit": "Incendis",
+   "Tema": "Antic",
+   "Tipus": "Decret",
+   "Num": "143/2003",
+   "Any": "2003",
+   "Titol": "Modificació del Decret 136/1999",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=328918",
+   "Derogada": true
+  },
+  {
+   "Id": "NBE-CPI 91",
+   "Ambit": "Incendis",
+   "Tema": "Antic",
+   "Tipus": "NBE-CPI",
+   "Num": "91",
+   "Any": "1991",
+   "Titol": "Protección contra incendios en los edificios",
+   "Url": "https://www.boe.es/boe/dias/1991/03/08/pdfs/A07911-07952.pdf",
+   "Derogada": true,
+   "Claus": [
+    "nbe-cpi/91",
+    "nbe-cpi-91"
+   ]
+  },
+  {
+   "Id": "NBE-CPI 96",
+   "Ambit": "Incendis",
+   "Tema": "Antic",
+   "Tipus": "NBE-CPI",
+   "Num": "96",
+   "Any": "1996",
+   "Titol": "Protección contra incendios en los edificios",
+   "Url": "https://www.boe.es/boe/dias/1996/10/29/pdfs/A32378-32422.pdf",
+   "Derogada": true,
+   "Claus": [
+    "nbe-cpi/96",
+    "nbe-cpi-96"
+   ]
+  },
+  {
+   "Id": "RD 314/2006",
+   "Ambit": "CTE",
+   "Tema": "",
+   "Tipus": "RD",
+   "Num": "314/2006",
+   "Any": "2006",
+   "Titol": "Código Técnico de la Edificación",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2006-5515"
+  },
+  {
+   "Id": "DB SI",
+   "Ambit": "CTE",
+   "Tema": "",
+   "Tipus": "DB",
+   "Num": "SI",
+   "Any": "2006",
+   "Titol": "Seguridad en caso de incendio",
+   "Url": "https://www.codigotecnico.org/pdf/Documentos/SI/DccSI.pdf",
+   "Claus": [
+    "db si"
+   ]
+  },
+  {
+   "Id": "DB SUA",
+   "Ambit": "CTE",
+   "Tema": "",
+   "Tipus": "DB",
+   "Num": "SUA",
+   "Any": "2006",
+   "Titol": "Seguridad de utilización y accesibilidad",
+   "Url": "https://www.codigotecnico.org/pdf/Documentos/SUA/DccSUA.pdf",
+   "Claus": [
+    "db sua"
+   ]
+  },
+  {
+   "Id": "DB HR",
+   "Ambit": "CTE",
+   "Tema": "",
+   "Tipus": "DB",
+   "Num": "HR",
+   "Any": "2006",
+   "Titol": "Protección frente al ruido",
+   "Url": "https://www.codigotecnico.org/pdf/Documentos/HR/DccHR.pdf",
+   "Claus": [
+    "db hr"
+   ]
+  },
+  {
+   "Id": "DB HS",
+   "Ambit": "CTE",
+   "Tema": "",
+   "Tipus": "DB",
+   "Num": "HS",
+   "Any": "2006",
+   "Titol": "Salubridad",
+   "Url": "https://www.codigotecnico.org/pdf/Documentos/HS/DccHS.pdf",
+   "Claus": [
+    "db hs"
+   ]
+  },
+  {
+   "Id": "DB HE",
+   "Ambit": "CTE",
+   "Tema": "",
+   "Tipus": "DB",
+   "Num": "HE",
+   "Any": "2006",
+   "Titol": "Ahorro de energía",
+   "Url": "https://www.codigotecnico.org/pdf/Documentos/HE/DccHE.pdf",
+   "Claus": [
+    "db he"
+   ]
+  },
+  {
+   "Id": "Llei 20/2009",
+   "Ambit": "Activitats",
+   "Tema": "Ambientals",
+   "Tipus": "Llei",
+   "Num": "20/2009",
+   "Any": "2009",
+   "Titol": "Prevenció i control ambiental de les activitats",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/l/2009/12/04/20"
+  },
+  {
+   "Id": "Llei 18/2020",
+   "Ambit": "Activitats",
+   "Tema": "Innòcues",
+   "Tipus": "Llei",
+   "Num": "18/2020",
+   "Any": "2020",
+   "Titol": "Facilitació de l’activitat econòmica",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/l/2020/12/28/18"
+  },
+  {
+   "Id": "Decret 131/2022",
+   "Ambit": "Activitats",
+   "Tema": "Innòcues",
+   "Tipus": "Decret",
+   "Num": "131/2022",
+   "Any": "2022",
+   "Titol": "Reglament de la Llei 18/2020",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/d/2022/07/05/131"
+  },
+  {
+   "Id": "Decret 112/2010",
+   "Ambit": "Activitats",
+   "Tema": "Recreatives",
+   "Tipus": "Decret",
+   "Num": "112/2010",
+   "Any": "2010",
+   "Titol": "Reglament d’espectacles públics i activitats recreatives",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/d/2010/08/31/112"
+  },
+  {
+   "Id": "Llei 11/2009",
+   "Ambit": "Activitats",
+   "Tema": "Recreatives",
+   "Tipus": "Llei",
+   "Num": "11/2009",
+   "Any": "2009",
+   "Titol": "Regulació administrativa d’espectacles i activitats recreatives",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=479197"
+  },
+  {
+   "Id": "Ordre INT/358/2011",
+   "Ambit": "Activitats",
+   "Tema": "Recreatives",
+   "Tipus": "Ordre",
+   "Num": "INT/358/2011",
+   "Any": "2011",
+   "Titol": "Horaris d’espectacles públics i activitats recreatives",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/o/2011/12/19/int358"
+  },
+  {
+   "Id": "RD 2816/1982",
+   "Ambit": "Activitats",
+   "Tema": "Recreatives",
+   "Tipus": "RD",
+   "Num": "2816/1982",
+   "Any": "1982",
+   "Titol": "Reglamento general de policía de espectáculos (RGEPEAR)",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-1982-28915"
+  },
+  {
+   "Id": "Ordenança tipus DIBA recreatives",
+   "Ambit": "Activitats",
+   "Tema": "Recreatives",
+   "Tipus": "Ordenança tipus DIBA",
+   "Num": "",
+   "Any": "",
+   "Titol": "Espectacles públics i activitats recreatives",
+   "Url": "https://cido.diba.cat/normativa_local/386663/model-dordenanca-tipus-dintervencio-municipal-en-espectacles-publics-i-activitats-recreatives-diputacio-de-barcelona-secretaria-general"
+  },
+  {
+   "Id": "Nota informativa activitats extraordinàries",
+   "Ambit": "Activitats",
+   "Tema": "Recreatives",
+   "Tipus": "Nota informativa",
+   "Num": "",
+   "Any": "2026",
+   "Titol": "Activitats extraordinàries (Interior, juny 2026)",
+   "Url": "https://interior.gencat.cat/web/.content/home/030_arees_dactuacio/espectacles/espectacles/espectacles_i_activitats_de_caracter_extraordinari/Nota-informativa-ACTIVITATS-EXTRAORDINARIES-versio-web-juny-2026_corregit.pdf"
+  },
+  {
+   "Id": "Llei 22/2010",
+   "Ambit": "Activitats",
+   "Tema": "Consum",
+   "Tipus": "Llei",
+   "Num": "22/2010",
+   "Any": "2010",
+   "Titol": "Codi de consum de Catalunya",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/l/2010/07/20/22"
+  },
+  {
+   "Id": "Decret 121/2013",
+   "Ambit": "Activitats",
+   "Tema": "Consum",
+   "Tipus": "Decret",
+   "Num": "121/2013",
+   "Any": "2013",
+   "Titol": "Fulls oficials de queixa, reclamació i denúncia",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/d/2013/02/26/121"
+  },
+  {
+   "Id": "Llei 39/2015",
+   "Ambit": "Activitats",
+   "Tema": "Procediment",
+   "Tipus": "Llei",
+   "Num": "39/2015",
+   "Any": "2015",
+   "Titol": "Procedimiento administrativo común",
+   "Url": "https://www.boe.es/eli/es/l/2015/10/01/39/con"
+  },
+  {
+   "Id": "Llei 26/2010",
+   "Ambit": "Activitats",
+   "Tema": "Procediment",
+   "Tipus": "Llei",
+   "Num": "26/2010",
+   "Any": "2010",
+   "Titol": "Règim jurídic i procediment de les administracions de Catalunya",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=546116"
+  },
+  {
+   "Id": "RD 1457/1986",
+   "Ambit": "Activitats",
+   "Tema": "Registres",
+   "Tipus": "RD",
+   "Num": "1457/1986",
+   "Any": "1986",
+   "Titol": "Talleres de reparación de vehículos",
+   "Url": "https://www.boe.es/eli/es/rd/1986/01/10/1457/con"
+  },
+  {
+   "Id": "RD 840/2015",
+   "Ambit": "Activitats",
+   "Tema": "Registres",
+   "Tipus": "RD",
+   "Num": "840/2015",
+   "Any": "2015",
+   "Titol": "Accidentes graves con sustancias peligrosas (Seveso)",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11268"
+  },
+  {
+   "Id": "RD 1254/1999",
+   "Ambit": "Activitats",
+   "Tema": "Registres",
+   "Tipus": "RD",
+   "Num": "1254/1999",
+   "Any": "1999",
+   "Titol": "Seveso anterior (derogat pel RD 840/2015)",
+   "Url": "https://www.boe.es/eli/es/rd/1999/07/16/1254/con",
+   "Derogada": true
+  },
+  {
+   "Id": "Decret 333/1998",
+   "Ambit": "Activitats",
+   "Tema": "Pa",
+   "Tipus": "Decret",
+   "Num": "333/1998",
+   "Any": "1998",
+   "Titol": "Comercialització i venda de pa",
+   "Url": "https://dogc.gencat.cat/ca/document-del-dogc/?documentId=187113"
+  },
+  {
+   "Id": "Llei 16/2015",
+   "Ambit": "Activitats",
+   "Tema": "Antic",
+   "Tipus": "Llei",
+   "Num": "16/2015",
+   "Any": "2015",
+   "Titol": "Simplificació de l’activitat administrativa (ara Llei 18/2020)",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=699070",
+   "Derogada": true
+  },
+  {
+   "Id": "Llei 3/1998",
+   "Ambit": "Activitats",
+   "Tema": "Antic",
+   "Tipus": "Llei",
+   "Num": "3/1998",
+   "Any": "1998",
+   "Titol": "Intervenció integral de l’administració ambiental (ara Llei 20/2009)",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=158953",
+   "Derogada": true
+  },
+  {
+   "Id": "Ordenança Cornellà activitats",
+   "Ambit": "Cornellà",
+   "Tema": "",
+   "Tipus": "Ordenança",
+   "Num": "",
+   "Any": "",
+   "Titol": "Intervenció administrativa municipal en les activitats",
+   "Url": "",
+   "Claus": [
+    "ordenanca relativa a la intervencio administrativa municipal en les activitats",
+    "ordenanca municipal d’activitats"
+   ]
+  },
+  {
+   "Id": "Ordenança Cornellà convivència",
+   "Ambit": "Cornellà",
+   "Tema": "",
+   "Tipus": "Ordenança",
+   "Num": "",
+   "Any": "",
+   "Titol": "Convivència ciutadana",
+   "Url": "https://cido.diba.cat/normativa_local/1365/ordenanca-de-convivencia-ciutadana-ajuntament-de-cornella-de-llobregat",
+   "Claus": [
+    "ordenanca general de convivencia ciutadana",
+    "ordenanca de convivencia ciutadana"
+   ]
+  },
+  {
+   "Id": "Llei 13/2014",
+   "Ambit": "Accessibilitat",
+   "Tema": "",
+   "Tipus": "Llei",
+   "Num": "13/2014",
+   "Any": "2014",
+   "Titol": "Accessibilitat",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/l/2014/10/30/13"
+  },
+  {
+   "Id": "Decret 209/2023",
+   "Ambit": "Accessibilitat",
+   "Tema": "",
+   "Tipus": "Decret",
+   "Num": "209/2023",
+   "Any": "2023",
+   "Titol": "Codi d’accessibilitat de Catalunya",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/d/2023/11/28/209"
+  },
+  {
+   "Id": "Decret 135/1995",
+   "Ambit": "Accessibilitat",
+   "Tema": "Antic",
+   "Tipus": "Decret",
+   "Num": "135/1995",
+   "Any": "1995",
+   "Titol": "Codi d’accessibilitat anterior",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=111610",
+   "Derogada": true
+  },
+  {
+   "Id": "Decret 151/2017",
+   "Ambit": "Sanitat",
+   "Tema": "",
+   "Tipus": "Decret",
+   "Num": "151/2017",
+   "Any": "2017",
+   "Titol": "Requisits tecnicosanitaris dels centres i serveis sanitaris",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/d/2017/10/17/151"
+  },
+  {
+   "Id": "RD 1277/2003",
+   "Ambit": "Sanitat",
+   "Tema": "",
+   "Tipus": "RD",
+   "Num": "1277/2003",
+   "Any": "2003",
+   "Titol": "Autorización de centros y servicios sanitarios",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2003-19572"
+  },
+  {
+   "Id": "Decret 90/2008",
+   "Ambit": "Sanitat",
+   "Tema": "Tatuatge",
+   "Tipus": "Decret",
+   "Num": "90/2008",
+   "Any": "2008",
+   "Titol": "Tatuatge, micropigmentació i pírcing",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=490743"
+  },
+  {
+   "Id": "RD 192/2023",
+   "Ambit": "Sanitat",
+   "Tema": "Productes sanitaris",
+   "Tipus": "RD",
+   "Num": "192/2023",
+   "Any": "2023",
+   "Titol": "Productos sanitarios",
+   "Url": "https://www.boe.es/eli/es/rd/2023/03/21/192/con"
+  },
+  {
+   "Id": "Reglament (UE) 2017/745",
+   "Ambit": "Sanitat",
+   "Tema": "Productes sanitaris",
+   "Tipus": "Reglament (UE)",
+   "Num": "2017/745",
+   "Any": "2017",
+   "Titol": "Productos sanitarios",
+   "Url": "https://eur-lex.europa.eu/legal-content/ES/TXT/PDF/?uri=CELEX:32017R0745"
+  },
+  {
+   "Id": "RD 1591/2009",
+   "Ambit": "Sanitat",
+   "Tema": "Antic",
+   "Tipus": "RD",
+   "Num": "1591/2009",
+   "Any": "2009",
+   "Titol": "Productos sanitarios (derogat pel RD 192/2023)",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2009-17606",
+   "Derogada": true
+  },
+  {
+   "Id": "RD 1002/2002",
+   "Ambit": "Sanitat",
+   "Tema": "Estètica",
+   "Tipus": "RD",
+   "Num": "1002/2002",
+   "Any": "2002",
+   "Titol": "Aparatos de bronceado (bancs solars)",
+   "Url": "https://www.boe.es/eli/es/rd/2002/09/27/1002/con"
+  },
+  {
+   "Id": "RD 830/2010",
+   "Ambit": "Sanitat",
+   "Tema": "Plagues",
+   "Tipus": "RD",
+   "Num": "830/2010",
+   "Any": "2010",
+   "Titol": "Capacitación para tratamientos con biocidas",
+   "Url": "https://www.boe.es/eli/es/rd/2010/06/25/830/con"
+  },
+  {
+   "Id": "Reglament (CE) 852/2004",
+   "Ambit": "Sanitat",
+   "Tema": "Menjar",
+   "Tipus": "Reglament (CE)",
+   "Num": "852/2004",
+   "Any": "2004",
+   "Titol": "Higiene de los productos alimenticios",
+   "Url": "https://eur-lex.europa.eu/legal-content/ES/TXT/PDF/?uri=CELEX:32004R0852"
+  },
+  {
+   "Id": "Reglament (CE) 853/2004",
+   "Ambit": "Sanitat",
+   "Tema": "Menjar",
+   "Tipus": "Reglament (CE)",
+   "Num": "853/2004",
+   "Any": "2004",
+   "Titol": "Higiene de los alimentos de origen animal",
+   "Url": "https://eur-lex.europa.eu/legal-content/ES/TXT/PDF/?uri=CELEX:32004R0853"
+  },
+  {
+   "Id": "RD 1021/2022",
+   "Ambit": "Sanitat",
+   "Tema": "Menjar",
+   "Tipus": "RD",
+   "Num": "1021/2022",
+   "Any": "2022",
+   "Titol": "Higiene en el comercio al por menor",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2022-21681"
+  },
+  {
+   "Id": "RD 191/2011",
+   "Ambit": "Sanitat",
+   "Tema": "Menjar",
+   "Tipus": "RD",
+   "Num": "191/2011",
+   "Any": "2011",
+   "Titol": "Registro general sanitario de empresas alimentarias (RGSEAA)",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2011-4293"
+  },
+  {
+   "Id": "Decret 20/2007",
+   "Ambit": "Sanitat",
+   "Tema": "Menjar",
+   "Tipus": "Decret",
+   "Num": "20/2007",
+   "Any": "2007",
+   "Titol": "Registre sanitari d’indústries i productes alimentaris (RSIPAC)",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/d/2007/01/23/20"
+  },
+  {
+   "Id": "Decret legislatiu 2/2008",
+   "Ambit": "Sanitat",
+   "Tema": "Animals",
+   "Tipus": "Decret legislatiu",
+   "Num": "2/2008",
+   "Any": "2008",
+   "Titol": "Text refós de la Llei de protecció dels animals",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/dlg/2008/04/15/2"
+  },
+  {
+   "Id": "Ley 7/2023",
+   "Ambit": "Sanitat",
+   "Tema": "Animals",
+   "Tipus": "Ley",
+   "Num": "7/2023",
+   "Any": "2023",
+   "Titol": "Bienestar de los animales",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2023-7936"
+  },
+  {
+   "Id": "Ley 28/2005",
+   "Ambit": "Sanitat",
+   "Tema": "Tabac",
+   "Tipus": "Ley",
+   "Num": "28/2005",
+   "Any": "2005",
+   "Titol": "Medidas sanitarias frente al tabaquismo",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2005-21261"
+  },
+  {
+   "Id": "Llei 13/2017",
+   "Ambit": "Sanitat",
+   "Tema": "Cànnabis",
+   "Tipus": "Llei",
+   "Num": "13/2017",
+   "Any": "2017",
+   "Titol": "Associacions de consumidors de cànnabis",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=792564"
+  },
+  {
+   "Id": "Llei 20/1985",
+   "Ambit": "Sanitat",
+   "Tema": "Alcohol",
+   "Tipus": "Llei",
+   "Num": "20/1985",
+   "Any": "1985",
+   "Titol": "Prevenció i assistència en substàncies que generen dependència",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/l/1985/07/25/20"
+  },
+  {
+   "Id": "Llei 31/1991",
+   "Ambit": "Sanitat",
+   "Tema": "Farmàcies",
+   "Tipus": "Llei",
+   "Num": "31/1991",
+   "Any": "1991",
+   "Titol": "Ordenació farmacèutica de Catalunya",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/l/1991/12/13/31"
+  },
+  {
+   "Id": "Decret 40/1992",
+   "Ambit": "Sanitat",
+   "Tema": "Farmàcies",
+   "Tipus": "Decret",
+   "Num": "40/1992",
+   "Any": "1992",
+   "Titol": "Autorització d’oficines de farmàcia",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=88677"
+  },
+  {
+   "Id": "Decret 122/2012",
+   "Ambit": "Educació",
+   "Tema": "",
+   "Tipus": "Decret",
+   "Num": "122/2012",
+   "Any": "2012",
+   "Titol": "Autorització de centres educatius privats",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/d/2012/10/09/122"
+  },
+  {
+   "Id": "Decret 354/2021",
+   "Ambit": "Educació",
+   "Tema": "Música i dansa",
+   "Tipus": "Decret",
+   "Num": "354/2021",
+   "Any": "2021",
+   "Titol": "Escoles d’ensenyaments no reglats de música i dansa",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=910200"
+  },
+  {
+   "Id": "Decret llei 1/2009",
+   "Ambit": "Comerç",
+   "Tema": "",
+   "Tipus": "Decret llei",
+   "Num": "1/2009",
+   "Any": "2009",
+   "Titol": "Ordenació dels equipaments comercials",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/dl/2009/12/22/1"
+  },
+  {
+   "Id": "Decret 378/2006",
+   "Ambit": "Comerç",
+   "Tema": "",
+   "Tipus": "Decret",
+   "Num": "378/2006",
+   "Any": "2006",
+   "Titol": "Desplegament de la Llei d’equipaments comercials",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=426755"
+  },
+  {
+   "Id": "Llei 18/2017",
+   "Ambit": "Comerç",
+   "Tema": "",
+   "Tipus": "Llei",
+   "Num": "18/2017",
+   "Any": "2017",
+   "Titol": "Comerç, serveis i fires",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=794501"
+  },
+  {
+   "Id": "Ley 1/2004",
+   "Ambit": "Comerç",
+   "Tema": "Horaris",
+   "Tipus": "Ley",
+   "Num": "1/2004",
+   "Any": "2004",
+   "Titol": "Horarios comerciales",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2004-21421"
+  },
+  {
+   "Id": "Ley 5/2014",
+   "Ambit": "Comerç",
+   "Tema": "Seguretat privada",
+   "Tipus": "Ley",
+   "Num": "5/2014",
+   "Any": "2014",
+   "Titol": "Seguridad privada",
+   "Url": "https://www.boe.es/eli/es/l/2014/04/04/5/con"
+  },
+  {
+   "Id": "RD 2364/1994",
+   "Ambit": "Comerç",
+   "Tema": "Seguretat privada",
+   "Tipus": "RD",
+   "Num": "2364/1994",
+   "Any": "1994",
+   "Titol": "Reglamento de seguridad privada",
+   "Url": "https://www.boe.es/eli/es/rd/1994/12/09/2364/con"
+  },
+  {
+   "Id": "Orden INT/317/2011",
+   "Ambit": "Comerç",
+   "Tema": "Seguretat privada",
+   "Tipus": "Orden",
+   "Num": "INT/317/2011",
+   "Any": "2011",
+   "Titol": "Medidas de seguridad privada",
+   "Url": "https://www.boe.es/eli/es/o/2011/02/01/int317/con"
+  },
+  {
+   "Id": "Ley 17/1985",
+   "Ambit": "Comerç",
+   "Tema": "Metalls preciosos",
+   "Tipus": "Ley",
+   "Num": "17/1985",
+   "Any": "1985",
+   "Titol": "Objetos fabricados con metales preciosos",
+   "Url": "https://www.boe.es/eli/es/l/1985/07/01/17/con"
+  },
+  {
+   "Id": "Decret legislatiu 1/2000",
+   "Ambit": "Esport",
+   "Tema": "",
+   "Tipus": "Decret legislatiu",
+   "Num": "1/2000",
+   "Any": "2000",
+   "Titol": "Text únic de la Llei de l’esport",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/dlg/2000/07/31/1"
+  },
+  {
+   "Id": "Llei 16/2009",
+   "Ambit": "Culte",
+   "Tema": "",
+   "Tipus": "Llei",
+   "Num": "16/2009",
+   "Any": "2009",
+   "Titol": "Centres de culte",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=477241"
+  },
+  {
+   "Id": "Decret 94/2010",
+   "Ambit": "Culte",
+   "Tema": "",
+   "Tipus": "Decret",
+   "Num": "94/2010",
+   "Any": "2010",
+   "Titol": "Desplegament de la Llei de centres de culte",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=541957"
+  },
+  {
+   "Id": "Llei 13/2002",
+   "Ambit": "Allotjaments",
+   "Tema": "",
+   "Tipus": "Llei",
+   "Num": "13/2002",
+   "Any": "2002",
+   "Titol": "Turisme de Catalunya",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=288384"
+  },
+  {
+   "Id": "Decret 75/2020",
+   "Ambit": "Allotjaments",
+   "Tema": "",
+   "Tipus": "Decret",
+   "Num": "75/2020",
+   "Any": "2020",
+   "Titol": "Turisme de Catalunya",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/d/2020/08/04/75"
+  },
+  {
+   "Id": "Decret 16/2022",
+   "Ambit": "Allotjaments",
+   "Tema": "",
+   "Tipus": "Decret",
+   "Num": "16/2022",
+   "Any": "2022",
+   "Titol": "Instal·lacions juvenils",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=919398"
+  },
+  {
+   "Id": "Decret 344/2006",
+   "Ambit": "Mobilitat",
+   "Tema": "",
+   "Tipus": "Decret",
+   "Num": "344/2006",
+   "Any": "2006",
+   "Titol": "Estudis d’avaluació de la mobilitat generada",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/d/2006/09/19/344"
+  },
+  {
+   "Id": "Llei 9/2003",
+   "Ambit": "Mobilitat",
+   "Tema": "",
+   "Tipus": "Llei",
+   "Num": "9/2003",
+   "Any": "2003",
+   "Titol": "Mobilitat",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=324587"
+  },
+  {
+   "Id": "Manual VMP",
+   "Ambit": "Mobilitat",
+   "Tema": "VMP",
+   "Tipus": "Manual",
+   "Num": "",
+   "Any": "2022",
+   "Titol": "Características de los vehículos de movilidad personal",
+   "Url": "https://www.boe.es/boe/dias/2022/01/21/pdfs/BOE-A-2022-987.pdf"
+  },
+  {
+   "Id": "Decret 30/2015",
+   "Ambit": "Protecció Civil",
+   "Tema": "",
+   "Tipus": "Decret",
+   "Num": "30/2015",
+   "Any": "2015",
+   "Titol": "Catàleg d’activitats obligades a l’autoprotecció",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/d/2015/03/03/30"
+  },
+  {
+   "Id": "RD 486/1997",
+   "Ambit": "Riscos laborals",
+   "Tema": "",
+   "Tipus": "RD",
+   "Num": "486/1997",
+   "Any": "1997",
+   "Titol": "Seguridad y salud en los lugares de trabajo",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-1997-8669"
+  },
+  {
+   "Id": "Ley 31/1995",
+   "Ambit": "Riscos laborals",
+   "Tema": "",
+   "Tipus": "Ley",
+   "Num": "31/1995",
+   "Any": "1995",
+   "Titol": "Prevención de riesgos laborales",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-1995-24292"
+  },
+  {
+   "Id": "Decret legislatiu 1/2010",
+   "Ambit": "Urbanisme",
+   "Tema": "",
+   "Tipus": "Decret legislatiu",
+   "Num": "1/2010",
+   "Any": "2010",
+   "Titol": "Text refós de la Llei d’urbanisme",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=546114"
+  },
+  {
+   "Id": "Decret 64/2014",
+   "Ambit": "Urbanisme",
+   "Tema": "",
+   "Tipus": "Decret",
+   "Num": "64/2014",
+   "Any": "2014",
+   "Titol": "Protecció de la legalitat urbanística",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=662186"
+  },
+  {
+   "Id": "RDLeg 1/2004",
+   "Ambit": "Urbanisme",
+   "Tema": "",
+   "Tipus": "RDLeg",
+   "Num": "1/2004",
+   "Any": "2004",
+   "Titol": "Ley del Catastro Inmobiliario",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2004-4163"
+  },
+  {
+   "Id": "Orden 7-12-2001",
+   "Ambit": "Urbanisme",
+   "Tema": "Amiant",
+   "Tipus": "Orden",
+   "Num": "7-12-2001",
+   "Any": "2001",
+   "Titol": "Limitaciones al uso de ciertas sustancias (amiant)",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2001-23636"
+  },
+  {
+   "Id": "NUMet",
+   "Ambit": "Urbanisme",
+   "Tema": "PGM",
+   "Tipus": "Normes urbanístiques metropolitanes",
+   "Num": "",
+   "Any": "",
+   "Titol": "NUMet i OME",
+   "Url": "https://www.aucatel.com/normativa/barcelona/Normativa_Urbanistica_Metropolitana.pdf",
+   "Claus": [
+    "ordenances metropolitanes d’edificacio",
+    "normes urbanistiques metropolitanes"
+   ]
+  },
+  {
+   "Id": "Decret 137/2008",
+   "Ambit": "CCAE",
+   "Tema": "",
+   "Tipus": "Decret",
+   "Num": "137/2008",
+   "Any": "2008",
+   "Titol": "Classificació catalana d’activitats econòmiques (CCAE-2009)",
+   "Url": "https://dibaaps.diba.cat/vnis/temp/CIDO_dogc_2008_07_20080710_08184169.pdf"
+  },
+  {
+   "Id": "Llei 1/1998",
+   "Ambit": "Altres",
+   "Tema": "",
+   "Tipus": "Llei",
+   "Num": "1/1998",
+   "Any": "1998",
+   "Titol": "Política lingüística",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/l/1998/01/07/1"
+  },
+  {
+   "Id": "Ley 27/2013",
+   "Ambit": "Altres",
+   "Tema": "",
+   "Tipus": "Ley",
+   "Num": "27/2013",
+   "Any": "2013",
+   "Titol": "Racionalización y sostenibilidad de la Administración Local",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2013-13756"
+  },
+  {
+   "Id": "Decret 40/2014",
+   "Ambit": "Altres",
+   "Tema": "Ramaderia",
+   "Tipus": "Decret",
+   "Num": "40/2014",
+   "Any": "2014",
+   "Titol": "Explotacions ramaderes",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=658359"
+  },
+  {
+   "Id": "Decret 94/2009",
+   "Ambit": "Altres",
+   "Tema": "Ludoteques",
+   "Tipus": "Decret",
+   "Num": "94/2009",
+   "Any": "2009",
+   "Titol": "Ludoteques",
+   "Url": "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=485727"
+  },
+  {
+   "Id": "Ley 49/2002",
+   "Ambit": "Altres",
+   "Tema": "Fiscal",
+   "Tipus": "Ley",
+   "Num": "49/2002",
+   "Any": "2002",
+   "Titol": "Régimen fiscal de entidades sin fines lucrativos",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2002-25039"
+  },
+  {
+   "Id": "RDLeg 2/2004",
+   "Ambit": "Altres",
+   "Tema": "Fiscal",
+   "Tipus": "RDLeg",
+   "Num": "2/2004",
+   "Any": "2004",
+   "Titol": "Texto refundido de la Ley de Haciendas Locales",
+   "Url": "https://www.boe.es/eli/es/rdlg/2004/03/05/2/con"
+  },
+  {
+   "Id": "Llei 18/2007",
+   "Ambit": "Altres",
+   "Tema": "Habitatge",
+   "Tipus": "Llei",
+   "Num": "18/2007",
+   "Any": "2007",
+   "Titol": "Dret a l’habitatge",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/l/2007/12/28/18"
+  },
+  {
+   "Id": "Decret 12/2010",
+   "Ambit": "Altres",
+   "Tema": "Habitatge",
+   "Tipus": "Decret",
+   "Num": "12/2010",
+   "Any": "2010",
+   "Titol": "Requisits dels agents immobiliaris",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/d/2010/02/02/12"
+  },
+  {
+   "Id": "LO 3/2018",
+   "Ambit": "Altres",
+   "Tema": "Protecció de dades",
+   "Tipus": "LO",
+   "Num": "3/2018",
+   "Any": "2018",
+   "Titol": "Protección de datos personales",
+   "Url": "https://www.boe.es/eli/es/lo/2018/12/05/3/con"
+  },
+  {
+   "Id": "Reglament (UE) 2016/679",
+   "Ambit": "Altres",
+   "Tema": "Protecció de dades",
+   "Tipus": "Reglament (UE)",
+   "Num": "2016/679",
+   "Any": "2016",
+   "Titol": "Reglamento general de protección de datos",
+   "Url": "https://eur-lex.europa.eu/legal-content/ES/TXT/PDF/?uri=CELEX:32016R0679"
+  },
+  {
+   "Id": "Llei 15/1984",
+   "Ambit": "Altres",
+   "Tema": "Joc",
+   "Tipus": "Llei",
+   "Num": "15/1984",
+   "Any": "1984",
+   "Titol": "Joc",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/l/1984/03/20/15"
+  },
+  {
+   "Id": "Decret 240/2004",
+   "Ambit": "Altres",
+   "Tema": "Joc",
+   "Tipus": "Decret",
+   "Num": "240/2004",
+   "Any": "2004",
+   "Titol": "Catàleg de jocs i apostes autoritzats",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/d/2004/03/30/240"
+  }
+ ]
+}

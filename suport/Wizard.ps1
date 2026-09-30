@@ -44,6 +44,7 @@ function Main {
             'revisarmobil'   { Invoke-RevisarMobil }     # revisa el mobil un sol cop; torna al menu
             'config'         { Invoke-ConfiguracioScreen }   # rutes d'aquest PC + actualitzar; torna al menu
             'editcataleg'    { Show-CatalegEditor -focusDoc ([string]$sel.Doc) }   # editor dels ESTRUCTURALS (xip del document)
+            'normativa'      { Invoke-Normativa }      # baixa i classifica la normativa a local\normativa
             'convertirpdf'   { Invoke-ConvertirPdf }   # converteix una carpeta de Word a PDF (i signa)
             'emailtextos'    { Invoke-EmailTextos }    # edita els textos del correu del mobil
             'enviarcorreu'   { Invoke-EnviarCorreu }   # obre la web del mobil precarregada per enviar el correu

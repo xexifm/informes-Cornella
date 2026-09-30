@@ -1055,14 +1055,25 @@ function Show-Ajuda([string]$titol, $ajuda, $owner = $null) {
             try { Start-Process $urlNorma } catch { }
         }.GetNewClosure() }
     }
+    # EL PDF DESAT de la norma (eina Normativa, local\normativa): nomes si la
+    # carpeta ja el te. Obre la copia local, que es llegeix sense connexio i es
+    # la mateixa versio que hi havia el dia que es va baixar.
+    $pdfNorma = if ($null -eq $ajuda) { '' } else { [string](Get-NormativaPdfDeText ([string]$ajuda.Norma)) }
+    $specPdf = $null
+    if ($pdfNorma) {
+        $specPdf = @{ Nom = 'Pdf'; Text = 'Obre el PDF desat'; Icona = [System.Char]::ConvertFromUtf32(0x1F4C4); Clic = {
+            try { Start-Process -FilePath $pdfNorma } catch { }
+        }.GetNewClosure() }
+    }
     # Tanca es l'unica sortida: Intro i Esc.
     $peu = _AddPeuBotons $form @(
-        @{ Nom = 'Tanca'; Text = 'Tanca'; Resultat = 'OK'; Intro = $true; Esc = $true }, $specNorma) @() 382 -Ancorat
+        @{ Nom = 'Tanca'; Text = 'Tanca'; Resultat = 'OK'; Intro = $true; Esc = $true }, $specNorma, $specPdf) @() 382 -Ancorat
     if ($null -ne $specNorma) {
+        $darrer = if ($null -ne $specPdf) { $peu.Pdf } else { $peu.Norma }
         $lblUrl = New-Object System.Windows.Forms.Label
         $lblUrl.Text = $urlNorma
-        $lblUrl.Location = New-Object System.Drawing.Point(($peu.Norma.Right + 10), 389)
-        $lblUrl.Size = New-Object System.Drawing.Size(([int]$form.ClientSize.Width - $peu.Norma.Right - 25), 18)
+        $lblUrl.Location = New-Object System.Drawing.Point(($darrer.Right + 10), 389)
+        $lblUrl.Size = New-Object System.Drawing.Size(([Math]::Max(40, [int]$form.ClientSize.Width - $darrer.Right - 25)), 18)
         $lblUrl.AutoEllipsis = $true
         $lblUrl.ForeColor = [System.Drawing.Color]::DimGray
         $lblUrl.Anchor = 'Bottom, Left'
