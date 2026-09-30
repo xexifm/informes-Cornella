@@ -151,10 +151,21 @@
                                        },
                                        {
                                            "Kind":  "item",
-                                           "Short":  "Incendis",
+                                           "Short":  "Incendis - informe",
                                            "BodyLines":  [
-                                                             "Incendis. L’activitat està inclosa dins l’Annex I de la Llei 3/2010, del 18 de febrer, de prevenció i seguretat en matèria d\u0027incendis en establiments, activitats, infraestructures i edificis. S’ha de presentar l’acte de comprovació per una entitat col·laboradora",
+                                                             "Incendis. L’activitat està inclosa dins l’Annex I de la Llei 3/2010, del 18 de febrer, de prevenció i seguretat en matèria d\u0027incendis en establiments, activitats, infraestructures i edificis. S’ha d\u0027obtenir l’informe favorable de prevenció i seguretat en matèria d’incendis (Direcció General de Prevenció, Extinció d\u0027Incendis i Salvaments - DGPEIS)",
                                                              "[[URL]] https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/23705_-_Informe-de-prevencio-i-seguretat-en-materia-dincendis"
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "Incendis - acte",
+                                           "BodyLines":  [
+                                                             "Incendis. L’activitat està inclosa dins l’Annex I de la Llei 3/2010, del 18 de febrer, de prevenció i seguretat en matèria d\u0027incendis en establiments, activitats, infraestructures i edificis. S’ha de presentar l’acte de comprovació per una entitat col·laboradora (ECI)",
+                                                             "[[URL]] https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/entitats_col_laboradores_de_l_administracio/entitats-tecnics-habilitats/"
                                                          ],
                                            "Children":  [
 
