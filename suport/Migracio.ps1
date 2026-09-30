@@ -54,6 +54,7 @@ $Script:LocalSubdirs = [ordered]@{
     Llicencies     = 'base-dades-llicencies'
     Geocodificacio = 'geocodificacio'
     Normativa      = 'normativa'
+    Revisions      = 'revisions'
 }
 
 # ATENCIO al [string] del 'return': Join-Path es un CMDLET, i el que surt d'un

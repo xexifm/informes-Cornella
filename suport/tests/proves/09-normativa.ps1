@@ -106,6 +106,36 @@ Assert (-not (@($nmCands) -match '/(rdf|ttl|xml)$')) 'PDF de la pagina: ni RDF, 
 AssertEq @(_NormativaPdfsDeHtml '' 'https://x.cat/').Count 0 'PDF de la pagina: sense HTML, cap'
 AssertEq @(_NormativaPdfsDeHtml '<a href="javascript:void(0)">PDF</a>' 'https://x.cat/').Count 0 'PDF de la pagina: un boto de JavaScript no serveix'
 
+Write-Host "`n--- les col·leccions (ITC de Bombers, TINSCI) ---"
+$nmCols = @($nmNormes | Where-Object { $_.Colleccio })
+AssertEq (@($nmCols | ForEach-Object { $_.Id }) -join ', ') 'Col·lecció ITC Bombers, Col·lecció TINSCI, Col·lecció ITC Bombers antigues' 'col·leccions: ITC, TINSCI i les ITC antigues'
+$nmColHtml = @'
+<ul>
+<li><a href="/web/.content/sp/SP-120_entorn.pdf">SP 120. Condicions d&#39;entorn i d&#39;aproximació als edificis (PDF, 1,2 MB)</a></li>
+<li><a href="https://interior.gencat.cat/web/.content/sp/SP-122.pdf">SP 122. Aparcaments</a></li>
+<li><a href="/web/.content/sp/SP-122.pdf">SP 122 (duplicat)</a></li>
+<li><a href="/web/.content/resum-ia.pdf">Resum IA</a></li>
+<li><a href="/ca/arees/fitxa-sp-130/">SP 130</a></li>
+</ul>
+'@
+$nmColBase = 'https://interior.gencat.cat/ca/arees_dactuacio/bombers/instruccions_tecniques_complementaries/'
+$nmDocs = @(_NormativaDocsDeColleccio $nmColHtml $nmColBase)
+AssertEq $nmDocs.Count 2 'col·leccio: els PDF de la pagina, sense repetits ni el resum'
+AssertEq ([string]$nmDocs[0].Url) 'https://interior.gencat.cat/web/.content/sp/SP-120_entorn.pdf' 'col·leccio: l''adreca completa'
+AssertEq ([string]$nmDocs[0].Text) ('SP 120. Condicions d' + "'" + 'entorn i d' + "'" + 'aproximació als edificis (PDF, 1,2 MB)') 'col·leccio: el text de l''enllac'
+$nmColE = [pscustomobject]@{ Ambit = 'Incendis'; Tema = 'ITC Bombers' }
+AssertEq (_NormativaNomDocColleccio $nmColE ([string]$nmDocs[0].Text) ([string]$nmDocs[0].Url)) ('Incendis_ITC Bombers_SP 120. Condicions d' + "'" + 'entorn i d' + "'" + 'aproximació als edificis.pdf') 'col·leccio: el nom (sense el "(PDF, 1,2 MB)")'
+AssertEq (_NormativaNomDocColleccio $nmColE 'PDF' 'https://x.cat/docs/TINSCI_03_evacuacio.pdf') 'Incendis_ITC Bombers_TINSCI 03 evacuacio.pdf' 'col·leccio: un enllac que nomes diu "PDF" pren el nom del fitxer'
+$nmSubs = @(_NormativaSubpagines '<a href="/ca/arees_dactuacio/bombers/instruccions_tecniques_complementaries/sp-130/">SP 130</a><a href="/ca/altres/">No</a><a href="./">Aqui</a>' $nmColBase)
+AssertEq $nmSubs.Count 1 'col·leccio: les pagines filles, nomes les que pengen de la pagina'
+AssertEq ([string]$nmSubs[0].Text) 'SP 130' 'col·leccio: amb el seu text'
+$nmFc = _NormativaFilesIndex @([pscustomobject]@{ Id = 'Col·lecció ITC Bombers'; Ambit = 'Incendis'; Tema = 'ITC Bombers'; Tipus = 'ITC Bombers'; Titol = 'ITC'; Url = 'https://x.cat/'; Colleccio = $true }) @{
+    'Col·lecció ITC Bombers' = @{ Error = ''; Baixat = '2026-09-30T10:00:00'; Versio = ''; Mida = 0 }
+    'Col·lecció ITC Bombers | a.pdf' = @{ Pare = 'Col·lecció ITC Bombers'; Titol = 'SP 120'; Url = 'https://x.cat/a.pdf'; Nom = 'a.pdf'; Baixat = '2026-09-30T10:00:00'; Error = '' } } @{} { param($n) $true }
+AssertEq @($nmFc).Count 2 'index: la col·leccio i un document'
+AssertEq ([string]@($nmFc)[0][9]) '1 documents' 'index: la col·leccio diu quants documents'
+AssertEq ([string]@($nmFc)[1][3]) 'SP 120' 'index: cada document amb el seu titol'
+
 Write-Host "`n--- guies i manuals ---"
 $nmGuies = @($nmNormes | Where-Object { $_.Guia })
 Assert ($nmGuies.Count -ge 20) ('guies: hi son les dels marcadors (' + $nmGuies.Count + ')')

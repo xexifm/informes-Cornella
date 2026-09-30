@@ -139,28 +139,144 @@ function _NormativaBaixaUna($e, [string]$dir, $est, [bool]$forca) {
             $via = [string]$w.Via
         }
         if (-not (_NormativaEsPdf $bytes)) { throw "El que s'ha baixat no és un PDF." }
-        # LA VERSIO ANTERIOR ES GUARDA si de debo es una altra: la del BOE, quan
-        # ha canviat la data; la resta, quan la mida canvia mes d'un 2 %
-        # (imprimir la mateixa pagina dues vegades no dona el mateix fitxer
-        # byte a byte, pero si gairebe la mateixa mida).
-        if ($existeix) {
-            $vella = (Get-Item -LiteralPath $desti).Length
-            $canvia = if ($font -eq 'boe') { $motiu -eq 'versio' } else { [Math]::Abs($vella - $bytes.Length) -gt ($vella * 0.02) }
-            if ($canvia) {
-                $ant = Join-Path $dir 'anteriors'
-                if (-not (Test-Path -LiteralPath $ant)) { New-Item -ItemType Directory -Path $ant -Force | Out-Null }
-                Move-Item -LiteralPath $desti -Destination (Join-Path $ant (_NormativaNomAnterior $nom (Get-Date))) -Force
-            } else {
-                Remove-Item -LiteralPath $desti -Force
-            }
-        }
-        Move-Item -LiteralPath $tmp -Destination $desti -Force
+        _NormativaDesaNou $tmp (Join-Path $dir $nom) $dir $(if ($font -eq 'boe') { $motiu -eq 'versio' } else { $null })
         return @{ Fet = $true; Versio = $versio; Error = ''; Motiu = $motiu; Mida = [long]$bytes.Length; Via = $via }
     } catch {
         return @{ Fet = $false; Versio = ''; Error = [string]$_.Exception.Message; Motiu = 'error' }
     } finally {
         try { if (Test-Path -LiteralPath $tmp) { Remove-Item -LiteralPath $tmp -Force } } catch { }
     }
+}
+
+# EL FITXER NOU AL SEU LLOC, i l'anterior a 'anteriors' si de debo es una altra
+# versio: la del BOE, quan ha canviat la data ($canvia); la resta ($canvia =
+# $null), quan la mida canvia mes d'un 2 % (imprimir la mateixa pagina dues
+# vegades no dona el mateix fitxer byte a byte, pero si gairebe la mateixa mida).
+function _NormativaDesaNou([string]$tmp, [string]$desti, [string]$dir, $canvia) {
+    if (Test-Path -LiteralPath $desti) {
+        $vella = (Get-Item -LiteralPath $desti).Length
+        $nova = (Get-Item -LiteralPath $tmp).Length
+        $guarda = if ($null -ne $canvia) { [bool]$canvia } else { [Math]::Abs($vella - $nova) -gt ($vella * 0.02) }
+        if ($guarda) {
+            $ant = Join-Path $dir 'anteriors'
+            if (-not (Test-Path -LiteralPath $ant)) { New-Item -ItemType Directory -Path $ant -Force | Out-Null }
+            Move-Item -LiteralPath $desti -Destination (Join-Path $ant (_NormativaNomAnterior ([System.IO.Path]::GetFileName($desti)) (Get-Date))) -Force
+        } else {
+            Remove-Item -LiteralPath $desti -Force
+        }
+    }
+    Move-Item -LiteralPath $tmp -Destination $desti -Force
+}
+
+# UNA COL·LECCIO (les ITC de Bombers, les TINSCI): la llista de documents es
+# treu de la pagina cada vegada, perque Interior en publica de nous. Si la pagina
+# no porta els PDF directament, se'n miren les pagines filles (un nivell). Cada
+# document s'apunta a l'estat amb 'Pare' = la col·leccio. Torna els comptadors.
+function _NormativaBaixaColleccio($e, [string]$dir, $estat, [bool]$forca, $log) {
+    $n = @{ Noves = 0; Act = 0; Igual = 0; Err = 0; Docs = 0 }
+    $url = [string]$e.Url
+    $html = ''
+    try { $html = [string](_NormativaGet $url).Content } catch { $html = '' }
+    $docs = @(_NormativaDocsDeColleccio $html $url)
+    if ($docs.Count -eq 0) { $html = _NormativaDomEdge $url; $docs = @(_NormativaDocsDeColleccio $html $url) }
+    if ($docs.Count -eq 0) {
+        $llista = New-Object System.Collections.ArrayList
+        foreach ($sp in @(_NormativaSubpagines $html $url | Select-Object -First 80)) {
+            $h2 = ''
+            try { $h2 = [string](_NormativaGet ([string]$sp.Url)).Content } catch { }
+            $d2 = @(_NormativaDocsDeColleccio $h2 ([string]$sp.Url))
+            if ($d2.Count -eq 0) { $h2 = _NormativaDomEdge ([string]$sp.Url); $d2 = @(_NormativaDocsDeColleccio $h2 ([string]$sp.Url)) }
+            foreach ($d in $d2) {
+                # Un sol PDF a la fitxa: el nom bo es el de l'enllac de la llista.
+                $t = if ($d2.Count -eq 1 -and $sp.Text) { [string]$sp.Text } else { [string]$d.Text }
+                [void]$llista.Add([pscustomobject]@{ Url = [string]$d.Url; Text = $t })
+            }
+        }
+        $docs = @($llista)
+    }
+    $id = [string]$e.Id
+    if ($docs.Count -eq 0) {
+        $estat[$id] = @{ Error = "no s'hi ha trobat cap document"; Baixat = ''; Versio = ''; Mida = 0 }
+        $n.Err++
+        & $log ('ERROR  ' + $id + ": no s'hi ha trobat cap document")
+        return $n
+    }
+    $estat[$id] = @{ Error = ''; Baixat = (Get-Date).ToString('o'); Versio = ''; Mida = 0 }
+    $n.Docs = $docs.Count
+    $usats = @{}
+    foreach ($d in $docs) {
+        $nom = _NormativaNomDocColleccio $e ([string]$d.Text) ([string]$d.Url)
+        $base = [System.IO.Path]::GetFileNameWithoutExtension($nom); $k = 2
+        while ($usats.ContainsKey($nom)) { $nom = $base + ' (' + $k + ').pdf'; $k++ }
+        $usats[$nom] = $true
+        $clau = $id + ' | ' + $nom
+        $est = if ($estat.ContainsKey($clau)) { $estat[$clau] } else { $null }
+        $desti = Join-Path $dir $nom
+        $motiu = _NormativaCalBaixar $est (Test-Path -LiteralPath $desti) '' (Get-Date) $forca
+        if (-not $motiu) { $n.Igual++; continue }
+        $tmp = Join-Path $dir ('~baixant ' + [guid]::NewGuid().ToString('N') + '.pdf')
+        try {
+            $b = _NormativaGetBytes ([string]$d.Url) $tmp
+            if (-not (_NormativaEsPdf $b)) { throw "no és un PDF" }
+            _NormativaDesaNou $tmp $desti $dir $null
+            $estat[$clau] = @{ Pare = $id; Titol = [string]$d.Text; Url = [string]$d.Url; Nom = $nom; Baixat = (Get-Date).ToString('o'); Versio = ''; Error = ''; Mida = [long]$b.Length; Via = 'PDF' }
+            if ($motiu -eq 'nova') { $n.Noves++; & $log ('Nova   ' + $nom) } else { $n.Act++; & $log ('Actualitzada  ' + $nom) }
+        } catch {
+            $n.Err++
+            & $log ('ERROR  ' + $nom + ': ' + $_.Exception.Message)
+            $estat[$clau] = @{ Pare = $id; Titol = [string]$d.Text; Url = [string]$d.Url; Nom = $nom; Baixat = $(if ($est) { $est.Baixat } else { '' }); Versio = ''; Error = [string]$_.Exception.Message; Mida = 0 }
+        } finally {
+            try { if (Test-Path -LiteralPath $tmp) { Remove-Item -LiteralPath $tmp -Force } } catch { }
+        }
+    }
+    return $n
+}
+
+# TOTA LA BAIXADA, sense finestra: la fan servir l'eina Normativa i la revisio
+# del programa (Revisio.ps1). $log rep cada linia; $pas es crida despres de cada
+# norma (la barra); $cancel diu si s'ha d'aturar. Desa l'estat i l'index.
+function Invoke-NormativaBaixada($normes, [string]$dir, [bool]$forca, $log, $pas = $null, $cancel = $null) {
+    _NormativaPreparaXarxa
+    $estat = _NormativaLlegeixEstat $dir
+    $n = @{ Noves = 0; Act = 0; Igual = 0; Err = 0; Man = 0 }
+    try {
+        foreach ($e in @($normes)) {
+            if ($null -ne $cancel -and (& $cancel)) { & $log 'Aturat.'; break }
+            $id = [string]$e.Id
+            if ($e.Colleccio) {
+                & $log ('Col·lecció  ' + $id + '...')
+                $c = _NormativaBaixaColleccio $e $dir $estat $forca $log
+                foreach ($k in @('Noves', 'Act', 'Igual', 'Err')) { $n[$k] += [int]$c[$k] }
+                if ($null -ne $pas) { & $pas }
+                continue
+            }
+            $est = if ($estat.ContainsKey($id)) { $estat[$id] } else { $null }
+            $r = _NormativaBaixaUna $e $dir $est $forca
+            $ara = (Get-Date).ToString('o')
+            switch ([string]$r.Motiu) {
+                'manual' { $n.Man++ }
+                'error'  {
+                    $n.Err++
+                    & $log ('ERROR  ' + $id + ': ' + $r.Error)
+                    $estat[$id] = @{ Versio = $(if ($est) { $est.Versio } else { '' }); Baixat = $(if ($est) { $est.Baixat } else { '' }); Error = [string]$r.Error; Mida = $(if ($est) { $est.Mida } else { 0 }) }
+                }
+                ''       {
+                    $n.Igual++
+                    if ($est) { $est.Error = '' } else { $estat[$id] = @{ Versio = [string]$r.Versio; Baixat = $ara; Error = ''; Mida = 0 } }
+                }
+                default  {
+                    if ($r.Motiu -eq 'nova') { $n.Noves++; & $log ('Nova   ' + $id) } else { $n.Act++; & $log ('Actualitzada  ' + $id) }
+                    $estat[$id] = @{ Versio = [string]$r.Versio; Baixat = $ara; Error = ''; Mida = [long]$r.Mida; Via = [string]$r.Via }
+                }
+            }
+            if ($null -ne $pas) { & $pas }
+        }
+    } finally {
+        try { _NormativaDesaEstat $dir $estat } catch { & $log ("No s'ha pogut desar l'estat: " + $_.Exception.Message) }
+        $errIdx = _NormativaEscriuIndex $dir $normes $estat
+        if ($errIdx) { & $log ("No s'ha pogut escriure l'índex (és obert a l'Excel?): " + $errIdx) }
+    }
+    return $n
 }
 
 # ----------------------------------------------------------------------------
@@ -230,18 +346,23 @@ function Invoke-Normativa {
     $fn = @{}
     $fn.Resum = {
         $estat = _NormativaLlegeixEstat $dir
-        $baix = 0; $man = 0; $err = 0
+        $baix = 0; $man = 0; $err = 0; $col = 0
+        $docsCol = @(@($estat.Keys) | Where-Object { $estat[$_].Pare -and -not $estat[$_].Error }).Count
         foreach ($e in $normes) {
+            if ($e.Colleccio) { $col++; continue }
             if (Test-Path -LiteralPath (Join-Path $dir (_NormativaNomFitxer $e))) { $baix++ }
             elseif ((_NormativaFont ([string]$e.Url)) -eq 'manual') { $man++ }
             elseif ($estat.ContainsKey([string]$e.Id) -and $estat[[string]$e.Id].Error) { $err++ }
         }
-        $lblResum.Text = ([string]$normes.Count + ' normes al catàleg: ' + $baix + ' baixades, ' + ($normes.Count - $baix - $man) +
-                          ' per baixar' + $(if ($err) { ' (' + $err + " amb error l'últim cop)" } else { '' }) + ', ' + $man + ' per desar a mà.' +
+        $nn = $normes.Count - $col
+        $lblResum.Text = ([string]$nn + ' normes i guies al catàleg: ' + $baix + ' baixades, ' + ($nn - $baix - $man) +
+                          ' per baixar' + $(if ($err) { ' (' + $err + " amb error l'últim cop)" } else { '' }) + ', ' + $man + ' per desar a mà. Col·leccions (ITC, TINSCI): ' + $col + ', amb ' + $docsCol + ' documents baixats.' +
                           "`r`n" + $dir)
         $lnkIdx.Enabled = (Test-Path -LiteralPath (Join-Path $dir $Script:NormativaIndexNom))
     }.GetNewClosure()
     $fn.Log = { param($t) $log.AppendText($t + "`r`n"); [System.Windows.Forms.Application]::DoEvents() }.GetNewClosure()
+    $fn.Pas = { $bar.Value = [Math]::Min($bar.Maximum, $bar.Value + 1); [System.Windows.Forms.Application]::DoEvents() }.GetNewClosure()
+    $fn.Cancel = { [bool]$ui.Cancel }.GetNewClosure()
 
     $peu = _AddPeuBotons $form @(@{ Nom = 'Tanca'; Text = 'Tancar' }) @(
         @{ Nom = 'Baixa'; Text = 'Baixar i actualitzar'; Estil = 'primari' }) 514 -Ancorat
@@ -258,41 +379,11 @@ function Invoke-Normativa {
         $ui.Corrent = $true; $ui.Cancel = $false
         $btnBaixa.Enabled = $false; $chkTot.Enabled = $false; $btnTanca.Text = 'Aturar'
         $log.Clear()
-        _NormativaPreparaXarxa
-        $estat = _NormativaLlegeixEstat $dir
-        $forca = [bool]$chkTot.Checked
-        $n = @{ Noves = 0; Act = 0; Igual = 0; Err = 0; Man = 0 }
         $bar.Value = 0
+        $n = @{ Noves = 0; Act = 0; Igual = 0; Err = 0; Man = 0 }
         try {
-            foreach ($e in $normes) {
-                if ($ui.Cancel) { & $fn.Log 'Aturat.'; break }
-                $id = [string]$e.Id
-                $est = if ($estat.ContainsKey($id)) { $estat[$id] } else { $null }
-                $r = _NormativaBaixaUna $e $dir $est $forca
-                $ara = (Get-Date).ToString('o')
-                switch ([string]$r.Motiu) {
-                    'manual' { $n.Man++ }
-                    'error'  {
-                        $n.Err++
-                        & $fn.Log ('ERROR  ' + $id + ': ' + $r.Error)
-                        $estat[$id] = @{ Versio = $(if ($est) { $est.Versio } else { '' }); Baixat = $(if ($est) { $est.Baixat } else { '' }); Error = [string]$r.Error; Mida = $(if ($est) { $est.Mida } else { 0 }) }
-                    }
-                    ''       {
-                        $n.Igual++
-                        if ($est) { $est.Error = '' } else { $estat[$id] = @{ Versio = [string]$r.Versio; Baixat = $ara; Error = ''; Mida = 0 } }
-                    }
-                    default  {
-                        if ($r.Motiu -eq 'nova') { $n.Noves++; & $fn.Log ('Nova   ' + $id) } else { $n.Act++; & $fn.Log ('Actualitzada  ' + $id) }
-                        $estat[$id] = @{ Versio = [string]$r.Versio; Baixat = $ara; Error = ''; Mida = [long]$r.Mida; Via = [string]$r.Via }
-                    }
-                }
-                $bar.Value = [Math]::Min($bar.Maximum, $bar.Value + 1)
-                [System.Windows.Forms.Application]::DoEvents()
-            }
+            $n = Invoke-NormativaBaixada $normes $dir ([bool]$chkTot.Checked) $fn.Log $fn.Pas $fn.Cancel
         } finally {
-            try { _NormativaDesaEstat $dir $estat } catch { & $fn.Log ("No s'ha pogut desar l'estat: " + $_.Exception.Message) }
-            $errIdx = _NormativaEscriuIndex $dir $normes $estat
-            if ($errIdx) { & $fn.Log ("No s'ha pogut escriure l'índex (és obert a l'Excel?): " + $errIdx) }
             & $fn.Log ('')
             & $fn.Log (('Fet. Noves: {0} · Actualitzades: {1} · Ja al dia: {2} · Errors: {3} · Per desar a mà: {4}' -f $n.Noves, $n.Act, $n.Igual, $n.Err, $n.Man))
             if ($n.Err -gt 0) { & $fn.Log ("Les que han fallat surten a l'índex amb el motiu; es tornaran a provar la propera vegada.") }

@@ -824,3 +824,43 @@ l'enllaç des de la fitxa d'ajuda.
     40/1992** (confirmat per l'usuari). Fitxer d'or de la vista refet.
   - `_NormativaFilesIndex` tornava la fila desfeta quan només hi havia una norma
     (`return` sense coma): ho va enxampar la prova de les guies.
+- **Tercera ronda: les COL·LECCIONS** (ITC de Bombers, TINSCI, ITC antigues).
+  No tinc la llista (el proxy d'aquí bloqueja interior.gencat.cat) i Interior en
+  publica de noves: l'entrada porta `Colleccio: true` i l'URL de la pàgina, i
+  `_NormativaBaixaColleccio` en treu els PDF cada vegada
+  (`_NormativaDocsDeColleccio`; si no n'hi ha, el DOM de l'Edge; si tampoc, un
+  nivell de pàgines filles, `_NormativaSubpagines`). Cada document va a l'estat
+  amb `Pare` = la col·lecció i surt a l'índex sota seu. El nom és
+  `Ambit_Tema_<text de l'enllaç>.pdf` (`_NormativaNomDocColleccio`, sense el
+  «(PDF, 1,2 MB)» del final).
+  - Les llistes tornen **sense coma** (`return $out.ToArray()`): el cridador fa
+    `@()`, i amb la coma en sortia una llista d'una llista. Ho van enxampar les
+    proves.
+  - El bucle de baixada és ara **`Invoke-NormativaBaixada`** (sense finestra):
+    el fan servir l'eina Normativa i la revisió.
+
+## Revisar requeriments (eina NORMATIVA, setembre 2026)
+Petició de l'usuari: una eina per «actualitzar el programa» que miri si la
+normativa dels requeriments segueix vigent, si els enllaços funcionen, si cal
+baixar normativa nova que substitueixi l'anterior i si tots els punts tenen la
+fitxa ⓘ. **Informa, no canvia res**: l'informe (Excel, `local\revisions`) diu
+què passa i on; canviar un requeriment es fa llegint la norma.
+- **`RevisioDades.ps1`** (pur): `_RevPuntsSenseFitxa` (punts i sub-punts sense
+  `norma` ni `criteri`), `_RevEstatBoe` (derogada només si la pàgina ho diu de
+  la norma sencera —«Norma derogada», «Estado: derogada», «queda derogada por»—;
+  una derogació parcial no; captura la substituta amb la `Ref. BOE-A-…`),
+  `_RevEstatPjur` (l'etiqueta **VIGENT/DEROGAT en majúscules just després de
+  «Copia la URI ELI»**: un «(Derogat)» dins del text d'un article no compta, i
+  «DEROGATÒRIA» no és «DEROGAT»). Si la pàgina no ho diu clar → `?` («mira-ho a
+  mà»): val més dir-ho que endevinar-ho. **No s'ha pogut provar contra el BOE ni
+  el Portal Jurídic reals** (proxy): els patrons surten del que ensenyen les
+  pàgines (la captura de l'usuari per al Portal Jurídic).
+- **`Enllacos.ps1`** (només defineix): `_EnllacosDeCataleg` (text **i** fitxa,
+  amb el punt) i `Test-EnllacViu`. Abans eren dins de `Comprova-Enllacos.ps1`,
+  que a més **cridava `Read-JsonFile` sense carregar `Json.ps1`** i petava a cada
+  catàleg; ara hi carrega els dos fitxers.
+- **`Revisio.ps1`**: la finestra (quatre caselles) i la vigència de cada norma
+  (BOE: la pàgina; Portal Jurídic: el DOM de l'Edge, perquè l'etiqueta es posa
+  amb JavaScript).
+- Menú: fila nova **NORMATIVA** amb 📚 Normativa i 🔍 Revisar requeriments.
+- Proves a `tests/proves/10-revisio.ps1`.

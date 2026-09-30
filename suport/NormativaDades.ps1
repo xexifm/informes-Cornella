@@ -243,6 +243,74 @@ function _NormativaPdfsDeHtml([string]$html, [string]$base) {
     return [string[]]@($out)
 }
 
+# ----------------------------------------------------------------------------
+# LES COL·LECCIONS: una pagina que en llista molts (les ITC de Bombers, les
+# TINSCI). No se'n sap la llista per endavant -Interior en publica de noves-,
+# o sigui que es treu de la pagina cada vegada. Funcions PURES.
+# ----------------------------------------------------------------------------
+# Els documents PDF d'una pagina, amb el text de l'enllac (que fa el nom del
+# fitxer). Fora el resum fet amb IA i les descarregues RDF/TTL/XML. Torna la
+# llista SENSE coma: el cridador l'embolcalla amb @() (amb la coma, @() en
+# faria una llista d'una llista).
+function _NormativaDocsDeColleccio([string]$html, [string]$base) {
+    $out = New-Object System.Collections.ArrayList
+    if ([string]::IsNullOrWhiteSpace($html)) { return $out.ToArray() }
+    $vist = @{}
+    foreach ($m in [regex]::Matches($html, '(?is)<a\b([^>]*)>(.*?)</a>')) {
+        $mh = [regex]::Match($m.Groups[1].Value, '(?i)\bhref\s*=\s*["'']([^"'']+)["'']')
+        if (-not $mh.Success) { continue }
+        $href = [System.Net.WebUtility]::HtmlDecode($mh.Groups[1].Value).Trim()
+        if (-not ($href -match '(?i)\.pdf([?#/]|$)' -or $href -match '(?i)[?&](format|output|tipus|type)=pdf')) { continue }
+        $text = ([System.Net.WebUtility]::HtmlDecode(([regex]::Replace($m.Groups[2].Value, '<[^>]+>', ' '))) -replace '\s+', ' ').Trim()
+        if (($m.Groups[1].Value + ' ' + $text) -match '(?i)resum|resumen') { continue }
+        $abs = $href
+        try { $abs = (New-Object System.Uri((New-Object System.Uri($base)), $href)).AbsoluteUri } catch { }
+        if ($vist.ContainsKey($abs)) { continue }
+        $vist[$abs] = $true
+        [void]$out.Add([pscustomobject]@{ Url = $abs; Text = $text })
+    }
+    return $out.ToArray()
+}
+
+# Les pagines "filles" d'una col·leccio (quan cada document te la seva fitxa i
+# el PDF es a dins): enllacos del mateix lloc que pengen del cami de la pagina.
+function _NormativaSubpagines([string]$html, [string]$base) {
+    $out = New-Object System.Collections.ArrayList
+    if ([string]::IsNullOrWhiteSpace($html)) { return $out.ToArray() }
+    $b = $null
+    try { $b = New-Object System.Uri($base) } catch { return $out.ToArray() }
+    $cami = $b.AbsolutePath.TrimEnd('/') + '/'
+    $vist = @{}
+    foreach ($m in [regex]::Matches($html, '(?is)<a\b([^>]*)>(.*?)</a>')) {
+        $mh = [regex]::Match($m.Groups[1].Value, '(?i)\bhref\s*=\s*["'']([^"'']+)["'']')
+        if (-not $mh.Success) { continue }
+        $u = $null
+        try { $u = New-Object System.Uri($b, [System.Net.WebUtility]::HtmlDecode($mh.Groups[1].Value).Trim()) } catch { continue }
+        if ($u.Host -ne $b.Host -or -not $u.AbsolutePath.StartsWith($cami) -or $u.AbsolutePath.TrimEnd('/') -eq $b.AbsolutePath.TrimEnd('/')) { continue }
+        if ($u.AbsolutePath -match '(?i)\.(pdf|docx?|xlsx?|zip|jpg|png)$') { continue }
+        $abs = $u.GetLeftPart([System.UriPartial]::Path)
+        if ($vist.ContainsKey($abs)) { continue }
+        $vist[$abs] = $true
+        $text = ([System.Net.WebUtility]::HtmlDecode(([regex]::Replace($m.Groups[2].Value, '<[^>]+>', ' '))) -replace '\s+', ' ').Trim()
+        [void]$out.Add([pscustomobject]@{ Url = $abs; Text = $text })
+    }
+    return $out.ToArray()
+}
+
+# El nom d'un document d'una col·leccio: Ambit_Tema_<text de l'enllac>.pdf (o el
+# nom del fitxer de l'URL, si l'enllac no te text).
+function _NormativaNomDocColleccio($e, [string]$text, [string]$url) {
+    $t = ([string]$text).Trim()
+    if (-not $t -or $t -match '^(?i)(pdf|descarrega|descarregar|download)$') {
+        try { $t = [System.Uri]::UnescapeDataString([System.IO.Path]::GetFileNameWithoutExtension((New-Object System.Uri($url)).AbsolutePath)) } catch { $t = 'document' }
+        $t = $t -replace '[_]+', ' '
+    }
+    $t = $t -replace '(?i)\s*\((pdf|\d+([.,]\d+)?\s*[km]b)[^)]*\)\s*$', ''
+    if ($t.Length -gt 90) { $t = $t.Substring(0, 90).TrimEnd() }
+    $parts = @([string]$e.Ambit, [string]$e.Tema, $t) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    return ((_NormativaNetejaNom ($parts -join '_')) + '.pdf')
+}
+
 function _NormativaBoePdfConsolidat([string]$id) {
     $m = [regex]::Match([string]$id, '^BOE-A-(\d{4})-\d+$')
     if (-not $m.Success) { return '' }
@@ -327,7 +395,7 @@ function _NormativaXmlEsc([string]$s) {
     return $t.Replace('&', '&amp;').Replace('<', '&lt;').Replace('>', '&gt;').Replace('"', '&quot;')
 }
 
-function _NormativaXlsxBytes([string[]]$capcalera, $files, [int[]]$amples) {
+function _NormativaXlsxBytes([string[]]$capcalera, $files, [int[]]$amples, [string]$full = 'Normativa') {
     Add-Type -AssemblyName System.IO.Compression
     $sb = New-Object System.Text.StringBuilder
     [void]$sb.Append('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>')
@@ -367,7 +435,7 @@ function _NormativaXlsxBytes([string[]]$capcalera, $files, [int[]]$amples) {
     $parts = [ordered]@{
         '[Content_Types].xml' = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'
         '_rels/.rels' = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'
-        'xl/workbook.xml' = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Normativa" sheetId="1" r:id="rId1"/></sheets><definedNames><definedName name="_xlnm._FilterDatabase" localSheetId="0" hidden="1">Normativa!$A$1:$' + (_NormativaXlsxCol ($capcalera.Count - 1)) + '$' + $totes.Count + '</definedName></definedNames><calcPr fullCalcOnLoad="1"/></workbook>'
+        'xl/workbook.xml' = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="' + (_NormativaXmlEsc $full) + '" sheetId="1" r:id="rId1"/></sheets><definedNames><definedName name="_xlnm._FilterDatabase" localSheetId="0" hidden="1">' + (_NormativaXmlEsc $full) + '!$A$1:$' + (_NormativaXlsxCol ($capcalera.Count - 1)) + '$' + $totes.Count + '</definedName></definedNames><calcPr fullCalcOnLoad="1"/></workbook>'
         'xl/_rels/workbook.xml.rels' = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'
         'xl/styles.xml' = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="3"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font><font><u/><sz val="11"/><color rgb="FF0563C1"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf/></cellStyleXfs><cellXfs count="3"><xf/><xf fontId="1" applyFont="1"/><xf fontId="2" applyFont="1"/></cellXfs></styleSheet>'
         'xl/worksheets/sheet1.xml' = $sb.ToString()
@@ -391,6 +459,26 @@ function _NormativaFilesIndex($normes, $estat, $punts, $existeix) {
     $out = New-Object System.Collections.ArrayList
     foreach ($e in @($normes)) {
         $id = [string]$e.Id
+        if ($e.Colleccio) {
+            # UNA fila per la col·leccio (d'on surt i quants documents) i una per
+            # cada document que se n'ha baixat.
+            $fills = @(@($estat.Keys) | Where-Object { [string]$estat[$_].Pare -eq $id } | Sort-Object)
+            $est = if ($null -ne $estat -and $estat.ContainsKey($id)) { $estat[$id] } else { $null }
+            $res = if ($null -ne $est -and $est.Error) { 'Error: ' + [string]$est.Error } elseif ($fills.Count) { [string]$fills.Count + ' documents' } else { 'Pendent' }
+            [void]$out.Add(@([string]$e.Ambit, [string]$e.Tema, [string]$e.Tipus, [string]$e.Titol,
+                $(if ($e.Derogada) { 'Derogada' } else { 'Vigent' }), '', @{ Text = 'Obrir'; Link = [string]$e.Url }, '', '', $res, ''))
+            foreach ($k in $fills) {
+                $f = $estat[$k]
+                $hiF = [bool](& $existeix ([string]$f.Nom))
+                [void]$out.Add(@([string]$e.Ambit, [string]$e.Tema, [string]$e.Tipus, [string]$f.Titol,
+                    $(if ($e.Derogada) { 'Derogada' } else { 'Vigent' }),
+                    $(if ($hiF) { @{ Text = [string]$f.Nom; Link = [string]$f.Nom } } else { [string]$f.Nom }),
+                    $(if ($f.Url) { @{ Text = 'Obrir'; Link = [string]$f.Url } } else { '' }), '',
+                    $(if ($f.Baixat) { try { ([datetime]::Parse([string]$f.Baixat, [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::RoundtripKind)).ToString('dd/MM/yyyy') } catch { '' } } else { '' }),
+                    $(if ($f.Error) { 'Error: ' + [string]$f.Error } elseif ($hiF) { 'Baixada' } else { 'Pendent' }), ''))
+            }
+            continue
+        }
         $nom = _NormativaNomFitxer $e
         $est = if ($null -ne $estat -and $estat.ContainsKey($id)) { $estat[$id] } else { $null }
         $hi = [bool](& $existeix $nom)
@@ -426,7 +514,8 @@ function _NormativaLlegeixEstat([string]$dir) {
     if ($null -eq $o) { return $h }
     foreach ($p in @($o.PSObject.Properties)) {
         $v = $p.Value
-        $h[[string]$p.Name] = @{ Versio = [string]$v.Versio; Baixat = [string]$v.Baixat; Error = [string]$v.Error; Mida = [long]$v.Mida; Via = [string]$v.Via }
+        $h[[string]$p.Name] = @{ Versio = [string]$v.Versio; Baixat = [string]$v.Baixat; Error = [string]$v.Error; Mida = [long]$v.Mida; Via = [string]$v.Via
+                                 Pare = [string]$v.Pare; Titol = [string]$v.Titol; Url = [string]$v.Url; Nom = [string]$v.Nom }
     }
     return $h
 }

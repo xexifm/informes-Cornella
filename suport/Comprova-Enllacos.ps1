@@ -44,41 +44,12 @@ if ([string]::IsNullOrWhiteSpace($Cataleg)) {
 }
 if ($targets.Count -eq 0) { Write-Host "No s'ha trobat cap cataleg a comprovar." -ForegroundColor Red; exit 1 }
 
-# Tots els URLs d'un cataleg .json, en ordre i sense repetits. Els paragrafs
-# d'enllac venen marcats amb "url": true; per si de cas, tambe s'accepta un
-# http(s) escrit dins del text d'un paragraf normal.
-function Get-CatalegUrls([string]$path) {
-    $urls = New-Object System.Collections.Generic.List[string]
-    $add = {
-        param($u)
-        if ([string]::IsNullOrWhiteSpace($u)) { return }
-        $u = ([string]$u).Trim().TrimEnd('.', ',', ';', ')')
-        if ($u -match '^https?://' -and -not $urls.Contains($u)) { [void]$urls.Add($u) }
-    }
-    $o = Read-JsonFile $path
-    # Recorregut en profunditat: cada node pot tenir 'cos' (paragrafs) i 'fills'.
-    $visita = {
-        param($nodes)
-        foreach ($n in @($nodes)) {
-            foreach ($par in @($n.cos)) {
-                $txt = -join (@($par.runs) | ForEach-Object { [string]$_.t })
-                foreach ($m in [regex]::Matches($txt, 'https?://[^\s"<>\]\)]+')) { & $add $m.Value }
-            }
-            if ($n.fills) { & $visita $n.fills }
-        }
-    }
-    & $visita $o.nodes
-    foreach ($par in @($o.intro)) {
-        $txt = -join (@($par.runs) | ForEach-Object { [string]$_.t })
-        foreach ($m in [regex]::Matches($txt, 'https?://[^\s"<>\]\)]+')) { & $add $m.Value }
-    }
-    return $urls
-}
+# El recorregut i la comprovacio son a Enllacos.ps1 (la mateixa que fa servir
+# l'eina "Revisar requeriments"). Abans eren aqui i cridaven Read-JsonFile sense
+# carregar Json.ps1: l'script petava a cada cataleg.
+. (Join-Path $ScriptRoot 'Json.ps1')
+. (Join-Path $ScriptRoot 'Enllacos.ps1')
 
-# Forcem TLS 1.2 (Windows PowerShell 5.1 per defecte pot no negociar-lo).
-try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.ServicePointManager]::SecurityProtocol } catch { }
-
-$ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36'
 $totalCaiguts = @()
 
 foreach ($t in $targets) {
@@ -86,25 +57,8 @@ foreach ($t in $targets) {
     $urls = Get-CatalegUrls $t
     Write-Host ("`n===== {0}  ({1} enllacos) =====" -f (Split-Path -Leaf $t), $urls.Count) -ForegroundColor Cyan
     foreach ($u in $urls) {
-        $code = $null; $ok = $false
-        # Provem HEAD i, si el servidor no l'accepta (405) o falla, GET.
-        foreach ($method in 'Head','Get') {
-            try {
-                $r = Invoke-WebRequest -Uri $u -Method $method -TimeoutSec 25 -UserAgent $ua -UseBasicParsing -MaximumRedirection 5 -ErrorAction Stop
-                $code = [int]$r.StatusCode; $ok = ($code -lt 400); break
-            } catch {
-                $resp = $null; try { $resp = $_.Exception.Response } catch { }
-                if ($resp -and $resp.StatusCode) {
-                    $code = [int]$resp.StatusCode
-                    # Un 405 a HEAD no vol dir caigut: ho reintentem amb GET.
-                    if ($code -eq 405 -and $method -eq 'Head') { continue }
-                    $ok = ($code -lt 400); break
-                } else {
-                    $code = 'sense resposta'
-                    if ($method -eq 'Get') { break }
-                }
-            }
-        }
+        $prova = Test-EnllacViu $u
+        $code = $prova.Codi; $ok = [bool]$prova.Ok
         if ($ok) {
             Write-Host ("  OK     [{0}] {1}" -f $code, $u) -ForegroundColor Green
         } else {

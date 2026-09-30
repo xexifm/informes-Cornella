@@ -344,7 +344,7 @@ si marques **«Signar els PDF amb AutoFirma»**, els signa sols, sense clics.
 
 ### Normativa (📚)
 
-Botó **📚 Normativa** (secció EINES). Baixa a la carpeta
+Botó **📚 Normativa** (secció NORMATIVA). Baixa a la carpeta
 **`local\normativa`** el text **vigent** (consolidat) de totes les normes que
 cita REQ1 i de les dels teus marcadors de Chrome (unes 165), i les guies i
 manuals dels marcadors. Tot va a **una sola
@@ -384,7 +384,37 @@ de cada tema per any. Les derogades que encara es consulten porten el tema
 - Si alguna falla, l'índex en diu el motiu i es torna a provar la vegada següent.
   Passa-me'l si en veus alguna que no se solucioni.
 
+- **Les ITC de Bombers i les TINSCI** (i les ITC antigues) es baixen **totes**
+  de les pàgines d'Interior: el programa en treu la llista de la pàgina cada
+  vegada, o sigui que si Interior en publica una de nova, es baixa sola. Van al
+  tema `ITC Bombers` / `TINSCI` d'Incendis, amb el nom de l'enllaç
+  (`Incendis_ITC Bombers_SP 120 ...pdf`), i l'índex diu quants documents hi ha
+  de cada col·lecció.
+
 La llista de normes i la classificació són a `suport/normativa.json`.
+
+### Revisar requeriments (🔍)
+
+Botó **🔍 Revisar requeriments** (secció NORMATIVA). Serveix per tenir el
+programa al dia. Tria què vols revisar i prem **Revisar**:
+
+- **Punts de REQ1 sense la fitxa d'informació** (la i): els que has afegit i
+  encara no en tenen.
+- **Enllaços que no funcionen**, de tots els catàlegs: els del text dels punts i
+  els del botó «Obre la norma» de les fitxes.
+- **Normativa que ja no és vigent**: mira la pàgina de cada norma al BOE i al
+  Portal Jurídic. Si una està derogada, diu **quina la substitueix** i **quins
+  punts de REQ1 la citen**.
+- **Baixar la normativa nova i les versions noves** (desmarcat per defecte): fa
+  el mateix que l'eina Normativa.
+
+En acabar deixa un **Excel a `local\revisions`** amb una fila per cosa a fer:
+què passa, on (catàleg i punt), l'enllaç i què cal fer. **No canvia res dels
+catàlegs**: canviar un requeriment perquè una norma ha canviat s'ha de fer
+llegint-la. Passa'm l'Excel i ho arreglem.
+
+Les normes que no se sap si són vigents (la pàgina no ho diu clar) surten com a
+«mira-ho a mà», amb l'enllaç.
 
 ### Seguiment (fila GIA)
 

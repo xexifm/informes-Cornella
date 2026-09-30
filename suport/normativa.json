@@ -1720,6 +1720,40 @@
    "Url": "https://portaljuridic.gencat.cat/eli/es-ct/d/2004/03/30/240"
   },
   {
+   "Id": "Col·lecció ITC Bombers",
+   "Ambit": "Incendis",
+   "Tema": "ITC Bombers",
+   "Tipus": "ITC Bombers",
+   "Num": "",
+   "Any": "",
+   "Titol": "Instruccions tècniques complementàries (SP)",
+   "Url": "https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/instruccions_tecniques_complementaries/",
+   "Colleccio": true
+  },
+  {
+   "Id": "Col·lecció TINSCI",
+   "Ambit": "Incendis",
+   "Tema": "TINSCI",
+   "Tipus": "TINSCI",
+   "Num": "",
+   "Any": "",
+   "Titol": "Interpretació de la normativa de seguretat contra incendis",
+   "Url": "https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/interpretacio_normativa_tinsci/documents-tinsci/",
+   "Colleccio": true
+  },
+  {
+   "Id": "Col·lecció ITC Bombers antigues",
+   "Ambit": "Incendis",
+   "Tema": "Antic",
+   "Tipus": "ITC Bombers",
+   "Num": "",
+   "Any": "",
+   "Titol": "Instruccions tècniques complementàries antigues (SP)",
+   "Url": "https://interior.gencat.cat/ca/detalls/Article/Documentacio_normativa_TINSCI",
+   "Derogada": true,
+   "Colleccio": true
+  },
+  {
    "Id": "Manual 150 preguntes sobre urbanisme (ACM)",
    "Ambit": "Urbanisme",
    "Tema": "Guies",

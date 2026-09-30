@@ -146,6 +146,7 @@ $Script:AjudaEines = @{
     emailtextos       = "Edita l'assumpte i el text del correu de requeriments que s'envia al titular, des del mòbil i des d'Enviar correu."
     enviarcorreu      = "Envia al titular, des de l'ordinador, el correu amb els requeriments d'un informe ja fet, amb el mateix format que el del mòbil."
     normativa         = "Baixa a la carpeta local\normativa el text vigent de totes les normes (les de REQ1 i les dels marcadors), cada una amb un nom que diu de quin tema és, i en fa un índex en Excel."
+    revisio           = "Mira si la normativa dels requeriments encara és vigent, si els enllaços funcionen i si tots els punts de REQ1 tenen la fitxa d'informació. Pot baixar també la normativa nova. Ho deixa en un Excel."
     revisarmobil      = "Mira si han arribat informes preparats des del mòbil (per Google Drive) i en fa el Word."
 }
 
@@ -465,6 +466,7 @@ function Select-Mode {
     $tiMap   = [System.Char]::ConvertFromUtf32(0x1F5FA)   # 🗺
     $tiBell  = [System.Char]::ConvertFromUtf32(0x1F514)   # 🔔
     $tiLlibres = [System.Char]::ConvertFromUtf32(0x1F4DA) # 📚
+    $tiLupa    = [System.Char]::ConvertFromUtf32(0x1F50D) # 🔍
     # EINES: utilitats generals.
     $tools = @(
         @{ Emoji = $tiPin;   Label = 'Generar ruta';           Kind = 'action'; Action = 'ruta' }
@@ -474,7 +476,6 @@ function Select-Mode {
         @{ Emoji = $tiLock;  Label = 'Activitats precintades'; Kind = 'url';    Action = 'precintades'; Url = $urlPrec }
         @{ Emoji = $tiCal;   Label = ('Controls peri' + [char]0x00F2 + 'dics'); Kind = 'action'; Action = 'controlsperiodics' }
         @{ Emoji = $tiBell;  Label = 'Recordatoris'; Kind = 'action'; Action = 'recordatoris' }
-        @{ Emoji = $tiLlibres; Label = 'Normativa';  Kind = 'action'; Action = 'normativa' }
     )
     # INFORMES: eines de la base d'informes + conversio a PDF.
     $reports = @(
@@ -490,6 +491,11 @@ function Select-Mode {
     $gia = @(
         @{ Emoji = $tiCheck; Label = 'Comprovar Excel'; Kind = 'action'; Action = 'comprovarexcel' }
         @{ Emoji = $tiList;  Label = 'Seguiment';       Kind = 'action'; Action = 'seguimentgia' }
+    )
+    # NORMATIVA: la normativa dels requeriments i mantenir-los al dia.
+    $normativaRow = @(
+        @{ Emoji = $tiLlibres; Label = 'Normativa'; Kind = 'action'; Action = 'normativa' }
+        @{ Emoji = $tiLupa;    Label = 'Revisar requeriments'; Kind = 'action'; Action = 'revisio' }
     )
     # MOBIL: eines de l'app del mobil.
     $mobil = @(
@@ -787,6 +793,17 @@ function Select-Mode {
     [void]$form.Controls.Add($sepGia)
     $y += 24
     $y = & $addTileRow $gia $y
+
+    # ---- NORMATIVA ---------------------------------------------------------
+    $sepNorm = New-Object System.Windows.Forms.Label
+    $sepNorm.Text = 'NORMATIVA'
+    $sepNorm.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
+    $sepNorm.ForeColor = [System.Drawing.Color]::FromArgb(138, 20, 38)
+    $sepNorm.Location = New-Object System.Drawing.Point(20, $y)
+    $sepNorm.AutoSize = $true
+    [void]$form.Controls.Add($sepNorm)
+    $y += 24
+    $y = & $addTileRow $normativaRow $y
 
     # ---- MOBIL (app del mobil) ---------------------------------------------
     $sepMobil = New-Object System.Windows.Forms.Label
