@@ -864,3 +864,22 @@ què passa i on; canviar un requeriment es fa llegint la norma.
   amb JavaScript).
 - Menú: fila nova **NORMATIVA** amb 📚 Normativa i 🔍 Revisar requeriments.
 - Proves a `tests/proves/10-revisio.ps1`.
+- **Quarta ronda: el Portal Jurídic sense l'Edge** (l'usuari, amb l'índex d'una
+  primera passada: l'Edge es penjava 2 minuts per norma i la passada es va
+  quedar a la 5a).
+  - **El botó PDF del Portal Jurídic apunta al DOGC**, per número de versió:
+    `portaldogc.gencat.cat/utilsEADOP/AppJava/PdfProviderServlet?versionId=N&type=01`
+    (adreça copiada per l'usuari de la Llei 3/2010). `_NormativaFontsPjur` busca
+    el número **sense navegador**: a la pàgina tal com la dona el servidor i a les
+    metadades ELI (les descàrregues RDF/TTL/XML que enllaça la pàgina, i
+    `<eli>/rdf|ttl|xml`), amb `_NormativaPdfPjurDeText` (l'enllaç sencer o un
+    `versionId` en dades JSON). **No s'ha pogut veure si el número hi és**: si
+    no hi és, la baixada cau a l'Edge com abans.
+  - **L'Edge, en un sol lloc** (`_NormativaEdge`): perfil **nou a cada crida**
+    (un de compartit quedava bloquejat pel que s'havia penjat i feia penjar els
+    següents), `taskkill /T` de tot l'arbre si no acaba, i si es penja **un cop**
+    ja no es torna a fer servir en aquella passada (`$Script:NormativaEdgeKO`).
+    Temps: 45 s el DOM, 60 s imprimir.
+  - La revisió mira la vigència del Portal Jurídic primer a les metadades ELI
+    (`_RevEstatEli`: `InForce-inForce` / `notInForce` / `partiallyInForce`) i a
+    la pàgina del servidor; l'Edge només si no ho diuen.

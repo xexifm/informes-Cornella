@@ -69,6 +69,21 @@ function _RevEstatPjur([string]$html) {
     return $out
 }
 
+# VIGENT O DEROGADA, segons les metadades ELI (RDF/TTL/XML del Portal Juridic).
+# PURA. L'ontologia ELI ho diu amb un valor fix (eli:in_force):
+#   ...#InForce-inForce | #InForce-notInForce | #InForce-partiallyInForce
+# Parcialment vigent vol dir que la norma segueix: es 'vigent'.
+function _RevEstatEli([string]$text) {
+    $out = @{ Estat = '?'; Detall = ''; Substituta = ''; SubstitutaId = '' }
+    $m = [regex]::Match([string]$text, '(?i)InForce-(notInForce|partiallyInForce|inForce)')
+    if ($m.Success) {
+        $v = $m.Groups[1].Value
+        $out.Estat = if ($v -ieq 'notInForce') { 'derogada' } else { 'vigent' }
+        $out.Detall = 'ELI: ' + $v
+    }
+    return $out
+}
+
 # ELS PUNTS SENSE FITXA D'INFORMACIO (la i del Pas 3). PURA, sobre el JSON del
 # cataleg (el que torna Read-JsonFile). Nomes punts i sub-punts: les seccions i
 # els textos no en porten.

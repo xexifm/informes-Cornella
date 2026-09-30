@@ -51,6 +51,12 @@ AssertEq (_RevEstatPjur ($rvPj.Replace('>VIGENT<', '>DEROGAT<'))).Estat 'derogad
 AssertEq (_RevEstatPjur '<p>Article 5 (Derogat). Text de la llei vigent.</p>').Estat '?' 'Portal Juridic: un "derogat" dins del text no compta'
 AssertEq (_RevEstatPjur '<p>DISPOSICIÓ DEROGATÒRIA</p> Copia la URI ELI VIGENT').Estat 'vigent' 'Portal Juridic: "DEROGATÒRIA" no es "DEROGAT"'
 
+Write-Host "`n--- vigencia: les metadades ELI ---"
+AssertEq (_RevEstatEli '<eli:in_force rdf:resource="http://data.europa.eu/eli/ontology#InForce-inForce"/>').Estat 'vigent' 'ELI: InForce-inForce -> vigent'
+AssertEq (_RevEstatEli 'eli:in_force <http://data.europa.eu/eli/ontology#InForce-notInForce> .').Estat 'derogada' 'ELI: InForce-notInForce -> derogada'
+AssertEq (_RevEstatEli '#InForce-partiallyInForce').Estat 'vigent' 'ELI: parcialment vigent -> vigent'
+AssertEq (_RevEstatEli '<p>res</p>').Estat '?' 'ELI: sense la dada -> ?'
+
 Write-Host "`n--- l'informe i la rajola ---"
 $rvFila = _RevFila 'Enllaç trencat' 'REQ1' 'Incendis' 'No respon' 'https://x.cat' 'Canvia-la'
 AssertEq @($rvFila).Count 6 'informe: sis columnes'

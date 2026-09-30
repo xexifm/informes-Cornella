@@ -21,7 +21,18 @@ function _RevVigenciaDe($e) {
     $u = [string]$e.Url
     try {
         if ((_NormativaFont $u) -eq 'boe') { return (_RevEstatBoe ([string](_NormativaGet $u).Content)) }
-        if ($u -match '(?i)portaljuridic\.gencat\.cat') { return (_RevEstatPjur (_NormativaDomEdge $u)) }
+        if ($u -match '(?i)portaljuridic\.gencat\.cat') {
+            # Primer SENSE navegador: les metadades ELI i la pagina del servidor.
+            # L'Edge nomes si no ho diuen (al PC de l'usuari es penjava).
+            $pj = _NormativaFontsPjur $u
+            foreach ($t in @($pj.Textos)) {
+                $v = _RevEstatEli ([string]$t)
+                if ($v.Estat -ne '?') { return $v }
+                $v = _RevEstatPjur ([string]$t)
+                if ($v.Estat -ne '?') { return $v }
+            }
+            return (_RevEstatPjur (_NormativaDomEdge $u))
+        }
     } catch {
         return @{ Estat = '?'; Detall = ('no s''ha pogut obrir: ' + $_.Exception.Message); Substituta = ''; SubstitutaId = '' }
     }
@@ -151,6 +162,8 @@ function Invoke-RevisioRequeriments {
             # 3. VIGENCIA
             if ($chk.Vigencia.Checked -and -not $ui.Cancel) {
                 & $fn.Log "3. Vigència de la normativa..."
+                $Script:NormativaEdgeKO = $false
+                $Script:NormativaPjurCache = @{}
                 $normes = @(Get-NormativaCataleg | Where-Object { -not $_.Guia -and -not $_.Colleccio -and -not $_.Derogada -and [string]$_.Url })
                 $punts = @{}
                 try { $punts = _NormativaPuntsReq1 $normes (Get-ParsedCataleg -path (Join-Path $EstructuralsDir 'REQ1.json')) } catch { }

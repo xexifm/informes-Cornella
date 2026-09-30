@@ -35,18 +35,44 @@ function _NormativaEdgeExe {
     return ''
 }
 
-# Imprimeix una pagina web a PDF amb l'Edge sense finestra. Un perfil PROPI
-# (--user-data-dir): si l'Edge de l'usuari ja es obert, sense aixo l'ordre se
-# n'hi aniria a ell i tornaria de seguida sense fer res.
-function _NormativaImprimeix([string]$url, [string]$desti) {
+# L'EDGE SENSE FINESTRA (imprimir una pagina, o treure'n el DOM dibuixat).
+#
+# AL PC DE L'USUARI ES PENJAVA (setembre 2026): 2 minuts per norma, i amb
+# 60 normes del Portal Juridic la primera passada no s'acabava mai. Tres canvis:
+#   - un PERFIL NOU a cada crida (--user-data-dir unic, que s'esborra): un Edge
+#     que es quedava penjat bloquejava el perfil compartit i feia penjar tots
+#     els que venien darrere;
+#   - si no acaba, es mata TOT l'arbre de processos (taskkill /T), no nomes el
+#     primer: els fills eren els que es quedaven vius;
+#   - si es penja UN cop, en aquella passada ja no es torna a fer servir
+#     ($Script:NormativaEdgeKO): val mes una norma amb error que una hora d'espera.
+$Script:NormativaEdgeKO = $false
+
+function _NormativaEdge([string[]]$argv, [int]$segons, [string]$sortida = '') {
+    if ($Script:NormativaEdgeKO) { throw "L'Edge no respon en aquest ordinador (s'ha deixat de fer servir en aquesta passada)." }
     $edge = _NormativaEdgeExe
-    if (-not $edge) { throw "No trobo l'Edge ni el Chrome per desar la pàgina com a PDF." }
-    $perfil = Join-Path $env:TEMP 'informes-normativa-edge'
+    if (-not $edge) { throw "No trobo l'Edge ni el Chrome." }
+    $perfil = Join-Path $env:TEMP ('informes-normativa-edge-' + [guid]::NewGuid().ToString('N'))
+    $tots = @('--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check', '--disable-extensions',
+              ('--user-data-dir="' + $perfil + '"')) + @($argv)
+    try {
+        $p = if ($sortida) { Start-Process -FilePath $edge -ArgumentList $tots -WindowStyle Hidden -PassThru -RedirectStandardOutput $sortida }
+             else { Start-Process -FilePath $edge -ArgumentList $tots -WindowStyle Hidden -PassThru }
+        if (-not $p.WaitForExit($segons * 1000)) {
+            try { Start-Process -FilePath 'taskkill.exe' -ArgumentList @('/T', '/F', '/PID', [string]$p.Id) -WindowStyle Hidden -Wait | Out-Null } catch { }
+            $Script:NormativaEdgeKO = $true
+            throw ("L'Edge no ha acabat en " + $segons + " segons (no es tornarà a fer servir en aquesta passada).")
+        }
+    } finally {
+        Start-Sleep -Milliseconds 300
+        try { if (Test-Path -LiteralPath $perfil) { Remove-Item -LiteralPath $perfil -Recurse -Force -ErrorAction SilentlyContinue } } catch { }
+    }
+}
+
+# Imprimeix una pagina web a PDF.
+function _NormativaImprimeix([string]$url, [string]$desti) {
     if (Test-Path -LiteralPath $desti) { Remove-Item -LiteralPath $desti -Force }
-    $argv = @('--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check', '--no-pdf-header-footer',
-              '--virtual-time-budget=25000', ('--user-data-dir="' + $perfil + '"'), ('--print-to-pdf="' + $desti + '"'), ('"' + $url + '"'))
-    $p = Start-Process -FilePath $edge -ArgumentList $argv -WindowStyle Hidden -PassThru
-    if (-not $p.WaitForExit(120000)) { try { $p.Kill() } catch { }; throw "L'Edge no ha acabat en 2 minuts." }
+    _NormativaEdge @('--no-pdf-header-footer', '--virtual-time-budget=20000', ('--print-to-pdf="' + $desti + '"'), ('"' + $url + '"')) 60
     if (-not (Test-Path -LiteralPath $desti)) { throw "L'Edge no ha generat el PDF." }
     $b = [System.IO.File]::ReadAllBytes($desti)
     if (-not (_NormativaEsPdf $b)) { throw "L'Edge no ha generat un PDF vàlid." }
@@ -56,23 +82,45 @@ function _NormativaImprimeix([string]$url, [string]$desti) {
     return $b
 }
 
-# EL DOM DE LA PAGINA JA DIBUIXADA (--dump-dom), per trobar-hi el boto "PDF":
-# el Portal Juridic munta la pagina amb JavaScript, i el que torna el servidor
-# sense executar-lo no porta l'enllac.
+# EL DOM DE LA PAGINA JA DIBUIXADA (--dump-dom). '' si no s'ha pogut.
 function _NormativaDomEdge([string]$url) {
-    $edge = _NormativaEdgeExe
-    if (-not $edge) { return '' }
-    $perfil = Join-Path $env:TEMP 'informes-normativa-edge'
     $sortida = Join-Path $env:TEMP ('normativa-dom-' + [guid]::NewGuid().ToString('N') + '.html')
     try {
-        $argv = @('--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check',
-                  '--virtual-time-budget=20000', ('--user-data-dir="' + $perfil + '"'), '--dump-dom', ('"' + $url + '"'))
-        $p = Start-Process -FilePath $edge -ArgumentList $argv -WindowStyle Hidden -PassThru -RedirectStandardOutput $sortida
-        if (-not $p.WaitForExit(90000)) { try { $p.Kill() } catch { }; return '' }
+        _NormativaEdge @('--virtual-time-budget=15000', '--dump-dom', ('"' + $url + '"')) 45 $sortida
         if (-not (Test-Path -LiteralPath $sortida)) { return '' }
         return [System.IO.File]::ReadAllText($sortida, [System.Text.Encoding]::UTF8)
     } catch { return '' }
     finally { try { if (Test-Path -LiteralPath $sortida) { Remove-Item -LiteralPath $sortida -Force } } catch { } }
+}
+
+# EL PORTAL JURIDIC SENSE L'EDGE: la pagina tal com la dona el servidor i les
+# metadades ELI (RDF/TTL/XML), buscant-hi el numero de versio del PDF del DOGC
+# (_NormativaPdfPjurDeText). Torna @{ Pdf; Textos } (els textos serveixen
+# tambe a la revisio, per saber si es vigent). Es desa per URL mentre dura la
+# passada: la revisio i la baixada no l'han de demanar dues vegades.
+$Script:NormativaPjurCache = @{}
+function _NormativaFontsPjur([string]$url) {
+    if ($Script:NormativaPjurCache.ContainsKey($url)) { return $Script:NormativaPjurCache[$url] }
+    $textos = New-Object System.Collections.ArrayList
+    $pdf = ''
+    $html = ''
+    try { $html = [string](_NormativaGet $url).Content } catch { $html = '' }
+    if ($html) { [void]$textos.Add($html) }
+    $pdf = _NormativaPdfPjurDeText $html
+    $eli = if ($url -match '/eli/es-ct/') { _NormativaEliDeText $url } else { _NormativaEliDeText $html }
+    if (-not $pdf) {
+        foreach ($u in @(_NormativaUrlsMetaPjur $html $url $eli)) {
+            $t = ''
+            try { $t = [string](_NormativaGet $u).Content } catch { continue }
+            if (-not $t) { continue }
+            [void]$textos.Add($t)
+            $pdf = _NormativaPdfPjurDeText $t
+            if ($pdf) { break }
+        }
+    }
+    $r = @{ Pdf = $pdf; Textos = $textos.ToArray(); Eli = $eli }
+    $Script:NormativaPjurCache[$url] = $r
+    return $r
 }
 
 # UNA NORMA QUE NO ES DEL BOE, per ordre de preferencia:
@@ -83,6 +131,15 @@ function _NormativaDomEdge([string]$url) {
 # Torna @{ Bytes; Via } (Via ho diu a l'index: si surt "pagina impresa" es que
 # no s'ha trobat el PDF de debo).
 function _NormativaBaixaWeb([string]$url, [string]$tmp) {
+    if ($url -match '(?i)portaljuridic\.gencat\.cat|dogc\.gencat\.cat') {
+        $pj = _NormativaFontsPjur $url
+        if ($pj.Pdf) {
+            try {
+                $b = _NormativaGetBytes ([string]$pj.Pdf) $tmp
+                if (_NormativaEsPdf $b) { return @{ Bytes = $b; Via = 'PDF del Portal Jurídic' } }
+            } catch { }
+        }
+    }
     $html = ''
     try {
         $r = Invoke-WebRequest -Uri $url -UseBasicParsing -UserAgent $Script:NormativaUA -TimeoutSec 60 -MaximumRedirection 10 -UseDefaultCredentials -OutFile $tmp -PassThru -ErrorAction Stop
@@ -237,6 +294,8 @@ function _NormativaBaixaColleccio($e, [string]$dir, $estat, [bool]$forca, $log) 
 # norma (la barra); $cancel diu si s'ha d'aturar. Desa l'estat i l'index.
 function Invoke-NormativaBaixada($normes, [string]$dir, [bool]$forca, $log, $pas = $null, $cancel = $null) {
     _NormativaPreparaXarxa
+    $Script:NormativaEdgeKO = $false
+    $Script:NormativaPjurCache = @{}
     $estat = _NormativaLlegeixEstat $dir
     $n = @{ Noves = 0; Act = 0; Igual = 0; Err = 0; Man = 0 }
     try {

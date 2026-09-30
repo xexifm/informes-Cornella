@@ -41,63 +41,68 @@ BODY/CH|//[No es disposa]// No es disposa de l’informe. S’ha de sol·licitar
 URL/CH|https://web.gencat.cat/ca/tramits/tramits-temes/22032-Informe-previ-al-Servei-dEquipaments-Esportius-per-a-la-realitzacio-en-installacions-esportives-a-Catalunya
 BODY/CH|//[Es disposa]// Es disposa de l’informe (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient])
 AIRE|item
-ITEM|6.|Incendis. L’activitat està inclosa dins l’Annex I de la Llei 3/2010, del 18 de febrer, de prevenció i seguretat en matèria d'incendis en establiments, activitats, infraestructures i edificis. S’ha de presentar l’acte de comprovació per una entitat col·laboradora
+ITEM|6.|Incendis. L’activitat està inclosa dins l’Annex I de la Llei 3/2010, del 18 de febrer, de prevenció i seguretat en matèria d'incendis en establiments, activitats, infraestructures i edificis. S’ha d'obtenir l’informe favorable de prevenció i seguretat en matèria d’incendis (Direcció General de Prevenció, Extinció d'Incendis i Salvaments - DGPEIS)
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/23705_-_Informe-de-prevencio-i-seguretat-en-materia-dincendis
 BODY/CH|//[No es disposa]// No es disposa de l’informe. S’ha de sol·licitar en el següent enllaç:
 URL/CH|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/23705_-_Informe-de-prevencio-i-seguretat-en-materia-dincendis
 BODY/CH|//[Es disposa]// Es disposa de l’informe (Id Firmadoc: [CAMP: Id Firmadoc]; Referència: [CAMP: Referència])
 AIRE|item
-ITEM|7.|Impacte ambiental. L’activitat està inclosa dins l’Article 7 de la //Ley 21/2013, de 9 de diciembre, de evaluación ambiental//. S’ha de presentar l’estudi d'impacte ambiental a l’ajuntament amb el contingut determinat a l'Annex VI de l’esmentada Llei per obtenir posteriorment l’informe favorable per part de l’OGAU.
+ITEM|7.|Incendis. L’activitat està inclosa dins l’Annex I de la Llei 3/2010, del 18 de febrer, de prevenció i seguretat en matèria d'incendis en establiments, activitats, infraestructures i edificis. S’ha de presentar l’acte de comprovació per una entitat col·laboradora (ECI)
+URL|https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/entitats_col_laboradores_de_l_administracio/entitats-tecnics-habilitats/
+BODY/CH|//[No es disposa]// No es disposa del document.
+BODY/CH|//[Es disposa]// Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])
+AIRE|item
+ITEM|8.|Impacte ambiental. L’activitat està inclosa dins l’Article 7 de la //Ley 21/2013, de 9 de diciembre, de evaluación ambiental//. S’ha de presentar l’estudi d'impacte ambiental a l’ajuntament amb el contingut determinat a l'Annex VI de l’esmentada Llei per obtenir posteriorment l’informe favorable per part de l’OGAU.
 BODY/CH|//[No es disposa]// No es disposa de l’estudi d’impacte ambiental. S’ha de presentar a l’ajuntament per enviar-lo a l’OGAU després de fer la informació pública.
 BODY/CH|//[Es disposa]// Es disposa de l’informe (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient])
 AIRE|item
-ITEM|8.|Zona inundable fluvial T500. És una activitat crítica situada en zona de perill d’inundació fluvial T500. S’ha d’obtenir l’informe relacionat amb el vector aigua (Agència Catalana de l’Aigua).
+ITEM|9.|Zona inundable fluvial T500. És una activitat crítica situada en zona de perill d’inundació fluvial T500. S’ha d’obtenir l’informe relacionat amb el vector aigua (Agència Catalana de l’Aigua).
 URL|https://aca.gencat.cat/ca/tramits/Informes-relacionats-amb-el-vector-aigua?moda=1
 BODY/CH|//[No es disposa]// No es disposa de l’informe. S’ha de sol·licitar en el següent enllaç:
 URL/CH|https://aca.gencat.cat/ca/tramits/Informes-relacionats-amb-el-vector-aigua?moda=1
 BODY/CH|//[Es disposa]// Es disposa de l’informe (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient])
 AIRE|item
-ITEM|9.|Vector Aigua (ACA). L’activitat està inclosa dins l’Annex VI.1 de la Llei 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats. S’ha de presentar un projecte tècnic [OPCIO: Destinatari del projecte ACA | a l'ajuntament (per ser un Annex II) | a l'ACA] amb el contingut determinat a l’Annex III del Decret 130/2003, de 13 de maig, pel qual s'aprova el Reglament dels serveis públics de sanejament per obtenir posteriorment l’autorització d’abocaments d’aigües residuals (Agència Catalana de l’Aigua).
+ITEM|10.|Vector Aigua (ACA). L’activitat està inclosa dins l’Annex VI.1 de la Llei 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats. S’ha de presentar un projecte tècnic [OPCIO: Destinatari del projecte ACA | a l'ajuntament (per ser un Annex II) | a l'ACA] amb el contingut determinat a l’Annex III del Decret 130/2003, de 13 de maig, pel qual s'aprova el Reglament dels serveis públics de sanejament per obtenir posteriorment l’autorització d’abocaments d’aigües residuals (Agència Catalana de l’Aigua).
 URL|https://aca.gencat.cat/ca/tramits/Autoritzacions-dabocaments-daiguees-residuals
 BODY/CH|//[No es disposa]// No es disposa de l’autorització.
 BODY/CH|//[Es disposa]// Es disposa de l’autorització (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient])
 AIRE|item
-ITEM|10.|Vector Aigua (ACA). L’activitat disposa d’un volum anual d'aigua superior a 1.000 m3, i es troba inclosa en les seccions B, C i D i els grups A032, E360, E383 i J581 de la Classificació catalana d'activitats econòmiques (CCAE-2009). S’ha de presentar la Declaració de l'Ús i la Contaminació de l'Aigua (DUCA).
+ITEM|11.|Vector Aigua (ACA). L’activitat disposa d’un volum anual d'aigua superior a 1.000 m3, i es troba inclosa en les seccions B, C i D i els grups A032, E360, E383 i J581 de la Classificació catalana d'activitats econòmiques (CCAE-2009). S’ha de presentar la Declaració de l'Ús i la Contaminació de l'Aigua (DUCA).
 URL|https://web.gencat.cat/ca/tramits/tramits-temes/Declaracio-de-lUs-i-la-Contaminacio-de-lAigua-DUCA
 BODY/CH|//[No es disposa]// No es disposa del document.
 BODY/CH|//[Es disposa]// Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])
 AIRE|item
-ITEM|11.|Vector Aigua (AMB). L’activitat està inclosa dins l’Article 22 o l’Annex 4 del Reglament Metropolità d’Abocament d’Aigües Residuals (RMAAR, Exp 944/18). S’ha de presentar l’autorització d’abocaments d’aigües (Àrea Metropolitana de Barcelona).
+ITEM|12.|Vector Aigua (AMB). L’activitat està inclosa dins l’Article 22 o l’Annex 4 del Reglament Metropolità d’Abocament d’Aigües Residuals (RMAAR, Exp 944/18). S’ha de presentar l’autorització d’abocaments d’aigües (Àrea Metropolitana de Barcelona).
 URL|https://tramitaiguesresiduals.amb.cat/mod/sol/index.php
 BODY/CH|//[No es disposa]// No es disposa de l’autorització. S’ha de sol·licitar en el següent enllaç i posteriorment enviar el resguard a l’ajuntament per a tramitar l’autorització:
 URL/CH|https://tramitaiguesresiduals.amb.cat/mod/sol/index.php
 BODY/CH|//[Es disposa]// Es disposa de l’autorització (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient])
 AIRE|item
-ITEM|12.|Vector Residus. L’activitat està inclosa dins l’Annex VI.2 de la Llei 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats. S’ha de presentar un projecte tècnic a l’ajuntament amb el contingut determinat a l'Annex IX i X de la //Ley 7/2022, de 8 de abril, de residuos y suelos contaminados para una economía circular// per obtenir posteriorment l’informe preceptiu favorable (Agència de Residus de Catalunya).
+ITEM|13.|Vector Residus. L’activitat està inclosa dins l’Annex VI.2 de la Llei 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats. S’ha de presentar un projecte tècnic a l’ajuntament amb el contingut determinat a l'Annex IX i X de la //Ley 7/2022, de 8 de abril, de residuos y suelos contaminados para una economía circular// per obtenir posteriorment l’informe preceptiu favorable (Agència de Residus de Catalunya).
 BODY/CH|//[No es disposa]// No es disposa de l’informe preceptiu.
 BODY/CH|//[Es disposa]// Es disposa de l’informe preceptiu (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient])
 AIRE|item
-ITEM|13.|Vector Residus. L’establiment de l’activitat ha d’estar donat d’alta al Sistema Documental de Residus (SDR) i disposar d’un gestor de residus.
+ITEM|14.|Vector Residus. L’establiment de l’activitat ha d’estar donat d’alta al Sistema Documental de Residus (SDR) i disposar d’un gestor de residus.
 URL|https://sdr.arc.cat/sdr/GetLogin.do
 BODY/CH|//[No es disposa]// No es disposa del document d’alta al SDR. S’ha de sol·licitar en el següent enllaç:
 URL/CH|https://sdr.arc.cat/modemp/EditSolAltaReferencia.do?tipusProductor=RE
 BODY/CH|//[Es disposa]// Es disposa del document d’alta al SDR (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient]; NIMA: [CAMP: NIMA])
 AIRE|item
-ITEM|14.|Vector Atmosfera. Grups A i B. L’activitat està inclosa dins l’Annex VI.3 de la Llei 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats. S’ha de presentar un projecte tècnic a l’ajuntament amb el contingut mínim determinat a la web de Medi Ambient i Sostenibilitat per obtenir posteriorment l’informe preceptiu favorable (Direcció General de Canvi Climàtic i Qualitat Ambiental). Grup CAPCA: [CAMP: Grup CAPCA].
+ITEM|15.|Vector Atmosfera. Grups A i B. L’activitat està inclosa dins l’Annex VI.3 de la Llei 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats. S’ha de presentar un projecte tècnic a l’ajuntament amb el contingut mínim determinat a la web de Medi Ambient i Sostenibilitat per obtenir posteriorment l’informe preceptiu favorable (Direcció General de Canvi Climàtic i Qualitat Ambiental). Grup CAPCA: [CAMP: Grup CAPCA].
 URL|https://mediambient.gencat.cat/web/.content/home/ambits_dactuacio/atmosfera/emissions_industrials/guia_emissions_permisos/Juny-2018-contingut-minim.doc
 BODY/CH|//[No es disposa]// No es disposa de l’informe preceptiu.
 BODY/CH|//[Es disposa]// Es disposa de l’informe preceptiu (Id Firmadoc: [CAMP: Id Firmadoc]; Expedient: [CAMP: Expedient])
 AIRE|item
-ITEM|15.|Vector Atmosfera. Grup C - llicència. Per tal d’emetre un permís ambiental és necessari disposar de la informació imprescindible per poder fixar els límits d’emissió a l’atmosfera i les prescripcions tècniques. S’ha de redactar un document amb el contingut mínim en matèria d’emissions a l’atmosfera dels projectes d’activitats. Grup CAPCA: [CAMP: Grup CAPCA].
+ITEM|16.|Vector Atmosfera. Grup C - llicència. Per tal d’emetre un permís ambiental és necessari disposar de la informació imprescindible per poder fixar els límits d’emissió a l’atmosfera i les prescripcions tècniques. S’ha de redactar un document amb el contingut mínim en matèria d’emissions a l’atmosfera dels projectes d’activitats. Grup CAPCA: [CAMP: Grup CAPCA].
 URL|https://mediambient.gencat.cat/web/.content/home/ambits_dactuacio/atmosfera/emissions_industrials/guia_emissions_permisos/Juny-2018-contingut-minim.doc
 BODY/CH|//[No es disposa]// No es disposa del document.
 BODY/CH|//[Es disposa]// Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])
 AIRE|item
-ITEM|16.|Vector Atmosfera. Grup C - comunicació. Segons la Disposició addicional Segona del DECRET 139/2018, de 3 de juliol, sobre els règims d'intervenció ambiental atmosfèrica dels establiments on es desenvolupin activitats potencialment contaminants de l'atmosfera: Els establiments sotmesos per la Llei 20/2009, de 4 de desembre, a comunicació i classificats en el grup C d'acord amb l'article 7 no han de realitzar la notificació d'emissions que estableix l'article 12. No obstant això, aquests establiments estan obligats a presentar, juntament amb la comunicació, una memòria tècnica i un informe de control d'una entitat col·laboradora de l'Administració en matèria de medi ambient, d'acord amb el que estableix l'article 13.2 i 13.3. Grup CAPCA: [CAMP: Grup CAPCA].
+ITEM|17.|Vector Atmosfera. Grup C - comunicació. Segons la Disposició addicional Segona del DECRET 139/2018, de 3 de juliol, sobre els règims d'intervenció ambiental atmosfèrica dels establiments on es desenvolupin activitats potencialment contaminants de l'atmosfera: Els establiments sotmesos per la Llei 20/2009, de 4 de desembre, a comunicació i classificats en el grup C d'acord amb l'article 7 no han de realitzar la notificació d'emissions que estableix l'article 12. No obstant això, aquests establiments estan obligats a presentar, juntament amb la comunicació, una memòria tècnica i un informe de control d'una entitat col·laboradora de l'Administració en matèria de medi ambient, d'acord amb el que estableix l'article 13.2 i 13.3. Grup CAPCA: [CAMP: Grup CAPCA].
 BODY/CH|//[No es disposa]// No es disposa del document.
 BODY/CH|//[Es disposa]// Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])
 AIRE|item
-ITEM|17.|Soroll. L’activitat està inclosa dins l’Annex I del Decret 112/2010, de 31 d'agost, pel qual s'aprova el Reglament d'espectacles públics i activitats recreatives o és susceptible de generar contaminació acústica per soroll. S’han de presentar les mesures in situ de comprovació de les exigències d’acústica ambiental i de qualitat en l’edificació realitzades per una Entitat de Protecció de la Contaminació Acústica [EC-PCA] segons l’article 9 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat (versió vigent des del 19 de juny de 2025). Les mesures in situ consistiran en comprovar:
+ITEM|18.|Soroll. L’activitat està inclosa dins l’Annex I del Decret 112/2010, de 31 d'agost, pel qual s'aprova el Reglament d'espectacles públics i activitats recreatives o és susceptible de generar contaminació acústica per soroll. S’han de presentar les mesures in situ de comprovació de les exigències d’acústica ambiental i de qualitat en l’edificació realitzades per una Entitat de Protecció de la Contaminació Acústica [EC-PCA] segons l’article 9 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat (versió vigent des del 19 de juny de 2025). Les mesures in situ consistiran en comprovar:
 BODY|- Immissió sonora aplicable a l'ambient exterior
 BODY|- Immissió sonora aplicable a l'ambient interior
 URL|https://www.gencat.cat/mediamb/oaec/epca_CA.pdf
@@ -105,11 +110,11 @@ BODY/CH|Immissió de les vibracions als interiors dels edificis
 BODY/CH|//[No es disposa]// No es disposa del document.
 BODY/CH|//[Es disposa]// Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])
 AIRE|item
-ITEM|18.|Olors. S’ha de presentar un estudi d’avaluació de l’impacte odorífer de l’activitat sobre l’entorn. S’han de quantificar els nivells d’olors en immissió i avaluar-los mitjançant els valors límit d’immissió de l’Annex II del model d’Ordenança tipus reguladora de la contaminació odorífera de la Diputació de Barcelona.
+ITEM|19.|Olors. S’ha de presentar un estudi d’avaluació de l’impacte odorífer de l’activitat sobre l’entorn. S’han de quantificar els nivells d’olors en immissió i avaluar-los mitjançant els valors límit d’immissió de l’Annex II del model d’Ordenança tipus reguladora de la contaminació odorífera de la Diputació de Barcelona.
 BODY/CH|//[No es disposa]// No es disposa del document.
 BODY/CH|//[Es disposa]// Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])
 AIRE|item
-ITEM|19.|Vector Sòl. L’activitat està inclosa dins l’Annex I del //Real Decreto 9/2005, de 14 de enero, por el que se establece la relación de actividades potencialmente contaminantes del suelo y los criterios y estándares para la declaración de suelos contaminados//. S’ha de presentar l’informe preliminar de situació del sòl amb el contingut mínim determinat a l’Annex II de l’esmentat Real Decret en els casos següents:
+ITEM|20.|Vector Sòl. L’activitat està inclosa dins l’Annex I del //Real Decreto 9/2005, de 14 de enero, por el que se establece la relación de actividades potencialmente contaminantes del suelo y los criterios y estándares para la declaración de suelos contaminados//. S’ha de presentar l’informe preliminar de situació del sòl amb el contingut mínim determinat a l’Annex II de l’esmentat Real Decret en els casos següents:
 BODY|- Quan s’ha realitzat un canvi substancial en l’activitat i/o instal·lacions.
 BODY|- Quan se cessa l’activitat.
 BODY|- Quan se sol·licita una activitat no potencialment contaminant del sòl en una situació on abans hi havia una activitat potencialment contaminant del sòl.
@@ -117,102 +122,102 @@ BODY|- Quan hi ha un canvi d’ús del sòl.
 BODY/CH|//[No es disposa]// No es disposa de l’informe preliminar.
 BODY/CH|//[Es disposa]// Es disposa de l’informe preliminar (Id Firmadoc: [CAMP: Id Firmadoc])
 AIRE|item
-ITEM|20.|Mobilitat. L’activitat està inclosa dins l’Article 3 del Decret 344/2006, de 19 de setembre, de regulació dels estudis d'avaluació de la mobilitat generada. S’ha de presentar l’estudi d’avaluació de la mobilitat generada a l’ajuntament amb el contingut mínim determinat a l’Article 14 de l’esmentat Decret i obtenir l’informe preceptiu favorable de Guàrdia Urbana.
+ITEM|21.|Mobilitat. L’activitat està inclosa dins l’Article 3 del Decret 344/2006, de 19 de setembre, de regulació dels estudis d'avaluació de la mobilitat generada. S’ha de presentar l’estudi d’avaluació de la mobilitat generada a l’ajuntament amb el contingut mínim determinat a l’Article 14 de l’esmentat Decret i obtenir l’informe preceptiu favorable de Guàrdia Urbana.
 BODY/CH|//[No es disposa]// No es disposa de l’informe preliminar.
 BODY/CH|//[Es disposa]// Es disposa de l’informe preliminar (Id Firmadoc: [CAMP: Id Firmadoc])
 AIRE|item
 SECT|Registres
 AIRE|seccio
-ITEM|21.|Nucli zoològic. L’activitat està inclosa dins el Decret Legislatiu 2/2008, de 15 d'abril, pel qual s'aprova el Text refós de la Llei de protecció dels animals. S’ha d’inscriure l’activitat en el Registre de nucli zoològic.
+ITEM|22.|Nucli zoològic. L’activitat està inclosa dins el Decret Legislatiu 2/2008, de 15 d'abril, pel qual s'aprova el Text refós de la Llei de protecció dels animals. S’ha d’inscriure l’activitat en el Registre de nucli zoològic.
 URL|https://territori.gencat.cat/ca/tramits/tramits-temes/Registre-dun-nucli-zoologic
 BODY/CH|//[No es disposa]// No es disposa del document.
 BODY/CH|//[Es disposa]// Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])
 AIRE|item
 SUB|Registre d'Agents de la Seguretat Industrial de Catalunya
 AIRE|subseccio
-ITEM|22.|RASIC. El titular de l’activitat està inclòs dins l’Article 8 de la Llei 9/2014, del 31 de juliol, de la seguretat industrial dels establiments, les instal·lacions i els productes. S’ha de registrar en el següent enllaç:
+ITEM|23.|RASIC. El titular de l’activitat està inclòs dins l’Article 8 de la Llei 9/2014, del 31 de juliol, de la seguretat industrial dels establiments, les instal·lacions i els productes. S’ha de registrar en el següent enllaç:
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Empresa-installadora-mantenidora-i-o-reparadora-dinstallacions-industrials
 BODY/CH|//[No es disposa]// No es disposa del registre. S’ha de registrar en el següent enllaç:
 URL/CH|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Empresa-installadora-mantenidora-i-o-reparadora-dinstallacions-industrials
 BODY/CH|//[Es disposa]// Es disposa del registre (Id Firmadoc: [CAMP: Id Firmadoc]; Registre: [CAMP: Registre])
 AIRE|item
-ITEM|23.|RASIC Taller mecànic. El titular de l’activitat està inclòs dins l’Article 8 de la Llei 9/2014, del 31 de juliol, de la seguretat industrial dels establiments, les instal·lacions i els productes. S’ha de registrar en el següent enllaç:
+ITEM|24.|RASIC Taller mecànic. El titular de l’activitat està inclòs dins l’Article 8 de la Llei 9/2014, del 31 de juliol, de la seguretat industrial dels establiments, les instal·lacions i els productes. S’ha de registrar en el següent enllaç:
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Taller-de-reparacio-de-vehicles-automobils
 BODY/CH|//[No es disposa]// No es disposa del document.
 BODY/CH|//[Es disposa]// Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])
 AIRE|item
 SUB|Activitats industrials
 AIRE|subseccio
-ITEM|24.|Metalls preciosos. L’activitat és fabricant o importadora d'objectes fabricats amb metalls preciosos. Ha d’estar inscrita en el Registre de fabricants i/o importadors de metalls preciosos.
+ITEM|25.|Metalls preciosos. L’activitat és fabricant o importadora d'objectes fabricats amb metalls preciosos. Ha d’estar inscrita en el Registre de fabricants i/o importadors de metalls preciosos.
 URL|https://web.gencat.cat/ca/tramits/tramits-temes/Registre-de-fabricants-i-o-importadors-de-metalls-preciosos
 BODY/CH|//[No es disposa]// No es disposa del document.
 BODY/CH|//[Es disposa]// Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])
 AIRE|item
 SUB|Productes i establiments sanitaris
 AIRE|subseccio
-ITEM|25.|Fabricació, distribució i venda de productes sanitaris. S’ha de sol·licitar la Comunicació de l’activitat de venda de productes sanitaris i/o de productes sanitaris per a diagnòstic in vitro
+ITEM|26.|Fabricació, distribució i venda de productes sanitaris. S’ha de sol·licitar la Comunicació de l’activitat de venda de productes sanitaris i/o de productes sanitaris per a diagnòstic in vitro
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Comunicacio-de-lactivitat-de-venda-de-productes-sanitaris-i-o-de-productes-sanitaris-per-a-diagnostic-in-vitro
 BODY/CH|//[No es disposa]// No es disposa del document.
 BODY/CH|//[Es disposa]// Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])
 AIRE|item
-ITEM|26.|Fabricació pròtesis dentals. S’ha de sol·licitar l’Autorització d'empreses fabricants de pròtesis dentals i altres productes sanitaris dentals a mida
+ITEM|27.|Fabricació pròtesis dentals. S’ha de sol·licitar l’Autorització d'empreses fabricants de pròtesis dentals i altres productes sanitaris dentals a mida
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Autoritzacio-dempreses-fabricants-de-protesis-dentals-i-altres-productes-sanitaris-dentals-a-mida
 BODY/CH|//[No es disposa]// No es disposa del document.
 BODY/CH|//[Es disposa]// Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])
 AIRE|item
-ITEM|27.|Òptica. S’ha de sol·licitar l’Autorització dels establiments d’òptica o de les seccions d’òptica en oficines de farmàcia
+ITEM|28.|Òptica. S’ha de sol·licitar l’Autorització dels establiments d’òptica o de les seccions d’òptica en oficines de farmàcia
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Autoritzacio-dels-establiments-doptica-o-de-les-seccions-doptica-en-oficines-de-farmacia
 BODY/CH|//[No es disposa]// No es disposa del document.
 BODY/CH|//[Es disposa]// Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])
 AIRE|item
-ITEM|28.|Ortopèdia i audiopròtesis. S’ha de sol·licitar l’Autorització dels establiments d'ortopèdia i d'audiopròtesis
+ITEM|29.|Ortopèdia i audiopròtesis. S’ha de sol·licitar l’Autorització dels establiments d'ortopèdia i d'audiopròtesis
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Autoritzacio-dels-establiments-dortopedia-i-daudioprotesis
 BODY/CH|//[No es disposa]// No es disposa del document.
 BODY/CH|//[Es disposa]// Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])
 AIRE|item
-ITEM|29.|Fabricació ortopèdics. S’ha de sol·licitar l’Autorització sanitària d'empreses fabricants de productes sanitaris ortoprotètics a mida
+ITEM|30.|Fabricació ortopèdics. S’ha de sol·licitar l’Autorització sanitària d'empreses fabricants de productes sanitaris ortoprotètics a mida
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Autoritzacio-sanitaria-dempreses-fabricants-de-productes-sanitaris-ortoprotetics-a-mida
 BODY/CH|//[No es disposa]// No es disposa del document.
 BODY/CH|//[Es disposa]// Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])
 AIRE|item
-ITEM|30.|Farmàcies i indústria farmacèutica. S’ha de presentar la sol·licitud d’obertura concedida pel Col·legi Oficial de Farmacèutics de Barcelona.
+ITEM|31.|Farmàcies i indústria farmacèutica. S’ha de presentar la sol·licitud d’obertura concedida pel Col·legi Oficial de Farmacèutics de Barcelona.
 BODY/CH|//[No es disposa]// No es disposa del document.
 BODY/CH|//[Es disposa]// Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])
 AIRE|item
-ITEM|31.|Bancs solars. S’ha de presentar la declaració responsable per a instal·lacions de bancs solars (posada en servei, modificacions i baixa)
+ITEM|32.|Bancs solars. S’ha de presentar la declaració responsable per a instal·lacions de bancs solars (posada en servei, modificacions i baixa)
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Presentacio-de-la-declaracio-responsable-per-a-installacions-de-bancs-solars-posada-en-servei-modificacions-i-baixa
 BODY/CH|//[No es disposa]// No es disposa del document.
 BODY/CH|//[Es disposa]// Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])
 AIRE|item
-ITEM|32.|Desfibril·ladors. S’ha de notificar la instal·lació inscrivint-la en el Registre de desfibril·ladors fora de l’àmbit sanitari.
+ITEM|33.|Desfibril·ladors. S’ha de notificar la instal·lació inscrivint-la en el Registre de desfibril·ladors fora de l’àmbit sanitari.
 BODY/CH|//[No es disposa]// No es disposa del document.
 BODY/CH|//[Es disposa]// Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])
 AIRE|item
-ITEM|33.|Desfibril·ladors. S’ha de notificar la instal·lació inscrivint-la en el Registre de desfibril·ladors fora de l’àmbit sanitari.
+ITEM|34.|Desfibril·ladors. S’ha de notificar la instal·lació inscrivint-la en el Registre de desfibril·ladors fora de l’àmbit sanitari.
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Inscripcio-modificacio-i-cancellacio-de-les-dades-dels-desfibrilladors-externs-automatics-de-centres-no-sanitaris
 BODY/CH|//[No es disposa]// No es disposa del document.
 BODY/CH|//[Es disposa]// Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])
 AIRE|item
 SUB|Registres sanitaris
 AIRE|subseccio
-ITEM|34.|L'activitat s'ha d'inscriure en el Registre sanitari d’indústries i productes alimentaris de Catalunya (RSIPAC).
+ITEM|35.|L'activitat s'ha d'inscriure en el Registre sanitari d’indústries i productes alimentaris de Catalunya (RSIPAC).
 URL|https://web.gencat.cat/ca/tramits/tramits-temes/Registre-sanitari-dindustries-i-productes-alimentaris-de-Cataluya-RSIPAC
 BODY/CH|//[No es disposa]// No es disposa del document.
 BODY/CH|//[Es disposa]// Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])
 AIRE|item
-ITEM|35.|L’activitat ha de presentar la Declaració responsable en matèria de salut alimentària.
+ITEM|36.|L’activitat ha de presentar la Declaració responsable en matèria de salut alimentària.
 URL|https://www.seu-e.cat/ca/web/cornella/tramits-i-gestions/-/tramits/tramit/14387441?p_auth=xcFulVcY
 BODY/CH|//[No es disposa]// No es disposa del document.
 BODY/CH|//[Es disposa]// Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])
 AIRE|item
 SUB|Comerç
 AIRE|subseccio
-ITEM|36.|Comerç de seguretat. S’ha de sol·licitar l’Autorització d'obertura, trasllat i comunicació de reformes d'establiments obligats a disposar de mesures de seguretat i/o de dispensa d'alguna de les mesures.
+ITEM|37.|Comerç de seguretat. S’ha de sol·licitar l’Autorització d'obertura, trasllat i comunicació de reformes d'establiments obligats a disposar de mesures de seguretat i/o de dispensa d'alguna de les mesures.
 URL|https://interior.gencat.cat/ca/tramits/tramits-temes/21558_-_Autoritzacio-dobertura-trasllat-i-comunicacio-de-reformes-destabliments-obligats-a-disposar-de-mesures-de-seguretat-i-o-de-dispensa-dalguna-de-les-mesures
 BODY/CH|//[No es disposa]// No es disposa del document.
 BODY/CH|//[Es disposa]// Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])
 AIRE|item
-ITEM|37.|API. El titular de l’activitat s’ha d’enregistrar en el Registre d'agents immobiliaris de Catalunya.
+ITEM|38.|API. El titular de l’activitat s’ha d’enregistrar en el Registre d'agents immobiliaris de Catalunya.
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Registre_Agents_Immobiliaris_Catalunya
 BODY/CH|//[No es disposa]// No es disposa del document.
 BODY/CH|//[Es disposa]// Es disposa del document (Id Firmadoc: [CAMP: Id Firmadoc])

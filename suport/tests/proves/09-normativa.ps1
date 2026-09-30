@@ -136,6 +136,25 @@ AssertEq @($nmFc).Count 2 'index: la col·leccio i un document'
 AssertEq ([string]@($nmFc)[0][9]) '1 documents' 'index: la col·leccio diu quants documents'
 AssertEq ([string]@($nmFc)[1][3]) 'SP 120' 'index: cada document amb el seu titol'
 
+Write-Host "`n--- el Portal Juridic sense navegador (el PDF del DOGC) ---"
+# L'adreca real del boto PDF, copiada per l'usuari (Llei 3/2010).
+$nmPdfPj = 'https://portaldogc.gencat.cat/utilsEADOP/AppJava/PdfProviderServlet?versionId=2164170&type=01'
+AssertEq (_NormativaPdfPjurDeText '<a href="https://portaldogc.gencat.cat/utilsEADOP/AppJava/PdfProviderServlet?versionId=2164170&amp;type=01">PDF</a>') $nmPdfPj 'Portal Juridic: l''enllac del boto PDF (amb &amp;)'
+AssertEq (_NormativaPdfPjurDeText '{"documentId":547998,"versionId":"2164170"}') $nmPdfPj 'Portal Juridic: el numero de versio dins d''unes dades JSON'
+AssertEq (_NormativaPdfPjurDeText '<eli:is_embodied_by rdf:resource="https://portaldogc.gencat.cat/utilsEADOP/AppJava/PdfProviderServlet?versionId=2164170&amp;type=02"/>') ($nmPdfPj -replace '01$', '02') 'Portal Juridic: el tipus es respecta si hi es'
+AssertEq (_NormativaPdfPjurDeText '<p>res</p>') '' 'Portal Juridic: sense numero, res'
+AssertEq (_NormativaEliDeText 'URI ELI: <a href="https://portaljuridic.gencat.cat/eli/es-ct/l/2010/02/18/3">x</a>') 'https://portaljuridic.gencat.cat/eli/es-ct/l/2010/02/18/3' 'Portal Juridic: l''ELI d''una pagina per documentId'
+$nmMeta = @(_NormativaUrlsMetaPjur '<a href="/eli/es-ct/l/2010/02/18/3/rdf">RDF</a> <a href="/x/pdf">PDF</a>' 'https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=547998' 'https://portaljuridic.gencat.cat/eli/es-ct/l/2010/02/18/3')
+AssertEq ([string]$nmMeta[0]) 'https://portaljuridic.gencat.cat/eli/es-ct/l/2010/02/18/3/rdf' 'Portal Juridic: primer les metadades que enllaca la pagina'
+Assert ($nmMeta -contains 'https://portaljuridic.gencat.cat/eli/es-ct/l/2010/02/18/3/ttl') 'Portal Juridic: i les representacions de l''ELI'
+Assert (-not ($nmMeta -contains 'https://portaljuridic.gencat.cat/x/pdf')) 'Portal Juridic: el PDF no es una metadada'
+$nmSrcN = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'Normativa.ps1'))
+Assert ($nmSrcN -match "informes-normativa-edge-' \+ \[guid\]") 'Edge: un perfil NOU a cada crida (un de compartit el bloquejava el que es penjava)'
+Assert ($nmSrcN.Contains("'/T', '/F', '/PID'")) 'Edge: si es penja, es mata tot l''arbre de processos'
+Assert ($nmSrcN.Contains('if ($Script:NormativaEdgeKO) { throw')) 'Edge: penjat un cop, no es torna a fer servir en aquella passada'
+$nmIdxBw = $nmSrcN.IndexOf('function _NormativaBaixaWeb')
+Assert ($nmSrcN.IndexOf('_NormativaFontsPjur', $nmIdxBw) -lt $nmSrcN.IndexOf('_NormativaDomEdge', $nmIdxBw)) 'Portal Juridic: primer sense navegador, l''Edge nomes al final'
+
 Write-Host "`n--- guies i manuals ---"
 $nmGuies = @($nmNormes | Where-Object { $_.Guia })
 Assert ($nmGuies.Count -ge 20) ('guies: hi son les dels marcadors (' + $nmGuies.Count + ')')

@@ -311,6 +311,59 @@ function _NormativaNomDocColleccio($e, [string]$text, [string]$url) {
     return ((_NormativaNetejaNom ($parts -join '_')) + '.pdf')
 }
 
+# ----------------------------------------------------------------------------
+# EL PORTAL JURIDIC SENSE NAVEGADOR. Funcions PURES.
+# ----------------------------------------------------------------------------
+# El boto "PDF" del Portal Juridic NO apunta al Portal Juridic: apunta a un
+# servei del DOGC que demana el PDF pel NUMERO DE VERSIO del text consolidat
+# (l'usuari en va copiar l'adreca, setembre 2026):
+#   https://portaldogc.gencat.cat/utilsEADOP/AppJava/PdfProviderServlet?versionId=2164170&type=01
+# La pagina el munta amb JavaScript, i per aixo abans calia l'Edge, que al PC de
+# l'usuari es penjava 2 minuts per norma. Ara el numero es busca a tot el que el
+# servidor torna sense executar res (la pagina i les metadades ELI).
+$Script:NormativaPdfDogc = 'https://portaldogc.gencat.cat/utilsEADOP/AppJava/PdfProviderServlet?versionId={0}&type={1}'
+
+# L'URL del PDF, si el text porta l'enllac o el numero de versio. '' si no.
+function _NormativaPdfPjurDeText([string]$text) {
+    if ([string]::IsNullOrWhiteSpace($text)) { return '' }
+    $m = [regex]::Match($text, '(?i)PdfProviderServlet\?versionId=(\d+)(?:&(?:amp;)?type=(\d+))?')
+    if ($m.Success) {
+        $tipus = if ($m.Groups[2].Success) { $m.Groups[2].Value } else { '01' }
+        return ($Script:NormativaPdfDogc -f $m.Groups[1].Value, $tipus)
+    }
+    $m = [regex]::Match($text, '(?i)["'']?versionId["'']?\s*[:=]\s*["'']?(\d{4,})')
+    if ($m.Success) { return ($Script:NormativaPdfDogc -f $m.Groups[1].Value, '01') }
+    return ''
+}
+
+# L'identificador ELI (portaljuridic.gencat.cat/eli/es-ct/...) d'una pagina o
+# d'un URL. Les fitxes antigues enllacen per documentId, i la pagina ensenya
+# l'ELI ("URI ELI: ..."). PURA.
+function _NormativaEliDeText([string]$text) {
+    $m = [regex]::Match([string]$text, '(?i)https?://portaljuridic\.gencat\.cat/eli/es-ct/[a-z]+/\d{4}/\d{2}/\d{2}/[\w.-]+')
+    if ($m.Success) { return $m.Value.TrimEnd('/', '.') }
+    return ''
+}
+
+# On mes pot ser el numero de versio, en ordre: les descarregues RDF/TTL/XML que
+# enllaci la pagina, i les representacions de l'ELI. PURA.
+function _NormativaUrlsMetaPjur([string]$html, [string]$base, [string]$eli) {
+    $out = New-Object System.Collections.ArrayList
+    foreach ($m in [regex]::Matches([string]$html, '(?i)href\s*=\s*["'']([^"'']+)["'']')) {
+        $h = [System.Net.WebUtility]::HtmlDecode($m.Groups[1].Value)
+        if ($h -notmatch '(?i)(\b|[/.=_-])(rdf|ttl|turtle|xml)(\b|$)') { continue }
+        try { $h = (New-Object System.Uri((New-Object System.Uri($base)), $h)).AbsoluteUri } catch { continue }
+        if (-not $out.Contains($h)) { [void]$out.Add($h) }
+    }
+    if ($eli) {
+        foreach ($suf in @('/rdf', '/ttl', '/xml', '/cat/rdf', '/cat/xml')) {
+            $u = $eli + $suf
+            if (-not $out.Contains($u)) { [void]$out.Add($u) }
+        }
+    }
+    return $out.ToArray()
+}
+
 function _NormativaBoePdfConsolidat([string]$id) {
     $m = [regex]::Match([string]$id, '^BOE-A-(\d{4})-\d+$')
     if (-not $m.Success) { return '' }
