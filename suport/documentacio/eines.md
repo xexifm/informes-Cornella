@@ -838,6 +838,45 @@ l'enllaç des de la fitxa d'ajuda.
     proves.
   - El bucle de baixada és ara **`Invoke-NormativaBaixada`** (sense finestra):
     el fan servir l'eina Normativa i la revisió.
+- **Quarta ronda: les TINSCI «sense cap document»**. La pàgina de les TINSCI
+  **no enllaça els PDF**: enllaça la FITXA de cada document al repositori
+  d'Interior (DSpace, `dsp.interior.gencat.cat/handle/20.500.14007/<n>`), que és
+  un altre servidor, i `_NormativaSubpagines` només acceptava pàgines del mateix
+  lloc. Ara hi entren les fitxes del DSpace de qualsevol servidor
+  (`$Script:NormativaDspaceFitxa`, també `hdl.handle.net` i les `/items/<uuid>`
+  del DSpace nou), i a la fitxa es reconeixen els fitxers
+  (`/bitstream/handle/…/X.pdf?sequence=…`, que ja passava, i
+  `/bitstreams/<uuid>/download`). Els enllaços relatius de la fitxa pengen de
+  l'adreça **final** després de les redireccions (`_NormativaUrlFinal`).
+  L'adreça que va passar l'usuari és a la prova. **No provat contra el
+  servidor real** (proxy): si el DSpace torna a no donar res, mirar l'HTML de
+  la fitxa amb l'Edge.
+  - Els noms de les ITC portaven **«(Obre en una nova finestra)»** (el text
+    per a lectors de pantalla de la web d'Interior). Es treu, i els fitxers ja
+    baixats amb el nom vell **es reanomenen** (per l'adreça, a l'estat) en lloc
+    de baixar-los de nou i deixar el vell a la carpeta.
+  - **La ⓘ d'un punt d'ITC obre el PDF de la ITC** (`_NormativaSpDeText` +
+    `_NormativaFitxerSp`, abans del catàleg): la fitxa cita també la Llei
+    3/2010 i, si no, obria la llei.
+
+## REQ1: la subsecció «ITC de Bombers» (Incendis, setembre 2026)
+24 punts (un per ITC vigent del web de Bombers; SP 144 i SP 147 amb
+sub-punts), escrits **llegint els PDF oficials** que l'usuari va deixar al Drive
+(carpeta «Normativa»). Tres coses per si s'han de tornar a tocar:
+- **Els PDF de 2021 ençà tenen les xifres mal codificades** a la capa de text
+  (`1, m` per `1,60 m`, `5 m²` per `500 m²`): ni `pypdf` ni el lector del Drive
+  les treuen. Es van llegir **renderitzant les pàgines a imatge** (PyMuPDF). No
+  es va copiar cap xifra de la capa de text sense veure-la a la imatge.
+- La **Nota aclaridora de la DGPEIS** (ITC anteriors al RD 164/2025) deixa sense
+  aplicació SP 103, 107, 108, 116, 117, 119, 122, 123 i 140 (no hi són) i adapta
+  SP 113, 121, 128, 131 i 145: els punts ja porten el text adaptat i la fitxa
+  ho diu. La **Nota 1 de la SP 144** (Llei 11/2026): des del 14.7.2026 les
+  activitats esporàdiques en espais oberts ja no tenen informe de la DGPEIS.
+- Les **TINSCI** no hi són: el programa encara no les havia pogut baixar (vegeu
+  la quarta ronda). No s'escriuen requeriments sense el text oficial.
+- `REQ1.json` es va escriure imitant el `ConvertTo-Json` del PowerShell 5.1
+  (el diff només té línies afegides), i `docs/dades/cataleg-REQ1.json` es va
+  refer amb `ExportaDades -Plantilles` i el mateix format.
 
 ## Revisar requeriments (eina NORMATIVA, setembre 2026)
 Petició de l'usuari: una eina per «actualitzar el programa» que miri si la

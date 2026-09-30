@@ -1285,6 +1285,313 @@
                                        },
                                        {
                                            "Kind":  "subsection",
+                                           "Short":  "ITC de Bombers",
+                                           "BodyLines":  [
+
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "intro",
+                                           "Short":  "",
+                                           "BodyLines":  [
+                                                             "S’ha de justificar el compliment de les instruccions tècniques complementàries (ITC) de la Direcció General de Prevenció, Extinció d’Incendis i Salvaments que siguin d’aplicació, que despleguen la Llei 3/2010, de 18 de febrer, i tenen caràcter reglamentari, més concretament:"
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "SP 109 - Edificis de gran alçada (més de 50 m)",
+                                           "BodyLines":  [
+                                                             "Edificis de gran alçada. En els edificis amb alçada d’evacuació superior a 50 m s’han de complementar les condicions del CTE DB SI i DB SUA amb les de la instrucció tècnica complementària SP 109: un mínim de 2 façanes accessibles senyalitzades; un mínim de 3 hidrants a menys de 50 m de qualsevol punt de les façanes accessibles, amb funcionament simultani de 3 hidrants durant 2 hores; ascensor d’emergència (UNE-EN 81-72) amb autonomia de 2 hores dins del vestíbul d’independència d’escales especialment protegides; sectors d’un màxim de 3 plantes fins a 28 m i un sector per planta per sobre de 28 m; escales d’evacuació ascendent especialment protegides; recorreguts d’evacuació fins a una sortida de planta inferiors a 35 m; detecció i alarma, BIE-25 amb ràcord de 45 mm per als bombers als vestíbuls dels ascensors d’emergència, reserva d’aigua de 25 m3 i extinció automàtica per aigua a tot l’edifici; columnes seques de les plantes soterrani independents; i sistema de comunicació per als bombers."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "SP 110 - Llars d’infants",
+                                           "BodyLines":  [
+                                                             "Llars d’infants. Les llars d’infants i escoles bressol (usuaris de menys de 3 anys) han de complir les condicions del CTE assimilades a l’ús hospitalari amb les adaptacions de la instrucció tècnica complementària SP 110: sectorització respecte d’altres usos quan estiguin integrades en centres docents o altres activitats; amplada mínima de portes i passos de 0,80 m, de passadissos d’1 m i d’escales d’1 m (1,10 m per a ocupacions superiors a 100 persones); distància mínima de 0,50 m entre les superfícies escombrades per les portes dels vestíbuls d’independència; i BIE 25 només quan la superfície total construïda superi els 2.000 m2."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "SP 111 - Residències i centres de dia per a gent gran",
+                                           "BodyLines":  [
+                                                             "Residències i centres de dia. S’ha de justificar l’ús del CTE que correspon al centre segons la instrucció tècnica complementària SP 111: els habitatges tutelats, Residencial Habitatge; les llars residència, Residencial Públic (les habitacions dels mòduls residencials sectoritzats de menys de 500 m2 no necessiten portes EI2 30-C5, i els elements que separen els mòduls han de ser almenys EI 60); i les residències assistides i els centres de dia, Hospitalari, sectoritzats respecte de la resta de l’edifici. Sense places d’hospitalització, els passadissos han de tenir una amplada mínima d’1,60 m, les portes de 0,80 m i les escales d’1,20 m. Als centres de dia no calen dos sectors per planta per sota de 90 m2 construïts i només s’han d’instal·lar BIE 25 a partir de 500 m2. La documentació ha d’identificar les habitacions i plantes de les places per a persones sense necessitats hospitalàries; si no ho fa, totes es consideren places d’hospitalització."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "SP 112 - Control de fums en establiments industrials",
+                                           "BodyLines":  [
+                                                             "Control de fums. Han de disposar de sistemes de control de temperatura i evacuació de fums (SCTiEF) dissenyats i executats segons la norma UNE 23585 els sectors amb activitats de producció de risc intrínsec mitjà i superfície construïda igual o superior a 2.000 m2 o de risc alt i 1.000 m2, i els d’emmagatzematge de risc mitjà i 1.000 m2 o de risc alt i 800 m2. La documentació ha de definir els objectius del disseny, l’incendi de disseny, l’alçada lliure de fums, els dipòsits de fums, l’aire de reemplaçament, la interacció amb altres sistemes i l’accionament, amb els plànols. Els airejadors mecànics han de ser F400 90 (UNE-EN 12101-3) amb alimentació d’emergència (UNE-EN 12101-10). Els sectors de risc mitjà o alt d’almenys 100 m2 que no arribin a aquestes superfícies han de tenir forats de ventilació a la coberta o a la part superior de les façanes (producció: 0,5 m2 per cada 150 m2 sota rasant o per cada 200 m2 sobre rasant; emmagatzematge: 0,5 m2 per cada 100 m2 sota rasant o per cada 150 m2 sobre rasant) i la mateixa superfície d’aportació d’aire a la part baixa. El quadre de maniobra ha de permetre dues maniobres completes fins a 72 hores després d’un tall elèctric i ha d’estar senyalitzat per als bombers."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "SP 113 - Espai de maniobra en vials amb un accés únic",
+                                           "BodyLines":  [
+                                                             "Vials amb un accés únic. Les vies d’accés sense sortida de més de 20 m han de disposar d’un espai de maniobra per als vehicles dels bombers on es pugui inscriure una circumferència de 15 m de diàmetre, permanentment lliure de vehicles, obstacles o elements urbans (fanals, papereres, bancs...). En zones limítrofes o interiors a àrees forestals, quan no hi hagi dues vies alternatives, l’accés únic ha d’acabar en un fons de sac circular de 12,50 m de radi."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "SP 114 - Alçada lliure mínima en pública concurrència",
+                                           "BodyLines":  [
+                                                             "Alçada lliure mínima. S’ha de mantenir una alçada mínima lliure de 3,20 m en els espectacles públics que tinguin lloc en edificis i locals coberts (annex I del Decret 112/2010) i, en l’ús pública concurrència, en tots els establiments amb pista de ball, en les zones amb densitat d’ocupació inferior a 1 m2/persona i en les zones o recintes amb ocupació igual o superior a 500 persones. S’exceptuen els lavabos i les zones no accessibles al públic."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "SP 115 - Barreres tèxtils sectoritzadores",
+                                           "BodyLines":  [
+                                                             "Barreres tèxtils sectoritzadores. Les barreres tèxtils, irrigades o no, amb funció de compartimentació s’han d’emparar en el marcatge CE o, si no en tenen, en una certificació d’idoneïtat tècnica que verifiqui els components i les característiques crítiques del sistema, i quan s’instal·lin en recorreguts d’evacuació s’han de complementar amb una porta independent per a persones. La documentació ha de definir la integritat (E), l’aïllament (I) o la radiació (W), les dimensions màximes admissibles (les de l’informe d’assaig UNE-EN 1634-1 o de l’informe d’extensió UNE-EN 15269-11), l’alimentació elèctrica i el funcionament en cas de fallada elèctrica, les característiques hidràuliques del sistema d’extinció en les irrigades i el pla de manteniment del producte."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "SP 120 - Hidrants d’ús exclusiu de bombers",
+                                           "BodyLines":  [
+                                                             "Hidrants. Els edificis, establiments o activitats nous, o que modifiquin les condicions de seguretat en cas d’incendi, han d’estar protegits per hidrants d’ús exclusiu de bombers de manera que qualsevol punt de façana a nivell de rasant estigui a menys de 100 m d’un hidrant. Els hidrants han d’estar a la via pública o en espais accessibles als vehicles de bombers, fora dels espais de circulació i estacionament, senyalitzats (UNE 23033) i, si són enterrats, amb la tapa vermella; la xarxa ha de garantir l’ús simultani de dos hidrants durant dues hores amb 1.000 l/min cadascun i una pressió de sortida superior a 102 kPa. El projecte tècnic ho ha de justificar."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "SP 121 - Nombre de façanes accessibles",
+                                           "BodyLines":  [
+                                                             "Façanes accessibles. S’ha de garantir el nombre mínim de façanes accessibles per als bombers en funció de l’ocupació: 1 fins a 1.500 persones; 2 de 1.501 a 2.500; 3 de 2.501 a 3.500; i totes les façanes per a més de 3.500 persones."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "SP 124 - Centres residencials per a menors tutelats",
+                                           "BodyLines":  [
+                                                             "Centres residencials per a menors tutelats. S’ha de justificar l’ús del CTE que correspon al centre segons la instrucció tècnica complementària SP 124: els centres residencials d’acció educativa (CRAE), els centres d’acolliment (CA) i els centres residencials d’educació intensiva (CREI), Residencial Públic; i els pisos assistits per a joves, Residencial Habitatge. Les zones d’allotjament de menys de 500 m2, amb un màxim de 10 persones i sectoritzades, no necessiten portes EI2 30-C5 a les habitacions. Els CRAE de fins a 500 m2 i 10 places d’allotjament situats en edificis d’habitatges es consideren Residencial Habitatge i han de disposar de detecció automàtica amb transmissió de l’alarma (UNE 23007) i un centre de recepció, d’un extintor 21A-113B a l’interior prop de la porta de sortida i d’enllumenat d’emergència a l’espai de circulació de sortida."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "SP 126 - Llars de foc i calefacció en espectacles i recreatives",
+                                           "BodyLines":  [
+                                                             "Llars de foc i calefacció. En els edificis, locals o establiments coberts d’espectacles públics i activitats recreatives (annex I del Decret 112/2010), les llars de foc i els aparells de calefacció han de complir l’article 17 del RGPEAR: s’han d’ubicar en locals construïts amb materials resistents al foc, ventilats i sense comunicació directa amb la sala; el magatzem de combustible ha d’estar compartimentat i allunyat; les conduccions i els radiadors han de ser metàl·lics i fora del pas del públic; les xemeneies no poden passar per l’escena, els magatzems ni els llocs de pas del públic; i es prohibeixen les estufes i els aparells de calefacció directa per mitjà del foc. Queden fora d’aquesta exigència les llars de foc de les activitats de restauració sense pista de ball ni zones amb densitat d’ocupació inferior a 1 m2/persona (o amb aquestes zones sectoritzades)."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "SP 128 - Cellers de vins i caves soterrats",
+                                           "BodyLines":  [
+                                                             "Cellers i caves soterrats. Els cellers de vins i caves situats a més d’una planta sota rasant han de complir la instrucció tècnica complementària SP 128: ús exclusiu d’emmagatzematge d’ampolles o botes sense material d’embalatge combustible; nivell de risc intrínsec Baix-1 calculat segons el RSCIEI; cada planta, un sector d’incendi; escales d’evacuació ascendent compartimentades; recorreguts d’evacuació de 100 m com a màxim a cada planta; i, com a mínim, extintors a menys de 15 m de qualsevol punt amb un mínim de 2 per planta (o un extintor sobre rodes de 25 kg de pols ABC a menys de 30 m), polsadors d’alarma als accessos a cada escala i a menys de 25 m, enllumenat d’emergència i alarma audible a tot l’establiment."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "SP 130 - Columnes de fosa o ferro colat",
+                                           "BodyLines":  [
+                                                             "Columnes de fosa. La resistència al foc de les columnes de fosa o ferro colat s’ha de justificar segons la instrucció tècnica complementària SP 130, limitant la temperatura crítica a 350 ºC: pintura intumescent fins a la R exigida (assaig UNE-EN 13381-8), pintura intumescent fins al temps equivalent de l’annex B del DB SI amb ruixadors automàtics a tot el sector, morter projectat o plaques (UNE-EN 13381-4), o solucions d’obra justificades per un tècnic competent. Cal aportar el projecte amb la resistència exigida, la temperatura crítica i els càlculs; el certificat de l’empresa instal·ladora o aplicadora; l’informe del control dels gruixos executats (entitat de control externa o direcció d’execució de l’obra); i el certificat o informe de classificació, o el marcatge CE i la declaració de prestacions, del producte."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "SP 131 - Ruixadors automàtics: documentació",
+                                           "BodyLines":  [
+                                                             "Ruixadors automàtics. La documentació tècnica ha d’incloure els paràmetres mínims de disseny del sistema de ruixadors (UNE-EN 12845) amb els plànols: norma de disseny; tipus de sistema (humit, sec o d’acció prèvia); zones protegides i no protegides; interacció amb l’evacuació de fums i la detecció; classe de risc de cada zona i la seva justificació; densitat de disseny, àrea d’operació, tipus de ruixador (factor K, temperatura i tipus de resposta), pressió i cabal del ruixador més desfavorable, superfície màxima de cobertura i llocs de control; abastament d’aigua (categoria i classe, simultaneïtat amb BIE i hidrants, font i grup de pressió o xarxa pública, i reserva d’aigua); i distribució en planta. Si el disseny es basa en normes o guies diferents de les del RIPCI, s’ha de justificar un nivell de seguretat almenys equivalent al de la UNE-EN 12845 i aportar l’informe de tercera part independent d’un organisme de control habilitat (article 5.6 del RIPCI)."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "SP 132 - Aparcaments sota rasant",
+                                           "BodyLines":  [
+                                                             "Aparcaments sota rasant. Els aparcaments amb plantes inferiors al soterrani segon s’han de protegir amb ruixadors automàtics d’aigua, sigui quina sigui la superfície: o bé les plantes inferiors al soterrani segon, sectoritzades respecte de la resta de l’aparcament, o bé tot l’aparcament configurat com un únic sector d’incendi. En tot aparcament soterrat s’ha de col·locar un plànol de distribució de la planta a tots els accessos, dins del recinte de les escales, per a ús dels bombers."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "SP 136 - Protecció passiva: certificació i documentació",
+                                           "BodyLines":  [
+                                                             "Productes de protecció passiva. En les obres, reformes o posades en funcionament en què s’hagin incorporat productes de protecció passiva (portes i elements de compartimentació, segellats, conductes i comportes, franges de coberta i façana, productes de millora de la reacció al foc i protecció d’estructures) s’ha d’aportar el certificat d’instal·lació o aplicació segons els models de la instrucció tècnica complementària SP 136, emès per l’empresa instal·ladora o aplicadora o per la direcció facultativa. En la protecció d’estructures amb morters o pintures cal el control d’execució (preparació del suport, aplicació i gruix final), en general per una entitat de tercera part. L’empresa o el tècnic han de lliurar al titular, amb el certificat, les instruccions tècniques dels fabricants, els documents d’assaig i les instruccions i la periodicitat del manteniment."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "SP 138 - Escales especialment protegides: protecció del fum",
+                                           "BodyLines":  [
+                                                             "Escales especialment protegides. La protecció enfront del fum per pressió diferencial s’ha de justificar segons la UNE-EN 12101-6 i no es pot combinar amb ventilació natural o per conductes a la mateixa escala especialment protegida. En edificis amb alçada d’evacuació superior a 50 m només s’admet la pressió diferencial (o escales obertes a l’exterior amb vestíbul d’independència). La documentació ha de definir l’objectiu, la classe de sistema (A: residencial habitatge, docent, industrial; C: comercial, administratiu, pública concurrència, aparcament; D: residencial públic, hospitalari), l’esquema de funcionament, els criteris de diferència de pressió i de flux d’aire i les prestacions enfront del foc del cablejat, els conductes i els ventiladors. El quadre de maniobra per als bombers ha d’estar a la planta baixa dins del recinte de l’escala, amb pilots verd, vermell i groc, posicions AUTOMATIC, ON i OFF i el rètol «Ús exclusiu Bombers»."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "SP 141 - Abastament d’aigua en activitats aïllades",
+                                           "BodyLines":  [
+                                                             "Abastament d’aigua en activitats aïllades. Les activitats no industrials situades en zones aïllades, amb una superfície construïda inferior a 2.000 m2 i sense xarxa d’aigua suficient per als hidrants, poden substituir-los per un dipòsit, bassa o piscina amb un volum mínim i permanent de 60 m3; vial d’accés de gàlib mínim de 4,5 m; espai d’emplaçament del vehicle de 9 x 5 m lliure d’obstacles a 4 m com a màxim del punt de captació; a menys de 100 m de qualsevol punt de façana accessible; alçada d’aspiració de 5 m com a màxim; tapa mínima de 0,40 x 0,40 m senyalitzada en vermell amb el rètol «ÚS EXCLUSIU PERSONAL D’EXTINCIÓ D’INCENDIS»; i, si és sobre rasant, ràcord de 70 mm (UNE 23400-3). No s’admeten basses d’aigües brutes o residuals."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "SP 142 - Càmpings i àrees d’acollida d’autocaravanes",
+                                           "BodyLines":  [
+                                                             "Càmpings i àrees d’autocaravanes. Els establiments de càmping i les àrees d’acollida d’autocaravanes han de complir la instrucció tècnica complementària SP 142: entrada de 5 m (dos sentits) o 3 m (un sentit) i vials principals de les mateixes amplades; extintors 21A-113B a menys de 25 m de qualsevol unitat d’acampada; a partir de 200 unitats, un extintor sobre carro de 50 kg per cada 500 unitats (o BIE 25); un hidrant (SP 120) a menys de 100 m de l’entrada; un plànol a la recepció i a l’entrada amb els vials, la numeració i els límits de les unitats i els mitjans de protecció; les edificacions interiors, segons el CTE; i als albergs fixos, un extintor 21A-113B i detecció de fums autònoma o automàtica amb avís a un lloc permanentment ocupat. A menys de 500 m de massa forestal, a més, vial perimetral de 5 m, franja de 25 m lliure de vegetació i hidrants cada 200 m com a màxim."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "SP 143 - Tancament automàtic d’elements de compartimentació",
+                                           "BodyLines":  [
+                                                             "Tancament automàtic d’elements de compartimentació. Els elements de compartimentació mòbils que es mantenen oberts amb un mecanisme de retenció (portes batents o lliscants, cortines, comportes, portes o finestres de guillotina...) s’han de tancar automàticament pel senyal d’un sistema de detecció i alarma amb detectors automàtics que protegeixi totalment els dos sectors adjacents (RIPCI i UNE 23007-14) i per l’activació de qualsevol polsador, fins i tot sense subministrament elèctric. No s’admeten fusibles tèrmics com a únic sistema d’activació. En edificis d’ús Residencial Habitatge amb retenidors electromagnètics, la detecció ha de cobrir com a mínim els espais comuns de circulació i l’interior dels recintes d’evacuació."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "SP 144 - Activitats esporàdiques",
+                                           "BodyLines":  [
+                                                             "Activitats esporàdiques. Les condicions de seguretat en cas d’incendi de l’activitat esporàdica s’han de justificar en una memòria tècnica amb plànols, signada electrònicament pel tècnic redactor, segons la classe de l’activitat de la instrucció tècnica complementària SP 144 (1.a en edifici amb llicència d’espectacle, recreativa o pública concurrència per a una altra activitat; 1.b en edifici sense aquesta llicència; 2.a en espai obert delimitat; 2.b en espai obert no delimitat; 3 en carpa), més concretament:"
+                                                         ],
+                                           "Children":  [
+                                                            {
+                                                                "Kind":  "child",
+                                                                "Short":  "SP 144 - Mesures comunes",
+                                                                "BodyLines":  [
+                                                                                  "Mesures comunes. Densitat d’ocupació màxima d’1 persona cada 0,25 m2 útils, considerant com a màxim el 80 % de la superfície útil ocupada per espectadors; elements de risc singular d’incendi (quadres elèctrics, grups electrògens, foodtrucks, espais de residus...) a 5 m com a mínim d’edificis, carpes i passos i sortides d’evacuació; cabines sanitàries de materials combustibles separades 3 m cada 10 unitats i no cobertes amb carpes; accessos i vials d’aproximació per als bombers; espai exterior segur descomptant les zones no ocupables; condicions de combustibilitat d’escenaris i decorats; grades desmuntables sense càrrega de foc a sobre ni a sota i, en edificis i carpes, sense recorreguts d’evacuació per sota; i tanques homologades."
+                                                                              ]
+                                                            },
+                                                            {
+                                                                "Kind":  "child",
+                                                                "Short":  "SP 144 - Classe 1 (edificis)",
+                                                                "BodyLines":  [
+                                                                                  "Classe 1 (edificis). En edificis amb llicència per a una altra activitat (classe 1.a) s’han de justificar les condicions que modifica l’activitat esporàdica: locals de risc especial i elements de risc singular, reacció al foc dels nous elements, alçada lliure (SP 114), recorreguts i sortides, amplades d’evacuació (P/200 en portes, passadissos i rampes, i escales segons la taula 4.1 del DB SI 3), enllumenat d’emergència i senyalització, extintors a menys de 15 m de tot punt ocupable, alarma i comunicació d’avisos, i accessibilitat per als bombers (DB SI 5, SP 121 i SP 120). Amb un aforament superior a 1.000 persones i una alçada lliure inferior a 8 m cal justificar una alçada lliure de fums d’almenys 2,5 m. En edificis sense aquesta llicència (classe 1.b) s’ha de justificar íntegrament la reglamentació aplicable."
+                                                                              ]
+                                                            },
+                                                            {
+                                                                "Kind":  "child",
+                                                                "Short":  "SP 144 - Classe 2 (espais oberts)",
+                                                                "BodyLines":  [
+                                                                                  "Classe 2 (espais oberts). En espais oberts delimitats (classe 2.a), portes, passos i rampes amb una amplada de P/600 i d’1,2 m per cada 400 persones o fracció (mínim 1,8 m per porta), i escales de P/480 i 1,8 m per cada 450 persones o fracció; sortides d’emergència dels tancaments permanentment obertes o de fàcil obertura des de l’interior, amb bateries de sortides d’obertura manual de 10 m com a màxim; senyalització suficient i, per a més de 2.000 persones, sortides numerades; espai exterior segur; extintors prop dels elements de risc singular; enllumenat d’emergència (article 37 del Decret 112/2010); i, amb més de 10.000 persones, un accés per als bombers de 3,5 m per cada 10.000 persones o fracció. En espais no delimitats (classe 2.b), descripció dels elements de dispersió de les persones."
+                                                                              ]
+                                                            },
+                                                            {
+                                                                "Kind":  "child",
+                                                                "Short":  "SP 144 - Classe 3 (carpes)",
+                                                                "BodyLines":  [
+                                                                                  "Classe 3 (carpes). Cap local de risc especial a l’interior de les carpes; 5 m com a mínim entre els espectadors i els elements de risc singular i entre carpes d’usos diferents; en carpes d’ús públic, lona T2 (UNE-EN 15619) o C-s2,d0 (UNE-EN 13501-1) i estructura R 30 (excepte si totes les capes de la lona tenen una perforació mínima de 20 cm2 segons la UNE-EN 14115), alçada lliure segons la SP 114, recorreguts de 50 m fins a la sortida de la carpa (25 m fins a un recorregut alternatiu), més d’una sortida amb una ocupació superior a 100 persones, amplades de P/200, alçada lliure mínima de 2 m a les obertures en material tèxtil, sortides permanentment obertes i, sense la perforació i amb una alçada lliure inferior a 8 m, alçada lliure de fums d’almenys 2,5 m."
+                                                                              ]
+                                                            }
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "SP 145 - Control de fums per disseny prestacional (industrial)",
+                                           "BodyLines":  [
+                                                             "Disseny prestacional del control de fums. Quan en sectors industrials amb ruixadors automàtics el sistema de control de temperatura i evacuació de fums es justifiqui amb un disseny basat en prestacions (UNE 23585:2017), s’han de garantir com a mínim la protecció dels mitjans d’evacuació (durant 1,5 vegades el temps requerit per a l’evacuació i almenys 10 minuts, a 1,8 m d’alçada: visibilitat superior a 20 m, temperatura inferior a 60 ºC, radiació tèrmica de 1,7 kW/m2 com a màxim, oxigen d’almenys el 18 % i gasos tòxics per sota dels límits de la instrucció) i la intervenció dels bombers (durant 60 minuts: visibilitat superior a 10 m, temperatura inferior a 100 ºC i radiació tèrmica de 3 kW/m2 com a màxim). Si no es garanteix la protecció de les propietats ni el control de la temperatura dels gasos, el titular ha de certificar que en té coneixement i ho assumeix. S’ha d’aportar l’informe de tercera part independent d’un organisme de control habilitat que validi la solució (article 5.6 del RIPCI)."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "SP 146 - Escales d’evacuació: sortida de planta",
+                                           "BodyLines":  [
+                                                             "Escales d’evacuació. L’accés a una escala no protegida ni compartimentada com a sector d’incendi en tot el seu recorregut no es pot considerar sortida de planta. A la planta de sortida de l’edifici, les escales compartimentades, protegides i especialment protegides d’evacuació ascendent han d’estar en sectors d’incendi diferents dels de les escales d’evacuació descendent, amb porta resistent al foc i tancament automàtic, llevat que es tracti d’una sortida directa a l’exterior."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "SP 147 - Aparcaments amb recàrrega de vehicles elèctrics",
+                                           "BodyLines":  [
+                                                             "Aparcaments amb recàrrega de vehicles elèctrics. Els aparcaments nous amb infraestructura de recàrrega de vehicles elèctrics (IRVE), i els existents que n’incorporin de classe 2 o en què la incorporació sigui una modificació significativa, han de complir la instrucció tècnica complementària SP 147. El projecte ha d’indicar si es justifica com a aparcament amb IRVE o sense, identificar en plànols les places amb IRVE i la seva classe (1.1 fins a 4 kW; 1.2 de 4 a 8 kW; 2.1 de 8 a 22 kW; 2.2 més de 22 kW) i la potència màxima de cada punt de recàrrega, indicant si està limitada per un sistema de gestió, més concretament:"
+                                                         ],
+                                           "Children":  [
+                                                            {
+                                                                "Kind":  "child",
+                                                                "Short":  "SP 147 - Ubicació i limitació de l’extensió",
+                                                                "BodyLines":  [
+                                                                                  "Ubicació i limitació de l’extensió. No s’admeten IRVE de classe 2.1 en planta soterrani segona o inferiors, ni en planta segona o superiors si l’aparcament no és obert; les de classe 2.2 només s’admeten en planta baixa. Les estacions per a turismes, furgonetes i vehicles pesants han de ser sistemes d’alimentació específics (SAVE), complir la ITC-BT-52 i tenir protecció contra col·lisions. No s’admet la recàrrega de ciclomotors, bicicletes, VMP o vehicles per a persones amb mobilitat reduïda en ús aparcament, llevat d’un local de risc especial baix exclusiu. Les places de classe 2.1 han de tenir separació (4,5 m o elements EI 60 en tota l’alçada; agrupacions de 10 places com a màxim sense separació) i les de classe 2.2 han de formar un sector d’incendi independent de 1.000 m2 com a màxim i EI 120."
+                                                                              ]
+                                                            },
+                                                            {
+                                                                "Kind":  "child",
+                                                                "Short":  "SP 147 - Detecció, ruixadors i control de fums",
+                                                                "BodyLines":  [
+                                                                                  "Detecció, ruixadors i control de fums. Detecció automàtica d’incendis que protegeixi tot l’aparcament (RIPCI i UNE 23007-14; en habitatges unifamiliars, detecció de fums autònoma). Ruixadors automàtics (UNE-EN 12845, risc ordinari 2) a tots els aparcaments amb IRVE de classe 2.2; als de classe 2.1 sota rasant o no oberts; i als no oberts de més de 15 places en què la classe 1.2 doni servei a més del 50 % de les places d’una planta, llevat que un sistema de gestió dinàmica de la càrrega ho limiti al 50 %. Control de temperatura i evacuació de fums als sectors amb IRVE de classe 2.2 (DB SI 3, apartat 8)."
+                                                                              ]
+                                                            },
+                                                            {
+                                                                "Kind":  "child",
+                                                                "Short":  "SP 147 - Intervenció dels bombers",
+                                                                "BodyLines":  [
+                                                                                  "Intervenció dels bombers. Dispositiu de tall elèctric de les IRVE, manual i automàtic (per la detecció o pels ruixadors), al quadre de comandament manual per a bombers, a l’accés principal de vehicles (sobre rasant) o dins d’una escala especialment protegida d’accés (sota rasant), amb enllumenat d’emergència, la part superior a 1,70 m com a màxim i el rètol «TALL GENERAL RECÀRREGA ELÈCTRICA» (no cal en les IRVE de classe 1 vinculades a comunitats de propietaris d’habitatges). Plafó per als bombers a cada accés a planta i a tots els accessos, amb el plànol de les sortides, les places amb IRVE, la CGP, el dispositiu de tall i les instal·lacions de protecció. Places amb IRVE a prop dels accessos, senyalitzades al terra (42 x 42 cm o 20 x 20 cm) i amb la potència màxima identificada a cada estació; les de classe 2, a 5 m com a màxim d’una obertura d’extracció, amb dues escales especialment protegides o dues sortides d’edifici per planta i una manta ignífuga de 6 x 9 m per als bombers al costat del quadre. S’ha de poder retirar el vehicle sinistrat fins a la via pública (no s’admeten IRVE en aparcaments amb muntacotxes sense rampes)."
+                                                                              ]
+                                                            }
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "subsection",
                                            "Short":  "RIPCI",
                                            "BodyLines":  [
 

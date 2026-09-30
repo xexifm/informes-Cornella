@@ -129,6 +129,26 @@ AssertEq (_NormativaNomDocColleccio $nmColE 'PDF' 'https://x.cat/docs/TINSCI_03_
 $nmSubs = @(_NormativaSubpagines '<a href="/ca/arees_dactuacio/bombers/instruccions_tecniques_complementaries/sp-130/">SP 130</a><a href="/ca/altres/">No</a><a href="./">Aqui</a>' $nmColBase)
 AssertEq $nmSubs.Count 1 'col·leccio: les pagines filles, nomes les que pengen de la pagina'
 AssertEq ([string]$nmSubs[0].Text) 'SP 130' 'col·leccio: amb el seu text'
+# Les TINSCI: la pagina enllaca la fitxa de cada document al repositori
+# d'Interior (DSpace, un altre servidor), i el PDF es a dins de la fitxa.
+$nmTiBase = 'https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/interpretacio_normativa_tinsci/documents-tinsci/'
+$nmTi = @(_NormativaSubpagines ('<a href="https://dsp.interior.gencat.cat/handle/20.500.14007/6228">DT-04 Reducció de l' + "'" + 'amplada d' + "'" + 'escala (Obre en una nova finestra)</a><a href="http://hdl.handle.net/20.500.14007/7001">AT-09</a><a href="https://dsp.interior.gencat.cat/items/0b6c4a4e-1f0e-4c33-9d7c-6a1b2c3d4e5f">DT-12</a><a href="https://dsp.interior.gencat.cat/discover">Cerca</a><a href="https://www.gencat.cat/">Gencat</a>') $nmTiBase)
+AssertEq $nmTi.Count 3 'TINSCI: les fitxes del repositori (DSpace, hdl.handle.net i la versio nova), encara que siguin d''un altre servidor'
+$nmTiItem = '<a href="/bitstream/handle/20.500.14007/6228/DT-04-Reduccio_amplada_escala_ascensor_2015_07.pdf.jpg?sequence=12&amp;isAllowed=y"><img src="x"/></a><a href="/bitstream/handle/20.500.14007/6228/DT-04-Reduccio_amplada_escala_ascensor_2015_07.pdf?sequence=10&amp;isAllowed=y">Visualitza/Obre</a><a href="/bitstream/handle/20.500.14007/6228/license.txt?sequence=2">Llicència</a>'
+$nmTiDocs = @(_NormativaDocsDeColleccio $nmTiItem 'https://dsp.interior.gencat.cat/handle/20.500.14007/6228')
+AssertEq $nmTiDocs.Count 1 'TINSCI: a la fitxa, el PDF (ni la miniatura ni la llicencia)'
+AssertEq ([string]$nmTiDocs[0].Url) 'https://dsp.interior.gencat.cat/bitstream/handle/20.500.14007/6228/DT-04-Reduccio_amplada_escala_ascensor_2015_07.pdf?sequence=10&isAllowed=y' 'TINSCI: l''adreca que va passar l''usuari'
+AssertEq @(_NormativaDocsDeColleccio '<a href="/bitstreams/0b6c4a4e-1f0e-4c33-9d7c-6a1b2c3d4e5f/download">DT-12.pdf</a>' 'https://dsp.interior.gencat.cat/items/x').Count 1 'TINSCI: i el fitxer de la versio nova del DSpace (sense .pdf a l''adreca)'
+$nmTiE = [pscustomobject]@{ Ambit = 'Incendis'; Tema = 'TINSCI' }
+AssertEq (_NormativaNomDocColleccio $nmTiE 'Visualitza/Obre' ([string]$nmTiDocs[0].Url)) 'Incendis_TINSCI_DT-04-Reduccio amplada escala ascensor 2015 07.pdf' 'TINSCI: "Visualitza/Obre" no fa de nom: el del fitxer'
+# La fitxa d'una ITC obre el PDF de la ITC (no el de la Llei 3/2010 que cita).
+AssertEq (_NormativaSpDeText 'Instrucció tècnica complementària SP 144:2023, Condicions... Desplega la Llei 3/2010') '144' 'ITC: el numero de la fitxa'
+AssertEq (_NormativaSpDeText 'Real Decreto 164/2025, annex II') '' 'ITC: una fitxa que no en cita cap'
+$nmSpNoms = @('Incendis_ITC Bombers_SP 136 A.pdf', 'Incendis_ITC Bombers_SP 136.pdf', 'Incendis_ITC Bombers_SP 1360 x.pdf', 'Incendis_ITC Bombers_Nota 1 - SP 144.pdf', 'Incendis_ITC Bombers_SP 144 (Obre en una nova finestra).pdf')
+AssertEq (_NormativaFitxerSp $nmSpNoms '136') 'Incendis_ITC Bombers_SP 136.pdf' 'ITC: el document principal, no el model A'
+AssertEq (_NormativaFitxerSp $nmSpNoms '144') 'Incendis_ITC Bombers_SP 144 (Obre en una nova finestra).pdf' 'ITC: la SP 144 i no la nota (tambe amb el nom antic)'
+AssertEq (_NormativaFitxerSp $nmSpNoms '109') '' 'ITC: si no hi es, res'
+AssertEq (_NormativaNomDocColleccio $nmColE 'SP 132 (Obre en una nova finestra)' 'https://x.cat/sp132.pdf') 'Incendis_ITC Bombers_SP 132.pdf' 'col·leccio: fora el "(Obre en una nova finestra)" (sortia al nom de les ITC)'
 $nmFc = _NormativaFilesIndex @([pscustomobject]@{ Id = 'Col·lecció ITC Bombers'; Ambit = 'Incendis'; Tema = 'ITC Bombers'; Tipus = 'ITC Bombers'; Titol = 'ITC'; Url = 'https://x.cat/'; Colleccio = $true }) @{
     'Col·lecció ITC Bombers' = @{ Error = ''; Baixat = '2026-09-30T10:00:00'; Versio = ''; Mida = 0 }
     'Col·lecció ITC Bombers | a.pdf' = @{ Pare = 'Col·lecció ITC Bombers'; Titol = 'SP 120'; Url = 'https://x.cat/a.pdf'; Nom = 'a.pdf'; Baixat = '2026-09-30T10:00:00'; Error = '' } } @{} { param($n) $true }

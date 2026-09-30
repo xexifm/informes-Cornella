@@ -260,7 +260,7 @@ function _NormativaDocsDeColleccio([string]$html, [string]$base) {
         $mh = [regex]::Match($m.Groups[1].Value, '(?i)\bhref\s*=\s*["'']([^"'']+)["'']')
         if (-not $mh.Success) { continue }
         $href = [System.Net.WebUtility]::HtmlDecode($mh.Groups[1].Value).Trim()
-        if (-not ($href -match '(?i)\.pdf([?#/]|$)' -or $href -match '(?i)[?&](format|output|tipus|type)=pdf')) { continue }
+        if (-not ($href -match '(?i)\.pdf([?#/]|$)' -or $href -match '(?i)[?&](format|output|tipus|type)=pdf' -or $href -match $Script:NormativaDspaceBitstream)) { continue }
         $text = ([System.Net.WebUtility]::HtmlDecode(([regex]::Replace($m.Groups[2].Value, '<[^>]+>', ' '))) -replace '\s+', ' ').Trim()
         if (($m.Groups[1].Value + ' ' + $text) -match '(?i)resum|resumen') { continue }
         $abs = $href
@@ -272,8 +272,20 @@ function _NormativaDocsDeColleccio([string]$html, [string]$base) {
     return $out.ToArray()
 }
 
+# EL REPOSITORI D'INTERIOR (DSpace). La pagina de les TINSCI no enllaca els PDF:
+# enllaca la FITXA de cada document al repositori (dsp.interior.gencat.cat), que
+# es un altre servidor, i el PDF es a dins de la fitxa. L'usuari en va passar un
+# (setembre 2026), i per aixo la col·leccio sortia "sense cap document":
+#   https://dsp.interior.gencat.cat/bitstream/handle/20.500.14007/6228/DT-04-...pdf?sequence=10&isAllowed=y
+# Les fitxes: /handle/<prefix>/<num> (o hdl.handle.net, que hi redirigeix) i, a
+# les versions noves del DSpace, /items/<uuid>; els fitxers de les noves no
+# porten el nom: /bitstreams/<uuid>/download.
+$Script:NormativaDspaceFitxa = '(?i)(/handle/\d+(\.\d+)*/\d+/?$|/items/[0-9a-f-]{36}/?$)'
+$Script:NormativaDspaceBitstream = '(?i)/bitstreams/[0-9a-f-]{36}/download'
+
 # Les pagines "filles" d'una col·leccio (quan cada document te la seva fitxa i
-# el PDF es a dins): enllacos del mateix lloc que pengen del cami de la pagina.
+# el PDF es a dins): enllacos del mateix lloc que pengen del cami de la pagina,
+# i les fitxes del repositori (DSpace), siguin del servidor que siguin.
 function _NormativaSubpagines([string]$html, [string]$base) {
     $out = New-Object System.Collections.ArrayList
     if ([string]::IsNullOrWhiteSpace($html)) { return $out.ToArray() }
@@ -286,7 +298,8 @@ function _NormativaSubpagines([string]$html, [string]$base) {
         if (-not $mh.Success) { continue }
         $u = $null
         try { $u = New-Object System.Uri($b, [System.Net.WebUtility]::HtmlDecode($mh.Groups[1].Value).Trim()) } catch { continue }
-        if ($u.Host -ne $b.Host -or -not $u.AbsolutePath.StartsWith($cami) -or $u.AbsolutePath.TrimEnd('/') -eq $b.AbsolutePath.TrimEnd('/')) { continue }
+        $esFitxa = ($u.AbsolutePath -match $Script:NormativaDspaceFitxa) -or ($u.Host -ieq 'hdl.handle.net' -and $u.AbsolutePath -match '^/\d+(\.\d+)*/\d+/?$')
+        if (-not $esFitxa -and ($u.Host -ne $b.Host -or -not $u.AbsolutePath.StartsWith($cami) -or $u.AbsolutePath.TrimEnd('/') -eq $b.AbsolutePath.TrimEnd('/'))) { continue }
         if ($u.AbsolutePath -match '(?i)\.(pdf|docx?|xlsx?|zip|jpg|png)$') { continue }
         $abs = $u.GetLeftPart([System.UriPartial]::Path)
         if ($vist.ContainsKey($abs)) { continue }
@@ -300,8 +313,10 @@ function _NormativaSubpagines([string]$html, [string]$base) {
 # El nom d'un document d'una col·leccio: Ambit_Tema_<text de l'enllac>.pdf (o el
 # nom del fitxer de l'URL, si l'enllac no te text).
 function _NormativaNomDocColleccio($e, [string]$text, [string]$url) {
-    $t = ([string]$text).Trim()
-    if (-not $t -or $t -match '^(?i)(pdf|descarrega|descarregar|download)$') {
+    # "(Obre en una nova finestra)": el text per als lectors de pantalla que la
+    # web d'Interior posa a cada enllac; sortia al nom de TOTES les ITC.
+    $t = (([string]$text) -replace '(?i)\s*\(?\s*(obre en una (nova )?finestra( nova)?|abre en una (nueva )?ventana( nueva)?|opens? in a new (window|tab))\s*\)?', '').Trim()
+    if (-not $t -or $t -match '^(?i)(pdf|descarrega|descarregar|download|visualitza/obre|view/open|veure/obrir|obre|obrir|visualitza|ver/abrir)$') {
         try { $t = [System.Uri]::UnescapeDataString([System.IO.Path]::GetFileNameWithoutExtension((New-Object System.Uri($url)).AbsolutePath)) } catch { $t = 'document' }
         $t = $t -replace '[_]+', ' '
     }
@@ -582,10 +597,37 @@ function _NormativaDesaEstat([string]$dir, $estat) {
 
 # El PDF desat d'una norma que cita un text ('' si no n'hi ha). Per a la fitxa
 # d'ajuda (Show-Ajuda): "Obre el PDF desat".
+# LES ITC DE BOMBERS NO SON AL CATALEG: son documents de la col·leccio, i el
+# nom del fitxer surt de la pagina d'Interior ("Incendis_ITC Bombers_SP 144.pdf").
+# Una fitxa que cita una ITC ("Instruccio tecnica complementaria SP 144:2023...")
+# ha d'obrir AQUELL PDF, i no la Llei 3/2010 que la mateixa fitxa cita darrere.
+# PURES. El numero de la ITC ('' si el text no en cita cap):
+function _NormativaSpDeText([string]$text) {
+    $m = [regex]::Match([string]$text, '(?i)\bSP[\s.-]*(1\d\d)\b')
+    if ($m.Success) { return $m.Groups[1].Value }
+    return ''
+}
+
+# El fitxer de la ITC entre els noms de la carpeta: el document principal, no
+# els models (SP 136 A/B/C) ni les notes. '' si no hi es.
+function _NormativaFitxerSp($noms, [string]$sp) {
+    if (-not $sp) { return '' }
+    $pat = '(?i)^Incendis_ITC Bombers_SP[ -]?' + $sp + '(?![0-9])(?!\s+[A-C]\b)[^\\/]*\.pdf$'
+    $cands = @(@($noms) | Where-Object { [string]$_ -match $pat } | Sort-Object { ([string]$_).Length })
+    if ($cands.Count -gt 0) { return [string]$cands[0] }
+    return ''
+}
+
 function Get-NormativaPdfDeText([string]$text) {
     try {
         $dir = Get-NormativaDir
         if (-not $dir -or -not (Test-Path -LiteralPath $dir)) { return '' }
+        $sp = _NormativaSpDeText $text
+        if ($sp) {
+            $noms = @(Get-ChildItem -LiteralPath $dir -Filter 'Incendis_ITC Bombers_SP*.pdf' -File -ErrorAction SilentlyContinue | ForEach-Object { $_.Name })
+            $f = _NormativaFitxerSp $noms $sp
+            if ($f) { return [string](Join-Path $dir $f) }
+        }
         if ($null -eq $Script:NormativaCache) { $Script:NormativaCache = @(Get-NormativaCataleg) }
         $e = _NormativaBuscaEnText $Script:NormativaCache $text
         if ($null -eq $e) { return '' }

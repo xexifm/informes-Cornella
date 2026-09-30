@@ -19,6 +19,15 @@ function _NormativaGet([string]$url) {
     return $r
 }
 
+# L'adreca on ha acabat la peticio despres de les redireccions (hdl.handle.net
+# porta a dsp.interior.gencat.cat): els enllacos relatius de la pagina penjen
+# d'aquesta, no de la que es va demanar.
+function _NormativaUrlFinal($r, [string]$url) {
+    try { $u = $r.BaseResponse.ResponseUri; if ($u) { return [string]$u.AbsoluteUri } } catch { }
+    try { $u = $r.BaseResponse.RequestMessage.RequestUri; if ($u) { return [string]$u.AbsoluteUri } } catch { }
+    return $url
+}
+
 function _NormativaGetBytes([string]$url, [string]$desti) {
     Invoke-WebRequest -Uri $url -UseBasicParsing -UserAgent $Script:NormativaUA -TimeoutSec 180 -MaximumRedirection 10 -UseDefaultCredentials -OutFile $desti -ErrorAction Stop | Out-Null
     return [System.IO.File]::ReadAllBytes($desti)
@@ -254,11 +263,11 @@ function _NormativaBaixaColleccio($e, [string]$dir, $estat, [bool]$forca, $log) 
     if ($docs.Count -eq 0) { $html = _NormativaDomEdge $url; $docs = @(_NormativaDocsDeColleccio $html $url) }
     if ($docs.Count -eq 0) {
         $llista = New-Object System.Collections.ArrayList
-        foreach ($sp in @(_NormativaSubpagines $html $url | Select-Object -First 80)) {
-            $h2 = ''
-            try { $h2 = [string](_NormativaGet ([string]$sp.Url)).Content } catch { }
-            $d2 = @(_NormativaDocsDeColleccio $h2 ([string]$sp.Url))
-            if ($d2.Count -eq 0) { $h2 = _NormativaDomEdge ([string]$sp.Url); $d2 = @(_NormativaDocsDeColleccio $h2 ([string]$sp.Url)) }
+        foreach ($sp in @(_NormativaSubpagines $html $url | Select-Object -First 150)) {
+            $h2 = ''; $b2 = [string]$sp.Url
+            try { $r2 = _NormativaGet $b2; $h2 = [string]$r2.Content; $b2 = _NormativaUrlFinal $r2 $b2 } catch { }
+            $d2 = @(_NormativaDocsDeColleccio $h2 $b2)
+            if ($d2.Count -eq 0) { $h2 = _NormativaDomEdge ([string]$sp.Url); $d2 = @(_NormativaDocsDeColleccio $h2 $b2) }
             foreach ($d in $d2) {
                 # Un sol PDF a la fitxa: el nom bo es el de l'enllac de la llista.
                 $t = if ($d2.Count -eq 1 -and $sp.Text) { [string]$sp.Text } else { [string]$d.Text }
@@ -277,14 +286,31 @@ function _NormativaBaixaColleccio($e, [string]$dir, $estat, [bool]$forca, $log) 
     $estat[$id] = @{ Error = ''; Baixat = (Get-Date).ToString('o'); Versio = ''; Mida = 0 }
     $n.Docs = $docs.Count
     $usats = @{}
+    # Els que ja hi eren, per adreca: si el nom ha canviat (ara es treu el
+    # "(Obre en una nova finestra)"), el fitxer es reanomena en lloc de baixar-lo
+    # de nou i deixar l'antic a la carpeta.
+    $perUrl = @{}
+    foreach ($k0 in @($estat.Keys)) {
+        $v0 = $estat[$k0]
+        if ($v0 -is [hashtable] -and [string]$v0.Pare -eq $id -and $v0.Url -and $v0.Nom) { $perUrl[[string]$v0.Url] = $k0 }
+    }
     foreach ($d in $docs) {
         $nom = _NormativaNomDocColleccio $e ([string]$d.Text) ([string]$d.Url)
         $base = [System.IO.Path]::GetFileNameWithoutExtension($nom); $k = 2
         while ($usats.ContainsKey($nom)) { $nom = $base + ' (' + $k + ').pdf'; $k++ }
         $usats[$nom] = $true
         $clau = $id + ' | ' + $nom
-        $est = if ($estat.ContainsKey($clau)) { $estat[$clau] } else { $null }
         $desti = Join-Path $dir $nom
+        $vella = if ($perUrl.ContainsKey([string]$d.Url)) { [string]$perUrl[[string]$d.Url] } else { '' }
+        if ($vella -and $vella -ne $clau -and -not $estat.ContainsKey($clau)) {
+            $vell = Join-Path $dir ([string]$estat[$vella].Nom)
+            try {
+                if ((Test-Path -LiteralPath $vell) -and -not (Test-Path -LiteralPath $desti)) { Move-Item -LiteralPath $vell -Destination $desti }
+                $estat[$clau] = $estat[$vella]; $estat[$clau].Nom = $nom
+                $estat.Remove($vella)
+            } catch { }
+        }
+        $est = if ($estat.ContainsKey($clau)) { $estat[$clau] } else { $null }
         $motiu = _NormativaCalBaixar $est (Test-Path -LiteralPath $desti) '' (Get-Date) $forca
         if (-not $motiu) { $n.Igual++; continue }
         $tmp = Join-Path $dir ('~baixant ' + [guid]::NewGuid().ToString('N') + '.pdf')
