@@ -144,7 +144,7 @@ try {
     $srcSig = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'PdfSignar.ps1'))
     Assert ($srcSig -match '(?s)_PdfAdjuntaLlicencia.{0,600}NO s''ha signat.{0,300}continue') 'Word a PDF: si els adjunts fallen, aquell PDF NO es signa (continue)'
     $iAj = $srcSig.IndexOf('$aj = _PdfAdjuntaLlicencia')
-    $iSig = $srcSig.IndexOf('# 2a. Signatura amb l')
+    $iSig = $srcSig.IndexOf('# 2. Signatura amb AutoFirma')
     Assert ($iAj -gt 0 -and $iAj -lt $iSig) 'Word a PDF: s''ajunta ABANS de signar (la firma ha de cobrir-ho tot)'
     $Script:LlicDbDir = $vellDir
 } catch {

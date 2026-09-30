@@ -8,6 +8,26 @@ cada una descarta una hipòtesi. Val la pena llegir-la sencera abans de proposar
 res sobre la validesa de la signatura: gairebé tot el que sembla evident ja
 està provat i descartat.
 
+- **Simplificació (setembre 2026, decisions de l'usuari, preguntades una a una).**
+  La finestra acumulava opcions i avisos de quan la signatura no anava bé:
+  - **Només AutoFirma.** Fora el mode «amb l'Adobe, a mà» (els radios,
+    `_AdobeExeCandidats`/`_TrobaAdobeExe`, el pas 2a de `_RunConvertPdf`, `signMode`
+    de l'estat). Des que el programa refà la signatura com la de l'Adobe
+    (`PdfCms.ps1`) no calia, i l'usuari no el feia servir.
+  - **Fora el quadre del text del caixetí**: amb `$Script:CaixetiAspecte = 'defecte'`
+    no s'usava (l'etiqueta mateixa ho deia). El text desat es conserva a l'estat
+    i és el que es passa (`_CaixetiCascada` només vol que no sigui buit).
+  - **Fora la casella «Obrir el registre de la signatura en acabar»**: el
+    registre (`_PdfSignarLogPath`) s'escriu igual, però no s'obre mai sol.
+  - **Resum final curt**: PDF generats, PDF signats i errors. Els detalls (refeta
+    i comprovada, sense caixetí, només vàlida en aquest PC, adjunts, saltats) són
+    al registre.
+  - **Es queden**: la casella «Signar», el desplegable del certificat amb
+    l'opció «(triar-lo a AutoFirma en signar)» i el seu avís, la ruta de
+    l'AutoFirma, «Signatura visible», «Tornar a generar» i el «Vols continuar?».
+  Guards a `03-llicencia.ps1`. El que diu la resta d'aquesta secció sobre el mode
+  Adobe, el quadre del caixetí o la casella del registre és història.
+
 - **Word a PDF (i signar)** (`Invoke-ConvertirPdf`, `suport/PdfSignar.ps1`, rajola
   📄 a EINES, acció `convertirpdf`): converteix tots els Word (`.doc`/`.docx`) d'una
   carpeta (i subcarpetes) a **PDF al mateix lloc i mateix nom** (via Word COM

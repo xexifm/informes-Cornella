@@ -747,25 +747,6 @@ function _FindAutoFirmaExe([string]$preferit) {
 
 # Extreu el "nom comú" (CN) d'un subjecte de certificat (DN). Funció PURA.
 # "CN=NOM COGNOM - 12345678Z, O=..., C=ES" -> "NOM COGNOM - 12345678Z".
-# On pot ser l'Adobe (Acrobat o Reader). Funcio PURA i testejable: les rutes es
-# construeixen amb text pla (Join-Path peta fora de Windows amb la unitat).
-function _AdobeExeCandidats([string]$pf = $env:ProgramFiles, [string]$pf86 = ${env:ProgramFiles(x86)}) {
-    $l = @()
-    foreach ($base in @($pf, $pf86)) {
-        if ([string]::IsNullOrWhiteSpace($base)) { continue }
-        $l += ($base + '\Adobe\Acrobat DC\Acrobat\Acrobat.exe')
-        $l += ($base + '\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe')
-        $l += ($base + '\Adobe\Acrobat Reader\Reader\AcroRd32.exe')
-    }
-    return $l
-}
-function _TrobaAdobeExe {
-    foreach ($c in @(_AdobeExeCandidats)) {
-        if (-not [string]::IsNullOrWhiteSpace($c) -and (Test-Path -LiteralPath $c)) { return [string]$c }
-    }
-    return ''
-}
-
 function _CertCommonName([string]$subject) {
     if ([string]::IsNullOrWhiteSpace($subject)) { return '' }
     $m = [regex]::Match($subject, 'CN=([^,]+)')
@@ -856,15 +837,14 @@ function _PdfSignarLog([string]$text) {
 
 function _LoadPdfSignarState {
     $p = _PdfSignarStatePath
-    $def = @{ folder = ''; sign = $false; signMode = 'adobe'; certFilter = ''; autofirma = ''; overwrite = $false; visibleSign = $true; caixeti = (_DefaultCaixeti); obrirRegistre = $false }
+    $def = @{ folder = ''; sign = $false; certFilter = ''; autofirma = ''; overwrite = $false; visibleSign = $true; caixeti = (_DefaultCaixeti) }
     $o = Read-JsonFile $p
     if ($null -eq $o) { return $def }
     try {
-        foreach ($k in @('folder','certFilter','autofirma','caixeti','signMode')) { if ($o.PSObject.Properties[$k]) { $def[$k] = [string]$o.$k } }
+        foreach ($k in @('folder','certFilter','autofirma','caixeti')) { if ($o.PSObject.Properties[$k]) { $def[$k] = [string]$o.$k } }
         if ($o.PSObject.Properties['sign'])        { $def['sign'] = [bool]$o.sign }
         if ($o.PSObject.Properties['overwrite'])   { $def['overwrite'] = [bool]$o.overwrite }
         if ($o.PSObject.Properties['visibleSign']) { $def['visibleSign'] = [bool]$o.visibleSign }
-        if ($o.PSObject.Properties['obrirRegistre']) { $def['obrirRegistre'] = [bool]$o.obrirRegistre }
         if ([string]::IsNullOrWhiteSpace([string]$def['caixeti'])) { $def['caixeti'] = (_DefaultCaixeti) }
     } catch { }
     return $def
@@ -937,32 +917,17 @@ function _ShowConvertPdfOptions {
     $y += 30
 
     $cbSign = New-Object System.Windows.Forms.CheckBox
-    $cbSign.Text = 'Signar els PDF'
+    $cbSign.Text = 'Signar els PDF amb AutoFirma'
     $cbSign.Location = New-Object System.Drawing.Point(14, $y)
     $cbSign.AutoSize = $true
     $cbSign.Checked = [bool]$st.sign
     [void]$form.Controls.Add($cbSign)
-    $y += 24
-
-    # COM es signa. L'UNICA signatura que s'ha COMPROVAT que es valida a tot
-    # arreu (fora de l'Ajuntament inclos) es la que fa el propi Adobe; per aixo
-    # es l'opcio per defecte, encara que demani un parell de clics per document.
-    # L'AutoFirma queda per a l'us intern: es automatica, pero nomes surt valida
-    # alla on es confia en els certificats de l'AOC.
-    $rbAdobe = New-Object System.Windows.Forms.RadioButton
-    $rbAdobe.Text = "amb l'Adobe, a m" + [char]0x00E0 + ' (la que es valida A TOT ARREU; un parell de clics per PDF)'
-    $rbAdobe.Location = New-Object System.Drawing.Point(34, $y)
-    $rbAdobe.AutoSize = $true
-    [void]$form.Controls.Add($rbAdobe)
-    $y += 22
-    $rbAuto = New-Object System.Windows.Forms.RadioButton
-    $rbAuto.Text = "amb AutoFirma, autom" + [char]0x00E0 + 'tica (nom' + [char]0x00E9 + 's es valida on es confia en l' + [char]0x2019 + 'AOC)'
-    $rbAuto.Location = New-Object System.Drawing.Point(34, $y)
-    $rbAuto.AutoSize = $true
-    [void]$form.Controls.Add($rbAuto)
-    if ([string]$st.signMode -eq 'autofirma') { $rbAuto.Checked = $true } else { $rbAdobe.Checked = $true }
     $y += 26
 
+    # NOMES AUTOFIRMA (setembre 2026, decisio de l'usuari). Hi havia tambe
+    # "amb l'Adobe, a ma", de quan la signatura de l'AutoFirma no es validava
+    # fora d'aquest ordinador; des que el programa la refa com la de l'Adobe
+    # (PdfCms.ps1) no calia, i l'usuari ja no la feia servir.
     $lblC = New-Object System.Windows.Forms.Label
     $lblC.Text = 'Certificat amb què signar:'
     $lblC.Location = New-Object System.Drawing.Point(34, $y)
@@ -996,7 +961,10 @@ function _ShowConvertPdfOptions {
     [void]$form.Controls.Add($lblAF)
     $y += 40
 
-    # Signatura VISIBLE (caixetí a dalt a la dreta) + text editable del caixetí.
+    # Signatura VISIBLE (caixetí a dalt a la dreta). El caixetí el dibuixa
+    # l'AutoFirma ($Script:CaixetiAspecte = 'defecte'), o sigui que el quadre per
+    # escriure'n el text -que la mateixa etiqueta deia que "ara no s'usa"- ja no
+    # hi es. El text desat es conserva a l'estat (tornaria a servir amb 'propi').
     $cbVis = New-Object System.Windows.Forms.CheckBox
     $cbVis.Text = 'Signatura visible (caixetí a dalt a la dreta)'
     $cbVis.Location = New-Object System.Drawing.Point(34, $y)
@@ -1005,63 +973,18 @@ function _ShowConvertPdfOptions {
     [void]$form.Controls.Add($cbVis)
     $y += 26
 
-    # El registre de la signatura es DIAGNOSTIC: abans, en acabar, sortia una
-    # pregunta de si es volia obrir, i preguntar-ho cada vegada fa nosa. Ara es
-    # una casella d'aqui, que es recorda: qui el vol, el marca i prou.
-    $cbLog = New-Object System.Windows.Forms.CheckBox
-    $cbLog.Text = 'Obrir el registre de la signatura en acabar'
-    $cbLog.Location = New-Object System.Drawing.Point(34, $y)
-    $cbLog.AutoSize = $true
-    $cbLog.Checked = [bool]$st.obrirRegistre
-    [void]$form.Controls.Add($cbLog)
-    $y += 26
-
-    # Amb l'aspecte per DEFECTE, el caixetí el dibuixa l'AutoFirma (com l'eina
-    # "Utilizar un certificado" de l'Adobe) i aquest text no s'hi fa servir. Es
-    # deixa igualment -es el que es recuperaria en tornar a $CaixetiAspecte
-    # 'propi'- pero es diu clar, que si no sembla espatllat.
-    $lblCx = New-Object System.Windows.Forms.Label
-    $lblCx.Text = if ([string]$Script:CaixetiAspecte -eq 'propi') {
-        'Text del caixetí (una línia per fila; $$SIGNDATE=...$$ = data):'
-    } else {
-        'Text del caixetí (ara no s''usa: el dibuixa l''AutoFirma, com l''Adobe):'
-    }
-    $lblCx.Location = New-Object System.Drawing.Point(34, $y)
-    $lblCx.AutoSize = $true
-    $lblCx.Font = New-Object System.Drawing.Font('Segoe UI', 8.5, [System.Drawing.FontStyle]::Regular)
-    [void]$form.Controls.Add($lblCx)
-    $y += 20
-
-    $tbCx = New-Object System.Windows.Forms.TextBox
-    $tbCx.Location = New-Object System.Drawing.Point(34, $y)
-    $tbCx.Size = New-Object System.Drawing.Size(($Script:PdfDlgAmple - 62), 76)
-    $tbCx.Multiline = $true
-    $tbCx.ScrollBars = 'Vertical'
-    $tbCx.AcceptsReturn = $true
-    $tbCx.Font = New-Object System.Drawing.Font('Segoe UI', 9)
-    # El TextBox multilínia només mostra CRLF; el caixetí es guarda amb LF.
-    $tbCx.Text = ([string]$st.caixeti -replace "`r?`n", "`r`n")
-    [void]$form.Controls.Add($tbCx)
-
     $syncSign = {
         $on = $cbSign.Checked
-        $rbAdobe.Enabled = $on; $rbAuto.Enabled = $on
-        $auto = ($on -and $rbAuto.Checked)
-        $lblC.Enabled = $auto; $cbCert.Enabled = $auto; $lblAF.Enabled = $auto
-        $cbVis.Enabled = $auto
-        $onVis = ($auto -and $cbVis.Checked)
-        $lblCx.Enabled = $onVis; $tbCx.Enabled = $onVis
+        $lblC.Enabled = $on; $cbCert.Enabled = $on; $lblAF.Enabled = $on
+        $cbVis.Enabled = $on
     }.GetNewClosure()
     $cbSign.add_CheckedChanged($syncSign)
-    $rbAdobe.add_CheckedChanged($syncSign)
-    $rbAuto.add_CheckedChanged($syncSign)
-    $cbVis.add_CheckedChanged($syncSign)
     & $syncSign
 
     # La finestra CREIX segons el contingut (aqui $y ja es sota de l'ultim
     # control). Abans els botons anaven clavats a y=438 i, en afegir-hi els dos
     # radios del mode de signatura, van quedar FORA de la finestra.
-    $yBotons = $y + $tbCx.Height + 14
+    $yBotons = $y + 14
     $form.ClientSize = New-Object System.Drawing.Size($Script:PdfDlgAmple, ($yBotons + 44))
 
     $peu = _AddPeuBotons $form @(@{ Nom = 'Tanca'; Text = 'Tanca' }) @(
@@ -1077,7 +1000,7 @@ function _ShowConvertPdfOptions {
             [System.Windows.Forms.MessageBox]::Show('Tria una carpeta o un document vàlids.', 'Convertir informes a PDF', 'OK', 'Warning') | Out-Null
             return
         }
-        if ($cbSign.Checked -and $rbAuto.Checked -and [string]::IsNullOrWhiteSpace($autofirma)) {
+        if ($cbSign.Checked -and [string]::IsNullOrWhiteSpace($autofirma)) {
             [System.Windows.Forms.MessageBox]::Show("No s'ha trobat AutoFirma. Desmarca la signatura (es faran només els PDF) o instal·la AutoFirma.", 'Convertir informes a PDF', 'OK', 'Warning') | Out-Null
             return
         }
@@ -1090,7 +1013,7 @@ function _ShowConvertPdfOptions {
         # Sense certificat triat, la signatura NO es pot refer (PdfCms.ps1) i el
         # PDF nomes es validara EN AQUEST ordinador -que es exactament el
         # problema que es va patir-. S'avisa ARA, no despres de signar-ho tot.
-        if ($cbSign.Checked -and $rbAuto.Checked -and [string]::IsNullOrWhiteSpace($certThumb)) {
+        if ($cbSign.Checked -and [string]::IsNullOrWhiteSpace($certThumb)) {
             $respCert = [System.Windows.Forms.MessageBox]::Show(
                 ("No has triat cap certificat del desplegable." + [Environment]::NewLine + [Environment]::NewLine +
                  "Sense aixo la signatura NO es pot refer com la de l'Adobe i nomes sera valida en AQUEST ordinador." + [Environment]::NewLine + [Environment]::NewLine +
@@ -1098,15 +1021,14 @@ function _ShowConvertPdfOptions {
                 'Signatura', 'YesNo', 'Warning')
             if ($respCert -ne 'Yes') { return }
         }
-        $caixeti = ([string]$tbCx.Text -replace "`r`n", "`n")
+        $caixeti = [string]$st.caixeti
         $result.Value = @{
-            Folder = $f; Sign = [bool]$cbSign.Checked; SignMode = $(if ($rbAuto.Checked) { 'autofirma' } else { 'adobe' })
+            Folder = $f; Sign = [bool]$cbSign.Checked
             CertFilter = $certFilter; CertThumb = $certThumb
             Overwrite = [bool]$cbOver.Checked; AutoFirma = [string]$autofirma
             VisibleSign = [bool]$cbVis.Checked; Caixeti = $caixeti
-            ObrirRegistre = [bool]$cbLog.Checked
         }
-        _SavePdfSignarState @{ folder = $f; sign = [bool]$cbSign.Checked; signMode = $(if ($rbAuto.Checked) { 'autofirma' } else { 'adobe' }); certFilter = $certFilter; autofirma = [string]$autofirma; overwrite = [bool]$cbOver.Checked; visibleSign = [bool]$cbVis.Checked; caixeti = $caixeti; obrirRegistre = [bool]$cbLog.Checked }
+        _SavePdfSignarState @{ folder = $f; sign = [bool]$cbSign.Checked; certFilter = $certFilter; autofirma = [string]$autofirma; overwrite = [bool]$cbOver.Checked; visibleSign = [bool]$cbVis.Checked; caixeti = $caixeti }
         $form.DialogResult = 'OK'; $form.Close()
     }.GetNewClosure())
 
@@ -1222,11 +1144,8 @@ function _RunConvertPdf($opts) {
     # quin es. En aquest cas es deixa la signatura tal com la fa l'AutoFirma.
     $certRefer = $null
     $refets = 0
-    $senseFirmaAdobe = 0
     $thumb = [string]$opts.CertThumb
-    if ([bool]$opts.Sign -and [string]$opts.SignMode -eq 'adobe') {
-        _PdfSignarLog "Mode de signatura: ADOBE (a ma). Cada PDF s'obre a l'Adobe i es comprova que quedi signat."
-    } elseif (-not [string]::IsNullOrWhiteSpace($thumb)) {
+    if (-not [string]::IsNullOrWhiteSpace($thumb)) {
         try { $certRefer = Get-Item -LiteralPath ("Cert:\CurrentUser\My\" + $thumb) -ErrorAction Stop } catch { $certRefer = $null }
         if ($null -eq $certRefer) { _PdfSignarLog ("AVIS: no trobo el certificat " + $thumb + " al magatzem; no podre refer el CMS.") }
         else { _PdfSignarLog ("Refare cada signatura amb el certificat: " + $certRefer.Subject) }
@@ -1290,49 +1209,8 @@ function _RunConvertPdf($opts) {
                 $skipped++
             }
 
-            # 2a. Signatura amb l'ADOBE (a ma): s'obre el PDF, l'usuari el
-            # signa alla mateix -exactament el cami que produeix la signatura
-            # que es valida a tot arreu, l'unic COMPROVAT- i despres es mira si
-            # de debo hi ha quedat una firma (/ByteRange).
-            if ($opts.Sign -and $pdfExists -and [string]$opts.SignMode -eq 'adobe') {
-                if ($cancel.Flag) { break }
-                $lbl.Text = ("Signant a l'Adobe {0} de {1}...`n{2}" -f $done, $files.Count, $f.Name)
-                [System.Windows.Forms.Application]::DoEvents()
-                $exeAdobe = _TrobaAdobeExe
-                try {
-                    # -ArgumentList NO enquota (PS 5.1): les cometes les posem nosaltres.
-                    if ($exeAdobe) { Start-Process -FilePath $exeAdobe -ArgumentList ('"' + $pdf + '"') | Out-Null }
-                    else { Start-Process -FilePath $pdf | Out-Null }
-                } catch {
-                    _PdfSignarLog ("AVIS: no s'ha pogut obrir " + $f.Name + " -> " + $_.Exception.Message)
-                }
-                $respA = [System.Windows.Forms.MessageBox]::Show(
-                    ("S'ha obert a l'Adobe:" + [Environment]::NewLine + $f.Name + [Environment]::NewLine + [Environment]::NewLine +
-                     "Signa'l alla (Eines > Certificados > Firmar digitalmente, o el caixeti si ja hi es) i DESA'L amb el mateix nom." + [Environment]::NewLine + [Environment]::NewLine +
-                     "Si = ja l'he signat (ho comprovo)" + [Environment]::NewLine +
-                     "No = salta aquest PDF" + [Environment]::NewLine +
-                     "Cancel·la = atura la resta"),
-                    "Signar amb l'Adobe", 'YesNoCancel', 'Information')
-                if ($respA -eq 'Cancel') { $cancel.Flag = $true; break }
-                if ($respA -eq 'Yes') {
-                    $teFirma = $false
-                    try { $teFirma = [bool]((_PdfTrobaFirma ([System.IO.File]::ReadAllBytes($pdf))).Ok) } catch { }
-                    if ($teFirma) {
-                        $signed++
-                        _PdfSignarLog ("SIGNAT A L'ADOBE (comprovat)  " + $f.Name)
-                    } else {
-                        $senseFirmaAdobe++
-                        _PdfSignarLog ("AVIS: deies que estava signat pero NO hi trobo cap firma: " + $f.Name)
-                        [System.Windows.Forms.MessageBox]::Show(
-                            ("En aquest PDF NO hi trobo cap firma:" + [Environment]::NewLine + $f.Name + [Environment]::NewLine + [Environment]::NewLine +
-                             "Potser l'Adobe l'ha desat amb un altre nom. Comprova-ho abans d'enviar-lo."),
-                            "Signar amb l'Adobe", 'OK', 'Warning') | Out-Null
-                    }
-                }
-            }
-
-            # 2b. Signatura amb AutoFirma (si es demana i el PDF existeix).
-            if ($opts.Sign -and $pdfExists -and [string]$opts.SignMode -ne 'adobe') {
+            # 2. Signatura amb AutoFirma (si es demana i el PDF existeix).
+            if ($opts.Sign -and $pdfExists) {
                 if ($cancel.Flag) { break }
                 $lbl.Text = ("Signant {0} de {1}...`n{2}" -f $done, $files.Count, $f.Name)
                 [System.Windows.Forms.Application]::DoEvents()
@@ -1449,34 +1327,14 @@ function _RunConvertPdf($opts) {
     }
 
     # ---- Resum ----
+    # CURT (setembre 2026, decisio de l'usuari): quants PDF i quants signats, i
+    # els errors. Els detalls de la signatura (refeta i comprovada, sense
+    # caixeti, nomes valida en aquest PC...) eren d'una epoca en que no anava
+    # be; segueixen al registre, _PdfSignarLogPath, per si mai cal mirar-ho.
     $msg = New-Object System.Text.StringBuilder
     if ($cancel.Flag) { [void]$msg.AppendLine('Cancel·lat.') ; [void]$msg.AppendLine('') }
     [void]$msg.AppendLine(("PDF generats: {0}" -f $converted))
-    [void]$msg.AppendLine(("Ja estaven al dia (saltats): {0}" -f $skipped))
-    if ($ambAdjunts -gt 0) {
-        [void]$msg.AppendLine(("Informes de llic" + [char]0x00E8 + "ncia amb els informes dels organismes ajuntats: {0}" -f $ambAdjunts))
-    }
-    if ($opts.Sign -and [string]$opts.SignMode -eq 'adobe') {
-        [void]$msg.AppendLine(("PDF signats a l'Adobe (comprovats): {0}" -f $signed))
-        if ($senseFirmaAdobe -gt 0) {
-            [void]$msg.AppendLine(("  ATENCIO: {0} PDF on deies que hi havia firma i NO n'hi ha cap." -f $senseFirmaAdobe))
-            [void]$msg.AppendLine("  (Potser l'Adobe els ha desat amb un altre nom.)")
-        }
-    } elseif ($opts.Sign) {
-        [void]$msg.AppendLine(("PDF signats: {0}" -f $signed))
-        if ($refets -gt 0) {
-            [void]$msg.AppendLine(("  {0} amb la signatura REFETA I COMPROVADA (es validara a qualsevol ordinador)" -f $refets))
-        }
-        if ($signed -gt $refets) {
-            [void]$msg.AppendLine('')
-            [void]$msg.AppendLine(("  ATENCIO: {0} PDF s'han quedat amb la signatura de l'AutoFirma," -f ($signed - $refets)))
-            [void]$msg.AppendLine('  que NOMES es valida en aquest ordinador. El registre de la')
-            [void]$msg.AppendLine('  signatura diu exactament per que.')
-        }
-        if ($senseCaixeti -gt 0) {
-            [void]$msg.AppendLine(("  (dels quals {0} SENSE caixeti: el caixeti ha fallat i s'han signat igualment)" -f $senseCaixeti))
-        }
-    }
+    if ($opts.Sign) { [void]$msg.AppendLine(("PDF signats: {0}" -f $signed)) }
     if ($errors -gt 0) {
         [void]$msg.AppendLine(("Errors: {0}" -f $errors))
         [void]$msg.AppendLine('')
@@ -1486,15 +1344,6 @@ function _RunConvertPdf($opts) {
     }
     $icon = if ($errors -gt 0) { 'Warning' } else { 'Information' }
     [System.Windows.Forms.MessageBox]::Show($msg.ToString(), 'Convertir informes a PDF', 'OK', $icon) | Out-Null
-
-    # El registre porta l'ordre EXACTA que s'ha passat a AutoFirma i serveix per
-    # veure per que no surt el caixeti, si es el cas. Abans es preguntava en
-    # acabar CADA VEGADA, i preguntar-ho sempre fa nosa; ara hi ha la casella
-    # 'Obrir el registre de la signatura en acabar' al diàleg d'opcions, que es
-    # recorda: qui el vol, el marca i prou.
-    if ($opts.ObrirRegistre -and $opts.Sign -and ($signed -gt 0 -or $errors -gt 0)) {
-        try { Start-Process -FilePath (_PdfSignarLogPath) | Out-Null } catch { }
-    }
 }
 
 # Punt d'entrada de l'eina (des del menú principal).

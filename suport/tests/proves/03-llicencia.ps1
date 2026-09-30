@@ -845,14 +845,16 @@ Assert (-not ($dlgPdf -match '\$btnCancel\.Location = New-Object System\.Drawing
 Assert ($dlgPdf.Contains('$yBotons = $y')) 'dialeg PDF: els botons es col·loquen a partir de l''ultim control'
 Assert ($dlgPdf.Contains('$form.ClientSize = New-Object System.Drawing.Size($Script:PdfDlgAmple, ($yBotons + 44))')) 'dialeg PDF: i la finestra creix segons el contingut'
 
-# On es busca l'Adobe per al mode de signatura a ma. Rutes en text pla (amb
-# Join-Path petarien fora de Windows per la unitat C:).
-$adC = @(_AdobeExeCandidats 'C:\PF' 'C:\PF86')
-AssertEq $adC.Count 6 '_AdobeExeCandidats: 3 rutes per cada Program Files'
-Assert ([bool]($adC[0] -like 'C:\PF\Adobe\*Acrobat.exe')) '_AdobeExeCandidats: primer l''Acrobat complet'
-Assert ([bool]($adC -like '*AcroRd32.exe').Count -eq 4) '_AdobeExeCandidats: i els Readers'
-AssertEq (@(_AdobeExeCandidats 'C:\PF' '').Count) 3 '_AdobeExeCandidats: sense Program Files (x86), nomes 3'
-AssertEq (@(_AdobeExeCandidats '' '').Count) 0 '_AdobeExeCandidats: sense res, cap ruta (i cap petada)'
+# NOMES AUTOFIRMA I SENSE ELS RESTES D'ABANS (setembre 2026, decisio de
+# l'usuari): ni el mode de signar a ma amb l'Adobe, ni el quadre del text del
+# caixeti (no s'usava), ni la casella del registre, ni el resum llarg.
+Assert (-not $srcPdf.Contains('$rbAdobe') -and -not $srcPdf.Contains('_TrobaAdobeExe') -and -not $srcPdf.Contains('SignMode')) 'dialeg PDF: nomes AutoFirma (cap resta del mode Adobe)'
+Assert (-not $dlgPdf.Contains('$tbCx') -and -not $dlgPdf.Contains('$cbLog')) 'dialeg PDF: sense el text del caixeti ni la casella del registre'
+$iRes = $srcPdf.IndexOf('# ---- Resum ----')
+$resumPdf = $srcPdf.Substring($iRes, $srcPdf.IndexOf("# Punt d'entrada de l'eina") - $iRes)
+Assert (-not ($resumPdf -match 'AppendLine\([^\n]*(REFETA|caixeti|Ja estaven|NOMES es valida|adjunts)')) 'resum PDF: curt (generats, signats i errors)'
+Assert ($resumPdf.Contains('PDF generats') -and $resumPdf.Contains('PDF signats') -and $resumPdf.Contains('Errors')) 'resum PDF: diu els generats, els signats i els errors'
+Assert (-not $srcPdf.Contains('ObrirRegistre')) 'resum PDF: el registre ja no s''obre sol'
 
 # EL CMS SENCER, amb un certificat EFIMER creat en memoria: es prova el cicle
 # complet (crear -> igualar l'OID com l'Adobe -> comprovar -> posar-lo dins d'un

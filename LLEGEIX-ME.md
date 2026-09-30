@@ -331,42 +331,16 @@ toca cap fitxer.
 
 Botó **📄 Word a PDF**. Per defecte hi surt **l'últim informe que has generat**;
 pots triar-ne un altre o una carpeta sencera. Converteix a PDF al mateix lloc i,
-si ho marques, els signa. Hi ha **dues maneres de signar**:
+si marques **«Signar els PDF amb AutoFirma»**, els signa sols, sense clics.
 
-- **Amb l'Adobe, a mà** *(per defecte)*: l'eina obre cada PDF a l'Adobe, el
-  signes allà (com feies amb els manuals) i, quan dius que ja està, **comprova
-  que la firma hi sigui de debò**. És la **única** signatura que s'ha comprovat
-  que surt vàlida a tot arreu — també fora de l'Ajuntament — sense que el
-  receptor hagi d'instal·lar res.
-- **Amb AutoFirma, automàtica**: sense clics, amb el caixetí alineat amb la
-  capçalera. Tècnicament és una signatura perfecta (idèntica a la de l'Adobe,
-  comprovat byte a byte), però hi ha ordinadors on l'Adobe no es refia de
-  l'entitat emissora i la mostra com a «desconeguda». Fes-la servir per a
-  documents interns, o quan els receptors tinguin la confiança amb l'AOC
-  instal·lada (`suport/Confiar-certificats-AOC.bat`).
-
-El text del caixetí és editable a les opcions. Allà mateix hi ha la casella
-**«Obrir el registre de la signatura en acabar»**: normalment la vols desmarcada;
-marca-la si el caixetí no surt i vols veure què s'ha enviat a l'AutoFirma.
-
-> **La signatura es valida a QUALSEVOL ordinador.** L'AutoFirma munta el PDF i
-> el programa li refà la signatura de dins amb la mateixa forma que la fa
-> l'Adobe, que és l'única que es validava a tot arreu. Per això **has de triar
-> el teu certificat al desplegable**: si hi deixes «(triar-lo a AutoFirma en
-> signar)», el programa no sap quin és i no la pot refer — i ara **t'avisa
-> abans de començar** si et passa.
->
-> **Com saps que ha anat bé:** el resum del final ha de dir
-> **«N amb la signatura REFETA I COMPROVADA»**. La comprovació és de debò: la
-> signatura nova es verifica criptogràficament abans d'escriure-la al fitxer.
-> Si el resum no ho diu, la signatura s'ha quedat com la feia l'AutoFirma i el
-> registre explica per què. Si dius que sí i tot i així en un altre ordinador
-> surt «desconeguda», passa'm el PDF signat i el registre.
->
-> El que ho deixaria resolt per sempre és afegir-hi un **segell de temps**, i
-> per això cal demanar a Informàtica de l'Ajuntament la **URL del servei de
-> segellat de temps (TSA)** que fan servir. Amb aquella adreça és afegir-la a
-> les opcions i llestos.
+- **Tria el teu certificat al desplegable.** Així la signatura es valida a
+  qualsevol ordinador. Si hi deixes «(triar-lo a AutoFirma en signar)», el
+  programa t'avisa abans de començar, perquè aleshores només seria vàlida en
+  aquest ordinador.
+- **Signatura visible**: posa el caixetí a dalt a la dreta de la primera pàgina.
+- En acabar et diu quants PDF ha generat, quants ha signat i els errors, si n'hi
+  ha. Si alguna vegada cal saber què ha passat amb una signatura, hi ha un
+  registre a `local\base-dades-activitats\pdf-signar-log.txt`.
 
 ### Seguiment (fila GIA)
 
