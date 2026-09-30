@@ -883,3 +883,19 @@ què passa i on; canviar un requeriment es fa llegint la norma.
   - La revisió mira la vigència del Portal Jurídic primer a les metadades ELI
     (`_RevEstatEli`: `InForce-inForce` / `notInForce` / `partiallyInForce`) i a
     la pàgina del servidor; l'Edge només si no ho diuen.
+- **Cinquena ronda** (índex de la segona passada de l'usuari: 207 baixades, 54
+  errors). Les del Portal Jurídic que es van baixar ho van fer **amb l'Edge**
+  (el DOM dibuixat): el número de versió no surt sense navegador. El que va
+  fallar: la pàgina del **CIDO** va penjar l'Edge i, com que la retirada era
+  global, **34 normes del Portal Jurídic** que venien darrere no el van poder
+  fer servir. Ara la retirada és **per servidor** (`$Script:NormativaEdgeKO`
+  és un hashtable; del tot només si es penja amb 3 webs diferents).
+  - Els reglaments europeus: **EUR-Lex no deixa baixar fora d'un navegador**
+    (torna una pàgina de comprovació). Els cinc que tenen la fitxa `DOUE-L` al
+    BOE (marcadors de l'usuari) es baixen d'allà; el 2016/679 i el 2017/745
+    segueixen a EUR-Lex (no tinc el seu `DOUE-L` i un de fals baixaria un altre
+    reglament amb el seu nom).
+  - BOE sense text consolidat (RD 1002/2002): si la pàgina `/con` no dona
+    l'identificador, es prova l'ELI sense `/con`.
+  - L'índex diu **per quin camí** s'ha baixat cada una (`Baixada (PDF de la
+    pàgina, amb l'Edge)`…), per poder-ho diagnosticar sense l'estat.

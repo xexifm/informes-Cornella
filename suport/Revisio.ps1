@@ -162,7 +162,7 @@ function Invoke-RevisioRequeriments {
             # 3. VIGENCIA
             if ($chk.Vigencia.Checked -and -not $ui.Cancel) {
                 & $fn.Log "3. Vigència de la normativa..."
-                $Script:NormativaEdgeKO = $false
+                $Script:NormativaEdgeKO = @{}
                 $Script:NormativaPjurCache = @{}
                 $normes = @(Get-NormativaCataleg | Where-Object { -not $_.Guia -and -not $_.Colleccio -and -not $_.Derogada -and [string]$_.Url })
                 $punts = @{}

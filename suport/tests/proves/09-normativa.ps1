@@ -151,7 +151,10 @@ Assert (-not ($nmMeta -contains 'https://portaljuridic.gencat.cat/x/pdf')) 'Port
 $nmSrcN = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'Normativa.ps1'))
 Assert ($nmSrcN -match "informes-normativa-edge-' \+ \[guid\]") 'Edge: un perfil NOU a cada crida (un de compartit el bloquejava el que es penjava)'
 Assert ($nmSrcN.Contains("'/T', '/F', '/PID'")) 'Edge: si es penja, es mata tot l''arbre de processos'
-Assert ($nmSrcN.Contains('if ($Script:NormativaEdgeKO) { throw')) 'Edge: penjat un cop, no es torna a fer servir en aquella passada'
+Assert ($nmSrcN.Contains('if ($Script:NormativaEdgeKO.ContainsKey($host1)) { throw')) 'Edge: penjat amb una web, no es torna a fer servir AMB AQUELLA WEB en la passada'
+Assert ($nmSrcN.Contains('$Script:NormativaEdgeKO[$host1] = $true') -and -not $nmSrcN.Contains('$Script:NormativaEdgeKO = $true')) 'Edge: el penjament del CIDO ja no deixa sense Edge el Portal Juridic (abans 34 normes van fallar per aixo)'
+AssertEq (_NormativaHostDe 'https://portaljuridic.gencat.cat/eli/es-ct/l/2010/02/18/3') 'portaljuridic.gencat.cat' 'Edge: el servidor d''un URL'
+AssertEq (_NormativaFont 'https://www.boe.es/buscar/doc.php?id=DOUE-L-2004-81035') 'web' 'reglaments europeus: la pagina del BOE (EUR-Lex no deixa baixar fora d''un navegador) i el seu boto PDF'
 $nmIdxBw = $nmSrcN.IndexOf('function _NormativaBaixaWeb')
 Assert ($nmSrcN.IndexOf('_NormativaFontsPjur', $nmIdxBw) -lt $nmSrcN.IndexOf('_NormativaDomEdge', $nmIdxBw)) 'Portal Juridic: primer sense navegador, l''Edge nomes al final'
 

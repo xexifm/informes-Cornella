@@ -44,12 +44,22 @@ function _NormativaEdgeExe {
 #     els que venien darrere;
 #   - si no acaba, es mata TOT l'arbre de processos (taskkill /T), no nomes el
 #     primer: els fills eren els que es quedaven vius;
-#   - si es penja UN cop, en aquella passada ja no es torna a fer servir
-#     ($Script:NormativaEdgeKO): val mes una norma amb error que una hora d'espera.
-$Script:NormativaEdgeKO = $false
+#   - si es penja amb una WEB, en aquella passada ja no s'hi torna a fer servir
+#     amb aquella web ($Script:NormativaEdgeKO, per servidor). Primer era per a
+#     totes: la pagina del CIDO el va penjar i les 34 normes del Portal Juridic
+#     que venien darrere -on l'Edge anava be- van fallar totes. Si es penja amb
+#     $Script:NormativaEdgeMaxKO webs diferents, llavors si que es deixa del tot.
+$Script:NormativaEdgeKO = @{}
+$Script:NormativaEdgeMaxKO = 3
 
-function _NormativaEdge([string[]]$argv, [int]$segons, [string]$sortida = '') {
-    if ($Script:NormativaEdgeKO) { throw "L'Edge no respon en aquest ordinador (s'ha deixat de fer servir en aquesta passada)." }
+function _NormativaHostDe([string]$url) {
+    try { return (New-Object System.Uri($url)).Host.ToLowerInvariant() } catch { return '' }
+}
+
+function _NormativaEdge([string[]]$argv, [int]$segons, [string]$url, [string]$sortida = '') {
+    $host1 = _NormativaHostDe $url
+    if ($Script:NormativaEdgeKO.Count -ge $Script:NormativaEdgeMaxKO) { throw "L'Edge no respon en aquest ordinador (s'ha deixat de fer servir en aquesta passada)." }
+    if ($Script:NormativaEdgeKO.ContainsKey($host1)) { throw ("L'Edge es va penjar amb " + $host1 + " (en aquesta passada ja no s'hi torna a provar).") }
     $edge = _NormativaEdgeExe
     if (-not $edge) { throw "No trobo l'Edge ni el Chrome." }
     $perfil = Join-Path $env:TEMP ('informes-normativa-edge-' + [guid]::NewGuid().ToString('N'))
@@ -60,8 +70,8 @@ function _NormativaEdge([string[]]$argv, [int]$segons, [string]$sortida = '') {
              else { Start-Process -FilePath $edge -ArgumentList $tots -WindowStyle Hidden -PassThru }
         if (-not $p.WaitForExit($segons * 1000)) {
             try { Start-Process -FilePath 'taskkill.exe' -ArgumentList @('/T', '/F', '/PID', [string]$p.Id) -WindowStyle Hidden -Wait | Out-Null } catch { }
-            $Script:NormativaEdgeKO = $true
-            throw ("L'Edge no ha acabat en " + $segons + " segons (no es tornarà a fer servir en aquesta passada).")
+            $Script:NormativaEdgeKO[$host1] = $true
+            throw ("L'Edge no ha acabat en " + $segons + " segons amb " + $host1 + ".")
         }
     } finally {
         Start-Sleep -Milliseconds 300
@@ -72,7 +82,7 @@ function _NormativaEdge([string[]]$argv, [int]$segons, [string]$sortida = '') {
 # Imprimeix una pagina web a PDF.
 function _NormativaImprimeix([string]$url, [string]$desti) {
     if (Test-Path -LiteralPath $desti) { Remove-Item -LiteralPath $desti -Force }
-    _NormativaEdge @('--no-pdf-header-footer', '--virtual-time-budget=20000', ('--print-to-pdf="' + $desti + '"'), ('"' + $url + '"')) 60
+    _NormativaEdge @('--no-pdf-header-footer', '--virtual-time-budget=20000', ('--print-to-pdf="' + $desti + '"'), ('"' + $url + '"')) 60 $url
     if (-not (Test-Path -LiteralPath $desti)) { throw "L'Edge no ha generat el PDF." }
     $b = [System.IO.File]::ReadAllBytes($desti)
     if (-not (_NormativaEsPdf $b)) { throw "L'Edge no ha generat un PDF vàlid." }
@@ -86,7 +96,7 @@ function _NormativaImprimeix([string]$url, [string]$desti) {
 function _NormativaDomEdge([string]$url) {
     $sortida = Join-Path $env:TEMP ('normativa-dom-' + [guid]::NewGuid().ToString('N') + '.html')
     try {
-        _NormativaEdge @('--virtual-time-budget=15000', '--dump-dom', ('"' + $url + '"')) 45 $sortida
+        _NormativaEdge @('--virtual-time-budget=15000', '--dump-dom', ('"' + $url + '"')) 45 $url $sortida
         if (-not (Test-Path -LiteralPath $sortida)) { return '' }
         return [System.IO.File]::ReadAllText($sortida, [System.Text.Encoding]::UTF8)
     } catch { return '' }
@@ -155,7 +165,7 @@ function _NormativaBaixaWeb([string]$url, [string]$tmp) {
             [void]$provats.Add($c)
             try {
                 $b = _NormativaGetBytes $c $tmp
-                if (_NormativaEsPdf $b) { return @{ Bytes = $b; Via = 'PDF de la pàgina' } }
+                if (_NormativaEsPdf $b) { return @{ Bytes = $b; Via = $(if ($font -eq 'edge') { 'PDF de la pàgina, amb l''Edge' } else { 'PDF de la pàgina' }) } }
             } catch { }
         }
     }
@@ -174,10 +184,16 @@ function _NormativaBaixaUna($e, [string]$dir, $est, [bool]$forca) {
         $versio = ''
         $pdfUrl = ''
         $bytes = $null
-        $via = 'BOE'
+        $via = 'PDF'
         if ($font -eq 'boe') {
             $pag = _NormativaGet ([string]$e.Url)
             $info = _NormativaBoeInfo ([string]$pag.Content)
+            # Una norma SENSE text consolidat (RD 1002/2002) no te pagina /con:
+            # l'ELI sense el /con porta a la publicacio original.
+            if (-not $info.Id -and ([string]$e.Url) -match '/con/?$') {
+                $pag = _NormativaGet (([string]$e.Url) -replace '/con/?$', '')
+                $info = _NormativaBoeInfo ([string]$pag.Content)
+            }
             if (-not $info.Id) { throw "La pàgina del BOE no diu l'identificador de la norma." }
             $versio = [string]$info.Versio
             $motiu = _NormativaCalBaixar $est $existeix $versio (Get-Date) $forca
@@ -294,7 +310,7 @@ function _NormativaBaixaColleccio($e, [string]$dir, $estat, [bool]$forca, $log) 
 # norma (la barra); $cancel diu si s'ha d'aturar. Desa l'estat i l'index.
 function Invoke-NormativaBaixada($normes, [string]$dir, [bool]$forca, $log, $pas = $null, $cancel = $null) {
     _NormativaPreparaXarxa
-    $Script:NormativaEdgeKO = $false
+    $Script:NormativaEdgeKO = @{}
     $Script:NormativaPjurCache = @{}
     $estat = _NormativaLlegeixEstat $dir
     $n = @{ Noves = 0; Act = 0; Igual = 0; Err = 0; Man = 0 }

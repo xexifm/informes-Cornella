@@ -536,6 +536,7 @@ function _NormativaFilesIndex($normes, $estat, $punts, $existeix) {
         $est = if ($null -ne $estat -and $estat.ContainsKey($id)) { $estat[$id] } else { $null }
         $hi = [bool](& $existeix $nom)
         $resultat = if ($hi -and $null -ne $est -and [string]$est.Via -eq 'pàgina impresa') { 'Baixada (pàgina desada com a PDF: no s''ha trobat el PDF de la norma)' }
+                    elseif ($hi -and $null -ne $est -and [string]$est.Via -and [string]$est.Via -ne 'PDF') { 'Baixada (' + [string]$est.Via + ')' }
                     elseif ($hi) { 'Baixada' }
                     elseif ((_NormativaFont ([string]$e.Url)) -eq 'manual') { "Sense enllaç: desa-la a mà amb aquest nom" }
                     elseif ($null -ne $est -and $est.Error) { 'Error: ' + [string]$est.Error }
