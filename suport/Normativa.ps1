@@ -56,6 +56,55 @@ function _NormativaImprimeix([string]$url, [string]$desti) {
     return $b
 }
 
+# EL DOM DE LA PAGINA JA DIBUIXADA (--dump-dom), per trobar-hi el boto "PDF":
+# el Portal Juridic munta la pagina amb JavaScript, i el que torna el servidor
+# sense executar-lo no porta l'enllac.
+function _NormativaDomEdge([string]$url) {
+    $edge = _NormativaEdgeExe
+    if (-not $edge) { return '' }
+    $perfil = Join-Path $env:TEMP 'informes-normativa-edge'
+    $sortida = Join-Path $env:TEMP ('normativa-dom-' + [guid]::NewGuid().ToString('N') + '.html')
+    try {
+        $argv = @('--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check',
+                  '--virtual-time-budget=20000', ('--user-data-dir="' + $perfil + '"'), '--dump-dom', ('"' + $url + '"'))
+        $p = Start-Process -FilePath $edge -ArgumentList $argv -WindowStyle Hidden -PassThru -RedirectStandardOutput $sortida
+        if (-not $p.WaitForExit(90000)) { try { $p.Kill() } catch { }; return '' }
+        if (-not (Test-Path -LiteralPath $sortida)) { return '' }
+        return [System.IO.File]::ReadAllText($sortida, [System.Text.Encoding]::UTF8)
+    } catch { return '' }
+    finally { try { if (Test-Path -LiteralPath $sortida) { Remove-Item -LiteralPath $sortida -Force } } catch { } }
+}
+
+# UNA NORMA QUE NO ES DEL BOE, per ordre de preferencia:
+#   1. l'URL ja es el PDF (EUR-Lex, CTE, guies, la Diputacio...);
+#   2. el boto "PDF" de la pagina (Portal Juridic, BOPB, CIDO): primer al que
+#      torna el servidor i, si no hi es, a la pagina dibuixada per l'Edge;
+#   3. si no n'hi ha cap, la pagina impresa a PDF.
+# Torna @{ Bytes; Via } (Via ho diu a l'index: si surt "pagina impresa" es que
+# no s'ha trobat el PDF de debo).
+function _NormativaBaixaWeb([string]$url, [string]$tmp) {
+    $html = ''
+    try {
+        $r = Invoke-WebRequest -Uri $url -UseBasicParsing -UserAgent $Script:NormativaUA -TimeoutSec 60 -MaximumRedirection 10 -UseDefaultCredentials -OutFile $tmp -PassThru -ErrorAction Stop
+        $b = [System.IO.File]::ReadAllBytes($tmp)
+        if (_NormativaEsPdf $b) { return @{ Bytes = $b; Via = 'PDF' } }
+        $html = [System.Text.Encoding]::UTF8.GetString($b)
+    } catch { $html = '' }
+    $provats = New-Object System.Collections.ArrayList
+    foreach ($font in @('servidor', 'edge')) {
+        if ($font -eq 'edge') { $html = _NormativaDomEdge $url }
+        foreach ($c in @(_NormativaPdfsDeHtml $html $url | Select-Object -First 4)) {
+            if ($provats.Contains($c)) { continue }
+            [void]$provats.Add($c)
+            try {
+                $b = _NormativaGetBytes $c $tmp
+                if (_NormativaEsPdf $b) { return @{ Bytes = $b; Via = 'PDF de la pàgina' } }
+            } catch { }
+        }
+    }
+    return @{ Bytes = (_NormativaImprimeix $url $tmp); Via = 'pàgina impresa' }
+}
+
 # Baixa UNA norma. Torna @{ Fet (s'ha escrit un fitxer); Versio; Error; Motiu }.
 function _NormativaBaixaUna($e, [string]$dir, $est, [bool]$forca) {
     $nom = _NormativaNomFitxer $e
@@ -68,6 +117,7 @@ function _NormativaBaixaUna($e, [string]$dir, $est, [bool]$forca) {
         $versio = ''
         $pdfUrl = ''
         $bytes = $null
+        $via = 'BOE'
         if ($font -eq 'boe') {
             $pag = _NormativaGet ([string]$e.Url)
             $info = _NormativaBoeInfo ([string]$pag.Content)
@@ -84,15 +134,9 @@ function _NormativaBaixaUna($e, [string]$dir, $est, [bool]$forca) {
         } else {
             $motiu = _NormativaCalBaixar $est $existeix '' (Get-Date) $forca
             if (-not $motiu) { return @{ Fet = $false; Versio = ''; Error = ''; Motiu = '' } }
-            if ($font -eq 'pdf') {
-                $bytes = $null
-                try { $bytes = _NormativaGetBytes ([string]$e.Url) $tmp } catch { $bytes = $null }
-                # Alguns servidors (EUR-Lex) tornen una pagina de comprovacio en
-                # lloc del PDF a un client que no es un navegador: llavors s'obre
-                # amb l'Edge, que si que hi passa.
-                if (-not (_NormativaEsPdf $bytes)) { $bytes = _NormativaImprimeix ([string]$e.Url) $tmp }
-            }
-            else { $bytes = _NormativaImprimeix ([string]$e.Url) $tmp }
+            $w = _NormativaBaixaWeb ([string]$e.Url) $tmp
+            $bytes = $w.Bytes
+            $via = [string]$w.Via
         }
         if (-not (_NormativaEsPdf $bytes)) { throw "El que s'ha baixat no és un PDF." }
         # LA VERSIO ANTERIOR ES GUARDA si de debo es una altra: la del BOE, quan
@@ -111,7 +155,7 @@ function _NormativaBaixaUna($e, [string]$dir, $est, [bool]$forca) {
             }
         }
         Move-Item -LiteralPath $tmp -Destination $desti -Force
-        return @{ Fet = $true; Versio = $versio; Error = ''; Motiu = $motiu; Mida = [long]$bytes.Length }
+        return @{ Fet = $true; Versio = $versio; Error = ''; Motiu = $motiu; Mida = [long]$bytes.Length; Via = $via }
     } catch {
         return @{ Fet = $false; Versio = ''; Error = [string]$_.Exception.Message; Motiu = 'error' }
     } finally {
@@ -239,7 +283,7 @@ function Invoke-Normativa {
                     }
                     default  {
                         if ($r.Motiu -eq 'nova') { $n.Noves++; & $fn.Log ('Nova   ' + $id) } else { $n.Act++; & $fn.Log ('Actualitzada  ' + $id) }
-                        $estat[$id] = @{ Versio = [string]$r.Versio; Baixat = $ara; Error = ''; Mida = [long]$r.Mida }
+                        $estat[$id] = @{ Versio = [string]$r.Versio; Baixat = $ara; Error = ''; Mida = [long]$r.Mida; Via = [string]$r.Via }
                     }
                 }
                 $bar.Value = [Math]::Min($bar.Maximum, $bar.Value + 1)

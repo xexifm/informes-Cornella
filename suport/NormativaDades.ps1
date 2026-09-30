@@ -203,6 +203,46 @@ function _NormativaBoeInfo([string]$html) {
     return @{ Id = $id; Versio = $versio; Original = $orig }
 }
 
+# ELS ENLLACOS A UN PDF D'UNA PAGINA (el boto "PDF" del Portal Juridic, el de
+# la BOPB...), del mes probable al menys. PURA.
+#   3  el text de l'enllac es "PDF" (el boto de "Descarrega  PDF  RDF  XML")
+#   2  l'adreca acaba en .pdf o porta format=pdf
+#   1  hi surt "pdf" en algun atribut
+# Fora: RDF/TTL/XML (les altres descarregues del mateix bloc) i el RESUM fet
+# amb IA del Portal Juridic ("Descarrega (CA)"), que no es la norma.
+function _NormativaPdfsDeHtml([string]$html, [string]$base) {
+    if ([string]::IsNullOrWhiteSpace($html)) { return [string[]]@() }
+    $cands = New-Object System.Collections.ArrayList
+    foreach ($m in [regex]::Matches($html, '(?is)<a\b([^>]*)>(.*?)</a>')) {
+        $attrs = $m.Groups[1].Value
+        $mh = [regex]::Match($attrs, '(?i)\bhref\s*=\s*["'']([^"'']+)["'']')
+        if (-not $mh.Success) { continue }
+        $href = [System.Net.WebUtility]::HtmlDecode($mh.Groups[1].Value).Trim()
+        if ($href -match '^(?i)(javascript:|#|mailto:)') { continue }
+        $text = [System.Net.WebUtility]::HtmlDecode(([regex]::Replace($m.Groups[2].Value, '<[^>]+>', ' '))) -replace '\s+', ' '
+        $text = $text.Trim()
+        $tot = ($attrs + ' ' + $text + ' ' + $href)
+        if ($href -match '(?i)\.(rdf|ttl|xml|docx?|xlsx?)([?#]|$)' -or $href -match '(?i)[?&](format|output|tipus)=(rdf|ttl|xml)') { continue }
+        if ($tot -match '(?i)resum|resumen|\(ca\)|\(es\)') { continue }
+        $punts = 0
+        if ($text -match '^(?i)(descarrega\s+)?pdf$' -or $attrs -match '(?i)(title|aria-label)\s*=\s*["''](descarrega\s+)?pdf["'']') { $punts = 3 }
+        elseif ($href -match '(?i)\.pdf([?#/]|$)' -or $href -match '(?i)[?&](format|output|tipus|type)=pdf') { $punts = 2 }
+        elseif ($tot -match '(?i)pdf') { $punts = 1 }
+        if ($punts -eq 0) { continue }
+        $abs = $href
+        try { $abs = (New-Object System.Uri((New-Object System.Uri($base)), $href)).AbsoluteUri } catch { }
+        [void]$cands.Add([pscustomobject]@{ Url = $abs; Punts = $punts; Ordre = $cands.Count })
+    }
+    $vist = @{}
+    $out = New-Object System.Collections.ArrayList
+    foreach ($c in @($cands | Sort-Object -Property @{ Expression = 'Punts'; Descending = $true }, @{ Expression = 'Ordre'; Descending = $false })) {
+        if ($vist.ContainsKey($c.Url)) { continue }
+        $vist[$c.Url] = $true
+        [void]$out.Add([string]$c.Url)
+    }
+    return [string[]]@($out)
+}
+
 function _NormativaBoePdfConsolidat([string]$id) {
     $m = [regex]::Match([string]$id, '^BOE-A-(\d{4})-\d+$')
     if (-not $m.Success) { return '' }
@@ -354,7 +394,8 @@ function _NormativaFilesIndex($normes, $estat, $punts, $existeix) {
         $nom = _NormativaNomFitxer $e
         $est = if ($null -ne $estat -and $estat.ContainsKey($id)) { $estat[$id] } else { $null }
         $hi = [bool](& $existeix $nom)
-        $resultat = if ($hi) { 'Baixada' }
+        $resultat = if ($hi -and $null -ne $est -and [string]$est.Via -eq 'pàgina impresa') { 'Baixada (pàgina desada com a PDF: no s''ha trobat el PDF de la norma)' }
+                    elseif ($hi) { 'Baixada' }
                     elseif ((_NormativaFont ([string]$e.Url)) -eq 'manual') { "Sense enllaç: desa-la a mà amb aquest nom" }
                     elseif ($null -ne $est -and $est.Error) { 'Error: ' + [string]$est.Error }
                     else { 'Pendent' }
@@ -363,13 +404,14 @@ function _NormativaFilesIndex($normes, $estat, $punts, $existeix) {
         $pp = if ($null -ne $punts -and $punts.ContainsKey($id)) { (@($punts[$id]) -join '; ') } else { '' }
         [void]$out.Add(@(
             [string]$e.Ambit, [string]$e.Tema, ([string]$e.Tipus + ' ' + [string]$e.Num), [string]$e.Titol,
-            $(if ($e.Derogada) { 'Derogada' } else { 'Vigent' }),
+            $(if ($e.Guia) { $(if ($e.Derogada) { 'Guia (antiga)' } else { 'Guia' }) } elseif ($e.Derogada) { 'Derogada' } else { 'Vigent' }),
             $fitxer, $web,
             $(if ($null -ne $est) { [string]$est.Versio } else { '' }),
             $(if ($null -ne $est -and $est.Baixat) { try { ([datetime]::Parse([string]$est.Baixat, [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::RoundtripKind)).ToString('dd/MM/yyyy') } catch { '' } } else { '' }),
             $resultat, $pp))
     }
-    return $out.ToArray()
+    # Amb la coma: una sola norma tornaria la fila desfeta en cel·les.
+    return ,$out.ToArray()
 }
 
 $Script:NormativaCapcaleraIndex = @('Àmbit', 'Tema', 'Norma', 'Títol', 'Estat', 'Fitxer', 'Web', 'Versió (BOE)', 'Baixada el', 'Resultat', 'Punts de REQ1')
@@ -384,7 +426,7 @@ function _NormativaLlegeixEstat([string]$dir) {
     if ($null -eq $o) { return $h }
     foreach ($p in @($o.PSObject.Properties)) {
         $v = $p.Value
-        $h[[string]$p.Name] = @{ Versio = [string]$v.Versio; Baixat = [string]$v.Baixat; Error = [string]$v.Error; Mida = [long]$v.Mida }
+        $h[[string]$p.Name] = @{ Versio = [string]$v.Versio; Baixat = [string]$v.Baixat; Error = [string]$v.Error; Mida = [long]$v.Mida; Via = [string]$v.Via }
     }
     return $h
 }

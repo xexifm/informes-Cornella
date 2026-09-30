@@ -869,7 +869,7 @@ AJUDA|Competencia: Departament de Salut. L’Ajuntament comprova que el registre
 AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|84.|Farmàcies i indústria farmacèutica. S’ha de presentar la sol·licitud d’obertura concedida pel Col·legi Oficial de Farmacèutics de Barcelona.
-AJUDA|Norma: Llei 31/1991, del 13 de desembre, d’ordenació farmacèutica de Catalunya. Desplegament: Decret 40/2006
+AJUDA|Norma: Llei 31/1991, del 13 de desembre, d’ordenació farmacèutica de Catalunya. Desplegament: Decret 40/1992
 URL|https://portaljuridic.gencat.cat/eli/es-ct/l/1991/12/13/31
 AJUDA|Criteri: L’obertura d’oficina de farmàcia té règim propi d’autorització sanitària i de planificació territorial: l’Ajuntament NO pot condicionar-la ni substituir-la per una llicència d’activitat. Aquí només es comprova que l’autorització existeix.
 AJUDA|Vigencia: Inscripció: una sola vegada. S’ha d’actualitzar amb el canvi de titular, d’adreça o d’activitat.

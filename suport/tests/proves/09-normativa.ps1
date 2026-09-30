@@ -89,6 +89,33 @@ AssertEq (_NormativaBoeInfo '<p>sense res</p>').Versio '' 'BOE: una pagina sense
 Assert (_NormativaEsPdf ([byte[]](0x25, 0x50, 0x44, 0x46, 0x2D))) 'PDF: %PDF- es un PDF'
 Assert (-not (_NormativaEsPdf ([System.Text.Encoding]::ASCII.GetBytes('<html>')))) 'PDF: una pagina d''error no ho es'
 
+Write-Host "`n--- el boto PDF d'una pagina (Portal Juridic, BOPB) ---"
+# Com el de la captura de l'usuari: "Descarrega  PDF  RDF  TTL  XML", i al
+# costat el resum fet amb IA, que NO es la norma.
+$nmPj = @'
+<div class="resum"><a href="/documents/resum-ia-ca.pdf">Descarrega (CA)</a> <a href="/documents/resum-ia-es.pdf">Descarga (ES)</a></div>
+<span>Descarrega</span>
+<a class="pdf" href="/ca/document-del-pjur/?documentId=547998&amp;format=pdf"><img alt=""> PDF</a>
+<a href="/eli/es-ct/l/2010/02/18/3/rdf">RDF</a> <a href="/eli/es-ct/l/2010/02/18/3/ttl">TTL (Turtle)</a> <a href="/eli/es-ct/l/2010/02/18/3/xml">XML</a>
+<a href="https://altra.cat/guia.pdf">guia relacionada</a>
+'@
+$nmCands = @(_NormativaPdfsDeHtml $nmPj 'https://portaljuridic.gencat.cat/eli/es-ct/l/2010/02/18/3')
+AssertEq ([string]$nmCands[0]) 'https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=547998&format=pdf' 'PDF de la pagina: primer el boto "PDF", amb l''adreca completa'
+Assert (-not (@($nmCands) -match 'resum')) 'PDF de la pagina: mai el resum fet amb IA'
+Assert (-not (@($nmCands) -match '/(rdf|ttl|xml)$')) 'PDF de la pagina: ni RDF, TTL o XML'
+AssertEq @(_NormativaPdfsDeHtml '' 'https://x.cat/').Count 0 'PDF de la pagina: sense HTML, cap'
+AssertEq @(_NormativaPdfsDeHtml '<a href="javascript:void(0)">PDF</a>' 'https://x.cat/').Count 0 'PDF de la pagina: un boto de JavaScript no serveix'
+
+Write-Host "`n--- guies i manuals ---"
+$nmGuies = @($nmNormes | Where-Object { $_.Guia })
+Assert ($nmGuies.Count -ge 20) ('guies: hi son les dels marcadors (' + $nmGuies.Count + ')')
+AssertEq (@($nmGuies | Where-Object { [string]$_.Tema -ne 'Guies' } | ForEach-Object { $_.Id }) -join ', ') '' 'guies: totes al tema Guies de cada ambit'
+$nmFg = _NormativaFilesIndex @($nmGuies[0]) @{} @{} { param($n) $false }
+AssertEq ([string]@($nmFg)[0][4]) $(if ($nmGuies[0].Derogada) { 'Guia (antiga)' } else { 'Guia' }) 'guies: a l''index surten com a Guia, no com a norma vigent'
+AssertEq (@($nmNormes | Where-Object { (_NormativaFont ([string]$_.Url)) -eq 'manual' } | ForEach-Object { $_.Id }) -join ', ') '' 'cataleg: ja no n''hi ha cap sense enllac (les dues ordenances ja en tenen)'
+AssertEq ([string](_NormativaBuscaEnText $nmNormes 'Llei 31/1991, del 13 de desembre. Desplegament: Decret 40/1992').Id) 'Llei 31/1991' 'REQ1: farmacies, amb el Decret 40/1992 (la fitxa deia 40/2006)'
+Assert (-not ([System.IO.File]::ReadAllText((Join-Path $EstructuralsDir 'REQ1.json')).Contains('Decret 40/2006'))) 'REQ1: el Decret 40/2006 (que no existeix per a farmacies) ja no hi es'
+
 Write-Host "`n--- quan s'ha de tornar a baixar (actualitzar sola) ---"
 $nmAra = [datetime]'2026-09-30T10:00:00'
 AssertEq (_NormativaCalBaixar $null $false '' $nmAra $false) 'nova' 'actualitzar: si no hi es, es baixa'

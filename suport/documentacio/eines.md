@@ -805,3 +805,22 @@ l'enllaç des de la fitxa d'ajuda.
   fitxa d'ajuda de REQ1 és al catàleg** (validada traient el Decret 197/2016).
   El punt nou de tatuatge **no té fitxa d'ajuda**, o sigui que aquesta prova no
   el mira; el Decret 90/2008 hi és igualment (és als marcadors).
+- **Segona ronda (setembre 2026)**, de l'usuari:
+  - **El Portal Jurídic té un botó «PDF»** («Descarrega PDF RDF TTL XML»). Ara,
+    per a tot el que no és del BOE, `_NormativaBaixaWeb`: (1) si l'URL ja és un
+    PDF, aquell; (2) el **botó PDF de la pàgina** (`_NormativaPdfsDeHtml`, pura:
+    primer l'enllaç que es diu «PDF», després els `.pdf`/`format=pdf`; mai
+    RDF/TTL/XML ni el **resum fet amb IA** del costat, «Descarrega (CA)»), buscat
+    a l'HTML del servidor i, si no hi és —la pàgina es munta amb JavaScript—, al
+    DOM que torna l'Edge amb `--dump-dom`; (3) si res, la pàgina impresa. L'estat
+    apunta la **`Via`** i l'índex diu «pàgina desada com a PDF» quan s'ha hagut
+    d'imprimir: és el senyal que el PDF de la norma no s'ha trobat.
+  - Les dues normes sense enllaç ja en tenen: l'Ordenança d'activitats (anunci
+    del BOPB) i l'ordenança tipus d'olors de la Diputació (document directe).
+  - **Guies i manuals** dels marcadors (`Guia: true`, tema **Guies** de cada
+    àmbit; ~27). Fora les pàgines que són índexs de documents (industria.gob.es,
+    Interior…) i la **UNE 123001** (còpia d'una norma UNE amb drets en un blog).
+  - La fitxa de Farmàcies de REQ1 deia «Decret 40/2006»: és el **Decret
+    40/1992** (confirmat per l'usuari). Fitxer d'or de la vista refet.
+  - `_NormativaFilesIndex` tornava la fila desfeta quan només hi havia una norma
+    (`return` sense coma): ho va enxampar la prova de les guies.

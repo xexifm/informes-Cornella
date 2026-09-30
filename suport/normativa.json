@@ -294,7 +294,7 @@
    "Num": "",
    "Any": "",
    "Titol": "Contaminació odorífera",
-   "Url": "",
+   "Url": "https://www.diba.cat/documents/d/mediambient/bopb_model_ordenanca_reguladora_contaminacio_odorifera_diba",
    "Claus": [
     "contaminacio odorifera"
    ]
@@ -1063,7 +1063,7 @@
    "Num": "",
    "Any": "",
    "Titol": "Intervenció administrativa municipal en les activitats",
-   "Url": "",
+   "Url": "https://bop.diba.cat/anunci/3774883/aprovacio-definitiva-de-l-ordenanca-reguladora-de-la-intervencio-administrativa-municipal-en-les-activitats-de-cornella-de-llobregat-ajuntament-de-cornella-de-llobregat",
    "Claus": [
     "ordenanca relativa a la intervencio administrativa municipal en les activitats",
     "ordenanca municipal d’activitats"
@@ -1718,6 +1718,305 @@
    "Any": "2004",
    "Titol": "Catàleg de jocs i apostes autoritzats",
    "Url": "https://portaljuridic.gencat.cat/eli/es-ct/d/2004/03/30/240"
+  },
+  {
+   "Id": "Manual 150 preguntes sobre urbanisme (ACM)",
+   "Ambit": "Urbanisme",
+   "Tema": "Guies",
+   "Tipus": "Manual",
+   "Num": "",
+   "Any": "2019",
+   "Titol": "150 preguntes sobre urbanisme (ACM)",
+   "Url": "https://www.acm.cat/sites/default/files/publicacions/fitxers/llibre-4-socregidor_urbanisme_2019_2.pdf",
+   "Guia": true
+  },
+  {
+   "Id": "Guia Autoritzacions d’abocament (ACA)",
+   "Ambit": "Vector ambiental",
+   "Tema": "Guies",
+   "Tipus": "Guia",
+   "Num": "",
+   "Any": "",
+   "Titol": "Autoritzacions d’abocament (ACA)",
+   "Url": "https://aca.gencat.cat/web/.content/40_Tramits/gencat-tramits/Abocaments/Guia_orientativa_autoritzacions_abocament.pdf",
+   "Guia": true
+  },
+  {
+   "Id": "Fitxa Tramitació d’abocament d’aigües (Barcelona, fitxa 6.20)",
+   "Ambit": "Vector ambiental",
+   "Tema": "Guies",
+   "Tipus": "Fitxa",
+   "Num": "",
+   "Any": "",
+   "Titol": "Tramitació d’abocament d’aigües (Barcelona, fitxa 6.20)",
+   "Url": "https://bcnroc.ajuntament.barcelona.cat/jspui/bitstream/11703/117653/1/GuiaT%C3%A8cnica_fitxa_AbocamentAig%C3%BCes.pdf",
+   "Guia": true
+  },
+  {
+   "Id": "Manual Gestió de residus industrials a Catalunya (ARC)",
+   "Ambit": "Vector ambiental",
+   "Tema": "Guies",
+   "Tipus": "Manual",
+   "Num": "",
+   "Any": "",
+   "Titol": "Gestió de residus industrials a Catalunya (ARC)",
+   "Url": "https://residus.gencat.cat/web/.content/home/ambits_dactuacio/tipus_de_residu/residus_industrials/gestors/manual.pdf",
+   "Guia": true
+  },
+  {
+   "Id": "Taula Codis CER de residus (INE)",
+   "Ambit": "Vector ambiental",
+   "Tema": "Guies",
+   "Tipus": "Taula",
+   "Num": "",
+   "Any": "",
+   "Titol": "Codis CER de residus (INE)",
+   "Url": "https://iria.ine.es/iriaEstaticos/encuestas/rsc/es/Codigos_CER.pdf",
+   "Guia": true
+  },
+  {
+   "Id": "Guia Productors al Sistema Documental de Residus (SDR)",
+   "Ambit": "Vector ambiental",
+   "Tema": "Guies",
+   "Tipus": "Guia",
+   "Num": "",
+   "Any": "",
+   "Titol": "Productors al Sistema Documental de Residus (SDR)",
+   "Url": "https://sdr.arc.cat/sdr/pdf/Guia_productors_CAT.pdf",
+   "Guia": true
+  },
+  {
+   "Id": "Circular OMA Barcelona residus (APABCN 093)",
+   "Ambit": "Vector ambiental",
+   "Tema": "Guies",
+   "Tipus": "Circular",
+   "Num": "",
+   "Any": "",
+   "Titol": "OMA Barcelona residus (APABCN 093)",
+   "Url": "https://www.apabcn.cat/Documentacio/areatecnica/privat/CIRCULARS/093.pdf",
+   "Guia": true
+  },
+  {
+   "Id": "Guia Contaminants del sòl i declaració (MITECO)",
+   "Ambit": "Vector ambiental",
+   "Tema": "Guies",
+   "Tipus": "Guia",
+   "Num": "",
+   "Any": "",
+   "Titol": "Contaminants del sòl i declaració (MITECO)",
+   "Url": "https://www.miteco.gob.es/content/dam/miteco/es/calidad-y-evaluacion-ambiental/temas/suelos-contaminados/guia_tecnica_contaminantes_suelo_declaracion_suelos_tcm30-185726.pdf",
+   "Guia": true
+  },
+  {
+   "Id": "Guia Sóc una APC? Declaració responsable (ARC)",
+   "Ambit": "Vector ambiental",
+   "Tema": "Guies",
+   "Tipus": "Guia",
+   "Num": "",
+   "Any": "",
+   "Titol": "Sóc una APC? Declaració responsable (ARC)",
+   "Url": "https://sdr.arc.cat/sdr/pdf/ips/Guia_soc_APC_Declaracio_de_Responsable.pdf",
+   "Guia": true
+  },
+  {
+   "Id": "Llistat Entitats de control de contaminació acústica (EC-PCA)",
+   "Ambit": "Vector ambiental",
+   "Tema": "Guies",
+   "Tipus": "Llistat",
+   "Num": "",
+   "Any": "",
+   "Titol": "Entitats de control de contaminació acústica (EC-PCA)",
+   "Url": "https://www.gencat.cat/mediamb/oaec/epca_CA.pdf",
+   "Guia": true
+  },
+  {
+   "Id": "Resum Canvis del RITE 2021 (AFEC)",
+   "Ambit": "Instal·lacions",
+   "Tema": "Guies",
+   "Tipus": "Resum",
+   "Num": "",
+   "Any": "2021",
+   "Titol": "Canvis del RITE 2021 (AFEC)",
+   "Url": "https://www.afec.es/documentos/resumen-real-decreto-178-2021-rite-climatizacion.pdf",
+   "Guia": true
+  },
+  {
+   "Id": "Guia Guia tècnica APQ (Ministeri)",
+   "Ambit": "Instal·lacions",
+   "Tema": "Guies",
+   "Tipus": "Guia",
+   "Num": "",
+   "Any": "",
+   "Titol": "Guia tècnica APQ (Ministeri)",
+   "Url": "https://industria.gob.es/Calidad-Industrial/seguridadindustrial/instalacionesindustriales/almacenamiento-quimicos/Documents/Tercera_version_guia_APQ.doc.pdf",
+   "Guia": true
+  },
+  {
+   "Id": "Guia Emmagatzematge de productes químics (INSST)",
+   "Ambit": "Instal·lacions",
+   "Tema": "Guies",
+   "Tipus": "Guia",
+   "Num": "",
+   "Any": "",
+   "Titol": "Emmagatzematge de productes químics (INSST)",
+   "Url": "https://www.insst.es/documents/94886/679600/01+Instalaciones+de+almacenamiento+de+productos+qu%C3%ADmicos.pdf/c8ab3e3f-3d27-4332-a765-296e1c9b6000",
+   "Guia": true
+  },
+  {
+   "Id": "Guia Guia tècnica del RSCIEI 2267-2004 (antiga)",
+   "Ambit": "Incendis",
+   "Tema": "Guies",
+   "Tipus": "Guia",
+   "Num": "",
+   "Any": "2019",
+   "Titol": "Guia tècnica del RSCIEI 2267-2004 (antiga)",
+   "Url": "https://industria.gob.es/Calidad-Industrial/seguridadindustrial/instalacionesindustriales/seguridad-incendios/informacionadicional/20190218-v2.pdf",
+   "Derogada": true,
+   "Guia": true
+  },
+  {
+   "Id": "Quadre Càrregues de foc bàsic (Cepreven)",
+   "Ambit": "Incendis",
+   "Tema": "Guies",
+   "Tipus": "Quadre",
+   "Num": "",
+   "Any": "",
+   "Titol": "Càrregues de foc bàsic (Cepreven)",
+   "Url": "https://www.cepreven.com/uploads/CuadroAuxiliar.pdf",
+   "Guia": true
+  },
+  {
+   "Id": "Taula Càrregues de foc complet (Tecnifuego)",
+   "Ambit": "Incendis",
+   "Tema": "Guies",
+   "Tipus": "Taula",
+   "Num": "",
+   "Any": "",
+   "Titol": "Càrregues de foc complet (Tecnifuego)",
+   "Url": "https://www.tecnifuego.org/recursos/arxius/20100317_0955Anexo_IDES.pdf",
+   "Guia": true
+  },
+  {
+   "Id": "Guia Ajustos raonables exigibles",
+   "Ambit": "Accessibilitat",
+   "Tema": "Guies",
+   "Tipus": "Guia",
+   "Num": "",
+   "Any": "",
+   "Titol": "Ajustos raonables exigibles",
+   "Url": "https://dretssocials.gencat.cat/web/.content/03ambits_tematics/accessibilitat/Guia_per_determinar_ajustos_raonables_exigibles.pdf",
+   "Guia": true
+  },
+  {
+   "Id": "Guia Accessibilitat a l’edificació (COAATT)",
+   "Ambit": "Accessibilitat",
+   "Tema": "Guies",
+   "Tipus": "Guia",
+   "Num": "",
+   "Any": "",
+   "Titol": "Accessibilitat a l’edificació (COAATT)",
+   "Url": "https://fundacio.coaatt.org/wp-content/uploads/2012/10/Accessibilitat-edificaci%C3%B3.pdf",
+   "Guia": true
+  },
+  {
+   "Id": "Guia Evacuación accesible (Sinpromi)",
+   "Ambit": "Accessibilitat",
+   "Tema": "Guies",
+   "Tipus": "Guia",
+   "Num": "",
+   "Any": "2022",
+   "Titol": "Evacuación accesible (Sinpromi)",
+   "Url": "https://sinpromi.es/wp-content/uploads/2022/10/2022-EVACUACION-ACCESIBLE.pdf",
+   "Guia": true
+  },
+  {
+   "Id": "Taula Classificació d’activitats de la Llei 16-2015 (antiga)",
+   "Ambit": "Activitats",
+   "Tema": "Guies",
+   "Tipus": "Taula",
+   "Num": "",
+   "Any": "",
+   "Titol": "Classificació d’activitats de la Llei 16-2015 (antiga)",
+   "Url": "https://canalempresa.gencat.cat/web/.content/oge/doc/Taula_de_classificacio_dactivitats_Llei_simplificacio.pdf",
+   "Derogada": true,
+   "Guia": true
+  },
+  {
+   "Id": "Criteris Registre d’establiments minoristes d’alimentació (DIBA)",
+   "Ambit": "Sanitat",
+   "Tema": "Guies",
+   "Tipus": "Criteris",
+   "Num": "",
+   "Any": "",
+   "Titol": "Registre d’establiments minoristes d’alimentació (DIBA)",
+   "Url": "https://www.diba.cat/c/document_library/get_file?uuid=2b7c167f-cf4b-452d-a8a4-acb2f8d90b17&groupId=713456",
+   "Guia": true
+  },
+  {
+   "Id": "Quadre Salut alimentària (Canal Empresa)",
+   "Ambit": "Sanitat",
+   "Tema": "Guies",
+   "Tipus": "Quadre",
+   "Num": "",
+   "Any": "",
+   "Titol": "Salut alimentària (Canal Empresa)",
+   "Url": "https://canalempresa.gencat.cat/web/.content/oge/doc/QUADRE_Salut_Alimentaria.pdf",
+   "Guia": true
+  },
+  {
+   "Id": "Infografia Terrasses i tabac (Ministeri)",
+   "Ambit": "Sanitat",
+   "Tema": "Guies",
+   "Tipus": "Infografia",
+   "Num": "",
+   "Any": "",
+   "Titol": "Terrasses i tabac (Ministeri)",
+   "Url": "https://www.sanidad.gob.es/areas/promocionPrevencion/tabaco/ciudadania/docs/Infografia_Terrazas.pdf",
+   "Guia": true
+  },
+  {
+   "Id": "Pla especial Associacions de cànnabis (Barcelona)",
+   "Ambit": "Sanitat",
+   "Tema": "Guies",
+   "Tipus": "Pla especial",
+   "Num": "",
+   "Any": "2016",
+   "Titol": "Associacions de cànnabis (Barcelona)",
+   "Url": "https://bcnroc.ajuntament.barcelona.cat/jspui/bitstream/11703/97427/1/plaeurbort_2016.pdf",
+   "Guia": true
+  },
+  {
+   "Id": "Quadre Establiments comercials (Canal Empresa)",
+   "Ambit": "Comerç",
+   "Tema": "Guies",
+   "Tipus": "Quadre",
+   "Num": "",
+   "Any": "",
+   "Titol": "Establiments comercials (Canal Empresa)",
+   "Url": "https://canalempresa.gencat.cat/web/.content/oge/doc/quadre_establiments_comercials.pdf",
+   "Guia": true
+  },
+  {
+   "Id": "Full tècnic Vestidors (Consell Català de l’Esport)",
+   "Ambit": "Esport",
+   "Tema": "Guies",
+   "Tipus": "Full tècnic",
+   "Num": "",
+   "Any": "",
+   "Titol": "Vestidors (Consell Català de l’Esport)",
+   "Url": "https://esport.gencat.cat/web/.content/home/arees_dactuacio/equipaments_esportius/informacio-tecnica/full_tecnic/fullte35c.pdf",
+   "Guia": true
+  },
+  {
+   "Id": "Guia Llocs de treball (INSST)",
+   "Ambit": "Riscos laborals",
+   "Tema": "Guies",
+   "Tipus": "Guia",
+   "Num": "",
+   "Any": "",
+   "Titol": "Llocs de treball (INSST)",
+   "Url": "https://www.insst.es/documentacion/catalogo-de-publicaciones/guia-tecnica-para-la-evaluacion-y-la-prevencion-de-los-riesgos-relativos-a-la-utilizacion-de-los-lugares-de-trabajo",
+   "Guia": true
   }
  ]
 }

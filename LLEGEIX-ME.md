@@ -346,7 +346,8 @@ si marques **«Signar els PDF amb AutoFirma»**, els signa sols, sense clics.
 
 Botó **📚 Normativa** (secció EINES). Baixa a la carpeta
 **`local\normativa`** el text **vigent** (consolidat) de totes les normes que
-cita REQ1 i de les dels teus marcadors de Chrome: unes 165. Tot va a **una sola
+cita REQ1 i de les dels teus marcadors de Chrome (unes 165), i les guies i
+manuals dels marcadors. Tot va a **una sola
 carpeta** i el **nom** del fitxer diu de què és, amb la mateixa classificació
 que els marcadors:
 
@@ -361,8 +362,13 @@ de cada tema per any. Les derogades que encara es consulten porten el tema
 **Antic**.
 
 - **La primera vegada** triga una estona (són moltes normes). Les del BOE es
-  baixen en PDF; les del Portal Jurídic i les ordenances es desen com a PDF des
-  de la pàgina web, amb l'Edge sense finestra.
+  baixen en PDF. Les del Portal Jurídic, el BOPB i el CIDO es baixen amb el
+  **botó «PDF» de la mateixa pàgina**; només si no se'n troba cap, la pàgina es
+  desa com a PDF amb l'Edge (sense finestra), i l'índex ho diu.
+- **Guies i manuals**: també hi són les guies, manuals, quadres i taules dels
+  teus marcadors, al tema **Guies** de cada àmbit
+  (`Vector ambiental_Guies_Manual Gestió de residus industrials a Catalunya (ARC).pdf`).
+  A l'índex surten com a «Guia» i no com a norma.
 - **Es manté al dia sola**: cada vegada que la fas servir, les del BOE es tornen a
   baixar si el BOE n'ha publicat una actualització, i la resta si fa més de mig
   any que es van baixar. **La versió anterior no es perd**: va a la subcarpeta
@@ -372,10 +378,9 @@ de cada tema per any. Les derogades que encara es consulten porten el tema
   anat bé i **a quins punts de REQ1 surt**. Es pot filtrar.
 - **A la fitxa d'ajuda (ⓘ) de cada requeriment** hi ha el botó **«Obre el PDF
   desat»** quan la norma ja és a la carpeta.
-- Algunes normes no tenen cap enllaç per baixar-les (l'Ordenança d'activitats de
-  Cornellà i l'ordenança tipus d'olors de la Diputació): a l'índex surten com a
-  **«Sense enllaç: desa-la a mà amb aquest nom»**. Si les guardes a la carpeta
-  amb el nom que diu l'índex, el programa ja les troba.
+- Si una norma no té enllaç, a l'índex surt com a **«Sense enllaç: desa-la a mà
+  amb aquest nom»**: si la guardes a la carpeta amb aquell nom, el programa ja la
+  troba.
 - Si alguna falla, l'índex en diu el motiu i es torna a provar la vegada següent.
   Passa-me'l si en veus alguna que no se solucioni.
 
