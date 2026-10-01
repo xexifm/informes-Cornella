@@ -875,7 +875,10 @@ l'enllaç des de la fitxa d'ajuda.
     filles, fins a 45 s cadascuna.
   - **RD 1002/2002**: no té text consolidat i el BOE respon **404** a `/con`.
     L'`Invoke-WebRequest` llança, i el respatller sense `/con` (que ja hi era) no
-    s'arribava a provar mai.
+    s'arribava a provar mai. **Arreglat això, l'ELI sense `/con` també va tornar
+    404** (segon índex de l'1 d'octubre): ara el catàleg apunta a
+    `buscar/doc.php?id=BOE-A-2002-19574`, la publicació original, que porta
+    l'enllaç `/boe/dias/…pdf` que llegeix `_NormativaBoeInfo`.
   - **2016/679 i 2017/745**, de la pàgina del BOE (DOUE-L-2016-80807 i
     DOUE-L-2017-80916), com els altres reglaments europeus.
   - **Circular 093 d'APABCN**: és a l'àrea privada (cal iniciar sessió). Camp
@@ -895,8 +898,27 @@ sub-punts), escrits **llegint els PDF oficials** que l'usuari va deixar al Drive
   SP 113, 121, 128, 131 i 145: els punts ja porten el text adaptat i la fitxa
   ho diu. La **Nota 1 de la SP 144** (Llei 11/2026): des del 14.7.2026 les
   activitats esporàdiques en espais oberts ja no tenen informe de la DGPEIS.
-- Les **TINSCI** no hi són: el programa encara no les havia pogut baixar (vegeu
-  la quarta ronda). No s'escriuen requeriments sense el text oficial.
+- Les **TINSCI** van a la seva subsecció (més avall).
+
+## REQ1: la subsecció «TINSCI» (Incendis, octubre 2026)
+16 punts, un per document TINSCI vigent (DT-4 a DT-19; DT-9 amb tres
+sub-punts), escrits **llegint els PDF** que l'usuari va deixar al Drive. Les
+DT-1, 2 i 3 només hi són com a versions «anteriors» i no tenen punt.
+- **No són normativa**: són criteris de la Taula d'Interpretació. Per això el
+  text del punt diu «segons el document TINSCI DT-x» i la competència de la
+  fitxa ho diu (la DGPEIS l'aplica en l'annex 1 de la Llei 3/2010; l'Ajuntament
+  el pot prendre com a referència). Als documents, el **negre és normatiu i el
+  gris és criteri TINSCI**: les fitxes ho recorden on importa.
+- Referències velles dins dels documents: DT-7 i DT-12 citen el RD 2267/2004
+  (ara RD 164/2025). La fitxa ho diu; el text del punt no ho reprodueix.
+- De la DT-18 hi havia **dues versions** al Drive (febrer i desembre 2023): el
+  punt segueix la de desembre. `_NormativaFitxerDt` tria igualment
+  l'«actualitzat» quan n'hi ha dos.
+- Els annexos de la DT-13 (taules de forjats) tenen el text il·legible a la capa
+  de text; el punt només hi remet.
+- **La ⓘ d'un punt TINSCI obre el PDF** (`_NormativaDtDeText` +
+  `_NormativaFitxerDt`): només si la norma diu «TINSCI», perquè «DT» sol és
+  massa curt per reconèixer-ho a qualsevol text.
 - `REQ1.json` es va escriure imitant el `ConvertTo-Json` del PowerShell 5.1
   (el diff només té línies afegides), i `docs/dades/cataleg-REQ1.json` es va
   refer amb `ExportaDades -Plantilles` i el mateix format.

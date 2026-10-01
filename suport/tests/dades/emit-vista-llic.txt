@@ -480,7 +480,7 @@ BODY|//Requeriment pendent (1 punts)//
 BODY|//Classificació (2 punts)//
 BODY|//Desistiment comunicació (1 punts)//
 BODY|//Estat de l’establiment (2 punts)//
-BODY|//Incendis (74 punts)//
+BODY|//Incendis (90 punts)//
 BODY|//Projecte (3 punts)//
 BODY|//Activitat (8 punts)//
 BODY|//Vehicles de Mobilitat Personal (VMP) (5 punts)//

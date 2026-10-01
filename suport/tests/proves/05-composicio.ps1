@@ -1407,7 +1407,10 @@ if ($null -ne $req1TF -and $null -ne $llicTF) {
         foreach ($g in $grups) {
             $t = ([string]@($g.Intro)[0])
             $cap = $t.Substring(0, [Math]::Min(30, $t.Length))
-            $hi = [bool](@($crides) | Where-Object { $_ -like ('*' + $cap + '*') })
+            # -clike i no -like: sense distingir majuscules, l'intro de les ITC
+            # ("S'ha de justificar el compliment...") la donava per bona
+            # qualsevol punt que digues "...s'ha de justificar el compliment".
+            $hi = [bool](@($crides) | Where-Object { $_ -clike ('*' + $cap + '*') })
             Assert $hi ($nom + ': hi surt el text fix de "' + $g.Sub + '"')
         }
     }
@@ -1485,7 +1488,20 @@ if ($null -ne $req1TF -and $null -ne $llicTF) {
     & $comprova 'Vista REQ1' $global:emitCalls
     $global:emitCalls.Clear()
     _VistaLlicencia $sdTF (Join-Path $EstructuralsDir 'LLIC.json')
-    & $comprova 'Vista LLIC' $global:emitCalls
+    # La vista de LLIC ensenya els tres blocs (PROPIS, ABANS, DESPRES) i, com el
+    # document, nomes expandeix les subseccions que diu LLIC.json; la resta de
+    # REQ1 hi surt resumida («Incendis (N punts)»). S'hi exigeixen, doncs, els
+    # grups que porten els tres blocs: amb TOTS, afegir una subseccio a REQ1
+    # (les TINSCI) feia petar la prova sense cap defecte.
+    $ubiVTF = @{}
+    foreach ($bk in @('PROPIS', 'ABANS', 'DESPRES')) {
+        foreach ($p in @((_LlicPuntsPerBloc $llicTF $idxTF $bk $req1TF).Punts)) {
+            if (@($p.Intro).Count -gt 0) { $ubiVTF[([string]$p.Seccio + '::' + [string]$p.Subseccio)] = $true }
+        }
+    }
+    $grupsVistaLlicTF = @($grupsTF | Where-Object { $ubiVTF.ContainsKey([string]$_.Sec + '::' + [string]$_.Sub) })
+    Assert (@($grupsVistaLlicTF).Count -ge 1) 'Textos fixos: la vista de LLIC en porta algun'
+    & $comprova 'Vista LLIC' $global:emitCalls $grupsVistaLlicTF
 
     $env:TEMP = $tmpTF
 }

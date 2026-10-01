@@ -636,6 +636,24 @@ function _NormativaFitxerSp($noms, [string]$sp) {
     return ''
 }
 
+# El mateix per a les TINSCI: "Document TINSCI DT-9" obre
+# Incendis_TINSCI_Document actualitzat DT-9.pdf (la versio vigent, mai les
+# "anteriors", que van a Antic). PURES.
+function _NormativaDtDeText([string]$text) {
+    $m = [regex]::Match([string]$text, '(?i)\bDT[\s.-]*(\d{1,2})\b')
+    if ($m.Success) { return $m.Groups[1].Value }
+    return ''
+}
+
+function _NormativaFitxerDt($noms, [string]$dt) {
+    if (-not $dt) { return '' }
+    $pat = '(?i)^Incendis_TINSCI_Document (actuali?t?zat )?DT-' + $dt + '(?![0-9])[^\\/]*\.pdf$'
+    # Si hi ha "Document DT-18" i "Document actualitzat DT-18", l'actualitzat.
+    $cands = @(@($noms) | Where-Object { [string]$_ -match $pat } | Sort-Object { if ([string]$_ -match '(?i)actuali') { 0 } else { 1 } }, { ([string]$_).Length })
+    if ($cands.Count -gt 0) { return [string]$cands[0] }
+    return ''
+}
+
 function Get-NormativaPdfDeText([string]$text) {
     try {
         $dir = Get-NormativaDir
@@ -644,6 +662,12 @@ function Get-NormativaPdfDeText([string]$text) {
         if ($sp) {
             $noms = @(Get-ChildItem -LiteralPath $dir -Filter 'Incendis_ITC Bombers_SP*.pdf' -File -ErrorAction SilentlyContinue | ForEach-Object { $_.Name })
             $f = _NormativaFitxerSp $noms $sp
+            if ($f) { return [string](Join-Path $dir $f) }
+        }
+        $dt = if ($text -match '(?i)TINSCI') { _NormativaDtDeText $text } else { '' }
+        if ($dt) {
+            $noms = @(Get-ChildItem -LiteralPath $dir -Filter 'Incendis_TINSCI_*.pdf' -File -ErrorAction SilentlyContinue | ForEach-Object { $_.Name })
+            $f = _NormativaFitxerDt $noms $dt
             if ($f) { return [string](Join-Path $dir $f) }
         }
         if ($null -eq $Script:NormativaCache) { $Script:NormativaCache = @(Get-NormativaCataleg) }

@@ -4596,6 +4596,505 @@
                                     },
                                     {
                                         "tipus":  "subseccio",
+                                        "titol":  "TINSCI",
+                                        "cos":  [
+
+                                                ],
+                                        "fills":  [
+                                                      {
+                                                          "tipus":  "text",
+                                                          "titol":  "",
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "S’han de seguir els criteris de la Taula d’Interpretació de la Normativa de Seguretat contra Incendis (TINSCI) de la Direcció General de Prevenció, Extinció d’Incendis i Salvaments que siguin d’aplicació, més concretament:"
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "DT-4 - Reducció d’amplada d’escala per instal·lar ascensor",
+                                                          "ajuda":  {
+                                                                        "norma":  "Document TINSCI DT-4, Reducció de l’ample d’escala en edificis d’habitatges existents per instal·lar un ascensor (octubre 2006, modificat juliol 2015). Taula d’Interpretació de la Normativa de Seguretat contra Incendis (DGPEIS). Complementa l’article 2.3 de la part I del CTE, el DB SI 3, ap. 4.2, i el DB SUA 1, ap. 4.2",
+                                                                        "enllac":  "https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/interpretacio_normativa_tinsci/documents-tinsci/",
+                                                                        "criteri":  "Si no es redueix l’amplada existent no cal aplicar res (art. 2.3 del CTE: no es modifica). Amb 10 persones o menys, usuaris habituals, n’hi ha prou amb els 0,80 m (nota 9 de la taula 4.1 del DB SI 3).",
+                                                                        "vigencia":  "Una sola vegada: es resol amb el projecte i l’obra i no caduca. Es torna a mirar si hi ha reforma, ampliació o canvi d’ús.",
+                                                                        "aplica":  "Edificis d’habitatges existents en què s’instal·la un ascensor dins del recinte de l’escala.",
+                                                                        "competencia":  "Criteri interpretatiu de la TINSCI. La DGPEIS (Bombers) l’aplica en les activitats sotmeses a la intervenció administrativa prèvia de la Generalitat (annex 1 de la Llei 3/2010); en la resta, l’Ajuntament el pot prendre com a referència en la documentació tècnica i a la visita.",
+                                                                        "revisat":  "2026-10"
+                                                                    },
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Reducció de l’amplada d’escala. En edificis d’habitatges existents en què s’hagi de reduir l’amplada de l’escala per instal·lar-hi un ascensor, l’amplada mínima ha de ser de 0,80 m segons el document TINSCI DT-4. Si l’escala serveix a més de 10 persones, a més, no se n’ha de superar la capacitat d’evacuació segons el CTE DB SI, l’escala s’ha de dotar d’enllumenat d’emergència i d’extintors, i la sala de màquines de l’ascensor s’ha de situar preferentment a la coberta o a l’última planta o, si no, sectoritzada com a local de risc especial baix."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "DT-5 - Aparcaments amb places tancades",
+                                                          "ajuda":  {
+                                                                        "norma":  "Document TINSCI DT-5, Aparcaments amb places tancades (juliol 2006, actualitzat febrer 2023). Taula d’Interpretació de la Normativa de Seguretat contra Incendis (DGPEIS). Complementa el CTE DB SI (ús Aparcament)",
+                                                                        "enllac":  "https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/interpretacio_normativa_tinsci/documents-tinsci/",
+                                                                        "criteri":  "L’alternativa és compartimentar cada plaça com a local de risc especial baix (menys de 100 m2), amb porta EI 90 i porta de vianants per evacuar. A la visita: places tancades amb portes cegues o amb emmagatzematge a dins.",
+                                                                        "vigencia":  "Permanent: s’ha de mantenir mentre l’activitat funcioni i es comprova a cada visita.",
+                                                                        "aplica":  "Aparcaments amb places tancades (trasters-garatge, boxes).",
+                                                                        "competencia":  "Criteri interpretatiu de la TINSCI. La DGPEIS (Bombers) l’aplica en les activitats sotmeses a la intervenció administrativa prèvia de la Generalitat (annex 1 de la Llei 3/2010); en la resta, l’Ajuntament el pot prendre com a referència en la documentació tècnica i a la visita.",
+                                                                        "revisat":  "2026-10"
+                                                                    },
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Places d’aparcament tancades. En aparcaments amb places tancades no compartimentades com a local de risc especial, la superfície de càlcul ha d’incloure les zones comunes i totes les places, i s’ha de complir el document TINSCI DT-5: parets entre places veïnes EI 90; porta de vehicles de cada plaça que es pugui obrir manualment i fàcilment des de l’interior, amb un 50 % com a mínim de la seva superfície calada i uniformement repartida; evacuació per les zones comunes; control de fums de les zones de circulació i de les places (DT-9); instal·lacions manuals de protecció a les zones comunes; i, si l’aparcament necessita detecció o extinció automàtica, també a cada plaça tancada. En aparcaments comuns soterrats d’habitatges unifamiliars adossats, l’aparcament ha de ser un sector independent i la comunicació amb cada habitatge s’ha de fer per un vestíbul d’independència amb parets EI 120 i portes EI2 30-C5."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "DT-6 - Patis per ventilar escales protegides",
+                                                          "ajuda":  {
+                                                                        "norma":  "Document TINSCI DT-6, Patis per a la ventilació d’escales protegides i especialment protegides (juliol 2006, modificat juny 2017). Taula d’Interpretació de la Normativa de Seguretat contra Incendis (DGPEIS). Complementa l’annex A (Terminologia) del CTE DB SI",
+                                                                        "enllac":  "https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/interpretacio_normativa_tinsci/documents-tinsci/",
+                                                                        "criteri":  "Un pati de parcel·la compartit amb altres usos ha de tenir com a mínim les dimensions dels patis on poden ventilar habitacions; si és exclusiu de l’escala, les dels patis on poden ventilar escales. Les ordenances municipals poden ser més restrictives. Al document, el text en negre és normatiu i el gris és criteri consensuat per la TINSCI.",
+                                                                        "vigencia":  "Una sola vegada: es resol amb el projecte i l’obra i no caduca. Es torna a mirar si hi ha reforma, ampliació o canvi d’ús.",
+                                                                        "aplica":  "Edificis amb escales protegides o especialment protegides que ventilen a pati.",
+                                                                        "competencia":  "Criteri interpretatiu de la TINSCI. La DGPEIS (Bombers) l’aplica en les activitats sotmeses a la intervenció administrativa prèvia de la Generalitat (annex 1 de la Llei 3/2010); en la resta, l’Ajuntament el pot prendre com a referència en la documentació tècnica i a la visita.",
+                                                                        "revisat":  "2026-10"
+                                                                    },
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Patis de ventilació d’escales protegides. La ventilació natural d’escales protegides o especialment protegides a un pati s’ha d’ajustar al document TINSCI DT-6: a un pati interior de parcel·la (amb les dimensions del Decret 141/2012), finestres practicables, no forats oberts, amb una superfície de ventilació mínima d’1 m2 a cada planta i les distàncies del DB SI 2 respecte de les zones de façana que no siguin EI 60; si el pati té claraboia, sortida d’aire al coronament, almenys igual a la superfície mínima del pati i en dos costats oposats. A un pati assimilable a l’exterior (cercle inscrit de diàmetre h/3, obert a dalt), finestres o forats permanents d’1 m2 per planta, i les escales obertes a l’exterior, forats permanents de 5·A m2 per planta (A = amplada del tram)."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "DT-7 - Trasters",
+                                                          "ajuda":  {
+                                                                        "norma":  "Document TINSCI DT-7, Trasters (juliol 2006). Taula d’Interpretació de la Normativa de Seguretat contra Incendis (DGPEIS). Complementa el CTE DB SI i el RSCIEI",
+                                                                        "enllac":  "https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/interpretacio_normativa_tinsci/documents-tinsci/",
+                                                                        "criteri":  "El document cita el RD 2267/2004, ja derogat. Amb el RD 164/2025 els trasters de lloguer són ús Almacén del CTE, risc mitjà subnivell 5 com a mínim (vegeu el punt «Almacén - trasters i self-storage»).",
+                                                                        "vigencia":  "Una sola vegada: es resol amb el projecte i l’obra i no caduca. Es torna a mirar si hi ha reforma, ampliació o canvi d’ús.",
+                                                                        "aplica":  "Trasters comunitaris i establiments de lloguer de trasters.",
+                                                                        "competencia":  "Criteri interpretatiu de la TINSCI. La DGPEIS (Bombers) l’aplica en les activitats sotmeses a la intervenció administrativa prèvia de la Generalitat (annex 1 de la Llei 3/2010); en la resta, l’Ajuntament el pot prendre com a referència en la documentació tècnica i a la visita.",
+                                                                        "revisat":  "2026-10"
+                                                                    },
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Trasters. Segons el document TINSCI DT-7, els trasters d’edificis d’habitatges vinculats als membres de la comunitat i amb accés des d’espais comuns són zones de risc especial del CTE DB SI (i, en aparcaments, DT-8), i els establiments de trasters per llogar o vendre a tercers són activitats d’emmagatzematge amb un nivell de risc intrínsec mitjà com a mínim, perquè no se’n coneix el contingut."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "DT-8 - Trasters en aparcaments",
+                                                          "ajuda":  {
+                                                                        "norma":  "Document TINSCI DT-8, Trasters en aparcaments (març 2007, modificat gener 2017). Taula d’Interpretació de la Normativa de Seguretat contra Incendis (DGPEIS). Complementa el CTE DB SI 1, ap. 2",
+                                                                        "enllac":  "https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/interpretacio_normativa_tinsci/documents-tinsci/",
+                                                                        "criteri":  "Els trasters són recintes d’ocupació nul·la. Les condicions de risc baix, mitjà i alt són del CTE DB SI; les dels trasters de fins a 50 m2 (risc reduït) i el control de fums, criteri TINSCI. A la visita: portes de traster sense resistència al foc o falcades.",
+                                                                        "vigencia":  "Permanent: s’ha de mantenir mentre l’activitat funcioni i es comprova a cada visita.",
+                                                                        "aplica":  "Aparcaments amb trasters.",
+                                                                        "competencia":  "Criteri interpretatiu de la TINSCI. La DGPEIS (Bombers) l’aplica en les activitats sotmeses a la intervenció administrativa prèvia de la Generalitat (annex 1 de la Llei 3/2010); en la resta, l’Ajuntament el pot prendre com a referència en la documentació tècnica i a la visita.",
+                                                                        "revisat":  "2026-10"
+                                                                    },
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Trasters en aparcaments. Els trasters situats en aparcaments han de complir el document TINSCI DT-8 segons la seva superfície construïda: fins a 50 m2, parets EI 90 i porta EI2 45-C5 (i extintor 21A-113B a partir de 10 m2); de 50 a 100 m2 (risc especial baix), parets EI 90, porta EI2 45-C5, extintor i enllumenat d’emergència; de 100 a 500 m2 (risc mitjà), parets EI 120, vestíbul previ amb dues portes EI2 30-C5, extintor, control de fums i enllumenat d’emergència; i de més de 500 m2 (risc alt), parets EI 180, vestíbul previ amb dues portes EI2 45-C5, extintor, BIE-25, control de fums i enllumenat d’emergència. Detecció (UNE 23007-14) i BIE quan l’aparcament, comptant-hi els trasters, en necessiti. El control de fums ha de garantir 3 renovacions per hora, aportació d’aire, ventiladors F400 90 i conductes E600 90 (EI 90 si travessen elements de sectorització). Qualsevol punt dels trasters és origen d’evacuació: recorreguts de 35 m amb una sortida i de 50 m amb més d’una."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "DT-9 - Control de fums en aparcaments",
+                                                          "ajuda":  {
+                                                                        "norma":  "Document TINSCI DT-9, Control de fums en els aparcaments (gener 2012, actualitzat gener 2020 i febrer 2023). Taula d’Interpretació de la Normativa de Seguretat contra Incendis (DGPEIS). Complementa el CTE DB SI 3, ap. 8, i el DB HS 3",
+                                                                        "enllac":  "https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/interpretacio_normativa_tinsci/documents-tinsci/",
+                                                                        "criteri":  "No s’aplica als aparcaments oberts, exteriors, robotitzats, de 100 m2 o menys, d’habitatges unifamiliars ni als sistemes per impuls (que es justifiquen amb guies de reconegut prestigi). Al document, el text en negre és normatiu i el gris és criteri consensuat per la TINSCI.",
+                                                                        "vigencia":  "Permanent: s’ha de mantenir mentre l’activitat funcioni i es comprova a cada visita.",
+                                                                        "aplica":  "Aparcaments de més de 100 m2 tancats.",
+                                                                        "competencia":  "Criteri interpretatiu de la TINSCI. La DGPEIS (Bombers) l’aplica en les activitats sotmeses a la intervenció administrativa prèvia de la Generalitat (annex 1 de la Llei 3/2010); en la resta, l’Ajuntament el pot prendre com a referència en la documentació tècnica i a la visita.",
+                                                                        "revisat":  "2026-10"
+                                                                    },
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Control de fums en aparcaments. El sistema de control de fums de l’aparcament amb ventilació segons el DB HS 3 ha de complir el document TINSCI DT-9, més concretament:"
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+                                                                        {
+                                                                            "tipus":  "subitem",
+                                                                            "titol":  "DT-9 - Ventilació natural",
+                                                                            "ajuda":  {
+                                                                                          "norma":  "Document TINSCI DT-9, Control de fums en els aparcaments (gener 2012, actualitzat gener 2020 i febrer 2023). Taula d’Interpretació de la Normativa de Seguretat contra Incendis (DGPEIS). Complementa el CTE DB SI 3, ap. 8, i el DB HS 3, ap. 1",
+                                                                                          "enllac":  "https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/interpretacio_normativa_tinsci/documents-tinsci/",
+                                                                                          "criteri":  "Una plaça = un cotxe o dues motos. Al document, el text en negre és normatiu i el gris és criteri consensuat per la TINSCI.",
+                                                                                          "vigencia":  "Permanent: s’ha de mantenir mentre l’activitat funcioni i es comprova a cada visita.",
+                                                                                          "aplica":  "Aparcaments amb ventilació natural.",
+                                                                                          "competencia":  "Criteri interpretatiu de la TINSCI. La DGPEIS (Bombers) l’aplica en les activitats sotmeses a la intervenció administrativa prèvia de la Generalitat (annex 1 de la Llei 3/2010); en la resta, l’Ajuntament el pot prendre com a referència en la documentació tècnica i a la visita.",
+                                                                                          "revisat":  "2026-10"
+                                                                                      },
+                                                                            "cos":  [
+                                                                                        {
+                                                                                            "runs":  [
+                                                                                                         {
+                                                                                                             "t":  "Ventilació natural. Obertures mixtes que comuniquin directament i de forma permanent amb l’exterior, almenys a zones oposades de les façanes i uniformement distribuïdes, a 25 m com a màxim de qualsevol punt (si les oposades estan a més de 30 m, una altra d’equidistant), amb lamel·les de 10 x 10 mm com a mínim; amb patis, com a màxim dues plantes sota rasant; àrea efectiva total, per zona i planta, d’almenys 8·qv cm2, amb qv = 120 l/s per plaça."
+                                                                                                         }
+                                                                                                     ]
+                                                                                        }
+                                                                                    ],
+                                                                            "fills":  [
+
+                                                                                      ]
+                                                                        },
+                                                                        {
+                                                                            "tipus":  "subitem",
+                                                                            "titol":  "DT-9 - Ventilació mecànica",
+                                                                            "ajuda":  {
+                                                                                          "norma":  "Document TINSCI DT-9, Control de fums en els aparcaments (gener 2012, actualitzat gener 2020 i febrer 2023). Taula d’Interpretació de la Normativa de Seguretat contra Incendis (DGPEIS). Complementa el CTE DB SI 3, ap. 8, i el DB HS 3, ap. 2",
+                                                                                          "enllac":  "https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/interpretacio_normativa_tinsci/documents-tinsci/",
+                                                                                          "criteri":  "Si la porta de l’aparcament és l’única admissió natural, s’ha de duplicar la superfície de les obertures i repartir-les entre la part alta i la baixa de la porta. En aparcaments sota places o espais oberts, l’expulsió pot ser directa a 10 m d’edificis i persones i a 2 m d’alçada si la zona és transitable. Al document, el text en negre és normatiu i el gris és criteri consensuat per la TINSCI.",
+                                                                                          "vigencia":  "Permanent: s’ha de mantenir mentre l’activitat funcioni i es comprova a cada visita.",
+                                                                                          "aplica":  "Aparcaments amb ventilació mecànica.",
+                                                                                          "competencia":  "Criteri interpretatiu de la TINSCI. La DGPEIS (Bombers) l’aplica en les activitats sotmeses a la intervenció administrativa prèvia de la Generalitat (annex 1 de la Llei 3/2010); en la resta, l’Ajuntament el pot prendre com a referència en la documentació tècnica i a la visita.",
+                                                                                          "revisat":  "2026-10"
+                                                                                      },
+                                                                            "cos":  [
+                                                                                        {
+                                                                                            "runs":  [
+                                                                                                         {
+                                                                                                             "t":  "Ventilació mecànica. Extracció d’almenys 150 l/s per plaça i aportació de 120 l/s per plaça com a màxim, en depressió, d’ús exclusiu (amb trasters que necessitin control de fums segons DT-8, xarxes independents); a partir de 15 places, dues xarxes de conductes d’extracció per planta, cadascuna amb el seu extractor; una obertura d’extracció per cada 100 m2 útils, separades menys de 10 m i 2/3 a 0,5 m o menys del sostre (les properes al terra, amb comportes E300 60); conductes sense estrenyiments, relació de costats 4:1 com a màxim, velocitat de 10 m/s com a màxim i classe E, o EI si travessen sectors; ventiladors amb la classe F del CTE; admissió natural a 25 m com a màxim de qualsevol punt, no a la rampa si no és exterior, i àrea efectiva de 4·qv cm2; boques d’expulsió a la coberta, a 3 m com a mínim de preses d’aire, finestres i espais amb persones."
+                                                                                                         }
+                                                                                                     ]
+                                                                                        }
+                                                                                    ],
+                                                                            "fills":  [
+
+                                                                                      ]
+                                                                        },
+                                                                        {
+                                                                            "tipus":  "subitem",
+                                                                            "titol":  "DT-9 - Activació, quadre per a bombers i instal·lació elèctrica",
+                                                                            "ajuda":  {
+                                                                                          "norma":  "Document TINSCI DT-9, Control de fums en els aparcaments (gener 2012, actualitzat gener 2020 i febrer 2023). Taula d’Interpretació de la Normativa de Seguretat contra Incendis (DGPEIS). Complementa el CTE DB SI 3, ap. 8, i el DB HS 3, ap. 2 i 3",
+                                                                                          "enllac":  "https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/interpretacio_normativa_tinsci/documents-tinsci/",
+                                                                                          "criteri":  "El subministrament complementari no cal si el control de fums es dimensiona amb el DB HS 3 i l’ap. 8 del DB SI 3 en aparcaments públics de fins a 100 places ni en els privats. A la visita: el quadre per a bombers i que la detecció activi la ventilació. Al document, el text en negre és normatiu i el gris és criteri consensuat per la TINSCI.",
+                                                                                          "vigencia":  "Permanent: s’ha de mantenir mentre l’activitat funcioni i es comprova a cada visita.",
+                                                                                          "aplica":  "Aparcaments amb control de fums mecànic.",
+                                                                                          "competencia":  "Criteri interpretatiu de la TINSCI. La DGPEIS (Bombers) l’aplica en les activitats sotmeses a la intervenció administrativa prèvia de la Generalitat (annex 1 de la Llei 3/2010); en la resta, l’Ajuntament el pot prendre com a referència en la documentació tècnica i a la visita.",
+                                                                                          "revisat":  "2026-10"
+                                                                                      },
+                                                                            "cos":  [
+                                                                                        {
+                                                                                            "runs":  [
+                                                                                                         {
+                                                                                                             "t":  "Activació i quadre per a bombers. Activació automàtica per la detecció (o pel flux d’un ruixador si només n’hi ha), zonificada per planta com a mínim, i quadre de comandament manual per a bombers, senyalitzat, amb la part superior a 1,70 m com a màxim i interruptors independents de marxa i aturada de l’extracció i de l’admissió: sobre rasant, a un accés de vehicles; sota rasant, dins d’una escala especialment protegida d’accés, amb la seva ubicació indicada a la resta d’accessos. L’alimentació dels ventiladors ha de ser directa des del quadre general, senyalitzada i protegida de manera que un incendi no la inutilitzi (REBT, ITC-BT-20, 21 i 28), i els aparcaments públics subterranis de més de 100 places han de tenir subministrament complementari."
+                                                                                                         }
+                                                                                                     ]
+                                                                                        }
+                                                                                    ],
+                                                                            "fills":  [
+
+                                                                                      ]
+                                                                        }
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "DT-10 - Establiments de turisme rural",
+                                                          "ajuda":  {
+                                                                        "norma":  "Document TINSCI DT-10, Seguretat contra incendis en establiments de turisme rural (març 2007, actualitzat novembre 2021). Taula d’Interpretació de la Normativa de Seguretat contra Incendis (DGPEIS). Complementa el CTE DB SI",
+                                                                        "enllac":  "https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/interpretacio_normativa_tinsci/documents-tinsci/",
+                                                                        "criteri":  "No s’assimilen a Residencial Públic. El manteniment dels detectors autònoms (proves, bateries) és del titular. L’annex 1 del document porta unes instruccions per als allotjats que es poden fer servir directament.",
+                                                                        "vigencia":  "Permanent: s’ha de mantenir mentre l’activitat funcioni i es comprova a cada visita.",
+                                                                        "aplica":  "Noves activitats de turisme rural en habitatges.",
+                                                                        "competencia":  "Criteri interpretatiu de la TINSCI. La DGPEIS (Bombers) l’aplica en les activitats sotmeses a la intervenció administrativa prèvia de la Generalitat (annex 1 de la Llei 3/2010); en la resta, l’Ajuntament el pot prendre com a referència en la documentació tècnica i a la visita.",
+                                                                        "revisat":  "2026-10"
+                                                                    },
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Turisme rural. Els establiments de turisme rural (masia, masoveria, casa de poble), d’ús Residencial Habitatge i amb un màxim de 20 places, han de complir el document TINSCI DT-10: condicions d’aproximació del DT-12 (o, aïllats i de menys de 2.000 m2, vial de gàlib de 4,5 m a menys de 100 m de la façana accessible); a tocar o dins de massa forestal, dues vies d’accés o un cul de sac circular de 15 m de diàmetre, i franja perimetral de 25 m; la porta de cada habitació és origen d’evacuació, amb recorreguts fins a la sortida de planta de 25 m amb una sola sortida (50 m si surt directament a l’exterior segur) o de 35 m amb més d’una; enllumenat d’emergència a la porta de sortida, passadissos i escales; hidrants (SP 120 o SP 141); extintors 21A-113B prop de la porta de sortida i a cada planta; detectors de fum autònoms a les estances (als passadissos, un cada 15 m); i instruccions d’actuació en cas d’incendi per als allotjats."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "DT-11 - Vestíbul d’independència de l’escala especialment protegida",
+                                                          "ajuda":  {
+                                                                        "norma":  "Document TINSCI DT-11, Vestíbul d’independència de l’escala especialment protegida (març 2008, modificat juliol 2015). Taula d’Interpretació de la Normativa de Seguretat contra Incendis (DGPEIS). Complementa l’annex A (Terminologia) del CTE DB SI",
+                                                                        "enllac":  "https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/interpretacio_normativa_tinsci/documents-tinsci/",
+                                                                        "criteri":  "Es veu sobretot als vestíbuls d’escala dels aparcaments, on obren quadres elèctrics, sales d’instal·lacions o trasters.",
+                                                                        "vigencia":  "Una sola vegada: es resol amb el projecte i l’obra i no caduca. Es torna a mirar si hi ha reforma, ampliació o canvi d’ús.",
+                                                                        "aplica":  "Edificis amb escales especialment protegides (sobretot aparcaments).",
+                                                                        "competencia":  "Criteri interpretatiu de la TINSCI. La DGPEIS (Bombers) l’aplica en les activitats sotmeses a la intervenció administrativa prèvia de la Generalitat (annex 1 de la Llei 3/2010); en la resta, l’Ajuntament el pot prendre com a referència en la documentació tècnica i a la visita.",
+                                                                        "revisat":  "2026-10"
+                                                                    },
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Vestíbul d’independència. Segons el document TINSCI DT-11, al vestíbul d’independència d’una escala especialment protegida hi poden obrir com a màxim dos accessos (a més de la porta de l’escala): dels locals sense risc especial o de risc baix, amb porta EI2 30-C5; dels de risc mitjà o alt, a través d’un vestíbul propi amb dues portes EI2 30-C5 (mitjà) o EI2 45-C5 (alt). També hi poden obrir cambres higièniques o de neteja (porta EI2 30-C5) i registres de conductes o patinets EI 30."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "DT-12 - Aproximació i entorn per a la intervenció de bombers",
+                                                          "ajuda":  {
+                                                                        "norma":  "Document TINSCI DT-12, Aproximació i entorn de l’edifici per a la intervenció de bombers (desembre 2009, modificat gener 2014). Taula d’Interpretació de la Normativa de Seguretat contra Incendis (DGPEIS). Complementa el CTE DB SI 5 i la ITC SP 113",
+                                                                        "enllac":  "https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/interpretacio_normativa_tinsci/documents-tinsci/",
+                                                                        "criteri":  "En edificis industrials s’aplica el RSCIEI (el document cita el RD 2267/2004, ara RD 164/2025). En nuclis consolidats, si els vials no ho permeten, es poden acordar solucions alternatives amb els bombers. L’espai de maniobra s’ha de mantenir lliure: és un incompliment d’ús, exigible sempre. Al document, el text en negre és normatiu i el gris és criteri consensuat per la TINSCI.",
+                                                                        "vigencia":  "Permanent: s’ha de mantenir mentre l’activitat funcioni i es comprova a cada visita.",
+                                                                        "aplica":  "Edificis no industrials nous i reformes; el manteniment de l’espai lliure, sempre.",
+                                                                        "competencia":  "Criteri interpretatiu de la TINSCI. La DGPEIS (Bombers) l’aplica en les activitats sotmeses a la intervenció administrativa prèvia de la Generalitat (annex 1 de la Llei 3/2010); en la resta, l’Ajuntament el pot prendre com a referència en la documentació tècnica i a la visita.",
+                                                                        "revisat":  "2026-10"
+                                                                    },
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Aproximació i entorn. Els vials d’aproximació han de tenir una amplada lliure de 3,5 m (5 m sense sortida), un gàlib de 4,5 m, una capacitat portant de 20 kN/m2, 7,20 m d’amplada als trams corbs i un pendent del 15 % com a màxim. En edificis de 9 m d’alçada d’evacuació o menys, els accessos a peu han de ser a 50 m com a màxim del vial, amb un pas d’1,80 m. En els de més de 9 m, davant de la façana accessible hi ha d’haver un espai de maniobra de 5 m d’amplada, a 15 m de la façana com a màxim (10 m si l’alçada d’evacuació supera els 20 m) i a 30 m dels accessos, amb un pendent del 10 % com a màxim, una resistència al punxonament de 100 kN sobre 20 cm de diàmetre i lliure de mobiliari urbà, arbrat, jardins o fites; amb columna seca, el vehicle ha de poder arribar a menys de 18 m de cada connexió. Les obertures d’accés de la façana han de tenir l’ampit a 1,20 m com a màxim, unes dimensions mínimes de 0,80 x 1,20 m i una separació màxima de 25 m, sense elements que impedeixin l’accés (llevat dels de seguretat fins a 9 m d’alçada d’evacuació)."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "DT-13 - Reparació estructural en edificis existents",
+                                                          "ajuda":  {
+                                                                        "norma":  "Document TINSCI DT-13, Intervenció de reparació estructural en edificis existents (desembre 2015). Taula d’Interpretació de la Normativa de Seguretat contra Incendis (DGPEIS). Complementa l’article 2 i l’annex III de la part I del CTE i els criteris generals d’aplicació del DB SI",
+                                                                        "enllac":  "https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/interpretacio_normativa_tinsci/documents-tinsci/",
+                                                                        "criteri":  "L’augment de la resistència al foc és una recomanació de la TINSCI; la prohibició de reduir les condicions preexistents és del CTE (part I, art. 2.3, i DB SI, criteri general 8). Cada taula dels annexos porta propostes de protecció passiva.",
+                                                                        "vigencia":  "Una sola vegada: es resol amb el projecte i l’obra i no caduca. Es torna a mirar si hi ha reforma, ampliació o canvi d’ús.",
+                                                                        "aplica":  "Reparacions puntuals d’estructura (forjats) en edificis existents.",
+                                                                        "competencia":  "Criteri interpretatiu de la TINSCI. La DGPEIS (Bombers) l’aplica en les activitats sotmeses a la intervenció administrativa prèvia de la Generalitat (annex 1 de la Llei 3/2010); en la resta, l’Ajuntament el pot prendre com a referència en la documentació tècnica i a la visita.",
+                                                                        "revisat":  "2026-10"
+                                                                    },
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Reparació estructural. En les intervencions de reparació puntual d’elements estructurals d’edificis existents no es poden reduir les condicions de resistència al foc preexistents, i s’ha de justificar la resistència al foc inicial de l’estructura (annexos B a F del CTE DB SI, Eurocodis, DB SE o les taules dels annexos del document TINSCI DT-13 per a forjats unidireccionals de formigó armat, de biguetes de fusta i de biguetes metàl·liques). Quan s’actuï sobre l’estructura principal i sigui viable, se n’ha d’augmentar la resistència al foc per aproximar-la a la taula 3.1 del DB SI 6."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "DT-14 - Remuntes en edificis d’habitatges",
+                                                          "ajuda":  {
+                                                                        "norma":  "Document TINSCI DT-14, Intervenció en edificis existents. Remuntes en edificis d’habitatges amb la creació de nous habitatges (maig 2014, modificat maig 2018; incorpora l’acord AT-7). Taula d’Interpretació de la Normativa de Seguretat contra Incendis (DGPEIS). Complementa el CTE DB SI 3, ap. 5, i els criteris generals d’aplicació del DB SI",
+                                                                        "enllac":  "https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/interpretacio_normativa_tinsci/documents-tinsci/",
+                                                                        "criteri":  "Només s’hi pot acollir si la impossibilitat tècnica o econòmica de protegir l’escala existent està justificada. Una remunta és modificació significativa (DT-17).",
+                                                                        "vigencia":  "Una sola vegada: es resol amb el projecte i l’obra i no caduca. Es torna a mirar si hi ha reforma, ampliació o canvi d’ús.",
+                                                                        "aplica":  "Remuntes en edificis d’habitatges existents.",
+                                                                        "competencia":  "Criteri interpretatiu de la TINSCI. La DGPEIS (Bombers) l’aplica en les activitats sotmeses a la intervenció administrativa prèvia de la Generalitat (annex 1 de la Llei 3/2010); en la resta, l’Ajuntament el pot prendre com a referència en la documentació tècnica i a la visita.",
+                                                                        "revisat":  "2026-10"
+                                                                    },
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Remuntes. Les remuntes en edificis d’habitatges existents han de complir el document TINSCI DT-14: edifici de PB+2 com a mínim, ús Residencial Habitatge, remunta de com a màxim el 50 % de la superfície sobre rasant resultant i de 2 plantes, alçada d’evacuació final de 28 m com a màxim i un sol sector (2.500 m2). Es pot mantenir l’amplada de l’escala existent si és de 0,80 m o més i té capacitat suficient, garantint-ne la continuïtat, l’enllumenat d’emergència, els extintors i que la porta de sortida s’obri des de dins sense clau. Si l’alçada d’evacuació final supera els 14 m, la part nova ha de tenir escala protegida i, si l’existent no es pot protegir, s’han d’aplicar mesures compensatòries: compartimentar els locals de risc que hi donin, detecció i alarma a l’escala, als espais comuns i a l’entrada de cada habitatge (audible a tots els habitatges), rètol d’instruccions al vestíbul, portes dels habitatges EI2 60 (o millorades amb bandes intumescents si tenen valor patrimonial), protecció de les obertures a pati (distàncies del DB SI 2 o EW 60) i ventilació de l’escala (finestres d’1 m2 per planta, conductes o un exutori d’1 m2 automàtic per la detecció i manual des de l’accés, amb el rètol «Ventilació. Ús exclusiu bombers»)."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "DT-15 - Sortides controlades elèctricament",
+                                                          "ajuda":  {
+                                                                        "norma":  "Document TINSCI DT-15, Sistemes de sortida controlats elèctricament per a portes d’evacuació (desembre 2018). Taula d’Interpretació de la Normativa de Seguretat contra Incendis (DGPEIS). Complementa el CTE DB SI 3, ap. 6, i el seu comentari sobre els sistemes d’obertura controlada elèctricament",
+                                                                        "enllac":  "https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/interpretacio_normativa_tinsci/documents-tinsci/",
+                                                                        "criteri":  "El sistema ha de tenir seguretat positiva (s’obre si falla el corrent), durabilitat de grau 7 o més i, si hi ha temporització, pictograma i senyal visual i sonor a menys d’1 m del polsador. En hospitals, residències assistides i centres de privació de llibertat s’admet temporització doble (15 s + 180 s) amb control central. Implantar-lo en un establiment existent legalitzat no és modificació significativa.",
+                                                                        "vigencia":  "Permanent: s’ha de mantenir mentre l’activitat funcioni i es comprova a cada visita.",
+                                                                        "aplica":  "Establiments amb portes d’evacuació amb bloqueig electromagnètic o control d’accessos.",
+                                                                        "competencia":  "Criteri interpretatiu de la TINSCI. La DGPEIS (Bombers) l’aplica en les activitats sotmeses a la intervenció administrativa prèvia de la Generalitat (annex 1 de la Llei 3/2010); en la resta, l’Ajuntament el pot prendre com a referència en la documentació tècnica i a la visita.",
+                                                                        "revisat":  "2026-10"
+                                                                    },
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Sortides controlades elèctricament. Les portes d’evacuació amb sistema de sortida controlat elèctricament han de complir la UNE-EN 13637 i el document TINSCI DT-15: no s’admeten en pública concurrència d’alta densitat (camps d’esport, auditoris, teatres, cinemes, discoteques) ni en terminals de transport; en residencial públic, aparcament, comercial, pública concurrència de baixa densitat i hospitalari general, sense temporització ni mode de sortida denegada; en docent, administratiu, industrial i emmagatzematge, temporització de 15 s com a màxim. Només a la sortida d’edifici o d’establiment, amb detecció automàtica i alarma (UNE 23007), certificat de l’instal·lador especialitzat (UNE-EN 13637), certificat del tècnic competent sobre la temporització segons l’ús i manteniment a càrrec del titular amb llibre de manteniment a l’establiment. En portes tallafoc, la integritat i l’aïllament s’han de certificar amb el sistema incorporat."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "DT-16 - Unifamiliars entre mitgeres: evacuació per l’aparcament",
+                                                          "ajuda":  {
+                                                                        "norma":  "Document TINSCI DT-16, Habitatges unifamiliars entre mitgeres: evacuació a través de l’aparcament (desembre 2018). Taula d’Interpretació de la Normativa de Seguretat contra Incendis (DGPEIS). Complementa el CTE DB SI (annex A, recorregut d’evacuació) i el DB HS 3",
+                                                                        "enllac":  "https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/interpretacio_normativa_tinsci/documents-tinsci/",
+                                                                        "criteri":  "És una solució de seguretat equivalent per a cases de cós on la protecció del paisatge urbà no permet dues portes a la façana. Fora d’aquest cas, el pas per l’aparcament només és vàlid com a sortida alternativa (amb una altra sortida a l’exterior o a un pati de més de 15 m) o si l’aparcament és assimilable a una plaça coberta oberta.",
+                                                                        "vigencia":  "Permanent: s’ha de mantenir mentre l’activitat funcioni i es comprova a cada visita.",
+                                                                        "aplica":  "Habitatges unifamiliars entre mitgeres amb accés pel garatge.",
+                                                                        "competencia":  "Criteri interpretatiu de la TINSCI. La DGPEIS (Bombers) l’aplica en les activitats sotmeses a la intervenció administrativa prèvia de la Generalitat (annex 1 de la Llei 3/2010); en la resta, l’Ajuntament el pot prendre com a referència en la documentació tècnica i a la visita.",
+                                                                        "revisat":  "2026-10"
+                                                                    },
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Evacuació per l’aparcament. L’aparcament d’un habitatge unifamiliar és local de risc especial baix (estructura R 90, parets i sostre EI 90, porta a l’habitatge EI2 45-C5, revestiments B-s1,d0 i BFL-s1, extintor 21A-113B) i no pot ser l’única sortida de l’habitatge. Segons el document TINSCI DT-16, en cases entre mitgeres protegides (PB+2 com a màxim, façana de menys de 5,50 m, pati posterior de 3 m com a mínim accessible sense passar per l’aparcament i càrrega de foc d’un sol cotxe) s’hi admet l’evacuació si: els trasters que hi donin són EI 90 amb porta EI2 45-C5; el recorregut és continu, identificat al paviment, lliure d’obstacles i amb enllumenat d’emergència; i la porta de vianants, de 0,80 m com a mínim, batent i amb marcatge CE, s’obre des de dins sense clau. Si el pati posterior té menys de 10 m de fondària, cal a més detecció i alarma a l’aparcament amb avís a l’habitatge i obertures permanents de ventilació a la part alta i baixa de la porta o la façana (la superior, de 0,30 m2 com a mínim)."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "DT-17 - Modificació significativa",
+                                                          "ajuda":  {
+                                                                        "norma":  "Document TINSCI DT-17, Modificació significativa (octubre 2020, actualitzat febrer 2023). Taula d’Interpretació de la Normativa de Seguretat contra Incendis (DGPEIS). Complementa l’article 4 de la Llei 3/2010 i l’article 35 de la Llei 18/2020",
+                                                                        "enllac":  "https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/interpretacio_normativa_tinsci/documents-tinsci/",
+                                                                        "criteri":  "No es confon amb la modificació substancial de la Llei 18/2020 (que obliga a una nova comunicació). Són significatives, per exemple: canvi d’ús principal; nous locals de risc mitjà o alt (una cuina de més de 30 kW encara que tingui extinció automàtica); ocupar la coberta; passar de risc intrínsec baix a mitjà; remuntes; aïllament exterior combustible a la façana; nous sectors; i qualsevol disseny prestacional. No ho són: el canvi de titularitat, el manteniment, canviar el tipus de sistema de protecció o canviar la càrrega de foc sense canviar el nivell de risc.",
+                                                                        "vigencia":  "Puntual: a cada canvi, reforma o ampliació.",
+                                                                        "aplica":  "Canvis, reformes i ampliacions d’establiments existents legalitzats.",
+                                                                        "competencia":  "DGPEIS en els establiments de risc important (annex 1 de la Llei 3/2010); en la resta, l’Ajuntament, amb la tramitació de la Llei 18/2020 o la sectorial.",
+                                                                        "revisat":  "2026-10"
+                                                                    },
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Modificació significativa. La documentació tècnica dels canvis, reformes o ampliacions en establiments existents legalitzats ha d’indicar expressament i justificar si es tracta o no d’una modificació significativa en matèria d’incendis, segons el document TINSCI DT-17. Si l’establiment és de risc important (annex 1 de la Llei 3/2010) i la modificació és significativa, cal un nou control preventiu de la DGPEIS i, en general, un nou acte de comprovació."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "DT-18 - Conductes d’extracció de fums de cuines",
+                                                          "ajuda":  {
+                                                                        "norma":  "Document TINSCI DT-18, Sectorització de conductes d’extracció de fums de les cuines (febrer 2023, actualitzat desembre 2023). Taula d’Interpretació de la Normativa de Seguretat contra Incendis (DGPEIS). Complementa el CTE DB SI 1 (taula 2.1, nota 2, i ap. 3)",
+                                                                        "enllac":  "https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/interpretacio_normativa_tinsci/documents-tinsci/",
+                                                                        "criteri":  "Les comportes tallafoc no s’admeten perquè el greix n’impedeix el funcionament (excepció: cuines dins d’habitacions de residencial públic). Els forns tancats no compten per a la potència. Només compten com a exterior els patis aptes per ventilar habitacions (DT-6). Classificació segons UNE-EN 13501-3, assaig UNE-EN 1366-1. Al document, el text en negre és normatiu i el gris és criteri consensuat per la TINSCI.",
+                                                                        "vigencia":  "Una sola vegada: es resol amb el projecte i l’obra i no caduca. Es torna a mirar si hi ha reforma, ampliació o canvi d’ús.",
+                                                                        "aplica":  "Bars, restaurants i qualsevol activitat amb cuina i conducte d’extracció.",
+                                                                        "competencia":  "Criteri interpretatiu de la TINSCI. La DGPEIS (Bombers) l’aplica en les activitats sotmeses a la intervenció administrativa prèvia de la Generalitat (annex 1 de la Llei 3/2010); en la resta, l’Ajuntament el pot prendre com a referència en la documentació tècnica i a la visita.",
+                                                                        "revisat":  "2026-10"
+                                                                    },
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Conductes d’extracció de cuines. Els conductes d’extracció de fums de cuines (tots els usos excepte Residencial Habitatge) han de complir el document TINSCI DT-18: en cuines que són local de risc especial, o que en tenen la potència però estan desclassificades per extinció automàtica, el conducte ha de ser EI-30 (i→o) en tot el recorregut per l’interior de l’edifici; en tots els casos, on travessi elements de compartimentació, EI-t (i→o) amb el temps del sector o local de la cuina i EI-t (o→i) amb el del sector que travessa, i sense comportes tallafoc al seu interior; i per façanes o patis, EI-30 (i→o) a menys d’1,50 m de zones que no siguin EI-30, balcons, terrasses o finestres practicables."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      },
+                                                      {
+                                                          "tipus":  "item",
+                                                          "titol":  "DT-19 - Ventilació per conductes d’escales i passadissos protegits",
+                                                          "ajuda":  {
+                                                                        "norma":  "Document TINSCI DT-19, Ventilació natural d’elements d’evacuació protegits mitjançant conductes (octubre 2024). Taula d’Interpretació de la Normativa de Seguretat contra Incendis (DGPEIS). Complementa l’annex A (Terminologia) del CTE DB SI i el DB HS 3; també als establiments del RSCIEI",
+                                                                        "enllac":  "https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/interpretacio_normativa_tinsci/documents-tinsci/",
+                                                                        "criteri":  "Excepcions: escales d’una sola planta sense salvar més de 3 m, sense protecció de fum (però sense zones de refugi); evacuació ascendent de fins a 6 m que desembarca a l’exterior sense tancament; i aparcaments privats d’una sola planta sota rasant de fins a 1.500 m2 amb evacuació ascendent de 4 m o menys (la boca d’entrada pot quedar per sobre). Als passadissos protegits, entrada i sortida en paraments oposats i separades 10 m com a màxim. Al document, el text en negre és normatiu i el gris és criteri consensuat per la TINSCI.",
+                                                                        "vigencia":  "Una sola vegada: es resol amb el projecte i l’obra i no caduca. Es torna a mirar si hi ha reforma, ampliació o canvi d’ús.",
+                                                                        "aplica":  "Edificis amb escales o passadissos protegits ventilats per conductes.",
+                                                                        "competencia":  "Criteri interpretatiu de la TINSCI. La DGPEIS (Bombers) l’aplica en les activitats sotmeses a la intervenció administrativa prèvia de la Generalitat (annex 1 de la Llei 3/2010); en la resta, l’Ajuntament el pot prendre com a referència en la documentació tècnica i a la visita.",
+                                                                        "revisat":  "2026-10"
+                                                                    },
+                                                          "cos":  [
+                                                                      {
+                                                                          "runs":  [
+                                                                                       {
+                                                                                           "t":  "Ventilació per conductes. La protecció enfront del fum d’escales protegides, especialment protegides i passadissos protegits amb conductes independents d’entrada i sortida d’aire ha de complir el document TINSCI DT-19: conductes exclusius, amb reixetes a cada planta i trams horitzontals de 5 m com a màxim; boca d’entrada a la façana per sota de la reixeta de la planta més baixa (no a la rampa de l’aparcament si no és exterior) i boca de sortida a la coberta o la façana per sobre de la reixeta més alta, amb les distàncies del DB SI 2; conductes de l’escala independents dels del vestíbul; secció útil de 50 cm2 per m3 del recinte (planta de més volum) i relació de costats de 4 com a màxim; reixetes enfrontades, d’entrada a menys d’1 m del terra i de sortida a més d’1,80 m. No es pot combinar amb la pressió diferencial a la mateixa escala especialment protegida."
+                                                                                       }
+                                                                                   ]
+                                                                      }
+                                                                  ],
+                                                          "fills":  [
+
+                                                                    ]
+                                                      }
+                                                  ]
+                                    },
+                                    {
+                                        "tipus":  "subseccio",
                                         "titol":  "RIPCI",
                                         "cos":  [
 

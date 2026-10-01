@@ -1592,6 +1592,206 @@
                                        },
                                        {
                                            "Kind":  "subsection",
+                                           "Short":  "TINSCI",
+                                           "BodyLines":  [
+
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "intro",
+                                           "Short":  "",
+                                           "BodyLines":  [
+                                                             "S’han de seguir els criteris de la Taula d’Interpretació de la Normativa de Seguretat contra Incendis (TINSCI) de la Direcció General de Prevenció, Extinció d’Incendis i Salvaments que siguin d’aplicació, més concretament:"
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "DT-4 - Reducció d’amplada d’escala per instal·lar ascensor",
+                                           "BodyLines":  [
+                                                             "Reducció de l’amplada d’escala. En edificis d’habitatges existents en què s’hagi de reduir l’amplada de l’escala per instal·lar-hi un ascensor, l’amplada mínima ha de ser de 0,80 m segons el document TINSCI DT-4. Si l’escala serveix a més de 10 persones, a més, no se n’ha de superar la capacitat d’evacuació segons el CTE DB SI, l’escala s’ha de dotar d’enllumenat d’emergència i d’extintors, i la sala de màquines de l’ascensor s’ha de situar preferentment a la coberta o a l’última planta o, si no, sectoritzada com a local de risc especial baix."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "DT-5 - Aparcaments amb places tancades",
+                                           "BodyLines":  [
+                                                             "Places d’aparcament tancades. En aparcaments amb places tancades no compartimentades com a local de risc especial, la superfície de càlcul ha d’incloure les zones comunes i totes les places, i s’ha de complir el document TINSCI DT-5: parets entre places veïnes EI 90; porta de vehicles de cada plaça que es pugui obrir manualment i fàcilment des de l’interior, amb un 50 % com a mínim de la seva superfície calada i uniformement repartida; evacuació per les zones comunes; control de fums de les zones de circulació i de les places (DT-9); instal·lacions manuals de protecció a les zones comunes; i, si l’aparcament necessita detecció o extinció automàtica, també a cada plaça tancada. En aparcaments comuns soterrats d’habitatges unifamiliars adossats, l’aparcament ha de ser un sector independent i la comunicació amb cada habitatge s’ha de fer per un vestíbul d’independència amb parets EI 120 i portes EI2 30-C5."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "DT-6 - Patis per ventilar escales protegides",
+                                           "BodyLines":  [
+                                                             "Patis de ventilació d’escales protegides. La ventilació natural d’escales protegides o especialment protegides a un pati s’ha d’ajustar al document TINSCI DT-6: a un pati interior de parcel·la (amb les dimensions del Decret 141/2012), finestres practicables, no forats oberts, amb una superfície de ventilació mínima d’1 m2 a cada planta i les distàncies del DB SI 2 respecte de les zones de façana que no siguin EI 60; si el pati té claraboia, sortida d’aire al coronament, almenys igual a la superfície mínima del pati i en dos costats oposats. A un pati assimilable a l’exterior (cercle inscrit de diàmetre h/3, obert a dalt), finestres o forats permanents d’1 m2 per planta, i les escales obertes a l’exterior, forats permanents de 5·A m2 per planta (A = amplada del tram)."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "DT-7 - Trasters",
+                                           "BodyLines":  [
+                                                             "Trasters. Segons el document TINSCI DT-7, els trasters d’edificis d’habitatges vinculats als membres de la comunitat i amb accés des d’espais comuns són zones de risc especial del CTE DB SI (i, en aparcaments, DT-8), i els establiments de trasters per llogar o vendre a tercers són activitats d’emmagatzematge amb un nivell de risc intrínsec mitjà com a mínim, perquè no se’n coneix el contingut."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "DT-8 - Trasters en aparcaments",
+                                           "BodyLines":  [
+                                                             "Trasters en aparcaments. Els trasters situats en aparcaments han de complir el document TINSCI DT-8 segons la seva superfície construïda: fins a 50 m2, parets EI 90 i porta EI2 45-C5 (i extintor 21A-113B a partir de 10 m2); de 50 a 100 m2 (risc especial baix), parets EI 90, porta EI2 45-C5, extintor i enllumenat d’emergència; de 100 a 500 m2 (risc mitjà), parets EI 120, vestíbul previ amb dues portes EI2 30-C5, extintor, control de fums i enllumenat d’emergència; i de més de 500 m2 (risc alt), parets EI 180, vestíbul previ amb dues portes EI2 45-C5, extintor, BIE-25, control de fums i enllumenat d’emergència. Detecció (UNE 23007-14) i BIE quan l’aparcament, comptant-hi els trasters, en necessiti. El control de fums ha de garantir 3 renovacions per hora, aportació d’aire, ventiladors F400 90 i conductes E600 90 (EI 90 si travessen elements de sectorització). Qualsevol punt dels trasters és origen d’evacuació: recorreguts de 35 m amb una sortida i de 50 m amb més d’una."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "DT-9 - Control de fums en aparcaments",
+                                           "BodyLines":  [
+                                                             "Control de fums en aparcaments. El sistema de control de fums de l’aparcament amb ventilació segons el DB HS 3 ha de complir el document TINSCI DT-9, més concretament:"
+                                                         ],
+                                           "Children":  [
+                                                            {
+                                                                "Kind":  "child",
+                                                                "Short":  "DT-9 - Ventilació natural",
+                                                                "BodyLines":  [
+                                                                                  "Ventilació natural. Obertures mixtes que comuniquin directament i de forma permanent amb l’exterior, almenys a zones oposades de les façanes i uniformement distribuïdes, a 25 m com a màxim de qualsevol punt (si les oposades estan a més de 30 m, una altra d’equidistant), amb lamel·les de 10 x 10 mm com a mínim; amb patis, com a màxim dues plantes sota rasant; àrea efectiva total, per zona i planta, d’almenys 8·qv cm2, amb qv = 120 l/s per plaça."
+                                                                              ]
+                                                            },
+                                                            {
+                                                                "Kind":  "child",
+                                                                "Short":  "DT-9 - Ventilació mecànica",
+                                                                "BodyLines":  [
+                                                                                  "Ventilació mecànica. Extracció d’almenys 150 l/s per plaça i aportació de 120 l/s per plaça com a màxim, en depressió, d’ús exclusiu (amb trasters que necessitin control de fums segons DT-8, xarxes independents); a partir de 15 places, dues xarxes de conductes d’extracció per planta, cadascuna amb el seu extractor; una obertura d’extracció per cada 100 m2 útils, separades menys de 10 m i 2/3 a 0,5 m o menys del sostre (les properes al terra, amb comportes E300 60); conductes sense estrenyiments, relació de costats 4:1 com a màxim, velocitat de 10 m/s com a màxim i classe E, o EI si travessen sectors; ventiladors amb la classe F del CTE; admissió natural a 25 m com a màxim de qualsevol punt, no a la rampa si no és exterior, i àrea efectiva de 4·qv cm2; boques d’expulsió a la coberta, a 3 m com a mínim de preses d’aire, finestres i espais amb persones."
+                                                                              ]
+                                                            },
+                                                            {
+                                                                "Kind":  "child",
+                                                                "Short":  "DT-9 - Activació, quadre per a bombers i instal·lació elèctrica",
+                                                                "BodyLines":  [
+                                                                                  "Activació i quadre per a bombers. Activació automàtica per la detecció (o pel flux d’un ruixador si només n’hi ha), zonificada per planta com a mínim, i quadre de comandament manual per a bombers, senyalitzat, amb la part superior a 1,70 m com a màxim i interruptors independents de marxa i aturada de l’extracció i de l’admissió: sobre rasant, a un accés de vehicles; sota rasant, dins d’una escala especialment protegida d’accés, amb la seva ubicació indicada a la resta d’accessos. L’alimentació dels ventiladors ha de ser directa des del quadre general, senyalitzada i protegida de manera que un incendi no la inutilitzi (REBT, ITC-BT-20, 21 i 28), i els aparcaments públics subterranis de més de 100 places han de tenir subministrament complementari."
+                                                                              ]
+                                                            }
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "DT-10 - Establiments de turisme rural",
+                                           "BodyLines":  [
+                                                             "Turisme rural. Els establiments de turisme rural (masia, masoveria, casa de poble), d’ús Residencial Habitatge i amb un màxim de 20 places, han de complir el document TINSCI DT-10: condicions d’aproximació del DT-12 (o, aïllats i de menys de 2.000 m2, vial de gàlib de 4,5 m a menys de 100 m de la façana accessible); a tocar o dins de massa forestal, dues vies d’accés o un cul de sac circular de 15 m de diàmetre, i franja perimetral de 25 m; la porta de cada habitació és origen d’evacuació, amb recorreguts fins a la sortida de planta de 25 m amb una sola sortida (50 m si surt directament a l’exterior segur) o de 35 m amb més d’una; enllumenat d’emergència a la porta de sortida, passadissos i escales; hidrants (SP 120 o SP 141); extintors 21A-113B prop de la porta de sortida i a cada planta; detectors de fum autònoms a les estances (als passadissos, un cada 15 m); i instruccions d’actuació en cas d’incendi per als allotjats."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "DT-11 - Vestíbul d’independència de l’escala especialment protegida",
+                                           "BodyLines":  [
+                                                             "Vestíbul d’independència. Segons el document TINSCI DT-11, al vestíbul d’independència d’una escala especialment protegida hi poden obrir com a màxim dos accessos (a més de la porta de l’escala): dels locals sense risc especial o de risc baix, amb porta EI2 30-C5; dels de risc mitjà o alt, a través d’un vestíbul propi amb dues portes EI2 30-C5 (mitjà) o EI2 45-C5 (alt). També hi poden obrir cambres higièniques o de neteja (porta EI2 30-C5) i registres de conductes o patinets EI 30."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "DT-12 - Aproximació i entorn per a la intervenció de bombers",
+                                           "BodyLines":  [
+                                                             "Aproximació i entorn. Els vials d’aproximació han de tenir una amplada lliure de 3,5 m (5 m sense sortida), un gàlib de 4,5 m, una capacitat portant de 20 kN/m2, 7,20 m d’amplada als trams corbs i un pendent del 15 % com a màxim. En edificis de 9 m d’alçada d’evacuació o menys, els accessos a peu han de ser a 50 m com a màxim del vial, amb un pas d’1,80 m. En els de més de 9 m, davant de la façana accessible hi ha d’haver un espai de maniobra de 5 m d’amplada, a 15 m de la façana com a màxim (10 m si l’alçada d’evacuació supera els 20 m) i a 30 m dels accessos, amb un pendent del 10 % com a màxim, una resistència al punxonament de 100 kN sobre 20 cm de diàmetre i lliure de mobiliari urbà, arbrat, jardins o fites; amb columna seca, el vehicle ha de poder arribar a menys de 18 m de cada connexió. Les obertures d’accés de la façana han de tenir l’ampit a 1,20 m com a màxim, unes dimensions mínimes de 0,80 x 1,20 m i una separació màxima de 25 m, sense elements que impedeixin l’accés (llevat dels de seguretat fins a 9 m d’alçada d’evacuació)."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "DT-13 - Reparació estructural en edificis existents",
+                                           "BodyLines":  [
+                                                             "Reparació estructural. En les intervencions de reparació puntual d’elements estructurals d’edificis existents no es poden reduir les condicions de resistència al foc preexistents, i s’ha de justificar la resistència al foc inicial de l’estructura (annexos B a F del CTE DB SI, Eurocodis, DB SE o les taules dels annexos del document TINSCI DT-13 per a forjats unidireccionals de formigó armat, de biguetes de fusta i de biguetes metàl·liques). Quan s’actuï sobre l’estructura principal i sigui viable, se n’ha d’augmentar la resistència al foc per aproximar-la a la taula 3.1 del DB SI 6."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "DT-14 - Remuntes en edificis d’habitatges",
+                                           "BodyLines":  [
+                                                             "Remuntes. Les remuntes en edificis d’habitatges existents han de complir el document TINSCI DT-14: edifici de PB+2 com a mínim, ús Residencial Habitatge, remunta de com a màxim el 50 % de la superfície sobre rasant resultant i de 2 plantes, alçada d’evacuació final de 28 m com a màxim i un sol sector (2.500 m2). Es pot mantenir l’amplada de l’escala existent si és de 0,80 m o més i té capacitat suficient, garantint-ne la continuïtat, l’enllumenat d’emergència, els extintors i que la porta de sortida s’obri des de dins sense clau. Si l’alçada d’evacuació final supera els 14 m, la part nova ha de tenir escala protegida i, si l’existent no es pot protegir, s’han d’aplicar mesures compensatòries: compartimentar els locals de risc que hi donin, detecció i alarma a l’escala, als espais comuns i a l’entrada de cada habitatge (audible a tots els habitatges), rètol d’instruccions al vestíbul, portes dels habitatges EI2 60 (o millorades amb bandes intumescents si tenen valor patrimonial), protecció de les obertures a pati (distàncies del DB SI 2 o EW 60) i ventilació de l’escala (finestres d’1 m2 per planta, conductes o un exutori d’1 m2 automàtic per la detecció i manual des de l’accés, amb el rètol «Ventilació. Ús exclusiu bombers»)."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "DT-15 - Sortides controlades elèctricament",
+                                           "BodyLines":  [
+                                                             "Sortides controlades elèctricament. Les portes d’evacuació amb sistema de sortida controlat elèctricament han de complir la UNE-EN 13637 i el document TINSCI DT-15: no s’admeten en pública concurrència d’alta densitat (camps d’esport, auditoris, teatres, cinemes, discoteques) ni en terminals de transport; en residencial públic, aparcament, comercial, pública concurrència de baixa densitat i hospitalari general, sense temporització ni mode de sortida denegada; en docent, administratiu, industrial i emmagatzematge, temporització de 15 s com a màxim. Només a la sortida d’edifici o d’establiment, amb detecció automàtica i alarma (UNE 23007), certificat de l’instal·lador especialitzat (UNE-EN 13637), certificat del tècnic competent sobre la temporització segons l’ús i manteniment a càrrec del titular amb llibre de manteniment a l’establiment. En portes tallafoc, la integritat i l’aïllament s’han de certificar amb el sistema incorporat."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "DT-16 - Unifamiliars entre mitgeres: evacuació per l’aparcament",
+                                           "BodyLines":  [
+                                                             "Evacuació per l’aparcament. L’aparcament d’un habitatge unifamiliar és local de risc especial baix (estructura R 90, parets i sostre EI 90, porta a l’habitatge EI2 45-C5, revestiments B-s1,d0 i BFL-s1, extintor 21A-113B) i no pot ser l’única sortida de l’habitatge. Segons el document TINSCI DT-16, en cases entre mitgeres protegides (PB+2 com a màxim, façana de menys de 5,50 m, pati posterior de 3 m com a mínim accessible sense passar per l’aparcament i càrrega de foc d’un sol cotxe) s’hi admet l’evacuació si: els trasters que hi donin són EI 90 amb porta EI2 45-C5; el recorregut és continu, identificat al paviment, lliure d’obstacles i amb enllumenat d’emergència; i la porta de vianants, de 0,80 m com a mínim, batent i amb marcatge CE, s’obre des de dins sense clau. Si el pati posterior té menys de 10 m de fondària, cal a més detecció i alarma a l’aparcament amb avís a l’habitatge i obertures permanents de ventilació a la part alta i baixa de la porta o la façana (la superior, de 0,30 m2 com a mínim)."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "DT-17 - Modificació significativa",
+                                           "BodyLines":  [
+                                                             "Modificació significativa. La documentació tècnica dels canvis, reformes o ampliacions en establiments existents legalitzats ha d’indicar expressament i justificar si es tracta o no d’una modificació significativa en matèria d’incendis, segons el document TINSCI DT-17. Si l’establiment és de risc important (annex 1 de la Llei 3/2010) i la modificació és significativa, cal un nou control preventiu de la DGPEIS i, en general, un nou acte de comprovació."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "DT-18 - Conductes d’extracció de fums de cuines",
+                                           "BodyLines":  [
+                                                             "Conductes d’extracció de cuines. Els conductes d’extracció de fums de cuines (tots els usos excepte Residencial Habitatge) han de complir el document TINSCI DT-18: en cuines que són local de risc especial, o que en tenen la potència però estan desclassificades per extinció automàtica, el conducte ha de ser EI-30 (i→o) en tot el recorregut per l’interior de l’edifici; en tots els casos, on travessi elements de compartimentació, EI-t (i→o) amb el temps del sector o local de la cuina i EI-t (o→i) amb el del sector que travessa, i sense comportes tallafoc al seu interior; i per façanes o patis, EI-30 (i→o) a menys d’1,50 m de zones que no siguin EI-30, balcons, terrasses o finestres practicables."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
+                                           "Short":  "DT-19 - Ventilació per conductes d’escales i passadissos protegits",
+                                           "BodyLines":  [
+                                                             "Ventilació per conductes. La protecció enfront del fum d’escales protegides, especialment protegides i passadissos protegits amb conductes independents d’entrada i sortida d’aire ha de complir el document TINSCI DT-19: conductes exclusius, amb reixetes a cada planta i trams horitzontals de 5 m com a màxim; boca d’entrada a la façana per sota de la reixeta de la planta més baixa (no a la rampa de l’aparcament si no és exterior) i boca de sortida a la coberta o la façana per sobre de la reixeta més alta, amb les distàncies del DB SI 2; conductes de l’escala independents dels del vestíbul; secció útil de 50 cm2 per m3 del recinte (planta de més volum) i relació de costats de 4 com a màxim; reixetes enfrontades, d’entrada a menys d’1 m del terra i de sortida a més d’1,80 m. No es pot combinar amb la pressió diferencial a la mateixa escala especialment protegida."
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "subsection",
                                            "Short":  "RIPCI",
                                            "BodyLines":  [
 

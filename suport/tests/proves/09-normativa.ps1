@@ -127,6 +127,9 @@ $nmApaF = _NormativaFilesIndex @($nmApa) @{} @{} { param($n) $false }
 Assert (([string]@($nmApaF)[0][9]) -like 'Web amb accés restringit*') 'APABCN 093: l''index diu per que s''ha de desar a ma'
 $nmSrcN = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'Normativa.ps1'))
 Assert ($nmSrcN -match "catch \{ if \(-not \(\(\[string\]\`$e\.Url\) -match '/con/\?\`$'\)\) \{ throw \} \}") 'BOE: el 404 de la pagina /con (RD 1002/2002) no talla el respatller sense /con'
+$nmRd = @($nmNormes | Where-Object { $_.Num -eq '1002/2002' })[0]
+AssertEq ([string]$nmRd.Url) 'https://www.boe.es/buscar/doc.php?id=BOE-A-2002-19574' 'RD 1002/2002: sense text consolidat, la publicacio del BOE (l''ELI tornava 404 tambe sense /con)'
+AssertEq (_NormativaFont ([string]$nmRd.Url)) 'boe' 'RD 1002/2002: es baixa pel cami del BOE'
 foreach ($nmUe in @('2016/679', '2017/745')) {
     $nmUeE = @($nmNormes | Where-Object { $_.Num -eq $nmUe })[0]
     Assert ([string]$nmUeE.Url -like 'https://www.boe.es/buscar/doc.php?id=DOUE-L-*') "Reglament (UE) ${nmUe}: des del BOE (EUR-Lex tornava un PDF buit)"
@@ -171,6 +174,13 @@ $nmSpNoms = @('Incendis_ITC Bombers_SP 136 A.pdf', 'Incendis_ITC Bombers_SP 136.
 AssertEq (_NormativaFitxerSp $nmSpNoms '136') 'Incendis_ITC Bombers_SP 136.pdf' 'ITC: el document principal, no el model A'
 AssertEq (_NormativaFitxerSp $nmSpNoms '144') 'Incendis_ITC Bombers_SP 144 (Obre en una nova finestra).pdf' 'ITC: la SP 144 i no la nota (tambe amb el nom antic)'
 AssertEq (_NormativaFitxerSp $nmSpNoms '109') '' 'ITC: si no hi es, res'
+AssertEq (_NormativaDtDeText 'Document TINSCI DT-9, Control de fums en els aparcaments') '9' 'TINSCI: el numero de la fitxa'
+$nmDtNoms = @('Incendis_TINSCI_Document DT-18.pdf', 'Incendis_TINSCI_Document actualitzat DT-18.pdf', 'Incendis_TINSCI_Document actualitzat DT-1.pdf', 'Incendis_TINSCI_Document actualizat DT-8.pdf', 'Incendis_Antic_TINSCI Document anterior DT-9.pdf', 'Incendis_TINSCI_Document actualitzat DT-9.pdf', 'Incendis_TINSCI_Annex 1.1 de DT-13.pdf', 'Incendis_TINSCI_Document DT-13.pdf')
+AssertEq (_NormativaFitxerDt $nmDtNoms '18') 'Incendis_TINSCI_Document actualitzat DT-18.pdf' 'TINSCI: la versio actualitzada si n''hi ha dues'
+AssertEq (_NormativaFitxerDt $nmDtNoms '8') 'Incendis_TINSCI_Document actualizat DT-8.pdf' 'TINSCI: tambe amb la falta del web ("actualizat")'
+AssertEq (_NormativaFitxerDt $nmDtNoms '9') 'Incendis_TINSCI_Document actualitzat DT-9.pdf' 'TINSCI: mai l''anterior (Antic)'
+AssertEq (_NormativaFitxerDt $nmDtNoms '13') 'Incendis_TINSCI_Document DT-13.pdf' 'TINSCI: el document, no l''annex'
+AssertEq (_NormativaFitxerDt $nmDtNoms '1') 'Incendis_TINSCI_Document actualitzat DT-1.pdf' 'TINSCI: DT-1 no agafa la DT-18'
 AssertEq (_NormativaNomDocColleccio $nmColE 'SP 132 (Obre en una nova finestra)' 'https://x.cat/sp132.pdf') 'Incendis_ITC Bombers_SP 132.pdf' 'col·leccio: fora el "(Obre en una nova finestra)" (sortia al nom de les ITC)'
 $nmFc = _NormativaFilesIndex @([pscustomobject]@{ Id = 'Col·lecció ITC Bombers'; Ambit = 'Incendis'; Tema = 'ITC Bombers'; Tipus = 'ITC Bombers'; Titol = 'ITC'; Url = 'https://x.cat/'; Colleccio = $true }) @{
     'Col·lecció ITC Bombers' = @{ Error = ''; Baixat = '2026-09-30T10:00:00'; Versio = ''; Mida = 0 }
