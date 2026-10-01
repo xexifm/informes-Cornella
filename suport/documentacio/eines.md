@@ -395,18 +395,33 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
   Una conclusio que diu que **NO** es pot donar per tancat/finalitzat (qualsevol
   "no es pot donar...") es **Requeriment** (pendent), no "FI Requeriment": la
   comprovacio del "no" va abans que la del "si" a `_ConclusioBreu`.
-- **Menú Pas 1 — 4 apartats de rajoles** (`Select-Mode`, `Menu.ps1`, helper
-  `$addTileRow`; dispatch al `switch` de `Main`):
-  - **EINES** (4): 📍 *Generar ruta* (`ruta`), 🗺 *Coordenades*
+- **Menú Pas 1 — 5 apartats de rajoles, en una COLUMNA a la dreta dels
+  informes** (`Select-Mode`, `Menu.ps1`, helper `$addTileRow`; dispatch al
+  `switch` de `Main`):
+  - **EINES** (5): 📍 *Generar ruta* (`ruta`), 🗺 *Coordenades*
     (`coordenades`), 🔒 *Activitats precintades* (`url`, acció `precintades`
-    només per al segell), 📅 *Controls periòdics* (`controlsperiodics`).
+    només per al segell), 📅 *Controls periòdics* (`controlsperiodics`),
+    🔔 *Recordatoris* (`recordatoris`).
   - **INFORMES** (4): 🗃 *Actualitzar base* (`informesdb`), 📋 *Editar base*
     (`informesdbedit`), 📁 *Copiar informes* (`copiarinformes`), 📄 *Word a PDF*
     (`convertirpdf`).
   - **GIA** (2): ✅ *Comprovar Excel* (`comprovarexcel`), 📊 *Seguiment*
     (`seguimentgia`).
-  - **MÒBIL** (2): 📧 *Textos del correu* (`emailtextos`), 📥 *Revisar mòbil*
-    (`revisarmobil`).
+  - **NORMATIVA** (2): 📚 *Normativa* (`normativa`), 🔍 *Revisar requeriments*
+    (`revisio`).
+  - **MÒBIL** (3): 📧 *Textos del correu* (`emailtextos`), 📤 *Enviar correu*
+    (`enviarcorreu`), 📥 *Revisar mòbil* (`revisarmobil`).
+  - **Per què a la dreta (octubre 2026)**: a sota dels informes, un grup per
+    fila, la finestra feia ~980 px d'alt i en un portàtil (o amb el Windows al
+    125%) calia fer scroll — l'usuari: «hi ha massa eines i no es veuen
+    totes». Ara fa ~1060×540. On va cada grup ho decideix
+    **`_MenuDisposaGrups`** (pura): omple files de com a molt **cinc rajoles**
+    i hi posa de costat els grups que hi caben (GIA i NORMATIVA). **Una eina
+    nova** va a l'array del seu grup i prou; si un grup passés de cinc, val
+    més fer-ne un de nou que eixamplar la columna. Guard a `06-guards.ps1`:
+    calcula l'alçada a partir del codi i exigeix que hi càpiga en una
+    pantalla de 768 px (validat injectant-hi entrades, un grup de massa
+    rajoles i la columna a sota).
 - **Segell d'«última execució»: UN sol registre per a totes les rajoles.**
   `local\base-dades-activitats\eines-state.json` → `{ "<accio>": "<ISO>" }`.
   - S'escriu en **un sol lloc**: al final del bucle de `Main` (`Wizard.ps1`),

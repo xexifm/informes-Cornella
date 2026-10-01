@@ -155,6 +155,31 @@ function _AjudaEina([string]$accio) {
     return [string]$Script:AjudaEines[$accio]
 }
 
+# ON VA CADA GRUP D'EINES (pura: es prova sense WinForms).
+#
+# Abans les eines anaven SOTA els tipus d'informe, un grup per fila: cinc
+# informes de 70 px i cinc files de 102 px feien una finestra d'uns 980 px
+# d'alt, que en un portatil o amb el Windows al 125% no hi cap i obligava a
+# fer scroll (l'usuari: "hi ha massa eines i no es veuen totes"). Ara van en
+# una COLUMNA a la dreta dels informes i, dins d'ella, els grups petits
+# comparteixen fila (GIA i NORMATIVA) sempre que hi capiguen.
+#
+# Rep el nombre de rajoles de cada grup, l'amplada maxima de la columna i les
+# mides; torna, per a cada grup i en el mateix ordre, @{ X; Y } relatius a la
+# cantonada de la columna. Un grup mai es parteix entre dues files, i un grup
+# mes ample que la columna surt sol a la seva fila (no es perd).
+function _MenuDisposaGrups([int[]]$rajoles, [int]$ampleMax, [int]$tileW, [int]$tileGap, [int]$sepGrups, [int]$altFila) {
+    $out = New-Object System.Collections.ArrayList
+    $x = 0; $y = 0
+    foreach ($n in @($rajoles)) {
+        $w = ([Math]::Max(1, $n) * $tileW) + (([Math]::Max(1, $n) - 1) * $tileGap)
+        if ($x -gt 0 -and ($x + $w) -gt $ampleMax) { $x = 0; $y += $altFila }
+        [void]$out.Add(@{ X = $x; Y = $y })
+        $x += $w + $sepGrups
+    }
+    return ,($out.ToArray())
+}
+
 # Retorna @{ Action='nou'|'seguiment'|'actextr'; Cataleg=<FileInfo|$null> }.
 # Per a 'nou', Cataleg es el .docx triat (ja no cal un segon pas de tria).
 # Tancar la finestra (X) avorta (exit 0).
@@ -435,16 +460,9 @@ function Select-Mode {
         $y += 70
     }
 
-    # ---- Eines (separades dels tipus d'informe) ----------------------------
-    $y += 6
-    $sepEines = New-Object System.Windows.Forms.Label
-    $sepEines.Text = 'EINES'
-    $sepEines.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
-    $sepEines.ForeColor = [System.Drawing.Color]::FromArgb(138, 20, 38)
-    $sepEines.Location = New-Object System.Drawing.Point(20, $y)
-    $sepEines.AutoSize = $true
-    [void]$form.Controls.Add($sepEines)
-    $y += 24
+    # ---- Eines: en una COLUMNA a la dreta dels tipus d'informe ---------------
+    # (vegeu _MenuDisposaGrups: a sota no hi cabien sense fer scroll)
+    $yInformes = $y
 
     # EINES: rajoles compactes en una fila (emoji a dalt + etiqueta petita a
     # sota), segons el disseny. Comportament per rajola: 'action' tanca el menu
@@ -713,11 +731,11 @@ function Select-Mode {
         if ($s.Cursor -ne $c) { $s.Cursor = $c }
     }.GetNewClosure()
 
-    # Dibuixa una fila de rajoles amb el seu segell a l'alcada $y actual i retorna
-    # la $y seguent (helper unic: el fan servir les quatre files).
+    # Dibuixa les rajoles d'un grup amb el seu segell a partir de ($xRow, $yRow)
+    # i retorna la $y de sota (helper unic: el fan servir tots els grups).
     $addTileRow = {
-        param($items, $yRow)
-        $tx = 20
+        param($items, $xRow, $yRow)
+        $tx = $xRow
         foreach ($tool in $items) {
             $tb = New-Object System.Windows.Forms.Button
             $tb.Text = ''
@@ -769,59 +787,48 @@ function Select-Mode {
         }
         return ($yRow + $tileH + 20)
     }.GetNewClosure()
-    $y = & $addTileRow $tools $y
+    $grups = @(
+        @{ Titol = 'EINES';     Items = $tools }
+        @{ Titol = 'INFORMES';  Items = $reports }
+        @{ Titol = 'GIA';       Items = $gia }
+        @{ Titol = 'NORMATIVA'; Items = $normativaRow }
+        @{ Titol = ('M' + [char]0x00D2 + 'BIL'); Items = $mobil }
+    )
+    # La columna comenca a l'altura de "Que vols fer?" i tan a la dreta com les
+    # rajoles dels informes; hi caben cinc rajoles d'ample (la fila mes llarga).
+    $xEines = 20 + 560 + 32
+    $yEines = 15 + $headerHeight
+    $ampleEines = (5 * $tileW) + (4 * $tileGap)
+    $altGrup = 24 + $tileH + 20     # titol + rajola + segell
+    $posGrups = _MenuDisposaGrups ([int[]]@($grups | ForEach-Object { @($_.Items).Count })) $ampleEines $tileW $tileGap 24 $altGrup
+    $yFiEines = $yEines
+    for ($ig = 0; $ig -lt $grups.Count; $ig++) {
+        $gx = $xEines + [int]$posGrups[$ig].X
+        $gy = $yEines + [int]$posGrups[$ig].Y
+        $sep = New-Object System.Windows.Forms.Label
+        $sep.Text = [string]$grups[$ig].Titol
+        $sep.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
+        $sep.ForeColor = [System.Drawing.Color]::FromArgb(138, 20, 38)
+        $sep.Location = New-Object System.Drawing.Point($gx, $gy)
+        $sep.AutoSize = $true
+        [void]$form.Controls.Add($sep)
+        $yGrup = [int](& $addTileRow $grups[$ig].Items $gx ($gy + 24))
+        $yFiEines = [Math]::Max($yFiEines, $yGrup)
+    }
 
-    # ---- INFORMES (base d'informes) ----------------------------------------
-    $sepInformes = New-Object System.Windows.Forms.Label
-    $sepInformes.Text = 'INFORMES'
-    $sepInformes.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
-    $sepInformes.ForeColor = [System.Drawing.Color]::FromArgb(138, 20, 38)
-    $sepInformes.Location = New-Object System.Drawing.Point(20, $y)
-    $sepInformes.AutoSize = $true
-    [void]$form.Controls.Add($sepInformes)
-    $y += 24
-
-    $y = & $addTileRow $reports $y
-
-    # ---- GIA (base de dades d'activitats) ----------------------------------
-    $sepGia = New-Object System.Windows.Forms.Label
-    $sepGia.Text = 'GIA'
-    $sepGia.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
-    $sepGia.ForeColor = [System.Drawing.Color]::FromArgb(138, 20, 38)
-    $sepGia.Location = New-Object System.Drawing.Point(20, $y)
-    $sepGia.AutoSize = $true
-    [void]$form.Controls.Add($sepGia)
-    $y += 24
-    $y = & $addTileRow $gia $y
-
-    # ---- NORMATIVA ---------------------------------------------------------
-    $sepNorm = New-Object System.Windows.Forms.Label
-    $sepNorm.Text = 'NORMATIVA'
-    $sepNorm.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
-    $sepNorm.ForeColor = [System.Drawing.Color]::FromArgb(138, 20, 38)
-    $sepNorm.Location = New-Object System.Drawing.Point(20, $y)
-    $sepNorm.AutoSize = $true
-    [void]$form.Controls.Add($sepNorm)
-    $y += 24
-    $y = & $addTileRow $normativaRow $y
-
-    # ---- MOBIL (app del mobil) ---------------------------------------------
-    $sepMobil = New-Object System.Windows.Forms.Label
-    $sepMobil.Text = 'M' + [char]0x00D2 + 'BIL'
-    $sepMobil.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
-    $sepMobil.ForeColor = [System.Drawing.Color]::FromArgb(138, 20, 38)
-    $sepMobil.Location = New-Object System.Drawing.Point(20, $y)
-    $sepMobil.AutoSize = $true
-    [void]$form.Controls.Add($sepMobil)
-    $y += 24
-    $y = & $addTileRow $mobil $y
-    $y += 4
+    # Una ratlla fina separa les dues columnes.
+    $ratlla = New-Object System.Windows.Forms.Label
+    $ratlla.BackColor = $tileBorder
+    $ratlla.Location = New-Object System.Drawing.Point(($xEines - 17), $yEines)
+    $ratlla.Size = New-Object System.Drawing.Size(1, ([Math]::Max($yInformes, $yFiEines) - $yEines - 14))
+    [void]$form.Controls.Add($ratlla)
+    $y = [Math]::Max($yInformes, $yFiEines) + 4
 
     # (Configuracio i Ajuda ja no son botons grans: van DISCRETS a la cantonada
     #  de la banda granat, mes avall.)
     $urlAjuda = 'https://github.com/xexifm/informes-cornella/blob/main/LLEGEIX-ME.md'
 
-    $form.ClientSize = New-Object System.Drawing.Size(600, ($y + 12))
+    $form.ClientSize = New-Object System.Drawing.Size(($xEines + $ampleEines + 20), ($y + 12))
 
     # Banda de capcalera GRANAT amb escut blanc (helper comu del redisseny).
     # S'afegeix al final (Dock=Top) per no desplacar els controls ja posicionats.

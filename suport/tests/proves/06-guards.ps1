@@ -3,6 +3,50 @@
 # Es DOT-SOURCE des de run-tests.ps1: mateix ambit, mateixes variables i el
 # mateix comptador d'asserts. No s'executa sol.
 
+Write-Host "`n--- El menu: hi cap sencer, sense scroll ---"
+# Les eines anaven sota els informes, un grup per fila, i la finestra feia
+# ~980 px d'alt: en un portatil no hi cabia i calia fer scroll. Ara van en una
+# columna a la dreta i els grups petits comparteixen fila (_MenuDisposaGrups).
+# Dins d'un try: una excepcio aqui mataria la resta de la suite amb "0 FAIL".
+try {
+$dg = _MenuDisposaGrups ([int[]]@(5, 4, 2, 2, 3)) 428 80 7 24 102
+AssertEq $dg.Count 5 '_MenuDisposaGrups: una posicio per grup'
+AssertEq (($dg | ForEach-Object { [string]$_.X + ',' + [string]$_.Y }) -join ' ') '0,0 0,102 0,204 191,204 0,306' '_MenuDisposaGrups: GIA i NORMATIVA comparteixen fila; la resta, una cada un'
+$dg1 = _MenuDisposaGrups ([int[]]@(2)) 428 80 7 24 102
+AssertEq $dg1.Count 1 '_MenuDisposaGrups: un sol grup torna un array d''UN element (no desenrotllat)'
+$dgA = _MenuDisposaGrups ([int[]]@(7, 1)) 428 80 7 24 102
+AssertEq (($dgA | ForEach-Object { [string]$_.X + ',' + [string]$_.Y }) -join ' ') '0,0 0,102' '_MenuDisposaGrups: un grup mes ample que la columna surt sol (no es perd) i el seguent baixa'
+$dg0 = _MenuDisposaGrups ([int[]]@()) 428 80 7 24 102
+AssertEq @($dg0).Count 0 '_MenuDisposaGrups: sense grups, res (i no peta)'
+# L'ALCADA REAL, calculada del codi del menu: les rajoles de cada grup i les
+# entrades d'informe. Ha de cabre en una pantalla de 768 px (barra de tasques
+# i titol de la finestra a part). Validat injectant-hi entrades d'informe fins
+# a passar de l'alcada, un grup de massa rajoles, i la columna d'eines SOTA.
+$srcMenuH = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'Menu.ps1'))
+$nGrup = {
+    param($nom)
+    $m = [regex]::Match($srcMenuH, '(?s)\$' + $nom + ' = @\((.*?)\n\s*\)')
+    @([regex]::Matches($m.Groups[1].Value, '@\{ Emoji =')).Count
+}
+$rajGrups = [int[]]@((& $nGrup 'tools'), (& $nGrup 'reports'), (& $nGrup 'gia'), (& $nGrup 'normativaRow'), (& $nGrup 'mobil'))
+Assert (($rajGrups | Measure-Object -Sum).Sum -ge 14) ('menu: es troben les rajoles de cada grup (' + ($rajGrups -join ',') + ')')
+$posH = _MenuDisposaGrups $rajGrups 428 80 7 24 102
+$altEines = 71 + (($posH | ForEach-Object { [int]$_.Y } | Measure-Object -Maximum).Maximum) + 102
+# Cap grup mes ample que la columna (cinc rajoles): sortiria sol a la seva fila
+# pero eixamplaria la finestra fins a no cabre de costat.
+AssertEq (@($rajGrups | Where-Object { $_ -gt 5 }).Count) 0 ('menu: cap grup d''eines passa de 5 rajoles, l''ample de la columna (' + ($rajGrups -join ',') + ')')
+# Les entrades d'informe (cada $menu.Add, el bucle dels catalegs extra inclos).
+$nInformes = @([regex]::Matches($srcMenuH, '\[void\]\$menu\.Add\(')).Count
+$altInformes = 101 + ($nInformes * 70)
+$altMenu = [Math]::Max($altEines, $altInformes) + 16
+Assert ($altMenu -le 680) ('menu: la finestra fa ' + $altMenu + ' px d''alt i ha de cabre en una pantalla de 768 sense scroll')
+Assert ($srcMenuH.Contains('_MenuDisposaGrups (')) 'menu: les eines es col·loquen amb _MenuDisposaGrups'
+Assert ($srcMenuH.Contains('$yEines = 15 + $headerHeight')) 'menu: la columna d''eines comenca a dalt, al costat dels informes (no a sota)'
+Assert (-not ($srcMenuH -match 'Size\(600, \(\$y')) 'menu: ja no es una sola columna de 600 px'
+} catch {
+    Assert $false ('menu sense scroll: la prova ha petat: ' + $_.Exception.Message)
+}
+
 Write-Host "`n--- El menu: ordre dels informes ---"
 $segSrc = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $TestsDir) 'Menu.ps1') -Raw
 $q = [char]39
