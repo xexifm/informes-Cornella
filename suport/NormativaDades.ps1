@@ -172,6 +172,14 @@ function _NormativaNomFitxer($e) {
 #   pdf    -> l'URL ja es el PDF
 #   web    -> qualsevol altra pagina: s'imprimeix a PDF amb l'Edge
 #   manual -> sense URL
+# La font d'una entrada del cataleg. 'Manual' = la web demana iniciar sessio
+# (la circular 093 d'APABCN es a l'area privada): l'enllac hi es perque l'usuari
+# l'obri amb el seu navegador, pero el programa no ho intenta.
+function _NormativaFontDe($e) {
+    if ($e.Manual) { return 'manual' }
+    return (_NormativaFont ([string]$e.Url))
+}
+
 function _NormativaFont([string]$url) {
     if ([string]::IsNullOrWhiteSpace($url)) { return 'manual' }
     $u = $url.Trim()
@@ -312,17 +320,27 @@ function _NormativaSubpagines([string]$html, [string]$base) {
 
 # El nom d'un document d'una col·leccio: Ambit_Tema_<text de l'enllac>.pdf (o el
 # nom del fitxer de l'URL, si l'enllac no te text).
+# "(Obre en una nova finestra)": el text per als lectors de pantalla que la web
+# d'Interior posa a cada enllac; sortia al nom i al titol de les ITC.
+function _NormativaNetejaTextEnllac([string]$text) {
+    return (([string]$text) -replace '(?i)\s*\(?\s*(obre en una (nova )?finestra( nova)?|abre en una (nueva )?ventana( nueva)?|opens? in a new (window|tab))\s*\)?', '').Trim()
+}
+
+# Les versions ANTERIORS d'un document de la col·leccio (la pagina de les TINSCI
+# porta "Document actualitzat DT-5" i "Document anterior DT-5") van al tema
+# Antic, com la resta de normativa substituida, amb el tema de la col·leccio
+# davant: Incendis_Antic_TINSCI Document anterior DT-5.pdf.
 function _NormativaNomDocColleccio($e, [string]$text, [string]$url) {
-    # "(Obre en una nova finestra)": el text per als lectors de pantalla que la
-    # web d'Interior posa a cada enllac; sortia al nom de TOTES les ITC.
-    $t = (([string]$text) -replace '(?i)\s*\(?\s*(obre en una (nova )?finestra( nova)?|abre en una (nueva )?ventana( nueva)?|opens? in a new (window|tab))\s*\)?', '').Trim()
+    $t = _NormativaNetejaTextEnllac $text
     if (-not $t -or $t -match '^(?i)(pdf|descarrega|descarregar|download|visualitza/obre|view/open|veure/obrir|obre|obrir|visualitza|ver/abrir)$') {
         try { $t = [System.Uri]::UnescapeDataString([System.IO.Path]::GetFileNameWithoutExtension((New-Object System.Uri($url)).AbsolutePath)) } catch { $t = 'document' }
         $t = $t -replace '[_]+', ' '
     }
     $t = $t -replace '(?i)\s*\((pdf|\d+([.,]\d+)?\s*[km]b)[^)]*\)\s*$', ''
     if ($t.Length -gt 90) { $t = $t.Substring(0, 90).TrimEnd() }
-    $parts = @([string]$e.Ambit, [string]$e.Tema, $t) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    $tema = [string]$e.Tema
+    if ($t -match '^(?i)document\s+(anterior|antic)\b' -and $tema -ne 'Antic') { $t = $tema + ' ' + $t; $tema = 'Antic' }
+    $parts = @([string]$e.Ambit, $tema, $t) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
     return ((_NormativaNetejaNom ($parts -join '_')) + '.pdf')
 }
 
@@ -553,7 +571,7 @@ function _NormativaFilesIndex($normes, $estat, $punts, $existeix) {
         $resultat = if ($hi -and $null -ne $est -and [string]$est.Via -eq 'pàgina impresa') { 'Baixada (pàgina desada com a PDF: no s''ha trobat el PDF de la norma)' }
                     elseif ($hi -and $null -ne $est -and [string]$est.Via -and [string]$est.Via -ne 'PDF') { 'Baixada (' + [string]$est.Via + ')' }
                     elseif ($hi) { 'Baixada' }
-                    elseif ((_NormativaFont ([string]$e.Url)) -eq 'manual') { "Sense enllaç: desa-la a mà amb aquest nom" }
+                    elseif ((_NormativaFontDe $e) -eq 'manual') { $(if ([string]$e.Url) { "Web amb accés restringit: obre l'enllaç i desa-la a mà amb aquest nom" } else { "Sense enllaç: desa-la a mà amb aquest nom" }) }
                     elseif ($null -ne $est -and $est.Error) { 'Error: ' + [string]$est.Error }
                     else { 'Pendent' }
         $fitxer = if ($hi) { @{ Text = $nom; Link = $nom } } else { $nom }

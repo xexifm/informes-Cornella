@@ -859,6 +859,29 @@ l'enllaç des de la fitxa d'ajuda.
     `_NormativaFitxerSp`, abans del catàleg): la fitxa cita també la Llei
     3/2010 i, si no, obria la llei.
 
+- **Cinquena ronda (índex de l'1 d'octubre de 2026: 254 baixades, 5 errors)**.
+  - **Les «ITC Bombers antigues» eren les TINSCI**: el marcador
+    «Incendis_SP-XXX (antigues)» apuntava a la pàgina «Documentació normativa:
+    TINSCI», i els 36 documents baixats són DT-x (vigents i anteriors). Ara són
+    una font més de la col·lecció TINSCI (`AltresUrls`), i la pàgina nova
+    (documents-tinsci) es continua provant; els documents de totes dues es
+    reuneixen sense repetits. Els fitxers ja baixats **es reanomenen** perquè
+    la col·lecció porta `Abans` = «Col·lecció ITC Bombers antigues». Les
+    versions «Document anterior/antic» van a Antic
+    (`Incendis_Antic_TINSCI Document anterior DT-5.pdf`).
+  - Pàgines filles: un nivell més **només si són del repositori (DSpace)** (la
+    pàgina pot enllaçar la col·lecció i no cada document), i l'Edge només a la
+    pàgina de la col·lecció i a les del repositori: abans es feia a les 150
+    filles, fins a 45 s cadascuna.
+  - **RD 1002/2002**: no té text consolidat i el BOE respon **404** a `/con`.
+    L'`Invoke-WebRequest` llança, i el respatller sense `/con` (que ja hi era) no
+    s'arribava a provar mai.
+  - **2016/679 i 2017/745**, de la pàgina del BOE (DOUE-L-2016-80807 i
+    DOUE-L-2017-80916), com els altres reglaments europeus.
+  - **Circular 093 d'APABCN**: és a l'àrea privada (cal iniciar sessió). Camp
+    `Manual: true` (`_NormativaFontDe`): l'índex en conserva l'enllaç i diu
+    «Web amb accés restringit: obre l'enllaç i desa-la a mà amb aquest nom».
+
 ## REQ1: la subsecció «ITC de Bombers» (Incendis, setembre 2026)
 24 punts (un per ITC vigent del web de Bombers; SP 144 i SP 147 amb
 sub-punts), escrits **llegint els PDF oficials** que l'usuari va deixar al Drive

@@ -108,7 +108,30 @@ AssertEq @(_NormativaPdfsDeHtml '<a href="javascript:void(0)">PDF</a>' 'https://
 
 Write-Host "`n--- les col·leccions (ITC de Bombers, TINSCI) ---"
 $nmCols = @($nmNormes | Where-Object { $_.Colleccio })
-AssertEq (@($nmCols | ForEach-Object { $_.Id }) -join ', ') 'Col·lecció ITC Bombers, Col·lecció TINSCI, Col·lecció ITC Bombers antigues' 'col·leccions: ITC, TINSCI i les ITC antigues'
+AssertEq (@($nmCols | ForEach-Object { $_.Id }) -join ', ') 'Col·lecció ITC Bombers, Col·lecció TINSCI' 'col·leccions: ITC i TINSCI'
+# Les "ITC antigues" eren les TINSCI (pagina "Documentacio normativa: TINSCI",
+# 36 documents DT-x a l'index de l'usuari, octubre 2026): ara son una font mes
+# de la col·leccio TINSCI, i els fitxers ja baixats s'hi reanomenen (Abans).
+$nmTin = @($nmCols | Where-Object { $_.Id -eq 'Col·lecció TINSCI' })[0]
+Assert (@($nmTin.AltresUrls) -contains 'https://interior.gencat.cat/ca/detalls/Article/Documentacio_normativa_TINSCI') 'TINSCI: tambe de la pagina "Documentacio normativa: TINSCI"'
+Assert (@($nmTin.Abans) -contains 'Col·lecció ITC Bombers antigues') 'TINSCI: hereta els fitxers de les "ITC antigues"'
+$nmTinE = [pscustomobject]@{ Ambit = 'Incendis'; Tema = 'TINSCI' }
+AssertEq (_NormativaNomDocColleccio $nmTinE 'Document actualitzat DT-10' 'https://x.cat/dt10.pdf') 'Incendis_TINSCI_Document actualitzat DT-10.pdf' 'TINSCI: la versio vigent, al tema TINSCI'
+AssertEq (_NormativaNomDocColleccio $nmTinE 'Document anterior DT-10 (Obre en una nova finestra)' 'https://x.cat/dt10a.pdf') 'Incendis_Antic_TINSCI Document anterior DT-10.pdf' 'TINSCI: les versions anteriors, a Antic'
+AssertEq (_NormativaNetejaTextEnllac 'SP 112 (Obre en una nova finestra)') 'SP 112' 'col·leccio: el titol tambe sense el "(Obre en una nova finestra)"'
+# Una web que demana iniciar sessio: l'enllac hi es, pero es desa a ma.
+$nmApa = @($nmNormes | Where-Object { $_.Id -like '*APABCN 093*' })[0]
+AssertEq (_NormativaFontDe $nmApa) 'manual' 'APABCN 093: area privada, es desa a ma'
+Assert ([string]$nmApa.Url) 'APABCN 093: pero conserva l''enllac per obrir-la'
+$nmApaF = _NormativaFilesIndex @($nmApa) @{} @{} { param($n) $false }
+Assert (([string]@($nmApaF)[0][9]) -like 'Web amb accés restringit*') 'APABCN 093: l''index diu per que s''ha de desar a ma'
+$nmSrcN = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'Normativa.ps1'))
+Assert ($nmSrcN -match "catch \{ if \(-not \(\(\[string\]\`$e\.Url\) -match '/con/\?\`$'\)\) \{ throw \} \}") 'BOE: el 404 de la pagina /con (RD 1002/2002) no talla el respatller sense /con'
+foreach ($nmUe in @('2016/679', '2017/745')) {
+    $nmUeE = @($nmNormes | Where-Object { $_.Num -eq $nmUe })[0]
+    Assert ([string]$nmUeE.Url -like 'https://www.boe.es/buscar/doc.php?id=DOUE-L-*') "Reglament (UE) ${nmUe}: des del BOE (EUR-Lex tornava un PDF buit)"
+}
+
 $nmColHtml = @'
 <ul>
 <li><a href="/web/.content/sp/SP-120_entorn.pdf">SP 120. Condicions d&#39;entorn i d&#39;aproximació als edificis (PDF, 1,2 MB)</a></li>

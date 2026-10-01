@@ -186,7 +186,7 @@ function _NormativaBaixaUna($e, [string]$dir, $est, [bool]$forca) {
     $nom = _NormativaNomFitxer $e
     $desti = Join-Path $dir $nom
     $existeix = Test-Path -LiteralPath $desti
-    $font = _NormativaFont ([string]$e.Url)
+    $font = _NormativaFontDe $e
     if ($font -eq 'manual') { return @{ Fet = $false; Versio = ''; Error = ''; Motiu = 'manual' } }
     $tmp = Join-Path $dir ('~baixant ' + [guid]::NewGuid().ToString('N') + '.pdf')
     try {
@@ -195,10 +195,13 @@ function _NormativaBaixaUna($e, [string]$dir, $est, [bool]$forca) {
         $bytes = $null
         $via = 'PDF'
         if ($font -eq 'boe') {
-            $pag = _NormativaGet ([string]$e.Url)
-            $info = _NormativaBoeInfo ([string]$pag.Content)
             # Una norma SENSE text consolidat (RD 1002/2002) no te pagina /con:
-            # l'ELI sense el /con porta a la publicacio original.
+            # l'ELI sense el /con porta a la publicacio original. El BOE hi
+            # respon amb un 404, que l'Invoke-WebRequest LLANCA: el respatller
+            # no s'arribava a provar mai (index de l'usuari, octubre 2026).
+            $info = @{ Id = '' }
+            try { $pag = _NormativaGet ([string]$e.Url); $info = _NormativaBoeInfo ([string]$pag.Content) }
+            catch { if (-not (([string]$e.Url) -match '/con/?$')) { throw } }
             if (-not $info.Id -and ([string]$e.Url) -match '/con/?$') {
                 $pag = _NormativaGet (([string]$e.Url) -replace '/con/?$', '')
                 $info = _NormativaBoeInfo ([string]$pag.Content)
@@ -254,28 +257,48 @@ function _NormativaDesaNou([string]$tmp, [string]$desti, [string]$dir, $canvia) 
 # treu de la pagina cada vegada, perque Interior en publica de nous. Si la pagina
 # no porta els PDF directament, se'n miren les pagines filles (un nivell). Cada
 # document s'apunta a l'estat amb 'Pare' = la col·leccio. Torna els comptadors.
+# Els documents d'UNA pagina de col·leccio: els PDF que enllaca i, si no n'hi
+# ha, els de les seves pagines filles. Una fitxa filla que es una col·leccio del
+# repositori d'Interior (DSpace) i no porta PDF es mira un nivell mes: la pagina
+# de les TINSCI pot enllacar la col·leccio sencera i no cada document.
+function _NormativaDocsDePagina([string]$url, [int]$nivells = 2) {
+    $html = ''; $base = $url
+    try { $r = _NormativaGet $url; $html = [string]$r.Content; $base = _NormativaUrlFinal $r $url } catch { $html = '' }
+    $docs = @(_NormativaDocsDeColleccio $html $base)
+    # L'Edge (fins a 45 s) nomes a la pagina de la col·leccio i a les del
+    # repositori (el DSpace nou es munta amb JavaScript): a 150 pagines filles
+    # qualsevol, la baixada no acabaria.
+    if ($docs.Count -eq 0 -and ($nivells -ge 2 -or $url -match $Script:NormativaDspaceFitxa)) {
+        $h = _NormativaDomEdge $url; if ($h) { $html = $h }; $docs = @(_NormativaDocsDeColleccio $html $base)
+    }
+    if ($docs.Count -gt 0 -or $nivells -le 0) { return $docs }
+    $llista = New-Object System.Collections.ArrayList
+    foreach ($sp in @(_NormativaSubpagines $html $base | Select-Object -First 150)) {
+        $d2 = @(_NormativaDocsDePagina ([string]$sp.Url) $(if ([string]$sp.Url -match $Script:NormativaDspaceFitxa) { $nivells - 1 } else { 0 }))
+        foreach ($d in $d2) {
+            # Un sol PDF a la fitxa: el nom bo es el de l'enllac de la llista.
+            $t = if ($d2.Count -eq 1 -and $sp.Text) { [string]$sp.Text } else { [string]$d.Text }
+            [void]$llista.Add([pscustomobject]@{ Url = [string]$d.Url; Text = $t })
+        }
+    }
+    return $llista.ToArray()
+}
+
 function _NormativaBaixaColleccio($e, [string]$dir, $estat, [bool]$forca, $log) {
     $n = @{ Noves = 0; Act = 0; Igual = 0; Err = 0; Docs = 0 }
-    $url = [string]$e.Url
-    $html = ''
-    try { $html = [string](_NormativaGet $url).Content } catch { $html = '' }
-    $docs = @(_NormativaDocsDeColleccio $html $url)
-    if ($docs.Count -eq 0) { $html = _NormativaDomEdge $url; $docs = @(_NormativaDocsDeColleccio $html $url) }
-    if ($docs.Count -eq 0) {
-        $llista = New-Object System.Collections.ArrayList
-        foreach ($sp in @(_NormativaSubpagines $html $url | Select-Object -First 150)) {
-            $h2 = ''; $b2 = [string]$sp.Url
-            try { $r2 = _NormativaGet $b2; $h2 = [string]$r2.Content; $b2 = _NormativaUrlFinal $r2 $b2 } catch { }
-            $d2 = @(_NormativaDocsDeColleccio $h2 $b2)
-            if ($d2.Count -eq 0) { $h2 = _NormativaDomEdge ([string]$sp.Url); $d2 = @(_NormativaDocsDeColleccio $h2 $b2) }
-            foreach ($d in $d2) {
-                # Un sol PDF a la fitxa: el nom bo es el de l'enllac de la llista.
-                $t = if ($d2.Count -eq 1 -and $sp.Text) { [string]$sp.Text } else { [string]$d.Text }
-                [void]$llista.Add([pscustomobject]@{ Url = [string]$d.Url; Text = $t })
-            }
+    # La pagina de la col·leccio i les altres que en publiquen els documents
+    # (AltresUrls): les TINSCI eren a la pagina "Documentacio normativa: TINSCI"
+    # mentre la nova (documents-tinsci) no en donava cap. Sense repetits.
+    $docs = New-Object System.Collections.ArrayList
+    $vistos = @{}
+    foreach ($u in @(@([string]$e.Url) + @($e.AltresUrls) | Where-Object { $_ })) {
+        foreach ($d in @(_NormativaDocsDePagina ([string]$u))) {
+            if ($vistos.ContainsKey([string]$d.Url)) { continue }
+            $vistos[[string]$d.Url] = $true
+            [void]$docs.Add($d)
         }
-        $docs = @($llista)
     }
+    $docs = @($docs)
     $id = [string]$e.Id
     if ($docs.Count -eq 0) {
         $estat[$id] = @{ Error = "no s'hi ha trobat cap document"; Baixat = ''; Versio = ''; Mida = 0 }
@@ -289,10 +312,13 @@ function _NormativaBaixaColleccio($e, [string]$dir, $estat, [bool]$forca, $log) 
     # Els que ja hi eren, per adreca: si el nom ha canviat (ara es treu el
     # "(Obre en una nova finestra)"), el fitxer es reanomena en lloc de baixar-lo
     # de nou i deixar l'antic a la carpeta.
+    # Tambe els d'una col·leccio que ha canviat de nom (Abans): les TINSCI es
+    # deien "ITC Bombers antigues".
+    $pares = @(@($id) + @($e.Abans | Where-Object { $_ }))
     $perUrl = @{}
     foreach ($k0 in @($estat.Keys)) {
         $v0 = $estat[$k0]
-        if ($v0 -is [hashtable] -and [string]$v0.Pare -eq $id -and $v0.Url -and $v0.Nom) { $perUrl[[string]$v0.Url] = $k0 }
+        if ($v0 -is [hashtable] -and $pares -contains [string]$v0.Pare -and $v0.Url -and $v0.Nom) { $perUrl[[string]$v0.Url] = $k0 }
     }
     foreach ($d in $docs) {
         $nom = _NormativaNomDocColleccio $e ([string]$d.Text) ([string]$d.Url)
@@ -306,11 +332,12 @@ function _NormativaBaixaColleccio($e, [string]$dir, $estat, [bool]$forca, $log) 
             $vell = Join-Path $dir ([string]$estat[$vella].Nom)
             try {
                 if ((Test-Path -LiteralPath $vell) -and -not (Test-Path -LiteralPath $desti)) { Move-Item -LiteralPath $vell -Destination $desti }
-                $estat[$clau] = $estat[$vella]; $estat[$clau].Nom = $nom
+                $estat[$clau] = $estat[$vella]; $estat[$clau].Nom = $nom; $estat[$clau].Pare = $id
                 $estat.Remove($vella)
             } catch { }
         }
         $est = if ($estat.ContainsKey($clau)) { $estat[$clau] } else { $null }
+        if ($null -ne $est) { $est.Titol = _NormativaNetejaTextEnllac ([string]$d.Text) }
         $motiu = _NormativaCalBaixar $est (Test-Path -LiteralPath $desti) '' (Get-Date) $forca
         if (-not $motiu) { $n.Igual++; continue }
         $tmp = Join-Path $dir ('~baixant ' + [guid]::NewGuid().ToString('N') + '.pdf')
@@ -318,12 +345,12 @@ function _NormativaBaixaColleccio($e, [string]$dir, $estat, [bool]$forca, $log) 
             $b = _NormativaGetBytes ([string]$d.Url) $tmp
             if (-not (_NormativaEsPdf $b)) { throw "no és un PDF" }
             _NormativaDesaNou $tmp $desti $dir $null
-            $estat[$clau] = @{ Pare = $id; Titol = [string]$d.Text; Url = [string]$d.Url; Nom = $nom; Baixat = (Get-Date).ToString('o'); Versio = ''; Error = ''; Mida = [long]$b.Length; Via = 'PDF' }
+            $estat[$clau] = @{ Pare = $id; Titol = (_NormativaNetejaTextEnllac ([string]$d.Text)); Url = [string]$d.Url; Nom = $nom; Baixat = (Get-Date).ToString('o'); Versio = ''; Error = ''; Mida = [long]$b.Length; Via = 'PDF' }
             if ($motiu -eq 'nova') { $n.Noves++; & $log ('Nova   ' + $nom) } else { $n.Act++; & $log ('Actualitzada  ' + $nom) }
         } catch {
             $n.Err++
             & $log ('ERROR  ' + $nom + ': ' + $_.Exception.Message)
-            $estat[$clau] = @{ Pare = $id; Titol = [string]$d.Text; Url = [string]$d.Url; Nom = $nom; Baixat = $(if ($est) { $est.Baixat } else { '' }); Versio = ''; Error = [string]$_.Exception.Message; Mida = 0 }
+            $estat[$clau] = @{ Pare = $id; Titol = (_NormativaNetejaTextEnllac ([string]$d.Text)); Url = [string]$d.Url; Nom = $nom; Baixat = $(if ($est) { $est.Baixat } else { '' }); Versio = ''; Error = [string]$_.Exception.Message; Mida = 0 }
         } finally {
             try { if (Test-Path -LiteralPath $tmp) { Remove-Item -LiteralPath $tmp -Force } } catch { }
         }
@@ -452,7 +479,7 @@ function Invoke-Normativa {
         foreach ($e in $normes) {
             if ($e.Colleccio) { $col++; continue }
             if (Test-Path -LiteralPath (Join-Path $dir (_NormativaNomFitxer $e))) { $baix++ }
-            elseif ((_NormativaFont ([string]$e.Url)) -eq 'manual') { $man++ }
+            elseif ((_NormativaFontDe $e) -eq 'manual') { $man++ }
             elseif ($estat.ContainsKey([string]$e.Id) -and $estat[[string]$e.Id].Error) { $err++ }
         }
         $nn = $normes.Count - $col

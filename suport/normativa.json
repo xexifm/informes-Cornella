@@ -1162,7 +1162,7 @@
    "Num": "2017/745",
    "Any": "2017",
    "Titol": "Productos sanitarios",
-   "Url": "https://eur-lex.europa.eu/legal-content/ES/TXT/PDF/?uri=CELEX:32017R0745"
+   "Url": "https://www.boe.es/buscar/doc.php?id=DOUE-L-2017-80916"
   },
   {
    "Id": "RD 1591/2009",
@@ -1697,7 +1697,7 @@
    "Num": "2016/679",
    "Any": "2016",
    "Titol": "Reglamento general de protección de datos",
-   "Url": "https://eur-lex.europa.eu/legal-content/ES/TXT/PDF/?uri=CELEX:32016R0679"
+   "Url": "https://www.boe.es/buscar/doc.php?id=DOUE-L-2016-80807"
   },
   {
    "Id": "Llei 15/1984",
@@ -1739,19 +1739,13 @@
    "Any": "",
    "Titol": "Interpretació de la normativa de seguretat contra incendis",
    "Url": "https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/instruccions_guies_i_recomanacions/interpretacio_normativa_tinsci/documents-tinsci/",
-   "Colleccio": true
-  },
-  {
-   "Id": "Col·lecció ITC Bombers antigues",
-   "Ambit": "Incendis",
-   "Tema": "Antic",
-   "Tipus": "ITC Bombers",
-   "Num": "",
-   "Any": "",
-   "Titol": "Instruccions tècniques complementàries antigues (SP)",
-   "Url": "https://interior.gencat.cat/ca/detalls/Article/Documentacio_normativa_TINSCI",
-   "Derogada": true,
-   "Colleccio": true
+   "Colleccio": true,
+   "AltresUrls": [
+    "https://interior.gencat.cat/ca/detalls/Article/Documentacio_normativa_TINSCI"
+   ],
+   "Abans": [
+    "Col·lecció ITC Bombers antigues"
+   ]
   },
   {
    "Id": "Manual 150 preguntes sobre urbanisme (ACM)",
@@ -1828,7 +1822,8 @@
    "Any": "",
    "Titol": "OMA Barcelona residus (APABCN 093)",
    "Url": "https://www.apabcn.cat/Documentacio/areatecnica/privat/CIRCULARS/093.pdf",
-   "Guia": true
+   "Guia": true,
+   "Manual": true
   },
   {
    "Id": "Guia Contaminants del sòl i declaració (MITECO)",
