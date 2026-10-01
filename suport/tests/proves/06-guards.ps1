@@ -3,46 +3,77 @@
 # Es DOT-SOURCE des de run-tests.ps1: mateix ambit, mateixes variables i el
 # mateix comptador d'asserts. No s'executa sol.
 
-Write-Host "`n--- El menu: hi cap sencer, sense scroll ---"
+Write-Host "`n--- El menu: hi cap sencer, sense scroll, i tot alineat ---"
 # Les eines anaven sota els informes, un grup per fila, i la finestra feia
-# ~980 px d'alt: en un portatil no hi cabia i calia fer scroll. Ara van en una
-# columna a la dreta i els grups petits comparteixen fila (_MenuDisposaGrups).
+# ~980 px d'alt: en un portatil no hi cabia i calia fer scroll. Despres van
+# anar a una columna a la dreta, i l'usuari va demanar que tot quedes ALINEAT:
+# ara son una graella de quatre columnes (_MenuDisposaGrups) i les files
+# s'estiren fins a quadrar amb el darrer boto d'informe (_MenuFilesY).
 # Dins d'un try: una excepcio aqui mataria la resta de la suite amb "0 FAIL".
 try {
-$dg = _MenuDisposaGrups ([int[]]@(5, 4, 2, 2, 3)) 428 80 7 24 102
-AssertEq $dg.Count 5 '_MenuDisposaGrups: una posicio per grup'
-AssertEq (($dg | ForEach-Object { [string]$_.X + ',' + [string]$_.Y }) -join ' ') '0,0 0,102 0,204 191,204 0,306' '_MenuDisposaGrups: GIA i NORMATIVA comparteixen fila; la resta, una cada un'
-$dg1 = _MenuDisposaGrups ([int[]]@(2)) 428 80 7 24 102
-AssertEq $dg1.Count 1 '_MenuDisposaGrups: un sol grup torna un array d''UN element (no desenrotllat)'
-$dgA = _MenuDisposaGrups ([int[]]@(7, 1)) 428 80 7 24 102
-AssertEq (($dgA | ForEach-Object { [string]$_.X + ',' + [string]$_.Y }) -join ' ') '0,0 0,102' '_MenuDisposaGrups: un grup mes ample que la columna surt sol (no es perd) i el seguent baixa'
-$dg0 = _MenuDisposaGrups ([int[]]@()) 428 80 7 24 102
+$fmtPos = { param($ps) (@($ps) | ForEach-Object { [string]$_.X + ',' + [string]$_.Fila }) -join ' ' }
+$dg = _MenuDisposaGrups ([int[]]@(4, 4, 4, 2, 2)) 430 100 10
+AssertEq (& $fmtPos $dg) '0,0 0,1 0,2 0,3 220,3' '_MenuDisposaGrups: tres files de quatre i GIA | NORMATIVA a la quarta, NORMATIVA just a la tercera columna'
+$dg1 = _MenuDisposaGrups ([int[]]@(2)) 430 100 10
+AssertEq @($dg1).Count 1 '_MenuDisposaGrups: un sol grup torna un array d''UN element (no desenrotllat)'
+$dgA = _MenuDisposaGrups ([int[]]@(6, 1)) 430 100 10
+AssertEq (& $fmtPos $dgA) '0,0 0,1' '_MenuDisposaGrups: un grup mes ample que la columna surt sol (no es perd) i el seguent baixa'
+$dg0 = _MenuDisposaGrups ([int[]]@()) 430 100 10
 AssertEq @($dg0).Count 0 '_MenuDisposaGrups: sense grups, res (i no peta)'
+# Les files: la de baix (rajola + segell = 78) acaba on acaba el darrer boto.
+$fy = _MenuFilesY 4 101 513 78 108
+AssertEq (@($fy) -join ',') '101,212,324,435' '_MenuFilesY: quatre files estirades; la darrera acaba a 513 (435 + 78)'
+$fyC = _MenuFilesY 4 101 300 78 108
+AssertEq (@($fyC) -join ',') '101,209,317,425' '_MenuFilesY: si no hi caben, mana el pas minim'
+$fy1 = _MenuFilesY 1 101 513 78 108
+AssertEq (@($fy1) -join ',') '101' '_MenuFilesY: una sola fila, a dalt'
+$fy0 = _MenuFilesY 0 101 513 78 108
+AssertEq @($fy0).Count 0 '_MenuFilesY: cap fila, res'
 # L'ALCADA REAL, calculada del codi del menu: les rajoles de cada grup i les
 # entrades d'informe. Ha de cabre en una pantalla de 768 px (barra de tasques
 # i titol de la finestra a part). Validat injectant-hi entrades d'informe fins
-# a passar de l'alcada, un grup de massa rajoles, i la columna d'eines SOTA.
+# a passar de l'alcada i un grup de massa rajoles.
 $srcMenuH = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'Menu.ps1'))
 $nGrup = {
     param($nom)
     $m = [regex]::Match($srcMenuH, '(?s)\$' + $nom + ' = @\((.*?)\n\s*\)')
     @([regex]::Matches($m.Groups[1].Value, '@\{ Emoji =')).Count
 }
-$rajGrups = [int[]]@((& $nGrup 'tools'), (& $nGrup 'reports'), (& $nGrup 'gia'), (& $nGrup 'normativaRow'), (& $nGrup 'mobil'))
-Assert (($rajGrups | Measure-Object -Sum).Sum -ge 14) ('menu: es troben les rajoles de cada grup (' + ($rajGrups -join ',') + ')')
-$posH = _MenuDisposaGrups $rajGrups 428 80 7 24 102
-$altEines = 71 + (($posH | ForEach-Object { [int]$_.Y } | Measure-Object -Maximum).Maximum) + 102
-# Cap grup mes ample que la columna (cinc rajoles): sortiria sol a la seva fila
-# pero eixamplaria la finestra fins a no cabre de costat.
-AssertEq (@($rajGrups | Where-Object { $_ -gt 5 }).Count) 0 ('menu: cap grup d''eines passa de 5 rajoles, l''ample de la columna (' + ($rajGrups -join ',') + ')')
-# Les entrades d'informe (cada $menu.Add, el bucle dels catalegs extra inclos).
+$rajGrups = [int[]]@((& $nGrup 'carrer'), (& $nGrup 'titulars'), (& $nGrup 'reports'), (& $nGrup 'gia'), (& $nGrup 'normativaRow'))
+Assert ((($rajGrups | Measure-Object -Sum).Sum) -ge 16) ('menu: es troben les rajoles dels cinc grups (' + ($rajGrups -join ',') + ')')
+AssertEq (@($rajGrups | Where-Object { $_ -gt 4 }).Count) 0 ('menu: cap grup passa de 4 rajoles, l''ample de la graella (' + ($rajGrups -join ',') + ')')
+$posH = _MenuDisposaGrups $rajGrups 430 100 10
+$nFilesH = 1 + (($posH | ForEach-Object { [int]$_.Fila } | Measure-Object -Maximum).Maximum)
 $nInformes = @([regex]::Matches($srcMenuH, '\[void\]\$menu\.Add\(')).Count
-$altInformes = 101 + ($nInformes * 70)
-$altMenu = [Math]::Max($altEines, $altInformes) + 16
+$fiInf = 101 + ($nInformes * 70) - 8
+$fyH = _MenuFilesY $nFilesH 101 $fiInf 78 108
+$altMenu = [Math]::Max($fiInf, (@($fyH)[-1] + 78)) + 20
 Assert ($altMenu -le 680) ('menu: la finestra fa ' + $altMenu + ' px d''alt i ha de cabre en una pantalla de 768 sense scroll')
-Assert ($srcMenuH.Contains('_MenuDisposaGrups (')) 'menu: les eines es col·loquen amb _MenuDisposaGrups'
-Assert ($srcMenuH.Contains('$yEines = 15 + $headerHeight')) 'menu: la columna d''eines comenca a dalt, al costat dels informes (no a sota)'
-Assert (-not ($srcMenuH -match 'Size\(600, \(\$y')) 'menu: ja no es una sola columna de 600 px'
+Assert ($srcMenuH.Contains('_MenuDisposaGrups (') -and $srcMenuH.Contains('_MenuFilesY $nFiles $yContingut $fiInformes')) 'menu: la graella surt de _MenuDisposaGrups i les files arriben fins al darrer boto (_MenuFilesY)'
+Assert ($srcMenuH.Contains('$y = $yContingut')) 'menu: els botons d''informe comencen a la mateixa alcada que les rajoles'
+
+# ELS EMOJIS EN COLOR: el GDI els pinta d'un sol color, o sigui que cada emoji
+# del menu ha de tenir la seva imatge a suport\emojis (si no, surt en gris i
+# ningu no se n'adona). Validat esborrant-ne una.
+AssertEq (_EmojiFitxer ([System.Char]::ConvertFromUtf32(0x1F4DD))) '1f4dd.png' '_EmojiFitxer: emoji astral'
+AssertEq (_EmojiFitxer ([string][char]0x270F + [char]0xFE0F)) '270f.png' '_EmojiFitxer: sense el selector de variant FE0F'
+AssertEq (_EmojiFitxer '') '' '_EmojiFitxer: buit -> buit'
+AssertEq (_EmojiFitxer ([string][char]0xFE0F)) '' '_EmojiFitxer: nomes el selector -> buit'
+$dirEmo = Join-Path (Split-Path -Parent $TestsDir) 'emojis'
+$cpsMenu = @([regex]::Matches($srcMenuH, 'ConvertFromUtf32\(0x([0-9A-Fa-f]+)\)') | ForEach-Object { $_.Groups[1].Value }) + @('270F')
+$cpsMenu = @($cpsMenu | Sort-Object -Unique)
+$senseImg = @($cpsMenu | Where-Object { -not (Test-Path -LiteralPath (Join-Path $dirEmo (_EmojiFitxer ([System.Char]::ConvertFromUtf32([Convert]::ToInt32($_, 16)))))) })
+Assert ($cpsMenu.Count -ge 20) ('emojis: es troben els del menu (' + $cpsMenu.Count + ')')
+AssertEq ($senseImg -join ', ') '' 'emojis: cada emoji del menu te la seva imatge en color a suport\emojis'
+Assert (-not ($srcMenuH -match 'DrawText\(\$g, (\$t\.Emoji|\$ico|\$pencil|\$ei),')) 'emojis: el menu no pinta cap emoji amb TextRenderer (sortiria d''un sol color): passa per _DibuixaEmoji'
+$srcUiF = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'UiFinestra.ps1'))
+Assert ($srcUiF.Contains('ReadAllBytes($ruta)') -and -not $srcUiF.Contains('Image]::FromFile')) 'emojis: les imatges es llegeixen a memoria (FromFile deixaria el fitxer agafat i Actualitzar.bat no el podria canviar)'
+
+# ACTUALITZAR, a la banda del menu i a Configuracio: UNA sola funcio.
+$srcConfA = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'Configuracio.ps1'))
+Assert ($srcMenuH.Contains('add_Click({ Invoke-ActualitzarPrograma })')) 'menu: el boto Actualitzar de la banda crida Invoke-ActualitzarPrograma'
+Assert ($srcConfA.Contains('add_Click({ Invoke-ActualitzarPrograma })')) 'Configuracio: el seu boto tambe'
+AssertEq @([regex]::Matches(($srcMenuH + $srcConfA), "Join-Path \`$RepoRoot 'Actualitzar\.bat'")).Count 1 'Actualitzar.bat es llanca des d''un sol lloc'
 } catch {
     Assert $false ('menu sense scroll: la prova ha petat: ' + $_.Exception.Message)
 }

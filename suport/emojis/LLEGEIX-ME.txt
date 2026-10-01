@@ -1,0 +1,16 @@
+Emojis en color de la interficie del programa
+==============================================
+
+El WinForms (GDI) no sap pintar els emojis en color: amb la lletra
+'Segoe UI Emoji' surten d'un sol color. Per aixo el programa dibuixa
+aquestes imatges (vegeu _EmojiImatge / _DibuixaEmoji a suport\UiFinestra.ps1).
+
+- Un fitxer per emoji, 64x64 px, fons transparent.
+- El nom son els punts de codi en hexadecimal, sense el selector FE0F
+  (per exemple 1f4dd.png = U+1F4DD, 270f.png = U+270F).
+- Si un emoji no te imatge, el programa el dibuixa amb la lletra com abans.
+
+Imatges generades amb la lletra Noto Color Emoji (Google), distribuida amb
+la llicencia SIL Open Font License 1.1; les imatges del projecte noto-emoji
+es distribueixen amb la llicencia Apache 2.0.
+https://github.com/googlefonts/noto-emoji

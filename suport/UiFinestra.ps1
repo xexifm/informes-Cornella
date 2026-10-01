@@ -195,10 +195,98 @@ function _StyleSecondaryButton($btn) {
 # d'un control si no passa per aqui o per la lletra d'emojis.
 $Script:IconaLletra = 'Segoe UI Emoji'
 
+# EMOJIS EN COLOR (octubre 2026). El GDI de WinForms -TextRenderer i
+# DrawString- NO sap pintar les lletres de colors: amb 'Segoe UI Emoji' tots
+# els emojis del programa sortien com un contorn d'un sol color, i l'usuari
+# veia en un esbos fet amb el navegador els mateixos emojis en color ("jo no
+# els veig aixi"). Per aixo cada emoji que fa servir la interficie es una
+# imatge PNG a suport\emojis\ (64x64, fons transparent, generades amb Noto
+# Color Emoji; vegeu el LLEGEIX-ME d'alla) i es dibuixa la imatge.
+#
+# El nom del fitxer surt de l'emoji (_EmojiFitxer, pura): els punts de codi
+# en hexadecimal, sense el selector de variant FE0F. Si un emoji no te imatge
+# es dibuixa amb la lletra com sempre: un emoji nou mai no queda en blanc. Hi
+# ha guard (06-guards.ps1) que cada emoji del menu tingui la seva imatge.
+#
+# Els SIMBOLS (vist, avis, la i d'informacio, fletxes) NO hi son a posta: van
+# del color del text i en un boto han de seguir el color del boto.
+$Script:EmojiDir = Join-Path $PSScriptRoot 'emojis'
+$Script:EmojiCache = @{}
+
+function _EmojiFitxer([string]$emoji) {
+    if ([string]::IsNullOrEmpty($emoji)) { return '' }
+    $cps = New-Object System.Collections.ArrayList
+    try {
+        for ($i = 0; $i -lt $emoji.Length; $i++) {
+            $cp = [char]::ConvertToUtf32($emoji, $i)
+            if ([char]::IsHighSurrogate($emoji[$i])) { $i++ }
+            if ($cp -eq 0xFE0F) { continue }
+            [void]$cps.Add(('{0:x}' -f $cp))
+        }
+    } catch { return '' }
+    if ($cps.Count -eq 0) { return '' }
+    return (($cps -join '-') + '.png')
+}
+
+# La imatge de l'emoji, o $null si no n'hi ha. Es llegeix UN cop (cache).
+# A MEMORIA i no amb Image.FromFile: aquell deixa el fitxer AGAFAT mentre el
+# programa es obert, i el clone viu en una unitat de xarxa on Actualitzar.bat
+# l'ha de poder sobreescriure.
+function _EmojiImatge([string]$emoji) {
+    $nom = _EmojiFitxer $emoji
+    if ([string]::IsNullOrEmpty($nom)) { return $null }
+    if ($Script:EmojiCache.ContainsKey($nom)) { return $Script:EmojiCache[$nom] }
+    $img = $null
+    $ruta = Join-Path $Script:EmojiDir $nom
+    if (Test-Path -LiteralPath $ruta) {
+        $ms = $null; $tmp = $null
+        try {
+            $ms = New-Object System.IO.MemoryStream(, [System.IO.File]::ReadAllBytes($ruta))
+            $tmp = [System.Drawing.Image]::FromStream($ms)
+            # Copia propia: la del FromStream necessita el stream obert per sempre.
+            $img = New-Object System.Drawing.Bitmap($tmp)
+        } catch { $img = $null } finally {
+            if ($null -ne $tmp) { $tmp.Dispose() }
+            if ($null -ne $ms) { $ms.Dispose() }
+        }
+    }
+    $Script:EmojiCache[$nom] = $img
+    return $img
+}
+
+# Dibuixa l'emoji QUADRAT i centrat dins de $rect. Sense imatge, el text amb
+# $lletra i $color (el comportament d'abans).
+function _DibuixaEmoji($g, [string]$emoji, [System.Drawing.Rectangle]$rect, $lletra, [System.Drawing.Color]$color) {
+    $img = _EmojiImatge $emoji
+    if ($null -eq $img) {
+        $fl = [System.Windows.Forms.TextFormatFlags]::HorizontalCenter -bor [System.Windows.Forms.TextFormatFlags]::VerticalCenter -bor [System.Windows.Forms.TextFormatFlags]::NoPadding
+        [System.Windows.Forms.TextRenderer]::DrawText($g, $emoji, $lletra, $rect, $color, $fl)
+        return
+    }
+    $m = [Math]::Min($rect.Width, $rect.Height)
+    $dest = New-Object System.Drawing.Rectangle(($rect.X + [int](($rect.Width - $m) / 2)), ($rect.Y + [int](($rect.Height - $m) / 2)), $m, $m)
+    $abans = $g.InterpolationMode
+    $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+    try { $g.DrawImage($img, $dest) } finally { $g.InterpolationMode = $abans }
+}
+
 function _BitmapIcona([string]$simbol, [single]$midaPt, [System.Drawing.Color]$color) {
     $f = New-Object System.Drawing.Font($Script:IconaLletra, $midaPt, [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Point)
     $fmt = [System.Drawing.StringFormat]::GenericTypographic
     try {
+        # Si es un emoji amb imatge, la imatge EN COLOR, de l'alcada de la lletra.
+        $emo = _EmojiImatge $simbol
+        if ($null -ne $emo) {
+            $h = [Math]::Max(8, [int]$f.Height)
+            $bmp = New-Object System.Drawing.Bitmap($h, $h)
+            $g = [System.Drawing.Graphics]::FromImage($bmp)
+            try {
+                $g.Clear([System.Drawing.Color]::Transparent)
+                _DibuixaEmoji $g $simbol (New-Object System.Drawing.Rectangle(1, 1, ($h - 2), ($h - 2))) $f $color
+            } finally { $g.Dispose() }
+            $bmp.Tag = 'icona'
+            return $bmp
+        }
         # Mida amb la MATEIXA API que dibuixa (GDI+): la de TextRenderer (GDI)
         # dona una amplada diferent i el simbol quedava retallat.
         $tmp = New-Object System.Drawing.Bitmap(1, 1)

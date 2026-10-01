@@ -395,33 +395,58 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
   Una conclusio que diu que **NO** es pot donar per tancat/finalitzat (qualsevol
   "no es pot donar...") es **Requeriment** (pendent), no "FI Requeriment": la
   comprovacio del "no" va abans que la del "si" a `_ConclusioBreu`.
-- **Menú Pas 1 — 5 apartats de rajoles, en una COLUMNA a la dreta dels
-  informes** (`Select-Mode`, `Menu.ps1`, helper `$addTileRow`; dispatch al
-  `switch` de `Main`):
-  - **EINES** (5): 📍 *Generar ruta* (`ruta`), 🗺 *Coordenades*
-    (`coordenades`), 🔒 *Activitats precintades* (`url`, acció `precintades`
-    només per al segell), 📅 *Controls periòdics* (`controlsperiodics`),
-    🔔 *Recordatoris* (`recordatoris`).
-  - **INFORMES** (4): 🗃 *Actualitzar base* (`informesdb`), 📋 *Editar base*
+- **Menú Pas 1 — una graella de 4 × 4 rajoles a la dreta dels informes,
+  agrupades per MOMENT DE LA FEINA** (octubre 2026, acordat amb l'usuari;
+  `Select-Mode`, `Menu.ps1`, helper `$addTileRow`; dispatch al `switch` de
+  `Main`):
+  - **CARRER**: 📍 *Generar ruta* (`ruta`), 🗺 *Coordenades* (`coordenades`),
+    🔒 *Activitats precintades* (`url`, acció `precintades` només per al
+    segell), 📥 *Revisar mòbil* (`revisarmobil`).
+  - **TITULARS**: 📧 *Enviar correu* (`enviarcorreu`), ✉ *Textos del correu*
+    (`emailtextos`), 🔔 *Recordatoris* (`recordatoris`), 📅 *Controls
+    periòdics* (`controlsperiodics`).
+  - **BASE D'INFORMES**: 🗃 *Actualitzar base* (`informesdb`), 📋 *Editar base*
     (`informesdbedit`), 📁 *Copiar informes* (`copiarinformes`), 📄 *Word a PDF*
     (`convertirpdf`).
-  - **GIA** (2): ✅ *Comprovar Excel* (`comprovarexcel`), 📊 *Seguiment*
-    (`seguimentgia`).
-  - **NORMATIVA** (2): 📚 *Normativa* (`normativa`), 🔍 *Revisar requeriments*
-    (`revisio`).
-  - **MÒBIL** (3): 📧 *Textos del correu* (`emailtextos`), 📤 *Enviar correu*
-    (`enviarcorreu`), 📥 *Revisar mòbil* (`revisarmobil`).
-  - **Per què a la dreta (octubre 2026)**: a sota dels informes, un grup per
-    fila, la finestra feia ~980 px d'alt i en un portàtil (o amb el Windows al
-    125%) calia fer scroll — l'usuari: «hi ha massa eines i no es veuen
-    totes». Ara fa ~1060×540. On va cada grup ho decideix
-    **`_MenuDisposaGrups`** (pura): omple files de com a molt **cinc rajoles**
-    i hi posa de costat els grups que hi caben (GIA i NORMATIVA). **Una eina
-    nova** va a l'array del seu grup i prou; si un grup passés de cinc, val
-    més fer-ne un de nou que eixamplar la columna. Guard a `06-guards.ps1`:
-    calcula l'alçada a partir del codi i exigeix que hi càpiga en una
-    pantalla de 768 px (validat injectant-hi entrades, un grup de massa
-    rajoles i la columna a sota).
+  - **GIA | NORMATIVA** (comparteixen fila): 📊 *Seguiment* (`seguimentgia`),
+    ✅ *Comprovar Excel* (`comprovarexcel`) | 📚 *Normativa* (`normativa`), 🔍
+    *Revisar requeriments* (`revisio`).
+  - **Per què així**: primer les eines anaven a sota dels informes (~980 px
+    d'alt, calia fer scroll); després en una columna a la dreta amb files de
+    5, 4, 2+2 i 3, i l'usuari va dir que «no hi ha harmonia amb les
+    alineacions». Ara: **`_MenuDisposaGrups`** (pura) posa els grups en una
+    graella de quatre columnes —entre grups hi ha el mateix espai que entre
+    rajoles, i per això NORMATIVA cau just a la tercera columna— i
+    **`_MenuFilesY`** (pura) estira les files perquè la primera comenci a
+    l'altura del primer botó d'informe i la darrera acabi on acaba l'últim.
+    Els títols (INFORMES a l'esquerra, els grups a la dreta) van tots a la
+    mateixa línia i amb el mateix estil; Capçalera · Conclusions, alineats a
+    la dreta de la columna; les icones de la banda, al mateix marge dret que
+    les rajoles.
+  - **Una eina nova** va a l'array del seu grup; **cap grup passa de quatre**
+    (si no hi cap, un grup nou). Guard a `06-guards.ps1`: calcula l'alçada a
+    partir del codi i exigeix que càpiga en una pantalla de 768 px, i cap grup
+    de més de quatre (validat injectant entrades d'informe i una rajola de més).
+- **El botó «↻ Actualitzar» és a la banda del menú** (a més de Configuració):
+  l'usuari el fa servir molt. Tots dos criden `Invoke-ActualitzarPrograma`
+  (`Configuracio.ps1`): el missatge de confirmació, el `Start-Process` del
+  `.bat` i el `[Environment]::Exit` són en un sol lloc (guard).
+- **Els emojis, EN COLOR** (`suport/emojis/*.png` + `_DibuixaEmoji`,
+  `UiFinestra.ps1`). El GDI de WinForms no sap pintar lletres de colors: amb
+  `Segoe UI Emoji` sortien d'un sol color, i l'usuari els va veure en color en
+  un esbós fet amb el navegador. Cada emoji de la interfície és una imatge de
+  64 × 64 generada amb Noto Color Emoji (vegeu el `LLEGEIX-ME.txt` d'allà); el
+  nom són els punts de codi sense el FE0F (`_EmojiFitxer`, pura). Sense
+  imatge, es dibuixa amb la lletra com abans. `_PosaIcona` també la fa servir
+  (l'enllaç 🔗 de l'editor), però **els símbols** (✓, ⚠, ⓘ, fletxes) no en
+  tenen a posta: han d'anar del color del text. Les imatges es llegeixen **a
+  memòria**, no amb `Image.FromFile`, que deixaria el fitxer agafat i
+  `Actualitzar.bat` no el podria canviar a la unitat de xarxa. Guards: cada
+  emoji del menú té imatge (validat esborrant-ne una) i el menú no pinta cap
+  emoji amb `TextRenderer` (validat tornant-hi).
+  - **Per afegir un emoji**: renderitza'l a 64 × 64 amb fons transparent i
+    desa'l amb el nom de `_EmojiFitxer` (com es van fer: Chromium + la font
+    Noto Color Emoji, `font-size:52px` en una caixa de 64).
 - **Segell d'«última execució»: UN sol registre per a totes les rajoles.**
   `local\base-dades-activitats\eines-state.json` → `{ "<accio>": "<ISO>" }`.
   - S'escriu en **un sol lloc**: al final del bucle de `Main` (`Wizard.ps1`),

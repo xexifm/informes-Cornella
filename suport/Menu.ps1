@@ -157,26 +157,41 @@ function _AjudaEina([string]$accio) {
 
 # ON VA CADA GRUP D'EINES (pura: es prova sense WinForms).
 #
-# Abans les eines anaven SOTA els tipus d'informe, un grup per fila: cinc
-# informes de 70 px i cinc files de 102 px feien una finestra d'uns 980 px
-# d'alt, que en un portatil o amb el Windows al 125% no hi cap i obligava a
-# fer scroll (l'usuari: "hi ha massa eines i no es veuen totes"). Ara van en
-# una COLUMNA a la dreta dels informes i, dins d'ella, els grups petits
-# comparteixen fila (GIA i NORMATIVA) sempre que hi capiguen.
+# Abans les eines anaven SOTA els tipus d'informe, un grup per fila: la
+# finestra feia ~980 px d'alt i en un portatil (o amb el Windows al 125%)
+# calia fer scroll. Ara van en una COLUMNA a la dreta, en una GRAELLA de
+# quatre rajoles d'ample (octubre 2026: l'usuari va demanar que tot quedes
+# alineat, i amb files de 5, 4, 2+2 i 3 rajoles no hi havia graella). Els
+# grups son de quatre (CARRER, TITULARS, BASE D'INFORMES) i els de dues
+# comparteixen fila (GIA | NORMATIVA): com que entre grups hi ha el MATEIX
+# espai que entre rajoles, NORMATIVA cau just a la tercera columna.
 #
-# Rep el nombre de rajoles de cada grup, l'amplada maxima de la columna i les
-# mides; torna, per a cada grup i en el mateix ordre, @{ X; Y } relatius a la
-# cantonada de la columna. Un grup mai es parteix entre dues files, i un grup
-# mes ample que la columna surt sol a la seva fila (no es perd).
-function _MenuDisposaGrups([int[]]$rajoles, [int]$ampleMax, [int]$tileW, [int]$tileGap, [int]$sepGrups, [int]$altFila) {
+# Rep el nombre de rajoles de cada grup i les mides; torna, per a cada grup i
+# en el mateix ordre, @{ X; Fila }: la X relativa a la columna i la fila (0, 1,
+# ...). L'alcada de cada fila la decideix el menu, que les estira fins a quadrar
+# amb el darrer boto d'informe. Un grup mai es parteix entre dues files, i un
+# grup mes ample que la columna surt sol a la seva fila (no es perd).
+function _MenuDisposaGrups([int[]]$rajoles, [int]$ampleMax, [int]$tileW, [int]$tileGap) {
     $out = New-Object System.Collections.ArrayList
-    $x = 0; $y = 0
+    $x = 0; $fila = 0
     foreach ($n in @($rajoles)) {
         $w = ([Math]::Max(1, $n) * $tileW) + (([Math]::Max(1, $n) - 1) * $tileGap)
-        if ($x -gt 0 -and ($x + $w) -gt $ampleMax) { $x = 0; $y += $altFila }
-        [void]$out.Add(@{ X = $x; Y = $y })
-        $x += $w + $sepGrups
+        if ($x -gt 0 -and ($x + $w) -gt $ampleMax) { $x = 0; $fila++ }
+        [void]$out.Add(@{ X = $x; Fila = $fila })
+        $x += $w + $tileGap
     }
+    return ,($out.ToArray())
+}
+
+# On comenca cada fila de rajoles (pura). Les files s'ESTIREN perque la de baix
+# acabi a la mateixa alcada que el darrer boto d'informe ($fi); si no hi caben
+# amb el pas minim, el pas minim mana (i la columna d'eines sera la mes alta).
+function _MenuFilesY([int]$files, [int]$y0, [int]$fi, [int]$altRajola, [int]$pasMinim) {
+    if ($files -le 0) { return ,@() }
+    $out = New-Object System.Collections.ArrayList
+    if ($files -eq 1) { [void]$out.Add($y0); return ,($out.ToArray()) }
+    $pas = [Math]::Max([double]$pasMinim, ([double]($fi - $y0 - $altRajola) / ($files - 1)))
+    for ($i = 0; $i -lt $files; $i++) { [void]$out.Add([int]($y0 + [Math]::Round($i * $pas))) }
     return ,($out.ToArray())
 }
 
@@ -247,9 +262,19 @@ function Select-Mode {
     # desplaca cap avall el punt de partida ($headerHeight): la resta del menu
     # (tots els botons, ja calculats amb $y +=) no s'ha de retocar.
     $headerHeight = 56
+    # LA LINIA DELS TITOLS: el de l'esquerra (INFORMES) i els de la dreta
+    # (CARRER...) son a la mateixa alcada i amb el mateix estil, i les rajoles
+    # i els botons comencen tots a $yContingut. Abans "Que vols fer?" anava amb
+    # una altra lletra i les rajoles comencaven 5 px mes amunt que els botons.
+    $yTitols = $headerHeight + 23
+    $yContingut = $yTitols + 22
+    $fTitolGrup = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
+    $colTitolGrup = [System.Drawing.Color]::FromArgb(138, 20, 38)
     $lbl = New-Object System.Windows.Forms.Label
-    $lbl.Text = 'Que vols fer?'
-    $lbl.Location = New-Object System.Drawing.Point(20, (15 + $headerHeight))
+    $lbl.Text = 'INFORMES'
+    $lbl.Font = $fTitolGrup
+    $lbl.ForeColor = $colTitolGrup
+    $lbl.Location = New-Object System.Drawing.Point(20, $yTitols)
     $lbl.AutoSize = $true
     $form.Controls.Add($lbl)
 
@@ -258,6 +283,7 @@ function Select-Mode {
     $fIcon = New-Object System.Drawing.Font('Segoe UI Emoji', 15, [System.Drawing.FontStyle]::Regular)
     $fEmoS = New-Object System.Drawing.Font('Segoe UI Emoji', 9, [System.Drawing.FontStyle]::Regular)
     $pencil = [string][char]0x270F + [char]0xFE0F   # emoji d'editar
+    $emoXip = 16    # els emojis dels xips (llapis, Dades), en px
     $flags = [System.Windows.Forms.TextFormatFlags]::NoPadding
     $flagsC = [System.Windows.Forms.TextFormatFlags]::HorizontalCenter -bor [System.Windows.Forms.TextFormatFlags]::VerticalCenter -bor [System.Windows.Forms.TextFormatFlags]::NoPadding
     $colGranat = [System.Drawing.Color]::FromArgb(166, 26, 47)
@@ -286,8 +312,8 @@ function Select-Mode {
         $g.FillRectangle($bSoft, $cx, $cy, $chip, $chip)
         $bSoft.Dispose()
         if ($ico) {
-            $icoRect = New-Object System.Drawing.Rectangle($cx, ($cy - 1), $chip, $chip)
-            [System.Windows.Forms.TextRenderer]::DrawText($g, $ico, $fIcon, $icoRect, $colGranat, $flagsC)
+            # En COLOR (imatge): vegeu _DibuixaEmoji (UiFinestra.ps1).
+            _DibuixaEmoji $g $ico (New-Object System.Drawing.Rectangle(($cx + 8), ($cy + 8), ($chip - 16), ($chip - 16))) $fIcon $colGranat
         }
 
         # ELS XIPS PRIMER, i despres el titol dins del que quedi: si es dibuixa
@@ -301,7 +327,7 @@ function Select-Mode {
         $entry.DocChipRect = $null
         $entry.ExtraChipRect = $null
         if (-not [string]::IsNullOrWhiteSpace($doc)) {
-            $szP = [System.Windows.Forms.TextRenderer]::MeasureText($g, $pencil, $fEmoS, [System.Drawing.Size]::Empty, $flags)
+            $szP = New-Object System.Drawing.Size($emoXip, $emoXip)
             $szD = [System.Windows.Forms.TextRenderer]::MeasureText($g, $doc, $fDet, [System.Drawing.Size]::Empty, $flags)
             $pad = 9; $gap = 5
             $cw = $pad + $szP.Width + $gap + $szD.Width + $pad
@@ -319,7 +345,7 @@ function Select-Mode {
                 $g.DrawRectangle($penH, $dx, $dy, ($cw - 1), ($chH - 1))
                 $penH.Dispose()
             }
-            [System.Windows.Forms.TextRenderer]::DrawText($g, $pencil, $fEmoS, (New-Object System.Drawing.Point(($dx + $pad), ($dy + 5))), $colGranat, $flags)
+            _DibuixaEmoji $g $pencil (New-Object System.Drawing.Rectangle(($dx + $pad), ($dy + [int](($chH - $emoXip) / 2)), $emoXip, $emoXip)) $fEmoS $colGranat
             [System.Windows.Forms.TextRenderer]::DrawText($g, $doc, $fDet, (New-Object System.Drawing.Point(($dx + $pad + $szP.Width + $gap), ($dy + 4))), $colGranat, $flags)
             $entry.DocChipRect = New-Object System.Drawing.Rectangle($dx, $dy, $cw, $chH)
 
@@ -328,7 +354,7 @@ function Select-Mode {
             if ($null -ne $entry.Extra) {
                 $et = [string]$entry.Extra.Text
                 $ei = [string]$entry.Extra.Icon
-                $szEI = [System.Windows.Forms.TextRenderer]::MeasureText($g, $ei, $fEmoS, [System.Drawing.Size]::Empty, $flags)
+                $szEI = New-Object System.Drawing.Size($emoXip, $emoXip)
                 $szET = [System.Windows.Forms.TextRenderer]::MeasureText($g, $et, $fDet, [System.Drawing.Size]::Empty, $flags)
                 $ew = $pad + $szEI.Width + $gap + $szET.Width + $pad
                 $ex = $dx - $ew - 8
@@ -341,7 +367,7 @@ function Select-Mode {
                     $g.DrawRectangle($penE, $ex, $dy, ($ew - 1), ($chH - 1))
                     $penE.Dispose()
                 }
-                [System.Windows.Forms.TextRenderer]::DrawText($g, $ei, $fEmoS, (New-Object System.Drawing.Point(($ex + $pad), ($dy + 5))), $colGranat, $flags)
+                _DibuixaEmoji $g $ei (New-Object System.Drawing.Rectangle(($ex + $pad), ($dy + [int](($chH - $emoXip) / 2)), $emoXip, $emoXip)) $fEmoS $colGranat
                 [System.Windows.Forms.TextRenderer]::DrawText($g, $et, $fDet, (New-Object System.Drawing.Point(($ex + $pad + $szEI.Width + $gap), ($dy + 4))), $colGranat, $flags)
                 $entry.ExtraChipRect = New-Object System.Drawing.Rectangle($ex, $dy, $ew, $chH)
             }
@@ -381,13 +407,14 @@ function Select-Mode {
     # I SENSE EMOJI: un LinkLabel te UNA sola lletra per a tot el text, i amb la
     # Segoe UI del programa el llapis surt com un quadrat. Als xips de les
     # rajoles si que hi es perque alla el dibuixem a part, amb Segoe UI Emoji.
-    $xComuns = 130
+    # ALINEATS A LA DRETA de la columna d'informes (el marge dret dels botons),
+    # a la linia dels titols: es posen despres, quan ja se'n sap l'amplada.
+    $llsComuns = New-Object System.Collections.ArrayList
     foreach ($d in @(
         @{ Doc = '0 CAPCALERA';   Text = ('Cap' + [char]0x00E7 + 'alera') },
         @{ Doc = '0 CONCLUSIONS'; Text = 'Conclusions' })) {
         $ll = New-Object System.Windows.Forms.LinkLabel
         $ll.Text = [string]$d.Text
-        $ll.Location = New-Object System.Drawing.Point($xComuns, (15 + $headerHeight))
         $ll.AutoSize = $true
         $ll.Font = $fDet
         $ll.LinkColor = $colGranat
@@ -401,9 +428,15 @@ function Select-Mode {
             $form.DialogResult = 'OK'
             $form.Close()
         }.GetNewClosure())
-        $xComuns += $ll.PreferredWidth + 18
+        [void]$llsComuns.Add($ll)
     }
-    $y = 45 + $headerHeight
+    $xComuns = 20 + 560
+    for ($il = $llsComuns.Count - 1; $il -ge 0; $il--) {
+        $xComuns -= $llsComuns[$il].PreferredWidth
+        $llsComuns[$il].Location = New-Object System.Drawing.Point($xComuns, ($yTitols - 1))
+        $xComuns -= 14
+    }
+    $y = $yContingut
     foreach ($entry in $menu) {
         $btn = New-Object System.Windows.Forms.Button
         $btn.Text = ''
@@ -462,12 +495,13 @@ function Select-Mode {
 
     # ---- Eines: en una COLUMNA a la dreta dels tipus d'informe ---------------
     # (vegeu _MenuDisposaGrups: a sota no hi cabien sense fer scroll)
-    $yInformes = $y
+    $fiInformes = $y - 8     # on acaba el darrer boto (pas de 70, boto de 62)
 
-    # EINES: rajoles compactes en una fila (emoji a dalt + etiqueta petita a
-    # sota), segons el disseny. Comportament per rajola: 'action' tanca el menu
-    # amb l'accio; 'url' obre l'enllac public SENSE tancar el menu (precintades).
-    # (Les eines de la base d'informes van al seu propi apartat INFORMES, sota.)
+    # LES EINES, PER MOMENT DE LA FEINA (octubre 2026, amb l'usuari): abans
+    # s'agrupaven per d'on treuen les dades i sortien files de 5, 4, 2+2 i 3;
+    # ara son quatre grups de quatre i fan una graella. Comportament per
+    # rajola: 'action' tanca el menu amb l'accio; 'url' obre l'enllac public
+    # SENSE tancar el menu (precintades).
     $urlPrec = 'https://xexifm.github.io/informes-Cornella/precintades.html'
     $tiPin   = [System.Char]::ConvertFromUtf32(0x1F4CD)   # 📍
     $tiLock  = [System.Char]::ConvertFromUtf32(0x1F512)   # 🔒
@@ -479,23 +513,29 @@ function Select-Mode {
     $tiCal   = [System.Char]::ConvertFromUtf32(0x1F4C5)   # 📅
     $tiPdf   = [System.Char]::ConvertFromUtf32(0x1F4C4)   # 📄
     $tiMail  = [System.Char]::ConvertFromUtf32(0x1F4E7)   # 📧
-    $tiSend  = [System.Char]::ConvertFromUtf32(0x1F4E4)   # 📤
+    $tiSobre = [System.Char]::ConvertFromUtf32(0x2709)    # ✉
     $tiList  = [System.Char]::ConvertFromUtf32(0x1F4CA)   # 📊
     $tiMap   = [System.Char]::ConvertFromUtf32(0x1F5FA)   # 🗺
     $tiBell  = [System.Char]::ConvertFromUtf32(0x1F514)   # 🔔
     $tiLlibres = [System.Char]::ConvertFromUtf32(0x1F4DA) # 📚
     $tiLupa    = [System.Char]::ConvertFromUtf32(0x1F50D) # 🔍
-    # EINES: utilitats generals.
-    $tools = @(
+    # CARRER: preparar la inspeccio i el que es porta del carrer amb el mobil.
+    $carrer = @(
         @{ Emoji = $tiPin;   Label = 'Generar ruta';           Kind = 'action'; Action = 'ruta' }
         @{ Emoji = $tiMap;   Label = 'Coordenades';            Kind = 'action'; Action = 'coordenades' }
         # 'Action' tambe a la rajola d'enllac: no despatxa res, pero es la clau
         # del seu segell d'ultima execucio.
         @{ Emoji = $tiLock;  Label = 'Activitats precintades'; Kind = 'url';    Action = 'precintades'; Url = $urlPrec }
-        @{ Emoji = $tiCal;   Label = ('Controls peri' + [char]0x00F2 + 'dics'); Kind = 'action'; Action = 'controlsperiodics' }
-        @{ Emoji = $tiBell;  Label = 'Recordatoris'; Kind = 'action'; Action = 'recordatoris' }
+        @{ Emoji = $tiInbox; Label = ('Revisar m' + [char]0x00F2 + 'bil'); Kind = 'action'; Action = 'revisarmobil' }
     )
-    # INFORMES: eines de la base d'informes + conversio a PDF.
+    # TITULARS: el que s'envia o es reclama als titulars.
+    $titulars = @(
+        @{ Emoji = $tiMail;  Label = 'Enviar correu';     Kind = 'action'; Action = 'enviarcorreu' }
+        @{ Emoji = $tiSobre; Label = 'Textos del correu'; Kind = 'action'; Action = 'emailtextos' }
+        @{ Emoji = $tiBell;  Label = 'Recordatoris';      Kind = 'action'; Action = 'recordatoris' }
+        @{ Emoji = $tiCal;   Label = ('Controls peri' + [char]0x00F2 + 'dics'); Kind = 'action'; Action = 'controlsperiodics' }
+    )
+    # BASE D'INFORMES: eines de la base d'informes + conversio a PDF.
     $reports = @(
         @{ Emoji = $tiBox;   Label = 'Actualitzar base'; Kind = 'action'; Action = 'informesdb' }
         @{ Emoji = $tiClip;  Label = 'Editar base';      Kind = 'action'; Action = 'informesdbedit' }
@@ -505,26 +545,20 @@ function Select-Mode {
         @{ Emoji = $tiPdf;   Label = 'Word a PDF';       Kind = 'action'; Action = 'convertirpdf' }
     )
     # GIA: eines que parlen de la base de dades d'ACTIVITATS (el GIA), no dels
-    # informes. 'Comprovar Excel' era a INFORMES pero el seu tema es el GIA.
+    # informes. Comparteix fila amb NORMATIVA.
     $gia = @(
-        @{ Emoji = $tiCheck; Label = 'Comprovar Excel'; Kind = 'action'; Action = 'comprovarexcel' }
         @{ Emoji = $tiList;  Label = 'Seguiment';       Kind = 'action'; Action = 'seguimentgia' }
+        @{ Emoji = $tiCheck; Label = 'Comprovar Excel'; Kind = 'action'; Action = 'comprovarexcel' }
     )
     # NORMATIVA: la normativa dels requeriments i mantenir-los al dia.
     $normativaRow = @(
         @{ Emoji = $tiLlibres; Label = 'Normativa'; Kind = 'action'; Action = 'normativa' }
         @{ Emoji = $tiLupa;    Label = 'Revisar requeriments'; Kind = 'action'; Action = 'revisio' }
     )
-    # MOBIL: eines de l'app del mobil.
-    $mobil = @(
-        @{ Emoji = $tiMail;  Label = 'Textos del correu'; Kind = 'action'; Action = 'emailtextos' }
-        @{ Emoji = $tiSend;  Label = 'Enviar correu';     Kind = 'action'; Action = 'enviarcorreu' }
-        @{ Emoji = $tiInbox; Label = ('Revisar m' + [char]0x00F2 + 'bil'); Kind = 'action'; Action = 'revisarmobil' }
-    )
     $fTileIco   = New-Object System.Drawing.Font('Segoe UI Emoji', 14, [System.Drawing.FontStyle]::Regular)
     $fTileTxt   = New-Object System.Drawing.Font('Segoe UI', 8, [System.Drawing.FontStyle]::Regular)
     $tileBorder = [System.Drawing.Color]::FromArgb(214, 219, 225)
-    $tileTxtCol = [System.Drawing.Color]::FromArgb(107, 116, 128)
+    $tileTxtCol = [System.Drawing.Color]::FromArgb(63, 73, 85)
     $fAjuda        = New-Object System.Drawing.Font('Segoe UI', 7, [System.Drawing.FontStyle]::Bold)
     $colAjuda      = [System.Drawing.Color]::FromArgb(247, 231, 234)
     $colAjudaHover = [System.Drawing.Color]::FromArgb(166, 26, 47)
@@ -534,11 +568,10 @@ function Select-Mode {
         $g = $e.Graphics
         $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
         $rc = $s.ClientRectangle
-        $flC = [System.Windows.Forms.TextFormatFlags]::HorizontalCenter -bor [System.Windows.Forms.TextFormatFlags]::NoPadding
         $flW = [System.Windows.Forms.TextFormatFlags]::HorizontalCenter -bor [System.Windows.Forms.TextFormatFlags]::WordBreak -bor [System.Windows.Forms.TextFormatFlags]::NoPadding
-        $emRect = New-Object System.Drawing.Rectangle(0, 6, $rc.Width, 22)
-        [System.Windows.Forms.TextRenderer]::DrawText($g, $t.Emoji, $fTileIco, $emRect, [System.Drawing.Color]::Black, $flC)
-        $lbRect = New-Object System.Drawing.Rectangle(2, 29, ($rc.Width - 4), ($rc.Height - 31))
+        # L'emoji EN COLOR (imatge, vegeu _DibuixaEmoji) i l'etiqueta a sota.
+        _DibuixaEmoji $g ([string]$t.Emoji) (New-Object System.Drawing.Rectangle(0, 6, $rc.Width, 22)) $fTileIco ([System.Drawing.Color]::Black)
+        $lbRect = New-Object System.Drawing.Rectangle(4, 31, ($rc.Width - 8), ($rc.Height - 33))
         [System.Windows.Forms.TextRenderer]::DrawText($g, $t.Label, $fTileTxt, $lbRect, $tileTxtCol, $flW)
         # El "?" de l'ajuda, a la cantonada de dalt a la dreta: rodona granat
         # suau, i granat plena quan hi passa el ratoli (com els xips de dalt).
@@ -600,7 +633,9 @@ function Select-Mode {
         $t = $s.Tag
         if ([bool]$t.AjudaHover) { $t.AjudaHover = $false; $s.Cursor = [System.Windows.Forms.Cursors]::Default; $s.Invalidate() }
     }.GetNewClosure()
-    $tileW = 80; $tileH = 58; $tileGap = 7
+    # Quatre columnes de 100 + 10: hi caben 'Activitats precintades' i 'Revisar
+    # requeriments' en dues linies sense trencar cap paraula.
+    $tileW = 100; $tileH = 62; $tileGap = 10
     # Sota CADA rajola, en petit, l'ultima vegada que s'ha fet servir l'eina
     # ('(mai)' si encara no). El segell es llegeix per l'ACCIO de la rajola (la
     # clau del registre), no per la posicio dins de la fila: abans els indexs
@@ -788,41 +823,55 @@ function Select-Mode {
         return ($yRow + $tileH + 20)
     }.GetNewClosure()
     $grups = @(
-        @{ Titol = 'EINES';     Items = $tools }
-        @{ Titol = 'INFORMES';  Items = $reports }
+        @{ Titol = 'CARRER';    Items = $carrer }
+        @{ Titol = 'TITULARS';  Items = $titulars }
+        @{ Titol = ('BASE D' + [char]39 + 'INFORMES'); Items = $reports }
         @{ Titol = 'GIA';       Items = $gia }
         @{ Titol = 'NORMATIVA'; Items = $normativaRow }
-        @{ Titol = ('M' + [char]0x00D2 + 'BIL'); Items = $mobil }
     )
-    # La columna comenca a l'altura de "Que vols fer?" i tan a la dreta com les
-    # rajoles dels informes; hi caben cinc rajoles d'ample (la fila mes llarga).
-    $xEines = 20 + 560 + 32
-    $yEines = 15 + $headerHeight
-    $ampleEines = (5 * $tileW) + (4 * $tileGap)
-    $altGrup = 24 + $tileH + 20     # titol + rajola + segell
-    $posGrups = _MenuDisposaGrups ([int[]]@($grups | ForEach-Object { @($_.Items).Count })) $ampleEines $tileW $tileGap 24 $altGrup
-    $yFiEines = $yEines
+    # LA GRAELLA: quatre columnes a la dreta dels botons, separades per una
+    # ratlla. La primera fila de rajoles comenca a $yContingut, com el primer
+    # boto, i les files s'estiren fins que la de baix -amb el seu segell- acaba
+    # on acaba el darrer boto (_MenuFilesY). Els titols van 22 px per sobre de
+    # cada fila, com el d'INFORMES.
+    $xEines = 20 + 560 + 40
+    $ampleEines = (4 * $tileW) + (3 * $tileGap)
+    $altSegell = 16
+    $posGrups = _MenuDisposaGrups ([int[]]@($grups | ForEach-Object { @($_.Items).Count })) $ampleEines $tileW $tileGap
+    $nFiles = 1 + (($posGrups | ForEach-Object { [int]$_.Fila } | Measure-Object -Maximum).Maximum)
+    $filesY = _MenuFilesY $nFiles $yContingut $fiInformes ($tileH + $altSegell) ($tileH + $altSegell + 30)
+    $yFiEines = $yContingut
     for ($ig = 0; $ig -lt $grups.Count; $ig++) {
         $gx = $xEines + [int]$posGrups[$ig].X
-        $gy = $yEines + [int]$posGrups[$ig].Y
+        $gy = [int]$filesY[[int]$posGrups[$ig].Fila]
         $sep = New-Object System.Windows.Forms.Label
         $sep.Text = [string]$grups[$ig].Titol
-        $sep.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
-        $sep.ForeColor = [System.Drawing.Color]::FromArgb(138, 20, 38)
-        $sep.Location = New-Object System.Drawing.Point($gx, $gy)
+        $sep.Font = $fTitolGrup
+        $sep.ForeColor = $colTitolGrup
+        $sep.Location = New-Object System.Drawing.Point($gx, ($gy - 22))
         $sep.AutoSize = $true
         [void]$form.Controls.Add($sep)
-        $yGrup = [int](& $addTileRow $grups[$ig].Items $gx ($gy + 24))
-        $yFiEines = [Math]::Max($yFiEines, $yGrup)
+        [void](& $addTileRow $grups[$ig].Items $gx $gy)
+        $yFiEines = [Math]::Max($yFiEines, ($gy + $tileH + $altSegell))
+        # Un grup que comparteix fila (NORMATIVA) porta una ratlla fina al
+        # davant, al mig de l'espai entre columnes.
+        if ([int]$posGrups[$ig].X -gt 0) {
+            $rg = New-Object System.Windows.Forms.Label
+            $rg.BackColor = [System.Drawing.Color]::FromArgb(230, 233, 237)
+            $rg.Location = New-Object System.Drawing.Point(($gx - [int]($tileGap / 2) - 1), ($gy - 20))
+            $rg.Size = New-Object System.Drawing.Size(1, ($tileH + 18))
+            [void]$form.Controls.Add($rg)
+        }
     }
+    $yFi = [Math]::Max($fiInformes, $yFiEines)
 
-    # Una ratlla fina separa les dues columnes.
+    # Una ratlla fina separa les dues columnes, de la linia dels titols a baix.
     $ratlla = New-Object System.Windows.Forms.Label
     $ratlla.BackColor = $tileBorder
-    $ratlla.Location = New-Object System.Drawing.Point(($xEines - 17), $yEines)
-    $ratlla.Size = New-Object System.Drawing.Size(1, ([Math]::Max($yInformes, $yFiEines) - $yEines - 14))
+    $ratlla.Location = New-Object System.Drawing.Point((20 + 560 + 20), $yTitols)
+    $ratlla.Size = New-Object System.Drawing.Size(1, ($yFi - $yTitols))
     [void]$form.Controls.Add($ratlla)
-    $y = [Math]::Max($yInformes, $yFiEines) + 4
+    $y = $yFi + 8
 
     # (Configuracio i Ajuda ja no son botons grans: van DISCRETS a la cantonada
     #  de la banda granat, mes avall.)
@@ -838,13 +887,14 @@ function Select-Mode {
     # Botons DISCRETS a la cantonada dreta de la banda: Ajuda (?) i Configuracio
     # (rosca). Fons granat una mica mes clar, text blanc, sense vora. Ancorats a
     # la dreta perque segueixin la cantonada si es maximitza.
+    # Els botons de la banda acaben al MATEIX marge dret (20) que les rajoles.
     $wForm = $form.ClientSize.Width
     $fBandIco = New-Object System.Drawing.Font('Segoe UI Emoji', 11, [System.Drawing.FontStyle]::Regular)
     $btnAjuda = New-Object System.Windows.Forms.Button
     $btnAjuda.Text = [string][char]0x2753
     $btnAjuda.Font = $fBandIco
     $btnAjuda.Size = New-Object System.Drawing.Size(30, 30)
-    $btnAjuda.Location = New-Object System.Drawing.Point(($wForm - 42), 13)
+    $btnAjuda.Location = New-Object System.Drawing.Point(($wForm - 50), 13)
     $btnAjuda.Anchor = 'Top,Right'
     $btnAjuda.FlatStyle = 'Flat'
     $btnAjuda.ForeColor = [System.Drawing.Color]::White
@@ -871,7 +921,7 @@ function Select-Mode {
     $btnCarpeta.Text = [System.Char]::ConvertFromUtf32(0x1F4C1)
     $btnCarpeta.Font = $fBandIco
     $btnCarpeta.Size = New-Object System.Drawing.Size(30, 30)
-    $btnCarpeta.Location = New-Object System.Drawing.Point(($wForm - 114), 13)
+    $btnCarpeta.Location = New-Object System.Drawing.Point(($wForm - 126), 13)
     $btnCarpeta.Anchor = 'Top,Right'
     $btnCarpeta.FlatStyle = 'Flat'
     $btnCarpeta.ForeColor = [System.Drawing.Color]::White
@@ -900,7 +950,7 @@ function Select-Mode {
     $btnConfig.Text = [string][char]0x2699
     $btnConfig.Font = $fBandIco
     $btnConfig.Size = New-Object System.Drawing.Size(30, 30)
-    $btnConfig.Location = New-Object System.Drawing.Point(($wForm - 78), 13)
+    $btnConfig.Location = New-Object System.Drawing.Point(($wForm - 88), 13)
     $btnConfig.Anchor = 'Top,Right'
     $btnConfig.FlatStyle = 'Flat'
     $btnConfig.ForeColor = [System.Drawing.Color]::White
@@ -914,6 +964,27 @@ function Select-Mode {
     }.GetNewClosure())
     [void]$band.Controls.Add($btnConfig)
     $ttBand.SetToolTip($btnConfig, 'Configuracio')
+
+    # ACTUALITZAR, amb text i no nomes la icona: l'usuari el fa servir molt i
+    # abans era a Configuracio (dos clics endins). Fa EXACTAMENT el mateix que
+    # aquell boto (Invoke-ActualitzarPrograma, Configuracio.ps1): demana
+    # confirmacio, llanca Actualitzar.bat i tanca el programa. La fletxa en
+    # cercle no es a la Segoe UI: va amb _PosaIcona.
+    $btnActualitzarM = New-Object System.Windows.Forms.Button
+    $btnActualitzarM.Font = New-Object System.Drawing.Font('Segoe UI', 9.5, [System.Drawing.FontStyle]::Regular)
+    $btnActualitzarM.FlatStyle = 'Flat'
+    $btnActualitzarM.ForeColor = [System.Drawing.Color]::White
+    $btnActualitzarM.BackColor = [System.Drawing.Color]::FromArgb(150, 45, 60)
+    $btnActualitzarM.FlatAppearance.BorderSize = 0
+    $btnActualitzarM.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(138, 20, 38)
+    $btnActualitzarM.TextAlign = 'MiddleCenter'
+    _PosaIcona $btnActualitzarM ([string][char]0x21BB) ' Actualitzar'
+    $btnActualitzarM.Size = New-Object System.Drawing.Size(118, 30)
+    $btnActualitzarM.Location = New-Object System.Drawing.Point(($btnCarpeta.Left - 8 - 118), 13)
+    $btnActualitzarM.Anchor = 'Top,Right'
+    $btnActualitzarM.add_Click({ Invoke-ActualitzarPrograma })
+    [void]$band.Controls.Add($btnActualitzarM)
+    $ttBand.SetToolTip($btnActualitzarM, 'Baixa la versio nova del programa (Actualitzar.bat) i el torna a obrir')
 
     # ------------------------------------------------------------------------
     # EL RELLOTGE del mode automatic de "Copiar informes"

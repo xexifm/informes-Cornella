@@ -28,6 +28,32 @@ if (-not $Script:HeadlessTest) {
 # servir tambe PdfSignar.ps1, i un modul no ha de dependre d'aquesta pantalla
 # per dibuixar un selector de carpeta.
 
+# ACTUALITZAR EL PROGRAMA: llanca Actualitzar.bat i tanca el programa. Un sol
+# lloc per als dos botons que ho fan -el de Configuracio i el de la banda del
+# menu principal (octubre 2026: l'usuari el fa servir molt i era dos clics
+# endins)-, perque el missatge i la manera de tancar no es puguin separar.
+function Invoke-ActualitzarPrograma {
+    $batPath = Join-Path $RepoRoot 'Actualitzar.bat'
+    if (-not (Test-Path -LiteralPath $batPath)) {
+        [System.Windows.Forms.MessageBox]::Show("No s'ha trobat Actualitzar.bat a:`n$batPath", 'Actualitzar el programa', 'OK', 'Error') | Out-Null
+        return
+    }
+    $rr = [System.Windows.Forms.MessageBox]::Show(
+        "S'obrira una finestra per actualitzar el programa des de GitHub. El programa es tancara mentre s'actualitza i, en acabar (quan premis una tecla), es tornara a obrir ja actualitzat.`n`nVols continuar?",
+        'Actualitzar el programa', 'YesNo', 'Question')
+    if ($rr -ne [System.Windows.Forms.DialogResult]::Yes) { return }
+    try {
+        Start-Process -FilePath $batPath -WorkingDirectory $RepoRoot
+    } catch {
+        [System.Windows.Forms.MessageBox]::Show("No s'ha pogut obrir Actualitzar.bat:`n$($_.Exception.Message)", 'Actualitzar el programa', 'OK', 'Error') | Out-Null
+        return
+    }
+    # Tanquem el programa DES DE DINS del gestor de clic. Fer servir 'exit'
+    # aqui llenca una excepcio de PowerShell que la bomba de missatges de
+    # WinForms mostra com a "Excepcio no controlada en un component"; en
+    # canvi [Environment]::Exit acaba el proces directament, sense l'error.
+    [System.Environment]::Exit(0)
+}
 function Invoke-ConfiguracioScreen {
     # Llegim els overrides ACTUALS d'aquest PC (poden haver canviat des de
     # l'arrencada si l'usuari torna a obrir aquesta pantalla) i en derivem el
@@ -106,28 +132,7 @@ function Invoke-ConfiguracioScreen {
     $btnActualitzar.Size = New-Object System.Drawing.Size(260, 32)
     _StyleSecondaryButton $btnActualitzar
     _PosaIcona $btnActualitzar ([string][char]0x21BB) 'Actualitzar el programa'
-    $btnActualitzar.add_Click({
-        $batPath = Join-Path $RepoRoot 'Actualitzar.bat'
-        if (-not (Test-Path -LiteralPath $batPath)) {
-            [System.Windows.Forms.MessageBox]::Show("No s'ha trobat Actualitzar.bat a:`n$batPath", 'Actualitzar el programa', 'OK', 'Error') | Out-Null
-            return
-        }
-        $rr = [System.Windows.Forms.MessageBox]::Show(
-            "S'obrira una finestra per actualitzar el programa des de GitHub. El programa es tancara mentre s'actualitza i, en acabar (quan premis una tecla), es tornara a obrir ja actualitzat.`n`nVols continuar?",
-            'Actualitzar el programa', 'YesNo', 'Question')
-        if ($rr -ne [System.Windows.Forms.DialogResult]::Yes) { return }
-        try {
-            Start-Process -FilePath $batPath -WorkingDirectory $RepoRoot
-        } catch {
-            [System.Windows.Forms.MessageBox]::Show("No s'ha pogut obrir Actualitzar.bat:`n$($_.Exception.Message)", 'Actualitzar el programa', 'OK', 'Error') | Out-Null
-            return
-        }
-        # Tanquem el programa DES DE DINS del gestor de clic. Fer servir 'exit'
-        # aqui llenca una excepcio de PowerShell que la bomba de missatges de
-        # WinForms mostra com a "Excepcio no controlada en un component"; en
-        # canvi [Environment]::Exit acaba el proces directament, sense l'error.
-        [System.Environment]::Exit(0)
-    }.GetNewClosure())
+    $btnActualitzar.add_Click({ Invoke-ActualitzarPrograma })
     [void]$grpMant.Controls.Add($btnActualitzar)
 
     # ---- Barra inferior: Tancar / Restaura ... Desar ---------------------
