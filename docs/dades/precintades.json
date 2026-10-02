@@ -1,8 +1,8 @@
 {
-    "GeneratedAt":  "2026-09-30T11:21:00.4884067+02:00",
-    "Font":  "2026-09-29 ACTIVITATS.xls",
-    "SourceDate":  "2026-09-29",
-    "Comptador":  13,
+    "GeneratedAt":  "2026-10-02T14:56:30.7302709+02:00",
+    "Font":  "2026-10-02 ACTIVITATS.xls",
+    "SourceDate":  "2026-10-02",
+    "Comptador":  14,
     "Activitats":  [
                        {
                            "id":  "1141",
@@ -66,6 +66,13 @@
                            "adreca":  "C PIUS XII 1",
                            "lat":  41.3560836626998,
                            "lon":  2.0696382961527249
+                       },
+                       {
+                           "id":  "186",
+                           "activitat":  "BAR MUSICAL",
+                           "adreca":  "C DELICIES (LES) 6",
+                           "lat":  41.359532453545,
+                           "lon":  2.0745858143859648
                        },
                        {
                            "id":  "122",
