@@ -338,7 +338,9 @@ if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path 
 # amb text propi que mantenien a ma la llista d'instal-lacions.
 $Global:_secInst = ('Instal' + [char]0x00B7 + 'lacions')
 $Global:_secCtrlI = 'Controls inicials'
-$Global:_subITC = ('Incendis::Documentaci' + [char]0x00F3 + ' (ITC SP)')
+# (Era 'Documentacio (ITC SP)'; a l'octubre 2026 es va fondre amb les ITC de
+# Bombers i les lluernes en coberta van al RSCIEI: queden els tres models.)
+$Global:_subITC = 'Incendis::ITC de Bombers - Certificats SP 136'
 
 if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path $EstructuralsDir 'REQ1.json'))) {
     $req1In = Read-CatalegJson (Join-Path $EstructuralsDir 'REQ1.json')
@@ -349,8 +351,8 @@ if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path 
     $itInst = @(_LlicItemsDeSubseccio $req1In $Global:_secInst)
     $itITC  = @(_LlicItemsDeSubseccio $req1In $Global:_subITC)
     Assert ($itInst.Count -ge 30) ('_LlicItemsDeSubseccio: la seccio SENCERA d''instal-lacions (' + $itInst.Count + ')')
-    AssertEq $itITC.Count 4 '_LlicItemsDeSubseccio: nomes la subseccio Documentacio (ITC SP)'
-    Assert (-not (@($itITC | ForEach-Object { [string]$_.Short }) | Where-Object { $_ -like 'RIPCI*' })) '_LlicItemsDeSubseccio: no s''endu la subseccio seguent'
+    AssertEq $itITC.Count 3 '_LlicItemsDeSubseccio: nomes la subseccio dels certificats SP 136'
+    Assert (-not (@($itITC | ForEach-Object { [string]$_.Short }) | Where-Object { $_ -notlike 'ITC SP 136 Model*' })) '_LlicItemsDeSubseccio: no s''endu les subseccions del costat (nomes els models)'
     AssertEq (@(_LlicItemsDeSubseccio $req1In 'No existeix').Count) 0 '_LlicItemsDeSubseccio: seccio desconeguda -> cap item'
     AssertEq (@(_LlicItemsDeSubseccio $req1In '').Count) 0 '_LlicItemsDeSubseccio: clau buida -> cap item'
 
@@ -358,7 +360,7 @@ if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path 
     $exp = @(_LlicSeccionsExpandides $llicIn $idxIn)
     Assert ([bool]($exp -contains $Global:_secInst)) '_LlicSeccionsExpandides: Instal-lacions'
     Assert ([bool]($exp -contains $Global:_secCtrlI)) '_LlicSeccionsExpandides: Controls inicials'
-    Assert ([bool]($exp -contains $Global:_subITC)) '_LlicSeccionsExpandides: Incendis / Documentacio (ITC SP)'
+    Assert ([bool]($exp -contains $Global:_subITC)) '_LlicSeccionsExpandides: Incendis / Certificats SP 136'
     Assert (-not (@($exp) | Where-Object { $idxIn.ContainsKey($_) })) '_LlicSeccionsExpandides: cap clau d''item'
 
     # El bloc DESPRES sencer.
@@ -405,7 +407,7 @@ if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path 
     $senseAb = @(@($req1In.Sections) | Where-Object { -not (_LlicEsSeccioAbans ([string]$_.Title)) })
     $secPr = @(_LlicSeccionsSenseSubseccions $senseAb $exp)
     AssertEq (@(_LlicItemsDeSubseccio ([pscustomobject]@{ Sections = $secPr }) $Global:_secInst).Count) 0 'Projecte: Instal-lacions ja no hi es'
-    AssertEq (@(_LlicItemsDeSubseccio ([pscustomobject]@{ Sections = $secPr }) $Global:_subITC).Count) 0 'Projecte: ni la Documentacio (ITC SP)'
+    AssertEq (@(_LlicItemsDeSubseccio ([pscustomobject]@{ Sections = $secPr }) $Global:_subITC).Count) 0 'Projecte: ni els certificats SP 136'
     # ...pero la resta d'Incendis SI (nomes en marxa una subseccio).
     $inc = @(_LlicItemsDeSubseccio ([pscustomobject]@{ Sections = $secPr }) 'Incendis')
     Assert ($inc.Count -ge 20) ('Projecte: la resta d''Incendis s''hi queda (' + $inc.Count + ')')

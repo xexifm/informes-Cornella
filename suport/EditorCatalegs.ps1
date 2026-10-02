@@ -242,7 +242,7 @@ function _Ed_TipusOptions([string]$familia, [string]$parentTipus) {
             switch ($parentTipus) {
                 'seccio'    { return @('item', 'subseccio', 'text') }
                 # DINS D'UNA SUBSECCIO TAMBE HI POT ANAR UN TEXT FIX, i de fet
-                # n'hi ha (l'intro de "Documentacio (ITC SP)"): el lector els
+                # n'hi ha (l'intro de cada grup de les ITC de Bombers): el lector els
                 # llegeix -_EmitCatalegItem baixa pels fills de la subseccio-,
                 # pero aqui nomes s'oferia 'item' i per tant el combo sortia
                 # BLOQUEJAT i no es podia ni crear ni desfer des del programa.

@@ -460,7 +460,7 @@ AssertEq (_JsonParaToBodyLine @($cosBack)[0]) 'Text **fort** i //inclinat//' '_E
 AssertEq (@(_Ed_TipusOptions 'cataleg' '') -join ',') 'seccio' '_Ed_TipusOptions cataleg arrel -> seccio'
 AssertEq (@(_Ed_TipusOptions 'cataleg' 'seccio') -join ',') 'item,subseccio,text' '_Ed_TipusOptions cataleg sota seccio'
 # Dins d'una subseccio hi pot anar un TEXT FIX (n'hi ha a REQ1: l'intro de
-# "Documentacio (ITC SP)"). Abans nomes s'oferia 'item' i, com que el combo del
+# cada grup de les ITC de Bombers). Abans nomes s'oferia 'item' i, com que el combo del
 # Tipus es bloqueja quan nomes hi ha una opcio, des de l'editor no es podia ni
 # crear ni desfer una cosa que el lector si que llegeix.
 AssertEq (@(_Ed_TipusOptions 'cataleg' 'subseccio') -join ',') 'item,text' '_Ed_TipusOptions cataleg sota subseccio -> item i text'

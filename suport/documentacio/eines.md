@@ -939,6 +939,28 @@ sub-punts), escrits **llegint els PDF oficials** que l'usuari va deixar al Drive
   ho diu. La **Nota 1 de la SP 144** (Llei 11/2026): des del 14.7.2026 les
   activitats esporàdiques en espais oberts ja no tenen informe de la DGPEIS.
 - Les **TINSCI** van a la seva subsecció (més avall).
+- **Reorganitzades a l'octubre 2026** (petició de l'usuari). L'ordre de les
+  subseccions d'Incendis és ara **CTE DB SI · RSCIEI · RIPCI · ITC de Bombers ·
+  TINSCI** (els quatre punts solts del principi no es mouen). Les ITC es
+  parteixen en els **grups de la web de Bombers**, cada un amb el seu text fix:
+  *ITC de Bombers - RSCIEI*, *- CTE DB SI*, *- Genèriques*, *- Certificats SP
+  136* i *- Altres*. **D'on surt el grup de cada ITC** (la web d'Interior no
+  s'hi arriba des d'aquest entorn): l'ordre que l'aprova, que ja era a la
+  fitxa — ISP/19/2025 = RSCIEI, ISP/20/2025 = DB SI, ISP/28/2025 = genèriques
+  —; les sis del 2012, per la capçalera del DOGC dels PDF (SP 109, 110 i 114,
+  una disposició; SP 113, 120 i 121, l'altra) i el contingut (INT/323/2012 =
+  DB SI, INT/324/2012 = genèriques). **SP 126, 138 i 147 no les aprova cap
+  ordre** i van a *Altres*, amb un text fix que no diu «caràcter
+  reglamentari»: és una deducció, si la web les posa en un altre grup cal
+  moure-les. Títols amb «ITC SP nnn» i textos escurçats als conceptes clau
+  (tots del text anterior). L'script és `scratchpad/py/itc_reorg.py` (de la
+  sessió).
+- **La subsecció «Documentació (ITC SP)» ja no existeix**: l'intro de
+  l'Ordenança i els models A, B i C de l'SP 136 són *ITC de Bombers -
+  Certificats SP 136*, i les **lluernes en coberta** són un punt del RSCIEI
+  genèric. `LLIC.json` expandeix ara aquella subsecció al bloc DESPRÉS (la
+  clau) — o sigui que **a Llicència les lluernes han passat de DESPRÉS a
+  PROJECTE**, que és el que toca per a un requisit del RSCIEI.
 
 ## REQ1: la subsecció «TINSCI» (Incendis, octubre 2026)
 16 punts, un per document TINSCI vigent (DT-4 a DT-19; DT-9 amb tres

@@ -116,14 +116,14 @@
     buida: aturar l'assistent per això seria pitjor que generar l'informe.
 - **CADA BLOC ES PORTA SECCIONS SENCERES DE REQ1, i qui ho decideix és el
   CATÀLEG.** Una entrada de `LLIC.json` amb una **`clau` que no és un ítem** —
-  una secció (`Instal·lacions`) o una subsecció (`Incendis::Documentació (ITC
-  SP)`) — **s'expandeix**: un punt per cada ítem d'aquella part, amb el text
+  una secció (`Instal·lacions`) o una subsecció (`Incendis::ITC de Bombers -
+  Certificats SP 136`, abans «Documentació (ITC SP)») — **s'expandeix**: un punt per cada ítem d'aquella part, amb el text
   **literal** de REQ1 i el mateix «Quan:» per a tots.
   - **ABANS** (`_LlicSeccionsAbans`): *Autoritzacions / Informes preceptius* i
     *Registres* — **36 punts**. Aquí LLIC hi aporta el «No es disposa / Es
     disposa» **per ítem**, per clau.
   - **DESPRÉS**: els 6 punts de text propi més **5 seccions expandides** —
-    *Incendis / Documentació (ITC SP)*, *Pla d'Autoprotecció*, *Controls
+    *Incendis / ITC de Bombers - Certificats SP 136*, *Pla d'Autoprotecció*, *Controls
     inicials*, *Controls periòdics* i *Instal·lacions* (**51 punts**).
   - **PROJECTE**: la resta (**68**). Les exclusions surten de
     `_LlicSeccionsExpandides` (llegeix el catàleg), no d'una llista al codi:
