@@ -92,12 +92,25 @@
   portés dos cops el mateix ID Activitat, dues fitxes es trepitjarien. Al
   `localStorage`, en canvi, es desa **per ID**, que és el que ha de sobreviure
   quan es torni a generar el mapa.
-- **Es va provar el mapa SENCER en un navegador de debò** (Chromium + Playwright,
-  amb un doble de Leaflet perquè el CDN estava bloquejat): estat inicial,
-  arrossegament, desat i recuperació al navegador, esborrat de correccions,
-  filtre, i el `.xlsx` baixat rellegit amb `openpyxl`. El **SRI** dels `<script>`
-  de Leaflet bloqueja qualsevol doble: a la còpia de prova s'ha de treure
-  l'`integrity` (mai al fitxer de veritat).
+- **El mapa es prova en un navegador de debò, i ara de manera repetible:**
+  `suport/tests/navegador/prova-mapa-coordenades.mjs` (Chromium + Playwright).
+  Genera tres mapes amb les funcions de debò (`genera-mapa-prova.ps1`) i hi fa
+  el que fa l'usuari: validar amb un clic, arrossegar, filtrar, baixar l'Excel
+  (rellegit amb `openpyxl`, que s'ha d'obrir **sense avisos**), tancar el
+  navegador i obrir un mapa **nou**, i esborrar el repàs. Detalls que cal saber:
+  - el **Leaflet es serveix des de `node_modules/leaflet`**: és el mateix
+    paquet 1.9.4 de npm, byte a byte, i el SRI hi coincideix. **No cal treure
+    l'`integrity`** (la primera prova a mà, al setembre, ho havia de fer perquè
+    feia servir un doble de Leaflet);
+  - el navegador és **persistent** (un perfil en una carpeta temporal): és
+    l'única manera de provar que el repàs sobreviu a tancar el Chrome;
+  - **comprovat (octubre 2026): a Chromium el `localStorage` de `file://` es
+    comparteix entre fitxers de carpetes i noms diferents**, i per això el repàs
+    es veu des de cada `Coordenades_<data>.html` nou. L'usuari fa servir Chrome.
+    A Firefox **no** s'ha comprovat (cada fitxer `file://` hi pot tenir origen
+    propi); si algun dia es canvia de navegador, és el primer que cal mirar;
+  - validada injectant el defecte: amb la clau del repàs lligada al nom de
+    l'HTML, cinc comprovacions es posen en vermell.
 - **LA TRAMPA DEL `return ,@(...)`, TERCERA APARICIÓ — i la primera crida real
   al Cadastre la va destapar.** `ConvertFrom-CatastroAdXml`, `Get-RegistresApilats`
   i `Get-RefcatsAConsultar` acabaven amb `return ,@(...)` **i** totes les crides

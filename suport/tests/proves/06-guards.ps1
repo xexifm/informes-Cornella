@@ -129,7 +129,10 @@ Write-Host "`n--- Tots els .ps1 PARSEGEN (guard) ---"
 # d'una tasca del Windows- no havia funcionat mai. Cap prova el tocava perque
 # cap prova el CARREGAVA. Aquest guard els carrega tots, sense executar-ne res.
 $rootRepo = Split-Path -Parent (Split-Path -Parent $TestsDir)
-$ps1Tots  = @(Get-ChildItem -Path (Join-Path $rootRepo 'suport') -Recurse -Filter *.ps1 -File)
+# node_modules: la prova del mapa al navegador (tests/navegador) hi instal.la el
+# Playwright, que porta .ps1 seus. No son nostres i no es pugen (.gitignore).
+$ps1Tots  = @(Get-ChildItem -Path (Join-Path $rootRepo 'suport') -Recurse -Filter *.ps1 -File |
+              Where-Object { $_.FullName -notmatch '[\\/]node_modules[\\/]' })
 Assert ($ps1Tots.Count -gt 40) "el guard de parseig veu tots els .ps1 ($($ps1Tots.Count))"
 $ambErrors = @()
 foreach ($f in $ps1Tots) {

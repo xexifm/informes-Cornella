@@ -45,3 +45,7 @@ Desktop.ini
 # negacio: el git no entra dins d'un directori ignorat, o sigui que el README
 # que 'local/README.txt' i el CLAUDE.md donen per publicat no s'hi hauria tornat
 # a afegir mai. Comprovat amb 'git check-ignore -v --no-index local/README.txt'.)
+
+# Proves del mapa de Coordenades al navegador (nomes a l'entorn de
+# desenvolupament): les dependencies de Node no es pugen.
+suport/tests/navegador/node_modules/

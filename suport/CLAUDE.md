@@ -200,6 +200,17 @@ GENINFORME_TEST=1 pwsh -NoProfile -File suport/tests/run-tests-all.ps1
 n'és només una. Executar-la sola deixa fora els fitxers d'or —que són la xarxa
 de seguretat del motor de composició— i el planificador de rutes.
 
+**El mapa de Coordenades té una suite a part, al navegador** (Node + Playwright,
+amb el Leaflet de veritat servit des de `node_modules`):
+
+```
+cd suport/tests/navegador && npm install && node prova-mapa-coordenades.mjs
+```
+
+No és dins de `run-tests-all.ps1` perquè al PC de la feina no hi ha Node. Si
+toques `rutes/CoordenadesMapa.html`, executa-la: la de PowerShell només pot
+mirar que l'HTML porti el que toca, no que el mapa funcioni.
+
 Val la pena insistir-hi perquè durant molt de temps **no es van executar mai**
 (en aquell contenidor no hi havia `pwsh` i es validava tot amb rèpliques en
 Python). El dia que es van poder executar van sortir **quatre errors reals de
