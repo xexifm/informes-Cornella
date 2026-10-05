@@ -2,7 +2,8 @@
 
 > Per enganxar tal qual en una sessió nova de Claude Code (web) sobre aquest
 > repositori. Està escrit l'octubre de 2026, quan l'eina ja funcionava contra
-> el Cadastre de debò. Les xifres de sota són d'aquell moment i la sessió les
+> el Cadastre de debò, i s'ha aplicat una vegada (octubre de 2026): els
+> candidats que ja es van fer estan tret d'aquí. Les xifres de sota són d'aquell moment i la sessió les
 > ha de tornar a mesurar. Quan una millora quedi feta o descartada, apunta-ho a
 > `rutes-i-mapes.md` i treu-la d'aquí, perquè el prompt no proposi dues vegades
 > el mateix.
@@ -38,99 +39,54 @@ repàs sigui més ràpid. Respon-me sempre en català.
 
 ## 1. Pregunta'm abans de prioritzar
 
-Fes-me aquestes preguntes (amb opcions, d'un sol cop) abans de proposar res.
-La resposta canvia l'ordre de tot:
+El que ja vaig respondre l'octubre de 2026 (no ho tornis a preguntar si no ha
+canviat): el mapa s'obre amb **Chrome**; les correccions les **importa una altra
+persona**, amb el **mateix format que la base original** i les canviades en
+vermell. Pregunta'm, amb opcions i d'un sol cop:
 
-- **Fins on he arribat amb el repàs?** Quantes zones, quantes validades, i si ja
-  he abocat cap tanda de correccions a la base.
-- **Què faig amb el `.xlsx` que em baixo?** Si les correccions es posen a mà al
-  GIA, una a una, o si hi ha cap manera d'importar-les. D'això depèn el format
-  que ha de tenir l'Excel de sortida (D1).
-- **Quin navegador obre el mapa a la feina** (Edge, Chrome, Firefox) i si
-  `unpkg.com` hi és accessible sempre.
-- **Què em fa perdre més temps al mapa**, de la llista de C, o una altra cosa.
+- **Fins on he arribat amb el repàs** i si ja s'ha importat cap tanda.
+- Si l'«Excel per importar» va bé a qui l'importa, o si hi falta res.
+- **Què em fa perdre més temps al mapa** ara.
 - Si em pots passar una o dues respostes reals del Cadastre:
   `local/geocodificacio/resposta-<refcat>.xml` (les desa `Provar-Cadastre.bat`).
   Només hi ha referències cadastrals i adreces de portals, dades públiques.
 
 ## 2. Candidats (per verificar i ordenar per benefici / risc, no és un pla tancat)
 
-### A. Fiabilitat i deute tècnic
+**Ja fet l'octubre de 2026** (detalls a `rutes-i-mapes.md`; no ho tornis a
+proposar): el mapa és una plantilla a part (`rutes/CoordenadesMapa.html`); la
+prova al navegador és repetible (`tests/navegador/`); segon CDN i missatge si el
+Leaflet no carrega; filtre per estat, «Següent pendent», «Desfer» i la parella
+ressaltada; el repàs es recarrega des de l'Excel baixat; i l'«Excel per
+importar» (`rutes/CoordenadesImportar.ps1`).
 
-1. **Treure l'HTML/JS del here-string** cap a un fitxer de plantilla al costat
-   (per exemple `rutes/CoordenadesMapa.html`, o `.html` + `.js`), on el
-   PowerShell només injecta les dades en JSON en un sol punt. Guanys: desapareix
-   la trampa del `$` i del `` ` `` dins de `@"…"@`, el text català deixa de
-   dependre del BOM del `.ps1`, s'alliberen centenars de línies sota el sostre i
-   el JS es pot provar directament. Compte amb: llegir la plantilla amb
-   `[IO.File]::ReadAllText(..., UTF8)` explícit (el 5.1 llegeix ANSI per
-   defecte), que la injecció escapi `</script>` i que el resultat sigui
-   **byte a byte** el mateix HTML que abans (compara'l per programa amb el que
-   genera la versió actual sobre les mateixes dades de prova).
+**Pendent:**
+
+1. **Confirmar al PC l'«Excel per importar»** (punt 11 de `provar-al-pc.md`):
+   és l'única peça que escriu amb l'Excel de debò i no s'ha pogut provar aquí.
+   Si les coordenades de la base són text, mira que la còpia les conservi com a
+   text.
 2. **Canviar la fixture muntada a mà** (`tests/dades/wfsAD-exemple.xml`) per una
    resposta **gravada** del servei real, si te la puc passar. Mantén els casos
    difícils que ja prova la fixture (dos portals amb el mateix número, eixos
    girats, adreça sense `<pos>`), afegint-los a part si la resposta real no els
    porta.
-3. **Proves del mapa repetibles.** El mapa sencer es va provar un sol cop amb
-   Chromium + Playwright i un doble de Leaflet. Converteix-ho en un script de
-   prova que es pugui tornar a executar (estat inicial, arrossegar, validar,
-   desfer, desat i recuperació, filtre, `.xlsx` rellegit amb `openpyxl`). El SRI
-   de Leaflet bloqueja el doble: treu l'`integrity` **només** a la còpia de prova.
-   Si no pot anar dins de `run-tests-all.ps1` (no hi ha Node a Windows), que
-   quedi com a suite a part i digues-ho al `CLAUDE.md`.
-4. **Leaflet des d'un CDN.** Si a la feina `unpkg` falla, el mapa surt en
-   blanc i la feina no es pot fer. Valora un CDN de reserva o una còpia local a
-   `suport/`, i que el mapa digui **en clar** que no ha carregat en lloc de
-   quedar-se buit.
-
-### B. Que no es perdi mai el repàs
-
-El repàs (hores de feina) viu **només** al `localStorage` del navegador, amb
-clau = nom de l'Excel d'origen, i cada execució genera un HTML amb un nom nou
-(`Coordenades_<data>.html`).
-
-1. **Comprova, no suposis,** que el navegador de la feina comparteix el
-   `localStorage` entre dos fitxers `file://` diferents. Si en algun navegador
-   no ho fa, cada mapa nou començaria buit i no ho veuria ningú.
-2. **Una còpia de seguretat que surti del navegador**: per exemple que el mapa
-   pugui tornar a **carregar** un `.xlsx` (o un `.json`) baixat abans i en
-   recuperi les correccions. Esborrar dades de navegació o canviar d'ordinador
-   no hauria de costar la feina. Pregunta'm abans el format.
-3. Si això existeix, la finestra de tria de zones **podria** dir quantes en porto
-   de repassades llegint aquell fitxer del disc. Sense una via real de retorn del
-   navegador al disc, **no** ho intentis (ja està descartat a `rutes-i-mapes.md`).
-
-### C. Repassar més de pressa (només el que jo triï a la pregunta de l'apartat 1)
-
-- Filtrar la llista per estat: pendents, blancs (sense portal), grocs (dubtosos),
-  verds clars (aproximats), moguts, validats. I el recompte de cada color a la
-  llegenda.
-- Un botó / tecla **«Següent pendent»** que centri el mapa i obri el popup.
-- Desfer **només l'últim arrossegament** sense perdre la validació de la resta
-  (avui, desfer un punt mogut el torna al portal del Cadastre).
-- Ressaltar la parella vermell–verd seleccionada quan n'hi ha moltes al mateix
-  lloc.
-
-### D. Tancar el cercle
-
-1. **L'Excel de sortida, al format que necessito** per posar les correccions al
-   GIA (columnes, ordre, decimals, separador), segons la resposta de l'apartat 1.
-2. **Quan arribi una base nova**: que l'eina pugui comparar el darrer `.xlsx`
-   de correccions amb la base nova i dir quines ja hi són, quines no i quines han
-   canviat. Sense tocar res: l'eina **només mira i genera fitxers**.
-3. **Apilades amb tolerància?** Avui «apilada» vol dir mateixa coordenada
-   exacta. Mesura sobre una base real si hi ha activitats a menys d'1 m que no es
-   detecten. Si no n'hi ha, no ho canviïs.
-
-### E. Precisió
-
-Mira el resum del final d'una execució real (exacte / dubtós / més proper /
-sense portal) i ataca el grup més gran. Per als **blancs** (cap portal) es pot
-mirar si la parcel·la té portals a la parcel·la veïna o al mateix carrer. Fer
-servir un altre servei (ICGC, Cartociudad...) voldria dir enviar-hi **l'adreça**,
-no només la referència cadastral: això canvia la promesa de privacitat del
-`LLEGEIX-ME.md` i **m'ho has de preguntar abans**.
+3. **Quan arribi una base nova**, que l'eina digui quines correccions del repàs
+   ja hi són, quines no i quines han canviat. L'«Excel per importar» ja separa
+   les que a la base tenen una altra coordenada (`JaCanviades`); falta que es
+   pugui consultar sense generar l'Excel.
+4. **Progrés per zona a la finestra de triar zones**: ara que el repàs existeix
+   com a fitxer, la finestra el podria llegir (`Read-RepasXlsx`) i dir quantes
+   en portes de cada zona. Pregunta'm abans si val la pena.
+5. **Apilades amb tolerància?** Avui «apilada» vol dir mateixa coordenada
+   exacta. Mesura sobre una base real si hi ha activitats a menys d'1 m que no
+   es detecten. Si no n'hi ha, no ho canviïs.
+6. **Precisió.** Mira el resum del final d'una execució real (exacte / dubtós /
+   més proper / sense portal) i ataca el grup més gran. Per als **blancs** (cap
+   portal) es pot mirar si la parcel·la té portals a la parcel·la veïna o al
+   mateix carrer. Fer servir un altre servei (ICGC, Cartociudad...) voldria dir
+   enviar-hi **l'adreça**, no només la referència cadastral: això canvia la
+   promesa de privacitat del `LLEGEIX-ME.md` i **m'ho has de preguntar abans**.
 
 ## 3. Regles de la casa per a aquesta eina
 
@@ -150,6 +106,8 @@ no només la referència cadastral: això canvia la promesa de privacitat del
 - `Coordenades.ps1` **porta BOM**; `Geocodificador.ps1` és **ASCII pur** sense BOM.
   Mentre l'HTML visqui al here-string, cap `$` ni `` ` `` que no sigui una
   interpolació volguda.
+- Si toques `rutes/CoordenadesMapa.html`, executa també la suite del navegador:
+  `cd suport/tests/navegador && npm install && node prova-mapa-coordenades.mjs`.
 - Res del geocodificador llança mai: si el servei no respon, la parcel·la es
   queda sense portals i l'activitat amb la coordenada de sempre. La guarda dels
   250 m (`$GeoDistanciaMaximaM`) es queda.

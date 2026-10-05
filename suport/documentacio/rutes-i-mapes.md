@@ -262,6 +262,26 @@
   ha d'executar l'usuari a Windows.
 
 
+### Millores pendents de l'eina «Coordenades»
+
+Després de la tanda d'octubre de 2026 (el prompt és `millorar-coordenades.md`,
+que ja només porta el que queda). Per benefici / risc:
+
+1. **Provar l'«Excel per importar» amb l'Excel de debò** (punt 11 de
+   `provar-al-pc.md`). Benefici alt, risc nul: és l'única peça que escriu per COM.
+2. **Fixture gravada del Cadastre** en lloc de la muntada a mà. Cal que
+   l'usuari passi un `resposta-<rc>.xml`. Benefici mitjà, risc nul.
+3. **Correccions contra una base nova**, sense haver de generar l'Excel.
+   Benefici mitjà quan arribi la primera base corregida.
+4. **Progrés per zona a la finestra de triar zones**, llegint l'Excel del
+   repàs. Canvia el que veu l'usuari: preguntar-ho.
+5. **Apilades amb tolerància** i **precisió dels «sense portal»**: necessiten
+   dades reals per decidir. Un altre geocodificador vol dir enviar adreces fora:
+   preguntar-ho.
+
+**Descartat:** cdnjs com a segon CDN (no és una còpia garantida de npm i el SRI
+podria no coincidir; jsDelivr sí que ho és).
+
 ## Plànol públic d'activitats precintades
 - `suport/rutes/Precintades.ps1` genera `docs/dades/precintades.json` a partir
   de l'Excel d'activitats (fulla "Estès"): les activitats amb el camp lliure
