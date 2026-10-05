@@ -27,19 +27,26 @@ export function seccio(t) { console.log('\n--- ' + t + ' ---'); }
 export async function serveixLeaflet(ctx, cdn = { unpkg: true, jsdelivr: true }) {
   const serveix = (actiu) => (route) => {
     if (!actiu) { route.abort(); return; }
-    const nom = path.basename(new URL(route.request().url()).pathname);
+    // El cami DINS de dist/ (les icones son a dist/images/: la del selector de
+    // capes del fons, per exemple).
+    const rel = new URL(route.request().url()).pathname.split('/dist/')[1] || '';
+    const tipus = rel.endsWith('.css') ? 'text/css' : rel.endsWith('.png') ? 'image/png' : 'application/javascript';
     route.fulfill({
-      path: path.join(LEAFLET, nom),
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Content-Type': nom.endsWith('.css') ? 'text/css' : 'application/javascript',
-      },
+      path: path.join(LEAFLET, ...rel.split('/')),
+      headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': tipus },
     });
   };
   await ctx.route('https://unpkg.com/leaflet@1.9.4/dist/**', serveix(cdn.unpkg));
   await ctx.route('https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/**', serveix(cdn.jsdelivr));
-  await ctx.route(/tile\.openstreetmap\.org|ovc\.catastro\.meh\.es/, (route) => route.abort());
+  // Les rajoles de TOTS els fons (MapaFons.js) i del Cadastre. Cap prova surt a
+  // Internet; la del fons serveix ella mateixa les que vol veure carregar.
+  await ctx.route(TESSELES, (route) => route.abort());
 }
+
+export const TESSELES = /tile\.openstreetmap\.org|ovc\.catastro\.meh\.es|geoserveis\.icgc\.cat|basemaps\.cartocdn\.com|arcgisonline\.com/;
+
+// Un PNG de 1x1, per servir una rajola que "carrega".
+export const PNG_1x1 = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 
 export function resultat(nom) {
   console.log('\n========================================');

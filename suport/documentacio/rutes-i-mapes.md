@@ -6,6 +6,42 @@
 > Per millorar l'eina «Coordenades» hi ha un prompt per enganxar a
 > `millorar-coordenades.md`.
 
+## EL FONS DELS MAPES: res d'OpenStreetMap (`rutes/MapaFons.js`, octubre 2026)
+
+L'usuari va obrir el Plànol activitats i **cada quadre del fons deia «Access
+blocked» / «403»**. Els servidors de rajoles d'OpenStreetMap exigeixen que la
+petició digui de quina web ve (capçalera *Referer*), i un HTML obert des del
+disc (`file://`) **no n'envia cap**. Les dades i les parcel·les estaven bé:
+només queia el fons. Passava igual a **Coordenades** i a **Ruta**, que tenien
+cadascun la seva còpia de l'adreça d'OpenStreetMap.
+
+- **Un sol fitxer per als tres mapes**: `rutes/MapaFons.js`, que
+  `Get-MapaFonsJs` (`MapaHtml.ps1`) posa **tal qual** dins de l'HTML. Les
+  plantilles hi porten `{{fonsJs}}`, que omple **`Get-PlantillaHtml` per a
+  totes** (no és cosa de cap eina); Ruta, que no fa servir plantilla, el crida
+  directament. Cada mapa només fa `var FONS = afegeixFonsMapa(map)`.
+- **L'ordre**: *Mapa (ICGC)* → *Ortofoto (ICGC)* → *Mapa (CARTO)* → *Mapa
+  (Esri)*. L'ICGC és la cartografia oficial de Catalunya i no demana clau ni
+  Referer. Hi ha un selector a dalt a la dreta i **la tria es recorda**
+  (`localStorage`, comú a tots els mapes oberts des del disc).
+- **Si un fons no respon, es passa sol al següent** (cap rajola carregada i ja
+  `FONS_ERRORS_MAX` errades) i es diu en un requadre a baix a l'esquerra. **No
+  es van poder provar les adreces des de l'entorn de desenvolupament** (el
+  proxy bloqueja tots els servidors de mapes): el recanvi automàtic és el que
+  fa que una adreça equivocada o caiguda no deixi el mapa sense fons. Si mai
+  surt l'avís a la feina, és que aquell servei ha canviat i cal revisar
+  l'adreça.
+- `maxNativeZoom` conservador (18-19) i `maxZoom` 22 a cada capa: si el mapa
+  s'apropa més del que el servei dona, la rajola s'amplia en lloc de fallar (i
+  de fer saltar el recanvi per error). El zoom màxim del mapa el fixa cada
+  mapa (`maxZoom` a `L.map`).
+- **Prova al navegador** (`prova-planol.mjs`, «El fons del mapa»): cap petició
+  a OpenStreetMap; amb l'ICGC caigut i CARTO servit, passa sol a CARTO i ho
+  diu; la tria del selector es recorda en tornar-lo a obrir; i sense cap fons,
+  ho diu i el mapa segueix funcionant.
+- El **plànol públic de precintades** (`docs/precintades.html`) es queda amb
+  OpenStreetMap: es publica a GitHub Pages, que sí que envia Referer.
+
 ## Eina «Plànol activitats» (`rutes/Planol.ps1`, octubre 2026)
 
 Parcel·les de Cornellà pintades segons l'estat de les activitats que hi ha. Es

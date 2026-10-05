@@ -118,6 +118,8 @@ if (Test-Path -LiteralPath $configPath) {
 . (Join-Path $SuportDir 'Json.ps1')       # Settings.ps1 el fa servir
 . (Join-Path $SuportDir 'Excel.ps1')      # Read-FullaEstesa + _NormalitzaText
 . (Join-Path $SuportDir 'Settings.ps1')
+# El fons dels mapes (Get-MapaFonsJs), comu a Ruta, Coordenades i Planol.
+. (Join-Path $ScriptRoot 'MapaHtml.ps1')
 $Script:AppSettings = Load-AppSettings
 $ActivitatsDir  = _ResolveEffectiveValue $AppSettings.ActivitatsDir  $ActivitatsDir
 $RutesOutputDir = _ResolveEffectiveValue $AppSettings.RutesOutputDir $RutesOutputDir
@@ -469,6 +471,8 @@ function Build-RouteHtml($stops, $geometry, [double]$distanceM, [double]$duratio
 
     $today = (Get-Date).ToString('dd/MM/yyyy HH:mm')
     $dbEnc = _HtmlEncode $dbLabel
+    # El fons del mapa, el mateix dels altres mapes (MapaFons.js, MapaHtml.ps1).
+    $fonsJs = Get-MapaFonsJs
 
     $html = @"
 <!DOCTYPE html>
@@ -523,7 +527,7 @@ function Build-RouteHtml($stops, $geometry, [double]$distanceM, [double]$duratio
        zoom de Leaflet i atribucio). NO toquem mides del mapa ni del panell
        lateral: aixi s'imprimeix EXACTAMENT el que veus en pantalla
        (mateix zoom, centre i layout). */
-    #bar, .leaflet-control-zoom, .leaflet-control-attribution { display: none !important; }
+    #bar, .leaflet-control-zoom, .leaflet-control-attribution, .leaflet-control-layers, .fons-avis { display: none !important; }
     html, body { background: #fff; }
     /* El panell lateral pot tenir scroll en pantalla; en imprimir el
        desplegem perque es vegi sencer al costat del mapa. */
@@ -557,6 +561,9 @@ $rows
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
+$fonsJs
+</script>
+<script>
   var stops = $stopsJson;
   var routeGeom = $geomJson;
   // Zoom sensible: zoomSnap/zoomDelta fraccionaris permeten passos petits,
@@ -565,11 +572,12 @@ $rows
   var map = L.map('map', {
     zoomSnap: 0.25,
     zoomDelta: 0.5,
-    wheelPxPerZoomLevel: 120
+    wheelPxPerZoomLevel: 120,
+    maxZoom: 19
   });
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19, attribution: '&copy; OpenStreetMap'
-  }).addTo(map);
+  // El fons: MapaFons.js. OpenStreetMap ja no serveix les rajoles a una
+  // pagina oberta des del disc ("Access blocked").
+  var FONS = afegeixFonsMapa(map);
 
   var bounds = [];
 

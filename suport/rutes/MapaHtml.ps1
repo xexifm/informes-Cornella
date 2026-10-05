@@ -34,11 +34,24 @@ function Expand-PlantillaHtml([string]$plantilla, $valors) {
     return $sb.ToString()
 }
 
+# EL FONS DELS MAPES (MapaFons.js), per posar-lo TAL QUAL dins d'un <script>.
+# Un sol fitxer per als tres mapes: quan OpenStreetMap va deixar de servir les
+# rajoles a les pagines obertes des del disc, cada mapa tenia la seva copia de
+# l'adreca i van caure tots tres alhora (octubre 2026).
+function Get-MapaFonsJs {
+    $js = [System.IO.File]::ReadAllText((Join-Path $PSScriptRoot 'MapaFons.js'), [System.Text.Encoding]::UTF8)
+    return $js.Replace('</', '<\/')
+}
+
 # Llegeix una plantilla en UTF-8 EXPLICIT (el Windows PowerShell 5.1, sense dir-li
 # res, la llegiria com a ANSI i els accents sortirien com 'Ã§') i l'omple.
+# {{fonsJs}} (el fons del mapa) el posa aqui, per a totes: no es cosa de cap eina.
 function Get-PlantillaHtml([string]$ruta, $valors) {
     $plantilla = [System.IO.File]::ReadAllText($ruta, [System.Text.Encoding]::UTF8)
-    return (Expand-PlantillaHtml $plantilla.TrimEnd() $valors)
+    $tots = @{}
+    foreach ($k in @($valors.Keys)) { $tots[$k] = $valors[$k] }
+    if (-not $tots.ContainsKey('fonsJs')) { $tots['fonsJs'] = Get-MapaFonsJs }
+    return (Expand-PlantillaHtml $plantilla.TrimEnd() $tots)
 }
 
 # Un JSON per posar dins d'un <script>.

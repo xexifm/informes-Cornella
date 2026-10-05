@@ -123,7 +123,13 @@ Obre el programa i **fes captura**. Comprova-hi:
     polígons, envia'm els `resposta-*.xml` de `local\geocodificacio\`.
     Mira també que el menú es vegi bé amb les rajoles més estretes (5 columnes):
     cap text de rajola tallat a mitja paraula.
-10b. EINES → «Generar ruta»: genera una ruta i obre el mapa. Captura.
+    **El fons del mapa** ha de ser el de l'ICGC, sense cap quadre «Access
+    blocked». Al selector de dalt a la dreta prova *Ortofoto (ICGC)*, *Mapa
+    (CARTO)* i *Mapa (Esri)*: tots han de pintar. Si a baix a l'esquerra surt
+    un requadre groc «El fons … no respon», apunta quin: aquell servei ha
+    canviat i cal revisar-ne l'adreça (`suport/rutes/MapaFons.js`).
+10b. EINES → «Generar ruta»: genera una ruta i obre el mapa. Mateix fons que el
+    Plànol (sense «Access blocked»). Captura.
 11. EINES → «Coordenades»: genera el mapa (des d'octubre 2026 surt de la plantilla
     `suport/rutes/CoordenadesMapa.html`: comprova que els accents de la llegenda
     surten bé, «parcel·la», «dubtós»), arrossega un punt, fes **Ctrl+Z** (ha de

@@ -14,7 +14,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { AQUI, LEAFLET, check, eq, seccio, serveixLeaflet, resultat, comptes } from './comu.mjs';
+import { AQUI, LEAFLET, check, eq, seccio, serveixLeaflet, resultat, comptes, PNG_1x1 } from './comu.mjs';
 
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'planol-nav-'));
 const gen = spawnSync('pwsh', ['-NoProfile', '-File', path.join(AQUI, 'genera-planol-prova.ps1'), '-Dir', TMP], { stdio: 'inherit' });
@@ -28,6 +28,8 @@ try {
   await serveixLeaflet(ctx);
   const p = await ctx.newPage();
   p.on('pageerror', (e) => errors.push(String(e)));
+  const peticions = [];
+  p.on('request', (r) => peticions.push(r.url()));
   await p.goto(pathToFileURL(path.join(TMP, 'Planol.html')).href);
   await p.waitForFunction(() => typeof capes !== 'undefined' && capes.length === PARCELES.length, null, { timeout: 10000 });
   const idx = (k) => p.evaluate((k) => PARCELES.findIndex((x) => x.k === k), k);
@@ -104,6 +106,41 @@ try {
   const linies = csv.replace(/^﻿/, '').trim().split('\r\n');
   eq(linies.length, 5, 'capçalera + les quatre activitats que es veuen');
   check(linies[0].startsWith('ID GIA;Nom;Activitat'), 'separat per ;');
+
+  seccio('El fons del mapa (MapaFons.js)');
+  // OpenStreetMap rebutja les pagines obertes des del disc ("Access blocked"):
+  // cap peticio hi ha d'anar.
+  eq(peticions.filter((u) => /openstreetmap\.org/.test(u)).length, 0, 'cap rajola es demana a OpenStreetMap');
+  check(peticions.some((u) => /geoserveis\.icgc\.cat/.test(u)), 'el primer fons es el de l\'ICGC');
+  // Aqui no respon cap fons (totes les rajoles s'avorten): es diu, i el mapa
+  // segueix funcionant.
+  await p.waitForFunction(() => document.querySelector('.fons-avis') && /Cap fons/.test(document.querySelector('.fons-avis').textContent), null, { timeout: 15000 });
+  check(true, 'si cap fons no respon, ho diu (i les dades hi són igual)');
+
+  // Si l'ICGC no respon i CARTO si, passa SOL a CARTO.
+  const ctx2 = await nav.newContext({ viewport: { width: 1280, height: 800 } });
+  await serveixLeaflet(ctx2);
+  // CARTO i Esri responen; l'ICGC no.
+  await ctx2.route(/basemaps\.cartocdn\.com|arcgisonline\.com/, (route) => route.fulfill({ body: PNG_1x1, contentType: 'image/png' }));
+  const p2 = await ctx2.newPage();
+  p2.on('pageerror', (e) => errors.push(String(e)));
+  await p2.goto(pathToFileURL(path.join(TMP, 'Planol.html')).href);
+  await p2.waitForFunction(() => typeof FONS !== 'undefined' && FONS.actiu() === 'Mapa (CARTO)', null, { timeout: 15000 });
+  check((await p2.textContent('.fons-avis')).includes('ara es veu «Mapa (CARTO)»'), 'l\'ICGC no respon: passa sol a CARTO, i ho diu');
+  // La tria de l'usuari es recorda (el selector de dalt a la dreta).
+  await p2.hover('.leaflet-control-layers');
+  await p2.locator('.leaflet-control-layers label', { hasText: 'Mapa (Esri)' }).click();
+  eq(await p2.evaluate(() => FONS.actiu()), 'Mapa (Esri)', 'el selector canvia el fons');
+  await p2.reload();
+  await p2.waitForFunction(() => typeof FONS !== 'undefined', null, { timeout: 10000 });
+  eq(await p2.evaluate(() => FONS.actiu()), 'Mapa (Esri)', 'i en tornar a obrir el mapa, es recorda');
+  // Si el que ha triat l'usuari deixa de respondre, tampoc es queda sense fons.
+  await ctx2.unroute(/basemaps\.cartocdn\.com|arcgisonline\.com/);
+  await ctx2.route(/basemaps\.cartocdn\.com/, (route) => route.fulfill({ body: PNG_1x1, contentType: 'image/png' }));
+  await p2.reload();
+  await p2.waitForFunction(() => typeof FONS !== 'undefined' && FONS.actiu() === 'Mapa (CARTO)', null, { timeout: 15000 });
+  check(true, 'el fons triat no respon: en torna a posar un que sí');
+  await ctx2.close();
 
   seccio('Errors de JavaScript');
   eq(errors, [], 'cap error de JavaScript');

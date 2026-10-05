@@ -200,6 +200,20 @@ $htmlBuit = Build-PlanolHtml @() ([pscustomobject]@{ BaseActivitats = ''; BaseEs
 Assert ($htmlBuit.Contains('var PARCELES = [];')) 'sense cap parcel.la: llista buida (i la pagina arrenca)'
 Assert (-not $htmlBuit.Contains('id="avisos"')) 'sense avisos: cap franja d avisos'
 
+Write-Host "`n--- El fons dels mapes: MapaFons.js, res d'OpenStreetMap ---"
+# OpenStreetMap rebutja les pagines obertes des del disc ("Access blocked"): cap
+# mapa de rutes/ hi pot demanar rajoles, i el fons ve d'un sol lloc.
+Assert ($htmlT.Contains('function afegeixFonsMapa') -and $htmlT.Contains('var FONS = afegeixFonsMapa(map)')) 'el Planol porta el fons comu (MapaFons.js) i el fa servir'
+Assert ($htmlT.Contains('geoserveis.icgc.cat')) 'el primer fons, l''ICGC'
+$dirRutesF = Split-Path -Parent $PSScriptRoot | Join-Path -ChildPath 'rutes'
+$ambOsm = @(Get-ChildItem -LiteralPath $dirRutesF -File | Where-Object { $_.Extension -in '.html', '.ps1', '.js' } |
+            Where-Object { [System.IO.File]::ReadAllText($_.FullName) -match 'tile\.openstreetmap\.org' } | ForEach-Object { $_.Name })
+AssertEq ($ambOsm -join ', ') '' 'cap fitxer de rutes/ demana rajoles a OpenStreetMap'
+$senseFons = @(Get-ChildItem -LiteralPath $dirRutesF -File | Where-Object { $_.Extension -in '.html', '.ps1' } |
+               Where-Object { $t = [System.IO.File]::ReadAllText($_.FullName); $t.Contains("L.map('map'") -and -not $t.Contains('afegeixFonsMapa(map)') } | ForEach-Object { $_.Name })
+AssertEq ($senseFons -join ', ') '' 'tots els mapes de rutes/ fan servir el fons comu'
+Assert (-not (Get-MapaFonsJs).Contains('</')) 'el fons va dins d''un <script> sense trencar-lo (cap "</")'
+
 Write-Host "`n--- Les consultes al Cadastre (servei fals) ---\"
 $tmpP = Join-Path ([System.IO.Path]::GetTempPath()) ('planol-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $tmpP -Force | Out-Null

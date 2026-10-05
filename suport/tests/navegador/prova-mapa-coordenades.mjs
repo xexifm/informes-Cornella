@@ -68,6 +68,14 @@ async function centra(page, i) {
   await page.evaluate((i) => { map.setView([estat[i].lat, estat[i].lon], 19, { animate: false }); }, i);
 }
 async function capsaVerd(page, i) {
+  // Que el mapa hagi acabat de moure's (vesA fa zoom i obre la fitxa, i el
+  // popup el desplaça): un marcador a mig moviment no s'arrossega (el Leaflet
+  // ignora el clic durant l'animacio) i la prova fallava a vegades.
+  await page.evaluate(() => new Promise((ok) => {
+    let t = setTimeout(ok, 500);
+    map.on('movestart zoomstart', () => { clearTimeout(t); });
+    map.on('moveend zoomend', () => { clearTimeout(t); t = setTimeout(ok, 300); });
+  }));
   const h = await page.evaluateHandle((i) => capes[i].verd.getElement(), i);
   return h.asElement().boundingBox();
 }
