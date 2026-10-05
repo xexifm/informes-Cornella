@@ -168,6 +168,38 @@ foreach ($f in $ps1Tots) {
 }
 AssertEq $senseBom.Count 0 ('cap .ps1 sense BOM' + $(if ($senseBom.Count) { ' -> ' + ($senseBom -join ', ') } else { '' }))
 
+Write-Host "`n--- `$Script: dins d'una closure (.GetNewClosure) NO es el de l'script (guard) ---"
+# PER QUE. .GetNewClosure() fa un modul nou, i dins seu $Script: es l'arrel
+# D'AQUELL MODUL: llegir un $Script:X hi dona buit i escriure-hi es perd. No
+# peta mai: simplement no fa res. Ho van patir cinc pantalles a la vegada
+# (octubre 2026): "Restaura els valors per defecte" de Configuracio buidava les
+# caselles, el "Continuar" del dialeg de Ruta tornava 'cancel', l'informe de
+# Revisio sortia sense capcalera i sense reiniciar la memoria de la normativa,
+# i l'enllac a l'index de Normativa no anava. A les closures s'hi passa el
+# valor CAPTURAT en una variable local (o un hashtable, per escriure-hi), o es
+# crida una funcio, que si que veu el seu $Script:.
+#
+# Primer la mesura del llenguatge (en un proces a part: aqui dins, $Script: es
+# el del runner i podria enganyar):
+$mesuraCl = 'function F { $Script:X = ''s''; $c = { "[$Script:X]" }.GetNewClosure(); & $c; $nc = { "[$Script:X]" }; & $nc }; F'
+$encCl = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($mesuraCl))
+$outCl = @(& (Get-Process -Id $PID).Path -NoProfile -NonInteractive -EncodedCommand $encCl)
+AssertEq ($outCl -join ',') '[],[s]' 'llenguatge: dins d''una closure $Script:X val buit; fora (scriptblock normal), el de l''script'
+# ...i despres el guard: cap $Script: dins de cap closure del programa.
+$clMal = New-Object System.Collections.ArrayList
+foreach ($fCl in @(Get-ChildItem -LiteralPath (Join-Path $rootRepo 'suport') -Recurse -Filter '*.ps1' -File | Where-Object { $_.FullName -notmatch '[\\/]tests[\\/]' })) {
+    $astCl = [System.Management.Automation.Language.Parser]::ParseFile($fCl.FullName, [ref]$null, [ref]$null)
+    $cls = $astCl.FindAll({ param($a) $a -is [System.Management.Automation.Language.InvokeMemberExpressionAst] -and
+        [string]$a.Member.Value -eq 'GetNewClosure' -and $a.Expression -is [System.Management.Automation.Language.ScriptBlockExpressionAst] }, $true)
+    foreach ($c in $cls) {
+        foreach ($v in $c.Expression.FindAll({ param($a) $a -is [System.Management.Automation.Language.VariableExpressionAst] -and
+                ([string]$a.VariablePath.UserPath) -match '^(?i)script:' }, $true)) {
+            [void]$clMal.Add($fCl.Name + ':' + $v.Extent.StartLineNumber + ' ' + $v.Extent.Text)
+        }
+    }
+}
+AssertEq $clMal.Count 0 ('cap $Script: dins d''una closure' + $(if ($clMal.Count) { ' -> ' + ($clMal -join ', ') } else { '' }))
+
 Write-Host "`n--- Copiar informes: manual i automatic, una sola copia ---"
 # PER QUE. L'eina es fa de dues maneres (la rajola, amb finestra i confirmacio,
 # i la passada automatica de les 14:30, muda i en un proces a part). Si cada una

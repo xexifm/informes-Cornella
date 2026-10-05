@@ -112,6 +112,13 @@ function _RevPuntsSenseFitxa($o) {
 $Script:RevCapcalera = @('Revisió', 'Catàleg', 'Punt', 'Què passa', 'Enllaç', 'Què cal fer')
 $Script:RevAmples    = @(22, 10, 45, 70, 12, 60)
 
+# L'Excel de l'informe de revisio. En una funcio perque qui el desa ho fa des
+# d'una closure (el boto de la pantalla), on $Script:RevCapcalera i
+# $Script:RevAmples valien buit: l'informe sortia sense capcalera ni amples.
+function _RevInformeXlsxBytes($files) {
+    return (_NormativaXlsxBytes $Script:RevCapcalera @($files) $Script:RevAmples 'Revisio')
+}
+
 function _RevFila([string]$revisio, [string]$cataleg, [string]$punt, [string]$que, [string]$url, [string]$fer) {
     $enllac = if ($url) { @{ Text = 'Obrir'; Link = $url } } else { '' }
     return , @($revisio, $cataleg, $punt, $que, $enllac, $fer)

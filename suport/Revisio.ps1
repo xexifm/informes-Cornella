@@ -162,8 +162,8 @@ function Invoke-RevisioRequeriments {
             # 3. VIGENCIA
             if ($chk.Vigencia.Checked -and -not $ui.Cancel) {
                 & $fn.Log "3. Vigència de la normativa..."
-                $Script:NormativaEdgeKO = @{}
-                $Script:NormativaPjurCache = @{}
+                # Una funcio, no $Script: aqui: som dins d'una closure.
+                Reset-NormativaCaches
                 $normes = @(Get-NormativaCataleg | Where-Object { -not $_.Guia -and -not $_.Colleccio -and -not $_.Derogada -and [string]$_.Url })
                 $punts = @{}
                 try { $punts = _NormativaPuntsReq1 $normes (Get-ParsedCataleg -path (Join-Path $EstructuralsDir 'REQ1.json')) } catch { }
@@ -206,7 +206,7 @@ function Invoke-RevisioRequeriments {
                 $dirR = Get-RevisionsDir
                 if (-not (Test-Path -LiteralPath $dirR)) { New-Item -ItemType Directory -Path $dirR -Force | Out-Null }
                 $ui.Informe = Join-Path $dirR ('Revisio ' + (Get-Date).ToString('yyyy-MM-dd HHmm') + '.xlsx')
-                [System.IO.File]::WriteAllBytes($ui.Informe, (_NormativaXlsxBytes $Script:RevCapcalera $files.ToArray() $Script:RevAmples 'Revisio'))
+                [System.IO.File]::WriteAllBytes($ui.Informe, (_RevInformeXlsxBytes $files.ToArray()))
                 & $fn.Log ''
                 & $fn.Log ("Fet. L'informe: " + $ui.Informe)
                 $btnInf.Enabled = $true

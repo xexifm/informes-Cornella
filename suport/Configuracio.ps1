@@ -146,13 +146,27 @@ function Invoke-ConfiguracioScreen {
         @{ Nom = 'Desar'; Text = 'Desar'; Estil = 'primari' }) 10 $botPanel
     $btnTancar = $peu.Tancar; $btnRestaura = $peu.Restaura; $btnDesar = $peu.Desar
 
+    # ELS VALORS PER DEFECTE, CAPTURATS AQUI. Dins d'una closure (.GetNewClosure)
+    # $Script: no es el d'aquest script sino el d'un modul nou: els
+    # $Script:Default* hi valien buit. "Restaura" deixava totes les caselles en
+    # blanc i "Desar" comparava amb uns valors per defecte buits, o sigui que
+    # desava TOTES les rutes com si fossin d'aquest PC (vegeu CLAUDE.md).
+    $defs = @{
+        InformesDir      = $Script:DefaultInformesDir
+        ActivitatsDir    = $Script:DefaultActivitatsDir
+        OutputDir        = $Script:DefaultOutputDir
+        RutesOutputDir   = $Script:DefaultRutesOutputDir
+        DriveBaseDir     = $Script:DefaultDriveBaseDir
+        CopiaInformesDir = $Script:DefaultCopiaInformesDir
+    }
+
     $btnRestaura.add_Click({
-        $tbInformes.Text   = $Script:DefaultInformesDir
-        $tbActivitats.Text = $Script:DefaultActivitatsDir
-        $tbOutput.Text     = $Script:DefaultOutputDir
-        $tbRutes.Text      = $Script:DefaultRutesOutputDir
-        $tbDrive.Text      = $Script:DefaultDriveBaseDir
-        $tbCopia.Text      = $Script:DefaultCopiaInformesDir
+        $tbInformes.Text   = $defs.InformesDir
+        $tbActivitats.Text = $defs.ActivitatsDir
+        $tbOutput.Text     = $defs.OutputDir
+        $tbRutes.Text      = $defs.RutesOutputDir
+        $tbDrive.Text      = $defs.DriveBaseDir
+        $tbCopia.Text      = $defs.CopiaInformesDir
     }.GetNewClosure())
 
     $btnTancar.add_Click({ $form.Close() }.GetNewClosure())
@@ -166,15 +180,7 @@ function Invoke-ConfiguracioScreen {
             DriveBaseDir     = $tbDrive.Text.Trim()
             CopiaInformesDir = $tbCopia.Text.Trim()
         }
-        $defaults = @{
-            InformesDir      = $Script:DefaultInformesDir
-            ActivitatsDir    = $Script:DefaultActivitatsDir
-            OutputDir        = $Script:DefaultOutputDir
-            RutesOutputDir   = $Script:DefaultRutesOutputDir
-            DriveBaseDir     = $Script:DefaultDriveBaseDir
-            CopiaInformesDir = $Script:DefaultCopiaInformesDir
-        }
-        $overrides = _BuildSettingsOverrides $values $defaults
+        $overrides = _BuildSettingsOverrides $values $defs
         if (-not (Save-AppSettings $overrides)) {
             [System.Windows.Forms.MessageBox]::Show("No s'ha pogut desar la configuracio.", 'Configuracio', 'OK', 'Error') | Out-Null
             return

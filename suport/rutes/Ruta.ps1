@@ -921,8 +921,12 @@ function Show-WarningsDialog($warnings, [int]$resolvedCount, [int]$totalIds) {
     $btnEdit.Tag = 'edit'
     $btnCancel.Tag = 'cancel'
 
-    $script:_warnChoice = 'cancel'
-    $handler = { $script:_warnChoice = $this.Tag; $form.Close() }.GetNewClosure()
+    # La tria en un hashtable CAPTURAT: el boto la desa des d'una closure, i alla
+    # $script: no es el d'aquest script. Amb $script:_warnChoice la tria es
+    # perdia i el dialeg tornava SEMPRE 'cancel': "Continuar" i "Editar la
+    # llista" no feien res (vegeu CLAUDE.md).
+    $tria = @{ Valor = 'cancel' }
+    $handler = { $tria.Valor = [string]$this.Tag; $form.Close() }.GetNewClosure()
     $btnContinue.Add_Click($handler)
     $btnEdit.Add_Click($handler)
     $btnCancel.Add_Click($handler)
@@ -930,7 +934,7 @@ function Show-WarningsDialog($warnings, [int]$resolvedCount, [int]$totalIds) {
     # Scroll vertical i ajust a la pantalla (vegeu suport/UiFinestra.ps1).
     $form.add_Shown({ param($s, $e) _AjustaFinestraAPantalla $s })
     [void]$form.ShowDialog()
-    return [string]$script:_warnChoice
+    return [string]$tria.Valor
 }
 
 # ============================================================================

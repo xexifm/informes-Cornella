@@ -172,6 +172,16 @@ Obre el programa i **fes captura**. Comprova-hi:
 20. «Informe de seguiment» sobre un informe anterior: **compara'l amb un de fet
     abans d'aquests canvis** — les anotacions datades han de sortir amb la
     mateixa lletra i el mateix espaiat, i **en negreta només les pendents**.
+    - «Modificació No Substancial / Transmissió» → Modificació NO Substancial,
+      **sense marcar cap punt**: ha de dir «…sense més observacions en relació
+      a aquest tràmit.», sense cap «1.» i sense «Vist l'anterior, cal requerir
+      l'esmena…»; el «i un cop avaluades…» en **Bookman** i sense cursiva, i
+      separat de la llista per una línia en blanc. El fitxer ha de ser
+      `aaaa-mm-dd_MNS_GIA <n>.docx` (i `_TRANS_` per a la Transmissió).
+    - ⚙ Configuració → «Restaura els valors per defecte»: les caselles s'han
+      d'omplir amb les rutes per defecte (abans es buidaven).
+    - Ruta amb alguna activitat que no es pot situar: al diàleg, «Continuar»
+      ha de seguir amb la ruta (abans la cancel·lava).
 
 ### 5. El correu
 

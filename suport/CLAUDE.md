@@ -301,7 +301,16 @@ No es pot detectar amb una prova pura (`-is [string]`, `.GetType()` i
   l'script** (octubre 2026, mesurat): llegir-la torna buit i escriure-hi es perd.
   El Cancel·lar de Coordenades no va funcionar mai per això. Si una closure ha de
   compartir estat amb un botó, **un hashtable capturat** (vegeu `New-EinaProgres`
-  a `rutes/EinesUi.ps1` i la secció de `rutes-i-mapes.md`).
+  a `rutes/EinesUi.ps1` i la secció de `rutes-i-mapes.md`). Per llegir, **el
+  valor capturat en una variable local** abans de crear la closure; per tocar
+  l'estat d'un mòdul, **una funció** (dins d'una funció `$Script:` sí que és el
+  bo: `Reset-NormativaCaches`, `_RevInformeXlsxBytes`). Un guard d'AST
+  (`06-guards.ps1`) no deixa cap `$Script:` dins de cap closure. N'hi havia
+  cinc més, tots muts: «Restaura els valors per defecte» de Configuració buidava
+  les caselles (i Desar fixava totes les rutes com a pròpies del PC), el
+  «Continuar» del diàleg d'activitats sense situar de Ruta tornava sempre
+  `cancel`, l'informe de Revisió sortia sense capçalera i sense reiniciar la
+  memòria de la normativa, i l'enllaç a l'índex de Normativa no anava.
 
 ## Res de llegir `.docx` per treure'n contingut
 El lector de `.docx` (`Parse-Cataleg`, les branques `.docx` de `Read-Conclusions`

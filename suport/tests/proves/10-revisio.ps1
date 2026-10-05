@@ -68,6 +68,19 @@ $rvSr = New-Object System.IO.StreamReader($rvZip.GetEntry('xl/workbook.xml').Ope
 $rvWb = $rvSr.ReadToEnd(); $rvSr.Dispose(); $rvZip.Dispose()
 Assert ($rvWb.Contains('<sheet name="Revisio"') -and $rvWb.Contains('Revisio!$A$1:$F$3')) 'informe: el full es diu Revisio i el filtre hi apunta'
 AssertEq ([string]$Script:LocalSubdirs['Revisions']) 'revisions' 'informe: a local\revisions'
+# El que desa la pantalla (des d'una closure): _RevInformeXlsxBytes, amb la
+# capcalera. Abans s'hi passaven $Script:RevCapcalera/$Script:RevAmples des de
+# la closure, on valien buit, i l'informe sortia sense capcalera.
+$rvB2 = _RevInformeXlsxBytes @($rvFila)
+$rvZ2 = New-Object System.IO.Compression.ZipArchive((New-Object System.IO.MemoryStream(, $rvB2)), [System.IO.Compression.ZipArchiveMode]::Read)
+$rvS2 = New-Object System.IO.StreamReader($rvZ2.GetEntry('xl/worksheets/sheet1.xml').Open())
+$rvX2 = $rvS2.ReadToEnd(); $rvS2.Dispose(); $rvZ2.Dispose()
+Assert ($rvX2.Contains('>Qu' + [char]0x00E8 + ' cal fer<') -and $rvX2.Contains('<col ')) 'informe de la pantalla: amb capcalera i amples'
+# I la memoria d'una passada es reinicia de debo (abans, des de la closure, no).
+$Script:NormativaEdgeKO['servidor.penjat'] = $true
+$Script:NormativaPjurCache['u'] = 'x'
+Reset-NormativaCaches
+AssertEq "$($Script:NormativaEdgeKO.Count)|$($Script:NormativaPjurCache.Count)" '0|0' 'Reset-NormativaCaches: cada revisio comenca de zero'
 $rvMenu = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'Menu.ps1'))
 $rvWiz = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'Wizard.ps1'))
 Assert ($rvMenu -match "Action = 'revisio'" -and $rvWiz -match "'revisio'\s*\{\s*Invoke-RevisioRequeriments\s*\}") 'menu: la rajola Revisar requeriments obre l''eina'

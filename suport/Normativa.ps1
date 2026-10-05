@@ -358,13 +358,21 @@ function _NormativaBaixaColleccio($e, [string]$dir, $estat, [bool]$forca, $log) 
     return $n
 }
 
+# Les memories d'una PASSADA (els servidors on l'Edge s'ha penjat i les
+# respostes del PJUR) tornen a zero. En una funcio i no escrit a ma a cada
+# crider: la revisio (Revisio.ps1) ho feia DINS d'una closure, on $Script: no
+# es el d'aquest script, i no reiniciava res (vegeu CLAUDE.md).
+function Reset-NormativaCaches {
+    $Script:NormativaEdgeKO = @{}
+    $Script:NormativaPjurCache = @{}
+}
+
 # TOTA LA BAIXADA, sense finestra: la fan servir l'eina Normativa i la revisio
 # del programa (Revisio.ps1). $log rep cada linia; $pas es crida despres de cada
 # norma (la barra); $cancel diu si s'ha d'aturar. Desa l'estat i l'index.
 function Invoke-NormativaBaixada($normes, [string]$dir, [bool]$forca, $log, $pas = $null, $cancel = $null) {
     _NormativaPreparaXarxa
-    $Script:NormativaEdgeKO = @{}
-    $Script:NormativaPjurCache = @{}
+    Reset-NormativaCaches
     $estat = _NormativaLlegeixEstat $dir
     $n = @{ Noves = 0; Act = 0; Igual = 0; Err = 0; Man = 0 }
     try {
@@ -439,12 +447,16 @@ function Invoke-Normativa {
     $lnk.add_LinkClicked({ try { Start-Process -FilePath 'explorer.exe' -ArgumentList ('"' + $dir + '"') | Out-Null } catch { } }.GetNewClosure())
     $form.Controls.Add($lnk)
 
+    # El nom de l'index, CAPTURAT: dins de les closures d'aqui sota
+    # $Script:NormativaIndexNom valia buit (vegeu CLAUDE.md) i l'enllac i el
+    # resum feien Join-Path amb un nom buit.
+    $idxNom = $Script:NormativaIndexNom
     $lnkIdx = New-Object System.Windows.Forms.LinkLabel
     $lnkIdx.Text = "Obrir l'índex (Excel)"
     $lnkIdx.Location = New-Object System.Drawing.Point(140, 112)
     $lnkIdx.AutoSize = $true
     $lnkIdx.add_LinkClicked({
-        $p = Join-Path $dir $Script:NormativaIndexNom
+        $p = Join-Path $dir $idxNom
         if (Test-Path -LiteralPath $p) { try { Start-Process -FilePath $p | Out-Null } catch { } }
     }.GetNewClosure())
     $form.Controls.Add($lnkIdx)
@@ -486,7 +498,7 @@ function Invoke-Normativa {
         $lblResum.Text = ([string]$nn + ' normes i guies al catàleg: ' + $baix + ' baixades, ' + ($nn - $baix - $man) +
                           ' per baixar' + $(if ($err) { ' (' + $err + " amb error l'últim cop)" } else { '' }) + ', ' + $man + ' per desar a mà. Col·leccions (ITC, TINSCI): ' + $col + ', amb ' + $docsCol + ' documents baixats.' +
                           "`r`n" + $dir)
-        $lnkIdx.Enabled = (Test-Path -LiteralPath (Join-Path $dir $Script:NormativaIndexNom))
+        $lnkIdx.Enabled = (Test-Path -LiteralPath (Join-Path $dir $idxNom))
     }.GetNewClosure()
     $fn.Log = { param($t) $log.AppendText($t + "`r`n"); [System.Windows.Forms.Application]::DoEvents() }.GetNewClosure()
     $fn.Pas = { $bar.Value = [Math]::Min($bar.Maximum, $bar.Value + 1); [System.Windows.Forms.Application]::DoEvents() }.GetNewClosure()
