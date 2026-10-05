@@ -334,6 +334,73 @@ function _ActivitatEditadaAMa($act) {
     return $false
 }
 
+# DESAR L'EDITOR QUAN LA BASE HA CANVIAT MENTRE ERA OBERT. Amb "Actualitzar base"
+# en automatic (en segon pla), la base del disc pot ser mes nova que la que
+# l'editor va carregar: desar-la tal qual tornaria enrere els informes nous.
+# Es posen les correccions de l'editor ($editor) damunt de la del disc ($disc),
+# informe a informe per la ruta:
+#   corregit a l'editor          -> la correccio (el valor automatic, el del disc)
+#   desfet a l'editor ("Desfer canvi a ma") i al disc encara corregit, amb un
+#   valor diferent               -> torna a l'automatic del disc
+# i es recalcula l'estat de les activitats tocades. Torna $disc (modificat).
+function _FusionaEdicionsBase($disc, $editor) {
+    $perRuta = @{}
+    foreach ($act in @(_PropInf $editor 'activitats')) {
+        foreach ($inf in @(_PropInf $act 'informes')) {
+            $r = [string](_PropInf $inf 'ruta')
+            if ($r -ne '') { $perRuta[$r] = $inf }
+        }
+    }
+    foreach ($act in @(_PropInf $disc 'activitats')) {
+        if ($null -eq $act) { continue }
+        $tocat = $false
+        foreach ($inf in @(_PropInf $act 'informes')) {
+            if ($null -eq $inf) { continue }
+            $r = [string](_PropInf $inf 'ruta')
+            if ($r -eq '' -or -not $perRuta.ContainsKey($r)) { continue }
+            $ed = $perRuta[$r]
+            $edBreu = [string](_PropInf $ed 'conclusio_breu')
+            $edIgn = [bool](_PropInf $ed 'ignorat')
+            if ([bool](_PropInf $ed 'editat_a_ma')) {
+                _MarcaEditatAMa $inf
+                Add-Member -InputObject $inf -NotePropertyName conclusio_breu -NotePropertyValue $edBreu -Force
+                Add-Member -InputObject $inf -NotePropertyName ignorat -NotePropertyValue $edIgn -Force
+                $tocat = $true
+            } elseif ([bool](_PropInf $inf 'editat_a_ma') -and
+                      ($edBreu -ne [string](_PropInf $inf 'conclusio_breu') -or $edIgn -ne [bool](_PropInf $inf 'ignorat'))) {
+                [void](_DesfesEditatAMa $inf)
+                $tocat = $true
+            }
+        }
+        if ($tocat) { Add-Member -InputObject $act -NotePropertyName estat_actual -NotePropertyValue (_EstatActualActivitat $act.informes) -Force }
+    }
+    return $disc
+}
+
+# La marca de quan es va escriure la base (per saber si ha canviat). PURA.
+function _SegellBase($db) { return [string](Read-JsonIso (_PropInf $db 'actualitzat_el')) }
+
+# Desa la base de l'editor. Torna 'desat', 'fusionat' (la del disc havia
+# canviat: s'hi han posat les correccions, _FusionaEdicionsBase) o 'ocupat'
+# (s'esta actualitzant ara mateix; no s'ha escrit res). Llanca si no pot
+# escriure. $state: @{ Db; Path; Segell } (el segell de quan es va carregar; no
+# canvia en desar, perque l'editor segueix tenint la base vella a la memoria).
+function Save-BaseEditada($state) {
+    $caixa = @{ Res = 'ocupat' }
+    [void](Invoke-AmbMutexUnic $Script:BaseMutexNom {
+        $disc = $null
+        if (Test-Path -LiteralPath $state.Path) { try { $disc = Read-JsonFile $state.Path } catch { $disc = $null } }
+        if ($null -ne $disc -and (_SegellBase $disc) -ne [string]$state.Segell) {
+            Write-JsonFile $state.Path (_FusionaEdicionsBase $disc $state.Db) 8
+            $caixa.Res = 'fusionat'
+        } else {
+            Write-JsonFile $state.Path $state.Db 8
+            $caixa.Res = 'desat'
+        }
+    })
+    return $caixa.Res
+}
+
 
 # L'ID GIA com a NUMERO per ordenar: '9' abans que '10' (com a text, '10' anava
 # abans que '9' i la llista sortia 10, 1000, 1019, 103...). Sense GIA o no
@@ -502,7 +569,8 @@ function Invoke-InformesDbEdit {
     # graella (Rows.Add pot disparar CellValueChanged abans d'assignar el Tag).
     # SortColIdx/SortAsc: la columna que l'usuari ha clicat (-1 = cap). Mana
     # ella, i l'ID GIA i la data nomes desempaten (_OrdenaFilesBase).
-    $state = @{ Dirty = $false; Db = $db; Path = $outPath; Loading = $false; SortColIdx = -1; SortAsc = $true }
+    # Segell: quan es va escriure la base que s'ha carregat (Save-BaseEditada).
+    $state = @{ Dirty = $false; Db = $db; Path = $outPath; Segell = (_SegellBase $db); Loading = $false; SortColIdx = -1; SortAsc = $true }
 
     $form = _NewForm
     $form.Text = "Editar base d'informes"
@@ -674,11 +742,20 @@ function Invoke-InformesDbEdit {
     # columna "Obrir" (boto) no s'ordena.
     _EnableHeaderSort $grid $state 0 @($idxObrir) { & $fill }
 
-    # Desa la base (retorna $true si va be).
+    # Desa la base (retorna $true si va be). Si "Actualitzar base" (l'automatic)
+    # esta escrivint ara mateix, no es desa i es diu; els canvis no es perden.
     $doSave = {
         try {
-            Write-JsonFile $state.Path $state.Db 8
+            $res = Save-BaseEditada $state
+            if ($res -eq 'ocupat') {
+                [System.Windows.Forms.MessageBox]::Show("La base s'est" + [char]0x00E0 + " actualitzant ara mateix (mode autom" + [char]0x00E0 + "tic).`n`nTorna a desar d'aqu" + [char]0x00ED + " a una estona: els canvis no s'han perdut.", 'Editar base d''informes', 'OK', 'Information') | Out-Null
+                return $false
+            }
             $state.Dirty = $false
+            $state.UltimDesat = $res
+            if ($res -eq 'fusionat') {
+                [System.Windows.Forms.MessageBox]::Show("Canvis desats.`n`nMentre l'editor era obert, la base s'ha actualitzat (mode autom" + [char]0x00E0 + "tic). Els teus canvis s'hi han afegit; tanca i torna a obrir l'editor per veure-hi els informes nous.", 'Editar base d''informes', 'OK', 'Information') | Out-Null
+            }
             return $true
         } catch {
             [System.Windows.Forms.MessageBox]::Show("No s'ha pogut desar:`n$($_.Exception.Message)", 'Editar base d''informes', 'OK', 'Error') | Out-Null
@@ -721,7 +798,7 @@ function Invoke-InformesDbEdit {
         @{ Nom = 'Export'; Text = 'Exportar llistats (CSV)'; Clic = { Export-EstatsActivitats $state.Db }.GetNewClosure() },
         @{ Nom = 'Desfer'; Text = ('Desfer canvi a m' + [char]0x00E0); Clic = { & $desfesAMa }.GetNewClosure() }) @(
         @{ Nom = 'Desar'; Text = 'Desar'; Estil = 'primari'; Clic = {
-            if (& $doSave) {
+            if ((& $doSave) -and $state.UltimDesat -eq 'desat') {
                 [System.Windows.Forms.MessageBox]::Show('Canvis desats.', 'Editar base d''informes', 'OK', 'Information') | Out-Null
             }
         }.GetNewClosure() }) 8 $botPanel)

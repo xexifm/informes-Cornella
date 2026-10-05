@@ -235,6 +235,21 @@ $iAutoClick = $srcMenu4.IndexOf('$autoClick = {')
 Assert ($iAutoClick -gt 0) 'menu: hi ha el clic de l''interruptor'
 $trosAutoClick = $srcMenu4.Substring($iAutoClick, [Math]::Min(400, $srcMenu4.Length - $iAutoClick))
 Assert ($trosAutoClick.Contains('$auto.Rect.Contains($e.Location)')) 'menu: l''interruptor nomes reacciona dins del seu rectangle'
+# CADA RAJOLA AMB INTERRUPTOR TE LA SEVA EINA AL REGISTRE ($Script:ModesAuto):
+# sense, el menu no li posa el commutador i l'usuari no sabria per que. I al
+# reves: una eina registrada sense 'Interruptor' a la rajola no es podria engegar.
+$accInt = @([regex]::Matches($srcMenu4, 'Action = ''([a-z]+)''; Interruptor = \$true') | ForEach-Object { $_.Groups[1].Value })
+AssertEq (($accInt | Sort-Object) -join ',') ((@($Script:ModesAuto.Keys) | Sort-Object) -join ',') 'menu: les rajoles amb interruptor A/M son exactament les del registre'
+# L'automatic de la base tampoc no ensenya res (com el de la copia).
+$srcEsc = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'suport' 'InformesEscaneig.ps1')))
+foreach ($fnA in @('function Invoke-InformesDbEscaneig', 'function Invoke-InformesDbAuto')) {
+    $iA = $srcEsc.IndexOf($fnA)
+    Assert ($iA -gt 0) ("Actualitzar base: hi ha " + $fnA.Substring(9))
+    $iFi = $srcEsc.IndexOf("`nfunction ", $iA + 10)
+    if ($iFi -lt 0) { $iFi = $srcEsc.Length }
+    $trosA = $srcEsc.Substring($iA, $iFi - $iA)
+    Assert (-not ($trosA.Contains('MessageBox') -or $trosA.Contains('_NewForm') -or $trosA.Contains('System.Windows.Forms'))) ("Actualitzar base: " + $fnA.Substring(9) + " no obre cap finestra (el fa servir l'automatic)")
+}
 # El rellotge ha de morir amb la finestra: un Timer viu disparant sobre controls
 # destruits peta dins del bucle de missatges, on ningu no el veu.
 Assert ($srcMenu4.Contains('$form.add_FormClosed({ try { $tmrAuto.Stop(); $tmrAuto.Dispose() } catch { } }')) 'menu: el rellotge de l''automatic s''atura en tancar el menu'

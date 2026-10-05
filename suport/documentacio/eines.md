@@ -307,6 +307,37 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
   conclusió**, agrupat per activitat (per GIA; si no en té, per **carpeta**), a
   `local\base-dades-activitats\informes-db.json` (dins de `local/`: mai es puja).
   Botons al menú: **🗃 Actualitzar** i **📋 Editar** (marc "Base d'informes").
+  L'escaneig viu a `InformesEscaneig.ps1`: el **nucli sense finestres**
+  (`Invoke-InformesDbEscaneig`) el comparteixen el botó (`Invoke-InformesDbScan`,
+  amb la finestra de progrés) i el mode automàtic (`Invoke-InformesDbAuto`).
+- **Actualitzar base, mode AUTOMÀTIC** (interruptor **A/M** de sota la rajola,
+  octubre 2026: «ja que serà tan important per fer el Plànol activitats»). La
+  mateixa regla que *Copiar informes* (`ModeAutomatic.ps1`): cada dia a les
+  **14:00** amb el programa obert i, si aquell venciment no s'ha servit, en obrir
+  el programa; en un **procés a part** (`BaseInformesAuto.ps1`), sense res a la
+  pantalla. Estat a `informes-db-auto.json` (`auto`, `auto_el`, `mode`) —**no**
+  dins de la base, que l'editor reescriu sencera. Registre a
+  `%LOCALAPPDATA%\InformesCornella\informes-db-log.txt`.
+  - **Un sol escaneig a la vegada**: el botó i l'automàtic agafen el mateix mutex
+    (`$Script:BaseMutexNom`) i **no esperen**. Si l'automàtic el troba ocupat,
+    apunta el venciment com a servit (la base ja s'està posant al dia); si és el
+    botó, ho diu.
+  - **L'editor obert mentre l'automàtic escriu.** `Save-BaseEditada` desa dins del
+    mateix mutex i compara el segell (`actualitzat_el`) amb el que va carregar: si
+    la base ha canviat, **hi fusiona** les correccions de l'editor informe a
+    informe per la ruta (`_FusionaEdicionsBase`, pura) en lloc de reescriure-la
+    —si no, desar tornaria enrere els informes nous—, i ho diu. Si s'està
+    escrivint ara mateix, no desa i demana tornar-hi (els canvis no es perden).
+- **Les correccions a mà («Editar base») PREVALEN** sobre el que surti
+  d'«Actualitzar base» (octubre 2026). Es marca a l'**informe**
+  (`editat_a_ma`, amb el valor automàtic guardat a `auto_conclusio_breu` /
+  `auto_ignorat` per poder-ho desfer amb el botó *Desfer canvi a mà*). L'escaneig
+  (`_AplicaEdicioPrevia`) manté la correcció i hi guarda el nou automàtic; un
+  informe **no** corregit agafa el que diu ara el text (abans es congelava la
+  conclusió breu de tots). A l'editor, l'*Estat activitat* d'una activitat amb
+  alguna correcció surt **en vermell**. Ordre per **ID GIA numèric**
+  (`_GiaNumeric`; abans 10, 1000, 103…) i el clic a la capçalera **mana**
+  (`_OrdenaFilesBase`).
 - Lectura de `.docx` **sense Word** (zip) reutilitzant les primitives de
   **`Docx.ps1`** (`_LoadDocxXml`, `_ParagraphTextXml`). Lectura de `.doc`
   antics (Word 97-2003) via **Word COM** (`_ReadDocParagraphsWord`): instància
@@ -499,8 +530,14 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
     la marca es desa en hora LOCAL amb desplaçament, o sigui que una asserció amb
     una cadena fixa falla si la màquina va en una altra zona horària — s'ha de
     comprovar l'anada i tornada.
-- **L'interruptor A/M de «Copiar informes»** (menú, setembre 2026). L'única
-  rajola amb commutador (`Interruptor = $true` a la seva entrada). Va **a
+- **L'interruptor A/M de «Copiar informes»** (menú, setembre 2026; des de
+  l'octubre també a «Actualitzar base»). Les rajoles amb commutador porten
+  `Interruptor = $true` a la seva entrada i la seva eina s'apunta a
+  **`$Script:ModesAuto`** (`ModeAutomatic.ps1`: `Actiu`, `DesaActiu`,
+  `UltimMode`, `SiToca`, `Requisit`, `TipA`/`TipM`); el menú només recorre el
+  registre, i un guard comprova que les dues llistes coincideixen. L'estat de
+  cada commutador va al `Tag` del seu `Panel`, i els mateixos scriptblocks
+  serveixen per a tots. Va **a
   l'espai del segell**: la data on hi havia la data i la pastilla A/M **on hi
   havia l'hora** (l'hora de l'última còpia no interessava). Ni un píxel més que
   les altres rajoles.

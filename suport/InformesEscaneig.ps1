@@ -214,25 +214,194 @@ function _InformeAJson($r) {
 }
 
 # ----------------------------------------------------------------------------
-# Escaneig complet + escriptura del JSON (interactiu, amb finestra de progres)
+# EL NUCLI de l'escaneig, SENSE CAP FINESTRA: el fan servir el boto (amb la
+# seva finestra de progres) i el mode automatic (en segon pla, sense res).
+# $onProgres (opcional): & $onProgres <text> <fets> <total> ($total 0 = encara no
+# se sap). Torna @{ Ok; Error; NInformes; Reprocessats; NActivitats; NRevisar;
+# OutPath }. Si alguna cosa peta a mitges, llanca (i no s'ha escrit res).
+# ----------------------------------------------------------------------------
+function _InformesDirAccessible([string]$dir) {
+    if ([string]::IsNullOrWhiteSpace($dir)) { return $false }
+    try { return [bool](Test-Path -LiteralPath $dir -ErrorAction SilentlyContinue) } catch { return $false }
+}
+
+function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null) {
+    # La carpeta d'informes. Si la unitat (la I: de la feina) no hi es, no es un
+    # error del programa: potser s'esta fora de la feina.
+    $dir = $InformesDir
+    if (-not (_InformesDirAccessible $dir)) {
+        return @{ Ok = $false; Error = "No s'ha trobat la carpeta d'informes: $dir" }
+    }
+    $avisa = { param($t, $i, $n) if ($null -ne $onProgres) { & $onProgres $t $i $n } }
+
+    # 3. Carregar l'Excel d'activitats (opcional; per la cerca inversa i el
+    #    titular). Si no hi ha Excel, es continua sense aquest fallback.
+    $cache = $null; $expToGia = $null
+    try {
+        $excel = Find-LatestActivitatsExcel
+        if ($null -ne $excel) {
+            & $avisa "Llegint la base d'activitats (Excel)..." 0 0
+            $cache = Initialize-ActivitatsCache $excel.File
+            $expToGia = Build-ExpedientToGiaMap $cache
+        }
+    } catch { $cache = $null; $expToGia = $null }
+
+    # 3b. Carregar la base anterior (si existeix) per fer un escaneig
+    #     INCREMENTAL: nomes es reobren els .docx modificats DESPRES de
+    #     l'ultima actualitzacio; la resta es reutilitzen (conservant el seu
+    #     "ignorat"). Els fitxers que ja no existeixen es podaran sols (nomes
+    #     reagrupem els que trobem ara). Si no hi ha base previa (o esta
+    #     corrupta), es fa un escaneig complet.
+    $outPath    = Join-Path $LocalActivitatsDir 'informes-db.json'
+    $prevByRuta = @{}
+    $prevUtc    = [datetime]::MinValue
+    $generatEl  = (Get-Date).ToString('o')
+    if (Test-Path -LiteralPath $outPath) {
+        try {
+            $prevDb     = Read-JsonFile $outPath
+            $prevByRuta = _FlattenInformesDb $prevDb
+            if ($prevDb.PSObject.Properties['actualitzat_el'] -and -not [string]::IsNullOrWhiteSpace([string]$prevDb.actualitzat_el)) {
+                try { $prevUtc = ([datetime]::Parse([string]$prevDb.actualitzat_el)).ToUniversalTime() } catch { $prevUtc = [datetime]::MinValue }
+            }
+            if ($prevDb.PSObject.Properties['generat_el'] -and -not [string]::IsNullOrWhiteSpace([string]$prevDb.generat_el)) {
+                $generatEl = [string]$prevDb.generat_el
+            }
+        } catch { $prevByRuta = @{}; $prevUtc = [datetime]::MinValue }
+    }
+
+    # 4. Recollir els fitxers candidats (.docx o .doc amb data al principi
+    #    del nom). Un sol Get-ChildItem recursiu (sense -Filter) i filtrem
+    #    per extensio nosaltres: evita el parany de "*.doc" -Filter que a
+    #    vegades tambe encerta ".docx" pel nom curt (8.3) de NTFS.
+    & $avisa "Cercant informes a:`n$dir" 0 0
+    $allInformes = Get-ChildItem -LiteralPath $dir -Recurse -File -ErrorAction SilentlyContinue |
+                   Where-Object {
+                       $_.Name -notlike '~$*' -and
+                       ($_.Extension -ieq '.docx' -or $_.Extension -ieq '.doc') -and
+                       $null -ne (_ParseDataInformeFromName $_.Name)
+                   }
+    $files = @($allInformes)
+    $total = $files.Count
+
+
+    # 5. Analitzar cada informe (incremental: reutilitzem els no modificats).
+    #    Word només es crea (mandrosament) si cal reprocessar algun .doc
+    #    antic; es tanca sempre al 'finally', encara que hi hagi un error.
+    $informes = New-Object System.Collections.ArrayList
+    $revisar  = New-Object System.Collections.ArrayList
+    $reprocessats = 0
+    $i = 0
+    $wordApp = $null
+    try {
+        foreach ($f in $files) {
+            $i++
+            $ruta = $f.FullName
+            $teEntrada = $prevByRuta.ContainsKey($ruta)
+            if (-not (_HaDeReprocessar $f.LastWriteTimeUtc $prevUtc $teEntrada)) {
+                # No s'ha tocat des de l'ultim escaneig: reutilitzem l'entrada.
+                $r = $prevByRuta[$ruta]
+            } else {
+                if ($f.Extension -ieq '.doc' -and $null -eq $wordApp) {
+                    # -Opcional: sense Word, _ReadInformeParagraphs torna @()
+                    # i l'informe es queda sense conclusio, pero l'escaneig
+                    # continua. New-WordApp hi afegeix l'AutomationSecurity,
+                    # que aqui compta: aquests .doc son a la unitat de xarxa.
+                    $wordApp = New-WordApp -Opcional
+                }
+                $r = Get-InformeData $f $expToGia $cache $wordApp
+                # El que l'usuari hagi corregit a ma ("Editar base") PREVAL;
+                # la resta, la mana el que acaba de sortir de l'informe
+                # (vegeu _AplicaEdicioPrevia).
+                if ($teEntrada) { $r = _AplicaEdicioPrevia $prevByRuta[$ruta] $r }
+                $reprocessats++
+            }
+            if (($i % 5) -eq 0 -or $i -eq $total) {
+                & $avisa "Analitzant informes... ($i de $total, $reprocessats de nous/modificats)" $i $total
+            }
+            [void]$informes.Add($r)
+            if ($r.Motius.Count -gt 0) {
+                [void]$revisar.Add([pscustomobject]@{
+                    fitxer = $r.Fitxer
+                    ruta   = $r.Ruta
+                    motiu  = ($r.Motius -join ', ')
+                })
+            }
+        }
+    } finally {
+        if ($null -ne $wordApp) { try { $wordApp.Quit() } catch { } }
+    }
+
+    # 6. Agrupar per activitat: per ID GIA quan n'hi ha; si NO en tenen, per
+    #    CARPETA (tots els informes d'una mateixa carpeta = una activitat).
+    #    Ordenem els informes de cada activitat per data.
+    $groups = [ordered]@{}
+    foreach ($r in $informes) {
+        $key = if (-not [string]::IsNullOrWhiteSpace($r.Gia)) { "GIA:$($r.Gia)" }
+               else { "DIR:$($r.Carpeta)" }
+        if (-not $groups.Contains($key)) {
+            $groups[$key] = [pscustomobject]@{
+                id_gia    = $r.Gia
+                expedient = $r.Expedient
+                titular   = $r.Titular
+                carpeta   = $r.Carpeta
+                _informes = (New-Object System.Collections.ArrayList)
+            }
+        }
+        $g = $groups[$key]
+        # Emplenem camps de l'activitat si encara estan buits.
+        if ([string]::IsNullOrWhiteSpace($g.id_gia)    -and -not [string]::IsNullOrWhiteSpace($r.Gia))       { $g.id_gia = $r.Gia }
+        if ([string]::IsNullOrWhiteSpace($g.expedient) -and -not [string]::IsNullOrWhiteSpace($r.Expedient)) { $g.expedient = $r.Expedient }
+        if ([string]::IsNullOrWhiteSpace($g.titular)   -and -not [string]::IsNullOrWhiteSpace($r.Titular))   { $g.titular = $r.Titular }
+        [void]$g._informes.Add((_InformeAJson $r))
+    }
+
+    $activitats = New-Object System.Collections.ArrayList
+    foreach ($g in $groups.Values) {
+        $ordered = @($g._informes | Sort-Object { if ($_.data) { $_.data } else { '' } })
+        [void]$activitats.Add([pscustomobject]@{
+            id_gia       = $g.id_gia
+            expedient    = $g.expedient
+            titular      = $g.titular
+            carpeta      = $g.carpeta
+            estat_actual = (_EstatActualActivitat $ordered)
+            informes     = $ordered
+        })
+    }
+    # Per ID GIA NUMERIC (com a text, '10' anava abans que '9').
+    $activitatsOrd = @($activitats | Sort-Object { _GiaNumeric $_.id_gia }, { [string]$_.carpeta })
+
+    # 7. Escriure el JSON (conservem generat_el; actualitzat_el = ara).
+    $outObj = [pscustomobject]@{
+        generat_el     = $generatEl
+        actualitzat_el = (Get-Date).ToString('o')
+        carpeta_arrel  = $dir
+        n_informes     = $informes.Count
+        n_activitats   = $activitatsOrd.Count
+        activitats     = $activitatsOrd
+        a_revisar      = @($revisar)
+    }
+    Write-JsonFile $outPath $outObj 8
+
+    return @{ Ok = $true; Error = ''; NInformes = $informes.Count; Reprocessats = $reprocessats
+              NActivitats = $activitatsOrd.Count; NRevisar = $revisar.Count; OutPath = $outPath }
+}
+
+# Nom del mutex de l'escaneig: el comparteixen el boto i l'automatic, perque dos
+# escaneigs alhora escriurien informes-db.json l'un sobre l'altre.
+$Script:BaseMutexNom = 'Global\InformesCornella.BaseInformes'
+
+# ----------------------------------------------------------------------------
+# El BOTO "Actualitzar base": el nucli amb finestra de progres i un resum.
 # ----------------------------------------------------------------------------
 function Invoke-InformesDbScan {
-    # 1. Resoldre la carpeta d'informes. -ErrorAction SilentlyContinue: si la
-    #    unitat (p.ex. la I: de la feina) no existeix, Test-Path no ha de petar,
-    #    nomes ha de donar 'no trobada' (potser estas fora de la feina).
     $dir = $InformesDir
-    $existeix = $false
-    if (-not [string]::IsNullOrWhiteSpace($dir)) {
-        try { $existeix = Test-Path -LiteralPath $dir -ErrorAction SilentlyContinue } catch { $existeix = $false }
-    }
-    if (-not $existeix) {
+    if (-not (_InformesDirAccessible $dir)) {
         [System.Windows.Forms.MessageBox]::Show(
-            "No s'ha trobat la carpeta d'informes:`n$dir`n`nSi treballes fora de la feina (sense la unitat I:), obre-la quan hi tinguis accés. Pots canviar la ruta amb `$InformesDir a config.ps1.",
+            "No s'ha trobat la carpeta d'informes:`n$dir`n`nSi treballes fora de la feina (sense la unitat I:), obre-la quan hi tinguis accés. Pots canviar la ruta a Configuració.",
             'Base d''informes', 'OK', 'Warning') | Out-Null
         return
     }
 
-    # 2. Finestra de progres.
     $form = _NewForm
     $form.Text = "Actualitzant base d'informes"
     $form.Size = New-Object System.Drawing.Size(560, 170)
@@ -251,179 +420,153 @@ function Invoke-InformesDbScan {
     $form.Show()
     [System.Windows.Forms.Application]::DoEvents()
 
-    try {
-        # 3. Carregar l'Excel d'activitats (opcional; per la cerca inversa i el
-        #    titular). Si no hi ha Excel, es continua sense aquest fallback.
-        $cache = $null; $expToGia = $null
-        try {
-            $excel = Find-LatestActivitatsExcel
-            if ($null -ne $excel) {
-                $lbl.Text = "Llegint la base d'activitats (Excel)..."
-                [System.Windows.Forms.Application]::DoEvents()
-                $cache = Initialize-ActivitatsCache $excel.File
-                $expToGia = Build-ExpedientToGiaMap $cache
-            }
-        } catch { $cache = $null; $expToGia = $null }
-
-        # 3b. Carregar la base anterior (si existeix) per fer un escaneig
-        #     INCREMENTAL: nomes es reobren els .docx modificats DESPRES de
-        #     l'ultima actualitzacio; la resta es reutilitzen (conservant el seu
-        #     "ignorat"). Els fitxers que ja no existeixen es podaran sols (nomes
-        #     reagrupem els que trobem ara). Si no hi ha base previa (o esta
-        #     corrupta), es fa un escaneig complet.
-        $outPath    = Join-Path $LocalActivitatsDir 'informes-db.json'
-        $prevByRuta = @{}
-        $prevUtc    = [datetime]::MinValue
-        $generatEl  = (Get-Date).ToString('o')
-        if (Test-Path -LiteralPath $outPath) {
-            try {
-                $prevDb     = Read-JsonFile $outPath
-                $prevByRuta = _FlattenInformesDb $prevDb
-                if ($prevDb.PSObject.Properties['actualitzat_el'] -and -not [string]::IsNullOrWhiteSpace([string]$prevDb.actualitzat_el)) {
-                    try { $prevUtc = ([datetime]::Parse([string]$prevDb.actualitzat_el)).ToUniversalTime() } catch { $prevUtc = [datetime]::MinValue }
-                }
-                if ($prevDb.PSObject.Properties['generat_el'] -and -not [string]::IsNullOrWhiteSpace([string]$prevDb.generat_el)) {
-                    $generatEl = [string]$prevDb.generat_el
-                }
-            } catch { $prevByRuta = @{}; $prevUtc = [datetime]::MinValue }
+    $onProgres = {
+        param($text, $fets, $total)
+        $lbl.Text = $text
+        if ($total -gt 0) {
+            if ($bar.Style -ne 'Continuous') { $bar.Style = 'Continuous'; $bar.Minimum = 0 }
+            $bar.Maximum = [Math]::Max(1, $total)
+            $bar.Value = [Math]::Min($bar.Maximum, $fets)
         }
-
-        # 4. Recollir els fitxers candidats (.docx o .doc amb data al principi
-        #    del nom). Un sol Get-ChildItem recursiu (sense -Filter) i filtrem
-        #    per extensio nosaltres: evita el parany de "*.doc" -Filter que a
-        #    vegades tambe encerta ".docx" pel nom curt (8.3) de NTFS.
-        $lbl.Text = "Cercant informes a:`n$dir"
         [System.Windows.Forms.Application]::DoEvents()
-        $allInformes = Get-ChildItem -LiteralPath $dir -Recurse -File -ErrorAction SilentlyContinue |
-                       Where-Object {
-                           $_.Name -notlike '~$*' -and
-                           ($_.Extension -ieq '.docx' -or $_.Extension -ieq '.doc') -and
-                           $null -ne (_ParseDataInformeFromName $_.Name)
-                       }
-        $files = @($allInformes)
-        $total = $files.Count
+    }.GetNewClosure()
 
-        $bar.Style = 'Continuous'
-        $bar.Minimum = 0
-        $bar.Maximum = [Math]::Max(1, $total)
-
-        # 5. Analitzar cada informe (incremental: reutilitzem els no modificats).
-        #    Word només es crea (mandrosament) si cal reprocessar algun .doc
-        #    antic; es tanca sempre al 'finally', encara que hi hagi un error.
-        $informes = New-Object System.Collections.ArrayList
-        $revisar  = New-Object System.Collections.ArrayList
-        $reprocessats = 0
-        $i = 0
-        $wordApp = $null
-        try {
-            foreach ($f in $files) {
-                $i++
-                $ruta = $f.FullName
-                $teEntrada = $prevByRuta.ContainsKey($ruta)
-                if (-not (_HaDeReprocessar $f.LastWriteTimeUtc $prevUtc $teEntrada)) {
-                    # No s'ha tocat des de l'ultim escaneig: reutilitzem l'entrada.
-                    $r = $prevByRuta[$ruta]
-                } else {
-                    if ($f.Extension -ieq '.doc' -and $null -eq $wordApp) {
-                        # -Opcional: sense Word, _ReadInformeParagraphs torna @()
-                        # i l'informe es queda sense conclusio, pero l'escaneig
-                        # continua. New-WordApp hi afegeix l'AutomationSecurity,
-                        # que aqui compta: aquests .doc son a la unitat de xarxa.
-                        $wordApp = New-WordApp -Opcional
-                    }
-                    $r = Get-InformeData $f $expToGia $cache $wordApp
-                    # El que l'usuari hagi corregit a ma ("Editar base") PREVAL;
-                    # la resta, la mana el que acaba de sortir de l'informe
-                    # (vegeu _AplicaEdicioPrevia).
-                    if ($teEntrada) { $r = _AplicaEdicioPrevia $prevByRuta[$ruta] $r }
-                    $reprocessats++
-                }
-                if (($i % 5) -eq 0 -or $i -eq $total) {
-                    $lbl.Text = "Analitzant informes... ($i de $total, $reprocessats de nous/modificats)"
-                    $bar.Value = [Math]::Min($bar.Maximum, $i)
-                    [System.Windows.Forms.Application]::DoEvents()
-                }
-                [void]$informes.Add($r)
-                if ($r.Motius.Count -gt 0) {
-                    [void]$revisar.Add([pscustomobject]@{
-                        fitxer = $r.Fitxer
-                        ruta   = $r.Ruta
-                        motiu  = ($r.Motius -join ', ')
-                    })
-                }
-            }
-        } finally {
-            if ($null -ne $wordApp) { try { $wordApp.Quit() } catch { } }
+    $caixa = @{ Res = $null }
+    $res = $null
+    $err = ''
+    try {
+        # Si el mode automatic esta escanejant ara mateix, no se'n fa un altre
+        # al damunt (escriurien la base l'un sobre l'altre).
+        $fet = Invoke-AmbMutexUnic $Script:BaseMutexNom {
+            $caixa.Res = Invoke-InformesDbEscaneig $onProgres
         }
-
-        # 6. Agrupar per activitat: per ID GIA quan n'hi ha; si NO en tenen, per
-        #    CARPETA (tots els informes d'una mateixa carpeta = una activitat).
-        #    Ordenem els informes de cada activitat per data.
-        $groups = [ordered]@{}
-        foreach ($r in $informes) {
-            $key = if (-not [string]::IsNullOrWhiteSpace($r.Gia)) { "GIA:$($r.Gia)" }
-                   else { "DIR:$($r.Carpeta)" }
-            if (-not $groups.Contains($key)) {
-                $groups[$key] = [pscustomobject]@{
-                    id_gia    = $r.Gia
-                    expedient = $r.Expedient
-                    titular   = $r.Titular
-                    carpeta   = $r.Carpeta
-                    _informes = (New-Object System.Collections.ArrayList)
-                }
-            }
-            $g = $groups[$key]
-            # Emplenem camps de l'activitat si encara estan buits.
-            if ([string]::IsNullOrWhiteSpace($g.id_gia)    -and -not [string]::IsNullOrWhiteSpace($r.Gia))       { $g.id_gia = $r.Gia }
-            if ([string]::IsNullOrWhiteSpace($g.expedient) -and -not [string]::IsNullOrWhiteSpace($r.Expedient)) { $g.expedient = $r.Expedient }
-            if ([string]::IsNullOrWhiteSpace($g.titular)   -and -not [string]::IsNullOrWhiteSpace($r.Titular))   { $g.titular = $r.Titular }
-            [void]$g._informes.Add((_InformeAJson $r))
-        }
-
-        $activitats = New-Object System.Collections.ArrayList
-        foreach ($g in $groups.Values) {
-            $ordered = @($g._informes | Sort-Object { if ($_.data) { $_.data } else { '' } })
-            [void]$activitats.Add([pscustomobject]@{
-                id_gia       = $g.id_gia
-                expedient    = $g.expedient
-                titular      = $g.titular
-                carpeta      = $g.carpeta
-                estat_actual = (_EstatActualActivitat $ordered)
-                informes     = $ordered
-            })
-        }
-        $activitatsOrd = @($activitats | Sort-Object { [string]$_.id_gia })
-
-        # 7. Escriure el JSON (conservem generat_el; actualitzat_el = ara).
-        $outObj = [pscustomobject]@{
-            generat_el     = $generatEl
-            actualitzat_el = (Get-Date).ToString('o')
-            carpeta_arrel  = $dir
-            n_informes     = $informes.Count
-            n_activitats   = $activitatsOrd.Count
-            activitats     = $activitatsOrd
-            a_revisar      = @($revisar)
-        }
-        Write-JsonFile $outPath $outObj 8
-
-        $form.Close()
-
-        # 8. Resum.
-        $msg = "Base d'informes actualitzada.`n`n" +
-               "Informes trobats: $($informes.Count)`n" +
-               "Nous o modificats (reprocessats): $reprocessats`n" +
-               "Activitats: $($activitatsOrd.Count)`n" +
-               "A revisar: $($revisar.Count)`n`n" +
-               "Fitxer:`n$outPath`n`nVols obrir-lo?"
-        $r = [System.Windows.Forms.MessageBox]::Show($msg, 'Base d''informes', 'YesNo', 'Information')
-        if ($r -eq [System.Windows.Forms.DialogResult]::Yes) {
-            try { Start-Process -FilePath 'notepad.exe' -ArgumentList "`"$outPath`"" | Out-Null } catch { }
-        }
-    }
-    catch {
+        if ($fet) { $res = $caixa.Res } else { $err = 'ocupat' }
+    } catch {
+        $err = $_.Exception.Message
+    } finally {
         try { $form.Close() } catch { }
-        [System.Windows.Forms.MessageBox]::Show(
-            "Error escanejant els informes:`n$($_.Exception.Message)",
-            'Base d''informes', 'OK', 'Error') | Out-Null
     }
+    if ($err -eq 'ocupat') {
+        [System.Windows.Forms.MessageBox]::Show(
+            "La base d'informes s'est" + [char]0x00E0 + " actualitzant sola ara mateix (mode autom" + [char]0x00E0 + "tic).`n`nTorna-hi d'aqu" + [char]0x00ED + " a una estona.",
+            'Base d''informes', 'OK', 'Information') | Out-Null
+        return
+    }
+    if ($err -ne '' -or $null -eq $res) {
+        [System.Windows.Forms.MessageBox]::Show("Error escanejant els informes:`n$err", 'Base d''informes', 'OK', 'Error') | Out-Null
+        return
+    }
+    if (-not $res.Ok) {
+        [System.Windows.Forms.MessageBox]::Show([string]$res.Error, 'Base d''informes', 'OK', 'Warning') | Out-Null
+        return
+    }
+    # L'ultima l'has feta tu: la data del menu deixa de sortir en verd.
+    [void](_BaseAutoDesaEstat @{ mode = 'manual' })
+    $msg = "Base d'informes actualitzada.`n`n" +
+           "Informes trobats: $($res.NInformes)`n" +
+           "Nous o modificats (reprocessats): $($res.Reprocessats)`n" +
+           "Activitats: $($res.NActivitats)`n" +
+           "A revisar: $($res.NRevisar)`n`n" +
+           "Fitxer:`n$($res.OutPath)`n`nVols obrir-lo?"
+    $r = [System.Windows.Forms.MessageBox]::Show($msg, 'Base d''informes', 'YesNo', 'Information')
+    if ($r -eq [System.Windows.Forms.DialogResult]::Yes) {
+        try { Start-Process -FilePath 'notepad.exe' -ArgumentList "`"$($res.OutPath)`"" | Out-Null } catch { }
+    }
+}
+
+# ============================================================================
+# MODE AUTOMATIC (l'interruptor A/M de sota la rajola "Actualitzar base")
+# ============================================================================
+# L'usuari: "ja que sera tan important per fer el Planol activitats, que tambe
+# tingui l'opcio d'actualitzar-se automaticament (igual que Copiar informes)".
+# Mateixa regla (ModeAutomatic.ps1): cada dia a l'hora d'aqui sota amb el
+# programa obert i, si aquell venciment no s'ha servit, en obrir el programa;
+# en un proces a part (BaseInformesAuto.ps1), sense res a la pantalla.
+#
+# Les correccions a ma ("Editar base") PREVALEN igual que amb el boto: la
+# passada es el mateix Invoke-InformesDbEscaneig.
+#
+# L'ESTAT, a informes-db-auto.json (no dins de la base: l'editor la reescriu
+# sencera i s'hi perdria):
+#   auto     l'interruptor
+#   auto_el  l'ultima PASSADA automatica, encara que no hagi pogut fer res: es
+#            la marca que diu que el venciment ja s'ha servit
+#   mode     'auto' | 'manual': qui va fer l'ultima actualitzacio
+$Script:BaseAutoHora  = 14
+$Script:BaseAutoMinut = 0
+$Script:BaseEstatPlantilla = [ordered]@{ auto = $false; auto_el = ''; mode = '' }
+
+function _BaseAutoStatePath {
+    if ([string]::IsNullOrWhiteSpace($LocalActivitatsDir)) { return '' }
+    return [string](Join-Path $LocalActivitatsDir 'informes-db-auto.json')
+}
+
+function _BaseAutoEstat { return (Read-EstatAuto (_BaseAutoStatePath) $Script:BaseEstatPlantilla) }
+
+function _BaseAutoDesaEstat($canvis) { return (Save-EstatAuto (_BaseAutoStatePath) $canvis $Script:BaseEstatPlantilla) }
+
+function _BaseAutoToca([datetime]$ara, $ultimAuto) {
+    return (_AutoToca $ara $ultimAuto $Script:BaseAutoHora $Script:BaseAutoMinut)
+}
+
+function _BaseAutoLog([string]$msg) { Write-AutoLog 'informes-db-log.txt' $msg }
+
+# La passada (la crida BaseInformesAuto.ps1). Cap finestra ni cap pregunta: tot
+# va al registre. Apunta 'auto_el' SEMPRE (si no, el menu la tornaria a llancar
+# cada minut), tambe quan la carpeta no hi es o quan el boto esta escanejant
+# ara mateix (llavors la base ja s'esta posant al dia). Torna el resultat de
+# l'escaneig, o @{ Ok = $false; Error }.
+function Invoke-InformesDbAuto {
+    $ini = @{ auto_el = (Get-Date).ToString('o') }
+    $caixa = @{ Res = $null; Err = '' }
+    $lliure = $false
+    try {
+        $lliure = Invoke-AmbMutexUnic $Script:BaseMutexNom {
+            $caixa.Res = Invoke-InformesDbEscaneig $null
+        }
+    } catch { $caixa.Err = [string]$_.Exception.Message }
+    if (-not $lliure -and $caixa.Err -eq '') {
+        [void](_BaseAutoDesaEstat $ini)
+        _BaseAutoLog 'Passada automatica: ja s''esta actualitzant, no es fa res.'
+        return @{ Ok = $false; Error = 'ocupat' }
+    }
+    if ($caixa.Err -ne '') {
+        [void](_BaseAutoDesaEstat $ini)
+        _BaseAutoLog ('ERROR: ' + $caixa.Err)
+        return @{ Ok = $false; Error = $caixa.Err }
+    }
+    $res = $caixa.Res
+    if (-not [bool]$res.Ok) {
+        [void](_BaseAutoDesaEstat $ini)
+        _BaseAutoLog ('ATURAT: ' + ([string]$res.Error -replace "`r?`n", ' '))
+        return $res
+    }
+    [void](_BaseAutoDesaEstat @{ auto_el = $ini['auto_el']; mode = 'auto' })
+    _BaseAutoLog ("Passada automatica: informes=$($res.NInformes) reprocessats=$($res.Reprocessats) " +
+                  "activitats=$($res.NActivitats) a_revisar=$($res.NRevisar)")
+    return $res
+}
+
+function Start-InformesDbAuto { return (Start-ProcesAutoUnic 'base' 'BaseInformesAuto.ps1') }
+
+# El menu ho crida en obrir-se i a cada minut.
+function Invoke-BaseAutoSiToca {
+    $est = _BaseAutoEstat
+    if (-not [bool]$est['auto']) { return $false }
+    if (-not (_BaseAutoToca (Get-Date) $est['auto_el'])) { return $false }
+    return (Start-InformesDbAuto)
+}
+
+$Script:ModesAuto['informesdb'] = @{
+    Titol     = 'Actualitzar base'
+    Actiu     = { $e = _BaseAutoEstat; [bool]$e['auto'] }
+    DesaActiu = { param($on) _BaseAutoDesaEstat @{ auto = [bool]$on } }
+    UltimMode = { $e = _BaseAutoEstat; [string]$e['mode'] }
+    SiToca    = { Invoke-BaseAutoSiToca }
+    Requisit  = {
+        if (-not [string]::IsNullOrWhiteSpace($InformesDir)) { return '' }
+        return ("Per actualitzar la base sola cal dir on s" + [char]0x00F3 + "n els informes.`n`nVes a Configuraci" + [char]0x00F3 + " (el bot" + [char]0x00F3 + " de la roda, a dalt a la dreta) i indica la carpeta d'informes.")
+    }
+    TipA      = "Mode AUTOMATIC: la base s'actualitza sola cada dia a les 14:00 (i en obrir el programa, si aquell dia no s'ha arribat a fer). Clica per passar a manual."
+    TipM      = "Mode MANUAL: nomes s'actualitza quan cliques la rajola. Clica per posar-ho en automatic."
 }

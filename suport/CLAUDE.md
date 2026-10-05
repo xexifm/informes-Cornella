@@ -144,6 +144,8 @@ el resum:
 | `Paquet.ps1` | generar sense assistent (mòbil) |
 | `Migracio.ps1` | rutes de `local/` (`Get-LocalSubdir`) + endreç de les carpetes velles |
 | `CopiaInformesAuto.ps1` | la passada automàtica de *Copiar informes* (procés a part, sense interfície) |
+| `BaseInformesAuto.ps1` | la passada automàtica d'*Actualitzar base* (procés a part, sense interfície) |
+| `ModeAutomatic.ps1` | el comú dels interruptors A/M: quan toca, l'estat, el registre de diagnòstic, el procés a part, el mutex i el **registre `$Script:ModesAuto`** que recorre el menú |
 
 **Llançar un script d'aquest mateix `suport/` en segon pla** es fa en un sol
 lloc: `Start-ScriptSegonPla` (`Motor.ps1`). El fan servir les **vistes en Word**

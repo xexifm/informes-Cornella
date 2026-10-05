@@ -423,6 +423,11 @@ if (-not $Script:HeadlessTest) { [void](Invoke-MigracioLocal $RepoRoot) }
 . (Join-Path $ScriptRoot 'ActExtrPantalles.ps1')
 . (Join-Path $ScriptRoot 'ActExtr.ps1')
 
+# El comu dels modes automatics (Copiar informes, Actualitzar base): quan toca,
+# l'estat, el registre i el proces a part. Nomes defineix, i va ABANS de les
+# eines perque cada una s'hi registra en carregar-se ($Script:ModesAuto).
+. (Join-Path $ScriptRoot 'ModeAutomatic.ps1')
+
 # Carreguem el modul d'escaneig d'informes (Informes.ps1): construeix la base de
 # dades JSON (ID GIA + data + conclusio) a partir de la carpeta d'informes. Es
 # carrega tambe en headless perque els tests provin la logica de text pura.

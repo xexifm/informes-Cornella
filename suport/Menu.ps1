@@ -138,7 +138,7 @@ $Script:AjudaEines = @{
     precintades       = "Obre al navegador el mapa i el llistat públic de les activitats precintades."
     controlsperiodics = "Llista les activitats de l'annex II, III o de l'apartat 561 amb les dates dels controls periòdics (primer les que toquen abans). En pots generar els informes i els correus."
     recordatoris      = "Envia recordatoris periòdics per correu als titulars que tenen un requeriment o un precinte pendent, segons la base d'informes."
-    informesdb        = "Recorre la carpeta dels informes fets i n'actualitza la base: la data, l'ID GIA i la conclusió de cada un. Fes-ho abans de les eines que la fan servir."
+    informesdb        = "Recorre la carpeta dels informes fets i n'actualitza la base: la data, l'ID GIA i la conclusió de cada un. L'interruptor A/M de sota ho fa sol cada dia a les 14:00."
     informesdbedit    = "Mostra la base d'informes amb l'estat de cada activitat, amb filtres i exportació a CSV. Hi pots corregir la conclusió breu d'un informe o fer que s'ignori."
     copiarinformes    = "Copia els informes nous a la carpeta de còpia, tots junts, sense esborrar mai res. L'interruptor A/M de sota ho fa sol cada dia a les 14:30."
     convertirpdf      = "Converteix un informe de Word (o una carpeta sencera) a PDF i, si ho marques, el signa amb AutoFirma."
@@ -540,10 +540,11 @@ function Select-Mode {
     )
     # BASE D'INFORMES: eines de la base d'informes + conversio a PDF.
     $reports = @(
-        @{ Emoji = $tiBox;   Label = 'Actualitzar base'; Kind = 'action'; Action = 'informesdb' }
+        # Les rajoles amb INTERRUPTOR: sota seu, on les altres tenen l'hora, hi
+        # va el commutador A/M del mode automatic (vegeu mes avall i
+        # $Script:ModesAuto a ModeAutomatic.ps1).
+        @{ Emoji = $tiBox;   Label = 'Actualitzar base'; Kind = 'action'; Action = 'informesdb'; Interruptor = $true }
         @{ Emoji = $tiClip;  Label = 'Editar base';      Kind = 'action'; Action = 'informesdbedit' }
-        # L'UNICA rajola amb INTERRUPTOR: sota seu, on les altres tenen l'hora,
-        # hi va el commutador A/M del mode automatic (vegeu mes avall).
         @{ Emoji = $tiCopy;  Label = 'Copiar informes';  Kind = 'action'; Action = 'copiarinformes'; Interruptor = $true }
         @{ Emoji = $tiPdf;   Label = 'Word a PDF';       Kind = 'action'; Action = 'convertirpdf' }
     )
@@ -652,23 +653,26 @@ function Select-Mode {
     $colStamp = [System.Drawing.Color]::FromArgb(120, 128, 138)
     $ttEines = New-Object System.Windows.Forms.ToolTip
     # ------------------------------------------------------------------------
-    # L'INTERRUPTOR A/M de "Copiar informes" (mode automatic)
+    # L'INTERRUPTOR A/M del mode automatic ("Copiar informes", "Actualitzar base")
     # ------------------------------------------------------------------------
+    # Cada eina que en te s'apunta a $Script:ModesAuto (ModeAutomatic.ps1) i la
+    # seva rajola porta 'Interruptor = $true'; el menu no sap res mes de cap.
+    #
     # Va A L'ESPAI DEL SEGELL d'aquella rajola: la data on hi havia la data i el
     # commutador on hi havia l'hora, que es el que l'usuari va demanar (l'hora
     # de l'ultima copia no li interessa). No ocupa ni un pixel mes que les
     # altres rajoles.
     #
-    #   A (verd)  mode automatic: cada dia a les 14:30 amb el programa obert i,
-    #             si aquell venciment no s'ha servit, en obrir el programa. Es
-    #             fa en segon pla i no s'hi veu res (Invoke-CopiaAutoSiToca).
-    #   M (gris)  mode manual: nomes es copia quan cliques la rajola.
+    #   A (verd)  mode automatic: cada dia a la seva hora amb el programa obert
+    #             i, si aquell venciment no s'ha servit, en obrir el programa.
+    #             Es fa en segon pla i no s'hi veu res (SiToca del registre).
+    #   M (gris)  mode manual: nomes es fa quan cliques la rajola.
     #
-    # I LA DATA DIU QUI VA FER L'ULTIMA COPIA: verda si la va fer el mode
+    # I LA DATA DIU QUI VA FER L'ULTIMA PASSADA: verda si la va fer el mode
     # automatic, grisa si la vas fer tu. Aixi, d'un cop d'ull, se sap si
     # l'automatic esta treballant de debo o nomes esta ences.
     #
-    # LA RAJOLA SEGUEIX COPIANT SEMPRE, digui el que digui l'interruptor: el
+    # LA RAJOLA SEGUEIX FUNCIONANT SEMPRE, digui el que digui l'interruptor: el
     # commutador es un control a part (el clic es mira contra el seu rectangle),
     # o sigui que clicar la rajola mai el toca ni al reves.
     $colAuto     = [System.Drawing.Color]::FromArgb(46, 160, 67)    # verd de la pastilla
@@ -676,22 +680,25 @@ function Select-Mode {
     $colManual   = [System.Drawing.Color]::FromArgb(150, 155, 163)  # gris de la pastilla
     $fSwitch = New-Object System.Drawing.Font('Segoe UI', 6, [System.Drawing.FontStyle]::Bold)
 
-    # L'estat que pinta l'interruptor, en UN hashtable: aixi el rellotge i el
-    # clic el refresquen sense haver de tornar a muntar cap control (i el
-    # scriptblock del Paint el veu igual, sigui quan sigui que es dibuixi).
-    $auto = @{ On = $false; Data = '(mai)'; Verd = $false; Ctl = $null; Rect = $null; Tip = $null }
+    # L'estat que pinta cada interruptor, en UN hashtable PER RAJOLA, al Tag del
+    # seu Panel: aixi el rellotge i el clic el refresquen sense tornar a muntar
+    # cap control, i els mateixos scriptblocks serveixen per a totes les
+    # rajoles. $autos: tots, per al rellotge.
+    #   @{ Accio; Mode (l'entrada del registre); On; Data; Verd; Ctl; Rect; Tip }
+    # El registre es CAPTURA en una variable: dins d'una closure, $Script: no es
+    # el de l'script (vegeu CLAUDE.md).
+    $modesAuto = $Script:ModesAuto
+    $autos = New-Object System.Collections.ArrayList
     $refrescaAuto = {
-        $auto.On   = [bool](_CopiaAutoActiu)
-        $auto.Verd = ([string](_CopiaInformesUltimMode) -eq 'auto')
-        $auto.Data = [string](_FormatRunStamp (_LastRunIsoEina 'copiarinformes') $false)
+        param($auto)
+        $m = $auto.Mode
+        $auto.On   = [bool](& $m.Actiu)
+        $auto.Verd = ([string](& $m.UltimMode) -eq 'auto')
+        $auto.Data = [string](_FormatRunStamp (_LastRunIsoEina ([string]$auto.Accio)) $false)
         if ($null -ne $auto.Ctl) {
             $auto.Ctl.Invalidate()
             if ($null -ne $auto.Tip) {
-                $q = if ($auto.On) {
-                    "Mode AUTOMATIC: es copia sol cada dia a les 14:30 (i en obrir el programa, si aquell dia no s'ha arribat a fer). Clica per passar a manual."
-                } else {
-                    "Mode MANUAL: nomes es copia quan cliques la rajola. Clica per posar-ho en automatic."
-                }
+                $q = if ($auto.On) { [string]$m.TipA } else { [string]$m.TipM }
                 $auto.Tip.SetToolTip($auto.Ctl, $q)
             }
         }
@@ -702,6 +709,8 @@ function Select-Mode {
     # per a 24x12 pixels.
     $autoPaint = {
         param($s, $e)
+        $auto = $s.Tag
+        if ($null -eq $auto) { return }
         $g = $e.Graphics
         $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
         $rc = $s.ClientRectangle
@@ -714,7 +723,7 @@ function Select-Mode {
         $x0 = [int](($rc.Width - ($szT.Width + $gap + $pw)) / 2)
         if ($x0 -lt 0) { $x0 = 0 }
 
-        # La data, verda si l'ultima copia la va fer el mode automatic.
+        # La data, verda si l'ultima passada la va fer el mode automatic.
         $colTxt = if ($auto.Verd) { $colAutoText } else { $colStamp }
         $rT = New-Object System.Drawing.Rectangle($x0, 0, $szT.Width, $rc.Height)
         [System.Windows.Forms.TextRenderer]::DrawText($g, $txt, $fStamp, $rT, $colTxt, $flV)
@@ -748,27 +757,31 @@ function Select-Mode {
 
     $autoClick = {
         param($s, $e)
-        if ($null -eq $auto.Rect -or -not $auto.Rect.Contains($e.Location)) { return }
+        $auto = $s.Tag
+        if ($null -eq $auto -or $null -eq $auto.Rect -or -not $auto.Rect.Contains($e.Location)) { return }
         $nou = -not $auto.On
-        # Sense carpeta de copia no hi ha res a automatitzar, i deixar-ho ences
-        # sense desti seria un automatic que no fa res i no ho diu.
-        if ($nou -and [string]::IsNullOrWhiteSpace($CopiaInformesDir)) {
-            [System.Windows.Forms.MessageBox]::Show(
-                "Per copiar els informes sols cal dir on s'han de copiar.`n`nVes a Configuraci" + [char]0x00F3 + " (el bot" + [char]0x00F3 + " de la roda, a dalt a la dreta) i indica 'Carpeta on copiar els informes'.",
-                'Copiar informes', 'OK', 'Information') | Out-Null
-            return
+        $m = $auto.Mode
+        # Si li falta la configuracio (la carpeta de copia, la d'informes),
+        # deixar-ho ences seria un automatic que no fa res i no ho diu.
+        if ($nou) {
+            $req = [string](& $m.Requisit)
+            if ($req -ne '') {
+                [System.Windows.Forms.MessageBox]::Show($req, [string]$m.Titol, 'OK', 'Information') | Out-Null
+                return
+            }
         }
-        [void](_CopiaAutoDesaActiu $nou)
-        & $refrescaAuto
+        [void](& $m.DesaActiu $nou)
+        & $refrescaAuto $auto
         # En engegar-lo, si el venciment d'avui ja ha passat i ningu no l'ha
         # servit, la passada surt ARA (esperar a dema no seria "automatic").
-        if ($nou) { [void](Invoke-CopiaAutoSiToca) }
+        if ($nou) { [void](& $m.SiToca) }
     }.GetNewClosure()
 
     # Feedback de que es clicable, igual que el xip de l'editor de catalegs.
     $autoMove = {
         param($s, $e)
-        $sobre = ($null -ne $auto.Rect -and $auto.Rect.Contains($e.Location))
+        $auto = $s.Tag
+        $sobre = ($null -ne $auto -and $null -ne $auto.Rect -and $auto.Rect.Contains($e.Location))
         $c = if ($sobre) { [System.Windows.Forms.Cursors]::Hand } else { [System.Windows.Forms.Cursors]::Default }
         if ($s.Cursor -ne $c) { $s.Cursor = $c }
     }.GetNewClosure()
@@ -795,7 +808,7 @@ function Select-Mode {
             $tb.add_MouseLeave($tileLeave)
             [void]$form.Controls.Add($tb)
 
-            if ([bool]$tool.Interruptor) {
+            if ([bool]$tool.Interruptor -and $modesAuto.Contains([string]$tool.Action)) {
                 # MATEIX ESPAI que el segell de les altres: data + interruptor
                 # A/M alla on elles tenen data + hora. Es un Panel dibuixat a ma
                 # (un Label no pot portar la pastilla) i el clic es mira contra
@@ -804,13 +817,15 @@ function Select-Mode {
                 $pnS.Location = New-Object System.Drawing.Point($tx, ($yRow + $tileH + 1))
                 $pnS.Size = New-Object System.Drawing.Size($tileW, 15)
                 $pnS.BackColor = $form.BackColor
+                $auto = @{ Accio = [string]$tool.Action; Mode = $modesAuto[[string]$tool.Action]
+                           On = $false; Data = '(mai)'; Verd = $false; Ctl = $pnS; Rect = $null; Tip = $ttEines }
+                $pnS.Tag = $auto
+                [void]$autos.Add($auto)
                 $pnS.add_Paint($autoPaint)
                 $pnS.add_MouseClick($autoClick)
                 $pnS.add_MouseMove($autoMove)
                 [void]$form.Controls.Add($pnS)
-                $auto.Ctl = $pnS
-                $auto.Tip = $ttEines
-                & $refrescaAuto
+                & $refrescaAuto $auto
             } else {
                 $lblS = New-Object System.Windows.Forms.Label
                 $lblS.Text = [string](_LastRunEina ([string]$tool.Action))
@@ -994,13 +1009,13 @@ function Select-Mode {
     $ttBand.SetToolTip($btnActualitzarM, 'Baixa la versio nova del programa (Actualitzar.bat) i el torna a obrir')
 
     # ------------------------------------------------------------------------
-    # EL RELLOTGE del mode automatic de "Copiar informes"
+    # EL RELLOTGE dels modes automatics ("Copiar informes", "Actualitzar base")
     # ------------------------------------------------------------------------
     # Un Timer de WinForms i no un bucle: el menu ha de seguir responent. Cada
-    # minut demana a Invoke-CopiaAutoSiToca si toca la passada -ell ho decideix
-    # tot: si l'interruptor esta ences i si el venciment de les 14:30 encara no
-    # s'ha servit- i despres refresca el segell, que es l'unica cosa que es veu
-    # quan la copia ja s'ha fet.
+    # minut demana a cada eina del registre (SiToca) si toca la passada -ella ho
+    # decideix tot: si l'interruptor esta ences i si el venciment de la seva
+    # hora encara no s'ha servit- i despres refresca els segells, que es l'unica
+    # cosa que es veu quan la passada ja s'ha fet.
     #
     # LA PRIMERA COMPROVACIO ES AL 'Shown', no aqui: es la de "en obrir el
     # programa". Com que el menu es torna a obrir a cada volta de Main, tambe
@@ -1009,11 +1024,11 @@ function Select-Mode {
     $tmrAuto = New-Object System.Windows.Forms.Timer
     $tmrAuto.Interval = 60000
     $tmrAuto.add_Tick({
-        [void](Invoke-CopiaAutoSiToca)
-        & $refrescaAuto
+        foreach ($m in @($modesAuto.Values)) { [void](& $m.SiToca) }
+        foreach ($a in @($autos)) { & $refrescaAuto $a }
     }.GetNewClosure())
     $form.add_Shown({
-        [void](Invoke-CopiaAutoSiToca)
+        foreach ($m in @($modesAuto.Values)) { [void](& $m.SiToca) }
         $tmrAuto.Start()
     }.GetNewClosure())
     # El rellotge MOR AMB LA FINESTRA: un Timer viu que dispari sobre controls

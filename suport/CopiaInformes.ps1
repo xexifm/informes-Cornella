@@ -57,35 +57,16 @@ function _CopiaInformesStatePath {
     return [string](Join-Path $LocalActivitatsDir 'copia-informes-state.json')
 }
 
-# Retorna SEMPRE el diccionari sencer (buit si no hi ha fitxer o està corrupte),
-# així cap crider ha de comprovar si una clau hi és abans de llegir-la.
+# L'estat, amb les eines comunes dels modes automatics (ModeAutomatic.ps1):
+# SEMPRE el diccionari sencer, i en desar NOMES les claus que es donen.
+$Script:CopiaEstatPlantilla = [ordered]@{ generat_el = ''; copiat_el = ''; desti = ''; mode = ''; auto = $false; auto_el = '' }
+
 function _CopiaInformesEstat {
-    $out = [ordered]@{ generat_el = ''; copiat_el = ''; desti = ''; mode = ''; auto = $false; auto_el = '' }
-    $o = Read-JsonFile (_CopiaInformesStatePath)
-    if ($null -ne $o) {
-        foreach ($k in @('generat_el', 'copiat_el', 'desti', 'mode', 'auto_el')) {
-            if ($o.PSObject.Properties[$k]) { $out[$k] = [string](Read-JsonIso $o.$k) }
-        }
-        if ($o.PSObject.Properties['auto']) { $out['auto'] = [bool]$o.auto }
-    }
-    return $out
+    return (Read-EstatAuto (_CopiaInformesStatePath) $Script:CopiaEstatPlantilla)
 }
 
-# Desa NOMÉS les claus que li passes, damunt del que ja hi ha al fitxer. Mai
-# llança: si la carpeta no hi és (unitat de xarxa fora de servei) el programa ha
-# de seguir funcionant igual, que és el mateix criteri que _MarcaEinaUsada.
 function _CopiaInformesDesaEstat($canvis) {
-    try {
-        $p = _CopiaInformesStatePath
-        if ([string]::IsNullOrWhiteSpace($p)) { return $false }
-        $est = _CopiaInformesEstat
-        if ($null -ne $canvis) { foreach ($k in @($canvis.Keys)) { $est[$k] = $canvis[$k] } }
-        if ([string]::IsNullOrWhiteSpace([string]$est['generat_el'])) { $est['generat_el'] = (Get-Date).ToString('o') }
-        $dir = Split-Path -Parent $p
-        if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
-        Write-JsonFile $p ([pscustomobject]$est) 5
-        return $true
-    } catch { return $false }
+    return (Save-EstatAuto (_CopiaInformesStatePath) $canvis $Script:CopiaEstatPlantilla)
 }
 
 # ----------------------------------------------------------------------------
@@ -327,21 +308,15 @@ function Invoke-CopiarInformes {
 $Script:CopiaAutoHora  = 14
 $Script:CopiaAutoMinut = 30
 
-# L'últim venciment que ja hauria d'estar servit a l'hora $ara. PURA.
+# L'últim venciment que ja hauria d'estar servit a l'hora $ara, i si toca.
+# PURES (la regla és la de tots els modes automàtics: ModeAutomatic.ps1).
 function _CopiaAutoVenciment([datetime]$ara) {
-    $avui = New-Object datetime($ara.Year, $ara.Month, $ara.Day, $Script:CopiaAutoHora, $Script:CopiaAutoMinut, 0)
-    if ($ara -lt $avui) { return $avui.AddDays(-1) }
-    return $avui
+    return (_AutoVenciment $ara $Script:CopiaAutoHora $Script:CopiaAutoMinut)
 }
 
 # $ultimAuto: la marca 'auto_el' de l'estat (text ISO; buida si no s'ha fet mai).
-# PURA: no llegeix el disc ni el rellotge, per poder-la provar.
 function _CopiaAutoToca([datetime]$ara, $ultimAuto) {
-    $venc = _CopiaAutoVenciment $ara
-    $t = [string]$ultimAuto
-    if ([string]::IsNullOrWhiteSpace($t)) { return $true }
-    try { $fet = [datetime]::Parse($t) } catch { return $true }
-    return ($fet -lt $venc)
+    return (_AutoToca $ara $ultimAuto $Script:CopiaAutoHora $Script:CopiaAutoMinut)
 }
 
 # L'interruptor A/M del menú.
@@ -404,18 +379,9 @@ function Invoke-CopiarInformesAuto {
 
 # Registre de diagnòstic del mode automàtic (com el dels recordatoris: si no es
 # veu res, l'única manera de saber què ha passat és aquest fitxer).
-function _CopiaAutoLogPath {
-    return [string](Join-Path (Join-Path $env:LOCALAPPDATA 'InformesCornella') 'copia-informes-log.txt')
-}
+function _CopiaAutoLogPath { return (Get-AutoLogPath 'copia-informes-log.txt') }
 
-function _CopiaAutoLog([string]$msg) {
-    try {
-        $p = _CopiaAutoLogPath
-        $dir = Split-Path -Parent $p
-        if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
-        Add-Content -LiteralPath $p -Value ('[' + (Get-Date).ToString('yyyy-MM-dd HH:mm:ss') + '] ' + [string]$msg) -Encoding UTF8
-    } catch { }
-}
+function _CopiaAutoLog([string]$msg) { Write-AutoLog 'copia-informes-log.txt' $msg }
 
 # Llança la passada automàtica EN SEGON PLA i torna de seguida. El menú no es
 # pot quedar congelat mentre es recorre la carpeta d'informes, i tampoc no pot
@@ -424,14 +390,8 @@ function _CopiaAutoLog([string]$msg) {
 #
 # NOMÉS UN A LA VEGADA: si l'anterior encara corre (el menú es torna a obrir a
 # cada volta de Main), no se'n llança un altre.
-$Script:CopiaAutoProc = $null
-
 function Start-CopiaInformesAuto {
-    try {
-        if ($null -ne $Script:CopiaAutoProc -and -not $Script:CopiaAutoProc.HasExited) { return $false }
-    } catch { $Script:CopiaAutoProc = $null }
-    $Script:CopiaAutoProc = Start-ScriptSegonPla 'CopiaInformesAuto.ps1'
-    return ($null -ne $Script:CopiaAutoProc)
+    return (Start-ProcesAutoUnic 'copia' 'CopiaInformesAuto.ps1')
 }
 
 # El menú ho crida en obrir-se i a cada minut: si l'interruptor està en A i el
@@ -441,4 +401,21 @@ function Invoke-CopiaAutoSiToca {
     if (-not [bool]$est['auto']) { return $false }
     if (-not (_CopiaAutoToca (Get-Date) $est['auto_el'])) { return $false }
     return (Start-CopiaInformesAuto)
+}
+
+# L'interruptor A/M de la rajola (ModeAutomatic.ps1: el registre).
+$Script:ModesAuto['copiarinformes'] = @{
+    Titol     = 'Copiar informes'
+    Actiu     = { _CopiaAutoActiu }
+    DesaActiu = { param($on) _CopiaAutoDesaActiu $on }
+    UltimMode = { _CopiaInformesUltimMode }
+    SiToca    = { Invoke-CopiaAutoSiToca }
+    # Sense carpeta de copia no hi ha res a automatitzar, i deixar-ho ences
+    # sense desti seria un automatic que no fa res i no ho diu.
+    Requisit  = {
+        if (-not [string]::IsNullOrWhiteSpace($CopiaInformesDir)) { return '' }
+        return ("Per copiar els informes sols cal dir on s'han de copiar.`n`nVes a Configuraci" + [char]0x00F3 + " (el bot" + [char]0x00F3 + " de la roda, a dalt a la dreta) i indica 'Carpeta on copiar els informes'.")
+    }
+    TipA      = "Mode AUTOMATIC: es copia sol cada dia a les 14:30 (i en obrir el programa, si aquell dia no s'ha arribat a fer). Clica per passar a manual."
+    TipM      = "Mode MANUAL: nomes es copia quan cliques la rajola. Clica per posar-ho en automatic."
 }

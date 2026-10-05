@@ -146,6 +146,12 @@ Obre el programa i **fes captura**. Comprova-hi:
     columnes plenes** (adreça, dates, correus). Si alguna columna surt buida,
     és el lector de cel·la: apunta-ho.
 13. INFORMES → «Actualitzar base»: acaba i diu quants informes ha trobat.
+    Després posa el seu interruptor en **A**: si ja han passat les 14:00, en
+    pocs segons el registre `%LOCALAPPDATA%\InformesCornella\informes-db-log.txt`
+    ha de tenir una línia «Passada automatica: informes=…» i la data de sota la
+    rajola ha de sortir **en verd**. A «Editar base», corregeix una conclusió
+    breu: l'*Estat activitat* surt **en vermell**; torna a «Actualitzar base» i
+    la correcció hi ha de continuar. Clica la capçalera *GIA*: 9, 10, 103, 1000.
 14. GIA → «Comprovar Excel» i GIA → «Seguiment».
 15. **Al Gestor de tasques: cap `EXCEL.EXE` corrent** després de tot això.
     ```powershell

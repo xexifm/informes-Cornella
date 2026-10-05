@@ -582,6 +582,204 @@ $exprO = @{ 6 = { [string]$_.EstatActual }; 1 = { _GiaNumeric $_.Gia } }
 AssertEq (@(_OrdenaFilesBase $filesO $exprO 6 $true | ForEach-Object { "$($_.EstatActual):$($_.Gia)$($_.Carpeta)" }) -join ',') 'Favorable:9,Favorable:1000,Favorable:B,Requeriment:10,Requeriment:10,Requeriment:103' 'clic a Estat: l estat MANA i el GIA desempata (abans nomes ordenava dins de cada activitat)'
 AssertEq (@(_OrdenaFilesBase $filesO $exprO 1 $false | ForEach-Object { $_.Gia }) -join ',') ',1000,103,10,10,9' 'clic a GIA descendent: numeric (els sense GIA, que valen el maxim, primer)'
 
+Write-Host "`n--- ModeAutomatic.ps1: el comu dels modes automatics ---"
+# Una altra hora que la de la copia: la regla es la mateixa.
+Assert (-not (_AutoToca ([datetime]'2026-09-08T13:59:00') ([datetime]'2026-09-07T14:00:05').ToString('o') 14 0)) '_AutoToca 14:00: a les 13:59 encara no'
+Assert (_AutoToca ([datetime]'2026-09-08T14:00:00') ([datetime]'2026-09-07T14:00:05').ToString('o') 14 0) '_AutoToca 14:00: a les 14:00 en punt, si'
+AssertEq (_AutoVenciment ([datetime]'2026-09-08T08:00:00') 7 15) ([datetime]'2026-09-08T07:15:00') '_AutoVenciment: amb els minuts de l''eina'
+$tmpMA = Join-Path ([System.IO.Path]::GetTempPath()) ('mode-auto-' + [guid]::NewGuid().ToString('N'))
+try {
+    $plMA = [ordered]@{ auto = $false; auto_el = ''; mode = '' }
+    $pMA = Join-Path (Join-Path $tmpMA 'sub') 'estat.json'
+    $e0MA = Read-EstatAuto $pMA $plMA
+    AssertEq "$($e0MA['auto'])|$($e0MA['auto_el'])|$(@($e0MA.Keys).Count)" 'False||3' 'Read-EstatAuto: sense fitxer, la plantilla sencera'
+    Assert (Save-EstatAuto $pMA @{ auto = $true } $plMA) 'Save-EstatAuto: crea la carpeta i desa'
+    [void](Save-EstatAuto $pMA @{ mode = 'auto' } $plMA)
+    $e1MA = Read-EstatAuto $pMA $plMA
+    AssertEq "$($e1MA['auto'])|$($e1MA['mode'])" 'True|auto' 'Save-EstatAuto: nomes les claus que es donen (l''interruptor no s''ha perdut)'
+    Assert ($e1MA['auto'] -is [bool]) 'Read-EstatAuto: les claus [bool] de la plantilla es llegeixen com a bool'
+    Assert ($null -eq (Read-JsonFile $pMA).PSObject.Properties['generat_el']) 'Save-EstatAuto: no s''inventa generat_el si la plantilla no en te'
+    Set-Content -LiteralPath $pMA -Value '{ aixo no es json'
+    AssertEq ([bool](Read-EstatAuto $pMA $plMA)['auto']) $false 'Read-EstatAuto: un fitxer corrupte val com si no n''hi hagues'
+    AssertEq (Save-EstatAuto '' @{ auto = $true } $plMA) $false 'Save-EstatAuto: sense ruta, $false (mai llanca)'
+} finally { Remove-Item -LiteralPath $tmpMA -Recurse -Force -ErrorAction SilentlyContinue }
+$fetMA = @{ N = 0 }
+AssertEq (Invoke-AmbMutexUnic ('Global\InformesCornella.Prova.' + [guid]::NewGuid().ToString('N')) { $fetMA.N++ }) $true 'Invoke-AmbMutexUnic: lliure, fa la feina i torna $true'
+AssertEq $fetMA.N 1 'Invoke-AmbMutexUnic: ...una sola vegada'
+$errMA = ''
+try { [void](Invoke-AmbMutexUnic ('Global\InformesCornella.Prova.' + [guid]::NewGuid().ToString('N')) { throw 'peta' }) } catch { $errMA = [string]$_.Exception.Message }
+AssertEq $errMA 'peta' 'Invoke-AmbMutexUnic: l''error de la feina es propaga'
+
+# Un ALTRE PROCES que reté un mutex amb nom fins que se li diu: dins del mateix
+# fil el mutex es recursiu i no es podria veure mai "ocupat".
+$retenirMutex = {
+    param([string]$nom, [string]$dir)
+    $ok = Join-Path $dir 'agafat'; $prou = Join-Path $dir 'prou'
+    $cmd = "`$m = New-Object System.Threading.Mutex(`$false, '$nom'); [void]`$m.WaitOne(); Set-Content -LiteralPath '$ok' -Value 1; " +
+           "for (`$k = 0; `$k -lt 600 -and -not (Test-Path -LiteralPath '$prou'); `$k++) { Start-Sleep -Milliseconds 100 }; `$m.ReleaseMutex()"
+    $enc = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($cmd))
+    $spl = @{ FilePath = (Get-Process -Id $PID).Path; ArgumentList = @('-NoProfile', '-NonInteractive', '-EncodedCommand', $enc); PassThru = $true }
+    if ($PSVersionTable.PSEdition -eq 'Desktop' -or $IsWindows) { $spl.WindowStyle = 'Hidden' }
+    $p = Start-Process @spl
+    for ($k = 0; $k -lt 300 -and -not (Test-Path -LiteralPath $ok); $k++) { Start-Sleep -Milliseconds 100 }
+    return @{ Proc = $p; Prou = $prou; Agafat = (Test-Path -LiteralPath $ok) }
+}
+$deixarMutex = {
+    param($h)
+    Set-Content -LiteralPath $h.Prou -Value 1
+    try { [void]$h.Proc.WaitForExit(20000) } catch { }
+}
+
+Write-Host "`n--- InformesEscaneig.ps1: Actualitzar base en AUTOMATIC (d'extrem a extrem) ---"
+# .docx de veritat (un zip amb word/document.xml): l'escaneig els obre igual
+# que els de la feina.
+Add-Type -AssemblyName System.IO.Compression -ErrorAction SilentlyContinue
+$nouDocx = {
+    param([string]$path, [string[]]$paras)
+    $cos = ($paras | ForEach-Object { '<w:p><w:r><w:t xml:space="preserve">' + [System.Security.SecurityElement]::Escape($_) + '</w:t></w:r></w:p>' }) -join ''
+    $xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>' + $cos + '</w:body></w:document>'
+    $fs = [System.IO.File]::Create($path)
+    try {
+        $zip = New-Object System.IO.Compression.ZipArchive($fs, [System.IO.Compression.ZipArchiveMode]::Create)
+        $sw = New-Object System.IO.StreamWriter($zip.CreateEntry('word/document.xml').Open(), (New-Object System.Text.UTF8Encoding($false)))
+        $sw.Write($xml); $sw.Dispose(); $zip.Dispose()
+    } finally { $fs.Dispose() }
+}
+$ba = Join-Path ([System.IO.Path]::GetTempPath()) ('base-auto-' + [guid]::NewGuid().ToString('N'))
+$baInf = Join-Path $ba 'informes'; $baLoc = Join-Path $ba 'local'; $baAct = Join-Path $ba 'activitats'; $baApp = Join-Path $ba 'appdata'
+foreach ($d in @((Join-Path $baInf 'GIA 361'), (Join-Path $baInf 'GIA 362'), $baLoc, $baAct, $baApp)) { [void](New-Item -ItemType Directory -Path $d -Force) }
+$vellsBA = @{ Inf = $InformesDir; Loc = $LocalActivitatsDir; Act = $ActivitatsDir; App = $env:LOCALAPPDATA }
+$InformesDir = $baInf; $LocalActivitatsDir = $baLoc; $ActivitatsDir = $baAct; $env:LOCALAPPDATA = $baApp
+$req = "Vist l'anterior, no es pot donar per finalitzat el tr" + [char]0x00E0 + "mit."
+$fi  = "Vist l'anterior, es pot donar per finalitzat el tr" + [char]0x00E0 + "mit."
+$doc361 = Join-Path (Join-Path $baInf 'GIA 361') '2026-09-01_Req_GIA_361.docx'
+$doc362 = Join-Path (Join-Path $baInf 'GIA 362') '2026-09-02_Seg_GIA_362.docx'
+$dbBA = Join-Path $baLoc 'informes-db.json'
+try {
+    & $nouDocx $doc361 @('ID GIA: 361', 'Antecedents', $req, 'Ho poso al seu coneixement.')
+    & $nouDocx $doc362 @('ID GIA: 362', $fi, 'Ho poso al seu coneixement.')
+    $r1BA = Invoke-InformesDbAuto
+    AssertEq "$($r1BA.Ok)|$($r1BA.NInformes)|$($r1BA.NActivitats)" 'True|2|2' 'base auto: la passada llegeix els dos informes'
+    $eBA = _BaseAutoEstat
+    AssertEq ([string]$eBA['mode']) 'auto' 'base auto: consta que l''ha feta l''automatic (data en verd al menu)'
+    Assert (-not (_BaseAutoToca (Get-Date) $eBA['auto_el'])) 'base auto: el venciment queda servit (no es torna a llancar)'
+    $logBA = Get-Content -LiteralPath (Get-AutoLogPath 'informes-db-log.txt') -Raw
+    Assert ($logBA.Contains('informes=2')) 'base auto: el registre diu que ha fet'
+    $estats = { param($db) (@($db.activitats | ForEach-Object { "$($_.id_gia)=$($_.estat_actual)" }) -join ',') }
+    AssertEq (& $estats (Read-JsonFile $dbBA)) '361=Requeriment,362=FI Requeriment' 'base auto: l''estat de cada activitat'
+
+    # Una correccio a ma ("Editar base") a la 361, i els dos informes es tornen
+    # a escriure: la 361 diu ara "finalitzat" i la 362 "no finalitzat".
+    $db1 = Read-JsonFile $dbBA
+    $inf361 = @($db1.activitats | Where-Object { $_.id_gia -eq '361' })[0].informes[0]
+    _MarcaEditatAMa $inf361
+    $inf361.conclusio_breu = 'Precinte / Cessament'
+    Write-JsonFile $dbBA $db1 8
+    & $nouDocx $doc361 @('ID GIA: 361', $fi, 'Ho poso al seu coneixement.')
+    & $nouDocx $doc362 @('ID GIA: 362', $req, 'Ho poso al seu coneixement.')
+    foreach ($f in @($doc361, $doc362)) { (Get-Item -LiteralPath $f).LastWriteTimeUtc = (Get-Date).ToUniversalTime().AddMinutes(5) }
+    $r2BA = Invoke-InformesDbAuto
+    AssertEq ([int]$r2BA.Reprocessats) 2 'base auto: els dos informes tocats es tornen a llegir'
+    $db2 = Read-JsonFile $dbBA
+    AssertEq (& $estats $db2) '361=Precinte / Cessament,362=Requeriment' 'base auto: la correccio a ma PREVAL; la resta, el que diu l''informe ara'
+    $inf361b = @($db2.activitats | Where-Object { $_.id_gia -eq '361' })[0].informes[0]
+    AssertEq "$($inf361b.editat_a_ma)|$($inf361b.auto_conclusio_breu)" 'True|FI Requeriment' 'base auto: ...i es guarda el nou automatic per poder desfer'
+
+    # L'EDITOR obert mentre l'automatic actualitza: desar no pot tornar enrere.
+    $stE = @{ Db = (Read-JsonFile $dbBA); Path = $dbBA }
+    $stE.Segell = _SegellBase $stE.Db
+    $infE = @($stE.Db.activitats | Where-Object { $_.id_gia -eq '362' })[0].informes[0]
+    _MarcaEditatAMa $infE
+    $infE.ignorat = $true
+    $infE361 = @($stE.Db.activitats | Where-Object { $_.id_gia -eq '361' })[0].informes[0]
+    [void](_DesfesEditatAMa $infE361)
+    AssertEq (Save-BaseEditada $stE) 'desat' 'Save-BaseEditada: la base no ha canviat -> es desa tal qual'
+    # Ara si: l'automatic la reescriu (un informe nou) mentre l'editor es obert.
+    & $nouDocx (Join-Path (Join-Path $baInf 'GIA 362') '2026-09-03_Seg_GIA_362.docx') @('ID GIA: 362', $fi, 'Ho poso al seu coneixement.')
+    $stE.Db = Read-JsonFile $dbBA; $stE.Segell = _SegellBase $stE.Db
+    $infE2 = @($stE.Db.activitats | Where-Object { $_.id_gia -eq '361' })[0].informes[0]
+    _MarcaEditatAMa $infE2
+    $infE2.conclusio_breu = 'Ampliaci' + [char]0x00F3 + ' termini'
+    Start-Sleep -Milliseconds 50
+    [void](Invoke-InformesDbAuto)
+    AssertEq (Save-BaseEditada $stE) 'fusionat' 'Save-BaseEditada: la base ha canviat mentre era obert -> s''hi fusiona'
+    $db3 = Read-JsonFile $dbBA
+    AssertEq ([int]$db3.n_informes) 3 'fusio: l''informe nou de l''automatic no es perd'
+    AssertEq (& $estats $db3) ('361=Ampliaci' + [char]0x00F3 + ' termini,362=FI Requeriment') 'fusio: la correccio de l''editor hi es, i l''estat es recalcula'
+
+    # Ocupat: un altre proces esta escanejant (el boto, o l'automatic d'una
+    # altra finestra del programa).
+    $hBA = & $retenirMutex $Script:BaseMutexNom $ba
+    try {
+        Assert $hBA.Agafat 'prova: l''altre proces te el mutex de la base'
+        $ocMA = @{ N = 0 }
+        AssertEq (Invoke-AmbMutexUnic $Script:BaseMutexNom { throw 'no hauria de correr' } { $ocMA.N++ }) $false 'Invoke-AmbMutexUnic: ocupat -> no fa la feina i torna $false'
+        AssertEq $ocMA.N 1 'Invoke-AmbMutexUnic: ...i avisa ($siOcupat)'
+        [void](_BaseAutoDesaEstat @{ auto_el = '' })
+        $rOc = Invoke-InformesDbAuto
+        AssertEq ([string]$rOc.Error) 'ocupat' 'base auto: si ja s''esta actualitzant, no en fa un altre al damunt'
+        Assert (-not [string]::IsNullOrWhiteSpace([string](_BaseAutoEstat)['auto_el'])) 'base auto: ...pero el venciment queda servit'
+        AssertEq (Save-BaseEditada $stE) 'ocupat' 'Save-BaseEditada: mentre s''actualitza, no s''escriu (i es diu)'
+    } finally { & $deixarMutex $hBA }
+
+    # Sense la carpeta d'informes (fora de la feina): no es error, s'apunta.
+    $InformesDir = Join-Path $ba 'no-hi-es'
+    [void](_BaseAutoDesaEstat @{ auto_el = ''; mode = 'auto' })
+    $r4BA = Invoke-InformesDbAuto
+    AssertEq "$($r4BA.Ok)|$((_BaseAutoEstat)['mode'])" 'False|auto' 'base auto: sense la carpeta no fa res (i no toca el mode)'
+    Assert (-not [string]::IsNullOrWhiteSpace([string](_BaseAutoEstat)['auto_el'])) 'base auto: ...pero apunta la passada (si no, cada minut)'
+    Assert ((Get-Content -LiteralPath (Get-AutoLogPath 'informes-db-log.txt') -Raw).Contains('ATURAT')) 'base auto: ...i ho diu al registre'
+} finally {
+    $InformesDir = $vellsBA.Inf; $LocalActivitatsDir = $vellsBA.Loc; $ActivitatsDir = $vellsBA.Act; $env:LOCALAPPDATA = $vellsBA.App
+    Remove-Item -LiteralPath $ba -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+Write-Host "`n--- Informes.ps1: _FusionaEdicionsBase (desar l'editor damunt d'una base nova) ---"
+$mkInfF = { param($ruta, $breu, $ign, $ed) $o = [pscustomobject]@{ ruta = $ruta; data = '2026-01-01'; conclusio = ''; conclusio_breu = $breu; ignorat = $ign; editat_a_ma = $false }; if ($ed) { _MarcaEditatAMa $o; $o.conclusio_breu = $ed }; $o }
+$discF = [pscustomobject]@{ activitats = @(
+    [pscustomobject]@{ id_gia = '1'; estat_actual = 'Requeriment'; informes = @((& $mkInfF 'a' 'Requeriment' $false $null)) },
+    [pscustomobject]@{ id_gia = '2'; estat_actual = 'Precinte / Cessament'; informes = @((& $mkInfF 'b' 'Favorable' $false 'Precinte / Cessament')) },
+    [pscustomobject]@{ id_gia = '3'; estat_actual = 'Favorable'; informes = @((& $mkInfF 'c' 'Favorable' $false $null), (& $mkInfF 'nou' 'Requeriment' $false $null)) }) }
+$editorF = [pscustomobject]@{ activitats = @(
+    [pscustomobject]@{ id_gia = '1'; informes = @((& $mkInfF 'a' 'Requeriment' $false 'FI Requeriment')) },
+    [pscustomobject]@{ id_gia = '2'; informes = @((& $mkInfF 'b' 'Favorable' $false $null)) },
+    [pscustomobject]@{ id_gia = '3'; informes = @((& $mkInfF 'c' 'Favorable' $false $null)) }) }
+$fF = _FusionaEdicionsBase $discF $editorF
+AssertEq (@($fF.activitats | ForEach-Object { "$($_.id_gia)=$($_.estat_actual)" }) -join ',') '1=FI Requeriment,2=Favorable,3=Favorable' 'fusio: la correccio entra, el desfet es desfa, la resta igual'
+AssertEq "$($fF.activitats[0].informes[0].editat_a_ma)|$($fF.activitats[0].informes[0].auto_conclusio_breu)" 'True|Requeriment' 'fusio: el valor automatic, el del disc'
+AssertEq "$($fF.activitats[1].informes[0].editat_a_ma)|$($null -eq $fF.activitats[1].informes[0].PSObject.Properties['auto_ignorat'])" 'False|True' 'fusio: el desfet torna a l''automatic del disc'
+AssertEq @($fF.activitats[2].informes).Count 2 'fusio: l''informe nou del disc hi es'
+
+Write-Host "`n--- ModeAutomatic.ps1: el registre dels interruptors A/M ---"
+foreach ($kMA in @('copiarinformes', 'informesdb')) {
+    Assert ($Script:ModesAuto.Contains($kMA)) "registre: '$kMA' hi es"
+    foreach ($cMA in @('Titol', 'Actiu', 'DesaActiu', 'UltimMode', 'SiToca', 'Requisit', 'TipA', 'TipM')) {
+        Assert ($null -ne $Script:ModesAuto[$kMA][$cMA]) "registre: '$kMA' te $cMA"
+    }
+}
+$rgDir = Join-Path ([System.IO.Path]::GetTempPath()) ('registre-' + [guid]::NewGuid().ToString('N'))
+[void](New-Item -ItemType Directory -Path $rgDir -Force)
+$vellsRG = @{ Loc = $LocalActivitatsDir; Inf = $InformesDir; Cop = $CopiaInformesDir }
+$LocalActivitatsDir = $rgDir
+try {
+    $mB = $Script:ModesAuto['informesdb']
+    AssertEq ([bool](& $mB.Actiu)) $false 'registre base: l''interruptor arrenca apagat'
+    [void](& $mB.DesaActiu $true)
+    AssertEq ([bool](& $mB.Actiu)) $true 'registre base: DesaActiu / Actiu'
+    [void](_BaseAutoDesaEstat @{ mode = 'manual' })
+    AssertEq ([string](& $mB.UltimMode)) 'manual' 'registre base: UltimMode'
+    AssertEq ([bool](& $mB.Actiu)) $true 'registre base: desar el mode no apaga l''interruptor'
+    $InformesDir = ''
+    Assert (([string](& $mB.Requisit)).Contains('Configuraci')) 'registre base: sense carpeta d''informes no es pot engegar'
+    $InformesDir = 'X:\Informes'
+    AssertEq ([string](& $mB.Requisit)) '' 'registre base: amb carpeta, si'
+    $CopiaInformesDir = ''
+    Assert (([string](& $Script:ModesAuto['copiarinformes'].Requisit)).Contains('Configuraci')) 'registre copia: sense carpeta de copia no es pot engegar'
+} finally {
+    $LocalActivitatsDir = $vellsRG.Loc; $InformesDir = $vellsRG.Inf; $CopiaInformesDir = $vellsRG.Cop
+    Remove-Item -LiteralPath $rgDir -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 Write-Host "`n--- Settings.ps1: _ResolveEffectiveValue (override d'aquest PC vs valor per defecte) ---"
 AssertEq (_ResolveEffectiveValue 'F:\Informes' 'I:\Informes') 'F:\Informes' '_ResolveEffectiveValue amb override -> guanya l''override'
 AssertEq (_ResolveEffectiveValue '' 'I:\Informes')            'I:\Informes' '_ResolveEffectiveValue buit -> per defecte'

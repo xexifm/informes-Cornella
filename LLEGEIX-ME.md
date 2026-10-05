@@ -592,6 +592,12 @@ exemple, si en portes el seguiment per una altra via).
 
 - **🗃 Actualitzar base d'informes**: recorre els informes ja fets i n'extreu
   data, ID GIA i conclusió a `local/base-dades-activitats/informes-db.json`.
+  També té interruptor **A / M** (vegeu més avall): en **A** es fa sola cada
+  dia a les **14:00**.
+- **📋 Editar base d'informes**: el que hi corregeixes a mà (la conclusió breu o
+  l'«ignorar») **mana** sobre el que surti d'*Actualitzar base*, i l'*Estat
+  activitat* d'aquelles activitats surt **en vermell** perquè ho tinguis present.
+  Si t'has equivocat, selecciona la fila i clica **Desfer canvi a mà**.
 - **📋 Editar base d'informes**, **📥 Revisar entrades del mòbil**,
   **⏱ Controls periòdics**, **Activitats extraordinàries**.
 
@@ -635,6 +641,21 @@ d'un cop d'ull saps si l'automàtic està treballant de debò o només està enc
 > Si mai vols saber què ha fet, hi ha un registre a
 > `%LOCALAPPDATA%\InformesCornella\copia-informes-log.txt` amb una línia per
 > passada.
+
+### Actualitzar la base sola cada dia (també **A** / **M**)
+
+Sota **🗃 Actualitzar base** hi ha el mateix interruptor. En **A**, la base
+d'informes s'actualitza sola cada dia **a les 14:00** (o en obrir el programa,
+si aquell dia no s'ha arribat a fer), en segon pla i sense que es vegi res. La
+data surt en verd si l'última actualització la va fer sola.
+
+- El que hagis corregit a **📋 Editar base** **no es perd**: mana sobre el que
+  surti de l'actualització.
+- Si tens l'editor obert mentre s'actualitza, en desar s'hi afegeixen els teus
+  canvis i el programa t'avisa perquè el tornis a obrir i hi vegis els informes
+  nous. Si li toca desar just mentre s'està actualitzant, et dirà que hi tornis
+  d'aquí una estona.
+- Registre: `%LOCALAPPDATA%\InformesCornella\informes-db-log.txt`.
 
 ---
 

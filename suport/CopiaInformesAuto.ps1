@@ -32,26 +32,15 @@ $MotorSenseGui = $true
 # el seu handle es d'aquella instancia del programa: si se n'obre una altra (o
 # el mateix menu es torna a obrir despres d'un tancament brusc), dos processos
 # copiant a la mateixa carpeta es trepitjarien l'estat i el segon reescriuria
-# 'copiat_el' amb una passada a mitges. Aqui NO s'espera: si ja n'hi ha un fent
-# la feina, aquest no hi te res a fer.
-$mutex = $null
-$tinc = $false
+# 'copiat_el' amb una passada a mitges. Invoke-AmbMutexUnic (ModeAutomatic.ps1)
+# NO espera: si ja n'hi ha un fent la feina, aquest no hi te res a fer.
 try {
-    $mutex = New-Object System.Threading.Mutex($false, 'Global\InformesCornella.CopiaInformesAuto')
-    try { $tinc = $mutex.WaitOne(0) } catch [System.Threading.AbandonedMutexException] { $tinc = $true }
-} catch { $mutex = $null; $tinc = $true }
-if (-not $tinc) {
-    _CopiaAutoLog 'Passada automatica: ja n hi ha una en marxa, no es fa res.'
-    exit 0
-}
-
-try {
-    [void](Invoke-CopiarInformesAuto)
+    [void](Invoke-AmbMutexUnic 'Global\InformesCornella.CopiaInformesAuto' {
+        [void](Invoke-CopiarInformesAuto)
+    } { _CopiaAutoLog 'Passada automatica: ja n hi ha una en marxa, no es fa res.' })
     exit 0
 } catch {
     _CopiaAutoLog ("ERROR no controlat: " + $_.Exception.Message + ' @ ' +
                    $_.InvocationInfo.ScriptName + ':' + $_.InvocationInfo.ScriptLineNumber)
     exit 1
-} finally {
-    if ($null -ne $mutex) { try { $mutex.ReleaseMutex() } catch { }; try { $mutex.Dispose() } catch { } }
 }
