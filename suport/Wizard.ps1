@@ -51,9 +51,9 @@ function Main {
             'emailtextos'    { Invoke-EmailTextos }    # edita els textos del correu del mobil
             'enviarcorreu'   { Invoke-EnviarCorreu }   # obre la web del mobil precarregada per enviar el correu
             'llicencia'  { Invoke-LlicenciaWizard (_LlicFases) (_LlicTitolAssistent $false) }
-            # MNS / Traspas: el MATEIX assistent, nomes que amb les seves fases.
+            # MNS / Transmissio: el MATEIX assistent, nomes que amb les seves fases.
             # Comparteixen capcalera, tramit i base de dades amb Llicencia.
-            'mnstraspas' { Invoke-LlicenciaWizard (_MnsFases) (_LlicTitolAssistent $true) }
+            'mnstrans' { Invoke-LlicenciaWizard (_MnsFases) (_LlicTitolAssistent $true) }
             # El que es recorda de cada llicencia. El boto "Generar" d'una fila
             # tanca la base i obre l'assistent d'aquella activitat.
             'llicdb'     { $gen = Show-LlicenciaDb; if ($null -ne $gen) { Invoke-LlicenciaDesDeFitxa $gen } }

@@ -167,6 +167,33 @@ function _MouVistesCatalegs([string]$repoRoot) {
     return $moguts
 }
 
+# CATALEGS QUE HAN CANVIAT DE NOM. MNSTRAS.json es va dir MNSTRANS.json
+# (octubre 2026: l'usuari, "l'informe de transmissio s'hauria de dir TRANS").
+# Si l'usuari havia editat el vell, Actualitzar.bat el torna a posar a
+# ESTRUCTURALS despres del pull ("la versio de l'usuari preval") i hi quedaria
+# un cataleg que ja no llegeix ningu. Es MOU (mai s'esborra) a
+# local\catalegs-antics\, on la seva feina es pot recuperar.
+$Script:CatalegsReanomenats = @(@{ Vell = 'MNSTRAS.json'; Nou = 'MNSTRANS.json' })
+
+function _JubilaCatalegsReanomenats([string]$repoRoot) {
+    $estr = Join-Path $repoRoot 'ESTRUCTURALS'
+    $moguts = 0
+    foreach ($c in $Script:CatalegsReanomenats) {
+        $vell = Join-Path $estr ([string]$c.Vell)
+        if (-not (Test-Path -LiteralPath $vell -PathType Leaf)) { continue }
+        if (-not (Test-Path -LiteralPath (Join-Path $estr ([string]$c.Nou)) -PathType Leaf)) { continue }
+        $desti = Join-Path (Get-LocalDir $repoRoot) 'catalegs-antics'
+        try {
+            if (-not (Test-Path -LiteralPath $desti)) { New-Item -ItemType Directory -Path $desti -Force -ErrorAction Stop | Out-Null }
+            $dst = Join-Path $desti ([System.IO.Path]::GetFileNameWithoutExtension([string]$c.Vell) + '-' + (Get-Date).ToString('yyyyMMdd-HHmmss') + '.json')
+            Move-Item -LiteralPath $vell -Destination $dst -Force -ErrorAction Stop
+            Write-Host ("  El cataleg '{0}' ara es diu '{1}': el teu antic es a '{2}'." -f $c.Vell, $c.Nou, $dst)
+            $moguts++
+        } catch { Write-Host ("  avis: no s'ha pogut moure '{0}' ({1})" -f $c.Vell, $_.Exception.Message) }
+    }
+    return $moguts
+}
+
 # settings.json pot tenir rutes ABSOLUTES que apuntin a les carpetes velles
 # (la pantalla de Configuracio hi desa el que l'usuari hagi triat). Si hi
 # apunten, s'hi reescriu la nova; si l'usuari havia triat una carpeta seva de
@@ -215,6 +242,7 @@ function Invoke-MigracioLocal([string]$repoRoot = '') {
             $total += (_MouContingut $m.Origen $m.Desti)
         }
         $total += (_MouVistesCatalegs $repoRoot)
+        $total += (_JubilaCatalegsReanomenats $repoRoot)
         if ($total -gt 0) {
             [void](_ActualitzaSettingsLocal $repoRoot)
             Write-Host ("Endrecat: {0} elements moguts a '{1}\'." -f $total, $Script:LocalDirName)

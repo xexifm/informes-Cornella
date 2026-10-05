@@ -97,7 +97,7 @@ foreach ($mode in @('req', 'fav')) {
 
 # ---------------------------------------------------------------------------
 Write-Host "`n--- Fitxers d'or: les VISTES dels catalegs ---"
-foreach ($nomV in @('REQ1', 'TERMINI', 'ACT_EXTR_REQ', 'ACT_EXTR_FAV', 'LLIC', 'MNSTRAS', '0 CONCLUSIONS')) {
+foreach ($nomV in @('REQ1', 'TERMINI', 'ACT_EXTR_REQ', 'ACT_EXTR_FAV', 'LLIC', 'MNSTRANS', '0 CONCLUSIONS')) {
     $jp = Join-Path $EstructuralsDir ($nomV + '.json')
     if (-not (Test-Path -LiteralPath $jp)) { continue }
     $o = _LoadEstructuralJson $jp
@@ -107,21 +107,21 @@ foreach ($nomV in @('REQ1', 'TERMINI', 'ACT_EXTR_REQ', 'ACT_EXTR_FAV', 'LLIC', '
         'conclusions' { _VistaConclusions $sel $jp }
         'actextr'     { _VistaActExtr $sel $jp $nomV }
         'llicencia'   { _VistaLlicencia $sel $jp }
-        'mnstraspas'  { _VistaMnsTraspas $sel $jp }
+        'mnstrans'    { _VistaMnsTrans $sel $jp }
         default       { continue }
     }
     Assert-Golden ('vista-' + ($nomV -replace '[^A-Za-z0-9]+', '-').ToLower()) $global:emitCalls
 }
 
 # ---------------------------------------------------------------------------
-# LLICENCIA i MNS/TRASPAS: el document SENCER
+# LLICENCIA i MNS/TRANSMISSIO: el document SENCER
 # ---------------------------------------------------------------------------
 # Aquestes dues families no s'aturen a _WriteCatalegBody: munten el document
 # senceres (Build-LlicenciaDocument / Build-MnsDocument), i alli hi ha la
 # logica mes subtil del repositori -l'ordre dels enllacos respecte del
 # comentari, l'estat de cada punt segons la fase, l'ANNEX 1-. Per aixo el
 # fitxer d'or es de la generacio completa, amb un Word de mentida.
-Write-Host "`n--- Fitxers d'or: LLICENCIA i MNS/TRASPAS (document sencer) ---"
+Write-Host "`n--- Fitxers d'or: LLICENCIA i MNS/TRANSMISSIO (document sencer) ---"
 $llicJson = Join-Path $EstructuralsDir 'LLIC.json'
 $req1Json = Join-Path $EstructuralsDir 'REQ1.json'
 if ((Test-Path -LiteralPath $llicJson) -and (Test-Path -LiteralPath $req1Json)) {
@@ -186,13 +186,13 @@ if ((Test-Path -LiteralPath $llicJson) -and (Test-Path -LiteralPath $req1Json)) 
     [void](Build-LlicenciaDocument $wordD $modelP)
     Assert-Golden 'llicencia-provisional-annex1' $global:emitCalls
 
-    # MNS i TRASPAS, amb punts de REQ1 i sense (les dues branques de la
+    # MNS i TRANSMISSIO, amb punts de REQ1 i sense (les dues branques de la
     # frase d'observacions i del bloc de CONCLUSIONS).
-    $mnsJson = Join-Path $EstructuralsDir 'MNSTRAS.json'
+    $mnsJson = Join-Path $EstructuralsDir 'MNSTRANS.json'
     if (Test-Path -LiteralPath $mnsJson) {
         $mnsCat = _LoadEstructuralJson $mnsJson
         $puntsReq1 = Build-SelectionFromKeys $req1.Sections (@(_GdTriaPrimers $req1 1) | Select-Object -First 2)
-        foreach ($fase in @('mns', 'traspas')) {
+        foreach ($fase in @('mns', 'trans')) {
             foreach ($amb in @($true, $false)) {
                 $model = @{
                     Fase = $fase; Header = $capcal; Fields = [ordered]@{}

@@ -511,9 +511,9 @@ if (-not $Script:HeadlessTest) { [void](Invoke-MigracioLocal $RepoRoot) }
 . (Join-Path $ScriptRoot 'LlicenciaBlocs.ps1')
 . (Join-Path $ScriptRoot 'LlicenciaPantalles.ps1')
 . (Join-Path $ScriptRoot 'Llicencia.ps1')
-# Els dos informes CURTS de llicencia (Modificacio NO Substancial i Traspas).
+# Els dos informes CURTS de llicencia (Modificacio NO Substancial i Transmissio).
 # Van despres de Llicencia.ps1: la pantalla del pas 1 hi ajunta les seves fases.
-. (Join-Path $ScriptRoot 'MnsTraspas.ps1')
+. (Join-Path $ScriptRoot 'MnsTrans.ps1')
 
 # Editor dels textos del correu del mobil (docs\dades\email-textos.json).
 # Funcions pures testejables; la finestra (WinForms) nomes a Windows.
@@ -743,13 +743,13 @@ function Get-Catalegs {
     # Llicencia (per cada requeriment de REQ1, el "No es disposa", el "Es
     # disposa" i el "Quan:"). Els seus items NO tenen text propi -el treuen de
     # REQ1 en viu-, o sigui que triar-lo aqui donaria un informe buit.
-    # MNSTRAS.json tampoc: es el text FIX dels dos informes curts de Llicencia
-    # (Modificacio NO Substancial i Traspas), no una llista de deficiencies.
+    # MNSTRANS.json tampoc: es el text FIX dels dos informes curts de Llicencia
+    # (Modificacio NO Substancial i Transmissio), no una llista de deficiencies.
     Get-ChildItem -LiteralPath $EstructuralsDir -Filter '*.json' |
         Where-Object {
             $_.Name -notlike '0 *' -and $_.Name -notlike '0_*' -and
             $_.Name -notlike 'ACT_EXTR*' -and $_.Name -ne 'LLIC.json' -and
-            $_.Name -ne 'MNSTRAS.json' -and
+            $_.Name -ne 'MNSTRANS.json' -and $_.Name -ne 'MNSTRAS.json' -and
             -not $_.Name.StartsWith('~$')
         } |
         Sort-Object Name

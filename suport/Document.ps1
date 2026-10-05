@@ -56,7 +56,7 @@ function Get-TextTancament {
 # UNA CONCLUSIO en blocs: si es la frase de tancament ("Ho poso al seu
 # coneixement..."), amb la separacio al davant. PURA. Es l'UNIC lloc que aplica
 # aquesta regla per als informes que passen pel motor (REQ1, TERMINI, MNS,
-# Traspas i Llicencia); ACT_EXTR encara escriu pel seu compte i la hi aplica alla.
+# Transmissio i Llicencia); ACT_EXTR encara escriu pel seu compte i la hi aplica alla.
 function _BlocsConclusio([string]$text) {
     $out = New-Object System.Collections.ArrayList
     if (_EsFraseTancament $text) { [void]$out.Add(@{ T = 'separa' }) }
@@ -76,7 +76,7 @@ function _BlocsTancament($fields = $null) {
 
 
 # EL BLOC DE CONCLUSIONS en blocs (titol, conclusions i les frases de sempre).
-# PURA: la fan servir REQ1/TERMINI (_WriteConclusionsBlock) i MNS/Traspas.
+# PURA: la fan servir REQ1/TERMINI (_WriteConclusionsBlock) i MNS/Transmissio.
 function _BlocsConclusions($headerText, $conclusions, $alwaysConclusions, $fields) {
     $conclusions = @($conclusions); $alwaysConclusions = @($alwaysConclusions)
     $hasBody = ($conclusions.Count -gt 0) -or ($alwaysConclusions.Count -gt 0)

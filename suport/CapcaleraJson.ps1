@@ -51,7 +51,7 @@ function _CapAplicaDe([string]$clau) {
         'ACT_EXTR' { return @(('Activitats extraordin' + [char]0x00E0 + 'ries')) }
         'LLIC'     { return @(('Llic' + [char]0x00E8 + 'ncia (Annex II / LL Prov)'),
                               ('Modificaci' + [char]0x00F3 + ' NO Substancial'),
-                              ('Trasp' + [char]0x00E0 + 's')) }
+                              ('Transmissi' + [char]0x00F3)) }
     }
     return @('Requeriment - Nou (REQ1)',
              ('Ampliaci' + [char]0x00F3 + ' de termini (TERMINI)'),

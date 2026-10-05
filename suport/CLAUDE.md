@@ -10,7 +10,7 @@ hipotesis ja descartades- viuen ara a part:
 | Abans de tocar... | Llegeix |
 |---|---|
 | `suport/PdfSignar.ps1`, `suport/PdfCms.ps1` (Word a PDF, AutoFirma, la validesa de la signatura) | **`suport/documentacio/signatura-pdf.md`** |
-| `suport/Llicencia*.ps1` (Dades, Blocs, Pantalles i l'assistent), `LlicenciaDb.ps1`, `MnsTraspas.ps1`, `ESTRUCTURALS/LLIC.json` | **`suport/documentacio/llicencia.md`** |
+| `suport/Llicencia*.ps1` (Dades, Blocs, Pantalles i l'assistent), `LlicenciaDb.ps1`, `MnsTrans.ps1`, `ESTRUCTURALS/LLIC.json` | **`suport/documentacio/llicencia.md`** |
 | `suport/rutes/` (rutes, coordenades, el Plànol activitats, el planol public de precintades) | **`suport/documentacio/rutes-i-mapes.md`** |
 | Posar el mobil en marxa (Drive, EmailJS, GitHub Pages) | **`suport/documentacio/DESPLEGAMENT-MOBIL.md`** |
 | Provar el programa al PC despres d'una tanda de canvis | **`suport/documentacio/provar-al-pc.md`** (porta un prompt per enganxar) |
@@ -334,6 +334,11 @@ els llegís no fallaria — generaria un informe **silenciosament equivocat**. S
   del `return ,([string[]]$s)` és deliberat). Consumeix-lo com
   `$sel = & $mf.GetSelected`, **sense `@()`** al voltant: `@()` l'embolcallaria
   en un array d'un element i trencaria el "cap opció marcada = passa tot".
+- **Una funció que torna una llista BUIDA no torna res**: `$x = f` deixa `$x` a
+  `$null`, i després `@($x)` val **`@($null)` — un element**. L'`@()` va a la
+  **crida** (`$x = @(f)`), no on es fa servir. Va passar a `Select-Items`: sense
+  cap punt marcat, la MNS deia «amb les següents observacions» amb un «1.» buit
+  i la conclusió de requeriment (octubre 2026).
 - **Helpers de graella** (`UiComuns.ps1`): `_StyleListGrid` (carcassa),
   `_AddSearchBox`, `_EnableHeaderSort` + `_SetSortGlyph` (ordre programàtic amb
   fletxa). Els fan servir *Editar base d'informes* i *Controls periòdics*.
@@ -774,10 +779,10 @@ es quedi sense `norma` ni `criteri`, que `revisat` sigui `AAAA-MM` i que cap
 camp estigui mal escrit —un `competència` amb accent es llegiria com a buit
 sense dir-ho ningú.
 
-## Llicència, MNS i Traspàs → un document a part
+## Llicència, MNS i Transmissió → un document a part
 
 Tot això (l'assistent, `LLIC.json`, la base de dades de llicències, els tres
-informes que resulta que són el mateix, i MNS/Traspàs) és a
+informes que resulta que són el mateix, i MNS/Transmissió) és a
 **`suport/documentacio/llicencia.md`**.
 
 ## La capçalera i les conclusions, editables des del programa
@@ -1111,7 +1116,7 @@ mal escrit no pot afegir una línia en blanc a un informe en silenci.
   `Build-ActExtrVistaBlocs`, `Build-MnsVistaBlocs` i
   `Build-ConclusionsVistaBlocs` (pures) + `Write-Informe -AmbNivells`. Els
   onze embolcalls `_V*` es van esborrar (setembre 2026); el fitxer d'or de la
-  vista de MNS/Traspàs només hi va guanyar les línies `AIRE|`.
+  vista de MNS/Transmissió només hi va guanyar les línies `AIRE|`.
 
 ### El vocabulari de blocs (`Write-Informe`)
 `seccio`, `subseccio`, `etiqueta`, `item`, `cos`, `pic`, `nota`, `enllac`,
@@ -1168,7 +1173,7 @@ CONCLCAP|CONCLUSIONS
 - **19 escenaris FIXOS** (els N primers ítems de cada secció; cap dada que
   depengui de la data ni de la màquina): REQ1, TERMINI, ACT_EXTR req i fav, les
   7 vistes, els 3 informes de Llicència, la provisional amb ANNEX 1, i
-  MNS/Traspàs amb punts de REQ1 i sense.
+  MNS/Transmissió amb punts de REQ1 i sense.
 - Quan una comparació falla diu **la primera línia que difereix**, amb
   l'esperat i l'obtingut: la resta acostuma a ser el mateix desplaçat una
   posició, i abocar-ho tot amagaria la línia que importa.
@@ -1198,12 +1203,12 @@ vista de `LLIC.json` (`Build-LlicVistaBlocs`, `VistaWord.ps1`) fa servir la
   (Format-SeparaAnterior). Les conclusions i el tancament (`_BlocsConclusio`,
   `_BlocsTancament`, `Document.ps1`) també són blocs: la regla de la separació
   de «Ho poso al seu coneixement» és a **un** lloc per a REQ1, TERMINI, MNS,
-  Traspàs i Llicència.
+  Transmissió i Llicència.
 - Guards: `Llicencia.ps1` sense cap `Format-*` directe, i la variable de l'intro
   de secció només dins de `_LlicBlocsPunts` (validats injectant el defecte).
 
 ### TOTS els informes passen pel motor (setembre 2026)
-Llicència (`Build-LlicenciaBlocs`), MNS/Traspàs (`Build-MnsBlocs`) i ACT_EXTR
+Llicència (`Build-LlicenciaBlocs`), MNS/Transmissió (`Build-MnsBlocs`) i ACT_EXTR
 (`Build-ActExtrBlocs`) ja són blocs purs com REQ1: **cap família crida les
 `Format-*` directament** i hi ha guard que ho vigila (validat injectant-ne una).
 Es va fer una família per commit i amb els fitxers d'or idèntics a cada pas.

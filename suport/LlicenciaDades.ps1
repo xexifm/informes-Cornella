@@ -631,7 +631,7 @@ function _LlicCondicioEntra([string]$condicio, [bool]$esProvisional) {
 }
 
 # TOTES LES FASES que ofereix el pas 1 de Llicencia: les tres de l'informe
-# llarg i les dues curtes (Modificacio NO Substancial i Traspas). Funcio PURA.
+# llarg i les dues curtes (Modificacio NO Substancial i Transmissio). Funcio PURA.
 #
 # Van juntes al mateix menu perque per a l'usuari son "l'informe de la
 # llicencia" i comparteixen capcalera; el que canvia es el document que en
@@ -641,7 +641,7 @@ function _LlicCondicioEntra([string]$condicio, [bool]$esProvisional) {
 # Retorna $preFase si es de la llista, i si no la PRIMERA de la llista.
 #
 # ATENCIO al motiu: aqui hi havia un 'requeriment' escrit al codi com a
-# respatller. Des que MNS/Traspas te entrada propia, la seva llista NO en te
+# respatller. Des que MNS/Transmissio te entrada propia, la seva llista NO en te
 # cap, i la pantalla petava amb "La propiedad 'Checked' no se encuentra en este
 # objeto" -perque $radios['requeriment'] era $null. Cap llista de fases pot
 # donar per fet quines fases porta.

@@ -160,8 +160,8 @@ Assert ([bool]($cPost -like '`*`**')) '_LlicConclusioText: la negreta ve del cat
 $srcLlicC = _SrcLlicencia
 Assert (-not ($srcLlicC -match 'Conclusio\s*=')) 'Llicencia: cap text de conclusio escrit al codi'
 Assert (-not ($srcLlicC.Contains('Ho poso al seu coneixement'))) 'Llicencia: ni el tancament'
-$srcMnsC = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $TestsDir) 'MnsTraspas.ps1') -Raw
-Assert (-not ($srcMnsC.Contains('Ho poso al seu coneixement'))) 'MnsTraspas: ni el tancament'
+$srcMnsC = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $TestsDir) 'MnsTrans.ps1') -Raw
+Assert (-not ($srcMnsC.Contains('Ho poso al seu coneixement'))) 'MnsTrans: ni el tancament'
 # ...i el cataleg les te totes, una per fase (i els dos favorables, amb i sense
 # condicions).
 $grLlic = Read-Conclusions $Global:ConclusionsPath 'LLIC'
@@ -290,6 +290,21 @@ $vells = @($migs | ForEach-Object { Split-Path -Leaf $_.Origen })
 AssertEq ($vells -join '|') 'Informes generats|Rutes generades|BASE DE DADES ACTIVITATS|BASE DE DADES ACT_EXTR' 'Get-MigracionsLocal: origens = les carpetes velles de l''arrel'
 AssertEq $migs[2].Desti ($tstLocal + 'base-dades-activitats') 'Get-MigracionsLocal: desti dins de local'
 AssertEq ([bool](@($migs | Where-Object { $_.Origen -like '*ESTRUCTURALS*' }).Count -eq 0)) $true 'Get-MigracionsLocal: ESTRUCTURALS no es mou (les vistes van a part)'
+# Un cataleg que ha canviat de nom (MNSTRAS -> MNSTRANS): si el vell torna a
+# ESTRUCTURALS (Actualitzar.bat hi restaura els que l'usuari havia editat), es
+# MOU a local\catalegs-antics\ i no queda com un cataleg fantasma.
+$tmpJub = Join-Path ([System.IO.Path]::GetTempPath()) ('jubila-' + [guid]::NewGuid().ToString('N'))
+try {
+    [void](New-Item -ItemType Directory -Path (Join-Path $tmpJub 'ESTRUCTURALS') -Force)
+    Set-Content -LiteralPath (Join-Path (Join-Path $tmpJub 'ESTRUCTURALS') 'MNSTRAS.json') -Value '{"vell":1}'
+    AssertEq (_JubilaCatalegsReanomenats $tmpJub) 0 'catalegs reanomenats: sense el nou, el vell NO es toca'
+    Set-Content -LiteralPath (Join-Path (Join-Path $tmpJub 'ESTRUCTURALS') 'MNSTRANS.json') -Value '{"nou":1}'
+    AssertEq (_JubilaCatalegsReanomenats $tmpJub) 1 'catalegs reanomenats: amb el nou, el vell se''n va'
+    Assert (-not (Test-Path -LiteralPath (Join-Path (Join-Path $tmpJub 'ESTRUCTURALS') 'MNSTRAS.json'))) 'catalegs reanomenats: ...d''ESTRUCTURALS'
+    $antics = @(Get-ChildItem -LiteralPath (Join-Path (Join-Path $tmpJub 'local') 'catalegs-antics') -Filter 'MNSTRAS-*.json')
+    AssertEq $antics.Count 1 'catalegs reanomenats: ...a local\catalegs-antics (mai s''esborra)'
+    AssertEq ((Get-Content -LiteralPath $antics[0].FullName -Raw).Trim()) '{"vell":1}' 'catalegs reanomenats: ...amb el contingut de l''usuari'
+} finally { Remove-Item -LiteralPath $tmpJub -Recurse -Force -ErrorAction SilentlyContinue }
 
 # La CLASSIFICACIO surt SOLA de l'Excel; ja no es pregunta. La llei la diu la
 # columna "Classificacio general annex".

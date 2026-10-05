@@ -305,12 +305,14 @@ AssertEq ([string]$genJ.Fase) 'favorable-pre' 'Generar: la fase de l''ultim info
 AssertEq ([bool]$genJ.Prov) $true 'Generar: el tipus (llicencia provisional)'
 AssertEq ([bool]$genJ.Mns) $false 'Generar: una llicencia obre l''assistent de LLICENCIA'
 Assert (-not $genJ.Header.Contains('NUM_ANOTACIO') -and -not $genJ.Header.Contains('ORIGEN_TIPUS')) 'Generar: res de l''origen de l''informe anterior (cada informe te el seu)'
-$genM = Get-LlicenciaGenerarDades ([pscustomobject]@{ IdGia = '77'; Fase = 'traspas'; Titular = 'NOU SL'; Header = $null })
-AssertEq ([bool]$genM.Mns) $true 'Generar: una fitxa de Traspas obre l''assistent de MNS / Traspas'
+$genM = Get-LlicenciaGenerarDades ([pscustomobject]@{ IdGia = '77'; Fase = 'trans'; Titular = 'NOU SL'; Header = $null })
+AssertEq ([bool]$genM.Mns) $true 'Generar: una fitxa de Transmissio obre l''assistent de MNS / Transmissio'
 AssertEq ([string]$genM.Header['TITULAR']) 'NOU SL' 'Generar: sense capcalera desada, el titular de la fitxa'
+$genV = Get-LlicenciaGenerarDades ([pscustomobject]@{ IdGia = '78'; Fase = 'traspas'; Titular = 'VELL SL'; Header = $null })
+AssertEq "$($genV.Mns)|$($genV.Fase)" 'True|trans' 'Generar: una fitxa amb el nom VELL de la fase (traspas) obre la Transmissio'
 Assert ($null -eq (Get-LlicenciaGenerarDades $null)) 'Generar: sense fitxa -> $null'
 Assert ($null -eq (Get-LlicenciaGenerarDades ([pscustomobject]@{ IdGia = ' ' }))) 'Generar: sense ID GIA -> $null'
-Assert ((_LlicTitolAssistent $true).Contains('Trasp') -and (_LlicTitolAssistent $false).StartsWith('Llic')) '_LlicTitolAssistent: el titol de cada assistent'
+Assert ((_LlicTitolAssistent $true).Contains('Transmissi') -and (_LlicTitolAssistent $false).StartsWith('Llic')) '_LlicTitolAssistent: el titol de cada assistent'
 # La cadena sencera: la pantalla torna el que diu el boto i Main obre l'assistent.
 $srcWizLl = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $TestsDir) 'Wizard.ps1') -Raw
 Assert ($srcWizLl -match "'llicdb'\s*\{\s*\`$gen = Show-LlicenciaDb;\s*if \(\`$null -ne \`$gen\) \{ Invoke-LlicenciaDesDeFitxa \`$gen \}") 'Generar: Main obre l''assistent amb el que torna la base'
@@ -433,12 +435,12 @@ AssertEq ([bool](ConvertTo-Mapa $stD2['TecnicDocs'])['Projecte']['Marcat']) $tru
 AssertEq ([string](ConvertTo-Mapa $stD2['TecnicDocs'])['Projecte']['Id']) '9741790' 'base de dades: ...amb el seu Id Firmadoc'
 
 # ---------------------------------------------------------------------------
-# MODIFICACIO NO SUBSTANCIAL i TRASPAS (MnsTraspas.ps1 + MNSTRAS.json)
+# MODIFICACIO NO SUBSTANCIAL i TRANSMISSIO (MnsTrans.ps1 + MNSTRANS.json)
 # ---------------------------------------------------------------------------
 $fasesM = @(_MnsFases)
 AssertEq $fasesM.Count 2 '_MnsFases: els dos informes curts'
 Assert ([bool](_MnsEsFase 'mns'))     '_MnsEsFase: la modificacio no substancial'
-Assert ([bool](_MnsEsFase 'traspas')) '_MnsEsFase: el traspas'
+Assert ([bool](_MnsEsFase 'trans'))   '_MnsEsFase: la transmissio'
 Assert (-not (_MnsEsFase 'requeriment')) '_MnsEsFase: el requeriment NO hi es'
 AssertEq (@(_LlicTotesLesFases).Count) 5 '_LlicTotesLesFases: 3 informes llargs + 2 curts'
 $clausF = @(@(_LlicTotesLesFases) | ForEach-Object { [string]$_.Clau })
@@ -452,8 +454,8 @@ Assert ([bool](_MnsNodeEntra 'sense-observacions' $false))  '_MnsNodeEntra: sens
 Assert (-not (_MnsNodeEntra 'sense-observacions' $true))    '_MnsNodeEntra: ...i no quan n''hi ha'
 Assert ([bool](_MnsNodeEntra ' AMB-OBSERVACIONS ' $true))   '_MnsNodeEntra: la clau, tolerant'
 
-AssertEq (_MnsNomFitxer ([datetime]'2026-08-21') 'mns' '1457') '2026-08-21_LlicMNS_GIA 1457.docx' '_MnsNomFitxer: modificacio no substancial'
-Assert ([bool]((_MnsNomFitxer ([datetime]'2026-08-21') 'traspas' '1') -like '*LlicTraspas*')) '_MnsNomFitxer: traspas'
+AssertEq (_MnsNomFitxer ([datetime]'2026-08-21') 'mns' '1457') '2026-08-21_MNS_GIA 1457.docx' '_MnsNomFitxer: modificacio no substancial'
+AssertEq (_MnsNomFitxer ([datetime]'2026-08-21') 'trans' '1') '2026-08-21_TRANS_GIA 1.docx' '_MnsNomFitxer: transmissio (TRANS, sense "Llic": no es cap llicencia)'
 
 # QUINES CONCLUSIONS. Funcio PURA: es prova sense cataleg ni Word.
 $cMns  = @([pscustomobject]@{ Title = 'Actes dels controls periodics'; Body = '59.1.d...' })
@@ -466,10 +468,10 @@ AssertEq ([string]$k1[1].Title) 'Requeriment' 'MNS amb punts: ...i despres la de
 $k2 = @(_MnsTriaConclusions $cMns $cReq1 'mns' $false)
 AssertEq $k2.Count 1 'MNS sense punts: nomes el 59.1.d'
 AssertEq ([string]$k2[0].Title) 'Actes dels controls periodics' 'MNS sense punts: ...i es aquell'
-$k3 = @(_MnsTriaConclusions $cMns $cReq1 'traspas' $true)
-AssertEq $k3.Count 1 'Traspas amb punts: nomes la de REQUERIMENT'
-AssertEq ([string]$k3[0].Title) 'Requeriment' 'Traspas amb punts: ...i es aquella'
-AssertEq (@(_MnsTriaConclusions $cMns $cReq1 'traspas' $false).Count) 0 'Traspas sense punts: CAP conclusio (ja es al text fix)'
+$k3 = @(_MnsTriaConclusions $cMns $cReq1 'trans' $true)
+AssertEq $k3.Count 1 'Transmissio amb punts: nomes la de REQUERIMENT'
+AssertEq ([string]$k3[0].Title) 'Requeriment' 'Transmissio amb punts: ...i es aquella'
+AssertEq (@(_MnsTriaConclusions $cMns $cReq1 'trans' $false).Count) 0 'Transmissio sense punts: CAP conclusio (ja es al text fix)'
 # La de REQ1 NO es una copia: surt del mateix grup que els requeriments normals.
 $reqCat = Read-Conclusions $Global:ConclusionsPath 'REQ1'
 Assert ([bool](@($reqCat.Selectable) | Where-Object { [string]$_.Title -eq 'Requeriment' })) 'cataleg: la conclusio de REQUERIMENT es la de REQ1'
@@ -478,14 +480,14 @@ AssertEq (@($mnsCat.Selectable).Count) 1 'cataleg: el grup MNS porta l''avis del
 Assert ([bool]((@($mnsCat.Selectable)[0].Body) -like '*59.1.d*')) 'cataleg: ...i es aquell'
 
 # EL CATALEG DE TEXT.
-$mnsPath = Join-Path $Global:EstructuralsDir 'MNSTRAS.json'
-Assert (Test-Path -LiteralPath $mnsPath) 'MNSTRAS.json: hi es'
+$mnsPath = Join-Path $Global:EstructuralsDir 'MNSTRANS.json'
+Assert (Test-Path -LiteralPath $mnsPath) 'MNSTRANS.json: hi es'
 $catM = Read-MnsCataleg $mnsPath
-Assert ($null -ne $catM) 'MNSTRAS.json: es valid'
-AssertEq ([string]$catM.familia) 'mnstraspas' 'MNSTRAS.json: la familia'
+Assert ($null -ne $catM) 'MNSTRANS.json: es valid'
+AssertEq ([string]$catM.familia) 'mnstrans' 'MNSTRANS.json: la familia'
 Assert ($null -eq (_MnsSeccio $catM 'no-existeix')) '_MnsSeccio: una clau desconeguda -> $null'
 
-foreach ($fM in @('mns', 'traspas')) {
+foreach ($fM in @('mns', 'trans')) {
     $ambM   = @(_MnsParagrafs $catM $fM $true)
     $senseM = @(_MnsParagrafs $catM $fM $false)
     Assert ($ambM.Count -gt 0)   ($fM + ': amb punts, hi ha paragrafs')
@@ -505,9 +507,9 @@ foreach ($fM in @('mns', 'traspas')) {
              ($fM + ': els punts de REQ1 no afegeixen cap llista buida')
 }
 # La MNS porta SEMPRE la llista de les modificacions justificades (aquella si
-# que l'escriu l'usuari a ma); el Traspas no en porta cap.
+# que l'escriu l'usuari a ma); el Transmissio no en porta cap.
 AssertEq (@(@(_MnsParagrafs $catM 'mns' $false) | Where-Object { [string]$_.Tipus -eq 'llista' }).Count) 1 'mns: la llista de modificacions hi es sempre'
-AssertEq (@(@(_MnsParagrafs $catM 'traspas' $true) | Where-Object { [string]$_.Tipus -eq 'llista' }).Count) 0 'traspas: cap llista'
+AssertEq (@(@(_MnsParagrafs $catM 'trans' $true) | Where-Object { [string]$_.Tipus -eq 'llista' }).Count) 0 'trans: cap llista'
 # EL PARAGRAF DELS CRITERIS DE SUBSTANCIALITAT HI ES, i va DESPRES de la llista
 # de modificacions i ABANS de la frase d'observacions. (El vaig treure quan el
 # _BE de l'agost no el portava; l'usuari l'ha tornat a posar, o sigui que ara
@@ -522,9 +524,46 @@ foreach ($ambObsM in @($true, $false)) {
     $iObs = [Array]::FindIndex([string[]]$textM, [Predicate[string]]{ param($x) $x -like '*S*informa FAVORABLEMENT*' })
     Assert ($iObs -ge 0 -and $iCri -lt $iObs) 'mns: ...i ABANS de la frase d''observacions'
 }
-# Al TRASPAS no hi va: es una regla de la modificacio no substancial.
-Assert (-not ((@(@(_MnsParagrafs $catM 'traspas' $true) | ForEach-Object { @($_.Linies) }) -join ' ') -like '*CRITERIS DE SUBSTANCIALITAT*')) 'traspas: cap paragraf de criteris de substancialitat'
+# Al TRANSMISSIO no hi va: es una regla de la modificacio no substancial.
+Assert (-not ((@(@(_MnsParagrafs $catM 'trans' $true) | ForEach-Object { @($_.Linies) }) -join ' ') -like '*CRITERIS DE SUBSTANCIALITAT*')) 'trans: cap paragraf de criteris de substancialitat'
 AssertEq (@(_MnsParagrafs $null 'mns' $true).Count) 0 '_MnsParagrafs: sense cataleg, cap paragraf'
+
+# L'INFORME QUE VA ENVIAR L'USUARI (octubre 2026): cap punt marcat i deia "amb
+# les seguents observacions", amb un "1." buit i la conclusio de requeriment.
+# La pantalla tornava $null i l'assistent en feia @($null): UNA seccio.
+$triaBuida = _SeccionsTriades @([pscustomobject]@{ Title = 'S'; Items = @([pscustomobject]@{ Kind = 'item'; Short = 'a'; BodyLines = @('x'); Children = @() }) }) @{}
+AssertEq @($triaBuida).Count 0 '_SeccionsTriades: sense res marcat, res'
+$srcSelI = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'SeleccioItems.ps1'))
+Assert ($srcSelI.Contains('$result = @(_SeccionsTriades')) 'Select-Items: la tria buida torna una llista BUIDA (no $null, que @() converteix en una seccio)'
+foreach ($puntsBuits in @(@(), @($null), $null)) {
+    $blB = @(Build-MnsBlocs @{ Fase = 'mns'; Header = @{}; Fields = [ordered]@{}; Punts = $puntsBuits; Cataleg = $catM })
+    $txtB = (@($blB | ForEach-Object { [string]$_.Text }) -join ' | ')
+    Assert ($txtB -like '*sense m*s observacions en relaci*') ('MNS sense punts (' + @($puntsBuits).Count + '): "sense mes observacions"')
+    Assert (-not ($txtB -like '*amb les seg*ents observacions*')) ('MNS sense punts (' + @($puntsBuits).Count + '): mai "amb les seguents observacions"')
+    Assert (-not ($txtB -like '*cal requerir l*esmena*')) ('MNS sense punts (' + @($puntsBuits).Count + '): cap conclusio de requeriment')
+    AssertEq @($blB | Where-Object { [string]$_.T -eq 'unitat' -or [string]$_.T -eq 'seccio' }).Count 0 ('MNS sense punts (' + @($puntsBuits).Count + '): cap "1." de REQ1')
+}
+# El paragraf de llista (les modificacions) porta aire al darrere: el "1." no
+# pot quedar enganxat al "i un cop avaluades...".
+$blL = @(Build-MnsBlocs @{ Fase = 'mns'; Header = @{}; Fields = [ordered]@{}; Punts = @(); Cataleg = $catM })
+$iL = -1; for ($k = 0; $k -lt $blL.Count; $k++) { if ([string]$blL[$k].T -eq 'llista') { $iL = $k; break } }
+Assert ($iL -ge 0 -and [string]$blL[$iL + 1].T -eq 'aire') 'MNS: aire despres del paragraf de llista'
+# La normativa catalana NO va en cursiva (nomes un nom en una altra llengua).
+$cursM = New-Object System.Collections.ArrayList
+foreach ($secC in @($catM.nodes)) { foreach ($ndC in @($secC.fills)) { foreach ($pC in @($ndC.cos)) { foreach ($rC in @($pC.runs)) { if ($rC.PSObject.Properties['i'] -and [bool]$rC.i) { [void]$cursM.Add([string]$rC.t) } } } } }
+AssertEq $cursM.Count 0 'MNSTRANS.json: cap text en cursiva (la Llei 20/2009 es catalana)'
+
+# EL FORMAT DE CARACTER DESPRES DE TREURE LA NUMERACIO. Al Word, treure-la a un
+# paragraf que ve d'un de llista el passa a estil Normal i torna el cursor a la
+# lletra de l'estil (la Calibri del tema). El doble ho imita.
+$fontNP = [pscustomobject]@{ Bold = 1; Italic = 1; Underline = 1; Size = 0; Color = 0; Name = 'Bookman Old Style' }
+$lfNP = [pscustomobject]@{ F = $fontNP }
+$lfNP | Add-Member ScriptMethod RemoveNumbers { $this.F.Name = 'Calibri' } -Force
+$selNP = [pscustomobject]@{ Font = $fontNP; Range = [pscustomobject]@{ ListFormat = $lfNP }
+                            ParagraphFormat = [pscustomobject]@{ LeftIndent = 0; FirstLineIndent = 0; Alignment = 0; SpaceBefore = 0; SpaceAfter = 0 } }
+$selNP | Add-Member ScriptMethod TypeParagraph { } -Force
+_NouParagraf $selNP 0
+AssertEq ([string]$fontNP.Name) ([string]$Script:ReportFormatConfig.BodyFontName) '_NouParagraf: la Bookman es posa DESPRES de treure la numeracio (no la perd)'
 
 # GENERACIO SENCERA amb el Word simulat.
 if ((Test-Path -LiteralPath $mnsPath) -and (Test-Path -LiteralPath (Join-Path $Global:EstructuralsDir 'REQ1.json'))) {
@@ -554,7 +593,7 @@ if ((Test-Path -LiteralPath $mnsPath) -and (Test-Path -LiteralPath (Join-Path $G
                ForEach-Object { _ItemKey $sec0M.Title $_.Short } | Select-Object -First 2)
     $secM = @(Build-SelectionFromKeys @($req1M.Sections) $clauM)
     Assert ($clauM.Count -ge 1) 'proves MNS: hi ha punts de REQ1 per triar'
-    foreach ($fM in @('mns', 'traspas')) {
+    foreach ($fM in @('mns', 'trans')) {
         foreach ($ambM in @($true, $false)) {
             $global:emitCalls.Clear()
             $petaM = $false
@@ -1053,7 +1092,7 @@ AssertEq $obren.Count 0 ('Cap informe obre el document pel seu compte (nomes Wri
 # L'aire entre blocs: una bandera, un sol lloc
 # ---------------------------------------------------------------------------
 # Abans hi havia TRENTA-QUATRE "if ($cfg.SpacerAfterX) { Format-Spacer $sel }"
-# escampats per Document / Llicencia / MnsTraspas / VistaWord. Ara es
+# escampats per Document / Llicencia / MnsTrans / VistaWord. Ara es
 # Format-Aire $sel '<clau>' i la bandera es resol en un sol lloc.
 Write-Host "`n--- Format-Aire (l'aire entre blocs) ---"
 Assert (Test-FormatAire 'seccio')        'Aire: la clau "seccio" mira SpacerAfterSection'
@@ -1440,11 +1479,11 @@ if ($null -ne $req1TF -and $null -ne $llicTF) {
     _WriteCatalegBody $sdTF $Script:ReportFormatConfig $selTF ([ordered]@{}) ''
     & $comprova 'REQ1 (i Controls periodics i el paquet del mobil)' $global:emitCalls
 
-    # 2) MNS i TRASPAS
+    # 2) MNS i TRANSMISSIO
     $mnsTF = $null
-    try { $mnsTF = _LoadEstructuralJson (Join-Path $EstructuralsDir 'MNSTRAS.json') } catch { }
+    try { $mnsTF = _LoadEstructuralJson (Join-Path $EstructuralsDir 'MNSTRANS.json') } catch { }
     if ($null -ne $mnsTF) {
-        foreach ($f in @('mns', 'traspas')) {
+        foreach ($f in @('mns', 'trans')) {
             $global:emitCalls.Clear()
             [void](Build-MnsDocument $wdTF @{ Fase = $f; Header = $hdrTF; Fields = [ordered]@{}; Cataleg = $mnsTF; Punts = $selTF })
             & $comprova ('MNS/' + $f) $global:emitCalls
@@ -1611,7 +1650,7 @@ if ($null -ne $llicOrd -and $null -ne $req1Ord) {
 }
 
 # ---------------------------------------------------------------------------
-# L'ORDRE DELS INFORMES AL MENU, i que MNS/Traspas hi te entrada propia
+# L'ORDRE DELS INFORMES AL MENU, i que MNS/Transmissio hi te entrada propia
 # ---------------------------------------------------------------------------
 # L'ordre el decideix l'usuari i es una llista, no una casualitat del codi.
 # Select-Mode es WinForms i les proves no el criden mai (vegeu CLAUDE.md), o
@@ -1708,7 +1747,7 @@ $secOrfe = @(
 )
 AssertEq (@(Build-CatalegBlocs $secOrfe @{} '' $false @() -AmbAjuda | Where-Object { $_.T -eq 'ajuda' }).Count) 0 'Ajuda: un item que no escriu res no deixa la fitxa orfe'
 
-Write-Host "`n--- Vistes en blocs: ACT_EXTR, MNS/Traspas i conclusions (pures) ---"
+Write-Host "`n--- Vistes en blocs: ACT_EXTR, MNS/Transmissio i conclusions (pures) ---"
 # Totes les vistes passen per Write-Informe -AmbNivells; aqui es prova la part
 # PURA, que decideix quins blocs hi van. El que escriuen es mira als fitxers d'or.
 $recAE = @(

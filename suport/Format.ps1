@@ -203,10 +203,17 @@ function _Apply-Indent($sel, $cm) {
 # ============================================================================
 # _NouParagraf: paragraf nou, format de caracter net i sagnia. Era el mateix
 # pròleg de tres linies copiat a CATORZE funcions.
+#
+# L'ORDRE COMPTA: primer la sagnia (que treu la numeracio) i DESPRES el format de
+# caracter. Treure la numeracio a un paragraf que ve d'un Format-ListItem el
+# passa d'estil "Paragraf de llista" a Normal, i el Word torna el format del
+# cursor al de l'estil: la Bookman que s'hi acabava de posar es perdia i el text
+# sortia amb la Calibri del tema (el "i un cop avaluades..." de la MNS, octubre
+# 2026).
 function _NouParagraf($sel, $cm) {
     [void]$sel.TypeParagraph()
-    _Reset-Char $sel
     _Apply-Indent $sel $cm
+    _Reset-Char $sel
 }
 
 # _EscriuRang: escriu el text i en RETORNA EL RANG, per aplicar-hi el format A
@@ -511,7 +518,7 @@ function Format-SeparaAnterior {
 # L'AIRE ENTRE BLOCS, PER NOM. Abans cada informe escrivia
 #   if ($cfg.SpacerAfterSection) { Format-Spacer $sel }
 # i n'hi havia TRENTA-QUATRE d'aquests escampats per Document.ps1,
-# Llicencia.ps1, MnsTraspas.ps1 i VistaWord.ps1. Amb aixo, afegir una bandera
+# Llicencia.ps1, MnsTrans.ps1 i VistaWord.ps1. Amb aixo, afegir una bandera
 # nova volia dir trobar-los tots, i cap dels que ACT_EXTR posava a la fixa no
 # la mirava.
 #

@@ -137,7 +137,7 @@ function _VistaActExtrTitol([string]$h2) {
 # (OutlineLevel) de cada paragraf perque la vista sigui navegable des del panell
 # del Word; no en canvia l'aspecte.
 #
-# Abans les vistes d'ACT_EXTR, MNS/Traspas i conclusions escrivien amb onze
+# Abans les vistes d'ACT_EXTR, MNS/Transmissio i conclusions escrivien amb onze
 # embolcalls propis (_VSection, _VBody, _VBullet...) que repetien, un per un, el
 # que ja fa el motor. Ara cada vista es un Build-*VistaBlocs PUR (es prova a
 # Linux comptant blocs) i la funcio _Vista* nomes llegeix el cataleg i escriu.
@@ -150,7 +150,7 @@ function _VistaActExtrTitol([string]$h2) {
 #
 # Els punts surten de _LlicPuntsPerBloc, o sigui de la MATEIXA funcio que munta
 # l'informe: la vista no pot dir una cosa i el document una altra.
-# La vista dels dos informes CURTS de llicencia (MNSTRAS.json). Ensenya cada un
+# La vista dels dos informes CURTS de llicencia (MNSTRANS.json). Ensenya cada un
 # amb les DUES variants -amb observacions i sense-, que es l'unica cosa que hi
 # canvia, i marca on va la llista que l'usuari omple al Word.
 function Build-MnsVistaBlocs($cat) {
@@ -179,7 +179,7 @@ function Build-MnsVistaBlocs($cat) {
     return $b.ToArray()
 }
 
-function _VistaMnsTraspas($sel, [string]$jsonPath) {
+function _VistaMnsTrans($sel, [string]$jsonPath) {
     [void](Write-Informe $sel (Build-MnsVistaBlocs (Read-MnsCataleg $jsonPath)) -AmbNivells)
 }
 
@@ -476,7 +476,7 @@ function Export-VistaWord($word, [string]$jsonPath) {
             'conclusions' { _VistaConclusions $sel $jsonPath }
             'actextr'     { _VistaActExtr $sel $jsonPath $nom }
             'llicencia'   { _VistaLlicencia $sel $jsonPath }
-            'mnstraspas'  { _VistaMnsTraspas $sel $jsonPath }
+            'mnstrans'  { _VistaMnsTrans $sel $jsonPath }
             default       { _VistaCataleg $sel $jsonPath $nom }
         }
         # Nota final: que quedi clar que es una vista generada i que no s'edita.

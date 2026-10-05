@@ -69,7 +69,7 @@ function _LastRunIso($jsonPath, $prop) {
 #
 # Accions que NO son eines (tipus d'informe i pantalles de sistema): no porten
 # segell. Qualsevol rajola NOVA en te automaticament, sense tocar cap llista.
-$Script:AccionsSenseSegell = @('nou', 'seguiment', 'actextr', 'llicencia', 'mnstraspas', 'llicdb', 'config', 'editcataleg')
+$Script:AccionsSenseSegell = @('nou', 'seguiment', 'actextr', 'llicencia', 'mnstrans', 'llicdb', 'config', 'editcataleg')
 
 # Excepcio: dues eines ja escriuen la seva PROPIA marca quan han treballat de
 # debo (la necessiten per anar en incremental), i aquella data es mes precisa que
@@ -222,8 +222,8 @@ function Select-Mode {
     $icoTer = [System.Char]::ConvertFromUtf32(0x23F1)    # ⏱
     $icoExt = [System.Char]::ConvertFromUtf32(0x1F3AA)   # 🎪
     $icoLlic = [System.Char]::ConvertFromUtf32(0x1F4DC)  # rotlle: llicencia
-    $icoMns  = [System.Char]::ConvertFromUtf32(0x1F504)  # fletxes: modificacio / traspas
-    $mnsNom  = ('Modificaci' + $oG + ' No Substancial / Trasp' + $aG + 's')
+    $icoMns  = [System.Char]::ConvertFromUtf32(0x1F504)  # fletxes: modificacio / transmissio
+    $mnsNom  = ('Modificaci' + $oG + ' No Substancial / Transmissi' + $oG)
 
     # Menu ORDENAT. Cada entrada: Action, Label (nom amic), Sub (descripcio
     # curta en gris), Icon (emoji del xip), Doc (xip del document a la dreta) i,
@@ -231,7 +231,7 @@ function Select-Mode {
     $menu = New-Object System.Collections.ArrayList
     # L'ORDRE DEL MENU EL DECIDEIX L'USUARI i es aquest (agost 2026):
     #   1 Requeriment - Nou   2 Requeriment - Seguiment   3 Llicencia
-    #   4 Activitats extraordinaries   5 MNS / Traspas   6 Ampliacio termini
+    #   4 Activitats extraordinaries   5 MNS / Transmissio   6 Ampliacio termini
     if ($byName.ContainsKey('REQ1'))    { [void]$menu.Add(@{ Action='nou'; Label='Requeriment - Nou'; Sub=('Cat' + $aG + 'leg de defici' + $eG + 'ncies'); Icon=$icoNou; Doc='REQ1'; Cataleg=$byName['REQ1'] }) }
     [void]$menu.Add(@{ Action='seguiment'; Label='Requeriment - Seguiment'; Sub='Sobre un informe ja fet'; Icon=$icoSeg; Doc=''; Cataleg=$null })
     # Llicencia: NO passa el cataleg (LLIC no es un cataleg de deficiencies sino
@@ -243,11 +243,11 @@ function Select-Mode {
     [void]$menu.Add(@{ Action='llicencia'; Label=$llicNom; Sub='Requeriment i favorables'; Icon=$icoLlic; Doc='LLIC'; Cataleg=$null;
                        Extra=@{ Text='Dades'; Icon=([System.Char]::ConvertFromUtf32(0x1F5C2) + [char]0xFE0F); Action='llicdb' } })
     [void]$menu.Add(@{ Action='actextr'; Label=$extraordinaria; Sub='Decret 112/2010'; Icon=$icoExt; Doc='ACT_EXTR'; Cataleg=$null })
-    # MNS / TRASPAS: ENTRADA PROPIA. Abans s'hi arribava des de dins de
+    # MNS / TRANSMISSIO: ENTRADA PROPIA. Abans s'hi arribava des de dins de
     # Llicencia (el pas 1 oferia les cinc fases juntes) i no es veia des del
     # menu. Comparteixen capcalera, tramit i base de dades amb Llicencia -per
     # aixo passen pel mateix assistent-, pero son informes a part.
-    [void]$menu.Add(@{ Action='mnstraspas'; Label=$mnsNom; Sub='Informes curts'; Icon=$icoMns; Doc='MNSTRAS'; Cataleg=$null })
+    [void]$menu.Add(@{ Action='mnstrans'; Label=$mnsNom; Sub='Informes curts'; Icon=$icoMns; Doc='MNSTRANS'; Cataleg=$null })
     if ($byName.ContainsKey('TERMINI')) { [void]$menu.Add(@{ Action='nou'; Label=$ampliacio; Sub='Informe de cos fix'; Icon=$icoTer; Doc='TERMINI'; Cataleg=$byName['TERMINI'] }) }
     # Qualsevol altre cataleg no llistat (p.ex. un REQ2 nou) s'afegeix al final.
     foreach ($c in $catalegs) {

@@ -55,7 +55,7 @@ function _LlicObreIAvisa($word, [string]$out) {
 
 # EL TITOL DE CADA ASSISTENT (el menu i la base de llicencies hi entren tots dos).
 function _LlicTitolAssistent([bool]$mns) {
-    if ($mns) { return ('Modificaci' + [char]0x00F3 + ' NO Substancial / Trasp' + [char]0x00E0 + 's - Pas 1') }
+    if ($mns) { return ('Modificaci' + [char]0x00F3 + ' NO Substancial / Transmissi' + [char]0x00F3 + ' - Pas 1') }
     return ('Llic' + [char]0x00E8 + 'ncia - Pas 1')
 }
 
@@ -71,7 +71,7 @@ function Invoke-LlicenciaDesDeFitxa($gen) {
 # PUNT D'ENTRADA (des del menu)
 # ----------------------------------------------------------------------------
 # $fases: quines fases ofereix aquest assistent. El menu principal en te DUES
-# entrades -Llicencia (_LlicFases) i Modificacio NO Substancial / Traspas
+# entrades -Llicencia (_LlicFases) i Modificacio NO Substancial / Transmissio
 # (_MnsFases)- i totes dues passen per aqui: comparteixen capcalera, tramit i
 # base de dades, i el que canvia es nomes el document que en surt.
 # $preHeader / $preFase / $preProv: l'assistent obert des d'una fitxa de la
@@ -93,7 +93,7 @@ function Invoke-LlicenciaWizard($fases = $null, [string]$titol = '', $preHeader 
     # mateix paper que a Invoke-NouWizard): els [CAMP:]/[OPCIO:] s'hi omplen
     # alla on surten i despres la composicio els hi busca.
     # La fase inicial surt de la llista d'AQUEST assistent, no d'un literal: la
-    # de MNS/Traspas no te cap 'requeriment'.
+    # de MNS/Transmissio no te cap 'requeriment'.
     $faseIni = if ($preFase) { $preFase } else { 'requeriment' }
     $st = @{ Fase = (_LlicFasePerDefecte $(if ($null -ne $fases) { $fases } else { _LlicTotesLesFases }) $faseIni)
              Prov = [bool]$preProv; Tecnic = @{}
@@ -148,7 +148,7 @@ function Invoke-LlicenciaWizard($fases = $null, [string]$titol = '', $preHeader 
                         }
                     }
                     # ELS DOS INFORMES CURTS (Modificacio NO Substancial i
-                    # Traspas) no tenen ni blocs de documentacio ni deficiencies
+                    # Transmissio) no tenen ni blocs de documentacio ni deficiencies
                     # de projecte: nomes cal saber si hi ha observacions.
                     $step = if (_MnsEsFase ([string]$st.Fase)) { 20 } else { 3 }
                 }
@@ -156,7 +156,7 @@ function Invoke-LlicenciaWizard($fases = $null, [string]$titol = '', $preHeader 
                     if ($null -eq $st.MnsCataleg) { $st.MnsCataleg = Read-MnsCataleg }
                     if ($null -eq $st.MnsCataleg) {
                         [System.Windows.Forms.MessageBox]::Show(
-                            ("No trobo el cataleg MNSTRAS.json a ESTRUCTURALS.`n`n" +
+                            ("No trobo el cataleg MNSTRANS.json a ESTRUCTURALS.`n`n" +
                              "Sense el text no es pot fer aquest informe."),
                             'Llicencia', 'OK', 'Error') | Out-Null
                         return

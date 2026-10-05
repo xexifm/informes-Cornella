@@ -18,7 +18,7 @@ qui els carrega. Aquí, les capes i qui depèn de qui:
    │ Capcalera    │ Dades · Blocs  │ Dades · Blocs    │ PdfSignar · PdfUnio│
    │ SeleccioItems│ Pantalles ·    │ Pantalles ·      │ Informes · Copia-  │
    │ Document     │ l'assistent    │ l'orquestrador   │ Informes · Recorda-│
-   │ MnsTraspas   │ LlicenciaDb    │                  │ toris · Controls...│
+   │ MnsTrans   │ LlicenciaDb    │                  │ toris · Controls...│
    └──────┬───────┴───────┬────────┴────────┬─────────┴─────────┬─────────┘
           │  Build-*Blocs (PURES) ──► Write-Informe (MotorInforme.ps1)      │
           │                              │                                  │
@@ -48,7 +48,7 @@ i `Migracio` (tots de més avall). Cap mòdul genèric no crida cap client seu.
 | `ActExtr.ps1` (1.390 l.) → `ActExtrDades` / `Blocs` / `Pantalles` / `ActExtr` | ídem que Llicència | ídem |
 | Codi mort fora: `Write-Linia`, `Write-Tancament`, `_WriteActExtrBodyFav`, `_LastRunText` | només els cridaven les proves | AST de tot `suport/` + `.bat` + `.vbs`; llista = foto − 4 |
 | Un sol convertidor JSON → hashtable: `ConvertTo-Mapa` (`Json.ps1`) | n'hi havia quatre còpies | proves noves; or idèntic |
-| Vistes d'ACT_EXTR, MNS/Traspàs i conclusions en blocs + `Write-Informe -AmbNivells` | quinze embolcalls `_V*` repetien el motor | or idèntic tret de 10 línies `AIRE|` a la vista de MNS (comprovat per programa) |
+| Vistes d'ACT_EXTR, MNS/Transmissió i conclusions en blocs + `Write-Informe -AmbNivells` | quinze embolcalls `_V*` repetien el motor | or idèntic tret de 10 línies `AIRE|` a la vista de MNS (comprovat per programa) |
 | Defecte del motor: l'`aire` apagat treia el títol del panell de navegació de la vista | trobat en migrar les vistes | prova que el reprodueix sense l'arranjament |
 | `_LlicLletra` a `LlicenciaDades` | era l'únic cicle entre fitxers | guard de cicles, validat tornant-la al lloc vell |
 | `CLAUDE.md` 2.058 → ~1.420 línies; les històries de les eines a `documentacio/eines.md` | ningú no el llegia sencer | — |

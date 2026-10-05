@@ -13,8 +13,8 @@
 # ----------------------------------------------------------------------------
 # Pas 1: la FASE i si es llicencia provisional. Retorna @{ Nav; Fase; Prov }.
 # $fases: quines fases s'ofereixen. Des que la Modificacio NO Substancial i el
-# Traspas tenen entrada propia al menu, cada familia ensenya NOMES les seves:
-# _LlicFases per a Llicencia i _MnsFases per a MNS/Traspas. Amb $null les
+# Transmissio tenen entrada propia al menu, cada familia ensenya NOMES les seves:
+# _LlicFases per a Llicencia i _MnsFases per a MNS/Transmissio. Amb $null les
 # ensenya totes (compatibilitat).
 function Select-LlicFase($preFase, $preProv, $fases = $null, [string]$titol = '') {
     $llista = if ($null -ne $fases) { @($fases) } else { @(_LlicTotesLesFases) }

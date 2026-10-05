@@ -98,22 +98,22 @@ $accions = @([regex]::Matches($segSrc, $rxMenu) | ForEach-Object { $_.Groups[1].
 # Les SIS entrades fixes, en ordre. La setena 'nou' que hi ha al codi es el
 # bucle del final ("qualsevol altre cataleg no llistat s'afegeix al final") i
 # no forma part de l'ordre.
-$ordreEsperat = @('nou', 'seguiment', 'llicencia', 'actextr', 'mnstraspas', 'nou')
-AssertEq (@($accions | Select-Object -First 6) -join ',') ($ordreEsperat -join ',') 'Menu: Nou, Seguiment, Llicencia, Act. extraordinaries, MNS/Traspas, Ampliacio termini'
-# MNS/Traspas ha de tenir entrada propia i el seu despatx.
-Assert ([bool]($accions -contains 'mnstraspas')) 'Menu: MNS/Traspas te entrada propia (ja no s''hi arriba des de dins de Llicencia)'
+$ordreEsperat = @('nou', 'seguiment', 'llicencia', 'actextr', 'mnstrans', 'nou')
+AssertEq (@($accions | Select-Object -First 6) -join ',') ($ordreEsperat -join ',') 'Menu: Nou, Seguiment, Llicencia, Act. extraordinaries, MNS/Transmissio, Ampliacio termini'
+# MNS/Transmissio ha de tenir entrada propia i el seu despatx.
+Assert ([bool]($accions -contains 'mnstrans')) 'Menu: MNS/Transmissio te entrada propia (ja no s''hi arriba des de dins de Llicencia)'
 $wizSrc = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $TestsDir) 'Wizard.ps1') -Raw
-Assert ([bool]($wizSrc -match ($q + 'mnstraspas' + $q + '\s*\{'))) 'Menu: ...i el despatxador la coneix'
+Assert ([bool]($wizSrc -match ($q + 'mnstrans' + $q + '\s*\{'))) 'Menu: ...i el despatxador la coneix'
 # I cada entrada ofereix NOMES les seves fases.
 AssertEq (@(_LlicFases).Count) 3 'Llicencia: tres fases (requeriment i els dos favorables)'
-AssertEq (@(_MnsFases).Count) 2  'MNS/Traspas: dues fases'
+AssertEq (@(_MnsFases).Count) 2  'MNS/Transmissio: dues fases'
 # QUINA FASE SURT MARCADA. Aqui hi havia un 'requeriment' escrit al codi com a
-# respatller i, des que MNS/Traspas te entrada propia -i la seva llista no en te
+# respatller i, des que MNS/Transmissio te entrada propia -i la seva llista no en te
 # cap-, la pantalla petava amb "La propiedad 'Checked' no se encuentra en este
 # objeto". Cap llista de fases pot donar per fet quines fases porta.
 AssertEq (_LlicFasePerDefecte (_LlicFases) 'requeriment') 'requeriment' 'Fase per defecte: si la preferida hi es, aquella'
 AssertEq (_LlicFasePerDefecte (_MnsFases) 'requeriment') 'mns' 'Fase per defecte: si NO hi es, la primera de la llista'
-AssertEq (_LlicFasePerDefecte (_MnsFases) 'traspas') 'traspas' 'Fase per defecte: respecta el que ja s''havia triat'
+AssertEq (_LlicFasePerDefecte (_MnsFases) 'trans') 'trans' 'Fase per defecte: respecta el que ja s''havia triat'
 AssertEq (_LlicFasePerDefecte @() 'requeriment') '' 'Fase per defecte: llista buida, cadena buida (i no peta)'
 AssertEq (_LlicFasePerDefecte (_LlicFases) '') 'requeriment' 'Fase per defecte: sense preferencia, la primera'
 # I que no torni a apareixer cap clau de fase escrita a pel com a respatller.
@@ -1258,9 +1258,9 @@ Write-Host "`n--- Llicencia es munta amb BLOCS, i la regla de seccions es UNA --
 # LLIC.json) que s'havien de tocar alhora: un text fix va arribar a sortir tres
 # vegades, i la vista escrivia "[[URL]]" com a text. Ara l'informe i la vista
 # fan servir _LlicBlocsPunts i Write-Informe.
-# I LES TRES FAMILIES QUE ESCRIVIEN PEL SEU COMPTE (Llicencia, MNS/Traspas i
+# I LES TRES FAMILIES QUE ESCRIVIEN PEL SEU COMPTE (Llicencia, MNS/Transmissio i
 # ACT_EXTR) ja no ho fan: els seus Build-*Blocs son purs i escriu Write-Informe.
-foreach ($fam in @($Script:FitxersLlicencia + @('MnsTraspas.ps1', 'ActExtr.ps1', 'ActExtrDades.ps1', 'ActExtrBlocs.ps1', 'ActExtrPantalles.ps1'))) {
+foreach ($fam in @($Script:FitxersLlicencia + @('MnsTrans.ps1', 'ActExtr.ps1', 'ActExtrDades.ps1', 'ActExtrBlocs.ps1', 'ActExtrPantalles.ps1'))) {
     $astLl = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $rootRepo (Join-Path 'suport' $fam)), [ref]$null, [ref]$null)
     $fmtLl = @($astLl.FindAll({ param($a) $a -is [System.Management.Automation.Language.CommandAst] -and ([string]$a.GetCommandName()) -like 'Format-*' }, $true) |
               ForEach-Object { $_.GetCommandName() + ' (linia ' + $_.Extent.StartLineNumber + ')' })

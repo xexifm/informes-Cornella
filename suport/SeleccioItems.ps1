@@ -460,7 +460,11 @@ function Select-Items {
     _CollectCheckStates $tv $checkStates
 
     # Construim el resultat en ordre del data, preservant subseccions/intros.
-    $result = _SeccionsTriades $sections $checkStates
+    # @(): sense res marcat, la funcio no torna RES i $result quedava $null.
+    # Llavors @($r.Data) valia @($null) -UNA seccio- i l'informe de MNS deia
+    # "amb les seguents observacions" amb un "1." buit i la conclusio de
+    # requeriment, sense haver-ne marcat cap (octubre 2026).
+    $result = @(_SeccionsTriades $sections $checkStates)
     if ($result.Count -eq 0 -and -not $permetreBuit) {
         [System.Windows.Forms.MessageBox]::Show('No s''ha seleccionat cap deficiencia.','Avis','OK','Warning') | Out-Null
         return [pscustomobject]@{ Nav='stay' }   # es torna a mostrar el Pas 3

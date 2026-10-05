@@ -284,7 +284,7 @@ function _Ed_TipusOptions([string]$familia, [string]$parentTipus) {
             if ([string]::IsNullOrEmpty($parentTipus)) { return @('seccio') }
             return @('etiqueta', 'text', 'buida')
         }
-        'mnstraspas' {
+        'mnstrans' {
             # Els dos informes CURTS de llicencia. Cada seccio es un informe i
             # cada fill un paragraf:
             #   text -> paragraf normal
@@ -329,7 +329,7 @@ function _Ed_CanAddChild([string]$familia, $node) {
         'conclusions' { return ([string]$node.tipus -eq 'seccio') }
         'actextr'     { return ([string]$node.tipus -in @('seccio', 'item')) }
         'llicencia'   { return ([string]$node.tipus -in @('seccio', 'item')) }
-        'mnstraspas'  { return ([string]$node.tipus -eq 'seccio') }
+        'mnstrans'  { return ([string]$node.tipus -eq 'seccio') }
         'capcalera'   { return $false }
     }
     return $false
@@ -343,7 +343,7 @@ function _Ed_ChildTipus([string]$familia, [string]$parentTipus) {
         'conclusions' { return 'item' }
         'actextr'     { if ($parentTipus -eq 'seccio') { return 'item' } else { return 'subitem' } }
         'llicencia'   { if ($parentTipus -eq 'seccio') { return 'item' } else { return 'nodisposa' } }
-        'mnstraspas'  { return 'text' }
+        'mnstrans'  { return 'text' }
     }
     return (_Ed_DefaultTipus $familia $parentTipus)
 }
@@ -372,7 +372,7 @@ function _Ed_DocList {
         'ACT_EXTR_REQ' = 'ACT_EXTR_REQ ' + [char]0x2014 + ' Requeriment act. extraordin' + [char]0x00E0 + 'ria'
         'ACT_EXTR_FAV' = 'ACT_EXTR_FAV ' + [char]0x2014 + ' Informe favorable act. extraordin' + [char]0x00E0 + 'ria'
         '0 CAPCALERA'  = '0 CAPCALERA ' + [char]0x2014 + ' Cap' + [char]0x00E7 + 'alera dels informes'
-        'MNSTRAS'      = 'MNSTRAS ' + [char]0x2014 + ' Modificaci' + [char]0x00F3 + ' NO Substancial i Trasp' + [char]0x00E0 + 's'
+        'MNSTRANS'      = 'MNSTRANS ' + [char]0x2014 + ' Modificaci' + [char]0x00F3 + ' NO Substancial i Transmissi' + [char]0x00F3
     }
     $out = New-Object System.Collections.ArrayList
     if (-not (Test-Path -LiteralPath $EstructuralsDir)) { return $out }

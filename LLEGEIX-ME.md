@@ -119,7 +119,7 @@ informe, són cinc**, i tries quin fas al primer pas:
 | **Favorable pre-llicència** | «S'informa favorablement a l'espera de rebre la citada documentació…» |
 | **Favorable post-llicència** | «S'informa favorablement l'activitat i es dóna per tancat l'expedient.» |
 | **Modificació NO Substancial** | informe curt, a part (vegeu més avall) |
-| **Traspàs** | informe curt, a part (vegeu més avall) |
+| **Transmissió** | informe curt, a part (vegeu més avall) |
 
 Al mateix pas hi ha la casella **«Llicència provisional»**, que canvia el punt
 condicional del principi (compatibilitat urbanística) i afegeix l'**ANNEX 1** al
@@ -203,7 +203,7 @@ es perd la memòria per al següent.
 
 Cada fila de la llista té un botó **Generar**: fa l'informe següent d'aquella
 activitat sense haver de buscar-la. S'obre l'assistent de sempre (el de
-Llicència o el de Modificació No Substancial / Traspàs, segons la fitxa) amb la
+Llicència o el de Modificació No Substancial / Transmissió, segons la fitxa) amb la
 fase de l'últim informe ja triada (canvia-la al Pas 1 si ara toca una altra) i,
 al Pas 2, l'ID GIA posat i la capçalera omplerta de l'Excel. La resta surt de
 la fitxa, com sempre. Si havies canviat alguna dada de la fitxa sense desar-la,
@@ -235,22 +235,25 @@ La **documentació del projecte** (el tècnic redactor i els documents signats) 
 **dalt de tot**, sota el títol `DOCUMENTACIÓ PROJECTE` i **fora de la
 numeració**; la numeració dels punts va seguida de cap a peus.
 
-#### Modificació NO Substancial i Traspàs
+#### Modificació NO Substancial i Transmissió
 
-Són dos informes **curts**, dins del mateix botó de Llicència. Tenen la mateixa
-capçalera i **només et pregunten una cosa: si hi ha observacions**.
+Són dos informes **curts**, amb el seu botó al menú. Tenen la capçalera de
+Llicència i **només et pregunten una cosa: quins punts de REQ1 hi vols
+adjuntar** (la pantalla de sempre). Pots no marcar-ne cap.
 
-- **Amb observacions** → l'informe diu «…amb la següent observació:» i hi deixa
-  una **llista de Word buida** just a sota, perquè hi escriguis el que calgui un
-  cop obert el document (en prémer Enter, el Word et continua la llista).
-- **Sense** → diu «…sense més observacions en relació a aquest tràmit.» i no hi
-  posa cap llista.
+- **Amb algun punt** → l'informe diu «…amb les següents observacions:», hi posa
+  els punts (amb el mateix format que un requeriment) i, a CONCLUSIONS, el text
+  de requeriment.
+- **Sense cap** → diu «…sense més observacions en relació a aquest tràmit.», sense
+  cap número i sense el «Vist l'anterior, cal requerir l'esmena…».
+
+El fitxer es diu `AAAA-MM-DD_MNS_GIA n.docx` o `AAAA-MM-DD_TRANS_GIA n.docx`.
 
 A la *Modificació NO Substancial* hi ha, a més, la llista de les modificacions
 justificades, que hi surt **sempre**.
 
 El text el pots canviar des de l'editor de catàlegs: hi ha un sol document per
-als dos, **`MNSTRAS.json`**.
+als dos, **`MNSTRANS.json`**.
 
 > **D'on surt el text:** de **REQ1**, en viu. `LLIC.json` només hi afegeix el que
 > és propi de Llicència (els dos comentaris i el «Quan:»); si canvies un
@@ -747,7 +750,7 @@ Hi ha **tres blocs**, i l'editor et diu a quin informe va cadascun:
 |---|---|
 | Capçalera general | Requeriment - Nou, Ampliació de termini, Controls periòdics |
 | Capçalera d'activitats extraordinàries | Activitats extraordinàries |
-| Capçalera de llicència | Llicència, Modificació NO Substancial, Traspàs |
+| Capçalera de llicència | Llicència, Modificació NO Substancial, Transmissió |
 
 > Els `<<ID_GIA>>`, `<<TITULAR>>`, `<<ADRECA>>`… són els forats que omple el
 > programa: **no els esborris**. Una línia «Camp:» sense cap forat surt buida a

@@ -1,7 +1,7 @@
 ﻿#requires -Version 5.1
 <#
 .SYNOPSIS
-  Dos informes curts de Llicencia: MODIFICACIO NO SUBSTANCIAL i TRASPAS.
+  Dos informes curts de Llicencia: MODIFICACIO NO SUBSTANCIAL i TRANSMISSIO.
 
 .DESCRIPTION
   Van dins de "Llicencia (Annex II / LL Prov)" perque comparteixen capcalera
@@ -23,7 +23,7 @@
   de Word buida que queda es la de les MODIFICACIONS de la MNS, que si que
   s'escriuen a ma.
 
-  EL TEXT NO ES AQUI: viu a ESTRUCTURALS\MNSTRAS.json (un sol cataleg per als
+  EL TEXT NO ES AQUI: viu a ESTRUCTURALS\MNSTRANS.json (un sol cataleg per als
   dos informes, com va demanar l'usuari) i es pot editar des de l'editor de
   catalegs com tota la resta. Cada paragraf hi va com un node:
 
@@ -38,7 +38,7 @@
     'llista-observacions' -> la llista de les observacions (nomes si n'hi ha)
 
   Al Word que va enviar l'usuari, aquestes dues variants anaven escrites en
-  VERMELL, i tambe els titols "MODIFICACIO NO SUBSTANCIAL" i "TRASPAS". Aquell
+  VERMELL, i tambe els titols "MODIFICACIO NO SUBSTANCIAL" i "TRANSMISSIO". Aquell
   color era una marca SEVA per veure que havia de canviar a cada informe, no
   part del document: els titols no s'escriuen i el text va amb el format de
   sempre (Format.ps1).
@@ -54,10 +54,10 @@
 
 # Ruta del cataleg dels dos informes.
 function _MnsCatalegPath {
-    return [string](Join-Path $EstructuralsDir 'MNSTRAS.json')
+    return [string](Join-Path $EstructuralsDir 'MNSTRANS.json')
 }
 
-# Llegeix MNSTRAS.json. $null si no hi es (el programa ho ha de dir, no fer com
+# Llegeix MNSTRANS.json. $null si no hi es (el programa ho ha de dir, no fer com
 # si res).
 function Read-MnsCataleg([string]$path = '') {
     if ([string]::IsNullOrWhiteSpace($path)) { $path = _MnsCatalegPath }
@@ -71,13 +71,13 @@ function _MnsFases {
             Clau = 'mns'
             Nom  = 'Modificaci' + [char]0x00F3 + ' NO Substancial'
             Sub  = 'S' + [char]0x2019 + 'informa favorablement una modificaci' + [char]0x00F3 + ' que no es substancial'
-            Curt = 'LlicMNS'
+            Curt = 'MNS'
         }
         [pscustomobject]@{
-            Clau = 'traspas'
-            Nom  = 'Trasp' + [char]0x00E0 + 's'
+            Clau = 'trans'
+            Nom  = 'Transmissi' + [char]0x00F3
             Sub  = 'Canvi de nom del titular de l' + [char]0x2019 + 'activitat'
-            Curt = 'LlicTraspas'
+            Curt = 'TRANS'
         }
     )
 }
@@ -134,7 +134,7 @@ function _MnsParagrafs($cat, [string]$fase, [bool]$ambObservacions) {
 #   amb punts -> i la conclusio de REQUERIMENT de REQ1, la mateixa que fan
 #                servir els requeriments normals (no se'n fa cap copia).
 #
-# Si no en queda cap -Traspas sense punts-, l'informe no porta bloc de
+# Si no en queda cap -Transmissio sense punts-, l'informe no porta bloc de
 # CONCLUSIONS: la conclusio ja es dins del text fix.
 function _MnsTriaConclusions($selMns, $selReq1, [string]$fase, [bool]$ambObservacions) {
     $out = New-Object System.Collections.ArrayList
@@ -159,7 +159,7 @@ function _MnsConclusions([string]$fase, [bool]$ambObservacions) {
 
 # Nom del fitxer de sortida (mateix patro que la resta: data al principi).
 function _MnsNomFitxer([datetime]$data, [string]$fase, [string]$idGia) {
-    $curt = 'LlicMNS'
+    $curt = 'MNS'
     foreach ($f in @(_MnsFases)) { if ([string]$f.Clau -eq [string]$fase) { $curt = [string]$f.Curt } }
     return (_NomInformeFitxer $data $curt $idGia)
 }
@@ -168,18 +168,23 @@ function _MnsNomFitxer([datetime]$data, [string]$fase, [string]$idGia) {
 # COMPOSICIO DEL DOCUMENT: BLOCS PURS + Write-Informe (MotorInforme.ps1)
 # ----------------------------------------------------------------------------
 # L'informe sencer en blocs. Funcio PURA. $model: Fase, Header, Fields, Punts
-# (les seccions de REQ1 triades) i Cataleg (MNSTRAS.json).
+# (les seccions de REQ1 triades) i Cataleg (MNSTRANS.json).
 function Build-MnsBlocs($model) {
     $b = New-Object System.Collections.ArrayList
     $fields = $model.Fields
     # HI HA PUNTS DE REQ1? Es l'unica cosa que decideix la frase i la conclusio.
-    $seccions = @($model.Punts)
+    # Els $null fora: una tria buida que arribi com a @($null) NO son
+    # observacions (abans comptava com una seccio i deia "amb observacions").
+    $seccions = @(@($model.Punts) | Where-Object { $null -ne $_ })
     $amb = ($seccions.Count -gt 0)
 
     foreach ($p in @(_MnsParagrafs $model.Cataleg ([string]$model.Fase) $amb)) {
         if ([string]$p.Tipus -eq 'llista') {
-            # El paragraf de llista va BUIT: l'omple l'usuari al Word.
+            # El paragraf de llista va BUIT: l'omple l'usuari al Word. I amb
+            # l'aire de despres, com qualsevol altre paragraf: sense, el "1." de
+            # la llista quedava enganxat al "i un cop avaluades..." de sota.
             [void]$b.Add(@{ T = 'llista'; Text = '' })
+            [void]$b.Add(@{ T = 'aire'; Clau = 'item' })
             continue
         }
         foreach ($l in @(Apply-FieldsToLines $p.Linies $fields)) {

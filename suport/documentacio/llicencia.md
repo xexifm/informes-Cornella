@@ -1,8 +1,8 @@
-# Llicència (Annex II / LL Prov), MNS i Traspàs
+# Llicència (Annex II / LL Prov), MNS i Transmissió
 
 > Ve de `suport/CLAUDE.md`, que s'havia fet massa gros per llegir-lo
 > sencer. **Llegeix-lo ABANS de tocar `suport/Llicencia*.ps1`, `LlicenciaDb.ps1`,
-> `MnsTraspas.ps1` o `ESTRUCTURALS/LLIC.json`**
+> `MnsTrans.ps1` o `ESTRUCTURALS/LLIC.json`**
 >
 > **El mòdul són quatre fitxers** (setembre 2026; abans un de 2.550 línies):
 > `LlicenciaDades.ps1` (funcions pures), `LlicenciaBlocs.ps1` (què s'escriu a
@@ -189,7 +189,7 @@
   GIA i, per si l'Excel ja no porta l'activitat, titular/adreça/activitat/
   expedient; res de l'origen de l'informe anterior). `Main` crida
   `Invoke-LlicenciaDesDeFitxa`, que obre `Invoke-LlicenciaWizard` amb
-  `$preHeader/$preFase/$preProv` (l'assistent de MNS/Traspàs si la fase ho és).
+  `$preHeader/$preFase/$preProv` (l'assistent de MNS/Transmissió si la fase ho és).
   Al pas 2, `Get-HeaderData -Cerca` busca l'ID GIA a l'Excel en obrir la
   finestra, **només el primer cop** (`$st.CercaHeader`): tornant Enrere mana el
   que s'hi hagi escrit. El clic al botó no repinta el detall (`CellClick`), que
@@ -651,15 +651,36 @@ PROJECTE, l'ANNEX 1 pla…) segueixen igual: ara viuen a `_LlicBlocsDePunt`,
   soles: s'han de corregir a la base de dades (xip «Dades») o a la pantalla del
   proper informe.
 
-## Modificació NO Substancial i Traspàs (`suport/MnsTraspas.ps1`)
+## Modificació NO Substancial i Transmissió (`suport/MnsTrans.ps1`)
 Dos informes **curts** que van al **mateix menú** que els tres de sempre (pas 1
 de Llicència) perquè comparteixen capçalera i tràmit, però el document no
 s'assembla gens: tres o quatre paràgrafs fixos i cap bloc de documentació.
 `_LlicTotesLesFases` ajunta `_LlicFases` + `_MnsFases`.
 
-- **L'única cosa que es tria és si hi ha observacions.** Amb observacions →
-  «…amb la següent observació:» i **un paràgraf de llista de Word buit**; sense →
-  «…sense més observacions en relació a aquest tràmit.» i cap llista.
+- **L'única cosa que es tria són els PUNTS DE REQ1** que s'hi adjunten (la
+  pantalla de sempre, `Select-Items -permetreBuit`). Amb algun punt →
+  «…amb les següents observacions:», els punts amb el format de REQ1 i la
+  conclusió de requeriment; sense cap → «…sense més observacions en relació a
+  aquest tràmit.», cap número i cap «Vist l'anterior, cal requerir l'esmena…».
+- **Nom del fitxer** (`_MnsNomFitxer`): `AAAA-MM-DD_MNS_GIA n.docx` i
+  `AAAA-MM-DD_TRANS_GIA n.docx`. Fins a l'octubre de 2026 eren `LlicMNS` i
+  `LlicTraspas`: no són cap llicència, i el tràmit es diu **transmissió**
+  (abans «Traspàs»; la clau de la fase era `traspas` i el catàleg `MNSTRAS.json`).
+  `Get-LlicenciaGenerarDades` encara entén `traspas`, i un `MNSTRAS.json` que
+  torni a ESTRUCTURALS (Actualitzar.bat hi restaura els catàlegs editats) es mou
+  a `local\catalegs-antics\` (`_JubilaCatalegsReanomenats`, `Migracio.ps1`).
+- **Tres defectes de l'informe real que va enviar l'usuari (octubre 2026):**
+  - **«amb les següents observacions», un «1.» buit i la conclusió de
+    requeriment sense haver marcat res.** `Select-Items` tornava `$null` quan no
+    es marcava res i l'assistent en feia `@($null)`: **una** secció. Ara la
+    pantalla fa `@(_SeccionsTriades …)` i `Build-MnsBlocs` treu els `$null`.
+  - **El «1.» de la llista enganxat a «i un cop avaluades…»:** després del
+    paràgraf de llista no hi havia aire.
+  - **«i un cop avaluades…» en Calibri.** `_NouParagraf` posava la Bookman i
+    *després* treia la numeració; al paràgraf que ve d'un de llista, el Word el
+    passa a estil Normal i torna el cursor a la lletra de l'estil. Ara treu la
+    numeració primer. I la Llei 20/2009 ja no va en cursiva: és catalana (només
+    hi van els noms en una altra llengua).
 - **`Format-ListItem` (`Format.ps1`) és una llista de Word DE VERITAT**
   (`ListFormat.ApplyNumberDefault()`), no un número escrit com a text. A la resta
   de l'informe el número s'escriu perquè el document ja surt fet; aquí el
@@ -667,15 +688,15 @@ s'assembla gens: tres o quatre paràgrafs fixos i cap bloc de documentació.
   la llista continuï sola. Perquè el paràgraf següent **no** continuï la llista,
   `_Apply-Indent` fa `ListFormat.RemoveNumbers()` **abans** de posar la sagnia
   (el Word, en treure la numeració, també toca la sagnia).
-- **El text viu a `ESTRUCTURALS/MNSTRAS.json`** (un sol catàleg per als dos, com
-  va demanar l'usuari), família `mnstraspas`. Una secció per informe i un fill
+- **El text viu a `ESTRUCTURALS/MNSTRANS.json`** (un sol catàleg per als dos, com
+  va demanar l'usuari), família `mnstrans`. Una secció per informe i un fill
   per paràgraf: `text` → paràgraf normal, `item` → paràgraf de llista buit. La
   **clau** diu quan hi entra: `amb-observacions`, `sense-observacions`,
   `llista-observacions`, o res = sempre (`_MnsNodeEntra`, pura).
 - **El vermell del Word original era una marca de l'usuari**, no part del
-  document: ni els títols «MODIFICACIÓ NO SUBSTANCIAL» / «TRASPÀS» ni les dues
+  document: ni els títols «MODIFICACIÓ NO SUBSTANCIAL» / «TRANSMISSIÓ» ni les dues
   variants es pinten de cap color. Els títols **no s'escriuen**: només serveixen
   per saber quin informe és.
-- `MNSTRAS.json` queda **fora de `Get-Catalegs`** (com `LLIC.json`) i té vista en
-  Word (`_VistaMnsTraspas`), que ensenya els dos informes amb les dues variants.
+- `MNSTRANS.json` queda **fora de `Get-Catalegs`** (com `LLIC.json`) i té vista en
+  Word (`_VistaMnsTrans`), que ensenya els dos informes amb les dues variants.
 

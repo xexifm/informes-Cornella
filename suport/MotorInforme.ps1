@@ -275,7 +275,7 @@ function _OpenOutputDocument($word, $tempPath) {
 
 # ----------------------------------------------------------------------------
 # La seqüencia que feien IGUAL les quatre families (REQ1/TERMINI, ACT_EXTR,
-# Llicencia i MNS/Traspas), ~20 linies copiades quatre vegades:
+# Llicencia i MNS/Transmissio), ~20 linies copiades quatre vegades:
 #
 #   nom unic al directori de sortida -> copia a %TEMP% (si no, el Word obre el
 #   fitxer en "Vista protegida" quan el desti es una unitat de xarxa) -> triar

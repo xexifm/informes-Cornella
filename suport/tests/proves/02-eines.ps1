@@ -590,11 +590,11 @@ AssertEq ([bool](_Ed_CanAddChild 'conclusions' @{tipus='seccio'})) $true '_Ed_Ca
 AssertEq ([bool](_Ed_CanAddChild 'conclusions' @{tipus='item'})) $false '_Ed_CanAddChild conclusions item -> no'
 AssertEq ([bool](_Ed_CanAddChild 'cataleg' @{tipus='subseccio'})) $true '_Ed_CanAddChild cataleg subseccio'
 AssertEq ([bool](_Ed_CanAddChild 'actextr' @{tipus='seccio'})) $true '_Ed_CanAddChild actextr seccio'
-AssertEq (@(_Ed_TipusOptions 'mnstraspas' '') -join ',') 'seccio' '_Ed_TipusOptions mnstraspas arrel -> seccio'
-AssertEq (@(_Ed_TipusOptions 'mnstraspas' 'seccio') -join ',') 'text,item' '_Ed_TipusOptions mnstraspas sota seccio'
-AssertEq ([bool](_Ed_CanAddChild 'mnstraspas' @{tipus='seccio'})) $true '_Ed_CanAddChild mnstraspas seccio'
-AssertEq ([bool](_Ed_CanAddChild 'mnstraspas' @{tipus='text'})) $false '_Ed_CanAddChild mnstraspas text -> no'
-AssertEq (_Ed_ChildTipus 'mnstraspas' 'seccio') 'text' '_Ed_ChildTipus mnstraspas -> text'
+AssertEq (@(_Ed_TipusOptions 'mnstrans' '') -join ',') 'seccio' '_Ed_TipusOptions mnstrans arrel -> seccio'
+AssertEq (@(_Ed_TipusOptions 'mnstrans' 'seccio') -join ',') 'text,item' '_Ed_TipusOptions mnstrans sota seccio'
+AssertEq ([bool](_Ed_CanAddChild 'mnstrans' @{tipus='seccio'})) $true '_Ed_CanAddChild mnstrans seccio'
+AssertEq ([bool](_Ed_CanAddChild 'mnstrans' @{tipus='text'})) $false '_Ed_CanAddChild mnstrans text -> no'
+AssertEq (_Ed_ChildTipus 'mnstrans' 'seccio') 'text' '_Ed_ChildTipus mnstrans -> text'
 # LLIC tambe hi era: sense aixo l'editor no deixava afegir fills a cap punt.
 AssertEq ([bool](_Ed_CanAddChild 'llicencia' @{tipus='item'})) $true '_Ed_CanAddChild llicencia item'
 AssertEq (_Ed_ChildTipus 'llicencia' 'item') 'nodisposa' '_Ed_ChildTipus llicencia item -> nodisposa'
@@ -630,7 +630,7 @@ $tornada = Read-AjudaNode ([pscustomobject]@{ ajuda = ([pscustomobject]$edJson) 
 AssertEq $tornada.Norma 'Llei 20/2009, art. 71' 'Fitxa: el que desa l''editor es el que llegeix el Pas 3'
 
 Write-Host "`n--- EditorCatalegs.ps1: model<->JSON sense perdues (els 5 ESTRUCTURALS) ---"
-foreach ($docKey in @('REQ1', 'TERMINI', '0 CONCLUSIONS', 'ACT_EXTR_REQ', 'ACT_EXTR_FAV', 'MNSTRAS')) {
+foreach ($docKey in @('REQ1', 'TERMINI', '0 CONCLUSIONS', 'ACT_EXTR_REQ', 'ACT_EXTR_FAV', 'MNSTRANS')) {
     $src = Join-Path $EstructuralsDir ($docKey + '.json')
     if (-not (Test-Path -LiteralPath $src)) { continue }
     $o = Get-Content -LiteralPath $src -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -645,11 +645,11 @@ foreach ($docKey in @('REQ1', 'TERMINI', '0 CONCLUSIONS', 'ACT_EXTR_REQ', 'ACT_E
     } elseif ($fam -eq 'conclusions') {
         $da = (Read-ConclusionsJson $src '') | ConvertTo-Json -Depth 40
         $db = (Read-ConclusionsJson $tmp '') | ConvertTo-Json -Depth 40
-    } elseif ($fam -eq 'mnstraspas') {
+    } elseif ($fam -eq 'mnstrans') {
         # El que compta es el que en surt: els paragrafs de cada informe, amb
         # observacions i sense.
         $da = @(); $db = @()
-        foreach ($fx in @('mns', 'traspas')) {
+        foreach ($fx in @('mns', 'trans')) {
             foreach ($ax in @($true, $false)) {
                 $da += @(_MnsParagrafs (Read-MnsCataleg $src) $fx $ax) | ForEach-Object { ($_.Tipus + '|' + (@($_.Linies) -join "`n")) }
                 $db += @(_MnsParagrafs (Read-MnsCataleg $tmp) $fx $ax) | ForEach-Object { ($_.Tipus + '|' + (@($_.Linies) -join "`n")) }

@@ -307,7 +307,7 @@ function Get-LlicenciaResum($record) {
 # EL BOTO "Generar" D'UNA FILA: amb que s'obre l'assistent. Funcio PURA.
 #
 # Retorna @{ Mns; Fase; Prov; Header } o $null:
-#   Mns    = la fitxa es d'una Modificacio NO Substancial / Traspas: s'obre
+#   Mns    = la fitxa es d'una Modificacio NO Substancial / Transmissio: s'obre
 #            AQUELL assistent, no el de Llicencia.
 #   Fase   = la de l'ultim informe, ja triada al Pas 1 (l'usuari la canvia alla
 #            si toca la seguent: no es pot endevinar si ara va un altre
@@ -331,6 +331,7 @@ function Get-LlicenciaGenerarDades($record) {
         if (-not [string]::IsNullOrWhiteSpace($v)) { $pre[[string]$k.H] = $v }
     }
     $fase = [string]$r['Fase']
+    if ($fase -eq 'traspas') { $fase = 'trans' }   # el nom d'abans (octubre 2026)
     return @{
         Mns    = [bool](_MnsEsFase $fase)
         Fase   = $fase
@@ -454,7 +455,7 @@ function Show-LlicenciaDb {
         [void]$graella.Columns.Add($col)
     }
     # UN BOTO A CADA FILA per fer l'informe seguent d'aquella activitat: obre
-    # l'assistent (Llicencia o MNS/Traspas, segons la fitxa) amb l'ID GIA ja
+    # l'assistent (Llicencia o MNS/Transmissio, segons la fitxa) amb l'ID GIA ja
     # posat i la capcalera llegida de l'Excel. El titular s'emporta el que sobra
     # d'amplada (Fill): aixi el boto no queda mai tallat per la barra.
     $graella.Columns['Titular'].AutoSizeMode = 'Fill'
