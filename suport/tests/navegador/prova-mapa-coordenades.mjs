@@ -164,9 +164,24 @@ try {
     eq(files[0][0], 'ID GIA', 'openpyxl l\'obre sense avisos i hi ha la capçalera');
     eq(files.slice(1).map((r) => r[0]).sort(), ['101', '102'], 'hi ha les dues activitats repassades');
     check(typeof files[1][6] === 'number', 'les coordenades són números, no text');
+    eq(files[0][10], 'Base de dades', 'l\'última columna diu de quina base és el repàs');
+    eq(files[1][10], '2026-08-18 ACTIVITATS.xls', 'i cada fila porta el nom de la base');
   } else {
     console.log('  (sense python3 + openpyxl: no es rellegeix l\'Excel) ' + (py.stderr || '').split('\n').slice(-2).join(' '));
   }
+
+  seccio('Projecció d\'anada i tornada (per carregar un repàs, que només porta metres)');
+  const errMax = await a.evaluate(() => {
+    let pitjor = 0;
+    for (let x = 418000; x <= 426000; x += 500) {
+      for (let y = 4574000; y <= 4582000; y += 500) {
+        const ll = utm31ToLatLon(x, y), u = latLonToUtm31(ll[0], ll[1]);
+        pitjor = Math.max(pitjor, Math.abs(u[0] - x), Math.abs(u[1] - y));
+      }
+    }
+    return pitjor;
+  });
+  check(errMax < 0.001, 'UTM -> graus -> UTM sobre tot el terme: error màxim ' + (errMax * 1000).toFixed(3) + ' mm (< 1 mm)');
 
   seccio('Tornar-hi l\'endemà: tancar el navegador i obrir un mapa NOU');
   await ctx.close();
@@ -186,6 +201,59 @@ try {
   await b.click('text=Esborrar el meu repàs');
   check(b.dialegs.some((m) => m.includes('Segur')), 'demana confirmació');
   eq(await desat(b), {}, 'i, acceptat, el repàs d\'aquesta base desapareix');
+
+  seccio('Carregar el repàs des de l\'Excel baixat (la còpia de seguretat)');
+  const carrega = async (p, fitxer) => {
+    const dlg = p.waitForEvent('dialog');
+    await p.setInputFiles('#fitxerRepas', fitxer);
+    return (await dlg).message();
+  };
+  const posAbans = await a2.evaluate(() => [estat[1].lat, estat[1].lon]);
+  // b ha esborrat el repàs de la base A: el navegador l'ha perdut.
+  await a2.reload();
+  await a2.waitForFunction(() => typeof capes !== 'undefined' && capes.length === ITEMS.length);
+  eq(await a2.evaluate(() => estat.filter((e) => e.revisada).length), 0, 'sense repàs al navegador (esborrat)');
+  let msg = await carrega(a2, xlsx);
+  check(msg.includes('Recuperades 2'), 'recarregant l\'Excel baixat es recuperen les 2: «' + msg.split('\n')[0] + '»');
+  const rec = await a2.evaluate(() => [estat[0].revisada, estat[1].origen, estat[1].lat, estat[1].lon]);
+  eq(rec.slice(0, 2), [true, 'manual'], 'amb el seu estat (validada, moguda a mà)');
+  check(Math.abs(rec[2] - posAbans[0]) < 1e-7 && Math.abs(rec[3] - posAbans[1]) < 1e-7,
+        'i el punt mogut torna exactament on era (< 1 cm)');
+  msg = await carrega(a2, xlsx);
+  check(msg.includes('ja eren al navegador'), 'carregar-lo dos cops no duplica res: «' + msg.split('\n')[1] + '»');
+  // El mateix fitxer obert i desat amb un altre programa: comprimit i amb els
+  // textos a sharedStrings.xml, com quan l'obres i el deses amb l'Excel.
+  const desatAmbAltre = path.join(TMP, 'desat-amb-excel.xlsx');
+  // (simula-excel.py: openpyxl no serveix, desa els textos inline com nosaltres)
+  const pyDesa = spawnSync('python3', [path.join(AQUI, 'simula-excel.py'), xlsx, desatAmbAltre], { encoding: 'utf8' });
+  if (pyDesa.status === 0) {
+    const zipCru = fs.readFileSync(desatAmbAltre).toString('latin1');
+    check(zipCru.includes('sharedStrings.xml') && !zipCru.includes('Coordenades<'),
+          '(la còpia desada de nou porta sharedStrings i va comprimida, com la de l\'Excel)');
+    // Desa'n una còpia per a la suite de PowerShell, que ha de llegir el mateix.
+    if (process.env.COORD_DESA_FIXTURES) {
+      fs.copyFileSync(xlsx, path.join(process.env.COORD_DESA_FIXTURES, 'repas-navegador.xlsx'));
+      fs.copyFileSync(desatAmbAltre, path.join(process.env.COORD_DESA_FIXTURES, 'repas-desat-excel.xlsx'));
+    }
+    await a2.evaluate(() => { localStorage.clear(); });
+    await a2.reload();
+    await a2.waitForFunction(() => typeof capes !== 'undefined' && capes.length === ITEMS.length);
+    msg = await carrega(a2, desatAmbAltre);
+    check(msg.includes('Recuperades 2'), 'un Excel desat de nou (comprimit, sharedStrings) també es carrega');
+    const r2 = await a2.evaluate(() => [estat[1].lat, estat[1].lon]);
+    check(Math.abs(r2[0] - posAbans[0]) < 1e-7 && Math.abs(r2[1] - posAbans[1]) < 1e-7, 'i amb les mateixes coordenades');
+  } else {
+    console.log('  (sense python3 + openpyxl: no es prova l\'Excel desat de nou)');
+  }
+  msg = await carrega(c, xlsx);
+  check(msg.includes('altra base de dades') && msg.includes('2026-08-18 ACTIVITATS.xls'),
+        'en un mapa d\'una ALTRA base no es carrega, i diu de quina és');
+  eq(await c.evaluate(() => estat.filter((e) => e.revisada).length), 0, 'i no hi toca res');
+  const noRepas = path.join(TMP, 'no-repas.xlsx');
+  if (spawnSync('python3', ['-c', 'import sys, openpyxl; wb = openpyxl.Workbook(); wb.active.append(["Nom", "Cognom"]); wb.save(sys.argv[1])', noRepas]).status === 0) {
+    msg = await carrega(c, noRepas);
+    check(msg.includes('No s\'ha pogut carregar') && msg.includes('ID GIA'), 'un Excel que no és un repàs: ho diu i no peta');
+  }
 
   seccio('Filtre per estat i recomptes (mapa d\'una altra base, comença net)');
   const visibles = (p) => p.locator('#tbody tr:visible td.id').allTextContents();

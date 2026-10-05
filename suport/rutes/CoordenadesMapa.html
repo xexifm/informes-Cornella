@@ -104,6 +104,9 @@
   <button class="sec" onclick="seguentPendent()" title="Tecla N">Següent pendent &rarr;</button>
   <button class="sec" id="btnDesfer" onclick="desferUltim()" title="Ctrl+Z" disabled>&#8630; Desfer</button>
   <button class="sec" onclick="validaVisibles()">Validar tot el que es veu</button>
+  <button class="sec" onclick="document.getElementById('fitxerRepas').click()"
+          title="Recupera el repàs des d'un Excel que t'havies baixat d'aquest mapa">Carregar repàs&hellip;</button>
+  <input type="file" id="fitxerRepas" accept=".xlsx" style="display:none">
   <button class="sec" onclick="esborraCorreccions()">Esborrar el meu repàs</button>
   <label style="font-size:12px;color:#333;"><input type="checkbox" id="chkNums" checked> números dels portals</label>
   <span id="estat"></span>
@@ -168,6 +171,34 @@ function latLonToUtm31(lat, lon) {
     + (5 - T + 9 * C + 4 * C * C) * Math.pow(A, 4) / 24
     + (61 - 58 * T + T * T + 600 * C - 330 * ep2) * Math.pow(A, 6) / 720));
   return [x, y];
+}
+
+// INVERSA: UTM fus 31N -> lat/lon. Es Convert-UtmToLatLon (Ruta.ps1) passada a
+// JavaScript formula per formula. Cal per CARREGAR un repas des de l'Excel, que
+// nomes porta metres. La suite del navegador en comprova l'anada i tornada.
+function utm31ToLatLon(easting, northing) {
+  var a = 6378137.0, f = 1.0 / 298.257223563, k0 = 0.9996;
+  var e2 = f * (2 - f), ep2 = e2 / (1 - e2);
+  var x = easting - 500000.0, y = northing;
+  var mu = (y / k0) / (a * (1 - e2 / 4 - 3 * e2 * e2 / 64 - 5 * e2 * e2 * e2 / 256));
+  var e1 = (1 - Math.sqrt(1 - e2)) / (1 + Math.sqrt(1 - e2));
+  var phi1 = mu
+    + (3 * e1 / 2 - 27 * Math.pow(e1, 3) / 32) * Math.sin(2 * mu)
+    + (21 * e1 * e1 / 16 - 55 * Math.pow(e1, 4) / 32) * Math.sin(4 * mu)
+    + (151 * Math.pow(e1, 3) / 96) * Math.sin(6 * mu)
+    + (1097 * Math.pow(e1, 4) / 512) * Math.sin(8 * mu);
+  var sinP = Math.sin(phi1), cosP = Math.cos(phi1), tanP = Math.tan(phi1);
+  var C1 = ep2 * cosP * cosP, T1 = tanP * tanP;
+  var N1 = a / Math.sqrt(1 - e2 * sinP * sinP);
+  var R1 = a * (1 - e2) / Math.pow(1 - e2 * sinP * sinP, 1.5);
+  var D = x / (N1 * k0);
+  var lat = phi1 - (N1 * tanP / R1) * (D * D / 2
+    - (5 + 3 * T1 + 10 * C1 - 4 * C1 * C1 - 9 * ep2) * Math.pow(D, 4) / 24
+    + (61 + 90 * T1 + 298 * C1 + 45 * T1 * T1 - 252 * ep2 - 3 * C1 * C1) * Math.pow(D, 6) / 720);
+  var lon0 = (31 * 6 - 183) * Math.PI / 180;
+  var lon = lon0 + (D - (1 + 2 * T1 + C1) * Math.pow(D, 3) / 6
+    + (5 - 2 * C1 + 28 * T1 - 3 * C1 * C1 + 8 * ep2 + 24 * T1 * T1) * Math.pow(D, 5) / 120) / cosP;
+  return [lat * 180 / Math.PI, lon * 180 / Math.PI];
 }
 
 function distanciaUtm(x1, y1, x2, y2) {
@@ -279,7 +310,7 @@ function buildXlsx(sheetName, header, rows) {
 
   // Amplades de columna, perque el fitxer s'obri llegible i no s'hagin
   // d'eixamplar a ma cada vegada.
-  var widths = [10, 24, 40, 15, 15, 15, 15, 26, 14];
+  var widths = [10, 24, 40, 8, 15, 15, 15, 15, 40, 14, 28];
   var cols = '<cols>';
   for (var w = 0; w < header.length; w++) {
     cols += '<col min="' + (w + 1) + '" max="' + (w + 1) + '" width="' + (widths[w] || 14) + '" customWidth="1"/>';
@@ -322,6 +353,112 @@ function buildXlsx(sheetName, header, rows) {
       cols + '<sheetData>' + sd + '</sheetData></worksheet>' }
   ];
   return zipStore(parts.map(function (p) { return { name: p.name, data: utf8(p.text) }; }));
+}
+
+// ---------------------------------------------------------------------------
+// LECTOR DE .xlsx, per CARREGAR un repas. Ha d'entendre dos fitxers:
+//   - el que et baixes d'aquest mapa (ZIP sense comprimir, textos inline);
+//   - el MATEIX fitxer un cop obert i desat amb l'Excel, que el torna a escriure
+//     comprimit (deflate) i amb els textos a xl/sharedStrings.xml.
+// El deflate el descomprimeix el mateix Chrome (DecompressionStream), sense cap
+// biblioteca. Torna una promesa amb les files de la PRIMERA fulla (arrays).
+// ---------------------------------------------------------------------------
+function u16le(b, p) { return b[p] | (b[p + 1] << 8); }
+function u32le(b, p) { return (b[p] | (b[p + 1] << 8) | (b[p + 2] << 16) | (b[p + 3] << 24)) >>> 0; }
+
+function llegeixZip(bytes) {
+  // El final del directori central es busca des del final: hi pot haver un
+  // comentari darrere (fins a 64 KB).
+  var eocd = -1;
+  for (var p = bytes.length - 22; p >= Math.max(0, bytes.length - 65557); p--) {
+    if (u32le(bytes, p) === 0x06054B50) { eocd = p; break; }
+  }
+  if (eocd < 0) { throw new Error('no és un fitxer .xlsx'); }
+  var n = u16le(bytes, eocd + 10), q = u32le(bytes, eocd + 16), entrades = {};
+  for (var k = 0; k < n; k++) {
+    if (u32le(bytes, q) !== 0x02014B50) { throw new Error('el fitxer .xlsx està malmès'); }
+    var metode = u16le(bytes, q + 10), mida = u32le(bytes, q + 20);
+    var lNom = u16le(bytes, q + 28), lExtra = u16le(bytes, q + 30), lCom = u16le(bytes, q + 32);
+    var off = u32le(bytes, q + 42);
+    var nom = new TextDecoder().decode(bytes.subarray(q + 46, q + 46 + lNom));
+    // Les dades comencen despres de la capçalera LOCAL, que te els seus propis
+    // camps de nom i extra (no han de coincidir amb els del directori central).
+    var ini = off + 30 + u16le(bytes, off + 26) + u16le(bytes, off + 28);
+    entrades[nom] = { metode: metode, dades: bytes.subarray(ini, ini + mida) };
+    q += 46 + lNom + lExtra + lCom;
+  }
+  return entrades;
+}
+
+function textEntrada(entrades, nom) {
+  var e = entrades[nom];
+  if (!e) { return Promise.resolve(null); }
+  if (e.metode === 0) { return Promise.resolve(new TextDecoder().decode(e.dades)); }
+  if (e.metode === 8) {
+    return new Response(new Blob([e.dades]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+  }
+  return Promise.reject(new Error('el .xlsx fa servir una compressió desconeguda (' + e.metode + ')'));
+}
+
+// Per NOM LOCAL, sense lligar-se a cap espai de noms (com el parseig del
+// Cadastre a Geocodificador.ps1): cada programa que desa un .xlsx els prefixa
+// a la seva manera.
+function perNom(node, nom) { return node.getElementsByTagNameNS('*', nom); }
+function textDe(node) {
+  var ts = perNom(node, 't'), s = '';
+  for (var i = 0; i < ts.length; i++) { s += ts[i].textContent; }
+  return s;
+}
+
+function llegeixXlsx(buffer) {
+  var entrades = llegeixZip(new Uint8Array(buffer));
+  function xml(t) { return t ? new DOMParser().parseFromString(t, 'application/xml') : null; }
+  return Promise.all([textEntrada(entrades, 'xl/workbook.xml'),
+                      textEntrada(entrades, 'xl/_rels/workbook.xml.rels'),
+                      textEntrada(entrades, 'xl/sharedStrings.xml')]).then(function (t) {
+    // La primera fulla del LLIBRE: l'Excel pot haver canviat el nom del fitxer intern.
+    var fulla = 'xl/worksheets/sheet1.xml';
+    var wb = xml(t[0]), rels = xml(t[1]);
+    if (wb && rels && perNom(wb, 'sheet').length > 0) {
+      var s0 = perNom(wb, 'sheet')[0];
+      var rid = s0.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id');
+      var rs = perNom(rels, 'Relationship');
+      for (var i = 0; i < rs.length; i++) {
+        if (rs[i].getAttribute('Id') !== rid) { continue; }
+        var dest = rs[i].getAttribute('Target');
+        fulla = dest.charAt(0) === '/' ? dest.substring(1) : 'xl/' + dest;
+      }
+    }
+    var compartits = [], ss = xml(t[2]);
+    if (ss) {
+      var sis = perNom(ss, 'si');
+      for (var j = 0; j < sis.length; j++) { compartits.push(textDe(sis[j])); }
+    }
+    return textEntrada(entrades, fulla).then(function (tf) {
+      var doc = xml(tf);
+      if (!doc) { throw new Error('el fitxer no té cap full de càlcul'); }
+      var files = [], rows = perNom(doc, 'row');
+      for (var r = 0; r < rows.length; r++) {
+        var fila = [], cs = perNom(rows[r], 'c');
+        for (var c = 0; c < cs.length; c++) {
+          // La columna surt de la referencia (B2 -> 1): l'Excel no escriu les
+          // cel·les buides i, sense aixo, tot es desplaçaria.
+          var ref = cs[c].getAttribute('r') || '', col = 0;
+          for (var x = 0; x < ref.length && ref.charCodeAt(x) >= 65; x++) { col = col * 26 + ref.charCodeAt(x) - 64; }
+          col = col > 0 ? col - 1 : fila.length;
+          var tipus = cs[c].getAttribute('t'), v = perNom(cs[c], 'v')[0], val;
+          if (tipus === 'inlineStr')   { val = textDe(cs[c]); }
+          else if (!v)                 { val = ''; }
+          else if (tipus === 's')      { val = compartits[parseInt(v.textContent, 10)] || ''; }
+          else if (tipus === 'str' || tipus === 'b' || tipus === 'e') { val = v.textContent; }
+          else                         { val = parseFloat(v.textContent); }
+          fila[col] = val;
+        }
+        files.push(fila);
+      }
+      return files;
+    });
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -822,6 +959,8 @@ document.addEventListener('keydown', function (ev) {
 // d'una altra zona i d'un altre dia: la idea es acabar amb UN sol fitxer.
 // Quan actualitzis l'Excel d'activitats i en generis un de nou, aixo es buida
 // sol, perque la clau del navegador es el nom del fitxer d'origen.
+function esNum(v) { return typeof v === 'number' && isFinite(v); }
+
 function baixaExcel() {
   var desat = llegeixDesat();
   var ids = Object.keys(desat);
@@ -829,20 +968,20 @@ function baixaExcel() {
     alert('Encara no has validat cap activitat.\n\nAmplia el mapa, comprova els punts i fes-hi clic per validar-los (o arrossega\'ls). Després torna a provar.');
     return;
   }
-  var header = ['ID GIA', 'Ref. cadastral', 'Adreça', 'Zona',
-                'UTM X (Excel)', 'UTM Y (Excel)', 'UTM X (nova)', 'UTM Y (nova)',
-                'Origen', 'Desplaçament (m)'];
+  var header = CAPCALERA;
   var rows = [];
   for (var k = 0; k < ids.length; k++) {
     var id = ids[k], d = desat[id];
-    var xe = isFinite(d.xe) ? d.xe : '';
-    var ye = isFinite(d.ye) ? d.ye : '';
-    var x = isFinite(d.x) ? d.x : '';
-    var y = isFinite(d.y) ? d.y : '';
+    // typeof i no isFinite a pel: isFinite(null) es CERT (null -> 0), i un
+    // repas carregat d'un Excel sense la coordenada vella hi porta null.
+    var xe = esNum(d.xe) ? d.xe : '';
+    var ye = esNum(d.ye) ? d.ye : '';
+    var x = esNum(d.x) ? d.x : '';
+    var y = esNum(d.y) ? d.y : '';
     var desp = '';
-    if (isFinite(d.xe) && isFinite(d.x)) { desp = Math.round(distanciaUtm(d.xe, d.ye, d.x, d.y) * 10) / 10; }
+    if (esNum(d.xe) && esNum(d.ye) && esNum(d.x) && esNum(d.y)) { desp = Math.round(distanciaUtm(d.xe, d.ye, d.x, d.y) * 10) / 10; }
     rows.push([String(id), String(d.rc || ''), String(d.adreca || ''), String(d.zona || ''),
-               xe, ye, x, y, textOrigen(d.origen || 'manual'), desp]);
+               xe, ye, x, y, textOrigen(d.origen || 'manual'), desp, FONT]);
   }
   rows.sort(function (a, b) { return (a[3] + '').localeCompare(b[3] + '') || (a[0] - b[0]); });
 
@@ -860,6 +999,106 @@ function baixaExcel() {
   document.body.removeChild(a);
   setTimeout(function () { URL.revokeObjectURL(url); }, 5000);
 }
+
+// ---------------------------------------------------------------------------
+// CARREGAR UN REPAS des de l'Excel que et vas baixar. Es la copia de seguretat:
+// el repas viu al navegador, i esborrar-ne les dades o canviar d'ordinador el
+// perdria. L'Excel es UN SOL FITXER per a tot: la copia, i el que fa servir el
+// programa per preparar l'Excel per importar.
+//
+// El que JA ES AL NAVEGADOR GUANYA: el fitxer es una copia, i pot ser d'abans.
+// Si carregar-lo trepitges el navegador, carregar una copia vella desfaria
+// sense avisar la feina feta des d'aleshores. Del fitxer nomes s'afegeix el
+// que el navegador no te.
+// ---------------------------------------------------------------------------
+var CAPCALERA = ['ID GIA', 'Ref. cadastral', 'Adreça', 'Zona',
+                 'UTM X (Excel)', 'UTM Y (Excel)', 'UTM X (nova)', 'UTM Y (nova)',
+                 'Origen', 'Desplaçament (m)', 'Base de dades'];
+
+function numeroDe(v) {
+  if (typeof v === 'number') { return v; }
+  if (v === undefined || v === null || String(v).trim() === '') { return NaN; }
+  return parseFloat(String(v).trim().replace(',', '.'));
+}
+
+function origenDeText(t) {
+  var codis = ['facana', 'facana-dubtosa', 'facana-aprox', 'cadastre', 'manual'];
+  for (var k = 0; k < codis.length; k++) { if (textOrigen(codis[k]) === t) { return codis[k]; } }
+  return 'manual';   // desconegut: la coordenada nova es la del fitxer, i prou
+}
+
+function aplicaRepas(files) {
+  var cap = (files[0] || []).map(function (h) { return String(h === undefined ? '' : h).trim(); });
+  function col(nom) { return cap.indexOf(nom); }
+  function cel(f, nom) { var c = col(nom); return c < 0 || f[c] === undefined ? '' : f[c]; }
+  if (col('ID GIA') < 0 || col('UTM X (nova)') < 0 || col('UTM Y (nova)') < 0) {
+    throw new Error('no és un repàs d\'aquest mapa: hi falten les columnes «ID GIA», «UTM X (nova)» i «UTM Y (nova)»');
+  }
+  var desat = llegeixDesat();
+  var res = { noves: 0, jaHiEren: 0, altraBase: 0, invalides: 0, bases: [] };
+  for (var i = 1; i < files.length; i++) {
+    var f = files[i] || [];
+    var id = String(cel(f, 'ID GIA')).trim();   // 101 (numero, si l'Excel l'ha convertit) -> '101'
+    if (id === '') { continue; }
+    var x = numeroDe(cel(f, 'UTM X (nova)')), y = numeroDe(cel(f, 'UTM Y (nova)'));
+    if (!isFinite(x) || !isFinite(y)) { res.invalides++; continue; }
+    // Els fitxers d'abans d'aquesta columna no la porten: llavors no es pot dir
+    // i es carreguen. Si la porten, nomes els d'aquesta base.
+    var base = String(cel(f, 'Base de dades')).trim();
+    if (base !== '' && base !== FONT) {
+      res.altraBase++;
+      if (res.bases.indexOf(base) < 0) { res.bases.push(base); }
+      continue;
+    }
+    if (desat[id]) { res.jaHiEren++; continue; }
+    var ll = utm31ToLatLon(x, y);
+    var xe = numeroDe(cel(f, 'UTM X (Excel)')), ye = numeroDe(cel(f, 'UTM Y (Excel)'));
+    desat[id] = {
+      lat: ll[0], lon: ll[1], origen: origenDeText(String(cel(f, 'Origen'))),
+      x: r2(x), y: r2(y), xe: isFinite(xe) ? xe : null, ye: isFinite(ye) ? ye : null,
+      rc: String(cel(f, 'Ref. cadastral')), adreca: String(cel(f, 'Adreça')), zona: String(cel(f, 'Zona'))
+    };
+    res.noves++;
+  }
+  escriuDesat(desat);
+  return res;
+}
+
+// Torna a pintar tots els punts amb el que hi ha ara al navegador.
+function repintaTot() {
+  carregaCorreccions();
+  for (var i = 0; i < ITEMS.length; i++) {
+    capes[i].verd.setLatLng([estat[i].lat, estat[i].lon]);
+    refrescaItem(i);
+  }
+  actualitzaEstatBarra();
+}
+
+function carregaRepas(fitxer) {
+  return fitxer.arrayBuffer().then(llegeixXlsx).then(function (files) {
+    var r = aplicaRepas(files);
+    repintaTot();
+    var msg = r.noves === 0 && r.jaHiEren === 0 && r.altraBase === 0
+      ? 'El fitxer no porta cap activitat repassada.'
+      : 'Recuperades ' + r.noves + ' activitats del fitxer.';
+    if (r.jaHiEren > 0) { msg += '\n' + r.jaHiEren + ' ja eren al navegador: es queda la del navegador, que és la més nova.'; }
+    if (r.altraBase > 0) {
+      msg += '\n' + r.altraBase + ' són d\'una altra base de dades (' + r.bases.join(', ') + ') i no s\'han carregat.' +
+             '\nAquest mapa és de: ' + FONT;
+    }
+    if (r.invalides > 0) { msg += '\n' + r.invalides + ' files sense coordenada nova vàlida s\'han saltat.'; }
+    alert(msg);
+    return r;
+  }).catch(function (e) {
+    alert('No s\'ha pogut carregar el repàs: ' + (e && e.message ? e.message : e));
+  });
+}
+
+document.getElementById('fitxerRepas').addEventListener('change', function (ev) {
+  var f = ev.target.files && ev.target.files[0];
+  if (!f) { return; }
+  carregaRepas(f).then(function () { ev.target.value = ''; });   // per poder tornar a triar el mateix
+});
 
 function esborraCorreccions() {
   var total = Object.keys(llegeixDesat()).length;
