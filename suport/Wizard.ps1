@@ -22,6 +22,10 @@ function Main {
         exit 1
     }
 
+    # La tasca dels recordatoris automatics, si n'hi ha, a l'hora i amb la regla
+    # d'ara (Recordatoris.ps1). Un sol cop per execucio; no pregunta res.
+    Update-RecordatorisTascaSiCal
+
     # Pas 1: un sol menu (Select-Mode) que tria alhora el MODE i, per al cas
     # "nou", el CATALEG (ja no hi ha un segon pas de tria). Cada flux SEMPRE
     # torna a aquest menu quan acaba o quan es prem Enrere; aixi el programa

@@ -295,28 +295,26 @@ function Invoke-CopiarInformes {
 # ----------------------------------------------------------------------------
 # MODE AUTOMÀTIC: quan toca (la part PURA)
 # ----------------------------------------------------------------------------
-# L'usuari ho va demanar així: cada dia a les 14:30 si el programa està obert i,
-# si el dia abans no es va arribar a fer, en obrir el programa.
+# L'usuari ho va demanar així: cada dia a l'hora dels modes automàtics
+# ($Script:AutoHora, ModeAutomatic.ps1: les 13:00) si el programa està obert i,
+# si l'última vegada que tocava no es va arribar a fer, en obrir el programa.
 #
 # LES DUES COSES SÓN LA MATEIXA PREGUNTA i per això hi ha una sola funció: "des
-# de l'últim VENCIMENT (les 14:30 que toquen), s'ha fet cap passada automàtica?"
-#   · menú obert a les 14:30      -> el venciment passa a ser el d'avui i toca
+# de l'últim VENCIMENT (les 13:00 que toquen), s'ha fet cap passada automàtica?"
+#   · menú obert a les 13:00      -> el venciment passa a ser el d'avui i toca
 #   · ahir el PC estava apagat    -> el venciment d'ahir no es va servir, toca
 #   · obres a les 16:00 i el d'avui no s'ha fet -> toca (no s'espera a demà)
 # Amb dues regles separades (una per al rellotge i una per a l'arrencada) el
 # tercer cas es perdia fins l'endemà.
-$Script:CopiaAutoHora  = 14
-$Script:CopiaAutoMinut = 30
-
 # L'últim venciment que ja hauria d'estar servit a l'hora $ara, i si toca.
 # PURES (la regla és la de tots els modes automàtics: ModeAutomatic.ps1).
 function _CopiaAutoVenciment([datetime]$ara) {
-    return (_AutoVenciment $ara $Script:CopiaAutoHora $Script:CopiaAutoMinut)
+    return (_AutoVenciment $ara $Script:AutoHora $Script:AutoMinut)
 }
 
 # $ultimAuto: la marca 'auto_el' de l'estat (text ISO; buida si no s'ha fet mai).
 function _CopiaAutoToca([datetime]$ara, $ultimAuto) {
-    return (_AutoToca $ara $ultimAuto $Script:CopiaAutoHora $Script:CopiaAutoMinut)
+    return (_AutoToca $ara $ultimAuto $Script:AutoHora $Script:AutoMinut)
 }
 
 # L'interruptor A/M del menú.
@@ -395,7 +393,7 @@ function Start-CopiaInformesAuto {
 }
 
 # El menú ho crida en obrir-se i a cada minut: si l'interruptor està en A i el
-# venciment de les 14:30 encara no s'ha servit, engega la passada.
+# venciment de les 13:00 encara no s'ha servit, engega la passada.
 function Invoke-CopiaAutoSiToca {
     $est = _CopiaInformesEstat
     if (-not [bool]$est['auto']) { return $false }
@@ -416,6 +414,6 @@ $Script:ModesAuto['copiarinformes'] = @{
         if (-not [string]::IsNullOrWhiteSpace($CopiaInformesDir)) { return '' }
         return ("Per copiar els informes sols cal dir on s'han de copiar.`n`nVes a Configuraci" + [char]0x00F3 + " (el bot" + [char]0x00F3 + " de la roda, a dalt a la dreta) i indica 'Carpeta on copiar els informes'.")
     }
-    TipA      = "Mode AUTOMATIC: es copia sol cada dia a les 14:30 (i en obrir el programa, si aquell dia no s'ha arribat a fer). Clica per passar a manual."
+    TipA      = (Get-AutoTipText 'es copia sol')
     TipM      = "Mode MANUAL: nomes es copia quan cliques la rajola. Clica per posar-ho en automatic."
 }

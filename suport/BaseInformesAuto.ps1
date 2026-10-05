@@ -5,8 +5,8 @@
 
 .DESCRIPTION
   El llanca el MENU del programa (l'interruptor A/M de sota la rajola
-  "Actualitzar base") quan toca: cada dia a les 14:00 amb el programa obert i,
-  si aquell venciment no s'ha arribat a servir, en obrir el programa.
+  "Actualitzar base") quan toca: cada dia a les 13:00 ($Script:AutoHora) amb el
+  programa obert i, si l'ultima vegada que tocava no es va fer, en obrir-lo.
 
   Fa NOMES una passada i surt. Mateix patro que CopiaInformesAuto.ps1: un
   proces a part perque recorrer la carpeta d'informes (unitat de xarxa) no

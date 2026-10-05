@@ -168,29 +168,31 @@ AssertEq $pairsCI[1].ValorCol 6 '_FindCampInfoPairs parell 2 ValorCol=6 (salta l
 AssertEq ((_FindCampInfoPairs @('ID','Titular','Adreça')).Count) 0 '_FindCampInfoPairs sense Camp Info -> 0 parells'
 
 Write-Host "`n--- Informes.ps1: Copiar informes en AUTOMATIC (quan toca) ---"
-# LA REGLA, en una sola pregunta: "des de l'ultim VENCIMENT (les 14:30 que
-# tocaven), s'ha fet cap passada automatica?". Serveix per als dos casos que va
-# demanar l'usuari -el rellotge de les 14:30 amb el programa obert i la passada
-# perduda que es recupera en obrir-lo- i, de propina, per al que s'escapava de
-# tots dos: obrir el programa a la tarda el mateix dia que no s'ha fet.
-$ahir  = [datetime]'2026-09-07T14:30:00'
-$avui  = [datetime]'2026-09-08T14:30:00'
-AssertEq (_CopiaAutoVenciment ([datetime]'2026-09-08T09:00:00')) $ahir '_CopiaAutoVenciment: abans de les 14:30, el venciment es el d''ahir'
-AssertEq (_CopiaAutoVenciment ([datetime]'2026-09-08T14:30:00')) $avui '_CopiaAutoVenciment: a les 14:30 en punt, ja es el d''avui'
+# LA REGLA, en una sola pregunta: "des de l'ultim VENCIMENT (les 13:00 que
+# tocaven), s'ha fet cap passada automatica?". Es fa a les 13:00 amb el
+# programa obert i, si L'ULTIMA VEGADA QUE TOCAVA no es va fer (el programa
+# tancat), en obrir-lo: tant si era ahir com si era avui mateix (l'usuari,
+# octubre 2026; abans era a les 14:30).
+$ahir  = [datetime]'2026-09-07T13:00:00'
+$avui  = [datetime]'2026-09-08T13:00:00'
+AssertEq (_CopiaAutoVenciment ([datetime]'2026-09-08T09:00:00')) $ahir '_CopiaAutoVenciment: abans de les 13:00, el venciment es el d''ahir'
+AssertEq (_CopiaAutoVenciment ([datetime]'2026-09-08T13:00:00')) $avui '_CopiaAutoVenciment: a les 13:00 en punt, ja es el d''avui'
 AssertEq (_CopiaAutoVenciment ([datetime]'2026-09-08T23:59:00')) $avui '_CopiaAutoVenciment: a la nit, el d''avui'
-AssertEq (_CopiaAutoVenciment ([datetime]'2026-03-01T00:10:00')) ([datetime]'2026-02-28T14:30:00') '_CopiaAutoVenciment: creua el canvi de mes sol'
+AssertEq (_CopiaAutoVenciment ([datetime]'2026-03-01T00:10:00')) ([datetime]'2026-02-28T13:00:00') '_CopiaAutoVenciment: creua el canvi de mes sol'
 
 Assert (_CopiaAutoToca ([datetime]'2026-09-08T09:00:00') '') 'toca: no s''ha fet mai'
 Assert (_CopiaAutoToca ([datetime]'2026-09-08T09:00:00') 'aixo no es una data') 'toca: una marca il-legible val com si no n''hi hagues'
-# El rellotge: el menu obert quan arriben les 14:30.
-Assert (_CopiaAutoToca ([datetime]'2026-09-08T14:30:00') ([datetime]'2026-09-07T14:30:05').ToString('o')) 'toca: arriben les 14:30 i l''ultima es la d''ahir'
-Assert (-not (_CopiaAutoToca ([datetime]'2026-09-08T14:31:00') ([datetime]'2026-09-08T14:30:05').ToString('o'))) 'NO toca: la d''avui ja esta feta'
-# En obrir el programa: ahir no es va fer (PC apagat).
-Assert (_CopiaAutoToca ([datetime]'2026-09-08T09:00:00') ([datetime]'2026-09-06T14:30:05').ToString('o')) 'toca: ahir no es va fer, es recupera en obrir'
-Assert (-not (_CopiaAutoToca ([datetime]'2026-09-08T09:00:00') ([datetime]'2026-09-07T14:30:05').ToString('o'))) 'NO toca: ahir SI que es va fer i encara no son les 14:30'
-# El cas que es perdia amb dues regles separades (una per al rellotge i una per
-# a l'arrencada): obres a la tarda i la passada d'avui no s'ha arribat a fer.
-Assert (_CopiaAutoToca ([datetime]'2026-09-08T16:00:00') ([datetime]'2026-09-07T14:30:05').ToString('o')) 'toca: obres a les 16:00 i la d''avui no s''ha fet (no s''espera a dema)'
+# El rellotge: el menu obert quan arriben les 13:00.
+Assert (_CopiaAutoToca ([datetime]'2026-09-08T13:00:00') ([datetime]'2026-09-07T13:00:05').ToString('o')) 'toca: arriben les 13:00 i l''ultima es la d''ahir'
+Assert (-not (_CopiaAutoToca ([datetime]'2026-09-08T13:01:00') ([datetime]'2026-09-08T13:00:05').ToString('o'))) 'NO toca: la d''avui ja esta feta'
+# En obrir el programa: l'ultima vegada que tocava (ahir) no es va fer.
+Assert (_CopiaAutoToca ([datetime]'2026-09-08T09:00:00') ([datetime]'2026-09-06T13:00:05').ToString('o')) 'toca: la d''ahir no es va fer, es recupera en obrir'
+Assert (-not (_CopiaAutoToca ([datetime]'2026-09-08T09:00:00') ([datetime]'2026-09-07T13:00:05').ToString('o'))) 'NO toca: la d''ahir SI que es va fer i encara no son les 13:00'
+# I si la que no es va fer es la d'AVUI (programa tancat a les 13:00): en
+# obrir-lo a la tarda, toca; no s'espera a dema.
+Assert (_CopiaAutoToca ([datetime]'2026-09-08T16:00:00') ([datetime]'2026-09-07T13:00:05').ToString('o')) 'toca: obres a les 16:00 i la d''avui no s''ha fet (no s''espera a dema)'
+# Passant per mes d'un venciment perdut (tres dies sense obrir): UNA passada.
+Assert (_CopiaAutoToca ([datetime]'2026-09-08T10:00:00') ([datetime]'2026-09-04T13:00:05').ToString('o')) 'toca: dies sense obrir el programa, una passada en obrir-lo'
 
 Write-Host "`n--- Informes.ps1: Copiar informes, l'estat i la tria ---"
 $copiaDir = Join-Path ([System.IO.Path]::GetTempPath()) ('copia-' + [guid]::NewGuid().ToString('N'))

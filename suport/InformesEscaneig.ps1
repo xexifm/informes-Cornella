@@ -479,8 +479,9 @@ function Invoke-InformesDbScan {
 # ============================================================================
 # L'usuari: "ja que sera tan important per fer el Planol activitats, que tambe
 # tingui l'opcio d'actualitzar-se automaticament (igual que Copiar informes)".
-# Mateixa regla (ModeAutomatic.ps1): cada dia a l'hora d'aqui sota amb el
-# programa obert i, si aquell venciment no s'ha servit, en obrir el programa;
+# Mateixa regla i mateixa hora (ModeAutomatic.ps1, $Script:AutoHora: les 13:00)
+# amb el programa obert i, si l'ultima vegada que tocava no es va fer, en obrir
+# el programa;
 # en un proces a part (BaseInformesAuto.ps1), sense res a la pantalla.
 #
 # Les correccions a ma ("Editar base") PREVALEN igual que amb el boto: la
@@ -492,8 +493,6 @@ function Invoke-InformesDbScan {
 #   auto_el  l'ultima PASSADA automatica, encara que no hagi pogut fer res: es
 #            la marca que diu que el venciment ja s'ha servit
 #   mode     'auto' | 'manual': qui va fer l'ultima actualitzacio
-$Script:BaseAutoHora  = 14
-$Script:BaseAutoMinut = 0
 $Script:BaseEstatPlantilla = [ordered]@{ auto = $false; auto_el = ''; mode = '' }
 
 function _BaseAutoStatePath {
@@ -506,7 +505,7 @@ function _BaseAutoEstat { return (Read-EstatAuto (_BaseAutoStatePath) $Script:Ba
 function _BaseAutoDesaEstat($canvis) { return (Save-EstatAuto (_BaseAutoStatePath) $canvis $Script:BaseEstatPlantilla) }
 
 function _BaseAutoToca([datetime]$ara, $ultimAuto) {
-    return (_AutoToca $ara $ultimAuto $Script:BaseAutoHora $Script:BaseAutoMinut)
+    return (_AutoToca $ara $ultimAuto $Script:AutoHora $Script:AutoMinut)
 }
 
 function _BaseAutoLog([string]$msg) { Write-AutoLog 'informes-db-log.txt' $msg }
@@ -567,6 +566,6 @@ $Script:ModesAuto['informesdb'] = @{
         if (-not [string]::IsNullOrWhiteSpace($InformesDir)) { return '' }
         return ("Per actualitzar la base sola cal dir on s" + [char]0x00F3 + "n els informes.`n`nVes a Configuraci" + [char]0x00F3 + " (el bot" + [char]0x00F3 + " de la roda, a dalt a la dreta) i indica la carpeta d'informes.")
     }
-    TipA      = "Mode AUTOMATIC: la base s'actualitza sola cada dia a les 14:00 (i en obrir el programa, si aquell dia no s'ha arribat a fer). Clica per passar a manual."
+    TipA      = (Get-AutoTipText "la base s'actualitza sola")
     TipM      = "Mode MANUAL: nomes s'actualitza quan cliques la rajola. Clica per posar-ho en automatic."
 }

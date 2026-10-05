@@ -570,7 +570,7 @@ function Ensure-AppDataDir {
 # ----------------------------------------------------------------------------
 # Hi ha feines que no poden fer esperar l'usuari i que no ensenyen res: refer
 # les VISTES en Word dels catalegs (l'editor, en tancar-se) i la passada
-# AUTOMATICA de "Copiar informes" (el menu, cada dia a les 14:30). Totes dues
+# AUTOMATICA de "Copiar informes" (el menu, cada dia a les 13:00). Totes dues
 # es llancaven -o s'haurien llancat- amb les mateixes cinc linies, i la trampa
 # de les cometes es prou fina per no tenir-la escrita dues vegades:
 #

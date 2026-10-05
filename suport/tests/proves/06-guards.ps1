@@ -202,7 +202,7 @@ AssertEq $clMal.Count 0 ('cap $Script: dins d''una closure' + $(if ($clMal.Count
 
 Write-Host "`n--- Copiar informes: manual i automatic, una sola copia ---"
 # PER QUE. L'eina es fa de dues maneres (la rajola, amb finestra i confirmacio,
-# i la passada automatica de les 14:30, muda i en un proces a part). Si cada una
+# i la passada automatica de les 13:00, muda i en un proces a part). Si cada una
 # es munta el seu bucle de copia, un dia divergiran: la de sempre passa per
 # aqui, la nova no, i els informes copiats deixen de ser els mateixos. Nomes hi
 # ha UN Copy-Item a tot el fitxer i es el del nucli (_CopiaInformesCopia).

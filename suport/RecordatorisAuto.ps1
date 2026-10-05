@@ -27,6 +27,13 @@ $MotorSenseGui = $true
 try {
     _RecLog '--- Execució automàtica ---'
 
+    # "Actualitzar base" en automàtic va a la MATEIXA hora (ModeAutomatic.ps1).
+    # Si ara mateix s'està escrivint, s'espera que acabi (fins a mitja hora):
+    # millor la base d'avui que la d'ahir per decidir a qui s'escriu.
+    if (-not (Wait-MutexLliure $Script:BaseMutexNom 1800)) {
+        _RecLog "La base d'informes s'està actualitzant des de fa més de 30 minuts: es fa servir la que hi ha."
+    }
+
     $db = _RecCarregaDb
     if ($null -eq $db) {
         _RecLog "ATURAT: no hi ha base d'informes (executa 'Actualitzar base')."

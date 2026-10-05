@@ -312,9 +312,9 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
   amb la finestra de progrés) i el mode automàtic (`Invoke-InformesDbAuto`).
 - **Actualitzar base, mode AUTOMÀTIC** (interruptor **A/M** de sota la rajola,
   octubre 2026: «ja que serà tan important per fer el Plànol activitats»). La
-  mateixa regla que *Copiar informes* (`ModeAutomatic.ps1`): cada dia a les
-  **14:00** amb el programa obert i, si aquell venciment no s'ha servit, en obrir
-  el programa; en un **procés a part** (`BaseInformesAuto.ps1`), sense res a la
+  mateixa regla i la mateixa hora que *Copiar informes* (`ModeAutomatic.ps1`):
+  cada dia a les **13:00** amb el programa obert i, si l'última vegada que tocava
+  no es va fer, en obrir el programa; en un **procés a part** (`BaseInformesAuto.ps1`), sense res a la
   pantalla. Estat a `informes-db-auto.json` (`auto`, `auto_el`, `mode`) —**no**
   dins de la base, que l'editor reescriu sencera. Registre a
   `%LOCALAPPDATA%\InformesCornella\informes-db-log.txt`.
@@ -608,6 +608,19 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
   Mostra una **finestra de progrés amb botó Cancel·lar** i **confirma abans de
   copiar** (amb el nombre d'informes) — mai comença "a cegues". Si es cancel·la,
   NO desa `copiat_el` (la propera vegada torna a comprovar el que faltava).
+- **L'HORA DE TOTS ELS MODES AUTOMÀTICS: les 13:00** (octubre 2026; abans la
+  còpia era a les 14:30, la base a les 14:00 i els recordatoris a les 09:00). Viu
+  en un sol lloc, `$Script:AutoHora`/`$Script:AutoMinut` (`ModeAutomatic.ps1`),
+  i la regla és la mateixa per a tots: **si l'última vegada que tocava no es va
+  fer, es fa tan aviat com es pot**. Copiar informes i Actualitzar base ho miren
+  en obrir el programa (`_AutoToca`). Els Recordatoris, que són una tasca del
+  Windows, es creen amb **XML** (`_RecTascaXml`) per poder-hi posar
+  `<StartWhenAvailable>`: amb `schtasks /SC DAILY /ST` no es pot, i amb el PC
+  apagat a l'hora aquell dia no s'enviava res. Una tasca d'abans es reescriu sola
+  en obrir el programa (`Update-RecordatorisTascaSiCal`, una vegada per
+  execució; si no existeix, no es crea). I com que la base s'actualitza a la
+  mateixa hora, `RecordatorisAuto.ps1` espera el seu mutex (`Wait-MutexLliure`,
+  fins a 30 min) per fer servir la base d'avui i no la d'ahir.
 - **Copiar informes, mode AUTOMÀTIC** (interruptor **A/M** del menú, setembre
   2026). La mateixa còpia es fa de dues maneres i per això la feina viu en
   **quatre funcions sense cap finestra** (`_CopiaInformesPrepara`,
@@ -617,9 +630,9 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
   ho vigila: si el manual i l'automàtic es munten cada un el seu bucle, un dia
   copiaran coses diferents.
   - **Quan toca: UNA sola pregunta**, `_CopiaAutoToca` (pura, amb proves) —
-    «des de l'últim **venciment** (les 14:30 que tocaven), s'ha fet cap passada
+    «des de l'últim **venciment** (les 13:00 que tocaven), s'ha fet cap passada
     automàtica?». Serveix per als dos casos que va demanar l'usuari (el rellotge
-    de les 14:30 amb el programa obert, i la passada perduda que es recupera en
+    de les 13:00 amb el programa obert, i la passada perduda que es recupera en
     obrir-lo) **i** per al que s'escapava de tots dos: obrir el programa a la
     tarda el mateix dia que no s'ha fet. Amb dues regles separades, aquell cas
     es perdia fins l'endemà.

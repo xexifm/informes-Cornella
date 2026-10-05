@@ -584,9 +584,11 @@ pot transmetre l'activitat mentre hi hagi un expedient obert).
 
 **Mode automàtic.** Cada campanya pot anar en *Manual* (tu obres l'eina i
 cliques *Enviar tanda*) o en *Automàtic*. Per a l'automàtic, el botó
-**Automàtic...** crea una tasca del Windows que cada dia a les 09:00 envia el que
-toqui. Només corre amb el PC engegat i la sessió iniciada, i **els correus surten
-sense que ningú els revisi**. El mateix botó també serveix per esborrar la tasca.
+**Automàtic...** crea una tasca del Windows que cada dia a les **13:00** envia el
+que toqui; si a aquella hora el PC estava apagat, ho fa en engegar-lo. Només
+corre amb la sessió iniciada, i **els correus surten sense que ningú els
+revisi**. Si ja la tenies creada d'abans (a les 09:00), el programa la posa al
+dia sol en obrir-se. El mateix botó també serveix per esborrar la tasca.
 
 Amb **Excloure / incloure** treus una activitat concreta dels recordatoris (per
 exemple, si en portes el seguiment per una altra via).
@@ -596,7 +598,7 @@ exemple, si en portes el seguiment per una altra via).
 - **🗃 Actualitzar base d'informes**: recorre els informes ja fets i n'extreu
   data, ID GIA i conclusió a `local/base-dades-activitats/informes-db.json`.
   També té interruptor **A / M** (vegeu més avall): en **A** es fa sola cada
-  dia a les **14:00**.
+  dia a les **13:00**.
 - **📋 Editar base d'informes**: el que hi corregeixes a mà (la conclusió breu o
   l'«ignorar») **mana** sobre el que surti d'*Actualitzar base*, i l'*Estat
   activitat* d'aquelles activitats surt **en vermell** perquè ho tinguis present.
@@ -618,12 +620,16 @@ passat, per exemple, el *Comprovar Excel* aquesta setmana. Es desa a
 
 ### Copiar informes sol cada dia (l'interruptor **A** / **M**)
 
+> **Tot el que es fa sol es fa a les 13:00**: copiar informes, actualitzar la
+> base i els recordatoris. I sempre amb la mateixa regla: si l'última vegada que
+> tocava no es va poder fer, es fa tan aviat com es pot.
+
 Sota la rajola **📁 Copiar informes**, allà on les altres eines tenen l'hora, hi
 ha un **interruptor petit**:
 
 | | Què vol dir |
 |---|---|
-| **A** (verd) | **Automàtic.** Amb el programa obert, cada dia **a les 14:30** es copien sols els informes nous. Si aquell dia el PC estava apagat i no s'ha arribat a fer, es fa **en obrir el programa**. |
+| **A** (verd) | **Automàtic.** Amb el programa obert, cada dia **a les 13:00** es copien sols els informes nous. Si l'última vegada que tocava no es va poder fer (el programa estava tancat), es fa **en obrir el programa**. |
 | **M** (gris) | **Manual.** Només es copia quan cliques la rajola. |
 
 Es canvia clicant-hi al damunt. **La rajola segueix funcionant igual en tots dos
@@ -648,8 +654,9 @@ d'un cop d'ull saps si l'automàtic està treballant de debò o només està enc
 ### Actualitzar la base sola cada dia (també **A** / **M**)
 
 Sota **🗃 Actualitzar base** hi ha el mateix interruptor. En **A**, la base
-d'informes s'actualitza sola cada dia **a les 14:00** (o en obrir el programa,
-si aquell dia no s'ha arribat a fer), en segon pla i sense que es vegi res. La
+d'informes s'actualitza sola cada dia **a les 13:00** (o en obrir el programa, si
+l'última vegada que tocava no es va poder fer), en segon pla i sense que es vegi
+res. La
 data surt en verd si l'última actualització la va fer sola.
 
 - El que hagis corregit a **📋 Editar base** **no es perd**: mana sobre el que

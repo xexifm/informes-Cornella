@@ -41,6 +41,27 @@
 # closure no es el de l'script (vegeu CLAUDE.md).
 $Script:ModesAuto = [ordered]@{}
 
+# L'HORA DE TOTS ELS MODES AUTOMATICS, en un sol lloc (octubre 2026, l'usuari:
+# "a les 13.00, a totes les eines que es llancen automaticament"). La fan servir
+# Copiar informes, Actualitzar base i la tasca del Windows dels Recordatoris.
+# Abans cada una tenia la seva (14:30, 14:00, 09:00).
+#
+# LA REGLA ES LA MATEIXA PER A TOTES: es fa a aquesta hora i, si l'ULTIMA
+# VEGADA QUE TOCAVA no es va poder fer (el programa tancat, el PC apagat), es
+# fa tan aviat com es pot: en obrir el programa (Copiar informes, Actualitzar
+# base) o en engegar el PC (la tasca dels recordatoris, StartWhenAvailable).
+$Script:AutoHora  = 13
+$Script:AutoMinut = 0
+
+function Get-AutoHoraText { return ('{0:00}:{1:00}' -f [int]$Script:AutoHora, [int]$Script:AutoMinut) }
+
+# L'ajuda de l'interruptor en AUTOMATIC. $que: el que es fa ("es copia sol",
+# "la base s'actualitza sola"). PURA.
+function Get-AutoTipText([string]$que) {
+    return ("Mode AUTOMATIC: " + $que + " cada dia a les " + (Get-AutoHoraText) + ". Si l'ultima vegada que tocava " +
+            "no es va poder fer (el programa estava tancat), es fa en obrir-lo. Clica per passar a manual.")
+}
+
 # L'ultim venciment que ja hauria d'estar servit a l'hora $ara. PURA.
 function _AutoVenciment([datetime]$ara, [int]$hora, [int]$minut) {
     $avui = New-Object datetime($ara.Year, $ara.Month, $ara.Day, $hora, $minut, 0)
@@ -123,6 +144,24 @@ function Start-ProcesAutoUnic([string]$clau, [string]$script) {
     } catch { }
     $Script:ProcAuto[$clau] = Start-ScriptSegonPla $script
     return ($null -ne $Script:ProcAuto[$clau])
+}
+
+# ESPERA que un altre proces acabi la feina d'un mutex (fins a $maxSegons) i
+# torna: no la fa ni el reté. Torna $true si es lliure (o ho ha quedat) i
+# $false si s'ha cansat d'esperar. Els Recordatoris automatics ho fan amb el de
+# la base d'informes: si "Actualitzar base" corre a la mateixa hora, que llegeixin
+# la base acabada de fer i no la d'ahir.
+function Wait-MutexLliure([string]$nom, [int]$maxSegons) {
+    $mutex = $null
+    try {
+        $mutex = New-Object System.Threading.Mutex($false, $nom)
+        $tinc = $false
+        try { $tinc = $mutex.WaitOne([int]([Math]::Max(0, $maxSegons) * 1000)) } catch [System.Threading.AbandonedMutexException] { $tinc = $true }
+        if ($tinc) { try { $mutex.ReleaseMutex() } catch { } }
+        return [bool]$tinc
+    } catch { return $true } finally {
+        if ($null -ne $mutex) { try { $mutex.Dispose() } catch { } }
+    }
 }
 
 # Fa $feina NOMES si ningu mes no la fa (un mutex amb nom, per a tot l'ordinador):

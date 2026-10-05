@@ -5,8 +5,8 @@
 
 .DESCRIPTION
   El llanca el MENU del programa (l'interruptor A/M de sota la rajola "Copiar
-  informes") quan toca: cada dia a les 14:30 amb el programa obert i, si aquell
-  venciment no s'ha arribat a servir, en obrir el programa.
+  informes") quan toca: cada dia a les 13:00 ($Script:AutoHora) amb el programa
+  obert i, si l'ultima vegada que tocava no es va fer, en obrir el programa.
 
   Fa NOMES una passada i surt: no es queda en segon pla. Mateix patro que
   GeneraVistes.ps1 i mobil/Vigilant.ps1.

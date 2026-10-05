@@ -298,16 +298,27 @@ Assert ([string]$rcN2['cos'] -ne '') '_RecNormalitzaConfig: un cos buit no pot d
 $rcN3 = _RecNormalitzaConfig ([pscustomobject]@{ esperaInicialDies=0 }) 'requeriments'
 AssertEq ([int]$rcN3['esperaInicialDies']) 0 '_RecNormalitzaConfig: espera inicial 0 SI que es valida'
 
-# Les rutes han d'anar ENTRE COMETES: el clone de l'usuari te espais.
-$rcTr = _RecSchtasksTr 'C:\Win\powershell.exe' 'I:\5.- Sergi Fadurdo\suport\RecordatorisAuto.ps1'
-AssertEq ([bool]$rcTr.Contains('"C:\Win\powershell.exe"')) $true '_RecSchtasksTr: l''executable va entre cometes'
-AssertEq ([bool]$rcTr.Contains('"I:\5.- Sergi Fadurdo\suport\RecordatorisAuto.ps1"')) $true '_RecSchtasksTr: el script (amb espais) va entre cometes'
-$rcArgv = @(_RecSchtasksArgv 'InformesCornella-Recordatoris' 'C:\p.exe' 'C:\s.ps1' '09:00')
-AssertEq ([string]$rcArgv[0]) '/Create' '_RecSchtasksArgv: crea la tasca'
-AssertEq ([bool]($rcArgv -contains '/F')) $true '_RecSchtasksArgv: /F per sobreescriure-la'
-$rcIdxSt = [array]::IndexOf($rcArgv, '/ST')
-Assert ($rcIdxSt -ge 0) '_RecSchtasksArgv: hi ha l''hora d''inici (/ST)'
-AssertEq ([string]$rcArgv[$rcIdxSt + 1]) '09:00' '_RecSchtasksArgv: i l''hora va just despres de /ST'
+# LA TASCA EN XML: a l'hora dels modes automatics i, si es salta (PC apagat),
+# en quant es pugui (StartWhenAvailable). Les rutes amb espais, entre cometes.
+$rcXml = _RecTascaXml 'C:\Win\powershell.exe' 'I:\5.- Sergi Fadurdo\suport\RecordatorisAuto.ps1' (Get-AutoHoraText) ([datetime]'2026-10-05')
+$rcDoc = New-Object System.Xml.XmlDocument
+$rcDoc.LoadXml(($rcXml -replace '^<\?xml[^>]*\?>', ''))
+$rcNs = New-Object System.Xml.XmlNamespaceManager($rcDoc.NameTable); $rcNs.AddNamespace('t', 'http://schemas.microsoft.com/windows/2004/02/mit/task')
+AssertEq ([string]$rcDoc.SelectSingleNode('//t:StartBoundary', $rcNs).InnerText) '2026-10-05T13:00:00' '_RecTascaXml: cada dia a les 13:00 (l''hora dels modes automatics)'
+AssertEq ([string]$rcDoc.SelectSingleNode('//t:StartWhenAvailable', $rcNs).InnerText) 'true' '_RecTascaXml: si es salta, es fa en quant es pugui'
+AssertEq ([string]$rcDoc.SelectSingleNode('//t:DaysInterval', $rcNs).InnerText) '1' '_RecTascaXml: diaria'
+AssertEq ([string]$rcDoc.SelectSingleNode('//t:Command', $rcNs).InnerText) 'C:\Win\powershell.exe' '_RecTascaXml: l''executable'
+Assert (([string]$rcDoc.SelectSingleNode('//t:Arguments', $rcNs).InnerText).Contains('-File "I:\5.- Sergi Fadurdo\suport\RecordatorisAuto.ps1"')) '_RecTascaXml: el script (amb espais) va entre cometes'
+$rcXmlAmp = _RecTascaXml 'C:\p.exe' 'C:\R&D\s.ps1' '13:00' ([datetime]'2026-10-05')
+Assert ($rcXmlAmp.Contains('R&amp;D')) '_RecTascaXml: els caracters especials de la ruta s''escapen'
+$rcArgv = @(_RecSchtasksArgv 'InformesCornella-Recordatoris' 'C:\t.xml')
+AssertEq ($rcArgv -join ' ') '/Create /TN InformesCornella-Recordatoris /XML C:\t.xml /F' '_RecSchtasksArgv: crea (o reescriu) la tasca des de l''XML'
+Assert (_RecTascaAlDia $rcXml '13:00') '_RecTascaAlDia: la d''ara esta al dia'
+$rcVella = '<Task><Triggers><CalendarTrigger><StartBoundary>2026-09-01T09:00:00</StartBoundary></CalendarTrigger></Triggers><Settings><StartWhenAvailable>false</StartWhenAvailable></Settings></Task>'
+Assert (-not (_RecTascaAlDia $rcVella '13:00')) '_RecTascaAlDia: la de les 09:00 sense recuperar-se s''ha de refer'
+Assert (-not (_RecTascaAlDia ($rcXml -replace 'T13:00', 'T09:00') '13:00')) '_RecTascaAlDia: una altra hora, tambe'
+Assert (-not (_RecTascaAlDia '' '13:00')) '_RecTascaAlDia: sense tasca, no'
+Assert (_RecTascaAlDia (($rcXml.ToCharArray() | ForEach-Object { [string]$_ + [char]0 }) -join '') '13:00') '_RecTascaAlDia: tambe si el schtasks la torna en UTF-16 llegida a 8 bits'
 
 AssertEq (_RecAntiguitatDb ([pscustomobject]@{ actualitzat_el='2026-08-04T09:00:00' }) $rcAvui) 30 '_RecAntiguitatDb: 30 dies'
 AssertEq (_RecAntiguitatDb ([pscustomobject]@{ }) $rcAvui) -1 '_RecAntiguitatDb: sense data -> -1'
@@ -586,6 +597,14 @@ Write-Host "`n--- ModeAutomatic.ps1: el comu dels modes automatics ---"
 # Una altra hora que la de la copia: la regla es la mateixa.
 Assert (-not (_AutoToca ([datetime]'2026-09-08T13:59:00') ([datetime]'2026-09-07T14:00:05').ToString('o') 14 0)) '_AutoToca 14:00: a les 13:59 encara no'
 Assert (_AutoToca ([datetime]'2026-09-08T14:00:00') ([datetime]'2026-09-07T14:00:05').ToString('o') 14 0) '_AutoToca 14:00: a les 14:00 en punt, si'
+# L'HORA DE TOTS ELS MODES AUTOMATICS: les 13:00 (l'usuari, octubre 2026).
+AssertEq (Get-AutoHoraText) '13:00' 'modes automatics: tots a les 13:00'
+AssertEq (_BaseAutoToca ([datetime]'2026-09-08T12:59:00') ([datetime]'2026-09-07T13:00:05').ToString('o')) $false 'base auto: a les 12:59, encara no'
+AssertEq (_BaseAutoToca ([datetime]'2026-09-08T13:00:00') ([datetime]'2026-09-07T13:00:05').ToString('o')) $true 'base auto: a les 13:00, si'
+Assert ((Get-AutoTipText 'es copia sol').Contains('13:00') -and (Get-AutoTipText 'x').Contains("l'ultima vegada que tocava")) 'l''ajuda de l''interruptor diu l''hora i que es recupera l''ultima passada perduda'
+foreach ($kH in @('informesdb', 'copiarinformes')) { Assert ((_AjudaEina $kH).Contains('13:00') -and -not (_AjudaEina $kH).Contains('[HORA_AUTO]')) ("ajuda '" + $kH + "': diu les 13:00") }
+# Esperar que la base s'acabi d'escriure (els Recordatoris, abans de llegir-la).
+AssertEq (Wait-MutexLliure ('Global\InformesCornella.Prova.' + [guid]::NewGuid().ToString('N')) 0) $true 'Wait-MutexLliure: lliure, de seguida'
 AssertEq (_AutoVenciment ([datetime]'2026-09-08T08:00:00') 7 15) ([datetime]'2026-09-08T07:15:00') '_AutoVenciment: amb els minuts de l''eina'
 $tmpMA = Join-Path ([System.IO.Path]::GetTempPath()) ('mode-auto-' + [guid]::NewGuid().ToString('N'))
 try {
@@ -720,6 +739,7 @@ try {
         AssertEq ([string]$rOc.Error) 'ocupat' 'base auto: si ja s''esta actualitzant, no en fa un altre al damunt'
         Assert (-not [string]::IsNullOrWhiteSpace([string](_BaseAutoEstat)['auto_el'])) 'base auto: ...pero el venciment queda servit'
         AssertEq (Save-BaseEditada $stE) 'ocupat' 'Save-BaseEditada: mentre s''actualitza, no s''escriu (i es diu)'
+        AssertEq (Wait-MutexLliure $Script:BaseMutexNom 1) $false 'Wait-MutexLliure: si no s''allibera, s''acaba cansant d''esperar'
     } finally { & $deixarMutex $hBA }
 
     # Sense la carpeta d'informes (fora de la feina): no es error, s'apunta.

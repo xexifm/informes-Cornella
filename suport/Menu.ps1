@@ -138,9 +138,9 @@ $Script:AjudaEines = @{
     precintades       = "Obre al navegador el mapa i el llistat públic de les activitats precintades."
     controlsperiodics = "Llista les activitats de l'annex II, III o de l'apartat 561 amb les dates dels controls periòdics (primer les que toquen abans). En pots generar els informes i els correus."
     recordatoris      = "Envia recordatoris periòdics per correu als titulars que tenen un requeriment o un precinte pendent, segons la base d'informes."
-    informesdb        = "Recorre la carpeta dels informes fets i n'actualitza la base: la data, l'ID GIA i la conclusió de cada un. L'interruptor A/M de sota ho fa sol cada dia a les 14:00."
+    informesdb        = "Recorre la carpeta dels informes fets i n'actualitza la base: la data, l'ID GIA i la conclusió de cada un. L'interruptor A/M de sota ho fa sol cada dia a les [HORA_AUTO]."
     informesdbedit    = "Mostra la base d'informes amb l'estat de cada activitat, amb filtres i exportació a CSV. Hi pots corregir la conclusió breu d'un informe o fer que s'ignori."
-    copiarinformes    = "Copia els informes nous a la carpeta de còpia, tots junts, sense esborrar mai res. L'interruptor A/M de sota ho fa sol cada dia a les 14:30."
+    copiarinformes    = "Copia els informes nous a la carpeta de còpia, tots junts, sense esborrar mai res. L'interruptor A/M de sota ho fa sol cada dia a les [HORA_AUTO]."
     convertirpdf      = "Converteix un informe de Word (o una carpeta sencera) a PDF i, si ho marques, el signa amb AutoFirma."
     comprovarexcel    = "Comprova que les activitats que la base d'informes té en Precinte / Cessament també ho tinguin marcat a l'Excel d'activitats, i et llista les que no."
     seguimentgia      = "Fa els llistats de seguiment de la base d'activitats (precintes, denúncies, requerits per decret, sonometria i annex II), en Excel o en PDF."
@@ -153,7 +153,9 @@ $Script:AjudaEines = @{
 
 function _AjudaEina([string]$accio) {
     if ([string]::IsNullOrWhiteSpace($accio) -or -not $Script:AjudaEines.Contains($accio)) { return '' }
-    return [string]$Script:AjudaEines[$accio]
+    # [HORA_AUTO]: l'hora dels modes automatics (ModeAutomatic.ps1), que es
+    # carrega DESPRES d'aquest fitxer; es resol en ensenyar el text.
+    return ([string]$Script:AjudaEines[$accio]).Replace('[HORA_AUTO]', (Get-AutoHoraText))
 }
 
 # ON VA CADA GRUP D'EINES (pura: es prova sense WinForms).
