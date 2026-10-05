@@ -209,6 +209,19 @@ function _ParagraphBoldStateXml($p, $ns) {
     return 9999999
 }
 
+# Els trossos de text d'un paragraf amb la seva negreta: @{ T; B } per cada run
+# amb text, en ordre. Serveix quan no n'hi ha prou amb el resum de
+# _ParagraphBoldStateXml (tot / res / mixt) i cal saber QUINA part va en negreta.
+function _ParagraphTrossosXml($p, $ns) {
+    $out = New-Object System.Collections.ArrayList
+    foreach ($r in $p.SelectNodes('w:r', $ns)) {
+        $t = $r.SelectSingleNode('w:t', $ns)
+        if ($null -eq $t -or [string]::IsNullOrEmpty($t.InnerText)) { continue }
+        [void]$out.Add(@{ T = [string]$t.InnerText; B = (_RunIsBoldXml $r $ns) })
+    }
+    return ,($out.ToArray())
+}
+
 # Numeracio EFECTIVA d'un paragraf: { NumId; Ilvl }. Prioritat: numPr en linia
 # al paragraf; si no n'hi ha, el numPr que aporti el seu estil (pStyle). numId='0'
 # vol dir "sense numeracio". $styleNumMap pot ser $null (documents sintetics).

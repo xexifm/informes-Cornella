@@ -111,6 +111,44 @@ function _InferResolvedFromBold($boldValue) {
     return ((($boldValue -as [int]) -eq 0))
 }
 
+# UNA ANOTACIO DATADA, ES LA MARCA DE "PENDENT"? Funcio PURA. Rep els trossos
+# del paragraf (@{ T; B }, _ParagraphTrossosXml) i mira NOMES el comentari, sense
+# la data del davant: es pendent si la MAJORIA de les lletres del comentari van
+# en negreta.
+#
+# Abans es mirava la negreta del paragraf sencer i un paragraf MIXT comptava com
+# a pendent. Pero el seguiment ja escriu sempre la data sense negreta i el
+# comentari, tot en negreta o tot sense: una barreja dins del comentari nomes
+# la pot haver fet l'usuari, per destacar una paraula. Va passar (octubre 2026):
+# "16/09/2026: S'aporta. L'horari sera DIURN (fins les 23h)." amb DIURN en
+# negreta es llegia com a PENDENT, el punt tornava a sortir sense marcar i el
+# seguiment seguent hi escrivia "No s'aporta." en negreta.
+#
+# Per majoria, i no "tot en negreta": aixi tambe aguanta el cas contrari (un
+# pendent del programa on algu ha tret la negreta d'una paraula). Sense
+# comentari (nomes la data), mana la negreta de tot el paragraf.
+function _AnotacioPendent($trossos) {
+    $tr = @($trossos)
+    $tot = (@($tr | ForEach-Object { [string]$_.T })) -join ''
+    $m = $Script:SeguimentAnnotRegex.Match($tot)
+    $inici = if ($m.Success) { $m.Index + $m.Length } else { 0 }
+    $pos = 0; $neg = 0; $lletres = 0; $totsNeg = $true; $teText = $false
+    foreach ($x in $tr) {
+        $s = [string]$x.T
+        $b = [bool]$x.B
+        for ($i = 0; $i -lt $s.Length; $i++) {
+            if (($pos + $i) -ge $inici -and -not [char]::IsWhiteSpace($s[$i])) {
+                $lletres++
+                if ($b) { $neg++ }
+            }
+        }
+        if (-not [string]::IsNullOrWhiteSpace($s)) { $teText = $true; if (-not $b) { $totsNeg = $false } }
+        $pos += $s.Length
+    }
+    if ($lletres -eq 0) { return ($teText -and $totsNeg) }
+    return (($neg * 2) -gt $lletres)
+}
+
 # Mentre un requeriment no estigui resolt, ha d'anar en negreta.
 function _ShouldBeBold($resolved) {
     return (-not $resolved)
@@ -164,11 +202,16 @@ function _BuildSeguimentModel($paraRecords) {
             $curTarget = $curReq
         }
         elseif ($c.Kind -eq 'annotation' -and $null -ne $curTarget) {
+            # PENDENT: amb els trossos (lectura del .docx), pel comentari
+            # (_AnotacioPendent); sense (registres fets a ma a les proves), per la
+            # negreta del paragraf, com abans.
+            $pend = if ($r.Trossos -is [array]) { _AnotacioPendent $r.Trossos } else { -not (_InferResolvedFromBold $r.Bold) }
             [void]$curTarget.Annotations.Add([pscustomobject]@{
                 ParaIndex = [int]$r.Index
                 Date      = $c.Date
                 Text      = ([string]$r.Text).Trim()
                 Bold      = $r.Bold
+                Pendent   = [bool]$pend
             })
         }
         elseif ($r.IsBulletChild -and $null -ne $curReq) {
@@ -185,12 +228,13 @@ function _BuildSeguimentModel($paraRecords) {
     }
 
     # Estat "resolt": sense anotacions previes -> PENDENT; amb anotacions -> segons
-    # la negreta de l'ULTIMA (el seguiment nomes deixa en negreta el comentari de
-    # l'ultima entrega quan queda pendent, aixi l'estat queda guardat al .docx).
+    # l'ULTIMA (el seguiment nomes deixa en negreta el comentari de l'ultima
+    # entrega quan queda pendent, aixi l'estat queda guardat al .docx). Vegeu
+    # _AnotacioPendent: compta el COMENTARI, no el paragraf sencer.
     $resolvedOf = {
         param($anns)
         if ($anns.Count -eq 0) { return $false }
-        return (_InferResolvedFromBold $anns[$anns.Count - 1].Bold)
+        return (-not [bool]$anns[$anns.Count - 1].Pendent)
     }
 
     # Pas 2: aplanar a UNITATS accionables (en ordre de document per ParaIndex).
@@ -328,6 +372,7 @@ function _CollectParaRecordsXml($xmlInfo, $bodyParas) {
             Text          = (_ParagraphTextXml $p $ns)
             ListString    = $listStr
             Bold          = (_ParagraphBoldStateXml $p $ns)
+            Trossos       = (_ParagraphTrossosXml $p $ns)
             IsBulletChild = $isBulletChild
         })
     }
@@ -673,8 +718,12 @@ function _ApplySeguimentTransform {
         $dec = $decisions[$k]
         $req = $model.Requirements[$k]
 
-        # Des-negretar les anotacions previes (deixen de ser "l'ultima pendent").
+        # Des-negretar les anotacions previes que eren PENDENTS (deixen de ser
+        # "l'ultima pendent"). NOMES aquestes: la negreta d'una anotacio resolta
+        # no es la marca del programa sino una paraula que l'usuari ha volgut
+        # destacar, i abans aquest pas se la menjava.
         foreach ($a in $req.Annotations) {
+            if (-not [bool]$a.Pendent) { continue }
             $annNode = $bodyParas[$a.ParaIndex - 1]
             if ($null -ne $annNode) { _SetParagraphBoldXml $xmlInfo $annNode $false }
         }

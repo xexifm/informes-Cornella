@@ -129,6 +129,28 @@ n'és la traducció literal:
   amplada i la del text ajustat sortia estreta. Als arrays d'amplades el **0**
   vol dir «no la toquis».
 
+## «Requeriment - Seguiment»: una paraula en negreta no fa pendent un punt resolt
+
+L'estat de cada punt viu **al mateix `.docx`**: el seguiment escriu la data
+sense negreta i el comentari **tot en negreta si queda pendent** i sense
+negreta si es resol. Abans es mirava la negreta del **paràgraf sencer** i un
+paràgraf **mixt** comptava com a pendent. Cas real (octubre 2026):
+«16/09/2026: S'aporta. L'horari serà **DIÜRN** (fins les 23h).» —l'usuari hi
+havia destacat una paraula— es llegia com a pendent, el punt sortia sense
+«Resolt» i el seguiment següent hi va escriure «No s'aporta.» en negreta.
+
+- Ara ho decideix **`_AnotacioPendent`** (pura, `Seguiment.ps1`) amb els trossos
+  del paràgraf (`_ParagraphTrossosXml`, `Docx.ps1`): mira **només el
+  comentari** (treu la data) i és pendent si **la majoria de les lletres** van
+  en negreta. Per majoria i no «tot» perquè també aguanti el cas contrari (un
+  pendent on algú ha tret la negreta d'una paraula). Sense comentari, mana el
+  paràgraf.
+- **I ja no s'esborra la negreta de l'usuari**: en un seguiment nou només es
+  des-negreten les anotacions anteriors que eren **pendents** (la marca del
+  programa). Abans es des-negretaven totes i la paraula destacada es perdia.
+- Proves a `01-motor.ps1`, validades tornant a posar les dues regles antigues
+  (3 FAIL).
+
 ## «Enviar correu»: el GIA surt del DOCUMENT, no de l'últim informe
 
 Bug real i vistós (setembre 2026): l'usuari genera un **Seguiment** del GIA 1466

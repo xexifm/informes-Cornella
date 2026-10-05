@@ -650,6 +650,65 @@ $bOff = $bp[0].SelectSingleNode('w:r/w:rPr/w:b', $xi.Ns)
 AssertEq ($bOff.GetAttribute('val',$W)) 'false' '_SetParagraphBoldXml off: <w:b w:val="false">'
 AssertEq (_ParagraphBoldStateXml $bp[0] $xi.Ns) 0 '_SetParagraphBoldXml off: sense negreta (0)'
 
+Write-Host "`n--- Seguiment: una paraula en negreta NO fa pendent una anotacio resolta ---"
+# Cas real (octubre 2026): "16/09/2026: S'aporta. L'horari sera DIURN (fins les
+# 23h)." amb DIURN en negreta es llegia com a PENDENT (paragraf mixt) i el
+# seguiment seguent hi escrivia "No s'aporta.". Ara mana el COMENTARI.
+try {
+$tP = { param($d, $c, [bool]$bD, [bool]$bC) ,@(@{ T = $d; B = $bD }, @{ T = $c; B = $bC }) }
+Assert (_AnotacioPendent (& $tP '04/06/2026: ' "No s'aporta." $false $true)) '_AnotacioPendent: data normal + comentari en negreta (la marca del programa) -> pendent'
+Assert (-not (_AnotacioPendent (& $tP '04/06/2026: ' "S'aporta." $false $false))) '_AnotacioPendent: res en negreta -> resolt'
+Assert (_AnotacioPendent (& $tP '04/06/2026: ' "No s'aporta." $true $true)) '_AnotacioPendent: tot en negreta (seguiments antics) -> pendent'
+Assert (-not (_AnotacioPendent (& $tP '04/06/2026: ' "S'aporta." $true $false))) '_AnotacioPendent: nomes la data en negreta -> resolt (la data no compta)'
+$trU = @(@{ T = '16/09/2026: '; B = $false }, @{ T = "S'aporta. L'horari sera "; B = $false }, @{ T = 'DIURN'; B = $true }, @{ T = ' (fins les 23h).'; B = $false })
+Assert (-not (_AnotacioPendent $trU)) '_AnotacioPendent: una paraula destacada dins d''un comentari resolt -> RESOLT'
+$trV = @(@{ T = '16/09/2026: '; B = $false }, @{ T = "No s'aporta el "; B = $true }, @{ T = 'certificat'; B = $false }, @{ T = ' de la instal·lacio.'; B = $true })
+Assert (_AnotacioPendent $trV) '_AnotacioPendent: un pendent amb una paraula sense negreta -> segueix PENDENT (majoria)'
+Assert (_AnotacioPendent @(@{ T = '16/09/2026:'; B = $true })) '_AnotacioPendent: sense comentari, mana el paragraf (tot negreta -> pendent)'
+Assert (-not (_AnotacioPendent @())) '_AnotacioPendent: res -> no pendent (i no peta)'
+
+$docStrU = @"
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="$W"><w:body>
+<w:p><w:r><w:t>Capcalera</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">1. </w:t></w:r><w:r><w:t>Soroll.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">16/09/2026: </w:t></w:r><w:r><w:t xml:space="preserve">S'aporta. L'horari sera </w:t></w:r><w:r><w:rPr><w:b/></w:rPr><w:t>DIURN</w:t></w:r><w:r><w:t xml:space="preserve"> (fins les 23h).</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">2. </w:t></w:r><w:r><w:t>Baixa tensio.</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve">16/09/2026: </w:t></w:r><w:r><w:rPr><w:b/></w:rPr><w:t>No s'aporta.</w:t></w:r></w:p>
+<w:p><w:r><w:t>Ho poso al seu coneixement.</w:t></w:r></w:p>
+<w:sectPr><w:pgSz w:w="11906" w:h="16838"/></w:sectPr>
+</w:body></w:document>
+"@
+$xiU = New-XmlInfoFromString $docStrU
+$bpU = @(_BodyParagraphsXml $xiU)
+$recU = @(_CollectParaRecordsXml $xiU $bpU)
+Assert ($recU[2].Trossos -is [array]) '_CollectParaRecordsXml: cada registre porta els trossos (array)'
+AssertEq @($recU[2].Trossos).Count 4 '_ParagraphTrossosXml: un tros per run amb text'
+$trUn = $recU[0].Trossos
+AssertEq @($trUn).Count 1 '_ParagraphTrossosXml: un sol run -> array d''UN element (no desenrotllat)'
+$modelU = _BuildSeguimentModel $recU
+AssertEq $modelU.Requirements.Count 2 'Negreta destacada: 2 requeriments'
+Assert ([bool]$modelU.Requirements[0].WasResolved) 'Negreta destacada: el punt amb DIURN en negreta es RESOLT'
+Assert (-not [bool]$modelU.Requirements[1].WasResolved) 'Negreta destacada: el pendent del programa segueix PENDENT'
+$decU = @(
+    [pscustomobject]@{ Resolved=$true;  NewComment="S'aporta." },
+    [pscustomobject]@{ Resolved=$false; NewComment="No s'aporta." }
+)
+_ApplySeguimentTransform -xmlInfo $xiU -bodyParas $bpU -model $modelU -conclusionStartIndex 6 `
+    -decisions $decU -dateStr '29/09/2026' -conclHeaderText 'CONCLUSIONS' `
+    -selectedConclusions @() -alwaysConclusions @() -fields ([ordered]@{})
+$afterU = @(_BodyParagraphsXml $xiU | ForEach-Object { [pscustomobject]@{ T=(_ParagraphTextXml $_ $xiU.Ns); B=(_ParagraphBoldStateXml $_ $xiU.Ns); N=$_ } })
+$tU = @($afterU | ForEach-Object { $_.T })
+Assert (-not ($tU -contains "29/09/2026: S'aporta.")) 'Negreta destacada: un punt ja resolt que segueix resolt no rep cap linia nova'
+$diurn = @($afterU | Where-Object { $_.T -like '16/09/2026: S*DIURN*' })[0]
+AssertEq $diurn.B 9999999 'Negreta destacada: la paraula que l''usuari va posar en negreta ES CONSERVA'
+$velle = @($afterU | Where-Object { $_.T -eq "16/09/2026: No s'aporta." })[0]
+AssertEq $velle.B 0 'Negreta destacada: l''anterior pendent del programa SI que es des-negreta'
+Assert ($tU -contains "29/09/2026: No s'aporta.") 'Negreta destacada: el pendent rep la seva anotacio nova'
+} catch {
+    Assert $false ('Seguiment negreta destacada: la prova ha petat: ' + $_.Exception.Message + ' (linia ' + $_.InvocationInfo.ScriptLineNumber + ')')
+}
+
 Write-Host "`n--- Seguiment XML: transformacio completa (blocs, seccions i subseccions) ---"
 # Doc realista: req1 + sub-linia + enllac, ESPAIADOR, SECCIO (negreta), ESPAIADOR,
 # SUBSECCIO (subratllat), ESPAIADOR, req2, i bloc de conclusions.
