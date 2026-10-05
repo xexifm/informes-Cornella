@@ -2,6 +2,9 @@
 
 > Ve de `suport/CLAUDE.md`, que s'havia fet massa gros per llegir-lo
 > sencer. **Llegeix-lo ABANS de tocar `suport/rutes/`**
+>
+> Per millorar l'eina «Coordenades» hi ha un prompt per enganxar a
+> `millorar-coordenades.md`.
 
 ## Eina «Coordenades» — Excel vs façana (`rutes/Coordenades.ps1` + `rutes/Geocodificador.ps1`)
 - **El problema, mesurat** (base del 18/08/2026): el GIA porta les coordenades

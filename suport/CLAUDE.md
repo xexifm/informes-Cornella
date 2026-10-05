@@ -17,6 +17,7 @@ hipotesis ja descartades- viuen ara a part:
 | `Seguiment.ps1`, `SeguimentGia.ps1`, `EnviarCorreu.ps1`, `Informes.ps1` (base d'informes), `ControlsPeriodics.ps1`, `EditorCatalegs.ps1`, `Recordatoris.ps1` | **`suport/documentacio/eines.md`** |
 | El mapa de mòduls, qui depèn de qui i les simplificacions pendents | **`suport/documentacio/arquitectura.md`** |
 | Revisar i simplificar l'arquitectura (quan el programa hagi crescut) | **`suport/documentacio/revisio-arquitectura.md`** (prompt per enganxar) |
+| Millorar l'eina «Coordenades» (fiabilitat, no perdre el repàs, repàs més ràpid) | **`suport/documentacio/millorar-coordenades.md`** (prompt per enganxar) |
 
 **No hi son per estalviar espai, hi son perque es llegeixin.** Si toques un
 d'aquells fitxers sense llegir el seu document, et trobaras reproduint una cosa
