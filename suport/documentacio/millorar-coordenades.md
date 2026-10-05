@@ -3,7 +3,7 @@
 > Per enganxar tal qual en una sessió nova de Claude Code (web) sobre aquest
 > repositori. Està escrit l'octubre de 2026, quan l'eina ja funcionava contra
 > el Cadastre de debò, i s'ha aplicat una vegada (octubre de 2026): els
-> candidats que ja es van fer estan tret d'aquí. Les xifres de sota són d'aquell moment i la sessió les
+> candidats que ja es van fer s'han tret d'aquí. Les xifres de sota són d'aquell moment i la sessió les
 > ha de tornar a mesurar. Quan una millora quedi feta o descartada, apunta-ho a
 > `rutes-i-mapes.md` i treu-la d'aquí, perquè el prompt no proposi dues vegades
 > el mateix.
