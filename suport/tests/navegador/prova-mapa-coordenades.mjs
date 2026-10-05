@@ -52,9 +52,11 @@ if (!fs.existsSync(path.join(LEAFLET, 'leaflet.js'))) {
   console.error('Falta node_modules/leaflet: executa "npm install" a ' + AQUI); process.exit(2);
 }
 
-async function obreContext() {
-  const ctx = await chromium.launchPersistentContext(PERFIL, { headless: true, acceptDownloads: true });
-  await ctx.route('https://unpkg.com/leaflet@1.9.4/dist/**', (route) => {
+// Quins CDN responen: per defecte, unpkg (el de la pagina). Amb { unpkg: false }
+// es prova el segon intent (jsDelivr) i amb tots dos a false, el missatge.
+async function serveixLeaflet(ctx, cdn = { unpkg: true, jsdelivr: true }) {
+  const serveix = (actiu) => (route) => {
+    if (!actiu) { route.abort(); return; }
     const nom = path.basename(new URL(route.request().url()).pathname);
     route.fulfill({
       path: path.join(LEAFLET, nom),
@@ -63,20 +65,30 @@ async function obreContext() {
         'Content-Type': nom.endsWith('.css') ? 'text/css' : 'application/javascript',
       },
     });
-  });
+  };
+  await ctx.route('https://unpkg.com/leaflet@1.9.4/dist/**', serveix(cdn.unpkg));
+  await ctx.route('https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/**', serveix(cdn.jsdelivr));
   await ctx.route(/tile\.openstreetmap\.org/, (route) => route.abort());
+}
+
+async function obreContext() {
+  const ctx = await chromium.launchPersistentContext(PERFIL, { headless: true, acceptDownloads: true });
+  await serveixLeaflet(ctx);
   return ctx;
 }
 
 const errorsPagina = [];
-async function obre(ctx, rel) {
+async function obre(ctx, rel, { espera = true } = {}) {
   const page = await ctx.newPage();
-  page.on('pageerror', (e) => errorsPagina.push(rel + ': ' + e));
+  page.errors = [];
+  page.on('pageerror', (e) => { page.errors.push(String(e)); if (espera) errorsPagina.push(rel + ': ' + e); });
   page.dialegs = [];
   page.on('dialog', (d) => { page.dialegs.push(d.message()); d.accept(); });
   await page.goto(pathToFileURL(path.join(TMP, rel)).href);
-  await page.waitForFunction(() => typeof capes !== 'undefined' && capes.length === ITEMS.length,
-                             null, { timeout: 10000 });
+  if (espera) {
+    await page.waitForFunction(() => typeof capes !== 'undefined' && capes.length === ITEMS.length,
+                               null, { timeout: 10000 });
+  }
   return page;
 }
 
@@ -171,6 +183,26 @@ try {
   await b.click('text=Esborrar el meu repàs');
   check(b.dialegs.some((m) => m.includes('Segur')), 'demana confirmació');
   eq(await desat(b), {}, 'i, acceptat, el repàs d\'aquesta base desapareix');
+
+  seccio('Si el CDN del mapa no respon');
+  {
+    const nav = await chromium.launch({ headless: true });
+    try {
+      const c1 = await nav.newContext();
+      await serveixLeaflet(c1, { unpkg: false, jsdelivr: true });
+      const p1 = await obre(c1, 'a/Coordenades_A.html');
+      eq(await p1.locator('.marker-verd').count(), 6, 'unpkg caigut: el mapa arrenca amb jsDelivr (mateix SRI)');
+      const c2 = await nav.newContext();
+      await serveixLeaflet(c2, { unpkg: false, jsdelivr: false });
+      const p2 = await obre(c2, 'a/Coordenades_A.html', { espera: false });
+      check((await p2.textContent('#map')).includes("No s'ha pogut carregar el mapa"),
+            'tots dos caiguts: la pàgina ho diu en clar, no es queda en blanc');
+      check(p2.errors.length === 1 && p2.errors[0].includes('Leaflet no carregat'),
+            'i el codi del mapa s\'atura amb un sol error, que ho explica');
+    } finally {
+      await nav.close();
+    }
+  }
 
   seccio('Errors de JavaScript');
   eq(errorsPagina, [], 'cap error de JavaScript a cap pàgina');

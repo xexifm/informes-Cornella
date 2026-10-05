@@ -75,6 +75,13 @@
   l'excepció de mida de `06-guards.ps1`. `Coordenades.ps1` **segueix portant
   BOM** (hi ha `Cancel·lar`, `Parcel·la`... a les finestres). `Geocodificador.ps1`
   és ASCII pur i no en porta (com `Precintades.ps1`).
+- **Si `unpkg` no respon, el Leaflet es demana a jsDelivr** (`cdn.jsdelivr.net/npm/`),
+  que serveix el mateix paquet de npm **byte a byte**: el SRI és el mateix i no
+  cal afluixar-lo. **No hi posis cdnjs**: no és una còpia garantida de npm i, si
+  el hash no hi coincidís, el segon intent fallaria igualment. Si tampoc no
+  arriba, la pàgina diu **en clar** que no s'ha pogut carregar el mapa (abans es
+  quedava en blanc) i que el repàs no s'ha perdut. Les dues coses les prova la
+  suite del navegador.
 - **L'`.xlsx` el genera el NAVEGADOR, sense cap biblioteca.** Un `.xlsx` és un ZIP
   amb cinc XML a dins; amb el mètode «sense compressió» només cal el CRC-32 i les
   capçaleres del ZIP (`crc32`/`zipStore`/`buildXlsx` a `CoordenadesMapa.html`). Els textos

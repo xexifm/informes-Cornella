@@ -4,8 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Coordenades dels establiments - Cornella</title>
+<!-- Si unpkg no respon, el full d'estil es torna a demanar a jsDelivr (vegeu
+     la nota del leaflet.js, mes avall). -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""
+      onerror="this.onerror=null;this.href='https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css';"/>
 <style>
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; font-family: Segoe UI, Arial, sans-serif; color: #1a1a1a; }
@@ -100,6 +103,29 @@
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+// Si unpkg no ha respost, segon intent a jsDelivr. Serveix el MATEIX paquet de
+// npm byte a byte, aixi que el hash del SRI hi coincideix i no cal afluixar-lo.
+// document.write i no un <script> creat a ma: aixi es carrega ABANS que el codi
+// del mapa, que ve just despres i el necessita.
+if (typeof L === 'undefined') {
+  document.write('<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" ' +
+    'integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""><\/script>');
+}
+</script>
+<script>
+// I si tampoc no ha arribat, que es digui EN CLAR: sense aixo la pagina es
+// queda en blanc i sembla que el programa no funcioni. El repas no es perd:
+// viu al navegador, no en aquesta pagina.
+if (typeof L === 'undefined') {
+  document.getElementById('map').innerHTML =
+    '<div style="padding:30px;font-size:15px;line-height:1.6;max-width:640px;">' +
+    '<b>No s\'ha pogut carregar el mapa.</b><br>' +
+    'La biblioteca del mapa (Leaflet) ve d\'Internet, i no ha arribat ni d\'unpkg.com ni de cdn.jsdelivr.net.<br><br>' +
+    'Comprova la connexió i torna a obrir aquest fitxer. El que ja havies repassat no s\'ha perdut: ' +
+    'és desat al navegador.</div>';
+}
+</script>
 <script>
 var ITEMS   = {{itemsJson}};
 var PORTALS = {{portalsJson}};
@@ -378,6 +404,7 @@ function utmActual(i) {
 // preferCanvas: amb centenars d'activitats, dibuixar els cercles i les linies
 // al canvas en lloc de fer-ne SVG es la diferencia entre un mapa fluid i un
 // mapa que va a batzegades.
+if (typeof L === 'undefined') { throw new Error('Leaflet no carregat: el mapa no pot arrencar.'); }
 var map = L.map('map', { preferCanvas: true, zoomSnap: 0.25, zoomDelta: 0.5, wheelPxPerZoomLevel: 120 });
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19, attribution: '&copy; OpenStreetMap'
