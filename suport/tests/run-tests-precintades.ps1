@@ -45,8 +45,26 @@ AssertEq (Find-HeaderColumn $hdr 'UTM Y')               3 'UTM Y -> col 3'
 AssertEq (Find-HeaderColumn $hdr 'Emp. Numero')         6 'accent ignorat (Numero ASCII == capcalera accentuada) -> col 6'
 AssertEq (Find-HeaderColumn $hdr 'Activitat principal') 7 'Activitat principal -> col 7'
 AssertEq (Find-HeaderColumn $hdr 'No existeix')         0 'columna inexistent -> 0'
+# L'Excel d'ESTABLIMENTS: 'Emp._Numero_' (amb accent) i 'Emp. N<ordinal> Local'.
+# Sense coincidencia exacta, es compara nomes lletres i numeros.
+$hdrE = @('ID Establiment GIA', ('Emp._N' + [char]0x00FA + 'mero_'), ('Emp. N' + [char]0x00BA + ' Local'), 'Emp. Numero bis')
+AssertEq (Find-HeaderColumn $hdrE 'Emp. Numero') 2 'Emp._Numero_ (establiments) es troba com a Emp. Numero'
+AssertEq (Find-HeaderColumn $hdrE 'Emp. N Local') 3 'Emp. N<ordinal> Local es troba com a Emp. N Local'
+AssertEq (Find-HeaderColumn @('Emp. Numero bis', 'Emp. Numero') 'Emp. Numero') 2 'la coincidencia EXACTA guanya sempre'
 
-Write-Host "`n--- Get-CampInfoPairs (deteccio dinamica dels parells Nom/Valor) ---"
+Write-Host "`n--- _RutaFindLatestIn: ACTIVITATS o ESTABLIMENTS, amb espai o '_' ---"
+$tmpXl = Join-Path ([System.IO.Path]::GetTempPath()) ('xl-' + [guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path $tmpXl -Force | Out-Null
+try {
+    foreach ($n in @('2026-08-18 ACTIVITATS.xls', '2026-09-01 ACTIVITATS.xlsx', '2026-10-05_ESTABLIMENTS.xls', '2026-07-01 ESTABLIMENTS.xls', 'ESTABLIMENTS vell.xls')) {
+        Set-Content -LiteralPath (Join-Path $tmpXl $n) -Value 'x'
+    }
+    AssertEq (_RutaFindLatestIn $tmpXl).File.Name '2026-09-01 ACTIVITATS.xlsx' 'per defecte, el d ACTIVITATS mes nou'
+    AssertEq (_RutaFindLatestIn $tmpXl 'ESTABLIMENTS').File.Name '2026-10-05_ESTABLIMENTS.xls' 'ESTABLIMENTS: el mes nou, tambe amb _ entre la data i el nom'
+    AssertEq (_RutaFindLatestIn $tmpXl 'RES') $null 'un nom que no hi es -> res'
+} finally { Remove-Item -LiteralPath $tmpXl -Recurse -Force -ErrorAction SilentlyContinue }
+
+Write-Host "`n--- _FindCampInfoPairs (deteccio dinamica dels parells Nom/Valor) ---"
 # Capcalera amb 3 parells Camp Info intercalats amb altres columnes (com l'Excel real).
 $hdr2 = @(
     'Dada tecnica - Nom','Dada tecnica - Valor','',                  # 1..3 (soroll)
@@ -54,7 +72,7 @@ $hdr2 = @(
     'Camp Info 2 - Nom','Camp Info 2 - Valor','Camp Info 2 - Unitat', # 7..9
     'Camp Info 3 - Nom','Camp Info 3 - Valor','Camp Info 3 - Unitat'  # 10..12
 )
-$pairs = Get-CampInfoPairs $hdr2
+$pairs = _FindCampInfoPairs $hdr2
 AssertEq @($pairs).Count 3 'detecta 3 parells Camp Info'
 AssertEq $pairs[0].NomCol   4 'parell 1: Nom a col 4'
 AssertEq $pairs[0].ValorCol 5 'parell 1: Valor a col 5'
@@ -62,7 +80,7 @@ AssertEq $pairs[2].NomCol   10 'parell 3: Nom a col 10'
 AssertEq $pairs[2].ValorCol 11 'parell 3: Valor a col 11'
 # Robustesa: n'hi pot haver mes de 3.
 $hdr3 = @('Camp Info 1 - Nom','Camp Info 1 - Valor','Camp Info 7 - Nom','Camp Info 7 - Valor')
-$pairs3 = Get-CampInfoPairs $hdr3
+$pairs3 = _FindCampInfoPairs $hdr3
 AssertEq @($pairs3).Count 2 'detecta parells encara que la numeracio no sigui consecutiva'
 AssertEq $pairs3[1].NomCol 3 'Camp Info 7 - Nom a col 3'
 

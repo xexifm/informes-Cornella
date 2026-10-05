@@ -328,11 +328,11 @@ Assert ($html.TrimEnd().EndsWith('</html>')) 'la pagina acaba amb </html>'
 
 # Una sola passada: un valor que porta el text d'una marca NO s'ha de tornar a
 # substituir (el nom de la base ve de l'Excel i podria portar qualsevol cosa).
-$exp = Expand-CoordPlantilla 'A={{a}} B={{b}}' @{ a = '{{b}}'; b = 'x' }
-AssertEq $exp 'A={{b}} B=x' 'Expand-CoordPlantilla: una sola passada'
-AssertEq (Expand-CoordPlantilla 'sense marques' @{}) 'sense marques' 'sense marques, el text tal qual'
+$exp = Expand-PlantillaHtml 'A={{a}} B={{b}}' @{ a = '{{b}}'; b = 'x' }
+AssertEq $exp 'A={{b}} B=x' 'Expand-PlantillaHtml: una sola passada'
+AssertEq (Expand-PlantillaHtml 'sense marques' @{}) 'sense marques' 'sense marques, el text tal qual'
 $petat = $false
-try { [void](Expand-CoordPlantilla 'x {{falta}}' @{}) } catch { $petat = $true }
+try { [void](Expand-PlantillaHtml 'x {{falta}}' @{}) } catch { $petat = $true }
 Assert $petat 'una marca sense valor llança (una pagina amb {{...}} a la vista no surt mai)'
 
 # Un '</script>' a les dades tancaria l'etiqueta <script> i la pagina no

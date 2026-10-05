@@ -165,10 +165,22 @@ function _HtmlEncode($s) {
 # trenquin quan el GIA afegeix una columna al mig. Viu aqui, amb la resta
 # d'utillatge comu de 'rutes/', perque la fan servir Precintades.ps1 i
 # Coordenades.ps1.
+#
+# Si no hi ha cap coincidencia EXACTA, es torna a buscar comparant nomes les
+# lletres i els numeros: l'Excel d'ESTABLIMENTS escriu 'Emp._Numero_' i
+# 'Emp. N<o> Local' (amb el signe d'ordinal), que normalitzats no son
+# 'emp. numero' ni 'emp. n local'. Primer l'exacta, perque una capcalera que
+# coincideix tal qual ha de guanyar sempre.
 function Find-HeaderColumn($headers, [string]$name) {
     $target = _NormalitzaText $name
-    for ($i = 0; $i -lt @($headers).Count; $i++) {
-        if ((_NormalitzaText $headers[$i]) -eq $target) { return $i + 1 }
+    $arr = @($headers)
+    for ($i = 0; $i -lt $arr.Count; $i++) {
+        if ((_NormalitzaText $arr[$i]) -eq $target) { return $i + 1 }
+    }
+    $solt = $target -replace '[^a-z0-9]', ''
+    if ($solt -eq '') { return 0 }
+    for ($i = 0; $i -lt $arr.Count; $i++) {
+        if (((_NormalitzaText $arr[$i]) -replace '[^a-z0-9]', '') -eq $solt) { return $i + 1 }
     }
     return 0
 }
@@ -687,9 +699,13 @@ $rows
 # ============================================================================
 
 # Cerca el fitxer 'YYYY-MM-DD ACTIVITATS.xls/xlsx' mes recent en una carpeta.
-function _RutaFindLatestIn($dir) {
+#
+# $nom: ACTIVITATS (per defecte) o ESTABLIMENTS (el Planol activitats). Entre la
+# data i el nom s'accepta espai o '_': l'Excel d'establiments va arribar com a
+# '2026-10-05_ESTABLIMENTS.xls'.
+function _RutaFindLatestIn($dir, [string]$nom = 'ACTIVITATS') {
     if ([string]::IsNullOrWhiteSpace($dir) -or -not (Test-Path -LiteralPath $dir)) { return $null }
-    $regex = '^(\d{4}-\d{2}-\d{2})\s+ACTIVITATS\.(xls|xlsx)$'
+    $regex = '^(\d{4}-\d{2}-\d{2})[\s_]+' + [regex]::Escape($nom) + '\.(xls|xlsx)$'
     $cands = Get-ChildItem -LiteralPath $dir -File -ErrorAction SilentlyContinue |
         Where-Object { $_.Name -match $regex } |
         ForEach-Object {
@@ -702,10 +718,10 @@ function _RutaFindLatestIn($dir) {
 }
 
 # Xarxa de la feina primer; despres fallback local del clone.
-function Find-LatestRutaExcel {
-    $r = _RutaFindLatestIn $ActivitatsDir
+function Find-LatestRutaExcel([string]$nom = 'ACTIVITATS') {
+    $r = _RutaFindLatestIn $ActivitatsDir $nom
     if ($null -ne $r) { Add-Member -InputObject $r -NotePropertyName Source -NotePropertyValue 'primary' -Force; return $r }
-    $r = _RutaFindLatestIn $LocalActivitatsDir
+    $r = _RutaFindLatestIn $LocalActivitatsDir $nom
     if ($null -ne $r) { Add-Member -InputObject $r -NotePropertyName Source -NotePropertyValue 'fallback' -Force; return $r }
     return $null
 }

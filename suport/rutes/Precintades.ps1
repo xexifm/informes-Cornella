@@ -60,8 +60,9 @@ try {
 # Carpeta de sortida: docs/dades (GitHub Pages la serveix des de /docs).
 $WebDadesDir = Join-Path $RepoRoot (Join-Path 'docs' 'dades')
 
-# Nom EXACTE (normalitzat) del camp lliure que marca una activitat precintada.
-$Script:PrecCampNom = 'precinte activitat?'
+# (El nom del camp que marca una activitat precintada i Test-IsPrecintada
+# viuen ara a Excel.ps1, que es carrega via Ruta.ps1: els fa servir tambe el
+# Planol activitats.)
 
 # ============================================================================
 # FUNCIONS PURES (provables en mode headless, sense Office)
@@ -71,33 +72,9 @@ $Script:PrecCampNom = 'precinte activitat?'
 # comu de la carpeta 'rutes': la fa servir tambe l'eina Coordenades. Ruta.ps1
 # ja es carrega mes amunt, aixi que segueix a l'abast des d'aqui.)
 
-# Detecta tots els parells de camps lliures "Camp Info N - Nom" /
-# "Camp Info N - Valor" a la capcalera, de forma dinamica (n'hi pot haver mes
-# de 3). Retorna un array de hashtables @{ NomCol = <1-based>; ValorCol = <1-based> }.
-function Get-CampInfoPairs($headers) {
-    $pairs = @()
-    for ($i = 0; $i -lt @($headers).Count; $i++) {
-        $h = _NormalitzaText $headers[$i]
-        if ($h -match '^camp info\s+(\d+)\s*-\s*nom$') {
-            $n = $Matches[1]
-            $valorCol = Find-HeaderColumn $headers ("Camp Info $n - Valor")
-            if ($valorCol -gt 0) {
-                $pairs += @{ NomCol = ($i + 1); ValorCol = $valorCol }
-            }
-        }
-    }
-    return ,@($pairs)
-}
-
-# Cert si un camp lliure (Nom/Valor) indica una activitat PRECINTADA: el Nom es
-# "PRECINTE ACTIVITAT?" i el Valor comenca per "SI" (com a paraula: "SI",
-# "SI, ...", "SI ..."; NO "SITUACIO..."). Insensible a accents i majuscules.
-function Test-IsPrecintada([string]$nom, [string]$valor) {
-    if ((_NormalitzaText $nom) -ne $Script:PrecCampNom) { return $false }
-    $v = _NormalitzaText $valor
-    if ($v -eq '') { return $false }
-    return [bool]($v -match '^si\b')
-}
+# Els parells "Camp Info N - Nom" / "Camp Info N - Valor" els troba
+# _FindCampInfoPairs (Excel.ps1). Aqui n'hi havia una copia (Get-CampInfoPairs)
+# que feia el mateix amb un altre nom; es consumeix igual, SENSE @().
 
 # Construeix l'objecte que es serialitzara a precintades.json a partir dels
 # registres (cada un amb Id, ActivitatPrincipal, Adreca, Lat, Lon).
@@ -175,7 +152,7 @@ function Read-PrecintadesFromExcel($excelFile) {
         $colCarr = Find-HeaderColumn $headers 'Emp. Carrer'
         $colNum  = Find-HeaderColumn $headers 'Emp. Numero'
         $colAct  = Find-HeaderColumn $headers 'Activitat principal'
-        $pairs   = Get-CampInfoPairs $headers
+        $pairs   = _FindCampInfoPairs $headers
 
         $get = $x.Cel   # el lector de cel·la ve amb el context (Excel.ps1)
 

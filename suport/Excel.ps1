@@ -82,11 +82,12 @@ function _HeadersDeFila1($data, [int]$cols) {
 
 # La fulla "Estes" d'un llibre ja obert, o $null. Torna tambe els noms de totes
 # les fulles, que es el que fa util el missatge quan no la troba.
-function _TrobaFullaEstesa($wb) {
+function _TrobaFullaEstesa($wb, [string]$fulla = 'estes') {
+    $cerca = _NormalitzaText $fulla
     $noms = @()
     foreach ($s in $wb.Sheets) {
         $noms += [string]$s.Name
-        if ((_NormalitzaText $s.Name) -eq 'estes') { return @{ Sheet = $s; Noms = $noms } }
+        if ((_NormalitzaText $s.Name) -eq $cerca) { return @{ Sheet = $s; Noms = $noms } }
     }
     return @{ Sheet = $null; Noms = $noms }
 }
@@ -135,7 +136,10 @@ function _TrobaFullaEstesa($wb) {
 # El fa servir l'"Excel per importar" de Coordenades, que escriu sobre una COPIA
 # de la base (mai sobre l'original). Es aqui i no en una funcio a part perque
 # obrir i tancar l'Excel es fa en UN sol lloc (hi ha guard).
-function Read-FullaEstesa($excelFile, [scriptblock]$cos, [switch]$Desa) {
+#
+# -Fulla: una altra fulla que no sigui "Estes" (l'Excel d'ESTABLIMENTS porta la
+# fulla "Establiments"). Es compara normalitzada, com "Estes".
+function Read-FullaEstesa($excelFile, [scriptblock]$cos, [switch]$Desa, [string]$Fulla = '') {
     $excel = $null
     try { $excel = New-Object -ComObject Excel.Application } catch { $excel = $null }
     if ($null -eq $excel) {
@@ -147,10 +151,11 @@ function Read-FullaEstesa($excelFile, [scriptblock]$cos, [switch]$Desa) {
     $wb = $null
     try {
         $wb = $excel.Workbooks.Open($excelFile.FullName, 0, (-not $Desa))   # ReadOnly, tret de -Desa
-        $trobada = _TrobaFullaEstesa $wb
+        $nomFulla = if ($Fulla -ne '') { $Fulla } else { 'Est' + [char]0x00E8 + 's' }
+        $trobada = _TrobaFullaEstesa $wb $nomFulla
         $sh = $trobada.Sheet
         if ($null -eq $sh) {
-            throw ("No s'ha trobat la fulla 'Est" + [char]0x00E8 + "s' al fitxer Excel. Fulles disponibles: " + (@($trobada.Noms) -join ', '))
+            throw ("No s'ha trobat la fulla '" + $nomFulla + "' al fitxer Excel. Fulles disponibles: " + (@($trobada.Noms) -join ', '))
         }
 
         $data = $sh.UsedRange.Value2
@@ -231,4 +236,22 @@ function _FindCampInfoPairs($headers) {
         }
     }
     return ,@($pairs)
+}
+
+# ----------------------------------------------------------------------------
+# PRECINTADA? Vivia a rutes/Precintades.ps1; ara la fan servir tambe el
+# "Planol activitats" i qui la necessiti, i aquest es el fitxer de l'Excel
+# d'activitats que carreguen tots dos processos.
+# ----------------------------------------------------------------------------
+# Nom EXACTE (normalitzat) del camp lliure que marca una activitat precintada.
+$Script:PrecCampNom = 'precinte activitat?'
+
+# Cert si un camp lliure (Nom/Valor) indica una activitat PRECINTADA: el Nom es
+# "PRECINTE ACTIVITAT?" i el Valor comenca per "SI" (com a paraula: "SI",
+# "SI, ...", "SI ..."; NO "SITUACIO..."). Insensible a accents i majuscules.
+function Test-IsPrecintada([string]$nom, [string]$valor) {
+    if ((_NormalitzaText $nom) -ne $Script:PrecCampNom) { return $false }
+    $v = _NormalitzaText $valor
+    if ($v -eq '') { return $false }
+    return [bool]($v -match '^si\b')
 }

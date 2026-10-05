@@ -95,6 +95,8 @@ try {
 # L'"Excel per importar" (una copia de la base amb les coordenades corregides
 # en vermell). Nomes defineix funcions.
 . (Join-Path $ScriptRoot 'CoordenadesImportar.ps1')
+# Omplir la plantilla del mapa i el JSON dins del <script> (comu als mapes).
+. (Join-Path $ScriptRoot 'MapaHtml.ps1')
 
 # Icona corporativa per a les finestres d'aquesta eina. Ruta.ps1 nomes la
 # carrega quan NO va en headless, i nosaltres l'hi hem fet anar, aixi que ens
@@ -313,7 +315,7 @@ function Get-ResumPrecisio($items) {
 #                    tornes a obrir, hi son.
 function Build-CoordenadesHtml($items, [string]$dbLabel, [string]$abast, [string]$fontName, $portals) {
     $arr = @($items)
-    $itemsJson = ConvertTo-Json @($arr | ForEach-Object {
+    $itemsJson = ConvertTo-JsonScript @($arr | ForEach-Object {
         # [ordered]: sense aixo, ConvertTo-Json treu les propietats en un ordre
         # diferent a cada execucio i l'HTML generat canvia sense que hagin
         # canviat les dades (la mateixa trampa que ja hi havia a Ruta.ps1).
@@ -333,22 +335,16 @@ function Build-CoordenadesHtml($items, [string]$dbLabel, [string]$abast, [string
             lonf      = [double]$_.LonFacana
             prec      = [string]$_.Precisio
         }
-    }) -Depth 5 -Compress
-    # El JSON ha de ser una LLISTA sempre. Aixo abans es decidia pel nombre
-    # d'elements, donant per fet que ConvertTo-Json desembolcalla quan n'hi ha
-    # un de sol -- i en el PowerShell de l'usuari NO ho fa: el mapa d'una sola
-    # activitat sortia amb [[{...}]] i no arrencava. Ara es mira la SORTIDA, que
-    # es el que compta, i tant se val com es comporti cada versio.
-    if ([string]::IsNullOrWhiteSpace($itemsJson) -or $itemsJson -eq 'null') { $itemsJson = '[]' }
-    elseif (-not $itemsJson.TrimStart().StartsWith('[')) { $itemsJson = "[$itemsJson]" }
+    }) -Llista -Fondaria 5
+    # (Una LLISTA sempre, i '</' escapat: ConvertTo-JsonScript, MapaHtml.ps1.
+    # El guard de la llista mira la SORTIDA: al PC de l'usuari ConvertTo-Json no
+    # desembolcalla un array d'un sol element i el mapa sortia amb [[{...}]].)
 
     # Els portals de les parcel.les consultades, per pintar-los amb el seu
     # numero com al planol del Cadastre. Poden ser cap.
-    $portalsJson = ConvertTo-Json @(@($portals) | Where-Object { $null -ne $_ } | ForEach-Object {
+    $portalsJson = ConvertTo-JsonScript @(@($portals) | Where-Object { $null -ne $_ } | ForEach-Object {
         [ordered]@{ n = [string]$_.Numero; v = [string]$_.Via; lat = [double]$_.Lat; lon = [double]$_.Lon }
-    }) -Depth 5 -Compress
-    if ([string]::IsNullOrWhiteSpace($portalsJson) -or $portalsJson -eq 'null') { $portalsJson = '[]' }
-    elseif (-not $portalsJson.TrimStart().StartsWith('[')) { $portalsJson = "[$portalsJson]" }
+    }) -Llista -Fondaria 5
 
     $resum = Get-ResumPrecisio $arr
     $today = (Get-Date).ToString('dd/MM/yyyy HH:mm')
@@ -357,7 +353,7 @@ function Build-CoordenadesHtml($items, [string]$dbLabel, [string]$abast, [string
     # HTML-escapat): es la clau amb que es desen les correccions al navegador,
     # i ha de ser el nom EXACTE perque les correccions d'una base es quedin
     # amb aquella base.
-    $fontJson = ConvertTo-Json ([string]$fontName) -Compress
+    $fontJson = ConvertTo-JsonScript ([string]$fontName)
     $abastEnc = _HtmlEncode $abast
     $nTot = $arr.Count
     $nFac = [int]$resum['facana']
@@ -371,10 +367,6 @@ function Build-CoordenadesHtml($items, [string]$dbLabel, [string]$abast, [string
     # interpolacio de PowerShell, i tot el text catala depenia que aquest .ps1
     # no perdes el BOM. Ara la plantilla es llegeix en UTF-8 EXPLICIT (el 5.1,
     # sense dir-li res, la llegiria com a ANSI) i nomes porta marques {{nom}}.
-    #
-    # Els JSON van dins d'un <script>: un '</' a les dades (una adreca amb
-    # '</script>') tancaria l'etiqueta i trencaria la pagina. '<\/' es el mateix
-    # caracter per al JSON i ja no tanca res.
     $valors = @{
         nTot        = [string]$nTot
         abastEnc    = $abastEnc
@@ -384,36 +376,11 @@ function Build-CoordenadesHtml($items, [string]$dbLabel, [string]$abast, [string
         nCad        = [string]$nCad
         today       = $today
         dbEnc       = $dbEnc
-        itemsJson   = $itemsJson.Replace('</', '<\/')
-        portalsJson = $portalsJson.Replace('</', '<\/')
-        fontJson    = $fontJson.Replace('</', '<\/')
+        itemsJson   = $itemsJson
+        portalsJson = $portalsJson
+        fontJson    = $fontJson
     }
-    $plantilla = [System.IO.File]::ReadAllText($Script:CoordPlantillaMapa, [System.Text.Encoding]::UTF8)
-    return (Expand-CoordPlantilla $plantilla.TrimEnd() $valors)
-}
-
-# Omple les marques {{nom}} d'una plantilla en UNA sola passada. PURA.
-#
-# Una sola passada a posta: si es fes un .Replace() per marca, un valor que
-# portes el text '{{dbEnc}}' (ve de l'Excel) quedaria substituit pel seguent.
-# I es fa a ma, sense [regex]::Replace amb un scriptblock: els scriptblocks
-# convertits a delegat no veuen les variables locals igual a totes les versions
-# del PowerShell (la trampa de les closures del CLAUDE.md).
-#
-# Una marca que no te valor es un error de programacio, no de dades: llança,
-# perque una pagina amb '{{nTot}}' a la vista no ha de sortir mai.
-function Expand-CoordPlantilla([string]$plantilla, $valors) {
-    $sb = New-Object System.Text.StringBuilder
-    $pos = 0
-    foreach ($m in [regex]::Matches($plantilla, '\{\{([A-Za-z]+)\}\}')) {
-        $nom = $m.Groups[1].Value
-        if (-not $valors.ContainsKey($nom)) { throw "Plantilla del mapa: falta el valor de {{$nom}}" }
-        [void]$sb.Append($plantilla, $pos, $m.Index - $pos)
-        [void]$sb.Append([string]$valors[$nom])
-        $pos = $m.Index + $m.Length
-    }
-    [void]$sb.Append($plantilla, $pos, $plantilla.Length - $pos)
-    return $sb.ToString()
+    return (Get-PlantillaHtml $Script:CoordPlantillaMapa $valors)
 }
 
 # ============================================================================
