@@ -1,0 +1,49 @@
+// comu.mjs - El que comparteixen les proves dels mapes al navegador
+// (prova-mapa-coordenades.mjs, prova-planol.mjs): els comptadors d'OK/FAIL i
+// servir el Leaflet des de node_modules en lloc del CDN.
+//
+// El Leaflet de node_modules es el MATEIX paquet 1.9.4 que serveixen unpkg i
+// jsDelivr, byte a byte: el SRI dels <script> hi coincideix i no cal treure'l.
+// Les tessel.les (OpenStreetMap, el WMS del Cadastre) s'avorten: el mapa
+// funciona igual sense fons.
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+export const AQUI = path.dirname(fileURLToPath(import.meta.url));
+export const LEAFLET = path.join(AQUI, 'node_modules', 'leaflet', 'dist');
+
+export const comptes = { ok: 0, fail: 0 };
+export function check(cond, msg) {
+  if (cond) { comptes.ok++; console.log('  OK   ' + msg); } else { comptes.fail++; console.log('  FAIL ' + msg); }
+}
+export function eq(obtingut, esperat, msg) {
+  const igual = JSON.stringify(obtingut) === JSON.stringify(esperat);
+  check(igual, msg + (igual ? '' : ` (esperat ${JSON.stringify(esperat)}, obtingut ${JSON.stringify(obtingut)})`));
+}
+export function seccio(t) { console.log('\n--- ' + t + ' ---'); }
+
+// Quins CDN responen: per defecte, unpkg (el de la pagina). Amb { unpkg: false }
+// es prova el segon intent (jsDelivr) i amb tots dos a false, el missatge.
+export async function serveixLeaflet(ctx, cdn = { unpkg: true, jsdelivr: true }) {
+  const serveix = (actiu) => (route) => {
+    if (!actiu) { route.abort(); return; }
+    const nom = path.basename(new URL(route.request().url()).pathname);
+    route.fulfill({
+      path: path.join(LEAFLET, nom),
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': nom.endsWith('.css') ? 'text/css' : 'application/javascript',
+      },
+    });
+  };
+  await ctx.route('https://unpkg.com/leaflet@1.9.4/dist/**', serveix(cdn.unpkg));
+  await ctx.route('https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/**', serveix(cdn.jsdelivr));
+  await ctx.route(/tile\.openstreetmap\.org|ovc\.catastro\.meh\.es/, (route) => route.abort());
+}
+
+export function resultat(nom) {
+  console.log('\n========================================');
+  console.log(`RESULTAT ${nom}: ${comptes.ok} OK, ${comptes.fail} FAIL`);
+  console.log('========================================');
+  return comptes.fail === 0 ? 0 : 1;
+}

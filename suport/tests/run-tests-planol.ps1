@@ -187,7 +187,20 @@ $json = ConvertTo-JsonScript $mapa -Llista -Fondaria 10
 $torna = $json | ConvertFrom-Json
 AssertEq @($torna).Count @($mapa).Count 'el JSON del mapa es valid i hi son totes'
 
-Write-Host "`n--- Les consultes al Cadastre (servei fals) ---"
+Write-Host "`n--- Build-PlanolHtml: la plantilla (PlanolMapa.html) ---"
+$metaT = [pscustomobject]@{ BaseActivitats = 'A.xls'; BaseEstabliments = 'E.xls'; BaseInformes = 'Base'; Avisos = @('un avis </script>') }
+$htmlT = Build-PlanolHtml $mapa $metaT
+Assert (-not $htmlT.Contains('{{')) 'cap marca {{...}} sense omplir'
+Assert ($htmlT.Contains('Pl' + [char]0x00E0 + 'nol activitats')) 'la plantilla es llegeix en UTF-8 (accents intactes)'
+Assert ($htmlT -match 'var PARCELES = (\[.*?\]);\s*</script>') 'hi ha les dades'
+$parsT = $null; try { $parsT = $Matches[1] | ConvertFrom-Json } catch { }
+AssertEq @($parsT).Count @($mapa).Count 'el JSON de les dades es valid'
+Assert ($htmlT.Contains('un avis &lt;/script&gt;')) 'els avisos van escapats'
+$htmlBuit = Build-PlanolHtml @() ([pscustomobject]@{ BaseActivitats = ''; BaseEstabliments = ''; BaseInformes = ''; Avisos = @() })
+Assert ($htmlBuit.Contains('var PARCELES = [];')) 'sense cap parcel.la: llista buida (i la pagina arrenca)'
+Assert (-not $htmlBuit.Contains('id="avisos"')) 'sense avisos: cap franja d avisos'
+
+Write-Host "`n--- Les consultes al Cadastre (servei fals) ---\"
 $tmpP = Join-Path ([System.IO.Path]::GetTempPath()) ('planol-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $tmpP -Force | Out-Null
 $Script:Crides = New-Object System.Collections.ArrayList

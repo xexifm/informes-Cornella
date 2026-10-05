@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plànol activitats - Cornellà</title>
+<!-- Si unpkg no respon, el full d'estil es torna a demanar a jsDelivr (el mateix
+     paquet de npm, byte a byte: el SRI hi coincideix). Com a Coordenades. -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""
+      onerror="this.onerror=null;this.href='https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css';"/>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; font-family: Segoe UI, Arial, sans-serif; color: #1a1a1a; }
+  body { display: flex; flex-direction: column; height: 100vh; }
+  #top { background: #14365c; color: #fff; padding: 10px 16px; display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  #top h1 { font-size: 18px; margin: 0; }
+  #top .meta { font-size: 12px; opacity: .9; }
+  #avisos { background: #fff4d6; color: #6b4e00; font-size: 12px; padding: 6px 16px; border-bottom: 1px solid #f0d68a; }
+  #wrap { display: flex; flex: 1 1 auto; min-height: 0; }
+  #map { flex: 1 1 auto; }
+  #side { width: 360px; overflow: auto; border-left: 1px solid #ddd; padding: 10px 14px 30px; font-size: 13px; }
+  #side h2 { font-size: 13px; margin: 14px 0 6px; color: #14365c; text-transform: uppercase; letter-spacing: .03em; }
+  #cerca { width: 100%; padding: 6px 8px; font-size: 13px; border: 1px solid #ccd2da; border-radius: 4px; }
+  #resultats { margin-top: 4px; }
+  #resultats div { padding: 4px 6px; border-bottom: 1px solid #eee; cursor: pointer; }
+  #resultats div:hover { background: #f3f7fb; }
+  #resultats .amagada { color: #999; }
+  .fila { display: flex; align-items: center; gap: 6px; margin: 4px 0; }
+  .fila label { cursor: pointer; flex: 1; }
+  .fila .n { color: #555; font-variant-numeric: tabular-nums; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 3px; border: 1px solid rgba(0,0,0,.35); vertical-align: -2px; }
+  .sw-vermell { background: #d62728; } .sw-groc { background: #f2c200; } .sw-verd { background: #2ca02c; }
+  .sw-blau { background: #1f77b4; } .sw-gris { background: #b0b0b0; }
+  .sw-revisar { background: #fff; border: 2px dashed #555; }
+  select { width: 100%; padding: 5px; font-size: 13px; border: 1px solid #ccd2da; border-radius: 4px; }
+  .nota { color: #666; font-size: 12px; line-height: 1.5; }
+  button { background: #14365c; color: #fff; border: 0; padding: 7px 12px; border-radius: 5px; cursor: pointer; font-size: 13px; }
+  button:hover { background: #1d4d82; }
+  /* Etiquetes dels ID GIA, damunt de cada parcel.la. */
+  .leaflet-tooltip.etiq { background: rgba(255,255,255,.88); border: 1px solid #8a96a3; border-radius: 3px;
+                          padding: 1px 4px; font-size: 11px; line-height: 1.25; color: #1a1a1a; box-shadow: none;
+                          white-space: nowrap; font-family: Consolas, monospace; }
+  .leaflet-tooltip.etiq::before { display: none; }
+  .etiq b { color: #14365c; }
+  .pop h3 { margin: 0 0 2px; font-size: 14px; color: #14365c; }
+  .pop .rc { font-family: Consolas, monospace; font-size: 11px; color: #666; }
+  .pop table { border-collapse: collapse; margin-top: 6px; font-size: 12px; }
+  .pop td { padding: 3px 6px 3px 0; vertical-align: top; border-top: 1px solid #eee; }
+  .pop .gia { font-weight: bold; font-family: Consolas, monospace; white-space: nowrap; }
+  .pop .avis { color: #a0560b; font-size: 11px; }
+  .pop .cad { color: #777; font-size: 11px; }
+</style>
+</head>
+<body>
+<div id="top">
+  <h1>Plànol activitats &mdash; Cornellà de Llobregat</h1>
+  <span class="meta">{{baseAct}} &middot; {{baseEst}} &middot; {{baseInf}}</span>
+  <span class="meta">Generat: {{generat}}</span>
+</div>
+{{avisos}}
+<div id="wrap">
+  <div id="map"></div>
+  <div id="side">
+    <input id="cerca" type="search" placeholder="Cerca per ID GIA, adreça o activitat...">
+    <div id="resultats"></div>
+
+    <h2>Estat de les activitats</h2>
+    <div class="fila"><input type="checkbox" id="f-vermell" checked><label for="f-vermell"><span class="sw sw-vermell"></span> Precintada</label><span class="n" id="n-vermell"></span></div>
+    <div class="fila"><input type="checkbox" id="f-groc" checked><label for="f-groc"><span class="sw sw-groc"></span> Requeriment pendent</label><span class="n" id="n-groc"></span></div>
+    <div class="fila"><input type="checkbox" id="f-blau" checked><label for="f-blau"><span class="sw sw-blau"></span> Sense informes / per revisar</label><span class="n" id="n-blau"></span></div>
+    <div class="fila"><input type="checkbox" id="f-verd" checked><label for="f-verd"><span class="sw sw-verd"></span> Sense res pendent</label><span class="n" id="n-verd"></span></div>
+    <div class="fila"><input type="checkbox" id="f-buits"><label for="f-buits"><span class="sw sw-gris"></span> Locals buits (sense activitat)</label><span class="n" id="n-buits"></span></div>
+
+    <h2>Per revisar</h2>
+    <select id="f-revisar">
+      <option value="">Totes les activitats</option>
+      <option value="mb">Només: activitat en un local marcat com a buit</option>
+      <option value="nb">Només: activitat que no és a la base d'activitats</option>
+      <option value="se">Només: activitat sense cap establiment</option>
+    </select>
+    <p class="nota"><span class="sw sw-revisar"></span> Vora discontínua: hi ha alguna activitat en un local marcat com a buit.</p>
+
+    <h2>Visualització</h2>
+    <div class="fila"><input type="checkbox" id="f-etiq" checked><label for="f-etiq">ID GIA damunt de les parcel·les</label></div>
+    <div class="fila"><input type="checkbox" id="f-cadastre"><label for="f-cadastre">Fons del Cadastre (totes les parcel·les)</label></div>
+    <p class="nota">Amplia el mapa per veure els ID GIA: de lluny no en surten, a mig zoom surten els números
+      i de prop, cada activitat amb el seu local, planta o porta. Si una parcel·la té activitats en estats
+      diferents, té el color del més greu. Clica-hi per veure-les totes.</p>
+    <p><button onclick="baixaCsv()">Baixar la llista del que es veu (.csv)</button></p>
+    <p class="nota" id="resum"></p>
+  </div>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+if (typeof L === 'undefined') {
+  document.write('<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" ' +
+    'integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""><\/script>');
+}
+</script>
+<script>
+if (typeof L === 'undefined') {
+  document.getElementById('map').innerHTML =
+    '<div style="padding:30px;font-size:15px;line-height:1.6;max-width:640px;">' +
+    '<b>No s\'ha pogut carregar el mapa.</b><br>' +
+    'La biblioteca del mapa (Leaflet) ve d\'Internet, i no ha arribat ni d\'unpkg.com ni de cdn.jsdelivr.net.<br><br>' +
+    'Comprova la connexió i torna a obrir aquest fitxer.</div>';
+}
+</script>
+<script>
+var PARCELES = {{dadesJson}};
+</script>
+<script>
+// ---------------------------------------------------------------------------
+// DADES (les fa PlanolDades.ps1, ConvertTo-PlanolDadesMapa). Per parcel.la:
+//   k clau, rc refcat de 14, c [lat, lon] de l'etiqueta, p poligons (cada un,
+//   anells plans [lat, lon, lat, lon...]; el primer, l'exterior), e entrades:
+//   { t 'a' activitat | 'b' local buit, g ID GIA, n nom, ac activitat, s local/
+//     planta/porta, sf d'on surt ('gia'|'cadastre'|'unitat'), e estat, et text
+//     de l'estat, pr precinte, mb local marcat com a buit, se sense establiment,
+//     nb no es a la base, ni informes, ad adreca, rc refcat }
+// ---------------------------------------------------------------------------
+if (typeof L === 'undefined') { throw new Error('Leaflet no carregat: el mapa no pot arrencar.'); }
+
+var COLORS = { vermell: '#d62728', groc: '#f2c200', blau: '#1f77b4', verd: '#2ca02c', gris: '#b0b0b0' };
+var VORA   = { vermell: '#8e1b1c', groc: '#9c7c00', blau: '#124a73', verd: '#1b6b1b', gris: '#6d6d6d' };
+var ORDRE  = { verd: 0, blau: 1, groc: 2, vermell: 3 };
+var TEXT_ESTAT = { vermell: 'Precintada', groc: 'Requeriment pendent', blau: 'Sense informes / per revisar', verd: 'Sense res pendent' };
+var ZOOM_IDS = 16, ZOOM_LLISTA = 18;
+
+function escHtml(s) {
+  return String(s === null || s === undefined ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function parells(anell) {
+  var out = [];
+  for (var i = 0; i + 1 < anell.length; i += 2) { out.push([anell[i], anell[i + 1]]); }
+  return out;
+}
+
+var map = L.map('map', { preferCanvas: true, zoomSnap: 0.25, zoomDelta: 0.5, wheelPxPerZoomLevel: 120 });
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 20, maxNativeZoom: 19, attribution: '&copy; OpenStreetMap'
+}).addTo(map);
+// El fons del Cadastre (WMS oficial): totes les parcel.les, tambe les que no
+// tenen cap activitat. Apagat per defecte: amb el mapa ple de color, carrega.
+var fonsCadastre = L.tileLayer.wms('https://ovc.catastro.meh.es/Cartografia/WMS/ServidorWMS.aspx', {
+  layers: 'Catastro', format: 'image/png', transparent: true, maxZoom: 20, opacity: 0.55,
+  attribution: 'Direcci&oacute;n General del Catastro'
+});
+
+// ---------------------------------------------------------------------------
+// FILTRES
+// ---------------------------------------------------------------------------
+function filtres() {
+  return {
+    vermell: document.getElementById('f-vermell').checked,
+    groc: document.getElementById('f-groc').checked,
+    blau: document.getElementById('f-blau').checked,
+    verd: document.getElementById('f-verd').checked,
+    buits: document.getElementById('f-buits').checked,
+    revisar: document.getElementById('f-revisar').value,
+    etiq: document.getElementById('f-etiq').checked
+  };
+}
+
+function passaActivitat(en, f) {
+  if (en.t !== 'a') { return false; }
+  if (!f[en.e]) { return false; }
+  if (f.revisar === 'mb' && !en.mb) { return false; }
+  if (f.revisar === 'nb' && !en.nb) { return false; }
+  if (f.revisar === 'se' && !en.se) { return false; }
+  return true;
+}
+
+// Que es veu d'una parcel.la amb els filtres d'ara: les activitats, els locals
+// buits, el color (el pitjor de les activitats visibles; gris si nomes hi ha
+// buits) i si s'ha de marcar per revisar.
+function vistaParcela(pc, f) {
+  var acts = [], buits = [], pitjor = '', revisar = false;
+  for (var i = 0; i < pc.e.length; i++) {
+    var en = pc.e[i];
+    if (passaActivitat(en, f)) {
+      acts.push(en);
+      if (pitjor === '' || ORDRE[en.e] > ORDRE[pitjor]) { pitjor = en.e; }
+      if (en.mb) { revisar = true; }
+    } else if (en.t === 'b' && f.buits && f.revisar === '') {
+      buits.push(en);
+    }
+  }
+  var color = pitjor !== '' ? pitjor : (buits.length > 0 ? 'gris' : '');
+  return { acts: acts, buits: buits, color: color, revisar: revisar };
+}
+
+// ---------------------------------------------------------------------------
+// LES PARCEL.LES
+// ---------------------------------------------------------------------------
+var capes = [];   // per posicio de PARCELES: { forma, etiq, vista }
+var limits = [];
+
+function muntaParceles() {
+  for (var i = 0; i < PARCELES.length; i++) {
+    (function (idx) {
+      var pc = PARCELES[idx];
+      var forma;
+      if (pc.p && pc.p.length > 0) {
+        var ll = [];
+        for (var a = 0; a < pc.p.length; a++) {
+          var poli = [];
+          for (var b = 0; b < pc.p[a].length; b++) { poli.push(parells(pc.p[a][b])); }
+          ll.push(poli);
+        }
+        forma = L.polygon(ll, { weight: 1, fillOpacity: 0.55 });
+      } else {
+        // Sense dibuix del Cadastre: un punt, perque no es perdi.
+        forma = L.circleMarker(pc.c, { radius: 7, weight: 2, fillOpacity: 0.8 });
+      }
+      forma.on('click', function (ev) { obrePopup(idx, ev.latlng); });
+      var etiq = L.tooltip({ permanent: true, direction: 'center', className: 'etiq', interactive: false }).setLatLng(pc.c);
+      capes[idx] = { forma: forma, etiq: etiq, vista: null, alMapa: false, etiqAlMapa: false };
+      limits.push(pc.c);
+    })(i);
+  }
+}
+
+function estilDe(v) {
+  return {
+    color: VORA[v.color] || '#555', fillColor: COLORS[v.color] || '#ccc',
+    dashArray: v.revisar ? '5,4' : null, weight: v.revisar ? 2.5 : 1
+  };
+}
+
+// Text de l'etiqueta segons el zoom: res de lluny; els ID a mig zoom (fins a 4 i
+// "+N"); de prop, una linia per activitat amb el seu local/planta/porta.
+function textEtiqueta(v, zoom) {
+  if (zoom >= ZOOM_LLISTA) {
+    var linies = [];
+    var max = 14;
+    for (var i = 0; i < v.acts.length && i < max; i++) {
+      var en = v.acts[i];
+      linies.push('<b>' + escHtml(en.g) + '</b>' + (en.s ? ' ' + escHtml(en.s) : ''));
+    }
+    if (v.acts.length > max) { linies.push('+' + (v.acts.length - max) + ' més'); }
+    if (v.acts.length === 0 && v.buits.length > 0) { linies.push('buit'); }
+    return linies.join('<br>');
+  }
+  var ids = [];
+  for (var j = 0; j < v.acts.length && j < 4; j++) { ids.push(escHtml(v.acts[j].g)); }
+  var t = ids.join(', ');
+  if (v.acts.length > 4) { t += ' +' + (v.acts.length - 4); }
+  return t;
+}
+
+function pinta() {
+  var f = filtres();
+  var zoom = map.getZoom();
+  var mostraEtiq = f.etiq && zoom >= ZOOM_IDS;
+  // Els recomptes son d'ACTIVITATS (una activitat amb dos establiments compta
+  // un cop) i no depenen de les caselles d'estat: diuen quantes n'hi ha de cada.
+  var comptes = { vermell: 0, groc: 0, blau: 0, verd: 0, buits: 0 };
+  var vistes = {};
+  var tots = { vermell: true, groc: true, blau: true, verd: true, revisar: f.revisar };
+  var nParc = 0;
+  for (var i = 0; i < PARCELES.length; i++) {
+    var pc = PARCELES[i], c = capes[i];
+    for (var k = 0; k < pc.e.length; k++) {
+      var en = pc.e[k];
+      if (en.t === 'b') { comptes.buits++; continue; }
+      if (passaActivitat(en, tots) && !vistes[en.g]) { vistes[en.g] = true; comptes[en.e]++; }
+    }
+    var v = vistaParcela(pc, f);
+    c.vista = v;
+    var vol = v.color !== '';
+    if (vol) {
+      nParc++;
+      c.forma.setStyle(estilDe(v));
+      if (!c.alMapa) { c.forma.addTo(map); c.alMapa = true; }
+    } else if (c.alMapa) {
+      map.removeLayer(c.forma); c.alMapa = false;
+    }
+    var text = vol && mostraEtiq ? textEtiqueta(v, zoom) : '';
+    if (text !== '') {
+      c.etiq.setContent(text);
+      if (!c.etiqAlMapa) { c.etiq.addTo(map); c.etiqAlMapa = true; }
+    } else if (c.etiqAlMapa) {
+      map.removeLayer(c.etiq); c.etiqAlMapa = false;
+    }
+  }
+  var noms = ['vermell', 'groc', 'blau', 'verd', 'buits'];
+  for (var n = 0; n < noms.length; n++) { document.getElementById('n-' + noms[n]).textContent = comptes[noms[n]]; }
+  document.getElementById('resum').textContent = nParc + ' parcel·les a la vista de ' + PARCELES.length + '.';
+}
+
+// ---------------------------------------------------------------------------
+// LA FITXA DE LA PARCEL.LA
+// ---------------------------------------------------------------------------
+function enllacCadastre(rc) {
+  if (!rc || rc.length < 14) { return ''; }
+  return '<a href="https://www1.sedecatastro.gob.es/CYCBienInmueble/OVCListaBienes.aspx?rc1=' +
+         encodeURIComponent(rc.substring(0, 7)) + '&rc2=' + encodeURIComponent(rc.substring(7, 14)) +
+         '" target="_blank" rel="noopener">fitxa al Cadastre</a>';
+}
+
+function htmlFitxa(idx) {
+  var pc = PARCELES[idx];
+  var v = capes[idx].vista || vistaParcela(pc, filtres());
+  var adreces = [];
+  for (var i = 0; i < pc.e.length; i++) {
+    if (pc.e[i].ad && adreces.indexOf(pc.e[i].ad) < 0) { adreces.push(pc.e[i].ad); }
+  }
+  var h = '<div class="pop"><h3>' + escHtml(adreces.slice(0, 2).join(' / ') || '(sense adreça)') + '</h3>' +
+          '<div class="rc">' + escHtml(pc.rc || pc.k) + (pc.rc ? ' &middot; ' + enllacCadastre(pc.rc) : '') + '</div><table>';
+  // Totes les activitats de la parcel.la, encara que el filtre n'amagui
+  // alguna: les amagades, en gris.
+  for (var j = 0; j < pc.e.length; j++) {
+    var en = pc.e[j];
+    if (en.t !== 'a') { continue; }
+    var visible = v.acts.indexOf(en) >= 0;
+    var avisos = [];
+    if (en.mb) { avisos.push('local marcat com a buit'); }
+    if (en.nb) { avisos.push('no és a la base d\'activitats'); }
+    if (en.se) { avisos.push('sense establiment: ref. de l\'Excel d\'activitats'); }
+    var estat = en.et ? en.et : (en.ni > 0 ? '' : 'sense informes');
+    if (en.pr) { estat = 'PRECINTADA' + (en.et ? ' (darrer informe: ' + en.et + ')' : ''); }
+    h += '<tr style="' + (visible ? '' : 'opacity:.45') + '">' +
+         '<td><span class="sw sw-' + escHtml(en.e) + '"></span></td>' +
+         '<td class="gia">' + escHtml(en.g) + '</td>' +
+         '<td>' + escHtml(en.n || en.ac || '') + (en.n && en.ac ? '<br><span class="cad">' + escHtml(en.ac) + '</span>' : '') +
+           (en.s ? '<br>' + escHtml(en.s) + (en.sf === 'cadastre' ? ' <span class="cad">(Cadastre)</span>' : '') : '') +
+           (avisos.length ? '<br><span class="avis">&#9888; ' + escHtml(avisos.join(' · ')) + '</span>' : '') + '</td>' +
+         '<td>' + escHtml(estat) + (en.ni > 0 ? '<br><span class="cad">' + en.ni + ' informe' + (en.ni > 1 ? 's' : '') + '</span>' : '') + '</td></tr>';
+  }
+  var nb = 0, subsBuits = [];
+  for (var k = 0; k < pc.e.length; k++) {
+    if (pc.e[k].t === 'b') { nb++; if (pc.e[k].s) { subsBuits.push(pc.e[k].s); } }
+  }
+  if (nb > 0) {
+    h += '<tr><td><span class="sw sw-gris"></span></td><td colspan="3">' + nb + ' local' + (nb > 1 ? 's' : '') +
+         ' buit' + (nb > 1 ? 's' : '') + (subsBuits.length ? ': ' + escHtml(subsBuits.join(', ')) : '') + '</td></tr>';
+  }
+  return h + '</table></div>';
+}
+
+function obrePopup(idx, latlng) {
+  L.popup({ maxWidth: 460, maxHeight: 420 }).setLatLng(latlng || PARCELES[idx].c).setContent(htmlFitxa(idx)).openOn(map);
+}
+
+// ---------------------------------------------------------------------------
+// EL CERCADOR: per ID GIA (exacte o comencament), adreça o activitat. Troba
+// tambe el que el filtre amaga (surt en gris), i la fitxa s'obre igual.
+// ---------------------------------------------------------------------------
+function cerca(q) {
+  var res = [];
+  q = q.trim().toLowerCase();
+  if (q.length === 0) { return res; }
+  var nomesNum = /^\d+$/.test(q);
+  for (var i = 0; i < PARCELES.length && res.length < 40; i++) {
+    var pc = PARCELES[i];
+    for (var j = 0; j < pc.e.length; j++) {
+      var en = pc.e[j];
+      if (en.t !== 'a') { continue; }
+      var ok = nomesNum ? String(en.g).indexOf(q) === 0
+                        : (String(en.ad).toLowerCase().indexOf(q) >= 0 || String(en.n).toLowerCase().indexOf(q) >= 0 ||
+                           String(en.ac).toLowerCase().indexOf(q) >= 0);
+      if (ok) { res.push({ idx: i, en: en }); }
+    }
+  }
+  if (nomesNum) { res.sort(function (a, b) { return String(a.en.g).length - String(b.en.g).length; }); }
+  return res;
+}
+
+function vesA(idx) {
+  var pc = PARCELES[idx];
+  map.setView(pc.c, Math.max(map.getZoom(), ZOOM_LLISTA), { animate: false });
+  obrePopup(idx);
+}
+
+document.getElementById('cerca').addEventListener('input', function (ev) {
+  var res = cerca(ev.target.value), cont = document.getElementById('resultats');
+  cont.innerHTML = '';
+  var f = filtres();
+  for (var i = 0; i < res.length; i++) {
+    (function (r) {
+      var d = document.createElement('div');
+      var visible = passaActivitat(r.en, f);
+      d.className = visible ? '' : 'amagada';
+      d.innerHTML = '<span class="sw sw-' + escHtml(r.en.e) + '"></span> <b>' + escHtml(r.en.g) + '</b> ' +
+                    escHtml(r.en.ad) + (r.en.s ? ' &middot; ' + escHtml(r.en.s) : '') +
+                    (visible ? '' : ' <i>(amagada pel filtre)</i>');
+      d.addEventListener('click', function () { vesA(r.idx); });
+      cont.appendChild(d);
+    })(res[i]);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// BAIXAR EL QUE ES VEU (CSV amb ';' i BOM: l'Excel en catala l'obre directe)
+// ---------------------------------------------------------------------------
+function csvCamp(v) {
+  var s = String(v === null || v === undefined ? '' : v);
+  return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function baixaCsv() {
+  var files = [['ID GIA', 'Nom', 'Activitat', 'Local / planta / porta', 'Adreça', 'Ref. cadastral', 'Estat', 'Darrer informe', 'Avisos']];
+  for (var i = 0; i < PARCELES.length; i++) {
+    var v = capes[i].vista;
+    if (!v) { continue; }
+    for (var j = 0; j < v.acts.length; j++) {
+      var en = v.acts[j], av = [];
+      if (en.mb) { av.push('local marcat com a buit'); }
+      if (en.nb) { av.push('no es a la base d\'activitats'); }
+      if (en.se) { av.push('sense establiment'); }
+      files.push([en.g, en.n, en.ac, en.s, en.ad, en.rc, TEXT_ESTAT[en.e], en.et, av.join(', ')]);
+    }
+  }
+  var text = '﻿' + files.map(function (f) { return f.map(csvCamp).join(';'); }).join('\r\n');
+  var url = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' }));
+  var a = document.createElement('a');
+  a.href = url; a.download = 'Planol_activitats.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function () { URL.revokeObjectURL(url); }, 5000);
+}
+
+// ---------------------------------------------------------------------------
+var ids = ['f-vermell', 'f-groc', 'f-blau', 'f-verd', 'f-buits', 'f-revisar', 'f-etiq'];
+for (var x = 0; x < ids.length; x++) { document.getElementById(ids[x]).addEventListener('change', pinta); }
+document.getElementById('f-cadastre').addEventListener('change', function (ev) {
+  if (ev.target.checked) { fonsCadastre.addTo(map); } else { map.removeLayer(fonsCadastre); }
+});
+map.on('zoomend', pinta);
+
+muntaParceles();
+if (limits.length > 0) { map.fitBounds(L.latLngBounds(limits).pad(0.05)); }
+else { map.setView([41.355, 2.073], 14); }
+pinta();
+</script>
+</body>
+</html>

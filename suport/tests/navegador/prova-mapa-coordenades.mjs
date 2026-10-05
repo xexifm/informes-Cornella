@@ -26,23 +26,12 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { pathToFileURL } from 'node:url';
+import { AQUI, LEAFLET, check, eq, seccio, serveixLeaflet, resultat, comptes } from './comu.mjs';
 
-const AQUI = path.dirname(fileURLToPath(import.meta.url));
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'coord-nav-'));
 const PERFIL = path.join(TMP, 'perfil');
-const LEAFLET = path.join(AQUI, 'node_modules', 'leaflet', 'dist');
 const CLAU = 'coordenades:2026-08-18 ACTIVITATS.xls';
-
-let ok = 0, fail = 0;
-function check(cond, msg) {
-  if (cond) { ok++; console.log('  OK   ' + msg); } else { fail++; console.log('  FAIL ' + msg); }
-}
-function eq(obtingut, esperat, msg) {
-  const igual = JSON.stringify(obtingut) === JSON.stringify(esperat);
-  check(igual, msg + (igual ? '' : ` (esperat ${JSON.stringify(esperat)}, obtingut ${JSON.stringify(obtingut)})`));
-}
-function seccio(t) { console.log('\n--- ' + t + ' ---'); }
 
 // 1. Els mapes de prova, amb les funcions de debo de Coordenades.ps1.
 const gen = spawnSync('pwsh', ['-NoProfile', '-File', path.join(AQUI, 'genera-mapa-prova.ps1'), '-Dir', TMP],
@@ -50,25 +39,6 @@ const gen = spawnSync('pwsh', ['-NoProfile', '-File', path.join(AQUI, 'genera-ma
 if (gen.status !== 0) { console.error('No s\'han pogut generar els mapes de prova.'); process.exit(2); }
 if (!fs.existsSync(path.join(LEAFLET, 'leaflet.js'))) {
   console.error('Falta node_modules/leaflet: executa "npm install" a ' + AQUI); process.exit(2);
-}
-
-// Quins CDN responen: per defecte, unpkg (el de la pagina). Amb { unpkg: false }
-// es prova el segon intent (jsDelivr) i amb tots dos a false, el missatge.
-async function serveixLeaflet(ctx, cdn = { unpkg: true, jsdelivr: true }) {
-  const serveix = (actiu) => (route) => {
-    if (!actiu) { route.abort(); return; }
-    const nom = path.basename(new URL(route.request().url()).pathname);
-    route.fulfill({
-      path: path.join(LEAFLET, nom),
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Content-Type': nom.endsWith('.css') ? 'text/css' : 'application/javascript',
-      },
-    });
-  };
-  await ctx.route('https://unpkg.com/leaflet@1.9.4/dist/**', serveix(cdn.unpkg));
-  await ctx.route('https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/**', serveix(cdn.jsdelivr));
-  await ctx.route(/tile\.openstreetmap\.org/, (route) => route.abort());
 }
 
 async function obreContext() {
@@ -354,14 +324,11 @@ try {
   seccio('Errors de JavaScript');
   eq(errorsPagina, [], 'cap error de JavaScript a cap pàgina');
 } catch (e) {
-  fail++;
+  comptes.fail++;
   console.log('  FAIL la prova ha petat: ' + (e && e.stack || e));
 } finally {
   await ctx.close().catch(() => {});
   fs.rmSync(TMP, { recursive: true, force: true });
 }
 
-console.log('\n========================================');
-console.log(`RESULTAT NAVEGADOR: ${ok} OK, ${fail} FAIL`);
-console.log('========================================');
-process.exit(fail === 0 ? 0 : 1);
+process.exit(resultat('NAVEGADOR'));
