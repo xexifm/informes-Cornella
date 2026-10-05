@@ -31,7 +31,8 @@
     -- dades --
     CatalegJson.ps1     lectura dels catalegs (ESTRUCTURALS\*.json)
     Activitats.ps1      Excel d'activitats: cache per ID GIA + pujada a Drive
-    Informes.ps1        escaneig dels informes ja fets (informes-db.json)
+    Informes.ps1        classificadors del text dels informes + editor de la base
+    InformesEscaneig.ps1 "Actualitzar base": llegeix els informes i munta informes-db.json
     CopiaInformes.ps1   eina "Copiar informes" (a ma i automatic)
     ComprovarExcel.ps1  eina "Comprovar Excel" (precintes contra l'Excel)
     Migracio.ps1        rutes de local\ i endrec de les carpetes velles
@@ -426,6 +427,8 @@ if (-not $Script:HeadlessTest) { [void](Invoke-MigracioLocal $RepoRoot) }
 # dades JSON (ID GIA + data + conclusio) a partir de la carpeta d'informes. Es
 # carrega tambe en headless perque els tests provin la logica de text pura.
 . (Join-Path $ScriptRoot 'Informes.ps1')
+# El que llegeix els informes del disc i munta la base ("Actualitzar base").
+. (Join-Path $ScriptRoot 'InformesEscaneig.ps1')
 # Les dues eines que vivien dins d'Informes.ps1 (revisio d'arquitectura):
 . (Join-Path $ScriptRoot 'CopiaInformes.ps1')
 . (Join-Path $ScriptRoot 'ComprovarExcel.ps1')

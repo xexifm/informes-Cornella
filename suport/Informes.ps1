@@ -273,6 +273,97 @@ function _EstatActualActivitat($informesOrdenats) {
     return [string]$inf.conclusio_breu
 }
 
+# ----------------------------------------------------------------------------
+# EDICIONS A MA ("Editar base") -- octubre 2026, peticio de l'usuari: el que
+# s'ha corregit a ma PREVAL sobre el que surti d'"Actualitzar base", i l'estat
+# d'aquelles activitats surt en VERMELL a l'editor perque se'n sigui conscient.
+#
+# Es marca a l'INFORME (no a l'activitat): editat_a_ma = $true, i es guarda el
+# valor automatic que hi havia (auto_conclusio_breu / auto_ignorat) per poder
+# desfer-ho. Abans de la marca, l'escaneig ja conservava la conclusio breu i
+# l'ignorat de TOTS els informes reprocessats -editats o no-, o sigui que un
+# informe que es tornava a escriure mai no actualitzava la seva conclusio breu.
+# ----------------------------------------------------------------------------
+function _PropInf($o, [string]$nom) {
+    if ($null -eq $o -or $null -eq $o.PSObject.Properties[$nom]) { return $null }
+    return $o.$nom
+}
+
+# Marca un informe com a editat a ma, guardant ABANS el valor automatic. Si ja
+# ho estava, no toca res (el valor automatic que es guarda es el primer).
+function _MarcaEditatAMa($inf) {
+    if ([bool](_PropInf $inf 'editat_a_ma')) { return }
+    Add-Member -InputObject $inf -NotePropertyName auto_conclusio_breu -NotePropertyValue ([string](_PropInf $inf 'conclusio_breu')) -Force
+    Add-Member -InputObject $inf -NotePropertyName auto_ignorat -NotePropertyValue ([bool](_PropInf $inf 'ignorat')) -Force
+    Add-Member -InputObject $inf -NotePropertyName editat_a_ma -NotePropertyValue $true -Force
+}
+
+# Torna un informe al que diu l'automatic. Retorna $true si ho ha fet.
+function _DesfesEditatAMa($inf) {
+    if (-not [bool](_PropInf $inf 'editat_a_ma')) { return $false }
+    Add-Member -InputObject $inf -NotePropertyName conclusio_breu -NotePropertyValue ([string](_PropInf $inf 'auto_conclusio_breu')) -Force
+    Add-Member -InputObject $inf -NotePropertyName ignorat -NotePropertyValue ([bool](_PropInf $inf 'auto_ignorat')) -Force
+    Add-Member -InputObject $inf -NotePropertyName editat_a_ma -NotePropertyValue $false -Force
+    [void]$inf.PSObject.Properties.Remove('auto_conclusio_breu')
+    [void]$inf.PSObject.Properties.Remove('auto_ignorat')
+    return $true
+}
+
+# Una base d'ABANS de la marca: un informe la conclusio breu del qual no es la
+# que en surt del text NOMES pot ser una correccio a ma (l'automatic sempre la
+# treu del text). Se li posa la marca, amb el valor automatic que en surt.
+# L'ignorat, aqui, no es pot deduir (el per defecte depen de coses que la base
+# no guarda); el dedueix l'escaneig, que si que les te. Un informe que ja porta
+# la marca (encara que sigui $false) no es toca.
+function _InferEditatAMa($inf) {
+    if ($null -ne $inf.PSObject.Properties['editat_a_ma']) { return }
+    $auto = _ConclusioBreu ([string](_PropInf $inf 'conclusio'))
+    $actual = [string](_PropInf $inf 'conclusio_breu')
+    if ($actual -ne '' -and $actual -ne $auto) {
+        Add-Member -InputObject $inf -NotePropertyName auto_conclusio_breu -NotePropertyValue $auto -Force
+        Add-Member -InputObject $inf -NotePropertyName auto_ignorat -NotePropertyValue ([bool](_PropInf $inf 'ignorat')) -Force
+        Add-Member -InputObject $inf -NotePropertyName editat_a_ma -NotePropertyValue $true -Force
+    } else {
+        Add-Member -InputObject $inf -NotePropertyName editat_a_ma -NotePropertyValue $false -Force
+    }
+}
+
+# Alguna conclusio/ignorat d'aquesta activitat s'ha corregit a ma?
+function _ActivitatEditadaAMa($act) {
+    foreach ($inf in @(_PropInf $act 'informes')) { if ($null -ne $inf -and [bool](_PropInf $inf 'editat_a_ma')) { return $true } }
+    return $false
+}
+
+
+# L'ID GIA com a NUMERO per ordenar: '9' abans que '10' (com a text, '10' anava
+# abans que '9' i la llista sortia 10, 1000, 1019, 103...). Sense GIA o no
+# numeric, al final.
+function _GiaNumeric($gia) {
+    $n = 0L
+    if ([long]::TryParse(([string]$gia).Trim(), [ref]$n)) { return $n }
+    return [long]::MaxValue
+}
+
+# L'ordre de les files de l'editor. PURA.
+#   Sense columna triada: per activitat (ID GIA NUMERIC; les que no en tenen, al
+#   final i per carpeta) i dins de cada una, per data.
+#   Amb una columna triada (clic a la capcalera): AQUELLA COLUMNA MANA, i l'ID
+#   GIA i la data nomes desempaten. Abans l'agrupament per activitat era sempre
+#   la clau primaria i la columna nomes ordenava DINS de cada activitat, o sigui
+#   que clicar 'Estat activitat' no ordenava res que es veies.
+# $colExpr: hashtable index de columna -> scriptblock sobre la fila ($_).
+function _OrdenaFilesBase($rows, $colExpr, [int]$sortCol, [bool]$asc) {
+    $crit = @()
+    if ($sortCol -ge 0 -and $null -ne $colExpr -and $colExpr.ContainsKey($sortCol)) {
+        $crit += @{ Expression = $colExpr[$sortCol]; Descending = (-not $asc) }
+    }
+    $crit += @{ Expression = { if ([string]::IsNullOrWhiteSpace($_.Gia)) { 1 } else { 0 } } }
+    $crit += @{ Expression = { _GiaNumeric $_.Gia } }
+    $crit += @{ Expression = { [string]$_.Carpeta } }
+    $crit += @{ Expression = { [string]$_.Data } }
+    return @(@($rows) | Sort-Object -Property $crit)
+}
+
 # La data d'un informe en format de carrer: 'yyyy-MM-dd' -> 'dd/MM/yyyy'.
 # Buit si no hi ha data o no te aquest format (mai peta). Funcio PURA.
 function _DataInformeDdMmAaaa($data) {
@@ -327,379 +418,6 @@ function Build-ExpedientToGiaMap($cache) {
     return $map
 }
 
-# ----------------------------------------------------------------------------
-# Lectura del .docx (necessita les primitives de Seguiment.ps1; no headless)
-# ----------------------------------------------------------------------------
-# Retorna un array amb el text de TOTS els paragrafs del document, INCLOENT els
-# de dins de taules (la capcalera amb ID GIA / Exp. Num viu en una taula, i
-# _BodyParagraphsXml les salta; per aixo seleccionem './/w:p').
-function _ReadDocxParagraphs($docxPath) {
-    $info = _LoadDocxXml $docxPath
-    $out = New-Object System.Collections.ArrayList
-    foreach ($p in $info.Body.SelectNodes('.//w:p', $info.Ns)) {
-        [void]$out.Add((_ParagraphTextXml $p $info.Ns))
-    }
-    return $out.ToArray()
-}
-
-# Llegeix tots els paragrafs d'un .doc antic (Word 97-2003) via Word COM, en
-# nomes-lectura. Necessita una instancia de Word JA OBERTA ($wordApp, creada
-# mandrosament nomes si cal a Invoke-InformesDbScan); aqui nomes s'obre i es
-# tanca el DOCUMENT (mai l'aplicacio).
-function _ReadDocParagraphsWord($wordApp, $docPath) {
-    $doc = $wordApp.Documents.Open($docPath, $false, $true, $false)
-    try {
-        $out = New-Object System.Collections.ArrayList
-        foreach ($p in $doc.Paragraphs) {
-            $t = $p.Range.Text
-            if ($null -ne $t) { $t = $t.TrimEnd([char]13, [char]7) }
-            [void]$out.Add($t)
-        }
-        return $out.ToArray()
-    } finally {
-        $doc.Close($false)
-    }
-}
-
-# Tria com llegir els paragrafs d'un informe segons l'extensio: .docx (sense
-# Word, via zip) o .doc antic (via Word COM; retorna buit si no hi ha Word
-# disponible, i l'informe queda "a revisar" com si no s'hagues pogut llegir).
-function _ReadInformeParagraphs($file, $wordApp) {
-    if ($file.Extension -ieq '.doc') {
-        if ($null -eq $wordApp) { return @() }
-        return _ReadDocParagraphsWord $wordApp $file.FullName
-    }
-    return _ReadDocxParagraphs $file.FullName
-}
-
-# Analitza UN informe. Retorna un PSCustomObject amb data, gia, expedient,
-# conclusio, fitxer, ruta, carpeta i el motiu (si cal revisar-lo). $wordApp es
-# opcional (nomes cal per als .doc antics; vegeu _ReadInformeParagraphs).
-function Get-InformeData($file, $expToGia, $cache, $wordApp = $null) {
-    $data = _ParseDataInformeFromName $file.Name
-    $lines = @()
-    try { $lines = _ReadInformeParagraphs $file $wordApp } catch { $lines = @() }
-
-    $gia = _ExtractIdGia $lines
-    $exp = _ExtractExpedient $lines
-    $font = 'document'
-    if ([string]::IsNullOrWhiteSpace($gia)) {
-        $gia = _GiaFromFolderName $file.FullName
-        if (-not [string]::IsNullOrWhiteSpace($gia)) { $font = 'carpeta' }
-    }
-    if ([string]::IsNullOrWhiteSpace($gia) -and $null -ne $expToGia) {
-        $key = _NormalitzaExpedient $exp
-        if ($key -ne '' -and $expToGia.ContainsKey($key)) { $gia = $expToGia[$key]; $font = 'excel' }
-    }
-
-    $conclInfo = _ExtractConclusio $lines
-    $concl = $conclInfo.Text
-
-    $motius = New-Object System.Collections.ArrayList
-    if ([string]::IsNullOrWhiteSpace($gia)) { [void]$motius.Add('sense ID GIA') }
-    $conclMotiu = _ConclusioMotiu $conclInfo
-    if (-not [string]::IsNullOrWhiteSpace($conclMotiu)) { [void]$motius.Add($conclMotiu) }
-
-    $titular = ''
-    if ($null -ne $cache -and -not [string]::IsNullOrWhiteSpace($gia) -and $cache.ById.ContainsKey([string]$gia)) {
-        $titular = [string]$cache.ById[[string]$gia].TITULAR
-    }
-
-    return [pscustomobject]@{
-        Data          = $data
-        Gia           = $gia
-        GiaFont       = $font
-        Expedient     = $exp
-        Titular       = $titular
-        Conclusio     = $concl
-        ConclusioBreu = (_ConclusioBreu $concl)
-        Fitxer        = $file.Name
-        Ruta          = $file.FullName
-        Carpeta       = _CarpetaActivitat $file.FullName
-        Modificat     = $file.LastWriteTimeUtc.ToString('o')
-        Ignorat       = (_ConclusioIgnorarPerDefecte $conclInfo)
-        Motius        = $motius.ToArray()
-    }
-}
-
-# Decideix (funcio PURA) si un informe s'ha de tornar a parsejar (obrir el .docx)
-# o si es pot reutilitzar l'entrada de l'escaneig anterior:
-#   - Si NO en teniem entrada -> cal parsejar (es nou).
-#   - Si en teniem i el fitxer s'ha modificat DESPRES de l'ultima actualitzacio
-#     -> cal parsejar.
-#   - Si en teniem i no s'ha tocat des de l'ultima actualitzacio -> reutilitzar.
-# $lwUtc i $prevUtc son [datetime] en UTC.
-function _HaDeReprocessar([datetime]$lwUtc, [datetime]$prevUtc, [bool]$teEntrada) {
-    if (-not $teEntrada) { return $true }
-    return ($lwUtc -gt $prevUtc)
-}
-
-# Aplana la base d'informes carregada (objecte de ConvertFrom-Json) en registres
-# plans indexats per 'ruta', arrossegant les dades de l'activitat a cada informe.
-# Cada registre te la mateixa forma que Get-InformeData (perque el reagrupament
-# els tracti igual). Retorna una hashtable [ruta] -> registre.
-function _FlattenInformesDb($db) {
-    $map = @{}
-    if ($null -eq $db -or $null -eq $db.activitats) { return $map }
-    foreach ($act in $db.activitats) {
-        if ($null -eq $act.informes) { continue }
-        foreach ($inf in $act.informes) {
-            $ruta = [string]$inf.ruta
-            if ([string]::IsNullOrWhiteSpace($ruta)) { continue }
-            $motiuStr = if ($null -ne $inf.PSObject.Properties['motiu']) { [string]$inf.motiu } else { '' }
-            $motius = if ([string]::IsNullOrWhiteSpace($motiuStr)) { @() } else { @($motiuStr -split ',\s*') }
-            $ign = $false
-            if ($null -ne $inf.PSObject.Properties['ignorat']) { $ign = [bool]$inf.ignorat }
-            $conclusioText = [string]$inf.conclusio
-            # Compatibilitat: si la base es d'abans d'aquest camp, la calculem
-            # ara mateix (no cal reescanejar per tenir-la la primera vegada).
-            $conclusioBreu = if ($null -ne $inf.PSObject.Properties['conclusio_breu']) { [string]$inf.conclusio_breu } else { _ConclusioBreu $conclusioText }
-            $map[$ruta] = [pscustomobject]@{
-                Data          = [string]$inf.data
-                Gia           = [string]$act.id_gia
-                GiaFont       = ''
-                Expedient     = [string]$act.expedient
-                Titular       = [string]$act.titular
-                Conclusio     = $conclusioText
-                ConclusioBreu = $conclusioBreu
-                Fitxer        = [string]$inf.fitxer
-                Ruta          = $ruta
-                Carpeta       = [string]$act.carpeta
-                Modificat     = if ($null -ne $inf.PSObject.Properties['modificat']) { [string]$inf.modificat } else { '' }
-                Ignorat       = $ign
-                Motius        = $motius
-            }
-        }
-    }
-    return $map
-}
-
-# ----------------------------------------------------------------------------
-# Escaneig complet + escriptura del JSON (interactiu, amb finestra de progres)
-# ----------------------------------------------------------------------------
-function Invoke-InformesDbScan {
-    # 1. Resoldre la carpeta d'informes. -ErrorAction SilentlyContinue: si la
-    #    unitat (p.ex. la I: de la feina) no existeix, Test-Path no ha de petar,
-    #    nomes ha de donar 'no trobada' (potser estas fora de la feina).
-    $dir = $InformesDir
-    $existeix = $false
-    if (-not [string]::IsNullOrWhiteSpace($dir)) {
-        try { $existeix = Test-Path -LiteralPath $dir -ErrorAction SilentlyContinue } catch { $existeix = $false }
-    }
-    if (-not $existeix) {
-        [System.Windows.Forms.MessageBox]::Show(
-            "No s'ha trobat la carpeta d'informes:`n$dir`n`nSi treballes fora de la feina (sense la unitat I:), obre-la quan hi tinguis accés. Pots canviar la ruta amb `$InformesDir a config.ps1.",
-            'Base d''informes', 'OK', 'Warning') | Out-Null
-        return
-    }
-
-    # 2. Finestra de progres.
-    $form = _NewForm
-    $form.Text = "Actualitzant base d'informes"
-    $form.Size = New-Object System.Drawing.Size(560, 170)
-    $form.FormBorderStyle = 'FixedDialog'
-    $form.MaximizeBox = $false
-    $lbl = New-Object System.Windows.Forms.Label
-    $lbl.Location = New-Object System.Drawing.Point(20, 20)
-    $lbl.Size = New-Object System.Drawing.Size(510, 60)
-    $lbl.Text = "Cercant informes a:`n$dir"
-    $form.Controls.Add($lbl)
-    $bar = New-Object System.Windows.Forms.ProgressBar
-    $bar.Location = New-Object System.Drawing.Point(20, 90)
-    $bar.Size = New-Object System.Drawing.Size(510, 24)
-    $bar.Style = 'Marquee'
-    $form.Controls.Add($bar)
-    $form.Show()
-    [System.Windows.Forms.Application]::DoEvents()
-
-    try {
-        # 3. Carregar l'Excel d'activitats (opcional; per la cerca inversa i el
-        #    titular). Si no hi ha Excel, es continua sense aquest fallback.
-        $cache = $null; $expToGia = $null
-        try {
-            $excel = Find-LatestActivitatsExcel
-            if ($null -ne $excel) {
-                $lbl.Text = "Llegint la base d'activitats (Excel)..."
-                [System.Windows.Forms.Application]::DoEvents()
-                $cache = Initialize-ActivitatsCache $excel.File
-                $expToGia = Build-ExpedientToGiaMap $cache
-            }
-        } catch { $cache = $null; $expToGia = $null }
-
-        # 3b. Carregar la base anterior (si existeix) per fer un escaneig
-        #     INCREMENTAL: nomes es reobren els .docx modificats DESPRES de
-        #     l'ultima actualitzacio; la resta es reutilitzen (conservant el seu
-        #     "ignorat"). Els fitxers que ja no existeixen es podaran sols (nomes
-        #     reagrupem els que trobem ara). Si no hi ha base previa (o esta
-        #     corrupta), es fa un escaneig complet.
-        $outPath    = Join-Path $LocalActivitatsDir 'informes-db.json'
-        $prevByRuta = @{}
-        $prevUtc    = [datetime]::MinValue
-        $generatEl  = (Get-Date).ToString('o')
-        if (Test-Path -LiteralPath $outPath) {
-            try {
-                $prevDb     = Read-JsonFile $outPath
-                $prevByRuta = _FlattenInformesDb $prevDb
-                if ($prevDb.PSObject.Properties['actualitzat_el'] -and -not [string]::IsNullOrWhiteSpace([string]$prevDb.actualitzat_el)) {
-                    try { $prevUtc = ([datetime]::Parse([string]$prevDb.actualitzat_el)).ToUniversalTime() } catch { $prevUtc = [datetime]::MinValue }
-                }
-                if ($prevDb.PSObject.Properties['generat_el'] -and -not [string]::IsNullOrWhiteSpace([string]$prevDb.generat_el)) {
-                    $generatEl = [string]$prevDb.generat_el
-                }
-            } catch { $prevByRuta = @{}; $prevUtc = [datetime]::MinValue }
-        }
-
-        # 4. Recollir els fitxers candidats (.docx o .doc amb data al principi
-        #    del nom). Un sol Get-ChildItem recursiu (sense -Filter) i filtrem
-        #    per extensio nosaltres: evita el parany de "*.doc" -Filter que a
-        #    vegades tambe encerta ".docx" pel nom curt (8.3) de NTFS.
-        $lbl.Text = "Cercant informes a:`n$dir"
-        [System.Windows.Forms.Application]::DoEvents()
-        $allInformes = Get-ChildItem -LiteralPath $dir -Recurse -File -ErrorAction SilentlyContinue |
-                       Where-Object {
-                           $_.Name -notlike '~$*' -and
-                           ($_.Extension -ieq '.docx' -or $_.Extension -ieq '.doc') -and
-                           $null -ne (_ParseDataInformeFromName $_.Name)
-                       }
-        $files = @($allInformes)
-        $total = $files.Count
-
-        $bar.Style = 'Continuous'
-        $bar.Minimum = 0
-        $bar.Maximum = [Math]::Max(1, $total)
-
-        # 5. Analitzar cada informe (incremental: reutilitzem els no modificats).
-        #    Word només es crea (mandrosament) si cal reprocessar algun .doc
-        #    antic; es tanca sempre al 'finally', encara que hi hagi un error.
-        $informes = New-Object System.Collections.ArrayList
-        $revisar  = New-Object System.Collections.ArrayList
-        $reprocessats = 0
-        $i = 0
-        $wordApp = $null
-        try {
-            foreach ($f in $files) {
-                $i++
-                $ruta = $f.FullName
-                $teEntrada = $prevByRuta.ContainsKey($ruta)
-                if (-not (_HaDeReprocessar $f.LastWriteTimeUtc $prevUtc $teEntrada)) {
-                    # No s'ha tocat des de l'ultim escaneig: reutilitzem l'entrada.
-                    $r = $prevByRuta[$ruta]
-                } else {
-                    if ($f.Extension -ieq '.doc' -and $null -eq $wordApp) {
-                        # -Opcional: sense Word, _ReadInformeParagraphs torna @()
-                        # i l'informe es queda sense conclusio, pero l'escaneig
-                        # continua. New-WordApp hi afegeix l'AutomationSecurity,
-                        # que aqui compta: aquests .doc son a la unitat de xarxa.
-                        $wordApp = New-WordApp -Opcional
-                    }
-                    $r = Get-InformeData $f $expToGia $cache $wordApp
-                    # Conservem l'"ignorat" i la "conclusio breu" que l'usuari
-                    # hagi marcat/corregit abans (encara que l'informe s'hagi
-                    # hagut de reprocessar).
-                    if ($teEntrada) {
-                        $r.Ignorat = [bool]$prevByRuta[$ruta].Ignorat
-                        $r.ConclusioBreu = [string]$prevByRuta[$ruta].ConclusioBreu
-                    }
-                    $reprocessats++
-                }
-                if (($i % 5) -eq 0 -or $i -eq $total) {
-                    $lbl.Text = "Analitzant informes... ($i de $total, $reprocessats de nous/modificats)"
-                    $bar.Value = [Math]::Min($bar.Maximum, $i)
-                    [System.Windows.Forms.Application]::DoEvents()
-                }
-                [void]$informes.Add($r)
-                if ($r.Motius.Count -gt 0) {
-                    [void]$revisar.Add([pscustomobject]@{
-                        fitxer = $r.Fitxer
-                        ruta   = $r.Ruta
-                        motiu  = ($r.Motius -join ', ')
-                    })
-                }
-            }
-        } finally {
-            if ($null -ne $wordApp) { try { $wordApp.Quit() } catch { } }
-        }
-
-        # 6. Agrupar per activitat: per ID GIA quan n'hi ha; si NO en tenen, per
-        #    CARPETA (tots els informes d'una mateixa carpeta = una activitat).
-        #    Ordenem els informes de cada activitat per data.
-        $groups = [ordered]@{}
-        foreach ($r in $informes) {
-            $key = if (-not [string]::IsNullOrWhiteSpace($r.Gia)) { "GIA:$($r.Gia)" }
-                   else { "DIR:$($r.Carpeta)" }
-            if (-not $groups.Contains($key)) {
-                $groups[$key] = [pscustomobject]@{
-                    id_gia    = $r.Gia
-                    expedient = $r.Expedient
-                    titular   = $r.Titular
-                    carpeta   = $r.Carpeta
-                    _informes = (New-Object System.Collections.ArrayList)
-                }
-            }
-            $g = $groups[$key]
-            # Emplenem camps de l'activitat si encara estan buits.
-            if ([string]::IsNullOrWhiteSpace($g.id_gia)    -and -not [string]::IsNullOrWhiteSpace($r.Gia))       { $g.id_gia = $r.Gia }
-            if ([string]::IsNullOrWhiteSpace($g.expedient) -and -not [string]::IsNullOrWhiteSpace($r.Expedient)) { $g.expedient = $r.Expedient }
-            if ([string]::IsNullOrWhiteSpace($g.titular)   -and -not [string]::IsNullOrWhiteSpace($r.Titular))   { $g.titular = $r.Titular }
-            [void]$g._informes.Add([pscustomobject]@{
-                data          = $r.Data
-                fitxer        = $r.Fitxer
-                ruta          = $r.Ruta
-                conclusio     = $r.Conclusio
-                conclusio_breu = $r.ConclusioBreu
-                modificat     = $r.Modificat
-                ignorat       = [bool]$r.Ignorat
-                motiu         = ($r.Motius -join ', ')
-            })
-        }
-
-        $activitats = New-Object System.Collections.ArrayList
-        foreach ($g in $groups.Values) {
-            $ordered = @($g._informes | Sort-Object { if ($_.data) { $_.data } else { '' } })
-            [void]$activitats.Add([pscustomobject]@{
-                id_gia       = $g.id_gia
-                expedient    = $g.expedient
-                titular      = $g.titular
-                carpeta      = $g.carpeta
-                estat_actual = (_EstatActualActivitat $ordered)
-                informes     = $ordered
-            })
-        }
-        $activitatsOrd = @($activitats | Sort-Object { [string]$_.id_gia })
-
-        # 7. Escriure el JSON (conservem generat_el; actualitzat_el = ara).
-        $outObj = [pscustomobject]@{
-            generat_el     = $generatEl
-            actualitzat_el = (Get-Date).ToString('o')
-            carpeta_arrel  = $dir
-            n_informes     = $informes.Count
-            n_activitats   = $activitatsOrd.Count
-            activitats     = $activitatsOrd
-            a_revisar      = @($revisar)
-        }
-        Write-JsonFile $outPath $outObj 8
-
-        $form.Close()
-
-        # 8. Resum.
-        $msg = "Base d'informes actualitzada.`n`n" +
-               "Informes trobats: $($informes.Count)`n" +
-               "Nous o modificats (reprocessats): $reprocessats`n" +
-               "Activitats: $($activitatsOrd.Count)`n" +
-               "A revisar: $($revisar.Count)`n`n" +
-               "Fitxer:`n$outPath`n`nVols obrir-lo?"
-        $r = [System.Windows.Forms.MessageBox]::Show($msg, 'Base d''informes', 'YesNo', 'Information')
-        if ($r -eq [System.Windows.Forms.DialogResult]::Yes) {
-            try { Start-Process -FilePath 'notepad.exe' -ArgumentList "`"$outPath`"" | Out-Null } catch { }
-        }
-    }
-    catch {
-        try { $form.Close() } catch { }
-        [System.Windows.Forms.MessageBox]::Show(
-            "Error escanejant els informes:`n$($_.Exception.Message)",
-            'Base d''informes', 'OK', 'Error') | Out-Null
-    }
-}
 
 # ----------------------------------------------------------------------------
 # Editor de la base d'informes (finestra amb taula)
@@ -753,6 +471,7 @@ function Invoke-InformesDbEdit {
                 if ($null -eq $inf.PSObject.Properties['ruta'])           { Add-Member -InputObject $inf -NotePropertyName ruta -NotePropertyValue '' -Force }
                 if ($null -eq $inf.PSObject.Properties['motiu'])          { Add-Member -InputObject $inf -NotePropertyName motiu -NotePropertyValue '' -Force }
                 if ($null -eq $inf.PSObject.Properties['conclusio_breu']) { Add-Member -InputObject $inf -NotePropertyName conclusio_breu -NotePropertyValue (_ConclusioBreu ([string]$inf.conclusio)) -Force }
+                _InferEditatAMa $inf
             }
             if ($null -eq $act.PSObject.Properties['estat_actual']) { Add-Member -InputObject $act -NotePropertyName estat_actual -NotePropertyValue '' -Force }
             $act.estat_actual = _EstatActualActivitat $act.informes
@@ -774,22 +493,15 @@ function Invoke-InformesDbEdit {
         }
     }
 
-    # Agrupem visualment les files: primer les que tenen ID GIA (ordenades per
-    # GIA), despres les que NO en tenen agrupades per CARPETA. Aixi, per als
-    # informes sense GIA, els d'una mateixa carpeta queden JUNTS. Dins de cada
-    # grup, per data.
-    $allRows = @($allRows | Sort-Object `
-        @{ Expression = { if ([string]::IsNullOrWhiteSpace($_.Gia)) { 1 } else { 0 } } }, `
-        @{ Expression = { if ([string]::IsNullOrWhiteSpace($_.Gia)) { $_.Carpeta } else { $_.Gia } } }, `
-        @{ Expression = { [string]$_.Data } })
+    # Per activitat (ID GIA NUMERIC; les que no en tenen, al final i per carpeta)
+    # i per data: vegeu _OrdenaFilesBase.
+    $allRows = _OrdenaFilesBase $allRows @{} -1 $true
 
     # Estat compartit amb els gestors d'esdeveniments (hashtable per referencia).
     # 'Loading' evita que el gestor de la casella reaccioni mentre s'omple la
     # graella (Rows.Add pot disparar CellValueChanged abans d'assignar el Tag).
-    # SortColIdx/SortAsc: columna d'ordenacio SECUNDARIA triada per l'usuari
-    # (-1 = cap). L'agrupament per activitat (GIA/carpeta) sempre es la clau
-    # PRIMARIA i la data la darrera; la columna triada nomes ordena DINS de
-    # cada activitat. Aixi mai es trenca l'agrupament, ordenis el que ordenis.
+    # SortColIdx/SortAsc: la columna que l'usuari ha clicat (-1 = cap). Mana
+    # ella, i l'ID GIA i la data nomes desempaten (_OrdenaFilesBase).
     $state = @{ Dirty = $false; Db = $db; Path = $outPath; Loading = $false; SortColIdx = -1; SortAsc = $true }
 
     $form = _NewForm
@@ -828,20 +540,57 @@ function Invoke-InformesDbEdit {
     $idxIgnorar   = 9
 
     # Ordenacio PROGRAMATICA: capturem el clic a la capcalera nosaltres mateixos
-    # (mes avall) per mantenir sempre l'agrupament per activitat. Desactivem
-    # l'ordenacio automatica de totes les columnes menys el boto "Obrir".
+    # (mes avall): el DataGridView ordenaria l'ID GIA com a text i no desempataria
+    # per activitat. Desactivem l'ordenacio automatica de totes les columnes.
     foreach ($col in $grid.Columns) {
         if ($col.Index -ne $idxObrir) { $col.SortMode = 'Programmatic' }
     }
 
     $fontNormal = $grid.Font
     $fontStrike = New-Object System.Drawing.Font($grid.Font, [System.Drawing.FontStyle]::Strikeout)
+    $fontBold   = New-Object System.Drawing.Font($grid.Font, [System.Drawing.FontStyle]::Bold)
+    $colEditat  = [System.Drawing.Color]::FromArgb(192, 0, 0)
+
+    # L'ESTAT EN VERMELL quan alguna cosa de l'activitat s'ha corregit a ma: es
+    # el que preval sobre "Actualitzar base", i l'usuari ho vol veure.
+    $pintaEstat = {
+        param($gr, $row)
+        $c = $gr.Cells[$idxEstat]
+        if (_ActivitatEditadaAMa $row.Act) {
+            $c.Style.ForeColor = $colEditat
+            $c.Style.Font = $fontBold
+            $c.ToolTipText = "Corregida a m" + [char]0x00E0 + " ('Conclusi" + [char]0x00F3 + " breu' o 'Ignorar'): 'Actualitzar base' no la canvia. Per tornar al que diu l'informe, selecciona la fila i 'Desfer canvi a m" + [char]0x00E0 + "'."
+        } else {
+            $c.Style.ForeColor = [System.Drawing.Color]::Empty
+            $c.Style.Font = $null
+            $c.ToolTipText = ''
+        }
+    }.GetNewClosure()
+
+    # Torna a escriure l'estat de TOTES les files d'una activitat (es el que
+    # canvia quan canvia qualsevol dels seus informes).
+    $refrescaActivitat = {
+        param($act)
+        $nouEstat = _EstatActualActivitat $act.informes
+        $act.estat_actual = $nouEstat
+        foreach ($gr2 in $grid.Rows) {
+            $row2 = $gr2.Tag
+            if ($null -ne $row2 -and $row2.Act -eq $act) {
+                $row2.EstatActual = $nouEstat
+                $gr2.Cells[$idxEstat].Value = $nouEstat
+                & $pintaEstat $gr2 $row2
+            }
+        }
+        foreach ($row3 in $allRows) {
+            if ($row3.Act -eq $act) { $row3.EstatActual = $nouEstat }
+        }
+    }.GetNewClosure()
 
     # Expressions d'ordenacio per index de columna (sobre la fila $_). El boto
     # "Obrir" (8) no s'ordena.
     $colExpr = @{
         0 = { [string]$_.Data }
-        1 = { [string]$_.Gia }
+        1 = { _GiaNumeric $_.Gia }
         2 = { [string]$_.Titular }
         3 = { [string]$_.Carpeta }
         4 = { [string]$_.Conclusio }
@@ -907,18 +656,7 @@ function Invoke-InformesDbEdit {
         }
         $rows = @($rows)
 
-        # 1) agrupament per activitat (GIA, si no carpeta) SEMPRE primer;
-        # 2) columna triada per l'usuari (asc/desc), nomes desempata dins
-        #    l'activitat; 3) data com a darrera clau.
-        $crit = @(
-            @{ Expression = { if ([string]::IsNullOrWhiteSpace($_.Gia)) { 1 } else { 0 } } },
-            @{ Expression = { if ([string]::IsNullOrWhiteSpace($_.Gia)) { $_.Carpeta } else { $_.Gia } } }
-        )
-        if ($state.SortColIdx -ge 0 -and $colExpr.ContainsKey($state.SortColIdx)) {
-            $crit += @{ Expression = $colExpr[$state.SortColIdx]; Descending = (-not $state.SortAsc) }
-        }
-        $crit += @{ Expression = { [string]$_.Data } }
-        $rows = @($rows | Sort-Object -Property $crit)
+        $rows = _OrdenaFilesBase $rows $colExpr ([int]$state.SortColIdx) ([bool]$state.SortAsc)
 
         foreach ($row in $rows) {
             $ign = [bool]$row.Obj.ignorat
@@ -927,13 +665,13 @@ function Invoke-InformesDbEdit {
             $gr.Tag = $row
             $gr.Cells[4].ToolTipText = $row.Conclusio
             _StyleInformeRow $gr $ign $fontNormal $fontStrike
+            & $pintaEstat $gr $row
         }
         $state.Loading = $false
     }.GetNewClosure()
 
-    # Clic a la capcalera: tria la columna d'ordenacio SECUNDARIA (dins de cada
-    # activitat) i alterna asc/desc. L'agrupament per activitat no es trenca mai
-    # (ho garanteix $fill, no l'ordenador). La columna "Obrir" (boto) no s'ordena.
+    # Clic a la capcalera: tria la columna que mana i alterna asc/desc. La
+    # columna "Obrir" (boto) no s'ordena.
     _EnableHeaderSort $grid $state 0 @($idxObrir) { & $fill }
 
     # Desa la base (retorna $true si va be).
@@ -948,6 +686,31 @@ function Invoke-InformesDbEdit {
         }
     }.GetNewClosure()
 
+    # "Desfer canvi a ma": les files seleccionades tornen al que diu l'informe.
+    # Definit ABANS del peu de botons: el boto en captura el valor en crear-se.
+    $desfesAMa = {
+        $files = @($grid.SelectedRows)
+        if ($files.Count -eq 0 -and $null -ne $grid.CurrentRow) { $files = @($grid.CurrentRow) }
+        $n = 0
+        $state.Loading = $true
+        try {
+            foreach ($gr in $files) {
+                $row = $gr.Tag
+                if ($null -eq $row -or -not (_DesfesEditatAMa $row.Obj)) { continue }
+                $n++
+                $row.ConclusioBreu = [string]$row.Obj.conclusio_breu
+                $gr.Cells[$idxConclBreu].Value = $row.ConclusioBreu
+                $gr.Cells[$idxIgnorar].Value = [bool]$row.Obj.ignorat
+                _StyleInformeRow $gr ([bool]$row.Obj.ignorat) $fontNormal $fontStrike
+                & $refrescaActivitat $row.Act
+            }
+        } finally { $state.Loading = $false }
+        if ($n -gt 0) { $state.Dirty = $true }
+        else {
+            [System.Windows.Forms.MessageBox]::Show("La fila seleccionada no t" + [char]0x00E9 + " cap canvi fet a m" + [char]0x00E0 + ".", 'Editar base d''informes', 'OK', 'Information') | Out-Null
+        }
+    }.GetNewClosure()
+
     # Barra inferior: botons.
     $botPanel = New-Object System.Windows.Forms.Panel
     $botPanel.Dock = 'Bottom'; $botPanel.Height = 48
@@ -955,7 +718,8 @@ function Invoke-InformesDbEdit {
     # Cessament (usa l'estat en memoria, que ja reflecteix els canvis no desats).
     [void](_AddPeuBotons $form @(
         @{ Nom = 'Enrere'; Text = (_TxtEnrere); Clic = { $form.Close() }.GetNewClosure() },
-        @{ Nom = 'Export'; Text = 'Exportar llistats (CSV)'; Clic = { Export-EstatsActivitats $state.Db }.GetNewClosure() }) @(
+        @{ Nom = 'Export'; Text = 'Exportar llistats (CSV)'; Clic = { Export-EstatsActivitats $state.Db }.GetNewClosure() },
+        @{ Nom = 'Desfer'; Text = ('Desfer canvi a m' + [char]0x00E0); Clic = { & $desfesAMa }.GetNewClosure() }) @(
         @{ Nom = 'Desar'; Text = 'Desar'; Estil = 'primari'; Clic = {
             if (& $doSave) {
                 [System.Windows.Forms.MessageBox]::Show('Canvis desats.', 'Editar base d''informes', 'OK', 'Information') | Out-Null
@@ -995,6 +759,9 @@ function Invoke-InformesDbEdit {
         $row = $gr.Tag
         if ($null -eq $row) { return }
 
+        # Un canvi a ma: es marca ABANS de canviar el valor, perque s'hi guarda
+        # el que deia l'automatic (per poder-ho desfer).
+        _MarcaEditatAMa $row.Obj
         if ($e.ColumnIndex -eq $idxIgnorar) {
             $val = [bool]$gr.Cells[$idxIgnorar].Value
             $row.Obj.ignorat = $val
@@ -1010,19 +777,9 @@ function Invoke-InformesDbEdit {
         # L'"ignorar" i la "conclusio breu" de qualsevol informe poden canviar
         # l'estat de l'activitat sencera: el recalculem i el propaguem a totes
         # les files (visibles i filtrades) d'aquesta mateixa activitat.
-        $nouEstat = _EstatActualActivitat $row.Act.informes
-        $row.Act.estat_actual = $nouEstat
-        foreach ($gr2 in $grid.Rows) {
-            $row2 = $gr2.Tag
-            if ($null -ne $row2 -and $row2.Act -eq $row.Act) {
-                $row2.EstatActual = $nouEstat
-                $gr2.Cells[$idxEstat].Value = $nouEstat
-            }
-        }
-        foreach ($row3 in $allRows) {
-            if ($row3.Act -eq $row.Act) { $row3.EstatActual = $nouEstat }
-        }
+        & $refrescaActivitat $row.Act
     }.GetNewClosure())
+
 
     # Si es tanca amb canvis sense desar, oferim desar-los.
     $form.add_FormClosing({

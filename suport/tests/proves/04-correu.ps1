@@ -526,6 +526,62 @@ Assert ([bool]$flat['I:\x\a.docx'].Ignorat)          '_FlattenInformesDb: conser
 Assert (-not [bool]$flat['I:\x\b.docx'].Ignorat)     '_FlattenInformesDb: conserva ignorat=false'
 AssertEq $flat['I:\x\b.docx'].Motius.Count 1         '_FlattenInformesDb: motiu -> Motius'
 
+Write-Host "`n--- Informes.ps1: les edicions a ma ('Editar base') prevalen ---"
+# Una correccio a ma es marca i guarda el que deia l'automatic.
+$infM = [pscustomobject]@{ conclusio = 'Vist l''anterior, es pot donar per finalitzat el tramit.'; conclusio_breu = 'FI Requeriment'; ignorat = $false }
+_MarcaEditatAMa $infM
+$infM.conclusio_breu = 'Requeriment'
+AssertEq "$($infM.editat_a_ma)|$($infM.auto_conclusio_breu)|$($infM.auto_ignorat)" 'True|FI Requeriment|False' 'marca: editat, amb el valor automatic guardat ABANS del canvi'
+$infM.ignorat = $true
+_MarcaEditatAMa $infM
+AssertEq $infM.auto_conclusio_breu 'FI Requeriment' 'una segona correccio no trepitja el valor automatic guardat'
+Assert (_DesfesEditatAMa $infM) 'desfer: torna $true si hi havia canvi'
+AssertEq "$($infM.conclusio_breu)|$($infM.ignorat)|$($infM.editat_a_ma)|$($null -eq $infM.PSObject.Properties['auto_conclusio_breu'])" 'FI Requeriment|False|False|True' 'desfer: torna al que deia l informe i treu els auto_*'
+Assert (-not (_DesfesEditatAMa $infM)) 'desfer un que no esta editat: no fa res'
+# Una base d'ABANS de la marca: una conclusio breu que no surt del text nomes pot ser a ma.
+$infV = [pscustomobject]@{ ruta = 'I:\x\v.docx'; conclusio = 'Vist l''anterior, es pot donar per finalitzat el tramit.'; conclusio_breu = 'Precinte / Cessament'; ignorat = $false }
+_InferEditatAMa $infV
+AssertEq "$($infV.editat_a_ma)|$($infV.auto_conclusio_breu)" 'True|FI Requeriment' 'base antiga: conclusio breu que no surt del text -> editada a ma'
+$infV2 = [pscustomobject]@{ conclusio = 'Vist l''anterior, es pot donar per finalitzat el tramit.'; conclusio_breu = 'FI Requeriment'; ignorat = $false }
+_InferEditatAMa $infV2
+AssertEq $infV2.editat_a_ma $false 'base antiga: la que coincideix amb l automatic, no'
+AssertEq (_ActivitatEditadaAMa ([pscustomobject]@{ informes = @($infV2, $infV) })) $true 'activitat editada si ho es algun dels seus informes'
+AssertEq (_ActivitatEditadaAMa ([pscustomobject]@{ informes = @($infV2) })) $false 'i no, si cap'
+# L'ESCANEIG: el de l'usuari preval; si no l'ha tocat, mana l'informe nou.
+function _NouReg($cb, $ign) { [pscustomobject]@{ ConclusioBreu = $cb; Ignorat = $ign; EditatAMa = $false; AutoConclusioBreu = ''; AutoIgnorat = $false } }
+$prevE = [pscustomobject]@{ ConclusioBreu = 'Requeriment'; Ignorat = $true; EditatAMa = $true; TeMarcaEdicio = $true }
+$r1 = _AplicaEdicioPrevia $prevE (_NouReg 'FI Requeriment' $false)
+AssertEq "$($r1.ConclusioBreu)|$($r1.Ignorat)|$($r1.EditatAMa)|$($r1.AutoConclusioBreu)" 'Requeriment|True|True|FI Requeriment' 'escaneig: la correccio a ma preval, i es guarda el nou automatic'
+$prevN = [pscustomobject]@{ ConclusioBreu = 'Requeriment'; Ignorat = $false; EditatAMa = $false; TeMarcaEdicio = $true }
+$r2 = _AplicaEdicioPrevia $prevN (_NouReg 'FI Requeriment' $false)
+AssertEq "$($r2.ConclusioBreu)|$($r2.EditatAMa)" 'FI Requeriment|False' 'escaneig: sense correccio a ma, mana l informe nou (abans es congelava)'
+$prevL = [pscustomobject]@{ ConclusioBreu = 'Requeriment'; Ignorat = $true; EditatAMa = $false; TeMarcaEdicio = $false }
+$r3 = _AplicaEdicioPrevia $prevL (_NouReg 'Requeriment' $false)
+AssertEq "$($r3.Ignorat)|$($r3.EditatAMa)" 'True|True' 'escaneig, base antiga: un ignorat que no es el per defecte l havia posat l usuari'
+$flatM = _FlattenInformesDb ([pscustomobject]@{ activitats = @([pscustomobject]@{ id_gia = '7'; informes = @($infV) }) })
+$recM = @($flatM.Values)[0]
+AssertEq "$($recM.EditatAMa)|$($recM.TeMarcaEdicio)" 'True|True' '_FlattenInformesDb porta la marca d edicio'
+# I es desa: els auto_* nomes si esta editat.
+$jE = _InformeAJson ([pscustomobject]@{ Data = 'd'; Fitxer = 'f'; Ruta = 'r'; Conclusio = 'c'; ConclusioBreu = 'Requeriment'; Modificat = 'm'; Ignorat = $false; Motius = @('a', 'b'); EditatAMa = $true; AutoConclusioBreu = 'FI Requeriment'; AutoIgnorat = $false })
+AssertEq "$($jE.editat_a_ma)|$($jE.auto_conclusio_breu)|$($jE.motiu)" 'True|FI Requeriment|a, b' '_InformeAJson: amb la marca i el valor automatic'
+$jN = _InformeAJson ([pscustomobject]@{ Data = 'd'; Fitxer = 'f'; Ruta = 'r'; Conclusio = 'c'; ConclusioBreu = 'X'; Modificat = 'm'; Ignorat = $false; Motius = @(); EditatAMa = $false; AutoConclusioBreu = ''; AutoIgnorat = $false })
+AssertEq "$($jN.editat_a_ma)|$($null -eq $jN.PSObject.Properties['auto_conclusio_breu'])" 'False|True' '_InformeAJson: sense edicio, sense camps auto_*'
+
+Write-Host "`n--- Informes.ps1: _OrdenaFilesBase (ID GIA numeric, la columna clicada mana) ---"
+$filesO = @(
+    [pscustomobject]@{ Gia = '10'; Carpeta = ''; Data = '2026-01-02'; EstatActual = 'Requeriment' }
+    [pscustomobject]@{ Gia = '1000'; Carpeta = ''; Data = '2026-01-01'; EstatActual = 'Favorable' }
+    [pscustomobject]@{ Gia = '103'; Carpeta = ''; Data = '2026-01-03'; EstatActual = 'Requeriment' }
+    [pscustomobject]@{ Gia = ''; Carpeta = 'B'; Data = '2026-01-01'; EstatActual = 'Favorable' }
+    [pscustomobject]@{ Gia = '9'; Carpeta = ''; Data = '2026-02-01'; EstatActual = 'Favorable' }
+    [pscustomobject]@{ Gia = '10'; Carpeta = ''; Data = '2025-12-01'; EstatActual = 'Requeriment' }
+)
+AssertEq (@(_OrdenaFilesBase $filesO @{} -1 $true | ForEach-Object { "$($_.Gia)$($_.Carpeta)" }) -join ',') '9,10,10,103,1000,B' 'sense columna: per ID GIA NUMERIC (9, 10, 103, 1000), els sense GIA al final'
+AssertEq (@(_OrdenaFilesBase $filesO @{} -1 $true | Where-Object { $_.Gia -eq '10' } | ForEach-Object { $_.Data }) -join ',') '2025-12-01,2026-01-02' 'dins d una activitat, per data'
+$exprO = @{ 6 = { [string]$_.EstatActual }; 1 = { _GiaNumeric $_.Gia } }
+AssertEq (@(_OrdenaFilesBase $filesO $exprO 6 $true | ForEach-Object { "$($_.EstatActual):$($_.Gia)$($_.Carpeta)" }) -join ',') 'Favorable:9,Favorable:1000,Favorable:B,Requeriment:10,Requeriment:10,Requeriment:103' 'clic a Estat: l estat MANA i el GIA desempata (abans nomes ordenava dins de cada activitat)'
+AssertEq (@(_OrdenaFilesBase $filesO $exprO 1 $false | ForEach-Object { $_.Gia }) -join ',') ',1000,103,10,10,9' 'clic a GIA descendent: numeric (els sense GIA, que valen el maxim, primer)'
+
 Write-Host "`n--- Settings.ps1: _ResolveEffectiveValue (override d'aquest PC vs valor per defecte) ---"
 AssertEq (_ResolveEffectiveValue 'F:\Informes' 'I:\Informes') 'F:\Informes' '_ResolveEffectiveValue amb override -> guanya l''override'
 AssertEq (_ResolveEffectiveValue '' 'I:\Informes')            'I:\Informes' '_ResolveEffectiveValue buit -> per defecte'
