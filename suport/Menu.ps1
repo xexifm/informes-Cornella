@@ -133,6 +133,7 @@ function _LastRunEina([string]$accio) {
 # Cometes dobles i apostrof recte: el tipografic tanca un literal amb '...'.
 $Script:AjudaEines = @{
     ruta              = "Escrius els ID GIA de les activitats que vols visitar i et calcula la ruta més curta des de la base, amb un mapa numerat que pots imprimir."
+    planol            = "Pinta les parcel·les de Cornellà on hi ha activitats, del color del seu estat (precintada, requeriment, sense informes, sense res pendent) i amb els ID GIA. Filtres per estat i locals buits."
     coordenades       = "Repassa per zones, sobre un mapa, on hi ha cada activitat i et deixa corregir-ne la posició. Et baixes un Excel amb les coordenades noves: no toca l'Excel d'activitats."
     precintades       = "Obre al navegador el mapa i el llistat públic de les activitats precintades."
     controlsperiodics = "Llista les activitats de l'annex II, III o de l'apartat 561 amb les dates dels controls periòdics (primer les que toquen abans). En pots generar els informes i els correus."
@@ -519,8 +520,10 @@ function Select-Mode {
     $tiBell  = [System.Char]::ConvertFromUtf32(0x1F514)   # 🔔
     $tiLlibres = [System.Char]::ConvertFromUtf32(0x1F4DA) # 📚
     $tiLupa    = [System.Char]::ConvertFromUtf32(0x1F50D) # 🔍
+    $tiCases   = [System.Char]::ConvertFromUtf32(0x1F3D8) # 🏘
     # CARRER: preparar la inspeccio i el que es porta del carrer amb el mobil.
     $carrer = @(
+        @{ Emoji = $tiCases; Label = ('Pl' + [char]0x00E0 + 'nol activitats'); Kind = 'action'; Action = 'planol' }
         @{ Emoji = $tiPin;   Label = 'Generar ruta';           Kind = 'action'; Action = 'ruta' }
         @{ Emoji = $tiMap;   Label = 'Coordenades';            Kind = 'action'; Action = 'coordenades' }
         # 'Action' tambe a la rajola d'enllac: no despatxa res, pero es la clau
@@ -633,9 +636,13 @@ function Select-Mode {
         $t = $s.Tag
         if ([bool]$t.AjudaHover) { $t.AjudaHover = $false; $s.Cursor = [System.Windows.Forms.Cursors]::Default; $s.Invalidate() }
     }.GetNewClosure()
-    # Quatre columnes de 100 + 10: hi caben 'Activitats precintades' i 'Revisar
-    # requeriments' en dues linies sense trencar cap paraula.
-    $tileW = 100; $tileH = 62; $tileGap = 10
+    # CINC columnes (octubre 2026: CARRER en te cinc, amb el Planol activitats).
+    # 84 + 8: deixa 76 px de text, on encara hi caben 'Activitats precintades',
+    # 'Revisar requeriments' i 'Controls periodics' en dues linies sense trencar
+    # cap paraula ('requeriments', la mes llarga, fa ~64 px a Segoe UI 8).
+    # Totes les files igual d'estretes, perque la graella segueixi alineada.
+    $tileW = 84; $tileH = 62; $tileGap = 8
+    $Script:MenuColumnes = 5
     # Sota CADA rajola, en petit, l'ultima vegada que s'ha fet servir l'eina
     # ('(mai)' si encara no). El segell es llegeix per l'ACCIO de la rajola (la
     # clau del registre), no per la posicio dins de la fila: abans els indexs
@@ -829,13 +836,13 @@ function Select-Mode {
         @{ Titol = 'GIA';       Items = $gia }
         @{ Titol = 'NORMATIVA'; Items = $normativaRow }
     )
-    # LA GRAELLA: quatre columnes a la dreta dels botons, separades per una
+    # LA GRAELLA: cinc columnes a la dreta dels botons, separades per una
     # ratlla. La primera fila de rajoles comenca a $yContingut, com el primer
     # boto, i les files s'estiren fins que la de baix -amb el seu segell- acaba
     # on acaba el darrer boto (_MenuFilesY). Els titols van 22 px per sobre de
     # cada fila, com el d'INFORMES.
     $xEines = 20 + 560 + 40
-    $ampleEines = (4 * $tileW) + (3 * $tileGap)
+    $ampleEines = ($Script:MenuColumnes * $tileW) + (($Script:MenuColumnes - 1) * $tileGap)
     $altSegell = 16
     $posGrups = _MenuDisposaGrups ([int[]]@($grups | ForEach-Object { @($_.Items).Count })) $ampleEines $tileW $tileGap
     $nFiles = 1 + (($posGrups | ForEach-Object { [int]$_.Fila } | Measure-Object -Maximum).Maximum)

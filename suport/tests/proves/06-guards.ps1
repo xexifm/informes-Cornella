@@ -41,8 +41,20 @@ $nGrup = {
 }
 $rajGrups = [int[]]@((& $nGrup 'carrer'), (& $nGrup 'titulars'), (& $nGrup 'reports'), (& $nGrup 'gia'), (& $nGrup 'normativaRow'))
 Assert ((($rajGrups | Measure-Object -Sum).Sum) -ge 16) ('menu: es troben les rajoles dels cinc grups (' + ($rajGrups -join ',') + ')')
-AssertEq (@($rajGrups | Where-Object { $_ -gt 4 }).Count) 0 ('menu: cap grup passa de 4 rajoles, l''ample de la graella (' + ($rajGrups -join ',') + ')')
-$posH = _MenuDisposaGrups $rajGrups 430 100 10
+# L'ample de la graella surt del codi del menu (columnes, rajola i espai), no
+# d'uns numeros copiats aqui: si algu canvia el menu, la prova ho segueix.
+$colsMenu = [int]([regex]::Match($srcMenuH, '\$Script:MenuColumnes = (\d+)').Groups[1].Value)
+$mTile = [regex]::Match($srcMenuH, '\$tileW = (\d+); \$tileH = \d+; \$tileGap = (\d+)')
+$twMenu = [int]$mTile.Groups[1].Value; $tgMenu = [int]$mTile.Groups[2].Value
+Assert ($colsMenu -ge 4 -and $twMenu -gt 0) ('menu: es troben les columnes i la mida de les rajoles (' + $colsMenu + ' x ' + $twMenu + ')')
+AssertEq (@($rajGrups | Where-Object { $_ -gt $colsMenu }).Count) 0 ('menu: cap grup passa de ' + $colsMenu + ' rajoles, l''ample de la graella (' + ($rajGrups -join ',') + ')')
+$ampleMenu = ($colsMenu * $twMenu) + (($colsMenu - 1) * $tgMenu)
+$posH = _MenuDisposaGrups $rajGrups $ampleMenu $twMenu $tgMenu
+AssertEq (@($posH | ForEach-Object { [int]$_.Fila }) -join ',') '0,1,2,3,3' 'menu: CARRER, TITULARS i BASE D''INFORMES una fila cada un; GIA i NORMATIVA comparteixen la quarta'
+# El text mes llarg d'una rajola ha de cabre en dues linies sense trencar cap
+# paraula: amb 76 px de text hi cap 'requeriments' (~64 px a Segoe UI 8). No es
+# pot mesurar el GDI aqui; es vigila que la rajola no s'estrenyi mes.
+Assert ($twMenu -ge 84) ('menu: les rajoles fan com a minim 84 px d''ample (ara ' + $twMenu + ')')
 $nFilesH = 1 + (($posH | ForEach-Object { [int]$_.Fila } | Measure-Object -Maximum).Maximum)
 $nInformes = @([regex]::Matches($srcMenuH, '\[void\]\$menu\.Add\(')).Count
 $fiInf = 101 + ($nInformes * 70) - 8

@@ -258,6 +258,54 @@ als dos, **`MNSTRAS.json`**.
 > el programa **avisa** que aquell punt s'ha quedat sense text en lloc de
 > callar-s'ho.
 
+### Plànol activitats (🏘)
+
+La primera eina de **CARRER**. Fa un plànol de Cornellà amb les **parcel·les on hi
+ha activitats** pintades segons el seu estat, per veure d'un cop d'ull on hi ha
+activitats legalitzades, on n'hi ha amb coses pendents i on no n'hi ha cap:
+
+- **🔴 vermell** — precintada (a l'Excel d'activitats, o el darrer informe és de
+  precinte o cessament).
+- **🟡 groc** — el darrer informe és un **requeriment** o una ampliació de termini.
+- **🔵 blau** — no té cap informe a la base (o està per revisar): no sabem si està
+  legalitzada.
+- **🟢 verd** — sense res pendent (favorable, o el requeriment ja s'ha tancat).
+
+Si en una parcel·la hi ha activitats en estats diferents, la parcel·la té el color
+**del més greu**. Clica-hi i surten totes, cada una amb el seu estat.
+
+**D'on surt:** l'Excel d'activitats i l'Excel d'**ESTABLIMENTS** més nous (els dos
+a la «Carpeta de l'Excel d'activitats», amb el nom `AAAA-MM-DD ACTIVITATS.xls` i
+`AAAA-MM-DD ESTABLIMENTS.xls`), i la **base d'informes** (fes abans
+*Actualitzar base*). L'Excel d'establiments és el que diu que una activitat té
+**més d'un establiment** (naus, locals contigus): l'activitat surt a totes les
+seves parcel·les.
+
+**Els ID GIA**: amplia el mapa i surten damunt de cada parcel·la. De prop, cada
+un porta el seu **local, planta o porta**. Si l'Excel no ho diu, el programa ho
+pregunta al Cadastre (surt marcat «(Cadastre)» a la fitxa), i si el Cadastre
+tampoc ho sap, surt el número d'unitat de la referència cadastral («unitat 0011»).
+
+**Filtres** (a la dreta): per estat, els **locals buits** (en gris; no surten si
+no ho marques) i **«Per revisar»**: activitats en un local marcat com a buit (que
+potser ja han plegat), activitats que no són a la base d'activitats i activitats
+sense cap establiment. Hi ha un cercador per ID GIA, adreça o activitat, i pots
+**baixar en CSV** la llista del que es veu.
+
+**La primera vegada triga uns minuts**: ha de demanar al Cadastre el dibuix de
+cada parcel·la (unes 950) i la planta/porta dels locals que no la porten. Ho
+desa, i les vegades següents ja és qüestió de segons. Si cancel·les, el plànol
+es fa igualment amb el que ja tingui (les parcel·les que falten surten com un
+punt).
+
+> El plànol és **només del teu ordinador** (`local\planol-activitats\`): porta
+> requeriments pendents i noms d'activitats. Al Cadastre només s'hi envia la
+> **referència cadastral**.
+
+Si el Cadastre no respon o el plànol surt sense parcel·les dibuixades, fes doble
+clic a `suport\rutes\Provar-Planol.bat`: fa una consulta de prova i desa la
+resposta.
+
 ### Ruta d'inspecció
 
 Botó **📍 Generar ruta**. Escrius els ID d'activitat a visitar i et calcula la

@@ -233,40 +233,26 @@ function Invoke-RevisarMobil {
     }
 }
 
-# Obre el planificador de rutes (Ruta.ps1) EN EL MATEIX PROCES, no en una
-# finestra/consola a part. L'operador '&' executa el script en un AMBIT AILLAT:
-# aixi les seves variables ($ScriptRoot, etc.) NO contaminen el generador, pero
-# la finestra forma part del mateix programa (mateix escut a la barra de
-# tasques) i, en acabar o prémer Enrere, es torna al menu. Invoke-RutaMain fa
-# servir 'return' (mai 'exit'), aixi que en cancel-lar torna al menu sense
+# Obre una eina de 'rutes/' (Ruta, Coordenades, Planol) EN EL MATEIX PROCES, no
+# en una finestra/consola a part. L'operador '&' executa el script en un AMBIT
+# AILLAT: aixi les seves variables ($ScriptRoot, etc.) NO contaminen el
+# generador, pero la finestra forma part del mateix programa (mateix escut a la
+# barra de tasques) i, en acabar o premer Enrere, es torna al menu. Les eines
+# fan servir 'return' (mai 'exit'), aixi que en cancel.lar tornen al menu sense
 # tancar el generador.
-function Start-RutaTool {
-    $ruta = Join-Path $ScriptRoot (Join-Path 'rutes' 'Ruta.ps1')
-    if (-not (Test-Path -LiteralPath $ruta)) {
-        [System.Windows.Forms.MessageBox]::Show("No s'ha trobat Ruta.ps1.", 'Ruta', 'OK', 'Error') | Out-Null
-        return
-    }
-    try {
-        & $ruta
-    } catch {
-        [System.Windows.Forms.MessageBox]::Show("Error al planificador de rutes:`n$($_.Exception.Message)", 'Ruta', 'OK', 'Error') | Out-Null
-    }
-}
-
-# Obre l'eina de COORDENADES (rutes/Coordenades.ps1). Mateixa mecanica que
-# Start-RutaTool: '&' l'executa en un AMBIT AILLAT (les seves variables no
-# contaminen el generador) pero dins del MATEIX proces, aixi que la finestra
-# porta el mateix escut i, en acabar o cancel-lar, es torna al menu.
-function Start-CoordenadesTool {
-    $eina = Join-Path $ScriptRoot (Join-Path 'rutes' 'Coordenades.ps1')
+#
+# Eren dues funcions identiques (Start-RutaTool, Start-CoordenadesTool) i el
+# Planol n'hauria estat la tercera: nomes canviaven el fitxer i el titol.
+function Start-EinaRutes([string]$fitxer, [string]$titol) {
+    $eina = Join-Path $ScriptRoot (Join-Path 'rutes' $fitxer)
     if (-not (Test-Path -LiteralPath $eina)) {
-        [System.Windows.Forms.MessageBox]::Show("No s'ha trobat Coordenades.ps1.", 'Coordenades', 'OK', 'Error') | Out-Null
+        [System.Windows.Forms.MessageBox]::Show("No s'ha trobat $fitxer.", $titol, 'OK', 'Error') | Out-Null
         return
     }
     try {
         & $eina
     } catch {
-        [System.Windows.Forms.MessageBox]::Show("Error a l'eina de coordenades:`n$($_.Exception.Message)", 'Coordenades', 'OK', 'Error') | Out-Null
+        [System.Windows.Forms.MessageBox]::Show("Error a l'eina '$titol':`n$($_.Exception.Message)", $titol, 'OK', 'Error') | Out-Null
     }
 }
 

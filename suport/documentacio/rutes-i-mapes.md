@@ -6,6 +6,72 @@
 > Per millorar l'eina «Coordenades» hi ha un prompt per enganxar a
 > `millorar-coordenades.md`.
 
+## Eina «Plànol activitats» (`rutes/Planol.ps1`, octubre 2026)
+
+Parcel·les de Cornellà pintades segons l'estat de les activitats que hi ha. Es
+**només local** (`local\planol-activitats\`): porta requeriments pendents.
+
+- **Fitxers:** `Planol.ps1` (el flux i la finestra), `PlanolDades.ps1` (tot el
+  que és pur: lectura de les fulles a partir de la matriu, colors, local/planta/
+  porta, model per parcel·la, parsers del Cadastre, dades del mapa),
+  `PlanolMapa.html` (la plantilla). Comparteix amb Coordenades `Cadastre.ps1`
+  (xarxa, memòria cau, bucle amb progrés), `MapaHtml.ps1` (plantilla i JSON dins
+  d'un `<script>`) i `EinesUi.ps1` (missatge i barra de progrés).
+- **Per què l'Excel d'ESTABLIMENTS** (`AAAA-MM-DD ESTABLIMENTS.xls`, fulla
+  «Establiments», a la mateixa carpeta que el d'activitats): l'Excel d'activitats
+  porta UNA refcat per activitat, i una activitat pot tenir diversos
+  establiments. També hi ha «Local buit» i el local/pis/porta. El nom va arribar
+  amb `_` entre la data i el nom: `_RutaFindLatestIn` accepta espai o `_`.
+  **Les capçaleres d'aquest Excel són rares**: `Emp._Número_`, `Emp. Nº Local`.
+  Per això `Find-HeaderColumn`, si no troba la coincidència exacta, compara
+  només lletres i números.
+- **Els colors** (`Get-EstatPlanol`, decidits amb l'usuari): vermell = precinte
+  a l'Excel (`Test-IsPrecintada`, ara a `Excel.ps1`) o darrer informe
+  «Precinte / Cessament»; groc = «Requeriment» o «Ampliació termini»; verd =
+  «Favorable», «FI Requeriment», «FI Precinte / Cessament»; **blau** = tota la
+  resta, sense informes inclòs («no sabem si està legalitzada»). L'estat ve
+  d'`estat_actual` de la base d'informes, tal com el deixa *Actualitzar base* /
+  *Editar base* (aquest procés no carrega `Informes.ps1`).
+- **Una parcel·la = el PITJOR** dels que passen el filtre (vermell > groc > blau
+  > verd). Ho decideix el mapa, perquè depèn dels filtres. Els recomptes són
+  d'activitats úniques (una amb dos establiments compta un cop).
+- **Local/planta/porta** (`Get-SubEstabliment`): primer el de l'Excel
+  (local, bloc, escala, pis, porta); si no en porta, el del **Cadastre**
+  (`Consulta_DNPRC`, escala/planta/porta de la unitat); si tampoc, el número
+  d'**unitat** (caràcters 15-18 de la refcat). Al Cadastre només es pregunten
+  les unitats que ho necessiten: refcat de 20, sense res a l'Excel, i en una
+  parcel·la amb més d'un establiment (`Get-UnitatsAConsultar`: 292 amb l'Excel
+  de l'octubre de 2026). Les paraules de l'Excel van amb etiqueta («Bl. C»,
+  «Pl. BXS») tret del local, que ja diu què és («NAU 6»).
+- **Geometria**: INSPIRE `wfsCP` (`GetParcel`), en EPSG:25831 com tot. Un
+  polígon pot tenir forats, i una parcel·la diversos polígons. Els anells es
+  guarden **plans** (`[x1, y1, x2, y2…]`): un array d'arrays en PowerShell es
+  desenrotlla a la mínima. Guàrdia d'eixos com als portals. Sense geometria, la
+  parcel·la surt com un **punt** a la coordenada de l'Excel.
+- **Les fixtures del Cadastre (`wfsCP-exemple.xml`, `dnprc-*.xml`) estan muntades
+  a mà**, com la dels portals: el host està bloquejat des d'aquest entorn. Abans
+  de fiar-se'n, `suport\rutes\Provar-Planol.bat` a la feina: desa les respostes
+  de debò a `local\geocodificacio\resposta-parcela-*.xml` / `resposta-unitat-*.xml`.
+- **Memòria cau**: `parceles.json` i `unitats.json` a `local\geocodificacio\`,
+  un any (30 dies si no hi ha resultat). La primera vegada són ~950 + ~300
+  consultes (uns minuts); després, segons. **Cancel·lar no avorta**: el mapa es
+  fa amb el que hi hagi.
+- **Mida**: amb l'Excel real, 943 parcel·les i ~360 KB de dades sense geometria.
+- Proves: `tests/run-tests-planol.ps1` (85) i `tests/navegador/prova-planol.mjs`
+  (33, al Chromium, amb `genera-planol-prova.ps1`).
+
+## LA TRAMPA DE `$Script:` DINS D'UN `.GetNewClosure()` (mesurada, octubre 2026)
+
+**Dins d'una closure, `$Script:X` NO és la variable de l'script**: llegir-la torna
+buit i escriure-hi no arriba enlloc (cada closure té el seu propi mòdul).
+Mesurat amb pwsh 7. El Cancel·lar de la barra de progrés de **Coordenades no
+aturava mai res** per això: el botó posava `$Script:CoordCancelat` i el bloc de
+progrés (amb closure, perquè ha de veure `$prog`) el llegia des de dins.
+**Solució**: un hashtable compartit (`New-EinaProgres` torna `Estat`, i el bloc
+llegeix `$prog.Estat.Cancelat`). Un hashtable és una referència: la closure i el
+botó veuen el mateix. Hi ha altres llocs del programa amb el mateix patró
+pendents de revisar (Configuració, Normativa, Revisió, Ruta).
+
 ## Eina «Coordenades» — Excel vs façana (`rutes/Coordenades.ps1` + `rutes/Geocodificador.ps1`)
 - **El problema, mesurat** (base del 18/08/2026): el GIA porta les coordenades
   del Cadastre, i el Cadastre georeferencia la **parcel·la**, no el local. 1.380

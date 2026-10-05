@@ -114,12 +114,23 @@ Obre el programa i **fes captura**. Comprova-hi:
 
 ### 3. L'Excel d'activitats  · *un sol lector, i el lector de cel·la compartit*
 
-10. EINES → «Generar ruta»: genera una ruta i obre el mapa. Captura.
+10. EINES → «Plànol activitats» (la primera de CARRER): la primera vegada surt la
+    barra del Cadastre (cal deixar-la acabar o cancel·lar: amb Cancel·lar s'ha
+    d'aturar DE DEBÒ). S'obre el mapa amb les parcel·les pintades. Comprova un
+    edifici amb moltes activitats (Ctra. de l'Hospitalet 147): els ID GIA amb el
+    local/planta/porta. Abans, doble clic a `suport\rutes\Provar-Planol.bat`:
+    ha de dir quants polígons i quina planta/porta n'ha entès. Si diu 0
+    polígons, envia'm els `resposta-*.xml` de `local\geocodificacio\`.
+    Mira també que el menú es vegi bé amb les rajoles més estretes (5 columnes):
+    cap text de rajola tallat a mitja paraula.
+10b. EINES → «Generar ruta»: genera una ruta i obre el mapa. Captura.
 11. EINES → «Coordenades»: genera el mapa (des d'octubre 2026 surt de la plantilla
     `suport/rutes/CoordenadesMapa.html`: comprova que els accents de la llegenda
     surten bé, «parcel·la», «dubtós»), arrossega un punt, fes **Ctrl+Z** (ha de
     tornar on era), prem **N** (ha d'anar a una pendent propera), tria
-    «Mostra: Sense portal» al desplegable i baixa l'Excel. Comprova que s'obre.
+    «Mostra: Sense portal» al desplegable i baixa l'Excel. Prova també el
+    **Cancel·lar** de la barra de consultes al Cadastre: ara ha d'aturar-se (abans
+    no ho feia mai). Comprova que s'obre.
     Tanca el Chrome, torna a generar el mapa i mira que el repàs hi és.
     **Carregar repàs:** «Esborrar el meu repàs», i després «Carregar repàs…» amb
     l'Excel baixat: hi ha de tornar tot. Fes-ho també amb el mateix Excel obert i

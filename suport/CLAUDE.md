@@ -11,7 +11,7 @@ hipotesis ja descartades- viuen ara a part:
 |---|---|
 | `suport/PdfSignar.ps1`, `suport/PdfCms.ps1` (Word a PDF, AutoFirma, la validesa de la signatura) | **`suport/documentacio/signatura-pdf.md`** |
 | `suport/Llicencia*.ps1` (Dades, Blocs, Pantalles i l'assistent), `LlicenciaDb.ps1`, `MnsTraspas.ps1`, `ESTRUCTURALS/LLIC.json` | **`suport/documentacio/llicencia.md`** |
-| `suport/rutes/` (rutes, coordenades, el planol public de precintades) | **`suport/documentacio/rutes-i-mapes.md`** |
+| `suport/rutes/` (rutes, coordenades, el Plànol activitats, el planol public de precintades) | **`suport/documentacio/rutes-i-mapes.md`** |
 | Posar el mobil en marxa (Drive, EmailJS, GitHub Pages) | **`suport/documentacio/DESPLEGAMENT-MOBIL.md`** |
 | Provar el programa al PC despres d'una tanda de canvis | **`suport/documentacio/provar-al-pc.md`** (porta un prompt per enganxar) |
 | `Seguiment.ps1`, `SeguimentGia.ps1`, `EnviarCorreu.ps1`, `Informes.ps1` (base d'informes), `ControlsPeriodics.ps1`, `EditorCatalegs.ps1`, `Recordatoris.ps1` | **`suport/documentacio/eines.md`** |
@@ -195,21 +195,23 @@ apt-get install -y powershell   # o el tar.gz de github.com/PowerShell/PowerShel
 GENINFORME_TEST=1 pwsh -NoProfile -File suport/tests/run-tests-all.ps1
 ```
 
-**`run-tests-all.ps1`, no `run-tests.ps1`**: hi ha SIS suites (`run-tests`,
-`-actextr`, `-golden`, `-ruta`, `-precintades`, `-coordenades`) i `run-tests.ps1`
+**`run-tests-all.ps1`, no `run-tests.ps1`**: hi ha SET suites (`run-tests`,
+`-actextr`, `-golden`, `-ruta`, `-precintades`, `-coordenades`, `-planol`) i `run-tests.ps1`
 n'és només una. Executar-la sola deixa fora els fitxers d'or —que són la xarxa
 de seguretat del motor de composició— i el planificador de rutes.
 
-**El mapa de Coordenades té una suite a part, al navegador** (Node + Playwright,
-amb el Leaflet de veritat servit des de `node_modules`):
+**Els mapes (Coordenades i Plànol activitats) tenen suites a part, al
+navegador** (Node + Playwright, amb el Leaflet de veritat servit des de
+`node_modules`; el comú és a `comu.mjs`):
 
 ```
-cd suport/tests/navegador && npm install && node prova-mapa-coordenades.mjs
+cd suport/tests/navegador && npm install && node prova-mapa-coordenades.mjs && node prova-planol.mjs
 ```
 
-No és dins de `run-tests-all.ps1` perquè al PC de la feina no hi ha Node. Si
-toques `rutes/CoordenadesMapa.html`, executa-la: la de PowerShell només pot
-mirar que l'HTML porti el que toca, no que el mapa funcioni.
+No són dins de `run-tests-all.ps1` perquè al PC de la feina no hi ha Node. Si
+toques `rutes/CoordenadesMapa.html` o `rutes/PlanolMapa.html`, executa-les: la
+de PowerShell només pot mirar que l'HTML porti el que toca, no que el mapa
+funcioni.
 
 Val la pena insistir-hi perquè durant molt de temps **no es van executar mai**
 (en aquell contenidor no hi havia `pwsh` i es validava tot amb rèpliques en
@@ -293,6 +295,11 @@ No es pot detectar amb una prova pura (`-is [string]`, `.GetType()` i
   (com fa `$Script:OrigenPlantilles`); en una cadena simple, doblat (`’’`).
 - I `R` és un àlies d'`Invoke-History`: una funció d'ajuda que es digui `R` no
   es crida mai.
+- **Dins d'un `{ … }.GetNewClosure()`, `$Script:X` NO és la variable de
+  l'script** (octubre 2026, mesurat): llegir-la torna buit i escriure-hi es perd.
+  El Cancel·lar de Coordenades no va funcionar mai per això. Si una closure ha de
+  compartir estat amb un botó, **un hashtable capturat** (vegeu `New-EinaProgres`
+  a `rutes/EinesUi.ps1` i la secció de `rutes-i-mapes.md`).
 
 ## Res de llegir `.docx` per treure'n contingut
 El lector de `.docx` (`Parse-Cataleg`, les branques `.docx` de `Read-Conclusions`
@@ -978,8 +985,9 @@ Es resol en dos temps, i **calen tots dos**:
   funcions, i per això el poden compartir els dos processos sense arrossegar-ne
   els efectes.
 - Les pantalles del programa hi entren totes per `_NewForm`; les cinc finestres
-  que es fan a mà (dues a `Ruta.ps1`, dues a `Coordenades.ps1`, una a
-  `EnviarCorreu.ps1`) criden `_AjustaFinestraAPantalla` des del seu `Shown`.
+  que es fan a mà (dues a `Ruta.ps1`, una a `Coordenades.ps1`, la de progrés a
+  `rutes/EinesUi.ps1` i una a `EnviarCorreu.ps1`) criden
+  `_AjustaFinestraAPantalla` des del seu `Shown`.
   **Hi ha una prova de FONT que compta els `New-Object …Forms.Form` de cada
   fitxer i exigeix el mateix nombre de crides**, validada injectant una finestra
   òrfena i comprovant que passa a vermell.

@@ -22,7 +22,7 @@
   fitxer; no reescriu res de la base de dades.
 
   Es un programa INDEPENDENT, com Ruta.ps1: es carrega des del menu
-  (Motor.ps1 -> Start-CoordenadesTool) pero corre en el seu propi ambit.
+  (Motor.ps1 -> Start-EinaRutes) pero corre en el seu propi ambit.
 
   Reutilitza les funcions ja provades de Ruta.ps1 (cerca de l'Excel, cerca de
   la fulla, columnes per nom, conversio UTM -> lat/lon, format d'adreca)

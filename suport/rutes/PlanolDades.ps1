@@ -588,3 +588,60 @@ function ConvertTo-PlanolDadesMapa($model, $geometries) {
     }
     return @($out)
 }
+
+# ----------------------------------------------------------------------------
+# DIAGNOSTIC (doble clic a suport\rutes\Provar-Planol.bat)
+# ----------------------------------------------------------------------------
+# Fa UNA consulta real de cada servei i explica que n'ha entes. Desa SEMPRE les
+# respostes senceres a local\geocodificacio\ : si el parseig falla, son l'unica
+# cosa que permet arreglar-lo sense anar a les palpentes (les fixtures de les
+# proves estan muntades a ma, perque des d'on es va escriure el codi el
+# Cadastre estava bloquejat).
+function Test-Planol([string]$refcat = '2295827DF2729E0011RQ') {
+    $rc20 = _PlanolRcNeta $refcat
+    $rc14 = Get-PlanolParcela $rc20
+    if ($rc14 -eq '') { Write-Host "Referencia cadastral no valida: '$refcat'" -ForegroundColor Red; return }
+    $dir = Split-Path -Parent (Get-CacheCadastrePath 'x')
+    if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+    $utf8 = New-Object System.Text.UTF8Encoding($false)
+
+    Write-Host "`n1. GEOMETRIA DE LA PARCEL.LA $rc14" -ForegroundColor Cyan
+    $url = $PlanolParcelUrlTemplate -f $rc14
+    Write-Host "URL: $url"
+    $xml = Invoke-CadastreGet $url
+    if ($null -eq $xml) {
+        Write-Host "SENSE RESPOSTA: $Script:CadastreUltimError" -ForegroundColor Red
+    } else {
+        $f = Join-Path $dir ("resposta-parcela-$rc14.xml")
+        [System.IO.File]::WriteAllText($f, $xml, $utf8)
+        $crues = ([regex]::Matches($xml, '<[A-Za-z0-9]*:?posList[ >]')).Count
+        $polys = @(ConvertFrom-CatastroParcelXml $xml)
+        Write-Host ("Resposta: {0} caracters, {1} llistes de coordenades. Desada a {2}" -f $xml.Length, $crues, $f)
+        Write-Host ("Poligons entesos: {0}" -f $polys.Count) -ForegroundColor $(if ($polys.Count -gt 0) { 'Green' } else { 'Red' })
+        $i = 0
+        foreach ($p in $polys) {
+            $i++
+            $ext = @($p.Anells[0])
+            Write-Host ("  poligon {0}: {1} vertexs, {2} forats, primer vertex X={3} Y={4}, area {5} m2" -f $i, ($ext.Count / 2), (@($p.Anells).Count - 1), $ext[0], $ext[1], [math]::Round((Get-AreaAnell $ext)))
+        }
+    }
+
+    Write-Host "`n2. PLANTA I PORTA DE LA UNITAT $rc20" -ForegroundColor Cyan
+    if ($rc20.Length -ne 20) { Write-Host "(cal una referencia de 20 caracters per a la unitat)"; return }
+    $url = $PlanolUnitatUrlTemplate -f $rc20
+    Write-Host "URL: $url"
+    $xml = Invoke-CadastreGet $url
+    if ($null -eq $xml) { Write-Host "SENSE RESPOSTA: $Script:CadastreUltimError" -ForegroundColor Red; return }
+    $f = Join-Path $dir ("resposta-unitat-$rc20.xml")
+    [System.IO.File]::WriteAllText($f, $xml, $utf8)
+    Write-Host ("Resposta: {0} caracters. Desada a {1}" -f $xml.Length, $f)
+    $u = ConvertFrom-CatastroDnprcXml $xml
+    if ($null -eq $u) {
+        Write-Host "No n'he tret res (o el Cadastre diu que no existeix)." -ForegroundColor Red
+    } else {
+        Write-Host ("Escala '{0}'  planta '{1}'  porta '{2}'  bloc '{3}'  us '{4}'  {5} m2" -f $u.Escala, $u.Planta, $u.Porta, $u.Bloc, $u.Us, $u.Superficie) -ForegroundColor Green
+        Write-Host ("Descripcio: {0}" -f $u.Text)
+        $est = [pscustomobject]@{ Rc = $rc20; Local = ''; Bloc = ''; Escala = ''; Pis = ''; Porta = '' }
+        Write-Host ("Al planol hi sortiria: {0}" -f (Get-SubEstabliment $est $u).Text)
+    }
+}

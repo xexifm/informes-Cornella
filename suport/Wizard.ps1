@@ -32,8 +32,9 @@ function Main {
         switch ($sel.Action) {
             'seguiment'  { Invoke-SeguimentFlow }
             'actextr'    { Invoke-ActExtrFlow }
-            'ruta'       { Start-RutaTool }   # llanca el planificador; torna al menu
-            'coordenades' { Start-CoordenadesTool }   # mapa Excel vs facana; torna al menu
+            'planol'     { Start-EinaRutes 'Planol.ps1' ('Pl' + [char]0x00E0 + 'nol activitats') }   # parcel.les per estat; torna al menu
+            'ruta'       { Start-EinaRutes 'Ruta.ps1' 'Ruta' }   # llanca el planificador; torna al menu
+            'coordenades' { Start-EinaRutes 'Coordenades.ps1' 'Coordenades' }   # mapa Excel vs facana; torna al menu
             'controlsperiodics' { Invoke-ControlsPeriodics }   # llistat d'activitats amb control periodic (Excel)
             'recordatoris'   { Invoke-Recordatoris }    # avisos periodics als titulars amb tramits pendents
             'informesdb'     { Invoke-InformesDbScan }   # escaneja informes -> JSON; torna al menu
