@@ -55,8 +55,8 @@ i `Migracio` (tots de més avall). Cap mòdul genèric no crida cap client seu.
 
 **Guards nous** (a `tests/proves/06-guards.ps1`, cadascun validat injectant el
 defecte): cap fitxer de `suport/` passa de **1.200 línies** (excepcions amb
-sostre propi: `PdfSignar` 1.600, `rutes/Coordenades` 1.550, `EditorCatalegs`
-1.450); cap nom de funció definit a **dos fitxers**; cap **cicle** entre
+sostre propi: `PdfSignar` 1.600, `EditorCatalegs` 1.450; `rutes/Coordenades`
+en va sortir a l'octubre de 2026 en treure el mapa a `CoordenadesMapa.html`); cap nom de funció definit a **dos fitxers**; cap **cicle** entre
 fitxers; `VistaWord.ps1` no crida cap `Format-*` directe.
 
 ## 3. Propostes pendents, per benefici / risc

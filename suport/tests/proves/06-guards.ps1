@@ -1240,12 +1240,10 @@ Write-Host "`n--- Perque no torni a creixer: mida maxima per fitxer i noms de fu
 # Pantalles) en lloc d'apujar el limit. Les EXCEPCIONS tenen sostre propi, un
 # pel damunt del que fan ara, perque tampoc no creixin sense pensar-hi:
 #   PdfSignar.ps1       tot el cicle de signar (AutoFirma, reintents, registre)
-#   rutes/Coordenades.ps1  proces a part que ha de ser autosuficient
 #   EditorCatalegs.ps1  una sola finestra amb molts controls WinForms
 $Script:MidaMaxFitxer = 1200
 $Script:MidaExcepcions = @{
     'PdfSignar.ps1'         = 1600
-    'rutes/Coordenades.ps1' = 1550
     'EditorCatalegs.ps1'    = 1450
 }
 $arrelSuport = Join-Path $rootRepo 'suport'

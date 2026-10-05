@@ -318,4 +318,33 @@ $html0 = Build-CoordenadesHtml @() 'db' 'abast' 'font.xls' @()
 Assert ($html0 -match 'var PORTALS = \[\];') 'sense portals, llista buida'
 Assert ($html0 -match 'var ITEMS   = \[\];') 'sense activitats, llista buida'
 
+Write-Host "`n--- La plantilla del mapa (CoordenadesMapa.html) ---"
+# L'HTML del mapa viu en un fitxer a part i es llegeix en UTF-8 explicit. Si es
+# llegis com a ANSI (el que fa el 5.1 si no se li diu res), els accents sortirien
+# com 'Ã '. 'repàs' es a la plantilla i no a cap dada.
+Assert ($html.Contains('Esborrar el meu rep' + [char]0x00E0 + 's')) 'la plantilla es llegeix en UTF-8 (accents intactes)'
+Assert (-not $html.Contains('{{')) 'no queda cap marca {{...}} sense omplir'
+Assert ($html.TrimEnd().EndsWith('</html>')) 'la pagina acaba amb </html>'
+
+# Una sola passada: un valor que porta el text d'una marca NO s'ha de tornar a
+# substituir (el nom de la base ve de l'Excel i podria portar qualsevol cosa).
+$exp = Expand-CoordPlantilla 'A={{a}} B={{b}}' @{ a = '{{b}}'; b = 'x' }
+AssertEq $exp 'A={{b}} B=x' 'Expand-CoordPlantilla: una sola passada'
+AssertEq (Expand-CoordPlantilla 'sense marques' @{}) 'sense marques' 'sense marques, el text tal qual'
+$petat = $false
+try { [void](Expand-CoordPlantilla 'x {{falta}}' @{}) } catch { $petat = $true }
+Assert $petat 'una marca sense valor llança (una pagina amb {{...}} a la vista no surt mai)'
+
+# Un '</script>' a les dades tancaria l'etiqueta <script> i la pagina no
+# arrencaria. Al JSON ha d'anar com '<\/', que es el mateix caracter.
+$itTrampa = New-ItemCoordenades $recs[5] @()
+$itTrampa.Adreca = 'C/ Falsa 1 </script><b>'
+$htmlT = Build-CoordenadesHtml @($itTrampa) 'db' 'abast' 'font.xls' @()
+Assert ($htmlT -match 'var ITEMS   = (\[.*?\]);') 'amb </script> a les dades, hi ha la llista d items'
+$parsedT = $null
+try { $parsedT = $Matches[1] | ConvertFrom-Json } catch { $parsedT = $null }
+Assert ($null -ne $parsedT) 'i el JSON segueix sent valid'
+AssertEq @($parsedT)[0].adreca 'C/ Falsa 1 </script><b>' 'amb l adreca intacta un cop llegida'
+AssertEq ([regex]::Matches($htmlT, '</script>').Count) ([regex]::Matches($html0, '</script>').Count) 'cap </script> de mes a la pagina'
+
 exit (Write-TestSummary 'RESULTAT')

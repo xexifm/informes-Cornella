@@ -55,19 +55,29 @@
   es distingeix «el servei no ha tornat res» de «no n'he sabut treure res». I
   desa **sempre** la resposta sencera a `local/geocodificacio/resposta-<rc>.xml`,
   que és l'única cosa que permet arreglar el parseig sense anar a les palpentes.
-- **`Coordenades.ps1` PORTA BOM I L'HA DE PORTAR.** Tot el text que l'usuari veu
-  al mapa (llegenda, popups, capçaleres de l'Excel que es baixa) viu dins del
-  here-string de `Build-CoordenadesHtml`, en català i amb accents. Sense BOM, el
-  Windows PowerShell 5.1 llegeix el fitxer com a ANSI i el mapa surt ple de
-  `Ã§`. `Geocodificador.ps1`, en canvi, és ASCII pur i no en porta (com
-  `Precintades.ps1`).
-- **Dins del here-string `@"…"@` no hi pot haver cap `$` ni cap `` ` `` que no
-  sigui una interpolació volguda**: el JavaScript del mapa està escrit
-  expressament sense `$` ni template literals. Si hi afegeixes codi, comprova-ho
-  (`$` dins del here-string = variable de PowerShell).
+- **EL MAPA ÉS UNA PLANTILLA A PART: `rutes/CoordenadesMapa.html`** (octubre
+  2026). Abans era un here-string de 645 línies dins de `Build-CoordenadesHtml`,
+  amb dues trampes permanents: qualsevol `$` o `` ` `` del JavaScript era una
+  interpolació de PowerShell, i tot el text català depenia que el `.ps1` no
+  perdés el BOM. Ara:
+  - la plantilla és HTML/JS normal, amb marques **`{{nom}}`** per a les dades
+    (`{{itemsJson}}`, `{{dbEnc}}`...). Ja s'hi pot escriure `$` i template
+    literals, però **cap `{{paraula}}`** que no sigui una marca;
+  - es llegeix amb **`[IO.File]::ReadAllText(..., UTF8)` explícit**: sense dir-li
+    res, el 5.1 la llegiria com a ANSI i sortiria `Ã§`. Es desa en UTF-8 sense BOM;
+  - `Expand-CoordPlantilla` l'omple en **una sola passada** (un valor que porti
+    `{{x}}` no es torna a substituir) i **llança** si una marca no té valor;
+  - els JSON s'injecten amb `</` → `<\/`: un `</script>` a l'adreça tancaria
+    l'etiqueta i la pàgina no arrencaria;
+  - es va comprovar que l'HTML resultant és **byte a byte** el mateix que el del
+    here-string (4, 1 i 0 activitats, amb accents i cometes).
+  Amb això `Coordenades.ps1` va baixar de 1.458 a ~870 línies i ja no necessita
+  l'excepció de mida de `06-guards.ps1`. `Coordenades.ps1` **segueix portant
+  BOM** (hi ha `Cancel·lar`, `Parcel·la`... a les finestres). `Geocodificador.ps1`
+  és ASCII pur i no en porta (com `Precintades.ps1`).
 - **L'`.xlsx` el genera el NAVEGADOR, sense cap biblioteca.** Un `.xlsx` és un ZIP
   amb cinc XML a dins; amb el mètode «sense compressió» només cal el CRC-32 i les
-  capçaleres del ZIP (`crc32`/`zipStore`/`buildXlsx` al mateix HTML). Els textos
+  capçaleres del ZIP (`crc32`/`zipStore`/`buildXlsx` a `CoordenadesMapa.html`). Els textos
   van **inline** (`t="inlineStr"`), així no cal `sharedStrings.xml`. Verificat:
   el fitxer generat el valida `zipfile` i l'obre `openpyxl` **sense avisos**, amb
   números com a números i accents intactes. Sense el `<cellStyles>` a

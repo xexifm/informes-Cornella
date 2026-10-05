@@ -106,6 +106,10 @@ if (-not $Script:CoordHeadless) {
 # dels portals). Dins del clone pero fora del repositori.
 $CoordOutputDir = Get-LocalSubdir $RepoRoot 'Geocodificacio'
 
+# La pagina del mapa (HTML + JavaScript), amb marques {{nom}} per a les dades.
+# Vegeu Build-CoordenadesHtml.
+$Script:CoordPlantillaMapa = Join-Path $ScriptRoot 'CoordenadesMapa.html'
+
 # ============================================================================
 # FUNCIONS PURES (provables en mode headless, sense Office)
 # ============================================================================
@@ -295,7 +299,9 @@ function Get-ResumPrecisio($items) {
 # Genera el document HTML del mapa de coordenades. $items es la sortida de
 # New-ItemCoordenades. Retorna l'HTML com a cadena.
 #
-# Dins de l'HTML hi ha tres peces que val la pena tenir localitzades:
+# La pagina es la plantilla CoordenadesMapa.html; aqui nomes es calculen les
+# dades que s'hi injecten. Dins de la plantilla hi ha tres peces que val la
+# pena tenir localitzades:
 #   latLonToUtm31()  la projeccio DIRECTA (lat/lon -> UTM 31N). Cal perque el
 #                    Leaflet ens dona graus quan s'arrossega un punt i nosaltres
 #                    hem d'exportar metres. Es la inversa exacta de
@@ -305,7 +311,7 @@ function Get-ResumPrecisio($items) {
 #   buildXlsx()      escriu un .xlsx de veritat sense cap biblioteca: un .xlsx
 #                    es un ZIP amb cinc XML a dins, i amb el metode "sense
 #                    compressio" nomes cal el CRC-32 i les capçaleres del ZIP.
-#   desaCorreccions() els punts que mous a ma van al localStorage del navegador,
+#   desaItem()       els punts que valides o mous van al localStorage del navegador,
 #                    amb clau del fitxer d'origen. Si tanques la pagina i la
 #                    tornes a obrir, hi son.
 function Build-CoordenadesHtml($items, [string]$dbLabel, [string]$abast, [string]$fontName, $portals) {
@@ -362,653 +368,55 @@ function Build-CoordenadesHtml($items, [string]$dbLabel, [string]$abast, [string
     $nApr = [int]$resum['facana-aprox']
     $nCad = [int]$resum['cadastre']
 
-    $html = @"
-<!DOCTYPE html>
-<html lang="ca">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Coordenades dels establiments - Cornella</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-<style>
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; font-family: Segoe UI, Arial, sans-serif; color: #1a1a1a; }
-  #top { background: #14365c; color: #fff; padding: 10px 16px; display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
-  #top h1 { font-size: 18px; margin: 0; }
-  #top .meta { font-size: 13px; opacity: .9; }
-  #wrap { display: flex; height: calc(100vh - 116px); }
-  #map { flex: 1 1 auto; }
-  #side { width: 380px; overflow: auto; border-left: 1px solid #ddd; padding: 0 0 30px 0; }
-  #side h2 { font-size: 14px; margin: 12px 14px 6px; }
-  #cerca { width: calc(100% - 28px); margin: 0 14px 8px; padding: 6px 8px; font-size: 13px;
-           border: 1px solid #ccd2da; border-radius: 4px; }
-  table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid #eee; vertical-align: top; }
-  th { background: #f3f5f8; position: sticky; top: 0; z-index: 2; }
-  tbody tr { cursor: pointer; }
-  tbody tr:hover { background: #f7fafd; }
-  tr.moguda td.id { font-weight: bold; color: #a0560b; }
-  tr.revisada { background: #f2f7f4; }
-  tr.revisada td.id::before { content: '\2713 '; color: #14365c; font-weight: bold; }
-  td.id { font-family: Consolas, monospace; color: #14365c; white-space: nowrap; }
-  td.dist { text-align: right; white-space: nowrap; color: #555; }
-  .pin { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
-  .pin-fac { background: #2ecc71; border: 1px solid #145a32; }
-  .pin-dub { background: #f1c40f; border: 1px solid #7d6608; }
-  .pin-apr { background: #a9dfbf; border: 1px solid #145a32; }
-  .pin-cad { background: #fff;    border: 2px solid #145a32; width: 7px; height: 7px; }
-  .pin-man { background: #e67e22; border: 1px solid #7e5109; }
-  .pin-rev { background: #fff; border: 2px solid #14365c; }
-  .pin-red { background: #c0392b; }
-  #llegenda b { color: #14365c; }
-  #llegenda { font-size: 12px; color: #444; margin: 10px 14px; line-height: 1.7; }
-  #bar { padding: 8px 16px; border-top: 1px solid #ddd; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  button { background: #14365c; color: #fff; border: 0; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 14px; }
-  button:hover { background: #1d4d82; }
-  button.sec { background: #fff; color: #14365c; border: 1px solid #c3ccd8; }
-  button.sec:hover { background: #eef3f9; }
-  #estat { font-size: 12px; color: #555; }
-  /* El COLOR diu d'on surt el punt; el CONTORN GRUIXUT, que ja l'has repassat. */
-  .marker-verd { width: 14px; height: 14px; border-radius: 50%; background: #2ecc71;
-                 border: 2px solid #145a32; box-shadow: 0 1px 3px rgba(0,0,0,.45); cursor: move; }
-  .marker-verd.dubtosa     { background: #f1c40f; border-color: #7d6608; }
-  .marker-verd.aprox       { background: #a9dfbf; border-color: #145a32; }
-  .marker-verd.sensefacana { background: #fff;    border-color: #145a32; }
-  .marker-verd.moguda      { background: #e67e22; border-color: #7e5109; }
-  .marker-verd.revisada    { box-shadow: 0 0 0 3px #14365c, 0 1px 3px rgba(0,0,0,.45); }
-  /* Numeros de portal del Cadastre: nomes a partir del zoom de carrer. */
-  .portal-num { white-space: nowrap; font-size: 11px; color: #34495e; font-weight: bold;
-                text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff;
-                pointer-events: none; }
-  .portal-num i { display: inline-block; width: 5px; height: 5px; border-radius: 50%;
-                  background: #34495e; margin-right: 3px; vertical-align: 1px; }
-  .pop h3 { margin: 0 0 4px; font-size: 14px; color: #14365c; }
-  .pop .rc { font-family: Consolas, monospace; font-size: 11px; color: #666; }
-  .pop table { font-size: 12px; margin-top: 6px; }
-  .pop td { border: 0; padding: 1px 6px 1px 0; }
-  .pop .org { margin-top: 5px; font-size: 12px; }
-</style>
-</head>
-<body>
-<div id="top">
-  <h1>Coordenades dels establiments &mdash; Cornella de Llobregat</h1>
-  <span class="meta">$nTot activitats &middot; $abastEnc</span>
-  <span class="meta">Portal: $nFac &middot; dubtosos: $nDub &middot; aprox.: $nApr &middot; sense portal: $nCad</span>
-  <span class="meta">Generat: $today</span>
-</div>
-<div id="wrap">
-  <div id="map"></div>
-  <div id="side">
-    <h2>Activitats</h2>
-    <input id="cerca" type="search" placeholder="Filtra per ID o adreca...">
-    <table>
-      <thead><tr><th>ID GIA</th><th>Adreca</th><th>Desplac.</th></tr></thead>
-      <tbody id="tbody"></tbody>
-    </table>
-    <div id="llegenda">
-      <span class="pin pin-red"></span> coordenada actual de l'Excel (fixa)<br>
-      <span class="pin pin-fac"></span> coordenada de facana del Cadastre<br>
-      <span class="pin pin-cad"></span> sense facana: comenca sobre la vermella<br>
-      <span class="pin pin-man"></span> moguda per tu<br>
-      Arrossega els punts verds per posar-los on toca.
-    </div>
-  </div>
-</div>
-<div id="bar">
-  <button onclick="baixaExcel()">Baixar Excel (.xlsx)</button>
-  <button class="sec" onclick="validaVisibles()">Validar tot el que es veu</button>
-  <button class="sec" onclick="esborraCorreccions()">Esborrar el meu repàs</button>
-  <label style="font-size:12px;color:#333;"><input type="checkbox" id="chkNums" checked> números dels portals</label>
-  <span id="estat"></span>
-  <span style="font-size:12px;color:#777;">Base de dades: $dbEnc</span>
-</div>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-<script>
-var ITEMS   = $itemsJson;
-var PORTALS = $portalsJson;
-var FONT    = $fontJson;
-var CLAU  = 'coordenades:' + FONT;
-</script>
-<script>
-// ---------------------------------------------------------------------------
-// PROJECCIO: lat/lon (WGS84) -> UTM fus 31N (ETRS89, EPSG:25831).
-// El Leaflet ens dona graus quan s'arrossega un punt, i nosaltres hem
-// d'exportar metres. Es la inversa exacta de Convert-UtmToLatLon (Ruta.ps1);
-// comprovada d'anada i tornada sobre tot el terme municipal, error < 0,1 mm.
-// ---------------------------------------------------------------------------
-function latLonToUtm31(lat, lon) {
-  var a = 6378137.0, f = 1.0 / 298.257223563, k0 = 0.9996;
-  var e2 = f * (2 - f), ep2 = e2 / (1 - e2);
-  var rad = Math.PI / 180;
-  var phi = lat * rad, lam = lon * rad;
-  var lam0 = (31 * 6 - 183) * rad;
-  var sinP = Math.sin(phi), cosP = Math.cos(phi), tanP = Math.tan(phi);
-  var N = a / Math.sqrt(1 - e2 * sinP * sinP);
-  var T = tanP * tanP;
-  var C = ep2 * cosP * cosP;
-  var A = (lam - lam0) * cosP;
-  var M = a * ((1 - e2 / 4 - 3 * e2 * e2 / 64 - 5 * e2 * e2 * e2 / 256) * phi
-    - (3 * e2 / 8 + 3 * e2 * e2 / 32 + 45 * e2 * e2 * e2 / 1024) * Math.sin(2 * phi)
-    + (15 * e2 * e2 / 256 + 45 * e2 * e2 * e2 / 1024) * Math.sin(4 * phi)
-    - (35 * e2 * e2 * e2 / 3072) * Math.sin(6 * phi));
-  var x = k0 * N * (A + (1 - T + C) * Math.pow(A, 3) / 6
-    + (5 - 18 * T + T * T + 72 * C - 58 * ep2) * Math.pow(A, 5) / 120) + 500000.0;
-  var y = k0 * (M + N * tanP * (A * A / 2
-    + (5 - T + 9 * C + 4 * C * C) * Math.pow(A, 4) / 24
-    + (61 - 58 * T + T * T + 600 * C - 330 * ep2) * Math.pow(A, 6) / 720));
-  return [x, y];
-}
-
-function distanciaUtm(x1, y1, x2, y2) {
-  var dx = x1 - x2, dy = y1 - y2;
-  return Math.sqrt(dx * dx + dy * dy);
-}
-
-function escHtml(s) {
-  return String(s === null || s === undefined ? '' : s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-
-// ---------------------------------------------------------------------------
-// ESCRIPTOR DE .xlsx (sense cap biblioteca).
-// Un .xlsx es un ZIP amb cinc XML a dins. Amb el metode "sense compressio"
-// nomes cal el CRC-32 i les capçaleres del ZIP, i surt un fitxer que l'Excel
-// obre amb doble clic i sense cap avis de format.
-// ---------------------------------------------------------------------------
-var CRC_TABLE = (function () {
-  var t = new Uint32Array(256);
-  for (var n = 0; n < 256; n++) {
-    var c = n;
-    for (var k = 0; k < 8; k++) { c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); }
-    t[n] = c >>> 0;
-  }
-  return t;
-})();
-
-function crc32(bytes) {
-  var c = 0xFFFFFFFF;
-  for (var i = 0; i < bytes.length; i++) { c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8); }
-  return (c ^ 0xFFFFFFFF) >>> 0;
-}
-
-function utf8(str) { return new TextEncoder().encode(str); }
-
-function escXml(s) {
-  return String(s === null || s === undefined ? '' : s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&apos;')
-    // Els caracters de control no son legals en XML 1.0 i farien il-legible el
-    // fitxer. No n'hi hauria d'haver, pero les dades venen del GIA.
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
-}
-
-// Nom de columna d'Excel: 1 -> A, 27 -> AA.
-function colName(n) {
-  var s = '';
-  while (n > 0) { var r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); }
-  return s;
-}
-
-// ZIP amb metode 0 (sense comprimir). Retorna Uint8Array.
-function zipStore(files) {
-  var chunks = [], central = [], offset = 0;
-  function u16(v) { return [v & 0xFF, (v >>> 8) & 0xFF]; }
-  function u32(v) { return [v & 0xFF, (v >>> 8) & 0xFF, (v >>> 16) & 0xFF, (v >>> 24) & 0xFF]; }
-  for (var i = 0; i < files.length; i++) {
-    var name = utf8(files[i].name);
-    var data = files[i].data;
-    var crc = crc32(data);
-    // Data/hora fixes (1980-01-01): el mateix contingut dona sempre el mateix
-    // fitxer, cosa que fa que es pugui comparar byte a byte a les proves.
-    var lfh = [].concat(
-      u32(0x04034B50), u16(20), u16(0x0800), u16(0), u16(0), u16(33),
-      u32(crc), u32(data.length), u32(data.length), u16(name.length), u16(0));
-    chunks.push(new Uint8Array(lfh), name, data);
-    central.push({ name: name, crc: crc, size: data.length, offset: offset });
-    offset += lfh.length + name.length + data.length;
-  }
-  var cdChunks = [], cdSize = 0;
-  for (var j = 0; j < central.length; j++) {
-    var e = central[j];
-    var cdh = [].concat(
-      u32(0x02014B50), u16(20), u16(20), u16(0x0800), u16(0), u16(0), u16(33),
-      u32(e.crc), u32(e.size), u32(e.size), u16(e.name.length),
-      u16(0), u16(0), u16(0), u16(0), u32(0), u32(e.offset));
-    cdChunks.push(new Uint8Array(cdh), e.name);
-    cdSize += cdh.length + e.name.length;
-  }
-  cdChunks.push(new Uint8Array([].concat(
-    u32(0x06054B50), u16(0), u16(0), u16(central.length), u16(central.length),
-    u32(cdSize), u32(offset), u16(0))));
-  var all = chunks.concat(cdChunks), total = 0;
-  for (var k = 0; k < all.length; k++) { total += all[k].length; }
-  var out = new Uint8Array(total), p = 0;
-  for (var m = 0; m < all.length; m++) { out.set(all[m], p); p += all[m].length; }
-  return out;
-}
-
-// header: array de textos. rows: array d'arrays; els numbers van com a numero
-// i la resta com a text inline (aixi no cal sharedStrings.xml).
-function buildXlsx(sheetName, header, rows) {
-  function cellsOf(vals, rowNum) {
-    var s = '';
-    for (var c = 0; c < vals.length; c++) {
-      var ref = colName(c + 1) + rowNum, v = vals[c];
-      if (typeof v === 'number' && isFinite(v)) {
-        s += '<c r="' + ref + '"><v>' + v + '</v></c>';
-      } else if (v !== null && v !== undefined && v !== '') {
-        s += '<c r="' + ref + '" t="inlineStr"><is><t xml:space="preserve">' + escXml(v) + '</t></is></c>';
-      }
+    # El HTML i el JavaScript del mapa viuen a CoordenadesMapa.html, al costat
+    # d'aquest fitxer. Abans eren un here-string de 645 linies aqui dins, amb
+    # dues trampes permanents: qualsevol '$' o '`' del JavaScript era una
+    # interpolacio de PowerShell, i tot el text catala depenia que aquest .ps1
+    # no perdes el BOM. Ara la plantilla es llegeix en UTF-8 EXPLICIT (el 5.1,
+    # sense dir-li res, la llegiria com a ANSI) i nomes porta marques {{nom}}.
+    #
+    # Els JSON van dins d'un <script>: un '</' a les dades (una adreca amb
+    # '</script>') tancaria l'etiqueta i trencaria la pagina. '<\/' es el mateix
+    # caracter per al JSON i ja no tanca res.
+    $valors = @{
+        nTot        = [string]$nTot
+        abastEnc    = $abastEnc
+        nFac        = [string]$nFac
+        nDub        = [string]$nDub
+        nApr        = [string]$nApr
+        nCad        = [string]$nCad
+        today       = $today
+        dbEnc       = $dbEnc
+        itemsJson   = $itemsJson.Replace('</', '<\/')
+        portalsJson = $portalsJson.Replace('</', '<\/')
+        fontJson    = $fontJson.Replace('</', '<\/')
     }
-    return '<row r="' + rowNum + '">' + s + '</row>';
-  }
-  var sd = cellsOf(header, 1);
-  for (var r = 0; r < rows.length; r++) { sd += cellsOf(rows[r], r + 2); }
-
-  // Amplades de columna, perque el fitxer s'obri llegible i no s'hagin
-  // d'eixamplar a ma cada vegada.
-  var widths = [10, 24, 40, 15, 15, 15, 15, 26, 14];
-  var cols = '<cols>';
-  for (var w = 0; w < header.length; w++) {
-    cols += '<col min="' + (w + 1) + '" max="' + (w + 1) + '" width="' + (widths[w] || 14) + '" customWidth="1"/>';
-  }
-  cols += '</cols>';
-
-  var decl = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
-  var parts = [
-    { name: '[Content_Types].xml', text: decl +
-      '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
-      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
-      '<Default Extension="xml" ContentType="application/xml"/>' +
-      '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
-      '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
-      '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
-      '</Types>' },
-    { name: '_rels/.rels', text: decl +
-      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
-      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
-      '</Relationships>' },
-    { name: 'xl/workbook.xml', text: decl +
-      '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
-      '<sheets><sheet name="' + escXml(sheetName) + '" sheetId="1" r:id="rId1"/></sheets></workbook>' },
-    { name: 'xl/_rels/workbook.xml.rels', text: decl +
-      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
-      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
-      '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
-      '</Relationships>' },
-    { name: 'xl/styles.xml', text: decl +
-      '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
-      '<fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts>' +
-      '<fills count="1"><fill><patternFill patternType="none"/></fill></fills>' +
-      '<borders count="1"><border/></borders>' +
-      '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
-      '<cellXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/></cellXfs>' +
-      '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
-      '</styleSheet>' },
-    { name: 'xl/worksheets/sheet1.xml', text: decl +
-      '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
-      cols + '<sheetData>' + sd + '</sheetData></worksheet>' }
-  ];
-  return zipStore(parts.map(function (p) { return { name: p.name, data: utf8(p.text) }; }));
+    $plantilla = [System.IO.File]::ReadAllText($Script:CoordPlantillaMapa, [System.Text.Encoding]::UTF8)
+    return (Expand-CoordPlantilla $plantilla.TrimEnd() $valors)
 }
 
-// ---------------------------------------------------------------------------
-// ESTAT DE CADA ACTIVITAT
-//   origen:   d'on surt el punt verd -- 'facana' | 'facana-dubtosa' |
-//             'facana-aprox' | 'cadastre' | 'manual' (l'has mogut tu)
-//   revisada: ja l'has donada per bona
-//
-// estat[] va per POSICIO dins d'ITEMS, no per ID: si algun dia la base portes
-// dos cops el mateix ID Activitat, dues fitxes es trepitjarien. Al navegador,
-// en canvi, es desa per ID -- que es el que ha de sobreviure quan es torni a
-// generar el mapa d'una altra zona.
-// ---------------------------------------------------------------------------
-var estat = [];
-
-function llegeixDesat() {
-  try {
-    var cru = window.localStorage.getItem(CLAU);
-    return cru ? (JSON.parse(cru) || {}) : {};
-  } catch (e) { return {}; }   // localStorage desactivat: no es cap drama
-}
-
-function escriuDesat(d) {
-  try { window.localStorage.setItem(CLAU, JSON.stringify(d)); } catch (e) { }
-}
-
-function r2(v) { return Math.round(v * 100) / 100; }
-
-function carregaCorreccions() {
-  var desat = llegeixDesat();
-  for (var i = 0; i < ITEMS.length; i++) {
-    var it = ITEMS[i];
-    var d = desat[it.id];
-    if (d && isFinite(d.lat) && isFinite(d.lon)) {
-      // Les versions velles nomes desaven lat/lon: es donen per mogudes a ma.
-      estat[i] = { lat: d.lat, lon: d.lon, origen: d.origen || 'manual', revisada: true };
-    } else {
-      estat[i] = { lat: it.latf, lon: it.lonf, origen: it.prec, revisada: false };
+# Omple les marques {{nom}} d'una plantilla en UNA sola passada. PURA.
+#
+# Una sola passada a posta: si es fes un .Replace() per marca, un valor que
+# portes el text '{{dbEnc}}' (ve de l'Excel) quedaria substituit pel seguent.
+# I es fa a ma, sense [regex]::Replace amb un scriptblock: els scriptblocks
+# convertits a delegat no veuen les variables locals igual a totes les versions
+# del PowerShell (la trampa de les closures del CLAUDE.md).
+#
+# Una marca que no te valor es un error de programacio, no de dades: llança,
+# perque una pagina amb '{{nTot}}' a la vista no ha de sortir mai.
+function Expand-CoordPlantilla([string]$plantilla, $valors) {
+    $sb = New-Object System.Text.StringBuilder
+    $pos = 0
+    foreach ($m in [regex]::Matches($plantilla, '\{\{([A-Za-z]+)\}\}')) {
+        $nom = $m.Groups[1].Value
+        if (-not $valors.ContainsKey($nom)) { throw "Plantilla del mapa: falta el valor de {{$nom}}" }
+        [void]$sb.Append($plantilla, $pos, $m.Index - $pos)
+        [void]$sb.Append([string]$valors[$nom])
+        $pos = $m.Index + $m.Length
     }
-  }
-}
-
-// Desa (o treu) una activitat del navegador. Es desa la FILA SENCERA i no
-// nomes la posicio, perque l'Excel ha de poder portar tot el que has repassat
-// d'aquesta base -- tambe el de les zones que avui no tens obertes.
-function desaItem(i) {
-  var it = ITEMS[i], e = estat[i];
-  var desat = llegeixDesat();
-  if (e.revisada) {
-    var u = utmActual(i);
-    desat[it.id] = {
-      lat: e.lat, lon: e.lon, origen: e.origen,
-      x: r2(u[0]), y: r2(u[1]), xe: it.xe, ye: it.ye,
-      rc: it.rc, adreca: it.adreca, zona: it.zona
-    };
-  } else {
-    delete desat[it.id];
-  }
-  escriuDesat(desat);
-}
-
-function comptaRevisades() {
-  var n = 0;
-  for (var i = 0; i < estat.length; i++) { if (estat[i].revisada) n++; }
-  return n;
-}
-
-function textOrigen(o) {
-  if (o === 'facana')         return 'portal amb el número exacte';
-  if (o === 'facana-dubtosa') return 'portal DUBTÓS: n\'hi havia més d\'un amb aquell número';
-  if (o === 'facana-aprox')   return 'aquell número no hi era: el portal més proper de la parcel·la';
-  if (o === 'manual')         return 'mogut per tu';
-  return 'sense portal: es queda al centre de la parcel·la';
-}
-
-// Coordenada UTM actual del punt verd. Si no s'ha mogut a ma, tornem els metres
-// TAL COM van arribar (del Cadastre o de l'Excel) en lloc de reprojectar-los:
-// aixi no s'hi acumula l'error d'anar i tornar de graus.
-function utmActual(i) {
-  var it = ITEMS[i], e = estat[i];
-  if (e.origen === 'manual') { return latLonToUtm31(e.lat, e.lon); }
-  return [it.xf, it.yf];
-}
-
-// ---------------------------------------------------------------------------
-// MAPA
-// ---------------------------------------------------------------------------
-// preferCanvas: amb centenars d'activitats, dibuixar els cercles i les linies
-// al canvas en lloc de fer-ne SVG es la diferencia entre un mapa fluid i un
-// mapa que va a batzegades.
-var map = L.map('map', { preferCanvas: true, zoomSnap: 0.25, zoomDelta: 0.5, wheelPxPerZoomLevel: 120 });
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19, attribution: '&copy; OpenStreetMap'
-}).addTo(map);
-
-var capes = [];   // per posicio: { verd, vermell, linia, fila }
-var bounds = [];
-
-function classeVerd(i) {
-  var e = estat[i];
-  var c = 'marker-verd';
-  if (e.origen === 'manual')             { c += ' moguda'; }
-  else if (e.origen === 'facana-dubtosa'){ c += ' dubtosa'; }
-  else if (e.origen === 'facana-aprox')  { c += ' aprox'; }
-  else if (e.origen === 'cadastre')      { c += ' sensefacana'; }
-  if (e.revisada) { c += ' revisada'; }
-  return c;
-}
-
-function iconaVerd(i) {
-  return L.divIcon({ className: '', html: '<div class="' + classeVerd(i) + '"></div>',
-                     iconSize: [14, 14], iconAnchor: [7, 7] });
-}
-
-function popupHtml(i) {
-  var it = ITEMS[i], e = estat[i];
-  var utm = utmActual(i);
-  var d = distanciaUtm(it.xe, it.ye, utm[0], utm[1]);
-  return '<div class="pop">' +
-    '<h3>ID ' + escHtml(it.id) + (it.zona ? ' &middot; zona ' + escHtml(it.zona) : '') + '</h3>' +
-    '<div>' + escHtml(it.activitat || '(activitat no especificada)') + '</div>' +
-    '<div>' + escHtml(it.adreca || '(sense adreça)') + '</div>' +
-    '<div class="rc">' + escHtml(it.rc) + '</div>' +
-    '<table>' +
-    '<tr><td><span class="pin pin-red"></span>Excel</td><td>' + it.xe.toFixed(2) + '</td><td>' + it.ye.toFixed(2) + '</td></tr>' +
-    '<tr><td>Nova</td><td>' + utm[0].toFixed(2) + '</td><td>' + utm[1].toFixed(2) + '</td></tr>' +
-    '</table>' +
-    '<div class="org">' + escHtml(textOrigen(e.origen)) + '<br>' +
-    'Desplaçament: ' + d.toFixed(1) + ' m<br>' +
-    (e.revisada ? '<b>Validat.</b> Torna-hi a fer clic per desfer-ho.'
-                : 'Fes clic al punt per validar-lo, o arrossega\'l.') +
-    '</div></div>';
-}
-
-function refrescaItem(i) {
-  var it = ITEMS[i], c = capes[i], e = estat[i];
-  var utm = utmActual(i);
-  var d = distanciaUtm(it.xe, it.ye, utm[0], utm[1]);
-  var html = popupHtml(i);
-  c.linia.setLatLngs([[it.late, it.lone], [e.lat, e.lon]]);
-  c.verd.setIcon(iconaVerd(i));
-  c.verd.setPopupContent(html);
-  c.vermell.setPopupContent(html);
-  c.fila.className = (e.revisada ? 'revisada' : '') + (e.origen === 'manual' ? ' moguda' : '');
-  c.fila.cells[2].textContent = d.toFixed(1) + ' m';
-}
-
-function actualitzaEstatBarra() {
-  var n = comptaRevisades();
-  var total = Object.keys(llegeixDesat()).length;
-  document.getElementById('estat').textContent =
-    'Validades ' + n + ' de ' + ITEMS.length + ' en aquest mapa  ·  ' +
-    total + ' en total en aquesta base de dades';
-}
-
-// Validar / desfer. Desfer un punt que havies mogut el torna on el Cadastre
-// deia, que es l'unica manera de fer marxa enrere sense refer el mapa.
-function commutaValidada(i) {
-  var it = ITEMS[i], e = estat[i];
-  if (e.revisada) {
-    estat[i] = { lat: it.latf, lon: it.lonf, origen: it.prec, revisada: false };
-    capes[i].verd.setLatLng([it.latf, it.lonf]);
-  } else {
-    e.revisada = true;
-  }
-  refrescaItem(i);
-  desaItem(i);
-  actualitzaEstatBarra();
-}
-
-function validaVisibles() {
-  var n = 0;
-  for (var i = 0; i < ITEMS.length; i++) {
-    if (capes[i].fila.style.display === 'none') { continue; }
-    if (estat[i].revisada) { continue; }
-    estat[i].revisada = true;
-    refrescaItem(i);
-    desaItem(i);
-    n++;
-  }
-  actualitzaEstatBarra();
-  alert(n === 0 ? 'Ja les tenies totes validades.' : 'Validades ' + n + ' activitats.');
-}
-
-var tbody = document.getElementById('tbody');
-
-function pinta() {
-  carregaCorreccions();
-  for (var i = 0; i < ITEMS.length; i++) {
-    (function (idx) {
-      var it = ITEMS[idx], e = estat[idx];
-      var html = popupHtml(idx);
-
-      // Línia fina entre la coordenada de l'Excel i la nova, perquè es vegi
-      // quin verd correspon a quin vermell.
-      var linia = L.polyline([[it.late, it.lone], [e.lat, e.lon]],
-        { color: '#888', weight: 1, opacity: .8, dashArray: '3,4', interactive: false }).addTo(map);
-
-      // Vermell: la coordenada que hi ha ara a l'Excel. NO es pot moure.
-      var vermell = L.circleMarker([it.late, it.lone],
-        { radius: 5, color: '#8e2b21', weight: 1, fillColor: '#c0392b', fillOpacity: .95 })
-        .addTo(map).bindPopup(html);
-
-      // Verd: la coordenada de façana. Aquest sí que es pot arrossegar, i per
-      // això ha de ser un L.marker (els circleMarker no són arrossegables).
-      var verd = L.marker([e.lat, e.lon], { draggable: true, icon: iconaVerd(idx) })
-        .addTo(map).bindPopup(html);
-
-      verd.on('dragend', function () {
-        var p = verd.getLatLng();
-        estat[idx] = { lat: p.lat, lon: p.lng, origen: 'manual', revisada: true };
-        refrescaItem(idx);
-        desaItem(idx);
-        actualitzaEstatBarra();
-      });
-      // Un clic al punt el valida (o desfà la validació). Leaflet dispara
-      // 'click' després d'un arrossegament curt, així que ens assegurem que no
-      // ve d'un drag mirant si la posició ha canviat.
-      verd.on('click', function () { commutaValidada(idx); });
-
-      var fila = document.createElement('tr');
-      var utm = utmActual(idx);
-      fila.innerHTML =
-        '<td class="id">' + escHtml(it.id) + '</td>' +
-        '<td>' + escHtml(it.adreca || '—') + '</td>' +
-        '<td class="dist">' + distanciaUtm(it.xe, it.ye, utm[0], utm[1]).toFixed(1) + ' m</td>';
-      fila.className = (e.revisada ? 'revisada' : '') + (e.origen === 'manual' ? ' moguda' : '');
-      fila.addEventListener('click', function () {
-        map.setView([estat[idx].lat, estat[idx].lon], 19);
-        verd.openPopup();
-      });
-      tbody.appendChild(fila);
-
-      capes[idx] = { verd: verd, vermell: vermell, linia: linia, fila: fila };
-      bounds.push([it.late, it.lone]);
-      bounds.push([e.lat, e.lon]);
-    })(i);
-  }
-
-  muntaPortals();
-
-  if (bounds.length > 0) { map.fitBounds(L.latLngBounds(bounds).pad(0.08)); }
-  else { map.setView([41.355, 2.073], 14); }
-  actualitzaEstatBarra();
-}
-
-// ---------------------------------------------------------------------------
-// ELS NUMEROS DELS PORTALS (com al planol del Cadastre)
-// ---------------------------------------------------------------------------
-// Son TOTS els portals de les parcel.les consultades, tambe els que no tenen
-// cap activitat: sense ells no hi ha manera de dir si un punt esta ben posat.
-// Nomes surten a partir del zoom de carrer, perque de lluny una illa amb vint
-// numeros tapa el mapa.
-var ZOOM_NUMS = 18;
-var capaPortals = L.layerGroup();
-
-function muntaPortals() {
-  for (var i = 0; i < PORTALS.length; i++) {
-    var p = PORTALS[i];
-    var etiqueta = (p.n || '?') + (p.v ? '' : '');
-    capaPortals.addLayer(L.marker([p.lat, p.lon], {
-      interactive: false, keyboard: false,
-      icon: L.divIcon({ className: '', iconSize: [0, 0], iconAnchor: [0, 6],
-                        html: '<div class="portal-num"><i></i>' + escHtml(etiqueta) + '</div>' })
-    }));
-  }
-  map.on('zoomend', refrescaPortals);
-  document.getElementById('chkNums').addEventListener('change', refrescaPortals);
-  refrescaPortals();
-}
-
-function refrescaPortals() {
-  var vol = document.getElementById('chkNums').checked && map.getZoom() >= ZOOM_NUMS;
-  if (vol && !map.hasLayer(capaPortals)) { map.addLayer(capaPortals); }
-  else if (!vol && map.hasLayer(capaPortals)) { map.removeLayer(capaPortals); }
-}
-
-// Filtre del panell lateral: per ID o per adreça.
-document.getElementById('cerca').addEventListener('input', function (ev) {
-  var q = ev.target.value.trim().toLowerCase();
-  for (var i = 0; i < ITEMS.length; i++) {
-    var it = ITEMS[i];
-    var visible = q === '' ||
-      String(it.id).toLowerCase().indexOf(q) >= 0 ||
-      String(it.adreca || '').toLowerCase().indexOf(q) >= 0 ||
-      String(it.zona || '').toLowerCase() === q;
-    capes[i].fila.style.display = visible ? '' : 'none';
-  }
-});
-
-// ---------------------------------------------------------------------------
-// BAIXAR L'EXCEL
-// ---------------------------------------------------------------------------
-// Hi surt TOT el que hagis validat d'aquesta base de dades, encara que sigui
-// d'una altra zona i d'un altre dia: la idea es acabar amb UN sol fitxer.
-// Quan actualitzis l'Excel d'activitats i en generis un de nou, aixo es buida
-// sol, perque la clau del navegador es el nom del fitxer d'origen.
-function baixaExcel() {
-  var desat = llegeixDesat();
-  var ids = Object.keys(desat);
-  if (ids.length === 0) {
-    alert('Encara no has validat cap activitat.\n\nAmplia el mapa, comprova els punts i fes-hi clic per validar-los (o arrossega\'ls). Després torna a provar.');
-    return;
-  }
-  var header = ['ID GIA', 'Ref. cadastral', 'Adreça', 'Zona',
-                'UTM X (Excel)', 'UTM Y (Excel)', 'UTM X (nova)', 'UTM Y (nova)',
-                'Origen', 'Desplaçament (m)'];
-  var rows = [];
-  for (var k = 0; k < ids.length; k++) {
-    var id = ids[k], d = desat[id];
-    var xe = isFinite(d.xe) ? d.xe : '';
-    var ye = isFinite(d.ye) ? d.ye : '';
-    var x = isFinite(d.x) ? d.x : '';
-    var y = isFinite(d.y) ? d.y : '';
-    var desp = '';
-    if (isFinite(d.xe) && isFinite(d.x)) { desp = Math.round(distanciaUtm(d.xe, d.ye, d.x, d.y) * 10) / 10; }
-    rows.push([String(id), String(d.rc || ''), String(d.adreca || ''), String(d.zona || ''),
-               xe, ye, x, y, textOrigen(d.origen || 'manual'), desp]);
-  }
-  rows.sort(function (a, b) { return (a[3] + '').localeCompare(b[3] + '') || (a[0] - b[0]); });
-
-  var bytes = buildXlsx('Coordenades', header, rows);
-  var blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a');
-  var ara = new Date();
-  function dosX(n) { return (n < 10 ? '0' : '') + n; }
-  a.href = url;
-  a.download = 'Coordenades_' + ara.getFullYear() + dosX(ara.getMonth() + 1) + dosX(ara.getDate()) +
-               '_' + dosX(ara.getHours()) + dosX(ara.getMinutes()) + '.xlsx';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(function () { URL.revokeObjectURL(url); }, 5000);
-}
-
-function esborraCorreccions() {
-  var total = Object.keys(llegeixDesat()).length;
-  if (total === 0) { alert('Encara no has validat res.'); return; }
-  if (!confirm('Segur que vols descartar el repàs sencer d\'aquesta base de dades?\n\nSón ' + total + ' activitats validades, també les d\'altres zones i altres dies.')) { return; }
-  try { window.localStorage.removeItem(CLAU); } catch (e) { }
-  for (var i = 0; i < ITEMS.length; i++) {
-    var it = ITEMS[i];
-    estat[i] = { lat: it.latf, lon: it.lonf, origen: it.prec, revisada: false };
-    capes[i].verd.setLatLng([it.latf, it.lonf]);
-    refrescaItem(i);
-  }
-  actualitzaEstatBarra();
-}
-
-pinta();
-</script>
-</body>
-</html>
-"@
-    return $html
+    [void]$sb.Append($plantilla, $pos, $plantilla.Length - $pos)
+    return $sb.ToString()
 }
 
 # ============================================================================
