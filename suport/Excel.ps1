@@ -255,3 +255,16 @@ function Test-IsPrecintada([string]$nom, [string]$valor) {
     if ($v -eq '') { return $false }
     return [bool]($v -match '^si\b')
 }
+
+# L'ID Activitat d'una cel.la, com a text: un numero de l'Excel (101.0) -> '101',
+# sense decimals, com a Ruta. PURA. La fan servir Coordenades (lectura de la
+# base i l'Excel per importar, que ha de casar el repas amb la base pel mateix
+# ID) i el Planol activitats.
+function Get-IdDeCella($cell) {
+    if ($null -eq $cell) { return '' }
+    if ($cell -is [double]) {
+        if ([math]::Floor($cell) -eq $cell) { return [string][long]$cell }
+        return [string]$cell
+    }
+    return ([string]$cell).Trim()
+}

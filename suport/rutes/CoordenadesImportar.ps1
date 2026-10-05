@@ -29,7 +29,8 @@
   NOMES DEFINEIX FUNCIONS, i NO en crida cap de Coordenades.ps1 (que n'es el
   client; hi ha guard de cicles): la finestra que ho llança,
   Invoke-CoordExcelImportar, es alla. Depen de Ruta.ps1 (ConvertTo-UtmNumber,
-  Find-HeaderColumn), Excel.ps1 i Geocodificador.ps1 (Test-CoordPlausible).
+  Find-HeaderColumn), Excel.ps1 (Get-IdDeCella) i Geocodificador.ps1
+  (Test-CoordPlausible).
 #>
 
 # Les columnes del repas que es fan servir, normalitzades (_NormalitzaText).
@@ -151,18 +152,8 @@ function Read-RepasXlsx([string]$path) {
 # QUE S'HA DE CANVIAR (PURA)
 # ----------------------------------------------------------------------------
 
-# L'ID Activitat d'una cel.la, com a text: un numero de l'Excel (101.0) -> '101',
-# sense decimals, com a Ruta. PURA. La fan servir la lectura de la base
-# (Coordenades.ps1) i aquest fitxer, que ha de casar el repas amb la base pel
-# mateix ID: per aixo viu aqui, al modul de mes avall.
-function Get-IdDeCella($cell) {
-    if ($null -eq $cell) { return '' }
-    if ($cell -is [double]) {
-        if ([math]::Floor($cell) -eq $cell) { return [string][long]$cell }
-        return [string]$cell
-    }
-    return ([string]$cell).Trim()
-}
+# (Get-IdDeCella, l'ID d'una cel.la de l'Excel, viu a Excel.ps1: la fan servir
+# tambe la lectura de la base i el Planol activitats.)
 
 
 # Un numero d'una cel.la del repas: [double] tal qual, o text amb coma o punt

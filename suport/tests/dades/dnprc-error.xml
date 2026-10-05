@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<consulta_dnp xmlns="http://www.catastro.meh.es/">
+  <control><cuerr>1</cuerr></control>
+  <lerr><err><cod>12</cod><des>LA REFERENCIA CATASTRAL NO ESTA DADA DE ALTA</des></err></lerr>
+</consulta_dnp>

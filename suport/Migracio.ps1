@@ -53,6 +53,7 @@ $Script:LocalSubdirs = [ordered]@{
     Seguiment      = 'seguiment-gia'
     Llicencies     = 'base-dades-llicencies'
     Geocodificacio = 'geocodificacio'
+    Planol         = 'planol-activitats'
     Normativa      = 'normativa'
     Revisions      = 'revisions'
 }

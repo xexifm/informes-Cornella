@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Muntat a ma seguint la resposta de Consulta_DNPRC (OVCCallejero), NO gravat
+     del servei real. Una unitat amb escala, planta i porta, i el seu us. -->
+<consulta_dnp xmlns="http://www.catastro.meh.es/">
+  <control><cudnp>1</cudnp><cucons>1</cucons><cucul>0</cucul></control>
+  <bico>
+    <bi>
+      <idbi><cn>UR</cn><rc><pc1>2295827</pc1><pc2>DF2729E</pc2><car>0011</car><cc1>R</cc1><cc2>Q</cc2></rc></idbi>
+      <dt>
+        <loine><cp>8</cp><cm>72</cm></loine><cmc>73</cmc><np>BARCELONA</np><nm>CORNELLA DE LLOBREGAT</nm>
+        <locs><lous><lourb>
+          <dir><cv>1234</cv><tv>CL</tv><nv>CADIS</nv><pnp>19</pnp></dir>
+          <loint><es>1</es><pt>02</pt><pu>16</pu></loint>
+          <dp>8940</dp><dm>1</dm>
+        </lourb></lous></locs>
+      </dt>
+      <ldt>CL CADIS 19 Es:1 Pl:02 Pt:16 08940 CORNELLA DE LLOBREGAT (BARCELONA)</ldt>
+      <debi><luso>Industrial</luso><sfc>250</sfc><cpt>3,500000</cpt><ant>1975</ant></debi>
+    </bi>
+  </bico>
+</consulta_dnp>

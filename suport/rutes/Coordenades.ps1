@@ -98,18 +98,11 @@ try {
 # Omplir la plantilla del mapa i el JSON dins del <script> (comu als mapes).
 . (Join-Path $ScriptRoot 'MapaHtml.ps1')
 
-# Icona corporativa per a les finestres d'aquesta eina. Ruta.ps1 nomes la
-# carrega quan NO va en headless, i nosaltres l'hi hem fet anar, aixi que ens
-# la carreguem pel nostre compte.
-$Script:CoordIcon = $null
-if (-not $Script:CoordHeadless) {
-    try {
-        $coordIconPath = Join-Path $SuportDir 'cornella.ico'
-        if (Test-Path -LiteralPath $coordIconPath) {
-            $Script:CoordIcon = New-Object System.Drawing.Icon($coordIconPath)
-        }
-    } catch { $Script:CoordIcon = $null }
-}
+# Les finestres comunes de les eines de 'rutes/' (missatge, progres amb
+# Cancel.lar i la icona). Nomes defineix.
+. (Join-Path $ScriptRoot 'EinesUi.ps1')
+$Script:EinaTitol = 'Coordenades'
+if (-not $Script:CoordHeadless) { $Script:EinaIcon = Get-EinaIcon $SuportDir }
 
 # Carpeta de sortida: local\geocodificacio\ (la mateixa on viu la memoria cau
 # dels portals). Dins del clone pero fora del repositori.
@@ -468,9 +461,6 @@ function Read-CoordenadesFromExcel($excelFile) {
 # INTERFICIE (WinForms) - nomes en us normal.
 # ============================================================================
 
-function Show-CoordInfo([string]$msg, [string]$title = 'Coordenades', [string]$icon = 'Information') {
-    [System.Windows.Forms.MessageBox]::Show($msg, $title, 'OK', $icon) | Out-Null
-}
 
 # Finestra de tria: quines ZONES es repassen.
 #
@@ -488,7 +478,7 @@ function Show-CoordenadesForm([string]$dbLabel, $zonesApilades, $zonesTotes,
     $form.StartPosition = 'CenterScreen'
     $form.FormBorderStyle = 'FixedDialog'
     $form.MinimizeBox = $true; $form.MaximizeBox = $false
-    if ($null -ne $Script:CoordIcon) { $form.Icon = $Script:CoordIcon }
+    if ($null -ne $Script:EinaIcon) { $form.Icon = $Script:EinaIcon }
 
     $lblDb = New-Object System.Windows.Forms.Label
     $lblDb.Text = $dbLabel
@@ -645,14 +635,14 @@ function Invoke-CoordExcelImportar($baseFile) {
         $files = @(Read-RepasXlsx $dlg.FileName)
         $corr = Get-CorreccionsDelRepas $files $baseFile.Name
     } catch {
-        Show-CoordInfo ("No s'ha pogut llegir el repàs:`n`n" + $_.Exception.Message) 'Coordenades' 'Warning'
+        Show-EinaInfo ("No s'ha pogut llegir el repàs:`n`n" + $_.Exception.Message) 'Coordenades' 'Warning'
         return
     }
     if ($corr.PerId.Count -eq 0) {
         $msg = "El repàs no porta cap coordenada canviada per a aquesta base de dades ($($baseFile.Name))."
         if ($corr.AltraBase -gt 0) { $msg += "`n`nTé $($corr.AltraBase) activitats d'una altra base: $(@($corr.Bases) -join ', ')." }
         if ($corr.SenseCanvi -gt 0) { $msg += "`n`n$($corr.SenseCanvi) validades sense moure: tenen la mateixa coordenada que la base." }
-        Show-CoordInfo $msg 'Coordenades' 'Information'
+        Show-EinaInfo $msg 'Coordenades' 'Information'
         return
     }
 
@@ -661,7 +651,7 @@ function Invoke-CoordExcelImportar($baseFile) {
     # Una COPIA exacta del fitxer de la base: mateix format, mateixes columnes.
     [System.IO.File]::Copy($baseFile.FullName, $outPath, $true)
 
-    $espera = New-CoordProgress 1
+    $espera = New-EinaProgres 1
     $espera.Label.Text = "Escrivint $($corr.PerId.Count) coordenades a la còpia de la base..."
     $espera.Bar.Style = 'Marquee'
     [System.Windows.Forms.Application]::DoEvents()
@@ -670,7 +660,7 @@ function Invoke-CoordExcelImportar($baseFile) {
     } catch {
         if (-not $espera.Form.IsDisposed) { $espera.Form.Close() }
         try { Remove-Item -LiteralPath $outPath -Force -ErrorAction SilentlyContinue } catch { }
-        Show-CoordInfo ("No s'ha pogut escriure l'Excel per importar:`n`n" + $_.Exception.Message) 'Coordenades' 'Error'
+        Show-EinaInfo ("No s'ha pogut escriure l'Excel per importar:`n`n" + $_.Exception.Message) 'Coordenades' 'Error'
         return
     } finally {
         if (-not $espera.Form.IsDisposed) { $espera.Form.Close() }
@@ -686,45 +676,10 @@ function Invoke-CoordExcelImportar($baseFile) {
     if (@($res.NoTrobades).Count -gt 0) { $msg += "`nNo són a la base: GIA $(@($res.NoTrobades) -join ', ')`n" }
     if ($corr.AltraBase -gt 0) { $msg += "`nD'una altra base de dades, no aplicades: $($corr.AltraBase) ($(@($corr.Bases) -join ', '))`n" }
     $msg += "`nFitxer: $outPath"
-    Show-CoordInfo $msg 'Coordenades'
+    Show-EinaInfo $msg 'Coordenades'
     Start-Process -FilePath $outPath
 }
 
-# Finestra de progres de les consultes al Cadastre, amb Cancel.lar de veritat.
-# Retorna un objecte amb el formulari i els seus controls; qui la crida ha de
-# fer .Form.Close() al final.
-function New-CoordProgress([int]$total) {
-    $Script:CoordCancelat = $false
-    $form = New-Object System.Windows.Forms.Form
-    $form.Text = 'Consultant el Cadastre'
-    $form.Size = New-Object System.Drawing.Size(560, 190)
-    $form.StartPosition = 'CenterScreen'
-    $form.FormBorderStyle = 'FixedDialog'
-    $form.MinimizeBox = $false; $form.MaximizeBox = $false
-    $form.ControlBox = $false
-    if ($null -ne $Script:CoordIcon) { $form.Icon = $Script:CoordIcon }
-    # Scroll vertical i ajust a la pantalla (vegeu suport/UiFinestra.ps1).
-    $form.add_Shown({ param($s, $e) _AjustaFinestraAPantalla $s })
-
-    $lbl = New-Object System.Windows.Forms.Label
-    $lbl.Location = New-Object System.Drawing.Point(20, 18)
-    $lbl.Size = New-Object System.Drawing.Size(510, 42)
-    $lbl.Text = "Demanant els portals de $total parcel·les..."
-    $form.Controls.Add($lbl)
-
-    $bar = New-Object System.Windows.Forms.ProgressBar
-    $bar.Location = New-Object System.Drawing.Point(20, 66)
-    $bar.Size = New-Object System.Drawing.Size(510, 22)
-    $bar.Minimum = 0
-    $bar.Maximum = [math]::Max($total, 1)
-    $form.Controls.Add($bar)
-
-    [void](_AddPeuBotons $form @(@{ Nom = 'Cancel'; Text = 'Cancel·lar'; Clic = { $Script:CoordCancelat = $true } }) @() 98)
-
-    $form.Show()
-    [System.Windows.Forms.Application]::DoEvents()
-    return [pscustomobject]@{ Form = $form; Label = $lbl; Bar = $bar }
-}
 
 # ============================================================================
 # MAIN
@@ -733,7 +688,7 @@ function Invoke-CoordenadesMain {
     # 1. Localitzar l'Excel.
     $xls = Find-LatestRutaExcel
     if ($null -eq $xls) {
-        Show-CoordInfo ("No s'ha trobat cap base de dades d'activitats.`n`n" +
+        Show-EinaInfo ("No s'ha trobat cap base de dades d'activitats.`n`n" +
             "Busco un fitxer 'YYYY-MM-DD ACTIVITATS.xlsx' a:`n" +
             "  1. $ActivitatsDir`n" +
             "  2. $LocalActivitatsDir`n`n" +
@@ -747,7 +702,7 @@ function Invoke-CoordenadesMain {
     }
 
     # 2. Llegir l'Excel.
-    $espera = New-CoordProgress 1
+    $espera = New-EinaProgres 1
     $espera.Label.Text = "Llegint $($xls.File.Name)..."
     $espera.Bar.Style = 'Marquee'
     [System.Windows.Forms.Application]::DoEvents()
@@ -755,7 +710,7 @@ function Invoke-CoordenadesMain {
         $lectura = Read-CoordenadesFromExcel $xls.File
     } catch {
         $espera.Form.Close()
-        Show-CoordInfo "Error llegint l'Excel:`n$($_.Exception.Message)" 'Coordenades' 'Error'
+        Show-EinaInfo "Error llegint l'Excel:`n$($_.Exception.Message)" 'Coordenades' 'Error'
         return
     } finally {
         if (-not $espera.Form.IsDisposed) { $espera.Form.Close() }
@@ -763,12 +718,12 @@ function Invoke-CoordenadesMain {
 
     $tots = @($lectura.Registres)
     if ($tots.Count -eq 0) {
-        Show-CoordInfo "La fulla 'Estes' no te cap activitat amb coordenades." 'Coordenades' 'Warning'
+        Show-EinaInfo "La fulla 'Estes' no te cap activitat amb coordenades." 'Coordenades' 'Warning'
         return
     }
     $apilats = @(Get-RegistresApilats $tots)
     if ($apilats.Count -eq 0) {
-        Show-CoordInfo "No hi ha cap activitat apilada: totes tenen ja un punt propi." 'Coordenades' 'Information'
+        Show-EinaInfo "No hi ha cap activitat apilada: totes tenen ja un punt propi." 'Coordenades' 'Information'
         return
     }
 
@@ -782,7 +737,7 @@ function Invoke-CoordenadesMain {
     if ($null -eq $tria) { return }
     if ($tria.Accio -eq 'importar') { Invoke-CoordExcelImportar $xls.File; return }
     if (@($tria.NomsZones).Count -eq 0) {
-        Show-CoordInfo "No has triat cap zona." 'Coordenades' 'Warning'
+        Show-EinaInfo "No has triat cap zona." 'Coordenades' 'Warning'
         return
     }
 
@@ -796,19 +751,19 @@ function Invoke-CoordenadesMain {
     $abast = ("{0} {1}" -f (@($tria.NomsZones) -join ', '),
                             $(if ($tria.NomesApilades) { '(apilades)' } else { '(totes)' }))
     if ($triats.Count -eq 0) {
-        Show-CoordInfo "Les zones triades no tenen cap activitat." 'Coordenades' 'Warning'
+        Show-EinaInfo "Les zones triades no tenen cap activitat." 'Coordenades' 'Warning'
         return
     }
 
     # 4. Portals del Cadastre, amb barra de progres i Cancel.lar.
     $refcats = @(Get-RefcatsAConsultar $triats)
-    $prog = New-CoordProgress $refcats.Count
+    $prog = New-EinaProgres $refcats.Count
     $onProgress = {
         param($fetes, $total, $rc)
         $prog.Bar.Value = [math]::Min($fetes, $prog.Bar.Maximum)
         $prog.Label.Text = "Parcel·la $fetes de $total  ($rc)"
         [System.Windows.Forms.Application]::DoEvents()
-        return (-not $Script:CoordCancelat)
+        return (-not $prog.Estat.Cancelat)
     }.GetNewClosure()
     try {
         $portalsPerRc = Get-PortalsPerParcelles $refcats $onProgress
@@ -817,8 +772,8 @@ function Invoke-CoordenadesMain {
     } finally {
         if (-not $prog.Form.IsDisposed) { $prog.Form.Close() }
     }
-    if ($Script:CoordCancelat) {
-        Show-CoordInfo ("S'ha cancel·lat. El que ja s'havia demanat queda desat, aixi que si ho " +
+    if ($prog.Estat.Cancelat) {
+        Show-EinaInfo ("S'ha cancel·lat. El que ja s'havia demanat queda desat, aixi que si ho " +
                         "tornes a provar continuarà des d'on era.") 'Coordenades' 'Information'
         return
     }
@@ -886,7 +841,7 @@ function Invoke-CoordenadesMain {
         $msg += "`n"
     }
     $msg += "Fitxer: $outPath"
-    Show-CoordInfo $msg 'Coordenades'
+    Show-EinaInfo $msg 'Coordenades'
 }
 
 if (-not $Script:CoordHeadless) {

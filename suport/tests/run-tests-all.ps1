@@ -27,6 +27,7 @@ $totes = [ordered]@{
     'actextr'     = 'run-tests-actextr.ps1'
     'precintades' = 'run-tests-precintades.ps1'
     'coordenades' = 'run-tests-coordenades.ps1'
+    'planol'      = 'run-tests-planol.ps1'
     # Els FITXERS D'OR van l'ultim: comparen la seqüencia SENCERA de composicio
     # de cada familia amb la desada a dades/emit-*.txt. Vegeu Golden.ps1.
     'golden'      = 'run-tests-golden.ps1'
