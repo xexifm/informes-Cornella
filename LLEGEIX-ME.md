@@ -306,6 +306,20 @@ Aleshores, de cada punt verd:
 - si has de validar-ne molts de cop, el botó **«Validar tot el que es veu»** fa
   els que hi hagi a la llista de la dreta (i el cercador la filtra).
 
+Per anar més de pressa:
+
+- **«Següent pendent»** (o la tecla **N**) et porta a la pendent **més propera**
+  i n'obre la fitxa: així acabes un edifici abans de passar al següent.
+- El desplegable **«Mostra:»** deixa veure només un tipus de punt (els blancs,
+  els grocs, els moguts, les pendents...), a la llista **i** al mapa. Al costat
+  de cada color de la llegenda hi diu quants n'hi ha.
+- L'activitat que tens seleccionada es **ressalta**: la fila en groc, el punt
+  verd més gros i amb un anell taronja, i la línia fins al seu vermell en blau.
+  Quan n'hi ha moltes juntes, així saps quin vermell va amb quin verd.
+- **«Desfer»** (o **Ctrl+Z**) torna enrere l'últim canvi d'un punt: un
+  arrossegament, o un clic que l'ha validat o desvalidat. Pots desfer-ne tants
+  com vulguis mentre no tanquis la pàgina.
+
 El botó **Baixar Excel (.xlsx)** et dona **tot el que hagis validat d'aquesta
 base de dades**, també el d'altres zones i altres dies: ID GIA, referència
 cadastral, adreça, zona, coordenada vella, coordenada nova, d'on surt i quants

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Coordenades dels establiments - Cornella</title>
+<title>Coordenades dels establiments - Cornellà</title>
 <!-- Si unpkg no respon, el full d'estil es torna a demanar a jsDelivr (vegeu
      la nota del leaflet.js, mes avall). -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -12,10 +12,13 @@
 <style>
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; font-family: Segoe UI, Arial, sans-serif; color: #1a1a1a; }
+  /* Columna: capçalera, mapa i barra. El mapa ocupa EL QUE QUEDI: abans era
+     'calc(100vh - 116px)', i amb una barra de dues linies la pagina feia scroll. */
+  body { display: flex; flex-direction: column; height: 100vh; }
   #top { background: #14365c; color: #fff; padding: 10px 16px; display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
   #top h1 { font-size: 18px; margin: 0; }
   #top .meta { font-size: 13px; opacity: .9; }
-  #wrap { display: flex; height: calc(100vh - 116px); }
+  #wrap { display: flex; flex: 1 1 auto; min-height: 0; }
   #map { flex: 1 1 auto; }
   #side { width: 380px; overflow: auto; border-left: 1px solid #ddd; padding: 0 0 30px 0; }
   #side h2 { font-size: 14px; margin: 12px 14px 6px; }
@@ -40,7 +43,14 @@
   .pin-rev { background: #fff; border: 2px solid #14365c; }
   .pin-red { background: #c0392b; }
   #llegenda b { color: #14365c; }
-  #llegenda { font-size: 12px; color: #444; margin: 10px 14px; line-height: 1.7; }
+  #llegenda { font-size: 12px; color: #444; margin: 4px 14px 10px; line-height: 1.7; }
+  #llegenda .n { color: #14365c; font-weight: bold; }
+  #llegenda .tecles { color: #777; }
+  #filtreEstat { width: calc(100% - 28px); margin: 0 14px 6px; padding: 5px 6px; font-size: 13px;
+                 border: 1px solid #ccd2da; border-radius: 4px; background: #fff; }
+  /* La parella seleccionada (fila, punt verd i vermell, i la linia que els uneix). */
+  tr.sel td { background: #fff4d6; }
+  button:disabled { opacity: .45; cursor: default; }
   #bar { padding: 8px 16px; border-top: 1px solid #ddd; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   button { background: #14365c; color: #fff; border: 0; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 14px; }
   button:hover { background: #1d4d82; }
@@ -55,6 +65,7 @@
   .marker-verd.sensefacana { background: #fff;    border-color: #145a32; }
   .marker-verd.moguda      { background: #e67e22; border-color: #7e5109; }
   .marker-verd.revisada    { box-shadow: 0 0 0 3px #14365c, 0 1px 3px rgba(0,0,0,.45); }
+  .marker-verd.sel         { transform: scale(1.45); outline: 3px solid #f39c12; outline-offset: 3px; }
   /* Numeros de portal del Cadastre: nomes a partir del zoom de carrer. */
   .portal-num { white-space: nowrap; font-size: 11px; color: #34495e; font-weight: bold;
                 text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff;
@@ -70,7 +81,7 @@
 </head>
 <body>
 <div id="top">
-  <h1>Coordenades dels establiments &mdash; Cornella de Llobregat</h1>
+  <h1>Coordenades dels establiments &mdash; Cornellà de Llobregat</h1>
   <span class="meta">{{nTot}} activitats &middot; {{abastEnc}}</span>
   <span class="meta">Portal: {{nFac}} &middot; dubtosos: {{nDub}} &middot; aprox.: {{nApr}} &middot; sense portal: {{nCad}}</span>
   <span class="meta">Generat: {{today}}</span>
@@ -79,27 +90,24 @@
   <div id="map"></div>
   <div id="side">
     <h2>Activitats</h2>
-    <input id="cerca" type="search" placeholder="Filtra per ID o adreca...">
+    <input id="cerca" type="search" placeholder="Filtra per ID, adreça o zona...">
+    <select id="filtreEstat" title="Quines activitats es veuen, a la llista i al mapa"></select>
+    <div id="llegenda"></div>
     <table>
-      <thead><tr><th>ID GIA</th><th>Adreca</th><th>Desplac.</th></tr></thead>
+      <thead><tr><th>ID GIA</th><th>Adreça</th><th>Desplaç.</th></tr></thead>
       <tbody id="tbody"></tbody>
     </table>
-    <div id="llegenda">
-      <span class="pin pin-red"></span> coordenada actual de l'Excel (fixa)<br>
-      <span class="pin pin-fac"></span> coordenada de facana del Cadastre<br>
-      <span class="pin pin-cad"></span> sense facana: comenca sobre la vermella<br>
-      <span class="pin pin-man"></span> moguda per tu<br>
-      Arrossega els punts verds per posar-los on toca.
-    </div>
   </div>
 </div>
 <div id="bar">
   <button onclick="baixaExcel()">Baixar Excel (.xlsx)</button>
+  <button class="sec" onclick="seguentPendent()" title="Tecla N">Següent pendent &rarr;</button>
+  <button class="sec" id="btnDesfer" onclick="desferUltim()" title="Ctrl+Z" disabled>&#8630; Desfer</button>
   <button class="sec" onclick="validaVisibles()">Validar tot el que es veu</button>
   <button class="sec" onclick="esborraCorreccions()">Esborrar el meu repàs</button>
   <label style="font-size:12px;color:#333;"><input type="checkbox" id="chkNums" checked> números dels portals</label>
   <span id="estat"></span>
-  <span style="font-size:12px;color:#777;">Base de dades: {{dbEnc}}</span>
+  <span style="font-size:12px;color:#777;">{{dbEnc}}</span>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -421,7 +429,13 @@ function classeVerd(i) {
   else if (e.origen === 'facana-aprox')  { c += ' aprox'; }
   else if (e.origen === 'cadastre')      { c += ' sensefacana'; }
   if (e.revisada) { c += ' revisada'; }
+  if (i === sel)  { c += ' sel'; }
   return c;
+}
+
+function classeFila(i) {
+  var e = estat[i];
+  return (e.revisada ? 'revisada' : '') + (e.origen === 'manual' ? ' moguda' : '') + (i === sel ? ' sel' : '');
 }
 
 function iconaVerd(i) {
@@ -458,7 +472,7 @@ function refrescaItem(i) {
   c.verd.setIcon(iconaVerd(i));
   c.verd.setPopupContent(html);
   c.vermell.setPopupContent(html);
-  c.fila.className = (e.revisada ? 'revisada' : '') + (e.origen === 'manual' ? ' moguda' : '');
+  c.fila.className = classeFila(i);
   c.fila.cells[2].textContent = d.toFixed(1) + ' m';
 }
 
@@ -468,12 +482,17 @@ function actualitzaEstatBarra() {
   document.getElementById('estat').textContent =
     'Validades ' + n + ' de ' + ITEMS.length + ' en aquest mapa  ·  ' +
     total + ' en total en aquesta base de dades';
+  // Es crida despres de CADA canvi, aixi que tambe es el lloc de refrescar els
+  // recomptes i el filtre (una activitat validada deixa de ser 'pendent').
+  actualitzaComptes();
+  aplicaFiltres();
 }
 
 // Validar / desfer. Desfer un punt que havies mogut el torna on el Cadastre
 // deia, que es l'unica manera de fer marxa enrere sense refer el mapa.
 function commutaValidada(i) {
   var it = ITEMS[i], e = estat[i];
+  apuntaDesfer(i);
   if (e.revisada) {
     estat[i] = { lat: it.latf, lon: it.lonf, origen: it.prec, revisada: false };
     capes[i].verd.setLatLng([it.latf, it.lonf]);
@@ -523,9 +542,16 @@ function pinta() {
       var verd = L.marker([e.lat, e.lon], { draggable: true, icon: iconaVerd(idx) })
         .addTo(map).bindPopup(html);
 
+      // Abans de moure'l, es guarda com era: es el que torna «Desfer». Al
+      // dragstart NOMES aixo: seleccionar-lo canvia la icona (setIcon), i el
+      // Leaflet, en canviar la icona, refa l'arrossegador i talla el drag.
+      var abansDrag = null;
+      verd.on('dragstart', function () { abansDrag = copiaEstat(estat[idx]); });
       verd.on('dragend', function () {
+        if (abansDrag) { pilaDesfer.push({ i: idx, abans: abansDrag }); abansDrag = null; actualitzaBotoDesfer(); }
         var p = verd.getLatLng();
         estat[idx] = { lat: p.lat, lon: p.lng, origen: 'manual', revisada: true };
+        selecciona(idx);
         refrescaItem(idx);
         desaItem(idx);
         actualitzaEstatBarra();
@@ -533,7 +559,8 @@ function pinta() {
       // Un clic al punt el valida (o desfà la validació). Leaflet dispara
       // 'click' després d'un arrossegament curt, així que ens assegurem que no
       // ve d'un drag mirant si la posició ha canviat.
-      verd.on('click', function () { commutaValidada(idx); });
+      verd.on('click', function () { selecciona(idx); commutaValidada(idx); });
+      vermell.on('click', function () { selecciona(idx); });
 
       var fila = document.createElement('tr');
       var utm = utmActual(idx);
@@ -541,14 +568,11 @@ function pinta() {
         '<td class="id">' + escHtml(it.id) + '</td>' +
         '<td>' + escHtml(it.adreca || '—') + '</td>' +
         '<td class="dist">' + distanciaUtm(it.xe, it.ye, utm[0], utm[1]).toFixed(1) + ' m</td>';
-      fila.className = (e.revisada ? 'revisada' : '') + (e.origen === 'manual' ? ' moguda' : '');
-      fila.addEventListener('click', function () {
-        map.setView([estat[idx].lat, estat[idx].lon], 19);
-        verd.openPopup();
-      });
+      fila.className = classeFila(idx);
+      fila.addEventListener('click', function () { vesA(idx); });
       tbody.appendChild(fila);
 
-      capes[idx] = { verd: verd, vermell: vermell, linia: linia, fila: fila };
+      capes[idx] = { verd: verd, vermell: vermell, linia: linia, fila: fila, alMapa: true };
       bounds.push([it.late, it.lone]);
       bounds.push([e.lat, e.lon]);
     })(i);
@@ -592,16 +616,202 @@ function refrescaPortals() {
   else if (!vol && map.hasLayer(capaPortals)) { map.removeLayer(capaPortals); }
 }
 
-// Filtre del panell lateral: per ID o per adreça.
-document.getElementById('cerca').addEventListener('input', function (ev) {
-  var q = ev.target.value.trim().toLowerCase();
-  for (var i = 0; i < ITEMS.length; i++) {
-    var it = ITEMS[i];
-    var visible = q === '' ||
-      String(it.id).toLowerCase().indexOf(q) >= 0 ||
-      String(it.adreca || '').toLowerCase().indexOf(q) >= 0 ||
-      String(it.zona || '').toLowerCase() === q;
-    capes[i].fila.style.display = visible ? '' : 'none';
+// ---------------------------------------------------------------------------
+// FILTRES: el text (ID, adreça o zona) i l'ESTAT (el color del punt, pendents,
+// validades). Amaguen la fila I els punts del mapa: «Validar tot el que es veu»
+// valida exactament el que queda a la vista.
+// ---------------------------------------------------------------------------
+var FILTRES = [
+  ['tots',           'Totes'],
+  ['pendents',       'Pendents de validar'],
+  ['cadastre',       'Sense portal (blanc)'],
+  ['facana-dubtosa', 'Portal dubtós (groc)'],
+  ['facana-aprox',   'Portal més proper (verd clar)'],
+  ['facana',         'Portal exacte (verd)'],
+  ['manual',         'Mogudes per tu (taronja)'],
+  ['validades',      'Validades']
+];
+
+// El color del punt: d'on surt, o 'manual' si l'has mogut.
+function categoria(i) { return estat[i].origen; }
+
+function passaEstat(i, f) {
+  if (f === 'tots')      { return true; }
+  if (f === 'pendents')  { return !estat[i].revisada; }
+  if (f === 'validades') { return !!estat[i].revisada; }
+  return categoria(i) === f;
+}
+
+function passaText(i, q) {
+  if (q === '') { return true; }
+  var it = ITEMS[i];
+  return String(it.id).toLowerCase().indexOf(q) >= 0 ||
+         String(it.adreca || '').toLowerCase().indexOf(q) >= 0 ||
+         String(it.zona || '').toLowerCase() === q;
+}
+
+function passaFiltres(i) {
+  var q = document.getElementById('cerca').value.trim().toLowerCase();
+  return passaText(i, q) && passaEstat(i, document.getElementById('filtreEstat').value);
+}
+
+// La SELECCIONADA es queda a la vista encara que ja no passi el filtre: si
+// filtres per pendents i en valides una, no ha de desapareixer de sota el
+// ratoli abans no l'hagis vist. Marxa quan en selecciones una altra.
+function aplicaFiltres() {
+  for (var i = 0; i < capes.length; i++) {
+    var c = capes[i];
+    var vol = (i === sel) || passaFiltres(i);
+    c.fila.style.display = vol ? '' : 'none';
+    if (vol === c.alMapa) { continue; }
+    var capesPunt = [c.linia, c.vermell, c.verd];
+    for (var k = 0; k < capesPunt.length; k++) {
+      if (vol) { capesPunt[k].addTo(map); } else { map.removeLayer(capesPunt[k]); }
+    }
+    c.alMapa = vol;
+  }
+}
+
+function actualitzaComptes() {
+  var n = { tots: estat.length, pendents: 0, validades: 0, facana: 0,
+            'facana-dubtosa': 0, 'facana-aprox': 0, cadastre: 0, manual: 0 };
+  for (var i = 0; i < estat.length; i++) {
+    if (estat[i].revisada) { n.validades++; } else { n.pendents++; }
+    var cat = categoria(i);
+    if (n.hasOwnProperty(cat)) { n[cat]++; }
+  }
+  var desp = document.getElementById('filtreEstat');
+  if (desp.options.length === 0) {
+    for (var f = 0; f < FILTRES.length; f++) { desp.add(new Option('', FILTRES[f][0])); }
+  }
+  for (var o = 0; o < FILTRES.length; o++) {
+    desp.options[o].text = 'Mostra: ' + FILTRES[o][1] + ' (' + n[FILTRES[o][0]] + ')';
+  }
+  function fila(pin, text, k) {
+    return '<span class="pin ' + pin + '"></span> ' + text +
+           (k ? ' <span class="n">' + n[k] + '</span>' : '') + '<br>';
+  }
+  document.getElementById('llegenda').innerHTML =
+    fila('pin-red', 'coordenada actual de l\'Excel (fixa)', '') +
+    fila('pin-fac', 'portal amb el número exacte', 'facana') +
+    fila('pin-dub', 'portal dubtós: mira\'l', 'facana-dubtosa') +
+    fila('pin-apr', 'el portal més proper de la parcel·la', 'facana-aprox') +
+    fila('pin-cad', 'sense portal: comença sobre el vermell', 'cadastre') +
+    fila('pin-man', 'mogut per tu', 'manual') +
+    fila('pin-rev', 'validat', 'validades') +
+    '<span class="tecles">Clic al punt verd = validar &middot; arrossega\'l si no és al lloc<br>' +
+    'Tecles: <b>N</b> següent pendent &middot; <b>Ctrl+Z</b> desfer</span>';
+}
+
+document.getElementById('cerca').addEventListener('input', aplicaFiltres);
+document.getElementById('filtreEstat').addEventListener('change', aplicaFiltres);
+
+// ---------------------------------------------------------------------------
+// LA PARELLA SELECCIONADA: quan n'hi ha moltes juntes, cal veure d'una ullada
+// quin vermell va amb quin verd. Es ressalten la fila, el verd, el vermell i la
+// linia que els uneix (que passa de puntejada i grisa a contínua i blava).
+// ---------------------------------------------------------------------------
+var sel = -1;
+
+function pintaSeleccio(i, on) {
+  var c = capes[i];
+  c.linia.setStyle(on ? { color: '#14365c', weight: 3, opacity: 1, dashArray: null }
+                      : { color: '#888', weight: 1, opacity: .8, dashArray: '3,4' });
+  c.vermell.setStyle(on ? { color: '#14365c', weight: 3 } : { color: '#8e2b21', weight: 1 });
+  c.vermell.setRadius(on ? 8 : 5);
+  c.verd.setZIndexOffset(on ? 1000 : 0);
+  if (on && c.alMapa !== false) { c.linia.bringToFront(); c.vermell.bringToFront(); }
+  refrescaItem(i);
+}
+
+function selecciona(i) {
+  if (i === sel) { return; }
+  var ant = sel;
+  sel = i;
+  if (ant >= 0) { pintaSeleccio(ant, false); }
+  if (i >= 0)   { pintaSeleccio(i, true); }
+  aplicaFiltres();
+}
+
+// Centra el mapa en una activitat, la selecciona i n'obre la fitxa.
+function vesA(i) {
+  selecciona(i);
+  map.setView([estat[i].lat, estat[i].lon], 19);
+  capes[i].verd.openPopup();
+  capes[i].fila.scrollIntoView({ block: 'nearest' });
+}
+
+// ---------------------------------------------------------------------------
+// SEGÜENT PENDENT: la pendent MÉS PROPERA a la que tens seleccionada (o al
+// centre del mapa, si no n'hi ha cap), entre les que passen el filtre. Per
+// proximitat i no per l'ordre de la llista: aixi es repassa un edifici sencer
+// abans de saltar al seguent, en lloc d'anar d'una punta a l'altra de la zona.
+// Les que ja t'ha ensenyat i has deixat pendents no tornen fins que s'acaben
+// les altres: si no, dues apilades sense validar es passarien la pilota.
+// ---------------------------------------------------------------------------
+var vistesSeguent = {};
+
+function seguentPendent() {
+  var ref;
+  // La d'on surts tambe compta com a vista, encara que hi hagis arribat amb un
+  // clic: si no, des de la seguent (a 0 m, al mateix edifici) s'hi tornaria.
+  if (sel >= 0) { vistesSeguent[sel] = true; ref = [ITEMS[sel].xe, ITEMS[sel].ye]; }
+  else { var cm = map.getCenter(); ref = latLonToUtm31(cm.lat, cm.lng); }
+  for (var ronda = 0; ronda < 2; ronda++) {
+    var millor = -1, dMillor = Infinity;
+    for (var i = 0; i < ITEMS.length; i++) {
+      if (i === sel || estat[i].revisada || vistesSeguent[i] || !passaFiltres(i)) { continue; }
+      var d = distanciaUtm(ref[0], ref[1], ITEMS[i].xe, ITEMS[i].ye);
+      if (d < dMillor) { dMillor = d; millor = i; }
+    }
+    if (millor >= 0) { vistesSeguent[millor] = true; vesA(millor); return; }
+    vistesSeguent = {};   // ja les has vistes totes: tornem a comencar
+  }
+  if (sel >= 0 && !estat[sel].revisada && passaFiltres(sel)) {
+    alert('Només queda pendent la que tens seleccionada.'); return;
+  }
+  alert('No queda cap activitat pendent' +
+        (document.getElementById('filtreEstat').value !== 'tots' ||
+         document.getElementById('cerca').value.trim() !== '' ? ' amb aquest filtre.' : '.'));
+}
+
+// ---------------------------------------------------------------------------
+// DESFER: torna un punt com era abans de l'ultim canvi (arrossegar-lo, o el clic
+// que el valida o el desvalida -- desvalidar un punt mogut el torna al Cadastre
+// i, sense aixo, la posicio que li havies donat es perdia). Es pot desfer fins
+// a l'inici de la sessio. La pila viu a la pagina: tancar-la la buida, pero el
+// repas en si (el localStorage) no es toca.
+// ---------------------------------------------------------------------------
+var pilaDesfer = [];
+
+function copiaEstat(e) { return { lat: e.lat, lon: e.lon, origen: e.origen, revisada: e.revisada }; }
+
+function apuntaDesfer(i) { pilaDesfer.push({ i: i, abans: copiaEstat(estat[i]) }); actualitzaBotoDesfer(); }
+
+function actualitzaBotoDesfer() { document.getElementById('btnDesfer').disabled = pilaDesfer.length === 0; }
+
+function desferUltim() {
+  var u = pilaDesfer.pop();
+  actualitzaBotoDesfer();
+  if (!u) { return; }
+  estat[u.i] = copiaEstat(u.abans);
+  capes[u.i].verd.setLatLng([u.abans.lat, u.abans.lon]);
+  refrescaItem(u.i);
+  desaItem(u.i);
+  selecciona(u.i);
+  map.panTo([u.abans.lat, u.abans.lon]);
+  actualitzaEstatBarra();
+}
+
+// Les tecles, pero no mentre s'escriu al cercador (alla Ctrl+Z desfa el text).
+document.addEventListener('keydown', function (ev) {
+  var t = ev.target && ev.target.tagName;
+  if (t === 'INPUT' || t === 'SELECT' || t === 'TEXTAREA') { return; }
+  if ((ev.ctrlKey || ev.metaKey) && !ev.altKey && (ev.key === 'z' || ev.key === 'Z')) {
+    ev.preventDefault(); desferUltim(); return;
+  }
+  if (!ev.ctrlKey && !ev.metaKey && !ev.altKey && (ev.key === 'n' || ev.key === 'N')) {
+    ev.preventDefault(); seguentPendent();
   }
 });
 
@@ -656,6 +866,8 @@ function esborraCorreccions() {
   if (total === 0) { alert('Encara no has validat res.'); return; }
   if (!confirm('Segur que vols descartar el repàs sencer d\'aquesta base de dades?\n\nSón ' + total + ' activitats validades, també les d\'altres zones i altres dies.')) { return; }
   try { window.localStorage.removeItem(CLAU); } catch (e) { }
+  pilaDesfer = [];
+  actualitzaBotoDesfer();
   for (var i = 0; i < ITEMS.length; i++) {
     var it = ITEMS[i];
     estat[i] = { lat: it.latf, lon: it.lonf, origen: it.prec, revisada: false };

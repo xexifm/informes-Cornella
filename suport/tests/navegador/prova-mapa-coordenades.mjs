@@ -140,7 +140,10 @@ try {
 
   seccio('Filtre');
   await a.fill('#cerca', 'huelva');
-  eq(await a.locator('#tbody tr:visible').count(), 1, 'el cercador filtra per adreça');
+  // 2 i no 1: la que acabes d'arrossegar (102) es queda a la vista mentre la
+  // tinguis seleccionada, encara que no passi el filtre.
+  eq(await a.locator('#tbody tr:visible td.id').allTextContents(), ['102', '103'],
+     'el cercador filtra per adreça (i la seleccionada no desapareix)');
   await a.fill('#cerca', '');
   eq(await a.locator('#tbody tr:visible').count(), 6, 'i buidar-lo ho torna a mostrar tot');
 
@@ -183,6 +186,82 @@ try {
   await b.click('text=Esborrar el meu repàs');
   check(b.dialegs.some((m) => m.includes('Segur')), 'demana confirmació');
   eq(await desat(b), {}, 'i, acceptat, el repàs d\'aquesta base desapareix');
+
+  seccio('Filtre per estat i recomptes (mapa d\'una altra base, comença net)');
+  const visibles = (p) => p.locator('#tbody tr:visible td.id').allTextContents();
+  await c.selectOption('#filtreEstat', 'cadastre');
+  eq(await visibles(c), ['104'], 'només les que no tenen portal');
+  eq(await c.locator('.marker-verd').count(), 1, 'i al mapa també només aquella');
+  check((await c.textContent('#filtreEstat')).includes('Sense portal (blanc) (1)'), 'el desplegable diu quantes n\'hi ha');
+  check((await c.textContent('#llegenda')).includes('portal dubtós'), 'la llegenda porta tots els colors, també el groc');
+  await c.selectOption('#filtreEstat', 'tots');
+  eq((await visibles(c)).length, 6, 'i «Totes» les torna a mostrar');
+
+  seccio('Ressaltar la parella');
+  await c.evaluate(() => vesA(1));
+  eq(await c.evaluate(() => [capes[1].fila.classList.contains('sel'),
+                             capes[1].verd.getElement().firstChild.classList.contains('sel'),
+                             capes[1].linia.options.weight, capes[1].vermell.getRadius()]),
+     [true, true, 3, 8], 'fila, punt verd, línia i vermell ressaltats');
+  await c.evaluate(() => vesA(2));
+  eq(await c.evaluate(() => [capes[1].fila.classList.contains('sel'), capes[1].linia.options.weight,
+                             capes[1].vermell.getRadius(), capes[2].linia.options.weight]),
+     [false, 1, 5, 3], 'en triar-ne una altra, l\'anterior torna a la normalitat');
+
+  seccio('Següent pendent (tecla N)');
+  await c.evaluate(() => vesA(0));
+  await c.click('#map', { position: { x: 5, y: 5 } });   // el focus fora del cercador
+  const ordre = [];
+  for (let k = 0; k < 5; k++) { await c.keyboard.press('n'); ordre.push(await c.evaluate(() => sel)); }
+  eq(ordre.slice(0, 3).sort(), [1, 2, 3], 'primer les apilades al mateix edifici (les més properes)');
+  eq(ordre.slice(3).sort(), [4, 5], 'després salta al següent edifici');
+  eq(new Set(ordre).size, 5, 'cap repetida: no torna a la d\'on has sortit');
+  await c.keyboard.press('n');
+  eq(await c.evaluate(() => sel), 4, 'quan les ha ensenyat totes, torna a començar (per la més propera)');
+  await c.selectOption('#filtreEstat', 'pendents');
+  await c.evaluate(() => vesA(3));
+  await c.evaluate(() => commutaValidada(3));
+  check((await visibles(c)).includes('104'), 'amb «Pendents», la que acabes de validar no et desapareix de sota');
+  await c.click('#map', { position: { x: 5, y: 5 } });
+  await c.keyboard.press('n');
+  check(!(await visibles(c)).includes('104'), 'i marxa quan passes a la següent');
+  await c.selectOption('#filtreEstat', 'tots');
+
+  seccio('Desfer (Ctrl+Z)');
+  await c.evaluate(() => vesA(0));
+  const b5 = await capsaVerd(c, 0);
+  await c.mouse.move(b5.x + b5.width / 2, b5.y + b5.height / 2);
+  await c.mouse.down();
+  await c.mouse.move(b5.x + 60, b5.y + 40, { steps: 8 });
+  await c.mouse.up();
+  eq(await c.evaluate(() => estat[0].origen), 'manual', 'arrossegat');
+  await c.keyboard.press('Control+z');
+  eq(await c.evaluate(() => [estat[0].origen, estat[0].revisada, estat[0].lat === ITEMS[0].latf]),
+     ['facana', false, true], 'Ctrl+Z el torna al portal, sense validar, com era');
+  eq(await c.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('coordenades:2026-10-01 ACTIVITATS.xls') || '{}'))),
+     ['104'], 'i al navegador només hi queda el que sí que has validat');
+  // Desvalidar un punt MOGUT el torna al Cadastre: era la manera de perdre
+  // sense voler la posició que li havies donat.
+  await c.evaluate(() => vesA(1));
+  const b6 = await capsaVerd(c, 1);
+  await c.mouse.move(b6.x + b6.width / 2, b6.y + b6.height / 2);
+  await c.mouse.down();
+  await c.mouse.move(b6.x - 50, b6.y + 20, { steps: 8 });
+  await c.mouse.up();
+  const mogut = await c.evaluate(() => [estat[1].lat, estat[1].lon]);
+  const b7 = await capsaVerd(c, 1);
+  await c.mouse.click(b7.x + b7.width / 2, b7.y + b7.height / 2);
+  eq(await c.evaluate(() => estat[1].revisada), false, 'un clic al punt mogut el desvalida (i el torna al portal)');
+  await c.click('#btnDesfer');
+  eq(await c.evaluate(() => [estat[1].lat, estat[1].lon, estat[1].origen, estat[1].revisada]),
+     [...mogut, 'manual', true], '«Desfer» recupera la posició que li havies donat');
+  await c.focus('#cerca');
+  const pila = await c.evaluate(() => pilaDesfer.length);
+  await c.keyboard.press('Control+z');
+  eq(await c.evaluate(() => pilaDesfer.length), pila, 'dins del cercador, Ctrl+Z és del text i no desfà cap punt');
+  while (await c.evaluate(() => pilaDesfer.length) > 0) { await c.click('#btnDesfer'); }
+  check(await c.locator('#btnDesfer').isDisabled(), 'sense res per desfer, el botó queda apagat');
+  eq(await c.evaluate(() => estat.filter((e) => e.revisada).length), 0, 'i desfent-ho tot, es torna a l\'inici');
 
   seccio('Si el CDN del mapa no respon');
   {

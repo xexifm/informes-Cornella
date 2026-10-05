@@ -115,8 +115,12 @@ Obre el programa i **fes captura**. Comprova-hi:
 ### 3. L'Excel d'activitats  · *un sol lector, i el lector de cel·la compartit*
 
 10. EINES → «Generar ruta»: genera una ruta i obre el mapa. Captura.
-11. EINES → «Coordenades»: genera el mapa, arrossega un punt i baixa l'Excel.
-    Comprova que s'obre.
+11. EINES → «Coordenades»: genera el mapa (des d'octubre 2026 surt de la plantilla
+    `suport/rutes/CoordenadesMapa.html`: comprova que els accents de la llegenda
+    surten bé, «parcel·la», «dubtós»), arrossega un punt, fes **Ctrl+Z** (ha de
+    tornar on era), prem **N** (ha d'anar a una pendent propera), tria
+    «Mostra: Sense portal» al desplegable i baixa l'Excel. Comprova que s'obre.
+    Tanca el Chrome, torna a generar el mapa i mira que el repàs hi és.
 12. EINES → «Controls periòdics»: surt la llista d'activitats **amb les
     columnes plenes** (adreça, dates, correus). Si alguna columna surt buida,
     és el lector de cel·la: apunta-ho.

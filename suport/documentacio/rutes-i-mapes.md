@@ -95,6 +95,27 @@
   màxim **0,07 mm**. Una coordenada que **no** s'ha mogut a mà s'exporta amb els
   metres **tal com van arribar** (`utmActual`), sense reprojectar: així no s'hi
   acumula l'error d'anar i tornar.
+- **Les eines del repàs (octubre 2026, les va triar l'usuari):**
+  - **Filtre per estat** (`#filtreEstat`, `passaEstat`): pendents, validades o
+    un color (`origen`). Amaga la fila **i** les tres capes del mapa (verd,
+    vermell, línia); «Validar tot el que es veu» valida exactament el que queda.
+  - **La seleccionada (`sel`) no s'amaga mai pel filtre**: amb «Pendents», la que
+    acabes de validar desapareixeria de sota el ratolí abans de veure-la. Marxa
+    quan en selecciones una altra.
+  - **Ressaltar** (`pintaSeleccio`): fila, verd (classe `sel`), vermell i línia.
+  - **Següent pendent** (botó i tecla N): la pendent **més propera** a la
+    seleccionada (o al centre del mapa), no la següent de la llista: es repassa
+    un edifici sencer abans de saltar. Recorda les que ja ha ensenyat
+    (`vistesSeguent`, **també la d'on surts**: sense això, dues apilades a 0 m es
+    passaven la pilota) i torna a començar quan s'acaben.
+  - **Desfer** (botó i Ctrl+Z, no dins del cercador): pila en memòria de l'estat
+    d'un punt abans de cada arrossegament **o clic** (desvalidar un punt mogut el
+    torna al Cadastre: era la manera de perdre la posició sense voler).
+  - **Mai `setIcon` al `dragstart`**: refà l'arrossegador de Leaflet i talla el
+    drag. Per això el punt es selecciona al `dragend`.
+  - La llegenda, amb recomptes, va **a dalt** del panell: al final de la llista
+    no es veia mai. El cos és una columna flex: el mapa ocupa el que queda (abans
+    `calc(100vh - 116px)`, i amb la barra en dues línies la pàgina feia scroll).
 - **`estat[]` va per POSICIÓ dins d'`ITEMS`, no per ID**: si algun dia la base
   portés dos cops el mateix ID Activitat, dues fitxes es trepitjarien. Al
   `localStorage`, en canvi, es desa **per ID**, que és el que ha de sobreviure
