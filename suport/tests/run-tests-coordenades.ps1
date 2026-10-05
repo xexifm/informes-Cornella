@@ -347,7 +347,51 @@ Assert ($null -ne $parsedT) 'i el JSON segueix sent valid'
 AssertEq @($parsedT)[0].adreca 'C/ Falsa 1 </script><b>' 'amb l adreca intacta un cop llegida'
 AssertEq ([regex]::Matches($htmlT, '</script>').Count) ([regex]::Matches($html0, '</script>').Count) 'cap </script> de mes a la pagina'
 
-Write-Host "`n--- Get-IdDeCella ---"
+Write-Host "`n--- Cadastre.ps1: el bucle comu (memoria cau, fallades, Cancel.lar) ---"
+# Un servei FALS i una carpeta temporal: es prova el bucle de debo sense xarxa.
+# Les funcions es redefineixen dins d'aquest script, que es on es busquen.
+$tmpCad = Join-Path ([System.IO.Path]::GetTempPath()) ('cad-' + [guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path $tmpCad -Force | Out-Null
+$Script:CadCrides = New-Object System.Collections.ArrayList
+$Script:CadRespostes = @{}
+function Get-CacheCadastrePath([string]$fitxer) { return (Join-Path $tmpCad $fitxer) }
+function Invoke-CadastreGet([string]$url) {
+    [void]$Script:CadCrides.Add($url)
+    foreach ($k in @($Script:CadRespostes.Keys)) { if ($url.Contains($k)) { return $Script:CadRespostes[$k] } }
+    return $null
+}
+try {
+    $Script:CadRespostes['2295827DF2729E'] = $fixture        # cinc portals
+    $Script:CadRespostes['1111111DF1111A'] = '<buit/>'      # resposta sense cap portal
+    $pp = Get-PortalsPerParcelles @('2295827DF2729E', '1111111DF1111A', '9999999DF9999Z')
+    AssertEq @($pp['2295827DF2729E']).Count 5 'portals: la parcel.la amb cinc portals en porta cinc'
+    AssertEq @($pp['1111111DF1111A']).Count 0 'portals: resposta sense portals -> llista BUIDA (no @($null))'
+    AssertEq @($pp['9999999DF9999Z']).Count 0 'portals: servei caigut -> llista buida, i no peta'
+    $cacheJs = Get-Content -LiteralPath (Join-Path $tmpCad 'portals.json') -Raw | ConvertFrom-Json
+    Assert ($null -ne $cacheJs.Parcelles.'2295827DF2729E') 'portals.json: mateix format de sempre (Parcelles / Portals)'
+    Assert ($null -eq $cacheJs.Parcelles.PSObject.Properties['9999999DF9999Z']) 'una consulta FALLADA no s escriu a la memoria cau'
+    $Script:CadCrides.Clear()
+    $pp2 = Get-PortalsPerParcelles @('2295827DF2729E', '1111111DF1111A')
+    AssertEq $Script:CadCrides.Count 0 'la segona vegada surt tot de la memoria cau: cap consulta'
+    AssertEq @($pp2['2295827DF2729E']).Count 5 'i amb els mateixos portals'
+    AssertEq ([string]@($pp2['2295827DF2729E'])[0].Numero) ([string]@($pp['2295827DF2729E'])[0].Numero) 'llegits de la memoria cau, iguals'
+    # Cancel.lar: el bloc de progres torna $false a la segona clau.
+    $Script:CadCrides.Clear()
+    $talla = { param($f, $t, $k) return ($f -lt 2) }
+    $pp3 = Get-PortalsPerParcelles @('5555555DF5555A', '6666666DF6666A', '7777777DF7777A') $talla
+    AssertEq "$($pp3.Count)|$($Script:CadCrides.Count)" '1|1' 'Cancel.lar atura el bucle: nomes s ha fet la primera'
+    # Terminis: una entrada amb resultat val un any; una de buida, trenta dies.
+    $araC = [datetime]'2026-10-05T10:00:00'
+    AssertEq (Test-CacheCadastreValida ([pscustomobject]@{ Data = '2026-01-01T00:00:00'; G = @(1) }) $araC 'G' 365 30) $true 'amb resultat, de fa 9 mesos: val'
+    AssertEq (Test-CacheCadastreValida ([pscustomobject]@{ Data = '2026-08-01T00:00:00'; G = $null }) $araC 'G' 365 30) $false 'sense resultat, de fa 2 mesos: es torna a provar'
+    AssertEq (Test-CacheCadastreValida ([pscustomobject]@{ Data = '2026-09-20T00:00:00'; G = $null }) $araC 'G' 365 30) $true 'sense resultat, de fa 15 dies: val'
+} catch {
+    Assert $false ("Cadastre.ps1: una excepcio s'ha escapat del bloc de proves -> " + $_.Exception.Message)
+} finally {
+    Remove-Item -LiteralPath $tmpCad -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+Write-Host "`n--- Get-IdDeCella ---\"
 AssertEq (Get-IdDeCella ([double]101)) '101' 'un numero de l Excel (101.0) -> 101, sense decimals'
 AssertEq (Get-IdDeCella ' 7 ') '7' 'un text, retallat'
 AssertEq (Get-IdDeCella $null) '' 'una cel.la buida -> cadena buida'

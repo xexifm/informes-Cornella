@@ -76,9 +76,8 @@ $GeoCatastroUrlTemplate = 'https://ovc.catastro.meh.es/INSPIRE/wfsAD.aspx?servic
 # marcador mentider.
 $GeoDistanciaMaximaM = 250.0
 
-# Segons d'espera per consulta i nombre d'intents.
-$GeoTimeoutSec = 20
-$GeoIntents    = 2
+# (Els segons d'espera i els intents son de TOTES les consultes al Cadastre:
+# $CadastreTimeoutSec i $CadastreIntents, a Cadastre.ps1.)
 
 # Dies que val una entrada de la memoria cau. Els portals del Cadastre no es
 # mouen, pero les parcel.les SENSE resultat es tornen a provar molt abans
@@ -351,135 +350,56 @@ function Resolve-CoordEstabliment($portals, $carrer, $numero, [double]$utmX, [do
 
 
 # ----------------------------------------------------------------------------
-# MEMORIA CAU EN DISC
-# ----------------------------------------------------------------------------
-# Un sol JSON amb tots els portals que hem demanat mai:
+# MEMORIA CAU I XARXA: les fa Cadastre.ps1, comunes a totes les consultes al
+# Cadastre (portals, geometria de parcel.les, planta/porta d'unitats). Aqui nomes
+# hi ha el que es dels PORTALS: on es desen, la URL i com s'enten la resposta.
+# El format de portals.json no ha canviat:
 #   { "Versio": 1, "Parcelles": { "<refcat14>": { "Data": "..."; "Portals": [...] } } }
-# Viu a local\geocodificacio\ (dins del clone pero fora del repositori).
+# ----------------------------------------------------------------------------
 
-function Get-GeoCachePath {
-    $dir = Get-LocalSubdir $RepoRoot 'Geocodificacio'
-    return (Join-Path $dir 'portals.json')
-}
-
-# Diu si una entrada de la memoria cau encara val. PURA (la data d'ara se li
-# passa) per poder-la provar sense esperar un any.
-function Test-GeoCacheEntryValida($entry, [datetime]$ara) {
-    if ($null -eq $entry) { return $false }
-    $data = [datetime]::MinValue
-    try {
-        $data = [datetime]::Parse([string]$entry.Data, [System.Globalization.CultureInfo]::InvariantCulture)
-    } catch { return $false }
-    $dies = ($ara - $data).TotalDays
-    $nPortals = 0
-    if ($null -ne $entry.Portals) { $nPortals = @($entry.Portals).Count }
-    $limit = if ($nPortals -eq 0) { [double]$GeoCacheDiesBuit } else { [double]$GeoCacheDies }
-    return ($dies -ge 0 -and $dies -le $limit)
-}
-
-function Import-GeoCache {
-    try {
-        $obj = Read-JsonFile (Get-GeoCachePath)
-        $out = @{}
-        if ($null -ne $obj -and $null -ne $obj.Parcelles) {
-            foreach ($p in $obj.Parcelles.PSObject.Properties) { $out[$p.Name] = $p.Value }
-        }
-        return $out
-    } catch {
-        # Una memoria cau corrupta no ha de tombar l'eina: es descarta i es
-        # torna a preguntar.
-        return @{}
+# La consulta, muntada en el moment de fer-la (i no en carregar el fitxer): aixi
+# val el que config.ps1 hagi posat a $GeoCacheDies, que es carrega despres.
+function _GeoConsultaPortals {
+    return @{
+        Fitxer = 'portals.json'; Arrel = 'Parcelles'; Camp = 'Portals'
+        Dies = $GeoCacheDies; DiesBuit = $GeoCacheDiesBuit
+        Url     = { param($rc) Build-CatastroAdUrl $rc }
+        # ,@(): el bucle de Cadastre.ps1 crida el bloc amb &, que desenrotlla;
+        # amb la coma la llista arriba sencera (tambe si es buida o d'un portal).
+        Parseja = { param($t) return ,@(ConvertFrom-CatastroAdXml $t) }
     }
 }
 
-function Export-GeoCache($cache) {
-    $parcelles = [ordered]@{}
-    foreach ($k in @($cache.Keys | Sort-Object)) { $parcelles[$k] = $cache[$k] }
-    Write-JsonFile (Get-GeoCachePath) ([ordered]@{ Versio = 1; Parcelles = $parcelles }) 8
-}
+function Get-GeoCachePath { return (Get-CacheCadastrePath 'portals.json') }
 
-# ----------------------------------------------------------------------------
-# XARXA (l'unica part que no es prova en headless)
-# ----------------------------------------------------------------------------
+# Diu si una entrada de la memoria cau encara val (amb els terminis dels portals).
+function Test-GeoCacheEntryValida($entry, [datetime]$ara) {
+    return (Test-CacheCadastreValida $entry $ara 'Portals' ([double]$GeoCacheDies) ([double]$GeoCacheDiesBuit))
+}
 
 function Build-CatastroAdUrl([string]$refcat) {
     return ($GeoCatastroUrlTemplate -f $refcat)
 }
 
-# Demana els portals d'una parcel.la. Retorna el XML cru o $null. Deixa el
-# motiu de la fallada a $Script:GeoUltimError (per al diagnostic).
+# Demana els portals d'una parcel.la. Retorna el XML cru o $null; el motiu de la
+# fallada queda a $Script:CadastreUltimError (per al diagnostic).
 function Invoke-CatastroAd([string]$refcat) {
-    $Script:GeoUltimError = ''
-    $url = Build-CatastroAdUrl $refcat
-    for ($attempt = 1; $attempt -le [int]$GeoIntents; $attempt++) {
-        try {
-            $resp = Invoke-WebRequest -Uri $url -Method Get -TimeoutSec ([int]$GeoTimeoutSec) -UseBasicParsing
-            return [string]$resp.Content
-        } catch {
-            $Script:GeoUltimError = "$($_.Exception.Message)  [$url]"
-            if ($attempt -lt [int]$GeoIntents) { Start-Sleep -Milliseconds 700 }
-        }
-    }
-    return $null
+    return (Invoke-CadastreGet (Build-CatastroAdUrl $refcat))
 }
 
-# Aconsegueix els portals de TOTES les parcel.les demanades, fent servir la
-# memoria cau i consultant nomes les que falten. Retorna una hashtable
-# refcat -> array de portals.
-#
-# $onProgress (opcional) es crida com  & $onProgress $fetes $total $refcat  i,
-# si retorna $false, s'atura i es torna el que s'hagi aconseguit fins llavors
-# (aixi el boto Cancel.lar de la barra de progres funciona de debo).
-#
-# NO llenca mai: si el servei falla, la parcel.la queda sense portals i cada
-# activitat es quedara amb la seva coordenada de sempre.
+# Els portals de TOTES les parcel.les demanades: hashtable refcat -> array de
+# portals (buit si no n'hi ha o si el servei ha fallat). $onProgress, com a
+# Get-AmbCacheCadastre (Cancel.lar de debo). NO llanca mai.
 function Get-PortalsPerParcelles($refcats, [scriptblock]$onProgress = $null) {
-    $result = @{}
-    $llista = @($refcats | Where-Object { $_ -ne '' -and $null -ne $_ } | Sort-Object -Unique)
-    if ($llista.Count -eq 0) { return $result }
-
-    $cache = Import-GeoCache
-    $ara = Get-Date
-    $nous = 0
-    $fetes = 0
-    $total = $llista.Count
-    foreach ($rc in $llista) {
-        $fetes++
-        if ($null -ne $onProgress) {
-            $seguim = & $onProgress $fetes $total $rc
-            if ($seguim -eq $false) { break }
-        }
-
-        $entry = $null
-        if ($cache.ContainsKey($rc)) { $entry = $cache[$rc] }
-        if (Test-GeoCacheEntryValida $entry $ara) {
-            $result[$rc] = @()
-            if ($null -ne $entry.Portals) { $result[$rc] = @($entry.Portals) }
-            continue
-        }
-
-        $xml = Invoke-CatastroAd $rc
-        $portals = @()
-        if ($null -ne $xml) { $portals = @(ConvertFrom-CatastroAdXml $xml) }
-        $result[$rc] = $portals
-        # Nomes desem al cache el que hem pogut PREGUNTAR. Si la crida ha
-        # fallat (xml null) no hi escrivim res: aixi no ens quedem trenta dies
-        # amb un buit causat per una caiguda de xarxa d'un moment.
-        if ($null -ne $xml) {
-            $cache[$rc] = [pscustomobject]@{
-                Data    = $ara.ToString('yyyy-MM-ddTHH:mm:ss', [System.Globalization.CultureInfo]::InvariantCulture)
-                Portals = $portals
-            }
-            $nous++
-            # Desem cada 25 parcel.les noves: si l'usuari cancel.la o peta
-            # l'ordinador a mitja tanda, no es perd tot el que s'ha demanat.
-            if (($nous % 25) -eq 0) { try { Export-GeoCache $cache } catch { } }
-        }
+    $r = Get-AmbCacheCadastre $refcats (_GeoConsultaPortals) $onProgress
+    $out = @{}
+    foreach ($k in @($r.Keys)) {
+        $v = $r[$k]
+        # Mai @($null): seria una llista d'UN element nul, i Coordenades el
+        # prendria per un portal.
+        $out[$k] = if ($null -eq $v) { @() } else { @($v | Where-Object { $null -ne $_ }) }
     }
-    if ($nous -gt 0) {
-        try { Export-GeoCache $cache } catch { }   # no poder desar-la no es motiu per fallar
-    }
-    return $result
+    return $out
 }
 
 # ----------------------------------------------------------------------------
@@ -508,7 +428,7 @@ function Test-Geocodificador([string]$refcat = '2295827DF2729E') {
     Write-Host "URL: $url"
     $xml = Invoke-CatastroAd $rc
     if ($null -eq $xml) {
-        Write-Host "SENSE RESPOSTA: $Script:GeoUltimError" -ForegroundColor Red
+        Write-Host "SENSE RESPOSTA: $Script:CadastreUltimError" -ForegroundColor Red
         return
     }
 

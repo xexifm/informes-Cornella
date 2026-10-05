@@ -68,6 +68,9 @@ if (-not $Script:CoordHeadless) {
 # Si el carreguessim despres, els seus valors per defecte trepitjarien el que
 # l'usuari hagues posat a config.ps1.
 # ----------------------------------------------------------------------------
+# Cadastre.ps1 (el comu a totes les consultes al Cadastre: xarxa, memoria cau,
+# bucle amb progres) va al davant: Geocodificador.ps1 s'hi recolza.
+. (Join-Path $ScriptRoot 'Cadastre.ps1')
 . (Join-Path $ScriptRoot 'Geocodificador.ps1')
 
 # ----------------------------------------------------------------------------
