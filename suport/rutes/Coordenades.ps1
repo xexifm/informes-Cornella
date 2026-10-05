@@ -89,6 +89,10 @@ try {
     }
 }
 
+# L'"Excel per importar" (una copia de la base amb les coordenades corregides
+# en vermell). Nomes defineix funcions.
+. (Join-Path $ScriptRoot 'CoordenadesImportar.ps1')
+
 # Icona corporativa per a les finestres d'aquesta eina. Ruta.ps1 nomes la
 # carrega quan NO va en headless, i nosaltres l'hi hem fet anar, aixi que ens
 # la carreguem pel nostre compte.
@@ -164,16 +168,6 @@ function _CoordLletraFila([int]$fil) {
     return $s
 }
 
-# Una coordenada UTM 31N pot ser d'aquest mon? Es una comprovacio GENEROSA (tot
-# el fus, no nomes Cornella): nomes ha de caçar el que es impossible.
-#
-# Cal perque la base en porta: el GIA 1009 (Quintana i Millas 9) te
-# X=423,37 Y=4578,81 -- li falten tres xifres. Sense aixo es pinta al golf de
-# Guinea i estira el mapa sencer, de manera que la resta de punts queden
-# amuntegats en un pixel.
-function Test-CoordPlausible([double]$x, [double]$y) {
-    return ($x -ge 100000 -and $x -le 900000 -and $y -ge 4000000 -and $y -le 4900000)
-}
 
 # Agrupa els registres per zona i retorna, per cada una, el nom, quantes
 # activitats hi ha i els carrers mes repetits (per poder-la reconeixer). PURA.
@@ -427,6 +421,7 @@ function Expand-CoordPlantilla([string]$plantilla, $valors) {
 # necessitem: { Id; Rc; Adreca; Carrer; Numero; Activitat; UtmX; UtmY }.
 # Les activitats SENSE coordenades s'ometen (no es poden situar al mapa) i es
 # compten a part.
+
 function Read-CoordenadesFromExcel($excelFile) {
     $out = Read-FullaEstesa $excelFile {
         param($x)
@@ -458,11 +453,8 @@ function Read-CoordenadesFromExcel($excelFile) {
         $senseCoord = 0
         $impossibles = @()
         for ($r = 2; $r -le $rows; $r++) {
-            # ID Activitat (numero -> enter sense decimals, com a Ruta).
             $idCell = if ($colId -ge 1 -and $colId -le $cols) { $data[$r, $colId] } else { $null }
-            $id = if ($idCell -is [double]) {
-                if ([math]::Floor($idCell) -eq $idCell) { [string][int]$idCell } else { [string]$idCell }
-            } elseif ($null -ne $idCell) { ([string]$idCell).Trim() } else { '' }
+            $id = Get-IdDeCella $idCell
             if ($id -eq '') { continue }
 
             $carrerRaw = & $get $r $colCarr
@@ -647,8 +639,14 @@ function Show-CoordenadesForm([string]$dbLabel, $zonesApilades, $zonesTotes,
         $y += 22
     }
 
-    [void](_AddPeuBotons $form @(@{ Nom = 'Enrere'; Text = (_TxtEnrere); Resultat = 'Cancel'; Esc = $true }) @(
-        @{ Nom = 'Ok'; Text = 'Generar mapa'; Estil = 'primari'; Resultat = 'OK'; Intro = $true }) $y)
+    # "Excel per importar...": una copia de la base amb les coordenades que has
+    # corregit al mapa, en vermell (vegeu CoordenadesImportar.ps1). Va aqui
+    # perque es fa amb la MATEIXA base que s'acaba de llegir.
+    $peu = _AddPeuBotons $form @(@{ Nom = 'Enrere'; Text = (_TxtEnrere); Resultat = 'Cancel'; Esc = $true }) @(
+        @{ Nom = 'Importar'; Text = 'Excel per importar...'; Resultat = 'Yes' }
+        @{ Nom = 'Ok'; Text = 'Generar mapa'; Estil = 'primari'; Resultat = 'OK'; Intro = $true }) $y
+    $tip = New-Object System.Windows.Forms.ToolTip
+    $tip.SetToolTip($peu['Importar'], "Fa una còpia d'aquesta base de dades amb les coordenades que has corregit al mapa, en vermell, per a qui les hagi d'importar.")
 
     $form.ClientSize = New-Object System.Drawing.Size(580, ($y + 46))
 
@@ -657,10 +655,69 @@ function Show-CoordenadesForm([string]$dbLabel, $zonesApilades, $zonesTotes,
     # Scroll vertical i ajust a la pantalla (vegeu suport/UiFinestra.ps1).
     $form.add_Shown({ param($s, $e) _AjustaFinestraAPantalla $s })
     $res = $form.ShowDialog()
+    if ($res -eq [System.Windows.Forms.DialogResult]::Yes) { return [pscustomobject]@{ Accio = 'importar' } }
     if ($res -ne [System.Windows.Forms.DialogResult]::OK) { return $null }
     $noms = @()
     foreach ($i in $llista.CheckedIndices) { $noms += [string]$estat.Zones[$i].Nom }
     return [pscustomobject]@{ NomsZones = @($noms); NomesApilades = [bool]$chkApil.Checked }
+}
+
+# El boto "Excel per importar..." de la finestra de Coordenades.
+function Invoke-CoordExcelImportar($baseFile) {
+    $dlg = New-Object System.Windows.Forms.OpenFileDialog
+    $dlg.Title = "Tria l'Excel del repàs que et vas baixar del mapa (Coordenades_....xlsx)"
+    $dlg.Filter = 'Repàs de coordenades (*.xlsx)|*.xlsx'
+    $baixades = Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads'
+    if (Test-Path -LiteralPath $baixades) { $dlg.InitialDirectory = $baixades }
+    if ($dlg.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) { return }
+
+    try {
+        $files = @(Read-RepasXlsx $dlg.FileName)
+        $corr = Get-CorreccionsDelRepas $files $baseFile.Name
+    } catch {
+        Show-CoordInfo ("No s'ha pogut llegir el repàs:`n`n" + $_.Exception.Message) 'Coordenades' 'Warning'
+        return
+    }
+    if ($corr.PerId.Count -eq 0) {
+        $msg = "El repàs no porta cap coordenada canviada per a aquesta base de dades ($($baseFile.Name))."
+        if ($corr.AltraBase -gt 0) { $msg += "`n`nTé $($corr.AltraBase) activitats d'una altra base: $(@($corr.Bases) -join ', ')." }
+        if ($corr.SenseCanvi -gt 0) { $msg += "`n`n$($corr.SenseCanvi) validades sense moure: tenen la mateixa coordenada que la base." }
+        Show-CoordInfo $msg 'Coordenades' 'Information'
+        return
+    }
+
+    if (-not (Test-Path -LiteralPath $CoordOutputDir)) { New-Item -ItemType Directory -Path $CoordOutputDir -Force | Out-Null }
+    $outPath = Join-Path $CoordOutputDir (Get-NomExcelImportar $baseFile.Name (Get-Date))
+    # Una COPIA exacta del fitxer de la base: mateix format, mateixes columnes.
+    [System.IO.File]::Copy($baseFile.FullName, $outPath, $true)
+
+    $espera = New-CoordProgress 1
+    $espera.Label.Text = "Escrivint $($corr.PerId.Count) coordenades a la còpia de la base..."
+    $espera.Bar.Style = 'Marquee'
+    [System.Windows.Forms.Application]::DoEvents()
+    try {
+        $res = Set-CoordenadesALaBase (Get-Item -LiteralPath $outPath) $corr.PerId
+    } catch {
+        if (-not $espera.Form.IsDisposed) { $espera.Form.Close() }
+        try { Remove-Item -LiteralPath $outPath -Force -ErrorAction SilentlyContinue } catch { }
+        Show-CoordInfo ("No s'ha pogut escriure l'Excel per importar:`n`n" + $_.Exception.Message) 'Coordenades' 'Error'
+        return
+    } finally {
+        if (-not $espera.Form.IsDisposed) { $espera.Form.Close() }
+    }
+
+    $msg  = "Fet. És una còpia de la base de dades amb les coordenades corregides EN VERMELL.`n`n"
+    $msg += "Coordenades canviades:                 $(@($res.Aplicades).Count)`n"
+    if ($corr.SenseCanvi -gt 0) { $msg += "Validades sense moure (igual que abans): $($corr.SenseCanvi)`n" }
+    if (@($res.JaCanviades).Count -gt 0) {
+        $msg += "`nNO TOCADES perquè a la base ja tenen una altra coordenada (potser ja`n"
+        $msg += "s'havien corregit): GIA $(@($res.JaCanviades) -join ', ')`n"
+    }
+    if (@($res.NoTrobades).Count -gt 0) { $msg += "`nNo són a la base: GIA $(@($res.NoTrobades) -join ', ')`n" }
+    if ($corr.AltraBase -gt 0) { $msg += "`nD'una altra base de dades, no aplicades: $($corr.AltraBase) ($(@($corr.Bases) -join ', '))`n" }
+    $msg += "`nFitxer: $outPath"
+    Show-CoordInfo $msg 'Coordenades'
+    Start-Process -FilePath $outPath
 }
 
 # Finestra de progres de les consultes al Cadastre, amb Cancel.lar de veritat.
@@ -753,6 +810,7 @@ function Invoke-CoordenadesMain {
     $tria = Show-CoordenadesForm $dbLabel $zonesApil $zonesTot `
                                  ([int]$lectura.SenseCoord) (@($lectura.Impossibles).Count)
     if ($null -eq $tria) { return }
+    if ($tria.Accio -eq 'importar') { Invoke-CoordExcelImportar $xls.File; return }
     if (@($tria.NomsZones).Count -eq 0) {
         Show-CoordInfo "No has triat cap zona." 'Coordenades' 'Warning'
         return

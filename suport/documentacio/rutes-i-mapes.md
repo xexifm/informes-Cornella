@@ -116,6 +116,40 @@
   - La llegenda, amb recomptes, va **a dalt** del panell: al final de la llista
     no es veia mai. El cos és una columna flex: el mapa ocupa el que queda (abans
     `calc(100vh - 116px)`, i amb la barra en dues línies la pàgina feia scroll).
+- **El repàs té còpia fora del navegador: l'Excel que es baixa** (octubre 2026).
+  «Carregar repàs…» (`llegeixXlsx` + `aplicaRepas`) el llegeix tal com surt del
+  mapa (ZIP sense comprimir, textos inline) **i** desat de nou amb l'Excel
+  (deflate, `sharedStrings.xml`, la fulla amb un altre nom intern): el deflate el
+  fa `DecompressionStream('deflate-raw')` del mateix Chrome, sense biblioteques.
+  - **El que ja és al navegador guanya**: el fitxer és una còpia i pot ser vella.
+  - L'Excel porta la columna **«Base de dades»** (`FONT`): no es carreguen files
+    d'una altra base. Els fitxers d'abans no la porten i s'accepten.
+  - `utm31ToLatLon` és `Convert-UtmToLatLon` passada a JS (l'Excel només porta
+    metres). Anada i tornada sobre el terme: 0,07 mm.
+  - **`openpyxl` no serveix per simular «desat amb l'Excel»**: la 3.1 també
+    desa els textos inline. Per això hi ha `tests/navegador/simula-excel.py`.
+- **«Excel per importar…»** (`rutes/CoordenadesImportar.ps1`, octubre 2026).
+  L'usuari no entra les correccions: les **importa una altra persona**, que les
+  vol **amb el mateix format que la base original** i les canviades en vermell.
+  - No es munta cap Excel: es **copia el fitxer de la base** tal qual
+    (`[IO.File]::Copy`) i només s'hi reescriuen les cel·les `UTM X`/`UTM Y` de les
+    activitats corregides, amb `Font.Color = 255` (vermell en BGR).
+  - Es fa amb **`Read-FullaEstesa -Desa`** (`Excel.ps1`): obrir l'Excel és en un
+    sol lloc (hi ha guard), i `-Desa` obre per escriure i desa **només si el cos
+    acaba bé**. Provat amb el doble de COM.
+  - **Una activitat que a la base ja no té la coordenada de quan es va repassar
+    NO es toca** (`JaCanviades`): la base ha canviat, potser ja s'ha corregit, i
+    sobreescriure-la seria desfer feina d'algú altre.
+  - **El tipus de la cel·la es conserva** (`Format-CoordComOriginal`): número →
+    número; text → text amb el mateix separador i **amb apòstrof davant**, perquè
+    escriure `'421982,90'` per COM en un Excel en català el convertiria en número.
+    **No s'ha pogut provar amb l'Excel de debò**: és al punt 11 de `provar-al-pc.md`.
+  - Capes: `Read-RepasXlsx` → `Get-CorreccionsDelRepas` → `Get-EscripturesCoordenades`
+    (purs, provats amb fixtures de `tests/dades/repas-*.xlsx`) → `Set-CoordenadesALaBase`
+    (l'únic que toca COM). La finestra (`Invoke-CoordExcelImportar`) és a
+    `Coordenades.ps1`: el mòdul **no pot cridar el seu client** (guard de cicles;
+    per això `Test-CoordPlausible` va passar a `Geocodificador.ps1` i
+    `Get-IdDeCella` és al mòdul).
 - **`estat[]` va per POSICIÓ dins d'`ITEMS`, no per ID**: si algun dia la base
   portés dos cops el mateix ID Activitat, dues fitxes es trepitjarien. Al
   `localStorage`, en canvi, es desa **per ID**, que és el que ha de sobreviure

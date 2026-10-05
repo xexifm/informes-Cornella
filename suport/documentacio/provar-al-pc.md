@@ -121,6 +121,16 @@ Obre el programa i **fes captura**. Comprova-hi:
     tornar on era), prem **N** (ha d'anar a una pendent propera), tria
     «Mostra: Sense portal» al desplegable i baixa l'Excel. Comprova que s'obre.
     Tanca el Chrome, torna a generar el mapa i mira que el repàs hi és.
+    **Carregar repàs:** «Esborrar el meu repàs», i després «Carregar repàs…» amb
+    l'Excel baixat: hi ha de tornar tot. Fes-ho també amb el mateix Excel obert i
+    desat amb l'Excel.
+    **Excel per importar:** a la finestra de triar zones, «Excel per importar…»,
+    tria l'Excel del repàs. Ha de sortir una còpia de la base (mateixa extensió
+    `.xls`/`.xlsx`, mateixes columnes) a `local\geocodificacio\`, oberta, amb
+    les UTM X / UTM Y de les activitats repassades **en vermell** i la resta igual.
+    Comprova que la base original **no** ha canviat, i que al Gestor de tasques no
+    queda cap `EXCEL.EXE`. Mira també si les coordenades de la base eren números o
+    text: la còpia les ha de tenir del mateix tipus.
 12. EINES → «Controls periòdics»: surt la llista d'activitats **amb les
     columnes plenes** (adreça, dates, correus). Si alguna columna surt buida,
     és el lector de cel·la: apunta-ho.

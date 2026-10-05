@@ -129,7 +129,13 @@ function _TrobaFullaEstesa($wb) {
 # Aqui dins NO hi ha cap coma al 'return $resultat', i tambe esta comprovat:
 # amb la forma d'us de dalt, posar-n'hi una no canvia res (0, 1, 2 i 5
 # registres donen el mateix), i una coma que no fa res nomes despista.
-function Read-FullaEstesa($excelFile, [scriptblock]$cos) {
+#
+# -Desa: obre el llibre per ESCRIURE (el cos hi escriu amb $x.Sheet) i el desa
+# en acabar. Nomes si el cos acaba be: un llibre a mig escriure no es desa mai.
+# El fa servir l'"Excel per importar" de Coordenades, que escriu sobre una COPIA
+# de la base (mai sobre l'original). Es aqui i no en una funcio a part perque
+# obrir i tancar l'Excel es fa en UN sol lloc (hi ha guard).
+function Read-FullaEstesa($excelFile, [scriptblock]$cos, [switch]$Desa) {
     $excel = $null
     try { $excel = New-Object -ComObject Excel.Application } catch { $excel = $null }
     if ($null -eq $excel) {
@@ -140,7 +146,7 @@ function Read-FullaEstesa($excelFile, [scriptblock]$cos) {
 
     $wb = $null
     try {
-        $wb = $excel.Workbooks.Open($excelFile.FullName, 0, $true)   # ReadOnly
+        $wb = $excel.Workbooks.Open($excelFile.FullName, 0, (-not $Desa))   # ReadOnly, tret de -Desa
         $trobada = _TrobaFullaEstesa $wb
         $sh = $trobada.Sheet
         if ($null -eq $sh) {
@@ -187,6 +193,7 @@ function Read-FullaEstesa($excelFile, [scriptblock]$cos) {
             Noms    = @($trobada.Noms)
         }
 
+        if ($Desa) { $wb.Save() }
         return $resultat
     } finally {
         # CADA PAS DINS DEL SEU try. Si el Close peta i s'endu el Quit, l'Excel

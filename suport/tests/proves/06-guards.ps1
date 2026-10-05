@@ -541,11 +541,16 @@ Write-Host "`n--- Excel.ps1: la seqüencia compartida de la fulla Estesa ---"
         $sh = [pscustomobject]@{ Name = $nomFulla; UsedRange = [pscustomobject]@{ Value2 = $m } }
         $wb = [pscustomobject]@{ Sheets = @($sh) }
         $wb | Add-Member ScriptMethod Close { param($q) $script:_xlTancat++ } -Force
+        $wb | Add-Member ScriptMethod Save { $script:_xlDesat++ } -Force
         $wbs = [pscustomobject]@{}
-        $wbs | Add-Member ScriptMethod Open { param($p, $a, $b) $wb }.GetNewClosure() -Force
+        # Un HASHTABLE capturat i no $script: dins del bloc: amb .GetNewClosure()
+        # el $script: es el de la closure, no el d'aquestes proves.
+        $obert = @{ NomesLectura = $null }
+        $script:_xlObert = $obert
+        $wbs | Add-Member ScriptMethod Open { param($p, $a, $b) $obert.NomesLectura = $b; $wb }.GetNewClosure() -Force
         $ex = [pscustomobject]@{ Visible = $true; DisplayAlerts = $true; Workbooks = $wbs }
         $ex | Add-Member ScriptMethod Quit { $script:_xlQuit++ } -Force
-        $script:_xlFals = $ex; $script:_xlTancat = 0; $script:_xlQuit = 0
+        $script:_xlFals = $ex; $script:_xlTancat = 0; $script:_xlQuit = 0; $script:_xlDesat = 0
     }
     # Substitueix NOMES la creacio de l'Excel; tota la resta de Read-FullaEstesa
     # es el codi de produccio tal qual.
@@ -625,6 +630,19 @@ Write-Host "`n--- Excel.ps1: la seqüencia compartida de la fulla Estesa ---"
     $errF = ''
     try { Read-FullaEstesa $fx { param($x) 1 } } catch { $errF = $_.Exception.Message }
     Assert ($errF.Contains('Resum')) 'Read-FullaEstesa: si no troba la fulla, diu quines hi ha'
+
+    # 5b. -Desa (l'"Excel per importar" de Coordenades). Sense, el llibre s'obre
+    #     NOMES LECTURA i no es desa mai; amb, s'obre per escriure i es desa
+    #     un cop, nomes si el cos acaba be.
+    _XlDoble 2 2
+    [void](Read-FullaEstesa $fx { param($x) 1 })
+    AssertEq "$($script:_xlObert.NomesLectura)|$($script:_xlDesat)" 'True|0' 'Read-FullaEstesa: per defecte, nomes lectura i sense desar'
+    _XlDoble 2 2
+    [void](Read-FullaEstesa $fx { param($x) 1 } -Desa)
+    AssertEq "$($script:_xlObert.NomesLectura)|$($script:_xlDesat)|$($script:_xlTancat)" 'False|1|1' 'Read-FullaEstesa -Desa: obre per escriure, desa un cop i tanca'
+    _XlDoble 2 2
+    try { [void](Read-FullaEstesa $fx { param($x) throw 'a mig escriure' } -Desa) } catch { }
+    AssertEq "$($script:_xlDesat)|$($script:_xlTancat)|$($script:_xlQuit)" '0|1|1' 'Read-FullaEstesa -Desa: si el cos peta NO desa, pero tanca i surt'
 
     # 6. _NormalitzaText: un sol normalitzador per als DOS processos.
     AssertEq (_NormalitzaText ('  Est' + [char]0x00E8 + 's  ')) 'estes' '_NormalitzaText: sense accents, sense espais, en minuscules'

@@ -322,11 +322,25 @@ Per anar més de pressa:
 
 El botó **Baixar Excel (.xlsx)** et dona **tot el que hagis validat d'aquesta
 base de dades**, també el d'altres zones i altres dies: ID GIA, referència
-cadastral, adreça, zona, coordenada vella, coordenada nova, d'on surt i quants
-metres s'ha mogut. La idea és que acabis amb **un sol fitxer**.
+cadastral, adreça, zona, coordenada vella, coordenada nova, d'on surt, quants
+metres s'ha mogut i de quina base de dades és. La idea és que acabis amb **un
+sol fitxer**: el teu **repàs**.
 
 El repàs es recorda en aquest navegador, així que pots tancar i tornar-hi un
-altre dia. Quan hagis abocat les coordenades noves a l'Excel d'activitats i en
+altre dia. **Baixa't l'Excel de tant en tant**: és la teva còpia de seguretat. Si
+el Chrome perd les dades (les esborres, o canvies d'ordinador), el botó
+**«Carregar repàs…»** del mapa el torna a carregar des d'aquell Excel (també si
+l'has obert i desat amb l'Excel). El que ja és al navegador no es trepitja: del
+fitxer només s'afegeix el que hi falta.
+
+**Per passar les correccions a qui les ha d'importar:** a la finestra de
+Coordenades (la de triar zones), botó **«Excel per importar…»**. Tries l'Excel
+del repàs i el programa fa una **còpia de la base de dades d'activitats** (el
+mateix fitxer, amb el mateix format i totes les columnes) amb les coordenades
+corregides escrites **en vermell**. Si alguna activitat ja té a la base una
+coordenada diferent de la que hi havia quan la vas repassar (potser algú ja
+l'ha corregida), **no es toca** i t'ho diu. La base original no es modifica mai:
+la còpia es desa a `local\geocodificacio\` i s'obre sola. Quan hagis abocat les coordenades noves a l'Excel d'activitats i en
 generis un de nou, el comptador es buida sol i comences net — i com que aquelles
 activitats ja no estaran apilades, **cada tanda serà més curta que l'anterior**.
 

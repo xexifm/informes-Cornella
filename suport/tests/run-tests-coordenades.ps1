@@ -347,4 +347,93 @@ Assert ($null -ne $parsedT) 'i el JSON segueix sent valid'
 AssertEq @($parsedT)[0].adreca 'C/ Falsa 1 </script><b>' 'amb l adreca intacta un cop llegida'
 AssertEq ([regex]::Matches($htmlT, '</script>').Count) ([regex]::Matches($html0, '</script>').Count) 'cap </script> de mes a la pagina'
 
+Write-Host "`n--- Get-IdDeCella ---"
+AssertEq (Get-IdDeCella ([double]101)) '101' 'un numero de l Excel (101.0) -> 101, sense decimals'
+AssertEq (Get-IdDeCella ' 7 ') '7' 'un text, retallat'
+AssertEq (Get-IdDeCella $null) '' 'una cel.la buida -> cadena buida'
+
+Write-Host "`n--- L'Excel per importar: llegir el repas (Read-RepasXlsx) ---"
+# Dos fitxers que han de donar EXACTAMENT el mateix: el que es baixa del mapa
+# (ZIP sense comprimir, textos inline) i el mateix desat de nou com ho fa l'Excel
+# (deflate, sharedStrings.xml i la fulla amb un altre nom intern). Els va generar
+# la prova del navegador (tests/navegador, COORD_DESA_FIXTURES).
+$dirDades = Join-Path $PSScriptRoot 'dades'
+$repasNav = @(Read-RepasXlsx (Join-Path $dirDades 'repas-navegador.xlsx'))
+$repasXl  = @(Read-RepasXlsx (Join-Path $dirDades 'repas-desat-excel.xlsx'))
+AssertEq $repasNav.Count 3 'el repas del mapa: capcalera + 2 activitats'
+AssertEq $repasNav[0].Cells[0] 'ID GIA' 'la primera columna es l ID GIA'
+AssertEq $repasNav[0].Cells[10] 'Base de dades' 'i l ultima, la base de dades'
+AssertEq $repasNav[2].Cells[6] ([double]421946.53) 'les coordenades arriben com a numero'
+AssertEq ($repasXl | ForEach-Object { ($_.Cells | ForEach-Object { [string]$_ }) -join '|' }) `
+         ($repasNav | ForEach-Object { ($_.Cells | ForEach-Object { [string]$_ }) -join '|' }) `
+         'el mateix fitxer desat amb l Excel (deflate + sharedStrings) es llegeix igual'
+AssertEq (_XlsxColumna 'A1') 0 '_XlsxColumna: A -> 0'
+AssertEq (_XlsxColumna 'K12') 10 '_XlsxColumna: K -> 10'
+AssertEq (_XlsxColumna 'AA3') 26 '_XlsxColumna: AA -> 26'
+
+Write-Host "`n--- Get-CorreccionsDelRepas ---"
+$corr = Get-CorreccionsDelRepas $repasNav '2026-08-18 ACTIVITATS.xls'
+AssertEq (@($corr.PerId.Keys) | Sort-Object) @('101', '102') 'les dues activitats repassades canvien de coordenada'
+AssertNear $corr.PerId['102'].XNova 421946.53 0.001 'amb la coordenada nova'
+AssertNear $corr.PerId['102'].XVella 421968.09 0.001 'i la que hi havia a l Excel quan es va repassar'
+$corrAltra = Get-CorreccionsDelRepas $repasNav '2026-10-01 ACTIVITATS.xls'
+AssertEq "$($corrAltra.PerId.Count)|$($corrAltra.AltraBase)|$(@($corrAltra.Bases) -join ',')" '0|2|2026-08-18 ACTIVITATS.xls' `
+         'un repas d una ALTRA base no s aplica, i diu de quina es'
+# Files fetes a ma: validada sense moure, sense coordenada, i un fitxer d'abans
+# de la columna 'Base de dades' (no se sap de quina base es: s'accepta).
+$fet = @(
+    [pscustomobject]@{ Cells = @('ID GIA', 'UTM X (Excel)', 'UTM Y (Excel)', 'UTM X (nova)', 'UTM Y (nova)') }
+    [pscustomobject]@{ Cells = @([double]201, [double]421968.09, [double]4578100.5, [double]421968.09, [double]4578100.5) }
+    [pscustomobject]@{ Cells = @('202', [double]421968.09, [double]4578100.5, $null, $null) }
+    [pscustomobject]@{ Cells = @('203', [double]421968.09, [double]4578100.5, '421990,10', '4578111,20') }
+    [pscustomobject]@{ Cells = @('204', $null, $null, [double]423.37, [double]4578.81) }
+)
+$corrFet = Get-CorreccionsDelRepas $fet 'qualsevol.xls'
+AssertEq "$($corrFet.SenseCanvi)|$($corrFet.Invalides)" '1|2' 'validada sense moure no es canvi; sense coordenada o impossible, invalida'
+AssertEq (@($corrFet.PerId.Keys) -join ',') '203' 'sense la columna de la base, s accepta (fitxers d abans)'
+AssertNear $corrFet.PerId['203'].XNova 421990.10 0.001 'i una coordenada escrita a ma amb coma tambe es llegeix'
+$petat = $false
+try { [void](Get-CorreccionsDelRepas @([pscustomobject]@{ Cells = @('Nom', 'Cognom') }) 'x.xls') } catch { $petat = $_.Exception.Message.Contains('ID GIA') }
+Assert $petat 'un Excel que no es un repas: llança dient quines columnes hi falten'
+
+Write-Host "`n--- Format-CoordComOriginal: el mateix TIPUS que hi havia a la base ---"
+AssertEq (Format-CoordComOriginal ([double]421968.09) 421946.531) ([double]421946.53) 'numero -> numero, a 2 decimals'
+AssertEq (Format-CoordComOriginal '421968,09' 421946.5) "'421946,50" 'text amb coma -> text amb coma (i l apostrof perque l Excel no el converteixi)'
+AssertEq (Format-CoordComOriginal '421968.09' 421946.5) "'421946.50" 'text amb punt -> text amb punt'
+
+Write-Host "`n--- Get-EscripturesCoordenades: quines cel.les de la base s'escriuen ---"
+$mat = [Array]::CreateInstance([object], @(7, 4), @(1, 1))
+$capB = @('ID Activitat', 'Nom', 'UTM X', 'UTM Y')
+for ($c = 1; $c -le 4; $c++) { $mat[1, $c] = $capB[$c - 1] }
+$filesB = @(
+    @([double]101, 'A', [double]421968.09, [double]4578100.5),     # numeros, com quan es va repassar
+    @('102', 'B', '421968,09', '4578100,50'),                       # text amb coma
+    @('103', 'C', [double]422500, [double]4578000),                 # la base ja ha canviat
+    @('105', 'E', [double]421000, [double]4577000),                 # no es al repas
+    @($null, '', $null, $null),                                     # fila buida
+    @('106', 'F', [double]421968.09, [double]4578100.5)             # al repas sense coordenada vella
+)
+for ($i = 0; $i -lt $filesB.Count; $i++) { for ($c = 1; $c -le 4; $c++) { $mat[($i + 2), $c] = $filesB[$i][$c - 1] } }
+$perIdB = @{
+    '101' = [pscustomobject]@{ XNova = 422008.09; YNova = 4578125.5; XVella = 421968.09; YVella = 4578100.5 }
+    '102' = [pscustomobject]@{ XNova = 421946.53; YNova = 4578110.4; XVella = 421968.09; YVella = 4578100.5 }
+    '103' = [pscustomobject]@{ XNova = 421900;    YNova = 4578000;   XVella = 421968.09; YVella = 4578100.5 }
+    '104' = [pscustomobject]@{ XNova = 421900;    YNova = 4578000;   XVella = 421968.09; YVella = 4578100.5 }
+    '106' = [pscustomobject]@{ XNova = 421970;    YNova = 4578101;   XVella = $null;     YVella = $null }
+}
+$pla = Get-EscripturesCoordenades $mat 7 $capB $perIdB
+AssertEq (@($pla.Aplicades) -join ',') '101,102,106' 's apliquen les que encara tenen la coordenada de quan es van repassar (i les que no en porten)'
+AssertEq (@($pla.JaCanviades) -join ',') '103' 'la que a la base ja te una altra coordenada NO es toca'
+AssertEq (@($pla.NoTrobades) -join ',') '104' 'i la que no es a la base es diu'
+AssertEq (@($pla.Escriptures | ForEach-Object { "$($_.Fila),$($_.Col)=$($_.Valor)" }) -join ' ') `
+         "2,3=422008.09 2,4=4578125.5 3,3='421946,53 3,4='4578110,40 7,3=421970 7,4=4578101" `
+         'escriu NOMES les cel.les UTM X i UTM Y d aquelles files, amb el tipus que tenien'
+$petatB = $false
+try { [void](Get-EscripturesCoordenades $mat 7 @('ID Activitat', 'Nom', 'X', 'Y') $perIdB) } catch { $petatB = $true }
+Assert $petatB 'si la base no te les columnes UTM X / UTM Y, llança (no escriu a cegues)'
+
+Write-Host "`n--- Get-NomExcelImportar ---"
+AssertEq (Get-NomExcelImportar '2026-08-18 ACTIVITATS.xls' ([datetime]'2026-10-05T10:30:00')) `
+         '2026-08-18 ACTIVITATS - coordenades corregides 2026-10-05 1030.xls' 'el mateix nom i la mateixa extensio, amb l afegit'
+
 exit (Write-TestSummary 'RESULTAT')

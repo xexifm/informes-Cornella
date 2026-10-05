@@ -311,6 +311,19 @@ function Select-PortalFacana($portals, $carrer, $numero) {
     return [pscustomobject]@{ X = $millor.X; Y = $millor.Y; Precisio = 'facana-aprox' }
 }
 
+# Una coordenada UTM 31N pot ser d'aquest mon? Es una comprovacio GENEROSA (tot
+# el fus, no nomes Cornella): nomes ha de cacar el que es impossible.
+# Viu aqui (i no a Coordenades.ps1) perque la fan servir Coordenades i
+# CoordenadesImportar, i un modul no pot dependre del seu client.
+#
+# Cal perque la base en porta: el GIA 1009 (Quintana i Millas 9) te
+# X=423,37 Y=4578,81 -- li falten tres xifres. Sense aixo es pinta al golf de
+# Guinea i estira el mapa sencer, de manera que la resta de punts queden
+# amuntegats en un pixel.
+function Test-CoordPlausible([double]$x, [double]$y) {
+    return ($x -ge 100000 -and $x -le 900000 -and $y -ge 4000000 -and $y -le 4900000)
+}
+
 # Distancia en metres entre dues coordenades UTM del mateix fus. Plana, que a
 # aquestes escales (metres dins d'un municipi) es exacta de sobres.
 function Get-UtmDistanceM([double]$x1, [double]$y1, [double]$x2, [double]$y2) {

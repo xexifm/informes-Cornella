@@ -379,6 +379,9 @@ Tres defectes que hi havia amagats, tots trobats **comparant les còpies**:
 3. El missatge de «no trobo la fulla» **només deia els noms de les pestanyes a
    UNA de les set**. Ara sempre.
 
+- **`Read-FullaEstesa … -Desa`** obre el llibre per **escriure** i el desa només
+  si el cos acaba bé (l'«Excel per importar» de Coordenades, sobre una còpia).
+  Si mai has d'escriure a un Excel, és aquí: no obris una altra instància.
 - **`Read-FullaEstesa $fitxer { param($x) … }`**: el cos arriba com a
   **scriptblock** i **sense `.GetNewClosure()`** — mateix patró i mateix motiu
   que `Write-InformeDocx`. El context porta `Data`, `Rows`, `Cols`, `Headers`,
