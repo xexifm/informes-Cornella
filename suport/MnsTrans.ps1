@@ -76,7 +76,7 @@ function _MnsFases {
         [pscustomobject]@{
             Clau = 'trans'
             Nom  = 'Transmissi' + [char]0x00F3
-            Sub  = 'Canvi de nom del titular de l' + [char]0x2019 + 'activitat'
+            Sub  = 'Transmissi' + [char]0x00F3 + ' de la titularitat de l' + [char]0x2019 + 'activitat'
             Curt = 'TRANS'
         }
     )
@@ -178,17 +178,18 @@ function Build-MnsBlocs($model) {
     $seccions = @(@($model.Punts) | Where-Object { $null -ne $_ })
     $amb = ($seccions.Count -gt 0)
 
+    # CADA PARAGRAF DEL CATALEG ES UN ITEM, sigui text o llista, i despres de
+    # cada un hi va l'aire d'un item (Format-Aire 'item': la bandera
+    # SpacerAfterItem de Format.ps1). Una sola regla per a tots: abans el de
+    # llista se la saltava i el "1." quedava enganxat al paragraf de sota.
     foreach ($p in @(_MnsParagrafs $model.Cataleg ([string]$model.Fase) $amb)) {
         if ([string]$p.Tipus -eq 'llista') {
-            # El paragraf de llista va BUIT: l'omple l'usuari al Word. I amb
-            # l'aire de despres, com qualsevol altre paragraf: sense, el "1." de
-            # la llista quedava enganxat al "i un cop avaluades..." de sota.
+            # El paragraf de llista va BUIT: l'omple l'usuari al Word.
             [void]$b.Add(@{ T = 'llista'; Text = '' })
-            [void]$b.Add(@{ T = 'aire'; Clau = 'item' })
-            continue
-        }
-        foreach ($l in @(Apply-FieldsToLines $p.Linies $fields)) {
-            foreach ($x in @(_BlocsDeLinia ([string]$l) $false)) { [void]$b.Add($x) }
+        } else {
+            foreach ($l in @(Apply-FieldsToLines $p.Linies $fields)) {
+                foreach ($x in @(_BlocsDeLinia ([string]$l) $false)) { [void]$b.Add($x) }
+            }
         }
         [void]$b.Add(@{ T = 'aire'; Clau = 'item' })
     }

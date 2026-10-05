@@ -94,7 +94,10 @@
       {
        "runs": [
         {
-         "t": "En relació a la sol·licitud de canvi de nom presentada a l’Ajuntament de Cornellà de Llobregat s’informa FAVORABLEMENT del canvi de nom presentat amb les següents observacions:",
+         "t": "En relació a la sol·licitud de transmissió de la titularitat presentada a l’Ajuntament de Cornellà de Llobregat, "
+        },
+        {
+         "t": "s’informa FAVORABLEMENT de la transmissió de la titularitat presentada amb les següents observacions:",
          "b": true
         }
        ]
@@ -110,7 +113,10 @@
       {
        "runs": [
         {
-         "t": "En relació a la sol·licitud de canvi de nom presentada a l’Ajuntament de Cornellà de Llobregat s’informa FAVORABLEMENT del canvi de nom presentat sense més observacions en relació a aquest tràmit.",
+         "t": "En relació a la sol·licitud de transmissió de la titularitat presentada a l’Ajuntament de Cornellà de Llobregat, "
+        },
+        {
+         "t": "s’informa FAVORABLEMENT de la transmissió de la titularitat presentada sense més observacions en relació a aquest tràmit.",
          "b": true
         }
        ]

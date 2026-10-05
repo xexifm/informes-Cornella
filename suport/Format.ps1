@@ -186,8 +186,15 @@ function _Apply-Indent($sel, $cm) {
     # treure la numeracio, tambe toca la sagnia del paragraf i aqui de seguida
     # se li torna a posar la bona.
     try { $sel.Range.ListFormat.RemoveNumbers() } catch { }
+    _FormatParagrafCos $sel $cm 0
+}
+
+# EL FORMAT DE PARAGRAF DEL COS, segons la configuracio: sagnia (amb sagnia
+# francesa $hangCm si n'hi ha), alineat i cap espai propi. El fan servir
+# _Apply-Indent (tots els paragrafs normals) i Format-ListItem.
+function _FormatParagrafCos($sel, $cm, $hangCm) {
     $sel.ParagraphFormat.LeftIndent = (_CmToPoints $cm)
-    $sel.ParagraphFormat.FirstLineIndent = 0
+    $sel.ParagraphFormat.FirstLineIndent = (- (_CmToPoints $hangCm))
     # Justificat EXPLICIT (com la plantilla). Els qui volen una altra cosa
     # (Format-ConclusionHeader, centrat) l'apliquen DESPRES d'aquesta crida.
     try { $sel.ParagraphFormat.Alignment = $Script:ReportFormatConfig.BodyAlignment } catch { }
@@ -359,8 +366,6 @@ function Format-Body {
 # posa PrimerSubpuntSpaceBeforePt, perque el sub-punt no quedi enganxat al text de l'item.
 function Format-Bullet {
     param($sel, [string]$text, [switch]$IsChild, [switch]$First)
-    [void]$sel.TypeParagraph()
-    _Reset-Char $sel
     # Sangria francesa: el text va a LeftIndent i el pic queda a
     # LeftIndent-Hang (a l'esquerra). El tabulador despres del pic salta al
     # LeftIndent (el Word posa una parada de tabulacio implicita alli).
@@ -368,14 +373,12 @@ function Format-Bullet {
             else          { $Script:ReportFormatConfig.BulletIndentCm }
     $hang = if ($IsChild) { $Script:ReportFormatConfig.BulletChildHangCm }
             else          { $Script:ReportFormatConfig.BulletHangCm }
-    $sel.ParagraphFormat.LeftIndent = (_CmToPoints $left)
+    # EL PROLEG DE TOTS (_NouParagraf: fora numeracio, alineat i espaiat de la
+    # configuracio, lletra del cos) i despres la sagnia francesa. Abans feia el
+    # seu propi TypeParagraph + _Reset-Char i no treia la numeracio: un pic
+    # despres d'un paragraf de llista (Format-ListItem) l'hauria continuada.
+    _NouParagraf $sel $left
     $sel.ParagraphFormat.FirstLineIndent = (- (_CmToPoints $hang))
-    # Text justificat (com l'estil 'List Paragraph' de la casa, jc=both). Es
-    # posa explicit per no heretar un 'center' d'una capcalera anterior. Aquest
-    # Format-* NO passa per _Apply-Indent (te sangria francesa i espaiat propis),
-    # o sigui que l'alineat se l'ha de posar ell -pero de la configuracio, no
-    # d'un literal.
-    try { $sel.ParagraphFormat.Alignment = $Script:ReportFormatConfig.BodyAlignment } catch { }
     # Separacio entre punts amb SpaceBefore (no linies en blanc): aixi la
     # llista surt compacta i amb el mateix aire que el document de referencia.
     # El primer punt de la llista se separa mes (PrimerSubpuntSpaceBeforePt) de l'item.
@@ -478,10 +481,22 @@ function Format-Append {
 # reves: el paragraf surt BUIT i l'usuari hi escriu les modificacions o les
 # observacions un cop generat el Word, i llavors vol que en prement Enter el
 # Word li continui la llista sol.
+#
+# PERO EL FORMAT EL DIU AQUEST MODUL, NO EL WORD. ApplyNumberDefault posa la
+# llista per defecte del Word: canvia l'estil del paragraf ("Paragraf de
+# llista"), la sagnia (la seva, 0,63 / 1,27 cm) i el format del cursor. Era
+# l'unic Format-* que deixava decidir el Word, i d'aqui va sortir la MNS
+# d'octubre de 2026: el paragraf seguent, en treure-li la numeracio, quedava en
+# Calibri. Ara, DESPRES d'aplicar la numeracio, es torna a posar el que mana la
+# configuracio: la lletra del cos (_Reset-Char) i la geometria de les LLISTES
+# de l'informe, la mateixa que els punts amb pic (Format-Bullet de 1r nivell):
+# el numero a BulletIndentCm - BulletHangCm i el text a BulletIndentCm.
 function Format-ListItem {
     param($sel, [string]$text = '')
     _NouParagraf $sel 0
     try { $sel.Range.ListFormat.ApplyNumberDefault() } catch { }
+    _Reset-Char $sel
+    _FormatParagrafCos $sel $Script:ReportFormatConfig.BulletIndentCm $Script:ReportFormatConfig.BulletHangCm
     [void](_EscriuRang $sel $text)
 }
 

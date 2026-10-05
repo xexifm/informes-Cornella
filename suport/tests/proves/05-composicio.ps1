@@ -633,6 +633,149 @@ if ((Test-Path -LiteralPath $mnsPath) -and (Test-Path -LiteralPath (Join-Path $G
             }
         }
     }
+
+Write-Host "`n--- MNS i Transmissio SEGUEIXEN Format.ps1 (paragraf a paragraf, amb un Word que canvia d'estil) ---"
+# PER QUE. Format.ps1 es on es decideix com es veu un informe (lletra, mida,
+# alineat, sagnies, aire). La MNS d'octubre de 2026 va sortir amb un paragraf en
+# Calibri i un "1." enganxat al text perque el paragraf de llista deixava
+# decidir el Word. Aqui s'escriu l'informe SENCER amb les Format-* DE DEBO
+# (Format.ps1 + Write-Informe) contra un Word simulat que fa el que fa el de
+# veritat i que les proves de cada Format-* no veien:
+#   - un paragraf nou HERETA l'estil, la llista i el format de l'anterior;
+#   - aplicar o treure una llista canvia l'estil del paragraf ("Paragraf de
+#     llista" <-> Normal) i torna el cursor a la lletra de l'ESTIL (Normal:
+#     la Calibri del tema; la plantilla acaba en un "Paragraf de llista").
+# I despres es mira cada caracter i cada paragraf contra $ReportFormatConfig.
+if (-not ('W2Sel' -as [type])) {
+    Add-Type -TypeDefinition @'
+using System; using System.Collections.Generic; using System.Text;
+public class W2Attr { public string Name; public object Size; public bool Bold; public bool Italic; public W2Attr Copia() { return (W2Attr)MemberwiseClone(); } }
+public class W2Para { public string Style; public bool Llista; public double LeftIndent, FirstLineIndent, SpaceBefore, SpaceAfter; public object Alignment, OutlineLevel; public int Ini; public W2Attr Marca; }
+public class W2Doc {
+    public StringBuilder Text = new StringBuilder(); public List<W2Attr> Attrs = new List<W2Attr>(); public List<W2Para> Paras = new List<W2Para>();
+    public W2Attr Cur = new W2Attr(); public W2Hyperlinks Hyperlinks = new W2Hyperlinks();
+    public W2Para P { get { return Paras[Paras.Count - 1]; } }
+    public static string FontDeEstil(string st) { return st == "List Paragraph" ? "Bookman Old Style" : "Calibri"; }
+    public void CanviaEstil(string st) { P.Style = st; Cur = new W2Attr(); Cur.Name = FontDeEstil(st); Cur.Size = 11; }
+    public W2Range Range(int a, int b) { return new W2Range(this, a, b, false); }
+}
+public class W2Hyperlinks { public object Add(object r, string url) { return null; } }
+public class W2Font {
+    W2Doc d; int a, b; bool cur;
+    public W2Font(W2Doc x, int i, int j, bool c) { d = x; a = i; b = j; cur = c; }
+    void Fes(Action<W2Attr> f) { if (cur) { f(d.Cur); } else { for (int k = a; k < b && k < d.Attrs.Count; k++) f(d.Attrs[k]); } }
+    static bool B(object v) { return v != null && (v is bool ? (bool)v : Convert.ToInt32(v) != 0); }
+    public object Name { get { return d.Cur.Name; } set { Fes(x => x.Name = Convert.ToString(value)); } }
+    public object Size { get { return d.Cur.Size; } set { Fes(x => x.Size = value); } }
+    public object Bold { get { return d.Cur.Bold; } set { Fes(x => x.Bold = B(value)); } }
+    public object Italic { get { return d.Cur.Italic; } set { Fes(x => x.Italic = B(value)); } }
+    public object Underline { get; set; }
+    public object Color { get; set; }
+}
+public class W2ListFormat {
+    W2Doc d; public W2ListFormat(W2Doc x) { d = x; }
+    public void ApplyNumberDefault() { d.P.Llista = true; d.CanviaEstil("List Paragraph"); d.P.LeftIndent = 36; d.P.FirstLineIndent = -18; }
+    public void RemoveNumbers() { if (!d.P.Llista) return; d.P.Llista = false; d.CanviaEstil("Normal"); d.P.LeftIndent = 0; d.P.FirstLineIndent = 0; }
+}
+public class W2Range {
+    public int Start, End; public W2Font Font; public W2ListFormat ListFormat; public string Text;
+    public W2Range(W2Doc d, int a, int b, bool cur) { Start = a; End = b; Font = new W2Font(d, a, b, cur); ListFormat = new W2ListFormat(d); Text = d.Text.ToString(a, b - a); }
+}
+public class W2ParaFmt {
+    W2Doc d; public W2ParaFmt(W2Doc x) { d = x; }
+    public double LeftIndent { get { return d.P.LeftIndent; } set { d.P.LeftIndent = value; } }
+    public double FirstLineIndent { get { return d.P.FirstLineIndent; } set { d.P.FirstLineIndent = value; } }
+    public double SpaceBefore { get { return d.P.SpaceBefore; } set { d.P.SpaceBefore = value; } }
+    public double SpaceAfter { get { return d.P.SpaceAfter; } set { d.P.SpaceAfter = value; } }
+    public object Alignment { get { return d.P.Alignment; } set { d.P.Alignment = value; } }
+    public object OutlineLevel { get { return d.P.OutlineLevel; } set { d.P.OutlineLevel = value; } }
+}
+public class W2Paragraphs { W2Doc d; public W2Paragraphs(W2Doc x) { d = x; }
+    public W2Range Item(int i) { int a = d.P.Ini; return new W2Range(d, a, d.Text.Length, false); } }
+public class W2Sel {
+    public W2Doc Document = new W2Doc(); public W2Font Font; public W2ParaFmt ParagraphFormat; public W2Paragraphs Paragraphs;
+    public W2Sel() {
+        W2Para p = new W2Para(); p.Style = "List Paragraph"; p.Alignment = 3; Document.Paras.Add(p);   // l'ultim paragraf de '0 CAPCALERA.docx'
+        Document.Cur.Name = "Bookman Old Style"; Document.Cur.Size = 11; Document.Cur.Bold = true;
+        Font = new W2Font(Document, 0, 0, true); ParagraphFormat = new W2ParaFmt(Document); Paragraphs = new W2Paragraphs(Document);
+    }
+    public W2Range Range { get { int n = Document.Text.Length; return new W2Range(Document, n, n, true); } }
+    public void TypeText(string t) { foreach (char c in t) { Document.Text.Append(c); Document.Attrs.Add(Document.Cur.Copia()); } }
+    public void TypeParagraph() {
+        W2Para a = Document.P; a.Marca = Document.Cur.Copia();
+        Document.Text.Append('\r'); Document.Attrs.Add(Document.Cur.Copia());
+        W2Para p = (W2Para)Activator.CreateInstance(typeof(W2Para)); p.Style = a.Style; p.Llista = a.Llista; p.LeftIndent = a.LeftIndent; p.FirstLineIndent = a.FirstLineIndent;
+        p.SpaceBefore = a.SpaceBefore; p.SpaceAfter = a.SpaceAfter; p.Alignment = a.Alignment; p.Ini = Document.Text.Length; Document.Paras.Add(p);
+    }
+    public void InsertBreak(int t) { }
+    public void Tanca() { Document.P.Marca = Document.Cur.Copia(); }
+}
+'@
+}
+$cfgF = $Script:ReportFormatConfig
+$contracte = {
+    param([string]$nom, $blocs)
+    . (Join-Path (Split-Path -Parent $TestsDir) 'Format.ps1')
+    $w = New-Object W2Sel
+    [void](Write-Informe $w $blocs)
+    $w.Tanca()
+    $d = $w.Document
+    $txt = $d.Text.ToString()
+    $mal = New-Object System.Collections.ArrayList
+    for ($i = 0; $i -lt $d.Paras.Count; $i++) {
+        $p = $d.Paras[$i]
+        $fi = if ($i + 1 -lt $d.Paras.Count) { $d.Paras[$i + 1].Ini - 1 } else { $txt.Length }
+        $t = $txt.Substring($p.Ini, [Math]::Max(0, $fi - $p.Ini))
+        if ($i -eq 0) { continue }   # el de la plantilla, on comenca el cursor
+        $etq = '[' + $i + '] "' + $(if ($t.Length -gt 30) { $t.Substring(0, 30) } else { $t }) + '"'
+        for ($k = $p.Ini; $k -lt $fi; $k++) {
+            $a = $d.Attrs[$k]
+            if ([string]$a.Name -ne [string]$cfgF.BodyFontName) { [void]$mal.Add($etq + ' lletra ' + $a.Name); break }
+            if ($a.Italic) { [void]$mal.Add($etq + ' cursiva'); break }
+        }
+        # L'empty paragraph: el que hi escrigui l'usuari agafara el format de la marca.
+        if ($t.Length -eq 0 -and $null -ne $p.Marca -and [string]$p.Marca.Name -ne [string]$cfgF.BodyFontName) { [void]$mal.Add($etq + ' (buit) lletra per escriure-hi ' + $p.Marca.Name) }
+        if ($t -ne 'CONCLUSIONS' -and [int]$p.Alignment -ne [int]$cfgF.BodyAlignment) { [void]$mal.Add($etq + ' alineat ' + $p.Alignment) }
+    }
+    return @{ Mal = $mal.ToArray(); Doc = $d; Text = $txt }
+}
+foreach ($fC in @('mns', 'trans')) {
+    foreach ($ambC in @($false, $true)) {
+        $puntsC = if ($ambC) { $secM } else { @() }
+        $etqC = $fC + '/' + $(if ($ambC) { 'amb' } else { 'sense' }) + ' punts'
+        $blC = @(Build-MnsBlocs @{ Fase = $fC; Header = @{}; Fields = [ordered]@{}; Punts = $puntsC; Cataleg = $catM })
+        $rC = & $contracte "$fC/$ambC" $blC
+        AssertEq ($rC.Mal -join ' | ') '' ($etqC + ': cada paragraf, amb la lletra i l''alineat de Format.ps1 (cap Calibri, cap cursiva)')
+        $llistes = @($rC.Doc.Paras | Where-Object { $_.Llista })
+        if ($fC -eq 'mns') {
+            AssertEq $llistes.Count 1 ($etqC + ': UN sol paragraf de llista (el de les modificacions), i el seguent ja no ho es')
+            $pl = $llistes[0]
+            AssertNear $pl.LeftIndent (_CmToPoints $cfgF.BulletIndentCm) 0.01 ($etqC + ': la llista, amb la sagnia de les llistes de Format.ps1 (no la del Word)')
+            AssertNear $pl.FirstLineIndent (- (_CmToPoints $cfgF.BulletHangCm)) 0.01 ($etqC + ': ...i la sagnia francesa del pic')
+            $iL = [array]::IndexOf(@($rC.Doc.Paras), $pl)
+            $seg = $rC.Doc.Paras[$iL + 1]
+            AssertEq ($rC.Text.Substring($seg.Ini, 1)) "`r" ($etqC + ': despres de la llista, una linia en blanc (SpacerAfterItem)')
+        } else {
+            AssertEq $llistes.Count 0 ($etqC + ': cap llista')
+        }
+    }
+}
+# I L'INFORME DE SEMPRE (REQ1) passa la mateixa prova: el contracte es de Format.ps1, no de la MNS.
+$blR = @(Build-CatalegBlocs $secM ([ordered]@{}) '')
+$rR = & $contracte 'req1' $blR
+AssertEq ($rR.Mal -join ' | ') '' 'REQ1: cada paragraf, amb la lletra i l''alineat de Format.ps1'
+# LA PROVA ES DE DEBO: amb l'ordre d'abans de _NouParagraf, el paragraf que ve
+# de la llista surt en Calibri (el defecte de la MNS d'octubre de 2026).
+$rV = & {
+    . (Join-Path (Split-Path -Parent $TestsDir) 'Format.ps1')
+    function _NouParagraf($sel, $cm) { [void]$sel.TypeParagraph(); _Reset-Char $sel; _Apply-Indent $sel $cm }
+    function Format-ListItem { param($sel, [string]$text = '') _NouParagraf $sel 0; try { $sel.Range.ListFormat.ApplyNumberDefault() } catch { }; [void](_EscriuRang $sel $text) }
+    $w = New-Object W2Sel
+    [void](Write-Informe $w @(@{ T = 'llista'; Text = '' }, @{ T = 'cos'; Text = 'i un cop avaluades' }))
+    $d = $w.Document; $t = $d.Text.ToString(); $i = $t.IndexOf('i un cop')
+    [string]$d.Attrs[$i].Name
+}
+AssertEq $rV 'Calibri' 'el Word simulat REPRODUEIX el defecte amb el codi d''abans (la prova no passa per casualitat)'
 }
 
 # ---------------------------------------------------------------------------

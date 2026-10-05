@@ -679,8 +679,9 @@ s'assembla gens: tres o quatre paràgrafs fixos i cap bloc de documentació.
   - **«i un cop avaluades…» en Calibri.** `_NouParagraf` posava la Bookman i
     *després* treia la numeració; al paràgraf que ve d'un de llista, el Word el
     passa a estil Normal i torna el cursor a la lletra de l'estil. Ara treu la
-    numeració primer. I la Llei 20/2009 ja no va en cursiva: és catalana (només
-    hi van els noms en una altra llengua).
+    numeració primer (i `Format-Bullet` passa pel mateix pròleg: era l'altre
+    `Format-*` que no ho feia). I la Llei 20/2009 ja no va en cursiva: és
+    catalana (només hi van els noms en una altra llengua).
 - **`Format-ListItem` (`Format.ps1`) és una llista de Word DE VERITAT**
   (`ListFormat.ApplyNumberDefault()`), no un número escrit com a text. A la resta
   de l'informe el número s'escriu perquè el document ja surt fet; aquí el
@@ -688,6 +689,19 @@ s'assembla gens: tres o quatre paràgrafs fixos i cap bloc de documentació.
   la llista continuï sola. Perquè el paràgraf següent **no** continuï la llista,
   `_Apply-Indent` fa `ListFormat.RemoveNumbers()` **abans** de posar la sagnia
   (el Word, en treure la numeració, també toca la sagnia).
+- **Però el format el diu `Format.ps1`, no el Word** (octubre 2026). Era l'únic
+  `Format-*` que deixava decidir el Word (estil «Paràgraf de llista», la seva
+  sagnia, el format del cursor). Ara, després d'`ApplyNumberDefault`, hi torna
+  a posar la lletra del cos i la geometria de les llistes de l'informe (la dels
+  punts amb pic: `BulletIndentCm` / `BulletHangCm`), i cada paràgraf del
+  catàleg, text o llista, porta l'aire d'un ítem (`SpacerAfterItem`). Ho
+  demostra una prova (`05-composicio`) que escriu la MNS i la Transmissió
+  senceres amb les `Format-*` de debò contra un Word simulat que canvia d'estil
+  com el real, i mira cada caràcter i cada paràgraf contra `$ReportFormatConfig`
+  (també passa amb REQ1, i reprodueix el defecte amb el codi d'abans).
+- **Transmissió**: «En relació a la sol·licitud de transmissió de la
+  titularitat…, **s'informa FAVORABLEMENT…**» (abans «canvi de nom», i tot el
+  paràgraf en negreta; ara només la part que informa, com a la MNS).
 - **El text viu a `ESTRUCTURALS/MNSTRANS.json`** (un sol catàleg per als dos, com
   va demanar l'usuari), família `mnstrans`. Una secció per informe i un fill
   per paràgraf: `text` → paràgraf normal, `item` → paràgraf de llista buit. La

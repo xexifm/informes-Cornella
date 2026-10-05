@@ -1078,9 +1078,21 @@ quan el destí és una unitat de xarxa) → bloc de capçalera → `<<PLACEHOLDE
 
 ### Format.ps1 unificat: `_NouParagraf` + `_EscriuRang`, i el format AL RANG
 Repàs de setembre 2026, sense canviar cap document (els 19 fitxers d'or idèntics):
-- **Tots els `Format-*` comencen amb `_NouParagraf`** (paràgraf nou, format de
-  caràcter net, sagnia): era el mateix pròleg copiat a catorze funcions.
-  `Format-Bullet` **no** hi passa a posta (sagnia francesa i espai d'abans propis).
+- **Tots els `Format-*` comencen amb `_NouParagraf`** (paràgraf nou, sagnia i
+  després format de caràcter net): era el mateix pròleg copiat a catorze
+  funcions. Des de l'octubre de 2026 **també `Format-Bullet`** (hi posa la seva
+  sagnia francesa i el seu espai al damunt): fent-se el seu pròleg, no treia la
+  numeració d'una llista anterior.
+- **Cap `Format-*` deixa decidir el Word.** `Format-ListItem` (l'única llista de
+  Word de debò, la de la MNS) deixava l'estil, la sagnia i la lletra que posa
+  `ApplyNumberDefault`, i d'aquí va sortir la MNS d'octubre de 2026 amb un
+  paràgraf en Calibri. Ara hi torna a posar el que diu la configuració. **La
+  prova de contracte** (`05-composicio`, «MNS i Transmissió SEGUEIXEN
+  Format.ps1») escriu informes sencers amb les `Format-*` de debò contra un Word
+  simulat que **canvia d'estil com el real** (paràgraf nou = hereta l'anterior;
+  posar/treure llista = canvi d'estil i cursor a la lletra de l'estil) i mira
+  cada caràcter i cada paràgraf contra `$ReportFormatConfig`. Un informe nou s'hi
+  ha d'afegir.
 - **Tot s'escriu amb `_EscriuRang`, que retorna el rang escrit**, i la negreta,
   el subratllat, la mida o el color es posen **al rang, mai al cursor**. Activar
   el format al cursor, escriure i desactivar-lo és la trampa que feia sortir

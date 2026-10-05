@@ -18,9 +18,9 @@ SECT|Transmissió
 AIRE|seccio
 SUB|sense observacions
 AIRE|subseccio
-BODY|**En relació a la sol·licitud de canvi de nom presentada a l’Ajuntament de Cornellà de Llobregat s’informa FAVORABLEMENT del canvi de nom presentat sense més observacions en relació a aquest tràmit.**
+BODY|En relació a la sol·licitud de transmissió de la titularitat presentada a l’Ajuntament de Cornellà de Llobregat, **s’informa FAVORABLEMENT de la transmissió de la titularitat presentada sense més observacions en relació a aquest tràmit.**
 AIRE|item
 SUB|amb observacions
 AIRE|subseccio
-BODY|**En relació a la sol·licitud de canvi de nom presentada a l’Ajuntament de Cornellà de Llobregat s’informa FAVORABLEMENT del canvi de nom presentat amb les següents observacions:**
+BODY|En relació a la sol·licitud de transmissió de la titularitat presentada a l’Ajuntament de Cornellà de Llobregat, **s’informa FAVORABLEMENT de la transmissió de la titularitat presentada amb les següents observacions:**
 AIRE|item
