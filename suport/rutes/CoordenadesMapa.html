@@ -66,6 +66,21 @@
   .marker-verd.moguda      { background: #e67e22; border-color: #7e5109; }
   .marker-verd.revisada    { box-shadow: 0 0 0 3px #14365c, 0 1px 3px rgba(0,0,0,.45); }
   .marker-verd.sel         { transform: scale(1.45); outline: 3px solid #f39c12; outline-offset: 3px; }
+  /* PER REVISAR: un "!" a la cantonada del punt i un \26A0 a la fila. */
+  .marker-verd { position: relative; }
+  .marker-verd.avis::after { content: '!'; position: absolute; top: -10px; right: -10px; width: 13px; height: 13px;
+                             border-radius: 50%; background: #c0392b; color: #fff; border: 1px solid #fff;
+                             font: bold 10px/13px Segoe UI, Arial, sans-serif; text-align: center; }
+  tr.avis td.id::before { content: '\26A0\00A0'; color: #c0392b; }
+  .pin-avis { background: #c0392b; border-radius: 50%; width: 11px; height: 11px; color: #fff; text-align: center;
+              font: bold 9px/11px Segoe UI, Arial, sans-serif; vertical-align: 0; }
+  .pin-avis::after { content: '!'; }
+  .pop .avis-pop { margin-top: 6px; padding-top: 5px; border-top: 1px solid #eee; font-size: 12px; }
+  .pop .avis-pop .nota { color: #a04000; }
+  /* La targeta en passar el ratoli per sobre d'un punt. */
+  .leaflet-tooltip.targeta { font-size: 12px; line-height: 1.4; width: max-content; min-width: 200px; max-width: 320px; white-space: normal; }
+  .targeta .tt-gris { color: #666; }
+  .targeta .tt-avis { color: #c0392b; font-weight: bold; }
   /* Numeros de portal del Cadastre: nomes a partir del zoom de carrer. */
   .portal-num { white-space: nowrap; font-size: 11px; color: #34495e; font-weight: bold;
                 text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff;
@@ -494,8 +509,66 @@ function escriuDesat(d) {
 
 function r2(v) { return Math.round(v * 100) / 100; }
 
+// ---------------------------------------------------------------------------
+// PER REVISAR (octubre 2026, l'usuari: "hi ha punts estranys. Vull poder posar
+// un warning per revisar posteriorment"). Un avis amb una nota opcional, A PART
+// del repas: marcar-lo no valida ni mou el punt, i l'«Excel per importar» no
+// el toca mai (no porta coordenada nova). Viu al navegador amb la seva clau, i
+// va a l'Excel del repas (columna «Per revisar») perque la copia de seguretat
+// el porti; «Carregar repas» el recupera.
+// ---------------------------------------------------------------------------
+var CLAU_AVIS = 'coordenades-avisos:' + FONT;
+var avisos = {};
+
+function llegeixAvisos() {
+  try {
+    var cru = window.localStorage.getItem(CLAU_AVIS);
+    var o = cru ? JSON.parse(cru) : {};
+    return (o && typeof o === 'object') ? o : {};
+  } catch (e) { return {}; }
+}
+
+function escriuAvisos(a) {
+  try { window.localStorage.setItem(CLAU_AVIS, JSON.stringify(a)); } catch (e) { }
+}
+
+function teAvis(i) { return avisos.hasOwnProperty(ITEMS[i].id); }
+
+function posaAvis(i, nota) {
+  var it = ITEMS[i];
+  avisos = llegeixAvisos();
+  avisos[it.id] = { nota: String(nota || '').trim(), rc: it.rc, adreca: it.adreca, zona: it.zona, xe: it.xe, ye: it.ye };
+  escriuAvisos(avisos);
+  refrescaObert(i);
+  actualitzaEstatBarra();
+}
+
+function treuAvis(i) {
+  avisos = llegeixAvisos();
+  delete avisos[ITEMS[i].id];
+  escriuAvisos(avisos);
+  refrescaObert(i);
+  actualitzaEstatBarra();
+}
+
+// Com refrescaItem, pero la fitxa que tenies oberta es queda oberta (amb l'avis
+// nou): el setIcon del Leaflet torna a lligar el popup i el tanca.
+function refrescaObert(i) {
+  var obert = capes[i].verd.isPopupOpen();
+  refrescaItem(i);
+  if (obert) { capes[i].verd.openPopup(); }
+}
+
+// Des de la fitxa del punt: la nota es pregunta (i es pot deixar en blanc).
+function marcaAvis(i) {
+  var nota = window.prompt('Per revisar: què hi has vist? (opcional)', teAvis(i) ? avisos[ITEMS[i].id].nota : '');
+  if (nota === null) { return; }
+  posaAvis(i, nota);
+}
+
 function carregaCorreccions() {
   var desat = llegeixDesat();
+  avisos = llegeixAvisos();
   for (var i = 0; i < ITEMS.length; i++) {
     var it = ITEMS[i];
     var d = desat[it.id];
@@ -578,13 +651,14 @@ function classeVerd(i) {
   else if (e.origen === 'facana-aprox')  { c += ' aprox'; }
   else if (e.origen === 'cadastre')      { c += ' sensefacana'; }
   if (e.revisada) { c += ' revisada'; }
+  if (teAvis(i))  { c += ' avis'; }
   if (i === sel)  { c += ' sel'; }
   return c;
 }
 
 function classeFila(i) {
   var e = estat[i];
-  return (e.revisada ? 'revisada' : '') + (e.origen === 'manual' ? ' moguda' : '') + (i === sel ? ' sel' : '');
+  return (e.revisada ? 'revisada' : '') + (e.origen === 'manual' ? ' moguda' : '') + (teAvis(i) ? ' avis' : '') + (i === sel ? ' sel' : '');
 }
 
 function iconaVerd(i) {
@@ -610,7 +684,48 @@ function popupHtml(i) {
     'Desplaçament: ' + d.toFixed(1) + ' m<br>' +
     (e.revisada ? '<b>Validat.</b> Torna-hi a fer clic per desfer-ho.'
                 : 'Fes clic al punt per validar-lo, o arrossega\'l.') +
-    '</div></div>';
+    '</div>' + avisHtml(i) + '</div>';
+}
+
+// Els enllacos fan la feina DESPRES del clic (setTimeout): l'accio refa la
+// fitxa, l'enllac clicat deixa d'existir a mig clic, i el Leaflet el pren per
+// un clic al MAPA i tanca la fitxa (mesurat a la prova del navegador).
+function enllacAvis(text, accio, i) {
+  return '<a href="#" onclick="setTimeout(function () { ' + accio + '(' + i + '); }, 0); return false;">' + text + '</a>';
+}
+
+function avisHtml(i) {
+  if (!teAvis(i)) {
+    return '<div class="avis-pop">' + enllacAvis('&#9888; Marca per revisar', 'marcaAvis', i) + '</div>';
+  }
+  var nota = avisos[ITEMS[i].id].nota;
+  return '<div class="avis-pop">&#9888; <b>Per revisar</b>' + (nota ? ': <span class="nota">' + escHtml(nota) + '</span>' : '') + '<br>' +
+         enllacAvis('canvia la nota', 'marcaAvis', i) + ' &middot; ' + enllacAvis('treu l\'avís', 'treuAvis', i) + '</div>';
+}
+
+// LA TARGETA EN PASSAR-HI EL RATOLI (octubre 2026, l'usuari: "si una
+// coordenada l'he mogut, al posar-me sobre em digui les dades, perque si tinc
+// dubtes i clico em retorna a la posicio original"). Un clic al verd valida o
+// DESVALIDA (i desvalidar un punt mogut el torna al portal): per mirar-se'l,
+// n'hi ha prou de passar-hi per sobre. Sense botons: nomes es llegeix.
+function targetaHtml(i) {
+  var it = ITEMS[i], e = estat[i];
+  var utm = utmActual(i);
+  var d = distanciaUtm(it.xe, it.ye, utm[0], utm[1]);
+  var h = '<b>ID ' + escHtml(it.id) + '</b>' + (it.zona ? ' &middot; zona ' + escHtml(it.zona) : '');
+  if (it.titular) { h += '<br>' + escHtml(it.titular); }
+  if (it.activitat) { h += '<br><span class="tt-gris">' + escHtml(it.activitat) + '</span>'; }
+  h += '<br>' + escHtml(it.adreca || '(sense adreça)');
+  h += '<br><span class="tt-gris">' + escHtml(textOrigen(e.origen)) + ' &middot; ' + d.toFixed(1) + ' m &middot; ' +
+       (e.revisada ? 'validat' : 'pendent') + '</span>';
+  if (teAvis(i)) {
+    var nota = avisos[it.id].nota;
+    h += '<br><span class="tt-avis">&#9888; Per revisar' + (nota ? ': ' + escHtml(nota) : '') + '</span>';
+  }
+  if (e.revisada && e.origen === 'manual') {
+    h += '<br><span class="tt-gris"><i>Un clic el desvalida i el torna al portal (Ctrl+Z ho desfà).</i></span>';
+  }
+  return h;
 }
 
 function refrescaItem(i) {
@@ -622,6 +737,8 @@ function refrescaItem(i) {
   c.verd.setIcon(iconaVerd(i));
   c.verd.setPopupContent(html);
   c.vermell.setPopupContent(html);
+  c.verd.setTooltipContent(targetaHtml(i));
+  c.vermell.setTooltipContent(targetaHtml(i));
   c.fila.className = classeFila(i);
   c.fila.cells[2].textContent = d.toFixed(1) + ' m';
 }
@@ -691,6 +808,9 @@ function pinta() {
       // això ha de ser un L.marker (els circleMarker no són arrossegables).
       var verd = L.marker([e.lat, e.lon], { draggable: true, icon: iconaVerd(idx) })
         .addTo(map).bindPopup(html);
+      // La targeta en passar-hi el ratoli (targetaHtml), al verd i al vermell.
+      verd.bindTooltip(targetaHtml(idx), { direction: 'top', offset: [0, -10], className: 'targeta' });
+      vermell.bindTooltip(targetaHtml(idx), { direction: 'top', offset: [0, -6], className: 'targeta' });
 
       // Abans de moure'l, es guarda com era: es el que torna «Desfer». Al
       // dragstart NOMES aixo: seleccionar-lo canvia la icona (setIcon), i el
@@ -779,7 +899,8 @@ var FILTRES = [
   ['facana-aprox',   'Portal més proper (verd clar)'],
   ['facana',         'Portal exacte (verd)'],
   ['manual',         'Mogudes per tu (taronja)'],
-  ['validades',      'Validades']
+  ['validades',      'Validades'],
+  ['avis',           'Per revisar (\u26A0)']
 ];
 
 // El color del punt: d'on surt, o 'manual' si l'has mogut.
@@ -789,6 +910,7 @@ function passaEstat(i, f) {
   if (f === 'tots')      { return true; }
   if (f === 'pendents')  { return !estat[i].revisada; }
   if (f === 'validades') { return !!estat[i].revisada; }
+  if (f === 'avis')      { return teAvis(i); }
   return categoria(i) === f;
 }
 
@@ -825,9 +947,10 @@ function aplicaFiltres() {
 
 function actualitzaComptes() {
   var n = { tots: estat.length, pendents: 0, validades: 0, facana: 0,
-            'facana-dubtosa': 0, 'facana-aprox': 0, cadastre: 0, manual: 0 };
+            'facana-dubtosa': 0, 'facana-aprox': 0, cadastre: 0, manual: 0, avis: 0 };
   for (var i = 0; i < estat.length; i++) {
     if (estat[i].revisada) { n.validades++; } else { n.pendents++; }
+    if (teAvis(i)) { n.avis++; }
     var cat = categoria(i);
     if (n.hasOwnProperty(cat)) { n[cat]++; }
   }
@@ -850,6 +973,7 @@ function actualitzaComptes() {
     fila('pin-cad', 'sense portal: comença sobre el vermell', 'cadastre') +
     fila('pin-man', 'mogut per tu', 'manual') +
     fila('pin-rev', 'validat', 'validades') +
+    fila('pin-avis', 'per revisar (marca\'l des de la fitxa del punt)', 'avis') +
     '<span class="tecles">Clic al punt verd = validar &middot; arrossega\'l si no és al lloc<br>' +
     'Tecles: <b>N</b> següent pendent &middot; <b>Ctrl+Z</b> desfer</span>';
 }
@@ -978,25 +1102,31 @@ function esNum(v) { return typeof v === 'number' && isFinite(v); }
 
 function baixaExcel() {
   var desat = llegeixDesat();
+  var av = llegeixAvisos();
+  // Les validades i les marcades per revisar (una pot ser totes dues coses).
   var ids = Object.keys(desat);
+  Object.keys(av).forEach(function (k) { if (!desat[k]) { ids.push(k); } });
   if (ids.length === 0) {
-    alert('Encara no has validat cap activitat.\n\nAmplia el mapa, comprova els punts i fes-hi clic per validar-los (o arrossega\'ls). Després torna a provar.');
+    alert('Encara no has validat ni marcat per revisar cap activitat.\n\nAmplia el mapa, comprova els punts i fes-hi clic per validar-los (o arrossega\'ls). Després torna a provar.');
     return;
   }
   var header = CAPCALERA;
   var rows = [];
   for (var k = 0; k < ids.length; k++) {
-    var id = ids[k], d = desat[id];
+    var id = ids[k], d = desat[id] || av[id], a = av[id];
+    // Nomes per revisar: sense coordenada nova ni origen (no s'ha validat).
+    var validada = !!desat[id];
     // typeof i no isFinite a pel: isFinite(null) es CERT (null -> 0), i un
     // repas carregat d'un Excel sense la coordenada vella hi porta null.
     var xe = esNum(d.xe) ? d.xe : '';
     var ye = esNum(d.ye) ? d.ye : '';
-    var x = esNum(d.x) ? d.x : '';
-    var y = esNum(d.y) ? d.y : '';
+    var x = validada && esNum(d.x) ? d.x : '';
+    var y = validada && esNum(d.y) ? d.y : '';
     var desp = '';
-    if (esNum(d.xe) && esNum(d.ye) && esNum(d.x) && esNum(d.y)) { desp = Math.round(distanciaUtm(d.xe, d.ye, d.x, d.y) * 10) / 10; }
+    if (validada && esNum(d.xe) && esNum(d.ye) && esNum(d.x) && esNum(d.y)) { desp = Math.round(distanciaUtm(d.xe, d.ye, d.x, d.y) * 10) / 10; }
     rows.push([String(id), String(d.rc || ''), String(d.adreca || ''), String(d.zona || ''),
-               xe, ye, x, y, textOrigen(d.origen || 'manual'), desp, FONT]);
+               xe, ye, x, y, validada ? textOrigen(d.origen || 'manual') : '', desp, FONT,
+               a ? (a.nota || AVIS_SENSE_NOTA) : '']);
   }
   rows.sort(function (a, b) { return (a[3] + '').localeCompare(b[3] + '') || (a[0] - b[0]); });
 
@@ -1028,7 +1158,9 @@ function baixaExcel() {
 // ---------------------------------------------------------------------------
 var CAPCALERA = ['ID GIA', 'Ref. cadastral', 'Adreça', 'Zona',
                  'UTM X (Excel)', 'UTM Y (Excel)', 'UTM X (nova)', 'UTM Y (nova)',
-                 'Origen', 'Desplaçament (m)', 'Base de dades'];
+                 'Origen', 'Desplaçament (m)', 'Base de dades', 'Per revisar'];
+// A la columna «Per revisar», la nota; si l'avis no en porta, aixo.
+var AVIS_SENSE_NOTA = 'Sí';
 
 function numeroDe(v) {
   if (typeof v === 'number') { return v; }
@@ -1050,13 +1182,12 @@ function aplicaRepas(files) {
     throw new Error('no és un repàs d\'aquest mapa: hi falten les columnes «ID GIA», «UTM X (nova)» i «UTM Y (nova)»');
   }
   var desat = llegeixDesat();
-  var res = { noves: 0, jaHiEren: 0, altraBase: 0, invalides: 0, bases: [] };
+  var av = llegeixAvisos();
+  var res = { noves: 0, jaHiEren: 0, altraBase: 0, invalides: 0, bases: [], avisos: 0 };
   for (var i = 1; i < files.length; i++) {
     var f = files[i] || [];
     var id = String(cel(f, 'ID GIA')).trim();   // 101 (numero, si l'Excel l'ha convertit) -> '101'
     if (id === '') { continue; }
-    var x = numeroDe(cel(f, 'UTM X (nova)')), y = numeroDe(cel(f, 'UTM Y (nova)'));
-    if (!isFinite(x) || !isFinite(y)) { res.invalides++; continue; }
     // Els fitxers d'abans d'aquesta columna no la porten: llavors no es pot dir
     // i es carreguen. Si la porten, nomes els d'aquesta base.
     var base = String(cel(f, 'Base de dades')).trim();
@@ -1065,6 +1196,17 @@ function aplicaRepas(files) {
       if (res.bases.indexOf(base) < 0) { res.bases.push(base); }
       continue;
     }
+    // L'avis «per revisar» (com les coordenades: el del navegador guanya).
+    var pr = String(cel(f, 'Per revisar')).trim();
+    if (pr !== '' && !av[id]) {
+      var xa = numeroDe(cel(f, 'UTM X (Excel)')), ya = numeroDe(cel(f, 'UTM Y (Excel)'));
+      av[id] = { nota: pr === AVIS_SENSE_NOTA ? '' : pr, rc: String(cel(f, 'Ref. cadastral')), adreca: String(cel(f, 'Adreça')),
+                 zona: String(cel(f, 'Zona')), xe: isFinite(xa) ? xa : null, ye: isFinite(ya) ? ya : null };
+      res.avisos++;
+    }
+    var x = numeroDe(cel(f, 'UTM X (nova)')), y = numeroDe(cel(f, 'UTM Y (nova)'));
+    // Una fila NOMES per revisar no porta coordenada nova, i no es cap error.
+    if (!isFinite(x) || !isFinite(y)) { if (pr === '') { res.invalides++; } continue; }
     if (desat[id]) { res.jaHiEren++; continue; }
     var ll = utm31ToLatLon(x, y);
     var xe = numeroDe(cel(f, 'UTM X (Excel)')), ye = numeroDe(cel(f, 'UTM Y (Excel)'));
@@ -1076,6 +1218,7 @@ function aplicaRepas(files) {
     res.noves++;
   }
   escriuDesat(desat);
+  escriuAvisos(av);
   return res;
 }
 
@@ -1093,9 +1236,10 @@ function carregaRepas(fitxer) {
   return fitxer.arrayBuffer().then(llegeixXlsx).then(function (files) {
     var r = aplicaRepas(files);
     repintaTot();
-    var msg = r.noves === 0 && r.jaHiEren === 0 && r.altraBase === 0
+    var msg = r.noves === 0 && r.jaHiEren === 0 && r.altraBase === 0 && r.avisos === 0
       ? 'El fitxer no porta cap activitat repassada.'
       : 'Recuperades ' + r.noves + ' activitats del fitxer.';
+    if (r.avisos > 0) { msg += '\n' + r.avisos + ' avisos «per revisar» recuperats.'; }
     if (r.jaHiEren > 0) { msg += '\n' + r.jaHiEren + ' ja eren al navegador: es queda la del navegador, que és la més nova.'; }
     if (r.altraBase > 0) {
       msg += '\n' + r.altraBase + ' són d\'una altra base de dades (' + r.bases.join(', ') + ') i no s\'han carregat.' +
@@ -1117,9 +1261,12 @@ document.getElementById('fitxerRepas').addEventListener('change', function (ev) 
 
 function esborraCorreccions() {
   var total = Object.keys(llegeixDesat()).length;
-  if (total === 0) { alert('Encara no has validat res.'); return; }
-  if (!confirm('Segur que vols descartar el repàs sencer d\'aquesta base de dades?\n\nSón ' + total + ' activitats validades, també les d\'altres zones i altres dies.')) { return; }
-  try { window.localStorage.removeItem(CLAU); } catch (e) { }
+  var nAvis = Object.keys(llegeixAvisos()).length;
+  if (total === 0 && nAvis === 0) { alert('Encara no has validat res.'); return; }
+  if (!confirm('Segur que vols descartar el repàs sencer d\'aquesta base de dades?\n\nSón ' + total + ' activitats validades' +
+               (nAvis > 0 ? ' i ' + nAvis + ' marcades per revisar' : '') + ', també les d\'altres zones i altres dies.')) { return; }
+  try { window.localStorage.removeItem(CLAU); window.localStorage.removeItem(CLAU_AVIS); } catch (e) { }
+  avisos = {};
   pilaDesfer = [];
   actualitzaBotoDesfer();
   for (var i = 0; i < ITEMS.length; i++) {

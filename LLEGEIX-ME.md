@@ -356,6 +356,18 @@ Al mapa hi veus, de cada activitat:
 A la llista i a la fitxa de cada punt hi surt el **titular** (la raó social), i
 el cercador també el troba.
 
+**Per mirar un punt sense tocar-lo, passa-hi el ratolí per sobre**: surt una
+targeta amb l'ID, el titular, l'adreça, d'on surt el punt i si està validat. Fes
+servir això si tens dubtes amb un punt que ja has mogut: un **clic** el
+desvalida i el torna al portal (si et passa, **Ctrl+Z** o «Desfer» ho
+recupera).
+
+**Punts estranys**: a la fitxa del punt, **«⚠ Marca per revisar»**, amb una nota
+si vols. No el valida ni el mou: queda marcat amb un **!** vermell, i al
+desplegable «Mostra:» hi ha **«Per revisar»** per tornar-hi després. Les marques
+van també a l'Excel del repàs (columna «Per revisar»), però no a l'Excel per
+importar.
+
 Si vols veure les parcel·les i els edificis com al Cadastre, marca **«plànol del
 Cadastre»** a la barra de dalt: es posa a sobre del fons i es recorda per a la
 vegada següent (també al Plànol activitats).

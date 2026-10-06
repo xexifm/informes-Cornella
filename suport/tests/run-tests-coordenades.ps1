@@ -446,6 +446,16 @@ $corrFet = Get-CorreccionsDelRepas $fet 'qualsevol.xls'
 AssertEq "$($corrFet.SenseCanvi)|$($corrFet.Invalides)" '1|2' 'validada sense moure no es canvi; sense coordenada o impossible, invalida'
 AssertEq (@($corrFet.PerId.Keys) -join ',') '203' 'sense la columna de la base, s accepta (fitxers d abans)'
 AssertNear $corrFet.PerId['203'].XNova 421990.10 0.001 'i una coordenada escrita a ma amb coma tambe es llegeix'
+# PER REVISAR: una fila nomes marcada (sense coordenada nova) no es correccio ni
+# invalida; una de validada I marcada es corregeix com sempre.
+$fetR = @(
+    [pscustomobject]@{ Cells = @('ID GIA', 'UTM X (Excel)', 'UTM Y (Excel)', 'UTM X (nova)', 'UTM Y (nova)', 'Per revisar') }
+    [pscustomobject]@{ Cells = @('301', [double]421968.09, [double]4578100.5, $null, $null, 'punt estrany') }
+    [pscustomobject]@{ Cells = @('302', [double]421968.09, [double]4578100.5, [double]421990.1, [double]4578111.2, 'Si') }
+    [pscustomobject]@{ Cells = @('303', [double]421968.09, [double]4578100.5, $null, $null, '') }
+)
+$corrR = Get-CorreccionsDelRepas $fetR 'qualsevol.xls'
+AssertEq "$(@($corrR.PerId.Keys) -join ',')|$($corrR.PerRevisar)|$($corrR.Invalides)" '302|2|1' 'per revisar: nomes la validada es corregeix; la nomes marcada no es invalida (la buida si)'
 $petat = $false
 try { [void](Get-CorreccionsDelRepas @([pscustomobject]@{ Cells = @('Nom', 'Cognom') }) 'x.xls') } catch { $petat = $_.Exception.Message.Contains('ID GIA') }
 Assert $petat 'un Excel que no es un repas: llança dient quines columnes hi falten'

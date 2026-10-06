@@ -300,6 +300,26 @@ pendents de revisar (Configuració, Normativa, Revisió, Ruta).
     torna al Cadastre: era la manera de perdre la posició sense voler).
   - **Mai `setIcon` al `dragstart`**: refà l'arrossegador de Leaflet i talla el
     drag. Per això el punt es selecciona al `dragend`.
+  - **Per revisar** (l'usuari: *«hi ha punts estranys. Vull poder posar un
+    warning per revisar posteriorment»*): a la fitxa del punt, «⚠ Marca per
+    revisar» amb una nota opcional. **A part del repàs** (`coordenades-avisos:`
+    + base, `avisos`/`teAvis`): marcar no valida ni mou el punt. Surt un «!» al
+    punt, ⚠ a la fila, un filtre «Per revisar» i una línia a la llegenda. Va a
+    l'Excel del repàs a la columna **«Per revisar»** (la nota, o «Sí»); una fila
+    només marcada **no porta coordenada nova** i ni l'«Excel per importar»
+    (`Get-CorreccionsDelRepas`, `PerRevisar`) ni «Carregar repàs» la compten
+    com a invàlida; aquest últim recupera l'avís (el del navegador guanya).
+    «Esborrar el meu repàs» també els esborra.
+    - **Trampa del Leaflet (mesurada)**: un enllaç de la fitxa que refà la
+      fitxa a mig clic fa que l'enllaç clicat ja no hi sigui, i el Leaflet el
+      pren per un clic al **mapa** i la tanca. Els enllaços de l'avís fan la
+      feina amb `setTimeout(…, 0)` (`enllacAvis`).
+  - **La targeta en passar-hi el ratolí** (*«si una coordenada l'he mogut, al
+    posar-me sobre em digui les dades, perquè si tinc dubtes i clico em retorna
+    a la posició original»*): `targetaHtml`, un tooltip al verd i al vermell
+    amb l'ID, el titular, l'activitat, l'adreça, d'on surt, els metres, si és
+    validat, l'avís, i —si és mogut i validat— què faria un clic. Mirar-lo no
+    el toca. Es refà a `refrescaItem`.
   - **El titular** (l'usuari: *«vull veure el titular de l'activitat a l'eina
     Coordenades»*): la «Raó social» de la fulla Estès (`Get-ColumnaTitular`, per
     nom amb respatller a la columna 10, la que fa servir `Activitats.ps1`). Surt a

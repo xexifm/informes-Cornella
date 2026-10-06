@@ -328,6 +328,73 @@ try {
   check(await c.locator('#btnDesfer').isDisabled(), 'sense res per desfer, el botó queda apagat');
   eq(await c.evaluate(() => estat.filter((e) => e.revisada).length), 0, 'i desfent-ho tot, es torna a l\'inici');
 
+  seccio('Per revisar (un avís amb nota, a part del repàs)');
+  await c.evaluate(() => vesA(0));
+  await capsaVerd(c, 0);
+  const popC = () => c.locator('.leaflet-popup-content').last();
+  await popC().locator('a', { hasText: 'Marca per revisar' }).click();
+  await c.waitForFunction(() => teAvis(0), null, { timeout: 3000 });
+  eq(await c.evaluate(() => capes[0].verd.isPopupOpen()), true, 'i la fitxa es queda oberta, amb l\'avís');
+  check(c.dialegs.some((m) => m.includes('Per revisar')), 'des de la fitxa del punt: pregunta la nota');
+  eq(await c.evaluate(() => [teAvis(0), avisos[ITEMS[0].id].nota, estat[0].revisada]), [true, '', false],
+     'queda marcat (la nota, en blanc) i NO validat');
+  eq(await c.evaluate(() => [capes[0].verd.getElement().firstChild.classList.contains('avis'), capes[0].fila.classList.contains('avis')]),
+     [true, true], 'el punt porta el «!» i la fila el ⚠');
+  await c.evaluate(() => posaAvis(0, 'punt estrany: dins del pati'));
+  check((await popC().textContent()).includes('Per revisar: punt estrany: dins del pati'), 'la fitxa diu la nota');
+  check((await c.locator('#filtreEstat').textContent()).includes('Per revisar (\u26A0) (1)'), 'el filtre les compta');
+  await c.selectOption('#filtreEstat', 'avis');
+  eq(await c.locator('#tbody tr:visible').count(), 1, 'i les ensenya soles');
+  await c.selectOption('#filtreEstat', 'tots');
+  eq(await c.evaluate(() => Object.keys(JSON.parse(localStorage.getItem(CLAU_AVIS)))), [await c.evaluate(() => ITEMS[0].id)],
+     'es desa al navegador...');
+  eq(await c.evaluate(() => Object.keys(llegeixDesat()).length), 0, '...a part del repàs: no compta com a validada');
+  const [bxR] = await Promise.all([c.waitForEvent('download'), c.evaluate(() => baixaExcel())]);
+  const b64R = fs.readFileSync(await bxR.path()).toString('base64');
+  const filesR = await c.evaluate(async (b) => llegeixXlsx(Uint8Array.from(atob(b), (ch) => ch.charCodeAt(0)).buffer), b64R);
+  const capR = filesR[0], filaR = filesR[1] || [];
+  const celR = (nom) => { const v = filaR[capR.indexOf(nom)]; return v === undefined || v === null ? '' : String(v); };
+  eq([filesR.length, celR('Per revisar'), celR('UTM X (nova)'), celR('Origen')], [2, 'punt estrany: dins del pati', '', ''],
+     'l\'Excel del repàs la porta, amb la nota i sense coordenada nova (no és cap correcció)');
+  await c.evaluate(() => { localStorage.removeItem(CLAU_AVIS); });
+  const rR = await c.evaluate((f) => { const r = aplicaRepas(f); repintaTot(); return [r.avisos, r.invalides, r.noves]; }, filesR);
+  eq(rR, [1, 0, 0], '«Carregar repàs» la recupera (i no la compta com a fila invàlida)');
+  eq(await c.evaluate(() => [teAvis(0), avisos[ITEMS[0].id].nota]), [true, 'punt estrany: dins del pati'], 'amb la seva nota');
+  await c.evaluate(() => capes[0].verd.openPopup());
+  await popC().locator('a', { hasText: 'treu l\'avís' }).click();
+  await c.waitForFunction(() => !teAvis(0), null, { timeout: 3000 });
+  eq(await c.evaluate(() => [teAvis(0), JSON.parse(localStorage.getItem(CLAU_AVIS))]), [false, {}], '«treu l\'avís» el treu');
+  await c.evaluate(() => map.closePopup());
+
+  seccio('La targeta en passar-hi el ratolí (sense clicar)');
+  const targeta = async (i) => {
+    await c.mouse.move(5, 5);
+    await c.evaluate(() => map.closePopup());
+    const bx = await capsaVerd(c, i);
+    await c.mouse.move(bx.x + bx.width / 2, bx.y + bx.height / 2);
+    await c.waitForSelector('.leaflet-tooltip.targeta', { timeout: 3000 });
+    return c.textContent('.leaflet-tooltip.targeta');
+  };
+  await c.evaluate(() => vesA(1));
+  const t1 = await targeta(1);
+  const it1 = await c.evaluate(() => [ITEMS[1].id, ITEMS[1].adreca]);
+  check(t1.includes('ID ' + it1[0]) && t1.includes(it1[1]) && t1.includes('pendent'), 'passant-hi per sobre: l\'ID, l\'adreça i l\'estat');
+  // Un punt MOGUT i validat: la targeta ho diu, i passar-hi per sobre no el toca.
+  await c.evaluate(() => {
+    estat[1] = { lat: ITEMS[1].latf + 0.00005, lon: ITEMS[1].lonf + 0.00005, origen: 'manual', revisada: true };
+    capes[1].verd.setLatLng([estat[1].lat, estat[1].lon]);
+    refrescaItem(1);
+  });
+  const t2 = await targeta(1);
+  check(t2.includes('mogut per tu') && t2.includes('validat') && t2.includes('Un clic el desvalida'), 'el mogut: d\'on surt, que és validat i què faria un clic');
+  eq(await c.evaluate(() => [estat[1].origen, estat[1].revisada]), ['manual', true], 'i mirar-lo no el desvalida ni el mou');
+  await c.mouse.move(5, 5);
+  await c.evaluate(() => {
+    estat[1] = { lat: ITEMS[1].latf, lon: ITEMS[1].lonf, origen: ITEMS[1].prec, revisada: false };
+    capes[1].verd.setLatLng([estat[1].lat, estat[1].lon]);
+    refrescaItem(1);
+  });
+
   seccio('El plànol del Cadastre (a sobre del fons)');
   eq(await c.evaluate(() => [document.getElementById('chkCadastre').checked, map.hasLayer(FONS.cadastre)]), [false, false],
      'apagat per defecte (carrega)');

@@ -665,6 +665,7 @@ function Invoke-CoordExcelImportar($baseFile) {
         $msg = "El repàs no porta cap coordenada canviada per a aquesta base de dades ($($baseFile.Name))."
         if ($corr.AltraBase -gt 0) { $msg += "`n`nTé $($corr.AltraBase) activitats d'una altra base: $(@($corr.Bases) -join ', ')." }
         if ($corr.SenseCanvi -gt 0) { $msg += "`n`n$($corr.SenseCanvi) validades sense moure: tenen la mateixa coordenada que la base." }
+        if ($corr.PerRevisar -gt 0) { $msg += "`n`n$($corr.PerRevisar) marcades per revisar (no es toquen; les veus al mapa amb el filtre «Per revisar»)." }
         Show-EinaInfo $msg 'Coordenades' 'Information'
         return
     }
@@ -692,6 +693,7 @@ function Invoke-CoordExcelImportar($baseFile) {
     $msg  = "Fet. És una còpia de la base de dades amb les coordenades corregides EN VERMELL.`n`n"
     $msg += "Coordenades canviades:                 $(@($res.Aplicades).Count)`n"
     if ($corr.SenseCanvi -gt 0) { $msg += "Validades sense moure (igual que abans): $($corr.SenseCanvi)`n" }
+    if ($corr.PerRevisar -gt 0) { $msg += "Marcades per revisar (només s'hi escriu la coordenada si també la vas validar): $($corr.PerRevisar)`n" }
     if (@($res.JaCanviades).Count -gt 0) {
         $msg += "`nNO TOCADES perquè a la base ja tenen una altra coordenada (potser ja`n"
         $msg += "s'havien corregit): GIA $(@($res.JaCanviades) -join ', ')`n"

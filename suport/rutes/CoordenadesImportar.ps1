@@ -41,6 +41,9 @@ $Script:RepasColYNova  = 'utm y (nova)'
 $Script:RepasColXVella = 'utm x (excel)'
 $Script:RepasColYVella = 'utm y (excel)'
 $Script:RepasColBase   = 'base de dades'
+# L'avis "per revisar" del mapa (la nota). Una fila NOMES per revisar no porta
+# coordenada nova: no es cap correccio, ni tampoc una fila invalida.
+$Script:RepasColRevisar = 'per revisar'
 
 # Vermell per a Font.Color. L'Excel el vol en BGR: 0x0000FF = 255.
 $Script:CoordColorCorregida = 255
@@ -177,7 +180,7 @@ function Get-CorreccionsDelRepas($files, [string]$baseNom) {
     $cap = @($arr[0].Cells | ForEach-Object { _NormalitzaText $_ })
     $col = @{}
     foreach ($k in @($Script:RepasColId, $Script:RepasColXNova, $Script:RepasColYNova,
-                     $Script:RepasColXVella, $Script:RepasColYVella, $Script:RepasColBase)) {
+                     $Script:RepasColXVella, $Script:RepasColYVella, $Script:RepasColBase, $Script:RepasColRevisar)) {
         $col[$k] = [array]::IndexOf([object[]]$cap, $k)
     }
     if ($col[$Script:RepasColId] -lt 0 -or $col[$Script:RepasColXNova] -lt 0 -or $col[$Script:RepasColYNova] -lt 0) {
@@ -186,7 +189,7 @@ function Get-CorreccionsDelRepas($files, [string]$baseNom) {
     $cel = { param($f, $k) $i = $col[$k]; if ($i -lt 0 -or $i -ge @($f.Cells).Count) { $null } else { $f.Cells[$i] } }
 
     $perId = @{}
-    $senseCanvi = 0; $invalides = 0; $altraBase = 0
+    $senseCanvi = 0; $invalides = 0; $altraBase = 0; $perRevisar = 0
     $bases = New-Object System.Collections.ArrayList
     for ($r = 1; $r -lt $arr.Count; $r++) {
         $f = $arr[$r]
@@ -200,6 +203,9 @@ function Get-CorreccionsDelRepas($files, [string]$baseNom) {
         }
         $xn = _RepasNumero (& $cel $f $Script:RepasColXNova)
         $yn = _RepasNumero (& $cel $f $Script:RepasColYNova)
+        $revisar = ([string](& $cel $f $Script:RepasColRevisar)).Trim()
+        if ($revisar -ne '') { $perRevisar++ }
+        if ($null -eq $xn -and $null -eq $yn -and $revisar -ne '') { continue }
         if ($null -eq $xn -or $null -eq $yn -or -not (Test-CoordPlausible $xn $yn)) { $invalides++; continue }
         $xv = _RepasNumero (& $cel $f $Script:RepasColXVella)
         $yv = _RepasNumero (& $cel $f $Script:RepasColYVella)
@@ -212,7 +218,7 @@ function Get-CorreccionsDelRepas($files, [string]$baseNom) {
     }
     return [pscustomobject]@{
         PerId = $perId; SenseCanvi = $senseCanvi; Invalides = $invalides
-        AltraBase = $altraBase; Bases = @($bases)
+        AltraBase = $altraBase; Bases = @($bases); PerRevisar = $perRevisar
     }
 }
 
