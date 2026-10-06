@@ -300,6 +300,10 @@ pendents de revisar (Configuració, Normativa, Revisió, Ruta).
     torna al Cadastre: era la manera de perdre la posició sense voler).
   - **Mai `setIcon` al `dragstart`**: refà l'arrossegador de Leaflet i talla el
     drag. Per això el punt es selecciona al `dragend`.
+  - **Zoom fins al 22** (abans 19; l'usuari: *«deixa'm fer més zoom que sinó
+    estan molt lluny»*). Les rajoles del fons arriben al 18 i d'allà en amunt
+    s'amplien (`maxNativeZoom` a `MapaFons.js`). «Anar a» una activitat (`vesA`)
+    apropa fins al 19 però **no allunya** si ja eres més a prop.
   - La llegenda, amb recomptes, va **a dalt** del panell: al final de la llista
     no es veia mai. El cos és una columna flex: el mapa ocupa el que queda (abans
     `calc(100vh - 116px)`, i amb la barra en dues línies la pàgina feia scroll).

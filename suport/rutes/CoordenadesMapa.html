@@ -553,7 +553,10 @@ function utmActual(i) {
 // al canvas en lloc de fer-ne SVG es la diferencia entre un mapa fluid i un
 // mapa que va a batzegades.
 if (typeof L === 'undefined') { throw new Error('Leaflet no carregat: el mapa no pot arrencar.'); }
-var map = L.map('map', { preferCanvas: true, zoomSnap: 0.25, zoomDelta: 0.5, wheelPxPerZoomLevel: 120, maxZoom: 19 });
+// maxZoom 22 (abans 19): l'usuari, "deixa'm fer mes zoom que sino estan molt
+// lluny". Les rajoles del fons arriben fins al 18 i, d'alli en amunt,
+// s'amplien (maxNativeZoom, MapaFons.js): es veuen mes grosses, no en blanc.
+var map = L.map('map', { preferCanvas: true, zoomSnap: 0.25, zoomDelta: 0.5, wheelPxPerZoomLevel: 120, maxZoom: 22 });
 // El fons: MapaFons.js (comu als mapes de rutes/). OpenStreetMap ja no serveix
 // les rajoles a una pagina oberta des del disc.
 var FONS = afegeixFonsMapa(map);
@@ -876,7 +879,8 @@ function selecciona(i) {
 // Centra el mapa en una activitat, la selecciona i n'obre la fitxa.
 function vesA(i) {
   selecciona(i);
-  map.setView([estat[i].lat, estat[i].lon], 19);
+  // Com a minim el 19, pero sense allunyar si ja eres mes a prop.
+  map.setView([estat[i].lat, estat[i].lon], Math.max(map.getZoom(), 19));
   capes[i].verd.openPopup();
   capes[i].fila.scrollIntoView({ block: 'nearest' });
 }

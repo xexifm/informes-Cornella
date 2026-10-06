@@ -254,6 +254,15 @@ try {
                              capes[1].vermell.getRadius(), capes[2].linia.options.weight]),
      [false, 1, 5, 3], 'en triar-ne una altra, l\'anterior torna a la normalitat');
 
+  seccio('Zoom de prop (l\'usuari: «deixa\'m fer més zoom»)');
+  eq(await c.evaluate(() => map.getMaxZoom()), 22, 'el mapa arriba fins al zoom 22 (abans, 19)');
+  await capsaVerd(c, 2);   // que s'hagi acabat el moviment de vesA(2)
+  eq(await c.evaluate(() => { map.setZoom(21.5, { animate: false }); return map.getZoom(); }), 21.5, 'es pot apropar més enllà del 19');
+  eq(await c.evaluate(() => { vesA(1); return map.getZoom(); }), 21.5, 'anar a una activitat no t\'allunya si ja eres més a prop');
+  await c.evaluate(() => { map.setZoom(15, { animate: false }); vesA(2); });
+  await capsaVerd(c, 2);   // el zoom de vesA va animat
+  eq(await c.evaluate(() => map.getZoom()), 19, 'i si eres lluny, t\'hi apropa (19)');
+
   seccio('Següent pendent (tecla N)');
   await c.evaluate(() => vesA(0));
   await c.click('#map', { position: { x: 5, y: 5 } });   // el focus fora del cercador
