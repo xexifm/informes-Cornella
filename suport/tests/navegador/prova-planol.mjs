@@ -42,6 +42,8 @@ try {
   check((await p.textContent('#avisos')).includes('</script> amb <b>'), 'els avisos surten escapats (cap etiqueta s\'interpreta)');
   eq(await p.evaluate((i) => capes[i].forma instanceof L.Polygon, iCadis), true, 'Cadis 19: un polígon (té geometria)');
   eq(await p.evaluate((i) => capes[i].forma instanceof L.CircleMarker, iHosp), true, 'Hospitalet 147: un punt (sense geometria)');
+  eq(await p.evaluate(() => [document.getElementById('f-turisme').value, CLASSIFS]), ['no', ['II', 'III', 'L18 Cert', '']],
+     'per defecte, sense allotjaments turístics; una casella per cada classificació (i la buida, al final)');
 
   seccio('Colors: mana el pitjor');
   eq(await vista(iCadis), { color: 'vermell', acts: ['1447', '1403'], revisar: false, alMapa: true }, 'Cadis 19: vermell (1447 precintada) amb 1403 en groc');
@@ -66,14 +68,53 @@ try {
   eq([(await vista(iCadis)).alMapa, (await vista(iHosp)).alMapa], [false, true], 'per revisar «local marcat com a buit»: només Hospitalet');
   await p.selectOption('#f-revisar', '');
 
-  seccio('Etiquetes segons el zoom');
-  const etiqueta = (i) => p.evaluate((i) => capes[i].etiqAlMapa ? capes[i].etiq.getContent() : null, i);
+  seccio('Allotjaments turístics (CCAE 552/5520)');
+  const actsHosp = async () => (await vista(iHosp)).acts;
+  eq(await actsHosp(), ['9'], 'per defecte, l\'hotel (30) no surt');
+  check((await p.textContent('#f-turisme')).includes('Només allotjaments turístics (1)'), 'el desplegable diu quants n\'hi ha');
+  await p.selectOption('#f-turisme', 'nomes');
+  eq(await actsHosp(), ['30'], '«Només allotjaments turístics»: només l\'hotel');
+  eq((await vista(iCadis)).alMapa, false, 'i la resta de parcel·les, fora');
+  await p.selectOption('#f-turisme', 'tot');
+  eq(await actsHosp(), ['9', '30'], '«Totes»: les dues');
+  await p.selectOption('#f-turisme', 'no');
+
+  seccio('Classificació (annex)');
+  const iII = await p.evaluate(() => CLASSIFS.indexOf('II'));
+  await p.uncheck('#fc-' + iII);
+  eq((await vista(iCadis)).acts, ['1447'], 'sense l\'annex II, el 1403 (II) desapareix');
+  eq(await p.textContent('#nc-' + iII), '1', 'i la casella diu quantes n\'hi ha');
+  await p.check('#fc-' + iII);
+
+  seccio('Per revisar: entrada no trobada');
+  await p.selectOption('#f-revisar', 'ne');
+  eq((await vista(iCadis)).acts, ['1403'], 'entrada no trobada: el 1403 (diu el 21, que no és al Cadastre)');
+  check((await p.textContent('#ajuda-revisar')).includes('vermell'), 'amb l\'explicació a sota');
+  check((await p.textContent('#f-revisar')).includes('Entrada no trobada al Cadastre (ID en vermell) (1)'), 'i el recompte al desplegable');
+  await p.selectOption('#f-revisar', '');
+
+  seccio('Etiquetes: a l\'entrada i segons el zoom');
+  const etiqueta = (i) => p.evaluate((i) => {
+    const t = capes[i].etiqs.filter((e) => e.alMapa).map((e) => (e.def.v ? 'V:' : '') + e.tt.getElement().textContent.trim());
+    return t.length ? t.join(' | ') : null;
+  }, i);
   await p.evaluate((i) => map.setView(PARCELES[i].c, 15, { animate: false }), iCadis);
   eq(await etiqueta(iCadis), null, 'zoom 15: cap etiqueta');
   await p.evaluate((i) => map.setView(PARCELES[i].c, 16.5, { animate: false }), iCadis);
-  eq(await etiqueta(iCadis), '1447, 1403', 'zoom 16,5: els ID GIA');
+  eq(await etiqueta(iCadis), '1447 | V:1403', 'zoom 16,5: el 1447 a la seva entrada i el 1403 (no trobada) en vermell');
+  // El 1447, a l'entrada del 19 (el portal, a la façana de baix), DINS de la
+  // parcel·la, emmarcat amb el color del seu estat (vermell: precintada).
+  const ent = await p.evaluate((i) => {
+    const e = capes[i].etiqs.filter((x) => !x.def.v)[0];
+    const ll = e.tt.getLatLng();
+    const dins = capes[i].forma.getBounds().contains(ll) && ll.lat > PARCELES[i].c[0] - 0.001;
+    return { dir: e.def.d, xip: e.tt.getElement().querySelector('.xip').className, dins: dins, sotaCentre: ll.lat < PARCELES[i].c[0] };
+  }, iCadis);
+  eq(ent, { dir: 't', xip: 'xip xip-vermell', dins: true, sotaCentre: true }, 'a l\'entrada (a baix), dins la parcel·la, creixent cap a dins, amb el marc del seu color');
+  eq(await p.evaluate((i) => capes[i].etiqs.filter((x) => x.def.v)[0].tt.getElement().querySelector('.xip').className, iCadis),
+     'xip xip-err', 'la no trobada: el text en vermell');
   await p.evaluate((i) => map.setView(PARCELES[i].c, 18.5, { animate: false }), iCadis);
-  eq(await etiqueta(iCadis), '<b>1447</b> Esc. 1 - Pl. 2 - Pt. 16<br><b>1403</b> Local 5', 'zoom 18,5: cada ID amb el seu local/planta/porta');
+  eq(await etiqueta(iCadis), '1447 Esc. 1 - Pl. 2 - Pt. 16 | V:1403 Local 5', 'zoom 18,5: cada ID amb el seu local/planta/porta');
   await p.uncheck('#f-etiq');
   eq(await etiqueta(iCadis), null, 'i es poden amagar');
   await p.check('#f-etiq');
@@ -93,7 +134,7 @@ try {
   await p.locator('#resultats div').first().click();
   check((await p.textContent('.leaflet-popup-content')).includes('EL RACO'), 'i en clicar-hi, s\'obre la fitxa');
   await p.fill('#cerca', 'hospitalet');
-  eq(await p.locator('#resultats div').count(), 1, 'per adreça');
+  eq(await p.locator('#resultats div').count(), 2, 'per adreça (també l\'hotel, que el filtre amaga)');
   await p.uncheck('#f-verd');
   await p.fill('#cerca', 'acme');
   check((await p.textContent('#resultats')).includes('amagada pel filtre'), 'troba també el que el filtre amaga, i ho diu');
@@ -117,29 +158,38 @@ try {
   await p.waitForFunction(() => document.querySelector('.fons-avis') && /Cap fons/.test(document.querySelector('.fons-avis').textContent), null, { timeout: 15000 });
   check(true, 'si cap fons no respon, ho diu (i les dades hi són igual)');
 
-  // Si l'ICGC no respon i CARTO si, passa SOL a CARTO.
+  // Si l'ICGC no respon i Esri si, passa SOL a Esri.
   const ctx2 = await nav.newContext({ viewport: { width: 1280, height: 800 } });
   await serveixLeaflet(ctx2);
-  // CARTO i Esri responen; l'ICGC no.
-  await ctx2.route(/basemaps\.cartocdn\.com|arcgisonline\.com/, (route) => route.fulfill({ body: PNG_1x1, contentType: 'image/png' }));
+  const serveix = (route) => route.fulfill({ body: PNG_1x1, contentType: 'image/png' });
+  await ctx2.route(/arcgisonline\.com/, serveix);
   const p2 = await ctx2.newPage();
   p2.on('pageerror', (e) => errors.push(String(e)));
   await p2.goto(pathToFileURL(path.join(TMP, 'Planol.html')).href);
-  await p2.waitForFunction(() => typeof FONS !== 'undefined' && FONS.actiu() === 'Mapa (CARTO)', null, { timeout: 15000 });
-  check((await p2.textContent('.fons-avis')).includes('ara es veu «Mapa (CARTO)»'), 'l\'ICGC no respon: passa sol a CARTO, i ho diu');
-  // La tria de l'usuari es recorda (el selector de dalt a la dreta).
+  await p2.waitForFunction(() => typeof FONS !== 'undefined' && FONS.actiu() === 'Mapa (Esri)', null, { timeout: 15000 });
+  check((await p2.textContent('.fons-avis')).includes('ara es veu «Mapa (Esri)»'), 'l\'ICGC no respon: passa sol a Esri, i ho diu');
+  eq(await p2.evaluate(() => FONS_MAPA.map((f) => f.nom)), ['Mapa (ICGC)', 'Ortofoto (ICGC)', 'Mapa (Esri)'],
+     'CARTO ja no hi és (demana clau: pinta «API KEY REQUIRED» i el recanvi no ho veu)');
+  // Ara l'ICGC respon: l'usuari tria l'ortofoto amb el selector.
+  await ctx2.route(/geoserveis\.icgc\.cat/, serveix);
+  const iCadis2 = await p2.evaluate(() => PARCELES.findIndex((x) => x.k === '2295827DF2729E'));
+  const vora = () => p2.evaluate((i) => [capes[i].forma.options.color, capes[i].forma.options.weight], iCadis2);
+  const voraMapa = await vora();
   await p2.hover('.leaflet-control-layers');
-  await p2.locator('.leaflet-control-layers label', { hasText: 'Mapa (Esri)' }).click();
-  eq(await p2.evaluate(() => FONS.actiu()), 'Mapa (Esri)', 'el selector canvia el fons');
+  await p2.locator('.leaflet-control-layers label', { hasText: 'Ortofoto (ICGC)' }).click();
+  eq(await p2.evaluate(() => FONS.actiu()), 'Ortofoto (ICGC)', 'el selector canvia el fons');
+  eq(await vora(), ['#ffffff', 2.5], 'sobre l\'ortofoto, la vora de les parcel·les és blanca i més gruixuda (es distingeix de la foto)');
+  check(voraMapa[0] !== '#ffffff', 'i sobre el mapa, la de sempre');
   await p2.reload();
   await p2.waitForFunction(() => typeof FONS !== 'undefined', null, { timeout: 10000 });
-  eq(await p2.evaluate(() => FONS.actiu()), 'Mapa (Esri)', 'i en tornar a obrir el mapa, es recorda');
+  eq(await p2.evaluate(() => FONS.actiu()), 'Ortofoto (ICGC)', 'en tornar a obrir el mapa, es recorda');
+  eq(await vora(), ['#ffffff', 2.5], 'i ja surt amb la vora blanca');
   // Si el que ha triat l'usuari deixa de respondre, tampoc es queda sense fons.
-  await ctx2.unroute(/basemaps\.cartocdn\.com|arcgisonline\.com/);
-  await ctx2.route(/basemaps\.cartocdn\.com/, (route) => route.fulfill({ body: PNG_1x1, contentType: 'image/png' }));
+  await ctx2.unroute(/geoserveis\.icgc\.cat/);
   await p2.reload();
-  await p2.waitForFunction(() => typeof FONS !== 'undefined' && FONS.actiu() === 'Mapa (CARTO)', null, { timeout: 15000 });
+  await p2.waitForFunction(() => typeof FONS !== 'undefined' && FONS.actiu() === 'Mapa (Esri)', null, { timeout: 15000 });
   check(true, 'el fons triat no respon: en torna a posar un que sí');
+  eq((await vora())[0] !== '#ffffff', true, 'i la vora torna a ser la de sempre');
   await ctx2.close();
 
   seccio('Errors de JavaScript');

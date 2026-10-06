@@ -14,6 +14,15 @@
 // de la llista i es diu a la pantalla. La tria de l'usuari (el selector de dalt
 // a la dreta) es recorda per a tots els mapes.
 //
+// CARTO NO HI ES (octubre 2026): les seves rajoles ara demanen una clau i
+// carreguen igualment, amb "API KEY REQUIRED" pintat a sobre. Com que carreguen,
+// el recanvi automatic no ho veu: un fons que respon amb una imatge d'error es
+// pitjor que un que no respon. Abans d'afegir un fons nou, mira que no en demani.
+//
+// Quan canvia el fons (el tria l'usuari o el recanvi), el mapa rep l'event
+// 'fonscanviat' amb { nom }: el Planol hi canvia el contorn de les parcel.les
+// (sobre l'ortofoto, la linia fosca no es veu).
+//
 // ASCII pur (els accents, amb \u).
 
 var FONS_MAPA = [
@@ -23,9 +32,6 @@ var FONS_MAPA = [
   { nom: 'Ortofoto (ICGC)',
     url: 'https://geoserveis.icgc.cat/servei/catalunya/mapa-base/wmts/orto/MON3857NW/{z}/{x}/{y}.png',
     opt: { maxNativeZoom: 18, attribution: '&copy; <a href="https://www.icgc.cat">Institut Cartogr\u00e0fic i Geol\u00f2gic de Catalunya</a>' } },
-  { nom: 'Mapa (CARTO)',
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-    opt: { subdomains: 'abcd', maxNativeZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>' } },
   { nom: 'Mapa (Esri)',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
     opt: { maxNativeZoom: 18, attribution: 'Tiles &copy; Esri' } }
@@ -58,6 +64,7 @@ function afegeixFonsMapa(map) {
     actiu = nom;
     capes[nom].addTo(map);
     capes[nom].bringToBack();
+    map.fire('fonscanviat', { nom: nom });
   }
 
   function passaAlSeguent(nom) {
@@ -88,6 +95,7 @@ function afegeixFonsMapa(map) {
   L.control.layers(capes, null, { position: 'topright', collapsed: true }).addTo(map);
   map.on('baselayerchange', function (e) {
     actiu = e.name;
+    map.fire('fonscanviat', { nom: e.name });
     try { window.localStorage.setItem(FONS_CLAU, e.name); } catch (er) { }
   });
   return { capes: capes, actiu: function () { return actiu; } };

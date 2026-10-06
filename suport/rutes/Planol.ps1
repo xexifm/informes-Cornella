@@ -36,7 +36,8 @@ if (-not $Script:PlanolHeadless) {
 # Els moduls amb variables que config.ps1 pot sobreescriure van ABANS de
 # Ruta.ps1 (que es qui carrega config.ps1), com a Coordenades.
 . (Join-Path $ScriptRoot 'Cadastre.ps1')
-. (Join-Path $ScriptRoot 'Geocodificador.ps1')    # Test-CoordPlausible
+. (Join-Path $ScriptRoot 'Geocodificador.ps1')    # Test-CoordPlausible, els portals de cada parcel.la
+. (Join-Path $ScriptRoot 'PlanolGeometria.ps1')  # l'entrada dins la parcel.la i les parcel.les juntades
 . (Join-Path $ScriptRoot 'PlanolDades.ps1')
 
 # Ruta.ps1 en mode headless: nomes en volem les funcions (cerca de l'Excel,
@@ -95,10 +96,13 @@ function Read-EstablimentsExcel($excelFile) {
     return ,@($out)
 }
 
+$Script:PlanolTeCcae = $true
 function Read-ActivitatsPlanolExcel($excelFile) {
     $out = Read-FullaEstesa $excelFile {
         param($x)
         if ($null -eq $x.Data) { return @{} }
+        # Si no hi ha CCAE, el filtre d'allotjaments turistics no pot fer res: es diu.
+        $Script:PlanolTeCcae = (@(Get-ColumnesCcae $x.Headers).Count -gt 0)
         return (ConvertFrom-FullaActivitatsPlanol $x.Data $x.Rows $x.Headers)
     }
     return $out
@@ -209,13 +213,31 @@ function Invoke-PlanolMain {
     $geos = $fetP.Resultat
     $cancelP = $fetP.Cancelat
     if ($cancelU -or $cancelP) { $avisos += "Has cancel" + [char]0x00B7 + "lat les consultes al Cadastre: algunes parcel" + [char]0x00B7 + "les surten com un punt. Torna-ho a generar per completar-les (el que ja s'ha demanat queda desat)." }
+    # 4b. ELS PORTALS (les entrades): els mateixos que fa servir Coordenades i la
+    # mateixa memoria cau (portals.json), o sigui que el que ja s'ha demanat alli
+    # no es torna a demanar.
+    $fetE = $null
+    if (-not ($cancelU -or $cancelP)) {
+        $fetE = _PlanolAmbProgres $rcP ("Entrades dels establiments (" + $rcP.Count + " parcel" + [char]0x00B7 + "les)...") {
+            param($l, $p) Get-PortalsPerParcelles $l $p
+        }
+    }
+    $portals = if ($null -ne $fetE) { $fetE.Resultat } else { @{} }
+    if ($null -ne $fetE -and $fetE.Cancelat) { $avisos += "Has cancel" + [char]0x00B7 + "lat la cerca de les entrades: on no s'ha arribat, l'ID GIA surt al centre de la parcel" + [char]0x00B7 + "la." }
     $senseGeo = @($rcP | Where-Object { -not $geos.ContainsKey($_) -or @($geos[$_]).Count -eq 0 }).Count
     if ($senseGeo -gt 0 -and -not ($cancelU -or $cancelP)) {
         $avisos += "$senseGeo parcel" + [char]0x00B7 + "les sense dibuix del Cadastre: surten com un punt."
     }
 
     # 5. El mapa.
-    $dades = ConvertTo-PlanolDadesMapa $model $geos
+    $dades = ConvertTo-PlanolDadesMapa $model $geos $portals
+    $nVermells = @(@($dades) | ForEach-Object { @($_.e) } | Where-Object { $_.t -eq 'a' -and $_.x -eq 0 } | ForEach-Object { $_.g } | Sort-Object -Unique).Count
+    if ($nVermells -gt 0) {
+        $avisos += "$nVermells activitats sense l'entrada al Cadastre (el n" + [char]0x00FA + "mero no hi " + [char]0x00E9 + "s, o el portal cau fora de la parcel" + [char]0x00B7 + "la): l'ID GIA surt en vermell al centre."
+    }
+    if (-not $Script:PlanolTeCcae) {
+        $avisos += "L'Excel d'activitats no t" + [char]0x00E9 + " la columna 'CCAE Codi': el filtre d'allotjaments tur" + [char]0x00ED + "stics no amaga res."
+    }
     $meta = [pscustomobject]@{
         BaseActivitats   = $xlsA.File.Name
         BaseEstabliments = if ($null -ne $xlsE) { $xlsE.File.Name } else { '(sense Excel d''establiments)' }

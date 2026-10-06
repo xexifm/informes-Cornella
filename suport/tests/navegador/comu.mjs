@@ -43,7 +43,7 @@ export async function serveixLeaflet(ctx, cdn = { unpkg: true, jsdelivr: true })
   await ctx.route(TESSELES, (route) => route.abort());
 }
 
-export const TESSELES = /tile\.openstreetmap\.org|ovc\.catastro\.meh\.es|geoserveis\.icgc\.cat|basemaps\.cartocdn\.com|arcgisonline\.com/;
+export const TESSELES = /tile\.openstreetmap\.org|ovc\.catastro\.meh\.es|geoserveis\.icgc\.cat|arcgisonline\.com/;
 
 // Un PNG de 1x1, per servir una rajola que "carrega".
 export const PNG_1x1 = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');

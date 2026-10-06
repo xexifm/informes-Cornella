@@ -124,8 +124,12 @@ Obre el programa i **fes captura**. Comprova-hi:
     Mira també que el menú es vegi bé amb les rajoles més estretes (5 columnes):
     cap text de rajola tallat a mitja paraula.
     **El fons del mapa** ha de ser el de l'ICGC, sense cap quadre «Access
-    blocked». Al selector de dalt a la dreta prova *Ortofoto (ICGC)*, *Mapa
-    (CARTO)* i *Mapa (Esri)*: tots han de pintar. Si a baix a l'esquerra surt
+    blocked». Al selector de dalt a la dreta prova *Ortofoto (ICGC)* (la vora
+    de les parcel·les, blanca i ben visible) i *Mapa (Esri)*: tots dos han de
+    pintar. **Els ID GIA**: al carrer Progrés 73-75, el 1340 a l'entrada del 73
+    (marc groc) i el 288 a la del 75 (marc blau), tots dos dins la parcel·la. Els
+    que surten en vermell al centre: mira'n un amb «Per revisar → Entrada no
+    trobada». Comprova que per defecte no surt cap hotel (CCAE 5520). Si a baix a l'esquerra surt
     un requadre groc «El fons … no respon», apunta quin: aquell servei ha
     canviat i cal revisar-ne l'adreça (`suport/rutes/MapaFons.js`).
 10b. EINES → «Generar ruta»: genera una ruta i obre el mapa. Mateix fons que el

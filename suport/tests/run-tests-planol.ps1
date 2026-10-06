@@ -191,16 +191,112 @@ $mCadis = @($mapa | Where-Object { $_.k -eq '2295827DF2729E' })[0]
 AssertEq @($mCadis.p).Count 2 'la parcel.la amb geometria porta els seus dos poligons'
 AssertEq @(@($mCadis.p)[0]).Count 2 'el primer amb el forat'
 AssertNear ([double]@(@(@($mCadis.p)[0])[0])[0]) 41.36 0.02 'en graus (latitud)'
-# L'etiqueta va al centre de l'exterior mes gran: (421975, 4579505).
-$llC = Convert-UtmToLatLon 421975.0 4579505.0 31 $true
-AssertNear ([double]$mCadis.c[0]) $llC.Lat 0.000002 'l etiqueta, al centre de la parcel.la (lat)'
-AssertNear ([double]$mCadis.c[1]) $llC.Lon 0.000002 'l etiqueta, al centre de la parcel.la (lon)'
+# El centre va DINS de la parcel.la. El centroide de l'exterior mes gran,
+# (421975, 4579505), cau just al PATI (el forat 421970-421980): fins a l'octubre
+# de 2026 l'etiqueta hi anava. Ara, el mig del tram interior mes ample de
+# l'horitzontal del centroide: (421960, 4579505).
+$llC = Convert-UtmToLatLon 421960.0 4579505.0 31 $true
+AssertNear ([double]$mCadis.c[0]) $llC.Lat 0.000002 'el centre, dins de la parcel.la i fora del pati (lat)'
+AssertNear ([double]$mCadis.c[1]) $llC.Lon 0.000002 'el centre, dins de la parcel.la i fora del pati (lon)'
 $mHosp = @($mapa | Where-Object { $_.k -eq '4091106DF2749A' })[0]
 AssertEq @($mHosp.p).Count 0 'sense geometria: cap poligon (surt com un punt)'
 Assert ($null -ne $mHosp.c) 'i l etiqueta, a la coordenada de l Excel'
 $json = ConvertTo-JsonScript $mapa -Llista -Fondaria 10
 $torna = $json | ConvertFrom-Json
 AssertEq @($torna).Count @($mapa).Count 'el JSON del mapa es valid i hi son totes'
+
+Write-Host "`n--- Les capcaleres REALS de l'Excel d'establiments ---"
+# Tal com venen al fitxer de l'usuari (2026-10-05): "Emp._Numero_" amb accent i
+# guions baixos, "Emp. N? Local". Sense el numero no es pot buscar l'entrada.
+$capReal = @('ID Establiment GIA', 'ID Establiment Gencat', 'Ref. cadastral', 'UTM X', 'UTM Y', 'Emp. Nucli o barri', 'Emp. Municipi', 'Emp. CP', 'Emp. Tipus via', 'Emp. Carrer',
+             ('Emp._N' + [char]0x00FA + 'mero_'), 'Emp. Lletra', 'Emp. Bloc', 'Emp. Km', ('Emp. N' + [char]0x00BA + ' Local'), 'Emp. Escala', 'Emp. Pis', 'Emp. Porta', 'Local buit', 'ID Activitat')
+AssertEq "$(Find-HeaderColumn $capReal 'Emp. Carrer')|$(Find-HeaderColumn $capReal 'Emp. Numero')|$(Find-HeaderColumn $capReal 'Emp. N Local')|$(Find-HeaderColumn $capReal 'ID Activitat')" '10|11|15|20' 'carrer, numero, local i ID Activitat es troben a les capcaleres reals'
+
+Write-Host "`n--- Allotjaments turistics (CCAE 552/5520) ---"
+AssertEq (@(Get-ColumnesCcae @('ID Activitat', 'CCAE Descripcio', 'CCAE Codi')) -join ',') '3' 'la columna es "CCAE Codi" (la que diu l usuari), encara que n hi hagi d altres amb CCAE'
+AssertEq (@(Get-ColumnesCcae @('ID Activitat', 'CCAE secundari', 'CCAE principal')) -join ',') '3' 'sense "CCAE Codi": la principal'
+AssertEq @(Get-ColumnesCcae @('ID Activitat', 'Nom')).Count 0 'sense cap CCAE: cap columna'
+foreach ($cas in @(@('5520', $true), @('55.20', $true), @('552', $true), @(5520.0, $true), @('5520 - Allotjaments turistics', $true), @('5510', $false), @('4520', $false), @('', $false), @('I5520', $true))) {
+    AssertEq (Test-CcaeAllotjamentTuristic @($cas[0])) $cas[1] ("CCAE '" + $cas[0] + "' -> " + $cas[1])
+}
+
+Write-Host "`n--- PlanolGeometria: dins, vora, entrada ---"
+$quad = { param($x0, $y0, $x1, $y1) [pscustomobject]@{ Anells = @(,([double[]]@($x0, $y0, $x1, $y0, $x1, $y1, $x0, $y1, $x0, $y0))) } }
+$q20 = & $quad 0 0 20 20
+Assert (Test-PuntDinsPoligons 5 5 @($q20)) 'un punt dins del quadrat'
+Assert (-not (Test-PuntDinsPoligons 25 5 @($q20))) 'i un de fora'
+$ambForat = [pscustomobject]@{ Anells = @(([double[]]@(0, 0, 20, 0, 20, 20, 0, 20)), ([double[]]@(8, 8, 12, 8, 12, 12, 8, 12))) }
+Assert (-not (Test-PuntDinsPoligons 10 10 @($ambForat))) 'dins del forat (el pati) no es dins de la parcel.la'
+$aF = Resolve-AncoraEntrada 10 -1 @($q20)
+AssertEq "$([math]::Round($aF.X,2))|$([math]::Round($aF.Y,2))|$(Get-DireccioEtiqueta $aF.Dx $aF.Dy)" "10|$($Script:PlanolEntradaMargeM)|t" 'portal a 1 m fora (al carrer): l etiqueta, a dins i creixent cap amunt (cap a dins)'
+$aV = Resolve-AncoraEntrada 10 0 @($q20)
+Assert (Test-PuntDinsPoligons $aV.X $aV.Y @($q20)) 'portal just sobre la linia: l etiqueta, a dins'
+AssertEq (Resolve-AncoraEntrada 10 -20 @($q20)) $null 'portal a 20 m: no es d aquesta parcel.la'
+$aD = Resolve-AncoraEntrada 10 10 @($q20)
+AssertEq "$($aD.X)|$($aD.Y)" '10|10' 'portal ben dins: es queda on es'
+$aE = Resolve-AncoraEntrada 21 10 @($q20)
+AssertEq (Get-DireccioEtiqueta $aE.Dx $aE.Dy) 'l' 'portal a la facana de la dreta: l etiqueta creix cap a l esquerra'
+$ele = [pscustomobject]@{ Anells = @(,([double[]]@(0, 0, 30, 0, 30, 10, 10, 10, 10, 30, 0, 30))) }
+$pi = Get-PuntInterior @($ele)
+Assert (Test-PuntDinsPoligons $pi.X $pi.Y @($ele)) 'Get-PuntInterior: dins, tambe en una L'
+
+Write-Host "`n--- PlanolGeometria: juntar parcel.les ---"
+$jA = Join-Poligons @((& $quad 0 0 10 10), (& $quad 10 0 20 10))
+AssertEq "$($jA.Toquen)|$($jA.Unit)|$(@($jA.Polys).Count)" 'True|True|1' 'dues parcel.les amb un costat comu: una sola forma'
+AssertNear (Get-AreaAnell @($jA.Polys)[0].Anells[0]) 200 0.01 'i l area es la de les dues'
+$jP = Join-Poligons @((& $quad 0 0 10 10), (& $quad 10 2 20 6))
+AssertEq "$($jP.Toquen)|$($jP.Unit)|$(@($jP.Polys).Count)" 'True|True|1' 'una toca nomes un tros del costat de l altra: tambe s ajunten'
+AssertNear (Get-AreaAnell @($jP.Polys)[0].Anells[0]) 140 0.01 'i l area es la suma'
+$jN = Join-Poligons @((& $quad 0 0 10 10), (& $quad 15 0 25 10))
+AssertEq "$($jN.Toquen)|$(@($jN.Polys).Count)" 'False|2' 'separades: no es toquen i queden les dues'
+$jH = Join-Poligons @($ambForat, (& $quad 20 0 30 20))
+AssertEq "$($jH.Unit)|$(@(@($jH.Polys)[0].Anells).Count)" 'True|2' 'el pati d una es conserva en juntar-la'
+
+Write-Host "`n--- L'ID GIA a l'ENTRADA de l'establiment ---"
+# Una parcel.la de 40 x 20 al carrer Progres (la facana, a baix): el 1340 al 73
+# i el 288 al 75, com a la foto de l'usuari.
+$eP = { param($g, $num, $estat = 'groc', $carrer = 'Progres') [pscustomobject]@{ Tipus = 'activitat'; Gia = $g; Nom = ''; Activitat = ''; Sub = ''; SubFont = ''; Estat = $estat; EstatText = ''; Precinte = $false; MarcatBuit = $false; SenseEstabliment = $false; NoBase = $false; NInformes = 0; Adreca = ''; Rc = ''; Carrer = $carrer; Numero = $num; Turistic = $false; Classificacio = 'III' } }
+$pcP = [pscustomobject]@{ Clau = '3678311DF2737H'; Rc = '3678311DF2737H'; X = 422020.0; Y = 4579010.0; Entrades = @((& $eP '1340' '73'), (& $eP '288' '75' 'blau'), (& $eP '999' '81')) }
+$geoP = @{ '3678311DF2737H' = @((& $quad 422000 4579000 422040 4579020)) }
+$portP = @{ '3678311DF2737H' = @(
+    [pscustomobject]@{ Numero = '73'; Via = 'CL PROGRES'; X = 422008.0; Y = 4578999.5 },
+    [pscustomobject]@{ Numero = '75'; Via = 'CL PROGRES'; X = 422030.0; Y = 4578999.5 }) }
+$mP = @(ConvertTo-PlanolDadesMapa ([pscustomobject]@{ Parceles = @($pcP) }) $geoP $portP)[0]
+$etq = @($mP.l)
+$e1340 = @($etq | Where-Object { @($_.g) -contains '1340' })[0]; $e288 = @($etq | Where-Object { @($_.g) -contains '288' })[0]
+$ll73 = Convert-UtmToLatLon 422008.0 (4579000.0 + $Script:PlanolEntradaMargeM) 31 $true
+AssertNear ([double]$e1340.c[0]) $ll73.Lat 0.0000005 'el 1340, a l entrada del 73 (lat)'
+AssertNear ([double]$e1340.c[1]) $ll73.Lon 0.0000005 'el 1340, a l entrada del 73 (lon)'
+AssertEq "$($e1340.d)|$($e1340.v)|$(@($e1340.g) -join ',')" 't|0|1340' 'una etiqueta per al 1340, cap a dins, no vermella'
+Assert ([double]$e288.c[1] -gt [double]$e1340.c[1]) 'el 288, a la seva entrada (el 75, mes a l est)'
+$eV = @($etq | Where-Object { $_.v -eq 1 })
+AssertEq "$($eV.Count)|$(@($eV[0].g) -join ',')" '1|999' 'el 81 no es al Cadastre: el 999 en vermell'
+AssertNear ([double]$eV[0].c[0]) ([double]$mP.c[0]) 0.000001 '...al centre de la parcel.la'
+AssertEq (@($mP.e | ForEach-Object { "$($_.g):$($_.x)" }) -join ' ') '1340:1 288:1 999:0' 'cada activitat diu si se n ha trobat l entrada'
+AssertEq (@($mP.e)[0].cl) 'III' 'la classificacio (annex) arriba al mapa'
+# La MATEIXA porta: dues activitats al 73, una sola etiqueta.
+$pcM = [pscustomobject]@{ Clau = 'M'; Rc = '3678311DF2737H'; X = 0.0; Y = 0.0; Entrades = @((& $eP '1340' '73'), (& $eP '50' '73' 'verd')) }
+$mM = @(ConvertTo-PlanolDadesMapa ([pscustomobject]@{ Parceles = @($pcM) }) $geoP $portP)[0]
+AssertEq "$(@($mM.l).Count)|$(@(@($mM.l)[0].g) -join ',')" '1|1340,50' 'dues activitats a la mateixa porta: una etiqueta amb totes dues'
+# La MATEIXA activitat amb dos establiments gairebe tocant-se (8 m): una etiqueta.
+$portA = @{ '3678311DF2737H' = @(
+    [pscustomobject]@{ Numero = '73'; Via = 'CL PROGRES'; X = 422008.0; Y = 4578999.5 },
+    [pscustomobject]@{ Numero = '75'; Via = 'CL PROGRES'; X = 422016.0; Y = 4578999.5 }) }
+$pcA = [pscustomobject]@{ Clau = 'A'; Rc = '3678311DF2737H'; X = 0.0; Y = 0.0; Entrades = @((& $eP '700' '73'), (& $eP '700' '75')) }
+$mA = @(ConvertTo-PlanolDadesMapa ([pscustomobject]@{ Parceles = @($pcA) }) $geoP $portA)[0]
+AssertEq "$(@($mA.l).Count)|$(@(@($mA.l)[0].g) -join ',')" '1|700' 'la mateixa activitat a dues entrades a 8 m: una sola etiqueta'
+# Sense els portals d'aquella parcel.la (no s'han pogut demanar): al centre i SENSE vermell.
+$mS = @(ConvertTo-PlanolDadesMapa ([pscustomobject]@{ Parceles = @($pcP) }) $geoP @{})[0]
+AssertEq "$(@($mS.l).Count)|$(@($mS.l)[0].v)|$(@($mS.e)[0].x)" '1|0|-1' 'sense portals: al centre, sense vermell (no se sap)'
+# Juntar: dues parcel.les que es toquen amb les MATEIXES activitats.
+$pcJ1 = [pscustomobject]@{ Clau = '1111111DF1111A'; Rc = '1111111DF1111A'; X = 0.0; Y = 0.0; Entrades = @((& $eP '500' '1')) }
+$pcJ2 = [pscustomobject]@{ Clau = '2222222DF2222A'; Rc = '2222222DF2222A'; X = 0.0; Y = 0.0; Entrades = @((& $eP '500' '3')) }
+$pcJ3 = [pscustomobject]@{ Clau = '3333333DF3333A'; Rc = '3333333DF3333A'; X = 0.0; Y = 0.0; Entrades = @((& $eP '500' '5'), (& $eP '501' '5')) }
+$geoJ = @{ '1111111DF1111A' = @((& $quad 422000 4579000 422010 4579010)); '2222222DF2222A' = @((& $quad 422010 4579000 422020 4579010)); '3333333DF3333A' = @((& $quad 422020 4579000 422030 4579010)) }
+$mJ = @(ConvertTo-PlanolDadesMapa ([pscustomobject]@{ Parceles = @($pcJ1, $pcJ2, $pcJ3) }) $geoJ @{})
+AssertEq $mJ.Count 2 'les dues de nomes el 500 es junten; la que te el 500 i el 501, no'
+$mJ1 = @($mJ | Where-Object { @($_.rcs).Count -eq 2 })[0]
+AssertEq "$(@($mJ1.p).Count)|$(@($mJ1.e).Count)" '1|2' 'la forma juntada: un sol poligon, amb els dos establiments'
 
 Write-Host "`n--- Build-PlanolHtml: la plantilla (PlanolMapa.html) ---"
 $metaT = [pscustomobject]@{ BaseActivitats = 'A.xls'; BaseEstabliments = 'E.xls'; BaseInformes = 'Base'; Avisos = @('un avis </script>') }

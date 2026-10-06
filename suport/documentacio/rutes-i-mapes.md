@@ -20,10 +20,17 @@ cadascun la seva còpia de l'adreça d'OpenStreetMap.
   plantilles hi porten `{{fonsJs}}`, que omple **`Get-PlantillaHtml` per a
   totes** (no és cosa de cap eina); Ruta, que no fa servir plantilla, el crida
   directament. Cada mapa només fa `var FONS = afegeixFonsMapa(map)`.
-- **L'ordre**: *Mapa (ICGC)* → *Ortofoto (ICGC)* → *Mapa (CARTO)* → *Mapa
-  (Esri)*. L'ICGC és la cartografia oficial de Catalunya i no demana clau ni
-  Referer. Hi ha un selector a dalt a la dreta i **la tria es recorda**
-  (`localStorage`, comú a tots els mapes oberts des del disc).
+- **L'ordre**: *Mapa (ICGC)* → *Ortofoto (ICGC)* → *Mapa (Esri)*. L'ICGC és
+  la cartografia oficial de Catalunya i no demana clau ni Referer. Hi ha un
+  selector a dalt a la dreta i **la tria es recorda** (`localStorage`, comú a
+  tots els mapes oberts des del disc).
+- **CARTO es va treure** (octubre 2026): les seves rajoles ara demanen clau i
+  **carreguen igualment** amb «API KEY REQUIRED» pintat a sobre. Com que
+  carreguen, el recanvi automàtic no ho veu. Abans d'afegir un fons nou, mira
+  que no en demani.
+- **Sobre l'ortofoto la vora de les parcel·les és blanca i més gruixuda** (i el
+  color, més transparent): la fosca es perdia entre teulades i ombres. El mapa
+  rep l'event `fonscanviat` cada vegada que canvia el fons.
 - **Si un fons no respon, es passa sol al següent** (cap rajola carregada i ja
   `FONS_ERRORS_MAX` errades) i es diu en un requadre a baix a l'esquerra. **No
   es van poder provar les adreces des de l'entorn de desenvolupament** (el
@@ -36,13 +43,41 @@ cadascun la seva còpia de l'adreça d'OpenStreetMap.
   de fer saltar el recanvi per error). El zoom màxim del mapa el fixa cada
   mapa (`maxZoom` a `L.map`).
 - **Prova al navegador** (`prova-planol.mjs`, «El fons del mapa»): cap petició
-  a OpenStreetMap; amb l'ICGC caigut i CARTO servit, passa sol a CARTO i ho
+  a OpenStreetMap; amb l'ICGC caigut i Esri servit, passa sol a Esri i ho
   diu; la tria del selector es recorda en tornar-lo a obrir; i sense cap fons,
   ho diu i el mapa segueix funcionant.
 - El **plànol públic de precintades** (`docs/precintades.html`) es queda amb
   OpenStreetMap: es publica a GitHub Pages, que sí que envia Referer.
 
 ## Eina «Plànol activitats» (`rutes/Planol.ps1`, octubre 2026)
+
+### L'ID GIA a l'ENTRADA de l'establiment (`rutes/PlanolGeometria.ps1`)
+Petició de l'usuari: l'ID GIA, a la porta de l'establiment (com fa Coordenades),
+emmarcat amb el color del seu estat i **dins de la parcel·la**; si no es troba,
+al centre i **en vermell**.
+- **L'entrada** són els portals del Cadastre (INSPIRE AD, la mateixa memòria cau
+  que Coordenades, `portals.json`). Només compta el número **exacte**
+  (`Get-PortalsExactes`): el 71 no és el 73, i va en vermell (ho va triar
+  l'usuari). Amb dos portals amb el mateix número, el més proper a la parcel·la.
+- **Dins de la parcel·la** (`Resolve-AncoraEntrada`): el portal sol caure sobre
+  la façana o al carrer. Fins a `PlanolEntradaMaxForaM` (12 m) fora s'accepta, i
+  l'etiqueta es posa a `PlanolEntradaMargeM` (2,5 m) cap a dins des de la vora i
+  **creix cap a l'interior** (la direcció de l'etiqueta del Leaflet surt de la
+  normal del costat). Més lluny: no és d'aquella parcel·la (vermell).
+- **Juntes a la mateixa etiqueta**: les entrades a menys de 3 m (la mateixa
+  porta; cada ID amb el seu color) i les de la **mateixa activitat** a menys de
+  10 m. **Parcel·les juntades**: les que es toquen i tenen **exactament les
+  mateixes activitats** es dibuixen com una sola forma (`Join-Poligons`: unió per
+  cancel·lació d'arestes, amb els costats partits pels vèrtexs de la veïna). Si
+  una porta una activitat més no es junten: s'hi barrejaria el color de l'altra.
+- **Sense els portals d'una parcel·la** (no s'han pogut demanar): al centre
+  **sense** vermell, perquè no se sap. Sense dibuix (un punt): vermell.
+- El **centre** és ara un punt **dins** (`Get-PuntInterior`): el centroide d'una
+  parcel·la amb pati hi queia a dins (la prova de Cadis 19 ho tenia així).
+- **Filtres nous**: *Allotjaments turístics* (CCAE 552/5520, columna «CCAE Codi»
+  de la fulla Estès; per defecte, **sense**), *Classificació (annex)* (una
+  casella per cada valor de «Classificació general annex») i *Per revisar*
+  amb textos clars, recomptes, una ajuda a sota i l'opció «Entrada no trobada».
 
 > **El primer plànol de l'usuari: TOTES les activitats «sense establiment».**
 > La crida feia `@(Read-EstablimentsExcel …)`, que ja torna la llista amb coma:

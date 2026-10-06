@@ -189,6 +189,9 @@ function ConvertFrom-FullaEstabliments($data, [int]$rows, $headers) {
             Buit   = ($buitTxt -eq 'si' -or $buitTxt -eq 's')
             UtmX   = ConvertTo-UtmNumber (_PlanolCel $data $r $c.X)
             UtmY   = ConvertTo-UtmNumber (_PlanolCel $data $r $c.Y)
+            # En brut, per buscar el portal del Cadastre (Get-PortalsExactes).
+            Carrer = _PlanolValor (_PlanolCel $data $r $c.Carrer)
+            Numero = _PlanolValor (_PlanolCel $data $r $c.Num)
             Adreca = Format-EmpAddress (_PlanolValor (_PlanolCel $data $r $c.Via)) (_PlanolValor (_PlanolCel $data $r $c.Carrer)) (_PlanolValor (_PlanolCel $data $r $c.Num)) (_PlanolValor (_PlanolCel $data $r $c.Lletra))
         }
     }
@@ -204,9 +207,11 @@ function ConvertFrom-FullaActivitatsPlanol($data, [int]$rows, $headers) {
         Via = Find-HeaderColumn $headers 'Emp. Tipus via'; Carrer = Find-HeaderColumn $headers 'Emp. Carrer'
         Num = Find-HeaderColumn $headers 'Emp. Numero'; Lletra = Find-HeaderColumn $headers 'Emp. Lletra'
         Act = Find-HeaderColumn $headers 'Activitat principal'; Nom = Find-HeaderColumn $headers 'Nom comercial activitat'
+        Classif = Find-HeaderColumn $headers 'Classificacio general annex'
     }
     if ($c.Id -lt 1) { throw "La fulla d'activitats no te la columna 'ID Activitat'." }
     $pairs = _FindCampInfoPairs $headers
+    $colsCcae = @(Get-ColumnesCcae $headers)
     $out = @{}
     for ($r = 2; $r -le $rows; $r++) {
         $id = Get-IdDeCella (_PlanolCel $data $r $c.Id)
@@ -224,9 +229,48 @@ function ConvertFrom-FullaActivitatsPlanol($data, [int]$rows, $headers) {
             Adreca    = Format-EmpAddress (_PlanolValor (_PlanolCel $data $r $c.Via)) (_PlanolValor (_PlanolCel $data $r $c.Carrer)) (_PlanolValor (_PlanolCel $data $r $c.Num)) (_PlanolValor (_PlanolCel $data $r $c.Lletra))
             UtmX      = ConvertTo-UtmNumber (_PlanolCel $data $r $c.X)
             UtmY      = ConvertTo-UtmNumber (_PlanolCel $data $r $c.Y)
+            Carrer    = _PlanolValor (_PlanolCel $data $r $c.Carrer)
+            Numero    = _PlanolValor (_PlanolCel $data $r $c.Num)
+            Turistic  = Test-CcaeAllotjamentTuristic @($colsCcae | ForEach-Object { _PlanolValor (_PlanolCel $data $r $_) })
+            # "Classificacio general annex" (II, III, L18 Cert...): filtre del mapa.
+            Classificacio = _PlanolValor (_PlanolCel $data $r $c.Classif)
         }
     }
     return $out
+}
+
+# ALLOTJAMENTS TURISTICS (octubre 2026, l'usuari: "en principi no m'interessen.
+# Filtra-ho per CCAE 552/5520"). La columna es "CCAE Codi" de la fulla Estes
+# (l'usuari). Si un dia canvia de nom: les que porten "CCAE" al nom, i si alguna
+# diu "principal", nomes aquella (un CCAE secundari d'allotjament no fa que
+# l'activitat ho sigui). Array PLA d'indexs (1-based); buit si no n'hi ha cap.
+# PURA.
+function Get-ColumnesCcae($headers) {
+    $codi = Find-HeaderColumn $headers 'CCAE Codi'
+    if ($codi -gt 0) { return @($codi) }
+    $arr = @($headers); $totes = @(); $princ = @()
+    for ($i = 0; $i -lt $arr.Count; $i++) {
+        $h = _NormalitzaText $arr[$i]
+        if ($h -notmatch 'ccae') { continue }
+        $totes += ($i + 1)
+        if ($h -match 'principal') { $princ += ($i + 1) }
+    }
+    if ($princ.Count -gt 0) { return $princ }
+    return $totes
+}
+
+# Es un allotjament turistic? Algun dels valors comenca per 552 (el grup 55.2 de
+# la CCAE-2009: 552, 5520, '55.20', '5520 - Allotjaments turistics...'). PURA.
+function Test-CcaeAllotjamentTuristic($valors) {
+    foreach ($v in @($valors)) {
+        $t = ([string]$v).Trim()
+        if ($t -eq '') { continue }
+        $m = [regex]::Match($t, '^\D*(\d[\d.\s]*)')
+        if (-not $m.Success) { continue }
+        $digits = $m.Groups[1].Value -replace '[^0-9]', ''
+        if ($digits.StartsWith('552')) { return $true }
+    }
+    return $false
 }
 
 # La base d'informes (ja llegida): hashtable ID GIA -> { Estat; NInformes }.
@@ -318,7 +362,8 @@ function Build-PlanolModel($establiments, $activitats, $estats, $unitats) {
             & $afegeix $e.Rc $e.UtmX $e.UtmY ([pscustomobject]@{
                 Tipus = 'buit'; Gia = ''; Nom = ''; Activitat = ''; Sub = $sub.Text; SubFont = $sub.Font
                 Estat = ''; EstatText = ''; Precinte = $false; MarcatBuit = $true; SenseEstabliment = $false
-                NoBase = $false; NInformes = 0; Adreca = $e.Adreca; Rc = $rcN })
+                NoBase = $false; NInformes = 0; Adreca = $e.Adreca; Rc = $rcN
+                Carrer = [string]$e.Carrer; Numero = [string]$e.Numero; Turistic = $false; Classificacio = '' })
             continue
         }
         $gia = [string]$e.IdActivitat
@@ -339,7 +384,10 @@ function Build-PlanolModel($establiments, $activitats, $estats, $unitats) {
             Estat = (Get-EstatPlanol $prec $estatText); EstatText = $estatText; Precinte = $prec
             MarcatBuit = [bool]$e.Buit; SenseEstabliment = $false; NoBase = ($null -eq $act)
             NInformes = if ($null -ne $inf) { [int]$inf.NInformes } else { 0 }
-            Adreca = $e.Adreca; Rc = $rcN })
+            Adreca = $e.Adreca; Rc = $rcN
+            Carrer = [string]$e.Carrer; Numero = [string]$e.Numero
+            Turistic = if ($null -ne $act) { [bool]$act.Turistic } else { $false }
+            Classificacio = if ($null -ne $act) { [string]$act.Classificacio } else { '' } })
     }
 
     # Activitats que no surten a cap establiment: amb la refcat de l'Excel
@@ -356,7 +404,9 @@ function Build-PlanolModel($establiments, $activitats, $estats, $unitats) {
             Sub = ''; SubFont = ''; Estat = (Get-EstatPlanol ([bool]$act.Precinte) $estatText); EstatText = $estatText
             Precinte = [bool]$act.Precinte; MarcatBuit = $false; SenseEstabliment = $true; NoBase = $false
             NInformes = if ($null -ne $inf) { [int]$inf.NInformes } else { 0 }
-            Adreca = $act.Adreca; Rc = $act.Rc })
+            Adreca = $act.Adreca; Rc = $act.Rc
+            Carrer = [string]$act.Carrer; Numero = [string]$act.Numero; Turistic = [bool]$act.Turistic
+            Classificacio = [string]$act.Classificacio })
     }
 
     # Dins de cada parcel.la: primer les activitats (per sub-establiment i ID
@@ -506,35 +556,6 @@ function Get-UnitatsCadastre($refcats, [scriptblock]$onProgress = $null) {
 # ----------------------------------------------------------------------------
 # DEL MODEL A LES DADES DEL MAPA (graus i noms curts per al JSON)
 # ----------------------------------------------------------------------------
-# Centre d'un anell (centroide d'area, formula del cordill); si l'area es nul.la,
-# la mitjana dels vertexs. On va l'etiqueta dels ID GIA.
-function Get-CentreAnell($anell) {
-    $a = @($anell)
-    $n = [int]($a.Count / 2)
-    if ($n -eq 0) { return $null }
-    $area = 0.0; $cx = 0.0; $cy = 0.0; $sx = 0.0; $sy = 0.0
-    for ($i = 0; $i -lt $n; $i++) {
-        $x0 = [double]$a[2 * $i]; $y0 = [double]$a[2 * $i + 1]
-        $j = ($i + 1) % $n
-        $x1 = [double]$a[2 * $j]; $y1 = [double]$a[2 * $j + 1]
-        $f = $x0 * $y1 - $x1 * $y0
-        $area += $f; $cx += ($x0 + $x1) * $f; $cy += ($y0 + $y1) * $f
-        $sx += $x0; $sy += $y0
-    }
-    if ([math]::Abs($area) -lt 1e-9) { return @(($sx / $n), ($sy / $n)) }
-    return @(($cx / (3 * $area)), ($cy / (3 * $area)))
-}
-
-# Area (absoluta) d'un anell, per triar el poligon mes gran d'una parcel.la.
-function Get-AreaAnell($anell) {
-    $a = @($anell); $n = [int]($a.Count / 2); $s = 0.0
-    for ($i = 0; $i -lt $n; $i++) {
-        $j = ($i + 1) % $n
-        $s += [double]$a[2 * $i] * [double]$a[2 * $j + 1] - [double]$a[2 * $j] * [double]$a[2 * $i + 1]
-    }
-    return [math]::Abs($s / 2)
-}
-
 function _PlanolAnellAGraus($anell) {
     $a = @($anell)
     $out = New-Object System.Collections.Generic.List[double]
@@ -545,50 +566,222 @@ function _PlanolAnellAGraus($anell) {
     return ,($out.ToArray())
 }
 
-# Una llista d'objectes per al JSON del mapa. Noms curts: el fitxer porta
-# milers d'entrades.
-#   k clau, rc parcel.la, c [lat, lon] de l'etiqueta, p poligons [[anell...]]
-#   (cada anell pla [lat, lon, lat, lon...]), e entrades:
-#   { t 'a'|'b', g gia, n nom, ac activitat, s sub, sf font del sub, e estat,
-#     et text de l'estat, pr precinte, mb marcat buit, se sense establiment,
-#     nb no es a la base, ni informes, ad adreca, rc refcat }
-function ConvertTo-PlanolDadesMapa($model, $geometries) {
+# ----------------------------------------------------------------------------
+# L'ENTRADA DE CADA ESTABLIMENT I LES PARCEL.LES JUNTADES (octubre 2026)
+# ----------------------------------------------------------------------------
+# Els portals d'una parcel.la amb EXACTAMENT el numero de l'establiment (i el
+# carrer, si algun portal el porta: el mateix criteri que Coordenades,
+# Select-PortalFacana). Si no hi es exacte, cap: l'usuari ho va triar aixi ("el
+# 73 no es el 71"; l'ID surt en vermell al centre). Array PLA. PURA.
+function Get-PortalsExactes($portals, $carrer, $numero) {
+    $arr = @(@($portals) | Where-Object { $null -ne $_ })
+    $num = Get-NumeroPortal $numero
+    if ($arr.Count -eq 0 -or $num -eq '') { return @() }
+    $via = Get-ViaNormalitzada $carrer
+    $cands = $arr
+    if ($via -ne '') {
+        $ambVia = @($arr | Where-Object { (Get-ViaNormalitzada $_.Via) -eq $via })
+        if ($ambVia.Count -gt 0) { $cands = $ambVia }
+    }
+    return @($cands | Where-Object { [string]$_.Numero -eq $num })
+}
+
+# On va l'etiqueta d'un establiment: { X; Y; Dx; Dy } (Resolve-AncoraEntrada) o
+# $null si no hi ha cap portal exacte que caigui dins (o prou a prop) dels
+# poligons. Amb dos portals amb el mateix numero, el mes proper a la parcel.la.
+function Resolve-EntradaEstabliment($portals, $carrer, $numero, $polys) {
+    $millor = $null; $dm = $null
+    foreach ($p in @(Get-PortalsExactes $portals $carrer $numero)) {
+        $a = Resolve-AncoraEntrada ([double]$p.X) ([double]$p.Y) $polys
+        if ($null -eq $a) { continue }
+        $d = [math]::Sqrt(([double]$p.X - $a.X) * ([double]$p.X - $a.X) + ([double]$p.Y - $a.Y) * ([double]$p.Y - $a.Y))
+        if ($null -eq $dm -or $d -lt $dm) { $dm = $d; $millor = $a }
+    }
+    return $millor
+}
+
+# Les activitats d'una parcel.la, com a clau: les parcel.les que es toquen i
+# tenen EXACTAMENT les mateixes activitats es juntes (una sola forma i una
+# sola etiqueta). Nomes les mateixes: si una porta una activitat mes, juntar-les
+# hi barrejaria el color de l'altra. '' si no n'hi ha cap.
+function _PlanolClauActivitats($pc) {
+    $g = @(@($pc.Entrades) | Where-Object { $_.Tipus -eq 'activitat' -and [string]$_.Gia -ne '' } | ForEach-Object { [string]$_.Gia } | Sort-Object -Unique)
+    return ($g -join ',')
+}
+
+# ELS GRUPS: les parcel.les del model, juntant les que es toquen i tenen les
+# mateixes activitats. Cada grup: { Membres (parcel.les); Polys (UTM) }. Les que
+# no es junten, un grup cada una (amb els seus poligons, o cap si no en te).
+function Get-GrupsParceles($parceles, $geometries) {
     if ($null -eq $geometries) { $geometries = @{} }
-    $out = @()
-    foreach ($pc in @($model.Parceles)) {
-        $polys = @()
-        if ($pc.Rc -ne '' -and $geometries.ContainsKey($pc.Rc)) { $polys = @($geometries[$pc.Rc]) }
-        $pJson = New-Object System.Collections.ArrayList
-        $centre = $null; $maxArea = -1.0
-        foreach ($poly in $polys) {
-            $anells = @($poly.Anells)
-            if ($anells.Count -eq 0) { continue }
-            $ag = New-Object System.Collections.ArrayList
-            foreach ($an in $anells) { [void]$ag.Add((_PlanolAnellAGraus $an)) }
-            [void]$pJson.Add($ag.ToArray())
-            $ar = Get-AreaAnell $anells[0]
-            if ($ar -gt $maxArea) { $maxArea = $ar; $centre = Get-CentreAnell $anells[0] }
-        }
-        if ($null -eq $centre -and $null -ne $pc.X -and $null -ne $pc.Y) { $centre = @([double]$pc.X, [double]$pc.Y) }
-        if ($null -eq $centre) { continue }
-        $llc = Convert-UtmToLatLon ([double]$centre[0]) ([double]$centre[1]) 31 $true
-        $ents = @()
-        foreach ($en in @($pc.Entrades)) {
-            $ents += [ordered]@{
-                t = if ($en.Tipus -eq 'buit') { 'b' } else { 'a' }
-                g = [string]$en.Gia; n = [string]$en.Nom; ac = [string]$en.Activitat
-                s = [string]$en.Sub; sf = [string]$en.SubFont
-                e = [string]$en.Estat; et = [string]$en.EstatText
-                pr = [bool]$en.Precinte; mb = [bool]$en.MarcatBuit; se = [bool]$en.SenseEstabliment; nb = [bool]$en.NoBase
-                ni = [int]$en.NInformes; ad = [string]$en.Adreca; rc = [string]$en.Rc
+    $llista = @($parceles)
+    $polysDe = @{}
+    for ($i = 0; $i -lt $llista.Count; $i++) {
+        $pc = $llista[$i]
+        $polysDe[$i] = if ($pc.Rc -ne '' -and $geometries.ContainsKey($pc.Rc)) { @($geometries[$pc.Rc]) } else { @() }
+    }
+    # Union-find entre les que tenen la mateixa clau d'activitats i es toquen.
+    $pare = @{}; for ($i = 0; $i -lt $llista.Count; $i++) { $pare[$i] = $i }
+    $arrel = { param($x) while ($pare[$x] -ne $x) { $pare[$x] = $pare[$pare[$x]]; $x = $pare[$x] }; return $x }
+    $perClau = @{}
+    for ($i = 0; $i -lt $llista.Count; $i++) {
+        if (@($polysDe[$i]).Count -eq 0) { continue }
+        $k = _PlanolClauActivitats $llista[$i]
+        if ($k -eq '') { continue }
+        if (-not $perClau.ContainsKey($k)) { $perClau[$k] = New-Object System.Collections.Generic.List[int] }
+        $perClau[$k].Add($i)
+    }
+    foreach ($k in @($perClau.Keys)) {
+        $ix = $perClau[$k]
+        for ($a = 0; $a -lt $ix.Count; $a++) {
+            for ($b = $a + 1; $b -lt $ix.Count; $b++) {
+                $j = Join-Poligons (@($polysDe[$ix[$a]]) + @($polysDe[$ix[$b]]))
+                if ($j.Toquen) { $ra = & $arrel $ix[$a]; $rb = & $arrel $ix[$b]; if ($ra -ne $rb) { $pare[$rb] = $ra } }
             }
         }
-        $out += [ordered]@{
-            k = [string]$pc.Clau; rc = [string]$pc.Rc
+    }
+    # Claus de TEXT: en un [ordered], una clau entera es pren per una POSICIO.
+    $grups = [ordered]@{}
+    for ($i = 0; $i -lt $llista.Count; $i++) {
+        $r = [string](& $arrel $i)
+        if (-not $grups.Contains($r)) { $grups[$r] = New-Object System.Collections.Generic.List[int] }
+        $grups[$r].Add($i)
+    }
+    $out = @()
+    foreach ($r in @($grups.Keys)) {
+        $ix = $grups[$r]
+        $membres = @($ix | ForEach-Object { $llista[$_] })
+        $polys = @($ix | ForEach-Object { @($polysDe[$_]) })
+        if ($ix.Count -gt 1) { $polys = @((Join-Poligons $polys).Polys) }
+        $out += [pscustomobject]@{ Membres = $membres; Polys = $polys }
+    }
+    return $out
+}
+
+# LES ETIQUETES D'UN GRUP. Cada activitat a la seva entrada (si es troba) i, si
+# no, en VERMELL al punt de sempre. Es junten a la mateixa etiqueta: les
+# entrades a menys de $Script:PlanolMateixaPortaM (la mateixa porta) i les de la
+# MATEIXA activitat a menys de $Script:PlanolMateixaActivitatM.
+# $portals: hashtable refcat14 -> portals; sense la parcel.la (no s'han pogut
+# demanar), l'etiqueta va al centre com sempre i NO en vermell: no se sap si
+# l'entrada hi es o no.
+# Torna { Etiquetes = [{ X; Y; Dir; Gias; Vermell; Centre }]; Entrada = hashtable
+# entrada -> $true/$false (trobada) }.
+function Get-EtiquetesGrup($grup, $portals, [double]$cx, [double]$cy) {
+    $punts = New-Object System.Collections.Generic.List[object]
+    $alCentre = New-Object System.Collections.Generic.List[string]
+    $vermells = New-Object System.Collections.Generic.List[string]
+    $trobada = @{}
+    foreach ($pc in @($grup.Membres)) {
+        foreach ($en in @($pc.Entrades)) {
+            if ($en.Tipus -ne 'activitat') { continue }
+            $g = [string]$en.Gia
+            # Sense els portals de la parcel.la (no s'han pogut demanar): no se
+            # sap on es l'entrada, va al centre com sempre i sense vermell.
+            if ($null -eq $portals -or -not $portals.ContainsKey([string]$pc.Rc)) {
+                if (-not $alCentre.Contains($g)) { $alCentre.Add($g) }
+                continue
+            }
+            # Sense dibuix de la parcel.la (un punt): no hi ha "dins" on posar-la.
+            if (@($grup.Polys).Count -eq 0) {
+                $trobada[$en] = $false; if (-not $vermells.Contains($g)) { $vermells.Add($g) }
+                continue
+            }
+            $a = Resolve-EntradaEstabliment $portals[[string]$pc.Rc] $en.Carrer $en.Numero $grup.Polys
+            if ($null -eq $a) { $trobada[$en] = $false; if (-not $vermells.Contains($g)) { $vermells.Add($g) }; continue }
+            $trobada[$en] = $true
+            $punts.Add([pscustomobject]@{ X = $a.X; Y = $a.Y; Dx = $a.Dx; Dy = $a.Dy; Gia = $g })
+        }
+    }
+    # Agrupar les entrades (union-find petit).
+    $n = $punts.Count
+    $pare = New-Object int[] $n; for ($i = 0; $i -lt $n; $i++) { $pare[$i] = $i }
+    $arrel = { param($x) while ($pare[$x] -ne $x) { $x = $pare[$x] }; return $x }
+    for ($i = 0; $i -lt $n; $i++) {
+        for ($j = $i + 1; $j -lt $n; $j++) {
+            $d = [math]::Sqrt(($punts[$i].X - $punts[$j].X) * ($punts[$i].X - $punts[$j].X) + ($punts[$i].Y - $punts[$j].Y) * ($punts[$i].Y - $punts[$j].Y))
+            $junta = ($d -le $Script:PlanolMateixaPortaM) -or ($punts[$i].Gia -eq $punts[$j].Gia -and $d -le $Script:PlanolMateixaActivitatM)
+            if ($junta) { $ri = & $arrel $i; $rj = & $arrel $j; if ($ri -ne $rj) { $pare[$rj] = $ri } }
+        }
+    }
+    $clusters = [ordered]@{}
+    for ($i = 0; $i -lt $n; $i++) { $r = [string](& $arrel $i); if (-not $clusters.Contains($r)) { $clusters[$r] = New-Object System.Collections.Generic.List[object] }; $clusters[$r].Add($punts[$i]) }
+    $etiq = @()
+    foreach ($r in @($clusters.Keys)) {
+        $m = $clusters[$r]
+        $sx = 0.0; $sy = 0.0; $sdx = 0.0; $sdy = 0.0; $gias = New-Object System.Collections.Generic.List[string]
+        foreach ($p in $m) { $sx += $p.X; $sy += $p.Y; $sdx += $p.Dx; $sdy += $p.Dy; if (-not $gias.Contains($p.Gia)) { $gias.Add($p.Gia) } }
+        $x = $sx / $m.Count; $y = $sy / $m.Count
+        # La mitjana de dues entrades d'una L pot caure fora: llavors, la primera.
+        if (-not (Test-PuntDinsPoligons $x $y $grup.Polys)) { $x = $m[0].X; $y = $m[0].Y }
+        $etiq += [pscustomobject]@{ X = $x; Y = $y; Dir = (Get-DireccioEtiqueta $sdx $sdy); Gias = @($gias); Vermell = $false; Centre = $false }
+    }
+    if ($vermells.Count -gt 0) { $etiq += [pscustomobject]@{ X = $cx; Y = $cy; Dir = 'c'; Gias = @($vermells); Vermell = $true; Centre = $true } }
+    if ($alCentre.Count -gt 0) { $etiq += [pscustomobject]@{ X = $cx; Y = $cy; Dir = 'c'; Gias = @($alCentre); Vermell = $false; Centre = $true } }
+    return [pscustomobject]@{ Etiquetes = $etiq; Entrada = $trobada }
+}
+
+# Una llista d'objectes per al JSON del mapa, UN PER GRUP (una parcel.la o
+# diverses de juntades). Noms curts: el fitxer porta milers d'entrades.
+#   k clau, rc parcel.la (la primera), rcs totes (si n'hi ha mes d'una), c [lat,
+#   lon] del centre (un punt DINS), p poligons [[anell...]] (cada anell pla
+#   [lat, lon, ...]), l etiquetes [{ c [lat, lon], d 'r'|'l'|'t'|'b'|'c', g [ID
+#   GIA], v 1 si va en vermell (entrada no trobada) }], e entrades:
+#   { t 'a'|'b', g gia, n nom, ac activitat, s sub, sf font del sub, e estat,
+#     et text de l'estat, pr precinte, mb marcat buit, se sense establiment,
+#     nb no es a la base, ni informes, ad adreca, rc refcat, at allotjament
+#     turistic, x entrada: 1 trobada, 0 no trobada, -1 no se sap, cl
+#     "Classificacio general annex" de l'Excel d'activitats }
+# $portals (opcional): hashtable refcat14 -> portals (Get-PortalsPerParcelles).
+function ConvertTo-PlanolDadesMapa($model, $geometries, $portals = $null) {
+    if ($null -eq $geometries) { $geometries = @{} }
+    $out = @()
+    foreach ($gr in @(Get-GrupsParceles @($model.Parceles) $geometries)) {
+        $polys = @($gr.Polys)
+        $pc0 = @($gr.Membres)[0]
+        $centre = $null
+        if ($polys.Count -gt 0) { $ip = Get-PuntInterior $polys; if ($null -ne $ip) { $centre = @([double]$ip.X, [double]$ip.Y) } }
+        if ($null -eq $centre -and $null -ne $pc0.X -and $null -ne $pc0.Y) { $centre = @([double]$pc0.X, [double]$pc0.Y) }
+        if ($null -eq $centre) { continue }
+        $pJson = New-Object System.Collections.ArrayList
+        foreach ($poly in $polys) {
+            $ag = New-Object System.Collections.ArrayList
+            foreach ($an in @($poly.Anells)) { [void]$ag.Add((_PlanolAnellAGraus $an)) }
+            if ($ag.Count -gt 0) { [void]$pJson.Add($ag.ToArray()) }
+        }
+        $et = Get-EtiquetesGrup $gr $portals $centre[0] $centre[1]
+        $llc = Convert-UtmToLatLon ([double]$centre[0]) ([double]$centre[1]) 31 $true
+        $ents = @()
+        foreach ($pc in @($gr.Membres)) {
+            foreach ($en in @($pc.Entrades)) {
+                $x = -1
+                if ($et.Entrada.ContainsKey($en)) { $x = if ($et.Entrada[$en]) { 1 } else { 0 } }
+                $ents += [ordered]@{
+                    t = if ($en.Tipus -eq 'buit') { 'b' } else { 'a' }
+                    g = [string]$en.Gia; n = [string]$en.Nom; ac = [string]$en.Activitat
+                    s = [string]$en.Sub; sf = [string]$en.SubFont
+                    e = [string]$en.Estat; et = [string]$en.EstatText
+                    pr = [bool]$en.Precinte; mb = [bool]$en.MarcatBuit; se = [bool]$en.SenseEstabliment; nb = [bool]$en.NoBase
+                    ni = [int]$en.NInformes; ad = [string]$en.Adreca; rc = [string]$en.Rc
+                    at = [bool]$en.Turistic; x = $x; cl = ([string]$en.Classificacio).Trim()
+                }
+            }
+        }
+        $etJson = @()
+        foreach ($l in @($et.Etiquetes)) {
+            $ll = Convert-UtmToLatLon ([double]$l.X) ([double]$l.Y) 31 $true
+            $etJson += [ordered]@{ c = @([math]::Round($ll.Lat, 7), [math]::Round($ll.Lon, 7)); d = [string]$l.Dir; g = @($l.Gias); v = [int][bool]$l.Vermell }
+        }
+        $rcs = @(@($gr.Membres) | ForEach-Object { [string]$_.Rc } | Where-Object { $_ -ne '' })
+        $o = [ordered]@{
+            k = [string]$pc0.Clau; rc = [string]$pc0.Rc
             c = @([math]::Round($llc.Lat, 6), [math]::Round($llc.Lon, 6))
             p = $pJson.ToArray()
+            l = $etJson
             e = $ents
         }
+        if ($rcs.Count -gt 1) { $o['rcs'] = $rcs }
+        $out += $o
     }
     return @($out)
 }
