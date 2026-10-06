@@ -522,16 +522,55 @@ function ConvertFrom-CatastroDnprcXml($xmlText) {
     return [pscustomobject]@{ Escala = $es; Planta = $pt; Porta = $pu; Bloc = $bq; Us = $us; Superficie = $sfc; Text = $ldt }
 }
 
+# EL PUNT DE LA PARCEL.LA segons el Cadastre (cp:referencePoint, a la mateixa
+# resposta que el dibuix): @(x, y) en UTM 31N, o $null. Es "la UTM de la
+# parcel.la cadastral" de l'usuari; al planol, una linia de punts l'uneix amb
+# l'etiqueta de l'ID (que va a la UTM de l'Excel d'activitats). Guardia d'eixos
+# com als portals. PURA.
+function Get-PuntReferenciaParcela($xmlText) {
+    if ([string]::IsNullOrWhiteSpace($xmlText)) { return $null }
+    try {
+        $doc = New-Object System.Xml.XmlDocument
+        $doc.XmlResolver = $null
+        $doc.LoadXml([string]$xmlText)
+    } catch { return $null }
+    $pos = $doc.SelectSingleNode("//*[local-name()='referencePoint']//*[local-name()='pos']")
+    if ($null -eq $pos) { return $null }
+    $parts = ([string]$pos.InnerText).Trim() -split '\s+'
+    if (@($parts).Count -lt 2) { return $null }
+    $inv = [System.Globalization.CultureInfo]::InvariantCulture
+    $x = 0.0; $y = 0.0
+    if (-not [double]::TryParse($parts[0], [System.Globalization.NumberStyles]::Float, $inv, [ref]$x)) { return $null }
+    if (-not [double]::TryParse($parts[1], [System.Globalization.NumberStyles]::Float, $inv, [ref]$y)) { return $null }
+    if ($x -gt $y) { $t = $x; $x = $y; $y = $t }
+    return @($x, $y)
+}
+
+# La parcel.la sencera de la resposta del wfsCP: { Poligons; Punt }, o $null si
+# no n'hi ha res (aixi la memoria cau la torna a preguntar al cap de 30 dies,
+# com abans). PURA.
+function ConvertFrom-CatastroParcela($xmlText) {
+    $polys = @(ConvertFrom-CatastroParcelXml $xmlText)
+    $punt = Get-PuntReferenciaParcela $xmlText
+    if ($polys.Count -eq 0 -and $null -eq $punt) { return $null }
+    return [pscustomobject]@{ Poligons = $polys; Punt = $punt }
+}
+
 # ----------------------------------------------------------------------------
 # CADASTRE: LES CONSULTES (amb Cadastre.ps1: memoria cau, Cancel.lar)
 # ----------------------------------------------------------------------------
 # Muntades en el moment de fer-les: aixi val el que config.ps1 hagi posat.
+# UN FITXER NOU (parceles2.json, octubre 2026): abans s'hi desaven nomes els
+# poligons ('Poligons'). Si s'hi hagues afegit el punt amb un altre camp, les
+# entrades velles de menys de 30 dies es donarien per bones SENSE geometria
+# (Test-CacheCadastreValida les pren per buides) i les parcel.les sortirien com
+# un punt. La primera vegada es tornen a demanar totes (uns minuts).
 function _PlanolConsultaParceles {
     return @{
-        Fitxer = 'parceles.json'; Arrel = 'Parcelles'; Camp = 'Poligons'
+        Fitxer = 'parceles2.json'; Arrel = 'Parcelles'; Camp = 'Parcela'
         Dies = $PlanolCacheDies; DiesBuit = $PlanolCacheDiesBuit
         Url     = { param($rc) $PlanolParcelUrlTemplate -f $rc }
-        Parseja = { param($t) return ,@(ConvertFrom-CatastroParcelXml $t) }
+        Parseja = { param($t) return (ConvertFrom-CatastroParcela $t) }
     }
 }
 function _PlanolConsultaUnitats {
@@ -543,15 +582,20 @@ function _PlanolConsultaUnitats {
     }
 }
 
-# Hashtable refcat14 -> array de poligons (buit si no n'hi ha o ha fallat).
-function Get-GeometriesParceles($refcats, [scriptblock]$onProgress = $null) {
+# Les parcel.les del Cadastre: { Geometries = refcat14 -> array de poligons
+# (buit si no n'hi ha o ha fallat); Punts = refcat14 -> @(x, y) (nomes les que
+# en tenen) }.
+function Get-ParcelesCadastre($refcats, [scriptblock]$onProgress = $null) {
     $r = Get-AmbCacheCadastre $refcats (_PlanolConsultaParceles) $onProgress
-    $out = @{}
+    $geos = @{}; $punts = @{}
     foreach ($k in @($r.Keys)) {
         $v = $r[$k]
-        $out[$k] = if ($null -eq $v) { @() } else { @($v | Where-Object { $null -ne $_ }) }
+        $geos[$k] = @()
+        if ($null -eq $v) { continue }
+        if ($null -ne $v.PSObject.Properties['Poligons']) { $geos[$k] = @(@($v.Poligons) | Where-Object { $null -ne $_ }) }
+        if ($null -ne $v.PSObject.Properties['Punt'] -and @($v.Punt).Count -eq 2) { $punts[$k] = @([double]@($v.Punt)[0], [double]@($v.Punt)[1]) }
     }
-    return $out
+    return [pscustomobject]@{ Geometries = $geos; Punts = $punts }
 }
 
 # Hashtable refcat20 -> unitat (o $null).
@@ -823,9 +867,15 @@ function Get-EtiquetesGrup($grup, [int]$gi, $cases, [double]$cx, [double]$cy) {
 #   pa: les adreces de la parcel.la (o parcel.les) AL CADASTRE, si n'hi ha.
 # $portals (opcional): hashtable refcat14 -> portals (Get-PortalsPerParcelles),
 # nomes per a les adreces del Cadastre de la fitxa.
-function ConvertTo-PlanolDadesMapa($model, $geometries, $portals = $null) {
+# $punts (opcional): hashtable refcat14 -> @(x, y), el punt de la parcel.la al
+# Cadastre (Get-ParcelesCadastre): cada etiqueta posada a la seva coordenada
+# porta r [lat, lon], el de la parcel.la on cau, i el mapa els uneix amb una
+# linia de punts (l'usuari, octubre 2026). Al centre (vermelles, sense
+# coordenada) no: no hi ha res a comparar. Ni a menys d'1 m: no es veuria.
+function ConvertTo-PlanolDadesMapa($model, $geometries, $portals = $null, $punts = $null) {
     if ($null -eq $geometries) { $geometries = @{} }
     if ($null -eq $portals) { $portals = @{} }
+    if ($null -eq $punts) { $punts = @{} }
     $out = @()
     $grups = @(Get-GrupsParceles @($model.Parceles) $geometries)
     $cases = Get-CasesActivitats $grups
@@ -871,7 +921,13 @@ function ConvertTo-PlanolDadesMapa($model, $geometries, $portals = $null) {
         $etJson = @()
         foreach ($l in @($et.Etiquetes)) {
             $ll = Convert-UtmToLatLon ([double]$l.X) ([double]$l.Y) 31 $true
-            $etJson += [ordered]@{ c = @([math]::Round($ll.Lat, 7), [math]::Round($ll.Lon, 7)); d = [string]$l.Dir; g = @($l.Gias); v = [int][bool]$l.Vermell }
+            $oj = [ordered]@{ c = @([math]::Round($ll.Lat, 7), [math]::Round($ll.Lon, 7)); d = [string]$l.Dir; g = @($l.Gias); v = [int][bool]$l.Vermell }
+            $pr = if ($l.Centre) { $null } else { _PlanolPuntDeLaParcela $gr $geometries $punts ([double]$l.X) ([double]$l.Y) }
+            if ($null -ne $pr -and [math]::Sqrt(($pr[0] - $l.X) * ($pr[0] - $l.X) + ($pr[1] - $l.Y) * ($pr[1] - $l.Y)) -ge 1.0) {
+                $lr = Convert-UtmToLatLon $pr[0] $pr[1] 31 $true
+                $oj['r'] = @([math]::Round($lr.Lat, 7), [math]::Round($lr.Lon, 7))
+            }
+            $etJson += $oj
         }
         $rcs = @(@($gr.Membres) | ForEach-Object { [string]$_.Rc } | Where-Object { $_ -ne '' })
         $o = [ordered]@{
@@ -887,6 +943,20 @@ function ConvertTo-PlanolDadesMapa($model, $geometries, $portals = $null) {
         $out += $o
     }
     return @($out)
+}
+
+# El punt del Cadastre de la parcel.la on cau ($x, $y), d'entre les del grup
+# (unes parcel.les juntades en tenen un cada una). Si no cau dins de cap, el de
+# la primera que en tingui. $null si cap no en te.
+function _PlanolPuntDeLaParcela($grup, $geometries, $punts, [double]$x, [double]$y) {
+    $primer = $null
+    foreach ($pc in @($grup.Membres)) {
+        $rc = [string]$pc.Rc
+        if ($rc -eq '' -or -not $punts.ContainsKey($rc)) { continue }
+        if ($null -eq $primer) { $primer = $punts[$rc] }
+        if ($geometries.ContainsKey($rc) -and (Test-PuntDinsPoligons $x $y @($geometries[$rc]))) { return $punts[$rc] }
+    }
+    return $primer
 }
 
 # ----------------------------------------------------------------------------
@@ -917,6 +987,8 @@ function Test-Planol([string]$refcat = '2295827DF2729E0011RQ') {
         $crues = ([regex]::Matches($xml, '<[A-Za-z0-9]*:?posList[ >]')).Count
         $polys = @(ConvertFrom-CatastroParcelXml $xml)
         Write-Host ("Resposta: {0} caracters, {1} llistes de coordenades. Desada a {2}" -f $xml.Length, $crues, $f)
+        $pRef = Get-PuntReferenciaParcela $xml
+        Write-Host ("Punt de la parcel.la (referencePoint): {0}" -f $(if ($null -ne $pRef) { "X=$($pRef[0]) Y=$($pRef[1])" } else { 'cap' })) -ForegroundColor $(if ($null -ne $pRef) { 'Green' } else { 'Yellow' })
         Write-Host ("Poligons entesos: {0}" -f $polys.Count) -ForegroundColor $(if ($polys.Count -gt 0) { 'Green' } else { 'Red' })
         $i = 0
         foreach ($p in $polys) {

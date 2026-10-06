@@ -43,12 +43,15 @@ $estats = @{
     '9'    = [pscustomobject]@{ Estat = 'Favorable'; NInformes = 1 }
 }
 $unitats = @{ '2295827DF2729E0011RQ' = (ConvertFrom-CatastroDnprcXml ([System.IO.File]::ReadAllText((Join-Path $dades 'dnprc-exemple.xml')))) }
-$geos = @{ '2295827DF2729E' = @(ConvertFrom-CatastroParcelXml ([System.IO.File]::ReadAllText((Join-Path $dades 'wfsCP-exemple.xml')))) }
+$xmlCp = [System.IO.File]::ReadAllText((Join-Path $dades 'wfsCP-exemple.xml'))
+$geos = @{ '2295827DF2729E' = @(ConvertFrom-CatastroParcelXml $xmlCp) }
+# El punt de la parcel.la al Cadastre: la linia de punts fins a l'etiqueta.
+$puntsP = @{ '2295827DF2729E' = (Get-PuntReferenciaParcela $xmlCp) }
 
 $model = Build-PlanolModel $ests $acts $estats $unitats
 # El portal del 19 de Cadis (nomes per a l'adreca del Cadastre de la fitxa).
 $portals = @{ '2295827DF2729E' = @([pscustomobject]@{ Numero = '19'; Via = 'CL CADIS'; X = 421960.0; Y = 4579479.0 }) }
-$mapa = ConvertTo-PlanolDadesMapa $model $geos $portals
+$mapa = ConvertTo-PlanolDadesMapa $model $geos $portals $puntsP
 $meta = [pscustomobject]@{ BaseActivitats = '2026-10-05 ACTIVITATS.xls'; BaseEstabliments = '2026-10-05 ESTABLIMENTS.xls'
                            BaseInformes = 'Base d''informes de prova'; Avisos = @('Avis de prova </script> amb <b>') }
 New-Item -ItemType Directory -Path $Dir -Force | Out-Null

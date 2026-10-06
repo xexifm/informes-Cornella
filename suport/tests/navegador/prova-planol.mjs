@@ -113,6 +113,16 @@ try {
   eq(ent, { dir: 't', xip: 'xip xip-vermell', dins: true, sotaCentre: true }, 'a l\'entrada (a baix), dins la parcel·la, creixent cap a dins, amb el marc del seu color');
   eq(await p.evaluate((i) => capes[i].etiqs.filter((x) => x.def.v)[0].tt.getElement().querySelector('.xip').className, iCadis),
      'xip xip-err', 'la no trobada: el text en vermell');
+  // La LÍNIA DE PUNTS de l'etiqueta (UTM de l'Excel d'activitats) al punt de la
+  // parcel·la al Cadastre.
+  const lin = await p.evaluate((i) => {
+    const e = capes[i].etiqs.filter((x) => !x.def.v)[0];
+    return e.linia ? { alMapa: map.hasLayer(e.linia), dash: e.linia.options.dashArray, color: e.linia.options.color,
+                       punts: e.linia.getLatLngs().map((q) => [q.lat, q.lng]), c: e.def.c, r: e.def.r } : null;
+  }, iCadis);
+  check(lin !== null && lin.alMapa && lin.dash === '1,4', 'una línia de punts surt de l\'etiqueta del 1447');
+  eq(lin && lin.punts, lin && [lin.c, lin.r], '...i va fins al punt de la parcel·la al Cadastre');
+  eq(await p.evaluate((i) => capes[i].etiqs.filter((x) => x.def.v)[0].linia, iCadis), null, 'la vermella del centre no en porta');
   await p.evaluate((i) => map.setView(PARCELES[i].c, 18.5, { animate: false }), iCadis);
   eq(await etiqueta(iCadis), '1447 | V:1403', 'zoom 18,5: només els ID (el local/planta/porta tapava les naus: és a la fitxa)');
   eq(await p.evaluate(() => document.querySelectorAll('.leaflet-tooltip.ent .sub').length), 0, 'cap text de local damunt del plànol');
@@ -125,6 +135,7 @@ try {
   }), [12, 2, true], '12 ID a la mateixa porta: tres files de quatre de prop, i 4 + «+8» a mig zoom');
   await p.uncheck('#f-etiq');
   eq(await etiqueta(iCadis), null, 'i es poden amagar');
+  eq(await p.evaluate((i) => map.hasLayer(capes[i].etiqs.filter((x) => !x.def.v)[0].linia), iCadis), false, 'i la línia s\'amaga amb l\'etiqueta');
   await p.check('#f-etiq');
 
   seccio('El plànol del Cadastre (MapaFons.js, el mateix que Coordenades)');

@@ -112,7 +112,8 @@
       quatre per punt i de prop, tots. Cada ID va a la seva <b>coordenada UTM</b> de l'Excel d'activitats
       (la que es corregeix amb l'eina Coordenades), emmarcat amb el color del seu estat;
       <span style="color:#d00000;font-weight:bold">en vermell</span>, al centre, si la coordenada cau fora de la
-      parcel·la o no n'hi ha. Si una parcel·la té activitats en estats diferents, té el color del més greu.
+      parcel·la o no n'hi ha. Una <b>línia de punts</b> uneix cada ID amb el punt de la parcel·la al Cadastre.
+      Si una parcel·la té activitats en estats diferents, té el color del més greu.
       Clica-hi per veure-les totes, amb el local, l'adreça de la base d'activitats i la del Cadastre.</p>
 
     <p><button onclick="baixaCsv()">Baixar la llista del que es veu (.csv)</button></p>
@@ -154,7 +155,8 @@ var PARCELES = {{dadesJson}};
 //     al Cadastre, rc refcat, x on va l'ID: 1 a la seva coordenada UTM, 2 la
 //     coordenada es a l'altre establiment, 0 fora de la parcel.la, 3 sense
 //     coordenada, -1 parcel.la sense dibuix },
-//   l etiquetes de les entrades, pa adreces de la parcel.la al Cadastre
+//   l etiquetes de les entrades (r: el punt de la parcel.la al Cadastre, per a
+//   la linia de punts), pa adreces de la parcel.la al Cadastre
 // ---------------------------------------------------------------------------
 if (typeof L === 'undefined') { throw new Error('Leaflet no carregat: el mapa no pot arrencar.'); }
 
@@ -317,7 +319,9 @@ function muntaParceles() {
       var ls = pc.l || [];
       for (var k = 0; k < ls.length; k++) {
         etiqs.push({ def: ls[k], alMapa: false,
-                     tt: L.tooltip({ permanent: true, direction: DIR[ls[k].d] || 'center', className: 'ent', interactive: false }).setLatLng(ls[k].c) });
+                     tt: L.tooltip({ permanent: true, direction: DIR[ls[k].d] || 'center', className: 'ent', interactive: false }).setLatLng(ls[k].c),
+                     // La linia de punts fins al punt de la parcel.la al Cadastre (r).
+                     linia: ls[k].r ? L.polyline([ls[k].c, ls[k].r], { weight: 1.2, opacity: 0.75, dashArray: '1,4', lineCap: 'round', interactive: false }) : null });
       }
       var buit = L.tooltip({ permanent: true, direction: 'center', className: 'etiq', interactive: false }).setLatLng(pc.c);
       capes[idx] = { forma: forma, etiqs: etiqs, buit: buit, buitAlMapa: false, vista: null, alMapa: false };
@@ -419,9 +423,10 @@ function pinta() {
       var text = vol && mostraEtiq ? textEntrada(et.def, vis, zoom) : '';
       if (text !== '') {
         et.tt.setContent(text);
-        if (!et.alMapa) { et.tt.addTo(map); et.alMapa = true; }
+        if (!et.alMapa) { et.tt.addTo(map); if (et.linia) { et.linia.addTo(map); } et.alMapa = true; }
+        if (et.linia) { et.linia.setStyle({ color: sobreOrtofoto() ? '#ffffff' : '#333333' }); }
       } else if (et.alMapa) {
-        map.removeLayer(et.tt); et.alMapa = false;
+        map.removeLayer(et.tt); if (et.linia) { map.removeLayer(et.linia); } et.alMapa = false;
       }
     }
     // Nomes locals buits a la vista: "buit" al centre, de prop.

@@ -208,9 +208,15 @@ function Invoke-PlanolMain {
     $model = Build-PlanolModel $ests $acts $estats $unitats
     $rcP = @($model.Parceles | Where-Object { $_.Rc -ne '' } | ForEach-Object { $_.Rc })
     $fetP = _PlanolAmbProgres $rcP ("Dibuix de " + $rcP.Count + " parcel" + [char]0x00B7 + "les...") {
-        param($l, $p) Get-GeometriesParceles $l $p
+        param($l, $p) Get-ParcelesCadastre $l $p
     }
-    $geos = $fetP.Resultat
+    # El dibuix i el punt de cada parcel.la (el punt, per a la linia de punts
+    # fins a l'etiqueta de l'ID).
+    # Si la consulta peta, _PlanolAmbProgres torna un hashtable buit, no l'objecte.
+    $geos = @{}; $puntsP = @{}
+    if ($null -ne $fetP.Resultat -and $null -ne $fetP.Resultat.PSObject.Properties['Geometries']) {
+        $geos = $fetP.Resultat.Geometries; $puntsP = $fetP.Resultat.Punts
+    }
     $cancelP = $fetP.Cancelat
     if ($cancelU -or $cancelP) { $avisos += "Has cancel" + [char]0x00B7 + "lat les consultes al Cadastre: algunes parcel" + [char]0x00B7 + "les surten com un punt. Torna-ho a generar per completar-les (el que ja s'ha demanat queda desat)." }
     # 4b. ELS PORTALS: nomes per dir a la fitxa l'adreca del Cadastre (l'ID va a
@@ -231,7 +237,7 @@ function Invoke-PlanolMain {
     }
 
     # 5. El mapa.
-    $dades = ConvertTo-PlanolDadesMapa $model $geos $portals
+    $dades = ConvertTo-PlanolDadesMapa $model $geos $portals $puntsP
     # L'ID va a la coordenada UTM de l'Excel d'activitats (la que corregeix
     # Coordenades); en vermell, les que no hi caben (x 0) o no en tenen (x 3).
     $nFora = @(@($dades) | ForEach-Object { @($_.e) } | Where-Object { $_.t -eq 'a' -and $_.x -eq 0 } | ForEach-Object { $_.g } | Sort-Object -Unique).Count

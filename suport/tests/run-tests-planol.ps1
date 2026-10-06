@@ -74,6 +74,14 @@ AssertEq "$(@($polysG[0].Anells[0])[0])|$(@($polysG[0].Anells[0])[1])" '421950|4
 AssertEq @(ConvertFrom-CatastroParcelXml '').Count 0 'resposta buida: cap poligon'
 AssertEq @(ConvertFrom-CatastroParcelXml '<no es xml').Count 0 'resposta que no s entén: cap poligon, i no peta'
 AssertEq @(ConvertFrom-CatastroParcelXml '<a><b/></a>').Count 0 'XML sense poligons: cap'
+# El punt de la parcel.la al Cadastre (referencePoint), per a la linia de punts.
+AssertEq (@(Get-PuntReferenciaParcela $xmlCp) -join '|') '421975|4579505' 'el punt de la parcel.la (referencePoint)'
+AssertEq (@(Get-PuntReferenciaParcela ($xmlCp -replace '421975.00 4579505.00', '4579505.00 421975.00')) -join '|') '421975|4579505' 'eixos a l inreves: es giren'
+AssertEq (Get-PuntReferenciaParcela '<a/>') $null 'sense referencePoint: cap'
+AssertEq (Get-PuntReferenciaParcela '<no es xml') $null 'resposta que no s entén: cap, i no peta'
+$parcCp = ConvertFrom-CatastroParcela $xmlCp
+AssertEq "$(@($parcCp.Poligons).Count)|$(@($parcCp.Punt) -join ',')" '2|421975,4579505' 'la parcel.la sencera: poligons i punt'
+AssertEq (ConvertFrom-CatastroParcela '<a/>') $null 'sense res: $null (la memoria cau la tornara a demanar)'
 $centre = Get-CentreAnell @(0.0, 0.0, 10.0, 0.0, 10.0, 10.0, 0.0, 10.0, 0.0, 0.0)
 AssertEq "$($centre[0])|$($centre[1])" '5|5' 'el centre d un quadrat'
 AssertNear (Get-AreaAnell @(0.0, 0.0, 10.0, 0.0, 10.0, 10.0, 0.0, 10.0, 0.0, 0.0)) 100.0 0.0001 'l area d un quadrat de 10'
@@ -287,6 +295,19 @@ AssertEq (@($mP.e | ForEach-Object { "$($_.g)=$($_.ca)" }) -join ' | ') '1340=CL
 AssertEq (@($mP.pa) -join ' / ') 'CL PROGRES 73 / CL PROGRES 75' 'la parcel.la porta les seves adreces del Cadastre'
 AssertEq (@(Get-AdrecesCadastre @{ 'R' = @([pscustomobject]@{ Via = 'CL A'; Numero = '11' }, [pscustomobject]@{ Via = 'CL A'; Numero = '9' }, [pscustomobject]@{ Via = 'CL A'; Numero = '9' }) } @('R')) -join ' / ') 'CL A 9 / CL A 11' 'les adreces del Cadastre, sense repetir i el 9 abans que l 11'
 AssertEq @(Get-AdrecesCadastre $null @('R')).Count 0 'sense portals, cap adreca del Cadastre'
+# La LINIA DE PUNTS: cada etiqueta a la seva coordenada porta r, el punt de la
+# parcel.la al Cadastre; les vermelles del centre, no; a menys d'1 m, tampoc.
+$puntsP = @{ '3678311DF2737H' = @(422020.0, 4579010.0) }
+$mR = @(ConvertTo-PlanolDadesMapa ([pscustomobject]@{ Parceles = @($pcP) }) $geoP $portP $puntsP)[0]
+$llRef = Convert-UtmToLatLon 422020.0 4579010.0 31 $true
+$eR1340 = @($mR.l | Where-Object { @($_.g) -contains '1340' })[0]
+AssertNear ([double]$eR1340.r[0]) $llRef.Lat 0.0000005 'l etiqueta del 1340 porta el punt de la parcel.la (lat)'
+AssertNear ([double]$eR1340.r[1]) $llRef.Lon 0.0000005 '...i (lon)'
+AssertEq (@($mR.l | Where-Object { $_.v -eq 1 } | Where-Object { $null -ne $_['r'] }).Count) 0 'la vermella del centre no en porta'
+$pcIgual = [pscustomobject]@{ Clau = 'I'; Rc = '3678311DF2737H'; X = 0.0; Y = 0.0; Entrades = @((& $eP '42' '73' 'groc' 422020.3 4579010.3)) }
+$mI = @(ConvertTo-PlanolDadesMapa ([pscustomobject]@{ Parceles = @($pcIgual) }) $geoP $portP $puntsP)[0]
+AssertEq (@($mI.l)[0].Contains('r')) $false 'a menys d 1 m del punt del Cadastre (encara no corregida): sense linia'
+AssertEq (@(ConvertTo-PlanolDadesMapa ([pscustomobject]@{ Parceles = @($pcP) }) $geoP $portP)[0].l | Where-Object { $_.Contains('r') }).Count 0 'sense punts del Cadastre: cap linia'
 # El MATEIX punt (abans de repassar-les, les d'una parcel.la solen coincidir): una etiqueta.
 $pcM = [pscustomobject]@{ Clau = 'M'; Rc = '3678311DF2737H'; X = 0.0; Y = 0.0; Entrades = @((& $eP '1340' '73' 'groc' 422008.0 4579005.0), (& $eP '50' '73' 'verd' 422009.0 4579006.0), (& $eP '60' '73' 'verd' 422030.0 4579010.0)) }
 $mM = @(ConvertTo-PlanolDadesMapa ([pscustomobject]@{ Parceles = @($pcM) }) $geoP $portP)[0]
@@ -368,12 +389,17 @@ function Invoke-CadastreGet([string]$url) {
     return $null
 }
 try {
-    $g = Get-GeometriesParceles @('2295827DF2729E', '9999999DF9999Z')
+    $pq = Get-ParcelesCadastre @('2295827DF2729E', '9999999DF9999Z')
+    $g = $pq.Geometries
     AssertEq @($g['2295827DF2729E']).Count 2 'geometria: dos poligons'
     AssertEq @($g['9999999DF9999Z']).Count 0 'servei caigut: cap (llista buida)'
+    AssertEq "$(@($pq.Punts['2295827DF2729E']) -join ',')|$($pq.Punts.ContainsKey('9999999DF9999Z'))" '421975,4579505|False' 'i el punt de la parcel.la (la caiguda, sense)'
     $Script:Crides.Clear()
-    $g2 = Get-GeometriesParceles @('2295827DF2729E')
+    $pq2 = Get-ParcelesCadastre @('2295827DF2729E')
+    $g2 = $pq2.Geometries
     AssertEq "$($Script:Crides.Count)|$(@($g2['2295827DF2729E']).Count)|$(@(@($g2['2295827DF2729E'])[0].Anells).Count)" '0|2|2' 'la segona vegada, de la memoria cau i sencera (poligons i forats)'
+    AssertEq (@($pq2.Punts['2295827DF2729E']) -join ',') '421975,4579505' '...amb el punt (rellegit del JSON)'
+    AssertEq (_PlanolConsultaParceles).Fitxer 'parceles2.json' 'un fitxer nou: les entrades velles (sense punt) no es donen per bones'
     $u = Get-UnitatsCadastre @('2295827DF2729E0011RQ', '2295827DF2729E0003XL')
     AssertEq "$($u['2295827DF2729E0011RQ'].Planta)|$($null -eq $u['2295827DF2729E0003XL'])" '02|True' 'unitats: la que existeix i la que no'
     $Script:Crides.Clear()

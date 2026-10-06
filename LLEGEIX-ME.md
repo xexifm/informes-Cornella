@@ -285,7 +285,9 @@ a la «Carpeta de l'Excel d'activitats», amb el nom `AAAA-MM-DD ACTIVITATS.xls`
 seves parcel·les.
 
 **Els ID GIA**: amplia el mapa i surten damunt de cada parcel·la, a la seva
-**coordenada UTM de l'Excel d'activitats** (columnes UTM X i UTM Y). Si un ID no
+**coordenada UTM de l'Excel d'activitats** (columnes UTM X i UTM Y). Una
+**línia de punts** l'uneix amb el punt de la parcel·la segons el Cadastre: com
+més llarga, més lluny ha quedat de la coordenada del Cadastre. Si un ID no
 és on toca, corregeix-lo amb l'eina **Coordenades**: quan la correcció s'hagi
 importat al GIA i baixis l'Excel nou, el plànol ja el posarà al seu lloc. En
 **vermell**, al centre, els que tenen la coordenada fora de la parcel·la o no en

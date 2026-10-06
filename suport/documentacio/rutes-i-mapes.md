@@ -110,6 +110,20 @@ Com es decideix (`Get-CasesActivitats` + `Get-EtiquetesGrup`, a `PlanolDades.ps1
   de la fulla Estès; per defecte, **sense**), *Classificació (annex)* (una
   casella per cada valor de «Classificació general annex») i *Per revisar*,
   amb recomptes, una ajuda a sota i «Coordenada UTM fora de la parcel·la o sense».
+- **La línia de punts** (l'usuari: *«una lleugera línia de punts que uneixi
+  l'etiqueta de l'ID GIA (UTM base de dades activitats) i la UTM de la parcel·la
+  cadastral»*): de cada etiqueta posada a la seva coordenada fins al
+  **`referencePoint`** de la parcel·la on cau (`Get-PuntReferenciaParcela`, a la
+  mateixa resposta del wfsCP; camp `r` de l'etiqueta, `_PlanolPuntDeLaParcela`
+  per a les juntades). Les del centre (vermelles) no en porten, ni les que són a
+  menys d'1 m (encara no corregides). S'amaga amb l'etiqueta; blanca sobre
+  l'ortofoto.
+  - **La memòria cau de les parcel·les va a un fitxer NOU, `parceles2.json`**
+    (camp `Parcela` = `{ Poligons; Punt }`). Afegir-hi el punt amb un altre camp
+    al fitxer vell hauria fet que `Test-CacheCadastreValida` donés per bones
+    (buides, 30 dies) les entrades sense aquell camp: parcel·les dibuixades com
+    un punt. **El primer plànol després d'això torna a demanar totes les
+    parcel·les** (uns minuts, un sol cop).
 - **Quan es veu una correcció de Coordenades**: quan l'Excel d'activitats que
   llegeix el plànol (el `AAAA-MM-DD ACTIVITATS.xls` més nou) ja la porta, o
   sigui **després d'importar-la al GIA i tornar-lo a baixar**. L'«Excel per
