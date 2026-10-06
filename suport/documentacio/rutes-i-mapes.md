@@ -79,6 +79,38 @@ al centre i **en vermell**.
   casella per cada valor de «Classificació general annex») i *Per revisar*
   amb textos clars, recomptes, una ajuda a sota i l'opció «Entrada no trobada».
 
+### Només els ID al plànol, les dues adreces a la fitxa i els ID situats a mà
+Segona ronda de l'usuari (octubre 2026), amb dues captures: un polígon industrial
+de **Sant Ferran** amb 12 ID apilats a l'única porta, i *«Treu els texts aquests
+del plànol que estorben»*.
+- **Al plànol, només els ID** (`textEntrada`), de quatre en quatre: fins a 4 i
+  «+N» a mig zoom, fins a 16 de prop. El local/planta/porta («Esc. 1 - Pl. baixa
+  - Pt. 13», «NAU 5») va a la **fitxa**: al plànol tapava les naus del costat.
+- **Les dues adreces, diferenciades** (l'usuari: *«no té per què ser exactament
+  la mateixa la de la base de dades d'activitats i la del cadastre»*): a cada
+  activitat, «Adreça (base d'activitats)» (`ad`, la de l'Excel) i «Adreça
+  (Cadastre)» (`ca`, el **portal on s'ha posat l'ID**, `Get-AdrecaPortal`:
+  «CL PROGRES 73»); a dalt, totes les de la parcel·la al Cadastre (`pa`,
+  `Get-AdrecesCadastre`). Si l'entrada no es troba no hi ha `ca`: hi ha l'avís.
+- **PER QUÈ NO ES POSA SOL A LA SEVA NAU.** Els números de nau que es veuen al
+  fons (1… 13 a Sant Ferran) són part de la **imatge** de l'ICGC, no una dada que
+  el programa pugui llegir. El Cadastre dóna **una** porta per a tota la
+  parcel·la (INSPIRE AD) i, per a cada unitat, «Esc. 1 - Pl. baixa - Pt. 13»
+  **sense coordenades**. Ni les rajoles de l'ICGC ni el Cadastre no responen des
+  de l'entorn on es va escriure això, o sigui que tampoc s'hi ha pogut buscar
+  una font amb la posició de cada nau. Si mai n'apareix una (un servei amb els
+  números de policia interiors, per exemple), el lloc és `Get-EtiquetesGrup`.
+- **Mentrestant, a mà**: a la fitxa, «situa'l a la seva nau» i un clic al mapa
+  (dins de la parcel·la; fora no compta i ho diu). Es desa al **`localStorage`**
+  (`informesCornella.planolPosicions`, com el fons triat: tots els HTML oberts
+  des del disc el comparteixen), amb clau **refcat de 14 de l'establiment + ID
+  GIA**, no la del grup: si les parcel·les es tornen a agrupar diferent, no es
+  perd. Un punt que la parcel·la nova deixi fora **no es fa servir**. «Desa'n una
+  còpia» / «Recupera una còpia» (JSON) per si el navegador esborra les dades.
+  L'ID situat a mà surt amb el color del seu estat, també si l'entrada no s'havia
+  trobat (el filtre «Entrada no trobada» el segueix comptant: l'adreça continua
+  sense quadrar).
+
 > **El primer plànol de l'usuari: TOTES les activitats «sense establiment».**
 > La crida feia `@(Read-EstablimentsExcel …)`, que ja torna la llista amb coma:
 > el model rebia **un** establiment que les contenia tots (1.582), no en lligava
@@ -140,8 +172,8 @@ Parcel·les de Cornellà pintades segons l'estat de les activitats que hi ha. Es
   consultes (uns minuts); després, segons. **Cancel·lar no avorta**: el mapa es
   fa amb el que hi hagi.
 - **Mida**: amb l'Excel real, 943 parcel·les i ~360 KB de dades sense geometria.
-- Proves: `tests/run-tests-planol.ps1` (85) i `tests/navegador/prova-planol.mjs`
-  (33, al Chromium, amb `genera-planol-prova.ps1`).
+- Proves: `tests/run-tests-planol.ps1` (137) i `tests/navegador/prova-planol.mjs`
+  (81, al Chromium, amb `genera-planol-prova.ps1`).
 
 ## LA TRAMPA DE `$Script:` DINS D'UN `.GetNewClosure()` (mesurada, octubre 2026)
 

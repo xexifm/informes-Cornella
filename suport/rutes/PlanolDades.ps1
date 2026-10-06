@@ -586,7 +586,8 @@ function Get-PortalsExactes($portals, $carrer, $numero) {
     return @($cands | Where-Object { [string]$_.Numero -eq $num })
 }
 
-# On va l'etiqueta d'un establiment: { X; Y; Dx; Dy } (Resolve-AncoraEntrada) o
+# On va l'etiqueta d'un establiment: { X; Y; Dx; Dy; Adreca } (l'ancora de
+# Resolve-AncoraEntrada i l'adreca del portal AL CADASTRE, "CL PROGRES 73") o
 # $null si no hi ha cap portal exacte que caigui dins (o prou a prop) dels
 # poligons. Amb dos portals amb el mateix numero, el mes proper a la parcel.la.
 function Resolve-EntradaEstabliment($portals, $carrer, $numero, $polys) {
@@ -595,9 +596,40 @@ function Resolve-EntradaEstabliment($portals, $carrer, $numero, $polys) {
         $a = Resolve-AncoraEntrada ([double]$p.X) ([double]$p.Y) $polys
         if ($null -eq $a) { continue }
         $d = [math]::Sqrt(([double]$p.X - $a.X) * ([double]$p.X - $a.X) + ([double]$p.Y - $a.Y) * ([double]$p.Y - $a.Y))
-        if ($null -eq $dm -or $d -lt $dm) { $dm = $d; $millor = $a }
+        if ($null -eq $dm -or $d -lt $dm) {
+            $dm = $d
+            $millor = [pscustomobject]@{ X = $a.X; Y = $a.Y; Dx = $a.Dx; Dy = $a.Dy; Adreca = (Get-AdrecaPortal $p) }
+        }
     }
     return $millor
+}
+
+# L'adreca d'un portal tal com la diu el Cadastre ("CL PROGRES 73"). Al mapa va
+# al costat de la de la base d'activitats, i no te per que ser la mateixa
+# (l'usuari: "pots posar les dues diferenciades"). PURA.
+function Get-AdrecaPortal($p) {
+    if ($null -eq $p) { return '' }
+    return ((([string]$p.Via).Trim() + ' ' + ([string]$p.Numero).Trim()).Trim())
+}
+
+# Totes les adreces del Cadastre d'unes parcel.les (els seus portals), sense
+# repetir i en ordre (carrer i numero com a numero: el 9 abans que el 11).
+# Array PLA. PURA.
+function Get-AdrecesCadastre($portals, $rcs) {
+    if ($null -eq $portals) { return @() }
+    $vist = @{}; $llista = @()
+    foreach ($rc in @($rcs)) {
+        if (-not $portals.ContainsKey([string]$rc)) { continue }
+        foreach ($p in @($portals[[string]$rc])) {
+            if ($null -eq $p) { continue }
+            $a = Get-AdrecaPortal $p
+            if ($a -eq '' -or $vist.ContainsKey($a)) { continue }
+            $vist[$a] = $true
+            $n = 0; [void][int]::TryParse(([string]$p.Numero -replace '\D.*$', ''), [ref]$n)
+            $llista += [pscustomobject]@{ A = $a; V = ([string]$p.Via).Trim(); N = $n }
+        }
+    }
+    return @($llista | Sort-Object V, N, A | ForEach-Object { $_.A })
 }
 
 # Les activitats d'una parcel.la, com a clau: les parcel.les que es toquen i
@@ -666,12 +698,13 @@ function Get-GrupsParceles($parceles, $geometries) {
 # demanar), l'etiqueta va al centre com sempre i NO en vermell: no se sap si
 # l'entrada hi es o no.
 # Torna { Etiquetes = [{ X; Y; Dir; Gias; Vermell; Centre }]; Entrada = hashtable
-# entrada -> $true/$false (trobada) }.
+# entrada -> $true/$false (trobada); AdrecaCadastre = hashtable entrada -> adreca
+# del portal trobat }.
 function Get-EtiquetesGrup($grup, $portals, [double]$cx, [double]$cy) {
     $punts = New-Object System.Collections.Generic.List[object]
     $alCentre = New-Object System.Collections.Generic.List[string]
     $vermells = New-Object System.Collections.Generic.List[string]
-    $trobada = @{}
+    $trobada = @{}; $adCad = @{}
     foreach ($pc in @($grup.Membres)) {
         foreach ($en in @($pc.Entrades)) {
             if ($en.Tipus -ne 'activitat') { continue }
@@ -689,7 +722,7 @@ function Get-EtiquetesGrup($grup, $portals, [double]$cx, [double]$cy) {
             }
             $a = Resolve-EntradaEstabliment $portals[[string]$pc.Rc] $en.Carrer $en.Numero $grup.Polys
             if ($null -eq $a) { $trobada[$en] = $false; if (-not $vermells.Contains($g)) { $vermells.Add($g) }; continue }
-            $trobada[$en] = $true
+            $trobada[$en] = $true; $adCad[$en] = [string]$a.Adreca
             $punts.Add([pscustomobject]@{ X = $a.X; Y = $a.Y; Dx = $a.Dx; Dy = $a.Dy; Gia = $g })
         }
     }
@@ -718,7 +751,7 @@ function Get-EtiquetesGrup($grup, $portals, [double]$cx, [double]$cy) {
     }
     if ($vermells.Count -gt 0) { $etiq += [pscustomobject]@{ X = $cx; Y = $cy; Dir = 'c'; Gias = @($vermells); Vermell = $true; Centre = $true } }
     if ($alCentre.Count -gt 0) { $etiq += [pscustomobject]@{ X = $cx; Y = $cy; Dir = 'c'; Gias = @($alCentre); Vermell = $false; Centre = $true } }
-    return [pscustomobject]@{ Etiquetes = $etiq; Entrada = $trobada }
+    return [pscustomobject]@{ Etiquetes = $etiq; Entrada = $trobada; AdrecaCadastre = $adCad }
 }
 
 # Una llista d'objectes per al JSON del mapa, UN PER GRUP (una parcel.la o
@@ -729,9 +762,11 @@ function Get-EtiquetesGrup($grup, $portals, [double]$cx, [double]$cy) {
 #   GIA], v 1 si va en vermell (entrada no trobada) }], e entrades:
 #   { t 'a'|'b', g gia, n nom, ac activitat, s sub, sf font del sub, e estat,
 #     et text de l'estat, pr precinte, mb marcat buit, se sense establiment,
-#     nb no es a la base, ni informes, ad adreca, rc refcat, at allotjament
-#     turistic, x entrada: 1 trobada, 0 no trobada, -1 no se sap, cl
+#     nb no es a la base, ni informes, ad adreca (la de la base d'activitats),
+#     ca adreca del portal trobat AL CADASTRE (nomes si x = 1), rc refcat, at
+#     allotjament turistic, x entrada: 1 trobada, 0 no trobada, -1 no se sap, cl
 #     "Classificacio general annex" de l'Excel d'activitats }
+#   pa: les adreces de la parcel.la (o parcel.les) AL CADASTRE, si n'hi ha.
 # $portals (opcional): hashtable refcat14 -> portals (Get-PortalsPerParcelles).
 function ConvertTo-PlanolDadesMapa($model, $geometries, $portals = $null) {
     if ($null -eq $geometries) { $geometries = @{} }
@@ -762,7 +797,9 @@ function ConvertTo-PlanolDadesMapa($model, $geometries, $portals = $null) {
                     s = [string]$en.Sub; sf = [string]$en.SubFont
                     e = [string]$en.Estat; et = [string]$en.EstatText
                     pr = [bool]$en.Precinte; mb = [bool]$en.MarcatBuit; se = [bool]$en.SenseEstabliment; nb = [bool]$en.NoBase
-                    ni = [int]$en.NInformes; ad = [string]$en.Adreca; rc = [string]$en.Rc
+                    ni = [int]$en.NInformes; ad = [string]$en.Adreca
+                    ca = if ($et.AdrecaCadastre.ContainsKey($en)) { [string]$et.AdrecaCadastre[$en] } else { '' }
+                    rc = [string]$en.Rc
                     at = [bool]$en.Turistic; x = $x; cl = ([string]$en.Classificacio).Trim()
                 }
             }
@@ -781,6 +818,8 @@ function ConvertTo-PlanolDadesMapa($model, $geometries, $portals = $null) {
             e = $ents
         }
         if ($rcs.Count -gt 1) { $o['rcs'] = $rcs }
+        $pa = @(Get-AdrecesCadastre $portals $rcs)
+        if ($pa.Count -gt 0) { $o['pa'] = $pa }
         $out += $o
     }
     return @($out)

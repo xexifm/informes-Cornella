@@ -284,10 +284,19 @@ a la «Carpeta de l'Excel d'activitats», amb el nom `AAAA-MM-DD ACTIVITATS.xls`
 **més d'un establiment** (naus, locals contigus): l'activitat surt a totes les
 seves parcel·les.
 
-**Els ID GIA**: amplia el mapa i surten damunt de cada parcel·la. De prop, cada
-un porta el seu **local, planta o porta**. Si l'Excel no ho diu, el programa ho
-pregunta al Cadastre (surt marcat «(Cadastre)» a la fitxa), i si el Cadastre
-tampoc ho sap, surt el número d'unitat de la referència cadastral («unitat 0011»).
+**Els ID GIA**: amplia el mapa i surten damunt de cada parcel·la, a l'entrada
+del seu establiment. Al plànol hi ha només els números; clica la parcel·la i a la
+fitxa hi ha, per a cada activitat, el seu **local, planta o porta**, l'**adreça
+de la base d'activitats** i l'**adreça del Cadastre** (poden no ser iguals). Si
+l'Excel no diu el local, el programa ho pregunta al Cadastre (surt marcat
+«(Cadastre)»), i si el Cadastre tampoc ho sap, surt el número d'unitat de la
+referència cadastral («unitat 0011»).
+
+**Naus amb la mateixa entrada** (un polígon industrial): el Cadastre només hi té
+una porta i tots els ID hi surten junts. A la fitxa, **«situa'l a la seva nau»** i
+clica al mapa on és la nau: l'ID hi queda, també als plànols que facis després en
+aquest ordinador. A la dreta, «Desa'n una còpia» guarda els que has situat, per
+si un dia el navegador els esborra.
 
 **Filtres** (a la dreta): per estat, els **locals buits** (en gris; no surten si
 no ho marques) i **«Per revisar»**: activitats en un local marcat com a buit (que

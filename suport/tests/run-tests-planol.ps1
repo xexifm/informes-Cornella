@@ -274,6 +274,12 @@ AssertEq "$($eV.Count)|$(@($eV[0].g) -join ',')" '1|999' 'el 81 no es al Cadastr
 AssertNear ([double]$eV[0].c[0]) ([double]$mP.c[0]) 0.000001 '...al centre de la parcel.la'
 AssertEq (@($mP.e | ForEach-Object { "$($_.g):$($_.x)" }) -join ' ') '1340:1 288:1 999:0' 'cada activitat diu si se n ha trobat l entrada'
 AssertEq (@($mP.e)[0].cl) 'III' 'la classificacio (annex) arriba al mapa'
+# Les DUES adreces (l'usuari: "no te per que ser exactament la mateixa"): la del
+# portal trobat al Cadastre, per entrada, i totes les de la parcel.la.
+AssertEq (@($mP.e | ForEach-Object { "$($_.g)=$($_.ca)" }) -join ' | ') '1340=CL PROGRES 73 | 288=CL PROGRES 75 | 999=' 'cada entrada porta l adreca del seu portal al Cadastre (cap si no es troba)'
+AssertEq (@($mP.pa) -join ' / ') 'CL PROGRES 73 / CL PROGRES 75' 'la parcel.la porta les seves adreces del Cadastre'
+AssertEq (@(Get-AdrecesCadastre @{ 'R' = @([pscustomobject]@{ Via = 'CL A'; Numero = '11' }, [pscustomobject]@{ Via = 'CL A'; Numero = '9' }, [pscustomobject]@{ Via = 'CL A'; Numero = '9' }) } @('R')) -join ' / ') 'CL A 9 / CL A 11' 'les adreces del Cadastre, sense repetir i el 9 abans que l 11'
+AssertEq @(Get-AdrecesCadastre $null @('R')).Count 0 'sense portals, cap adreca del Cadastre'
 # La MATEIXA porta: dues activitats al 73, una sola etiqueta.
 $pcM = [pscustomobject]@{ Clau = 'M'; Rc = '3678311DF2737H'; X = 0.0; Y = 0.0; Entrades = @((& $eP '1340' '73'), (& $eP '50' '73' 'verd')) }
 $mM = @(ConvertTo-PlanolDadesMapa ([pscustomobject]@{ Parceles = @($pcM) }) $geoP $portP)[0]
