@@ -51,65 +51,71 @@ cadascun la seva còpia de l'adreça d'OpenStreetMap.
 
 ## Eina «Plànol activitats» (`rutes/Planol.ps1`, octubre 2026)
 
-### L'ID GIA a l'ENTRADA de l'establiment (`rutes/PlanolGeometria.ps1`)
-Petició de l'usuari: l'ID GIA, a la porta de l'establiment (com fa Coordenades),
-emmarcat amb el color del seu estat i **dins de la parcel·la**; si no es troba,
-al centre i **en vermell**.
-- **L'entrada** són els portals del Cadastre (INSPIRE AD, la mateixa memòria cau
-  que Coordenades, `portals.json`). Només compta el número **exacte**
-  (`Get-PortalsExactes`): el 71 no és el 73, i va en vermell (ho va triar
-  l'usuari). Amb dos portals amb el mateix número, el més proper a la parcel·la.
-- **Dins de la parcel·la** (`Resolve-AncoraEntrada`): el portal sol caure sobre
-  la façana o al carrer. Fins a `PlanolEntradaMaxForaM` (12 m) fora s'accepta, i
-  l'etiqueta es posa a `PlanolEntradaMargeM` (2,5 m) cap a dins des de la vora i
-  **creix cap a l'interior** (la direcció de l'etiqueta del Leaflet surt de la
-  normal del costat). Més lluny: no és d'aquella parcel·la (vermell).
-- **Juntes a la mateixa etiqueta**: les entrades a menys de 3 m (la mateixa
-  porta; cada ID amb el seu color) i les de la **mateixa activitat** a menys de
-  10 m. **Parcel·les juntades**: les que es toquen i tenen **exactament les
-  mateixes activitats** es dibuixen com una sola forma (`Join-Poligons`: unió per
+### On va l'ID GIA: la COORDENADA UTM de l'Excel d'activitats (`rutes/PlanolGeometria.ps1`)
+Tres rondes amb l'usuari (octubre 2026), i **la que mana és l'última**:
+1. *«l'ID GIA a l'entrada de l'establiment»*: el portal del Cadastre amb el
+   número exacte, dins de la parcel·la; si no es troba, al centre i en vermell.
+2. Amb dues captures: en un polígon industrial (**Sant Ferran**) el Cadastre té
+   **una sola porta** per a 13 naus i hi sortien 12 ID apilats. Els números de
+   nau del fons (1… 13) són part de la **imatge** de l'ICGC, i el Cadastre diu
+   «Esc. 1 - Pl. baixa - Pt. 13» **sense coordenades**: no hi ha d'on treure la
+   posició de cada nau. Es va fer un «situa'l a mà» (al `localStorage`)…
+3. …i l'usuari: *«És igual, dibuixa les etiquetes amb el ID GIA segons les
+   coordenades UTM de la base de dades d'activitats [...] Ho modificaré primer
+   amb l'eina coordenades i després es veurà reflectit al plànol»*. El situar a
+   mà **es va treure**: dues fonts per a la mateixa posició acabarien dient
+   coses diferents. **La font és la columna UTM X / UTM Y de la fulla Estès**
+   (`ActX`/`ActY` de cada entrada), la que corregeix Coordenades.
+
+Com es decideix (`Get-CasesActivitats` + `Get-EtiquetesGrup`, a `PlanolDades.ps1`):
+- Una activitat té **una** coordenada i potser diversos establiments. Primer es
+  busca la seva **casa**: el grup (parcel·la o parcel·les juntades) on cau.
+  - Si cau **dins** d'una parcel·la dibuixada: la d'aquella si és seva; si és
+    d'**una altra activitat**, cap (la coordenada està malament: **vermell**),
+    encara que la seva sigui a 2 m. Si no, es diria «bé» d'un punt que
+    l'usuari ha d'arreglar.
+  - Si no cau dins de cap: la seva parcel·la més propera a menys de
+    `PlanolEntradaMaxForaM` (12 m: un punt a la façana o una mica al carrer, com
+    el punt verd de Coordenades). Es posa a `PlanolEntradaMargeM` (2,5 m) cap a
+    dins (`Resolve-AncoraEntrada`) i l'etiqueta **creix cap a l'interior**.
+  - Es busca amb una **graella de 100 m** sobre les capses de les parcel·les
+    (`Get-CapsaPoligons`): provar cada punt dins de les ~950 parcel·les seria
+    1,3 milions de proves en PowerShell.
+- El codi `x` de cada entrada (va al mapa): **1** a la seva coordenada; **2** la
+  coordenada és a l'**altre establiment** de l'activitat (al centre, **sense**
+  vermell: no és cap error); **0** fora de les seves parcel·les i **3** sense
+  coordenada (tots dos al centre, **en vermell**, i al filtre *Per revisar*);
+  **-1** la parcel·la no té dibuix (un punt: no se sap).
+- Les que cauen al **mateix punt** (menys de `PlanolMateixPuntM`, 3 m) van a la
+  mateixa etiqueta. Abans de repassar-les amb Coordenades, les d'una parcel·la
+  solen ser la mateixa (el GIA porta la del Cadastre, que és de la parcel·la).
+- **Parcel·les juntades**: les que es toquen i tenen **exactament les mateixes
+  activitats** es dibuixen com una sola forma (`Join-Poligons`: unió per
   cancel·lació d'arestes, amb els costats partits pels vèrtexs de la veïna). Si
   una porta una activitat més no es junten: s'hi barrejaria el color de l'altra.
-- **Sense els portals d'una parcel·la** (no s'han pogut demanar): al centre
-  **sense** vermell, perquè no se sap. Sense dibuix (un punt): vermell.
-- El **centre** és ara un punt **dins** (`Get-PuntInterior`): el centroide d'una
-  parcel·la amb pati hi queia a dins (la prova de Cadis 19 ho tenia així).
-- **Filtres nous**: *Allotjaments turístics* (CCAE 552/5520, columna «CCAE Codi»
-  de la fulla Estès; per defecte, **sense**), *Classificació (annex)* (una
-  casella per cada valor de «Classificació general annex») i *Per revisar*
-  amb textos clars, recomptes, una ajuda a sota i l'opció «Entrada no trobada».
-
-### Només els ID al plànol, les dues adreces a la fitxa i els ID situats a mà
-Segona ronda de l'usuari (octubre 2026), amb dues captures: un polígon industrial
-de **Sant Ferran** amb 12 ID apilats a l'única porta, i *«Treu els texts aquests
-del plànol que estorben»*.
+- El **centre** és un punt **dins** (`Get-PuntInterior`): el centroide d'una
+  parcel·la amb pati hi queia a dins.
 - **Al plànol, només els ID** (`textEntrada`), de quatre en quatre: fins a 4 i
-  «+N» a mig zoom, fins a 16 de prop. El local/planta/porta («Esc. 1 - Pl. baixa
-  - Pt. 13», «NAU 5») va a la **fitxa**: al plànol tapava les naus del costat.
-- **Les dues adreces, diferenciades** (l'usuari: *«no té per què ser exactament
-  la mateixa la de la base de dades d'activitats i la del cadastre»*): a cada
-  activitat, «Adreça (base d'activitats)» (`ad`, la de l'Excel) i «Adreça
-  (Cadastre)» (`ca`, el **portal on s'ha posat l'ID**, `Get-AdrecaPortal`:
-  «CL PROGRES 73»); a dalt, totes les de la parcel·la al Cadastre (`pa`,
-  `Get-AdrecesCadastre`). Si l'entrada no es troba no hi ha `ca`: hi ha l'avís.
-- **PER QUÈ NO ES POSA SOL A LA SEVA NAU.** Els números de nau que es veuen al
-  fons (1… 13 a Sant Ferran) són part de la **imatge** de l'ICGC, no una dada que
-  el programa pugui llegir. El Cadastre dóna **una** porta per a tota la
-  parcel·la (INSPIRE AD) i, per a cada unitat, «Esc. 1 - Pl. baixa - Pt. 13»
-  **sense coordenades**. Ni les rajoles de l'ICGC ni el Cadastre no responen des
-  de l'entorn on es va escriure això, o sigui que tampoc s'hi ha pogut buscar
-  una font amb la posició de cada nau. Si mai n'apareix una (un servei amb els
-  números de policia interiors, per exemple), el lloc és `Get-EtiquetesGrup`.
-- **Mentrestant, a mà**: a la fitxa, «situa'l a la seva nau» i un clic al mapa
-  (dins de la parcel·la; fora no compta i ho diu). Es desa al **`localStorage`**
-  (`informesCornella.planolPosicions`, com el fons triat: tots els HTML oberts
-  des del disc el comparteixen), amb clau **refcat de 14 de l'establiment + ID
-  GIA**, no la del grup: si les parcel·les es tornen a agrupar diferent, no es
-  perd. Un punt que la parcel·la nova deixi fora **no es fa servir**. «Desa'n una
-  còpia» / «Recupera una còpia» (JSON) per si el navegador esborra les dades.
-  L'ID situat a mà surt amb el color del seu estat, també si l'entrada no s'havia
-  trobat (el filtre «Entrada no trobada» el segueix comptant: l'adreça continua
-  sense quadrar).
+  «+N» a mig zoom, fins a 16 de prop. El local/planta/porta va a la **fitxa**:
+  al plànol tapava les naus del costat (*«treu els texts aquests del plànol que
+  estorben»*).
+- **Les dues adreces, diferenciades** (*«no té per què ser exactament la mateixa
+  la de la base de dades d'activitats i la del cadastre»*): «Adreça (base
+  d'activitats)» (`ad`) i «Adreça (Cadastre)» (`ca`: el portal de la parcel·la
+  amb el número de l'establiment, `Get-PortalsExactes` + `Get-AdrecaPortal`); a
+  dalt, totes les de la parcel·la (`pa`, `Get-AdrecesCadastre`). **Els portals
+  només serveixen per a això**; es segueixen demanant amb la memòria cau de
+  Coordenades (`portals.json`).
+- **Filtres**: *Allotjaments turístics* (CCAE 552/5520, columna «CCAE Codi»
+  de la fulla Estès; per defecte, **sense**), *Classificació (annex)* (una
+  casella per cada valor de «Classificació general annex») i *Per revisar*,
+  amb recomptes, una ajuda a sota i «Coordenada UTM fora de la parcel·la o sense».
+- **Quan es veu una correcció de Coordenades**: quan l'Excel d'activitats que
+  llegeix el plànol (el `AAAA-MM-DD ACTIVITATS.xls` més nou) ja la porta, o
+  sigui **després d'importar-la al GIA i tornar-lo a baixar**. L'«Excel per
+  importar» (`… - coordenades corregides AAAA-MM-DD HHmm.xls`) **no** el llegeix:
+  el nom no casa amb `_RutaFindLatestIn`, i és a posta (és una còpia per a qui
+  importa, no la base).
 
 > **El primer plànol de l'usuari: TOTES les activitats «sense establiment».**
 > La crida feia `@(Read-EstablimentsExcel …)`, que ja torna la llista amb coma:
@@ -172,8 +178,8 @@ Parcel·les de Cornellà pintades segons l'estat de les activitats que hi ha. Es
   consultes (uns minuts); després, segons. **Cancel·lar no avorta**: el mapa es
   fa amb el que hi hagi.
 - **Mida**: amb l'Excel real, 943 parcel·les i ~360 KB de dades sense geometria.
-- Proves: `tests/run-tests-planol.ps1` (137) i `tests/navegador/prova-planol.mjs`
-  (81, al Chromium, amb `genera-planol-prova.ps1`).
+- Proves: `tests/run-tests-planol.ps1` (142) i `tests/navegador/prova-planol.mjs`
+  (66, al Chromium, amb `genera-planol-prova.ps1`).
 
 ## LA TRAMPA DE `$Script:` DINS D'UN `.GetNewClosure()` (mesurada, octubre 2026)
 

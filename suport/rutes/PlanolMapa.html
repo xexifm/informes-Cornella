@@ -52,8 +52,6 @@
   .xip-vermell { border-color: #d62728; } .xip-groc { border-color: #e0b000; }
   .xip-blau { border-color: #1f77b4; } .xip-verd { border-color: #2ca02c; }
   .xip-err { border-width: 1px; color: #d00000; }
-  .pop .acc { font-size: 11px; }
-  #avis-situar { background: #14365c; color: #fff; padding: 6px 10px; font: 13px Segoe UI, Arial, sans-serif; border-radius: 4px; max-width: 420px; }
   .pop h3 { margin: 0 0 2px; font-size: 14px; color: #14365c; }
   .pop .rc { font-family: Consolas, monospace; font-size: 11px; color: #666; }
   .pop table { border-collapse: collapse; margin-top: 6px; font-size: 12px; }
@@ -99,7 +97,7 @@
     <h2>Per revisar</h2>
     <select id="f-revisar">
       <option value="" data-base="Totes les activitats">Totes les activitats</option>
-      <option value="ne" data-base="Entrada no trobada al Cadastre (ID en vermell)">Entrada no trobada al Cadastre (ID en vermell)</option>
+      <option value="ne" data-base="Coordenada UTM fora de la parcel·la o sense (ID en vermell)">Coordenada UTM fora de la parcel·la o sense (ID en vermell)</option>
       <option value="mb" data-base="Local marcat com a buit, però amb activitat">Local marcat com a buit, però amb activitat</option>
       <option value="nb" data-base="ID d'activitat que no és a l'Excel d'activitats">ID d'activitat que no és a l'Excel d'activitats</option>
       <option value="se" data-base="Activitat que no surt a l'Excel d'establiments">Activitat que no surt a l'Excel d'establiments</option>
@@ -111,18 +109,12 @@
     <div class="fila"><input type="checkbox" id="f-etiq" checked><label for="f-etiq">ID GIA damunt de les parcel·les</label></div>
     <div class="fila"><input type="checkbox" id="f-cadastre"><label for="f-cadastre">Fons del Cadastre (totes les parcel·les)</label></div>
     <p class="nota">Amplia el mapa per veure els ID GIA: de lluny no en surten, a mig zoom en surten fins a
-      quatre per entrada i de prop, tots. Cada ID va a l'<b>entrada</b> del seu establiment (el portal del
-      Cadastre), emmarcat amb el color del seu estat; <span style="color:#d00000;font-weight:bold">en vermell</span>,
-      al centre, si no s'ha trobat. Si una parcel·la té activitats en estats diferents, té el color del més greu.
+      quatre per punt i de prop, tots. Cada ID va a la seva <b>coordenada UTM</b> de l'Excel d'activitats
+      (la que es corregeix amb l'eina Coordenades), emmarcat amb el color del seu estat;
+      <span style="color:#d00000;font-weight:bold">en vermell</span>, al centre, si la coordenada cau fora de la
+      parcel·la o no n'hi ha. Si una parcel·la té activitats en estats diferents, té el color del més greu.
       Clica-hi per veure-les totes, amb el local, l'adreça de la base d'activitats i la del Cadastre.</p>
 
-    <h2>ID situats a mà</h2>
-    <p class="nota">Quan diverses naus comparteixen l'entrada (un polígon industrial), el Cadastre només en té
-      una porta. A la fitxa de la parcel·la, «situa'l a la seva nau» i clica al mapa on és: l'ID hi queda,
-      també als plànols que es facin després en aquest ordinador. <span id="n-posicions"></span></p>
-    <p><button onclick="baixaPosicions()">Desa'n una còpia</button>
-       <button onclick="document.getElementById('fitxer-pos').click()">Recupera una còpia</button>
-       <input type="file" id="fitxer-pos" accept=".json,application/json" style="display:none"></p>
     <p><button onclick="baixaCsv()">Baixar la llista del que es veu (.csv)</button></p>
     <p class="nota" id="resum"></p>
   </div>
@@ -159,7 +151,9 @@ var PARCELES = {{dadesJson}};
 //     planta/porta, sf d'on surt ('gia'|'cadastre'|'unitat'), e estat, et text
 //     de l'estat, pr precinte, mb local marcat com a buit, se sense establiment,
 //     nb no es a la base, ni informes, ad adreca (base d'activitats), ca adreca
-//     del portal trobat al Cadastre, rc refcat, x entrada trobada 1/0/-1 },
+//     al Cadastre, rc refcat, x on va l'ID: 1 a la seva coordenada UTM, 2 la
+//     coordenada es a l'altre establiment, 0 fora de la parcel.la, 3 sense
+//     coordenada, -1 parcel.la sense dibuix },
 //   l etiquetes de les entrades, pa adreces de la parcel.la al Cadastre
 // ---------------------------------------------------------------------------
 if (typeof L === 'undefined') { throw new Error('Leaflet no carregat: el mapa no pot arrencar.'); }
@@ -220,7 +214,7 @@ function passaTurClassif(en, f) {
 }
 
 function passaRevisar(en, rev) {
-  if (rev === 'ne' && en.x !== 0) { return false; }
+  if (rev === 'ne' && en.x !== 0 && en.x !== 3) { return false; }
   if (rev === 'mb' && !en.mb) { return false; }
   if (rev === 'nb' && !en.nb) { return false; }
   if (rev === 'se' && !en.se) { return false; }
@@ -271,7 +265,7 @@ function classifTriades() {
 
 var AJUDA_REVISAR = {
   '': 'Totes, sense mirar res més.',
-  ne: 'El número de l\'establiment no és entre els portals del Cadastre d\'aquella parcel·la (o el portal cau fora): l\'ID GIA surt en vermell al centre. Mira l\'adreça de l\'Excel d\'establiments.',
+  ne: 'La coordenada UTM de l\'Excel d\'activitats no cau a cap parcel·la de l\'activitat (o cau a la d\'una altra), o no n\'hi ha: l\'ID GIA surt en vermell al centre. Es corregeix amb l\'eina Coordenades.',
   mb: 'A l\'Excel d\'establiments el local diu «Local buit = Sí», però hi té una activitat: o l\'activitat ja no hi és o el local no és buit.',
   nb: 'L\'establiment porta un ID d\'activitat que no existeix a l\'Excel d\'activitats (esborrada o mal escrita).',
   se: 'L\'activitat és a l\'Excel d\'activitats però cap fila de l\'Excel d\'establiments no la porta: es pinta amb la referència cadastral de l\'Excel d\'activitats.'
@@ -319,8 +313,7 @@ function muntaParceles() {
         // Sense dibuix del Cadastre: un punt, perque no es perdi.
         forma = L.circleMarker(pc.c, { radius: 7, weight: 2, fillOpacity: 0.8 });
       }
-      // Situant un ID a ma, el clic el recull el mapa (map.on('click')).
-      forma.on('click', function (ev) { if (!situant) { obrePopup(idx, ev.latlng); } });
+      forma.on('click', function (ev) { obrePopup(idx, ev.latlng); });
       // Una etiqueta per ENTRADA (pc.l, PlanolDades.ps1) i una al centre per als
       // locals buits.
       var etiqs = [];
@@ -330,7 +323,7 @@ function muntaParceles() {
                      tt: L.tooltip({ permanent: true, direction: DIR[ls[k].d] || 'center', className: 'ent', interactive: false }).setLatLng(ls[k].c) });
       }
       var buit = L.tooltip({ permanent: true, direction: 'center', className: 'etiq', interactive: false }).setLatLng(pc.c);
-      capes[idx] = { forma: forma, etiqs: etiqs, buit: buit, buitAlMapa: false, vista: null, alMapa: false, aMa: {} };
+      capes[idx] = { forma: forma, etiqs: etiqs, buit: buit, buitAlMapa: false, vista: null, alMapa: false };
       limits.push(pc.c);
     })(i);
   }
@@ -358,15 +351,14 @@ function estilDe(v) {
 
 var DIR = { r: 'right', l: 'left', t: 'top', b: 'bottom', c: 'center' };
 
-// Text d'una etiqueta d'entrada segons el zoom: res de lluny; a mig zoom fins a
+// Text d'una etiqueta (un punt) segons el zoom: res de lluny; a mig zoom fins a
 // 4 ID (i "+N") i de prop fins a 16, de quatre en quatre, cada un emmarcat amb
 // el color del seu estat. NOMES els ID: el local/planta/porta tapava les naus
 // del costat (l'usuari: "treu els texts aquests del planol que estorben"); es a
-// la fitxa. vis: ID GIA -> { e } de les activitats visibles d'aquesta parcel.la;
-// ama: els ID situats a ma, que no van aqui sino al seu lloc.
-function textEntrada(def, vis, zoom, ama) {
+// la fitxa. vis: ID GIA -> { e } de les activitats visibles d'aquesta parcel.la.
+function textEntrada(def, vis, zoom) {
   var gs = [];
-  for (var i = 0; i < def.g.length; i++) { if (vis[def.g[i]] && !(ama && ama[def.g[i]])) { gs.push(def.g[i]); } }
+  for (var i = 0; i < def.g.length; i++) { if (vis[def.g[i]]) { gs.push(def.g[i]); } }
   if (gs.length === 0) { return ''; }
   var max = zoom >= ZOOM_LLISTA ? 16 : 4, perFila = 4, t = '';
   for (var k = 0; k < gs.length && k < max; k++) {
@@ -425,10 +417,9 @@ function pinta() {
       if (!vis[ea.g]) { vis[ea.g] = { e: ea.e }; }
       if (ORDRE[ea.e] > ORDRE[vis[ea.g].e]) { vis[ea.g].e = ea.e; }
     }
-    var ama = pintaAMa(i, vis, vol && mostraEtiq);
     for (var q = 0; q < c.etiqs.length; q++) {
       var et = c.etiqs[q];
-      var text = vol && mostraEtiq ? textEntrada(et.def, vis, zoom, ama) : '';
+      var text = vol && mostraEtiq ? textEntrada(et.def, vis, zoom) : '';
       if (text !== '') {
         et.tt.setContent(text);
         if (!et.alMapa) { et.tt.addTo(map); et.alMapa = true; }
@@ -455,148 +446,6 @@ function pinta() {
   for (var ci = 0; ci < CLASSIFS.length; ci++) { document.getElementById('nc-' + ci).textContent = compta(cCl[CLASSIFS[ci]] || {}); }
   document.getElementById('ajuda-revisar').textContent = AJUDA_REVISAR[f.revisar] || '';
   document.getElementById('resum').textContent = nParc + ' parcel·les a la vista de ' + PARCELES.length + '.';
-  var nPos = compta(POSICIONS);
-  document.getElementById('n-posicions').textContent = nPos === 0 ? '' : '(Ara n\'hi ha ' + nPos + ' en aquest ordinador.)';
-}
-
-// ---------------------------------------------------------------------------
-// SITUAR UN ID A MA (octubre 2026). En un poligon industrial (Sant Ferran) el
-// Cadastre te UNA porta per a totes les naus i els 12 ID sortien junts a
-// l'entrada. El numero de nau que es veu al fons (1, 2... 13) es part de la
-// IMATGE de l'ICGC, no una dada que el programa pugui llegir, i el Cadastre
-// diu "Pt. 13" sense cap coordenada. Per aixo l'ID es porta a ma a la seva nau.
-// Es recorda en AQUEST ordinador (localStorage, com el fons triat) i val per
-// als planols que es facin despres; "Desa'n una copia" per no perdre-ho.
-// Clau: la parcel.la de l'establiment (refcat de 14) i l'ID GIA. Si la
-// parcel.la canvia de forma i el punt hi queda fora, no es fa servir.
-// ---------------------------------------------------------------------------
-var POS_CLAU = 'informesCornella.planolPosicions';
-var POSICIONS = (function () {
-  try {
-    var o = JSON.parse(window.localStorage.getItem(POS_CLAU) || '{}');
-    return (o && typeof o === 'object' && !Array.isArray(o)) ? o : {};
-  } catch (e) { return {}; }
-})();
-function desaPosicions() { try { window.localStorage.setItem(POS_CLAU, JSON.stringify(POSICIONS)); } catch (e) { } }
-
-function clauPos(idx, g) {
-  var pc = PARCELES[idx], rc = '';
-  for (var i = 0; i < pc.e.length; i++) { if (pc.e[i].g === g && pc.e[i].rc) { rc = String(pc.e[i].rc).substring(0, 14); break; } }
-  return (rc || pc.k) + '|' + g;
-}
-
-function dinsAnell(lat, lon, an) {
-  var dins = false;
-  for (var i = 0, j = an.length - 2; i + 1 < an.length; j = i, i += 2) {
-    var yi = an[i], xi = an[i + 1], yj = an[j], xj = an[j + 1];
-    if (((yi > lat) !== (yj > lat)) && (lon < (xj - xi) * (lat - yi) / (yj - yi) + xi)) { dins = !dins; }
-  }
-  return dins;
-}
-
-// Dins d'algun poligon de la parcel.la i fora dels seus patis. Sense dibuix (un
-// punt), a menys de 40 m del punt.
-function dinsParcela(pc, lat, lon) {
-  if (!pc.p || pc.p.length === 0) { return map.distance([lat, lon], pc.c) <= 40; }
-  for (var a = 0; a < pc.p.length; a++) {
-    if (!dinsAnell(lat, lon, pc.p[a][0])) { continue; }
-    var pati = false;
-    for (var b = 1; b < pc.p[a].length; b++) { if (dinsAnell(lat, lon, pc.p[a][b])) { pati = true; break; } }
-    if (!pati) { return true; }
-  }
-  return false;
-}
-
-function posicioA(idx, g) {
-  var p = POSICIONS[clauPos(idx, g)];
-  if (!p || p.length !== 2 || typeof p[0] !== 'number' || typeof p[1] !== 'number') { return null; }
-  return dinsParcela(PARCELES[idx], p[0], p[1]) ? p : null;
-}
-
-// Les etiquetes dels ID situats a ma d'una parcel.la. Torna els ID que hi
-// tenen lloc (textEntrada no els posa a l'entrada).
-function pintaAMa(idx, vis, mostra) {
-  var c = capes[idx], ama = {};
-  for (var g in vis) {
-    if (!vis.hasOwnProperty(g)) { continue; }
-    var pos = posicioA(idx, g);
-    if (!pos) { continue; }
-    ama[g] = true;
-    if (!mostra) { continue; }
-    var m = c.aMa[g];
-    if (!m) { m = c.aMa[g] = { tt: L.tooltip({ permanent: true, direction: 'center', className: 'ent', interactive: false }), alMapa: false }; }
-    m.tt.setLatLng(pos);
-    m.tt.setContent(xipHtml(g, vis[g].e));
-    if (!m.alMapa) { m.tt.addTo(map); m.alMapa = true; }
-  }
-  for (var h in c.aMa) {
-    if (c.aMa.hasOwnProperty(h) && c.aMa[h].alMapa && !(mostra && ama[h])) { map.removeLayer(c.aMa[h].tt); c.aMa[h].alMapa = false; }
-  }
-  return ama;
-}
-
-var situant = null, avisSituar = null;
-function mostraAvisSituar(text) {
-  if (!avisSituar) {
-    var Avis = L.Control.extend({ options: { position: 'topleft' },
-      onAdd: function () { var d = L.DomUtil.create('div'); d.id = 'avis-situar'; return d; } });
-    avisSituar = new Avis();
-  }
-  if (!avisSituar._map) { avisSituar.addTo(map); }
-  avisSituar.getContainer().textContent = text;
-}
-
-function comencaSituar(idx, g) {
-  map.closePopup();
-  situant = { idx: idx, g: g };
-  mostraAvisSituar('Clica on és la nau de l\'ID ' + g + ', dins de la seva parcel·la. (Esc per cancel·lar)');
-  map.getContainer().style.cursor = 'crosshair';
-}
-
-function acabaSituar() {
-  situant = null;
-  if (avisSituar && avisSituar._map) { map.removeControl(avisSituar); }
-  map.getContainer().style.cursor = '';
-}
-
-function clicSituar(ll) {
-  var s = situant;
-  if (!dinsParcela(PARCELES[s.idx], ll.lat, ll.lng)) {
-    mostraAvisSituar('Aquest punt és fora de la parcel·la de l\'ID ' + s.g + '. Clica a dins. (Esc per cancel·lar)');
-    return;
-  }
-  POSICIONS[clauPos(s.idx, s.g)] = [Math.round(ll.lat * 1e7) / 1e7, Math.round(ll.lng * 1e7) / 1e7];
-  desaPosicions();
-  acabaSituar();
-  pinta();
-}
-
-function treuPosicio(idx, g) {
-  delete POSICIONS[clauPos(idx, g)];
-  desaPosicions();
-  map.closePopup();
-  pinta();
-}
-
-function baixaPosicions() {
-  var url = URL.createObjectURL(new Blob([JSON.stringify(POSICIONS, null, 1)], { type: 'application/json' }));
-  var a = document.createElement('a');
-  a.href = url; a.download = 'Planol_ID_situats_a_ma.json';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(function () { URL.revokeObjectURL(url); }, 5000);
-}
-
-// Recuperar una copia: s'AFEGEIX al que ja hi ha (el mateix ID, el de la copia).
-function recuperaPosicions(text) {
-  var o;
-  try { o = JSON.parse(text); } catch (e) { alert('Aquest fitxer no és una còpia dels ID situats a mà.'); return 0; }
-  var n = 0;
-  for (var k in o) {
-    if (o.hasOwnProperty(k) && /\|/.test(k) && o[k] && o[k].length === 2 && typeof o[k][0] === 'number' && typeof o[k][1] === 'number') { POSICIONS[k] = o[k]; n++; }
-  }
-  desaPosicions();
-  pinta();
-  return n;
 }
 
 // ---------------------------------------------------------------------------
@@ -629,7 +478,9 @@ function htmlFitxa(idx) {
     if (en.mb) { avisos.push('local marcat com a buit'); }
     if (en.nb) { avisos.push('no és a la base d\'activitats'); }
     if (en.se) { avisos.push('sense establiment: ref. de l\'Excel d\'activitats'); }
-    if (en.x === 0) { avisos.push('entrada no trobada al Cadastre'); }
+    if (en.x === 0) { avisos.push('la coordenada UTM cau fora de la parcel·la'); }
+    if (en.x === 3) { avisos.push('sense coordenada UTM a l\'Excel d\'activitats'); }
+    if (en.x === 2) { avisos.push('la coordenada és a l\'altre establiment'); }
     var estat = en.et ? en.et : (en.ni > 0 ? '' : 'sense informes');
     if (en.pr) { estat = 'PRECINTADA' + (en.et ? ' (darrer informe: ' + en.et + ')' : ''); }
     h += '<tr style="' + (visible ? '' : 'opacity:.45') + '">' +
@@ -641,8 +492,7 @@ function htmlFitxa(idx) {
            '<br><span class="adr"><i>Adreça (base d\'activitats):</i> ' + escHtml(en.ad || '—') + '</span>' +
            (en.ca ? '<br><span class="adr"><i>Adreça (Cadastre):</i> ' + escHtml(en.ca) + '</span>' : '') +
            (en.cl || en.at ? '<br><span class="cad">' + escHtml([en.cl ? 'Classificació: ' + en.cl : '', en.at ? 'allotjament turístic' : ''].filter(Boolean).join(' · ')) + '</span>' : '') +
-           (avisos.length ? '<br><span class="avis">&#9888; ' + escHtml(avisos.join(' · ')) + '</span>' : '') +
-           '<br>' + accionsSituar(idx, en.g) + '</td>' +
+           (avisos.length ? '<br><span class="avis">&#9888; ' + escHtml(avisos.join(' · ')) + '</span>' : '') + '</td>' +
          '<td>' + escHtml(estat) + (en.ni > 0 ? '<br><span class="cad">' + en.ni + ' informe' + (en.ni > 1 ? 's' : '') + '</span>' : '') + '</td></tr>';
   }
   var nb = 0, subsBuits = [];
@@ -654,17 +504,6 @@ function htmlFitxa(idx) {
          ' buit' + (nb > 1 ? 's' : '') + (subsBuits.length ? ': ' + escHtml(subsBuits.join(', ')) : '') + '</td></tr>';
   }
   return h + '</table></div>';
-}
-
-// "Situa'l a la seva nau" (o, si ja hi es, tornar-hi i treure'l). L'ID GIA va
-// dins d'un onclick: escapat com a JSON i despres com a HTML.
-function accionsSituar(idx, g) {
-  var arg = escHtml(idx + ',' + JSON.stringify(String(g)));
-  if (posicioA(idx, g)) {
-    return '<span class="acc">situat a mà &middot; <a href="#" onclick="comencaSituar(' + arg + ');return false;">torna a situar-lo</a>' +
-           ' &middot; <a href="#" onclick="treuPosicio(' + arg + ');return false;">treu-lo</a></span>';
-  }
-  return '<span class="acc"><a href="#" onclick="comencaSituar(' + arg + ');return false;">situa\'l a la seva nau</a></span>';
 }
 
 function obrePopup(idx, latlng) {
@@ -737,7 +576,8 @@ function baixaCsv() {
       if (en.mb) { av.push('local marcat com a buit'); }
       if (en.nb) { av.push('no es a la base d\'activitats'); }
       if (en.se) { av.push('sense establiment'); }
-      if (en.x === 0) { av.push('entrada no trobada al Cadastre'); }
+      if (en.x === 0) { av.push('coordenada UTM fora de la parcel·la'); }
+      if (en.x === 3) { av.push('sense coordenada UTM'); }
       files.push([en.g, en.n, en.ac, en.s, en.ad, en.rc, TEXT_ESTAT[en.e], en.et, en.cl, en.at ? 'Sí' : '', av.join(', ')]);
     }
   }
@@ -757,16 +597,6 @@ document.getElementById('f-cadastre').addEventListener('change', function (ev) {
   if (ev.target.checked) { fonsCadastre.addTo(map); } else { map.removeLayer(fonsCadastre); }
 });
 map.on('zoomend', pinta);
-map.on('click', function (ev) { if (situant) { clicSituar(ev.latlng); } });
-document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && situant) { acabaSituar(); } });
-document.getElementById('fitxer-pos').addEventListener('change', function (ev) {
-  var f = ev.target.files && ev.target.files[0];
-  if (!f) { return; }
-  var r = new FileReader();
-  r.onload = function () { var n = recuperaPosicions(String(r.result)); if (n > 0) { alert('Recuperats ' + n + ' ID situats a mà.'); } };
-  r.readAsText(f);
-  ev.target.value = '';
-});
 map.on('fonscanviat', pinta);   // el contorn, segons el fons (MapaFons.js)
 
 muntaParceles();

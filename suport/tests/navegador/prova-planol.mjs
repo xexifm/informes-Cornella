@@ -86,14 +86,14 @@ try {
   eq(await p.textContent('#nc-' + iII), '1', 'i la casella diu quantes n\'hi ha');
   await p.check('#fc-' + iII);
 
-  seccio('Per revisar: entrada no trobada');
+  seccio('Per revisar: coordenada fora de la parcel·la');
   await p.selectOption('#f-revisar', 'ne');
-  eq((await vista(iCadis)).acts, ['1403'], 'entrada no trobada: el 1403 (diu el 21, que no és al Cadastre)');
+  eq((await vista(iCadis)).acts, ['1403'], 'coordenada fora: el 1403 (la seva UTM cau lluny de la parcel·la)');
   check((await p.textContent('#ajuda-revisar')).includes('vermell'), 'amb l\'explicació a sota');
-  check((await p.textContent('#f-revisar')).includes('Entrada no trobada al Cadastre (ID en vermell) (1)'), 'i el recompte al desplegable');
+  check((await p.textContent('#f-revisar')).includes('Coordenada UTM fora de la parcel·la o sense (ID en vermell) (1)'), 'i el recompte al desplegable');
   await p.selectOption('#f-revisar', '');
 
-  seccio('Etiquetes: a l\'entrada i segons el zoom');
+  seccio('Etiquetes: a la coordenada UTM i segons el zoom');
   const etiqueta = (i) => p.evaluate((i) => {
     const t = capes[i].etiqs.filter((e) => e.alMapa).map((e) => (e.def.v ? 'V:' : '') + e.tt.getElement().textContent.trim());
     return t.length ? t.join(' | ') : null;
@@ -101,8 +101,8 @@ try {
   await p.evaluate((i) => map.setView(PARCELES[i].c, 15, { animate: false }), iCadis);
   eq(await etiqueta(iCadis), null, 'zoom 15: cap etiqueta');
   await p.evaluate((i) => map.setView(PARCELES[i].c, 16.5, { animate: false }), iCadis);
-  eq(await etiqueta(iCadis), '1447 | V:1403', 'zoom 16,5: el 1447 a la seva entrada i el 1403 (no trobada) en vermell');
-  // El 1447, a l'entrada del 19 (el portal, a la façana de baix), DINS de la
+  eq(await etiqueta(iCadis), '1447 | V:1403', 'zoom 16,5: el 1447 a la seva coordenada i el 1403 (fora de la parcel·la) en vermell');
+  // El 1447, a la seva coordenada UTM (a prop de la façana de baix), DINS de la
   // parcel·la, emmarcat amb el color del seu estat (vermell: precintada).
   const ent = await p.evaluate((i) => {
     const e = capes[i].etiqs.filter((x) => !x.def.v)[0];
@@ -137,65 +137,10 @@ try {
   check((await p.innerHTML('.leaflet-popup-content')).includes('rc1=2295827&amp;rc2=DF2729E'), 'amb l\'enllaç a la fitxa del Cadastre');
   check(fitxa.includes('Esc. 1 - Pl. 2 - Pt. 16') && fitxa.includes('Local 5'), 'el local/planta/porta, a la fitxa (ja no al plànol)');
   check(fitxa.includes('Adreça (base d\'activitats): C CADIS 21'), 'l\'adreça de la base d\'activitats, amb el seu nom');
-  check(fitxa.includes('Adreça (Cadastre): CL CADIS 19'), 'i la del Cadastre (el portal on s\'ha posat), diferenciada');
+  check(fitxa.includes('Adreça (Cadastre): CL CADIS 19'), 'i la del Cadastre (el portal amb el seu número), diferenciada');
+  check(fitxa.includes('la coordenada UTM cau fora de la parcel·la'), 'la que va en vermell diu per què');
+  check(!fitxa.includes('situa'), 'res de situar a mà: mana la coordenada de l\'Excel');
   check(fitxa.includes('Adreces al Cadastre: CL CADIS 19'), 'i les de la parcel·la al Cadastre, a dalt');
-
-  seccio('Situar un ID a mà (a la seva nau)');
-  const enMapa = async (lat, lon) => {
-    const pt = await p.evaluate(([a, b]) => { const q = map.latLngToContainerPoint([a, b]); return [q.x, q.y]; }, [lat, lon]);
-    const caixa = await p.locator('#map').boundingBox();
-    await p.mouse.click(caixa.x + pt[0], caixa.y + pt[1]);
-  };
-  const cadisC = await p.evaluate((i) => PARCELES[i].c, iCadis);
-  // La fitxa d'ara (la tancada s'esvaeix 200 ms i encara hi es).
-  const pop = () => p.locator('.leaflet-popup-content').last();
-  await p.evaluate((i) => map.setView(PARCELES[i].c, 18.5, { animate: false }), iCadis);
-  await p.evaluate((i) => obrePopup(i), iCadis);
-  const enllacos = await pop().locator('a', { hasText: 'situa\'l a la seva nau' }).count();
-  eq(enllacos, 2, 'cada activitat de la fitxa té «situa\'l a la seva nau»');
-  await pop().locator('tr', { hasText: '1403' }).locator('a', { hasText: 'situa' }).click();
-  check((await p.textContent('#avis-situar')).includes('1403'), 'diu quin ID s\'està situant');
-  await p.waitForFunction(() => document.querySelectorAll('.leaflet-popup').length === 0, null, { timeout: 3000 });
-  check(true, 'i la fitxa es tanca');
-  // Fora: 45 m al sud (a la vista, pero fora de la parcel.la).
-  const llFora = [cadisC[0] - 0.0004, cadisC[1]];
-  eq(await p.evaluate(([i, a, b]) => dinsParcela(PARCELES[i], a, b), [iCadis, llFora[0], llFora[1]]), false, '(el punt de fora és fora de la parcel·la)');
-  await enMapa(llFora[0], llFora[1]);
-  check((await p.textContent('#avis-situar')).includes('fora de la parcel·la'), 'un clic fora de la parcel·la no compta, i ho diu');
-  const llNau = [cadisC[0] + 0.00004, cadisC[1] + 0.00003];
-  check(await p.evaluate(([i, a, b]) => dinsParcela(PARCELES[i], a, b), [iCadis, llNau[0], llNau[1]]), '(el punt de la nau és dins la parcel·la)');
-  await enMapa(llNau[0], llNau[1]);
-  eq(await p.evaluate(() => document.querySelectorAll('#avis-situar').length), 0, 'un clic dins: queda situat i l\'avís marxa');
-  const aMa = () => p.evaluate((i) => {
-    const m = capes[i].aMa['1403'];
-    if (!m || !m.alMapa) { return null; }
-    const ll = m.tt.getLatLng();
-    return { xip: m.tt.getElement().querySelector('.xip').className, lat: Math.round(ll.lat * 1e5), lon: Math.round(ll.lng * 1e5) };
-  }, iCadis);
-  const esperat = { xip: 'xip xip-groc', lat: Math.round(llNau[0] * 1e5), lon: Math.round(llNau[1] * 1e5) };
-  eq(await aMa(), esperat, 'el 1403 surt on s\'ha clicat, amb el marc del seu estat (ja no en vermell)');
-  eq(await etiqueta(iCadis), '1447', 'i ja no surt al centre en vermell');
-  eq(await p.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('informesCornella.planolPosicions')))), ['2295827DF2729E|1403'],
-     'es recorda per parcel·la i ID GIA');
-  check((await p.textContent('#n-posicions')).includes('1'), 'el lateral diu quants n\'hi ha');
-  await p.reload();
-  await p.waitForFunction(() => typeof capes !== 'undefined' && capes.length === PARCELES.length, null, { timeout: 10000 });
-  await p.evaluate((i) => map.setView(PARCELES[i].c, 18.5, { animate: false }), iCadis);
-  eq(await aMa(), esperat, 'tornant a obrir el plànol, hi segueix');
-  await p.evaluate((i) => obrePopup(i), iCadis);
-  check((await pop().textContent()).includes('situat a mà'), 'la fitxa diu que està situat a mà');
-  const [baixadaPos] = await Promise.all([p.waitForEvent('download'), p.evaluate(() => baixaPosicions())]);
-  const copia = fs.readFileSync(await baixadaPos.path(), 'utf8');
-  eq(Object.keys(JSON.parse(copia)), ['2295827DF2729E|1403'], '«Desa\'n una còpia» baixa els ID situats');
-  await pop().locator('tr', { hasText: '1403' }).locator('a', { hasText: 'treu' }).click();
-  eq(await aMa(), null, '«treu-lo»: ja no hi és…');
-  eq(await etiqueta(iCadis), '1447 | V:1403', '…i torna al centre en vermell');
-  const fitxerCopia = path.join(TMP, 'copia.json');
-  fs.writeFileSync(fitxerCopia, copia);
-  await p.setInputFiles('#fitxer-pos', fitxerCopia);
-  await p.waitForFunction(() => Object.keys(POSICIONS).length === 1, null, { timeout: 5000 });
-  eq(await aMa(), esperat, '«Recupera una còpia» el torna a posar');
-  await p.evaluate(() => { localStorage.removeItem('informesCornella.planolPosicions'); POSICIONS = {}; pinta(); });
 
   seccio('Cercador');
   await p.fill('#cerca', '144');

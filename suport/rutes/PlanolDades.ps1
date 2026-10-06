@@ -322,7 +322,8 @@ function Get-UnitatsAConsultar($establiments) {
 # coordenada ('xy:...') i al mapa surt com un punt.
 # Cada entrada: { Tipus ('activitat'|'buit'); Gia; Nom; Activitat; Sub; SubFont;
 #   Estat; EstatText; Precinte; MarcatBuit; SenseEstabliment; NoBase; NInformes;
-#   Adreca; Rc }.
+#   Adreca; Rc; Carrer; Numero; Turistic; Classificacio; ActX; ActY (UTM X/Y de
+#   l'Excel d'activitats, on va l'ID al planol) }.
 function Build-PlanolModel($establiments, $activitats, $estats, $unitats) {
     if ($null -eq $activitats) { $activitats = @{} }
     if ($null -eq $estats) { $estats = @{} }
@@ -363,7 +364,8 @@ function Build-PlanolModel($establiments, $activitats, $estats, $unitats) {
                 Tipus = 'buit'; Gia = ''; Nom = ''; Activitat = ''; Sub = $sub.Text; SubFont = $sub.Font
                 Estat = ''; EstatText = ''; Precinte = $false; MarcatBuit = $true; SenseEstabliment = $false
                 NoBase = $false; NInformes = 0; Adreca = $e.Adreca; Rc = $rcN
-                Carrer = [string]$e.Carrer; Numero = [string]$e.Numero; Turistic = $false; Classificacio = '' })
+                Carrer = [string]$e.Carrer; Numero = [string]$e.Numero; Turistic = $false; Classificacio = ''
+                ActX = $null; ActY = $null })
             continue
         }
         $gia = [string]$e.IdActivitat
@@ -387,7 +389,11 @@ function Build-PlanolModel($establiments, $activitats, $estats, $unitats) {
             Adreca = $e.Adreca; Rc = $rcN
             Carrer = [string]$e.Carrer; Numero = [string]$e.Numero
             Turistic = if ($null -ne $act) { [bool]$act.Turistic } else { $false }
-            Classificacio = if ($null -ne $act) { [string]$act.Classificacio } else { '' } })
+            Classificacio = if ($null -ne $act) { [string]$act.Classificacio } else { '' }
+            # On va l'ID al planol: la coordenada de l'Excel d'ACTIVITATS (la que
+            # corregeix Coordenades), no la de l'establiment.
+            ActX = if ($null -ne $act) { $act.UtmX } else { $null }
+            ActY = if ($null -ne $act) { $act.UtmY } else { $null } })
     }
 
     # Activitats que no surten a cap establiment: amb la refcat de l'Excel
@@ -406,7 +412,7 @@ function Build-PlanolModel($establiments, $activitats, $estats, $unitats) {
             NInformes = if ($null -ne $inf) { [int]$inf.NInformes } else { 0 }
             Adreca = $act.Adreca; Rc = $act.Rc
             Carrer = [string]$act.Carrer; Numero = [string]$act.Numero; Turistic = [bool]$act.Turistic
-            Classificacio = [string]$act.Classificacio })
+            Classificacio = [string]$act.Classificacio; ActX = $act.UtmX; ActY = $act.UtmY })
     }
 
     # Dins de cada parcel.la: primer les activitats (per sub-establiment i ID
@@ -567,12 +573,12 @@ function _PlanolAnellAGraus($anell) {
 }
 
 # ----------------------------------------------------------------------------
-# L'ENTRADA DE CADA ESTABLIMENT I LES PARCEL.LES JUNTADES (octubre 2026)
+# ON VA CADA ID, LES ADRECES DEL CADASTRE I LES PARCEL.LES JUNTADES (oct. 2026)
 # ----------------------------------------------------------------------------
 # Els portals d'una parcel.la amb EXACTAMENT el numero de l'establiment (i el
 # carrer, si algun portal el porta: el mateix criteri que Coordenades,
-# Select-PortalFacana). Si no hi es exacte, cap: l'usuari ho va triar aixi ("el
-# 73 no es el 71"; l'ID surt en vermell al centre). Array PLA. PURA.
+# Select-PortalFacana). Si no hi es exacte, cap ("el 73 no es el 71"). Serveix
+# per dir a la fitxa l'adreca del Cadastre de l'establiment. Array PLA. PURA.
 function Get-PortalsExactes($portals, $carrer, $numero) {
     $arr = @(@($portals) | Where-Object { $null -ne $_ })
     $num = Get-NumeroPortal $numero
@@ -584,24 +590,6 @@ function Get-PortalsExactes($portals, $carrer, $numero) {
         if ($ambVia.Count -gt 0) { $cands = $ambVia }
     }
     return @($cands | Where-Object { [string]$_.Numero -eq $num })
-}
-
-# On va l'etiqueta d'un establiment: { X; Y; Dx; Dy; Adreca } (l'ancora de
-# Resolve-AncoraEntrada i l'adreca del portal AL CADASTRE, "CL PROGRES 73") o
-# $null si no hi ha cap portal exacte que caigui dins (o prou a prop) dels
-# poligons. Amb dos portals amb el mateix numero, el mes proper a la parcel.la.
-function Resolve-EntradaEstabliment($portals, $carrer, $numero, $polys) {
-    $millor = $null; $dm = $null
-    foreach ($p in @(Get-PortalsExactes $portals $carrer $numero)) {
-        $a = Resolve-AncoraEntrada ([double]$p.X) ([double]$p.Y) $polys
-        if ($null -eq $a) { continue }
-        $d = [math]::Sqrt(([double]$p.X - $a.X) * ([double]$p.X - $a.X) + ([double]$p.Y - $a.Y) * ([double]$p.Y - $a.Y))
-        if ($null -eq $dm -or $d -lt $dm) {
-            $dm = $d
-            $millor = [pscustomobject]@{ X = $a.X; Y = $a.Y; Dx = $a.Dx; Dy = $a.Dy; Adreca = (Get-AdrecaPortal $p) }
-        }
-    }
-    return $millor
 }
 
 # L'adreca d'un portal tal com la diu el Cadastre ("CL PROGRES 73"). Al mapa va
@@ -690,51 +678,116 @@ function Get-GrupsParceles($parceles, $geometries) {
     return $out
 }
 
-# LES ETIQUETES D'UN GRUP. Cada activitat a la seva entrada (si es troba) i, si
-# no, en VERMELL al punt de sempre. Es junten a la mateixa etiqueta: les
-# entrades a menys de $Script:PlanolMateixaPortaM (la mateixa porta) i les de la
-# MATEIXA activitat a menys de $Script:PlanolMateixaActivitatM.
-# $portals: hashtable refcat14 -> portals; sense la parcel.la (no s'han pogut
-# demanar), l'etiqueta va al centre com sempre i NO en vermell: no se sap si
-# l'entrada hi es o no.
-# Torna { Etiquetes = [{ X; Y; Dir; Gias; Vermell; Centre }]; Entrada = hashtable
-# entrada -> $true/$false (trobada); AdrecaCadastre = hashtable entrada -> adreca
-# del portal trobat }.
-function Get-EtiquetesGrup($grup, $portals, [double]$cx, [double]$cy) {
+# LA CASA DE CADA ACTIVITAT: a quin grup va el seu ID. L'usuari (octubre 2026):
+# "dibuixa les etiquetes amb el ID GIA segons les coordenades UTM de la base de
+# dades d'activitats" (les corregeix abans amb Coordenades). Una activitat te UNA
+# coordenada i potser diversos establiments: l'ID va al grup on cau.
+#   - Si la coordenada cau DINS d'una parcel.la dibuixada: la d'aquella, si es una
+#     de les seves; si es d'una altra activitat, a cap (la coordenada esta
+#     malament: en vermell).
+#   - Si no cau dins de cap: la seva parcel.la mes propera, si es a menys de
+#     $Script:PlanolEntradaMaxForaM (un punt a la facana o una mica al carrer).
+# $grups: Get-GrupsParceles. Torna hashtable ID GIA -> index del grup, o -1 si
+# la coordenada no es de cap parcel.la seva. Les que no tenen coordenada (o no
+# es plausible) no hi son.
+function Get-CasesActivitats($grups) {
+    $llista = @($grups)
+    $cel = 100.0
+    $graella = @{}; $grupsDe = @{}; $coord = @{}
+    for ($gi = 0; $gi -lt $llista.Count; $gi++) {
+        $gr = $llista[$gi]
+        foreach ($pc in @($gr.Membres)) {
+            foreach ($en in @($pc.Entrades)) {
+                if ($en.Tipus -ne 'activitat') { continue }
+                $g = [string]$en.Gia
+                if (-not $grupsDe.ContainsKey($g)) { $grupsDe[$g] = New-Object System.Collections.Generic.List[int] }
+                if (-not $grupsDe[$g].Contains($gi)) { $grupsDe[$g].Add($gi) }
+                if (-not $coord.ContainsKey($g) -and $null -ne $en.ActX -and $null -ne $en.ActY -and (Test-CoordPlausible ([double]$en.ActX) ([double]$en.ActY))) {
+                    $coord[$g] = @([double]$en.ActX, [double]$en.ActY)
+                }
+            }
+        }
+        $cx = Get-CapsaPoligons $gr.Polys
+        if ($null -eq $cx) { continue }
+        for ($i = [math]::Floor($cx[0] / $cel); $i -le [math]::Floor($cx[2] / $cel); $i++) {
+            for ($j = [math]::Floor($cx[1] / $cel); $j -le [math]::Floor($cx[3] / $cel); $j++) {
+                $k = "$i,$j"
+                if (-not $graella.ContainsKey($k)) { $graella[$k] = New-Object System.Collections.Generic.List[int] }
+                $graella[$k].Add($gi)
+            }
+        }
+    }
+    $casa = @{}
+    foreach ($g in @($coord.Keys)) {
+        $x = $coord[$g][0]; $y = $coord[$g][1]
+        $k = "$([math]::Floor($x / $cel)),$([math]::Floor($y / $cel))"
+        $dins = @()
+        if ($graella.ContainsKey($k)) {
+            foreach ($gi in $graella[$k]) { if (Test-PuntDinsPoligons $x $y $llista[$gi].Polys) { $dins += $gi } }
+        }
+        if ($dins.Count -gt 0) {
+            $casa[$g] = -1
+            foreach ($gi in $dins) { if ($grupsDe[$g].Contains($gi)) { $casa[$g] = $gi; break } }
+            continue
+        }
+        $millor = -1; $dm = $null
+        foreach ($gi in $grupsDe[$g]) {
+            if (@($llista[$gi].Polys).Count -eq 0) { continue }
+            $a = Resolve-AncoraEntrada $x $y $llista[$gi].Polys
+            if ($null -eq $a) { continue }
+            $d = [math]::Sqrt(($x - $a.X) * ($x - $a.X) + ($y - $a.Y) * ($y - $a.Y))
+            if ($null -eq $dm -or $d -lt $dm) { $dm = $d; $millor = $gi }
+        }
+        $casa[$g] = $millor
+    }
+    return $casa
+}
+
+# LES ETIQUETES D'UN GRUP (el d'index $gi). Cada ID, a la seva coordenada si
+# aquest grup es la seva casa (Get-CasesActivitats), DINS de la parcel.la
+# (Resolve-AncoraEntrada); els que cauen al mateix punt (menys de
+# $Script:PlanolMateixPuntM), a la mateixa etiqueta. Si no, al centre:
+#   x 1   a la seva coordenada
+#   x 2   la coordenada es a un ALTRE establiment de l'activitat: al centre,
+#         sense vermell (una activitat te una sola coordenada)
+#   x 0   la coordenada no cau a cap parcel.la seva: al centre, en VERMELL
+#   x 3   sense coordenada a l'Excel d'activitats: al centre, en VERMELL
+#   x -1  la parcel.la no te dibuix (un punt): no se sap, sense vermell
+# Torna { Etiquetes = [{ X; Y; Dir; Gias; Vermell; Centre }]; Entrada =
+# hashtable entrada -> x }.
+function Get-EtiquetesGrup($grup, [int]$gi, $cases, [double]$cx, [double]$cy) {
+    if ($null -eq $cases) { $cases = @{} }
     $punts = New-Object System.Collections.Generic.List[object]
     $alCentre = New-Object System.Collections.Generic.List[string]
     $vermells = New-Object System.Collections.Generic.List[string]
-    $trobada = @{}; $adCad = @{}
+    $estat = @{}; $fet = @{}
+    $teDibuix = @($grup.Polys).Count -gt 0
     foreach ($pc in @($grup.Membres)) {
         foreach ($en in @($pc.Entrades)) {
             if ($en.Tipus -ne 'activitat') { continue }
             $g = [string]$en.Gia
-            # Sense els portals de la parcel.la (no s'han pogut demanar): no se
-            # sap on es l'entrada, va al centre com sempre i sense vermell.
-            if ($null -eq $portals -or -not $portals.ContainsKey([string]$pc.Rc)) {
-                if (-not $alCentre.Contains($g)) { $alCentre.Add($g) }
-                continue
+            if ($fet.ContainsKey($g)) { $estat[$en] = $fet[$g]; continue }
+            $x = -1
+            if (-not $teDibuix) { $x = -1 }
+            elseif (-not $cases.ContainsKey($g)) { $x = 3 }
+            elseif ($cases[$g] -eq $gi) {
+                $a = Resolve-AncoraEntrada ([double]$en.ActX) ([double]$en.ActY) $grup.Polys
+                if ($null -ne $a) { $x = 1; $punts.Add([pscustomobject]@{ X = $a.X; Y = $a.Y; Dx = $a.Dx; Dy = $a.Dy; Gia = $g }) } else { $x = 0 }
             }
-            # Sense dibuix de la parcel.la (un punt): no hi ha "dins" on posar-la.
-            if (@($grup.Polys).Count -eq 0) {
-                $trobada[$en] = $false; if (-not $vermells.Contains($g)) { $vermells.Add($g) }
-                continue
-            }
-            $a = Resolve-EntradaEstabliment $portals[[string]$pc.Rc] $en.Carrer $en.Numero $grup.Polys
-            if ($null -eq $a) { $trobada[$en] = $false; if (-not $vermells.Contains($g)) { $vermells.Add($g) }; continue }
-            $trobada[$en] = $true; $adCad[$en] = [string]$a.Adreca
-            $punts.Add([pscustomobject]@{ X = $a.X; Y = $a.Y; Dx = $a.Dx; Dy = $a.Dy; Gia = $g })
+            elseif ($cases[$g] -ge 0) { $x = 2 }
+            else { $x = 0 }
+            if ($x -eq 0 -or $x -eq 3) { $vermells.Add($g) } elseif ($x -ne 1) { $alCentre.Add($g) }
+            $fet[$g] = $x; $estat[$en] = $x
         }
     }
-    # Agrupar les entrades (union-find petit).
+    # Agrupar els punts (union-find petit).
     $n = $punts.Count
     $pare = New-Object int[] $n; for ($i = 0; $i -lt $n; $i++) { $pare[$i] = $i }
     $arrel = { param($x) while ($pare[$x] -ne $x) { $x = $pare[$x] }; return $x }
     for ($i = 0; $i -lt $n; $i++) {
         for ($j = $i + 1; $j -lt $n; $j++) {
             $d = [math]::Sqrt(($punts[$i].X - $punts[$j].X) * ($punts[$i].X - $punts[$j].X) + ($punts[$i].Y - $punts[$j].Y) * ($punts[$i].Y - $punts[$j].Y))
-            $junta = ($d -le $Script:PlanolMateixaPortaM) -or ($punts[$i].Gia -eq $punts[$j].Gia -and $d -le $Script:PlanolMateixaActivitatM)
-            if ($junta) { $ri = & $arrel $i; $rj = & $arrel $j; if ($ri -ne $rj) { $pare[$rj] = $ri } }
+            if ($d -le $Script:PlanolMateixPuntM) { $ri = & $arrel $i; $rj = & $arrel $j; if ($ri -ne $rj) { $pare[$rj] = $ri } }
         }
     }
     $clusters = [ordered]@{}
@@ -743,15 +796,14 @@ function Get-EtiquetesGrup($grup, $portals, [double]$cx, [double]$cy) {
     foreach ($r in @($clusters.Keys)) {
         $m = $clusters[$r]
         $sx = 0.0; $sy = 0.0; $sdx = 0.0; $sdy = 0.0; $gias = New-Object System.Collections.Generic.List[string]
-        foreach ($p in $m) { $sx += $p.X; $sy += $p.Y; $sdx += $p.Dx; $sdy += $p.Dy; if (-not $gias.Contains($p.Gia)) { $gias.Add($p.Gia) } }
+        foreach ($p in $m) { $sx += $p.X; $sy += $p.Y; $sdx += $p.Dx; $sdy += $p.Dy; $gias.Add($p.Gia) }
         $x = $sx / $m.Count; $y = $sy / $m.Count
-        # La mitjana de dues entrades d'una L pot caure fora: llavors, la primera.
         if (-not (Test-PuntDinsPoligons $x $y $grup.Polys)) { $x = $m[0].X; $y = $m[0].Y }
         $etiq += [pscustomobject]@{ X = $x; Y = $y; Dir = (Get-DireccioEtiqueta $sdx $sdy); Gias = @($gias); Vermell = $false; Centre = $false }
     }
     if ($vermells.Count -gt 0) { $etiq += [pscustomobject]@{ X = $cx; Y = $cy; Dir = 'c'; Gias = @($vermells); Vermell = $true; Centre = $true } }
     if ($alCentre.Count -gt 0) { $etiq += [pscustomobject]@{ X = $cx; Y = $cy; Dir = 'c'; Gias = @($alCentre); Vermell = $false; Centre = $true } }
-    return [pscustomobject]@{ Etiquetes = $etiq; Entrada = $trobada; AdrecaCadastre = $adCad }
+    return [pscustomobject]@{ Etiquetes = $etiq; Entrada = $estat }
 }
 
 # Una llista d'objectes per al JSON del mapa, UN PER GRUP (una parcel.la o
@@ -759,19 +811,26 @@ function Get-EtiquetesGrup($grup, $portals, [double]$cx, [double]$cy) {
 #   k clau, rc parcel.la (la primera), rcs totes (si n'hi ha mes d'una), c [lat,
 #   lon] del centre (un punt DINS), p poligons [[anell...]] (cada anell pla
 #   [lat, lon, ...]), l etiquetes [{ c [lat, lon], d 'r'|'l'|'t'|'b'|'c', g [ID
-#   GIA], v 1 si va en vermell (entrada no trobada) }], e entrades:
+#   GIA], v 1 si va en vermell (coordenada fora o sense) }], e entrades:
 #   { t 'a'|'b', g gia, n nom, ac activitat, s sub, sf font del sub, e estat,
 #     et text de l'estat, pr precinte, mb marcat buit, se sense establiment,
 #     nb no es a la base, ni informes, ad adreca (la de la base d'activitats),
-#     ca adreca del portal trobat AL CADASTRE (nomes si x = 1), rc refcat, at
-#     allotjament turistic, x entrada: 1 trobada, 0 no trobada, -1 no se sap, cl
-#     "Classificacio general annex" de l'Excel d'activitats }
+#     ca adreca AL CADASTRE (el portal amb el seu numero, si n'hi ha), rc refcat,
+#     at allotjament turistic, x on va l'ID (Get-EtiquetesGrup: 1 a la seva
+#     coordenada, 2 la coordenada es a l'altre establiment, 0 fora de la
+#     parcel.la, 3 sense coordenada, -1 no se sap), cl "Classificacio general
+#     annex" de l'Excel d'activitats }
 #   pa: les adreces de la parcel.la (o parcel.les) AL CADASTRE, si n'hi ha.
-# $portals (opcional): hashtable refcat14 -> portals (Get-PortalsPerParcelles).
+# $portals (opcional): hashtable refcat14 -> portals (Get-PortalsPerParcelles),
+# nomes per a les adreces del Cadastre de la fitxa.
 function ConvertTo-PlanolDadesMapa($model, $geometries, $portals = $null) {
     if ($null -eq $geometries) { $geometries = @{} }
+    if ($null -eq $portals) { $portals = @{} }
     $out = @()
-    foreach ($gr in @(Get-GrupsParceles @($model.Parceles) $geometries)) {
+    $grups = @(Get-GrupsParceles @($model.Parceles) $geometries)
+    $cases = Get-CasesActivitats $grups
+    for ($gi = 0; $gi -lt $grups.Count; $gi++) {
+        $gr = $grups[$gi]
         $polys = @($gr.Polys)
         $pc0 = @($gr.Membres)[0]
         $centre = $null
@@ -784,13 +843,18 @@ function ConvertTo-PlanolDadesMapa($model, $geometries, $portals = $null) {
             foreach ($an in @($poly.Anells)) { [void]$ag.Add((_PlanolAnellAGraus $an)) }
             if ($ag.Count -gt 0) { [void]$pJson.Add($ag.ToArray()) }
         }
-        $et = Get-EtiquetesGrup $gr $portals $centre[0] $centre[1]
+        $et = Get-EtiquetesGrup $gr $gi $cases $centre[0] $centre[1]
         $llc = Convert-UtmToLatLon ([double]$centre[0]) ([double]$centre[1]) 31 $true
         $ents = @()
         foreach ($pc in @($gr.Membres)) {
             foreach ($en in @($pc.Entrades)) {
                 $x = -1
-                if ($et.Entrada.ContainsKey($en)) { $x = if ($et.Entrada[$en]) { 1 } else { 0 } }
+                if ($et.Entrada.ContainsKey($en)) { $x = [int]$et.Entrada[$en] }
+                $ca = ''
+                if ($en.Tipus -eq 'activitat' -and $portals.ContainsKey([string]$pc.Rc)) {
+                    $pe = @(Get-PortalsExactes $portals[[string]$pc.Rc] $en.Carrer $en.Numero)
+                    if ($pe.Count -gt 0) { $ca = Get-AdrecaPortal $pe[0] }
+                }
                 $ents += [ordered]@{
                     t = if ($en.Tipus -eq 'buit') { 'b' } else { 'a' }
                     g = [string]$en.Gia; n = [string]$en.Nom; ac = [string]$en.Activitat
@@ -798,7 +862,7 @@ function ConvertTo-PlanolDadesMapa($model, $geometries, $portals = $null) {
                     e = [string]$en.Estat; et = [string]$en.EstatText
                     pr = [bool]$en.Precinte; mb = [bool]$en.MarcatBuit; se = [bool]$en.SenseEstabliment; nb = [bool]$en.NoBase
                     ni = [int]$en.NInformes; ad = [string]$en.Adreca
-                    ca = if ($et.AdrecaCadastre.ContainsKey($en)) { [string]$et.AdrecaCadastre[$en] } else { '' }
+                    ca = $ca
                     rc = [string]$en.Rc
                     at = [bool]$en.Turistic; x = $x; cl = ([string]$en.Classificacio).Trim()
                 }

@@ -1,8 +1,16 @@
 ﻿#requires -Version 5.1
 <#
-  PlanolGeometria.ps1 - La geometria del Planol activitats: on va l'ID GIA a
-  l'ENTRADA de l'establiment i com es junten les parcel.les d'una activitat.
+  PlanolGeometria.ps1 - La geometria del Planol activitats: on va l'ID GIA
+  (la COORDENADA de l'Excel d'activitats, dins de la parcel.la) i com es junten
+  les parcel.les d'una activitat.
 
+  Segona peticio (octubre 2026), que mana sobre la primera: "dibuixa les
+  etiquetes amb el ID GIA segons les coordenades UTM de la base de dades
+  d'activitats [...] Ho modificare primer amb l'eina coordenades i despres es
+  veura reflectit al planol". Els portals del Cadastre no servien en un poligon
+  industrial: totes les naus tenen la mateixa porta.
+
+  La primera (per que encara es "dins" i "en vermell"):
   L'usuari (octubre 2026): "a les parcel.les vull que posis els numeros del ID
   GIA a l'entrada de l'establiment [...] Assegura't que queda dintre la
   parcel.la. En cas que no es trobi l'adreca o quedi fora la parcel.la posa el
@@ -16,17 +24,18 @@
   NOMES DEFINEIX FUNCIONS. ASCII pur.
 #>
 
-# Fins a quants metres FORA de la parcel.la s'accepta un portal: el Cadastre els
-# posa a la facana (sobre la linia o una mica al carrer). Mes enlla, no es
-# d'aquella parcel.la i l'ID va en vermell al centre.
+# Fins a quants metres FORA de la parcel.la s'accepta una coordenada que no cau
+# dins de cap parcel.la: posada a la facana (sobre la linia o una mica al
+# carrer), com fa el punt verd de Coordenades. Mes enlla, no es d'aquella
+# parcel.la i l'ID va en vermell al centre.
 $Script:PlanolEntradaMaxForaM = 12.0
 # Quants metres CAP A DINS es mou l'etiqueta des de la vora: sobre la linia
 # mateixa, mitja etiqueta quedaria al carrer.
 $Script:PlanolEntradaMargeM = 2.5
-# Dues entrades a menys d'aixo son la MATEIXA porta (una sola etiqueta).
-$Script:PlanolMateixaPortaM = 3.0
-# Dues entrades de la MATEIXA activitat a menys d'aixo, una sola etiqueta.
-$Script:PlanolMateixaActivitatM = 10.0
+# Dues coordenades a menys d'aixo son el MATEIX punt (una sola etiqueta amb tots
+# els ID). Abans de repassar-les amb Coordenades, les d'una parcel.la solen ser
+# la mateixa (la del Cadastre).
+$Script:PlanolMateixPuntM = 3.0
 
 # ----------------------------------------------------------------------------
 # CENTRE I AREA (vivien a PlanolDades.ps1; son geometria i les fa servir
@@ -167,8 +176,8 @@ function Get-PuntInterior($polys) {
     return [pscustomobject]@{ X = $mx; Y = $y }
 }
 
-# ON VA L'ETIQUETA D'UNA ENTRADA. $px, $py: el portal del Cadastre.
-# Torna $null si el portal es massa lluny de la parcel.la ($maxFora); si no,
+# ON VA L'ETIQUETA D'UN PUNT. $px, $py: la coordenada de l'activitat.
+# Torna $null si el punt es massa lluny de la parcel.la ($maxFora); si no,
 # { X; Y; Dx; Dy }: un punt DINS de la parcel.la, a $marge de la vora com a
 # minim quan es pot, i la direccio cap a dins (perque l'etiqueta creixi cap a
 # l'interior i no cap al carrer).
@@ -314,4 +323,23 @@ function Join-Poligons($polys) {
     }
     for ($i = 0; $i -lt $ext.Count; $i++) { $sortida.Add([pscustomobject]@{ Anells = $grups[$i].ToArray() }) }
     return [pscustomobject]@{ Polys = $sortida.ToArray(); Toquen = $true; Unit = $true }
+}
+
+# La capsa d'uns poligons: @(minX, minY, maxX, maxY), o $null si no n'hi ha.
+# Per no provar el punt dins de cada parcel.la del terme (Get-CasesActivitats).
+function Get-CapsaPoligons($polys) {
+    $mnx = [double]::MaxValue; $mny = [double]::MaxValue; $mxx = [double]::MinValue; $mxy = [double]::MinValue
+    $hi = $false
+    foreach ($poly in @($polys)) {
+        foreach ($an in @($poly.Anells)) {
+            $a = @($an)
+            for ($i = 0; $i + 1 -lt $a.Count; $i += 2) {
+                $x = [double]$a[$i]; $y = [double]$a[$i + 1]; $hi = $true
+                if ($x -lt $mnx) { $mnx = $x }; if ($x -gt $mxx) { $mxx = $x }
+                if ($y -lt $mny) { $mny = $y }; if ($y -gt $mxy) { $mxy = $y }
+            }
+        }
+    }
+    if (-not $hi) { return $null }
+    return @($mnx, $mny, $mxx, $mxy)
 }

@@ -20,7 +20,7 @@ function _A($id, $nom, $act, $rc, $prec, $x, $y, $adr, $cl = '', $tur = $false) 
 }
 $ests = @(
     (_E '1' '2295827DF2729E0011RQ' '1447' 421975.0 4579505.0 $false '' 'C CADIS 19' 'Cadis' '19')
-    # El 1403 diu el 21, que no es al Cadastre: en vermell al centre.
+    # El 1403 diu el 21, que no es al Cadastre: la fitxa no en diu l'adreca del Cadastre.
     (_E '2' '2295827DF2729E0008RQ' '1403' 421975.0 4579505.0 $false '5' 'C CADIS 21' 'Cadis' '21')
     (_E '3' '2295827DF2729E0003XL' '' 421975.0 4579505.0 $true '' 'C CADIS 19')
     (_E '4' '4091106DF2749A0006XJ' '9' 423912.16 4578928.25 $true '' 'CTRA HOSPITALET 147')
@@ -29,8 +29,10 @@ $ests = @(
     (_E '7' '4091106DF2749A0007XK' '30' 423912.16 4578928.25 $false '' 'CTRA HOSPITALET 147')
 )
 $acts = @{
-    '1447' = (_A '1447' 'EL RACO' 'BAR' '2295827DF2729E0011RQ' $true 421975.0 4579505.0 'C CADIS 19' 'III')
-    '1403' = (_A '1403' '' 'TALLER' '2295827DF2729E0008RQ' $false 421975.0 4579505.0 'C CADIS 19' 'II')
+    # L'ID va a la coordenada UTM de l'Excel d'activitats: el 1447 a prop de la
+    # facana de baix (dins), el 1403 fora de la parcel.la (en vermell al centre).
+    '1447' = (_A '1447' 'EL RACO' 'BAR' '2295827DF2729E0011RQ' $true 421960.0 4579485.0 'C CADIS 19' 'III')
+    '1403' = (_A '1403' '' 'TALLER' '2295827DF2729E0008RQ' $false 422100.0 4579600.0 'C CADIS 19' 'II')
     '9'    = (_A '9' 'ACME' 'OFICINES' '4091106DF2749A0006XJ' $false 423912.16 4578928.25 'CTRA HOSPITALET 147' 'L18 Cert')
     '20'   = (_A '20' '' 'MAGATZEM' '3085213DF2738E0001AB' $false 422800.0 4579200.0 'PG FERROCARRILS 177')
     # Un hotel (CCAE 5520): amagat per defecte.
@@ -44,7 +46,7 @@ $unitats = @{ '2295827DF2729E0011RQ' = (ConvertFrom-CatastroDnprcXml ([System.IO
 $geos = @{ '2295827DF2729E' = @(ConvertFrom-CatastroParcelXml ([System.IO.File]::ReadAllText((Join-Path $dades 'wfsCP-exemple.xml')))) }
 
 $model = Build-PlanolModel $ests $acts $estats $unitats
-# El portal del 19 de Cadis, a la facana de baix (al carrer, a 1 m).
+# El portal del 19 de Cadis (nomes per a l'adreca del Cadastre de la fitxa).
 $portals = @{ '2295827DF2729E' = @([pscustomobject]@{ Numero = '19'; Via = 'CL CADIS'; X = 421960.0; Y = 4579479.0 }) }
 $mapa = ConvertTo-PlanolDadesMapa $model $geos $portals
 $meta = [pscustomobject]@{ BaseActivitats = '2026-10-05 ACTIVITATS.xls'; BaseEstabliments = '2026-10-05 ESTABLIMENTS.xls'

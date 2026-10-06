@@ -213,17 +213,18 @@ function Invoke-PlanolMain {
     $geos = $fetP.Resultat
     $cancelP = $fetP.Cancelat
     if ($cancelU -or $cancelP) { $avisos += "Has cancel" + [char]0x00B7 + "lat les consultes al Cadastre: algunes parcel" + [char]0x00B7 + "les surten com un punt. Torna-ho a generar per completar-les (el que ja s'ha demanat queda desat)." }
-    # 4b. ELS PORTALS (les entrades): els mateixos que fa servir Coordenades i la
-    # mateixa memoria cau (portals.json), o sigui que el que ja s'ha demanat alli
-    # no es torna a demanar.
+    # 4b. ELS PORTALS: nomes per dir a la fitxa l'adreca del Cadastre (l'ID va a
+    # la coordenada de l'Excel d'activitats). Els mateixos que fa servir
+    # Coordenades i la mateixa memoria cau (portals.json): el que ja s'ha demanat
+    # alli no es torna a demanar.
     $fetE = $null
     if (-not ($cancelU -or $cancelP)) {
-        $fetE = _PlanolAmbProgres $rcP ("Entrades dels establiments (" + $rcP.Count + " parcel" + [char]0x00B7 + "les)...") {
+        $fetE = _PlanolAmbProgres $rcP ("Adreces al Cadastre (" + $rcP.Count + " parcel" + [char]0x00B7 + "les)...") {
             param($l, $p) Get-PortalsPerParcelles $l $p
         }
     }
     $portals = if ($null -ne $fetE) { $fetE.Resultat } else { @{} }
-    if ($null -ne $fetE -and $fetE.Cancelat) { $avisos += "Has cancel" + [char]0x00B7 + "lat la cerca de les entrades: on no s'ha arribat, l'ID GIA surt al centre de la parcel" + [char]0x00B7 + "la." }
+    if ($null -ne $fetE -and $fetE.Cancelat) { $avisos += "Has cancel" + [char]0x00B7 + "lat la cerca de les adreces al Cadastre: on no s'ha arribat, la fitxa no les diu." }
     $senseGeo = @($rcP | Where-Object { -not $geos.ContainsKey($_) -or @($geos[$_]).Count -eq 0 }).Count
     if ($senseGeo -gt 0 -and -not ($cancelU -or $cancelP)) {
         $avisos += "$senseGeo parcel" + [char]0x00B7 + "les sense dibuix del Cadastre: surten com un punt."
@@ -231,9 +232,15 @@ function Invoke-PlanolMain {
 
     # 5. El mapa.
     $dades = ConvertTo-PlanolDadesMapa $model $geos $portals
-    $nVermells = @(@($dades) | ForEach-Object { @($_.e) } | Where-Object { $_.t -eq 'a' -and $_.x -eq 0 } | ForEach-Object { $_.g } | Sort-Object -Unique).Count
-    if ($nVermells -gt 0) {
-        $avisos += "$nVermells activitats sense l'entrada al Cadastre (el n" + [char]0x00FA + "mero no hi " + [char]0x00E9 + "s, o el portal cau fora de la parcel" + [char]0x00B7 + "la): l'ID GIA surt en vermell al centre."
+    # L'ID va a la coordenada UTM de l'Excel d'activitats (la que corregeix
+    # Coordenades); en vermell, les que no hi caben (x 0) o no en tenen (x 3).
+    $nFora = @(@($dades) | ForEach-Object { @($_.e) } | Where-Object { $_.t -eq 'a' -and $_.x -eq 0 } | ForEach-Object { $_.g } | Sort-Object -Unique).Count
+    $nSense = @(@($dades) | ForEach-Object { @($_.e) } | Where-Object { $_.t -eq 'a' -and $_.x -eq 3 } | ForEach-Object { $_.g } | Sort-Object -Unique).Count
+    if ($nFora -gt 0) {
+        $avisos += "$nFora activitats amb la coordenada UTM fora de la seva parcel" + [char]0x00B7 + "la: l'ID GIA surt en vermell al centre (es pot corregir amb l'eina Coordenades)."
+    }
+    if ($nSense -gt 0) {
+        $avisos += "$nSense activitats sense coordenada UTM a l'Excel d'activitats: l'ID GIA surt en vermell al centre."
     }
     if (-not $Script:PlanolTeCcae) {
         $avisos += "L'Excel d'activitats no t" + [char]0x00E9 + " la columna 'CCAE Codi': el filtre d'allotjaments tur" + [char]0x00ED + "stics no amaga res."

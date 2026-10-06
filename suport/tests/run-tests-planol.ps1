@@ -252,11 +252,16 @@ AssertEq "$($jN.Toquen)|$(@($jN.Polys).Count)" 'False|2' 'separades: no es toque
 $jH = Join-Poligons @($ambForat, (& $quad 20 0 30 20))
 AssertEq "$($jH.Unit)|$(@(@($jH.Polys)[0].Anells).Count)" 'True|2' 'el pati d una es conserva en juntar-la'
 
-Write-Host "`n--- L'ID GIA a l'ENTRADA de l'establiment ---"
-# Una parcel.la de 40 x 20 al carrer Progres (la facana, a baix): el 1340 al 73
-# i el 288 al 75, com a la foto de l'usuari.
-$eP = { param($g, $num, $estat = 'groc', $carrer = 'Progres') [pscustomobject]@{ Tipus = 'activitat'; Gia = $g; Nom = ''; Activitat = ''; Sub = ''; SubFont = ''; Estat = $estat; EstatText = ''; Precinte = $false; MarcatBuit = $false; SenseEstabliment = $false; NoBase = $false; NInformes = 0; Adreca = ''; Rc = ''; Carrer = $carrer; Numero = $num; Turistic = $false; Classificacio = 'III' } }
-$pcP = [pscustomobject]@{ Clau = '3678311DF2737H'; Rc = '3678311DF2737H'; X = 422020.0; Y = 4579010.0; Entrades = @((& $eP '1340' '73'), (& $eP '288' '75' 'blau'), (& $eP '999' '81')) }
+Write-Host "`n--- L'ID GIA a la COORDENADA UTM de l'Excel d'activitats ---"
+# L'usuari (octubre 2026): "dibuixa les etiquetes amb el ID GIA segons les
+# coordenades UTM de la base de dades d'activitats". Una parcel.la de 40 x 20
+# al carrer Progres (la facana, a baix).
+$eP = { param($g, $num, $estat = 'groc', $ax = $null, $ay = $null) [pscustomobject]@{ Tipus = 'activitat'; Gia = $g; Nom = ''; Activitat = ''; Sub = ''; SubFont = ''; Estat = $estat; EstatText = ''; Precinte = $false; MarcatBuit = $false; SenseEstabliment = $false; NoBase = $false; NInformes = 0; Adreca = ''; Rc = ''; Carrer = 'Progres'; Numero = $num; Turistic = $false; Classificacio = 'III'; ActX = $ax; ActY = $ay } }
+$pcP = [pscustomobject]@{ Clau = '3678311DF2737H'; Rc = '3678311DF2737H'; X = 422020.0; Y = 4579010.0; Entrades = @(
+    (& $eP '1340' '73' 'groc' 422008.0 4579005.0),       # dins
+    (& $eP '288' '75' 'blau' 422030.0 4578999.0),        # 1 m al carrer: a dins
+    (& $eP '999' '81' 'groc' 423000.0 4580000.0),        # lluny: vermell
+    (& $eP '777' '73' 'groc')) }                         # sense coordenada: vermell
 $geoP = @{ '3678311DF2737H' = @((& $quad 422000 4579000 422040 4579020)) }
 $portP = @{ '3678311DF2737H' = @(
     [pscustomobject]@{ Numero = '73'; Via = 'CL PROGRES'; X = 422008.0; Y = 4578999.5 },
@@ -264,36 +269,49 @@ $portP = @{ '3678311DF2737H' = @(
 $mP = @(ConvertTo-PlanolDadesMapa ([pscustomobject]@{ Parceles = @($pcP) }) $geoP $portP)[0]
 $etq = @($mP.l)
 $e1340 = @($etq | Where-Object { @($_.g) -contains '1340' })[0]; $e288 = @($etq | Where-Object { @($_.g) -contains '288' })[0]
-$ll73 = Convert-UtmToLatLon 422008.0 (4579000.0 + $Script:PlanolEntradaMargeM) 31 $true
-AssertNear ([double]$e1340.c[0]) $ll73.Lat 0.0000005 'el 1340, a l entrada del 73 (lat)'
-AssertNear ([double]$e1340.c[1]) $ll73.Lon 0.0000005 'el 1340, a l entrada del 73 (lon)'
-AssertEq "$($e1340.d)|$($e1340.v)|$(@($e1340.g) -join ',')" 't|0|1340' 'una etiqueta per al 1340, cap a dins, no vermella'
-Assert ([double]$e288.c[1] -gt [double]$e1340.c[1]) 'el 288, a la seva entrada (el 75, mes a l est)'
+$ll1340 = Convert-UtmToLatLon 422008.0 4579005.0 31 $true
+AssertNear ([double]$e1340.c[0]) $ll1340.Lat 0.0000005 'el 1340, a la seva coordenada (lat)'
+AssertNear ([double]$e1340.c[1]) $ll1340.Lon 0.0000005 'el 1340, a la seva coordenada (lon)'
+AssertEq "$($e1340.v)|$(@($e1340.g) -join ',')" '0|1340' 'una etiqueta per al 1340, no vermella'
+$ll288 = Convert-UtmToLatLon 422030.0 (4579000.0 + $Script:PlanolEntradaMargeM) 31 $true
+AssertNear ([double]$e288.c[0]) $ll288.Lat 0.0000005 'el 288 (1 m al carrer) es posa DINS de la parcel.la'
+AssertEq $e288.d 't' '...creixent cap a dins'
 $eV = @($etq | Where-Object { $_.v -eq 1 })
-AssertEq "$($eV.Count)|$(@($eV[0].g) -join ',')" '1|999' 'el 81 no es al Cadastre: el 999 en vermell'
+AssertEq "$($eV.Count)|$(@($eV[0].g) -join ',')" '1|999,777' 'la coordenada lluny i la que no en te: en vermell'
 AssertNear ([double]$eV[0].c[0]) ([double]$mP.c[0]) 0.000001 '...al centre de la parcel.la'
-AssertEq (@($mP.e | ForEach-Object { "$($_.g):$($_.x)" }) -join ' ') '1340:1 288:1 999:0' 'cada activitat diu si se n ha trobat l entrada'
+AssertEq (@($mP.e | ForEach-Object { "$($_.g):$($_.x)" }) -join ' ') '1340:1 288:1 999:0 777:3' 'cada activitat diu on ha anat (1 coordenada, 0 fora, 3 sense)'
 AssertEq (@($mP.e)[0].cl) 'III' 'la classificacio (annex) arriba al mapa'
 # Les DUES adreces (l'usuari: "no te per que ser exactament la mateixa"): la del
-# portal trobat al Cadastre, per entrada, i totes les de la parcel.la.
-AssertEq (@($mP.e | ForEach-Object { "$($_.g)=$($_.ca)" }) -join ' | ') '1340=CL PROGRES 73 | 288=CL PROGRES 75 | 999=' 'cada entrada porta l adreca del seu portal al Cadastre (cap si no es troba)'
+# Cadastre (el portal amb el numero de l'establiment) i les de la parcel.la.
+AssertEq (@($mP.e | ForEach-Object { "$($_.g)=$($_.ca)" }) -join ' | ') '1340=CL PROGRES 73 | 288=CL PROGRES 75 | 999= | 777=CL PROGRES 73' 'cada entrada porta l adreca del Cadastre amb el seu numero (cap si no hi es)'
 AssertEq (@($mP.pa) -join ' / ') 'CL PROGRES 73 / CL PROGRES 75' 'la parcel.la porta les seves adreces del Cadastre'
 AssertEq (@(Get-AdrecesCadastre @{ 'R' = @([pscustomobject]@{ Via = 'CL A'; Numero = '11' }, [pscustomobject]@{ Via = 'CL A'; Numero = '9' }, [pscustomobject]@{ Via = 'CL A'; Numero = '9' }) } @('R')) -join ' / ') 'CL A 9 / CL A 11' 'les adreces del Cadastre, sense repetir i el 9 abans que l 11'
 AssertEq @(Get-AdrecesCadastre $null @('R')).Count 0 'sense portals, cap adreca del Cadastre'
-# La MATEIXA porta: dues activitats al 73, una sola etiqueta.
-$pcM = [pscustomobject]@{ Clau = 'M'; Rc = '3678311DF2737H'; X = 0.0; Y = 0.0; Entrades = @((& $eP '1340' '73'), (& $eP '50' '73' 'verd')) }
+# El MATEIX punt (abans de repassar-les, les d'una parcel.la solen coincidir): una etiqueta.
+$pcM = [pscustomobject]@{ Clau = 'M'; Rc = '3678311DF2737H'; X = 0.0; Y = 0.0; Entrades = @((& $eP '1340' '73' 'groc' 422008.0 4579005.0), (& $eP '50' '73' 'verd' 422009.0 4579006.0), (& $eP '60' '73' 'verd' 422030.0 4579010.0)) }
 $mM = @(ConvertTo-PlanolDadesMapa ([pscustomobject]@{ Parceles = @($pcM) }) $geoP $portP)[0]
-AssertEq "$(@($mM.l).Count)|$(@(@($mM.l)[0].g) -join ',')" '1|1340,50' 'dues activitats a la mateixa porta: una etiqueta amb totes dues'
-# La MATEIXA activitat amb dos establiments gairebe tocant-se (8 m): una etiqueta.
-$portA = @{ '3678311DF2737H' = @(
-    [pscustomobject]@{ Numero = '73'; Via = 'CL PROGRES'; X = 422008.0; Y = 4578999.5 },
-    [pscustomobject]@{ Numero = '75'; Via = 'CL PROGRES'; X = 422016.0; Y = 4578999.5 }) }
-$pcA = [pscustomobject]@{ Clau = 'A'; Rc = '3678311DF2737H'; X = 0.0; Y = 0.0; Entrades = @((& $eP '700' '73'), (& $eP '700' '75')) }
-$mA = @(ConvertTo-PlanolDadesMapa ([pscustomobject]@{ Parceles = @($pcA) }) $geoP $portA)[0]
-AssertEq "$(@($mA.l).Count)|$(@(@($mA.l)[0].g) -join ',')" '1|700' 'la mateixa activitat a dues entrades a 8 m: una sola etiqueta'
-# Sense els portals d'aquella parcel.la (no s'han pogut demanar): al centre i SENSE vermell.
-$mS = @(ConvertTo-PlanolDadesMapa ([pscustomobject]@{ Parceles = @($pcP) }) $geoP @{})[0]
-AssertEq "$(@($mS.l).Count)|$(@($mS.l)[0].v)|$(@($mS.e)[0].x)" '1|0|-1' 'sense portals: al centre, sense vermell (no se sap)'
+AssertEq (@($mM.l | ForEach-Object { @($_.g) -join ',' }) -join ' | ') '1340,50 | 60' 'dues al mateix punt, una etiqueta; la de 20 m enlla, la seva'
+# Una activitat amb DOS establiments (dues parcel.les) i UNA coordenada: l'ID a
+# la parcel.la on cau i, a l'altra, al centre SENSE vermell.
+$pcD1 = [pscustomobject]@{ Clau = '4444444DF4444A'; Rc = '4444444DF4444A'; X = 0.0; Y = 0.0; Entrades = @((& $eP '700' '1' 'groc' 422105.0 4579005.0), (& $eP '701' '1' 'blau' 422105.0 4579005.0)) }
+$pcD2 = [pscustomobject]@{ Clau = '5555555DF5555A'; Rc = '5555555DF5555A'; X = 0.0; Y = 0.0; Entrades = @((& $eP '700' '9' 'groc' 422105.0 4579005.0)) }
+$geoD = @{ '4444444DF4444A' = @((& $quad 422100 4579000 422110 4579010)); '5555555DF5555A' = @((& $quad 422200 4579000 422210 4579010)) }
+$mD = @(ConvertTo-PlanolDadesMapa ([pscustomobject]@{ Parceles = @($pcD1, $pcD2) }) $geoD @{})
+$mD2 = @($mD | Where-Object { $_.rc -eq '5555555DF5555A' })[0]
+AssertEq (@($mD | ForEach-Object { $r = $_.rc; @($_.e) | ForEach-Object { "$($r.Substring(0,1))$($_.g):$($_.x)" } }) -join ' ') '4700:1 4701:1 5700:2' 'la coordenada mana: a la 4444 l ID, a la 5555 "es a l altre establiment"'
+AssertEq "$(@($mD2.l).Count)|$(@($mD2.l)[0].v)|$(@($mD2.l)[0].d)" '1|0|c' '...i alli al centre, sense vermell'
+# Una coordenada DINS de la parcel.la d'una ALTRA activitat (encara que sigui a
+# 2 m de la seva): esta malament, en vermell.
+$pcF1 = [pscustomobject]@{ Clau = '6666666DF6666A'; Rc = '6666666DF6666A'; X = 0.0; Y = 0.0; Entrades = @((& $eP '800' '1' 'groc' 422312.0 4579005.0)) }
+$pcF2 = [pscustomobject]@{ Clau = '7777777DF7777A'; Rc = '7777777DF7777A'; X = 0.0; Y = 0.0; Entrades = @((& $eP '801' '3' 'groc' 422315.0 4579005.0)) }
+$geoF = @{ '6666666DF6666A' = @((& $quad 422300 4579000 422310 4579010)); '7777777DF7777A' = @((& $quad 422310 4579000 422320 4579010)) }
+$mF = @(ConvertTo-PlanolDadesMapa ([pscustomobject]@{ Parceles = @($pcF1, $pcF2) }) $geoF @{})
+AssertEq (@($mF | ForEach-Object { @($_.e) | ForEach-Object { "$($_.g):$($_.x)" } }) -join ' ') '800:0 801:1' 'dins de la parcel.la del 801, el 800 va en vermell (no s arrossega a la seva)'
+# Sense dibuix (un punt): no se sap, al punt i sense vermell.
+$mS = @(ConvertTo-PlanolDadesMapa ([pscustomobject]@{ Parceles = @($pcP) }) @{} $portP)[0]
+AssertEq "$(@($mS.l).Count)|$(@($mS.l)[0].v)|$(@($mS.e)[0].x)" '1|0|-1' 'sense dibuix de la parcel.la: al punt, sense vermell (no se sap)'
+AssertEq (@(Get-CapsaPoligons @((& $quad 1 2 3 4))) -join ',') '1,2,3,4' 'la capsa d uns poligons'
+AssertEq (Get-CapsaPoligons @()) $null 'sense poligons, cap capsa'
 # Juntar: dues parcel.les que es toquen amb les MATEIXES activitats.
 $pcJ1 = [pscustomobject]@{ Clau = '1111111DF1111A'; Rc = '1111111DF1111A'; X = 0.0; Y = 0.0; Entrades = @((& $eP '500' '1')) }
 $pcJ2 = [pscustomobject]@{ Clau = '2222222DF2222A'; Rc = '2222222DF2222A'; X = 0.0; Y = 0.0; Entrades = @((& $eP '500' '3')) }
