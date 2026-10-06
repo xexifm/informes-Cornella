@@ -16,12 +16,12 @@ $env:COORDENADES_TEST = '1'
 if ([string]::IsNullOrEmpty($env:LOCALAPPDATA)) { $env:LOCALAPPDATA = [System.IO.Path]::GetTempPath() }
 . (Join-Path (Split-Path -Parent $PSScriptRoot) (Join-Path '..' (Join-Path 'rutes' 'Coordenades.ps1')))
 
-function _Item($id, [double]$x, [double]$y, [double]$xf, [double]$yf, $prec, $adreca, $act, $tit = '') {
+function _Item($id, [double]$x, [double]$y, [double]$xf, [double]$yf, $prec, $adreca, $act, $tit = '', $adt = '') {
     $a = Convert-UtmToLatLon $x $y 31 $true
     $b = Convert-UtmToLatLon $xf $yf 31 $true
     return [pscustomobject]@{
         Id = [string]$id; Zona = (Get-ZonaDeCoord $x $y); Rc = '4091106DF2749A0001XX'
-        Adreca = $adreca; Activitat = $act; Titular = $tit
+        Adreca = $adreca; Activitat = $act; Titular = $tit; AdrecaTitular = $adt
         XExcel = $x; YExcel = $y; LatExcel = $a.Lat; LonExcel = $a.Lon
         XFacana = $xf; YFacana = $yf; LatFacana = $b.Lat; LonFacana = $b.Lon
         Precisio = $prec
@@ -31,7 +31,7 @@ function _Item($id, [double]$x, [double]$y, [double]$xf, [double]$yf, $prec, $ad
 # Quatre apilades al mateix punt (una de cada color) i dues en un altre lloc.
 $x0 = 421968.09; $y0 = 4578100.5
 $items = @(
-    (_Item 101 $x0 $y0 ($x0 + 40) ($y0 + 25) 'facana'         'C/ Cadis 19'                 'BAR' 'EL RACO DE CADIS SL')
+    (_Item 101 $x0 $y0 ($x0 + 40) ($y0 + 25) 'facana'         'C/ Cadis 19, Esc. 1, Pl. 2, Pt. 3' 'BAR' 'EL RACO DE CADIS SL' 'AV PAISOS CATALANS 5, Pl. 1')
     (_Item 102 $x0 $y0 ($x0 - 35) ($y0 + 10) 'facana-dubtosa' 'C/ Cadis 1'                  ('CAF' + [char]0x00C8))
     (_Item 103 $x0 $y0 ($x0 + 15) ($y0 - 45) 'facana-aprox'   'C/ Huelva 3'                 'FORN')
     (_Item 104 $x0 $y0 $x0 $y0                'cadastre'       'C/ Falsa 1 </script><b>'     'BOTIGA')

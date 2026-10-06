@@ -320,6 +320,14 @@ pendents de revisar (Configuració, Normativa, Revisió, Ruta).
     amb l'ID, el titular, l'activitat, l'adreça, d'on surt, els metres, si és
     validat, l'avís, i —si és mogut i validat— què faria un clic. Mirar-lo no
     el toca. Es refà a `refrescaItem`.
+  - **L'adreça sencera** (*«posa'm tota l'adreça, no només carrer i número»*):
+    la de l'activitat porta darrere `Emp. Bloc/Escala/Pis/Porta`, i la del
+    titular surt de `Raó soc. Tipus via/Carrer/Número/Escala/Pis/Porta`
+    (`Format-AdrecaSencera`, etiquetes del Plànol: Bl., Esc., Pl., Pt.; camp
+    `adt` al mapa). Columna que no hi sigui, buida. **Compte**: amb aquestes
+    columnes hi ha molts «Raó soc. …» que no són el nom; `Get-ColumnaTitular` les
+    descarta (`$Script:CoordNoEsTitular`) i, sense «Rao social» exacte, va
+    primer a la 10 (la d'`Activitats.ps1`).
   - **El titular** (l'usuari: *«vull veure el titular de l'activitat a l'eina
     Coordenades»*): la «Raó social» de la fulla Estès (`Get-ColumnaTitular`, per
     nom amb respatller a la columna 10, la que fa servir `Activitats.ps1`). Surt a

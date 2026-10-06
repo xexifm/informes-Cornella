@@ -221,7 +221,7 @@ AssertEq (Get-ClauCoord 421968 4579505) '421968.00|4579505.00' 'sempre amb 2 dec
 
 # Tres activitats al mateix punt, dues a un altre, i una de sola.
 $recs = @(
-    [pscustomobject]@{ Id='1'; Rc='2295827DF2729E0011RQ'; Carrer='CADIS';  Numero='19'; UtmX=421968.09; UtmY=4579505.55; Adreca='C CADIS 19';  Activitat='A'; Titular='BAR EL RACO SL' }
+    [pscustomobject]@{ Id='1'; Rc='2295827DF2729E0011RQ'; Carrer='CADIS';  Numero='19'; UtmX=421968.09; UtmY=4579505.55; Adreca='C CADIS 19';  Activitat='A'; Titular='BAR EL RACO SL'; AdrecaTitular='AV PAISOS CATALANS 5, Esc. B, Pl. 2, Pt. 1' }
     [pscustomobject]@{ Id='2'; Rc='2295827DF2729E0008RQ'; Carrer='HUELVA'; Numero='6';  UtmX=421968.09; UtmY=4579505.55; Adreca='C HUELVA 6';  Activitat='B' }
     [pscustomobject]@{ Id='3'; Rc='2295827DF2729E0003XL'; Carrer='HUELVA'; Numero='16'; UtmX=421968.09; UtmY=4579505.55; Adreca='C HUELVA 16'; Activitat='C' }
     [pscustomobject]@{ Id='4'; Rc='3085213DF2738E0116ZL'; Carrer='FERROCARRILS CATALANS'; Numero='177'; UtmX=422811.94; UtmY=4578281.76; Adreca='PG FC 177'; Activitat='D' }
@@ -261,6 +261,16 @@ AssertEq (Get-ColumnaTitular @('ID Activitat', ('Ra' + [char]0x00F3 + ' social')
 AssertEq (Get-ColumnaTitular @('ID', 'Rao soc. mail', 'Rao soc. Mobil', 'Rao soc. nom')) 4 'sense el nom exacte: la que no es el correu ni el mobil'
 AssertEq (Get-ColumnaTitular @('a','b','c','d','e','f','g','h','i','Rao')) 10 'si no, la 10 (la de sempre a Activitats.ps1) si parla de rao'
 AssertEq (Get-ColumnaTitular @('a','b','c')) 0 'cap: 0 (el mapa surt sense titular)'
+# L'adreca del titular porta columnes "Rao soc. ...": cap no es el nom.
+$capRao = @('ID Activitat', 'Rao soc. Tipus via', 'Rao soc. Carrer', ('Ra' + [char]0x00F3 + ' soc. N' + [char]0x00FA + 'mero'), 'Rao soc. Escala', 'Rao soc. Pis', 'Rao soc. Porta', 'h', 'i', ('Ra' + [char]0x00F3 + ' soc. Nom'))
+AssertEq (Get-ColumnaTitular $capRao) 10 'amb l adreca del titular al davant: la 10 (el nom), no "Rao soc. Tipus via"'
+AssertEq (Get-ColumnaTitular @('ID', 'Rao soc. Carrer', 'Rao soc. Nom')) 3 'i sense la 10, la que no es adreca'
+
+Write-Host "`n--- Format-AdrecaSencera (tota l'adreca) ---"
+AssertEq (Format-AdrecaSencera 'C CADIS 19' '' '1' '2' '3') 'C CADIS 19, Esc. 1, Pl. 2, Pt. 3' 'carrer i numero, i escala, pis i porta'
+AssertEq (Format-AdrecaSencera 'C CADIS 19' 'B' '' '' '') 'C CADIS 19, Bl. B' 'amb el bloc'
+AssertEq (Format-AdrecaSencera 'C CADIS 19' '' '' '' '') 'C CADIS 19' 'sense res mes, com abans'
+AssertEq (Format-AdrecaSencera '' '' '' 'BX' '') 'Pl. BX' 'sense carrer, el que hi hagi'
 # Sense portals, el punt verd ha de coincidir EXACTAMENT amb el vermell: aixi
 # al mapa surt a sobre i l'usuari el pot arrossegar on toqui.
 $itSense = New-ItemCoordenades $recs[5] @()
@@ -286,6 +296,7 @@ $html = Build-CoordenadesHtml $items 'Base de dades: 2026-08-18 ACTIVITATS.xls' 
 Assert ($html -match 'leaflet')                 'inclou Leaflet'
 Assert ($html -match '"id":"1"')                'inclou l ID de l activitat'
 Assert ($html -match '"titular":"BAR EL RACO SL"') 'inclou el titular'
+Assert ($html -match '"adt":"AV PAISOS CATALANS 5, Esc. B, Pl. 2, Pt. 1"') 'i l adreca del titular'
 Assert ($html -match '421968\.09')              'inclou la coordenada de l Excel'
 Assert ($html -match '421982\.9')               'inclou la coordenada de facana'
 Assert ($html -match 'baixaExcel')              'inclou el boto de baixar l Excel'

@@ -673,7 +673,8 @@ function popupHtml(i) {
   return '<div class="pop">' +
     '<h3>ID ' + escHtml(it.id) + (it.zona ? ' &middot; zona ' + escHtml(it.zona) : '') + '</h3>' +
     '<div>' + escHtml(it.activitat || '(activitat no especificada)') + '</div>' +
-    (it.titular ? '<div class="tit">Titular: <b>' + escHtml(it.titular) + '</b></div>' : '') +
+    (it.titular || it.adt ? '<div class="tit">Titular: <b>' + escHtml(it.titular || '(sense nom)') + '</b>' +
+      (it.adt ? '<br>Adreça del titular: ' + escHtml(it.adt) : '') + '</div>' : '') +
     '<div>' + escHtml(it.adreca || '(sense adreça)') + '</div>' +
     '<div class="rc">' + escHtml(it.rc) + '</div>' +
     '<table>' +
@@ -714,6 +715,7 @@ function targetaHtml(i) {
   var d = distanciaUtm(it.xe, it.ye, utm[0], utm[1]);
   var h = '<b>ID ' + escHtml(it.id) + '</b>' + (it.zona ? ' &middot; zona ' + escHtml(it.zona) : '');
   if (it.titular) { h += '<br>' + escHtml(it.titular); }
+  if (it.adt) { h += '<br><span class="tt-gris">Titular a: ' + escHtml(it.adt) + '</span>'; }
   if (it.activitat) { h += '<br><span class="tt-gris">' + escHtml(it.activitat) + '</span>'; }
   h += '<br>' + escHtml(it.adreca || '(sense adreça)');
   h += '<br><span class="tt-gris">' + escHtml(textOrigen(e.origen)) + ' &middot; ' + d.toFixed(1) + ' m &middot; ' +

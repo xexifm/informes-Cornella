@@ -263,6 +263,7 @@ function New-ItemCoordenades($record, $portals) {
         Adreca    = [string]$record.Adreca
         Activitat = [string]$record.Activitat
         Titular   = [string]$record.Titular
+        AdrecaTitular = [string]$record.AdrecaTitular
         XExcel    = $x
         YExcel    = $y
         LatExcel  = $llExcel.Lat
@@ -320,6 +321,7 @@ function Build-CoordenadesHtml($items, [string]$dbLabel, [string]$abast, [string
             adreca    = [string]$_.Adreca
             activitat = [string]$_.Activitat
             titular   = [string]$_.Titular
+            adt       = [string]$_.AdrecaTitular
             xe        = [double]$_.XExcel
             ye        = [double]$_.YExcel
             late      = [double]$_.LatExcel
@@ -383,26 +385,47 @@ function Build-CoordenadesHtml($items, [string]$dbLabel, [string]$abast, [string
 # ============================================================================
 
 # EL TITULAR (octubre 2026, l'usuari: "vull veure el titular de l'activitat a
-# l'eina Coordenades"): la "Rao social" de la fulla Estes, la mateixa que fa
-# servir Activitats.ps1 (alli, columna 10 fixa amb la capcalera com a pista).
-# Aqui per NOM, com la resta de columnes d'aquesta eina: primer el nom exacte;
-# si no, la primera que comenci per "rao soc" i no sigui el correu, el mobil o
-# el telefon; si tampoc, la 10 si la seva capcalera parla de "rao". 0 si res.
-# PURA.
+# l'eina Coordenades"): la raó social de la fulla Estes, la mateixa que fa
+# servir Activitats.ps1 (alli, la columna 10 fixa amb "Rao social" de pista).
+# Hi ha MOLTES columnes "Rao soc. ..." (el correu, el mobil, i l'adreca del
+# titular: "Rao soc. Carrer", "Rao soc. Numero"...): cap d'aquestes no es el
+# nom. Per ordre: el nom exacte "Rao social"; la 10 si la capcalera parla de
+# "rao" i no es cap d'aquelles; la primera "rao soc..." que no ho sigui. 0 si
+# res. PURA.
+$Script:CoordNoEsTitular = 'mail|mobil|telef|fax|nif|cif|dni|via|carrer|numero|escala|pis|porta|bloc|lletra|postal|poblacio|municipi|provincia|\bcp\b'
 function Get-ColumnaTitular($headers) {
     $c = Find-HeaderColumn $headers 'Rao social'
     if ($c -gt 0) { return $c }
     $arr = @($headers)
+    if ($arr.Count -ge 10) {
+        $n10 = _NormalitzaText $arr[9]
+        if ($n10 -match 'rao' -and $n10 -notmatch $Script:CoordNoEsTitular) { return 10 }
+    }
     for ($i = 0; $i -lt $arr.Count; $i++) {
         $n = _NormalitzaText $arr[$i]
-        if ($n -match '^rao\W*soc' -and $n -notmatch 'mail|mobil|telef|fax|nif|cif|dni') { return $i + 1 }
+        if ($n -match '^rao\W*soc' -and $n -notmatch $Script:CoordNoEsTitular) { return $i + 1 }
     }
-    if ($arr.Count -ge 10 -and (_NormalitzaText $arr[9]) -match 'rao') { return 10 }
     return 0
 }
 
+# L'ADRECA SENCERA (octubre 2026, l'usuari: "posa'm tota l'adreca, no nomes
+# carrer i numero"): la via i el numero (Format-EmpAddress) i, darrere, el
+# bloc, l'escala, el pis i la porta, amb les etiquetes del Planol activitats.
+# Serveix per a la de l'activitat (Emp.) i per a la del titular (Rao soc.).
+# PURA.
+function Format-AdrecaSencera([string]$base, [string]$bloc, [string]$escala, [string]$pis, [string]$porta) {
+    $parts = @()
+    if ($base.Trim() -ne '') { $parts += $base.Trim() }
+    foreach ($p in @(@('Bl.', $bloc), @('Esc.', $escala), @('Pl.', $pis), @('Pt.', $porta))) {
+        $v = ([string]$p[1]).Trim()
+        if ($v -ne '') { $parts += ($p[0] + ' ' + $v) }
+    }
+    return ($parts -join ', ')
+}
+
 # Llegeix la fulla "Estes" i retorna un registre per activitat amb tot el que
-# necessitem: { Id; Rc; Adreca; Carrer; Numero; Activitat; Titular; UtmX; UtmY }.
+# necessitem: { Id; Rc; Adreca (sencera); Carrer; Numero; Activitat; Titular;
+# AdrecaTitular; UtmX; UtmY }.
 # Les activitats SENSE coordenades s'ometen (no es poden situar al mapa) i es
 # compten a part.
 
@@ -427,6 +450,12 @@ function Read-CoordenadesFromExcel($excelFile) {
         $colAct  = Find-HeaderColumn $headers 'Activitat principal'
         $colNom  = Find-HeaderColumn $headers 'Nom comercial activitat'
         $colTit  = Get-ColumnaTitular $headers
+        # La resta de l'adreca de l'activitat, i la del titular (columnes que,
+        # si no hi son, surten buides: el lector de cel.la torna '').
+        $colEmp = @{}
+        foreach ($k in @('Bloc', 'Escala', 'Pis', 'Porta')) { $colEmp[$k] = Find-HeaderColumn $headers ('Emp. ' + $k) }
+        $colRao = @{}
+        foreach ($k in @('Tipus via', 'Carrer', 'Numero', 'Escala', 'Pis', 'Porta')) { $colRao[$k] = Find-HeaderColumn $headers ('Rao soc. ' + $k) }
 
         if ($colUtmX -lt 1 -or $colUtmY -lt 1) {
             throw "La fulla 'Estes' no te les columnes 'UTM X' i 'UTM Y'."
@@ -466,11 +495,14 @@ function Read-CoordenadesFromExcel($excelFile) {
             $registres += [pscustomobject]@{
                 Id        = $id
                 Rc        = (& $get $r $colRc)
-                Adreca    = (Format-EmpAddress (& $get $r $colVia) $carrerRaw $numeroRaw (& $get $r $colLlet))
+                Adreca    = (Format-AdrecaSencera (Format-EmpAddress (& $get $r $colVia) $carrerRaw $numeroRaw (& $get $r $colLlet)) `
+                                (& $get $r $colEmp['Bloc']) (& $get $r $colEmp['Escala']) (& $get $r $colEmp['Pis']) (& $get $r $colEmp['Porta']))
                 Carrer    = $carrerRaw
                 Numero    = $numeroRaw
                 Activitat = $activitat
                 Titular   = if ($colTit -ge 1) { [string](& $get $r $colTit) } else { '' }
+                AdrecaTitular = (Format-AdrecaSencera (Format-EmpAddress (& $get $r $colRao['Tipus via']) (& $get $r $colRao['Carrer']) (& $get $r $colRao['Numero']) '') `
+                                '' (& $get $r $colRao['Escala']) (& $get $r $colRao['Pis']) (& $get $r $colRao['Porta']))
                 UtmX      = $x
                 UtmY      = $y
             }

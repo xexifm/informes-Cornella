@@ -354,7 +354,9 @@ Al mapa hi veus, de cada activitat:
     moure tu.
 
 A la llista i a la fitxa de cada punt hi surt el **titular** (la raó social), i
-el cercador també el troba.
+el cercador també el troba. L'adreça de l'activitat surt **sencera** (amb el
+bloc, l'escala, el pis i la porta) i a la fitxa hi ha també l'**adreça del
+titular**.
 
 **Per mirar un punt sense tocar-lo, passa-hi el ratolí per sobre**: surt una
 targeta amb l'ID, el titular, l'adreça, d'on surt el punt i si està validat. Fes

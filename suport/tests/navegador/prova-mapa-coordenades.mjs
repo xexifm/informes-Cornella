@@ -95,7 +95,10 @@ try {
   seccio('El titular');
   check((await a.locator('#tbody tr').first().textContent()).includes('EL RACO DE CADIS SL'), 'a la llista, sota l\'adreça');
   await a.evaluate(() => capes[0].verd.openPopup());
-  check((await a.textContent('.leaflet-popup-content')).includes('Titular: EL RACO DE CADIS SL'), 'i a la fitxa del punt');
+  const popTit = await a.textContent('.leaflet-popup-content');
+  check(popTit.includes('Titular: EL RACO DE CADIS SL'), 'i a la fitxa del punt');
+  check(popTit.includes('Adreça del titular: AV PAISOS CATALANS 5, Pl. 1'), 'amb l\'adreça del titular');
+  check(popTit.includes('C/ Cadis 19, Esc. 1, Pl. 2, Pt. 3'), 'i l\'adreça sencera de l\'activitat (escala, pis i porta)');
   await a.evaluate(() => map.closePopup());
   await a.fill('#cerca', 'raco de cadis');
   eq(await a.evaluate(() => capes.filter((c) => c.fila.style.display !== 'none').length), 1, 'el cercador també busca pel titular');
