@@ -221,7 +221,7 @@ AssertEq (Get-ClauCoord 421968 4579505) '421968.00|4579505.00' 'sempre amb 2 dec
 
 # Tres activitats al mateix punt, dues a un altre, i una de sola.
 $recs = @(
-    [pscustomobject]@{ Id='1'; Rc='2295827DF2729E0011RQ'; Carrer='CADIS';  Numero='19'; UtmX=421968.09; UtmY=4579505.55; Adreca='C CADIS 19';  Activitat='A' }
+    [pscustomobject]@{ Id='1'; Rc='2295827DF2729E0011RQ'; Carrer='CADIS';  Numero='19'; UtmX=421968.09; UtmY=4579505.55; Adreca='C CADIS 19';  Activitat='A'; Titular='BAR EL RACO SL' }
     [pscustomobject]@{ Id='2'; Rc='2295827DF2729E0008RQ'; Carrer='HUELVA'; Numero='6';  UtmX=421968.09; UtmY=4579505.55; Adreca='C HUELVA 6';  Activitat='B' }
     [pscustomobject]@{ Id='3'; Rc='2295827DF2729E0003XL'; Carrer='HUELVA'; Numero='16'; UtmX=421968.09; UtmY=4579505.55; Adreca='C HUELVA 16'; Activitat='C' }
     [pscustomobject]@{ Id='4'; Rc='3085213DF2738E0116ZL'; Carrer='FERROCARRILS CATALANS'; Numero='177'; UtmX=422811.94; UtmY=4578281.76; Adreca='PG FC 177'; Activitat='D' }
@@ -252,6 +252,15 @@ AssertNear $it.XFacana 421982.90 0.001 'i la nova es la del portal'
 AssertNear $it.LatExcel  41.363279 0.000001 'lat de l Excel (contrastada amb la inversa de Convert-UtmToLatLon)'
 AssertNear $it.LonExcel  2.067034  0.000001 'lon de l Excel'
 Assert ($it.LatFacana -ne $it.LatExcel) 'la lat de facana es diferent de la de l Excel'
+AssertEq $it.Titular 'BAR EL RACO SL' 'porta el titular (la rao social)'
+AssertEq (New-ItemCoordenades $recs[1] @()).Titular '' 'sense titular, buit (no peta)'
+
+Write-Host "`n--- Get-ColumnaTitular (la rao social, per al mapa) ---"
+AssertEq (Get-ColumnaTitular @('ID Activitat', 'Rao social', 'Rao social mail')) 2 'pel nom exacte'
+AssertEq (Get-ColumnaTitular @('ID Activitat', ('Ra' + [char]0x00F3 + ' social'))) 2 'amb accent'
+AssertEq (Get-ColumnaTitular @('ID', 'Rao soc. mail', 'Rao soc. Mobil', 'Rao soc. nom')) 4 'sense el nom exacte: la que no es el correu ni el mobil'
+AssertEq (Get-ColumnaTitular @('a','b','c','d','e','f','g','h','i','Rao')) 10 'si no, la 10 (la de sempre a Activitats.ps1) si parla de rao'
+AssertEq (Get-ColumnaTitular @('a','b','c')) 0 'cap: 0 (el mapa surt sense titular)'
 # Sense portals, el punt verd ha de coincidir EXACTAMENT amb el vermell: aixi
 # al mapa surt a sobre i l'usuari el pot arrossegar on toqui.
 $itSense = New-ItemCoordenades $recs[5] @()
@@ -276,6 +285,7 @@ $portalsMapa = @(
 $html = Build-CoordenadesHtml $items 'Base de dades: 2026-08-18 ACTIVITATS.xls' 'F2 (apilades)' '2026-08-18 ACTIVITATS.xls' $portalsMapa
 Assert ($html -match 'leaflet')                 'inclou Leaflet'
 Assert ($html -match '"id":"1"')                'inclou l ID de l activitat'
+Assert ($html -match '"titular":"BAR EL RACO SL"') 'inclou el titular'
 Assert ($html -match '421968\.09')              'inclou la coordenada de l Excel'
 Assert ($html -match '421982\.9')               'inclou la coordenada de facana'
 Assert ($html -match 'baixaExcel')              'inclou el boto de baixar l Excel'

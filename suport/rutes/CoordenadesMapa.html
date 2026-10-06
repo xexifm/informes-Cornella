@@ -77,6 +77,9 @@
   .pop table { font-size: 12px; margin-top: 6px; }
   .pop td { border: 0; padding: 1px 6px 1px 0; }
   .pop .org { margin-top: 5px; font-size: 12px; }
+  /* El titular: al popup i, mes petit, sota l'adreca a la llista. */
+  .tit { font-size: 11px; color: #555; }
+  .pop .tit { font-size: 12px; color: #333; }
 </style>
 </head>
 <body>
@@ -90,7 +93,7 @@
   <div id="map"></div>
   <div id="side">
     <h2>Activitats</h2>
-    <input id="cerca" type="search" placeholder="Filtra per ID, adreça o zona...">
+    <input id="cerca" type="search" placeholder="Filtra per ID, adreça, titular o zona...">
     <select id="filtreEstat" title="Quines activitats es veuen, a la llista i al mapa"></select>
     <div id="llegenda"></div>
     <table>
@@ -596,6 +599,7 @@ function popupHtml(i) {
   return '<div class="pop">' +
     '<h3>ID ' + escHtml(it.id) + (it.zona ? ' &middot; zona ' + escHtml(it.zona) : '') + '</h3>' +
     '<div>' + escHtml(it.activitat || '(activitat no especificada)') + '</div>' +
+    (it.titular ? '<div class="tit">Titular: <b>' + escHtml(it.titular) + '</b></div>' : '') +
     '<div>' + escHtml(it.adreca || '(sense adreça)') + '</div>' +
     '<div class="rc">' + escHtml(it.rc) + '</div>' +
     '<table>' +
@@ -712,7 +716,7 @@ function pinta() {
       var utm = utmActual(idx);
       fila.innerHTML =
         '<td class="id">' + escHtml(it.id) + '</td>' +
-        '<td>' + escHtml(it.adreca || '—') + '</td>' +
+        '<td>' + escHtml(it.adreca || '—') + (it.titular ? '<div class="tit">' + escHtml(it.titular) + '</div>' : '') + '</td>' +
         '<td class="dist">' + distanciaUtm(it.xe, it.ye, utm[0], utm[1]).toFixed(1) + ' m</td>';
       fila.className = classeFila(idx);
       fila.addEventListener('click', function () { vesA(idx); });
@@ -793,6 +797,7 @@ function passaText(i, q) {
   var it = ITEMS[i];
   return String(it.id).toLowerCase().indexOf(q) >= 0 ||
          String(it.adreca || '').toLowerCase().indexOf(q) >= 0 ||
+         String(it.titular || '').toLowerCase().indexOf(q) >= 0 ||
          String(it.zona || '').toLowerCase() === q;
 }
 

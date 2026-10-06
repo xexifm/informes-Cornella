@@ -262,6 +262,7 @@ function New-ItemCoordenades($record, $portals) {
         Rc        = [string]$record.Rc
         Adreca    = [string]$record.Adreca
         Activitat = [string]$record.Activitat
+        Titular   = [string]$record.Titular
         XExcel    = $x
         YExcel    = $y
         LatExcel  = $llExcel.Lat
@@ -318,6 +319,7 @@ function Build-CoordenadesHtml($items, [string]$dbLabel, [string]$abast, [string
             rc        = [string]$_.Rc
             adreca    = [string]$_.Adreca
             activitat = [string]$_.Activitat
+            titular   = [string]$_.Titular
             xe        = [double]$_.XExcel
             ye        = [double]$_.YExcel
             late      = [double]$_.LatExcel
@@ -380,8 +382,27 @@ function Build-CoordenadesHtml($items, [string]$dbLabel, [string]$abast, [string
 # LECTURA D'EXCEL (COM) - nomes a Windows amb Excel; no es prova en headless.
 # ============================================================================
 
+# EL TITULAR (octubre 2026, l'usuari: "vull veure el titular de l'activitat a
+# l'eina Coordenades"): la "Rao social" de la fulla Estes, la mateixa que fa
+# servir Activitats.ps1 (alli, columna 10 fixa amb la capcalera com a pista).
+# Aqui per NOM, com la resta de columnes d'aquesta eina: primer el nom exacte;
+# si no, la primera que comenci per "rao soc" i no sigui el correu, el mobil o
+# el telefon; si tampoc, la 10 si la seva capcalera parla de "rao". 0 si res.
+# PURA.
+function Get-ColumnaTitular($headers) {
+    $c = Find-HeaderColumn $headers 'Rao social'
+    if ($c -gt 0) { return $c }
+    $arr = @($headers)
+    for ($i = 0; $i -lt $arr.Count; $i++) {
+        $n = _NormalitzaText $arr[$i]
+        if ($n -match '^rao\W*soc' -and $n -notmatch 'mail|mobil|telef|fax|nif|cif|dni') { return $i + 1 }
+    }
+    if ($arr.Count -ge 10 -and (_NormalitzaText $arr[9]) -match 'rao') { return 10 }
+    return 0
+}
+
 # Llegeix la fulla "Estes" i retorna un registre per activitat amb tot el que
-# necessitem: { Id; Rc; Adreca; Carrer; Numero; Activitat; UtmX; UtmY }.
+# necessitem: { Id; Rc; Adreca; Carrer; Numero; Activitat; Titular; UtmX; UtmY }.
 # Les activitats SENSE coordenades s'ometen (no es poden situar al mapa) i es
 # compten a part.
 
@@ -405,6 +426,7 @@ function Read-CoordenadesFromExcel($excelFile) {
         $colLlet = Find-HeaderColumn $headers 'Emp. Lletra'
         $colAct  = Find-HeaderColumn $headers 'Activitat principal'
         $colNom  = Find-HeaderColumn $headers 'Nom comercial activitat'
+        $colTit  = Get-ColumnaTitular $headers
 
         if ($colUtmX -lt 1 -or $colUtmY -lt 1) {
             throw "La fulla 'Estes' no te les columnes 'UTM X' i 'UTM Y'."
@@ -448,6 +470,7 @@ function Read-CoordenadesFromExcel($excelFile) {
                 Carrer    = $carrerRaw
                 Numero    = $numeroRaw
                 Activitat = $activitat
+                Titular   = if ($colTit -ge 1) { [string](& $get $r $colTit) } else { '' }
                 UtmX      = $x
                 UtmY      = $y
             }

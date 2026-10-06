@@ -300,6 +300,12 @@ pendents de revisar (Configuració, Normativa, Revisió, Ruta).
     torna al Cadastre: era la manera de perdre la posició sense voler).
   - **Mai `setIcon` al `dragstart`**: refà l'arrossegador de Leaflet i talla el
     drag. Per això el punt es selecciona al `dragend`.
+  - **El titular** (l'usuari: *«vull veure el titular de l'activitat a l'eina
+    Coordenades»*): la «Raó social» de la fulla Estès (`Get-ColumnaTitular`, per
+    nom amb respatller a la columna 10, la que fa servir `Activitats.ps1`). Surt a
+    la fitxa del punt, sota l'adreça a la llista, i el cercador el troba. **No va
+    a l'Excel del repàs** (no li cal a qui importa) ni surt mai de l'ordinador:
+    el mapa és a `local\geocodificacio\` i al Cadastre només hi va la refcat.
   - **El plànol del Cadastre** (WMS oficial, parcel·les i edificis) a sobre
     del fons: casella «plànol del Cadastre» a la barra (l'usuari: *«posa'm el
     plànol del cadastre a Coordenades també»*). La capa és a **`MapaFons.js`**

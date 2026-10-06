@@ -353,6 +353,9 @@ Al mapa hi veus, de cada activitat:
   - **blanc** — no s'ha trobat cap portal. Comença a sobre del vermell i l'has de
     moure tu.
 
+A la llista i a la fitxa de cada punt hi surt el **titular** (la raó social), i
+el cercador també el troba.
+
 Si vols veure les parcel·les i els edificis com al Cadastre, marca **«plànol del
 Cadastre»** a la barra de dalt: es posa a sobre del fons i es recorda per a la
 vegada següent (també al Plànol activitats).

@@ -92,6 +92,16 @@ try {
   eq(await a.evaluate(() => ITEMS[3].adreca), 'C/ Falsa 1 </script><b>',
      'un </script> a l\'adreça no trenca la pàgina');
 
+  seccio('El titular');
+  check((await a.locator('#tbody tr').first().textContent()).includes('EL RACO DE CADIS SL'), 'a la llista, sota l\'adreça');
+  await a.evaluate(() => capes[0].verd.openPopup());
+  check((await a.textContent('.leaflet-popup-content')).includes('Titular: EL RACO DE CADIS SL'), 'i a la fitxa del punt');
+  await a.evaluate(() => map.closePopup());
+  await a.fill('#cerca', 'raco de cadis');
+  eq(await a.evaluate(() => capes.filter((c) => c.fila.style.display !== 'none').length), 1, 'el cercador també busca pel titular');
+  await a.fill('#cerca', '');
+  await a.dispatchEvent('#cerca', 'input');
+
   seccio('Validar amb un clic');
   await centra(a, 0);
   let b0 = await capsaVerd(a, 0);
