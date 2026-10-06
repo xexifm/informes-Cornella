@@ -282,6 +282,10 @@ function Get-UnitatsAConsultar($establiments) {
 function Build-PlanolModel($establiments, $activitats, $estats, $unitats) {
     if ($null -eq $activitats) { $activitats = @{} }
     if ($null -eq $estats) { $estats = @{} }
+    # Un establiment es un registre, mai una llista: si n'arriba una de
+    # llistes (la crida l'havia embolcallat dues vegades, vegeu Planol.ps1), es
+    # desplega. Si no, TOTES les activitats sortien "sense establiment".
+    $establiments = @(@($establiments) | ForEach-Object { $_ } | Where-Object { $null -ne $_ })
     if ($null -eq $unitats) { $unitats = @{} }
     $parceles = [ordered]@{}
     $res = [ordered]@{ Establiments = 0; Activitats = 0; Buits = 0; SenseEstabliment = 0; NoBase = 0; MarcatsBuit = 0; SensePosicio = 0 }

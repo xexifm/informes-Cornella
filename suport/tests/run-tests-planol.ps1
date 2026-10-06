@@ -162,6 +162,21 @@ $ferro = $perClau['3085213DF2738E']
 AssertEq "$(@($ferro.Entrades)[0].Gia)|$(@($ferro.Entrades)[0].SenseEstabliment)" '2000|True' 'activitat sense establiment: amb la refcat de l Excel d activitats'
 $r = $model.Resum
 AssertEq "$($r.Establiments)|$($r.Buits)|$($r.SenseEstabliment)|$($r.NoBase)|$($r.MarcatsBuit)|$($r.SensePosicio)" '7|1|1|1|1|1' 'el resum (l activitat 11 te establiment, sense posicio: 1)'
+# LA LLISTA EMBOLCALLADA DUES VEGADES (el defecte d'octubre de 2026): la crida
+# feia @(Read-EstablimentsExcel ...), que ja la torna amb coma, i el model rebia
+# UN element que les contenia totes. Totes les activitats sortien "sense
+# establiment" i cap local buit. Ara el model la desplega.
+$modelE = Build-PlanolModel (,@($ests)) $acts $estats $unitats
+$rE = $modelE.Resum
+AssertEq "$($rE.Establiments)|$($rE.Buits)|$($rE.SenseEstabliment)" "$($r.Establiments)|$($r.Buits)|$($r.SenseEstabliment)" 'Build-PlanolModel: amb la llista embolcallada, el mateix resultat (no "tot sense establiment")'
+# I el lector de debo, amb un Read-FullaEstesa fals, tal com el crida l'eina.
+$capsE = & {
+    function Read-FullaEstesa($f, [scriptblock]$cos, [switch]$Desa, [string]$Fulla = '') { & $cos ([pscustomobject]@{ Data = (_Mat $filesE); Rows = $filesE.Count; Headers = $capE }) }
+    $e1 = Read-EstablimentsExcel 'x.xls'
+    @($e1).Count; [string](@($e1)[0].GetType().Name)
+}
+AssertEq "$($capsE[0])|$($capsE[1])" "$(@($ests).Count)|PSCustomObject" 'Read-EstablimentsExcel: una llista d establiments, cada un un registre'
+
 # L'ordre per ID GIA es NUMERIC: 9 abans que 10, i no '10' abans que '9'.
 $ord = Build-PlanolModel @(
     [pscustomobject]@{ IdEst = 'a'; Rc = '1111111DF1111A0001AA'; IdActivitat = '10'; Local = ''; Bloc = ''; Escala = ''; Pis = ''; Porta = ''; Buit = $false; UtmX = 422000.0; UtmY = 4579000.0; Adreca = '' }

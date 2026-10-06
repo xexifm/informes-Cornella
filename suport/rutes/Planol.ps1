@@ -160,7 +160,11 @@ function Invoke-PlanolMain {
         if ($null -ne $xlsE) {
             $espera.Label.Text = "Llegint $($xlsE.File.Name)..."
             [System.Windows.Forms.Application]::DoEvents()
-            $ests = @(Read-EstablimentsExcel $xlsE.File)
+            # SENSE @(): Read-EstablimentsExcel ja torna la llista sencera (amb
+            # coma), i un @() al voltant la tornava a embolcallar: el model rebia
+            # UN establiment que les contenia tots, no en lligava cap amb la
+            # seva activitat i TOTES sortien "sense establiment" (octubre 2026).
+            $ests = Read-EstablimentsExcel $xlsE.File
         }
     } catch {
         if (-not $espera.Form.IsDisposed) { $espera.Form.Close() }

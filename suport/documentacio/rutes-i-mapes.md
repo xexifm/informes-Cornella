@@ -44,6 +44,18 @@ cadascun la seva còpia de l'adreça d'OpenStreetMap.
 
 ## Eina «Plànol activitats» (`rutes/Planol.ps1`, octubre 2026)
 
+> **El primer plànol de l'usuari: TOTES les activitats «sense establiment».**
+> La crida feia `@(Read-EstablimentsExcel …)`, que ja torna la llista amb coma:
+> el model rebia **un** establiment que les contenia tots (1.582), no en lligava
+> cap amb la seva activitat i no hi havia cap local buit. Les proves no ho
+> veien perquè provaven el lector i el model per separat, no la crida que els
+> uneix. Ara: la crida sense `@()`, `Build-PlanolModel` desplega una llista
+> embolcallada, una prova del lector amb un `Read-FullaEstesa` fals i un guard
+> d'AST per a tot el projecte. L'avís «sense establiment: ref. de l'Excel
+> d'activitats» vol dir que **aquella** activitat no surt a cap fila de l'Excel
+> d'ESTABLIMENTS (columna «ID Activitat») i se situa amb la referència
+> cadastral de l'Excel d'activitats; ha de sortir poc, no a tot arreu.
+
 Parcel·les de Cornellà pintades segons l'estat de les activitats que hi ha. Es
 **només local** (`local\planol-activitats\`): porta requeriments pendents.
 

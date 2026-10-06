@@ -200,6 +200,42 @@ foreach ($fCl in @(Get-ChildItem -LiteralPath (Join-Path $rootRepo 'suport') -Re
 }
 AssertEq $clMal.Count 0 ('cap $Script: dins d''una closure' + $(if ($clMal.Count) { ' -> ' + ($clMal -join ', ') } else { '' }))
 
+Write-Host "`n--- Una funcio que torna la llista AMB COMA no es crida dins d'un @() (guard) ---"
+# PER QUE. "return ,@($llista)" torna la llista com UN sol objecte, perque
+# arribi sencera a "$x = F". Si a sobre la crida fa "@(F)", la torna a
+# embolcallar: queda una llista d'UN element que les conte totes. No peta enlloc;
+# simplement tot surt malament. Va passar al Planol activitats (octubre 2026):
+# "@(Read-EstablimentsExcel ...)" i TOTES les activitats sortien "sense
+# establiment". Primer la mesura i despres el guard sobre tot suport/.
+function _ProvaComa { $l = @([pscustomobject]@{ a = 1 }, [pscustomobject]@{ a = 2 }); return ,@($l) }
+AssertEq "$(@(_ProvaComa).Count)|$((_ProvaComa).Count)" '1|2' 'llenguatge: @(F) amb "return ,@()" dona UN element; "$x = F", la llista'
+$comaF = @{}; $comaAst = @{}
+foreach ($fC in @(Get-ChildItem -LiteralPath (Join-Path $rootRepo 'suport') -Recurse -Filter '*.ps1' -File | Where-Object { $_.FullName -notmatch '[\\/]tests[\\/]' })) {
+    $aC = [System.Management.Automation.Language.Parser]::ParseFile($fC.FullName, [ref]$null, [ref]$null)
+    $comaAst[$fC.Name] = $aC
+    foreach ($fn in $aC.FindAll({ param($x) $x -is [System.Management.Automation.Language.FunctionDefinitionAst] }, $true)) {
+        foreach ($rt in $fn.Body.FindAll({ param($x) $x -is [System.Management.Automation.Language.ReturnStatementAst] -and $null -ne $x.Pipeline }, $true)) {
+            # Nomes els return de la FUNCIO, no els dels scriptblocks de dins.
+            $o = $rt.Parent; $deFn = $true
+            while ($null -ne $o -and $o -ne $fn.Body) { if ($o -is [System.Management.Automation.Language.ScriptBlockExpressionAst]) { $deFn = $false; break }; $o = $o.Parent }
+            if (-not $deFn) { continue }
+            $el = $rt.Pipeline.PipelineElements[0]
+            if ($el -is [System.Management.Automation.Language.CommandExpressionAst] -and $el.Expression -is [System.Management.Automation.Language.ArrayLiteralAst] -and @($el.Expression.Elements).Count -eq 1) { $comaF[$fn.Name] = $true }
+        }
+    }
+}
+Assert ($comaF.ContainsKey('Read-EstablimentsExcel')) 'el guard veu les funcions que tornen amb coma (Read-EstablimentsExcel n es una)'
+$dobles = New-Object System.Collections.ArrayList
+foreach ($nC in $comaAst.Keys) {
+    foreach ($ae in $comaAst[$nC].FindAll({ param($x) $x -is [System.Management.Automation.Language.ArrayExpressionAst] }, $true)) {
+        $stC = @($ae.SubExpression.Statements)
+        if ($stC.Count -ne 1 -or $stC[0] -isnot [System.Management.Automation.Language.PipelineAst] -or @($stC[0].PipelineElements).Count -ne 1) { continue }
+        $cmd = $stC[0].PipelineElements[0]
+        if ($cmd -is [System.Management.Automation.Language.CommandAst] -and $comaF.ContainsKey([string]$cmd.GetCommandName())) { [void]$dobles.Add($nC + ':' + $ae.Extent.StartLineNumber + ' ' + $ae.Extent.Text) }
+    }
+}
+AssertEq ($dobles -join ' | ') '' 'cap @(F) sobre una funcio que ja torna la llista amb coma'
+
 Write-Host "`n--- Copiar informes: manual i automatic, una sola copia ---"
 # PER QUE. L'eina es fa de dues maneres (la rajola, amb finestra i confirmacio,
 # i la passada automatica de les 13:00, muda i en un proces a part). Si cada una

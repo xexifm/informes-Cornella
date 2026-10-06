@@ -348,6 +348,12 @@ els llegís no fallaria — generaria un informe **silenciosament equivocat**. S
   **crida** (`$x = @(f)`), no on es fa servir. Va passar a `Select-Items`: sense
   cap punt marcat, la MNS deia «amb les següents observacions» amb un «1.» buit
   i la conclusió de requeriment (octubre 2026).
+- **I al revés: una funció que ja torna la llista AMB COMA (`return ,@($l)`) no
+  es crida dins d'un `@()`**: `@(F)` la torna a embolcallar i queda una llista
+  d'**un** element que les conté totes. Al Plànol activitats,
+  `@(Read-EstablimentsExcel …)` feia que **totes** les activitats sortissin
+  «sense establiment» (octubre 2026). Guard d'AST a `06-guards.ps1` (validat
+  tornant-hi a posar l'`@()`).
 - **Helpers de graella** (`UiComuns.ps1`): `_StyleListGrid` (carcassa),
   `_AddSearchBox`, `_EnableHeaderSort` + `_SetSortGlyph` (ordre programàtic amb
   fletxa). Els fan servir *Editar base d'informes* i *Controls periòdics*.
