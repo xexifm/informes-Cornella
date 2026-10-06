@@ -344,6 +344,12 @@ $dirRutesF = Split-Path -Parent $PSScriptRoot | Join-Path -ChildPath 'rutes'
 $ambOsm = @(Get-ChildItem -LiteralPath $dirRutesF -File | Where-Object { $_.Extension -in '.html', '.ps1', '.js' } |
             Where-Object { [System.IO.File]::ReadAllText($_.FullName) -match 'tile\.openstreetmap\.org' } | ForEach-Object { $_.Name })
 AssertEq ($ambOsm -join ', ') '' 'cap fitxer de rutes/ demana rajoles a OpenStreetMap'
+# El planol del Cadastre (WMS) tambe es del fons comu: Planol i Coordenades
+# l'encenen amb la mateixa capa. Cap altre fitxer no el pot tornar a definir.
+$ambWms = @(Get-ChildItem -LiteralPath $dirRutesF -File | Where-Object { $_.Extension -in '.html', '.ps1', '.js' } |
+            Where-Object { [System.IO.File]::ReadAllText($_.FullName) -match 'Cartografia/WMS/ServidorWMS' } | ForEach-Object { $_.Name })
+AssertEq ($ambWms -join ', ') 'MapaFons.js' 'el WMS del Cadastre, nomes a MapaFons.js'
+Assert ($htmlT.Contains("lligaCasellaCadastre(map, FONS, 'f-cadastre')")) 'la casella del Planol encen la capa comuna'
 $senseFons = @(Get-ChildItem -LiteralPath $dirRutesF -File | Where-Object { $_.Extension -in '.html', '.ps1' } |
                Where-Object { $t = [System.IO.File]::ReadAllText($_.FullName); $t.Contains("L.map('map'") -and -not $t.Contains('afegeixFonsMapa(map)') } | ForEach-Object { $_.Name })
 AssertEq ($senseFons -join ', ') '' 'tots els mapes de rutes/ fan servir el fons comu'

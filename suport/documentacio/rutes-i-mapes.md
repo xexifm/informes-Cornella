@@ -300,6 +300,15 @@ pendents de revisar (Configuració, Normativa, Revisió, Ruta).
     torna al Cadastre: era la manera de perdre la posició sense voler).
   - **Mai `setIcon` al `dragstart`**: refà l'arrossegador de Leaflet i talla el
     drag. Per això el punt es selecciona al `dragend`.
+  - **El plànol del Cadastre** (WMS oficial, parcel·les i edificis) a sobre
+    del fons: casella «plànol del Cadastre» a la barra (l'usuari: *«posa'm el
+    plànol del cadastre a Coordenades també»*). La capa és a **`MapaFons.js`**
+    (`CADASTRE_WMS`, `lligaCasellaCadastre`) i és **la mateixa** que la casella
+    del Plànol activitats i l'entrada «Plànol del Cadastre» del selector de dalt
+    a tots els mapes: abans el Plànol en tenia una còpia pròpia. Apagada per
+    defecte; si l'encens, es recorda (`informesCornella.planolCadastre`). Guard a
+    `run-tests-planol.ps1`: l'URL del WMS només a `MapaFons.js` (validat
+    injectant-lo al Plànol).
   - **Zoom fins al 22** (abans 19; l'usuari: *«deixa'm fer més zoom que sinó
     estan molt lluny»*). Les rajoles del fons arriben al 18 i d'allà en amunt
     s'amplien (`maxNativeZoom` a `MapaFons.js`). «Anar a» una activitat (`vesA`)

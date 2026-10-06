@@ -318,6 +318,23 @@ try {
   check(await c.locator('#btnDesfer').isDisabled(), 'sense res per desfer, el botó queda apagat');
   eq(await c.evaluate(() => estat.filter((e) => e.revisada).length), 0, 'i desfent-ho tot, es torna a l\'inici');
 
+  seccio('El plànol del Cadastre (a sobre del fons)');
+  eq(await c.evaluate(() => [document.getElementById('chkCadastre').checked, map.hasLayer(FONS.cadastre)]), [false, false],
+     'apagat per defecte (carrega)');
+  const [wms] = await Promise.all([c.waitForRequest(/ServidorWMS\.aspx/), c.check('#chkCadastre')]);
+  check(/layers=Catastro/i.test(wms.url()) && /transparent=true/i.test(wms.url()), 'la casella l\'encén: demana el WMS oficial del Cadastre, transparent');
+  eq(await c.evaluate(() => map.hasLayer(FONS.cadastre)), true, 'i la capa és al mapa');
+  eq(await c.evaluate(() => document.querySelector('.leaflet-control-layers-overlays input').checked), true,
+     'el selector de dalt diu el mateix (és la mateixa capa)');
+  const c2 = await obre(ctx, 'a/Coordenades_A.html');
+  eq(await c2.evaluate(() => [document.getElementById('chkCadastre').checked, map.hasLayer(FONS.cadastre)]), [true, true],
+     'es recorda: un mapa nou ja l\'obre ences');
+  await c2.evaluate(() => document.querySelector('.leaflet-control-layers-overlays input').click());
+  eq(await c2.evaluate(() => [document.getElementById('chkCadastre').checked, map.hasLayer(FONS.cadastre)]), [false, false],
+     'apagat des del selector, la casella també s\'apaga');
+  await c2.close();
+  await c.uncheck('#chkCadastre');
+
   seccio('Si el CDN del mapa no respon');
   {
     const nav = await chromium.launch({ headless: true });

@@ -109,6 +109,7 @@
   <input type="file" id="fitxerRepas" accept=".xlsx" style="display:none">
   <button class="sec" onclick="esborraCorreccions()">Esborrar el meu repàs</button>
   <label style="font-size:12px;color:#333;"><input type="checkbox" id="chkNums" checked> números dels portals</label>
+  <label style="font-size:12px;color:#333;" title="El plànol oficial del Cadastre a sobre del fons: parcel·les i edificis"><input type="checkbox" id="chkCadastre"> plànol del Cadastre</label>
   <span id="estat"></span>
   <span style="font-size:12px;color:#777;">{{dbEnc}}</span>
 </div>
@@ -560,6 +561,8 @@ var map = L.map('map', { preferCanvas: true, zoomSnap: 0.25, zoomDelta: 0.5, whe
 // El fons: MapaFons.js (comu als mapes de rutes/). OpenStreetMap ja no serveix
 // les rajoles a una pagina oberta des del disc.
 var FONS = afegeixFonsMapa(map);
+// El planol del Cadastre (MapaFons.js): la casella de la barra i el selector.
+lligaCasellaCadastre(map, FONS, 'chkCadastre');
 
 var capes = [];   // per posicio: { verd, vermell, linia, fila }
 var bounds = [];

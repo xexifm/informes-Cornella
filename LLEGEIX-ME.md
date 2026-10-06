@@ -353,6 +353,10 @@ Al mapa hi veus, de cada activitat:
   - **blanc** — no s'ha trobat cap portal. Comença a sobre del vermell i l'has de
     moure tu.
 
+Si vols veure les parcel·les i els edificis com al Cadastre, marca **«plànol del
+Cadastre»** a la barra de dalt: es posa a sobre del fons i es recorda per a la
+vegada següent (també al Plànol activitats).
+
 **Amplia el mapa fins que surtin els números dels portals** (a partir del zoom de
 carrer). Són tots els portals de la illa, tal com al plànol del Cadastre, també
 els que no tenen cap activitat: són el que et deixa dir si un punt és al lloc.

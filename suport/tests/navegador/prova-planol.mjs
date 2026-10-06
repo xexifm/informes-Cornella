@@ -127,6 +127,14 @@ try {
   eq(await etiqueta(iCadis), null, 'i es poden amagar');
   await p.check('#f-etiq');
 
+  seccio('El plànol del Cadastre (MapaFons.js, el mateix que Coordenades)');
+  eq(await p.evaluate(() => [document.getElementById('f-cadastre').checked, map.hasLayer(FONS.cadastre)]), [false, false], 'apagat per defecte');
+  await p.check('#f-cadastre');
+  eq(await p.evaluate(() => [map.hasLayer(FONS.cadastre), document.querySelector('.leaflet-control-layers-overlays input').checked]), [true, true],
+     'la casella del lateral encén la capa comuna, i el selector ho diu');
+  await p.uncheck('#f-cadastre');
+  eq(await p.evaluate(() => map.hasLayer(FONS.cadastre)), false, 'i l\'apaga');
+
   seccio('La fitxa');
   await p.evaluate((i) => obrePopup(i), iCadis);
   const fitxa = await p.textContent('.leaflet-popup-content');

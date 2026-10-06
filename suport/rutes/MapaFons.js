@@ -23,6 +23,12 @@
 // 'fonscanviat' amb { nom }: el Planol hi canvia el contorn de les parcel.les
 // (sobre l'ortofoto, la linia fosca no es veu).
 //
+// EL PLANOL DEL CADASTRE (WMS oficial: totes les parcel.les i els edificis, tambe
+// els que no tenen cap activitat) es una capa A SOBRE del fons, que s'encen al
+// mateix selector. Era nomes del Planol activitats; l'usuari la va voler tambe a
+// Coordenades ("posa'm el planol del cadastre a Coordenades tambe") i per aixo
+// viu aqui, un sol cop. Apagada per defecte (carrega); si l'encens, es recorda.
+//
 // ASCII pur (els accents, amb \u).
 
 var FONS_MAPA = [
@@ -42,8 +48,19 @@ var FONS_MAPA = [
 var FONS_ERRORS_MAX = 4;
 var FONS_CLAU = 'informesCornella.fonsMapa';
 
-// Posa el fons al mapa (el recordat o el primer) i el selector. Torna l'estat,
-// per a les proves: { capes: {nom: capa}, actiu: function () -> nom }.
+var CADASTRE_WMS = {
+  nom: 'Pl\u00e0nol del Cadastre',
+  url: 'https://ovc.catastro.meh.es/Cartografia/WMS/ServidorWMS.aspx',
+  // Un WMS es dibuixa a qualsevol escala: arriba al zoom maxim sense ampliar.
+  opt: { layers: 'Catastro', format: 'image/png', transparent: true, maxZoom: 22, opacity: 0.6,
+         attribution: 'Direcci\u00f3n General del Catastro' }
+};
+var CADASTRE_CLAU = 'informesCornella.planolCadastre';
+
+// Posa el fons al mapa (el recordat o el primer) i el selector, amb el planol del
+// Cadastre a sobre si s'havia deixat ences. Torna { capes: {nom: capa}, actiu:
+// function () -> nom, cadastre: la capa del Cadastre } (el Planol hi lliga la
+// seva casella; les proves ho miren).
 function afegeixFonsMapa(map) {
   var capes = {}, ordre = [], fallats = {}, actiu = null;
   FONS_MAPA.forEach(function (f) {
@@ -90,13 +107,36 @@ function afegeixFonsMapa(map) {
   try { triat = window.localStorage.getItem(FONS_CLAU); } catch (e) { triat = null; }
   posa(capes[triat] ? triat : ordre[0]);
 
+  // El planol del Cadastre: es recorda TANT si l'encens al selector com des
+  // d'una casella de la pagina (per aixo escolta la capa i no el selector).
+  var cadastre = L.tileLayer.wms(CADASTRE_WMS.url, CADASTRE_WMS.opt);
+  var sobre = {}; sobre[CADASTRE_WMS.nom] = cadastre;
+  cadastre.on('add', function () { try { window.localStorage.setItem(CADASTRE_CLAU, '1'); } catch (e) { } });
+  cadastre.on('remove', function () { try { window.localStorage.setItem(CADASTRE_CLAU, '0'); } catch (e) { } });
+  var cadastreEnces = false;
+  try { cadastreEnces = window.localStorage.getItem(CADASTRE_CLAU) === '1'; } catch (e) { cadastreEnces = false; }
+  if (cadastreEnces) { cadastre.addTo(map); }
+
   // El selector. Nomes la tria de l'USUARI es recorda (baselayerchange no salta
   // quan el canvi el fa passaAlSeguent).
-  L.control.layers(capes, null, { position: 'topright', collapsed: true }).addTo(map);
+  L.control.layers(capes, sobre, { position: 'topright', collapsed: true }).addTo(map);
   map.on('baselayerchange', function (e) {
     actiu = e.name;
     map.fire('fonscanviat', { nom: e.name });
     try { window.localStorage.setItem(FONS_CLAU, e.name); } catch (er) { }
   });
-  return { capes: capes, actiu: function () { return actiu; } };
+  return { capes: capes, actiu: function () { return actiu; }, cadastre: cadastre };
+}
+
+// Una casella de la pagina que encen i apaga el planol del Cadastre, sempre
+// d'acord amb el selector de dalt (la capa es la mateixa). La fan servir el
+// Planol activitats i Coordenades.
+function lligaCasellaCadastre(map, fons, idCasella) {
+  var c = document.getElementById(idCasella);
+  if (!c) { return; }
+  c.checked = map.hasLayer(fons.cadastre);
+  c.addEventListener('change', function () {
+    if (c.checked) { fons.cadastre.addTo(map); } else { map.removeLayer(fons.cadastre); }
+  });
+  fons.cadastre.on('add remove', function () { c.checked = map.hasLayer(fons.cadastre); });
 }
