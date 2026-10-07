@@ -1,7 +1,7 @@
 {
-    "GeneratedAt":  "2026-10-05T14:56:45.3375324+02:00",
-    "Font":  "2026-10-05 ACTIVITATS.xls",
-    "SourceDate":  "2026-10-05",
+    "GeneratedAt":  "2026-10-07T08:05:33.9067854+02:00",
+    "Font":  "2026-10-07 ACTIVITATS.xls",
+    "SourceDate":  "2026-10-07",
     "Comptador":  14,
     "Activitats":  [
                        {
@@ -29,15 +29,15 @@
                            "id":  "641",
                            "activitat":  "TALLER MECÀNIC",
                            "adreca":  "C ISCLE SOLER 1",
-                           "lat":  41.365041811455882,
-                           "lon":  2.0754597227613787
+                           "lat":  41.365291850274843,
+                           "lon":  2.0760304512808609
                        },
                        {
                            "id":  "410",
                            "activitat":  "FERRETERIA",
                            "adreca":  "C DOCTOR MARTI I JULIA 49",
-                           "lat":  41.353792949311753,
-                           "lon":  2.0665560933645688
+                           "lat":  41.353749403715362,
+                           "lon":  2.0664846308834095
                        },
                        {
                            "id":  "364",
@@ -50,8 +50,8 @@
                            "id":  "357",
                            "activitat":  "GIMNÀS",
                            "adreca":  "C JOAN MARAGALL 21",
-                           "lat":  41.358722055491143,
-                           "lon":  2.0709425773282621
+                           "lat":  41.358367612791639,
+                           "lon":  2.0709318373536072
                        },
                        {
                            "id":  "282",
