@@ -27,6 +27,12 @@ $ests = @(
     (_E '5' '1111111DF1111A0001AA' '' 422300.0 4579300.0 $true '2' 'C BUIT 1')
     (_E '6' '3085213DF2738E0001AB' '20' 422800.0 4579200.0 $false '' 'PG FERROCARRILS 177')
     (_E '7' '4091106DF2749A0007XK' '30' 423912.16 4578928.25 $false '' 'CTRA HOSPITALET 147')
+    # El 1447 te un SEGON establiment a la mateixa parcel.la (com el 122 de
+    # l'usuari): una sola fila a la fitxa, amb els dos.
+    (_E '9' '2295827DF2729E0012AB' '1447' 421975.0 4579505.0 $false '7' 'C CADIS 19' 'Cadis' '19')
+    # El mateix local que el 1447 (establiment 1), pero BUIT (com el 1365): no es
+    # un local buit, es un duplicat del GIA.
+    (_E '8' '2295827DF2729E0011RQ' '' 421975.0 4579505.0 $false '' 'C CADIS 19' 'Cadis' '19')
 )
 $acts = @{
     # L'ID va a la coordenada UTM de l'Excel d'activitats: el 1447 a prop de la

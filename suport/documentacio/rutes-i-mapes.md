@@ -110,6 +110,25 @@ Com es decideix (`Get-CasesActivitats` + `Get-EtiquetesGrup`, a `PlanolDades.ps1
   de la fulla Estès; per defecte, **sense**), *Classificació (annex)* (una
   casella per cada valor de «Classificació general annex») i *Per revisar*,
   amb recomptes, una ajuda a sota i «Coordenada UTM fora de la parcel·la o sense».
+- **L'etiqueta, CENTRADA al seu punt** (`direction: 'center'`): és on acaba la
+  línia de punts. Abans creixia cap a dins des del punt i la línia sortia de
+  sota.
+- **Clic a un ID → la fitxa d'AQUELLA activitat** (`obreFitxaActivitat`, amb tots
+  els seus establiments, també d'altres parcel·les, i un enllaç «Totes les
+  activitats de…»); **clic a la parcel·la → totes**. Els tooltips del Leaflet no
+  reben el ratolí (`pointer-events: none`): `.leaflet-tooltip.ent` el torna a
+  activar i el clic s'atura a l'etiqueta (`lligaClicEtiqueta`), si no el mapa
+  tancaria la fitxa que s'acaba d'obrir.
+- **Una fila per ACTIVITAT** (`perActivitat` + `filaActivitat`): una activitat amb 3
+  establiments a la mateixa parcel·la (el 122 de l'usuari, CTRA PRAT 77) surt UN
+  cop, amb «3 establiments:» i els seus locals. També al CSV i al cercador.
+- **Locals buits DUPLICATS al GIA** (el 1365 de l'usuari): el mateix local hi és
+  dues vegades, un establiment amb l'activitat i un altre de buit (mateixa refcat
+  de 20, adreça i local/bloc/escala/pis/porta, `_PlanolClauLocal`; una refcat
+  sola no basta, un edifici pot ser una sola unitat). A l'Excel de l'octubre:
+  37. **No es compten com a buits** (`du`), l'activitat porta l'ID de
+  l'establiment buit (`bd`) i surt a *Per revisar: Local buit duplicat al GIA*.
+  Decidit amb l'usuari: s'ha d'arreglar al GIA, no amagar-ho.
 - **La línia de punts** (l'usuari: *«una lleugera línia de punts que uneixi
   l'etiqueta de l'ID GIA (UTM base de dades activitats) i la UTM de la parcel·la
   cadastral»*): de cada etiqueta posada a la seva coordenada fins al

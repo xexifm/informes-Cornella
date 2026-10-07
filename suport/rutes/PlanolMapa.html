@@ -47,6 +47,10 @@
      En vermell (text), el que no s'ha trobat al Cadastre i va al centre. */
   .leaflet-tooltip.ent { background: transparent; border: 0; box-shadow: none; padding: 0; }
   .leaflet-tooltip.ent::before { display: none; }
+  /* Els ID es poden clicar (la fitxa d'aquella activitat): el tooltip, que el
+     Leaflet deixa sense ratoli, aqui si que en rep. */
+  .leaflet-tooltip.ent { pointer-events: auto; }
+  .leaflet-tooltip.ent .xip { cursor: pointer; }
   .xip { display: inline-block; background: #fff; border: 2px solid #8a96a3; border-radius: 3px; padding: 0 3px; margin: 1px;
          font: bold 11px/1.25 Consolas, monospace; color: #1a1a1a; }
   .xip-vermell { border-color: #d62728; } .xip-groc { border-color: #e0b000; }
@@ -59,6 +63,7 @@
   .pop .gia { font-weight: bold; font-family: Consolas, monospace; white-space: nowrap; }
   .pop .avis { color: #a0560b; font-size: 11px; }
   .pop .cad { color: #777; font-size: 11px; }
+  .pop .acc { margin-top: 6px; font-size: 12px; }
   .pop .adr { color: #333; font-size: 11px; }
   .pop .adr i { color: #777; font-style: normal; }
 </style>
@@ -101,6 +106,7 @@
       <option value="mb" data-base="Local marcat com a buit, però amb activitat">Local marcat com a buit, però amb activitat</option>
       <option value="nb" data-base="ID d'activitat que no és a l'Excel d'activitats">ID d'activitat que no és a l'Excel d'activitats</option>
       <option value="se" data-base="Activitat que no surt a l'Excel d'establiments">Activitat que no surt a l'Excel d'establiments</option>
+      <option value="bd" data-base="Local buit duplicat al GIA (el mateix local, buit i ocupat)">Local buit duplicat al GIA (el mateix local, buit i ocupat)</option>
     </select>
     <p class="nota" id="ajuda-revisar"></p>
     <p class="nota"><span class="sw sw-revisar"></span> Vora discontínua: hi ha alguna activitat en un local marcat com a buit.</p>
@@ -217,6 +223,7 @@ function passaRevisar(en, rev) {
   if (rev === 'mb' && !en.mb) { return false; }
   if (rev === 'nb' && !en.nb) { return false; }
   if (rev === 'se' && !en.se) { return false; }
+  if (rev === 'bd' && !en.bd) { return false; }
   return true;
 }
 
@@ -267,7 +274,8 @@ var AJUDA_REVISAR = {
   ne: 'La coordenada UTM de l\'Excel d\'activitats no cau a cap parcel·la de l\'activitat (o cau a la d\'una altra), o no n\'hi ha: l\'ID GIA surt en vermell al centre. Es corregeix amb l\'eina Coordenades.',
   mb: 'A l\'Excel d\'establiments el local diu «Local buit = Sí», però hi té una activitat: o l\'activitat ja no hi és o el local no és buit.',
   nb: 'L\'establiment porta un ID d\'activitat que no existeix a l\'Excel d\'activitats (esborrada o mal escrita).',
-  se: 'L\'activitat és a l\'Excel d\'activitats però cap fila de l\'Excel d\'establiments no la porta: es pinta amb la referència cadastral de l\'Excel d\'activitats.'
+  se: 'L\'activitat és a l\'Excel d\'activitats però cap fila de l\'Excel d\'establiments no la porta: es pinta amb la referència cadastral de l\'Excel d\'activitats.',
+  bd: 'El GIA té el mateix local dues vegades: un establiment amb aquesta activitat i un altre de BUIT (mateixa referència cadastral, adreça i local/escala/pis/porta). El buit no es compta com a local buit; s\'ha d\'esborrar o corregir al GIA. La fitxa diu l\'ID de l\'establiment buit.'
 };
 
 // Que es veu d'una parcel.la amb els filtres d'ara: les activitats, els locals
@@ -281,7 +289,7 @@ function vistaParcela(pc, f) {
       acts.push(en);
       if (pitjor === '' || ORDRE[en.e] > ORDRE[pitjor]) { pitjor = en.e; }
       if (en.mb) { revisar = true; }
-    } else if (en.t === 'b' && f.buits && f.revisar === '') {
+    } else if (en.t === 'b' && !en.du && f.buits && f.revisar === '') {
       buits.push(en);
     }
   }
@@ -318,8 +326,11 @@ function muntaParceles() {
       var etiqs = [];
       var ls = pc.l || [];
       for (var k = 0; k < ls.length; k++) {
-        etiqs.push({ def: ls[k], alMapa: false,
-                     tt: L.tooltip({ permanent: true, direction: DIR[ls[k].d] || 'center', className: 'ent', interactive: false }).setLatLng(ls[k].c),
+        // L'etiqueta CENTRADA al seu punt, que es on acaba la linia de punts
+        // (l'usuari: "l'etiqueta no surt ben be en el punt on acaba la linia").
+        var tt = L.tooltip({ permanent: true, direction: 'center', className: 'ent', interactive: false }).setLatLng(ls[k].c);
+        lligaClicEtiqueta(tt, idx);
+        etiqs.push({ def: ls[k], alMapa: false, tt: tt,
                      // La linia de punts fins al punt de la parcel.la al Cadastre (r).
                      linia: ls[k].r ? L.polyline([ls[k].c, ls[k].r], { weight: 1.2, opacity: 0.75, dashArray: '1,4', lineCap: 'round', interactive: false }) : null });
       }
@@ -350,7 +361,22 @@ function estilDe(v) {
   };
 }
 
-var DIR = { r: 'right', l: 'left', t: 'top', b: 'bottom', c: 'center' };
+// CLIC A UN ID: la fitxa d'AQUELLA activitat (l'usuari: "quan premi
+// l'etiqueta d'una activitat que surti la informacio d'aquella activitat"). El
+// clic s'atura aqui: si arribes al mapa, el Leaflet tancaria la fitxa.
+function lligaClicEtiqueta(tt, idx) {
+  tt.on('add', function () {
+    var el = tt.getElement();
+    if (!el || el.getAttribute('data-lligat')) { return; }
+    el.setAttribute('data-lligat', '1');
+    L.DomEvent.on(el, 'click', function (ev) {
+      var x = ev.target && ev.target.closest ? ev.target.closest('[data-g]') : null;
+      L.DomEvent.stop(ev);
+      if (x) { obreFitxaActivitat(x.getAttribute('data-g'), tt.getLatLng()); } else { obrePopup(idx, tt.getLatLng()); }
+    });
+    L.DomEvent.disableScrollPropagation(el);
+  });
+}
 
 // Text d'una etiqueta (un punt) segons el zoom: res de lluny; a mig zoom fins a
 // 4 ID (i "+N") i de prop fins a 16, de quatre en quatre, cada un emmarcat amb
@@ -371,7 +397,7 @@ function textEntrada(def, vis, zoom) {
 }
 
 function xipHtml(g, estat) {
-  return '<span class="xip xip-' + estat + '">' + escHtml(g) + '</span>';
+  return '<span class="xip xip-' + estat + '" data-g="' + escHtml(g) + '">' + escHtml(g) + '</span>';
 }
 
 function pinta() {
@@ -384,13 +410,13 @@ function pinta() {
   var vistes = {};
   var tots = { vermell: true, groc: true, blau: true, verd: true, revisar: f.revisar, tur: f.tur, classif: f.classif };
   // Els recomptes dels desplegables i de la classificacio (activitats, un cop cada una).
-  var cRev = { '': {}, ne: {}, mb: {}, nb: {}, se: {} }, cTur = { no: {}, tot: {}, nomes: {} }, cCl = {};
+  var cRev = { '': {}, ne: {}, mb: {}, nb: {}, se: {}, bd: {} }, cTur = { no: {}, tot: {}, nomes: {} }, cCl = {};
   var nParc = 0;
   for (var i = 0; i < PARCELES.length; i++) {
     var pc = PARCELES[i], c = capes[i];
     for (var k = 0; k < pc.e.length; k++) {
       var en = pc.e[k];
-      if (en.t === 'b') { comptes.buits++; continue; }
+      if (en.t === 'b') { if (!en.du) { comptes.buits++; } continue; }
       if (passaActivitat(en, tots) && !vistes[en.g]) { vistes[en.g] = true; comptes[en.e]++; }
       cTur.tot[en.g] = true;
       if (en.at) { cTur.nomes[en.g] = true; } else { cTur.no[en.g] = true; }
@@ -460,52 +486,120 @@ function enllacCadastre(rc) {
          '" target="_blank" rel="noopener">fitxa al Cadastre</a>';
 }
 
+// Les entrades d'activitat agrupades per ID GIA, en l'ordre d'aparicio: una
+// activitat amb 3 establiments es UNA fila amb els 3 (l'usuari, amb el 122).
+function perActivitat(ens) {
+  var ordre = [], grups = {};
+  for (var i = 0; i < ens.length; i++) {
+    var en = ens[i];
+    if (en.t !== 'a') { continue; }
+    if (!grups[en.g]) { grups[en.g] = []; ordre.push(en.g); }
+    grups[en.g].push(en);
+  }
+  return ordre.map(function (g) { return grups[g]; });
+}
+
+function uniq(llista) {
+  var out = [];
+  for (var i = 0; i < llista.length; i++) { if (llista[i] && out.indexOf(llista[i]) < 0) { out.push(llista[i]); } }
+  return out;
+}
+
+// Una fila de la fitxa: UNA activitat i tots els seus establiments (ens).
+function filaActivitat(ens, visible) {
+  var en = ens[0];
+  var avisos = [];
+  var algun = function (f) { for (var i = 0; i < ens.length; i++) { if (f(ens[i])) { return true; } } return false; };
+  if (algun(function (e) { return e.mb; })) { avisos.push('local marcat com a buit'); }
+  if (en.nb) { avisos.push('no és a la base d\'activitats'); }
+  if (en.se) { avisos.push('sense establiment: ref. de l\'Excel d\'activitats'); }
+  if (algun(function (e) { return e.x === 0; })) { avisos.push('la coordenada UTM cau fora de la parcel·la'); }
+  if (algun(function (e) { return e.x === 3; })) { avisos.push('sense coordenada UTM a l\'Excel d\'activitats'); }
+  if (algun(function (e) { return e.x === 2; })) { avisos.push('la coordenada és a l\'altre establiment'); }
+  var bd = uniq(ens.map(function (e) { return e.bd; }));
+  if (bd.length) { avisos.push('el GIA té aquest mateix local també com a BUIT (establiment ' + bd.join(', ') + ')'); }
+  var estat = en.et ? en.et : (en.ni > 0 ? '' : 'sense informes');
+  if (en.pr) { estat = 'PRECINTADA' + (en.et ? ' (darrer informe: ' + en.et + ')' : ''); }
+  var sub = function (e) { return escHtml(e.s || '(sense local/planta/porta)') + (e.sf === 'cadastre' ? ' <span class="cad">(Cadastre)</span>' : ''); };
+  var est = '';
+  if (ens.length === 1) {
+    est = en.s ? '<br>' + sub(en) : '';
+  } else {
+    est = '<br><b>' + ens.length + ' establiments:</b>';
+    for (var k = 0; k < ens.length; k++) { est += '<br>&bull; ' + sub(ens[k]); }
+  }
+  var ads = uniq(ens.map(function (e) { return e.ad; })), cas = uniq(ens.map(function (e) { return e.ca; }));
+  return '<tr style="' + (visible ? '' : 'opacity:.45') + '">' +
+    '<td><span class="sw sw-' + escHtml(en.e) + '"></span></td>' +
+    '<td class="gia">' + escHtml(en.g) + '</td>' +
+    '<td>' + escHtml(en.n || en.ac || '') + (en.n && en.ac ? '<br><span class="cad">' + escHtml(en.ac) + '</span>' : '') + est +
+      // Les DUES adreces, cada una amb el seu nom: no han de coincidir.
+      '<br><span class="adr"><i>Adreça (base d\'activitats):</i> ' + escHtml(ads.join(' · ') || '—') + '</span>' +
+      (cas.length ? '<br><span class="adr"><i>Adreça (Cadastre):</i> ' + escHtml(cas.join(' · ')) + '</span>' : '') +
+      (en.cl || en.at ? '<br><span class="cad">' + escHtml([en.cl ? 'Classificació: ' + en.cl : '', en.at ? 'allotjament turístic' : ''].filter(Boolean).join(' · ')) + '</span>' : '') +
+      (avisos.length ? '<br><span class="avis">&#9888; ' + escHtml(avisos.join(' · ')) + '</span>' : '') + '</td>' +
+    '<td>' + escHtml(estat) + (en.ni > 0 ? '<br><span class="cad">' + en.ni + ' informe' + (en.ni > 1 ? 's' : '') + '</span>' : '') + '</td></tr>';
+}
+
+function capcaleraParcela(pc) {
+  var adreces = uniq(pc.e.map(function (e) { return e.ad; }));
+  return '<h3>' + escHtml(adreces.slice(0, 2).join(' / ') || '(sense adreça)') + '</h3>' +
+         '<div class="rc">' + escHtml(pc.rcs ? pc.rcs.join(' + ') : (pc.rc || pc.k)) + (pc.rc ? ' &middot; ' + enllacCadastre(pc.rc) : '') + '</div>' +
+         (pc.pa ? '<div class="adr"><i>Adreces al Cadastre:</i> ' + escHtml(pc.pa.join(' · ')) + '</div>' : '');
+}
+
+// LA FITXA DE LA PARCEL.LA (clic a la parcel.la): totes les activitats, una
+// fila cada una. Les que el filtre amaga, en gris.
 function htmlFitxa(idx) {
   var pc = PARCELES[idx];
   var v = capes[idx].vista || vistaParcela(pc, filtres());
-  var adreces = [];
-  for (var i = 0; i < pc.e.length; i++) {
-    if (pc.e[i].ad && adreces.indexOf(pc.e[i].ad) < 0) { adreces.push(pc.e[i].ad); }
+  var h = '<div class="pop">' + capcaleraParcela(pc) + '<table>';
+  var acts = perActivitat(pc.e);
+  for (var j = 0; j < acts.length; j++) {
+    var visible = false;
+    for (var q = 0; q < acts[j].length; q++) { if (v.acts.indexOf(acts[j][q]) >= 0) { visible = true; } }
+    h += filaActivitat(acts[j], visible);
   }
-  var h = '<div class="pop"><h3>' + escHtml(adreces.slice(0, 2).join(' / ') || '(sense adreça)') + '</h3>' +
-          '<div class="rc">' + escHtml(pc.rcs ? pc.rcs.join(' + ') : (pc.rc || pc.k)) + (pc.rc ? ' &middot; ' + enllacCadastre(pc.rc) : '') + '</div>' +
-          (pc.pa ? '<div class="adr"><i>Adreces al Cadastre:</i> ' + escHtml(pc.pa.join(' · ')) + '</div>' : '') + '<table>';
-  // Totes les activitats de la parcel.la, encara que el filtre n'amagui
-  // alguna: les amagades, en gris.
-  for (var j = 0; j < pc.e.length; j++) {
-    var en = pc.e[j];
-    if (en.t !== 'a') { continue; }
-    var visible = v.acts.indexOf(en) >= 0;
-    var avisos = [];
-    if (en.mb) { avisos.push('local marcat com a buit'); }
-    if (en.nb) { avisos.push('no és a la base d\'activitats'); }
-    if (en.se) { avisos.push('sense establiment: ref. de l\'Excel d\'activitats'); }
-    if (en.x === 0) { avisos.push('la coordenada UTM cau fora de la parcel·la'); }
-    if (en.x === 3) { avisos.push('sense coordenada UTM a l\'Excel d\'activitats'); }
-    if (en.x === 2) { avisos.push('la coordenada és a l\'altre establiment'); }
-    var estat = en.et ? en.et : (en.ni > 0 ? '' : 'sense informes');
-    if (en.pr) { estat = 'PRECINTADA' + (en.et ? ' (darrer informe: ' + en.et + ')' : ''); }
-    h += '<tr style="' + (visible ? '' : 'opacity:.45') + '">' +
-         '<td><span class="sw sw-' + escHtml(en.e) + '"></span></td>' +
-         '<td class="gia">' + escHtml(en.g) + '</td>' +
-         '<td>' + escHtml(en.n || en.ac || '') + (en.n && en.ac ? '<br><span class="cad">' + escHtml(en.ac) + '</span>' : '') +
-           (en.s ? '<br>' + escHtml(en.s) + (en.sf === 'cadastre' ? ' <span class="cad">(Cadastre)</span>' : '') : '') +
-           // Les DUES adreces, cada una amb el seu nom: no han de coincidir.
-           '<br><span class="adr"><i>Adreça (base d\'activitats):</i> ' + escHtml(en.ad || '—') + '</span>' +
-           (en.ca ? '<br><span class="adr"><i>Adreça (Cadastre):</i> ' + escHtml(en.ca) + '</span>' : '') +
-           (en.cl || en.at ? '<br><span class="cad">' + escHtml([en.cl ? 'Classificació: ' + en.cl : '', en.at ? 'allotjament turístic' : ''].filter(Boolean).join(' · ')) + '</span>' : '') +
-           (avisos.length ? '<br><span class="avis">&#9888; ' + escHtml(avisos.join(' · ')) + '</span>' : '') + '</td>' +
-         '<td>' + escHtml(estat) + (en.ni > 0 ? '<br><span class="cad">' + en.ni + ' informe' + (en.ni > 1 ? 's' : '') + '</span>' : '') + '</td></tr>';
-  }
-  var nb = 0, subsBuits = [];
+  // Els buits DUPLICATS no son locals buits: ja surten com a avis a l'activitat.
+  var subsBuits = [], nb = 0;
   for (var k = 0; k < pc.e.length; k++) {
-    if (pc.e[k].t === 'b') { nb++; if (pc.e[k].s) { subsBuits.push(pc.e[k].s); } }
+    if (pc.e[k].t === 'b' && !pc.e[k].du) { nb++; if (pc.e[k].s) { subsBuits.push(pc.e[k].s); } }
   }
   if (nb > 0) {
     h += '<tr><td><span class="sw sw-gris"></span></td><td colspan="3">' + nb + ' local' + (nb > 1 ? 's' : '') +
          ' buit' + (nb > 1 ? 's' : '') + (subsBuits.length ? ': ' + escHtml(subsBuits.join(', ')) : '') + '</td></tr>';
   }
   return h + '</table></div>';
+}
+
+// LA FITXA D'UNA ACTIVITAT (clic al seu ID): nomes ella, amb TOTS els seus
+// establiments, tambe els d'altres parcel.les.
+function htmlFitxaActivitat(g) {
+  var ens = [], parceles = [];
+  for (var i = 0; i < PARCELES.length; i++) {
+    for (var j = 0; j < PARCELES[i].e.length; j++) {
+      var en = PARCELES[i].e[j];
+      if (en.t === 'a' && en.g === g) { ens.push(en); if (parceles.indexOf(i) < 0) { parceles.push(i); } }
+    }
+  }
+  if (ens.length === 0) { return ''; }
+  var f = filtres();
+  var h = '<div class="pop"><h3>ID ' + escHtml(g) + (ens[0].n || ens[0].ac ? ' &middot; ' + escHtml(ens[0].n || ens[0].ac) : '') + '</h3>';
+  h += '<div class="rc">' + parceles.map(function (i) {
+    var pc = PARCELES[i];
+    return escHtml(pc.rc || pc.k) + (pc.rc ? ' &middot; ' + enllacCadastre(pc.rc) : '');
+  }).join('<br>') + '</div><table>' + filaActivitat(ens, passaActivitat(ens[0], f)) + '</table>';
+  h += '<div class="acc">' + parceles.map(function (i) {
+    return '<a href="#" onclick="setTimeout(function () { obrePopup(' + i + '); }, 0); return false;">Totes les activitats de ' +
+           escHtml(PARCELES[i].rc || PARCELES[i].k) + '</a>';
+  }).join('<br>') + '</div></div>';
+  return h;
+}
+
+function obreFitxaActivitat(g, latlng) {
+  var html = htmlFitxaActivitat(g);
+  if (html === '') { return; }
+  L.popup({ maxWidth: 460, maxHeight: 420 }).setLatLng(latlng).setContent(html).openOn(map);
 }
 
 function obrePopup(idx, latlng) {
@@ -529,7 +623,10 @@ function cerca(q) {
       var ok = nomesNum ? String(en.g).indexOf(q) === 0
                         : (String(en.ad).toLowerCase().indexOf(q) >= 0 || String(en.n).toLowerCase().indexOf(q) >= 0 ||
                            String(en.ac).toLowerCase().indexOf(q) >= 0);
-      if (ok) { res.push({ idx: i, en: en }); }
+      // Un cop per activitat i parcel.la, encara que hi tingui 3 establiments.
+      var ja = false;
+      for (var r = 0; r < res.length; r++) { if (res[r].idx === i && res[r].en.g === en.g) { ja = true; break; } }
+      if (ok && !ja) { res.push({ idx: i, en: en }); }
     }
   }
   if (nomesNum) { res.sort(function (a, b) { return String(a.en.g).length - String(b.en.g).length; }); }
@@ -573,14 +670,19 @@ function baixaCsv() {
   for (var i = 0; i < PARCELES.length; i++) {
     var v = capes[i].vista;
     if (!v) { continue; }
-    for (var j = 0; j < v.acts.length; j++) {
-      var en = v.acts[j], av = [];
-      if (en.mb) { av.push('local marcat com a buit'); }
+    // Una fila per ACTIVITAT (i parcel.la): els seus establiments, junts.
+    var acts = perActivitat(v.acts);
+    for (var j = 0; j < acts.length; j++) {
+      var ens = acts[j], en = ens[0], av = [];
+      var algun = function (f) { return ens.some(f); };
+      if (algun(function (e) { return e.mb; })) { av.push('local marcat com a buit'); }
       if (en.nb) { av.push('no es a la base d\'activitats'); }
       if (en.se) { av.push('sense establiment'); }
-      if (en.x === 0) { av.push('coordenada UTM fora de la parcel·la'); }
-      if (en.x === 3) { av.push('sense coordenada UTM'); }
-      files.push([en.g, en.n, en.ac, en.s, en.ad, en.rc, TEXT_ESTAT[en.e], en.et, en.cl, en.at ? 'Sí' : '', av.join(', ')]);
+      if (algun(function (e) { return e.x === 0; })) { av.push('coordenada UTM fora de la parcel·la'); }
+      if (algun(function (e) { return e.x === 3; })) { av.push('sense coordenada UTM'); }
+      if (algun(function (e) { return e.bd; })) { av.push('local buit duplicat al GIA'); }
+      files.push([en.g, en.n, en.ac, uniq(ens.map(function (e) { return e.s; })).join(' | '), uniq(ens.map(function (e) { return e.ad; })).join(' | '),
+                  uniq(ens.map(function (e) { return e.rc; })).join(' | '), TEXT_ESTAT[en.e], en.et, en.cl, en.at ? 'Sí' : '', av.join(', ')]);
     }
   }
   var text = '﻿' + files.map(function (f) { return f.map(csvCamp).join(';'); }).join('\r\n');

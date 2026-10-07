@@ -267,6 +267,7 @@ function Invoke-PlanolMain {
     $msg  = "Planol generat: $(@($dades).Count) parcel" + [char]0x00B7 + "les amb $($res.Activitats) activitats.`n`n"
     if ($res.SenseEstabliment -gt 0) { $msg += "Activitats sense cap establiment (situades amb la refer" + [char]0x00E8 + "ncia de l'Excel d'activitats): $($res.SenseEstabliment)`n" }
     if ($res.NoBase -gt 0) { $msg += "Establiments amb una activitat que no " + [char]0x00E9 + "s a la base d'activitats: $($res.NoBase)`n" }
+    if ($res.BuitsDuplicats -gt 0) { $msg += "Locals buits duplicats al GIA (el mateix local, buit i amb activitat; no es compten com a buits): $($res.BuitsDuplicats)`n" }
     if ($res.MarcatsBuit -gt 0) { $msg += "Activitats en un local marcat com a buit (per revisar): $($res.MarcatsBuit)`n" }
     if ($res.SensePosicio -gt 0) { $msg += "Sense refer" + [char]0x00E8 + "ncia cadastral ni coordenades (no surten): $($res.SensePosicio)`n" }
     foreach ($a in $avisos) { $msg += "`n$a" }

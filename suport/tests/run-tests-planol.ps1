@@ -174,6 +174,17 @@ AssertEq "$($r.Establiments)|$($r.Buits)|$($r.SenseEstabliment)|$($r.NoBase)|$($
 # feia @(Read-EstablimentsExcel ...), que ja la torna amb coma, i el model rebia
 # UN element que les contenia totes. Totes les activitats sortien "sense
 # establiment" i cap local buit. Ara el model la desplega.
+# BUITS DUPLICATS (el 1365 de l'usuari): el GIA te el mateix local buit i
+# ocupat. El buit no compta com a buit; l'ocupat diu quin establiment es.
+$eDup = { param($id, $act, $local = '') [pscustomobject]@{ IdEst = $id; Rc = '2782719DF2728B0001LL'; IdActivitat = $act; Local = $local; Bloc = ''; Escala = ''; Pis = ''; Porta = ''
+          Buit = ($act -eq ''); UtmX = 422000.0; UtmY = 4579000.0; Adreca = 'C FRANCESC LAYRET 78'; Carrer = 'FRANCESC LAYRET'; Numero = '78' } }
+$mDup = Build-PlanolModel @((& $eDup '1427' ''), (& $eDup '1428' '1365'), (& $eDup '1429' '' '2')) @{} @{} @{}
+$enDup = @($mDup.Parceles[0].Entrades)
+AssertEq (@($enDup | ForEach-Object { "$($_.Tipus):$($_.IdEst):$($_.BuitDuplicat):$($_.BuitsIguals)" }) -join ' ') 'activitat:1428:False:1427 buit:1429:False: buit:1427:True:' `
+         'el buit identic al local ocupat es duplicat (i l ocupat ho diu); el del local 2, un buit de debo'
+AssertEq "$($mDup.Resum.Buits)|$($mDup.Resum.BuitsDuplicats)" '1|1' 'el resum els compta a part'
+$jDup = @(ConvertTo-PlanolDadesMapa $mDup @{})[0]
+AssertEq (@($jDup.e | ForEach-Object { "$($_.t):$($_['ie']):$($_['du']):$($_['bd'])" }) -join ' ') 'a:1428::1427 b:1429:: b:1427:True:' 'al mapa: ie, du i bd nomes quan hi son'
 $modelE = Build-PlanolModel (,@($ests)) $acts $estats $unitats
 $rE = $modelE.Resum
 AssertEq "$($rE.Establiments)|$($rE.Buits)|$($rE.SenseEstabliment)" "$($r.Establiments)|$($r.Buits)|$($r.SenseEstabliment)" 'Build-PlanolModel: amb la llista embolcallada, el mateix resultat (no "tot sense establiment")'

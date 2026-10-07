@@ -298,6 +298,13 @@ diu el local, el programa ho pregunta al Cadastre (surt marcat «(Cadastre)»), 
 si el Cadastre tampoc ho sap, surt el número d'unitat de la referència
 cadastral («unitat 0011»).
 
+**Clica un ID** i surt la fitxa d'aquella activitat (amb tots els seus
+establiments); **clica la parcel·la** i surten totes les activitats que hi ha. Una
+activitat amb diversos establiments surt un sol cop, amb la llista dels seus
+locals. Si el GIA té el mateix local dues vegades (un amb l'activitat i un de
+buit), no es compta com a local buit: surt a *Per revisar → Local buit duplicat
+al GIA* perquè es corregeixi allà.
+
 **Filtres** (a la dreta): per estat, els **locals buits** (en gris; no surten si
 no ho marques) i **«Per revisar»**: activitats en un local marcat com a buit (que
 potser ja han plegat), activitats que no són a la base d'activitats i activitats

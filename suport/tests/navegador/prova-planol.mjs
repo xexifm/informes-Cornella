@@ -34,7 +34,7 @@ try {
   await p.waitForFunction(() => typeof capes !== 'undefined' && capes.length === PARCELES.length, null, { timeout: 10000 });
   const idx = (k) => p.evaluate((k) => PARCELES.findIndex((x) => x.k === k), k);
   const iCadis = await idx('2295827DF2729E'), iHosp = await idx('4091106DF2749A'), iBuit = await idx('1111111DF1111A');
-  const vista = (i) => p.evaluate((i) => { const v = capes[i].vista; return { color: v.color, acts: v.acts.map((e) => e.g), revisar: v.revisar, alMapa: capes[i].alMapa }; }, i);
+  const vista = (i) => p.evaluate((i) => { const v = capes[i].vista; return { color: v.color, acts: [...new Set(v.acts.map((e) => e.g))], revisar: v.revisar, alMapa: capes[i].alMapa }; }, i);
 
   seccio('Arrencada');
   eq(await p.evaluate(() => typeof L), 'object', 'el Leaflet carrega (amb el SRI)');
@@ -152,7 +152,11 @@ try {
   check(fitxa.includes('1447') && fitxa.includes('EL RACO') && fitxa.includes('PRECINTADA'), 'hi ha la precintada, amb el nom');
   check(fitxa.includes('(Cadastre)'), 'i diu que la planta/porta surt del Cadastre');
   check(fitxa.includes('Requeriment') && fitxa.includes('2 informes'), 'la de requeriment, amb el nombre d\'informes');
-  check(fitxa.includes('1 local buit'), 'i el local buit');
+  check(fitxa.includes('1 local buit'), 'i el local buit (el duplicat del GIA no hi compta)');
+  eq(await p.evaluate(() => [...document.querySelectorAll('.leaflet-popup-content td.gia')].map((t) => t.textContent)), ['1447', '1403'],
+     'una fila per ACTIVITAT: el 1447, amb dos establiments, surt un sol cop');
+  check(fitxa.includes('2 establiments:') && fitxa.includes('Local 7'), '...amb els seus dos establiments');
+  check(fitxa.includes('també com a BUIT (establiment 8)'), 'i l\'avís del local buit duplicat al GIA');
   check((await p.innerHTML('.leaflet-popup-content')).includes('rc1=2295827&amp;rc2=DF2729E'), 'amb l\'enllaç a la fitxa del Cadastre');
   check(fitxa.includes('Esc. 1 - Pl. 2 - Pt. 16') && fitxa.includes('Local 5'), 'el local/planta/porta, a la fitxa (ja no al plànol)');
   check(fitxa.includes('Adreça (base d\'activitats): C CADIS 21'), 'l\'adreça de la base d\'activitats, amb el seu nom');
@@ -160,6 +164,23 @@ try {
   check(fitxa.includes('la coordenada UTM cau fora de la parcel·la'), 'la que va en vermell diu per què');
   check(!fitxa.includes('situa'), 'res de situar a mà: mana la coordenada de l\'Excel');
   check(fitxa.includes('Adreces al Cadastre: CL CADIS 19'), 'i les de la parcel·la al Cadastre, a dalt');
+
+  seccio('Clic a un ID: la fitxa d\'aquella activitat');
+  await p.evaluate(() => map.closePopup());
+  await p.evaluate((i) => map.setView(PARCELES[i].c, 18.5, { animate: false }), iCadis);
+  eq(await p.evaluate((i) => capes[i].etiqs.filter((x) => !x.def.v)[0].tt.options.direction, iCadis), 'center',
+     'l\'etiqueta, centrada al seu punt (on acaba la línia de punts)');
+  await p.locator('.leaflet-tooltip.ent .xip[data-g="1447"]').click();
+  const fAct = await p.locator('.leaflet-popup-content').last().textContent();
+  check(fAct.includes('ID 1447') && fAct.includes('2 establiments:') && !fAct.includes('1403'), 'només el 1447, amb els seus establiments (cap altra activitat)');
+  check(fAct.includes('Totes les activitats de 2295827DF2729E'), 'i un enllaç a tota la parcel·la');
+  await p.locator('.leaflet-popup-content a', { hasText: 'Totes les activitats' }).last().click();
+  await p.waitForFunction(() => { const c = [...document.querySelectorAll('.leaflet-popup-content')].pop(); return c && c.textContent.includes('1403'); }, null, { timeout: 3000 });
+  check(true, 'que obre la fitxa de la parcel·la, amb totes');
+  await p.evaluate(() => map.closePopup());
+  await p.selectOption('#f-revisar', 'bd');
+  eq((await vista(iCadis)).acts, ['1447'], 'per revisar «local buit duplicat al GIA»: el 1447');
+  await p.selectOption('#f-revisar', '');
 
   seccio('Cercador');
   await p.fill('#cerca', '144');

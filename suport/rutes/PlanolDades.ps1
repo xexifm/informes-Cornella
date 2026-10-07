@@ -323,7 +323,8 @@ function Get-UnitatsAConsultar($establiments) {
 # Cada entrada: { Tipus ('activitat'|'buit'); Gia; Nom; Activitat; Sub; SubFont;
 #   Estat; EstatText; Precinte; MarcatBuit; SenseEstabliment; NoBase; NInformes;
 #   Adreca; Rc; Carrer; Numero; Turistic; Classificacio; ActX; ActY (UTM X/Y de
-#   l'Excel d'activitats, on va l'ID al planol) }.
+#   l'Excel d'activitats, on va l'ID al planol); IdEst; BuitDuplicat (un buit
+#   igual a un local ocupat); BuitsIguals (a l'ocupat: els ID d'aquells buits) }.
 function Build-PlanolModel($establiments, $activitats, $estats, $unitats) {
     if ($null -eq $activitats) { $activitats = @{} }
     if ($null -eq $estats) { $estats = @{} }
@@ -333,7 +334,7 @@ function Build-PlanolModel($establiments, $activitats, $estats, $unitats) {
     $establiments = @(@($establiments) | ForEach-Object { $_ } | Where-Object { $null -ne $_ })
     if ($null -eq $unitats) { $unitats = @{} }
     $parceles = [ordered]@{}
-    $res = [ordered]@{ Establiments = 0; Activitats = 0; Buits = 0; SenseEstabliment = 0; NoBase = 0; MarcatsBuit = 0; SensePosicio = 0 }
+    $res = [ordered]@{ Establiments = 0; Activitats = 0; Buits = 0; BuitsDuplicats = 0; SenseEstabliment = 0; NoBase = 0; MarcatsBuit = 0; SensePosicio = 0 }
 
     $afegeix = {
         param($rc, $x, $y, $entrada)
@@ -351,21 +352,37 @@ function Build-PlanolModel($establiments, $activitats, $estats, $unitats) {
         [void]$pc.Entrades.Add($entrada)
     }
 
+    # ELS BUITS DUPLICATS (octubre 2026, l'usuari amb el 1365): el GIA te el
+    # mateix local DUES vegades, un establiment amb l'activitat i un altre de
+    # buit (mateixa refcat, adreca i local/escala/pis/porta). A l'Excel de
+    # l'octubre n'hi havia 37. Un local no pot ser buit i ocupat: el buit no es
+    # compta com a buit i l'activitat surt a "Per revisar" (l'ha d'arreglar el
+    # GIA). Clau -> llista d'ID d'activitat dels ocupats; i al reves, els ID
+    # d'establiment buits per a cada clau.
+    $ocupats = @{}; $buitsDe = @{}
+    foreach ($e in @($establiments)) {
+        $k = _PlanolClauLocal $e
+        if ([string]$e.IdActivitat -ne '') { $ocupats[$k] = $true }
+        else { if (-not $buitsDe.ContainsKey($k)) { $buitsDe[$k] = @() }; $buitsDe[$k] += [string]$e.IdEst }
+    }
+
     $giaAmbEstabliment = @{}
     foreach ($e in @($establiments)) {
         $res.Establiments++
+        $kLocal = _PlanolClauLocal $e
         $unitat = $null
         $rcN = _PlanolRcNeta $e.Rc
         if ($unitats.ContainsKey($rcN)) { $unitat = $unitats[$rcN] }
         $sub = Get-SubEstabliment $e $unitat
         if ([string]$e.IdActivitat -eq '') {
-            $res.Buits++
+            $dup = $ocupats.ContainsKey($kLocal)
+            if ($dup) { $res.BuitsDuplicats++ } else { $res.Buits++ }
             & $afegeix $e.Rc $e.UtmX $e.UtmY ([pscustomobject]@{
                 Tipus = 'buit'; Gia = ''; Nom = ''; Activitat = ''; Sub = $sub.Text; SubFont = $sub.Font
                 Estat = ''; EstatText = ''; Precinte = $false; MarcatBuit = $true; SenseEstabliment = $false
                 NoBase = $false; NInformes = 0; Adreca = $e.Adreca; Rc = $rcN
                 Carrer = [string]$e.Carrer; Numero = [string]$e.Numero; Turistic = $false; Classificacio = ''
-                ActX = $null; ActY = $null })
+                ActX = $null; ActY = $null; IdEst = [string]$e.IdEst; BuitDuplicat = $dup; BuitsIguals = '' })
             continue
         }
         $gia = [string]$e.IdActivitat
@@ -393,7 +410,10 @@ function Build-PlanolModel($establiments, $activitats, $estats, $unitats) {
             # On va l'ID al planol: la coordenada de l'Excel d'ACTIVITATS (la que
             # corregeix Coordenades), no la de l'establiment.
             ActX = if ($null -ne $act) { $act.UtmX } else { $null }
-            ActY = if ($null -ne $act) { $act.UtmY } else { $null } })
+            ActY = if ($null -ne $act) { $act.UtmY } else { $null }
+            IdEst = [string]$e.IdEst; BuitDuplicat = $false
+            # Els establiments BUITS iguals a aquest (vegeu $ocupats): "1427".
+            BuitsIguals = if ($buitsDe.ContainsKey($kLocal)) { (@($buitsDe[$kLocal]) -join ', ') } else { '' } })
     }
 
     # Activitats que no surten a cap establiment: amb la refcat de l'Excel
@@ -412,7 +432,8 @@ function Build-PlanolModel($establiments, $activitats, $estats, $unitats) {
             NInformes = if ($null -ne $inf) { [int]$inf.NInformes } else { 0 }
             Adreca = $act.Adreca; Rc = $act.Rc
             Carrer = [string]$act.Carrer; Numero = [string]$act.Numero; Turistic = [bool]$act.Turistic
-            Classificacio = [string]$act.Classificacio; ActX = $act.UtmX; ActY = $act.UtmY })
+            Classificacio = [string]$act.Classificacio; ActX = $act.UtmX; ActY = $act.UtmY
+            IdEst = ''; BuitDuplicat = $false; BuitsIguals = '' })
     }
 
     # Dins de cada parcel.la: primer les activitats (per sub-establiment i ID
@@ -427,6 +448,16 @@ function Build-PlanolModel($establiments, $activitats, $estats, $unitats) {
     }
     $res.Activitats = $gias.Count
     return [pscustomobject]@{ Parceles = @($parceles.Values); Resum = [pscustomobject]$res }
+}
+
+# El LOCAL d'un establiment, per trobar-ne de repetits: la refcat sencera,
+# l'adreca i el local/bloc/escala/pis/porta, en majuscules i sense espais de
+# mes. Mateixa refcat sola no n'hi ha prou: un edifici sencer pot ser una sola
+# unitat del Cadastre amb molts locals. PURA.
+function _PlanolClauLocal($e) {
+    $parts = @((_PlanolRcNeta $e.Rc), $e.Adreca, $e.Local, $e.Bloc, $e.Escala, $e.Pis, $e.Porta) |
+        ForEach-Object { ((_PlanolValor $_).ToUpperInvariant()) }
+    return ($parts -join '|')
 }
 
 # ----------------------------------------------------------------------------
@@ -916,6 +947,10 @@ function ConvertTo-PlanolDadesMapa($model, $geometries, $portals = $null, $punts
                     rc = [string]$en.Rc
                     at = [bool]$en.Turistic; x = $x; cl = ([string]$en.Classificacio).Trim()
                 }
+                # Nomes quan hi son (el fitxer porta milers d'entrades).
+                if ([string]$en.IdEst -ne '') { $ents[-1]['ie'] = [string]$en.IdEst }
+                if ([bool]$en.BuitDuplicat) { $ents[-1]['du'] = $true }
+                if ([string]$en.BuitsIguals -ne '') { $ents[-1]['bd'] = [string]$en.BuitsIguals }
             }
         }
         $etJson = @()
