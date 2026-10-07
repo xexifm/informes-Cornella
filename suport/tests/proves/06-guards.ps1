@@ -329,7 +329,10 @@ Write-Host "`n--- Llancar un script en segon pla: un sol lloc ---"
 # depenen; Invoke-RevisarMobil NO hi entra i esta dit per que (espera el resultat,
 # li passa arguments i de vegades ha de ser visible).
 $srcMotor4 = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'suport' 'Motor.ps1')))
-Assert ($srcMotor4.Contains('function Start-ScriptSegonPla')) 'Start-ScriptSegonPla viu a Motor.ps1'
+$srcSegon4 = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'suport' 'SegonPla.ps1')))
+Assert ($srcSegon4.Contains('function Start-ScriptSegonPla') -and $srcMotor4.Contains("'SegonPla.ps1'")) 'Start-ScriptSegonPla viu a SegonPla.ps1 i el Motor el carrega'
+$srcPlanol4 = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'suport' (Join-Path 'rutes' 'Planol.ps1'))))
+Assert ($srcPlanol4.Contains('Start-ScriptSegonPla') -and -not ($srcPlanol4 -match "Start-Process -FilePath 'powershell")) 'el Planol puja la copia del mobil amb Start-ScriptSegonPla'
 $srcEdit4 = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'suport' 'EditorCatalegs.ps1')))
 Assert ($srcEdit4.Contains('Start-ScriptSegonPla')) 'les vistes en Word passen per Start-ScriptSegonPla'
 Assert (-not ($srcEdit4 -match "Start-Process -FilePath 'powershell\.exe'")) 'EditorCatalegs.ps1 ja no es munta el llancador pel seu compte'
@@ -943,7 +946,8 @@ AssertEq $jsonAPel.Count 0 ('cap .json escrit fora de Json.ps1' + $(if ($jsonAPe
 
 # I que activitats.json hi passi de debo.
 $srcAct = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'suport' 'Activitats.ps1')))
-Assert ($srcAct.Contains('Write-JsonText $outFile $json')) 'activitats.json s''escriu amb Write-JsonText (UTF-8 sense BOM i atomic)'
+# Des de l'octubre de 2026 el desa Save-ADadesDrive (tambe el planol del mobil).
+Assert ($srcAct.Contains("Save-ADadesDrive 'activitats.json'") -and $srcAct.Contains('Write-JsonText (Join-Path $DriveDadesDir $nom) $text')) 'activitats.json s''escriu amb Write-JsonText (UTF-8 sense BOM i atomic), via Save-ADadesDrive'
 
 
 Write-Host "`n--- El nom del fitxer de sortida: un sol sanejat ---"

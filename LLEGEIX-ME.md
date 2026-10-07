@@ -886,6 +886,17 @@ Es pot omplir un informe des del telèfon i que el `.docx` es generi sol al PC.
 La posada en marxa (Google Drive, credencials, web) és a
 **`suport/documentacio/DESPLEGAMENT-MOBIL.md`**.
 
+En obrir la web del mòbil hi ha dues opcions:
+
+1. **Consultar plànol**: el mateix *Plànol activitats* del PC. Cada vegada que
+   el generes al PC, se'n puja una còpia al teu Drive privat (carpeta `Dades`,
+   `planol.html`), i el mòbil la llegeix amb el teu compte de Google: **genera'l
+   al PC de tant en tant** perquè el del mòbil estigui al dia. A la pantalla del
+   telèfon, els filtres s'obren amb el botó **Filtres**. A la fitxa de cada
+   activitat hi ha **Fer informe**: obre el formulari amb l'ID GIA ja cercat al
+   Pas 2; revisa les dades i prem **Següent**.
+2. **Generar informe**: el formulari de sempre.
+
 ---
 
 ## 9. Per si ho toca algú altre (o Claude)

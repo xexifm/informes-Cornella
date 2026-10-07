@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Plànol activitats — mòbil</title>
+  <meta name="theme-color" content="#a61a2f">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+  <link rel="apple-touch-icon" href="img/icona-180.png">
+  <link rel="stylesheet" href="estil.css">
+  <style>
+    html, body { height: 100%; }
+    body { display: flex; flex-direction: column; margin: 0; }
+    #cos { flex: 1 1 auto; min-height: 0; position: relative; }
+    #marc { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: none; }
+    #avis { margin: 16px; }
+    .barra { display: flex; gap: 8px; align-items: center; }
+    .barra a { color: inherit; font-weight: bold; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <!--
+    EL PLANOL AL MOBIL (octubre 2026). El PC, en generar el "Plànol activitats",
+    en puja l'HTML sencer a la carpeta PRIVADA Dades del Drive (planol.html,
+    suport/mobil/PujaPlanol.ps1): porta requeriments i noms, i per aixo NO es
+    aqui (aquest web es public). Aquesta pagina el llegeix amb el compte de
+    Google de l'usuari i el mostra en un marc: es la MATEIXA eina que al PC.
+    "Fer informe" (a la fitxa d'una activitat) envia un missatge aqui i s'obre
+    el formulari amb l'ID GIA ja cercat al Pas 2 (index.html?gia=...).
+  -->
+  <header>
+    <div class="marca barra">
+      <a href="index.html" title="Tornar a l'inici">&larr;</a>
+      <img id="logo" src="img/logo.svg" alt="Ajuntament de Cornellà de Llobregat" onerror="this.style.display='none'">
+      <span class="subtitol">Plànol</span>
+    </div>
+    <div id="estat-drive" class="estat estat-off">Drive: no connectat</div>
+  </header>
+  <div id="cos">
+    <div id="avis" class="card">
+      <p id="msg">Carregant el plànol…</p>
+      <button id="btn-obrir" type="button" class="principal ocult">Obrir el plànol (amb el teu compte de Google)</button>
+    </div>
+    <iframe id="marc" title="Plànol activitats"></iframe>
+  </div>
+  <script src="config.js"></script>
+  <script src="drive.js"></script>
+  <script>
+  (function () {
+    function $(id) { return document.getElementById(id); }
+    var marc = $("marc"), msg = $("msg"), boto = $("btn-obrir");
+
+    function estatDrive(on) {
+      $("estat-drive").textContent = on ? "Drive: connectat" : "Drive: no connectat";
+      $("estat-drive").className = "estat " + (on ? "estat-on" : "estat-off");
+    }
+
+    function mostra(html) {
+      // Un Blob i no srcdoc: el planol fa servir el localStorage (el fons triat)
+      // i un blob: te el MATEIX origen que aquesta pagina.
+      var url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+      marc.src = url;
+      marc.style.display = "block";
+      $("avis").classList.add("ocult");
+    }
+
+    function carrega() {
+      boto.classList.add("ocult");
+      msg.textContent = "Llegint el plànol del Drive…";
+      return Drive.llegirPlanol().then(mostra).catch(function (e) {
+        msg.textContent = e.message;
+      });
+    }
+
+    // "Fer informe" des de la fitxa d'una activitat. Nomes del NOSTRE marc.
+    window.addEventListener("message", function (ev) {
+      if (ev.source !== marc.contentWindow) { return; }
+      var d = ev.data || {};
+      if (d.tipus === "informe" && d.gia) {
+        window.location.href = "index.html?gia=" + encodeURIComponent(String(d.gia));
+      }
+    });
+
+    if (!window.Drive || !Drive.disponible()) {
+      msg.textContent = "El Drive no està configurat (docs/config.js): el plànol hi ha d'arribar des del PC.";
+      return;
+    }
+    Drive.reconnectarSilenci().then(function (ok) {
+      if (ok) { estatDrive(true); return carrega(); }
+      // La finestra de Google ha de sortir d'un TOC de l'usuari (els mobils
+      // bloquegen les que s'obren soles).
+      msg.textContent = "Per veure el plànol cal el teu compte de Google (les dades són al teu Drive privat).";
+      boto.classList.remove("ocult");
+    });
+    boto.addEventListener("click", function () {
+      Drive.connectar().then(function () { estatDrive(true); return carrega(); }).catch(function (e) {
+        msg.textContent = "No s'ha pogut connectar amb Google: " + e.message;
+      });
+    });
+  })();
+  </script>
+</body>
+</html>

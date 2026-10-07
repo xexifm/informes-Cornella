@@ -490,7 +490,39 @@
     });
   }
 
+  // LA PANTALLA D'INICI (octubre 2026): 1 Consultar planol (planol.html) o 2
+  // Generar informe. Amb ?gia=X (el "Fer informe" del planol) es va directe al
+  // Pas 2 amb l'ID cercat: l'usuari ho revisa i prem Seguent.
+  var dadesLlestes = false, modeGenerar = false;
+  var giaInicial = (function () {
+    try { return (new URLSearchParams(window.location.search).get("gia") || "").trim(); } catch (e) { return ""; }
+  })();
+
+  function generar() {
+    modeGenerar = true;
+    mostrar($("inici"), false);
+    if (dadesLlestes) { comencar(); } else { mostrar($("carregant"), true); }
+  }
+
+  function comencar() {
+    mostrar($("carregant"), false);
+    mostrar($("navegacio"), true);
+    if (giaInicial) {
+      anarA(PASSOS.indexOf("capcalera"));
+      $("in-gia").value = giaInicial;
+      estat.header.ID_GIA = giaInicial;
+      cercarActivitat();
+      giaInicial = "";
+      // Que tornar a carregar la pagina no torni a cercar el mateix ID.
+      try { window.history.replaceState(null, "", window.location.pathname); } catch (e) { }
+    } else {
+      anarA(passosAbastables()[0]);
+    }
+  }
+
   function inici() {
+    $("btn-generar").addEventListener("click", generar);
+    if (giaInicial) { generar(); }
     Promise.all([
       carregarJson("dades/manifest.json"),
       carregarJson("dades/conclusions.json").catch(function () { return { HeaderText: "", Selectable: [], Always: [] }; }),
@@ -509,8 +541,6 @@
         emailTextos = null;
         emailTextosError = "no s'ha pogut carregar el format del correu (dades/correu-format.json o dades/capcalera.json).";
       }
-      $("carregant").classList.add("ocult");
-      mostrar($("navegacio"), true);
       muntarCataleg();
       muntarCapcalera();
       muntarDrive();
@@ -519,8 +549,10 @@
       if (window.Drive && Drive.reconnectarSilenci) {
         Drive.reconnectarSilenci().then(function (ok) { if (ok) estatDrive(true); });
       }
-      anarA(passosAbastables()[0]);
+      dadesLlestes = true;
+      if (modeGenerar) { comencar(); }
     }).catch(function (e) {
+      mostrar($("carregant"), true);
       $("carregant").innerHTML = '<span class="error">Error carregant les dades: ' + e.message +
         "<br>Comprova que el PC hagi pujat les dades (Actualitzar.bat) i que GitHub Pages estigui actiu.</span>";
     });

@@ -566,35 +566,13 @@ function Ensure-AppDataDir {
 }
 
 # ----------------------------------------------------------------------------
-# Llancar un script d'aquest mateix 'suport' EN SEGON PLA
+# Llancar un script d'aquest mateix 'suport' EN SEGON PLA: Start-ScriptSegonPla
+# viu a SegonPla.ps1 (octubre 2026), perque el Planol activitats, que corre en
+# un altre proces i no pot carregar aquest fitxer, tambe en llanca un (la copia
+# del planol per al mobil).
 # ----------------------------------------------------------------------------
-# Hi ha feines que no poden fer esperar l'usuari i que no ensenyen res: refer
-# les VISTES en Word dels catalegs (l'editor, en tancar-se) i la passada
-# AUTOMATICA de "Copiar informes" (el menu, cada dia a les 13:00). Totes dues
-# es llancaven -o s'haurien llancat- amb les mateixes cinc linies, i la trampa
-# de les cometes es prou fina per no tenir-la escrita dues vegades:
-#
-#   A PowerShell 5.1, Start-Process -ArgumentList NO enquota els elements, i el
-#   clone de l'usuari te espais a la ruta (vegeu _ArgvToCommandLine a
-#   PdfSignar.ps1, mateixa trampa). Les cometes les hi posem nosaltres.
-#
-# -WindowStyle Hidden: el PowerShell 5.1 crea la seva consola i despres l'amaga,
-# o sigui que es pot veure una llampada; per a un proces que no torna cap
-# resposta a l'usuari es acceptable (el llancador del programa, que si que
-# s'obre a ma, va per wscript.exe justament per no ensenyar-la).
-#
-# Retorna l'objecte Process (per poder saber si encara corre) o $null si no ha
-# pogut arrencar. Mai llanca: cap d'aquestes feines no es critica.
-function Start-ScriptSegonPla([string]$nomScript) {
-    try {
-        $script = [System.IO.Path]::Combine($ScriptRoot, $nomScript)
-        if (-not (Test-Path -LiteralPath $script)) { return $null }
-        # $args NO: es una variable AUTOMATICA de PowerShell (els arguments de
-        # la funcio) i assignar-la dins d'una funcio es demanar problemes.
-        $argv = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"' + $script + '"'))
-        return (Start-Process -FilePath 'powershell.exe' -ArgumentList $argv -WindowStyle Hidden -PassThru)
-    } catch { return $null }
-}
+. (Join-Path $ScriptRoot 'SegonPla.ps1')
+
 
 # ----------------------------------------------------------------------------
 # Una sola instancia del programa

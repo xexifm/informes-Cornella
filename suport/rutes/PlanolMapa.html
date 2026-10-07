@@ -64,6 +64,20 @@
   .pop .avis { color: #a0560b; font-size: 11px; }
   .pop .cad { color: #777; font-size: 11px; }
   .pop .acc { margin-top: 6px; font-size: 12px; }
+  .pop .informe { display: inline-block; margin-top: 8px; background: #a61a2f; color: #fff; padding: 6px 10px;
+                  border-radius: 5px; text-decoration: none; font-weight: bold; }
+  /* AL MOBIL (l'usuari, octubre 2026: "l'eina s'ha de poder usar des del
+     mobil"): el lateral passa a ser un panell de baix que s'obre amb un boto. */
+  #bt-side { display: none; margin-left: auto; background: #fff; color: #14365c; padding: 5px 10px; font-weight: bold; }
+  @media (max-width: 760px) {
+    #top { padding: 8px 10px; gap: 8px; }
+    #top h1 { font-size: 15px; }
+    #top .meta { display: none; }
+    #bt-side { display: inline-block; }
+    #side { display: none; position: fixed; left: 0; right: 0; bottom: 0; width: auto; max-height: 60vh; z-index: 1000;
+            background: #fff; border-top: 2px solid #14365c; box-shadow: 0 -4px 12px rgba(0,0,0,.25); }
+    #side.obert { display: block; }
+  }
   .pop .adr { color: #333; font-size: 11px; }
   .pop .adr i { color: #777; font-style: normal; }
 </style>
@@ -73,6 +87,7 @@
   <h1>Plànol activitats &mdash; Cornellà de Llobregat</h1>
   <span class="meta">{{baseAct}} &middot; {{baseEst}} &middot; {{baseInf}}</span>
   <span class="meta">Generat: {{generat}}</span>
+  <button id="bt-side" type="button" onclick="document.getElementById('side').classList.toggle('obert')">Filtres</button>
 </div>
 {{avisos}}
 <div id="wrap">
@@ -537,7 +552,8 @@ function filaActivitat(ens, visible) {
       '<br><span class="adr"><i>Adreça (base d\'activitats):</i> ' + escHtml(ads.join(' · ') || '—') + '</span>' +
       (cas.length ? '<br><span class="adr"><i>Adreça (Cadastre):</i> ' + escHtml(cas.join(' · ')) + '</span>' : '') +
       (en.cl || en.at ? '<br><span class="cad">' + escHtml([en.cl ? 'Classificació: ' + en.cl : '', en.at ? 'allotjament turístic' : ''].filter(Boolean).join(' · ')) + '</span>' : '') +
-      (avisos.length ? '<br><span class="avis">&#9888; ' + escHtml(avisos.join(' · ')) + '</span>' : '') + '</td>' +
+      (avisos.length ? '<br><span class="avis">&#9888; ' + escHtml(avisos.join(' · ')) + '</span>' : '') +
+      (DINS_APP ? '<br><a href="#" class="informe" onclick="demanaInforme(' + escHtml(JSON.stringify(String(en.g))) + '); return false;">Fer informe</a>' : '') + '</td>' +
     '<td>' + escHtml(estat) + (en.ni > 0 ? '<br><span class="cad">' + en.ni + ' informe' + (en.ni > 1 ? 's' : '') + '</span>' : '') + '</td></tr>';
 }
 
@@ -596,14 +612,26 @@ function htmlFitxaActivitat(g) {
   return h;
 }
 
+// Que la fitxa hi capiga tambe a la pantalla d'un mobil.
+function midaFitxa() {
+  return { maxWidth: Math.min(460, window.innerWidth - 50), maxHeight: Math.min(420, Math.round(window.innerHeight * 0.6)) };
+}
+
+// FER INFORME (nomes quan el planol es dins de l'app del mobil, docs/planol.html):
+// la pagina de fora obre el formulari amb l'ID GIA ja cercat al Pas 2.
+var DINS_APP = (function () { try { return window.parent !== window; } catch (e) { return true; } })();
+function demanaInforme(g) {
+  try { window.parent.postMessage({ tipus: 'informe', gia: String(g) }, '*'); } catch (e) { }
+}
+
 function obreFitxaActivitat(g, latlng) {
   var html = htmlFitxaActivitat(g);
   if (html === '') { return; }
-  L.popup({ maxWidth: 460, maxHeight: 420 }).setLatLng(latlng).setContent(html).openOn(map);
+  L.popup(midaFitxa()).setLatLng(latlng).setContent(html).openOn(map);
 }
 
 function obrePopup(idx, latlng) {
-  L.popup({ maxWidth: 460, maxHeight: 420 }).setLatLng(latlng || PARCELES[idx].c).setContent(htmlFitxa(idx)).openOn(map);
+  L.popup(midaFitxa()).setLatLng(latlng || PARCELES[idx].c).setContent(htmlFitxa(idx)).openOn(map);
 }
 
 // ---------------------------------------------------------------------------

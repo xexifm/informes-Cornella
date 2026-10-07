@@ -187,4 +187,11 @@ select.inline-camp { min-width: 110px; }
 #pas-indicador { font-size: 13px; color: #667; }
 
 .ocult { display: none !important; }
+
+/* La pantalla d'inici: dues opcions grosses (consultar el plànol / generar un informe). */
+.opcio-inici { display: block; width: 100%; text-align: left; margin: 10px 0; padding: 14px 16px; border-radius: 10px;
+               border: 2px solid var(--brand); background: #fff; color: var(--brand-dark); text-decoration: none; cursor: pointer; }
+.opcio-inici b { display: block; font-size: 18px; margin-bottom: 4px; }
+.opcio-inici span { display: block; font-size: 14px; color: #555; font-weight: normal; }
+.opcio-inici:active { background: #fbeaec; }
 .error { color: var(--error); }

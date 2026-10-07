@@ -121,15 +121,27 @@
       .then(function (d) { return (d.files && d.files.length) ? d.files[0].id : null; });
   }
 
-  // Llegeix i parseja activitats.json de la carpeta Dades.
-  function llegirActivitats() {
+  // Llegeix un fitxer de la carpeta Dades (privada) com a TEXT. siNoHiEs: el
+  // missatge si no hi es (diu que s'ha de fer al PC).
+  function llegirTextDades(nom, siNoHiEs) {
     if (!connectat()) return Promise.reject(new Error("Cal connectar Drive primer."));
-    return cercarFitxer("activitats.json", CONFIG.DRIVE_DADES_FOLDER_ID).then(function (id) {
-      if (!id) throw new Error("No s'ha trobat activitats.json a Drive. Genera un informe al PC primer.");
+    return cercarFitxer(nom, CONFIG.DRIVE_DADES_FOLDER_ID).then(function (id) {
+      if (!id) throw new Error(siNoHiEs || ("No s'ha trobat " + nom + " a Drive."));
       var url = "https://www.googleapis.com/drive/v3/files/" + id + "?alt=media";
       return fetch(url, { headers: { Authorization: "Bearer " + accessToken } })
-        .then(_check).then(function (r) { return r.json(); });
+        .then(_check).then(function (r) { return r.text(); });
     });
+  }
+
+  // Llegeix i parseja activitats.json de la carpeta Dades.
+  function llegirActivitats() {
+    return llegirTextDades("activitats.json", "No s'ha trobat activitats.json a Drive. Genera un informe al PC primer.")
+      .then(function (t) { return JSON.parse(t); });
+  }
+
+  // El Planol activitats que el PC hi deixa (Dades/planol.html, PujaPlanol.ps1).
+  function llegirPlanol() {
+    return llegirTextDades("planol.html", "Encara no hi ha cap plànol al Drive: genera'l al PC (Plànol activitats) i torna-ho a provar.");
   }
 
   // Puja un objecte JSON com a fitxer nou a la carpeta Entrada.
@@ -162,6 +174,7 @@
     reconnectarSilenci: reconnectarSilenci,
     connectat: connectat,
     llegirActivitats: llegirActivitats,
+    llegirPlanol: llegirPlanol,
     pujarPaquet: pujarPaquet
   };
 })();

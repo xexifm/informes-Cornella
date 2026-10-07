@@ -129,6 +129,13 @@ Com es decideix (`Get-CasesActivitats` + `Get-EtiquetesGrup`, a `PlanolDades.ps1
   37. **No es compten com a buits** (`du`), l'activitat porta l'ID de
   l'establiment buit (`bd`) i surt a *Per revisar: Local buit duplicat al GIA*.
   Decidit amb l'usuari: s'ha d'arreglar al GIA, no amagar-ho.
+- **Al mòbil** (*«l'eina s'ha de poder usar des del mòbil»*): el mateix HTML es
+  puja al Drive privat (`mobil/PujaPlanol.ps1`, llançat amb
+  `Start-ScriptSegonPla`, que per això ha passat de `Motor.ps1` a `SegonPla.ps1`:
+  el procés de `rutes/` no pot carregar el Motor) i el mostra `docs/planol.html`.
+  A menys de 760 px el lateral és un panell de baix que s'obre amb «Filtres», i
+  dins de l'app cada activitat porta «Fer informe» (`DINS_APP`, `postMessage`).
+  Detalls a `DESPLEGAMENT-MOBIL.md`.
 - **La línia de punts** (l'usuari: *«una lleugera línia de punts que uneixi
   l'etiqueta de l'ID GIA (UTM base de dades activitats) i la UTM de la parcel·la
   cadastral»*): de cada etiqueta posada a la seva coordenada fins al

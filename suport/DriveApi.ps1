@@ -78,7 +78,14 @@ function Find-DriveFileId($name, $parentId) {
 
 # Crea o actualitza un fitxer JSON dins d'una carpeta amb el contingut donat.
 function Save-DriveJson($name, $parentId, $jsonString) {
+    return (Save-DriveText $name $parentId $jsonString 'application/json; charset=UTF-8')
+}
+
+# El mateix per a qualsevol TEXT (el Planol activitats puja un .html, octubre
+# 2026): nomes canvia el tipus de contingut.
+function Save-DriveText($name, $parentId, [string]$text, [string]$contentType = 'text/plain; charset=UTF-8') {
     if (-not $parentId) { throw "Falta l'ID de la carpeta de Drive (revisa config.ps1)." }
+    $jsonString = $text
     $existing = Find-DriveFileId $name $parentId
     $headers = _DriveAuthHeader
     # Enviem SEMPRE el cos com a bytes UTF-8 explicits. (PowerShell 5.1, amb un
@@ -89,13 +96,13 @@ function Save-DriveJson($name, $parentId, $jsonString) {
         # Actualitza el contingut (mèdia) del fitxer existent.
         $uri = "https://www.googleapis.com/upload/drive/v3/files/" + [uri]::EscapeDataString([string]$existing) + "?uploadType=media"
         $bodyBytes = $utf8.GetBytes($jsonString)
-        Invoke-RestMethod -Method Patch -Uri $uri -Headers $headers -ContentType 'application/json; charset=UTF-8' -Body $bodyBytes | Out-Null
+        Invoke-RestMethod -Method Patch -Uri $uri -Headers $headers -ContentType $contentType -Body $bodyBytes | Out-Null
         return $existing
     } else {
         # Crea un fitxer nou (multipart: metadades + contingut).
         $boundary = [guid]::NewGuid().ToString()
         $meta = @{ name = $name; parents = @($parentId) } | ConvertTo-Json -Compress
-        $body = "--$boundary`r`nContent-Type: application/json; charset=UTF-8`r`n`r`n$meta`r`n--$boundary`r`nContent-Type: application/json; charset=UTF-8`r`n`r`n$jsonString`r`n--$boundary--"
+        $body = "--$boundary`r`nContent-Type: application/json; charset=UTF-8`r`n`r`n$meta`r`n--$boundary`r`nContent-Type: $contentType`r`n`r`n$jsonString`r`n--$boundary--"
         $bodyBytes = $utf8.GetBytes($body)
         $uri = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id"
         $r = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -ContentType "multipart/related; boundary=$boundary" -Body $bodyBytes

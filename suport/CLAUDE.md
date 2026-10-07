@@ -207,8 +207,13 @@ navegador** (Node + Playwright, amb el Leaflet de veritat servit des de
 `node_modules`; el comú és a `comu.mjs`):
 
 ```
-cd suport/tests/navegador && npm install && node prova-mapa-coordenades.mjs && node prova-planol.mjs
+cd suport/tests/navegador && npm install && node prova-mapa-coordenades.mjs && node prova-planol.mjs && node prova-mobil.mjs
 ```
+
+`prova-mobil.mjs` (octubre 2026) prova la web del mòbil (`docs/`): la pantalla
+d'inici, el plànol llegit del Drive i el «Fer informe». Serveix `docs/` amb un
+servidor local i canvia `drive.js` per un doble (el de debò demana el compte de
+Google).
 
 No són dins de `run-tests-all.ps1` perquè al PC de la feina no hi ha Node. Si
 toques `rutes/CoordenadesMapa.html` o `rutes/PlanolMapa.html`, executa-les: la

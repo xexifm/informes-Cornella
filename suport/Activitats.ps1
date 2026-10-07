@@ -384,40 +384,40 @@ function Export-ActivitatsToDrive($cache, $latest) {
         }
         $json = ($payload | ConvertTo-Json -Depth 6)
 
-        # Mode API (sense Drive d'escriptori): pugem activitats.json directament
-        # a la carpeta Dades de Drive. Si no hi ha credencials, caiem al mode de
-        # carpeta local sincronitzada.
-        if (Test-DriveApiConfigured) {
-            if (-not $DriveDadesId) {
-                Write-Host "Avis: hi ha credencials de Drive pero falta \$DriveDadesId a config.ps1. No s'exporten activitats."
-                return $false
-            }
-            Save-DriveJson 'activitats.json' $DriveDadesId $json | Out-Null
-            return $true
-        }
-
-        if (-not (Test-Path -LiteralPath $DriveDadesDir)) {
-            New-Item -ItemType Directory -Path $DriveDadesDir -Force | Out-Null
-        }
-        # Write-JsonText (Json.ps1) i NO un Set-Content: aquest era l'unic lloc
-        # de tot el programa que escrivia un .json pel seu compte, i es va
-        # quedar enrere quan tota la resta va passar pel lector unic. Hi perdia
-        # dues coses:
-        #
-        #   - Set-Content -Encoding UTF8 al PowerShell 5.1 hi posa BOM, mentre
-        #     que el MATEIX contingut que puja a Drive tres linies mes amunt
-        #     (Save-DriveJson) no en porta: dues copies del mateix fitxer amb
-        #     codificacio diferent.
-        #   - No era atomic. I aixo es tota la base d'activitats del mobil: una
-        #     escriptura interrompuda el deixa TRUNCAT, i tots els lectors
-        #     tracten un JSON corrupte igual que un que no hi es -tornen el
-        #     valor per defecte-, o sigui que el mobil es quedaria sense base
-        #     SENSE DIR RES.
-        $outFile = Join-Path $DriveDadesDir 'activitats.json'
-        Write-JsonText $outFile $json
+        # Per l'API (sense Drive d'escriptori) o a la carpeta sincronitzada:
+        # Save-ADadesDrive tria. Si falla, el catch d'aqui sota ho diu.
+        Save-ADadesDrive 'activitats.json' $json 'application/json; charset=UTF-8'
         return $true
     } catch {
         Write-Host "Avis: no s'ha pogut exportar les activitats a Drive ($($_.Exception.Message))."
         return $false
     }
+}
+
+# Desa un fitxer de TEXT a la carpeta privada Dades del Drive: per l'API si hi
+# ha credencials, si no a la carpeta de Google Drive d'escriptori. Ho fan
+# servir activitats.json i el planol del mobil (planol.html, octubre 2026): la
+# tria "API o carpeta" es en un sol lloc. LLANCA si falla (decideix el cridador).
+function Save-ADadesDrive([string]$nom, [string]$text, [string]$contentType) {
+    if (Test-DriveApiConfigured) {
+        if (-not $DriveDadesId) { throw "Hi ha credencials de Drive pero falta DRIVE_DADES_FOLDER_ID a docs/config.js." }
+        Save-DriveText $nom $DriveDadesId $text $contentType | Out-Null
+        return
+    }
+    if (-not (Test-Path -LiteralPath $DriveDadesDir)) {
+        New-Item -ItemType Directory -Path $DriveDadesDir -Force | Out-Null
+    }
+    # Write-JsonText (Json.ps1) i NO un Set-Content: activitats.json era l'unic
+    # lloc de tot el programa que escrivia un .json pel seu compte, i hi perdia
+    # dues coses:
+    #
+    #   - Set-Content -Encoding UTF8 al PowerShell 5.1 hi posa BOM, mentre que
+    #     el MATEIX contingut que puja a Drive per l'API no en porta: dues copies
+    #     del mateix fitxer amb codificacio diferent.
+    #   - No era atomic. I aixo es tota la base d'activitats del mobil: una
+    #     escriptura interrompuda el deixa TRUNCAT, i tots els lectors tracten un
+    #     JSON corrupte igual que un que no hi es, o sigui que el mobil es
+    #     quedaria sense base SENSE DIR RES.
+    # Serveix per a qualsevol text (atomic i sense BOM).
+    Write-JsonText (Join-Path $DriveDadesDir $nom) $text
 }

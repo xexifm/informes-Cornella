@@ -24,8 +24,21 @@
   </header>
 
   <main id="app">
+    <!-- INICI (octubre 2026): consultar el plànol o generar un informe. -->
+    <section id="inici" class="card">
+      <h2>Què vols fer?</h2>
+      <a id="btn-planol" class="opcio-inici" href="planol.html">
+        <b>1 · Consultar plànol</b>
+        <span>Les activitats al mapa amb el seu estat. Des de la fitxa d'una activitat en pots fer l'informe.</span>
+      </a>
+      <button id="btn-generar" type="button" class="opcio-inici">
+        <b>2 · Generar informe</b>
+        <span>Tipus d'informe, capçalera, deficiències i conclusions.</span>
+      </button>
+    </section>
+
     <!-- Indicador de càrrega / errors de dades -->
-    <div id="carregant" class="card">Carregant dades…</div>
+    <div id="carregant" class="card ocult">Carregant dades…</div>
 
     <!-- Pas 1: catàleg -->
     <section id="pas-cataleg" class="pas card ocult">

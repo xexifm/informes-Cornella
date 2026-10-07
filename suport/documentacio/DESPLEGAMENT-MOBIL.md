@@ -121,6 +121,30 @@ A partir d'aquí, **cada cop que generes un informe al PC** s'actualitza sol
 
 ---
 
+## El plànol al mòbil (octubre 2026)
+
+La web s'obre amb una **pantalla d'inici**: *1 Consultar plànol* (`planol.html`)
+o *2 Generar informe* (el formulari de sempre).
+
+- **D'on surt el plànol**: quan generes el *Plànol activitats* al PC, en acabar
+  es llança en segon pla `suport/mobil/PujaPlanol.ps1`, que en puja el MATEIX
+  HTML a la carpeta **Dades** del Drive com a `planol.html` (per l'API o a la
+  carpeta de Google Drive d'escriptori: `Save-ADadesDrive`, la mateixa tria que
+  `activitats.json`). El resultat queda a
+  `local\planol-activitats\pujada-mobil.log`.
+- **Per què l'HTML i no unes dades a part**: és la mateixa eina al PC i al mòbil
+  (filtres, colors, fitxes); una segona versió del plànol per al mòbil seria una
+  segona còpia que divergiria. El plànol té el lateral plegable a la pantalla
+  d'un telèfon (botó «Filtres»).
+- **Privadesa**: el plànol porta requeriments i noms d'activitats. Va **només**
+  al Drive privat, mai a `docs/` (web pública). `planol.html` del mòbil el llegeix
+  amb el compte de Google de l'usuari i el mostra en un marc (un `blob:`, que té
+  el mateix origen que la web: el fons triat es recorda).
+- **Fer informe**: a la fitxa de cada activitat (només quan el plànol és dins de
+  l'app) envia un missatge a la pàgina de fora, que obre `index.html?gia=…`: el
+  formulari va al **Pas 2** amb l'ID ja cercat; l'usuari revisa i prem
+  *Següent*. El missatge només s'accepta del propi marc.
+
 ## Ús diari
 
 **Al mòbil** (obre la URL de Pages):

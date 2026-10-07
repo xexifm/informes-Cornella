@@ -57,6 +57,7 @@ try {
 }
 
 . (Join-Path $ScriptRoot 'MapaHtml.ps1')
+. (Join-Path (Split-Path -Parent $ScriptRoot) 'SegonPla.ps1')   # la copia per al mobil (mobil/PujaPlanol.ps1)
 . (Join-Path $ScriptRoot 'EinesUi.ps1')
 $Script:EinaTitol = ('Pl' + [char]0x00E0 + 'nol activitats')
 if (-not $Script:PlanolHeadless) { $Script:EinaIcon = Get-EinaIcon $SuportDir }
@@ -263,6 +264,9 @@ function Invoke-PlanolMain {
     $outPath = Join-Path $PlanolOutputDir ("Planol_" + (Get-Date).ToString('yyyy-MM-dd_HHmmss') + '.html')
     [System.IO.File]::WriteAllText($outPath, $html, (New-Object System.Text.UTF8Encoding($false)))
     Start-Process $outPath
+    # La mateixa copia, al Drive privat per al mobil (docs/planol.html), en
+    # segon pla: no fa esperar i, si falla, ho diu pujada-mobil.log.
+    $pujada = Start-ScriptSegonPla (Join-Path (Split-Path -Parent $ScriptRoot) (Join-Path 'mobil' 'PujaPlanol.ps1')) @($outPath)
 
     $res = $model.Resum
     $msg  = "Planol generat: $(@($dades).Count) parcel" + [char]0x00B7 + "les amb $($res.Activitats) activitats.`n`n"
@@ -273,6 +277,7 @@ function Invoke-PlanolMain {
     if ($res.SensePosicio -gt 0) { $msg += "Sense refer" + [char]0x00E8 + "ncia cadastral ni coordenades (no surten): $($res.SensePosicio)`n" }
     foreach ($a in $avisos) { $msg += "`n$a" }
     $msg += "`n`nFitxer: $outPath"
+    $msg += if ($null -ne $pujada) { "`nPer al mobil: se'n puja una copia al Drive (Dades/planol.html) en segon pla." } else { "`nPer al mobil: no s'ha pogut llancar la pujada al Drive." }
     Show-EinaInfo $msg
 }
 
