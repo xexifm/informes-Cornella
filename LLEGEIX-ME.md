@@ -100,6 +100,20 @@ seguirà sense icona i obrirà un segon botó.
 Els botons **Enrere** conserven el que has posat; enrere al Pas 2 torna al menú.
 Al Pas 2 hi ha **Recuperar dades últim informe** per clonar l'anterior.
 
+**Si hi ha un requeriment anterior sense resposta**, marca *Requeriment pendent →
+Anterior requeriment*. L'informe surt en dos blocs ben separats:
+
+- **REQUERIMENT ANTERIOR** (subratllat): l'avís «S'ha de donar resposta a
+  l'anterior requeriment…», **sense número**, i a sota el text *COPIAR
+  REQUERIMENT*. Allà hi enganxes el text **literal** de l'anterior i en canvies
+  els números **1, 2, 3… per A1, A2, A3…** (el mateix *COPIAR REQUERIMENT* t'ho
+  recorda).
+- **REQUERIMENT ACTUAL** (subratllat): la frase «S'han observat les següents
+  deficiències…» i els punts d'ara, numerats **des de l'1**.
+
+El **Seguiment** llegeix tant els A1, A2… com els 1, 2…, o sigui que podràs
+marcar també els punts de l'anterior.
+
 ### Seguiment d'un informe
 
 Sobre un informe ja emès, marques quins punts s'han resolt i quins no. És

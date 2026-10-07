@@ -129,6 +129,33 @@ n'és la traducció literal:
   amplada i la del text ajustat sortia estreta. Als arrays d'amplades el **0**
   vol dir «no la toquis».
 
+## REQUERIMENT ANTERIOR / REQUERIMENT ACTUAL i els punts A1, A2… (octubre 2026)
+L'usuari enganxava l'anterior requeriment al lloc de *COPIAR REQUERIMENT* i
+l'informe quedava mal numerat (1, 1, 2, 2, 3…: el text enganxat duia la
+numeració automàtica del Word i el punt «S'ha de donar resposta…» consumia
+l'1) i amb seccions repetides. Primer es va proposar fusionar l'anterior amb
+l'actual (reconeixent els punts vells al catàleg) i l'usuari ho va descartar:
+*«És complicar-ho massa… Ben diferenciat el requeriment anterior i l'actual,
+copiaré el text literal i en comptes d'1 i 2 posaré A1 i A2»*.
+- **`Build-CatalegBlocs`** (`MotorInforme.ps1`): la secció que porta
+  `COPIAR REQUERIMENT` en algun punt (`_EsSeccioReqAnterior`; per la marca, no
+  pel títol, que l'usuari pot canviar a l'editor) surt com a `titolbloc`
+  **Requeriment anterior** amb les línies del punt **sense número**
+  (`_BlocsReqAnterior`), i abans de la secció següent hi va el `titolbloc`
+  **Requeriment actual** + la frase d'intro (`_BlocsReqActual`). La numeració de
+  l'actual comença per l'1. Només a l'informe: la vista del catàleg
+  (`-SenseCamps`) no hi entra. Afecta REQ1 (l'únic catàleg amb la marca) i MNS/Transmissió (sense frase
+  d'intro); **Llicència no** (té el seu muntatge amb lletres A., B.…).
+- El **correu** (PC i mòbil) pinta el `titolbloc` subratllat, i `docs/correu.js`
+  té la mateixa regla (`esSeccioReqAnterior`…): la prova creuada hi passa una
+  secció d'anterior.
+- El **catàleg** REQ1: el *COPIAR REQUERIMENT* porta el recordatori de canviar
+  1, 2… per A1, A2…, i el «I a més a més, esmenar els següents punts:» ja no hi
+  és (el substitueix el bloc REQUERIMENT ACTUAL).
+- **Seguiment** (`Seguiment.ps1`): `$SeguimentReqRegex` accepta `A1.`, `A2.`…
+  (`Number` = `'A1'`, text; els numèrics continuen sent enters), i
+  `_SeguimentParentTopic` i `_CorreuSenseNegretaSeguiment` també.
+
 ## «Requeriment - Seguiment»: una paraula en negreta no fa pendent un punt resolt
 
 L'estat de cada punt viu **al mateix `.docx`**: el seguiment escriu la data

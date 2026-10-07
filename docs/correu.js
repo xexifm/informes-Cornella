@@ -94,6 +94,7 @@
       if (t === "separa") { if (!estat.UltimBuit) posaBuit(); return; }
       switch (t) {
         case "seccio": h = paragraf(esc(String(b.Text).toUpperCase()), B.seccio, fmt); break;
+        case "titolbloc": h = paragraf("<u>" + esc(String(b.Text).toUpperCase()) + "</u>", B.seccio, fmt); break;
         case "subseccio": h = paragraf(esc(b.Text), B.subseccio, fmt); break;
         case "item": h = paragraf("<b>" + esc(b.Num) + "</b> " + textHtml(b.Text), B.item, fmt); break;
         case "cos":
@@ -150,9 +151,40 @@
     if (!escrit) return [];
     return [{ T: "unitat", Blocs: dins }];
   }
-  function blocsDeSeleccio(seccions, linies) {
-    var b = [], comptador = { n: 0 }, darrera = null;
+  // REQUERIMENT ANTERIOR / ACTUAL: la mateixa regla que Build-CatalegBlocs
+  // (_EsSeccioReqAnterior, _BlocsReqAnterior, _BlocsReqActual).
+  var MARCA_COPIAR = "COPIAR REQUERIMENT";
+  function esSeccioReqAnterior(sec) {
+    return (sec.Items || []).some(function (el) {
+      if (el.Kind === "subsection" || el.Kind === "intro") return false;
+      return (el.BodyLines || []).some(function (l) { return String(l).indexOf(MARCA_COPIAR) >= 0; });
+    });
+  }
+  function blocsReqAnterior(sec, linies) {
+    var out = [{ T: "titolbloc", Text: "Requeriment anterior" }, { T: "aire", Clau: "seccio" }];
+    (sec.Items || []).forEach(function (el) {
+      if (el.Kind === "subsection" || el.Kind === "intro" || !el.Selected) return;
+      var u = [];
+      linies(el).forEach(function (l) {
+        var bl = blocsDeLinia(l, false);
+        if (!bl.length) return;
+        if (u.length) u.push({ T: "espai" });
+        u = u.concat(bl);
+      });
+      if (u.length) out.push({ T: "unitat", Blocs: u });
+    });
+    return out;
+  }
+  function blocsReqActual(intro) {
+    var out = [{ T: "titolbloc", Text: "Requeriment actual" }, { T: "aire", Clau: "seccio" }];
+    if (intro && String(intro).trim() !== "") { out.push({ T: "cos", Text: String(intro) }); out.push({ T: "aire", Clau: "introparagraf" }); }
+    return out;
+  }
+  function blocsDeSeleccio(seccions, linies, intro) {
+    var b = [], comptador = { n: 0 }, darrera = null, actualPendent = false;
     (seccions || []).forEach(function (sec) {
+      if (esSeccioReqAnterior(sec)) { b = b.concat(blocsReqAnterior(sec, linies)); actualPendent = true; darrera = null; return; }
+      if (actualPendent) { b = b.concat(blocsReqActual(intro)); actualPendent = false; }
       var titol = String(sec.Title || ""), k = titol.indexOf(" - ");
       if (k >= 0) {
         var nomSec = titol.substring(0, k).trim();

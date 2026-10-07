@@ -41,14 +41,7 @@
                                                     {
                                                         "runs":  [
                                                                      {
-                                                                         "t":  "COPIAR REQUERIMENT"
-                                                                     }
-                                                                 ]
-                                                    },
-                                                    {
-                                                        "runs":  [
-                                                                     {
-                                                                         "t":  "I a més a més, esmenar els següents punts:"
+                                                                         "t":  "COPIAR REQUERIMENT (recorda canviar la numeració dels punts 1, 2, 3... per A1, A2, A3...)"
                                                                      }
                                                                  ]
                                                     }

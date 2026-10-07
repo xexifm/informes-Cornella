@@ -588,7 +588,8 @@ if ((Test-Path -LiteralPath $mnsPath) -and (Test-Path -LiteralPath (Join-Path $G
     # REQ1. La tria es munta com la munta el programa: per CLAU (la mateixa
     # Build-SelectionFromKeys que fan servir el mode mobil i Controls periodics).
     $req1M = Get-ParsedCataleg -path (Join-Path $Global:EstructuralsDir 'REQ1.json')
-    $sec0M = @($req1M.Sections)[0]
+    # La primera seccio que NO es la del requeriment anterior (aquella va a part).
+    $sec0M = @(@($req1M.Sections) | Where-Object { -not (_EsSeccioReqAnterior $_) })[0]
     $clauM = @(@($sec0M.Items) | Where-Object { [string]$_.Kind -eq 'item' } |
                ForEach-Object { _ItemKey $sec0M.Title $_.Short } | Select-Object -First 2)
     $secM = @(Build-SelectionFromKeys @($req1M.Sections) $clauM)
@@ -1390,6 +1391,39 @@ AssertEq ($nums -join ',') '1.,2.' 'Blocs: la numeracio va seguida i salta el qu
 # Els fills son PICS, no items numerats.
 $dins2 = @(@($bl)[-1].Blocs | ForEach-Object { [string]$_.T })
 AssertEq ($dins2 -join ',') 'item,pic,pic' 'Blocs: els fills van amb pic, no numerats'
+
+Write-Host "`n--- REQUERIMENT ANTERIOR / ACTUAL (A1, A2...) ---"
+# L'usuari (octubre 2026): "Ben diferenciat el requeriment anterior i l'actual,
+# copiare el text literal i en comptes d'1 i 2 posare A1 i A2".
+$secAnt = [pscustomobject]@{
+    Title = 'Requeriment pendent'
+    Items = @(
+        (_NouEl 'item' 'Anterior requeriment' @('S''ha de donar resposta a l''anterior requeriment amb Num. de registre: [CAMP: Registre sortida (S-202X-XXXX)].', 'COPIAR REQUERIMENT (recorda canviar la numeracio dels punts 1, 2, 3... per A1, A2, A3...)') @() $true)
+    )
+}
+$introAnt = "S'han observat les seguents deficiencies:"
+$blA = @(Build-CatalegBlocs @($secAnt, $secP) ([ordered]@{ 'Registre sortida' = @{ Value = 'S-2026-15199' } }) $introAnt)
+$tipA = @($blA | ForEach-Object { [string]$_.T })
+AssertEq ($tipA -join ',') 'cos,aire,titolbloc,aire,unitat,titolbloc,aire,cos,aire,seccio,aire,subseccio,aire,unitat,unitat' 'Anterior: intro, REQUERIMENT ANTERIOR, el punt, REQUERIMENT ACTUAL + intro, i les seccions'
+AssertEq (@($blA | Where-Object { $_.T -eq 'titolbloc' } | ForEach-Object { [string]$_.Text }) -join '|') 'Requeriment anterior|Requeriment actual' 'Anterior: els dos titols de bloc (subratllats, com els de Llicencia)'
+$uAnt = @(@($blA | Where-Object { $_.T -eq 'unitat' })[0].Blocs)
+AssertEq (@($uAnt | ForEach-Object { [string]$_.T }) -join ',') 'cos,espai,cos' 'Anterior: l avis SENSE numero (no es una deficiencia) i el COPIAR a sota'
+Assert ([string]$uAnt[0].Text).Contains('S-2026-15199') 'Anterior: el registre de sortida, omplert'
+Assert ([string]$uAnt[2].Text).Contains('A1, A2') 'Anterior: el COPIAR porta el recordatori de l A1, A2'
+$numsA = @(@($blA | Where-Object { $_.T -eq 'unitat' } | Select-Object -Skip 1) | ForEach-Object { [string]@($_.Blocs)[0].Num })
+AssertEq ($numsA -join ',') '1.,2.' 'Anterior: el requeriment actual comenca per l 1 (abans pel 2)'
+# Nomes l'anterior: no hi ha REQUERIMENT ACTUAL buit.
+$blA2 = @(Build-CatalegBlocs @($secAnt) @{} $introAnt)
+AssertEq (@($blA2 | Where-Object { $_.T -eq 'titolbloc' }).Count) 1 'Anterior sol: sense REQUERIMENT ACTUAL buit'
+# Sense frase d'intro (MNS, Transmissio, correu): el titol sol.
+$blA3 = @(Build-CatalegBlocs @($secAnt, $secP) @{} '')
+AssertEq (@($blA3 | ForEach-Object { [string]$_.T }) -join ',') 'titolbloc,aire,unitat,titolbloc,aire,seccio,aire,subseccio,aire,unitat,unitat' 'Anterior sense intro: REQUERIMENT ACTUAL sense frase'
+# La VISTA del cataleg el mostra com qualsevol seccio.
+$blA4 = @(Build-CatalegBlocs @($secAnt) $null '' $false @() -SenseCamps)
+AssertEq (@($blA4 | ForEach-Object { [string]$_.T }) -join ',') 'seccio,aire,unitat' 'Anterior a la vista: seccio normal'
+# I al cataleg de debo hi ha la marca (si l'usuari la treu, tot torna a l'1, 2...).
+$req1Ant = Get-ParsedCataleg -path (Join-Path $Global:EstructuralsDir 'REQ1.json')
+AssertEq (@(@($req1Ant.Sections) | Where-Object { _EsSeccioReqAnterior $_ }).Count) 1 'REQ1: una seccio amb COPIAR REQUERIMENT'
 
 # Write-Informe: el -First del primer sub-punt el posa EL MOTOR.
 Write-Host "`n--- Write-Informe (l'aire i el -First els decideix el motor) ---"

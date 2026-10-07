@@ -226,7 +226,13 @@ if ($null -eq $cfNode) {
             }
             $cfSel += [pscustomobject]@{ Title = [string]$sec.Title; Items = $its }
         }
+        # El REQUERIMENT ANTERIOR (titols de bloc subratllats, punt sense numero)
+        # al davant: el del cataleg porta un [CAMP:] i la tria de dalt el salta.
+        $cfSel = @([pscustomobject]@{ Title = 'Requeriment pendent'; Items = @(
+            [pscustomobject]@{ Kind = 'item'; Short = 'Anterior requeriment'; Children = @(); Selected = $true
+                               BodyLines = @('S''ha de donar resposta a l''anterior requeriment amb Num. de registre: S-2026-15199.', 'COPIAR REQUERIMENT (A1, A2...)') }) }) + $cfSel
         $cfBlocsPc = @(Build-CatalegBlocs $cfSel @{} '')
+        Assert ((_CorreuBlocsAHtml $cfBlocsPc $cfFmt).Contains('<u>REQUERIMENT ANTERIOR</u>')) 'creuat: el REQUERIMENT ANTERIOR, subratllat al correu'
         $cfHtmlPc = _CorreuBlocsAHtml $cfBlocsPc $cfFmt
         $cfLinCap = @(@{ Etiqueta = 'ID GIA:'; Valor = '118' }, @{ Etiqueta = 'Objecte:'; Valor = ('Visita inspecci' + [char]0x00F3 + ' 29/09/2026') })
         $cfCapPc = _CorreuCapcaleraHtml $cfLinCap $cfFmt 'INFORME'

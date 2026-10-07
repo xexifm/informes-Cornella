@@ -6,15 +6,16 @@ BODY|i un cop avaluades seguint els CRITERIS DE SUBSTANCIALITAT DE LES MODIFICAC
 AIRE|item
 BODY|**S’informa FAVORABLEMENT de la Modificació NO substancial presentada amb les següents observacions:**
 AIRE|item
-SECT|Requeriment pendent
+BLOC|Requeriment anterior
 AIRE|seccio
-ITEM|1.|S’ha de donar resposta a l’anterior requeriment amb Núm. de registre: .
-BODY|COPIAR REQUERIMENT
-BODY|I a més a més, esmenar els següents punts:
+BODY|S’ha de donar resposta a l’anterior requeriment amb Núm. de registre: .
+BODY|COPIAR REQUERIMENT (recorda canviar la numeració dels punts 1, 2, 3... per A1, A2, A3...)
 AIRE|item
+BLOC|Requeriment actual
+AIRE|seccio
 SECT|Classificació
 AIRE|seccio
-ITEM|2.|L’activitat està classificada segons l’Annex , epígraf  de la LLEI 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats.
+ITEM|1.|L’activitat està classificada segons l’Annex , epígraf  de la LLEI 20/2009, del 4 de desembre, de prevenció i control ambiental de les activitats.
 AIRE|item
 AIRE|conclusions
 CONCLCAP|CONCLUSIONS

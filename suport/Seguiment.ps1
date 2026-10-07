@@ -62,7 +62,9 @@ $Script:SeguimentPhraseNoResolt = "No s'aporta."
 # Expressions regulars (a nivell de script: definides en carregar el fitxer).
 # ----------------------------------------------------------------------------
 # Requeriment numerat: comenca per "N." seguit d'espai. Ex: "1. Baixa tensio."
-$Script:SeguimentReqRegex      = [regex]'^\s*(\d+)\.\s'
+# Tambe "A1.", "A2."...: els punts del REQUERIMENT ANTERIOR que l'usuari enganxa
+# literalment i renumera amb una A (octubre 2026) per no repetir l'1, el 2...
+$Script:SeguimentReqRegex      = [regex]'^\s*([Aa]?\d+)\.\s'
 # Anotacio datada: "dd/MM/aaaa:" al principi. Ex: "01/06/2026: No s'entrega."
 $Script:SeguimentAnnotRegex    = [regex]'^\s*(\d{1,2})/(\d{1,2})/(\d{4})\s*:'
 # Numero de llista auto-numerada del Word (ListFormat.ListString). Ex: "1." o "1"
@@ -89,7 +91,10 @@ function _ClassifyParagraph([string]$text, [string]$listString) {
     # 2) Requeriment amb numero literal al text ("1. ...").
     $mr = $Script:SeguimentReqRegex.Match($t)
     if ($mr.Success) {
-        return [pscustomobject]@{ Kind='requirement'; Number=[int]$mr.Groups[1].Value; Date=$null; ViaList=$false }
+        # "1" -> 1 (enter, com sempre); "A1" -> 'A1' (text).
+        $nv = [string]$mr.Groups[1].Value
+        $nr = if ($nv -match '^\d+$') { [int]$nv } else { $nv.ToUpper() }
+        return [pscustomobject]@{ Kind='requirement'; Number=$nr; Date=$null; ViaList=$false }
     }
 
     # 3) Requeriment via llista auto-numerada del Word (informes fets a ma).
@@ -164,7 +169,7 @@ function _ShortenText([string]$s, [int]$max) {
 # Tema curt d'un requeriment (per etiquetar-ne els fills): treu el "N." inicial i
 # es queda amb la primera frase (o els primers ~44 caracters). Funcio PURA.
 function _SeguimentParentTopic([string]$reqText) {
-    $t = ([string]$reqText).Trim() -replace '^\s*\d+\.\s*', ''
+    $t = ([string]$reqText).Trim() -replace '^\s*[Aa]?\d+\.\s*', ''
     $dot = $t.IndexOf('. ')
     if ($dot -ge 3 -and $dot -le 44) { return $t.Substring(0, $dot) }
     return (_ShortenText $t 44)

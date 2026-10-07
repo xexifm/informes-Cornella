@@ -3,8 +3,7 @@ AIRE|introparagraf
 SECT|Requeriment pendent
 AIRE|seccio
 ITEM|1.|S’ha de donar resposta a l’anterior requeriment amb Núm. de registre: [CAMP: Registre sortida (S-202X-XXXX)].
-BODY|COPIAR REQUERIMENT
-BODY|I a més a més, esmenar els següents punts:
+BODY|COPIAR REQUERIMENT (recorda canviar la numeració dels punts 1, 2, 3... per A1, A2, A3...)
 AJUDA|Norma: Llei 39/2015, de l’1 d’octubre, del procediment administratiu comú de les administracions públiques, art. 68.1 i 73.1
 URL|https://www.boe.es/eli/es/l/2015/10/01/39/con
 AJUDA|Criteri: Es requereix quan consta un requeriment anterior amb registre de sortida i ha vençut el termini sense resposta, o la resposta no cobreix tots els punts. Cal repetir els punts no esmenats: un requeriment nou no deixa sense efecte l’anterior.

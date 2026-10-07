@@ -486,6 +486,19 @@ $cList = _ClassifyParagraph 'Baixa tensio sense numero literal' '1.'
 AssertEq $cList.Kind 'requirement'     '_ClassifyParagraph auto-numerat per ListString -> requirement'
 AssertEq $cList.Number 1               '_ClassifyParagraph ListString aporta el numero'
 Assert ($cList.ViaList)                '_ClassifyParagraph auto-numerat: ViaList=true'
+# A1, A2...: els punts del REQUERIMENT ANTERIOR enganxats i renumerats a ma.
+$cA1 = _ClassifyParagraph 'A1. Instal.lacio de baixa tensio' ''
+AssertEq "$($cA1.Kind)|$($cA1.Number)" 'requirement|A1' '_ClassifyParagraph: A1. tambe es un requeriment'
+AssertEq "$((_ClassifyParagraph 'a12. x' '').Number)" 'A12' '_ClassifyParagraph: a12. -> A12'
+AssertEq (_ClassifyParagraph 'A. Text' '').Kind 'other' '_ClassifyParagraph: A. sol (sense numero) no ho es'
+AssertEq (_ClassifyParagraph 'Avis 1. Text' '').Kind 'other' '_ClassifyParagraph: una paraula davant del numero no ho es'
+AssertEq (_SeguimentParentTopic 'A2. Baixa Tensio. L activitat...') 'Baixa Tensio' '_SeguimentParentTopic: treu tambe l A2.'
+$mA = _BuildSeguimentModel @(
+    [pscustomobject]@{ Index = 1; Text = 'A1. Instal.lacio de baixa tensio'; ListString = ''; Bold = 0; IsBulletChild = $false },
+    [pscustomobject]@{ Index = 2; Text = 'A2. Baixa Tensio. Inspeccio inicial.'; ListString = ''; Bold = 0; IsBulletChild = $false },
+    [pscustomobject]@{ Index = 3; Text = 'REQUERIMENT ACTUAL'; ListString = ''; Bold = 0; IsBulletChild = $false },
+    [pscustomobject]@{ Index = 4; Text = '1. Gas. Inspeccio inicial.'; ListString = ''; Bold = 0; IsBulletChild = $false })
+AssertEq (@(@($mA.Requirements) | ForEach-Object { [string]$_.Number }) -join ',') 'A1,A2,1' 'Seguiment: llegeix A1, A2 i l 1 del requeriment actual'
 
 Write-Host "`n--- Seguiment: _InferResolvedFromBold / _ShouldBeBold ---"
 # _ShouldBeBold era una COPIA OMBRA: la regla "mentre no estigui resolt, en

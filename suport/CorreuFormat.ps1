@@ -215,6 +215,7 @@ function _CorreuBlocsRec($blocs, $fmt, $estat) {
         $mb = $fmt.Blocs
         $h = switch ($t) {
             'seccio'       { _CorreuParagrafHtml (_EscHtml ([string]$b.Text).ToUpper()) $mb.seccio $fmt }
+            'titolbloc'    { _CorreuParagrafHtml ('<u>' + (_EscHtml ([string]$b.Text).ToUpper()) + '</u>') $mb.seccio $fmt }
             'subseccio'    { _CorreuParagrafHtml (_EscHtml ([string]$b.Text)) $mb.subseccio $fmt }
             'item'         { _CorreuParagrafHtml ('<b>' + (_EscHtml ([string]$b.Num)) + '</b> ' + (_TextToHtml ([string]$b.Text))) $mb.item $fmt }
             'cos' {
@@ -494,7 +495,7 @@ function _CorreuRunsHtml($runs, $fmt) {
 # toca. PURA.
 function _CorreuSenseNegretaSeguiment($p) {
     $t = [string]$p.Text
-    $mNum = [regex]::Match($t, '^\s*\d+\.\s')
+    $mNum = [regex]::Match($t, '^\s*[Aa]?\d+\.\s')   # tambe A1. (requeriment anterior)
     $esPunt = $mNum.Success -or $t.TrimStart().StartsWith([string][char]0x2022)
     if (-not $esPunt) { return $p.Runs }
     $ambText = @(@($p.Runs) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_.Text) })

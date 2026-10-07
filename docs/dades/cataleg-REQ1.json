@@ -10,8 +10,7 @@
                                            "Short":  "Anterior requeriment",
                                            "BodyLines":  [
                                                              "S’ha de donar resposta a l’anterior requeriment amb Núm. de registre: [CAMP: Registre sortida (S-202X-XXXX)].",
-                                                             "COPIAR REQUERIMENT",
-                                                             "I a més a més, esmenar els següents punts:"
+                                                             "COPIAR REQUERIMENT (recorda canviar la numeració dels punts 1, 2, 3... per A1, A2, A3...)"
                                                          ],
                                            "Children":  [
 

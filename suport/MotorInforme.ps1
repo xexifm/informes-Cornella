@@ -359,7 +359,8 @@ function Write-InformeDocx($word, [string]$baseName, [string]$capBloc, $header, 
 #
 # VOCABULARI (la clau 'T' de cada bloc):
 #   titolbloc     Text                    titol de BLOC (MAJUSCULES i subratllat):
-#                                         el nivell de dalt de Llicencia
+#                                         el nivell de dalt de Llicencia, i el
+#                                         REQUERIMENT ANTERIOR / ACTUAL de REQ1
 #   seccio        Text                    titol de seccio (MAJUSCULES)
 #   subseccio     Text                    subseccio (subratllada)
 #   etiqueta      Text                    rotul dins del cos
@@ -605,6 +606,63 @@ function _BlocsDItem($el, $fields, [ref]$num, [bool]$senseCamps = $false, [bool]
     return @(@{ T = 'unitat'; Blocs = $dins.ToArray() })
 }
 
+# REQUERIMENT ANTERIOR / REQUERIMENT ACTUAL (octubre 2026). Quan hi ha un
+# requeriment anterior sense resposta, l'usuari hi enganxa el text LITERAL de
+# l'anterior (el punt amb 'COPIAR REQUERIMENT') i en canvia els numeros 1, 2...
+# per A1, A2... L'informe ha de quedar en dos blocs ben separats:
+#   REQUERIMENT ANTERIOR   (titol de bloc, subratllat)
+#   S'ha de donar resposta a l'anterior requeriment...   <- SENSE numero: no es
+#   COPIAR REQUERIMENT (...)                                 una deficiencia
+#   REQUERIMENT ACTUAL
+#   S'han observat les seguents deficiencies...          <- la frase d'intro
+#   SECCIONS de sempre, numerades des de l'1
+# Abans el punt sortia com a "1." i les seccions noves comencaven pel 2, i el
+# text enganxat duia la seva numeracio: 1, 1, 2, 2, 3...
+# La seccio es reconeix per la marca del cataleg i no pel titol, que l'usuari
+# pot canviar a l'editor. NOMES a l'informe: la vista del cataleg (-SenseCamps)
+# el mostra com qualsevol altra seccio.
+$Script:MarcaCopiarRequeriment = 'COPIAR REQUERIMENT'
+
+function _EsSeccioReqAnterior($sec) {
+    foreach ($el in @($sec.Items)) {
+        if ([string]$el.Kind -eq 'subsection' -or [string]$el.Kind -eq 'intro') { continue }
+        foreach ($l in @($el.BodyLines)) {
+            if (([string]$l).Contains($Script:MarcaCopiarRequeriment)) { return $true }
+        }
+    }
+    return $false
+}
+
+function _BlocsReqAnterior($sec, $fields) {
+    $out = New-Object System.Collections.ArrayList
+    [void]$out.Add(@{ T = 'titolbloc'; Text = 'Requeriment anterior' })
+    [void]$out.Add(@{ T = 'aire'; Clau = 'seccio' })
+    foreach ($el in @($sec.Items)) {
+        if ([string]$el.Kind -eq 'subsection' -or [string]$el.Kind -eq 'intro') { continue }
+        if (-not $el.Selected) { continue }
+        $u = New-Object System.Collections.ArrayList
+        foreach ($l in @(_LiniesDeNode $el $fields $false)) {
+            $bl = @(_BlocsDeLinia ([string]$l) $false)
+            if ($bl.Count -eq 0) { continue }
+            if ($u.Count -gt 0) { [void]$u.Add(@{ T = 'espai' }) }
+            foreach ($x in $bl) { [void]$u.Add($x) }
+        }
+        if ($u.Count -gt 0) { [void]$out.Add(@{ T = 'unitat'; Blocs = $u.ToArray() }) }
+    }
+    return $out.ToArray()
+}
+
+function _BlocsReqActual([string]$introText) {
+    $out = New-Object System.Collections.ArrayList
+    [void]$out.Add(@{ T = 'titolbloc'; Text = 'Requeriment actual' })
+    [void]$out.Add(@{ T = 'aire'; Clau = 'seccio' })
+    if (-not [string]::IsNullOrWhiteSpace($introText)) {
+        [void]$out.Add(@{ T = 'cos'; Text = $introText })
+        [void]$out.Add(@{ T = 'aire'; Clau = 'introparagraf' })
+    }
+    return $out.ToArray()
+}
+
 # -AmbAjuda: hi afegeix les FITXES D'AJUDA dels requeriments (nomes les demana la
 # vista en Word del cataleg; l'informe d'una activitat, mai).
 function Build-CatalegBlocs($seccions, $fields, [string]$introText, [bool]$esCosFix = $false, $liniesCosFix = @(), [switch]$SenseCamps, [switch]$AmbAjuda) {
@@ -635,7 +693,19 @@ function Build-CatalegBlocs($seccions, $fields, [string]$introText, [bool]$esCos
 
     $num = 0
     $darreraSeccio = $null
+    $actualPendent = $false
     foreach ($sec in @($seccions)) {
+        if (-not $sc -and (_EsSeccioReqAnterior $sec)) {
+            foreach ($x in @(_BlocsReqAnterior $sec $fields)) { [void]$b.Add($x) }
+            $actualPendent = $true
+            $darreraSeccio = $null
+            continue
+        }
+        # El REQUERIMENT ACTUAL nomes surt si despres de l'anterior hi ha res.
+        if ($actualPendent) {
+            foreach ($x in @(_BlocsReqActual $introText)) { [void]$b.Add($x) }
+            $actualPendent = $false
+        }
         # "Seccio - Subseccio" (el que munta Build-SelectionFromKeys) o el titol
         # sol (el que arriba del cataleg sencer, a la vista).
         $parts = ([string]$sec.Title) -split ' - ', 2

@@ -3,8 +3,7 @@ AIRE|seccio
 SECT|Requeriment pendent
 AIRE|seccio
 ITEM|A.|S’ha de donar resposta a l’anterior requeriment amb Núm. de registre: .
-BODY|COPIAR REQUERIMENT
-BODY|I a més a més, esmenar els següents punts:
+BODY|COPIAR REQUERIMENT (recorda canviar la numeració dels punts 1, 2, 3... per A1, A2, A3...)
 AIRE|item
 SECT|Classificació
 AIRE|seccio
