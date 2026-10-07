@@ -21,7 +21,9 @@
 
 $ErrorActionPreference = 'Stop'
 
-$Script:PlanolHeadless = [bool]$env:PLANOL_TEST -or [bool]$env:GENINFORME_TEST
+# $PlanolNomesFuncions: el posa qui el carrega com a biblioteca (PlanolAuto.ps1,
+# el mode automatic) abans de fer-ne el dot-source.
+$Script:PlanolHeadless = [bool]$env:PLANOL_TEST -or [bool]$env:GENINFORME_TEST -or [bool]$PlanolNomesFuncions
 
 $ScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $SuportDir  = Split-Path -Parent $ScriptRoot          # suport/
@@ -113,9 +115,16 @@ function Read-ActivitatsPlanolExcel($excelFile) {
 # Una feina del Cadastre amb barra de progres. Cancel.lar no avorta l'eina:
 # deixa de preguntar i el mapa es fa amb el que ja hi ha (memoria cau inclosa).
 # Torna { Resultat; Cancelat }.
+# En SILENCI (el mode automatic, sense pantalla): la feina sense barra.
+$Script:PlanolSilenci = $false
 function _PlanolAmbProgres($claus, [string]$text, [scriptblock]$feina) {
     $llista = @($claus)
     if ($llista.Count -eq 0) { return [pscustomobject]@{ Resultat = @{}; Cancelat = $false } }
+    if ($Script:PlanolSilenci) {
+        $r = @{}
+        try { $r = & $feina $llista $null } catch { $r = @{} }
+        return [pscustomobject]@{ Resultat = $r; Cancelat = $false }
+    }
     $prog = New-EinaProgres $llista.Count 'Consultant el Cadastre' $text
     $onProgress = {
         param($fetes, $total, $clau)
@@ -136,36 +145,48 @@ function _PlanolAmbProgres($claus, [string]$text, [scriptblock]$feina) {
 }
 
 # ============================================================================
-# MAIN
+# FER EL PLANOL (amb finestres o en silenci) I MAIN
 # ============================================================================
-function Invoke-PlanolMain {
+# Fa el planol i el desa. Amb $silenci (el mode automatic setmanal, octubre
+# 2026: PlanolAuto.ps1) no obre cap finestra ni pregunta res: sense l'Excel
+# d'establiments el fa igualment (amb l'avis). Torna { Ok; Error; OutPath;
+# Missatge } (Error buit + Ok fals = l'usuari ha dit que no).
+function Invoke-PlanolGenera([bool]$silenci) {
+    $Script:PlanolSilenci = $silenci
     $xlsA = Find-LatestRutaExcel
     if ($null -eq $xlsA) {
-        Show-EinaInfo ("No s'ha trobat cap base de dades d'activitats.`n`n" +
-            "Busco un fitxer 'AAAA-MM-DD ACTIVITATS.xlsx' a:`n  1. $ActivitatsDir`n  2. $LocalActivitatsDir") '' 'Warning'
-        return
+        return [pscustomobject]@{ Ok = $false; OutPath = ''; Missatge = ''
+            Error = ("No s'ha trobat cap base de dades d'activitats.`n`n" +
+                     "Busco un fitxer 'AAAA-MM-DD ACTIVITATS.xlsx' a:`n  1. $ActivitatsDir`n  2. $LocalActivitatsDir") }
     }
     $xlsE = Find-LatestRutaExcel 'ESTABLIMENTS'
     $avisos = @()
     if ($null -eq $xlsE) {
-        $r = [System.Windows.Forms.MessageBox]::Show(
-            ("No s'ha trobat l'Excel d'ESTABLIMENTS ('AAAA-MM-DD ESTABLIMENTS.xls') a:`n  1. $ActivitatsDir`n  2. $LocalActivitatsDir`n`n" +
-             "Sense ell, cada activitat surt nomes a la parcel.la de l'Excel d'activitats (una de sola) i no es veuen els locals buits.`n`n" +
-             "Vols fer el planol igualment?"), $Script:EinaTitol, 'YesNo', 'Warning')
-        if ($r -ne [System.Windows.Forms.DialogResult]::Yes) { return }
+        if (-not $silenci) {
+            $r = [System.Windows.Forms.MessageBox]::Show(
+                ("No s'ha trobat l'Excel d'ESTABLIMENTS ('AAAA-MM-DD ESTABLIMENTS.xls') a:`n  1. $ActivitatsDir`n  2. $LocalActivitatsDir`n`n" +
+                 "Sense ell, cada activitat surt nomes a la parcel.la de l'Excel d'activitats (una de sola) i no es veuen els locals buits.`n`n" +
+                 "Vols fer el planol igualment?"), $Script:EinaTitol, 'YesNo', 'Warning')
+            if ($r -ne [System.Windows.Forms.DialogResult]::Yes) { return [pscustomobject]@{ Ok = $false; Error = ''; OutPath = ''; Missatge = '' } }
+        }
         $avisos += "Sense l'Excel d'establiments: cada activitat surt nomes a la parcel" + [char]0x00B7 + "la de l'Excel d'activitats."
     }
 
     # 1. Llegir els Excel.
-    $espera = New-EinaProgres 1 'Llegint les bases de dades' "Llegint $($xlsA.File.Name)..."
-    $espera.Bar.Style = 'Marquee'
-    [System.Windows.Forms.Application]::DoEvents()
+    $espera = $null
+    if (-not $silenci) {
+        $espera = New-EinaProgres 1 'Llegint les bases de dades' "Llegint $($xlsA.File.Name)..."
+        $espera.Bar.Style = 'Marquee'
+        [System.Windows.Forms.Application]::DoEvents()
+    }
     try {
         $acts = Read-ActivitatsPlanolExcel $xlsA.File
         $ests = @()
         if ($null -ne $xlsE) {
-            $espera.Label.Text = "Llegint $($xlsE.File.Name)..."
-            [System.Windows.Forms.Application]::DoEvents()
+            if ($null -ne $espera) {
+                $espera.Label.Text = "Llegint $($xlsE.File.Name)..."
+                [System.Windows.Forms.Application]::DoEvents()
+            }
             # SENSE @(): Read-EstablimentsExcel ja torna la llista sencera (amb
             # coma), i un @() al voltant la tornava a embolcallar: el model rebia
             # UN establiment que les contenia tots, no en lligava cap amb la
@@ -173,11 +194,9 @@ function Invoke-PlanolMain {
             $ests = Read-EstablimentsExcel $xlsE.File
         }
     } catch {
-        if (-not $espera.Form.IsDisposed) { $espera.Form.Close() }
-        Show-EinaInfo "Error llegint l'Excel:`n$($_.Exception.Message)" '' 'Error'
-        return
+        return [pscustomobject]@{ Ok = $false; OutPath = ''; Missatge = ''; Error = "Error llegint l'Excel:`n$($_.Exception.Message)" }
     } finally {
-        if (-not $espera.Form.IsDisposed) { $espera.Form.Close() }
+        if ($null -ne $espera -and -not $espera.Form.IsDisposed) { $espera.Form.Close() }
     }
 
     # 2. La base d'informes (opcional: sense, tot surt en blau).
@@ -263,10 +282,6 @@ function Invoke-PlanolMain {
     if (-not (Test-Path -LiteralPath $PlanolOutputDir)) { New-Item -ItemType Directory -Path $PlanolOutputDir -Force | Out-Null }
     $outPath = Join-Path $PlanolOutputDir ("Planol_" + (Get-Date).ToString('yyyy-MM-dd_HHmmss') + '.html')
     [System.IO.File]::WriteAllText($outPath, $html, (New-Object System.Text.UTF8Encoding($false)))
-    Start-Process $outPath
-    # La mateixa copia, al Drive privat per al mobil (docs/planol.html), en
-    # segon pla: no fa esperar i, si falla, ho diu pujada-mobil.log.
-    $pujada = Start-ScriptSegonPla (Join-Path (Split-Path -Parent $ScriptRoot) (Join-Path 'mobil' 'PujaPlanol.ps1')) @($outPath)
 
     $res = $model.Resum
     $msg  = "Planol generat: $(@($dades).Count) parcel" + [char]0x00B7 + "les amb $($res.Activitats) activitats.`n`n"
@@ -277,6 +292,24 @@ function Invoke-PlanolMain {
     if ($res.SensePosicio -gt 0) { $msg += "Sense refer" + [char]0x00E8 + "ncia cadastral ni coordenades (no surten): $($res.SensePosicio)`n" }
     foreach ($a in $avisos) { $msg += "`n$a" }
     $msg += "`n`nFitxer: $outPath"
+    return [pscustomobject]@{ Ok = $true; Error = ''; OutPath = $outPath; Missatge = $msg }
+}
+
+# Amb el boto (o la rajola) del menu: amb finestres, i l'obre.
+function Invoke-PlanolMain {
+    $r = Invoke-PlanolGenera $false
+    if (-not $r.Ok) {
+        if ($r.Error -ne '') { Show-EinaInfo $r.Error '' 'Warning' }
+        return
+    }
+    Start-Process $r.OutPath
+    # La mateixa copia, al Drive privat per al mobil (docs/planol.html), en
+    # segon pla: no fa esperar i, si falla, ho diu pujada-mobil.log.
+    $pujada = Start-ScriptSegonPla (Join-Path (Split-Path -Parent $ScriptRoot) (Join-Path 'mobil' 'PujaPlanol.ps1')) @($r.OutPath)
+    # Fet a ma: el segell de sota la rajola no surt en verd (vegeu
+    # PlanolAutomatic.ps1). Nomes si s'ha obert des del programa.
+    if (Get-Command _PlanolAutoDesaEstat -ErrorAction SilentlyContinue) { [void](_PlanolAutoDesaEstat @{ mode = 'manual' }) }
+    $msg = $r.Missatge
     $msg += if ($null -ne $pujada) { "`nPer al mobil: se'n puja una copia al Drive (Dades/planol.html) en segon pla." } else { "`nPer al mobil: no s'ha pogut llancar la pujada al Drive." }
     Show-EinaInfo $msg
 }

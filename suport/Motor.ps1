@@ -436,6 +436,8 @@ if (-not $Script:HeadlessTest) { [void](Invoke-MigracioLocal $RepoRoot) }
 . (Join-Path $ScriptRoot 'InformesEscaneig.ps1')
 # Les dues eines que vivien dins d'Informes.ps1 (revisio d'arquitectura):
 . (Join-Path $ScriptRoot 'CopiaInformes.ps1')
+# El mode automatic (setmanal) del Planol activitats: s'apunta al registre.
+. (Join-Path $ScriptRoot 'PlanolAutomatic.ps1')
 . (Join-Path $ScriptRoot 'ComprovarExcel.ps1')
 
 # Lector dels ESTRUCTURALS en JSON (format estandard unic). Nomes defineix

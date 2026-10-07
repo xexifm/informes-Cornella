@@ -608,7 +608,22 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
   Mostra una **finestra de progrés amb botó Cancel·lar** i **confirma abans de
   copiar** (amb el nombre d'informes) — mai comença "a cegues". Si es cancel·la,
   NO desa `copiat_el` (la propera vegada torna a comprovar el que faltava).
-- **L'HORA DE TOTS ELS MODES AUTOMÀTICS: les 13:00** (octubre 2026; abans la
+- **PROGRAMACIONS CONFIGURABLES** (octubre 2026: «com són ja uns quants, haurien
+  de ser configurables des de la configuració»). Cada automatisme s'apunta amb
+  `Register-ProgramacioAuto <clau> <títol> [dia|setmana] [dia 1-7] [hora]`
+  (`ModeAutomatic.ps1`); per defecte tots són a les 13:00 (`$Script:AutoHora`) i
+  cada dia, tret del *Plànol activitats* (cada **dilluns**). ⚙ *Configuració* té
+  un grup **Automatismes** que es munta sol amb el que hi ha registrat:
+  interruptor (si és a `$Script:ModesAuto`), «cada dia / cada setmana», el dia i
+  l'hora. Es desa a `Automatismes` dels settings **només si difereix del valor
+  per defecte** (`ConvertTo-AutomatismesSettings`), i `Get-ProgramacioAuto`
+  rellegeix els settings a cada consulta: **no cal reiniciar**. Un valor
+  invàlid (hora mal escrita, dia fora de 1-7) torna al de per defecte. El
+  venciment setmanal fa servir el dia ISO (diumenge = 7). Els Recordatoris, que
+  són una tasca del Windows, es reescriuen en desar (`Update-RecordatorisTascaSiCal
+  -Forca`, `ScheduleByWeek` si és setmanal); l'interruptor dels recordatoris
+  continua sent el botó *Automàtic...* de la seva eina.
+- **L'HORA DE TOTS ELS MODES AUTOMÀTICS: les 13:00** per defecte (octubre 2026; abans la
   còpia era a les 14:30, la base a les 14:00 i els recordatoris a les 09:00). Viu
   en un sol lloc, `$Script:AutoHora`/`$Script:AutoMinut` (`ModeAutomatic.ps1`),
   i la regla és la mateixa per a tots: **si l'última vegada que tocava no es va

@@ -664,9 +664,11 @@ passat, per exemple, el *Comprovar Excel* aquesta setmana. Es desa a
 
 ### Copiar informes sol cada dia (l'interruptor **A** / **M**)
 
-> **Tot el que es fa sol es fa a les 13:00**: copiar informes, actualitzar la
-> base i els recordatoris. I sempre amb la mateixa regla: si l'última vegada que
-> tocava no es va poder fer, es fa tan aviat com es pot.
+> **Per defecte, tot el que es fa sol es fa a les 13:00**: copiar informes,
+> actualitzar la base i els recordatoris cada dia, i el plànol d'activitats cada
+> dilluns. Ho pots canviar a ⚙ *Configuració → Automatismes* (vegeu més avall). I
+> sempre amb la mateixa regla: si l'última vegada que tocava no es va poder fer,
+> es fa tan aviat com es pot.
 
 Sota la rajola **📁 Copiar informes**, allà on les altres eines tenen l'hora, hi
 ha un **interruptor petit**:
@@ -710,6 +712,30 @@ data surt en verd si l'última actualització la va fer sola.
   nous. Si li toca desar just mentre s'està actualitzant, et dirà que hi tornis
   d'aquí una estona.
 - Registre: `%LOCALAPPDATA%\InformesCornella\informes-db-log.txt`.
+
+### El plànol d'activitats sol cada setmana (també **A** / **M**)
+
+Sota **Plànol activitats** hi ha el mateix interruptor. En **A**, el plànol es
+torna a fer sol **cada dilluns a les 13:00** (o en obrir el programa, si aquella
+setmana encara no s'ha fet), en segon pla i sense que es vegi res, i **es puja
+sol al Drive** perquè el mòbil tingui el plànol al dia. Per posar-lo en A cal
+tenir configurada la carpeta de la base d'activitats.
+Registre: `%LOCALAPPDATA%\InformesCornella\planol-log.txt`.
+
+### Quan es fa cada cosa: ⚙ Configuració → Automatismes
+
+A **⚙ Configuració** hi ha el grup **Automatismes**, amb una fila per cada cosa
+que el programa fa sol (Copiar informes, Actualitzar base, Plànol activitats i
+Recordatoris). A cada fila pots:
+
+- **encendre-la o apagar-la** (és el mateix interruptor A/M del menú);
+- triar **cada dia** o **cada setmana**, i en aquest cas **quin dia**;
+- triar **l'hora**.
+
+En desar, el canvi val **de seguida**, sense reiniciar el programa. *Restaura*
+torna a posar les hores de fàbrica. Els **Recordatoris** són una tasca del
+Windows: si canvies quan es fan, el programa la reescriu sol, però encendre'ls
+o apagar-los es continua fent amb el botó *Automàtic...* de la seva eina.
 
 ---
 

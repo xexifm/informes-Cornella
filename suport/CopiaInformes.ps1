@@ -308,13 +308,15 @@ function Invoke-CopiarInformes {
 # tercer cas es perdia fins l'endemà.
 # L'últim venciment que ja hauria d'estar servit a l'hora $ara, i si toca.
 # PURES (la regla és la de tots els modes automàtics: ModeAutomatic.ps1).
+# Amb la programacio de 'copiarinformes' (per defecte cada dia a les 13:00; es
+# canvia a Configuracio).
 function _CopiaAutoVenciment([datetime]$ara) {
-    return (_AutoVenciment $ara $Script:AutoHora $Script:AutoMinut)
+    return (Get-ProgramacioVenciment 'copiarinformes' $ara)
 }
 
 # $ultimAuto: la marca 'auto_el' de l'estat (text ISO; buida si no s'ha fet mai).
 function _CopiaAutoToca([datetime]$ara, $ultimAuto) {
-    return (_AutoToca $ara $ultimAuto $Script:AutoHora $Script:AutoMinut)
+    return (Test-ProgramacioToca 'copiarinformes' $ara $ultimAuto)
 }
 
 # L'interruptor A/M del menú.
@@ -401,7 +403,9 @@ function Invoke-CopiaAutoSiToca {
     return (Start-CopiaInformesAuto)
 }
 
-# L'interruptor A/M de la rajola (ModeAutomatic.ps1: el registre).
+# L'interruptor A/M de la rajola (ModeAutomatic.ps1: el registre) i la seva
+# programacio per defecte (Configuracio la pot canviar).
+Register-ProgramacioAuto 'copiarinformes' 'Copiar informes'
 $Script:ModesAuto['copiarinformes'] = @{
     Titol     = 'Copiar informes'
     Actiu     = { _CopiaAutoActiu }
@@ -414,6 +418,7 @@ $Script:ModesAuto['copiarinformes'] = @{
         if (-not [string]::IsNullOrWhiteSpace($CopiaInformesDir)) { return '' }
         return ("Per copiar els informes sols cal dir on s'han de copiar.`n`nVes a Configuraci" + [char]0x00F3 + " (el bot" + [char]0x00F3 + " de la roda, a dalt a la dreta) i indica 'Carpeta on copiar els informes'.")
     }
-    TipA      = (Get-AutoTipText 'es copia sol')
+    # Un bloc i no un text: la programacio es pot canviar amb el programa obert.
+    TipA      = { Get-AutoTipText 'es copia sol' 'copiarinformes' }
     TipM      = "Mode MANUAL: nomes es copia quan cliques la rajola. Clica per posar-ho en automatic."
 }

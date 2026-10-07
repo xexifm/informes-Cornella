@@ -440,14 +440,22 @@ $Script:RecTascaNom = 'InformesCornella-Recordatoris'
 # s'ha arribat a fer l'última vegada que tocava, que es faci. Això és
 # <StartWhenAvailable>, que només es pot posar amb /XML. PURA.
 #   $hora 'HH:mm'; $avui: el dia de la primera vegada (StartBoundary).
-function _RecTascaXml([string]$psExe, [string]$script, [string]$hora, [datetime]$avui) {
+# Els dies de la setmana (1 dilluns ... 7 diumenge) com els vol el Programador.
+$Script:RecDiesXml = @('', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')
+
+# $diaSetmana: 0 cada dia; 1..7 un cop a la setmana (la programacio de
+# 'recordatoris', que es canvia a Configuracio; octubre 2026).
+function _RecTascaXml([string]$psExe, [string]$script, [string]$hora, [datetime]$avui, [int]$diaSetmana = 0) {
     $esc = { param($t) [System.Security.SecurityElement]::Escape([string]$t) }
     $args1 = '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + [string]$script + '"'
+    $quan = if ($diaSetmana -ge 1 -and $diaSetmana -le 7) {
+        '<ScheduleByWeek><WeeksInterval>1</WeeksInterval><DaysOfWeek><' + $Script:RecDiesXml[$diaSetmana] + ' /></DaysOfWeek></ScheduleByWeek>'
+    } else { '<ScheduleByDay><DaysInterval>1</DaysInterval></ScheduleByDay>' }
     return ('<?xml version="1.0" encoding="UTF-16"?>' + "`r`n" +
         '<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">' +
         '<RegistrationInfo><Description>Informes Cornella: recordatoris automatics</Description></RegistrationInfo>' +
         '<Triggers><CalendarTrigger><StartBoundary>' + $avui.ToString('yyyy-MM-dd') + 'T' + [string]$hora + ':00</StartBoundary>' +
-        '<Enabled>true</Enabled><ScheduleByDay><DaysInterval>1</DaysInterval></ScheduleByDay></CalendarTrigger></Triggers>' +
+        '<Enabled>true</Enabled>' + $quan + '</CalendarTrigger></Triggers>' +
         '<Principals><Principal id="Author"><LogonType>InteractiveToken</LogonType><RunLevel>LeastPrivilege</RunLevel></Principal></Principals>' +
         '<Settings><MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>' +
         '<DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries><StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>' +
@@ -463,14 +471,19 @@ function _RecSchtasksArgv([string]$nom, [string]$xmlPath) {
 
 # La tasca que hi ha al Windows ja és la d'ara (l'hora dels modes automàtics i
 # StartWhenAvailable)? PURA: rep l'XML de 'schtasks /Query /XML'.
-function _RecTascaAlDia([string]$xml, [string]$hora) {
+function _RecTascaAlDia([string]$xml, [string]$hora, [int]$diaSetmana = 0) {
     if ([string]::IsNullOrWhiteSpace($xml)) { return $false }
     # La sortida del schtasks pot arribar en UTF-16 llegida com a 8 bits: els
     # zeros de cada caracter fora (si no, mai quadraria i es refaria a cada
     # obertura).
     $xml = $xml.Replace([string][char]0, '')
     if ($xml -notmatch '<StartWhenAvailable>\s*true\s*</StartWhenAvailable>') { return $false }
-    return ($xml -match ('<StartBoundary>[^<]*T' + [regex]::Escape([string]$hora) + ':00'))
+    if ($xml -notmatch ('<StartBoundary>[^<]*T' + [regex]::Escape([string]$hora) + ':00')) { return $false }
+    # I la frequencia: cada dia, o el dia de la setmana de la programacio.
+    if ($diaSetmana -ge 1 -and $diaSetmana -le 7) {
+        return ($xml -match '<ScheduleByWeek>' -and $xml -match ('<' + $Script:RecDiesXml[$diaSetmana] + '\s*/>'))
+    }
+    return ($xml -match '<ScheduleByDay>')
 }
 
 # Antiguitat (en dies) de la base d'informes a partir del seu actualitzat_el.
@@ -702,7 +715,9 @@ function _RecScriptAuto {
 # el schtasks espera quan la capçalera ho diu.
 function _RecCreaTasca {
     $psExe = (Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe')
-    $xml = _RecTascaXml $psExe (_RecScriptAuto) (Get-AutoHoraText) (Get-Date)
+    $pr = Get-ProgramacioAuto 'recordatoris'
+    $dia = if ([string]$pr.Freq -eq 'setmana') { [int]$pr.Dia } else { 0 }
+    $xml = _RecTascaXml $psExe (_RecScriptAuto) ([string]$pr.Hora) (Get-Date) $dia
     $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ('recordatoris-tasca-' + [guid]::NewGuid().ToString('N') + '.xml')
     try {
         [System.IO.File]::WriteAllText($tmp, $xml, [System.Text.Encoding]::Unicode)
@@ -716,16 +731,24 @@ function _RecCreaTasca {
 # per execució del programa.
 $Script:RecTascaRevisada = $false
 
-function Update-RecordatorisTascaSiCal {
-    if ($Script:RecTascaRevisada) { return }
+# La programacio dels recordatoris (la tasca del Windows): la mateixa llista que
+# la resta d'automatismes, i es canvia a Configuracio.
+Register-ProgramacioAuto 'recordatoris' 'Recordatoris (tasca del Windows)'
+
+# -Forca: torna-ho a mirar encara que ja s'hagi fet (Configuracio, en desar
+# una programacio nova).
+function Update-RecordatorisTascaSiCal([switch]$Forca) {
+    if ($Script:RecTascaRevisada -and -not $Forca) { return }
     $Script:RecTascaRevisada = $true
     try {
         if ([string]::IsNullOrWhiteSpace($env:SystemRoot)) { return }   # no és un Windows
         $q = _RecExecutaSchtasks @('/Query', '/TN', $Script:RecTascaNom, '/XML')
         if ($q.Codi -ne 0) { return }                                   # no hi és: res a fer
-        if (_RecTascaAlDia ([string]$q.Sortida) (Get-AutoHoraText)) { return }
+        $pr = Get-ProgramacioAuto 'recordatoris'
+        $dia = if ([string]$pr.Freq -eq 'setmana') { [int]$pr.Dia } else { 0 }
+        if (_RecTascaAlDia ([string]$q.Sortida) ([string]$pr.Hora) $dia) { return }
         $c = _RecCreaTasca
-        if ($c.Codi -eq 0) { _RecLog ('Tasca programada actualitzada: cada dia a les ' + (Get-AutoHoraText) + ' i, si es salta, en quant es pugui.') }
+        if ($c.Codi -eq 0) { _RecLog ('Tasca programada actualitzada: ' + (Get-ProgramacioText $pr) + ' i, si es salta, en quant es pugui.') }
         else { _RecLog ("No s'ha pogut actualitzar la tasca programada: " + ([string]$c.Sortida).Trim()) }
     } catch { }
 }
@@ -753,7 +776,7 @@ function Invoke-RecordatorisTasca {
         return
     }
     $msg = "Vols programar l'enviament AUTOMÀTIC dels recordatoris?`n`n" +
-           "Es crearà una tasca del Windows que cada dia a les $(Get-AutoHoraText) enviarà els`n" +
+           "Es crearà una tasca del Windows que $(Get-ProgramacioText 'recordatoris') enviarà els`n" +
            "recordatoris de les campanyes que tinguis en mode Automàtic. Si a`n" +
            "aquella hora el PC estava apagat, s'enviaran en engegar-lo.`n`n" +
            "Tingues en compte que:`n" +
@@ -767,7 +790,7 @@ function Invoke-RecordatorisTasca {
     if ($r -eq [System.Windows.Forms.DialogResult]::Yes) {
         $res = _RecCreaTasca
         if ($res.Codi -eq 0) {
-            [System.Windows.Forms.MessageBox]::Show("Tasca creada.`n`nNom: $($Script:RecTascaNom)`nCada dia a les $(Get-AutoHoraText) (i, si el PC estava apagat, en engegar-lo).", 'Recordatoris', 'OK', 'Information') | Out-Null
+            [System.Windows.Forms.MessageBox]::Show("Tasca creada.`n`nNom: $($Script:RecTascaNom)`n$(Get-ProgramacioText 'recordatoris') (i, si el PC estava apagat, en engegar-lo). Es canvia a Configuració.", 'Recordatoris', 'OK', 'Information') | Out-Null
         } else {
             [System.Windows.Forms.MessageBox]::Show("No s'ha pogut crear la tasca:`n`n$($res.Sortida)", 'Recordatoris', 'OK', 'Error') | Out-Null
         }

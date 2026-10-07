@@ -422,4 +422,25 @@ try {
     Remove-Item -LiteralPath $tmpP -Recurse -Force -ErrorAction SilentlyContinue
 }
 
+Write-Host "`n--- Invoke-PlanolGenera en SILENCI (el mode automatic setmanal) ---"
+# Sense cap Excel d'activitats: torna l'error (no obre cap finestra).
+$vellsG = @{ A = $ActivitatsDir; L = $LocalActivitatsDir }
+$buitG = Join-Path ([System.IO.Path]::GetTempPath()) ('planol-gen-' + [guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path $buitG -Force | Out-Null
+try {
+    $ActivitatsDir = $buitG; $LocalActivitatsDir = $buitG
+    $rG = Invoke-PlanolGenera $true
+    AssertEq "$($rG.Ok)|$($rG.Error.Contains('No s''ha trobat cap base de dades'))" 'False|True' 'sense Excel: no fa res i ho diu (sense finestres)'
+    # La barra de progres, en silenci, no s'obre: la feina es fa igual.
+    $Script:PlanolSilenci = $true
+    $fG = _PlanolAmbProgres @('a', 'b') 'x' { param($l, $p) @{ N = @($l).Count; P = ($null -eq $p) } }
+    AssertEq "$($fG.Resultat.N)|$($fG.Resultat.P)|$($fG.Cancelat)" '2|True|False' 'en silenci, la feina sense barra (i sense cancel.lar)'
+    $Script:PlanolSilenci = $false
+} catch {
+    Assert $false ("Silenci: una excepcio s'ha escapat -> " + $_.Exception.Message)
+} finally {
+    $ActivitatsDir = $vellsG.A; $LocalActivitatsDir = $vellsG.L
+    Remove-Item -LiteralPath $buitG -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 exit (Write-TestSummary 'RESULTAT')

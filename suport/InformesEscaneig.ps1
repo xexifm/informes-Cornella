@@ -505,7 +505,7 @@ function _BaseAutoEstat { return (Read-EstatAuto (_BaseAutoStatePath) $Script:Ba
 function _BaseAutoDesaEstat($canvis) { return (Save-EstatAuto (_BaseAutoStatePath) $canvis $Script:BaseEstatPlantilla) }
 
 function _BaseAutoToca([datetime]$ara, $ultimAuto) {
-    return (_AutoToca $ara $ultimAuto $Script:AutoHora $Script:AutoMinut)
+    return (Test-ProgramacioToca 'informesdb' $ara $ultimAuto)
 }
 
 function _BaseAutoLog([string]$msg) { Write-AutoLog 'informes-db-log.txt' $msg }
@@ -556,6 +556,7 @@ function Invoke-BaseAutoSiToca {
     return (Start-InformesDbAuto)
 }
 
+Register-ProgramacioAuto 'informesdb' 'Actualitzar base'
 $Script:ModesAuto['informesdb'] = @{
     Titol     = 'Actualitzar base'
     Actiu     = { $e = _BaseAutoEstat; [bool]$e['auto'] }
@@ -566,6 +567,6 @@ $Script:ModesAuto['informesdb'] = @{
         if (-not [string]::IsNullOrWhiteSpace($InformesDir)) { return '' }
         return ("Per actualitzar la base sola cal dir on s" + [char]0x00F3 + "n els informes.`n`nVes a Configuraci" + [char]0x00F3 + " (el bot" + [char]0x00F3 + " de la roda, a dalt a la dreta) i indica la carpeta d'informes.")
     }
-    TipA      = (Get-AutoTipText "la base s'actualitza sola")
+    TipA      = { Get-AutoTipText "la base s'actualitza sola" 'informesdb' }
     TipM      = "Mode MANUAL: nomes s'actualitza quan cliques la rajola. Clica per posar-ho en automatic."
 }

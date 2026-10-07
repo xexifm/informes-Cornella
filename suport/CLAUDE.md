@@ -145,10 +145,12 @@ el resum:
 | `Migracio.ps1` | rutes de `local/` (`Get-LocalSubdir`) + endreç de les carpetes velles |
 | `CopiaInformesAuto.ps1` | la passada automàtica de *Copiar informes* (procés a part, sense interfície) |
 | `BaseInformesAuto.ps1` | la passada automàtica d'*Actualitzar base* (procés a part, sense interfície) |
-| `ModeAutomatic.ps1` | el comú dels interruptors A/M: quan toca, l'estat, el registre de diagnòstic, el procés a part, el mutex i el **registre `$Script:ModesAuto`** que recorre el menú |
+| `PlanolAutomatic.ps1` · `PlanolAuto.ps1` | el mode automàtic (setmanal) del *Plànol activitats*: registre i quan toca / la passada en procés a part (genera i puja `Dades/planol.html`) |
+| `ModeAutomatic.ps1` | el comú dels interruptors A/M: quan toca, l'estat, el registre de diagnòstic, el procés a part, el mutex, el **registre `$Script:ModesAuto`** que recorre el menú i les **programacions** (`Register-ProgramacioAuto`, `Get-ProgramacioAuto`, `Test-ProgramacioToca`: cada dia / cada setmana + hora, configurables a ⚙ *Configuració → Automatismes*, `Automatismes` dels settings) |
+| `SegonPla.ps1` | `Start-ScriptSegonPla` |
 
 **Llançar un script d'aquest mateix `suport/` en segon pla** es fa en un sol
-lloc: `Start-ScriptSegonPla` (`Motor.ps1`). El fan servir les **vistes en Word**
+lloc: `Start-ScriptSegonPla` (`SegonPla.ps1`). El fan servir les **vistes en Word**
 (en tancar l'editor de catàlegs) i la **còpia automàtica**; la trampa de les
 cometes del `Start-Process` a PowerShell 5.1 no pot estar escrita dues vegades.
 `Invoke-RevisarMobil` **no** hi entra, i és a posta: espera el resultat, li passa
@@ -174,10 +176,11 @@ només fa servir el codi nou no simplifica res.
 | la **vista en Word** d'un catàleg | els mateixos blocs + `Write-Informe -AmbNivells` (com `Build-LlicVistaBlocs`) |
 | un **format de paràgraf** nou (sagnia, espai, estil) | una constant o un `_*` de `Format.ps1`, aplicat **al rang**; mai al cursor |
 | una **pantalla** | `_NewForm`, `_AddBrandHeader`, `_StyleListGrid`, `_AddSearchBox` (`UiComuns.ps1`); els botons de baix, **sempre** amb `_AddPeuBotons` (sortir a l'esquerra, avançar a la dreta; hi ha guard); que hi capiga: `_AjustaFinestraAPantalla` (tots dos a `UiFinestra.ps1`) |
-| una **feina llarga** amb barra | `Show-ProgresCancel`; en segon pla, `Start-ScriptSegonPla` (`Motor.ps1`) |
+| una **feina llarga** amb barra | `Show-ProgresCancel`; en segon pla, `Start-ScriptSegonPla` (`SegonPla.ps1`) |
 | llegir o desar **JSON** | `Read-JsonFile` / `Write-JsonFile` (atòmic, sense BOM) i `ConvertTo-Mapa` per passar-lo a hashtable (`Json.ps1`) |
 | una **carpeta** dins de `local/` | una clau nova a `Get-LocalSubdir` (`Migracio.ps1`), no un `Join-Path` a mà |
 | una **preferència** d'aquest PC | `Load-AppSettings` / `Save-AppSettings` (`Settings.ps1`) |
+| un **automatisme** nou (interruptor A/M) | `Register-ProgramacioAuto` (surt sol a *Configuració → Automatismes*) + una entrada a `$Script:ModesAuto` + `Interruptor = $true` a la rajola; quan toca, **només** `Test-ProgramacioToca` (mai una hora escrita a mà) |
 | una **dada d'una llicència** que s'ha de recordar | la fitxa de `LlicenciaDb.ps1` (`ConvertTo-LlicenciaRecord` / `Restore-LlicenciaState`) |
 | un **catàleg** o un text editable | el format estàndard de `CatalegJson.ps1` a `ESTRUCTURALS/`; les conclusions, a `0 CONCLUSIONS.json` |
 | una **funció pura** nova | proves a l'àrea que toca de `tests/proves/` (i una àrea nova, a la llista de `run-tests.ps1`) |

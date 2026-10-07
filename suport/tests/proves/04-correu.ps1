@@ -316,6 +316,15 @@ AssertEq ($rcArgv -join ' ') '/Create /TN InformesCornella-Recordatoris /XML C:\
 Assert (_RecTascaAlDia $rcXml '13:00') '_RecTascaAlDia: la d''ara esta al dia'
 $rcVella = '<Task><Triggers><CalendarTrigger><StartBoundary>2026-09-01T09:00:00</StartBoundary></CalendarTrigger></Triggers><Settings><StartWhenAvailable>false</StartWhenAvailable></Settings></Task>'
 Assert (-not (_RecTascaAlDia $rcVella '13:00')) '_RecTascaAlDia: la de les 09:00 sense recuperar-se s''ha de refer'
+# UN COP A LA SETMANA (la programacio de 'recordatoris', Configuracio).
+$rcSet = _RecTascaXml 'C:\p.exe' 'C:\s.ps1' '08:30' ([datetime]'2026-10-05') 3
+[xml]$rcDocS = $rcSet
+$rcNsS = New-Object System.Xml.XmlNamespaceManager($rcDocS.NameTable); $rcNsS.AddNamespace('t', 'http://schemas.microsoft.com/windows/2004/02/mit/task')
+AssertEq "$([string]$rcDocS.SelectSingleNode('//t:StartBoundary', $rcNsS).InnerText)|$($null -ne $rcDocS.SelectSingleNode('//t:ScheduleByWeek/t:DaysOfWeek/t:Wednesday', $rcNsS))|$($null -eq $rcDocS.SelectSingleNode('//t:ScheduleByDay', $rcNsS))" '2026-10-05T08:30:00|True|True' '_RecTascaXml setmanal: els dimecres a les 08:30'
+Assert (_RecTascaAlDia $rcSet '08:30' 3) '_RecTascaAlDia: la setmanal del dimecres, al dia'
+Assert (-not (_RecTascaAlDia $rcSet '08:30' 0)) '_RecTascaAlDia: si ara toca cada dia, la setmanal s''ha de refer'
+Assert (-not (_RecTascaAlDia $rcSet '08:30' 4)) '_RecTascaAlDia: si ara toca els dijous, tambe'
+Assert (-not (_RecTascaAlDia $rcXml '13:00' 1)) '_RecTascaAlDia: la diaria, si ara toca setmanal, s''ha de refer'
 Assert (-not (_RecTascaAlDia ($rcXml -replace 'T13:00', 'T09:00') '13:00')) '_RecTascaAlDia: una altra hora, tambe'
 Assert (-not (_RecTascaAlDia '' '13:00')) '_RecTascaAlDia: sense tasca, no'
 Assert (_RecTascaAlDia (($rcXml.ToCharArray() | ForEach-Object { [string]$_ + [char]0 }) -join '') '13:00') '_RecTascaAlDia: tambe si el schtasks la torna en UTF-16 llegida a 8 bits'
@@ -606,6 +615,35 @@ foreach ($kH in @('informesdb', 'copiarinformes')) { Assert ((_AjudaEina $kH).Co
 # Esperar que la base s'acabi d'escriure (els Recordatoris, abans de llegir-la).
 AssertEq (Wait-MutexLliure ('Global\InformesCornella.Prova.' + [guid]::NewGuid().ToString('N')) 0) $true 'Wait-MutexLliure: lliure, de seguida'
 AssertEq (_AutoVenciment ([datetime]'2026-09-08T08:00:00') 7 15) ([datetime]'2026-09-08T07:15:00') '_AutoVenciment: amb els minuts de l''eina'
+
+Write-Host "`n--- ModeAutomatic.ps1: la PROGRAMACIO de cada automatisme (setmanal i configurable) ---"
+# Un cop a la setmana (el Planol activitats, l'usuari, octubre 2026). 2026-10-05 es DILLUNS.
+AssertEq (_AutoVenciment ([datetime]'2026-10-07T09:00:00') 13 0 1) ([datetime]'2026-10-05T13:00:00') 'setmanal: un dimecres, el venciment es el dilluns passat'
+AssertEq (_AutoVenciment ([datetime]'2026-10-05T12:59:00') 13 0 1) ([datetime]'2026-09-28T13:00:00') 'setmanal: el dilluns abans de l hora, el de la setmana passada'
+AssertEq (_AutoVenciment ([datetime]'2026-10-05T13:00:00') 13 0 1) ([datetime]'2026-10-05T13:00:00') 'setmanal: el dilluns a l hora, el d avui'
+AssertEq (_AutoVenciment ([datetime]'2026-10-11T23:00:00') 13 0 7) ([datetime]'2026-10-11T13:00:00') 'setmanal: el diumenge (7) tambe'
+Assert (-not (_AutoToca ([datetime]'2026-10-09T10:00:00') ([datetime]'2026-10-05T13:00:10').ToString('o') 13 0 1)) 'setmanal: fet dilluns, el divendres ja no toca'
+Assert (_AutoToca ([datetime]'2026-10-13T08:00:00') ([datetime]'2026-10-02T13:00:10').ToString('o') 13 0 1) 'setmanal: el dilluns es va perdre (PC apagat): toca en obrir, encara que sigui dimarts'
+$setPr = [pscustomobject]@{ Automatismes = [pscustomobject]@{
+    copiarinformes = [pscustomobject]@{ Freq = 'setmana'; Dia = 3; Hora = '9:05' }
+    informesdb     = [pscustomobject]@{ Freq = 'cada hora'; Dia = 1; Hora = '13:00' } } }
+$prC = Get-ProgramacioAuto 'copiarinformes' $setPr
+AssertEq "$($prC.Freq)|$($prC.Dia)|$($prC.Hora)|$($prC.Propia)" 'setmana|3|09:05|True' 'la programacio d aquest PC (settings.json) mana, amb l hora normalitzada'
+AssertEq (Get-ProgramacioText $prC) 'cada dimecres a les 09:05' 'i es diu en catala'
+AssertEq "$((Get-ProgramacioAuto 'informesdb' $setPr).Freq)|$((Get-ProgramacioAuto 'informesdb' $setPr).Propia)" 'dia|False' 'una programacio que no es valida (feta a ma) no compta: la per defecte'
+AssertEq (Get-ProgramacioText (Get-ProgramacioAuto 'planol' ([pscustomobject]@{}))) 'cada dilluns a les 13:00' 'el Planol, per defecte: cada dilluns a les 13:00'
+Assert (Test-ProgramacioToca 'copiarinformes' ([datetime]'2026-10-07T09:06:00') ([datetime]'2026-10-06T13:00:00').ToString('o') $setPr) 'amb la programacio propia: el dimecres a les 09:06 toca'
+Assert (-not (Test-ProgramacioToca 'copiarinformes' ([datetime]'2026-10-07T09:04:00') ([datetime]'2026-10-06T13:00:00').ToString('o') $setPr)) '...a les 09:04, encara no'
+foreach ($pv in @(@{ Freq = 'dia'; Dia = 1; Hora = '24:00' }, @{ Freq = 'setmana'; Dia = 8; Hora = '10:00' }, @{ Freq = 'mes'; Dia = 1; Hora = '10:00' }, $null)) {
+    Assert (-not (Test-ProgramacioValida $pv)) ("programacio no valida: " + ($pv | ConvertTo-Json -Compress))
+}
+$aDesar = ConvertTo-AutomatismesSettings @{
+    copiarinformes = @{ Freq = 'dia'; Dia = 4; Hora = '13:00' }      # igual que per defecte (el dia no compta)
+    planol         = @{ Freq = 'setmana'; Dia = 5; Hora = '08:30' }  # diferent
+    informesdb     = @{ Freq = 'dia'; Dia = 1; Hora = '99:00' } }    # no valida
+AssertEq (@($aDesar.Keys) -join ',') 'planol' 'a settings.json nomes hi va el que difereix del per defecte (i es valid)'
+Assert ((Get-AutoTipText 'x' 'planol').Contains('cada dilluns a les 13:00') -and (Get-AutoTipText 'x' 'planol').Contains('Configuracio')) 'l ajuda de l interruptor diu la programacio de l eina i que es canvia a Configuracio'
+AssertEq (_AjudaEina 'planol').Contains('cada dilluns a les 13:00') $true 'l ajuda de la rajola del Planol diu quan es fa sol'
 $tmpMA = Join-Path ([System.IO.Path]::GetTempPath()) ('mode-auto-' + [guid]::NewGuid().ToString('N'))
 try {
     $plMA = [ordered]@{ auto = $false; auto_el = ''; mode = '' }
@@ -771,7 +809,7 @@ AssertEq "$($fF.activitats[1].informes[0].editat_a_ma)|$($null -eq $fF.activitat
 AssertEq @($fF.activitats[2].informes).Count 2 'fusio: l''informe nou del disc hi es'
 
 Write-Host "`n--- ModeAutomatic.ps1: el registre dels interruptors A/M ---"
-foreach ($kMA in @('copiarinformes', 'informesdb')) {
+foreach ($kMA in @('copiarinformes', 'informesdb', 'planol')) {
     Assert ($Script:ModesAuto.Contains($kMA)) "registre: '$kMA' hi es"
     foreach ($cMA in @('Titol', 'Actiu', 'DesaActiu', 'UltimMode', 'SiToca', 'Requisit', 'TipA', 'TipM')) {
         Assert ($null -ne $Script:ModesAuto[$kMA][$cMA]) "registre: '$kMA' te $cMA"
@@ -795,6 +833,16 @@ try {
     AssertEq ([string](& $mB.Requisit)) '' 'registre base: amb carpeta, si'
     $CopiaInformesDir = ''
     Assert (([string](& $Script:ModesAuto['copiarinformes'].Requisit)).Contains('Configuraci')) 'registre copia: sense carpeta de copia no es pot engegar'
+    # EL PLANOL (setmanal): l'estat a planol-auto.json, com els altres.
+    $mP = $Script:ModesAuto['planol']
+    $vellRepo = $RepoRoot
+    $RepoRoot = $rgDir
+    AssertEq ([bool](& $mP.Actiu)) $false 'registre planol: arrenca apagat'
+    [void](& $mP.DesaActiu $true)
+    AssertEq "$([bool](& $mP.Actiu))|$([string](& $mP.UltimMode))" 'True|' 'registre planol: DesaActiu / Actiu'
+    Assert ((_PlanolAutoStatePath).EndsWith('planol-auto.json')) 'registre planol: l estat, a planol-auto.json'
+    $RepoRoot = $vellRepo
+    Assert (([string](& $mP.TipA)).Contains('cada dilluns')) 'registre planol: l ajuda de l interruptor diu cada dilluns'
 } finally {
     $LocalActivitatsDir = $vellsRG.Loc; $InformesDir = $vellsRG.Inf; $CopiaInformesDir = $vellsRG.Cop
     Remove-Item -LiteralPath $rgDir -Recurse -Force -ErrorAction SilentlyContinue

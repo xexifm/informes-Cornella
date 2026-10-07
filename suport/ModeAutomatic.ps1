@@ -55,18 +55,118 @@ $Script:AutoMinut = 0
 
 function Get-AutoHoraText { return ('{0:00}:{1:00}' -f [int]$Script:AutoHora, [int]$Script:AutoMinut) }
 
-# L'ajuda de l'interruptor en AUTOMATIC. $que: el que es fa ("es copia sol",
-# "la base s'actualitza sola"). PURA.
-function Get-AutoTipText([string]$que) {
-    return ("Mode AUTOMATIC: " + $que + " cada dia a les " + (Get-AutoHoraText) + ". Si l'ultima vegada que tocava " +
-            "no es va poder fer (el programa estava tancat), es fa en obrir-lo. Clica per passar a manual.")
+# ----------------------------------------------------------------------------
+# LA PROGRAMACIO DE CADA AUTOMATISME (octubre 2026, l'usuari: "aquests
+# automatismes, com son ja uns quants, haurien de ser configurables des de la
+# configuracio", i el Planol activitats "un cop a la setmana")
+# ----------------------------------------------------------------------------
+# Cada automatisme s'hi apunta en carregar-se amb la seva programacio PER
+# DEFECTE; la pantalla de Configuracio en desa una de propia per a aquest PC
+# (settings.json, clau "Automatismes") i es llegeix EN VIU (cada minut, el menu):
+# canviar-la no demana reiniciar.
+#   Freq  'dia' (cada dia) | 'setmana' (un dia de la setmana)
+#   Dia   1 dilluns ... 7 diumenge (nomes 'setmana')
+#   Hora  'HH:mm'
+# La regla de sempre no canvia: si l'ULTIMA VEGADA QUE TOCAVA no es va fer, es
+# fa tan aviat com es pot.
+$Script:ProgramacionsAuto = [ordered]@{}
+$Script:DiesSetmana = @('', 'dilluns', 'dimarts', 'dimecres', 'dijous', 'divendres', 'dissabte', 'diumenge')
+
+function Register-ProgramacioAuto([string]$clau, [string]$titol, [string]$freq = 'dia', [int]$dia = 1, [string]$hora = '') {
+    if ($hora -eq '') { $hora = Get-AutoHoraText }
+    $Script:ProgramacionsAuto[$clau] = [pscustomobject]@{ Clau = $clau; Titol = $titol; Freq = $freq; Dia = $dia; Hora = $hora }
 }
 
-# L'ultim venciment que ja hauria d'estar servit a l'hora $ara. PURA.
-function _AutoVenciment([datetime]$ara, [int]$hora, [int]$minut) {
+# Una programacio es valida? (el que ve de settings.json es d'un fitxer que es
+# pot tocar a ma). PURA.
+function Test-ProgramacioValida($p) {
+    if ($null -eq $p) { return $false }
+    if (@('dia', 'setmana') -notcontains [string]$p.Freq) { return $false }
+    if ([string]$p.Hora -notmatch '^([01]?\d|2[0-3]):[0-5]\d$') { return $false }
+    if ([string]$p.Freq -eq 'setmana') { $d = 0; if (-not [int]::TryParse([string]$p.Dia, [ref]$d) -or $d -lt 1 -or $d -gt 7) { return $false } }
+    return $true
+}
+
+# La programacio EFECTIVA: la d'aquest PC (settings.json) si n'hi ha una de
+# valida, si no la per defecte. $settings: per a les proves (si no, es llegeix).
+function Get-ProgramacioAuto([string]$clau, $settings = $null) {
+    $def = $Script:ProgramacionsAuto[$clau]
+    if ($null -eq $def) { $def = [pscustomobject]@{ Clau = $clau; Titol = $clau; Freq = 'dia'; Dia = 1; Hora = (Get-AutoHoraText) } }
+    if ($null -eq $settings) { try { $settings = Load-AppSettings } catch { $settings = $null } }
+    $o = $null
+    try { if ($null -ne $settings -and $null -ne $settings.Automatismes) { $o = $settings.Automatismes.$clau } } catch { $o = $null }
+    if (Test-ProgramacioValida $o) {
+        $h = ([string]$o.Hora).Split(':')
+        return [pscustomobject]@{ Clau = $clau; Titol = $def.Titol; Freq = [string]$o.Freq; Dia = [int]$o.Dia
+                                  Hora = ('{0:00}:{1:00}' -f [int]$h[0], [int]$h[1]); Propia = $true }
+    }
+    return [pscustomobject]@{ Clau = $clau; Titol = $def.Titol; Freq = $def.Freq; Dia = [int]$def.Dia; Hora = $def.Hora; Propia = $false }
+}
+
+# "cada dia a les 13:00" / "cada dilluns a les 13:00". PURA (amb $p donada).
+function Get-ProgramacioText($p) {
+    if ($p -is [string]) { $p = Get-ProgramacioAuto $p }
+    if ([string]$p.Freq -eq 'setmana') { return ('cada ' + $Script:DiesSetmana[[int]$p.Dia] + ' a les ' + $p.Hora) }
+    return ('cada dia a les ' + $p.Hora)
+}
+
+# L'hora, el minut i el dia de la setmana (0 = cada dia) d'una programacio. PURA.
+function _ProgramacioParts($p) {
+    $h = ([string]$p.Hora).Split(':')
+    $dia = if ([string]$p.Freq -eq 'setmana') { [int]$p.Dia } else { 0 }
+    return @([int]$h[0], [int]$h[1], $dia)
+}
+
+# Toca fer la passada d'aquest automatisme, amb la seva programacio?
+function Test-ProgramacioToca([string]$clau, [datetime]$ara, $ultim, $settings = $null) {
+    $x = _ProgramacioParts (Get-ProgramacioAuto $clau $settings)
+    return (_AutoToca $ara $ultim $x[0] $x[1] $x[2])
+}
+
+# L'ultim venciment d'aquest automatisme a l'hora $ara.
+function Get-ProgramacioVenciment([string]$clau, [datetime]$ara, $settings = $null) {
+    $x = _ProgramacioParts (Get-ProgramacioAuto $clau $settings)
+    return (_AutoVenciment $ara $x[0] $x[1] $x[2])
+}
+
+# El que es desa a settings.json: nomes les programacions DIFERENTS de la per
+# defecte (com les carpetes, _BuildSettingsOverrides). $valors: clau ->
+# { Freq; Dia; Hora }. PURA (amb el registre).
+function ConvertTo-AutomatismesSettings($valors) {
+    $out = [ordered]@{}
+    foreach ($k in @($valors.Keys)) {
+        $v = $valors[$k]; $d = $Script:ProgramacionsAuto[$k]
+        if (-not (Test-ProgramacioValida $v)) { continue }
+        $igual = ($null -ne $d -and [string]$v.Freq -eq [string]$d.Freq -and [string]$v.Hora -eq [string]$d.Hora -and
+                  ([string]$v.Freq -ne 'setmana' -or [int]$v.Dia -eq [int]$d.Dia))
+        if (-not $igual) { $out[$k] = [ordered]@{ Freq = [string]$v.Freq; Dia = [int]$v.Dia; Hora = [string]$v.Hora } }
+    }
+    return $out
+}
+
+# L'ajuda de l'interruptor en AUTOMATIC. $que: el que es fa ("es copia sol",
+# "la base s'actualitza sola"); $clau: l'automatisme (la seva programacio; sense,
+# la de per defecte, cada dia).
+function Get-AutoTipText([string]$que, [string]$clau = '') {
+    $quan = if ($clau -ne '') { Get-ProgramacioText $clau } else { 'cada dia a les ' + (Get-AutoHoraText) }
+    return ("Mode AUTOMATIC: " + $que + " " + $quan + ". Si l'ultima vegada que tocava " +
+            "no es va poder fer (el programa estava tancat), es fa en obrir-lo. Clica per passar a manual. " +
+            "Quan es fa, es canvia a Configuracio.")
+}
+
+# L'ultim venciment que ja hauria d'estar servit a l'hora $ara. $diaSetmana: 0
+# cada dia; 1..7 (dilluns..diumenge) un cop a la setmana. PURA.
+function _AutoVenciment([datetime]$ara, [int]$hora, [int]$minut, [int]$diaSetmana = 0) {
     $avui = New-Object datetime($ara.Year, $ara.Month, $ara.Day, $hora, $minut, 0)
-    if ($ara -lt $avui) { return $avui.AddDays(-1) }
-    return $avui
+    if ($diaSetmana -lt 1) {
+        if ($ara -lt $avui) { return $avui.AddDays(-1) }
+        return $avui
+    }
+    # DayOfWeek: diumenge = 0. En ISO, diumenge = 7.
+    $iso = [int]$ara.DayOfWeek; if ($iso -eq 0) { $iso = 7 }
+    $venc = $avui.AddDays( - (($iso - $diaSetmana + 7) % 7))
+    if ($venc -gt $ara) { $venc = $venc.AddDays(-7) }
+    return $venc
 }
 
 # Toca fer la passada? $ultim: la marca de l'ultima passada automatica (text
@@ -74,8 +174,9 @@ function _AutoVenciment([datetime]$ara, [int]$hora, [int]$minut) {
 #   menu obert a l'hora      -> el venciment passa a ser el d'avui i toca
 #   ahir el PC estava apagat -> el venciment d'ahir no es va servir, toca
 #   obres a la tarda i el d'avui no s'ha fet -> toca (no s'espera a dema)
-function _AutoToca([datetime]$ara, $ultim, [int]$hora, [int]$minut) {
-    $venc = _AutoVenciment $ara $hora $minut
+# Amb $diaSetmana, el mateix per setmanes.
+function _AutoToca([datetime]$ara, $ultim, [int]$hora, [int]$minut, [int]$diaSetmana = 0) {
+    $venc = _AutoVenciment $ara $hora $minut $diaSetmana
     $t = [string]$ultim
     if ([string]::IsNullOrWhiteSpace($t)) { return $true }
     try { $fet = [datetime]::Parse($t) } catch { return $true }

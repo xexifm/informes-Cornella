@@ -221,6 +221,22 @@ Parcel·les de Cornellà pintades segons l'estat de les activitats que hi ha. Es
 - Proves: `tests/run-tests-planol.ps1` (142) i `tests/navegador/prova-planol.mjs`
   (66, al Chromium, amb `genera-planol-prova.ps1`).
 
+### Mode automàtic setmanal (`PlanolAutomatic.ps1` + `PlanolAuto.ps1`, octubre 2026)
+«Aplica l'automatisme de Copiar informes i Actualitzar base a Plànol activitats,
+però un cop a la setmana». Mateix patró que els altres A/M: entrada a
+`$Script:ModesAuto['planol']` (requisit: la carpeta de l'Excel d'activitats),
+programació `planol` **setmanal, dilluns a les 13:00** per defecte (canviable a
+*Configuració → Automatismes*), estat a `local\planol-activitats\planol-auto.json`,
+mutex `Global\InformesCornella.PlanolActivitats` i registre a
+`%LOCALAPPDATA%\InformesCornella\planol-log.txt`.
+- La feina és **`Invoke-PlanolGenera($silenci)`**: el botó (`Invoke-PlanolMain`)
+  i el procés a part la comparteixen. En silenci no hi ha cap finestra (ni barra:
+  `_PlanolAmbProgres` fa la feina directament) i, si falta l'Excel
+  d'ESTABLIMENTS, continua amb un avís al registre en comptes de preguntar.
+- `PlanolAuto.ps1` carrega `rutes/Planol.ps1` amb `$PlanolNomesFuncions = $true`
+  (no obre res) i, si va bé, **puja el plànol al Drive** (`Save-ADadesDrive
+  'planol.html'`) perquè el mòbil tingui el de la setmana.
+
 ## LA TRAMPA DE `$Script:` DINS D'UN `.GetNewClosure()` (mesurada, octubre 2026)
 
 **Dins d'una closure, `$Script:X` NO és la variable de l'script**: llegir-la torna

@@ -68,7 +68,10 @@ function Invoke-ConfiguracioScreen {
 
     $form = _NewForm
     $form.Text = 'Configuracio'
-    $form.Size = New-Object System.Drawing.Size(560, 830)
+    # L'alcada creix amb el grup d'automatismes (una fila per cada un).
+    $nAuto = @($Script:ProgramacionsAuto.Keys).Count
+    $altAuto = 56 + 30 * $nAuto
+    $form.Size = New-Object System.Drawing.Size(560, (838 + $altAuto))
     $form.MinimumSize = New-Object System.Drawing.Size(480, 560)
     $form.StartPosition = 'CenterScreen'
 
@@ -101,10 +104,77 @@ function Invoke-ConfiguracioScreen {
     $r = _AddConfigRow $grpAddicionals $r.NextY "Carpeta on copiar els informes (copia de seguretat)" $effCopiaInformesDir
     $tbCopia = $r.TextBox
 
+    # ---- Automatismes (octubre 2026) ----------------------------------
+    # L'usuari: "aquests automatismes, com son ja uns quants, haurien de ser
+    # configurables des de la configuracio". Una fila per cada automatisme del
+    # registre (ModeAutomatic.ps1): engegat o no (el mateix que l'interruptor
+    # A/M del menu), cada dia o un dia de la setmana, i l'hora. Es desa a
+    # settings.json (nomes el que difereix del per defecte) i s'aplica en viu.
+    $grpAuto = New-Object System.Windows.Forms.GroupBox
+    $grpAuto.Text = 'Automatismes'
+    $grpAuto.Location = New-Object System.Drawing.Point(14, 578)
+    $grpAuto.Size = New-Object System.Drawing.Size(514, ($altAuto - 8))
+    $grpAuto.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
+    $modesAuto = $Script:ModesAuto
+    $progDefs = @{}
+    $autoCtl = [ordered]@{}
+    $dies = @('dilluns', 'dimarts', 'dimecres', 'dijous', 'divendres', 'dissabte', 'diumenge')
+    $ya = 22
+    foreach ($k in @($Script:ProgramacionsAuto.Keys)) {
+        $def = $Script:ProgramacionsAuto[$k]
+        $progDefs[$k] = $def
+        $pr = Get-ProgramacioAuto $k $current
+        $c = @{ Clau = $k }
+        if ($modesAuto.Contains($k)) {
+            $chk = New-Object System.Windows.Forms.CheckBox
+            $chk.Text = [string]$def.Titol
+            $chk.Location = New-Object System.Drawing.Point(12, $ya)
+            $chk.Size = New-Object System.Drawing.Size(190, 24)
+            $chk.Checked = [bool](& $modesAuto[$k].Actiu)
+            $c.Chk = $chk; $c.Abans = $chk.Checked
+            [void]$grpAuto.Controls.Add($chk)
+        } else {
+            # Els recordatoris s'engeguen a la seva eina (la tasca del Windows):
+            # aqui nomes quan.
+            $lbl = New-Object System.Windows.Forms.Label
+            $lbl.Text = [string]$def.Titol
+            $lbl.Location = New-Object System.Drawing.Point(30, ($ya + 4))
+            $lbl.Size = New-Object System.Drawing.Size(172, 20)
+            [void]$grpAuto.Controls.Add($lbl)
+        }
+        $cbF = New-Object System.Windows.Forms.ComboBox
+        $cbF.DropDownStyle = 'DropDownList'
+        [void]$cbF.Items.AddRange(@('cada dia', 'cada setmana'))
+        $cbF.SelectedIndex = if ([string]$pr.Freq -eq 'setmana') { 1 } else { 0 }
+        $cbF.Location = New-Object System.Drawing.Point(206, $ya); $cbF.Size = New-Object System.Drawing.Size(104, 24)
+        $cbD = New-Object System.Windows.Forms.ComboBox
+        $cbD.DropDownStyle = 'DropDownList'
+        [void]$cbD.Items.AddRange($dies)
+        $cbD.SelectedIndex = [math]::Max(0, [math]::Min(6, [int]$pr.Dia - 1))
+        $cbD.Location = New-Object System.Drawing.Point(316, $ya); $cbD.Size = New-Object System.Drawing.Size(98, 24)
+        $cbD.Enabled = ($cbF.SelectedIndex -eq 1)
+        $cbF.add_SelectedIndexChanged({ $cbD.Enabled = ($cbF.SelectedIndex -eq 1) }.GetNewClosure())
+        $dt = New-Object System.Windows.Forms.DateTimePicker
+        $dt.Format = 'Custom'; $dt.CustomFormat = 'HH:mm'; $dt.ShowUpDown = $true
+        $hm = ([string]$pr.Hora).Split(':')
+        $dt.Value = (Get-Date).Date.AddHours([int]$hm[0]).AddMinutes([int]$hm[1])
+        $dt.Location = New-Object System.Drawing.Point(420, $ya); $dt.Size = New-Object System.Drawing.Size(80, 24)
+        $c.Freq = $cbF; $c.Dia = $cbD; $c.Hora = $dt
+        [void]$grpAuto.Controls.Add($cbF); [void]$grpAuto.Controls.Add($cbD); [void]$grpAuto.Controls.Add($dt)
+        $autoCtl[$k] = $c
+        $ya += 30
+    }
+    $lblAutoNota = New-Object System.Windows.Forms.Label
+    $lblAutoNota.Text = ("Si a l'hora que toca el programa (o el PC) estava tancat, es fa en obrir-lo. Els recordatoris s'engeguen a la seva eina.")
+    $lblAutoNota.Location = New-Object System.Drawing.Point(12, ($ya + 2))
+    $lblAutoNota.Size = New-Object System.Drawing.Size(488, 18)
+    $lblAutoNota.ForeColor = [System.Drawing.Color]::FromArgb(90, 90, 90)
+    [void]$grpAuto.Controls.Add($lblAutoNota)
+
     # ---- Manteniment: info de versio + actualitzar ----------------------
     $grpMant = New-Object System.Windows.Forms.GroupBox
     $grpMant.Text = 'Manteniment'
-    $grpMant.Location = New-Object System.Drawing.Point(14, 578)
+    $grpMant.Location = New-Object System.Drawing.Point(14, (578 + $altAuto))
     $grpMant.Size = New-Object System.Drawing.Size(514, 96)
     $grpMant.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 
@@ -160,6 +230,12 @@ function Invoke-ConfiguracioScreen {
         CopiaInformesDir = $Script:DefaultCopiaInformesDir
     }
 
+    # Els valors amb que s'ha obert la pantalla: si no se'n toca cap, no cal reiniciar.
+    $inicials = @{
+        InformesDir = $effInformesDir; ActivitatsDir = $effActivitatsDir; OutputDir = $effOutputDir
+        RutesOutputDir = $effRutesOutputDir; DriveBaseDir = $effDriveBaseDir; CopiaInformesDir = $effCopiaInformesDir
+    }
+
     $btnRestaura.add_Click({
         $tbInformes.Text   = $defs.InformesDir
         $tbActivitats.Text = $defs.ActivitatsDir
@@ -167,6 +243,14 @@ function Invoke-ConfiguracioScreen {
         $tbRutes.Text      = $defs.RutesOutputDir
         $tbDrive.Text      = $defs.DriveBaseDir
         $tbCopia.Text      = $defs.CopiaInformesDir
+        # La programacio per defecte de cada automatisme (l'interruptor no es toca).
+        foreach ($k in @($autoCtl.Keys)) {
+            $c = $autoCtl[$k]; $d = $progDefs[$k]
+            $c.Freq.SelectedIndex = if ([string]$d.Freq -eq 'setmana') { 1 } else { 0 }
+            $c.Dia.SelectedIndex = [math]::Max(0, [int]$d.Dia - 1)
+            $hm = ([string]$d.Hora).Split(':')
+            $c.Hora.Value = (Get-Date).Date.AddHours([int]$hm[0]).AddMinutes([int]$hm[1])
+        }
     }.GetNewClosure())
 
     $btnTancar.add_Click({ $form.Close() }.GetNewClosure())
@@ -181,8 +265,35 @@ function Invoke-ConfiguracioScreen {
             CopiaInformesDir = $tbCopia.Text.Trim()
         }
         $overrides = _BuildSettingsOverrides $values $defs
+        # Els automatismes: la programacio (nomes la que difereix) i els
+        # interruptors (el mateix que el menu; si no es pot engegar, ho diu).
+        $progs = @{}
+        foreach ($k in @($autoCtl.Keys)) {
+            $c = $autoCtl[$k]
+            $progs[$k] = @{ Freq = $(if ($c.Freq.SelectedIndex -eq 1) { 'setmana' } else { 'dia' }); Dia = ($c.Dia.SelectedIndex + 1); Hora = $c.Hora.Value.ToString('HH:mm') }
+        }
+        $autoSet = ConvertTo-AutomatismesSettings $progs
+        if ($autoSet.Count -gt 0) { $overrides['Automatismes'] = $autoSet }
         if (-not (Save-AppSettings $overrides)) {
             [System.Windows.Forms.MessageBox]::Show("No s'ha pogut desar la configuracio.", 'Configuracio', 'OK', 'Error') | Out-Null
+            return
+        }
+        foreach ($k in @($autoCtl.Keys)) {
+            $c = $autoCtl[$k]
+            if ($null -eq $c.Chk -or $c.Chk.Checked -eq $c.Abans) { continue }
+            if ($c.Chk.Checked) {
+                $req = [string](& $modesAuto[$k].Requisit)
+                if ($req -ne '') { [System.Windows.Forms.MessageBox]::Show($req, [string]$modesAuto[$k].Titol, 'OK', 'Warning') | Out-Null; continue }
+            }
+            [void](& $modesAuto[$k].DesaActiu $c.Chk.Checked)
+        }
+        try { Update-RecordatorisTascaSiCal -Forca } catch { }
+        # Les carpetes demanen reiniciar; els automatismes no (es llegeixen en viu).
+        $carpetesIguals = $true
+        foreach ($k in @($values.Keys)) { if ([string]$values[$k] -ne [string]$inicials[$k]) { $carpetesIguals = $false } }
+        if ($carpetesIguals) {
+            [System.Windows.Forms.MessageBox]::Show("Configuracio desada. Els automatismes ja fan servir la programacio nova.", 'Configuracio', 'OK', 'Information') | Out-Null
+            $form.Close()
             return
         }
         $rr = [System.Windows.Forms.MessageBox]::Show(
@@ -202,6 +313,7 @@ function Invoke-ConfiguracioScreen {
 
     [void]$form.Controls.Add($grpPrincipals)
     [void]$form.Controls.Add($grpAddicionals)
+    [void]$form.Controls.Add($grpAuto)
     [void]$form.Controls.Add($grpMant)
     [void]$form.Controls.Add($botPanel)
     [void](_AddBrandHeader $form ('Configuraci' + [char]0x00F3) ("Nom" + [char]0x00E9 + "s afecta aquest ordinador: no es comparteix ni es puja a GitHub.") 56)
