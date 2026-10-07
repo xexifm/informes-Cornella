@@ -136,7 +136,7 @@ try {
     Compress-Archive -Path (Join-Path $pvDir '*') -DestinationPath $pvZip -Force
     Write-Host ''
     Write-Host ('Fet. Passa a Claude aquest fitxer: ' + $pvZip)
-    Start-Process -FilePath 'explorer.exe' -ArgumentList ('/select,"' + $pvZip + '"') | Out-Null
+    try { Start-Process -FilePath 'explorer.exe' -ArgumentList ('/select,"' + $pvZip + '"') | Out-Null } catch { }
 } catch {
     Write-Host ('Fet, pero no s''ha pogut fer el .zip: ' + $_.Exception.Message)
     Write-Host ('Passa a Claude la carpeta: ' + $pvDir)

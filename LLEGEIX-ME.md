@@ -568,6 +568,11 @@ Les normes que no se sap si són vigents surten com a «mira-ho a mà», amb
 l'enllaç i **el motiu** (per exemple, que l'Edge no ha pogut obrir la pàgina del
 Portal Jurídic).
 
+Si moltes normes del Portal Jurídic surten «no s'ha pogut saber», fes doble clic
+a **`suport\Provar-Vigencia.bat`**: desa el que responen el Portal Jurídic i el
+BOE per a unes quantes normes en un `.zip` a `local\revisions` (no toca res).
+Passa'm el `.zip` i ho arreglem.
+
 ### Seguiment (fila GIA)
 
 Botó **📊 Seguiment**. Genera els cinc llistats de seguiment a partir de la base

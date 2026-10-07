@@ -140,8 +140,15 @@ La primera revisió de debò va donar 62 files i quasi cap era feina de debò:
 - **Quasi tot el Portal Jurídic «no s'ha pogut saber»**, sense motiu. Si l'Edge
   es penja amb la primera norma, `$Script:NormativaEdgeKO` el deixa de fer servir
   per a tota la web. Ara l'Excel diu el motiu (`_RevMotiuPjur`,
-  `$Script:NormativaDomEdgeError`). Encara falta una manera de saber-ho sense
-  l'Edge: cal mirar al PC de l'usuari què torna el servidor.
+  `$Script:NormativaDomEdgeError`). La segona revisió (13:29) ho va confirmar:
+  les 7 primeres, l'Edge torna la pàgina però **sense** l'etiqueta on la busca
+  `_RevEstatPjur`; a la 8a es penja (45 s) i la resta queden «L'Edge es va penjar
+  amb portaljuridic.gencat.cat». Des d'aquí no s'hi arriba (proxy 403), o sigui
+  que `suport\Provar-Vigencia.bat` (`ProvarVigencia.ps1`) desa al PC de
+  l'usuari la pàgina del servidor, les metadades, els scripts de la pàgina
+  (l'aplicació ha de cridar alguna API amb la vigència), el DOM de l'Edge amb
+  més temps, i del BOE la pàgina i les dades obertes (`metadatos`) de quatre
+  normes, en un `.zip` a `local\revisions`.
 - **Normativa que no cita ningú** (marcadors de Chrome). Decisió de l'usuari:
   *«Quan una norma (o guia) ja no es cita a REQ1 no cal revisar i la mous a
   derogades»*, i les derogades també (opció B: s'acaba el tema «Antic» com a
