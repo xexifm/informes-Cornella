@@ -68,20 +68,27 @@ function Invoke-ConfiguracioScreen {
 
     $form = _NewForm
     $form.Text = 'Configuracio'
-    # L'alcada creix amb el grup d'automatismes (una fila per cada un).
+    # EN HORITZONTAL, com el menu principal (octubre 2026): dues columnes de
+    # 514. A l'esquerra les carpetes; a la dreta els automatismes (una fila per
+    # cada un) i el manteniment. Les dues columnes acaben a la mateixa alcada:
+    # el grup d'automatismes s'estira fins a la de l'esquerra si en te prou.
+    $xEsq = 14; $xDre = 542; $amplCol = 514; $yTop = 66
+    $fiEsq = 566
     $nAuto = @($Script:ProgramacionsAuto.Keys).Count
-    $altAuto = 56 + 30 * $nAuto
-    $form.Size = New-Object System.Drawing.Size(560, (838 + $altAuto))
-    $form.MinimumSize = New-Object System.Drawing.Size(480, 560)
+    $altAuto = 72 + 30 * $nAuto
+    $altGrpAuto = [math]::Max(($altAuto - 8), ($fiEsq - $yTop - 104))
+    $fiCols = [math]::Max($fiEsq, ($yTop + $altGrpAuto + 104))
+    $form.ClientSize = New-Object System.Drawing.Size(($xDre + $amplCol + 14), ($fiCols + 12 + 52))
+    $form.MinimumSize = New-Object System.Drawing.Size(640, 480)
     $form.StartPosition = 'CenterScreen'
 
     # ---- Carpetes principals -------------------------------------------
     $y = 12
     $grpPrincipals = New-Object System.Windows.Forms.GroupBox
     $grpPrincipals.Text = 'Carpetes principals'
-    $grpPrincipals.Location = New-Object System.Drawing.Point(14, 66)
-    $grpPrincipals.Size = New-Object System.Drawing.Size(514, 172)
-    $grpPrincipals.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
+    $grpPrincipals.Location = New-Object System.Drawing.Point($xEsq, $yTop)
+    $grpPrincipals.Size = New-Object System.Drawing.Size($amplCol, 172)
+    $grpPrincipals.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left
 
     $r = _AddConfigRow $grpPrincipals 24 "Carpeta on hi ha els informes ja generats" $effInformesDir
     $tbInformes = $r.TextBox
@@ -91,9 +98,9 @@ function Invoke-ConfiguracioScreen {
     # ---- Carpetes addicionals ------------------------------------------
     $grpAddicionals = New-Object System.Windows.Forms.GroupBox
     $grpAddicionals.Text = 'Carpetes addicionals'
-    $grpAddicionals.Location = New-Object System.Drawing.Point(14, 246)
-    $grpAddicionals.Size = New-Object System.Drawing.Size(514, 320)
-    $grpAddicionals.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
+    $grpAddicionals.Location = New-Object System.Drawing.Point($xEsq, ($yTop + 180))
+    $grpAddicionals.Size = New-Object System.Drawing.Size($amplCol, ($fiEsq - $yTop - 180))
+    $grpAddicionals.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left
 
     $r = _AddConfigRow $grpAddicionals 24 "Carpeta on desar els informes que generis" $effOutputDir
     $tbOutput = $r.TextBox
@@ -112,9 +119,9 @@ function Invoke-ConfiguracioScreen {
     # settings.json (nomes el que difereix del per defecte) i s'aplica en viu.
     $grpAuto = New-Object System.Windows.Forms.GroupBox
     $grpAuto.Text = 'Automatismes'
-    $grpAuto.Location = New-Object System.Drawing.Point(14, 578)
-    $grpAuto.Size = New-Object System.Drawing.Size(514, ($altAuto - 8))
-    $grpAuto.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
+    $grpAuto.Location = New-Object System.Drawing.Point($xDre, $yTop)
+    $grpAuto.Size = New-Object System.Drawing.Size($amplCol, $altGrpAuto)
+    $grpAuto.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left
     $modesAuto = $Script:ModesAuto
     $progDefs = @{}
     $autoCtl = [ordered]@{}
@@ -166,17 +173,17 @@ function Invoke-ConfiguracioScreen {
     }
     $lblAutoNota = New-Object System.Windows.Forms.Label
     $lblAutoNota.Text = ("Si a l'hora que toca el programa (o el PC) estava tancat, es fa en obrir-lo. Els recordatoris s'engeguen a la seva eina.")
-    $lblAutoNota.Location = New-Object System.Drawing.Point(12, ($ya + 2))
-    $lblAutoNota.Size = New-Object System.Drawing.Size(488, 18)
+    $lblAutoNota.Location = New-Object System.Drawing.Point(12, ($ya + 6))
+    $lblAutoNota.Size = New-Object System.Drawing.Size(488, 36)
     $lblAutoNota.ForeColor = [System.Drawing.Color]::FromArgb(90, 90, 90)
     [void]$grpAuto.Controls.Add($lblAutoNota)
 
     # ---- Manteniment: info de versio + actualitzar ----------------------
     $grpMant = New-Object System.Windows.Forms.GroupBox
     $grpMant.Text = 'Manteniment'
-    $grpMant.Location = New-Object System.Drawing.Point(14, (578 + $altAuto))
-    $grpMant.Size = New-Object System.Drawing.Size(514, 96)
-    $grpMant.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
+    $grpMant.Location = New-Object System.Drawing.Point($xDre, ($yTop + $altGrpAuto + 8))
+    $grpMant.Size = New-Object System.Drawing.Size($amplCol, 96)
+    $grpMant.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left
 
     $branch = ''
     $commit = ''
