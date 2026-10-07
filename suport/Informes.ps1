@@ -11,13 +11,10 @@
     - l'ID GIA (del document -ignorant placeholders com "-"/"XXX" quan encara
       no n'hi ha-; si no hi es, del nom de la carpeta "GIA 361"; si tampoc, de
       l'Excel d'activitats cercant per numero d'expedient),
-    - la CONCLUSIO (el paragraf que comenca amb una de les frases de
-      $Script:ConclusioStartPhrases: "Vist l'anterior" i "Tenint en
-      consideracio el risc" son fiables; "S'informa favorablement" i "El
-      titular/L'organitzador es responsable d'executar" es desen igualment,
-      pero l'informe queda marcat "ignorat" PER DEFECTE (nomes la primera
-      vegada; l'usuari pot desmarcar-ho des de l'editor) perque son clausules
-      molt semblants entre informes diferents.
+    - la CONCLUSIO, la CONCLUSIO BREU i el TIPUS d'informe
+      (InformesClassificacio.ps1, _ClassificaInforme). Cap informe s'ignora
+      per defecte: el tipus decideix si fixa l'estat de l'activitat
+      (_InformeQueDeterminaEstat).
   Ho desa AGRUPAT PER ACTIVITAT a local\base-dades-activitats\informes-db.json
   (carpeta ignorada per git). Els informes que no es poden resoldre del tot
   van a un bloc "a_revisar".
@@ -109,169 +106,9 @@ function _ExtractExpedient($lines) {
     return ''
 }
 
-# Normalitzacio per comparar frases: sense accents, minuscules i SENSE
-# apostrofs. Els informes fan servir l'apostrof TIPOGRAFIC (U+2019), pero les
-# nostres frases de referencia el recte (U+0027); traient-los tots dos (i altres
-# variants) la comparacio casa igual. Fem servir codepoints [char]0x.... per no
-# dependre de l'encoding amb que PowerShell 5.1 llegeix aquest fitxer.
-function _ConclNorm($s) {
-    $t = _NormalitzaText $s
-    $apos = @([char]0x0027, [char]0x2018, [char]0x2019, [char]0x02BC, [char]0x00B4, [char]0x0060)
-    foreach ($a in $apos) { $t = $t.Replace([string]$a, '') }
-    return $t
-}
-
-# Frases que poden marcar l'INICI de la conclusio d'un informe: cada familia
-# de tramits tanca la decisio d'una manera diferent (vist a la carpeta real
-# d'informes). Font: 'vist_anterior' i 'risc' son fiables (frase de decisio
-# propia i diferenciada de cada informe, no repetida literalment d'un informe
-# a l'altre); 'mns' i 'act_extr' es desen igualment pero Get-InformeData les
-# marca "ignorat" PER DEFECTE (nomes la primera vegada que es veu l'informe;
-# vegeu _ConclusioIgnorarPerDefecte), perque son clausules gairebe identiques
-# entre informes diferents (aporten poca informacio diferenciada per
-# activitat).
-$Script:ConclusioStartPhrases = @(
-    [pscustomobject]@{ Font = 'vist_anterior'; Phrase = "Vist l'anterior" },
-    [pscustomobject]@{ Font = 'risc';          Phrase = 'Tenint en consideració el risc' },
-    [pscustomobject]@{ Font = 'mns';           Phrase = "S'informa favorablement" },
-    [pscustomobject]@{ Font = 'act_extr';      Phrase = "El titular és responsable d'executar" },
-    [pscustomobject]@{ Font = 'act_extr';      Phrase = "L'organitzador és responsable d'executar" }
-)
-
-# Conclusio: des del primer paragraf que conte una de $Script:ConclusioStartPhrases
-# fins (exclos) el que marca el tancament de l'informe (signatura). Uneix els
-# paragrafs amb un espai. Retorna un objecte { Text; Font }: Text es el text
-# ORIGINAL (no normalitzat), '' si no es troba cap frase d'inici coneguda;
-# Font indica quina frase ha disparat la deteccio (vegeu $Script:ConclusioStartPhrases).
-function _ExtractConclusio($lines) {
-    $starts = $Script:ConclusioStartPhrases | ForEach-Object {
-        [pscustomobject]@{ Font = $_.Font; Norm = (_ConclNorm $_.Phrase) }
-    }
-    $endPhrases  = @(
-        (_ConclNorm 'Ho poso al seu coneixement'),
-        (_ConclNorm 'Cornella de Llobregat,'),
-        (_ConclNorm "S'informa als efectes oportuns,"),
-        (_ConclNorm 'A Cornella de Llobregat, en la data')
-    )
-    $start = -1
-    $font = ''
-    for ($i = 0; $i -lt $lines.Count; $i++) {
-        $nl = _ConclNorm $lines[$i]
-        foreach ($sp in $starts) {
-            if ($nl.Contains($sp.Norm)) { $start = $i; $font = $sp.Font; break }
-        }
-        if ($start -ge 0) { break }
-    }
-    if ($start -lt 0) { return [pscustomobject]@{ Text = ''; Font = '' } }
-    $parts = New-Object System.Collections.ArrayList
-    for ($i = $start; $i -lt $lines.Count; $i++) {
-        $ln = [string]$lines[$i]
-        $nl = _ConclNorm $ln
-        $isEnd = $false
-        foreach ($ep in $endPhrases) { if ($nl.Contains($ep)) { $isEnd = $true; break } }
-        if ($isEnd) { break }
-        if (-not [string]::IsNullOrWhiteSpace($ln)) { [void]$parts.Add($ln.Trim()) }
-    }
-    return [pscustomobject]@{ Text = ($parts -join ' '); Font = $font }
-}
-
-# Motiu de revisio associat a la conclusio detectada per _ExtractConclusio:
-# 'sense conclusio' si no se n'ha trobat cap, '' si n'hi ha. Funcio PURA per
-# poder-la testejar sense dependre de la lectura del document.
-function _ConclusioMotiu($conclInfo) {
-    if ([string]::IsNullOrWhiteSpace($conclInfo.Text)) { return 'sense conclusio' }
-    return ''
-}
-
-# Cert si la conclusio detectada ve d'una familia de frases poc diferenciades
-# entre informes ('mns', 'act_extr': gairebe la mateixa clausula sempre).
-# Get-InformeData fa servir aixo per marcar l'informe "ignorat" PER DEFECTE
-# nomes la primera vegada que es veu (a Invoke-InformesDbScan, si l'informe ja
-# existia a un escaneig anterior es conserva l'"ignorat" que hi hagi marcat
-# l'usuari, encara que l'informe s'hagi hagut de reprocessar).
-function _ConclusioIgnorarPerDefecte($conclInfo) {
-    return ($conclInfo.Font -eq 'mns' -or $conclInfo.Font -eq 'act_extr')
-}
-
-# Opcions valides de "conclusio breu" (l'estat en que queda l'activitat
-# despres d'aquell informe). 'Altres' i 'Revisar' son manuals: la deteccio
-# automatica (_ConclusioBreu) MAI les retorna directament com a resultat
-# "trobat" -- nomes 'Revisar' com a valor per defecte quan no hi ha prou
-# senyal. L'usuari les pot triar a ma des de l'editor si cal.
-$Script:ConclusioBreuOpcions = @(
-    'Requeriment',
-    'FI Requeriment',
-    'Precinte / Cessament',
-    'FI Precinte / Cessament',
-    'Favorable',
-    'Ampliació termini',
-    'Sense efecte',
-    'Altres',
-    'Revisar'
-)
-
-# Classifica el text de la CONCLUSIO (ja extreta per _ExtractConclusio) en un
-# dels $Script:ConclusioBreuOpcions, mirant les frases reals amb que Sergi
-# tanca cada tipus de tramit (vist a la carpeta real d'informes). 'Revisar' es
-# el resultat per defecte quan no hi ha conclusio o no es reconeix cap frase
-# (inclou "desfavorable", deliberadament: no es vol confondre amb "Favorable").
-# Funcio PURA (nomes text), testejable en headless.
-function _ConclusioBreu($text) {
-    if ([string]::IsNullOrWhiteSpace($text)) { return 'Revisar' }
-    $n = _ConclNorm $text
-
-    # Seguiment d'un requeriment: encara pendent. Qualsevol negacio de "es pot
-    # donar per ..." (finalitzat / tancat / tancada la denuncia...) vol dir que
-    # l'expedient NO es pot tancar: es un requeriment, no un FI. Ha d'anar ABANS
-    # dels FI de sota (que fan servir la mateixa expressio sense el "no").
-    if ($n -match "no s.?han esmenat" -or $n.Contains('no es pot donar')) { return 'Requeriment' }
-    # Seguiment d'un requeriment: resolt (inclou denuncies tancades: mateix "final positiu").
-    if ($n -match 'es pot donar.{0,12}finalitzat') { return 'FI Requeriment' }
-    if ($n.Contains('es pot donar per tancada la denuncia')) { return 'FI Requeriment' }
-    # Aixecament d'un precinte/suspensio.
-    if ($n -match 'es (pot|valora) (aixecar|desprecintar)' -or $n.Contains('pertinent desprecintar')) { return 'FI Precinte / Cessament' }
-    # Comunicacio anul·lada.
-    if ($n.Contains('deixa sense efecte')) { return 'Sense efecte' }
-    # Risc greu/imminent: es precinta o es proposa el cessament.
-    if ($n.Contains('pertinent precintar') -or $n.Contains('tenint en consideracio el risc') -or $n -match 'ordeni el cessament') { return 'Precinte / Cessament' }
-    # Desfavorable: deliberadament NO es classifica com a Favorable; cau a Revisar.
-    if ($n.Contains('desfavorablement') -or $n.Contains('desfavorable')) { return 'Revisar' }
-    if ($n.Contains('favorablement') -or $n.Contains('favorable')) { return 'Favorable' }
-    if ($n.Contains('ampliar el termini')) { return 'Ampliació termini' }
-    # Clausules estandard d'un requeriment NOU (encara sense "Vist l'anterior").
-    if ($n.Contains('recepcio del requeriment') -or $n.Contains('esmenar les deficiencies') -or
-        $n.Contains('mancances formals') -or $n.Contains('termini maxim de') -or
-        $n.Contains('podran adoptar les mesures') -or
-        $n.Contains('procediment desmena') -or $n.Contains('esmenar els defectes') -or
-        $n -match 'cas contrari.{0,60}(cessament|precinte)' -or $n -match 'determini el (cessament|precinte)') {
-        return 'Requeriment'
-    }
-    return 'Revisar'
-}
-
-# Estat actual d'una ACTIVITAT: la conclusio_breu del seu informe mes RECENT
-# (per data) entre els que NO estan ignorats (un informe ignorat -p.ex. una
-# clausula MNS/act_extr poc fiable, o marcat a ma- no ha de decidir l'estat
-# de l'activitat). Espera $informesOrdenats ja ordenats per data ASCENDENT
-# (com fa Invoke-InformesDbScan); pren el darrer que compleixi. '' si no n'hi
-# ha cap (activitat sense cap informe fiable). Funcio PURA, testejable.
-# L'informe que DECIDEIX l'estat de l'activitat: l'ULTIM dels fiables (els
-# informes venen ordenats per data). $null si no n'hi ha cap.
-# Es la font unica: _EstatActualActivitat i qui vulgui saber-ne la DATA
-# (p. ex. "Comprovar Excel") criden aquesta mateixa funcio, aixi no poden
-# discrepar mai sobre quin informe manda.
-function _InformeQueDeterminaEstat($informesOrdenats) {
-    if ($null -eq $informesOrdenats) { return $null }
-    $fiables = @($informesOrdenats | Where-Object { -not [bool]$_.ignorat })
-    if ($fiables.Count -eq 0) { return $null }
-    return $fiables[-1]
-}
-
-function _EstatActualActivitat($informesOrdenats) {
-    $inf = _InformeQueDeterminaEstat $informesOrdenats
-    if ($null -eq $inf) { return '' }
-    return [string]$inf.conclusio_breu
-}
+# Les conclusions, la conclusio breu i l'estat de l'activitat viuen a
+# InformesClassificacio.ps1 (octubre 2026: amb els formats antics i els tipus
+# d'informe aquest fitxer passava de les 1.200 linies).
 
 # ----------------------------------------------------------------------------
 # EDICIONS A MA ("Editar base") -- octubre 2026, peticio de l'usuari: el que
@@ -284,10 +121,6 @@ function _EstatActualActivitat($informesOrdenats) {
 # l'ignorat de TOTS els informes reprocessats -editats o no-, o sigui que un
 # informe que es tornava a escriure mai no actualitzava la seva conclusio breu.
 # ----------------------------------------------------------------------------
-function _PropInf($o, [string]$nom) {
-    if ($null -eq $o -or $null -eq $o.PSObject.Properties[$nom]) { return $null }
-    return $o.$nom
-}
 
 # Marca un informe com a editat a ma, guardant ABANS el valor automatic. Si ja
 # ho estava, no toca res (el valor automatic que es guarda es el primer).
@@ -334,21 +167,39 @@ function _ActivitatEditadaAMa($act) {
     return $false
 }
 
+# La CLAU d'un informe per casar el d'una base amb el d'una altra (o amb el
+# fitxer del disc): la ruta RELATIVA a la carpeta d'informes de la base
+# (carpeta_arrel). Abans era la ruta absoluta, i la mateixa base feta servir amb
+# la carpeta en una altra unitat (I:\...\Informes a la feina, F:\...\Informes
+# fora) no casava cap informe: es reprocessava tot i es perdien TOTES les
+# correccions a ma sense cap avis. Si la ruta no es dins de l'arrel (o la base
+# no en diu cap), la ruta sencera. Les dues barres valen igual. PURA.
+function _ClauInforme([string]$ruta, [string]$arrel) {
+    $r = $ruta -replace '/', '\'
+    $a = ($arrel -replace '/', '\').TrimEnd('\')
+    if ($a -ne '' -and $r.Length -gt $a.Length + 1 -and $r.StartsWith($a + '\', [System.StringComparison]::OrdinalIgnoreCase)) {
+        return $r.Substring($a.Length + 1)
+    }
+    return $r
+}
+
 # DESAR L'EDITOR QUAN LA BASE HA CANVIAT MENTRE ERA OBERT. Amb "Actualitzar base"
 # en automatic (en segon pla), la base del disc pot ser mes nova que la que
 # l'editor va carregar: desar-la tal qual tornaria enrere els informes nous.
 # Es posen les correccions de l'editor ($editor) damunt de la del disc ($disc),
-# informe a informe per la ruta:
+# informe a informe (per la ruta relativa, _ClauInforme):
 #   corregit a l'editor          -> la correccio (el valor automatic, el del disc)
 #   desfet a l'editor ("Desfer canvi a ma") i al disc encara corregit, amb un
 #   valor diferent               -> torna a l'automatic del disc
 # i es recalcula l'estat de les activitats tocades. Torna $disc (modificat).
 function _FusionaEdicionsBase($disc, $editor) {
     $perRuta = @{}
+    $arrelEd = [string](_PropInf $editor 'carpeta_arrel')
+    $arrelDisc = [string](_PropInf $disc 'carpeta_arrel')
     foreach ($act in @(_PropInf $editor 'activitats')) {
         foreach ($inf in @(_PropInf $act 'informes')) {
             $r = [string](_PropInf $inf 'ruta')
-            if ($r -ne '') { $perRuta[$r] = $inf }
+            if ($r -ne '') { $perRuta[(_ClauInforme $r $arrelEd)] = $inf }
         }
     }
     foreach ($act in @(_PropInf $disc 'activitats')) {
@@ -357,7 +208,9 @@ function _FusionaEdicionsBase($disc, $editor) {
         foreach ($inf in @(_PropInf $act 'informes')) {
             if ($null -eq $inf) { continue }
             $r = [string](_PropInf $inf 'ruta')
-            if ($r -eq '' -or -not $perRuta.ContainsKey($r)) { continue }
+            if ($r -eq '') { continue }
+            $r = _ClauInforme $r $arrelDisc
+            if (-not $perRuta.ContainsKey($r)) { continue }
             $ed = $perRuta[$r]
             $edBreu = [string](_PropInf $ed 'conclusio_breu')
             $edIgn = [bool](_PropInf $ed 'ignorat')
@@ -372,7 +225,7 @@ function _FusionaEdicionsBase($disc, $editor) {
                 $tocat = $true
             }
         }
-        if ($tocat) { Add-Member -InputObject $act -NotePropertyName estat_actual -NotePropertyValue (_EstatActualActivitat $act.informes) -Force }
+        if ($tocat) { Add-Member -InputObject $act -NotePropertyName estat_actual -NotePropertyValue (_EstatActualActivitat $act) -Force }
     }
     return $disc
 }
@@ -461,17 +314,6 @@ function _CarpetaActivitat($path) {
     return ''
 }
 
-# Normalitza un numero d'expedient per comparar-lo (l'informe fa servir "/", la
-# carpeta "-", i l'Excel pot portar zeros al davant): parteix en grups i treu els
-# zeros inicials de cada grup numeric. "2025/1/2563" i "2025/01/2563" -> "2025-1-2563".
-function _NormalitzaExpedient($s) {
-    if ([string]::IsNullOrWhiteSpace($s)) { return '' }
-    $groups = ([string]$s).Trim() -split '[^\dA-Za-z]+' | Where-Object { $_ -ne '' }
-    $norm = $groups | ForEach-Object {
-        if ($_ -match '^\d+$') { [string][int]$_ } else { $_.ToUpper() }
-    }
-    return ($norm -join '-')
-}
 
 # Construeix un mapa expedient_normalitzat -> ID GIA a partir de la cache de
 # l'Excel d'activitats ($cache.ById[id] = @{ EXP_NUM; TITULAR; ... }).
@@ -541,7 +383,7 @@ function Invoke-InformesDbEdit {
                 _InferEditatAMa $inf
             }
             if ($null -eq $act.PSObject.Properties['estat_actual']) { Add-Member -InputObject $act -NotePropertyName estat_actual -NotePropertyValue '' -Force }
-            $act.estat_actual = _EstatActualActivitat $act.informes
+            $act.estat_actual = _EstatActualActivitat $act
             foreach ($inf in $act.informes) {
                 [void]$allRows.Add([pscustomobject]@{
                     Obj           = $inf
@@ -639,7 +481,7 @@ function Invoke-InformesDbEdit {
     # canvia quan canvia qualsevol dels seus informes).
     $refrescaActivitat = {
         param($act)
-        $nouEstat = _EstatActualActivitat $act.informes
+        $nouEstat = _EstatActualActivitat $act
         $act.estat_actual = $nouEstat
         foreach ($gr2 in $grid.Rows) {
             $row2 = $gr2.Tag

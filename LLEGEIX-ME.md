@@ -684,6 +684,51 @@ exemple, si en portes el seguiment per una altra via).
 - **📋 Editar base d'informes**, **📥 Revisar entrades del mòbil**,
   **⏱ Controls periòdics**, **Activitats extraordinàries**.
 
+### Com decideix l'estat de cada activitat
+
+L'*Estat activitat* és el que fan servir el **Plànol activitats**, **Comprovar
+Excel** i, sobretot, els **Recordatoris**: un *Requeriment* que no ho és és un
+correu al titular que no s'havia d'enviar. Per això, l'octubre del 2026 es van
+llegir un per un els 802 informes de la carpeta i es va corregir el que el
+programa entenia malament. Ara:
+
+- **Cap informe s'ignora sol.** Abans s'ignoraven tots els que començaven per
+  «S'informa favorablement», i una llicència informada favorablement es quedava
+  en *Requeriment* per un informe de dos anys abans. Ara cada informe té un
+  **tipus**, i és el tipus el que diu si decideix l'estat:
+  - **Favorable de llicència**: decideix sempre (*Favorable*).
+  - **MNS, canvi de nom o de titularitat** informats favorablement: **no tapen**
+    un requeriment, un precinte o una ampliació de termini pendents (la MNS pot
+    arribar enmig d'un requeriment obert); si no hi ha res pendent, l'estat és
+    *Favorable*.
+  - **Activitats extraordinàries** (concerts, fires…): si l'acte és dins d'un
+    establiment amb GIA (l'estadi, per exemple), **no decideixen l'estat de
+    l'establiment**, ni el favorable ni el requeriment. Si l'acte no té GIA,
+    l'«activitat» és l'acte, i sí que decideixen.
+  - Un informe que hagis marcat *Altres* (notes informatives) només dóna l'estat
+    si l'activitat no en té cap altre.
+- **El que corregeixes a mà sempre mana**: un informe que ignores no compta mai,
+  i el que hi has canviat passa per davant de tot això.
+- **Formats d'abans, sense frase de conclusió**: el requeriment antic («S'han
+  observat les següents deficiències que cal esmenar…») és *Requeriment*; un
+  seguiment punt per punt és *Requeriment* si alguna resposta diu «No s'aporta»,
+  «No es justifica»… i *FI Requeriment* si totes són positives (aquest surt a
+  revisar amb «estat deduït, sense conclusió», perquè hi donis un cop d'ull).
+- **Plantilles sense omplir** (la conclusió diu alhora que es pot i que no es
+  pot tancar la denúncia, o hi ha quedat «Copiar requeriment.») surten a revisar
+  amb «plantilla sense omplir», en lloc de passar per un requeriment.
+- Un informe **sense ID GIA** en una carpeta on tots els altres són del mateix
+  GIA va amb aquell GIA. Si el GIA del document no és el de la carpeta, surt a
+  revisar («GIA del document diferent del de la carpeta»).
+- **La base funciona igual a la feina (I:) que a casa (F:)**: els informes es
+  reconeixen pel camí dins de la carpeta d'informes, no per la unitat, i les
+  correccions a mà no es perden. Si mai la carpeta d'informes és una altra de
+  debò i s'hi haguessin de perdre correccions, *Actualitzar base* t'ho pregunta
+  abans (en automàtic no la toca i ho apunta al registre).
+- La primera vegada després d'actualitzar el programa, *Actualitzar base* torna
+  a llegir **tots** els informes (triga més): les correccions a mà que ara ja
+  coincideixen amb el que diu el programa deixen de sortir en vermell.
+
 ### El «?» de cada eina
 
 Cada rajola d'eina té a la cantonada de dalt a la dreta un **?** petit. Si hi

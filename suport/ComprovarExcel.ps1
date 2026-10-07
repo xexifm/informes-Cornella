@@ -178,7 +178,7 @@ function Invoke-ComprovarExcel {
             # Hi afegim la data de l'informe que va deixar l'activitat en
             # "Precinte / Cessament": es el que has de citar per actualitzar
             # l'Excel, i sense aixo tocava anar a buscar-lo a ma.
-            $infEstat = _InformeQueDeterminaEstat $act.informes
+            $infEstat = _InformeQueDeterminaEstat $act
             $dataEstat = if ($null -ne $infEstat) { _DataInformeDdMmAaaa $infEstat.data } else { '' }
             if ($dataEstat) { $etiqueta += " - INFORME ENGINYER " + $dataEstat }
             [void]$desact.Add("     - " + $etiqueta)

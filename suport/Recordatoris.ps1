@@ -219,14 +219,11 @@ function _RecDiesDes([string]$dataIso, [datetime]$avui) {
 }
 
 # Data de l'informe que DETERMINA l'estat de l'activitat (l'últim no ignorat).
-# Reutilitza _InformeQueDeterminaEstat (Informes.ps1): l'estat i la data han de
+# Reutilitza _InformeQueDeterminaEstat (InformesClassificacio.ps1): l'estat i la data han de
 # sortir del MATEIX informe, si no el recordatori diria una data que no lliga.
 function _RecDataInforme($act) {
-    if ($null -eq $act) { return '' }
-    $infs = @()
-    try { $infs = @($act.informes) } catch { $infs = @() }
-    if ($infs.Count -eq 0) { return '' }
-    $inf = _InformeQueDeterminaEstat $infs
+    if ($null -eq $act -or $null -eq $act.PSObject.Properties['informes']) { return '' }
+    $inf = _InformeQueDeterminaEstat $act
     if ($null -eq $inf) { return '' }
     return [string]$inf.data
 }

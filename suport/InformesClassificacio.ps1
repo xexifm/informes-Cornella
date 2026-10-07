@@ -1,0 +1,427 @@
+﻿#requires -Version 5.1
+<#
+.SYNOPSIS
+  Que diu cada informe i quin estat en surt per a l'activitat ("Actualitzar
+  base", "Editar base", Recordatoris, Comprovar Excel, Planol activitats).
+
+.DESCRIPTION
+  Vivia a Informes.ps1. El 7 d'octubre de 2026 es van llegir un per un els 802
+  informes de la carpeta real (427 activitats) i es van comparar amb el que en
+  treia "Actualitzar base": 110 informes en 'Revisar', 82 activitats sense estat
+  util i, pitjor, activitats amb l'estat EQUIVOCAT (una llicencia informada
+  favorablement s'ignorava per defecte i l'activitat es quedava en
+  'Requeriment' per un informe de dos anys abans). L'estat alimenta els
+  Recordatoris (correus als titulars): un 'Requeriment' fals es un correu que no
+  s'havia d'enviar. Corregir-ho va fer creixer prou aquesta part perque
+  Informes.ps1 passes de les 1.200 linies.
+
+  Tot el que hi ha aqui es PUR (nomes text i objectes): es prova en headless
+  amb textos inventats (la classificacio real te dades personals i el
+  repositori es public; es valida en local amb ValidarClassificacio.ps1).
+
+  NOMES DEFINEIX FUNCIONS.
+#>
+
+# La versio del classificador. Es desa a informes-db.json (versio_classificador)
+# i, si la de la base no es aquesta, "Actualitzar base" torna a llegir TOTS els
+# informes, no nomes els modificats: sense aixo, una millora del classificador
+# nomes arribaria als informes que algu tornes a desar, i els 802 de la carpeta
+# es quedarien amb la classificacio vella per sempre. CANVIA-LA cada vegada que
+# canviis el que en surt (conclusio, conclusio breu, tipus).
+$Script:ClassificadorVersio = '2026-10-07'
+
+# Una propietat d'un objecte de la base (o $null si no la te), sense petar amb
+# les bases d'abans que no porten els camps nous. La fan servir aquest fitxer,
+# Informes.ps1 i InformesEscaneig.ps1: viu aqui, a baix de tot, perque cap dels
+# tres no depengui d'un altre en cercle.
+function _PropInf($o, [string]$nom) {
+    if ($null -eq $o -or $null -eq $o.PSObject.Properties[$nom]) { return $null }
+    return $o.$nom
+}
+
+# Normalitza un numero d'expedient per comparar-lo (l'informe fa servir "/", la
+# carpeta "-", i l'Excel pot portar zeros al davant): parteix en grups i treu els
+# zeros inicials de cada grup numeric. "2025/1/2563" i "2025/01/2563" -> "2025-1-2563".
+function _NormalitzaExpedient($s) {
+    if ([string]::IsNullOrWhiteSpace($s)) { return '' }
+    $groups = ([string]$s).Trim() -split '[^\dA-Za-z]+' | Where-Object { $_ -ne '' }
+    $norm = $groups | ForEach-Object {
+        if ($_ -match '^\d+$') { [string][int]$_ } else { $_.ToUpper() }
+    }
+    return ($norm -join '-')
+}
+
+# Normalitzacio per comparar frases: sense accents, minuscules i SENSE
+# apostrofs. Els informes fan servir l'apostrof TIPOGRAFIC (U+2019), pero les
+# nostres frases de referencia el recte (U+0027); traient-los tots dos (i altres
+# variants) la comparacio casa igual. Fem servir codepoints [char]0x.... per no
+# dependre de l'encoding amb que PowerShell 5.1 llegeix aquest fitxer.
+function _ConclNorm($s) {
+    $t = _NormalitzaText $s
+    $apos = @([char]0x0027, [char]0x2018, [char]0x2019, [char]0x02BC, [char]0x00B4, [char]0x0060)
+    foreach ($a in $apos) { $t = $t.Replace([string]$a, '') }
+    return $t
+}
+
+# Frases que poden marcar l'INICI de la conclusio d'un informe: cada familia de
+# tramits tanca la decisio d'una manera diferent (vist a la carpeta real).
+#
+# 'Segona' = nomes si cap de les altres hi es. Son frases que tambe poden sortir
+# al COS (un seguiment que copia la conclusio d'un informe anterior, "es
+# pertinent precintar" dins d'un requeriment...): la conclusio comenca a la
+# PRIMERA linia que en conte una, i si una d'aquestes passes davant de la
+# "Vist l'anterior" de debo, la conclusio s'enduria mig informe. En segona
+# passada no poden canviar res del que ja es trobava abans.
+#
+# 'Font' ja no decideix res de l'estat (abans 'mns' i 'act_extr' feien
+# l'informe "ignorat" per defecte): ho fa el TIPUS (_TipusInforme), que mira el
+# text sencer de la conclusio. Es desa per saber d'on ha sortit.
+$Script:ConclusioStartPhrases = @(
+    [pscustomobject]@{ Font = 'vist_anterior'; Segona = $false; Phrase = "Vist l'anterior" },
+    [pscustomobject]@{ Font = 'risc';          Segona = $false; Phrase = 'Tenint en consideració el risc' },
+    [pscustomobject]@{ Font = 'mns';           Segona = $false; Phrase = "S'informa favorablement" },
+    [pscustomobject]@{ Font = 'act_extr';      Segona = $false; Phrase = "El titular és responsable d'executar" },
+    [pscustomobject]@{ Font = 'act_extr';      Segona = $false; Phrase = "L'organitzador és responsable d'executar" },
+    # La conclusio de LLIC (requeriment de llicencia): sense "Vist l'anterior".
+    [pscustomobject]@{ Font = 'requeriment';   Segona = $false; Phrase = "Cal requerir l'esmena de les deficiències indicades" },
+    # Suspensions i precintes sense la frase literal del risc ("Tenint en
+    # consideracio l'incompliment greu...", "Es ratifica que...", "A l'haver-se
+    # exhaurit el termini...").
+    [pscustomobject]@{ Font = 'risc';          Segona = $true;  Phrase = 'és pertinent suspendre' },
+    [pscustomobject]@{ Font = 'risc';          Segona = $true;  Phrase = 'és pertinent precintar' },
+    # Formats d'abans: control periodic conforme i favorables "a l'antiga".
+    [pscustomobject]@{ Font = 'favorable';     Segona = $true;  Phrase = 'el Control Periòdic és FAVORABLE' },
+    [pscustomobject]@{ Font = 'favorable';     Segona = $true;  Phrase = 'informo favorablement' },
+    [pscustomobject]@{ Font = 'favorable';     Segona = $true;  Phrase = "s'informa amb caràcter favorable" },
+    [pscustomobject]@{ Font = 'termini';       Segona = $true;  Phrase = "estimar la sol·licitud d'ampliació" }
+)
+
+# Conclusio: des del primer paragraf que conte una de $Script:ConclusioStartPhrases
+# fins (exclos) el que marca el tancament de l'informe (signatura). Uneix els
+# paragrafs amb un espai. Retorna un objecte { Text; Font }: Text es el text
+# ORIGINAL (no normalitzat), '' si no es troba cap frase d'inici coneguda;
+# Font indica quina frase ha disparat la deteccio. Les 'Segona' nomes es miren
+# si no hi ha cap de les altres (vegeu $Script:ConclusioStartPhrases).
+function _ExtractConclusio($lines) {
+    $lines = @($lines)
+    $endPhrases  = @(
+        (_ConclNorm 'Ho poso al seu coneixement'),
+        (_ConclNorm 'Cornella de Llobregat,'),
+        (_ConclNorm "S'informa als efectes oportuns,"),
+        (_ConclNorm 'A Cornella de Llobregat, en la data')
+    )
+    $norm = @($lines | ForEach-Object { _ConclNorm $_ })
+    $start = -1
+    $font = ''
+    foreach ($segona in @($false, $true)) {
+        $starts = @($Script:ConclusioStartPhrases | Where-Object { [bool]$_.Segona -eq $segona } | ForEach-Object {
+            [pscustomobject]@{ Font = $_.Font; Norm = (_ConclNorm $_.Phrase) }
+        })
+        for ($i = 0; $i -lt $norm.Count; $i++) {
+            foreach ($sp in $starts) {
+                if ($norm[$i].Contains($sp.Norm)) { $start = $i; $font = $sp.Font; break }
+            }
+            if ($start -ge 0) { break }
+        }
+        if ($start -ge 0) { break }
+    }
+    if ($start -lt 0) { return [pscustomobject]@{ Text = ''; Font = '' } }
+    # La linia d'INICI no pot ser el final: la transmissio diu "...presentada a
+    # l'Ajuntament de Cornella de Llobregat, s'informa FAVORABLEMENT..." i el
+    # "Cornella de Llobregat," de la signatura la tallava abans de comencar (totes
+    # les transmissions sortien "sense conclusio"; vist passant el classificador
+    # pels fitxers d'or, octubre 2026).
+    $parts = New-Object System.Collections.ArrayList
+    for ($i = $start; $i -lt $norm.Count; $i++) {
+        $ln = [string]$lines[$i]
+        $isEnd = $false
+        if ($i -gt $start) { foreach ($ep in $endPhrases) { if ($norm[$i].Contains($ep)) { $isEnd = $true; break } } }
+        if ($isEnd) { break }
+        if (-not [string]::IsNullOrWhiteSpace($ln)) { [void]$parts.Add($ln.Trim()) }
+    }
+    return [pscustomobject]@{ Text = ($parts -join ' '); Font = $font }
+}
+
+# Opcions valides de "conclusio breu" (l'estat en que queda l'activitat
+# despres d'aquell informe). 'Altres' es nomes manual: el classificador
+# automatic no la torna mai. 'Revisar' es el que torna quan no hi ha prou
+# senyal.
+$Script:ConclusioBreuOpcions = @(
+    'Requeriment',
+    'FI Requeriment',
+    'Precinte / Cessament',
+    'FI Precinte / Cessament',
+    'Favorable',
+    'Ampliació termini',
+    'Sense efecte',
+    'Altres',
+    'Revisar'
+)
+
+# Els estats que deixen alguna cosa PENDENT a l'activitat. Una MNS favorable no
+# els tapa (vegeu _InformeQueDeterminaEstat).
+$Script:EstatsPendents = @('Requeriment', 'Precinte / Cessament', ('Ampliaci' + [char]0x00F3 + ' termini'))
+
+# Hi ha un precinte o una suspensio DE DEBO (no nomes l'advertiment "en cas
+# contrari es pertinent precintar")? $n ja normalitzat (_ConclNorm).
+function _PrecinteEfectiu([string]$n) {
+    if ($n -notmatch 'pertinent (precintar|suspendre)') { return $false }
+    return ($n -notmatch 'cas contrari.{0,80}pertinent (precintar|suspendre)')
+}
+
+# Classifica el text de la CONCLUSIO (ja extreta per _ExtractConclusio) en un
+# dels $Script:ConclusioBreuOpcions, mirant les frases reals amb que Sergi tanca
+# cada tipus de tramit. 'Revisar' quan no hi ha conclusio o no es reconeix cap
+# frase (inclou "desfavorable", deliberadament: no es vol confondre amb
+# "Favorable"). Funcio PURA (nomes text).
+#
+# L'ORDRE MANA, i cada bloc va davant del seguent per un cas real que fallava:
+#   1. El que deixa l'expedient PENDENT encara que la frase digui "es pot donar
+#      per tancada la denuncia", "desprecintar" o "favorablement": "...pero NO
+#      donar per finalitzat el procediment d'esmena" (i el "ni donar per
+#      finalitzat", que es el mateix amb el NO oblidat), "D'altra banda, es
+#      requereix...", "es valora favorablement la solucio... s'hauran de...",
+#      el control periodic "FAVORABLE... incorrecte havent de ser DESFAVORABLE",
+#      i la conclusio de requeriment del cataleg d'avui ("cal requerir
+#      l'esmena", sense termini), que queia a 'Revisar'.
+#   2. S'inicia el procediment d'esmena: el precinte o la retirada que
+#      l'acompanyen son l'ADVERTIMENT ("En cas contrari es pertinent
+#      precintar", "es pertinent que es retiri"), com el "determini el
+#      cessament" de sempre. Nomes un precinte efectiu (_PrecinteEfectiu) el
+#      treu d'aqui. Va DAVANT del "es pot donar per tancada la denuncia":
+#      "tanca la denuncia i inicia el procediment d'esmena" es un requeriment.
+#   3. Els FI (finalitzat, denuncia tancada, desprecintar/aixecar).
+#   4. Precinte / suspensio, ampliacio, favorable, i les clausules d'un
+#      requeriment nou.
+function _ConclusioBreu($text) {
+    if ([string]::IsNullOrWhiteSpace($text)) { return 'Revisar' }
+    $n = _ConclNorm $text
+
+    # 1. Pendent, digui el que digui la resta de la frase.
+    if ($n -match 'no s.?han esmenat' -or $n.Contains('no es pot donar') -or
+        $n -match '\b(no|ni) donar per (finalitzat|tancat)') { return 'Requeriment' }
+    if ($n.Contains('cal requerir lesmena')) { return 'Requeriment' }
+    if ($n -match 'daltra banda,?\s*es requereix') { return 'Requeriment' }
+    if ($n.Contains('resultat favorable incorrecte')) { return 'Requeriment' }
+    if ($n.Contains('valora favorablement la solucio') -and $n.Contains('shauran de')) { return 'Requeriment' }
+    # 2. Inici del procediment d'esmena.
+    if ($n -match 'inicia (dofici )?el procediment desmena' -and -not (_PrecinteEfectiu $n)) { return 'Requeriment' }
+    # 3. Seguiment resolt (inclou denuncies tancades: mateix "final positiu").
+    if ($n -match 'es pot donar.{0,12}finalitzat') { return 'FI Requeriment' }
+    if ($n.Contains('es pot donar per tancada la denuncia')) { return 'FI Requeriment' }
+    # Aixecament d'un precinte/suspensio.
+    if ($n -match 'es (pot|valora) (aixecar|desprecintar)' -or $n.Contains('pertinent desprecintar')) { return 'FI Precinte / Cessament' }
+    # Comunicacio anul·lada.
+    if ($n.Contains('deixa sense efecte')) { return 'Sense efecte' }
+    # 4. Risc greu/imminent, incompliment greu: es precinta, se suspen o es
+    # proposa el cessament.
+    if ((_PrecinteEfectiu $n) -or $n.Contains('pertinent precintar') -or
+        $n.Contains('tenint en consideracio el risc') -or $n -match 'ordeni el cessament') { return 'Precinte / Cessament' }
+    # "estimar" i no "desestimar".
+    if ($n -match '(^|[^a-z])estimar la sol.?licitud d.?ampliacio') { return ('Ampliaci' + [char]0x00F3 + ' termini') }
+    # Desfavorable: deliberadament NO es classifica com a Favorable; cau a Revisar.
+    if ($n.Contains('desfavorablement') -or $n.Contains('desfavorable')) { return 'Revisar' }
+    if ($n.Contains('favorablement') -or $n.Contains('favorable')) { return 'Favorable' }
+    if ($n.Contains('ampliar el termini')) { return ('Ampliaci' + [char]0x00F3 + ' termini') }
+    # Clausules estandard d'un requeriment NOU (encara sense "Vist l'anterior").
+    if ($n.Contains('recepcio del requeriment') -or $n.Contains('esmenar les deficiencies') -or
+        $n.Contains('mancances formals') -or $n.Contains('termini maxim de') -or
+        $n.Contains('podran adoptar les mesures') -or
+        $n.Contains('procediment desmena') -or $n.Contains('esmenar els defectes') -or
+        $n -match 'cas contrari.{0,60}(cessament|precinte)' -or $n -match 'determini el (cessament|precinte)') {
+        return 'Requeriment'
+    }
+    return 'Revisar'
+}
+
+# Les respostes d'un SEGUIMENT PUNT PER PUNT (formats d'abans, sense frase de
+# conclusio): sota cada requeriment, una linia curta. Es miren a l'INICI de la
+# linia, despres de la data que hi posa l'eina Seguiment ("dd/MM/aaaa: ").
+$Script:RespostesNegatives = @('no es presenta', 'no saporta', 'manca aportar la documentacio',
+    'no es justifica', 'no shan retirat', 'no estan esmenad', 'no es disposa')
+$Script:RespostesPositives = @('saporta', 'es justifica', 'sentrega', 'saclareix',
+    'sha portat a terme amb resultat favorable', 'ok')
+
+# L'estat d'un informe SENSE cap frase de conclusio (97 dels 802: no son rars,
+# son els formats d'abans). Torna @{ Breu; Motiu } o $null si no se'n pot dir
+# res (llavors queda 'Revisar', "sense conclusio"). $lines: els paragrafs.
+#   - Seguiment punt per punt: alguna resposta negativa -> Requeriment; TOTES
+#     positives -> FI Requeriment, pero amb motiu (l'estat s'ha deduit).
+#   - Requeriment antic: "S'han observat les seguents deficiencies que cal
+#     esmenar per poder (seguir) exercint l'activitat", i acaba a la signatura.
+#     Va DESPRES del seguiment: el seguiment d'un requeriment antic el copia
+#     sencer, amb aquesta frase inclosa.
+#   - Denuncia d'accessibilitat sense res a requerir ("Sense requeriments
+#     especifics", "Actuacio: Cap").
+function _EstatSenseConclusio($lines) {
+    $neg = 0; $pos = 0; $reqAntic = $false; $accCap = $false; $accAltra = $false
+    foreach ($ln in @($lines)) {
+        $n = _ConclNorm $ln
+        if ($n -eq '') { continue }
+        $r = $n -replace '^[\s\-\*–•·]*(\d{1,2}[/.\-]\d{1,2}[/.\-]\d{2,4}\s*:?\s*)?', ''
+        if ($r.Length -le 200) {
+            $esNeg = $false
+            foreach ($p in $Script:RespostesNegatives) { if ($r.StartsWith($p)) { $esNeg = $true; break } }
+            if ($esNeg) { $neg++ }
+            else {
+                foreach ($p in $Script:RespostesPositives) {
+                    if ($r -match ('^' + [regex]::Escape($p) + '(\b|$)')) { $pos++; break }
+                }
+            }
+        }
+        if ($n -match 's.?han observat les seguents deficiencies que cal esmenar') { $reqAntic = $true }
+        if ($n.Contains('sense requeriments especifics') -or $n -match 'actuacio\s*:\s*cap\b') { $accCap = $true }
+        elseif ($n -match '^actuacio\s*:') { $accAltra = $true }
+    }
+    if ($neg -gt 0) { return @{ Breu = 'Requeriment'; Motiu = '' } }
+    if ($pos -gt 0) { return @{ Breu = 'FI Requeriment'; Motiu = 'estat deduit, sense conclusio' } }
+    if ($reqAntic) { return @{ Breu = 'Requeriment'; Motiu = '' } }
+    if ($accCap -and -not $accAltra) { return @{ Breu = 'FI Requeriment'; Motiu = '' } }
+    return $null
+}
+
+# El cataleg sencer sense triar res: la conclusio diu alhora que es pot i que
+# NO es pot donar per tancada la denuncia, o al cos hi ha quedat el "Copiar
+# requeriment" de la plantilla. Abans sortia com a 'Requeriment' (el "no es pot
+# donar" guanya), i no ho es: no se sap que diu.
+function _EsPlantillaSenseOmplir([string]$conclusio, $lines) {
+    $n = _ConclNorm $conclusio
+    $nNo = ([regex]::Matches($n, 'no es pot donar per tancada la denuncia')).Count
+    $nTots = ([regex]::Matches($n, 'es pot donar per tancada la denuncia')).Count
+    if ($nNo -gt 0 -and $nTots -gt $nNo) { return $true }
+    foreach ($ln in @($lines)) { if ((_ConclNorm $ln) -match '^copiar requeriment') { return $true } }
+    return $false
+}
+
+# Expedient de la serie de les activitats extraordinaries (2569/2565): els
+# informes antics no porten "ActExtr" al nom.
+function _EsExpedientActExtr([string]$expedient) {
+    $grups = @((_NormalitzaExpedient $expedient) -split '-' | Where-Object { $_ -ne '' })
+    if ($grups.Count -lt 2) { return $false }
+    foreach ($g in @($grups | Select-Object -Skip 1)) { if ($g -eq '2569' -or $g -eq '2565') { return $true } }
+    return $false
+}
+
+# El TIPUS d'informe, per decidir si fixa l'estat de l'activitat
+# (_InformeQueDeterminaEstat). Abans tot el que comencava per "S'informa
+# favorablement" o "El titular es responsable d'executar" s'ignorava per
+# defecte, perque el TEXT d'aquestes conclusions es gairebe igual d'un informe a
+# l'altre; pero per a l'ESTAT barrejava tres coses diferents:
+#   'actextr'  activitat extraordinaria (Decret 112/2010): sota el GIA d'un
+#              establiment no en decideix l'estat (ni el favorable ni el
+#              requeriment: abans l'estat de l'estadi el decidia el requeriment
+#              d'un concert).
+#   'llicfav'  favorable de llicencia: fixa 'Favorable' i NO s'ha d'ignorar mai
+#              (era el cas de l'activitat que es quedava en 'Requeriment').
+#   'mns'      MNS, canvi de nom o de titularitat informats: neutre.
+#   ''         la resta.
+# PURA. Es desa a l'informe ('tipus') perque l'editor pugui recalcular l'estat
+# sense tornar a obrir el .docx.
+function _TipusInforme([string]$conclusio, [string]$fitxer, [string]$expedient) {
+    $n = _ConclNorm $conclusio
+    if ($fitxer -match '(?i)(^|[^a-z])act[\s_-]?extr' -or (_EsExpedientActExtr $expedient) -or
+        $n.Contains('responsable dexecutar') -or
+        $n.Contains('favorablement tenint en compte les seguents consideracions')) { return 'actextr' }
+    if ($n -match 'sinforma favorablement (a lespera de rebre|lactivitat)' -or
+        $n.Contains('posterior visita dinspeccio')) { return 'llicfav' }
+    if ($n -match 'favorablement (de la|del|al|a la) (modificacio|canvi de nom|canvi de titularitat|transmissio)' -or
+        $n.Contains('favorablement una modificacio')) { return 'mns' }
+    return ''
+}
+
+# Tot el que se'n treu del TEXT d'un informe, en un sol lloc (el fan servir
+# l'escaneig i ValidarClassificacio.ps1, que han de dir el mateix). PURA.
+# Torna @{ Conclusio; Font; Breu; Tipus; Motius }.
+function _ClassificaInforme($lines, [string]$fitxer, [string]$expedient) {
+    $ci = _ExtractConclusio $lines
+    $motius = New-Object System.Collections.ArrayList
+    if (_EsPlantillaSenseOmplir $ci.Text $lines) {
+        $breu = 'Revisar'
+        [void]$motius.Add('plantilla sense omplir')
+    } elseif (-not [string]::IsNullOrWhiteSpace($ci.Text)) {
+        $breu = _ConclusioBreu $ci.Text
+    } else {
+        $ded = _EstatSenseConclusio $lines
+        if ($null -ne $ded) {
+            $breu = [string]$ded.Breu
+            if ($ded.Motiu) { [void]$motius.Add([string]$ded.Motiu) }
+        } else {
+            $breu = 'Revisar'
+            [void]$motius.Add('sense conclusio')
+        }
+    }
+    return @{
+        Conclusio = $ci.Text
+        Font      = $ci.Font
+        Breu      = $breu
+        Tipus     = (_TipusInforme $ci.Text $fitxer $expedient)
+        Motius    = $motius.ToArray()
+    }
+}
+
+# Els informes d'una activitat per ORDRE: data, i si dos tenen la mateixa data,
+# el nom del fitxer (i la ruta). El Sort-Object del PowerShell 5.1 no es estable:
+# amb dos informes del mateix dia ordenats nomes per data, l'estat podia canviar
+# d'una passada a l'altra.
+function _OrdenaInformesActivitat($informes) {
+    return @(@($informes) | Where-Object { $null -ne $_ } | Sort-Object -Property `
+        @{ Expression = { [string](_PropInf $_ 'data') } },
+        @{ Expression = { [string](_PropInf $_ 'fitxer') } },
+        @{ Expression = { [string](_PropInf $_ 'ruta') } })
+}
+
+# L'informe que DECIDEIX l'estat d'una ACTIVITAT ($act: id_gia + informes). Es
+# la font unica: _EstatActualActivitat, Recordatoris (la data del recordatori) i
+# Comprovar Excel (la data de l'INFORME ENGINYER) el demanen aqui, aixi no poden
+# discrepar mai sobre quin informe mana.
+#
+# Recorre els informes per ordre (_OrdenaInformesActivitat) i es queda amb
+# l'ultim que decideix:
+#   - Un informe IGNORAT (a ma, des de l'editor) no compta mai.
+#   - 'Altres' (informatius) nomes decideix si no hi ha cap altre informe.
+#   - 'actextr' sota un GIA (l'establiment on es fa l'acte) no compta. Sense GIA
+#     (agrupat per carpeta) l'"activitat" es l'acte, i si.
+#   - 'mns' favorable es NEUTRE: no tapa un estat pendent ($Script:EstatsPendents:
+#     l'activitat pot tenir un requeriment obert i presentar una MNS pel mig),
+#     pero si no hi ha res pendent l'estat es 'Favorable' (abans una activitat
+#     amb nomes MNS favorables quedava amb l'estat buit).
+#   Les dues darreres no s'apliquen a un informe corregit a ma (editat_a_ma):
+#   l'usuari l'ha mirat i el que hi ha posat MANA.
+#
+# Demana l'ACTIVITAT i no la llista d'informes perque la regla d'actextr depen
+# de si te GIA. Si se li passa una llista, PETA: abans la signatura era la
+# llista, i una crida que no s'hagues canviat no fallaria, decidiria l'estat
+# sense saber el GIA (hi ha un guard a 06-guards.ps1).
+function _InformeQueDeterminaEstat($act) {
+    if ($null -eq $act) { return $null }
+    if ($act -is [System.Collections.IList] -or $null -eq $act.PSObject.Properties['informes']) {
+        throw "_InformeQueDeterminaEstat espera l'ACTIVITAT (id_gia + informes), no la llista d'informes."
+    }
+    $teGia = -not [string]::IsNullOrWhiteSpace([string](_PropInf $act 'id_gia'))
+    $decideix = $null
+    $altres = $null
+    foreach ($inf in (_OrdenaInformesActivitat $act.informes)) {
+        if ([bool](_PropInf $inf 'ignorat')) { continue }
+        $breu = [string](_PropInf $inf 'conclusio_breu')
+        if ($breu -eq 'Altres') { $altres = $inf; continue }
+        if (-not [bool](_PropInf $inf 'editat_a_ma')) {
+            $tipus = [string](_PropInf $inf 'tipus')
+            if ($tipus -eq 'actextr' -and $teGia) { continue }
+            if ($tipus -eq 'mns' -and $breu -eq 'Favorable') {
+                if ($null -eq $decideix -or $Script:EstatsPendents -notcontains [string]$decideix.conclusio_breu) { $decideix = $inf }
+                continue
+            }
+        }
+        $decideix = $inf
+    }
+    if ($null -ne $decideix) { return $decideix }
+    return $altres
+}
+
+# Estat actual d'una ACTIVITAT: la conclusio breu de l'informe que el decideix
+# (_InformeQueDeterminaEstat). '' si no n'hi ha cap.
+function _EstatActualActivitat($act) {
+    $inf = _InformeQueDeterminaEstat $act
+    if ($null -eq $inf) { return '' }
+    return [string]$inf.conclusio_breu
+}

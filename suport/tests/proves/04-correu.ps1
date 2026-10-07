@@ -365,27 +365,76 @@ $html = _CosAHtml "linia1`n`nlinia2"
 AssertEq ([bool]($html -like '*<div>linia1</div>*' -and $html -like '*<div>linia2</div>*')) $true '_CosAHtml: una linia = un <div>'
 AssertEq ([bool]($html -like '*height:8px*')) $true '_CosAHtml: una linia buida es un espaiador'
 
-Write-Host "`n--- Informes.ps1: _EstatActualActivitat (estat = conclusio breu del darrer informe fiable, per data) ---"
+Write-Host "`n--- InformesClassificacio.ps1: _EstatActualActivitat / _InformeQueDeterminaEstat (quin informe decideix l'estat) ---"
+$mkAct = { param($gia, $infs) [pscustomobject]@{ id_gia = $gia; informes = @($infs) } }
+$mkInf = { param($data, $breu, $tipus = '', $ign = $false, $fitxer = 'f.docx') [pscustomobject]@{ data = $data; fitxer = $fitxer; ignorat = $ign; conclusio_breu = $breu; tipus = $tipus } }
 AssertEq (_EstatActualActivitat $null) '' '_EstatActualActivitat null -> buit'
-AssertEq (_EstatActualActivitat @()) '' '_EstatActualActivitat llista buida -> buit'
-$infsTotIgnorats = @(
-    [pscustomobject]@{ data = '2026-01-01'; ignorat = $true; conclusio_breu = 'Requeriment' },
-    [pscustomobject]@{ data = '2026-02-01'; ignorat = $true; conclusio_breu = 'Favorable' }
-)
-AssertEq (_EstatActualActivitat $infsTotIgnorats) '' '_EstatActualActivitat tots ignorats -> buit'
-$infsNormal = @(
-    [pscustomobject]@{ data = '2026-01-01'; ignorat = $false; conclusio_breu = 'Requeriment' },
-    [pscustomobject]@{ data = '2026-02-01'; ignorat = $true;  conclusio_breu = 'Favorable' },
-    [pscustomobject]@{ data = '2026-03-01'; ignorat = $false; conclusio_breu = 'FI Requeriment' }
-)
-AssertEq (_EstatActualActivitat $infsNormal) 'FI Requeriment' '_EstatActualActivitat es queda amb el darrer NO ignorat (per data)'
+AssertEq (_EstatActualActivitat (& $mkAct '1' @())) '' '_EstatActualActivitat sense informes -> buit'
+$actTotIgn = & $mkAct '1' @((& $mkInf '2026-01-01' 'Requeriment' '' $true), (& $mkInf '2026-02-01' 'Favorable' '' $true))
+AssertEq (_EstatActualActivitat $actTotIgn) '' '_EstatActualActivitat tots ignorats -> buit'
+$actNormal = & $mkAct '1' @((& $mkInf '2026-01-01' 'Requeriment'), (& $mkInf '2026-02-01' 'Favorable' '' $true), (& $mkInf '2026-03-01' 'FI Requeriment'))
+AssertEq (_EstatActualActivitat $actNormal) 'FI Requeriment' '_EstatActualActivitat es queda amb el darrer NO ignorat (per data)'
 # QUIN informe decideix l'estat: el mateix que fa servir _EstatActualActivitat.
 # Ho necessita "Comprovar Excel" per dir-ne la data (INFORME ENGINYER dd/MM/aaaa).
 AssertEq ($null -eq (_InformeQueDeterminaEstat $null)) $true '_InformeQueDeterminaEstat null -> $null'
-AssertEq ($null -eq (_InformeQueDeterminaEstat @())) $true '_InformeQueDeterminaEstat llista buida -> $null'
-AssertEq ($null -eq (_InformeQueDeterminaEstat $infsTotIgnorats)) $true '_InformeQueDeterminaEstat tots ignorats -> $null'
-AssertEq (_InformeQueDeterminaEstat $infsNormal).data '2026-03-01' '_InformeQueDeterminaEstat: el darrer NO ignorat (SALTA el del 02, ignorat)'
-AssertEq (_InformeQueDeterminaEstat $infsNormal).conclusio_breu (_EstatActualActivitat $infsNormal) '_InformeQueDeterminaEstat i _EstatActualActivitat parlen del MATEIX informe'
+AssertEq ($null -eq (_InformeQueDeterminaEstat $actTotIgn)) $true '_InformeQueDeterminaEstat tots ignorats -> $null'
+AssertEq (_InformeQueDeterminaEstat $actNormal).data '2026-03-01' '_InformeQueDeterminaEstat: el darrer NO ignorat (SALTA el del 02, ignorat)'
+AssertEq (_InformeQueDeterminaEstat $actNormal).conclusio_breu (_EstatActualActivitat $actNormal) '_InformeQueDeterminaEstat i _EstatActualActivitat parlen del MATEIX informe'
+# Demana l'ACTIVITAT: una llista d'informes (la signatura d'abans) PETA en lloc
+# de decidir sense saber el GIA.
+$petaLlista = $false
+try { [void](_InformeQueDeterminaEstat @((& $mkInf '2026-01-01' 'Requeriment'))) } catch { $petaLlista = $true }
+Assert $petaLlista '_InformeQueDeterminaEstat amb una LLISTA d''informes peta (espera l''activitat)'
+# L'ordre no depen de com venen: es torna a ordenar per data.
+$actDesord = & $mkAct '1' @((& $mkInf '2026-03-01' 'FI Requeriment'), (& $mkInf '2026-01-01' 'Requeriment'))
+AssertEq (_EstatActualActivitat $actDesord) 'FI Requeriment' 'els informes desordenats es tornen a ordenar per data'
+# Dos informes del MATEIX dia: desempata el nom del fitxer (el Sort-Object del
+# PowerShell 5.1 no es estable i l'estat podia canviar d'una passada a l'altra).
+$actMateixDia = & $mkAct '1' @((& $mkInf '2026-03-01' 'FI Requeriment' '' $false 'b.docx'), (& $mkInf '2026-03-01' 'Requeriment' '' $false 'a.docx'))
+AssertEq (_EstatActualActivitat $actMateixDia) 'FI Requeriment' 'mateixa data: desempata el nom del fitxer (b despres d''a)'
+$actMateixDia2 = & $mkAct '1' @((& $mkInf '2026-03-01' 'Requeriment' '' $false 'b.docx'), (& $mkInf '2026-03-01' 'FI Requeriment' '' $false 'a.docx'))
+AssertEq (_EstatActualActivitat $actMateixDia2) 'Requeriment' 'mateixa data: ...sigui quin sigui l''ordre d''entrada'
+# Favorable de LLICENCIA: decideix sempre (abans s'ignorava per defecte i
+# l'activitat es quedava en Requeriment per un informe de dos anys abans).
+$actLlic = & $mkAct '1' @((& $mkInf '2024-01-01' 'Requeriment'), (& $mkInf '2026-01-01' 'Favorable' 'llicfav'))
+AssertEq (_EstatActualActivitat $actLlic) 'Favorable' 'favorable de llicencia (llicfav) -> fixa Favorable'
+# MNS favorable: neutre.
+$actMnsReq = & $mkAct '1' @((& $mkInf '2026-01-01' 'Requeriment'), (& $mkInf '2026-02-01' 'Favorable' 'mns'))
+AssertEq (_EstatActualActivitat $actMnsReq) 'Requeriment' 'MNS favorable NO tapa un Requeriment pendent'
+AssertEq (_InformeQueDeterminaEstat $actMnsReq).data '2026-01-01' '...i la data que mana (Recordatoris) es la del requeriment'
+$actMnsPrec = & $mkAct '1' @((& $mkInf '2026-01-01' 'Precinte / Cessament'), (& $mkInf '2026-02-01' 'Favorable' 'mns'))
+AssertEq (_EstatActualActivitat $actMnsPrec) 'Precinte / Cessament' 'MNS favorable NO tapa un Precinte / Cessament'
+$actMnsAmp = & $mkAct '1' @((& $mkInf '2026-01-01' ('Ampliaci' + [char]0x00F3 + ' termini')), (& $mkInf '2026-02-01' 'Favorable' 'mns'))
+AssertEq (_EstatActualActivitat $actMnsAmp) ('Ampliaci' + [char]0x00F3 + ' termini') 'MNS favorable NO tapa una Ampliacio termini'
+$actMnsSol = & $mkAct '1' @((& $mkInf '2026-01-01' 'Favorable' 'mns'), (& $mkInf '2026-05-01' 'Favorable' 'mns'))
+AssertEq (_EstatActualActivitat $actMnsSol) 'Favorable' 'nomes MNS favorables -> Favorable (abans, l''estat buit)'
+$actMnsFi = & $mkAct '1' @((& $mkInf '2026-01-01' 'FI Requeriment'), (& $mkInf '2026-02-01' 'Favorable' 'mns'))
+AssertEq (_EstatActualActivitat $actMnsFi) 'Favorable' 'res pendent + MNS favorable -> Favorable'
+$actMnsDespres = & $mkAct '1' @((& $mkInf '2026-01-01' 'Favorable' 'mns'), (& $mkInf '2026-02-01' 'Requeriment'))
+AssertEq (_EstatActualActivitat $actMnsDespres) 'Requeriment' 'un requeriment despres d''una MNS mana'
+$actMnsReqTxt = & $mkAct '1' @((& $mkInf '2026-01-01' 'FI Requeriment'), (& $mkInf '2026-02-01' 'Requeriment' 'mns'))
+AssertEq (_EstatActualActivitat $actMnsReqTxt) 'Requeriment' 'una MNS que REQUEREIX no es neutra: decideix'
+# Activitat extraordinaria: sota el GIA d'un establiment, ni el favorable ni el requeriment.
+$actEstadi = & $mkAct '9028' @((& $mkInf '2025-01-01' 'FI Requeriment'), (& $mkInf '2026-01-01' 'Requeriment' 'actextr'), (& $mkInf '2026-02-01' 'Favorable' 'actextr'))
+AssertEq (_EstatActualActivitat $actEstadi) 'FI Requeriment' 'actextr sota el GIA d''un establiment no en decideix l''estat (ni el requeriment)'
+$actEstadiSol = & $mkAct '9028' @((& $mkInf '2026-01-01' 'Requeriment' 'actextr'))
+AssertEq (_EstatActualActivitat $actEstadiSol) '' '...ni quan nomes te actes'
+$actActe = & $mkAct '' @((& $mkInf '2026-01-01' 'Requeriment' 'actextr'), (& $mkInf '2026-02-01' 'Favorable' 'actextr'))
+AssertEq (_EstatActualActivitat $actActe) 'Favorable' 'actextr SENSE GIA (per carpeta): l''activitat es l''acte, i decideix'
+# Informatius (Altres): nomes si no hi ha res mes.
+$actAltres = & $mkAct '1' @((& $mkInf '2026-01-01' 'Requeriment'), (& $mkInf '2026-02-01' 'Altres'))
+AssertEq (_EstatActualActivitat $actAltres) 'Requeriment' 'un informe Altres no decideix si n''hi ha cap altre'
+$actNomesAltres = & $mkAct '1' @((& $mkInf '2026-02-01' 'Altres'))
+AssertEq (_EstatActualActivitat $actNomesAltres) 'Altres' 'si l''unic es Altres, l''estat es Altres'
+# El que l'usuari ha corregit a ma MANA per damunt dels tipus.
+$infEd = & $mkInf '2026-01-01' 'Requeriment' 'actextr'
+Add-Member -InputObject $infEd -NotePropertyName editat_a_ma -NotePropertyValue $true
+AssertEq (_EstatActualActivitat (& $mkAct '9028' @((& $mkInf '2025-01-01' 'FI Requeriment'), $infEd))) 'Requeriment' 'un actextr corregit a ma sota un GIA SI que decideix (l''usuari mana)'
+$infEdMns = & $mkInf '2026-02-01' 'Favorable' 'mns'
+Add-Member -InputObject $infEdMns -NotePropertyName editat_a_ma -NotePropertyValue $true
+AssertEq (_EstatActualActivitat (& $mkAct '1' @((& $mkInf '2026-01-01' 'Requeriment'), $infEdMns))) 'Favorable' 'una MNS favorable corregida a ma SI que tapa el requeriment'
+$infIgnLlic = & $mkInf '2026-02-01' 'Favorable' 'llicfav' $true
+AssertEq (_EstatActualActivitat (& $mkAct '1' @((& $mkInf '2026-01-01' 'Requeriment'), $infIgnLlic))) 'Requeriment' 'l''ignorat a ma mana, fins i tot sobre un favorable de llicencia'
 
 Write-Host "`n--- Informes.ps1: _DataInformeDdMmAaaa ---"
 AssertEq (_DataInformeDdMmAaaa '2022-11-11') '11/11/2022' '_DataInformeDdMmAaaa: yyyy-MM-dd -> dd/MM/yyyy'
@@ -792,6 +841,117 @@ try {
     Remove-Item -LiteralPath $ba -Recurse -Force -ErrorAction SilentlyContinue
 }
 
+Write-Host "`n--- InformesEscaneig.ps1: ruta relativa (una altra unitat), germans de carpeta, GIA diferent, correccions que ja no ho son ---"
+# D'extrem a extrem amb .docx de debo ($nouDocx, del bloc d'abans). Textos i
+# GIA inventats.
+$rb = Join-Path ([System.IO.Path]::GetTempPath()) ('base-rel-' + [guid]::NewGuid().ToString('N'))
+$rbI = Join-Path (Join-Path $rb 'I') 'Informes'; $rbF = Join-Path (Join-Path $rb 'F') 'Informes'; $rbZ = Join-Path (Join-Path $rb 'Z') 'Informes'
+$rbLoc = Join-Path $rb 'local'; $rbAct = Join-Path $rb 'activitats'; $rbApp = Join-Path $rb 'appdata'
+$vellsRB = @{ Inf = $InformesDir; Loc = $LocalActivitatsDir; Act = $ActivitatsDir; App = $env:LOCALAPPDATA }
+try {
+    foreach ($d in @((Join-Path $rbI 'GIA 501'), (Join-Path $rbI 'Expedient 2025-1-9999'), (Join-Path $rbI 'GIA 503'), $rbZ, $rbLoc, $rbAct, $rbApp)) { [void](New-Item -ItemType Directory -Path $d -Force) }
+    $LocalActivitatsDir = $rbLoc; $ActivitatsDir = $rbAct; $env:LOCALAPPDATA = $rbApp
+    $reqT = "Vist l'anterior, s'inicia d'ofici el procediment d'esmena, disposant d'un termini d'un mes."
+    $fiT  = "Vist l'anterior s'informa que es pot donar per finalitzat el procediment d'esmena."
+    $llicT = "S'informa favorablement l'activitat i es d" + [char]0x00F3 + "na per tancat l'expedient."
+    $fi = 'Ho poso al seu coneixement als efectes oportuns,'
+    & $nouDocx (Join-Path (Join-Path $rbI 'GIA 501') '2026-01-10_Req.docx') @('ID GIA: 501', $reqT, $fi)
+    & $nouDocx (Join-Path (Join-Path $rbI 'GIA 501') '2026-02-10_Seg.docx') @('ID GIA: 501', $fiT, $fi)
+    & $nouDocx (Join-Path (Join-Path $rbI 'Expedient 2025-1-9999') '2026-03-01_Req.docx') @('ID GIA: 502', $reqT, $fi)
+    & $nouDocx (Join-Path (Join-Path $rbI 'Expedient 2025-1-9999') '2026-04-01_Llic.docx') @('ID GIA: -', $llicT, $fi)
+    & $nouDocx (Join-Path (Join-Path $rbI 'GIA 503') '2026-05-01_X.docx') @('ID GIA: 530', $fiT, $fi)
+    $vell = (Get-Date).ToUniversalTime().AddHours(-2)
+    Get-ChildItem -LiteralPath $rbI -Recurse -File | ForEach-Object { $_.LastWriteTimeUtc = $vell }
+    $dbRB = Join-Path $rbLoc 'informes-db.json'
+    $actDe = { param($db, $gia) @($db.activitats | Where-Object { [string]$_.id_gia -eq $gia })[0] }
+
+    $InformesDir = $rbI
+    $resI = Invoke-InformesDbEscaneig
+    $dbI = Read-JsonFile $dbRB
+    AssertEq "$($resI.Ok)|$($resI.NInformes)|$($dbI.versio_classificador)" ("True|5|" + $Script:ClassificadorVersio) 'escaneig: llegeix els 5 informes i desa la versio del classificador'
+    $a502 = & $actDe $dbI '502'
+    AssertEq @($a502.informes).Count 2 'germans: l''informe sense GIA va amb el GIA dels altres de la seva carpeta'
+    AssertEq "$($a502.estat_actual)|$(@($a502.informes)[1].tipus)" 'Favorable|llicfav' 'germans: ...i el favorable de llicencia decideix l''estat'
+    Assert (-not (@($dbI.a_revisar | ForEach-Object { $_.motiu }) -join '|').Contains('sense ID GIA')) 'germans: ...i ja no surt "sense ID GIA" a revisar'
+    $a530 = & $actDe $dbI '530'
+    AssertEq ([string]@($a530.informes)[0].motiu) 'GIA del document diferent del de la carpeta' 'GIA 530 al document i GIA 503 a la carpeta -> a revisar, amb el motiu'
+    AssertEq ([string]$dbI.carpeta_arrel) $rbI 'la base diu de quina carpeta es (carpeta_arrel)'
+
+    # Dues correccions a ma a la 501: una de debo (Precinte) i una que ja
+    # coincideix amb el que diu l'automatic (com les 179 d'octubre de 2026).
+    $a501 = & $actDe $dbI '501'
+    $infR = @($a501.informes)[0]; _MarcaEditatAMa $infR; $infR.conclusio_breu = 'Precinte / Cessament'
+    $infS = @($a501.informes)[1]; _MarcaEditatAMa $infS; $infS.auto_conclusio_breu = 'Revisar'
+    Write-JsonFile $dbRB $dbI 8
+
+    # LA MATEIXA BASE AMB LA CARPETA EN UNA ALTRA UNITAT (F: fora de la feina).
+    [void](New-Item -ItemType Directory -Path (Split-Path -Parent $rbF) -Force)
+    Copy-Item -LiteralPath $rbI -Destination (Split-Path -Parent $rbF) -Recurse
+    Get-ChildItem -LiteralPath $rbF -Recurse -File | ForEach-Object { $_.LastWriteTimeUtc = $vell }
+    $InformesDir = $rbF
+    $resF = Invoke-InformesDbEscaneig
+    $dbF = Read-JsonFile $dbRB
+    AssertEq "$($resF.Ok)|$($resF.Reprocessats)" 'True|0' 'una altra unitat: tots els informes casen per la ruta relativa (cap es reprocessa)'
+    $infRF = @((& $actDe $dbF '501').informes)[0]
+    AssertEq "$($infRF.conclusio_breu)|$($infRF.editat_a_ma)" 'Precinte / Cessament|True' 'una altra unitat: la correccio a ma NO es perd'
+    Assert ([string]$infRF.ruta).StartsWith($rbF) 'una altra unitat: la ruta desada passa a ser la d''ara'
+    AssertEq ([string]$dbF.carpeta_arrel) $rbF '...i la carpeta_arrel tambe'
+
+    # Una VERSIO NOVA del classificador: es tornen a llegir TOTS, les correccions
+    # es queden, i la que ja coincideix amb l'automatic deixa de ser-ho.
+    $dbF.versio_classificador = 'vella'
+    Write-JsonFile $dbRB $dbF 8
+    $resV = Invoke-InformesDbEscaneig
+    $dbV = Read-JsonFile $dbRB
+    AssertEq ([int]$resV.Reprocessats) 5 'versio del classificador diferent: es tornen a llegir tots els informes'
+    $infsV = @((& $actDe $dbV '501').informes)
+    AssertEq "$($infsV[0].conclusio_breu)|$($infsV[0].editat_a_ma)|$($infsV[0].auto_conclusio_breu)" 'Precinte / Cessament|True|Requeriment' 'la correccio de debo es queda (amb el nou automatic al costat)'
+    AssertEq "$($infsV[1].conclusio_breu)|$($infsV[1].editat_a_ma)|$($null -eq $infsV[1].PSObject.Properties['auto_conclusio_breu'])" 'FI Requeriment|False|True' 'la "correccio" que ja coincideix amb l''automatic deixa de ser-ho (sense auto_*)'
+
+    # UNA ALTRA CARPETA on no casa res: preguntar abans d'escriure.
+    & $nouDocx (Join-Path $rbZ '2026-06-01_Altre.docx') @('ID GIA: 777', $fiT, $fi)
+    $InformesDir = $rbZ
+    $preg = @{ Text = '' }
+    $resNo = Invoke-InformesDbEscaneig $null { param($p) $preg.Text = $p; $false }
+    AssertEq "$($resNo.Ok)|$($resNo.Cancelat)" 'False|True' 'una altra carpeta que no casa: si es diu que no, no s''escriu'
+    Assert ($preg.Text.Contains($rbF) -and $preg.Text.Contains($rbZ) -and $preg.Text.Contains('perdrien 1 correccions')) 'la pregunta diu de quina carpeta es la base, quina s''escanejaria i quantes correccions es perdrien'
+    AssertEq ([int](Read-JsonFile $dbRB).n_informes) 5 '...i la base es queda com era'
+    $resAuto = Invoke-InformesDbEscaneig
+    AssertEq "$($resAuto.Ok)|$($resAuto.Cancelat)" 'False|True' 'sense ningu a qui preguntar (l''automatic): tampoc no s''escriu'
+    $resSi = Invoke-InformesDbEscaneig $null { param($p) $true }
+    AssertEq "$($resSi.Ok)|$([int](Read-JsonFile $dbRB).n_informes)" 'True|1' 'si es diu que si, es fa'
+} catch {
+    Assert $false ('bloc ruta relativa / germans: ' + $_.Exception.Message + ' @ ' + $_.InvocationInfo.ScriptLineNumber)
+} finally {
+    $InformesDir = $vellsRB.Inf; $LocalActivitatsDir = $vellsRB.Loc; $ActivitatsDir = $vellsRB.Act; $env:LOCALAPPDATA = $vellsRB.App
+    Remove-Item -LiteralPath $rb -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+Write-Host "`n--- InformesEscaneig.ps1: peces pures (_ClauInforme, _AvisCanviArrel, _GiaDelsGermans) ---"
+AssertEq (_ClauInforme 'I:\Act\Informes\GIA 1\a.docx' 'I:\Act\Informes') 'GIA 1\a.docx' '_ClauInforme: la ruta relativa a l''arrel'
+AssertEq (_ClauInforme 'F:\FEINA\Informes\GIA 1\a.docx' 'F:\FEINA\Informes\') 'GIA 1\a.docx' '_ClauInforme: una altra unitat, la mateixa clau (i la barra final no compta)'
+AssertEq (_ClauInforme 'i:\act\informes\GIA 1\a.docx' 'I:\Act\Informes') 'GIA 1\a.docx' '_ClauInforme: sense distingir majuscules a l''arrel'
+AssertEq (_ClauInforme '/tmp/inf/GIA 1/a.docx' '/tmp/inf') 'GIA 1\a.docx' '_ClauInforme: les dues barres valen igual'
+AssertEq (_ClauInforme 'X:\altre\a.docx' 'I:\Act\Informes') 'X:\altre\a.docx' '_ClauInforme: fora de l''arrel, la ruta sencera'
+AssertEq (_ClauInforme 'I:\x\a.docx' '') 'I:\x\a.docx' '_ClauInforme: sense arrel (bases antigues), la ruta sencera'
+AssertEq (_AvisCanviArrel 'I:\Inf' 'i:\inf\' 100 0 5) '' '_AvisCanviArrel: la mateixa arrel -> no pregunta'
+AssertEq (_AvisCanviArrel 'I:\Inf' 'F:\Inf' 100 60 5) '' '_AvisCanviArrel: una altra arrel pero casa la majoria -> no pregunta'
+AssertEq (_AvisCanviArrel 'I:\Inf' 'F:\Altre' 100 2 0) '' '_AvisCanviArrel: no casa pero no es perd cap correccio -> no pregunta'
+Assert ((_AvisCanviArrel 'I:\Inf' 'F:\Altre' 100 2 7).Contains('perdrien 7 correccions')) '_AvisCanviArrel: no casa i es perdrien correccions -> pregunta'
+AssertEq (_AvisCanviArrel '' 'F:\Altre' 100 0 7) '' '_AvisCanviArrel: base sense carpeta_arrel (antiga) -> no pregunta'
+$germ = @(
+    [pscustomobject]@{ Gia = '7'; GiaFont = 'document'; Ruta = 'I:\Inf\Exp A\1.docx'; Motius = @() },
+    [pscustomobject]@{ Gia = ''; GiaFont = 'document'; Ruta = 'I:\Inf\Exp A\2.docx'; Motius = @('sense ID GIA', 'sense conclusio') },
+    [pscustomobject]@{ Gia = '8'; GiaFont = 'document'; Ruta = 'I:\Inf\Exp B\1.docx'; Motius = @() },
+    [pscustomobject]@{ Gia = '9'; GiaFont = 'document'; Ruta = 'I:\Inf\Exp B\2.docx'; Motius = @() },
+    [pscustomobject]@{ Gia = ''; GiaFont = 'document'; Ruta = 'I:\Inf\Exp B\3.docx'; Motius = @('sense ID GIA') },
+    [pscustomobject]@{ Gia = ''; GiaFont = 'document'; Ruta = 'I:\Inf\Exp C\1.docx'; Motius = @('sense ID GIA') }
+)
+AssertEq (_GiaDelsGermans $germ) 1 '_GiaDelsGermans: en resol un'
+AssertEq "$($germ[1].Gia)|$($germ[1].GiaFont)|$(@($germ[1].Motius) -join ',')" '7|germans|sense conclusio' '_GiaDelsGermans: tots els germans del mateix GIA -> aquell GIA (i treu "sense ID GIA")'
+AssertEq $germ[4].Gia '' '_GiaDelsGermans: germans de GIA diferents -> no en tria cap'
+AssertEq $germ[5].Gia '' '_GiaDelsGermans: sense germans amb GIA -> res'
+
 Write-Host "`n--- Informes.ps1: _FusionaEdicionsBase (desar l'editor damunt d'una base nova) ---"
 $mkInfF = { param($ruta, $breu, $ign, $ed) $o = [pscustomobject]@{ ruta = $ruta; data = '2026-01-01'; conclusio = ''; conclusio_breu = $breu; ignorat = $ign; editat_a_ma = $false }; if ($ed) { _MarcaEditatAMa $o; $o.conclusio_breu = $ed }; $o }
 $discF = [pscustomobject]@{ activitats = @(
@@ -807,6 +967,10 @@ AssertEq (@($fF.activitats | ForEach-Object { "$($_.id_gia)=$($_.estat_actual)" 
 AssertEq "$($fF.activitats[0].informes[0].editat_a_ma)|$($fF.activitats[0].informes[0].auto_conclusio_breu)" 'True|Requeriment' 'fusio: el valor automatic, el del disc'
 AssertEq "$($fF.activitats[1].informes[0].editat_a_ma)|$($null -eq $fF.activitats[1].informes[0].PSObject.Properties['auto_ignorat'])" 'False|True' 'fusio: el desfet torna a l''automatic del disc'
 AssertEq @($fF.activitats[2].informes).Count 2 'fusio: l''informe nou del disc hi es'
+# L'editor i el disc amb la carpeta en unitats diferents: casen per la ruta relativa.
+$discU = [pscustomobject]@{ carpeta_arrel = 'F:\Inf'; activitats = @([pscustomobject]@{ id_gia = '1'; estat_actual = 'Requeriment'; informes = @((& $mkInfF 'F:\Inf\GIA 1\a.docx' 'Requeriment' $false $null)) }) }
+$editorU = [pscustomobject]@{ carpeta_arrel = 'I:\Inf'; activitats = @([pscustomobject]@{ id_gia = '1'; informes = @((& $mkInfF 'I:\Inf\GIA 1\a.docx' 'Requeriment' $false 'FI Requeriment')) }) }
+AssertEq ((_FusionaEdicionsBase $discU $editorU).activitats[0].estat_actual) 'FI Requeriment' 'fusio: editor i disc en unitats diferents casen per la ruta relativa'
 
 Write-Host "`n--- ModeAutomatic.ps1: el registre dels interruptors A/M ---"
 foreach ($kMA in @('copiarinformes', 'informesdb', 'planol')) {

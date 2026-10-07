@@ -60,18 +60,22 @@ function _ReadInformeParagraphs($file, $wordApp) {
 }
 
 # Analitza UN informe. Retorna un PSCustomObject amb data, gia, expedient,
-# conclusio, fitxer, ruta, carpeta i el motiu (si cal revisar-lo). $wordApp es
-# opcional (nomes cal per als .doc antics; vegeu _ReadInformeParagraphs).
+# conclusio, tipus, fitxer, ruta, carpeta i els motius (si cal revisar-lo).
+# $wordApp es opcional (nomes cal per als .doc antics; vegeu
+# _ReadInformeParagraphs). El que se'n treu del text ho decideix
+# _ClassificaInforme (InformesClassificacio.ps1), el mateix que fa servir
+# ValidarClassificacio.ps1.
 function Get-InformeData($file, $expToGia, $cache, $wordApp = $null) {
     $data = _ParseDataInformeFromName $file.Name
     $lines = @()
-    try { $lines = _ReadInformeParagraphs $file $wordApp } catch { $lines = @() }
+    try { $lines = @(_ReadInformeParagraphs $file $wordApp) } catch { $lines = @() }
 
     $gia = _ExtractIdGia $lines
+    $giaCarpeta = _GiaFromFolderName $file.FullName
     $exp = _ExtractExpedient $lines
     $font = 'document'
     if ([string]::IsNullOrWhiteSpace($gia)) {
-        $gia = _GiaFromFolderName $file.FullName
+        $gia = $giaCarpeta
         if (-not [string]::IsNullOrWhiteSpace($gia)) { $font = 'carpeta' }
     }
     if ([string]::IsNullOrWhiteSpace($gia) -and $null -ne $expToGia) {
@@ -79,13 +83,17 @@ function Get-InformeData($file, $expToGia, $cache, $wordApp = $null) {
         if ($key -ne '' -and $expToGia.ContainsKey($key)) { $gia = $expToGia[$key]; $font = 'excel' }
     }
 
-    $conclInfo = _ExtractConclusio $lines
-    $concl = $conclInfo.Text
+    $cl = _ClassificaInforme $lines $file.Name $exp
 
     $motius = New-Object System.Collections.ArrayList
     if ([string]::IsNullOrWhiteSpace($gia)) { [void]$motius.Add('sense ID GIA') }
-    $conclMotiu = _ConclusioMotiu $conclInfo
-    if (-not [string]::IsNullOrWhiteSpace($conclMotiu)) { [void]$motius.Add($conclMotiu) }
+    # "GIA 101" a la carpeta i "ID GIA: 110" a la capcalera (les xifres girades): l'informe se
+    # n'anava en silenci a l'activitat d'un altre titular. Es queda amb el del
+    # document (es el que s'ha escrit per a aquell informe), pero es diu.
+    if ($font -eq 'document' -and $giaCarpeta -ne '' -and $giaCarpeta -ne [string]$gia) {
+        [void]$motius.Add('GIA del document diferent del de la carpeta')
+    }
+    foreach ($m in @($cl.Motius)) { [void]$motius.Add([string]$m) }
 
     $titular = ''
     if ($null -ne $cache -and -not [string]::IsNullOrWhiteSpace($gia) -and $cache.ById.ContainsKey([string]$gia)) {
@@ -98,13 +106,14 @@ function Get-InformeData($file, $expToGia, $cache, $wordApp = $null) {
         GiaFont       = $font
         Expedient     = $exp
         Titular       = $titular
-        Conclusio     = $concl
-        ConclusioBreu = (_ConclusioBreu $concl)
+        Conclusio     = $cl.Conclusio
+        ConclusioBreu = $cl.Breu
+        Tipus         = $cl.Tipus
         Fitxer        = $file.Name
         Ruta          = $file.FullName
         Carpeta       = _CarpetaActivitat $file.FullName
         Modificat     = $file.LastWriteTimeUtc.ToString('o')
-        Ignorat       = (_ConclusioIgnorarPerDefecte $conclInfo)
+        Ignorat       = $false
         Motius        = $motius.ToArray()
         EditatAMa         = $false
         AutoConclusioBreu = ''
@@ -125,12 +134,14 @@ function _HaDeReprocessar([datetime]$lwUtc, [datetime]$prevUtc, [bool]$teEntrada
 }
 
 # Aplana la base d'informes carregada (objecte de ConvertFrom-Json) en registres
-# plans indexats per 'ruta', arrossegant les dades de l'activitat a cada informe.
-# Cada registre te la mateixa forma que Get-InformeData (perque el reagrupament
-# els tracti igual). Retorna una hashtable [ruta] -> registre.
+# plans indexats per la ruta RELATIVA a la seva carpeta_arrel (_ClauInforme),
+# arrossegant les dades de l'activitat a cada informe. Cada registre te la
+# mateixa forma que Get-InformeData (perque el reagrupament els tracti igual).
+# Retorna una hashtable [clau] -> registre.
 function _FlattenInformesDb($db) {
     $map = @{}
     if ($null -eq $db -or $null -eq $db.activitats) { return $map }
+    $arrel = [string](_PropInf $db 'carpeta_arrel')
     foreach ($act in $db.activitats) {
         if ($null -eq $act.informes) { continue }
         foreach ($inf in $act.informes) {
@@ -146,7 +157,7 @@ function _FlattenInformesDb($db) {
             # Compatibilitat: si la base es d'abans d'aquest camp, la calculem
             # ara mateix (no cal reescanejar per tenir-la la primera vegada).
             $conclusioBreu = if ($null -ne $inf.PSObject.Properties['conclusio_breu']) { [string]$inf.conclusio_breu } else { _ConclusioBreu $conclusioText }
-            $map[$ruta] = [pscustomobject]@{
+            $map[(_ClauInforme $ruta $arrel)] = [pscustomobject]@{
                 Data          = [string]$inf.data
                 Gia           = [string]$act.id_gia
                 GiaFont       = ''
@@ -154,6 +165,7 @@ function _FlattenInformesDb($db) {
                 Titular       = [string]$act.titular
                 Conclusio     = $conclusioText
                 ConclusioBreu = $conclusioBreu
+                Tipus         = [string](_PropInf $inf 'tipus')
                 Fitxer        = [string]$inf.fitxer
                 Ruta          = $ruta
                 Carpeta       = [string]$act.carpeta
@@ -177,13 +189,21 @@ function _FlattenInformesDb($db) {
 #
 # Una base d'abans de la marca (el registre no la porta) es tracta com
 # _InferEditatAMa, i a mes, aqui si que es pot dir de l'ignorat: si el de la
-# base no es el per defecte que acaba de sortir, l'havia posat l'usuari.
+# base no es el per defecte que acaba de sortir, l'havia posat l'usuari. (Des
+# de l'octubre de 2026 el per defecte es sempre "no ignorat": en una base
+# d'abans de la marca, una MNS que s'ignorava per defecte es llegira com a
+# ignorada a ma. Les bases d'ara ja porten la marca a tots els informes.)
 function _AplicaEdicioPrevia($prev, $nou) {
     $manual = [bool]$prev.EditatAMa
     if (-not [bool]$prev.TeMarcaEdicio) {
         $manual = $manual -or ([bool]$prev.Ignorat -ne [bool]$nou.Ignorat)
     }
     if (-not $manual) { return $nou }
+    # L'automatic ja diu el mateix que la correccio: ja no ho es (179 de les
+    # "correccions" de la base d'octubre de 2026 eren defectes del classificador,
+    # no gustos de l'usuari, i pintaven mitja base en vermell a l'editor). Es
+    # treu la marca; la que no coincideix, es queda.
+    if ([string]$prev.ConclusioBreu -eq [string]$nou.ConclusioBreu -and [bool]$prev.Ignorat -eq [bool]$nou.Ignorat) { return $nou }
     $nou.AutoConclusioBreu = [string]$nou.ConclusioBreu
     $nou.AutoIgnorat = [bool]$nou.Ignorat
     $nou.ConclusioBreu = [string]$prev.ConclusioBreu
@@ -201,6 +221,7 @@ function _InformeAJson($r) {
         ruta           = $r.Ruta
         conclusio      = $r.Conclusio
         conclusio_breu = $r.ConclusioBreu
+        tipus          = [string]$r.Tipus
         modificat      = $r.Modificat
         ignorat        = [bool]$r.Ignorat
         motiu          = (@($r.Motius) -join ', ')
@@ -214,18 +235,117 @@ function _InformeAJson($r) {
 }
 
 # ----------------------------------------------------------------------------
+# Peces PURES de l'escaneig (les fan servir el nucli i ValidarClassificacio.ps1)
+# ----------------------------------------------------------------------------
+
+# La carpeta on viu un informe (la ruta sense el nom del fitxer), per comparar-la
+# amb la dels altres. Parteix per les dues barres (es prova a Linux).
+function _DirInforme([string]$ruta) {
+    $i = [Math]::Max($ruta.LastIndexOf('\'), $ruta.LastIndexOf('/'))
+    if ($i -lt 0) { return '' }
+    return $ruta.Substring(0, $i)
+}
+
+# Un informe SENSE ID GIA en una carpeta on TOTS els altres que en tenen son del
+# mateix GIA, va amb aquell GIA. Cas real: un informe de llicencia sense GIA a la
+# capcalera, en la carpeta del seu expedient (que no diu "GIA n" al nom),
+# quedava com una activitat a part. _GiaFromFolderName nomes mira el NOM de la
+# carpeta. Toca els registres ($informes: Gia, GiaFont, Ruta, Motius) i torna
+# quants n'ha resolt.
+function _GiaDelsGermans($informes) {
+    $perDir = @{}
+    foreach ($r in @($informes)) {
+        if ($null -eq $r -or [string]::IsNullOrWhiteSpace([string]$r.Gia)) { continue }
+        $d = _DirInforme ([string]$r.Ruta)
+        if (-not $perDir.ContainsKey($d)) { $perDir[$d] = @{} }
+        $perDir[$d][[string]$r.Gia] = $true
+    }
+    $n = 0
+    foreach ($r in @($informes)) {
+        if ($null -eq $r -or -not [string]::IsNullOrWhiteSpace([string]$r.Gia)) { continue }
+        $d = _DirInforme ([string]$r.Ruta)
+        if (-not $perDir.ContainsKey($d) -or $perDir[$d].Count -ne 1) { continue }
+        $r.Gia = [string]@($perDir[$d].Keys)[0]
+        $r.GiaFont = 'germans'
+        $r.Motius = @(@($r.Motius) | Where-Object { $_ -ne 'sense ID GIA' })
+        $n++
+    }
+    return $n
+}
+
+# Agrupa els registres per activitat: per ID GIA quan n'hi ha; si NO en tenen,
+# per CARPETA (tots els informes d'una mateixa carpeta = una activitat). Torna
+# les activitats tal com es desen (informes per ordre, _OrdenaInformesActivitat,
+# i l'estat calculat), per ID GIA NUMERIC (com a text, '10' anava abans que '9').
+function _AgrupaInformes($informes) {
+    $groups = [ordered]@{}
+    foreach ($r in @($informes)) {
+        if ($null -eq $r) { continue }
+        $key = if (-not [string]::IsNullOrWhiteSpace($r.Gia)) { "GIA:$($r.Gia)" }
+               else { "DIR:$($r.Carpeta)" }
+        if (-not $groups.Contains($key)) {
+            $groups[$key] = [pscustomobject]@{
+                id_gia    = $r.Gia
+                expedient = $r.Expedient
+                titular   = $r.Titular
+                carpeta   = $r.Carpeta
+                _informes = (New-Object System.Collections.ArrayList)
+            }
+        }
+        $g = $groups[$key]
+        # Emplenem camps de l'activitat si encara estan buits.
+        if ([string]::IsNullOrWhiteSpace($g.expedient) -and -not [string]::IsNullOrWhiteSpace($r.Expedient)) { $g.expedient = $r.Expedient }
+        if ([string]::IsNullOrWhiteSpace($g.titular)   -and -not [string]::IsNullOrWhiteSpace($r.Titular))   { $g.titular = $r.Titular }
+        [void]$g._informes.Add((_InformeAJson $r))
+    }
+    $activitats = New-Object System.Collections.ArrayList
+    foreach ($g in $groups.Values) {
+        $act = [pscustomobject]@{
+            id_gia       = $g.id_gia
+            expedient    = $g.expedient
+            titular      = $g.titular
+            carpeta      = $g.carpeta
+            estat_actual = ''
+            informes     = @(_OrdenaInformesActivitat $g._informes)
+        }
+        $act.estat_actual = _EstatActualActivitat $act
+        [void]$activitats.Add($act)
+    }
+    return @($activitats | Sort-Object { _GiaNumeric $_.id_gia }, { [string]$_.carpeta })
+}
+
+# Mateixa carpeta d'informes? (sense distingir majuscules ni la barra final)
+function _MateixaArrel([string]$a, [string]$b) {
+    return (($a -replace '/', '\').TrimEnd('\') -ieq ($b -replace '/', '\').TrimEnd('\'))
+}
+
+# La base es d'una ALTRA carpeta d'informes i gairebe no hi casa res: escanejar
+# la reescriuria sencera i s'hi perdrien les correccions a ma dels informes que
+# no casen. Torna el text de la pregunta, o '' si no cal preguntar (la mateixa
+# arrel, casa la majoria, o no es perdria cap correccio). PURA.
+function _AvisCanviArrel([string]$arrelBase, [string]$arrelAra, [int]$nBase, [int]$nCasats, [int]$nCorrPerdudes) {
+    if ($nBase -le 0 -or [string]::IsNullOrWhiteSpace($arrelBase) -or (_MateixaArrel $arrelBase $arrelAra)) { return '' }
+    if ($nCasats * 2 -ge $nBase -or $nCorrPerdudes -le 0) { return '' }
+    return ("La base d'informes " + [char]0x00E9 + "s de:`n" + $arrelBase + "`n`nAra s'escanejaria:`n" + $arrelAra +
+            "`n`nNom" + [char]0x00E9 + "s hi casen " + $nCasats + " dels " + $nBase + " informes de la base: s'hi perdrien " +
+            $nCorrPerdudes + " correccions fetes a m" + [char]0x00E0 + ".`n`nVols continuar igualment?")
+}
+
+# ----------------------------------------------------------------------------
 # EL NUCLI de l'escaneig, SENSE CAP FINESTRA: el fan servir el boto (amb la
 # seva finestra de progres) i el mode automatic (en segon pla, sense res).
 # $onProgres (opcional): & $onProgres <text> <fets> <total> ($total 0 = encara no
-# se sap). Torna @{ Ok; Error; NInformes; Reprocessats; NActivitats; NRevisar;
-# OutPath }. Si alguna cosa peta a mitges, llanca (i no s'ha escrit res).
+# se sap). $onConfirma (opcional): & $onConfirma <pregunta> -> $true per seguir;
+# sense ell (l'automatic) la resposta es NO. Torna @{ Ok; Error; NInformes;
+# Reprocessats; NActivitats; NRevisar; OutPath } (Cancelat = $true si s'ha dit
+# que no). Si alguna cosa peta a mitges, llanca (i no s'ha escrit res).
 # ----------------------------------------------------------------------------
 function _InformesDirAccessible([string]$dir) {
     if ([string]::IsNullOrWhiteSpace($dir)) { return $false }
     try { return [bool](Test-Path -LiteralPath $dir -ErrorAction SilentlyContinue) } catch { return $false }
 }
 
-function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null) {
+function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock]$onConfirma = $null) {
     # La carpeta d'informes. Si la unitat (la I: de la feina) no hi es, no es un
     # error del programa: potser s'esta fora de la feina.
     $dir = $InformesDir
@@ -248,25 +368,36 @@ function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null) {
 
     # 3b. Carregar la base anterior (si existeix) per fer un escaneig
     #     INCREMENTAL: nomes es reobren els .docx modificats DESPRES de
-    #     l'ultima actualitzacio; la resta es reutilitzen (conservant el seu
-    #     "ignorat"). Els fitxers que ja no existeixen es podaran sols (nomes
-    #     reagrupem els que trobem ara). Si no hi ha base previa (o esta
-    #     corrupta), es fa un escaneig complet.
+    #     l'ultima actualitzacio; la resta es reutilitzen. Els fitxers que ja
+    #     no existeixen es podaran sols (nomes reagrupem els que trobem ara).
+    #     Si no hi ha base previa (o esta corrupta), es fa un escaneig complet.
+    #     Si la base es d'una altra versio del classificador, es tornen a llegir
+    #     TOTS (vegeu $Script:ClassificadorVersio), pero es conserven les
+    #     correccions a ma.
     $outPath    = Join-Path $LocalActivitatsDir 'informes-db.json'
     $prevByRuta = @{}
     $prevUtc    = [datetime]::MinValue
+    $prevArrel  = ''
     $generatEl  = (Get-Date).ToString('o')
     if (Test-Path -LiteralPath $outPath) {
         try {
             $prevDb     = Read-JsonFile $outPath
+            # Una base sense carpeta_arrel (no n'hi hauria d'haver cap) es
+            # dona per feta amb la carpeta d'ara: si no, cap informe hi
+            # casaria per la ruta relativa i es perdrien les correccions.
+            if ([string]::IsNullOrWhiteSpace([string](_PropInf $prevDb 'carpeta_arrel'))) {
+                Add-Member -InputObject $prevDb -NotePropertyName carpeta_arrel -NotePropertyValue $dir -Force
+            }
             $prevByRuta = _FlattenInformesDb $prevDb
+            $prevArrel  = [string](_PropInf $prevDb 'carpeta_arrel')
             if ($prevDb.PSObject.Properties['actualitzat_el'] -and -not [string]::IsNullOrWhiteSpace([string]$prevDb.actualitzat_el)) {
                 try { $prevUtc = ([datetime]::Parse([string]$prevDb.actualitzat_el)).ToUniversalTime() } catch { $prevUtc = [datetime]::MinValue }
             }
+            if ([string](_PropInf $prevDb 'versio_classificador') -ne $Script:ClassificadorVersio) { $prevUtc = [datetime]::MinValue }
             if ($prevDb.PSObject.Properties['generat_el'] -and -not [string]::IsNullOrWhiteSpace([string]$prevDb.generat_el)) {
                 $generatEl = [string]$prevDb.generat_el
             }
-        } catch { $prevByRuta = @{}; $prevUtc = [datetime]::MinValue }
+        } catch { $prevByRuta = @{}; $prevUtc = [datetime]::MinValue; $prevArrel = '' }
     }
 
     # 4. Recollir els fitxers candidats (.docx o .doc amb data al principi
@@ -283,23 +414,36 @@ function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null) {
     $files = @($allInformes)
     $total = $files.Count
 
+    # 4b. La base es d'una altra carpeta i no hi casa gairebe res: PREGUNTAR
+    #     abans d'escriure (l'automatic, que no pot preguntar, no escriu).
+    $claus = @{}
+    foreach ($f in $files) { $claus[(_ClauInforme $f.FullName $dir)] = $true }
+    $nCasats = 0; $nCorrPerdudes = 0
+    foreach ($kv in $prevByRuta.GetEnumerator()) {
+        if ($claus.ContainsKey($kv.Key)) { $nCasats++ } elseif ([bool]$kv.Value.EditatAMa) { $nCorrPerdudes++ }
+    }
+    $pregunta = _AvisCanviArrel $prevArrel $dir $prevByRuta.Count $nCasats $nCorrPerdudes
+    if ($pregunta -ne '' -and ($null -eq $onConfirma -or -not (& $onConfirma $pregunta))) {
+        return @{ Ok = $false; Cancelat = $true; Error = ("No s'ha actualitzat la base. " + ($pregunta -replace "`n`nVols continuar igualment\?$", '')) }
+    }
 
     # 5. Analitzar cada informe (incremental: reutilitzem els no modificats).
     #    Word només es crea (mandrosament) si cal reprocessar algun .doc
     #    antic; es tanca sempre al 'finally', encara que hi hagi un error.
     $informes = New-Object System.Collections.ArrayList
-    $revisar  = New-Object System.Collections.ArrayList
     $reprocessats = 0
     $i = 0
     $wordApp = $null
     try {
         foreach ($f in $files) {
             $i++
-            $ruta = $f.FullName
-            $teEntrada = $prevByRuta.ContainsKey($ruta)
+            $clau = _ClauInforme $f.FullName $dir
+            $teEntrada = $prevByRuta.ContainsKey($clau)
             if (-not (_HaDeReprocessar $f.LastWriteTimeUtc $prevUtc $teEntrada)) {
-                # No s'ha tocat des de l'ultim escaneig: reutilitzem l'entrada.
-                $r = $prevByRuta[$ruta]
+                # No s'ha tocat des de l'ultim escaneig: reutilitzem l'entrada
+                # (amb la ruta d'ara: la base pot ser d'una altra unitat).
+                $r = $prevByRuta[$clau]
+                $r.Ruta = $f.FullName
             } else {
                 if ($f.Extension -ieq '.doc' -and $null -eq $wordApp) {
                     # -Opcional: sense Word, _ReadInformeParagraphs torna @()
@@ -312,73 +456,44 @@ function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null) {
                 # El que l'usuari hagi corregit a ma ("Editar base") PREVAL;
                 # la resta, la mana el que acaba de sortir de l'informe
                 # (vegeu _AplicaEdicioPrevia).
-                if ($teEntrada) { $r = _AplicaEdicioPrevia $prevByRuta[$ruta] $r }
+                if ($teEntrada) { $r = _AplicaEdicioPrevia $prevByRuta[$clau] $r }
                 $reprocessats++
             }
             if (($i % 5) -eq 0 -or $i -eq $total) {
                 & $avisa "Analitzant informes... ($i de $total, $reprocessats de nous/modificats)" $i $total
             }
             [void]$informes.Add($r)
-            if ($r.Motius.Count -gt 0) {
-                [void]$revisar.Add([pscustomobject]@{
-                    fitxer = $r.Fitxer
-                    ruta   = $r.Ruta
-                    motiu  = ($r.Motius -join ', ')
-                })
-            }
         }
     } finally {
         if ($null -ne $wordApp) { try { $wordApp.Quit() } catch { } }
     }
 
-    # 6. Agrupar per activitat: per ID GIA quan n'hi ha; si NO en tenen, per
-    #    CARPETA (tots els informes d'una mateixa carpeta = una activitat).
-    #    Ordenem els informes de cada activitat per data.
-    $groups = [ordered]@{}
+    # 6. Els que no tenen GIA, el dels germans de carpeta; agrupar per
+    #    activitat; i el que s'ha de revisar (DESPRES dels germans: un GIA
+    #    resolt ja no ho es).
+    [void](_GiaDelsGermans $informes)
+    $activitatsOrd = @(_AgrupaInformes $informes)
+    $revisar = New-Object System.Collections.ArrayList
     foreach ($r in $informes) {
-        $key = if (-not [string]::IsNullOrWhiteSpace($r.Gia)) { "GIA:$($r.Gia)" }
-               else { "DIR:$($r.Carpeta)" }
-        if (-not $groups.Contains($key)) {
-            $groups[$key] = [pscustomobject]@{
-                id_gia    = $r.Gia
-                expedient = $r.Expedient
-                titular   = $r.Titular
-                carpeta   = $r.Carpeta
-                _informes = (New-Object System.Collections.ArrayList)
-            }
+        if (@($r.Motius).Count -gt 0) {
+            [void]$revisar.Add([pscustomobject]@{
+                fitxer = $r.Fitxer
+                ruta   = $r.Ruta
+                motiu  = (@($r.Motius) -join ', ')
+            })
         }
-        $g = $groups[$key]
-        # Emplenem camps de l'activitat si encara estan buits.
-        if ([string]::IsNullOrWhiteSpace($g.id_gia)    -and -not [string]::IsNullOrWhiteSpace($r.Gia))       { $g.id_gia = $r.Gia }
-        if ([string]::IsNullOrWhiteSpace($g.expedient) -and -not [string]::IsNullOrWhiteSpace($r.Expedient)) { $g.expedient = $r.Expedient }
-        if ([string]::IsNullOrWhiteSpace($g.titular)   -and -not [string]::IsNullOrWhiteSpace($r.Titular))   { $g.titular = $r.Titular }
-        [void]$g._informes.Add((_InformeAJson $r))
     }
-
-    $activitats = New-Object System.Collections.ArrayList
-    foreach ($g in $groups.Values) {
-        $ordered = @($g._informes | Sort-Object { if ($_.data) { $_.data } else { '' } })
-        [void]$activitats.Add([pscustomobject]@{
-            id_gia       = $g.id_gia
-            expedient    = $g.expedient
-            titular      = $g.titular
-            carpeta      = $g.carpeta
-            estat_actual = (_EstatActualActivitat $ordered)
-            informes     = $ordered
-        })
-    }
-    # Per ID GIA NUMERIC (com a text, '10' anava abans que '9').
-    $activitatsOrd = @($activitats | Sort-Object { _GiaNumeric $_.id_gia }, { [string]$_.carpeta })
 
     # 7. Escriure el JSON (conservem generat_el; actualitzat_el = ara).
     $outObj = [pscustomobject]@{
-        generat_el     = $generatEl
-        actualitzat_el = (Get-Date).ToString('o')
-        carpeta_arrel  = $dir
-        n_informes     = $informes.Count
-        n_activitats   = $activitatsOrd.Count
-        activitats     = $activitatsOrd
-        a_revisar      = @($revisar)
+        generat_el           = $generatEl
+        actualitzat_el       = (Get-Date).ToString('o')
+        versio_classificador = $Script:ClassificadorVersio
+        carpeta_arrel        = $dir
+        n_informes           = $informes.Count
+        n_activitats         = $activitatsOrd.Count
+        activitats           = $activitatsOrd
+        a_revisar            = @($revisar)
     }
     Write-JsonFile $outPath $outObj 8
 
@@ -430,6 +545,12 @@ function Invoke-InformesDbScan {
         }
         [System.Windows.Forms.Application]::DoEvents()
     }.GetNewClosure()
+    # La base es d'una altra carpeta d'informes (vegeu _AvisCanviArrel).
+    $onConfirma = {
+        param($pregunta)
+        $resp = [System.Windows.Forms.MessageBox]::Show($pregunta, 'Base d''informes', 'YesNo', 'Warning', 'Button2')
+        return ($resp -eq [System.Windows.Forms.DialogResult]::Yes)
+    }
 
     $caixa = @{ Res = $null }
     $res = $null
@@ -438,7 +559,7 @@ function Invoke-InformesDbScan {
         # Si el mode automatic esta escanejant ara mateix, no se'n fa un altre
         # al damunt (escriurien la base l'un sobre l'altre).
         $fet = Invoke-AmbMutexUnic $Script:BaseMutexNom {
-            $caixa.Res = Invoke-InformesDbEscaneig $onProgres
+            $caixa.Res = Invoke-InformesDbEscaneig $onProgres $onConfirma
         }
         if ($fet) { $res = $caixa.Res } else { $err = 'ocupat' }
     } catch {
@@ -457,6 +578,7 @@ function Invoke-InformesDbScan {
         return
     }
     if (-not $res.Ok) {
+        if ([bool]$res.Cancelat) { return }
         [System.Windows.Forms.MessageBox]::Show([string]$res.Error, 'Base d''informes', 'OK', 'Warning') | Out-Null
         return
     }

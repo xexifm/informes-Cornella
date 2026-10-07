@@ -477,40 +477,139 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
   `_ExtractIdGia` ignora placeholders com `"-"`, `"XXX"`, `"N/A"` (activitats
   encara sense GIA assignat) perquè no s'ajuntin activitats diferents sota una
   mateixa "activitat" fantasma.
-- **Conclusió:** `$Script:ConclusioStartPhrases` a `Informes.ps1` llista les
-  frases d'inici reconegudes, cada una amb el seu `Font` (família de tràmit).
-  `"Vist l'anterior"` i `"Tenint en consideració el risc"` es consideren
-  fiables (Font `vist_anterior`/`risc`, decisió pròpia i diferenciada de cada
-  informe). `"S'informa favorablement"` (MNS) i `"El titular/L'organitzador és
-  responsable d'executar"` (actes extraordinàries) també es capturen i es
-  desen al `informes-db.json`, però com que són clàusules gairebé idèntiques
-  entre informes diferents, `_ConclusioIgnorarPerDefecte` fa que
-  Get-InformeData marqui l'informe **"ignorat" PER DEFECTE** (només la
-  primera vegada que es veu; si l'usuari el desmarca des de l'editor, el seu
-  criteri es conserva als escanejos següents). Si cap frase coneguda hi
-  apareix, la conclusió queda buida (motiu `"sense conclusio"`, va a
-  "a_revisar").
-- Validat contra la carpeta REAL d'informes (~43 GB, 720 informes): 0 grups
-  GIA corromputs per placeholders, cobertura de conclusió 70% → 87%.
-- **Conclusió breu / Estat actual:** cada informe té una `conclusio_breu`
-  (`_ConclusioBreu`, funció pura) que classifica el TEXT de la conclusió (no
-  el nom de l'arxiu, que l'usuari ha anat modificant amb el temps de manera
-  inconsistent) en una de `$Script:ConclusioBreuOpcions`: Requeriment, FI
-  Requeriment (inclou "denúncia tancada"), Precinte / Cessament, FI Precinte /
-  Cessament, Favorable, Ampliació termini, Sense efecte, Altres, Revisar.
-  `Revisar` és el resultat per defecte quan no es reconeix cap frase — inclou
-  deliberadament "desfavorable" (per no confondre'l amb "Favorable"). `Altres`
-  és NOMÉS una opció manual des de l'editor; el classificador automàtic mai
-  la retorna. Cada ACTIVITAT té un `estat_actual` (`_EstatActualActivitat`,
-  funció pura) = `conclusio_breu` del seu informe **no ignorat** més recent
-  **per `data`** (no per data de modificació del fitxer). A **Editar base
-  d'informes** la columna "Conclusio breu" és un desplegable editable
-  (`DataGridViewComboBoxColumn`) i "Estat activitat" és només lectura,
-  derivada; en editar "Ignorar" o "Conclusio breu" de qualsevol informe es
-  recalcula i es propaga l'estat a totes les files de la mateixa activitat.
-  Una conclusio que diu que **NO** es pot donar per tancat/finalitzat (qualsevol
-  "no es pot donar...") es **Requeriment** (pendent), no "FI Requeriment": la
-  comprovacio del "no" va abans que la del "si" a `_ConclusioBreu`.
+- **Conclusió, conclusió breu, tipus i estat → `InformesClassificacio.ps1`**
+  (octubre 2026; vivia a `Informes.ps1`, que amb això passava de les 1.200
+  línies). Tot pur. **Per què es va refer**: el 7/10/2026 es van llegir un per
+  un els 802 informes de la carpeta real (427 activitats) i es va comparar amb
+  el que en treia *Actualitzar base*: 110 informes en `Revisar`, 82 activitats
+  sense estat útil i, pitjor, activitats amb l'estat **equivocat** (una
+  llicència informada favorablement s'ignorava per defecte i l'activitat es
+  quedava en `Requeriment` per un informe de dos anys abans). L'estat alimenta
+  els **Recordatoris**: un `Requeriment` fals és un correu que no s'havia
+  d'enviar.
+  - **Un sol punt d'entrada, `_ClassificaInforme($lines, $fitxer, $expedient)`**
+    → `{ Conclusio; Font; Breu; Tipus; Motius }`. El criden `Get-InformeData` i
+    `ValidarClassificacio.ps1`: el que es valida és el que es fa servir.
+  - **Frases d'inici** (`$Script:ConclusioStartPhrases`): les de sempre, més
+    «Cal requerir l'esmena de les deficiències indicades» (la conclusió de
+    `LLIC`, sense «Vist l'anterior»). Les **de segona** (`Segona = $true`: «és
+    pertinent suspendre/precintar», «el Control Periòdic és FAVORABLE»,
+    «informo favorablement», «s'informa amb caràcter favorable», «estimar la
+    sol·licitud d'ampliació») **només es miren si no n'hi ha cap de les
+    altres**: també poden sortir al cos (un seguiment que copia una conclusió
+    anterior) i, com que la conclusió comença a la PRIMERA línia que en conté
+    una, s'endurien mig informe. En segona passada no poden canviar res del que
+    ja es trobava.
+  - **La línia d'inici no pot ser el final.** La transmissió diu «…presentada a
+    l'Ajuntament de Cornellà de Llobregat, s'informa FAVORABLEMENT…» i el
+    «Cornellà de Llobregat,» (una de les frases de signatura) la tallava abans
+    de començar: **totes** les transmissions sortien «sense conclusio». Es va
+    veure passant `_ClassificaInforme` pels fitxers d'or (els textos de les
+    plantilles), que és una manera barata de mesurar el classificador sense la
+    carpeta real.
+  - **`_ConclusioBreu`: l'ORDRE mana**, i el comentari diu quin cas real va
+    posar cada bloc davant del següent. Primer el que deixa l'expedient
+    **pendent** encara que la frase digui «es pot donar per tancada la
+    denúncia», «desprecintar» o «favorablement» («…però NO donar per finalitzat»
+    i el «ni donar per finalitzat» amb el NO oblidat; «D'altra banda, es
+    requereix…»; «es valora favorablement la solució… s'hauran de…»; el control
+    periòdic «FAVORABLE… incorrecte havent de ser DESFAVORABLE»; «cal requerir
+    l'esmena», que abans queia a `Revisar`). Després, **inici del procediment
+    d'esmena**: el precinte o la retirada que l'acompanyen són l'advertiment
+    («En cas contrari és pertinent precintar», «és pertinent que es retiri»), com
+    el «determini el cessament» de sempre; només un precinte efectiu
+    (`_PrecinteEfectiu`) el treu d'aquí. Va davant del «es pot donar per tancada
+    la denúncia» perquè «tanca la denúncia i inicia el procediment d'esmena» és
+    un requeriment. Després els FI, i finalment precinte/suspensió («és
+    pertinent suspendre» sense la frase literal del risc), ampliació («estimar»,
+    no «desestimar»), favorable i les clàusules d'un requeriment nou.
+    «Desfavorable» continua a `Revisar` a posta.
+  - **Sense frase de conclusió** (97 dels 802: no són rars, són els formats
+    d'abans) → `_EstatSenseConclusio`. Seguiment punt per punt (respostes a
+    l'inici de línia, després de la data «dd/MM/aaaa: » que hi posa l'eina
+    Seguiment): alguna negativa → `Requeriment`; totes positives → `FI
+    Requeriment` **amb motiu** «estat deduit, sense conclusio». Requeriment antic
+    («S'han observat les següents deficiències que cal esmenar…») →
+    `Requeriment`; va **després** del seguiment perquè el seguiment d'un
+    requeriment antic el copia sencer. Denúncia d'accessibilitat sense res a
+    requerir → `FI Requeriment`. La resta, `Revisar` + «sense conclusio».
+  - **Plantilla sense omplir** (`_EsPlantillaSenseOmplir`: el SÍ i el NO de
+    «es pot donar per tancada la denúncia» alhora, o «Copiar requeriment» al
+    cos) → `Revisar` + «plantilla sense omplir». Abans era `Requeriment` (el
+    «no es pot donar» guanyava).
+  - **Cap informe s'ignora per defecte** (`_ConclusioIgnorarPerDefecte` es va
+    esborrar). Abans s'ignorava tot el que tenia Font `mns` o `act_extr`
+    perquè el **text** d'aquelles conclusions és gairebé igual entre informes;
+    però per a l'**estat** barrejava tres coses diferents, que ara distingeix el
+    **tipus** (`_TipusInforme`, desat a l'informe com a `tipus` perquè l'editor
+    pugui recalcular sense obrir el `.docx`): `llicfav` (favorables de
+    llicència, decideixen sempre), `mns` (MNS, canvi de nom, canvi de
+    titularitat/transmissió) i `actextr` (nom del fitxer amb «ActExtr»/«Act
+    Extr», expedient de la sèrie 2569/2565, o la conclusió del Decret 112/2010).
+  - **`_InformeQueDeterminaEstat($act)` — rep l'ACTIVITAT, no la llista**, perquè
+    la regla d'`actextr` depèn de si té GIA. Recorre els informes per ordre i es
+    queda amb l'últim que decideix: ignorat → mai; `Altres` → només si no hi ha
+    res més; `actextr` sota un GIA → no (abans l'estat de l'estadi el decidia el
+    requeriment d'un concert); `mns` favorable → **neutre** (no tapa
+    `$Script:EstatsPendents`, però si no hi ha res pendent dóna `Favorable`; abans
+    una activitat amb només MNS quedava amb l'estat buit). Les dues darreres no
+    s'apliquen a un informe `editat_a_ma`: el que l'usuari hi ha posat mana. Si
+    li arriba una llista, **peta**; i un guard d'AST (`06-guards.ps1`, validat
+    tornant a posar `$act.informes` a `ComprovarExcel.ps1`) mira totes les
+    crides. `_EstatActualActivitat`, Recordatoris i Comprovar Excel en són
+    clients.
+  - **Mateixa data**: `_OrdenaInformesActivitat` desempata pel nom del fitxer (i
+    la ruta). El `Sort-Object` del PowerShell 5.1 no és estable i l'estat podia
+    canviar d'una passada a l'altra.
+  - **`$Script:ClassificadorVersio`**: es desa a la base (`versio_classificador`)
+    i, si no coincideix, l'escaneig torna a llegir **tots** els informes. Sense
+    això una millora del classificador només arribava als informes que algú
+    tornés a desar. **Puja-la cada cop que canviï el que en surt.**
+- **Les opcions** de conclusió breu són `$Script:ConclusioBreuOpcions`
+  (Requeriment, FI Requeriment —inclou «denúncia tancada»—, Precinte /
+  Cessament, FI Precinte / Cessament, Favorable, Ampliació termini, Sense
+  efecte, Altres, Revisar). `Altres` només es tria a mà. A **Editar base
+  d'informes** la columna «Conclusio breu» és un desplegable editable i «Estat
+  activitat» és només lectura: en canviar «Ignorar» o «Conclusio breu» d'un
+  informe es recalcula (`_EstatActualActivitat`) i es propaga a totes les files
+  de l'activitat.
+- **Les correccions a mà no depenen de la unitat** (`_ClauInforme`): l'escaneig,
+  `_FlattenInformesDb` i `_FusionaEdicionsBase` casen els informes per la ruta
+  **relativa a `carpeta_arrel`**. Abans era la ruta absoluta i, amb la mateixa
+  base i la carpeta a `F:` en lloc d'`I:`, no casava res: es reprocessava tot i
+  es perdien totes les correccions sense avís. Si l'arrel és una altra de debò i
+  no hi casa ni la meitat (`_AvisCanviArrel`), el botó **pregunta** abans
+  d'escriure («la base és de X, ara s'escanejaria Y: s'hi perdrien N
+  correccions»); l'automàtic, que no pot preguntar, no escriu i ho apunta al
+  registre.
+- **Correccions que ja no ho són**: si en reprocessar un informe corregit a mà el
+  valor automàtic nou ja és el corregit (`conclusio_breu` i `ignorat`),
+  `_AplicaEdicioPrevia` **treu la marca** i els `auto_*`. La base d'octubre de
+  2026 en portava 179 que eren defectes del classificador, no gustos de
+  l'usuari, i pintaven mitja base en vermell.
+- **Agrupament**: un informe sense ID GIA en una carpeta on tots els altres que
+  en tenen són del mateix GIA va amb aquell GIA (`_GiaDelsGermans`; cas real:
+  un informe de llicència quedava com una activitat a part de la del seu
+  expedient, perquè `_GiaFromFolderName` només mira el nom de la carpeta). Si
+  l'ID GIA del document no és el de la carpeta, es queda amb el del document
+  però surt a `a_revisar` («GIA del document diferent del de la carpeta»):
+  abans se n'anava en silenci a l'activitat d'un altre titular.
+- **Validar contra la carpeta REAL: `suport/ValidarClassificacio.ps1`** (no és
+  de la suite). La classificació feta a mà
+  (`local/base-dades-activitats/classificacio-informes_2026-10-07.json`) porta
+  dades personals i el repositori és públic: a la suite hi ha **textos
+  inventats**, i aquest script fa l'escaneig de debò en una carpeta temporal
+  (sense la base ni les correccions de l'usuari) i escriu la **llista** de
+  discrepàncies d'informe i d'estat d'activitat a
+  `local/base-dades-activitats/validacio-classificacio_<data>.txt`. Deixa fora
+  les entrades amb `nota` «DUBTE…» i llista a part les de judici de l'usuari.
+  `powershell -NoProfile -ExecutionPolicy Bypass -File suport\ValidarClassificacio.ps1`
+- **Estats nous pendents de decidir amb l'usuari** (no fets): «Favorable pendent
+  doc.» (el `favorable-pre` de llicència, que avui cau a `Favorable` i surt en
+  verd al plànol amb l'expedient obert) i «Desfavorable». Si es fan, toquen
+  `$Script:ConclusioBreuOpcions`, el desplegable de l'editor, els colors de
+  `rutes/PlanolDades.ps1`, les campanyes de `Recordatoris.ps1` i el
+  `LLEGEIX-ME.md`.
 - **Menú Pas 1 — una graella de 4 × 4 rajoles a la dreta dels informes,
   agrupades per MOMENT DE LA FEINA** (octubre 2026, acordat amb l'usuari;
   `Select-Mode`, `Menu.ps1`, helper `$addTileRow`; dispatch al `switch` de

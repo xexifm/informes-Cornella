@@ -236,6 +236,33 @@ foreach ($nC in $comaAst.Keys) {
 }
 AssertEq ($dobles -join ' | ') '' 'cap @(F) sobre una funcio que ja torna la llista amb coma'
 
+Write-Host "`n--- L'estat d'una activitat es demana amb l'ACTIVITAT, no amb la llista d'informes (guard) ---"
+# PER QUE. _InformeQueDeterminaEstat i _EstatActualActivitat abans rebien la
+# LLISTA d'informes; des de l'octubre de 2026 reben l'ACTIVITAT, perque una
+# activitat extraordinaria nomes decideix l'estat si l'activitat no te GIA. Una
+# crida que es quedes amb la forma d'abans ("$act.informes") passaria la llista
+# i decidiria l'estat sense saber el GIA: l'estadi tornaria a tenir l'estat del
+# requeriment d'un concert, i el Recordatori, la data d'aquell informe. La
+# funcio peta si li arriba una llista, pero nomes quan s'hi passa; aquest guard
+# ho mira a TOTES les crides de suport/ sense haver-les d'executar.
+$estatMal = New-Object System.Collections.ArrayList
+$nCridesEstat = 0
+foreach ($fE in @(Get-ChildItem -LiteralPath (Join-Path $rootRepo 'suport') -Recurse -Filter '*.ps1' -File | Where-Object { $_.FullName -notmatch '[\\/]tests[\\/]' })) {
+    $aE = [System.Management.Automation.Language.Parser]::ParseFile($fE.FullName, [ref]$null, [ref]$null)
+    foreach ($cE in $aE.FindAll({ param($x) $x -is [System.Management.Automation.Language.CommandAst] -and @('_InformeQueDeterminaEstat', '_EstatActualActivitat') -contains [string]$x.GetCommandName() }, $true)) {
+        $nCridesEstat++
+        $argsE = @($cE.CommandElements | Select-Object -Skip 1)
+        $txt = if ($argsE.Count -eq 1) { [string]$argsE[0].Extent.Text } else { '' }
+        $esLlista = ($argsE.Count -ne 1) -or
+                    ($argsE[0] -is [System.Management.Automation.Language.MemberExpressionAst] -and [string]$argsE[0].Member.Extent.Text -ieq 'informes') -or
+                    ($argsE[0] -is [System.Management.Automation.Language.ArrayExpressionAst]) -or
+                    ($txt -match '^\$(infs|informes|ordered|fiables)$')
+        if ($esLlista) { [void]$estatMal.Add($fE.Name + ':' + $cE.Extent.StartLineNumber + ' ' + $cE.Extent.Text) }
+    }
+}
+Assert ($nCridesEstat -ge 6) ('el guard troba les crides a l''estat de l''activitat (' + $nCridesEstat + ')')
+AssertEq ($estatMal -join ' | ') '' 'cap crida a _InformeQueDeterminaEstat / _EstatActualActivitat amb la llista d''informes'
+
 Write-Host "`n--- Copiar informes: manual i automatic, una sola copia ---"
 # PER QUE. L'eina es fa de dues maneres (la rajola, amb finestra i confirmacio,
 # i la passada automatica de les 13:00, muda i en un proces a part). Si cada una

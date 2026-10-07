@@ -91,20 +91,6 @@ $linesSign = @(
 $cSign = _ExtractConclusio $linesSign
 AssertEq $cSign.Text "Vist l${ap}anterior, s${ap}informa favorablement." '_ExtractConclusio tanca tambe amb "A Cornella de Llobregat, en la data..." (signatura electronica)'
 
-Write-Host "`n--- Informes.ps1: _ConclusioMotiu (motiu de revisio segons Font) ---"
-AssertEq (_ConclusioMotiu ([pscustomobject]@{ Text=''; Font='' }))              'sense conclusio' '_ConclusioMotiu sense conclusio -> motiu'
-AssertEq (_ConclusioMotiu ([pscustomobject]@{ Text='x'; Font='vist_anterior' })) ''                '_ConclusioMotiu vist_anterior -> sense motiu'
-AssertEq (_ConclusioMotiu ([pscustomobject]@{ Text='x'; Font='risc' }))          ''                '_ConclusioMotiu risc -> sense motiu'
-AssertEq (_ConclusioMotiu ([pscustomobject]@{ Text='x'; Font='mns' }))           ''                '_ConclusioMotiu mns -> sense motiu (es marca ignorat, no motiu)'
-AssertEq (_ConclusioMotiu ([pscustomobject]@{ Text='x'; Font='act_extr' }))      ''                '_ConclusioMotiu act_extr -> sense motiu (es marca ignorat, no motiu)'
-
-Write-Host "`n--- Informes.ps1: _ConclusioIgnorarPerDefecte (mns/act_extr -> ignorat per defecte) ---"
-Assert (-not (_ConclusioIgnorarPerDefecte ([pscustomobject]@{ Text='x'; Font='vist_anterior' }))) '_ConclusioIgnorarPerDefecte vist_anterior -> no ignorat'
-Assert (-not (_ConclusioIgnorarPerDefecte ([pscustomobject]@{ Text='x'; Font='risc' })))          '_ConclusioIgnorarPerDefecte risc -> no ignorat'
-Assert (_ConclusioIgnorarPerDefecte ([pscustomobject]@{ Text='x'; Font='mns' }))                  '_ConclusioIgnorarPerDefecte mns -> ignorat per defecte'
-Assert (_ConclusioIgnorarPerDefecte ([pscustomobject]@{ Text='x'; Font='act_extr' }))             '_ConclusioIgnorarPerDefecte act_extr -> ignorat per defecte'
-Assert (-not (_ConclusioIgnorarPerDefecte ([pscustomobject]@{ Text=''; Font='' })))               '_ConclusioIgnorarPerDefecte sense conclusio -> no ignorat'
-
 Write-Host "`n--- Informes.ps1: _ConclusioBreu (classificacio de la conclusio en categories curtes) ---"
 AssertEq (_ConclusioBreu '')     'Revisar' '_ConclusioBreu buit -> Revisar'
 AssertEq (_ConclusioBreu $null)  'Revisar' '_ConclusioBreu null -> Revisar'
@@ -126,6 +112,99 @@ AssertEq (_ConclusioBreu "Es proposa ampliar el termini per a l${ap}esmena de le
 AssertEq (_ConclusioBreu "Un cop feta la recepcio del requeriment, caldra esmenar les deficiencies indicades.") 'Requeriment' '_ConclusioBreu recepcio del requeriment -> Requeriment (nou)'
 AssertEq (_ConclusioBreu "Vist l${ap}anterior, s${ap}inicia d${ap}ofici el procediment d${ap}esmena, disposant d${ap}un termini d${ap}un mes per a esmenar els defectes constatats.") 'Requeriment' '_ConclusioBreu procediment d''esmena -> Requeriment (nou)'
 AssertEq (_ConclusioBreu 'Aquest text no conte cap de les formules reconegudes.') 'Revisar' '_ConclusioBreu text no reconegut -> Revisar'
+
+Write-Host "`n--- InformesClassificacio.ps1: _ConclusioBreu (els casos reals que fallaven, octubre 2026) ---"
+# Textos INVENTATS amb la forma dels reals: la classificacio de la carpeta real
+# porta dades personals i el repositori es public (es valida en local amb
+# ValidarClassificacio.ps1).
+$amp = 'Ampliaci' + [char]0x00F3 + ' termini'
+AssertEq (_ConclusioBreu "Vist l${ap}anterior, cal requerir l${ap}esmena de les deficiències indicades aportant la documentació corresponent.") 'Requeriment' 'conclusio de requeriment del cataleg d''avui (sense termini) -> Requeriment (abans Revisar)'
+AssertEq (_ConclusioBreu "Cal requerir l${ap}esmena de les deficiències indicades, aportant la documentació corresponent.") 'Requeriment' '"cal requerir l''esmena" sense "Vist l''anterior" (llicencia) -> Requeriment'
+AssertEq (_ConclusioBreu "Vist l${ap}anterior, cal requerir l${ap}esmena de les deficiències indicades en el termini d${ap}un mes.") 'Requeriment' '"cal requerir l''esmena" amb termini -> Requeriment'
+AssertEq (_ConclusioBreu "Vist l${ap}anterior s${ap}informa que es pot donar per tancada la denúncia però NO donar per finalitzat el procediment d${ap}esmena.") 'Requeriment' 'denuncia tancada PERO NO finalitzat -> Requeriment (abans FI)'
+AssertEq (_ConclusioBreu "Vist l${ap}anterior s${ap}informa que es pot donar per tancada la denúncia ni donar per finalitzat el procediment d${ap}esmena.") 'Requeriment' 'denuncia tancada "ni donar per finalitzat" (el NO oblidat) -> Requeriment'
+AssertEq (_ConclusioBreu "Vist l${ap}anterior, s${ap}inicia d${ap}ofici el procediment d${ap}esmena, disposant d${ap}un termini d${ap}un mes. En cas contrari és pertinent precintar l${ap}activitat.") 'Requeriment' 'procediment d''esmena + "en cas contrari es pertinent precintar" (advertiment) -> Requeriment'
+AssertEq (_ConclusioBreu "Vist l${ap}anterior, s${ap}inicia d${ap}ofici el procediment d${ap}esmena, disposant d${ap}un termini d${ap}un mes. Tenint en consideració el risc per a les persones és pertinent que es retiri l${ap}element.") 'Requeriment' 'procediment d''esmena + "risc... es pertinent que es retiri" -> Requeriment'
+AssertEq (_ConclusioBreu "Vist l${ap}anterior, s${ap}inicia d${ap}ofici el procediment d${ap}esmena. Tenint en consideració el risc greu o imminent és pertinent precintar la cuina fins a esmenar les deficiències.") 'Precinte / Cessament' 'procediment d''esmena + precinte EFECTIU -> Precinte / Cessament (com abans)'
+AssertEq (_ConclusioBreu "Vist l${ap}anterior, es pot desprecintar l${ap}activitat. D${ap}altra banda, es requereix l${ap}aportació de la documentació tècnica pendent.") 'Requeriment' 'desprecintar + "D''altra banda, es requereix" -> Requeriment (abans FI Precinte)'
+AssertEq (_ConclusioBreu "Vist l${ap}anterior, es pot aixecar el cessament. D${ap}altra banda, es requereix l${ap}aportació de la documentació pendent.") 'Requeriment' 'aixecar el cessament + "D''altra banda, es requereix" -> Requeriment'
+AssertEq (_ConclusioBreu "Vist l${ap}anterior, es valora favorablement la solució presentada tenint en consideració que s${ap}hauran de substituir les portes.") 'Requeriment' 'es valora favorablement la solucio... s''hauran de -> Requeriment (abans Favorable)'
+AssertEq (_ConclusioBreu "D${ap}acord amb la documentació presentada el Control Periòdic és FAVORABLE.") 'Favorable' 'el Control Periodic es FAVORABLE -> Favorable'
+AssertEq (_ConclusioBreu "D${ap}acord amb la documentació presentada el Control Periòdic és FAVORABLE. Es considera el resultat favorable incorrecte havent de ser aquest DESFAVORABLE.") 'Requeriment' 'control periodic FAVORABLE "incorrecte... DESFAVORABLE" -> Requeriment'
+AssertEq (_ConclusioBreu 'Per tot lo exposat, informo favorablement.') 'Favorable' '"informo favorablement" -> Favorable'
+AssertEq (_ConclusioBreu "S${ap}informa amb caràcter favorable.") 'Favorable' '"s''informa amb caracter favorable" -> Favorable'
+AssertEq (_ConclusioBreu "Tenint en consideració l${ap}incompliment greu de les condicions sanitàries, sumat al risc existent, és pertinent suspendre l${ap}activitat.") 'Precinte / Cessament' '"incompliment greu... es pertinent suspendre" -> Precinte / Cessament (abans Revisar)'
+AssertEq (_ConclusioBreu "Tenint en consideració que s${ap}incompleixen greument les condicions, és pertinent suspendre l${ap}activitat.") 'Precinte / Cessament' '"s''incompleixen greument... suspendre" -> Precinte / Cessament'
+AssertEq (_ConclusioBreu "Vist l${ap}anterior, es ratifica que és pertinent suspendre l${ap}activitat.") 'Precinte / Cessament' '"es ratifica que es pertinent suspendre" -> Precinte / Cessament'
+AssertEq (_ConclusioBreu "A l${ap}haver-se exhaurit el termini sense aportar la documentació, és pertinent suspendre l${ap}activitat.") 'Precinte / Cessament' '"exhaurit el termini... es pertinent suspendre" -> Precinte / Cessament'
+AssertEq (_ConclusioBreu "Vist l${ap}anterior, es considera procedent estimar la sol·licitud d${ap}ampliació del termini.") $amp 'estimar la sol.licitud d''ampliacio del termini -> Ampliacio termini (abans Revisar)'
+Assert ((_ConclusioBreu "Vist l${ap}anterior, es considera procedent desestimar la sol·licitud d${ap}ampliació del termini.") -ne $amp) '"desestimar" la sol.licitud no es una ampliacio'
+# Els que ja anaven i NO s'han de moure.
+AssertEq (_ConclusioBreu "Vist l${ap}anterior s${ap}informa que es pot donar per finalitzat el procediment d${ap}esmena.") 'FI Requeriment' 'finalitzat el procediment d''esmena -> FI Requeriment (el "procediment d''esmena" no el fa requeriment)'
+AssertEq (_ConclusioBreu "Vist l${ap}anterior s${ap}informa que NO es pot donar per finalitzat el procediment d${ap}esmena però es valora ampliar el termini un mes i aixecar el cessament de l${ap}activitat.") 'Requeriment' 'NO finalitzat pero aixecar cessament -> Requeriment'
+AssertEq (_ConclusioBreu "Vist l${ap}anterior, es s${ap}informa que es pot donar per tancada la denúncia. Vist l${ap}anterior, s${ap}inicia d${ap}ofici el procediment d${ap}esmena, disposant d${ap}un termini d${ap}un mes.") 'Requeriment' 'tanca la denuncia I inicia el procediment d''esmena -> Requeriment'
+
+Write-Host "`n--- InformesClassificacio.ps1: _ExtractConclusio (frases noves i de segona) ---"
+$cLlic = _ExtractConclusio @('INFORME:', "Cal requerir l${ap}esmena de les deficiències indicades, aportant la documentació corresponent.", 'Ho poso al seu coneixement als efectes oportuns,')
+AssertEq "$($cLlic.Font)|$(_ConclusioBreu $cLlic.Text)" 'requeriment|Requeriment' 'requeriment de llicencia: "Cal requerir..." ja es frase d''inici'
+$cCp = _ExtractConclusio @('INFORME:', "D${ap}acord amb la documentació presentada el Control Periòdic és FAVORABLE amb les dades indicades.", 'Ho poso al seu coneixement als efectes oportuns,')
+AssertEq "$($cCp.Font)|$(_ConclusioBreu $cCp.Text)" 'favorable|Favorable' 'control periodic conforme: frase de segona'
+# Una frase de SEGONA al cos no pot passar davant de la conclusio de debo.
+$cSeg = _ExtractConclusio @("Al requeriment anterior es deia que és pertinent precintar l${ap}activitat.", 'Antecedents', "Vist l${ap}anterior s${ap}informa que es pot donar per finalitzat el procediment d${ap}esmena.", 'Ho poso al seu coneixement als efectes oportuns,')
+AssertEq "$($cSeg.Font)|$(_ConclusioBreu $cSeg.Text)" 'vist_anterior|FI Requeriment' 'una frase de segona al cos no passa davant de "Vist l''anterior"'
+$cSusp = _ExtractConclusio @('INFORME:', "A l${ap}haver-se exhaurit el termini, és pertinent suspendre l${ap}activitat.", 'Ho poso al seu coneixement als efectes oportuns,')
+AssertEq "$($cSusp.Font)|$(_ConclusioBreu $cSusp.Text)" 'risc|Precinte / Cessament' 'suspensio sense "Tenint en consideracio el risc": es troba (segona)'
+
+# La transmissio porta "Cornella de Llobregat," A LA MATEIXA LINIA que la frase
+# d'inici: abans la tallava abans de comencar i sortia "sense conclusio".
+$cTrans = _ExtractConclusio @("En relació a la sol·licitud de transmissió de la titularitat presentada a l${ap}Ajuntament de Cornellà de Llobregat, s${ap}informa FAVORABLEMENT de la transmissió de la titularitat presentada sense més observacions.", 'Ho poso al seu coneixement als efectes oportuns,', 'Cornellà de Llobregat,')
+AssertEq "$(_ConclusioBreu $cTrans.Text)|$(_TipusInforme $cTrans.Text 'x.docx' '')" 'Favorable|mns' 'transmissio: "Cornella de Llobregat," a la linia d''inici no la talla'
+Assert (-not $cTrans.Text.Contains('Ho poso')) '...i s''acaba on toca'
+
+Write-Host "`n--- InformesClassificacio.ps1: _ClassificaInforme (informes SENSE frase de conclusio) ---"
+$tail = @('Ho poso al seu coneixement als efectes oportuns,', 'Cornella de Llobregat,')
+$k = _ClassificaInforme (@('ID GIA: 9001', "S${ap}han observat les següents deficiències que cal esmenar per poder seguir exercint l${ap}activitat:", '1. Extintors. Cal revisar-los.') + $tail) 'x.docx' ''
+AssertEq "$($k.Breu)|$(@($k.Motius) -join ',')" 'Requeriment|' 'requeriment antic (sense conclusio) -> Requeriment, sense motiu'
+$k = _ClassificaInforme (@("S${ap}han observat les següents deficiències que cal esmenar per poder exercir l${ap}activitat:", '1. Extintors.', "07/10/2026: S${ap}aporta el certificat.", '2. Rètols.', "07/10/2026: No s${ap}aporta la documentació.") + $tail) 'x.docx' ''
+AssertEq "$($k.Breu)|$(@($k.Motius) -join ',')" 'Requeriment|' 'seguiment punt per punt amb una resposta negativa -> Requeriment'
+$k = _ClassificaInforme (@('1. Extintors.', "S${ap}aporta el certificat.", '2. Rètols.', 'Es justifica.', '3. Ventilació.', "S${ap}ha portat a terme amb resultat favorable.", '4. Llums.', 'OK') + $tail) 'x.docx' ''
+AssertEq "$($k.Breu)|$(@($k.Motius) -join ',')" 'FI Requeriment|estat deduit, sense conclusio' 'seguiment punt per punt amb TOTES positives -> FI Requeriment, amb motiu'
+foreach ($negTxt in @('No es presenta.', 'Manca aportar la documentació.', 'No es justifica.', "No s${ap}han retirat.", 'No estan esmenades.', 'No es disposa del document.')) {
+    $k = _ClassificaInforme (@('1. Punt.', "S${ap}aporta.", '2. Punt.', $negTxt) + $tail) 'x.docx' ''
+    AssertEq $k.Breu 'Requeriment' ("seguiment: '" + $negTxt + "' es negativa -> Requeriment")
+}
+foreach ($posTxt in @("S${ap}entrega.", "S${ap}aclareix.")) {
+    $k = _ClassificaInforme (@('1. Punt.', $posTxt) + $tail) 'x.docx' ''
+    AssertEq $k.Breu 'FI Requeriment' ("seguiment: '" + $posTxt + "' es positiva")
+}
+$k = _ClassificaInforme (@('Accessibilitat. Rampa d''accés.', 'Sense requeriments específics.', 'Actuació: Cap. L''establiment compleix amb el requeriment.') + $tail) 'x.docx' ''
+AssertEq "$($k.Breu)|$(@($k.Motius) -join ',')" 'FI Requeriment|' 'denuncia d''accessibilitat sense res a requerir -> FI Requeriment'
+$k = _ClassificaInforme (@('Nota informativa sobre el tràmit.', 'Res a dir.') + $tail) 'x.docx' ''
+AssertEq "$($k.Breu)|$(@($k.Motius) -join ',')" 'Revisar|sense conclusio' 'sense conclusio i sense cap format conegut -> Revisar, "sense conclusio"'
+$k = _ClassificaInforme (@("Vist l${ap}anterior s${ap}informa que es pot donar per tancada la denúncia.", "Vist l${ap}anterior s${ap}informa que NO es pot donar per tancada la denúncia.") + $tail) 'x.docx' ''
+AssertEq "$($k.Breu)|$(@($k.Motius) -join ',')" 'Revisar|plantilla sense omplir' 'conclusio amb el SI i el NO alhora -> Revisar, "plantilla sense omplir" (abans Requeriment)'
+$k = _ClassificaInforme (@('Requeriment anterior', 'Copiar requeriment.', "Vist l${ap}anterior, cal requerir l${ap}esmena de les deficiències indicades.") + $tail) 'x.docx' ''
+AssertEq "$($k.Breu)|$(@($k.Motius) -join ',')" 'Revisar|plantilla sense omplir' 'el cos encara diu "Copiar requeriment." -> plantilla sense omplir'
+$k = _ClassificaInforme (@("Vist l${ap}anterior s${ap}informa que NO es pot donar per tancada la denúncia.") + $tail) 'x.docx' ''
+AssertEq $k.Breu 'Requeriment' 'nomes el NO (triat) -> Requeriment, no plantilla'
+
+Write-Host "`n--- InformesClassificacio.ps1: _TipusInforme ---"
+AssertEq (_TipusInforme "S${ap}informa favorablement a l${ap}espera de rebre la citada documentació en els terminis de temps especificats." 'x.docx' '') 'llicfav' 'favorable-pre de llicencia -> llicfav'
+AssertEq (_TipusInforme "S${ap}informa favorablement l${ap}activitat i es dóna per tancat l${ap}expedient." 'x.docx' '') 'llicfav' 'favorable-post de llicencia -> llicfav'
+AssertEq (_TipusInforme "Vist l${ap}anterior i d${ap}haver realitzat la posterior visita d${ap}inspecció a l${ap}activitat s${ap}informa favorablement." 'x.docx' '') 'llicfav' 'favorable de llicencia antic (posterior visita d''inspeccio) -> llicfav'
+AssertEq (_TipusInforme "S${ap}informa FAVORABLEMENT de la Modificació NO substancial presentada sense més observacions." 'x.docx' '') 'mns' 'MNS favorable -> mns'
+AssertEq (_TipusInforme "S${ap}informa FAVORABLEMENT de la Modificació substancial presentada." 'x.docx' '') 'mns' 'modificacio substancial favorable -> mns'
+AssertEq (_TipusInforme "S${ap}informa favorablement del canvi de nom de l${ap}activitat." 'x.docx' '') 'mns' 'canvi de nom -> mns'
+AssertEq (_TipusInforme "S${ap}informa favorablement al canvi de titularitat." 'x.docx' '') 'mns' 'canvi de titularitat -> mns'
+AssertEq (_TipusInforme "s${ap}informa FAVORABLEMENT de la transmissió de la titularitat presentada." 'x.docx' '') 'mns' 'transmissio de la titularitat -> mns'
+AssertEq (_TipusInforme "El titular és responsable d${ap}executar i mantenir les mesures de seguretat." 'x.docx' '') 'actextr' 'activitat extraordinaria favorable -> actextr'
+AssertEq (_TipusInforme "Vist l${ap}anterior, cal requerir l${ap}esmena." '2026-05-01_ActExtr-REQ_GIA 9001_Concert.docx' '') 'actextr' 'el nom del fitxer de l''ActExtr d''ara -> actextr'
+AssertEq (_TipusInforme '' '2019-05-01 Req Act Extr festa.doc' '') 'actextr' 'nom antic "Act Extr" -> actextr'
+AssertEq (_TipusInforme '' 'x.docx' '2019/1/2569') 'actextr' 'expedient de la serie 2569 -> actextr'
+AssertEq (_TipusInforme '' 'x.docx' '2019/01/2565') 'actextr' 'expedient de la serie 2565 -> actextr'
+AssertEq (_TipusInforme '' 'x.docx' '2025/1/2563') '' 'un expedient d''una altra serie -> res'
+AssertEq (_TipusInforme '' 'Contracte extra.docx' '') '' '"contracte extra" no es "Act Extr"'
+AssertEq (_TipusInforme "Vist l${ap}anterior, es pot donar per finalitzat el procediment d${ap}esmena." 'x.docx' '') '' 'un seguiment normal -> cap tipus'
 
 Write-Host "`n--- Informes.ps1: _ExcelActivitatActualitzada (Camp Info REQUERIT PER DECRET? / PRECINTE ACTIVITAT? amb SI) ---"
 # El camp de l'Excel es 'PRECINTE ACTIVITAT?'. Aqui hi havia una prova que
