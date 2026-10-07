@@ -1,7 +1,7 @@
 ﻿<#
   EinesUi.ps1 - Les finestres que comparteixen les eines de 'rutes/' que corren
-  al seu propi ambit (Coordenades, Planol activitats): un missatge, la barra de
-  progres amb Cancel.lar de debo i la icona.
+  al seu propi ambit (Coordenades, Planol activitats): un missatge, una
+  pregunta amb botons propis, la barra de progres amb Cancel.lar de debo i la icona.
 
   Per que no son a UiComuns.ps1: aquestes eines no el poden carregar (executa
   coses en carregar-se: AppUserModelID, icona del proces). Venien de
@@ -26,6 +26,35 @@ function Get-EinaIcon([string]$suportDir) {
 function Show-EinaInfo([string]$msg, [string]$title = '', [string]$icon = 'Information') {
     if ($title -eq '') { $title = $Script:EinaTitol }
     [System.Windows.Forms.MessageBox]::Show($msg, $title, 'OK', $icon) | Out-Null
+}
+
+# Una pregunta amb botons propis (el MessageBox nomes en sap de Si/No). Els
+# botons son specs de _AddPeuBotons (UiFinestra.ps1): @{ Nom; Text; Estil;
+# Intro; Esc }. Torna el Nom del boto premut, o '' si es tanca la finestra.
+function Show-EinaTria([string]$msg, $esquerra, $dreta, [string]$title = '') {
+    if ($title -eq '') { $title = $Script:EinaTitol }
+    $form = New-Object System.Windows.Forms.Form
+    $form.Text = $title
+    $form.ClientSize = New-Object System.Drawing.Size(520, 190)
+    $form.StartPosition = 'CenterScreen'
+    $form.FormBorderStyle = 'FixedDialog'
+    $form.MinimizeBox = $false; $form.MaximizeBox = $false
+    if ($null -ne $Script:EinaIcon) { $form.Icon = $Script:EinaIcon }
+    $form.add_Shown({ param($s, $e) _AjustaFinestraAPantalla $s })
+    $lbl = New-Object System.Windows.Forms.Label
+    $lbl.Location = New-Object System.Drawing.Point(20, 18)
+    $lbl.Size = New-Object System.Drawing.Size(480, 110)
+    $lbl.Text = $msg
+    $form.Controls.Add($lbl)
+    $tria = @{ Nom = '' }
+    $peu = _AddPeuBotons $form $esquerra $dreta 142
+    foreach ($k in @($peu.Keys)) {
+        $nom = [string]$k
+        $peu[$k].add_Click({ $tria.Nom = $nom; $form.Close() }.GetNewClosure())
+    }
+    [void]$form.ShowDialog()
+    $form.Dispose()
+    return [string]$tria.Nom
 }
 
 # Finestra de progres amb Cancel.lar DE DEBO. Retorna { Form; Label; Bar; Estat }:

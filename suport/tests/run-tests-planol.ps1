@@ -443,4 +443,35 @@ try {
     Remove-Item -LiteralPath $buitG -Recurse -Force -ErrorAction SilentlyContinue
 }
 
+Write-Host "`n--- Consultar l'ultim o fer-ne un de nou ---"
+$dirU = Join-Path ([System.IO.Path]::GetTempPath()) ('planol-ultim-' + [guid]::NewGuid().ToString('N'))
+try {
+    AssertEq "$($null -eq (Get-PlanolUltim $dirU))" 'True' 'sense carpeta: cap planol (es fa directament, sense preguntar)'
+    New-Item -ItemType Directory -Path $dirU -Force | Out-Null
+    AssertEq "$($null -eq (Get-PlanolUltim $dirU))" 'True' 'carpeta buida: cap planol'
+    foreach ($n in @('Planol_2026-10-01_090000.html', 'Planol_2026-10-05_130000.html', 'altre.html')) {
+        [System.IO.File]::WriteAllText((Join-Path $dirU $n), 'x')
+    }
+    (Get-Item -LiteralPath (Join-Path $dirU 'Planol_2026-10-01_090000.html')).LastWriteTime = [datetime]'2026-10-01 09:00'
+    (Get-Item -LiteralPath (Join-Path $dirU 'Planol_2026-10-05_130000.html')).LastWriteTime = [datetime]'2026-10-05 13:00'
+    (Get-Item -LiteralPath (Join-Path $dirU 'altre.html')).LastWriteTime = [datetime]'2026-10-06 10:00'
+    $u = Get-PlanolUltim $dirU
+    AssertEq $u.Name 'Planol_2026-10-05_130000.html' 'l ultim planol es el mes nou (i nomes els Planol_*.html)'
+    $tU = Get-PlanolPreguntaText $u ([datetime]'2026-10-07 11:00')
+    Assert ($tU.Contains('05/10/2026 a les 13:00') -and $tU.Contains('fa 2 dies') -and $tU.Contains('fer-ne un de nou')) 'la pregunta diu de quan es l ultim'
+    Assert ((Get-PlanolPreguntaText $u ([datetime]'2026-10-05 18:00')).Contains('(avui)')) 'fet avui'
+    Assert ((Get-PlanolPreguntaText $u ([datetime]'2026-10-06 08:00')).Contains('(ahir)')) 'fet ahir'
+} catch {
+    Assert $false ("Ultim planol: una excepcio s'ha escapat -> " + $_.Exception.Message)
+} finally {
+    Remove-Item -LiteralPath $dirU -Recurse -Force -ErrorAction SilentlyContinue
+}
+# La finestra de la pregunta fa servir el peu comu (UiFinestra.ps1, via Ruta.ps1).
+AssertEq ((@(Get-Command _AddPeuBotons, _PeuPosicions, _PeuAmple, Show-EinaTria -ErrorAction SilentlyContinue)).Count) 4 'la pregunta te el peu de botons carregat dins de l eina'
+# La tria va abans de generar: Invoke-PlanolMain no comenca a fer-ne un de nou
+# sense haver mirat si ja n'hi ha.
+$srcMain = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $PSScriptRoot) (Join-Path 'rutes' 'Planol.ps1')))
+$cosMain = $srcMain.Substring($srcMain.IndexOf('function Invoke-PlanolMain'))
+Assert ($cosMain.IndexOf('Get-PlanolUltim') -ge 0 -and $cosMain.IndexOf('Get-PlanolUltim') -lt $cosMain.IndexOf('Invoke-PlanolGenera')) 'el boto pregunta abans de generar'
+
 exit (Write-TestSummary 'RESULTAT')

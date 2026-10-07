@@ -296,7 +296,36 @@ function Invoke-PlanolGenera([bool]$silenci) {
 }
 
 # Amb el boto (o la rajola) del menu: amb finestres, i l'obre.
+# L'ultim planol generat (el mes nou de local\planol-activitats\), o $null.
+function Get-PlanolUltim([string]$dir = $PlanolOutputDir) {
+    if ([string]::IsNullOrWhiteSpace($dir) -or -not (Test-Path -LiteralPath $dir)) { return $null }
+    $f = @(Get-ChildItem -LiteralPath $dir -Filter 'Planol_*.html' -File -ErrorAction SilentlyContinue |
+           Sort-Object LastWriteTime -Descending | Select-Object -First 1)
+    if ($f.Count -eq 0) { return $null }
+    return $f[0]
+}
+
+# El text de la pregunta "consultar l'ultim o fer-ne un de nou".
+function Get-PlanolPreguntaText($ultim, [datetime]$ara = (Get-Date)) {
+    $dies = [int][math]::Floor(($ara.Date - $ultim.LastWriteTime.Date).TotalDays)
+    $quan = if ($dies -le 0) { 'avui' } elseif ($dies -eq 1) { 'ahir' } else { "fa $dies dies" }
+    $t  = "L'" + [char]0x00FA + "ltim pl" + [char]0x00E0 + "nol " + [char]0x00E9 + "s del " + $ultim.LastWriteTime.ToString('dd/MM/yyyy') + ' a les ' + $ultim.LastWriteTime.ToString('HH:mm') + " ($quan).`n`n"
+    $t += "Vols consultar-lo o fer-ne un de nou? Fer-ne un de nou torna a llegir els Excel i pot trigar una estona."
+    return $t
+}
+
 function Invoke-PlanolMain {
+    # No cal fer-ne un de nou cada vegada que es prem la rajola (octubre 2026):
+    # si ja n'hi ha un, es pregunta. Consultar-lo nomes l'obre.
+    $ultim = Get-PlanolUltim
+    if ($null -ne $ultim) {
+        $tria = Show-EinaTria (Get-PlanolPreguntaText $ultim) @(
+            @{ Nom = 'Cancel'; Text = ('Cancel' + [char]0x00B7 + 'lar'); Esc = $true }) @(
+            @{ Nom = 'Nou'; Text = 'Fer-ne un de nou' },
+            @{ Nom = 'Consultar'; Text = ("Consultar l'" + [char]0x00FA + 'ltim'); Estil = 'primari'; Intro = $true })
+        if ($tria -eq 'Consultar') { Start-Process $ultim.FullName; return }
+        if ($tria -ne 'Nou') { return }
+    }
     $r = Invoke-PlanolGenera $false
     if (-not $r.Ok) {
         if ($r.Error -ne '') { Show-EinaInfo $r.Error '' 'Warning' }

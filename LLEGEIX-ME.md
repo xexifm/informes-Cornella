@@ -274,6 +274,12 @@ activitats legalitzades, on n'hi ha amb coses pendents i on no n'hi ha cap:
   legalitzada.
 - **🟢 verd** — sense res pendent (favorable, o el requeriment ja s'ha tancat).
 
+**En prémer la rajola**, si ja n'hi ha un de fet, et pregunta si vols
+**consultar l'últim** (et diu de quin dia és; s'obre al moment) o **fer-ne un de
+nou** (torna a llegir els Excel i pot trigar una estona). Amb l'interruptor en
+**A** se'n fa un de nou sol cada setmana, o sigui que normalment n'hi ha prou amb
+consultar.
+
 Si en una parcel·la hi ha activitats en estats diferents, la parcel·la té el color
 **del més greu**. Clica-hi i surten totes, cada una amb el seu estat.
 

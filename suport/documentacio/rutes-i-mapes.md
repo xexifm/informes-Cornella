@@ -233,6 +233,12 @@ mutex `Global\InformesCornella.PlanolActivitats` i registre a
   i el procés a part la comparteixen. En silenci no hi ha cap finestra (ni barra:
   `_PlanolAmbProgres` fa la feina directament) i, si falta l'Excel
   d'ESTABLIMENTS, continua amb un avís al registre en comptes de preguntar.
+- **El botó pregunta abans de generar** («que pregunti si es vol fer un de nou o
+  consultar l'existent, així no se'n farà un cada vegada que premo»): si hi ha
+  algun `Planol_*.html` a `local\planol-activitats\` (`Get-PlanolUltim`),
+  `Show-EinaTria` (`EinesUi.ps1`, botons amb `_AddPeuBotons`) ofereix
+  *Consultar l'últim* (només l'obre: ni Excel ni pujada al Drive) o *Fer-ne un de
+  nou*. Sense cap plànol fet, es genera directament.
 - `PlanolAuto.ps1` carrega `rutes/Planol.ps1` amb `$PlanolNomesFuncions = $true`
   (no obre res) i, si va bé, **puja el plànol al Drive** (`Save-ADadesDrive
   'planol.html'`) perquè el mòbil tingui el de la setmana.
