@@ -101,14 +101,17 @@ function _NormativaImprimeix([string]$url, [string]$desti) {
     return $b
 }
 
-# EL DOM DE LA PAGINA JA DIBUIXADA (--dump-dom). '' si no s'ha pogut.
+# EL DOM DE LA PAGINA JA DIBUIXADA (--dump-dom). '' si no s'ha pogut, i el
+# motiu a $Script:NormativaDomEdgeError (la revisio el posa a l'Excel).
+$Script:NormativaDomEdgeError = ''
 function _NormativaDomEdge([string]$url) {
+    $Script:NormativaDomEdgeError = ''
     $sortida = Join-Path $env:TEMP ('normativa-dom-' + [guid]::NewGuid().ToString('N') + '.html')
     try {
         _NormativaEdge @('--virtual-time-budget=15000', '--dump-dom', ('"' + $url + '"')) 45 $url $sortida
-        if (-not (Test-Path -LiteralPath $sortida)) { return '' }
+        if (-not (Test-Path -LiteralPath $sortida)) { $Script:NormativaDomEdgeError = "no ha deixat cap fitxer"; return '' }
         return [System.IO.File]::ReadAllText($sortida, [System.Text.Encoding]::UTF8)
-    } catch { return '' }
+    } catch { $Script:NormativaDomEdgeError = [string]$_.Exception.Message; return '' }
     finally { try { if (Test-Path -LiteralPath $sortida) { Remove-Item -LiteralPath $sortida -Force } } catch { } }
 }
 
@@ -367,14 +370,44 @@ function Reset-NormativaCaches {
     $Script:NormativaPjurCache = @{}
 }
 
+# LES RETIRADES (no citades o derogades, vegeu _NormativaSepara) surten de la
+# carpeta: el seu PDF va a la subcarpeta 'derogades' (mai s'esborra res). Una
+# col.leccio s'hi emporta els seus documents. Torna quants fitxers s'han mogut.
+function _NormativaMouRetirades($retirades, [string]$dir, $estat, $log) {
+    $mogudes = 0
+    $desti = Join-Path $dir $Script:NormativaRetiradesDir
+    foreach ($r in @($retirades)) {
+        $e = $r.Norma
+        $noms = if ($e.Colleccio) { @(@($estat.Keys) | Where-Object { [string]$estat[$_].Pare -eq [string]$e.Id } | ForEach-Object { [string]$estat[$_].Nom }) }
+                else { @(_NormativaNomFitxer $e) }
+        foreach ($nom in $noms) {
+            if (-not $nom) { continue }
+            $src = Join-Path $dir $nom
+            if (-not (Test-Path -LiteralPath $src)) { continue }
+            try {
+                if (-not (Test-Path -LiteralPath $desti)) { New-Item -ItemType Directory -Path $desti -Force | Out-Null }
+                Move-Item -LiteralPath $src -Destination (Join-Path $desti $nom) -Force
+                $mogudes++
+                & $log ('A derogades (' + [string]$r.Motiu + ')  ' + [string]$e.Id)
+            } catch { & $log ("No s'ha pogut moure " + $nom + ': ' + $_.Exception.Message) }
+        }
+    }
+    return $mogudes
+}
+
 # TOTA LA BAIXADA, sense finestra: la fan servir l'eina Normativa i la revisio
 # del programa (Revisio.ps1). $log rep cada linia; $pas es crida despres de cada
 # norma (la barra); $cancel diu si s'ha d'aturar. Desa l'estat i l'index.
+# $normes es la llista SENCERA: aqui se separen les que es queden (es baixen i
+# surten a l'index) de les retirades (van a 'derogades').
 function Invoke-NormativaBaixada($normes, [string]$dir, [bool]$forca, $log, $pas = $null, $cancel = $null) {
     _NormativaPreparaXarxa
     Reset-NormativaCaches
     $estat = _NormativaLlegeixEstat $dir
-    $n = @{ Noves = 0; Act = 0; Igual = 0; Err = 0; Man = 0 }
+    $n = @{ Noves = 0; Act = 0; Igual = 0; Err = 0; Man = 0; Retirades = 0 }
+    $sep = _NormativaSepara $normes (Get-NormativaTextCatalegs)
+    $normes = @($sep.Actives)
+    $n.Retirades = _NormativaMouRetirades $sep.Retirades $dir $estat $log
     try {
         foreach ($e in @($normes)) {
             if ($null -ne $cancel -and (& $cancel)) { & $log 'Aturat.'; break }
@@ -419,8 +452,11 @@ function Invoke-NormativaBaixada($normes, [string]$dir, [bool]$forca, $log, $pas
 # LA FINESTRA (eina del menu)
 # ----------------------------------------------------------------------------
 function Invoke-Normativa {
-    $normes = @(Get-NormativaCataleg)
-    if ($normes.Count -eq 0) {
+    $totes = @(Get-NormativaCataleg)
+    # Les que es queden (les citades, les guies i les col.leccions): son les que
+    # compta el resum i la barra. Les altres van a 'derogades' en baixar.
+    $normes = @((Get-NormativaActives).Actives)
+    if ($totes.Count -eq 0) {
         [System.Windows.Forms.MessageBox]::Show("No trobo el catàleg de normativa (suport\normativa.json). Fes Actualitzar.bat.", 'Normativa', 'OK', 'Error') | Out-Null
         return
     }
@@ -522,10 +558,10 @@ function Invoke-Normativa {
         $bar.Value = 0
         $n = @{ Noves = 0; Act = 0; Igual = 0; Err = 0; Man = 0 }
         try {
-            $n = Invoke-NormativaBaixada $normes $dir ([bool]$chkTot.Checked) $fn.Log $fn.Pas $fn.Cancel
+            $n = Invoke-NormativaBaixada $totes $dir ([bool]$chkTot.Checked) $fn.Log $fn.Pas $fn.Cancel
         } finally {
             & $fn.Log ('')
-            & $fn.Log (('Fet. Noves: {0} · Actualitzades: {1} · Ja al dia: {2} · Errors: {3} · Per desar a mà: {4}' -f $n.Noves, $n.Act, $n.Igual, $n.Err, $n.Man))
+            & $fn.Log (('Fet. Noves: {0} · Actualitzades: {1} · Ja al dia: {2} · Errors: {3} · Per desar a mà: {4} · Mogudes a derogades: {5}' -f $n.Noves, $n.Act, $n.Igual, $n.Err, $n.Man, $n.Retirades))
             if ($n.Err -gt 0) { & $fn.Log ("Les que han fallat surten a l'índex amb el motiu; es tornaran a provar la propera vegada.") }
             $ui.Corrent = $false
             $btnBaixa.Enabled = $true; $chkTot.Enabled = $true; $btnTanca.Text = 'Tancar'

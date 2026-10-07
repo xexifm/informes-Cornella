@@ -74,6 +74,13 @@ SECT|Autoritzacions / Informes preceptius
 AIRE|seccio
 ITEM|7.|Tatuatge, pírcing i micropigmentació. L’activitat està inclosa dins l’àmbit d’aplicació del Decret 90/2008, de 22 d'abril, pel qual es regulen les pràctiques de tatuatge, micropigmentació i pírcing, així com els requisits higienicosanitaris que han de complir els establiments on es realitzen aquestes pràctiques. S’ha d’obtenir l’autorització sanitària de l’establiment (Salut Pública - Ajuntament de Cornellà de Llobregat).
 URL|https://tramits.cornella.cat/Fitxa.aspx?codiTramit=20001
+AJUDA|Norma: Decret 90/2008, de 22 d'abril, pel qual es regulen les pràctiques de tatuatge, micropigmentació i pírcing, així com els requisits higienicosanitaris que han de complir els establiments on es realitzen aquestes pràctiques
+URL|https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=490743
+AJUDA|Criteri: Establiments on es fan tatuatges, micropigmentació o pírcing, encara que sigui de manera ocasional o dins d’un centre d’estètica. Cal l’autorització sanitària de l’establiment ABANS de començar l’activitat. El personal aplicador ha de tenir la formació higienicosanitària acreditada.
+AJUDA|Vigencia: Una sola vegada. S’ha de refer si hi ha modificació substancial o canvi de titular.
+AJUDA|A qui s'aplica: Noves activitats, canvis de titularitat i modificacions.
+AJUDA|Competencia: Ajuntament (Salut Pública).
+AJUDA|Revisat: 2026-10
 AIRE|item
 ITEM|8.|Sanitat. L’activitat està inclosa dins l’Annex del Decret 151/2017, de 17 d'octubre, pel qual s'estableixen els requisits i les garanties tecnicosanitàries comunes dels centres i serveis sanitaris i els procediments per a la seva autorització i registre. S’ha d’obtenir l’Autorització de funcionament (Departament de Salut de la Generalitat de Catalunya).
 URL|https://tramits.gencat.cat/ca/tramits/tramits-temes/Autoritzacio-de-centres-o-serveis-sanitaris
@@ -127,6 +134,13 @@ AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|13.|Incendis. L’activitat està inclosa dins l’Annex I de la Llei 3/2010, del 18 de febrer, de prevenció i seguretat en matèria d'incendis en establiments, activitats, infraestructures i edificis. S’ha de presentar l’acte de comprovació per una entitat col·laboradora (ECI)
 URL|https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/entitats_col_laboradores_de_l_administracio/entitats-tecnics-habilitats/
+AJUDA|Norma: Llei 3/2010, del 18 de febrer, de prevenció i seguretat en matèria d’incendis en establiments, activitats, infraestructures i edificis, annex I (i annex 2 per a l’ús industrial), art. 22 a 24
+URL|https://portaljuridic.gencat.cat/eli/es-ct/l/2010/02/18/3
+AJUDA|Criteri: NOMÉS per a les activitats de l’annex I, que ja tenen l’informe favorable de la DGPEIS. Abans de començar l’activitat cal l’acte de comprovació favorable d’una ENTITAT COL·LABORADORA, no dels Bombers. Fora de l’annex I no es demana.
+AJUDA|Vigencia: Una sola vegada. Es refà si hi ha un canvi significatiu del risc d’incendi.
+AJUDA|A qui s'aplica: Noves activitats i modificacions amb canvi significatiu del risc.
+AJUDA|Competencia: Entitat col·laboradora. L’Ajuntament l’exigeix com a documentació.
+AJUDA|Revisat: 2026-10
 AIRE|item
 ITEM|14.|Impacte ambiental. L’activitat està inclosa dins l’Article 7 de la //Ley 21/2013, de 9 de diciembre, de evaluación ambiental//. S’ha de presentar l’estudi d'impacte ambiental a l’ajuntament amb el contingut determinat a l'Annex VI de l’esmentada Llei per obtenir posteriorment l’informe favorable per part de l’OGAU.
 AJUDA|Norma: Ley 21/2013, de 9 de diciembre, de evaluación ambiental, art. 7 i annexos I, II i VI
@@ -570,8 +584,8 @@ AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|54.|Instal·lacions radioactives
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Autoritzacio-dinstallacions-radioactives
-AJUDA|Norma: Real Decreto 1836/1999, de 3 de diciembre, por el que se aprueba el Reglamento sobre instalaciones nucleares y radiactivas
-URL|https://www.boe.es/eli/es/rd/1999/12/03/1836/con
+AJUDA|Norma: Real Decreto 1217/2024, de 3 de diciembre, por el que se aprueba el Reglamento sobre instalaciones nucleares y radiactivas, y otras actividades relacionadas con la exposición a las radiaciones ionizantes
+URL|https://www.boe.es/eli/es/rd/2024/12/03/1217/con
 AJUDA|Criteri: Instal·lacions amb font de radiació ionitzant, aparells que funcionin a una diferència de potencial superior a 5 kV i locals on es produeixin, manipulin o emmagatzemin materials radioactius. Requereixen AUTORITZACIÓ de funcionament i inscripció al registre: no és una simple declaració responsable.
 AJUDA|Vigencia: Autorització: subjecta al termini que fixi la resolució; cal renovar-la abans que venci.
 AJUDA|A qui s'aplica: Instal·lacions en ús.

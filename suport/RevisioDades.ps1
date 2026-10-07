@@ -36,7 +36,13 @@ function _RevEstatBoe([string]$html) {
     $t = _RevTextDeHtml $html
     $out = @{ Estat = '?'; Detall = ''; Substituta = ''; SubstitutaId = '' }
     if (-not $t) { return $out }
-    $derog = [regex]::Match($t, '(?i)\b(norma|disposici[oó]n)\s+(derogada|anulada)\b|\bestado\s*:?\s*derogad[ao]\b|\bderogad[ao]\s+con\s+efectos\b|\b(queda|ha sido|fue)\s+derogad[ao]\s+(en su totalidad\s+)?por\b')
+    # NOMES les marques d'ESTAT de la pagina: la capcalera "Norma derogada, con
+    # efectos de..." i l'etiqueta "[Disposicion derogada]" del costat del titol.
+    # Abans es buscava "norma anulada" o "fue derogada por" a TOT el text, i el
+    # preambul en parla sovint d'ALTRES normes ("la version de la norma anulada",
+    # "la Directiva 95/16/CE fue derogada por..."): el REBT, el reglament del gas,
+    # el d'alta tensio i el d'ascensors sortien derogats (octubre 2026).
+    $derog = [regex]::Match($t, '(?i)\bnorma\s+(derogada|anulada)\s*,?\s+con\s+efectos\b|\[\s*disposici[oó]n\s+(derogada|anulada)\s*\]|\bestado\s*:?\s*derogad[ao]\b')
     if ($derog.Success) {
         $out.Estat = 'derogada'
         $ini = [Math]::Max(0, $derog.Index - 40)
@@ -46,7 +52,19 @@ function _RevEstatBoe([string]$html) {
         return $out
     }
     if ($t -match '(?i)\b(estado|situaci[oó]n)\s*:?\s*vigente\b' -or $t -match '(?i)\bnorma\s+vigente\b' -or $t -match '(?i)texto consolidado') { $out.Estat = 'vigent' }
+    else { $out.Detall = "La pàgina del BOE no diu l'estat (potser l'enllaç és al text original i no al consolidat)." }
     return $out
+}
+
+# PER QUE NO ES SAP SI UNA NORMA DEL PORTAL JURIDIC ES VIGENT. PURA. $dom: el
+# que ha tornat l'Edge; $errEdge: el seu error ('' si no n'hi ha); $nTextos:
+# quantes respostes del servidor s'han mirat.
+function _RevMotiuPjur([string]$dom, [string]$errEdge, [int]$nTextos) {
+    if ($errEdge) { return ("L'Edge no ha pogut obrir la pàgina: " + $errEdge) }
+    if (-not $dom) { return "L'Edge no ha tornat res." }
+    $base = "La pàgina no mostra l'etiqueta VIGENT ni NO VIGENT"
+    if ($nTextos -eq 0) { return ($base + " (i el servidor no ha respost sense l'Edge).") }
+    return ($base + '.')
 }
 
 # VIGENT O DEROGADA, segons el Portal Juridic (el DOM ja dibuixat). PURA.

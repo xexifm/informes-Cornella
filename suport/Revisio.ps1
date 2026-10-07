@@ -31,7 +31,13 @@ function _RevVigenciaDe($e) {
                 $v = _RevEstatPjur ([string]$t)
                 if ($v.Estat -ne '?') { return $v }
             }
-            return (_RevEstatPjur (_NormativaDomEdge $u))
+            # L'Excel diu PER QUE no se sap (octubre 2026: en una revisio, quasi
+            # tot el Portal Juridic va sortir "no s'ha pogut saber" sense cap
+            # motiu, i era que l'Edge s'havia penjat amb la primera norma).
+            $dom = _NormativaDomEdge $u
+            $v = _RevEstatPjur $dom
+            if ($v.Estat -eq '?') { $v.Detall = _RevMotiuPjur $dom ([string]$Script:NormativaDomEdgeError) @($pj.Textos).Count }
+            return $v
         }
     } catch {
         return @{ Estat = '?'; Detall = ('no s''ha pogut obrir: ' + $_.Exception.Message); Substituta = ''; SubstitutaId = '' }
@@ -164,7 +170,9 @@ function Invoke-RevisioRequeriments {
                 & $fn.Log "3. Vigència de la normativa..."
                 # Una funcio, no $Script: aqui: som dins d'una closure.
                 Reset-NormativaCaches
-                $normes = @(Get-NormativaCataleg | Where-Object { -not $_.Guia -and -not $_.Colleccio -and -not $_.Derogada -and [string]$_.Url })
+                # Nomes les que cita algun cataleg (octubre 2026): la que no la
+                # cita ningu no cal revisar-la, va a 'derogades' (_NormativaSepara).
+                $normes = @(@((Get-NormativaActives).Actives) | Where-Object { -not $_.Guia -and -not $_.Colleccio -and [string]$_.Url })
                 $punts = @{}
                 try { $punts = _NormativaPuntsReq1 $normes (Get-ParsedCataleg -path (Join-Path $EstructuralsDir 'REQ1.json')) } catch { }
                 $bar.Value = 0; $bar.Maximum = [Math]::Max(1, $normes.Count)
@@ -172,13 +180,13 @@ function Invoke-RevisioRequeriments {
                     if ($ui.Cancel) { break }
                     $v = _RevVigenciaDe $e
                     $id = [string]$e.Id
-                    $pp = if ($punts.ContainsKey($id)) { (@($punts[$id]) -join '; ') } else { '' }
+                    $pp = if ($punts.ContainsKey($id)) { (@($punts[$id]) -join '; ') } else { '(la cita un altre catàleg, no REQ1)' }
                     if ($v.Estat -eq 'derogada') {
                         $n.Derogades++
                         $subst = if ($v.Substituta) { ' Substituïda per: ' + $v.Substituta + $(if ($v.SubstitutaId) { ' (' + $v.SubstitutaId + ')' } else { '' }) + '.' } else { '' }
                         & $fn.Log ('   DEROGADA ' + $id + $subst)
-                        $fer = if ($pp) { 'Revisar els punts de REQ1 que la citen i canviar-hi la norma; afegir la nova a la normativa (demana-ho a Claude).' } else { 'Treure-la de la normativa o marcar-la com a antiga (demana-ho a Claude).' }
-                        [void]$files.Add((_RevFila 'Normativa derogada' 'REQ1' $(if ($pp) { $pp } else { '(no la cita cap punt)' }) ($id + ': ' + $v.Detall + $subst) ([string]$e.Url) $fer))
+                        $fer = if ($punts.ContainsKey($id)) { 'Revisar els punts de REQ1 que la citen i canviar-hi la norma; afegir la nova a la normativa (demana-ho a Claude).' } else { 'Treure-la de la normativa o marcar-la com a antiga (demana-ho a Claude).' }
+                        [void]$files.Add((_RevFila 'Normativa derogada' 'REQ1' $pp ($id + ': ' + $v.Detall + $subst) ([string]$e.Url) $fer))
                     } elseif ($v.Estat -eq '?') {
                         $n.Dubte++
                         [void]$files.Add((_RevFila 'Vigència: mira-ho a mà' 'REQ1' $pp ($id + ": no s'ha pogut saber si és vigent. " + $v.Detall) ([string]$e.Url) "Obre l'enllaç i mira si diu que és vigent."))
@@ -194,7 +202,7 @@ function Invoke-RevisioRequeriments {
                 $totes = @(Get-NormativaCataleg)
                 $dirN = Get-NormativaDir
                 if (-not (Test-Path -LiteralPath $dirN)) { New-Item -ItemType Directory -Path $dirN -Force | Out-Null }
-                $bar.Value = 0; $bar.Maximum = [Math]::Max(1, $totes.Count)
+                $bar.Value = 0; $bar.Maximum = [Math]::Max(1, @((Get-NormativaActives).Actives).Count)
                 $nb = Invoke-NormativaBaixada $totes $dirN $false $fn.Log $fn.Pas $fn.Cancel
                 & $fn.Log (('   Noves: {0} · Actualitzades: {1} · Errors: {2}' -f $nb.Noves, $nb.Act, $nb.Err))
             }

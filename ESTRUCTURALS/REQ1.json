@@ -263,6 +263,15 @@
                                     {
                                         "tipus":  "item",
                                         "titol":  "Tatuatge, pírcing i micropigmentació",
+                                        "ajuda":  {
+                                                      "norma":  "Decret 90/2008, de 22 d\u0027abril, pel qual es regulen les pràctiques de tatuatge, micropigmentació i pírcing, així com els requisits higienicosanitaris que han de complir els establiments on es realitzen aquestes pràctiques",
+                                                      "enllac":  "https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=490743",
+                                                      "criteri":  "Establiments on es fan tatuatges, micropigmentació o pírcing, encara que sigui de manera ocasional o dins d’un centre d’estètica. Cal l’autorització sanitària de l’establiment ABANS de començar l’activitat. El personal aplicador ha de tenir la formació higienicosanitària acreditada.",
+                                                      "vigencia":  "Una sola vegada. S’ha de refer si hi ha modificació substancial o canvi de titular.",
+                                                      "aplica":  "Noves activitats, canvis de titularitat i modificacions.",
+                                                      "competencia":  "Ajuntament (Salut Pública).",
+                                                      "revisat":  "2026-10"
+                                                  },
                                         "cos":  [
                                                     {
                                                         "runs":  [
@@ -452,6 +461,15 @@
                                     {
                                         "tipus":  "item",
                                         "titol":  "Incendis - acte",
+                                        "ajuda":  {
+                                                      "norma":  "Llei 3/2010, del 18 de febrer, de prevenció i seguretat en matèria d’incendis en establiments, activitats, infraestructures i edificis, annex I (i annex 2 per a l’ús industrial), art. 22 a 24",
+                                                      "enllac":  "https://portaljuridic.gencat.cat/eli/es-ct/l/2010/02/18/3",
+                                                      "criteri":  "NOMÉS per a les activitats de l’annex I, que ja tenen l’informe favorable de la DGPEIS. Abans de començar l’activitat cal l’acte de comprovació favorable d’una ENTITAT COL·LABORADORA, no dels Bombers. Fora de l’annex I no es demana.",
+                                                      "vigencia":  "Una sola vegada. Es refà si hi ha un canvi significatiu del risc d’incendi.",
+                                                      "aplica":  "Noves activitats i modificacions amb canvi significatiu del risc.",
+                                                      "competencia":  "Entitat col·laboradora. L’Ajuntament l’exigeix com a documentació.",
+                                                      "revisat":  "2026-10"
+                                                  },
                                         "cos":  [
                                                     {
                                                         "runs":  [
@@ -2054,8 +2072,8 @@
                                                           "tipus":  "item",
                                                           "titol":  "RITSIC - radioactives",
                                                           "ajuda":  {
-                                                                        "norma":  "Real Decreto 1836/1999, de 3 de diciembre, por el que se aprueba el Reglamento sobre instalaciones nucleares y radiactivas",
-                                                                        "enllac":  "https://www.boe.es/eli/es/rd/1999/12/03/1836/con",
+                                                                        "norma":  "Real Decreto 1217/2024, de 3 de diciembre, por el que se aprueba el Reglamento sobre instalaciones nucleares y radiactivas, y otras actividades relacionadas con la exposición a las radiaciones ionizantes",
+                                                                        "enllac":  "https://www.boe.es/eli/es/rd/2024/12/03/1217/con",
                                                                         "criteri":  "Instal·lacions amb font de radiació ionitzant, aparells que funcionin a una diferència de potencial superior a 5 kV i locals on es produeixin, manipulin o emmagatzemin materials radioactius. Requereixen AUTORITZACIÓ de funcionament i inscripció al registre: no és una simple declaració responsable.",
                                                                         "vigencia":  "Autorització: subjecta al termini que fixi la resolució; cal renovar-la abans que venci.",
                                                                         "aplica":  "Instal·lacions en ús.",

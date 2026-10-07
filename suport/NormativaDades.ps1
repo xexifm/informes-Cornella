@@ -463,6 +463,61 @@ function _NormativaPuntsReq1($normes, $req1) {
 }
 
 # ----------------------------------------------------------------------------
+# QUINES ES QUEDEN A LA LLISTA (octubre 2026). Decisio de l'usuari: "Quan una
+# norma (o guia) ja no es cita a REQ1 no cal revisar i la mous a derogades", i
+# les DEROGADES tambe hi van (abans es quedaven amb el tema Antic). normativa.json
+# no es toca: es la llista de tot el que es coneix (REQ1 + els marcadors), i
+# una norma que es torni a citar torna a la llista sola.
+#   - Derogada                       -> retirada
+#   - guia o col.leccio              -> es queda (no es "cita" pel numero:
+#                                       l'usuari les vol com la normativa)
+#   - sense cap clau per reconeixer-la -> es queda (no es pot saber)
+#   - la resta: es queda NOMES si la cita algun cataleg (text o fitxa)
+# Es mira a TOTS els catalegs i no nomes a REQ1: Llicencia en cita alguna
+# (Decret 64/2014) que REQ1 no.
+# ----------------------------------------------------------------------------
+$Script:NormativaRetiradesDir = 'derogades'
+
+# El text de tots els catalegs, normalitzat (_NormativaNormText). El JSON tal
+# qual: les cometes simples el PowerShell 5.1 les desa com a \u0027.
+function Get-NormativaTextCatalegs([string]$dir = $EstructuralsDir) {
+    $sb = New-Object System.Text.StringBuilder
+    foreach ($f in @(Get-ChildItem -LiteralPath $dir -Filter '*.json' -File -ErrorAction SilentlyContinue)) {
+        $t = [System.IO.File]::ReadAllText($f.FullName)
+        $t = $t.Replace('\u0027', "'").Replace('\u0026', '&').Replace('\u003c', '<').Replace('\u003e', '>')
+        [void]$sb.Append($t).Append(' ')
+    }
+    return (_NormativaNormText $sb.ToString())
+}
+
+# La cita algun cataleg? PURA ($textNorm: Get-NormativaTextCatalegs).
+function _NormativaEsCitada($e, [string]$textNorm) {
+    foreach ($k in @(_NormativaClaus $e)) {
+        if ([regex]::IsMatch($textNorm, '(?<![\w/])' + [regex]::Escape($k) + '(?![\d/])')) { return $true }
+    }
+    return $false
+}
+
+# Separa la llista en les que es queden i les que van a 'derogades'. PURA.
+# Torna @{ Actives; Retirades } (cada retirada: @{ Norma; Motiu }).
+function _NormativaSepara($normes, [string]$textNorm) {
+    $act = New-Object System.Collections.ArrayList
+    $ret = New-Object System.Collections.ArrayList
+    foreach ($e in @($normes)) {
+        if ($null -eq $e) { continue }
+        if ($e.Derogada) { [void]$ret.Add(@{ Norma = $e; Motiu = 'derogada' }); continue }
+        if ($e.Guia -or $e.Colleccio -or @(_NormativaClaus $e).Count -eq 0) { [void]$act.Add($e); continue }
+        if (_NormativaEsCitada $e $textNorm) { [void]$act.Add($e) } else { [void]$ret.Add(@{ Norma = $e; Motiu = 'no citada' }) }
+    }
+    return @{ Actives = $act.ToArray(); Retirades = $ret.ToArray() }
+}
+
+# La llista ja separada, amb el cataleg i els catalegs de debo.
+function Get-NormativaActives {
+    return (_NormativaSepara @(Get-NormativaCataleg) (Get-NormativaTextCatalegs))
+}
+
+# ----------------------------------------------------------------------------
 # L'INDEX EN EXCEL, sense Excel. Funcio PURA: torna els bytes del .xlsx.
 # ----------------------------------------------------------------------------
 # $files: llista de files; cada cel·la es un text o @{ Text; Link } (surt com a

@@ -28,7 +28,7 @@
                 {
                   "runs": [
                     {
-                      "t": "https://salutweb.gencat.cat/ca/tramits/tramits-temes/Autoritzacio-de-centres-o-serveis-sanitaris?moda=1"
+                      "t": "https://tramits.gencat.cat/ca/tramits/tramits-temes/Autoritzacio-de-centres-o-serveis-sanitaris"
                     }
                   ],
                   "url": true
@@ -720,7 +720,7 @@
                 {
                   "runs": [
                     {
-                      "t": "https://salutweb.gencat.cat/ca/tramits/tramits-temes/Autoritzacio-de-centres-o-serveis-sanitaris?moda=2"
+                      "t": "https://tramits.gencat.cat/ca/tramits/tramits-temes/Autoritzacio-de-centres-o-serveis-sanitaris"
                     }
                   ],
                   "url": true

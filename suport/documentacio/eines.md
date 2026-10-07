@@ -129,6 +129,35 @@ n'és la traducció literal:
   amplada i la del text ajustat sortia estreta. Als arrays d'amplades el **0**
   vol dir «no la toquis».
 
+## Normativa: només la que es cita; la resta, a `derogades` (octubre 2026)
+La primera revisió de debò va donar 62 files i quasi cap era feina de debò:
+- **Falses «derogades» del BOE.** `_RevEstatBoe` buscava «norma anulada» o
+  «fue derogada por» a **tot** el text, i el preàmbul en parla d'altres normes
+  (REBT, gas, alta tensió, ascensors, Ley 34/1998). Ara només compten les marques
+  d'estat: la capçalera «Norma derogada, con efectos de…» i l'etiqueta
+  «[Disposición derogada]». L'única de debò era el RD 1836/1999 (radioactives),
+  derogat pel RD 1217/2024: canviada la fitxa i afegit a `normativa.json`.
+- **Quasi tot el Portal Jurídic «no s'ha pogut saber»**, sense motiu. Si l'Edge
+  es penja amb la primera norma, `$Script:NormativaEdgeKO` el deixa de fer servir
+  per a tota la web. Ara l'Excel diu el motiu (`_RevMotiuPjur`,
+  `$Script:NormativaDomEdgeError`). Encara falta una manera de saber-ho sense
+  l'Edge: cal mirar al PC de l'usuari què torna el servidor.
+- **Normativa que no cita ningú** (marcadors de Chrome). Decisió de l'usuari:
+  *«Quan una norma (o guia) ja no es cita a REQ1 no cal revisar i la mous a
+  derogades»*, i les derogades també (opció B: s'acaba el tema «Antic» com a
+  lloc on guardar-les). `_NormativaSepara` (pura, `NormativaDades.ps1`): fora les
+  `Derogada` i les que no cita **cap** catàleg (`Get-NormativaTextCatalegs`, tots
+  els JSON d'ESTRUCTURALS: Llicència en cita alguna que REQ1 no); es queden
+  sempre les **guies** i **col·leccions** (l'usuari: «s'ha de tractar com a
+  normativa») i les que no tenen cap clau per reconèixer-les (no es pot saber).
+  `normativa.json` **no es toca**: és tot el que es coneix, i una norma que es
+  torni a citar torna sola. `Invoke-NormativaBaixada` rep la llista sencera,
+  mou el PDF de les retirades a `local\normativa\derogades`
+  (`_NormativaMouRetirades`, mai esborra) i baixa i indexa només les actives. La
+  revisió de vigència només mira les actives.
+- `_EnllacosDeCataleg`: un sub-punt sense títol porta el nom del punt de sobre
+  (els «No es disposa…» de Llicència sortien amb el punt en blanc).
+
 ## REQUERIMENT ANTERIOR / REQUERIMENT ACTUAL i els punts A1, A2… (octubre 2026)
 L'usuari enganxava l'anterior requeriment al lloc de *COPIAR REQUERIMENT* i
 l'informe quedava mal numerat (1, 1, 2, 2, 3…: el text enganxat duia la

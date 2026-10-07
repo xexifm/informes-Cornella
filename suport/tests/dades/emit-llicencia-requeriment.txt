@@ -27,9 +27,8 @@ URL|https://tramits.cornella.cat/Fitxa.aspx?codiTramit=20001
 BODY/N/SEP|No es disposa del document.
 AIRE|item
 ITEM|2.|Sanitat. L’activitat està inclosa dins l’Annex del Decret 151/2017, de 17 d'octubre, pel qual s'estableixen els requisits i les garanties tecnicosanitàries comunes dels centres i serveis sanitaris i els procediments per a la seva autorització i registre. S’ha d’obtenir l’Autorització de funcionament (Departament de Salut de la Generalitat de Catalunya).
-URL|https://tramits.gencat.cat/ca/tramits/tramits-temes/Autoritzacio-de-centres-o-serveis-sanitaris
 BODY/N/SEP|No es disposa de l’autorització. S’ha de sol·licitar en el següent enllaç:
-URL|https://salutweb.gencat.cat/ca/tramits/tramits-temes/Autoritzacio-de-centres-o-serveis-sanitaris?moda=1
+URL|https://tramits.gencat.cat/ca/tramits/tramits-temes/Autoritzacio-de-centres-o-serveis-sanitaris
 AIRE|item
 ITEM|3.|Educació. L’activitat està inclosa dins el Decret 122/2012, de 9 d'octubre, del procediment d'autorització i de comunicació prèvia per a l'obertura de centres educatius privats. S’ha d’obtenir l’Autorització d’obertura de centres educatius privats  (Departament d’Educació).
 URL|https://educacio.gencat.cat/ca/tramits/tramits-temes/autoritzacio-obertura-privats
@@ -50,7 +49,7 @@ URL|https://interior.gencat.cat/ca/arees_dactuacio/bombers/prevencio_d_incendis/
 BODY|(Quan: Abans d’iniciar l’activitat)
 AIRE|item
 ITEM|7.|Sanitat. Autorització de funcionament (Departament de Salut de la Generalitat de Catalunya).
-URL|https://salutweb.gencat.cat/ca/tramits/tramits-temes/Autoritzacio-de-centres-o-serveis-sanitaris?moda=2
+URL|https://tramits.gencat.cat/ca/tramits/tramits-temes/Autoritzacio-de-centres-o-serveis-sanitaris
 BODY|(Quan: Abans d’iniciar l’activitat)
 AIRE|item
 ITEM|8.|Educació. Autorització d’obertura de centres educatius privats  (Departament d’Educació).

@@ -597,7 +597,18 @@
    "Num": "1836/1999",
    "Any": "1999",
    "Titol": "Reglamento de instalaciones nucleares y radiactivas",
-   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-1999-24924"
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-1999-24924",
+   "Derogada": true
+  },
+  {
+   "Id": "RD 1217/2024",
+   "Ambit": "Instal·lacions",
+   "Tema": "Radioactives",
+   "Tipus": "RD",
+   "Num": "1217/2024",
+   "Any": "2024",
+   "Titol": "Reglamento de instalaciones nucleares y radiactivas",
+   "Url": "https://www.boe.es/buscar/act.php?id=BOE-A-2024-25205"
   },
   {
    "Id": "RD 1085/2009",

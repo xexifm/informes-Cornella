@@ -36,19 +36,22 @@ function _EnllacosDeCataleg($o) {
             foreach ($m in [regex]::Matches($txt, 'https?://[^\s"<>\]\)]+')) { & $afegeix $m.Value $punt 'text' }
         }
     }
+    # Un sub-punt SENSE titol (a Llicencia, el "No es disposa..." d'un punt) porta
+    # el nom del punt de sobre: abans l'informe de la revisio el deixava en blanc.
     $visita = $null
     $visita = {
-        param($nodes)
+        param($nodes, [string]$pare)
         foreach ($n in @($nodes)) {
             if ($null -eq $n) { continue }
             $punt = [string]$n.titol
+            if ([string]::IsNullOrWhiteSpace($punt)) { $punt = $pare }
             & $deParagrafs $n.cos $punt
             if ($null -ne $n.ajuda -and $n.ajuda.enllac) { & $afegeix ([string]$n.ajuda.enllac) $punt 'fitxa' }
-            if ($n.fills) { & $visita $n.fills }
+            if ($n.fills) { & $visita $n.fills $punt }
         }
     }
     & $deParagrafs $o.intro '(introducció)'
-    & $visita $o.nodes
+    & $visita $o.nodes ''
     return $out.ToArray()
 }
 

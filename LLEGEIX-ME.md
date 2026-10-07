@@ -501,8 +501,15 @@ Incendis_Antic_2004_RD 2267-2004 RSCIEI anterior (derogat pel RD 164-2025).pdf
 ```
 
 Ordenat per nom, queden agrupades per àmbit, dins de cada àmbit per tema i dins
-de cada tema per any. Les derogades que encara es consulten porten el tema
-**Antic**.
+de cada tema per any.
+
+**Només hi ha la normativa que es fa servir.** Una norma que **no cita cap punt**
+de cap catàleg (ni al text ni a la fitxa ⓘ), o que està **derogada**, surt de la
+llista: el seu PDF es mou a la subcarpeta **`derogades`** (no s'esborra mai res)
+i ja no surt a l'índex ni a la revisió. Si treus un punt de REQ1 i la seva norma
+ja no la cita ningú més, la propera vegada que facis servir l'eina se'n va sola a
+`derogades`; si la tornes a citar, torna. Les **guies i manuals** es queden
+sempre, encara que no les citi cap punt.
 
 - **La primera vegada** triga una estona (són moltes normes). Les del BOE es
   baixen en PDF. Les del Portal Jurídic, el BOPB i el CIDO es baixen amb el
@@ -545,8 +552,9 @@ programa al dia. Tria què vols revisar i prem **Revisar**:
   encara no en tenen.
 - **Enllaços que no funcionen**, de tots els catàlegs: els del text dels punts i
   els del botó «Obre la norma» de les fitxes.
-- **Normativa que ja no és vigent**: mira la pàgina de cada norma al BOE i al
-  Portal Jurídic. Si una està derogada, diu **quina la substitueix** i **quins
+- **Normativa que ja no és vigent**: mira la pàgina de cada norma **que cita
+  algun punt** al BOE i al Portal Jurídic (la que no cita ningú no es revisa: va
+  a `derogades`). Si una està derogada, diu **quina la substitueix** i **quins
   punts de REQ1 la citen**.
 - **Baixar la normativa nova i les versions noves** (desmarcat per defecte): fa
   el mateix que l'eina Normativa.
@@ -556,8 +564,9 @@ què passa, on (catàleg i punt), l'enllaç i què cal fer. **No canvia res dels
 catàlegs**: canviar un requeriment perquè una norma ha canviat s'ha de fer
 llegint-la. Passa'm l'Excel i ho arreglem.
 
-Les normes que no se sap si són vigents (la pàgina no ho diu clar) surten com a
-«mira-ho a mà», amb l'enllaç.
+Les normes que no se sap si són vigents surten com a «mira-ho a mà», amb
+l'enllaç i **el motiu** (per exemple, que l'Edge no ha pogut obrir la pàgina del
+Portal Jurídic).
 
 ### Seguiment (fila GIA)
 

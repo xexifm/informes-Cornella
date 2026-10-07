@@ -19,6 +19,10 @@ AssertEq $rvEn.Count 3 'enllacos: el de la introduccio, el del text i el de la f
 AssertEq ([string]$rvEn[0].Url) 'https://a.cat/intro' 'enllacos: sense el punt final de la frase'
 AssertEq ([string]$rvEn[2].Camp) 'fitxa' 'enllacos: tambe el de la fitxa d''ajuda (abans no es comprovava)'
 AssertEq ([string]$rvEn[2].Punt) 'Llei 3/2010' 'enllacos: amb el punt on es'
+$rvLl = [pscustomobject]@{ nodes = @([pscustomobject]@{ tipus = 'item'; titol = 'Sanitat'; cos = @(); fills = @(
+    [pscustomobject]@{ tipus = 'nodisposa'; titol = ''; cos = @([pscustomobject]@{ runs = @([pscustomobject]@{ t = 'https://c.cat/y' }); url = $true }); fills = @() }) }) }
+AssertEq ([string]@(_EnllacosDeCataleg $rvLl)[0].Punt) 'Sanitat' 'enllacos: un sub-punt sense titol porta el nom del punt de sobre (abans sortia en blanc)'
+Assert (-not ((Get-Content -Raw -LiteralPath (Join-Path $EstructuralsDir 'LLIC.json')).Contains('salutweb.gencat.cat'))) 'LLIC: sense l''adreca de salutweb, que ja no existeix'
 $rvReq1Json = Read-JsonFile (Join-Path $EstructuralsDir 'REQ1.json')
 $rvEnReq1 = @(_EnllacosDeCataleg $rvReq1Json)
 Assert ((@($rvEnReq1 | Where-Object { $_.Camp -eq 'fitxa' })).Count -ge 150) 'enllacos: REQ1 porta els de les fitxes'
@@ -32,7 +36,9 @@ AssertEq $rvSense.Count 1 'fitxes: el punt sense fitxa'
 AssertEq ([string]$rvSense[0].Punt) 'Sense res' 'fitxes: quin'
 AssertEq ([string]$rvSense[0].Seccio) 'Incendis' 'fitxes: amb la seccio'
 $rvReq1Sense = @(_RevPuntsSenseFitxa $rvReq1Json | ForEach-Object { $_.Punt })
-Assert ($rvReq1Sense -contains ('Tatuatge, p' + [char]0x00ED + 'rcing i micropigmentaci' + [char]0x00F3)) 'fitxes: a REQ1, el punt nou de tatuatge (que l''usuari va afegir sense fitxa)'
+# Els dos que va trobar la primera revisio de debo (octubre 2026) ja la tenen.
+Assert (-not ($rvReq1Sense -contains ('Tatuatge, p' + [char]0x00ED + 'rcing i micropigmentaci' + [char]0x00F3))) 'fitxes: el tatuatge ja te la fitxa'
+Assert (-not ($rvReq1Sense -contains 'Incendis - acte')) 'fitxes: l''acte d''incendis tambe'
 
 Write-Host "`n--- vigencia: el BOE ---"
 $rvDer = '<div><p>Norma derogada, con efectos de 10/05/2025, por el Real Decreto 164/2025, de 4 de marzo (Ref. BOE-A-2025-7036).</p></div>'
@@ -42,6 +48,12 @@ AssertEq $rvV.SubstitutaId 'BOE-A-2025-7036' 'BOE: l''identificador de la que la
 Assert ($rvV.Substituta -like 'Real Decreto 164/2025*') 'BOE: i el nom'
 AssertEq (_RevEstatBoe '<p>Texto consolidado. Última actualización publicada el 10/04/2025</p><p>Se deroga el art. 5 por la Ley 2/2020</p>').Estat 'vigent' 'BOE: una derogacio PARCIAL no fa derogada la norma'
 AssertEq (_RevEstatBoe '<p>Pàgina no trobada</p>').Estat '?' 'BOE: una pagina que no diu res -> ? (no s''endevina)'
+# Falses alarmes de debo (octubre 2026): el preambul parla d'ALTRES normes.
+AssertEq (_RevEstatBoe '<p>Texto consolidado.</p><p>...se consideran rectificados de acuerdo con la versión de la norma anulada.</p>').Estat 'vigent' 'BOE: "la norma anulada" dins del text no fa derogada la norma (REBT, gas, alta tensio)'
+AssertEq (_RevEstatBoe '<p>Texto consolidado.</p><p>La Directiva 95/16/CE fue derogada por la Directiva 2014/33/UE.</p>').Estat 'vigent' 'BOE: "fue derogada por" una directiva no fa derogat el RD d''ascensors'
+AssertEq (_RevEstatBoe '<p>Texto consolidado.</p><p>Téngase en cuenta que esta disposición ya fue derogada por el Real Decreto-ley 8/2014.</p>').Estat 'vigent' 'BOE: la nota d''un article derogat no fa derogada la llei'
+AssertEq (_RevEstatBoe '<h3>Real Decreto 1836/1999 ... radiactivas. [Disposición derogada]</h3><p>Publicado en: BOE</p>').Estat 'derogada' 'BOE: l''etiqueta [Disposicion derogada] del costat del titol -> derogada'
+Assert ([string](_RevEstatBoe '<p>Res</p>').Detall).Contains('no diu l') 'BOE: si no se sap, diu per que'
 AssertEq (_RevEstatBoe '').Estat '?' 'BOE: sense pagina -> ?'
 
 Write-Host "`n--- vigencia: el Portal Juridic ---"
@@ -50,6 +62,32 @@ AssertEq (_RevEstatPjur $rvPj).Estat 'vigent' 'Portal Juridic: l''etiqueta VIGEN
 AssertEq (_RevEstatPjur ($rvPj.Replace('>VIGENT<', '>DEROGAT<'))).Estat 'derogada' 'Portal Juridic: DEROGAT'
 AssertEq (_RevEstatPjur '<p>Article 5 (Derogat). Text de la llei vigent.</p>').Estat '?' 'Portal Juridic: un "derogat" dins del text no compta'
 AssertEq (_RevEstatPjur '<p>DISPOSICIÓ DEROGATÒRIA</p> Copia la URI ELI VIGENT').Estat 'vigent' 'Portal Juridic: "DEROGATÒRIA" no es "DEROGAT"'
+
+AssertEq (_RevMotiuPjur '' 'L''Edge no ha acabat en 45 segons' 2) 'L''Edge no ha pogut obrir la pàgina: L''Edge no ha acabat en 45 segons' 'Portal Juridic: el motiu, si l''Edge falla'
+Assert ((_RevMotiuPjur '<p>x</p>' '' 0).Contains('el servidor no ha respost')) 'Portal Juridic: el motiu, si no respon ningu'
+
+Write-Host "`n--- les retirades: no citades o derogades (a 'derogades') ---"
+$rvNs = @(
+    [pscustomobject]@{ Id = 'RD 842/2002'; Tipus = 'RD'; Num = '842/2002' },
+    [pscustomobject]@{ Id = 'Ley 34/1998'; Tipus = 'Ley'; Num = '34/1998' },
+    [pscustomobject]@{ Id = 'RD 1836/1999'; Tipus = 'RD'; Num = '1836/1999'; Derogada = $true },
+    [pscustomobject]@{ Id = 'Guia X'; Tipus = 'Guia'; Num = ''; Guia = $true },
+    [pscustomobject]@{ Id = 'Col·lecció TINSCI'; Tipus = 'TINSCI'; Num = ''; Colleccio = $true },
+    [pscustomobject]@{ Id = 'Ordenança tipus'; Tipus = 'Ordenança'; Num = '' })
+$rvSep = _NormativaSepara $rvNs (_NormativaNormText 'Segons el Real Decreto 842/2002, de 2 de agosto...')
+AssertEq (@($rvSep.Actives | ForEach-Object { $_.Id }) -join ',') 'RD 842/2002,Guia X,Col·lecció TINSCI,Ordenança tipus' 'separa: es queden la citada, les guies, les col.leccions i la que no es pot reconeixer'
+AssertEq (@($rvSep.Retirades | ForEach-Object { $_.Norma.Id + '=' + $_.Motiu }) -join ',') 'Ley 34/1998=no citada,RD 1836/1999=derogada' 'separa: fora la no citada i la derogada'
+Assert (-not (_NormativaEsCitada $rvNs[0] (_NormativaNormText 'RD 1842/2002'))) 'citada: el numero sencer (1842 no es 842)'
+$rvReal = Get-NormativaActives
+$rvAct = @($rvReal.Actives | ForEach-Object { [string]$_.Id })
+$rvRet = @($rvReal.Retirades | ForEach-Object { [string]$_.Norma.Id })
+Assert (($rvAct -contains 'RD 1217/2024') -and ($rvRet -contains 'RD 1836/1999')) 'real: radioactives, el RD 1217/2024 nou es queda i el 1836/1999 va a derogades'
+Assert (($rvAct -contains 'RD 919/2006') -and ($rvAct -contains 'RD 842/2002')) 'real: el gas i el REBT (falses alarmes) es queden'
+Assert (($rvRet -contains 'Ley 34/1998') -and ($rvRet -contains 'Llei 13/2017')) 'real: les que no cita ningu, fora'
+Assert ($rvAct -contains 'Decret 64/2014') 'real: la que nomes cita Llicencia es queda (es miren tots els catalegs)'
+AssertEq (@($rvReal.Actives | Where-Object { $_.Derogada }).Count) 0 'real: cap derogada a la llista (tot el tema Antic va a derogades)'
+$rvGuies = @(Get-NormativaCataleg | Where-Object { $_.Guia -and -not $_.Derogada }).Count
+AssertEq (@($rvReal.Actives | Where-Object { $_.Guia }).Count) $rvGuies 'real: totes les guies (no derogades) es queden'
 
 Write-Host "`n--- vigencia: les metadades ELI ---"
 AssertEq (_RevEstatEli '<eli:in_force rdf:resource="http://data.europa.eu/eli/ontology#InForce-inForce"/>').Estat 'vigent' 'ELI: InForce-inForce -> vigent'
