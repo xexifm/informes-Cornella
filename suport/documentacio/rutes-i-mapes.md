@@ -333,6 +333,23 @@ pendents de revisar (Configuració, Normativa, Revisió, Ruta).
     torna al Cadastre: era la manera de perdre la posició sense voler).
   - **Mai `setIcon` al `dragstart`**: refà l'arrossegador de Leaflet i talla el
     drag. Per això el punt es selecciona al `dragend`.
+  - **Les JA CORREGIDES** (*«ha de quedar ben clar aquelles coordenades que han
+    sigut modificades respecte les coordenades del cadastre»*): el **punt de la
+    parcel·la al Cadastre** (`referencePoint`) es demana amb el mòdul comú
+    **`CadastreParceles.ps1`** (abans era del Plànol; ara també de Coordenades,
+    amb la MATEIXA memòria cau `parceles2.json`). Si l'Excel en és a
+    `$Script:CoordCorregidaM` (1 m) o més: `Corregida`, punt de l'Excel **lila**,
+    línia de punts fins al punt del Cadastre (un cercle petit), fila marcada,
+    filtre «Ja corregides» i la distància a la fitxa i a la targeta. **Supòsit**:
+    el GIA porta el `referencePoint` del Cadastre; si a la feina surten totes
+    lila, el GIA en fa servir un altre i cal mirar-ho amb `Provar-Planol.bat`.
+  - **La tria de zones** (*«també vull poder moure els punts de les activitats que
+    no estan duplicades»*): tres opcions (apilades / NO apilades / totes,
+    `Get-RegistresPerAbast`), «Amaga les ja corregides» (es mira en generar el
+    mapa: la finestra encara no sap el punt del Cadastre) i «Només les marcades
+    per revisar» (viuen al navegador: el mapa es fa amb **totes** les zones i
+    s'obre amb el filtre «Per revisar», `FILTRE_INICIAL`). Abans, sense cap
+    apilada, l'eina plegava.
   - **Per revisar** (l'usuari: *«hi ha punts estranys. Vull poder posar un
     warning per revisar posteriorment»*): a la fitxa del punt, «⚠ Marca per
     revisar» amb una nota opcional. **A part del repàs** (`coordenades-avisos:`

@@ -105,6 +105,23 @@ try {
   await a.fill('#cerca', '');
   await a.dispatchEvent('#cerca', 'input');
 
+  seccio('Les ja corregides (l\'Excel ja no és al punt del Cadastre)');
+  eq(await a.evaluate(() => [capes[4].vermell.options.fillColor, !!capes[4].liniaCad, capes[0].vermell.options.fillColor, capes[0].liniaCad]),
+     ['#8e44ad', true, '#c0392b', null], 'la 105 (corregida) en lila i amb la línia; la 101 (no), vermella i sense');
+  eq(await a.evaluate(() => [capes[4].liniaCad.options.dashArray, capes[4].liniaCad.getLatLngs().map((q) => [q.lat, q.lng])]),
+     await a.evaluate(() => ['1,4', [[ITEMS[4].late, ITEMS[4].lone], [ITEMS[4].latc, ITEMS[4].lonc]]]), 'línia de punts de l\'Excel al punt del Cadastre');
+  check(await a.evaluate(() => capes[4].fila.classList.contains('corregida')), 'la fila també ho diu');
+  check((await a.locator('#filtreEstat').textContent()).includes('Ja corregides a l\'Excel (lila) (1)'), 'el filtre les compta');
+  check((await a.textContent('#llegenda')).includes('JA CORREGIDA'), 'i la llegenda ho explica');
+  check(await a.evaluate(() => capes[4].verd.getPopup().getContent().includes('Ja corregida: l\'Excel és a 25 m del punt del Cadastre')), 'la fitxa diu a quants metres');
+  await a.selectOption('#filtreEstat', 'corregides');
+  eq(await a.locator('#tbody tr:visible td.id').allTextContents(), ['105'], 'filtre «Ja corregides»: només la 105');
+  eq(await a.evaluate(() => [map.hasLayer(capes[0].vermell), map.hasLayer(capes[4].liniaCad)]), [false, true], 'i el mapa amaga la resta (la línia de la 105 hi és)');
+  await a.selectOption('#filtreEstat', 'tots');
+  const dmap = await obre(ctx, 'd/Coordenades_D.html');
+  eq(await dmap.evaluate(() => document.getElementById('filtreEstat').value), 'avis', '«Només les marcades per revisar»: el mapa s\'obre amb aquest filtre');
+  await dmap.close();
+
   seccio('Validar amb un clic');
   await centra(a, 0);
   let b0 = await capsaVerd(a, 0);

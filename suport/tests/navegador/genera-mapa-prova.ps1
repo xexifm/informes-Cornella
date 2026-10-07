@@ -16,15 +16,20 @@ $env:COORDENADES_TEST = '1'
 if ([string]::IsNullOrEmpty($env:LOCALAPPDATA)) { $env:LOCALAPPDATA = [System.IO.Path]::GetTempPath() }
 . (Join-Path (Split-Path -Parent $PSScriptRoot) (Join-Path '..' (Join-Path 'rutes' 'Coordenades.ps1')))
 
-function _Item($id, [double]$x, [double]$y, [double]$xf, [double]$yf, $prec, $adreca, $act, $tit = '', $adt = '') {
+function _Item($id, [double]$x, [double]$y, [double]$xf, [double]$yf, $prec, $adreca, $act, $tit = '', $adt = '', $dCad = 0.0) {
     $a = Convert-UtmToLatLon $x $y 31 $true
     $b = Convert-UtmToLatLon $xf $yf 31 $true
+    # El punt de la parcel.la al Cadastre: $dCad metres a l'oest de l'Excel (0 =
+    # al mateix punt, encara no corregida).
+    $c = Convert-UtmToLatLon ($x - $dCad) $y 31 $true
     return [pscustomobject]@{
         Id = [string]$id; Zona = (Get-ZonaDeCoord $x $y); Rc = '4091106DF2749A0001XX'
         Adreca = $adreca; Activitat = $act; Titular = $tit; AdrecaTitular = $adt
         XExcel = $x; YExcel = $y; LatExcel = $a.Lat; LonExcel = $a.Lon
         XFacana = $xf; YFacana = $yf; LatFacana = $b.Lat; LonFacana = $b.Lon
         Precisio = $prec
+        Cadastre = [pscustomobject]@{ X = $x - $dCad; Y = $y; Lat = $c.Lat; Lon = $c.Lon }
+        DistCadastre = $dCad; Corregida = ($dCad -ge 1.0)
     }
 }
 
@@ -35,7 +40,8 @@ $items = @(
     (_Item 102 $x0 $y0 ($x0 - 35) ($y0 + 10) 'facana-dubtosa' 'C/ Cadis 1'                  ('CAF' + [char]0x00C8))
     (_Item 103 $x0 $y0 ($x0 + 15) ($y0 - 45) 'facana-aprox'   'C/ Huelva 3'                 'FORN')
     (_Item 104 $x0 $y0 $x0 $y0                'cadastre'       'C/ Falsa 1 </script><b>'     'BOTIGA')
-    (_Item 105 ($x0 + 300) ($y0 + 300) ($x0 + 320) ($y0 + 310) 'facana' ('Pla' + [char]0x00E7 + 'a Catalunya 2') 'PERRUQUERIA')
+    # El 105 ja s'havia corregit: l'Excel es a 25 m del punt del Cadastre.
+    (_Item 105 ($x0 + 300) ($y0 + 300) ($x0 + 320) ($y0 + 310) 'facana' ('Pla' + [char]0x00E7 + 'a Catalunya 2') 'PERRUQUERIA' '' '' 25.0)
     (_Item 106 ($x0 + 300) ($y0 + 300) ($x0 + 280) ($y0 + 290) 'facana' 'Pla Catalunya 4'   'FARMACIA')
 )
 $portals = @(
@@ -46,12 +52,14 @@ $portals = @(
 $base = '2026-08-18 ACTIVITATS.xls'
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 $escriu = {
-    param($sub, $nom, $its, $font)
+    param($sub, $nom, $its, $font, $filtre = 'tots')
     $d = Join-Path $Dir $sub
     New-Item -ItemType Directory -Path $d -Force | Out-Null
-    $h = Build-CoordenadesHtml $its "Base de dades: $font" 'F2 (apilades)' $font $portals
+    $h = Build-CoordenadesHtml $its "Base de dades: $font" 'F2 (apilades)' $font $portals $filtre
     [System.IO.File]::WriteAllText((Join-Path $d $nom), $h, $utf8)
 }
 & $escriu 'a' 'Coordenades_A.html' $items $base
 & $escriu 'b' 'Coordenades_B.html' @($items[0], $items[4]) $base
 & $escriu 'c' 'Coordenades_C.html' $items '2026-10-01 ACTIVITATS.xls'
+# "Nomes les marcades per revisar": s'obre amb aquell filtre.
+& $escriu 'd' 'Coordenades_D.html' $items '2026-10-02 ACTIVITATS.xls' 'avis'

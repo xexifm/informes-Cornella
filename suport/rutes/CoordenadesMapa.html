@@ -42,6 +42,11 @@
   .pin-man { background: #e67e22; border: 1px solid #7e5109; }
   .pin-rev { background: #fff; border: 2px solid #14365c; }
   .pin-red { background: #c0392b; }
+  /* JA CORREGIDA: l'Excel ja no te la coordenada al punt del Cadastre. */
+  .pin-cor { background: #8e44ad; border: 1px solid #5b2c6f; }
+  .pin-pcad { background: #fff; border: 1px solid #555; width: 6px; height: 6px; }
+  tr.corregida td.id { color: #8e44ad; font-weight: bold; }
+  .pop .cor, .targeta .tt-cor { color: #6c3483; font-weight: bold; }
   #llegenda b { color: #14365c; }
   #llegenda { font-size: 12px; color: #444; margin: 4px 14px 10px; line-height: 1.7; }
   #llegenda .n { color: #14365c; font-weight: bold; }
@@ -160,6 +165,9 @@ if (typeof L === 'undefined') {
 var ITEMS   = {{itemsJson}};
 var PORTALS = {{portalsJson}};
 var FONT    = {{fontJson}};
+// Amb quin filtre s'obre ('tots', o 'avis' si a la tria de zones has marcat
+// "Nomes les marcades per revisar").
+var FILTRE_INICIAL = {{filtreJson}};
 var CLAU  = 'coordenades:' + FONT;
 </script>
 <script>
@@ -658,7 +666,8 @@ function classeVerd(i) {
 
 function classeFila(i) {
   var e = estat[i];
-  return (e.revisada ? 'revisada' : '') + (e.origen === 'manual' ? ' moguda' : '') + (teAvis(i) ? ' avis' : '') + (i === sel ? ' sel' : '');
+  return (e.revisada ? 'revisada' : '') + (e.origen === 'manual' ? ' moguda' : '') + (teAvis(i) ? ' avis' : '') +
+         (ITEMS[i].cor ? ' corregida' : '') + (i === sel ? ' sel' : '');
 }
 
 function iconaVerd(i) {
@@ -676,7 +685,7 @@ function popupHtml(i) {
     (it.titular || it.adt ? '<div class="tit">Titular: <b>' + escHtml(it.titular || '(sense nom)') + '</b>' +
       (it.adt ? '<br>Adreça del titular: ' + escHtml(it.adt) : '') + '</div>' : '') +
     '<div>' + escHtml(it.adreca || '(sense adreça)') + '</div>' +
-    '<div class="rc">' + escHtml(it.rc) + '</div>' +
+    '<div class="rc">' + escHtml(it.rc) + '</div>' + textCadastre(i, 'cor') +
     '<table>' +
     '<tr><td><span class="pin pin-red"></span>Excel</td><td>' + it.xe.toFixed(2) + '</td><td>' + it.ye.toFixed(2) + '</td></tr>' +
     '<tr><td>Nova</td><td>' + utm[0].toFixed(2) + '</td><td>' + utm[1].toFixed(2) + '</td></tr>' +
@@ -709,6 +718,13 @@ function avisHtml(i) {
 // dubtes i clico em retorna a la posicio original"). Un clic al verd valida o
 // DESVALIDA (i desvalidar un punt mogut el torna al portal): per mirar-se'l,
 // n'hi ha prou de passar-hi per sobre. Sense botons: nomes es llegeix.
+// Si la coordenada de l'Excel ja s'havia corregit (no es al punt del Cadastre).
+function textCadastre(i, cls) {
+  var it = ITEMS[i];
+  if (it.cor) { return '<div class="' + cls + '">Ja corregida: l\'Excel és a ' + escHtml(String(it.dc)) + ' m del punt del Cadastre</div>'; }
+  return '';
+}
+
 function targetaHtml(i) {
   var it = ITEMS[i], e = estat[i];
   var utm = utmActual(i);
@@ -718,6 +734,7 @@ function targetaHtml(i) {
   if (it.adt) { h += '<br><span class="tt-gris">Titular a: ' + escHtml(it.adt) + '</span>'; }
   if (it.activitat) { h += '<br><span class="tt-gris">' + escHtml(it.activitat) + '</span>'; }
   h += '<br>' + escHtml(it.adreca || '(sense adreça)');
+  h += textCadastre(i, 'tt-cor');
   h += '<br><span class="tt-gris">' + escHtml(textOrigen(e.origen)) + ' &middot; ' + d.toFixed(1) + ' m &middot; ' +
        (e.revisada ? 'validat' : 'pendent') + '</span>';
   if (teAvis(i)) {
@@ -803,8 +820,19 @@ function pinta() {
 
       // Vermell: la coordenada que hi ha ara a l'Excel. NO es pot moure.
       var vermell = L.circleMarker([it.late, it.lone],
-        { radius: 5, color: '#8e2b21', weight: 1, fillColor: '#c0392b', fillOpacity: .95 })
+        { radius: 5, color: voraExcel(idx), weight: 1, fillColor: it.cor ? '#8e44ad' : '#c0392b', fillOpacity: .95 })
         .addTo(map).bindPopup(html);
+
+      // JA CORREGIDA: linia de punts fins al punt de la parcel.la al Cadastre,
+      // i el punt (l'usuari: "que quedi ben clar quines s'han modificat
+      // respecte les coordenades del Cadastre").
+      var liniaCad = null, puntCad = null;
+      if (it.cor && it.latc !== null && it.lonc !== null) {
+        liniaCad = L.polyline([[it.late, it.lone], [it.latc, it.lonc]],
+          { color: '#555', weight: 1.2, opacity: .8, dashArray: '1,4', lineCap: 'round', interactive: false }).addTo(map);
+        puntCad = L.circleMarker([it.latc, it.lonc],
+          { radius: 3, color: '#555', weight: 1, fillColor: '#fff', fillOpacity: 1, interactive: false }).addTo(map);
+      }
 
       // Verd: la coordenada de façana. Aquest sí que es pot arrossegar, i per
       // això ha de ser un L.marker (els circleMarker no són arrossegables).
@@ -844,7 +872,7 @@ function pinta() {
       fila.addEventListener('click', function () { vesA(idx); });
       tbody.appendChild(fila);
 
-      capes[idx] = { verd: verd, vermell: vermell, linia: linia, fila: fila, alMapa: true };
+      capes[idx] = { verd: verd, vermell: vermell, linia: linia, fila: fila, alMapa: true, liniaCad: liniaCad, puntCad: puntCad };
       bounds.push([it.late, it.lone]);
       bounds.push([e.lat, e.lon]);
     })(i);
@@ -855,7 +883,13 @@ function pinta() {
   if (bounds.length > 0) { map.fitBounds(L.latLngBounds(bounds).pad(0.08)); }
   else { map.setView([41.355, 2.073], 14); }
   actualitzaEstatBarra();
+  if (FILTRE_INICIAL && FILTRE_INICIAL !== 'tots') {
+    document.getElementById('filtreEstat').value = FILTRE_INICIAL;
+    aplicaFiltres();
+  }
 }
+
+function voraExcel(i) { return ITEMS[i].cor ? '#5b2c6f' : '#8e2b21'; }
 
 // ---------------------------------------------------------------------------
 // ELS NUMEROS DELS PORTALS (com al planol del Cadastre)
@@ -902,7 +936,8 @@ var FILTRES = [
   ['facana',         'Portal exacte (verd)'],
   ['manual',         'Mogudes per tu (taronja)'],
   ['validades',      'Validades'],
-  ['avis',           'Per revisar (\u26A0)']
+  ['avis',           'Per revisar (\u26A0)'],
+  ['corregides',     'Ja corregides a l\'Excel (lila)']
 ];
 
 // El color del punt: d'on surt, o 'manual' si l'has mogut.
@@ -913,6 +948,7 @@ function passaEstat(i, f) {
   if (f === 'pendents')  { return !estat[i].revisada; }
   if (f === 'validades') { return !!estat[i].revisada; }
   if (f === 'avis')      { return teAvis(i); }
+  if (f === 'corregides') { return !!ITEMS[i].cor; }
   return categoria(i) === f;
 }
 
@@ -940,6 +976,7 @@ function aplicaFiltres() {
     c.fila.style.display = vol ? '' : 'none';
     if (vol === c.alMapa) { continue; }
     var capesPunt = [c.linia, c.vermell, c.verd];
+    if (c.liniaCad) { capesPunt.push(c.liniaCad, c.puntCad); }
     for (var k = 0; k < capesPunt.length; k++) {
       if (vol) { capesPunt[k].addTo(map); } else { map.removeLayer(capesPunt[k]); }
     }
@@ -949,10 +986,11 @@ function aplicaFiltres() {
 
 function actualitzaComptes() {
   var n = { tots: estat.length, pendents: 0, validades: 0, facana: 0,
-            'facana-dubtosa': 0, 'facana-aprox': 0, cadastre: 0, manual: 0, avis: 0 };
+            'facana-dubtosa': 0, 'facana-aprox': 0, cadastre: 0, manual: 0, avis: 0, corregides: 0 };
   for (var i = 0; i < estat.length; i++) {
     if (estat[i].revisada) { n.validades++; } else { n.pendents++; }
     if (teAvis(i)) { n.avis++; }
+    if (ITEMS[i].cor) { n.corregides++; }
     var cat = categoria(i);
     if (n.hasOwnProperty(cat)) { n[cat]++; }
   }
@@ -969,6 +1007,8 @@ function actualitzaComptes() {
   }
   document.getElementById('llegenda').innerHTML =
     fila('pin-red', 'coordenada actual de l\'Excel (fixa)', '') +
+    fila('pin-cor', 'coordenada de l\'Excel JA CORREGIDA: ja no és al punt del Cadastre', 'corregides') +
+    fila('pin-pcad', 'punt de la parcel·la al Cadastre (línia de punts fins a la lila)', '') +
     fila('pin-fac', 'portal amb el número exacte', 'facana') +
     fila('pin-dub', 'portal dubtós: mira\'l', 'facana-dubtosa') +
     fila('pin-apr', 'el portal més proper de la parcel·la', 'facana-aprox') +
@@ -994,7 +1034,7 @@ function pintaSeleccio(i, on) {
   var c = capes[i];
   c.linia.setStyle(on ? { color: '#14365c', weight: 3, opacity: 1, dashArray: null }
                       : { color: '#888', weight: 1, opacity: .8, dashArray: '3,4' });
-  c.vermell.setStyle(on ? { color: '#14365c', weight: 3 } : { color: '#8e2b21', weight: 1 });
+  c.vermell.setStyle(on ? { color: '#14365c', weight: 3 } : { color: voraExcel(i), weight: 1 });
   c.vermell.setRadius(on ? 8 : 5);
   c.verd.setZIndexOffset(on ? 1000 : 0);
   if (on && c.alMapa !== false) { c.linia.bringToFront(); c.vermell.bringToFront(); }

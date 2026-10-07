@@ -36,6 +36,7 @@ if (-not $Script:PlanolHeadless) {
 # Els moduls amb variables que config.ps1 pot sobreescriure van ABANS de
 # Ruta.ps1 (que es qui carrega config.ps1), com a Coordenades.
 . (Join-Path $ScriptRoot 'Cadastre.ps1')
+. (Join-Path $ScriptRoot 'CadastreParceles.ps1')   # el dibuix i el punt de cada parcel.la (compartit amb Coordenades)
 . (Join-Path $ScriptRoot 'Geocodificador.ps1')    # Test-CoordPlausible, els portals de cada parcel.la
 . (Join-Path $ScriptRoot 'PlanolGeometria.ps1')  # l'entrada dins la parcel.la i les parcel.les juntades
 . (Join-Path $ScriptRoot 'PlanolDades.ps1')

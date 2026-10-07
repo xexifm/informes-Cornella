@@ -253,6 +253,19 @@ AssertNear $it.LatExcel  41.363279 0.000001 'lat de l Excel (contrastada amb la 
 AssertNear $it.LonExcel  2.067034  0.000001 'lon de l Excel'
 Assert ($it.LatFacana -ne $it.LatExcel) 'la lat de facana es diferent de la de l Excel'
 AssertEq $it.Titular 'BAR EL RACO SL' 'porta el titular (la rao social)'
+# EL PUNT DEL CADASTRE i "ja corregida" (l'Excel ja no hi es).
+AssertEq "$($null -eq $it.Cadastre)|$($it.Corregida)" 'True|False' 'sense el punt del Cadastre: no se sap, no es corregida'
+$itIgual = New-ItemCoordenades $recs[0] $portals @(421968.39, 4579505.55)
+AssertEq "$($itIgual.Corregida)|$([math]::Round($itIgual.DistCadastre, 2))" 'False|0.3' 'a 0,3 m del punt del Cadastre: no corregida (la tolerancia es d 1 m)'
+$itCor = New-ItemCoordenades $recs[0] $portals @(421988.09, 4579505.55)
+AssertEq "$($itCor.Corregida)|$([math]::Round($itCor.DistCadastre, 1))" 'True|20' 'a 20 m: ja corregida'
+Assert ($itCor.Cadastre.Lat -gt 41 -and $itCor.Cadastre.Lon -gt 2) 'i porta el punt del Cadastre en graus, per al mapa'
+
+Write-Host "`n--- Get-RegistresPerAbast (el filtre de la tria de zones) ---"
+AssertEq (@(Get-RegistresPerAbast $recs 'apilades' | ForEach-Object { $_.Id }) -join ',') '1,2,3,4,5' 'apilades: les que comparteixen punt'
+AssertEq (@(Get-RegistresPerAbast $recs 'noapilades' | ForEach-Object { $_.Id }) -join ',') '6' 'no apilades: la resta'
+AssertEq @(Get-RegistresPerAbast $recs 'totes').Count 6 'totes'
+AssertEq @(Get-RegistresPerAbast @() 'noapilades').Count 0 'cap registre: cap'
 AssertEq (New-ItemCoordenades $recs[1] @()).Titular '' 'sense titular, buit (no peta)'
 
 Write-Host "`n--- Get-ColumnaTitular (la rao social, per al mapa) ---"
@@ -297,6 +310,11 @@ Assert ($html -match 'leaflet')                 'inclou Leaflet'
 Assert ($html -match '"id":"1"')                'inclou l ID de l activitat'
 Assert ($html -match '"titular":"BAR EL RACO SL"') 'inclou el titular'
 Assert ($html -match '"adt":"AV PAISOS CATALANS 5, Esc. B, Pl. 2, Pt. 1"') 'i l adreca del titular'
+Assert ($html.Contains('var FILTRE_INICIAL = "tots";')) 'per defecte el mapa s obre amb tots els punts'
+$htmlCor = Build-CoordenadesHtml @($itCor) 'db' 'abast' 'font.xls' @() 'avis'
+Assert ($htmlCor.Contains('var FILTRE_INICIAL = "avis";')) 'amb "nomes per revisar", s obre amb aquell filtre'
+Assert ($htmlCor -match '"cor":1' -and $htmlCor -match '"dc":20' -and $htmlCor -match '"latc":41\.') 'la ja corregida porta el punt del Cadastre i la distancia'
+Assert ($html -match '"latc":null' -and $html -match '"cor":0') 'sense punt del Cadastre: null, i no corregida'
 Assert ($html -match '421968\.09')              'inclou la coordenada de l Excel'
 Assert ($html -match '421982\.9')               'inclou la coordenada de facana'
 Assert ($html -match 'baixaExcel')              'inclou el boto de baixar l Excel'

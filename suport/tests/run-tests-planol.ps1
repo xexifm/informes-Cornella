@@ -410,7 +410,7 @@ try {
     $g2 = $pq2.Geometries
     AssertEq "$($Script:Crides.Count)|$(@($g2['2295827DF2729E']).Count)|$(@(@($g2['2295827DF2729E'])[0].Anells).Count)" '0|2|2' 'la segona vegada, de la memoria cau i sencera (poligons i forats)'
     AssertEq (@($pq2.Punts['2295827DF2729E']) -join ',') '421975,4579505' '...amb el punt (rellegit del JSON)'
-    AssertEq (_PlanolConsultaParceles).Fitxer 'parceles2.json' 'un fitxer nou: les entrades velles (sense punt) no es donen per bones'
+    AssertEq (_ConsultaParcelesCadastre).Fitxer 'parceles2.json' 'un fitxer nou: les entrades velles (sense punt) no es donen per bones'
     $u = Get-UnitatsCadastre @('2295827DF2729E0011RQ', '2295827DF2729E0003XL')
     AssertEq "$($u['2295827DF2729E0011RQ'].Planta)|$($null -eq $u['2295827DF2729E0003XL'])" '02|True' 'unitats: la que existeix i la que no'
     $Script:Crides.Clear()

@@ -373,6 +373,13 @@ servir això si tens dubtes amb un punt que ja has mogut: un **clic** el
 desvalida i el torna al portal (si et passa, **Ctrl+Z** o «Desfer» ho
 recupera).
 
+**Quines activitats**: a la finestra de triar zones pots triar **només les
+apilades**, **només les NO apilades** o **totes**; **amagar les ja corregides**; o
+obrir **només les marcades per revisar** (de totes les zones). Les que ja estaven
+corregides a l'Excel (ja no són al punt del Cadastre) surten amb el punt
+**lila** i una **línia de punts** fins al punt de la parcel·la al Cadastre, i
+tenen un filtre propi a «Mostra:».
+
 **Punts estranys**: a la fitxa del punt, **«⚠ Marca per revisar»**, amb una nota
 si vols. No el valida ni el mou: queda marcat amb un **!** vermell, i al
 desplegable «Mostra:» hi ha **«Per revisar»** per tornar-hi després. Les marques
