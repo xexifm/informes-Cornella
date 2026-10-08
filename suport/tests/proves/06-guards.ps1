@@ -1020,6 +1020,56 @@ function _SenseComentaris([string]$ruta) {
     return $sb.ToString()
 }
 
+Write-Host "`n--- L'arrencada de les eines de rutes/ (EinaBase.ps1) ---"
+# PER QUE. Les tres eines de rutes/ corren en un proces propi i totes tres
+# carreguen Ruta.ps1 nomes per tenir-ne les funcions, enganyant-lo amb
+# $env:RUTA_TEST = '1'. Si la variable es queda posada, la RESTA del proces es
+# pensa que corre en mode de proves i no obre cap finestra: l'eina no fa res i
+# no peta. Aquell ball estava escrit TRES vegades, identic menys el nom de la
+# variable.
+#
+# EL DOT-SOURCE NO HI POT ENTRAR, i esta MESURAT: ". fitxer.ps1" dins d'una
+# funcio carrega a l'ambit de la FUNCIO i les definicions desapareixen en
+# tornar. Per aixo a cada eina hi queda el ". Ruta.ps1" amb el seu try/finally,
+# i el que es comparteix es la part delicada: el desa/restaura.
+. (Join-Path (Split-Path -Parent $TestsDir) (Join-Path 'rutes' 'EinaBase.ps1'))
+# Cas 1: la variable NO hi era -> s'ha d'ESBORRAR, no deixar-la buida.
+Remove-Item Env:\RUTA_TEST -ErrorAction SilentlyContinue
+$ebPrev = Enter-RutaHeadless
+AssertEq $env:RUTA_TEST '1' 'Enter-RutaHeadless posa RUTA_TEST a 1'
+Exit-RutaHeadless $ebPrev
+Assert ($null -eq $env:RUTA_TEST) 'Exit-RutaHeadless deixa la variable com no hi era'
+# ...I AQUESTA PROVA NO POT VEURE EL DEFECTE, comprovat: al pwsh 7 de Linux
+# "$env:X = $null" ESBORRA la variable, o sigui que escriure Exit-RutaHeadless
+# sense el cas del $null passaria igualment aqui. Al Windows PowerShell 5.1 la
+# deixa BUIDA, que no es el mateix. Es la mateixa classe de trampa que
+# [System.Drawing.Color], que al Linux resol i al 5.1 no. Per tant el cas del
+# $null es vigila sobre la FONT, que es l'unic que diu la veritat a les dues
+# plataformes.
+$ebSrcNull = _SenseComentaris (Join-Path $rootRepo (Join-Path 'suport' (Join-Path 'rutes' 'EinaBase.ps1')))
+Assert ($ebSrcNull -match 'if \(\$null -eq \$prev\)[^}]*Remove-Item Env:\\RUTA_TEST') 'Exit-RutaHeadless ESBORRA la variable si abans no hi era (al 5.1, assignar-hi $null la deixaria BUIDA)'
+# Cas 2: la variable hi era amb un valor propi -> s'ha de tornar TAL QUAL.
+$env:RUTA_TEST = 'valor-de-l-usuari'
+$ebPrev = Enter-RutaHeadless
+AssertEq $env:RUTA_TEST '1' 'Enter-RutaHeadless la posa a 1 encara que ja hi fos'
+Exit-RutaHeadless $ebPrev
+AssertEq $env:RUTA_TEST 'valor-de-l-usuari' 'Exit-RutaHeadless torna el valor que hi havia'
+Remove-Item Env:\RUTA_TEST -ErrorAction SilentlyContinue
+# I que les tres eines hi passin, amb el try/finally: sense ell, si Ruta.ps1
+# peta carregant-se la variable es queda posada i el proces segueix mut.
+foreach ($nom in @('Precintades.ps1', 'Planol.ps1', 'Coordenades.ps1')) {
+    $t = _SenseComentaris (Join-Path $rootRepo (Join-Path 'suport' (Join-Path 'rutes' $nom)))
+    Assert ($t -match 'try \{ \. \(Join-Path \$ScriptRoot ''Ruta\.ps1''\) \} finally \{ Exit-RutaHeadless \$prevRuta \}') "$nom carrega Ruta.ps1 amb Enter/Exit-RutaHeadless i try/finally"
+    Assert (-not ($t -match 'Remove-Item Env:\\RUTA_TEST')) "$nom no es torna a escriure el desa/restaura pel seu compte"
+}
+# El fitxer comu NOMES DEFINEIX (el carreguen tres eines en tres processos).
+$ebSrc = _SenseComentaris (Join-Path $rootRepo (Join-Path 'suport' (Join-Path 'rutes' 'EinaBase.ps1')))
+# Sense SANGRIA: el que compta es que no s'executi res AL NIVELL SUPERIOR. Dins
+# d'una funcio, l'Add-Type hi es a posta (Initialize-EinaWinForms). La primera
+# versio d'aquest assert mirava '^\s*' i s'enganxava al cos de la funcio.
+$ebTopLevel = @([regex]::Matches($ebSrc, '(?m)^(?![\s}])(?!function\b)\S.*$') | ForEach-Object { $_.Value.Trim() })
+AssertEq ($ebTopLevel -join ' | ') '' 'EinaBase.ps1 nomes defineix funcions (res al nivell superior)'
+
 Write-Host "`n--- Coses que no tenien un sol lloc (guards) ---"
 # 1. LA BASE D'INFORMES. "informes-db.json" es construia a CINC llocs amb el seu
 #    Join-Path (InformesEscaneig, Informes, ComprovarExcel, Recordatoris i

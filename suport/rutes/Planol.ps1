@@ -29,11 +29,8 @@ $ScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $SuportDir  = Split-Path -Parent $ScriptRoot          # suport/
 $RepoRoot   = Split-Path -Parent $SuportDir           # informes-Cornella/
 
-if (-not $Script:PlanolHeadless) {
-    Add-Type -AssemblyName System.Windows.Forms
-    Add-Type -AssemblyName System.Drawing
-    [System.Windows.Forms.Application]::EnableVisualStyles()
-}
+. (Join-Path $ScriptRoot 'EinaBase.ps1')   # el comu de l'arrencada; nomes defineix
+if (-not $Script:PlanolHeadless) { Initialize-EinaWinForms }
 
 # Els moduls amb variables que config.ps1 pot sobreescriure van ABANS de
 # Ruta.ps1 (que es qui carrega config.ps1), com a Coordenades.
@@ -52,17 +49,8 @@ if (-not $Script:PlanolHeadless) {
 # Ruta.ps1 en mode headless: nomes en volem les funcions (cerca de l'Excel,
 # Find-HeaderColumn, conversio UTM, format d'adreca) i que carregui config.ps1,
 # Excel.ps1, Json.ps1, UiFinestra.ps1...
-$Script:_prevRutaTestPlanol = $env:RUTA_TEST
-$env:RUTA_TEST = '1'
-try {
-    . (Join-Path $ScriptRoot 'Ruta.ps1')
-} finally {
-    if ($null -eq $Script:_prevRutaTestPlanol) {
-        Remove-Item Env:\RUTA_TEST -ErrorAction SilentlyContinue
-    } else {
-        $env:RUTA_TEST = $Script:_prevRutaTestPlanol
-    }
-}
+$prevRuta = Enter-RutaHeadless
+try { . (Join-Path $ScriptRoot 'Ruta.ps1') } finally { Exit-RutaHeadless $prevRuta }
 
 . (Join-Path $ScriptRoot 'MapaHtml.ps1')
 . (Join-Path (Split-Path -Parent $ScriptRoot) 'SegonPla.ps1')   # la copia per al mobil (mobil/PujaPlanol.ps1)

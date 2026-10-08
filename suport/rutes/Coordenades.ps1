@@ -55,11 +55,8 @@ $RepoRoot   = Split-Path -Parent $SuportDir           # informes-Cornella/
 # WinForms el carreguem AQUI i no ho deixem en mans de Ruta.ps1: el carregarem
 # en mode headless (RUTA_TEST) expressament perque no obri la seva finestra, i
 # en aquest mode ell no fa cap Add-Type.
-if (-not $Script:CoordHeadless) {
-    Add-Type -AssemblyName System.Windows.Forms
-    Add-Type -AssemblyName System.Drawing
-    [System.Windows.Forms.Application]::EnableVisualStyles()
-}
+. (Join-Path $ScriptRoot 'EinaBase.ps1')   # el comu de l'arrencada; nomes defineix
+if (-not $Script:CoordHeadless) { Initialize-EinaWinForms }
 
 # ----------------------------------------------------------------------------
 # Modul de facanes. Es carrega ABANS de Ruta.ps1 EXPRESSAMENT: Ruta.ps1 es qui
@@ -81,17 +78,8 @@ if (-not $Script:CoordHeadless) {
 # defineixi funcions i no obri la seva finestra ni executi la seva Main.
 # Restaurem la variable d'entorn despres per no afectar la resta del proces.
 # ----------------------------------------------------------------------------
-$Script:_prevRutaTestCoord = $env:RUTA_TEST
-$env:RUTA_TEST = '1'
-try {
-    . (Join-Path $ScriptRoot 'Ruta.ps1')
-} finally {
-    if ($null -eq $Script:_prevRutaTestCoord) {
-        Remove-Item Env:\RUTA_TEST -ErrorAction SilentlyContinue
-    } else {
-        $env:RUTA_TEST = $Script:_prevRutaTestCoord
-    }
-}
+$prevRuta = Enter-RutaHeadless
+try { . (Join-Path $ScriptRoot 'Ruta.ps1') } finally { Exit-RutaHeadless $prevRuta }
 
 # L'"Excel per importar" (una copia de la base amb les coordenades corregides
 # en vermell). Nomes defineix funcions.

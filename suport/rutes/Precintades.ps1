@@ -45,17 +45,9 @@ $RepoRoot   = Split-Path -Parent $SuportDir           # informes-Cornella/
 # no obri la seva finestra ni executi la seva Main. Restaurem la variable
 # d'entorn despres de carregar-lo per no afectar la resta del proces.
 # ----------------------------------------------------------------------------
-$Script:_prevRutaTest = $env:RUTA_TEST
-$env:RUTA_TEST = '1'
-try {
-    . (Join-Path $ScriptRoot 'Ruta.ps1')
-} finally {
-    if ($null -eq $Script:_prevRutaTest) {
-        Remove-Item Env:\RUTA_TEST -ErrorAction SilentlyContinue
-    } else {
-        $env:RUTA_TEST = $Script:_prevRutaTest
-    }
-}
+. (Join-Path $ScriptRoot 'EinaBase.ps1')   # el comu de l'arrencada; nomes defineix
+$prevRuta = Enter-RutaHeadless
+try { . (Join-Path $ScriptRoot 'Ruta.ps1') } finally { Exit-RutaHeadless $prevRuta }
 
 # Carpeta de sortida: docs/dades (GitHub Pages la serveix des de /docs).
 $WebDadesDir = Join-Path $RepoRoot (Join-Path 'docs' 'dades')
