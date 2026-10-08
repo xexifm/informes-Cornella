@@ -1036,9 +1036,13 @@ function Select-Mode {
     $tmrAuto.add_Tick({
         foreach ($m in @($modesAuto.Values)) { [void](& $m.SiToca) }
         foreach ($a in @($autos)) { & $refrescaAuto $a }
+        # Els recordatoris que la tasca del Windows ha deixat a Esborranys de
+        # l'Outlook (CorreuVia.ps1): ningu no els veu si el programa no ho diu.
+        Show-AvisEsborranysSiCal
     }.GetNewClosure())
     $form.add_Shown({
         foreach ($m in @($modesAuto.Values)) { [void](& $m.SiToca) }
+        Show-AvisEsborranysSiCal
         $tmrAuto.Start()
     }.GetNewClosure())
     # El rellotge MOR AMB LA FINESTRA: un Timer viu que dispari sobre controls

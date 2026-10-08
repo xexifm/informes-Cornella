@@ -673,11 +673,25 @@ pot transmetre l'activitat mentre hi hagi un expedient obert).
 > **EmailJS o l'Outlook.** A **⚙ Configuració** (requadre *Correus que s'envien
 > des d'aquest PC*) o al desplegable **Enviar amb:** de la finestra d'*Enviar
 > correu* pots triar per on surten els correus d'aquest PC: **EmailJS** (com
-> sempre), **Outlook: el deixa a Esborranys** (no s'envia res, és per veure com
-> queda) o **Outlook: envia el correu** (surt de la teva bústia, sense límit de
-> 200). Cal l'Outlook clàssic; el «nou Outlook» no serveix. Els recordatoris
-> **automàtics** van sempre per EmailJS. Si l'Outlook dona problemes (un avís de
-> seguretat, o informàtica no ho deixa), torna a EmailJS i ja està.
+> sempre), **Outlook: el deixa a Esborranys** (no s'envia res: el revises i
+> l'envies tu) o **Outlook: envia el correu** (surt de la teva bústia, sense
+> límit de 200). Cal l'Outlook clàssic; el «nou Outlook» no serveix. Si l'Outlook
+> dona problemes (un avís de seguretat, o informàtica no ho deixa), torna a
+> EmailJS i ja està.
+>
+> Els recordatoris **automàtics** també segueixen aquesta tria. Si els deixen a
+> Esborranys, **el programa t'avisa en obrir-lo** (i si ja és obert, al cap d'un
+> minut) amb la llista: respon *Sí* quan ja els hagis enviat. Compte: un
+> recordatori desat a Esborranys ja consta com a fet; si l'esborres sense
+> enviar-lo, aquell titular no el rebrà fins al període següent.
+>
+> **Des de quina adreça.** Al mateix requadre, a **Des de (Outlook)**, tria
+> l'adreça per defecte i ja no l'hauràs de canviar a cada correu. El botó
+> *Comptes de l'Outlook* et posa a la llista els comptes que tens a l'Outlook;
+> si envies des d'una bústia compartida (que no hi surt), escriu-ne l'adreça
+> (cal que informàtica t'hi hagi donat permís d'enviar). En blanc, surt del
+> compte per defecte de l'Outlook. Val per a *Enviar correu*, *Recordatoris* i
+> *Controls periòdics*. Amb EmailJS no compta.
 
 > **Compte amb la base desfasada.** Si la base d'informes és vella, escriuries a
 > gent que ja ha complert. La finestra t'ho avisa en vermell a partir de 30 dies,

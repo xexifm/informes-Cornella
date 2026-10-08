@@ -67,8 +67,8 @@ try {
         if ($toca.Count -eq 0) { continue }
 
         $res = Invoke-RecordatorisTanda $clau $toca $true
-        $totalEnviats += [int]$res.Enviats
-        _RecLog ("${clau}: enviats=$($res.Enviats) fallats=$($res.Fallats) " +
+        $totalEnviats += [int]$res.Enviats + [int]$res.Esborranys
+        _RecLog ("${clau}: enviats=$($res.Enviats) esborranys=$($res.Esborranys) fallats=$($res.Fallats) " +
                  "sense_correu=$($res.SenseCorreu)" + $(if ($res.Aturat) { " ATURAT: $($res.Motiu)" } else { '' }))
         # L'historial l'acaba d'escriure la tanda: el rellegim perquè la campanya
         # següent no treballi amb una còpia vella.
@@ -77,7 +77,7 @@ try {
     }
 
     $q = _QuotaLlegeix
-    _RecLog "Final: $totalEnviats correus enviats. Quota: $($q.enviats)/$($q.limit)."
+    _RecLog "Final: $totalEnviats correus enviats o desats a Esborranys ($(_CorreuViaText (Get-CorreuVia))). Quota d'EmailJS: $($q.enviats)/$($q.limit)."
     exit 0
 } catch {
     _RecLog ("ERROR no controlat: " + $_.Exception.Message + ' @ ' +

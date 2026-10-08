@@ -166,13 +166,14 @@ function Invoke-ControlsCpEmailDrafts($rows) {
 
     $ok = 0; $senseCorreu = New-Object System.Collections.ArrayList
     $err = 0; $errDetalls = New-Object System.Collections.ArrayList; $cancelled = $false
-    $outlook = $null
+    $ses = $null
     try {
-        # L'Outlook s'obre en un sol lloc (New-OutlookApp, CorreuVia.ps1).
-        $outlook = New-OutlookApp
-        if ($null -eq $outlook) {
+        # La mateixa sessio que Enviar correu i Recordatoris (CorreuVia.ps1): un
+        # sol lloc obre l'Outlook i hi posa el remitent de Configuracio. Aqui
+        # SEMPRE a Esborranys, triis la via que triis: l'usuari els revisa.
+        try { $ses = Open-CorreuSessio 'outlook-esborrany' } catch {
             try { $form.Close() } catch { }
-            [System.Windows.Forms.MessageBox]::Show("No s'ha pogut iniciar Microsoft Outlook.", 'Enviar correu', 'OK', 'Error') | Out-Null
+            [System.Windows.Forms.MessageBox]::Show([string]$_.Exception.Message, 'Enviar correu', 'OK', 'Error') | Out-Null
             return
         }
 
@@ -187,26 +188,18 @@ function Invoke-ControlsCpEmailDrafts($rows) {
             $rec = _ControlsCpRecipients $r.RaoEmail $r.RepEmail
             if (-not $rec.Ok) { [void]$senseCorreu.Add("GIA $($r.Id) - $($r.RaoSocial)"); continue }
 
-            $mail = $null
             try {
-                $mail = $outlook.CreateItem(0)   # olMailItem
-                $mail.To = $rec.To
-                if ($rec.Cc) { $mail.CC = $rec.Cc }
-                $mail.Subject = (_FillControlsCpPh $assTpl $r)
-                $mail.HTMLBody = (_CosAHtml (_FillControlsCpPh $cosTpl $r))
-                $mail.Save()   # queda a Esborranys; MAI Send()
+                Send-CorreuSessio $ses $rec.To '' (_FillControlsCpPh $assTpl $r) (_CosAHtml (_FillControlsCpPh $cosTpl $r)) $rec.Cc
                 $ok++
             } catch {
                 $err++; [void]$errDetalls.Add("GIA $($r.Id): $($_.Exception.Message)")
-            } finally {
-                if ($null -ne $mail) { try { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($mail) | Out-Null } catch { } }
             }
         }
     } finally {
         $cancel.Running = $false
         try { $form.Close() } catch { }
-        # NO fem $outlook.Quit() (podria tancar l'Outlook de l'usuari); nomes alliberem.
-        if ($null -ne $outlook) { try { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($outlook) | Out-Null } catch { } }
+        # NO es fa Quit() de l'Outlook (podria tancar el de l'usuari); nomes s'allibera.
+        Close-CorreuSessio $ses
     }
 
     $titol = if ($cancelled) { 'Preparació cancel·lada' } else { 'Esborranys preparats' }

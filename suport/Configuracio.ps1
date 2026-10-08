@@ -74,7 +74,7 @@ function Invoke-ConfiguracioScreen {
     $xEsq = 14; $xDre = 542; $amplCol = 514; $yTop = 66
     # Les carpetes acaben a $fiCarp; a sota, el grup dels correus.
     $fiCarp = 566
-    $fiEsq = $fiCarp + 8 + 64
+    $fiEsq = $fiCarp + 8 + 100
     $nAuto = @($Script:ProgramacionsAuto.Keys).Count
     $altAuto = 72 + 30 * $nAuto
     $altGrpAuto = [math]::Max(($altAuto - 8), ($fiEsq - $yTop - 104))
@@ -119,15 +119,50 @@ function Invoke-ConfiguracioScreen {
     $grpCorreu = New-Object System.Windows.Forms.GroupBox
     $grpCorreu.Text = "Correus que s'envien des d'aquest PC"
     $grpCorreu.Location = New-Object System.Drawing.Point($xEsq, ($fiCarp + 8))
-    $grpCorreu.Size = New-Object System.Drawing.Size($amplCol, 64)
+    $grpCorreu.Size = New-Object System.Drawing.Size($amplCol, 100)
     $grpCorreu.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left
     $cbCorreuVia = Add-CorreuViaCombo $grpCorreu 12 24 250 $effCorreuVia
     $lblCorreuNota = New-Object System.Windows.Forms.Label
-    $lblCorreuNota.Text = "Enviar correu i Recordatoris (a m" + [char]0x00E0 + "). Els recordatoris autom" + [char]0x00E0 + "tics, sempre per EmailJS."
-    $lblCorreuNota.Location = New-Object System.Drawing.Point(270, 20)
-    $lblCorreuNota.Size = New-Object System.Drawing.Size(236, 36)
+    $lblCorreuNota.Text = "Enviar correu i Recordatoris (tamb" + [char]0x00E9 + " els autom" + [char]0x00E0 + "tics)."
+    $lblCorreuNota.Location = New-Object System.Drawing.Point(270, 22)
+    $lblCorreuNota.Size = New-Object System.Drawing.Size(236, 30)
     $lblCorreuNota.ForeColor = [System.Drawing.Color]::FromArgb(90, 90, 90)
     [void]$grpCorreu.Controls.Add($lblCorreuNota)
+    # EL REMITENT (l'usuari: "a la feina puc enviar des d'adreces diferents;
+    # com ho puc seleccionar per no haver de canviar-la a tots els correus?").
+    # Editable: una bustia compartida no surt als comptes i s'escriu a ma.
+    $lblRem = New-Object System.Windows.Forms.Label
+    $lblRem.Text = 'Des de (Outlook):'
+    $lblRem.Location = New-Object System.Drawing.Point(12, 63)
+    $lblRem.Size = New-Object System.Drawing.Size(104, 20)
+    [void]$grpCorreu.Controls.Add($lblRem)
+    $cbRem = New-Object System.Windows.Forms.ComboBox
+    $cbRem.DropDownStyle = 'DropDown'
+    $cbRem.Location = New-Object System.Drawing.Point(118, 60)
+    $cbRem.Size = New-Object System.Drawing.Size(238, 24)
+    $cbRem.Text = ([string](_PropInf $current 'CorreuRemitent')).Trim()
+    [void]$grpCorreu.Controls.Add($cbRem)
+    $btnComptes = New-Object System.Windows.Forms.Button
+    $btnComptes.Text = "Comptes de l'Outlook"
+    $btnComptes.Location = New-Object System.Drawing.Point(362, 58)
+    $btnComptes.Size = New-Object System.Drawing.Size(140, 28)
+    _StyleSecondaryButton $btnComptes
+    $btnComptes.add_Click({
+        try { $comptes = Get-OutlookComptes } catch {
+            [System.Windows.Forms.MessageBox]::Show([string]$_.Exception.Message, 'Comptes de l''Outlook', 'OK', 'Warning') | Out-Null
+            return
+        }
+        $cbRem.Items.Clear()
+        foreach ($c in @($comptes)) { [void]$cbRem.Items.Add($c) }
+        if ($cbRem.Items.Count -eq 0) {
+            [System.Windows.Forms.MessageBox]::Show("L'Outlook no t" + [char]0x00E9 + " cap compte amb adre" + [char]0x00E7 + "a. Si envies des d'una b" + [char]0x00FA + "stia compartida, escriu-ne l'adre" + [char]0x00E7 + "a.", 'Comptes de l''Outlook', 'OK', 'Information') | Out-Null
+            return
+        }
+        $cbRem.DroppedDown = $true
+    }.GetNewClosure())
+    [void]$grpCorreu.Controls.Add($btnComptes)
+    $ttRem = New-Object System.Windows.Forms.ToolTip
+    $ttRem.SetToolTip($cbRem, ("Buit = el compte per defecte de l'Outlook. Una b" + [char]0x00FA + "stia compartida s'escriu a m" + [char]0x00E0 + " (cal tenir-hi perm" + [char]0x00ED + "s). Amb EmailJS no compta."))
 
     # ---- Automatismes (octubre 2026) ----------------------------------
     # L'usuari: "aquests automatismes, com son ja uns quants, haurien de ser
@@ -277,11 +312,17 @@ function Invoke-ConfiguracioScreen {
             $c.Hora.Value = (Get-Date).Date.AddHours([int]$hm[0]).AddMinutes([int]$hm[1])
         }
         $cbCorreuVia.SelectedIndex = 0
+        $cbRem.Text = ''
     }.GetNewClosure())
 
     $btnTancar.add_Click({ $form.Close() }.GetNewClosure())
 
     $btnDesar.add_Click({
+        $remitent = $cbRem.Text.Trim()
+        if (-not (_CorreuRemitentValid $remitent)) {
+            [System.Windows.Forms.MessageBox]::Show(("'" + $remitent + "' no " + [char]0x00E9 + "s una adre" + [char]0x00E7 + "a de correu. Deixa-ho en blanc per fer servir el compte per defecte de l'Outlook."), 'Configuracio', 'OK', 'Warning') | Out-Null
+            return
+        }
         $values = @{
             InformesDir      = $tbInformes.Text.Trim()
             ActivitatsDir    = $tbActivitats.Text.Trim()
@@ -303,6 +344,7 @@ function Invoke-ConfiguracioScreen {
         # Aquest "Desar" reescriu settings.json sencer: la via dels correus hi
         # ha de ser, si no es perdria (nomes si no es la per defecte).
         $overrides = _SettingsAmbCorreuVia $overrides (_CorreuViaDelCombo $cbCorreuVia)
+        $overrides = _SettingsAmbClau $overrides 'CorreuRemitent' $remitent
         if (-not (Save-AppSettings $overrides)) {
             [System.Windows.Forms.MessageBox]::Show("No s'ha pogut desar la configuracio.", 'Configuracio', 'OK', 'Error') | Out-Null
             return

@@ -1094,6 +1094,96 @@ try {
     AssertEq ($cvLog -join ',') 'send:a@x.cat' 'Outlook: envia'
     AssertEq $cvSes.Enviats 1 'Outlook: compta els enviats'
     Assert ((_CorreuSessioError $cvSes ([System.Management.Automation.ErrorRecord]::new((New-Object Exception 'bloquejat'), 'x', 'NotSpecified', $null))) -like '*Outlook*bloquejat*') 'Outlook: l''error diu que ha fallat l''Outlook i per que'
+
+    # --- El remitent (octubre 2026) ---
+    $cvS = _SettingsAmbClau ([pscustomobject]@{ CorreuVia = 'outlook'; InformesDir = 'F:\x' }) 'CorreuRemitent' ' activitats@x.cat '
+    AssertEq $cvS['CorreuRemitent'] 'activitats@x.cat' 'remitent: es desa net'
+    AssertEq $cvS['CorreuVia'] 'outlook' 'remitent: no trepitja la via'
+    AssertEq $cvS['InformesDir'] 'F:\x' 'remitent: no trepitja les carpetes'
+    Assert (-not (_SettingsAmbClau $cvS 'CorreuRemitent' '').Contains('CorreuRemitent')) 'remitent buit -> no s''escriu (el compte per defecte)'
+    Assert (_CorreuRemitentValid '') 'remitent buit es valid (el per defecte)'
+    Assert (_CorreuRemitentValid 'activitats@cornella.cat') 'remitent: una adreca'
+    Assert (-not (_CorreuRemitentValid 'activitats')) 'remitent: sense @ no'
+    Assert (-not (_CorreuRemitentValid 'a@x.cat; b@x.cat')) 'remitent: nomes UNA adreca'
+    AssertEq (_CorreuRemitentText 'emailjs' 'a@x.cat') '' 'remitent: amb EmailJS no es diu (no compta)'
+    AssertEq (_CorreuRemitentText 'outlook' 'a@x.cat') 'des de a@x.cat' 'remitent: amb l''Outlook es diu'
+    Assert ((_CorreuRemitentText 'outlook-esborrany' '') -like '*per defecte*') 'remitent buit: el compte per defecte'
+
+    # Un compte de l'Outlook -> SendUsingAccount; una altra adreca (bustia
+    # compartida) -> SentOnBehalfOfName.
+    $cvCompte = [pscustomobject]@{ SmtpAddress = 'Activitats@X.cat' }
+    $cvOl2 = [pscustomobject]@{ Session = [pscustomobject]@{ Accounts = @([pscustomobject]@{ SmtpAddress = 'jo@x.cat' }, $cvCompte) } }
+    Assert ([object]::ReferenceEquals((_OutlookTriaCompte $cvOl2 'activitats@x.cat'), $cvCompte)) 'remitent: troba el compte (sense distingir majuscules)'
+    Assert ($null -eq (_OutlookTriaCompte $cvOl2 'compartida@x.cat')) 'remitent: una bustia compartida no es un compte'
+    Assert ($null -eq (_OutlookTriaCompte $cvOl2 '')) 'remitent buit: cap compte'
+    $cvM = [pscustomobject]@{ SendUsingAccount = $null; SentOnBehalfOfName = '' }
+    _OutlookPosaRemitent $cvM $cvCompte 'activitats@x.cat'
+    Assert ([object]::ReferenceEquals($cvM.SendUsingAccount, $cvCompte)) 'remitent: compte -> SendUsingAccount'
+    AssertEq $cvM.SentOnBehalfOfName '' 'remitent: compte -> no en nom d''altri'
+    $cvM = [pscustomobject]@{ SendUsingAccount = $null; SentOnBehalfOfName = '' }
+    _OutlookPosaRemitent $cvM $null 'compartida@x.cat'
+    AssertEq $cvM.SentOnBehalfOfName 'compartida@x.cat' 'remitent: bustia compartida -> SentOnBehalfOfName'
+    $cvM = [pscustomobject]@{ SendUsingAccount = $null; SentOnBehalfOfName = '' }
+    _OutlookPosaRemitent $cvM $null ''
+    Assert ($null -eq $cvM.SendUsingAccount -and $cvM.SentOnBehalfOfName -eq '') 'remitent buit: no es toca res'
+
+    # La sessio hi posa el remitent i el CC (Controls periodics) a cada correu.
+    $cvLog.Clear()
+    $cvNouItem = {
+        $it = [pscustomobject]@{ To = ''; CC = ''; BCC = ''; Subject = ''; HTMLBody = ''; SendUsingAccount = $null; SentOnBehalfOfName = '' }
+        $it | Add-Member ScriptMethod Save { [void]$cvLog.Add('save:' + $this.To + '|cc=' + $this.CC + '|de=' + $this.SentOnBehalfOfName) }
+        $it | Add-Member ScriptMethod Send { [void]$cvLog.Add('send:' + $this.To) }
+        return $it
+    }
+    $cvSes = @{ Via = 'outlook-esborrany'; Cfg = $null; Outlook = $cvOl; JaObert = $true; Desats = 0; Enviats = 0; Remitent = 'compartida@x.cat'; Compte = $null }
+    Send-CorreuSessio $cvSes 'titular@x.cat' '' 'Assumpte' '<p>hola</p>' 'rep@x.cat'
+    AssertEq ($cvLog -join ',') 'save:titular@x.cat|cc=rep@x.cat|de=compartida@x.cat' 'sessio: remitent i CC a l''esborrany'
+
+    # Tancar: si l'Outlook l'hem obert nosaltres, envia i espera la Safata de sortida.
+    $cvLog.Clear()
+    $cvSessio = [pscustomobject]@{}
+    $cvSessio | Add-Member ScriptMethod SendAndReceive { param($b) [void]$cvLog.Add('sendreceive') }
+    $cvSessio | Add-Member ScriptMethod GetDefaultFolder { param($n) [void]$cvLog.Add("carpeta:$n"); return [pscustomobject]@{ Items = [pscustomobject]@{ Count = 0 } } }
+    $cvSes = @{ Via = 'outlook'; Outlook = [pscustomobject]@{ Session = $cvSessio }; JaObert = $false; Enviats = 1; Compte = $null }
+    Close-CorreuSessio $cvSes 2
+    AssertEq ($cvLog -join ',') 'sendreceive,carpeta:4' 'tancar: envia i mira la Safata de sortida'
+    Assert ($null -eq $cvSes.Outlook) 'tancar: allibera l''Outlook'
+    $cvLog.Clear()
+    $cvSes = @{ Via = 'outlook-esborrany'; Outlook = [pscustomobject]@{ Session = $cvSessio }; JaObert = $false; Enviats = 0; Compte = $null }
+    Close-CorreuSessio $cvSes 2
+    AssertEq ($cvLog -join ',') '' 'tancar: nomes esborranys -> no envia res'
+
+    # --- Els esborranys pendents (els de la tasca automatica) ---
+    $cvQuan = [datetime]'2026-10-08 13:00'
+    $cvP = _EsborranysAmbNous @() 'Recordatoris (Requeriments)' @('GIA 1 - A (a@x.cat)', 'GIA 2 - B (b@x.cat)') $cvQuan
+    AssertEq @($cvP).Count 1 'esborranys: una tanda'
+    AssertEq @($cvP[0].correus).Count 2 'esborranys: els dos correus'
+    AssertEq @(_EsborranysAmbNous $cvP 'x' @() $cvQuan).Count 1 'esborranys: una tanda buida no s''apunta'
+    $cvP2 = _EsborranysAmbNous $cvP 'Recordatoris (Precintes)' @('GIA 3 - C (c@x.cat)') $cvQuan.AddDays(1)
+    AssertEq @($cvP2).Count 2 'esborranys: s''acumulen fins que es diu que s''han enviat'
+    $cvTxt = _EsborranysAvisText $cvP2
+    Assert ($cvTxt.Contains('Hi ha 3 correus')) 'avis esborranys: quants'
+    Assert ($cvTxt.Contains('2026-10-09 13:00 - Recordatoris (Precintes): 1')) 'avis esborranys: quan i de quina campanya'
+    Assert ($cvTxt.Contains('GIA 2 - B (b@x.cat)')) 'avis esborranys: a qui'
+
+    # Anada i tornada AMB EL JSON PEL MIG (on aquest projecte s'ha trencat sempre).
+    $cvTmp = Join-Path ([System.IO.Path]::GetTempPath()) ('cv-' + [guid]::NewGuid().ToString('N'))
+    $cvAbans = $env:LOCALAPPDATA
+    try {
+        $env:LOCALAPPDATA = $cvTmp
+        AssertEq (Get-CorreuEsborranysPendents).Count 0 'esborranys: sense fitxer, cap'
+        Add-CorreuEsborranysPendents 'Recordatoris (Requeriments)' @('GIA 1 - A (a@x.cat)')
+        Add-CorreuEsborranysPendents 'Recordatoris (Precintes)' @('GIA 2 - B (b@x.cat)', 'GIA 3 - C (c@x.cat)')
+        $cvG = Get-CorreuEsborranysPendents
+        AssertEq $cvG.Count 2 'esborranys (JSON): les dues tandes'
+        AssertEq @($cvG[1].correus).Count 2 'esborranys (JSON): els correus de la segona'
+        AssertEq @($cvG[0].correus).Count 1 'esborranys (JSON): una tanda d''UN correu segueix sent una llista'
+        Clear-CorreuEsborranysPendents
+        AssertEq (Get-CorreuEsborranysPendents).Count 0 'esborranys: "ja els he enviat" les buida'
+    } finally {
+        if ($null -eq $cvAbans) { Remove-Item Env:LOCALAPPDATA -ErrorAction SilentlyContinue } else { $env:LOCALAPPDATA = $cvAbans }
+        Remove-Item -LiteralPath $cvTmp -Recurse -Force -ErrorAction SilentlyContinue
+    }
 } catch {
     Assert $false ("bloc CorreuVia: excepcio " + $_.Exception.Message)
 }

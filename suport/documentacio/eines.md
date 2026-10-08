@@ -333,16 +333,46 @@ viu a **`suport/CorreuVia.ps1`**. Tres vies (`$Script:CorreuVies`):
   poden fer peticions HTTP, `09-normativa.ps1`).
 - **Només Outlook clàssic**: el «nou Outlook» de Windows no es pot controlar per
   COM. Si no hi és, el missatge diu de tornar a EmailJS a Configuració.
-- **Per què «de proves» i no per defecte**: l'enviament directe pot fer saltar
-  l'avís de seguretat de l'Outlook («un programa intenta enviar correu») o el
-  pot bloquejar la política d'informàtica. Desar esborranys no el fa saltar (per
-  això Controls periòdics només en desa).
-- **Els recordatoris AUTOMÀTICS van sempre per EmailJS**: la tasca del Windows
-  corre sense ningú davant i, amb l'Outlook, només funciona amb la sessió
-  iniciada i l'Outlook obert. Els **manuals** sí que segueixen la via triada; en
-  mode esborrany **no s'apunten a l'historial** (no han sortit) i el resum diu
-  quants s'han desat. La quota i la pausa entre enviaments només compten amb
-  EmailJS.
+- **Per què EmailJS segueix sent el per defecte**: l'enviament directe per
+  l'Outlook pot fer saltar l'avís de seguretat («un programa intenta enviar
+  correu») o el pot bloquejar la política d'informàtica. Desar esborranys no el
+  fa saltar (per això Controls periòdics només en desa: hi ha guard que no
+  obri la sessió en cap altre mode ni faci cap `.Send()`).
+- **Els recordatoris, també els AUTOMÀTICS, segueixen la via triada** (primer
+  anaven sempre per EmailJS; l'usuari: *«vull que Recordatoris també funcioni
+  amb Outlook, que salti un avís al programa que els correus estan a
+  Esborranys»*). La tasca del Windows corre amb la sessió iniciada, que és el
+  que l'Outlook necessita. Si l'Outlook no era obert, en acabar se li demana
+  `SendAndReceive` i s'espera (fins a 60 s) que la Safata de sortida es buidi.
+- **Un recordatori desat a Esborranys CONSTA a l'historial**, com un d'enviat.
+  La primera versió no l'hi apuntava (raonament: no ha sortit), però amb
+  l'automàtic això vol dir que **l'endemà la tasca en tornaria a desar un altre**
+  per al mateix titular, i així cada dia. Que s'acabin enviant ho vigila
+  l'avís dels esborranys pendents.
+- **L'avís dels esborranys pendents** (`Add-` / `Get-` / `Clear-CorreuEsborranysPendents`
+  i `Show-AvisEsborranysSiCal`, `CorreuVia.ps1`): la tanda **automàtica** apunta
+  els que ha desat a `%LOCALAPPDATA%\InformesCornella\correus-esborranys.json`
+  (porten noms i adreces: mai al repositori), i el **menu** ho avisa en obrir-se
+  i al seu rellotge de cada minut (la tasca en pot deixar amb el programa
+  obert). *Sí* = ja els he enviat (es buida); *No* = calla fins que n'arribin de
+  nous. Els manuals no s'hi apunten: el resum de la tanda ja ho diu en acabar.
+  La marca «ja avisat» es posa **abans** del `MessageBox`: el rellotge segueix
+  tocant mentre el quadre és obert i, si no, el repetiria. Guard: la tanda els
+  apunta i el menú crida l'avís als dos llocs (validat traient-ne cada un).
+- **EL REMITENT** (l'usuari: *«a la feina puc enviar correus des d'adreces
+  diferents; com ho puc seleccionar per no haver de canviar-la a tots els
+  correus?»*): una adreça per defecte a **⚙ Configuració** («Des de (Outlook)»,
+  `CorreuRemitent` als settings; buit = el compte per defecte de l'Outlook). El
+  botó *Comptes de l'Outlook* omple el desplegable amb els comptes del perfil
+  (`Get-OutlookComptes`); una **bústia compartida** no hi surt i s'escriu a mà.
+  La sessió busca el compte **un cop** (`_OutlookTriaCompte`): si és un compte,
+  `SendUsingAccount` (amb el respatller d'`InvokeMember`, perquè assignar un
+  objecte COM a una propietat COM falla en alguns PowerShell); si no,
+  `SentOnBehalfOfName` (cal permís d'enviar en nom de la bústia a l'Exchange).
+  Val per a Enviar correu, Recordatoris **i Controls periòdics**, que ara també
+  passa per la sessió (amb el CC del representant: `Send-CorreuSessio` en té).
+  **Amb EmailJS no compta**: el remitent és el del servei connectat a EmailJS.
+  El diàleg d'*Enviar correu* diu «des de …» al costat de la via.
 - **Dos defectes que hi havia a Recordatoris i que la tria va destapar**: la
   tanda cridava `Send-EmailJs $ecfg` amb **`$ecfg` sense definir** (des del
   commit `353c1a0`: tots els recordatoris, manuals i automàtics, haurien
@@ -350,7 +380,9 @@ viu a **`suport/CorreuVia.ps1`**. Tres vies (`$Script:CorreuVies`):
   ho fa). Totes dues arreglades.
 - **No s'ha provat amb un Outlook de debò** (la suite corre a Linux): les proves
   fan servir un doble de COM que comprova que el mode esborrany **desa i no
-  envia**, i que les adreces van separades per `;`.
+  envia**, que les adreces van separades per `;`, que el remitent va a
+  `SendUsingAccount` o a `SentOnBehalfOfName` segons si és un compte, i que en
+  tancar s'envia i es mira la Safata de sortida.
 
 ## El format del correu: el de REQ1, i el mateix al PC i al mòbil
 
@@ -1022,8 +1054,8 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
   Cancel·lar. Si l'item de control periòdic no és a REQ1, l'informe d'aquella
   activitat s'omet amb avís. Funcions pures testejades: `_ControlCatalegKind`,
   `_ControlSectionTitle`, `_FindItemKeysByTitle`.
-- **Avisar titulars per correu (esborranys a Outlook)** (`suport/ControlsCpEmail.ps1`, l'Outlook
-  l'obre `New-OutlookApp` de `CorreuVia.ps1`;
+- **Avisar titulars per correu (esborranys a Outlook)** (`suport/ControlsCpEmail.ps1`; passa
+  per la sessió de `CorreuVia.ps1` en mode esborrany, que hi posa el remitent de Configuració;
   botó **"Enviar correu (esborranys)"** a la finestra de Controls periòdics): per a
   les activitats **marcades** (mateixa columna "Generar"/`.Sel`), crea un correu per
   titular avisant que constava un **control periòdic** a passar (data prevista) per

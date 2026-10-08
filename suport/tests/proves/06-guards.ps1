@@ -1076,6 +1076,24 @@ Assert ($cvSrc.Contains('function Test-CorreuLlest') -and $cvSrc.Contains('funct
 Assert ($cvSrc -match '(?s)function Test-CorreuViaLlest\b.{0,200}?return \(Test-CorreuLlest\)') 'per EmailJS, la via fa la MATEIXA comprovacio (Test-CorreuLlest)'
 AssertEq (@([regex]::Matches($recSrc, 'Test-Correu(Via)?Llest')).Count) 2 'Recordatoris hi passa des dels DOS llocs (la tanda i el Requisit)'
 
+# CONTROLS PERIODICS NOMES DESA ESBORRANYS, triis la via que triis: l'usuari
+# els revisa i els envia ell. Des que passa per la sessio de CorreuVia.ps1
+# (octubre 2026, pel remitent), n'hi hauria prou de canviar-li la via o de
+# posar-hi un .Send() perque sortissin sols cap als titulars.
+$cceSrc = _SenseComentaris (Join-Path $rootRepo (Join-Path 'suport' 'ControlsCpEmail.ps1'))
+$cceObre = @([regex]::Matches($cceSrc, 'Open-CorreuSessio\s+(\S+)') | ForEach-Object { $_.Groups[1].Value })
+AssertEq ($cceObre -join ',') "'outlook-esborrany'" 'Controls periodics obre la sessio NOMES en mode esborrany'
+Assert (-not ($cceSrc -match '\.Send\(')) 'Controls periodics no envia mai (cap .Send())'
+
+# ELS ESBORRANYS DE LA TASCA AUTOMATICA NO ES PODEN QUEDAR SENSE AVIS: la
+# tanda els apunta i el menu ho diu (en obrir-se i al rellotge, perque la
+# tasca en pot deixar amb el programa obert). Si un dels dos extrems es
+# perdes, els recordatoris es quedarien a Esborranys i constarien com a fets.
+$recTandaSrc = _SenseComentaris (Join-Path $rootRepo (Join-Path 'suport' 'Recordatoris.ps1'))
+Assert ($recTandaSrc -match '\$silenci[^\n]*Add-CorreuEsborranysPendents') 'la tanda automatica apunta els esborranys pendents'
+$menuAvisSrc = _SenseComentaris (Join-Path $rootRepo (Join-Path 'suport' 'Menu.ps1'))
+AssertEq (@([regex]::Matches($menuAvisSrc, 'Show-AvisEsborranysSiCal')).Count) 2 'el menu avisa dels esborranys en obrir-se i al rellotge'
+
 Write-Host "`n--- La biblioteca del mapa, fixada en un sol lloc (guard) ---"
 # PER QUE. La versio del Leaflet i el seu SRI estaven a QUATRE llocs
 # independents: els dos mapes de plantilla, l'HTML que es fa Ruta.ps1 i

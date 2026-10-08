@@ -427,6 +427,16 @@ function _DialegEnviar($build, $destinatariDefault, $docxPath) {
     $lblVia.Size = New-Object System.Drawing.Size(90, 20)
     $form.Controls.Add($lblVia)
     $cbVia = Add-CorreuViaCombo $form 105 ($y + 9) 300 (Get-CorreuVia)
+    # Des de quina adreca (Configuracio): que es vegi abans d'enviar.
+    $remitent = Get-CorreuRemitent
+    $lblDes = New-Object System.Windows.Forms.Label
+    $lblDes.Location = New-Object System.Drawing.Point(412, ($y + 12))
+    $lblDes.Size = New-Object System.Drawing.Size(160, 20)
+    $lblDes.AutoEllipsis = $true
+    $lblDes.ForeColor = [System.Drawing.Color]::FromArgb(90, 90, 90)
+    $lblDes.Text = _CorreuRemitentText (_CorreuViaDelCombo $cbVia) $remitent
+    $form.Controls.Add($lblDes)
+    $cbVia.add_SelectedIndexChanged({ $lblDes.Text = _CorreuRemitentText (_CorreuViaDelCombo $cbVia) $remitent }.GetNewClosure())
     $yPeu = [math]::Max(335, $y + 48)
 
     # Blau mari = enviar, vermell = no enviar. Un correu no es pot desenviar:
@@ -535,7 +545,7 @@ function Send-CorreuPerDocx($docxPath) {
         $resum = if ($via -eq 'outlook-esborrany') { "Correu DESAT a Esborranys de l'Outlook (no s'ha enviat), per a: $toStr" }
                  elseif ($res.Prova) { "Correu de prova enviat només a: $toStr" } else { "Correu enviat a: $toStr" }
         if ($bccStr) { $resum += "`nCCO: $bccStr" }
-        $resum += "`n`n(" + (_CorreuViaText $via) + ')'
+        $resum += "`n`n(" + (_CorreuViaText $via) + $(if ($ses.Remitent) { ', des de ' + $ses.Remitent } else { '' }) + ')'
         [System.Windows.Forms.MessageBox]::Show($resum,'Enviar correu','OK','Information') | Out-Null
     } catch {
         $txt = if ($null -eq $ses) { [string]$_.Exception.Message } else { _CorreuSessioError $ses $_ }

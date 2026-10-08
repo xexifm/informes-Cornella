@@ -15,18 +15,25 @@
                         Esborranys: no s'envia res, es per veure'l
     outlook             l'Outlook de l'ordinador, i s'envia
 
-  Per que val la pena provar l'Outlook: surt de la bustia de l'usuari (a
-  Elements enviats, les respostes li tornen), sense quota ni Private key. Per
-  que nomes de proves, de moment: l'enviament directe pot fer saltar l'avis de
-  seguretat de l'Outlook ("un programa intenta enviar correu") o el pot
-  bloquejar la politica d'informatica; desar esborranys no el fa saltar (per
-  aixo Controls periodics nomes en desa).
+  Per que l'Outlook: surt de la bustia de l'usuari (a Elements enviats, les
+  respostes li tornen), sense quota ni Private key. Compte: l'enviament
+  directe pot fer saltar l'avis de seguretat de l'Outlook ("un programa intenta
+  enviar correu") o el pot bloquejar la politica d'informatica; desar
+  esborranys no el fa saltar (per aixo Controls periodics nomes en desa, i hi
+  ha guard).
 
-  ELS RECORDATORIS AUTOMATICS NO HI ENTREN: la tasca del Windows corre sense
-  ningu davant i, amb l'Outlook, nomes funciona amb la sessio iniciada i
-  l'Outlook obert (si no, es queden a la Safata de sortida). Segueixen per
-  EmailJS fins que l'Outlook s'hagi provat de debo. Ho decideix
-  Invoke-RecordatorisTanda ($silenci).
+  ELS RECORDATORIS, TAMBE ELS AUTOMATICS, segueixen la via triada (l'usuari,
+  octubre 2026: "vull que Recordatoris tambe funcioni amb Outlook, que salti
+  un avis al programa que els correus estan a Esborranys"). Els que la tasca
+  del Windows deixa a Esborranys s'apunten com a PENDENTS
+  (Add-CorreuEsborranysPendents) i el menu ho avisa (Show-AvisEsborranysSiCal).
+
+  EL REMITENT (l'usuari: "a la feina puc enviar correus des d'adreces
+  diferents; com ho puc seleccionar per no haver de canviar-la a tots els
+  correus?"): una adreca per defecte a Configuracio ('CorreuRemitent'). Si es
+  un compte de l'Outlook, SendUsingAccount; si no (una bustia compartida),
+  SentOnBehalfOfName. Nomes l'Outlook: amb EmailJS el remitent es el del
+  servei configurat a EmailJS.
 
   Aqui hi ha TOT el que fa sortir un correu: les claus d'EmailJS i
   Send-EmailJs (vivien a EnviarCorreu.ps1; amb la tria, EnviarCorreu i
@@ -182,9 +189,17 @@ function Get-CorreuVia {
 # s'hi escriu (mateix criteri que _BuildSettingsOverrides: nomes el que
 # difereix). PURA.
 function _SettingsAmbCorreuVia($settings, [string]$via) {
-    $h = ConvertTo-Mapa $settings
     $v = _CorreuViaValida $via
-    if ($v -eq $Script:CorreuViaDefecte) { [void]$h.Remove('CorreuVia') } else { $h['CorreuVia'] = $v }
+    return (_SettingsAmbClau $settings 'CorreuVia' $(if ($v -eq $Script:CorreuViaDefecte) { '' } else { $v }))
+}
+
+# Una clau de settings.json canviada i la resta tal com era; buida, s'esborra
+# (mateix criteri que _BuildSettingsOverrides: nomes el que difereix). PURA.
+function _SettingsAmbClau($settings, [string]$clau, [string]$valor) {
+    $h = ConvertTo-Mapa $settings
+    if ($null -eq $h) { $h = @{} }
+    $v = ([string]$valor).Trim()
+    if ($v -eq '') { [void]$h.Remove($clau) } else { $h[$clau] = $v }
     return $h
 }
 
@@ -192,6 +207,24 @@ function _SettingsAmbCorreuVia($settings, [string]$via) {
 # automatismes). Torna $true si ha pogut.
 function Set-CorreuVia([string]$via) {
     return (Save-AppSettings (_SettingsAmbCorreuVia (Load-AppSettings) $via))
+}
+
+# EL REMITENT per defecte de l'Outlook ('' = el compte per defecte de l'Outlook).
+function Get-CorreuRemitent { return ([string](_PropInf (Load-AppSettings) 'CorreuRemitent')).Trim() }
+
+# Una adreca de correu amb cara de ser-ho ('' tambe val: vol dir "la per
+# defecte"). PURA.
+function _CorreuRemitentValid([string]$r) {
+    $r = ([string]$r).Trim()
+    return ($r -eq '' -or $r -match '^[^@\s;,]+@[^@\s;,]+\.[^@\s;,]+$')
+}
+
+# Com es diu, al costat de la via (dialeg d'enviar, confirmacions). PURA.
+function _CorreuRemitentText([string]$via, [string]$remitent) {
+    if (-not (_CorreuViaEsOutlook $via)) { return '' }
+    $r = ([string]$remitent).Trim()
+    if ($r -eq '') { return "des del compte per defecte de l'Outlook" }
+    return ('des de ' + $r)
 }
 
 # El desplegable de la via, per a les dues pantalles que el porten
@@ -223,6 +256,51 @@ function New-OutlookApp {
     try { return (New-Object -ComObject Outlook.Application) } catch { return $null }
 }
 
+# Els comptes de l'Outlook d'aquest PC (les adreces), per triar el remitent a
+# Configuracio. Una bustia compartida NO hi surt (no es un compte): s'escriu a
+# ma i va per SentOnBehalfOfName.
+function Get-OutlookComptes {
+    $ol = New-OutlookApp
+    if ($null -eq $ol) { throw "No s'ha pogut obrir l'Outlook d'aquest ordinador (cal l'Outlook cl" + [char]0x00E0 + "ssic)." }
+    $out = New-Object System.Collections.ArrayList
+    try {
+        foreach ($a in $ol.Session.Accounts) {
+            $adr = ''
+            try { $adr = ([string]$a.SmtpAddress).Trim() } catch { }
+            if ($adr -and -not ($out -contains $adr)) { [void]$out.Add($adr) }
+        }
+    } finally {
+        try { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($ol) } catch { }
+    }
+    return ,@($out)
+}
+
+# El compte de l'Outlook que te aquesta adreca, o $null (llavors es una
+# bustia compartida o una adreca en nom de la qual s'envia).
+function _OutlookTriaCompte($outlook, [string]$remitent) {
+    $r = ([string]$remitent).Trim()
+    if ($r -eq '' -or $null -eq $outlook) { return $null }
+    try {
+        foreach ($a in $outlook.Session.Accounts) {
+            if (([string]$a.SmtpAddress).Trim() -ieq $r) { return $a }
+        }
+    } catch { }
+    return $null
+}
+
+# Posa el remitent a un correu de l'Outlook. Assignar SendUsingAccount
+# directament falla en algunes versions del PowerShell (un objecte COM dins
+# d'una propietat COM); llavors, per InvokeMember.
+function _OutlookPosaRemitent($m, $compte, [string]$remitent) {
+    if ($null -ne $compte) {
+        try { $m.SendUsingAccount = $compte }
+        catch { [void]$m.GetType().InvokeMember('SendUsingAccount', [System.Reflection.BindingFlags]::SetProperty, $null, $m, @($compte)) }
+        return
+    }
+    $r = ([string]$remitent).Trim()
+    if ($r -ne '') { $m.SentOnBehalfOfName = $r }
+}
+
 # L'Outlook vol les adreces separades per ';' (EmailJS les accepta amb ',').
 # PURA.
 function _OutlookAdreces([string]$s) {
@@ -241,7 +319,7 @@ function Test-CorreuViaLlest([string]$via) {
 # amb un missatge clar si l'Outlook no hi es.
 function Open-CorreuSessio([string]$via) {
     $via = _CorreuViaValida $via
-    $s = @{ Via = $via; Cfg = $null; Outlook = $null; JaObert = $false; Desats = 0; Enviats = 0 }
+    $s = @{ Via = $via; Cfg = $null; Outlook = $null; JaObert = $false; Desats = 0; Enviats = 0; Remitent = ''; Compte = $null }
     if (_CorreuViaEsOutlook $via) {
         # Si l'Outlook no era obert, el que l'obrim som nosaltres i, en
         # deixar-lo anar, podria tancar-se amb els correus a la Safata de
@@ -251,6 +329,9 @@ function Open-CorreuSessio([string]$via) {
         if ($null -eq $s.Outlook) {
             throw "No s'ha pogut obrir l'Outlook d'aquest ordinador. Cal l'Outlook clàssic (el «nou Outlook» de Windows no es pot fer servir des d'un programa). Torna a EmailJS a Configuració."
         }
+        # El compte es busca UN cop per sessio, no a cada correu.
+        $s.Remitent = Get-CorreuRemitent
+        $s.Compte = _OutlookTriaCompte $s.Outlook $s.Remitent
     } else {
         $s.Cfg = _CorreuConfig
     }
@@ -259,8 +340,10 @@ function Open-CorreuSessio([string]$via) {
 
 # Envia (o desa a Esborranys) UN correu. Llanca si falla: el cridador en fa el
 # missatge amb _CorreuSessioError.
-function Send-CorreuSessio($s, [string]$to, [string]$bcc, [string]$subject, [string]$html) {
+# $cc: la plantilla d'EmailJS no en te, i alla va amb el destinatari.
+function Send-CorreuSessio($s, [string]$to, [string]$bcc, [string]$subject, [string]$html, [string]$cc = '') {
     if (-not (_CorreuViaEsOutlook $s.Via)) {
+        if (-not [string]::IsNullOrWhiteSpace($cc)) { $to = (@($to, $cc) | Where-Object { $_ }) -join ',' }
         # Send-EmailJs ja apunta la quota.
         Send-EmailJs $s.Cfg $to $bcc $subject $html
         $s.Enviats++
@@ -269,7 +352,9 @@ function Send-CorreuSessio($s, [string]$to, [string]$bcc, [string]$subject, [str
     $m = $null
     try {
         $m = $s.Outlook.CreateItem(0)   # olMailItem
+        _OutlookPosaRemitent $m $s.Compte $s.Remitent
         $m.To = (_OutlookAdreces $to)
+        if (-not [string]::IsNullOrWhiteSpace($cc)) { $m.CC = (_OutlookAdreces $cc) }
         if (-not [string]::IsNullOrWhiteSpace($bcc)) { $m.BCC = (_OutlookAdreces $bcc) }
         $m.Subject = $subject
         $m.HTMLBody = $html
@@ -281,11 +366,19 @@ function Send-CorreuSessio($s, [string]$to, [string]$bcc, [string]$subject, [str
 
 # Tanca la sessio. NO es fa Quit() de l'Outlook (podria tancar el de
 # l'usuari, com ja diu Controls periodics); nomes s'allibera.
-function Close-CorreuSessio($s) {
+# Si l'Outlook l'hem obert nosaltres (la tasca automatica, amb l'Outlook
+# tancat), s'espera fins a $esperaSeg que la Safata de sortida es buidi: si no,
+# en deixar-lo anar es tancaria amb els correus a dins.
+function Close-CorreuSessio($s, [int]$esperaSeg = 60) {
     if ($null -eq $s -or $null -eq $s.Outlook) { return }
     if ($s.Enviats -gt 0 -and -not $s.JaObert) {
         try { $s.Outlook.Session.SendAndReceive($false) } catch { }
+        try {
+            $sortida = $s.Outlook.Session.GetDefaultFolder(4)   # olFolderOutbox
+            for ($i = 0; $i -lt $esperaSeg -and [int]$sortida.Items.Count -gt 0; $i++) { Start-Sleep -Seconds 1 }
+        } catch { }
     }
+    if ($null -ne $s.Compte) { try { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($s.Compte) } catch { } }
     try { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($s.Outlook) } catch { }
     $s.Outlook = $null
 }
@@ -303,3 +396,77 @@ function _CorreuSessioError($s, $err) {
 
 # Com queda dit en una frase, per a les confirmacions i els resums.
 function _CorreuViaText([string]$via) { return [string]$Script:CorreuVies[(_CorreuViaValida $via)] }
+
+# ============================================================================
+# ELS ESBORRANYS PENDENTS: el que la tasca automatica deixa a l'Outlook
+# ============================================================================
+# Amb la via 'outlook-esborrany', els recordatoris automatics es queden a
+# Esborranys i ningu no els veu. S'apunten aqui (%LOCALAPPDATA%: porten noms i
+# adreces, MAI al repositori) i el menu ho avisa fins que l'usuari diu que ja
+# els ha enviat.
+function _CorreuEsborranysPath {
+    $base = [string]$env:LOCALAPPDATA
+    if ([string]::IsNullOrWhiteSpace($base)) { $base = [System.IO.Path]::GetTempPath() }
+    return [string](Join-Path $base (Join-Path 'InformesCornella' 'correus-esborranys.json'))
+}
+
+# La llista amb una tanda nova al final. PURA.
+function _EsborranysAmbNous($pendents, [string]$origen, $detalls, [datetime]$quan) {
+    $l = New-Object System.Collections.ArrayList
+    foreach ($p in @($pendents)) { if ($null -ne $p) { [void]$l.Add($p) } }
+    $d = @(@($detalls) | Where-Object { $_ } | ForEach-Object { [string]$_ })
+    if ($d.Count -gt 0) {
+        [void]$l.Add([pscustomobject]@{ data = $quan.ToString('yyyy-MM-dd HH:mm'); origen = $origen; correus = $d })
+    }
+    return ,@($l)
+}
+
+# El text de l'avis. PURA.
+function _EsborranysAvisText($pendents) {
+    $ps = @(@($pendents) | Where-Object { $null -ne $_ })
+    $n = 0
+    foreach ($p in $ps) { $n += @($p.correus).Count }
+    $linies = New-Object System.Collections.ArrayList
+    [void]$linies.Add("Hi ha $n correus a la carpeta Esborranys de l'Outlook que encara no s'han enviat:")
+    [void]$linies.Add('')
+    foreach ($p in $ps) {
+        [void]$linies.Add(' ' + [char]0x00B7 + ' ' + [string]$p.data + ' - ' + [string]$p.origen + ': ' + @($p.correus).Count)
+        foreach ($c in @(@($p.correus) | Select-Object -First 5)) { [void]$linies.Add('      ' + [string]$c) }
+        if (@($p.correus).Count -gt 5) { [void]$linies.Add('      ...') }
+    }
+    [void]$linies.Add('')
+    [void]$linies.Add("Revisa'ls i envia'ls des de l'Outlook. Ja consten com a recordatoris fets: si n'esborres algun sense enviar-lo, aquell titular no el rebr" + [char]0x00E0 + " fins al proper per" + [char]0x00ED + "ode.")
+    [void]$linies.Add('')
+    [void]$linies.Add("Ja els has enviat? S" + [char]0x00ED + " = no m'ho tornis a dir. No = recorda-m'ho m" + [char]0x00E9 + "s tard.")
+    return ($linies -join "`n")
+}
+
+function Get-CorreuEsborranysPendents {
+    $j = Read-JsonFile (_CorreuEsborranysPath)
+    if ($null -eq $j) { return ,@() }
+    return ,@(@($j.pendents) | Where-Object { $null -ne $_ })
+}
+
+function Add-CorreuEsborranysPendents([string]$origen, $detalls) {
+    $l = _EsborranysAmbNous (Get-CorreuEsborranysPendents) $origen $detalls (Get-Date)
+    try { Write-JsonFile (_CorreuEsborranysPath) ([pscustomobject]@{ pendents = @($l) }) 6 } catch { }
+}
+
+function Clear-CorreuEsborranysPendents {
+    try { Write-JsonFile (_CorreuEsborranysPath) ([pscustomobject]@{ pendents = @() }) 6 } catch { }
+}
+
+# L'AVIS. El criden el menu en obrir-se i el seu rellotge (cada minut: la
+# tasca automatica pot deixar-ne mentre el programa es obert). "No" el calla
+# fins que n'arribin de nous; "Si" buida la llista. Viu en una funcio i no a
+# la closure del menu: dins d'una closure, $Script: no es la de l'script.
+$Script:EsborranysAvisCallat = ''
+function Show-AvisEsborranysSiCal {
+    $ps = Get-CorreuEsborranysPendents
+    if ($ps.Count -eq 0) { return }
+    $marca = [string]$ps.Count + '|' + [string]$ps[$ps.Count - 1].data
+    if ($marca -eq $Script:EsborranysAvisCallat) { return }
+    $Script:EsborranysAvisCallat = $marca   # abans del MessageBox: el rellotge no el pot repetir
+    $r = [System.Windows.Forms.MessageBox]::Show((_EsborranysAvisText $ps), "Correus a Esborranys de l'Outlook", 'YesNo', 'Warning')
+    if ($r -eq [System.Windows.Forms.DialogResult]::Yes) { Clear-CorreuEsborranysPendents; $Script:EsborranysAvisCallat = '' }
+}
