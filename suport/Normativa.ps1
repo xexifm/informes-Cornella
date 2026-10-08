@@ -29,7 +29,7 @@ function _NormativaPreparaXarxa {
 function _NormativaGet([string]$url, [string]$accept = '') {
     $extra = @{}
     if (-not [string]::IsNullOrWhiteSpace($accept)) { $extra['Headers'] = @{ Accept = $accept } }
-    $r = Invoke-WebRequest -Uri $url -UseBasicParsing -UserAgent $Script:NormativaUA -TimeoutSec 60 -MaximumRedirection 10 -UseDefaultCredentials -ErrorAction Stop @extra
+    $r = Invoke-WebRequest -Uri $url -UseBasicParsing -UserAgent $Script:WebUA -TimeoutSec 60 -MaximumRedirection 10 -UseDefaultCredentials -ErrorAction Stop @extra
     return $r
 }
 
@@ -48,7 +48,7 @@ function _NormativaUrlFinal($r, [string]$url) {
 # aquell segon cas es muntava la seva Invoke-WebRequest nomes per canviar el
 # numero -i hi afegia un -PassThru que no es llegia enlloc-.
 function _NormativaGetBytes([string]$url, [string]$desti, [int]$timeoutSec = 180) {
-    Invoke-WebRequest -Uri $url -UseBasicParsing -UserAgent $Script:NormativaUA -TimeoutSec $timeoutSec -MaximumRedirection 10 -UseDefaultCredentials -OutFile $desti -ErrorAction Stop | Out-Null
+    Invoke-WebRequest -Uri $url -UseBasicParsing -UserAgent $Script:WebUA -TimeoutSec $timeoutSec -MaximumRedirection 10 -UseDefaultCredentials -OutFile $desti -ErrorAction Stop | Out-Null
     return [System.IO.File]::ReadAllBytes($desti)
 }
 

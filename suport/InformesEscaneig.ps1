@@ -374,7 +374,7 @@ function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock
     #     Si la base es d'una altra versio del classificador, es tornen a llegir
     #     TOTS (vegeu $Script:ClassificadorVersio), pero es conserven les
     #     correccions a ma.
-    $outPath    = Join-Path $LocalActivitatsDir 'informes-db.json'
+    $outPath    = Get-InformesDbPath
     $prevByRuta = @{}
     $prevUtc    = [datetime]::MinValue
     $prevArrel  = ''

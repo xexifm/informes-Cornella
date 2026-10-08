@@ -146,21 +146,38 @@ function _ExtractConclusio($lines) {
 # despres d'aquell informe). 'Altres' es nomes manual: el classificador
 # automatic no la torna mai. 'Revisar' es el que torna quan no hi ha prou
 # senyal.
+# CADA ESTAT TE NOM, i la llista es fa amb els noms. Abans la llista era l'unic
+# lloc on sortien, pero els que la resta del programa necessita anomenar
+# ('Requeriment' i 'Precinte / Cessament') es tornaven a escriure A MA a
+# Informes.ps1, Recordatoris.ps1, ComprovarExcel.ps1 i rutes/PlanolDades.ps1.
+# Aquells quatre comparen contra estat_actual: si algun dia es reanomena un
+# estat, el Where-Object no troba res i l'eina diu "no hi ha cap activitat" en
+# lloc de petar. Es el defecte tipic d'aqui: no falla, calla.
+$Script:EstatRequeriment   = 'Requeriment'
+$Script:EstatFiRequeriment = 'FI Requeriment'
+$Script:EstatPrecinte      = 'Precinte / Cessament'
+$Script:EstatFiPrecinte    = 'FI Precinte / Cessament'
+$Script:EstatFavorable     = 'Favorable'
+$Script:EstatAmpliacio     = 'Ampliaci' + [char]0x00F3 + ' termini'
+$Script:EstatSenseEfecte   = 'Sense efecte'
+$Script:EstatAltres        = 'Altres'
+$Script:EstatRevisar       = 'Revisar'
+
 $Script:ConclusioBreuOpcions = @(
-    'Requeriment',
-    'FI Requeriment',
-    'Precinte / Cessament',
-    'FI Precinte / Cessament',
-    'Favorable',
-    'Ampliació termini',
-    'Sense efecte',
-    'Altres',
-    'Revisar'
+    $Script:EstatRequeriment,
+    $Script:EstatFiRequeriment,
+    $Script:EstatPrecinte,
+    $Script:EstatFiPrecinte,
+    $Script:EstatFavorable,
+    $Script:EstatAmpliacio,
+    $Script:EstatSenseEfecte,
+    $Script:EstatAltres,
+    $Script:EstatRevisar
 )
 
 # Els estats que deixen alguna cosa PENDENT a l'activitat. Una MNS favorable no
 # els tapa (vegeu _InformeQueDeterminaEstat).
-$Script:EstatsPendents = @('Requeriment', 'Precinte / Cessament', ('Ampliaci' + [char]0x00F3 + ' termini'))
+$Script:EstatsPendents = @($Script:EstatRequeriment, $Script:EstatPrecinte, $Script:EstatAmpliacio)
 
 # "es pertinent suspendre/precintar" no negat ("no es pertinent..." no compta).
 $Script:RxPrecinte = '(?<!\bno (es )?)pertinent (suspendre|precintar)'
@@ -224,8 +241,8 @@ function _ConclusioBreu($text) {
     $n = _ConclNorm $text
 
     # 0. Comunicacio anul·lada, i precinte o suspensio de debo.
-    if ($n -match '(?<!\bno (es )?)deixa sense efecte') { return 'Sense efecte' }
-    if (_PrecinteEfectiu $n) { return 'Precinte / Cessament' }
+    if ($n -match '(?<!\bno (es )?)deixa sense efecte') { return $Script:EstatSenseEfecte }
+    if (_PrecinteEfectiu $n) { return $Script:EstatPrecinte }
     # 1. Pendent, digui el que digui la resta de la frase.
     if ($n -match 'no s.?han esmenat' -or $n.Contains('no es pot donar') -or
         $n -match '\b(no|ni) donar per (finalitzat|tancat)') { return 'Requeriment' }
@@ -242,11 +259,11 @@ function _ConclusioBreu($text) {
     if ($n -match 'es (pot|valora) (aixecar|desprecintar)' -or $n.Contains('pertinent desprecintar')) { return 'FI Precinte / Cessament' }
     # 4. El precinte o la suspensio que queden son NOMES l'advertiment (els de
     # debo ja han sortit al pas 0): es un requeriment.
-    if ($n -match $Script:RxPrecinte) { return 'Requeriment' }
+    if ($n -match $Script:RxPrecinte) { return $Script:EstatRequeriment }
     # Risc greu/imminent sense "es pertinent precintar", o el cessament ordenat.
-    if ($n.Contains('tenint en consideracio el risc') -or $n -match 'ordeni el cessament') { return 'Precinte / Cessament' }
+    if ($n.Contains('tenint en consideracio el risc') -or $n -match 'ordeni el cessament') { return $Script:EstatPrecinte }
     # "estimar" i no "desestimar".
-    if ($n -match '(^|[^a-z])estimar la sol.?licitud d.?ampliacio') { return ('Ampliaci' + [char]0x00F3 + ' termini') }
+    if ($n -match '(^|[^a-z])estimar la sol.?licitud d.?ampliacio') { return $Script:EstatAmpliacio }
     # Desfavorable: deliberadament NO es classifica com a Favorable; cau a Revisar.
     if ($n.Contains('desfavorablement') -or $n.Contains('desfavorable')) { return 'Revisar' }
     if ($n.Contains('favorablement') -or $n.Contains('favorable')) { return 'Favorable' }

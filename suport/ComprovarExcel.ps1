@@ -137,7 +137,7 @@ function _ShowResultatWindow($titol, $subtitol, $text) {
 # registre per a totes les eines (_MarcaEinaUsada, Seguiment.ps1), apuntat des
 # del despatxador. El fitxer d'estat d'aquesta eina ja no fa falta.
 function Invoke-ComprovarExcel {
-    $outPath = Join-Path $LocalActivitatsDir 'informes-db.json'
+    $outPath = Get-InformesDbPath
     if (-not (Test-Path -LiteralPath $outPath)) {
         [System.Windows.Forms.MessageBox]::Show(
             "Encara no hi ha cap base d'informes.`n`nExecuta primer 'Actualitzar base'.",
@@ -150,9 +150,9 @@ function Invoke-ComprovarExcel {
         [System.Windows.Forms.MessageBox]::Show("No s'ha pogut llegir la base d'informes:`n$($_.Exception.Message)", 'Comprovar Excel', 'OK', 'Error') | Out-Null
         return
     }
-    $targets = @($db.activitats | Where-Object { [string]$_.estat_actual -eq 'Precinte / Cessament' })
+    $targets = @($db.activitats | Where-Object { [string]$_.estat_actual -eq $Script:EstatPrecinte })
     if ($targets.Count -eq 0) {
-        [System.Windows.Forms.MessageBox]::Show("No hi ha cap activitat en Estat 'Precinte / Cessament' a la base d'informes.", 'Comprovar Excel', 'OK', 'Information') | Out-Null
+        [System.Windows.Forms.MessageBox]::Show(("No hi ha cap activitat en Estat '" + $Script:EstatPrecinte + "' a la base d'informes."), 'Comprovar Excel', 'OK', 'Information') | Out-Null
         return
     }
 
@@ -188,13 +188,13 @@ function Invoke-ComprovarExcel {
 
     if ($desact.Count -eq 0 -and $noTrob.Count -eq 0 -and $senseGia.Count -eq 0) {
         [System.Windows.Forms.MessageBox]::Show(
-            ("L'Excel està al dia.`n`nTotes les {0} activitats en Estat 'Precinte / Cessament' tenen a l'Excel un Camp Info {1} amb valor SI." -f $targets.Count, (_ExcelPrecinteCampsText)),
+            ("L'Excel està al dia.`n`nTotes les {0} activitats en Estat '{2}' tenen a l'Excel un Camp Info {1} amb valor SI." -f $targets.Count, (_ExcelPrecinteCampsText), $Script:EstatPrecinte),
             'Comprovar Excel', 'OK', 'Information') | Out-Null
         return
     }
 
     $sb = New-Object System.Text.StringBuilder
-    [void]$sb.AppendLine(("Activitats en Estat 'Precinte / Cessament' a la base d'informes: {0}" -f $targets.Count))
+    [void]$sb.AppendLine(("Activitats en Estat '{1}' a la base d'informes: {0}" -f $targets.Count, $Script:EstatPrecinte))
     [void]$sb.AppendLine(("Criteri: a l'Excel han de tenir un Camp Info {0} amb valor que comenci per SI." -f (_ExcelPrecinteCampsText)))
     [void]$sb.AppendLine("")
     if ($desact.Count -gt 0) {

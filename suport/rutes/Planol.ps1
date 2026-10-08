@@ -41,6 +41,12 @@ if (-not $Script:PlanolHeadless) {
 . (Join-Path $ScriptRoot 'CadastreParceles.ps1')   # el dibuix i el punt de cada parcel.la (compartit amb Coordenades)
 . (Join-Path $ScriptRoot 'Geocodificador.ps1')    # Test-CoordPlausible, els portals de cada parcel.la
 . (Join-Path $ScriptRoot 'PlanolGeometria.ps1')  # l'entrada dins la parcel.la i les parcel.les juntades
+# ELS NOMS DELS ESTATS (Requeriment, Precinte / Cessament...) els mana el
+# classificador, i Get-EstatPlanol n'ha de treure el color. Nomes defineix
+# cadenes i funcions pures -cap efecte en carregar-se-, o sigui que aquest
+# proces el pot carregar (regla 5 del CLAUDE.md). Abans els noms estaven
+# escrits a ma aqui i, reanomenant-ne un, el planol pintava tothom de blau.
+. (Join-Path (Split-Path -Parent $ScriptRoot) 'InformesClassificacio.ps1')
 . (Join-Path $ScriptRoot 'PlanolDades.ps1')
 
 # Ruta.ps1 en mode headless: nomes en volem les funcions (cerca de l'Excel,
@@ -202,7 +208,7 @@ function Invoke-PlanolGenera([bool]$silenci) {
     # 2. La base d'informes (opcional: sense, tot surt en blau).
     $estats = @{}
     $baseInf = '(no hi ha base d''informes)'
-    $dbPath = Join-Path $LocalActivitatsDir 'informes-db.json'
+    $dbPath = Get-InformesDbPath
     if (Test-Path -LiteralPath $dbPath) {
         try {
             $db = Read-JsonFile $dbPath

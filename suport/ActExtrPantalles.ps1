@@ -94,19 +94,27 @@ function Get-ActExtrHeader {
     $controls = @{}
     # $addRow afegeix una etiqueta + caixa de text a la posicio $y i retorna
     # la $y de la fila seguent (patro explicit, sense estat compartit).
+    #
+    # LA SIGNATURA ES LA MATEIXA que la de Capcalera.ps1 ($label, $key, $width,
+    # $y), i hi ha un guard que ho comprova. No es fonen en una de sola perque
+    # la geometria difereix de debo (etiqueta de 180 contra 200, el quadre a
+    # x=200 contra x=220, pas de 36 contra 38) i la generica demanaria set
+    # parametres per a dos casos. El que SI que era un defecte era que les dues
+    # tinguessin dos arguments intercanviats: copiar-ne una linia de crida
+    # compilava i posava la clau on va la y.
     $addRow = {
-        param($label, $key, $width, $yPos)
+        param($label, $key, $width, $y)
         $l = New-Object System.Windows.Forms.Label
         $l.Text = $label
-        $l.Location = New-Object System.Drawing.Point(15, $yPos)
+        $l.Location = New-Object System.Drawing.Point(15, $y)
         $l.Size = New-Object System.Drawing.Size(180, 22)
         [void]$form.Controls.Add($l)
         $tb = New-Object System.Windows.Forms.TextBox
-        $tb.Location = New-Object System.Drawing.Point(200, ($yPos - 2))
+        $tb.Location = New-Object System.Drawing.Point(200, ($y - 2))
         $tb.Size = New-Object System.Drawing.Size($width, 22)
         [void]$form.Controls.Add($tb)
         $controls[$key] = $tb
-        return ($yPos + 36)
+        return ($y + 36)
     }
     $y = 20
     $y = & $addRow 'ID GIA' 'ID_GIA' 300 $y

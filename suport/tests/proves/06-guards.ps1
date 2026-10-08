@@ -1020,6 +1020,59 @@ function _SenseComentaris([string]$ruta) {
     return $sb.ToString()
 }
 
+Write-Host "`n--- Coses que no tenien un sol lloc (guards) ---"
+# 1. LA BASE D'INFORMES. "informes-db.json" es construia a CINC llocs amb el seu
+#    Join-Path (InformesEscaneig, Informes, ComprovarExcel, Recordatoris i
+#    rutes/Planol). Els noms de les CARPETES de local\ ja vivien nomes a
+#    Migracio.ps1; el del FITXER no havia rebut el mateix tracte.
+$dbFora = New-Object System.Collections.ArrayList
+foreach ($f in @(Get-ChildItem -LiteralPath (Join-Path $rootRepo 'suport') -Recurse -Filter '*.ps1' -File | Where-Object { $_.FullName -notmatch '[\\/]tests[\\/]' })) {
+    if ($f.Name -eq 'Migracio.ps1') { continue }
+    if ((_SenseComentaris $f.FullName) -match "Join-Path[^\r\n]*'informes-db\.json'") { [void]$dbFora.Add($f.Name) }
+}
+AssertEq ($dbFora -join ', ') '' 'el nom d''informes-db.json nomes es a Migracio.ps1 (Get-InformesDbPath)'
+Assert ((_SenseComentaris (Join-Path $rootRepo (Join-Path 'suport' 'Migracio.ps1'))).Contains('function Get-InformesDbPath')) 'Get-InformesDbPath viu amb els noms de les carpetes de local\'
+
+# 2. EL NAVEGADOR QUE DIEM QUE SOM. N'hi havia DOS, iguals menys el sufix
+#    ' Edg/126.0': el dia que un servidor es queixes se'n canviaria un de sol.
+$uaFitxers = New-Object System.Collections.ArrayList
+foreach ($f in @(Get-ChildItem -LiteralPath (Join-Path $rootRepo 'suport') -Recurse -Filter '*.ps1' -File | Where-Object { $_.FullName -notmatch '[\\/]tests[\\/]' })) {
+    if ((_SenseComentaris $f.FullName) -match "=\s*'Mozilla/5\.0") { [void]$uaFitxers.Add($f.Name) }
+}
+AssertEq ($uaFitxers -join ', ') 'NormativaDades.ps1' 'un sol user-agent a tot el programa'
+
+# 3. LA FILA "etiqueta + quadre" de Capcalera i d'ActExtrPantalles. NO es fonen
+#    -la geometria difereix de debo i la generica demanaria set parametres, que
+#    es pitjor que les dues copies-, pero l'ORDRE DELS PARAMETRES ha de ser el
+#    mateix: abans una tenia ($label,$y,$tbWidth,$key) i l'altra
+#    ($label,$key,$width,$yPos), o sigui que copiar una linia de crida d'una a
+#    l'altra COMPILA i posa la clau on va la y.
+$filaCap = _SenseComentaris (Join-Path $rootRepo (Join-Path 'suport' 'Capcalera.ps1'))
+$filaAct = _SenseComentaris (Join-Path $rootRepo (Join-Path 'suport' 'ActExtrPantalles.ps1'))
+$ordreCap = [regex]::Match($filaCap, '\$addRow = \{\s*param\(([^)]*)\)').Groups[1].Value -replace '\s', ''
+$ordreAct = [regex]::Match($filaAct, '\$addRow = \{\s*param\(([^)]*)\)').Groups[1].Value -replace '\s', ''
+Assert ($ordreCap -ne '' -and $ordreAct -ne '') 'les dues pantalles tenen la seva fila $addRow'
+AssertEq $ordreCap $ordreAct 'les dues files "etiqueta + quadre" tenen el MATEIX ordre de parametres'
+
+# 4. ELS NOMS DELS ESTATS. 'Precinte / Cessament' es tornava a escriure a ma a
+#    Informes, ComprovarExcel, Recordatoris i rutes/PlanolDades. Tots quatre
+#    comparen contra estat_actual: reanomenant un estat, el Where-Object no
+#    troba res i l'eina diu "no hi ha cap activitat" en lloc de petar.
+#    (Compte: 'Requeriment' tot sol NO entra aqui. A ControlsPeriodics, MnsTrans
+#    i LlicenciaDades es un TITOL del cataleg de conclusions i una fase de
+#    llicencia: un altre concepte, i fondre'ls seria el defecte contrari.)
+$estFora = New-Object System.Collections.ArrayList
+foreach ($f in @(Get-ChildItem -LiteralPath (Join-Path $rootRepo 'suport') -Recurse -Filter '*.ps1' -File | Where-Object { $_.FullName -notmatch '[\\/]tests[\\/]' })) {
+    if ($f.Name -eq 'InformesClassificacio.ps1') { continue }
+    if ((_SenseComentaris $f.FullName).Contains("'Precinte / Cessament'")) { [void]$estFora.Add($f.Name) }
+}
+AssertEq ($estFora -join ', ') '' 'cap nom d''estat escrit a ma fora d''InformesClassificacio.ps1'
+$clsSrc = _SenseComentaris (Join-Path $rootRepo (Join-Path 'suport' 'InformesClassificacio.ps1'))
+Assert ($clsSrc.Contains('$Script:ConclusioBreuOpcions = @(' + "`r`n" + '    $Script:EstatRequeriment,') -or $clsSrc -match '\$Script:ConclusioBreuOpcions = @\(\s*\$Script:EstatRequeriment') 'la llista d''estats es fa amb els noms, no amb literals'
+# El proces de rutes/ ha de poder llegir els noms: Planol.ps1 carrega el
+# classificador (nomes defineix cadenes i funcions pures).
+Assert ((_SenseComentaris (Join-Path $rootRepo (Join-Path 'suport' (Join-Path 'rutes' 'Planol.ps1')))).Contains("'InformesClassificacio.ps1'")) 'el Planol carrega el classificador per saber els noms dels estats'
+
 Write-Host "`n--- Els botons de la banda: una pell i una tira (guard) ---"
 # PER QUE. Els quatre (Ajuda, Configuracio, la carpeta i Actualitzar) repetien
 # les MATEIXES onze linies de pell, i cada un portava la seva posicio com una

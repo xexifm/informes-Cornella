@@ -64,8 +64,6 @@ function Get-CatalegUrls([string]$path) {
     return $urls
 }
 
-$Script:EnllacUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36'
-
 # RESPON L'ENLLAC? @{ Ok; Codi }. HEAD i, si el servidor no l'accepta (405) o
 # falla sense dir res, GET: hi ha servidors que no contesten el HEAD.
 function Test-EnllacViu([string]$u) {
@@ -73,7 +71,7 @@ function Test-EnllacViu([string]$u) {
     $codi = $null; $ok = $false
     foreach ($method in 'Head', 'Get') {
         try {
-            $r = Invoke-WebRequest -Uri $u -Method $method -TimeoutSec 25 -UserAgent $Script:EnllacUA -UseBasicParsing -MaximumRedirection 5 -UseDefaultCredentials -ErrorAction Stop
+            $r = Invoke-WebRequest -Uri $u -Method $method -TimeoutSec 25 -UserAgent $Script:WebUA -UseBasicParsing -MaximumRedirection 5 -UseDefaultCredentials -ErrorAction Stop
             $codi = [int]$r.StatusCode; $ok = ($codi -lt 400); break
         } catch {
             $resp = $null; try { $resp = $_.Exception.Response } catch { }

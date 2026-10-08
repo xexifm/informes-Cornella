@@ -50,7 +50,11 @@ $Script:NormativaTitolMax    = 70
 $Script:NormativaCache       = $null
 # Un navegador de debo: el BOE i alguns servidors de la Generalitat tornen un
 # error o una pagina buida a un client que no s'identifica.
-$Script:NormativaUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 Edg/126.0'
+# EL NAVEGADOR QUE DIEM QUE SOM. Un de sol per a tot el programa: el fan servir
+# les baixades de normativa (Normativa.ps1) i la comprovacio d'enllacos dels
+# catalegs (Enllacos.ps1). N'hi havia DOS, iguals menys el sufix ' Edg/126.0',
+# i per tant el dia que un servidor es queixes se'n canviaria un de sol.
+$Script:WebUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 Edg/126.0'
 
 # ----------------------------------------------------------------------------
 # EL CATALEG

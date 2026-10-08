@@ -350,7 +350,7 @@ function _StyleInformeRow($gridRow, [bool]$ignorat, $fontNormal, $fontStrike) {
 # (per data) i es recalcula sempre que canvia "ignorar" o "conclusio breu" de
 # qualsevol dels seus informes. Tots els canvis es desen al JSON.
 function Invoke-InformesDbEdit {
-    $outPath = Join-Path $LocalActivitatsDir 'informes-db.json'
+    $outPath = Get-InformesDbPath
     if (-not (Test-Path -LiteralPath $outPath)) {
         [System.Windows.Forms.MessageBox]::Show(
             "Encara no hi ha cap base d'informes.`n`nExecuta primer 'Actualitzar base d'informes'.",
@@ -735,10 +735,10 @@ function Export-EstatsActivitats($db) {
         [System.Windows.Forms.MessageBox]::Show("La base d'informes és buida.", 'Exportar llistats', 'OK', 'Information') | Out-Null
         return
     }
-    $estats = @('Requeriment', 'Precinte / Cessament')
+    $estats = @($Script:EstatRequeriment, $Script:EstatPrecinte)
     $acts = @($db.activitats | Where-Object { $estats -contains [string]$_.estat_actual })
     if ($acts.Count -eq 0) {
-        [System.Windows.Forms.MessageBox]::Show("No hi ha cap activitat en Estat 'Requeriment' ni 'Precinte / Cessament'.", 'Exportar llistats', 'OK', 'Information') | Out-Null
+        [System.Windows.Forms.MessageBox]::Show(("No hi ha cap activitat en Estat '" + $Script:EstatRequeriment + "' ni '" + $Script:EstatPrecinte + "'."), 'Exportar llistats', 'OK', 'Information') | Out-Null
         return
     }
 
@@ -784,7 +784,7 @@ function Export-EstatsActivitats($db) {
     }
 
     $nReq = @($acts | Where-Object { [string]$_.estat_actual -eq 'Requeriment' }).Count
-    $nPre = @($acts | Where-Object { [string]$_.estat_actual -eq 'Precinte / Cessament' }).Count
+    $nPre = @($acts | Where-Object { [string]$_.estat_actual -eq $Script:EstatPrecinte }).Count
     $r = [System.Windows.Forms.MessageBox]::Show(
         "CSV generat:`n$path`n`nRequeriment: $nReq activitats`nPrecinte / Cessament: $nPre activitats`n`nVols obrir-lo ara?",
         'Exportar llistats', 'YesNo', 'Information')

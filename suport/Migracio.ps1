@@ -92,6 +92,22 @@ function Get-LocalSubdir([string]$repoRoot, [string]$clau) {
     return [string](Join-Path (Get-LocalDir $repoRoot) $Script:LocalSubdirs[$clau])
 }
 
+# LA BASE D'INFORMES. El nom del fitxer viu AQUI, al costat dels noms de les
+# subcarpetes, i pel mateix motiu: estava escrit a CINC llocs
+# (InformesEscaneig, Informes, ComprovarExcel, Recordatoris i rutes/Planol),
+# cada un amb el seu Join-Path. Els noms de les CARPETES ja es van centralitzar
+# un dia; el del fitxer no havia rebut el mateix tracte.
+#
+# Llegeix l'ambit ($LocalActivitatsDir) i no es calcula des de $RepoRoot a
+# posta: ValidarClassificacio.ps1 el desvia a una carpeta temporal per comparar
+# un escaneig de debo amb la classificacio feta a ma, i calculant-lo des de
+# l'arrel aquell desviament deixaria de funcionar en silenci.
+# El defineixen els DOS processos (Activitats.ps1 i rutes/Ruta.ps1), i aquest
+# fitxer el carreguen tots dos.
+function Get-InformesDbPath {
+    return [string](Join-Path $LocalActivitatsDir 'informes-db.json')
+}
+
 # ----------------------------------------------------------------------------
 # FUNCIO PURA (testejable): que s'ha de moure
 # ----------------------------------------------------------------------------

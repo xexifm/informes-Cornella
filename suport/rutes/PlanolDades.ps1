@@ -69,11 +69,18 @@ function Get-PlanolUnitat($rc) {
 # ----------------------------------------------------------------------------
 # L'ESTAT (COLOR) D'UNA ACTIVITAT
 # ----------------------------------------------------------------------------
+# ELS NOMS DELS ESTATS SURTEN DEL CLASSIFICADOR, no d'aqui. Abans estaven
+# escrits a ma (ja normalitzats) i, si algun dia es reanomenava un estat,
+# aquesta funcio no reconeixia cap cas i el planol pintava TOTHOM de blau sense
+# dir res. El COLOR si que es decisio d'aqui: quins estats son vermell, groc o
+# verd es cosa del planol i de ningu mes.
 function Get-EstatPlanol([bool]$precinte, [string]$estatInforme) {
     $n = _NormalitzaText $estatInforme
-    if ($precinte -or $n -eq 'precinte / cessament') { return 'vermell' }
-    if ($n -eq 'requeriment' -or $n -eq 'ampliacio termini') { return 'groc' }
-    if ($n -eq 'favorable' -or $n -eq 'fi requeriment' -or $n -eq 'fi precinte / cessament') { return 'verd' }
+    if ($precinte -or $n -eq (_NormalitzaText $Script:EstatPrecinte)) { return 'vermell' }
+    if ($n -eq (_NormalitzaText $Script:EstatRequeriment) -or $n -eq (_NormalitzaText $Script:EstatAmpliacio)) { return 'groc' }
+    if ($n -eq (_NormalitzaText $Script:EstatFavorable) -or
+        $n -eq (_NormalitzaText $Script:EstatFiRequeriment) -or
+        $n -eq (_NormalitzaText $Script:EstatFiPrecinte)) { return 'verd' }
     return 'blau'
 }
 

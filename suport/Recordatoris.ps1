@@ -36,8 +36,8 @@ $Script:RecAvisAntiguitatDbDies = 30
 # amb @() al lloc de la crida).
 function _RecCampanyes {
     return @(
-        [pscustomobject]@{ Clau = 'requeriments'; Nom = 'Requeriments'; Estats = @('Requeriment') }
-        [pscustomobject]@{ Clau = 'precintes';    Nom = 'Precintes';    Estats = @('Precinte / Cessament') }
+        [pscustomobject]@{ Clau = 'requeriments'; Nom = 'Requeriments'; Estats = @($Script:EstatRequeriment) }
+        [pscustomobject]@{ Clau = 'precintes';    Nom = 'Precintes';    Estats = @($Script:EstatPrecinte) }
     )
 }
 
@@ -497,7 +497,7 @@ function _RecAntiguitatDb($db, [datetime]$avui) {
 
 # Carrega la base d'informes. Retorna $null si encara no s'ha generat mai.
 function _RecCarregaDb {
-    $p = Join-Path $LocalActivitatsDir 'informes-db.json'
+    $p = Get-InformesDbPath
     if (-not (Test-Path -LiteralPath $p)) { return $null }
     return (Read-JsonFile $p)
 }

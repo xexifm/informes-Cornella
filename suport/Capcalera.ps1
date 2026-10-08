@@ -48,8 +48,23 @@ function _BuildHeaderForm($excelInfo) {
 
     $controls  = @{}
     $rowLabels = @{}
+    # Una fila "etiqueta + quadre", i torna la $y de la fila seguent.
+    #
+    # L'ORDRE DELS PARAMETRES ES EL MATEIX QUE A ActExtrPantalles.ps1
+    # ($label, $key, $width, $y). Abans aquesta tenia la $key l'ULTIMA i la $y
+    # la SEGONA, o sigui que les dues feien la mateixa feina amb dos dels
+    # arguments intercanviats: copiar una linia de crida d'una pantalla a
+    # l'altra COMPILA i posa la clau on va la y, i el defecte no es veu fins
+    # que s'obre la pantalla.
+    #
+    # NO ES FONEN EN UNA de sola, i queda escrit per que: la geometria difereix
+    # de debo (etiqueta de 200 contra 180, el quadre a x=220 contra x=200, pas
+    # de 38 contra 36) i la generica demanaria set parametres per cobrir dos
+    # casos, que es pitjor que les dues copies (regla 2 del CLAUDE.md, el mateix
+    # cas que les dues graelles i les finestres de progres). El que era un
+    # defecte -i ja no hi es- era l'ordre.
     $addRow = {
-        param($label, $y, $tbWidth, $key)
+        param($label, $key, $width, $y)
         $lbl = New-Object System.Windows.Forms.Label
         $lbl.Text = $label
         $lbl.Location = New-Object System.Drawing.Point(15, $y)
@@ -58,14 +73,15 @@ function _BuildHeaderForm($excelInfo) {
 
         $tb = New-Object System.Windows.Forms.TextBox
         $tb.Location = New-Object System.Drawing.Point(220, ($y - 2))
-        $tb.Size = New-Object System.Drawing.Size($tbWidth, 22)
+        $tb.Size = New-Object System.Drawing.Size($width, 22)
         [void]$form.Controls.Add($tb)
         $controls[$key]  = $tb
         $rowLabels[$key] = $lbl
+        return ($y + 38)
     }
 
     $y = 50 + $topOffset
-    & $addRow 'ID GIA' $y 380 'ID_GIA'
+    [void](& $addRow 'ID GIA' 'ID_GIA' 380 $y)
     $btnSearch = New-Object System.Windows.Forms.Button
     $btnSearch.Text = 'Cercar'
     $btnSearch.Location = New-Object System.Drawing.Point(605, ($y - 4))
@@ -74,10 +90,10 @@ function _BuildHeaderForm($excelInfo) {
     [void]$form.Controls.Add($btnSearch)
     $y += 38
 
-    & $addRow "Num. d'expedient (autom., editable)"   $y 460 'EXP_NUM';   $y += 38
-    & $addRow 'Titular (autom., editable)'            $y 460 'TITULAR';   $y += 38
-    & $addRow 'Adreca (autom., editable)'             $y 460 'ADRECA';    $y += 38
-    & $addRow 'Activitat (autom., editable)'          $y 460 'ACTIVITAT'; $y += 38
+    $y = & $addRow "Num. d'expedient (autom., editable)"   'EXP_NUM'   460 $y
+    $y = & $addRow 'Titular (autom., editable)'            'TITULAR'   460 $y
+    $y = & $addRow 'Adreca (autom., editable)'             'ADRECA'    460 $y
+    $y = & $addRow 'Activitat (autom., editable)'          'ACTIVITAT' 460 $y
 
     # --- Origen de l'informe: documentacio aportada o visita d'inspeccio ---
     # Segons la tria es mostren uns camps o uns altres i canvia la linia
@@ -108,10 +124,10 @@ function _BuildHeaderForm($excelInfo) {
     # Camps de documentacio aportada (NUM/DATA anotacio) i, superposat al primer,
     # el camp de data d'inspeccio: nomes es veu el joc que toca segons la tria.
     $yAnot = $y
-    & $addRow "Num. d'anotacio (autom., editable)" $yAnot 460 'NUM_ANOTACIO'
-    & $addRow "Data d'inspeccio"                    $yAnot 460 'DATA_INSPECCIO'
+    [void](& $addRow "Num. d'anotacio (autom., editable)" 'NUM_ANOTACIO' 460 $yAnot)
+    [void](& $addRow "Data d'inspeccio"                   'DATA_INSPECCIO' 460 $yAnot)
     $y = $yAnot + 38
-    & $addRow "Data d'anotacio (autom., editable)"  $y 460 'DATA_ANOTACIO'; $y += 50
+    [void](& $addRow "Data d'anotacio (autom., editable)"  'DATA_ANOTACIO' 460 $y); $y += 50
 
     # Mostra/amaga els camps segons l'origen triat.
     $applyOrigen = {
