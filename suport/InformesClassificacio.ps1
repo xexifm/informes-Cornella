@@ -28,7 +28,7 @@
 # nomes arribaria als informes que algu tornes a desar, i els 802 de la carpeta
 # es quedarien amb la classificacio vella per sempre. CANVIA-LA cada vegada que
 # canviis el que en surt (conclusio, conclusio breu, tipus).
-$Script:ClassificadorVersio = '2026-10-08.2'
+$Script:ClassificadorVersio = '2026-10-08.3'
 
 # Una propietat d'un objecte de la base (o $null si no la te), sense petar amb
 # les bases d'abans que no porten els camps nous. La fan servir aquest fitxer,
@@ -215,15 +215,30 @@ $Script:RxPrecinte = '(?<!\bno (es )?)pertinent (suspendre|precintar)'
 # digues "cas contrari" en algun lloc, i el "cal requerir" de despres guanyava:
 # sis activitats de la classificacio real del 7/10/2026 sortien en
 # 'Requeriment' amb l'activitat suspesa.
+# El text TANCA o FINALITZA l'expedient, o desprecinta ("es pot donar per
+# tancada la denuncia / per finalitzat", "es pot aixecar / desprecintar", "es
+# pertinent desprecintar"), sense un "no" al davant. $n ja normalitzat.
+function _TextTancament([string]$n) {
+    return ($n -match '(?<!\bno )es pot donar.{0,12}(finalitzat|tancad)' -or
+            $n -match '(?<!\bno )es (pot|valora) (aixecar|desprecintar)' -or
+            $n -match '(?<!\bno (es )?)pertinent desprecintar')
+}
+
 function _PrecinteEfectiu([string]$n) {
+    $tancament = _TextTancament $n
     foreach ($frase in ($n -split '(?<=[.;])\s+')) {
         foreach ($m in [regex]::Matches($frase, $Script:RxPrecinte)) {
             $abans = $frase.Substring(0, $m.Index)
             $despres = $frase.Substring($m.Index + $m.Length)
             # "Si es detecta un us de la cuina ESTANT PRECINTADA, ...es pertinent
             # suspendre": la condicio parla d'un precinte que JA hi es, o sigui
-            # que es un precinte vigent i no l'advertiment (8/10/2026).
-            if ($abans -match 'si es detecta' -and $abans -match '(?<!\bno )(estant|esta|estiguin?|ja) precintad') { return $true }
+            # que es un precinte vigent i no l'advertiment (8/10/2026). PERO no si
+            # el text tanca l'expedient: el tancament de la denuncia copia
+            # l'advertiment i despres diu "No s'ha detectat us de la cuina
+            # durant el precintament... es pot donar per tancada la denuncia";
+            # aquella regla, aqui al pas 0, li passava per davant i el feia
+            # Precinte (validacio del 8/10/2026, 19:48).
+            if (-not $tancament -and $abans -match 'si es detecta' -and $abans -match '(?<!\bno )(estant|esta|estiguin?|ja) precintad') { return $true }
             if ($abans -match 'en cas contrari|si es disposen? de mes elements|si es detecta') { continue }
             if ($despres -match 'en (el )?cas de no presentar') { continue }
             return $true
@@ -327,8 +342,16 @@ function _ConclusioBreu($text) {
 # linia, despres de la data que hi posa l'eina Seguiment ("dd/MM/aaaa: ").
 $Script:RespostesNegatives = @('no es presenta', 'no saporta', 'manca aportar la documentacio',
     'no es justifica', 'no shan retirat', 'no estan esmenad', 'no es disposa')
+# Les negatives es miren PRIMER: "No es presenta" no arriba mai a casar amb la
+# positiva "es presenta" (i aquesta, amb el \b del final, no casa amb "es
+# presentara"). "No es requereix" i "No cal" sota una obligacio la deixen
+# resolta. Abans hi faltaven "Es presenta", "S'aplica", "Es tramita"... i un
+# seguiment amb tots els punts resolts sortia Requeriment, perque aquelles
+# respostes no es veien i els punts quedaven "sense resposta" (8/10/2026).
 $Script:RespostesPositives = @('saporta', 'es justifica', 'sentrega', 'saclareix',
-    'sha portat a terme amb resultat favorable', 'ok')
+    'sha portat a terme amb resultat favorable', 'ok', 'es presenta', 'saplica',
+    'es tramita', 'sha realitzat', 'shan realitzat', 'shan retirat', 'sha retirat',
+    'no es requereix', 'no cal')
 
 # L'estat d'un informe SENSE cap frase de conclusio (97 dels 802: no son rars,
 # son els formats d'abans). Torna @{ Breu; Motiu } o $null si no se'n pot dir

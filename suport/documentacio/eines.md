@@ -527,7 +527,10 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
     precedit de «En cas contrari», «Si es disposen de més elements…» o «Si es
     detecta», o seguit de «en el cas de no presentar» — **excepte** «Si es
     detecta un ús de la cuina **estant precintada**…»: allà el precinte ja hi
-    és, és vigent; una afirmació directa
+    és, és vigent — **llevat que el text tanqui l'expedient** (`_TextTancament`:
+    «es pot donar per tancada/finalitzat», «es pot aixecar/desprecintar», sense
+    «no» al davant): el tancament de la denúncia copia l'advertiment i després
+    diu «No s'ha detectat ús de la cuina… es pot donar per tancada la denúncia»; una afirmació directa
     («…fins a esmenar les deficiències», «…fins que hagi obtingut la
     llicència», «és pertinent precintar la cuina fins a…») és un precinte. Un
     precinte que només és advertiment dóna `Requeriment`, però **després** dels
@@ -560,7 +563,11 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
     l'inici de línia, després de la data «dd/MM/aaaa: » que hi posa l'eina
     Seguiment): alguna negativa → `Requeriment`; **algun requeriment (línia amb
     una obligació) sense cap resposta abans del següent** → `Requeriment` (un
-    concert amb «OK» sota uns punts i res sota el Pla d'Autoprotecció sortia FI);
+    concert amb «OK» sota uns punts i res sota el Pla d'Autoprotecció sortia FI;
+    per això **una resposta positiva que no s'hi reconeix fa un Requeriment
+    fals**: si en surt una de nova, va a `$Script:RespostesPositives` —«Es
+    presenta», «S'aplica», «Es tramita», «S'ha realitzat», «S'han retirat», «No
+    es requereix», «No cal»… les negatives es miren primer);
     totes contestades → `FI Requeriment` **amb motiu** «estat deduit, sense
     conclusio». Requeriment antic («S'han observat les següents deficiències que
     cal esmenar…»), **un cos que llista obligacions** o «…per tant no es pot

@@ -291,6 +291,36 @@ AssertEq $k.Breu 'Requeriment' 'el PRIMER requeriment sense resposta (el segon s
 AssertEq (_ConclusioBreu "Vist l${ap}anterior, cal requerir l${ap}esmena de les deficiències indicades. Si es detecta un ús de la cuina estant precintada, és pertinent suspendre l${ap}activitat.") $prec '"Si es detecta un us de la cuina ESTANT PRECINTADA, es pertinent suspendre" -> Precinte (abans Requeriment)'
 AssertEq (_ConclusioBreu "Vist l${ap}anterior, cal requerir l${ap}esmena. Si es detecta que la cuina no està precintada, és pertinent precintar-la.") 'Requeriment' '"...no esta precintada" no es un precinte vigent -> Requeriment'
 
+Write-Host "`n--- InformesClassificacio.ps1: la validacio del 8/10/2026 a les 19:48 ---"
+# Seguiment amb TOTS els punts resolts, amb les respostes reals que no es veien.
+$segR = @("1. Projecte. S${ap}ha de presentar el projecte.", 'Es presenta.',
+          "2. Rètols. S${ap}ha de presentar la fotografia.", 'Es presenta',
+          "3. Mesures. S${ap}ha de justificar l${ap}aplicació de les mesures.", "S${ap}aplica.",
+          "4. Rampa. S${ap}ha de realitzar una rampa d${ap}accés.", "No es requereix segons el nou Codi d${ap}Accessibilitat.",
+          "5. Epígraf. S${ap}ha de justificar l${ap}epígraf.", 'Es tramita amb el CCAE correcte.',
+          "6. Ventilació. S${ap}ha de justificar la ventilació.", 'Es justifica que no cal.',
+          "7. Revisió. S${ap}ha de realitzar la revisió.", "21/02/2025: S${ap}ha realitzat.",
+          "8. Elements. S${ap}han de retirar els elements. S${ap}ha de presentar la fotografia.", "S${ap}han retirat.",
+          "9. Documentació. S${ap}ha d${ap}aportar la documentació.", "S${ap}aporta la documentació.",
+          "10. Tot. S${ap}ha de presentar tota la documentació.", 'Es presenta tota la documentació.',
+          "11. Sonometria. S${ap}ha de realitzar una sonometria.", 'No cal.')
+$k = _ClassificaInforme ($segR + $tail) 'x.docx' ''
+AssertEq "$($k.Breu)|$(@($k.Motius) -join ',')" 'FI Requeriment|estat deduit, sense conclusio' 'seguiment amb tots els punts resolts ("Es presenta", "S''aplica", "No es requereix", "Es tramita", "No cal"...) -> FI (abans Requeriment)'
+foreach ($posTxt in @('Es presenta.', 'Es presenta', "S${ap}aplica.", "No es requereix segons el nou Codi d${ap}Accessibilitat.", 'Es tramita amb el CCAE correcte.', 'Es justifica que no cal.', "S${ap}ha realitzat.", "S${ap}han retirat.", "S${ap}aporta la documentació.", 'Es presenta tota la documentació.', 'No cal.')) {
+    $k = _ClassificaInforme (@("1. Punt. S${ap}ha de presentar el document.", $posTxt) + $tail) 'x.docx' ''
+    AssertEq $k.Breu 'FI Requeriment' ("seguiment: '" + $posTxt + "' resol l'obligacio")
+}
+$k = _ClassificaInforme (@("1. Punt. S${ap}ha de presentar el document.", 'No es presenta.', "2. Punt. S${ap}ha de presentar el pla.", 'Es presenta.') + $tail) 'x.docx' ''
+AssertEq $k.Breu 'Requeriment' '"No es presenta" segueix sent negativa (no es confon amb "Es presenta")'
+$k = _ClassificaInforme (@("1. Punt. S${ap}ha de presentar el document.", 'Es presentarà més endavant.') + $tail) 'x.docx' ''
+AssertEq $k.Breu 'Requeriment' '"Es presentara..." no es "Es presenta": l''obligacio queda sense resposta'
+# El precinte vigent ("estant precintada") NO passa per davant d'un tancament.
+AssertEq (_ConclusioBreu "Si es detecta un ús de la cuina estant precintada, és pertinent suspendre l${ap}activitat. No s${ap}ha detectat ús de la cuina durant el precintament. Vist l${ap}anterior s${ap}informa que es pot donar per tancada la denúncia.") 'FI Requeriment' 'tancament que copia l''advertiment "estant precintada" i diu "es pot donar per tancada la denuncia" -> FI (abans Precinte)'
+AssertEq (_ConclusioBreu "Si es detecta un ús de la cuina estant precintada, és pertinent suspendre l${ap}activitat. Vist l${ap}anterior s${ap}informa que es pot donar per finalitzat el procediment d${ap}esmena.") 'FI Requeriment' '..."es pot donar per finalitzat" -> FI'
+AssertEq (_ConclusioBreu "Si es detecta un ús de la cuina estant precintada, és pertinent suspendre l${ap}activitat. Vist l${ap}anterior, es pot desprecintar la cuina.") 'FI Precinte / Cessament' '..."es pot desprecintar" -> FI Precinte'
+AssertEq (_ConclusioBreu "Si es detecta un ús de la cuina estant precintada, és pertinent suspendre l${ap}activitat. Vist l${ap}anterior s${ap}informa que no es pot donar per tancada la denúncia.") $prec '..."NO es pot donar per tancada" no es un tancament -> segueix Precinte'
+AssertEq (_ConclusioBreu "Vist l${ap}anterior, cal requerir l${ap}esmena de les deficiències indicades. Si es detecta un ús de la cuina estant precintada, és pertinent suspendre l${ap}activitat.") $prec 'sense tancament, el precinte vigent segueix sortint Precinte'
+
 Write-Host "`n--- InformesClassificacio.ps1: els fitxers d'or passats pel classificador ---"
 # Els textos de les plantilles, tal com surten (sense omplir): cada familia ha
 # de donar el que toca. L'ACT_EXTR de requeriment no te frase de conclusio i
