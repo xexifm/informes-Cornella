@@ -44,6 +44,21 @@ function _CorreuConfig {
     }
 }
 
+# ES POT ENVIAR CORREU? Torna '' si si, i si no el MOTIU, per ensenyar-lo tal
+# qual. Viu aqui, al costat de qui llegeix les claus, i no a cada eina: ho
+# necessiten l'enviament dels recordatoris (per aturar una tanda) i
+# l'interruptor automatic de la seva rajola (per no deixar ences un automatic
+# que no pot fer res). Escrit dues vegades, el dia que es canvies una clau
+# n'hi hauria una que no se n'assabentaria.
+function Test-CorreuLlest {
+    $c = _CorreuConfig
+    if (-not $c.PublicKey -or -not $c.ServiceId -or -not $c.TemplateId) {
+        return "falten les claus d'EmailJS a docs\config.js"
+    }
+    if (-not $c.PrivateKey) { return "falta la Private key d'EmailJS a $($c.PrivatePath)" }
+    return ''
+}
+
 # --- Utils de text -> HTML ---------------------------------------------------
 # _EscHtml i _TextToHtml viuen a CorreuFormat.ps1: les fa servir tambe el
 # format del correu de requeriments, i CorreuFormat es la capa de sota (si

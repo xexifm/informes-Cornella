@@ -1020,6 +1020,43 @@ function _SenseComentaris([string]$ruta) {
     return $sb.ToString()
 }
 
+Write-Host "`n--- Totes les eines automatiques, el MATEIX criteri (guard) ---"
+# PER QUE (l'usuari, octubre 2026): "l'eina Recordatoris, que te un estat manual
+# i un automatic, aplica el mateix criteri que la resta (Planol activitats,
+# Actualitzar base i Copiar informes)".
+#
+# Recordatoris s'encenia des d'un boto "Automatic..." DINS de l'eina, amb un
+# quadre de Si/No/Cancel.lar, mentre les altres tres es commuten des de la
+# rajola del menu: la mateixa cosa amb dues interficies. Aquest guard mira les
+# DUES bandes, que es el que ho hauria enxampat d'entrada.
+$menuAuto = _SenseComentaris (Join-Path $rootRepo (Join-Path 'suport' 'Menu.ps1'))
+$rajolesInterruptor = @([regex]::Matches($menuAuto, "Action = '([a-z]+)'; Interruptor = \`$true") | ForEach-Object { $_.Groups[1].Value })
+$registreClaus = @($Script:ModesAuto.Keys | ForEach-Object { [string]$_ })
+AssertEq (@($rajolesInterruptor | Sort-Object) -join ',') (@($registreClaus | Sort-Object) -join ',') 'cada rajola amb interruptor te entrada al registre, i cada entrada la seva rajola'
+Assert ($registreClaus -contains 'recordatoris') 'Recordatoris es commuta des de la rajola, com les altres tres'
+# Cada entrada ha de portar el contracte SENCER: si en falta una clau, el menu
+# peta en pintar la rajola o -pitjor- l'interruptor no fa res i no ho diu.
+foreach ($clau in $registreClaus) {
+    $m = $Script:ModesAuto[$clau]
+    foreach ($k in @('Titol', 'Actiu', 'DesaActiu', 'UltimMode', 'SiToca', 'Requisit', 'TipA', 'TipM')) {
+        Assert ($m.Contains($k)) "el mode automatic '$clau' porta la clau $k"
+    }
+}
+# I no pot quedar la SEGONA interficie: cap boto dins de l'eina que faci el
+# mateix que l'interruptor.
+$recSrc = _SenseComentaris (Join-Path $rootRepo (Join-Path 'suport' 'Recordatoris.ps1'))
+# Compte: el radio 'Automatic' de CADA CAMPANYA es queda, i es un altre
+# concepte (si aquella campanya entra a la tanda automatica o no). El que no hi
+# pot ser es el BOTO del peu que creava la tasca.
+Assert (-not ($recSrc -match "Nom = 'Auto'")) 'Recordatoris ja no te el boto "Automatic..." al peu de l''eina'
+Assert (-not ($recSrc.Contains('function Invoke-RecordatorisTasca'))) 'i la funcio que el servia ja no hi es'
+# La comprovacio de les claus d'EmailJS, UNA: la fan servir l'enviament (per
+# aturar una tanda) i el Requisit de l'interruptor (per no encendre un automatic
+# que no pot enviar res). Si fossin dues, es podria encendre amb unes claus que
+# l'enviament no accepta.
+Assert ((_SenseComentaris (Join-Path $rootRepo (Join-Path 'suport' 'EnviarCorreu.ps1'))).Contains('function Test-CorreuLlest')) 'la comprovacio de les claus d''EmailJS viu amb qui les llegeix'
+AssertEq (@([regex]::Matches($recSrc, 'Test-CorreuLlest')).Count) 2 'Recordatoris hi passa des dels DOS llocs (la tanda i el Requisit)'
+
 Write-Host "`n--- La biblioteca del mapa, fixada en un sol lloc (guard) ---"
 # PER QUE. La versio del Leaflet i el seu SRI estaven a QUATRE llocs
 # independents: els dos mapes de plantilla, l'HTML que es fa Ruta.ps1 i

@@ -575,7 +575,7 @@ function Select-Mode {
     $titulars = @(
         @{ Emoji = $tiMail;  Label = 'Enviar correu';     Kind = 'action'; Action = 'enviarcorreu' }
         @{ Emoji = $tiSobre; Label = 'Textos del correu'; Kind = 'action'; Action = 'emailtextos' }
-        @{ Emoji = $tiBell;  Label = 'Recordatoris';      Kind = 'action'; Action = 'recordatoris' }
+        @{ Emoji = $tiBell;  Label = 'Recordatoris';      Kind = 'action'; Action = 'recordatoris'; Interruptor = $true }
         @{ Emoji = $tiCal;   Label = ('Controls peri' + [char]0x00F2 + 'dics'); Kind = 'action'; Action = 'controlsperiodics' }
     )
     # BASE D'INFORMES: eines de la base d'informes + conversio a PDF.

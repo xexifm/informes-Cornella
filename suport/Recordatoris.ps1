@@ -547,13 +547,11 @@ function Invoke-RecordatorisTanda([string]$clau, $rows, [bool]$silenci) {
     if ($null -eq $cfg) { $res.Motiu = 'campanya desconeguda'; return $res }
 
     # Claus d'EmailJS: si en falta cap, val mes dir-ho que provar-ho N vegades.
-    $ecfg = _CorreuConfig
-    if (-not $ecfg.PublicKey -or -not $ecfg.ServiceId -or -not $ecfg.TemplateId) {
-        $res.Motiu = "falten les claus d'EmailJS a docs\config.js"; $res.Aturat = $true; return $res
-    }
-    if (-not $ecfg.PrivateKey) {
-        $res.Motiu = "falta la Private key d'EmailJS a $($ecfg.PrivatePath)"; $res.Aturat = $true; return $res
-    }
+    # La comprovacio es la MATEIXA que mira l'interruptor de la rajola
+    # (Test-CorreuLlest, EnviarCorreu.ps1): si fossin dues, un automatic es
+    # podria encendre amb unes claus que l'enviament no accepta.
+    $motiuCorreu = Test-CorreuLlest
+    if ($motiuCorreu -ne '') { $res.Motiu = $motiuCorreu; $res.Aturat = $true; return $res }
 
     # Quota: el topall mana per sobre del maxPerTanda.
     $quota = _QuotaLlegeix
@@ -655,6 +653,13 @@ function Invoke-RecordatorisTanda([string]$clau, $rows, [bool]$silenci) {
     } finally {
         if ($null -ne $form) { try { $form.Close() } catch { } }
     }
+    # QUI HA FET AQUESTA TANDA, per a la data de sota la rajola: verda si la va
+    # fer l'automatic, grisa si la vas fer tu. Mateix criteri que Copiar
+    # informes i Actualitzar base. Nomes s'apunta si s'ha enviat alguna cosa:
+    # una tanda que no tenia res a enviar no canvia qui va ser l'ultim.
+    if ([int]$res.Enviats -gt 0) {
+        [void](_RecAutoDesaEstat @{ mode = $(if ($silenci) { 'auto' } else { 'manual' }); enviat_el = (Get-Date).ToString('o') })
+    }
     return $res
 }
 
@@ -728,9 +733,106 @@ function _RecCreaTasca {
 # per execució del programa.
 $Script:RecTascaRevisada = $false
 
-# La programacio dels recordatoris (la tasca del Windows): la mateixa llista que
-# la resta d'automatismes, i es canvia a Configuracio.
-Register-ProgramacioAuto 'recordatoris' 'Recordatoris (tasca del Windows)'
+# La programacio dels recordatoris: la mateixa llista que la resta
+# d'automatismes, i es canvia a Configuracio.
+Register-ProgramacioAuto 'recordatoris' 'Recordatoris'
+
+# ----------------------------------------------------------------------------
+# L'INTERRUPTOR A/M DE LA RAJOLA (el mateix criteri que les altres tres eines)
+# ----------------------------------------------------------------------------
+# L'usuari (octubre 2026): "l'eina Recordatoris, que te un estat manual i un
+# automatic, aplica el mateix criteri que la resta (Planol activitats,
+# Actualitzar base i Copiar informes)".
+#
+# Fins ara l'automatic s'encenia des d'un boto "Automatic..." DINS de l'eina,
+# amb un quadre de Si/No/Cancel.lar. Les altres tres fa temps que es commuten
+# des de la rajola del menu, i aquesta era l'unica que no: la mateixa cosa amb
+# dues interficies.
+#
+# EL QUE NO CANVIA, I ES PER QUE AQUESTA EINA ES DIFERENT: les altres tres
+# corren EN OBRIR EL PROGRAMA (el SiToca del rellotge del menu). Els
+# recordatoris han de sortir encara que no l'obris en setmanes, o sigui que
+# l'automatic es una TASCA DEL WINDOWS. Per aixo el seu SiToca no envia res
+# -nomes manté la tasca al dia si la programacio ha canviat- i encendre
+# l'interruptor vol dir CREAR la tasca.
+$Script:RecAutoPlantilla = [ordered]@{ generat_el = ''; mode = ''; enviat_el = '' }
+
+function _RecAutoStatePath {
+    $base = [string]$env:LOCALAPPDATA
+    if ([string]::IsNullOrWhiteSpace($base)) { $base = [System.IO.Path]::GetTempPath() }
+    return [string](Join-Path $base (Join-Path 'InformesCornella' 'recordatoris-auto.json'))
+}
+function _RecAutoEstat { return (Read-EstatAuto (_RecAutoStatePath) $Script:RecAutoPlantilla) }
+function _RecAutoDesaEstat($canvis) { return (Save-EstatAuto (_RecAutoStatePath) $canvis $Script:RecAutoPlantilla) }
+
+# 'auto' | 'manual' | '': qui va fer l'ultim enviament. El menu hi pinta la data
+# en verd o en gris, com a les altres tres.
+function _RecUltimMode { return [string](_RecAutoEstat)['mode'] }
+
+# HI ES, LA TASCA? Es consulta UNA vegada i es recorda: Actiu el crida el
+# rellotge del menu cada minut, i engegar un schtasks per minut nomes per pintar
+# una pastilla no te cap sentit. Qui la crea o l'esborra refresca la memoria.
+$Script:RecTascaHiEs = $null
+function _RecTascaActiva {
+    if ($null -eq $Script:RecTascaHiEs) {
+        if ([string]::IsNullOrWhiteSpace($env:SystemRoot)) { return $false }   # no es un Windows
+        $q = _RecExecutaSchtasks @('/Query', '/TN', $Script:RecTascaNom)
+        $Script:RecTascaHiEs = ($q.Codi -eq 0)
+    }
+    return [bool]$Script:RecTascaHiEs
+}
+
+# Encendre = crear la tasca; apagar = esborrar-la. Torna $true si ha anat be
+# (el menu nomes mou l'interruptor si el canvi s'ha pogut desar).
+function _RecTascaDesaActiu([bool]$on) {
+    if ($on) {
+        $script = _RecScriptAuto
+        if (-not (Test-Path -LiteralPath $script)) { return $false }
+        # L'AVIS ES QUEDA, i es l'unica cosa que aquest interruptor fa diferent
+        # dels altres tres: encendre'l vol dir que sortiran correus a titulars
+        # SENSE que ningu els miri. Les altres eines automatiques copien fitxers
+        # o refan una base; aquesta escriu a gent. Si l'usuari es fa enrere no
+        # es toca res, i el menu, que torna a llegir Actiu, deixa l'interruptor
+        # on era.
+        $msg = "Vols engegar l'enviament AUTOM" + [char]0x00C0 + "TIC dels recordatoris?`n`n" +
+               "Es crear" + [char]0x00E0 + " una tasca del Windows que " + (Get-ProgramacioText 'recordatoris') + " enviar" + [char]0x00E0 + " els`n" +
+               "recordatoris de les campanyes que tinguis en mode Autom" + [char]0x00E0 + "tic. Si a`n" +
+               "aquella hora el PC estava apagat, s'enviaran en engegar-lo.`n`n" +
+               "Tingues en compte que:`n" +
+               " " + [char]0x00B7 + " Nom" + [char]0x00E9 + "s s'executa amb el PC engegat i la sessi" + [char]0x00F3 + " iniciada.`n" +
+               " " + [char]0x00B7 + " Els correus surten SENSE que ning" + [char]0x00FA + " els revisi.`n" +
+               " " + [char]0x00B7 + " Si la base d'informes t" + [char]0x00E9 + " m" + [char]0x00E9 + "s de " + [string]$Script:RecMaxAntiguitatDbDies + " dies, no enviar" + [char]0x00E0 + " res."
+        $r = [System.Windows.Forms.MessageBox]::Show($msg, 'Recordatoris autom' + [char]0x00E0 + 'tics', 'YesNo', 'Question')
+        if ($r -ne [System.Windows.Forms.DialogResult]::Yes) { return $false }
+        $res = _RecCreaTasca
+    } else {
+        $res = _RecExecutaSchtasks @('/Delete', '/TN', $Script:RecTascaNom, '/F')
+    }
+    if ($res.Codi -ne 0) { $Script:RecTascaHiEs = $null; return $false }   # torna-ho a mirar
+    $Script:RecTascaHiEs = $on
+    return $true
+}
+
+$Script:ModesAuto['recordatoris'] = @{
+    Titol     = 'Recordatoris'
+    Actiu     = { _RecTascaActiva }
+    DesaActiu = { param($on) _RecTascaDesaActiu $on }
+    UltimMode = { _RecUltimMode }
+    # NO ENVIA RES: els recordatoris els envia la tasca del Windows, tambe amb
+    # el programa tancat. Aqui nomes es manté la tasca al dia si la programacio
+    # ha canviat a Configuracio.
+    SiToca    = { Update-RecordatorisTascaSiCal }
+    # Sense les claus d'EmailJS no es pot enviar cap correu, i deixar-ho ences
+    # seria un automatic que no fa res i no ho diu (mateix criteri que la
+    # carpeta de Copiar informes).
+    Requisit  = {
+        $m = Test-CorreuLlest
+        if ($m -eq '') { return '' }
+        return ("Per enviar els recordatoris sols, " + $m + ".`n`nVegeu suport\documentacio\DESPLEGAMENT-MOBIL.md.")
+    }
+    TipA      = { Get-AutoTipText 's envien sols' 'recordatoris' }
+    TipM      = "Mode MANUAL: nomes s'envien quan obres l'eina i ho demanes. Clica per posar-ho en automatic."
+}
 
 # -Forca: torna-ho a mirar encara que ja s'hagi fet (Configuracio, en desar
 # una programacio nova).
@@ -766,40 +868,6 @@ function _RecExecutaSchtasks($argv) {
     return @{ Codi = $p.ExitCode; Sortida = $out }
 }
 
-function Invoke-RecordatorisTasca {
-    $script = _RecScriptAuto
-    if (-not (Test-Path -LiteralPath $script)) {
-        [System.Windows.Forms.MessageBox]::Show("No s'ha trobat:`n$script", 'Recordatoris', 'OK', 'Error') | Out-Null
-        return
-    }
-    $msg = "Vols programar l'enviament AUTOMÀTIC dels recordatoris?`n`n" +
-           "Es crearà una tasca del Windows que $(Get-ProgramacioText 'recordatoris') enviarà els`n" +
-           "recordatoris de les campanyes que tinguis en mode Automàtic. Si a`n" +
-           "aquella hora el PC estava apagat, s'enviaran en engegar-lo.`n`n" +
-           "Tingues en compte que:`n" +
-           " · Només s'executa amb el PC engegat i la sessió iniciada.`n" +
-           " · Els correus surten SENSE que ningú els revisi.`n" +
-           " · Si la base d'informes té més de $($Script:RecMaxAntiguitatDbDies) dies, no enviarà res.`n`n" +
-           "Sí = crear-la / No = esborrar-la / Cancel·lar = deixar-ho com està."
-    $r = [System.Windows.Forms.MessageBox]::Show($msg, 'Recordatoris automàtics', 'YesNoCancel', 'Question')
-    if ($r -eq [System.Windows.Forms.DialogResult]::Cancel) { return }
-
-    if ($r -eq [System.Windows.Forms.DialogResult]::Yes) {
-        $res = _RecCreaTasca
-        if ($res.Codi -eq 0) {
-            [System.Windows.Forms.MessageBox]::Show("Tasca creada.`n`nNom: $($Script:RecTascaNom)`n$(Get-ProgramacioText 'recordatoris') (i, si el PC estava apagat, en engegar-lo). Es canvia a Configuració.", 'Recordatoris', 'OK', 'Information') | Out-Null
-        } else {
-            [System.Windows.Forms.MessageBox]::Show("No s'ha pogut crear la tasca:`n`n$($res.Sortida)", 'Recordatoris', 'OK', 'Error') | Out-Null
-        }
-    } else {
-        $res = _RecExecutaSchtasks @('/Delete', '/TN', $Script:RecTascaNom, '/F')
-        if ($res.Codi -eq 0) {
-            [System.Windows.Forms.MessageBox]::Show('Tasca esborrada.', 'Recordatoris', 'OK', 'Information') | Out-Null
-        } else {
-            [System.Windows.Forms.MessageBox]::Show("No s'ha pogut esborrar (potser no existia):`n`n$($res.Sortida)", 'Recordatoris', 'OK', 'Warning') | Out-Null
-        }
-    }
-}
 
 # ----------------------------------------------------------------------------
 # FINESTRA PRINCIPAL
@@ -951,10 +1019,9 @@ function _RecMuntaTab($tab, $camp, $estat, $db) {
     $peu = _AddPeuBotons $tab @(
         @{ Nom = 'Text'; Text = 'Editar text...' },
         @{ Nom = 'Csv'; Text = 'Exportar CSV' },
-        @{ Nom = 'Exc'; Text = 'Excloure / incloure' },
-        @{ Nom = 'Auto'; Text = 'Automàtic...' }) @(
+        @{ Nom = 'Exc'; Text = 'Excloure / incloure' }) @(
         @{ Nom = 'Send'; Text = 'Enviar tanda'; Estil = 'primari' }) 8 $bot
-    $btnText = $peu.Text; $btnCsv = $peu.Csv; $btnExc = $peu.Exc; $btnAuto = $peu.Auto; $btnSend = $peu.Send
+    $btnText = $peu.Text; $btnCsv = $peu.Csv; $btnExc = $peu.Exc; $btnSend = $peu.Send
 
     # --- Funcions de la pestanya --------------------------------------------
     $txtCerca = _AddSearchBox $top 240 48 300 'Cerca:' { & $fn.Pinta }
@@ -1023,7 +1090,6 @@ function _RecMuntaTab($tab, $camp, $estat, $db) {
     }
 
     $btnText.add_Click({ if (Invoke-RecordatorisTextos $clau) { $estat.campanyes[$clau] = (_RecLlegeix).campanyes[$clau] } }.GetNewClosure())
-    $btnAuto.add_Click({ Invoke-RecordatorisTasca }.GetNewClosure())
 
     $btnExc.add_Click({
         if ($null -eq $grid.CurrentRow -or $null -eq $grid.CurrentRow.Tag) { return }
