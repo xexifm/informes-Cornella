@@ -28,7 +28,7 @@
 # nomes arribaria als informes que algu tornes a desar, i els 802 de la carpeta
 # es quedarien amb la classificacio vella per sempre. CANVIA-LA cada vegada que
 # canviis el que en surt (conclusio, conclusio breu, tipus).
-$Script:ClassificadorVersio = '2026-10-08'
+$Script:ClassificadorVersio = '2026-10-08.2'
 
 # Una propietat d'un objecte de la base (o $null si no la te), sense petar amb
 # les bases d'abans que no porten els camps nous. La fan servir aquest fitxer,
@@ -91,10 +91,31 @@ $Script:ConclusioStartPhrases = @(
     [pscustomobject]@{ Font = 'risc';          Segona = $true;  Phrase = 'és pertinent precintar' },
     # Formats d'abans: control periodic conforme i favorables "a l'antiga".
     [pscustomobject]@{ Font = 'favorable';     Segona = $true;  Phrase = 'el Control Periòdic és FAVORABLE' },
-    [pscustomobject]@{ Font = 'favorable';     Segona = $true;  Phrase = 'informo favorablement' },
-    [pscustomobject]@{ Font = 'favorable';     Segona = $true;  Phrase = "s'informa amb caràcter favorable" },
-    [pscustomobject]@{ Font = 'termini';       Segona = $true;  Phrase = "estimar la sol·licitud d'ampliació" }
+    # Les frases de DECISIO favorable competeixen amb les de primera fila i mana
+    # la que surt primer al document. Eren de segona, i el concert que deia
+    # "S'informa amb caracter favorable" i, mes avall, "El titular es responsable
+    # d'executar..." comencava la conclusio a la segona: el text que en quedava
+    # no deia "favorable" i sortia 'Revisar' (8/10/2026).
+    [pscustomobject]@{ Font = 'favorable';     Segona = $false; Phrase = 'informo favorablement' },
+    [pscustomobject]@{ Font = 'favorable';     Segona = $false; Phrase = "s'informa amb caràcter favorable" },
+    [pscustomobject]@{ Font = 'termini';       Segona = $true;  Phrase = "estimar la sol·licitud d'ampliació" },
+    # Favorables i FI sense la frase habitual (formats d'abans: denuncies i
+    # controls del Decret 112/2010). De segona: "no s'aprecia cap irregularitat"
+    # tambe pot sortir al cos d'un requeriment.
+    [pscustomobject]@{ Font = 'favorable';     Segona = $true;  Phrase = "s'equipara a resultat favorable" },
+    [pscustomobject]@{ Font = 'favorable';     Segona = $true;  Phrase = 'COMPLEIX el que estableix el Decret 112/2010' },
+    [pscustomobject]@{ Font = 'fi';            Segona = $true;  Phrase = "no s'aprecia cap irregularitat" },
+    [pscustomobject]@{ Font = 'fi';            Segona = $true;  Phrase = 'no se li poden requerir més mesures' },
+    [pscustomobject]@{ Font = 'fi';            Segona = $true;  Phrase = "no provenen de l'empresa" }
 )
+
+# Les OBLIGACIONS que llista el cos d'un requeriment ("S'ha de presentar...",
+# "S'haura d'entregar...", "Cal justificar..."), ja normalitzades (_ConclNorm:
+# sense accents ni apostrofs, o sigui "sha de presentar", "sha daportar"). Un
+# informe que en porta i no diu cap decisio es un requeriment: 97 dels 802
+# informes no tenen frase de conclusio, i els requeriments d'abans (i el de les
+# activitats extraordinaries d'avui, que no en te) sortien a 'Revisar'.
+$Script:RxObligacio = '\b(s?ha|s?haura|s?hauran)\s+d(e\s+)?(presentar|justificar|realitzar|aportar|entregar|acreditar|obtenir|retirar)\b|\bcal\s+(justificar|presentar|aportar|acreditar)\b'
 
 # Conclusio: des del primer paragraf que conte una de $Script:ConclusioStartPhrases
 # fins (exclos) el que marca el tancament de l'informe (signatura). Uneix els
@@ -199,6 +220,10 @@ function _PrecinteEfectiu([string]$n) {
         foreach ($m in [regex]::Matches($frase, $Script:RxPrecinte)) {
             $abans = $frase.Substring(0, $m.Index)
             $despres = $frase.Substring($m.Index + $m.Length)
+            # "Si es detecta un us de la cuina ESTANT PRECINTADA, ...es pertinent
+            # suspendre": la condicio parla d'un precinte que JA hi es, o sigui
+            # que es un precinte vigent i no l'advertiment (8/10/2026).
+            if ($abans -match 'si es detecta' -and $abans -match '(?<!\bno )(estant|esta|estiguin?|ja) precintad') { return $true }
             if ($abans -match 'en cas contrari|si es disposen? de mes elements|si es detecta') { continue }
             if ($despres -match 'en (el )?cas de no presentar') { continue }
             return $true
@@ -235,7 +260,8 @@ function _PrecinteEfectiu([string]$n) {
 #   4. Un precinte que nomes es l'advertiment -> Requeriment (DESPRES dels FI:
 #      "es pot aixecar el precinte. Si es detecta..., es pertinent precintar"
 #      es un FI). Despres, el risc sense "pertinent precintar", ampliacio,
-#      favorable, i les clausules d'un requeriment nou.
+#      favorable, i les clausules d'un requeriment nou; l'ultima, una obligacio
+#      ($Script:RxObligacio) sense cap altra decisio.
 function _ConclusioBreu($text) {
     if ([string]::IsNullOrWhiteSpace($text)) { return 'Revisar' }
     $n = _ConclNorm $text
@@ -250,11 +276,17 @@ function _ConclusioBreu($text) {
     if ($n -match 'daltra banda,?\s*es requereix') { return 'Requeriment' }
     if ($n.Contains('resultat favorable incorrecte')) { return 'Requeriment' }
     if ($n.Contains('valora favorablement la solucio') -and $n.Contains('shauran de')) { return 'Requeriment' }
+    # "el Control Periodic es FAVORABLE. De totes maneres, s'ha de presentar la
+    # seguent documentacio": el favorable no tanca res (8/10/2026).
+    if ($n -match 'de totes maneres' -and $n -match $Script:RxObligacio) { return 'Requeriment' }
     # 2. Inici del procediment d'esmena.
     if ($n -match 'inicia (dofici )?el procediment desmena') { return 'Requeriment' }
     # 3. Seguiment resolt (inclou denuncies tancades: mateix "final positiu").
     if ($n -match 'es pot donar.{0,12}finalitzat') { return 'FI Requeriment' }
     if ($n.Contains('es pot donar per tancada la denuncia')) { return 'FI Requeriment' }
+    # Seguiments i denuncies resolts sense la frase de sempre (8/10/2026).
+    if ($n.Contains('no saprecia cap irregularitat') -or $n.Contains('no se li poden requerir mes mesures') -or
+        $n -match 'molesties.{0,60}no provenen de') { return 'FI Requeriment' }
     # Aixecament d'un precinte/suspensio.
     if ($n -match 'es (pot|valora) (aixecar|desprecintar)' -or $n.Contains('pertinent desprecintar')) { return 'FI Precinte / Cessament' }
     # 4. El precinte o la suspensio que queden son NOMES l'advertiment (els de
@@ -265,9 +297,20 @@ function _ConclusioBreu($text) {
     # "estimar" i no "desestimar".
     if ($n -match '(^|[^a-z])estimar la sol.?licitud d.?ampliacio') { return $Script:EstatAmpliacio }
     # Desfavorable: deliberadament NO es classifica com a Favorable; cau a Revisar.
-    if ($n.Contains('desfavorablement') -or $n.Contains('desfavorable')) { return 'Revisar' }
+    # "no es pot informar favorablement" tambe es un desfavorable (sense aixo, el
+    # "favorablement" el feia Favorable).
+    if ($n.Contains('desfavorablement') -or $n.Contains('desfavorable') -or $n.Contains('no es pot informar favorablement')) { return 'Revisar' }
     if ($n.Contains('favorablement') -or $n.Contains('favorable')) { return 'Favorable' }
+    # Control del Decret 112/2010 que "COMPLEIX el que estableix" sense dir
+    # "favorable" a la mateixa conclusio.
+    if ($n -match '(?<!\bno )compleix el que estableix el decret') { return 'Favorable' }
     if ($n.Contains('ampliar el termini')) { return ('Ampliaci' + [char]0x00F3 + ' termini') }
+    # "Vist l'anterior, s'ha de retirar / s'ha de presentar...": una obligacio
+    # sense cap altra decisio. Va DARRERE del favorable a posta: el favorable
+    # d'una activitat extraordinaria ("s'informa favorablement tenint en compte
+    # les seguents consideracions") llista "S'haura de presentar..." i no es cap
+    # requeriment.
+    if ($n -match $Script:RxObligacio -or $n -match '\bno es pot informar\b') { return 'Requeriment' }
     # Clausules estandard d'un requeriment NOU (encara sense "Vist l'anterior").
     if ($n.Contains('recepcio del requeriment') -or $n.Contains('esmenar les deficiencies') -or
         $n.Contains('mancances formals') -or $n.Contains('termini maxim de') -or
@@ -290,37 +333,55 @@ $Script:RespostesPositives = @('saporta', 'es justifica', 'sentrega', 'saclareix
 # L'estat d'un informe SENSE cap frase de conclusio (97 dels 802: no son rars,
 # son els formats d'abans). Torna @{ Breu; Motiu } o $null si no se'n pot dir
 # res (llavors queda 'Revisar', "sense conclusio"). $lines: els paragrafs.
-#   - Seguiment punt per punt: alguna resposta negativa -> Requeriment; TOTES
-#     positives -> FI Requeriment, pero amb motiu (l'estat s'ha deduit).
+#   - Seguiment punt per punt: alguna resposta negativa -> Requeriment. Si hi ha
+#     respostes positives pero algun REQUERIMENT (una linia amb una obligacio,
+#     $Script:RxObligacio) es queda sense cap resposta abans del seguent, tampoc
+#     no es pot deduir FI: es Requeriment (el concert amb "OK" sota uns punts i
+#     res sota el Pla d'Autoprotecció i l'assistencia sanitaria sortia FI,
+#     8/10/2026). TOTES respostes -> FI Requeriment, amb motiu (deduit).
 #   - Requeriment antic: "S'han observat les seguents deficiencies que cal
 #     esmenar per poder (seguir) exercint l'activitat", i acaba a la signatura.
 #     Va DESPRES del seguiment: el seguiment d'un requeriment antic el copia
 #     sencer, amb aquesta frase inclosa.
+#   - Un cos que llista obligacions ("S'ha de presentar...", "Cal justificar...")
+#     o diu que el document "no es pot informar": Requeriment. Tambe despres del
+#     seguiment, que les copia.
 #   - Denuncia d'accessibilitat sense res a requerir ("Sense requeriments
 #     especifics", "Actuacio: Cap").
 function _EstatSenseConclusio($lines) {
     $neg = 0; $pos = 0; $reqAntic = $false; $accCap = $false; $accAltra = $false
+    $oblig = 0; $senseResposta = 0; $pendent = $false; $noInforma = $false
     foreach ($ln in @($lines)) {
         $n = _ConclNorm $ln
         if ($n -eq '') { continue }
         $r = $n -replace '^[\s\-\*–•·]*(\d{1,2}[/.\-]\d{1,2}[/.\-]\d{2,4}\s*:?\s*)?', ''
+        $esResposta = $false
         if ($r.Length -le 200) {
             $esNeg = $false
             foreach ($p in $Script:RespostesNegatives) { if ($r.StartsWith($p)) { $esNeg = $true; break } }
-            if ($esNeg) { $neg++ }
+            if ($esNeg) { $neg++; $esResposta = $true }
             else {
                 foreach ($p in $Script:RespostesPositives) {
-                    if ($r -match ('^' + [regex]::Escape($p) + '(\b|$)')) { $pos++; break }
+                    if ($r -match ('^' + [regex]::Escape($p) + '(\b|$)')) { $pos++; $esResposta = $true; break }
                 }
             }
         }
+        if ($esResposta) { $pendent = $false }
+        elseif ($n -match $Script:RxObligacio) {
+            $oblig++
+            if ($pendent) { $senseResposta++ }
+            $pendent = $true
+        }
+        if ($n -match '\bno es pot informar\b') { $noInforma = $true }
         if ($n -match 's.?han observat les seguents deficiencies que cal esmenar') { $reqAntic = $true }
         if ($n.Contains('sense requeriments especifics') -or $n -match 'actuacio\s*:\s*cap\b') { $accCap = $true }
         elseif ($n -match '^actuacio\s*:') { $accAltra = $true }
     }
+    if ($pendent) { $senseResposta++ }
     if ($neg -gt 0) { return @{ Breu = 'Requeriment'; Motiu = '' } }
+    if ($pos -gt 0 -and $senseResposta -gt 0) { return @{ Breu = 'Requeriment'; Motiu = '' } }
     if ($pos -gt 0) { return @{ Breu = 'FI Requeriment'; Motiu = 'estat deduit, sense conclusio' } }
-    if ($reqAntic) { return @{ Breu = 'Requeriment'; Motiu = '' } }
+    if ($reqAntic -or $oblig -gt 0 -or $noInforma) { return @{ Breu = 'Requeriment'; Motiu = '' } }
     if ($accCap -and -not $accAltra) { return @{ Breu = 'FI Requeriment'; Motiu = '' } }
     return $null
 }
@@ -363,15 +424,21 @@ function _EsExpedientActExtr([string]$expedient) {
 #   ''         la resta.
 # PURA. Es desa a l'informe ('tipus') perque l'editor pugui recalcular l'estat
 # sense tornar a obrir el .docx.
+#
+# L'ORDRE: el nom del fitxer i el TEXT primer; la serie de l'expedient nomes
+# quan cap dels dos no diu res. Una MNS que deia "favorablement de la
+# Modificacio..." amb la capcalera mal escrita ("Exp. Num: 2026/1/2565", la
+# carpeta era la 2562) sortia 'actextr' (8/10/2026).
 function _TipusInforme([string]$conclusio, [string]$fitxer, [string]$expedient) {
     $n = _ConclNorm $conclusio
-    if ($fitxer -match '(?i)(^|[^a-z])act[\s_-]?extr' -or (_EsExpedientActExtr $expedient) -or
+    if ($fitxer -match '(?i)(^|[^a-z])act[\s_-]?extr' -or
         $n.Contains('responsable dexecutar') -or
         $n.Contains('favorablement tenint en compte les seguents consideracions')) { return 'actextr' }
     if ($n -match 'sinforma favorablement (a lespera de rebre|lactivitat)' -or
         $n.Contains('posterior visita dinspeccio')) { return 'llicfav' }
     if ($n -match 'favorablement (de la|del|al|a la) (modificacio|canvi de nom|canvi de titularitat|transmissio)' -or
         $n.Contains('favorablement una modificacio')) { return 'mns' }
+    if (_EsExpedientActExtr $expedient) { return 'actextr' }
     return ''
 }
 

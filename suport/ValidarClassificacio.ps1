@@ -22,7 +22,18 @@
   a activitat, l'ESTAT: el que surt ara contra el que sortiria amb la
   classificacio correcta (la mateixa regla, _EstatActualActivitat, amb els
   valors bons). Es deixen fora les entrades amb una 'nota' que comenca per
-  "DUBTE"; les que diuen que son judici de l'usuari es llisten a part.
+  "DUBTE"; les que diuen que son judici de l'usuari ("JUDICI: ...", decisions
+  de lectura) es llisten a part.
+
+  Als informes de tipus 'mns' i 'actextr' NO es compara l'ignorat: l'estat el
+  decideix el tipus (_InformeQueDeterminaEstat) i el programa ja no desa cap
+  ignorat automatic, o sigui que l'ignorat de la classificacio no te res amb
+  que comparar-se. Nomes es compara la conclusio breu, i l'estat al bloc
+  d'activitats (on tampoc no s'hi aplica).
+
+  Una diferencia d'ESTAT que nomes ve d'un informe JUDICI (amb la resta de
+  valors bons, pero el del JUDICI com el diu el programa, l'estat surt igual
+  que ara) tampoc no compta: es llista a part.
 
   Escriu la LLISTA de discrepancies (no nomes el recompte) a la consola i a
   local\base-dades-activitats\validacio-classificacio_<data>.txt (dins de
@@ -107,6 +118,13 @@ foreach ($e in $vcEntrades) { $vcBo[((_ClauInforme ([string]$e.ruta_relativa) ''
 $vcArrel = [string]$vcDb.carpeta_arrel
 $vcEsDubte  = { param($e) ([string](_PropInf $e 'nota')).Trim() -match '^(?i)dubte' }
 $vcEsJudici = { param($e) ([string](_PropInf $e 'nota')) -match '(?i)judici' }
+# 'mns' i 'actextr': l'estat el decideix el tipus i l'ignorat no es compara (ni
+# s'aplica a l'estat). El tipus BO, i si la classificacio no en porta, el d'ara.
+$vcSenseIgnorat = { param($e, $inf)
+    $t = [string](_PropInf $e 'tipus')
+    if ([string]::IsNullOrWhiteSpace($t)) { $t = [string](_PropInf $inf 'tipus') }
+    return ($t -eq 'mns' -or $t -eq 'actextr')
+}
 
 # ---- 3. Informe a informe ---------------------------------------------------
 $vcDifInf = New-Object System.Collections.ArrayList
@@ -122,11 +140,12 @@ foreach ($act in @($vcDb.activitats)) {
         if (& $vcEsDubte $e) { $nDubte++; continue }
         $nComparats++
         $okBreu = ([string]$e.conclusio_breu -eq [string]$inf.conclusio_breu)
-        $okIgn = ([bool]$e.ignorat -eq [bool]$inf.ignorat)
+        $okIgn = (& $vcSenseIgnorat $e $inf) -or ([bool]$e.ignorat -eq [bool]$inf.ignorat)
         if ($okBreu -and $okIgn) { continue }
+        $vcIgnTxt = -not (& $vcSenseIgnorat $e $inf)
         $t = ('  ' + $clau + "`n" +
-              '      correcte: ' + [string]$e.conclusio_breu + $(if ([bool]$e.ignorat) { ' (ignorat)' } else { '' }) + '  tipus=' + [string](_PropInf $e 'tipus') + "`n" +
-              '      ara:      ' + [string]$inf.conclusio_breu + $(if ([bool]$inf.ignorat) { ' (ignorat)' } else { '' }) + '  tipus=' + [string]$inf.tipus +
+              '      correcte: ' + [string]$e.conclusio_breu + $(if ($vcIgnTxt -and [bool]$e.ignorat) { ' (ignorat)' } else { '' }) + '  tipus=' + [string](_PropInf $e 'tipus') + "`n" +
+              '      ara:      ' + [string]$inf.conclusio_breu + $(if ($vcIgnTxt -and [bool]$inf.ignorat) { ' (ignorat)' } else { '' }) + '  tipus=' + [string]$inf.tipus +
               $(if ([string]$inf.motiu) { '  motiu=' + [string]$inf.motiu } else { '' }))
         if ([string](_PropInf $e 'nota')) { $t += "`n      nota:     " + [string]$e.nota }
         if (& $vcEsJudici $e) { [void]$vcJudici.Add($t) } else { [void]$vcDifInf.Add($t) }
@@ -136,28 +155,37 @@ $vcNoTrobats = @($vcBo.Keys | Where-Object { -not $vcVistos.ContainsKey($_) -and
 
 # ---- 4. Activitat a activitat: l'ESTAT --------------------------------------
 # El de debo amb els valors bons (tipus inclos) i la mateixa regla. Els DUBTE es
-# queden amb el que diu el programa (no se sap quin es el bo).
-$vcDifEstat = New-Object System.Collections.ArrayList
-foreach ($act in @($vcDb.activitats)) {
+# queden amb el que diu el programa (no se sap quin es el bo). Als 'mns' i
+# 'actextr' no s'hi aplica l'ignorat bo (vegeu $vcSenseIgnorat).
+# $ambJudici = $false: els JUDICI tambe es queden amb el que diu el programa.
+# Si aixi l'estat surt com ara, la diferencia nomes ve d'un JUDICI i no compta.
+$vcActivitatBona = { param($act, [bool]$ambJudici)
     $bons = foreach ($inf in @($act.informes)) {
         $o = $inf.PSObject.Copy()
         $clau = _ClauInforme ([string]$inf.ruta) $vcArrel
-        if ($vcBo.ContainsKey($clau) -and -not (& $vcEsDubte $vcBo[$clau])) {
+        if ($vcBo.ContainsKey($clau) -and -not (& $vcEsDubte $vcBo[$clau]) -and ($ambJudici -or -not (& $vcEsJudici $vcBo[$clau]))) {
             $e = $vcBo[$clau]
             $o.conclusio_breu = [string]$e.conclusio_breu
-            $o.ignorat = [bool]$e.ignorat
+            if (-not (& $vcSenseIgnorat $e $inf)) { $o.ignorat = [bool]$e.ignorat }
             $o.tipus = [string](_PropInf $e 'tipus')
         }
         $o
     }
-    $actBo = [pscustomobject]@{ id_gia = $act.id_gia; informes = @($bons) }
+    [pscustomobject]@{ id_gia = $act.id_gia; informes = @($bons) }
+}
+$vcDifEstat = New-Object System.Collections.ArrayList
+$vcDifEstatJudici = New-Object System.Collections.ArrayList
+foreach ($act in @($vcDb.activitats)) {
+    $actBo = & $vcActivitatBona $act $true
     $estatBo = _EstatActualActivitat $actBo
     if ($estatBo -eq [string]$act.estat_actual) { continue }
     $nom = if ([string]$act.id_gia) { 'GIA ' + [string]$act.id_gia } else { 'carpeta ' + [string]$act.carpeta }
     $infBo = _InformeQueDeterminaEstat $actBo
     $infAra = _InformeQueDeterminaEstat $act
-    [void]$vcDifEstat.Add(('  ' + $nom + ':  correcte=' + $estatBo + $(if ($infBo) { ' (' + [string]$infBo.fitxer + ')' } else { '' }) +
-                           '  ara=' + [string]$act.estat_actual + $(if ($infAra) { ' (' + [string]$infAra.fitxer + ')' } else { '' })))
+    $t = ('  ' + $nom + ':  correcte=' + $estatBo + $(if ($infBo) { ' (' + [string]$infBo.fitxer + ')' } else { '' }) +
+          '  ara=' + [string]$act.estat_actual + $(if ($infAra) { ' (' + [string]$infAra.fitxer + ')' } else { '' }))
+    $estatSenseJudici = _EstatActualActivitat (& $vcActivitatBona $act $false)
+    if ($estatSenseJudici -eq [string]$act.estat_actual) { [void]$vcDifEstatJudici.Add($t) } else { [void]$vcDifEstat.Add($t) }
 }
 
 # ---- 5. El resum, i la LLISTA ----------------------------------------------
@@ -168,16 +196,19 @@ foreach ($act in @($vcDb.activitats)) {
 & $vcDiu ('Informes escanejats: ' + $vcRes.NInformes + '   activitats: ' + $vcRes.NActivitats + '   a revisar: ' + $vcRes.NRevisar)
 & $vcDiu ('Entrades de la classificacio: ' + $vcEntrades.Count + '   comparades: ' + $nComparats + '   DUBTE (fora): ' + $nDubte + '   no trobades a la carpeta: ' + $vcNoTrobats.Count)
 & $vcDiu ('Discrepancies d''informe: ' + $vcDifInf.Count + '   (judici de l''usuari, a part: ' + $vcJudici.Count + ')')
-& $vcDiu ('Discrepancies d''ESTAT d''activitat: ' + $vcDifEstat.Count)
+& $vcDiu ('Discrepancies d''ESTAT d''activitat: ' + $vcDifEstat.Count + '   (nomes per un informe JUDICI, a part: ' + $vcDifEstatJudici.Count + ')')
 & $vcDiu ''
 & $vcDiu '== ESTAT D''ACTIVITAT diferent =='
 foreach ($t in $vcDifEstat) { & $vcDiu $t }
 & $vcDiu ''
-& $vcDiu '== INFORMES amb conclusio breu o ignorat diferents =='
+& $vcDiu '== INFORMES amb conclusio breu o ignorat diferents (mns i actextr: nomes la conclusio breu) =='
 foreach ($t in $vcDifInf) { & $vcDiu $t }
 & $vcDiu ''
 & $vcDiu '== Judici de l''usuari (no compten) =='
 foreach ($t in $vcJudici) { & $vcDiu $t }
+& $vcDiu ''
+& $vcDiu '== ESTAT diferent NOMES per un informe JUDICI (no compten) =='
+foreach ($t in $vcDifEstatJudici) { & $vcDiu $t }
 if ($vcNoTrobats.Count -gt 0) {
     & $vcDiu ''
     & $vcDiu '== A la classificacio pero no a la carpeta =='

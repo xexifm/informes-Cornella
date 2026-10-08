@@ -495,11 +495,17 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
     `ValidarClassificacio.ps1`: el que es valida és el que es fa servir.
   - **Frases d'inici** (`$Script:ConclusioStartPhrases`): les de sempre, més
     «Cal requerir l'esmena de les deficiències indicades» (la conclusió de
-    `LLIC`, sense «Vist l'anterior»). Les **de segona** (`Segona = $true`: «és
+    `LLIC`, sense «Vist l'anterior»). **«Informo favorablement» i «s'informa
+    amb caràcter favorable» competeixen amb les de primera fila** i mana la que
+    surt primer al document (8/10/2026: un concert deia «S'informa amb caràcter
+    favorable» i, més avall, «El titular és responsable d'executar»; guanyava la
+    segona i sortia `Revisar`). Les **de segona** (`Segona = $true`: «és
     pertinent suspendre/precintar», «el Control Periòdic és FAVORABLE»,
-    «informo favorablement», «s'informa amb caràcter favorable», «estimar la
-    sol·licitud d'ampliació») **només es miren si no n'hi ha cap de les
-    altres**: també poden sortir al cos (un seguiment que copia una conclusió
+    «estimar la sol·licitud d'ampliació», i els favorables/FI sense la frase de
+    sempre: «s'equipara a resultat favorable», «COMPLEIX el que estableix el
+    Decret 112/2010», «no s'aprecia cap irregularitat», «no se li poden requerir
+    més mesures», «no provenen de l'empresa») **només es miren si no n'hi ha cap
+    de les altres**: també poden sortir al cos (un seguiment que copia una conclusió
     anterior) i, com que la conclusió comença a la PRIMERA línia que en conté
     una, s'endurien mig informe. En segona passada no poden canviar res del que
     ja es trobava.
@@ -519,7 +525,9 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
     `_PrecinteEfectiu` mira **frase a frase**: «és pertinent
     suspendre/precintar» només és l'advertiment si dins de la mateixa frase va
     precedit de «En cas contrari», «Si es disposen de més elements…» o «Si es
-    detecta», o seguit de «en el cas de no presentar»; una afirmació directa
+    detecta», o seguit de «en el cas de no presentar» — **excepte** «Si es
+    detecta un ús de la cuina **estant precintada**…»: allà el precinte ja hi
+    és, és vigent; una afirmació directa
     («…fins a esmenar les deficiències», «…fins que hagi obtingut la
     llicència», «és pertinent precintar la cuina fins a…») és un precinte. Un
     precinte que només és advertiment dóna `Requeriment`, però **després** dels
@@ -538,15 +546,26 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
     un requeriment. Després els FI, i finalment precinte/suspensió («és
     pertinent suspendre» sense la frase literal del risc), ampliació («estimar»,
     no «desestimar»), favorable i les clàusules d'un requeriment nou.
-    «Desfavorable» continua a `Revisar` a posta.
+    «Desfavorable» (i «no es pot informar favorablement») continua a `Revisar`
+    a posta. Dues de noves (8/10/2026): «De totes maneres… s'ha de presentar»
+    després d'un favorable és `Requeriment` (pas 1), i **una obligació**
+    (`$Script:RxObligacio`: «S'ha de presentar/justificar/realitzar/aportar/
+    retirar…», «S'haurà de…», «Cal justificar/presentar») sense cap altra
+    decisió és `Requeriment` — però **darrere del favorable**, a posta: el
+    favorable d'una activitat extraordinària llista «S'haurà de presentar…» i
+    no és cap requeriment (hi ha una prova que passa els fitxers d'or pel
+    classificador i ho vigila).
   - **Sense frase de conclusió** (97 dels 802: no són rars, són els formats
     d'abans) → `_EstatSenseConclusio`. Seguiment punt per punt (respostes a
     l'inici de línia, després de la data «dd/MM/aaaa: » que hi posa l'eina
-    Seguiment): alguna negativa → `Requeriment`; totes positives → `FI
-    Requeriment` **amb motiu** «estat deduit, sense conclusio». Requeriment antic
-    («S'han observat les següents deficiències que cal esmenar…») →
-    `Requeriment`; va **després** del seguiment perquè el seguiment d'un
-    requeriment antic el copia sencer. Denúncia d'accessibilitat sense res a
+    Seguiment): alguna negativa → `Requeriment`; **algun requeriment (línia amb
+    una obligació) sense cap resposta abans del següent** → `Requeriment` (un
+    concert amb «OK» sota uns punts i res sota el Pla d'Autoprotecció sortia FI);
+    totes contestades → `FI Requeriment` **amb motiu** «estat deduit, sense
+    conclusio». Requeriment antic («S'han observat les següents deficiències que
+    cal esmenar…»), **un cos que llista obligacions** o «…per tant no es pot
+    informar» → `Requeriment`; van **després** del seguiment perquè el seguiment
+    d'un requeriment els copia sencers. Denúncia d'accessibilitat sense res a
     requerir → `FI Requeriment`. La resta, `Revisar` + «sense conclusio».
   - **Plantilla sense omplir** (`_EsPlantillaSenseOmplir`: el SÍ i el NO de
     «es pot donar per tancada la denúncia» alhora, o «Copiar requeriment» al
@@ -560,9 +579,12 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
     pugui recalcular sense obrir el `.docx`): `llicfav` (favorables de
     llicència, decideixen sempre), `mns` (MNS, canvi de nom, canvi de
     titularitat/transmissió) i `actextr` (nom del fitxer amb «ActExtr»/«Act
-    Extr», expedient de la **sèrie** 2569/2565 —l'expedient és any/número/sèrie i
-    només compta la sèrie: una MNS de la sèrie 2562 amb el número 2565 sortia
-    com a activitat extraordinària—, o la conclusió del Decret 112/2010).
+    Extr», o la conclusió del Decret 112/2010; i, **només si ni el text ni el
+    nom diuen res**, l'expedient de la **sèrie** 2569/2565 —l'expedient és
+    any/número/sèrie i només compta la sèrie: una MNS de la sèrie 2562 amb el
+    número 2565 sortia com a activitat extraordinària—. Que el text mani sobre
+    la sèrie ve d'una MNS amb la capçalera mal escrita, «2026/1/2565», a la
+    carpeta de la 2562).
   - **`_InformeQueDeterminaEstat($act)` — rep l'ACTIVITAT, no la llista**, perquè
     la regla d'`actextr` depèn de si té GIA. Recorre els informes per ordre i es
     queda amb l'últim que decideix: ignorat → mai; `Altres` → només si no hi ha
@@ -613,13 +635,20 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
   abans se n'anava en silenci a l'activitat d'un altre titular.
 - **Validar contra la carpeta REAL: `suport/ValidarClassificacio.ps1`** (no és
   de la suite). La classificació feta a mà
-  (`local/base-dades-activitats/classificacio-informes_2026-10-07.json`) porta
+  (`local/base-dades-activitats/classificacio-informes_2026-10-08.json`, que
+  substitueix la del 10-07) porta
   dades personals i el repositori és públic: a la suite hi ha **textos
   inventats**, i aquest script fa l'escaneig de debò en una carpeta temporal
   (sense la base ni les correccions de l'usuari) i escriu la **llista** de
   discrepàncies d'informe i d'estat d'activitat a
   `local/base-dades-activitats/validacio-classificacio_<data>.txt`. Deixa fora
-  les entrades amb `nota` «DUBTE…» i llista a part les de judici de l'usuari.
+  les entrades amb `nota` «DUBTE…» i llista a part les de judici de l'usuari
+  («JUDICI: …», decisions de lectura). Als informes `mns` i `actextr` **no
+  compara l'ignorat** (l'estat el decideix el tipus i el programa no en desa
+  cap): només la conclusió breu, i tampoc no l'aplica a l'estat. Una
+  diferència d'estat d'activitat que **només ve d'un informe JUDICI** (amb el
+  del JUDICI com el diu el programa l'estat surt igual) va a un bloc a part i
+  no compta.
   `powershell -NoProfile -ExecutionPolicy Bypass -File suport\ValidarClassificacio.ps1`
 - **Estats nous pendents de decidir amb l'usuari** (no fets): «Favorable pendent
   doc.» (el `favorable-pre` de llicència, que avui cau a `Favorable` i surt en

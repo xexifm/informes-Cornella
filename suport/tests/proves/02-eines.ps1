@@ -233,6 +233,88 @@ AssertEq (_EsExpedientActExtr '2024-37-2565') $true 'serie 2565 escrita amb guio
 AssertEq (_EsExpedientActExtr '') $false 'sense expedient -> no'
 AssertEq (_TipusInforme "S${ap}informa FAVORABLEMENT de la Modificació NO substancial presentada sense més observacions." 'x.docx' '2024/2565/2562') 'mns' 'una MNS de la serie 2562 (numero 2565) es mns, no actextr'
 
+Write-Host "`n--- InformesClassificacio.ps1: la validacio del 8/10/2026 (textos inventats amb la forma dels casos reals) ---"
+$tail = @('Ho poso al seu coneixement als efectes oportuns,', 'Cornella de Llobregat,')
+# 1. Requeriments SENSE frase de conclusio: el cos llista obligacions.
+$k = _ClassificaInforme (@('ID GIA: 9001', 'Llicència', "1. Projecte. S${ap}ha de presentar el projecte signat per un tècnic competent.", "2. Certificat. S${ap}haurà d${ap}entregar el certificat final.") + $tail) 'x.docx' ''
+AssertEq "$($k.Breu)|$(@($k.Motius) -join ',')" 'Requeriment|' 'sense conclusio, el cos llista "S''ha de presentar / S''haura d''entregar" -> Requeriment (abans Revisar)'
+$k = _ClassificaInforme (@('ID GIA: 9002', 'Aparcament', "Cal justificar la previsió d${ap}aparcament de l${ap}activitat.") + $tail) 'x.docx' ''
+AssertEq $k.Breu 'Requeriment' '"Cal justificar la previsio d''aparcament" sense conclusio -> Requeriment'
+foreach ($ob in @("S${ap}ha de justificar l${ap}aforament.", "S${ap}ha de realitzar la sonometria.", "S${ap}ha d${ap}aportar el contracte.", "S${ap}haurà de presentar el certificat.", "S${ap}haurà de realitzar la revisió.", 'Cal presentar el pla.')) {
+    $k = _ClassificaInforme (@('Annex I', $ob) + $tail) 'x.docx' ''
+    AssertEq $k.Breu 'Requeriment' ("sense conclusio: '" + $ob + "' -> Requeriment")
+}
+$k = _ClassificaInforme (@('Annex I', "El document aportat no és l${ap}estudi acústic demanat, per tant no es pot informar.") + $tail) 'x.docx' ''
+AssertEq $k.Breu 'Requeriment' '"no es l''estudi... demanat, per tant no es pot informar" -> Requeriment'
+$k = _ClassificaInforme (@('Nota informativa sobre el tràmit.', "L${ap}activitat haurà de tenir en compte la normativa.") + $tail) 'x.docx' ''
+AssertEq $k.Breu 'Revisar' 'un "haura de tenir en compte" orientatiu no es cap obligacio de la llista -> Revisar'
+# 2. "Vist l'anterior, s'ha de retirar / presentar..."
+AssertEq (_ConclusioBreu "Vist l${ap}anterior, s${ap}ha de retirar l${ap}element i s${ap}ha de presentar el certificat.") 'Requeriment' '"Vist l''anterior, s''ha de retirar/presentar" -> Requeriment (abans Revisar)'
+# 3. Control periodic FAVORABLE "De totes maneres... s'ha de presentar".
+AssertEq (_ConclusioBreu "D${ap}acord amb la documentació presentada el Control Periòdic és FAVORABLE. De totes maneres, per tal de completar l${ap}expedient s${ap}ha de presentar la següent documentació: el certificat.") 'Requeriment' 'control periodic FAVORABLE + "De totes maneres... s''ha de presentar" -> Requeriment (abans Favorable)'
+# ...i el favorable d'una activitat extraordinaria, que llista "S'haura de presentar", segueix Favorable.
+AssertEq (_ConclusioBreu "S${ap}informa favorablement tenint en compte les següents consideracions: S${ap}haurà de presentar el certificat d${ap}instal·lació elèctrica.") 'Favorable' 'favorable d''activitat extraordinaria amb "S''haura de presentar" -> Favorable (l''obligacio no hi passa davant)'
+# 4. Favorables i FI sense la frase habitual.
+$k = _ClassificaInforme (@('Denúncia', 'Sonometria.', "El resultat s${ap}equipara a resultat favorable.") + $tail) 'x.docx' ''
+AssertEq $k.Breu 'Favorable' '"s''equipara a resultat favorable" -> Favorable'
+$k = _ClassificaInforme (@('Denúncia', "L${ap}activitat COMPLEIX el que estableix el Decret 112/2010 amb resultat favorable.") + $tail) 'x.docx' ''
+AssertEq $k.Breu 'Favorable' '"COMPLEIX el que estableix el Decret 112/2010" + "resultat favorable" -> Favorable'
+AssertEq (_ConclusioBreu "L${ap}activitat COMPLEIX el que estableix el Decret 112/2010.") 'Favorable' '"COMPLEIX el que estableix el Decret" sol -> Favorable'
+AssertEq (_ConclusioBreu "L${ap}activitat NO compleix el que estableix el Decret 112/2010.") 'Revisar' '"NO compleix el que estableix" no es favorable'
+$k = _ClassificaInforme (@('Requeriment', "Realitzada la visita no s${ap}aprecia cap irregularitat a l${ap}activitat.") + $tail) 'x.docx' ''
+AssertEq $k.Breu 'FI Requeriment' '"no s''aprecia cap irregularitat" -> FI Requeriment'
+$k = _ClassificaInforme (@('Antecedents', "Vist l${ap}anterior, no se li poden requerir més mesures a l${ap}activitat.") + $tail) 'x.docx' ''
+AssertEq $k.Breu 'FI Requeriment' '"Vist l''anterior, no se li poden requerir mes mesures" -> FI Requeriment'
+$k = _ClassificaInforme (@('Requeriment', "Es constata que les molèsties d${ap}olors no provenen de l${ap}empresa.") + $tail) 'x.docx' ''
+AssertEq $k.Breu 'FI Requeriment' '"les molesties d''olors no provenen de l''empresa" -> FI Requeriment'
+# 5. "S'informa amb caracter favorable" ABANS de "El titular es responsable d'executar": mana la primera.
+$k = _ClassificaInforme (@('Concert', "S${ap}informa amb caràcter favorable l${ap}activitat extraordinària.", "El titular és responsable d${ap}executar i mantenir les mesures de seguretat.") + $tail) 'x.docx' ''
+AssertEq "$($k.Font)|$($k.Breu)|$($k.Tipus)" 'favorable|Favorable|actextr' '"s''informa amb caracter favorable" abans de "responsable d''executar" -> comenca a la primera, Favorable (abans Revisar)'
+$k = _ClassificaInforme (@('Concert', "El titular és responsable d${ap}executar i mantenir les mesures de seguretat.", 'Per tot lo exposat, informo favorablement.') + $tail) 'x.docx' ''
+AssertEq $k.Font 'act_extr' '...i a l''inreves, mana "responsable d''executar", que surt primer'
+# 6. El TEXT d'una MNS mana sobre la serie de l'expedient.
+AssertEq (_TipusInforme "S${ap}informa FAVORABLEMENT de la Modificació NO substancial presentada." '2026-02-11_D112_MNS_OK_X.docx' '2026/1/2565') 'mns' 'MNS amb l''expedient mal escrit (serie 2565) -> mns (abans actextr)'
+AssertEq (_TipusInforme "Vist l${ap}anterior, cal requerir l${ap}esmena." 'x.docx' '2026/1/2565') 'actextr' 'sense res al text ni al nom, la serie 2565 segueix decidint'
+AssertEq (_TipusInforme "S${ap}informa FAVORABLEMENT de la Modificació NO substancial presentada." '2026-02-11_ActExtr_X.docx' '') 'actextr' 'el nom del fitxer "ActExtr" segueix manant'
+# 7. Seguiment amb respostes PARCIALS: algun requeriment sense resposta -> Requeriment.
+$segP = @("1. Incendis. S${ap}ha d${ap}obtenir l${ap}informe favorable.", '01/06/2026: OK',
+          "2. Pla d${ap}Autoprotecció. S${ap}ha de presentar el certificat d${ap}homologació.",
+          "3. Assistència sanitària. S${ap}ha de justificar els dispositius.",
+          "4. Responsabilitat Civil. S${ap}ha de presentar la pòlissa.", '01/06/2026: OK')
+$k = _ClassificaInforme ($segP + $tail) 'Act Extr.docx' ''
+AssertEq $k.Breu 'Requeriment' 'seguiment amb OK sota uns requeriments i res sota uns altres -> Requeriment (abans FI)'
+$k = _ClassificaInforme (@("1. Incendis. S${ap}ha d${ap}obtenir l${ap}informe.", '01/06/2026: OK', "2. Pòlissa. S${ap}ha de presentar la pòlissa.", "01/06/2026: S${ap}aporta.") + $tail) 'x.docx' ''
+AssertEq "$($k.Breu)|$(@($k.Motius) -join ',')" 'FI Requeriment|estat deduit, sense conclusio' 'seguiment amb resposta sota TOTS els requeriments -> FI (deduit)'
+$k = _ClassificaInforme (@("1. Pòlissa. S${ap}ha de presentar la pòlissa.", "2. Rètols. S${ap}ha de presentar la fotografia.", '01/06/2026: OK') + $tail) 'x.docx' ''
+AssertEq $k.Breu 'Requeriment' 'el PRIMER requeriment sense resposta (el segon si) -> Requeriment'
+# 8. Precinte VIGENT: "Si es detecta un us de la cuina estant precintada".
+AssertEq (_ConclusioBreu "Vist l${ap}anterior, cal requerir l${ap}esmena de les deficiències indicades. Si es detecta un ús de la cuina estant precintada, és pertinent suspendre l${ap}activitat.") $prec '"Si es detecta un us de la cuina ESTANT PRECINTADA, es pertinent suspendre" -> Precinte (abans Requeriment)'
+AssertEq (_ConclusioBreu "Vist l${ap}anterior, cal requerir l${ap}esmena. Si es detecta que la cuina no està precintada, és pertinent precintar-la.") 'Requeriment' '"...no esta precintada" no es un precinte vigent -> Requeriment'
+
+Write-Host "`n--- InformesClassificacio.ps1: els fitxers d'or passats pel classificador ---"
+# Els textos de les plantilles, tal com surten (sense omplir): cada familia ha
+# de donar el que toca. L'ACT_EXTR de requeriment no te frase de conclusio i
+# sortia 'Revisar'; el favorable porta "S'haura de presentar" i no pot caure a
+# Requeriment.
+$orDir = Join-Path $TestsDir 'dades'
+$orEsperat = [ordered]@{
+    'emit-actextr-req.txt' = 'Requeriment'; 'emit-actextr-fav.txt' = 'Favorable'
+    'emit-llicencia-favorable-pre.txt' = 'Favorable'; 'emit-llicencia-favorable-post.txt' = 'Favorable'
+    'emit-mns-sense-punts.txt' = 'Favorable'
+    'emit-trans-sense-punts.txt' = 'Favorable'
+    # Les dues que porten "COPIAR REQUERIMENT" sense omplir.
+    'emit-mns-amb-punts.txt' = 'Revisar'; 'emit-llicencia-requeriment.txt' = 'Revisar'
+}
+foreach ($orNom in $orEsperat.Keys) {
+    $orRuta = Join-Path $orDir $orNom
+    if (-not (Test-Path -LiteralPath $orRuta)) { Assert $false ("fitxer d'or no trobat: " + $orRuta); continue }
+    $orLinies = @(Get-Content -LiteralPath $orRuta -Encoding UTF8 | ForEach-Object {
+        $c = @($_ -split '\|')
+        if ($c.Count -ge 2 -and $c[0] -notmatch '^(AIRE|SEPARA|LLISTA|URL)$') { (($c[1..($c.Count - 1)] | Where-Object { $_ -ne '' }) -join ' ') -replace '\*\*|//', '' }
+    })
+    AssertEq (_ClassificaInforme $orLinies $orNom '').Breu $orEsperat[$orNom] ("fitxer d'or " + $orNom + ' -> ' + $orEsperat[$orNom])
+}
+
 Write-Host "`n--- Informes.ps1: _ExcelActivitatActualitzada (Camp Info REQUERIT PER DECRET? / PRECINTE ACTIVITAT? amb SI) ---"
 # El camp de l'Excel es 'PRECINTE ACTIVITAT?'. Aqui hi havia una prova que
 # assegurava justament el contrari ('PRECINTE ACTIVITAT?' -> false) i per aixo el
