@@ -121,21 +121,21 @@ AssertEq $ests[0].Adreca 'C CADIS 19' "l'adreca, amb el numero de 'Emp._Numero_'
 AssertEq "$($ests[2].Buit)|$($ests[2].IdActivitat)" 'True|' 'local buit sense activitat'
 AssertEq $ests[3].Buit $true "'Si' amb accent -> buit"
 
-$capA = @('ID Activitat', 'Ref. cadastral', 'UTM X', 'UTM Y', 'Emp. Tipus via', 'Emp. Carrer', 'Emp. Numero', 'Activitat principal', 'Nom comercial activitat', 'Camp Info 1 - Nom', 'Camp Info 1 - Valor')
+$capA = @('ID Activitat', 'Ref. cadastral', 'UTM X', 'UTM Y', 'Emp. Tipus via', 'Emp. Carrer', 'Emp. Numero', 'Activitat principal', 'Nom comercial activitat', 'Rao social', 'Camp Info 1 - Nom', 'Camp Info 1 - Valor')
 $filesA = @(
     $capA,
-    @([double]1447, '2295827DF2729E0011RQ', [double]421968.09, [double]4579505.55, 'C', 'CADIS', '19', 'BAR', 'EL RACO', 'PRECINTE ACTIVITAT?', 'SI, PRECINTAT 01/10/2026'),
-    @([double]1403, '2295827DF2729E0008RQ', [double]421968.09, [double]4579505.55, 'C', 'CADIS', '19', 'TALLER', '', '', ''),
-    @([double]9, '4091106DF2749A0006XJ', [double]423912.16, [double]4578928.25, 'CTRA', 'HOSPITALET', '147', 'OFICINES', 'ACME', '', ''),
-    @([double]10, '', [double]422500.0, [double]4579000.0, 'C', 'ENLLOC', '1', 'BOTIGA', '', '', ''),
-    @([double]11, '', $null, $null, 'C', 'ENLLOC', '2', 'BOTIGA', '', '', ''),
-    @([double]2000, '3085213DF2738E0001AB', [double]422800.0, [double]4579200.0, 'PG', 'FERROCARRILS', '177', 'MAGATZEM', '', '', '')
+    @([double]1447, '2295827DF2729E0011RQ', [double]421968.09, [double]4579505.55, 'C', 'CADIS', '19', 'BAR', 'EL RACO', 'RACO SL', 'PRECINTE ACTIVITAT?', 'SI, PRECINTAT 01/10/2026'),
+    @([double]1403, '2295827DF2729E0008RQ', [double]421968.09, [double]4579505.55, 'C', 'CADIS', '19', 'TALLER', '', '', '', ''),
+    @([double]9, '4091106DF2749A0006XJ', [double]423912.16, [double]4578928.25, 'CTRA', 'HOSPITALET', '147', 'OFICINES', 'ACME', 'ACME INVERSIONS SL', '', ''),
+    @([double]10, '', [double]422500.0, [double]4579000.0, 'C', 'ENLLOC', '1', 'BOTIGA', '', '', '', ''),
+    @([double]11, '', $null, $null, 'C', 'ENLLOC', '2', 'BOTIGA', '', '', '', ''),
+    @([double]2000, '3085213DF2738E0001AB', [double]422800.0, [double]4579200.0, 'PG', 'FERROCARRILS', '177', 'MAGATZEM', '', '', '', '')
 )
 $acts = ConvertFrom-FullaActivitatsPlanol (_Mat $filesA) $filesA.Count $capA
 AssertEq $acts.Count 6 'sis activitats'
 AssertEq $acts['1447'].Precinte $true 'precintada pel camp lliure'
 AssertEq $acts['1403'].Precinte $false 'la resta, no'
-AssertEq $acts['9'].Nom 'ACME' 'el nom comercial'
+AssertEq $acts['9'].Titular 'ACME INVERSIONS SL' 'el TITULAR (rao social), no el nom comercial (ACME)'
 
 Write-Host "`n--- La base d'informes ---"
 $db = [pscustomobject]@{ activitats = @(
@@ -275,7 +275,7 @@ Write-Host "`n--- L'ID GIA a la COORDENADA UTM de l'Excel d'activitats ---"
 # L'usuari (octubre 2026): "dibuixa les etiquetes amb el ID GIA segons les
 # coordenades UTM de la base de dades d'activitats". Una parcel.la de 40 x 20
 # al carrer Progres (la facana, a baix).
-$eP = { param($g, $num, $estat = 'groc', $ax = $null, $ay = $null) [pscustomobject]@{ Tipus = 'activitat'; Gia = $g; Nom = ''; Activitat = ''; Sub = ''; SubFont = ''; Estat = $estat; EstatText = ''; Precinte = $false; MarcatBuit = $false; SenseEstabliment = $false; NoBase = $false; NInformes = 0; Adreca = ''; Rc = ''; Carrer = 'Progres'; Numero = $num; Turistic = $false; Classificacio = 'III'; ActX = $ax; ActY = $ay } }
+$eP = { param($g, $num, $estat = 'groc', $ax = $null, $ay = $null) [pscustomobject]@{ Tipus = 'activitat'; Gia = $g; Titular = ''; Activitat = ''; Sub = ''; SubFont = ''; Estat = $estat; EstatText = ''; Precinte = $false; MarcatBuit = $false; SenseEstabliment = $false; NoBase = $false; NInformes = 0; Adreca = ''; Rc = ''; Carrer = 'Progres'; Numero = $num; Turistic = $false; Classificacio = 'III'; ActX = $ax; ActY = $ay } }
 $pcP = [pscustomobject]@{ Clau = '3678311DF2737H'; Rc = '3678311DF2737H'; X = 422020.0; Y = 4579010.0; Entrades = @(
     (& $eP '1340' '73' 'groc' 422008.0 4579005.0),       # dins
     (& $eP '288' '75' 'blau' 422030.0 4578999.0),        # 1 m al carrer: a dins

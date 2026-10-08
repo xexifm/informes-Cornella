@@ -14,8 +14,8 @@ function _E($id, $rc, $act, $x, $y, $buit, $local, $adr, $carrer = '', $num = ''
     return [pscustomobject]@{ IdEst = $id; Rc = $rc; IdActivitat = $act; Local = $local; Bloc = ''; Escala = ''; Pis = ''; Porta = ''
                               Buit = $buit; UtmX = $x; UtmY = $y; Adreca = $adr; Carrer = $carrer; Numero = $num }
 }
-function _A($id, $nom, $act, $rc, $prec, $x, $y, $adr, $cl = '', $tur = $false) {
-    return [pscustomobject]@{ Id = $id; Nom = $nom; Activitat = $act; Rc = $rc; Precinte = $prec; Adreca = $adr; UtmX = $x; UtmY = $y
+function _A($id, $tit, $act, $rc, $prec, $x, $y, $adr, $cl = '', $tur = $false) {
+    return [pscustomobject]@{ Id = $id; Titular = $tit; Activitat = $act; Rc = $rc; Precinte = $prec; Adreca = $adr; UtmX = $x; UtmY = $y
                               Carrer = ''; Numero = ''; Classificacio = $cl; Turistic = $tur }
 }
 $ests = @(
@@ -37,12 +37,12 @@ $ests = @(
 $acts = @{
     # L'ID va a la coordenada UTM de l'Excel d'activitats: el 1447 a prop de la
     # facana de baix (dins), el 1403 fora de la parcel.la (en vermell al centre).
-    '1447' = (_A '1447' 'EL RACO' 'BAR' '2295827DF2729E0011RQ' $true 421960.0 4579485.0 'C CADIS 19' 'III')
+    '1447' = (_A '1447' 'BAR EL RACO SL' 'BAR' '2295827DF2729E0011RQ' $true 421960.0 4579485.0 'C CADIS 19' 'III')
     '1403' = (_A '1403' '' 'TALLER' '2295827DF2729E0008RQ' $false 422100.0 4579600.0 'C CADIS 19' 'II')
-    '9'    = (_A '9' 'ACME' 'OFICINES' '4091106DF2749A0006XJ' $false 423912.16 4578928.25 'CTRA HOSPITALET 147' 'L18 Cert')
+    '9'    = (_A '9' 'ACME INVERSIONS SL' 'OFICINES' '4091106DF2749A0006XJ' $false 423912.16 4578928.25 'CTRA HOSPITALET 147' 'L18 Cert')
     '20'   = (_A '20' '' 'MAGATZEM' '3085213DF2738E0001AB' $false 422800.0 4579200.0 'PG FERROCARRILS 177')
     # Un hotel (CCAE 5520): amagat per defecte.
-    '30'   = (_A '30' 'HOTEL PROVA' 'HOTEL' '4091106DF2749A0007XK' $false 423912.16 4578928.25 'CTRA HOSPITALET 147' 'III' $true)
+    '30'   = (_A '30' 'HOTELS PROVA SA' 'HOTEL' '4091106DF2749A0007XK' $false 423912.16 4578928.25 'CTRA HOSPITALET 147' 'III' $true)
 }
 $estats = @{
     '1403' = [pscustomobject]@{ Estat = 'Requeriment'; NInformes = 2 }

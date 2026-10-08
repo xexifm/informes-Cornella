@@ -422,29 +422,9 @@ function Build-CoordenadesHtml($items, [string]$dbLabel, [string]$abast, [string
 # LECTURA D'EXCEL (COM) - nomes a Windows amb Excel; no es prova en headless.
 # ============================================================================
 
-# EL TITULAR (octubre 2026, l'usuari: "vull veure el titular de l'activitat a
-# l'eina Coordenades"): la raó social de la fulla Estes, la mateixa que fa
-# servir Activitats.ps1 (alli, la columna 10 fixa amb "Rao social" de pista).
-# Hi ha MOLTES columnes "Rao soc. ..." (el correu, el mobil, i l'adreca del
-# titular: "Rao soc. Carrer", "Rao soc. Numero"...): cap d'aquestes no es el
-# nom. Per ordre: el nom exacte "Rao social"; la 10 si la capcalera parla de
-# "rao" i no es cap d'aquelles; la primera "rao soc..." que no ho sigui. 0 si
-# res. PURA.
-$Script:CoordNoEsTitular = 'mail|mobil|telef|fax|nif|cif|dni|via|carrer|numero|escala|pis|porta|bloc|lletra|postal|poblacio|municipi|provincia|\bcp\b'
-function Get-ColumnaTitular($headers) {
-    $c = Find-HeaderColumn $headers 'Rao social'
-    if ($c -gt 0) { return $c }
-    $arr = @($headers)
-    if ($arr.Count -ge 10) {
-        $n10 = _NormalitzaText $arr[9]
-        if ($n10 -match 'rao' -and $n10 -notmatch $Script:CoordNoEsTitular) { return 10 }
-    }
-    for ($i = 0; $i -lt $arr.Count; $i++) {
-        $n = _NormalitzaText $arr[$i]
-        if ($n -match '^rao\W*soc' -and $n -notmatch $Script:CoordNoEsTitular) { return $i + 1 }
-    }
-    return 0
-}
+# EL TITULAR: Get-ColumnaTitular viu a Ruta.ps1, amb Find-HeaderColumn (la
+# fa servir tambe el Planol activitats).
+
 
 # L'ADRECA SENCERA (octubre 2026, l'usuari: "posa'm tota l'adreca, no nomes
 # carrer i numero"): la via i el numero (Format-EmpAddress) i, darrere, el

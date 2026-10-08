@@ -521,7 +521,11 @@ function uniq(llista) {
 }
 
 // Una fila de la fitxa: UNA activitat i tots els seus establiments (ens).
-function filaActivitat(ens, visible) {
+// La primera linia: a la fitxa de la PARCEL.LA (diverses activitats), el
+// TITULAR i, a sota en gris, l'activitat; a la fitxa d'UNA activitat el titular
+// ja surt a dalt en gran, i aqui nomes hi va l'activitat (l'usuari, octubre
+// 2026). Si no hi ha titular, l'activitat.
+function filaActivitat(ens, visible, senseTitular) {
   var en = ens[0];
   var avisos = [];
   var algun = function (f) { for (var i = 0; i < ens.length; i++) { if (f(ens[i])) { return true; } } return false; };
@@ -547,7 +551,8 @@ function filaActivitat(ens, visible) {
   return '<tr style="' + (visible ? '' : 'opacity:.45') + '">' +
     '<td><span class="sw sw-' + escHtml(en.e) + '"></span></td>' +
     '<td class="gia">' + escHtml(en.g) + '</td>' +
-    '<td>' + escHtml(en.n || en.ac || '') + (en.n && en.ac ? '<br><span class="cad">' + escHtml(en.ac) + '</span>' : '') + est +
+    '<td>' + (senseTitular ? escHtml(en.ac || '') :
+              escHtml(en.n || en.ac || '') + (en.n && en.ac ? '<br><span class="cad">' + escHtml(en.ac) + '</span>' : '')) + est +
       // Les DUES adreces, cada una amb el seu nom: no han de coincidir.
       '<br><span class="adr"><i>Adreça (base d\'activitats):</i> ' + escHtml(ads.join(' · ') || '—') + '</span>' +
       (cas.length ? '<br><span class="adr"><i>Adreça (Cadastre):</i> ' + escHtml(cas.join(' · ')) + '</span>' : '') +
@@ -604,7 +609,7 @@ function htmlFitxaActivitat(g) {
   h += '<div class="rc">' + parceles.map(function (i) {
     var pc = PARCELES[i];
     return escHtml(pc.rc || pc.k) + (pc.rc ? ' &middot; ' + enllacCadastre(pc.rc) : '');
-  }).join('<br>') + '</div><table>' + filaActivitat(ens, passaActivitat(ens[0], f)) + '</table>';
+  }).join('<br>') + '</div><table>' + filaActivitat(ens, passaActivitat(ens[0], f), true) + '</table>';
   h += '<div class="acc">' + parceles.map(function (i) {
     return '<a href="#" onclick="setTimeout(function () { obrePopup(' + i + '); }, 0); return false;">Totes les activitats de ' +
            escHtml(PARCELES[i].rc || PARCELES[i].k) + '</a>';
@@ -694,7 +699,7 @@ function csvCamp(v) {
 }
 
 function baixaCsv() {
-  var files = [['ID GIA', 'Nom', 'Activitat', 'Local / planta / porta', 'Adreça', 'Ref. cadastral', 'Estat', 'Darrer informe', 'Classificació', 'Allotjament turístic', 'Avisos']];
+  var files = [['ID GIA', 'Titular', 'Activitat', 'Local / planta / porta', 'Adreça', 'Ref. cadastral', 'Estat', 'Darrer informe', 'Classificació', 'Allotjament turístic', 'Avisos']];
   for (var i = 0; i < PARCELES.length; i++) {
     var v = capes[i].vista;
     if (!v) { continue; }

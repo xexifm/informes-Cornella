@@ -195,7 +195,7 @@ function ConvertFrom-FullaEstabliments($data, [int]$rows, $headers) {
     return @($out)
 }
 
-# La fulla "Estes" (activitats): hashtable ID -> { Id; Nom; Activitat; Rc;
+# La fulla "Estes" (activitats): hashtable ID -> { Id; Titular; Activitat; Rc;
 # Precinte; Adreca; UtmX; UtmY }.
 function ConvertFrom-FullaActivitatsPlanol($data, [int]$rows, $headers) {
     $c = @{
@@ -203,7 +203,7 @@ function ConvertFrom-FullaActivitatsPlanol($data, [int]$rows, $headers) {
         X = Find-HeaderColumn $headers 'UTM X'; Y = Find-HeaderColumn $headers 'UTM Y'
         Via = Find-HeaderColumn $headers 'Emp. Tipus via'; Carrer = Find-HeaderColumn $headers 'Emp. Carrer'
         Num = Find-HeaderColumn $headers 'Emp. Numero'; Lletra = Find-HeaderColumn $headers 'Emp. Lletra'
-        Act = Find-HeaderColumn $headers 'Activitat principal'; Nom = Find-HeaderColumn $headers 'Nom comercial activitat'
+        Act = Find-HeaderColumn $headers 'Activitat principal'; Tit = Get-ColumnaTitular $headers
         Classif = Find-HeaderColumn $headers 'Classificacio general annex'
     }
     if ($c.Id -lt 1) { throw "La fulla d'activitats no te la columna 'ID Activitat'." }
@@ -219,7 +219,9 @@ function ConvertFrom-FullaActivitatsPlanol($data, [int]$rows, $headers) {
         }
         $out[$id] = [pscustomobject]@{
             Id        = $id
-            Nom       = _PlanolValor (_PlanolCel $data $r $c.Nom)
+            # El TITULAR (la rao social), no el nom comercial: l'usuari (octubre
+            # 2026) hi veia "MR. BARNY SL" i volia saber de qui es l'activitat.
+            Titular   = _PlanolValor (_PlanolCel $data $r $c.Tit)
             Activitat = _PlanolValor (_PlanolCel $data $r $c.Act)
             Rc        = _PlanolRcNeta (_PlanolCel $data $r $c.Rc)
             Precinte  = $prec
@@ -375,7 +377,7 @@ function Build-PlanolModel($establiments, $activitats, $estats, $unitats) {
             $dup = $ocupats.ContainsKey($kLocal)
             if ($dup) { $res.BuitsDuplicats++ } else { $res.Buits++ }
             & $afegeix $e.Rc $e.UtmX $e.UtmY ([pscustomobject]@{
-                Tipus = 'buit'; Gia = ''; Nom = ''; Activitat = ''; Sub = $sub.Text; SubFont = $sub.Font
+                Tipus = 'buit'; Gia = ''; Titular = ''; Activitat = ''; Sub = $sub.Text; SubFont = $sub.Font
                 Estat = ''; EstatText = ''; Precinte = $false; MarcatBuit = $true; SenseEstabliment = $false
                 NoBase = $false; NInformes = 0; Adreca = $e.Adreca; Rc = $rcN
                 Carrer = [string]$e.Carrer; Numero = [string]$e.Numero; Turistic = $false; Classificacio = ''
@@ -394,7 +396,7 @@ function Build-PlanolModel($establiments, $activitats, $estats, $unitats) {
         if ($e.Buit) { $res.MarcatsBuit++ }
         & $afegeix $e.Rc $e.UtmX $e.UtmY ([pscustomobject]@{
             Tipus = 'activitat'; Gia = $gia
-            Nom = if ($null -ne $act) { $act.Nom } else { '' }
+            Titular = if ($null -ne $act) { $act.Titular } else { '' }
             Activitat = if ($null -ne $act) { $act.Activitat } else { '' }
             Sub = $sub.Text; SubFont = $sub.Font
             Estat = (Get-EstatPlanol $prec $estatText); EstatText = $estatText; Precinte = $prec
@@ -423,7 +425,7 @@ function Build-PlanolModel($establiments, $activitats, $estats, $unitats) {
         $estatText = if ($null -ne $inf) { [string]$inf.Estat } else { '' }
         $res.SenseEstabliment++
         & $afegeix $act.Rc $act.UtmX $act.UtmY ([pscustomobject]@{
-            Tipus = 'activitat'; Gia = $gia; Nom = $act.Nom; Activitat = $act.Activitat
+            Tipus = 'activitat'; Gia = $gia; Titular = $act.Titular; Activitat = $act.Activitat
             Sub = ''; SubFont = ''; Estat = (Get-EstatPlanol ([bool]$act.Precinte) $estatText); EstatText = $estatText
             Precinte = [bool]$act.Precinte; MarcatBuit = $false; SenseEstabliment = $true; NoBase = $false
             NInformes = if ($null -ne $inf) { [int]$inf.NInformes } else { 0 }
@@ -811,7 +813,7 @@ function ConvertTo-PlanolDadesMapa($model, $geometries, $portals = $null, $punts
                 }
                 $ents += [ordered]@{
                     t = if ($en.Tipus -eq 'buit') { 'b' } else { 'a' }
-                    g = [string]$en.Gia; n = [string]$en.Nom; ac = [string]$en.Activitat
+                    g = [string]$en.Gia; n = [string]$en.Titular; ac = [string]$en.Activitat
                     s = [string]$en.Sub; sf = [string]$en.SubFont
                     e = [string]$en.Estat; et = [string]$en.EstatText
                     pr = [bool]$en.Precinte; mb = [bool]$en.MarcatBuit; se = [bool]$en.SenseEstabliment; nb = [bool]$en.NoBase

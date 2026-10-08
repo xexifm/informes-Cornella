@@ -119,6 +119,16 @@ Com es decideix (`Get-CasesActivitats` + `Get-EtiquetesGrup`, a `PlanolDades.ps1
   reben el ratolí (`pointer-events: none`): `.leaflet-tooltip.ent` el torna a
   activar i el clic s'atura a l'etiqueta (`lligaClicEtiqueta`), si no el mapa
   tancaria la fitxa que s'acaba d'obrir.
+- **El nom que surt és el TITULAR** (la raó social, `Get-ColumnaTitular` de
+  `Ruta.ps1`, la mateixa que fa servir Coordenades), **no el nom comercial**
+  (octubre 2026: l'usuari hi veia «MR. BARNY SL» i volia saber de qui és
+  l'activitat). A la fitxa d'**una** activitat, el titular va a dalt en gran
+  («ID 1484 · titular») i a la fila només hi ha l'activitat i el local; a la de
+  la **parcel·la**, cada fila porta el titular i l'activitat a sota en gris
+  (`filaActivitat(..., senseTitular)`). També al cercador i a la columna
+  «Titular» del CSV.
+  `Get-ColumnaTitular` vivia a `Coordenades.ps1`; va baixar a `Ruta.ps1`, que
+  carreguen tots dos processos.
 - **Una fila per ACTIVITAT** (`perActivitat` + `filaActivitat`): una activitat amb 3
   establiments a la mateixa parcel·la (el 122 de l'usuari, CTRA PRAT 77) surt UN
   cop, amb «3 establiments:» i els seus locals. També al CSV i al cercador.
@@ -405,7 +415,7 @@ pendents de revisar (Configuració, Normativa, Revisió, Ruta).
     (`Format-AdrecaSencera`, etiquetes del Plànol: Bl., Esc., Pl., Pt.; camp
     `adt` al mapa). Columna que no hi sigui, buida. **Compte**: amb aquestes
     columnes hi ha molts «Raó soc. …» que no són el nom; `Get-ColumnaTitular` les
-    descarta (`$Script:CoordNoEsTitular`) i, sense «Rao social» exacte, va
+    descarta (`$Script:ColNoEsTitular`, a `Ruta.ps1`) i, sense «Rao social» exacte, va
     primer a la 10 (la d'`Activitats.ps1`).
   - **El titular** (l'usuari: *«vull veure el titular de l'activitat a l'eina
     Coordenades»*): la «Raó social» de la fulla Estès (`Get-ColumnaTitular`, per

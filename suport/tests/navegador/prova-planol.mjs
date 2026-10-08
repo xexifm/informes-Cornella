@@ -151,6 +151,15 @@ try {
   const fitxa = await p.textContent('.leaflet-popup-content');
   check(fitxa.includes('1447') && fitxa.includes('EL RACO') && fitxa.includes('PRECINTADA'), 'hi ha la precintada, amb el nom');
   check(fitxa.includes('(Cadastre)'), 'i diu que la planta/porta surt del Cadastre');
+  // Fitxa de la PARCEL.LA: a cada fila, el titular i a sota l'activitat.
+  check(fitxa.includes('BAR EL RACO SL') && fitxa.includes('BAR'), 'a la fitxa de la parcel·la, cada fila diu el titular i l\'activitat');
+  // Fitxa d'UNA activitat: el titular a dalt en gran; a la fila, l'activitat.
+  const fActT = await p.evaluate(() => {
+    const d = document.createElement('div'); d.innerHTML = htmlFitxaActivitat('1447');
+    return { h3: d.querySelector('h3').textContent, fila: d.querySelector('table td:nth-child(3)').textContent };
+  });
+  check(fActT.h3.includes('1447') && fActT.h3.includes('BAR EL RACO SL'), 'fitxa d\'una activitat: a dalt, l\'ID i el TITULAR');
+  check(fActT.fila.startsWith('BAR') && !fActT.fila.includes('EL RACO SL'), 'i a la fila, l\'activitat (no hi repeteix el titular)');
   check(fitxa.includes('Requeriment') && fitxa.includes('2 informes'), 'la de requeriment, amb el nombre d\'informes');
   check(fitxa.includes('1 local buit'), 'i el local buit (el duplicat del GIA no hi compta)');
   eq(await p.evaluate(() => [...document.querySelectorAll('.leaflet-popup-content td.gia')].map((t) => t.textContent)), ['1447', '1403'],
@@ -200,7 +209,7 @@ try {
   check(csv.charCodeAt(0) === 0xfeff, 'amb BOM (l\'Excel l\'obre amb els accents bé)');
   const linies = csv.replace(/^﻿/, '').trim().split('\r\n');
   eq(linies.length, 5, 'capçalera + les quatre activitats que es veuen');
-  check(linies[0].startsWith('ID GIA;Nom;Activitat'), 'separat per ;');
+  check(linies[0].startsWith('ID GIA;Titular;Activitat'), 'separat per ;');
 
   seccio('El fons del mapa (MapaFons.js)');
   // OpenStreetMap rebutja les pagines obertes des del disc ("Access blocked"):

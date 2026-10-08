@@ -187,6 +187,31 @@ function Find-HeaderColumn($headers, [string]$name) {
     return 0
 }
 
+# EL TITULAR (octubre 2026, l'usuari: "vull veure el titular de l'activitat a
+# l'eina Coordenades"; i al Planol activitats, en lloc del nom comercial): la
+# raó social de la fulla Estes, la mateixa que fa
+# servir Activitats.ps1 (alli, la columna 10 fixa amb "Rao social" de pista).
+# Hi ha MOLTES columnes "Rao soc. ..." (el correu, el mobil, i l'adreca del
+# titular: "Rao soc. Carrer", "Rao soc. Numero"...): cap d'aquestes no es el
+# nom. Per ordre: el nom exacte "Rao social"; la 10 si la capcalera parla de
+# "rao" i no es cap d'aquelles; la primera "rao soc..." que no ho sigui. 0 si
+# res. PURA.
+$Script:ColNoEsTitular = 'mail|mobil|telef|fax|nif|cif|dni|via|carrer|numero|escala|pis|porta|bloc|lletra|postal|poblacio|municipi|provincia|\bcp\b'
+function Get-ColumnaTitular($headers) {
+    $c = Find-HeaderColumn $headers 'Rao social'
+    if ($c -gt 0) { return $c }
+    $arr = @($headers)
+    if ($arr.Count -ge 10) {
+        $n10 = _NormalitzaText $arr[9]
+        if ($n10 -match 'rao' -and $n10 -notmatch $Script:ColNoEsTitular) { return 10 }
+    }
+    for ($i = 0; $i -lt $arr.Count; $i++) {
+        $n = _NormalitzaText $arr[$i]
+        if ($n -match '^rao\W*soc' -and $n -notmatch $Script:ColNoEsTitular) { return $i + 1 }
+    }
+    return 0
+}
+
 # Parseja la llista d'IDs que escriu l'usuari. Accepta separadors: comes,
 # punts i comes, espais, tabuladors i salts de linia. Treu duplicats
 # conservant l'ordre d'aparicio. Retorna un array de cadenes.
