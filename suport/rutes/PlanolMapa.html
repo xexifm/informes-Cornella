@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ca">
 <head>
 <meta charset="utf-8">
@@ -6,9 +6,7 @@
 <title>Plànol activitats - Cornellà</title>
 <!-- Si unpkg no respon, el full d'estil es torna a demanar a jsDelivr (el mateix
      paquet de npm, byte a byte: el SRI hi coincideix). Com a Coordenades. -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""
-      onerror="this.onerror=null;this.href='https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css';"/>
+{{leafletCss}}
 <style>
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; font-family: Segoe UI, Arial, sans-serif; color: #1a1a1a; }
@@ -141,14 +139,7 @@
     <p class="nota" id="resum"></p>
   </div>
 </div>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-<script>
-if (typeof L === 'undefined') {
-  document.write('<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" ' +
-    'integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""><\/script>');
-}
-</script>
+{{leafletJs}}
 <script>
 if (typeof L === 'undefined') {
   document.getElementById('map').innerHTML =

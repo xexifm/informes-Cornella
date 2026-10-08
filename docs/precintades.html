@@ -6,8 +6,14 @@
 <title>Activitats precintades — Cornellà de Llobregat</title>
 <meta name="theme-color" content="#14365c">
 <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+<!-- ATENCIO: aquesta pagina la serveix GitHub Pages i NO hi passa cap
+     PowerShell, o sigui que la versio del Leaflet i el seu SRI s'escriuen aqui
+     a ma. Han de coincidir amb suport/rutes/MapaHtml.ps1, que es qui els posa
+     als altres tres mapes, i hi ha un guard a la suite que ho comprova: un
+     hash que no quadri deixa la pagina sense mapa SENSE dir res. -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""
+      onerror="this.onerror=null;this.href='https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css';"/>
 <style>
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; font-family: Segoe UI, Arial, sans-serif; color: #1a1a1a; }
@@ -75,6 +81,15 @@
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+// Segon intent a jsDelivr si unpkg no respon: serveix el MATEIX paquet de npm
+// byte a byte, aixi que el SRI hi coincideix. Aquesta pagina era una de les
+// dues que no el tenia.
+if (typeof L === 'undefined') {
+  document.write('<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" ' +
+    'integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""><\/script>');
+}
+</script>
 <script>
   // Centre per defecte (Cornellà) si no hi ha cap punt.
   var map = L.map('map', { zoomSnap: 0.25, zoomDelta: 0.5, wheelPxPerZoomLevel: 120 });

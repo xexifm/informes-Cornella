@@ -506,6 +506,11 @@ function Build-RouteHtml($stops, $geometry, [double]$distanceM, [double]$duratio
     $dbEnc = _HtmlEncode $dbLabel
     # El fons del mapa, el mateix dels altres mapes (MapaFons.js, MapaHtml.ps1).
     $fonsJs = Get-MapaFonsJs
+    # La biblioteca del mapa, tambe d'alla: la versio i el seu SRI estaven
+    # fixats a quatre llocs independents, i aquest era un dels DOS que no tenia
+    # el respatller de jsDelivr. Ara el te, com els altres mapes.
+    $leafletCss = Get-MapaLeafletCss
+    $leafletJs  = Get-MapaLeafletJs
 
     $html = @"
 <!DOCTYPE html>
@@ -514,8 +519,7 @@ function Build-RouteHtml($stops, $geometry, [double]$distanceM, [double]$duratio
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ruta d'inspeccio - Cornella</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+$leafletCss
 <style>
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; font-family: Segoe UI, Arial, sans-serif; color: #1a1a1a; }
@@ -591,8 +595,7 @@ $rows
   <button onclick="window.print()">&#128424;&#65039; Imprimir / Desar com a PDF</button>
   <span style="font-size:12px;color:#555;">Al dialeg: orientacio <b>Horitzontal</b>, marca <b>Grafics de fons</b> (perque s'imprimeixin els colors) i tria <b>Desar com a PDF</b> / <b>Microsoft Print to PDF</b>.</span>
 </div>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+$leafletJs
 <script>
 $fonsJs
 </script>

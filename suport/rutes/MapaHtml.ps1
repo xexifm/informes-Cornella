@@ -43,14 +43,62 @@ function Get-MapaFonsJs {
     return $js.Replace('</', '<\/')
 }
 
+# ----------------------------------------------------------------------------
+# LA BIBLIOTECA DEL MAPA (Leaflet): LA VERSIO I EL SEU SRI, EN UN SOL LLOC
+# ----------------------------------------------------------------------------
+# Estaven fixats a QUATRE llocs independents -els dos mapes d'aqui, l'HTML que
+# es fa Ruta.ps1 i docs/precintades.html-, cada un amb la seva versio i el seu
+# hash. I dos dels quatre no tenien el respatller de jsDelivr.
+#
+# Que passa si divergeixen: RES VISIBLE. El navegador es troba un hash que no
+# quadra, no carrega el fitxer i NO diu res; la pagina surt amb "No s'ha pogut
+# carregar el mapa" com si fos un problema de connexio. Es el defecte tipic
+# d'aquest projecte: no falla, empitjora en silenci.
+#
+# El hash es del paquet de npm, que unpkg i jsDelivr serveixen byte a byte
+# igual: per aixo el respatller pot dur EL MATEIX SRI sense afluixar-lo.
+$Script:LeafletVersio = '1.9.4'
+$Script:LeafletSriCss = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY='
+$Script:LeafletSriJs  = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo='
+
+# El full d'estil, amb el segon intent a jsDelivr si unpkg no respon.
+function Get-MapaLeafletCss {
+    $v = $Script:LeafletVersio
+    return @"
+<link rel="stylesheet" href="https://unpkg.com/leaflet@$v/dist/leaflet.css"
+      integrity="$($Script:LeafletSriCss)" crossorigin=""
+      onerror="this.onerror=null;this.href='https://cdn.jsdelivr.net/npm/leaflet@$v/dist/leaflet.css';"/>
+"@
+}
+
+# La biblioteca, amb el segon intent a jsDelivr. document.write i no un <script>
+# creat a ma: aixi es carrega ABANS que el codi del mapa, que ve just despres i
+# el necessita.
+function Get-MapaLeafletJs {
+    $v = $Script:LeafletVersio
+    return @"
+<script src="https://unpkg.com/leaflet@$v/dist/leaflet.js"
+        integrity="$($Script:LeafletSriJs)" crossorigin=""></script>
+<script>
+if (typeof L === 'undefined') {
+  document.write('<script src="https://cdn.jsdelivr.net/npm/leaflet@$v/dist/leaflet.js" ' +
+    'integrity="$($Script:LeafletSriJs)" crossorigin=""><\/script>');
+}
+</script>
+"@
+}
+
 # Llegeix una plantilla en UTF-8 EXPLICIT (el Windows PowerShell 5.1, sense dir-li
 # res, la llegiria com a ANSI i els accents sortirien com 'Ã§') i l'omple.
-# {{fonsJs}} (el fons del mapa) el posa aqui, per a totes: no es cosa de cap eina.
+# {{fonsJs}} (el fons del mapa) i el Leaflet els posa aqui, per a totes: no son
+# cosa de cap eina.
 function Get-PlantillaHtml([string]$ruta, $valors) {
     $plantilla = [System.IO.File]::ReadAllText($ruta, [System.Text.Encoding]::UTF8)
     $tots = @{}
     foreach ($k in @($valors.Keys)) { $tots[$k] = $valors[$k] }
-    if (-not $tots.ContainsKey('fonsJs')) { $tots['fonsJs'] = Get-MapaFonsJs }
+    if (-not $tots.ContainsKey('fonsJs'))     { $tots['fonsJs']     = Get-MapaFonsJs }
+    if (-not $tots.ContainsKey('leafletCss')) { $tots['leafletCss'] = Get-MapaLeafletCss }
+    if (-not $tots.ContainsKey('leafletJs'))  { $tots['leafletJs']  = Get-MapaLeafletJs }
     return (Expand-PlantillaHtml $plantilla.TrimEnd() $tots)
 }
 

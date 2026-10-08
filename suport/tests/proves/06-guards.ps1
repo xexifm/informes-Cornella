@@ -1020,6 +1020,39 @@ function _SenseComentaris([string]$ruta) {
     return $sb.ToString()
 }
 
+Write-Host "`n--- La biblioteca del mapa, fixada en un sol lloc (guard) ---"
+# PER QUE. La versio del Leaflet i el seu SRI estaven a QUATRE llocs
+# independents: els dos mapes de plantilla, l'HTML que es fa Ruta.ps1 i
+# docs/precintades.html. I DOS dels quatre no tenien el respatller de jsDelivr.
+# Si divergeixen no passa res VISIBLE: el navegador troba un hash que no quadra,
+# no carrega el fitxer i NO ho diu; la pagina surt amb "No s'ha pogut carregar
+# el mapa" com si fos la connexio.
+$mapaHtmlSrc = _SenseComentaris (Join-Path $rootRepo (Join-Path 'suport' (Join-Path 'rutes' 'MapaHtml.ps1')))
+$lfVersio = [regex]::Match($mapaHtmlSrc, "\`$Script:LeafletVersio\s*=\s*'([^']+)'").Groups[1].Value
+$lfSriCss = [regex]::Match($mapaHtmlSrc, "\`$Script:LeafletSriCss\s*=\s*'([^']+)'").Groups[1].Value
+$lfSriJs  = [regex]::Match($mapaHtmlSrc, "\`$Script:LeafletSriJs\s*=\s*'([^']+)'").Groups[1].Value
+Assert ($lfVersio -ne '' -and $lfSriCss -ne '' -and $lfSriJs -ne '') 'la versio del Leaflet i els seus SRI son a MapaHtml.ps1'
+# A suport/ no hi pot quedar cap pin escrit a ma: tot passa per alla.
+$lfFora = New-Object System.Collections.ArrayList
+foreach ($f in @(Get-ChildItem -LiteralPath (Join-Path $rootRepo 'suport') -Recurse -File | Where-Object { ($_.Extension -in '.ps1', '.html', '.js') -and $_.FullName -notmatch '[\\/](tests|node_modules)[\\/]' })) {
+    if ($f.Name -eq 'MapaHtml.ps1') { continue }
+    if ([System.IO.File]::ReadAllText($f.FullName) -match 'leaflet@[\d.]+') { [void]$lfFora.Add($f.Name) }
+}
+AssertEq ($lfFora -join ', ') '' 'cap mapa de suport/ fixa el Leaflet pel seu compte'
+# docs/precintades.html NO es pot omplir des del PowerShell -la serveix GitHub
+# Pages-, o sigui que alla s'escriu a ma i el guard comprova que coincideixi.
+$precHtml = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'docs' 'precintades.html')))
+AssertEq (@([regex]::Matches($precHtml, [regex]::Escape('leaflet@' + $lfVersio))).Count) 4 'docs/precintades.html fixa la MATEIXA versio del Leaflet (css i js, amb respatller)'
+Assert ($precHtml.Contains($lfSriCss)) 'docs/precintades.html: el SRI del full d''estil coincideix'
+Assert ($precHtml.Contains($lfSriJs)) 'docs/precintades.html: el SRI de la biblioteca coincideix'
+# I els QUATRE mapes tenen el respatller: n'hi havia dos que no.
+Assert ($precHtml.Contains('cdn.jsdelivr.net/npm/leaflet')) 'docs/precintades.html te el respatller de jsDelivr'
+foreach ($nom in @('CoordenadesMapa.html', 'PlanolMapa.html')) {
+    $t = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'suport' (Join-Path 'rutes' $nom))))
+    Assert ($t.Contains('{{leafletCss}}') -and $t.Contains('{{leafletJs}}')) "$nom demana el Leaflet a la plantilla"
+}
+Assert ((_SenseComentaris (Join-Path $rootRepo (Join-Path 'suport' (Join-Path 'rutes' 'Ruta.ps1')))) -match '\$leafletCss\s*=\s*Get-MapaLeafletCss') 'el mapa de Ruta.ps1 tambe el demana (abans no tenia respatller)'
+
 Write-Host "`n--- docs/ tambe te sostre de mida (guard) ---"
 # PER QUE. suport/ te el limit de 1.200 linies des de la primera auditoria, pero
 # docs/ -el programa del MOBIL- no en tenia cap, i app.js ja es a 1.167: el

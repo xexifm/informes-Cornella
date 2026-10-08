@@ -1,14 +1,13 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ca">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Coordenades dels establiments - Cornellà</title>
-<!-- Si unpkg no respon, el full d'estil es torna a demanar a jsDelivr (vegeu
-     la nota del leaflet.js, mes avall). -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""
-      onerror="this.onerror=null;this.href='https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css';"/>
+<!-- La versio del Leaflet i el seu SRI els posa MapaHtml.ps1: eren a quatre
+     llocs independents i un hash que no quadri deixa la pagina sense mapa
+     SENSE dir res. -->
+{{leafletCss}}
 <style>
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; font-family: Segoe UI, Arial, sans-serif; color: #1a1a1a; }
@@ -152,18 +151,7 @@
   <span id="estat"></span>
   <span style="font-size:12px;color:#777;">{{dbEnc}}</span>
 </div>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-<script>
-// Si unpkg no ha respost, segon intent a jsDelivr. Serveix el MATEIX paquet de
-// npm byte a byte, aixi que el hash del SRI hi coincideix i no cal afluixar-lo.
-// document.write i no un <script> creat a ma: aixi es carrega ABANS que el codi
-// del mapa, que ve just despres i el necessita.
-if (typeof L === 'undefined') {
-  document.write('<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" ' +
-    'integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""><\/script>');
-}
-</script>
+{{leafletJs}}
 <script>
 // I si tampoc no ha arribat, que es digui EN CLAR: sense aixo la pagina es
 // queda en blanc i sembla que el programa no funcioni. El repas no es perd:
