@@ -28,7 +28,7 @@
 # nomes arribaria als informes que algu tornes a desar, i els 802 de la carpeta
 # es quedarien amb la classificacio vella per sempre. CANVIA-LA cada vegada que
 # canviis el que en surt (conclusio, conclusio breu, tipus).
-$Script:ClassificadorVersio = '2026-10-07'
+$Script:ClassificadorVersio = '2026-10-08'
 
 # Una propietat d'un objecte de la base (o $null si no la te), sense petar amb
 # les bases d'abans que no porten els camps nous. La fan servir aquest fitxer,
@@ -162,11 +162,32 @@ $Script:ConclusioBreuOpcions = @(
 # els tapa (vegeu _InformeQueDeterminaEstat).
 $Script:EstatsPendents = @('Requeriment', 'Precinte / Cessament', ('Ampliaci' + [char]0x00F3 + ' termini'))
 
-# Hi ha un precinte o una suspensio DE DEBO (no nomes l'advertiment "en cas
-# contrari es pertinent precintar")? $n ja normalitzat (_ConclNorm).
+# "es pertinent suspendre/precintar" no negat ("no es pertinent..." no compta).
+$Script:RxPrecinte = '(?<!\bno (es )?)pertinent (suspendre|precintar)'
+
+# Hi ha un precinte o una suspensio DE DEBO, i no nomes l'ADVERTIMENT? $n ja
+# normalitzat (_ConclNorm). Es mira FRASE A FRASE: "es pertinent
+# suspendre/precintar" nomes es condicional si, dins de la MATEIXA frase, va
+# precedit de "En cas contrari", "Si es disposen de mes elements..." o "Si es
+# detecta", o seguit de "en el cas de no presentar". Una afirmacio directa ("es
+# pertinent suspendre l'activitat fins a esmenar les deficiencies / fins que
+# hagi obtingut la llicencia / fins a aportar la documentacio", "es pertinent
+# precintar la cuina fins a...") es un precinte encara que despres hi hagi
+# "Vist l'anterior, cal requerir...". Abans n'hi havia prou amb que el text NO
+# digues "cas contrari" en algun lloc, i el "cal requerir" de despres guanyava:
+# sis activitats de la classificacio real del 7/10/2026 sortien en
+# 'Requeriment' amb l'activitat suspesa.
 function _PrecinteEfectiu([string]$n) {
-    if ($n -notmatch 'pertinent (precintar|suspendre)') { return $false }
-    return ($n -notmatch 'cas contrari.{0,80}pertinent (precintar|suspendre)')
+    foreach ($frase in ($n -split '(?<=[.;])\s+')) {
+        foreach ($m in [regex]::Matches($frase, $Script:RxPrecinte)) {
+            $abans = $frase.Substring(0, $m.Index)
+            $despres = $frase.Substring($m.Index + $m.Length)
+            if ($abans -match 'en cas contrari|si es disposen? de mes elements|si es detecta') { continue }
+            if ($despres -match 'en (el )?cas de no presentar') { continue }
+            return $true
+        }
+    }
+    return $false
 }
 
 # Classifica el text de la CONCLUSIO (ja extreta per _ExtractConclusio) en un
@@ -176,6 +197,10 @@ function _PrecinteEfectiu([string]$n) {
 # "Favorable"). Funcio PURA (nomes text).
 #
 # L'ORDRE MANA, i cada bloc va davant del seguent per un cas real que fallava:
+#   0. "Es deixa sense efecte (la comunicacio)" i el precinte o la suspensio
+#      EFECTIUS (_PrecinteEfectiu) van davant de TOT: el text sovint continua
+#      amb les deficiencies i un "Vist l'anterior, cal requerir...", i allo no
+#      treu que la comunicacio quedi anul·lada o l'activitat suspesa.
 #   1. El que deixa l'expedient PENDENT encara que la frase digui "es pot donar
 #      per tancada la denuncia", "desprecintar" o "favorablement": "...pero NO
 #      donar per finalitzat el procediment d'esmena" (i el "ni donar per
@@ -187,16 +212,20 @@ function _PrecinteEfectiu([string]$n) {
 #   2. S'inicia el procediment d'esmena: el precinte o la retirada que
 #      l'acompanyen son l'ADVERTIMENT ("En cas contrari es pertinent
 #      precintar", "es pertinent que es retiri"), com el "determini el
-#      cessament" de sempre. Nomes un precinte efectiu (_PrecinteEfectiu) el
-#      treu d'aqui. Va DAVANT del "es pot donar per tancada la denuncia":
+#      cessament" de sempre (un precinte efectiu ja ha sortit al pas 0). Va DAVANT del "es pot donar per tancada la denuncia":
 #      "tanca la denuncia i inicia el procediment d'esmena" es un requeriment.
 #   3. Els FI (finalitzat, denuncia tancada, desprecintar/aixecar).
-#   4. Precinte / suspensio, ampliacio, favorable, i les clausules d'un
-#      requeriment nou.
+#   4. Un precinte que nomes es l'advertiment -> Requeriment (DESPRES dels FI:
+#      "es pot aixecar el precinte. Si es detecta..., es pertinent precintar"
+#      es un FI). Despres, el risc sense "pertinent precintar", ampliacio,
+#      favorable, i les clausules d'un requeriment nou.
 function _ConclusioBreu($text) {
     if ([string]::IsNullOrWhiteSpace($text)) { return 'Revisar' }
     $n = _ConclNorm $text
 
+    # 0. Comunicacio anul·lada, i precinte o suspensio de debo.
+    if ($n -match '(?<!\bno (es )?)deixa sense efecte') { return 'Sense efecte' }
+    if (_PrecinteEfectiu $n) { return 'Precinte / Cessament' }
     # 1. Pendent, digui el que digui la resta de la frase.
     if ($n -match 'no s.?han esmenat' -or $n.Contains('no es pot donar') -or
         $n -match '\b(no|ni) donar per (finalitzat|tancat)') { return 'Requeriment' }
@@ -205,18 +234,17 @@ function _ConclusioBreu($text) {
     if ($n.Contains('resultat favorable incorrecte')) { return 'Requeriment' }
     if ($n.Contains('valora favorablement la solucio') -and $n.Contains('shauran de')) { return 'Requeriment' }
     # 2. Inici del procediment d'esmena.
-    if ($n -match 'inicia (dofici )?el procediment desmena' -and -not (_PrecinteEfectiu $n)) { return 'Requeriment' }
+    if ($n -match 'inicia (dofici )?el procediment desmena') { return 'Requeriment' }
     # 3. Seguiment resolt (inclou denuncies tancades: mateix "final positiu").
     if ($n -match 'es pot donar.{0,12}finalitzat') { return 'FI Requeriment' }
     if ($n.Contains('es pot donar per tancada la denuncia')) { return 'FI Requeriment' }
     # Aixecament d'un precinte/suspensio.
     if ($n -match 'es (pot|valora) (aixecar|desprecintar)' -or $n.Contains('pertinent desprecintar')) { return 'FI Precinte / Cessament' }
-    # Comunicacio anul·lada.
-    if ($n.Contains('deixa sense efecte')) { return 'Sense efecte' }
-    # 4. Risc greu/imminent, incompliment greu: es precinta, se suspen o es
-    # proposa el cessament.
-    if ((_PrecinteEfectiu $n) -or $n.Contains('pertinent precintar') -or
-        $n.Contains('tenint en consideracio el risc') -or $n -match 'ordeni el cessament') { return 'Precinte / Cessament' }
+    # 4. El precinte o la suspensio que queden son NOMES l'advertiment (els de
+    # debo ja han sortit al pas 0): es un requeriment.
+    if ($n -match $Script:RxPrecinte) { return 'Requeriment' }
+    # Risc greu/imminent sense "es pertinent precintar", o el cessament ordenat.
+    if ($n.Contains('tenint en consideracio el risc') -or $n -match 'ordeni el cessament') { return 'Precinte / Cessament' }
     # "estimar" i no "desestimar".
     if ($n -match '(^|[^a-z])estimar la sol.?licitud d.?ampliacio') { return ('Ampliaci' + [char]0x00F3 + ' termini') }
     # Desfavorable: deliberadament NO es classifica com a Favorable; cau a Revisar.
@@ -294,12 +322,13 @@ function _EsPlantillaSenseOmplir([string]$conclusio, $lines) {
 }
 
 # Expedient de la serie de les activitats extraordinaries (2569/2565): els
-# informes antics no porten "ActExtr" al nom.
+# informes antics no porten "ActExtr" al nom. L'expedient es any/numero/SERIE
+# ("2025/1/2563"): nomes compta la serie. Abans es mirava qualsevol grup despres
+# de l'any, i una MNS de la serie 2562 amb el NUMERO 2565 o 2569 sortia com a
+# activitat extraordinaria (i deixava de decidir l'estat del seu establiment).
 function _EsExpedientActExtr([string]$expedient) {
-    $grups = @((_NormalitzaExpedient $expedient) -split '-' | Where-Object { $_ -ne '' })
-    if ($grups.Count -lt 2) { return $false }
-    foreach ($g in @($grups | Select-Object -Skip 1)) { if ($g -eq '2569' -or $g -eq '2565') { return $true } }
-    return $false
+    if ($expedient -notmatch '(?:^|\D)(?:19|20)\d{2}\s*[/\-.]\s*\d+\s*[/\-.]\s*0*(\d+)(?:\D|$)') { return $false }
+    return ($Matches[1] -eq '2569' -or $Matches[1] -eq '2565')
 }
 
 # El TIPUS d'informe, per decidir si fixa l'estat de l'activitat

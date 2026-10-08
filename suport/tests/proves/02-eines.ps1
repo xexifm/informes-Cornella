@@ -206,6 +206,33 @@ AssertEq (_TipusInforme '' 'x.docx' '2025/1/2563') '' 'un expedient d''una altra
 AssertEq (_TipusInforme '' 'Contracte extra.docx' '') '' '"contracte extra" no es "Act Extr"'
 AssertEq (_TipusInforme "Vist l${ap}anterior, es pot donar per finalitzat el procediment d${ap}esmena." 'x.docx' '') '' 'un seguiment normal -> cap tipus'
 
+Write-Host "`n--- InformesClassificacio.ps1: precinte DE DEBO o nomes l'advertiment, i 'es deixa sense efecte' (octubre 2026) ---"
+# Textos inventats amb la forma dels casos reals que fallaven (la classificacio
+# real porta dades personals).
+$prec = 'Precinte / Cessament'
+AssertEq (_ConclusioBreu "Tenint en consideració l${ap}incompliment greu de les condicions, és pertinent suspendre l${ap}activitat fins a esmenar les deficiències. Vist l${ap}anterior, cal requerir l${ap}esmena de les deficiències indicades aportant la documentació corresponent.") $prec 'suspendre "fins a esmenar les deficiencies" + "cal requerir" despres -> Precinte (abans Requeriment)'
+AssertEq (_ConclusioBreu "Vist l${ap}anterior, és pertinent suspendre l${ap}activitat fins que hagi obtingut la llicència. Vist l${ap}anterior, cal requerir l${ap}esmena de les deficiències indicades.") $prec 'suspendre "fins que hagi obtingut la llicencia" + "cal requerir" -> Precinte'
+AssertEq (_ConclusioBreu "És pertinent suspendre l${ap}activitat fins a aportar la documentació. Vist l${ap}anterior, s${ap}inicia d${ap}ofici el procediment d${ap}esmena, disposant d${ap}un termini d${ap}un mes.") $prec 'suspendre "fins a aportar la documentacio" + procediment d''esmena -> Precinte'
+AssertEq (_ConclusioBreu "Tenint en consideració el risc per a les persones és pertinent precintar la cuina fins a disposar de la ventilació. Vist l${ap}anterior, cal requerir l${ap}esmena de les deficiències indicades.") $prec '"es pertinent precintar la cuina fins a..." + "cal requerir" -> Precinte'
+AssertEq (_ConclusioBreu "Vist l${ap}anterior, NO es pot donar per finalitzat el procediment d${ap}esmena i és pertinent suspendre l${ap}activitat fins a esmenar les deficiències.") $prec 'NO finalitzat + suspensio directa -> Precinte (la suspensio pesa mes)'
+AssertEq (_ConclusioBreu "Vist l${ap}anterior, cal requerir l${ap}esmena de les deficiències indicades. En cas contrari, és pertinent suspendre l${ap}activitat.") 'Requeriment' '"En cas contrari, es pertinent suspendre" (mateixa frase) -> Requeriment'
+AssertEq (_ConclusioBreu "Vist l${ap}anterior, cal requerir l${ap}esmena de les deficiències indicades. Si es disposen de més elements que acreditin el risc, és pertinent precintar l${ap}activitat.") 'Requeriment' '"Si es disposen de mes elements..., es pertinent precintar" -> Requeriment'
+AssertEq (_ConclusioBreu "Vist l${ap}anterior, cal requerir l${ap}esmena de les deficiències indicades. Si es detecta que l${ap}activitat funciona fora d${ap}horari, és pertinent suspendre-la.") 'Requeriment' '"Si es detecta..., es pertinent suspendre" -> Requeriment'
+AssertEq (_ConclusioBreu "Tenint en consideració el risc greu o imminent de seguretat sobre les persones és pertinent precintar la cuina fins a esmenar les deficiències en el cas de no presentar la documentació requerida en el termini d${ap}un mes.") 'Requeriment' '"...es pertinent precintar ... en el cas de no presentar la documentacio" -> Requeriment (nomes l''advertiment)'
+AssertEq (_ConclusioBreu "Si es detecta que no s${ap}aporta, és pertinent precintar l${ap}activitat. Tenint en consideració el risc greu, és pertinent suspendre l${ap}activitat fins a esmenar les deficiències.") $prec 'una frase condicional i una altra directa -> Precinte (es mira frase a frase)'
+Assert ((_ConclusioBreu "Vist l${ap}anterior, no és pertinent suspendre l${ap}activitat. Cal requerir l${ap}esmena de les deficiències indicades.") -ne $prec) '"no es pertinent suspendre" no es un precinte'
+AssertEq (_ConclusioBreu "Vist l${ap}anterior, es pot aixecar el precinte. Si es detecta que torna a funcionar sense la ventilació, és pertinent precintar-la de nou.") 'FI Precinte / Cessament' 'aixecar el precinte + "Si es detecta..., es pertinent precintar" -> FI Precinte (l''advertiment no el torna a precintar)'
+AssertEq (_ConclusioBreu "Vist l${ap}anterior, es deixa sense efecte la comunicació presentada. A més, s${ap}han observat les següents deficiències que cal esmenar: 1. Extintors. Vist l${ap}anterior, cal requerir l${ap}esmena de les deficiències indicades.") 'Sense efecte' '"es deixa sense efecte la comunicacio" seguit de deficiencies i "cal requerir" -> Sense efecte (abans Requeriment)'
+AssertEq (_ConclusioBreu "Es deixa sense efecte la comunicació i s${ap}inicia d${ap}ofici el procediment d${ap}esmena.") 'Sense efecte' '"es deixa sense efecte" + procediment d''esmena -> Sense efecte'
+Assert ((_ConclusioBreu "Vist l${ap}anterior, no es deixa sense efecte la comunicació, però cal requerir l${ap}esmena de les deficiències indicades.") -ne 'Sense efecte') '"no es deixa sense efecte" no es Sense efecte'
+# L'expedient: any/numero/SERIE. Nomes la serie diu si es activitat extraordinaria.
+AssertEq (_EsExpedientActExtr '2024/2565/2562') $false 'expedient de la serie 2562 amb el NUMERO 2565 -> no es activitat extraordinaria (abans si)'
+AssertEq (_EsExpedientActExtr '2024/2569/2562') $false 'expedient de la serie 2562 amb el numero 2569 -> tampoc'
+AssertEq (_EsExpedientActExtr '2024/37/2569') $true 'serie 2569 -> activitat extraordinaria'
+AssertEq (_EsExpedientActExtr '2024-37-2565') $true 'serie 2565 escrita amb guions -> activitat extraordinaria'
+AssertEq (_EsExpedientActExtr '') $false 'sense expedient -> no'
+AssertEq (_TipusInforme "S${ap}informa FAVORABLEMENT de la Modificació NO substancial presentada sense més observacions." 'x.docx' '2024/2565/2562') 'mns' 'una MNS de la serie 2562 (numero 2565) es mns, no actextr'
+
 Write-Host "`n--- Informes.ps1: _ExcelActivitatActualitzada (Camp Info REQUERIT PER DECRET? / PRECINTE ACTIVITAT? amb SI) ---"
 # El camp de l'Excel es 'PRECINTE ACTIVITAT?'. Aqui hi havia una prova que
 # assegurava justament el contrari ('PRECINTE ACTIVITAT?' -> false) i per aixo el

@@ -508,17 +508,29 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
     plantilles), que és una manera barata de mesurar el classificador sense la
     carpeta real.
   - **`_ConclusioBreu`: l'ORDRE mana**, i el comentari diu quin cas real va
-    posar cada bloc davant del següent. Primer el que deixa l'expedient
+    posar cada bloc davant del següent. Davant de tot, **«es deixa sense efecte
+    (la comunicació)»** → `Sense efecte` i el **precinte o la suspensió
+    efectius** → `Precinte / Cessament`, encara que el text continuï amb les
+    deficiències i un «Vist l'anterior, cal requerir…» (8/10/2026: sis
+    activitats suspeses i una comunicació anul·lada sortien en `Requeriment`).
+    `_PrecinteEfectiu` mira **frase a frase**: «és pertinent
+    suspendre/precintar» només és l'advertiment si dins de la mateixa frase va
+    precedit de «En cas contrari», «Si es disposen de més elements…» o «Si es
+    detecta», o seguit de «en el cas de no presentar»; una afirmació directa
+    («…fins a esmenar les deficiències», «…fins que hagi obtingut la
+    llicència», «és pertinent precintar la cuina fins a…») és un precinte. Un
+    precinte que només és advertiment dóna `Requeriment`, però **després** dels
+    FI («es pot aixecar el precinte. Si es detecta…, és pertinent precintar» és
+    un FI). Després, el que deixa l'expedient
     **pendent** encara que la frase digui «es pot donar per tancada la
     denúncia», «desprecintar» o «favorablement» («…però NO donar per finalitzat»
     i el «ni donar per finalitzat» amb el NO oblidat; «D'altra banda, es
     requereix…»; «es valora favorablement la solució… s'hauran de…»; el control
     periòdic «FAVORABLE… incorrecte havent de ser DESFAVORABLE»; «cal requerir
     l'esmena», que abans queia a `Revisar`). Després, **inici del procediment
-    d'esmena**: el precinte o la retirada que l'acompanyen són l'advertiment
-    («En cas contrari és pertinent precintar», «és pertinent que es retiri»), com
-    el «determini el cessament» de sempre; només un precinte efectiu
-    (`_PrecinteEfectiu`) el treu d'aquí. Va davant del «es pot donar per tancada
+    d'esmena**: la retirada que l'acompanya és l'advertiment («és pertinent que
+    es retiri»), com el «determini el cessament» de sempre (un precinte efectiu
+    ja ha sortit abans). Va davant del «es pot donar per tancada
     la denúncia» perquè «tanca la denúncia i inicia el procediment d'esmena» és
     un requeriment. Després els FI, i finalment precinte/suspensió («és
     pertinent suspendre» sense la frase literal del risc), ampliació («estimar»,
@@ -545,7 +557,9 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
     pugui recalcular sense obrir el `.docx`): `llicfav` (favorables de
     llicència, decideixen sempre), `mns` (MNS, canvi de nom, canvi de
     titularitat/transmissió) i `actextr` (nom del fitxer amb «ActExtr»/«Act
-    Extr», expedient de la sèrie 2569/2565, o la conclusió del Decret 112/2010).
+    Extr», expedient de la **sèrie** 2569/2565 —l'expedient és any/número/sèrie i
+    només compta la sèrie: una MNS de la sèrie 2562 amb el número 2565 sortia
+    com a activitat extraordinària—, o la conclusió del Decret 112/2010).
   - **`_InformeQueDeterminaEstat($act)` — rep l'ACTIVITAT, no la llista**, perquè
     la regla d'`actextr` depèn de si té GIA. Recorre els informes per ordre i es
     queda amb l'últim que decideix: ignorat → mai; `Altres` → només si no hi ha
