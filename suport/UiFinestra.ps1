@@ -146,6 +146,7 @@ function Initialize-BrandColors {
     $Script:BrandMaroonSoft = [System.Drawing.Color]::FromArgb(247, 231, 234)  # el fons clar
     $Script:BrandMaroonDark = [System.Drawing.Color]::FromArgb(138, 20, 38)    # el ratoli a sobre, i els titols de grup
     $Script:BrandMaroonBand = [System.Drawing.Color]::FromArgb(150, 45, 60)    # els botons de DINS de la banda
+    $Script:BrandMaroonTile = [System.Drawing.Color]::FromArgb(250, 240, 242)  # el ratoli sobre una rajola del menu
 }
 
 # Estil de boto PRIMARI (granat ple, text blanc) i SECUNDARI (blanc, text/vora

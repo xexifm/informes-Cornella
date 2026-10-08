@@ -83,7 +83,7 @@ Assert ($srcUiF.Contains('ReadAllBytes($ruta)') -and -not $srcUiF.Contains('Imag
 
 # ACTUALITZAR, a la banda del menu i a Configuracio: UNA sola funcio.
 $srcConfA = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'Configuracio.ps1'))
-Assert ($srcMenuH.Contains('add_Click({ Invoke-ActualitzarPrograma })')) 'menu: el boto Actualitzar de la banda crida Invoke-ActualitzarPrograma'
+Assert ($srcMenuH.Contains('_BotoBanda $band $tira 118 { Invoke-ActualitzarPrograma }')) 'menu: el boto Actualitzar de la banda crida Invoke-ActualitzarPrograma'
 Assert ($srcConfA.Contains('add_Click({ Invoke-ActualitzarPrograma })')) 'Configuracio: el seu boto tambe'
 AssertEq @([regex]::Matches(($srcMenuH + $srcConfA), "Join-Path \`$RepoRoot 'Actualitzar\.bat'")).Count 1 'Actualitzar.bat es llanca des d''un sol lloc'
 } catch {
@@ -1019,6 +1019,33 @@ function _SenseComentaris([string]$ruta) {
     }
     return $sb.ToString()
 }
+
+Write-Host "`n--- Els botons de la banda: una pell i una tira (guard) ---"
+# PER QUE. Els quatre (Ajuda, Configuracio, la carpeta i Actualitzar) repetien
+# les MATEIXES onze linies de pell, i cada un portava la seva posicio com una
+# resta escrita a ma des de la vora dreta: $wForm - 50, - 88, - 126, i el quart
+# calculat des del tercer. Les restes NO seguien l'ordre del codi, o sigui que
+# afegir-ne un volia tornar a comptar a ma i es podien trepitjar dos botons.
+# Ara la pell es de _BotoBanda i la posicio la porta la tira ($tira.X), que va
+# de dreta a esquerra. Les posicions que en surten son les mateixes pixel a
+# pixel: 20 de marge i 8 entre botons.
+$bandaSrc = _SenseComentaris (Join-Path $rootRepo (Join-Path 'suport' 'Menu.ps1'))
+Assert ($bandaSrc.Contains('function _BotoBanda')) 'la pell dels botons de la banda es a _BotoBanda'
+AssertEq (@([regex]::Matches($bandaSrc, '_BotoBanda \$band \$tira')).Count) 4 'els QUATRE botons de la banda passen per _BotoBanda'
+# Cap posicio escrita a ma: ni restes des de la vora dreta, ni des d'un altre boto.
+Assert (-not ($bandaSrc -match '\$wForm - \d+\s*\)\s*,\s*13')) 'cap boto de la banda amb la posicio calculada a ma des de la vora'
+Assert (-not ($bandaSrc -match '\$btn\w+\.Left - \d+')) 'cap boto de la banda col.locat a partir d''un altre boto'
+# La tira comenca al marge de les rajoles i la pell no es repeteix.
+Assert ($bandaSrc.Contains('$tira = @{ X = $wForm - 20 }')) 'la tira comenca al mateix marge dret que les rajoles (20)'
+# La pell de la BANDA nomes dins de _BotoBanda. (Les rajoles tenen la seva, amb
+# un altre color: $Script:BrandMaroonTile. Comptar tots els MouseOverBackColor
+# del fitxer barrejaria les dues coses -la primera versio d'aquest assert ho
+# feia i donava 3-.)
+$iBB = $bandaSrc.IndexOf('function _BotoBanda')
+$cosBB = $bandaSrc.Substring($iBB, $bandaSrc.IndexOf('function Select-Mode') - $iBB)
+Assert ($cosBB.Contains('$b.BackColor = $Script:BrandMaroonBand') -and $cosBB.Contains('$b.FlatAppearance.MouseOverBackColor = $Script:BrandMaroonDark')) 'la pell del boto de la banda (fons i ratoli a sobre) s''escriu dins de _BotoBanda'
+$foraBB = $bandaSrc.Remove($iBB, $cosBB.Length)
+Assert (-not ($foraBB.Contains('$Script:BrandMaroonBand'))) 'cap boto de la banda es pinta el fons pel seu compte'
 
 Write-Host "`n--- La paleta de la marca viu en un sol lloc (guard) ---"
 # PER QUE. Hi havia QUATRE granats i nomes dos tenien constant: el fosc

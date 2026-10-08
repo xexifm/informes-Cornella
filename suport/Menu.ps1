@@ -202,6 +202,36 @@ function _MenuFilesY([int]$files, [int]$y0, [int]$fi, [int]$altRajola, [int]$pas
 # Retorna @{ Action='nou'|'seguiment'|'actextr'; Cataleg=<FileInfo|$null> }.
 # Per a 'nou', Cataleg es el .docx triat (ja no cal un segon pas de tria).
 # Tancar la finestra (X) avorta (exit 0).
+# Un boto de la BANDA superior granat. Els quatre (Ajuda, Configuracio, la
+# carpeta i Actualitzar) repetien les MATEIXES onze linies: nomes hi canviava la
+# icona, l'amplada, la posicio i que fan en clicar.
+#
+# LA POSICIO LA PORTA LA TIRA i no el cridador. $tira.X es la vora dreta lliure;
+# cada boto se'n menja l'amplada i deixa 8 px per al seguent, de DRETA a
+# ESQUERRA. Abans cada un portava la seva resta escrita a ma ($wForm - 50, - 88,
+# - 126...) i les restes NO seguien l'ordre del codi: per afegir-ne un calia
+# tornar a comptar, i si et descomptaves se'n trepitjaven dos. Les posicions que
+# surten son les mateixes pixel a pixel.
+#
+# Viu aqui i no a UiComuns.ps1 a posta: nomes la fa servir aquesta pantalla, i
+# un helper compartit amb un sol client no simplifica res (vegeu CLAUDE.md).
+function _BotoBanda($band, $tira, [int]$amplada, $clic) {
+    $tira.X -= $amplada
+    $b = New-Object System.Windows.Forms.Button
+    $b.Size = New-Object System.Drawing.Size($amplada, 30)
+    $b.Location = New-Object System.Drawing.Point($tira.X, 13)
+    $b.Anchor = 'Top,Right'
+    $b.FlatStyle = 'Flat'
+    $b.ForeColor = [System.Drawing.Color]::White
+    $b.BackColor = $Script:BrandMaroonBand
+    $b.FlatAppearance.BorderSize = 0
+    $b.FlatAppearance.MouseOverBackColor = $Script:BrandMaroonDark
+    if ($null -ne $clic) { $b.add_Click($clic) }
+    [void]$band.Controls.Add($b)
+    $tira.X -= 8
+    return $b
+}
+
 function Select-Mode {
     # Catalegs disponibles a ESTRUCTURALS (REQ1.json, TERMINI.json...). Es
     # descobreixen sols; els noms amics dels coneguts es defineixen mes avall.
@@ -292,6 +322,13 @@ function Select-Mode {
     $flagsC = [System.Windows.Forms.TextFormatFlags]::HorizontalCenter -bor [System.Windows.Forms.TextFormatFlags]::VerticalCenter -bor [System.Windows.Forms.TextFormatFlags]::NoPadding
     $colGranat = $Script:BrandMaroon
     $colSoft   = $Script:BrandMaroonSoft
+    # DINS D'UNA CLOSURE, $Script:X NO es la variable de l'script: llegir-la
+    # torna buit (vegeu CLAUDE.md, i hi ha un guard d'AST que no en deixa cap).
+    # El ratoli sobre una rajola es pinta dins de $addTileRow, que es una
+    # closure, o sigui que el color s'ha de CAPTURAR aqui, en un local, com ja
+    # es fa amb la vora. Sense aixo el color arriba buit i no es veu res.
+    $colTileHover  = $Script:BrandMaroonTile
+    $colTileBorder = [System.Drawing.Color]::FromArgb(214, 219, 225)
     $colInk    = [System.Drawing.Color]::FromArgb(29, 39, 51)
     $colSub    = [System.Drawing.Color]::FromArgb(107, 116, 128)
 
@@ -449,8 +486,8 @@ function Select-Mode {
         $btn.Size = New-Object System.Drawing.Size(560, 62)
         $btn.FlatStyle = 'Flat'
         $btn.BackColor = [System.Drawing.Color]::White
-        $btn.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(214, 219, 225)
-        $btn.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(250, 240, 242)
+        $btn.FlatAppearance.BorderColor = $colTileBorder
+        $btn.FlatAppearance.MouseOverBackColor = $colTileHover
         $btn.add_Paint($paintHandler)
         # Clic amb coordenades: si es damunt del xip del document (✏️), obre
         # l'editor de catalegs; si no, tria el tipus d'informe com sempre.
@@ -564,7 +601,7 @@ function Select-Mode {
     )
     $fTileIco   = New-Object System.Drawing.Font('Segoe UI Emoji', 14, [System.Drawing.FontStyle]::Regular)
     $fTileTxt   = New-Object System.Drawing.Font('Segoe UI', 8, [System.Drawing.FontStyle]::Regular)
-    $tileBorder = [System.Drawing.Color]::FromArgb(214, 219, 225)
+    $tileBorder = $colTileBorder
     $tileTxtCol = [System.Drawing.Color]::FromArgb(63, 73, 85)
     $fAjuda        = New-Object System.Drawing.Font('Segoe UI', 7, [System.Drawing.FontStyle]::Bold)
     $colAjuda      = $Script:BrandMaroonSoft
@@ -804,7 +841,7 @@ function Select-Mode {
             $tb.FlatStyle = 'Flat'
             $tb.BackColor = [System.Drawing.Color]::White
             $tb.FlatAppearance.BorderColor = $tileBorder
-            $tb.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(250, 240, 242)
+            $tb.FlatAppearance.MouseOverBackColor = $colTileHover
             $tool.Ajuda = _AjudaEina ([string]$tool.Action)
             $tb.add_Paint($tilePaint)
             $tb.add_Click($tileClick)
@@ -910,29 +947,36 @@ function Select-Mode {
     $subTitle = 'Ajuntament de Cornell' + [char]0x00E0 + ' de Llobregat'
     $band = _AddBrandHeader $form "Generador d'informes" $subTitle $headerHeight
 
-    # Botons DISCRETS a la cantonada dreta de la banda: Ajuda (?) i Configuracio
-    # (rosca). Fons granat una mica mes clar, text blanc, sense vora. Ancorats a
-    # la dreta perque segueixin la cantonada si es maximitza.
-    # Els botons de la banda acaben al MATEIX marge dret (20) que les rajoles.
+    # Botons DISCRETS a la cantonada dreta de la banda: Ajuda (?), Configuracio
+    # (rosca), la carpeta dels informes i Actualitzar. Fons granat una mica mes
+    # clar, text blanc, sense vora. Ancorats a la dreta perque segueixin la
+    # cantonada si es maximitza, i acabant al MATEIX marge dret (20) que les
+    # rajoles.
+    #
+    # LA PELL ES DE _BotoBanda I LA POSICIO LA PORTA LA TIRA. Abans els quatre
+    # repetien les MATEIXES onze linies i cada un portava la seva resta escrita
+    # a ma ($wForm - 50, - 88, - 126, i el quart calculat des del tercer).
+    # Aquelles restes estaven DESORDENADES respecte del codi, o sigui que
+    # afegir-ne un volia tornar a comptar a ma i es podia trepitjar amb un
+    # altre. La tira va de dreta a esquerra i cada boto nomes diu que ampla es.
     $wForm = $form.ClientSize.Width
     $fBandIco = New-Object System.Drawing.Font('Segoe UI Emoji', 11, [System.Drawing.FontStyle]::Regular)
-    $btnAjuda = New-Object System.Windows.Forms.Button
-    $btnAjuda.Text = [string][char]0x2753
-    $btnAjuda.Font = $fBandIco
-    $btnAjuda.Size = New-Object System.Drawing.Size(30, 30)
-    $btnAjuda.Location = New-Object System.Drawing.Point(($wForm - 50), 13)
-    $btnAjuda.Anchor = 'Top,Right'
-    $btnAjuda.FlatStyle = 'Flat'
-    $btnAjuda.ForeColor = [System.Drawing.Color]::White
-    $btnAjuda.BackColor = $Script:BrandMaroonBand
-    $btnAjuda.FlatAppearance.BorderSize = 0
-    $btnAjuda.FlatAppearance.MouseOverBackColor = $Script:BrandMaroonDark
-    $btnAjuda.add_Click({
+    $tira = @{ X = $wForm - 20 }
+    $btnAjuda = _BotoBanda $band $tira 30 {
         try { Start-Process $urlAjuda | Out-Null } catch {
             [System.Windows.Forms.MessageBox]::Show("No s'ha pogut obrir l'enllac:`n$urlAjuda", 'Ajuda', 'OK', 'Error') | Out-Null
         }
-    }.GetNewClosure())
-    [void]$band.Controls.Add($btnAjuda)
+    }.GetNewClosure()
+    $btnAjuda.Text = [string][char]0x2753
+    $btnAjuda.Font = $fBandIco
+
+    $btnConfig = _BotoBanda $band $tira 30 {
+        $result.Choice = @{ Action = 'config'; Cataleg = $null }
+        $form.DialogResult = 'OK'
+        $form.Close()
+    }.GetNewClosure()
+    $btnConfig.Text = [string][char]0x2699
+    $btnConfig.Font = $fBandIco
 
     # CARPETA DELS INFORMES GENERATS. La ruta surt de _ResolveOutputDir, o sigui
     # que es EXACTAMENT la que hi ha a Configuracio (i el respatller local si
@@ -943,18 +987,7 @@ function Select-Mode {
     # L'EMOJI DE CARPETA ES ASTRAL (U+1F4C1): [char] es de 16 bits i no hi cap
     # -aixo ja va deixar el programa sense arrencar un cop-, per aixo va amb
     # ConvertFromUtf32. Ho vigila una prova.
-    $btnCarpeta = New-Object System.Windows.Forms.Button
-    $btnCarpeta.Text = [System.Char]::ConvertFromUtf32(0x1F4C1)
-    $btnCarpeta.Font = $fBandIco
-    $btnCarpeta.Size = New-Object System.Drawing.Size(30, 30)
-    $btnCarpeta.Location = New-Object System.Drawing.Point(($wForm - 126), 13)
-    $btnCarpeta.Anchor = 'Top,Right'
-    $btnCarpeta.FlatStyle = 'Flat'
-    $btnCarpeta.ForeColor = [System.Drawing.Color]::White
-    $btnCarpeta.BackColor = $Script:BrandMaroonBand
-    $btnCarpeta.FlatAppearance.BorderSize = 0
-    $btnCarpeta.FlatAppearance.MouseOverBackColor = $Script:BrandMaroonDark
-    $btnCarpeta.add_Click({
+    $btnCarpeta = _BotoBanda $band $tira 30 {
         try {
             $carpeta = [string](_ResolveOutputDir)
             if ([string]::IsNullOrWhiteSpace($carpeta)) { throw "no hi ha cap carpeta de sortida configurada" }
@@ -966,29 +999,12 @@ function Select-Mode {
                  "`n`nLa pots canviar al boto de Configuracio."),
                 'Informes generats', 'OK', 'Warning') | Out-Null
         }
-    }.GetNewClosure())
-    [void]$band.Controls.Add($btnCarpeta)
+    }.GetNewClosure()
+    $btnCarpeta.Text = [System.Char]::ConvertFromUtf32(0x1F4C1)
+    $btnCarpeta.Font = $fBandIco
     $ttBand = New-Object System.Windows.Forms.ToolTip
     $ttBand.SetToolTip($btnCarpeta, 'Obre la carpeta dels informes generats')
     $ttBand.SetToolTip($btnAjuda, 'Ajuda')
-
-    $btnConfig = New-Object System.Windows.Forms.Button
-    $btnConfig.Text = [string][char]0x2699
-    $btnConfig.Font = $fBandIco
-    $btnConfig.Size = New-Object System.Drawing.Size(30, 30)
-    $btnConfig.Location = New-Object System.Drawing.Point(($wForm - 88), 13)
-    $btnConfig.Anchor = 'Top,Right'
-    $btnConfig.FlatStyle = 'Flat'
-    $btnConfig.ForeColor = [System.Drawing.Color]::White
-    $btnConfig.BackColor = $Script:BrandMaroonBand
-    $btnConfig.FlatAppearance.BorderSize = 0
-    $btnConfig.FlatAppearance.MouseOverBackColor = $Script:BrandMaroonDark
-    $btnConfig.add_Click({
-        $result.Choice = @{ Action = 'config'; Cataleg = $null }
-        $form.DialogResult = 'OK'
-        $form.Close()
-    }.GetNewClosure())
-    [void]$band.Controls.Add($btnConfig)
     $ttBand.SetToolTip($btnConfig, 'Configuracio')
 
     # ACTUALITZAR, amb text i no nomes la icona: l'usuari el fa servir molt i
@@ -996,20 +1012,10 @@ function Select-Mode {
     # aquell boto (Invoke-ActualitzarPrograma, Configuracio.ps1): demana
     # confirmacio, llanca Actualitzar.bat i tanca el programa. La fletxa en
     # cercle no es a la Segoe UI: va amb _PosaIcona.
-    $btnActualitzarM = New-Object System.Windows.Forms.Button
+    $btnActualitzarM = _BotoBanda $band $tira 118 { Invoke-ActualitzarPrograma }
     $btnActualitzarM.Font = New-Object System.Drawing.Font('Segoe UI', 9.5, [System.Drawing.FontStyle]::Regular)
-    $btnActualitzarM.FlatStyle = 'Flat'
-    $btnActualitzarM.ForeColor = [System.Drawing.Color]::White
-    $btnActualitzarM.BackColor = $Script:BrandMaroonBand
-    $btnActualitzarM.FlatAppearance.BorderSize = 0
-    $btnActualitzarM.FlatAppearance.MouseOverBackColor = $Script:BrandMaroonDark
     $btnActualitzarM.TextAlign = 'MiddleCenter'
     _PosaIcona $btnActualitzarM ([string][char]0x21BB) ' Actualitzar'
-    $btnActualitzarM.Size = New-Object System.Drawing.Size(118, 30)
-    $btnActualitzarM.Location = New-Object System.Drawing.Point(($btnCarpeta.Left - 8 - 118), 13)
-    $btnActualitzarM.Anchor = 'Top,Right'
-    $btnActualitzarM.add_Click({ Invoke-ActualitzarPrograma })
-    [void]$band.Controls.Add($btnActualitzarM)
     $ttBand.SetToolTip($btnActualitzarM, 'Baixa la versio nova del programa (Actualitzar.bat) i el torna a obrir')
 
     # ------------------------------------------------------------------------

@@ -1078,15 +1078,19 @@ if (Test-Path -LiteralPath $batAD) {
 # EL BOTO DE LA CARPETA del menu: la ruta NO pot estar escrita al codi, ha de
 # sortir de _ResolveOutputDir (que es el que mana la Configuracio).
 $srcMenu3 = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $TestsDir) 'Menu.ps1') -Raw
-$iBtnC = $srcMenu3.IndexOf('$btnCarpeta = New-Object')
+# Els quatre botons de la banda passen per _BotoBanda (P6.C): el bloc de la
+# carpeta va del seu _BotoBanda fins a la linia que li posa la icona, o sigui
+# que ara es pot acotar de debo en lloc de tallar 1.800 caracters a ull.
+$iBtnC = $srcMenu3.IndexOf('$btnCarpeta = _BotoBanda')
 Assert ($iBtnC -ge 0) 'menu: hi ha el boto de la carpeta dels informes'
 if ($iBtnC -ge 0) {
-    $trosC = $srcMenu3.Substring($iBtnC, [Math]::Min(1800, $srcMenu3.Length - $iBtnC))
+    $iFiC  = $srcMenu3.IndexOf('$btnCarpeta.Font', $iBtnC)
+    $trosC = $srcMenu3.Substring($iBtnC, $iFiC - $iBtnC)
     Assert ($trosC.Contains('_ResolveOutputDir')) 'menu: la carpeta surt de la CONFIGURACIO, no del codi'
     Assert (-not ($trosC -match '[A-Z]:\\')) 'menu: cap ruta escrita al codi'
     Assert ($trosC.Contains('ConvertFromUtf32')) 'menu: l''emoji de carpeta es astral i va amb ConvertFromUtf32'
     # No tanca el menu: obrir una carpeta no es triar cap opcio.
-    Assert (-not ($trosC.Substring(0, $trosC.IndexOf('$btnConfig')).Contains('$form.Close()'))) 'menu: obrir la carpeta NO tanca el menu'
+    Assert (-not ($trosC.Contains('$form.Close()'))) 'menu: obrir la carpeta NO tanca el menu'
 }
 
 # ---------------------------------------------------------------------------
