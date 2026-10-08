@@ -14,8 +14,22 @@ function _NormativaPreparaXarxa {
     try { [System.Net.WebRequest]::DefaultWebProxy.Credentials = [System.Net.CredentialCache]::DefaultNetworkCredentials } catch { }
 }
 
-function _NormativaGet([string]$url) {
-    $r = Invoke-WebRequest -Uri $url -UseBasicParsing -UserAgent $Script:NormativaUA -TimeoutSec 60 -MaximumRedirection 10 -UseDefaultCredentials -ErrorAction Stop
+# TOTES les peticions del programa passen per aqui, i les banderes son la rao
+# per la qual ha de ser aixi: -MaximumRedirection 10 (el valor per defecte es 5,
+# i hdl.handle.net en gasta mes) i -UseDefaultCredentials (el proxy de
+# l'Ajuntament amb l'usuari del Windows). Escriure-les a ma a cada lloc vol dir
+# que un lloc se'n deixara una.
+#
+# L'$accept nomes el fa servir el diagnostic de vigencia, i NOMES per a les
+# dades obertes del BOE (XML). Abans el diagnostic es muntava la seva peticio
+# per poder posar-hi aquella capcalera, i pel cami es deixava les dues banderes
+# de sobre i enviava 'application/xml' tambe a les dues pagines .html que tot
+# seguit passava per _RevEstatBoe: desava la resposta a una pregunta que el
+# programa no fa mai, essent una eina feta NOMES per explicar per que falla.
+function _NormativaGet([string]$url, [string]$accept = '') {
+    $extra = @{}
+    if (-not [string]::IsNullOrWhiteSpace($accept)) { $extra['Headers'] = @{ Accept = $accept } }
+    $r = Invoke-WebRequest -Uri $url -UseBasicParsing -UserAgent $Script:NormativaUA -TimeoutSec 60 -MaximumRedirection 10 -UseDefaultCredentials -ErrorAction Stop @extra
     return $r
 }
 
@@ -28,8 +42,13 @@ function _NormativaUrlFinal($r, [string]$url) {
     return $url
 }
 
-function _NormativaGetBytes([string]$url, [string]$desti) {
-    Invoke-WebRequest -Uri $url -UseBasicParsing -UserAgent $Script:NormativaUA -TimeoutSec 180 -MaximumRedirection 10 -UseDefaultCredentials -OutFile $desti -ErrorAction Stop | Out-Null
+# Baixa a un fitxer i en torna els bytes. El $timeoutSec es parametre perque hi
+# ha dos usos amb paciencies diferents: baixar un PDF (180 s, el per defecte) i
+# demanar una PAGINA per veure si ja es un PDF (60 s, _NormativaBaixaWeb). Abans
+# aquell segon cas es muntava la seva Invoke-WebRequest nomes per canviar el
+# numero -i hi afegia un -PassThru que no es llegia enlloc-.
+function _NormativaGetBytes([string]$url, [string]$desti, [int]$timeoutSec = 180) {
+    Invoke-WebRequest -Uri $url -UseBasicParsing -UserAgent $Script:NormativaUA -TimeoutSec $timeoutSec -MaximumRedirection 10 -UseDefaultCredentials -OutFile $desti -ErrorAction Stop | Out-Null
     return [System.IO.File]::ReadAllBytes($desti)
 }
 
@@ -164,8 +183,7 @@ function _NormativaBaixaWeb([string]$url, [string]$tmp) {
     }
     $html = ''
     try {
-        $r = Invoke-WebRequest -Uri $url -UseBasicParsing -UserAgent $Script:NormativaUA -TimeoutSec 60 -MaximumRedirection 10 -UseDefaultCredentials -OutFile $tmp -PassThru -ErrorAction Stop
-        $b = [System.IO.File]::ReadAllBytes($tmp)
+        $b = _NormativaGetBytes $url $tmp 60
         if (_NormativaEsPdf $b) { return @{ Bytes = $b; Via = 'PDF' } }
         $html = [System.Text.Encoding]::UTF8.GetString($b)
     } catch { $html = '' }

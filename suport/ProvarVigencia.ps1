@@ -118,9 +118,14 @@ foreach ($b in $pvBoe) {
     foreach ($v in @(
         @{ Suf = 'act.html';  Url = ('https://www.boe.es/buscar/act.php?id=' + $b.Id) },
         @{ Suf = 'doc.html';  Url = ('https://www.boe.es/buscar/doc.php?id=' + $b.Id) },
-        @{ Suf = 'metadatos.xml'; Url = ('https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/' + $b.Id + '/metadatos') })) {
+        @{ Suf = 'metadatos.xml'; Url = ('https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/' + $b.Id + '/metadatos'); Accept = 'application/xml' })) {
         try {
-            $r = Invoke-WebRequest -Uri $v.Url -UseBasicParsing -UserAgent $Script:NormativaUA -TimeoutSec 60 -Headers @{ Accept = 'application/xml' } -ErrorAction Stop
+            # Per _NormativaGet, com la resta del fitxer: el diagnostic ha de
+            # demanar les pagines EXACTAMENT com les demana el programa. L'Accept
+            # nomes el porta l'XML de dades obertes; a les dues .html, cap -que
+            # es el que les feia tornar una cosa diferent de la que veu el
+            # programa, i tot seguit es passaven per _RevEstatBoe-.
+            $r = _NormativaGet $v.Url ([string]$v.Accept)
             $c = [string]$r.Content
             & $pvDesa ($b.Nom + '-' + $v.Suf) $c
             $e = if ($v.Suf -like '*.html') { (_RevEstatBoe $c).Estat } else { ([regex]::Match($c, '(?is)<(estatus_derogacion|vigencia_agotada|estado_consolidacion)[^>]*>[^<]*')).Value }

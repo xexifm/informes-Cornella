@@ -263,6 +263,80 @@ $nmAj = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 
 Assert ($nmAj.Contains('Get-NormativaPdfDeText') -and $nmAj.Contains("'Obre el PDF desat'")) 'fitxa d''ajuda: "Obre el PDF desat" si la norma ja es a la carpeta'
 AssertEq (Get-NormativaPdfDeText 'Llei 3/2010') '' 'fitxa d''ajuda: sense la carpeta, cap PDF (i no peta)'
 
+Write-Host "`n--- Les peticions HTTP viuen on toca (guard) ---"
+# PER QUE. Les banderes d'una peticio son el que la fa funcionar darrere del
+# proxy de l'Ajuntament (-UseDefaultCredentials) i amb els servidors que
+# redirigeixen mes de 5 vegades (-MaximumRedirection 10). Escrites a ma a cada
+# lloc, un lloc se'n deixa alguna: ProvarVigencia.ps1 es muntava la seva nomes
+# per afegir-hi un Accept, i pel cami perdia les dues i enviava
+# 'application/xml' a dues pagines .html que tot seguit passava per
+# _RevEstatBoe. Era l'eina feta NOMES per explicar per que falla la vigencia,
+# diagnosticant una resposta que el programa no rep mai.
+#
+# El guard no compta crides: diu en QUINS FITXERS hi poden ser. Cada un es la
+# porta d'un servei (normativa, Cadastre, OSRM, Drive, EmailJS, enllacos), i qui
+# vulgui parlar amb aquell servei hi ha de passar.
+$nmHttpPermesos = @(
+    'Normativa.ps1',              # _NormativaGet + _NormativaGetBytes
+    'Enllacos.ps1',               # Test-EnllacViu (HEAD, i GET si el 405)
+    'DriveApi.ps1',               # l'API del Drive
+    'EnviarCorreu.ps1',           # EmailJS
+    'mobil/Authorize-Drive.ps1',  # el token del Drive, un sol cop
+    'rutes/Cadastre.ps1',         # el comu de totes les consultes al Cadastre
+    'rutes/Ruta.ps1'              # OSRM (el planificador de rutes)
+)
+$nmArrelSup = Split-Path -Parent $TestsDir
+$nmHttpTrobats = New-Object System.Collections.ArrayList
+$nmHttpPerFitxer = @{}
+foreach ($f in @(Get-ChildItem -LiteralPath $nmArrelSup -Recurse -Filter '*.ps1' -File)) {
+    $rel = $f.FullName.Substring($nmArrelSup.Length + 1).Replace('\', '/')
+    if ($rel.StartsWith('tests/')) { continue }
+    $dinsComentari = $false
+    $n = 0
+    foreach ($l in [System.IO.File]::ReadAllLines($f.FullName)) {
+        $n++
+        # ELS COMENTARIS EN PARLEN, i han de poder parlar-ne: aquesta mateixa
+        # seccio de Normativa.ps1 explica per que hi son les banderes i hi
+        # escriu el nom del cmdlet. Si el guard comptes el text cru, el propi
+        # comentari el faria fallar (hi va caure la primera versio: 4 en lloc
+        # de 2). Un sol lector, que salta comentaris, per a les dues preguntes.
+        if ($dinsComentari) { if ($l.Contains('#>')) { $dinsComentari = $false }; continue }
+        if ($l.TrimStart().StartsWith('<#')) { if (-not $l.Contains('#>')) { $dinsComentari = $true }; continue }
+        if ($l.TrimStart().StartsWith('#')) { continue }
+        if ($l -match '\b(Invoke-WebRequest|Invoke-RestMethod|System\.Net\.WebClient|System\.Net\.Http\.HttpClient|Start-BitsTransfer)\b') {
+            if ($nmHttpPermesos -notcontains $rel) { [void]$nmHttpTrobats.Add($rel + ':' + $n) }
+            if (-not $nmHttpPerFitxer.ContainsKey($rel)) { $nmHttpPerFitxer[$rel] = 0 }
+            $nmHttpPerFitxer[$rel]++
+        }
+    }
+}
+AssertEq ($nmHttpTrobats -join ', ') '' 'cap peticio HTTP fora dels fitxers que son la porta d''un servei'
+
+# I la part que importa de debo: el diagnostic ha de passar per _NormativaGet,
+# que es l'unica manera que demani les pagines com les demana el programa.
+$nmPv = [System.IO.File]::ReadAllText((Join-Path $nmArrelSup 'ProvarVigencia.ps1'))
+Assert ($nmPv.Contains('_NormativaGet $v.Url')) 'ProvarVigencia: el BOE es demana amb _NormativaGet'
+# Compte amb la FORMA: una capcalera es passa com a "-Headers @{ ... }", SENSE
+# "=" entre el nom i el valor. La primera versio d'aquest assert buscava
+# "Headers = @{" i per tant no hauria disparat mai; ho va destapar la injeccio
+# del defecte, no la lectura. Ara busca el parametre.
+Assert (-not ($nmPv -match '(?m)^[^#]*-Headers\b')) 'ProvarVigencia: cap capcalera passada a ma a una peticio'
+# L'Accept es un PARAMETRE de _NormativaGet i nomes el porta l'XML de dades
+# obertes. Si algun dia el porten tambe les .html, tornem al defecte.
+$nmPvXml = @([regex]::Matches($nmPv, "Accept\s*=\s*'application/xml'")).Count
+AssertEq $nmPvXml 1 'ProvarVigencia: l''Accept nomes el porta l''XML de dades obertes (una sola vegada)'
+$nmNorm = [System.IO.File]::ReadAllText((Join-Path $nmArrelSup 'Normativa.ps1'))
+Assert ($nmNorm.Contains('function _NormativaGet([string]$url, [string]$accept')) '_NormativaGet accepta l''Accept opcional'
+# Normativa.ps1 ha de tenir DUES peticions i prou (el GET i el GET a fitxer).
+# Abans n'hi havia una TERCERA escrita a ma dins de _NormativaBaixaWeb, que
+# nomes es diferenciava pel timeout i per un -PassThru que no es llegia enlloc;
+# ara aquell cas passa per _NormativaGetBytes amb el timeout com a parametre.
+AssertEq ([int]$nmHttpPerFitxer['Normativa.ps1']) 2 'Normativa.ps1: nomes DUES peticions (el GET i el GET a fitxer), no una copia per cas'
+# ...i totes dues amb les banderes. Aqui si que es pot comptar sobre el text
+# cru: els comentaris parlen de les banderes pel seu nom, no en la forma
+# exacta en que van escrites a la crida.
+AssertEq (@([regex]::Matches($nmNorm, '-MaximumRedirection 10 -UseDefaultCredentials')).Count) 2 'Normativa.ps1: les dues peticions porten les dues banderes'
+
 } catch {
     Assert $false ('Normativa: la prova ha petat: ' + $_.Exception.Message + ' (linia ' + $_.InvocationInfo.ScriptLineNumber + ')')
 }
