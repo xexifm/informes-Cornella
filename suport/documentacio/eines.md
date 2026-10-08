@@ -729,6 +729,28 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
   l'ID GIA del document no és el de la carpeta, es queda amb el del document
   però surt a `a_revisar` («GIA del document diferent del de la carpeta»):
   abans se n'anava en silenci a l'activitat d'un altre titular.
+- **L'ID GIA assignat a mà** (octubre 2026): els informes antics no porten
+  l'ID GIA a la capçalera, o el porten malament. L'assignació, llegida un per
+  un, és a `local/base-dades-activitats/gia-assignats_*.json` (el **més
+  recent** pel nom; porta dades personals i, com la classificació, no es puja
+  mai): `{ "informes": [ { ruta_relativa, id_gia, confianca, motiu, forcar } ],
+  "sense_gia": [ { ruta_relativa, motiu } ] }`, amb `ruta_relativa` = la clau
+  de `_ClauInforme`. A `Get-InformeData` l'ordre és **`forcar=true` > document
+  > assignat > carpeta «GIA n» > Excel per expedient** (i després els germans);
+  `forcar` és per a una capçalera amb l'ID **equivocat** (els dos d'un titular
+  deien 239 i eren del 293). Un GIA assignat surt amb `GiaFont = 'assignat'`
+  (desat a l'informe com a `gia_font`), sense «sense ID GIA» i, si és forçat,
+  sense «GIA del document diferent del de la carpeta».
+  - `Read-GiaAssignats` **no peta mai**: un fitxer trencat (i `Read-JsonFile`
+    torna `$null` en silenci, no llança) dóna les llistes buides i un `Error`
+    que surt al resum del botó, al registre de l'automàtic i a la validació.
+  - **La signatura del fitxer** (nom|data|mida) es desa a la base
+    (`gia_assignats`): si canvia, l'escaneig torna a llegir **tots** els
+    informes, com amb la versió del classificador. Sense això una assignació
+    nova només arribaria als informes que algú tornés a desar.
+  - Les entrades que ja no troben l'informe (mogut o reanomenat) tornen a
+    `GiaAssignatsNoTrobats` i surten com a **AVÍS** a `ValidarClassificacio`.
+    `sense_gia` de moment només es fa servir per a aquest avís.
 - **Validar contra la carpeta REAL: `suport/ValidarClassificacio.ps1`** (no és
   de la suite). La classificació feta a mà
   (`local/base-dades-activitats/classificacio-informes_2026-10-08.json`, que
@@ -745,6 +767,10 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
   diferència d'estat d'activitat que **només ve d'un informe JUDICI** (amb el
   del JUDICI com el diu el programa l'estat surt igual) va a un bloc a part i
   no compta.
+  L'agrupament per activitat també fa servir el `gia-assignats_*.json` més
+  recent: el busca **abans** de passar l'escaneig a la carpeta temporal (on no
+  n'hi ha cap) i el passa a `Invoke-InformesDbEscaneig` (`-GiaAssignats` per
+  triar-ne un altre). La classificació de referència no canvia: és per informe.
   `powershell -NoProfile -ExecutionPolicy Bypass -File suport\ValidarClassificacio.ps1`
 - **Estats nous pendents de decidir amb l'usuari** (no fets): «Favorable pendent
   doc.» (el `favorable-pre` de llicència, que avui cau a `Favorable` i surt en

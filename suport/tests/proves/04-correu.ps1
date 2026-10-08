@@ -927,6 +927,93 @@ try {
     Remove-Item -LiteralPath $rb -Recurse -Force -ErrorAction SilentlyContinue
 }
 
+Write-Host "`n--- InformesEscaneig.ps1: l'ID GIA assignat a ma (gia-assignats_*.json) ---"
+# Peces pures. Rutes i GIA inventats.
+$gaObj = [pscustomobject]@{
+    informes = @(
+        [pscustomobject]@{ ruta_relativa = 'Antic/2019-01-01_Req.docx'; id_gia = 610; confianca = 'segur'; motiu = 'm'; forcar = $false },
+        [pscustomobject]@{ ruta_relativa = '\GIA 620\2019-02-01_Req.docx'; id_gia = '293'; confianca = 'segur'; motiu = 'capcalera equivocada'; forcar = $true },
+        [pscustomobject]@{ ruta_relativa = ''; id_gia = '1' },
+        [pscustomobject]@{ ruta_relativa = 'x.docx'; id_gia = '' })
+    sense_gia = @([pscustomobject]@{ ruta_relativa = 'Sense/2018-01-01_Z.docx'; motiu = 'no se sap' })
+}
+$gaM = _GiaAssignatsMapa $gaObj
+AssertEq (@($gaM.Mapa.Keys | Sort-Object) -join '|') 'Antic\2019-01-01_Req.docx|GIA 620\2019-02-01_Req.docx' '_GiaAssignatsMapa: clau com _ClauInforme (barres i "\" inicial), sense les entrades buides'
+AssertEq "$($gaM.Mapa['antic\2019-01-01_req.docx'].Gia)|$($gaM.Mapa['GIA 620\2019-02-01_Req.docx'].Forcar)" '610|True' '_GiaAssignatsMapa: id_gia numeric -> text, forcar, i la clau no distingeix majuscules'
+AssertEq (@($gaM.SenseGia.Keys) -join '|') 'Sense\2018-01-01_Z.docx' '_GiaAssignatsMapa: sense_gia'
+AssertEq (@(_GiaAssignatsNoTrobats $gaM @{ 'Antic\2019-01-01_Req.docx' = $true }) -join '|') 'GIA 620\2019-02-01_Req.docx|Sense\2018-01-01_Z.docx' '_GiaAssignatsNoTrobats: les que no casen amb cap informe (informes i sense_gia)'
+AssertEq (@(_GiaAssignatsMapa $null).Count) 1 '_GiaAssignatsMapa: un fitxer buit no peta'
+
+# D'extrem a extrem, amb .docx de debo ($nouDocx).
+$ga = Join-Path ([System.IO.Path]::GetTempPath()) ('gia-assignats-' + [guid]::NewGuid().ToString('N'))
+$gaI = Join-Path $ga 'Informes'; $gaLoc = Join-Path $ga 'local'; $gaAct = Join-Path $ga 'activitats'; $gaApp = Join-Path $ga 'appdata'
+$vellsGA = @{ Inf = $InformesDir; Loc = $LocalActivitatsDir; Act = $ActivitatsDir; App = $env:LOCALAPPDATA }
+try {
+    foreach ($d in @((Join-Path $gaI 'Antic'), (Join-Path $gaI 'GIA 620'), (Join-Path $gaI 'GIA 630'), (Join-Path $gaI 'GIA 650'), $gaLoc, $gaAct, $gaApp)) { [void](New-Item -ItemType Directory -Path $d -Force) }
+    $LocalActivitatsDir = $gaLoc; $ActivitatsDir = $gaAct; $env:LOCALAPPDATA = $gaApp; $InformesDir = $gaI
+    $reqG = "Vist l'anterior, s'inicia d'ofici el procediment d'esmena, disposant d'un termini d'un mes."
+    $fiG = 'Ho poso al seu coneixement als efectes oportuns,'
+    & $nouDocx (Join-Path (Join-Path $gaI 'Antic') '2019-01-01_Req.docx') @('Sense capcalera', $reqG, $fiG)
+    & $nouDocx (Join-Path (Join-Path $gaI 'GIA 620') '2019-02-01_Req.docx') @('ID GIA: 239', $reqG, $fiG)
+    & $nouDocx (Join-Path (Join-Path $gaI 'GIA 630') '2019-03-01_X.docx') @('ID GIA: 631', $reqG, $fiG)
+    & $nouDocx (Join-Path (Join-Path $gaI 'GIA 650') '2019-04-01_Y.docx') @('Sense capcalera', $reqG, $fiG)
+    $vellG = (Get-Date).ToUniversalTime().AddHours(-2)
+    Get-ChildItem -LiteralPath $gaI -Recurse -File | ForEach-Object { $_.LastWriteTimeUtc = $vellG }
+    $gaFitxer = { param($nom, $entrades, $sense)
+        $p = Join-Path $gaLoc $nom
+        Write-JsonFile $p ([pscustomobject]@{ informes = @($entrades); sense_gia = @($sense) }) 5
+        (Get-Item -LiteralPath $p).LastWriteTimeUtc = $vellG
+        $p
+    }
+    $gaE = { param($ruta, $gia, $forcar) [pscustomobject]@{ ruta_relativa = $ruta; id_gia = $gia; confianca = 'segur'; motiu = 'prova'; forcar = $forcar } }
+    [void](& $gaFitxer 'gia-assignats_2026-10-01.json' @(
+        (& $gaE 'Antic\2019-01-01_Req.docx' '610' $false),
+        (& $gaE 'GIA 620\2019-02-01_Req.docx' '293' $true),
+        (& $gaE 'GIA 630\2019-03-01_X.docx' '640' $false),
+        (& $gaE 'GIA 650\2019-04-01_Y.docx' '660' $false),
+        (& $gaE 'Ja no hi es\2019-05-01_Q.docx' '700' $false)) @([pscustomobject]@{ ruta_relativa = 'Tampoc\2018-01-01_Z.docx'; motiu = 'x' }))
+    $dbGA = Join-Path $gaLoc 'informes-db.json'
+    $infDe = { param($db, $fitxer) foreach ($a in @($db.activitats)) { foreach ($i in @($a.informes)) { if ([string]$i.fitxer -eq $fitxer) { return [pscustomobject]@{ Gia = [string]$a.id_gia; Inf = $i } } } } }
+
+    $resG = Invoke-InformesDbEscaneig
+    $dbG = Read-JsonFile $dbGA
+    AssertEq "$($resG.Ok)|$($resG.NInformes)" 'True|4' 'GIA assignat: l''escaneig llegeix els 4 informes'
+    $x = & $infDe $dbG '2019-01-01_Req.docx'
+    AssertEq "$($x.Gia)|$($x.Inf.gia_font)|$($x.Inf.motiu)" '610|assignat|' 'sense GIA al document ni a la carpeta -> el del fitxer, marcat "assignat" i sense "sense ID GIA"'
+    $x = & $infDe $dbG '2019-02-01_Req.docx'
+    AssertEq "$($x.Gia)|$($x.Inf.gia_font)|$($x.Inf.motiu)" '293|assignat|' 'forcar=true: mana sobre la capcalera equivocada (239), i sense l''avis "GIA del document diferent"'
+    $x = & $infDe $dbG '2019-03-01_X.docx'
+    AssertEq "$($x.Gia)|$($x.Inf.gia_font)|$($x.Inf.motiu)" '631|document|GIA del document diferent del de la carpeta' 'sense forcar, el document mana sobre l''assignacio (i l''avis de la carpeta es queda)'
+    $x = & $infDe $dbG '2019-04-01_Y.docx'
+    AssertEq "$($x.Gia)|$($x.Inf.gia_font)" '660|assignat' 'l''assignacio mana sobre la carpeta "GIA 650"'
+    AssertEq (@($resG.GiaAssignatsNoTrobats) -join '|') 'Ja no hi es\2019-05-01_Q.docx|Tampoc\2018-01-01_Z.docx' 'les entrades que ja no troben l''informe no peten: es retornen per avisar'
+    Assert ([string]$dbG.gia_assignats).StartsWith('gia-assignats_2026-10-01.json|') 'la base apunta quin fitxer d''assignacions s''ha fet servir'
+
+    # Sense canvis: res es reprocessa i la marca es conserva.
+    $resG2 = Invoke-InformesDbEscaneig
+    $x = & $infDe (Read-JsonFile $dbGA) '2019-01-01_Req.docx'
+    AssertEq "$($resG2.Reprocessats)|$($x.Gia)|$($x.Inf.gia_font)" '0|610|assignat' 'sense canvis: no es reprocessa res, i el GIA i la marca es queden'
+
+    # Un fitxer NOU (mes recent): es tornen a llegir tots i mana el nou.
+    [void](& $gaFitxer 'gia-assignats_2026-10-08.json' @((& $gaE 'Antic\2019-01-01_Req.docx' '611' $false)) @())
+    $resG3 = Invoke-InformesDbEscaneig
+    $dbG3 = Read-JsonFile $dbGA
+    $x = & $infDe $dbG3 '2019-01-01_Req.docx'
+    AssertEq "$($resG3.Reprocessats)|$($x.Gia)" '4|611' 'un fitxer d''assignacions mes recent: es tornen a llegir tots i mana el nou'
+    $x = & $infDe $dbG3 '2019-02-01_Req.docx'
+    AssertEq "$($x.Gia)|$($x.Inf.gia_font)" '239|document' '...i el que el nou ja no porta torna al que diu el document'
+
+    # Un fitxer que no es pot llegir: l'escaneig no peta, ho diu.
+    [System.IO.File]::WriteAllText((Join-Path $gaLoc 'gia-assignats_2026-10-09.json'), '{ aixo no es json')
+    $resG4 = Invoke-InformesDbEscaneig
+    Assert ([bool]$resG4.Ok -and ([string]$resG4.GiaAssignatsError).Contains('gia-assignats_2026-10-09.json')) 'un fitxer d''assignacions trencat: l''escaneig es fa igual i retorna l''error per dir-ho'
+} catch {
+    Assert $false ('bloc GIA assignat: ' + $_.Exception.Message + ' @ ' + $_.InvocationInfo.ScriptLineNumber)
+} finally {
+    $InformesDir = $vellsGA.Inf; $LocalActivitatsDir = $vellsGA.Loc; $ActivitatsDir = $vellsGA.Act; $env:LOCALAPPDATA = $vellsGA.App
+    Remove-Item -LiteralPath $ga -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 Write-Host "`n--- InformesEscaneig.ps1: peces pures (_ClauInforme, _AvisCanviArrel, _GiaDelsGermans) ---"
 AssertEq (_ClauInforme 'I:\Act\Informes\GIA 1\a.docx' 'I:\Act\Informes') 'GIA 1\a.docx' '_ClauInforme: la ruta relativa a l''arrel'
 AssertEq (_ClauInforme 'F:\FEINA\Informes\GIA 1\a.docx' 'F:\FEINA\Informes\') 'GIA 1\a.docx' '_ClauInforme: una altra unitat, la mateixa clau (i la barra final no compta)'

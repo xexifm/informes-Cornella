@@ -28,7 +28,7 @@
 # nomes arribaria als informes que algu tornes a desar, i els 802 de la carpeta
 # es quedarien amb la classificacio vella per sempre. CANVIA-LA cada vegada que
 # canviis el que en surt (conclusio, conclusio breu, tipus).
-$Script:ClassificadorVersio = '2026-10-08.3'
+$Script:ClassificadorVersio = '2026-10-08.4'
 
 # Una propietat d'un objecte de la base (o $null si no la te), sense petar amb
 # les bases d'abans que no porten els camps nous. La fan servir aquest fitxer,

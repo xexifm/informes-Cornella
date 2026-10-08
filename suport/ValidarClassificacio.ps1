@@ -42,13 +42,19 @@
   Sense -Classificacio fa servir la classificacio-informes_*.json MES RECENT
   de local\base-dades-activitats.
 
+  L'agrupament per activitat es el de l'escaneig, o sigui que fa servir tambe
+  l'ID GIA ASSIGNAT A MA: el gia-assignats_*.json MES RECENT de la mateixa
+  carpeta (o el de -GiaAssignats). La classificacio de referencia no canvia (es
+  per informe). Les assignacions que ja no troben l'informe surten com a AVIS.
+
   Us (des de l'arrel del repositori):
     powershell -NoProfile -ExecutionPolicy Bypass -File suport\ValidarClassificacio.ps1
-    ... -Classificacio <fitxer.json> -Informes <carpeta d'informes>
+    ... -Classificacio <fitxer.json> -Informes <carpeta d'informes> -GiaAssignats <fitxer.json>
 #>
 param(
     [string]$Classificacio = '',
-    [string]$Informes = ''
+    [string]$Informes = '',
+    [string]$GiaAssignats = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -69,6 +75,12 @@ if ([string]::IsNullOrWhiteSpace($Classificacio)) {
     $Classificacio = $vcCands[0].FullName
 }
 if (-not [string]::IsNullOrWhiteSpace($Informes)) { $InformesDir = $Informes }
+# L'ID GIA assignat a ma: el MES RECENT de local\base-dades-activitats. Es busca
+# ARA, abans que l'escaneig passi a la carpeta temporal (on no n'hi ha cap).
+if ([string]::IsNullOrWhiteSpace($GiaAssignats)) {
+    $vcGa = Find-GiaAssignats
+    if ($null -ne $vcGa) { $GiaAssignats = $vcGa.FullName }
+}
 if (-not (Test-Path -LiteralPath $Classificacio)) { throw "No trobo la classificacio: $Classificacio" }
 if (-not (_InformesDirAccessible $InformesDir)) { throw "No trobo la carpeta d'informes: $InformesDir" }
 
@@ -89,7 +101,7 @@ try {
     $vcRes = Invoke-InformesDbEscaneig {
         param($t, $i, $n)
         if ($n -gt 0 -and ($i % 50) -eq 0) { Write-Host ("  ... $i de $n") }
-    }
+    } $null $GiaAssignats
     if (-not [bool]$vcRes.Ok) { throw ("L'escaneig no s'ha pogut fer: " + [string]$vcRes.Error) }
     # Per Get-InformesDbPath, que llegeix $LocalActivitatsDir: aqui dins encara
     # apunta a $vcTmp, o sigui que es EXACTAMENT el fitxer que acaba d'escriure
@@ -192,12 +204,23 @@ foreach ($act in @($vcDb.activitats)) {
 & $vcDiu ('Validacio del classificador ' + $Script:ClassificadorVersio + '  -  ' + (Get-Date).ToString('dd/MM/yyyy HH:mm'))
 & $vcDiu ('Carpeta d''informes: ' + $vcArrel)
 & $vcDiu ('Classificacio:       ' + $Classificacio)
+& $vcDiu ('GIA assignats:       ' + $(if ([string]$vcRes.GiaAssignatsFitxer) { [string]$vcRes.GiaAssignatsFitxer } else { '(cap fitxer gia-assignats_*.json)' }))
 & $vcDiu ''
 & $vcDiu ('Informes escanejats: ' + $vcRes.NInformes + '   activitats: ' + $vcRes.NActivitats + '   a revisar: ' + $vcRes.NRevisar)
 & $vcDiu ('Entrades de la classificacio: ' + $vcEntrades.Count + '   comparades: ' + $nComparats + '   DUBTE (fora): ' + $nDubte + '   no trobades a la carpeta: ' + $vcNoTrobats.Count)
 & $vcDiu ('Discrepancies d''informe: ' + $vcDifInf.Count + '   (judici de l''usuari, a part: ' + $vcJudici.Count + ')')
 & $vcDiu ('Discrepancies d''ESTAT d''activitat: ' + $vcDifEstat.Count + '   (nomes per un informe JUDICI, a part: ' + $vcDifEstatJudici.Count + ')')
 & $vcDiu ''
+$vcGaNo = @($vcRes.GiaAssignatsNoTrobats)
+if ([string]$vcRes.GiaAssignatsError -or $vcGaNo.Count -gt 0) {
+    & $vcDiu '== AVIS: assignacions de GIA =='
+    if ([string]$vcRes.GiaAssignatsError) { & $vcDiu ('  ' + [string]$vcRes.GiaAssignatsError) }
+    if ($vcGaNo.Count -gt 0) {
+        & $vcDiu ('  ' + $vcGaNo.Count + ' entrades ja no troben l''informe a la carpeta:')
+        foreach ($k in $vcGaNo) { & $vcDiu ('    ' + $k) }
+    }
+    & $vcDiu ''
+}
 & $vcDiu '== ESTAT D''ACTIVITAT diferent =='
 foreach ($t in $vcDifEstat) { & $vcDiu $t }
 & $vcDiu ''

@@ -59,13 +59,106 @@ function _ReadInformeParagraphs($file, $wordApp) {
     return _ReadDocxParagraphs $file.FullName
 }
 
+# ----------------------------------------------------------------------------
+# L'ID GIA ASSIGNAT A MA (local\base-dades-activitats\gia-assignats_*.json)
+# ----------------------------------------------------------------------------
+# Els informes antics no porten l'ID GIA a la capcalera, o el porten malament
+# (els dos d'un titular deien 239 i eren del 293). Es van llegir un per un i
+# se'n va desar l'assignacio a un fitxer de local\ (porta dades personals: com
+# la classificacio, no es puja mai). Format:
+#   { "informes":  [ { "ruta_relativa", "id_gia", "confianca", "motiu", "forcar" } ],
+#     "sense_gia": [ { "ruta_relativa", "motiu" } ] }
+# ruta_relativa: relativa a la carpeta d'informes, la mateixa clau que les
+# correccions a ma (_ClauInforme).
+#
+# L'ORDRE de l'ID GIA d'un informe (Get-InformeData):
+#   forcar=true > document > assignat > carpeta "GIA n" > Excel per expedient
+# (i, despres, el dels germans de carpeta). 'forcar' es per a una capcalera amb
+# l'ID EQUIVOCAT; sense, el document mana i l'assignacio nomes omple el buit.
+
+# El fitxer d'assignacions MES RECENT (pel nom, que porta la data), o $null.
+function Find-GiaAssignats {
+    if ([string]::IsNullOrWhiteSpace($LocalActivitatsDir)) { return $null }
+    $c = @(Get-ChildItem -LiteralPath $LocalActivitatsDir -Filter 'gia-assignats_*.json' -File -ErrorAction SilentlyContinue |
+           Sort-Object Name -Descending)
+    if ($c.Count -eq 0) { return $null }
+    return $c[0]
+}
+
+# El contingut del fitxer (ja llegit) -> @{ Mapa = clau -> @{ Gia; Forcar;
+# Confianca; Motiu; Ruta }; SenseGia = clau -> motiu }. Les entrades sense ruta
+# o sense id_gia no compten. PURA.
+function _GiaAssignatsMapa($obj) {
+    $mapa = @{}; $sense = @{}
+    foreach ($e in @(_PropInf $obj 'informes')) {
+        if ($null -eq $e) { continue }
+        $ruta = [string](_PropInf $e 'ruta_relativa')
+        $gia = ([string](_PropInf $e 'id_gia')).Trim()
+        if ([string]::IsNullOrWhiteSpace($ruta) -or $gia -eq '') { continue }
+        $mapa[(_ClauInforme $ruta '').TrimStart('\')] = @{
+            Gia = $gia; Forcar = [bool](_PropInf $e 'forcar'); Ruta = $ruta
+            Confianca = [string](_PropInf $e 'confianca'); Motiu = [string](_PropInf $e 'motiu')
+        }
+    }
+    foreach ($e in @(_PropInf $obj 'sense_gia')) {
+        if ($null -eq $e) { continue }
+        $ruta = [string](_PropInf $e 'ruta_relativa')
+        if ([string]::IsNullOrWhiteSpace($ruta)) { continue }
+        $sense[(_ClauInforme $ruta '').TrimStart('\')] = [string](_PropInf $e 'motiu')
+    }
+    return @{ Mapa = $mapa; SenseGia = $sense }
+}
+
+# Llegeix el fitxer d'assignacions ($path; buit = el mes recent, Find-GiaAssignats).
+# Torna @{ Mapa; SenseGia; Fitxer; Signatura; Error }. MAI NO PETA: un fitxer
+# que no es pot llegir dona les llistes buides i l'Error (l'escaneig continua i
+# ho diu). La Signatura (nom|data|mida) es desa a la base: si canvia, l'escaneig
+# torna a llegir tots els informes (si no, una assignacio nova nomes arribaria
+# als informes que algu tornes a desar).
+function Read-GiaAssignats([string]$path = '') {
+    $buit = @{ Mapa = @{}; SenseGia = @{}; Fitxer = ''; Signatura = ''; Error = '' }
+    $f = $null
+    if ([string]::IsNullOrWhiteSpace($path)) { $f = Find-GiaAssignats }
+    elseif (Test-Path -LiteralPath $path) { $f = Get-Item -LiteralPath $path }
+    else { $buit.Error = "No trobo el fitxer d'assignacions de GIA: $path"; return $buit }
+    if ($null -eq $f) { return $buit }
+    $buit.Fitxer = $f.FullName
+    $buit.Signatura = $f.Name + '|' + $f.LastWriteTimeUtc.Ticks + '|' + $f.Length
+    try {
+        # Read-JsonFile torna $null (no llanca) si el fitxer no es un JSON valid:
+        # sense aquesta comprovacio, un fitxer trencat deixaria d'assignar res
+        # en silenci.
+        $obj = Read-JsonFile $f.FullName
+        if ($null -eq $obj -or ($null -eq $obj.PSObject.Properties['informes'] -and $null -eq $obj.PSObject.Properties['sense_gia'])) {
+            $buit.Error = $f.Name + " es buit, no es un JSON valid o no porta 'informes': no s'hi ha assignat cap GIA."
+            return $buit
+        }
+        $m = _GiaAssignatsMapa $obj
+        $buit.Mapa = $m.Mapa; $buit.SenseGia = $m.SenseGia
+    } catch {
+        $buit.Error = "No s'ha pogut llegir " + $f.Name + ': ' + $_.Exception.Message
+    }
+    return $buit
+}
+
+# Les claus del fitxer d'assignacions (informes i sense_gia) que ja no troben
+# cap informe a la carpeta ($claus: hashtable de les claus escanejades). PURA.
+function _GiaAssignatsNoTrobats($assignats, $claus) {
+    $out = New-Object System.Collections.ArrayList
+    foreach ($k in @($assignats.Mapa.Keys) + @($assignats.SenseGia.Keys)) {
+        if (-not $claus.ContainsKey($k)) { [void]$out.Add([string]$k) }
+    }
+    return @($out | Sort-Object -Unique)
+}
+
 # Analitza UN informe. Retorna un PSCustomObject amb data, gia, expedient,
 # conclusio, tipus, fitxer, ruta, carpeta i els motius (si cal revisar-lo).
 # $wordApp es opcional (nomes cal per als .doc antics; vegeu
 # _ReadInformeParagraphs). El que se'n treu del text ho decideix
 # _ClassificaInforme (InformesClassificacio.ps1), el mateix que fa servir
-# ValidarClassificacio.ps1.
-function Get-InformeData($file, $expToGia, $cache, $wordApp = $null) {
+# ValidarClassificacio.ps1. $assignat: l'entrada del fitxer d'assignacions
+# d'aquest informe (@{ Gia; Forcar }) o $null; vegeu l'ORDRE a dalt.
+function Get-InformeData($file, $expToGia, $cache, $wordApp = $null, $assignat = $null) {
     $data = _ParseDataInformeFromName $file.Name
     $lines = @()
     try { $lines = @(_ReadInformeParagraphs $file $wordApp) } catch { $lines = @() }
@@ -74,6 +167,10 @@ function Get-InformeData($file, $expToGia, $cache, $wordApp = $null) {
     $giaCarpeta = _GiaFromFolderName $file.FullName
     $exp = _ExtractExpedient $lines
     $font = 'document'
+    $giaAssignat = if ($null -ne $assignat) { [string]$assignat.Gia } else { '' }
+    if ($giaAssignat -ne '' -and ([bool]$assignat.Forcar -or [string]::IsNullOrWhiteSpace($gia))) {
+        $gia = $giaAssignat; $font = 'assignat'
+    }
     if ([string]::IsNullOrWhiteSpace($gia)) {
         $gia = $giaCarpeta
         if (-not [string]::IsNullOrWhiteSpace($gia)) { $font = 'carpeta' }
@@ -89,7 +186,8 @@ function Get-InformeData($file, $expToGia, $cache, $wordApp = $null) {
     if ([string]::IsNullOrWhiteSpace($gia)) { [void]$motius.Add('sense ID GIA') }
     # "GIA 101" a la carpeta i "ID GIA: 110" a la capcalera (les xifres girades): l'informe se
     # n'anava en silenci a l'activitat d'un altre titular. Es queda amb el del
-    # document (es el que s'ha escrit per a aquell informe), pero es diu.
+    # document (es el que s'ha escrit per a aquell informe), pero es diu. Un GIA
+    # assignat (forcat o no) ja s'ha mirat a ma: no se'n diu res.
     if ($font -eq 'document' -and $giaCarpeta -ne '' -and $giaCarpeta -ne [string]$gia) {
         [void]$motius.Add('GIA del document diferent del de la carpeta')
     }
@@ -160,7 +258,7 @@ function _FlattenInformesDb($db) {
             $map[(_ClauInforme $ruta $arrel)] = [pscustomobject]@{
                 Data          = [string]$inf.data
                 Gia           = [string]$act.id_gia
-                GiaFont       = ''
+                GiaFont       = [string](_PropInf $inf 'gia_font')
                 Expedient     = [string]$act.expedient
                 Titular       = [string]$act.titular
                 Conclusio     = $conclusioText
@@ -227,6 +325,10 @@ function _InformeAJson($r) {
         motiu          = (@($r.Motius) -join ', ')
         editat_a_ma    = [bool]$r.EditatAMa
     }
+    # D'on surt l'ID GIA ('document', 'assignat', 'carpeta', 'excel', 'germans'),
+    # nomes si se sap: les bases d'abans no ho portaven.
+    $giaFont = [string](_PropInf $r 'GiaFont')
+    if ($giaFont -ne '') { Add-Member -InputObject $o -NotePropertyName gia_font -NotePropertyValue $giaFont }
     if ([bool]$r.EditatAMa) {
         Add-Member -InputObject $o -NotePropertyName auto_conclusio_breu -NotePropertyValue ([string]$r.AutoConclusioBreu)
         Add-Member -InputObject $o -NotePropertyName auto_ignorat -NotePropertyValue ([bool]$r.AutoIgnorat)
@@ -345,7 +447,10 @@ function _InformesDirAccessible([string]$dir) {
     try { return [bool](Test-Path -LiteralPath $dir -ErrorAction SilentlyContinue) } catch { return $false }
 }
 
-function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock]$onConfirma = $null) {
+# $giaAssignatsPath: el fitxer d'assignacions de GIA; buit = el mes recent de
+# $LocalActivitatsDir (ValidarClassificacio el busca abans de canviar la carpeta
+# local per una de temporal i el passa aqui).
+function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock]$onConfirma = $null, [string]$giaAssignatsPath = '') {
     # La carpeta d'informes. Si la unitat (la I: de la feina) no hi es, no es un
     # error del programa: potser s'esta fora de la feina.
     $dir = $InformesDir
@@ -374,6 +479,9 @@ function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock
     #     Si la base es d'una altra versio del classificador, es tornen a llegir
     #     TOTS (vegeu $Script:ClassificadorVersio), pero es conserven les
     #     correccions a ma.
+    # 3a. L'ID GIA assignat a ma (vegeu Read-GiaAssignats). Si el fitxer ha
+    #     canviat des de l'ultima vegada, es tornen a llegir TOTS els informes.
+    $assignats = Read-GiaAssignats $giaAssignatsPath
     $outPath    = Get-InformesDbPath
     $prevByRuta = @{}
     $prevUtc    = [datetime]::MinValue
@@ -394,6 +502,7 @@ function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock
                 try { $prevUtc = ([datetime]::Parse([string]$prevDb.actualitzat_el)).ToUniversalTime() } catch { $prevUtc = [datetime]::MinValue }
             }
             if ([string](_PropInf $prevDb 'versio_classificador') -ne $Script:ClassificadorVersio) { $prevUtc = [datetime]::MinValue }
+            if ([string](_PropInf $prevDb 'gia_assignats') -ne [string]$assignats.Signatura) { $prevUtc = [datetime]::MinValue }
             if ($prevDb.PSObject.Properties['generat_el'] -and -not [string]::IsNullOrWhiteSpace([string]$prevDb.generat_el)) {
                 $generatEl = [string]$prevDb.generat_el
             }
@@ -452,7 +561,7 @@ function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock
                     # que aqui compta: aquests .doc son a la unitat de xarxa.
                     $wordApp = New-WordApp -Opcional
                 }
-                $r = Get-InformeData $f $expToGia $cache $wordApp
+                $r = Get-InformeData $f $expToGia $cache $wordApp $assignats.Mapa[$clau]
                 # El que l'usuari hagi corregit a ma ("Editar base") PREVAL;
                 # la resta, la mana el que acaba de sortir de l'informe
                 # (vegeu _AplicaEdicioPrevia).
@@ -489,6 +598,7 @@ function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock
         generat_el           = $generatEl
         actualitzat_el       = (Get-Date).ToString('o')
         versio_classificador = $Script:ClassificadorVersio
+        gia_assignats        = [string]$assignats.Signatura
         carpeta_arrel        = $dir
         n_informes           = $informes.Count
         n_activitats         = $activitatsOrd.Count
@@ -497,8 +607,15 @@ function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock
     }
     Write-JsonFile $outPath $outObj 8
 
+    # Les assignacions que ja no troben l'informe (l'han mogut o reanomenat): no
+    # peta, es diu (el resum del boto, el registre de l'automatic i
+    # ValidarClassificacio).
+    $noTrobats = @(_GiaAssignatsNoTrobats $assignats $claus)
+
     return @{ Ok = $true; Error = ''; NInformes = $informes.Count; Reprocessats = $reprocessats
-              NActivitats = $activitatsOrd.Count; NRevisar = $revisar.Count; OutPath = $outPath }
+              NActivitats = $activitatsOrd.Count; NRevisar = $revisar.Count; OutPath = $outPath
+              GiaAssignatsFitxer = [string]$assignats.Fitxer; GiaAssignatsError = [string]$assignats.Error
+              GiaAssignatsNoTrobats = $noTrobats }
 }
 
 # Nom del mutex de l'escaneig: el comparteixen el boto i l'automatic, perque dos
@@ -588,7 +705,10 @@ function Invoke-InformesDbScan {
            "Informes trobats: $($res.NInformes)`n" +
            "Nous o modificats (reprocessats): $($res.Reprocessats)`n" +
            "Activitats: $($res.NActivitats)`n" +
-           "A revisar: $($res.NRevisar)`n`n" +
+           "A revisar: $($res.NRevisar)`n" +
+           $(if ([string]$res.GiaAssignatsError) { "`nATENCI" + [char]0x00D3 + ": " + [string]$res.GiaAssignatsError + "`n" } else { '' }) +
+           $(if (@($res.GiaAssignatsNoTrobats).Count -gt 0) { "`nAssignacions de GIA que ja no troben l'informe: " + @($res.GiaAssignatsNoTrobats).Count + " (les llista ValidarClassificacio)`n" } else { '' }) +
+           "`n" +
            "Fitxer:`n$($res.OutPath)`n`nVols obrir-lo?"
     $r = [System.Windows.Forms.MessageBox]::Show($msg, 'Base d''informes', 'YesNo', 'Information')
     if ($r -eq [System.Windows.Forms.DialogResult]::Yes) {
@@ -664,7 +784,9 @@ function Invoke-InformesDbAuto {
     }
     [void](_BaseAutoDesaEstat @{ auto_el = $ini['auto_el']; mode = 'auto' })
     _BaseAutoLog ("Passada automatica: informes=$($res.NInformes) reprocessats=$($res.Reprocessats) " +
-                  "activitats=$($res.NActivitats) a_revisar=$($res.NRevisar)")
+                  "activitats=$($res.NActivitats) a_revisar=$($res.NRevisar)" +
+                  $(if ([string]$res.GiaAssignatsError) { ' AVIS: ' + [string]$res.GiaAssignatsError } else { '' }) +
+                  $(if (@($res.GiaAssignatsNoTrobats).Count -gt 0) { ' assignacions_GIA_no_trobades=' + @($res.GiaAssignatsNoTrobats).Count } else { '' }))
     return $res
 }
 
