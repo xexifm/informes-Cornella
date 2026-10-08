@@ -1020,6 +1020,24 @@ function _SenseComentaris([string]$ruta) {
     return $sb.ToString()
 }
 
+Write-Host "`n--- docs/ tambe te sostre de mida (guard) ---"
+# PER QUE. suport/ te el limit de 1.200 linies des de la primera auditoria, pero
+# docs/ -el programa del MOBIL- no en tenia cap, i app.js ja es a 1.167: el
+# fitxer mes gros del projecte despres dels de proves. Es el que decideix que
+# va dins del paquet que el PC converteix en .docx, o sigui que si creix sense
+# mirar-s'ho acabara tenint el mateix problema que va tenir Motor.ps1.
+# Mateix disseny que a suport/: un limit i excepcions amb sostre PROPI, un pel
+# damunt del que fan ara, perque tampoc no creixin sense pensar-hi.
+$docsMaxLinies = 1200
+$docsExcepcions = @{ 'app.js' = 1250 }   # el formulari sencer del mobil
+$docsGrans = New-Object System.Collections.ArrayList
+foreach ($f in @(Get-ChildItem -LiteralPath (Join-Path $rootRepo 'docs') -Filter '*.js' -File)) {
+    $n = @([System.IO.File]::ReadAllLines($f.FullName)).Count
+    $max = if ($docsExcepcions.ContainsKey($f.Name)) { $docsExcepcions[$f.Name] } else { $docsMaxLinies }
+    if ($n -gt $max) { [void]$docsGrans.Add($f.Name + " ($n > $max)") }
+}
+AssertEq ($docsGrans -join ', ') '' ('cap .js de docs/ passa de ' + $docsMaxLinies + ' linies (o del sostre de la seva excepcio)')
+
 Write-Host "`n--- L'arrencada de les eines de rutes/ (EinaBase.ps1) ---"
 # PER QUE. Les tres eines de rutes/ corren en un proces propi i totes tres
 # carreguen Ruta.ps1 nomes per tenir-ne les funcions, enganyant-lo amb
@@ -1225,7 +1243,7 @@ Write-Host "`n--- Dos blocs mes que eren el mateix ---"
 #    el FormClosing que converteix el tancament en cancel.lacio mentre la tanda
 #    corre. Fer-ho malament no dona error, deixa el programa penjat.
 #    Les altres dues finestres amb Cancel.lar NO hi entren, i es a posta:
-#    "Copiar informes" (Informes.ps1) comenca en marquee i passa a continua a
+#    "Copiar informes" (CopiaInformes.ps1) comenca en marquee i passa a continua a
 #    mig cami despres d'una confirmacio, i la de "Word a PDF" (PdfSignar.ps1) es
 #    d'una altra mida i porta la seva comptabilitat. Son parents, no la mateixa
 #    finestra. Per aixo el guard no compta copies: diu QUI ha de passar-hi i qui

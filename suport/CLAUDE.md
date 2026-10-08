@@ -128,6 +128,58 @@ Els comentaris d'aquest projecte expliquen **quin defecte hi havia** i **què es
 va provar i descartar**. És el que fa que no es repeteixi. Un comentari que
 només tradueix el codi a paraules no serveix de res.
 
+### 9. Un GUARD que llegeix la font ha de llegir NOMÉS CODI
+
+Sortida de la tercera passada, i hi vaig caure **tres vegades seguides**. Els
+comentaris d'aquest projecte **citen el codi defectuós** —és la regla 8— i un
+guard que faci `.Contains('$e.Cancel = $true')` sobre el text cru **s'enganxa al
+comentari que explica que allò ja no hi és**. Passa a vermell sense cap defecte,
+i el següent que el vegi l'afluixarà.
+
+A `06-guards.ps1` hi ha **`_SenseComentaris`**: fes-la servir sempre que el guard
+miri la font. I l'altra meitat de la lliçó: **un assert de font s'ha de validar
+injectant el defecte**, perquè és l'única manera de veure que la cadena que
+busques existeix de debò. Un dels meus buscava `Headers = @{` quan la forma real
+és `-Headers @{`, **sense `=`**: no hauria disparat mai, i ho va destapar la
+injecció, no llegir-lo.
+
+### 10. Una prova de comportament no sempre pot veure el defecte
+
+I llavors el guard va a la **font**, no s'abandona la comprovació. Dos casos
+mesurats, tots dos de la mateixa família: **la suite corre en pwsh 7 a Linux i
+el programa en Windows PowerShell 5.1**.
+
+| | pwsh 7 (Linux, les proves) | PowerShell 5.1 (el PC) |
+|---|---|---|
+| `$env:X = $null` | **esborra** la variable | la deixa **buida** |
+| `[System.Drawing.Color]` | resol (`System.Drawing.Primitives`) | **peta** si no s'ha carregat |
+
+Per això `Exit-RutaHeadless` té el cas del `$null` explícit i el vigila un guard
+de **font**: la prova de comportament passa igual sense ell, aquí.
+
+### 11. Un tipus dins d'una funció es resol en COMPILAR-NE EL COS
+
+I per tant **el guard de plataforma va al CRIDADOR**:
+
+```powershell
+if (-not $Script:HeadlessTest) { Initialize-BrandColors }   # bé
+function Initialize-BrandColors { if ($Script:HeadlessTest) { return }; ... }   # NO
+```
+
+L'excepció del carregador de tipus salta **abans de la primera línia del cos**, o
+sigui que ni l'`if` ni un `try/catch` a dins hi arriben. Ja ho explicava
+`_BuildCaixetiImageBase64` (`PdfSignar.ps1`) i s'hi va tornar a caure amb la
+paleta.
+
+### 12. Dot-source DINS d'una funció no defineix res a fora
+
+**Mesurat.** `. fitxer.ps1` dins d'una funció carrega el fitxer a l'àmbit de la
+**funció**, i les definicions desapareixen en tornar (`Get-Command` ja no les
+troba). Per això `Enter-RutaHeadless`/`Exit-RutaHeadless` (`rutes/EinaBase.ps1`)
+comparteixen **el desa/restaura** però el `. Ruta.ps1` i el `try/finally` es
+queden al cos de cada eina. Si algun dia vols "una funció que carregui mòduls",
+no es pot: el que es pot compartir és el que l'envolta.
+
 ## On és cada cosa (mapa de mòduls)
 `Motor.ps1` havia arribat a **3.316 línies i 70 funcions**, amb la configuració,
 l'Excel, el Drive, la selecció, els camps, les conclusions, el document, el mode
@@ -217,6 +269,23 @@ cd suport/tests/navegador && npm install && node prova-mapa-coordenades.mjs && n
 d'inici, el plànol llegit del Drive i el «Fer informe». Serveix `docs/` amb un
 servidor local i canvia `drive.js` per un doble (el de debò demana el compte de
 Google).
+
+**I una cosa que cal saber de `docs/app.js`, perquè no se sàpiga per sorpresa:**
+diu que «replica EXACTAMENT» la lògica del PC, i la xarxa que ho vigila **no és
+la mateixa** que la de `correu.js`:
+
+| | com es comprova |
+|---|---|
+| `docs/correu.js` (275 l.) | **paritat de debò**: la mateixa selecció de REQ1 pels dos motors i es compara **caràcter a caràcter** (`04-correu.ps1`) |
+| `docs/app.js` (1.167 l.) | **guards TEXTUALS** (`$appJs.Contains('…')`, `06-guards.ps1`): comproven que una línia **hi és**, no que els dos motors **diguin el mateix** |
+
+O sigui que **el fitxer gros té la xarxa fluixa**, i és el que decideix què va
+dins del paquet que el PC converteix en `.docx`. Els guards textuals hi són
+perquè van néixer d'uns defectes concrets i cadascun en vigila un; el que falta
+és la comparació creuada. Si algun dia hi toques de debò, el camí és el de
+`correu.js`: passar la mateixa entrada pels dos i comparar la sortida.
+Mentrestant, `docs/` **ja té sostre de mida** (1.200 línies, amb `app.js` com a
+excepció a 1.250) perquè no creixi sense que ningú se'n miri.
 
 No són dins de `run-tests-all.ps1` perquè al PC de la feina no hi ha Node. Si
 toques `rutes/CoordenadesMapa.html` o `rutes/PlanolMapa.html`, executa-les: la

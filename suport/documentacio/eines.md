@@ -1,4 +1,4 @@
-# Les eines del menú EINES: com funcionen i per què
+﻿# Les eines del menú EINES: com funcionen i per què
 
 > Surt del `suport/CLAUDE.md` (setembre 2026), que havia tornat a passar de
 > 2.000 línies. Són les històries de diagnòstic de cada eina: **llegeix la
@@ -264,11 +264,14 @@ destinataris d'una altra activitat.
   `Motor.ps1` no fa l'`Add-Type`, i el motor **sencer** peta amb *«No se
   encuentra el tipo [System.Drawing.Color]»*. L'usuari es va quedar sense vistes
   en Word, sense dades del mòbil i sense refresc del Drive a cada actualització.
-  - **La convenció ja hi era i no es va seguir**: `$Script:BrandMaroon`
-    (`UiComuns.ps1`) i `$Script:ConfigUiAccent` (`Configuracio.ps1`) declaren a
-    `$null` i omplen **dins d'un `if (-not $Script:HeadlessTest)`**. Dins d'una
-    **funció** sí que hi poden anar: només s'avalua en cridar-la, i aquestes les
-    crida només la interfície.
+  - **La convenció ja hi era i no es va seguir**: els granats de la marca
+    s'omplien **dins d'un `if (-not $Script:HeadlessTest)`**. Des de l'octubre
+    de 2026 la paleta sencera és `Initialize-BrandColors` (`UiFinestra.ps1`), i
+    **el guard de headless és al CRIDADOR**: dins d'una funció el tipus es
+    resol en *compilar-ne el cos*, abans de la primera línia, o sigui que un
+    `if` a dins no aturaria res (la trampa de `_BuildCaixetiImageBase64`).
+    (`$Script:ConfigUiAccent` ja no existeix: era un cinquè literal de la
+    paleta que no llegia ningú.)
   - **PER QUÈ LA SUITE NO HO VA VEURE, i és el que cal recordar**: al **pwsh 7
     de Linux** `System.Drawing.Color` viu a `System.Drawing.Primitives`, que és
     del framework i sempre hi és → resolia bé. Al **Windows PowerShell 5.1** viu

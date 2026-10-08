@@ -1,33 +1,32 @@
 ﻿#requires -Version 5.1
 <#
 .SYNOPSIS
-  Escaner d'informes ja generats -> base de dades JSON.
+  La base d'informes: llegir-ne els noms, l'edicio A MA i la pantalla
+  "Editar base d'informes".
 
 .DESCRIPTION
-  Recorre l'arbre de carpetes dels informes (per defecte $InformesDir, germa de
-  la carpeta de l'Excel d'activitats) i, per cada informe (.docx, o .doc antic
-  via Word COM), en treu:
-    - la DATA (del principi del nom del fitxer),
-    - l'ID GIA (del document -ignorant placeholders com "-"/"XXX" quan encara
-      no n'hi ha-; si no hi es, del nom de la carpeta "GIA 361"; si tampoc, de
-      l'Excel d'activitats cercant per numero d'expedient),
-    - la CONCLUSIO, la CONCLUSIO BREU i el TIPUS d'informe
-      (InformesClassificacio.ps1, _ClassificaInforme). Cap informe s'ignora
-      per defecte: el tipus decideix si fixa l'estat de l'activitat
-      (_InformeQueDeterminaEstat).
-  Ho desa AGRUPAT PER ACTIVITAT a local\base-dades-activitats\informes-db.json
-  (carpeta ignorada per git). Els informes que no es poden resoldre del tot
-  van a un bloc "a_revisar".
+  ATENCIO: aqui NO hi ha l'escaner. Recorrer les carpetes, llegir cada .docx i
+  muntar informes-db.json es InformesEscaneig.ps1, i decidir que diu cada
+  informe es InformesClassificacio.ps1. Aquest fitxer te el que queda:
 
-  Es un modul del motor: es carrega (dot-source) des de GenerarInforme.ps1, aixi
-  reutilitza les funcions de lectura de .docx sense Word (de Seguiment.ps1),
-  _NormalitzaText i l'acces a l'Excel d'activitats (Find-LatestActivitatsExcel /
-  Initialize-ActivitatsCache). Les funcions de logica de text son PURES (operen
-  sobre cadenes) perque es puguin provar en headless (Linux, sense Word); la
-  lectura de .doc antics (Word COM) nomes es prova manualment a Windows.
+    - EL NOM DEL FITXER: la data del principi (_ParseDataInformeFromName, que
+      es alhora la definicio de "aixo es un informe"), l'ID GIA, el numero
+      d'expedient i la carpeta de l'activitat.
+    - L'EDICIO A MA: les marques editat_a_ma / auto_* , la fusio amb el que hi
+      hagi al disc si algu ha escanejat mentrestant (_FusionaEdicionsBase) i el
+      desat sota el mutex (Save-BaseEditada).
+    - LA PANTALLA "Editar base d'informes" (graella WinForms) i l'exportacio a
+      CSV dels estats.
+
+  Les funcions de text son PURES (operen sobre cadenes) per poder provar-les en
+  headless, a Linux i sense Word.
+
+  La ruta del fitxer surt de Get-InformesDbPath (Migracio.ps1), al costat dels
+  noms de les carpetes de local\: abans estava escrita a cinc llocs.
 
 .NOTES
-  Es llanca des del menu (Pas 1) amb el boto "Actualitzar base d'informes".
+  La pantalla es llanca des del menu (Pas 1), rajola "Editar base d'informes".
+  "Actualitzar base d'informes" es l'altra eina, i es a InformesEscaneig.ps1.
 #>
 
 # ----------------------------------------------------------------------------
