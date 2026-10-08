@@ -46,6 +46,7 @@ i `Migracio` (tots de més avall). Cap mòdul genèric no crida cap client seu.
 | `Llicencia.ps1` (2.558 l.) → `LlicenciaDades` / `Blocs` / `Pantalles` / `Llicencia` | feia quatre coses | llista de funcions idèntica, or idèntic |
 | `Informes.ps1` (1.820 l.) → + `CopiaInformes.ps1` i `ComprovarExcel.ps1` | tres eines en un fitxer | ídem |
 | `Informes.ps1` → + `InformesClassificacio.ps1` (octubre 2026): conclusió, tipus i estat de l'activitat, purs; hi baixen `_PropInf` i `_NormalitzaExpedient` | amb els formats antics passava de 1.200 línies; i `_PropInf` a `Informes.ps1` feia un cicle | llista de funcions = foto + les noves − les dues esborrades; guard de cicles; or idèntic |
+| `EnviarCorreu.ps1` → + `CorreuVia.ps1` (octubre 2026): les claus d'EmailJS, `Send-EmailJs` i la tria EmailJS / Outlook; l'Outlook s'obre només a `New-OutlookApp` | amb la tria, `EnviarCorreu` i la via haurien depès l'un de l'altre | guard de cicles; llista de funcions = foto + les noves; guard de l'Outlook validat injectant-lo |
 | `ActExtr.ps1` (1.390 l.) → `ActExtrDades` / `Blocs` / `Pantalles` / `ActExtr` | ídem que Llicència | ídem |
 | Codi mort fora: `Write-Linia`, `Write-Tancament`, `_WriteActExtrBodyFav`, `_LastRunText` | només els cridaven les proves | AST de tot `suport/` + `.bat` + `.vbs`; llista = foto − 4 |
 | Un sol convertidor JSON → hashtable: `ConvertTo-Mapa` (`Json.ps1`) | n'hi havia quatre còpies | proves noves; or idèntic |

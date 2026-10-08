@@ -280,7 +280,7 @@ $nmHttpPermesos = @(
     'Normativa.ps1',              # _NormativaGet + _NormativaGetBytes
     'Enllacos.ps1',               # Test-EnllacViu (HEAD, i GET si el 405)
     'DriveApi.ps1',               # l'API del Drive
-    'EnviarCorreu.ps1',           # EmailJS
+    'CorreuVia.ps1',              # EmailJS (Send-EmailJs)
     'mobil/Authorize-Drive.ps1',  # el token del Drive, un sol cop
     'rutes/Cadastre.ps1',         # el comu de totes les consultes al Cadastre
     'rutes/Ruta.ps1'              # OSRM (el planificador de rutes)

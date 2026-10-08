@@ -8,7 +8,7 @@
 
   Compta TOTS els enviaments del PC (l'eina "Enviar correu" i els recordatoris),
   no nomes els recordatoris: es l'unic que protegeix de debo. Send-EmailJs
-  (EnviarCorreu.ps1) hi suma 1 despres de CADA enviament correcte.
+  (CorreuVia.ps1) hi suma 1 despres de CADA enviament correcte.
 
   DUES LIMITACIONS QUE CAL SABER (i que es diuen a la interficie):
    1. El mes d'EmailJS es reinicia el dia de FACTURACIO del compte, no l'1. La

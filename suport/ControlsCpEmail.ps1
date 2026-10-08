@@ -168,7 +168,8 @@ function Invoke-ControlsCpEmailDrafts($rows) {
     $err = 0; $errDetalls = New-Object System.Collections.ArrayList; $cancelled = $false
     $outlook = $null
     try {
-        try { $outlook = New-Object -ComObject Outlook.Application } catch { $outlook = $null }
+        # L'Outlook s'obre en un sol lloc (New-OutlookApp, CorreuVia.ps1).
+        $outlook = New-OutlookApp
         if ($null -eq $outlook) {
             try { $form.Close() } catch { }
             [System.Windows.Forms.MessageBox]::Show("No s'ha pogut iniciar Microsoft Outlook.", 'Enviar correu', 'OK', 'Error') | Out-Null

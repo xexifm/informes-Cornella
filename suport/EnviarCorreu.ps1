@@ -9,55 +9,18 @@
   introductori + text final, SENSE conclusions) definides a
   docs/dades/email-textos.json.
 
-  Enviament: API REST d'EmailJS des de PowerShell. La Public key / Service ID /
-  Template ID es llegeixen de docs/config.js (no secretes). La Private key es
-  desa a la carpeta local/ del repositori (gitignored): local/emailjs.json ->
-  { "private_key": "..." }.
+  Enviament: per EmailJS (API REST) o per l'Outlook de l'ordinador, segons el
+  que es triï (CorreuVia.ps1, que també té les claus d'EmailJS). La Public key /
+  Service ID / Template ID es llegeixen de docs/config.js (no secretes). La
+  Private key es desa a la carpeta local/ del repositori (gitignored):
+  local/emailjs.json -> { "private_key": "..." }.
 #>
 
-try { [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12 } catch { }
-
-function _CorreuRepoRoot {
-    if ($RepoRoot) { return [string]$RepoRoot }
-    return (Split-Path -Parent $PSScriptRoot)
-}
-
-# --- Configuració (claus d'EmailJS) ------------------------------------------
-function _CorreuConfig {
-    $repo = _CorreuRepoRoot
-    # Un sol lector (ConfigJs.ps1), no quatre regex escampats: cadascun exigia
-    # cometes dobles i el nom literal, i amb qualsevol reformat del .js la clau
-    # es quedava buida EN SILENCI. Ara hi ha prova contra el fitxer de debo.
-    $cjs = Read-ConfigJs
-    $pub = Get-ConfigJsValue $cjs 'EMAILJS_PUBLIC_KEY'
-    $svc = Get-ConfigJsValue $cjs 'EMAILJS_SERVICE_ID'
-    $tpl = Get-ConfigJsValue $cjs 'EMAILJS_TEMPLATE_ID'
-    $from = Get-ConfigJsValue $cjs 'EMAIL_FROM_NAME' 'Ajuntament de Cornellà de Llobregat - Activitats'
-    # Private key: carpeta local/ (fora del repositori public).
-    $priv = ''
-    $pkPath = Join-Path $repo (Join-Path 'local' 'emailjs.json')
-    $j = Read-JsonFile $pkPath
-    if ($null -ne $j -and $j.private_key) { $priv = [string]$j.private_key }
-    return [pscustomobject]@{
-        PublicKey = $pub; ServiceId = $svc; TemplateId = $tpl; FromName = $from; PrivateKey = $priv
-        PrivatePath = $pkPath
-    }
-}
-
-# ES POT ENVIAR CORREU? Torna '' si si, i si no el MOTIU, per ensenyar-lo tal
-# qual. Viu aqui, al costat de qui llegeix les claus, i no a cada eina: ho
-# necessiten l'enviament dels recordatoris (per aturar una tanda) i
-# l'interruptor automatic de la seva rajola (per no deixar ences un automatic
-# que no pot fer res). Escrit dues vegades, el dia que es canvies una clau
-# n'hi hauria una que no se n'assabentaria.
-function Test-CorreuLlest {
-    $c = _CorreuConfig
-    if (-not $c.PublicKey -or -not $c.ServiceId -or -not $c.TemplateId) {
-        return "falten les claus d'EmailJS a docs\config.js"
-    }
-    if (-not $c.PrivateKey) { return "falta la Private key d'EmailJS a $($c.PrivatePath)" }
-    return ''
-}
+# _CorreuRepoRoot, les claus d'EmailJS (_CorreuConfig, Test-CorreuLlest) i
+# l'enviament (Send-EmailJs, _EmailJsRespError) viuen a CorreuVia.ps1, amb
+# l'Outlook: es "per on surten els correus", i ho fan servir aquesta eina i
+# els Recordatoris (octubre 2026; si es quedaven aqui, els dos fitxers
+# dependrien l'un de l'altre).
 
 # --- Utils de text -> HTML ---------------------------------------------------
 # _EscHtml i _TextToHtml viuen a CorreuFormat.ps1: les fa servir tambe el
@@ -222,72 +185,6 @@ if (-not $Script:HeadlessTest) {
 function _CorreuBccOpcions {
     # Array PLA: el crider hi posa @() (vegeu _EmailBccDeJson).
     try { return @((_LoadEmailTextos)['bcc']) } catch { return @() }
-}
-
-function Send-EmailJs($cfg, $toEmail, $bcc, $subject, $htmlMessage) {
-    $payload = @{
-        service_id  = $cfg.ServiceId
-        template_id = $cfg.TemplateId
-        user_id     = $cfg.PublicKey
-        accessToken = $cfg.PrivateKey
-        template_params = @{ to_email = $toEmail; bcc = $bcc; subject = $subject; message = $htmlMessage; name = $cfg.FromName }
-    }
-    $json  = $payload | ConvertTo-Json -Depth 6
-    $bytes = [Text.Encoding]::UTF8.GetBytes($json)
-    Invoke-RestMethod -Method Post -Uri 'https://api.emailjs.com/api/v1.0/email/send' -ContentType 'application/json' -Body $bytes | Out-Null
-    # Un correu que ha SORTIT compta per a la quota mensual d'EmailJS (200 al
-    # pla gratuit). Es compta aqui, i no a cada eina, perque aixi hi entren
-    # TOTS els enviaments del PC: aquesta eina i els recordatoris.
-    _QuotaApunta 1
-}
-
-# Compon el missatge d'error d'un enviament fallit (PURA, testejable). EmailJS
-# torna el MOTIU real al cos de la resposta ("API calls are disabled for
-# non-browser applications", "The Public Key is invalid"...); sense això
-# l'usuari només veu el "(403) Prohibido" genèric de .NET, que no diu res.
-# El 403 típic d'aquest programa: EmailJS rebutja la crida perquè NO ve d'un
-# navegador (el PC envia des de PowerShell; el mòbil, des del navegador, sí que
-# passa). Es resol al panell d'EmailJS, no al codi.
-function _EmailJsErrorText([int]$status, [string]$body, [string]$fallback) {
-    $b = ([string]$body).Trim()
-    $lines = New-Object System.Collections.ArrayList
-    if ($status) { [void]$lines.Add("No s'ha pogut enviar (EmailJS, HTTP $status).") }
-    elseif ($fallback) { [void]$lines.Add("No s'ha pogut enviar: " + [string]$fallback) }
-    else { [void]$lines.Add("No s'ha pogut enviar el correu.") }
-    if ($b) { [void]$lines.Add("Resposta del servei: $b") }
-    if ($status -eq 403) {
-        [void]$lines.Add('')
-        [void]$lines.Add("El 403 (Prohibit) vol dir que EmailJS rebutja la crida des del PC. Comprova, al teu compte d'EmailJS (https://dashboard.emailjs.com):")
-        [void]$lines.Add(" 1) Account -> Security: activa 'Allow EmailJS API for non-browser applications'. Aquesta eina envia des del PC (PowerShell), no des del navegador, i per defecte EmailJS ho bloqueja.")
-        [void]$lines.Add(" 2) Que la Private key desada a local\emailjs.json sigui la correcta (Account -> General -> Private Key).")
-        [void]$lines.Add("El mòbil segueix enviant perquè ho fa des del navegador; el PC necessita aquest permís.")
-    }
-    return ($lines -join "`n")
-}
-
-# Extreu l'estat HTTP i el cos de la resposta d'un error d'Invoke-RestMethod i
-# en compon el missatge amb _EmailJsErrorText. (Toca .NET: no és pura.)
-function _EmailJsRespError($err) {
-    $status = 0
-    $body = ''
-    # A partir de PS 5.1, el cos de la resposta d'error sol venir a ErrorDetails.
-    try { if ($err.ErrorDetails -and $err.ErrorDetails.Message) { $body = [string]$err.ErrorDetails.Message } } catch { }
-    $resp = $null
-    try { $resp = $err.Exception.Response } catch { }
-    if ($resp) {
-        try { $status = [int]$resp.StatusCode } catch { }
-        if ([string]::IsNullOrEmpty($body)) {
-            try {
-                $reader = New-Object System.IO.StreamReader($resp.GetResponseStream())
-                $body = $reader.ReadToEnd(); $reader.Close()
-            } catch { }
-        }
-    }
-    if (-not $status) {
-        $m = [regex]::Match([string]$err.Exception.Message, '\((\d{3})\)')
-        if ($m.Success) { $status = [int]$m.Groups[1].Value }
-    }
-    return (_EmailJsErrorText $status $body ([string]$err.Exception.Message))
 }
 
 # --- Destinatari per defecte (Rao social + Rep. legal de l'Excel) ------------
@@ -522,12 +419,25 @@ function _DialegEnviar($build, $destinatariDefault, $docxPath) {
         $y += 26
     }
 
+    # PER ON SURT (CorreuVia.ps1): EmailJS o l'Outlook de l'ordinador. Es la
+    # mateixa preferencia que a Configuracio, i el que triis aqui s'hi desa.
+    $lblVia = New-Object System.Windows.Forms.Label
+    $lblVia.Text = 'Enviar amb:'
+    $lblVia.Location = New-Object System.Drawing.Point(15, ($y + 12))
+    $lblVia.Size = New-Object System.Drawing.Size(90, 20)
+    $form.Controls.Add($lblVia)
+    $cbVia = Add-CorreuViaCombo $form 105 ($y + 9) 300 (Get-CorreuVia)
+    $yPeu = [math]::Max(335, $y + 48)
+
     # Blau mari = enviar, vermell = no enviar. Un correu no es pot desenviar:
     # les dues accions han de ser distingibles d'un cop d'ull, i per aixo
     # tambe van cadascuna a una punta del peu.
     [void](_AddPeuBotons $form @(
         @{ Nom = 'No'; Text = 'No enviar'; Resultat = 'Cancel'; Esc = $true; Estil = 'accent'; Fons = $Script:CorreuVermell; FonsHover = $Script:CorreuVermellHover }) @(
-        @{ Nom = 'Ok'; Text = 'Enviar'; Resultat = 'OK'; Intro = $true; Estil = 'accent'; Fons = $Script:CorreuBlauMari; FonsHover = $Script:CorreuBlauMariHover }) 335)
+        @{ Nom = 'Ok'; Text = 'Enviar'; Resultat = 'OK'; Intro = $true; Estil = 'accent'; Fons = $Script:CorreuBlauMari; FonsHover = $Script:CorreuBlauMariHover }) $yPeu)
+    # El peu baixa si hi ha moltes adreces de CCO: la finestra creix amb ell
+    # (abans era fixa a 420 i el peu a 335).
+    $form.ClientSize = New-Object System.Drawing.Size($form.ClientSize.Width, ($yPeu + 46))
 
     # Scroll vertical i ajust a la pantalla (vegeu suport/UiFinestra.ps1).
     $form.add_Shown({ param($s, $e) _AjustaFinestraAPantalla $s })
@@ -536,22 +446,13 @@ function _DialegEnviar($build, $destinatariDefault, $docxPath) {
     $tos = @($tb.Text -split '[;,]' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
     $bccs = @()
     foreach ($cb in $checks) { if ($cb.Checked) { $bccs += $cb.Text } }
-    return @{ To = $tos; Bcc = $bccs }
+    $via = _CorreuViaDelCombo $cbVia
+    if ($via -ne (Get-CorreuVia)) { [void](Set-CorreuVia $via) }
+    return @{ To = $tos; Bcc = $bccs; Via = $via }
 }
 
 # Envia el correu per a un .docx concret. Reutilitzable (eina i final de generacio).
 function Send-CorreuPerDocx($docxPath) {
-    $cfg = _CorreuConfig
-    if (-not $cfg.PublicKey -or -not $cfg.ServiceId -or -not $cfg.TemplateId) {
-        [System.Windows.Forms.MessageBox]::Show("Falten les claus d'EmailJS a docs\config.js.",'Enviar correu','OK','Warning') | Out-Null
-        return
-    }
-    if (-not $cfg.PrivateKey) {
-        [System.Windows.Forms.MessageBox]::Show(
-            "Falta la Private key d'EmailJS. Crea el fitxer:`n$($cfg.PrivatePath)`n`namb el contingut:`n{ ""private_key"": ""GOCSPX...la teva private key..."" }",
-            'Enviar correu', 'OK', 'Warning') | Out-Null
-        return
-    }
     if (-not $docxPath -or -not (Test-Path -LiteralPath $docxPath)) {
         [System.Windows.Forms.MessageBox]::Show("No s'ha trobat cap informe (.docx) per enviar.",'Enviar correu','OK','Information') | Out-Null
         return
@@ -604,6 +505,22 @@ function Send-CorreuPerDocx($docxPath) {
 
     $res = _DialegEnviar $build $destinatariDefault $docxPath
     if ($null -eq $res) { return }
+    $via = [string]$res.Via
+    # Les claus d'EmailJS nomes calen si s'envia per EmailJS (abans es miraven
+    # d'entrada, i sense elles no es podia ni provar l'Outlook).
+    if (-not (_CorreuViaEsOutlook $via)) {
+        $cfg = _CorreuConfig
+        if (-not $cfg.PublicKey -or -not $cfg.ServiceId -or -not $cfg.TemplateId) {
+            [System.Windows.Forms.MessageBox]::Show("Falten les claus d'EmailJS a docs\config.js.",'Enviar correu','OK','Warning') | Out-Null
+            return
+        }
+        if (-not $cfg.PrivateKey) {
+            [System.Windows.Forms.MessageBox]::Show(
+                "Falta la Private key d'EmailJS. Crea el fitxer:`n$($cfg.PrivatePath)`n`namb el contingut:`n{ ""private_key"": ""GOCSPX...la teva private key..."" }",
+                'Enviar correu', 'OK', 'Warning') | Out-Null
+            return
+        }
+    }
     $res = _CorreuDestinatariBuit $res.To $res.Bcc @(_CorreuBccOpcions)
     if (-not $res.To -or @($res.To).Count -eq 0) {
         [System.Windows.Forms.MessageBox]::Show('Indica almenys un destinatari.','Enviar correu','OK','Warning') | Out-Null
@@ -611,13 +528,20 @@ function Send-CorreuPerDocx($docxPath) {
     }
     $toStr  = ($res.To -join ',')
     $bccStr = ($res.Bcc -join ',')
+    $ses = $null
     try {
-        Send-EmailJs $cfg $toStr $bccStr $build.Subject $build.Html
-        $resum = if ($res.Prova) { "Correu de prova enviat només a: $toStr" } else { "Correu enviat a: $toStr" }
+        $ses = Open-CorreuSessio $via
+        Send-CorreuSessio $ses $toStr $bccStr $build.Subject $build.Html
+        $resum = if ($via -eq 'outlook-esborrany') { "Correu DESAT a Esborranys de l'Outlook (no s'ha enviat), per a: $toStr" }
+                 elseif ($res.Prova) { "Correu de prova enviat només a: $toStr" } else { "Correu enviat a: $toStr" }
         if ($bccStr) { $resum += "`nCCO: $bccStr" }
+        $resum += "`n`n(" + (_CorreuViaText $via) + ')'
         [System.Windows.Forms.MessageBox]::Show($resum,'Enviar correu','OK','Information') | Out-Null
     } catch {
-        [System.Windows.Forms.MessageBox]::Show((_EmailJsRespError $_),'Enviar correu','OK','Error') | Out-Null
+        $txt = if ($null -eq $ses) { [string]$_.Exception.Message } else { _CorreuSessioError $ses $_ }
+        [System.Windows.Forms.MessageBox]::Show($txt,'Enviar correu','OK','Error') | Out-Null
+    } finally {
+        Close-CorreuSessio $ses
     }
 }
 

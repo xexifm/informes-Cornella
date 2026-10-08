@@ -1045,3 +1045,55 @@ Assert (_TextMatches $filaHay 'lla de llo')      'filtre graella: subcadena amb 
 Assert (_TextMatches $filaHay '')                'filtre graella: cerca buida -> passa tot'
 Assert (-not (_TextMatches $filaHay 'restaurant')) 'filtre graella: sense coincidencia -> no passa'
 Assert (-not (_TextMatches '' 'x'))              'filtre graella: fila sense text i cerca amb contingut -> no passa'
+
+Write-Host "`n--- CorreuVia.ps1: EmailJS o l'Outlook (octubre 2026) ---"
+try {
+    AssertEq (_CorreuViaValida 'outlook') 'outlook' 'via: outlook es valida'
+    AssertEq (_CorreuViaValida ' Outlook-Esborrany ') 'outlook-esborrany' 'via: sense distingir majuscules ni espais'
+    AssertEq (_CorreuViaValida 'gmail') 'emailjs' 'via desconeguda (settings escrit a ma) -> EmailJS, no deixa el PC sense correu'
+    AssertEq (_CorreuViaValida $null) 'emailjs' 'via buida -> EmailJS'
+    Assert (_CorreuViaEsOutlook 'outlook-esborrany') 'via: el mode esborrany tambe es Outlook'
+    Assert (-not (_CorreuViaEsOutlook 'emailjs')) 'via: EmailJS no es Outlook'
+
+    # Desar la via no pot trepitjar la resta de settings.json.
+    $cvSet = [pscustomobject]@{ InformesDir = 'F:\Informes'; Automatismes = @{ planol = 'x' } }
+    $cvH = _SettingsAmbCorreuVia $cvSet 'outlook'
+    AssertEq $cvH['CorreuVia'] 'outlook' 'Set-CorreuVia: desa la via triada'
+    AssertEq $cvH['InformesDir'] 'F:\Informes' 'Set-CorreuVia: conserva les carpetes'
+    Assert ($cvH.Contains('Automatismes')) 'Set-CorreuVia: conserva els automatismes'
+    $cvH2 = _SettingsAmbCorreuVia $cvH 'emailjs'
+    Assert (-not $cvH2.Contains('CorreuVia')) 'Set-CorreuVia: la per defecte no s''escriu (nomes el que difereix)'
+    AssertEq $cvH2['InformesDir'] 'F:\Informes' 'Set-CorreuVia: tornar a EmailJS tampoc trepitja res'
+    $cvH3 = _SettingsAmbCorreuVia $null 'outlook-esborrany'
+    AssertEq $cvH3['CorreuVia'] 'outlook-esborrany' 'Set-CorreuVia: sense settings.json previ'
+
+    AssertEq (_OutlookAdreces 'a@x.cat, b@x.cat;c@x.cat ;') 'a@x.cat; b@x.cat; c@x.cat' 'Outlook: adreces separades per ";"'
+    AssertEq (_OutlookAdreces '') '' 'Outlook: cap adreca -> buit'
+
+    AssertEq (Test-CorreuViaLlest 'outlook') '' 'Outlook: no necessita les claus d''EmailJS'
+    AssertEq (Test-CorreuViaLlest 'emailjs') (Test-CorreuLlest) 'EmailJS: la mateixa comprovacio de les claus'
+
+    # L'Outlook amb un doble de COM: que el mode esborrany DESA i no envia.
+    $cvLog = New-Object System.Collections.ArrayList
+    $cvNouItem = {
+        $it = [pscustomobject]@{ To = ''; BCC = ''; Subject = ''; HTMLBody = '' }
+        $it | Add-Member ScriptMethod Save { [void]$cvLog.Add('save:' + $this.To + '|' + $this.BCC) }
+        $it | Add-Member ScriptMethod Send { [void]$cvLog.Add('send:' + $this.To) }
+        return $it
+    }
+    $cvOl = [pscustomobject]@{}
+    $cvOl | Add-Member ScriptMethod CreateItem { param($t) & $cvNouItem }
+    $cvSes = @{ Via = 'outlook-esborrany'; Cfg = $null; Outlook = $cvOl; JaObert = $true; Desats = 0; Enviats = 0 }
+    Send-CorreuSessio $cvSes 'a@x.cat,b@x.cat' 'c@x.cat' 'Assumpte' '<p>hola</p>'
+    AssertEq ($cvLog -join ',') 'save:a@x.cat; b@x.cat|c@x.cat' 'Outlook esborrany: desa, no envia'
+    AssertEq $cvSes.Desats 1 'Outlook esborrany: compta els desats'
+    AssertEq $cvSes.Enviats 0 'Outlook esborrany: cap enviat'
+    $cvLog.Clear()
+    $cvSes.Via = 'outlook'
+    Send-CorreuSessio $cvSes 'a@x.cat' '' 'Assumpte' '<p>hola</p>'
+    AssertEq ($cvLog -join ',') 'send:a@x.cat' 'Outlook: envia'
+    AssertEq $cvSes.Enviats 1 'Outlook: compta els enviats'
+    Assert ((_CorreuSessioError $cvSes ([System.Management.Automation.ErrorRecord]::new((New-Object Exception 'bloquejat'), 'x', 'NotSpecified', $null))) -like '*Outlook*bloquejat*') 'Outlook: l''error diu que ha fallat l''Outlook i per que'
+} catch {
+    Assert $false ("bloc CorreuVia: excepcio " + $_.Exception.Message)
+}

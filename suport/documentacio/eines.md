@@ -295,6 +295,63 @@ destinatari i **surt de la CCO** (no arriba dos cops). L'adreça no és al codi
 (repositori públic). Si no hi ha cap CCO per defecte, es manté l'avís. El mòbil
 (`docs/app.js`) encara exigeix destinatari.
 
+## Per on surten els correus: EmailJS o l'Outlook (octubre 2026)
+
+L'usuari: *«Es poden tenir les dues opcions? Poder triar entre EmailJS per no
+desfer-ho i Outlook per fer proves?»*. Conviuen, i tot el que fa sortir un correu
+viu a **`suport/CorreuVia.ps1`**. Tres vies (`$Script:CorreuVies`):
+
+| Via | Què fa |
+|---|---|
+| `emailjs` (per defecte) | com sempre: la plantilla d'EmailJS i la quota de 200/mes |
+| `outlook-esborrany` | l'Outlook de l'ordinador, i el correu es queda a **Esborranys**: no s'envia res |
+| `outlook` | l'Outlook de l'ordinador, i **s'envia** (surt de la bústia de l'usuari) |
+
+- **Una sola preferència per PC** (`CorreuVia` a `settings.json`), que es tria a
+  **⚙ Configuració** (requadre «Correus que s'envien des d'aquest PC») o al
+  desplegable **«Enviar amb:»** del diàleg d'*Enviar correu* (canviar-lo allà
+  també la desa). No és un interruptor A/M de rajola: la rajola de Recordatoris
+  ja en porta un i voldria dir una altra cosa.
+- **`Set-CorreuVia` no trepitja la resta de `settings.json`**
+  (`_SettingsAmbCorreuVia`, pura i provada): el diàleg d'enviar no pot esborrar
+  les carpetes ni els automatismes. La via per defecte no s'hi escriu, i una via
+  desconeguda (un `settings.json` escrit a mà) torna a EmailJS
+  (`_CorreuViaValida`): mai un PC sense correu.
+- **Una «sessió» d'enviament** (`Open-` / `Send-` / `Close-CorreuSessio`): l'Outlook
+  s'obre UN cop per tanda, no un cop per correu. **No es fa mai `Quit()`**
+  (tancaria l'Outlook de l'usuari, com ja diu Controls periòdics); si l'Outlook
+  no era obert i s'ha enviat alguna cosa, en tancar se li demana
+  `SendAndReceive` perquè no es quedi a la Safata de sortida.
+- **L'Outlook s'obre NOMÉS a `New-OutlookApp`**, com el Word a `Motor.ps1` i
+  l'Excel a `Excel.ps1`: Controls periòdics també hi passa. Guard a
+  `06-guards.ps1` (validat injectant un `New-Object -ComObject` a
+  `ControlsCpEmail.ps1`).
+- **Per què `CorreuVia.ps1` i no `EnviarCorreu.ps1`**: les claus d'EmailJS i
+  `Send-EmailJs` vivien a `EnviarCorreu.ps1` i, amb la tria, els dos fitxers
+  haurien depès l'un de l'altre (el guard de cicles ho va aturar). Ara
+  `CorreuVia.ps1` és **la porta del servei** (també a la llista de fitxers que
+  poden fer peticions HTTP, `09-normativa.ps1`).
+- **Només Outlook clàssic**: el «nou Outlook» de Windows no es pot controlar per
+  COM. Si no hi és, el missatge diu de tornar a EmailJS a Configuració.
+- **Per què «de proves» i no per defecte**: l'enviament directe pot fer saltar
+  l'avís de seguretat de l'Outlook («un programa intenta enviar correu») o el
+  pot bloquejar la política d'informàtica. Desar esborranys no el fa saltar (per
+  això Controls periòdics només en desa).
+- **Els recordatoris AUTOMÀTICS van sempre per EmailJS**: la tasca del Windows
+  corre sense ningú davant i, amb l'Outlook, només funciona amb la sessió
+  iniciada i l'Outlook obert. Els **manuals** sí que segueixen la via triada; en
+  mode esborrany **no s'apunten a l'historial** (no han sortit) i el resum diu
+  quants s'han desat. La quota i la pausa entre enviaments només compten amb
+  EmailJS.
+- **Dos defectes que hi havia a Recordatoris i que la tria va destapar**: la
+  tanda cridava `Send-EmailJs $ecfg` amb **`$ecfg` sense definir** (des del
+  commit `353c1a0`: tots els recordatoris, manuals i automàtics, haurien
+  fallat), i la quota s'apuntava **dues vegades** per correu (`Send-EmailJs` ja
+  ho fa). Totes dues arreglades.
+- **No s'ha provat amb un Outlook de debò** (la suite corre a Linux): les proves
+  fan servir un doble de COM que comprova que el mode esborrany **desa i no
+  envia**, i que les adreces van separades per `;`.
+
 ## El format del correu: el de REQ1, i el mateix al PC i al mòbil
 
 Petició de l'usuari (setembre 2026), amb dos correus de prova del GIA 1398 al
@@ -965,7 +1022,8 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
   Cancel·lar. Si l'item de control periòdic no és a REQ1, l'informe d'aquella
   activitat s'omet amb avís. Funcions pures testejades: `_ControlCatalegKind`,
   `_ControlSectionTitle`, `_FindItemKeysByTitle`.
-- **Avisar titulars per correu (esborranys a Outlook)** (`suport/ControlsCpEmail.ps1`,
+- **Avisar titulars per correu (esborranys a Outlook)** (`suport/ControlsCpEmail.ps1`, l'Outlook
+  l'obre `New-OutlookApp` de `CorreuVia.ps1`;
   botó **"Enviar correu (esborranys)"** a la finestra de Controls periòdics): per a
   les activitats **marcades** (mateixa columna "Generar"/`.Sel`), crea un correu per
   titular avisant que constava un **control periòdic** a passar (data prevista) per

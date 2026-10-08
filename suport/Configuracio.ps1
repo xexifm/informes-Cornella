@@ -72,7 +72,9 @@ function Invoke-ConfiguracioScreen {
     # cada un) i el manteniment. Les dues columnes acaben a la mateixa alcada:
     # el grup d'automatismes s'estira fins a la de l'esquerra si en te prou.
     $xEsq = 14; $xDre = 542; $amplCol = 514; $yTop = 66
-    $fiEsq = 566
+    # Les carpetes acaben a $fiCarp; a sota, el grup dels correus.
+    $fiCarp = 566
+    $fiEsq = $fiCarp + 8 + 64
     $nAuto = @($Script:ProgramacionsAuto.Keys).Count
     $altAuto = 72 + 30 * $nAuto
     $altGrpAuto = [math]::Max(($altAuto - 8), ($fiEsq - $yTop - 104))
@@ -98,7 +100,7 @@ function Invoke-ConfiguracioScreen {
     $grpAddicionals = New-Object System.Windows.Forms.GroupBox
     $grpAddicionals.Text = 'Carpetes addicionals'
     $grpAddicionals.Location = New-Object System.Drawing.Point($xEsq, ($yTop + 180))
-    $grpAddicionals.Size = New-Object System.Drawing.Size($amplCol, ($fiEsq - $yTop - 180))
+    $grpAddicionals.Size = New-Object System.Drawing.Size($amplCol, ($fiCarp - $yTop - 180))
     $grpAddicionals.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left
 
     $r = _AddConfigRow $grpAddicionals 24 "Carpeta on desar els informes que generis" $effOutputDir
@@ -109,6 +111,23 @@ function Invoke-ConfiguracioScreen {
     $tbDrive = $r.TextBox
     $r = _AddConfigRow $grpAddicionals $r.NextY "Carpeta on copiar els informes (copia de seguretat)" $effCopiaInformesDir
     $tbCopia = $r.TextBox
+
+    # ---- Correus d'aquest PC (octubre 2026, CorreuVia.ps1) ------------
+    # L'usuari: "poder triar entre EmailJS per no desfer-ho i Outlook per fer
+    # proves". La mateixa preferencia que el desplegable d'"Enviar correu".
+    $effCorreuVia = _CorreuViaValida (_PropInf $current 'CorreuVia')
+    $grpCorreu = New-Object System.Windows.Forms.GroupBox
+    $grpCorreu.Text = "Correus que s'envien des d'aquest PC"
+    $grpCorreu.Location = New-Object System.Drawing.Point($xEsq, ($fiCarp + 8))
+    $grpCorreu.Size = New-Object System.Drawing.Size($amplCol, 64)
+    $grpCorreu.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left
+    $cbCorreuVia = Add-CorreuViaCombo $grpCorreu 12 24 250 $effCorreuVia
+    $lblCorreuNota = New-Object System.Windows.Forms.Label
+    $lblCorreuNota.Text = "Enviar correu i Recordatoris (a m" + [char]0x00E0 + "). Els recordatoris autom" + [char]0x00E0 + "tics, sempre per EmailJS."
+    $lblCorreuNota.Location = New-Object System.Drawing.Point(270, 20)
+    $lblCorreuNota.Size = New-Object System.Drawing.Size(236, 36)
+    $lblCorreuNota.ForeColor = [System.Drawing.Color]::FromArgb(90, 90, 90)
+    [void]$grpCorreu.Controls.Add($lblCorreuNota)
 
     # ---- Automatismes (octubre 2026) ----------------------------------
     # L'usuari: "aquests automatismes, com son ja uns quants, haurien de ser
@@ -257,6 +276,7 @@ function Invoke-ConfiguracioScreen {
             $hm = ([string]$d.Hora).Split(':')
             $c.Hora.Value = (Get-Date).Date.AddHours([int]$hm[0]).AddMinutes([int]$hm[1])
         }
+        $cbCorreuVia.SelectedIndex = 0
     }.GetNewClosure())
 
     $btnTancar.add_Click({ $form.Close() }.GetNewClosure())
@@ -280,6 +300,9 @@ function Invoke-ConfiguracioScreen {
         }
         $autoSet = ConvertTo-AutomatismesSettings $progs
         if ($autoSet.Count -gt 0) { $overrides['Automatismes'] = $autoSet }
+        # Aquest "Desar" reescriu settings.json sencer: la via dels correus hi
+        # ha de ser, si no es perdria (nomes si no es la per defecte).
+        $overrides = _SettingsAmbCorreuVia $overrides (_CorreuViaDelCombo $cbCorreuVia)
         if (-not (Save-AppSettings $overrides)) {
             [System.Windows.Forms.MessageBox]::Show("No s'ha pogut desar la configuracio.", 'Configuracio', 'OK', 'Error') | Out-Null
             return
@@ -319,6 +342,7 @@ function Invoke-ConfiguracioScreen {
 
     [void]$form.Controls.Add($grpPrincipals)
     [void]$form.Controls.Add($grpAddicionals)
+    [void]$form.Controls.Add($grpCorreu)
     [void]$form.Controls.Add($grpAuto)
     [void]$form.Controls.Add($grpMant)
     [void]$form.Controls.Add($botPanel)

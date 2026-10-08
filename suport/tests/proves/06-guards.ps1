@@ -831,6 +831,20 @@ $srcMotor = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'supor
 Assert ($srcMotor.Contains('$w.AutomationSecurity = 1')) 'New-WordApp posa AutomationSecurity (res de Vista protegida)'
 Assert ($srcMotor.Contains('param([switch]$Opcional)')) 'New-WordApp te -Opcional (qui pot continuar sense Word)'
 
+# I L'OUTLOOK, igual: en un sol lloc (New-OutlookApp, CorreuVia.ps1). Fins a
+# l'octubre de 2026 nomes l'obria Controls periodics; amb la tria EmailJS /
+# Outlook (Enviar correu i Recordatoris) en serien tres, i cada un s'hauria fet
+# la seva guarda del $null i el seu "no facis Quit()". Nomes es mira el CODI
+# (regla 9: els comentaris poden citar el que ja no hi es).
+$outlookPermes = @('CorreuVia.ps1')
+$obrenOutlook = @()
+foreach ($f in $ps1Tots) {
+    if ($f.FullName -like ('*' + [System.IO.Path]::DirectorySeparatorChar + 'tests' + [System.IO.Path]::DirectorySeparatorChar + '*')) { continue }
+    $codi = (@([System.IO.File]::ReadAllLines($f.FullName)) | Where-Object { -not $_.TrimStart().StartsWith('#') }) -join "`n"
+    if ($codi -match 'ComObject\s+Outlook\.Application' -and ($outlookPermes -notcontains $f.Name)) { $obrenOutlook += $f.Name }
+}
+AssertEq ($obrenOutlook -join ', ') '' 'nomes CorreuVia.ps1 obre l''Outlook (New-OutlookApp)'
+
 
 Write-Host "`n--- El correu: una manera de fer HTML i una d'omplir variables ---"
 # PER QUE. _RecCosHtml (Recordatoris) i _ControlsCpEmailHtml (Controls
@@ -1054,8 +1068,13 @@ Assert (-not ($recSrc.Contains('function Invoke-RecordatorisTasca'))) 'i la func
 # aturar una tanda) i el Requisit de l'interruptor (per no encendre un automatic
 # que no pot enviar res). Si fossin dues, es podria encendre amb unes claus que
 # l'enviament no accepta.
-Assert ((_SenseComentaris (Join-Path $rootRepo (Join-Path 'suport' 'EnviarCorreu.ps1'))).Contains('function Test-CorreuLlest')) 'la comprovacio de les claus d''EmailJS viu amb qui les llegeix'
-AssertEq (@([regex]::Matches($recSrc, 'Test-CorreuLlest')).Count) 2 'Recordatoris hi passa des dels DOS llocs (la tanda i el Requisit)'
+# (Octubre 2026: la tanda hi passa per Test-CorreuViaLlest, que per EmailJS
+# es Test-CorreuLlest i prou -- l'Outlook no te claus. Viu a CorreuVia.ps1 amb
+# _CorreuConfig, que es qui les llegeix.)
+$cvSrc = _SenseComentaris (Join-Path $rootRepo (Join-Path 'suport' 'CorreuVia.ps1'))
+Assert ($cvSrc.Contains('function Test-CorreuLlest') -and $cvSrc.Contains('function _CorreuConfig')) 'la comprovacio de les claus d''EmailJS viu amb qui les llegeix'
+Assert ($cvSrc -match '(?s)function Test-CorreuViaLlest\b.{0,200}?return \(Test-CorreuLlest\)') 'per EmailJS, la via fa la MATEIXA comprovacio (Test-CorreuLlest)'
+AssertEq (@([regex]::Matches($recSrc, 'Test-Correu(Via)?Llest')).Count) 2 'Recordatoris hi passa des dels DOS llocs (la tanda i el Requisit)'
 
 Write-Host "`n--- La biblioteca del mapa, fixada en un sol lloc (guard) ---"
 # PER QUE. La versio del Leaflet i el seu SRI estaven a QUATRE llocs

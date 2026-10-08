@@ -670,6 +670,15 @@ pot transmetre l'activitat mentre hi hagi un expedient obert).
 > mai et quedis sense. El comptador de dalt de la finestra suma **tots** els
 > correus que surten del PC, també els de l'eina *Enviar correu*.
 
+> **EmailJS o l'Outlook.** A **⚙ Configuració** (requadre *Correus que s'envien
+> des d'aquest PC*) o al desplegable **Enviar amb:** de la finestra d'*Enviar
+> correu* pots triar per on surten els correus d'aquest PC: **EmailJS** (com
+> sempre), **Outlook: el deixa a Esborranys** (no s'envia res, és per veure com
+> queda) o **Outlook: envia el correu** (surt de la teva bústia, sense límit de
+> 200). Cal l'Outlook clàssic; el «nou Outlook» no serveix. Els recordatoris
+> **automàtics** van sempre per EmailJS. Si l'Outlook dona problemes (un avís de
+> seguretat, o informàtica no ho deixa), torna a EmailJS i ja està.
+
 > **Compte amb la base desfasada.** Si la base d'informes és vella, escriuries a
 > gent que ja ha complert. La finestra t'ho avisa en vermell a partir de 30 dies,
 > i el mode automàtic directament **no envia res** si passa dels 45.

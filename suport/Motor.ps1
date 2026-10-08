@@ -51,6 +51,7 @@
     ControlsPeriodics.ps1 + ControlsCpEmail.ps1                 controls periodics
     EmailTextos.ps1     textos del correu     Configuracio.ps1  rutes d'aquest PC
     EnviarCorreu.ps1    enviar el correu      EmailQuota.ps1    quota d'EmailJS
+    CorreuVia.ps1       per on surten els correus: EmailJS o Outlook (i l'Outlook, nomes aqui)
     CorreuFormat.ps1    el format del correu (el de REQ1; el mateix al mobil)
     Recordatoris.ps1    recordatoris periodics als titulars (+ RecordatorisAuto.ps1,
                         que corre sol des d'una tasca del Windows)
@@ -534,6 +535,9 @@ if (-not $Script:HeadlessTest) { [void](Invoke-MigracioLocal $RepoRoot) }
 # Eina "Enviar correu": obre la web del mobil precarregada amb l'ultim informe
 # per enviar el correu (mateix EmailJS que el mobil; no cal Private key).
 . (Join-Path $ScriptRoot 'EnviarCorreu.ps1')
+# Per on surten els correus del PC: EmailJS o l'Outlook de l'ordinador (es
+# tria a Configuracio o a "Enviar correu"). L'Outlook s'obre NOMES aqui.
+. (Join-Path $ScriptRoot 'CorreuVia.ps1')
 
 # Carreguem l'eina "Controls periodics" (llistat d'activitats amb control
 # periodic a partir de l'Excel). Nomes defineix funcions; segur en headless.

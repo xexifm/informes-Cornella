@@ -536,9 +536,13 @@ function _RecOmpleDadesFila($row, $cache) {
 # ENVIAMENT D'UNA TANDA (la comparteixen el mode manual i l'automatic)
 # ----------------------------------------------------------------------------
 # $rows: files ja triades. $silenci: mode automatic (cap finestra).
-# Retorna @{ Enviats; Fallats; SenseCorreu; Aturat; Motiu }.
+# Retorna @{ Enviats; Esborranys; Fallats; SenseCorreu; Aturat; Motiu; Via }.
 function Invoke-RecordatorisTanda([string]$clau, $rows, [bool]$silenci) {
-    $res = @{ Enviats = 0; Fallats = 0; SenseCorreu = 0; Aturat = $false; Motiu = '' }
+    # PER ON (CorreuVia.ps1): a ma, la que hagis triat; l'AUTOMATIC, sempre
+    # EmailJS -- corre sense ningu davant, i amb l'Outlook nomes va amb la
+    # sessio iniciada i l'Outlook obert (si no, a la Safata de sortida).
+    $via = if ($silenci) { 'emailjs' } else { Get-CorreuVia }
+    $res = @{ Enviats = 0; Esborranys = 0; Fallats = 0; SenseCorreu = 0; Aturat = $false; Motiu = ''; Via = $via }
     $files = @($rows)
     if ($files.Count -eq 0) { $res.Motiu = 'cap activitat'; return $res }
 
@@ -548,14 +552,14 @@ function Invoke-RecordatorisTanda([string]$clau, $rows, [bool]$silenci) {
 
     # Claus d'EmailJS: si en falta cap, val mes dir-ho que provar-ho N vegades.
     # La comprovacio es la MATEIXA que mira l'interruptor de la rajola
-    # (Test-CorreuLlest, EnviarCorreu.ps1): si fossin dues, un automatic es
+    # (Test-CorreuLlest, CorreuVia.ps1): si fossin dues, un automatic es
     # podria encendre amb unes claus que l'enviament no accepta.
-    $motiuCorreu = Test-CorreuLlest
+    $motiuCorreu = Test-CorreuViaLlest $via
     if ($motiuCorreu -ne '') { $res.Motiu = $motiuCorreu; $res.Aturat = $true; return $res }
 
-    # Quota: el topall mana per sobre del maxPerTanda.
+    # Quota (nomes la d'EmailJS): el topall mana per sobre del maxPerTanda.
     $quota = _QuotaLlegeix
-    $restant = _QuotaRestant $quota
+    $restant = if (_CorreuViaEsOutlook $via) { [int]::MaxValue } else { _QuotaRestant $quota }
     if ($restant -le 0) {
         $res.Motiu = "quota mensual exhaurida ($($quota.enviats)/$($quota.limit))"; $res.Aturat = $true; return $res
     }
@@ -599,7 +603,9 @@ function Invoke-RecordatorisTanda([string]$clau, $rows, [bool]$silenci) {
         $form.Show(); [System.Windows.Forms.Application]::DoEvents()
     }
 
+    $ses = $null
     try {
+        try { $ses = Open-CorreuSessio $via } catch { $res.Motiu = [string]$_.Exception.Message; $res.Aturat = $true; return $res }
         $n = 0
         foreach ($row in $files) {
             if ($n -ge $limitAra) { break }
@@ -626,20 +632,29 @@ function Invoke-RecordatorisTanda([string]$clau, $rows, [bool]$silenci) {
             # El try/catch va DINS del bucle: un error d'una activitat no pot
             # endur-se la resta de la tanda.
             try {
-                Send-EmailJs $ecfg $to $bcc $assumpte $html
-                $res.Enviats++
+                Send-CorreuSessio $ses $to $bcc $assumpte $html
                 $n++
+                if ($via -eq 'outlook-esborrany') {
+                    # A Esborranys NO ha sortit: no va a l'historial (si no, el
+                    # titular no el rebria i el seguent no tocaria fins d'aqui
+                    # a un periode).
+                    $res.Esborranys++
+                    _RecLog "GIA $($row.Id): desat a Esborranys de l'Outlook per a $to"
+                    continue
+                }
+                $res.Enviats++
                 # Es desa DESPRES DE CADA enviament: si peta o es cancel.la, el
-                # que ja ha sortit consta i no es tornara a enviar.
+                # que ja ha sortit consta i no es tornara a enviar. (La quota
+                # d'EmailJS ja l'apunta Send-EmailJs: abans s'apuntava tambe
+                # aqui i cada recordatori comptava doble.)
                 $avuiIso = (Get-Date).ToString('yyyy-MM-dd')
                 $cfgAll.historial[$clau] = _RecHistorialActualitza $cfgAll.historial[$clau] ([string]$row.Id) $avuiIso
                 _RecDesa $cfgAll
-                _QuotaApunta 1
-                _RecLog "GIA $($row.Id): enviat a $to"
-                if ($n -lt $limitAra) { Start-Sleep -Milliseconds $Script:RecPausaMs }
+                _RecLog "GIA $($row.Id): enviat a $to ($via)"
+                if ($n -lt $limitAra -and -not (_CorreuViaEsOutlook $via)) { Start-Sleep -Milliseconds $Script:RecPausaMs }
             } catch {
                 $res.Fallats++
-                $txt = _EmailJsRespError $_
+                $txt = _CorreuSessioError $ses $_
                 _RecLog "GIA $($row.Id): ERROR -> $txt"
                 # Un 401/403 vol dir que TOTS els seguents fallaran igual: no te
                 # cap sentit cremar la tanda sencera provant-ho.
@@ -651,6 +666,7 @@ function Invoke-RecordatorisTanda([string]$clau, $rows, [bool]$silenci) {
             }
         }
     } finally {
+        Close-CorreuSessio $ses
         if ($null -ne $form) { try { $form.Close() } catch { } }
     }
     # QUI HA FET AQUESTA TANDA, per a la data de sota la rajola: verda si la va
@@ -1138,15 +1154,19 @@ function _RecMuntaTab($tab, $camp, $estat, $db) {
             return
         }
         $q = _QuotaLlegeix
-        $rest = _QuotaRestant $q
+        $viaAra = Get-CorreuVia
+        $ambOutlook = _CorreuViaEsOutlook $viaAra
+        $rest = if ($ambOutlook) { [int]::MaxValue } else { _QuotaRestant $q }
         $prev = [Math]::Min($tria.Count, [Math]::Min([int]$cfg['maxPerTanda'], $rest))
         $msg = "S'enviaran fins a $prev correus (de $($tria.Count) marcats).`n`n" +
+               "Per: " + (_CorreuViaText $viaAra) + " (es canvia a Configuraci" + [char]0x00F3 + ")`n" +
                "Topall per tanda: $($cfg['maxPerTanda'])`n" +
-               "Quota d'aquest mes: $($q.enviats) / $($q.limit) (en queden $rest)`n`n" +
+               $(if ($ambOutlook) { '' } else { "Quota d'aquest mes: $($q.enviats) / $($q.limit) (en queden $rest)`n" }) + "`n" +
                'Vols continuar?'
         if ([System.Windows.Forms.MessageBox]::Show($msg, 'Enviar recordatoris', 'YesNo', 'Question') -ne [System.Windows.Forms.DialogResult]::Yes) { return }
         $res = Invoke-RecordatorisTanda $clau $tria $false
         $resum = "Enviats: $($res.Enviats)`nFallats: $($res.Fallats)`nSense correu: $($res.SenseCorreu)"
+        if ($res.Esborranys -gt 0) { $resum = "Desats a Esborranys de l'Outlook (NO enviats, no consten com a enviats): $($res.Esborranys)`n" + $resum }
         if ($res.Aturat) { $resum += "`n`nATURAT: $($res.Motiu)" }
         $q2 = _QuotaLlegeix
         $resum += "`n`nQuota: $($q2.enviats) / $($q2.limit) aquest mes."
