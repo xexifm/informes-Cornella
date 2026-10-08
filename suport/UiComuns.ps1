@@ -330,16 +330,12 @@ function _AvisaSolapaments($form) {
     } catch { }   # una comprovacio no pot impedir obrir una finestra
 }
 
-# Color corporatiu granat (redisseny UX/UI). Es fa servir a la banda de
-# capcalera de totes les pantalles. NOMES en interactiu: en headless (Linux,
-# proves) System.Drawing no esta carregat i [System.Drawing.Color] petaria en
-# carregar el motor.
-$Script:BrandMaroon     = $null
-$Script:BrandMaroonSoft = $null
-if (-not $Script:HeadlessTest) {
-    $Script:BrandMaroon     = [System.Drawing.Color]::FromArgb(166, 26, 47)
-    $Script:BrandMaroonSoft = [System.Drawing.Color]::FromArgb(247, 231, 234)
-}
+# La paleta de la marca viu a UiFinestra.ps1 (ja carregat aqui dalt): alla la
+# comparteixen els DOS processos, i aquest modul no el pot carregar el de rutes.
+# EL GUARD DE HEADLESS ES AQUI i no dins de la funcio: el tipus
+# [System.Drawing.Color] es resol en compilar-ne el cos, abans de la primera
+# linia (vegeu-hi el comentari).
+if (-not $Script:HeadlessTest) { Initialize-BrandColors }
 
 # Afegeix a $form una BANDA superior granat (Dock=Top) amb l'escut blanc,
 # un titol i un subtitol opcional. Retorna el Panel (per si el qui crida hi vol

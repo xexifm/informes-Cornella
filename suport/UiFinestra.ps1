@@ -109,19 +109,60 @@ function _AjustaFinestraAPantalla($f) {
     } catch { }
 }
 
+# ----------------------------------------------------------------------------
+# LA PALETA DE LA MARCA
+# ----------------------------------------------------------------------------
+# Els QUATRE granats del programa, en un sol lloc. Abans n'hi havia dos amb
+# constant (BrandMaroon, BrandMaroonSoft, a UiComuns.ps1) i dos escrits a ma: el
+# fosc (138,20,38) a SET llocs i el de la banda (150,45,60) a QUATRE.
+#
+# Que era un defecte i no estetica ho deia _StylePrimaryButton aqui sota: dues
+# linies seguides, una llegia la constant i la seguent es clavava el color del
+# ratoli a sobre. Canviar el granat en un lloc no canviava el programa.
+#
+# ES UNA FUNCIO, i no quatre assignacions al cos del fitxer, per dos motius:
+#   - aquest fitxer NOMES DEFINEIX (el carreguen DOS processos; vegeu la
+#     capcalera), i
+#   - al cos del fitxer, [System.Drawing.Color] s'avalua EN CARREGAR, i en
+#     headless (Actualitzar.bat, RecordatorisAuto, les proves) el Windows
+#     PowerShell 5.1 no te System.Drawing carregat i peta el motor SENCER. Ja va
+#     passar: l'usuari es va quedar sense vistes en Word, sense dades del mobil
+#     i sense refresc del Drive (vegeu documentacio/eines.md).
+#
+# EL GUARD DE HEADLESS VA AL CRIDADOR, NO AQUI DINS. El tipus es resol en
+# COMPILAR el cos de la funcio, ABANS de la primera linia: un "if headless
+# { return }" aqui dins no aturaria res, ni un try/catch tampoc. Es exactament
+# la trampa de _BuildCaixetiImageBase64 (PdfSignar.ps1), i per aixo alla el
+# guard tambe es al cridador.
+#
+# En headless les quatre variables no arriben a existir, que es llegeix com a
+# $null -igual que abans, quan es declaraven a $null expressament- i cap
+# Format-*/Style-* no s'executa sense interficie.
+#
+# Dins d'una funcio, $Script: SI que es la variable de l'script (mateix patro
+# que Reset-NormativaCaches; vegeu CLAUDE.md).
+function Initialize-BrandColors {
+    $Script:BrandMaroon     = [System.Drawing.Color]::FromArgb(166, 26, 47)    # el granat corporatiu
+    $Script:BrandMaroonSoft = [System.Drawing.Color]::FromArgb(247, 231, 234)  # el fons clar
+    $Script:BrandMaroonDark = [System.Drawing.Color]::FromArgb(138, 20, 38)    # el ratoli a sobre, i els titols de grup
+    $Script:BrandMaroonBand = [System.Drawing.Color]::FromArgb(150, 45, 60)    # els botons de DINS de la banda
+}
+
 # Estil de boto PRIMARI (granat ple, text blanc) i SECUNDARI (blanc, text/vora
 # granat). Reutilitzables a totes les pantalles del redisseny.
 #
 # Viuen AQUI i no a UiComuns.ps1 perque els fa servir _AddPeuBotons, que tambe
-# corre al proces de rutes. El granat ($Script:BrandMaroon) el defineix
-# UiComuns en carregar-se; al proces de rutes no hi es i _AddPeuBotons deixa els
-# botons amb l'aspecte del sistema, com hi eren.
+# corre al proces de rutes. Ara la paleta tambe es d'aqui, o sigui que els
+# botons del peu de Ruta i Coordenades surten granats com els de la resta del
+# programa. Abans no: alla $Script:BrandMaroon no existia i quedaven amb
+# l'aspecte del sistema... pero amb el ratoli a sobre es tornaven granats
+# igualment, perque aquell color si que estava clavat aqui.
 function _StylePrimaryButton($btn) {
     $btn.FlatStyle = 'Flat'
     $btn.BackColor = $Script:BrandMaroon
     $btn.ForeColor = [System.Drawing.Color]::White
     $btn.FlatAppearance.BorderSize = 0
-    $btn.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(138, 20, 38)
+    $btn.FlatAppearance.MouseOverBackColor = $Script:BrandMaroonDark
     $btn.Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
     $btn.Cursor = 'Hand'
 }
@@ -142,7 +183,7 @@ function _StyleSecondaryButton($btn) {
     $btn.BackColor = [System.Drawing.Color]::White
     $btn.ForeColor = $Script:BrandMaroon
     $btn.FlatAppearance.BorderColor = $Script:BrandMaroon
-    $btn.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(247, 231, 234)
+    $btn.FlatAppearance.MouseOverBackColor = $Script:BrandMaroonSoft
     $btn.Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Regular)
     $btn.Cursor = 'Hand'
 }

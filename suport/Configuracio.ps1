@@ -20,9 +20,8 @@
   Nomes defineix funcions (cap execucio en carregar-se): segur en mode headless.
 #>
 
-if (-not $Script:HeadlessTest) {
-    $Script:ConfigUiAccent = [System.Drawing.Color]::FromArgb(166, 26, 47)   # granat corporatiu
-}
+# ($Script:ConfigUiAccent, el granat d'aquesta pantalla, era el CINQUE literal
+# de la paleta i no el llegia ningu. Fora: si algun dia cal, es $Script:BrandMaroon.)
 
 # _AddConfigRow (fila per triar una carpeta) viu ara a UiComuns.ps1: el fa
 # servir tambe PdfSignar.ps1, i un modul no ha de dependre d'aquesta pantalla

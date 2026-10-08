@@ -78,6 +78,14 @@ if (-not $Script:HeadlessTest) {
 # carregar-se: per aixo es pot compartir amb el proces del programa, que el
 # carrega des d'UiComuns.ps1.
 . (Join-Path $SuportDir 'UiFinestra.ps1')
+# La paleta de la marca. Va DESPRES del dot-source i despres de $HeadlessTest
+# (mes amunt), i amb el guard AQUI i no dins de la funcio: el tipus
+# [System.Drawing.Color] es resol en compilar-ne el cos, abans de la primera
+# linia. Amb aixo, els botons del peu d'aquest proces (Ruta, Coordenades,
+# Planol) surten granats com els de la resta del programa; abans quedaven amb
+# l'aspecte del sistema perque la paleta nomes existia a UiComuns.ps1, que
+# aquest proces no carrega.
+if (-not $Script:HeadlessTest) { Initialize-BrandColors }
 $RutesOutputDir = Get-LocalSubdir $RepoRoot 'Rutes'
 # La carpeta de l'Excel d'activitats surt del MATEIX lloc que per al programa
 # (Migracio.ps1). Ha d'anar aqui, despres del dot-source, i no amb la resta de

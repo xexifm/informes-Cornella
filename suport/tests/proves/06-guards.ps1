@@ -1004,6 +1004,56 @@ $srcLlic = _SrcLlicencia
 Assert (-not ($srcLlic -match 'function _LlicNomFitxer\([^)]*titular')) '_LlicNomFitxer ja no te el parametre mort $titular'
 
 
+# ELS COMENTARIS CITEN EL CODI DOLENT, i han de poder fer-ho: aquests guards i
+# els fitxers que vigilen expliquen com era abans, amb el codi defectuos escrit
+# a dins. Un guard que llegeixi el text cru s'enganxa al comentari -hi han caigut
+# les primeres versions de dos d'ells-. Per aixo es mira NOMES el codi.
+function _SenseComentaris([string]$ruta) {
+    $sb = New-Object System.Text.StringBuilder
+    $dinsComentari = $false
+    foreach ($l in [System.IO.File]::ReadAllLines($ruta)) {
+        if ($dinsComentari) { if ($l.Contains('#>')) { $dinsComentari = $false }; continue }
+        if ($l.TrimStart().StartsWith('<#')) { if (-not $l.Contains('#>')) { $dinsComentari = $true }; continue }
+        if ($l.TrimStart().StartsWith('#')) { continue }
+        [void]$sb.AppendLine($l)
+    }
+    return $sb.ToString()
+}
+
+Write-Host "`n--- La paleta de la marca viu en un sol lloc (guard) ---"
+# PER QUE. Hi havia QUATRE granats i nomes dos tenien constant: el fosc
+# (138,20,38) estava escrit a SET llocs i el de la banda (150,45,60) a QUATRE.
+# Que no era estetica sino un defecte ho deia _StylePrimaryButton (UiFinestra):
+# dues linies seguides, una llegia $Script:BrandMaroon i la seguent es clavava
+# el color del ratoli a sobre. "Canviar-ho en un lloc i que afecti a tot" no era
+# veritat per a la meitat de la paleta.
+$palColors = @('166, 26, 47', '247, 231, 234', '138, 20, 38', '150, 45, 60')
+$palFora = New-Object System.Collections.ArrayList
+foreach ($f in @(Get-ChildItem -LiteralPath (Join-Path $rootRepo 'suport') -Recurse -Filter '*.ps1' -File | Where-Object { $_.FullName -notmatch '[\\/]tests[\\/]' })) {
+    $rel = $f.FullName.Substring((Join-Path $rootRepo 'suport').Length + 1).Replace('\', '/')
+    if ($rel -eq 'UiFinestra.ps1') { continue }   # l'unic lloc on hi poden ser
+    $t = _SenseComentaris $f.FullName
+    foreach ($c in $palColors) {
+        if ($t -match ([regex]::Escape('FromArgb(' + $c + ')'))) { [void]$palFora.Add($rel + ' -> ' + $c) }
+    }
+}
+AssertEq ($palFora -join ', ') '' 'cap granat de la marca escrit a ma fora d''Initialize-BrandColors'
+$palSrc = _SenseComentaris (Join-Path $rootRepo (Join-Path 'suport' 'UiFinestra.ps1'))
+Assert ($palSrc.Contains('function Initialize-BrandColors')) 'la paleta es a UiFinestra.ps1, que carreguen els DOS processos'
+foreach ($v in @('BrandMaroon', 'BrandMaroonSoft', 'BrandMaroonDark', 'BrandMaroonBand')) {
+    Assert ($palSrc -match ('\$Script:' + $v + '\s*=\s*\[System\.Drawing\.Color\]')) "la paleta defineix $v"
+}
+# EL GUARD DE HEADLESS VA AL CRIDADOR. El tipus [System.Drawing.Color] es resol
+# en COMPILAR el cos de la funcio, abans de la primera linia: un "if headless
+# { return }" a dins no aturaria res (la trampa de _BuildCaixetiImageBase64, i
+# el dia que un color va caure al cos d'un fitxer el motor sencer va petar en
+# headless i l'usuari es va quedar sense vistes ni dades del mobil).
+Assert (-not ($palSrc -match '(?s)function Initialize-BrandColors\s*\{[^}]*HeadlessTest')) 'Initialize-BrandColors NO es guarda ella mateixa del headless (el tipus es resol en compilar)'
+foreach ($nom in @('UiComuns.ps1', 'rutes/Ruta.ps1')) {
+    $t = _SenseComentaris (Join-Path $rootRepo (Join-Path 'suport' $nom))
+    Assert ($t -match 'if \(-not \$Script:HeadlessTest\) \{ Initialize-BrandColors \}') "$nom crida la paleta amb el guard de headless al cridador"
+}
+
 Write-Host "`n--- Les finestres de progres no segresten el programa (guard) ---"
 # PER QUE (l'usuari, octubre 2026): "a vegades el programa no em deixa sortir
 # del programa i quan clico fora em parpelleja i es posa vermell l'icona".
@@ -1021,21 +1071,6 @@ Write-Host "`n--- Les finestres de progres no segresten el programa (guard) ---"
 # modal, la barra de tasques ensenyava DOS botons del programa; clicant el de la
 # graella -que la modal te inhabilitada- Windows no hi podia anar i ho deia
 # PARPELLEJANT i posant el boto en taronja.
-# ELS COMENTARIS CITEN EL CODI DOLENT, i han de poder fer-ho: aquesta mateixa
-# seccio i les tres finestres expliquen com era abans, amb el "$e.Cancel = $true"
-# escrit. Un guard que llegeixi el text cru s'enganxa al comentari (hi va caure
-# la primera versio). Per aixo es mira NOMES el codi.
-function _SenseComentaris([string]$ruta) {
-    $sb = New-Object System.Text.StringBuilder
-    $dinsComentari = $false
-    foreach ($l in [System.IO.File]::ReadAllLines($ruta)) {
-        if ($dinsComentari) { if ($l.Contains('#>')) { $dinsComentari = $false }; continue }
-        if ($l.TrimStart().StartsWith('<#')) { if (-not $l.Contains('#>')) { $dinsComentari = $true }; continue }
-        if ($l.TrimStart().StartsWith('#')) { continue }
-        [void]$sb.AppendLine($l)
-    }
-    return $sb.ToString()
-}
 $progFitxers = @('UiComuns.ps1', 'CopiaInformes.ps1', 'PdfSignar.ps1')
 foreach ($nom in $progFitxers) {
     $t = _SenseComentaris (Join-Path $rootRepo (Join-Path 'suport' $nom))

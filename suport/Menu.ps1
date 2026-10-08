@@ -273,7 +273,7 @@ function Select-Mode {
     $yTitols = $headerHeight + 23
     $yContingut = $yTitols + 22
     $fTitolGrup = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
-    $colTitolGrup = [System.Drawing.Color]::FromArgb(138, 20, 38)
+    $colTitolGrup = $Script:BrandMaroonDark
     $lbl = New-Object System.Windows.Forms.Label
     $lbl.Text = 'INFORMES'
     $lbl.Font = $fTitolGrup
@@ -290,8 +290,8 @@ function Select-Mode {
     $emoXip = 16    # els emojis dels xips (llapis, Dades), en px
     $flags = [System.Windows.Forms.TextFormatFlags]::NoPadding
     $flagsC = [System.Windows.Forms.TextFormatFlags]::HorizontalCenter -bor [System.Windows.Forms.TextFormatFlags]::VerticalCenter -bor [System.Windows.Forms.TextFormatFlags]::NoPadding
-    $colGranat = [System.Drawing.Color]::FromArgb(166, 26, 47)
-    $colSoft   = [System.Drawing.Color]::FromArgb(247, 231, 234)
+    $colGranat = $Script:BrandMaroon
+    $colSoft   = $Script:BrandMaroonSoft
     $colInk    = [System.Drawing.Color]::FromArgb(29, 39, 51)
     $colSub    = [System.Drawing.Color]::FromArgb(107, 116, 128)
 
@@ -422,7 +422,7 @@ function Select-Mode {
         $ll.AutoSize = $true
         $ll.Font = $fDet
         $ll.LinkColor = $colGranat
-        $ll.ActiveLinkColor = [System.Drawing.Color]::FromArgb(138, 20, 38)
+        $ll.ActiveLinkColor = $Script:BrandMaroonDark
         $ll.LinkBehavior = 'HoverUnderline'
         $ll.Tag = [string]$d.Doc
         [void]$form.Controls.Add($ll)
@@ -567,8 +567,8 @@ function Select-Mode {
     $tileBorder = [System.Drawing.Color]::FromArgb(214, 219, 225)
     $tileTxtCol = [System.Drawing.Color]::FromArgb(63, 73, 85)
     $fAjuda        = New-Object System.Drawing.Font('Segoe UI', 7, [System.Drawing.FontStyle]::Bold)
-    $colAjuda      = [System.Drawing.Color]::FromArgb(247, 231, 234)
-    $colAjudaHover = [System.Drawing.Color]::FromArgb(166, 26, 47)
+    $colAjuda      = $Script:BrandMaroonSoft
+    $colAjudaHover = $Script:BrandMaroon
     $tilePaint = {
         param($s, $e)
         $t = $s.Tag
@@ -924,9 +924,9 @@ function Select-Mode {
     $btnAjuda.Anchor = 'Top,Right'
     $btnAjuda.FlatStyle = 'Flat'
     $btnAjuda.ForeColor = [System.Drawing.Color]::White
-    $btnAjuda.BackColor = [System.Drawing.Color]::FromArgb(150, 45, 60)
+    $btnAjuda.BackColor = $Script:BrandMaroonBand
     $btnAjuda.FlatAppearance.BorderSize = 0
-    $btnAjuda.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(138, 20, 38)
+    $btnAjuda.FlatAppearance.MouseOverBackColor = $Script:BrandMaroonDark
     $btnAjuda.add_Click({
         try { Start-Process $urlAjuda | Out-Null } catch {
             [System.Windows.Forms.MessageBox]::Show("No s'ha pogut obrir l'enllac:`n$urlAjuda", 'Ajuda', 'OK', 'Error') | Out-Null
@@ -951,9 +951,9 @@ function Select-Mode {
     $btnCarpeta.Anchor = 'Top,Right'
     $btnCarpeta.FlatStyle = 'Flat'
     $btnCarpeta.ForeColor = [System.Drawing.Color]::White
-    $btnCarpeta.BackColor = [System.Drawing.Color]::FromArgb(150, 45, 60)
+    $btnCarpeta.BackColor = $Script:BrandMaroonBand
     $btnCarpeta.FlatAppearance.BorderSize = 0
-    $btnCarpeta.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(138, 20, 38)
+    $btnCarpeta.FlatAppearance.MouseOverBackColor = $Script:BrandMaroonDark
     $btnCarpeta.add_Click({
         try {
             $carpeta = [string](_ResolveOutputDir)
@@ -980,9 +980,9 @@ function Select-Mode {
     $btnConfig.Anchor = 'Top,Right'
     $btnConfig.FlatStyle = 'Flat'
     $btnConfig.ForeColor = [System.Drawing.Color]::White
-    $btnConfig.BackColor = [System.Drawing.Color]::FromArgb(150, 45, 60)
+    $btnConfig.BackColor = $Script:BrandMaroonBand
     $btnConfig.FlatAppearance.BorderSize = 0
-    $btnConfig.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(138, 20, 38)
+    $btnConfig.FlatAppearance.MouseOverBackColor = $Script:BrandMaroonDark
     $btnConfig.add_Click({
         $result.Choice = @{ Action = 'config'; Cataleg = $null }
         $form.DialogResult = 'OK'
@@ -1000,9 +1000,9 @@ function Select-Mode {
     $btnActualitzarM.Font = New-Object System.Drawing.Font('Segoe UI', 9.5, [System.Drawing.FontStyle]::Regular)
     $btnActualitzarM.FlatStyle = 'Flat'
     $btnActualitzarM.ForeColor = [System.Drawing.Color]::White
-    $btnActualitzarM.BackColor = [System.Drawing.Color]::FromArgb(150, 45, 60)
+    $btnActualitzarM.BackColor = $Script:BrandMaroonBand
     $btnActualitzarM.FlatAppearance.BorderSize = 0
-    $btnActualitzarM.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(138, 20, 38)
+    $btnActualitzarM.FlatAppearance.MouseOverBackColor = $Script:BrandMaroonDark
     $btnActualitzarM.TextAlign = 'MiddleCenter'
     _PosaIcona $btnActualitzarM ([string][char]0x21BB) ' Actualitzar'
     $btnActualitzarM.Size = New-Object System.Drawing.Size(118, 30)
