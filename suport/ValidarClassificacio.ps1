@@ -28,6 +28,9 @@
   local\base-dades-activitats\validacio-classificacio_<data>.txt (dins de
   local\: mai es puja).
 
+  Sense -Classificacio fa servir la classificacio-informes_*.json MES RECENT
+  de local\base-dades-activitats.
+
   Us (des de l'arrel del repositori):
     powershell -NoProfile -ExecutionPolicy Bypass -File suport\ValidarClassificacio.ps1
     ... -Classificacio <fitxer.json> -Informes <carpeta d'informes>
@@ -42,8 +45,17 @@ $ScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $MotorSenseGui = $true
 . (Join-Path $ScriptRoot 'Motor.ps1')
 
+# Sense -Classificacio: la MES RECENT de local\base-dades-activitats
+# (classificacio-informes_*.json), no un nom fix. local\ no es puja mai: si la
+# classificacio es va fer a l'altre PC, nomes es alla i s'hi ha de copiar a ma.
 if ([string]::IsNullOrWhiteSpace($Classificacio)) {
-    $Classificacio = Join-Path $LocalActivitatsDir 'classificacio-informes_2026-10-07.json'
+    $vcCands = @(Get-ChildItem -LiteralPath $LocalActivitatsDir -Filter 'classificacio-informes_*.json' -File -ErrorAction SilentlyContinue |
+                 Sort-Object Name -Descending)
+    if ($vcCands.Count -eq 0) {
+        throw ("No hi ha cap classificacio (classificacio-informes_*.json) a:`n  " + $LocalActivitatsDir +
+               "`nLa carpeta local\ no es puja al GitHub: si la vas fer a l'altre PC, copia-la aqui, o digues on es amb -Classificacio <fitxer.json>.")
+    }
+    $Classificacio = $vcCands[0].FullName
 }
 if (-not [string]::IsNullOrWhiteSpace($Informes)) { $InformesDir = $Informes }
 if (-not (Test-Path -LiteralPath $Classificacio)) { throw "No trobo la classificacio: $Classificacio" }
