@@ -400,6 +400,20 @@ corregides a l'Excel (ja no són al punt del Cadastre) surten amb el punt
 **lila** i una **línia de punts** fins al punt de la parcel·la al Cadastre, i
 tenen un filtre propi a «Mostra:».
 
+**Les ja corregides (lila) es tornen a tocar des d'on són**, no des del portal:
+el punt que mous comença on el té ara l'Excel. **Arrossega'l** per corregir-lo, o
+**clica'l** i tria: *deixar-la on la té l'Excel*, *tornar-la al punt de la
+parcel·la (Cadastre)* o *portar-la al portal*. Un clic a una lila **no la
+valida** sola (no se sabria què volies), i tot es pot desfer amb **Ctrl+Z**.
+
+**Triar les zones al plànol**: a la finestra de triar zones, el botó **«Triar-les
+al plànol…»** obre el mapa amb la **graella de zones** a sobre (cada una amb les
+seves activitats i quantes en queden de pendents). Clica les que vulguis
+repassar i **«Fet»**; les pots tornar a triar quan vulguis amb **«Triar zones»**
+a la barra de baix, i el mapa se'n recorda la propera vegada. Les zones que ja
+hagis marcat a la llista hi surten triades. La primera vegada triga més: ha de
+demanar al Cadastre totes les parcel·les (després ja queda desat).
+
 **Punts estranys**: a la fitxa del punt, **«⚠ Marca per revisar»**, amb una nota
 si vols. No el valida ni el mou: queda marcat amb un **!** vermell, i al
 desplegable «Mostra:» hi ha **«Per revisar»** per tornar-hi després. Les marques

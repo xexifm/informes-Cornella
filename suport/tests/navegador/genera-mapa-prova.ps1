@@ -63,3 +63,14 @@ $escriu = {
 & $escriu 'c' 'Coordenades_C.html' $items '2026-10-01 ACTIVITATS.xls'
 # "Nomes les marcades per revisar": s'obre amb aquell filtre.
 & $escriu 'd' 'Coordenades_D.html' $items '2026-10-02 ACTIVITATS.xls' 'avis'
+# Les JA CORREGIDES (lila): una base propia, perque el que s'hi valida no toqui
+# el repas de l'A que comproven les altres seccions.
+& $escriu 'e' 'Coordenades_E.html' $items '2026-10-03 ACTIVITATS.xls'
+# TRIAR LES ZONES AL PLANOL: sense cap zona marcada a la finestra (F) i amb la
+# de la 105 i la 106 marcada (G). Bases propies: la tria es recorda per base.
+foreach ($fg in @(@('f', '2026-10-04 ACTIVITATS.xls', @()), @('g', '2026-10-05 ACTIVITATS.xls', @($items[4].Zona)))) {
+    $d = Join-Path $Dir $fg[0]
+    New-Item -ItemType Directory -Path $d -Force | Out-Null
+    $h = Build-CoordenadesHtml $items "Base de dades: $($fg[1])" 'zones triades al planol (totes)' $fg[1] $portals 'tots' $true $fg[2]
+    [System.IO.File]::WriteAllText((Join-Path $d ('Coordenades_' + $fg[0].ToUpper() + '.html')), $h, $utf8)
+}

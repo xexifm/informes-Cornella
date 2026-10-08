@@ -313,6 +313,12 @@ Assert ($html -match '"adt":"AV PAISOS CATALANS 5, Esc. B, Pl. 2, Pt. 1"') 'i l 
 Assert ($html.Contains('var FILTRE_INICIAL = "tots";')) 'per defecte el mapa s obre amb tots els punts'
 $htmlCor = Build-CoordenadesHtml @($itCor) 'db' 'abast' 'font.xls' @() 'avis'
 Assert ($htmlCor.Contains('var FILTRE_INICIAL = "avis";')) 'amb "nomes per revisar", s obre amb aquell filtre'
+Assert ($html.Contains('var TRIA = null;')) 'sense "triar-les al planol", cap graella al mapa'
+$htmlTria = Build-CoordenadesHtml $items 'db' 'abast' 'font.xls' @() 'tots' $true @('C2', 'D3')
+Assert ($htmlTria.Contains(('var TRIA = {"x0":' + $CoordZonaX0 + ',"y0":' + $CoordZonaY0 + ',"m":' + $CoordZonaMetres + ',"inicials":["C2","D3"]};'))) 'triar-les al planol: la graella amb el MATEIX origen i mida que Get-ZonaDeCoord, i les zones ja marcades'
+$htmlTria1 = Build-CoordenadesHtml $items 'db' 'abast' 'font.xls' @() 'tots' $true @('C2')
+Assert ($htmlTria1.Contains('"inicials":["C2"]')) 'una sola zona marcada: segueix sent una llista'
+Assert ($htmlCor -match '"xc":[0-9.]+,"yc":[0-9.]+') 'una corregida porta el punt del Cadastre en METRES (per tornar-hi sense reprojectar)'
 Assert ($htmlCor -match '"cor":1' -and $htmlCor -match '"dc":20' -and $htmlCor -match '"latc":41\.') 'la ja corregida porta el punt del Cadastre i la distancia'
 Assert ($html -match '"latc":null' -and $html -match '"cor":0') 'sense punt del Cadastre: null, i no corregida'
 Assert ($html -match '421968\.09')              'inclou la coordenada de l Excel'

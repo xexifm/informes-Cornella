@@ -340,7 +340,11 @@ function Get-ResumPrecisio($items) {
 #                    tornes a obrir, hi son.
 # $filtre: el filtre amb que s'obre el mapa ('tots' o 'avis', les marcades per
 # revisar, que nomes les sap el navegador).
-function Build-CoordenadesHtml($items, [string]$dbLabel, [string]$abast, [string]$fontName, $portals, [string]$filtre = 'tots') {
+# $triaZones: el mapa porta TOTES les zones i les tries al planol (la graella
+# de 400 m es dibuixa i es clica); $zonesInicials, les que ja venien marcades a
+# la llista de la finestra.
+function Build-CoordenadesHtml($items, [string]$dbLabel, [string]$abast, [string]$fontName, $portals, [string]$filtre = 'tots',
+                               [bool]$triaZones = $false, $zonesInicials = @()) {
     $arr = @($items)
     $itemsJson = ConvertTo-JsonScript @($arr | ForEach-Object {
         # [ordered]: sense aixo, ConvertTo-Json treu les propietats en un ordre
@@ -366,6 +370,10 @@ function Build-CoordenadesHtml($items, [string]$dbLabel, [string]$abast, [string
             # El punt de la parcel.la al Cadastre (o null) i si l'Excel ja no hi es.
             latc      = if ($null -ne $_.Cadastre) { [double]$_.Cadastre.Lat } else { $null }
             lonc      = if ($null -ne $_.Cadastre) { [double]$_.Cadastre.Lon } else { $null }
+            # I en metres: "torna-la al punt de la parcel.la" ha d'exportar la
+            # coordenada del Cadastre TAL QUAL, sense anar i tornar de graus.
+            xc        = if ($null -ne $_.Cadastre) { [double]$_.Cadastre.X } else { $null }
+            yc        = if ($null -ne $_.Cadastre) { [double]$_.Cadastre.Y } else { $null }
             cor       = [int][bool]$_.Corregida
             dc        = if ($null -ne $_.DistCadastre) { [math]::Round([double]$_.DistCadastre, 1) } else { $null }
         }
@@ -414,6 +422,12 @@ function Build-CoordenadesHtml($items, [string]$dbLabel, [string]$abast, [string
         portalsJson = $portalsJson
         fontJson    = $fontJson
         filtreJson  = (ConvertTo-JsonScript ([string]$filtre))
+        # La graella (el mateix origen i mida que Get-ZonaDeCoord: una zona del
+        # planol es el mateix rectangle que el de la llista), o null.
+        triaJson    = if ($triaZones) {
+                          ConvertTo-JsonScript ([ordered]@{ x0 = $CoordZonaX0; y0 = $CoordZonaY0; m = $CoordZonaMetres
+                                                            inicials = @(@($zonesInicials) | ForEach-Object { [string]$_ }) }) -Fondaria 3
+                      } else { 'null' }
     }
     return (Get-PlantillaHtml $Script:CoordPlantillaMapa $valors)
 }
@@ -556,7 +570,7 @@ function _CoordAmbProgres($refcats, [string]$que, [scriptblock]$feina) {
 # Finestra de tria: quines ZONES es repassen.
 #
 # Retorna { NomsZones; Abast ('apilades'|'noapilades'|'totes'); AmagaCorregides;
-# NomesAvis }, { Accio = 'importar' } o $null si es cancel.la.
+# NomesAvis; AlPlanol }, { Accio = 'importar' } o $null si es cancel.la.
 #
 # NOTA sobre "quantes en portes de repassades": aqui NO es pot saber. El que has
 # validat viu al localStorage del NAVEGADOR, i el PowerShell no hi te acces. El
@@ -583,8 +597,8 @@ function Show-CoordenadesForm([string]$dbLabel, $zonesApilades, $zonesNoApilades
     $lbl = New-Object System.Windows.Forms.Label
     $lbl.Text = "El Cadastre situa cada activitat al centre de la seva PARCEL·LA, no al local, " +
                 "i per això totes les d'un mateix edifici cauen al mateix punt.`r`n" +
-                "El mapa et mostra la de l'Excel (vermell; LILA si ja l'havies corregida) i la del " +
-                "PORTAL segons l'adreça (verd), que pots arrossegar."
+                "El mapa et mostra la de l'Excel (vermell) i la del PORTAL segons l'adreça (verd), que pots " +
+                "arrossegar. Les JA CORREGIDES (lila) es mouen des d'on són, o les tornes a la parcel·la."
     $lbl.AutoSize = $false
     $lbl.Size = New-Object System.Drawing.Size(550, 56)
     $lbl.Location = New-Object System.Drawing.Point(15, 36)
@@ -627,11 +641,24 @@ function Show-CoordenadesForm([string]$dbLabel, $zonesApilades, $zonesNoApilades
     $form.Controls.Add($chkAvis)
 
     $lblZ = New-Object System.Windows.Forms.Label
-    $lblZ.Text = 'Tria les zones que vols repassar ara (el municipi va per quadres de 400 m):'
+    $lblZ.Text = 'Tria les zones que vols repassar (quadres de 400 m):'
     $lblZ.AutoSize = $false
-    $lblZ.Size = New-Object System.Drawing.Size(550, 20)
+    $lblZ.Size = New-Object System.Drawing.Size(395, 20)
     $lblZ.Location = New-Object System.Drawing.Point(15, 166)
     $form.Controls.Add($lblZ)
+
+    # TRIAR-LES AL PLANOL (octubre 2026, l'usuari: "que te les deixi seleccionar
+    # al planol"). El PowerShell no sap pintar un mapa: es fa el mapa amb TOTES
+    # les zones (de l'abast triat) i la graella s'hi clica. Les que ja hagis
+    # marcat a la llista hi surten triades.
+    $btnPlanol = New-Object System.Windows.Forms.Button
+    $btnPlanol.Text = 'Triar-les al plànol...'
+    $btnPlanol.Size = New-Object System.Drawing.Size(150, 24)
+    $btnPlanol.Location = New-Object System.Drawing.Point(415, 162)
+    $btnPlanol.DialogResult = [System.Windows.Forms.DialogResult]::Retry
+    $form.Controls.Add($btnPlanol)
+    $tipPl = New-Object System.Windows.Forms.ToolTip
+    $tipPl.SetToolTip($btnPlanol, "Obre el mapa amb la graella de zones: clica les que vulguis repassar. La primera vegada ha de demanar al Cadastre totes les parcel·les (després ja queda desat).")
 
     $llista = New-Object System.Windows.Forms.CheckedListBox
     $llista.Size = New-Object System.Drawing.Size(550, 300)
@@ -689,7 +716,7 @@ function Show-CoordenadesForm([string]$dbLabel, $zonesApilades, $zonesNoApilades
     # mapa es fa amb TOTES les zones i s'obre amb el filtre "Per revisar".
     $chkAvis.add_CheckedChanged({
         $on = $chkAvis.Checked
-        $llista.Enabled = -not $on; $grupAbast.Enabled = -not $on; $chkCorr.Enabled = -not $on
+        $llista.Enabled = -not $on; $grupAbast.Enabled = -not $on; $chkCorr.Enabled = -not $on; $btnPlanol.Enabled = -not $on
         $lblTotal.Text = if ($on) { "Totes les zones: el mapa s'obrirà amb el filtre «Per revisar»" } else { $lblTotal.Text }
         if (-not $on) { & $refrescaTotal }
     }.GetNewClosure())
@@ -746,12 +773,14 @@ function Show-CoordenadesForm([string]$dbLabel, $zonesApilades, $zonesNoApilades
     $form.add_Shown({ param($s, $e) _AjustaFinestraAPantalla $s })
     $res = $form.ShowDialog()
     if ($res -eq [System.Windows.Forms.DialogResult]::Yes) { return [pscustomobject]@{ Accio = 'importar' } }
-    if ($res -ne [System.Windows.Forms.DialogResult]::OK) { return $null }
+    $alPlanol = ($res -eq [System.Windows.Forms.DialogResult]::Retry)
+    if ($res -ne [System.Windows.Forms.DialogResult]::OK -and -not $alPlanol) { return $null }
     $noms = @()
     foreach ($i in $llista.CheckedIndices) { $noms += [string]$estat.Zones[$i].Nom }
     $abast = 'totes'
     foreach ($k in @($radios.Keys)) { if ($radios[$k].Checked) { $abast = $k } }
-    return [pscustomobject]@{ NomsZones = @($noms); Abast = $abast; AmagaCorregides = [bool]$chkCorr.Checked; NomesAvis = [bool]$chkAvis.Checked }
+    return [pscustomobject]@{ NomsZones = @($noms); Abast = $abast; AmagaCorregides = [bool]$chkCorr.Checked
+                              NomesAvis = ((-not $alPlanol) -and [bool]$chkAvis.Checked); AlPlanol = $alPlanol }
 }
 
 # El boto "Excel per importar..." de la finestra de Coordenades.
@@ -870,7 +899,7 @@ function Invoke-CoordenadesMain {
                                  ([int]$lectura.SenseCoord) (@($lectura.Impossibles).Count)
     if ($null -eq $tria) { return }
     if ($tria.Accio -eq 'importar') { Invoke-CoordExcelImportar $xls.File; return }
-    if (-not $tria.NomesAvis -and @($tria.NomsZones).Count -eq 0) {
+    if (-not $tria.NomesAvis -and -not $tria.AlPlanol -and @($tria.NomsZones).Count -eq 0) {
         Show-EinaInfo "No has triat cap zona." 'Coordenades' 'Warning'
         return
     }
@@ -880,6 +909,11 @@ function Invoke-CoordenadesMain {
         # s'obre amb el filtre "Per revisar".
         $triats = @($tots | Where-Object { Test-CoordPlausible ([double]$_.UtmX) ([double]$_.UtmY) })
         $abast = 'per revisar (totes les zones)'
+    } elseif ($tria.AlPlanol) {
+        # Totes les zones de l'abast: les tries al mapa (la graella).
+        $triats = @(Get-RegistresPerAbast $tots $tria.Abast | Where-Object { Test-CoordPlausible ([double]$_.UtmX) ([double]$_.UtmY) })
+        $txtAbast = @{ apilades = '(apilades)'; noapilades = '(no apilades)'; totes = '(totes)' }[$tria.Abast]
+        $abast = "zones triades al plànol $txtAbast"
     } else {
         $base    = @(Get-RegistresPerAbast $tots $tria.Abast)
         $zonesOk = @{}
@@ -949,7 +983,8 @@ function Invoke-CoordenadesMain {
     }
 
     # 6. Generar l'HTML i obrir-lo.
-    $html = Build-CoordenadesHtml $items $dbLabel $abast $xls.File.Name $portalsMapa $(if ($tria.NomesAvis) { 'avis' } else { 'tots' })
+    $html = Build-CoordenadesHtml $items $dbLabel $abast $xls.File.Name $portalsMapa $(if ($tria.NomesAvis) { 'avis' } else { 'tots' }) `
+                                  ([bool]$tria.AlPlanol) @($tria.NomsZones)
     if (-not (Test-Path -LiteralPath $CoordOutputDir)) {
         New-Item -ItemType Directory -Path $CoordOutputDir -Force | Out-Null
     }
@@ -973,6 +1008,10 @@ function Invoke-CoordenadesMain {
     $msg += "Ja corregides a l'Excel (lila): $(@($items | Where-Object { $_.Corregida }).Count)`n"
     if ($nAmagades -gt 0) { $msg += "Amagades perque ja estan corregides: $nAmagades`n" }
     $msg += "`n"
+    if ($tria.AlPlanol) {
+        $msg += "Al mapa, clica les ZONES que vulguis repassar (i 'Fet'). Les pots`n"
+        $msg += "tornar a triar quan vulguis amb el boto 'Triar zones'.`n`n"
+    }
     $msg += "Al mapa: amplia fins que surtin els NUMEROS dels portals, valida`n"
     $msg += "amb un clic els punts que ja son bons i arrossega els que no.`n"
     $msg += "Despres, 'Baixar Excel (.xlsx)': hi surt tot el que hagis validat`n"

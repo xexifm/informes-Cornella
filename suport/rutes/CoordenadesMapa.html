@@ -69,6 +69,10 @@
   .marker-verd.aprox       { background: #a9dfbf; border-color: #145a32; }
   .marker-verd.sensefacana { background: #fff;    border-color: #145a32; }
   .marker-verd.moguda      { background: #e67e22; border-color: #7e5109; }
+  /* JA CORREGIDA i encara on la va deixar la correccio (lila), o tornada al punt
+     de la parcel.la al Cadastre (blanc amb vora grisa). */
+  .marker-verd.corregida   { background: #8e44ad; border-color: #5b2c6f; }
+  .marker-verd.parcela     { background: #fff;    border-color: #555; }
   .marker-verd.revisada    { box-shadow: 0 0 0 3px #14365c, 0 1px 3px rgba(0,0,0,.45); }
   .marker-verd.sel         { transform: scale(1.45); outline: 3px solid #f39c12; outline-offset: 3px; }
   /* PER REVISAR: un "!" a la cantonada del punt i un \26A0 a la fila. */
@@ -97,6 +101,16 @@
   .pop table { font-size: 12px; margin-top: 6px; }
   .pop td { border: 0; padding: 1px 6px 1px 0; }
   .pop .org { margin-top: 5px; font-size: 12px; }
+  /* TRIAR LES ZONES AL PLANOL: la graella de 400 m i el quadre de dalt. */
+  .zona-etq { position: absolute; transform: translate(-50%, -50%); white-space: nowrap; text-align: center;
+              font: 12px/1.25 Segoe UI, Arial, sans-serif; color: #14365c; pointer-events: none;
+              text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff; }
+  .zona-etq b { font-size: 14px; }
+  .zona-etq.activa { color: #0b2a4a; }
+  #triaCtl { background: #fff; padding: 8px 12px; border-radius: 6px; box-shadow: 0 1px 5px rgba(0,0,0,.35);
+             font-size: 13px; max-width: 330px; line-height: 1.45; }
+  #triaCtl button { margin-top: 6px; padding: 5px 14px; font-size: 13px; }
+  .pop .accions { margin-top: 6px; padding-top: 5px; border-top: 1px solid #eee; font-size: 12px; line-height: 1.7; }
   /* El titular: al popup i, mes petit, sota l'adreca a la llista. */
   .tit { font-size: 11px; color: #555; }
   .pop .tit { font-size: 12px; color: #333; }
@@ -127,6 +141,8 @@
   <button class="sec" onclick="seguentPendent()" title="Tecla N">Següent pendent &rarr;</button>
   <button class="sec" id="btnDesfer" onclick="desferUltim()" title="Ctrl+Z" disabled>&#8630; Desfer</button>
   <button class="sec" onclick="validaVisibles()">Validar tot el que es veu</button>
+  <button class="sec" id="btnZones" style="display:none" onclick="commutaModeTria()"
+          title="Torna a la graella per triar quines zones vols veure">Triar zones</button>
   <button class="sec" onclick="document.getElementById('fitxerRepas').click()"
           title="Recupera el repàs des d'un Excel que t'havies baixat d'aquest mapa">Carregar repàs&hellip;</button>
   <input type="file" id="fitxerRepas" accept=".xlsx" style="display:none">
@@ -168,6 +184,8 @@ var FONT    = {{fontJson}};
 // Amb quin filtre s'obre ('tots', o 'avis' si a la tria de zones has marcat
 // "Nomes les marcades per revisar").
 var FILTRE_INICIAL = {{filtreJson}};
+// Si les zones es trien AL PLANOL: la graella ({ x0, y0, m, inicials }), o null.
+var TRIA = {{triaJson}};
 var CLAU  = 'coordenades:' + FONT;
 </script>
 <script>
@@ -494,7 +512,9 @@ function llegeixXlsx(buffer) {
 // ---------------------------------------------------------------------------
 // ESTAT DE CADA ACTIVITAT
 //   origen:   d'on surt el punt verd -- 'facana' | 'facana-dubtosa' |
-//             'facana-aprox' | 'cadastre' | 'manual' (l'has mogut tu)
+//             'facana-aprox' | 'cadastre' | 'manual' (l'has mogut tu) |
+//             'excel' (JA CORREGIDA: comenca on l'Excel la te ara) |
+//             'parcela' (l'has tornada al punt de la parcel.la al Cadastre)
 //   revisada: ja l'has donada per bona
 //
 // estat[] va per POSICIO dins d'ITEMS, no per ID: si algun dia la base portes
@@ -574,6 +594,16 @@ function marcaAvis(i) {
   posaAvis(i, nota);
 }
 
+// On comenca el punt que es mou si encara no l'has tocat. Una JA CORREGIDA
+// (l'Excel ja no es al punt del Cadastre) comenca ON ES ARA, i no al portal:
+// l'usuari (octubre 2026) la veia lila a l'Excel i alhora en verd al portal, i
+// per tornar-la a tocar havia de partir del portal en lloc de la seva correccio.
+function estatInicial(i) {
+  var it = ITEMS[i];
+  if (it.cor) { return { lat: it.late, lon: it.lone, origen: 'excel', revisada: false }; }
+  return { lat: it.latf, lon: it.lonf, origen: it.prec, revisada: false };
+}
+
 function carregaCorreccions() {
   var desat = llegeixDesat();
   avisos = llegeixAvisos();
@@ -584,7 +614,7 @@ function carregaCorreccions() {
       // Les versions velles nomes desaven lat/lon: es donen per mogudes a ma.
       estat[i] = { lat: d.lat, lon: d.lon, origen: d.origen || 'manual', revisada: true };
     } else {
-      estat[i] = { lat: it.latf, lon: it.lonf, origen: it.prec, revisada: false };
+      estat[i] = estatInicial(i);
     }
   }
 }
@@ -619,6 +649,8 @@ function textOrigen(o) {
   if (o === 'facana-dubtosa') return 'portal DUBTÓS: n\'hi havia més d\'un amb aquell número';
   if (o === 'facana-aprox')   return 'aquell número no hi era: el portal més proper de la parcel·la';
   if (o === 'manual')         return 'mogut per tu';
+  if (o === 'excel')          return 'ja corregida: on la té ara l\'Excel';
+  if (o === 'parcela')        return 'tornada al punt de la parcel·la (Cadastre)';
   return 'sense portal: es queda al centre de la parcel·la';
 }
 
@@ -628,6 +660,8 @@ function textOrigen(o) {
 function utmActual(i) {
   var it = ITEMS[i], e = estat[i];
   if (e.origen === 'manual') { return latLonToUtm31(e.lat, e.lon); }
+  if (e.origen === 'excel') { return [it.xe, it.ye]; }
+  if (e.origen === 'parcela' && esNum(it.xc) && esNum(it.yc)) { return [it.xc, it.yc]; }
   return [it.xf, it.yf];
 }
 
@@ -658,6 +692,8 @@ function classeVerd(i) {
   else if (e.origen === 'facana-dubtosa'){ c += ' dubtosa'; }
   else if (e.origen === 'facana-aprox')  { c += ' aprox'; }
   else if (e.origen === 'cadastre')      { c += ' sensefacana'; }
+  else if (e.origen === 'excel')         { c += ' corregida'; }
+  else if (e.origen === 'parcela')       { c += ' parcela'; }
   if (e.revisada) { c += ' revisada'; }
   if (teAvis(i))  { c += ' avis'; }
   if (i === sel)  { c += ' sel'; }
@@ -692,25 +728,59 @@ function popupHtml(i) {
     '</table>' +
     '<div class="org">' + escHtml(textOrigen(e.origen)) + '<br>' +
     'Desplaçament: ' + d.toFixed(1) + ' m<br>' +
-    (e.revisada ? '<b>Validat.</b> Torna-hi a fer clic per desfer-ho.'
-                : 'Fes clic al punt per validar-lo, o arrossega\'l.') +
-    '</div>' + avisHtml(i) + '</div>';
+    (it.cor ? (e.revisada ? '<b>Validat.</b>' : 'Arrossega-la per corregir-la des d\'on és, o tria:')
+            : (e.revisada ? '<b>Validat.</b> Torna-hi a fer clic per desfer-ho.'
+                          : 'Fes clic al punt per validar-lo, o arrossega\'l.')) +
+    '</div>' + accionsCorregida(i) + avisHtml(i) + '</div>';
 }
+
+// LES JA CORREGIDES (lila): un clic NO les valida (no se sabria si volies
+// deixar-la on es o tornar-la al Cadastre); obre la fitxa amb les opcions.
+// L'usuari: "les liles es podran clicar i que et doni la opcio de revertir a
+// les coordenades de la parcel.la o directament moure-la".
+function accionsCorregida(i) {
+  var it = ITEMS[i], e = estat[i];
+  if (!it.cor) { return ''; }
+  var op = [];
+  if (!(e.revisada && e.origen === 'excel')) { op.push(enllacFitxa('&#10003; Deixa-la on la té l\'Excel', 'deixaCorregida', i)); }
+  else { op.push(enllacFitxa('Desfés la validació', 'commutaValidada', i)); }
+  if (esNum(it.xc) && !(e.revisada && e.origen === 'parcela')) {
+    op.push(enllacFitxa('&#8630; Torna-la al punt de la parcel·la (Cadastre, a ' + escHtml(String(it.dc)) + ' m)', 'tornaParcela', i));
+  }
+  if (/^facana/.test(it.prec) && !(e.revisada && e.origen === it.prec)) {
+    op.push(enllacFitxa('Porta-la al portal del Cadastre', 'portaPortal', i));
+  }
+  return '<div class="accions">' + op.join('<br>') + '</div>';
+}
+
+// Les tres accions de la fitxa d'una corregida. Totes es poden desfer (Ctrl+Z)
+// i totes la deixen VALIDADA: es una decisio, i ha d'anar a l'Excel del repas.
+function posaCorregida(i, lat, lon, origen) {
+  apuntaDesfer(i);
+  estat[i] = { lat: lat, lon: lon, origen: origen, revisada: true };
+  capes[i].verd.setLatLng([lat, lon]);
+  refrescaObert(i);
+  desaItem(i);
+  actualitzaEstatBarra();
+}
+function deixaCorregida(i) { posaCorregida(i, ITEMS[i].late, ITEMS[i].lone, 'excel'); }
+function tornaParcela(i)   { posaCorregida(i, ITEMS[i].latc, ITEMS[i].lonc, 'parcela'); }
+function portaPortal(i)    { posaCorregida(i, ITEMS[i].latf, ITEMS[i].lonf, ITEMS[i].prec); }
 
 // Els enllacos fan la feina DESPRES del clic (setTimeout): l'accio refa la
 // fitxa, l'enllac clicat deixa d'existir a mig clic, i el Leaflet el pren per
 // un clic al MAPA i tanca la fitxa (mesurat a la prova del navegador).
-function enllacAvis(text, accio, i) {
+function enllacFitxa(text, accio, i) {
   return '<a href="#" onclick="setTimeout(function () { ' + accio + '(' + i + '); }, 0); return false;">' + text + '</a>';
 }
 
 function avisHtml(i) {
   if (!teAvis(i)) {
-    return '<div class="avis-pop">' + enllacAvis('&#9888; Marca per revisar', 'marcaAvis', i) + '</div>';
+    return '<div class="avis-pop">' + enllacFitxa('&#9888; Marca per revisar', 'marcaAvis', i) + '</div>';
   }
   var nota = avisos[ITEMS[i].id].nota;
   return '<div class="avis-pop">&#9888; <b>Per revisar</b>' + (nota ? ': <span class="nota">' + escHtml(nota) + '</span>' : '') + '<br>' +
-         enllacAvis('canvia la nota', 'marcaAvis', i) + ' &middot; ' + enllacAvis('treu l\'avís', 'treuAvis', i) + '</div>';
+         enllacFitxa('canvia la nota', 'marcaAvis', i) + ' &middot; ' + enllacFitxa('treu l\'avís', 'treuAvis', i) + '</div>';
 }
 
 // LA TARGETA EN PASSAR-HI EL RATOLI (octubre 2026, l'usuari: "si una
@@ -741,7 +811,9 @@ function targetaHtml(i) {
     var nota = avisos[it.id].nota;
     h += '<br><span class="tt-avis">&#9888; Per revisar' + (nota ? ': ' + escHtml(nota) : '') + '</span>';
   }
-  if (e.revisada && e.origen === 'manual') {
+  if (it.cor) {
+    h += '<br><span class="tt-gris"><i>Un clic obre les opcions: deixar-la, tornar-la al punt de la parcel·la o arrossegar-la.</i></span>';
+  } else if (e.revisada && e.origen === 'manual') {
     h += '<br><span class="tt-gris"><i>Un clic el desvalida i el torna al portal (Ctrl+Z ho desfà).</i></span>';
   }
   return h;
@@ -772,6 +844,7 @@ function actualitzaEstatBarra() {
   // recomptes i el filtre (una activitat validada deixa de ser 'pendent').
   actualitzaComptes();
   aplicaFiltres();
+  refrescaZones();
 }
 
 // Validar / desfer. Desfer un punt que havies mogut el torna on el Cadastre
@@ -780,8 +853,8 @@ function commutaValidada(i) {
   var it = ITEMS[i], e = estat[i];
   apuntaDesfer(i);
   if (e.revisada) {
-    estat[i] = { lat: it.latf, lon: it.lonf, origen: it.prec, revisada: false };
-    capes[i].verd.setLatLng([it.latf, it.lonf]);
+    estat[i] = estatInicial(i);
+    capes[i].verd.setLatLng([estat[i].lat, estat[i].lon]);
   } else {
     e.revisada = true;
   }
@@ -808,6 +881,7 @@ var tbody = document.getElementById('tbody');
 
 function pinta() {
   carregaCorreccions();
+  muntaZones();
   for (var i = 0; i < ITEMS.length; i++) {
     (function (idx) {
       var it = ITEMS[idx], e = estat[idx];
@@ -859,7 +933,8 @@ function pinta() {
       // Un clic al punt el valida (o desfà la validació). Leaflet dispara
       // 'click' després d'un arrossegament curt, així que ens assegurem que no
       // ve d'un drag mirant si la posició ha canviat.
-      verd.on('click', function () { selecciona(idx); commutaValidada(idx); });
+      // Una JA CORREGIDA no: el clic nomes obre la fitxa (accionsCorregida).
+      verd.on('click', function () { selecciona(idx); if (!ITEMS[idx].cor) { commutaValidada(idx); } });
       vermell.on('click', function () { selecciona(idx); });
 
       var fila = document.createElement('tr');
@@ -882,6 +957,7 @@ function pinta() {
 
   if (bounds.length > 0) { map.fitBounds(L.latLngBounds(bounds).pad(0.08)); }
   else { map.setView([41.355, 2.073], 14); }
+  if (TRIA) { posaModeTria(modeTria); }
   actualitzaEstatBarra();
   if (FILTRE_INICIAL && FILTRE_INICIAL !== 'tots') {
     document.getElementById('filtreEstat').value = FILTRE_INICIAL;
@@ -920,6 +996,147 @@ function refrescaPortals() {
   var vol = document.getElementById('chkNums').checked && map.getZoom() >= ZOOM_NUMS;
   if (vol && !map.hasLayer(capaPortals)) { map.addLayer(capaPortals); }
   else if (!vol && map.hasLayer(capaPortals)) { map.removeLayer(capaPortals); }
+}
+
+// ---------------------------------------------------------------------------
+// TRIAR LES ZONES AL PLANOL (octubre 2026, l'usuari: "a l'hora de triar les
+// parcel.les, que te les deixi seleccionar al planol"). El mapa porta TOTES les
+// zones de l'abast i la graella de 400 m (la mateixa de la finestra: TRIA porta
+// l'origen i la mida de Get-ZonaDeCoord) es clica per triar-les. Nomes es veuen
+// les activitats de les zones triades; la tria es recorda al navegador.
+//
+// El clic es mira des del MAPA (a quina zona cau) i no des del poligon: els
+// punts es dibuixen en un canvas que cobreix tot el mapa i es menjaria el clic
+// d'un poligon que hi hagues a sota. Per la mateixa rao, mentre tries zones
+// els punts no hi son: un clic sempre vol dir "aquesta zona".
+// ---------------------------------------------------------------------------
+var CLAU_ZONES = 'coordenades-zones:' + FONT;
+var zonesActives = {};
+var zonesMapa = {};          // nom -> { pol, etq, items: [posicions] }
+var modeTria = false;
+var capaZones = L.layerGroup();
+var ctlTria = null;
+
+// El nom de la zona, igual que Get-ZonaDeCoord/_CoordLletraFila (Coordenades.ps1):
+// lletra per la fila (de sud a nord, passada la Z, AA...) i numero per la columna.
+function zonaNomJs(col, fil) {
+  var lletres = '';
+  if (fil < 0) { lletres = 'z' + (-fil); }
+  else { var n = fil; do { lletres = String.fromCharCode(65 + (n % 26)) + lletres; n = Math.floor(n / 26) - 1; } while (n >= 0); }
+  return lletres + (col + 1);
+}
+function zonaDeUtm(x, y) {
+  var col = Math.floor((x - TRIA.x0) / TRIA.m), fil = Math.floor((y - TRIA.y0) / TRIA.m);
+  return { nom: zonaNomJs(col, fil), col: col, fil: fil };
+}
+
+function llegeixZones() {
+  try { var o = JSON.parse(window.localStorage.getItem(CLAU_ZONES) || '{}'); return (o && typeof o === 'object') ? o : {}; }
+  catch (e) { return {}; }
+}
+function escriuZones() {
+  try { window.localStorage.setItem(CLAU_ZONES, JSON.stringify(zonesActives)); } catch (e) { }
+}
+
+function muntaZones() {
+  if (!TRIA) { return; }
+  for (var i = 0; i < ITEMS.length; i++) {
+    var nom = ITEMS[i].zona;
+    if (!zonesMapa[nom]) {
+      var g = zonaDeUtm(ITEMS[i].xe, ITEMS[i].ye);
+      var x = TRIA.x0 + g.col * TRIA.m, y = TRIA.y0 + g.fil * TRIA.m, m = TRIA.m;
+      // La graella es en UTM: en graus no es un rectangle exacte, per aixo
+      // els quatre vertexs i no uns limits.
+      var cant = [[x, y], [x + m, y], [x + m, y + m], [x, y + m]].map(function (c) { return utm31ToLatLon(c[0], c[1]); });
+      var mig = utm31ToLatLon(x + m / 2, y + m / 2);
+      var pol = L.polygon(cant, { interactive: false, weight: 1, color: '#14365c' });
+      var etq = L.marker(mig, { interactive: false, keyboard: false,
+                                icon: L.divIcon({ className: '', iconSize: [0, 0], iconAnchor: [0, 0], html: '' }) });
+      zonesMapa[nom] = { pol: pol, etq: etq, items: [] };
+      capaZones.addLayer(pol); capaZones.addLayer(etq);
+    }
+    zonesMapa[nom].items.push(i);
+  }
+  // Les marcades a la llista de la finestra manen; si no n'hi havia cap, les
+  // de l'ultima vegada (si encara hi son).
+  var ini = TRIA.inicials || [];
+  zonesActives = {};
+  if (ini.length > 0) { ini.forEach(function (n) { if (zonesMapa[n]) { zonesActives[n] = true; } }); escriuZones(); }
+  else { var d = llegeixZones(); Object.keys(d).forEach(function (n) { if (zonesMapa[n]) { zonesActives[n] = true; } }); }
+  modeTria = Object.keys(zonesActives).length === 0;
+  document.getElementById('btnZones').style.display = '';
+  map.on('click', clicZona);
+}
+
+function resumZones() {
+  var nz = 0, na = 0;
+  Object.keys(zonesActives).forEach(function (n) { if (zonesMapa[n]) { nz++; na += zonesMapa[n].items.length; } });
+  return { zones: nz, acts: na };
+}
+
+function refrescaZones() {
+  if (!TRIA) { return; }
+  Object.keys(zonesMapa).forEach(function (nom) {
+    var z = zonesMapa[nom], on = !!zonesActives[nom];
+    var pend = 0;
+    for (var k = 0; k < z.items.length; k++) { if (!estat[z.items[k]].revisada) { pend++; } }
+    z.pol.setStyle(on ? { color: '#14365c', weight: 2.5, dashArray: null, fillColor: '#2e86de', fillOpacity: .28 }
+                      : { color: '#5d6d7e', weight: 1, dashArray: '4,4', fillColor: '#aab7b8', fillOpacity: .10 });
+    z.etq.setIcon(L.divIcon({ className: '', iconSize: [0, 0], iconAnchor: [0, 0],
+      html: '<div class="zona-etq' + (on ? ' activa' : '') + '"><b>' + escHtml(nom) + '</b><br>' + z.items.length + ' act.' +
+            (pend < z.items.length ? ' &middot; ' + pend + ' pend.' : '') + '</div>' }));
+  });
+  if (ctlTria && ctlTria.getContainer()) {
+    var r = resumZones();
+    ctlTria.getContainer().querySelector('.res').textContent = r.zones + ' zones triades · ' + r.acts + ' activitats';
+  }
+}
+
+function clicZona(ev) {
+  if (!modeTria) { return; }
+  var u = latLonToUtm31(ev.latlng.lat, ev.latlng.lng);
+  var nom = zonaDeUtm(u[0], u[1]).nom;
+  if (!zonesMapa[nom]) { return; }   // una zona sense cap activitat
+  if (zonesActives[nom]) { delete zonesActives[nom]; } else { zonesActives[nom] = true; }
+  escriuZones();
+  refrescaZones();
+}
+
+// Entrar a triar (la graella, sense punts) o tornar a la feina (els punts de
+// les zones triades, i el mapa s'hi enquadra).
+function posaModeTria(on) {
+  modeTria = on;
+  if (on) {
+    map.addLayer(capaZones);
+    if (!ctlTria) {
+      ctlTria = L.control({ position: 'topright' });
+      ctlTria.onAdd = function () {
+        var d = L.DomUtil.create('div');
+        d.id = 'triaCtl';
+        d.innerHTML = '<b>Clica les zones que vols repassar</b> (un altre clic la treu).<br>' +
+                      '<span class="res"></span><br><button onclick="commutaModeTria()">Fet</button>';
+        L.DomEvent.disableClickPropagation(d);
+        return d;
+      };
+    }
+    ctlTria.addTo(map);
+  } else {
+    map.removeLayer(capaZones);
+    if (ctlTria) { ctlTria.remove(); }
+    var b = [];
+    Object.keys(zonesActives).forEach(function (n) {
+      if (!zonesMapa[n]) { return; }
+      zonesMapa[n].items.forEach(function (k) { b.push([ITEMS[k].late, ITEMS[k].lone]); b.push([estat[k].lat, estat[k].lon]); });
+    });
+    if (b.length > 0) { map.fitBounds(L.latLngBounds(b).pad(0.08)); }
+  }
+  document.getElementById('btnZones').textContent = on ? 'Fet' : 'Triar zones';
+  actualitzaEstatBarra();
+}
+
+function commutaModeTria() {
+  if (modeTria && resumZones().zones === 0) { alert('Encara no has triat cap zona: clica-les al mapa.'); return; }
+  posaModeTria(!modeTria);
 }
 
 // ---------------------------------------------------------------------------
@@ -962,6 +1179,7 @@ function passaText(i, q) {
 }
 
 function passaFiltres(i) {
+  if (TRIA && (modeTria || !zonesActives[ITEMS[i].zona])) { return false; }
   var q = document.getElementById('cerca').value.trim().toLowerCase();
   return passaText(i, q) && passaEstat(i, document.getElementById('filtreEstat').value);
 }
@@ -972,7 +1190,7 @@ function passaFiltres(i) {
 function aplicaFiltres() {
   for (var i = 0; i < capes.length; i++) {
     var c = capes[i];
-    var vol = (i === sel) || passaFiltres(i);
+    var vol = (i === sel && !modeTria) || passaFiltres(i);
     c.fila.style.display = vol ? '' : 'none';
     if (vol === c.alMapa) { continue; }
     var capesPunt = [c.linia, c.vermell, c.verd];
@@ -988,6 +1206,8 @@ function actualitzaComptes() {
   var n = { tots: estat.length, pendents: 0, validades: 0, facana: 0,
             'facana-dubtosa': 0, 'facana-aprox': 0, cadastre: 0, manual: 0, avis: 0, corregides: 0 };
   for (var i = 0; i < estat.length; i++) {
+    // Al planol amb zones, nomes compten les de les zones triades.
+    if (TRIA && !zonesActives[ITEMS[i].zona]) { n.tots--; continue; }
     if (estat[i].revisada) { n.validades++; } else { n.pendents++; }
     if (teAvis(i)) { n.avis++; }
     if (ITEMS[i].cor) { n.corregides++; }
@@ -1007,7 +1227,7 @@ function actualitzaComptes() {
   }
   document.getElementById('llegenda').innerHTML =
     fila('pin-red', 'coordenada actual de l\'Excel (fixa)', '') +
-    fila('pin-cor', 'coordenada de l\'Excel JA CORREGIDA: ja no és al punt del Cadastre', 'corregides') +
+    fila('pin-cor', 'JA CORREGIDA: l\'Excel ja no és al punt del Cadastre. Es mou des d\'on és; clica-la per tornar-la a la parcel·la', 'corregides') +
     fila('pin-pcad', 'punt de la parcel·la al Cadastre (línia de punts fins a la lila)', '') +
     fila('pin-fac', 'portal amb el número exacte', 'facana') +
     fila('pin-dub', 'portal dubtós: mira\'l', 'facana-dubtosa') +
@@ -1211,7 +1431,7 @@ function numeroDe(v) {
 }
 
 function origenDeText(t) {
-  var codis = ['facana', 'facana-dubtosa', 'facana-aprox', 'cadastre', 'manual'];
+  var codis = ['facana', 'facana-dubtosa', 'facana-aprox', 'cadastre', 'manual', 'excel', 'parcela'];
   for (var k = 0; k < codis.length; k++) { if (textOrigen(codis[k]) === t) { return codis[k]; } }
   return 'manual';   // desconegut: la coordenada nova es la del fitxer, i prou
 }
@@ -1312,9 +1532,8 @@ function esborraCorreccions() {
   pilaDesfer = [];
   actualitzaBotoDesfer();
   for (var i = 0; i < ITEMS.length; i++) {
-    var it = ITEMS[i];
-    estat[i] = { lat: it.latf, lon: it.lonf, origen: it.prec, revisada: false };
-    capes[i].verd.setLatLng([it.latf, it.lonf]);
+    estat[i] = estatInicial(i);
+    capes[i].verd.setLatLng([estat[i].lat, estat[i].lon]);
     refrescaItem(i);
   }
   actualitzaEstatBarra();

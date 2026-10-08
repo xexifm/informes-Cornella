@@ -432,6 +432,97 @@ try {
   await c2.close();
   await c.uncheck('#chkCadastre');
 
+  seccio('Les ja corregides es mouen DES D\'ON SÓN (l\'usuari: «agafar-les des d\'on estan ara»)');
+  const em = await obre(ctx, 'e/Coordenades_E.html');
+  const desatE = () => em.evaluate(() => JSON.parse(localStorage.getItem(CLAU) || '{}'));
+  eq(await em.evaluate(() => [estat[4].origen, estat[4].lat === ITEMS[4].late, estat[4].lon === ITEMS[4].lone]), ['excel', true, true],
+     'la 105 (corregida) comença on la té l\'Excel, no al portal');
+  check(await em.evaluate(() => capes[4].verd.getElement().innerHTML.includes('corregida')), 'i el punt que es mou és lila');
+  eq(await em.evaluate(() => [estat[0].origen, estat[0].lat === ITEMS[0].latf]), ['facana', true], 'les no corregides, al portal com sempre');
+  await centra(em, 4);
+  const b4 = await capsaVerd(em, 4);
+  await em.mouse.click(b4.x + b4.width / 2, b4.y + b4.height / 2);
+  eq(await em.evaluate(() => estat[4].revisada), false, 'un clic a la lila NO la valida (no se sap què volies)');
+  const pop4 = await em.textContent('.leaflet-popup-content');
+  check(pop4.includes('Deixa-la on la té l\'Excel') && pop4.includes('Torna-la al punt de la parcel·la') && pop4.includes('Porta-la al portal'),
+        'obre la fitxa amb les opcions: deixar-la, tornar-la a la parcel·la o portar-la al portal');
+  await em.locator('.leaflet-popup-content a', { hasText: 'Torna-la al punt de la parcel·la' }).click();
+  await em.waitForFunction(() => estat[4].origen === 'parcela');
+  const e4 = await em.evaluate(() => ({ e: estat[4], lat: ITEMS[4].latc, lon: ITEMS[4].lonc, xc: ITEMS[4].xc, yc: ITEMS[4].yc }));
+  eq([e4.e.revisada, e4.e.lat === e4.lat, e4.e.lon === e4.lon], [true, true, true], '«Torna-la al punt de la parcel·la»: validada, al punt del Cadastre');
+  const d4 = (await desatE())['105'];
+  eq([d4.x, d4.y], [Math.round(e4.xc * 100) / 100, Math.round(e4.yc * 100) / 100], 'i es desa amb els metres del Cadastre TAL QUALS (sense reprojectar)');
+  check(await em.evaluate(() => document.querySelector('.leaflet-popup-content') !== null), 'la fitxa es queda oberta');
+  await em.evaluate(() => desferUltim());
+  eq(await em.evaluate(() => [estat[4].origen, estat[4].revisada]), ['excel', false], 'Ctrl+Z la torna on era (l\'Excel), sense validar');
+  await em.evaluate(() => map.closePopup());
+  await centra(em, 4);
+  const c4 = await capsaVerd(em, 4);
+  const mx = c4.x + c4.width / 2, my = c4.y + c4.height / 2;
+  await em.mouse.move(mx, my);
+  await em.mouse.down();
+  await em.mouse.move(mx + 30, my, { steps: 5 });
+  await em.mouse.move(mx + 60, my, { steps: 5 });
+  await em.mouse.up();
+  const dr = await em.evaluate(() => ({ e: estat[4], xe: ITEMS[4].xe }));
+  eq([dr.e.origen, dr.e.revisada], ['manual', true], 'arrossegar-la: queda moguda a mà i validada');
+  const dd = (await desatE())['105'];
+  check(dd && dd.x - dr.xe > 5 && dd.x - dr.xe < 200, 'i el desplaçament es compta DES DE L\'EXCEL, no des del portal (' + (dd ? (dd.x - dr.xe).toFixed(1) : '?') + ' m)');
+  await em.evaluate(() => { commutaValidada(4); });
+  eq(await em.evaluate(() => [estat[4].origen, estat[4].lat === ITEMS[4].late]), ['excel', true], 'desvalidar-la la torna a l\'Excel (no al portal)');
+  await em.evaluate(() => { deixaCorregida(4); });
+  eq([(await desatE())['105'].x, await em.evaluate(() => ITEMS[4].xe)].map((v) => Math.round(v * 100) / 100).reduce((p, q) => p === q),
+     true, '«Deixa-la on la té l\'Excel»: validada sense moure (la X desada és la de l\'Excel)');
+  await em.close();
+
+  seccio('Triar les zones AL PLÀNOL (l\'usuari: «que te les deixi seleccionar al plànol»)');
+  const fm = await obre(ctx, 'f/Coordenades_F.html');
+  eq(await fm.evaluate(() => ITEMS.every((it) => zonaDeUtm(it.xe, it.ye).nom === it.zona)), true,
+     'la graella del mapa dona el MATEIX nom de zona que la finestra (Get-ZonaDeCoord)');
+  eq(await fm.evaluate(() => [modeTria, Object.keys(zonesMapa).sort().join(','), map.hasLayer(capaZones), !!document.getElementById('triaCtl')]),
+     await fm.evaluate(() => [true, [...new Set(ITEMS.map((it) => it.zona))].sort().join(','), true, true]),
+     'sense cap zona triada, s\'obre amb la graella de les zones que tenen activitats');
+  eq(await fm.evaluate(() => capes.filter((c) => c.alMapa).length), 0, 'i mentre tries, cap punt (un clic sempre vol dir «aquesta zona»)');
+  const z0 = await fm.evaluate(() => ITEMS[0].zona);
+  const clicaZona = async (nom) => {
+    // Que el mapa estigui quiet: el «Fet» l'enquadra amb animacio, i un clic
+    // durant l'animacio cau on no toca (mesurat: sortia a coordenades negatives).
+    await fm.evaluate(() => new Promise((ok) => {
+      let t = setTimeout(ok, 600);
+      map.on('movestart zoomstart', () => { clearTimeout(t); });
+      map.on('moveend zoomend', () => { clearTimeout(t); t = setTimeout(ok, 300); });
+    }));
+    const pt = await fm.evaluate((nom) => {
+      map.fitBounds(capaZones.getLayers().filter((l) => l instanceof L.Polygon).reduce((b, l) => b.extend(l.getBounds()), L.latLngBounds([])), { animate: false });
+      const c = zonesMapa[nom].pol.getBounds().getCenter();
+      const p = map.latLngToContainerPoint(c), r = map.getContainer().getBoundingClientRect();
+      return { x: r.left + p.x, y: r.top + p.y };
+    }, nom);
+    await fm.mouse.click(pt.x, pt.y);
+  };
+  await clicaZona(z0);
+  eq(await fm.evaluate(() => Object.keys(zonesActives)), [z0], 'un clic a la zona la tria');
+  check((await fm.textContent('#triaCtl')).includes('1 zones triades · 4 activitats'), 'i el quadre diu quantes zones i activitats');
+  check((await fm.evaluate((n) => zonesMapa[n].etq.getElement().textContent, z0)).includes('4 act.'), 'cada zona porta el seu recompte');
+  await fm.locator('#triaCtl button').click();
+  eq(await fm.evaluate(() => [modeTria, capes.map((c) => c.alMapa)]), [false, [true, true, true, true, false, false]],
+     '«Fet»: només els punts de la zona triada (la 105 i la 106 són d\'una altra)');
+  eq(await fm.evaluate(() => document.getElementById('filtreEstat').options[0].text), 'Mostra: Totes (4)', 'i els recomptes, només de les zones triades');
+  await fm.evaluate(() => commutaModeTria());
+  await clicaZona(z0);
+  eq(await fm.evaluate(() => Object.keys(zonesActives).length), 0, '«Triar zones» hi torna, i un altre clic la treu');
+  await clicaZona(z0);
+  await fm.evaluate(() => commutaModeTria());
+  await fm.close();
+  const fm2 = await obre(ctx, 'f/Coordenades_F.html');
+  eq(await fm2.evaluate(() => [modeTria, Object.keys(zonesActives)]), [false, [z0]], 'tornant-lo a obrir, recorda la tria i va directe als punts');
+  await fm2.close();
+  const gm = await obre(ctx, 'g/Coordenades_G.html');
+  eq(await gm.evaluate(() => [modeTria, Object.keys(zonesActives), capes.map((c) => c.alMapa)]),
+     await gm.evaluate(() => [false, [ITEMS[4].zona], [false, false, false, false, true, true]]),
+     'les zones marcades a la llista de la finestra ja hi surten triades');
+  await gm.close();
+
   seccio('Si el CDN del mapa no respon');
   {
     const nav = await chromium.launch({ headless: true });

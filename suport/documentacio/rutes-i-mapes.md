@@ -382,6 +382,37 @@ pendents de revisar (Configuració, Normativa, Revisió, Ruta).
     filtre «Ja corregides» i la distància a la fitxa i a la targeta. **Supòsit**:
     el GIA porta el `referencePoint` del Cadastre; si a la feina surten totes
     lila, el GIA en fa servir un altre i cal mirar-ho amb `Provar-Planol.bat`.
+  - **Les ja corregides es mouen DES D'ON SÓN** (*«agafar-les des d'on estan ara
+    i no des de les coordenades del cadastre»*). El punt que es mou d'una
+    corregida comença a l'Excel (`estatInicial`, origen **`excel`**, lila) i no al
+    portal; desvalidar-la, «Desfer» i «Esborrar el meu repàs» també la tornen
+    allà. **Un clic no la valida** (no se sabria si volies deixar-la o tornar-la
+    al Cadastre): obre la fitxa amb `accionsCorregida` — *deixar-la on la té
+    l'Excel* (`excel`), *tornar-la al punt de la parcel·la* (origen **`parcela`**)
+    o *portar-la al portal*. Totes la deixen validada i es poden desfer. Per
+    exportar «tornada a la parcel·la» sense reprojectar, el mapa porta el punt
+    del Cadastre també **en metres** (`xc`/`yc`); `utmActual` torna `[xe, ye]`
+    per a `excel` i `[xc, yc]` per a `parcela`. Els dos orígens nous són a
+    `textOrigen` i `origenDeText` (l'anada i tornada per l'Excel del repàs).
+    `enllacAvis` es diu ara **`enllacFitxa`**: també el fan servir aquestes
+    accions (el mateix `setTimeout` perquè el Leaflet no tanqui la fitxa).
+  - **Triar les zones AL PLÀNOL** (*«que te les deixi seleccionar al plànol»*).
+    El PowerShell no sap pintar un mapa, i el navegador no pot tornar res a la
+    finestra: el botó **«Triar-les al plànol…»** fa el mapa amb **totes** les
+    zones de l'abast (com «Només les marcades per revisar») i `TRIA` porta la
+    graella (`x0`, `y0`, `m` = `$CoordZonaX0/Y0/Metres`, i les zones marcades a la
+    llista). El mapa dibuixa les zones que tenen activitats (`muntaZones`, quatre
+    vèrtexs passats a graus: en UTM és un quadrat, en graus no) i `zonaNomJs`
+    replica `_CoordLletraFila` (prova al navegador: el nom de cada activitat
+    coincideix amb el de `Get-ZonaDeCoord`). **El clic es mira des del mapa**
+    (`clicZona`: a quina zona cau), no des del polígon: els punts són en un
+    canvas que cobreix tot el mapa i es menjaria el clic d'un polígon de sota.
+    Per això, **mentre tries, els punts no hi són** (un clic sempre vol dir
+    «aquesta zona»). `passaFiltres` deixa fora les zones no triades (i ho
+    segueixen «Següent pendent», «Validar tot el que es veu» i els recomptes).
+    La tria es recorda al navegador (`coordenades-zones:` + base).
+    **La primera vegada demana al Cadastre totes les parcel·les** (amb barra i
+    Cancel·lar; després, memòria cau).
   - **La tria de zones** (*«també vull poder moure els punts de les activitats que
     no estan duplicades»*): tres opcions (apilades / NO apilades / totes,
     `Get-RegistresPerAbast`), «Amaga les ja corregides» (es mira en generar el
