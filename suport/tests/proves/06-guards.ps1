@@ -1004,6 +1004,54 @@ $srcLlic = _SrcLlicencia
 Assert (-not ($srcLlic -match 'function _LlicNomFitxer\([^)]*titular')) '_LlicNomFitxer ja no te el parametre mort $titular'
 
 
+Write-Host "`n--- Les finestres de progres no segresten el programa (guard) ---"
+# PER QUE (l'usuari, octubre 2026): "a vegades el programa no em deixa sortir
+# del programa i quan clico fora em parpelleja i es posa vermell l'icona".
+#
+# Les tres finestres de progres amb Cancel.lar tenien un FormClosing aixi:
+#
+#     if ($cancel.Running) { $cancel.Flag = $true; $e.Cancel = $true }
+#
+# ...sense mirar el CloseReason. Un FormClosing que cancel.la TOTS els motius no
+# nomes atura la X de l'usuari: atura ApplicationExitCall (sortir del programa)
+# i WindowsShutDown (apagar l'ordinador). Mentre una tanda corria, el programa
+# NO ES PODIA TANCAR.
+#
+# I sense Owner eren finestres de PRIMER NIVELL: amb la graella encara oberta i
+# modal, la barra de tasques ensenyava DOS botons del programa; clicant el de la
+# graella -que la modal te inhabilitada- Windows no hi podia anar i ho deia
+# PARPELLEJANT i posant el boto en taronja.
+# ELS COMENTARIS CITEN EL CODI DOLENT, i han de poder fer-ho: aquesta mateixa
+# seccio i les tres finestres expliquen com era abans, amb el "$e.Cancel = $true"
+# escrit. Un guard que llegeixi el text cru s'enganxa al comentari (hi va caure
+# la primera versio). Per aixo es mira NOMES el codi.
+function _SenseComentaris([string]$ruta) {
+    $sb = New-Object System.Text.StringBuilder
+    $dinsComentari = $false
+    foreach ($l in [System.IO.File]::ReadAllLines($ruta)) {
+        if ($dinsComentari) { if ($l.Contains('#>')) { $dinsComentari = $false }; continue }
+        if ($l.TrimStart().StartsWith('<#')) { if (-not $l.Contains('#>')) { $dinsComentari = $true }; continue }
+        if ($l.TrimStart().StartsWith('#')) { continue }
+        [void]$sb.AppendLine($l)
+    }
+    return $sb.ToString()
+}
+$progFitxers = @('UiComuns.ps1', 'CopiaInformes.ps1', 'PdfSignar.ps1')
+foreach ($nom in $progFitxers) {
+    $t = _SenseComentaris (Join-Path $rootRepo (Join-Path 'suport' $nom))
+    Assert ($t.Contains('[System.Windows.Forms.Form]::ActiveForm')) "$nom : la finestra de progres es lliga a la que l'ha oberta (Owner)"
+    Assert ($t.Contains('$form.ShowInTaskbar = $false')) "$nom : i no estrena un segon boto a la barra de tasques"
+}
+# Cada "si la tanda corre, cancel.la el tancament" ha de mirar el MOTIU.
+$cancelSenseMotiu = New-Object System.Collections.ArrayList
+foreach ($f in @(Get-ChildItem -LiteralPath (Join-Path $rootRepo 'suport') -Recurse -Filter '*.ps1' -File | Where-Object { $_.FullName -notmatch '[\\/]tests[\\/]' })) {
+    $t = _SenseComentaris $f.FullName
+    foreach ($m in [regex]::Matches($t, '(?s)\$cancel\.Running.{0,400}?\$e\.Cancel = \$true')) {
+        if (-not $m.Value.Contains('UserClosing')) { [void]$cancelSenseMotiu.Add($f.Name) }
+    }
+}
+AssertEq ($cancelSenseMotiu -join ', ') '' 'cap finestra de tanda bloqueja el tancament sense mirar el CloseReason'
+
 Write-Host "`n--- Dos blocs mes que eren el mateix ---"
 # 1. LA CARCASSA DE LA FINESTRA DE PROGRES AMB CANCEL.LAR era identica -23
 #    linies, fins a les coordenades- a "Enviar correu (esborranys)" i a "Generar

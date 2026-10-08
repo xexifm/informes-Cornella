@@ -943,7 +943,35 @@ function Show-ProgresCancel([string]$titol, [int]$maxim) {
     $btnCancel = (_AddPeuBotons $form @(@{ Nom = 'Cancel'; Text = ('Cancel' + [char]0x00B7 + 'lar') }) @() 96).Cancel
     $btnCancel.add_Click({ $cancel.Flag = $true }.GetNewClosure())
 
-    $form.add_FormClosing({ param($s, $e) if ($cancel.Running) { $cancel.Flag = $true; $e.Cancel = $true } }.GetNewClosure())
+    # LA X VAL COM A "CANCEL.LA LA TANDA", PERO NOMES LA X.
+    #
+    # Abans aqui hi havia "if ($cancel.Running) { $e.Cancel = $true }" a seques,
+    # i el CloseReason no es mirava. Un FormClosing que cancel.la TOTS els
+    # motius no nomes atura la X: atura tambe ApplicationExitCall (sortir del
+    # programa) i WindowsShutDown (apagar l'ordinador). O sigui que, mentre una
+    # tanda corria, el programa NO ES PODIA TANCAR i Windows no es podia apagar
+    # -i des de fora aixo es veu com que "no em deixa sortir".
+    # La bandera es posa igualment en tots els casos: si ens estan tancant, la
+    # tanda s'ha d'aturar; el que no es fa es impedir-ho.
+    $form.add_FormClosing({
+        param($s, $e)
+        if ($cancel.Running) {
+            $cancel.Flag = $true
+            if ($e.CloseReason -eq [System.Windows.Forms.CloseReason]::UserClosing) { $e.Cancel = $true }
+        }
+    }.GetNewClosure())
+    # LLIGADA A LA FINESTRA QUE L'HA OBERTA, i sense boto propi a la barra de
+    # tasques. Sense Owner son DUES finestres de primer nivell: la graella (que
+    # segueix oberta i modal) i aquesta. Llavors la barra de tasques ensenya
+    # DOS botons del programa i, clicant el de la graella -que la modal te
+    # inhabilitada-, Windows no hi pot anar i ho diu PARPELLEJANT la finestra i
+    # posant el boto en taronja. Amb Owner, el parell es comporta com una sola
+    # finestra i el boto es el del pare.
+    $pare = [System.Windows.Forms.Form]::ActiveForm
+    if ($null -ne $pare -and $pare -ne $form) {
+        $form.Owner = $pare
+        $form.ShowInTaskbar = $false
+    }
     $form.Show()
     [System.Windows.Forms.Application]::DoEvents()
 

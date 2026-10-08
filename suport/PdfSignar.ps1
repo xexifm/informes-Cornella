@@ -1126,10 +1126,18 @@ function _RunConvertPdf($opts) {
     $form.Controls.Add($bar)
     $btnCancel = (_AddPeuBotons $form @(@{ Nom = 'Cancel'; Text = ('Cancel' + [char]0x00B7 + 'lar') }) @() 122).Cancel
     $btnCancel.add_Click({ $cancel.Flag = $true }.GetNewClosure())
+    # Nomes la X val com a "cancel·lar": cancel·lar TOTS els motius de
+    # tancament impedia sortir del programa i apagar el Windows mentre la tanda
+    # corria (vegeu Show-ProgresCancel, UiComuns.ps1).
     $form.add_FormClosing({
         param($s, $e)
-        if ($cancel.Running) { $cancel.Flag = $true; $e.Cancel = $true }
+        if ($cancel.Running) {
+            $cancel.Flag = $true
+            if ($e.CloseReason -eq [System.Windows.Forms.CloseReason]::UserClosing) { $e.Cancel = $true }
+        }
     }.GetNewClosure())
+    $pare = [System.Windows.Forms.Form]::ActiveForm
+    if ($null -ne $pare -and $pare -ne $form) { $form.Owner = $pare; $form.ShowInTaskbar = $false }
     $form.Show()
     [System.Windows.Forms.Application]::DoEvents()
 
