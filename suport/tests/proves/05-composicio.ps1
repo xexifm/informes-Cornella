@@ -553,6 +553,7 @@ $cursM = New-Object System.Collections.ArrayList
 foreach ($secC in @($catM.nodes)) { foreach ($ndC in @($secC.fills)) { foreach ($pC in @($ndC.cos)) { foreach ($rC in @($pC.runs)) { if ($rC.PSObject.Properties['i'] -and [bool]$rC.i) { [void]$cursM.Add([string]$rC.t) } } } } }
 AssertEq $cursM.Count 0 'MNSTRANS.json: cap text en cursiva (la Llei 20/2009 es catalana)'
 
+
 # EL FORMAT DE CARACTER DESPRES DE TREURE LA NUMERACIO. Al Word, treure-la a un
 # paragraf que ve d'un de llista el passa a estil Normal i torna el cursor a la
 # lletra de l'estil (la Calibri del tema). El doble ho imita.
@@ -740,6 +741,46 @@ $contracte = {
     }
     return @{ Mal = $mal.ToArray(); Doc = $d; Text = $txt }
 }
+# LES CONDICIONS A LA MNS (octubre 2026): com els favorables de llicencia.
+$actC = @('OGAU', 'Agencia de Residus de Catalunya')
+$txtDe = { param($bl) (@(@($bl) | ForEach-Object { if ([string]$_.T -eq 'unitat') { (@($_.Blocs) | ForEach-Object { [string]$_.Num + ' ' + [string]$_.Text }) -join ' ' } else { [string]$_.Text } }) -join ' | ') }
+$blS = @(Build-MnsBlocs @{ Fase = 'mns'; Header = @{}; Fields = [ordered]@{}; Punts = @(); Cataleg = $catM; CondicionsActors = $actC })
+$tS = & $txtDe $blS
+Assert ($tS -like '*sense m*s observacions en relaci* a aquest tr*mit i sota les condicions que es determinen en els seg*ents informes (adjunts a continuaci*):*') 'MNS sense observacions amb condicions: la frase les anuncia'
+Assert (-not ($tS -like '*aquest tr*mit.***')) 'MNS sense observacions amb condicions: ...i no hi ha la frase de sense condicions'
+$iS = -1; for ($k = 0; $k -lt $blS.Count; $k++) { if ([string]$blS[$k].Text -like '*sota les condicions*') { $iS = $k; break } }
+AssertEq "$([string]$blS[$iS + 1].T)|$((@($blS[$iS + 2].Blocs))[0].Num)|$((@($blS[$iS + 2].Blocs))[0].Text)|$((@($blS[$iS + 3].Blocs))[0].Num)" 'aire|a.|OGAU|b.' 'MNS sense observacions: la llista a., b. va just sota la frase'
+$blA = @(Build-MnsBlocs @{ Fase = 'mns'; Header = @{}; Fields = [ordered]@{}; Punts = $secM; Cataleg = $catM; CondicionsActors = $actC })
+$iObs = -1; $iCond = -1; $iCap = -1; $iUltPunt = -1
+for ($k = 0; $k -lt $blA.Count; $k++) {
+    $tk = [string]$blA[$k].Text
+    if ($iObs -lt 0 -and $tk -like '*amb les seg*ents observacions:*') { $iObs = $k }
+    if ($tk -like 'i sota les condicions*' -or $tk -like '**i sota les condicions*') { $iCond = $k }
+    if ([string]$blA[$k].T -eq 'conclusiocap') { $iCap = $k }
+    if ([string]$blA[$k].T -eq 'unitat' -and $iCond -lt 0) { $iUltPunt = $k }
+}
+Assert ($iObs -ge 0 -and $iUltPunt -gt $iObs -and $iCond -gt $iUltPunt -and $iCap -gt $iCond) 'MNS amb observacions i condicions: "amb les seguents observacions:" -> punts de REQ1 -> "i sota les condicions..." -> CONCLUSIONS'
+AssertEq ((@($blA[$iCond + 2].Blocs))[0].Num + (@($blA[$iCond + 3].Blocs))[0].Num) 'a.b.' 'MNS amb observacions: la llista va sota "i sota les condicions"'
+$blN = @(Build-MnsBlocs @{ Fase = 'mns'; Header = @{}; Fields = [ordered]@{}; Punts = $secM; Cataleg = $catM; CondicionsActors = @() })
+Assert (-not ((& $txtDe $blN) -like '*sota les condicions*')) 'MNS sense cap condicio marcada: com abans (ni la frase ni la llista)'
+$blT = @(Build-MnsBlocs @{ Fase = 'trans'; Header = @{}; Fields = [ordered]@{}; Punts = @(); Cataleg = $catM; CondicionsActors = $actC })
+Assert (-not ((& $txtDe $blT) -like '*sota les condicions*')) 'la Transmissio no porta condicions (nomes la MNS)'
+# Un MNSTRANS.json d'abans, sense els dos nodes: el text d'aqui (_MnsTextCondicions).
+$catVell = ($catM | ConvertTo-Json -Depth 30 | ConvertFrom-Json)
+foreach ($secV in @($catVell.nodes)) { $secV.fills = @(@($secV.fills) | Where-Object { [string]$_.clau -ne 'condicions' -and [string]$_.clau -ne 'sense-observacions-condicions' }) }
+Assert ((& $txtDe @(Build-MnsBlocs @{ Fase = 'mns'; Header = @{}; Fields = [ordered]@{}; Punts = @(); Cataleg = $catVell; CondicionsActors = $actC })) -like '*aquest tr*mit i sota les condicions*') 'cataleg d''abans, sense observacions: la frase de les condicions surt igualment'
+Assert ((& $txtDe @(Build-MnsBlocs @{ Fase = 'mns'; Header = @{}; Fields = [ordered]@{}; Punts = $secM; Cataleg = $catVell; CondicionsActors = $actC })) -like '*i sota les condicions*') 'cataleg d''abans, amb observacions: la linia "i sota les condicions" surt igualment'
+Assert ([bool](_MnsNodeEntra 'sense-observacions-condicions' $false $true) -and -not (_MnsNodeEntra 'sense-observacions' $false $true) -and -not (_MnsNodeEntra 'condicions' $true $true)) '_MnsNodeEntra: amb condicions, la frase de condicions en lloc de la de sense; "condicions" no surt al bucle'
+# Els ADJUNTS de la MNS: a l'historial de la llicencia, sense tocar-ne la fitxa.
+$dbH = [pscustomobject]@{ Llicencies = @([pscustomobject]@{ IdGia = '77'; Fase = 'favorable-pre'; Abans = @{ x = 1 }; Historial = @([ordered]@{ Data = '2026-01-01T00:00:00'; Fase = 'favorable-pre'; Fitxer = 'C:\i\2026-01-01_LlicFavPre_GIA 77.docx'; Adjunts = @('C:\a.pdf') }) }) }
+$stH = @{ Header = @{ ID_GIA = '77' }; Fase = 'mns' }
+$dbH = Add-LlicenciaHistorial $dbH $stH (New-LlicenciaHistorial 'mns' 'C:\i\2026-10-09_MNS_GIA 77.docx' @('C:\x\a.OGAU.pdf'))
+$recH = Get-LlicenciaRecord $dbH '77'
+AssertEq "$($recH.Fase)|$(@($recH.Historial).Count)|$($null -ne $recH.Abans)" 'favorable-pre|2|True' 'Add-LlicenciaHistorial: la fitxa es queda com era i guanya una linia d''historial'
+AssertEq (@(Get-LlicenciaAdjuntsDeInforme $dbH 'D:\altra\2026-10-09_MNS_GIA 77.docx') -join '|') 'C:\x\a.OGAU.pdf' '"Word a PDF" troba els adjunts de la MNS pel nom del .docx'
+$dbH2 = Add-LlicenciaHistorial ([pscustomobject]@{ Llicencies = @() }) @{ Header = @{ ID_GIA = '88' }; Fase = 'mns' } (New-LlicenciaHistorial 'mns' 'x_MNS_GIA 88.docx' @('a.pdf'))
+AssertEq "$((Get-LlicenciaRecord $dbH2 '88').IdGia)|$(@((Get-LlicenciaRecord $dbH2 '88').Historial).Count)" '88|1' 'Add-LlicenciaHistorial: sense fitxa, en fa una amb aquell historial'
+
 foreach ($fC in @('mns', 'trans')) {
     foreach ($ambC in @($false, $true)) {
         $puntsC = if ($ambC) { $secM } else { @() }

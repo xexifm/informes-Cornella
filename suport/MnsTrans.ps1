@@ -99,29 +99,71 @@ function _MnsSeccio($cat, [string]$fase) {
 
 # HI ENTRA, aquest node? Funcio PURA. La clau diu de quina variant es; qualsevol
 # altra clau (o cap) vol dir que hi va sempre.
-function _MnsNodeEntra([string]$clau, [bool]$ambObservacions) {
+#
+# LES CONDICIONS (octubre 2026, nomes MNS; com els favorables de llicencia):
+#   'sense-observacions-condicions'  la frase favorable SENSE observacions quan
+#                                     hi ha condicions (...i sota les condicions
+#                                     que es determinen en els seguents informes
+#                                     (adjunts a continuacio):); llavors la de
+#                                     'sense-observacions' no hi va.
+#   'condicions'                      la linia "i sota les condicions..." AMB
+#                                     observacions. No surt en aquest bucle: va
+#                                     DARRERE dels punts de REQ1 (Build-MnsBlocs).
+function _MnsNodeEntra([string]$clau, [bool]$ambObservacions, [bool]$ambCondicions = $false) {
     switch (([string]$clau).Trim().ToLower()) {
         'amb-observacions'    { return $ambObservacions }
-        'sense-observacions'  { return (-not $ambObservacions) }
+        'sense-observacions'  { return (-not $ambObservacions -and -not $ambCondicions) }
+        'sense-observacions-condicions' { return (-not $ambObservacions -and $ambCondicions) }
+        'condicions'          { return $false }
         'llista-observacions' { return $ambObservacions }
     }
     return $true
+}
+
+# Els textos de les condicions si el cataleg de l'usuari encara no els porta
+# (un MNSTRANS.json d'abans): val mes la frase d'aqui que un informe que anuncia
+# condicions sense dir-ho. Es el mateix text que hi ha al cataleg del repositori.
+function _MnsTextCondicions([string]$clau) {
+    $c = 'sota les condicions que es determinen en els seg' + [char]0x00FC + 'ents informes (adjunts a continuaci' + [char]0x00F3 + '):'
+    if ($clau -eq 'condicions') { return ('**i ' + $c + '**') }
+    return ('**S' + [char]0x2019 + 'informa FAVORABLEMENT de la Modificaci' + [char]0x00F3 + ' NO substancial presentada sense m' + [char]0x00E9 +
+            's observacions en relaci' + [char]0x00F3 + ' a aquest tr' + [char]0x00E0 + 'mit i ' + $c + '**')
+}
+
+# Les linies d'un node de la seccio pel seu clau, o $null si no n'hi ha. PURA.
+function _MnsLiniesNode($cat, [string]$fase, [string]$clau) {
+    $sec = _MnsSeccio $cat $fase
+    if ($null -eq $sec) { return $null }
+    foreach ($nd in @($sec.fills)) {
+        if (([string]$nd.clau).Trim().ToLower() -ne $clau) { continue }
+        $linies = New-Object System.Collections.ArrayList
+        foreach ($p in @($nd.cos)) { [void]$linies.Add((_JsonParaToBodyLine $p)) }
+        return ,$linies.ToArray()
+    }
+    return $null
 }
 
 # ELS PARAGRAFS d'un informe, en ordre i ja decidits. Funcio PURA: retorna
 # @{ Tipus; Linies } amb Tipus 'text' (paragraf normal) o 'llista' (paragraf de
 # llista de Word). Es el que escriu el document i tambe el que ensenya la vista
 # en Word del cataleg: no hi pot haver dues versions del mateix.
-function _MnsParagrafs($cat, [string]$fase, [bool]$ambObservacions) {
+function _MnsParagrafs($cat, [string]$fase, [bool]$ambObservacions, [bool]$ambCondicions = $false) {
     $out = New-Object System.Collections.ArrayList
     $sec = _MnsSeccio $cat $fase
     if ($null -eq $sec) { return $out.ToArray() }
+    $teFraseCond = $false
     foreach ($nd in @($sec.fills)) {
-        if (-not (_MnsNodeEntra ([string]$nd.clau) $ambObservacions)) { continue }
+        if (-not (_MnsNodeEntra ([string]$nd.clau) $ambObservacions $ambCondicions)) { continue }
         $tipus = if ([string]$nd.tipus -eq 'item') { 'llista' } else { 'text' }
         $linies = New-Object System.Collections.ArrayList
         foreach ($p in @($nd.cos)) { [void]$linies.Add((_JsonParaToBodyLine $p)) }
-        [void]$out.Add(@{ Tipus = $tipus; Linies = $linies.ToArray() })
+        $esCond = (([string]$nd.clau).Trim().ToLower() -eq 'sense-observacions-condicions')
+        if ($esCond) { $teFraseCond = $true }
+        [void]$out.Add(@{ Tipus = $tipus; Linies = $linies.ToArray(); Condicions = $esCond })
+    }
+    # Un cataleg d'abans sense la frase de les condicions: la d'aqui.
+    if ($ambCondicions -and -not $ambObservacions -and -not $teFraseCond) {
+        [void]$out.Add(@{ Tipus = 'text'; Linies = @((_MnsTextCondicions 'sense-observacions-condicions')); Condicions = $true })
     }
     return $out.ToArray()
 }
@@ -168,7 +210,17 @@ function _MnsNomFitxer([datetime]$data, [string]$fase, [string]$idGia) {
 # COMPOSICIO DEL DOCUMENT: BLOCS PURS + Write-Informe (MotorInforme.ps1)
 # ----------------------------------------------------------------------------
 # L'informe sencer en blocs. Funcio PURA. $model: Fase, Header, Fields, Punts
-# (les seccions de REQ1 triades) i Cataleg (MNSTRANS.json).
+# (les seccions de REQ1 triades), Cataleg (MNSTRANS.json) i CondicionsActors
+# (els que posen condicions, nomes MNS).
+#
+# AMB CONDICIONS (octubre 2026, l'usuari; "tot igual que el favorable pre de
+# llicencia"): la frase les anuncia i a sota hi van els actors (a., b., c.),
+# els seus informes s'adjunten darrere en passar-ho a PDF.
+#   sense observacions -> "...sense mes observacions en relacio a aquest tramit
+#                          i sota les condicions ... (adjunts a continuacio):" + llista
+#   amb observacions   -> "...amb les seguents observacions:" -> punts de REQ1 ->
+#                          "i sota les condicions ... (adjunts a continuacio):" +
+#                          llista -> CONCLUSIONS
 function Build-MnsBlocs($model) {
     $b = New-Object System.Collections.ArrayList
     $fields = $model.Fields
@@ -177,12 +229,14 @@ function Build-MnsBlocs($model) {
     # observacions (abans comptava com una seccio i deia "amb observacions").
     $seccions = @(@($model.Punts) | Where-Object { $null -ne $_ })
     $amb = ($seccions.Count -gt 0)
+    $actorsCond = @(@($model.CondicionsActors) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
+    $ambCond = ($actorsCond.Count -gt 0 -and [string]$model.Fase -eq 'mns')
 
     # CADA PARAGRAF DEL CATALEG ES UN ITEM, sigui text o llista, i despres de
     # cada un hi va l'aire d'un item (Format-Aire 'item': la bandera
     # SpacerAfterItem de Format.ps1). Una sola regla per a tots: abans el de
     # llista se la saltava i el "1." quedava enganxat al paragraf de sota.
-    foreach ($p in @(_MnsParagrafs $model.Cataleg ([string]$model.Fase) $amb)) {
+    foreach ($p in @(_MnsParagrafs $model.Cataleg ([string]$model.Fase) $amb $ambCond)) {
         if ([string]$p.Tipus -eq 'llista') {
             # El paragraf de llista va BUIT: l'omple l'usuari al Word.
             [void]$b.Add(@{ T = 'llista'; Text = '' })
@@ -192,11 +246,24 @@ function Build-MnsBlocs($model) {
             }
         }
         [void]$b.Add(@{ T = 'aire'; Clau = 'item' })
+        # Sense observacions, la llista va just sota la frase que l'anuncia.
+        if ([bool]$p.Condicions) { foreach ($x in @(_LlicBlocsActorsCondicions $actorsCond)) { [void]$b.Add($x) } }
     }
 
     # ELS PUNTS DE REQ1, amb la MATEIXA funcio que els informes de REQ1: el
     # format es identic per construccio i no n'hi ha cap copia.
     if ($amb) { foreach ($x in @(Build-CatalegBlocs $seccions $fields '')) { [void]$b.Add($x) } }
+
+    # Amb observacions, les condicions van DARRERE dels punts, en una linia nova.
+    if ($amb -and $ambCond) {
+        $lin = _MnsLiniesNode $model.Cataleg ([string]$model.Fase) 'condicions'
+        if ($null -eq $lin) { $lin = @((_MnsTextCondicions 'condicions')) }
+        foreach ($l in @(Apply-FieldsToLines $lin $fields)) {
+            foreach ($x in @(_BlocsDeLinia ([string]$l) $false)) { [void]$b.Add($x) }
+        }
+        [void]$b.Add(@{ T = 'aire'; Clau = 'item' })
+        foreach ($x in @(_LlicBlocsActorsCondicions $actorsCond)) { [void]$b.Add($x) }
+    }
 
     # CONCLUSIONS. El bloc nomes surt si te alguna linia; el tancament hi va
     # sempre, com a la resta d'informes (son els nodes 'sempre' del cataleg).

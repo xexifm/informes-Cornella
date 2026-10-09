@@ -101,6 +101,9 @@ function Invoke-LlicenciaWizard($fases = $null, [string]$titol = '', $preHeader 
              # Els actors marcats al pas de les condicions. $null = encara no
              # s'hi ha passat (i llavors se'n proposen segons el bloc ABANS).
              CondActors = $null
+             # Els de la MNS van a part: no son els de la llicencia (que
+             # Restore-LlicenciaState recupera de la fitxa).
+             MnsCondActors = $null; MnsAdjunts = @()
              Fields = [ordered]@{}
              # El que s'havia triat a cada pantalla de documentacio, per no
              # perdre-ho quan l'usuari torna ENRERE (era exactament el que
@@ -177,6 +180,35 @@ function Invoke-LlicenciaWizard($fases = $null, [string]$titol = '', $preHeader 
                     $st.ProjSel = $r.Data
                     $st.ProjKeys = Get-SelectedKeysFromResult $st.ProjSel
                     $st.ProjVals = Get-FieldValuesForSession $st.Fields
+                    # La MNS passa per les CONDICIONS (com els favorables de
+                    # llicencia); la Transmissio, no (l'usuari, octubre 2026).
+                    $st.MnsAdjunts = @()
+                    if ([string]$st.Fase -eq 'mns') { $step = 21; break }
+                    $step = 22
+                }
+                21 {
+                    # Surten SENSE marcar (no hi ha bloc ABANS d'on proposar-ne):
+                    # nomes es recorda el que s'hagi triat en aquesta sessio i el
+                    # PDF de cada actor (de la fitxa de la llicencia).
+                    $actors = @(_LlicActorsCondicions $llic)
+                    $pre = if ($null -ne $st.MnsCondActors) { @($st.MnsCondActors) } else { @() }
+                    $r = Select-LlicCondicions $actors $pre $st.CondPdfs -Mns
+                    if ($r.Nav -ne 'fwd') { $step = 20; break }
+                    $cp = Copy-LlicAdjunts ([string]$st.Header['ID_GIA']) @($r.Actors) $r.Pdfs
+                    $st.MnsCondActors = @($r.Actors)
+                    if (@($cp.Errors).Count -gt 0) {
+                        [System.Windows.Forms.MessageBox]::Show(
+                            ("No s'han pogut guardar aquests PDF:`n`n  " + (@($cp.Errors) -join "`n  ")),
+                            'Condicions', 'OK', 'Warning') | Out-Null
+                        $st.CondPdfs = $r.Pdfs
+                        break
+                    }
+                    $st.CondPdfs = $cp.Pdfs
+                    $st.MnsAdjunts = @($cp.Llista)
+                    $step = 22
+                }
+                22 {
+                    $actorsMns = if ([string]$st.Fase -eq 'mns' -and $null -ne $st.MnsCondActors) { @($st.MnsCondActors) } else { @() }
                     if ($null -eq $word) { $word = New-WordApp }
                     $out = Build-MnsDocument $word @{
                         Fase = [string]$st.Fase
@@ -184,6 +216,23 @@ function Invoke-LlicenciaWizard($fases = $null, [string]$titol = '', $preHeader 
                         Fields = $st.Fields
                         Punts = @($st.ProjSel)
                         Cataleg = $st.MnsCataleg
+                        CondicionsActors = $actorsMns
+                    }
+                    # Amb condicions, els ADJUNTS s'apunten a l'historial de la
+                    # llicencia: es on "Word a PDF" els busca (pel nom del
+                    # .docx) per ajuntar-los darrere. Nomes l'historial: la MNS
+                    # no ha de trepitjar la fitxa de la llicencia.
+                    if ($actorsMns.Count -gt 0) {
+                        try {
+                            $db = Load-LlicenciaDb
+                            $db = Add-LlicenciaHistorial $db $st (New-LlicenciaHistorial ([string]$st.Fase) ([string]$out) @($st.MnsAdjunts))
+                            Save-LlicenciaDb $db
+                        } catch {
+                            [System.Windows.Forms.MessageBox]::Show(
+                                ("L'informe s'ha generat be, pero no s'han pogut apuntar els adjunts a la base de " +
+                                 "llicencies (en passar-lo a PDF no s'hi ajuntaran):`n`n" + $_.Exception.Message),
+                                'Llicencia', 'OK', 'Warning') | Out-Null
+                        }
                     }
                     _LlicObreIAvisa $word $out
                     return

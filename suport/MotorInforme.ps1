@@ -507,6 +507,47 @@ function _WriteBlocs($sel, $blocs, $estat, [bool]$ambNivells) {
 # Word), que abans eren el MATEIX algorisme escrit dues vegades. Amb aixo la
 # vista no pot dir una cosa i el document una altra: es el mateix codi.
 
+# LA LLETRA D'UN PUNT ("A", "B"... "AA"). PURA. La fan servir la marca dels
+# punts (_LlicMarca, LlicenciaBlocs.ps1), el nom dels adjunts (a.OGAU.pdf) i
+# la llista dels que posen condicions (_LlicBlocsActorsCondicions). Viu al motor
+# i no a LlicenciaDades.ps1 des que la llista la fa servir tambe la MNS
+# (octubre 2026): MnsTrans.ps1 no pot dependre de cap fitxer de Llicencia
+# (LlicenciaDades ja depen d'ell, per _MnsFases) sense fer un cicle.
+#
+# EL BLOC PROJECTE VA AMB LLETRES i la resta amb numeros, i el motiu no es
+# estetic: quan els requeriments de projecte queden resolts han de desapareixer
+# de l'informe SENSE que la resta de la documentacio es renumeri. Amb tot
+# numerat, el dia que el bloc PROJECTE marxa, l'"1." passa a ser una altra cosa
+# i el titular no pot comparar-ho amb el que ja tenia.
+#
+# Passades les 26, segueix com les columnes de l'Excel: AA, AB... Aixi no hi ha
+# cap topall amagat.
+function _LlicLletra([int]$i) {
+    if ($i -le 0) { return '' }
+    $s = ''
+    $n = $i
+    while ($n -gt 0) {
+        $n--
+        $s = ([string][char](65 + ($n % 26))) + $s
+        $n = [int][Math]::Floor($n / 26)
+    }
+    return $s
+}
+
+# LA LLISTA DELS QUE POSEN CONDICIONS, sota la frase que les anuncia: un punt
+# per actor amb lletres minuscules (a., b., c.), com el Word de l'usuari. La
+# lletra es la del PDF adjunt (_LlicNomAdjunt). La fan servir els favorables de
+# llicencia i la MNS (octubre 2026): ha de ser la mateixa. PURA.
+function _LlicBlocsActorsCondicions($actors) {
+    $out = New-Object System.Collections.ArrayList
+    $act = @(@($actors) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
+    for ($i = 0; $i -lt $act.Count; $i++) {
+        $item = @{ T = 'item'; Num = ((_LlicLletra ($i + 1)).ToLower() + '.'); Text = [string]$act[$i] }
+        [void]$out.Add(@{ T = 'unitat'; Blocs = @($item) })
+    }
+    return $out.ToArray()
+}
+
 # Un text de cataleg -> els blocs 'cos' i 'enllac' que li toquen.
 function _BlocsDeLinia([string]$linia, [bool]$fill) {
     $out = New-Object System.Collections.ArrayList

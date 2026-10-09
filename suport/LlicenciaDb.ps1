@@ -254,6 +254,29 @@ function New-LlicenciaHistorial([string]$fase, [string]$fitxer, $adjunts = @()) 
     }
 }
 
+# Apunta un informe a l'HISTORIAL d'una llicencia SENSE tocar-ne res mes (la
+# MNS amb condicions, octubre 2026: "Word a PDF" ha de trobar-hi els adjunts,
+# i la MNS no te ni documentacio ni projecte -si es desava la fitxa sencera
+# amb el seu estat, la llicencia perdria tot el que s'hi havia omplert-). Si
+# encara no n'hi ha fitxa, se'n fa una amb el que hi ha a $st (com un
+# requeriment sol). PURA: torna la base.
+function Add-LlicenciaHistorial($db, $st, $entrada) {
+    $h = ConvertTo-Mapa $st
+    $id = [string](ConvertTo-Mapa $h['Header'])['ID_GIA']
+    $vell = Get-LlicenciaRecord $db $id
+    if ($null -eq $vell) { return (Set-LlicenciaRecord $db (ConvertTo-LlicenciaRecord $st @($entrada))) }
+    # Mateix ordre de camps que tenia (la base es llegeix tambe a ull).
+    $rec = [ordered]@{}
+    if ($vell -is [System.Collections.IDictionary]) { foreach ($k in @($vell.Keys)) { $rec[[string]$k] = $vell[$k] } }
+    else { foreach ($p in @($vell.PSObject.Properties)) { $rec[[string]$p.Name] = $p.Value } }
+    $hist = New-Object System.Collections.ArrayList
+    foreach ($x in @($rec['Historial'])) { if ($null -ne $x) { [void]$hist.Add($x) } }
+    [void]$hist.Add($entrada)
+    $rec['Historial'] = $hist.ToArray()
+    $rec['Actualitzat'] = (Get-Date).ToString('o')
+    return (Set-LlicenciaRecord $db ([pscustomobject]$rec))
+}
+
 # QUINS PDF VAN DARRERE D'UN INFORME. Funcio PURA (sobre la base ja carregada).
 #
 # Es busca l'informe PEL NOM DEL FITXER (sense la carpeta: l'usuari el pot haver

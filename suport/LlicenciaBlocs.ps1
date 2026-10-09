@@ -289,12 +289,7 @@ function Build-LlicenciaBlocs($model) {
     [void]$b.Add(@{ T = 'aire'; Clau = 'conclusions' })
     [void]$b.Add(@{ T = 'conclusiocap'; Text = 'CONCLUSIONS' })
     [void]$b.Add(@{ T = 'conclusio'; Text = (_LlicConclusioText $fase $ambCond) })
-    if ($ambCond) {
-        for ($i = 0; $i -lt $actorsCond.Count; $i++) {
-            $item = @{ T = 'item'; Num = ((_LlicLletra ($i + 1)).ToLower() + '.'); Text = [string]$actorsCond[$i] }
-            [void]$b.Add(@{ T = 'unitat'; Blocs = @($item) })
-        }
-    }
+    if ($ambCond) { foreach ($x in @(_LlicBlocsActorsCondicions $actorsCond)) { [void]$b.Add($x) } }
     # El tancament: del cataleg, com tots els altres informes.
     foreach ($x in @(_BlocsTancament $fields)) { [void]$b.Add($x) }
 

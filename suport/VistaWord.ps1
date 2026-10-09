@@ -158,10 +158,23 @@ function Build-MnsVistaBlocs($cat) {
     foreach ($f in @(_MnsFases)) {
         [void]$b.Add(@{ T = 'seccio'; Text = [string]$f.Nom })
         [void]$b.Add(@{ T = 'aire'; Clau = 'seccio' })
-        foreach ($v in @(@{ Amb = $false; Nom = 'sense observacions' }, @{ Amb = $true; Nom = 'amb observacions' })) {
+        # Les variants amb CONDICIONS nomes son de la MNS (octubre 2026).
+        $variants = @(@{ Amb = $false; Cond = $false; Nom = 'sense observacions' }, @{ Amb = $true; Cond = $false; Nom = 'amb observacions' })
+        if ([string]$f.Clau -eq 'mns') {
+            $variants += @(@{ Amb = $false; Cond = $true; Nom = 'sense observacions, amb condicions' },
+                           @{ Amb = $true; Cond = $true; Nom = 'amb observacions, amb condicions' })
+        }
+        foreach ($v in $variants) {
             [void]$b.Add(@{ T = 'subseccio'; Text = [string]$v.Nom })
             [void]$b.Add(@{ T = 'aire'; Clau = 'subseccio' })
-            foreach ($p in @(_MnsParagrafs $cat ([string]$f.Clau) ([bool]$v.Amb))) {
+            $pars = @(_MnsParagrafs $cat ([string]$f.Clau) ([bool]$v.Amb) ([bool]$v.Cond))
+            if ([bool]$v.Amb -and [bool]$v.Cond) {
+                # La linia que va darrere dels punts de REQ1.
+                $lin = _MnsLiniesNode $cat ([string]$f.Clau) 'condicions'
+                if ($null -eq $lin) { $lin = @((_MnsTextCondicions 'condicions')) }
+                $pars += @(@{ Tipus = 'text'; Linies = @('//(els punts de REQ1 triats)//') }, @{ Tipus = 'text'; Linies = @($lin) })
+            }
+            foreach ($p in $pars) {
                 if ([string]$p.Tipus -eq 'llista') {
                     [void]$b.Add(@{ T = 'cos'; Text = '//(aqui hi va una llista de Word buida, per omplir-la a ma)//' })
                     continue

@@ -714,3 +714,37 @@ s'assembla gens: tres o quatre paràgrafs fixos i cap bloc de documentació.
 - `MNSTRANS.json` queda **fora de `Get-Catalegs`** (com `LLIC.json`) i té vista en
   Word (`_VistaMnsTrans`), que ensenya els dos informes amb les dues variants.
 
+
+### La MNS també porta CONDICIONS (octubre 2026)
+
+Petició de l'usuari: «tot igual que a LlicFavPre». **Només la MNS**, no la
+Transmissió.
+
+- **El pas**: després de triar els punts de REQ1 (pas 20), la MNS passa pel
+  pas 21, que és la **mateixa pantalla** `Select-LlicCondicions` amb `-Mns`
+  (canvia el títol i no parla de l'informe preceptiu). Els actors surten **sense
+  marcar**, perquè no hi ha bloc ABANS d'on proposar-ne. El PDF de cada actor sí
+  que es recorda (de la fitxa de la llicència). Els marcats van a
+  `$st.MnsCondActors` i no a `CondActors`, que són els de la llicència. Si no
+  se'n marca cap, l'informe queda com abans.
+- **El text és al catàleg** (`MNSTRANS.json`, dos nodes nous de la secció
+  `mns`):
+  - `sense-observacions-condicions` substitueix el `sense-observacions`
+    quan hi ha condicions;
+  - `condicions` és la línia «i sota les condicions… (adjunts a
+    continuació):», que va **darrere dels punts de REQ1**, i per això
+    `_MnsParagrafs` no la treu mai al bucle.
+  - Si el catàleg de l'usuari encara no porta aquests nodes,
+    `_MnsTextCondicions` posa el mateix text.
+- **La llista a., b., c.** és `_LlicBlocsActorsCondicions` (la mateixa dels
+  favorables). Viu a `MotorInforme.ps1`, amb `_LlicLletra`: `MnsTrans.ps1` no
+  pot dependre de cap fitxer de Llicència sense fer un cicle, perquè
+  `LlicenciaDades` ja depèn d'ell per `_MnsFases` (el guard d'arquitectura ho
+  va enxampar).
+- **Els adjunts** es copien amb `Copy-LlicAdjunts` (la carpeta de la
+  llicència) i s'apunten amb **`Add-LlicenciaHistorial`**, que només afegeix una
+  línia a l'historial: si es desés la fitxa sencera amb l'estat de la MNS, la
+  llicència perdria tot el que s'hi havia omplert. Així «Word a PDF» els troba
+  pel nom del `.docx`, com els dels favorables.
+- La vista en Word de `MNSTRANS.json` ensenya també les dues variants amb
+  condicions.

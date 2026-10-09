@@ -663,10 +663,12 @@ function Select-LlicTecnic($pre, $preDocs = $null) {
 #
 # $pdfs: nom -> ruta ja triada (la copia local, si ve de la memoria).
 # Retorna @{ Nav; Actors (els noms marcats, en l'ordre de la llista); Pdfs }.
-function Select-LlicCondicions($actors, $marcats, $pdfs = $null) {
+# -Mns: la mateixa pantalla per a la Modificacio NO Substancial (octubre 2026):
+# canvia el titol i no parla de l'informe preceptiu marcat (alla no n'hi ha).
+function Select-LlicCondicions($actors, $marcats, $pdfs = $null, [switch]$Mns) {
     $actors = @($actors)
     $form = _NewForm
-    $form.Text = 'Condicions de la llic' + [char]0x00E8 + 'ncia'
+    $form.Text = if ($Mns) { 'Condicions de la modificaci' + [char]0x00F3 } else { 'Condicions de la llic' + [char]0x00E8 + 'ncia' }
     $form.ClientSize = New-Object System.Drawing.Size(700, 500)
     $form.StartPosition = 'CenterScreen'
 
@@ -675,7 +677,7 @@ function Select-LlicCondicions($actors, $marcats, $pdfs = $null) {
     $lbl.Size = New-Object System.Drawing.Size(660, 52)
     $lbl.Text = ('Marca qui posa condicions i tria el PDF del seu informe: en passar l' + [char]0x2019 + 'informe a PDF ' +
                  's' + [char]0x2019 + 'hi afegira darrere. Si no en marques cap, la conclusi' + [char]0x00F3 +
-                 ' no parla de condicions. Surten marcats els que tenen l' + [char]0x2019 + 'informe preceptiu com a "Es disposa".')
+                 ' no parla de condicions.' + $(if ($Mns) { '' } else { ' Surten marcats els que tenen l' + [char]0x2019 + 'informe preceptiu com a "Es disposa".' }))
     [void]$form.Controls.Add($lbl)
 
     $pan = New-Object System.Windows.Forms.Panel
@@ -760,7 +762,8 @@ function Select-LlicCondicions($actors, $marcats, $pdfs = $null) {
 
     $btnBack.add_Click({ $form.Close() }.GetNewClosure())
 
-    [void](_AddBrandHeader $form 'Condicions' ('Qui les posa i el seu informe (nom' + [char]0x00E9 + 's als favorables)') 56)
+    $subt = if ($Mns) { 'Qui les posa i el seu informe (Modificaci' + [char]0x00F3 + ' NO Substancial)' } else { 'Qui les posa i el seu informe (nom' + [char]0x00E9 + 's als favorables)' }
+    [void](_AddBrandHeader $form 'Condicions' $subt 56)
     [void]$form.ShowDialog()
     $form.Dispose()
     return $res
