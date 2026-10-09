@@ -1049,7 +1049,13 @@ try {
     & $nouDocx (Join-Path (Join-Path $pnI 'GIA 801') '2026-01-10_Seg.docx') @('ID GIA: 801', $fiPN, 'Ho poso al seu coneixement als efectes oportuns,')
     & $nouDocx (Join-Path (Join-Path (Join-Path $pnI 'GIA 801') 'Expedient GIA') '2026-02-10_Vell.docx') @('ID GIA: 801', "Vist l'anterior, cal requerir l'esmena de les deficiències indicades.", 'Ho poso al seu coneixement als efectes oportuns,')
     & $nouDocx (Join-Path $pnI '2026-03-10_Solt.docx') @('ID GIA: 802', $fiPN, 'Ho poso al seu coneixement als efectes oportuns,')
-    AssertEq (@(Get-FitxersPrimerNivell $pnI | ForEach-Object { $_.Name }) -join '|') '2026-01-10_Seg.docx' 'Get-FitxersPrimerNivell: nomes els de dins de cada carpeta (ni l''arrel ni les subcarpetes)'
+    # Al primer nivell, tambe fitxers que NO son informes (un PDF de l'expedient,
+    # un .docx sense data al nom): no hi han d'entrar. Abans el filtre rebia la
+    # llista sencera com un sol objecte i els deixava passar tots.
+    [System.IO.File]::WriteAllText((Join-Path (Join-Path $pnI 'GIA 801') 'Instancia_generica.pdf'), '%PDF-1.4')
+    & $nouDocx (Join-Path (Join-Path $pnI 'GIA 801') 'Esborrany.docx') @('ID GIA: 801', "Vist l'anterior, cal requerir l'esmena.", 'Ho poso al seu coneixement als efectes oportuns,')
+    $pnTots = Get-FitxersPrimerNivell $pnI
+    AssertEq (@($pnTots | ForEach-Object { $_.Name } | Sort-Object) -join '|') '2026-01-10_Seg.docx|Esborrany.docx|Instancia_generica.pdf' 'Get-FitxersPrimerNivell: nomes els de dins de cada carpeta (ni l''arrel ni les subcarpetes)'
     $resPN = Invoke-InformesDbEscaneig
     $dbPN = Read-JsonFile (Join-Path $LocalActivitatsDir 'informes-db.json')
     AssertEq "$($resPN.NInformes)|$(@($dbPN.activitats)[0].estat_actual)" '1|FI Requeriment' 'Actualitzar base: el requeriment de la subcarpeta (mes nou) no decideix l''estat, i el de l''arrel no hi entra'

@@ -539,7 +539,12 @@ function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock
     #    -Filter i filtrem per extensio nosaltres: evita el parany de "*.doc"
     #    -Filter que a vegades tambe encerta ".docx" pel nom curt (8.3) de NTFS.
     & $avisa "Cercant informes a:`n$dir" 0 0
-    $allInformes = Get-FitxersPrimerNivell $dir |
+    # Primer s'ASSIGNA i despres es filtra: Get-FitxersPrimerNivell torna la
+    # llista amb coma, i passada directament per la canonada arribava al
+    # Where-Object com UN SOL objecte (la llista sencera): el filtre deixava
+    # passar TOTS els fitxers en cop que n'hi hagues un de bo (mesurat).
+    $primerNivell = Get-FitxersPrimerNivell $dir
+    $allInformes = $primerNivell |
                    Where-Object {
                        $_.Name -notlike '~$*' -and
                        ($_.Extension -ieq '.docx' -or $_.Extension -ieq '.doc') -and
