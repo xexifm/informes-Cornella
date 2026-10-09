@@ -49,7 +49,7 @@ function _SrcModul([string]$patro) {
 function _SrcLlicencia { return ((@('LlicenciaDades.ps1', 'LlicenciaBlocs.ps1', 'LlicenciaPantalles.ps1', 'Llicencia.ps1') | ForEach-Object { [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) $_)) }) -join "`n") }
 $Script:FitxersLlicencia = @('LlicenciaDades.ps1', 'LlicenciaBlocs.ps1', 'LlicenciaPantalles.ps1', 'Llicencia.ps1')
 
-foreach ($area in @('01-motor', '02-eines', '03-llicencia', '04-correu', '05-composicio', '06-guards', '07-pdfunio', '08-correu-format', '09-normativa', '10-revisio')) {
+foreach ($area in @('01-motor', '02-eines', '03-llicencia', '04-correu', '05-composicio', '06-guards', '07-pdfunio', '08-correu-format', '09-normativa', '10-revisio', '11-contactes')) {
     . (Join-Path $PSScriptRoot (Join-Path 'proves' ($area + '.ps1')))
 }
 

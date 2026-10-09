@@ -590,10 +590,52 @@ namespace InformesCornella
             for (int i = 0; i < filtres.Count; i++)
             {
                 if (filtres[i] == "FlateDecode" || filtres[i] == "Fl") d = Inflate(d);
+                // Els dos de text: per al lector de text (PdfText.ps1), que
+                // descodifica el contingut de les pagines.
+                else if (filtres[i] == "ASCII85Decode" || filtres[i] == "A85") d = A85(d);
+                else if (filtres[i] == "ASCIIHexDecode" || filtres[i] == "AHx") d = Hexa(d);
                 else throw new Exception("filtre no suportat: " + filtres[i]);
                 d = Predictor(d, parms[i]);
             }
             return d;
+        }
+
+        static byte[] Hexa(byte[] d)
+        {
+            MemoryStream o = new MemoryStream();
+            int hi = -1;
+            foreach (byte c in d)
+            {
+                if (c == (byte)'>') break;
+                int v = c >= (byte)'0' && c <= (byte)'9' ? c - '0' : c >= (byte)'a' && c <= (byte)'f' ? c - 'a' + 10 : c >= (byte)'A' && c <= (byte)'F' ? c - 'A' + 10 : -1;
+                if (v < 0) continue;
+                if (hi < 0) hi = v; else { o.WriteByte((byte)(hi * 16 + v)); hi = -1; }
+            }
+            if (hi >= 0) o.WriteByte((byte)(hi * 16));
+            return o.ToArray();
+        }
+        static byte[] A85(byte[] d)
+        {
+            MemoryStream o = new MemoryStream();
+            long v = 0; int n = 0;
+            int i = 0;
+            if (d.Length > 1 && d[0] == (byte)'<' && d[1] == (byte)'~') i = 2;
+            for (; i < d.Length; i++)
+            {
+                byte c = d[i];
+                if (c == (byte)'~') break;
+                if (PdfParser.EsBlanc(c)) continue;
+                if (c == (byte)'z' && n == 0) { o.Write(new byte[4], 0, 4); continue; }
+                if (c < 33 || c > 117) continue;
+                v = v * 85 + (c - 33); n++;
+                if (n == 5) { for (int k = 3; k >= 0; k--) o.WriteByte((byte)(v >> (8 * k))); v = 0; n = 0; }
+            }
+            if (n > 1)
+            {
+                for (int k = n; k < 5; k++) v = v * 85 + 84;
+                for (int k = 3; k >= 5 - n; k--) o.WriteByte((byte)(v >> (8 * k)));
+            }
+            return o.ToArray();
         }
 
         static byte[] Inflate(byte[] d)
@@ -1058,7 +1100,8 @@ namespace InformesCornella
 # Compila el C# si encara no ho esta. Un sol cop per sessio.
 function _PdfUnioCarrega {
     if ('InformesCornella.PdfUnio' -as [type]) { return }
-    Add-Type -TypeDefinition $Script:PdfUnioCs -ErrorAction Stop
+    # El lector de text (PdfText.ps1) fa servir PdfDoc: es compila tot junt.
+    Add-Type -TypeDefinition ($Script:PdfUnioCs + "`n" + [string]$Script:PdfTextCs) -ErrorAction Stop
 }
 
 # Ajunta $informe + $adjunts (en aquest ordre) a $sortida. Retorna

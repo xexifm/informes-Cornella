@@ -755,6 +755,21 @@ exemple, si en portes el seguiment per una altra via).
   l'«ignorar») **mana** sobre el que surti d'*Actualitzar base*, i l'*Estat
   activitat* d'aquelles activitats surt **en vermell** perquè ho tinguis present.
   Si t'has equivocat, selecciona la fila i clica **Desfer canvi a mà**.
+- **Contactes** (a *Editar base d'informes*, botó **Contactes...**): en acabar,
+  *Actualitzar base* també repassa les **dades de contacte** de cada activitat
+  amb l'XML de l'e-TRAM, la instància genèrica i l'autorització de cada carpeta
+  (només les de dins de cada carpeta, no les subcarpetes) i diu el que falta o
+  no quadra a l'Excel: sobretot **el tècnic posat com a representant legal** o
+  el seu correu o mòbil com si fossin del titular. **L'Excel no es toca mai**:
+  ho corregeixes tu al GIA amb **Exportar correccions (Excel)**. Els botons
+  **És el tècnic**, **És el representant legal**, **Descarta l'avís** i
+  **Edita** manen sobre el que surti de la pròxima *Actualitzar base* (i
+  **Desfer canvi a mà** ho torna enrere). *Enviar correu*, els *Recordatoris* i
+  els *Controls periòdics* fan servir el correu dels documents si l'Excel no en
+  té, i t'avisen si el de l'Excel és del tècnic.
+  Per comprovar-ho amb la revisió feta a mà: `local\ValidarContactes.bat`; per
+  veure què llegeix el programa d'un PDF concret, arrossega'l damunt de
+  `local\DiagnosticPdf.bat`.
 - **📋 Editar base d'informes**, **📥 Revisar entrades del mòbil**,
   **⏱ Controls periòdics**, **Activitats extraordinàries**.
 

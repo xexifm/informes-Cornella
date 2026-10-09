@@ -101,7 +101,7 @@ try {
     $vcRes = Invoke-InformesDbEscaneig {
         param($t, $i, $n)
         if ($n -gt 0 -and ($i % 50) -eq 0) { Write-Host ("  ... $i de $n") }
-    } $null $GiaAssignats
+    } $null $GiaAssignats $false
     if (-not [bool]$vcRes.Ok) { throw ("L'escaneig no s'ha pogut fer: " + [string]$vcRes.Error) }
     # Per Get-InformesDbPath, que llegeix $LocalActivitatsDir: aqui dins encara
     # apunta a $vcTmp, o sigui que es EXACTAMENT el fitxer que acaba d'escriure

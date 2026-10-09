@@ -247,6 +247,41 @@ function _ActualitzaSettingsLocal([string]$repoRoot) {
 # $repoRoot buit -> l'arrel del clone deduida d'on viu aquest fitxer (suport\).
 # Aixi Actualitzar.bat el pot cridar sense haver de passar-li cap ruta (i sense
 # les mil punyetes de les cometes de cmd amb rutes acabades en barra).
+# ----------------------------------------------------------------------------
+# ELS .BAT DE local\ (per executar al PC el que no es del menu)
+# ----------------------------------------------------------------------------
+# El repas de contactes es valida contra una referencia feta a ma que porta
+# dades personals (local\, mai al repositori), o sigui que nomes es pot fer al
+# PC de l'usuari: l'usuari, "posa-hi un .bat a local\ com el de la
+# classificacio". Com que local\ no es puja, els .bat no poden anar al
+# repositori: els escriu aquesta migracio (en arrencar i a Actualitzar.bat), i
+# nomes si no hi son o han canviat. ASCII pur i cap '^' entre cometes (vegeu la
+# trampa del cmd a suport/CLAUDE.md). PURA: nom -> contingut.
+function _BatsLocal {
+    $cap = "@echo off`r`nrem Generat pel programa (suport\Migracio.ps1): es torna a escriure sol.`r`ncd /d `"%~dp0..`"`r`n"
+    return [ordered]@{
+        'ValidarContactes.bat' = ($cap +
+            "echo Validant el repas de contactes contra la referencia (contactes-referencia_*.json)...`r`n" +
+            "powershell -NoProfile -ExecutionPolicy Bypass -File `"suport\ValidarContactes.ps1`"`r`n" +
+            "pause`r`n")
+        'DiagnosticPdf.bat' = ($cap +
+            "rem Arrossega un PDF (o un XML de l'e-TRAM) damunt d'aquest fitxer, o obre'l i tria'l.`r`n" +
+            "powershell -NoProfile -ExecutionPolicy Bypass -STA -File `"suport\DiagnosticPdf.ps1`" -Pdf `"%~1`"`r`n" +
+            "pause`r`n")
+    }
+}
+
+function _PosaBatsLocal([string]$repoRoot) {
+    $dir = Get-LocalDir $repoRoot
+    if (-not (Test-Path -LiteralPath $dir)) { [void](New-Item -ItemType Directory -Path $dir -Force) }
+    $bats = _BatsLocal
+    foreach ($k in $bats.Keys) {
+        $p = Join-Path $dir $k
+        $ara = if (Test-Path -LiteralPath $p) { [System.IO.File]::ReadAllText($p) } else { $null }
+        if ($ara -ne $bats[$k]) { [System.IO.File]::WriteAllText($p, $bats[$k], [System.Text.Encoding]::ASCII) }
+    }
+}
+
 function Invoke-MigracioLocal([string]$repoRoot = '') {
     if ([string]::IsNullOrWhiteSpace($repoRoot)) { $repoRoot = $Script:MigracioRepoRoot }
     if ([string]::IsNullOrWhiteSpace($repoRoot)) { return 0 }
@@ -263,6 +298,7 @@ function Invoke-MigracioLocal([string]$repoRoot = '') {
             [void](_ActualitzaSettingsLocal $repoRoot)
             Write-Host ("Endrecat: {0} elements moguts a '{1}\'." -f $total, $Script:LocalDirName)
         }
+        try { _PosaBatsLocal $repoRoot } catch { }
         if ($Script:MigracioPendents) {
             Write-Host "  (queda algun fitxer per moure perque estava obert; tanca'l i torna a fer Actualitzar.bat)"
         }

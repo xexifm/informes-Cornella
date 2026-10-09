@@ -1141,6 +1141,205 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
   GUI, escriu directament a `%LOCALAPPDATA%\InformesCornella\settings.json`
   (`{"InformesDir": "F:\\...\\Informes", "ActivitatsDir": "F:\\...\\2_Controls Excels"}`).
 
+## Contactes de les activitats (octubre 2026) — `Contactes*.ps1`
+
+**Què demanava l'usuari:** que «Actualitzar base» (el botó i l'automàtic de
+les 13:00), a més de l'estat de cada activitat, **repassi les dades de
+contacte** de cada ID GIA: que **completi** les que falten a l'Excel
+d'activitats (titular, representant legal, persones autoritzades) i que
+**avisi** de les que hi són malament. El cas més freqüent: **el tècnic posat
+com a representant legal**, o el seu correu o el seu mòbil com si fossin del
+titular. **L'Excel és una exportació del GIA i el programa no el toca mai**:
+el que surt és una base pròpia, una finestra per revisar-la i una llista de
+correccions per entrar-les al GIA a mà.
+
+**Els fitxers**, un per cosa:
+
+| Fitxer | Què hi ha |
+|---|---|
+| `PdfText.ps1` | el text d'un PDF generat, sense biblioteques (C# compilat amb el de `PdfUnio.ps1`) |
+| `ContactesExtraccio.ps1` | què diu cada document (pur): e-TRAM, instància, autorització, XML antics |
+| `ContactesRegles.ps1` | de qui és cada dada i els avisos contra l'Excel (pur) |
+| `ContactesDb.ps1` | `contactes-db.json`, el repàs, les correccions a mà, l'ús als correus, l'exportació, la validació |
+| `ContactesPantalla.ps1` | la finestra «Contactes» (des d'«Editar base») |
+| `ValidarContactes.ps1` · `DiagnosticPdf.ps1` | per al PC de l'usuari (`local\ValidarContactes.bat`, `local\DiagnosticPdf.bat`) |
+
+### Quins documents: tres tipus, triats pel NOM
+
+A la carpeta d'informes hi ha ~25.000 fitxers (cada carpeta porta l'expedient
+del GIA descarregat). L'usuari ho va mesurar: gairebé totes les dades surten de
+tres tipus de document, petits. `_CtTipusDocument` els tria **pel nom** abans
+d'obrir res:
+
+| Tipus | Nom | Què se'n treu |
+|---|---|---|
+| `etram` | `*etram-tramit*.xml` | `<solicitant>`, `<representant>`, `<canalSms>`, `<canalCorreuElectronic>`, `<dataCreacio>`, `<nomTramit>` i les `<dada>` de l'establiment |
+| `instancia` | `*instància genèrica*`, `*Instancia_generica*`, `*Esmena sol·licitud*`, `*SEU  OAC*` (PDF) | les seccions de l'interessat i del representant, la data i el títol |
+| `autoritzacio` | `*autoritz*`, `*autoriz*`, `*representaci*` (no `Índex electrònic…`) | qui signa en nom de l'empresa (el **representant legal**) i a qui autoritza |
+| `xmlantic` | `*XML_TRAMIT*.xml`, `*sicres3*.xml` | `Nombre_Interesado`… i `_Representante` |
+
+**Només el primer nivell** de cada carpeta d'activitat (`Get-FitxersPrimerNivell`,
+el mateix que la base d'informes: l'usuari, «sempre primer nivell»). Els
+certificats, les memòries i els projectes no es llegeixen: pesen molt i gairebé
+només donen el tècnic.
+
+**L'ID GIA de cada document** és el de la base d'informes (l'usuari: «fes-la
+servir, no en facis una altra»), `_CtGiaDocument`: el que diu el mateix document
+si és un GIA conegut (un document d'una altra activitat a la mateixa carpeta va
+amb la seva), el del nom de la carpeta («GIA n»), el dels informes de la
+carpeta si tots són del mateix GIA, o l'expedient → Excel. Una carpeta de
+diverses activitats amb un document que no diu de quina: «sense GIA» (surt a la
+validació).
+
+**Incremental**, com els informes: per cada document es desa la ruta relativa,
+la data de modificació i el que se n'ha tret, i només es tornen a llegir els
+nous o modificats (o tots si canvia `$Script:ContactesVersio`). **Compte amb el
+pwsh 7**: torna les dates ISO del JSON com a `[datetime]`; la comparació va amb
+`Read-JsonIso` (ho va enxampar la prova de l'incremental).
+
+### Llegir els PDF sense biblioteques (`PdfText.ps1`)
+
+Per què no PDFsharp ho explica `PdfUnio.ps1`. Les instàncies de la seu i els
+formularis de l'e-TRAM són **PDF generats, amb text**. El lector fa servir el
+mateix `PdfDoc` de la unió (xref, fluxos d'objectes, FlateDecode amb predictor;
+s'hi han afegit ASCII85 i ASCIIHex) i hi posa:
+
+- els operadors de text `Tj`, `TJ`, `'` i `"`, i la posició (`Tm`, `Td`, `TD`,
+  `T*`, `cm`, `q`/`Q`) per tornar a fer les **línies**: cada tros es desa amb la
+  seva posició i, en acabar la pàgina, s'ordena de dalt a baix i d'esquerra a
+  dreta. **Els formularis posen l'etiqueta i el valor a la mateixa alçada però en
+  qualsevol ordre al contingut**: llegint en ordre del flux sortien barrejats;
+- la `ToUnicode` (`bfchar`/`bfrange`) de cada font, i sense, WinAnsi +
+  `/Differences`; l'amplada (`/Widths`, `/W`) per saber si dos trossos de la
+  mateixa línia porten un espai al mig;
+- les formes (`Do` d'un XObject `/Form`) i salta les imatges en línia (`BI … EI`).
+
+El C# de `PdfText` va **dins del namespace amb els `using` a dins** i es compila
+**enganxat** al de `PdfUnio` (`_PdfUnioCarrega`): necessita `PdfDoc`, i dos
+`Add-Type` separats no es poden referenciar en memòria al PowerShell 5.1.
+
+Si no en surt text (xifrat, una font `Identity-H` sense `ToUnicode`), **el Word**
+(`_PdfTextWord`, obert un sol cop per passada i només si cal). Si tampoc,
+**escanejat**: a la llista «no llegibles». L'OCR del Windows queda per més
+endavant (l'usuari: «ara no»).
+
+**No s'ha pogut veure cap instància de debò** (porten dades personals): el
+lector i els lectors de cada document es van fer amb documents inventats.
+`DiagnosticPdf.ps1` (`local\DiagnosticPdf.bat`: s'hi arrossega un PDF) escriu
+el text extret i el que en treuen els lectors a
+`local\base-dades-activitats\diagnostic-pdf_<nom>.txt`. **És el primer que s'ha
+de mirar quan la validació doni discrepàncies.**
+
+### Les regles (`ContactesRegles.ps1`)
+
+1. **El tècnic no és mai el representant legal.** Tècnics, enginyers,
+   arquitectes, gestories i tramitadors són **persones autoritzades**.
+   `_CtMotiuTecnic` els reconeix: a `tecnics-coneguts_*.json` (el més recent),
+   el correu o el telèfon surten a **activitats de titulars diferents**
+   (comptat sobre tota la base, Excel inclòs, a `_CtContext`: el senyal més
+   fort), el correu és professional (`engin`, `arquitec`, `gestor`…), una
+   autorització els autoritza, o presenten amb un NIF d'entitat (gestoria).
+   **`-Fort`**: per treure un correu o un telèfon AL TITULAR només valen la
+   llista i els titulars diferents; un «estudi de dansa» o una «oficina» poden
+   ser el titular, i el patró professional se'l menjaria.
+2. **Representant legal**: persona física → en blanc (és ella mateixa);
+   persona jurídica → qui signa l'autorització en nom de l'empresa («segur») o
+   el representant d'un tràmit que no sigui tècnic («probable»). Mai el tècnic.
+3. **El titular** = l'interessat, camp a camp i del més recent, **tret del que
+   sigui del tècnic**: el correu o el mòbil d'una persona autoritzada no pot ser
+   del titular.
+4. **L'establiment**: el telèfon i el correu de l'e-TRAM, si no són del tècnic.
+5. **Fora**: les **queixes** (sèrie `2579`: els interessats són els veïns),
+   tret que el NIF sigui el del titular; les administracions
+   (`cornella.cat`, `gencat.cat`, `aoc.cat`, Mossos, Bombers…) i les entitats
+   de control (`tuvsud`, `dekra`, `applus`…).
+6. **Recintes** amb organitzadors d'actes (GIA 28 i 1324; es canvia a
+   `local\base-dades-activitats\contactes-config.json`, `{ "recintes": [...] }`):
+   no es proposa res del titular ni del representant.
+7. **El més recent mana** (per la data del document); la resta, a `historic`.
+8. Cada dada porta **font** (ruta relativa), **data** i **confiança**.
+
+Els telèfons es reparteixen **pel prefix** (6/7 mòbil, 8/9 fix), no pel camp on
+els va escriure el formulari: és el mateix criteri amb què es comparen amb
+l'Excel.
+
+### Els avisos contra l'Excel
+
+L'Excel es llegeix **una sola vegada** (la de la base d'informes):
+`Initialize-ActivitatsCache` hi afegeix les columnes de contacte (NIF, telèfons,
+representant legal) **a `$cache.Contactes`, no a `ById`**, que és el que es puja
+al Drive del mòbil (hi ha prova amb un doble de l'Excel, validada injectant-hi
+el NIF).
+
+| Tipus | Quan |
+|---|---|
+| `es_el_tecnic` | el representant legal, un correu o un telèfon de l'Excel són d'una persona autoritzada (diu de qui) |
+| `falta` | l'Excel és buit i els documents donen la dada |
+| `diferent` | els documents més recents diuen una altra cosa |
+| `error` | `gmailo.com`, `hotmal`, `holmail`, un domini a 1–2 lletres del dels documents, 10 xifres, un fix al mòbil, un correu al telèfon, la lletra del DNI, el CIF de l'empresa al NIF del representant |
+| `canvi_titular` | el document més recent és d'un altre NIF (només avís: l'Excel pot ser més nou) |
+
+### On es guarda i les correccions a mà
+
+`local\base-dades-activitats\contactes-db.json` (no es puja mai): per GIA,
+`titular_tipus`, `titular`, `representant_legal`, `persones_autoritzades[]`,
+`establiment`, `avisos[]`, `documents[]` — **el mateix format que la
+referència**, perquè la validació hi pugui comparar camp a camp — i, al costat,
+la fila de l'Excel (`excel`). A dalt, la cache dels documents.
+
+Les **correccions a mà** (`correccions`, per GIA) **manen**, com `editat_a_ma` a
+la base d'informes: «És el tècnic», «És el representant legal», «Descarta
+l'avís» i «Edita». **No es desen a sobre del resultat**: entren a les regles
+(`_CtManDeCorreccions` → `Get-ContactesActivitat`) i es tornen a aplicar a cada
+passada, o sigui que el pròxim «Actualitzar base» no les desfà. Cada una guarda
+el valor automàtic per a «Desfer canvi a mà», i la finestra torna a calcular
+l'activitat sense tornar a llegir cap document (`Update-ContactesActivitats`).
+Un sol escaneig a la vegada: el mutex de la base d'informes.
+
+### La finestra «Contactes» i el resum
+
+- Al final d'«Actualitzar base»: «Contactes: N activitats amb dades noves · M
+  avisos (X del tècnic, Y errors…) · K documents no llegibles» (al missatge del
+  botó i al registre de l'automàtic).
+- **Editar base → Contactes...** (s'hi apunta pel registre
+  `$Script:EditarBaseBotonsExtra`: l'editor no depèn dels seus clients). La
+  llista per GIA amb filtre per tipus d'avís, el detall amb l'Excel i els
+  documents de costat, «Obre el document», els quatre botons de correcció i
+  **«Exportar correccions (Excel)»** (GIA, titular, camp, valor a l'Excel,
+  problema, proposta, font), amb el mateix escriptor d'`.xlsx` sense Excel que
+  l'índex de la Normativa.
+
+### Fer-la servir als correus
+
+On el programa agafa el correu del titular o del representant de l'Excel
+(Enviar correu, Recordatoris, Controls periòdics), `Get-ContactesEmailsCompletats`:
+
+- si l'Excel és buit, proposa el de la base de contactes i **diu que surt dels
+  documents**;
+- si el correu de l'Excel té un avís `es_el_tecnic`, **avisa abans d'enviar**
+  (Enviar correu: abans del diàleg; Recordatoris a mà: pregunta per a cada un;
+  en automàtic, al registre; Controls periòdics, que són esborranys, a la llista
+  del final).
+
+La destinació «Persones autoritzades / tècnic» de Configuració → Correus de cada
+eina surt d'aquí (`Get-ContactesAutoritzatsEmails`).
+
+### La validació (`ValidarContactes.ps1`)
+
+Germana de `ValidarClassificacio.ps1`: fa el repàs de debò **sense correccions
+a mà i sense desar** (`-SenseCorreccions -NoDesis`) i el compara amb
+`contactes-referencia_*.json` (336 activitats revisades a mà): e-mail i
+telèfons del titular (els telèfons com a conjunt), nom del representant legal,
+els e-mails de les persones autoritzades i els avisos `es_el_tecnic`. Les dades
+«probable» de la referència van a part. Escriu
+`local\base-dades-activitats\validacio-contactes_<data>.txt`. **L'objectiu és 0
+discrepàncies en les «segur».** Cal haver fet «Actualitzar base» abans
+(l'atribució al GIA és la de la base d'informes).
+
+Els dos `.bat` de `local\` els escriu la migració (`_BatsLocal`,
+`Invoke-MigracioLocal`): `local\` no es puja, o sigui que no poden anar al
+repositori.
+
 ## Controls periòdics (eina EINES)
 - `suport/ControlsPeriodics.ps1` (fitxer NOU, amb BOM): eina **📅 Controls
   periòdics** del menú (secció EINES; acció `controlsperiodics`). Llegeix

@@ -519,8 +519,16 @@ function Send-CorreuPerDocx($docxPath) {
     # (titular i representant de l'Excel, si no s'hi ha tocat res). Si el
     # titular i el representant son la mateixa adreca, s'avisa.
     $cfgE = Get-CorreuEina 'mobil'
-    $def = _CorreuDestinatarisPerDefecte ([string]$header['EMAIL']) ([string]$header['EMAIL_REP'])
-    $destinatariDefault = (@(_CorreuDestinataris $cfgE @{ titular = [string]$header['EMAIL']; representant = [string]$header['EMAIL_REP'] } (Get-CorreuAutoritzats $gia))) -join '; '
+    # El repas de contactes (ContactesDb.ps1): si l'Excel no en te, el correu
+    # dels documents (i es diu); si el de l'Excel es del tecnic, s'avisa ABANS
+    # del dialeg d'enviar.
+    $ctEm = Get-ContactesEmailsCompletats $gia @{ titular = [string]$header['EMAIL']; representant = [string]$header['EMAIL_REP'] }
+    if (@($ctEm.Notes).Count -gt 0 -or [string]$ctEm.AvisTecnic -ne '') {
+        $txtCt = ((@($ctEm.Notes) + @($(if ([string]$ctEm.AvisTecnic -ne '') { [string]$ctEm.AvisTecnic } else { $null })) | Where-Object { $_ }) -join "`n`n")
+        [System.Windows.Forms.MessageBox]::Show($txtCt + "`n`n(Ho pots revisar a Editar base -> Contactes.)", 'Enviar correu', 'OK', $(if ([string]$ctEm.AvisTecnic -ne '') { 'Warning' } else { 'Information' })) | Out-Null
+    }
+    $def = _CorreuDestinatarisPerDefecte ([string]$ctEm.Emails.titular) ([string]$ctEm.Emails.representant)
+    $destinatariDefault = (@(_CorreuDestinataris $cfgE @{ titular = [string]$ctEm.Emails.titular; representant = [string]$ctEm.Emails.representant } (Get-CorreuAutoritzats $gia))) -join '; '
     if ($def.Duplicat -and @($cfgE.Dest) -contains 'titular' -and @($cfgE.Dest) -contains 'representant') {
         [System.Windows.Forms.MessageBox]::Show(
             "L'adreca de Rao social i la del Representant legal son la mateixa; s'ha posat una sola vegada.",

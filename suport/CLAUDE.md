@@ -14,7 +14,7 @@ hipotesis ja descartades- viuen ara a part:
 | `suport/rutes/` (rutes, coordenades, el Plànol activitats, el planol public de precintades) | **`suport/documentacio/rutes-i-mapes.md`** |
 | Posar el mobil en marxa (Drive, EmailJS, GitHub Pages) | **`suport/documentacio/DESPLEGAMENT-MOBIL.md`** |
 | Provar el programa al PC despres d'una tanda de canvis | **`suport/documentacio/provar-al-pc.md`** (porta un prompt per enganxar) |
-| `Seguiment.ps1`, `SeguimentGia.ps1`, `EnviarCorreu.ps1`, `CorreuVia.ps1` (EmailJS / Outlook), `Informes.ps1`, `InformesClassificacio.ps1`, `InformesEscaneig.ps1` (base d'informes), `ControlsPeriodics.ps1`, `EditorCatalegs.ps1`, `Recordatoris.ps1` | **`suport/documentacio/eines.md`** |
+| `Seguiment.ps1`, `SeguimentGia.ps1`, `EnviarCorreu.ps1`, `CorreuVia.ps1` (EmailJS / Outlook), `Informes.ps1`, `InformesClassificacio.ps1`, `InformesEscaneig.ps1` (base d'informes), `ControlsPeriodics.ps1`, `EditorCatalegs.ps1`, `Recordatoris.ps1`, `Contactes*.ps1` i `PdfText.ps1` (el repàs de contactes) | **`suport/documentacio/eines.md`** |
 | El mapa de mòduls, qui depèn de qui i les simplificacions pendents | **`suport/documentacio/arquitectura.md`** |
 | Revisar i simplificar l'arquitectura (quan el programa hagi crescut) | **`suport/documentacio/revisio-arquitectura.md`** (prompt per enganxar) |
 | Millorar l'eina «Coordenades» (fiabilitat, no perdre el repàs, repàs més ràpid) | **`suport/documentacio/millorar-coordenades.md`** (prompt per enganxar) |

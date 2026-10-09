@@ -162,6 +162,7 @@ function Invoke-ControlsCpEmailDrafts($rows) {
 
     $ok = 0; $senseCorreu = New-Object System.Collections.ArrayList
     $err = 0; $errDetalls = New-Object System.Collections.ArrayList; $cancelled = $false
+    $avisTec = New-Object System.Collections.ArrayList; $delsDocs = New-Object System.Collections.ArrayList
     $ses = $null
     try {
         # La mateixa sessio que Enviar correu i Recordatoris (CorreuVia.ps1): un
@@ -181,7 +182,13 @@ function Invoke-ControlsCpEmailDrafts($rows) {
             if ($bar.Value -lt $bar.Maximum) { $bar.Value = $done }
             [System.Windows.Forms.Application]::DoEvents()
 
-            $rec = _CorreuParteixToCc (_CorreuDestinataris $cfgE @{ titular = $r.RaoEmail; representant = $r.RepEmail } (Get-CorreuAutoritzats ([string]$r.Id)))
+            # El repas de contactes: el correu dels documents si l'Excel no en
+            # te, i la llista dels que son del tecnic (es diu al final: son
+            # esborranys, l'usuari els revisa abans d'enviar-los).
+            $ctEm = Get-ContactesEmailsCompletats ([string]$r.Id) @{ titular = [string]$r.RaoEmail; representant = [string]$r.RepEmail }
+            if ([string]$ctEm.AvisTecnic -ne '') { [void]$avisTec.Add("GIA $($r.Id) - $($r.RaoSocial)") }
+            if (@($ctEm.Notes).Count -gt 0) { [void]$delsDocs.Add("GIA $($r.Id) - $($r.RaoSocial)") }
+            $rec = _CorreuParteixToCc (_CorreuDestinataris $cfgE @{ titular = [string]$ctEm.Emails.titular; representant = [string]$ctEm.Emails.representant } (Get-CorreuAutoritzats ([string]$r.Id)))
             if (-not $rec.Ok) { [void]$senseCorreu.Add("GIA $($r.Id) - $($r.RaoSocial)"); continue }
 
             try {
@@ -204,6 +211,8 @@ function Invoke-ControlsCpEmailDrafts($rows) {
         $msg += "`n`nActivitats SENSE correu (omeses): $($senseCorreu.Count)`n - " + (($senseCorreu | Select-Object -First 15) -join "`n - ")
     }
     if ($err -gt 0) { $msg += "`n`nErrors: $err`n - " + (($errDetalls | Select-Object -First 10) -join "`n - ") }
+    if ($avisTec.Count -gt 0) { $msg += "`n`nATENCI" + [char]0x00D3 + ": el correu de l'Excel " + [char]0x00E9 + "s del t" + [char]0x00E8 + "cnic segons els documents (mira'ls abans d'enviar-los): $($avisTec.Count)`n - " + (($avisTec | Select-Object -First 15) -join "`n - ") }
+    if ($delsDocs.Count -gt 0) { $msg += "`n`nAmb el correu tret dels documents (l'Excel no en tenia): $($delsDocs.Count)`n - " + (($delsDocs | Select-Object -First 15) -join "`n - ") }
     $msg += "`n`nRevisa'ls a Outlook (carpeta Esborranys) abans d'enviar-los."
     [System.Windows.Forms.MessageBox]::Show($msg, 'Enviar correu', 'OK', 'Information') | Out-Null
 }

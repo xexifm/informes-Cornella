@@ -566,6 +566,12 @@ function _RecOmpleDadesFila($row, $cache, $cfgE = $null) {
     $rao = ''; $rep = ''
     try { if ($act.ContainsKey('EMAIL'))     { $rao = [string]$act['EMAIL'] } } catch { }
     try { if ($act.ContainsKey('EMAIL_REP')) { $rep = [string]$act['EMAIL_REP'] } } catch { }
+    # El repas de contactes: si l'Excel no en te, el dels documents; i si el de
+    # l'Excel es del tecnic, AvisContactes (la tanda ho avisa o ho apunta).
+    $ctEm = Get-ContactesEmailsCompletats ([string]$row.Id) @{ titular = $rao; representant = $rep }
+    $rao = [string]$ctEm.Emails.titular; $rep = [string]$ctEm.Emails.representant
+    Add-Member -InputObject $row -NotePropertyName AvisContactes -NotePropertyValue ((@(@($ctEm.Notes) + @([string]$ctEm.AvisTecnic)) | Where-Object { $_ }) -join ' ') -Force
+    Add-Member -InputObject $row -NotePropertyName AvisTecnic -NotePropertyValue ([string]$ctEm.AvisTecnic) -Force
     if ($null -ne $cfgE) {
         $row.Correus = (@(_CorreuDestinataris $cfgE @{ titular = $rao; representant = $rep } (Get-CorreuAutoritzats ([string]$row.Id)))) -join '; '
         return $row
@@ -662,6 +668,15 @@ function Invoke-RecordatorisTanda([string]$clau, $rows, [bool]$silenci) {
                 $res.SenseCorreu++
                 _RecLog "GIA $($row.Id): sense correu a l'Excel, omesa"
                 continue
+            }
+
+            # El correu de l'Excel es del tecnic (repas de contactes): a ma, es
+            # pregunta abans d'enviar; en automatic, es diu al registre.
+            if ([string]$row.AvisContactes -ne '') { _RecLog ("GIA $($row.Id): " + ([string]$row.AvisContactes -replace "`r?`n", ' ')) }
+            if (-not $silenci -and [string]$row.AvisTecnic -ne '') {
+                $rq = [System.Windows.Forms.MessageBox]::Show(("GIA $($row.Id) - $($row.Titular)`n`n" + [string]$row.AvisTecnic + "`n`nVols enviar-li el recordatori igualment?`n(No = el salta; Cancel" + [char]0x00B7 + "la = atura la tanda)"), 'Recordatoris', 'YesNoCancel', 'Warning')
+                if ($rq -eq [System.Windows.Forms.DialogResult]::Cancel) { $res.Aturat = $true; $res.Motiu = "cancel" + [char]0x00B7 + "lat per l'usuari"; break }
+                if ($rq -ne [System.Windows.Forms.DialogResult]::Yes) { continue }
             }
 
             if ($null -ne $lbl) {

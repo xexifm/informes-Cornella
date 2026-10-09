@@ -182,6 +182,33 @@ function _ClauInforme([string]$ruta, [string]$arrel) {
     return $r
 }
 
+# ----------------------------------------------------------------------------
+# ON es busquen els informes: NOMES el primer nivell
+# ----------------------------------------------------------------------------
+# Els fitxers que son DIRECTAMENT dins de cada carpeta d'activitat de la
+# carpeta d'informes (<arrel>\<carpeta>\fitxer). Ni els de l'arrel ni els de
+# les subcarpetes (l'usuari, octubre 2026: "nomes ha de tenir en compte els
+# informes de les carpetes dins la carpeta d'informes, pero no dins les
+# subcarpetes"). A les subcarpetes hi ha l'expedient del GIA descarregat
+# (~25.000 fitxers) i informes vells o d'altres activitats que no han de
+# decidir l'estat; abans un Get-ChildItem -Recurse els recorria tots. El fan
+# servir la base d'informes i el repas de contactes (per aixo es aqui i no a
+# InformesEscaneig.ps1: el repas de contactes no pot dependre del seu client).
+function Get-FitxersPrimerNivell([string]$dir) {
+    $out = New-Object System.Collections.ArrayList
+    foreach ($d in @(Get-ChildItem -LiteralPath $dir -Directory -ErrorAction SilentlyContinue)) {
+        foreach ($f in @(Get-ChildItem -LiteralPath $d.FullName -File -ErrorAction SilentlyContinue)) { [void]$out.Add($f) }
+    }
+    return ,$out.ToArray()
+}
+
+# La clau (_ClauInforme) es d'un fitxer de primer nivell? "carpeta\fitxer",
+# exactament una barra. PURA.
+function _EsDePrimerNivell([string]$clau) {
+    return (([string]$clau -replace '/', '\').Trim('\').Split('\').Count -eq 2)
+}
+
+
 # DESAR L'EDITOR QUAN LA BASE HA CANVIAT MENTRE ERA OBERT. Amb "Actualitzar base"
 # en automatic (en segon pla), la base del disc pot ser mes nova que la que
 # l'editor va carregar: desar-la tal qual tornaria enrere els informes nous.
@@ -348,6 +375,11 @@ function _StyleInformeRow($gridRow, [bool]$ignorat, $fontNormal, $fontStrike) {
 # deriva de la conclusio breu del darrer informe no ignorat de l'activitat
 # (per data) i es recalcula sempre que canvia "ignorar" o "conclusio breu" de
 # qualsevol dels seus informes. Tots els canvis es desen al JSON.
+# Els botons que hi afegeixen altres moduls (la finestra "Contactes",
+# ContactesPantalla.ps1): @{ Nom; Text; Clic }. Aixi l'editor no depen dels
+# seus clients (no hi pot haver cicles entre fitxers).
+$Script:EditarBaseBotonsExtra = New-Object System.Collections.ArrayList
+
 function Invoke-InformesDbEdit {
     $outPath = Get-InformesDbPath
     if (-not (Test-Path -LiteralPath $outPath)) {
@@ -634,10 +666,11 @@ function Invoke-InformesDbEdit {
     $botPanel.Dock = 'Bottom'; $botPanel.Height = 48
     # Exportar a CSV els llistats d'activitats en Estat Requeriment i Precinte /
     # Cessament (usa l'estat en memoria, que ja reflecteix els canvis no desats).
-    [void](_AddPeuBotons $form @(
+    [void](_AddPeuBotons $form (@(
         @{ Nom = 'Enrere'; Text = (_TxtEnrere); Clic = { $form.Close() }.GetNewClosure() },
         @{ Nom = 'Export'; Text = 'Exportar llistats (CSV)'; Clic = { Export-EstatsActivitats $state.Db }.GetNewClosure() },
-        @{ Nom = 'Desfer'; Text = ('Desfer canvi a m' + [char]0x00E0); Clic = { & $desfesAMa }.GetNewClosure() }) @(
+        @{ Nom = 'Desfer'; Text = ('Desfer canvi a m' + [char]0x00E0); Clic = { & $desfesAMa }.GetNewClosure() }
+        ) + @($Script:EditarBaseBotonsExtra)) @(
         @{ Nom = 'Desar'; Text = 'Desar'; Estil = 'primari'; Clic = {
             if ((& $doSave) -and $state.UltimDesat -eq 'desat') {
                 [System.Windows.Forms.MessageBox]::Show('Canvis desats.', 'Editar base d''informes', 'OK', 'Information') | Out-Null

@@ -34,6 +34,9 @@
     InformesClassificacio.ps1 que diu cada informe (conclusio, tipus) i l'estat de l'activitat
     Informes.ps1        GIA/expedient del text, edicions a ma + editor de la base
     InformesEscaneig.ps1 "Actualitzar base": llegeix els informes i munta informes-db.json
+    Contactes*.ps1      el repas de contactes d'"Actualitzar base": Extraccio (que diu
+                        cada document), Regles (de qui es cada dada, avisos), Db
+                        (contactes-db.json, correccions a ma) i Pantalla
     CopiaInformes.ps1   eina "Copiar informes" (a ma i automatic)
     ComprovarExcel.ps1  eina "Comprovar Excel" (precintes contra l'Excel)
     Migracio.ps1        rutes de local\ i endrec de les carpetes velles
@@ -46,6 +49,7 @@
     Revisio*.ps1        eina Revisar requeriments (vigencia, enllacos, fitxes)
     Enllacos.ps1        els enllacos dels catalegs i si responen (tambe per consola)
     PdfUnio.ps1         ajuntar l'informe de llicencia amb els PDF dels organismes
+    PdfText.ps1         el text d'un PDF generat (Tj/TJ, ToUnicode), per als contactes
     Llicencia*.ps1      Dades (pures), Blocs (l'informe), Pantalles i l'assistent
     LlicenciaDb.ps1     la memoria de cada llicencia entre informes
     ControlsPeriodics.ps1 + ControlsCpEmail.ps1                 controls periodics
@@ -440,6 +444,13 @@ if (-not $Script:HeadlessTest) { [void](Invoke-MigracioLocal $RepoRoot) }
 . (Join-Path $ScriptRoot 'Informes.ps1')
 # El que llegeix els informes del disc i munta la base ("Actualitzar base").
 . (Join-Path $ScriptRoot 'InformesEscaneig.ps1')
+# El repas de CONTACTES que fa "Actualitzar base" al final: que diu cada
+# document (pur), de qui es cada dada i els avisos (pur), i la base
+# contactes-db.json. La finestra "Contactes" es a ContactesPantalla.ps1.
+. (Join-Path $ScriptRoot 'ContactesExtraccio.ps1')
+. (Join-Path $ScriptRoot 'ContactesRegles.ps1')
+. (Join-Path $ScriptRoot 'ContactesDb.ps1')
+. (Join-Path $ScriptRoot 'ContactesPantalla.ps1')
 # Les dues eines que vivien dins d'Informes.ps1 (revisio d'arquitectura):
 . (Join-Path $ScriptRoot 'CopiaInformes.ps1')
 # El mode automatic (setmanal) del Planol activitats: s'apunta al registre.
@@ -486,6 +497,8 @@ if (-not $Script:HeadlessTest) { [void](Invoke-MigracioLocal $RepoRoot) }
 # PdfUnio.ps1 ajunta l'informe de llicencia amb els informes dels organismes
 # (nomes defineix: el C# es compila el primer cop que es fa servir).
 . (Join-Path $ScriptRoot 'PdfUnio.ps1')
+# El text d'un PDF (repas de contactes): compila amb PdfUnio, que en te el lector.
+. (Join-Path $ScriptRoot 'PdfText.ps1')
 . (Join-Path $ScriptRoot 'PdfCms.ps1')
 . (Join-Path $ScriptRoot 'PdfSignar.ps1')
 

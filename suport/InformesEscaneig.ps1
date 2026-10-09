@@ -60,31 +60,6 @@ function _ReadInformeParagraphs($file, $wordApp) {
 }
 
 # ----------------------------------------------------------------------------
-# ON es busquen els informes: NOMES el primer nivell
-# ----------------------------------------------------------------------------
-# Els fitxers que son DIRECTAMENT dins de cada carpeta d'activitat de la
-# carpeta d'informes (<arrel>\<carpeta>\fitxer). Ni els de l'arrel ni els de
-# les subcarpetes (l'usuari, octubre 2026: "nomes ha de tenir en compte els
-# informes de les carpetes dins la carpeta d'informes, pero no dins les
-# subcarpetes"). A les subcarpetes hi ha l'expedient del GIA descarregat
-# (~25.000 fitxers) i informes vells o d'altres activitats que no han de
-# decidir l'estat; abans un Get-ChildItem -Recurse els recorria tots. El fan
-# servir la base d'informes i el repas de contactes.
-function Get-FitxersPrimerNivell([string]$dir) {
-    $out = New-Object System.Collections.ArrayList
-    foreach ($d in @(Get-ChildItem -LiteralPath $dir -Directory -ErrorAction SilentlyContinue)) {
-        foreach ($f in @(Get-ChildItem -LiteralPath $d.FullName -File -ErrorAction SilentlyContinue)) { [void]$out.Add($f) }
-    }
-    return ,$out.ToArray()
-}
-
-# La clau (_ClauInforme) es d'un fitxer de primer nivell? "carpeta\fitxer",
-# exactament una barra. PURA.
-function _EsDePrimerNivell([string]$clau) {
-    return (([string]$clau -replace '/', '\').Trim('\').Split('\').Count -eq 2)
-}
-
-# ----------------------------------------------------------------------------
 # L'ID GIA ASSIGNAT A MA (local\base-dades-activitats\gia-assignats_*.json)
 # ----------------------------------------------------------------------------
 # Els informes antics no porten l'ID GIA a la capcalera, o el porten malament
@@ -475,7 +450,10 @@ function _InformesDirAccessible([string]$dir) {
 # $giaAssignatsPath: el fitxer d'assignacions de GIA; buit = el mes recent de
 # $LocalActivitatsDir (ValidarClassificacio el busca abans de canviar la carpeta
 # local per una de temporal i el passa aqui).
-function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock]$onConfirma = $null, [string]$giaAssignatsPath = '') {
+# $ambContactes: al final, el repas de contactes (ContactesDb.ps1). El treu
+# ValidarClassificacio, que nomes mira els informes i ho fa en una carpeta
+# temporal (sense la cache, ho tornaria a llegir tot).
+function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock]$onConfirma = $null, [string]$giaAssignatsPath = '', [bool]$ambContactes = $true) {
     # La carpeta d'informes. Si la unitat (la I: de la feina) no hi es, no es un
     # error del programa: potser s'esta fora de la feina.
     $dir = $InformesDir
@@ -642,7 +620,17 @@ function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock
     # ValidarClassificacio).
     $noTrobats = @(_GiaAssignatsNoTrobats $assignats $claus)
 
+    # 8. El repas de CONTACTES (l'usuari: "Actualitzar base tambe repassa les
+    #    dades de contacte"). Si peta, la base d'informes ja es desada: es diu
+    #    al resum i prou.
+    $contactes = $null
+    if ($ambContactes) {
+        try { $contactes = Invoke-ContactesEscaneig $dir $informes $cache $expToGia $avisa }
+        catch { $contactes = @{ Ok = $false; Error = [string]$_.Exception.Message; Text = ('Contactes: no s''ha pogut fer el rep' + [char]0x00E0 + 's (' + [string]$_.Exception.Message + ')') } }
+    }
+
     return @{ Ok = $true; Error = ''; NInformes = $informes.Count; Reprocessats = $reprocessats
+              Contactes = $contactes
               NActivitats = $activitatsOrd.Count; NRevisar = $revisar.Count; OutPath = $outPath
               GiaAssignatsFitxer = [string]$assignats.Fitxer; GiaAssignatsError = [string]$assignats.Error
               GiaAssignatsNoTrobats = $noTrobats }
@@ -738,6 +726,7 @@ function Invoke-InformesDbScan {
            "A revisar: $($res.NRevisar)`n" +
            $(if ([string]$res.GiaAssignatsError) { "`nATENCI" + [char]0x00D3 + ": " + [string]$res.GiaAssignatsError + "`n" } else { '' }) +
            $(if (@($res.GiaAssignatsNoTrobats).Count -gt 0) { "`nAssignacions de GIA que ja no troben l'informe: " + @($res.GiaAssignatsNoTrobats).Count + " (les llista ValidarClassificacio)`n" } else { '' }) +
+           $(if ($null -ne $res.Contactes) { "`n" + [string]$res.Contactes.Text + "`n(per revisar-los: Editar base -> Contactes)`n" } else { '' }) +
            "`n" +
            "Fitxer:`n$($res.OutPath)`n`nVols obrir-lo?"
     $r = [System.Windows.Forms.MessageBox]::Show($msg, 'Base d''informes', 'YesNo', 'Information')
@@ -817,6 +806,7 @@ function Invoke-InformesDbAuto {
                   "activitats=$($res.NActivitats) a_revisar=$($res.NRevisar)" +
                   $(if ([string]$res.GiaAssignatsError) { ' AVIS: ' + [string]$res.GiaAssignatsError } else { '' }) +
                   $(if (@($res.GiaAssignatsNoTrobats).Count -gt 0) { ' assignacions_GIA_no_trobades=' + @($res.GiaAssignatsNoTrobats).Count } else { '' }))
+    if ($null -ne $res.Contactes) { _BaseAutoLog ([string]$res.Contactes.Text) }
     return $res
 }
 
