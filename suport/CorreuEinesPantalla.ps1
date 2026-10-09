@@ -164,3 +164,62 @@ function Show-CorreuEinesConfig {
     [void]$form.ShowDialog()
     $form.Dispose()
 }
+
+# ----------------------------------------------------------------------------
+# "TEXTOS DEL CORREU": els de TOTES les eines (octubre 2026)
+# ----------------------------------------------------------------------------
+# L'usuari: "l'eina Textos del correu no ha de servir nomes per als correus del
+# mobil, sino per modificar tots els textos dels correus. Similar a Editar
+# catalegs, que pots triar entre informes". Les eines son les del registre
+# ($Script:CorreuEines) i cada una obre el seu editor, que ja existia (tots
+# passen per Show-EditorAssumpteCos): aqui nomes es tria.
+$Script:CorreuTextosEditors = [ordered]@{
+    'mobil'            = @{ Desc = "El correu de l'informe al titular (el m" + [char]0x00F2 + "bil i Enviar correu). Es publica amb Actualitzar."; Obre = { Invoke-EmailTextos } }
+    'rec-requeriments' = @{ Desc = "El recordatori a qui t" + [char]0x00E9 + " un requeriment pendent."; Obre = { [void](Invoke-RecordatorisTextos 'requeriments') } }
+    'rec-precintes'    = @{ Desc = "El recordatori a qui t" + [char]0x00E9 + " l'activitat precintada o suspesa."; Obre = { [void](Invoke-RecordatorisTextos 'precintes') } }
+    'controls'         = @{ Desc = "L'av" + [char]0x00ED + "s de control peri" + [char]0x00F2 + "dic pendent (esborranys a l'Outlook)."; Obre = { Invoke-ControlsCpEmailTextos } }
+}
+
+# Les eines que tenen text per editar, en l'ordre del registre. PURA.
+function _CorreuTextosEines {
+    $out = New-Object System.Collections.ArrayList
+    foreach ($k in @($Script:CorreuEines.Keys)) {
+        if ($Script:CorreuTextosEditors.Contains($k)) { [void]$out.Add([string]$k) }
+    }
+    return $out.ToArray()
+}
+
+function Invoke-TextosCorreu {
+    $claus = @(_CorreuTextosEines)
+    $eines = $Script:CorreuEines
+    $eds = $Script:CorreuTextosEditors
+    $form = _NewForm
+    $form.Text = 'Textos del correu'
+    $form.ClientSize = New-Object System.Drawing.Size(620, 250)
+    $form.StartPosition = 'CenterScreen'
+    $l = New-Object System.Windows.Forms.Label
+    $l.Text = 'Quin correu vols editar?'
+    $l.Location = New-Object System.Drawing.Point(20, 76); $l.Size = New-Object System.Drawing.Size(580, 20)
+    $cb = New-Object System.Windows.Forms.ComboBox
+    $cb.DropDownStyle = 'DropDownList'
+    $cb.Location = New-Object System.Drawing.Point(20, 100); $cb.Size = New-Object System.Drawing.Size(580, 24)
+    foreach ($k in $claus) { [void]$cb.Items.Add([string]$eines[$k].Nom) }
+    $d = New-Object System.Windows.Forms.Label
+    $d.Location = New-Object System.Drawing.Point(20, 134); $d.Size = New-Object System.Drawing.Size(580, 40)
+    $d.ForeColor = [System.Drawing.Color]::FromArgb(90, 90, 90)
+    foreach ($c in @($l, $cb, $d)) { [void]$form.Controls.Add($c) }
+    $cb.add_SelectedIndexChanged({ if ($cb.SelectedIndex -ge 0) { $d.Text = [string]$eds[$claus[$cb.SelectedIndex]].Desc } }.GetNewClosure())
+    if ($claus.Count -gt 0) { $cb.SelectedIndex = 0 }
+    $peu = _AddPeuBotons $form @(@{ Nom = 'Tancar'; Text = 'Tancar'; Resultat = 'Cancel'; Esc = $true }) @(@{ Nom = 'Obre'; Text = 'Editar el text'; Estil = 'primari'; Intro = $true }) 190
+    # L'editor s'obre DAMUNT d'aquesta finestra i en tornar s'hi pot triar un
+    # altre correu: com Editar catalegs, sense tornar al menu.
+    $peu.Obre.add_Click({
+        if ($cb.SelectedIndex -lt 0) { return }
+        try { & $eds[$claus[$cb.SelectedIndex]].Obre } catch {
+            [System.Windows.Forms.MessageBox]::Show([string]$_.Exception.Message, 'Textos del correu', 'OK', 'Error') | Out-Null
+        }
+    }.GetNewClosure())
+    [void](_AddBrandHeader $form 'Textos del correu' ('Els textos de tots els correus que envia el programa') 56)
+    [void]$form.ShowDialog()
+    $form.Dispose()
+}

@@ -663,19 +663,38 @@ pot transmetre l'activitat mentre hi hagi un expedient obert).
    **sense escriure a ningú**.
 4. Posa el topall per tanda a 1 i envia'n un a una adreça teva per veure com
    queda.
-5. Quan et convenci, puja el topall i activa la campanya.
+5. Quan et convenci, puja el topall i posa la campanya en *Automàtic*.
 
 > **El límit de correus.** EmailJS només en deixa enviar **200 al mes**. El
 > programa en compta **150** i es planta: els altres 50 queden de reserva perquè
 > mai et quedis sense. El comptador de dalt de la finestra suma **tots** els
 > correus que surten del PC, també els de l'eina *Enviar correu*.
 
-> **EmailJS o l'Outlook.** A **⚙ Configuració** (requadre *Correus que s'envien
-> des d'aquest PC*) o al desplegable **Enviar amb:** de la finestra d'*Enviar
-> correu* pots triar per on surten els correus d'aquest PC: **EmailJS** (com
-> sempre), **Outlook: el deixa a Esborranys** (no s'envia res: el revises i
-> l'envies tu) o **Outlook: envia el correu** (surt de la teva bústia, sense
-> límit de 200). Cal l'Outlook clàssic; el «nou Outlook» no serveix. Si l'Outlook
+> **EmailJS o l'Outlook, i a qui, per a CADA eina.** A **⚙ Configuració** →
+> **Correus de cada eina...** hi ha una fila per a cada eina que envia correus
+> (*Enviar correu*, els dos *Recordatoris*, *Controls periòdics* i *Seguiment*).
+> A cada una tries:
+> - **Per on surt:** **EmailJS** (com sempre), **Outlook: el deixa a
+>   Esborranys** (no s'envia res: el revises i l'envies tu) o **Outlook: envia
+>   el correu** (surt de la teva bústia, sense límit de 200). *Controls
+>   periòdics* només deixa esborranys, i el *Seguiment* només va per l'Outlook,
+>   perquè porta PDF adjunts.
+> - **A qui va:** el titular, el representant legal, les persones autoritzades
+>   (el tècnic), unes **adreces fixes** i la **CCO**.
+>
+> El botó **Enviar prova** de cada fila envia el correu d'aquella eina amb les
+> dades de l'**ID GIA de prova** a l'adreça de prova que hi hagis posat a dalt.
+> Va **només** a aquella adreça, i al davant diu a qui hauria anat de debò. Les
+> adreces es desen **només en aquest ordinador**, mai al GitHub.
+> El desplegable **Enviar amb:** de la finestra d'*Enviar correu* canvia la via
+> d'aquella eina.
+>
+> **Textos del correu** (rajola de TITULARS) et deixa triar quin correu vols
+> editar: el de l'informe, els dos recordatoris, el de controls periòdics o el
+> del seguiment.
+>
+> Les adreces que hi hagi a les **adreces fixes** reben el correu igual que el
+> titular. Cal l'Outlook clàssic; el «nou Outlook» no serveix. Si l'Outlook
 > dona problemes (un avís de seguretat, o informàtica no ho deixa), torna a
 > EmailJS i ja està.
 >
@@ -698,12 +717,21 @@ pot transmetre l'activitat mentre hi hagi un expedient obert).
 > i el mode automàtic directament **no envia res** si passa dels 45.
 
 **Mode automàtic.** Cada campanya pot anar en *Manual* (tu obres l'eina i
-cliques *Enviar tanda*) o en *Automàtic*. Per a l'automàtic, el botó
-**Automàtic...** crea una tasca del Windows que cada dia a les **13:00** envia el
-que toqui; si a aquella hora el PC estava apagat, ho fa en engegar-lo. Només
-corre amb la sessió iniciada, i **els correus surten sense que ningú els
-revisi**. Si ja la tenies creada d'abans (a les 09:00), el programa la posa al
-dia sol en obrir-se. El mateix botó també serveix per esborrar la tasca.
+cliques *Enviar tanda*) o en *Automàtic* (ja no hi ha la casella «Campanya
+activa»: deia el mateix). Les campanyes en *Automàtic* les envia una tasca del
+Windows, que s'engega i s'atura amb l'interruptor **A / M** de la rajola
+Recordatoris del menú; l'hora es tria a ⚙ Configuració → Automatismes. Si a
+aquella hora el PC estava apagat, ho fa en engegar-lo. Només corre amb la sessió
+iniciada, i **els correus surten sense que ningú els revisi** (si no és que la
+campanya va a Esborranys).
+
+Cada valor de dalt de la pestanya té una **ⓘ** que explica què vol dir:
+**Cada (dies)** és cada quants dies es torna a avisar la mateixa activitat;
+**Espera (dies)**, quants dies després de l'informe surt el primer avís (el
+termini del requeriment encara corre); **Màx. per tanda**, quants correus
+s'envien com a màxim cada vegada. Amb *Només els que toquen avui*, la finestra
+en marca com a molt aquests, per ordre: primer els que no han rebut mai cap
+avís.
 
 Amb **Excloure / incloure** treus una activitat concreta dels recordatoris (per
 exemple, si en portes el seguiment per una altra via).

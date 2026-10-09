@@ -208,6 +208,12 @@ try {
     $ceRes = Send-CorreuProva 'mobil' '9001' ''
     Assert (-not $ceRes.Ok -and ([string]$ceRes.Text).Contains('rebre la prova')) 'Send-CorreuProva: sense adreca de prova no fa res i ho diu'
 } finally { $env:LOCALAPPDATA = $ceVell; Remove-Item -LiteralPath $ceApp -Recurse -Force -ErrorAction SilentlyContinue }
+# "Textos del correu": les eines del registre, cada una amb el seu editor.
+foreach ($k in @($Script:CorreuTextosEditors.Keys)) { Assert ($Script:CorreuEines.Contains($k)) ("Textos del correu: '" + $k + "' es una eina del registre") }
+AssertEq (@(_CorreuTextosEines) -join ',') ((@($Script:CorreuEines.Keys) | Where-Object { $Script:CorreuTextosEditors.Contains($_) }) -join ',') 'Textos del correu: en l''ordre del registre'
+Assert (@(_CorreuTextosEines).Count -ge 4) 'Textos del correu: hi ha el de l''informe, els dos recordatoris i el de controls periodics'
+$srcWiz = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'Wizard.ps1'))
+Assert ($srcWiz -match "'emailtextos'\s*\{\s*Invoke-TextosCorreu") 'la rajola "Textos del correu" obre el selector de totes les eines'
 # Recordatoris: a qui va, segons la campanya.
 $ceCache = @{ ById = @{ '9001' = @{ EMAIL = 'tit@x.cat'; EMAIL_REP = 'rep@x.cat'; ADRECA = 'C/ Inventat 1' } } }
 $ceRow = [pscustomobject]@{ Id = '9001'; Adreca = ''; Correus = '' }

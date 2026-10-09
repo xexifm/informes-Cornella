@@ -52,7 +52,7 @@ function Main {
             'normativa'      { Invoke-Normativa }      # baixa i classifica la normativa a local\normativa
             'revisio'        { Invoke-RevisioRequeriments }   # vigencia, enllacos i fitxes dels requeriments
             'convertirpdf'   { Invoke-ConvertirPdf }   # converteix una carpeta de Word a PDF (i signa)
-            'emailtextos'    { Invoke-EmailTextos }    # edita els textos del correu del mobil
+            'emailtextos'    { Invoke-TextosCorreu }   # els textos de tots els correus (tria l'eina)
             'enviarcorreu'   { Invoke-EnviarCorreu }   # obre la web del mobil precarregada per enviar el correu
             'llicencia'  { Invoke-LlicenciaWizard (_LlicFases) (_LlicTitolAssistent $false) }
             # MNS / Transmissio: el MATEIX assistent, nomes que amb les seves fases.
