@@ -1062,7 +1062,11 @@ $recSrc = _SenseComentaris (Join-Path $rootRepo (Join-Path 'suport' 'Recordatori
 # Compte: el radio 'Automatic' de CADA CAMPANYA es queda, i es un altre
 # concepte (si aquella campanya entra a la tanda automatica o no). El que no hi
 # pot ser es el BOTO del peu que creava la tasca.
-Assert (-not ($recSrc -match "Nom = 'Auto'")) 'Recordatoris ja no te el boto "Automatic..." al peu de l''eina'
+# La finestra viu a RecordatorisPantalla.ps1 (octubre 2026): el guard la mira alla.
+$recPantSrc = _SenseComentaris (Join-Path $rootRepo (Join-Path 'suport' 'RecordatorisPantalla.ps1'))
+Assert ($recPantSrc.Contains("Nom = 'Send'")) 'el peu de la finestra de Recordatoris es on el guard el busca'
+Assert (-not (($recSrc + $recPantSrc) -match "Nom = 'Auto'")) 'Recordatoris ja no te el boto "Automatic..." al peu de l''eina'
+Assert (-not ($recPantSrc.Contains("'Campanya activa'"))) 'Recordatoris ja no te la casella "Campanya activa" (el Manual/Automatic ho decideix tot)'
 Assert (-not ($recSrc.Contains('function Invoke-RecordatorisTasca'))) 'i la funcio que el servia ja no hi es'
 # La comprovacio de les claus d'EmailJS, UNA: la fan servir l'enviament (per
 # aturar una tanda) i el Requisit de l'interruptor (per no encendre un automatic

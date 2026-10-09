@@ -1158,6 +1158,25 @@ lloc equivocat.
 Rajola 🔔 *Recordatoris* a EINES (acció `recordatoris`). Avisa periòdicament els
 titulars amb tràmits pendents, a partir de l'`estat_actual` de la base d'informes.
 
+- **Octubre 2026, el que l'usuari no entenia de la finestra** (es va partir:
+  la finestra és ara a `RecordatorisPantalla.ps1`; `Recordatoris.ps1` havia
+  passat de les 1.200 línies):
+  - **«Només els que toquen avui» en marcava molts més que el màxim** (155 amb
+    un màxim de 15): `_RecDueActivitats` marcava `Sel` a TOTES les que tocaven
+    i el topall només s'aplicava en enviar. Ara **`_RecPreselecciona`** (pura)
+    en marca com a molt `maxPerTanda`, en l'ordre de prioritat, i l'etiqueta
+    diu quantes n'hi ha de marcades.
+  - **La casella «Campanya activa» ja no hi és**: deia el mateix que el
+    Manual/Automàtic de cada pestanya. Ara una campanya en **Automàtic** és la
+    que entra a la passada de la tasca del Windows (que s'engega amb
+    l'interruptor A/M de la rajola). Una configuració d'abans **apagada i en
+    Automàtic** passa a **Manual** (`_RecNormalitzaConfig`): cap campanya no
+    pot començar a enviar per una actualització.
+  - **Una ⓘ al costat de «Cada (dies)», «Espera (dies)», «Màx. per tanda» i
+    del Manual/Automàtic** (`_AddInfoIcona`, `UiFinestra.ps1`: globus i també
+    un clic, perquè el globus es pot no veure). Els textos són a
+    `_RecAjudaCamp`.
+
 - **DUES CAMPANYES INDEPENDENTS dins d'UNA sola eina** (decisió de l'usuari):
   `requeriments` (estat `Requeriment`) i `precintes` (estat `Precinte / Cessament`),
   cada una amb encesa/apagada, periodicitat, espera inicial, topall per tanda,

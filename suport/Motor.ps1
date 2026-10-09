@@ -54,7 +54,8 @@
     CorreuVia.ps1       per on surten els correus: EmailJS o Outlook (i l'Outlook, nomes aqui)
     CorreuFormat.ps1    el format del correu (el de REQ1; el mateix al mobil)
     Recordatoris.ps1    recordatoris periodics als titulars (+ RecordatorisAuto.ps1,
-                        que corre sol des d'una tasca del Windows)
+                        que corre sol des d'una tasca del Windows; la finestra,
+                        a RecordatorisPantalla.ps1)
     rutes\Ruta.ps1      planificador de rutes (proces a part)
     rutes\Coordenades.ps1  mapa per repassar la geolocalitzacio dels establiments
 
@@ -550,6 +551,7 @@ if (-not $Script:HeadlessTest) { [void](Invoke-MigracioLocal $RepoRoot) }
 # Eina "Recordatoris": avisos periodics als titulars amb tramits pendents, a
 # partir de l'estat de la base d'informes. Nomes defineix funcions.
 . (Join-Path $ScriptRoot 'Recordatoris.ps1')
+. (Join-Path $ScriptRoot 'RecordatorisPantalla.ps1')
 
 # Carreguem la pantalla de Configuracio (rutes d'aquest PC + actualitzar el
 # programa). Nomes defineix funcions (WinForms), segur en headless.

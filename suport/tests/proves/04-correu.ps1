@@ -284,10 +284,19 @@ AssertEq ([int](_RecHistEntrada $hExc '1463').compte) 2 '_RecHistorialExclou: no
 
 Write-Host "`n--- Recordatoris.ps1: configuracio i tasca programada ---"
 $rcDef = _RecDefaultConfig 'requeriments'
-AssertEq ([bool]$rcDef['actiu']) $false '_RecDefaultConfig: neix APAGADA (no envia res fins que l''encenguis)'
-AssertEq ([string]$rcDef['mode']) 'manual' '_RecDefaultConfig: neix en manual'
+AssertEq ([string]$rcDef['mode']) 'manual' '_RecDefaultConfig: neix en MANUAL (no envia res sol fins que la passis a Automatic)'
+Assert (-not $rcDef.ContainsKey('actiu')) '_RecDefaultConfig: ja no hi ha "Campanya activa" (el mode ho decideix tot)'
 $rcN = _RecNormalitzaConfig ([pscustomobject]@{ actiu=$true; mode='auto'; periodicitatDies=90 }) 'requeriments'
-AssertEq ([bool]$rcN['actiu']) $true '_RecNormalitzaConfig: respecta el que ve del JSON'
+AssertEq ([string](_RecNormalitzaConfig ([pscustomobject]@{ actiu=$false; mode='auto' }) 'requeriments')['mode']) 'manual' '_RecNormalitzaConfig: una campanya d''abans APAGADA i en Automatic passa a Manual (no comenca a enviar per l''actualitzacio)'
+AssertEq ([string](_RecNormalitzaConfig ([pscustomobject]@{ mode='auto' }) 'requeriments')['mode']) 'auto' '_RecNormalitzaConfig: sense ''actiu'' (les d''ara), el mode es el que diu'
+# La preseleccio: com a molt maxPerTanda, en l'ordre de prioritat.
+$rcFiles = @(1..20 | ForEach-Object { [pscustomobject]@{ Id = [string]$_; Toca = ($_ -ne 3); Excloure = $false; Sel = $true } })
+_RecPreselecciona $rcFiles 15
+AssertEq (@($rcFiles | Where-Object { $_.Sel }).Count) 15 '_RecPreselecciona: 19 que toquen i maxim 15 -> se''n marquen 15 (abans totes)'
+AssertEq "$($rcFiles[2].Sel)|$($rcFiles[15].Sel)|$($rcFiles[16].Sel)" 'False|True|False' '_RecPreselecciona: la que no toca no es marca, i les primeres per ordre ocupen la tanda'
+_RecPreselecciona $rcFiles 50
+AssertEq (@($rcFiles | Where-Object { $_.Sel }).Count) 19 '_RecPreselecciona: un maxim mes gran que les que toquen -> totes les que toquen'
+foreach ($k in @('cada', 'espera', 'max', 'mode')) { Assert ((_RecAjudaCamp $k).Length -gt 40) ("_RecAjudaCamp '" + $k + "': hi ha l'explicacio de la (i)") }
 AssertEq ([string]$rcN['mode']) 'auto' '_RecNormalitzaConfig: mode auto'
 AssertEq ([int]$rcN['periodicitatDies']) 90 '_RecNormalitzaConfig: periodicitat del JSON'
 AssertEq ([int]$rcN['maxPerTanda']) 15 '_RecNormalitzaConfig: el que no ve, del defecte'

@@ -58,7 +58,6 @@ try {
     foreach ($camp in @(_RecCampanyes)) {
         $clau = [string]$camp.Clau
         $cfg = $estat.campanyes[$clau]
-        if (-not [bool]$cfg['actiu']) { _RecLog "${clau}: apagada, no es fa res."; continue }
         if ([string]$cfg['mode'] -ne 'auto') { _RecLog "${clau}: en mode manual, no es fa res."; continue }
 
         $r = _RecDueActivitats $db $camp $cfg $estat.historial[$clau] (Get-Date)

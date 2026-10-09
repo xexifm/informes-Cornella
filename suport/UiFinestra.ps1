@@ -385,6 +385,25 @@ function _PosaIcona($ctl, [string]$simbol, $text = $null, [switch]$Despres) {
     $ctl.Text = if ($Despres) { [string]$ctl.Text + $buit } else { $buit + [string]$ctl.Text }
 }
 
+# Una (i) amb l'explicacio d'un camp: surt en passar-hi el ratoli i, com que un
+# globus es pot no veure (o desapareix abans d'haver-lo llegit), tambe en
+# clicar-la. El simbol passa per _PosaIcona (amb la lletra del programa la (i)
+# surt com un quadrat). Torna l'etiqueta.
+function _AddInfoIcona($parent, [int]$x, [int]$y, [string]$titol, [string]$text) {
+    $l = New-Object System.Windows.Forms.Label
+    $l.Location = New-Object System.Drawing.Point($x, $y)
+    $l.Size = New-Object System.Drawing.Size(18, 18)
+    $l.Cursor = [System.Windows.Forms.Cursors]::Hand
+    _PosaIcona $l ([string][char]0x24D8) ''
+    $tt = New-Object System.Windows.Forms.ToolTip
+    $tt.AutoPopDelay = 30000
+    $tt.SetToolTip($l, $text)
+    $l.Tag = $tt
+    $l.add_Click({ [System.Windows.Forms.MessageBox]::Show($text, $titol, 'OK', 'Information') | Out-Null }.GetNewClosure())
+    $parent.Controls.Add($l)
+    return $l
+}
+
 function _TxtEnrere  { return ([string][char]0x2190 + ' Enrere') }
 function _TxtSeguent { return ('Seg' + [char]0x00FC + 'ent ' + [char]0x2192) }
 
