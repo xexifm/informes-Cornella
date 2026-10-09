@@ -172,7 +172,7 @@ $ceClaus = @($Script:CorreuEines.Keys)
 AssertEq ($ceClaus -join ',') 'mobil,rec-requeriments,rec-precintes,controls,seguiment' 'les eines que envien correus, en un sol registre'
 AssertEq (@($Script:CorreuEines['controls'].Vies) -join ',') 'outlook-esborrany' 'Controls periodics nomes admet esborranys (l''usuari els revisa)'
 Assert (@($Script:CorreuEines['seguiment'].Vies) -notcontains 'emailjs') 'el Seguiment no admet EmailJS (porta adjunts)'
-foreach ($k in @('mobil', 'rec-requeriments', 'rec-precintes', 'controls')) {
+foreach ($k in @($Script:CorreuEines.Keys)) {
     Assert ($Script:CorreuProves[$k] -is [scriptblock]) ("l'eina '" + $k + "' registra el seu correu de prova")
     Assert ($Script:CorreuCcoAbans[$k] -is [scriptblock]) ("l'eina '" + $k + "' diu quina CCO feia servir fins ara")
 }
@@ -211,7 +211,7 @@ try {
 # "Textos del correu": les eines del registre, cada una amb el seu editor.
 foreach ($k in @($Script:CorreuTextosEditors.Keys)) { Assert ($Script:CorreuEines.Contains($k)) ("Textos del correu: '" + $k + "' es una eina del registre") }
 AssertEq (@(_CorreuTextosEines) -join ',') ((@($Script:CorreuEines.Keys) | Where-Object { $Script:CorreuTextosEditors.Contains($_) }) -join ',') 'Textos del correu: en l''ordre del registre'
-Assert (@(_CorreuTextosEines).Count -ge 4) 'Textos del correu: hi ha el de l''informe, els dos recordatoris i el de controls periodics'
+AssertEq (@(_CorreuTextosEines) -join ',') (@($Script:CorreuEines.Keys) -join ',') 'Textos del correu: TOTES les eines que envien correus tenen el seu text per editar'
 $srcWiz = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'Wizard.ps1'))
 Assert ($srcWiz -match "'emailtextos'\s*\{\s*Invoke-TextosCorreu") 'la rajola "Textos del correu" obre el selector de totes les eines'
 # Recordatoris: a qui va, segons la campanya.
@@ -223,6 +223,45 @@ AssertEq ([string](_RecOmpleDadesFila $ceRow $ceCache).Correus) 'tit@x.cat; rep@
 $ceErr = ''
 try { Send-CorreuSessio @{ Via = 'emailjs' } 'a@x.cat' '' 's' 'h' '' @('C:\x.pdf') } catch { $ceErr = [string]$_.Exception.Message }
 Assert ($ceErr.Contains('adjunts')) 'Send-CorreuSessio: EmailJS amb adjunts -> error clar (no surt sense ells)'
+
+Write-Host "`n--- Seguiment automatic cada dues setmanes (octubre 2026) ---"
+# La frequencia "cada dues setmanes": dilluns alternats des del 12/10/2026.
+$q13 = { param($d) _AutoVenciment ([datetime]$d) 13 0 1 2 }
+AssertEq ((& $q13 '2026-10-12 14:00').ToString('yyyy-MM-dd HH:mm')) '2026-10-12 13:00' 'quinzena: el primer dilluns, passada l''hora -> aquell dia'
+AssertEq ((& $q13 '2026-10-19 14:00').ToString('yyyy-MM-dd')) '2026-10-12' 'quinzena: el dilluns de la setmana senar NO toca (segueix el del 12)'
+AssertEq ((& $q13 '2026-10-26 13:30').ToString('yyyy-MM-dd')) '2026-10-26' 'quinzena: dues setmanes despres, toca'
+AssertEq ((& $q13 '2026-10-26 12:00').ToString('yyyy-MM-dd')) '2026-10-12' 'quinzena: el mateix dilluns abans de l''hora -> encara el d''abans'
+AssertEq ((& $q13 '2026-10-09 10:00').ToString('yyyy-MM-dd')) '2026-09-28' 'quinzena: abans de la data de referencia tambe es compta (setmanes parelles enrere)'
+Assert (_AutoToca ([datetime]'2026-10-26 13:05') '2026-10-12T13:01:00' 13 0 1 2) 'quinzena: feta el 12, el 26 toca'
+Assert (-not (_AutoToca ([datetime]'2026-10-20 13:05') '2026-10-12T13:01:00' 13 0 1 2)) 'quinzena: feta el 12, el 20 no toca'
+Assert (Test-ProgramacioValida ([pscustomobject]@{ Freq = 'quinzena'; Dia = 1; Hora = '13:00' })) 'Test-ProgramacioValida: "quinzena" es valida'
+Assert (-not (Test-ProgramacioValida ([pscustomobject]@{ Freq = 'quinzena'; Dia = 9; Hora = '13:00' }))) 'Test-ProgramacioValida: quinzena sense un dia valid, no'
+AssertEq (Get-ProgramacioText ([pscustomobject]@{ Freq = 'quinzena'; Dia = 1; Hora = '13:00' })) 'cada dues setmanes, el dilluns, a les 13:00' 'Get-ProgramacioText: cada dues setmanes'
+AssertEq "$(_FreqIndex 'quinzena')|$(_FreqDeIndex 2)|$(_FreqDeIndex 9)" '2|quinzena|dia' 'el desplegable de Configuracio: dia, setmana, dues setmanes'
+$pSeg = Get-ProgramacioAuto 'seguimentgia' ([pscustomobject]@{})
+AssertEq "$($pSeg.Freq)|$($pSeg.Dia)|$($pSeg.Hora)" 'quinzena|1|13:00' 'el Seguiment, per defecte: dilluns alternats a les 13:00'
+AssertEq (@((ConvertTo-AutomatismesSettings @{ seguimentgia = @{ Freq = 'quinzena'; Dia = 3; Hora = '13:00' } }).Keys) -join ',') 'seguimentgia' 'ConvertTo-AutomatismesSettings: un altre dia de la quinzena es desa'
+AssertEq (@((ConvertTo-AutomatismesSettings @{ seguimentgia = @{ Freq = 'quinzena'; Dia = 1; Hora = '13:00' } }).Keys).Count) 0 '...i la per defecte, no'
+$xmlQ = _RecTascaXml 'ps.exe' 'x.ps1' '13:00' ([datetime]'2026-10-12') 1 2
+Assert ($xmlQ.Contains('<WeeksInterval>2</WeeksInterval>')) 'la tasca del Windows dels recordatoris, cada dues setmanes: WeeksInterval 2'
+Assert ((_RecTascaAlDia $xmlQ '13:00' 1 2) -and -not (_RecTascaAlDia $xmlQ '13:00' 1 1)) '_RecTascaAlDia: la tasca setmanal no val per a una quinzena (i al reves)'
+Assert ($Script:ModesAuto.Contains('seguimentgia')) 'el Seguiment te interruptor A/M (registre)'
+AssertEq ((@(_SgSeleccioAuto)) -join ',') ((@(_SgOpcionsExport) | Select-Object -Skip 1) -join ',') 'l''automatic: tots els llistats menys la fulla Estes'
+Assert (-not (@(_SgSeleccioAuto) -contains (_SgNomEstes))) '...i la fulla Estes no hi es'
+$sgTxt = _SgFillPh 'Data {DATA} {ORIGEN}`n{RESUM}' ([ordered]@{ PRECINTES = 3; SONOMETRIA = 0 }) '2026-10-01 ACTIVITATS.xls' ([datetime]'2026-10-12')
+Assert ($sgTxt.Contains('12/10/2026') -and $sgTxt.Contains('- PRECINTES: 3') -and $sgTxt.Contains('ACTIVITATS.xls')) '_SgFillPh: la data, el resum per llistat i l''Excel'
+$sgApp = Join-Path ([System.IO.Path]::GetTempPath()) ('sg-' + [guid]::NewGuid().ToString('N'))
+$sgVell = $env:LOCALAPPDATA
+try {
+    $env:LOCALAPPDATA = $sgApp
+    $sgE = Send-SeguimentCorreu @{ Path = 'x.pdf'; Resum = @{}; Origen = '' } $false
+    Assert (-not $sgE.Ok -and ([string]$sgE.Text).Contains('Correus de cada eina')) 'Send-SeguimentCorreu: sense destinataris no envia res i diu on posar-los'
+    Assert ((& $Script:ModesAuto['seguimentgia'].Requisit) -ne '') 'l''interruptor del Seguiment no s''engega sense destinataris'
+    Save-CorreuEines @{ eines = @{ 'seguiment' = @{ via = 'outlook'; dest = @(); fixes = 'a@x.cat; b@x.cat' } }; prova = @{ gia = ''; desti = '' } }
+    AssertEq ([string](& $Script:ModesAuto['seguimentgia'].Requisit)) '' '...amb destinataris, si'
+    $sgP = & $Script:CorreuProves['seguiment'] '' $null (Get-CorreuEina 'seguiment')
+    AssertEq (@($sgP.Destinataris) -join '|') 'a@x.cat|b@x.cat' 'la prova del Seguiment diu que de debo aniria a les adreces fixes'
+} finally { $env:LOCALAPPDATA = $sgVell; Remove-Item -LiteralPath $sgApp -Recurse -Force -ErrorAction SilentlyContinue }
 
 Write-Host "`n--- Recordatoris.ps1: campanyes i dates (pures) ---"
 $rcCamps = @(_RecCampanyes)

@@ -554,6 +554,10 @@ if (-not $Script:HeadlessTest) { [void](Invoke-MigracioLocal $RepoRoot) }
 # Controls periodics. Funcions pures testejables; Outlook (COM)/WinForms a Windows.
 . (Join-Path $ScriptRoot 'ControlsCpEmail.ps1')
 
+# El Seguiment automatic (cada dues setmanes) i el correu amb el PDF dels
+# llistats. DESPRES de CorreuEines.ps1: s'hi registra la prova i el text.
+. (Join-Path $ScriptRoot 'SeguimentGiaAutomatic.ps1')
+
 # Eina "Recordatoris": avisos periodics als titulars amb tramits pendents, a
 # partir de l'estat de la base d'informes. Nomes defineix funcions.
 . (Join-Path $ScriptRoot 'Recordatoris.ps1')

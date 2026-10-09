@@ -475,11 +475,13 @@ $Script:RecDiesXml = @('', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday
 
 # $diaSetmana: 0 cada dia; 1..7 un cop a la setmana (la programacio de
 # 'recordatoris', que es canvia a Configuracio; octubre 2026).
-function _RecTascaXml([string]$psExe, [string]$script, [string]$hora, [datetime]$avui, [int]$diaSetmana = 0) {
+# $setmanes: 2 si la programacio es "cada dues setmanes" (la tasca del Windows
+# ho sap fer sola: WeeksInterval).
+function _RecTascaXml([string]$psExe, [string]$script, [string]$hora, [datetime]$avui, [int]$diaSetmana = 0, [int]$setmanes = 1) {
     $esc = { param($t) [System.Security.SecurityElement]::Escape([string]$t) }
     $args1 = '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + [string]$script + '"'
     $quan = if ($diaSetmana -ge 1 -and $diaSetmana -le 7) {
-        '<ScheduleByWeek><WeeksInterval>1</WeeksInterval><DaysOfWeek><' + $Script:RecDiesXml[$diaSetmana] + ' /></DaysOfWeek></ScheduleByWeek>'
+        '<ScheduleByWeek><WeeksInterval>' + [math]::Max(1, $setmanes) + '</WeeksInterval><DaysOfWeek><' + $Script:RecDiesXml[$diaSetmana] + ' /></DaysOfWeek></ScheduleByWeek>'
     } else { '<ScheduleByDay><DaysInterval>1</DaysInterval></ScheduleByDay>' }
     return ('<?xml version="1.0" encoding="UTF-16"?>' + "`r`n" +
         '<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">' +
@@ -501,7 +503,7 @@ function _RecSchtasksArgv([string]$nom, [string]$xmlPath) {
 
 # La tasca que hi ha al Windows ja és la d'ara (l'hora dels modes automàtics i
 # StartWhenAvailable)? PURA: rep l'XML de 'schtasks /Query /XML'.
-function _RecTascaAlDia([string]$xml, [string]$hora, [int]$diaSetmana = 0) {
+function _RecTascaAlDia([string]$xml, [string]$hora, [int]$diaSetmana = 0, [int]$setmanes = 1) {
     if ([string]::IsNullOrWhiteSpace($xml)) { return $false }
     # La sortida del schtasks pot arribar en UTF-16 llegida com a 8 bits: els
     # zeros de cada caracter fora (si no, mai quadraria i es refaria a cada
@@ -511,7 +513,8 @@ function _RecTascaAlDia([string]$xml, [string]$hora, [int]$diaSetmana = 0) {
     if ($xml -notmatch ('<StartBoundary>[^<]*T' + [regex]::Escape([string]$hora) + ':00')) { return $false }
     # I la frequencia: cada dia, o el dia de la setmana de la programacio.
     if ($diaSetmana -ge 1 -and $diaSetmana -le 7) {
-        return ($xml -match '<ScheduleByWeek>' -and $xml -match ('<' + $Script:RecDiesXml[$diaSetmana] + '\s*/>'))
+        return ($xml -match '<ScheduleByWeek>' -and $xml -match ('<' + $Script:RecDiesXml[$diaSetmana] + '\s*/>') -and
+                $xml -match ('<WeeksInterval>\s*' + [math]::Max(1, $setmanes) + '\s*</WeeksInterval>'))
     }
     return ($xml -match '<ScheduleByDay>')
 }
@@ -775,8 +778,8 @@ function _RecScriptAuto {
 function _RecCreaTasca {
     $psExe = (Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe')
     $pr = Get-ProgramacioAuto 'recordatoris'
-    $dia = if ([string]$pr.Freq -eq 'setmana') { [int]$pr.Dia } else { 0 }
-    $xml = _RecTascaXml $psExe (_RecScriptAuto) ([string]$pr.Hora) (Get-Date) $dia
+    $x = _ProgramacioParts $pr
+    $xml = _RecTascaXml $psExe (_RecScriptAuto) ([string]$pr.Hora) (Get-Date) $x[2] $x[3]
     $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ('recordatoris-tasca-' + [guid]::NewGuid().ToString('N') + '.xml')
     try {
         [System.IO.File]::WriteAllText($tmp, $xml, [System.Text.Encoding]::Unicode)
@@ -902,8 +905,8 @@ function Update-RecordatorisTascaSiCal([switch]$Forca) {
         $q = _RecExecutaSchtasks @('/Query', '/TN', $Script:RecTascaNom, '/XML')
         if ($q.Codi -ne 0) { return }                                   # no hi és: res a fer
         $pr = Get-ProgramacioAuto 'recordatoris'
-        $dia = if ([string]$pr.Freq -eq 'setmana') { [int]$pr.Dia } else { 0 }
-        if (_RecTascaAlDia ([string]$q.Sortida) ([string]$pr.Hora) $dia) { return }
+        $x = _ProgramacioParts $pr
+        if (_RecTascaAlDia ([string]$q.Sortida) ([string]$pr.Hora) $x[2] $x[3]) { return }
         $c = _RecCreaTasca
         if ($c.Codi -eq 0) { _RecLog ('Tasca programada actualitzada: ' + (Get-ProgramacioText $pr) + ' i, si es salta, en quant es pugui.') }
         else { _RecLog ("No s'ha pogut actualitzar la tasca programada: " + ([string]$c.Sortida).Trim()) }

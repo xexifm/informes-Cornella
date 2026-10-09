@@ -682,14 +682,12 @@ function _SgTancar($excel, $wb) {
     try { if ($null -ne $excel) { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($excel) | Out-Null } } catch { }
 }
 
-# Genera i desa. $mode = 'excel' o 'pdf'; $seleccio, les pestanyes triades.
-# Retorna la ruta o '' si ha fallat.
-function _SgExportar([string]$mode, $seleccio) {
+# Genera i DESA el fitxer, SENSE CAP FINESTRA (la fan servir el boto i el mode
+# automatic, SeguimentGiaAutomatic.ps1). $mode = 'excel' o 'pdf'; $seleccio,
+# les pestanyes triades. Torna @{ Ok; Path; Error; Resum; Origen; Avisos }.
+function _SgGeneraFitxer([string]$mode, $seleccio) {
     $r = _SgConstruirLlibre $seleccio
-    if (-not $r.Ok) {
-        [System.Windows.Forms.MessageBox]::Show("No s'ha pogut generar el seguiment:`n$($r.Error)", 'Seguiment', 'OK', 'Error') | Out-Null
-        return ''
-    }
+    if (-not $r.Ok) { return @{ Ok = $false; Error = [string]$r.Error } }
     $wb = $r.Workbook; $excel = $r.Excel
     $ara = Get-Date
     $dir = _SgCarpetaSortida
@@ -713,15 +711,29 @@ function _SgExportar([string]$mode, $seleccio) {
     } catch {
         $detall = _SgTextError $_ ("desant el fitxer en " + $ext)
         _SgTancar $excel $wb
-        [System.Windows.Forms.MessageBox]::Show("No s'ha pogut desar el fitxer:`n`n$detall", 'Seguiment', 'OK', 'Error') | Out-Null
-        return ''
+        return @{ Ok = $false; Error = ("No s'ha pogut desar el fitxer:`n`n" + $detall) }
     }
     _SgTancar $excel $wb
+    return @{ Ok = $true; Path = $path; Error = ''; Resum = $r.Resum; Origen = $r.Origen; Avisos = @($r.Avisos) }
+}
 
-    $det = (@($r.Resum.Keys) | ForEach-Object { "  $_ : $($r.Resum[$_])" }) -join "`n"
-    $msg = "Seguiment generat:`n$path`n`nActivitats per pestanya:`n$det`n`nBase de dades: $($r.Origen)"
+# El que diu el resum: activitats per pestanya. PURA.
+function _SgResumText($resum) {
+    if ($null -eq $resum) { return '' }
+    return ((@($resum.Keys) | ForEach-Object { "  $_ : $($resum[$_])" }) -join "`n")
+}
+
+# El boto: genera, i ho diu. Retorna la ruta o '' si ha fallat.
+function _SgExportar([string]$mode, $seleccio) {
+    $g = _SgGeneraFitxer $mode $seleccio
+    if (-not $g.Ok) {
+        [System.Windows.Forms.MessageBox]::Show("No s'ha pogut generar el seguiment:`n$($g.Error)", 'Seguiment', 'OK', 'Error') | Out-Null
+        return ''
+    }
+    $path = [string]$g.Path
+    $msg = "Seguiment generat:`n$path`n`nActivitats per pestanya:`n$(_SgResumText $g.Resum)`n`nBase de dades: $($g.Origen)"
     # Si alguna pestanya s'ha quedat sense format, es diu (les dades hi son).
-    $avisos = @($r.Avisos)
+    $avisos = @($g.Avisos)
     if ($avisos.Count -gt 0) {
         $msg += "`n`nAVIS: hi ha " + $avisos.Count + " pestanya(es) sense format. Les dades hi son igualment.`n" + ($avisos -join "`n")
     }
@@ -732,6 +744,146 @@ function _SgExportar([string]$mode, $seleccio) {
     }
     return $path
 }
+
+# ============================================================================
+# EL CORREU DEL SEGUIMENT i l'estat de l'automatic (octubre 2026)
+# ============================================================================
+# Son aqui i no a SeguimentGiaAutomatic.ps1 perque els fan servir el boto
+# "PDF i enviar" d'aquesta finestra i l'automatic: si fossin alla, aquest
+# fitxer i aquell dependrien l'un de l'altre (el guard de cicles ho enxampa).
+# L'estat, a local\seguiment-gia\seguiment-auto.json (vegeu
+# SeguimentGiaAutomatic.ps1).
+$Script:SgEstatPlantilla = [ordered]@{ auto = $false; auto_el = ''; mode = ''; enviat_el = '' }
+
+function _SgAutoStatePath {
+    try { return [string](Join-Path (Get-LocalSubdir $RepoRoot 'Seguiment') 'seguiment-auto.json') } catch { return '' }
+}
+function _SgAutoEstat { return (Read-EstatAuto (_SgAutoStatePath) $Script:SgEstatPlantilla) }
+function _SgAutoDesaEstat($canvis) { return (Save-EstatAuto (_SgAutoStatePath) $canvis $Script:SgEstatPlantilla) }
+# Les pestanyes de l'automatic: totes menys la copia de la fulla "Estes" (152
+# columnes; al PDF no s'hi llegeix res). PURA.
+function _SgSeleccioAuto {
+    $estes = _NormalitzaText (_SgNomEstes)
+    return @(@(_SgOpcionsExport) | Where-Object { (_NormalitzaText $_) -ne $estes })
+}
+
+# ----------------------------------------------------------------------------
+# EL TEXT DEL CORREU
+# ----------------------------------------------------------------------------
+function _SgCorreuPath {
+    $base = [string]$env:LOCALAPPDATA
+    if ([string]::IsNullOrWhiteSpace($base)) { $base = [System.IO.Path]::GetTempPath() }
+    return [string](Join-Path $base (Join-Path 'InformesCornella' 'seguiment-correu.json'))
+}
+
+function _SgCorreuDefecte {
+    $cos = @(
+        'Bon dia,'
+        ''
+        "Us fem arribar els llistats de seguiment de la base de dades del GIA d'avui, {DATA} (PDF adjunt)."
+        ''
+        'Activitats per llistat:'
+        '{RESUM}'
+        ''
+        "Base de dades: {ORIGEN}"
+        ''
+        "Departament d'Activitats " + [char]0x00B7 + ' Ajuntament de Cornell' + [char]0x00E0 + ' de Llobregat'
+    ) -join "`n"
+    return [ordered]@{ assumpte = ('Llistats de seguiment del GIA ' + [char]0x00B7 + ' {DATA}'); cos = $cos }
+}
+
+function _SgCorreuAjuda {
+    return ('Variables: {DATA} = la data d''avui  ' + [char]0x00B7 + '  {RESUM} = les activitats de cada llistat  ' + [char]0x00B7 +
+            '  {ORIGEN} = l''Excel d''activitats   ' + [char]0x00B7 + '   **negreta**  //cursiva//   ' + [char]0x00B7 + '   el PDF va adjunt')
+}
+
+# El desat, damunt dels valors per defecte (com el de Controls periodics).
+function _LoadSgCorreu {
+    $d = _SgCorreuDefecte
+    $o = Read-JsonFile (_SgCorreuPath)
+    if ($null -ne $o) {
+        foreach ($k in @($d.Keys)) {
+            if ($o.PSObject.Properties[$k] -and -not [string]::IsNullOrEmpty([string]$o.$k)) { $d[$k] = [string]$o.$k }
+        }
+    }
+    return ,$d
+}
+
+function _SaveSgCorreu($obj) { Write-JsonFile (_SgCorreuPath) $obj 5 }
+
+# Les variables del correu. $resum: pestanya -> activitats. PURA.
+function _SgFillPh([string]$text, $resum, [string]$origen, [datetime]$data) {
+    $linies = @()
+    if ($null -ne $resum) { $linies = @(@($resum.Keys) | ForEach-Object { '- ' + [string]$_ + ': ' + [string]$resum[$_] }) }
+    return (_OmpleVariables $text ([ordered]@{
+        '{DATA}'   = $data.ToString('dd/MM/yyyy')
+        '{RESUM}'  = ($linies -join "`n")
+        '{ORIGEN}' = $origen
+    }))
+}
+
+function Invoke-SeguimentCorreuTextos {
+    $textos = _LoadSgCorreu
+    [void](Show-EditorAssumpteCos `
+        -TextFinestra 'Text del correu (seguiment)' `
+        -Titol 'Text del correu' `
+        -Subtitol ('Llistats de seguiment del GIA ' + [char]0x00B7 + ' es desa en aquest ordinador') `
+        -Ajuda (_SgCorreuAjuda) `
+        -Assumpte ([string]$textos['assumpte']) `
+        -Cos ([string]$textos['cos']) `
+        -EtiquetaRestaurar 'Restaurar original' `
+        -Restaurar {
+            $r = [System.Windows.Forms.MessageBox]::Show('Vols recuperar el text original? (No es desa fins que premis Desar.)', 'Text del correu', 'YesNo', 'Question')
+            if ($r -ne [System.Windows.Forms.DialogResult]::Yes) { return $null }
+            return (_SgCorreuDefecte)
+        } `
+        -Desa {
+            param($v)
+            try {
+                _SaveSgCorreu ([ordered]@{ assumpte = [string]$v['assumpte']; cos = [string]$v['cos'] })
+                [System.Windows.Forms.MessageBox]::Show('Text desat en aquest ordinador.', 'Text del correu', 'OK', 'Information') | Out-Null
+                return $true
+            } catch {
+                [System.Windows.Forms.MessageBox]::Show("No s'ha pogut desar:`n$($_.Exception.Message)", 'Text del correu', 'OK', 'Error') | Out-Null
+                return $false
+            }
+        })
+}
+
+# ----------------------------------------------------------------------------
+# L'ENVIAMENT
+# ----------------------------------------------------------------------------
+# Envia el PDF ($gen: el resultat de _SgGeneraFitxer) als destinataris de
+# l'eina 'seguiment'. $silenci: l'automatic (els esborranys s'apunten perque el
+# menu ho avisi). Torna @{ Ok; Text }.
+function Send-SeguimentCorreu($gen, [bool]$silenci) {
+    $cfgE = Get-CorreuEina 'seguiment'
+    $to = [string]$cfgE.Fixes
+    if (-not $to) { return @{ Ok = $false; Text = ("No hi ha cap destinatari: posa'l a Configuraci" + [char]0x00F3 + " -> Correus de cada eina -> Seguiment (adreces fixes).") } }
+    $motiu = Test-CorreuViaLlest $cfgE.Via
+    if ($motiu) { return @{ Ok = $false; Text = $motiu } }
+    $t = _LoadSgCorreu
+    $ara = Get-Date
+    $assumpte = _SgFillPh ([string]$t['assumpte']) $gen.Resum ([string]$gen.Origen) $ara
+    $html = _CosAHtml (_SgFillPh ([string]$t['cos']) $gen.Resum ([string]$gen.Origen) $ara)
+    $cco = if ($null -ne $cfgE.Cco) { [string]$cfgE.Cco } else { '' }
+    $ses = $null
+    try {
+        $ses = Open-CorreuSessio $cfgE.Via
+        Send-CorreuSessio $ses $to $cco $assumpte $html '' @([string]$gen.Path)
+        $esb = ($cfgE.Via -eq 'outlook-esborrany')
+        if ($esb -and $silenci) { Add-CorreuEsborranysPendents 'Seguiment' @(("Llistats de seguiment (" + $to + ")")) }
+        # Qui ha fet l'ultim enviament (la data de sota la rajola, verda o grisa).
+        [void](_SgAutoDesaEstat @{ mode = $(if ($silenci) { 'auto' } else { 'manual' }); enviat_el = $ara.ToString('o') })
+        return @{ Ok = $true; Text = ($(if ($esb) { "Correu desat a Esborranys de l'Outlook" } else { 'Correu enviat' }) + ' per a ' + $to + $(if ($cco) { ' (CCO: ' + $cco + ')' } else { '' }) + '.') }
+    } catch {
+        $txt = if ($null -eq $ses) { [string]$_.Exception.Message } else { _CorreuSessioError $ses $_ }
+        return @{ Ok = $false; Text = $txt }
+    } finally {
+        Close-CorreuSessio $ses
+    }
+}
+
 
 # ----------------------------------------------------------------------------
 # Finestra de l'eina: les caselles del que es vol exportar + els dos botons
@@ -790,9 +942,10 @@ function Invoke-SeguimentGia {
     [void]$form.Controls.Add($lbl2)
 
     $peu = _AddPeuBotons $form @(@{ Nom = 'Tanca'; Text = 'Tancar' }) @(
+        @{ Nom = 'Env'; Text = 'PDF i enviar' },
         @{ Nom = 'Pdf'; Text = 'Exportar a PDF' },
         @{ Nom = 'Xls'; Text = 'Exportar a Excel'; Estil = 'primari' }) 292
-    $btnXls = $peu.Xls; $btnPdf = $peu.Pdf; $btnTanca = $peu.Tanca
+    $btnXls = $peu.Xls; $btnPdf = $peu.Pdf; $btnTanca = $peu.Tanca; $btnEnv = $peu.Env
 
     $btnTanca.add_Click({ $form.Close() }.GetNewClosure())
 
@@ -813,6 +966,23 @@ function Invoke-SeguimentGia {
         }
     }.GetNewClosure()
     $btnXls.add_Click({ & $ferExport 'excel' }.GetNewClosure())
+    # EL MATEIX QUE L'AUTOMATIC, ara: el PDF de les pestanyes marcades i el
+    # correu als destinataris de Configuracio -> Correus de cada eina.
+    $btnEnv.add_Click({
+        $sel = @($clb.CheckedItems | ForEach-Object { [string]$_ })
+        if ($sel.Count -eq 0) { return }
+        $btnXls.Enabled = $false; $btnPdf.Enabled = $false; $btnEnv.Enabled = $false
+        $form.Cursor = [System.Windows.Forms.Cursors]::WaitCursor
+        try {
+            $g = _SgGeneraFitxer 'pdf' $sel
+            if (-not $g.Ok) { [System.Windows.Forms.MessageBox]::Show("No s'ha pogut generar el seguiment:`n$($g.Error)", 'Seguiment', 'OK', 'Error') | Out-Null; return }
+            $e = Send-SeguimentCorreu $g $false
+            [System.Windows.Forms.MessageBox]::Show(("PDF: " + $g.Path + "`n`n" + $e.Text), 'Seguiment', 'OK', $(if ($e.Ok) { 'Information' } else { 'Warning' })) | Out-Null
+        } finally {
+            $form.Cursor = [System.Windows.Forms.Cursors]::Default
+            $btnXls.Enabled = $true; $btnPdf.Enabled = $true; $btnEnv.Enabled = $true
+        }
+    }.GetNewClosure())
     $btnPdf.add_Click({ & $ferExport 'pdf' }.GetNewClosure())
 
     $sub = 'Llistats de seguiment des de la base de dades del GIA'

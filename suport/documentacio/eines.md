@@ -129,6 +129,38 @@ n'és la traducció literal:
   amplada i la del text ajustat sortia estreta. Als arrays d'amplades el **0**
   vol dir «no la toquis».
 
+### El Seguiment AUTOMÀTIC i el correu amb el PDF (octubre 2026)
+
+L'usuari: «automatitzar l'eina Seguiment cada dues setmanes + enviament del
+document adjunt per correu», «només els PDF, tot menys la fulla Estès».
+
+- **«Cada dues setmanes»** és una freqüència nova de tots els automatismes
+  (`quinzena` a `ModeAutomatic.ps1`, i al desplegable de Configuració →
+  Automatismes, `$Script:FreqsAuto`): un dia de la setmana, les setmanes
+  **parelles des d'una data fixa** (`$Script:AutoAncoraQuinzena`, el dilluns
+  12/10/2026). És una data fixa i no «dues setmanes des de l'última»: si un dia
+  es fa tard, la següent no es mou. La tasca del Windows dels Recordatoris
+  també ho sap fer (`WeeksInterval`). El Seguiment ve per defecte cada dues
+  setmanes, el dilluns a les 13:00.
+- **La rajola porta l'interruptor A/M** (`$Script:ModesAuto['seguimentgia']`,
+  `SeguimentGiaAutomatic.ps1`). La passada corre en segon pla
+  (`SeguimentGiaAuto.ps1`): fa el PDF amb **la mateixa funció que el botó**
+  (`_SgGeneraFitxer`, que ara no obre cap finestra; `_SgExportar` només hi
+  posa els missatges), amb tots els llistats **menys la fulla Estès**
+  (`_SgSeleccioAuto`), i l'envia.
+- **El correu** (`Send-SeguimentCorreu`) va a les **adreces fixes** de l'eina
+  `seguiment` (Configuració → Correus de cada eina), **només per l'Outlook**,
+  perquè porta l'adjunt. Sense destinataris no s'envia res, i l'interruptor no
+  s'engega (`Requisit`). Si va a Esborranys, el menú avisa com amb els
+  recordatoris. El text es tria a *Textos del correu* i es desa a
+  `seguiment-correu.json` (`%LOCALAPPDATA%`). Les variables són `{DATA}`,
+  `{RESUM}` (les activitats de cada llistat) i `{ORIGEN}`.
+- **El botó «PDF i enviar»** de la finestra fa el mateix ara, amb les pestanyes
+  marcades.
+- **Per què el correu és a `SeguimentGia.ps1`** i no a l'automàtic: el fan
+  servir tots dos, i si fos a l'automàtic, aquest fitxer i aquell dependrien
+  l'un de l'altre (ho va enxampar el guard de cicles).
+
 ## Normativa: només la que es cita; la resta, a `derogades` (octubre 2026)
 La primera revisió de debò va donar 62 files i quasi cap era feina de debò:
 - **Falses «derogades» del BOE.** `_RevEstatBoe` buscava «norma anulada» o

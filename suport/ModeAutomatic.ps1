@@ -64,13 +64,24 @@ function Get-AutoHoraText { return ('{0:00}:{1:00}' -f [int]$Script:AutoHora, [i
 # DEFECTE; la pantalla de Configuracio en desa una de propia per a aquest PC
 # (settings.json, clau "Automatismes") i es llegeix EN VIU (cada minut, el menu):
 # canviar-la no demana reiniciar.
-#   Freq  'dia' (cada dia) | 'setmana' (un dia de la setmana)
-#   Dia   1 dilluns ... 7 diumenge (nomes 'setmana')
+#   Freq  'dia' (cada dia) | 'setmana' (un dia de la setmana) | 'quinzena' (un
+#         dia de la setmana, cada DUES setmanes: el Seguiment, octubre 2026)
+#   Dia   1 dilluns ... 7 diumenge (nomes 'setmana' i 'quinzena')
 #   Hora  'HH:mm'
 # La regla de sempre no canvia: si l'ULTIMA VEGADA QUE TOCAVA no es va fer, es
 # fa tan aviat com es pot.
 $Script:ProgramacionsAuto = [ordered]@{}
 $Script:DiesSetmana = @('', 'dilluns', 'dimarts', 'dimecres', 'dijous', 'divendres', 'dissabte', 'diumenge')
+# Les frequencies, en l'ordre del desplegable de Configuracio.
+$Script:FreqsAuto = [ordered]@{ 'dia' = 'cada dia'; 'setmana' = 'cada setmana'; 'quinzena' = 'cada dues setmanes' }
+# QUINES setmanes toca un "cada dues setmanes": les parelles des d'aquest
+# dilluns (el primer, el 12/10/2026). Una data fixa i no "des de l'ultima
+# vegada": si un dia es fa tard, la seguent no es mou.
+$Script:AutoAncoraQuinzena = New-Object datetime(2026, 10, 12)
+
+# L'index de la frequencia al desplegable i de tornada. PURES.
+function _FreqIndex([string]$freq) { return [math]::Max(0, [array]::IndexOf(@($Script:FreqsAuto.Keys), $freq)) }
+function _FreqDeIndex([int]$i) { $k = @($Script:FreqsAuto.Keys); if ($i -lt 0 -or $i -ge $k.Count) { return 'dia' }; return [string]$k[$i] }
 
 function Register-ProgramacioAuto([string]$clau, [string]$titol, [string]$freq = 'dia', [int]$dia = 1, [string]$hora = '') {
     if ($hora -eq '') { $hora = Get-AutoHoraText }
@@ -81,9 +92,9 @@ function Register-ProgramacioAuto([string]$clau, [string]$titol, [string]$freq =
 # pot tocar a ma). PURA.
 function Test-ProgramacioValida($p) {
     if ($null -eq $p) { return $false }
-    if (@('dia', 'setmana') -notcontains [string]$p.Freq) { return $false }
+    if (@($Script:FreqsAuto.Keys) -notcontains [string]$p.Freq) { return $false }
     if ([string]$p.Hora -notmatch '^([01]?\d|2[0-3]):[0-5]\d$') { return $false }
-    if ([string]$p.Freq -eq 'setmana') { $d = 0; if (-not [int]::TryParse([string]$p.Dia, [ref]$d) -or $d -lt 1 -or $d -gt 7) { return $false } }
+    if ([string]$p.Freq -ne 'dia') { $d = 0; if (-not [int]::TryParse([string]$p.Dia, [ref]$d) -or $d -lt 1 -or $d -gt 7) { return $false } }
     return $true
 }
 
@@ -107,26 +118,29 @@ function Get-ProgramacioAuto([string]$clau, $settings = $null) {
 function Get-ProgramacioText($p) {
     if ($p -is [string]) { $p = Get-ProgramacioAuto $p }
     if ([string]$p.Freq -eq 'setmana') { return ('cada ' + $Script:DiesSetmana[[int]$p.Dia] + ' a les ' + $p.Hora) }
+    if ([string]$p.Freq -eq 'quinzena') { return ('cada dues setmanes, el ' + $Script:DiesSetmana[[int]$p.Dia] + ', a les ' + $p.Hora) }
     return ('cada dia a les ' + $p.Hora)
 }
 
-# L'hora, el minut i el dia de la setmana (0 = cada dia) d'una programacio. PURA.
+# L'hora, el minut, el dia de la setmana (0 = cada dia) i cada quantes setmanes
+# d'una programacio. PURA.
 function _ProgramacioParts($p) {
     $h = ([string]$p.Hora).Split(':')
-    $dia = if ([string]$p.Freq -eq 'setmana') { [int]$p.Dia } else { 0 }
-    return @([int]$h[0], [int]$h[1], $dia)
+    $dia = if ([string]$p.Freq -ne 'dia') { [int]$p.Dia } else { 0 }
+    $setm = if ([string]$p.Freq -eq 'quinzena') { 2 } else { 1 }
+    return @([int]$h[0], [int]$h[1], $dia, $setm)
 }
 
 # Toca fer la passada d'aquest automatisme, amb la seva programacio?
 function Test-ProgramacioToca([string]$clau, [datetime]$ara, $ultim, $settings = $null) {
     $x = _ProgramacioParts (Get-ProgramacioAuto $clau $settings)
-    return (_AutoToca $ara $ultim $x[0] $x[1] $x[2])
+    return (_AutoToca $ara $ultim $x[0] $x[1] $x[2] $x[3])
 }
 
 # L'ultim venciment d'aquest automatisme a l'hora $ara.
 function Get-ProgramacioVenciment([string]$clau, [datetime]$ara, $settings = $null) {
     $x = _ProgramacioParts (Get-ProgramacioAuto $clau $settings)
-    return (_AutoVenciment $ara $x[0] $x[1] $x[2])
+    return (_AutoVenciment $ara $x[0] $x[1] $x[2] $x[3])
 }
 
 # El que es desa a settings.json: nomes les programacions DIFERENTS de la per
@@ -138,7 +152,7 @@ function ConvertTo-AutomatismesSettings($valors) {
         $v = $valors[$k]; $d = $Script:ProgramacionsAuto[$k]
         if (-not (Test-ProgramacioValida $v)) { continue }
         $igual = ($null -ne $d -and [string]$v.Freq -eq [string]$d.Freq -and [string]$v.Hora -eq [string]$d.Hora -and
-                  ([string]$v.Freq -ne 'setmana' -or [int]$v.Dia -eq [int]$d.Dia))
+                  ([string]$v.Freq -eq 'dia' -or [int]$v.Dia -eq [int]$d.Dia))
         if (-not $igual) { $out[$k] = [ordered]@{ Freq = [string]$v.Freq; Dia = [int]$v.Dia; Hora = [string]$v.Hora } }
     }
     return $out
@@ -155,8 +169,9 @@ function Get-AutoTipText([string]$que, [string]$clau = '') {
 }
 
 # L'ultim venciment que ja hauria d'estar servit a l'hora $ara. $diaSetmana: 0
-# cada dia; 1..7 (dilluns..diumenge) un cop a la setmana. PURA.
-function _AutoVenciment([datetime]$ara, [int]$hora, [int]$minut, [int]$diaSetmana = 0) {
+# cada dia; 1..7 (dilluns..diumenge) un cop a la setmana, o cada $setmanes (2:
+# les setmanes parelles des de $Script:AutoAncoraQuinzena). PURA.
+function _AutoVenciment([datetime]$ara, [int]$hora, [int]$minut, [int]$diaSetmana = 0, [int]$setmanes = 1) {
     $avui = New-Object datetime($ara.Year, $ara.Month, $ara.Day, $hora, $minut, 0)
     if ($diaSetmana -lt 1) {
         if ($ara -lt $avui) { return $avui.AddDays(-1) }
@@ -166,6 +181,11 @@ function _AutoVenciment([datetime]$ara, [int]$hora, [int]$minut, [int]$diaSetman
     $iso = [int]$ara.DayOfWeek; if ($iso -eq 0) { $iso = 7 }
     $venc = $avui.AddDays( - (($iso - $diaSetmana + 7) % 7))
     if ($venc -gt $ara) { $venc = $venc.AddDays(-7) }
+    if ($setmanes -gt 1) {
+        $n = [int][math]::Floor(($venc.Date - $Script:AutoAncoraQuinzena.Date).TotalDays / 7)
+        $resta = (($n % $setmanes) + $setmanes) % $setmanes
+        $venc = $venc.AddDays(-7 * $resta)
+    }
     return $venc
 }
 
@@ -175,8 +195,8 @@ function _AutoVenciment([datetime]$ara, [int]$hora, [int]$minut, [int]$diaSetman
 #   ahir el PC estava apagat -> el venciment d'ahir no es va servir, toca
 #   obres a la tarda i el d'avui no s'ha fet -> toca (no s'espera a dema)
 # Amb $diaSetmana, el mateix per setmanes.
-function _AutoToca([datetime]$ara, $ultim, [int]$hora, [int]$minut, [int]$diaSetmana = 0) {
-    $venc = _AutoVenciment $ara $hora $minut $diaSetmana
+function _AutoToca([datetime]$ara, $ultim, [int]$hora, [int]$minut, [int]$diaSetmana = 0, [int]$setmanes = 1) {
+    $venc = _AutoVenciment $ara $hora $minut $diaSetmana $setmanes
     $t = [string]$ultim
     if ([string]::IsNullOrWhiteSpace($t)) { return $true }
     try { $fet = [datetime]::Parse($t) } catch { return $true }

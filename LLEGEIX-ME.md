@@ -609,7 +609,16 @@ i el resultat és el mateix però sense columnes ocultes ni res a recalcular.
 desmarcar les que no necessitis (hi ha un enllaç per marcar-les o desmarcar-les
 totes de cop). Al fitxer només hi haurà les pestanyes marcades.
 
-Dos botons: **Exportar a Excel** i **Exportar a PDF**. El PDF surt en horitzontal
+**Per correu, i sol cada dues setmanes.** El botó **PDF i enviar** fa el PDF de
+les pestanyes marcades i l'envia per l'Outlook a qui hagis posat a ⚙
+Configuració → *Correus de cada eina* → *Seguiment* (a **Adreces fixes**, i la
+CCO si en vols). Amb l'interruptor **A / M** de la rajola en **A**, el programa
+ho fa sol **cada dues setmanes, el dilluns a les 13:00** (es canvia a
+Configuració → Automatismes): el PDF de tots els llistats **menys la fulla
+Estès**, adjunt al correu. El text del correu es canvia a *Textos del correu*.
+Sense cap destinatari, l'automàtic no s'engega.
+
+Els altres dos botons: **Exportar a Excel** i **Exportar a PDF**. El PDF surt en horitzontal
 i A3, ajustat perquè hi càpiguen totes les columnes, amb les dues primeres files
 repetides a cada pàgina. Al peu hi ha el nom de la pestanya i **la pàgina dins
 d'aquella pestanya**: encara que el PDF sencer en tingui 600, ANNEX II comença

@@ -214,16 +214,16 @@ function Invoke-ConfiguracioScreen {
         }
         $cbF = New-Object System.Windows.Forms.ComboBox
         $cbF.DropDownStyle = 'DropDownList'
-        [void]$cbF.Items.AddRange(@('cada dia', 'cada setmana'))
-        $cbF.SelectedIndex = if ([string]$pr.Freq -eq 'setmana') { 1 } else { 0 }
+        [void]$cbF.Items.AddRange(@($Script:FreqsAuto.Values))
+        $cbF.SelectedIndex = _FreqIndex ([string]$pr.Freq)
         $cbF.Location = New-Object System.Drawing.Point(206, $ya); $cbF.Size = New-Object System.Drawing.Size(104, 24)
         $cbD = New-Object System.Windows.Forms.ComboBox
         $cbD.DropDownStyle = 'DropDownList'
         [void]$cbD.Items.AddRange($dies)
         $cbD.SelectedIndex = [math]::Max(0, [math]::Min(6, [int]$pr.Dia - 1))
         $cbD.Location = New-Object System.Drawing.Point(316, $ya); $cbD.Size = New-Object System.Drawing.Size(98, 24)
-        $cbD.Enabled = ($cbF.SelectedIndex -eq 1)
-        $cbF.add_SelectedIndexChanged({ $cbD.Enabled = ($cbF.SelectedIndex -eq 1) }.GetNewClosure())
+        $cbD.Enabled = ($cbF.SelectedIndex -ge 1)
+        $cbF.add_SelectedIndexChanged({ $cbD.Enabled = ($cbF.SelectedIndex -ge 1) }.GetNewClosure())
         $dt = New-Object System.Windows.Forms.DateTimePicker
         $dt.Format = 'Custom'; $dt.CustomFormat = 'HH:mm'; $dt.ShowUpDown = $true
         $hm = ([string]$pr.Hora).Split(':')
@@ -316,7 +316,7 @@ function Invoke-ConfiguracioScreen {
         # La programacio per defecte de cada automatisme (l'interruptor no es toca).
         foreach ($k in @($autoCtl.Keys)) {
             $c = $autoCtl[$k]; $d = $progDefs[$k]
-            $c.Freq.SelectedIndex = if ([string]$d.Freq -eq 'setmana') { 1 } else { 0 }
+            $c.Freq.SelectedIndex = _FreqIndex ([string]$d.Freq)
             $c.Dia.SelectedIndex = [math]::Max(0, [int]$d.Dia - 1)
             $hm = ([string]$d.Hora).Split(':')
             $c.Hora.Value = (Get-Date).Date.AddHours([int]$hm[0]).AddMinutes([int]$hm[1])
@@ -346,7 +346,7 @@ function Invoke-ConfiguracioScreen {
         $progs = @{}
         foreach ($k in @($autoCtl.Keys)) {
             $c = $autoCtl[$k]
-            $progs[$k] = @{ Freq = $(if ($c.Freq.SelectedIndex -eq 1) { 'setmana' } else { 'dia' }); Dia = ($c.Dia.SelectedIndex + 1); Hora = $c.Hora.Value.ToString('HH:mm') }
+            $progs[$k] = @{ Freq = (_FreqDeIndex $c.Freq.SelectedIndex); Dia = ($c.Dia.SelectedIndex + 1); Hora = $c.Hora.Value.ToString('HH:mm') }
         }
         $autoSet = ConvertTo-AutomatismesSettings $progs
         if ($autoSet.Count -gt 0) { $overrides['Automatismes'] = $autoSet }
