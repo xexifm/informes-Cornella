@@ -60,6 +60,31 @@ function _ReadInformeParagraphs($file, $wordApp) {
 }
 
 # ----------------------------------------------------------------------------
+# ON es busquen els informes: NOMES el primer nivell
+# ----------------------------------------------------------------------------
+# Els fitxers que son DIRECTAMENT dins de cada carpeta d'activitat de la
+# carpeta d'informes (<arrel>\<carpeta>\fitxer). Ni els de l'arrel ni els de
+# les subcarpetes (l'usuari, octubre 2026: "nomes ha de tenir en compte els
+# informes de les carpetes dins la carpeta d'informes, pero no dins les
+# subcarpetes"). A les subcarpetes hi ha l'expedient del GIA descarregat
+# (~25.000 fitxers) i informes vells o d'altres activitats que no han de
+# decidir l'estat; abans un Get-ChildItem -Recurse els recorria tots. El fan
+# servir la base d'informes i el repas de contactes.
+function Get-FitxersPrimerNivell([string]$dir) {
+    $out = New-Object System.Collections.ArrayList
+    foreach ($d in @(Get-ChildItem -LiteralPath $dir -Directory -ErrorAction SilentlyContinue)) {
+        foreach ($f in @(Get-ChildItem -LiteralPath $d.FullName -File -ErrorAction SilentlyContinue)) { [void]$out.Add($f) }
+    }
+    return ,$out.ToArray()
+}
+
+# La clau (_ClauInforme) es d'un fitxer de primer nivell? "carpeta\fitxer",
+# exactament una barra. PURA.
+function _EsDePrimerNivell([string]$clau) {
+    return (([string]$clau -replace '/', '\').Trim('\').Split('\').Count -eq 2)
+}
+
+# ----------------------------------------------------------------------------
 # L'ID GIA ASSIGNAT A MA (local\base-dades-activitats\gia-assignats_*.json)
 # ----------------------------------------------------------------------------
 # Els informes antics no porten l'ID GIA a la capcalera, o el porten malament
@@ -510,11 +535,11 @@ function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock
     }
 
     # 4. Recollir els fitxers candidats (.docx o .doc amb data al principi
-    #    del nom). Un sol Get-ChildItem recursiu (sense -Filter) i filtrem
-    #    per extensio nosaltres: evita el parany de "*.doc" -Filter que a
-    #    vegades tambe encerta ".docx" pel nom curt (8.3) de NTFS.
+    #    del nom), NOMES del primer nivell (Get-FitxersPrimerNivell). Sense
+    #    -Filter i filtrem per extensio nosaltres: evita el parany de "*.doc"
+    #    -Filter que a vegades tambe encerta ".docx" pel nom curt (8.3) de NTFS.
     & $avisa "Cercant informes a:`n$dir" 0 0
-    $allInformes = Get-ChildItem -LiteralPath $dir -Recurse -File -ErrorAction SilentlyContinue |
+    $allInformes = Get-FitxersPrimerNivell $dir |
                    Where-Object {
                        $_.Name -notlike '~$*' -and
                        ($_.Extension -ieq '.docx' -or $_.Extension -ieq '.doc') -and

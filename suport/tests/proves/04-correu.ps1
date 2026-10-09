@@ -909,7 +909,8 @@ try {
     AssertEq "$($infsV[1].conclusio_breu)|$($infsV[1].editat_a_ma)|$($null -eq $infsV[1].PSObject.Properties['auto_conclusio_breu'])" 'FI Requeriment|False|True' 'la "correccio" que ja coincideix amb l''automatic deixa de ser-ho (sense auto_*)'
 
     # UNA ALTRA CARPETA on no casa res: preguntar abans d'escriure.
-    & $nouDocx (Join-Path $rbZ '2026-06-01_Altre.docx') @('ID GIA: 777', $fiT, $fi)
+    [void](New-Item -ItemType Directory -Path (Join-Path $rbZ 'GIA 777') -Force)
+    & $nouDocx (Join-Path (Join-Path $rbZ 'GIA 777') '2026-06-01_Altre.docx') @('ID GIA: 777', $fiT, $fi)
     $InformesDir = $rbZ
     $preg = @{ Text = '' }
     $resNo = Invoke-InformesDbEscaneig $null { param($p) $preg.Text = $p; $false }
@@ -925,6 +926,30 @@ try {
 } finally {
     $InformesDir = $vellsRB.Inf; $LocalActivitatsDir = $vellsRB.Loc; $ActivitatsDir = $vellsRB.Act; $env:LOCALAPPDATA = $vellsRB.App
     Remove-Item -LiteralPath $rb -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+Write-Host "`n--- InformesEscaneig.ps1: nomes el PRIMER NIVELL (ni l'arrel ni les subcarpetes) ---"
+AssertEq (_EsDePrimerNivell 'GIA 1\a.docx') $true '_EsDePrimerNivell: carpeta\fitxer -> si'
+AssertEq (_EsDePrimerNivell 'a.docx') $false '_EsDePrimerNivell: a l''arrel -> no'
+AssertEq (_EsDePrimerNivell 'GIA 1\Expedient\a.docx') $false '_EsDePrimerNivell: dins d''una subcarpeta -> no'
+$pn = Join-Path ([System.IO.Path]::GetTempPath()) ('primer-nivell-' + [guid]::NewGuid().ToString('N'))
+$pnI = Join-Path $pn 'Informes'; $vellsPN = @{ Inf = $InformesDir; Loc = $LocalActivitatsDir; Act = $ActivitatsDir; App = $env:LOCALAPPDATA }
+try {
+    foreach ($d in @((Join-Path $pnI 'GIA 801'), (Join-Path (Join-Path $pnI 'GIA 801') 'Expedient GIA'), (Join-Path $pn 'local'), (Join-Path $pn 'act'), (Join-Path $pn 'app'))) { [void](New-Item -ItemType Directory -Path $d -Force) }
+    $LocalActivitatsDir = Join-Path $pn 'local'; $ActivitatsDir = Join-Path $pn 'act'; $env:LOCALAPPDATA = Join-Path $pn 'app'; $InformesDir = $pnI
+    $fiPN = "Vist l'anterior s'informa que es pot donar per finalitzat el procediment d'esmena."
+    & $nouDocx (Join-Path (Join-Path $pnI 'GIA 801') '2026-01-10_Seg.docx') @('ID GIA: 801', $fiPN, 'Ho poso al seu coneixement als efectes oportuns,')
+    & $nouDocx (Join-Path (Join-Path (Join-Path $pnI 'GIA 801') 'Expedient GIA') '2026-02-10_Vell.docx') @('ID GIA: 801', "Vist l'anterior, cal requerir l'esmena de les deficiències indicades.", 'Ho poso al seu coneixement als efectes oportuns,')
+    & $nouDocx (Join-Path $pnI '2026-03-10_Solt.docx') @('ID GIA: 802', $fiPN, 'Ho poso al seu coneixement als efectes oportuns,')
+    AssertEq (@(Get-FitxersPrimerNivell $pnI | ForEach-Object { $_.Name }) -join '|') '2026-01-10_Seg.docx' 'Get-FitxersPrimerNivell: nomes els de dins de cada carpeta (ni l''arrel ni les subcarpetes)'
+    $resPN = Invoke-InformesDbEscaneig
+    $dbPN = Read-JsonFile (Join-Path $LocalActivitatsDir 'informes-db.json')
+    AssertEq "$($resPN.NInformes)|$(@($dbPN.activitats)[0].estat_actual)" '1|FI Requeriment' 'Actualitzar base: el requeriment de la subcarpeta (mes nou) no decideix l''estat, i el de l''arrel no hi entra'
+} catch {
+    Assert $false ('bloc primer nivell: ' + $_.Exception.Message + ' @ ' + $_.InvocationInfo.ScriptLineNumber)
+} finally {
+    $InformesDir = $vellsPN.Inf; $LocalActivitatsDir = $vellsPN.Loc; $ActivitatsDir = $vellsPN.Act; $env:LOCALAPPDATA = $vellsPN.App
+    Remove-Item -LiteralPath $pn -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 Write-Host "`n--- InformesEscaneig.ps1: l'ID GIA assignat a ma (gia-assignats_*.json) ---"

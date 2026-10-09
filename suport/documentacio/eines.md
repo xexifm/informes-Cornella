@@ -729,6 +729,15 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
   l'ID GIA del document no és el de la carpeta, es queda amb el del document
   però surt a `a_revisar` («GIA del document diferent del de la carpeta»):
   abans se n'anava en silenci a l'activitat d'un altre titular.
+- **Només el PRIMER NIVELL** (octubre 2026, petició de l'usuari):
+  `Get-FitxersPrimerNivell` torna els fitxers que són **directament** dins de
+  cada carpeta d'activitat de la carpeta d'informes (`<arrel>\<carpeta>\fitxer`).
+  Ni els de l'arrel ni els de les subcarpetes: a les subcarpetes hi ha
+  l'expedient del GIA descarregat (~25.000 fitxers) i informes vells que no
+  han de decidir l'estat. Abans era un `Get-ChildItem -Recurse`. El fan servir
+  la base d'informes i el repàs de contactes. Una entrada de la classificació
+  de referència o de `gia-assignats` d'una subcarpeta surt ara com a «no
+  trobada».
 - **L'ID GIA assignat a mà** (octubre 2026): els informes antics no porten
   l'ID GIA a la capçalera, o el porten malament. L'assignació, llegida un per
   un, és a `local/base-dades-activitats/gia-assignats_*.json` (el **més
