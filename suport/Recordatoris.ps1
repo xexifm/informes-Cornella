@@ -549,7 +549,10 @@ function _RecLog([string]$msg) {
 # Completa una fila amb l'adreça, l'activitat i els correus, des de la cache de
 # l'Excel (que es carrega UNA sola vegada per tanda: obrir l'Excel per cada
 # correu seria inviable).
-function _RecOmpleDadesFila($row, $cache) {
+# $cfgE: la configuracio del correu de la campanya (Get-CorreuEina); a qui va
+# es tria a Configuracio -> Correus de cada eina. Sense, el titular i el
+# representant de l'Excel (el d'abans).
+function _RecOmpleDadesFila($row, $cache, $cfgE = $null) {
     $row.Adreca = ''
     $row.Correus = ''
     if ($null -eq $cache -or [string]::IsNullOrWhiteSpace([string]$row.Id)) { return $row }
@@ -560,6 +563,10 @@ function _RecOmpleDadesFila($row, $cache) {
     $rao = ''; $rep = ''
     try { if ($act.ContainsKey('EMAIL'))     { $rao = [string]$act['EMAIL'] } } catch { }
     try { if ($act.ContainsKey('EMAIL_REP')) { $rep = [string]$act['EMAIL_REP'] } } catch { }
+    if ($null -ne $cfgE) {
+        $row.Correus = (@(_CorreuDestinataris $cfgE @{ titular = $rao; representant = $rep } (Get-CorreuAutoritzats ([string]$row.Id)))) -join '; '
+        return $row
+    }
     $d = _CorreuDestinatarisPerDefecte $rao $rep
     $row.Correus = [string]$d.Text
     return $row
@@ -571,9 +578,11 @@ function _RecOmpleDadesFila($row, $cache) {
 # $rows: files ja triades. $silenci: mode automatic (cap finestra).
 # Retorna @{ Enviats; Esborranys; Fallats; SenseCorreu; Aturat; Motiu; Via }.
 function Invoke-RecordatorisTanda([string]$clau, $rows, [bool]$silenci) {
-    # PER ON (CorreuVia.ps1): la via triada, tambe en automatic (la tasca del
-    # Windows corre amb la sessio iniciada, que es el que l'Outlook necessita).
-    $via = Get-CorreuVia
+    # PER ON i A QUI: la de la campanya a Configuracio -> Correus de cada eina
+    # (CorreuEines.ps1), tambe en automatic (la tasca del Windows corre amb la
+    # sessio iniciada, que es el que l'Outlook necessita).
+    $cfgE = Get-CorreuEina ('rec-' + $clau)
+    $via = [string]$cfgE.Via
     $res = @{ Enviats = 0; Esborranys = 0; Fallats = 0; SenseCorreu = 0; Aturat = $false; Motiu = ''; Via = $via }
     $desats = New-Object System.Collections.ArrayList
     $files = @($rows)
@@ -611,7 +620,8 @@ function Invoke-RecordatorisTanda([string]$clau, $rows, [bool]$silenci) {
     }
 
     $bcc = ''
-    try { $bcc = (@($cfg['bcc']) -join ',') } catch { }
+    if ($null -ne $cfgE.Cco) { $bcc = [string]$cfgE.Cco }
+    else { try { $bcc = (@($cfg['bcc']) -join ',') } catch { } }
 
     # Finestra de progres amb Cancel.lar (mai en mode automatic).
     $st = @{ Cancel = $false }
@@ -644,7 +654,7 @@ function Invoke-RecordatorisTanda([string]$clau, $rows, [bool]$silenci) {
             if ($n -ge $limitAra) { break }
             if ($st.Cancel) { $res.Aturat = $true; $res.Motiu = "cancel·lat per l'usuari"; break }
 
-            $row = _RecOmpleDadesFila $row $cache
+            $row = _RecOmpleDadesFila $row $cache $cfgE
             if ([string]::IsNullOrWhiteSpace([string]$row.Correus)) {
                 $res.SenseCorreu++
                 _RecLog "GIA $($row.Id): sense correu a l'Excel, omesa"
@@ -847,7 +857,7 @@ function _RecTascaDesaActiu([bool]$on) {
                "aquella hora el PC estava apagat, s'enviaran en engegar-lo.`n`n" +
                "Tingues en compte que:`n" +
                " " + [char]0x00B7 + " Nom" + [char]0x00E9 + "s s'executa amb el PC engegat i la sessi" + [char]0x00F3 + " iniciada.`n" +
-               " " + [char]0x00B7 + " " + $(if ((Get-CorreuVia) -eq 'outlook-esborrany') { "Es deixen a Esborranys de l'Outlook i el programa t'avisa que els has d'enviar." } else { "Els correus surten SENSE que ning" + [char]0x00FA + " els revisi (" + (_CorreuViaText (Get-CorreuVia)) + ")." }) + "`n" +
+               " " + [char]0x00B7 + " Cada campanya surt per la via que tingui a Configuraci" + [char]0x00F3 + " (Correus de cada eina): " + ((@(_RecCampanyes) | ForEach-Object { [string]$_.Nom + ' = ' + (_CorreuViaText (Get-CorreuEina ('rec-' + $_.Clau)).Via) }) -join '; ') + ". Els d'Esborranys, el programa t'avisa que els has d'enviar; els altres surten SENSE que ning" + [char]0x00FA + " els revisi.`n" +
                " " + [char]0x00B7 + " Si la base d'informes t" + [char]0x00E9 + " m" + [char]0x00E9 + "s de " + [string]$Script:RecMaxAntiguitatDbDies + " dies, no enviar" + [char]0x00E0 + " res."
         $r = [System.Windows.Forms.MessageBox]::Show($msg, 'Recordatoris autom' + [char]0x00E0 + 'tics', 'YesNo', 'Question')
         if ($r -ne [System.Windows.Forms.DialogResult]::Yes) { return $false }
@@ -873,8 +883,9 @@ $Script:ModesAuto['recordatoris'] = @{
     # seria un automatic que no fa res i no ho diu (mateix criteri que la
     # carpeta de Copiar informes).
     Requisit  = {
-        $m = Test-CorreuViaLlest (Get-CorreuVia)
-        if ($m -eq '') { return '' }
+        # La via de CADA campanya (Configuracio -> Correus de cada eina).
+        $m = @(@(_RecCampanyes) | ForEach-Object { Test-CorreuViaLlest ([string](Get-CorreuEina ('rec-' + $_.Clau)).Via) } | Where-Object { $_ }) | Select-Object -First 1
+        if ([string]::IsNullOrWhiteSpace([string]$m)) { return '' }
         return ("Per enviar els recordatoris sols, " + $m + ".`n`nVegeu suport\documentacio\DESPLEGAMENT-MOBIL.md.")
     }
     TipA      = { Get-AutoTipText 's envien sols' 'recordatoris' }
@@ -913,4 +924,36 @@ function _RecExecutaSchtasks($argv) {
     $out = $p.StandardOutput.ReadToEnd() + $p.StandardError.ReadToEnd()
     $p.WaitForExit()
     return @{ Codi = $p.ExitCode; Sortida = $out }
+}
+
+# ----------------------------------------------------------------------------
+# EL CORREU DE PROVA (Configuracio -> Correus de cada eina)
+# ----------------------------------------------------------------------------
+# El recordatori de cada campanya amb les dades de l'activitat de prova: el
+# text i la CCO de la campanya, i la data de l'informe de la base si hi es.
+foreach ($recCampP in @(_RecCampanyes)) {
+    $recClauP = [string]$recCampP.Clau
+    $Script:CorreuProves['rec-' + $recClauP] = {
+        param($gia, $cache, $cfgE)
+        $act = Get-ActivitatFromCache $cache $gia
+        if ($null -eq $act) { throw "L'ID GIA de prova ($gia) no es a l'Excel d'activitats." }
+        $cfg = (_RecLlegeix).campanyes[$recClauP]
+        $dataInf = (Get-Date).ToString('yyyy-MM-dd')
+        $db = _RecCarregaDb
+        if ($null -ne $db) {
+            $a = @(@($db.activitats) | Where-Object { [string]$_.id_gia -eq $gia }) | Select-Object -First 1
+            $d = if ($null -ne $a) { _RecDataInforme $a } else { '' }
+            if ($d) { $dataInf = $d }
+        }
+        $tit = ''; try { if ($act.ContainsKey('TITULAR')) { $tit = [string]$act['TITULAR'] } } catch { }
+        $row = [pscustomobject]@{ Id = $gia; Titular = $tit; DataInforme = $dataInf; Adreca = ''; Correus = '' }
+        $row = _RecOmpleDadesFila $row $cache $cfgE
+        return @{
+            Assumpte = (_RecFillPh ([string]$cfg['assumpte']) $row)
+            Html = (_CosAHtml (_RecFillPh ([string]$cfg['cos']) $row))
+            Destinataris = @(([string]$row.Correus) -split '\s*;\s*' | Where-Object { $_ })
+            CcoAbans = (@($cfg['bcc']) -join '; ')
+        }
+    }.GetNewClosure()
+    $Script:CorreuCcoAbans['rec-' + $recClauP] = { (@((_RecLlegeix).campanyes[$recClauP]['bcc']) -join '; ') }.GetNewClosure()
 }

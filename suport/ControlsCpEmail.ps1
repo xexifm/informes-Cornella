@@ -102,19 +102,11 @@ function _SaveControlsCpEmail($obj) {
     Write-JsonFile $path $obj 5
 }
 
-# Munta els destinataris: titular a "Per a" (To), representant a "CC". Si en
-# falta un, l'altre passa a To. Valida que continguin '@'. Ok=$false si cap.
-function _ControlsCpRecipients([string]$raoEmail, [string]$repEmail) {
-    $rao = ([string]$raoEmail).Trim()
-    $rep = ([string]$repEmail).Trim()
-    $raoOk = ($rao -like '*@*')
-    $repOk = ($rep -like '*@*')
-    $to = ''; $cc = ''
-    if ($raoOk -and $repOk) { $to = $rao; $cc = $rep }
-    elseif ($raoOk) { $to = $rao }
-    elseif ($repOk) { $to = $rep }
-    return @{ To = $to; Cc = $cc; Ok = [bool]($to -ne '') }
-}
+# (Els destinataris els munta ara _CorreuDestinataris + _CorreuParteixToCc,
+# CorreuEines.ps1: a qui va es tria a Configuracio -> Correus de cada eina. El
+# primer a "Per a" i la resta a "CC", com feia _ControlsCpRecipients amb el
+# titular i el representant.)
+
 
 # Substitueix les variables del text amb les dades d'una fila d'activitat.
 # El MAPA es d'aqui (les claus i d'on surten els valors son d'aquesta eina); el
@@ -146,9 +138,13 @@ function Invoke-ControlsCpEmailDrafts($rows) {
         return
     }
 
+    # A QUI VA i la CCO: Configuracio -> Correus de cada eina (CorreuEines.ps1).
+    $cfgE = Get-CorreuEina 'controls'
+    $bcc = if ($null -ne $cfgE.Cco) { [string]$cfgE.Cco } else { '' }
     $rc = [System.Windows.Forms.MessageBox]::Show(
         ("Es prepararan $($rows.Count) correus (un per activitat triada) com a ESBORRANYS a Outlook.`n`n" +
-         "Titular a 'Per a' i representant a 'CC' (quan hi siguin). NO s'envia res: els revisaràs i enviaràs tu des d'Outlook.`n`nVols continuar?"),
+         "A qui: " + (_CorreuDestText $cfgE) + " (el primer a 'Per a' i la resta a 'CC')" + $(if ($bcc) { "`nCCO: $bcc" } else { '' }) +
+         "`n`nNO s'envia res: els revisaràs i enviaràs tu des d'Outlook.`n`nVols continuar?"),
         'Enviar correu', 'YesNo', 'Question')
     if ($rc -ne [System.Windows.Forms.DialogResult]::Yes) { return }
 
@@ -185,11 +181,11 @@ function Invoke-ControlsCpEmailDrafts($rows) {
             if ($bar.Value -lt $bar.Maximum) { $bar.Value = $done }
             [System.Windows.Forms.Application]::DoEvents()
 
-            $rec = _ControlsCpRecipients $r.RaoEmail $r.RepEmail
+            $rec = _CorreuParteixToCc (_CorreuDestinataris $cfgE @{ titular = $r.RaoEmail; representant = $r.RepEmail } (Get-CorreuAutoritzats ([string]$r.Id)))
             if (-not $rec.Ok) { [void]$senseCorreu.Add("GIA $($r.Id) - $($r.RaoSocial)"); continue }
 
             try {
-                Send-CorreuSessio $ses $rec.To '' (_FillControlsCpPh $assTpl $r) (_CosAHtml (_FillControlsCpPh $cosTpl $r)) $rec.Cc
+                Send-CorreuSessio $ses $rec.To $bcc (_FillControlsCpPh $assTpl $r) (_CosAHtml (_FillControlsCpPh $cosTpl $r)) $rec.Cc
                 $ok++
             } catch {
                 $err++; [void]$errDetalls.Add("GIA $($r.Id): $($_.Exception.Message)")
@@ -243,3 +239,25 @@ function Invoke-ControlsCpEmailTextos {
             }
         })
 }
+
+# ----------------------------------------------------------------------------
+# EL CORREU DE PROVA (Configuracio -> Correus de cada eina)
+# ----------------------------------------------------------------------------
+# Amb les dades de l'Excel de l'activitat de prova. Les dates del control
+# periodic surten de l'Excel en aquesta eina; aqui es diu que son de mostra.
+$Script:CorreuProves['controls'] = {
+    param($gia, $cache, $cfgE)
+    $act = Get-ActivitatFromCache $cache $gia
+    if ($null -eq $act) { throw "L'ID GIA de prova ($gia) no es a l'Excel d'activitats." }
+    $v = { param($k) try { if ($act.ContainsKey($k)) { return [string]$act[$k] } } catch { }; return '' }
+    $row = [pscustomobject]@{ Id = $gia; ActPrincipal = (& $v 'ACTIVITAT'); Adreca = (& $v 'ADRECA'); RaoSocial = (& $v 'TITULAR')
+                              ProperCP = '(data prevista de mostra)'; DataControlPer = '(data de mostra)' }
+    $t = _LoadControlsCpEmail
+    return @{
+        Assumpte = (_FillControlsCpPh ([string]$t['assumpte']) $row)
+        Html = (_CosAHtml (_FillControlsCpPh ([string]$t['cos']) $row))
+        Destinataris = @(_CorreuDestinataris $cfgE (_CorreuEmailsDeAct $act) (Get-CorreuAutoritzats $gia))
+        CcoAbans = ''
+    }
+}
+$Script:CorreuCcoAbans['controls'] = { '' }

@@ -384,6 +384,50 @@ viu a **`suport/CorreuVia.ps1`**. Tres vies (`$Script:CorreuVies`):
   `SendUsingAccount` o a `SentOnBehalfOfName` segons si és un compte, i que en
   tancar s'envia i es mira la Safata de sortida.
 
+## Els correus de CADA EINA (octubre 2026) — `CorreuEines.ps1`
+
+L'usuari: «a Configuració s'ha de poder triar entre les opcions (Outlook
+esborrany, Outlook enviament, EmailJS) segons quina eina s'estigui usant […]
+també s'ha de veure clar a qui s'envien els correus […] i CCO […] un botó a
+cadascuna de les opcions per enviar un correu de prova».
+
+- **`$Script:CorreuEines`, el registre** (un sol lloc): `mobil` (Enviar correu,
+  l'informe de visita), `rec-requeriments`, `rec-precintes`, `controls`,
+  `seguiment`. Cada eina hi diu **quines vies admet**:
+  - **Controls periòdics, només esborranys**: l'usuari els revisa; la regla i
+    el guard de sempre es mantenen.
+  - **Seguiment, només Outlook**: porta PDF adjunts i EmailJS no en sap.
+    `Send-CorreuSessio` **peta** si se li passen adjunts per EmailJS, en lloc
+    d'enviar el correu sense ells.
+
+  Cada eina diu també a qui pot anar: titular, representant legal, persones
+  autoritzades (de la base de contactes, `Get-CorreuAutoritzats`).
+- **`correus.json` a `%LOCALAPPDATA%\InformesCornella`**, no `settings.json`:
+  - el «Desar» de Configuració reescriu `settings.json` sencer;
+  - **les adreces no poden anar mai al repositori**, que és públic. L'usuari
+    les omple un sol cop a Configuració → *Correus de cada eina*.
+
+  Per eina hi ha `via`, `dest`, `fixes` i `cco`. La `cco` **només si s'ha
+  configurat**: sense, l'eina fa servir la de sempre (email-textos.json per a
+  Enviar correu, la de la campanya per als Recordatoris). La pantalla no la desa
+  si és la mateixa (com a conjunt). També hi ha la `prova`: el GIA de les dades
+  i qui la rep.
+- **La via de tot el PC** (`CorreuVia`, CorreuVia.ps1) queda com a valor per
+  defecte de les eines encara no configurades: qui l'havia triada no veu cap
+  canvi. El desplegable d'*Enviar correu* desa la via de l'eina `mobil`.
+- **El correu de PROVA** (`Send-CorreuProva`) va **només** a l'adreça de prova,
+  sense CCO. Al davant porta un requadre que diu a qui hauria anat de debò i la
+  CCO. Cada eina registra el seu a `$Script:CorreuProves` (i la CCO d'abans a
+  `$Script:CorreuCcoAbans`) **des del seu fitxer**: `CorreuEines.ps1` no pot
+  cridar cap funció de les eines sense fer un cicle, perquè totes criden
+  `Get-CorreuEina`. Per això es carrega **abans** que elles. La prova d'Enviar
+  correu fa servir el darrer informe generat amb les dades de l'activitat de
+  prova.
+- **A qui va**: `_CorreuDestinataris`, que dóna l'ordre titular, representant,
+  autoritzats i fixes, sense repetides. Controls periòdics hi posa el primer a
+  «Per a» i la resta a «CC» (`_CorreuParteixToCc`, que substitueix
+  `_ControlsCpRecipients`).
+
 ## El format del correu: el de REQ1, i el mateix al PC i al mòbil
 
 Petició de l'usuari (setembre 2026), amb dos correus de prova del GIA 1398 al

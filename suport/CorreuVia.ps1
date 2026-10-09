@@ -341,8 +341,13 @@ function Open-CorreuSessio([string]$via) {
 # Envia (o desa a Esborranys) UN correu. Llanca si falla: el cridador en fa el
 # missatge amb _CorreuSessioError.
 # $cc: la plantilla d'EmailJS no en te, i alla va amb el destinatari.
-function Send-CorreuSessio($s, [string]$to, [string]$bcc, [string]$subject, [string]$html, [string]$cc = '') {
+# $adjunts: fitxers que van adjunts (el Seguiment, octubre 2026). Nomes per
+# l'Outlook: la plantilla d'EmailJS no en sap, i un correu que hauria de portar
+# adjunts no pot sortir sense dir res.
+function Send-CorreuSessio($s, [string]$to, [string]$bcc, [string]$subject, [string]$html, [string]$cc = '', $adjunts = @()) {
+    $adj = @(@($adjunts) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
     if (-not (_CorreuViaEsOutlook $s.Via)) {
+        if ($adj.Count -gt 0) { throw "EmailJS no pot enviar adjunts: tria l'Outlook per a aquesta eina a Configuraci" + [char]0x00F3 + '.' }
         if (-not [string]::IsNullOrWhiteSpace($cc)) { $to = (@($to, $cc) | Where-Object { $_ }) -join ',' }
         # Send-EmailJs ja apunta la quota.
         Send-EmailJs $s.Cfg $to $bcc $subject $html
@@ -358,6 +363,10 @@ function Send-CorreuSessio($s, [string]$to, [string]$bcc, [string]$subject, [str
         if (-not [string]::IsNullOrWhiteSpace($bcc)) { $m.BCC = (_OutlookAdreces $bcc) }
         $m.Subject = $subject
         $m.HTMLBody = $html
+        foreach ($f in $adj) {
+            if (-not (Test-Path -LiteralPath $f -PathType Leaf)) { throw "No trobo l'adjunt: $f" }
+            [void]$m.Attachments.Add([string]$f)
+        }
         if ($s.Via -eq 'outlook-esborrany') { $m.Save(); $s.Desats++ } else { $m.Send(); $s.Enviats++ }
     } finally {
         if ($null -ne $m) { try { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($m) } catch { } }

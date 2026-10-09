@@ -167,6 +167,57 @@ AssertEq (_QuotaRestant $qMateix) 138 '_QuotaRestant: limit menys enviats'
 AssertEq (_QuotaRestant (_QuotaNormalitza ([pscustomobject]@{ mes='2026-09'; enviats=999; limit=150 }) '2026-09')) 0 '_QuotaRestant: mai negatiu'
 AssertEq ((_QuotaSuma $qMateix 3).enviats) 15 '_QuotaSuma: suma els enviaments'
 
+Write-Host "`n--- CorreuEines.ps1: els correus de cada eina (octubre 2026) ---"
+$ceClaus = @($Script:CorreuEines.Keys)
+AssertEq ($ceClaus -join ',') 'mobil,rec-requeriments,rec-precintes,controls,seguiment' 'les eines que envien correus, en un sol registre'
+AssertEq (@($Script:CorreuEines['controls'].Vies) -join ',') 'outlook-esborrany' 'Controls periodics nomes admet esborranys (l''usuari els revisa)'
+Assert (@($Script:CorreuEines['seguiment'].Vies) -notcontains 'emailjs') 'el Seguiment no admet EmailJS (porta adjunts)'
+foreach ($k in @('mobil', 'rec-requeriments', 'rec-precintes', 'controls')) {
+    Assert ($Script:CorreuProves[$k] -is [scriptblock]) ("l'eina '" + $k + "' registra el seu correu de prova")
+    Assert ($Script:CorreuCcoAbans[$k] -is [scriptblock]) ("l'eina '" + $k + "' diu quina CCO feia servir fins ara")
+}
+$ceN = _CorreuEinaNormalitza $null 'rec-requeriments' 'outlook'
+AssertEq "$($ceN.Via)|$(@($ceN.Dest) -join ',')|$($ceN.Fixes)|$($null -eq $ceN.Cco)" 'outlook|titular,representant||True' 'una eina sense configurar: la via de tot el PC, titular i representant, sense fixes, CCO de sempre'
+AssertEq (_CorreuEinaNormalitza $null 'controls' 'emailjs').Via 'outlook-esborrany' 'una via que l''eina no admet cau a la que si (Controls: esborrany)'
+$ceR = _CorreuEinaNormalitza @{ via = 'emailjs'; dest = @('titular', 'inventat'); fixes = 'a@x.cat, b@x.cat;a@x.cat'; cco = ' c@x.cat ' } 'mobil' 'outlook'
+AssertEq "$($ceR.Via)|$(@($ceR.Dest) -join ',')|$($ceR.Fixes)|$($ceR.Cco)" 'emailjs|titular|a@x.cat; b@x.cat|c@x.cat' 'la configurada mana; un destinatari desconegut fora; adreces netes i sense repetides'
+AssertEq (_CorreuEinaNormalitza @{ dest = @() } 'mobil' '').Dest.Count 0 'es pot configurar que no vagi a cap destinatari de l''activitat (nomes fixes)'
+$ceD = @(_CorreuDestinataris (_CorreuEinaNormalitza @{ dest = @('titular', 'representant', 'autoritzats'); fixes = 'fix@x.cat' } 'mobil' '') @{ titular = 'T@x.cat'; representant = 't@X.cat' } @('tec@x.cat'))
+AssertEq ($ceD -join '|') 'T@x.cat|tec@x.cat|fix@x.cat' '_CorreuDestinataris: titular, representant, autoritzats i fixes, en ordre i sense repetides (sense distingir majuscules)'
+AssertEq (@(_CorreuDestinataris (_CorreuEinaNormalitza @{ dest = @('representant') } 'mobil' '') @{ titular = 'T@x.cat'; representant = '' })).Count 0 'nomes el representant i no en te: cap adreca'
+Assert ((_CorreuDestText (_CorreuEinaNormalitza @{ dest = @('titular') ; fixes = 'f@x.cat' } 'mobil' '')).Contains('Titular, f@x.cat')) '_CorreuDestText: diu a qui va'
+$cePh = _CorreuProvaHtml '<p>cos</p>' 'Recordatoris' @('t@x.cat') 'cco@x.cat'
+Assert ($cePh.Contains('CORREU DE PROVA') -and $cePh.Contains('t@x.cat') -and $cePh.Contains('cco@x.cat') -and $cePh.EndsWith('<p>cos</p>')) '_CorreuProvaHtml: al davant, a qui hauria anat de debo i la CCO'
+AssertEq "$((_CorreuParteixToCc @('a@x.cat', 'b@x.cat', 'c@x.cat')).To)|$((_CorreuParteixToCc @('a@x.cat', 'b@x.cat', 'c@x.cat')).Cc)" 'a@x.cat|b@x.cat; c@x.cat' '_CorreuParteixToCc: el primer a Per a i la resta a CC'
+$cePant = _CorreuEinaDeLaPantalla 'outlook' @('titular') 'f@x.cat' 'a@x.cat; b@x.cat' 'b@x.cat,a@x.cat'
+Assert (-not $cePant.ContainsKey('cco')) 'de la pantalla: la CCO de sempre (en un altre ordre) NO es desa, i l''eina segueix amb la seva'
+AssertEq ([string](_CorreuEinaDeLaPantalla 'outlook' @() '' '' 'a@x.cat')['cco']) '' 'de la pantalla: buidar la CCO de sempre es desa com a "cap CCO"'
+# El fitxer, en un LOCALAPPDATA de prova.
+$ceApp = Join-Path ([System.IO.Path]::GetTempPath()) ('correus-' + [guid]::NewGuid().ToString('N'))
+$ceVell = $env:LOCALAPPDATA
+try {
+    $env:LOCALAPPDATA = $ceApp
+    AssertEq (@((Read-CorreuEines).eines.Keys).Count) 0 'Read-CorreuEines: sense fitxer, res (i no peta)'
+    Save-CorreuEines @{ eines = @{ 'mobil' = @{ via = 'outlook'; dest = @('titular'); fixes = ''; cco = '' }; 'rec-precintes' = @{ via = 'emailjs'; dest = @('titular', 'representant'); fixes = 'x@x.cat' } }; prova = @{ gia = '9001'; desti = 'prova@x.cat' } }
+    $ceL = Read-CorreuEines
+    AssertEq "$($ceL.prova.gia)|$($ceL.prova.desti)|$($ceL.eines['mobil']['via'])|$($ceL.eines['rec-precintes']['fixes'])" '9001|prova@x.cat|outlook|x@x.cat' 'Save/Read-CorreuEines: anada i tornada'
+    AssertEq "$($null -ne (Get-CorreuEina 'mobil').Cco)|$($null -eq (Get-CorreuEina 'rec-precintes').Cco)" 'True|True' 'una CCO buida desada vol dir "cap"; no desada, la de sempre'
+    [void](Set-CorreuEinaVia 'mobil' 'outlook-esborrany')
+    AssertEq "$((Get-CorreuEina 'mobil').Via)|$(@((Get-CorreuEina 'mobil').Dest) -join ',')" 'outlook-esborrany|titular' 'Set-CorreuEinaVia: canvia la via i deixa la resta'
+    Assert ((Get-Content -LiteralPath (_CorreuEinesPath) -Raw).Contains('prova@x.cat')) 'les adreces van a correus.json de %LOCALAPPDATA% (mai al repositori)'
+    $ceRes = Send-CorreuProva 'mobil' '9001' ''
+    Assert (-not $ceRes.Ok -and ([string]$ceRes.Text).Contains('rebre la prova')) 'Send-CorreuProva: sense adreca de prova no fa res i ho diu'
+} finally { $env:LOCALAPPDATA = $ceVell; Remove-Item -LiteralPath $ceApp -Recurse -Force -ErrorAction SilentlyContinue }
+# Recordatoris: a qui va, segons la campanya.
+$ceCache = @{ ById = @{ '9001' = @{ EMAIL = 'tit@x.cat'; EMAIL_REP = 'rep@x.cat'; ADRECA = 'C/ Inventat 1' } } }
+$ceRow = [pscustomobject]@{ Id = '9001'; Adreca = ''; Correus = '' }
+AssertEq ([string](_RecOmpleDadesFila $ceRow $ceCache (_CorreuEinaNormalitza @{ dest = @('representant'); fixes = 'f@x.cat' } 'rec-requeriments' '')).Correus) 'rep@x.cat; f@x.cat' 'Recordatoris: els destinataris de la campanya (aqui, el representant i una fixa)'
+AssertEq ([string](_RecOmpleDadesFila $ceRow $ceCache).Correus) 'tit@x.cat; rep@x.cat' 'Recordatoris sense configuracio: titular i representant (com abans)'
+# L'adjunt per EmailJS no surt sense dir res.
+$ceErr = ''
+try { Send-CorreuSessio @{ Via = 'emailjs' } 'a@x.cat' '' 's' 'h' '' @('C:\x.pdf') } catch { $ceErr = [string]$_.Exception.Message }
+Assert ($ceErr.Contains('adjunts')) 'Send-CorreuSessio: EmailJS amb adjunts -> error clar (no surt sense ells)'
+
 Write-Host "`n--- Recordatoris.ps1: campanyes i dates (pures) ---"
 $rcCamps = @(_RecCampanyes)
 AssertEq $rcCamps.Count 2 '_RecCampanyes: dues campanyes'
@@ -351,17 +402,17 @@ AssertEq ([bool]($ccdef.Contains('assumpte') -and $ccdef.Contains('cos'))) $true
 AssertEq ([bool]([string]$ccdef['cos'] -like '*{ACTIVITAT}*' -and [string]$ccdef['cos'] -like '*{ADRECA}*' -and [string]$ccdef['cos'] -like '*{PROPER_CP}*')) $true '_DefaultControlsCpEmail: el cos te les variables clau'
 AssertEq ([bool]([string]$ccdef['assumpte'] -like '*{ID_GIA}*')) $true '_DefaultControlsCpEmail: assumpte te {ID_GIA}'
 # Destinataris: titular a To, representant a CC (i marxa enrere si en falta un).
-$rc1 = _ControlsCpRecipients 'titular@x.cat' 'rep@x.cat'
-AssertEq $rc1.To 'titular@x.cat' '_ControlsCpRecipients: titular a To'
-AssertEq $rc1.Cc 'rep@x.cat'     '_ControlsCpRecipients: representant a CC'
-AssertEq $rc1.Ok $true           '_ControlsCpRecipients: dos correus -> Ok'
-$rc2 = _ControlsCpRecipients '' 'rep@x.cat'
-AssertEq $rc2.To 'rep@x.cat' '_ControlsCpRecipients: sense titular -> representant a To'
-AssertEq $rc2.Cc ''          '_ControlsCpRecipients: sense titular -> CC buit'
-$rc3 = _ControlsCpRecipients 'titular@x.cat' ''
-AssertEq $rc3.To 'titular@x.cat' '_ControlsCpRecipients: sense representant -> titular a To'
-$rc4 = _ControlsCpRecipients '  ' 'no-es-un-correu'
-AssertEq $rc4.Ok $false '_ControlsCpRecipients: cap correu valid -> Ok=false'
+$rc1 = _CorreuParteixToCc @('titular@x.cat', 'rep@x.cat')
+AssertEq $rc1.To 'titular@x.cat' '_CorreuParteixToCc: titular a To'
+AssertEq $rc1.Cc 'rep@x.cat'     '_CorreuParteixToCc: representant a CC'
+AssertEq $rc1.Ok $true           '_CorreuParteixToCc: dos correus -> Ok'
+$rc2 = _CorreuParteixToCc @('', 'rep@x.cat')
+AssertEq $rc2.To 'rep@x.cat' '_CorreuParteixToCc: sense titular -> representant a To'
+AssertEq $rc2.Cc ''          '_CorreuParteixToCc: sense titular -> CC buit'
+$rc3 = _CorreuParteixToCc @('titular@x.cat', '')
+AssertEq $rc3.To 'titular@x.cat' '_CorreuParteixToCc: sense representant -> titular a To'
+$rc4 = _CorreuParteixToCc @('  ', 'no-es-un-correu')
+AssertEq $rc4.Ok $false '_CorreuParteixToCc: cap correu valid -> Ok=false'
 # Substitucio de variables amb una fila d'activitat.
 $fila = [pscustomobject]@{ ActPrincipal='BAR'; Adreca='C/ Major 1'; Id='361'; RaoSocial='ACME SL'; ProperCP='10/01/2026'; DataControlPer='10/01/2024' }
 $sub = _FillControlsCpPh 'Activitat {ACTIVITAT} a {ADRECA} (GIA {ID_GIA}), data {PROPER_CP}' $fila

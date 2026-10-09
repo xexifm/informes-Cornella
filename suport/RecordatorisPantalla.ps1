@@ -44,7 +44,9 @@ function Invoke-Recordatoris {
     $lblQ = New-Object System.Windows.Forms.Label
     $lblQ.Location = New-Object System.Drawing.Point(16, 6)
     $lblQ.Size = New-Object System.Drawing.Size(1040, 18)
-    $lblQ.Text = ("Per: " + (_CorreuViaText (Get-CorreuVia)) + " " + [char]0x00B7 + " EmailJS aquest mes: $($quota.enviats) / $($quota.limit) correus " +
+    # La via de cada campanya (Configuracio -> Correus de cada eina).
+    $viesTxt = (@(_RecCampanyes) | ForEach-Object { [string]$_.Nom + ': ' + (_CorreuViaText (Get-CorreuEina ('rec-' + $_.Clau)).Via) }) -join ('  ' + [char]0x00B7 + '  ')
+    $lblQ.Text = ($viesTxt + " " + [char]0x00B7 + " EmailJS aquest mes: $($quota.enviats) / $($quota.limit) correus " +
                   "(reserva de $($Script:QuotaLimitCompte - $quota.limit) sobre els $($Script:QuotaLimitCompte) del compte)")
     $info.Controls.Add($lblQ)
     $lblD = New-Object System.Windows.Forms.Label
@@ -251,7 +253,7 @@ function _RecMuntaTab($tab, $camp, $estat, $db) {
         } catch { }
         $out = New-Object System.Collections.ArrayList
         foreach ($r in $sel) {
-            $r2 = _RecOmpleDadesFila $r $cache
+            $r2 = _RecOmpleDadesFila $r $cache (Get-CorreuEina ('rec-' + $clau))
             [void]$out.Add([pscustomobject]@{
                 'GIA' = $r2.Id; 'Titular' = $r2.Titular; 'Adreça' = $r2.Adreca
                 'Estat' = $r2.Estat; 'Data informe' = $r2.DataInforme
@@ -279,7 +281,7 @@ function _RecMuntaTab($tab, $camp, $estat, $db) {
             return
         }
         $q = _QuotaLlegeix
-        $viaAra = Get-CorreuVia
+        $viaAra = [string](Get-CorreuEina ('rec-' + $clau)).Via
         $ambOutlook = _CorreuViaEsOutlook $viaAra
         $rest = if ($ambOutlook) { [int]::MaxValue } else { _QuotaRestant $q }
         $prev = [Math]::Min($tria.Count, [Math]::Min([int]$cfg['maxPerTanda'], $rest))

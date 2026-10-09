@@ -76,7 +76,7 @@ try {
     }
 
     $q = _QuotaLlegeix
-    _RecLog "Final: $totalEnviats correus enviats o desats a Esborranys ($(_CorreuViaText (Get-CorreuVia))). Quota d'EmailJS: $($q.enviats)/$($q.limit)."
+    _RecLog "Final: $totalEnviats correus enviats o desats a Esborranys. Quota d'EmailJS: $($q.enviats)/$($q.limit)."
     exit 0
 } catch {
     _RecLog ("ERROR no controlat: " + $_.Exception.Message + ' @ ' +

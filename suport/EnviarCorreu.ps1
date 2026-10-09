@@ -369,7 +369,8 @@ function _LatestDocx {
 # --- Diàleg d'enviament -------------------------------------------------------
 # Diàleg únic: fusiona el missatge "Informe generat" amb l'enviament del correu.
 # Torna @{ To = @(...); Bcc = @(...) } o $null si es cancel·la.
-function _DialegEnviar($build, $destinatariDefault, $docxPath) {
+# $cfgE: la configuracio del correu d'aquesta eina (Get-CorreuEina 'mobil').
+function _DialegEnviar($build, $destinatariDefault, $docxPath, $cfgE = $null) {
     $form = New-Object System.Windows.Forms.Form
     $form.Text = 'Informe generat - Enviar correu'
     $form.StartPosition = 'CenterScreen'
@@ -408,7 +409,16 @@ function _DialegEnviar($build, $destinatariDefault, $docxPath) {
 
     $checks = @()
     $y = 170
-    foreach ($opt in (_CorreuBccOpcions)) {
+    # LA CCO: les opcions de sempre (email-textos.json) i, si a Configuracio ->
+    # Correus de cada eina s'hi ha posat la CCO d'aquesta eina, marcades les
+    # d'alla (i les que no hi son, afegides).
+    $ccoCfg = if ($null -ne $cfgE -and $null -ne $cfgE.Cco) { @(_CorreuLlistaAdreces ([string]$cfgE.Cco)) } else { $null }
+    $opcions = @(@(_CorreuBccOpcions) | ForEach-Object { @{ Addr = [string]$_.Addr; Default = [bool]$_.Default } })
+    if ($null -ne $ccoCfg) {
+        for ($i = 0; $i -lt $opcions.Count; $i++) { $opcions[$i].Default = (@($ccoCfg | Where-Object { $_ -ieq [string]$opcions[$i].Addr }).Count -gt 0) }
+        foreach ($a in $ccoCfg) { if (@($opcions | Where-Object { [string]$_.Addr -ieq $a }).Count -eq 0) { $opcions += @{ Addr = $a; Default = $true } } }
+    }
+    foreach ($opt in $opcions) {
         $cb = New-Object System.Windows.Forms.CheckBox
         $cb.Text = $opt.Addr
         $cb.Checked = [bool]$opt.Default
@@ -426,7 +436,8 @@ function _DialegEnviar($build, $destinatariDefault, $docxPath) {
     $lblVia.Location = New-Object System.Drawing.Point(15, ($y + 12))
     $lblVia.Size = New-Object System.Drawing.Size(90, 20)
     $form.Controls.Add($lblVia)
-    $cbVia = Add-CorreuViaCombo $form 105 ($y + 9) 300 (Get-CorreuVia)
+    $viaIni = if ($null -ne $cfgE) { [string]$cfgE.Via } else { Get-CorreuVia }
+    $cbVia = Add-CorreuViaCombo $form 105 ($y + 9) 300 $viaIni
     # Des de quina adreca (Configuracio): que es vegi abans d'enviar.
     $remitent = Get-CorreuRemitent
     $lblDes = New-Object System.Windows.Forms.Label
@@ -457,7 +468,8 @@ function _DialegEnviar($build, $destinatariDefault, $docxPath) {
     $bccs = @()
     foreach ($cb in $checks) { if ($cb.Checked) { $bccs += $cb.Text } }
     $via = _CorreuViaDelCombo $cbVia
-    if ($via -ne (Get-CorreuVia)) { [void](Set-CorreuVia $via) }
+    # El que triis aqui queda com la via d'aquesta eina (Correus de cada eina).
+    if ($via -ne $viaIni) { [void](Set-CorreuEinaVia 'mobil' $via) }
     return @{ To = $tos; Bcc = $bccs; Via = $via }
 }
 
@@ -503,17 +515,19 @@ function Send-CorreuPerDocx($docxPath) {
         return
     }
 
-    # Destinatari per defecte: Rao social + Rep. legal (columnes de l'Excel).
-    # Si son la mateixa adreca, nomes s'hi posa un cop i s'avisa.
+    # Destinatari per defecte: el de Configuracio -> Correus de cada eina
+    # (titular i representant de l'Excel, si no s'hi ha tocat res). Si el
+    # titular i el representant son la mateixa adreca, s'avisa.
+    $cfgE = Get-CorreuEina 'mobil'
     $def = _CorreuDestinatarisPerDefecte ([string]$header['EMAIL']) ([string]$header['EMAIL_REP'])
-    $destinatariDefault = [string]$def.Text
-    if ($def.Duplicat) {
+    $destinatariDefault = (@(_CorreuDestinataris $cfgE @{ titular = [string]$header['EMAIL']; representant = [string]$header['EMAIL_REP'] } (Get-CorreuAutoritzats $gia))) -join '; '
+    if ($def.Duplicat -and @($cfgE.Dest) -contains 'titular' -and @($cfgE.Dest) -contains 'representant') {
         [System.Windows.Forms.MessageBox]::Show(
             "L'adreca de Rao social i la del Representant legal son la mateixa; s'ha posat una sola vegada.",
             'Enviar correu', 'OK', 'Information') | Out-Null
     }
 
-    $res = _DialegEnviar $build $destinatariDefault $docxPath
+    $res = _DialegEnviar $build $destinatariDefault $docxPath $cfgE
     if ($null -eq $res) { return }
     $via = [string]$res.Via
     # Les claus d'EmailJS nomes calen si s'envia per EmailJS (abans es miraven
@@ -570,3 +584,25 @@ function Offer-EnviarCorreu($docxPath) {
     }
     Send-CorreuPerDocx $docxPath
 }
+
+# ----------------------------------------------------------------------------
+# EL CORREU DE PROVA (Configuracio -> Correus de cada eina)
+# ----------------------------------------------------------------------------
+# El correu d'un informe: es fa amb el DARRER informe generat (els
+# requeriments) i les dades de l'activitat de prova (la capcalera, el titular).
+$Script:CorreuProves['mobil'] = {
+    param($gia, $cache, $cfgE)
+    $docx = _LatestDocx
+    if (-not $docx) { throw "Per provar aquest correu cal haver generat algun informe: es fa servir el darrer, amb les dades de l'activitat de prova." }
+    $act = Get-ActivitatFromCache $cache $gia
+    if ($null -eq $act) { throw "L'ID GIA de prova ($gia) no es a l'Excel d'activitats." }
+    $header = _CorreuHeaderMerge $gia $act $null
+    $build = _BuildCorreu (_CorreuDocumentXml $docx) $header ((Get-Date).ToString('dd/MM/yyyy'))
+    return @{
+        Assumpte = [string]$build.Subject
+        Html = [string]$build.Html
+        Destinataris = @(_CorreuDestinataris $cfgE (_CorreuEmailsDeAct $act) (Get-CorreuAutoritzats $gia))
+        CcoAbans = ((@(_CorreuBccOpcions) | Where-Object { $_.Default } | ForEach-Object { [string]$_.Addr }) -join '; ')
+    }
+}
+$Script:CorreuCcoAbans['mobil'] = { ((@(_CorreuBccOpcions) | Where-Object { $_.Default } | ForEach-Object { [string]$_.Addr }) -join '; ') }

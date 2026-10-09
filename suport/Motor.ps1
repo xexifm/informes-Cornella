@@ -52,6 +52,8 @@
     EmailTextos.ps1     textos del correu     Configuracio.ps1  rutes d'aquest PC
     EnviarCorreu.ps1    enviar el correu      EmailQuota.ps1    quota d'EmailJS
     CorreuVia.ps1       per on surten els correus: EmailJS o Outlook (i l'Outlook, nomes aqui)
+    CorreuEines.ps1     els correus de cada eina: via, destinataris, CCO, prova
+                        (+ CorreuEinesPantalla.ps1, la finestra de Configuracio)
     CorreuFormat.ps1    el format del correu (el de REQ1; el mateix al mobil)
     Recordatoris.ps1    recordatoris periodics als titulars (+ RecordatorisAuto.ps1,
                         que corre sol des d'una tasca del Windows; la finestra,
@@ -523,6 +525,10 @@ if (-not $Script:HeadlessTest) { [void](Invoke-MigracioLocal $RepoRoot) }
 
 # Editor dels textos del correu del mobil (docs\dades\email-textos.json).
 # Funcions pures testejables; la finestra (WinForms) nomes a Windows.
+# Els correus de CADA EINA: via, destinataris, CCO i el correu de prova
+# (correus.json, %LOCALAPPDATA%). Nomes defineix funcions; la finestra, a part.
+. (Join-Path $ScriptRoot 'CorreuEines.ps1')
+. (Join-Path $ScriptRoot 'CorreuEinesPantalla.ps1')
 . (Join-Path $ScriptRoot 'EmailTextos.ps1')
 
 # Comptador d'enviaments d'EmailJS (200/mes al pla gratuit, limit de seguretat

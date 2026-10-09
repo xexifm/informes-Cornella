@@ -115,17 +115,27 @@ function Invoke-ConfiguracioScreen {
     # ---- Correus d'aquest PC (octubre 2026, CorreuVia.ps1) ------------
     # L'usuari: "poder triar entre EmailJS per no desfer-ho i Outlook per fer
     # proves". La mateixa preferencia que el desplegable d'"Enviar correu".
+    # Des de l'octubre de 2026 la via es tria PER EINA (CorreuEines.ps1): aqui
+    # hi ha el boto que obre aquella finestra. La via de tot el PC
+    # ('CorreuVia') es queda com a valor per defecte de les eines encara no
+    # configurades, i el "Desar" d'aqui la conserva tal com era.
     $effCorreuVia = _CorreuViaValida (_PropInf $current 'CorreuVia')
     $grpCorreu = New-Object System.Windows.Forms.GroupBox
     $grpCorreu.Text = "Correus que s'envien des d'aquest PC"
     $grpCorreu.Location = New-Object System.Drawing.Point($xEsq, ($fiCarp + 8))
     $grpCorreu.Size = New-Object System.Drawing.Size($amplCol, 100)
     $grpCorreu.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left
-    $cbCorreuVia = Add-CorreuViaCombo $grpCorreu 12 24 250 $effCorreuVia
+    $btnCorreus = New-Object System.Windows.Forms.Button
+    $btnCorreus.Text = 'Correus de cada eina...'
+    $btnCorreus.Location = New-Object System.Drawing.Point(12, 20)
+    $btnCorreus.Size = New-Object System.Drawing.Size(250, 30)
+    _StyleSecondaryButton $btnCorreus
+    $btnCorreus.add_Click({ Show-CorreuEinesConfig })
+    [void]$grpCorreu.Controls.Add($btnCorreus)
     $lblCorreuNota = New-Object System.Windows.Forms.Label
-    $lblCorreuNota.Text = "Enviar correu i Recordatoris (tamb" + [char]0x00E9 + " els autom" + [char]0x00E0 + "tics)."
-    $lblCorreuNota.Location = New-Object System.Drawing.Point(270, 22)
-    $lblCorreuNota.Size = New-Object System.Drawing.Size(236, 30)
+    $lblCorreuNota.Text = ("Per on surt el correu de cada eina, a qui va, la CCO i el correu de prova.")
+    $lblCorreuNota.Location = New-Object System.Drawing.Point(270, 20)
+    $lblCorreuNota.Size = New-Object System.Drawing.Size(236, 32)
     $lblCorreuNota.ForeColor = [System.Drawing.Color]::FromArgb(90, 90, 90)
     [void]$grpCorreu.Controls.Add($lblCorreuNota)
     # EL REMITENT (l'usuari: "a la feina puc enviar des d'adreces diferents;
@@ -311,7 +321,6 @@ function Invoke-ConfiguracioScreen {
             $hm = ([string]$d.Hora).Split(':')
             $c.Hora.Value = (Get-Date).Date.AddHours([int]$hm[0]).AddMinutes([int]$hm[1])
         }
-        $cbCorreuVia.SelectedIndex = 0
         $cbRem.Text = ''
     }.GetNewClosure())
 
@@ -343,7 +352,7 @@ function Invoke-ConfiguracioScreen {
         if ($autoSet.Count -gt 0) { $overrides['Automatismes'] = $autoSet }
         # Aquest "Desar" reescriu settings.json sencer: la via dels correus hi
         # ha de ser, si no es perdria (nomes si no es la per defecte).
-        $overrides = _SettingsAmbCorreuVia $overrides (_CorreuViaDelCombo $cbCorreuVia)
+        $overrides = _SettingsAmbCorreuVia $overrides $effCorreuVia
         $overrides = _SettingsAmbClau $overrides 'CorreuRemitent' $remitent
         if (-not (Save-AppSettings $overrides)) {
             [System.Windows.Forms.MessageBox]::Show("No s'ha pogut desar la configuracio.", 'Configuracio', 'OK', 'Error') | Out-Null
