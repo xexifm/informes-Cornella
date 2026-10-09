@@ -735,7 +735,8 @@ function Export-EstatsActivitats($db) {
         return
     }
     $estats = @($Script:EstatRequeriment, $Script:EstatPrecinte)
-    $acts = @($db.activitats | Where-Object { $estats -contains [string]$_.estat_actual })
+    # Per com es TRACTA: el favorable pre-llicencia hi surt amb els requeriments.
+    $acts = @($db.activitats | Where-Object { $estats -contains (_EstatEquivalent ([string]$_.estat_actual)) })
     if ($acts.Count -eq 0) {
         [System.Windows.Forms.MessageBox]::Show(("No hi ha cap activitat en Estat '" + $Script:EstatRequeriment + "' ni '" + $Script:EstatPrecinte + "'."), 'Exportar llistats', 'OK', 'Information') | Out-Null
         return
@@ -782,7 +783,7 @@ function Export-EstatsActivitats($db) {
         return
     }
 
-    $nReq = @($acts | Where-Object { [string]$_.estat_actual -eq 'Requeriment' }).Count
+    $nReq = @($acts | Where-Object { (_EstatEquivalent ([string]$_.estat_actual)) -eq $Script:EstatRequeriment }).Count
     $nPre = @($acts | Where-Object { [string]$_.estat_actual -eq $Script:EstatPrecinte }).Count
     $r = [System.Windows.Forms.MessageBox]::Show(
         "CSV generat:`n$path`n`nRequeriment: $nReq activitats`nPrecinte / Cessament: $nPre activitats`n`nVols obrir-lo ara?",

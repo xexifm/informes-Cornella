@@ -234,12 +234,15 @@ $rcDb = [pscustomobject]@{
         (_RcAct '300' 'Precinte / Cessament' '2026-01-05')
         (_RcAct '400' 'Favorable' '2026-01-05')
         (_RcAct ''    'Requeriment' '2026-01-05')
+        (_RcAct '500' $Script:EstatFavorablePre '2026-01-05')
+        (_RcAct '600' $Script:EstatFavorablePost '2026-01-05')
     )
 }
 $rcHist = @{ '100' = @{ ultim='2026-06-01'; compte=2; excloure=$false; enviaments=@('2026-06-01') } }
 $rcRes = _RecDueActivitats $rcDb (_RecCampanyaPerClau 'requeriments') $rcCfg $rcHist $rcAvui
 $rcFiles = @($rcRes.Files)
-AssertEq $rcFiles.Count 3 '_RecDueActivitats: nomes les activitats en estat Requeriment'
+AssertEq $rcFiles.Count 4 '_RecDueActivitats: nomes les activitats en estat Requeriment (i el favorable pre-llicencia, que es tracta igual)'
+Assert (@($rcFiles | Where-Object { $_.Id -eq '500' }).Count -eq 1 -and @($rcFiles | Where-Object { $_.Id -eq '600' }).Count -eq 0) '_RecDueActivitats: el pre-llicencia hi es i el post-llicencia no'
 AssertEq $rcRes.SenseGia 1 '_RecDueActivitats: compta les que no tenen GIA'
 # Ordre: primer la que no ha rebut mai cap avis (ultim buit).
 AssertEq ([string]$rcFiles[0].Ultim) '' '_RecDueActivitats: els mai avisats van primer'
@@ -880,7 +883,7 @@ try {
     AssertEq "$($resI.Ok)|$($resI.NInformes)|$($dbI.versio_classificador)" ("True|5|" + $Script:ClassificadorVersio) 'escaneig: llegeix els 5 informes i desa la versio del classificador'
     $a502 = & $actDe $dbI '502'
     AssertEq @($a502.informes).Count 2 'germans: l''informe sense GIA va amb el GIA dels altres de la seva carpeta'
-    AssertEq "$($a502.estat_actual)|$(@($a502.informes)[1].tipus)" 'Favorable|llicfav' 'germans: ...i el favorable de llicencia decideix l''estat'
+    AssertEq "$($a502.estat_actual)|$(@($a502.informes)[1].tipus)" ($Script:EstatFavorablePost + '|llicfav') 'germans: ...i el favorable (post) de llicencia decideix l''estat'
     Assert (-not (@($dbI.a_revisar | ForEach-Object { $_.motiu }) -join '|').Contains('sense ID GIA')) 'germans: ...i ja no surt "sense ID GIA" a revisar'
     $a530 = & $actDe $dbI '530'
     AssertEq ([string]@($a530.informes)[0].motiu) 'GIA del document diferent del de la carpeta' 'GIA 530 al document i GIA 503 a la carpeta -> a revisar, amb el motiu'

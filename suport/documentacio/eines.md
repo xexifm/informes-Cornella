@@ -702,8 +702,21 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
     tornés a desar. **Puja-la cada cop que canviï el que en surt.**
 - **Les opcions** de conclusió breu són `$Script:ConclusioBreuOpcions`
   (Requeriment, FI Requeriment —inclou «denúncia tancada»—, Precinte /
-  Cessament, FI Precinte / Cessament, Favorable, Ampliació termini, Sense
-  efecte, Altres, Revisar). `Altres` només es tria a mà. A **Editar base
+  Cessament, FI Precinte / Cessament, Favorable, **Favorable pre-llicència
+  (Requeriment)**, **Favorable post-llicència (Favorable)**, Ampliació termini,
+  Sense efecte, Altres, Revisar).
+- **Els dos favorables de llicència** (octubre 2026, l'usuari; abans era la
+  idea pendent «Favorable pendent doc.»): un informe `llicfav` amb «a l'espera
+  de rebre la citada documentació» és **pre** (queda obert), la resta de
+  `llicfav` **post**. El parèntesi diu com es **tracta**: `_EstatEquivalent`
+  dóna `Requeriment` per al pre i `Favorable` per al post, i hi passen **tots**
+  els que comparen un estat amb un altre de concret: les campanyes de
+  Recordatoris (el pre entra a Requeriments), el color del Plànol (groc / verd)
+  i els llistats d'*Editar base*. El pre és a `$Script:EstatsPendents` (una MNS
+  favorable no el tapa). La referència de la validació deia `Favorable`:
+  **`suport\ActualitzarReferenciaLlicencies.ps1`** en fa una còpia nova
+  (`classificacio-informes_<data>_llic.json`, al costat de la de partida, que no
+  es toca) amb aquests informes posats on toca, llegint-ne el text. `Altres` només es tria a mà. A **Editar base
   d'informes** la columna «Conclusio breu» és un desplegable editable i «Estat
   activitat» és només lectura: en canviar «Ignorar» o «Conclusio breu» d'un
   informe es recalcula (`_EstatActualActivitat`) i es propaga a totes les files

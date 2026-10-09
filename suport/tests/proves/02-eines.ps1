@@ -321,6 +321,25 @@ AssertEq (_ConclusioBreu "Si es detecta un ús de la cuina estant precintada, é
 AssertEq (_ConclusioBreu "Si es detecta un ús de la cuina estant precintada, és pertinent suspendre l${ap}activitat. Vist l${ap}anterior s${ap}informa que no es pot donar per tancada la denúncia.") $prec '..."NO es pot donar per tancada" no es un tancament -> segueix Precinte'
 AssertEq (_ConclusioBreu "Vist l${ap}anterior, cal requerir l${ap}esmena de les deficiències indicades. Si es detecta un ús de la cuina estant precintada, és pertinent suspendre l${ap}activitat.") $prec 'sense tancament, el precinte vigent segueix sortint Precinte'
 
+Write-Host "`n--- InformesClassificacio.ps1: favorable pre-llicencia i post-llicencia (octubre 2026) ---"
+AssertEq $Script:EstatFavorablePre ('Favorable pre-llic' + [char]0x00E8 + 'ncia (Requeriment)') 'el nom del pre-llicencia, amb el que es (entre parentesis)'
+AssertEq $Script:EstatFavorablePost ('Favorable post-llic' + [char]0x00E8 + 'ncia (Favorable)') 'el nom del post-llicencia'
+Assert ($Script:ConclusioBreuOpcions -contains $Script:EstatFavorablePre -and $Script:ConclusioBreuOpcions -contains $Script:EstatFavorablePost) 'tots dos son opcions de la conclusio breu (el desplegable de l''editor)'
+AssertEq "$(_EstatEquivalent $Script:EstatFavorablePre)|$(_EstatEquivalent $Script:EstatFavorablePost)|$(_EstatEquivalent 'Revisar')" 'Requeriment|Favorable|Revisar' '_EstatEquivalent: pre -> Requeriment, post -> Favorable, la resta igual'
+$k = _ClassificaInforme (@('CONCLUSIONS', "S${ap}informa favorablement a l${ap}espera de rebre la citada documentació en els terminis especificats.") + $tail) 'x.docx' ''
+AssertEq "$($k.Breu)|$($k.Tipus)" ($Script:EstatFavorablePre + '|llicfav') 'favorable "a l''espera de rebre la documentacio" -> pre-llicencia'
+$k = _ClassificaInforme (@('CONCLUSIONS', "S${ap}informa favorablement l${ap}activitat i es dóna per tancat l${ap}expedient.") + $tail) 'x.docx' ''
+AssertEq $k.Breu $Script:EstatFavorablePost 'favorable "l''activitat i es dona per tancat" -> post-llicencia'
+$k = _ClassificaInforme (@('CONCLUSIONS', "Vist l${ap}anterior i d${ap}haver realitzat la posterior visita d${ap}inspecció a l${ap}activitat s${ap}informa favorablement.") + $tail) 'x.docx' ''
+AssertEq $k.Breu $Script:EstatFavorablePost 'favorable antic "posterior visita d''inspeccio" -> post-llicencia'
+$k = _ClassificaInforme (@('CONCLUSIONS', "S${ap}informa FAVORABLEMENT de la Modificació NO substancial presentada sense més observacions.") + $tail) 'x.docx' ''
+AssertEq $k.Breu 'Favorable' 'una MNS favorable continua sent Favorable (no es de llicencia)'
+# Una MNS favorable DESPRES d'un pre-llicencia no el tapa: queda pendent.
+$actPre = [pscustomobject]@{ id_gia = '9'; informes = @(
+    [pscustomobject]@{ data = '2026-01-01'; fitxer = 'a'; conclusio_breu = $Script:EstatFavorablePre; tipus = 'llicfav'; ignorat = $false },
+    [pscustomobject]@{ data = '2026-02-01'; fitxer = 'b'; conclusio_breu = 'Favorable'; tipus = 'mns'; ignorat = $false }) }
+AssertEq (_EstatActualActivitat $actPre) $Script:EstatFavorablePre 'una MNS favorable no tapa un favorable pre-llicencia (es pendent com un requeriment)'
+
 Write-Host "`n--- InformesClassificacio.ps1: els fitxers d'or passats pel classificador ---"
 # Els textos de les plantilles, tal com surten (sense omplir): cada familia ha
 # de donar el que toca. L'ACT_EXTR de requeriment no te frase de conclusio i
@@ -329,7 +348,7 @@ Write-Host "`n--- InformesClassificacio.ps1: els fitxers d'or passats pel classi
 $orDir = Join-Path $TestsDir 'dades'
 $orEsperat = [ordered]@{
     'emit-actextr-req.txt' = 'Requeriment'; 'emit-actextr-fav.txt' = 'Favorable'
-    'emit-llicencia-favorable-pre.txt' = 'Favorable'; 'emit-llicencia-favorable-post.txt' = 'Favorable'
+    'emit-llicencia-favorable-pre.txt' = $Script:EstatFavorablePre; 'emit-llicencia-favorable-post.txt' = $Script:EstatFavorablePost
     'emit-mns-sense-punts.txt' = 'Favorable'
     'emit-trans-sense-punts.txt' = 'Favorable'
     # Les dues que porten "COPIAR REQUERIMENT" sense omplir.

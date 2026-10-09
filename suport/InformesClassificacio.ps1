@@ -28,7 +28,7 @@
 # nomes arribaria als informes que algu tornes a desar, i els 802 de la carpeta
 # es quedarien amb la classificacio vella per sempre. CANVIA-LA cada vegada que
 # canviis el que en surt (conclusio, conclusio breu, tipus).
-$Script:ClassificadorVersio = '2026-10-08.4'
+$Script:ClassificadorVersio = '2026-10-09.1'
 
 # Una propietat d'un objecte de la base (o $null si no la te), sense petar amb
 # les bases d'abans que no porten els camps nous. La fan servir aquest fitxer,
@@ -179,6 +179,12 @@ $Script:EstatFiRequeriment = 'FI Requeriment'
 $Script:EstatPrecinte      = 'Precinte / Cessament'
 $Script:EstatFiPrecinte    = 'FI Precinte / Cessament'
 $Script:EstatFavorable     = 'Favorable'
+# Els dos favorables de LLICENCIA (octubre 2026, l'usuari). El text porta entre
+# parentesis com es TRACTA: el pre (a l'espera de rebre documentacio) deixa
+# l'expedient obert com un requeriment -surt a Recordatoris i en groc al
+# Planol-; el post (tancat) es un favorable. _EstatEquivalent fa la traduccio.
+$Script:EstatFavorablePre  = 'Favorable pre-llic' + [char]0x00E8 + 'ncia (Requeriment)'
+$Script:EstatFavorablePost = 'Favorable post-llic' + [char]0x00E8 + 'ncia (Favorable)'
 $Script:EstatAmpliacio     = 'Ampliaci' + [char]0x00F3 + ' termini'
 $Script:EstatSenseEfecte   = 'Sense efecte'
 $Script:EstatAltres        = 'Altres'
@@ -190,6 +196,8 @@ $Script:ConclusioBreuOpcions = @(
     $Script:EstatPrecinte,
     $Script:EstatFiPrecinte,
     $Script:EstatFavorable,
+    $Script:EstatFavorablePre,
+    $Script:EstatFavorablePost,
     $Script:EstatAmpliacio,
     $Script:EstatSenseEfecte,
     $Script:EstatAltres,
@@ -198,7 +206,18 @@ $Script:ConclusioBreuOpcions = @(
 
 # Els estats que deixen alguna cosa PENDENT a l'activitat. Una MNS favorable no
 # els tapa (vegeu _InformeQueDeterminaEstat).
-$Script:EstatsPendents = @($Script:EstatRequeriment, $Script:EstatPrecinte, $Script:EstatAmpliacio)
+$Script:EstatsPendents = @($Script:EstatRequeriment, $Script:EstatFavorablePre, $Script:EstatPrecinte, $Script:EstatAmpliacio)
+
+# Com es TRACTA un estat: el favorable pre-llicencia com un Requeriment i el
+# post-llicencia com un Favorable; la resta, ell mateix. Qui compara un
+# estat_actual amb un estat concret (les campanyes de Recordatoris, el color del
+# Planol, els llistats) hi ha de passar, si no el pre-llicencia hi faltaria en
+# silenci. PURA.
+function _EstatEquivalent([string]$estat) {
+    if ($estat -eq $Script:EstatFavorablePre)  { return $Script:EstatRequeriment }
+    if ($estat -eq $Script:EstatFavorablePost) { return $Script:EstatFavorable }
+    return $estat
+}
 
 # "es pertinent suspendre/precintar" no negat ("no es pertinent..." no compta).
 $Script:RxPrecinte = '(?<!\bno (es )?)pertinent (suspendre|precintar)'
@@ -486,11 +505,18 @@ function _ClassificaInforme($lines, [string]$fitxer, [string]$expedient) {
             [void]$motius.Add('sense conclusio')
         }
     }
+    $tipus = _TipusInforme $ci.Text $fitxer $expedient
+    # El favorable de LLICENCIA: pre (a l'espera de rebre la documentacio, queda
+    # obert) o post (tancat). Mateix criteri que _TipusInforme fa servir per
+    # dir que es 'llicfav'.
+    if ($tipus -eq 'llicfav' -and $breu -eq $Script:EstatFavorable) {
+        $breu = if ((_ConclNorm $ci.Text) -match 'a lespera de rebre') { $Script:EstatFavorablePre } else { $Script:EstatFavorablePost }
+    }
     return @{
         Conclusio = $ci.Text
         Font      = $ci.Font
         Breu      = $breu
-        Tipus     = (_TipusInforme $ci.Text $fitxer $expedient)
+        Tipus     = $tipus
         Motius    = $motius.ToArray()
     }
 }

@@ -321,7 +321,8 @@ function _RecDueActivitats($db, $campanya, $cfg, $historialCampanya, [datetime]$
         if ($null -eq $act) { continue }
         $estat = ''
         try { $estat = [string]$act.estat_actual } catch { }
-        if ($estats -notcontains $estat) { continue }
+        # Per com es TRACTA (el favorable pre-llicencia entra a Requeriments).
+        if ($estats -notcontains (_EstatEquivalent $estat)) { continue }
         $gia = ''
         try { $gia = [string]$act.id_gia } catch { }
         $hist = _RecHistEntrada $historialCampanya $gia

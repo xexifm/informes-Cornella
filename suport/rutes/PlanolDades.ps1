@@ -17,7 +17,7 @@
 
   ELS COLORS (decidit amb l'usuari, octubre 2026)
     vermell  precintada (Excel) o darrer informe 'Precinte / Cessament'
-    groc     darrer informe 'Requeriment' o 'Ampliacio termini'
+    groc     darrer informe 'Requeriment' (o 'Favorable pre-llicencia') o 'Ampliacio termini'
     verd     'Favorable', 'FI Requeriment', 'FI Precinte / Cessament'
     blau     sense cap informe, 'Revisar', 'Altres', 'Sense efecte'...: no
              sabem si esta legalitzada
@@ -75,7 +75,9 @@ function Get-PlanolUnitat($rc) {
 # dir res. El COLOR si que es decisio d'aqui: quins estats son vermell, groc o
 # verd es cosa del planol i de ningu mes.
 function Get-EstatPlanol([bool]$precinte, [string]$estatInforme) {
-    $n = _NormalitzaText $estatInforme
+    # Per com es TRACTA: el favorable pre-llicencia, groc com un Requeriment; el
+    # post, verd com un Favorable (_EstatEquivalent, InformesClassificacio.ps1).
+    $n = _NormalitzaText (_EstatEquivalent $estatInforme)
     if ($precinte -or $n -eq (_NormalitzaText $Script:EstatPrecinte)) { return 'vermell' }
     if ($n -eq (_NormalitzaText $Script:EstatRequeriment) -or $n -eq (_NormalitzaText $Script:EstatAmpliacio)) { return 'groc' }
     if ($n -eq (_NormalitzaText $Script:EstatFavorable) -or

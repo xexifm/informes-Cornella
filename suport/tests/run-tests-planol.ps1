@@ -31,6 +31,8 @@ AssertEq (Get-EstatPlanol $false ('Ampliaci' + [char]0x00F3 + ' termini')) 'groc
 AssertEq (Get-EstatPlanol $false 'Favorable') 'verd' 'favorable -> verd'
 AssertEq (Get-EstatPlanol $false 'FI Requeriment') 'verd' 'FI requeriment -> verd'
 AssertEq (Get-EstatPlanol $false 'FI Precinte / Cessament') 'verd' 'FI precinte -> verd'
+AssertEq (Get-EstatPlanol $false $Script:EstatFavorablePre) 'groc' 'favorable pre-llicencia (es tracta com Requeriment) -> groc'
+AssertEq (Get-EstatPlanol $false $Script:EstatFavorablePost) 'verd' 'favorable post-llicencia (es tracta com Favorable) -> verd'
 AssertEq (Get-EstatPlanol $false '') 'blau' 'sense informes -> blau'
 AssertEq (Get-EstatPlanol $false 'Revisar') 'blau' 'Revisar -> blau'
 AssertEq (Get-EstatPlanol $false 'Sense efecte') 'blau' 'Sense efecte -> blau'

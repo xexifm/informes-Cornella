@@ -198,8 +198,10 @@ Parcel·les de Cornellà pintades segons l'estat de les activitats que hi ha. Es
   només lletres i números.
 - **Els colors** (`Get-EstatPlanol`, decidits amb l'usuari): vermell = precinte
   a l'Excel (`Test-IsPrecintada`, ara a `Excel.ps1`) o darrer informe
-  «Precinte / Cessament»; groc = «Requeriment» o «Ampliació termini»; verd =
-  «Favorable», «FI Requeriment», «FI Precinte / Cessament»; **blau** = tota la
+  «Precinte / Cessament»; groc = «Requeriment» (i «Favorable pre-llicència
+  (Requeriment)») o «Ampliació termini»; verd = «Favorable» (i «Favorable
+  post-llicència (Favorable)»), «FI Requeriment», «FI Precinte / Cessament»
+  (via `_EstatEquivalent`); **blau** = tota la
   resta, sense informes inclòs («no sabem si està legalitzada»). L'estat ve
   d'`estat_actual` de la base d'informes, tal com el deixa *Actualitzar base* /
   *Editar base* (aquest procés no carrega `Informes.ps1`).
