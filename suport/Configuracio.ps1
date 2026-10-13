@@ -31,6 +31,30 @@
 # lloc per als dos botons que ho fan -el de Configuracio i el de la banda del
 # menu principal (octubre 2026: l'usuari el fa servir molt i era dos clics
 # endins)-, perque el missatge i la manera de tancar no es puguin separar.
+# ON VA CADA GRUP de la finestra de Configuracio. PURA (es prova a Linux).
+# Esquerra: les carpetes (fins a FiCarp). Dreta, de dalt a baix: els correus
+# (l'usuari, octubre 2026: "posa la seccio correus sobre els automatismes, que
+# tot el relacionat amb correu electronic estigui a la part dreta"), els
+# automatismes (una fila per cada un; s'estira perque les dues columnes acabin
+# a la mateixa alcada) i el manteniment. Torna els rectangles i la mida.
+function _ConfigGeometria([int]$nAuto) {
+    $xEsq = 14; $xDre = 542; $amplCol = 514; $yTop = 66
+    $fiCarp = 588
+    $hCorreu = 100; $hMant = 96; $sep = 8
+    $altAuto = 72 + 30 * $nAuto
+    $yAuto = $yTop + $hCorreu + $sep
+    $hAuto = [math]::Max(($altAuto - 8), ($fiCarp - $yAuto - $sep - $hMant))
+    $yMant = $yAuto + $hAuto + $sep
+    $fi = [math]::Max($fiCarp, ($yMant + $hMant))
+    return @{
+        XEsq = $xEsq; XDre = $xDre; AmplCol = $amplCol; YTop = $yTop; FiCarp = $fiCarp
+        Correu = @{ X = $xDre; Y = $yTop; W = $amplCol; H = $hCorreu }
+        Auto   = @{ X = $xDre; Y = $yAuto; W = $amplCol; H = $hAuto }
+        Mant   = @{ X = $xDre; Y = $yMant; W = $amplCol; H = $hMant }
+        Ample  = ($xDre + $amplCol + 14); Alt = ($fi + 12 + 52)
+    }
+}
+
 function Invoke-ActualitzarPrograma {
     $batPath = Join-Path $RepoRoot 'Actualitzar.bat'
     if (-not (Test-Path -LiteralPath $batPath)) {
@@ -67,19 +91,16 @@ function Invoke-ConfiguracioScreen {
 
     $form = _NewForm
     $form.Text = 'Configuracio'
-    # EN HORITZONTAL, com el menu principal (octubre 2026): dues columnes de
-    # 514. A l'esquerra les carpetes; a la dreta els automatismes (una fila per
-    # cada un) i el manteniment. Les dues columnes acaben a la mateixa alcada:
-    # el grup d'automatismes s'estira fins a la de l'esquerra si en te prou.
-    $xEsq = 14; $xDre = 542; $amplCol = 514; $yTop = 66
-    # Les carpetes acaben a $fiCarp; a sota, el grup dels correus.
-    $fiCarp = 566
-    $fiEsq = $fiCarp + 8 + 100
-    $nAuto = @($Script:ProgramacionsAuto.Keys).Count
-    $altAuto = 72 + 30 * $nAuto
-    $altGrpAuto = [math]::Max(($altAuto - 8), ($fiEsq - $yTop - 104))
-    $fiCols = [math]::Max($fiEsq, ($yTop + $altGrpAuto + 104))
-    $form.ClientSize = New-Object System.Drawing.Size(($xDre + $amplCol + 14), ($fiCols + 12 + 52))
+    # EN HORITZONTAL, com el menu principal (octubre 2026): dues columnes. A
+    # l'esquerra les carpetes; a la dreta, de dalt a baix, els correus, els
+    # automatismes i el manteniment (l'usuari: "que tot el relacionat amb
+    # correu electronic estigui a la part dreta", sobre els automatismes). On
+    # va cada grup ho decideix _ConfigGeometria (pura, amb prova).
+    $geo = _ConfigGeometria @($Script:ProgramacionsAuto.Keys).Count
+    $xEsq = $geo.XEsq; $xDre = $geo.XDre; $amplCol = $geo.AmplCol; $yTop = $geo.YTop
+    $fiCarp = $geo.FiCarp
+    $altGrpAuto = $geo.Auto.H
+    $form.ClientSize = New-Object System.Drawing.Size($geo.Ample, $geo.Alt)
     $form.MinimumSize = New-Object System.Drawing.Size(640, 480)
     $form.StartPosition = 'CenterScreen'
 
@@ -122,8 +143,8 @@ function Invoke-ConfiguracioScreen {
     $effCorreuVia = _CorreuViaValida (_PropInf $current 'CorreuVia')
     $grpCorreu = New-Object System.Windows.Forms.GroupBox
     $grpCorreu.Text = "Correus que s'envien des d'aquest PC"
-    $grpCorreu.Location = New-Object System.Drawing.Point($xEsq, ($fiCarp + 8))
-    $grpCorreu.Size = New-Object System.Drawing.Size($amplCol, 100)
+    $grpCorreu.Location = New-Object System.Drawing.Point($geo.Correu.X, $geo.Correu.Y)
+    $grpCorreu.Size = New-Object System.Drawing.Size($geo.Correu.W, $geo.Correu.H)
     $grpCorreu.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left
     $btnCorreus = New-Object System.Windows.Forms.Button
     $btnCorreus.Text = 'Correus de cada eina...'
@@ -149,14 +170,18 @@ function Invoke-ConfiguracioScreen {
     $cbRem = New-Object System.Windows.Forms.ComboBox
     $cbRem.DropDownStyle = 'DropDown'
     $cbRem.Location = New-Object System.Drawing.Point(118, 60)
-    $cbRem.Size = New-Object System.Drawing.Size(238, 24)
+    $cbRem.Size = New-Object System.Drawing.Size(222, 24)
     $cbRem.Text = ([string](_PropInf $current 'CorreuRemitent')).Trim()
     [void]$grpCorreu.Controls.Add($cbRem)
     $btnComptes = New-Object System.Windows.Forms.Button
     $btnComptes.Text = "Comptes de l'Outlook"
-    $btnComptes.Location = New-Object System.Drawing.Point(362, 58)
-    $btnComptes.Size = New-Object System.Drawing.Size(140, 28)
     _StyleSecondaryButton $btnComptes
+    # Mesurat amb la lletra del boto (amb 140 fixos es tallava "Comptes de
+    # l'Outlo", octubre 2026), arrimat a la dreta del grup.
+    $wComptes = [Math]::Max(150, [System.Windows.Forms.TextRenderer]::MeasureText($btnComptes.Text, $btnComptes.Font).Width + 24)
+    $btnComptes.Size = New-Object System.Drawing.Size($wComptes, 28)
+    $btnComptes.Location = New-Object System.Drawing.Point(($amplCol - 12 - $wComptes), 58)
+    $cbRem.Size = New-Object System.Drawing.Size([Math]::Max(140, ($amplCol - 12 - $wComptes - 6 - 118)), 24)
     $btnComptes.add_Click({
         try { $comptes = Get-OutlookComptes } catch {
             [System.Windows.Forms.MessageBox]::Show([string]$_.Exception.Message, 'Comptes de l''Outlook', 'OK', 'Warning') | Out-Null
@@ -182,8 +207,8 @@ function Invoke-ConfiguracioScreen {
     # settings.json (nomes el que difereix del per defecte) i s'aplica en viu.
     $grpAuto = New-Object System.Windows.Forms.GroupBox
     $grpAuto.Text = 'Automatismes'
-    $grpAuto.Location = New-Object System.Drawing.Point($xDre, $yTop)
-    $grpAuto.Size = New-Object System.Drawing.Size($amplCol, $altGrpAuto)
+    $grpAuto.Location = New-Object System.Drawing.Point($geo.Auto.X, $geo.Auto.Y)
+    $grpAuto.Size = New-Object System.Drawing.Size($geo.Auto.W, $geo.Auto.H)
     $grpAuto.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left
     $modesAuto = $Script:ModesAuto
     $progDefs = @{}
@@ -244,8 +269,8 @@ function Invoke-ConfiguracioScreen {
     # ---- Manteniment: info de versio + actualitzar ----------------------
     $grpMant = New-Object System.Windows.Forms.GroupBox
     $grpMant.Text = 'Manteniment'
-    $grpMant.Location = New-Object System.Drawing.Point($xDre, ($yTop + $altGrpAuto + 8))
-    $grpMant.Size = New-Object System.Drawing.Size($amplCol, 96)
+    $grpMant.Location = New-Object System.Drawing.Point($geo.Mant.X, $geo.Mant.Y)
+    $grpMant.Size = New-Object System.Drawing.Size($geo.Mant.W, $geo.Mant.H)
     $grpMant.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left
 
     $branch = ''

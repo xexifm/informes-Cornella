@@ -1461,3 +1461,23 @@ try {
 } catch {
     Assert $false ("bloc CorreuVia: excepcio " + $_.Exception.Message)
 }
+
+Write-Host "`n--- Pantalles dels correus: res no es trepitja (geometria pura) ---"
+# "Correus de cada eina": la casella "Persones autoritzades / tecnic" acabava
+# a x=844 i el boto "Enviar prova" comencava a 820 (octubre 2026).
+foreach ($cas in @(@{ A = [int[]]@(67, 132, 192); N = 'lletra normal' }, @{ A = [int[]]@(110, 220, 330); N = 'lletra gran (125%)' })) {
+    $gmT = _CorreuFilaGeometria 980 $cas.A
+    $fiT = [int]$gmT.X[2] + $cas.A[2]
+    Assert ($fiT + 8 -le [int]$gmT.Boto) ("Correus de cada eina (" + $cas.N + "): l'ultima casella acaba abans del boto Enviar prova (" + $fiT + " < " + $gmT.Boto + ")")
+    Assert ([int]$gmT.X[1] -ge [int]$gmT.X[0] + $cas.A[0] -and [int]$gmT.X[2] -ge [int]$gmT.X[1] + $cas.A[1]) ("Correus de cada eina (" + $cas.N + "): les caselles no es trepitgen entre elles")
+}
+AssertEq ([int](_CorreuFilaGeometria 980 ([int[]]@(67, 132, 192))).Ampl) 980 'Correus de cada eina: amb la lletra normal, la finestra no s''eixampla'
+# Configuracio: els correus a la DRETA i a sobre dels automatismes (l'usuari).
+$gC = _ConfigGeometria 5
+AssertEq "$($gC.Correu.X)|$($gC.Auto.X)|$($gC.Mant.X)" "$($gC.XDre)|$($gC.XDre)|$($gC.XDre)" 'Configuracio: correus, automatismes i manteniment, tots a la columna de la dreta'
+Assert ($gC.Correu.Y -eq $gC.YTop -and $gC.Correu.Y + $gC.Correu.H -le $gC.Auto.Y -and $gC.Auto.Y + $gC.Auto.H -le $gC.Mant.Y) 'Configuracio: de dalt a baix, correus -> automatismes -> manteniment, sense trepitjar-se'
+Assert ($gC.Auto.H -ge (72 + 30 * 5 - 8)) 'Configuracio: hi caben les 5 files d''automatismes'
+Assert ($gC.XEsq + $gC.AmplCol -le $gC.XDre) 'Configuracio: la columna de l''esquerra no entra a la de la dreta'
+Assert ($gC.Mant.Y + $gC.Mant.H + 64 -le $gC.Alt) 'Configuracio: el peu (Tancar / Desar) queda a sota de tot'
+$srcCfgG = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'Configuracio.ps1'))
+Assert ($srcCfgG.Contains('$grpCorreu.Location = New-Object System.Drawing.Point($geo.Correu.X, $geo.Correu.Y)')) 'Configuracio: el grup dels correus es col·loca amb _ConfigGeometria'

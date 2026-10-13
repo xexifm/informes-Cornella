@@ -26,6 +26,24 @@ function _CorreuEinaDeLaPantalla([string]$via, $dest, [string]$fixes, [string]$c
     return $o
 }
 
+# On va cada cosa de la fila "Per / A qui / Enviar prova" d'una eina. PURA (es
+# prova a Linux). $amples: l'amplada que necessita cada casella (el text
+# mesurat + la casella). Abans les amplades eren fixes (128 i 200) i la de
+# "Persones autoritzades / tecnic" acabava a x=844, sota el boto "Enviar
+# prova" (x=820): la finestra avisava de "Pantalla mal col·locada" (octubre
+# 2026). Ara les caselles van una darrere l'altra amb el que ocupen de debo i,
+# si encara no hi cabessin, la finestra s'eixampla: torna @{ Ampl; X (una per
+# casella); Boto (x del boto) }.
+function _CorreuFilaGeometria([int]$amplMin, [int[]]$amples) {
+    $x0 = 316 + 44
+    $xs = New-Object System.Collections.ArrayList
+    $x = $x0
+    foreach ($w in @($amples)) { [void]$xs.Add($x); $x += [int]$w + 10 }
+    # El boto (120) va a 28 + 12 de la vora dreta; hi ha d'haver 8 px de marge.
+    $ampl = [Math]::Max($amplMin, $x + 8 + 120 + 40)
+    return @{ Ampl = $ampl; X = $xs.ToArray(); Boto = ($ampl - 28 - 132); Fi = $x }
+}
+
 function Show-CorreuEinesConfig {
     $cfg = Read-CorreuEines
     $eines = $Script:CorreuEines
@@ -34,7 +52,15 @@ function Show-CorreuEinesConfig {
 
     $form = _NewForm
     $form.Text = 'Correus de cada eina'
-    $ampl = 980
+    # L'amplada de cada casella, mesurada amb la lletra de la finestra.
+    $amplesDest = @{}
+    foreach ($d in @($destNoms.Keys)) { $amplesDest[[string]$d] = [System.Windows.Forms.TextRenderer]::MeasureText([string]$destNoms[$d], $form.Font).Width + 24 }
+    $amplNec = 980
+    foreach ($k in @($eines.Keys)) {
+        $gm = _CorreuFilaGeometria 980 ([int[]]@(@($eines[$k].Dest) | ForEach-Object { [int]$amplesDest[[string]$_] }))
+        $amplNec = [Math]::Max($amplNec, [int]$gm.Ampl)
+    }
+    $ampl = $amplNec
     $altEina = 100
     $yIni = 150
     $form.ClientSize = New-Object System.Drawing.Size($ampl, ($yIni + $altEina * @($eines.Keys).Count + 60))
@@ -78,13 +104,14 @@ function Show-CorreuEinesConfig {
         $lv.Text = 'Per:'; $lv.Location = New-Object System.Drawing.Point(12, 27); $lv.Size = New-Object System.Drawing.Size(34, 20)
         $cbV = New-Object System.Windows.Forms.ComboBox
         $cbV.DropDownStyle = 'DropDownList'
-        $cbV.Location = New-Object System.Drawing.Point(48, 24); $cbV.Size = New-Object System.Drawing.Size(270, 24)
+        $cbV.Location = New-Object System.Drawing.Point(48, 24); $cbV.Size = New-Object System.Drawing.Size(256, 24)
         $vk = @($def.Vies)
         foreach ($v in $vk) { [void]$cbV.Items.Add([string]$vies[$v]) }
         $cbV.SelectedIndex = [math]::Max(0, [array]::IndexOf($vk, [string]$e.Via))
         $cbV.Tag = $vk
         $chks = [ordered]@{}
-        $x = 336
+        $gm = _CorreuFilaGeometria $ampl ([int[]]@(@($def.Dest) | ForEach-Object { [int]$amplesDest[[string]$_] }))
+        $x = 316
         $la = New-Object System.Windows.Forms.Label
         $la.Text = 'A qui:'; $la.Location = New-Object System.Drawing.Point($x, 27); $la.Size = New-Object System.Drawing.Size(42, 20)
         [void]$g.Controls.Add($la)
@@ -95,19 +122,20 @@ function Show-CorreuEinesConfig {
             $ln.Location = New-Object System.Drawing.Point($x, 27); $ln.Size = New-Object System.Drawing.Size(330, 20)
             [void]$g.Controls.Add($ln)
         }
+        $iD = 0
         foreach ($d in @($def.Dest)) {
             $cb = New-Object System.Windows.Forms.CheckBox
             $cb.Text = [string]$destNoms[$d]
-            $w = if ($d -eq 'autoritzats') { 200 } else { 128 }
-            $cb.Location = New-Object System.Drawing.Point($x, 25); $cb.Size = New-Object System.Drawing.Size($w, 22)
+            $w = [int]$amplesDest[[string]$d]
+            $cb.Location = New-Object System.Drawing.Point([int]$gm.X[$iD], 25); $cb.Size = New-Object System.Drawing.Size($w, 22)
             $cb.Checked = (@($e.Dest) -contains $d)
             [void]$g.Controls.Add($cb)
             $chks[$d] = $cb
-            $x += $w + 4
+            $iD++
         }
         $btnP = New-Object System.Windows.Forms.Button
         $btnP.Text = 'Enviar prova'
-        $btnP.Location = New-Object System.Drawing.Point(($ampl - 28 - 132), 20); $btnP.Size = New-Object System.Drawing.Size(120, 28)
+        $btnP.Location = New-Object System.Drawing.Point([int]$gm.Boto, 20); $btnP.Size = New-Object System.Drawing.Size(120, 28)
         _StyleSecondaryButton $btnP
         $lf = New-Object System.Windows.Forms.Label
         $lf.Text = 'Adreces fixes:'; $lf.Location = New-Object System.Drawing.Point(12, 61); $lf.Size = New-Object System.Drawing.Size(88, 20)
@@ -117,7 +145,7 @@ function Show-CorreuEinesConfig {
         $lc = New-Object System.Windows.Forms.Label
         $lc.Text = 'CCO:'; $lc.Location = New-Object System.Drawing.Point(476, 61); $lc.Size = New-Object System.Drawing.Size(38, 20)
         $tbC = New-Object System.Windows.Forms.TextBox
-        $tbC.Location = New-Object System.Drawing.Point(516, 58); $tbC.Size = New-Object System.Drawing.Size(420, 24)
+        $tbC.Location = New-Object System.Drawing.Point(516, 58); $tbC.Size = New-Object System.Drawing.Size(($ampl - 28 - 516 - 16), 24)
         $tbC.Text = if ($null -ne $e.Cco) { [string]$e.Cco } else { $ccoAbans }
         foreach ($c in @($lv, $cbV, $btnP, $lf, $tbF, $lc, $tbC)) { [void]$g.Controls.Add($c) }
         [void]$form.Controls.Add($g)
