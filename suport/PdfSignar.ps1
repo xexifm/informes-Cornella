@@ -603,11 +603,12 @@ function _CaixetiCascada([string]$caixeti) {
             @{ Nom = 'caixeti (text d''una linia)';  Text = $caixeti; Mode = 'text' }
         )
     }
-    # 'defecte': el d'AutoFirma, a les nostres coordenades. Un sol intent: no hi
-    # ha res a negociar (ni imatge que hi hagi de cabre, ni text que es pugui
-    # partir), o hi entra o cau a 'sense caixeti'.
+    # 'defecte': el d'AutoFirma, a les nostres coordenades.
+    # Si l'AutoFirma el deixa invisible, el de TEXT d'una linia abans de
+    # signar sense caixeti: val mes un caixeti amb un altre aspecte que cap.
     return @(
         @{ Nom = 'caixeti (aspecte per defecte)'; Text = $caixeti; Mode = 'defecte' }
+        @{ Nom = 'caixeti (text d''una linia)';   Text = $caixeti; Mode = 'text' }
     )
 }
 
@@ -696,9 +697,19 @@ function _PdfTextCaixetiInvisible([string]$txt) {
     return ([regex]::IsMatch($txt, '/BBox\s*\[\s*0\s+0\s+0\s+0\s*\]'))
 }
 
-# Mira NOMÉS el que el signador ha afegit al final ($lenOriginal en endavant):
-# així un /BBox[0 0 0 0] que ja vingués del document original no ens enganya.
+# PRIMER es llegeix el PDF de debo (Get-PdfSignaturesVisibles: el /Rect del
+# widget de la signatura i el /BBox de la seva aparenca). Abans nomes es mirava
+# el tros afegit al final ($lenOriginal en endavant), suposant que l'AutoFirma
+# fa una revisio incremental. NO LA FA quan el PDF no te cap signatura previa:
+# el REESCRIU sencer (un sol %%EOF, fluxos d'objectes) i l'aparenca buida queda
+# al principi del fitxer, fora del tros mirat. Va passar amb la MNS del GIA 132
+# (octubre 2026): signada amb /Rect[0 0 0 0] i el programa la va donar per bona.
+# El text del final queda com a respatller si el PDF no es pot llegir.
 function _PdfCaixetiEsInvisible([string]$pathSignat, [long]$lenOriginal) {
+    try {
+        $v = Get-PdfSignaturesVisibles $pathSignat
+        if ([int]$v.Signatures -gt 0) { return ([int]$v.Visibles -eq 0) }
+    } catch { }
     try {
         $bytes = [System.IO.File]::ReadAllBytes($pathSignat)
         $desde = [int]([Math]::Max(0, $lenOriginal))
@@ -1282,7 +1293,18 @@ function _RunConvertPdf($opts) {
                             _PdfSignarLog ("   imatge: " + $Script:CaixetiUltimIntent)
                         }
                     }
-                    if ($usat -eq 'sense caixeti' -and $res.ExitCode -eq 0) { $senseCaixeti++ }
+                    if ($usat -eq 'sense caixeti' -and $res.ExitCode -eq 0) {
+                        $senseCaixeti++
+                        # Signat, pero SENSE la signatura visible que s'havia
+                        # demanat: compta com a error (el resum es curt i
+                        # nomes diu generats, signats i errors). Abans nomes
+                        # ho deia el registre i l'usuari no ho va saber fins
+                        # que va obrir el PDF (octubre 2026).
+                        if ($caixeti) {
+                            $errors++
+                            [void]$errDetalls.Add(("Signatura: {0} -> signat SENSE la signatura visible (l'AutoFirma no l'ha posada; el detall, al registre)" -f $f.Name))
+                        }
+                    }
                     if ($res.ExitCode -eq 0 -and (Test-Path -LiteralPath $tmpSigned)) {
                         Move-Item -LiteralPath $tmpSigned -Destination $pdf -Force
                         $signed++

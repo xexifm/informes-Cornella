@@ -109,25 +109,32 @@ function _CtTextXml([string]$path) {
 # El text d'un PDF: el lector propi i, si no en surt (xifrat, glifs), el Word.
 # $word: @{ App; Provat } compartit per tota la passada (el Word s'obre UN cop,
 # nomes si cal, i el tanca qui l'ha creat). Torna @{ Text; Via; Error }.
+# Torna @{ Text; Via; Error; PendentWord } (PendentWord: no s'ha pogut provar el
+# Word perque la passada no el deixa fer servir; la proxima que si, el
+# tornara a llegir).
 function _CtTextPdf([string]$path, $word) {
     $err = ''
     $t = ''
     try { $t = Get-PdfText $path } catch { $err = [string]$_.Exception.Message; $t = '' }
-    if (_PdfTeText $t) { return @{ Text = $t; Via = 'pdf'; Error = '' } }
+    if (_PdfTeText $t) { return @{ Text = $t; Via = 'pdf'; Error = ''; PendentWord = $false } }
+    # Un xifrat no va mai al Word: si te contrasenya d'obertura, el Word la
+    # demanaria i es quedaria esperant (amagat) per sempre.
+    if ($err -match 'xifrat') { return @{ Text = ''; Via = ''; Error = 'PDF xifrat'; PendentWord = $false } }
+    if ($null -eq $word) { return @{ Text = ''; Via = ''; Error = $(if ($err -ne '') { $err } else { 'sense text (escanejat?)' }); PendentWord = $true } }
     if ($null -ne $word) {
         if (-not [bool]$word.Provat) { $word.Provat = $true; try { $word.App = New-WordApp -Opcional } catch { $word.App = $null } }
         if ($null -ne $word.App) {
             $tw = _PdfTextWord $word.App $path
-            if (_PdfTeText $tw) { return @{ Text = $tw; Via = 'word'; Error = '' } }
+            if (_PdfTeText $tw) { return @{ Text = $tw; Via = 'word'; Error = ''; PendentWord = $false } }
         }
     }
-    return @{ Text = ''; Via = ''; Error = $(if ($err -ne '') { $err } else { 'sense text (escanejat?)' }) }
+    return @{ Text = ''; Via = ''; Error = $(if ($err -ne '') { $err } else { 'sense text (escanejat?)' }); PendentWord = $false }
 }
 
 # Llegeix UN document del tipus que diu el nom. Torna @{ Extret; Llegible; Via;
 # Error } (Extret $null si no se n'ha tret res).
 function _CtLlegeixDocument($file, [string]$tipus, $word) {
-    $r = @{ Extret = $null; Llegible = $true; Via = ''; Error = '' }
+    $r = @{ Extret = $null; Llegible = $true; Via = ''; Error = ''; PendentWord = $false }
     try {
         if ($tipus -eq 'etram' -or $tipus -eq 'xmlantic') {
             $txt = _CtTextXml $file.FullName
@@ -138,6 +145,7 @@ function _CtLlegeixDocument($file, [string]$tipus, $word) {
         }
         $p = _CtTextPdf $file.FullName $word
         $r.Via = $p.Via
+        $r.PendentWord = [bool]$p.PendentWord
         if ([string]$p.Text -eq '') { $r.Llegible = $false; $r.Error = [string]$p.Error; return $r }
         $r.Extret = if ($tipus -eq 'autoritzacio') { Read-AutoritzacioText $p.Text } else { Read-InstanciaText $p.Text }
         # Una "autoritzacio" que no diu qui autoritza a qui: potser es una
@@ -301,7 +309,11 @@ function _CtCorreccionsDe($db) {
 # -NoDesis: no escriu la base (torna el resultat). Torna @{ Ok; Error; NNoves;
 # NAvisos; PerTipus; NNoLlegibles; NDocs; Llegits; Text; OutPath; Activitats;
 # NoLlegibles; SenseGia }.
-function Invoke-ContactesEscaneig([string]$dir, $informes, $cache, $expToGia, [scriptblock]$avisa = $null, [switch]$SenseCorreccions, [switch]$NoDesis) {
+# -SenseWord (la passada AUTOMATICA, que no te ningu davant): cap PDF va al Word.
+# Si el Word mostra una pregunta, un proces sense finestres s'hi queda esperant
+# per sempre (amb el mutex de la base agafat). Els que l'haurien necessitat es
+# marquen 'pendent_word' i els torna a llegir el proxim "Actualitzar base" a ma.
+function Invoke-ContactesEscaneig([string]$dir, $informes, $cache, $expToGia, [scriptblock]$avisa = $null, [switch]$SenseCorreccions, [switch]$NoDesis, [switch]$SenseWord) {
     $diu = { param($t, $i, $n) if ($null -ne $avisa) { & $avisa $t $i $n } }
     $outPath = Get-ContactesDbPath
     $prev = $null
@@ -346,12 +358,13 @@ function Invoke-ContactesEscaneig([string]$dir, $informes, $cache, $expToGia, [s
             $p = if ($prevDocs.ContainsKey($clau)) { $prevDocs[$clau] } else { $null }
             # Read-JsonIso: el pwsh 7 torna les dates ISO del JSON com a
             # [datetime], i en text ja no serien iguals (mesurat a les proves).
-            if ($null -ne $p -and (Read-JsonIso (_CtV $p 'modificat')) -eq $mod) {
-                $e = [ordered]@{ modificat = $mod; tipus = $c.Tipus; via = [string](_CtV $p 'via'); llegible = [bool](_CtV $p 'llegible'); error = [string](_CtV $p 'error'); extret = (_CtV $p 'extret'); gia = '' }
+            $reprova = (-not $SenseWord) -and [bool](_CtV $p 'pendent_word')
+            if ($null -ne $p -and (Read-JsonIso (_CtV $p 'modificat')) -eq $mod -and -not $reprova) {
+                $e = [ordered]@{ modificat = $mod; tipus = $c.Tipus; via = [string](_CtV $p 'via'); llegible = [bool](_CtV $p 'llegible'); error = [string](_CtV $p 'error'); extret = (_CtV $p 'extret'); gia = ''; pendent_word = [bool](_CtV $p 'pendent_word') }
             } else {
-                $l = _CtLlegeixDocument $f $c.Tipus $word
+                $l = _CtLlegeixDocument $f $c.Tipus $(if ($SenseWord) { $null } else { $word })
                 $llegits++
-                $e = [ordered]@{ modificat = $mod; tipus = $c.Tipus; via = [string]$l.Via; llegible = [bool]$l.Llegible; error = [string]$l.Error; extret = $l.Extret; gia = '' }
+                $e = [ordered]@{ modificat = $mod; tipus = $c.Tipus; via = [string]$l.Via; llegible = [bool]$l.Llegible; error = [string]$l.Error; extret = $l.Extret; gia = ''; pendent_word = [bool]$l.PendentWord }
             }
             # L'atribucio es refa sempre: depen dels informes d'ara.
             $e.gia = _CtGiaDocument $clau $e.extret $perCarpeta $conegut $expToGia

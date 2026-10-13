@@ -453,7 +453,9 @@ function _InformesDirAccessible([string]$dir) {
 # $ambContactes: al final, el repas de contactes (ContactesDb.ps1). El treu
 # ValidarClassificacio, que nomes mira els informes i ho fa en una carpeta
 # temporal (sense la cache, ho tornaria a llegir tot).
-function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock]$onConfirma = $null, [string]$giaAssignatsPath = '', [bool]$ambContactes = $true) {
+# $contactesAmbWord = $false: la passada automatica (cap PDF del repas de
+# contactes va al Word: vegeu Invoke-ContactesEscaneig -SenseWord).
+function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock]$onConfirma = $null, [string]$giaAssignatsPath = '', [bool]$ambContactes = $true, [bool]$contactesAmbWord = $true) {
     # La carpeta d'informes. Si la unitat (la I: de la feina) no hi es, no es un
     # error del programa: potser s'esta fora de la feina.
     $dir = $InformesDir
@@ -625,7 +627,7 @@ function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock
     #    al resum i prou.
     $contactes = $null
     if ($ambContactes) {
-        try { $contactes = Invoke-ContactesEscaneig $dir $informes $cache $expToGia $avisa }
+        try { $contactes = Invoke-ContactesEscaneig $dir $informes $cache $expToGia $avisa -SenseWord:(-not $contactesAmbWord) }
         catch { $contactes = @{ Ok = $false; Error = [string]$_.Exception.Message; Text = ('Contactes: no s''ha pogut fer el rep' + [char]0x00E0 + 's (' + [string]$_.Exception.Message + ')') } }
     }
 
@@ -782,7 +784,7 @@ function Invoke-InformesDbAuto {
     $lliure = $false
     try {
         $lliure = Invoke-AmbMutexUnic $Script:BaseMutexNom {
-            $caixa.Res = Invoke-InformesDbEscaneig $null
+            $caixa.Res = Invoke-InformesDbEscaneig $null $null '' $true $false
         }
     } catch { $caixa.Err = [string]$_.Exception.Message }
     if (-not $lliure -and $caixa.Err -eq '') {

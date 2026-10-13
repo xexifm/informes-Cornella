@@ -1218,10 +1218,28 @@ El C# de `PdfText` va **dins del namespace amb els `using` a dins** i es compila
 **enganxat** al de `PdfUnio` (`_PdfUnioCarrega`): necessita `PdfDoc`, i dos
 `Add-Type` separats no es poden referenciar en memòria al PowerShell 5.1.
 
-Si no en surt text (xifrat, una font `Identity-H` sense `ToUnicode`), **el Word**
+Si no en surt text (una font `Identity-H` sense `ToUnicode`), **el Word**
 (`_PdfTextWord`, obert un sol cop per passada i només si cal). Si tampoc,
 **escanejat**: a la llista «no llegibles». L'OCR del Windows queda per més
 endavant (l'usuari: «ara no»).
+
+**EL WORD NO POT QUEDAR-SE ESPERANT UNA PREGUNTA** (octubre 2026, va passar el
+primer dia): en obrir un PDF, el Word ensenya «Word convertirá el PDF a un
+documento de Word editable…» amb Aceptar/Cancelar, i **ni `ConfirmConversions`
+ni `DisplayAlerts` el treuen**. Amb el Word amagat, el procés s'hi queda
+esperant (i, mentrestant, l'explorador de Windows deixava de respondre). Per
+això:
+
+- `_PdfTextWord` no obre cap PDF sense haver posat abans
+  `DisableConvertPdfWarning = 1` a `HKCU\Software\Microsoft\Office\<versió>\Word\Options`
+  (`_WordSenseAvisPdf`: és la casella «No volver a mostrar este mensaje»), i
+  només si després s'hi llegeix;
+- els PDF **xifrats no van mai al Word** (demanaria la contrasenya);
+- la passada **automàtica** (sense ningú davant) no fa servir el Word
+  (`Invoke-ContactesEscaneig -SenseWord`): els que l'haurien necessitat queden
+  `pendent_word` i els torna a llegir el pròxim «Actualitzar base» a mà, encara
+  que no hagin canviat. Guards a `11-contactes.ps1`, validats injectant-hi el
+  defecte.
 
 **No s'ha pogut veure cap instància de debò** (porten dades personals): el
 lector i els lectors de cada document es van fer amb documents inventats.

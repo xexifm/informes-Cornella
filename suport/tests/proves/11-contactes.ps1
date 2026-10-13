@@ -35,6 +35,17 @@ try {
     Assert $false ('bloc PdfText: ' + $_.Exception.Message + ' @ ' + $_.InvocationInfo.ScriptLineNumber)
 }
 
+Write-Host "`n--- PdfText.ps1: l'avis del Word en obrir un PDF ---"
+# La casella "No volver a mostrar este mensaje" del Word: sense, el Word amagat
+# es queda esperant un clic (octubre 2026).
+AssertEq (_WordClauOpcions '16.0') 'HKCU:\Software\Microsoft\Office\16.0\Word\Options' '_WordClauOpcions: la clau de la versio del Word'
+AssertEq (_WordClauOpcions '15.0.4569') 'HKCU:\Software\Microsoft\Office\15.0\Word\Options' '_WordClauOpcions: nomes la versio major'
+AssertEq (_WordClauOpcions '') '' '_WordClauOpcions: sense versio, res'
+$srcPdfTxt = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'PdfText.ps1'))
+Assert ($srcPdfTxt.Contains("if (-not (_WordSenseAvisPdf `$wordApp)) { return '' }")) '_PdfTextWord: no obre cap PDF sense haver tret l''avis de la conversio'
+$srcAutoB = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'InformesEscaneig.ps1'))
+Assert ($srcAutoB.Contains("Invoke-InformesDbEscaneig `$null `$null '' `$true `$false")) 'Actualitzar base automatic: el repas de contactes sense Word'
+
 Write-Host "`n--- ContactesExtraccio.ps1: peces ---"
 AssertEq (_CtTipusDocument 'tramit_1_etram-tramit.xml') 'etram' '_CtTipusDocument: XML de l''e-TRAM'
 AssertEq (_CtTipusDocument ('Inst' + [char]0x00E0 + 'ncia gen' + [char]0x00E8 + 'rica.pdf')) 'instancia' '_CtTipusDocument: instancia generica (amb accents)'
@@ -290,6 +301,18 @@ try {
     AssertEq ([string]$c9101.excel.TITULAR) 'EXEMPLE INVENTAT SL' 'repas: la fila de l''Excel es desa al costat (la finestra la ensenya)'
     Assert ($rC.Text.StartsWith('Contactes: 2 activitats amb dades noves')) ('repas: el resum de la linia de "Actualitzar base" (' + $rC.Text + ')')
     Assert ($rC.Text.Contains('1 documents no llegibles')) 'repas: el resum diu els no llegibles'
+
+    # L'AUTOMATIC no fa servir mai el Word (una pregunta del Word deixaria el
+    # proces penjat): l'escanejat queda 'pendent_word' i el torna a llegir la
+    # proxima passada a ma, encara que no hagi canviat.
+    $rAuto = Invoke-ContactesEscaneig $ctI $informesCt $cacheCt @{} -SenseWord
+    $dAuto = (Read-ContactesDb).documents.'GIA 9101\Autoritzacio escanejada.pdf'
+    AssertEq "$($rAuto.Llegits)|$($dAuto.pendent_word)" '0|False' '-SenseWord: un document ja llegit amb el Word permes no es torna a llegir'
+    (Get-Item -LiteralPath (Join-Path (Join-Path $ctI 'GIA 9101') 'Autoritzacio escanejada.pdf')).LastWriteTimeUtc = (Get-Date).ToUniversalTime().AddMinutes(2)
+    $rAuto2 = Invoke-ContactesEscaneig $ctI $informesCt $cacheCt @{} -SenseWord
+    AssertEq "$($rAuto2.Llegits)|$((Read-ContactesDb).documents.'GIA 9101\Autoritzacio escanejada.pdf'.pendent_word)" '1|True' '-SenseWord: el PDF sense text queda pendent del Word'
+    $rMa = Invoke-ContactesEscaneig $ctI $informesCt $cacheCt @{}
+    AssertEq "$($rMa.Llegits)|$((Read-ContactesDb).documents.'GIA 9101\Autoritzacio escanejada.pdf'.pendent_word)" '1|False' 'a ma: el pendent del Word es torna a llegir (encara que no hagi canviat)'
 
     # INCREMENTAL: la segona passada no torna a llegir res; si un canvia, nomes aquell.
     $rC2 = Invoke-ContactesEscaneig $ctI $informesCt $cacheCt @{}

@@ -1093,6 +1093,43 @@ namespace InformesCornella
             bool acro = cat != null && cat.Get("AcroForm") != null;
             return string.Format(CultureInfo.InvariantCulture, "pagines={0};signatures={1};acroform={2}", pgs.Count, sig, acro ? 1 : 0);
         }
+
+        // Quantes signatures hi ha i quantes es VEUEN (widget amb /Rect i
+        // aparenca amb /BBox de mida). Per saber si el caixeti ha sortit:
+        // l'AutoFirma REESCRIU el PDF sencer quan no hi ha cap signatura
+        // previa, o sigui que mirar nomes el tros afegit al final no serveix
+        // (vegeu _PdfCaixetiEsInvisible, PdfSignar.ps1).
+        public static string Visibilitat(string fitxer)
+        {
+            PdfDoc doc = new PdfDoc(fitxer);
+            List<PdfDoc.Pagina> pgs = doc.Pagines(new HashSet<int>());
+            int sig = 0, vis = 0;
+            foreach (PdfDoc.Pagina pg in pgs)
+            {
+                PdfArr annots = doc.Resol(pg.Dict.Get("Annots")) as PdfArr;
+                if (annots == null) continue;
+                foreach (PdfObj ao in annots.Items)
+                {
+                    PdfDict a = doc.Resol(ao) as PdfDict;
+                    if (a == null || !EsSignatura(doc, a)) continue;
+                    sig++;
+                    double[] r = Nums(doc, a.Get("Rect"), 4);
+                    if (r == null || Math.Abs(r[2] - r[0]) < 1 || Math.Abs(r[3] - r[1]) < 1) continue;
+                    PdfNum fl = doc.Resol(a.Get("F")) as PdfNum;
+                    int flags = fl == null ? 0 : (int)fl.Val;
+                    if ((flags & 2) != 0 || (flags & 32) != 0) continue;
+                    PdfDict ap = doc.Resol(a.Get("AP")) as PdfDict;
+                    PdfStream n = ap == null ? null : doc.Resol(ap.Get("N")) as PdfStream;
+                    if (n != null)
+                    {
+                        double[] bb = Nums(doc, n.Dict.Get("BBox"), 4);
+                        if (bb != null && (Math.Abs(bb[2] - bb[0]) < 1 || Math.Abs(bb[3] - bb[1]) < 1)) continue;
+                    }
+                    vis++;
+                }
+            }
+            return string.Format(CultureInfo.InvariantCulture, "signatures={0};visibles={1}", sig, vis);
+        }
     }
 }
 '@
@@ -1120,9 +1157,15 @@ function Get-PdfDescripcio([string]$pdf) {
     return (_PdfUnioResum ([InformesCornella.PdfUnio]::Descriu($pdf)))
 }
 
+# @{ Signatures; Visibles } d'un PDF signat (vegeu PdfUnio.Visibilitat).
+function Get-PdfSignaturesVisibles([string]$pdf) {
+    _PdfUnioCarrega
+    return (_PdfUnioResum ([InformesCornella.PdfUnio]::Visibilitat($pdf)))
+}
+
 # "clau=valor;clau=valor" -> hashtable amb enters. PURA.
 function _PdfUnioResum([string]$text) {
-    $noms = @{ pagines = 'Pagines'; aplanades = 'Aplanades'; invisibles = 'Invisibles'; signatures = 'Signatures'; acroform = 'AcroForm' }
+    $noms = @{ pagines = 'Pagines'; aplanades = 'Aplanades'; invisibles = 'Invisibles'; signatures = 'Signatures'; acroform = 'AcroForm'; visibles = 'Visibles' }
     $r = @{}
     foreach ($t in ([string]$text -split ';')) {
         $kv = $t -split '=', 2

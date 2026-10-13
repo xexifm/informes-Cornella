@@ -957,8 +957,9 @@ AssertEq ([bool]($afNoFilter -contains '-filter')) $false '_BuildAutoFirmaSignAr
 # $Script:CaixetiAspecte a 'propi'.
 AssertEq ([string]$Script:CaixetiAspecte) 'defecte' 'CaixetiAspecte: per defecte, el de l''AutoFirma'
 $casDef = @(_CaixetiCascada "Nom`nCarrec")
-AssertEq $casDef.Count 1 '_CaixetiCascada: aspecte per defecte -> un sol intent'
-AssertEq ([string]$casDef[0].Mode) 'defecte' '_CaixetiCascada: i es el mode defecte'
+AssertEq $casDef.Count 2 '_CaixetiCascada: aspecte per defecte -> el de l''AutoFirma i, si queda invisible, el de text'
+AssertEq ([string]$casDef[0].Mode) 'defecte' '_CaixetiCascada: el primer es el mode defecte'
+AssertEq ([string]$casDef[1].Mode) 'text' '_CaixetiCascada: ...i el segon, el text d''una linia (abans de signar sense caixeti)'
 AssertEq (@(_CaixetiCascada '').Count) 0 '_CaixetiCascada: sense caixeti no hi ha cap intent'
 $epDef = _AutoFirmaVisibleExtraParams "Nom`nCarrec" $null 'defecte'
 Assert ($epDef.Contains('signaturePage=1')) '_AutoFirmaVisibleExtraParams: el mode defecte diu ON va'
@@ -1098,6 +1099,17 @@ AssertEq ([bool]((_AutoFirmaArgvToText $argvCx) -like '*<LF>*')) $false '_AutoFi
 AssertEq (_PdfTextCaixetiInvisible '/Type/XObject/Subtype/Form/BBox[0 0 0 0]/FormType 1') $true '_PdfTextCaixetiInvisible: /BBox[0 0 0 0] -> signatura invisible'
 AssertEq (_PdfTextCaixetiInvisible '/Type/XObject/Subtype/Form/BBox[0 0 200 75]/FormType 1') $false '_PdfTextCaixetiInvisible: BBox amb mida -> caixeti visible'
 AssertEq (_PdfTextCaixetiInvisible '') $false '_PdfTextCaixetiInvisible: text buit -> no es pot dir que sigui invisible'
+# L'AutoFirma REESCRIU el PDF quan no hi ha cap signatura previa: l'aparenca
+# buida queda AL PRINCIPI del fitxer, fora del tros "afegit al final". Va
+# passar amb una MNS amb adjunts (octubre 2026) i el programa la va donar per
+# bona. Ara es llegeix el widget de debo.
+$dirPdfVis = Join-Path $TestsDir (Join-Path 'dades' 'pdf')
+$pdfReescrit = Join-Path $dirPdfVis 'signat-reescrit-invisible.pdf'
+$visR = Get-PdfSignaturesVisibles $pdfReescrit
+AssertEq "$($visR.Signatures)|$($visR.Visibles)" '1|0' 'Get-PdfSignaturesVisibles: signatura amb /Rect[0 0 0 0] -> no es veu'
+AssertEq (_PdfCaixetiEsInvisible $pdfReescrit (Get-Item -LiteralPath $pdfReescrit).Length) $true '_PdfCaixetiEsInvisible: el caixeti buit AL PRINCIPI d''un PDF reescrit es detecta'
+AssertEq (_PdfCaixetiEsInvisible (Join-Path $dirPdfVis 'heretat-girat-enllac.pdf') 0) $false '_PdfCaixetiEsInvisible: una signatura amb caixeti -> visible'
+AssertEq "$((Get-PdfSignaturesVisibles (Join-Path $dirPdfVis 'dues-signatures.pdf')).Visibles)" '1' 'Get-PdfSignaturesVisibles: de dues signatures, la que es veu'
 # Barres invertides FINALS: dins de cometes escaparien la cometa de tancament.
 AssertEq (_ArgvToCommandLine @('C:\a b\')) '"C:\a b\\"' '_ArgvToCommandLine: barra final duplicada dins de cometes'
 # La data la resolem NOSALTRES: AutoFirma no ha de veure cap marcador $$...$$

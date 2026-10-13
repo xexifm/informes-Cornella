@@ -82,6 +82,22 @@ està provat i descartat.
     surt amb `/Rect[0 0 0 0]` i l'aparença amb `/BBox[0 0 0 0]`. Un intent encara
     anterior el passava en **Base64**, amb el mateix resultat. `$Script:AutoFirmaConfigSep`
     conté el separador; posició tunejable a `$Script:AutoFirmaCaixetiPos`.
+  - **L'AutoFirma REESCRIU el PDF sencer quan no té cap signatura prèvia**
+    (octubre 2026, mesurat sobre una MNS amb adjunts que va sortir signada i
+    **sense caixetí**): un sol `%%EOF`, fluxos d'objectes, i el diccionari de
+    la signatura i la seva aparença **al principi** del fitxer
+    (`/ByteRange [0 260 …]`). La comprovació d'abans només mirava el tros
+    «afegit al final» (des de la mida de l'original) i, per tant, **no podia
+    veure mai** el `/BBox[0 0 0 0]`: el fitxer es va donar per bo. Ara
+    `_PdfCaixetiEsInvisible` llegeix el PDF de debò
+    (`Get-PdfSignaturesVisibles`, `PdfUnio.Visibilitat`: el `/Rect` del widget,
+    els indicadors i el `/BBox` de l'aparença); el text del final només queda
+    de respatller si el PDF no es pot llegir. A més, l'aspecte `defecte` ja no
+    cau directament a «sense caixetí»: abans prova el **text d'una línia**, i
+    un PDF signat sense la signatura visible que s'havia demanat **surt com a
+    error al resum** (amb el nom del fitxer), no només al registre. Per què
+    l'AutoFirma no hi va posar el caixetí **encara no se sap**: ho dirà el
+    `pdf-signar-log.txt` d'aquella passada (l'ordre exacta i la sortida).
   - **Codi de sortida 0 NO vol dir caixetí visible**: `_PdfCaixetiEsInvisible`
     mira **només el tros que el signador ha afegit al final** del PDF (la revisió
     incremental, des de la mida del fitxer original) i hi busca `/BBox[0 0 0 0]`

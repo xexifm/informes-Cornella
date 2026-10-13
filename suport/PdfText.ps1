@@ -15,7 +15,8 @@
     - ESCANEJATS (nomes imatges): no hi ha text. Torna buit i qui crida ho
       posa a la llista "no llegibles" (l'OCR del Windows queda per mes
       endavant: l'usuari, "ara no").
-    - XIFRATS: llanca. Qui crida prova el Word (_PdfTextWord).
+    - XIFRATS: llanca. NO es passen al Word: demanaria la contrasenya i es
+      quedaria esperant (van a "no llegibles").
     - Una font Identity-H SENSE ToUnicode dona glifs, no lletres: torna buit
       (i el Word, que si que ho sap fer).
 
@@ -578,13 +579,42 @@ function Get-PdfText([string]$pdf) {
     return [string][InformesCornella.PdfText]::Extreu($pdf)
 }
 
-# El RECURS AL WORD, per als pocs que no surten amb el lector propi (xifrats,
-# fonts sense ToUnicode). El Word converteix el PDF a document
-# (ConfirmConversions = $false: sense preguntar) i se'n llegeix el text. Lent:
-# nomes per a aquests. $wordApp el porta qui crida (New-WordApp -Opcional, amb
-# la Quit() al seu finally); sense, torna ''.
+# L'AVIS DEL WORD EN OBRIR UN PDF: "Word convertira el PDF a un documento de
+# Word editable..." amb Aceptar / Cancelar. NO el treu ConfirmConversions =
+# $false ni DisplayAlerts: surt igual, i amb el Word amagat el proces es queda
+# ESPERANT un clic (octubre 2026: l'usuari el va trobar a la pantalla, i
+# mentrestant l'explorador de Windows no responia). L'unic interruptor es la
+# casella "No volver a mostrar este mensaje", que es aquest valor del registre
+# de l'usuari (DisableConvertPdfWarning a ...\Office\<versio>\Word\Options).
+# La clau, per a la versio que diu el Word ("16.0"). PURA.
+function _WordClauOpcions([string]$versio) {
+    $m = [regex]::Match([string]$versio, '^(\d+)')
+    if (-not $m.Success) { return '' }
+    return ('HKCU:\Software\Microsoft\Office\' + $m.Groups[1].Value + '.0\Word\Options')
+}
+
+# Hi posa el DisableConvertPdfWarning = 1 si no hi es, i torna $true NOMES si
+# despres de posar-lo s'hi llegeix: sense, no s'obre cap PDF amb el Word.
+function _WordSenseAvisPdf($wordApp) {
+    try {
+        $clau = _WordClauOpcions ([string]$wordApp.Version)
+        if ($clau -eq '') { return $false }
+        if (-not (Test-Path -LiteralPath $clau)) { [void](New-Item -Path $clau -Force) }
+        $ara = (Get-ItemProperty -LiteralPath $clau -Name 'DisableConvertPdfWarning' -ErrorAction SilentlyContinue).DisableConvertPdfWarning
+        if ([int]$ara -ne 1) { [void](New-ItemProperty -LiteralPath $clau -Name 'DisableConvertPdfWarning' -PropertyType DWord -Value 1 -Force) }
+        return ([int](Get-ItemProperty -LiteralPath $clau -Name 'DisableConvertPdfWarning' -ErrorAction Stop).DisableConvertPdfWarning -eq 1)
+    } catch { return $false }
+}
+
+# El RECURS AL WORD, per als pocs que no surten amb el lector propi (fonts
+# sense ToUnicode). El Word converteix el PDF a document i se'n llegeix el
+# text. Lent: nomes per a aquests. $wordApp el porta qui crida (New-WordApp
+# -Opcional, amb la Quit() al seu finally); sense, torna ''. MAI amb un PDF
+# xifrat (demanaria la contrasenya i es quedaria esperant: ho evita qui crida)
+# ni sense haver tret l'avis de la conversio (_WordSenseAvisPdf).
 function _PdfTextWord($wordApp, [string]$pdf) {
     if ($null -eq $wordApp) { return '' }
+    if (-not (_WordSenseAvisPdf $wordApp)) { return '' }
     $doc = $null
     try {
         $doc = $wordApp.Documents.Open($pdf, $false, $true, $false)
