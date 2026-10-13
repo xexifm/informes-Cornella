@@ -1263,7 +1263,7 @@ Write-Host "`n--- Els botons de la banda: una pell i una tira (guard) ---"
 # pixel: 20 de marge i 8 entre botons.
 $bandaSrc = _SenseComentaris (Join-Path $rootRepo (Join-Path 'suport' 'Menu.ps1'))
 Assert ($bandaSrc.Contains('function _BotoBanda')) 'la pell dels botons de la banda es a _BotoBanda'
-AssertEq (@([regex]::Matches($bandaSrc, '_BotoBanda \$band \$tira')).Count) 4 'els QUATRE botons de la banda passen per _BotoBanda'
+AssertEq (@([regex]::Matches($bandaSrc, '_BotoBanda \$band \$tira')).Count) 5 'els CINC botons de la banda (amb Aturar) passen per _BotoBanda'
 # Cap posicio escrita a ma: ni restes des de la vora dreta, ni des d'un altre boto.
 Assert (-not ($bandaSrc -match '\$wForm - \d+\s*\)\s*,\s*13')) 'cap boto de la banda amb la posicio calculada a ma des de la vora'
 Assert (-not ($bandaSrc -match '\$btn\w+\.Left - \d+')) 'cap boto de la banda col.locat a partir d''un altre boto'
@@ -1856,3 +1856,21 @@ foreach ($f in @(Get-ChildItem -LiteralPath (Join-Path $rootRepo 'suport') -Recu
 }
 AssertEq ($simbDolents -join ', ') '' 'cap emoji ni simbol al text d''un control sense _PosaIcona'
 
+
+Write-Host "`n--- Aturar el segon pla (el boto de la banda) ---"
+AssertEq (_ProcesEsDelSegonPla 'powershell.exe' 'powershell.exe -NoProfile -File "I:\x\suport\BaseInformesAuto.ps1"') 'segonpla' '_ProcesEsDelSegonPla: la passada automatica de la base'
+AssertEq (_ProcesEsDelSegonPla 'powershell.exe' 'powershell.exe -File "I:\x\suport\GenerarInforme.ps1"') '' '_ProcesEsDelSegonPla: el programa (la finestra) no'
+AssertEq (_ProcesEsDelSegonPla 'WINWORD.EXE' '"C:\Program Files\Microsoft Office\root\Office16\WINWORD.EXE" /Automation -Embedding') 'office' '_ProcesEsDelSegonPla: el Word obert per COM'
+AssertEq (_ProcesEsDelSegonPla 'WINWORD.EXE' '"C:\Program Files\Microsoft Office\root\Office16\WINWORD.EXE" /n "C:\Users\x\informe.docx"') '' '_ProcesEsDelSegonPla: el Word que obre l''usuari, no'
+AssertEq (_ProcesEsDelSegonPla 'OUTLOOK.EXE' 'OUTLOOK.EXE -Embedding') '' '_ProcesEsDelSegonPla: l''Outlook, mai'
+# Tots els scripts que es llancen en segon pla han de ser a la llista (si no, el
+# boto no aturaria un automatisme nou).
+$llancats = New-Object System.Collections.ArrayList
+foreach ($f in @(Get-ChildItem -LiteralPath (Split-Path -Parent $TestsDir) -Filter *.ps1 -File)) {
+    foreach ($m in [regex]::Matches([System.IO.File]::ReadAllText($f.FullName), "(?:Start-ProcesAutoUnic '\w+'|Start-ScriptSegonPla) '(\w+\.ps1)'")) { [void]$llancats.Add($m.Groups[1].Value) }
+}
+$falten = @($llancats | Select-Object -Unique | Where-Object { $Script:ScriptsSegonPla -notcontains $_ })
+Assert ($llancats.Count -ge 5) 'Aturar: es troben els scripts que es llancen en segon pla'
+AssertEq ($falten -join ',') '' 'Aturar: tots els scripts que es llancen en segon pla son a $Script:ScriptsSegonPla'
+$srcMenuAt = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'Menu.ps1'))
+Assert ($srcMenuAt.Contains('_BotoBanda $band $tira 92 { Invoke-AturarSegonPla')) 'menu: hi ha el boto Aturar a la banda'

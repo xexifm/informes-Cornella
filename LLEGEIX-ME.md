@@ -747,6 +747,12 @@ exemple, si en portes el seguiment per una altra via).
 
 ### Altres botons del menú
 
+- **⏹ Aturar** (a dalt a la dreta, al costat d'*Actualitzar*): atura tot el que
+  el programa fa **en segon pla** (les passades automàtiques i els Word o Excel
+  que ha obert ell; els que has obert tu no es toquen) i et pregunta si vols
+  posar **tots els automatismes en M**, perquè no es tornin a engegar sols. Fes-lo
+  servir si mai et salten finestres del Word o el programa s'encalla.
+
 - **🗃 Actualitzar base d'informes**: recorre els informes ja fets i n'extreu
   data, ID GIA i conclusió a `local/base-dades-activitats/informes-db.json`.
   També té interruptor **A / M** (vegeu més avall): en **A** es fa sola cada

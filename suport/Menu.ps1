@@ -232,6 +232,39 @@ function _BotoBanda($band, $tira, [int]$amplada, $clic) {
     return $b
 }
 
+# El boto "Aturar" de la banda: atura el que corre en segon pla (els processos
+# del programa i els Word/Excel que ha obert ell) i, si es vol, posa tots els
+# automatismes en M. L'usuari (octubre 2026): "tots aquests errors del Word
+# estan fent que no pugui ni treballar". Que es para ho decideixen
+# Get-ProcessosSegonPla / _ProcesEsDelSegonPla (ModeAutomatic.ps1).
+function Invoke-AturarSegonPla {
+    $titol = 'Aturar el segon pla'
+    $ps = @(Get-ProcessosSegonPla)
+    $nProg = @($ps | Where-Object { $_.Tipus -eq 'segonpla' }).Count
+    $nOff = @($ps | Where-Object { $_.Tipus -eq 'office' }).Count
+    $res = $null
+    if ($ps.Count -gt 0) {
+        $r = [System.Windows.Forms.MessageBox]::Show(
+            ("Ara mateix corren en segon pla:`n`n" +
+             "  - processos del programa (automatismes): $nProg`n" +
+             "  - Word o Excel oberts pel programa: $nOff`n`n" +
+             "Vols aturar-los tots? Els Word i Excel que hagis obert tu NO es toquen (pero si en tens algun d'obert pel programa, perdras el que no s'hagi desat)."),
+            $titol, 'YesNo', 'Question')
+        if ($r -eq [System.Windows.Forms.DialogResult]::Yes) { $res = Stop-ProcessosSegonPla $ps }
+    } else {
+        [System.Windows.Forms.MessageBox]::Show("No hi ha res del programa corrent en segon pla.", $titol, 'OK', 'Information') | Out-Null
+    }
+    $r2 = [System.Windows.Forms.MessageBox]::Show(
+        ("Vols posar tambe TOTS els automatismes en M (manual)?`n`nAixi no es tornaran a engegar sols fins que els tornis a posar en A (l'interruptor de sota cada rajola, o Configuraci" + [char]0x00F3 + " -> Automatismes)."),
+        $titol, 'YesNo', 'Question')
+    $nApagats = 0
+    if ($r2 -eq [System.Windows.Forms.DialogResult]::Yes) { $nApagats = Disable-TotsAutomatismes }
+    $msg = ''
+    if ($null -ne $res) { $msg += "Processos aturats: $($res.Aturats)" + $(if ($res.Errors -gt 0) { " (no se n'han pogut aturar $($res.Errors): fes-ho al Gestor de tasques)" } else { '' }) + "`n" }
+    if ($r2 -eq [System.Windows.Forms.DialogResult]::Yes) { $msg += "Automatismes posats en M: $nApagats`n" }
+    if ($msg -ne '') { [System.Windows.Forms.MessageBox]::Show($msg, $titol, 'OK', 'Information') | Out-Null }
+}
+
 function Select-Mode {
     # Catalegs disponibles a ESTRUCTURALS (REQ1.json, TERMINI.json...). Es
     # descobreixen sols; els noms amics dels coneguts es defineixen mes avall.
@@ -1017,6 +1050,14 @@ function Select-Mode {
     $btnActualitzarM.TextAlign = 'MiddleCenter'
     _PosaIcona $btnActualitzarM ([string][char]0x21BB) ' Actualitzar'
     $ttBand.SetToolTip($btnActualitzarM, 'Baixa la versio nova del programa (Actualitzar.bat) i el torna a obrir')
+
+    # ATURAR: el que corre en segon pla (vegeu Invoke-AturarSegonPla). El
+    # quadrat d'aturar no es a la Segoe UI: va amb _PosaIcona.
+    $btnAturar = _BotoBanda $band $tira 92 { Invoke-AturarSegonPla; try { $form.Refresh() } catch { } }.GetNewClosure()
+    $btnAturar.Font = New-Object System.Drawing.Font('Segoe UI', 9.5, [System.Drawing.FontStyle]::Regular)
+    $btnAturar.TextAlign = 'MiddleCenter'
+    _PosaIcona $btnAturar ([string][char]0x23F9) ' Aturar'
+    $ttBand.SetToolTip($btnAturar, 'Atura el que el programa fa en segon pla (automatismes, Word i Excel que ha obert ell) i, si vols, posa tots els automatismes en M')
 
     # ------------------------------------------------------------------------
     # EL RELLOTGE dels modes automatics ("Copiar informes", "Actualitzar base")

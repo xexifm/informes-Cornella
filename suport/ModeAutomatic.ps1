@@ -308,3 +308,70 @@ function Invoke-AmbMutexUnic([string]$nom, [scriptblock]$feina, [scriptblock]$si
         if ($null -ne $mutex) { try { $mutex.ReleaseMutex() } catch { }; try { $mutex.Dispose() } catch { } }
     }
 }
+
+# ----------------------------------------------------------------------------
+# ATURAR TOT EL QUE CORRE EN SEGON PLA (el boto "Aturar" de la banda del menu)
+# ----------------------------------------------------------------------------
+# L'usuari (octubre 2026): els errors del Word d'una passada automatica
+# encallada "em salten cada segon i em bloquegen tot". Els processos en segon
+# pla no tenen finestra: sense aquest boto, l'unica sortida era el Gestor de
+# tasques. Atura:
+#   - els processos del programa que corren sols (els scripts d'aquesta llista;
+#     una prova vigila que hi siguin TOTS els que es llancen en segon pla);
+#   - els Word i Excel oberts PER UN PROGRAMA (/Automation, -Embedding: els que
+#     fa servir aquest programa per COM). Els que ha obert l'usuari no porten
+#     aquestes opcions a la linia d'ordres i no es toquen. L'Outlook, mai.
+$Script:ScriptsSegonPla = @('BaseInformesAuto.ps1', 'CopiaInformesAuto.ps1', 'PlanolAuto.ps1', 'SeguimentGiaAuto.ps1', 'RecordatorisAuto.ps1', 'GeneraVistes.ps1')
+
+# 'segonpla', 'office' o '' per a un proces (nom de l'executable i linia
+# d'ordres). PURA.
+function _ProcesEsDelSegonPla([string]$nom, [string]$linia) {
+    $n = ([string]$nom).ToLowerInvariant()
+    $l = ([string]$linia).ToLowerInvariant()
+    if ($n -eq 'powershell.exe' -or $n -eq 'pwsh.exe') {
+        foreach ($s in $Script:ScriptsSegonPla) { if ($l.Contains($s.ToLowerInvariant())) { return 'segonpla' } }
+        return ''
+    }
+    if ($n -eq 'winword.exe' -or $n -eq 'excel.exe') {
+        if ($l -match '[/-]automation' -or $l -match '[/-]embedding') { return 'office' }
+    }
+    return ''
+}
+
+# Els processos d'aquest ordinador que s'aturarien (mai el propi). Torna una
+# llista de @{ Id; Nom; Tipus }. Nomes a Windows.
+function Get-ProcessosSegonPla {
+    $out = New-Object System.Collections.ArrayList
+    $ps = @()
+    try { $ps = @(Get-CimInstance Win32_Process -Filter "Name='powershell.exe' OR Name='pwsh.exe' OR Name='WINWORD.EXE' OR Name='EXCEL.EXE'" -ErrorAction Stop) } catch { $ps = @() }
+    foreach ($p in $ps) {
+        if ([int]$p.ProcessId -eq $PID) { continue }
+        $t = _ProcesEsDelSegonPla ([string]$p.Name) ([string]$p.CommandLine)
+        if ($t -ne '') { [void]$out.Add(@{ Id = [int]$p.ProcessId; Nom = [string]$p.Name; Tipus = $t }) }
+    }
+    return $out.ToArray()
+}
+
+# Atura'ls. Torna @{ Aturats; Errors }.
+function Stop-ProcessosSegonPla($processos) {
+    $r = @{ Aturats = 0; Errors = 0 }
+    foreach ($p in @($processos)) {
+        try { Stop-Process -Id ([int]$p.Id) -Force -ErrorAction Stop; $r.Aturats++ } catch { $r.Errors++ }
+    }
+    # Els de la llista del menu ja no corren: que el rellotge en pugui tornar a llancar.
+    try { $Script:ProcAuto.Clear() } catch { }
+    return $r
+}
+
+# Posa TOTS els automatismes en M (el mateix que clicar l'interruptor de cada
+# rajola). Torna quants n'ha apagat.
+function Disable-TotsAutomatismes {
+    $n = 0
+    foreach ($k in @($Script:ModesAuto.Keys)) {
+        $m = $Script:ModesAuto[$k]
+        try {
+            if ([bool](& $m.Actiu)) { [void](& $m.DesaActiu $false); $n++ }
+        } catch { }
+    }
+    return $n
+}
