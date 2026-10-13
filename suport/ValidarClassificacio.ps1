@@ -97,6 +97,9 @@ $vcTmp = Join-Path ([System.IO.Path]::GetTempPath()) ('validar-classificacio-' +
 $vcVells = @{ Loc = $LocalActivitatsDir; Act = $ActivitatsDir }
 try {
     if ($null -ne $vcExcel) { $ActivitatsDir = Split-Path -Parent $vcExcel.File.FullName }
+    # El text dels .doc ja llegits, el de debo (no el de la carpeta temporal):
+    # si no, cada validacio tornaria a obrir tots els .doc amb el Word.
+    $Script:DocTextCacheDir = $vcVells.Loc
     $LocalActivitatsDir = $vcTmp
     $vcRes = Invoke-InformesDbEscaneig {
         param($t, $i, $n)
@@ -110,6 +113,7 @@ try {
     $vcDb = Read-JsonFile (Get-InformesDbPath)
 } finally {
     $LocalActivitatsDir = $vcVells.Loc; $ActivitatsDir = $vcVells.Act
+    $Script:DocTextCacheDir = ''
     Remove-Item -LiteralPath $vcTmp -Recurse -Force -ErrorAction SilentlyContinue
 }
 

@@ -1066,6 +1066,54 @@ try {
     Remove-Item -LiteralPath $pn -Recurse -Force -ErrorAction SilentlyContinue
 }
 
+Write-Host "`n--- InformesEscaneig.ps1: els .doc, sense el Word en automatic i llegits un sol cop ---"
+# PER QUE (octubre 2026): el Word que llegia els .doc de la xarxa en la passada
+# automatica ensenyava finestres d'error de xarxa (~WRS...tmp, "lectura doble")
+# que ningu no clicava, i el proces es quedava amb la base agafada. Ara
+# l'automatic no obre mai el Word, el text d'un .doc es desa el primer cop, i un
+# .doc que no es pot llegir no es classifica en blanc.
+$srcEscD = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'InformesEscaneig.ps1'))
+Assert ($srcEscD.Contains('$doc = $wordApp.Documents.Open($tmp,') -and -not $srcEscD.Contains('Documents.Open($docPath')) '_ReadDocParagraphsWord: el Word obre una COPIA local, mai el .doc de la xarxa'
+$dc = Join-Path ([System.IO.Path]::GetTempPath()) ('doc-text-' + [guid]::NewGuid().ToString('N'))
+$dcI = Join-Path $dc 'Informes'; $vellsDC = @{ Inf = $InformesDir; Loc = $LocalActivitatsDir; Act = $ActivitatsDir; App = $env:LOCALAPPDATA }
+try {
+    foreach ($d in @((Join-Path $dcI 'GIA 811'), (Join-Path $dc 'local'), (Join-Path $dc 'act'), (Join-Path $dc 'app'))) { [void](New-Item -ItemType Directory -Path $d -Force) }
+    $LocalActivitatsDir = Join-Path $dc 'local'; $ActivitatsDir = Join-Path $dc 'act'; $env:LOCALAPPDATA = Join-Path $dc 'app'; $InformesDir = $dcI
+    $docVell = Join-Path (Join-Path $dcI 'GIA 811') '2019-05-10_Vell.doc'
+    [System.IO.File]::WriteAllText($docVell, 'no es un doc de debo')
+    # 1. Automatic, sense res desat: no s'obre cap Word i l'informe queda pendent.
+    $rDA = Invoke-InformesDbEscaneig $null $null '' $false $false
+    $dbDA = Read-JsonFile (Join-Path $LocalActivitatsDir 'informes-db.json')
+    $infDA = @(@($dbDA.activitats)[0].informes)[0]
+    AssertEq "$($rDA.NoLlegits)|$($infDA.no_llegit)" '1|True' 'automatic: el .doc no es llegeix (cap Word) i queda marcat no_llegit'
+    Assert ([string]$infDA.motiu).Contains('.doc sense llegir') 'automatic: ...i surt a revisar dient per que'
+    # 2. El text ja desat d'un altre cop (com si l'hagues llegit el boto): la
+    #    passada seguent, encara automatica, el fa servir sense Word.
+    $mDA = (Get-Item -LiteralPath $docVell).LastWriteTimeUtc.ToString('o')
+    Write-JsonFile (_DocTextCachePath) ([ordered]@{ versio = 1; documents = @{ 'GIA 811\2019-05-10_Vell.doc' = [ordered]@{ modificat = $mDA; linies = @('ID GIA: 811', "Vist l'anterior s'informa que es pot donar per finalitzat el procediment d'esmena.", 'Ho poso al seu coneixement als efectes oportuns,') } } }) 5
+    $rDB = Invoke-InformesDbEscaneig $null $null '' $false $false
+    $infDB = @(@((Read-JsonFile (Join-Path $LocalActivitatsDir 'informes-db.json')).activitats)[0].informes)[0]
+    AssertEq "$($rDB.NoLlegits)|$([bool]$infDB.no_llegit)|$($infDB.conclusio_breu)" '0|False|FI Requeriment' 'el pendent es torna a provar encara que no hagi canviat, i el text desat el classifica sense Word'
+    # 3. Si torna a no poder-se llegir (un canvi de classificador obliga a
+    #    tornar-los a classificar tots), es queda el que ja se'n sabia: mai en blanc.
+    Remove-Item -LiteralPath (_DocTextCachePath) -Force
+    $dbV = Read-JsonFile (Join-Path $LocalActivitatsDir 'informes-db.json'); $dbV.versio_classificador = 'una-altra'; Write-JsonFile (Join-Path $LocalActivitatsDir 'informes-db.json') $dbV 8
+    $rDC = Invoke-InformesDbEscaneig $null $null '' $false $false
+    $infDC = @(@((Read-JsonFile (Join-Path $LocalActivitatsDir 'informes-db.json')).activitats)[0].informes)[0]
+    AssertEq "$($rDC.NoLlegits)|$($infDC.no_llegit)|$($infDC.conclusio_breu)" '1|True|FI Requeriment' 'un .doc que ara no es pot llegir conserva la classificacio d''abans (i queda pendent)'
+    # El cache: _LiniesDeDoc el fa servir nomes si el fitxer no ha canviat.
+    $dcC = @{ Map = @{ 'k' = [ordered]@{ modificat = '2020-01-01T00:00:00.0000000Z'; linies = @('a') } }; Canviat = $false; Path = '' }
+    $fF = [pscustomobject]@{ LastWriteTimeUtc = [datetime]::new(2021, 1, 1, 0, 0, 0, [System.DateTimeKind]::Utc); FullName = 'x.doc' }
+    AssertEq ([bool](_LiniesDeDoc $fF 'k' $dcC @{ App = $null; Intents = 0 } $false).Llegit) $false '_LiniesDeDoc: el fitxer ha canviat i no hi ha Word -> no llegit'
+    $fF.LastWriteTimeUtc = [datetime]::new(2020, 1, 1, 0, 0, 0, [System.DateTimeKind]::Utc)
+    AssertEq (@((_LiniesDeDoc $fF 'k' $dcC $null $false).Linies) -join '|') 'a' '_LiniesDeDoc: no ha canviat -> el text desat'
+} catch {
+    Assert $false ('bloc .doc: ' + $_.Exception.Message + ' @ ' + $_.InvocationInfo.ScriptLineNumber)
+} finally {
+    $InformesDir = $vellsDC.Inf; $LocalActivitatsDir = $vellsDC.Loc; $ActivitatsDir = $vellsDC.Act; $env:LOCALAPPDATA = $vellsDC.App
+    Remove-Item -LiteralPath $dc -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 Write-Host "`n--- InformesEscaneig.ps1: l'ID GIA assignat a ma (gia-assignats_*.json) ---"
 # Peces pures. Rutes i GIA inventats.
 $gaObj = [pscustomobject]@{

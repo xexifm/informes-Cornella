@@ -31,21 +31,107 @@ function _ReadDocxParagraphs($docxPath) {
 
 # Llegeix tots els paragrafs d'un .doc antic (Word 97-2003) via Word COM, en
 # nomes-lectura. Necessita una instancia de Word JA OBERTA ($wordApp, creada
-# mandrosament nomes si cal a Invoke-InformesDbScan); aqui nomes s'obre i es
-# tanca el DOCUMENT (mai l'aplicacio).
+# mandrosament nomes si cal); aqui nomes s'obre i es tanca el DOCUMENT (mai
+# l'aplicacio).
+#
+# S'OBRE UNA COPIA LOCAL, MAI L'ORIGINAL DE LA XARXA (octubre 2026). El Word
+# que llegia els .doc directament de la unitat I: escrivia els seus temporals
+# (~WRS{...}.tmp) a la mateixa carpeta de xarxa i, a la primera interrupcio,
+# ensenyava "Word no puede abrir el archivo ~WRS...", "Word ha realizado una
+# lectura doble..." o "Word perdio datos debido a una conexion de red..." --
+# finestres que NO treu el DisplayAlerts. En la passada automatica, sense
+# ningu davant, el proces s'hi quedava esperant amb la base agafada i el boto
+# deia cada vegada "s'esta actualitzant sola". Copiar el fitxer (una lectura
+# de xarxa, sense Word) i obrir la copia del %TEMP% ho evita. Les
+# contrasenyes de mentida ('x') fan que un .doc protegit doni un error en
+# lloc de demanar-la i esperar.
 function _ReadDocParagraphsWord($wordApp, $docPath) {
-    $doc = $wordApp.Documents.Open($docPath, $false, $true, $false)
+    $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ('informe-' + [guid]::NewGuid().ToString('N') + [System.IO.Path]::GetExtension([string]$docPath))
+    Copy-Item -LiteralPath $docPath -Destination $tmp -Force
     try {
-        $out = New-Object System.Collections.ArrayList
-        foreach ($p in $doc.Paragraphs) {
-            $t = $p.Range.Text
-            if ($null -ne $t) { $t = $t.TrimEnd([char]13, [char]7) }
-            [void]$out.Add($t)
+        $doc = $wordApp.Documents.Open($tmp, $false, $true, $false, 'x', '', $false, 'x', '')
+        try {
+            $out = New-Object System.Collections.ArrayList
+            foreach ($p in $doc.Paragraphs) {
+                $t = $p.Range.Text
+                if ($null -ne $t) { $t = $t.TrimEnd([char]13, [char]7) }
+                [void]$out.Add($t)
+            }
+            return $out.ToArray()
+        } finally {
+            $doc.Close($false)
         }
-        return $out.ToArray()
     } finally {
-        $doc.Close($false)
+        try { Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue } catch { }
     }
+}
+
+# ----------------------------------------------------------------------------
+# EL TEXT DELS .doc, LLEGIT UN SOL COP (localase-dades-activitats# informes-doc-text.json: clau -> { modificat, linies })
+# ----------------------------------------------------------------------------
+# Un .doc nomes es pot llegir amb el Word, i el Word en segon pla es fragil.
+# Quan canvia el classificador ($Script:ClassificadorVersio) es tornen a
+# classificar TOTS els informes, i abans aixo volia dir tornar a obrir tots els
+# .doc antics amb el Word, a la xarxa. Ara el text es desa la primera vegada i
+# es torna a fer servir mentre el fitxer no canvii: el Word nomes fa falta per
+# als .doc NOUS o modificats. Porta el text dels informes: local\, mai es puja.
+# ValidarClassificacio (que fa l'escaneig en una carpeta temporal) hi apunta el
+# de debo amb $Script:DocTextCacheDir.
+$Script:DocTextCacheDir = ''
+function _DocTextCachePath {
+    $d = if (-not [string]::IsNullOrWhiteSpace($Script:DocTextCacheDir)) { $Script:DocTextCacheDir } else { $LocalActivitatsDir }
+    if ([string]::IsNullOrWhiteSpace($d)) { return '' }
+    return [string](Join-Path $d 'informes-doc-text.json')
+}
+
+function _LlegeixDocTextCache {
+    $c = @{ Map = @{}; Canviat = $false; Path = (_DocTextCachePath) }
+    if ($c.Path -eq '' -or -not (Test-Path -LiteralPath $c.Path)) { return $c }
+    $o = Read-JsonFile $c.Path
+    if ($null -ne $o -and $null -ne $o.PSObject.Properties['documents']) { $c.Map = ConvertTo-Mapa $o.documents }
+    return $c
+}
+
+function _DesaDocTextCache($c) {
+    if (-not [bool]$c.Canviat -or [string]$c.Path -eq '') { return }
+    Write-JsonFile $c.Path ([ordered]@{ versio = 1; documents = $c.Map }) 5
+}
+
+function _WordViu($app) {
+    if ($null -eq $app) { return $false }
+    try { [void]$app.Documents.Count; return $true } catch { return $false }
+}
+
+# Les linies d'un .doc: les desades si el fitxer no ha canviat; si no, el Word
+# (nomes si $ambWord: la passada automatica no el fa servir mai). $word:
+# @{ App; Intents } compartit per la passada (si el Word mor, es torna a obrir,
+# com a molt 3 vegades). Torna @{ Llegit; Linies }.
+function _LiniesDeDoc($file, [string]$clau, $docCache, $word, [bool]$ambWord) {
+    $mod = $file.LastWriteTimeUtc.ToString('o')
+    if ($docCache.Map.ContainsKey($clau)) {
+        $e = $docCache.Map[$clau]
+        # Del JSON arriba un objecte; el que s'hi ha posat en aquesta passada, un diccionari.
+        $em = if ($e -is [System.Collections.IDictionary]) { $e['modificat'] } else { _PropInf $e 'modificat' }
+        $el = if ($e -is [System.Collections.IDictionary]) { $e['linies'] } else { _PropInf $e 'linies' }
+        if ((Read-JsonIso $em) -eq $mod) { return @{ Llegit = $true; Linies = @(@($el) | ForEach-Object { [string]$_ }) } }
+    }
+    $no = @{ Llegit = $false; Linies = @() }
+    if (-not $ambWord -or $null -eq $word) { return $no }
+    if ($null -eq $word.App) {
+        if ([int]$word.Intents -ge 3) { return $no }
+        $word.Intents = [int]$word.Intents + 1
+        $word.App = New-WordApp -Opcional
+        if ($null -eq $word.App) { $word.Intents = 3; return $no }
+    }
+    $l = $null
+    try { $l = @(_ReadDocParagraphsWord $word.App $file.FullName) }
+    catch {
+        if (-not (_WordViu $word.App)) { try { $word.App.Quit() } catch { }; $word.App = $null }
+        return $no
+    }
+    $docCache.Map[$clau] = [ordered]@{ modificat = $mod; linies = $l }
+    $docCache.Canviat = $true
+    return @{ Llegit = $true; Linies = $l }
 }
 
 # Tria com llegir els paragrafs d'un informe segons l'extensio: .docx (sense
@@ -158,10 +244,12 @@ function _GiaAssignatsNoTrobats($assignats, $claus) {
 # _ClassificaInforme (InformesClassificacio.ps1), el mateix que fa servir
 # ValidarClassificacio.ps1. $assignat: l'entrada del fitxer d'assignacions
 # d'aquest informe (@{ Gia; Forcar }) o $null; vegeu l'ORDRE a dalt.
-function Get-InformeData($file, $expToGia, $cache, $wordApp = $null, $assignat = $null) {
+# $linies: les linies ja llegides (els .doc, de _LiniesDeDoc); $null = llegir-les.
+function Get-InformeData($file, $expToGia, $cache, $wordApp = $null, $assignat = $null, $linies = $null) {
     $data = _ParseDataInformeFromName $file.Name
     $lines = @()
-    try { $lines = @(_ReadInformeParagraphs $file $wordApp) } catch { $lines = @() }
+    if ($null -ne $linies) { $lines = @($linies) }
+    else { try { $lines = @(_ReadInformeParagraphs $file $wordApp) } catch { $lines = @() } }
 
     $gia = _ExtractIdGia $lines
     $giaCarpeta = _GiaFromFolderName $file.FullName
@@ -216,6 +304,7 @@ function Get-InformeData($file, $expToGia, $cache, $wordApp = $null, $assignat =
         EditatAMa         = $false
         AutoConclusioBreu = ''
         AutoIgnorat       = $false
+        NoLlegit          = $false
     }
 }
 
@@ -274,6 +363,7 @@ function _FlattenInformesDb($db) {
                 TeMarcaEdicio     = $teMarca
                 AutoConclusioBreu = [string](_PropInf $inf 'auto_conclusio_breu')
                 AutoIgnorat       = [bool](_PropInf $inf 'auto_ignorat')
+                NoLlegit          = [bool](_PropInf $inf 'no_llegit')
             }
         }
     }
@@ -327,6 +417,9 @@ function _InformeAJson($r) {
     }
     # D'on surt l'ID GIA ('document', 'assignat', 'carpeta', 'excel', 'germans'),
     # nomes si se sap: les bases d'abans no ho portaven.
+    # Un .doc que aquesta passada no ha pogut llegir (sense Word, o en
+    # automatic): la proxima el torna a provar encara que no hagi canviat.
+    if ([bool](_PropInf $r 'NoLlegit')) { Add-Member -InputObject $o -NotePropertyName no_llegit -NotePropertyValue $true }
     $giaFont = [string](_PropInf $r 'GiaFont')
     if ($giaFont -ne '') { Add-Member -InputObject $o -NotePropertyName gia_font -NotePropertyValue $giaFont }
     if ([bool]$r.EditatAMa) {
@@ -453,9 +546,11 @@ function _InformesDirAccessible([string]$dir) {
 # $ambContactes: al final, el repas de contactes (ContactesDb.ps1). El treu
 # ValidarClassificacio, que nomes mira els informes i ho fa en una carpeta
 # temporal (sense la cache, ho tornaria a llegir tot).
-# $contactesAmbWord = $false: la passada automatica (cap PDF del repas de
-# contactes va al Word: vegeu Invoke-ContactesEscaneig -SenseWord).
-function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock]$onConfirma = $null, [string]$giaAssignatsPath = '', [bool]$ambContactes = $true, [bool]$contactesAmbWord = $true) {
+# $ambWord = $false: la passada AUTOMATICA, sense ningu davant. No s'obre MAI
+# el Word: ni per als .doc (vegeu _LiniesDeDoc) ni per als PDF del repas de
+# contactes (Invoke-ContactesEscaneig -SenseWord). Una finestra del Word en un
+# proces sense interficie el deixa esperant per sempre amb la base agafada.
+function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock]$onConfirma = $null, [string]$giaAssignatsPath = '', [bool]$ambContactes = $true, [bool]$ambWord = $true) {
     # La carpeta d'informes. Si la unitat (la I: de la feina) no hi es, no es un
     # error del programa: potser s'esta fora de la feina.
     $dir = $InformesDir
@@ -549,33 +644,50 @@ function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock
     # 5. Analitzar cada informe (incremental: reutilitzem els no modificats).
     #    Word només es crea (mandrosament) si cal reprocessar algun .doc
     #    antic; es tanca sempre al 'finally', encara que hi hagi un error.
+    #    Els .doc antics: el text desat (_LiniesDeDoc) i, si no n'hi ha, el
+    #    Word (nomes amb $ambWord; obert mandrosament i tancat al 'finally').
+    #    Un .doc que ara no es pot llegir NO es classifica en blanc: es queda
+    #    el que ja se'n sabia i 'no_llegit' fa que la proxima passada el torni
+    #    a provar. Abans es desava sense conclusio i, com que el fitxer no
+    #    canviava, l'escaneig seguent el donava per bo i ja no el tornava a
+    #    llegir mai.
     $informes = New-Object System.Collections.ArrayList
     $reprocessats = 0
+    $noLlegits = 0
     $i = 0
-    $wordApp = $null
+    $word = @{ App = $null; Intents = 0 }
+    $docCache = _LlegeixDocTextCache
     try {
         foreach ($f in $files) {
             $i++
             $clau = _ClauInforme $f.FullName $dir
             $teEntrada = $prevByRuta.ContainsKey($clau)
-            if (-not (_HaDeReprocessar $f.LastWriteTimeUtc $prevUtc $teEntrada)) {
+            $pendent = $teEntrada -and [bool]$prevByRuta[$clau].NoLlegit
+            if (-not $pendent -and -not (_HaDeReprocessar $f.LastWriteTimeUtc $prevUtc $teEntrada)) {
                 # No s'ha tocat des de l'ultim escaneig: reutilitzem l'entrada
                 # (amb la ruta d'ara: la base pot ser d'una altra unitat).
                 $r = $prevByRuta[$clau]
                 $r.Ruta = $f.FullName
             } else {
-                if ($f.Extension -ieq '.doc' -and $null -eq $wordApp) {
-                    # -Opcional: sense Word, _ReadInformeParagraphs torna @()
-                    # i l'informe es queda sense conclusio, pero l'escaneig
-                    # continua. New-WordApp hi afegeix l'AutomationSecurity,
-                    # que aqui compta: aquests .doc son a la unitat de xarxa.
-                    $wordApp = New-WordApp -Opcional
+                $linies = $null
+                $noLlegit = $false
+                if ($f.Extension -ieq '.doc') {
+                    $ld = _LiniesDeDoc $f $clau $docCache $word $ambWord
+                    if ($ld.Llegit) { $linies = @($ld.Linies) } else { $noLlegit = $true; $linies = @() }
                 }
-                $r = Get-InformeData $f $expToGia $cache $wordApp $assignats.Mapa[$clau]
-                # El que l'usuari hagi corregit a ma ("Editar base") PREVAL;
-                # la resta, la mana el que acaba de sortir de l'informe
-                # (vegeu _AplicaEdicioPrevia).
-                if ($teEntrada) { $r = _AplicaEdicioPrevia $prevByRuta[$clau] $r }
+                if ($noLlegit -and $teEntrada) {
+                    $r = $prevByRuta[$clau]
+                    $r.Ruta = $f.FullName
+                    $r.NoLlegit = $true
+                } else {
+                    $r = Get-InformeData $f $expToGia $cache $null $assignats.Mapa[$clau] $linies
+                    # El que l'usuari hagi corregit a ma ("Editar base") PREVAL;
+                    # la resta, la mana el que acaba de sortir de l'informe
+                    # (vegeu _AplicaEdicioPrevia).
+                    if ($teEntrada) { $r = _AplicaEdicioPrevia $prevByRuta[$clau] $r }
+                    if ($noLlegit) { $r.NoLlegit = $true; $r.Motius = @(@($r.Motius) + @('.doc sense llegir (cal el Word: es llegira amb el boto)')) }
+                }
+                if ($noLlegit) { $noLlegits++ }
                 $reprocessats++
             }
             if (($i % 5) -eq 0 -or $i -eq $total) {
@@ -584,7 +696,8 @@ function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock
             [void]$informes.Add($r)
         }
     } finally {
-        if ($null -ne $wordApp) { try { $wordApp.Quit() } catch { } }
+        if ($null -ne $word.App) { try { $word.App.Quit() } catch { } }
+        try { _DesaDocTextCache $docCache } catch { }
     }
 
     # 6. Els que no tenen GIA, el dels germans de carpeta; agrupar per
@@ -627,12 +740,12 @@ function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock
     #    al resum i prou.
     $contactes = $null
     if ($ambContactes) {
-        try { $contactes = Invoke-ContactesEscaneig $dir $informes $cache $expToGia $avisa -SenseWord:(-not $contactesAmbWord) }
+        try { $contactes = Invoke-ContactesEscaneig $dir $informes $cache $expToGia $avisa -SenseWord:(-not $ambWord) }
         catch { $contactes = @{ Ok = $false; Error = [string]$_.Exception.Message; Text = ('Contactes: no s''ha pogut fer el rep' + [char]0x00E0 + 's (' + [string]$_.Exception.Message + ')') } }
     }
 
     return @{ Ok = $true; Error = ''; NInformes = $informes.Count; Reprocessats = $reprocessats
-              Contactes = $contactes
+              Contactes = $contactes; NoLlegits = $noLlegits
               NActivitats = $activitatsOrd.Count; NRevisar = $revisar.Count; OutPath = $outPath
               GiaAssignatsFitxer = [string]$assignats.Fitxer; GiaAssignatsError = [string]$assignats.Error
               GiaAssignatsNoTrobats = $noTrobats }
@@ -726,6 +839,7 @@ function Invoke-InformesDbScan {
            "Nous o modificats (reprocessats): $($res.Reprocessats)`n" +
            "Activitats: $($res.NActivitats)`n" +
            "A revisar: $($res.NRevisar)`n" +
+           $(if ([int]$res.NoLlegits -gt 0) { "Informes .doc que no s'han pogut llegir (sense Word): $($res.NoLlegits) (s'hi ha deixat el que ja se'n sabia)`n" } else { '' }) +
            $(if ([string]$res.GiaAssignatsError) { "`nATENCI" + [char]0x00D3 + ": " + [string]$res.GiaAssignatsError + "`n" } else { '' }) +
            $(if (@($res.GiaAssignatsNoTrobats).Count -gt 0) { "`nAssignacions de GIA que ja no troben l'informe: " + @($res.GiaAssignatsNoTrobats).Count + " (les llista ValidarClassificacio)`n" } else { '' }) +
            $(if ($null -ne $res.Contactes) { "`n" + [string]$res.Contactes.Text + "`n(per revisar-los: Editar base -> Contactes)`n" } else { '' }) +
@@ -804,7 +918,7 @@ function Invoke-InformesDbAuto {
         return $res
     }
     [void](_BaseAutoDesaEstat @{ auto_el = $ini['auto_el']; mode = 'auto' })
-    _BaseAutoLog ("Passada automatica: informes=$($res.NInformes) reprocessats=$($res.Reprocessats) " +
+    _BaseAutoLog ("Passada automatica: informes=$($res.NInformes) reprocessats=$($res.Reprocessats) doc_pendents_del_Word=$($res.NoLlegits) " +
                   "activitats=$($res.NActivitats) a_revisar=$($res.NRevisar)" +
                   $(if ([string]$res.GiaAssignatsError) { ' AVIS: ' + [string]$res.GiaAssignatsError } else { '' }) +
                   $(if (@($res.GiaAssignatsNoTrobats).Count -gt 0) { ' assignacions_GIA_no_trobades=' + @($res.GiaAssignatsNoTrobats).Count } else { '' }))

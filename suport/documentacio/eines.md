@@ -532,6 +532,35 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
   conclusions continuen anant a l'**informe**. Guard a `06-guards.ps1`.
 
 ## Base d'informes (informes-db.json)
+
+### Els `.doc` antics i el Word en segon pla (octubre 2026)
+
+**Què passava:** després de pujar la versió del classificador (que obliga a
+tornar a classificar tots els informes), la passada **automàtica** obria amb
+el Word, un per un, tots els `.doc` antics **directament de la unitat de
+xarxa**. El Word hi escriu els seus temporals (`~WRS{…}.tmp`) i, a la primera
+interrupció de xarxa, ensenyava «Word no puede abrir el archivo ~WRS…», «Word
+ha realizado una lectura doble…» o «Word perdió datos debido a una conexión de
+red…»: finestres que **no treu el `DisplayAlerts`**. Sense ningú davant, el
+procés s'hi quedava esperant amb el mutex de la base agafat, i el botó deia
+cada vegada «s'està actualitzant sola ara mateix».
+
+**Com està ara:**
+- `_ReadDocParagraphsWord` **copia el `.doc` al `%TEMP%`** i obre la còpia
+  (amb contrasenyes de mentida perquè un document protegit doni error en lloc
+  de preguntar). Mai l'original de la xarxa.
+- El text de cada `.doc` es desa la primera vegada a
+  `local\base-dades-activitats\informes-doc-text.json` (`_LiniesDeDoc`) i es
+  torna a fer servir mentre el fitxer no canviï: un canvi de classificador ja
+  no necessita el Word.
+- **La passada automàtica no obre mai el Word** (`Invoke-InformesDbEscaneig
+  … $ambWord = $false`, també per als PDF del repàs de contactes). Un `.doc`
+  que no es pot llegir **no es classifica en blanc**: es queda el que ja se'n
+  sabia, amb `no_llegit`, i el torna a provar la passada següent (el botó, que
+  sí que fa servir el Word) encara que el fitxer no hagi canviat. Abans es
+  desava sense conclusió i, com que no canviava, ja no es tornava a llegir mai.
+- `ValidarClassificacio` fa servir el text desat de debò
+  (`$Script:DocTextCacheDir`), no el de la seva carpeta temporal.
 - El motor de la base d'informes és `suport/Informes.ps1`: escaneja `$InformesDir`
   (per defecte `...\5.- Sergi Fadurdo\Informes`) i, per cada informe (`.docx` o
   `.doc` antic amb data al principi del nom), en treu **data + ID GIA +
