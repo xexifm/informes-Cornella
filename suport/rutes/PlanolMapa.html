@@ -75,9 +75,28 @@
     #side { display: none; position: fixed; left: 0; right: 0; bottom: 0; width: auto; max-height: 60vh; z-index: 1000;
             background: #fff; border-top: 2px solid #14365c; box-shadow: 0 -4px 12px rgba(0,0,0,.25); }
     #side.obert { display: block; }
+    /* Amb una fitxa oberta, els botons del mapa (zoom, capes) s'amaguen: la
+       fitxa ocupa gairebe tota l'amplada i hi quedaven a sobre (tapaven el
+       color i l'ID). En tancar-la, tornen. */
+    .amb-fitxa .leaflet-control-zoom, .amb-fitxa .leaflet-control-layers { visibility: hidden; }
   }
   .pop .adr { color: #333; font-size: 11px; }
   .pop .adr i { color: #777; font-style: normal; }
+  /* LA FITXA D'UNA ACTIVITAT (octubre 2026, l'usuari: "la fitxa ha de ser millor
+     en tots els aspectes; el quadrat blau pot anar a dalt davant de l'ID"). */
+  .pop .cap { display: flex; align-items: flex-start; gap: 8px; }
+  .pop .cap .sw { flex: 0 0 auto; width: 16px; height: 16px; margin-top: 1px; }
+  .pop .sub { margin: 2px 0 0 24px; font-size: 12px; color: #333; }
+  .pop .sub b { color: #14365c; }
+  .pop .bloc { margin-top: 8px; padding-top: 6px; border-top: 1px solid #eee; font-size: 12px; }
+  .pop .bloc .tit { font-size: 10px; letter-spacing: .04em; text-transform: uppercase; color: #8a96a3; margin-bottom: 2px; }
+  .pop .ct { margin: 3px 0; line-height: 1.35; }
+  .pop .ct .qui { color: #777; font-size: 11px; }
+  .pop .gia .sw { margin-right: 4px; }
+  .pop a.tel { display: inline-block; margin: 3px 6px 0 0; padding: 4px 9px; border-radius: 14px; background: #e8f0fb;
+               color: #14365c; text-decoration: none; font-weight: bold; white-space: nowrap; }
+  .pop a.tel:active { background: #c9dbf5; }
+  .pop .peu { margin-top: 8px; }
 </style>
 </head>
 <body>
@@ -191,6 +210,8 @@ function parells(anell) {
 }
 
 var map = L.map('map', { preferCanvas: true, zoomSnap: 0.25, zoomDelta: 0.5, wheelPxPerZoomLevel: 120, maxZoom: 20 });
+map.on('popupopen', function () { map.getContainer().classList.add('amb-fitxa'); });
+map.on('popupclose', function () { map.getContainer().classList.remove('amb-fitxa'); });
 // El fons: MapaFons.js (comu als mapes de rutes/). OpenStreetMap ja no serveix
 // les rajoles a una pagina oberta des del disc.
 var FONS = afegeixFonsMapa(map);
@@ -511,12 +532,9 @@ function uniq(llista) {
   return out;
 }
 
-// Una fila de la fitxa: UNA activitat i tots els seus establiments (ens).
-// La primera linia: a la fitxa de la PARCEL.LA (diverses activitats), el
-// TITULAR i, a sota en gris, l'activitat; a la fitxa d'UNA activitat el titular
-// ja surt a dalt en gran, i aqui nomes hi va l'activitat (l'usuari, octubre
-// 2026). Si no hi ha titular, l'activitat.
-function filaActivitat(ens, visible, senseTitular) {
+// LES PECES DE LES FITXES (la de la parcel.la i la d'una activitat les
+// comparteixen: el que diu cada una no pot divergir).
+function avisosActivitat(ens) {
   var en = ens[0];
   var avisos = [];
   var algun = function (f) { for (var i = 0; i < ens.length; i++) { if (f(ens[i])) { return true; } } return false; };
@@ -528,28 +546,83 @@ function filaActivitat(ens, visible, senseTitular) {
   if (algun(function (e) { return e.x === 2; })) { avisos.push('la coordenada és a l\'altre establiment'); }
   var bd = uniq(ens.map(function (e) { return e.bd; }));
   if (bd.length) { avisos.push('el GIA té aquest mateix local també com a BUIT (establiment ' + bd.join(', ') + ')'); }
+  return avisos;
+}
+function estatActivitat(en) {
   var estat = en.et ? en.et : (en.ni > 0 ? '' : 'sense informes');
   if (en.pr) { estat = 'PRECINTADA' + (en.et ? ' (darrer informe: ' + en.et + ')' : ''); }
+  return estat;
+}
+function establimentsHtml(ens) {
+  var en = ens[0];
   var sub = function (e) { return escHtml(e.s || '(sense local/planta/porta)') + (e.sf === 'cadastre' ? ' <span class="cad">(Cadastre)</span>' : ''); };
-  var est = '';
-  if (ens.length === 1) {
-    est = en.s ? '<br>' + sub(en) : '';
-  } else {
-    est = '<br><b>' + ens.length + ' establiments:</b>';
-    for (var k = 0; k < ens.length; k++) { est += '<br>&bull; ' + sub(ens[k]); }
-  }
+  if (ens.length === 1) { return en.s ? sub(en) : ''; }
+  var est = '<b>' + ens.length + ' establiments:</b>';
+  for (var k = 0; k < ens.length; k++) { est += '<br>&bull; ' + sub(ens[k]); }
+  return est;
+}
+function adrecesHtml(ens) {
+  var en = ens[0];
   var ads = uniq(ens.map(function (e) { return e.ad; })), cas = uniq(ens.map(function (e) { return e.ca; }));
+  // Les DUES adreces, cada una amb el seu nom: no han de coincidir.
+  return '<span class="adr"><i>Adreça (base d\'activitats):</i> ' + escHtml(ads.join(' · ') || '—') + '</span>' +
+    (cas.length ? '<br><span class="adr"><i>Adreça (Cadastre):</i> ' + escHtml(cas.join(' · ')) + '</span>' : '') +
+    (en.cl || en.at ? '<br><span class="cad">' + escHtml([en.cl ? 'Classificació: ' + en.cl : '', en.at ? 'allotjament turístic' : ''].filter(Boolean).join(' · ')) + '</span>' : '');
+}
+
+// EL CONTACTE (octubre 2026, l'usuari: "el nom de la raó social, el del
+// representant legal, el mòbil de cadascun, i des del mòbil l'opció de
+// trucar"). Els telefons venen com 'a; b' de l'Excel (PlanolDades.ps1). Cada
+// un es un enllac tel: (al mobil, truca; al PC, l'aplicacio que hi hagi).
+function telHref(t) {
+  var d = String(t || '').replace(/[^\d+]/g, '');
+  if (d.indexOf('00') === 0) { d = '+' + d.substring(2); }
+  if (/^\d{9}$/.test(d)) { d = '+34' + d; }
+  return d;
+}
+function telText(t) {
+  var d = String(t || '').replace(/\D/g, '');
+  if (d.length === 9) { return d.substring(0, 3) + ' ' + d.substring(3, 6) + ' ' + d.substring(6); }
+  return String(t || '');
+}
+function telefonsHtml(llista, qui) {
+  return String(llista || '').split(/\s*;\s*/).filter(Boolean).map(function (t) {
+    return '<a class="tel" href="tel:' + escHtml(telHref(t)) + '" target="_top" title="Trucar' + (qui ? ' (' + escHtml(qui) + ')' : '') + '">&#128222; ' + escHtml(telText(t)) + '</a>';
+  }).join('');
+}
+function contacteHtml(en) {
+  var h = '';
+  var persona = function (qui, nom, tels) {
+    if (!nom && !tels) { return ''; }
+    return '<div class="ct"><span class="qui">' + qui + '</span><br>' + escHtml(nom || '(sense nom)') +
+           (tels ? '<br>' + telefonsHtml(tels, qui) : '') + '</div>';
+  };
+  h += persona('Raó social', en.n, en.tt);
+  h += persona('Representant legal', en.rn, en.tr);
+  return h || '<div class="cad">Sense dades de contacte a l\'Excel d\'activitats.</div>';
+}
+function botoInforme(en) {
+  return DINS_APP ? '<a href="#" class="informe" onclick="demanaInforme(' + escHtml(JSON.stringify(String(en.g))) + '); return false;">Fer informe</a>' : '';
+}
+
+// Una fila de la fitxa de la PARCEL.LA: UNA activitat i tots els seus
+// establiments (ens). El quadre del color, davant de l'ID; el titular i, a sota
+// en gris, l'activitat; el contacte en una linia; si no hi ha titular,
+// l'activitat.
+function filaActivitat(ens, visible) {
+  var en = ens[0];
+  var avisos = avisosActivitat(ens);
+  var estat = estatActivitat(en);
+  var est = establimentsHtml(ens);
+  var tels = telefonsHtml(en.tt, 'Raó social') + telefonsHtml(en.tr, 'Representant legal');
   return '<tr style="' + (visible ? '' : 'opacity:.45') + '">' +
-    '<td><span class="sw sw-' + escHtml(en.e) + '"></span></td>' +
-    '<td class="gia">' + escHtml(en.g) + '</td>' +
-    '<td>' + (senseTitular ? escHtml(en.ac || '') :
-              escHtml(en.n || en.ac || '') + (en.n && en.ac ? '<br><span class="cad">' + escHtml(en.ac) + '</span>' : '')) + est +
-      // Les DUES adreces, cada una amb el seu nom: no han de coincidir.
-      '<br><span class="adr"><i>Adreça (base d\'activitats):</i> ' + escHtml(ads.join(' · ') || '—') + '</span>' +
-      (cas.length ? '<br><span class="adr"><i>Adreça (Cadastre):</i> ' + escHtml(cas.join(' · ')) + '</span>' : '') +
-      (en.cl || en.at ? '<br><span class="cad">' + escHtml([en.cl ? 'Classificació: ' + en.cl : '', en.at ? 'allotjament turístic' : ''].filter(Boolean).join(' · ')) + '</span>' : '') +
+    '<td class="gia"><span class="sw sw-' + escHtml(en.e) + '"></span>' + escHtml(en.g) + '</td>' +
+    '<td>' + escHtml(en.n || en.ac || '') + (en.n && en.ac ? '<br><span class="cad">' + escHtml(en.ac) + '</span>' : '') +
+      (en.rn ? '<br><span class="cad">Rep.: ' + escHtml(en.rn) + '</span>' : '') +
+      (est ? '<br>' + est : '') + '<br>' + adrecesHtml(ens) +
       (avisos.length ? '<br><span class="avis">&#9888; ' + escHtml(avisos.join(' · ')) + '</span>' : '') +
-      (DINS_APP ? '<br><a href="#" class="informe" onclick="demanaInforme(' + escHtml(JSON.stringify(String(en.g))) + '); return false;">Fer informe</a>' : '') + '</td>' +
+      (tels ? '<br>' + tels : '') +
+      (DINS_APP ? '<br>' + botoInforme(en) : '') + '</td>' +
     '<td>' + escHtml(estat) + (en.ni > 0 ? '<br><span class="cad">' + en.ni + ' informe' + (en.ni > 1 ? 's' : '') + '</span>' : '') + '</td></tr>';
 }
 
@@ -578,14 +651,16 @@ function htmlFitxa(idx) {
     if (pc.e[k].t === 'b' && !pc.e[k].du) { nb++; if (pc.e[k].s) { subsBuits.push(pc.e[k].s); } }
   }
   if (nb > 0) {
-    h += '<tr><td><span class="sw sw-gris"></span></td><td colspan="3">' + nb + ' local' + (nb > 1 ? 's' : '') +
+    h += '<tr><td><span class="sw sw-gris"></span></td><td colspan="2">' + nb + ' local' + (nb > 1 ? 's' : '') +
          ' buit' + (nb > 1 ? 's' : '') + (subsBuits.length ? ': ' + escHtml(subsBuits.join(', ')) : '') + '</td></tr>';
   }
   return h + '</table></div>';
 }
 
 // LA FITXA D'UNA ACTIVITAT (clic al seu ID): nomes ella, amb TOTS els seus
-// establiments, tambe els d'altres parcel.les.
+// establiments, tambe els d'altres parcel.les. A dalt el color i l'ID amb el
+// titular; a sota l'activitat i l'estat; el CONTACTE (amb Trucar); el local i
+// les adreces; els avisos; i les referencies del Cadastre.
 function htmlFitxaActivitat(g) {
   var ens = [], parceles = [];
   for (var i = 0; i < PARCELES.length; i++) {
@@ -595,12 +670,24 @@ function htmlFitxaActivitat(g) {
     }
   }
   if (ens.length === 0) { return ''; }
-  var f = filtres();
-  var h = '<div class="pop"><h3>ID ' + escHtml(g) + (ens[0].n || ens[0].ac ? ' &middot; ' + escHtml(ens[0].n || ens[0].ac) : '') + '</h3>';
-  h += '<div class="rc">' + parceles.map(function (i) {
-    var pc = PARCELES[i];
-    return escHtml(pc.rc || pc.k) + (pc.rc ? ' &middot; ' + enllacCadastre(pc.rc) : '');
-  }).join('<br>') + '</div><table>' + filaActivitat(ens, passaActivitat(ens[0], f), true) + '</table>';
+  var e0 = ens[0];
+  var visible = passaActivitat(e0, filtres());
+  var estat = estatActivitat(e0);
+  var avisos = avisosActivitat(ens);
+  var est = establimentsHtml(ens);
+  var h = '<div class="pop fitxa"' + (visible ? '' : ' style="opacity:.6"') + '>';
+  h += '<div class="cap"><span class="sw sw-' + escHtml(e0.e) + '"></span><h3>ID ' + escHtml(g) +
+       (e0.n || e0.ac ? ' &middot; ' + escHtml(e0.n || e0.ac) : '') + '</h3></div>';
+  h += '<div class="sub">' + (e0.n && e0.ac ? escHtml(e0.ac) + ' &middot; ' : '') + '<b>' + escHtml(estat || '—') + '</b>' +
+       (e0.ni > 0 ? ' &middot; ' + e0.ni + ' informe' + (e0.ni > 1 ? 's' : '') : '') + '</div>';
+  h += '<div class="bloc"><div class="tit">Contacte</div>' + contacteHtml(e0) + '</div>';
+  h += '<div class="bloc"><div class="tit">Local</div>' + (est ? est + '<br>' : '') + adrecesHtml(ens) +
+       (avisos.length ? '<br><span class="avis">&#9888; ' + escHtml(avisos.join(' · ')) + '</span>' : '') +
+       '<div class="rc">' + parceles.map(function (i) {
+         var pc = PARCELES[i];
+         return escHtml(pc.rc || pc.k) + (pc.rc ? ' &middot; ' + enllacCadastre(pc.rc) : '');
+       }).join('<br>') + '</div></div>';
+  if (DINS_APP) { h += '<div class="peu">' + botoInforme(e0) + '</div>'; }
   h += '<div class="acc">' + parceles.map(function (i) {
     return '<a href="#" onclick="setTimeout(function () { obrePopup(' + i + '); }, 0); return false;">Totes les activitats de ' +
            escHtml(PARCELES[i].rc || PARCELES[i].k) + '</a>';

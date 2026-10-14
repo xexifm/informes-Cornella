@@ -153,13 +153,26 @@ try {
   check(fitxa.includes('(Cadastre)'), 'i diu que la planta/porta surt del Cadastre');
   // Fitxa de la PARCEL.LA: a cada fila, el titular i a sota l'activitat.
   check(fitxa.includes('BAR EL RACO SL') && fitxa.includes('BAR'), 'a la fitxa de la parcel·la, cada fila diu el titular i l\'activitat');
-  // Fitxa d'UNA activitat: el titular a dalt en gran; a la fila, l'activitat.
+  // Fitxa d'UNA activitat: el color i l'ID amb el titular a dalt; a sota
+  // l'activitat i l'estat; el CONTACTE amb els telefons per trucar.
   const fActT = await p.evaluate(() => {
     const d = document.createElement('div'); d.innerHTML = htmlFitxaActivitat('1447');
-    return { h3: d.querySelector('h3').textContent, fila: d.querySelector('table td:nth-child(3)').textContent };
+    const cap = d.querySelector('.cap');
+    return { h3: d.querySelector('h3').textContent, sw: !!(cap && cap.firstElementChild.classList.contains('sw')),
+             sub: d.querySelector('.sub').textContent, blocs: [...d.querySelectorAll('.bloc .tit')].map((t) => t.textContent),
+             ct: [...d.querySelectorAll('.ct')].map((c) => c.textContent),
+             tels: [...d.querySelectorAll('a.tel')].map((a) => [a.getAttribute('href'), a.textContent.trim()]) };
   });
-  check(fActT.h3.includes('1447') && fActT.h3.includes('BAR EL RACO SL'), 'fitxa d\'una activitat: a dalt, l\'ID i el TITULAR');
-  check(fActT.fila.startsWith('BAR') && !fActT.fila.includes('EL RACO SL'), 'i a la fila, l\'activitat (no hi repeteix el titular)');
+  check(fActT.h3.includes('1447') && fActT.h3.includes('BAR EL RACO SL') && fActT.sw, 'fitxa d\'una activitat: a dalt, el quadre del color davant de l\'ID i el TITULAR');
+  check(fActT.sub.startsWith('BAR') && fActT.sub.includes('PRECINTADA') && !fActT.sub.includes('EL RACO SL'), 'a sota, l\'activitat i l\'estat (sense repetir el titular)');
+  eq(fActT.blocs, ['Contacte', 'Local'], 'i dos blocs: el contacte i el local');
+  check(fActT.ct.length === 2 && fActT.ct[0].includes('Raó social') && fActT.ct[0].includes('BAR EL RACO SL') && fActT.ct[1].includes('Representant legal') && fActT.ct[1].includes('PERE PROVA PROVA'), 'el contacte: la raó social i el representant legal, amb el nom');
+  eq(fActT.tels, [['tel:+34600111222', '📞 600 111 222'], ['tel:+34611222333', '📞 611 222 333'], ['tel:+34934445566', '📞 934 445 566']], 'cada telèfon és un botó per trucar (tel:, amb el +34)');
+  eq(await p.evaluate(() => [...document.querySelectorAll('.leaflet-popup-content a.tel')].map((a) => a.title)), ['Trucar (Raó social)', 'Trucar (Representant legal)', 'Trucar (Representant legal)'],
+     'a la fitxa de la parcel·la, cada telèfon diu de qui és');
+  check(await p.evaluate(() => map.getContainer().classList.contains('amb-fitxa')), 'amb una fitxa oberta, el mapa ho sap (al mòbil hi amaga el zoom i les capes, que la tapaven)');
+  const fSense = await p.evaluate(() => { const d = document.createElement('div'); d.innerHTML = htmlFitxaActivitat('9'); return d.querySelector('.bloc').textContent; });
+  check(fSense.includes('ACME INVERSIONS SL') && !fSense.includes('Representant'), 'sense representant ni telèfon, només la raó social');
   check(fitxa.includes('Requeriment') && fitxa.includes('2 informes'), 'la de requeriment, amb el nombre d\'informes');
   check(fitxa.includes('1 local buit'), 'i el local buit (el duplicat del GIA no hi compta)');
   eq(await p.evaluate(() => [...document.querySelectorAll('.leaflet-popup-content td.gia')].map((t) => t.textContent)), ['1447', '1403'],
@@ -176,6 +189,7 @@ try {
 
   seccio('Clic a un ID: la fitxa d\'aquella activitat');
   await p.evaluate(() => map.closePopup());
+  check(await p.evaluate(() => !map.getContainer().classList.contains('amb-fitxa')), 'i en tancar-la, els botons del mapa tornen');
   await p.evaluate((i) => map.setView(PARCELES[i].c, 18.5, { animate: false }), iCadis);
   eq(await p.evaluate((i) => capes[i].etiqs.filter((x) => !x.def.v)[0].tt.options.direction, iCadis), 'center',
      'l\'etiqueta, centrada al seu punt (on acaba la línia de punts)');

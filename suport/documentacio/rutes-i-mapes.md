@@ -146,6 +146,25 @@ Com es decideix (`Get-CasesActivitats` + `Get-EtiquetesGrup`, a `PlanolDades.ps1
   A menys de 760 px el lateral és un panell de baix que s'obre amb «Filtres», i
   dins de l'app cada activitat porta «Fer informe» (`DINS_APP`, `postMessage`).
   Detalls a `DESPLEGAMENT-MOBIL.md`.
+- **La fitxa d'una activitat, refeta** (octubre 2026, l'usuari: *«vull que surti
+  la informació de contacte: nom raó social, nom representant legal, mòbil raó
+  social, mòbil representant legal. I des del mòbil vull que em doni l'opció de
+  trucar. En general la fitxa ha de ser millor»*). A dalt, el **quadre del color
+  davant de l'ID** i el titular; a sota l'activitat i l'estat; un bloc
+  **Contacte** (raó social i representant, cada un amb els seus telèfons com a
+  botons `tel:` amb el +34); un bloc **Local** (establiments, adreces,
+  classificació, avisos i referència cadastral); i «Fer informe». A la fitxa de
+  la parcel·la, el color va davant de l'ID de cada fila i els telèfons hi diuen
+  de qui són. Al mòbil, amb una fitxa oberta, s'amaguen el zoom i les capes
+  (`amb-fitxa`), que la tapaven.
+  - **Les columnes de contacte són les del repàs de contactes**:
+    `Get-ColumnesContacte` (`Excel.ps1`, que carreguen els dos processos);
+    `_FindColIndex` d'`Activitats.ps1` ara hi delega (`_ColumnaAmbTermes`), o
+    sigui que el criteri és un de sol. Sense mòbil, el fix
+    (`_PlanolTelefons`; una cel·la amb dos números es parteix). Al JSON del mapa,
+    `rn`, `tt`, `tr`, només quan n'hi ha.
+  - Els telèfons van al `planol.html` (local i Drive **privat**), com els noms
+    dels titulars: **mai** al plànol públic de precintades.
 - **«On sóc» al mòbil** (octubre 2026, l'usuari: *«l'opció de geolocalitzar el
   dispositiu i veure on estic del plànol»*). El botó 📍 és de `docs/planol.html`,
   **no** de `PlanolMapa.html`: la posició la demana la pàgina del mòbil i la

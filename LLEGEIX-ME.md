@@ -1107,7 +1107,9 @@ En obrir la web del mòbil hi ha dues opcions:
    el generes al PC, se'n puja una còpia al teu Drive privat (carpeta `Dades`,
    `planol.html`), i el mòbil la llegeix amb el teu compte de Google: **genera'l
    al PC de tant en tant** perquè el del mòbil estigui al dia. A la pantalla del
-   telèfon, els filtres s'obren amb el botó **Filtres**, i el botó **📍** (a baix
+   telèfon, els filtres s'obren amb el botó **Filtres**. La fitxa de cada
+   activitat porta el **contacte** (raó social i representant legal, amb els
+   seus telèfons: toca'n un per **trucar**). El botó **📍** (a baix
    a la dreta) t'ensenya **on ets** al plànol: el primer cop el mòbil et demana
    permís d'ubicació; un altre toc l'apaga. A la fitxa de cada
    activitat hi ha **Fer informe**: obre el formulari amb l'ID GIA ja cercat al

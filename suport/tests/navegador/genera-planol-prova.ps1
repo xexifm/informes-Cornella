@@ -14,9 +14,9 @@ function _E($id, $rc, $act, $x, $y, $buit, $local, $adr, $carrer = '', $num = ''
     return [pscustomobject]@{ IdEst = $id; Rc = $rc; IdActivitat = $act; Local = $local; Bloc = ''; Escala = ''; Pis = ''; Porta = ''
                               Buit = $buit; UtmX = $x; UtmY = $y; Adreca = $adr; Carrer = $carrer; Numero = $num }
 }
-function _A($id, $tit, $act, $rc, $prec, $x, $y, $adr, $cl = '', $tur = $false) {
+function _A($id, $tit, $act, $rc, $prec, $x, $y, $adr, $cl = '', $tur = $false, $rep = '', $telT = '', $telR = '') {
     return [pscustomobject]@{ Id = $id; Titular = $tit; Activitat = $act; Rc = $rc; Precinte = $prec; Adreca = $adr; UtmX = $x; UtmY = $y
-                              Carrer = ''; Numero = ''; Classificacio = $cl; Turistic = $tur }
+                              Carrer = ''; Numero = ''; Classificacio = $cl; Turistic = $tur; RepNom = $rep; TelTit = $telT; TelRep = $telR }
 }
 $ests = @(
     (_E '1' '2295827DF2729E0011RQ' '1447' 421975.0 4579505.0 $false '' 'C CADIS 19' 'Cadis' '19')
@@ -37,7 +37,8 @@ $ests = @(
 $acts = @{
     # L'ID va a la coordenada UTM de l'Excel d'activitats: el 1447 a prop de la
     # facana de baix (dins), el 1403 fora de la parcel.la (en vermell al centre).
-    '1447' = (_A '1447' 'BAR EL RACO SL' 'BAR' '2295827DF2729E0011RQ' $true 421960.0 4579485.0 'C CADIS 19' 'III')
+    # Contacte FICTICI (cap dada real a la suite): el representant i dos mobils.
+    '1447' = (_A '1447' 'BAR EL RACO SL' 'BAR' '2295827DF2729E0011RQ' $true 421960.0 4579485.0 'C CADIS 19' 'III' $false 'PERE PROVA PROVA' '600111222' '611222333; 934445566')
     '1403' = (_A '1403' '' 'TALLER' '2295827DF2729E0008RQ' $false 422100.0 4579600.0 'C CADIS 19' 'II')
     '9'    = (_A '9' 'ACME INVERSIONS SL' 'OFICINES' '4091106DF2749A0006XJ' $false 423912.16 4578928.25 'CTRA HOSPITALET 147' 'L18 Cert')
     '20'   = (_A '20' '' 'MAGATZEM' '3085213DF2738E0001AB' $false 422800.0 4579200.0 'PG FERROCARRILS 177')

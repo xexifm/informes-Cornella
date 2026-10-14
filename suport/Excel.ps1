@@ -327,3 +327,54 @@ function _ExcelBaseNomText([string]$tipus = 'ACTIVITATS') {
     $t = [string]$Script:ExcelBaseNoms[$tipus.ToUpperInvariant()]
     return ("'Exportacio" + $t + "_AAAAMMDD.xls' (o l'antic 'AAAA-MM-DD " + $tipus.ToUpperInvariant() + ".xls')")
 }
+
+# ----------------------------------------------------------------------------
+# LES COLUMNES PER TERMES I LES DE CONTACTE (octubre 2026)
+# ----------------------------------------------------------------------------
+# La columna (1-based) de la capcalera que conte TOTS els termes de $amb i CAP
+# dels de $sense (normalitzat: minuscules, sense accents). 0 si no n'hi ha. Abans
+# vivia nomes a Activitats.ps1 (_FindColIndex, que ara hi delega) i el proces de
+# rutes no la podia fer servir; el Planol activitats necessita les mateixes
+# columnes de contacte (l'usuari: "a la fitxa vull el nom de la rao social, el
+# del representant legal i els mobils, i des del mobil poder trucar"). PURA.
+function _ColumnaAmbTermes($headers, [string[]]$amb, [string[]]$sense) {
+    $arr = @($headers)
+    for ($i = 0; $i -lt $arr.Count; $i++) {
+        $h = _NormalitzaText ([string]$arr[$i])
+        if ([string]::IsNullOrWhiteSpace($h)) { continue }
+        $ok = $true
+        foreach ($m in @($amb)) { if (-not $h.Contains((_NormalitzaText $m))) { $ok = $false; break } }
+        if ($ok -and $null -ne $sense) { foreach ($m in @($sense)) { if ($h.Contains((_NormalitzaText $m))) { $ok = $false; break } } }
+        if ($ok) { return $i + 1 }
+    }
+    return 0
+}
+
+# LES COLUMNES DE CONTACTE de la fulla Estes, en UN sol lloc: les fa servir el
+# repas de contactes i el correu (Activitats.ps1) i la fitxa del Planol
+# activitats (rutes/PlanolDades.ps1). Torna @{ NIF; TELEFON; MOBIL; EMAIL;
+# REP_NOM; REP_NIF; REP_TELEFON; REP_MOBIL; REP_EMAIL } (0 = no hi es). El mobil
+# i el correu de la rao social tenen el seu index historic (23 i 25) de
+# respatller. PURA.
+function Get-ColumnesContacte($headers) {
+    $mail = _ColumnaAmbTermes $headers @('rao soc', 'mail') $null
+    if ($mail -eq 0) { $mail = 25 }
+    $mob = _ColumnaAmbTermes $headers @('rao soc', 'mobil') $null
+    if ($mob -eq 0) { $mob = 23 }
+    $c = @{
+        NIF         = (_ColumnaAmbTermes $headers @('rao soc', 'nif') $null)
+        TELEFON     = (_ColumnaAmbTermes $headers @('rao soc', 'telefon') @('mobil'))
+        MOBIL       = $mob
+        EMAIL       = $mail
+        REP_NOM     = (_ColumnaAmbTermes $headers @('representant legal') @('nif', 'mobil', 'telefon', 'mail'))
+        REP_NIF     = (_ColumnaAmbTermes $headers @('rep', 'leg', 'nif') $null)
+        REP_TELEFON = (_ColumnaAmbTermes $headers @('rep', 'leg', 'telefon') @('mobil'))
+        REP_MOBIL   = (_ColumnaAmbTermes $headers @('rep', 'leg', 'mobil') $null)
+        REP_EMAIL   = (_ColumnaAmbTermes $headers @('rep', 'leg', 'mail') $null)
+    }
+    # Si el GIA les anomena sense "Rao soc.", la primera que no sigui del
+    # representant ni de l'emplacament.
+    if ($c.NIF -eq 0)     { $c.NIF = _ColumnaAmbTermes $headers @('nif') @('rep', 'emp') }
+    if ($c.TELEFON -eq 0) { $c.TELEFON = _ColumnaAmbTermes $headers @('telefon') @('rep', 'mobil', 'emp', 'establ') }
+    return $c
+}

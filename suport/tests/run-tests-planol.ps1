@@ -139,6 +139,28 @@ AssertEq $acts['1447'].Precinte $true 'precintada pel camp lliure'
 AssertEq $acts['1403'].Precinte $false 'la resta, no'
 AssertEq $acts['9'].Titular 'ACME INVERSIONS SL' 'el TITULAR (rao social), no el nom comercial (ACME)'
 
+Write-Host "`n--- El CONTACTE de la fitxa (octubre 2026) ---"
+# Dades FICTICIES. Les columnes, amb els noms de la fulla Estes del GIA.
+$capC = @('ID Activitat', 'Rao social', 'Rao soc. Telefon', 'Rao soc. Mobil', 'Rao soc. E-mail', 'Representant legal', 'Rep. legal Telefon', 'Rep. legal Mobil', 'Rep. legal E-mail', 'Ref. cadastral', 'UTM X', 'UTM Y')
+$filesC = @(
+    $capC,
+    @([double]1, 'PROVA SL', '934445566', [double]600111222, 'a@x.cat', 'PERE PROVA', '', '611 222 333 / 622-333-444', 'b@x.cat', '2295827DF2729E0011RQ', [double]421968.09, [double]4579505.55),
+    @([double]2, 'ALTRA SL', '93 444 55 66', '', '', '', '', '', '', '2295827DF2729E0011RQ', [double]421968.09, [double]4579505.55),
+    @([double]3, 'RES SL', '', '', '', '', '', '', '', '2295827DF2729E0011RQ', [double]421968.09, [double]4579505.55)
+)
+$actsC = ConvertFrom-FullaActivitatsPlanol (_Mat $filesC) $filesC.Count $capC
+AssertEq "$($actsC['1'].RepNom)|$($actsC['1'].TelTit)|$($actsC['1'].TelRep)" 'PERE PROVA|600111222|611222333; 622333444' 'contacte: el representant i els mobils (dos en una cel·la, partits)'
+AssertEq "$($actsC['2'].TelTit)|$($actsC['2'].RepNom)" '934445566|' 'contacte: sense mobil, el telefon fix'
+AssertEq "$($actsC['3'].TelTit)|$($actsC['3'].TelRep)" '|' 'contacte: sense res, res'
+$ccC = Get-ColumnesContacte $capC
+AssertEq "$($ccC.MOBIL)|$($ccC.TELEFON)|$($ccC.REP_NOM)|$($ccC.REP_MOBIL)|$($ccC.REP_TELEFON)|$($ccC.EMAIL)|$($ccC.REP_EMAIL)" '4|3|6|8|7|5|9' 'Get-ColumnesContacte: cada columna pel seu nom (la mateixa que fa servir el repas de contactes)'
+AssertEq (_PlanolTelefons '' '93 444 55 66 i 600.111.222') '934445566; 600111222' '_PlanolTelefons: del fix, quan no hi ha mobil, tots els que hi hagi'
+$mC = Build-PlanolModel @() $actsC @{} @{}
+$jC = @(@(ConvertTo-PlanolDadesMapa $mC @{}) | ForEach-Object { @($_.e) } | Where-Object { $_.g -eq '1' })[0]
+AssertEq "$($jC.rn)|$($jC.tt)|$($jC.tr)" 'PERE PROVA|600111222|611222333; 622333444' 'el mapa porta el representant i els telefons (rn, tt, tr)'
+$j3 = @(@(ConvertTo-PlanolDadesMapa $mC @{}) | ForEach-Object { @($_.e) } | Where-Object { $_.g -eq '3' })[0]
+Assert (-not $j3.Contains('rn') -and -not $j3.Contains('tt')) 'i nomes quan n''hi ha (el fitxer porta milers d''entrades)'
+
 Write-Host "`n--- La base d'informes ---"
 $db = [pscustomobject]@{ activitats = @(
     [pscustomobject]@{ id_gia = '1403'; estat_actual = 'Requeriment'; informes = @(1, 2) }

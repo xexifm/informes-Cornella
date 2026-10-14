@@ -77,22 +77,11 @@ function Find-LatestActivitatsExcel {
 # Cerca l'index (1-based) de la columna a la fila de capcalera (fila 1) el text
 # de la qual conte TOTS els termes de $mustContain i CAP dels de $mustNotContain
 # (comparacio normalitzada: minuscules, sense accents). Retorna 0 si no es troba.
+# El criteri es _ColumnaAmbTermes (Excel.ps1), el mateix que fa servir el
+# proces de rutes: aqui nomes es treu la capcalera de la matriu.
 function _FindColIndex($data, $cols, [string[]]$mustContain, [string[]]$mustNotContain) {
-    for ($c = 1; $c -le $cols; $c++) {
-        $h = _NormalitzaText $data[1, $c]
-        if ([string]::IsNullOrWhiteSpace($h)) { continue }
-        $ok = $true
-        foreach ($m in $mustContain) {
-            if (-not $h.Contains((_NormalitzaText $m))) { $ok = $false; break }
-        }
-        if ($ok -and $null -ne $mustNotContain) {
-            foreach ($m in $mustNotContain) {
-                if ($h.Contains((_NormalitzaText $m))) { $ok = $false; break }
-            }
-        }
-        if ($ok) { return $c }
-    }
-    return 0
+    $hdr = @(for ($c = 1; $c -le $cols; $c++) { [string]$data[1, $c] })
+    return (_ColumnaAmbTermes $hdr $mustContain $mustNotContain)
 }
 
 # Converteix un valor de cel·la a text. Els enters d'Excel arriben com a double;
@@ -220,30 +209,16 @@ function Initialize-ActivitatsCache($excelFile) {
         # Classificacio de l'activitat, per a la capcalera de Llicencia.
         $colAnx  = _FindColIndex $data $cols @('classificacio general annex') $null
         $colApa  = _FindColIndex $data $cols @('classificacio general apartat') $null
-        # Correus del titular: Rao social i Representant legal (mateix criteri
-        # que l'eina Controls periodics). El de Rao social te fallback a la
-        # columna 25 (index historic conegut).
-        $colRaoMail = _FindColIndex $data $cols @('rao soc', 'mail')    $null; if ($colRaoMail -eq 0) { $colRaoMail = 25 }
-        $colRepMail = _FindColIndex $data $cols @('rep', 'leg', 'mail')  $null
-        # Les dades de CONTACTE (repas de contactes, ContactesDb.ps1): van a
+        # Les columnes de CONTACTE (correus del titular i del representant, i
+        # les del repas de contactes, ContactesDb.ps1): Get-ColumnesContacte
+        # (Excel.ps1), les mateixes que la fitxa del Planol activitats. Van a
         # $cache.Contactes i NO a ById, que es el que es puja al Drive del
         # mobil (Export-ActivitatsToDrive); aixi no hi puja cap NIF ni telefon
         # mes dels que ja hi anaven.
-        $colCt = @{
-            NIF         = (_FindColIndex $data $cols @('rao soc', 'nif') $null)
-            TELEFON     = (_FindColIndex $data $cols @('rao soc', 'telefon') @('mobil'))
-            MOBIL       = $(if ((_FindColIndex $data $cols @('rao soc', 'mobil') $null) -gt 0) { _FindColIndex $data $cols @('rao soc', 'mobil') $null } else { 23 })
-            EMAIL       = $colRaoMail
-            REP_NOM     = (_FindColIndex $data $cols @('representant legal') @('nif', 'mobil', 'telefon', 'mail'))
-            REP_NIF     = (_FindColIndex $data $cols @('rep', 'leg', 'nif') $null)
-            REP_TELEFON = (_FindColIndex $data $cols @('rep', 'leg', 'telefon') @('mobil'))
-            REP_MOBIL   = (_FindColIndex $data $cols @('rep', 'leg', 'mobil') $null)
-            REP_EMAIL   = $colRepMail
-        }
-        # Si el GIA les anomena sense "Rao soc.", la primera que no sigui del
-        # representant ni de l'emplacament.
-        if ($colCt.NIF -eq 0)     { $colCt.NIF = _FindColIndex $data $cols @('nif') @('rep', 'emp') }
-        if ($colCt.TELEFON -eq 0) { $colCt.TELEFON = _FindColIndex $data $cols @('telefon') @('rep', 'mobil', 'emp', 'establ') }
+        $hdrCt = @(for ($c = 1; $c -le $cols; $c++) { [string]$data[1, $c] })
+        $colCt = Get-ColumnesContacte $hdrCt
+        $colRaoMail = $colCt.EMAIL
+        $colRepMail = $colCt.REP_EMAIL
         $contactes = @{}
         if ($colExp  -eq 0) { [void]$warnings.Add("No s'ha trobat la columna 'Num. expedient'.") }
         if ($colNum  -eq 0) { [void]$warnings.Add("No s'ha trobat la columna 'Num. registre entrada'.") }

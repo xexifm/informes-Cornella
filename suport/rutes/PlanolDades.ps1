@@ -204,8 +204,18 @@ function ConvertFrom-FullaEstabliments($data, [int]$rows, $headers) {
     return @($out)
 }
 
+# Els telefons d'una persona per a la fitxa: el mobil i, si no n'hi ha, el fix.
+# Una cel·la pot portar-ne mes d'un ("600111222 / 934445566"): es parteixen.
+# Torna 'a; b' (sense repetits) o ''. PURA.
+function _PlanolTelefons([string]$mobil, [string]$fix) {
+    $treu = { param($t) @([regex]::Matches([string]$t, '\+?\d[\d .-]{7,}\d') | ForEach-Object { ($_.Value -replace '[ .-]', '') }) }
+    $l = @(& $treu $mobil)
+    if ($l.Count -eq 0) { $l = @(& $treu $fix) }
+    return ((@($l | Select-Object -Unique)) -join '; ')
+}
+
 # La fulla "Estes" (activitats): hashtable ID -> { Id; Titular; Activitat; Rc;
-# Precinte; Adreca; UtmX; UtmY }.
+# Precinte; Adreca; UtmX; UtmY; RepNom; TelTit; TelRep }.
 function ConvertFrom-FullaActivitatsPlanol($data, [int]$rows, $headers) {
     $c = @{
         Id = Find-HeaderColumn $headers 'ID Activitat'; Rc = Find-HeaderColumn $headers 'Ref. cadastral'
@@ -216,6 +226,14 @@ function ConvertFrom-FullaActivitatsPlanol($data, [int]$rows, $headers) {
         Classif = Find-HeaderColumn $headers 'Classificacio general annex'
     }
     if ($c.Id -lt 1) { throw "La fulla d'activitats no te la columna 'ID Activitat'." }
+    # EL CONTACTE de la fitxa (octubre 2026, l'usuari: "el nom de la rao social,
+    # el del representant legal, el mobil de cadascun, i des del mobil poder
+    # trucar"): les mateixes columnes que el repas de contactes
+    # (Get-ColumnesContacte, Excel.ps1). Sense mobil, el telefon fix. Un index
+    # de respatller que la fulla no te, fora.
+    $nCols = @($headers).Count
+    $ct = Get-ColumnesContacte $headers
+    foreach ($k in @($ct.Keys)) { if ([int]$ct[$k] -gt $nCols) { $ct[$k] = 0 } }
     $pairs = _FindCampInfoPairs $headers
     $colsCcae = @(Get-ColumnesCcae $headers)
     $out = @{}
@@ -242,6 +260,9 @@ function ConvertFrom-FullaActivitatsPlanol($data, [int]$rows, $headers) {
             Turistic  = Test-CcaeAllotjamentTuristic @($colsCcae | ForEach-Object { _PlanolValor (_PlanolCel $data $r $_) })
             # "Classificacio general annex" (II, III, L18 Cert...): filtre del mapa.
             Classificacio = _PlanolValor (_PlanolCel $data $r $c.Classif)
+            RepNom    = _PlanolValor (_PlanolCel $data $r $ct.REP_NOM)
+            TelTit    = (_PlanolTelefons (_PlanolValor (_PlanolCel $data $r $ct.MOBIL)) (_PlanolValor (_PlanolCel $data $r $ct.TELEFON)))
+            TelRep    = (_PlanolTelefons (_PlanolValor (_PlanolCel $data $r $ct.REP_MOBIL)) (_PlanolValor (_PlanolCel $data $r $ct.REP_TELEFON)))
         }
     }
     return $out
@@ -407,6 +428,9 @@ function Build-PlanolModel($establiments, $activitats, $estats, $unitats) {
             Tipus = 'activitat'; Gia = $gia
             Titular = if ($null -ne $act) { $act.Titular } else { '' }
             Activitat = if ($null -ne $act) { $act.Activitat } else { '' }
+            RepNom = if ($null -ne $act) { [string]$act.RepNom } else { '' }
+            TelTit = if ($null -ne $act) { [string]$act.TelTit } else { '' }
+            TelRep = if ($null -ne $act) { [string]$act.TelRep } else { '' }
             Sub = $sub.Text; SubFont = $sub.Font
             Estat = (Get-EstatPlanol $prec $estatText); EstatText = $estatText; Precinte = $prec
             MarcatBuit = [bool]$e.Buit; SenseEstabliment = $false; NoBase = ($null -eq $act)
@@ -435,6 +459,7 @@ function Build-PlanolModel($establiments, $activitats, $estats, $unitats) {
         $res.SenseEstabliment++
         & $afegeix $act.Rc $act.UtmX $act.UtmY ([pscustomobject]@{
             Tipus = 'activitat'; Gia = $gia; Titular = $act.Titular; Activitat = $act.Activitat
+            RepNom = [string]$act.RepNom; TelTit = [string]$act.TelTit; TelRep = [string]$act.TelRep
             Sub = ''; SubFont = ''; Estat = (Get-EstatPlanol ([bool]$act.Precinte) $estatText); EstatText = $estatText
             Precinte = [bool]$act.Precinte; MarcatBuit = $false; SenseEstabliment = $true; NoBase = $false
             NInformes = if ($null -ne $inf) { [int]$inf.NInformes } else { 0 }
@@ -833,6 +858,10 @@ function ConvertTo-PlanolDadesMapa($model, $geometries, $portals = $null, $punts
                 }
                 # Nomes quan hi son (el fitxer porta milers d'entrades).
                 if ([string]$en.IdEst -ne '') { $ents[-1]['ie'] = [string]$en.IdEst }
+                # El contacte (fitxa): el representant i els telefons ('a; b').
+                if ([string]$en.RepNom -ne '') { $ents[-1]['rn'] = [string]$en.RepNom }
+                if ([string]$en.TelTit -ne '') { $ents[-1]['tt'] = [string]$en.TelTit }
+                if ([string]$en.TelRep -ne '') { $ents[-1]['tr'] = [string]$en.TelRep }
                 if ([bool]$en.BuitDuplicat) { $ents[-1]['du'] = $true }
                 if ([string]$en.BuitsIguals -ne '') { $ents[-1]['bd'] = [string]$en.BuitsIguals }
             }
