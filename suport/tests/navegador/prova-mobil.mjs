@@ -49,7 +49,9 @@ window.Drive = {
 const nav = await chromium.launch({ headless: true });
 const errors = [];
 try {
-  const ctx = await nav.newContext({ viewport: { width: 390, height: 800 }, isMobile: true, hasTouch: true });
+  // Una posicio de prova a Cornella (el permis d'ubicacio, ja donat).
+  const GEO = { latitude: 41.3560, longitude: 2.0740, accuracy: 15 };
+  const ctx = await nav.newContext({ viewport: { width: 390, height: 800 }, isMobile: true, hasTouch: true, geolocation: GEO, permissions: ['geolocation'] });
   await serveixLeaflet(ctx);
   await ctx.route('**/drive.js', (r) => r.fulfill({ status: 200, contentType: 'application/javascript', body: DRIVE_DOBLE }));
   await ctx.route(/accounts\.google\.com|emailjs|googleapis/, (r) => r.abort());
@@ -80,6 +82,7 @@ try {
   check(await marc.locator('#side').isVisible(), '...que l\'obre');
   await marc.locator('#bt-side').click();
 
+
   seccio('Fer informe des d\'una activitat');
   await frame.evaluate(() => { const i = PARCELES.findIndex((x) => x.k === '2295827DF2729E'); obreFitxaActivitat('1447', PARCELES[i].c); });
   const boto = marc.locator('.leaflet-popup-content a.informe');
@@ -99,6 +102,24 @@ try {
   await pc.waitForFunction(() => typeof capes !== 'undefined' && capes.length === PARCELES.length, null, { timeout: 15000 });
   await pc.evaluate(() => { const i = PARCELES.findIndex((x) => x.k === '2295827DF2729E'); obreFitxaActivitat('1447', PARCELES[i].c); });
   eq(await pc.locator('.leaflet-popup-content a.informe').count(), 0, 'el plànol obert sol no ensenya el botó');
+
+  seccio('On sóc (la ubicació del mòbil al plànol)');
+  const pg = await ctx.newPage();
+  pg.on('pageerror', (e) => errors.push(String(e)));
+  await pg.goto(BASE + 'planol.html');
+  await pg.waitForSelector('#marc', { state: 'visible', timeout: 10000 });
+  const fg = pg.frames().find((f) => f !== pg.mainFrame());
+  await fg.waitForFunction(() => typeof capes !== 'undefined' && capes.length === PARCELES.length, null, { timeout: 15000 });
+  check(await pg.isVisible('#btn-ubica'), 'hi ha el botó «On sóc» a sobre del plànol');
+  await pg.tap('#btn-ubica');
+  await fg.waitForFunction(() => { let n = 0; map.eachLayer((l) => { if (l.options && l.options.fillColor === '#1a73e8' && !(l instanceof L.Circle)) { n++; } }); return n > 0; }, null, { timeout: 8000 }).catch(() => {});
+  const ubi = await fg.evaluate(() => { let ll = null; map.eachLayer((l) => { if (l instanceof L.CircleMarker && !(l instanceof L.Circle) && !l.feature && l.options.fillColor === '#1a73e8') { ll = l.getLatLng(); } }); const c = map.getCenter(); return { ll: ll && [ll.lat, ll.lng], c: [c.lat, c.lng], z: map.getZoom() }; });
+  eq(ubi.ll, [41.356, 2.074], 'el punt blau és on és el mòbil');
+  check(Math.abs(ubi.c[0] - 41.356) < 0.0005 && Math.abs(ubi.c[1] - 2.074) < 0.0005 && ubi.z >= 17, 'i el mapa s\'hi centra, de prop');
+  check(await pg.evaluate(() => document.getElementById('btn-ubica').classList.contains('actiu')), 'el botó queda encès');
+  await pg.tap('#btn-ubica');
+  const queden = await fg.evaluate(() => { let n = 0; map.eachLayer((l) => { if (l.options && l.options.fillColor === '#1a73e8') { n++; } }); return n; });
+  eq(queden, 0, 'un altre toc l\'apaga i treu el punt');
 
   seccio('Errors de JavaScript');
   eq(errors, [], 'cap error a les pàgines');

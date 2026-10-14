@@ -17,6 +17,14 @@
     #avis { margin: 16px; }
     .barra { display: flex; gap: 8px; align-items: center; }
     .barra a { color: inherit; font-weight: bold; text-decoration: none; }
+    /* On soc: a sobre del planol, a baix a la dreta (els controls del mapa
+       son a dalt a l'esquerra). */
+    #btn-ubica { position: absolute; right: 12px; bottom: 34px; z-index: 5; width: 48px; height: 48px;
+                 border-radius: 50%; border: 0; background: #fff; color: #14365c; font-size: 22px;
+                 box-shadow: 0 1px 6px rgba(0,0,0,.35); padding: 0; }
+    #btn-ubica.actiu { background: #1a73e8; color: #fff; }
+    #geo-msg { position: absolute; left: 12px; right: 72px; bottom: 40px; z-index: 5; background: #fff;
+               border-radius: 6px; padding: 8px 10px; box-shadow: 0 1px 6px rgba(0,0,0,.35); font-size: 14px; }
   </style>
 </head>
 <body>
@@ -43,6 +51,8 @@
       <button id="btn-obrir" type="button" class="principal ocult">Obrir el plànol (amb el teu compte de Google)</button>
     </div>
     <iframe id="marc" title="Plànol activitats"></iframe>
+    <button id="btn-ubica" type="button" class="ocult" title="On sóc" aria-label="On sóc">📍</button>
+    <div id="geo-msg" class="ocult"></div>
   </div>
   <script src="config.js"></script>
   <script src="drive.js"></script>
@@ -63,7 +73,63 @@
       marc.src = url;
       marc.style.display = "block";
       $("avis").classList.add("ocult");
+      if (navigator.geolocation) { $("btn-ubica").classList.remove("ocult"); }
     }
+
+    // ON SOC (octubre 2026, l'usuari: "l'opcio de geolocalitzar el dispositiu
+    // i veure on estic del planol"). La posicio la demana AQUESTA pagina i es
+    // pinta al mapa del marc ('map' i 'L' son globals del planol, i el blob:
+    // te el mateix origen): aixi no cal tornar a generar el planol al PC. Un
+    // toc l'encen i centra el mapa on ets; un altre l'apaga (el GPS gasta).
+    var geo = { watch: null, punt: null, cercle: null, centrat: false };
+    function geoMissatge(t) {
+      var m = $("geo-msg");
+      m.textContent = t || "";
+      m.classList.toggle("ocult", !t);
+      if (t) { setTimeout(function () { if (m.textContent === t) { m.classList.add("ocult"); } }, 6000); }
+    }
+    function geoPosa(pos) {
+      var w = marc.contentWindow;
+      if (!w || !w.map || !w.L) { return; }
+      var ll = [pos.coords.latitude, pos.coords.longitude];
+      var prec = Math.max(5, pos.coords.accuracy || 0);
+      if (!geo.punt) {
+        geo.cercle = w.L.circle(ll, { radius: prec, color: "#1a73e8", weight: 1, fillOpacity: 0.12, interactive: false }).addTo(w.map);
+        geo.punt = w.L.circleMarker(ll, { radius: 8, color: "#fff", weight: 3, fillColor: "#1a73e8", fillOpacity: 1, interactive: false }).addTo(w.map);
+      } else {
+        geo.punt.setLatLng(ll);
+        geo.cercle.setLatLng(ll).setRadius(prec);
+      }
+      if (!geo.centrat) {
+        geo.centrat = true;
+        w.map.setView(ll, Math.max(w.map.getZoom(), 17));
+      }
+      geoMissatge("");
+    }
+    function geoApaga() {
+      if (geo.watch !== null) { navigator.geolocation.clearWatch(geo.watch); }
+      var w = marc.contentWindow;
+      if (w && w.map) {
+        if (geo.punt) { w.map.removeLayer(geo.punt); }
+        if (geo.cercle) { w.map.removeLayer(geo.cercle); }
+      }
+      geo = { watch: null, punt: null, cercle: null, centrat: false };
+      $("btn-ubica").classList.remove("actiu");
+    }
+    function geoError(e) {
+      var t = e && e.code === 1 ? "Cal donar permís d'ubicació al navegador per veure on ets."
+            : e && e.code === 3 ? "No s'ha trobat la ubicació a temps. Torna-ho a provar a l'exterior."
+            : "No s'ha pogut saber on ets.";
+      geoApaga();
+      geoMissatge(t);
+    }
+    $("btn-ubica").addEventListener("click", function () {
+      if (geo.watch !== null) { geoApaga(); return; }
+      if (!navigator.geolocation) { geoMissatge("Aquest navegador no pot saber on ets."); return; }
+      $("btn-ubica").classList.add("actiu");
+      geoMissatge("Buscant on ets…");
+      geo.watch = navigator.geolocation.watchPosition(geoPosa, geoError, { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 });
+    });
 
     function carrega() {
       boto.classList.add("ocult");

@@ -146,6 +146,14 @@ Com es decideix (`Get-CasesActivitats` + `Get-EtiquetesGrup`, a `PlanolDades.ps1
   A menys de 760 px el lateral és un panell de baix que s'obre amb «Filtres», i
   dins de l'app cada activitat porta «Fer informe» (`DINS_APP`, `postMessage`).
   Detalls a `DESPLEGAMENT-MOBIL.md`.
+- **«On sóc» al mòbil** (octubre 2026, l'usuari: *«l'opció de geolocalitzar el
+  dispositiu i veure on estic del plànol»*). El botó 📍 és de `docs/planol.html`,
+  **no** de `PlanolMapa.html`: la posició la demana la pàgina del mòbil i la
+  pinta al mapa del marc (`map` i `L` són globals del plànol i el `blob:` té el
+  mateix origen). Així funciona amb el plànol que ja hi ha al Drive, sense
+  regenerar-lo. Un toc l'encén (`watchPosition`, punt blau + cercle de precisió,
+  centra a zoom ≥ 17 el primer cop); un altre l'apaga. Provat a `prova-mobil.mjs`
+  amb una posició simulada (validat traient el centrat i el punt).
 - **La línia de punts** (l'usuari: *«una lleugera línia de punts que uneixi
   l'etiqueta de l'ID GIA (UTM base de dades activitats) i la UTM de la parcel·la
   cadastral»*): de cada etiqueta posada a la seva coordenada fins al

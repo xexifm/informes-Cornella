@@ -233,7 +233,8 @@ $ceSel = Select-CorreuCcoTria 'controls' (_CorreuEinaNormalitza @{ cco = 'me@x.c
 Assert ($ceSel.Ok -and @($ceSel.Adreces).Count -eq 0) 'Select-CorreuCcoTria: sense cap adreca a triar no obre res i continua'
 # EL CORREU DEL MOBIL (CorreuMobil.ps1): a qui va i la CCO, a email-textos.json.
 $cmTx = _LoadEmailTextos
-AssertEq (@($cmTx['dest']) -join ',') 'titular' 'email-textos.json sense la clau dest: el mobil va al titular (com sempre)'
+AssertEq (@(_EmailDestDeJson ([pscustomobject]@{ assumpte = 'a'; cos = 'c' })) -join ',') 'titular' 'email-textos.json sense la clau dest: el mobil va al titular (com sempre)'
+Assert (@($cmTx['dest'] | Where-Object { @('titular', 'representant') -notcontains $_ }).Count -eq 0) 'email-textos.json: a qui va, nomes titular/representant'
 AssertEq (@(_EmailDestDeJson ([pscustomobject]@{ dest = @('representant', 'inventat', 'titular', 'representant') })) -join ',') 'representant,titular' '_EmailDestDeJson: nomes titular/representant, sense repetides'
 AssertEq @(_EmailDestDeJson ([pscustomobject]@{ dest = @() })).Count 0 '_EmailDestDeJson: es pot desar "ningu" (el destinatari s''escriu a ma)'
 $cmM = _CorreuMobilLlegeix $cmTx
