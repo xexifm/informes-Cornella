@@ -298,8 +298,9 @@ Si en una parcel·la hi ha activitats en estats diferents, la parcel·la té el 
 **del més greu**. Clica-hi i surten totes, cada una amb el seu estat.
 
 **D'on surt:** l'Excel d'activitats i l'Excel d'**ESTABLIMENTS** més nous (els dos
-a la «Carpeta de l'Excel d'activitats», amb el nom `AAAA-MM-DD ACTIVITATS.xls` i
-`AAAA-MM-DD ESTABLIMENTS.xls`), i la **base d'informes** (fes abans
+a la «Carpeta de l'Excel d'activitats», amb el nom que surt de l'exportació:
+`ExportacioActivitats_AAAAMMDD.xls` i `ExportacioEstabliments_AAAAMMDD.xls`; els
+antics `AAAA-MM-DD ACTIVITATS.xls` també valen, i mana la data), i la **base d'informes** (fes abans
 *Actualitzar base*). L'Excel d'establiments és el que diu que una activitat té
 **més d'un establiment** (naus, locals contigus): l'activitat surt a totes les
 seves parcel·les.
@@ -1054,7 +1055,7 @@ catàlegs i et diu quins han caigut.
 ## 5. Treballar fora de la feina
 
 Si no tens la unitat de xarxa `I:`, copia l'Excel
-`AAAA-MM-DD ACTIVITATS.xls` més recent a **`local/base-dades-activitats/`**. El
+`ExportacioActivitats_AAAAMMDD.xls` més recent a **`local/base-dades-activitats/`**. El
 programa prova primer la ruta de la feina i, si no hi arriba, fa servir el més
 recent d'aquesta carpeta i t'ho indica al Pas 2 amb l'etiqueta
 **[FALLBACK LOCAL]** en taronja.

@@ -840,7 +840,7 @@ function Invoke-CoordenadesMain {
     $xls = Find-LatestRutaExcel
     if ($null -eq $xls) {
         Show-EinaInfo ("No s'ha trobat cap base de dades d'activitats.`n`n" +
-            "Busco un fitxer 'YYYY-MM-DD ACTIVITATS.xlsx' a:`n" +
+            ("Busco un fitxer " + (_ExcelBaseNomText 'ACTIVITATS') + " a:`n") +
             "  1. $ActivitatsDir`n" +
             "  2. $LocalActivitatsDir`n`n" +
             "Copia'n un a la carpeta local i torna a provar.") 'Coordenades' 'Warning'

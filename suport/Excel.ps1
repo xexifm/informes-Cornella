@@ -268,3 +268,62 @@ function Get-IdDeCella($cell) {
     }
     return ([string]$cell).Trim()
 }
+
+# ----------------------------------------------------------------------------
+# QUIN FITXER ES LA BASE: els noms de l'Excel d'activitats i d'establiments
+# ----------------------------------------------------------------------------
+# L'usuari (octubre 2026): "a partir d'ara, els arxius que s'han de llegir com a
+# base de dades d'activitats i d'establiments es diran
+# ExportacioEstabliments_20261014.xls / ExportacioActivitats_20261014.xls". Fins
+# llavors eren 'AAAA-MM-DD ACTIVITATS.xls' (i '..._ESTABLIMENTS.xls'), i la
+# carpeta encara en pot tenir d'aquells: s'accepten tots dos noms i mana la data.
+# Abans hi havia DUES cerques (Activitats.ps1 i rutes/Ruta.ps1, una per proces)
+# i ja no acceptaven el mateix: la de rutes admetia '_' entre la data i el nom i
+# la de suport no. Ara son aqui, que carreguen els dos processos.
+#
+# El tipus: 'ACTIVITATS' o 'ESTABLIMENTS'.
+$Script:ExcelBaseNoms = @{ ACTIVITATS = 'Activitats'; ESTABLIMENTS = 'Establiments' }
+
+# La data que porta el NOM d'un fitxer de la base, o $null si no ho es. Nom nou
+# 'Exportacio<Tipus>_AAAAMMDD.xls(x)' (amb o sense accent, i amb el ' (1)' que
+# hi posa el navegador si es baixa dues vegades) o l'antic 'AAAA-MM-DD TIPUS'.
+# PURA.
+function _ExcelBaseDataDelNom([string]$nom, [string]$tipus = 'ACTIVITATS') {
+    $t = [string]$Script:ExcelBaseNoms[$tipus.ToUpperInvariant()]
+    if (-not $t) { return $null }
+    $d = [datetime]::MinValue
+    $nou = '(?i)^Exportaci[o' + [char]0x00F3 + ']' + $t + '_(\d{8})(\s*\(\d+\))?\.(xls|xlsx)$'
+    if ($nom -match $nou -and [datetime]::TryParseExact($Matches[1], 'yyyyMMdd', [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::None, [ref]$d)) { return $d }
+    $vell = '(?i)^(\d{4}-\d{2}-\d{2})[\s_]+' + $t + '\.(xls|xlsx)$'
+    if ($nom -match $vell -and [datetime]::TryParseExact($Matches[1], 'yyyy-MM-dd', [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::None, [ref]$d)) { return $d }
+    return $null
+}
+
+# La data (AAAA-MM-DD) que porta un text que diu de quin Excel surt una cosa
+# (el 'Source' d'activitats.json, el 'Font' de precintades.json): '' si no en
+# porta. Amb tots dos noms. PURA.
+function _ExcelBaseDataDeText([string]$text) {
+    $d = [datetime]::MinValue
+    if ([string]$text -match '(?i)Exportaci\S*?_(\d{8})' -and [datetime]::TryParseExact($Matches[1], 'yyyyMMdd', [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::None, [ref]$d)) { return $d.ToString('yyyy-MM-dd') }
+    if ([string]$text -match '(\d{4}-\d{2}-\d{2})') { return $Matches[1] }
+    return ''
+}
+
+# El mes recent d'una carpeta: @{ File; Date } o $null. A la mateixa data, el
+# que s'ha desat mes tard (un ' (1)' baixat despres).
+function Find-LatestBaseExcelIn($dir, [string]$tipus = 'ACTIVITATS') {
+    if ([string]::IsNullOrWhiteSpace($dir) -or -not (Test-Path -LiteralPath $dir)) { return $null }
+    $cands = @(Get-ChildItem -LiteralPath $dir -File -ErrorAction SilentlyContinue | ForEach-Object {
+        if ($_.Name.StartsWith('~$')) { return }
+        $dt = _ExcelBaseDataDelNom $_.Name $tipus
+        if ($null -ne $dt) { [pscustomobject]@{ File = $_; Date = $dt } }
+    } | Sort-Object -Property @{ Expression = { $_.Date }; Descending = $true }, @{ Expression = { $_.File.LastWriteTime }; Descending = $true })
+    if ($cands.Count -eq 0) { return $null }
+    return $cands[0]
+}
+
+# Com es diu el fitxer que es busca, per als missatges ("no s'ha trobat..."). PURA.
+function _ExcelBaseNomText([string]$tipus = 'ACTIVITATS') {
+    $t = [string]$Script:ExcelBaseNoms[$tipus.ToUpperInvariant()]
+    return ("'Exportacio" + $t + "_AAAAMMDD.xls' (o l'antic 'AAAA-MM-DD " + $tipus.ToUpperInvariant() + ".xls')")
+}

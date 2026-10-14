@@ -742,23 +742,12 @@ $fonsJs
 # LECTURA D'EXCEL (COM) - nomes a Windows amb Excel; no es prova en headless.
 # ============================================================================
 
-# Cerca el fitxer 'YYYY-MM-DD ACTIVITATS.xls/xlsx' mes recent en una carpeta.
-#
-# $nom: ACTIVITATS (per defecte) o ESTABLIMENTS (el Planol activitats). Entre la
-# data i el nom s'accepta espai o '_': l'Excel d'establiments va arribar com a
-# '2026-10-05_ESTABLIMENTS.xls'.
+# L'Excel mes recent d'una carpeta. $nom: ACTIVITATS (per defecte) o
+# ESTABLIMENTS (el Planol activitats). La cerca es Find-LatestBaseExcelIn
+# (Excel.ps1), la mateixa que fa el programa: 'Exportacio<Tipus>_AAAAMMDD.xls' o
+# l'antic 'AAAA-MM-DD TIPUS.xls' (amb espai o '_').
 function _RutaFindLatestIn($dir, [string]$nom = 'ACTIVITATS') {
-    if ([string]::IsNullOrWhiteSpace($dir) -or -not (Test-Path -LiteralPath $dir)) { return $null }
-    $regex = '^(\d{4}-\d{2}-\d{2})[\s_]+' + [regex]::Escape($nom) + '\.(xls|xlsx)$'
-    $cands = Get-ChildItem -LiteralPath $dir -File -ErrorAction SilentlyContinue |
-        Where-Object { $_.Name -match $regex } |
-        ForEach-Object {
-            if ($_.Name -match $regex) {
-                [pscustomobject]@{ File = $_; Date = [datetime]::ParseExact($Matches[1], 'yyyy-MM-dd', $null) }
-            }
-        } | Sort-Object Date -Descending
-    if (@($cands).Count -eq 0) { return $null }
-    return $cands[0]
+    return (Find-LatestBaseExcelIn $dir $nom)
 }
 
 # Xarxa de la feina primer; despres fallback local del clone.
@@ -989,7 +978,7 @@ function Invoke-RutaMain {
     $xls = Find-LatestRutaExcel
     if ($null -eq $xls) {
         Show-Info ("No s'ha trobat cap base de dades d'activitats.`n`n" +
-            "Busco un fitxer 'YYYY-MM-DD ACTIVITATS.xlsx' a:`n" +
+            ("Busco un fitxer " + (_ExcelBaseNomText 'ACTIVITATS') + " a:`n") +
             "  1. $ActivitatsDir`n" +
             "  2. $LocalActivitatsDir`n`n" +
             "Copia'n un a la carpeta local i torna a provar.") 'Rutes' 'Warning'

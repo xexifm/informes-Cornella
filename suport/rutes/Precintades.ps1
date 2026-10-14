@@ -83,7 +83,7 @@ function Build-PrecintadesObject($records, [string]$fontName) {
     # SourceDate: data (yyyy-MM-dd) de l'Excel origen, treta del seu nom. Serveix
     # per no fer enrere el mapa si despres es genera des d'una base mes antiga.
     $srcDate = ''
-    if (([string]$fontName) -match '(\d{4}-\d{2}-\d{2})') { $srcDate = $Matches[1] }
+    $srcDate = _ExcelBaseDataDeText ([string]$fontName)
     return [pscustomobject]@{
         GeneratedAt = (Get-Date).ToString('o')
         Font        = [string]$fontName
@@ -102,9 +102,8 @@ function _ParsePrecintadesDate($obj) {
     if ($obj.SourceDate -and [datetime]::TryParseExact([string]$obj.SourceDate, 'yyyy-MM-dd', $null, [System.Globalization.DateTimeStyles]::None, [ref]$d)) {
         return $d
     }
-    if ($obj.Font -and ([string]$obj.Font) -match '(\d{4}-\d{2}-\d{2})') {
-        if ([datetime]::TryParseExact($Matches[1], 'yyyy-MM-dd', $null, [System.Globalization.DateTimeStyles]::None, [ref]$d)) { return $d }
-    }
+    $ds = _ExcelBaseDataDeText ([string]$obj.Font)
+    if ($ds -and [datetime]::TryParseExact($ds, 'yyyy-MM-dd', $null, [System.Globalization.DateTimeStyles]::None, [ref]$d)) { return $d }
     return [datetime]::MinValue
 }
 

@@ -169,7 +169,7 @@ Com es decideix (`Get-CasesActivitats` + `Get-EtiquetesGrup`, a `PlanolDades.ps1
     un punt. **El primer plànol després d'això torna a demanar totes les
     parcel·les** (uns minuts, un sol cop).
 - **Quan es veu una correcció de Coordenades**: quan l'Excel d'activitats que
-  llegeix el plànol (el `AAAA-MM-DD ACTIVITATS.xls` més nou) ja la porta, o
+  llegeix el plànol (l'Excel d'activitats més nou) ja la porta, o
   sigui **després d'importar-la al GIA i tornar-lo a baixar**. L'«Excel per
   importar» (`… - coordenades corregides AAAA-MM-DD HHmm.xls`) **no** el llegeix:
   el nom no casa amb `_RutaFindLatestIn`, i és a posta (és una còpia per a qui
@@ -196,7 +196,7 @@ Parcel·les de Cornellà pintades segons l'estat de les activitats que hi ha. Es
   `PlanolMapa.html` (la plantilla). Comparteix amb Coordenades `Cadastre.ps1`
   (xarxa, memòria cau, bucle amb progrés), `MapaHtml.ps1` (plantilla i JSON dins
   d'un `<script>`) i `EinesUi.ps1` (missatge i barra de progrés).
-- **Per què l'Excel d'ESTABLIMENTS** (`AAAA-MM-DD ESTABLIMENTS.xls`, fulla
+- **Per què l'Excel d'ESTABLIMENTS** (`ExportacioEstabliments_AAAAMMDD.xls`, abans `AAAA-MM-DD ESTABLIMENTS.xls`, fulla
   «Establiments», a la mateixa carpeta que el d'activitats): l'Excel d'activitats
   porta UNA refcat per activitat, i una activitat pot tenir diversos
   establiments. També hi ha «Local buit» i el local/pis/porta. El nom va arribar

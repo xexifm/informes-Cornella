@@ -151,14 +151,14 @@ function Invoke-PlanolGenera([bool]$silenci) {
     if ($null -eq $xlsA) {
         return [pscustomobject]@{ Ok = $false; OutPath = ''; Missatge = ''
             Error = ("No s'ha trobat cap base de dades d'activitats.`n`n" +
-                     "Busco un fitxer 'AAAA-MM-DD ACTIVITATS.xlsx' a:`n  1. $ActivitatsDir`n  2. $LocalActivitatsDir") }
+                     ("Busco un fitxer " + (_ExcelBaseNomText 'ACTIVITATS') + " a:`n  1. $ActivitatsDir`n  2. $LocalActivitatsDir")) }
     }
     $xlsE = Find-LatestRutaExcel 'ESTABLIMENTS'
     $avisos = @()
     if ($null -eq $xlsE) {
         if (-not $silenci) {
             $r = [System.Windows.Forms.MessageBox]::Show(
-                ("No s'ha trobat l'Excel d'ESTABLIMENTS ('AAAA-MM-DD ESTABLIMENTS.xls') a:`n  1. $ActivitatsDir`n  2. $LocalActivitatsDir`n`n" +
+                ("No s'ha trobat l'Excel d'ESTABLIMENTS (" + (_ExcelBaseNomText 'ESTABLIMENTS') + ") a:`n  1. $ActivitatsDir`n  2. $LocalActivitatsDir`n`n" +
                  "Sense ell, cada activitat surt nomes a la parcel.la de l'Excel d'activitats (una de sola) i no es veuen els locals buits.`n`n" +
                  "Vols fer el planol igualment?"), $Script:EinaTitol, 'YesNo', 'Warning')
             if ($r -ne [System.Windows.Forms.DialogResult]::Yes) { return [pscustomobject]@{ Ok = $false; Error = ''; OutPath = ''; Missatge = '' } }

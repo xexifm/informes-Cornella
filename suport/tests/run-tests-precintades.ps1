@@ -62,7 +62,34 @@ try {
     AssertEq (_RutaFindLatestIn $tmpXl).File.Name '2026-09-01 ACTIVITATS.xlsx' 'per defecte, el d ACTIVITATS mes nou'
     AssertEq (_RutaFindLatestIn $tmpXl 'ESTABLIMENTS').File.Name '2026-10-05_ESTABLIMENTS.xls' 'ESTABLIMENTS: el mes nou, tambe amb _ entre la data i el nom'
     AssertEq (_RutaFindLatestIn $tmpXl 'RES') $null 'un nom que no hi es -> res'
+    # ELS NOMS NOUS (octubre 2026): ExportacioActivitats_AAAAMMDD.xls i
+    # ExportacioEstabliments_AAAAMMDD.xls. Conviuen amb els antics i mana la data.
+    foreach ($n in @('ExportacioActivitats_20261014.xls', 'ExportacioEstabliments_20261014.xls', 'ExportacioActivitats_20261001.xls')) {
+        Set-Content -LiteralPath (Join-Path $tmpXl $n) -Value 'x'
+    }
+    AssertEq (_RutaFindLatestIn $tmpXl).File.Name 'ExportacioActivitats_20261014.xls' 'nom nou: ExportacioActivitats_AAAAMMDD, el mes nou (tambe davant dels antics)'
+    AssertEq (_RutaFindLatestIn $tmpXl 'ESTABLIMENTS').File.Name 'ExportacioEstabliments_20261014.xls' 'nom nou: ExportacioEstabliments_AAAAMMDD'
+    AssertEq ((_RutaFindLatestIn $tmpXl).Date.ToString('yyyy-MM-dd')) '2026-10-14' 'nom nou: la data surt del nom'
+    Set-Content -LiteralPath (Join-Path $tmpXl '2026-11-02 ACTIVITATS.xls') -Value 'x'
+    AssertEq (_RutaFindLatestIn $tmpXl).File.Name '2026-11-02 ACTIVITATS.xls' 'un antic mes nou que els nous: mana la data'
 } finally { Remove-Item -LiteralPath $tmpXl -Recurse -Force -ErrorAction SilentlyContinue }
+foreach ($cas in @(
+    @{ N = 'ExportacioActivitats_20261014.xls'; T = 'ACTIVITATS'; E = '2026-10-14' },
+    @{ N = 'exportacioactivitats_20261014.XLSX'; T = 'ACTIVITATS'; E = '2026-10-14' },
+    @{ N = ('Exportaci' + [char]0x00F3 + 'Establiments_20261014.xls'); T = 'ESTABLIMENTS'; E = '2026-10-14' },
+    @{ N = 'ExportacioActivitats_20261014 (1).xls'; T = 'ACTIVITATS'; E = '2026-10-14' },
+    @{ N = '2026-08-18 ACTIVITATS.xls'; T = 'ACTIVITATS'; E = '2026-08-18' },
+    @{ N = 'ExportacioEstabliments_20261014.xls'; T = 'ACTIVITATS'; E = '' },
+    @{ N = 'ExportacioActivitats_20261399.xls'; T = 'ACTIVITATS'; E = '' },
+    @{ N = 'ExportacioActivitats_20261014.xls.bak'; T = 'ACTIVITATS'; E = '' })) {
+    $dt = _ExcelBaseDataDelNom $cas.N $cas.T
+    AssertEq $(if ($null -eq $dt) { '' } else { $dt.ToString('yyyy-MM-dd') }) $cas.E ("_ExcelBaseDataDelNom '" + $cas.N + "' (" + $cas.T + ")")
+}
+AssertEq (_ExcelBaseDataDeText 'ExportacioActivitats_20261014.xls') '2026-10-14' '_ExcelBaseDataDeText: nom nou'
+AssertEq (_ExcelBaseDataDeText '2026-07-16 ACTIVITATS.xls') '2026-07-16' '_ExcelBaseDataDeText: nom antic'
+AssertEq (_ExcelBaseDataDeText 'res') '' '_ExcelBaseDataDeText: sense data'
+AssertEq (Build-PrecintadesObject @() 'ExportacioActivitats_20261014.xls').SourceDate '2026-10-14' 'precintades: la data del mapa surt tambe del nom nou'
+Assert ((_ExcelBaseNomText 'ESTABLIMENTS').Contains('ExportacioEstabliments_AAAAMMDD.xls')) 'els missatges diuen el nom nou'
 
 Write-Host "`n--- _FindCampInfoPairs (deteccio dinamica dels parells Nom/Valor) ---"
 # Capcalera amb 3 parells Camp Info intercalats amb altres columnes (com l'Excel real).

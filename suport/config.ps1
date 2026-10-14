@@ -14,7 +14,8 @@
 # $OutputDir = 'D:\Informes\Sortida'
 
 # Directori que conte la base de dades d'activitats en format Excel. El
-# fitxer ha de seguir el nom "YYYY-MM-DD ACTIVITATS.xls" o ".xlsx".
+# fitxer ha de seguir el nom "ExportacioActivitats_AAAAMMDD.xls" (o l'antic
+# "YYYY-MM-DD ACTIVITATS.xls"); els establiments, "ExportacioEstabliments_AAAAMMDD.xls".
 $ActivitatsDir = 'I:\Activitats_Ordenances\Activitats\5.- Sergi Fadurdo\2_Controls Excels'
 
 # Carpeta ARREL dels informes ja generats. La fa servir el boto "Actualitzar

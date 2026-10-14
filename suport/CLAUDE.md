@@ -230,6 +230,7 @@ només fa servir el codi nou no simplifica res.
 | una **pantalla** | `_NewForm`, `_AddBrandHeader`, `_StyleListGrid`, `_AddSearchBox` (`UiComuns.ps1`); els botons de baix, **sempre** amb `_AddPeuBotons` (sortir a l'esquerra, avançar a la dreta; hi ha guard); que hi capiga: `_AjustaFinestraAPantalla` (tots dos a `UiFinestra.ps1`) |
 | una **feina llarga** amb barra | `Show-ProgresCancel`; en segon pla, `Start-ScriptSegonPla` (`SegonPla.ps1`) |
 | **obrir un fitxer o una carpeta** per a l'usuari | `Open-PerUsuari` (`SegonPla.ps1`), mai `Invoke-Item` / `Start-Process <fitxer>`; un informe acabat de generar, `Show-InformeAlUsuari` (`Motor.ps1`); esperar un procés amb la sortida, `Wait-ProcesCapturat` (hi ha guard dels tres; vegeu «El programa no pot deixar penjades les finestres dels altres») |
+| **trobar l'Excel** d'activitats o d'establiments | `Find-LatestBaseExcelIn` (`Excel.ps1`, la carreguen els dos processos): `ExportacioActivitats_AAAAMMDD.xls` / `ExportacioEstabliments_AAAAMMDD.xls` (octubre 2026) i els antics `AAAA-MM-DD ACTIVITATS.xls`; la data d'un `Source`/`Font`, `_ExcelBaseDataDeText`; els missatges, `_ExcelBaseNomText`. Mai un regex de nom a mà |
 | llegir o desar **JSON** | `Read-JsonFile` / `Write-JsonFile` (atòmic, sense BOM) i `ConvertTo-Mapa` per passar-lo a hashtable (`Json.ps1`) |
 | una **carpeta** dins de `local/` | una clau nova a `Get-LocalSubdir` (`Migracio.ps1`), no un `Join-Path` a mà |
 | una **preferència** d'aquest PC | `Load-AppSettings` / `Save-AppSettings` (`Settings.ps1`) |

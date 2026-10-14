@@ -209,7 +209,7 @@ function Get-HeaderData {
     $latest = Find-LatestActivitatsExcel
     if ($null -eq $latest) {
         [System.Windows.Forms.MessageBox]::Show(
-            "No s'ha trobat cap fitxer 'YYYY-MM-DD ACTIVITATS.xls/xlsx' a cap de les ubicacions:`n`n" +
+            ("No s'ha trobat cap fitxer " + (_ExcelBaseNomText 'ACTIVITATS') + " a cap de les ubicacions:`n`n") +
             "  1. $ActivitatsDir`n" +
             "  2. $LocalActivitatsDir  (fallback local)`n`n" +
             "Si estas fora de la feina, copia una base de dades a la carpeta`n" +

@@ -22,6 +22,16 @@ $d2 = _FormatDateOnly '15/03/2023 9:30:00'
 Assert ($d2 -match '^\d{2}/\d{2}/\d{4}$') "_FormatDateOnly text amb hora -> nomes data (obtingut '$d2')"
 AssertEq (_FormatDateOnly $null)             ''                '_FormatDateOnly null -> buit'
 
+Write-Host "`n--- _FindLatestActivitatsIn: el nom nou i l'antic (octubre 2026) ---"
+$flDir = Join-Path ([System.IO.Path]::GetTempPath()) ('flact-' + [guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path $flDir -Force | Out-Null
+try {
+    foreach ($n in @('2026-09-01 ACTIVITATS.xlsx', 'ExportacioActivitats_20261014.xls', 'ExportacioEstabliments_20261020.xls', '~$ExportacioActivitats_20261030.xls')) { Set-Content -LiteralPath (Join-Path $flDir $n) -Value 'x' }
+    AssertEq (_FindLatestActivitatsIn $flDir).File.Name 'ExportacioActivitats_20261014.xls' 'el programa troba ExportacioActivitats_AAAAMMDD (no el dels establiments ni el temporal ~$)'
+    AssertEq ((_FindLatestActivitatsIn $flDir).Date.ToString('yyyy-MM-dd')) '2026-10-14' 'i la data, del nom'
+} finally { Remove-Item -LiteralPath $flDir -Recurse -Force -ErrorAction SilentlyContinue }
+AssertEq ((_ParseActivitatsDate ([pscustomobject]@{ Source = 'ExportacioActivitats_20261014.xls' })).ToString('yyyy-MM-dd')) '2026-10-14' '_ParseActivitatsDate: la data del Source amb el nom nou'
+
 Write-Host "`n--- _ParseActivitatsDate (data de l'activitats.json del Drive) ---"
 $pd1 = _ParseActivitatsDate ([pscustomobject]@{ SourceDate = '2026-06-01' })
 AssertEq ($pd1.ToString('yyyy-MM-dd')) '2026-06-01' '_ParseActivitatsDate llegeix SourceDate'

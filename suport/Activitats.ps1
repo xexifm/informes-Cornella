@@ -45,23 +45,11 @@ $Script:ActivitatsColumns = @(
 # es pugen (estan al .gitignore).
 $LocalActivitatsDir = Get-LocalSubdir $RepoRoot 'Activitats'
 
-# Cerca el fitxer 'YYYY-MM-DD ACTIVITATS.xls/xlsx' mes recent en una carpeta.
-# Retorna $null si no se'n troba cap.
+# L'Excel d'activitats mes recent d'una carpeta ('ExportacioActivitats_AAAAMMDD.xls'
+# o l'antic 'AAAA-MM-DD ACTIVITATS.xls'): Find-LatestBaseExcelIn (Excel.ps1), la
+# mateixa cerca que fa el proces de rutes. Retorna $null si no se'n troba cap.
 function _FindLatestActivitatsIn($dir) {
-    if ([string]::IsNullOrWhiteSpace($dir) -or -not (Test-Path -LiteralPath $dir)) { return $null }
-    $regex = '^(\d{4}-\d{2}-\d{2})\s+ACTIVITATS\.(xls|xlsx)$'
-    $candidates = Get-ChildItem -LiteralPath $dir -File -ErrorAction SilentlyContinue |
-        Where-Object { $_.Name -match $regex } |
-        ForEach-Object {
-            if ($_.Name -match $regex) {
-                [pscustomobject]@{
-                    File = $_
-                    Date = [datetime]::ParseExact($Matches[1], 'yyyy-MM-dd', $null)
-                }
-            }
-        } | Sort-Object Date -Descending
-    if ($candidates.Count -eq 0) { return $null }
-    return $candidates[0]
+    return (Find-LatestBaseExcelIn $dir 'ACTIVITATS')
 }
 
 # Cerca la base de dades en dues ubicacions, en ordre:
@@ -335,9 +323,8 @@ function _ParseActivitatsDate($obj) {
     if ($obj.SourceDate -and [datetime]::TryParseExact([string]$obj.SourceDate, 'yyyy-MM-dd', $null, [System.Globalization.DateTimeStyles]::None, [ref]$d)) {
         return $d
     }
-    if ($obj.Source -and ([string]$obj.Source) -match '(\d{4}-\d{2}-\d{2})') {
-        if ([datetime]::TryParseExact($matches[1], 'yyyy-MM-dd', $null, [System.Globalization.DateTimeStyles]::None, [ref]$d)) { return $d }
-    }
+    $ds = _ExcelBaseDataDeText ([string]$obj.Source)
+    if ($ds -and [datetime]::TryParseExact($ds, 'yyyy-MM-dd', $null, [System.Globalization.DateTimeStyles]::None, [ref]$d)) { return $d }
     return [datetime]::MinValue
 }
 
