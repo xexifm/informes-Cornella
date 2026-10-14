@@ -90,12 +90,20 @@ $Script:ModesAuto['seguimentgia'] = @{
 $Script:CorreuProves['seguiment'] = {
     param($gia, $cache, $cfgE)
     $t = _LoadSgCorreu
+    # EL DARRER PDF I EL SEU RESUM DE DEBO (els desa _SgGeneraFitxer). Abans hi
+    # sortia "(n)" a cada llistat; si el darrer PDF es d'abans que es desses el
+    # resum, les linies de les dades no hi surten.
+    $est = _SgAutoEstat
     $pdf = $null
-    try { $pdf = Get-ChildItem -LiteralPath (_SgCarpetaSortida) -Filter '*.pdf' -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1 } catch { }
-    $resum = [ordered]@{}
-    foreach ($o in @(_SgSeleccioAuto)) { $resum[[string]$o] = '(n)' }
+    if ([string]$est['ultim_pdf'] -and (Test-Path -LiteralPath ([string]$est['ultim_pdf']))) { $pdf = Get-Item -LiteralPath ([string]$est['ultim_pdf']) }
+    $ambDades = ($null -ne $pdf -and [string]$est['ultim_resum'])
+    if ($null -eq $pdf) {
+        try { $pdf = Get-ChildItem -LiteralPath (_SgCarpetaSortida) -Filter '*.pdf' -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1 } catch { }
+    }
     $ara = Get-Date
-    $html = _CosAHtml (_SgFillPh ([string]$t['cos']) $resum '(Excel d''activitats)' $ara)
+    $cos = if ($ambDades) { [string]$t['cos'] } else { _SgCosSenseDades ([string]$t['cos']) }
+    $resum = if ($ambDades) { _SgResumDeText ([string]$est['ultim_resum']) } else { [ordered]@{} }
+    $html = _CosAHtml (_SgFillPh $cos $resum ([string]$est['ultim_origen']) $ara)
     if ($null -eq $pdf) { $html = '<p><i>(Sense adjunt: encara no hi ha cap PDF de seguiment fet.)</i></p>' + $html }
     return @{
         Assumpte = (_SgFillPh ([string]$t['assumpte']) $resum '' $ara)

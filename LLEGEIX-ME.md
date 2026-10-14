@@ -697,6 +697,13 @@ pot transmetre l'activitat mentre hi hagi un expedient obert).
 >     petita abans d'enviar recordatoris, controls o el seguiment). En automàtic
 >     no s'hi posen mai.
 >
+> El botó **Editar el text** de cada fila obre el text d'aquell correu (el
+> mateix que *Textos del correu*). A baix, **Correu del mòbil…** tria a qui va
+> el correu de l'app del mòbil (titular i/o representant) i la seva CCO (sempre
+> o a triar); **Desar i publicar ara** ho puja amb Actualitzar, i **Copiar el
+> prompt** et fa un text per demanar a Claude qualsevol altre canvi del correu
+> del mòbil (el remitent, EmailJS…).
+>
 > El botó **Enviar prova** de cada fila envia el correu d'aquella eina amb les
 > dades de l'**ID GIA de prova** a l'adreça de prova que hi hagis posat a dalt.
 > Va **només** a aquella adreça, i al davant diu a qui hauria anat de debò. Les

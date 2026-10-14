@@ -714,6 +714,14 @@ $pp0 = _PeuPosicions 500 @() @(100)
 AssertEq (@($pp0.Esquerra).Count) 0 'Peu: sense botons a l''esquerra, cap posicio'
 AssertEq (@($pp0.Dreta) -join ',') '385' 'Peu: un sol boto a la dreta'
 AssertEq (_PeuAmple 40) 100 'Peu: un text curt ("OK", "Tancar") no fa un boto esquifit'
+# Seguiment (octubre 2026): Tancar | PDF i enviar, Exportar a PDF, Exportar a
+# Excel en una finestra de 470: "PDF i enviar" queia sobre "Tancar".
+$ppAm = [int[]]@(114, 128, 136)
+$ppMin = _PeuAmpleMinim @(100) $ppAm
+Assert ($ppMin -gt 470) ('Peu: els quatre botons de Seguiment no caben en 470 (' + $ppMin + ')')
+$ppS = _PeuPosicions $ppMin @(100) $ppAm
+Assert ([int]$ppS.Dreta[0] -ge [int]$ppS.Esquerra[0] + 100 + 20) 'Peu: amb l''amplada minima, el primer de la dreta no trepitja el de l''esquerra'
+AssertEq (_PeuAmpleMinim @() @(100)) 130 'Peu: un sol boto, els dos marges'
 AssertEq (_PeuAmple 150) 182 'Peu: un text llarg, el text i 16 de cada costat'
 AssertEq (_PeuAmple 150 90) 90 'Peu: una amplada fixa mana'
 Assert ((_TxtEnrere).EndsWith(' Enrere') -and [int][char](_TxtEnrere)[0] -eq 0x2190) 'Peu: "<- Enrere" amb la fletxa'

@@ -714,6 +714,7 @@ function _SgGeneraFitxer([string]$mode, $seleccio) {
         return @{ Ok = $false; Error = ("No s'ha pogut desar el fitxer:`n`n" + $detall) }
     }
     _SgTancar $excel $wb
+    if ($mode -eq 'pdf') { [void](_SgAutoDesaEstat @{ ultim_pdf = $path; ultim_resum = (_SgResumAText $r.Resum); ultim_origen = [string]$r.Origen }) }
     return @{ Ok = $true; Path = $path; Error = ''; Resum = $r.Resum; Origen = $r.Origen; Avisos = @($r.Avisos) }
 }
 
@@ -753,7 +754,44 @@ function _SgExportar([string]$mode, $seleccio) {
 # fitxer i aquell dependrien l'un de l'altre (el guard de cicles ho enxampa).
 # L'estat, a local\seguiment-gia\seguiment-auto.json (vegeu
 # SeguimentGiaAutomatic.ps1).
-$Script:SgEstatPlantilla = [ordered]@{ auto = $false; auto_el = ''; mode = ''; enviat_el = '' }
+# ultim_*: el PDF de l'ultim llistat i el que en deia el resum, per al correu
+# de PROVA (abans hi sortia "(n)" a cada llistat i "(Excel d'activitats)").
+$Script:SgEstatPlantilla = [ordered]@{ auto = $false; auto_el = ''; mode = ''; enviat_el = ''; ultim_pdf = ''; ultim_resum = ''; ultim_origen = '' }
+
+# El resum (pestanya -> activitats) en text per a l'estat, i al reves. Una
+# linia "NOM=n" per pestanya, en ordre. PURES.
+function _SgResumAText($resum) {
+    if ($null -eq $resum) { return '' }
+    return ((@($resum.Keys) | ForEach-Object { [string]$_ + '=' + [string]$resum[$_] }) -join "`n")
+}
+function _SgResumDeText([string]$t) {
+    $out = [ordered]@{}
+    foreach ($l in @(([string]$t) -split "`r?`n")) {
+        $i = $l.LastIndexOf('=')
+        if ($i -le 0) { continue }
+        $out[$l.Substring(0, $i)] = $l.Substring($i + 1)
+    }
+    return ,$out
+}
+
+# El cos SENSE les dades que no es coneixen (la prova, si encara no s'ha fet
+# cap PDF des que es desa el resum): l'usuari, "o que surti be o no cal
+# posar-ho". Treu les linies de {RESUM} i {ORIGEN}, l'etiqueta acabada en ':'
+# just a sobre de {RESUM}, i els buits que quedin repetits. PURA.
+function _SgCosSenseDades([string]$cos) {
+    $ls = @(([string]$cos) -split "`r?`n")
+    $out = New-Object System.Collections.ArrayList
+    foreach ($l in $ls) {
+        if ($l.Contains('{RESUM}')) {
+            if ($out.Count -gt 0 -and ([string]$out[$out.Count - 1]).TrimEnd().EndsWith(':')) { $out.RemoveAt($out.Count - 1) }
+            continue
+        }
+        if ($l.Contains('{ORIGEN}')) { continue }
+        if ([string]::IsNullOrWhiteSpace($l) -and $out.Count -gt 0 -and [string]::IsNullOrWhiteSpace([string]$out[$out.Count - 1])) { continue }
+        [void]$out.Add($l)
+    }
+    return ($out -join "`n")
+}
 
 function _SgAutoStatePath {
     try { return [string](Join-Path (Get-LocalSubdir $RepoRoot 'Seguiment') 'seguiment-auto.json') } catch { return '' }

@@ -479,6 +479,31 @@ cadascuna de les opcions per enviar un correu de prova».
     `06-guards.ps1` (validat injectant-ho).
   - El **mòbil** segueix amb la clau `bcc` d'`email-textos.json`: `correus.json`
     és d'aquest PC i no arriba a la web.
+- **Tot el correu des d'aquesta pantalla** (octubre 2026, l'usuari: «s'ha de
+  poder configurar tot el correu des d'aquesta pantalla»). Cada fila té
+  **Editar el text**, que obre el mateix editor que *Textos del correu*
+  (`$Script:CorreuTextosEditors`; hi ha prova que totes les eines del registre en
+  tenen), i a baix hi ha **App del mòbil (web) → Correu del mòbil…**. Per fer
+  lloc als dos botons, la finestra fa 1.100 d'ample (`_CorreuFilaGeometria`).
+- **El correu del MÒBIL des del programa** (`CorreuMobil.ps1`, també des de
+  Configuració). El mòbil llegeix `docs/dades/email-textos.json`; s'hi tria
+  **a qui va** (clau nova `dest`: `titular` i/o `representant`; sense la clau, el
+  titular, que és el que feia; `docs/app.js` → `destinatariPerDefecte`, amb
+  l'`EMAIL_REP` de l'activitat) i la **CCO sempre / a triar** (la clau `bcc` de
+  sempre, amb el `def`). **Desar i publicar ara** desa i llança Actualitzar, que
+  committeja aquell fitxer; li arriba com a scriptblock des de Configuració
+  (cridar-lo des d'aquí faria un cicle). Per al que viu a `docs/config.js`
+  (EmailJS, el remitent) —que Actualitzar **no** puja— o al codi, **Copiar el
+  prompt** (`_CorreuMobilPrompt`, pura) fa un text amb la configuració d'ara i
+  el canvi que s'hi escriu, per enganxar a Claude. *Textos del correu* conserva
+  `dest` en desar (guard). Compte: `email-textos.json` és al repositori públic;
+  les adreces de CCO del mòbil ja hi eren.
+- **La prova del Seguiment porta els nombres de debò** (o no en porta):
+  `_SgGeneraFitxer` desa a l'estat (`seguiment-auto.json`) el darrer PDF, el
+  resum i l'Excel (`ultim_pdf`, `ultim_resum`, `ultim_origen`), i la prova els
+  fa servir. Si el darrer PDF és d'abans que es desés el resum, les línies de
+  dades **no hi surten** (`_SgCosSenseDades`): abans hi sortia «(n)» a cada
+  llistat i «(Excel d'activitats)».
 
 ## El format del correu: el de REQ1, i el mateix al PC i al mòbil
 

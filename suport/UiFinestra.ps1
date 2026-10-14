@@ -421,6 +421,17 @@ function _PeuPosicions([int]$ample, [int[]]$esquerra, [int[]]$dreta, [int]$marge
     return @{ Esquerra = $xe.ToArray(); Dreta = $xd.ToArray() }
 }
 
+# L'amplada minima del contenidor perque els dos grups NO es trepitgin: els
+# marges, els botons, les separacions i 20 px entre grup i grup. A Seguiment el
+# peu tenia quatre botons en una finestra de 470 i "PDF i enviar" queia sobre
+# "Tancar" (octubre 2026). PURA.
+function _PeuAmpleMinim([int[]]$esquerra, [int[]]$dreta, [int]$marge = 15, [int]$sep = 10) {
+    $suma = { param($l) $t = 0; foreach ($w in @($l)) { $t += [int]$w }; if (@($l).Count -gt 1) { $t += $sep * (@($l).Count - 1) }; return $t }
+    $e = & $suma $esquerra; $d = & $suma $dreta
+    $entre = if (@($esquerra).Count -gt 0 -and @($dreta).Count -gt 0) { 20 } else { 0 }
+    return ($marge + $e + $entre + $d + $marge)
+}
+
 # L'amplada d'un boto amb aquest text: la que demana el text i, com a minim,
 # 100 (que "OK" i "Tancar" no quedin esquifits). PURA si se li dona la mida
 # del text.
@@ -475,6 +486,12 @@ function _AddPeuBotons($form, $esquerra, $dreta, [int]$y, $pare = $null, [switch
         for ($i = 0; $i -lt $col.Dre.Count; $i++) { $col.Dre[$i].Left = [int]$pos.Dreta[$i] }
         return $pos
     }.GetNewClosure()
+    # Si no hi caben, la FINESTRA s'eixampla (nomes quan el peu va directament
+    # a la finestra: dins d'un panell, qui mana es el panell).
+    $minim = _PeuAmpleMinim $amplesE $amplesD
+    if ($pare -eq $form -and [int]$form.ClientSize.Width -lt $minim) {
+        $form.ClientSize = New-Object System.Drawing.Size($minim, [int]$form.ClientSize.Height)
+    }
     $pos = & $col.Posa
     for ($i = 0; $i -lt $col.Esq.Count; $i++) {
         $b = $col.Esq[$i]

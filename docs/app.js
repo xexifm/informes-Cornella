@@ -378,7 +378,10 @@
       emailTextosError = "els textos del correu no tenen assumpte o cos.";
       return;
     }
+    // dest: a qui va per defecte (Configuracio -> Correu del mobil, al PC).
+    // Sense la clau, el titular, que es el que s'ha fet sempre.
     emailTextos = { assumpte: String(obj.assumpte), cos: String(obj.cos), bcc: asArray(obj.bcc),
+                    dest: obj.dest == null ? ["titular"] : asArray(obj.dest),
                     introDoc: String(obj.introDoc || ""), introDocSenseAnotacio: String(obj.introDocSenseAnotacio || ""),
                     introInsp: String(obj.introInsp || "") };
     emailTextosError = "";
@@ -645,6 +648,7 @@
     $("tit-email").textContent = act.EMAIL || "—";
     estat.header.MOBIL = act.MOBIL || "";
     estat.header.EMAIL = act.EMAIL || "";
+    estat.header.EMAIL_REP = act.EMAIL_REP || "";
     $("chk-titular").checked = false;
     $("det-capcalera").open = true;
   }
@@ -912,12 +916,26 @@
       estat.emailHTML = buildEmailHTML(selSections, estat.fieldValues);
       estat.emailText = buildEmailBody(selSections, estat.fieldValues);
       $("prev-requeriments").innerHTML = estat.emailHTML;
-      // Destinatari per defecte: l'e-mail del titular (Raó soc. E-mail), editable.
+      // Destinatari per defecte: el que diu 'dest' (titular i/o representant),
+      // editable.
       if (!$("in-destinatari").value) {
-        $("in-destinatari").value = estat.header.EMAIL || ((window.CONFIG && CONFIG.EMAIL_DESTINATARI) || "");
+        $("in-destinatari").value = destinatariPerDefecte() || ((window.CONFIG && CONFIG.EMAIL_DESTINATARI) || "");
       }
       muntarBcc();
     });
+  }
+
+  // Les adreces de 'dest' (titular -> EMAIL, representant -> EMAIL_REP), sense
+  // repetides (sense distingir majuscules), separades per coma.
+  function destinatariPerDefecte() {
+    var h = estat.header || {}, vistes = {}, out = [];
+    asArray(emailTextos && emailTextos.dest).forEach(function (d) {
+      var a = String((d === "titular" ? h.EMAIL : d === "representant" ? h.EMAIL_REP : "") || "").trim();
+      if (!a || vistes[a.toLowerCase()]) return;
+      vistes[a.toLowerCase()] = true;
+      out.push(a);
+    });
+    return out.join(", ");
   }
 
   // Pinta les caselles de Còpia Oculta (un sol cop). La 1a marcada per defecte.

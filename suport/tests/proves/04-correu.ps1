@@ -214,6 +214,31 @@ $ceAb = Get-CorreuCcoEina 'mobil' (_CorreuEinaNormalitza $null 'mobil' '')
 AssertEq ((@(_CorreuCcoOpcions ([string]$ceAb.Sempre) ([string]$ceAb.Tria)) | ForEach-Object { [string]$_.Addr + '=' + [string]$_.Default }) -join '|') ((@($ceJs | Where-Object { $_.Default }) + @($ceJs | Where-Object { -not $_.Default }) | ForEach-Object { [string]$_.Addr + '=' + [string][bool]$_.Default }) -join '|') 'Enviar correu sense configurar: les mateixes caselles que abans (email-textos.json)'
 $ceSel = Select-CorreuCcoTria 'controls' (_CorreuEinaNormalitza @{ cco = 'me@x.cat' } 'controls' '')
 Assert ($ceSel.Ok -and @($ceSel.Adreces).Count -eq 0) 'Select-CorreuCcoTria: sense cap adreca a triar no obre res i continua'
+# EL CORREU DEL MOBIL (CorreuMobil.ps1): a qui va i la CCO, a email-textos.json.
+$cmTx = _LoadEmailTextos
+AssertEq (@($cmTx['dest']) -join ',') 'titular' 'email-textos.json sense la clau dest: el mobil va al titular (com sempre)'
+AssertEq (@(_EmailDestDeJson ([pscustomobject]@{ dest = @('representant', 'inventat', 'titular', 'representant') })) -join ',') 'representant,titular' '_EmailDestDeJson: nomes titular/representant, sense repetides'
+AssertEq @(_EmailDestDeJson ([pscustomobject]@{ dest = @() })).Count 0 '_EmailDestDeJson: es pot desar "ningu" (el destinatari s''escriu a ma)'
+$cmM = _CorreuMobilLlegeix $cmTx
+AssertEq "$($cmM.Sempre)|$($cmM.Tria)" "$((@(@($cmTx['bcc']) | Where-Object { $_.Default } | ForEach-Object { $_.Addr })) -join '; ')|$((@(@($cmTx['bcc']) | Where-Object { -not $_.Default } | ForEach-Object { $_.Addr })) -join '; ')" '_CorreuMobilLlegeix: la CCO de sempre son les def, la a triar les altres'
+$cmA = _CorreuMobilAplica $cmTx 'me@x.cat' 'a@x.cat; ME@x.cat; b@x.cat' @('representant', 'titular', 'x')
+AssertEq ((@($cmA.Keys)) -join ',') (((@($cmTx.Keys)) -join ',')) '_CorreuMobilAplica: les mateixes claus i en el mateix ordre'
+AssertEq "$($cmA['assumpte'] -eq $cmTx['assumpte'])|$($cmA['cos'] -eq $cmTx['cos'])|$($cmA['introInsp'] -eq $cmTx['introInsp'])" 'True|True|True' '_CorreuMobilAplica: els textos no es toquen'
+AssertEq ((@($cmA['bcc']) | ForEach-Object { [string]$_.addr + '=' + [string]$_.def }) -join '|') 'me@x.cat=True|a@x.cat=False|b@x.cat=False' '_CorreuMobilAplica: la CCO al format del mobil (addr/def), sense repetir les de sempre'
+AssertEq (@($cmA['dest']) -join ',') 'representant,titular' '_CorreuMobilAplica: a qui va, nomes els valors valids'
+$cmTmp = Join-Path ([System.IO.Path]::GetTempPath()) ('email-textos-' + [guid]::NewGuid().ToString('N') + '.json')
+try {
+    Write-JsonFile $cmTmp $cmA 5
+    $cmR = Read-JsonFile $cmTmp
+    AssertEq "$((@(_EmailBccDeJson $cmR) | ForEach-Object { $_.Addr + '=' + $_.Default }) -join '|')#$(@(_EmailDestDeJson $cmR) -join ',')" 'me@x.cat=True|a@x.cat=False|b@x.cat=False#representant,titular' 'Correu del mobil: el que es desa es llegeix igual (anada i tornada del JSON)'
+    Write-JsonFile $cmTmp (_CorreuMobilAplica $cmTx '' '' @('titular')) 5
+    AssertEq "$(@((Read-JsonFile $cmTmp).dest).Count)|$(@(_EmailBccDeJson (Read-JsonFile $cmTmp)).Count)" '1|0' 'Correu del mobil: sense CCO, cap; la llista d''un sol destinatari segueix sent una llista'
+} finally { Remove-Item -LiteralPath $cmTmp -Force -ErrorAction SilentlyContinue }
+$cmP = _CorreuMobilPrompt @{ Sempre = 'me@x.cat'; Tria = 'a@x.cat'; Dest = @('titular', 'representant') } @{ EMAILJS_PUBLIC_KEY = 'k'; EMAILJS_SERVICE_ID = ''; EMAIL_FROM_NAME = 'Ajuntament' } 'Que surti des d''una altra adreca'
+foreach ($cmFr in @('el titular i el representant legal', 'CCO sempre (marcades): me@x.cat', 'CCO a triar (desmarcades): a@x.cat', 'en falten: EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID', 'Ajuntament', "Que surti des d'una altra adreca", 'docs/dades/email-textos.json', 'xexifm/informes-cornella')) {
+    Assert ($cmP.Contains($cmFr)) ("_CorreuMobilPrompt: diu '" + $cmFr + "'")
+}
+Assert ((_CorreuMobilPrompt @{ Sempre = ''; Tria = ''; Dest = @() } @{} '').Contains('el canvi)')) '_CorreuMobilPrompt: sense canvi escrit, deixa el lloc per escriure''l'
 # El fitxer, en un LOCALAPPDATA de prova.
 $ceApp = Join-Path ([System.IO.Path]::GetTempPath()) ('correus-' + [guid]::NewGuid().ToString('N'))
 $ceVell = $env:LOCALAPPDATA
@@ -276,6 +301,16 @@ AssertEq ((@(_SgSeleccioAuto)) -join ',') ((@(_SgOpcionsExport) | Select-Object 
 Assert (-not (@(_SgSeleccioAuto) -contains (_SgNomEstes))) '...i la fulla Estes no hi es'
 $sgTxt = _SgFillPh 'Data {DATA} {ORIGEN}`n{RESUM}' ([ordered]@{ PRECINTES = 3; SONOMETRIA = 0 }) '2026-10-01 ACTIVITATS.xls' ([datetime]'2026-10-12')
 Assert ($sgTxt.Contains('12/10/2026') -and $sgTxt.Contains('- PRECINTES: 3') -and $sgTxt.Contains('ACTIVITATS.xls')) '_SgFillPh: la data, el resum per llistat i l''Excel'
+# La PROVA del seguiment: els nombres del darrer PDF, o res (l'usuari: "a la
+# prova no surten els nombres, surt (n); o que surti be o no cal posar-ho").
+$sgR = _SgResumDeText (_SgResumAText ([ordered]@{ 'PRECINTES' = 12; ('DEN' + [char]0x00DA + 'NCIES') = 3; 'ANNEX II' = 0 }))
+AssertEq ((@($sgR.Keys) | ForEach-Object { [string]$_ + ':' + [string]$sgR[$_] }) -join '|') ('PRECINTES:12|DEN' + [char]0x00DA + 'NCIES:3|ANNEX II:0') '_SgResumAText/_SgResumDeText: el resum es desa i es llegeix igual, en ordre'
+AssertEq @((_SgResumDeText '').Keys).Count 0 '_SgResumDeText: sense res, cap llistat'
+$sgSD = _SgCosSenseDades ([string](_SgCorreuDefecte)['cos'])
+Assert (-not $sgSD.Contains('{RESUM}') -and -not $sgSD.Contains('{ORIGEN}') -and -not $sgSD.Contains('Activitats per llistat:') -and -not $sgSD.Contains('Base de dades:')) '_SgCosSenseDades: sense dades, ni el resum ni la seva etiqueta ni la base de dades'
+Assert ($sgSD.Contains('{DATA}') -and $sgSD.Contains('Bon dia,') -and -not $sgSD.Contains("`n`n`n")) '_SgCosSenseDades: la resta del text hi es, sense buits repetits'
+$sgSrcAuto = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'SeguimentGiaAutomatic.ps1'))
+Assert (-not $sgSrcAuto.Contains("'(n)'") -and -not $sgSrcAuto.Contains("'(Excel d''activitats)'")) 'la prova del seguiment ja no posa "(n)" ni "(Excel d''activitats)"'
 $sgApp = Join-Path ([System.IO.Path]::GetTempPath()) ('sg-' + [guid]::NewGuid().ToString('N'))
 $sgVell = $env:LOCALAPPDATA
 try {
@@ -1492,12 +1527,14 @@ Write-Host "`n--- Pantalles dels correus: res no es trepitja (geometria pura) --
 # "Correus de cada eina": la casella "Persones autoritzades / tecnic" acabava
 # a x=844 i el boto "Enviar prova" comencava a 820 (octubre 2026).
 foreach ($cas in @(@{ A = [int[]]@(67, 132, 192); N = 'lletra normal' }, @{ A = [int[]]@(110, 220, 330); N = 'lletra gran (125%)' })) {
-    $gmT = _CorreuFilaGeometria 980 $cas.A
+    $gmT = _CorreuFilaGeometria 1100 $cas.A
     $fiT = [int]$gmT.X[2] + $cas.A[2]
-    Assert ($fiT + 8 -le [int]$gmT.Boto) ("Correus de cada eina (" + $cas.N + "): l'ultima casella acaba abans del boto Enviar prova (" + $fiT + " < " + $gmT.Boto + ")")
+    Assert ($fiT + 8 -le [int]$gmT.BotoText) ("Correus de cada eina (" + $cas.N + "): l'ultima casella acaba abans del boto Editar el text (" + $fiT + " < " + $gmT.BotoText + ")")
+    Assert ([int]$gmT.BotoText + 130 + 8 -le [int]$gmT.Boto) ("Correus de cada eina (" + $cas.N + "): Editar el text i Enviar prova no es trepitgen")
     Assert ([int]$gmT.X[1] -ge [int]$gmT.X[0] + $cas.A[0] -and [int]$gmT.X[2] -ge [int]$gmT.X[1] + $cas.A[1]) ("Correus de cada eina (" + $cas.N + "): les caselles no es trepitgen entre elles")
 }
-AssertEq ([int](_CorreuFilaGeometria 980 ([int[]]@(67, 132, 192))).Ampl) 980 'Correus de cada eina: amb la lletra normal, la finestra no s''eixampla'
+AssertEq ([int](_CorreuFilaGeometria 1100 ([int[]]@(67, 132, 192))).Ampl) 1100 'Correus de cada eina: amb la lletra normal, la finestra no s''eixampla'
+foreach ($k in @($Script:CorreuEines.Keys)) { Assert ($Script:CorreuTextosEditors.Contains($k)) ("Correus de cada eina: '" + $k + "' te el boto Editar el text amb el seu editor") }
 # Configuracio: els correus a la DRETA i a sobre dels automatismes (l'usuari).
 $gC = _ConfigGeometria 5
 AssertEq "$($gC.Correu.X)|$($gC.Auto.X)|$($gC.Mant.X)" "$($gC.XDre)|$($gC.XDre)|$($gC.XDre)" 'Configuracio: correus, automatismes i manteniment, tots a la columna de la dreta'

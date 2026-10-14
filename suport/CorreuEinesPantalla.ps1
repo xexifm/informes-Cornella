@@ -27,19 +27,25 @@ function _CorreuEinaDeLaPantalla([string]$via, $dest, [string]$fixes, [string]$c
 # "Persones autoritzades / tecnic" acabava a x=844, sota el boto "Enviar
 # prova" (x=820): la finestra avisava de "Pantalla mal col·locada" (octubre
 # 2026). Ara les caselles van una darrere l'altra amb el que ocupen de debo i,
-# si encara no hi cabessin, la finestra s'eixampla: torna @{ Ampl; X (una per
-# casella); Boto (x del boto) }.
+# si encara no hi cabessin, la finestra s'eixampla. Al final, dos botons:
+# "Editar el text" (130) i "Enviar prova" (120). Torna @{ Ampl; X (una per
+# casella); BotoText; Boto (x de cada boto) }.
 function _CorreuFilaGeometria([int]$amplMin, [int[]]$amples) {
     $x0 = 316 + 44
     $xs = New-Object System.Collections.ArrayList
     $x = $x0
     foreach ($w in @($amples)) { [void]$xs.Add($x); $x += [int]$w + 10 }
-    # El boto (120) va a 28 + 12 de la vora dreta; hi ha d'haver 8 px de marge.
-    $ampl = [Math]::Max($amplMin, $x + 8 + 120 + 40)
-    return @{ Ampl = $ampl; X = $xs.ToArray(); Boto = ($ampl - 28 - 132); Fi = $x }
+    # El de prova va a 28 + 12 de la vora dreta, el del text 10 mes a
+    # l'esquerra; hi ha d'haver 8 px de marge amb l'ultima casella.
+    $ampl = [Math]::Max($amplMin, $x + 8 + 130 + 10 + 120 + 40)
+    $boto = $ampl - 28 - 132
+    return @{ Ampl = $ampl; X = $xs.ToArray(); BotoText = ($boto - 10 - 130); Boto = $boto; Fi = $x }
 }
 
-function Show-CorreuEinesConfig {
+# $publica: el que fa "Publicar ara" a la finestra del correu del mobil
+# (Configuracio hi passa Invoke-ActualitzarPrograma; aqui no es pot cridar
+# sense un cicle de dependencies).
+function Show-CorreuEinesConfig([scriptblock]$publica = $null) {
     $cfg = Read-CorreuEines
     $eines = $Script:CorreuEines
     $destNoms = $Script:CorreuDestNoms
@@ -50,16 +56,17 @@ function Show-CorreuEinesConfig {
     # L'amplada de cada casella, mesurada amb la lletra de la finestra.
     $amplesDest = @{}
     foreach ($d in @($destNoms.Keys)) { $amplesDest[[string]$d] = [System.Windows.Forms.TextRenderer]::MeasureText([string]$destNoms[$d], $form.Font).Width + 24 }
-    $amplNec = 980
+    $amplNec = 1100
     foreach ($k in @($eines.Keys)) {
-        $gm = _CorreuFilaGeometria 980 ([int[]]@(@($eines[$k].Dest) | ForEach-Object { [int]$amplesDest[[string]$_] }))
+        $gm = _CorreuFilaGeometria 1100 ([int[]]@(@($eines[$k].Dest) | ForEach-Object { [int]$amplesDest[[string]$_] }))
         $amplNec = [Math]::Max($amplNec, [int]$gm.Ampl)
     }
     $ampl = $amplNec
     # Tres linies per eina: via i a qui; fixes i CCO de sempre; CCO a triar.
     $altEina = 128
     $yIni = 150
-    $form.ClientSize = New-Object System.Drawing.Size($ampl, ($yIni + $altEina * @($eines.Keys).Count + 60))
+    # + la fila de l'app del mobil (60) + el peu (60).
+    $form.ClientSize = New-Object System.Drawing.Size($ampl, ($yIni + $altEina * @($eines.Keys).Count + 60 + 60))
     $form.StartPosition = 'CenterScreen'
 
     # ---- El correu de prova (comu a totes les eines) ----------------------
@@ -134,6 +141,15 @@ function Show-CorreuEinesConfig {
         $btnP.Text = 'Enviar prova'
         $btnP.Location = New-Object System.Drawing.Point([int]$gm.Boto, 20); $btnP.Size = New-Object System.Drawing.Size(120, 28)
         _StyleSecondaryButton $btnP
+        # EL TEXT del correu d'aquesta eina (l'usuari: "s'ha de poder configurar
+        # tot el correu des d'aquesta pantalla"): el mateix editor que obre
+        # Textos del correu.
+        $btnT = New-Object System.Windows.Forms.Button
+        $btnT.Text = 'Editar el text'
+        $btnT.Location = New-Object System.Drawing.Point([int]$gm.BotoText, 20); $btnT.Size = New-Object System.Drawing.Size(130, 28)
+        _StyleSecondaryButton $btnT
+        $btnT.Enabled = $Script:CorreuTextosEditors.Contains($k)
+        [void]$g.Controls.Add($btnT)
         $lf = New-Object System.Windows.Forms.Label
         $lf.Text = 'Adreces fixes:'; $lf.Location = New-Object System.Drawing.Point(12, 61); $lf.Size = New-Object System.Drawing.Size(88, 20)
         $tbF = New-Object System.Windows.Forms.TextBox
@@ -157,7 +173,7 @@ function Show-CorreuEinesConfig {
         $lh.ForeColor = [System.Drawing.Color]::FromArgb(90, 90, 90)
         foreach ($c in @($lv, $cbV, $btnP, $lf, $tbF, $lc, $tbC, $lt, $tbT, $lh)) { [void]$g.Controls.Add($c) }
         [void]$form.Controls.Add($g)
-        $ctl[$k] = @{ Via = $cbV; Dest = $chks; Fixes = $tbF; Cco = $tbC; CcoAbans = $ccoAbans; CcoTria = $tbT; CcoTriaAbans = $ccoTriaAbans; Btn = $btnP }
+        $ctl[$k] = @{ Via = $cbV; Dest = $chks; Fixes = $tbF; Cco = $tbC; CcoAbans = $ccoAbans; CcoTria = $tbT; CcoTriaAbans = $ccoTriaAbans; Btn = $btnP; BtnText = $btnT }
         $y += $altEina
     }
 
@@ -178,8 +194,15 @@ function Show-CorreuEinesConfig {
         }
     }.GetNewClosure()
 
+    $eds = $Script:CorreuTextosEditors
     foreach ($k in @($ctl.Keys)) {
         $clau = [string]$k
+        $ctl[$k].BtnText.add_Click({
+            if (-not $eds.Contains($clau)) { return }
+            try { & $eds[$clau].Obre } catch {
+                [System.Windows.Forms.MessageBox]::Show([string]$_.Exception.Message, 'Text del correu', 'OK', 'Error') | Out-Null
+            }
+        }.GetNewClosure())
         $ctl[$k].Btn.add_Click({
             # La prova surt amb el que hi ha a la pantalla: primer es desa.
             if (-not (& $desa)) { return }
@@ -189,6 +212,25 @@ function Show-CorreuEinesConfig {
         }.GetNewClosure())
     }
 
+    # ---- L'app del MOBIL (CorreuMobil.ps1): no surt d'aquest PC, pero tambe
+    # es correu: a qui va, la CCO, publicar-ho i el prompt per a la resta.
+    $gM = New-Object System.Windows.Forms.GroupBox
+    $gM.Text = ("App del m" + [char]0x00F2 + "bil (web)")
+    $gM.Location = New-Object System.Drawing.Point(14, $y)
+    $gM.Size = New-Object System.Drawing.Size(($ampl - 28), 54)
+    $btnM = New-Object System.Windows.Forms.Button
+    $btnM.Text = ('Correu del m' + [char]0x00F2 + 'bil...')
+    $btnM.Location = New-Object System.Drawing.Point(12, 18); $btnM.Size = New-Object System.Drawing.Size(200, 28)
+    _StyleSecondaryButton $btnM
+    $lM = New-Object System.Windows.Forms.Label
+    $lM.Text = ("A qui va i la CCO del correu que envia l'app del m" + [char]0x00F2 + "bil, publicar-ho i un prompt per canviar la resta. El text " + [char]0x00E9 + "s el d'Enviar correu (Editar el text, a dalt).")
+    $lM.Location = New-Object System.Drawing.Point(224, 18); $lM.Size = New-Object System.Drawing.Size(($ampl - 28 - 224 - 12), 30)
+    $lM.ForeColor = [System.Drawing.Color]::FromArgb(90, 90, 90)
+    $btnM.add_Click({ Show-CorreuMobilConfig $publica }.GetNewClosure())
+    foreach ($c in @($btnM, $lM)) { [void]$gM.Controls.Add($c) }
+    [void]$form.Controls.Add($gM)
+    $y += 60
+
     $peu = _AddPeuBotons $form @(@{ Nom = 'Tancar'; Text = 'Tancar'; Resultat = 'Cancel'; Esc = $true }) @(@{ Nom = 'Desar'; Text = 'Desar'; Estil = 'primari' }) ($y + 8)
     $peu.Desar.add_Click({
         if (& $desa) {
@@ -196,7 +238,7 @@ function Show-CorreuEinesConfig {
             $form.Close()
         }
     }.GetNewClosure())
-    [void](_AddBrandHeader $form 'Correus de cada eina' ('Per on surten, a qui van i la CCO (sempre o a triar) ' + [char]0x00B7 + ' nom' + [char]0x00E9 + 's en aquest ordinador') 56)
+    [void](_AddBrandHeader $form 'Correus de cada eina' ('Per on surten, a qui van, la CCO i el text ' + [char]0x00B7 + ' nom' + [char]0x00E9 + 's en aquest ordinador') 56)
     [void]$form.ShowDialog()
     $form.Dispose()
 }

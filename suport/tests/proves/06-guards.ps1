@@ -1893,3 +1893,15 @@ $ccoRec = _SenseComentaris (Join-Path $ccoDir 'Recordatoris.ps1')
 $ccoSg = _SenseComentaris (Join-Path $ccoDir 'SeguimentGia.ps1')
 Assert ($ccoRec.Contains('if (-not $silenci -and @($ccoTriades).Count -gt 0) { $bcc = _CorreuCcoAmb $bcc $ccoTriades }')) 'CCO a triar: els recordatoris automatics no hi posen mai les triades'
 Assert ($ccoSg.Contains('if (-not $silenci -and @($ccoTriades).Count -gt 0) { $cco = _CorreuCcoAmb $cco $ccoTriades }')) 'CCO a triar: el seguiment automatic no hi posa mai les triades'
+
+Write-Host "`n--- El correu del mobil es configura des del programa (guard) ---"
+$cmEt = _SenseComentaris (Join-Path $ccoDir 'EmailTextos.ps1')
+Assert ($cmEt.Contains("`$out['dest'] = [string[]]@(`$textos['dest'])")) 'Textos del correu: en desar els textos, no s''enduu a qui va el correu del mobil'
+Assert ((_SenseComentaris (Join-Path $ccoDir 'Configuracio.ps1')).Contains('Show-CorreuMobilConfig { Invoke-ActualitzarPrograma }')) 'Configuracio: hi ha el boto Correu del mobil, que publica amb Actualitzar'
+$cmApp = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'docs' 'app.js')))
+Assert ($cmApp.Contains('dest: obj.dest == null ? ["titular"] : asArray(obj.dest)')) 'mobil: llegeix a qui va de email-textos.json (sense la clau, el titular)'
+Assert ($cmApp.Contains('estat.header.EMAIL_REP = act.EMAIL_REP || "";') -and $cmApp.Contains('destinatariPerDefecte() ||')) 'mobil: el destinatari per defecte surt de dest (titular i/o representant)'
+$cmPant = _SenseComentaris (Join-Path $ccoDir 'CorreuEinesPantalla.ps1')
+Assert ($cmPant.Contains('try { & $eds[$clau].Obre }') -and $cmPant.Contains('Show-CorreuMobilConfig $publica')) 'Correus de cada eina: s''hi edita el text de cada correu i el correu del mobil'
+Assert ((_SenseComentaris (Join-Path $ccoDir 'Configuracio.ps1')).Contains('Show-CorreuEinesConfig { Invoke-ActualitzarPrograma }')) 'Configuracio: Correus de cada eina rep com publicar el mobil'
+Assert ((_SenseComentaris (Join-Path $ccoDir 'UiFinestra.ps1')).Contains('$minim = _PeuAmpleMinim $amplesE $amplesD')) 'peu de botons: si no hi caben, la finestra s''eixampla (no es trepitgen)'

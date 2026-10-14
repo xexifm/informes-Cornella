@@ -40,7 +40,7 @@
 function _ConfigGeometria([int]$nAuto) {
     $xEsq = 14; $xDre = 542; $amplCol = 514; $yTop = 66
     $fiCarp = 588
-    $hCorreu = 100; $hMant = 96; $sep = 8
+    $hCorreu = 136; $hMant = 96; $sep = 8
     $altAuto = 72 + 30 * $nAuto
     $yAuto = $yTop + $hCorreu + $sep
     $hAuto = [math]::Max(($altAuto - 8), ($fiCarp - $yAuto - $sep - $hMant))
@@ -151,10 +151,10 @@ function Invoke-ConfiguracioScreen {
     $btnCorreus.Location = New-Object System.Drawing.Point(12, 20)
     $btnCorreus.Size = New-Object System.Drawing.Size(250, 30)
     _StyleSecondaryButton $btnCorreus
-    $btnCorreus.add_Click({ Show-CorreuEinesConfig })
+    $btnCorreus.add_Click({ Show-CorreuEinesConfig { Invoke-ActualitzarPrograma } })
     [void]$grpCorreu.Controls.Add($btnCorreus)
     $lblCorreuNota = New-Object System.Windows.Forms.Label
-    $lblCorreuNota.Text = ("Per on surt el correu de cada eina, a qui va, la CCO i el correu de prova.")
+    $lblCorreuNota.Text = ("Per on surt el correu de cada eina, a qui va, la CCO, el text i el correu de prova.")
     $lblCorreuNota.Location = New-Object System.Drawing.Point(270, 20)
     $lblCorreuNota.Size = New-Object System.Drawing.Size(236, 32)
     $lblCorreuNota.ForeColor = [System.Drawing.Color]::FromArgb(90, 90, 90)
@@ -196,6 +196,21 @@ function Invoke-ConfiguracioScreen {
         $cbRem.DroppedDown = $true
     }.GetNewClosure())
     [void]$grpCorreu.Controls.Add($btnComptes)
+    # El correu de l'app del MOBIL (CorreuMobil.ps1): a qui va, la CCO, publicar
+    # i el prompt per a la resta. "Publicar ara" es Actualitzar, que viu aqui.
+    $btnMobil = New-Object System.Windows.Forms.Button
+    $btnMobil.Text = ('Correu del m' + [char]0x00F2 + 'bil...')
+    $btnMobil.Location = New-Object System.Drawing.Point(12, 96)
+    $btnMobil.Size = New-Object System.Drawing.Size(250, 30)
+    _StyleSecondaryButton $btnMobil
+    $btnMobil.add_Click({ Show-CorreuMobilConfig { Invoke-ActualitzarPrograma } })
+    [void]$grpCorreu.Controls.Add($btnMobil)
+    $lblMobilNota = New-Object System.Windows.Forms.Label
+    $lblMobilNota.Text = ("A qui va i la CCO de l'app del m" + [char]0x00F2 + "bil; publicar-ho, o un prompt per canviar la resta.")
+    $lblMobilNota.Location = New-Object System.Drawing.Point(270, 96)
+    $lblMobilNota.Size = New-Object System.Drawing.Size(236, 32)
+    $lblMobilNota.ForeColor = [System.Drawing.Color]::FromArgb(90, 90, 90)
+    [void]$grpCorreu.Controls.Add($lblMobilNota)
     $ttRem = New-Object System.Windows.Forms.ToolTip
     $ttRem.SetToolTip($cbRem, ("Buit = el compte per defecte de l'Outlook. Una b" + [char]0x00FA + "stia compartida s'escriu a m" + [char]0x00E0 + " (cal tenir-hi perm" + [char]0x00ED + "s). Amb EmailJS no compta."))
 

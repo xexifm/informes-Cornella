@@ -77,6 +77,8 @@ function _LoadEmailTextos {
         $d[$k] = [string]$o.$k
     }
     $d['bcc'] = @(_EmailBccDeJson $o)
+    # A qui va el correu del mobil (Configuracio -> Correu del mobil).
+    $d['dest'] = @(_EmailDestDeJson $o)
     # Les frases de {INTRO} (vegeu _CorreuIntro, CorreuFormat.ps1). No son
     # obligatories: un cos que no porta {INTRO} no les fa servir.
     foreach ($k in $Script:EmailTextosIntroClaus) {
@@ -104,6 +106,14 @@ function _EmailBccDeJson($o) {
         $out += @{ Addr = $addr.Trim(); Default = [bool]$b.def }
     }
     return $out
+}
+
+# A qui va el correu del MOBIL: 'titular' i/o 'representant' (octubre 2026).
+# Sense la clau, el titular, que es el que el mobil ha fet sempre. Array PLA.
+$Script:EmailMobilDestValids = @('titular', 'representant')
+function _EmailDestDeJson($o) {
+    if ($null -eq $o -or -not $o.PSObject.Properties['dest'] -or $null -eq $o.dest) { return @('titular') }
+    return @(@($o.dest) | ForEach-Object { [string]$_ } | Where-Object { $Script:EmailMobilDestValids -contains $_ } | Select-Object -Unique)
 }
 
 # Escriu el JSON (UTF-8 sense BOM). $obj = ordered hashtable amb les claus.
@@ -152,6 +162,8 @@ function Invoke-EmailTextos {
             }
             # Les frases de {INTRO} tampoc no s'editen aqui: el mateix motiu.
             foreach ($k in $Script:EmailTextosIntroClaus) { $out[$k] = [string]$textos[$k] }
+            # Ni a qui va (Correu del mobil, CorreuMobil.ps1).
+            $out['dest'] = [string[]]@($textos['dest'])
             try {
                 _SaveEmailTextos $out
                 [System.Windows.Forms.MessageBox]::Show("Textos desats.`n`nEs publicaran al mobil la propera vegada que facis Actualitzar.", 'Textos del correu', 'OK', 'Information') | Out-Null
