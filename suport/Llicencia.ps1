@@ -47,10 +47,11 @@
 # fluxos del programa. Es un sol lloc perque els dos camins de l'assistent
 # -l'informe llarg i els dos curts- acabin exactament igual.
 function _LlicObreIAvisa($word, [string]$out) {
+    # Primer s'obre (al Word de l'usuari) i despres s'avisa: el Word del
+    # programa ja s'ha tancat (Show-InformeAlUsuari, Motor.ps1).
+    Show-InformeAlUsuari $word $out
     [System.Windows.Forms.MessageBox]::Show(
         "Informe generat:`n$out", 'Finalitzat', 'OK', 'Information') | Out-Null
-    $word.Visible = $true
-    $word.Documents.Open($out) | Out-Null
 }
 
 # EL TITOL DE CADA ASSISTENT (el menu i la base de llicencies hi entren tots dos).
@@ -235,6 +236,7 @@ function Invoke-LlicenciaWizard($fases = $null, [string]$titol = '', $preHeader 
                         }
                     }
                     _LlicObreIAvisa $word $out
+                    $word = $null
                     return
                 }
                 3 {
@@ -407,6 +409,7 @@ function Invoke-LlicenciaWizard($fases = $null, [string]$titol = '', $preHeader 
                             'Llicencia', 'OK', 'Warning') | Out-Null
                     }
                     _LlicObreIAvisa $word $out
+                    $word = $null
                     return
                 }
                 default { return }

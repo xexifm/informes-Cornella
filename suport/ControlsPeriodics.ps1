@@ -363,7 +363,7 @@ function _ExportControlsPeriodics($grid, $colsMeta) {
     }
     $r = [System.Windows.Forms.MessageBox]::Show("CSV generat:`n$path`n`nVols obrir-lo ara?", 'Controls periòdics', 'YesNo', 'Information')
     if ($r -eq [System.Windows.Forms.DialogResult]::Yes) {
-        try { Start-Process -FilePath $path | Out-Null } catch { }
+        [void](Open-PerUsuari $path)
     }
 }
 
@@ -545,6 +545,6 @@ function Invoke-GenerarControlsPeriodics($rows) {
     if ($errDetalls.Count -gt 0) { $msg += "`n`nDetall d'errors:`n - " + (($errDetalls | Select-Object -First 10) -join "`n - ") }
     $r2 = [System.Windows.Forms.MessageBox]::Show($msg + "`n`nVols obrir la carpeta de sortida?", 'Generar informes', 'YesNo', 'Information')
     if ($r2 -eq [System.Windows.Forms.DialogResult]::Yes) {
-        try { Start-Process -FilePath $dir | Out-Null } catch { }
+        [void](Open-PerUsuari $dir)
     }
 }

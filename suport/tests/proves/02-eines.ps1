@@ -722,6 +722,23 @@ Assert ($ppMin -gt 470) ('Peu: els quatre botons de Seguiment no caben en 470 ('
 $ppS = _PeuPosicions $ppMin @(100) $ppAm
 Assert ([int]$ppS.Dreta[0] -ge [int]$ppS.Esquerra[0] + 100 + 20) 'Peu: amb l''amplada minima, el primer de la dreta no trepitja el de l''esquerra'
 AssertEq (_PeuAmpleMinim @() @(100)) 130 'Peu: un sol boto, els dos marges'
+
+# --- Obrir per a l'usuari des d'un ALTRE proces (Open-PerUsuari, SegonPla.ps1) --
+$opF = _ObrePerUsuariOrdre 'I:\Activitats\5.- Sergi, prova\informe.docx' $false 'C:\Windows'
+AssertEq "$($opF.Exe)|$($opF.Args)" 'C:\Windows\System32\rundll32.exe|shell32.dll,ShellExec_RunDLL "I:\Activitats\5.- Sergi, prova\informe.docx"' 'Open-PerUsuari: un fitxer, amb rundll32 (la conversa amb el Word no la fa el programa), ruta entre cometes'
+$opC = _ObrePerUsuariOrdre '"I:\Informes\"' $true 'C:\Windows\'
+AssertEq "$($opC.Exe)|$($opC.Args)" 'C:\Windows\explorer.exe|"I:\Informes\"' 'Open-PerUsuari: una carpeta, amb l''explorador (sense cometes dobles repetides)'
+AssertEq (Open-PerUsuari '') $false 'Open-PerUsuari: res a obrir, no fa res'
+# Wait-ProcesCapturat: la sortida sencera, sense ReadToEnd() al fil de les finestres.
+try {
+    $wpPsi = New-Object System.Diagnostics.ProcessStartInfo
+    $wpPsi.FileName = (Get-Process -Id $PID).Path
+    $wpPsi.Arguments = '-NoProfile -Command "Write-Output hola; [Console]::Error.WriteLine(''err''); exit 3"'
+    $wpPsi.UseShellExecute = $false; $wpPsi.RedirectStandardOutput = $true; $wpPsi.RedirectStandardError = $true; $wpPsi.CreateNoWindow = $true
+    $wpP = [System.Diagnostics.Process]::Start($wpPsi)
+    $wpR = Wait-ProcesCapturat $wpP
+    AssertEq "$(([string]$wpR.Out).Trim())|$(([string]$wpR.Err).Trim())|$($wpP.ExitCode)" 'hola|err|3' 'Wait-ProcesCapturat: sortida, errors i codi, com abans'
+} catch { Assert $false ('Wait-ProcesCapturat: excepcio ' + $_.Exception.Message) }
 AssertEq (_PeuAmple 150) 182 'Peu: un text llarg, el text i 16 de cada costat'
 AssertEq (_PeuAmple 150 90) 90 'Peu: una amplada fixa mana'
 Assert ((_TxtEnrere).EndsWith(' Enrere') -and [int][char](_TxtEnrere)[0] -eq 0x2190) 'Peu: "<- Enrere" amb la fletxa'

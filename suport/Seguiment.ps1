@@ -15,7 +15,7 @@
   ZIP amb word/document.xml). NO es fa servir Word per editar: aixi s'eviten
   tots els problemes de Word COM (mode lectura, nomes-lectura, vista protegida,
   document actiu, marca final de paragraf...). Word nomes s'invoca, opcionalment,
-  al final per OBRIR el resultat (via Invoke-Item, l'app per defecte del SO).
+  al final per OBRIR el resultat (via Open-PerUsuari, l'app per defecte del SO).
 
   Flux (Invoke-SeguimentFlow):
     1. Triar l'informe anterior (.docx).
@@ -1110,8 +1110,9 @@ function Invoke-SeguimentFlow {
                        -alwaysConclusions $conclAll.Always -fields $st.Fields `
                        -srcPath $sourcePath -sourceBaseName $sourceBase -roundDate $roundDt
 
-        # Obrir el resultat amb l'app per defecte (Word), sense COM.
-        try { Invoke-Item -LiteralPath $outPath } catch { }
+        # Obrir el resultat amb l'app per defecte (Word), sense COM i des
+        # d'un altre proces (Open-PerUsuari, SegonPla.ps1).
+        [void](Open-PerUsuari $outPath)
 
         # El diàleg d'enviament fusiona "Informe generat" + enviar correu (ruta,
         # destinatari i CCO): no hi ha cap MessageBox "Finalitzat" previ. El què

@@ -688,8 +688,8 @@ function Invoke-InformesDbEdit {
                 [System.Windows.Forms.MessageBox]::Show("No s'ha trobat el fitxer:`n$ruta", 'Obrir informe', 'OK', 'Warning') | Out-Null
                 return
             }
-            try { Start-Process -FilePath $ruta | Out-Null } catch {
-                [System.Windows.Forms.MessageBox]::Show("No s'ha pogut obrir:`n$($_.Exception.Message)", 'Obrir informe', 'OK', 'Error') | Out-Null
+            if (-not (Open-PerUsuari $ruta)) {
+                [System.Windows.Forms.MessageBox]::Show("No s'ha pogut obrir:`n$ruta", 'Obrir informe', 'OK', 'Error') | Out-Null
             }
         }
     }.GetNewClosure())
@@ -822,8 +822,8 @@ function Export-EstatsActivitats($db) {
         "CSV generat:`n$path`n`nRequeriment: $nReq activitats`nPrecinte / Cessament: $nPre activitats`n`nVols obrir-lo ara?",
         'Exportar llistats', 'YesNo', 'Information')
     if ($r -eq [System.Windows.Forms.DialogResult]::Yes) {
-        try { Start-Process -FilePath $path | Out-Null } catch {
-            [System.Windows.Forms.MessageBox]::Show("No s'ha pogut obrir el CSV:`n$($_.Exception.Message)", 'Exportar llistats', 'OK', 'Warning') | Out-Null
+        if (-not (Open-PerUsuari $path)) {
+            [System.Windows.Forms.MessageBox]::Show("No s'ha pogut obrir el CSV:`n$path", 'Exportar llistats', 'OK', 'Warning') | Out-Null
         }
     }
 }

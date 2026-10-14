@@ -229,6 +229,7 @@ només fa servir el codi nou no simplifica res.
 | un **format de paràgraf** nou (sagnia, espai, estil) | una constant o un `_*` de `Format.ps1`, aplicat **al rang**; mai al cursor |
 | una **pantalla** | `_NewForm`, `_AddBrandHeader`, `_StyleListGrid`, `_AddSearchBox` (`UiComuns.ps1`); els botons de baix, **sempre** amb `_AddPeuBotons` (sortir a l'esquerra, avançar a la dreta; hi ha guard); que hi capiga: `_AjustaFinestraAPantalla` (tots dos a `UiFinestra.ps1`) |
 | una **feina llarga** amb barra | `Show-ProgresCancel`; en segon pla, `Start-ScriptSegonPla` (`SegonPla.ps1`) |
+| **obrir un fitxer o una carpeta** per a l'usuari | `Open-PerUsuari` (`SegonPla.ps1`), mai `Invoke-Item` / `Start-Process <fitxer>`; un informe acabat de generar, `Show-InformeAlUsuari` (`Motor.ps1`); esperar un procés amb la sortida, `Wait-ProcesCapturat` (hi ha guard dels tres; vegeu «El programa no pot deixar penjades les finestres dels altres») |
 | llegir o desar **JSON** | `Read-JsonFile` / `Write-JsonFile` (atòmic, sense BOM) i `ConvertTo-Mapa` per passar-lo a hashtable (`Json.ps1`) |
 | una **carpeta** dins de `local/` | una clau nova a `Get-LocalSubdir` (`Migracio.ps1`), no un `Join-Path` a mà |
 | una **preferència** d'aquest PC | `Load-AppSettings` / `Save-AppSettings` (`Settings.ps1`) |
@@ -1093,6 +1094,31 @@ Es resol en dos temps, i **calen tots dos**:
 - L'ordre al `Shown` importa: **primer `_AvisaSolapaments`, després l'ajust**.
   Al revés, encongir la finestra faria que controls ancorats a baix es trepitgin
   i sortirien avisos de solapament que no són cap defecte.
+
+## El programa no pot deixar penjades les finestres dels altres
+
+L'usuari (octubre 2026): «no em deixa fer servir finestres fora de l'aplicació:
+la carpeta de Windows; quan ha generat l'informe no em deixa anar a la finestra
+de Word de l'informe (he de tancar el programa)». Tres coses que ho feien, i
+totes tres tenen guard a `06-guards.ps1` (validat injectant-les):
+
+1. **L'usuari treballava al Word d'AUTOMATITZACIÓ del programa.** En acabar,
+   es feia `$word.Visible = $true` i s'hi obria l'informe: un Word lligat al
+   programa, sense avisos (`DisplayAlerts = 0`: tancar sense desar no
+   preguntava) i amb les macros permeses. Ara `Show-InformeAlUsuari` tanca el
+   Word del programa i obre el document al Word de l'usuari. I l'assistent de
+   requeriments ja no arrenca el Word al pas 3 (els catàlegs són JSON): un Word
+   amagat vivint mentre l'usuari tria només fa nosa.
+2. **Obrir un document des d'aquest procés** (`Invoke-Item`,
+   `Start-Process <fitxer>`) fa la conversa DDE amb el Word des del fil de les
+   finestres, i just després el programa obre un diàleg o es posa a treballar.
+   `Open-PerUsuari` ho fa des d'un procés a part (`rundll32 … ShellExec_RunDLL`;
+   les carpetes, `explorer.exe`).
+3. **Esperar bloquejant el fil de les finestres**: `ReadToEnd()` de la sortida
+   d'un procés (l'AutoFirma, 5-35 s) no atén cap missatge, i qui n'envia un a
+   les finestres del programa (l'explorador, el Word) s'hi queda esperant.
+   `Wait-ProcesCapturat` llegeix en segon pla i espera amb `WaitForExit(ms)`,
+   que en un fil STA sí que atén els missatges enviats.
 
 ## Controls que es trepitgen: la tolerància
 `_TrobaSolapaments` avisava de pantalles que es veuen perfectament (una etiqueta

@@ -131,9 +131,8 @@ function Invoke-ActExtrFlow {
                 Save-ActExtrRegistry $registry
 
                 if ($r.Action -in @('req','fav')) {
+                    Show-InformeAlUsuari $word $outPath
                     [System.Windows.Forms.MessageBox]::Show("Document generat:`n$outPath",'Finalitzat','OK','Information') | Out-Null
-                    $word.Visible = $true
-                    $word.Documents.Open($outPath) | Out-Null
                     # En obrir Word per a l'usuari, no el tanquem; sortim al llistat.
                     $word = $null
                     $stay = $false

@@ -107,7 +107,7 @@ function Invoke-RevisioRequeriments {
         @{ Nom = 'Revisa'; Text = 'Revisar'; Estil = 'primari' }) 556 -Ancorat
     $btnTanca = $peu.Tanca; $btnRev = $peu.Revisa; $btnInf = $peu.Informe
     $btnInf.Enabled = $false
-    $btnInf.add_Click({ if ($ui.Informe -and (Test-Path -LiteralPath $ui.Informe)) { try { Start-Process -FilePath $ui.Informe | Out-Null } catch { } } }.GetNewClosure())
+    $btnInf.add_Click({ if ($ui.Informe -and (Test-Path -LiteralPath $ui.Informe)) { [void](Open-PerUsuari $ui.Informe) } }.GetNewClosure())
     $btnTanca.add_Click({
         if ($ui.Corrent) { $ui.Cancel = $true; & $fn.Log "Aturant..."; return }
         $form.Close()

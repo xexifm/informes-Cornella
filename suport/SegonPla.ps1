@@ -42,3 +42,60 @@ function Start-ScriptSegonPla([string]$nomScript, [string[]]$arguments = @()) {
         return (Start-Process -FilePath 'powershell.exe' -ArgumentList $argv -WindowStyle Hidden -PassThru)
     } catch { return $null }
 }
+
+# ----------------------------------------------------------------------------
+# OBRIR UN FITXER O UNA CARPETA PER A L'USUARI, DES D'UN ALTRE PROCES
+# ----------------------------------------------------------------------------
+# L'usuari (octubre 2026): "no em deixa fer servir finestres fora de
+# l'aplicacio: la carpeta de Windows; quan ha generat l'informe no em deixa
+# anar a la finestra de Word de l'informe (he de tancar el programa)".
+#
+# Obrir un document amb Invoke-Item / Start-Process <fitxer> fa el
+# ShellExecute DINS d'aquest proces, i per a un .docx aixo es una conversa DDE
+# amb el Word que penja del fil de la finestra del programa. Just despres el
+# programa obre un dialeg (el d'enviar el correu) o es posa a treballar (llegir
+# l'Excel, el Word de l'informe seguent): el Word, i l'explorador que hi parla,
+# es queden esperant aquest fil. Ara la conversa la fa un proces a part que
+# acaba sol (rundll32 per als fitxers, explorer per a les carpetes): el
+# programa ja no hi es pel mig. Hi ha guard: cap Invoke-Item ni Start-Process
+# d'un fitxer de l'usuari fora d'aqui.
+#
+# Torna l'ordre que s'executara: @{ Exe; Args }. PURA.
+function _ObrePerUsuariOrdre([string]$ruta, [bool]$esCarpeta, [string]$windir = $env:WINDIR) {
+    if ([string]::IsNullOrWhiteSpace($windir)) { $windir = 'C:\Windows' }
+    $r = ([string]$ruta).Trim().Trim('"')
+    if ($esCarpeta) { return @{ Exe = ($windir.TrimEnd('\') + '\explorer.exe'); Args = ('"' + $r + '"') } }
+    return @{ Exe = ($windir.TrimEnd('\') + '\System32\rundll32.exe'); Args = ('shell32.dll,ShellExec_RunDLL "' + $r + '"') }
+}
+
+# Obre $ruta (fitxer o carpeta) com si l'usuari hi hagues fet doble clic. Torna
+# $true si l'ha pogut llancar. Si el proces a part no arrenca, ho fa com abans.
+function Open-PerUsuari([string]$ruta) {
+    if ([string]::IsNullOrWhiteSpace($ruta)) { return $false }
+    $esCarpeta = $false
+    try { $esCarpeta = Test-Path -LiteralPath $ruta -PathType Container } catch { }
+    $o = _ObrePerUsuariOrdre $ruta $esCarpeta
+    try { Start-Process -FilePath $o.Exe -ArgumentList $o.Args | Out-Null; return $true } catch { }
+    try { Invoke-Item -LiteralPath $ruta; return $true } catch { return $false }
+}
+
+# ----------------------------------------------------------------------------
+# ESPERAR UN PROCES SENSE DEIXAR PENJAT EL WINDOWS
+# ----------------------------------------------------------------------------
+# $p.StandardOutput.ReadToEnd() bloqueja el fil de les finestres SENSE atendre
+# cap missatge: mentre l'AutoFirma signa (5-35 s), qualsevol programa que
+# envii un missatge a les finestres d'aquest proces (l'explorador quan obre un
+# fitxer, el Word) es queda esperant. Llegir en segon pla (ReadToEndAsync) i
+# esperar amb WaitForExit(ms) / Task.Wait(ms), que en un fil STA SI que atenen
+# els missatges enviats, ho evita. Mateix resultat: la sortida sencera quan el
+# proces (i qui hagi heretat la canonada, el Java de l'AutoFirma) acaba.
+# Torna @{ Out; Err }.
+function Wait-ProcesCapturat($p) {
+    $tOut = $p.StandardOutput.ReadToEndAsync()
+    $tErr = $p.StandardError.ReadToEndAsync()
+    while (-not $p.WaitForExit(100)) { }
+    while (-not $tOut.Wait(100)) { }
+    while (-not $tErr.Wait(100)) { }
+    $p.WaitForExit()
+    return @{ Out = [string]$tOut.Result; Err = [string]$tErr.Result }
+}

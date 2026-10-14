@@ -348,7 +348,7 @@ function Show-ContactesFinestra {
             if ($dlg.ShowDialog() -ne 'OK') { return }
             try {
                 [void](Export-ContactesCorreccions $dlg.FileName $st.Acts)
-                Start-Process -FilePath $dlg.FileName | Out-Null
+                [void](Open-PerUsuari $dlg.FileName)
             } catch { [System.Windows.Forms.MessageBox]::Show("No s'ha pogut exportar:`n" + $_.Exception.Message, $titol, 'OK', 'Error') | Out-Null }
         }.GetNewClosure() },
         @{ Nom = 'Obrir'; Text = 'Obre el document'; Clic = {
@@ -358,7 +358,7 @@ function Show-ContactesFinestra {
             if ($font -eq '') { & $cal "Tria una dada o un avis que surti d'un document."; return }
             $ruta = if ([System.IO.Path]::IsPathRooted($font)) { $font } else { Join-Path $st.Arrel $font }
             if (-not (Test-Path -LiteralPath $ruta)) { & $cal ("No s'ha trobat el document:`n" + $ruta); return }
-            try { Start-Process -FilePath $ruta | Out-Null } catch { & $cal ("No s'ha pogut obrir:`n" + $_.Exception.Message) }
+            if (-not (Open-PerUsuari $ruta)) { & $cal ("No s'ha pogut obrir:`n" + $ruta) }
         }.GetNewClosure() }) @(
         @{ Nom = 'Tecnic'; Text = ([char]0x00C9 + 's el t' + [char]0x00E8 + 'cnic'); Clic = {
             $f = & $filaD

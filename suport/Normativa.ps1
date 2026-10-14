@@ -511,7 +511,7 @@ function Invoke-Normativa {
     $lnkIdx.AutoSize = $true
     $lnkIdx.add_LinkClicked({
         $p = Join-Path $dir $idxNom
-        if (Test-Path -LiteralPath $p) { try { Start-Process -FilePath $p | Out-Null } catch { } }
+        if (Test-Path -LiteralPath $p) { [void](Open-PerUsuari $p) }
     }.GetNewClosure())
     $form.Controls.Add($lnkIdx)
 

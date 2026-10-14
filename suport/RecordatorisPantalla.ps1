@@ -267,7 +267,7 @@ function _RecMuntaTab($tab, $camp, $estat, $db) {
         try {
             $out | Export-Csv -LiteralPath $path -NoTypeInformation -Encoding UTF8 -Delimiter ';'
             $r = [System.Windows.Forms.MessageBox]::Show("CSV generat:`n$path`n`nVols obrir-lo?", 'Recordatoris', 'YesNo', 'Information')
-            if ($r -eq [System.Windows.Forms.DialogResult]::Yes) { try { Start-Process -FilePath $path | Out-Null } catch { } }
+            if ($r -eq [System.Windows.Forms.DialogResult]::Yes) { [void](Open-PerUsuari $path) }
         } catch {
             [System.Windows.Forms.MessageBox]::Show("No s'ha pogut escriure el CSV:`n$($_.Exception.Message)", 'Recordatoris', 'OK', 'Error') | Out-Null
         }

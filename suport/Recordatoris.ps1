@@ -942,8 +942,8 @@ function _RecExecutaSchtasks($argv) {
     $psi.RedirectStandardError = $true
     $psi.CreateNoWindow = $true
     $p = [System.Diagnostics.Process]::Start($psi)
-    $out = $p.StandardOutput.ReadToEnd() + $p.StandardError.ReadToEnd()
-    $p.WaitForExit()
+    $sortida = Wait-ProcesCapturat $p
+    $out = [string]$sortida.Out + [string]$sortida.Err
     return @{ Codi = $p.ExitCode; Sortida = $out }
 }
 

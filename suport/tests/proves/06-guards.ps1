@@ -1905,3 +1905,29 @@ $cmPant = _SenseComentaris (Join-Path $ccoDir 'CorreuEinesPantalla.ps1')
 Assert ($cmPant.Contains('try { & $eds[$clau].Obre }') -and $cmPant.Contains('Show-CorreuMobilConfig $publica')) 'Correus de cada eina: s''hi edita el text de cada correu i el correu del mobil'
 Assert ((_SenseComentaris (Join-Path $ccoDir 'Configuracio.ps1')).Contains('Show-CorreuEinesConfig { Invoke-ActualitzarPrograma }')) 'Configuracio: Correus de cada eina rep com publicar el mobil'
 Assert ((_SenseComentaris (Join-Path $ccoDir 'UiFinestra.ps1')).Contains('$minim = _PeuAmpleMinim $amplesE $amplesD')) 'peu de botons: si no hi caben, la finestra s''eixampla (no es trepitgen)'
+
+Write-Host "`n--- Que el programa no deixi penjades les finestres dels altres (guard) ---"
+# L'usuari (octubre 2026): "no em deixa fer servir finestres fora de
+# l'aplicacio: la carpeta de Windows, la finestra de Word de l'informe (he de
+# tancar el programa)". Tres coses que ho feien, i cap pot tornar:
+$wDir = Split-Path -Parent $TestsDir
+$wInvoke = New-Object System.Collections.ArrayList
+$wVisible = New-Object System.Collections.ArrayList
+$wRead = New-Object System.Collections.ArrayList
+foreach ($f in @(Get-ChildItem -LiteralPath $wDir -Recurse -Filter *.ps1 -File | Where-Object { $_.FullName -notlike '*tests*' })) {
+    $t = _SenseComentaris $f.FullName
+    # 1. El document de l'usuari s'obre des d'un ALTRE proces (Open-PerUsuari):
+    #    un Invoke-Item fa la conversa amb el Word des del fil de les finestres.
+    if ($f.Name -ne 'SegonPla.ps1' -and $t -match '(?m)\bInvoke-Item\b') { [void]$wInvoke.Add($f.Name) }
+    # 2. L'usuari mai treballa al Word d'automatitzacio del programa.
+    if ($t -match '(?i)\$word\.Visible\s*=\s*\$true') { [void]$wVisible.Add($f.Name) }
+    # 3. Cap ReadToEnd() d'un proces que bloquegi el fil de les finestres.
+    if ($f.Name -ne 'SegonPla.ps1' -and $t -match '\.Standard(Output|Error)\.ReadToEnd\(\)') { [void]$wRead.Add($f.Name) }
+}
+AssertEq ($wInvoke -join ', ') '' 'cap Invoke-Item fora de SegonPla.ps1 (els fitxers de l''usuari, amb Open-PerUsuari)'
+AssertEq ($wVisible -join ', ') '' 'cap $word.Visible = $true: l''informe s''obre al Word de l''usuari (Show-InformeAlUsuari)'
+AssertEq ($wRead -join ', ') '' 'cap ReadToEnd() d''un proces al fil de les finestres (Wait-ProcesCapturat)'
+$wWiz = _SenseComentaris (Join-Path $wDir 'Wizard.ps1')
+AssertEq ([regex]::Matches($wWiz, 'New-WordApp').Count) 1 'Requeriment: el Word nomes s''arrenca per generar (pas 5), no mentre es tria'
+foreach ($wF in @('Wizard.ps1', 'Llicencia.ps1', 'ActExtr.ps1')) { Assert ((_SenseComentaris (Join-Path $wDir $wF)).Contains('Show-InformeAlUsuari $word')) ("$wF obre l'informe al Word de l'usuari") }
+Assert ((_SenseComentaris (Join-Path $wDir 'Seguiment.ps1')).Contains('[void](Open-PerUsuari $outPath)')) 'Seguiment obre l''informe des d''un altre proces'

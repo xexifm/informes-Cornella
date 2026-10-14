@@ -741,7 +741,7 @@ function _SgExportar([string]$mode, $seleccio) {
     $msg += "`n`nVols obrir-lo ara?"
     $rc = [System.Windows.Forms.MessageBox]::Show($msg, 'Seguiment', 'YesNo', 'Information')
     if ($rc -eq [System.Windows.Forms.DialogResult]::Yes) {
-        try { Invoke-Item -LiteralPath $path } catch { }
+        [void](Open-PerUsuari $path)
     }
     return $path
 }

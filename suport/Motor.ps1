@@ -698,6 +698,18 @@ function New-WordApp {
     return $w
 }
 
+# L'INFORME GENERAT, A L'USUARI: es tanca el Word del programa i el document
+# s'obre com si l'usuari hi hagues fet doble clic, en un Word SEU. Abans es feia
+# $word.Visible = $true i s'hi obria el document: l'usuari treballava al Word
+# d'AUTOMATITZACIO del programa (sense avisos -DisplayAlerts = 0, o sigui que
+# tancar sense desar no preguntava-, amb les macros permeses per
+# l'AutomationSecurity) i, mentre el programa ensenyava el dialeg seguent, no hi
+# podia anar: "he de tancar el programa" (octubre 2026).
+function Show-InformeAlUsuari($word, [string]$path) {
+    if ($null -ne $word) { Close-WordApp $word }
+    [void](Open-PerUsuari $path)
+}
+
 function Close-WordApp($word) {
     if ($null -ne $word) {
         try { $word.Quit() } catch { }

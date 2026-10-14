@@ -1086,7 +1086,7 @@ function Show-Ajuda([string]$titol, $ajuda, $owner = $null) {
     $specPdf = $null
     if ($pdfNorma) {
         $specPdf = @{ Nom = 'Pdf'; Text = 'Obre el PDF desat'; Icona = [System.Char]::ConvertFromUtf32(0x1F4C4); Clic = {
-            try { Start-Process -FilePath $pdfNorma } catch { }
+            [void](Open-PerUsuari $pdfNorma)
         }.GetNewClosure() }
     }
     # Tanca es l'unica sortida: Intro i Esc.

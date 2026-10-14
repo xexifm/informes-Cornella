@@ -832,10 +832,10 @@ function _RunAutoFirma([string]$afExe, $argv) {
     $psi.RedirectStandardError = $true
     $psi.CreateNoWindow = $true
     $p = [System.Diagnostics.Process]::Start($psi)
-    $so = $p.StandardOutput.ReadToEnd()
-    $se = $p.StandardError.ReadToEnd()
-    $p.WaitForExit()
-    $out = (([string]$so) + "`n" + ([string]$se)).Trim()
+    # Sense ReadToEnd() directe: bloquejava el fil de les finestres mentre
+    # l'AutoFirma signava (vegeu Wait-ProcesCapturat, SegonPla.ps1).
+    $sortida = Wait-ProcesCapturat $p
+    $out = (([string]$sortida.Out) + "`n" + ([string]$sortida.Err)).Trim()
     $codi = [int]$p.ExitCode
     return @{ ExitCode = (_AutoFirmaCodiEfectiu $codi $out); CodiOriginal = $codi; Output = $out }
 }

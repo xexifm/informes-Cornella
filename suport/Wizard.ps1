@@ -129,8 +129,10 @@ function Invoke-NouWizard {
                 3 {
                     # Primer cop que necessitem Word i el cataleg parsejat:
                     # arrenquem Word (diferit) i parsegem ara (amb cache).
+                    # El Word NO s'arrenca aqui: el cataleg es JSON, i un Word
+                    # amagat viu mentre l'usuari tria (i fa servir l'explorador)
+                    # nomes fa nosa. S'arrenca al pas 5, per generar.
                     if ($null -eq $st.Parsed) {
-                        if ($null -eq $word) { $word = New-WordApp }
                         $st.Parsed = Get-ParsedCataleg -path $st.Cataleg.FullName
                     }
                     if ($st.Parsed.IsFixedBody) {
@@ -161,7 +163,6 @@ function Invoke-NouWizard {
                     if ($null -eq $st.ConclAll) {
                         # Les conclusions triables depenen del tipus d'informe
                         # (BaseName del cataleg: REQ1, TERMINI...).
-                        if ($null -eq $word) { $word = New-WordApp }
                         $st.ConclAll = Read-Conclusions -path $ConclusionsPath -reportType $st.Cataleg.BaseName
                     }
                     if ($st.ConclAll.Selectable.Count -eq 0) {
@@ -208,9 +209,9 @@ function Invoke-NouWizard {
                         ConclusionTexts = @($st.Conclusions | ForEach-Object { $_.Title })
                     })
 
-                    # Obrim Word en primer pla per a l'usuari
-                    $word.Visible = $true
-                    $word.Documents.Open($outPath) | Out-Null
+                    # L'informe, al Word de l'USUARI (Show-InformeAlUsuari, Motor.ps1).
+                    Show-InformeAlUsuari $word $outPath
+                    $word = $null
 
                     # El diàleg d'enviament fusiona "Informe generat" + enviar correu:
                     # ensenya la ruta, el destinatari (titular) i les CCO. No hi ha
