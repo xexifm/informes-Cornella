@@ -246,6 +246,16 @@ havia destacat una paraula— es llegia com a pendent, el punt sortia sense
 - Proves a `01-motor.ps1`, validades tornant a posar les dues regles antigues
   (3 FAIL).
 
+## «Enviar correu»: QUALSEVOL informe, triat (octubre 2026)
+
+L'usuari: «no ha de ser de l'últim informe fet, sinó que ha de poder ser de
+qualsevol informe fet». L'eina enviava sempre el `.docx` més recent de la
+carpeta sense preguntar. Ara obre un selector (`Select-InformeDocx`,
+`EnviarCorreu.ps1`) amb el més recent ja triat (`_InformeDialegInici`, pura): un
+Intro i es fa com abans. El *Seguiment* hi tria el seu informe anterior
+(`-SenseUltim`). En acabar de generar un informe (`Offer-EnviarCorreu`) no es
+pregunta: és el que s'acaba de fer. Guard a `04-correu.ps1`.
+
 ## «Enviar correu»: el GIA surt del DOCUMENT, no de l'últim informe
 
 Bug real i vistós (setembre 2026): l'usuari genera un **Seguiment** del GIA 1466

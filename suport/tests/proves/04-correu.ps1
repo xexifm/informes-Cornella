@@ -106,6 +106,20 @@ AssertEq @($rBlancs.Bcc).Count 0 '_CorreuDestinatariBuit: sense CCO marcades, CC
 $rSenseDef = _CorreuDestinatariBuit @() @('altre@x.cat') @(@{ Addr = 'altre@x.cat'; Default = $false })
 AssertEq @($rSenseDef.To).Count 0 '_CorreuDestinatariBuit: sense CCO per defecte, To buit (el cridador ho atura)'
 
+Write-Host "`n--- Enviar correu: QUALSEVOL informe, no nomes l'ultim ---"
+# L'usuari (octubre 2026): "no ha de ser de l'ultim informe fet, sino que ha de
+# poder ser de qualsevol informe fet".
+$eiDir = [System.IO.Path]::GetTempPath()
+$eiUlt = Join-Path (Join-Path $eiDir 'GIA 1') '2026-10-14_Req1_GIA 1.docx'
+$eiI = _InformeDialegInici $eiUlt (Join-Path $eiDir 'sortida')
+AssertEq "$($eiI.Dir)|$($eiI.Nom)" "$(Join-Path $eiDir 'GIA 1')|2026-10-14_Req1_GIA 1.docx" '_InformeDialegInici: s''obre on es el mes recent, i hi surt triat'
+$eiS = _InformeDialegInici '' (Join-Path $eiDir 'sortida')
+AssertEq "$($eiS.Dir)|$($eiS.Nom)" "$(Join-Path $eiDir 'sortida')|" '_InformeDialegInici: sense cap informe, la carpeta de sortida i res triat'
+$eiSrc = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'EnviarCorreu.ps1'))
+$eiFn = [regex]::Match($eiSrc, '(?s)function Invoke-EnviarCorreu \{.*?\n\}').Value
+Assert ($eiFn.Contains('Select-InformeDocx') -and -not $eiFn.Contains('_LatestDocx')) 'Enviar correu: es tria l''informe (Select-InformeDocx), no s''agafa l''ultim sense preguntar'
+Assert ([System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'Seguiment.ps1')).Contains('Select-InformeDocx "Tria l''informe anterior amb els requeriments" -SenseUltim')) 'Seguiment: la mateixa finestra per triar l''informe anterior'
+
 Write-Host "`n--- EnviarCorreu.ps1: de quina activitat es l'informe (pura) ---"
 # El nom real que fa _GetOutputFileName / _SeguimentOutputName.
 AssertEq (_GiaDelNomFitxer '2026-09-08_Req2_GIA 1466') '1466' '_GiaDelNomFitxer: nom d''un seguiment'

@@ -790,16 +790,9 @@ function Apply-SeguimentXml {
 
 
 # Tria de l'informe anterior (.docx). Retorna la ruta o $null si es cancel·la.
+# La finestra es la d'Enviar correu (Select-InformeDocx, EnviarCorreu.ps1).
 function Select-PreviousReport {
-    $dlg = New-Object System.Windows.Forms.OpenFileDialog
-    $dlg.Filter = 'Documents Word (*.docx)|*.docx'
-    $dlg.Title  = "Tria l'informe anterior amb els requeriments"
-    try {
-        $od = _ResolveOutputDir
-        if (Test-Path -LiteralPath $od) { $dlg.InitialDirectory = $od }
-    } catch { }
-    if ($dlg.ShowDialog() -ne 'OK') { return $null }
-    return $dlg.FileName
+    return (Select-InformeDocx "Tria l'informe anterior amb els requeriments" -SenseUltim)
 }
 
 # Tria del bloc de conclusions a esborrar. SEMPRE mostra el selector MANUAL

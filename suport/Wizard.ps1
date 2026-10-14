@@ -53,7 +53,7 @@ function Main {
             'revisio'        { Invoke-RevisioRequeriments }   # vigencia, enllacos i fitxes dels requeriments
             'convertirpdf'   { Invoke-ConvertirPdf }   # converteix una carpeta de Word a PDF (i signa)
             'emailtextos'    { Invoke-TextosCorreu }   # els textos de tots els correus (tria l'eina)
-            'enviarcorreu'   { Invoke-EnviarCorreu }   # obre la web del mobil precarregada per enviar el correu
+            'enviarcorreu'   { Invoke-EnviarCorreu }   # tria un informe qualsevol i n'envia el correu
             'llicencia'  { Invoke-LlicenciaWizard (_LlicFases) (_LlicTitolAssistent $false) }
             # MNS / Transmissio: el MATEIX assistent, nomes que amb les seves fases.
             # Comparteixen capcalera, tramit i base de dades amb Llicencia.

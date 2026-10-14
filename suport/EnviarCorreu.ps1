@@ -366,6 +366,38 @@ function _LatestDocx {
     return $null
 }
 
+# --- TRIAR L'INFORME (octubre 2026) -----------------------------------------
+# L'usuari: "l'eina Enviar correu no ha de ser de l'ultim informe fet, sino que
+# ha de poder ser de qualsevol informe fet". Abans enviava sempre el .docx mes
+# recent de la carpeta, sense preguntar. Ara es tria; el mes recent hi surt
+# triat d'entrada (es el cas mes habitual). El Seguiment tria el seu informe
+# anterior amb la MATEIXA finestra, sense res triat.
+#
+# On s'obre i que hi surt triat. $ultim: la ruta del mes recent (o ''). PURA.
+function _InformeDialegInici([string]$ultim, [string]$dirDefecte) {
+    if (-not [string]::IsNullOrWhiteSpace($ultim)) {
+        return @{ Dir = [System.IO.Path]::GetDirectoryName($ultim); Nom = [System.IO.Path]::GetFileName($ultim) }
+    }
+    return @{ Dir = [string]$dirDefecte; Nom = '' }
+}
+
+# Torna la ruta triada o $null si es cancel·la.
+function Select-InformeDocx([string]$titol, [switch]$SenseUltim) {
+    $dir = ''
+    try { $dir = _ResolveOutputDir } catch { $dir = '' }
+    $ultim = if ($SenseUltim) { '' } else { [string](_LatestDocx) }
+    $ini = _InformeDialegInici $ultim $dir
+    $dlg = New-Object System.Windows.Forms.OpenFileDialog
+    $dlg.Filter = 'Documents Word (*.docx)|*.docx'
+    $dlg.Title  = $titol
+    if ($ini.Dir -and (Test-Path -LiteralPath $ini.Dir)) { $dlg.InitialDirectory = [string]$ini.Dir }
+    if ($ini.Nom) { $dlg.FileName = [string]$ini.Nom }
+    try {
+        if ($dlg.ShowDialog() -ne 'OK') { return $null }
+        return [string]$dlg.FileName
+    } finally { $dlg.Dispose() }
+}
+
 # --- Diàleg d'enviament -------------------------------------------------------
 # Diàleg únic: fusiona el missatge "Informe generat" amb l'enviament del correu.
 # Torna @{ To = @(...); Bcc = @(...) } o $null si es cancel·la.
@@ -573,9 +605,10 @@ function Send-CorreuPerDocx($docxPath) {
     }
 }
 
-# Eina de menu: agafa el .docx mes recent (l'ultim generat, potser editat a ma).
+# Eina de menu: QUALSEVOL informe (es tria; el mes recent hi surt triat).
 function Invoke-EnviarCorreu {
-    $docx = _LatestDocx
+    $docx = Select-InformeDocx "Tria l'informe que vols enviar per correu"
+    if (-not $docx) { return }
     Send-CorreuPerDocx $docx
 }
 
