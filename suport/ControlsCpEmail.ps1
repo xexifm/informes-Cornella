@@ -141,6 +141,10 @@ function Invoke-ControlsCpEmailDrafts($rows) {
     # A QUI VA i la CCO: Configuracio -> Correus de cada eina (CorreuEines.ps1).
     $cfgE = Get-CorreuEina 'controls'
     $bcc = if ($null -ne $cfgE.Cco) { [string]$cfgE.Cco } else { '' }
+    # La CCO "a triar" (Correus de cada eina): abans de confirmar, que es vegi.
+    $ccoT = Select-CorreuCcoTria 'controls' $cfgE
+    if (-not $ccoT.Ok) { return }
+    $bcc = _CorreuCcoAmb $bcc @($ccoT.Adreces)
     $rc = [System.Windows.Forms.MessageBox]::Show(
         ("Es prepararan $($rows.Count) correus (un per activitat triada) com a ESBORRANYS a Outlook.`n`n" +
          "A qui: " + (_CorreuDestText $cfgE) + " (el primer a 'Per a' i la resta a 'CC')" + $(if ($bcc) { "`nCCO: $bcc" } else { '' }) +

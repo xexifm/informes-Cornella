@@ -192,6 +192,28 @@ AssertEq "$((_CorreuParteixToCc @('a@x.cat', 'b@x.cat', 'c@x.cat')).To)|$((_Corr
 $cePant = _CorreuEinaDeLaPantalla 'outlook' @('titular') 'f@x.cat' 'a@x.cat; b@x.cat' 'b@x.cat,a@x.cat'
 Assert (-not $cePant.ContainsKey('cco')) 'de la pantalla: la CCO de sempre (en un altre ordre) NO es desa, i l''eina segueix amb la seva'
 AssertEq ([string](_CorreuEinaDeLaPantalla 'outlook' @() '' '' 'a@x.cat')['cco']) '' 'de la pantalla: buidar la CCO de sempre es desa com a "cap CCO"'
+# LA CCO DE SEMPRE I LA A TRIAR (l'usuari: "triar si sempre o es pot triar
+# cada vegada").
+$ceT = _CorreuEinaNormalitza @{ cco = 'me@x.cat'; ccoTria = 'a@x.cat, B@x.cat;a@x.cat' } 'mobil' ''
+AssertEq "$($ceT.Cco)|$($ceT.CcoTria)" 'me@x.cat|a@x.cat; B@x.cat' 'la CCO a triar es llegeix de correus.json, neta'
+AssertEq "$($null -eq (_CorreuEinaNormalitza @{ cco = 'me@x.cat' } 'mobil' '').CcoTria)" 'True' 'sense CCO a triar desada: $null (la d''abans)'
+AssertEq ((@(_CorreuCcoTriaLlista 'me@x.cat; a@x.cat' 'A@x.cat; b@x.cat; ME@x.cat')) -join '|') 'b@x.cat' 'les a triar que ja son de sempre no surten dues vegades (sense distingir majuscules)'
+$ceO = @(_CorreuCcoOpcions 'me@x.cat' 'a@x.cat; me@x.cat; b@x.cat')
+AssertEq (($ceO | ForEach-Object { [string]$_.Addr + '=' + [string]$_.Default }) -join '|') 'me@x.cat=True|a@x.cat=False|b@x.cat=False' 'la finestra d''enviar: primer les de sempre (marcades) i despres les a triar (desmarcades)'
+AssertEq @(_CorreuCcoOpcions '' '').Count 0 'sense cap CCO, cap casella'
+AssertEq (_CorreuCcoAmb 'me@x.cat' @('a@x.cat', 'ME@x.cat', '')) 'me@x.cat; a@x.cat' 'la CCO d''un enviament: les de sempre + les triades, sense repetides'
+AssertEq (_CorreuCcoAmb '' @()) '' 'cap de sempre i cap de triada: cap CCO'
+$cePT = _CorreuEinaDeLaPantalla 'outlook' @() '' 'me@x.cat' 'me@x.cat' 'b@x.cat; a@x.cat' 'a@x.cat,b@x.cat'
+Assert (-not $cePT.ContainsKey('ccoTria')) 'de la pantalla: la CCO a triar d''abans (en un altre ordre) NO es desa'
+AssertEq ([string](_CorreuEinaDeLaPantalla 'outlook' @() '' '' '' 'a@x.cat; c@x.cat' 'a@x.cat')['ccoTria']) 'a@x.cat; c@x.cat' 'de la pantalla: una CCO a triar canviada es desa'
+Assert (-not (_CorreuEinaDeLaPantalla 'outlook' @() '' '' '').ContainsKey('ccoTria')) 'de la pantalla: sense la casella de triar, no es toca'
+# Sense configurar, "Enviar correu" ofereix el que oferia: les de la clau
+# 'bcc' d'email-textos.json, marcades les 'def'.
+$ceJs = @(_CorreuBccOpcions)
+$ceAb = Get-CorreuCcoEina 'mobil' (_CorreuEinaNormalitza $null 'mobil' '')
+AssertEq ((@(_CorreuCcoOpcions ([string]$ceAb.Sempre) ([string]$ceAb.Tria)) | ForEach-Object { [string]$_.Addr + '=' + [string]$_.Default }) -join '|') ((@($ceJs | Where-Object { $_.Default }) + @($ceJs | Where-Object { -not $_.Default }) | ForEach-Object { [string]$_.Addr + '=' + [string][bool]$_.Default }) -join '|') 'Enviar correu sense configurar: les mateixes caselles que abans (email-textos.json)'
+$ceSel = Select-CorreuCcoTria 'controls' (_CorreuEinaNormalitza @{ cco = 'me@x.cat' } 'controls' '')
+Assert ($ceSel.Ok -and @($ceSel.Adreces).Count -eq 0) 'Select-CorreuCcoTria: sense cap adreca a triar no obre res i continua'
 # El fitxer, en un LOCALAPPDATA de prova.
 $ceApp = Join-Path ([System.IO.Path]::GetTempPath()) ('correus-' + [guid]::NewGuid().ToString('N'))
 $ceVell = $env:LOCALAPPDATA
@@ -202,6 +224,10 @@ try {
     $ceL = Read-CorreuEines
     AssertEq "$($ceL.prova.gia)|$($ceL.prova.desti)|$($ceL.eines['mobil']['via'])|$($ceL.eines['rec-precintes']['fixes'])" '9001|prova@x.cat|outlook|x@x.cat' 'Save/Read-CorreuEines: anada i tornada'
     AssertEq "$($null -ne (Get-CorreuEina 'mobil').Cco)|$($null -eq (Get-CorreuEina 'rec-precintes').Cco)" 'True|True' 'una CCO buida desada vol dir "cap"; no desada, la de sempre'
+    Save-CorreuEines @{ eines = @{ 'controls' = @{ via = 'outlook-esborrany'; dest = @('titular'); fixes = ''; cco = 'me@x.cat'; ccoTria = 'a@x.cat; b@x.cat' } }; prova = @{ gia = ''; desti = '' } }
+    $ceCT = Get-CorreuCcoEina 'controls'
+    AssertEq "$($ceCT.Sempre)|$($ceCT.Tria)" 'me@x.cat|a@x.cat; b@x.cat' 'Save/Read-CorreuEines: la CCO de sempre i la a triar, anada i tornada'
+    Save-CorreuEines @{ eines = @{ 'mobil' = @{ via = 'outlook'; dest = @('titular'); fixes = ''; cco = '' }; 'rec-precintes' = @{ via = 'emailjs'; dest = @('titular', 'representant'); fixes = 'x@x.cat' } }; prova = @{ gia = '9001'; desti = 'prova@x.cat' } }
     [void](Set-CorreuEinaVia 'mobil' 'outlook-esborrany')
     AssertEq "$((Get-CorreuEina 'mobil').Via)|$(@((Get-CorreuEina 'mobil').Dest) -join ',')" 'outlook-esborrany|titular' 'Set-CorreuEinaVia: canvia la via i deixa la resta'
     Assert ((Get-Content -LiteralPath (_CorreuEinesPath) -Raw).Contains('prova@x.cat')) 'les adreces van a correus.json de %LOCALAPPDATA% (mai al repositori)'

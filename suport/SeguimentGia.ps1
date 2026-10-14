@@ -855,8 +855,9 @@ function Invoke-SeguimentCorreuTextos {
 # ----------------------------------------------------------------------------
 # Envia el PDF ($gen: el resultat de _SgGeneraFitxer) als destinataris de
 # l'eina 'seguiment'. $silenci: l'automatic (els esborranys s'apunten perque el
-# menu ho avisi). Torna @{ Ok; Text }.
-function Send-SeguimentCorreu($gen, [bool]$silenci) {
+# menu ho avisi). $ccoTriades: la CCO "a triar" marcada (nomes a ma). Torna
+# @{ Ok; Text }.
+function Send-SeguimentCorreu($gen, [bool]$silenci, $ccoTriades = @()) {
     $cfgE = Get-CorreuEina 'seguiment'
     $to = [string]$cfgE.Fixes
     if (-not $to) { return @{ Ok = $false; Text = ("No hi ha cap destinatari: posa'l a Configuraci" + [char]0x00F3 + " -> Correus de cada eina -> Seguiment (adreces fixes).") } }
@@ -867,6 +868,7 @@ function Send-SeguimentCorreu($gen, [bool]$silenci) {
     $assumpte = _SgFillPh ([string]$t['assumpte']) $gen.Resum ([string]$gen.Origen) $ara
     $html = _CosAHtml (_SgFillPh ([string]$t['cos']) $gen.Resum ([string]$gen.Origen) $ara)
     $cco = if ($null -ne $cfgE.Cco) { [string]$cfgE.Cco } else { '' }
+    if (-not $silenci -and @($ccoTriades).Count -gt 0) { $cco = _CorreuCcoAmb $cco $ccoTriades }
     $ses = $null
     try {
         $ses = Open-CorreuSessio $cfgE.Via
@@ -971,12 +973,15 @@ function Invoke-SeguimentGia {
     $btnEnv.add_Click({
         $sel = @($clb.CheckedItems | ForEach-Object { [string]$_ })
         if ($sel.Count -eq 0) { return }
+        # La CCO "a triar" (Correus de cada eina), abans de generar res.
+        $ccoT = Select-CorreuCcoTria 'seguiment'
+        if (-not $ccoT.Ok) { return }
         $btnXls.Enabled = $false; $btnPdf.Enabled = $false; $btnEnv.Enabled = $false
         $form.Cursor = [System.Windows.Forms.Cursors]::WaitCursor
         try {
             $g = _SgGeneraFitxer 'pdf' $sel
             if (-not $g.Ok) { [System.Windows.Forms.MessageBox]::Show("No s'ha pogut generar el seguiment:`n$($g.Error)", 'Seguiment', 'OK', 'Error') | Out-Null; return }
-            $e = Send-SeguimentCorreu $g $false
+            $e = Send-SeguimentCorreu $g $false @($ccoT.Adreces)
             [System.Windows.Forms.MessageBox]::Show(("PDF: " + $g.Path + "`n`n" + $e.Text), 'Seguiment', 'OK', $(if ($e.Ok) { 'Information' } else { 'Warning' })) | Out-Null
         } finally {
             $form.Cursor = [System.Windows.Forms.Cursors]::Default

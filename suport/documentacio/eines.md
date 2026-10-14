@@ -459,6 +459,26 @@ cadascuna de les opcions per enviar un correu de prova».
   autoritzats i fixes, sense repetides. Controls periòdics hi posa el primer a
   «Per a» i la resta a «CC» (`_CorreuParteixToCc`, que substitueix
   `_ControlsCpRecipients`).
+- **La CCO: «sempre» o «a triar cada vegada»** (octubre 2026). L'usuari: «afegir
+  una opció de les que poso en CCO […] i triar si sempre (com el meu correu) o es
+  pot triar cada vegada». Abans només *Enviar correu* oferia adreces per marcar
+  (les no `def` de la clau `bcc` d'`email-textos.json`), i a *Correus de cada
+  eina* només s'hi veien les marcades: **les altres no sortien enlloc**. Ara cada
+  eina té `cco` (sempre) i `ccoTria` (a triar), totes dues a `correus.json` i
+  totes dues amb la d'abans si no s'han configurat (`$Script:CorreuCcoAbans` /
+  `$Script:CorreuCcoTriaAbans`; només `mobil` en tenia d'a triar).
+  - **Sempre**: a tots els correus de l'eina, també als automàtics.
+  - **A triar**: surten **desmarcades** quan s'envia **a mà**. A *Enviar correu*,
+    a les caselles de la seva finestra (`_CorreuCcoOpcions`: primer les de
+    sempre, marcades). A Recordatoris, Controls periòdics i Seguiment, en una
+    finestreta abans de la tanda (`Select-CorreuCcoTria`, **`CorreuCcoTria.ps1`**:
+    a part perquè `CorreuEinesPantalla.ps1` crida les eines i les eines la
+    criden, i juntes farien un cicle). Sense cap adreça a triar no s'obre res.
+  - **En automàtic, mai** les a triar: no hi ha ningú per marcar-les, i una
+    finestra en una tasca del Windows es quedaria esperant sola. Guard a
+    `06-guards.ps1` (validat injectant-ho).
+  - El **mòbil** segueix amb la clau `bcc` d'`email-textos.json`: `correus.json`
+    és d'aquest PC i no arriba a la web.
 
 ## El format del correu: el de REQ1, i el mateix al PC i al mòbil
 

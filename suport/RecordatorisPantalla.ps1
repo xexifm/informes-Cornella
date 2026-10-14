@@ -291,7 +291,10 @@ function _RecMuntaTab($tab, $camp, $estat, $db) {
                $(if ($ambOutlook) { '' } else { "Quota d'aquest mes: $($q.enviats) / $($q.limit) (en queden $rest)`n" }) + "`n" +
                'Vols continuar?'
         if ([System.Windows.Forms.MessageBox]::Show($msg, 'Enviar recordatoris', 'YesNo', 'Question') -ne [System.Windows.Forms.DialogResult]::Yes) { return }
-        $res = Invoke-RecordatorisTanda $clau $tria $false
+        # La CCO "a triar" de la campanya (Correus de cada eina), si en te.
+        $ccoT = Select-CorreuCcoTria ('rec-' + $clau)
+        if (-not $ccoT.Ok) { return }
+        $res = Invoke-RecordatorisTanda $clau $tria $false @($ccoT.Adreces)
         $resum = "Enviats: $($res.Enviats)`nFallats: $($res.Fallats)`nSense correu: $($res.SenseCorreu)"
         if ($res.Esborranys -gt 0) { $resum = "Desats a Esborranys de l'Outlook: $($res.Esborranys). Envia'ls des de l'Outlook: ja consten als recordatoris.`n" + $resum }
         if ($res.Aturat) { $resum += "`n`nATURAT: $($res.Motiu)" }

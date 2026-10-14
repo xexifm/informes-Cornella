@@ -1874,3 +1874,22 @@ Assert ($llancats.Count -ge 5) 'Aturar: es troben els scripts que es llancen en 
 AssertEq ($falten -join ',') '' 'Aturar: tots els scripts que es llancen en segon pla son a $Script:ScriptsSegonPla'
 $srcMenuAt = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'Menu.ps1'))
 Assert ($srcMenuAt.Contains('_BotoBanda $band $tira 92 { Invoke-AturarSegonPla')) 'menu: hi ha el boto Aturar a la banda'
+
+Write-Host "`n--- La CCO a triar: a ma es pregunta, en automatic mai (guard) ---"
+# L'usuari: CCO "sempre" o "a triar cada vegada". Les a triar NOMES quan hi ha
+# algu per triar-les: cada enviament a ma passa per la tria i cap automatic no
+# l'obre (una finestra en una tasca del Windows es quedaria esperant sola).
+$ccoDir = Split-Path -Parent $TestsDir
+foreach ($cas in @(@{ F = 'RecordatorisPantalla.ps1'; T = "Select-CorreuCcoTria ('rec-' + `$clau)" },
+                   @{ F = 'ControlsCpEmail.ps1'; T = "Select-CorreuCcoTria 'controls'" },
+                   @{ F = 'SeguimentGia.ps1'; T = "Select-CorreuCcoTria 'seguiment'" },
+                   @{ F = 'EnviarCorreu.ps1'; T = '_CorreuCcoOpcions ([string]$ccoE.Sempre) ([string]$ccoE.Tria)' })) {
+    Assert ((_SenseComentaris (Join-Path $ccoDir $cas.F)).Contains($cas.T)) ("CCO a triar: " + $cas.F + " l'ofereix en enviar a ma")
+}
+foreach ($f in @('RecordatorisAuto.ps1', 'SeguimentGiaAutomatic.ps1', 'BaseInformesAuto.ps1', 'CopiaInformesAuto.ps1', 'PlanolAuto.ps1')) {
+    Assert (-not (_SenseComentaris (Join-Path $ccoDir $f)).Contains('Select-CorreuCcoTria')) ("CCO a triar: " + $f + " (automatic) no obre la tria")
+}
+$ccoRec = _SenseComentaris (Join-Path $ccoDir 'Recordatoris.ps1')
+$ccoSg = _SenseComentaris (Join-Path $ccoDir 'SeguimentGia.ps1')
+Assert ($ccoRec.Contains('if (-not $silenci -and @($ccoTriades).Count -gt 0) { $bcc = _CorreuCcoAmb $bcc $ccoTriades }')) 'CCO a triar: els recordatoris automatics no hi posen mai les triades'
+Assert ($ccoSg.Contains('if (-not $silenci -and @($ccoTriades).Count -gt 0) { $cco = _CorreuCcoAmb $cco $ccoTriades }')) 'CCO a triar: el seguiment automatic no hi posa mai les triades'

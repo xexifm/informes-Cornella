@@ -585,8 +585,10 @@ function _RecOmpleDadesFila($row, $cache, $cfgE = $null) {
 # ENVIAMENT D'UNA TANDA (la comparteixen el mode manual i l'automatic)
 # ----------------------------------------------------------------------------
 # $rows: files ja triades. $silenci: mode automatic (cap finestra).
+# $ccoTriades: les adreces de CCO "a triar" que l'usuari ha marcat abans de la
+# tanda (Select-CorreuCcoTria); en automatic, cap.
 # Retorna @{ Enviats; Esborranys; Fallats; SenseCorreu; Aturat; Motiu; Via }.
-function Invoke-RecordatorisTanda([string]$clau, $rows, [bool]$silenci) {
+function Invoke-RecordatorisTanda([string]$clau, $rows, [bool]$silenci, $ccoTriades = @()) {
     # PER ON i A QUI: la de la campanya a Configuracio -> Correus de cada eina
     # (CorreuEines.ps1), tambe en automatic (la tasca del Windows corre amb la
     # sessio iniciada, que es el que l'Outlook necessita).
@@ -631,6 +633,7 @@ function Invoke-RecordatorisTanda([string]$clau, $rows, [bool]$silenci) {
     $bcc = ''
     if ($null -ne $cfgE.Cco) { $bcc = [string]$cfgE.Cco }
     else { try { $bcc = (@($cfg['bcc']) -join ',') } catch { } }
+    if (-not $silenci -and @($ccoTriades).Count -gt 0) { $bcc = _CorreuCcoAmb $bcc $ccoTriades }
 
     # Finestra de progres amb Cancel.lar (mai en mode automatic).
     $st = @{ Cancel = $false }

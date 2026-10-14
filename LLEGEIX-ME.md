@@ -689,7 +689,13 @@ pot transmetre l'activitat mentre hi hagi un expedient obert).
 >   periòdics* només deixa esborranys, i el *Seguiment* només va per l'Outlook,
 >   perquè porta PDF adjunts.
 > - **A qui va:** el titular, el representant legal, les persones autoritzades
->   (el tècnic), unes **adreces fixes** i la **CCO**.
+>   (el tècnic), unes **adreces fixes** i la **CCO**, que en té dues caselles:
+>   - **CCO sempre:** van a tots els correus d'aquella eina (també als que
+>     surten sols, en automàtic). Hi va, per exemple, la teva adreça.
+>   - **CCO a triar:** cada vegada que envies a mà, surten **desmarcades** perquè
+>     marquis les que vulguis (a la finestra d'*Enviar correu*, o en una de
+>     petita abans d'enviar recordatoris, controls o el seguiment). En automàtic
+>     no s'hi posen mai.
 >
 > El botó **Enviar prova** de cada fila envia el correu d'aquella eina amb les
 > dades de l'**ID GIA de prova** a l'adreça de prova que hi hagis posat a dalt.

@@ -8,21 +8,16 @@
   NOMES DEFINEIX FUNCIONS.
 #>
 
-function _CorreuCcoAbansDe([string]$clau) {
-    $f = $Script:CorreuCcoAbans[$clau]
-    if ($null -eq $f) { return '' }
-    try { return (_CorreuNetejaAdreces ([string](& $f))) } catch { return '' }
-}
-
-# El que es desa d'una eina a partir del que hi ha a la pantalla. La CCO nomes
-# si no es la de sempre (si no, l'eina segueix amb la seva, encara que despres
-# canvii). PURA.
-function _CorreuEinaDeLaPantalla([string]$via, $dest, [string]$fixes, [string]$cco, [string]$ccoAbans) {
+# El que es desa d'una eina a partir del que hi ha a la pantalla. Cada CCO
+# (la de sempre i la de triar) nomes si no es la d'abans (si no, l'eina segueix
+# amb la seva, encara que despres canvii). $ccoTria $null = la pantalla no en
+# te (es deixa com estava). PURA.
+function _CorreuEinaDeLaPantalla([string]$via, $dest, [string]$fixes, [string]$cco, [string]$ccoAbans, $ccoTria = $null, [string]$ccoTriaAbans = '') {
     $o = @{ via = $via; dest = @(@($dest) | Where-Object { $_ }); fixes = (_CorreuNetejaAdreces $fixes) }
-    $c = _CorreuNetejaAdreces $cco
     # Com a conjunt: les mateixes adreces en un altre ordre son la de sempre.
     $clau = { param($x) ((@(_CorreuLlistaAdreces $x) | ForEach-Object { $_.ToLowerInvariant() } | Sort-Object) -join ';') }
-    if ((& $clau $cco) -ne (& $clau $ccoAbans)) { $o['cco'] = $c }
+    if ((& $clau $cco) -ne (& $clau $ccoAbans)) { $o['cco'] = _CorreuNetejaAdreces $cco }
+    if ($null -ne $ccoTria -and (& $clau ([string]$ccoTria)) -ne (& $clau $ccoTriaAbans)) { $o['ccoTria'] = _CorreuNetejaAdreces ([string]$ccoTria) }
     return $o
 }
 
@@ -61,7 +56,8 @@ function Show-CorreuEinesConfig {
         $amplNec = [Math]::Max($amplNec, [int]$gm.Ampl)
     }
     $ampl = $amplNec
-    $altEina = 100
+    # Tres linies per eina: via i a qui; fixes i CCO de sempre; CCO a triar.
+    $altEina = 128
     $yIni = 150
     $form.ClientSize = New-Object System.Drawing.Size($ampl, ($yIni + $altEina * @($eines.Keys).Count + 60))
     $form.StartPosition = 'CenterScreen'
@@ -96,6 +92,7 @@ function Show-CorreuEinesConfig {
         $raw = if ($cfg.eines.ContainsKey($k)) { $cfg.eines[$k] } else { $null }
         $e = _CorreuEinaNormalitza $raw $k (Get-CorreuVia)
         $ccoAbans = _CorreuCcoAbansDe $k
+        $ccoTriaAbans = _CorreuCcoTriaAbansDe $k
         $g = New-Object System.Windows.Forms.GroupBox
         $g.Text = [string]$def.Nom
         $g.Location = New-Object System.Drawing.Point(14, $y)
@@ -143,13 +140,24 @@ function Show-CorreuEinesConfig {
         $tbF.Location = New-Object System.Drawing.Point(102, 58); $tbF.Size = New-Object System.Drawing.Size(360, 24)
         $tbF.Text = [string]$e.Fixes
         $lc = New-Object System.Windows.Forms.Label
-        $lc.Text = 'CCO:'; $lc.Location = New-Object System.Drawing.Point(476, 61); $lc.Size = New-Object System.Drawing.Size(38, 20)
+        $lc.Text = 'CCO sempre:'; $lc.Location = New-Object System.Drawing.Point(476, 61); $lc.Size = New-Object System.Drawing.Size(92, 20)
         $tbC = New-Object System.Windows.Forms.TextBox
-        $tbC.Location = New-Object System.Drawing.Point(516, 58); $tbC.Size = New-Object System.Drawing.Size(($ampl - 28 - 516 - 16), 24)
+        $tbC.Location = New-Object System.Drawing.Point(570, 58); $tbC.Size = New-Object System.Drawing.Size(($ampl - 28 - 570 - 16), 24)
         $tbC.Text = if ($null -ne $e.Cco) { [string]$e.Cco } else { $ccoAbans }
-        foreach ($c in @($lv, $cbV, $btnP, $lf, $tbF, $lc, $tbC)) { [void]$g.Controls.Add($c) }
+        # La CCO A TRIAR: surt desmarcada cada vegada que s'envia a ma; en
+        # automatic no hi va (vegeu _CorreuCcoOpcions, CorreuEines.ps1).
+        $lt = New-Object System.Windows.Forms.Label
+        $lt.Text = 'CCO a triar:'; $lt.Location = New-Object System.Drawing.Point(476, 95); $lt.Size = New-Object System.Drawing.Size(92, 20)
+        $tbT = New-Object System.Windows.Forms.TextBox
+        $tbT.Location = New-Object System.Drawing.Point(570, 92); $tbT.Size = New-Object System.Drawing.Size(($ampl - 28 - 570 - 16), 24)
+        $tbT.Text = if ($null -ne $e.CcoTria) { [string]$e.CcoTria } else { $ccoTriaAbans }
+        $lh = New-Object System.Windows.Forms.Label
+        $lh.Text = ("Sempre: a tots els correus, tamb" + [char]0x00E9 + " els autom" + [char]0x00E0 + "tics. A triar: surten per marcar cada vegada que envies a m" + [char]0x00E0 + "; en autom" + [char]0x00E0 + "tic, no.")
+        $lh.Location = New-Object System.Drawing.Point(12, 88); $lh.Size = New-Object System.Drawing.Size(450, 32)
+        $lh.ForeColor = [System.Drawing.Color]::FromArgb(90, 90, 90)
+        foreach ($c in @($lv, $cbV, $btnP, $lf, $tbF, $lc, $tbC, $lt, $tbT, $lh)) { [void]$g.Controls.Add($c) }
         [void]$form.Controls.Add($g)
-        $ctl[$k] = @{ Via = $cbV; Dest = $chks; Fixes = $tbF; Cco = $tbC; CcoAbans = $ccoAbans; Btn = $btnP }
+        $ctl[$k] = @{ Via = $cbV; Dest = $chks; Fixes = $tbF; Cco = $tbC; CcoAbans = $ccoAbans; CcoTria = $tbT; CcoTriaAbans = $ccoTriaAbans; Btn = $btnP }
         $y += $altEina
     }
 
@@ -162,7 +170,7 @@ function Show-CorreuEinesConfig {
             $vk = @($c.Via.Tag)
             $via = if ($c.Via.SelectedIndex -ge 0) { [string]$vk[$c.Via.SelectedIndex] } else { [string]$vk[0] }
             $dest = @(@($c.Dest.Keys) | Where-Object { $c.Dest[$_].Checked })
-            $nou.eines[$k] = _CorreuEinaDeLaPantalla $via $dest ([string]$c.Fixes.Text) ([string]$c.Cco.Text) ([string]$c.CcoAbans)
+            $nou.eines[$k] = _CorreuEinaDeLaPantalla $via $dest ([string]$c.Fixes.Text) ([string]$c.Cco.Text) ([string]$c.CcoAbans) ([string]$c.CcoTria.Text) ([string]$c.CcoTriaAbans)
         }
         try { Save-CorreuEines $nou; $st.Cfg = $nou; return $true } catch {
             [System.Windows.Forms.MessageBox]::Show("No s'ha pogut desar:`n" + $_.Exception.Message, 'Correus de cada eina', 'OK', 'Error') | Out-Null
@@ -188,7 +196,7 @@ function Show-CorreuEinesConfig {
             $form.Close()
         }
     }.GetNewClosure())
-    [void](_AddBrandHeader $form 'Correus de cada eina' ('Per on surten, a qui van i la CCO ' + [char]0x00B7 + ' nom' + [char]0x00E9 + 's en aquest ordinador') 56)
+    [void](_AddBrandHeader $form 'Correus de cada eina' ('Per on surten, a qui van i la CCO (sempre o a triar) ' + [char]0x00B7 + ' nom' + [char]0x00E9 + 's en aquest ordinador') 56)
     [void]$form.ShowDialog()
     $form.Dispose()
 }

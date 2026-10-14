@@ -83,6 +83,9 @@ if ($null -eq $Script:CorreuProves) { $Script:CorreuProves = @{} }
 # I la CCO que l'eina feia servir fins ara (abans de correus.json), per
 # ensenyar-la a la casella de Configuracio: clau -> { '' o "a; b" }.
 if ($null -eq $Script:CorreuCcoAbans) { $Script:CorreuCcoAbans = @{} }
+# I les que oferia per TRIAR cada vegada (desmarcades), si en tenia: nomes
+# 'mobil' (les no marcades de la clau 'bcc' d'email-textos.json).
+if ($null -eq $Script:CorreuCcoTriaAbans) { $Script:CorreuCcoTriaAbans = @{} }
 
 # Per a una llista d'adreces: la primera a "Per a" i la resta a "CC" (Controls
 # periodics: el titular a Per a, el representant a CC). PURA.
@@ -123,6 +126,7 @@ function Save-CorreuEines($cfg) {
         $o = [ordered]@{ via = [string]$c['via']; dest = [string[]]@(@($c['dest']) | Where-Object { $_ }); fixes = [string]$c['fixes'] }
         # 'cco' nomes si s'ha configurat: sense, l'eina fa servir la d'abans.
         if ($c.ContainsKey('cco') -and $null -ne $c['cco']) { $o['cco'] = [string]$c['cco'] }
+        if ($c.ContainsKey('ccoTria') -and $null -ne $c['ccoTria']) { $o['ccoTria'] = [string]$c['ccoTria'] }
         $eines[$k] = $o
     }
     Write-JsonFile (_CorreuEinesPath) ([ordered]@{ eines = $eines; prova = [ordered]@{ gia = [string]$cfg.prova.gia; desti = [string]$cfg.prova.desti } }) 6
@@ -134,7 +138,9 @@ function Save-CorreuEines($cfg) {
 
 # La configuracio d'una eina, normalitzada contra el registre. $raw: el que hi
 # ha a correus.json (o $null); $viaGlobal: la via de tot el PC (la d'abans).
-# Torna @{ Clau; Via; Dest; Fixes; Cco ($null = no configurada) }. Una via que
+# Torna @{ Clau; Via; Dest; Fixes; Cco; CcoTria } (Cco/CcoTria $null = no
+# configurada: la d'abans). Cco = les de SEMPRE; CcoTria = les que s'ofereixen
+# DESMARCADES a cada enviament a ma (vegeu _CorreuCcoOpcions). Una via que
 # l'eina no admet cau a la primera que si (Controls periodics: esborrany).
 function _CorreuEinaNormalitza($raw, [string]$clau, [string]$viaGlobal) {
     $def = $Script:CorreuEines[$clau]
@@ -146,7 +152,66 @@ function _CorreuEinaNormalitza($raw, [string]$clau, [string]$viaGlobal) {
     if ($vies -notcontains $via) { $via = [string]$vies[0] }
     $dest = if ($r.ContainsKey('dest') -and $null -ne $r['dest']) { @(@($r['dest']) | ForEach-Object { [string]$_ } | Where-Object { @($def.Dest) -contains $_ }) } else { @($def.DestDefecte) }
     $cco = if ($r.ContainsKey('cco') -and $null -ne $r['cco']) { _CorreuNetejaAdreces ([string]$r['cco']) } else { $null }
-    return @{ Clau = $clau; Via = $via; Dest = $dest; Fixes = (_CorreuNetejaAdreces ([string]$r['fixes'])); Cco = $cco }
+    $tria = if ($r.ContainsKey('ccoTria') -and $null -ne $r['ccoTria']) { _CorreuNetejaAdreces ([string]$r['ccoTria']) } else { $null }
+    return @{ Clau = $clau; Via = $via; Dest = $dest; Fixes = (_CorreuNetejaAdreces ([string]$r['fixes'])); Cco = $cco; CcoTria = $tria }
+}
+
+# ----------------------------------------------------------------------------
+# LA CCO: les de SEMPRE i les A TRIAR cada vegada (octubre 2026)
+# ----------------------------------------------------------------------------
+# L'usuari: "afegir una opcio de les que poso en CCO [...] i triar si sempre
+# (com el meu correu) o es pot triar cada vegada". Abans nomes "Enviar correu"
+# oferia adreces per marcar (les de la clau 'bcc' d'email-textos.json), i a
+# "Correus de cada eina" nomes s'hi veien les marcades: les altres no sortien
+# enlloc. Ara cada eina en te dues llistes:
+#   sempre    van a tots els correus de l'eina, tambe als automatics;
+#   a triar   surten DESMARCADES quan s'envia a ma (a la finestra d'enviar, o
+#             en una de petita abans de la tanda); en AUTOMATIC no hi van mai,
+#             perque no hi ha ningu per triar-les.
+
+# La CCO que l'eina feia servir abans de configurar-la (sempre / a triar).
+function _CorreuCcoAbansDe([string]$clau) {
+    $f = $Script:CorreuCcoAbans[$clau]
+    if ($null -eq $f) { return '' }
+    try { return (_CorreuNetejaAdreces ([string](& $f))) } catch { return '' }
+}
+
+function _CorreuCcoTriaAbansDe([string]$clau) {
+    $f = $Script:CorreuCcoTriaAbans[$clau]
+    if ($null -eq $f) { return '' }
+    try { return (_CorreuNetejaAdreces ([string](& $f))) } catch { return '' }
+}
+
+# Les dues llistes que fa servir una eina: la configurada o, si no n'hi ha, la
+# d'abans. Torna @{ Sempre; Tria } (text "a; b"). Les de sempre no es repeteixen
+# a les de triar.
+function Get-CorreuCcoEina([string]$clau, $cfgE = $null) {
+    if ($null -eq $cfgE) { $cfgE = Get-CorreuEina $clau }
+    $sempre = if ($null -ne $cfgE.Cco) { [string]$cfgE.Cco } else { _CorreuCcoAbansDe $clau }
+    $tria = if ($null -ne $cfgE.CcoTria) { [string]$cfgE.CcoTria } else { _CorreuCcoTriaAbansDe $clau }
+    return @{ Sempre = $sempre; Tria = ((@(_CorreuCcoTriaLlista $sempre $tria)) -join '; ') }
+}
+
+# Les adreces a triar que no son ja de sempre. Array PLA. PURA.
+function _CorreuCcoTriaLlista([string]$sempre, [string]$tria) {
+    $s = @{}
+    foreach ($a in @(_CorreuLlistaAdreces $sempre)) { $s[$a.ToLowerInvariant()] = $true }
+    return @(@(_CorreuLlistaAdreces $tria) | Where-Object { -not $s.ContainsKey($_.ToLowerInvariant()) })
+}
+
+# Les caselles de la CCO d'una finestra d'enviar: primer les de sempre
+# (marcades) i despres les a triar (desmarcades). Torna una llista de
+# @{ Addr; Default }. PURA.
+function _CorreuCcoOpcions([string]$sempre, [string]$tria) {
+    $out = New-Object System.Collections.ArrayList
+    foreach ($a in @(_CorreuLlistaAdreces $sempre)) { [void]$out.Add(@{ Addr = $a; Default = $true }) }
+    foreach ($a in @(_CorreuCcoTriaLlista $sempre $tria)) { [void]$out.Add(@{ Addr = $a; Default = $false }) }
+    return $out.ToArray()
+}
+
+# La CCO d'un enviament: les de sempre + les triades, netes. PURA.
+function _CorreuCcoAmb([string]$sempre, $triades) {
+    return (_CorreuNetejaAdreces (([string]$sempre) + ';' + ((@($triades) | Where-Object { $_ }) -join ';')))
 }
 
 # Adreces separades per ';' o ',' -> "a@b; c@d", sense repetides ni buides.
@@ -267,6 +332,8 @@ function Send-CorreuProva([string]$clau, [string]$gia, [string]$desti) {
     try { $m = & $prova ([string]$gia).Trim() $cache $cfgE } catch { return @{ Ok = $false; Text = [string]$_.Exception.Message } }
     if ($null -eq $m) { return @{ Ok = $false; Text = "No s'ha pogut muntar el correu de prova." } }
     $cco = if ($null -ne $cfgE.Cco) { [string]$cfgE.Cco } else { [string]$m.CcoAbans }
+    $tria = (Get-CorreuCcoEina $clau $cfgE).Tria
+    if ($tria) { $cco = $(if ($cco) { $cco + ' ' } else { '' }) + '(a triar cada vegada: ' + $tria + ')' }
     $html = _CorreuProvaHtml ([string]$m.Html) ([string]$def.Nom) @($m.Destinataris) $cco
     $motiu = Test-CorreuViaLlest $cfgE.Via
     if ($motiu) { return @{ Ok = $false; Text = $motiu } }

@@ -409,15 +409,11 @@ function _DialegEnviar($build, $destinatariDefault, $docxPath, $cfgE = $null) {
 
     $checks = @()
     $y = 170
-    # LA CCO: les opcions de sempre (email-textos.json) i, si a Configuracio ->
-    # Correus de cada eina s'hi ha posat la CCO d'aquesta eina, marcades les
-    # d'alla (i les que no hi son, afegides).
-    $ccoCfg = if ($null -ne $cfgE -and $null -ne $cfgE.Cco) { @(_CorreuLlistaAdreces ([string]$cfgE.Cco)) } else { $null }
-    $opcions = @(@(_CorreuBccOpcions) | ForEach-Object { @{ Addr = [string]$_.Addr; Default = [bool]$_.Default } })
-    if ($null -ne $ccoCfg) {
-        for ($i = 0; $i -lt $opcions.Count; $i++) { $opcions[$i].Default = (@($ccoCfg | Where-Object { $_ -ieq [string]$opcions[$i].Addr }).Count -gt 0) }
-        foreach ($a in $ccoCfg) { if (@($opcions | Where-Object { [string]$_.Addr -ieq $a }).Count -eq 0) { $opcions += @{ Addr = $a; Default = $true } } }
-    }
+    # LA CCO (Configuracio -> Correus de cada eina): les de SEMPRE, marcades, i
+    # les A TRIAR, desmarcades. Sense configurar, les de la clau 'bcc'
+    # d'email-textos.json (marcades les 'def'), que es el que hi havia.
+    $ccoE = Get-CorreuCcoEina 'mobil' $cfgE
+    $opcions = @(_CorreuCcoOpcions ([string]$ccoE.Sempre) ([string]$ccoE.Tria))
     foreach ($opt in $opcions) {
         $cb = New-Object System.Windows.Forms.CheckBox
         $cb.Text = $opt.Addr
@@ -614,3 +610,5 @@ $Script:CorreuProves['mobil'] = {
     }
 }
 $Script:CorreuCcoAbans['mobil'] = { ((@(_CorreuBccOpcions) | Where-Object { $_.Default } | ForEach-Object { [string]$_.Addr }) -join '; ') }
+# I les que s'oferien per marcar (les no 'def' d'email-textos.json).
+$Script:CorreuCcoTriaAbans['mobil'] = { ((@(_CorreuBccOpcions) | Where-Object { -not $_.Default } | ForEach-Object { [string]$_.Addr }) -join '; ') }
