@@ -1931,3 +1931,8 @@ $wWiz = _SenseComentaris (Join-Path $wDir 'Wizard.ps1')
 AssertEq ([regex]::Matches($wWiz, 'New-WordApp').Count) 1 'Requeriment: el Word nomes s''arrenca per generar (pas 5), no mentre es tria'
 foreach ($wF in @('Wizard.ps1', 'Llicencia.ps1', 'ActExtr.ps1')) { Assert ((_SenseComentaris (Join-Path $wDir $wF)).Contains('Show-InformeAlUsuari $word')) ("$wF obre l'informe al Word de l'usuari") }
 Assert ((_SenseComentaris (Join-Path $wDir 'Seguiment.ps1')).Contains('[void](Open-PerUsuari $outPath)')) 'Seguiment obre l''informe des d''un altre proces'
+
+Write-Host "`n--- Comprovar Excel: la visita d'inspeccio arriba a la base (guard) ---"
+$cxEsc = _SenseComentaris (Join-Path (Split-Path -Parent $TestsDir) 'InformesEscaneig.ps1')
+Assert ($cxEsc.Contains('$visita = _ExtractVisitaInspeccio $lines') -and $cxEsc.Contains('Visita            = $visita')) 'Actualitzar base: cada informe llegit porta la data de la visita'
+Assert ($cxEsc.Contains('if ($null -eq $r.Visita) {')) 'Actualitzar base: els informes de la base d''abans (sense el camp) la llegeixen sense reclassificar-se'

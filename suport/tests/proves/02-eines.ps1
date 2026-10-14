@@ -382,6 +382,49 @@ AssertEq (_ExcelActivitatActualitzada @(@{ Nom='PRECINTE?'; Valor='SI' })) $fals
 AssertEq (_ExcelActivitatActualitzada @(@{ Nom='X?'; Valor='' }, @{ Nom='PRECINTE ACTIVITAT?'; Valor='SI' })) $true '_ExcelActivitatActualitzada algun parell valid entre varis -> true'
 AssertEq (_ExcelActivitatActualitzada @()) $false '_ExcelActivitatActualitzada sense parells -> false'
 AssertEq (_ExcelActivitatActualitzada $null) $false '_ExcelActivitatActualitzada null -> false'
+
+Write-Host "`n--- Comprovar Excel: la VISITA D'INSPECCIO i els avisos DESCARTATS (octubre 2026) ---"
+# L'informe adjunt per l'usuari: "Objecte: Visita inspeccio 24/07/2026".
+$cxLinies = @('ID GIA:1415', 'Exp. N' + [char]0x00FA + 'm: 2022/12/2563', ('Objecte: Visita inspecci' + [char]0x00F3 + ' 24/07/2026'), 'INFORME')
+AssertEq (_ExtractVisitaInspeccio $cxLinies) '24/07/2026' '_ExtractVisitaInspeccio: la data de "Objecte: Visita inspeccio dd/mm/aaaa"'
+AssertEq (_ExtractVisitaInspeccio @('Objecte: Doc. aportada amb N' + [char]0x00FA + 'm. d''anotaci' + [char]0x00F3 + ' E/123 del 01/10/2026')) '' '_ExtractVisitaInspeccio: documentacio aportada no es una visita'
+AssertEq (_ExtractVisitaInspeccio @('Objecte: Visita inspecci' + [char]0x00F3 + ' 3-9-26')) '03/09/2026' '_ExtractVisitaInspeccio: tambe d-m-aa'
+AssertEq ((@(_DatesDelText 'Visita 24/07/2026 i 1.10.2026; 31/02/2026; 24/07/2026')) -join ',') '24/07/2026,01/10/2026' '_DatesDelText: totes, normalitzades, sense repetides ni impossibles'
+AssertEq ((@(_DatesDeCella ([datetime]'2026-07-24').ToOADate())) -join ',') '24/07/2026' '_DatesDeCella: data d''Excel (numero)'
+AssertEq ((@(_DatesDeCella ([datetime]'2026-07-24'))) -join ',') '24/07/2026' '_DatesDeCella: DateTime'
+AssertEq ((@(_DatesDeCella 'Inicial 12/03/2025 - verif. 24/07/2026')) -join ',') '12/03/2025,24/07/2026' '_DatesDeCella: text amb dues dates'
+AssertEq @(_DatesDeCella $null).Count 0 '_DatesDeCella: buida'
+# La base: 3 activitats. 1415 amb la visita a l'Excel; 1416 sense; 1417 precintada sense SI.
+$cxDb = [pscustomobject]@{ activitats = @(
+    [pscustomobject]@{ id_gia = '1415'; titular = 'A'; carpeta = 'c1'; estat_actual = 'Requeriment'; informes = @(
+        [pscustomobject]@{ data = '2026-05-01'; fitxer = 'vell.docx'; ignorat = $false; visita = '02/05/2026' },
+        [pscustomobject]@{ data = '2026-07-25'; fitxer = 'nou.docx'; ignorat = $false; visita = '24/07/2026' }) },
+    [pscustomobject]@{ id_gia = '1416'; titular = 'B'; carpeta = 'c2'; estat_actual = 'Requeriment'; informes = @(
+        [pscustomobject]@{ data = '2026-08-01'; fitxer = 'b.docx'; ignorat = $false; visita = '30/07/2026' },
+        [pscustomobject]@{ data = '2026-09-01'; fitxer = 'ign.docx'; ignorat = $true; visita = '01/09/2026' }) },
+    [pscustomobject]@{ id_gia = '1417'; titular = 'C'; carpeta = 'c3'; estat_actual = $Script:EstatPrecinte; informes = @() },
+    [pscustomobject]@{ id_gia = '9999'; titular = 'D'; carpeta = 'c4'; estat_actual = $Script:EstatPrecinte; informes = @() },
+    [pscustomobject]@{ id_gia = ''; titular = 'E'; carpeta = 'c5'; estat_actual = $Script:EstatPrecinte; informes = @() }) }
+$cxRes = @{ Map = @{ '1415' = @(); '1416' = @(); '1417' = @(@{ Nom = 'PRECINTE ACTIVITAT?'; Valor = 'NO' }) }; DataControl = @{ '1415' = @('24/07/2026'); '1416' = @('01/09/2026') }; ColControl = $true }
+$cxAv = @(Get-ComprovacioExcelAvisos $cxDb $cxRes)
+AssertEq (($cxAv | ForEach-Object { $_.Clau }) -join ' ; ') 'visita|1416|30/07/2026 ; precinte|1417 ; notrobat|9999 ; sensegia|c5' 'Comprovar Excel: la darrera visita (sense els ignorats) ha de constar a l''Excel; i els precintes de sempre'
+Assert (([string]($cxAv | Where-Object { $_.Grup -eq 'visita' }).Text).Contains("hi diu: 01/09/2026")) 'Comprovar Excel: l''avis de la visita diu que hi ha a l''Excel'
+$cxRes.ColControl = $false
+AssertEq @(@(Get-ComprovacioExcelAvisos $cxDb $cxRes) | Where-Object { $_.Grup -eq 'visita' }).Count 0 'Comprovar Excel: sense la columna, cap avis de visita (es diu al peu)'
+$cxF = _CxFiltraDescartats $cxAv @(@{ Clau = 'precinte|1417'; Text = 't'; El = 'x' }, @{ Clau = 'visita|1416|01/01/2020'; Text = 'vell'; El = 'x' })
+AssertEq "$(@($cxF.Actius).Count)|$(@($cxF.Amagats).Count)|$((@($cxF.Descartats) | ForEach-Object { $_.Clau }) -join ',')" '3|1|precinte|1417' 'descartar: el descartat no surt, i el que ja no avisa es treu de la llista'
+$cxTmp = Join-Path ([System.IO.Path]::GetTempPath()) ('cxdesc-' + [guid]::NewGuid().ToString('N') + '.json')
+try {
+    Save-CxDescartats @(@{ Clau = 'visita|1416|30/07/2026'; Text = 'B'; El = '2026-10-14T10:00:00' }) $cxTmp
+    $cxL = @(Read-CxDescartats $cxTmp)
+    AssertEq "$($cxL.Count)|$($cxL[0].Clau)|$(([datetime]$cxL[0].El).ToString('yyyy-MM-dd HH:mm'))" '1|visita|1416|30/07/2026|2026-10-14 10:00' 'descartats: es desen i es tornen a llegir (amb la data)'
+    AssertEq @(Read-CxDescartats (Join-Path ([System.IO.Path]::GetTempPath()) 'no-hi-es.json')).Count 0 'descartats: sense fitxer, cap (i no peta)'
+} finally { Remove-Item -LiteralPath $cxTmp -Force -ErrorAction SilentlyContinue }
+# La base guarda la visita: amb el camp ('' = mirat, no es visita) i sense (base d'abans).
+$cxJ = _InformeAJson ([pscustomobject]@{ Data = '2026-07-25'; Fitxer = 'f.docx'; Ruta = 'r'; Conclusio = ''; ConclusioBreu = ''; Tipus = ''; Modificat = ''; Ignorat = $false; Motius = @(); EditatAMa = $false; Visita = '' })
+Assert ($null -ne $cxJ.PSObject.Properties['visita'] -and [string]$cxJ.visita -eq '') '_InformeAJson: la visita es desa tambe buida (vol dir "mirat")'
+$cxFl = _FlattenInformesDb ([pscustomobject]@{ carpeta_arrel = ''; activitats = @([pscustomobject]@{ id_gia = '1'; titular = 't'; carpeta = 'c'; expedient = ''; informes = @([pscustomobject]@{ ruta = 'a.docx'; data = '2026-01-01'; fitxer = 'a.docx'; visita = '24/07/2026' }, [pscustomobject]@{ ruta = 'b.docx'; data = '2026-01-01'; fitxer = 'b.docx' }) }) })
+AssertEq "$(@($cxFl.Values | Where-Object { $_.Fitxer -eq 'a.docx' })[0].Visita)|$($null -eq @($cxFl.Values | Where-Object { $_.Fitxer -eq 'b.docx' })[0].Visita)" '24/07/2026|True' '_FlattenInformesDb: la visita; d''una base d''abans, $null (Actualitzar base la llegira)'
 # Diagnostic: quins camps de la familia hi ha a l'Excel (per veure un canvi de nom).
 $mapDiag = @{
     '10' = @(@{ Nom='PRECINTE ACTIVITAT?'; Valor='SI' }, @{ Nom='AFORAMENT'; Valor='120' })

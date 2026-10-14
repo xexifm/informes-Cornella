@@ -254,6 +254,7 @@ function Get-InformeData($file, $expToGia, $cache, $wordApp = $null, $assignat =
     $gia = _ExtractIdGia $lines
     $giaCarpeta = _GiaFromFolderName $file.FullName
     $exp = _ExtractExpedient $lines
+    $visita = _ExtractVisitaInspeccio $lines
     $font = 'document'
     $giaAssignat = if ($null -ne $assignat) { [string]$assignat.Gia } else { '' }
     if ($giaAssignat -ne '' -and ([bool]$assignat.Forcar -or [string]::IsNullOrWhiteSpace($gia))) {
@@ -305,6 +306,7 @@ function Get-InformeData($file, $expToGia, $cache, $wordApp = $null, $assignat =
         AutoConclusioBreu = ''
         AutoIgnorat       = $false
         NoLlegit          = $false
+        Visita            = $visita
     }
 }
 
@@ -364,6 +366,9 @@ function _FlattenInformesDb($db) {
                 AutoConclusioBreu = [string](_PropInf $inf 'auto_conclusio_breu')
                 AutoIgnorat       = [bool](_PropInf $inf 'auto_ignorat')
                 NoLlegit          = [bool](_PropInf $inf 'no_llegit')
+                # $null = una base d'abans del camp (encara no s'ha mirat); ''
+                # = mirat, i l'informe no es d'una visita.
+                Visita            = $(if ($null -ne $inf.PSObject.Properties['visita']) { [string]$inf.visita } else { $null })
             }
         }
     }
@@ -420,6 +425,10 @@ function _InformeAJson($r) {
     # Un .doc que aquesta passada no ha pogut llegir (sense Word, o en
     # automatic): la proxima el torna a provar encara que no hagi canviat.
     if ([bool](_PropInf $r 'NoLlegit')) { Add-Member -InputObject $o -NotePropertyName no_llegit -NotePropertyValue $true }
+    # La data de la visita d'inspeccio (Comprovar Excel). Tambe buida: vol dir
+    # "mirat, i no es d'una visita" (sense el camp, la passada seguent el mira).
+    $vis = _PropInf $r 'Visita'
+    if ($null -ne $vis) { Add-Member -InputObject $o -NotePropertyName visita -NotePropertyValue ([string]$vis) }
     $giaFont = [string](_PropInf $r 'GiaFont')
     if ($giaFont -ne '') { Add-Member -InputObject $o -NotePropertyName gia_font -NotePropertyValue $giaFont }
     if ([bool]$r.EditatAMa) {
@@ -668,6 +677,19 @@ function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock
                 # (amb la ruta d'ara: la base pot ser d'una altra unitat).
                 $r = $prevByRuta[$clau]
                 $r.Ruta = $f.FullName
+                # Una base d'abans del camp de la VISITA: es llegeix nomes la
+                # capcalera, sense tornar a classificar res (un .doc, de la
+                # memoria del text; si no hi es, la propera vegada).
+                if ($null -eq $r.Visita) {
+                    try {
+                        if ($f.Extension -ieq '.doc') {
+                            $ldV = _LiniesDeDoc $f $clau $docCache $word $false
+                            if ($ldV.Llegit) { $r.Visita = _ExtractVisitaInspeccio @($ldV.Linies) }
+                        } else {
+                            $r.Visita = _ExtractVisitaInspeccio @(_ReadInformeParagraphs $f $null)
+                        }
+                    } catch { }
+                }
             } else {
                 $linies = $null
                 $noLlegit = $false

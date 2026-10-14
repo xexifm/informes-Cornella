@@ -1899,3 +1899,27 @@ què passa i on; canviar un requeriment es fa llegint la norma.
     l'identificador, es prova l'ELI sense `/con`.
   - L'índex diu **per quin camí** s'ha baixat cada una (`Baixada (PDF de la
     pàgina, amb l'Edge)`…), per poder-ho diagnosticar sense l'estat.
+
+## «Comprovar Excel»: visites d'inspecció i avisos descartats (octubre 2026)
+
+L'usuari: «ha de poder descartar avisos […] si jo considero que està arreglat
+per una altra banda» i «els informes que faig amb Objecte Visita inspecció +
+data […] aquesta data ha de constar a la fulla "Estès" columna "Data control
+inicial/verificació"».
+
+- **La data de la visita entra a la base d'informes** (`visita`, `dd/MM/yyyy`;
+  `''` = mirat i no és una visita). La treu `_ExtractVisitaInspeccio` de la línia
+  «Objecte: Visita inspecció …» (`Get-InformeData`). Els informes que ja hi eren
+  (sense el camp) la llegeixen a l'**Actualitzar base** següent **sense tornar-se
+  a classificar** (només la capçalera; un `.doc`, de la memòria del text).
+- **Què es comprova**: la **darrera** visita de cada activitat (sense els
+  informes ignorats) ha de ser entre les dates de la cel·la
+  (`_DatesDeCella`: número d'Excel, DateTime o text amb una o més dates). Només
+  la darrera, a posta: la columna és de *data de control* i en porta la més nova.
+  Si la columna no hi és, es diu al peu i no s'avisa de res.
+- **Cada avís té una clau estable** (`precinte|GIA`, `visita|GIA|data`,
+  `notrobat|GIA`, `sensegia|carpeta`; `Get-ComprovacioExcelAvisos`, pura).
+  **Descartar** desa les claus a `local/base-dades-activitats/comprovar-excel-descartats.json`
+  (porta noms de titulars: mai al GitHub). Un descartat que ja no avisa es treu
+  sol de la llista (`_CxFiltraDescartats`), i una visita **nova** té una altra
+  clau: torna a avisar. **Recuperar descartats** els torna a ensenyar tots.

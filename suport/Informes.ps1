@@ -105,6 +105,37 @@ function _ExtractExpedient($lines) {
     return ''
 }
 
+# La data de la VISITA D'INSPECCIO de l'informe: la linia "Objecte: Visita
+# inspeccio 24/07/2026" de la capcalera (_BuildOrigenText, MotorInforme.ps1).
+# Torna 'dd/MM/yyyy' o '' si l'informe no es d'una visita. La fa servir
+# "Comprovar Excel" per mirar que la data consti a l'Excel (octubre 2026). PURA.
+function _ExtractVisitaInspeccio($lines) {
+    foreach ($ln in @($lines)) {
+        $nt = _NormalitzaText ([string]$ln)
+        if ($nt -notmatch '^objecte\b' -or $nt -notmatch 'visita') { continue }
+        $d = @(_DatesDelText ([string]$ln))
+        if ($d.Count -gt 0) { return [string]$d[0] }
+        return ''
+    }
+    return ''
+}
+
+# Totes les dates d'un text ('24/07/2026', '24-7-26', '1.10.2026'), com a
+# 'dd/MM/yyyy', en ordre i sense repetides; les impossibles (31/02) fora.
+# Array PLA. PURA.
+function _DatesDelText([string]$t) {
+    $out = New-Object System.Collections.ArrayList
+    foreach ($m in [regex]::Matches([string]$t, '(?<!\d)(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{4}|\d{2})(?!\d)')) {
+        $a = [int]$m.Groups[3].Value
+        if ($m.Groups[3].Value.Length -eq 2) { $a += 2000 }
+        $d = [datetime]::MinValue
+        $txt = ('{0:D2}/{1:D2}/{2:D4}' -f [int]$m.Groups[1].Value, [int]$m.Groups[2].Value, $a)
+        if (-not [datetime]::TryParseExact($txt, 'dd/MM/yyyy', [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::None, [ref]$d)) { continue }
+        if (-not $out.Contains($txt)) { [void]$out.Add($txt) }
+    }
+    return $out.ToArray()
+}
+
 # Les conclusions, la conclusio breu i l'estat de l'activitat viuen a
 # InformesClassificacio.ps1 (octubre 2026: amb els formats antics i els tipus
 # d'informe aquest fitxer passava de les 1.200 linies).
