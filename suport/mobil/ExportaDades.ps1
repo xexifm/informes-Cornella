@@ -262,5 +262,7 @@ if ($Plantilles) {
 if ($Activitats) {
     Write-Host "Exportant base de dades d'activitats a Drive ..."
     Export-ActivitatsCmd
+    # I la CCO del mobil (CorreuMobil.ps1): no va al GitHub, va al Drive privat.
+    Write-Host ("  " + (Publish-CorreuMobilCco).Text)
 }
 Write-Host "Fet."

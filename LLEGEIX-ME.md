@@ -700,7 +700,8 @@ pot transmetre l'activitat mentre hi hagi un expedient obert).
 > El botó **Editar el text** de cada fila obre el text d'aquell correu (el
 > mateix que *Textos del correu*). A baix, **Correu del mòbil…** tria a qui va
 > el correu de l'app del mòbil (titular i/o representant) i la seva CCO (sempre
-> o a triar); **Desar i publicar ara** ho puja amb Actualitzar, i **Copiar el
+> o a triar). Les adreces de CCO es desen **en aquest PC i al teu Drive**, mai al
+> GitHub. **Desar i publicar ara** puja la resta amb Actualitzar, i **Copiar el
 > prompt** et fa un text per demanar a Claude qualsevol altre canvi del correu
 > del mòbil (el remitent, EmailJS…).
 >

@@ -144,6 +144,14 @@
     return llegirTextDades("planol.html", "Encara no hi ha cap plànol al Drive: genera'l al PC (Plànol activitats) i torna-ho a provar.");
   }
 
+  // La CCO del correu (Dades/correu-mobil.json): les adreces NO son al GitHub,
+  // que es public; les hi deixa el PC (Configuracio -> Correu del mobil).
+  // Torna { bcc: [{addr, def}] }.
+  function llegirCorreuMobil() {
+    return llegirTextDades("correu-mobil.json", "Encara no hi ha la CCO del correu al Drive: desa-la al PC (Configuració → Correu del mòbil).")
+      .then(function (t) { return JSON.parse(t); });
+  }
+
   // Puja un objecte JSON com a fitxer nou a la carpeta Entrada.
   function pujarPaquet(nom, obj) {
     if (!connectat()) return Promise.reject(new Error("Cal connectar Drive primer."));
@@ -173,6 +181,7 @@
     connectar: connectar,
     reconnectarSilenci: reconnectarSilenci,
     connectat: connectat,
+    llegirCorreuMobil: llegirCorreuMobil,
     llegirActivitats: llegirActivitats,
     llegirPlanol: llegirPlanol,
     pujarPaquet: pujarPaquet

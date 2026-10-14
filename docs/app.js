@@ -938,13 +938,29 @@
     return out.join(", ");
   }
 
-  // Pinta les caselles de Còpia Oculta (un sol cop). La 1a marcada per defecte.
+  // Pinta les caselles de Còpia Oculta (un sol cop): les 'def' marcades.
+  // LES ADRECES SURTEN DEL DRIVE PRIVAT (Dades/correu-mobil.json, octubre 2026):
+  // abans eren a email-textos.json, al GitHub, que es public. Si el Drive no hi
+  // es, les d'email-textos.json si encara n'hi ha (cap, des d'aleshores).
+  var bccDemanat = false;
   function muntarBcc() {
     var cont = $("bcc-opcions");
-    if (!cont || cont.childNodes.length) return;
-    // Les adreces surten de la clau 'bcc' del mateix JSON que els textos: al PC
-    // les llegeix _CorreuBccOpcions (EnviarCorreu.ps1) d'aquell mateix lloc.
-    asArray(emailTextos && emailTextos.bcc).forEach(function (o) {
+    if (!cont || cont.childNodes.length || bccDemanat) return;
+    var pinta = function (llista) { pintarBcc(cont, llista); };
+    var delJson = asArray(emailTextos && emailTextos.bcc);
+    if (window.Drive && Drive.llegirCorreuMobil && Drive.connectat && Drive.connectat()) {
+      // Un sol cop per sessio (i sense el Drive, es torna a provar la propera).
+      bccDemanat = true;
+      Drive.llegirCorreuMobil().then(function (o) { pinta(asArray(o && o.bcc)); })
+        .catch(function () { pinta(delJson); });
+    } else {
+      pinta(delJson);
+    }
+  }
+
+  function pintarBcc(cont, llista) {
+    if (cont.childNodes.length) return;
+    asArray(llista).forEach(function (o) {
       if (!o || !o.addr) return;
       var lab = document.createElement("label");
       lab.className = "bcc-item";

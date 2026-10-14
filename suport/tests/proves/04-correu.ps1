@@ -28,11 +28,11 @@ try {
     AssertEq $ePeta $true '_LoadEmailTextos: sense fitxer PETA (cap text de reserva)'
 } finally { $RepoRoot = $eTmpRoot }
 
-# La llista de CCO surt del mateix JSON, no del codi.
-$ebcc = @(_EmailBccDeJson (Read-JsonFile (_EmailTextosPath)))
-AssertEq ($ebcc.Count) 4 '_EmailBccDeJson: les 4 adreces surten del JSON'
-AssertEq (@($ebcc | Where-Object { $_.Default }).Count) 1 '_EmailBccDeJson: nomes una va marcada per defecte'
-AssertEq ([bool](@($ebcc)[0].Addr -like '*@*')) $true '_EmailBccDeJson: son adreces de correu'
+# La llista de CCO JA NO ES al JSON del repositori (que es public): es local
+# i al Drive privat (Read-CorreuMobilCco). El lector del format es el mateix.
+AssertEq @(_EmailBccDeJson (Read-JsonFile (_EmailTextosPath))).Count 0 'email-textos.json (public) no porta cap adreca de CCO'
+$ebcc = @(_EmailBccDeJson ([pscustomobject]@{ bcc = @([pscustomobject]@{ addr = ' a@x.cat '; def = $true }, [pscustomobject]@{ addr = ''; def = $true }, [pscustomobject]@{ addr = 'b@x.cat' }) }))
+AssertEq (($ebcc | ForEach-Object { $_.Addr + '=' + $_.Default }) -join '|') 'a@x.cat=True|b@x.cat=False' '_EmailBccDeJson: adreces netes, sense les buides, def per defecte fals'
 AssertEq (@(_EmailBccDeJson $null).Count) 0 '_EmailBccDeJson: sense objecte, llista buida'
 AssertEq (@(_EmailBccDeJson ([pscustomobject]@{ bcc = @() })).Count) 0 '_EmailBccDeJson: bcc buit, llista buida'
 
@@ -44,6 +44,10 @@ $gRoot = Split-Path -Parent (Split-Path -Parent $TestsDir)
 $gFonts = @()
 $gFonts += @(Get-ChildItem -Path (Join-Path $gRoot 'suport') -Recurse -Filter *.ps1 -File | Where-Object { $_.FullName -notlike '*tests*' })
 $gFonts += @(Get-ChildItem -Path (Join-Path $gRoot 'docs') -Filter *.js -File)
+# I TOTES les dades del mobil: docs/ es la web PUBLICA (GitHub Pages). Les
+# quatre adreces de CCO hi eren, a email-textos.json (octubre 2026: ara son a
+# correu-mobil.json, al PC i al Drive privat).
+$gDades = @(Get-ChildItem -Path (Join-Path $gRoot 'docs') -Recurse -File -Include *.json, *.html | Where-Object { $_.FullName -notlike '*node_modules*' })
 $gAmbAdreca = @()
 $gAmbTextos = @()
 foreach ($gf in $gFonts) {
@@ -53,7 +57,8 @@ foreach ($gf in $gFonts) {
     # aquesta frase hi sera.
     if ($gt.Contains('no la presenteu per parts')) { $gAmbTextos += $gf.Name }
 }
-AssertEq $gAmbAdreca.Count 0 ('cap adreca @aj-cornella.cat escrita al codi' + $(if ($gAmbAdreca.Count) { ' -> ' + ($gAmbAdreca -join ', ') } else { '' }))
+foreach ($gf in $gDades) { if ((Get-Content -LiteralPath $gf.FullName -Raw -Encoding UTF8) -match '[A-Za-z0-9._%+-]+@aj-cornella\.cat') { $gAmbAdreca += $gf.Name } }
+AssertEq $gAmbAdreca.Count 0 ('cap adreca @aj-cornella.cat escrita al codi ni a les dades publiques del mobil' + $(if ($gAmbAdreca.Count) { ' -> ' + ($gAmbAdreca -join ', ') } else { '' }))
 AssertEq $gAmbTextos.Count 0 ('cap copia del cos del correu al codi' + $(if ($gAmbTextos.Count) { ' -> ' + ($gAmbTextos -join ', ') } else { '' }))
 
 Write-Host "`n--- EnviarCorreu.ps1: diagnostic d'error d'EmailJS (pura) ---"
@@ -100,8 +105,6 @@ AssertEq ($rBlancs.To -join ',') 'Jo@X.cat' '_CorreuDestinatariBuit: nomes espai
 AssertEq @($rBlancs.Bcc).Count 0 '_CorreuDestinatariBuit: sense CCO marcades, CCO buida'
 $rSenseDef = _CorreuDestinatariBuit @() @('altre@x.cat') @(@{ Addr = 'altre@x.cat'; Default = $false })
 AssertEq @($rSenseDef.To).Count 0 '_CorreuDestinatariBuit: sense CCO per defecte, To buit (el cridador ho atura)'
-$rReal = _CorreuDestinatariBuit @() @() @(_CorreuBccOpcions)
-AssertEq @($rReal.To).Count 1 '_CorreuDestinatariBuit: amb email-textos.json real, hi ha adreca propia'
 
 Write-Host "`n--- EnviarCorreu.ps1: de quina activitat es l'informe (pura) ---"
 # El nom real que fa _GetOutputFileName / _SeguimentOutputName.
@@ -221,19 +224,53 @@ AssertEq (@(_EmailDestDeJson ([pscustomobject]@{ dest = @('representant', 'inven
 AssertEq @(_EmailDestDeJson ([pscustomobject]@{ dest = @() })).Count 0 '_EmailDestDeJson: es pot desar "ningu" (el destinatari s''escriu a ma)'
 $cmM = _CorreuMobilLlegeix $cmTx
 AssertEq "$($cmM.Sempre)|$($cmM.Tria)" "$((@(@($cmTx['bcc']) | Where-Object { $_.Default } | ForEach-Object { $_.Addr })) -join '; ')|$((@(@($cmTx['bcc']) | Where-Object { -not $_.Default } | ForEach-Object { $_.Addr })) -join '; ')" '_CorreuMobilLlegeix: la CCO de sempre son les def, la a triar les altres'
-$cmA = _CorreuMobilAplica $cmTx 'me@x.cat' 'a@x.cat; ME@x.cat; b@x.cat' @('representant', 'titular', 'x')
-AssertEq ((@($cmA.Keys)) -join ',') (((@($cmTx.Keys)) -join ',')) '_CorreuMobilAplica: les mateixes claus i en el mateix ordre'
+$cmA = _CorreuMobilAplica $cmTx @('representant', 'titular', 'x')
+AssertEq ((@($cmA.Keys)) -join ',') (((@($cmTx.Keys) | Where-Object { $_ -ne 'bcc' })) -join ',') '_CorreuMobilAplica: les mateixes claus i en el mateix ordre, SENSE la CCO'
 AssertEq "$($cmA['assumpte'] -eq $cmTx['assumpte'])|$($cmA['cos'] -eq $cmTx['cos'])|$($cmA['introInsp'] -eq $cmTx['introInsp'])" 'True|True|True' '_CorreuMobilAplica: els textos no es toquen'
-AssertEq ((@($cmA['bcc']) | ForEach-Object { [string]$_.addr + '=' + [string]$_.def }) -join '|') 'me@x.cat=True|a@x.cat=False|b@x.cat=False' '_CorreuMobilAplica: la CCO al format del mobil (addr/def), sense repetir les de sempre'
 AssertEq (@($cmA['dest']) -join ',') 'representant,titular' '_CorreuMobilAplica: a qui va, nomes els valors valids'
 $cmTmp = Join-Path ([System.IO.Path]::GetTempPath()) ('email-textos-' + [guid]::NewGuid().ToString('N') + '.json')
 try {
-    Write-JsonFile $cmTmp $cmA 5
+    Write-JsonFile $cmTmp (_CorreuMobilAplica $cmTx @('titular')) 5
     $cmR = Read-JsonFile $cmTmp
-    AssertEq "$((@(_EmailBccDeJson $cmR) | ForEach-Object { $_.Addr + '=' + $_.Default }) -join '|')#$(@(_EmailDestDeJson $cmR) -join ',')" 'me@x.cat=True|a@x.cat=False|b@x.cat=False#representant,titular' 'Correu del mobil: el que es desa es llegeix igual (anada i tornada del JSON)'
-    Write-JsonFile $cmTmp (_CorreuMobilAplica $cmTx '' '' @('titular')) 5
-    AssertEq "$(@((Read-JsonFile $cmTmp).dest).Count)|$(@(_EmailBccDeJson (Read-JsonFile $cmTmp)).Count)" '1|0' 'Correu del mobil: sense CCO, cap; la llista d''un sol destinatari segueix sent una llista'
+    AssertEq "$(@($cmR.dest).Count)|$($null -eq $cmR.PSObject.Properties['bcc'])" '1|True' 'Correu del mobil: a email-textos.json hi va a qui va (una llista) i MAI la CCO'
 } finally { Remove-Item -LiteralPath $cmTmp -Force -ErrorAction SilentlyContinue }
+
+# LA CCO, FORA DEL GITHUB: la migracio (el primer cop, sola).
+$cmDir = Join-Path ([System.IO.Path]::GetTempPath()) ('ccomig-' + [guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path $cmDir -Force | Out-Null
+try {
+    $cmJs = Join-Path $cmDir 'email-textos.json'; $cmLoc = Join-Path $cmDir 'correu-mobil.json'
+    $cmAmb = [ordered]@{ assumpte = 'A {ID_GIA}'; cos = 'C'; introInsp = 'I'; bcc = @([pscustomobject]@{ addr = 'jo@x.cat'; def = $true }, [pscustomobject]@{ addr = 'a@x.cat'; def = $false }) }
+    Write-JsonFile $cmJs $cmAmb 5
+    AssertEq (_CorreuMobilCcoMigra $cmJs $cmLoc { throw 'no hi ha de fer falta' }) 'fitxer' 'migracio: la CCO que encara es al fitxer del repositori passa al PC'
+    AssertEq ((@(_EmailBccDeJson (Read-JsonFile $cmLoc)) | ForEach-Object { $_.Addr + '=' + $_.Default }) -join '|') 'jo@x.cat=True|a@x.cat=False' 'migracio: les adreces, amb el seu sempre/a triar'
+    $cmJsD = Read-JsonFile $cmJs
+    AssertEq "$($null -eq $cmJsD.PSObject.Properties['bcc'])|$($cmJsD.assumpte)|$($cmJsD.introInsp)" 'True|A {ID_GIA}|I' 'migracio: i el fitxer del repositori es queda sense la CCO (la resta, igual)'
+    AssertEq (_CorreuMobilCcoMigra $cmJs $cmLoc { throw 'no' }) '' 'migracio: un cop feta, no fa res'
+    Write-JsonFile $cmJs $cmAmb 5
+    Write-JsonFile $cmLoc (_CorreuMobilCcoAJson @(@{ Addr = 'local@x.cat'; Default = $true })) 4
+    [void](_CorreuMobilCcoMigra $cmJs $cmLoc $null)
+    AssertEq "$((@(_EmailBccDeJson (Read-JsonFile $cmLoc)) | ForEach-Object { $_.Addr }) -join ',')|$($null -eq (Read-JsonFile $cmJs).PSObject.Properties['bcc'])" 'local@x.cat|True' 'migracio: si ja n''hi ha de locals, manen; del fitxer es treuen igual (el Restore d''Actualitzar les hi podria tornar)'
+    Remove-Item -LiteralPath $cmLoc -Force
+    AssertEq (_CorreuMobilCcoMigra $cmJs $cmLoc { $null }) '' 'migracio: sense historial llegible, no es dona per feta (es tornara a provar)'
+    Assert (-not (Test-Path -LiteralPath $cmLoc)) 'migracio: ...i no deixa cap fitxer buit'
+    $cmVells = @('{"assumpte":"x","cos":"y"}', ('{"assumpte":"x","cos":"y","bcc":[{"addr":"vell@x.cat","def":true}]}'))
+    AssertEq (_CorreuMobilCcoMigra $cmJs $cmLoc ({ , $cmVells }.GetNewClosure())) 'historia' 'migracio: si el fitxer ja ha baixat sense CCO, les adreces surten de l''historial del git'
+    AssertEq ((@(_EmailBccDeJson (Read-JsonFile $cmLoc)) | ForEach-Object { $_.Addr }) -join ',') 'vell@x.cat' 'migracio: la versio mes nova que en tenia'
+    Remove-Item -LiteralPath $cmLoc -Force
+    AssertEq (_CorreuMobilCcoMigra $cmJs $cmLoc { , @('{"cos":"y"}') }) 'res' 'migracio: cap versio amb CCO: un fitxer buit, i no es torna a buscar'
+    AssertEq @(_EmailBccDeJson (Read-JsonFile $cmLoc)).Count 0 'migracio: ...buit'
+    $cmApp = $env:LOCALAPPDATA
+    try {
+        $env:LOCALAPPDATA = $cmDir
+        Save-CorreuMobilCco @(@{ Addr = 's@x.cat'; Default = $true }, @{ Addr = 't@x.cat'; Default = $false })
+        AssertEq ((@(Read-CorreuMobilCco) | ForEach-Object { $_.Addr + '=' + $_.Default }) -join '|') 's@x.cat=True|t@x.cat=False' 'Save/Read-CorreuMobilCco: al LOCALAPPDATA, anada i tornada'
+        AssertEq ((@(_CorreuBccOpcions) | ForEach-Object { $_.Addr }) -join ',') 's@x.cat,t@x.cat' 'Enviar correu: la CCO d''abans surt del fitxer local'
+        AssertEq ((@((_LoadEmailTextos)['bcc']) | ForEach-Object { $_.Addr }) -join ',') 's@x.cat,t@x.cat' '_LoadEmailTextos: la clau bcc, del fitxer local'
+        $rReal = _CorreuDestinatariBuit @() @() @(_CorreuBccOpcions)
+        AssertEq ($rReal.To -join ',') 's@x.cat' '_CorreuDestinatariBuit: amb la CCO local, l''adreca propia es la de sempre'
+    } finally { $env:LOCALAPPDATA = $cmApp }
+} finally { Remove-Item -LiteralPath $cmDir -Recurse -Force -ErrorAction SilentlyContinue }
 $cmP = _CorreuMobilPrompt @{ Sempre = 'me@x.cat'; Tria = 'a@x.cat'; Dest = @('titular', 'representant') } @{ EMAILJS_PUBLIC_KEY = 'k'; EMAILJS_SERVICE_ID = ''; EMAIL_FROM_NAME = 'Ajuntament' } 'Que surti des d''una altra adreca'
 foreach ($cmFr in @('el titular i el representant legal', 'CCO sempre (marcades): me@x.cat', 'CCO a triar (desmarcades): a@x.cat', 'en falten: EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID', 'Ajuntament', "Que surti des d'una altra adreca", 'docs/dades/email-textos.json', 'xexifm/informes-cornella')) {
     Assert ($cmP.Contains($cmFr)) ("_CorreuMobilPrompt: diu '" + $cmFr + "'")

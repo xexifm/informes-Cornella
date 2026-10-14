@@ -177,11 +177,11 @@ if (-not $Script:HeadlessTest) {
 }
 
 # --- Enviament EmailJS --------------------------------------------------------
-# Adreces disponibles per a Copia Oculta (CCO). Surten de la clau 'bcc' de
-# docs\dades\email-textos.json, que es el mateix fitxer que porta l'assumpte i
-# el cos. Abans les quatre adreces estaven escrites aqui I a docs\app.js (i la
-# primera, una tercera vegada a Recordatoris.ps1): quatre adreces nominals de
-# treballadors, repetides a ma, en un repositori public.
+# Adreces disponibles per a Copia Oculta (CCO). Surten de correu-mobil.json, a
+# %LOCALAPPDATA% (Read-CorreuMobilCco, EmailTextos.ps1). Abans les quatre
+# adreces estaven escrites aqui I a docs\app.js (i la primera, una tercera
+# vegada a Recordatoris.ps1), i despres a docs\dades\email-textos.json: sempre
+# en un repositori public. Ara ja no son al GitHub (octubre 2026).
 function _CorreuBccOpcions {
     # Array PLA: el crider hi posa @() (vegeu _EmailBccDeJson).
     try { return @((_LoadEmailTextos)['bcc']) } catch { return @() }

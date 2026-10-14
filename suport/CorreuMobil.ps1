@@ -6,13 +6,15 @@
   programa i es pugui enviar o generar un mini prompt per canviar la
   configuracio d'enviar correu del mobil".
 
-  El mobil (docs/app.js) llegeix el que envia de docs/dades/email-textos.json,
-  que es publica a la web amb Actualitzar.bat (el committeja si ha canviat). El
-  que s'hi pot triar des d'aqui:
-    - A QUI VA: el titular i/o el representant legal (clau 'dest'; sense, el
-      titular, que es el que el mobil ha fet sempre);
-    - la CCO de SEMPRE (marcades al mobil) i la A TRIAR (desmarcades): la clau
-      'bcc' de sempre, amb el seu 'def'.
+  El que s'hi pot triar des d'aqui:
+    - A QUI VA: el titular i/o el representant legal. Clau 'dest' de
+      docs/dades/email-textos.json, que es publica a la web amb Actualitzar
+      (no es cap dada personal); sense la clau, el titular, com sempre;
+    - la CCO de SEMPRE (marcades al mobil) i la A TRIAR (desmarcades). Son
+      ADRECES de persones i NO van al GitHub, que es public: es desen a
+      %LOCALAPPDATA%\InformesCornella\correu-mobil.json (Save-CorreuMobilCco,
+      EmailTextos.ps1) i es pugen al Drive PRIVAT (Dades/correu-mobil.json,
+      Publish-CorreuMobilCco), d'on les llegeix el mobil.
   Els textos ja tenen el seu editor (Textos del correu) i les claus d'EmailJS i
   el nom del remitent son a docs/config.js, que Actualitzar NO puja: per a tot
   el que no es d'aquest fitxer, el boto "Copiar el prompt" fa un text per
@@ -20,9 +22,6 @@
 
   "Publicar ara" desa i llanca Actualitzar (li arriba com a scriptblock des de
   Configuracio: si el cridava directament hi hauria un cicle de dependencies).
-
-  OJU: email-textos.json es al repositori, que es PUBLIC: les adreces de CCO del
-  mobil ja hi eren (i la web les ha de poder llegir).
 
   NOMES DEFINEIX FUNCIONS.
 #>
@@ -37,20 +36,29 @@ function _CorreuMobilLlegeix($textos) {
     return @{ Sempre = (_CorreuNetejaAdreces $sempre); Tria = ((@(_CorreuCcoTriaLlista $sempre $tria)) -join '; '); Dest = @($dest | Where-Object { $_ }) }
 }
 
-# Els textos amb la configuracio nova: la resta de claus, tal com eren. Torna
-# un ordered hashtable a punt per a _SaveEmailTextos. PURA.
-function _CorreuMobilAplica($textos, [string]$sempre, [string]$tria, $dest) {
+# Els textos (email-textos.json) amb a qui va: la resta de claus, tal com eren,
+# i SENSE la CCO (es local, no va mai al GitHub). Torna un ordered hashtable a
+# punt per a _SaveEmailTextos. PURA.
+function _CorreuMobilAplica($textos, $dest) {
     $out = [ordered]@{}
     foreach ($k in @($textos.Keys)) {
-        if ($k -eq 'bcc') {
-            $out['bcc'] = @(@(_CorreuCcoOpcions $sempre $tria) | ForEach-Object { [pscustomobject]@{ addr = [string]$_.Addr; def = [bool]$_.Default } })
-        } elseif ($k -eq 'dest') {
-            $out['dest'] = [string[]]@(@($dest) | ForEach-Object { [string]$_ } | Where-Object { $Script:EmailMobilDestValids -contains $_ } | Select-Object -Unique)
-        } else { $out[$k] = $textos[$k] }
+        if ($k -eq 'bcc') { continue }
+        $out[$k] = $textos[$k]
     }
-    if (-not $out.Contains('bcc')) { $out['bcc'] = @(@(_CorreuCcoOpcions $sempre $tria) | ForEach-Object { [pscustomobject]@{ addr = [string]$_.Addr; def = [bool]$_.Default } }) }
-    if (-not $out.Contains('dest')) { $out['dest'] = [string[]]@(@($dest) | Where-Object { $Script:EmailMobilDestValids -contains $_ }) }
+    $out['dest'] = [string[]]@(@($dest) | ForEach-Object { [string]$_ } | Where-Object { $Script:EmailMobilDestValids -contains $_ } | Select-Object -Unique)
     return ,$out
+}
+
+# Puja la CCO del mobil al Drive privat (Dades/correu-mobil.json), d'on la
+# llegeix l'app. Torna @{ Ok; Text }; mai peta.
+function Publish-CorreuMobilCco {
+    try {
+        $json = ((_CorreuMobilCcoAJson @(Read-CorreuMobilCco)) | ConvertTo-Json -Depth 4)
+        Save-ADadesDrive 'correu-mobil.json' $json 'application/json; charset=UTF-8'
+        return @{ Ok = $true; Text = "La CCO s'ha pujat al Drive: el m" + [char]0x00F2 + "bil ja la t" + [char]0x00E9 + "." }
+    } catch {
+        return @{ Ok = $false; Text = ("No s'ha pogut pujar la CCO al Drive (" + $_.Exception.Message + "). Es tornara a provar amb Actualitzar.") }
+    }
 }
 
 # EL MINI PROMPT: la configuracio d'ara i el canvi que es vol, per enganxar a
@@ -71,7 +79,7 @@ function _CorreuMobilPrompt($m, $cfgJs, [string]$canvi) {
         "- CCO a triar (desmarcades): " + $(if ($m.Tria) { $m.Tria } else { 'cap' }) + $nl +
         "- Envia per EmailJS; claus a docs/config.js: " + $ejsTxt + $nl +
         "- Nom del remitent (EMAIL_FROM_NAME): " + (Get-ConfigJsValue $cfgJs 'EMAIL_FROM_NAME' '(buit)') + $nl + $nl +
-        "On viu: docs/dades/email-textos.json (textos, 'dest' i 'bcc'; s'editen des del programa a Configuraci" + [char]0x00F3 + " -> Correu del m" + [char]0x00F2 + "bil i a Textos del correu), docs/config.js (EmailJS i remitent), docs/app.js (enviarEmail, muntarBcc, destinatariPerDefecte) i docs/email.js." + $nl + $nl +
+        "On viu: docs/dades/email-textos.json (textos i 'dest'), la CCO a correu-mobil.json (LOCALAPPDATA del PC i Dades del Drive; MAI al GitHub), docs/config.js (EmailJS i remitent), docs/app.js (enviarEmail, muntarBcc, destinatariPerDefecte), docs/drive.js i docs/email.js." + $nl + $nl +
         "El que vull canviar:" + $nl + $c + $nl + $nl +
         "Fes-ho, passa les proves (suport/tests/run-tests-all.ps1 i suport/tests/navegador/prova-mobil.mjs) i puja-ho a main.")
 }
@@ -103,21 +111,26 @@ function Show-CorreuMobilConfig([scriptblock]$publica = $null) {
     $tbS = & $mk 'TextBox' $m.Sempre 222 129 418 24
     [void](& $mk 'Label' 'CCO a triar (desmarcades):' 20 166 200 20)
     $tbT = & $mk 'TextBox' $m.Tria 222 163 418 24
-    $nota = & $mk 'Label' ("Es desa a docs\dades\email-textos.json i arriba al m" + [char]0x00F2 + "bil quan es publica (Actualitzar). Compte: aquest fitxer " + [char]0x00E9 + "s al GitHub, que " + [char]0x00E9 + "s p" + [char]0x00FA + "blic. Els textos, a Textos del correu.") 20 196 620 34
+    $nota = & $mk 'Label' ("Les adreces de CCO es desen en aquest PC i al teu Drive (mai al GitHub). A qui va arriba al m" + [char]0x00F2 + "bil amb Actualitzar. Els textos, a Textos del correu.") 20 196 620 34
     $nota.ForeColor = [System.Drawing.Color]::FromArgb(90, 90, 90)
     [void](& $mk 'Label' ("Per a la resta (EmailJS, el remitent, com funciona l'enviament): escriu el canvi i copia el prompt per enganxar-lo a Claude.") 20 240 620 34)
     $tbCanvi = & $mk 'TextBox' '' 20 276 620 120
     $tbCanvi.Multiline = $true; $tbCanvi.ScrollBars = 'Vertical'
     $btnPrompt = & $mk 'Button' 'Copiar el prompt' 20 404 180 30
     _StyleSecondaryButton $btnPrompt
-    $st = @{ Textos = $textos; S = $tbS; T = $tbT; Ti = $cbT; Re = $cbR; Canvi = $tbCanvi }
+    $st = @{ Textos = $textos; S = $tbS; T = $tbT; Ti = $cbT; Re = $cbR; Canvi = $tbCanvi; Drive = @{ Ok = $true; Text = '' } }
     $llegeixPantalla = {
         $d = @(); if ($st.Ti.Checked) { $d += 'titular' }; if ($st.Re.Checked) { $d += 'representant' }
         return @{ Sempre = (_CorreuNetejaAdreces ([string]$st.S.Text)); Tria = (_CorreuNetejaAdreces ([string]$st.T.Text)); Dest = $d }
     }.GetNewClosure()
     $desa = {
         $p = & $llegeixPantalla
-        try { _SaveEmailTextos (_CorreuMobilAplica $st.Textos $p.Sempre $p.Tria $p.Dest); return $true } catch {
+        try {
+            Save-CorreuMobilCco @(_CorreuCcoOpcions $p.Sempre $p.Tria)
+            _SaveEmailTextos (_CorreuMobilAplica $st.Textos $p.Dest)
+            $st.Drive = Publish-CorreuMobilCco
+            return $true
+        } catch {
             [System.Windows.Forms.MessageBox]::Show("No s'ha pogut desar:`n" + $_.Exception.Message, 'Correu del m' + [char]0x00F2 + 'bil', 'OK', 'Error') | Out-Null
             return $false
         }
@@ -133,7 +146,7 @@ function Show-CorreuMobilConfig([scriptblock]$publica = $null) {
     $peu = _AddPeuBotons $form @(@{ Nom = 'Tancar'; Text = 'Tancar'; Resultat = 'Cancel'; Esc = $true }) $dretaBotons 460
     $peu.Desar.add_Click({
         if (& $desa) {
-            [System.Windows.Forms.MessageBox]::Show("Desat. Arribar" + [char]0x00E0 + " al m" + [char]0x00F2 + "bil la propera vegada que facis Actualitzar.", 'Correu del m' + [char]0x00F2 + 'bil', 'OK', 'Information') | Out-Null
+            [System.Windows.Forms.MessageBox]::Show(("Desat. " + [string]$st.Drive.Text + "`n`nA qui va arribar" + [char]0x00E0 + " al m" + [char]0x00F2 + "bil la propera vegada que facis Actualitzar."), 'Correu del m' + [char]0x00F2 + 'bil', 'OK', $(if ($st.Drive.Ok) { 'Information' } else { 'Warning' })) | Out-Null
             $form.Close()
         }
     }.GetNewClosure())

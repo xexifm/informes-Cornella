@@ -496,8 +496,26 @@ cadascuna de les opcions per enviar un correu de prova».
   (EmailJS, el remitent) —que Actualitzar **no** puja— o al codi, **Copiar el
   prompt** (`_CorreuMobilPrompt`, pura) fa un text amb la configuració d'ara i
   el canvi que s'hi escriu, per enganxar a Claude. *Textos del correu* conserva
-  `dest` en desar (guard). Compte: `email-textos.json` és al repositori públic;
-  les adreces de CCO del mòbil ja hi eren.
+  `dest` en desar (guard).
+- **LES ADRECES DE CCO, FORA DEL GITHUB** (octubre 2026, l'usuari: «podem posar
+  les adreces en local i fora de GitHub perquè no siguin públiques?»). Eren a la
+  clau `bcc` d'`email-textos.json`, a la web pública. Ara:
+  - al PC, a `%LOCALAPPDATA%\InformesCornella\correu-mobil.json`
+    (`Read-CorreuMobilCco` / `Save-CorreuMobilCco`, `EmailTextos.ps1`); la clau
+    `bcc` de `_LoadEmailTextos` en surt, o sigui que *Enviar correu* i el
+    destinatari buit (`_CorreuDestinatariBuit`) funcionen igual;
+  - al mòbil, del **Drive privat** (`Dades/correu-mobil.json`, al costat
+    d'`activitats.json`): el PC l'hi puja en desar *Correu del mòbil* i a cada
+    Actualitzar (`Publish-CorreuMobilCco`, pas 6); `docs/drive.js` →
+    `llegirCorreuMobil`, `docs/app.js` → `muntarBcc`. Sense Drive, cap CCO.
+  - **La migració és sola** (`_CorreuMobilCcoMigra`): si el fitxer del
+    repositori encara porta `bcc`, la copia al PC (si no n'hi ha) i la hi treu
+    —també si el *Restore* d'Actualitzar l'hi torna a posar—; si ja ha baixat
+    sense, la treu de l'**historial del git** (`_CorreuMobilCcoHistoriaGit`; a
+    les proves, mai). Sense historial llegible no es dona per feta.
+  - Guard: cap `@aj-cornella.cat` ni al codi ni a cap `.json`/`.html` de `docs/`
+    (validat injectant-ne una). **L'historial del git encara les té**: treure-les
+    d'allà vol dir reescriure `main` amb un force-push, i no s'ha fet.
 - **La prova del Seguiment porta els nombres de debò** (o no en porta):
   `_SgGeneraFitxer` desa a l'estat (`seguiment-auto.json`) el darrer PDF, el
   resum i l'Excel (`ultim_pdf`, `ultim_resum`, `ultim_origen`), i la prova els

@@ -76,7 +76,10 @@ function _LoadEmailTextos {
         }
         $d[$k] = [string]$o.$k
     }
-    $d['bcc'] = @(_EmailBccDeJson $o)
+    # LA CCO JA NO ES AQUI (octubre 2026): es a correu-mobil.json, fora del
+    # GitHub (Read-CorreuMobilCco). La clau es queda perque els cridadors la
+    # llegeixen igual.
+    $d['bcc'] = @(Read-CorreuMobilCco)
     # A qui va el correu del mobil (Configuracio -> Correu del mobil).
     $d['dest'] = @(_EmailDestDeJson $o)
     # Les frases de {INTRO} (vegeu _CorreuIntro, CorreuFormat.ps1). No son
@@ -93,9 +96,9 @@ function _LoadEmailTextos {
 # _AutoFirmaCandidatePaths). NO fa 'return ,$out': combinar les dues coses hi
 # posa la capa dues vegades i .Count val 1 -es la trampa que aquest projecte ja
 # ha vist tres cops-.
-# Les quatre adreces estaven escrites a EnviarCorreu.ps1 I a docs\app.js (i una
-# tercera vegada a Recordatoris.ps1); ara son una clau mes del mateix fitxer, o
-# sigui que canviar-ne una es tocar un sol lloc.
+# El format ({ addr, def }) el fan servir correu-mobil.json (local i al Drive)
+# i, fins a l'octubre de 2026, la clau 'bcc' d'email-textos.json (la migracio
+# encara la llegeix).
 function _EmailBccDeJson($o) {
     $out = @()
     if ($null -eq $o -or -not $o.PSObject.Properties['bcc']) { return $out }
@@ -114,6 +117,97 @@ $Script:EmailMobilDestValids = @('titular', 'representant')
 function _EmailDestDeJson($o) {
     if ($null -eq $o -or -not $o.PSObject.Properties['dest'] -or $null -eq $o.dest) { return @('titular') }
     return @(@($o.dest) | ForEach-Object { [string]$_ } | Where-Object { $Script:EmailMobilDestValids -contains $_ } | Select-Object -Unique)
+}
+
+# ----------------------------------------------------------------------------
+# LA CCO DEL MOBIL, FORA DEL GITHUB (octubre 2026)
+# ----------------------------------------------------------------------------
+# L'usuari: "Podem posar les adreces en local i fora de GitHub perque no siguin
+# publiques?". Les quatre adreces de CCO eren a docs\dades\email-textos.json,
+# al repositori PUBLIC (la web les llegia d'alla). Ara:
+#   - al PC, a %LOCALAPPDATA%\InformesCornella\correu-mobil.json;
+#   - al mobil, del Drive PRIVAT (Dades/correu-mobil.json), on ja hi ha
+#     activitats.json: Publish-CorreuMobilCco (CorreuMobil.ps1) l'hi puja.
+# EL PRIMER COP, el PC se les porta sol (_CorreuMobilCcoMigra): de la clau 'bcc'
+# del fitxer si encara hi es (i la hi treu), o de l'historial del git si ja ha
+# baixat la versio sense. Aixi l'usuari no les ha de tornar a escriure.
+function _CorreuMobilCcoPath {
+    $base = [string]$env:LOCALAPPDATA
+    if ([string]::IsNullOrWhiteSpace($base)) { $base = [System.IO.Path]::GetTempPath() }
+    return [string](Join-Path $base (Join-Path 'InformesCornella' 'correu-mobil.json'))
+}
+
+# D'on surten les versions antigues d'email-textos.json (text, la mes nova
+# primer). Es una variable perque les proves hi posen les seves; en proves, cap
+# (no s'ha de llegir cap adreca de debo de l'historial).
+$Script:CorreuMobilCcoHistoria = { _CorreuMobilCcoHistoriaGit }
+function _CorreuMobilCcoHistoriaGit {
+    if ($Script:HeadlessTest) { return $null }
+    $root = if ($RepoRoot) { $RepoRoot } else { (Get-Location).Path }
+    $rel = 'docs/dades/email-textos.json'
+    $hs = @(& git -C $root log --format=%H -n 40 -- $rel 2>$null)
+    if ($LASTEXITCODE -ne 0) { return $null }
+    $out = New-Object System.Collections.ArrayList
+    foreach ($h in $hs) {
+        $t = (@(& git -C $root show ($h.Trim() + ':' + $rel) 2>$null)) -join "`n"
+        if ($t) { [void]$out.Add($t) }
+    }
+    return ,$out.ToArray()
+}
+
+function _CorreuMobilCcoAJson($bcc) {
+    return [ordered]@{ bcc = @(@($bcc) | Where-Object { $null -ne $_ -and [string]$_.Addr } | ForEach-Object { [pscustomobject]@{ addr = [string]$_.Addr; def = [bool]$_.Default } }) }
+}
+
+# LA MIGRACIO. Idempotent i mai peta. $historia: torna els textos antics (o
+# $null si no es poden llegir: llavors no es dona per feta i es torna a provar).
+# Torna que ha fet: 'fitxer' (les ha tret del fitxer), 'historia', 'res' o ''.
+function _CorreuMobilCcoMigra([string]$jsonPath, [string]$localPath, [scriptblock]$historia) {
+    $fet = ''
+    try {
+        $o = Read-JsonFile $jsonPath
+        $hiEsLocal = Test-Path -LiteralPath $localPath
+        if ($null -ne $o -and $o.PSObject.Properties['bcc']) {
+            # Encara al fitxer del repositori: si no n'hi ha de locals, s'hi
+            # copien; tant si com no, es treuen del fitxer (Actualitzar el pujara
+            # sense).
+            if (-not $hiEsLocal) { Write-JsonFile $localPath (_CorreuMobilCcoAJson @(_EmailBccDeJson $o)) 4; $fet = 'fitxer' }
+            $sense = [ordered]@{}
+            foreach ($p in @($o.PSObject.Properties)) { if ($p.Name -ne 'bcc') { $sense[$p.Name] = $p.Value } }
+            Write-JsonFile $jsonPath $sense 5
+            if (-not $fet) { $fet = 'res' }
+            return $fet
+        }
+        if ($hiEsLocal) { return '' }
+        $versions = $null
+        if ($null -ne $historia) { $versions = & $historia }
+        if ($null -eq $versions) { return '' }
+        foreach ($t in @($versions)) {
+            $v = $null
+            try { $v = ConvertFrom-Json ([string]$t) } catch { continue }
+            if ($null -ne $v -and $v.PSObject.Properties['bcc']) {
+                Write-JsonFile $localPath (_CorreuMobilCcoAJson @(_EmailBccDeJson $v)) 4
+                return 'historia'
+            }
+        }
+        # Cap versio amb CCO: un fitxer buit, perque no es torni a buscar.
+        Write-JsonFile $localPath (_CorreuMobilCcoAJson @()) 4
+        return 'res'
+    } catch { return $fet }
+}
+
+# La CCO del mobil (i la d'"Enviar correu" per defecte): @{ Addr; Default }.
+# Array PLA (el cridador hi posa @()).
+function Read-CorreuMobilCco {
+    $local = _CorreuMobilCcoPath
+    [void](_CorreuMobilCcoMigra (_EmailTextosPath) $local $Script:CorreuMobilCcoHistoria)
+    $o = $null
+    try { $o = Read-JsonFile $local } catch { $o = $null }
+    return @(_EmailBccDeJson $o)
+}
+
+function Save-CorreuMobilCco($bcc) {
+    Write-JsonFile (_CorreuMobilCcoPath) (_CorreuMobilCcoAJson $bcc) 4
 }
 
 # Escriu el JSON (UTF-8 sense BOM). $obj = ordered hashtable amb les claus.
@@ -153,12 +247,10 @@ function Invoke-EmailTextos {
                 $r = [System.Windows.Forms.MessageBox]::Show("El cos no conte la variable {REQUERIMENTS}: els requeriments NO sortiran al correu.`n`nVols desar igualment?", 'Textos del correu', 'YesNo', 'Warning')
                 if ($r -ne [System.Windows.Forms.DialogResult]::Yes) { return $false }
             }
-            # El bcc no s'edita des d'aqui, pero es del MATEIX fitxer: si no es
-            # tornes a escriure, desar els textos se l'enduria.
+            # La CCO ja no va en aquest fitxer (es local: correu-mobil.json).
             $out = [ordered]@{
                 assumpte = [string]$v['assumpte']
                 cos      = [string]$v['cos']
-                bcc      = @(@($textos['bcc']) | ForEach-Object { [pscustomobject]@{ addr = [string]$_.Addr; def = [bool]$_.Default } })
             }
             # Les frases de {INTRO} tampoc no s'editen aqui: el mateix motiu.
             foreach ($k in $Script:EmailTextosIntroClaus) { $out[$k] = [string]$textos[$k] }
