@@ -836,7 +836,23 @@ function _RunAutoFirma([string]$afExe, $argv) {
     $se = $p.StandardError.ReadToEnd()
     $p.WaitForExit()
     $out = (([string]$so) + "`n" + ([string]$se)).Trim()
-    return @{ ExitCode = $p.ExitCode; Output = $out }
+    $codi = [int]$p.ExitCode
+    return @{ ExitCode = (_AutoFirmaCodiEfectiu $codi $out); CodiOriginal = $codi; Output = $out }
+}
+
+# EL CODI 259 NO ES UN ERROR DE L'AUTOFIRMA (octubre 2026). Es STILL_ACTIVE, el
+# "encara corre" del Windows: el llancador de l'AutoFirma (un .exe que obre el
+# Java) deixa d'esperar el Java al cap d'uns 30 s i surt amb el codi que el
+# Windows li dona d'un proces que encara no ha acabat. El Java segueix, acaba be
+# i escriu "La operacion ha terminado correctamente". Va passar amb una MNS amb
+# un PDF adjunt (3 pagines, 35 s): el caixeti es va donar per fallat, el PDF
+# BO es va llencar i es va tornar a signar SENSE caixeti -la signatura
+# invisible que l'usuari va veure-. Per aixo: 259 + que l'AutoFirma digui que
+# ha acabat be = 0. Que el fitxer hi sigui i que el caixeti es vegi ho segueix
+# comprovant el cridador, com amb qualsevol 0. PURA.
+function _AutoFirmaCodiEfectiu([int]$codi, [string]$sortida) {
+    if ($codi -eq 259 -and ([string]$sortida) -match '(?i)(terminado|finalizado)\s+correctamente') { return 0 }
+    return $codi
 }
 
 function _PdfSignarLog([string]$text) {
@@ -1266,6 +1282,9 @@ function _RunConvertPdf($opts) {
                                 continue
                             }
                             $res = _RunAutoFirma $afExe $argv
+                            if ($null -ne $res.CodiOriginal -and [int]$res.CodiOriginal -ne [int]$res.ExitCode) {
+                                _PdfSignarLog ("AVIS: l'AutoFirma ha sortit amb codi " + $res.CodiOriginal + " (el llancador no ha esperat el Java) pero diu que ha acabat be: es dona per bo si el PDF hi es (" + $usat + ", " + $f.Name + ")")
+                            }
                         } catch {
                             $res = @{ ExitCode = -1; Output = $_.Exception.Message }
                         }

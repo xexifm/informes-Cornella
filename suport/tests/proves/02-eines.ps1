@@ -961,6 +961,14 @@ AssertEq $casDef.Count 2 '_CaixetiCascada: aspecte per defecte -> el de l''AutoF
 AssertEq ([string]$casDef[0].Mode) 'defecte' '_CaixetiCascada: el primer es el mode defecte'
 AssertEq ([string]$casDef[1].Mode) 'text' '_CaixetiCascada: ...i el segon, el text d''una linia (abans de signar sense caixeti)'
 AssertEq (@(_CaixetiCascada '').Count) 0 '_CaixetiCascada: sense caixeti no hi ha cap intent'
+# El codi 259 (STILL_ACTIVE: el llancador de l'AutoFirma no ha esperat el Java)
+# amb "ha terminado correctamente" es un exit: per haver-lo donat per fallat, la
+# MNS GIA 132 (octubre 2026) es va tornar a signar sense caixeti.
+AssertEq (_AutoFirmaCodiEfectiu 259 'La operacion ha terminado correctamente') 0 '_AutoFirmaCodiEfectiu: 259 + "terminado correctamente" = ha anat be'
+AssertEq (_AutoFirmaCodiEfectiu 259 "algo`nLa operación ha finalizado correctamente.") 0 '_AutoFirmaCodiEfectiu: tambe "finalizado", amb accents i al mig de la sortida'
+AssertEq (_AutoFirmaCodiEfectiu 259 '') 259 '_AutoFirmaCodiEfectiu: 259 sense que digui que ha acabat be, segueix sent un error'
+AssertEq (_AutoFirmaCodiEfectiu 1 'La operacion ha terminado correctamente') 1 '_AutoFirmaCodiEfectiu: cap altre codi no es reinterpreta'
+AssertEq (_AutoFirmaCodiEfectiu 0 '') 0 '_AutoFirmaCodiEfectiu: el 0, com sempre'
 $epDef = _AutoFirmaVisibleExtraParams "Nom`nCarrec" $null 'defecte'
 Assert ($epDef.Contains('signaturePage=1')) '_AutoFirmaVisibleExtraParams: el mode defecte diu ON va'
 Assert (-not $epDef.Contains('layer2Text')) '_AutoFirmaVisibleExtraParams: ...i cap text nostre'

@@ -95,9 +95,19 @@ està provat i descartat.
     de respatller si el PDF no es pot llegir. A més, l'aspecte `defecte` ja no
     cau directament a «sense caixetí»: abans prova el **text d'una línia**, i
     un PDF signat sense la signatura visible que s'havia demanat **surt com a
-    error al resum** (amb el nom del fitxer), no només al registre. Per què
-    l'AutoFirma no hi va posar el caixetí **encara no se sap**: ho dirà el
-    `pdf-signar-log.txt` d'aquella passada (l'ordre exacta i la sortida).
+    error al resum** (amb el nom del fitxer), no només al registre.
+  - **LA CAUSA, trobada al registre: el codi 259** (octubre 2026, MNS GIA 132).
+    L'intent del caixetí va sortir amb **codi 259** i sortida *«La operacion ha
+    terminado correctamente»*; el programa el va donar per fallat, va **llençar
+    el PDF bo** i el va tornar a signar **sense caixetí**. El 259 és
+    `STILL_ACTIVE` del Windows: el llançador de l'AutoFirma deixa d'esperar el
+    Java al cap d'uns 30 s (aquell PDF, de 3 pàgines amb l'adjunt, en va trigar
+    35) i surt amb el codi d'un procés que encara corre. El Java acaba bé. Ara
+    `_AutoFirmaCodiEfectiu` (pura) dona **259 + «terminado/finalizado
+    correctamente» = 0**, i el registre ho apunta; que el fitxer hi sigui, que el
+    caixetí es vegi i que el CMS es verifiqui es continua comprovant com amb
+    qualsevol 0. Un 259 **sense** aquell text segueix sent un error. Mitja hora
+    després el mateix fitxer va signar bé amb caixetí: va ser més ràpid.
   - **Codi de sortida 0 NO vol dir caixetí visible**: `_PdfCaixetiEsInvisible`
     mira **només el tros que el signador ha afegit al final** del PDF (la revisió
     incremental, des de la mida del fitxer original) i hi busca `/BBox[0 0 0 0]`
