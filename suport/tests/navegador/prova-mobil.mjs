@@ -67,6 +67,29 @@ try {
   await p.waitForSelector('#navegacio:not(.ocult)', { timeout: 5000 });
   check(!(await p.isVisible('#inici')), '«Generar informe»: comença l\'informe com sempre');
 
+  seccio('Tornar a l\'inici des de «Generar informe»');
+  check(await p.isVisible('#btn-tornar-inici'), 'hi ha la fletxa a dalt a l\'esquerra (com al plànol)');
+  await p.click('#btn-tornar-inici');
+  await p.waitForSelector('#inici', { state: 'visible', timeout: 5000 });
+  check(!(await p.isVisible('#navegacio')) && !(await p.isVisible('#btn-tornar-inici')), 'sense res posat, torna a l\'inici sense preguntar');
+  await p.click('#btn-generar');
+  await p.waitForSelector('#navegacio:not(.ocult)', { timeout: 5000 });
+  await p.evaluate(() => { const b = document.getElementById('btn-seguent'); if (document.getElementById('pas-cataleg').classList.contains('ocult') === false) { b.click(); } });
+  await p.waitForSelector('#in-gia', { state: 'visible', timeout: 5000 });
+  await p.fill('#in-gia', '1447');
+  let preguntes = 0;
+  p.once('dialog', (d) => { preguntes++; d.dismiss(); });
+  await p.click('#btn-tornar-inici');
+  await p.waitForTimeout(300);
+  check(preguntes === 1 && await p.isVisible('#navegacio') && (await p.inputValue('#in-gia')) === '1447', 'amb un informe començat, pregunta; si dius que no, continua on era');
+  p.once('dialog', (d) => { preguntes++; d.accept(); });
+  await p.goBack();
+  await p.waitForSelector('#inici', { state: 'visible', timeout: 5000 });
+  check(preguntes === 2, 'l\'enrere del telèfon fa el mateix (pregunta i, si dius que sí, torna a l\'inici)');
+  await p.click('#btn-generar');
+  await p.waitForSelector('#navegacio:not(.ocult)', { timeout: 5000 });
+  check((await p.inputValue('#in-gia')) === '', 'i l\'informe que hi havia s\'ha descartat');
+
   seccio('Consultar el plànol (del Drive)');
   await p.goto(BASE + 'index.html');
   await p.click('#btn-planol');

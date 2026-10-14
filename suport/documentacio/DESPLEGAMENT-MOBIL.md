@@ -126,6 +126,12 @@ A partir d'aquí, **cada cop que generes un informe al PC** s'actualitza sol
 La web s'obre amb una **pantalla d'inici**: *1 Consultar plànol* (`planol.html`)
 o *2 Generar informe* (el formulari de sempre).
 
+**Tornar a l'inici** (octubre 2026): a *Generar informe* hi ha la mateixa
+fletxa ← que al plànol (`tornarInici`, `app.js`). Deixa l'informe en curs
+(`reinici`) i, si ja s'hi ha posat alguna cosa, pregunta abans. L'enrere del
+telèfon fa el mateix: `generar()` posa una entrada a l'historial i el
+`popstate` hi torna; si es diu que no, l'entrada es torna a posar.
+
 - **D'on surt el plànol**: quan generes el *Plànol activitats* al PC, en acabar
   es llança en segon pla `suport/mobil/PujaPlanol.ps1`, que en puja el MATEIX
   HTML a la carpeta **Dades** del Drive com a `planol.html` (per l'API o a la

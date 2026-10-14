@@ -38,6 +38,7 @@ header {
   box-shadow: 0 2px 6px rgba(0,0,0,.08);
 }
 .marca { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.tornar-inici { color: inherit; font-weight: bold; text-decoration: none; font-size: 22px; line-height: 1; padding: 4px 6px 4px 0; }
 #logo { height: 30px; width: auto; display: block; flex: 0 1 auto; max-width: 60vw; }
 .subtitol {
   font-size: 14px; font-weight: 600; color: var(--ink-soft);

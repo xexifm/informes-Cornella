@@ -1112,7 +1112,9 @@ En obrir la web del mòbil hi ha dues opcions:
    permís d'ubicació; un altre toc l'apaga. A la fitxa de cada
    activitat hi ha **Fer informe**: obre el formulari amb l'ID GIA ja cercat al
    Pas 2; revisa les dades i prem **Següent**.
-2. **Generar informe**: el formulari de sempre.
+2. **Generar informe**: el formulari de sempre. La **fletxa ←** de dalt a
+   l'esquerra (o l'enrere del telèfon) torna a l'inici i **deixa l'informe**:
+   si ja hi havies posat alguna cosa, et pregunta abans.
 
 ---
 

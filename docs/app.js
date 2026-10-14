@@ -504,6 +504,10 @@
   function generar() {
     modeGenerar = true;
     mostrar($("inici"), false);
+    mostrar($("btn-tornar-inici"), true);
+    // El "enrere" del telefon (gest o boto) tambe torna a l'inici, no surt de
+    // la web: una entrada d'historial per a l'informe.
+    try { window.history.pushState({ informe: true }, ""); } catch (e) { }
     if (dadesLlestes) { comencar(); } else { mostrar($("carregant"), true); }
   }
 
@@ -517,14 +521,49 @@
       cercarActivitat();
       giaInicial = "";
       // Que tornar a carregar la pagina no torni a cercar el mateix ID.
-      try { window.history.replaceState(null, "", window.location.pathname); } catch (e) { }
+      try { window.history.replaceState(window.history.state, "", window.location.pathname); } catch (e) { }
     } else {
       anarA(passosAbastables()[0]);
     }
   }
 
+  // TORNAR A L'INICI deixant l'informe (octubre 2026, l'usuari: "a Generar
+  // informe no hi ha la fletxa d'anar enrere [...] anar enrere cancel·lant el
+  // proces que s'estigui fent d'informe"). Si ja s'hi ha posat alguna cosa, es
+  // pregunta: el que hi ha no es pot recuperar.
+  function hiHaFeina() {
+    return !!(($("in-gia").value || "").trim() || estat.keys.size || estat.conclTitles.size ||
+              Object.keys(estat.fieldValues || {}).length);
+  }
+  function tornarInici(ev) {
+    if (ev && ev.preventDefault) { ev.preventDefault(); }
+    if (!modeGenerar) { return true; }
+    if (hiHaFeina() && !window.confirm("Vols deixar aquest informe? Es perdrà el que hi has posat.")) { return false; }
+    reinici();
+    modeGenerar = false;
+    PASSOS.forEach(function (p) { mostrar($("pas-" + p), false); });
+    mostrar($("navegacio"), false);
+    mostrar($("carregant"), false);
+    mostrar($("btn-tornar-inici"), false);
+    mostrar($("inici"), true);
+    window.scrollTo(0, 0);
+    return true;
+  }
+
   function inici() {
     $("btn-generar").addEventListener("click", generar);
+    $("btn-tornar-inici").addEventListener("click", function (ev) {
+      // Amb l'entrada d'historial de generar(), la fletxa fa el mateix que
+      // l'enrere del telefon: un sol cami (popstate).
+      ev.preventDefault();
+      if (window.history.state && window.history.state.informe) { window.history.back(); } else { tornarInici(); }
+    });
+    window.addEventListener("popstate", function () {
+      if (!modeGenerar) { return; }
+      // Si es cancel·la la pregunta, l'informe continua: es torna a posar
+      // l'entrada que l'enrere acaba de treure.
+      if (!tornarInici()) { try { window.history.pushState({ informe: true }, ""); } catch (e) { } }
+    });
     if (giaInicial) { generar(); }
     Promise.all([
       carregarJson("dades/manifest.json"),
