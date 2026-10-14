@@ -342,7 +342,20 @@ if ((Test-Path -LiteralPath $llicPathX) -and (Test-Path -LiteralPath (Join-Path 
     $secProj = @(@($req1Ab.Sections) | Where-Object { -not (_LlicEsSeccioAbans ([string]$_.Title)) })
     Assert (-not (@($secProj) | Where-Object { _LlicEsSeccioAbans ([string]$_.Title) })) 'Projecte: cap seccio de documentacio (no es pot demanar dues vegades)'
     Assert ((@($secProj).Count) -lt (@($req1Ab.Sections).Count)) 'Projecte: se n''han tret seccions'
+    # LA (i): cada punt porta la FITXA D'AJUDA del seu requeriment de REQ1
+    # (l'usuari, octubre 2026: "no surt la (i) als punts de documentacio").
+    $idxAb = _LlicIndexReq1 $req1Ab
+    $ambFitxaR1 = @(@($bAb.Punts) | Where-Object { $idxAb.ContainsKey([string]$_.Clau) -and $null -ne $idxAb[[string]$_.Clau].Ajuda })
+    Assert ($ambFitxaR1.Count -gt 0) 'ABANS: hi ha punts amb fitxa d''ajuda a REQ1'
+    AssertEq (@($ambFitxaR1 | Where-Object { $null -eq $_.Ajuda }).Count) 0 'ABANS: cada punt amb fitxa a REQ1 la porta (la (i) de la pantalla)'
+    $bDp = _LlicPuntsPerBloc $llicAb $idxAb 'DESPRES' $req1Ab
+    $dpR1 = @(@($bDp.Punts) | Where-Object { $idxAb.ContainsKey([string]$_.Clau) -and $null -ne $idxAb[[string]$_.Clau].Ajuda })
+    AssertEq (@($dpR1 | Where-Object { $null -eq $_.Ajuda }).Count) 0 'DESPRES: tambe (els punts de REQ1, sencers o expandits)'
+    Assert ((@(@($bDp.Punts) | Where-Object { $null -ne $_.Ajuda }).Count) -gt 0) 'DESPRES: n''hi ha amb fitxa'
 }
+$srcLlicP = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'LlicenciaPantalles.ps1'))
+Assert ($srcLlicP.Contains('$arbre.ImageList = _AjudaImageList') -and $srcLlicP.Contains('$nd.ImageIndex = (_AjudaImgIndex $punts[$i])')) 'documentacio de Llicencia: l''arbre porta la (i) de la fitxa, com el Pas 3'
+Assert ($srcLlicP.Contains('Show-Ajuda ([string]$pA.Titol) $pA.Ajuda $form')) 'documentacio de Llicencia: clicar la (i) obre la fitxa'
 
 # ---------------------------------------------------------------------------
 # EL BLOC DESPRES ES PORTA SECCIONS SENCERES DE REQ1

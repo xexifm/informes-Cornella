@@ -220,6 +220,12 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
     $arbre.HideSelection = $false
     $arbre.ShowNodeToolTips = $true
     $arbre.Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
+    # LA (i) DE LA FITXA D'AJUDA, com al Pas 3 (Select-Items): els punts de
+    # documentacio SON requeriments de REQ1 i porten la seva fitxa (quan s'han
+    # de demanar, la norma, l'enllac...). L'usuari (octubre 2026): "no surt la
+    # (i) als punts de documentacio". L'ImageList va ABANS de la primera
+    # pintada de l'arbre (si no, els nodes no reserven l'espai de la imatge).
+    $arbre.ImageList = _AjudaImageList
     [void]$panEsq.Controls.Add($arbre)
 
     # ---- Dreta: detall del punt seleccionat --------------------------------
@@ -265,6 +271,7 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
                         $secAra = $secTit
                         $nodeSec = New-Object System.Windows.Forms.TreeNode($secTit)
                         $nodeSec.Tag = @{ Kind = 'Section' }
+                        $nodeSec.ImageIndex = (_AjudaImgIndex $null); $nodeSec.SelectedImageIndex = $nodeSec.ImageIndex
                         $nodeSec.NodeFont = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
                         [void]$arbre.Nodes.Add($nodeSec)
                     }
@@ -272,6 +279,7 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
                     if (-not [string]::IsNullOrWhiteSpace($subTit)) {
                         $nodeSub = New-Object System.Windows.Forms.TreeNode($subTit)
                         $nodeSub.Tag = @{ Kind = 'Section' }
+                        $nodeSub.ImageIndex = (_AjudaImgIndex $null); $nodeSub.SelectedImageIndex = $nodeSub.ImageIndex
                         $nodeSub.NodeFont = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Underline)
                         [void]$nodeSec.Nodes.Add($nodeSub)
                         $pare = $nodeSub
@@ -281,6 +289,7 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
                 foreach ($i in $visibles) {
                     $nd = New-Object System.Windows.Forms.TreeNode((_LlicEtiquetaPunt $punts[$i]))
                     $nd.Tag = @{ Kind = 'Item'; Idx = $i }
+                    $nd.ImageIndex = (_AjudaImgIndex $punts[$i]); $nd.SelectedImageIndex = $nd.ImageIndex
                     $nd.NodeFont = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Regular)
                     $nd.ToolTipText = (_LlicTextPlaDelCos $punts[$i].Cos)
                     if ($nd.ToolTipText.Length -gt 600) { $nd.ToolTipText = $nd.ToolTipText.Substring(0, 600) + '...' }
@@ -334,6 +343,22 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
         if ([string]::IsNullOrWhiteSpace($lbT.Text)) { $lbT.Text = (_LlicEtiquetaPunt $p 0) }
         [void]$panDret.Controls.Add($lbT)
         $y += [Math]::Max(24, $lbT.PreferredHeight + 10)
+
+        # LA FITXA D'AJUDA tambe des del detall: un enllac es veu mes que la
+        # (i) de l'arbre. Copia local de $form: dins d'una closure imbricada,
+        # el que ve de fora arribaria com a $null (vegeu CLAUDE.md).
+        if ($null -ne $p.Ajuda) {
+            $formAquest = $form
+            $ajudaAquest = $p.Ajuda
+            $titolAquest = [string]$p.Titol
+            $lnkA = New-Object System.Windows.Forms.LinkLabel
+            $lnkA.Location = New-Object System.Drawing.Point(10, $y)
+            $lnkA.AutoSize = $true
+            $lnkA.Text = ("Quan s'ha de demanar, normativa i criteri")
+            $lnkA.add_LinkClicked({ Show-Ajuda $titolAquest $ajudaAquest $formAquest }.GetNewClosure())
+            [void]$panDret.Controls.Add($lnkA)
+            $y += 26
+        }
 
         if ($ambEstat) {
             $rbNo = New-Object System.Windows.Forms.RadioButton
@@ -459,6 +484,48 @@ function Select-LlicDocumentacio($punts, [string]$titol, [string]$subtitol, [boo
                 }
             }
         } finally { $estatUi.Busy = $false }
+    }.GetNewClosure())
+
+    # La fitxa d'ajuda des de l'arbre: clic a la (i) o F1, i la ma a sobre de la
+    # icona. LA ZONA LA DIU EL HITTEST (el .Bounds d'un node nomes cobreix el
+    # text), com al Pas 3; clicar la (i) no marca ni desmarca el punt.
+    $ajudaDeNode = {
+        param($node)
+        if ($null -eq $node -or $null -eq $node.Tag -or [string]$node.Tag.Kind -ne 'Item') { return $null }
+        return $punts[[int]$node.Tag.Idx]
+    }.GetNewClosure()
+    $arbre.add_NodeMouseClick({
+        param($sender, $ev)
+        $hit = $sender.HitTest($ev.X, $ev.Y)
+        if ($hit.Location -ne [System.Windows.Forms.TreeViewHitTestLocations]::Image) { return }
+        $pA = & $ajudaDeNode $ev.Node
+        if ($null -ne $pA -and $null -ne $pA.Ajuda) { Show-Ajuda ([string]$pA.Titol) $pA.Ajuda $form }
+    }.GetNewClosure())
+    $arbre.add_KeyDown({
+        param($sender, $ev)
+        if ($ev.KeyCode -ne [System.Windows.Forms.Keys]::F1) { return }
+        $ev.Handled = $true
+        $pA = & $ajudaDeNode $sender.SelectedNode
+        if ($null -ne $pA -and $null -ne $pA.Ajuda) { Show-Ajuda ([string]$pA.Titol) $pA.Ajuda $form }
+    }.GetNewClosure())
+    $sobreLaI = @{ Valor = $false }
+    $arbre.add_MouseMove({
+        param($sender, $ev)
+        $hit = $sender.HitTest($ev.X, $ev.Y)
+        $ara = $false
+        if ($hit.Location -eq [System.Windows.Forms.TreeViewHitTestLocations]::Image) {
+            $pA = & $ajudaDeNode $hit.Node
+            $ara = ($null -ne $pA -and $null -ne $pA.Ajuda)
+        }
+        if ($ara -eq $sobreLaI.Valor) { return }
+        $sobreLaI.Valor = $ara
+        $sender.Cursor = if ($ara) { [System.Windows.Forms.Cursors]::Hand } else { [System.Windows.Forms.Cursors]::Default }
+    }.GetNewClosure())
+    $arbre.add_MouseLeave({
+        param($sender, $ev)
+        if (-not $sobreLaI.Valor) { return }
+        $sobreLaI.Valor = $false
+        $sender.Cursor = [System.Windows.Forms.Cursors]::Default
     }.GetNewClosure())
 
     $arbre.add_AfterSelect({

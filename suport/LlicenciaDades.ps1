@@ -368,6 +368,9 @@ function _LlicPuntsPerBloc($llic, $idxReq1, [string]$bloc, $req1 = $null) {
                     SiDisposa = $lSid
                     Quan      = @()
                     Subs      = @(@($el.Children) | ForEach-Object { @($_.BodyLines) })
+                    # La FITXA D'AJUDA del requeriment de REQ1 (quan s'ha de
+                    # demanar, la norma...): la (i) de la pantalla, com al Pas 3.
+                    Ajuda     = $el.Ajuda
                 })
             }
         }
@@ -425,6 +428,7 @@ function _LlicPuntsPerBloc($llic, $idxReq1, [string]$bloc, $req1 = $null) {
                     SiDisposa = $lSid
                     Quan      = $lQua
                     Subs      = @(@($el.Children) | ForEach-Object { ,@($_.BodyLines) })
+                    Ajuda     = $el.Ajuda
                 })
             }
             continue
@@ -446,6 +450,8 @@ function _LlicPuntsPerBloc($llic, $idxReq1, [string]$bloc, $req1 = $null) {
             SiDisposa = $lSid
             Quan      = $lQua
             Subs      = @(@(_LlicFills $it 'subitem') | ForEach-Object { @(_LlicCos $_) })
+            # Els punts PROPIS de LLIC no son de REQ1 i no en tenen.
+            Ajuda     = $(if ($esItem) { $idxReq1[$clau].Ajuda } else { $null })
         })
     }
     return @{ Punts = $punts.ToArray(); Orfes = $orfes.ToArray() }

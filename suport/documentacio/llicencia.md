@@ -481,6 +481,16 @@
   - El bloc es talla amb `_LlicFinalsDeBloc` (CONDICIONS, ANNEX 1, «Ho poso al
     seu coneixement», la conclusió...). Si no se'n treu res, s'avisa i es cau a
     la llista del catàleg: l'informe s'ha de poder fer igualment.
+- **La (i) de la FITXA D'AJUDA, com al Pas 3** (octubre 2026, l'usuari: «no surt
+  la i als punts de documentació abans de la resolució per saber quan
+  demanar-los, normativa etc.»). Els punts són requeriments de REQ1 i ara
+  s'enduen la seva fitxa (`Ajuda` als tres llocs on `_LlicPuntsPerBloc` munta el
+  registre: ABANS, les seccions expandides i els ítems de LLIC amb clau; els
+  PROPIS no en tenen). A `Select-LlicDocumentacio` l'arbre porta l'`ImageList`
+  del Pas 3: clic a la (i) (`HitTest`, no coordenades), **F1** sobre el punt, el
+  cursor de mà a sobre i, al detall, un enllaç «Quan s'ha de demanar, normativa
+  i criteri». Prova sobre els catàlegs reals (validada traient-la d'ABANS: 38
+  punts sense fitxa).
 - **Les caselles surten MARCADES al bloc DESPRÉS** (`Select-LlicDocumentacio
   -marcatPerDefecte`), i al bloc ABANS no. El Word de l'usuari portava tots els
   punts del DESPRÉS i ell hi anava esborrant el que no tocava; picar quinze
