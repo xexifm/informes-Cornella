@@ -43,6 +43,7 @@ function Format-Append     { param($s,$t) [void]$global:emitCalls.Add("APPEND|$t
 function Format-ListItem   { param($s,$t) [void]$global:emitCalls.Add("LLISTA|$t") }
 function Format-Conclusion { param($s,$t) [void]$global:emitCalls.Add("CONCL|$t") }
 function Format-ConclusionHeader { param($s,$t) [void]$global:emitCalls.Add("CONCLCAP|$t") }
+function Format-Fotos      { param($s,$f) [void]$global:emitCalls.Add('FOTOS|' + ((@($f.Fotos) | ForEach-Object { [string]$_.Num + ':' + [System.IO.Path]::GetFileName([string]$_.Path) + '@' + [string]$_.AmpleCm }) -join ',')) }
 function Format-Note       { param($s,$t) [void]$global:emitCalls.Add("NOTE|$t") }
 function Format-Ajuda      { param($s,$t) [void]$global:emitCalls.Add("AJUDA|$t") }
 function Format-Label      { param($s,$t) [void]$global:emitCalls.Add("LABEL|$t") }

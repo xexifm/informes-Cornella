@@ -481,6 +481,7 @@ if (-not $Script:HeadlessTest) { [void](Invoke-MigracioLocal $RepoRoot) }
 . (Join-Path $ScriptRoot 'Capcalera.ps1')       # Pas 2: formulari de la capcalera
 . (Join-Path $ScriptRoot 'Camps.ps1')           # [CAMP:]/[OPCIO:] i el text ric
 . (Join-Path $ScriptRoot 'SeleccioItems.ps1')   # Pas 3 i Pas 5: les pantalles de tria
+. (Join-Path $ScriptRoot 'Fotos.ps1')           # el reportatge fotografic (visita d'inspeccio)
 . (Join-Path $ScriptRoot 'Document.ps1')        # Pas 6: composicio del .docx
 . (Join-Path $ScriptRoot 'Paquet.ps1')          # mode "des de paquet" (mobil)
 . (Join-Path $ScriptRoot 'Wizard.ps1')          # Main + assistent de passos

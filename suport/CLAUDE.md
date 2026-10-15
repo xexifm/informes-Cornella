@@ -1158,6 +1158,20 @@ clavada al codi i ara surten del **peu real** de l'última etiqueta.
   però al mòbil el valor **per defecte és `insp` (Visita d'inspecció)**. El
   paquet inclou `ORIGEN_TIPUS` i `DATA_INSPECCIO` (a `HEADER_KEYS`). Al PC, si un
   paquet ANTIC no porta `ORIGEN_TIPUS`, es manté el fallback 'doc'.
+- **Reportatge fotogràfic (`suport/Fotos.ps1`)**: amb `ORIGEN_TIPUS='insp'`
+  (`_EsVisitaInspeccio`) el Wizard té un **Pas 5 «Fotos»** (`Select-FotosInforme`,
+  s'obre sol el diàleg a `$InformesDir` i després a l'última carpeta usada) i
+  genera al Pas 6; sense visita d'inspecció el Pas 5 se salta i la barra de passos
+  no el mostra (`$Script:PassosAmbFotos`). Al Pas 6 `Convert-FotosInforme` gira
+  segons l'EXIF i redueix a 1600 px (JPEG 85) en una carpeta temporal que
+  s'esborra després de desar. `Build-Document -fotos` afegeix la frase
+  `_ConclusionsAmbFotos` darrere les conclusions i els blocs `_FotosBlocs`
+  (`saltpagina`, `conclusiocap` REPORTATGE FOTOGRÀFIC, una `fotos` per fila).
+  Disposició (`_FotosFiles`, pura): dues verticals SEGUIDES de costat a 6 cm,
+  les horitzontals i una vertical sola en fila pròpia (12 / 6 cm), sense
+  reordenar. `Format-Fotos` (Format.ps1) les centra amb tabulacions i posa
+  «Foto n» a sota. Sense fotos l'informe queda idèntic a abans. Tests:
+  `proves/14-fotos.ps1` (amb un Word simulat; el COM real s'ha de provar al PC).
 
 ## El MOTOR DE COMPOSICIÓ (`suport/MotorInforme.ps1`)
 Ve de la petició de l'usuari: **«el programa el més senzill, estandarditzat i
@@ -1260,7 +1274,8 @@ mal escrit no pot afegir una línia en blanc a un informe en silenci.
 ### El vocabulari de blocs (`Write-Informe`)
 `seccio`, `subseccio`, `etiqueta`, `item`, `cos`, `pic`, `nota`, `enllac`,
 `pla`, `continua`, `llista`, `conclusio`, `conclusiocap`, `aire`, `espai`,
-`saltpagina` i **`unitat`**.
+`saltpagina`, `fotos` (una fila del reportatge fotogràfic, `Format-Fotos`) i
+**`unitat`**.
 
 **`unitat` és la peça que ho fa funcionar.** És el contenidor d'un punt sencer:
 - en obrir-se marca que **el pròxim `pic` és el primer sub-punt** → `-First`

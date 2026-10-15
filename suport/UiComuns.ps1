@@ -399,7 +399,10 @@ function _AddStepBar($form, [int]$active) {
     $bar.Dock = 'Top'
     $bar.Height = 34
     $bar.BackColor = [System.Drawing.Color]::White
+    # El pas de les FOTOS nomes surt a la barra quan l'informe es d'una visita
+    # d'inspeccio (Fotos.ps1): l'assistent ho diu amb $Script:PassosAmbFotos.
     $steps = @('Tipus', 'Dades', 'Deficiències', 'Conclusions')
+    if ($Script:PassosAmbFotos) { $steps += 'Fotos' }
     $fA = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
     $fI = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Regular)
     $granat = $Script:BrandMaroon
@@ -415,7 +418,8 @@ function _AddStepBar($form, [int]$active) {
         $g.DrawLine($pen, 0, ($rc.Height - 1), $rc.Width, ($rc.Height - 1)); $pen.Dispose()
         $fl = [System.Windows.Forms.TextFormatFlags]::NoPadding
         $x = 16
-        for ($i = 0; $i -lt 4; $i++) {
+        $nPassos = @($t.Steps).Count
+        for ($i = 0; $i -lt $nPassos; $i++) {
             $isA = (($i + 1) -eq $t.Active)
             $f = if ($isA) { $t.FA } else { $t.FI }
             $col = if ($isA) { $t.Granat } else { $t.Idle }
@@ -423,7 +427,7 @@ function _AddStepBar($form, [int]$active) {
             $sz = [System.Windows.Forms.TextRenderer]::MeasureText($g, $txt, $f, [System.Drawing.Size]::Empty, $fl)
             [System.Windows.Forms.TextRenderer]::DrawText($g, $txt, $f, (New-Object System.Drawing.Point($x, 9)), $col, $fl)
             $x += $sz.Width + 10
-            if ($i -lt 3) {
+            if ($i -lt ($nPassos - 1)) {
                 [System.Windows.Forms.TextRenderer]::DrawText($g, ([string][char]0x203A), $t.FI, (New-Object System.Drawing.Point($x, 9)), $t.Idle, $fl)
                 $x += 18
             }

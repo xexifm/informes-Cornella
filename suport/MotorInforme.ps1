@@ -465,6 +465,7 @@ function _WriteBlocs($sel, $blocs, $estat, [bool]$ambNivells) {
             'ajuda'        { Format-Ajuda $sel ([string]$b.Text) }
             'conclusio'    { Format-Conclusion $sel ([string]$b.Text) }
             'conclusiocap' { Format-ConclusionHeader $sel ([string]$b.Text) }
+            'fotos'        { Format-Fotos $sel $b.Fila }
             'llista'       { Format-ListItem $sel ([string]$b.Text) }
             'continua'     { Format-Append $sel ([string]$b.Text) }
             'cos' {

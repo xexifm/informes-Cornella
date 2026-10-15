@@ -571,6 +571,49 @@ function Format-SaltPagina($sel) {
     try { [void]$sel.InsertBreak($Script:WdPageBreak) } catch { }
 }
 
+# UNA FILA DEL REPORTATGE FOTOGRAFIC (Fotos.ps1): una foto, o dues verticals de
+# costat, centrades; i a sota "Foto n" de cada una, al mateix centre. $fila:
+# @{ Fotos = @( @{ Path; Num; AmpleCm } ) }.
+# Sense taula: dues TABULACIONS CENTRADES (al mig de la pagina, o a 3,25 cm a
+# cada costat del mig si n'hi ha dues), les mateixes a la linia de les fotos i
+# a la del peu: la foto inline es comporta com un caracter i queda centrada a la
+# tabulacio, i el "Foto n" de sota hi queda exactament a sota. L'ample es fixa
+# amb la proporcio bloquejada (l'alt el posa el Word). L'interlineat, senzill: un
+# "exacte" retallaria la foto.
+$Script:WdAlignTabCenter = 1   # wdAlignTabCenter
+$Script:WdLineSpaceSingle = 0  # wdLineSpaceSingle
+$Script:FotosSeparacioCm = 3.25
+function _FotosTabulacions($sel, $centres) {
+    try { $sel.ParagraphFormat.TabStops.ClearAll() } catch { }
+    foreach ($c in @($centres)) { try { [void]$sel.ParagraphFormat.TabStops.Add([double]$c, $Script:WdAlignTabCenter) } catch { } }
+    try { $sel.ParagraphFormat.LineSpacingRule = $Script:WdLineSpaceSingle } catch { }
+}
+
+function Format-Fotos($sel, $fila) {
+    $fotos = @($fila.Fotos)
+    if ($fotos.Count -eq 0) { return }
+    $ample = 0
+    try { $ample = [double]$sel.PageSetup.PageWidth - [double]$sel.PageSetup.LeftMargin - [double]$sel.PageSetup.RightMargin } catch { $ample = 0 }
+    if ($ample -le 0) { $ample = (_CmToPoints 16) }
+    $mig = $ample / 2
+    $centres = if ($fotos.Count -ge 2) { @(($mig - (_CmToPoints $Script:FotosSeparacioCm)), ($mig + (_CmToPoints $Script:FotosSeparacioCm))) } else { @($mig) }
+    _NouParagraf $sel 0
+    _FotosTabulacions $sel $centres
+    try { $sel.ParagraphFormat.SpaceBefore = [double]$Script:ReportFormatConfig.ConclusionSpaceAfterPt } catch { }
+    foreach ($f in $fotos) {
+        $sel.TypeText("`t")
+        $shp = $sel.InlineShapes.AddPicture([string]$f.Path, $false, $true)
+        try { $shp.LockAspectRatio = -1 } catch { }   # msoTrue
+        $shp.Width = (_CmToPoints ([double]$f.AmpleCm))
+        $fi = $shp.Range.End
+        $sel.SetRange($fi, $fi)
+    }
+    _NouParagraf $sel 0
+    _FotosTabulacions $sel $centres
+    try { $sel.ParagraphFormat.SpaceAfter = [double]$Script:ReportFormatConfig.ConclusionSpaceAfterPt } catch { }
+    [void](_EscriuRang $sel ((@($fotos | ForEach-Object { "`t" + 'Foto ' + [string]$_.Num })) -join '') -Pla)
+}
+
 # NIVELL D'ESQUEMA (OutlineLevel) del paragraf que s'acaba d'escriure. NO canvia
 # com es veu: nomes el fa sortir al panell de navegacio del Word. El fan servir
 # les VISTES dels catalegs.

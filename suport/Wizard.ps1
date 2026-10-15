@@ -94,7 +94,10 @@ function Main {
 function Invoke-NouWizard {
     param($cataleg)
 
-    $st  = @{ Cataleg=$cataleg; Parsed=$null; Header=$null; Selected=$null; Fields=[ordered]@{}; ConclAll=$null; Conclusions=$null }
+    $st  = @{ Cataleg=$cataleg; Parsed=$null; Header=$null; Selected=$null; Fields=[ordered]@{}; ConclAll=$null; Conclusions=$null; Fotos=@() }
+    # La barra de passos porta el de les FOTOS nomes quan es una visita
+    # d'inspeccio (es decideix al Pas 2).
+    $Script:PassosAmbFotos = $false
     $pre = @{ Header=$null; Keys=$null; Fields=$null; Concl=$null }
 
     # RENDIMENT: NO obrim Word ni parsejem el cataleg aqui. El Pas 2 (dades de
@@ -106,7 +109,7 @@ function Invoke-NouWizard {
     try {
         $step = 2
         $dir  = 'fwd'
-        while ($step -ge 2 -and $step -le 5) {
+        while ($step -ge 2 -and $step -le 6) {
             switch ($step) {
 
                 2 {
@@ -115,6 +118,7 @@ function Invoke-NouWizard {
                     else {
                         $st.Header  = $r.Data
                         $pre.Header = $r.Data
+                        $Script:PassosAmbFotos = (_EsVisitaInspeccio $st.Header)
                         if ($r.Recovered) {
                             # "Recuperar dades ultim informe": precarreguem la
                             # resta de passos amb les dades de l'ultim informe.
@@ -168,9 +172,9 @@ function Invoke-NouWizard {
                     if ($st.ConclAll.Selectable.Count -eq 0) {
                         # No hi ha conclusions triables: saltem el pas.
                         $st.Conclusions = @()
-                        if ($dir -eq 'back') { $step = 3; $dir = 'back' } else { $step = 5 }
+                        if ($dir -eq 'back') { $step = 3; $dir = 'back' } else { $step = 5; $dir = 'fwd' }
                     } else {
-                        $r = Select-Conclusions -conclusions $st.ConclAll.Selectable -always $st.ConclAll.Always -fields $st.Fields -preloadTitles $pre.Concl -preloadValues $pre.Fields
+                        $r = Select-Conclusions -conclusions $st.ConclAll.Selectable -always $st.ConclAll.Always -fields $st.Fields -preloadTitles $pre.Concl -preloadValues $pre.Fields -AmbFotos:(_EsVisitaInspeccio $st.Header)
                         if ($r.Nav -eq 'back') { $step = 3; $dir = 'back' }
                         else {
                             $st.Conclusions = $r.Data
@@ -183,7 +187,30 @@ function Invoke-NouWizard {
                     }
                 }
 
+                # Pas 5 = el REPORTATGE FOTOGRAFIC, nomes amb "Visita
+                # d'inspeccio" (Fotos.ps1). Sense, es salta.
                 5 {
+                    if (-not (_EsVisitaInspeccio $st.Header)) {
+                        $st.Fotos = @()
+                        if ($dir -eq 'back') { $step = 4 } else { $step = 6 }
+                    } else {
+                        $r = Select-FotosInforme $InformesDir $st.Fotos
+                        $st.Fotos = @($r.Fotos)
+                        if ($r.Nav -eq 'back') { $step = 4; $dir = 'back' } else { $step = 6; $dir = 'fwd' }
+                    }
+                }
+
+                6 {
+                    # Les fotos, REDUIDES a una carpeta temporal (el Word les
+                    # incrusta; s'esborra quan l'informe ja es desat).
+                    $fotosDoc = @(); $dirFotos = ''
+                    if (@($st.Fotos).Count -gt 0) {
+                        $prep = Convert-FotosInforme $st.Fotos
+                        $fotosDoc = @($prep.Fotos); $dirFotos = [string]$prep.Dir
+                        if (@($prep.Errors).Count -gt 0) {
+                            [System.Windows.Forms.MessageBox]::Show(("Aquestes fotos no s'han pogut llegir i no aniran a l'informe:`n`n" + (@($prep.Errors) -join "`n")), 'Reportatge fotogr' + [char]0x00E0 + 'fic', 'OK', 'Warning') | Out-Null
+                        }
+                    }
                     if ($null -eq $word) { $word = New-WordApp }
                     $outPath = Build-Document -word $word -header $st.Header `
                                               -selectedSections $st.Selected `
@@ -194,7 +221,9 @@ function Invoke-NouWizard {
                                               -introText $st.Parsed.IntroText `
                                               -conclusionsHeaderText $st.ConclAll.HeaderText `
                                               -isFixedBody $st.Parsed.IsFixedBody `
-                                              -fixedBodyLines $st.Parsed.FixedBodyLines
+                                              -fixedBodyLines $st.Parsed.FixedBodyLines `
+                                              -fotos $fotosDoc
+                    if ($dirFotos -ne '') { Remove-Item -LiteralPath $dirFotos -Recurse -Force -ErrorAction SilentlyContinue }
 
                     # Desem les dades per poder replicar aquest informe mes endavant.
                     # Per a 'ConclusionTexts' guardem els TITOLS triats (es el que

@@ -100,7 +100,10 @@ function _WriteConclusionsBlock($sel, $cfg, $headerText, $conclusions, $alwaysCo
     [void](Write-Informe $sel @(_BlocsConclusions $headerText $conclusions $alwaysConclusions $fields))
 }
 
-function Build-Document($word, $header, $selectedSections, $fields, $conclusions, $alwaysConclusions, $catalegName, $introText, $conclusionsHeaderText, $isFixedBody = $false, $fixedBodyLines = @()) {
+# $fotos: el REPORTATGE FOTOGRAFIC (Fotos.ps1, les copies ja reduides: @{ Path;
+# Vertical }). Amb fotos, la frase a les conclusions i el reportatge darrere del
+# tancament, en pagina nova.
+function Build-Document($word, $header, $selectedSections, $fields, $conclusions, $alwaysConclusions, $catalegName, $introText, $conclusionsHeaderText, $isFixedBody = $false, $fixedBodyLines = @(), $fotos = @()) {
     $baseName = _GetOutputFileName $catalegName $header['ID_GIA']
     $cfg = $Script:ReportFormatConfig
 
@@ -110,6 +113,7 @@ function Build-Document($word, $header, $selectedSections, $fields, $conclusions
     return Write-InformeDocx $word $baseName '' $header {
         param($sel)
         _WriteCatalegBody $sel $cfg $selectedSections $fields $introText $isFixedBody $fixedBodyLines
-        _WriteConclusionsBlock $sel $cfg $conclusionsHeaderText $conclusions $alwaysConclusions $fields
+        _WriteConclusionsBlock $sel $cfg $conclusionsHeaderText @(_ConclusionsAmbFotos $conclusions $fotos) $alwaysConclusions $fields
+        [void](Write-Informe $sel @(_FotosBlocs $fotos))
     }
 }

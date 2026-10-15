@@ -552,7 +552,9 @@ function Select-Conclusions {
     #                  [OPCIO:]/[CAMP:] de les conclusions, inline).
     # $preloadTitles : array de titols preseleccionats (sessio anterior).
     # $preloadValues : valors de camps precarregats (sessio anterior).
-    param($conclusions, $always = @(), $fields = $null, $preloadTitles = $null, $preloadValues = $null)
+    # $AmbFotos      : despres hi ha el pas de les fotos (Visita d'inspeccio):
+    #                  el boto diu "Seguent" i no "Generar informe".
+    param($conclusions, $always = @(), $fields = $null, $preloadTitles = $null, $preloadValues = $null, [switch]$AmbFotos)
     if ($null -eq $fields) { $fields = [ordered]@{} }
     if ($conclusions.Count -eq 0) { return [pscustomobject]@{ Nav='next'; Data=@() } }
 
@@ -656,7 +658,7 @@ function Select-Conclusions {
     })
 
     [void](_AddPeuBotons $form @(@{ Nom = 'Enrere'; Text = (_TxtEnrere); Resultat = 'Retry' }) @(
-        @{ Nom = 'Ok'; Text = ('Generar informe ' + [char]0x2192); Estil = 'primari'; Resultat = 'OK'; Intro = $true }) 670 -Ancorat)
+        @{ Nom = 'Ok'; Text = $(if ($AmbFotos) { _TxtSeguent } else { 'Generar informe ' + [char]0x2192 }); Estil = 'primari'; Resultat = 'OK'; Intro = $true }) 670 -Ancorat)
 
     [void](_AddStepBar $form 4)
     [void](_AddBrandHeader $form "Conclusions de l'informe" $null 44)

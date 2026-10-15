@@ -95,9 +95,17 @@ seguirà sense icona i obrirà un segon botó.
 | 2 | **Dades de la capçalera**. Si escrius un ID GIA que és a l'Excel, s'omple sol. |
 | 3 | **Marcar les deficiències** (arbre amb filtre). En marcar-ne una, el text surt a la dreta i, si té opcions o camps, els omples **allà mateix**. Els punts amb una **ⓘ** al davant porten fitxa d'ajuda: el punter es torna una mà quan hi passes per sobre; clica-la (o prem **F1**) i et diu si allò s'ha de requerir o no. |
 | 4 | **Triar les conclusions**, també amb els camps dins del propi text. |
-| 5 | Es genera el `.docx` i s'obre amb el Word. |
+| 5 | **Fotos** (només si al Pas 2 has triat *Visita d'inspecció*): s'obre sol el diàleg a la *Carpeta on hi ha els informes ja generats* i tries les fotos; les pots treure i ordenar amb ↑ / ↓. Si no en vols cap, «Generar informe →» directament. |
+| 6 | Es genera el `.docx` i s'obre amb el Word. |
 
 Els botons **Enrere** conserven el que has posat; enrere al Pas 2 torna al menú.
+
+**Reportatge fotogràfic.** Si hi has posat fotos, a les conclusions s'hi afegeix
+«S'adjunta reportatge fotogràfic.» i, en una pàgina nova, el títol **REPORTATGE
+FOTOGRÀFIC** amb les fotos en l'ordre de la llista, cadascuna amb «Foto 1»,
+«Foto 2»… a sota. Dues verticals seguides van de costat (6 cm cadascuna) i les
+horitzontals fan 12 cm d'ample. Les fotos es redueixen (1.600 px, JPEG) perquè
+el `.docx` no pesi; els originals no es toquen.
 Al Pas 2 hi ha **Recuperar dades últim informe** per clonar l'anterior.
 
 **Si hi ha un requeriment anterior sense resposta**, marca *Requeriment pendent →
