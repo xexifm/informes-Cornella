@@ -640,9 +640,9 @@ per *Pàgina 1 de …* amb el total d'ANNEX II. Els fitxers es desen a
 > Necessita tenir l'Excel una estona treballant: amb tota la base de dades pot
 > trigar. Mentre ho fa, els botons queden desactivats.
 
-### Comprovar Excel (fila GIA)
+### Excel Comprovar (fila GIA)
 
-Botó **✅ Comprovar Excel**. Agafa les activitats que la base d'informes té en
+Botó **✅ Excel Comprovar** (abans es deia *Comprovar Excel*). Agafa les activitats que la base d'informes té en
 estat *Precinte / Cessament* i comprova que a l'Excel hi tinguin el Camp Info
 **REQUERIT PER DECRET?** o **PRECINTE ACTIVITAT?** amb un valor que comenci per
 **SI**. Les que no, te les llista amb la data de l'informe que les va deixar en
@@ -650,6 +650,39 @@ aquell estat, perquè puguis actualitzar l'Excel.
 
 > Compte, que no és el mateix criteri que el de **Seguiment**: aquí sí que es
 > demana el «SI», i allà no.
+
+### Excel Errors (fila GIA)
+
+Botó **⚠ Excel Errors**. Repassa **totes** les activitats de la fulla *Estès* de
+l'Excel d'activitats i et diu les dades que hi falten o no són bones, per
+corregir-les al GIA. **L'Excel no es toca mai.**
+
+| Tipus d'error | Quan surt |
+|---|---|
+| ID Activitat repetit | el mateix ID surt més d'un cop a la fulla |
+| Falta la raó social | buida |
+| NIF del titular | buit, sense forma de NIF o amb la lletra del DNI que no quadra |
+| Representant legal | una entitat (NIF que comença per lletra) sense representant; representant sense NIF; el NIF del representant és el de l'empresa, d'una altra entitat o mal escrit |
+| Dades del tècnic | el representant legal, un correu o un telèfon de l'Excel són del tècnic o la gestoria (de la base de contactes) |
+| Adreça incompleta | falta el tipus de via, el carrer o el número de l'emplaçament |
+| Referència cadastral | buida o que no té 20 caràcters (o els 14 de la parcel·la) |
+| Coordenades UTM | buides, la X i la Y girades, o fora de Cornellà |
+| Classificació | sense annex, o annex I/II/III sense apartat |
+| Activitat principal, expedient, data de llicència | buits |
+| Control periòdic | annex II, III o apartat 561 sense *Proper CP previst* o sense *Periodicitat CP* (no sortiria mai als vençuts de *Controls periòdics*) |
+| Correu electrònic | ni del titular ni del representant, o mal escrit (`gmailo.com`, sense @…) |
+| Telèfon o mòbil | no té 9 xifres, un fix a la columna del mòbil, un correu al telèfon… |
+| Contactes: no quadra amb els documents | l'Excel és buit i els documents donen la dada, o diuen una altra cosa, o un canvi de titular (de la base de contactes) |
+
+A dalt **marques els tipus d'error que vols** (cada un diu quants n'hi ha) i a
+sota surten, amb una cerca. **Exportar a Excel** fa un `.xlsx` amb només els
+tipus marcats: *ID Activitat*, *Tipus d'error*, el camp, el valor que hi ha a
+l'Excel, el detall i la raó social. El programa recorda què havies marcat.
+
+> Els dos tipus que surten dels documents (*Dades del tècnic* i *no quadra amb
+> els documents*) necessiten la base de contactes, que fa **Actualitzar base**.
+> Si una columna de l'Excel no es troba (s'ha reanomenat), aquella comprovació
+> no es fa i el peu de la finestra ho diu.
 
 ### Recordatoris als titulars (🔔)
 
@@ -856,7 +889,7 @@ cliques, et diu en una o dues frases què fa aquella eina, **sense obrir-la**.
 
 A totes les eines del menú hi surt, en gris i lletra petita, **l'última vegada
 que la vas obrir** (o `(mai)`). Serveix per no haver de recordar si ja havies
-passat, per exemple, el *Comprovar Excel* aquesta setmana. Es desa a
+passat, per exemple, l'*Excel Comprovar* aquesta setmana. Es desa a
 `local/base-dades-activitats/eines-state.json` i no es puja mai.
 
 ### Copiar informes sol cada dia (l'interruptor **A** / **M**)
@@ -919,11 +952,33 @@ sol al Drive** perquè el mòbil tingui el plànol al dia. Per posar-lo en A cal
 tenir configurada la carpeta de la base d'activitats.
 Registre: `%LOCALAPPDATA%\InformesCornella\planol-log.txt`.
 
+### Els correus dels controls periòdics sols cada setmana (també **A** / **M**)
+
+Sota **📅 Controls periòdics** hi ha el mateix interruptor. En **A**, **cada
+dilluns a les 13:00** (o en obrir el programa, si aquella setmana encara no
+s'ha fet) el programa mira l'Excel d'activitats i, de les que tenen el
+**control periòdic vençut** (*Proper CP previst* anterior a avui), en prepara
+el correu al titular **a Esborranys de l'Outlook**, com el botó *Enviar correu
+(esborranys)*. **No envia mai res**: el menú t'avisa que n'hi ha i els revises
+i envies tu.
+
+- **Cada control s'avisa una sola vegada**: el programa recorda per a quina
+  data de *Proper CP previst* ja s'ha preparat el correu (també els que fas tu
+  amb el botó). Si l'Excel porta una data nova, torna a tocar. A la finestra,
+  la columna **Correu preparat** diu quan (amb una *(A)* si el va fer
+  l'automàtic).
+- **Com a molt 20 per setmana**, i primer els que han vençut fa menys: la
+  primera vegada hi pot haver molts controls vençuts de fa anys, i aquests
+  els pots fer a mà des de la finestra.
+- A qui va i la CCO, com sempre: ⚙ Configuració → *Correus de cada eina* →
+  *Controls periòdics* (la CCO «a triar» només quan ho fas a mà).
+- Registre: `%LOCALAPPDATA%\InformesCornella\controls-periodics-log.txt`.
+
 ### Quan es fa cada cosa: ⚙ Configuració → Automatismes
 
 A **⚙ Configuració** hi ha el grup **Automatismes**, amb una fila per cada cosa
-que el programa fa sol (Copiar informes, Actualitzar base, Plànol activitats i
-Recordatoris). A cada fila pots:
+que el programa fa sol (Copiar informes, Actualitzar base, Plànol activitats,
+Seguiment, Controls periòdics i Recordatoris). A cada fila pots:
 
 - **encendre-la o apagar-la** (és el mateix interruptor A/M del menú);
 - triar **cada dia** o **cada setmana**, i en aquest cas **quin dia**;

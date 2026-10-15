@@ -1002,7 +1002,8 @@ cada vegada «s'està actualitzant sola ara mateix».
     (`informesdbedit`), 📁 *Copiar informes* (`copiarinformes`), 📄 *Word a PDF*
     (`convertirpdf`).
   - **GIA | NORMATIVA** (comparteixen fila): 📊 *Seguiment* (`seguimentgia`),
-    ✅ *Comprovar Excel* (`comprovarexcel`) | 📚 *Normativa* (`normativa`), 🔍
+    ✅ *Excel Comprovar* (`comprovarexcel`; abans *Comprovar Excel*), ⚠ *Excel
+    Errors* (`excelerrors`) | 📚 *Normativa* (`normativa`), 🔍
     *Revisar requeriments* (`revisio`).
   - **Per què així**: primer les eines anaven a sota dels informes (~980 px
     d'alt, calia fer scroll); després en una columna a la dreta amb files de
@@ -1679,6 +1680,41 @@ repositori.
   que la còpia pròpia que hi havia no feia. Outlook (COM) i finestres només a
   Windows. Es dot-sourceja a `GenerarInforme.ps1` després de `ControlsPeriodics.ps1`.
 
+### Controls periòdics AUTOMÀTIC (octubre 2026)
+
+L'usuari: «aplica l'automatització de les eines a l'eina Controls periòdics».
+`ControlsPeriodicsAutomatic.ps1` (interruptor A/M, registre, programació
+`setmana` / dilluns) + `ControlsPeriodicsAuto.ps1` (la passada en segon pla).
+
+- **Què és «automatitzar» aquí**: la feina que l'usuari feia a mà —obrir la
+  llista, marcar els que ja han passat el *Proper CP previst* i preparar-ne
+  els correus—. El text del correu ja diu «havia de passar … i no ens consta»:
+  per això només els **vençuts** (`KProperCP` < avui), no els que vencen aviat.
+  Generar els informes en lot **no** s'automatitza: són Word, i no se'n
+  demanava.
+- **NOMÉS ESBORRANYS**, també en automàtic: la regla de l'eina i el seu guard
+  es mantenen. La passada **no obre cap sessió de correu pel seu compte**:
+  passa per `_CpPreparaEsborranys` (`ControlsCpEmail.ps1`), la mateixa funció
+  que el botó, que és qui obre `Open-CorreuSessio 'outlook-esborrany'`. Abans tot
+  vivia dins del botó, amb finestres; copiar-lo per a l'automàtic era la manera
+  segura que divergissin (guard: un sol `Send-CorreuSessio` al fitxer). Els
+  esborranys de l'automàtic s'apunten a `Add-CorreuEsborranysPendents` i el menú
+  avisa, com amb els recordatoris.
+- **L'historial** (`controls-periodics-avisats.json` a
+  `local\base-dades-activitats`, porta GIA i dates: mai al GitHub): per GIA, el
+  *Proper CP previst* del qual ja s'ha preparat el correu. **També hi apunta el
+  botó**: el que fas a mà, l'automàtic no ho repeteix. La clau és la data: si
+  l'Excel en porta una de nova (s'ha passat el control i n'hi ha un altre de
+  previst), torna a tocar (`_CpJaAvisat`). S'hi apunta **encara que s'aturi a
+  mig camí** (el `finally`): el que ja és a Esborranys no es torna a fer. La
+  finestra en treu la columna «Correu preparat» (`_CpMarcaAvisats`).
+- **Màxim 20 per passada, primer els que han vençut fa menys**
+  (`_CpAutoTriades`, pura). La primera vegada hi pot haver centenars de
+  controls vençuts de fa anys; el que val la pena que surti sol és el que acaba
+  de vèncer. La resta va sortint (o es fa a mà).
+- **La CCO «a triar», mai** en automàtic (guard de sempre, amb els dos fitxers
+  nous a la llista).
+
 ## L'editor de catàlegs: desar era lent i el Tipus estava bloquejat
 
 Dues queixes de l'usuari, i totes dues tenien la mateixa arrel —fer feina cara al
@@ -2060,7 +2096,12 @@ què passa i on; canviar un requeriment es fa llegint la norma.
   - L'índex diu **per quin camí** s'ha baixat cada una (`Baixada (PDF de la
     pàgina, amb l'Edge)`…), per poder-ho diagnosticar sense l'estat.
 
-## «Comprovar Excel»: visites d'inspecció i avisos descartats (octubre 2026)
+## «Excel Comprovar» (abans «Comprovar Excel»): visites d'inspecció i avisos descartats (octubre 2026)
+
+> **El nom.** L'usuari (octubre 2026) la va reanomenar «Excel Comprovar», al costat
+> de la nova «Excel Errors». **L'acció segueix sent `comprovarexcel`**, i és a
+> posta: el segell d'«última vegada» del menú s'indexa per l'acció, i canviar-la
+> l'hauria deixat a «(mai)».
 
 L'usuari: «ha de poder descartar avisos […] si jo considero que està arreglat
 per una altra banda» i «els informes que faig amb Objecte Visita inspecció +
@@ -2083,3 +2124,40 @@ inicial/verificació"».
   (porta noms de titulars: mai al GitHub). Un descartat que ja no avisa es treu
   sol de la llista (`_CxFiltraDescartats`), i una visita **nova** té una altra
   clau: torna a avisar. **Recuperar descartats** els torna a ensenyar tots.
+
+## «Excel Errors» (fila GIA, octubre 2026) — `ExcelErrors.ps1`
+
+L'usuari: «una nova eina que comprovi errors de la base de dades d'activitats
+[…] que falta alguna dada de les importants (raó social, representant legal,
+adreça, cadastre, UTM, classificació, activitat), dades del tècnic a
+representant legal, etc. […] extreure en un Excel indicant el ID Activitat i el
+tipus d'error (deixa'm marcar el tipus d'error que vull que s'exporti)».
+
+- **`$Script:ExTipus` és l'ÚNICA llista de tipus**: la finestra, la tria desada i
+  l'exportació hi beuen. Un tipus nou s'hi afegeix i surt a tot arreu.
+- **La fila es comprova en una funció PURA** (`Get-ExcelErrorsFila`): rep els
+  valors per clau de columna i les columnes (`_ExColumnes`, per la capçalera amb
+  `_ColumnaAmbTermes`). **Una columna que no hi és (0) no fa saltar cap error**:
+  aquella comprovació no es fa i el peu diu quina falta. Si el GIA reanomena una
+  capçalera, es veu al peu en lloc de sortir 1.300 errors falsos. Pel mateix
+  motiu, el respatller 23/25 de `Get-ColumnesContacte` (mòbil i correu) només
+  val si la capçalera parla de mòbil o de correu.
+- **Res d'escriure les regles dues vegades**: les errades de correu, telèfon i
+  NIF són `_CtErrada` / `_CtTipusNif` (el repàs de contactes); el control
+  periòdic, `_ControlPeriodicClassify` (l'eina Controls periòdics). «Dades del
+  tècnic» i «no quadra amb els documents» són els avisos de la **base de
+  contactes** (`es_el_tecnic`; `falta`, `diferent`, `canvi_titular`). Els
+  `error` de la base **no** hi entren: són els mateixos que es miren aquí a
+  l'Excel i sortirien dues vegades. Sense base de contactes, el peu ho diu.
+- **Les UTM** s'entenen amb coma decimal i punts de milers (`_ExNumero`; la
+  `ConvertTo-UtmNumber` de rutes és de l'altre procés). La zona
+  (`$Script:ExUtmZona`) és generosa a posta: vol enxampar X/Y girades, graus,
+  un zero de més; no una parcel·la del límit del terme.
+- **El cadastre**: 20 caràcters, o els 14 de la parcel·la.
+- **La tria es desa** a `local\base-dades-activitats\excel-errors.json` com a
+  llista de **desmarcats**: així un tipus nou surt marcat.
+- **L'exportació** és `_NormativaXlsxBytes` (sense Excel), amb *ID Activitat* i
+  *Tipus d'error* a les dues primeres columnes; **l'Excel del GIA no s'obre mai
+  per escriure** (guard).
+- **El CheckedListBox avisa ABANS** del canvi (`ItemCheck`): la finestra porta
+  el canvi pendent a `$st.Canvi` en lloc de refer la graella més tard.

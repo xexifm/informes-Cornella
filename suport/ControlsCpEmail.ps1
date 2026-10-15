@@ -129,6 +129,121 @@ function _FillControlsCpPh([string]$text, $row) {
 # que _TextToHtml pero SENSE cursiva. Ara aquest correu tambe accepta //cursiva//.
 
 # ----------------------------------------------------------------------------
+# L'HISTORIAL DELS AVISOS (octubre 2026, l'automatic: "aplica l'automatitzacio
+# de les eines a Controls periodics"). Per GIA, el "Proper CP previst" del qual
+# ja s'ha preparat l'esborrany: l'automatic no el torna a preparar cada setmana,
+# i si l'Excel porta una data nova (s'ha passat el control i n'hi ha un altre de
+# previst), torna a tocar. Tambe hi apunta el boto "Enviar correu (esborranys)":
+# el que has fet a ma, l'automatic ja no ho repeteix. Porta ID GIA i dates:
+# local\base-dades-activitats (aquest PC), mai al GitHub.
+#   { avisats: { "<GIA>": { proper_cp: "dd/MM/yyyy"; el: iso; mode: auto|manual } } }
+# ----------------------------------------------------------------------------
+function _CpAvisatsPath {
+    if ([string]::IsNullOrWhiteSpace($LocalActivitatsDir)) { return '' }
+    return [string](Join-Path $LocalActivitatsDir 'controls-periodics-avisats.json')
+}
+
+# GIA -> @{ ProperCp; El; Mode }. Mai peta (sense fitxer, buit).
+function Read-CpAvisats([string]$path = '') {
+    if (-not $path) { $path = _CpAvisatsPath }
+    $out = @{}
+    if (-not $path) { return $out }
+    $o = $null
+    try { $o = Read-JsonFile $path } catch { $o = $null }
+    $a = _PropInf $o 'avisats'
+    if ($null -eq $a) { return $out }
+    foreach ($p in @($a.PSObject.Properties)) {
+        $v = $p.Value
+        $out[[string]$p.Name] = @{ ProperCp = [string](_PropInf $v 'proper_cp'); El = [string](Read-JsonIso (_PropInf $v 'el')); Mode = [string](_PropInf $v 'mode') }
+    }
+    return $out
+}
+
+# Hi afegeix (o hi posa al dia) les files avisades i ho desa. Torna $true si
+# s'ha pogut desar (una unitat de xarxa fora de servei no pot fer petar res).
+function Add-CpAvisats($rows, [string]$mode, [string]$path = '') {
+    if (-not $path) { $path = _CpAvisatsPath }
+    if (-not $path -or @($rows).Count -eq 0) { return $false }
+    try {
+        $tots = Read-CpAvisats $path
+        $ara = (Get-Date).ToString('o')
+        foreach ($r in @($rows)) { $tots[[string]$r.Id] = @{ ProperCp = [string]$r.ProperCP; El = $ara; Mode = $mode } }
+        $obj = [ordered]@{}
+        foreach ($k in @($tots.Keys | Sort-Object { _GiaNumeric $_ })) {
+            $obj[$k] = [ordered]@{ proper_cp = [string]$tots[$k].ProperCp; el = [string]$tots[$k].El; mode = [string]$tots[$k].Mode }
+        }
+        $dir = Split-Path -Parent $path
+        if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+        Write-JsonFile $path ([ordered]@{ avisats = $obj }) 5
+        return $true
+    } catch { return $false }
+}
+
+# L'avis d'aquesta fila ja es fet? Nomes si es del MATEIX "Proper CP previst":
+# amb una data nova, torna a tocar. PURA.
+function _CpJaAvisat($row, $avisats) {
+    if ($null -eq $avisats) { return $false }
+    $a = $avisats[[string]$row.Id]
+    if ($null -eq $a) { return $false }
+    return ([string]$a.ProperCp -ne '' -and [string]$a.ProperCp -eq [string]$row.ProperCP)
+}
+
+# ----------------------------------------------------------------------------
+# ELS ESBORRANYS, SENSE FINESTRES: el boto (amb la barra) i l'automatic (sense
+# ningu davant) passen pel mateix lloc. Abans tot vivia dins del boto, i fer-ne
+# una copia per a l'automatic era la manera segura que divergissin.
+#   $cfgE   Get-CorreuEina 'controls' (a qui va)
+#   $bcc    la CCO ja muntada (l'automatic, NOMES la de "sempre")
+#   $mode   'manual' | 'auto' (a l'historial)
+#   $cada   { param($i, $row) } abans de cada correu; si torna $true, s'atura
+# Torna @{ Fets; SenseCorreu; Errors; AvisTecnic; DelsDocs; Cancelat }. Si
+# l'Outlook no s'obre, LLANCA (el missatge ja diu que passa).
+# ----------------------------------------------------------------------------
+function _CpPreparaEsborranys($rows, $cfgE, [string]$bcc, [string]$mode, [scriptblock]$cada = $null) {
+    $res = @{
+        Fets = (New-Object System.Collections.ArrayList); SenseCorreu = (New-Object System.Collections.ArrayList)
+        Errors = (New-Object System.Collections.ArrayList); AvisTecnic = (New-Object System.Collections.ArrayList)
+        DelsDocs = (New-Object System.Collections.ArrayList); Cancelat = $false
+    }
+    $textos = _LoadControlsCpEmail
+    $assTpl = [string]$textos['assumpte']
+    $cosTpl = [string]$textos['cos']
+    # La mateixa sessio que Enviar correu i Recordatoris (CorreuVia.ps1): un sol
+    # lloc obre l'Outlook i hi posa el remitent de Configuracio. Aqui SEMPRE a
+    # Esborranys, triis la via que triis: l'usuari els revisa.
+    $ses = Open-CorreuSessio 'outlook-esborrany'
+    try {
+        $i = 0
+        foreach ($r in @($rows)) {
+            $i++
+            if ($null -ne $cada -and [bool](& $cada $i $r)) { $res.Cancelat = $true; break }
+            $etiq = "GIA $($r.Id) - $($r.RaoSocial)"
+            # El repas de contactes: el correu dels documents si l'Excel no en
+            # te, i la llista dels que son del tecnic (es diu al final: son
+            # esborranys, l'usuari els revisa abans d'enviar-los).
+            $ctEm = Get-ContactesEmailsCompletats ([string]$r.Id) @{ titular = [string]$r.RaoEmail; representant = [string]$r.RepEmail }
+            if ([string]$ctEm.AvisTecnic -ne '') { [void]$res.AvisTecnic.Add($etiq) }
+            if (@($ctEm.Notes).Count -gt 0) { [void]$res.DelsDocs.Add($etiq) }
+            $rec = _CorreuParteixToCc (_CorreuDestinataris $cfgE @{ titular = [string]$ctEm.Emails.titular; representant = [string]$ctEm.Emails.representant } (Get-CorreuAutoritzats ([string]$r.Id)))
+            if (-not $rec.Ok) { [void]$res.SenseCorreu.Add($etiq); continue }
+            try {
+                Send-CorreuSessio $ses $rec.To $bcc (_FillControlsCpPh $assTpl $r) (_CosAHtml (_FillControlsCpPh $cosTpl $r)) $rec.Cc
+                [void]$res.Fets.Add($r)
+            } catch {
+                [void]$res.Errors.Add("GIA $($r.Id): $($_.Exception.Message)")
+            }
+        }
+    } finally {
+        # NO es fa Quit() de l'Outlook (podria tancar el de l'usuari); nomes s'allibera.
+        Close-CorreuSessio $ses
+        # A l'historial ENCARA QUE S'HAGI ATURAT A MIG CAMI: el que ja es a
+        # Esborranys no s'ha de tornar a preparar.
+        [void](Add-CpAvisats @($res.Fets) $mode)
+    }
+    return $res
+}
+
+# ----------------------------------------------------------------------------
 # OUTLOOK (COM) - nomes a Windows. Crea ESBORRANYS; MAI envia.
 # ----------------------------------------------------------------------------
 function Invoke-ControlsCpEmailDrafts($rows) {
@@ -152,10 +267,6 @@ function Invoke-ControlsCpEmailDrafts($rows) {
         'Enviar correu', 'YesNo', 'Question')
     if ($rc -ne [System.Windows.Forms.DialogResult]::Yes) { return }
 
-    $textos = _LoadControlsCpEmail
-    $assTpl = [string]$textos['assumpte']
-    $cosTpl = [string]$textos['cos']
-
     # La carcassa (finestra + etiqueta + barra + Cancel.lar) es a UiComuns.ps1:
     # era identica a la de "Generar informes".
     $pg     = Show-ProgresCancel 'Enviar correu' $rows.Count
@@ -163,51 +274,29 @@ function Invoke-ControlsCpEmailDrafts($rows) {
     $form   = $pg.Form
     $lbl    = $pg.Label
     $bar    = $pg.Bar
-
-    $ok = 0; $senseCorreu = New-Object System.Collections.ArrayList
-    $err = 0; $errDetalls = New-Object System.Collections.ArrayList; $cancelled = $false
-    $avisTec = New-Object System.Collections.ArrayList; $delsDocs = New-Object System.Collections.ArrayList
-    $ses = $null
+    $res = $null
     try {
-        # La mateixa sessio que Enviar correu i Recordatoris (CorreuVia.ps1): un
-        # sol lloc obre l'Outlook i hi posa el remitent de Configuracio. Aqui
-        # SEMPRE a Esborranys, triis la via que triis: l'usuari els revisa.
-        try { $ses = Open-CorreuSessio 'outlook-esborrany' } catch {
-            try { $form.Close() } catch { }
-            [System.Windows.Forms.MessageBox]::Show([string]$_.Exception.Message, 'Enviar correu', 'OK', 'Error') | Out-Null
-            return
-        }
-
-        $done = 0
-        foreach ($r in $rows) {
-            if ($cancel.Flag) { $cancelled = $true; break }
-            $done++
-            $lbl.Text = "Preparant esborranys...  $done de $($rows.Count)`nGIA $($r.Id) - $($r.RaoSocial)"
-            if ($bar.Value -lt $bar.Maximum) { $bar.Value = $done }
+        $res = _CpPreparaEsborranys $rows $cfgE $bcc 'manual' {
+            param($i, $r)
+            $lbl.Text = "Preparant esborranys...  $i de $($rows.Count)`nGIA $($r.Id) - $($r.RaoSocial)"
+            if ($bar.Value -lt $bar.Maximum) { $bar.Value = $i }
             [System.Windows.Forms.Application]::DoEvents()
-
-            # El repas de contactes: el correu dels documents si l'Excel no en
-            # te, i la llista dels que son del tecnic (es diu al final: son
-            # esborranys, l'usuari els revisa abans d'enviar-los).
-            $ctEm = Get-ContactesEmailsCompletats ([string]$r.Id) @{ titular = [string]$r.RaoEmail; representant = [string]$r.RepEmail }
-            if ([string]$ctEm.AvisTecnic -ne '') { [void]$avisTec.Add("GIA $($r.Id) - $($r.RaoSocial)") }
-            if (@($ctEm.Notes).Count -gt 0) { [void]$delsDocs.Add("GIA $($r.Id) - $($r.RaoSocial)") }
-            $rec = _CorreuParteixToCc (_CorreuDestinataris $cfgE @{ titular = [string]$ctEm.Emails.titular; representant = [string]$ctEm.Emails.representant } (Get-CorreuAutoritzats ([string]$r.Id)))
-            if (-not $rec.Ok) { [void]$senseCorreu.Add("GIA $($r.Id) - $($r.RaoSocial)"); continue }
-
-            try {
-                Send-CorreuSessio $ses $rec.To $bcc (_FillControlsCpPh $assTpl $r) (_CosAHtml (_FillControlsCpPh $cosTpl $r)) $rec.Cc
-                $ok++
-            } catch {
-                $err++; [void]$errDetalls.Add("GIA $($r.Id): $($_.Exception.Message)")
-            }
-        }
+            return [bool]$cancel.Flag
+        }.GetNewClosure()
+    } catch {
+        $cancel.Running = $false
+        try { $form.Close() } catch { }
+        [System.Windows.Forms.MessageBox]::Show([string]$_.Exception.Message, 'Enviar correu', 'OK', 'Error') | Out-Null
+        return
     } finally {
         $cancel.Running = $false
         try { $form.Close() } catch { }
-        # NO es fa Quit() de l'Outlook (podria tancar el de l'usuari); nomes s'allibera.
-        Close-CorreuSessio $ses
     }
+    $ok = $res.Fets.Count; $cancelled = [bool]$res.Cancelat
+    $senseCorreu = $res.SenseCorreu; $err = $res.Errors.Count; $errDetalls = $res.Errors
+    $avisTec = $res.AvisTecnic; $delsDocs = $res.DelsDocs
+    $avui = (Get-Date).ToString('dd/MM/yyyy')
+    foreach ($f in @($res.Fets)) { if ($f.PSObject.Properties['Avisat']) { $f.Avisat = $avui } }
 
     $titol = if ($cancelled) { 'Preparació cancel·lada' } else { 'Esborranys preparats' }
     $msg = "$titol`n`nEsborranys creats a Outlook: $ok"

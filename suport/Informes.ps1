@@ -108,7 +108,7 @@ function _ExtractExpedient($lines) {
 # La data de la VISITA D'INSPECCIO de l'informe: la linia "Objecte: Visita
 # inspeccio 24/07/2026" de la capcalera (_BuildOrigenText, MotorInforme.ps1).
 # Torna 'dd/MM/yyyy' o '' si l'informe no es d'una visita. La fa servir
-# "Comprovar Excel" per mirar que la data consti a l'Excel (octubre 2026). PURA.
+# "Excel Comprovar" per mirar que la data consti a l'Excel (octubre 2026). PURA.
 function _ExtractVisitaInspeccio($lines) {
     foreach ($ln in @($lines)) {
         $nt = _NormalitzaText ([string]$ln)

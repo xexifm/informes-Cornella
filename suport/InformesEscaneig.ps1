@@ -412,7 +412,7 @@ function _InformeAJson($r) {
     # Un .doc que aquesta passada no ha pogut llegir (sense Word, o en
     # automatic): la proxima el torna a provar encara que no hagi canviat.
     if ([bool](_PropInf $r 'NoLlegit')) { Add-Member -InputObject $o -NotePropertyName no_llegit -NotePropertyValue $true }
-    # La data de la visita d'inspeccio (Comprovar Excel). Tambe buida: vol dir
+    # La data de la visita d'inspeccio (Excel Comprovar). Tambe buida: vol dir
     # "mirat, i no es d'una visita" (sense el camp, la passada seguent el mira).
     $vis = _PropInf $r 'Visita'
     if ($null -ne $vis) { Add-Member -InputObject $o -NotePropertyName visita -NotePropertyValue ([string]$vis) }

@@ -38,7 +38,8 @@
                         cada document), Regles (de qui es cada dada, avisos), Db
                         (contactes-db.json, correccions a ma) i Pantalla
     CopiaInformes.ps1   eina "Copiar informes" (a ma i automatic)
-    ComprovarExcel.ps1  eina "Comprovar Excel" (precintes contra l'Excel)
+    ComprovarExcel.ps1  eina "Excel Comprovar" (precintes i visites contra l'Excel)
+    ExcelErrors.ps1     eina "Excel Errors" (les dades que falten o no son bones a l'Excel)
     Migracio.ps1        rutes de local\ i endrec de les carpetes velles
 
     -- eines del menu --
@@ -53,6 +54,7 @@
     Llicencia*.ps1      Dades (pures), Blocs (l'informe), Pantalles i l'assistent
     LlicenciaDb.ps1     la memoria de cada llicencia entre informes
     ControlsPeriodics.ps1 + ControlsCpEmail.ps1                 controls periodics
+                        (+ ControlsPeriodicsAutomatic.ps1, l'interruptor A/M)
     EmailTextos.ps1     textos del correu     Configuracio.ps1  rutes d'aquest PC
     CorreuMobil.ps1     el correu de l'app del mobil (a qui va, CCO, el prompt)
     EnviarCorreu.ps1    enviar el correu      EmailQuota.ps1    quota d'EmailJS
@@ -458,6 +460,8 @@ if (-not $Script:HeadlessTest) { [void](Invoke-MigracioLocal $RepoRoot) }
 # El mode automatic (setmanal) del Planol activitats: s'apunta al registre.
 . (Join-Path $ScriptRoot 'PlanolAutomatic.ps1')
 . (Join-Path $ScriptRoot 'ComprovarExcel.ps1')
+# L'eina "Excel Errors" (fila GIA): els errors de la fulla Estes.
+. (Join-Path $ScriptRoot 'ExcelErrors.ps1')
 
 # Lector dels ESTRUCTURALS en JSON (format estandard unic). Nomes defineix
 # funcions; segur en headless. Es carrega abans que s'usi (Get-ParsedCataleg/
@@ -573,6 +577,9 @@ if (-not $Script:HeadlessTest) { [void](Invoke-MigracioLocal $RepoRoot) }
 # Avisos de control periodic per correu (esborranys a Outlook) des de l'eina
 # Controls periodics. Funcions pures testejables; Outlook (COM)/WinForms a Windows.
 . (Join-Path $ScriptRoot 'ControlsCpEmail.ps1')
+# El mode automatic dels Controls periodics (esborranys dels controls vencuts
+# cada setmana). DESPRES de ControlsCpEmail.ps1 i de ModeAutomatic.ps1.
+. (Join-Path $ScriptRoot 'ControlsPeriodicsAutomatic.ps1')
 
 # El Seguiment automatic (cada dues setmanes) i el correu amb el PDF dels
 # llistats. DESPRES de CorreuEines.ps1: s'hi registra la prova i el text.

@@ -214,7 +214,7 @@ function Read-FullaEstesa($excelFile, [scriptblock]$cos, [switch]$Desa, [string]
 
 # ----------------------------------------------------------------------------
 # Els "Camp Info" de l'Excel d'activitats (parelles Nom/Valor). El fan servir
-# "Comprovar Excel" i "Seguiment"; vivia a Informes.ps1 i una eina depenia de
+# "Excel Comprovar" i "Seguiment"; vivia a Informes.ps1 i una eina depenia de
 # l'altra per una cosa que no es de cap de les dues.
 # ----------------------------------------------------------------------------
 # PURA i testejable. A partir de la fila de capcaleres (array 0-based de textos),

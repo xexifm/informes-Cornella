@@ -168,7 +168,8 @@ Obre el programa i **fes captura**. Comprova-hi:
       com sigui possible si s'ha perdut un inici programat» marcat. Si ja la
       tenies d'abans (a les 09:00), n'hi ha prou d'obrir el programa: s'ha de
       posar al dia sola (el registre `recordatoris-log.txt` ho diu).
-14. GIA → «Comprovar Excel» i GIA → «Seguiment».
+14. GIA → «Excel Comprovar», GIA → «Excel Errors» (marca i desmarca tipus,
+    Exportar a Excel) i GIA → «Seguiment».
 15. **Al Gestor de tasques: cap `EXCEL.EXE` corrent** després de tot això.
     ```powershell
     Get-Process EXCEL -ErrorAction SilentlyContinue

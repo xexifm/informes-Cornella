@@ -150,6 +150,7 @@ function _ReadControlsPeriodics {
                     IsIII           = $cl.IsIII
                     Is561           = $cl.Is561
                     Exp             = (& $get $r $cExp)
+                    Avisat          = ''
                     Sel             = $false
                 })
             }
@@ -179,6 +180,9 @@ $Script:ControlsPeriodicsCols = @(
     @{ H = 'Classif. annex';               Key = 'Annex';          W = 90;  Date = $false }
     @{ H = 'Classif. Apartat';             Key = 'Apartat';        W = 110; Date = $false }
     @{ H = 'Activitat principal';          Key = 'ActPrincipal';   W = 200; Date = $false }
+    # Quan se'n va preparar el correu (a ma o l'automatic) per a AQUEST "Proper
+    # CP previst" (l'historial de ControlsCpEmail.ps1). Buit = encara no.
+    @{ H = 'Correu preparat';              Key = 'Avisat';         W = 110; Date = $false }
 )
 
 function Show-ControlsPeriodicsWindow($allRows, [string]$fileName) {
@@ -277,7 +281,7 @@ function Show-ControlsPeriodicsWindow($allRows, [string]$fileName) {
                 [bool]$row.Sel,
                 $row.Id, $row.RaoSocial, $row.RaoEmail, $row.RepEmail, $row.Adreca,
                 $row.DataLlic, $row.DataControlIni, $row.PeriodicitatCP, $row.DataControlPer,
-                $row.ProperCP, $row.Annex, $row.Apartat, $row.ActPrincipal
+                $row.ProperCP, $row.Annex, $row.Apartat, $row.ActPrincipal, $row.Avisat
             ))
             $grid.Rows[$idx].Tag = $row
         }
@@ -316,6 +320,7 @@ function Show-ControlsPeriodicsWindow($allRows, [string]$fileName) {
             $triades = @()
             foreach ($r in $allRows) { if ($r.Sel) { $triades += $r } }
             Invoke-ControlsCpEmailDrafts $triades
+            & $fill   # la columna "Correu preparat"
         }.GetNewClosure() },
         @{ Nom = 'Generar'; Text = 'Generar informes'; Estil = 'primari'; Clic = {
             $triades = @()
@@ -367,6 +372,20 @@ function _ExportControlsPeriodics($grid, $colsMeta) {
     }
 }
 
+# La columna "Correu preparat": la data de l'avis si es del MATEIX "Proper CP
+# previst" que l'Excel d'ara (_CpJaAvisat). PURA (toca nomes les files).
+function _CpMarcaAvisats($rows, $avisats) {
+    foreach ($r in @($rows)) {
+        if ($null -eq $r) { continue }
+        $r.Avisat = ''
+        if (-not (_CpJaAvisat $r $avisats)) { continue }
+        $el = [string]$avisats[[string]$r.Id].El
+        $dt = [datetime]::MinValue
+        $r.Avisat = if ([datetime]::TryParse($el, [ref]$dt)) { $dt.ToString('dd/MM/yyyy') } else { 'si' }
+        if ([string]$avisats[[string]$r.Id].Mode -eq 'auto') { $r.Avisat += ' (A)' }
+    }
+}
+
 # ----------------------------------------------------------------------------
 # Punt d'entrada (menu EINES)
 # ----------------------------------------------------------------------------
@@ -397,6 +416,7 @@ function Invoke-ControlsPeriodics {
         return
     }
     $rows = @($res.Rows)
+    _CpMarcaAvisats $rows (Read-CpAvisats)
     if ($rows.Count -eq 0) {
         [System.Windows.Forms.MessageBox]::Show(
             "No hi ha cap activitat amb control periòdic (annex II/III o apartat 561) a la base actual.",

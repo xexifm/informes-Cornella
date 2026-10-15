@@ -1,7 +1,7 @@
 ﻿#requires -Version 5.1
 <#
 .SYNOPSIS
-  Eina "Comprovar Excel" (menu, fila GIA): per cada activitat en estat
+  Eina "Excel Comprovar" (abans "Comprovar Excel"; menu, fila GIA): per cada activitat en estat
   "Precinte / Cessament" a la base d'informes, comprova que l'Excel d'activitats
   hi tingui el Camp Info corresponent amb un valor que comenci per SI.
   Criteri DIFERENT del de Seguiment (SeguimentGia.ps1), a posta: vegeu CLAUDE.md.
@@ -9,7 +9,7 @@
 #>
 
 # ----------------------------------------------------------------------------
-# Comprovar Excel: noms de "Camp Info" que, a l'Excel d'activitats, marquen que
+# Excel Comprovar: noms de "Camp Info" que, a l'Excel d'activitats, marquen que
 # una activitat esta requerida per decret / precintada. La comprovacio es fa
 # sobre el NOM del camp (normalitzat, sense accents/majuscules; el '?' es
 # conserva) i, a mes, el VALOR ha de comencar per "SI".
@@ -62,7 +62,7 @@ function _ExcelActivitatActualitzada($pairs) {
 }
 
 # ============================================================================
-# Comprovar Excel — eina INFORMES "Comprovar Excel"
+# Excel Comprovar — eina INFORMES "Excel Comprovar"
 # ============================================================================
 # Llegeix els "Camp Info N - Nom/Valor" de la fulla "Estès" i els indexa per GIA
 # (columna 1). Retorna @{ Ok; Map = @{ gia -> @(@{Nom;Valor}) }; Error }.
@@ -77,7 +77,7 @@ function _ReadExcelCampInfoPerGia {
             $data = $x.Data; $rows = $x.Rows; $cols = $x.Cols; $headers = $x.Headers
             if ($null -eq $data) { return @{ Ok = $true; Map = @{}; DataControl = @{}; ColControl = $false } }
             $pairs = _FindCampInfoPairs $headers
-            # La data del control (Comprovar Excel mira que hi consti la de la
+            # La data del control (Excel Comprovar mira que hi consti la de la
             # visita d'inspeccio de l'informe). 0 si la columna no hi es.
             $colCtl = _FindColIndex $data $cols @('data control inicial') $null
             $map = @{}
@@ -246,7 +246,7 @@ function _CxTextLlista($a) {
 function _CxFinestra($resultat, [string]$peu, [string]$descPath) {
     $st = @{ R = $resultat; Canvis = $false }
     $form = _NewForm
-    $form.Text = 'Comprovar Excel'
+    $form.Text = 'Excel Comprovar'
     $form.ClientSize = New-Object System.Drawing.Size(860, 560)
     $form.MinimumSize = New-Object System.Drawing.Size(560, 420)
     $lbl = New-Object System.Windows.Forms.Label
@@ -283,7 +283,7 @@ function _CxFinestra($resultat, [string]$peu, [string]$descPath) {
         $ara = (Get-Date).ToString('o')
         $nous = @($st.R.Descartats) + @($idx | ForEach-Object { $a = $st.Ordre[$_]; @{ Clau = [string]$a.Clau; Text = [string]$a.Text; El = $ara } })
         try { Save-CxDescartats $nous $descPath } catch {
-            [System.Windows.Forms.MessageBox]::Show("No s'han pogut desar:`n" + $_.Exception.Message, 'Comprovar Excel', 'OK', 'Error') | Out-Null
+            [System.Windows.Forms.MessageBox]::Show("No s'han pogut desar:`n" + $_.Exception.Message, 'Excel Comprovar', 'OK', 'Error') | Out-Null
             return
         }
         $tots = @(@($st.R.Actius) + @($st.R.Amagats))
@@ -292,11 +292,11 @@ function _CxFinestra($resultat, [string]$peu, [string]$descPath) {
     }.GetNewClosure())
     $peuB.Recup.add_Click({
         if (@($st.R.Amagats).Count -eq 0) {
-            [System.Windows.Forms.MessageBox]::Show("No hi ha cap av" + [char]0x00ED + "s descartat.", 'Comprovar Excel', 'OK', 'Information') | Out-Null
+            [System.Windows.Forms.MessageBox]::Show("No hi ha cap av" + [char]0x00ED + "s descartat.", 'Excel Comprovar', 'OK', 'Information') | Out-Null
             return
         }
         $llista = (@($st.R.Amagats) | ForEach-Object { '  - ' + (_CxTextLlista $_) }) -join "`n"
-        $rr = [System.Windows.Forms.MessageBox]::Show(("Avisos descartats:`n`n" + $llista + "`n`nVols que tornin a sortir tots?"), 'Comprovar Excel', 'YesNo', 'Question')
+        $rr = [System.Windows.Forms.MessageBox]::Show(("Avisos descartats:`n`n" + $llista + "`n`nVols que tornin a sortir tots?"), 'Excel Comprovar', 'YesNo', 'Question')
         if ($rr -ne [System.Windows.Forms.DialogResult]::Yes) { return }
         try { Save-CxDescartats @() $descPath } catch { return }
         $tots = @(@($st.R.Actius) + @($st.R.Amagats))
@@ -320,18 +320,18 @@ function Invoke-ComprovarExcel {
     if (-not (Test-Path -LiteralPath $outPath)) {
         [System.Windows.Forms.MessageBox]::Show(
             "Encara no hi ha cap base d'informes.`n`nExecuta primer 'Actualitzar base'.",
-            'Comprovar Excel', 'OK', 'Information') | Out-Null
+            'Excel Comprovar', 'OK', 'Information') | Out-Null
         return
     }
     try {
         $db = Read-JsonFile $outPath
     } catch {
-        [System.Windows.Forms.MessageBox]::Show("No s'ha pogut llegir la base d'informes:`n$($_.Exception.Message)", 'Comprovar Excel', 'OK', 'Error') | Out-Null
+        [System.Windows.Forms.MessageBox]::Show("No s'ha pogut llegir la base d'informes:`n$($_.Exception.Message)", 'Excel Comprovar', 'OK', 'Error') | Out-Null
         return
     }
     $res = _ReadExcelCampInfoPerGia
     if (-not $res.Ok) {
-        [System.Windows.Forms.MessageBox]::Show("No s'ha pogut llegir l'Excel:`n$($res.Error)", 'Comprovar Excel', 'OK', 'Error') | Out-Null
+        [System.Windows.Forms.MessageBox]::Show("No s'ha pogut llegir l'Excel:`n$($res.Error)", 'Excel Comprovar', 'OK', 'Error') | Out-Null
         return
     }
     $avisos = @(Get-ComprovacioExcelAvisos $db $res)

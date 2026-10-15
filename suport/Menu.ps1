@@ -136,13 +136,14 @@ $Script:AjudaEines = @{
     planol            = "Pinta les parcel·les amb activitats del color del seu estat i amb els ID GIA, i en puja una còpia al Drive per al mòbil. L'interruptor A/M de sota el fa sol [PROGRAMACIO]."
     coordenades       = "Repassa per zones, sobre un mapa, on hi ha cada activitat i et deixa corregir-ne la posició. Et baixes un Excel amb les coordenades noves: no toca l'Excel d'activitats."
     precintades       = "Obre al navegador el mapa i el llistat públic de les activitats precintades."
-    controlsperiodics = "Llista les activitats de l'annex II, III o de l'apartat 561 amb les dates dels controls periòdics (primer les que toquen abans). En pots generar els informes i els correus."
+    controlsperiodics = "Activitats de l'annex II, III o apartat 561 amb les dates dels controls periòdics; en fa els informes i els correus. En A, [PROGRAMACIO] deixa a Esborranys els correus dels vençuts."
     recordatoris      = "Envia recordatoris periòdics per correu als titulars que tenen un requeriment o un precinte pendent, segons la base d'informes."
     informesdb        = "Recorre la carpeta dels informes fets i n'actualitza la base: la data, l'ID GIA i la conclusió de cada un. L'interruptor A/M de sota ho fa sol [PROGRAMACIO]."
     informesdbedit    = "Mostra la base d'informes amb l'estat de cada activitat, amb filtres i exportació a CSV. Hi pots corregir la conclusió breu d'un informe o fer que s'ignori."
     copiarinformes    = "Copia els informes nous a la carpeta de còpia, tots junts, sense esborrar mai res. L'interruptor A/M de sota ho fa sol [PROGRAMACIO]."
     convertirpdf      = "Converteix un informe de Word (o una carpeta sencera) a PDF i, si ho marques, el signa amb AutoFirma."
-    comprovarexcel    = "Comprova que les activitats que la base d'informes té en Precinte / Cessament també ho tinguin marcat a l'Excel d'activitats, i et llista les que no."
+    comprovarexcel    = "Comprova que les activitats que la base d'informes té en Precinte / Cessament també ho tinguin marcat a l'Excel d'activitats, i que hi consti la data de la darrera visita d'inspecció. Et llista les que no."
+    excelerrors       = "Busca errors a l'Excel d'activitats: dades que falten (raó social, representant, adreça, cadastre, UTM, classificació...), dades mal escrites o del tècnic. Exportes a Excel els tipus que marquis."
     seguimentgia      = "Llistats de seguiment del GIA (precintes, denúncies, decret, sonometria, annex II) en Excel o PDF, i per correu. En A, cada dues setmanes s'envia sol."
     emailtextos       = "Edita l'assumpte i el text de TOTS els correus del programa: el de l'informe (mòbil i Enviar correu), els recordatoris, els controls periòdics i el seguiment."
     enviarcorreu      = "Envia al titular, des de l'ordinador, el correu amb els requeriments de qualsevol informe ja fet (el tries; el més recent surt triat), amb el mateix format que el del mòbil."
@@ -589,6 +590,7 @@ function Select-Mode {
     $tiMail  = [System.Char]::ConvertFromUtf32(0x1F4E7)   # 📧
     $tiSobre = [System.Char]::ConvertFromUtf32(0x2709)    # ✉
     $tiList  = [System.Char]::ConvertFromUtf32(0x1F4CA)   # 📊
+    $tiAvis  = [System.Char]::ConvertFromUtf32(0x26A0)    # ⚠
     $tiMap   = [System.Char]::ConvertFromUtf32(0x1F5FA)   # 🗺
     $tiBell  = [System.Char]::ConvertFromUtf32(0x1F514)   # 🔔
     $tiLlibres = [System.Char]::ConvertFromUtf32(0x1F4DA) # 📚
@@ -609,7 +611,7 @@ function Select-Mode {
         @{ Emoji = $tiMail;  Label = 'Enviar correu';     Kind = 'action'; Action = 'enviarcorreu' }
         @{ Emoji = $tiSobre; Label = 'Textos del correu'; Kind = 'action'; Action = 'emailtextos' }
         @{ Emoji = $tiBell;  Label = 'Recordatoris';      Kind = 'action'; Action = 'recordatoris'; Interruptor = $true }
-        @{ Emoji = $tiCal;   Label = ('Controls peri' + [char]0x00F2 + 'dics'); Kind = 'action'; Action = 'controlsperiodics' }
+        @{ Emoji = $tiCal;   Label = ('Controls peri' + [char]0x00F2 + 'dics'); Kind = 'action'; Action = 'controlsperiodics'; Interruptor = $true }
     )
     # BASE D'INFORMES: eines de la base d'informes + conversio a PDF.
     $reports = @(
@@ -625,7 +627,8 @@ function Select-Mode {
     # informes. Comparteix fila amb NORMATIVA.
     $gia = @(
         @{ Emoji = $tiList;  Label = 'Seguiment';       Kind = 'action'; Action = 'seguimentgia'; Interruptor = $true }
-        @{ Emoji = $tiCheck; Label = 'Comprovar Excel'; Kind = 'action'; Action = 'comprovarexcel' }
+        @{ Emoji = $tiCheck; Label = 'Excel Comprovar'; Kind = 'action'; Action = 'comprovarexcel' }
+        @{ Emoji = $tiAvis;  Label = 'Excel Errors';    Kind = 'action'; Action = 'excelerrors' }
     )
     # NORMATIVA: la normativa dels requeriments i mantenir-los al dia.
     $normativaRow = @(
