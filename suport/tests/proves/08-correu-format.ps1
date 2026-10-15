@@ -118,6 +118,7 @@ Assert ($cfH.Contains('style="font-size:10pt;word-break:break-all">https://a.cat
 # el marge es la sagnia menys la columna del pic (38 - 19 px).
 Assert ($cfH.Contains('margin:12pt 0 0pt 19px') -and $cfH.Contains('margin:6pt 0 0pt 19px')) 'blocs->HTML: el PRIMER sub-punt a 12 pt i el segon a 6 pt'
 AssertEq ([regex]::Matches($cfH, '&nbsp;</p>').Count) 2 'blocs->HTML: una linia en blanc despres de la seccio i una despres del punt SENCER'
+AssertEq (_CorreuBlocsAHtml @(@{ T = 'llista'; Text = ''; Pics = $true }) $cfFmt) (_CorreuBlocsAHtml @(@{ T = 'pic'; Text = '' }) $cfFmt) 'blocs->HTML: la llista buida [LLISTA] surt al correu com un pic sense text'
 $cfPeta = $false; try { [void](_CorreuBlocsAHtml @(@{ T = 'inventat' }) $cfFmt) } catch { $cfPeta = $true }
 Assert $cfPeta 'blocs->HTML: un tipus de bloc desconegut PETA (com Write-Informe)'
 

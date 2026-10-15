@@ -807,6 +807,18 @@ Per tant, **al final de cada sessió**:
 Si tens dubtes sobre si pots fer push a `main`, pregunta-ho; però el model
 de desplegament de l'usuari depèn que la feina arribi a `main`.
 
+## La marca `[LLISTA]` del catàleg: una llista buida per omplir a mà
+Un paràgraf del cos que sigui NOMÉS `[LLISTA]` (`$Script:MarcaLlista`,
+`_EsMarcaLlista`, MotorInforme.ps1) surt de `_BlocsDeLinia` com a bloc
+`@{ T='llista'; Text=''; Pics=$true }` → `Format-ListItem -Pics`
+(`ApplyBulletDefault`): un paràgraf de llista de Word BUIT, com el de la MNS,
+perquè l'inspector hi escrigui a mà. **Amb pics i no numerada**: el Seguiment
+llegeix com a requeriment qualsevol llista DECIMAL de nivell 0
+(`_ClassifyParagraph`, `_CollectParaRecordsXml`). Als correus (PC i
+`docs/correu.js`, prova creuada) surt com un `pic` sense text. Primer ús: REQ1 >
+Extracció de fums > **Potència cuina** (octubre 2026). Tests: `05-composicio`
+(«La marca [LLISTA]») i `08-correu-format`.
+
 ## La FITXA D'AJUDA d'un requeriment: l'interruptor va al costat segur
 
 Cada node d'un catàleg pot portar una clau `ajuda` amb set camps (`norma`,

@@ -1338,6 +1338,24 @@ AssertEq @(_BlocsDeLinia '   ' $false).Count 0 '_BlocsDeLinia: una linia buida n
 $blU = @(_BlocsDeLinia ('[[URL]] ' + $U1) $false)
 Assert ($blU.Count -eq 1 -and [string]$blU[0].T -eq 'enllac') '_BlocsDeLinia: un enllac sol no dona cap cos buit'
 
+Write-Host "`n--- La marca [LLISTA]: una llista buida per omplir a ma ---"
+$blL = @(_BlocsDeLinia '  [llista] ' $false)
+AssertEq "$($blL.Count)|$($blL[0].T)|$($blL[0].Text)|$($blL[0].Pics)" '1|llista||True' '[LLISTA]: un paragraf de llista BUIT i amb pics (numerat, el Seguiment el llegiria com a requeriments)'
+AssertEq @(_BlocsDeLinia 'Cal retirar els elements [LLISTA] seguents' $false)[0].T 'cos' '[LLISTA]: dins d''una frase es text, no llista'
+$secLl = @([pscustomobject]@{ Title = 'Extraccio de fums'; Items = @([pscustomobject]@{ Kind = 'item'; Short = 'Potencia cuina'; BodyLines = @('Potencia cuina. Llistant els elements seguents:', '[LLISTA]'); Children = @(); Selected = $true }) })
+try {
+    . (Join-Path $TestsDir 'FormatDoubles.ps1')
+    [void](Write-Informe $null @(Build-CatalegBlocs $secLl @{} ''))
+    $emLl = @($global:emitCalls) -join ' / '
+    Assert ($emLl -match 'ITEM\|1\.\|Potencia cuina\. Llistant els elements seguents: / LLISTAPICS\|') ('[LLISTA]: a l''informe, el punt i a sota la llista de pics (' + $emLl + ')')
+} catch {
+    Assert $false ('bloc [LLISTA]: ' + $_.Exception.Message)
+} finally {
+    . (Join-Path (Split-Path -Parent $TestsDir) 'Format.ps1')
+}
+$cmLl = (Get-ParsedCataleg -path (Join-Path $EstructuralsDir 'REQ1.json')).Sections | ForEach-Object { @($_.Items) } | Where-Object { [string]$_.Short -eq ('Pot' + [char]0x00E8 + 'ncia cuina') }
+Assert ($null -ne $cmLl -and @($cmLl.BodyLines)[-1] -eq '[LLISTA]') 'REQ1: "Potencia cuina" acaba amb la llista per omplir a ma'
+
 # ---------------------------------------------------------------------------
 # L'alineat i els espais surten de la CONFIGURACIO, no de literals
 # ---------------------------------------------------------------------------

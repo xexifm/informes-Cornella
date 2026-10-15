@@ -92,6 +92,8 @@
       if (t === "aire") { if (fmt.Aire[String(b.Clau).toLowerCase()]) posaBuit(); return; }
       if (t === "espai") { posaBuit(); return; }
       if (t === "separa") { if (!estat.UltimBuit) posaBuit(); return; }
+      // La llista BUIDA per omplir a ma ([LLISTA]): al correu, un pic sense text.
+      if (t === "llista" && b.Pics) t = "pic";
       switch (t) {
         case "seccio": h = paragraf(esc(String(b.Text).toUpperCase()), B.seccio, fmt); break;
         case "titolbloc": h = paragraf("<u>" + esc(String(b.Text).toUpperCase()) + "</u>", B.seccio, fmt); break;
@@ -120,10 +122,13 @@
   }
 
   // --- La seleccio del cataleg -> blocs (Build-CatalegBlocs + _BlocsDItem) ----
+  // La marca d'una llista buida per omplir a ma ($Script:MarcaLlista).
+  var MARCA_LLISTA = "[LLISTA]";
   // linies(node): les linies del node amb els camps resolts (applyFieldsToLines).
   function blocsDeLinia(linia, fill) {
     var out = [];
     if (linia == null || String(linia).trim() === "") return out;
+    if (String(linia).trim().toUpperCase() === MARCA_LLISTA) return [{ T: "llista", Text: "", Pics: true, Fill: fill }];
     var p = splitTextAndUrls(linia);
     if (p.text.trim() !== "") out.push({ T: "cos", Text: p.text, Fill: fill });
     p.urls.forEach(function (u) { out.push({ T: "enllac", Url: u, Fill: fill }); });

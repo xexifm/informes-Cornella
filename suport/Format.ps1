@@ -491,10 +491,16 @@ function Format-Append {
 # configuracio: la lletra del cos (_Reset-Char) i la geometria de les LLISTES
 # de l'informe, la mateixa que els punts amb pic (Format-Bullet de 1r nivell):
 # el numero a BulletIndentCm - BulletHangCm i el text a BulletIndentCm.
+#
+# -Pics: la mateixa llista pero amb pics (la marca [LLISTA] del cataleg, dins
+# d'un requeriment: numerada, el Seguiment la confondria amb requeriments).
 function Format-ListItem {
-    param($sel, [string]$text = '')
+    param($sel, [string]$text = '', [switch]$Pics)
     _NouParagraf $sel 0
-    try { $sel.Range.ListFormat.ApplyNumberDefault() } catch { }
+    try {
+        if ($Pics) { $sel.Range.ListFormat.ApplyBulletDefault() }
+        else       { $sel.Range.ListFormat.ApplyNumberDefault() }
+    } catch { }
     _Reset-Char $sel
     _FormatParagrafCos $sel $Script:ReportFormatConfig.BulletIndentCm $Script:ReportFormatConfig.BulletHangCm
     [void](_EscriuRang $sel $text)

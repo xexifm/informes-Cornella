@@ -112,7 +112,8 @@ SECT|Extracció de fums
 AIRE|seccio
 ITEM|26.|Elements de cocció. Segons l'article 11.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat les activitats de restauració que no tinguin extracció de fums fins a coberta únicament podran disposar dels següents elements de cocció: una planxa elèctrica de fins a 2.500 W de potència i fins a 40x40 cm de mesura; forns elèctrics de fins a 7.500 W de potència (suma de potències de tots els forns) i amb recollida de vapor per condensació. Si es disposen de més elements de cocció que els esmentats i no es disposa d’extracció de fums fins a coberta s'hauran de retirar immediatament. Si aquests elements de cocció creen molèsties, s'hauran de prendre les mesures correctores que indiqui el tècnic municipal competent, podent comportar igualment la seva retirada.
 AIRE|item
-ITEM|27.|Extracció comunicada. Segons l’article 11.2 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat l’activitat no pot disposar d’extracció de fums si aquesta no està correctament comunicada al departament d’Activitats. S’ha de comunicar la instal·lació d’extracció de fums al departament d’Activitats amb la documentació tècnica corresponent.
+ITEM|27.|Potència cuina. S’han de retirar tots aquells elements de cocció que no estiguin comunicats a l’Ajuntament i s’ha d’entregar un certificat signat pel titular de l’activitat on declari que n’és plenament coneixedor, llistant els elements de cocció següents:
+LLISTAPICS|
 AIRE|item
 SECT|Denúncia
 AIRE|seccio

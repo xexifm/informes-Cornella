@@ -960,6 +960,7 @@ dins, cada bloc et diu **a quin tipus d'informe s'aplica**.
 | `[OPCIO: nom \| A \| B]` | Un desplegable amb les opcions A i B. |
 | `**negreta**` | Text en negreta. |
 | `//cursiva//` | Text en cursiva (per exemple, els títols de normativa en castellà). |
+| `[LLISTA]` | Sol en un paràgraf: a l'informe surt una **llista de pics buida** perquè hi escriguis a mà (en prémer Enter, el Word continua la llista). Ho fa servir *Potència cuina* (Extracció de fums). |
 
 Un enllaç (URL) es marca com a tal a l'editor i surt a l'informe com a
 hipervincle, en cos més petit.

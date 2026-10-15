@@ -40,7 +40,7 @@ function Format-SeparaAnterior { param($s) [void]$global:emitCalls.Add('SEPARA|'
 # (ANNEX 1, ACT_EXTR) no son aire de bloc.
 function Format-Aire       { param($s,$c) if (Test-FormatAire $c) { [void]$global:emitCalls.Add("AIRE|$c") } }
 function Format-Append     { param($s,$t) [void]$global:emitCalls.Add("APPEND|$t") }
-function Format-ListItem   { param($s,$t) [void]$global:emitCalls.Add("LLISTA|$t") }
+function Format-ListItem   { param($s,$t,[switch]$Pics) [void]$global:emitCalls.Add($(if ($Pics) { "LLISTAPICS|$t" } else { "LLISTA|$t" })) }
 function Format-Conclusion { param($s,$t) [void]$global:emitCalls.Add("CONCL|$t") }
 function Format-ConclusionHeader { param($s,$t) [void]$global:emitCalls.Add("CONCLCAP|$t") }
 function Format-Fotos      { param($s,$f) [void]$global:emitCalls.Add('FOTOS|' + ((@($f.Fotos) | ForEach-Object { [string]$_.Num + ':' + [System.IO.Path]::GetFileName([string]$_.Path) + '@' + [string]$_.AmpleCm }) -join ',')) }

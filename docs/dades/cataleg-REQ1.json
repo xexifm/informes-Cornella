@@ -2712,6 +2712,17 @@
                                        },
                                        {
                                            "Kind":  "item",
+                                           "Short":  "Potència cuina",
+                                           "BodyLines":  [
+                                                             "Potència cuina. S’han de retirar tots aquells elements de cocció que no estiguin comunicats a l’Ajuntament i s’ha d’entregar un certificat signat pel titular de l’activitat on declari que n’és plenament coneixedor, llistant els elements de cocció següents:",
+                                                             "[LLISTA]"
+                                                         ],
+                                           "Children":  [
+
+                                                        ]
+                                       },
+                                       {
+                                           "Kind":  "item",
                                            "Short":  "Extracció comunicada a Activitats",
                                            "BodyLines":  [
                                                              "Extracció comunicada. Segons l’article 11.2 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat l’activitat no pot disposar d’extracció de fums si aquesta no està correctament comunicada al departament d’Activitats. S’ha de comunicar la instal·lació d’extracció de fums al departament d’Activitats amb la documentació tècnica corresponent."

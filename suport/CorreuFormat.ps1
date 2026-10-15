@@ -213,6 +213,9 @@ function _CorreuBlocsRec($blocs, $fmt, $estat) {
         # $mb i no $B: en PowerShell $B i $b son la MATEIXA variable, i es
         # trepitjava el bloc que s'esta pintant.
         $mb = $fmt.Blocs
+        # La llista BUIDA per omplir a ma ([LLISTA] del cataleg): al Word es una
+        # llista de pics; al correu, un pic sense text.
+        if ($t -eq 'llista' -and [bool]$b.Pics) { $t = 'pic' }
         $h = switch ($t) {
             'seccio'       { _CorreuParagrafHtml (_EscHtml ([string]$b.Text).ToUpper()) $mb.seccio $fmt }
             'titolbloc'    { _CorreuParagrafHtml ('<u>' + (_EscHtml ([string]$b.Text).ToUpper()) + '</u>') $mb.seccio $fmt }

@@ -479,7 +479,7 @@ BODY|//Incendis (91 punts)//
 BODY|//Projecte (3 punts)//
 BODY|//Activitat (8 punts)//
 BODY|//Vehicles de Mobilitat Personal (VMP) (5 punts)//
-BODY|//Extracció de fums (12 punts)//
+BODY|//Extracció de fums (13 punts)//
 BODY|//Denúncia (9 punts)//
 BODY|//Documentació / Rètols (3 punts)//
 BODY|//Accessibilitat (6 punts)//

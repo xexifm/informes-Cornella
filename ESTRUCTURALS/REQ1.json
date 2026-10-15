@@ -7555,6 +7555,38 @@
                                     },
                                     {
                                         "tipus":  "item",
+                                        "titol":  "Potència cuina",
+                                        "ajuda":  {
+                                                      "norma":  "Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat",
+                                                      "enllac":  "",
+                                                      "criteri":  "Quan a la visita hi ha elements de cocció (fogons, planxes, fregidores, forns…) que no consten a la documentació comunicada a l’Ajuntament. Escriu a mà a la llista de sota els elements que has vist: el titular els ha de retirar i ho ha de certificar.",
+                                                      "vigencia":  "Una sola vegada: es resol amb la retirada i el certificat. Es torna a mirar a cada visita.",
+                                                      "aplica":  "Activitats de restauració i amb producció de fum, en funcionament.",
+                                                      "competencia":  "Ajuntament (competència pròpia).",
+                                                      "revisat":  "2026-10"
+                                                  },
+                                        "cos":  [
+                                                    {
+                                                        "runs":  [
+                                                                     {
+                                                                         "t":  "Potència cuina. S’han de retirar tots aquells elements de cocció que no estiguin comunicats a l’Ajuntament i s’ha d’entregar un certificat signat pel titular de l’activitat on declari que n’és plenament coneixedor, llistant els elements de cocció següents:"
+                                                                     }
+                                                                 ]
+                                                    },
+                                                    {
+                                                        "runs":  [
+                                                                     {
+                                                                         "t":  "[LLISTA]"
+                                                                     }
+                                                                 ]
+                                                    }
+                                                ],
+                                        "fills":  [
+
+                                                  ]
+                                    },
+                                    {
+                                        "tipus":  "item",
                                         "titol":  "Extracció comunicada a Activitats",
                                         "ajuda":  {
                                                       "norma":  "Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat, art. 11.2",

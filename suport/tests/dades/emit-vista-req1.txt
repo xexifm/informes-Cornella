@@ -2295,7 +2295,16 @@ AJUDA|A qui s'aplica: Activitats de restauració i amb producció de fum, en fun
 AJUDA|Competencia: Ajuntament (competència pròpia).
 AJUDA|Revisat: 2026-09
 AIRE|item
-ITEM|204.|Extracció comunicada. Segons l’article 11.2 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat l’activitat no pot disposar d’extracció de fums si aquesta no està correctament comunicada al departament d’Activitats. S’ha de comunicar la instal·lació d’extracció de fums al departament d’Activitats amb la documentació tècnica corresponent.
+ITEM|204.|Potència cuina. S’han de retirar tots aquells elements de cocció que no estiguin comunicats a l’Ajuntament i s’ha d’entregar un certificat signat pel titular de l’activitat on declari que n’és plenament coneixedor, llistant els elements de cocció següents:
+LLISTAPICS|
+AJUDA|Norma: Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat
+AJUDA|Criteri: Quan a la visita hi ha elements de cocció (fogons, planxes, fregidores, forns…) que no consten a la documentació comunicada a l’Ajuntament. Escriu a mà a la llista de sota els elements que has vist: el titular els ha de retirar i ho ha de certificar.
+AJUDA|Vigencia: Una sola vegada: es resol amb la retirada i el certificat. Es torna a mirar a cada visita.
+AJUDA|A qui s'aplica: Activitats de restauració i amb producció de fum, en funcionament.
+AJUDA|Competencia: Ajuntament (competència pròpia).
+AJUDA|Revisat: 2026-10
+AIRE|item
+ITEM|205.|Extracció comunicada. Segons l’article 11.2 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat l’activitat no pot disposar d’extracció de fums si aquesta no està correctament comunicada al departament d’Activitats. S’ha de comunicar la instal·lació d’extracció de fums al departament d’Activitats amb la documentació tècnica corresponent.
 AJUDA|Norma: Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat, art. 11.2
 AJUDA|Criteri: L’extracció existent però NO comunicada és, per si sola, requeriment. És el cas més habitual en traspassos: la campana ja hi era i ningú no l’ha comunicada mai. El que es requereix és la COMUNICACIÓ, no la retirada, sempre que compleixi la resta d’articles.
 AJUDA|Vigencia: Una sola vegada. S’ha de tornar a comunicar si es modifica la instal·lació.
@@ -2303,7 +2312,7 @@ AJUDA|A qui s'aplica: Activitats de restauració i amb producció de fum, en fun
 AJUDA|Competencia: Ajuntament (competència pròpia).
 AJUDA|Revisat: 2026-09
 AIRE|item
-ITEM|205.|Sectorització. Segons l’article 11.3 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha de justificar, i aportar la documentació corresponent, el compliment del Document TINSCI DT 18 Sectorització de conductes d’extracció de fums de les cuines.
+ITEM|206.|Sectorització. Segons l’article 11.3 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha de justificar, i aportar la documentació corresponent, el compliment del Document TINSCI DT 18 Sectorització de conductes d’extracció de fums de les cuines.
 AJUDA|Norma: Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat, art. 11.3. Document TINSCI DT-18 de la DGPEIS; compartimentació al CTE DB SI 1
 AJUDA|Criteri: El conducte que travessa altres sectors ha de mantenir-ne la resistència al foc. Regla pràctica del TINSCI DT-18: amb potència superior a 20 kW i local no compartimentat, conducte EI 30 dins de la zona de cuina i a la resta; a l’exterior, EI 30 o separat 1,5 m de les finestres, encara que la cuina tingui extinció automàtica.
 AJUDA|Vigencia: Una sola vegada: es resol amb l’obra i no caduca. Es torna a mirar si hi ha reforma o canvi de maquinària.
@@ -2311,7 +2320,7 @@ AJUDA|A qui s'aplica: Instal·lacions noves i reformes; també quan es constata 
 AJUDA|Competencia: Ajuntament (competència pròpia).
 AJUDA|Revisat: 2026-09
 AIRE|item
-ITEM|206.|Xemeneia. Segons l’article 11.4 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha de justificar el compliment de l’apartat 6.2.1.3 de la norma UNE 123001 on s’especifica el següent: //El remate debe elevarse más de 1 m por encima de la parte más alta de cualquier edificación situada en un radio inferior a 10 m respecto a la salida de la chimenea//. S’ha d’aportar un plànol en planta de la coberta i un plànol en secció de l’edifici on es justifiqui.
+ITEM|207.|Xemeneia. Segons l’article 11.4 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha de justificar el compliment de l’apartat 6.2.1.3 de la norma UNE 123001 on s’especifica el següent: //El remate debe elevarse más de 1 m por encima de la parte más alta de cualquier edificación situada en un radio inferior a 10 m respecto a la salida de la chimenea//. S’ha d’aportar un plànol en planta de la coberta i un plànol en secció de l’edifici on es justifiqui.
 AJUDA|Norma: Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat, art. 11.4. Norma UNE 123001, ap. 6.2.1.3
 AJUDA|Criteri: El remat s’ha d’elevar més d’1 m per damunt de la part més alta de qualsevol edificació situada a menys de 10 m. Mesura el radi de 10 m des de la xemeneia, no des de la façana: en pati d’illa aquest punt és el que decideix si l’extracció és admissible.
 AJUDA|Vigencia: Una sola vegada: es resol amb l’obra i no caduca. Es torna a mirar si hi ha reforma o canvi de maquinària.
@@ -2319,7 +2328,7 @@ AJUDA|A qui s'aplica: Instal·lacions noves i reformes; en existents, quan hi ha
 AJUDA|Competencia: Ajuntament (competència pròpia).
 AJUDA|Revisat: 2026-09
 AIRE|item
-ITEM|207.|Neteja. Segons l’article 11.5 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat, quan es disposi d’extracció de fums s’ha de portar a terme, com a mínim una vegada cada quatre anys, la neteja de tot el tram de conducte, tant horitzontal com vertical. S’ha d’aportar el certificat de neteja corresponent.
+ITEM|208.|Neteja. Segons l’article 11.5 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat, quan es disposi d’extracció de fums s’ha de portar a terme, com a mínim una vegada cada quatre anys, la neteja de tot el tram de conducte, tant horitzontal com vertical. S’ha d’aportar el certificat de neteja corresponent.
 AJUDA|Norma: Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat, art. 11.5
 AJUDA|Criteri: Neteja de TOT el tram, horitzontal i vertical, amb certificat d’empresa. És un termini d’ORDENANÇA MUNICIPAL: no el busquis al RIPCI ni al RITE. Demana el certificat, no la factura.
 AJUDA|Vigencia: CADA 4 ANYS com a mínim.
@@ -2327,7 +2336,7 @@ AJUDA|A qui s'aplica: Activitats de restauració i amb producció de fum, en fun
 AJUDA|Competencia: Ajuntament (competència pròpia).
 AJUDA|Revisat: 2026-09
 AIRE|item
-ITEM|208.|Estanqueïtat. Segons l’article 11.6 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat, quan es disposi d’extracció de fums s’ha de portar a terme, com a mínim una vegada cada quatre anys, una prova d’estanqueïtat de tot el tram de conducte, tant horitzontal com vertical. S’ha d’aportar el certificat d’estanqueïtat corresponent.
+ITEM|209.|Estanqueïtat. Segons l’article 11.6 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat, quan es disposi d’extracció de fums s’ha de portar a terme, com a mínim una vegada cada quatre anys, una prova d’estanqueïtat de tot el tram de conducte, tant horitzontal com vertical. S’ha d’aportar el certificat d’estanqueïtat corresponent.
 AJUDA|Norma: Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat, art. 11.6
 AJUDA|Criteri: Prova d’estanqueïtat de tot el tram, horitzontal i vertical. Va A PART de la neteja: tenir el certificat de neteja no cobreix aquest punt, i és l’error més freqüent quan el titular presenta un sol document.
 AJUDA|Vigencia: CADA 4 ANYS com a mínim.
@@ -2335,7 +2344,7 @@ AJUDA|A qui s'aplica: Activitats de restauració i amb producció de fum, en fun
 AJUDA|Competencia: Ajuntament (competència pròpia).
 AJUDA|Revisat: 2026-09
 AIRE|item
-ITEM|209.|Campana. Segons l’article 11.7 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha d’instal·lar, i aportar la documentació corresponent, un sistema d’extinció automàtic a la campana d’extracció de la cuina perquè se superen els 20 kW de potència instal·lada i la cuina no està considerada un local de risc especial. El sistema s’ha d’instal·lar segons la norma UNE-EN 17446:2022.
+ITEM|210.|Campana. Segons l’article 11.7 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat s’ha d’instal·lar, i aportar la documentació corresponent, un sistema d’extinció automàtic a la campana d’extracció de la cuina perquè se superen els 20 kW de potència instal·lada i la cuina no està considerada un local de risc especial. El sistema s’ha d’instal·lar segons la norma UNE-EN 17446:2022.
 BODY|El sistema ha d’estar certificat, abans de la seva instal·lació, d’acord amb l’article 5.2 del Real Decreto 513/2017, per justificar el compliment d’aquesta norma, i els mecanismes de dispar i aturada manuals han d’estar senyalitzats. La instal·lació i el manteniment els ha de fer una empresa habilitada per al sistema fix corresponent.
 AJUDA|Norma: Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat, art. 11.7. Cuines com a local de risc especial: CTE DB SI 1, taula 2.1
 AJUDA|Criteri: Sistema d’extinció automàtica a la campana quan se superen els 20 kW de potència instal·lada i la cuina NO està compartimentada. La potència es calcula SUMANT tot el que pot entrar en combustió: fogons, planxa, fregidora, forns i màquines de kebab. Si la cuina està compartimentada com a local de risc especial, el criteri canvia: mira-ho abans de requerir-ho. Recorda els llindars del CTE: 20-30 kW risc baix, 30-50 mitjà, >50 alt.
@@ -2344,7 +2353,7 @@ AJUDA|A qui s'aplica: Instal·lacions noves i reformes; també quan s’ha ampli
 AJUDA|Competencia: Ajuntament (competència pròpia).
 AJUDA|Revisat: 2026-09
 AIRE|item
-ITEM|210.|Campana. Segons l’article 11.9 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat no es permeten solucions tècniques substitutòries enfocades a reduir les olors a través de filtres del carbó actiu o qualsevol sistema que no sigui l’extracció mecànica tal i com s’indica a l’Article 11.9 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat. S’ha de retirar qualsevol sistema que no sigui l’extracció mecànica.
+ITEM|211.|Campana. Segons l’article 11.9 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat no es permeten solucions tècniques substitutòries enfocades a reduir les olors a través de filtres del carbó actiu o qualsevol sistema que no sigui l’extracció mecànica tal i com s’indica a l’Article 11.9 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat. S’ha de retirar qualsevol sistema que no sigui l’extracció mecànica.
 AJUDA|Norma: Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat, art. 11.9 i 11.1
 AJUDA|Criteri: No s’admeten els filtres de carbó actiu ni cap solució que substitueixi l’extracció mecànica. És el recurs que ofereixen molts instal·ladors quan no es pot arribar a coberta: NO és vàlid a Cornellà, i saber-ho estalvia una ronda sencera de requeriment.
 AJUDA|Vigencia: Permanent: s’ha de mantenir mentre l’activitat funcioni i es comprova a cada visita.
@@ -2352,7 +2361,7 @@ AJUDA|A qui s'aplica: Activitats de restauració i amb producció de fum, en fun
 AJUDA|Competencia: Ajuntament (competència pròpia).
 AJUDA|Revisat: 2026-09
 AIRE|item
-ITEM|211.|Campana. S’ha de justificar mitjançant documentació del producte que els ventiladors compleixen amb les especificacions de la norma UNE-EN 12101-3: 2016 “Especificacions per a airejadors extractors de fums i calor mecànics.” i tenen una classificació F400 90.
+ITEM|212.|Campana. S’ha de justificar mitjançant documentació del producte que els ventiladors compleixen amb les especificacions de la norma UNE-EN 12101-3: 2016 “Especificacions per a airejadors extractors de fums i calor mecànics.” i tenen una classificació F400 90.
 AJUDA|Norma: Normes UNE (no tenen text consolidat d’accés lliure), norma UNE-EN 12101-3:2016. Exigència derivada del CTE DB SI 1 i DB SI 3
 AJUDA|Criteri: El ventilador ha de resistir 400 ºC durant 90 minuts (classificació F400 90) i s’acredita amb la documentació del PRODUCTE, no amb el certificat de l’instal·lador. Exigible quan la cuina és local de risc especial per potència (>20 kW).
 AJUDA|Vigencia: Una sola vegada: es resol amb l’obra i no caduca. Es torna a mirar si hi ha reforma o canvi de maquinària.
@@ -2360,7 +2369,7 @@ AJUDA|A qui s'aplica: Instal·lacions noves i reformes; en existents, quan la cu
 AJUDA|Competencia: Ajuntament (competència pròpia).
 AJUDA|Revisat: 2026-09
 AIRE|item
-ITEM|212.|Vestíbul ignició. Segons l’article 12.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat els locals on hi hagi producció de fum per ignició de nova implantació o aquells que provoquin molèsties per olors hauran de disposar d’un vestíbul de separació entre la porta d'entrada i la sala principal. S’ha d’executar el vestíbul o presentar un certificat signat pel titular de l’activitat indicant que no es produirà fum per ignició dins l’activitat.
+ITEM|213.|Vestíbul ignició. Segons l’article 12.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat els locals on hi hagi producció de fum per ignició de nova implantació o aquells que provoquin molèsties per olors hauran de disposar d’un vestíbul de separació entre la porta d'entrada i la sala principal. S’ha d’executar el vestíbul o presentar un certificat signat pel titular de l’activitat indicant que no es produirà fum per ignició dins l’activitat.
 AJUDA|Norma: Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat, art. 12.1
 AJUDA|Criteri: Vestíbul de separació entre la porta d’entrada i la sala, per als locals amb producció de fum per ignició (brases, forn de llenya, fumadors de producte). L’ordenança l’exigeix als de NOVA IMPLANTACIÓ i també als existents QUE PROVOQUIN MOLÈSTIES per olors: en un local existent, per requerir-lo cal acreditar la molèstia.
 AJUDA|Vigencia: Una sola vegada: es resol amb l’obra i no caduca. Es torna a mirar si hi ha reforma o canvi de maquinària.
@@ -2368,7 +2377,7 @@ AJUDA|A qui s'aplica: Nova implantació sempre; existents, només amb molèstia 
 AJUDA|Competencia: Ajuntament (competència pròpia).
 AJUDA|Revisat: 2026-09
 AIRE|item
-ITEM|213.|Extracció ignició. Segons l’article 12.2 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat tots els locals on hi hagi producció de fum per ignició hauran de disposar d’un sistema mecànic d’extracció d’aire dirigit a la coberta de l’edifici. Aquest sistema mecànic d’extracció ha d’abastir tant la sala principal com el vestíbul d’entrada, si en disposa. El sistema d’extracció ha d’estar en marxa durant l’horari d’obertura de l’activitat i les portes i finestres del local permanentment tancades. S’ha d’executar el sistema mecànic d’extracció o presentar un certificat signat pel titular de l’activitat indicant que no es produirà fum per ignició dins l’activitat.
+ITEM|214.|Extracció ignició. Segons l’article 12.2 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat tots els locals on hi hagi producció de fum per ignició hauran de disposar d’un sistema mecànic d’extracció d’aire dirigit a la coberta de l’edifici. Aquest sistema mecànic d’extracció ha d’abastir tant la sala principal com el vestíbul d’entrada, si en disposa. El sistema d’extracció ha d’estar en marxa durant l’horari d’obertura de l’activitat i les portes i finestres del local permanentment tancades. S’ha d’executar el sistema mecànic d’extracció o presentar un certificat signat pel titular de l’activitat indicant que no es produirà fum per ignició dins l’activitat.
 AJUDA|Norma: Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat, art. 12.2
 AJUDA|Criteri: Sistema MECÀNIC d’extracció dirigit a la coberta de l’edifici. A diferència del vestíbul, aquest s’exigeix a TOTS els locals amb producció de fum per ignició, nous i existents: l’extracció a façana no és una alternativa.
 AJUDA|Vigencia: Una sola vegada: es resol amb l’obra i no caduca. Es torna a mirar si hi ha reforma o canvi de maquinària.
@@ -2376,7 +2385,7 @@ AJUDA|A qui s'aplica: Tots els locals amb producció de fum per ignició, en fun
 AJUDA|Competencia: Ajuntament (competència pròpia).
 AJUDA|Revisat: 2026-09
 AIRE|item
-ITEM|214.|Elaboració menjar a domicili. Segons l’article 11.10 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat no es permet l’elaboració de menjars en domicilis privats per a la seva comercialització.
+ITEM|215.|Elaboració menjar a domicili. Segons l’article 11.10 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat no es permet l’elaboració de menjars en domicilis privats per a la seva comercialització.
 AJUDA|Norma: Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat, art. 11.10. Higiene: Reglament (CE) 852/2004 i RD 1021/2022
 AJUDA|Criteri: Prohibida l’elaboració de menjars en domicilis privats per comercialitzar-los. Es requereix quan es detecta cuina domèstica com a base d’un servei de menjar a domicili o de venda per xarxes. La via, a més del requeriment, sol ser el CESSAMENT: no és una activitat legalitzable al domicili.
 AJUDA|Vigencia: Permanent: s’ha de mantenir mentre l’activitat funcioni i es comprova a cada visita.
@@ -2388,7 +2397,7 @@ SECT|Denúncia
 AIRE|seccio
 SUB|Horari
 AIRE|subseccio
-ITEM|215.|Horari. Actualment s’està incomplint l’horari d’obertura perquè **l’activitat únicament pot obrir fora de l’horari nocturn, és a dir de 7 h a 23 h**. S’ha de presentar un certificat signat pel titular indicant que coneix que l’horari d’obertura és de 7 h a 23 h. Si es vol obrir en horari nocturn (de 23 h a 7 h) s’haurà de presentar una sonometria nocturna.
+ITEM|216.|Horari. Actualment s’està incomplint l’horari d’obertura perquè **l’activitat únicament pot obrir fora de l’horari nocturn, és a dir de 7 h a 23 h**. S’ha de presentar un certificat signat pel titular indicant que coneix que l’horari d’obertura és de 7 h a 23 h. Si es vol obrir en horari nocturn (de 23 h a 7 h) s’haurà de presentar una sonometria nocturna.
 AJUDA|Norma: Decret 112/2010, del 31 d’agost, pel qual s’aprova el Reglament d’espectacles públics i activitats recreatives. Horaris: Ordre INT/358/2011 i ordenança municipal
 URL|https://portaljuridic.gencat.cat/eli/es-ct/d/2010/08/31/112
 AJUDA|Criteri: L’horari depèn del TIPUS d’establiment segons l’Ordre INT/358/2011: comprova a quin epígraf pertany abans de dir quin horari té. El 7-23 h és el dels establiments que no poden obrir en horari nocturn. Si el titular vol ampliar-lo, el camí és canviar la classificació de l’activitat, no una autorització d’horari.
@@ -2399,7 +2408,7 @@ AJUDA|Revisat: 2026-09
 AIRE|item
 SUB|Soroll
 AIRE|subseccio
-ITEM|216.|Soroll. Es portarà a terme un estudi acústic per part de l’ajuntament per comprovar que es compleixen els requisits referents a la contaminació acústica, de sorolls o vibracions, d’acord amb la normativa d’aplicació. En cas de resultat desfavorable, el titular haurà de fer les mesures pertinents per complir els requisits referents a la contaminació acústica i posteriorment contractar una Entitat de Control de la Prevenció de la Contaminació Acústica (EC-PCA) perquè ho verifiqui. A criteri de qui faci l’estudi acústic pot demanar al titular de l’activitat activar totes les fonts sonores de l’activitat al màxim rendiment.
+ITEM|217.|Soroll. Es portarà a terme un estudi acústic per part de l’ajuntament per comprovar que es compleixen els requisits referents a la contaminació acústica, de sorolls o vibracions, d’acord amb la normativa d’aplicació. En cas de resultat desfavorable, el titular haurà de fer les mesures pertinents per complir els requisits referents a la contaminació acústica i posteriorment contractar una Entitat de Control de la Prevenció de la Contaminació Acústica (EC-PCA) perquè ho verifiqui. A criteri de qui faci l’estudi acústic pot demanar al titular de l’activitat activar totes les fonts sonores de l’activitat al màxim rendiment.
 URL|https://www.gencat.cat/mediamb/ohec/epca_CA.pdf
 AJUDA|Norma: Llei 16/2002, del 28 de juny, de protecció contra la contaminació acústica. Desplegament: Decret 176/2009; procediment: art. 9 de l’Ordenança municipal
 URL|https://portaljuridic.gencat.cat/eli/es-ct/l/2002/06/28/16
@@ -2409,7 +2418,7 @@ AJUDA|A qui s'aplica: Activitats amb denúncia per soroll.
 AJUDA|Competencia: Ajuntament (competència pròpia).
 AJUDA|Revisat: 2026-09
 AIRE|item
-ITEM|217.|Soroll. Segons l’article 9.4 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat, el receptor ha de permetre l’accés a l’habitatge per poder realitzar totes les comprovacions i mesuraments necessaris. En cas contrari, [OPCIO: Qui fa sonometria | la Guàrdia Urbana | l’EC-PCA] ha d’aixecar una acta descrivint les fonts sonores del local i explicant el motiu pel qual no s’ha pogut accedir a l’habitatge, adjuntant les proves pertinents.
+ITEM|218.|Soroll. Segons l’article 9.4 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat, el receptor ha de permetre l’accés a l’habitatge per poder realitzar totes les comprovacions i mesuraments necessaris. En cas contrari, [OPCIO: Qui fa sonometria | la Guàrdia Urbana | l’EC-PCA] ha d’aixecar una acta descrivint les fonts sonores del local i explicant el motiu pel qual no s’ha pogut accedir a l’habitatge, adjuntant les proves pertinents.
 AJUDA|Norma: Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat, art. 9.4
 AJUDA|Criteri: Si el veí denunciant no permet l’accés a l’habitatge, l’EC-PCA aixeca acta descrivint les fonts sonores i el motiu, amb les proves pertinents. Sense aquesta acta l’expedient queda sense mesurament i sense justificació: és el document que permet tancar-lo o continuar-lo.
 AJUDA|Vigencia: Puntual: es resol i s’acaba. No s’ha de renovar.
@@ -2417,7 +2426,7 @@ AJUDA|A qui s'aplica: Expedients de denúncia per soroll.
 AJUDA|Competencia: Ajuntament (competència pròpia).
 AJUDA|Revisat: 2026-09
 AIRE|item
-ITEM|218.|Terrassa. S’ha d’implementar algun sistema per posar i treure les taules i cadires de la terrassa que actualment es fa arrastrant.
+ITEM|219.|Terrassa. S’ha d’implementar algun sistema per posar i treure les taules i cadires de la terrassa que actualment es fa arrastrant.
 AJUDA|Norma: Llei 16/2002, del 28 de juny, de protecció contra la contaminació acústica. Desplegament: Decret 176/2009; ordenança municipal de terrasses
 URL|https://portaljuridic.gencat.cat/eli/es-ct/l/2002/06/28/16
 AJUDA|Criteri: El soroll d’arrossegar taules i cadires és soroll d’ACTIVITAT i és imputable al titular. La solució exigible és de mitjà (tacs, elements lliscants), no una prohibició d’ús: redacta el requeriment demanant un sistema, com fa el text del catàleg.
@@ -2428,7 +2437,7 @@ AJUDA|Revisat: 2026-09
 AIRE|item
 SUB|Olors
 AIRE|subseccio
-ITEM|219.|Elements de cocció. Segons l'article 11.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat les activitats de restauració que no tinguin extracció de fums fins a coberta únicament podran disposar dels següents elements de cocció: una planxa elèctrica de fins a 2.500 W de potència i fins a 40x40 cm de mesura; forns elèctrics de fins a 7.500 W de potència (suma de potències de tots els forns) i amb recollida de vapor per condensació. Si es disposen de més elements de cocció que els esmentats i no es disposa d’extracció de fums fins a coberta s'hauran de retirar immediatament. Si aquests elements de cocció creen molèsties, s'hauran de prendre les mesures correctores que indiqui el tècnic municipal competent, podent comportar igualment la seva retirada. S’ha de:
+ITEM|220.|Elements de cocció. Segons l'article 11.1 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat les activitats de restauració que no tinguin extracció de fums fins a coberta únicament podran disposar dels següents elements de cocció: una planxa elèctrica de fins a 2.500 W de potència i fins a 40x40 cm de mesura; forns elèctrics de fins a 7.500 W de potència (suma de potències de tots els forns) i amb recollida de vapor per condensació. Si es disposen de més elements de cocció que els esmentats i no es disposa d’extracció de fums fins a coberta s'hauran de retirar immediatament. Si aquests elements de cocció creen molèsties, s'hauran de prendre les mesures correctores que indiqui el tècnic municipal competent, podent comportar igualment la seva retirada. S’ha de:
 AJUDA|Norma: Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat, art. 11.1
 AJUDA|Criteri: Mateix article que a la secció d’extracció, però per la via de la denúncia: aquí el que es constata és la molèstia i el que s’ordena és ajustar-se als elements admesos. Els tres subpunts són les TRES SORTIDES possibles: retirar, justificar o desinstal·lar. Tria’n UNA, no les tres alhora.
 AJUDA|Vigencia: Permanent: s’ha de mantenir mentre l’activitat funcioni i es comprova a cada visita.
@@ -2459,7 +2468,7 @@ AJUDA|Revisat: 2026-09
 AIRE|item
 SUB|Calor
 AIRE|subseccio
-ITEM|220.|Calor. L'activitat incompleix l'article 10 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat. S'ha d’aïllar tèrmicament el focus de calor o fred (en aquest cas [CAMP: Focus de calor/fred (p. ex. l'aire condicionat)]) de manera que no pugui produir-se una variació de temperatura superior a 1 graus C en [OPCIO: Parament afectat | el terra del veí situat sobre el focus de calor | els balcons del veïns dels habitatges superiors].
+ITEM|221.|Calor. L'activitat incompleix l'article 10 de l’Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat. S'ha d’aïllar tèrmicament el focus de calor o fred (en aquest cas [CAMP: Focus de calor/fred (p. ex. l'aire condicionat)]) de manera que no pugui produir-se una variació de temperatura superior a 1 graus C en [OPCIO: Parament afectat | el terra del veí situat sobre el focus de calor | els balcons del veïns dels habitatges superiors].
 AJUDA|Norma: Ordenança relativa a la intervenció administrativa municipal en les activitats de Cornellà de Llobregat, art. 10
 AJUDA|Criteri: Aïllament tèrmic del focus (aire condicionat, cambra frigorífica, condensador) perquè no transmeti calor o fred als locals veïns. Es requereix amb molèstia acreditada, i cal identificar el focus concret a la resolució.
 AJUDA|Vigencia: Permanent: s’ha de mantenir mentre l’activitat funcioni i es comprova a cada visita.
@@ -2469,7 +2478,7 @@ AJUDA|Revisat: 2026-09
 AIRE|item
 SUB|Accessibilitat
 AIRE|subseccio
-ITEM|221.|Accessibilitat. S’haurà de complir amb aquelles condicions que no es compleixen en la data indicada segons la 2.12. Taula resum de l’Annex 3e del DECRET 209/2023, de 28 de novembre, pel qual s'aprova el Codi d'accessibilitat de Catalunya:
+ITEM|222.|Accessibilitat. S’haurà de complir amb aquelles condicions que no es compleixen en la data indicada segons la 2.12. Taula resum de l’Annex 3e del DECRET 209/2023, de 28 de novembre, pel qual s'aprova el Codi d'accessibilitat de Catalunya:
 AJUDA|Norma: Decret 209/2023, del 28 de novembre, pel qual s’aprova el Codi d’accessibilitat de Catalunya, annex 3e, ap. 2.12 (taula resum de terminis). Ajustos raonables: Llei 13/2014, art. 18
 URL|https://portaljuridic.gencat.cat/eli/es-ct/d/2023/11/28/209
 AJUDA|Criteri: AQUEST ÉS EL PUNT CLAU DEL CODI NOU: la taula 2.12 de l’annex 3e fixa DATES LÍMIT diferents per a cada condició i per a cada tipus d’establiment. Abans de requerir, mira la taula i digues la data a la resolució: una condició amb termini que encara no ha vençut NO es pot exigir avui. El Decret 209/2023 va entrar en vigor l’1 de març de 2024 i deroga el Decret 135/1995.
@@ -2480,7 +2489,7 @@ AJUDA|Revisat: 2026-09
 AIRE|item
 SUB|Emmagatzematge material exterior
 AIRE|subseccio
-ITEM|222.|Segons l’estipulat en el punt 1.6 de la Secció 1 de l’Annex II del //REGLAMENTO DE SEGURIDAD CONTRA INCENDIOS EN LOS ESTABLECIMIENTOS INDUSTRIALES (RSCIEI)//, en les àrees d’incendi en espais oberts (configuració tipus D) la distribució dels materials combustibles ha de complir els requisits següents:
+ITEM|223.|Segons l’estipulat en el punt 1.6 de la Secció 1 de l’Annex II del //REGLAMENTO DE SEGURIDAD CONTRA INCENDIOS EN LOS ESTABLECIMIENTOS INDUSTRIALES (RSCIEI)//, en les àrees d’incendi en espais oberts (configuració tipus D) la distribució dels materials combustibles ha de complir els requisits següents:
 AJUDA|Norma: Real Decreto 164/2025, de 4 de marzo, por el que se aprueba el Reglamento de seguridad contra incendios en los establecimientos industriales, annex II, secció 1, ap. 1.6
 URL|https://www.boe.es/eli/es/rd/2025/03/04/164/con
 AJUDA|Criteri: Node de la família: els sis subpunts són els sis límits del reglament per a la distribució de materials combustibles a l’aire lliure. Es requereix quan es veu material apilat al pati o a la zona de càrrega sense ordre. Marca els subpunts que realment s’incompleixen, no tots per defecte.
@@ -2537,7 +2546,7 @@ AJUDA|A qui s'aplica: Àrees d’incendi en espais oberts (configuració tipus D
 AJUDA|Competencia: Ajuntament a la visita; Indústria (Generalitat) i DGPEIS en el règim de la instal·lació.
 AJUDA|Revisat: 2026-09
 AIRE|item
-ITEM|223.|Segons l’estipulat en el punt 1.5 de la Secció 1 de l’Annex II del RSCIEI, les àrees d’incendi en espais oberts de configuració tipus D (excepte les de risc baix nivell 1) han d’estar separades de la resta de zones del mateix establiment per una de les opcions següents:
+ITEM|224.|Segons l’estipulat en el punt 1.5 de la Secció 1 de l’Annex II del RSCIEI, les àrees d’incendi en espais oberts de configuració tipus D (excepte les de risc baix nivell 1) han d’estar separades de la resta de zones del mateix establiment per una de les opcions següents:
 AJUDA|Norma: Real Decreto 164/2025, de 4 de marzo, por el que se aprueba el Reglamento de seguridad contra incendios en los establecimientos industriales, annex II, secció 1, ap. 1.5
 URL|https://www.boe.es/eli/es/rd/2025/03/04/164/con
 AJUDA|Criteri: Node de la família: separació de l’àrea a l’aire lliure respecte de la resta de l’establiment. S’EXCEPTUEN les àrees de risc BAIX NIVELL 1: comprova la caracterització abans de requerir res d’aquest bloc. Hi ha dues vies alternatives, separació o compartimentació, i el titular pot triar.
@@ -2580,7 +2589,7 @@ AJUDA|Revisat: 2026-09
 AIRE|item
 SECT|Documentació / Rètols
 AIRE|seccio
-ITEM|224.|S’ha de presentar la següent documentació:
+ITEM|225.|S’ha de presentar la següent documentació:
 AJUDA|Norma: Llei 39/2015, de l’1 d’octubre, del procediment administratiu comú de les administracions públiques, art. 68 i 73
 URL|https://www.boe.es/eli/es/l/2015/10/01/39/con
 AJUDA|Criteri: Node de la família: marca només els subpunts que realment falten. Cada subpunt té el seu fonament i el seu abast, i demanar-los tots per defecte allarga l’expedient i en debilita la motivació.
@@ -2693,7 +2702,7 @@ AJUDA|A qui s'aplica: Espectacles públics i activitats recreatives.
 AJUDA|Competencia: Ajuntament (competència pròpia).
 AJUDA|Revisat: 2026-09
 AIRE|item
-ITEM|225.|Manquen els següents rètols a l’exterior de l’establiment, mínim en català:
+ITEM|226.|Manquen els següents rètols a l’exterior de l’establiment, mínim en català:
 AJUDA|Norma: Llei 1/1998, del 7 de gener, de política lingüística, art. 32.3
 URL|https://portaljuridic.gencat.cat/eli/es-ct/l/1998/01/07/1
 AJUDA|Criteri: Node de la família. Cada rètol té el seu propi fonament: marca només els que falten i, a la resolució, digues de quina norma surt cadascun. L’exigència que siguin com a mínim EN CATALÀ surt de l’art. 32.3 de la Llei de política lingüística.
@@ -2750,7 +2759,7 @@ AJUDA|A qui s'aplica: Establiments amb videovigilància.
 AJUDA|Competencia: Ajuntament quant al cartell; Agència Espanyola de Protecció de Dades quant a l’ús.
 AJUDA|Revisat: 2026-09
 AIRE|item
-ITEM|226.|Manquen els següents rètols a l’exterior de l’establiment, mínim en català:
+ITEM|227.|Manquen els següents rètols a l’exterior de l’establiment, mínim en català:
 AJUDA|Norma: Llei 1/1998, del 7 de gener, de política lingüística, art. 32.3
 URL|https://portaljuridic.gencat.cat/eli/es-ct/l/1998/01/07/1
 AJUDA|Criteri: Node de la família: aquests rètols NO són exigibles a tota activitat, sinó només a la que ven alcohol, tabac, té màquines recreatives o té l’obligació de senyalitzar l’evacuació. Marca només els que corresponguin al tipus d’establiment.
@@ -2809,7 +2818,7 @@ AJUDA|Revisat: 2026-09
 AIRE|item
 SECT|Accessibilitat
 AIRE|seccio
-ITEM|227.|Espai treballadors. No es compleix amb l’article Article 5.3º de l’Annex I.A del //Real Decreto 486/1997, de 14 de abril, por el que se establecen las disposiciones mínimas de seguridad y salud en los lugares de trabajo: “La anchura mínima de las puertas exteriores y de los pasillos será de 80 centímetros y 1 metro, respectivamente//. S’ha de redistribuir l’espai [CAMP: espai redistribuir treballadors].
+ITEM|228.|Espai treballadors. No es compleix amb l’article Article 5.3º de l’Annex I.A del //Real Decreto 486/1997, de 14 de abril, por el que se establecen las disposiciones mínimas de seguridad y salud en los lugares de trabajo: “La anchura mínima de las puertas exteriores y de los pasillos será de 80 centímetros y 1 metro, respectivamente//. S’ha de redistribuir l’espai [CAMP: espai redistribuir treballadors].
 AJUDA|Norma: Real Decreto 486/1997, de 14 de abril, disposiciones mínimas de seguridad y salud en los lugares de trabajo, annex I.A, art. 5.3r
 URL|https://www.boe.es/eli/es/rd/1997/04/14/486/con
 AJUDA|Criteri: COMPTE AMB LA COMPETÈNCIA: el RD 486/1997 és normativa LABORAL i qui la vigila és la Inspecció de Treball, no l’Ajuntament. Municipalment només se sosté si la condició també ve exigida pel Codi d’accessibilitat o pel CTE DB SI 3 (evacuació). Si el fonament únic és el RD 486/1997, val més donar-ne trasllat que requerir-ho.
@@ -2818,7 +2827,7 @@ AJUDA|A qui s'aplica: Espais de treball. Aplicació directa, no lligada al títo
 AJUDA|Competencia: Inspecció de Treball. L’Ajuntament en pot donar trasllat.
 AJUDA|Revisat: 2026-09
 AIRE|item
-ITEM|228.|Accés. S’ha de justificar el compliment de l’apartat 2 de l’Annex 3d del DECRET 209/2023, de 28 de novembre, pel qual s'aprova el Codi d'accessibilitat de Catalunya. Condició que ha de complir l’accés: [OPCIO: Accessibilitat accés | Accés practicable (segons l'apartat 2 de l'annex 3f) | Accés accessible (segons l'apartat 2 de l'annex 3c)].
+ITEM|229.|Accés. S’ha de justificar el compliment de l’apartat 2 de l’Annex 3d del DECRET 209/2023, de 28 de novembre, pel qual s'aprova el Codi d'accessibilitat de Catalunya. Condició que ha de complir l’accés: [OPCIO: Accessibilitat accés | Accés practicable (segons l'apartat 2 de l'annex 3f) | Accés accessible (segons l'apartat 2 de l'annex 3c)].
 AJUDA|Norma: Decret 209/2023, del 28 de novembre, pel qual s’aprova el Codi d’accessibilitat de Catalunya, annex 3d, ap. 2
 URL|https://portaljuridic.gencat.cat/eli/es-ct/d/2023/11/28/209
 AJUDA|Criteri: Condicions de l’accés des de la via pública. El Codi distingeix tres nivells —adaptat, practicable i usable— i el que s’exigeix depèn del tipus i la mida de l’establiment: tria el nivell a l’opció del text i digues-ho a la resolució. El graó d’accés és el cas més freqüent i sovint es resol amb rampa o plataforma.
@@ -2827,7 +2836,7 @@ AJUDA|A qui s'aplica: Obra nova i reforma des de l’1 de març de 2024. En acti
 AJUDA|Competencia: Ajuntament (competència pròpia).
 AJUDA|Revisat: 2026-09
 AIRE|item
-ITEM|229.|Itineraris interiors. S’ha de justificar el compliment de l’apartat 3 de l’Annex 3d del DECRET 209/2023, de 28 de novembre, pel qual s'aprova el Codi d'accessibilitat de Catalunya. Condició que ha de complir l’itinerari: [OPCIO: Accessibilitat itinerari | Itinerari practicable (segons l'apartat 1 de l'annex 3f) | Itinerari  accessible (segons l'apartat 1 de l'annex 3c)].
+ITEM|230.|Itineraris interiors. S’ha de justificar el compliment de l’apartat 3 de l’Annex 3d del DECRET 209/2023, de 28 de novembre, pel qual s'aprova el Codi d'accessibilitat de Catalunya. Condició que ha de complir l’itinerari: [OPCIO: Accessibilitat itinerari | Itinerari practicable (segons l'apartat 1 de l'annex 3f) | Itinerari  accessible (segons l'apartat 1 de l'annex 3c)].
 AJUDA|Norma: Decret 209/2023, del 28 de novembre, pel qual s’aprova el Codi d’accessibilitat de Catalunya, annex 3d, ap. 3
 URL|https://portaljuridic.gencat.cat/eli/es-ct/d/2023/11/28/209
 AJUDA|Criteri: Itinerari des de l’accés fins als espais d’ús públic: amplada, canvis de nivell, girs i portes. Comprova que el MOBILIARI REAL no el redueix: un itinerari correcte sobre plànol i ocupat per taules és incompliment.
@@ -2836,7 +2845,7 @@ AJUDA|A qui s'aplica: Obra nova i reforma des de l’1 de març de 2024. En acti
 AJUDA|Competencia: Ajuntament (competència pròpia).
 AJUDA|Revisat: 2026-09
 AIRE|item
-ITEM|230.|Cambres higièniques. S’ha de justificar el compliment de l’apartat 4 de l’Annex 3d del DECRET 209/2023, de 28 de novembre, pel qual s'aprova el Codi d'accessibilitat de Catalunya. Condició que ha de complir la cambra higiènica: [OPCIO: Accessibilitat cambra higiènica | Usable (segons l'apartat 7.2 de l'annex 3f) | Practicable (segons l'apartat 7.1 de l'annex 3c)| Accessible (segons l'apartat 15.4 de l'annex 3c)].
+ITEM|231.|Cambres higièniques. S’ha de justificar el compliment de l’apartat 4 de l’Annex 3d del DECRET 209/2023, de 28 de novembre, pel qual s'aprova el Codi d'accessibilitat de Catalunya. Condició que ha de complir la cambra higiènica: [OPCIO: Accessibilitat cambra higiènica | Usable (segons l'apartat 7.2 de l'annex 3f) | Practicable (segons l'apartat 7.1 de l'annex 3c)| Accessible (segons l'apartat 15.4 de l'annex 3c)].
 AJUDA|Norma: Decret 209/2023, del 28 de novembre, pel qual s’aprova el Codi d’accessibilitat de Catalunya, annex 3d, ap. 4. Dotació: CTE DB SUA 9
 URL|https://portaljuridic.gencat.cat/eli/es-ct/d/2023/11/28/209
 AJUDA|Criteri: Condicions de la cambra higiènica accessible: espai de gir, transferència, barres, alçada del mirall i dels accessoris. DOTACIÓ segons el CTE DB SUA 9: un lavabo accessible per cada 10 unitats o fracció d’inodors instal·lats. Si la zona d’ús privat té menys de 100 m2 útils i menys de 10 treballadors, el lavabo d’ús exclusiu del personal no cal que sigui accessible; els lavabos compartits entre públic i personal, sí.
@@ -2845,7 +2854,7 @@ AJUDA|A qui s'aplica: Obra nova i reforma des de l’1 de març de 2024. En acti
 AJUDA|Competencia: Ajuntament (competència pròpia).
 AJUDA|Revisat: 2026-09
 AIRE|item
-ITEM|231.|S’ha de justificar en el projecte que hi ha els lavabos corresponents segons la normativa
+ITEM|232.|S’ha de justificar en el projecte que hi ha els lavabos corresponents segons la normativa
 AJUDA|Norma: Ordenances metropolitanes d’edificació (OME). Treballadors: RD 486/1997, annex V; recreatives: Decret 112/2010, art. 47
 AJUDA|Criteri: TRES fonts diferents segons de qui siguin els lavabos, i has de dir quina apliques. PÚBLIC (OME): local de 1a categoria amb S<500 m2, mínim 1 lavabo públic amb 1 inodor i 1 rentamans, sense vestíbul d’independència; local de 2a categoria amb S>500 m2, mínim 2, amb 1 inodor i 1 rentamans per cada 300 m2 o fracció i amb vestíbul. TREBALLADORS (RD 486/1997, annex V): amb menys de 10 treballadors, 1 inodor i 1 rentamans, que pot ser el mateix que el públic; amb més de 10, 1 rentamans per cada 10 persones, 1 inodor per cada 25 homes i 1 per cada 15 dones, i vestidors de 2 m2 per persona separats per sexes. RECREATIVES (Decret 112/2010, art. 47): per aforament. El règim dels treballadors és LABORAL i la competència, d’Inspecció de Treball.
 AJUDA|Vigencia: Una sola vegada: es resol amb l’obra i no caduca. Es torna a mirar si hi ha reforma o canvi d’ús.
@@ -2853,7 +2862,7 @@ AJUDA|A qui s'aplica: Obra nova i reforma; en existents, quan la dotació és in
 AJUDA|Competencia: Ajuntament (dotació pública i accessibilitat); Inspecció de Treball (dotació de personal).
 AJUDA|Revisat: 2026-09
 AIRE|item
-ITEM|232.|S’haurà d’entregar a l’Ajuntament un nou projecte on es puguin observar les modificacions per esmenar les deficiències d’aquest informe.
+ITEM|233.|S’haurà d’entregar a l’Ajuntament un nou projecte on es puguin observar les modificacions per esmenar les deficiències d’aquest informe.
 AJUDA|Norma: Llei 39/2015, de l’1 d’octubre, del procediment administratiu comú de les administracions públiques, art. 68 i 73. Documentació: Llei 18/2020 i Decret 131/2022
 URL|https://www.boe.es/eli/es/l/2015/10/01/39/con
 AJUDA|Criteri: És el tancament de l’informe quan les deficiències són constructives i afecten la distribució: en lloc d’esmenar-les una a una, s’ordena presentar projecte nou. Reserva’l per quan hi hagi DIVERSES deficiències que s’han de resoldre alhora; per a una sola, demana l’esmena concreta.

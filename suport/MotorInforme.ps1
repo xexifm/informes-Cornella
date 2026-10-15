@@ -466,7 +466,7 @@ function _WriteBlocs($sel, $blocs, $estat, [bool]$ambNivells) {
             'conclusio'    { Format-Conclusion $sel ([string]$b.Text) }
             'conclusiocap' { Format-ConclusionHeader $sel ([string]$b.Text) }
             'fotos'        { Format-Fotos $sel $b.Fila }
-            'llista'       { Format-ListItem $sel ([string]$b.Text) }
+            'llista'       { Format-ListItem $sel ([string]$b.Text) -Pics:([bool]$b.Pics) }
             'continua'     { Format-Append $sel ([string]$b.Text) }
             'cos' {
                 if ($fill) { Format-Body $sel ([string]$b.Text) -IsChild -Bold:([bool]$b.Negreta) -Separat:([bool]$b.Separat) }
@@ -549,10 +549,24 @@ function _LlicBlocsActorsCondicions($actors) {
     return $out.ToArray()
 }
 
+# UNA LLISTA BUIDA PER OMPLIR A MA (octubre 2026). Un paragraf del cataleg que
+# sigui NOMES '[LLISTA]' surt a l'informe com un paragraf de llista de Word BUIT
+# (com la MNS): l'inspector hi escriu els elements i, en prement Enter, el Word
+# continua la llista sol. Primer cas: "Potencia cuina" (REQ1, Extraccio de fums).
+# VA AMB PICS I NO NUMERADA: dins d'un requeriment, una llista auto-numerada
+# 1., 2... el Seguiment la llegiria com a requeriments (_ClassifyParagraph i
+# _CollectParaRecordsXml miren les llistes DECIMALS de nivell 0).
+$Script:MarcaLlista = '[LLISTA]'
+
+function _EsMarcaLlista([string]$linia) {
+    return ([string]$linia).Trim() -ieq $Script:MarcaLlista
+}
+
 # Un text de cataleg -> els blocs 'cos' i 'enllac' que li toquen.
 function _BlocsDeLinia([string]$linia, [bool]$fill) {
     $out = New-Object System.Collections.ArrayList
     if ([string]::IsNullOrWhiteSpace($linia)) { return $out.ToArray() }
+    if (_EsMarcaLlista $linia) { return @(@{ T = 'llista'; Text = ''; Pics = $true; Fill = $fill }) }
     $parts = _SplitTextAndUrls $linia
     if (-not [string]::IsNullOrWhiteSpace($parts.Text)) {
         [void]$out.Add(@{ T = 'cos'; Text = $parts.Text; Fill = $fill })
