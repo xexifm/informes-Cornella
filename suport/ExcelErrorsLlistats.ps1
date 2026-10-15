@@ -15,10 +15,17 @@
   "Vull poder eliminar activitats d'aquests llistats, no m'importa si tenen
   errors."
 
-  QUI QUEDA FORA DELS TRES (i per aixo la finestra ho diu, columna "Llistat" =
-  "(cap)"): l'annex buit, l'annex I (I.1, I.2...), L18-Cert. o Sectorial amb
-  l'apartat 561, i qualsevol altre valor que el GIA hi posi. No s'envien a
-  ningu; es veuen a la finestra i al registre de l'automatic.
+  QUI QUEDA FORA DELS TRES (columna "Llistat" = "(cap)" a la finestra; no
+  s'envien a ningu, es veuen a la finestra i al registre de l'automatic).
+  L'usuari, despres de veure-les una per una amb l'Excel del 14/10/2026: "Deixa
+  a (cap) les 'Sense llicencia o no comunicada' i les autoritzacions
+  ambientals. Les altres que ara mateix van a cap haurien d'anar a innocues":
+    - l'annex I (I.1, I.2.a...: autoritzacions ambientals de la Generalitat);
+    - les activitats en estat "Activitat sense llicencia o no comunicada" que no
+      entren per la seva classificacio a cap dels tres (les de denuncia,
+      titular DESCONEGUT...).
+  La resta que abans no tenia lloc (sense annex, L18-Cert. o Sectorial amb 561,
+  un valor nou) va a Innocues.
 
   Els tipus d'error que entren als llistats son els MARCATS a la finestra (la
   tria desada, Read-ExTriats): la mateixa tria per al boto i per a l'automatic.
@@ -42,11 +49,13 @@ $Script:ExLlistats = [ordered]@{
     annexos  = 'Annexos II i III'
 }
 
-# A quin llistat va una activitat, per la classificacio de la fulla Estes, o ''
-# si a cap. Es compara sense accents, majuscules, espais ni signes:
+# A quin llistat va una activitat, per la classificacio i l'estat de la fulla
+# Estes, o '' si a cap. Es compara sense accents, majuscules, espais ni signes:
 # "L18-Proj. i Cert." -> "l18projicert". L'apartat 561 amb el criteri de
-# Controls periodics (561, 5610...; no 1561). PURA.
-function _ExLlistatDe([string]$annex, [string]$apartat) {
+# Controls periodics (561, 5610...; no 1561). L'estat nomes compta per a les
+# que la classificacio no posa enlloc: una activitat de l'annex II sense
+# llicencia segueix anant als Annexos. PURA.
+function _ExLlistatDe([string]$annex, [string]$apartat, [string]$estat = '') {
     $a = (_NormalitzaText $annex) -replace '[^a-z0-9]', ''
     $es561 = [bool](_ControlPeriodicClassify '' $apartat).Is561
     if ($a -eq 'ii' -or $a -eq 'iii' -or $a -eq 'annexii' -or $a -eq 'annexiii') { return 'annexos' }
@@ -54,7 +63,10 @@ function _ExLlistatDe([string]$annex, [string]$apartat) {
     $l18proj = ($a -like 'l18proj*')
     if ($l18proj -and $es561) { return 'bars' }
     if (($l18proj -or $a -eq 'l18cert' -or $a -eq 'sectorial') -and -not $es561) { return 'innocues' }
-    return ''
+    # Les autoritzacions ambientals (annex I) i les sense llicencia, a cap.
+    if ($a -match '^(annex)?i(\d|$)') { return '' }
+    if ((_NormalitzaText $estat) -match 'sense llicencia') { return '' }
+    return 'innocues'
 }
 
 # Els errors dels tipus marcats, sense els exclosos, repartits. Torna
@@ -67,9 +79,9 @@ function _ExPerLlistat($errors, $tipusTriats, $exclosos) {
     foreach ($k in @($Script:ExLlistats.Keys)) { $out[$k] = New-Object System.Collections.ArrayList }
     $sense = [ordered]@{}
     foreach ($e in @(_ExTriats @($errors | Where-Object { $null -ne $_ -and -not $ex.ContainsKey([string]$_.Id) }) $tipusTriats)) {
-        $k = _ExLlistatDe ([string]$e.Annex) ([string]$e.Apartat)
+        $k = _ExLlistatDe ([string]$e.Annex) ([string]$e.Apartat) ([string]$e.Estat)
         if ($k -eq '') {
-            if (-not $sense.Contains([string]$e.Id)) { $sense[[string]$e.Id] = @{ Id = [string]$e.Id; Annex = [string]$e.Annex; Apartat = [string]$e.Apartat } }
+            if (-not $sense.Contains([string]$e.Id)) { $sense[[string]$e.Id] = @{ Id = [string]$e.Id; Annex = [string]$e.Annex; Apartat = [string]$e.Apartat; Estat = [string]$e.Estat } }
             continue
         }
         [void]$out[$k].Add($e)

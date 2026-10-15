@@ -2195,3 +2195,12 @@ tipus d'error (deixa'm marcar el tipus d'error que vull que s'exporti)».
     dels llistats dependrien l'un de l'altre (guard de cicles).
   - El guard de les closures va enxampar `$Script:ExLlistats` dins del `$fill`
     de la graella (hauria llegit buit): es captura en una variable local.
+  - **Qui va a «(cap)», segona ronda** (l'usuari, amb les 16 al davant i
+    l'Excel del 14/10/2026): «Deixa a (cap) les "Sense llicència o no comunicada"
+    i les autoritzacions ambientals. Les altres que ara mateix van a cap haurien
+    d'anar a innòcues», i «segueix vigent el criteri d'Annexos i Bars i
+    Restaurants». O sigui: primer els criteris dels Annexos i de Bars i
+    Restaurants (no canvien), després Innòcues; el que no hi entrava va a
+    Innòcues **llevat de** l'annex I i l'estat «sense llicència». Per això la
+    lectura porta ara la columna «Estat de legalització de l'activitat» (`ESTAT`
+    a `_ExColumnes`; no és cap comprovació). A tota la base, 9 a (cap).

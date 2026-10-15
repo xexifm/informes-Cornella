@@ -92,6 +92,9 @@ function _ExColumnes($headers) {
         LLIC     = (_ColumnaAmbTermes $h @('data', 'llicencia') $null)
         PERIOD   = (_ColumnaAmbTermes $h @('periodicitat') $null)
         PROPER   = (_ColumnaAmbTermes $h @('proper', 'previst') $null)
+        # No es cap comprovacio: decideix a quin llistat del correu va una
+        # activitat sense classificar (ExcelErrorsLlistats.ps1).
+        ESTAT    = (_ColumnaAmbTermes $h @('estat de legalitzacio') $null)
     }
     # Els index historics, com la resta del programa (Activitats.ps1, Ruta.ps1):
     # l'ID a la 1 i la rao social a la 10 si la capcalera no es reconeix.
@@ -113,7 +116,7 @@ $Script:ExColumnesNoms = [ordered]@{
     VIA = 'Emp. Tipus via'; CARRER = 'Emp. Carrer'; NUMERO = 'Emp. Número'; RC = 'Ref. cadastral'
     UTMX = 'UTM X'; UTMY = 'UTM Y'; ANNEX = 'Classificació general annex'; APARTAT = 'Classificació general Apartat'
     ACT = 'Activitat principal'; EXP = 'Núm. expedient'; LLIC = 'Data llicència/comunicació'
-    PERIOD = 'Periodicitat CP'; PROPER = 'Proper CP previst'; EMAIL = 'Raó soc. E-mail'; REP_EMAIL = 'Rep. Leg. E-mail'
+    PERIOD = 'Periodicitat CP'; PROPER = 'Proper CP previst'; ESTAT = ("Estat de legalitzaci" + [char]0x00F3 + " de l'activitat"); EMAIL = 'Raó soc. E-mail'; REP_EMAIL = 'Rep. Leg. E-mail'
 }
 function _ExColumnesQueFalten($col) {
     return @(@($Script:ExColumnesNoms.Keys) | Where-Object { [int]$col[$_] -le 0 } | ForEach-Object { $Script:ExColumnesNoms[$_] })
@@ -268,7 +271,7 @@ function Get-ExcelErrorsFila($f, $col) {
 # $files: llista de @{ Id; Valors (hashtable per clau de columna) } en l'ordre
 # de l'Excel; $col: _ExColumnes; $contactes: GIA -> activitat de la base de
 # contactes (o $null si no n'hi ha). Torna una llista de [pscustomobject]
-# @{ Id; Titular; Annex; Apartat; Tipus; TipusNom; Camp; Valor; Detall }.
+# @{ Id; Titular; Annex; Apartat; Estat; Tipus; TipusNom; Camp; Valor; Detall }.
 function Get-ExcelErrors($files, $col, $contactes) {
     $out = New-Object System.Collections.ArrayList
     $vistos = @{}
@@ -277,7 +280,7 @@ function Get-ExcelErrors($files, $col, $contactes) {
     $afegeix = {
         param($fl, $e)
         [void]$out.Add([pscustomobject]@{
-            Id = [string]$fl.Id; Titular = [string]$fl.Valors['RAO']; Annex = [string]$fl.Valors['ANNEX']; Apartat = [string]$fl.Valors['APARTAT']; Tipus = [string]$e.Tipus
+            Id = [string]$fl.Id; Titular = [string]$fl.Valors['RAO']; Annex = [string]$fl.Valors['ANNEX']; Apartat = [string]$fl.Valors['APARTAT']; Estat = [string]$fl.Valors['ESTAT']; Tipus = [string]$e.Tipus
             TipusNom = [string]$Script:ExTipus[[string]$e.Tipus]; Camp = [string]$e.Camp; Valor = [string]$e.Valor; Detall = [string]$e.Detall
         })
     }

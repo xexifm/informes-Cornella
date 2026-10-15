@@ -107,7 +107,7 @@ function Show-ExcelErrorsFinestra($errors, [string]$peu, [string]$fileName) {
         $ex = @{}; foreach ($x in @($st.Excl)) { $ex[[string]$x.Id] = $true }
         $visibles = @(@($errors) | Where-Object { -not $ex.ContainsKey([string]$_.Id) })
         foreach ($e in @(_ExTriats $visibles $sel)) {
-            $ll = _ExLlistatDe ([string]$e.Annex) ([string]$e.Apartat)
+            $ll = _ExLlistatDe ([string]$e.Annex) ([string]$e.Apartat) ([string]$e.Estat)
             $llNom = if ($ll -ne '') { [string]$llistats[$ll] } else { '(cap)' }
             $fila = @([string]$e.Id, [string]$e.Annex, [string]$e.Apartat, $llNom, [string]$e.Titular, [string]$e.TipusNom, [string]$e.Camp, [string]$e.Valor, [string]$e.Detall)
             if ($n -ne '' -and -not (_TextMatches ($fila -join ' ') $n)) { continue }

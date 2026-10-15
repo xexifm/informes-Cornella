@@ -692,15 +692,18 @@ classificació de la fulla *Estès*:
 
 | Llistat | Classificació general annex | Classificació general Apartat |
 |---|---|---|
-| **Innòcues** | L18-Proj. i Cert., L18-Cert. o Sectorial | qualsevol menys el 561 |
+| **Annexos II i III** | II o III | qualsevol |
 | **Bars i Restaurants** | L18-Proj. i Cert. | 561 |
 | | Recreativa catàleg | qualsevol |
-| **Annexos II i III** | II o III | qualsevol |
+| **Innòcues** | L18-Proj. i Cert., L18-Cert. o Sectorial | qualsevol menys el 561 |
+| | **tota la resta** que no entri als altres dos (sense annex, L18-Cert. o Sectorial amb 561…) | |
 
-- **No van a cap llistat**: les activitats **sense annex**, les de l'**annex I**
-  (I.1, I.2…), les **L18-Cert.** o **Sectorial** amb l'apartat **561**, i qualsevol
-  altre valor. A la finestra, la columna **Llistat** hi diu *(cap)* i a dalt
-  surt quantes n'hi ha.
+- **No van a cap llistat** (*(cap)* a la columna **Llistat** de la finestra):
+  les **autoritzacions ambientals** (annex I: I.1, I.2…) i les activitats en
+  estat **«Activitat sense llicència o no comunicada»** que per la seva
+  classificació no entren als Annexos ni a Bars i Restaurants (les de denúncia,
+  titular desconegut…). Amb l'Excel del 14/10/2026 en són 9: 48, 235, 236, 237,
+  241, 819, 997, 1081 i 1389.
 - **Enviar per correu** fa els tres Excels (`local\excel-errors\`) i els envia
   per l'Outlook a qui hagis posat a ⚙ Configuració → *Correus de cada eina* →
   *Excel Errors* (adreces fixes). Assumpte i text, a *Textos del correu*

@@ -196,18 +196,28 @@ AssertEq (_ExLlistatDe 'L18-Proj. i Cert.' '5610') 'bars' 'Llistats: el 561 amb 
 AssertEq (_ExLlistatDe ('Recreativa cat' + [char]0x00E0 + 'leg') '') 'bars' 'Llistats: Recreativa cataleg -> Bars i Restaurants'
 AssertEq (_ExLlistatDe 'II' '12.46') 'annexos' 'Llistats: annex II -> Annexos II i III'
 AssertEq (_ExLlistatDe 'III' '561') 'annexos' 'Llistats: annex III (tambe amb 561) -> Annexos II i III'
-AssertEq (_ExLlistatDe '' '') '' 'Llistats: sense annex -> cap'
-AssertEq (_ExLlistatDe 'I.1' '1.1') '' 'Llistats: annex I -> cap'
-AssertEq (_ExLlistatDe 'L18-Cert.' '561') '' 'Llistats: L18-Cert. amb 561 -> cap (no es cap dels tres)'
-AssertEq (_ExLlistatDe 'Sectorial' '561') '' 'Llistats: Sectorial amb 561 -> cap'
-$llE = { param($id, $annex, $apartat, $tipus) [pscustomobject]@{ Id = $id; Titular = ('T' + $id); Annex = $annex; Apartat = $apartat; Tipus = $tipus; TipusNom = $Script:ExTipus[$tipus]; Camp = 'c'; Valor = 'v'; Detall = 'd' } }
+# L'usuari, amb les 16 que no anaven enlloc al davant: "Deixa a (cap) les
+# Sense llicencia o no comunicada i les autoritzacions ambientals. Les altres
+# que ara mateix van a cap haurien d'anar a innocues".
+$llSL = 'Activitat sense llic' + [char]0x00E8 + 'ncia o no comunicada'
+AssertEq (_ExLlistatDe 'I.1' '7.1') '' 'Llistats: annex I.1 (autoritzacio ambiental) -> cap'
+AssertEq (_ExLlistatDe 'I.2.a' '12.1' 'Activitat comunicada en tramit') '' 'Llistats: annex I.2.a -> cap, digui el que digui l''estat'
+AssertEq (_ExLlistatDe '' '' $llSL) '' 'Llistats: sense annex i sense llicencia (denuncia, DESCONEGUT) -> cap'
+AssertEq (_ExLlistatDe '' '' ('Activitat amb llic' + [char]0x00E8 + 'ncia pendent de control inicial o de funcionament')) 'innocues' 'Llistats: sense annex pero amb llicencia -> Innocues'
+AssertEq (_ExLlistatDe '' '') 'innocues' 'Llistats: sense annex ni estat -> Innocues'
+AssertEq (_ExLlistatDe 'L18-Cert.' '561') 'innocues' 'Llistats: L18-Cert. amb 561 -> Innocues'
+AssertEq (_ExLlistatDe 'Sectorial' '561' 'Activitat comunicada en tramit') 'innocues' 'Llistats: Sectorial amb 561 -> Innocues'
+AssertEq (_ExLlistatDe 'II' '12.3' $llSL) 'annexos' 'Llistats: l''estat nomes compta si la classificacio no la posa enlloc (II sense llicencia -> Annexos)'
+AssertEq (_ExLlistatDe 'L18-Proj. i Cert.' '561' $llSL) 'bars' 'Llistats: ...i L18 amb 561 sense llicencia -> Bars i Restaurants'
+AssertEq (_ExLlistatDe 'III' '' $llSL) 'annexos' 'Llistats: ...i III sense llicencia -> Annexos'
+$llE = { param($id, $annex, $apartat, $tipus, $estat = '') [pscustomobject]@{ Id = $id; Titular = ('T' + $id); Annex = $annex; Apartat = $apartat; Estat = $estat; Tipus = $tipus; TipusNom = $Script:ExTipus[$tipus]; Camp = 'c'; Valor = 'v'; Detall = 'd' } }
 $llErr = @((& $llE '1' 'L18-Cert.' '855' 'cadastre'), (& $llE '2' 'L18-Proj. i Cert.' '561' 'cadastre'), (& $llE '3' 'II' '12.1' 'utm'),
-           (& $llE '4' '' '' 'classificacio'), (& $llE '5' 'III' '3.2' 'cadastre'), (& $llE '1' 'L18-Cert.' '855' 'utm'))
+           (& $llE '4' '' '' 'classificacio' $llSL), (& $llE '6' '' '' 'classificacio'), (& $llE '5' 'III' '3.2' 'cadastre'), (& $llE '1' 'L18-Cert.' '855' 'utm'))
 $llPer = _ExPerLlistat $llErr @('cadastre', 'utm', 'classificacio') @()
-AssertEq "$(@($llPer.innocues).Count)|$(@($llPer.bars).Count)|$(@($llPer.annexos).Count)|$((@($llPer.SenseLlistat) | ForEach-Object { $_.Id }) -join ',')" '2|1|2|4' 'Llistats: el repartiment, i el que no va a cap'
+AssertEq "$(@($llPer.innocues).Count)|$(@($llPer.bars).Count)|$(@($llPer.annexos).Count)|$((@($llPer.SenseLlistat) | ForEach-Object { $_.Id }) -join ',')" '3|1|2|4' 'Llistats: el repartiment (la 6, sense annex pero amb llicencia, a Innocues), i el que no va a cap (la 4, sense llicencia)'
 $llPer2 = _ExPerLlistat $llErr @('cadastre') @(@{ Id = '5' })
 AssertEq "$(@($llPer2.innocues).Count)|$(@($llPer2.annexos).Count)" '1|0' 'Llistats: nomes els tipus marcats, i sense les activitats tretes'
-AssertEq (_ExResumLlistat @($llPer.innocues)) '2 errors (1 activitats)' 'Llistats: el resum del correu'
+AssertEq (_ExResumLlistat @($llPer.innocues)) '3 errors (2 activitats)' 'Llistats: el resum del correu'
 AssertEq (_ExNomFitxerLlistat 'bars' (New-Object datetime(2026, 10, 15))) 'Excel_errors_2026-10-15_Bars_i_Restaurants.xlsx' 'Llistats: el nom del fitxer, com els de l''usuari'
 AssertEq (_ExNomFitxerLlistat 'annexos' (New-Object datetime(2026, 10, 15))) 'Excel_errors_2026-10-15_Annexos_II_i_III.xlsx' 'Llistats: Annexos II i III'
 
