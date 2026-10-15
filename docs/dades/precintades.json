@@ -1,9 +1,16 @@
 {
-    "GeneratedAt":  "2026-10-09T08:21:52.8251461+02:00",
-    "Font":  "2026-10-09 ACTIVITATS.xls",
-    "SourceDate":  "2026-10-09",
-    "Comptador":  14,
+    "GeneratedAt":  "2026-10-15T08:21:03.0488547+02:00",
+    "Font":  "ExportacioActivitats_20261014.xls",
+    "SourceDate":  "2026-10-14",
+    "Comptador":  17,
     "Activitats":  [
+                       {
+                           "id":  "1438",
+                           "activitat":  "APARCAMENT PUBLIC",
+                           "adreca":  "C QUINTANA I MILLAS 14   16",
+                           "lat":  41.356352275839562,
+                           "lon":  2.0821462550306222
+                       },
                        {
                            "id":  "1141",
                            "activitat":  "TALLER MECÀNIC",
@@ -54,6 +61,13 @@
                            "lon":  2.0709318373536072
                        },
                        {
+                           "id":  "334",
+                           "activitat":  "CENTRE DE CULTE",
+                           "adreca":  "C BELLATERRA 35",
+                           "lat":  41.357945543416918,
+                           "lon":  2.0737281602346243
+                       },
+                       {
                            "id":  "282",
                            "activitat":  "GIMNÀS",
                            "adreca":  "C LASARTE 1",
@@ -87,6 +101,13 @@
                            "adreca":  "CAMI CAMP DE L\u0027EMPEDRAT 3",
                            "lat":  41.356019278624281,
                            "lon":  2.087595964502988
+                       },
+                       {
+                           "id":  "48",
+                           "activitat":  "",
+                           "adreca":  "PL ANGEL GUIMERA 9",
+                           "lat":  41.364487401245952,
+                           "lon":  2.0740484778614867
                        },
                        {
                            "id":  "34",
