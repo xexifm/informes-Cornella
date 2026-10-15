@@ -1276,22 +1276,27 @@ d'obrir res:
 | Tipus | Nom | Què se'n treu |
 |---|---|---|
 | `etram` | `*etram-tramit*.xml` | `<solicitant>`, `<representant>`, `<canalSms>`, `<canalCorreuElectronic>`, `<dataCreacio>`, `<nomTramit>` i les `<dada>` de l'establiment |
-| `instancia` | `*instància genèrica*`, `*Instancia_generica*`, `*Esmena sol·licitud*`, `*SEU  OAC*` (PDF) | les seccions de l'interessat i del representant, la data i el títol |
+| `instancia` | `*instància genèrica*`, `*Instancia_generica*`, `*Esmena sol·licitud*`, `*SEU  OAC*` (PDF) | les seccions de l'interessat i del representant, la data i el títol, i les signatures `(R:CIF)` |
 | `autoritzacio` | `*autoritz*`, `*autoriz*`, `*representaci*` (no `Índex electrònic…`) | qui signa en nom de l'empresa (el **representant legal**) i a qui autoritza |
 | `xmlantic` | `*XML_TRAMIT*.xml`, `*sicres3*.xml` | `Nombre_Interesado`… i `_Representante` |
 
-**Només el primer nivell** de cada carpeta d'activitat (`Get-FitxersPrimerNivell`,
-el mateix que la base d'informes: l'usuari, «sempre primer nivell»). Els
-certificats, les memòries i els projectes no es llegeixen: pesen molt i gairebé
-només donen el tècnic.
+**Tot l'arbre** de cada carpeta d'activitat, subcarpetes incloses
+(`Get-FitxersContactes`; abans només el primer nivell, i l'usuari va trobar
+~195 documents bons sense llegir: `Firmadoc\`, `OME\`, `Final\` i sobretot la
+carpeta d'expedient del titular **dins** de la d'una queixa). Els fitxers de
+l'arrel no. Els certificats, les memòries i els projectes no es llegeixen:
+pesen molt i gairebé només donen el tècnic.
 
-**L'ID GIA de cada document** és el de la base d'informes (l'usuari: «fes-la
-servir, no en facis una altra»), `_CtGiaDocument`: el que diu el mateix document
-si és un GIA conegut (un document d'una altra activitat a la mateixa carpeta va
-amb la seva), el del nom de la carpeta («GIA n»), el dels informes de la
-carpeta si tots són del mateix GIA, o l'expedient → Excel. Una carpeta de
-diverses activitats amb un document que no diu de quina: «sense GIA» (surt a la
-validació).
+**L'ID GIA de cada document** (`_CtGiaDocument`) és el de **la carpeta més
+propera que digui de quina activitat és**, de dins enfora: el «GIA n» del nom,
+els informes que hi ha (si tots són del mateix GIA, com `_GiaDelsGermans` de la
+base d'informes) o el seu expedient a l'Excel (`AAAA-N-NNNN`, provat en els dos
+ordres: el document l'escriu `2025/3165/16` i la carpeta `2025-16-3165`).
+**El GIA que diu el document, només si cap carpeta no en diu cap**: l'escriu el
+ciutadà i sovint malament (carpeta `GIA 595`, esmena «GIA 5»: l'activitat 5
+rebia una esmena d'una altra i sortia un fals canvi de titular). Després,
+l'expedient del document → Excel. Una carpeta de diverses activitats amb un
+document que no diu de quina: «sense GIA» (surt a la validació).
 
 **Incremental**, com els informes: per cada document es desa la ruta relativa,
 la data de modificació i el que se n'ha tret, i només es tornen a llegir els
@@ -1343,6 +1348,40 @@ això:
   que no hagin canviat. Guards a `11-contactes.ps1`, validats injectant-hi el
   defecte.
 
+**Les etiquetes, en català i en castellà** (versió 2026-10-15.1). La instància
+de la seu porta cada etiqueta en les dues llengües i el text del PDF les talla
+en línies diferents: totes les etiquetes primer i els valors a sota («Nom i
+cognoms o raó social Nombre y apellidos o razón social» / «DNI / NIF / NIE /
+Pas.» / «EXEMPLE SL» / «B00000000»). Sortien 132 titulars amb el nom «Nombre y
+apellidos o razón social DNI / NIF / NIE / Pas». Ara:
+
+- una línia que, sense la puntuació, **només té paraules d'etiqueta** és una
+  etiqueta (`_CtEsLiniaEtiqueta`; cal com a mínim una paraula «forta», perquè
+  «DE LA FONT» és un nom);
+- el nom és **la primera línia que no és etiqueta** i el NIF, la següent
+  (`_CtPrimerValorNom`); a la instància telemàtica antiga, amb les etiquetes i
+  els valors a la mateixa línia, el que va darrere de les etiquetes
+  (`_CtSenseEtiquetes`);
+- `_CtPersona` no accepta mai com a nom una etiqueta (`_CtNomEsEtiqueta`:
+  «razón social», «representado», «DNI / NIF», «nom i cognoms»…), ni
+  `_CtNetejaNom` un DNI dins d'un nom;
+- l'expedient és només `AAAA/NNNN/N`: s'hi colaven les dates (262 documents);
+- a l'e-TRAM antic, `<raoSocial>rao</raoSocial>` (i `-`, `.`, menys de tres
+  lletres) no és cap nom: es fa servir nom + cognoms (`_CtRaoBuida`).
+
+**L'autorització** (`Read-AutoritzacioText`): a més d'«autoritzo», els verbs
+`designa` (amb «com a tècnica responsable … a Z»), `nomena`, `atorga la seva
+representació a`, `otorga su representación a`, `apodera` i `faculta`; sense «Jo,»
+ni tractament, el signant és el nom de davant d'«amb DNI», i el nom s'atura a
+`amb|con DNI|NIF|NIE|N.I.`, la coma, `actuant`, `actuando`, `en representació`,
+`en nombre`, `com a`, `como`, `en qualitat`, `en calidad` (`$Script:CtReFiNom`).
+
+**La signatura electrònica de representant, la font més segura**
+(`_CtSignaturesRep`, a tots els PDF que es llegeixen): «Firmado digitalmente por
+00000000T MARIA EXEMPLE (R:B00000000)», també partida en línies i amb el CIF
+tallat (s'ajunten abans de buscar). Qui signa amb `(R:<CIF>)` és el representant
+legal de l'entitat d'aquell CIF.
+
 **No s'ha pogut veure cap instància de debò** (porten dades personals): el
 lector i els lectors de cada document es van fer amb documents inventats.
 `DiagnosticPdf.ps1` (`local\DiagnosticPdf.bat`: s'hi arrossega un PDF) escriu
@@ -1362,17 +1401,39 @@ de mirar quan la validació doni discrepàncies.**
    **`-Fort`**: per treure un correu o un telèfon AL TITULAR només valen la
    llista i els titulars diferents; un «estudi de dansa» o una «oficina» poden
    ser el titular, i el patró professional se'l menjaria.
+   **També el NIF i el nom** de qui presenta pel titular (el representant del
+   tràmit i l'autoritzat, `NifTitulars`/`NomTitulars` de `_CtContext`): el
+   mateix DNI o el mateix nom per a ≥2 titulars diferents és tècnic, i el
+   correu que hi ha posat, si no té res de tècnic, **és del client** (va al
+   titular, «probable»). Patrons professionals: també `advocat`, `abogad`,
+   `icab.cat`, `legal`, `lawyer`, `assessors`, `asesores`, `gestio`, `ebcn`.
+   Sense `tecnics-coneguts_*.json`, el resum d'«Actualitzar base» ho diu
+   («AVÍS: no hi ha llista de tècnics coneguts»).
 2. **Representant legal**: persona física → en blanc (és ella mateixa);
-   persona jurídica → qui signa l'autorització en nom de l'empresa («segur») o
-   el representant d'un tràmit que no sigui tècnic («probable»). Mai el tècnic.
+   persona jurídica → **qui signa amb el certificat de representant del CIF del
+   titular** (`(R:<CIF>)`: «segur», `via: signatura`, i mana sobre les regles:
+   només el treu una correcció a mà «És el tècnic»), qui signa l'autorització en
+   nom de l'empresa («segur»), el representant d'un tràmit que no sigui tècnic o
+   la persona física que presenta en nom propi amb el correu de l'empresa
+   («probable»). Mai el tècnic. Qui signa amb `(R:)` d'**una altra** entitat
+   (una enginyeria, una gestoria) és persona autoritzada; les de les
+   administracions (CIF `P`, `Q`, `S`) no són de ningú.
 3. **El titular** = l'interessat, camp a camp i del més recent, **tret del que
    sigui del tècnic**: el correu o el mòbil d'una persona autoritzada no pot ser
-   del titular.
+   del titular. **Si el NIF de l'interessat no és el de l'Excel** (i el nom
+   tampoc), el seu correu i el seu telèfon **sí** que són del titular, com a
+   «probable» (abans es perdien); el nom i el NIF van a l'històric. Si el nom
+   extret és buit o una etiqueta, la Raó social de l'Excel.
 4. **L'establiment**: el telèfon i el correu de l'e-TRAM, si no són del tècnic.
 5. **Fora**: les **queixes** (sèrie `2579`: els interessats són els veïns),
-   tret que el NIF sigui el del titular; les administracions
+   tret que el NIF sigui el del titular. Ho diu l'expedient del document, el
+   nom del fitxer o **la carpeta d'expedient més propera** (`AAAA-N-2579`, o les
+   paraules QUEIXA, QUEXIA, DENUNCIA); la carpeta del titular **dins** de la
+   d'una queixa no és queixa (`_CtEsQueixa`). Les administracions
    (`cornella.cat`, `gencat.cat`, `aoc.cat`, Mossos, Bombers…) i les entitats
-   de control (`tuvsud`, `dekra`, `applus`…).
+   de control (`tuv.com`, `aucatel`, `eicon`, `addient`, `eca-`, `dekra`,
+   `applus`…, sobre el domini) **no són mai ni del titular ni persones
+   autoritzades**.
 6. **Recintes** amb organitzadors d'actes (GIA 28 i 1324; es canvia a
    `local\base-dades-activitats\contactes-config.json`, `{ "recintes": [...] }`):
    no es proposa res del titular ni del representant.
@@ -1397,7 +1458,7 @@ el NIF).
 | `falta` | l'Excel és buit i els documents donen la dada |
 | `diferent` | els documents més recents diuen una altra cosa |
 | `error` | `gmailo.com`, `hotmal`, `holmail`, un domini a 1–2 lletres del dels documents, 10 xifres, un fix al mòbil, un correu al telèfon, la lletra del DNI, el CIF de l'empresa al NIF del representant |
-| `canvi_titular` | el document més recent és d'un altre NIF (només avís: l'Excel pot ser més nou) |
+| `canvi_titular` | el document no-queixa més recent és d'un altre NIF, d'una entitat o persona que no és el tècnic (només avís: l'Excel pot ser més nou). No ho és el mateix nom de l'Excel amb un altre NIF (l'Excel el té malament), qui signa amb el certificat del titular, ni la persona física que presenta per l'empresa |
 
 ### On es guarda i les correccions a mà
 
@@ -1453,7 +1514,10 @@ telèfons del titular (els telèfons com a conjunt), nom del representant legal,
 els e-mails de les persones autoritzades i els avisos `es_el_tecnic`. Les dades
 «probable» de la referència van a part. Escriu
 `local\base-dades-activitats\validacio-contactes_<data>.txt`. **L'objectiu és 0
-discrepàncies en les «segur».** Cal haver fet «Actualitzar base» abans
+discrepàncies en les «segur».** Al principi del `.txt` (`_CtEstadistiques`): quants
+documents s'han llegit per tipus i quants són de subcarpetes, quants noms són
+etiquetes (ha de ser 0), quantes persones autoritzades són d'una entitat de
+control (0) i quants representants legals surten de la signatura `(R:CIF)`. Cal haver fet «Actualitzar base» abans
 (l'atribució al GIA és la de la base d'informes).
 
 Els dos `.bat` de `local\` els escriu la migració (`_BatsLocal`,

@@ -104,6 +104,11 @@ foreach ($g in @($vtRefActs.Keys | Sort-Object { _GiaNumeric $_ })) {
 if ([string]$vtRes.TecnicsError) { & $vtDiu ('AVIS: ' + [string]$vtRes.TecnicsError) }
 & $vtDiu ''
 & $vtDiu ('Documents: ' + $vtRes.NDocs + '   llegits ara: ' + $vtRes.Llegits + '   no llegibles: ' + $vtRes.NNoLlegibles + '   sense GIA: ' + @($vtRes.SenseGia).Count)
+$vtEst = $vtRes.Estadistiques
+& $vtDiu ('  per tipus: ' + ((@($vtEst.PerTipus.Keys) | ForEach-Object { $_ + ' ' + $vtEst.PerTipus[$_] }) -join ', ') + '   a subcarpetes: ' + $vtEst.NSubcarpetes)
+& $vtDiu ('Noms que son etiquetes (ha de ser 0): ' + $vtEst.NomsEtiqueta)
+& $vtDiu ('Persones autoritzades d''una entitat de control (ha de ser 0): ' + $vtEst.AutEca)
+& $vtDiu ('Representants legals de la signatura (R:CIF): ' + $vtEst.RepSignatura)
 & $vtDiu ('Activitats a la referencia: ' + $vtRefActs.Count + '   comparades: ' + $nComp + '   sense cap document al repas: ' + $vtSenseDocs.Count)
 & $vtDiu ('Discrepancies en dades "segur": ' + $vtSegur.Count + '   (en dades "probable", a part: ' + $vtProb.Count + ')')
 & $vtDiu ''

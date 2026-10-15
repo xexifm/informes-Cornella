@@ -283,8 +283,9 @@ try {
     [System.IO.File]::WriteAllText((Join-Path (Join-Path $ctI 'GIA 9101') 'tramit_etram-tramit.xml'), $xmlCt, (New-Object System.Text.UTF8Encoding($false)))
     _CtProvaPdf (Join-Path (Join-Path $ctI 'GIA 9101') 'Instancia_generica.pdf') @($instCt -split "`r?`n")
     Copy-Item -LiteralPath (Join-Path $dirPdfCt 'escanejat.pdf') -Destination (Join-Path (Join-Path $ctI 'GIA 9101') 'Autoritzacio escanejada.pdf')
-    # Una subcarpeta i l'arrel: no s'hi llegeix res (primer nivell).
-    _CtProvaPdf (Join-Path (Join-Path (Join-Path $ctI 'GIA 9101') 'Expedient') 'Instancia_generica.pdf') @('DADES DE LA PERSONA O ENTITAT INTERESSADA', 'Nom o rao social: NO HI HA DE SER SL', 'DNI/NIF/NIE: B99999990')
+    # Una subcarpeta SI (tot l'arbre de la carpeta d'activitat, octubre 2026),
+    # i l'arrel no.
+    _CtProvaPdf (Join-Path (Join-Path (Join-Path $ctI 'GIA 9101') 'Expedient') 'Instancia_generica.pdf') @('DADES DE LA PERSONA O ENTITAT INTERESSADA', 'Nom o rao social: EXEMPLE INVENTAT SL', 'DNI/NIF/NIE: B12345674', 'Cornella de Llobregat, 1 de gener de 2024')
     _CtProvaPdf (Join-Path $ctI 'Instancia_generica.pdf') @('DADES DE LA PERSONA O ENTITAT INTERESSADA', 'Nom o rao social: TAMPOC SL')
     # La carpeta sense "GIA" al nom: el GIA es el dels informes que hi ha.
     _CtProvaPdf (Join-Path (Join-Path $ctI 'Exp 2025-1-77') 'Instancia_generica.pdf') @('Instancia generica', 'DADES DE LA PERSONA O ENTITAT INTERESSADA', 'Nom o rao social: EXPEDIENT SET SL', 'DNI/NIF/NIE: B70000007', 'Correu: set@proves.test', 'Cornella de Llobregat, 1 de juny de 2025')
@@ -292,8 +293,12 @@ try {
     $cacheCt = [pscustomobject]@{ ById = @{}; Contactes = @{ '9101' = @{ TITULAR = 'EXEMPLE INVENTAT SL'; NIF = 'B12345674'; EMAIL = 'pere@enginyeria-inventada.test'; MOBIL = ''; TELEFON = ''; REP_NOM = ''; REP_NIF = ''; REP_EMAIL = ''; REP_TELEFON = ''; REP_MOBIL = '' } } }
 
     $rC = Invoke-ContactesEscaneig $ctI $informesCt $cacheCt @{}
-    AssertEq "$($rC.Ok)|$($rC.NDocs)|$($rC.Llegits)|$($rC.NNoLlegibles)" 'True|4|4|1' 'repas: nomes els 4 documents del primer nivell; l''escanejat, a "no llegibles"'
+    AssertEq "$($rC.Ok)|$($rC.NDocs)|$($rC.Llegits)|$($rC.NNoLlegibles)" 'True|5|5|1' 'repas: els 5 documents de les carpetes d''activitat, subcarpetes incloses (no el de l''arrel); l''escanejat, a "no llegibles"'
     $dbC = Read-ContactesDb
+    AssertEq ([string]$dbC.documents.'GIA 9101\Expedient\Instancia_generica.pdf'.gia) '9101' 'repas: el document de la subcarpeta va amb el GIA de la carpeta de sobre'
+    AssertEq "$($rC.Estadistiques.NSubcarpetes)|$($rC.Estadistiques.PerTipus['instancia'])|$($rC.Estadistiques.NomsEtiqueta)|$($rC.Estadistiques.AutEca)" '1|3|0|0' 'repas: els recomptes de la validacio (subcarpetes, per tipus, noms-etiqueta, autoritzats d''una ECA)'
+    Assert ($rC.Text.Contains("no hi ha llista de t$([char]0x00E8)cnics coneguts")) 'repas: sense tecnics-coneguts_*.json, el resum ho diu'
+
     AssertEq ((@($dbC.activitats.PSObject.Properties.Name) | Sort-Object) -join ',') '9101,9102' 'repas: el GIA de la carpeta "GIA n" i el dels informes de la carpeta sense GIA al nom'
     $c9101 = $dbC.activitats.'9101'
     AssertEq "$($c9101.titular.nom)|$($c9101.titular.email)|$(@($c9101.persones_autoritzades)[0].nom)" 'EXEMPLE INVENTAT SL|info@exemple-inventat.test|Pere Tecnic Inventat' 'repas: el titular (sense el correu del tecnic) i la persona autoritzada'
@@ -393,7 +398,8 @@ $srcCt = (@(Get-ChildItem -LiteralPath (Split-Path -Parent $TestsDir) -Filter 'C
 # L'Excel d'activitats NO ES MODIFICA MAI (l'usuari): ni s'obre per escriure ni
 # s'hi desa res.
 Assert (-not ($srcCt -match 'Read-FullaEstesa|Excel\.Application|SaveAs|\.Save\(')) 'Contactes: no obre l''Excel d''activitats (ni per llegir: la fila arriba de la cache) i no desa res a l''Excel'
-Assert ($srcCt.Contains('Get-FitxersPrimerNivell $dir')) 'Contactes: nomes el primer nivell de cada carpeta (Get-FitxersPrimerNivell)'
+Assert ($srcCt.Contains('$cands = Get-FitxersContactes $dir') -and $srcCt -match 'Get-ChildItem -LiteralPath \$d\.FullName -File -Recurse') 'Contactes: tot l''arbre de cada carpeta d''activitat (Get-FitxersContactes, -Recurse)'
+Assert (-not $srcCt.Contains('Get-FitxersPrimerNivell')) 'Contactes: ja no nomes el primer nivell'
 
 Write-Host "`n--- Activitats.ps1: les columnes de contacte de l'Excel ---"
 # Amb un doble de Read-FullaEstesa (sense Excel): una fulla amb les capcaleres

@@ -12,11 +12,12 @@
   MAI: el que surt es una base propia, la finestra "Contactes" per revisar-la
   (ContactesPantalla.ps1) i una llista de correccions per entrar-les al GIA.
 
-  QUINS DOCUMENTS: nomes els del PRIMER NIVELL de cada carpeta d'activitat
-  (Get-FitxersPrimerNivell, el mateix que la base d'informes: l'usuari, "sempre
-  primer nivell") i nomes els que el nom diu que son un dels tres tipus que
-  porten les dades (_CtTipusDocument). L'ID GIA de cada document es el que ja
-  diu la base d'informes de la seva carpeta (_CtGiaDocument).
+  QUINS DOCUMENTS: TOT L'ARBRE de cada carpeta d'activitat, subcarpetes
+  incloses (Get-FitxersContactes; l'usuari, octubre 2026: "no es llegeixen les
+  subcarpetes"), i nomes els que el nom diu que son un dels tres tipus que
+  porten les dades (_CtTipusDocument). L'ID GIA de cada document es el de LA
+  CARPETA MES PROPERA que ho digui (_CtGiaDocument): el nom, els informes que
+  hi ha o el seu expedient; el GIA que diu el document, nomes si cap no en diu.
 
   INCREMENTAL, com els informes: per cada document es desa la ruta relativa, la
   data de modificacio i el que se n'ha tret, i nomes es tornen a llegir els
@@ -36,7 +37,7 @@
 
 # Si canvia el que es treu d'un document (els lectors de ContactesExtraccio),
 # puja-la: es tornen a llegir tots.
-$Script:ContactesVersio = '2026-10-09.1'
+$Script:ContactesVersio = '2026-10-15.1'
 
 function Get-ContactesDbPath {
     if ([string]::IsNullOrWhiteSpace($LocalActivitatsDir)) { return '' }
@@ -160,50 +161,80 @@ function _CtLlegeixDocument($file, [string]$tipus, $word) {
 }
 
 # ----------------------------------------------------------------------------
-# DE QUIN GIA ES UN DOCUMENT: el de la base d'informes (l'usuari: "fes-la
-# servir, no en facis una altra")
+# QUINS DOCUMENTS: tot l'arbre de cada carpeta d'activitat
 # ----------------------------------------------------------------------------
-# La carpeta d'activitat (el primer tros de la ruta relativa). PURA.
-function _CtCarpetaRel([string]$clau) {
-    $p = ([string]$clau -replace '/', '\').Trim('\').Split('\')
-    if ($p.Count -lt 2) { return '' }
-    return $p[0]
+# L'usuari (octubre 2026): "no es llegeixen les subcarpetes" (Firmadoc\, OME\,
+# i sobretot la carpeta d'expedient del titular DINS de la d'una queixa). Es
+# recorre tot l'arbre de cada carpeta d'activitat (no l'arrel), i es tria PEL
+# NOM abans d'obrir res (_CtTipusDocument): dels ~25.000 fitxers de les
+# subcarpetes nomes se'n queden uns centenars. Torna @{ F; Tipus } per cada un.
+function Get-FitxersContactes([string]$dir) {
+    $out = New-Object System.Collections.ArrayList
+    foreach ($d in @(Get-ChildItem -LiteralPath $dir -Directory -ErrorAction SilentlyContinue)) {
+        foreach ($f in @(Get-ChildItem -LiteralPath $d.FullName -File -Recurse -ErrorAction SilentlyContinue)) {
+            $t = _CtTipusDocument $f.Name
+            if ($t -ne '') { [void]$out.Add(@{ F = $f; Tipus = $t }) }
+        }
+    }
+    return ,$out.ToArray()
 }
 
-# Carpeta d'activitat -> els GIA dels informes que hi ha (de Get-InformeData
-# o de _FlattenInformesDb: Ruta, Gia). PURA.
+# ----------------------------------------------------------------------------
+# DE QUIN GIA ES UN DOCUMENT: el de LA CARPETA MES PROPERA que ho digui
+# ----------------------------------------------------------------------------
+# Carpeta (ruta relativa) -> els GIA dels informes que hi ha (de
+# Get-InformeData o de _FlattenInformesDb: Ruta, Gia). PURA.
 function _CtGiaPerCarpeta($informes, [string]$arrel) {
     $m = @{}
     foreach ($r in @($informes)) {
         if ($null -eq $r) { continue }
         $g = [string](_CtV $r 'Gia')
         if ($g -eq '') { continue }
-        $c = _CtCarpetaRel (_ClauInforme ([string](_CtV $r 'Ruta')) $arrel)
-        if ($c -eq '') { continue }
-        if (-not $m.ContainsKey($c)) { $m[$c] = @{} }
-        $m[$c][$g] = $true
+        $c = @(_CtCarpetesDe (_ClauInforme ([string](_CtV $r 'Ruta')) $arrel))
+        if ($c.Count -eq 0) { continue }
+        $k = [string]$c[0].Rel
+        if (-not $m.ContainsKey($k)) { $m[$k] = @{} }
+        $m[$k][$g] = $true
     }
     return $m
 }
 
-# El GIA d'un document. L'ordre:
-#   1. el que diu el document (titol, text), si es un GIA conegut: un document
-#      d'UNA ALTRA activitat a la mateixa carpeta va amb la seva (regla 5)
-#   2. el GIA del nom de la carpeta ("GIA n")
-#   3. el dels informes de la carpeta, si tots son del mateix
-#   4. l'expedient del document -> Excel
-# Si la carpeta es de diverses activitats i el document no diu de quina, ''.
+# Un expedient -> el GIA de l'Excel. El document l'escriu "2025/3165/16" i la
+# carpeta "2025-16-3165": es prova en tots dos ordres. PURA.
+function _CtGiaDeExpedient([string]$exp, $expToGia) {
+    if ($null -eq $expToGia) { return '' }
+    $n = _NormalitzaExpedient $exp
+    if ($n -eq '') { return '' }
+    if ($expToGia.ContainsKey($n)) { return [string]$expToGia[$n] }
+    $p = $n.Split('-')
+    if ($p.Count -eq 3) {
+        $g = $p[0] + '-' + $p[2] + '-' + $p[1]
+        if ($expToGia.ContainsKey($g)) { return [string]$expToGia[$g] }
+    }
+    return ''
+}
+
+# El GIA d'un document. L'usuari (octubre 2026): "el GIA de les esmenes i les
+# instancies l'escriu el ciutada, i sovint malament" (carpeta GIA 595, esmena
+# "GIA 5"). L'ordre:
+#   1. la carpeta MES PROPERA que digui de quina activitat es: el "GIA n" del
+#      nom, els informes que hi ha (si tots son del mateix GIA) o el seu
+#      expedient a l'Excel; i si no, la de sobre, fins a la d'activitat
+#   2. el GIA del document, NOMES si cap carpeta no en diu cap
+#   3. l'expedient del document -> Excel
+# Si l'expedient del document es el de la carpeta, mana la carpeta (pas 1).
 # $conegut: scriptblock (gia) -> bool. PURA.
 function _CtGiaDocument([string]$clau, $extret, $perCarpeta, $conegut, $expToGia) {
+    foreach ($c in @(_CtCarpetesDe $clau)) {
+        $m = [regex]::Match([string]$c.Nom, '(?<![a-z])gia\s*(\d{1,6})(?!\d)', 'IgnoreCase')
+        if ($m.Success) { return [string][int]$m.Groups[1].Value }
+        if ($null -ne $perCarpeta -and $perCarpeta.ContainsKey($c.Rel) -and $perCarpeta[$c.Rel].Count -eq 1) { return [string]@($perCarpeta[$c.Rel].Keys)[0] }
+        $g = _CtGiaDeExpedient (_CtExpedientDeCarpeta $c.Nom) $expToGia
+        if ($g -ne '') { return $g }
+    }
     $propi = [string](_CtV $extret 'gia')
     if ($propi -ne '' -and (& $conegut $propi)) { return $propi }
-    $g = _GiaFromFolderName ($clau -replace '/', '\')
-    if ($g -ne '') { return $g }
-    $c = _CtCarpetaRel $clau
-    if ($c -ne '' -and $perCarpeta.ContainsKey($c) -and $perCarpeta[$c].Count -eq 1) { return [string]@($perCarpeta[$c].Keys)[0] }
-    $exp = _NormalitzaExpedient ([string](_CtV $extret 'expedient'))
-    if ($exp -ne '' -and $null -ne $expToGia -and $expToGia.ContainsKey($exp)) { return [string]$expToGia[$exp] }
-    return ''
+    return (_CtGiaDeExpedient ([string](_CtV $extret 'expedient')) $expToGia)
 }
 
 # ----------------------------------------------------------------------------
@@ -274,7 +305,32 @@ function _CtResumText($res) {
     $t = 'Contactes: ' + $res.NNoves + ' activitats amb dades noves ' + [char]0x00B7 + ' ' + $res.NAvisos + ' avisos'
     if ($det.Count -gt 0) { $t += ' (' + ($det -join ', ') + ')' }
     $t += ' ' + [char]0x00B7 + ' ' + $res.NNoLlegibles + ' documents no llegibles'
+    # Sense la llista, el tecnic que posa el correu del client no es veu
+    # (l'usuari: a la feina no hi era i "el programa ho hauria de dir").
+    # (Sense el simbol: les finestres el pinten com un quadre.)
+    if ([string]$res.TecnicsFitxer -eq '') { $t += ' ' + [char]0x00B7 + ' AV' + [char]0x00CD + "S: no hi ha llista de t" + [char]0x00E8 + "cnics coneguts" }
     return $t
+}
+
+# Els recomptes de la validacio (ValidarContactes.ps1): documents per tipus i
+# quants son de subcarpetes, noms que son etiquetes (ha de ser 0), persones
+# autoritzades d'una entitat de control (0) i representants legals que surten
+# de la signatura (R:CIF). $docs: clau -> document desat. PURA.
+function _CtEstadistiques($acts, $docs) {
+    $r = [ordered]@{ PerTipus = [ordered]@{}; NSubcarpetes = 0; NomsEtiqueta = 0; AutEca = 0; RepSignatura = 0 }
+    foreach ($k in @($docs.Keys)) {
+        $t = [string](_CtV $docs[$k] 'tipus')
+        if (-not $r.PerTipus.Contains($t)) { $r.PerTipus[$t] = 0 }
+        $r.PerTipus[$t]++
+        if (@(_CtCarpetesDe ([string]$k)).Count -gt 1) { $r.NSubcarpetes++ }
+    }
+    foreach ($a in @($acts.Values)) {
+        $ps = @((_CtV $a 'titular'), (_CtV $a 'representant_legal')) + @(_CtV $a 'persones_autoritzades')
+        foreach ($p in $ps) { if ($null -ne $p -and (_CtNomEsEtiqueta ([string](_CtV $p 'nom')))) { $r.NomsEtiqueta++ } }
+        foreach ($p in @(_CtV $a 'persones_autoritzades')) { if ($null -ne $p -and (_CtEmailExclos ([string](_CtV $p 'email')))) { $r.AutEca++ } }
+        if ([string](_CtV (_CtV $a 'representant_legal') 'via') -eq 'signatura') { $r.RepSignatura++ }
+    }
+    return $r
 }
 
 # ----------------------------------------------------------------------------
@@ -329,12 +385,7 @@ function Invoke-ContactesEscaneig([string]$dir, $informes, $cache, $expToGia, [s
     $cfg = Read-ContactesConfig
 
     & $diu "Contactes: cercant els documents de les activitats..." 0 0
-    $primerNivell = Get-FitxersPrimerNivell $dir
-    $cands = New-Object System.Collections.ArrayList
-    foreach ($f in $primerNivell) {
-        $t = _CtTipusDocument $f.Name
-        if ($t -ne '') { [void]$cands.Add(@{ F = $f; Tipus = $t }) }
-    }
+    $cands = Get-FitxersContactes $dir
 
     $perCarpeta = _CtGiaPerCarpeta $informes $dir
     $gies = @{}
@@ -389,6 +440,7 @@ function Invoke-ContactesEscaneig([string]$dir, $informes, $cache, $expToGia, [s
         NNoLlegibles = $noLlegibles.Count; NDocs = $docs.Count; Llegits = $llegits; OutPath = $outPath
         Activitats = $acts; NoLlegibles = $noLlegibles.ToArray(); SenseGia = $senseGia.ToArray()
         TecnicsFitxer = [string]$tecnics.Fitxer; TecnicsError = [string]$tecnics.Error
+        Estadistiques = (_CtEstadistiques $acts $docs)
     }
     $res.Text = _CtResumText $res
     if (-not $NoDesis -and $outPath -ne '') {
