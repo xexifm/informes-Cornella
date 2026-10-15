@@ -184,3 +184,65 @@ AssertEq (@([regex]::Matches($cpMailSrc, 'Send-CorreuSessio')).Count) 1 'CP: un 
 } catch {
     Assert $false ("15-excel-errors: excepcio no controlada: " + $_.Exception.Message + ' @ ' + $_.InvocationInfo.ScriptLineNumber)
 }
+
+try {
+Write-Host "`n--- Excel Errors: els TRES LLISTATS per correu (Innocues, Bars i Restaurants, Annexos II i III) ---"
+# Les classificacions de debo dels Excels que va passar l'usuari (octubre 2026).
+AssertEq (_ExLlistatDe 'L18-Proj. i Cert.' '521') 'innocues' 'Llistats: L18-Proj. i Cert. sense 561 -> Innocues'
+AssertEq (_ExLlistatDe 'L18-Cert.' '855') 'innocues' 'Llistats: L18-Cert. -> Innocues'
+AssertEq (_ExLlistatDe 'Sectorial' 'Centre de culte') 'innocues' 'Llistats: Sectorial -> Innocues'
+AssertEq (_ExLlistatDe 'L18-Proj. i Cert.' '561') 'bars' 'Llistats: L18-Proj. i Cert. amb 561 -> Bars i Restaurants'
+AssertEq (_ExLlistatDe 'L18-Proj. i Cert.' '5610') 'bars' 'Llistats: el 561 amb el criteri de Controls periodics (5610 tambe)'
+AssertEq (_ExLlistatDe ('Recreativa cat' + [char]0x00E0 + 'leg') '') 'bars' 'Llistats: Recreativa cataleg -> Bars i Restaurants'
+AssertEq (_ExLlistatDe 'II' '12.46') 'annexos' 'Llistats: annex II -> Annexos II i III'
+AssertEq (_ExLlistatDe 'III' '561') 'annexos' 'Llistats: annex III (tambe amb 561) -> Annexos II i III'
+AssertEq (_ExLlistatDe '' '') '' 'Llistats: sense annex -> cap'
+AssertEq (_ExLlistatDe 'I.1' '1.1') '' 'Llistats: annex I -> cap'
+AssertEq (_ExLlistatDe 'L18-Cert.' '561') '' 'Llistats: L18-Cert. amb 561 -> cap (no es cap dels tres)'
+AssertEq (_ExLlistatDe 'Sectorial' '561') '' 'Llistats: Sectorial amb 561 -> cap'
+$llE = { param($id, $annex, $apartat, $tipus) [pscustomobject]@{ Id = $id; Titular = ('T' + $id); Annex = $annex; Apartat = $apartat; Tipus = $tipus; TipusNom = $Script:ExTipus[$tipus]; Camp = 'c'; Valor = 'v'; Detall = 'd' } }
+$llErr = @((& $llE '1' 'L18-Cert.' '855' 'cadastre'), (& $llE '2' 'L18-Proj. i Cert.' '561' 'cadastre'), (& $llE '3' 'II' '12.1' 'utm'),
+           (& $llE '4' '' '' 'classificacio'), (& $llE '5' 'III' '3.2' 'cadastre'), (& $llE '1' 'L18-Cert.' '855' 'utm'))
+$llPer = _ExPerLlistat $llErr @('cadastre', 'utm', 'classificacio') @()
+AssertEq "$(@($llPer.innocues).Count)|$(@($llPer.bars).Count)|$(@($llPer.annexos).Count)|$((@($llPer.SenseLlistat) | ForEach-Object { $_.Id }) -join ',')" '2|1|2|4' 'Llistats: el repartiment, i el que no va a cap'
+$llPer2 = _ExPerLlistat $llErr @('cadastre') @(@{ Id = '5' })
+AssertEq "$(@($llPer2.innocues).Count)|$(@($llPer2.annexos).Count)" '1|0' 'Llistats: nomes els tipus marcats, i sense les activitats tretes'
+AssertEq (_ExResumLlistat @($llPer.innocues)) '2 errors (1 activitats)' 'Llistats: el resum del correu'
+AssertEq (_ExNomFitxerLlistat 'bars' (New-Object datetime(2026, 10, 15))) 'Excel_errors_2026-10-15_Bars_i_Restaurants.xlsx' 'Llistats: el nom del fitxer, com els de l''usuari'
+AssertEq (_ExNomFitxerLlistat 'annexos' (New-Object datetime(2026, 10, 15))) 'Excel_errors_2026-10-15_Annexos_II_i_III.xlsx' 'Llistats: Annexos II i III'
+
+Write-Host "`n--- Excel Errors: els tres Excels i les tretes dels llistats (en disc) ---"
+$llDir = Join-Path ([System.IO.Path]::GetTempPath()) ('exll-' + [guid]::NewGuid().ToString('N'))
+try {
+    $llG = New-ExcelErrorsLlistats $llErr @('cadastre', 'utm') @() $llDir (New-Object datetime(2026, 10, 15))
+    Assert ([bool]$llG.Ok) ('Llistats: es fan (' + [string]$llG.Error + ')')
+    AssertEq (@($llG.Fitxers) | ForEach-Object { Split-Path -Leaf $_ }) 'Excel_errors_2026-10-15_Innocues.xlsx Excel_errors_2026-10-15_Bars_i_Restaurants.xlsx Excel_errors_2026-10-15_Annexos_II_i_III.xlsx' 'Llistats: els tres Excels, en ordre'
+    AssertEq ((@($llG.Resum.Keys)) -join '|') (('Inn' + [char]0x00F2 + 'cues') + '|Bars i Restaurants|Annexos II i III') 'Llistats: el resum, per llistat'
+    $llZip = [System.IO.Compression.ZipFile]::OpenRead(@($llG.Fitxers)[1])
+    try { $llSr = New-Object System.IO.StreamReader($llZip.GetEntry('xl/worksheets/sheet1.xml').Open()); $llXml = $llSr.ReadToEnd(); $llSr.Dispose() } finally { $llZip.Dispose() }
+    Assert ($llXml.Contains('>2<') -and -not $llXml.Contains('>3<') -and $llXml.Contains('ID Activitat')) 'Llistats: el de Bars i Restaurants porta nomes les seves activitats (i la capcalera)'
+    $llP = Join-Path $llDir 'exclosos.json'
+    AssertEq @(Read-ExExclosos $llP).Count 0 'Tretes: sense fitxer, cap'
+    $llX = @(_ExExclososAmb @() @(@{ Id = '7'; Text = 'BAR' }, @{ Id = '3'; Text = 'X' }, @{ Id = '7'; Text = 'BAR' }))
+    Save-ExExclosos $llX $llP
+    AssertEq ((@(Read-ExExclosos $llP) | ForEach-Object { $_.Id }) -join ',') '3,7' 'Tretes: es desen (sense repetides, per GIA)'
+    AssertEq ((@(_ExExclososAmb (Read-ExExclosos $llP) @(@{ Id = '3' }) $true) | ForEach-Object { $_.Id }) -join ',') '7' 'Tretes: es poden tornar a posar'
+} finally { Remove-Item -LiteralPath $llDir -Recurse -Force -ErrorAction SilentlyContinue }
+
+Write-Host "`n--- Excel Errors AUTOMATIC: el registre, el correu i els guards ---"
+Assert ($Script:ModesAuto.Contains('excelerrors')) 'Excel Errors auto: te interruptor A/M'
+AssertEq ([string](Get-ProgramacioAuto 'excelerrors' ([pscustomobject]@{})).Freq) 'quinzena' 'Excel Errors auto: per defecte cada dues setmanes'
+Assert ($Script:ScriptsSegonPla -contains 'ExcelErrorsAuto.ps1') 'Excel Errors auto: el boto Aturar el coneix'
+Assert ($Script:CorreuEines.Contains('excelerrors')) 'Excel Errors: es una eina de Correus de cada eina'
+AssertEq (@($Script:CorreuEines['excelerrors'].Vies) -join ',') 'outlook-esborrany,outlook' 'Excel Errors: nomes Outlook (porta adjunts)'
+Assert ($Script:CorreuTextosEditors.Contains('excelerrors') -and $Script:CorreuProves.Contains('excelerrors')) 'Excel Errors: te el text editable i el correu de prova'
+AssertEq ([string](_LoadExCorreu)['assumpte']) 'Dades incorrectes GIA' 'Excel Errors: l''assumpte que va proposar l''usuari'
+Assert ([string](_ExCorreuDefecte)['cos']).StartsWith('Podeu mirar aquests errors del GIA si us plau??') 'Excel Errors: i el cos'
+$exSup = Split-Path -Parent $TestsDir
+$exAutoSrc = _SenseComentaris (Join-Path $exSup 'ExcelErrorsAutomatic.ps1')
+Assert ($exAutoSrc.Contains('$caixa.Gen = Invoke-ExcelErrorsLlistats') -and $exAutoSrc.Contains('Send-ExcelErrorsCorreu $caixa.Gen $true')) 'Excel Errors auto: la MATEIXA feina que el boto (Invoke-ExcelErrorsLlistats + Send-ExcelErrorsCorreu)'
+Assert ((_SenseComentaris (Join-Path $exSup 'ExcelErrorsLlistats.ps1')).Contains('if (-not $silenci -and @($ccoTriades).Count -gt 0) { $cco = _CorreuCcoAmb $cco $ccoTriades }')) 'Excel Errors: l''automatic no hi posa mai la CCO a triar'
+Assert ((_SenseComentaris (Join-Path $exSup 'ExcelErrorsPantalla.ps1')).Contains("Select-CorreuCcoTria 'excelerrors'")) 'Excel Errors: a ma, la CCO a triar'
+} catch {
+    Assert $false ("15-excel-errors (llistats): excepcio no controlada: " + $_.Exception.Message + ' @ ' + $_.InvocationInfo.ScriptLineNumber)
+}

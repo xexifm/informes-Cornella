@@ -2175,3 +2175,23 @@ tipus d'error (deixa'm marcar el tipus d'error que vull que s'exporti)».
   per escriure** (guard).
 - **El CheckedListBox avisa ABANS** del canvi (`ItemCheck`): la finestra porta
   el canvi pendent a `$st.Canvi` en lloc de refer la graella més tard.
+- **Els tres llistats per correu i l'automàtic** (octubre 2026, l'usuari: «vull
+  automatitzar també els errors: un correu amb 3 Excels», Innòcues, Bars i
+  Restaurants, Annexos II i III). `ExcelErrorsLlistats.ps1`: el repartiment
+  (`_ExLlistatDe`, pura, compara l'annex sense accents ni signes: «L18-Proj. i
+  Cert.» → `l18projicert`; el 561 amb `_ControlPeriodicClassify`), les tres
+  fitxes, les activitats **tretes dels llistats** (`excel-errors-exclosos.json`,
+  per GIA) i el correu (`Send-ExcelErrorsCorreu`, com el del Seguiment: adreces
+  fixes, només Outlook perquè porta adjunts). L'automàtic
+  (`ExcelErrorsAutomatic.ps1` + `ExcelErrorsAuto.ps1`, cada dues setmanes) fa
+  **la mateixa** `Invoke-ExcelErrorsLlistats` + `Send-ExcelErrorsCorreu` que el
+  botó (guard), amb la tria desada i mai la CCO «a triar».
+  - **Qui no va a cap llistat**, a posta i dit a l'usuari: annex buit, annex I,
+    L18-Cert. o Sectorial amb 561 i qualsevol altre valor. Amb els Excels que va
+    passar l'usuari (76 activitats amb errors): 15 sense annex i 1 de l'annex
+    I.1. La finestra en mostra la columna «Llistat» i el recompte.
+  - **La finestra va a `ExcelErrorsPantalla.ps1`**: la fan servir la lectura
+    (ExcelErrors.ps1) i els llistats; si fos dins d'ExcelErrors.ps1, aquell i el
+    dels llistats dependrien l'un de l'altre (guard de cicles).
+  - El guard de les closures va enxampar `$Script:ExLlistats` dins del `$fill`
+    de la graella (hauria llegit buit): es captura en una variable local.

@@ -1886,7 +1886,7 @@ foreach ($cas in @(@{ F = 'RecordatorisPantalla.ps1'; T = "Select-CorreuCcoTria 
                    @{ F = 'EnviarCorreu.ps1'; T = '_CorreuCcoOpcions ([string]$ccoE.Sempre) ([string]$ccoE.Tria)' })) {
     Assert ((_SenseComentaris (Join-Path $ccoDir $cas.F)).Contains($cas.T)) ("CCO a triar: " + $cas.F + " l'ofereix en enviar a ma")
 }
-foreach ($f in @('RecordatorisAuto.ps1', 'SeguimentGiaAutomatic.ps1', 'ControlsPeriodicsAutomatic.ps1', 'ControlsPeriodicsAuto.ps1', 'BaseInformesAuto.ps1', 'CopiaInformesAuto.ps1', 'PlanolAuto.ps1')) {
+foreach ($f in @('RecordatorisAuto.ps1', 'SeguimentGiaAutomatic.ps1', 'ControlsPeriodicsAutomatic.ps1', 'ControlsPeriodicsAuto.ps1', 'ExcelErrorsAutomatic.ps1', 'ExcelErrorsAuto.ps1', 'BaseInformesAuto.ps1', 'CopiaInformesAuto.ps1', 'PlanolAuto.ps1')) {
     Assert (-not (_SenseComentaris (Join-Path $ccoDir $f)).Contains('Select-CorreuCcoTria')) ("CCO a triar: " + $f + " (automatic) no obre la tria")
 }
 $ccoRec = _SenseComentaris (Join-Path $ccoDir 'Recordatoris.ps1')

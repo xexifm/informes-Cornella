@@ -321,7 +321,7 @@ function Invoke-AmbMutexUnic([string]$nom, [scriptblock]$feina, [scriptblock]$si
 #   - els Word i Excel oberts PER UN PROGRAMA (/Automation, -Embedding: els que
 #     fa servir aquest programa per COM). Els que ha obert l'usuari no porten
 #     aquestes opcions a la linia d'ordres i no es toquen. L'Outlook, mai.
-$Script:ScriptsSegonPla = @('BaseInformesAuto.ps1', 'CopiaInformesAuto.ps1', 'PlanolAuto.ps1', 'SeguimentGiaAuto.ps1', 'ControlsPeriodicsAuto.ps1', 'RecordatorisAuto.ps1', 'GeneraVistes.ps1')
+$Script:ScriptsSegonPla = @('BaseInformesAuto.ps1', 'CopiaInformesAuto.ps1', 'PlanolAuto.ps1', 'SeguimentGiaAuto.ps1', 'ControlsPeriodicsAuto.ps1', 'ExcelErrorsAuto.ps1', 'RecordatorisAuto.ps1', 'GeneraVistes.ps1')
 
 # 'segonpla', 'office' o '' per a un proces (nom de l'executable i linia
 # d'ordres). PURA.

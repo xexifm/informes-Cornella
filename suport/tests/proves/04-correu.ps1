@@ -186,7 +186,7 @@ AssertEq ((_QuotaSuma $qMateix 3).enviats) 15 '_QuotaSuma: suma els enviaments'
 
 Write-Host "`n--- CorreuEines.ps1: els correus de cada eina (octubre 2026) ---"
 $ceClaus = @($Script:CorreuEines.Keys)
-AssertEq ($ceClaus -join ',') 'mobil,rec-requeriments,rec-precintes,controls,seguiment' 'les eines que envien correus, en un sol registre'
+AssertEq ($ceClaus -join ',') 'mobil,rec-requeriments,rec-precintes,controls,seguiment,excelerrors' 'les eines que envien correus, en un sol registre'
 AssertEq (@($Script:CorreuEines['controls'].Vies) -join ',') 'outlook-esborrany' 'Controls periodics nomes admet esborranys (l''usuari els revisa)'
 Assert (@($Script:CorreuEines['seguiment'].Vies) -notcontains 'emailjs') 'el Seguiment no admet EmailJS (porta adjunts)'
 foreach ($k in @($Script:CorreuEines.Keys)) {

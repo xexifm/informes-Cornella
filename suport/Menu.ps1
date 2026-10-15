@@ -143,7 +143,7 @@ $Script:AjudaEines = @{
     copiarinformes    = "Copia els informes nous a la carpeta de còpia, tots junts, sense esborrar mai res. L'interruptor A/M de sota ho fa sol [PROGRAMACIO]."
     convertirpdf      = "Converteix un informe de Word (o una carpeta sencera) a PDF i, si ho marques, el signa amb AutoFirma."
     comprovarexcel    = "Comprova que les activitats que la base d'informes té en Precinte / Cessament també ho tinguin marcat a l'Excel d'activitats, i que hi consti la data de la darrera visita d'inspecció. Et llista les que no."
-    excelerrors       = "Busca errors a l'Excel d'activitats: dades que falten (raó social, representant, adreça, cadastre, UTM, classificació...), dades mal escrites o del tècnic. Exportes a Excel els tipus que marquis."
+    excelerrors       = "Busca errors a l'Excel d'activitats (dades que falten, mal escrites o del tècnic) i els exporta per tipus. En A, [PROGRAMACIO] envia per correu els tres llistats."
     seguimentgia      = "Llistats de seguiment del GIA (precintes, denúncies, decret, sonometria, annex II) en Excel o PDF, i per correu. En A, cada dues setmanes s'envia sol."
     emailtextos       = "Edita l'assumpte i el text de TOTS els correus del programa: el de l'informe (mòbil i Enviar correu), els recordatoris, els controls periòdics i el seguiment."
     enviarcorreu      = "Envia al titular, des de l'ordinador, el correu amb els requeriments de qualsevol informe ja fet (el tries; el més recent surt triat), amb el mateix format que el del mòbil."
@@ -628,7 +628,7 @@ function Select-Mode {
     $gia = @(
         @{ Emoji = $tiList;  Label = 'Seguiment';       Kind = 'action'; Action = 'seguimentgia'; Interruptor = $true }
         @{ Emoji = $tiCheck; Label = 'Excel Comprovar'; Kind = 'action'; Action = 'comprovarexcel' }
-        @{ Emoji = $tiAvis;  Label = 'Excel Errors';    Kind = 'action'; Action = 'excelerrors' }
+        @{ Emoji = $tiAvis;  Label = 'Excel Errors';    Kind = 'action'; Action = 'excelerrors'; Interruptor = $true }
     )
     # NORMATIVA: la normativa dels requeriments i mantenir-los al dia.
     $normativaRow = @(

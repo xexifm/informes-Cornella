@@ -69,6 +69,12 @@ $Script:CorreuEines = [ordered]@{
         # No es de cap activitat: nomes adreces fixes.
         Dest = @(); DestDefecte = @()
     }
+    'excelerrors' = [ordered]@{
+        Nom = "Excel Errors (els tres Excels d'errors del GIA)"
+        # Porta els tres Excels adjunts: EmailJS no en sap.
+        Vies = @('outlook-esborrany', 'outlook')
+        Dest = @(); DestDefecte = @()
+    }
 }
 
 $Script:CorreuDestNoms = [ordered]@{

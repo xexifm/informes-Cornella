@@ -686,6 +686,32 @@ tipus marcats: *ID Activitat*, *Classificació general annex* i *Classificació
 general Apartat* (les de la fulla *Estès*), *Tipus d'error*, el camp, el valor que hi ha a l'Excel i el detall. A la
 finestra hi surt també la raó social. El programa recorda què havies marcat.
 
+**Els tres llistats per correu (i sol cada dues setmanes, **A** / **M**).** Els
+errors dels tipus que tinguis marcats es reparteixen en tres Excels, segons la
+classificació de la fulla *Estès*:
+
+| Llistat | Classificació general annex | Classificació general Apartat |
+|---|---|---|
+| **Innòcues** | L18-Proj. i Cert., L18-Cert. o Sectorial | qualsevol menys el 561 |
+| **Bars i Restaurants** | L18-Proj. i Cert. | 561 |
+| | Recreativa catàleg | qualsevol |
+| **Annexos II i III** | II o III | qualsevol |
+
+- **No van a cap llistat**: les activitats **sense annex**, les de l'**annex I**
+  (I.1, I.2…), les **L18-Cert.** o **Sectorial** amb l'apartat **561**, i qualsevol
+  altre valor. A la finestra, la columna **Llistat** hi diu *(cap)* i a dalt
+  surt quantes n'hi ha.
+- **Enviar per correu** fa els tres Excels (`local\excel-errors\`) i els envia
+  per l'Outlook a qui hagis posat a ⚙ Configuració → *Correus de cada eina* →
+  *Excel Errors* (adreces fixes). Assumpte i text, a *Textos del correu*
+  (per defecte, «Dades incorrectes GIA»).
+- Amb l'interruptor **A** de la rajola, ho fa sol **cada dues setmanes, el
+  dilluns a les 13:00** (es canvia a Configuració → Automatismes), amb els tipus
+  que tinguis marcats. Sense cap destinatari, l'automàtic no s'engega.
+- **Treure dels llistats**: selecciona a la llista una o més activitats i ja no
+  sortiran (ni a la finestra, ni als Excels, ni al correu), tinguin els errors
+  que tinguin. **Tretes dels llistats...** les torna a posar.
+
 > Els dos tipus que surten dels documents (*Dades del tècnic* i *no quadra amb
 > els documents*) necessiten la base de contactes, que fa **Actualitzar base**.
 > Si una columna de l'Excel no es troba (s'ha reanomenat), aquella comprovació
@@ -985,7 +1011,7 @@ i envies tu.
 
 A **⚙ Configuració** hi ha el grup **Automatismes**, amb una fila per cada cosa
 que el programa fa sol (Copiar informes, Actualitzar base, Plànol activitats,
-Seguiment, Controls periòdics i Recordatoris). A cada fila pots:
+Seguiment, Controls periòdics, Excel Errors i Recordatoris). A cada fila pots:
 
 - **encendre-la o apagar-la** (és el mateix interruptor A/M del menú);
 - triar **cada dia** o **cada setmana**, i en aquest cas **quin dia**;

@@ -56,6 +56,7 @@ $Script:LocalSubdirs = [ordered]@{
     Planol         = 'planol-activitats'
     Normativa      = 'normativa'
     Revisions      = 'revisions'
+    ExcelErrors    = 'excel-errors'
 }
 
 # ATENCIO al [string] del 'return': Join-Path es un CMDLET, i el que surt d'un

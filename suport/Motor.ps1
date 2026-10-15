@@ -40,6 +40,8 @@
     CopiaInformes.ps1   eina "Copiar informes" (a ma i automatic)
     ComprovarExcel.ps1  eina "Excel Comprovar" (precintes i visites contra l'Excel)
     ExcelErrors.ps1     eina "Excel Errors" (les dades que falten o no son bones a l'Excel)
+                        (+ ExcelErrorsLlistats.ps1, els tres llistats per correu;
+                        ExcelErrorsPantalla.ps1, la finestra; ExcelErrorsAutomatic.ps1, A/M)
     Migracio.ps1        rutes de local\ i endrec de les carpetes velles
 
     -- eines del menu --
@@ -460,7 +462,8 @@ if (-not $Script:HeadlessTest) { [void](Invoke-MigracioLocal $RepoRoot) }
 # El mode automatic (setmanal) del Planol activitats: s'apunta al registre.
 . (Join-Path $ScriptRoot 'PlanolAutomatic.ps1')
 . (Join-Path $ScriptRoot 'ComprovarExcel.ps1')
-# L'eina "Excel Errors" (fila GIA): els errors de la fulla Estes.
+# L'eina "Excel Errors" (fila GIA): els errors de la fulla Estes. Els tres
+# llistats per correu, la finestra i l'automatic, despres de CorreuEines.ps1.
 . (Join-Path $ScriptRoot 'ExcelErrors.ps1')
 
 # Lector dels ESTRUCTURALS en JSON (format estandard unic). Nomes defineix
@@ -584,6 +587,13 @@ if (-not $Script:HeadlessTest) { [void](Invoke-MigracioLocal $RepoRoot) }
 # El Seguiment automatic (cada dues setmanes) i el correu amb el PDF dels
 # llistats. DESPRES de CorreuEines.ps1: s'hi registra la prova i el text.
 . (Join-Path $ScriptRoot 'SeguimentGiaAutomatic.ps1')
+
+# Els tres llistats d'"Excel Errors" per correu (Innocues, Bars i Restaurants,
+# Annexos II i III), la seva finestra i el seu automatic. DESPRES de
+# CorreuEines.ps1: s'hi registra la prova i el text.
+. (Join-Path $ScriptRoot 'ExcelErrorsLlistats.ps1')
+. (Join-Path $ScriptRoot 'ExcelErrorsPantalla.ps1')
+. (Join-Path $ScriptRoot 'ExcelErrorsAutomatic.ps1')
 
 # Eina "Recordatoris": avisos periodics als titulars amb tramits pendents, a
 # partir de l'estat de la base d'informes. Nomes defineix funcions.
