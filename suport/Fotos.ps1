@@ -92,7 +92,8 @@ function _FotosBlocs($fotos) {
     if ($files.Count -eq 0) { return @() }
     $b = New-Object System.Collections.ArrayList
     [void]$b.Add(@{ T = 'saltpagina' })
-    [void]$b.Add(@{ T = 'conclusiocap'; Text = $Script:FotosTitol })
+    # DespresDeSalt: el titol, al paragraf que deixa el salt (sense linia buida).
+    [void]$b.Add(@{ T = 'conclusiocap'; Text = $Script:FotosTitol; DespresDeSalt = $true })
     foreach ($f in $files) { [void]$b.Add(@{ T = 'fotos'; Fila = $f }) }
     return $b.ToArray()
 }

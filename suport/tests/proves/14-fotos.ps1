@@ -35,7 +35,7 @@ Write-Host "`n--- Fotos: Write-Informe (amb els dobles de Format.ps1) ---"
 try {
     . (Join-Path $TestsDir 'FormatDoubles.ps1')
     [void](Write-Informe $null @(_FotosBlocs @((& $fV 1), (& $fV 2), (& $fH 3))))
-    AssertEq (@($global:emitCalls) -join ' / ') ('CONCLCAP|REPORTATGE FOTOGR' + [char]0x00C0 + 'FIC / FOTOS|1:v1.jpg@6,2:v2.jpg@6 / FOTOS|3:h3.jpg@12') 'Fotos: el titol i les files arriben a Format-Fotos'
+    AssertEq (@($global:emitCalls) -join ' / ') ('CONCLCAP|REPORTATGE FOTOGR' + [char]0x00C0 + 'FIC (despres del salt) / FOTOS|1:v1.jpg@6,2:v2.jpg@6 / FOTOS|3:h3.jpg@12') 'Fotos: el titol i les files arriben a Format-Fotos'
 } catch {
     Assert $false ('bloc Write-Informe fotos: ' + $_.Exception.Message + ' @ ' + $_.InvocationInfo.ScriptLineNumber)
 } finally {
@@ -74,6 +74,20 @@ try {
     Assert ($logF.EndsWith('TEXT <tab>Foto 1<tab>Foto 2')) 'Format-Fotos: a sota, "Foto 1" i "Foto 2" a les mateixes tabulacions'
     AssertEq "$([Math]::Round($wf.Ultima.Width, 1))|$($wf.Ultima.LockAspectRatio)" '170.1|-1' 'Format-Fotos: 6 cm d''ample amb la proporcio bloquejada'
     AssertEq ([int]$pfF.LineSpacingRule) 0 'Format-Fotos: interlineat senzill (un "exacte" retallaria la foto)'
+
+    # El titol, al paragraf que deixa el salt de pagina: sense paragraf nou.
+    $selF | Add-Member -Force -MemberType ScriptMethod -Name TypeParagraph -Value { [void]$wf.Log.Add(('PARA after=' + $pfF.SpaceAfter)) }
+    $wf.Log.Clear(); Format-ConclusionHeader $selF 'REPORTATGE' -DespresDeSalt
+    $logT = @($wf.Log) -join ' ; '
+    Assert ((-not $logT.Contains('PARA')) -and $logT.Contains('TEXT REPORTATGE')) ('Format-ConclusionHeader -DespresDeSalt: escriu al paragraf on es, sense linia en blanc damunt (' + $logT + ')')
+    $wf.Log.Clear(); Format-ConclusionHeader $selF 'CONCLUSIONS'
+    Assert ((@($wf.Log) -join ' ; ').StartsWith('PARA')) 'Format-ConclusionHeader: sense -DespresDeSalt, paragraf nou com sempre'
+    # La llista [LLISTA]: l'aire va DESPRES del paragraf d'abans (en fer Enter,
+    # el Word copiaria un "espai abans" a cada element).
+    $pfF.SpaceAfter = 0; $wf.Log.Clear(); Format-ListItem $selF '' -Pics
+    AssertEq "$(@($wf.Log)[0])|$($pfF.SpaceAfter)|$($pfF.SpaceBefore)" 'PARA after=12|0|0' 'Format-ListItem -Pics: 12 pt despres del paragraf d''abans i la llista sense espai propi'
+    $pfF.SpaceAfter = 0; $wf.Log.Clear(); Format-ListItem $selF ''
+    AssertEq "$(@($wf.Log)[0])" 'PARA after=0' 'Format-ListItem (MNS): igual que abans, sense aire'
 } catch {
     Assert $false ('bloc Format-Fotos: ' + $_.Exception.Message + ' @ ' + $_.InvocationInfo.ScriptLineNumber)
 }

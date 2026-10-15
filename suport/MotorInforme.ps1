@@ -464,7 +464,7 @@ function _WriteBlocs($sel, $blocs, $estat, [bool]$ambNivells) {
             'nota'         { Format-Note $sel ([string]$b.Text) }
             'ajuda'        { Format-Ajuda $sel ([string]$b.Text) }
             'conclusio'    { Format-Conclusion $sel ([string]$b.Text) }
-            'conclusiocap' { Format-ConclusionHeader $sel ([string]$b.Text) }
+            'conclusiocap' { Format-ConclusionHeader $sel ([string]$b.Text) -DespresDeSalt:([bool]$b.DespresDeSalt) }
             'fotos'        { Format-Fotos $sel $b.Fila }
             'llista'       { Format-ListItem $sel ([string]$b.Text) -Pics:([bool]$b.Pics) }
             'continua'     { Format-Append $sel ([string]$b.Text) }

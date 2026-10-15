@@ -494,8 +494,17 @@ function Format-Append {
 #
 # -Pics: la mateixa llista pero amb pics (la marca [LLISTA] del cataleg, dins
 # d'un requeriment: numerada, el Seguiment la confondria amb requeriments).
+# AMB AIRE AL DAMUNT (PrimerSubpuntSpaceBeforePt, com el primer sub-punt), pero
+# posat com a espai DESPRES del paragraf d'abans i no com a espai abans del de la
+# llista: l'usuari hi escriu i prem Enter, i el Word copia el format del paragraf
+# al seguent; amb "espai abans" a la llista, CADA element en tindria (petició de
+# l'usuari, octubre 2026: nomes abans de la llista).
 function Format-ListItem {
     param($sel, [string]$text = '', [switch]$Pics)
+    if ($Pics) {
+        $aire = [double]$Script:ReportFormatConfig.PrimerSubpuntSpaceBeforePt
+        try { if ([double]$sel.ParagraphFormat.SpaceAfter -lt $aire) { $sel.ParagraphFormat.SpaceAfter = $aire } } catch { }
+    }
     _NouParagraf $sel 0
     try {
         if ($Pics) { $sel.Range.ListFormat.ApplyBulletDefault() }
@@ -646,9 +655,14 @@ function Format-Conclusion {
 # NO fem reset d'alignment al final (anava AL MATEIX paragraf i feia que
 # 'CONCLUSIONS' sortis alineat a l'esquerra). En lloc d'aixo, Format-Conclusion
 # i la resta de Format-* es defineixen amb el seu Alignment explicit.
+#
+# -DespresDeSalt: just darrere d'un Format-SaltPagina. El Word, en inserir el
+# salt, ja deixa el cursor en un paragraf NOU i buit a la pagina seguent; fer-ne
+# un altre deixava una linia en blanc de mes damunt del titol (REPORTATGE
+# FOTOGRAFIC, octubre 2026). Aqui s'escriu al paragraf on es.
 function Format-ConclusionHeader {
-    param($sel, [string]$text)
-    _NouParagraf $sel 0
+    param($sel, [string]$text, [switch]$DespresDeSalt)
+    if ($DespresDeSalt) { _Apply-Indent $sel 0; _Reset-Char $sel } else { _NouParagraf $sel 0 }
     try { $sel.ParagraphFormat.Alignment = 1 } catch { }   # 1 = wdAlignParagraphCenter
     try { $sel.ParagraphFormat.SpaceAfter = [double]$Script:ReportFormatConfig.ConclusionHeaderSpaceAfterPt } catch { }
     $r = _EscriuRang $sel $text -Pla

@@ -818,6 +818,9 @@ llegeix com a requeriment qualsevol llista DECIMAL de nivell 0
 `docs/correu.js`, prova creuada) surt com un `pic` sense text. Primer ús: REQ1 >
 Extracció de fums > **Potència cuina** (octubre 2026). Tests: `05-composicio`
 («La marca [LLISTA]») i `08-correu-format`.
+L'aire de 12 pt damunt la llista (`PrimerSubpuntSpaceBeforePt`) es posa com a
+**espai DESPRÉS del paràgraf d'abans**, no com a espai abans de la llista: en
+prémer Enter el Word copia el format del paràgraf i cada element en tindria.
 
 ## La FITXA D'AJUDA d'un requeriment: l'interruptor va al costat segur
 
@@ -1182,7 +1185,10 @@ clavada al codi i ara surten del **peu real** de l'última etiqueta.
   Disposició (`_FotosFiles`, pura): dues verticals SEGUIDES de costat a 6 cm,
   les horitzontals i una vertical sola en fila pròpia (12 / 6 cm), sense
   reordenar. `Format-Fotos` (Format.ps1) les centra amb tabulacions i posa
-  «Foto n» a sota. Sense fotos l'informe queda idèntic a abans. Tests:
+  «Foto n» a sota. El títol porta `DespresDeSalt` (`Format-ConclusionHeader
+  -DespresDeSalt`): el salt de pàgina ja deixa el cursor en un paràgraf nou i
+  buit, i fer-ne un altre deixava una línia en blanc damunt del títol. Sense
+  fotos l'informe queda idèntic a abans. Tests:
   `proves/14-fotos.ps1` (amb un Word simulat; el COM real s'ha de provar al PC).
 
 ## El MOTOR DE COMPOSICIÓ (`suport/MotorInforme.ps1`)
