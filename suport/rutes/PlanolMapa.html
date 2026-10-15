@@ -88,6 +88,7 @@
   .pop .cap .sw { flex: 0 0 auto; width: 16px; height: 16px; margin-top: 1px; }
   .pop .sub { margin: 2px 0 0 24px; font-size: 12px; color: #333; }
   .pop .sub b { color: #14365c; }
+  .pop h3 .classif { font-weight: normal; color: #555; white-space: nowrap; }
   .pop .bloc { margin-top: 8px; padding-top: 6px; border-top: 1px solid #eee; font-size: 12px; }
   .pop .bloc .tit { font-size: 10px; letter-spacing: .04em; text-transform: uppercase; color: #8a96a3; margin-bottom: 2px; }
   .pop .ct { margin: 3px 0; line-height: 1.35; }
@@ -565,7 +566,7 @@ function adrecesHtml(ens) {
   var en = ens[0];
   var ads = uniq(ens.map(function (e) { return e.ad; })), cas = uniq(ens.map(function (e) { return e.ca; }));
   // Les DUES adreces, cada una amb el seu nom: no han de coincidir.
-  return '<span class="adr"><i>Adreça (base d\'activitats):</i> ' + escHtml(ads.join(' · ') || '—') + '</span>' +
+  return '<span class="adr"><i>Adreça (BBDD):</i> ' + escHtml(ads.join(' · ') || '—') + '</span>' +
     (cas.length ? '<br><span class="adr"><i>Adreça (Cadastre):</i> ' + escHtml(cas.join(' · ')) + '</span>' : '') +
     (en.cl || en.at ? '<br><span class="cad">' + escHtml([en.cl ? 'Classificació: ' + en.cl : '', en.at ? 'allotjament turístic' : ''].filter(Boolean).join(' · ')) + '</span>' : '');
 }
@@ -657,10 +658,32 @@ function htmlFitxa(idx) {
   return h + '</table></div>';
 }
 
+// L'ESTABLIMENT de la fitxa d'una activitat (l'usuari, octubre 2026):
+//   Adreça (BBDD): C COBALT 46
+//   Adreça (Cadastre): CL COBALT 46 (Esc. 1 - Pl. baixa - Pt. 10)
+// Amb diversos establiments, un per linia amb el seu local.
+function establimentHtml(ens) {
+  var ads = uniq(ens.map(function (e) { return e.ad; }));
+  var h = '<span class="adr"><i>Adreça (BBDD):</i> ' + escHtml(ads.join(' · ') || '—') + '</span>';
+  var linia = function (e) {
+    var ca = e.ca || '';
+    var loc = e.s ? '(' + escHtml(e.s) + ')' : '';
+    return (ca ? escHtml(ca) : '<span class="cad">no trobada</span>') + (loc ? ' ' + loc : '');
+  };
+  if (ens.length === 1) {
+    h += '<br><span class="adr"><i>Adreça (Cadastre):</i> ' + linia(ens[0]) + '</span>';
+  } else {
+    h += '<br><span class="adr"><i>Adreça (Cadastre), ' + ens.length + ' establiments:</i></span>';
+    for (var k = 0; k < ens.length; k++) { h += '<br><span class="adr">&bull; ' + linia(ens[k]) + '</span>'; }
+  }
+  return h;
+}
+
 // LA FITXA D'UNA ACTIVITAT (clic al seu ID): nomes ella, amb TOTS els seus
-// establiments, tambe els d'altres parcel.les. A dalt el color i l'ID amb el
-// titular; a sota l'activitat i l'estat; el CONTACTE (amb Trucar); el local i
-// les adreces; els avisos; i les referencies del Cadastre.
+// establiments, tambe els d'altres parcel.les. L'usuari (octubre 2026): a dalt
+// el color, l'ID, l'ACTIVITAT i la classificacio (el titular ja es al
+// contacte); a sota l'estat; el CONTACTE (amb Trucar); l'ESTABLIMENT; els
+// avisos; i les referencies del Cadastre.
 function htmlFitxaActivitat(g) {
   var ens = [], parceles = [];
   for (var i = 0; i < PARCELES.length; i++) {
@@ -674,14 +697,15 @@ function htmlFitxaActivitat(g) {
   var visible = passaActivitat(e0, filtres());
   var estat = estatActivitat(e0);
   var avisos = avisosActivitat(ens);
-  var est = establimentsHtml(ens);
   var h = '<div class="pop fitxa"' + (visible ? '' : ' style="opacity:.6"') + '>';
   h += '<div class="cap"><span class="sw sw-' + escHtml(e0.e) + '"></span><h3>ID ' + escHtml(g) +
-       (e0.n || e0.ac ? ' &middot; ' + escHtml(e0.n || e0.ac) : '') + '</h3></div>';
-  h += '<div class="sub">' + (e0.n && e0.ac ? escHtml(e0.ac) + ' &middot; ' : '') + '<b>' + escHtml(estat || '—') + '</b>' +
-       (e0.ni > 0 ? ' &middot; ' + e0.ni + ' informe' + (e0.ni > 1 ? 's' : '') : '') + '</div>';
+       (e0.ac || e0.n ? ' &middot; ' + escHtml(e0.ac || e0.n) : '') +
+       (e0.cl ? ' <span class="classif">(Classif: ' + escHtml(e0.cl) + ')</span>' : '') + '</h3></div>';
+  h += '<div class="sub"><b>' + escHtml(estat || '—') + '</b>' +
+       (e0.ni > 0 ? ' &middot; ' + e0.ni + ' informe' + (e0.ni > 1 ? 's' : '') : '') +
+       (e0.at ? ' &middot; allotjament turístic' : '') + '</div>';
   h += '<div class="bloc"><div class="tit">Contacte</div>' + contacteHtml(e0) + '</div>';
-  h += '<div class="bloc"><div class="tit">Local</div>' + (est ? est + '<br>' : '') + adrecesHtml(ens) +
+  h += '<div class="bloc"><div class="tit">Establiment</div>' + establimentHtml(ens) +
        (avisos.length ? '<br><span class="avis">&#9888; ' + escHtml(avisos.join(' · ')) + '</span>' : '') +
        '<div class="rc">' + parceles.map(function (i) {
          var pc = PARCELES[i];

@@ -163,9 +163,14 @@ try {
              ct: [...d.querySelectorAll('.ct')].map((c) => c.textContent),
              tels: [...d.querySelectorAll('a.tel')].map((a) => [a.getAttribute('href'), a.textContent.trim()]) };
   });
-  check(fActT.h3.includes('1447') && fActT.h3.includes('BAR EL RACO SL') && fActT.sw, 'fitxa d\'una activitat: a dalt, el quadre del color davant de l\'ID i el TITULAR');
-  check(fActT.sub.startsWith('BAR') && fActT.sub.includes('PRECINTADA') && !fActT.sub.includes('EL RACO SL'), 'a sota, l\'activitat i l\'estat (sense repetir el titular)');
-  eq(fActT.blocs, ['Contacte', 'Local'], 'i dos blocs: el contacte i el local');
+  eq(fActT.h3, 'ID 1447 · BAR (Classif: III)', 'fitxa d\'una activitat: a dalt, el color davant de l\'ID, l\'ACTIVITAT i la classificació (el titular és al contacte)');
+  check(fActT.sw, '...amb el quadre del color al davant');
+  check(fActT.sub.startsWith('PRECINTADA') && !fActT.sub.includes('EL RACO SL') && !fActT.sub.startsWith('BAR'), 'a sota, l\'estat');
+  eq(fActT.blocs, ['Contacte', 'Establiment'], 'i dos blocs: el contacte i l\'establiment');
+  const fEst = await p.evaluate(() => { const d = document.createElement('div'); d.innerHTML = htmlFitxaActivitat('1403'); return [...d.querySelectorAll('.bloc')][1].textContent; });
+  check(fEst.includes('Adreça (BBDD): C CADIS 21') && fEst.includes('Adreça (Cadastre): no trobada (Local 5)'), 'l\'establiment: l\'adreça de la BBDD i la del Cadastre (aquí no hi ha el portal) amb el local entre parèntesis');
+  const fEst2 = await p.evaluate(() => { const d = document.createElement('div'); d.innerHTML = htmlFitxaActivitat('1447'); return [...d.querySelectorAll('.bloc')][1].textContent; });
+  check(fEst2.includes('Adreça (Cadastre), 2 establiments:') && fEst2.includes('CL CADIS 19 (Esc. 1 - Pl. 2 - Pt. 16)') && fEst2.includes('(Local 7)'), 'amb dos establiments, un per línia: l\'adreça del Cadastre i el seu local');
   check(fActT.ct.length === 2 && fActT.ct[0].includes('Raó social') && fActT.ct[0].includes('BAR EL RACO SL') && fActT.ct[1].includes('Representant legal') && fActT.ct[1].includes('PERE PROVA PROVA'), 'el contacte: la raó social i el representant legal, amb el nom');
   eq(fActT.tels, [['tel:+34600111222', '📞 600 111 222'], ['tel:+34611222333', '📞 611 222 333'], ['tel:+34934445566', '📞 934 445 566']], 'cada telèfon és un botó per trucar (tel:, amb el +34)');
   eq(await p.evaluate(() => [...document.querySelectorAll('.leaflet-popup-content a.tel')].map((a) => a.title)), ['Trucar (Raó social)', 'Trucar (Representant legal)', 'Trucar (Representant legal)'],
@@ -181,7 +186,7 @@ try {
   check(fitxa.includes('també com a BUIT (establiment 8)'), 'i l\'avís del local buit duplicat al GIA');
   check((await p.innerHTML('.leaflet-popup-content')).includes('rc1=2295827&amp;rc2=DF2729E'), 'amb l\'enllaç a la fitxa del Cadastre');
   check(fitxa.includes('Esc. 1 - Pl. 2 - Pt. 16') && fitxa.includes('Local 5'), 'el local/planta/porta, a la fitxa (ja no al plànol)');
-  check(fitxa.includes('Adreça (base d\'activitats): C CADIS 21'), 'l\'adreça de la base d\'activitats, amb el seu nom');
+  check(fitxa.includes('Adreça (BBDD): C CADIS 21'), 'l\'adreça de la base d\'activitats (BBDD), amb el seu nom');
   check(fitxa.includes('Adreça (Cadastre): CL CADIS 19'), 'i la del Cadastre (el portal amb el seu número), diferenciada');
   check(fitxa.includes('la coordenada UTM cau fora de la parcel·la'), 'la que va en vermell diu per què');
   check(!fitxa.includes('situa'), 'res de situar a mà: mana la coordenada de l\'Excel');

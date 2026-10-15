@@ -153,7 +153,11 @@ Com es decideix (`Get-CasesActivitats` + `Get-EtiquetesGrup`, a `PlanolDades.ps1
   davant de l'ID** i el titular; a sota l'activitat i l'estat; un bloc
   **Contacte** (raó social i representant, cada un amb els seus telèfons com a
   botons `tel:` amb el +34); un bloc **Local** (establiments, adreces,
-  classificació, avisos i referència cadastral); i «Fer informe». A la fitxa de
+  classificació, avisos i referència cadastral); i «Fer informe». Segona volta
+  (l'usuari): a dalt **ID · ACTIVITAT (Classif: II)** —el titular ja és al
+  contacte—, a sota l'estat i els informes, i el bloc es diu **Establiment**:
+  «Adreça (BBDD): …» i «Adreça (Cadastre): CL … (Esc. 1 - Pl. baixa - Pt. 10)»,
+  un per línia si n'hi ha diversos (`establimentHtml`). A la fitxa de
   la parcel·la, el color va davant de l'ID de cada fila i els telèfons hi diuen
   de qui són. Al mòbil, amb una fitxa oberta, s'amaguen el zoom i les capes
   (`amb-fitxa`), que la tapaven.
