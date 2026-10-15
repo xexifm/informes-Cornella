@@ -268,7 +268,7 @@ function Get-ExcelErrorsFila($f, $col) {
 # $files: llista de @{ Id; Valors (hashtable per clau de columna) } en l'ordre
 # de l'Excel; $col: _ExColumnes; $contactes: GIA -> activitat de la base de
 # contactes (o $null si no n'hi ha). Torna una llista de [pscustomobject]
-# @{ Id; Titular; Tipus; TipusNom; Camp; Valor; Detall }.
+# @{ Id; Titular; Annex; Tipus; TipusNom; Camp; Valor; Detall }.
 function Get-ExcelErrors($files, $col, $contactes) {
     $out = New-Object System.Collections.ArrayList
     $vistos = @{}
@@ -277,7 +277,7 @@ function Get-ExcelErrors($files, $col, $contactes) {
     $afegeix = {
         param($fl, $e)
         [void]$out.Add([pscustomobject]@{
-            Id = [string]$fl.Id; Titular = [string]$fl.Valors['RAO']; Tipus = [string]$e.Tipus
+            Id = [string]$fl.Id; Titular = [string]$fl.Valors['RAO']; Annex = [string]$fl.Valors['ANNEX']; Tipus = [string]$e.Tipus
             TipusNom = [string]$Script:ExTipus[[string]$e.Tipus]; Camp = [string]$e.Camp; Valor = [string]$e.Valor; Detall = [string]$e.Detall
         })
     }
@@ -312,16 +312,23 @@ function _ExComptes($errors) {
     return $n
 }
 
-# Les files de l'Excel exportat: NOMES els tipus triats, per ID i en l'ordre
-# dels tipus. PURA.
-$Script:ExExportCapcalera = @('ID Activitat', "Tipus d'error", 'Camp', "Valor a l'Excel", 'Detall', ('Ra' + [char]0x00F3 + ' social'))
-$Script:ExExportAmples = @(12, 48, 28, 32, 70, 40)
-function _ExFilesExport($errors, $tipusTriats) {
+# Els errors dels tipus triats, per ID (numeric) i en l'ordre dels tipus: el
+# que es veu a la graella i el que s'exporta. PURA.
+function _ExTriats($errors, $tipusTriats) {
     $ordre = @{}; $i = 0
     foreach ($k in @($Script:ExTipus.Keys)) { $ordre[$k] = $i++ }
     $tria = @($errors | Where-Object { $null -ne $_ -and @($tipusTriats) -contains [string]$_.Tipus })
-    $tria = @($tria | Sort-Object -Property @{ Expression = { _GiaNumeric $_.Id } }, @{ Expression = { [int]$ordre[[string]$_.Tipus] } })
-    return @($tria | ForEach-Object { , @([string]$_.Id, [string]$_.TipusNom, [string]$_.Camp, [string]$_.Valor, [string]$_.Detall, [string]$_.Titular) })
+    return @($tria | Sort-Object -Property @{ Expression = { _GiaNumeric $_.Id } }, @{ Expression = { [int]$ordre[[string]$_.Tipus] } })
+}
+
+# Les files de l'Excel exportat: NOMES els tipus triats. Al costat de l'ID, la
+# "Classificacio general annex" de la base (l'usuari, octubre 2026: "afegeix una
+# columna despres de l'ID Activitat [...] Pots esborrar la columna Rao social";
+# la rao social es queda nomes a la graella de la finestra). PURA.
+$Script:ExExportCapcalera = @('ID Activitat', ('Classificaci' + [char]0x00F3 + ' general annex'), "Tipus d'error", 'Camp', "Valor a l'Excel", 'Detall')
+$Script:ExExportAmples = @(12, 16, 48, 28, 32, 70)
+function _ExFilesExport($errors, $tipusTriats) {
+    return @(_ExTriats $errors $tipusTriats | ForEach-Object { , @([string]$_.Id, [string]$_.Annex, [string]$_.TipusNom, [string]$_.Camp, [string]$_.Valor, [string]$_.Detall) })
 }
 
 function Export-ExcelErrors([string]$desti, $errors, $tipusTriats) {
@@ -452,7 +459,7 @@ function Show-ExcelErrorsFinestra($errors, [string]$peu, [string]$fileName) {
     $grid = New-Object System.Windows.Forms.DataGridView
     _StyleListGrid $grid
     $grid.ReadOnly = $true
-    foreach ($c in @(@{ H = 'ID Activitat'; W = 80 }, @{ H = ('Ra' + [char]0x00F3 + ' social'); W = 210 }, @{ H = "Tipus d'error"; W = 300 },
+    foreach ($c in @(@{ H = 'ID Activitat'; W = 80 }, @{ H = 'Classif. annex'; W = 90 }, @{ H = ('Ra' + [char]0x00F3 + ' social'); W = 190 }, @{ H = "Tipus d'error"; W = 290 },
                      @{ H = 'Camp'; W = 150 }, @{ H = "Valor a l'Excel"; W = 170 }, @{ H = 'Detall'; W = 380 })) {
         $col = New-Object System.Windows.Forms.DataGridViewTextBoxColumn
         $col.HeaderText = $c.H; $col.Width = $c.W; $col.SortMode = 'NotSortable'
@@ -479,9 +486,10 @@ function Show-ExcelErrorsFinestra($errors, [string]$peu, [string]$fileName) {
         $sel = & $triatsAra
         $n = ([string]$txtCerca.Text).Trim().ToLower()
         $nf = 0
-        foreach ($fila in @(_ExFilesExport $errors $sel)) {
+        foreach ($e in @(_ExTriats $errors $sel)) {
+            $fila = @([string]$e.Id, [string]$e.Annex, [string]$e.Titular, [string]$e.TipusNom, [string]$e.Camp, [string]$e.Valor, [string]$e.Detall)
             if ($n -ne '' -and -not (_TextMatches ($fila -join ' ') $n)) { continue }
-            [void]$grid.Rows.Add(@($fila[0], $fila[5], $fila[1], $fila[2], $fila[3], $fila[4]))
+            [void]$grid.Rows.Add($fila)
             $nf++
         }
         $nAct = @(@($errors) | Where-Object { $sel -contains [string]$_.Tipus } | ForEach-Object { [string]$_.Id } | Sort-Object -Unique).Count

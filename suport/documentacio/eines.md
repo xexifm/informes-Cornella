@@ -2167,8 +2167,11 @@ tipus d'error (deixa'm marcar el tipus d'error que vull que s'exporti)».
 - **El cadastre**: 20 caràcters, o els 14 de la parcel·la.
 - **La tria es desa** a `local\base-dades-activitats\excel-errors.json` com a
   llista de **desmarcats**: així un tipus nou surt marcat.
-- **L'exportació** és `_NormativaXlsxBytes` (sense Excel), amb *ID Activitat* i
-  *Tipus d'error* a les dues primeres columnes; **l'Excel del GIA no s'obre mai
+- **L'exportació** és `_NormativaXlsxBytes` (sense Excel): *ID Activitat*,
+  *Classificació general annex* de la base i *Tipus d'error* a les primeres
+  columnes (l'usuari va demanar l'annex al costat de l'ID i treure la raó
+  social de l'Excel; a la graella de la finestra s'hi queda). La graella i
+  l'exportació ordenen pel mateix lloc (`_ExTriats`); **l'Excel del GIA no s'obre mai
   per escriure** (guard).
 - **El CheckedListBox avisa ABANS** del canvi (`ItemCheck`): la finestra porta
   el canvi pendent a `$st.Canvi` en lloc de refer la graella més tard.
