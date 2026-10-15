@@ -300,6 +300,7 @@ function Save-BaseEditada($state) {
     [void](Invoke-AmbMutexUnic $Script:BaseMutexNom {
         $disc = $null
         if (Test-Path -LiteralPath $state.Path) { try { $disc = Read-JsonFile $state.Path } catch { $disc = $null } }
+        try { [void](Backup-JsonFile $state.Path) } catch { }
         if ($null -ne $disc -and (_SegellBase $disc) -ne [string]$state.Segell) {
             Write-JsonFile $state.Path (_FusionaEdicionsBase $disc $state.Db) 8
             $caixa.Res = 'fusionat'

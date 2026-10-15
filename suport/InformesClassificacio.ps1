@@ -219,6 +219,15 @@ function _EstatEquivalent([string]$estat) {
     return $estat
 }
 
+# Per a ValidarClassificacio: la referencia del 10/8/2026 es d'abans dels dos
+# favorables de llicencia i hi diu "Favorable". 'igual', 'llicencia' (el pre o
+# el post contra un Favorable: equivalent, es llista a part) o 'diferent'. PURA.
+function _BreuEquivalentRef([string]$bo, [string]$ara) {
+    if ($bo -eq $ara) { return 'igual' }
+    if ($bo -eq $Script:EstatFavorable -and ($ara -eq $Script:EstatFavorablePre -or $ara -eq $Script:EstatFavorablePost)) { return 'llicencia' }
+    return 'diferent'
+}
+
 # "es pertinent suspendre/precintar" no negat ("no es pertinent..." no compta).
 $Script:RxPrecinte = '(?<!\bno (es )?)pertinent (suspendre|precintar)'
 

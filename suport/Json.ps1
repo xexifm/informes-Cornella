@@ -54,6 +54,42 @@ function Read-JsonFile([string]$Path) {
     }
 }
 
+# LES BASES (informes-db.json, contactes-db.json): llegir-les O PARAR.
+# Read-JsonFile torna $null tant si el fitxer no hi es com si no s'ha pogut
+# llegir, i "Actualitzar base" ho prenia per "no hi ha base": en feia una de
+# nova i hi perdia les correccions a ma SENSE CAP AVIS (l'usuari, octubre 2026:
+# la base de la feina generada de zero, 170 correccions perdudes; el clone viu
+# en una unitat de xarxa, on una lectura pot fallar un moment). Aqui: $null
+# NOMES si el fitxer no existeix; si hi es i no es pot llegir (tres intents),
+# LLANCA, i qui crida no escriu res.
+function Read-JsonFileStrict([string]$Path) {
+    if ([string]::IsNullOrWhiteSpace($Path) -or -not (Test-Path -LiteralPath $Path)) { return $null }
+    $err = ''
+    for ($i = 0; $i -lt 3; $i++) {
+        try {
+            $raw = Get-Content -LiteralPath $Path -Raw -Encoding UTF8 -ErrorAction Stop
+            if ([string]::IsNullOrWhiteSpace($raw)) { $err = 'el fitxer es buit' }
+            else { return ($raw | ConvertFrom-Json -ErrorAction Stop) }
+        } catch { $err = [string]$_.Exception.Message }
+        if ($i -lt 2) { Start-Sleep -Milliseconds 500 }
+    }
+    throw ("No s'ha pogut llegir " + $Path + ': ' + $err)
+}
+
+# Una COPIA abans de sobreescriure una base: <nom>_AAAAMMDD-HHMM.bak a la mateixa
+# carpeta, i nomes les $Max mes recents (l'usuari). Torna la ruta de la copia o
+# '' si no hi havia res a copiar.
+function Backup-JsonFile([string]$Path, [int]$Max = 5) {
+    if ([string]::IsNullOrWhiteSpace($Path) -or -not (Test-Path -LiteralPath $Path)) { return '' }
+    $dir = Split-Path -Parent $Path
+    $base = [System.IO.Path]::GetFileNameWithoutExtension($Path)
+    $desti = Join-Path $dir ($base + '_' + (Get-Date).ToString('yyyyMMdd-HHmm') + '.bak')
+    Copy-Item -LiteralPath $Path -Destination $desti -Force
+    $copies = @(Get-ChildItem -LiteralPath $dir -Filter ($base + '_*.bak') -File -ErrorAction SilentlyContinue | Sort-Object Name -Descending)
+    for ($i = $Max; $i -lt $copies.Count; $i++) { Remove-Item -LiteralPath $copies[$i].FullName -Force -ErrorAction SilentlyContinue }
+    return [string]$desti
+}
+
 # Normalitza a text ISO una marca de temps que ve d'un JSON.
 #
 # PER QUE: el ConvertFrom-Json del Windows PowerShell 5.1 (produccio) deixa la

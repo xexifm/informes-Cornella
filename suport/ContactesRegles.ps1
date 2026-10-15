@@ -77,6 +77,55 @@ function _CtEmailExclos([string]$email) {
     return $false
 }
 
+# Un correu d'assessoria o de gestoria PEL NOM (l'usuari, 2a ronda:
+# "asesoriarovira2000@hotmail.es" sortia de correu del titular). La part d'abans
+# de l'@ ho diu i el nom del titular no. PURA.
+$Script:CtPatronsGestoriaNom = @('asesor', 'assessor', 'gestor', 'gestoria', 'advocat', 'abogad', 'ingenier', 'enginy', 'arquitect')
+function _CtCorreuGestoriaPelNom([string]$email, [string]$titular) {
+    $e = _CtEmailNet $email
+    if ($e -eq '') { return $false }
+    $local = _CtPla ($e.Substring(0, $e.IndexOf('@')))
+    $tn = _CtPla $titular
+    foreach ($x in $Script:CtPatronsGestoriaNom) { if ($local.Contains($x) -and -not $tn.Contains($x)) { return $true } }
+    return $false
+}
+
+# El domini es el d'un tecnic de la llista, o s'hi assembla (un error de tecleig,
+# distancia <= 2: "inaargesa.com" / "inargesa.com", GIA 32). Els dominis dels
+# proveidors corrents (gmail...) no compten. Torna el domini de la llista o ''.
+# PURA (amb memoria al context: la distancia es cara).
+function _CtDominiTecnic([string]$email, $ctx) {
+    $d = _CtDomini $email
+    if ($d -eq '' -or $null -eq $ctx.Tecnics.Dominis -or $Script:CtDominisComuns -contains $d) { return '' }
+    if ($ctx.Tecnics.Dominis.ContainsKey($d)) { return $d }
+    if ($null -eq $ctx.MemoDomini) { $ctx.MemoDomini = @{} }
+    if ($ctx.MemoDomini.ContainsKey($d)) { return [string]$ctx.MemoDomini[$d] }
+    $r = ''
+    if ($d.Length -ge 8) {
+        foreach ($x in @($ctx.Tecnics.Dominis.Keys)) {
+            if ([Math]::Abs($x.Length - $d.Length) -gt 2) { continue }
+            if ((_CtDistancia $d $x) -le 2) { $r = [string]$x; break }
+        }
+    }
+    $ctx.MemoDomini[$d] = $r
+    return $r
+}
+
+# El correu es a la llista de tecnics, pero la persona que el porta NO es cap
+# dels noms d'aquella entrada (l'usuari, GIA 87: l'administrador presenta amb el
+# correu de la seva gestoria). Llavors la persona conserva el seu paper i el
+# correu es de la gestoria. Torna l'entrada de la llista o $null. PURA.
+function _CtCorreuTecnicAltri($p, $ctx) {
+    $e = _CtEmailNet ([string](_CtV $p 'email'))
+    if ($e -eq '' -or -not $ctx.Tecnics.Emails.ContainsKey($e)) { return $null }
+    $ent = $ctx.Tecnics.Emails[$e]
+    $noms = @(@($ent.noms) | Where-Object { @(_CtNomParaules ([string]$_)).Count -ge 2 })
+    $nom = [string](_CtV $p 'nom')
+    if ($noms.Count -eq 0 -or @(_CtNomParaules $nom).Count -lt 2) { return $null }
+    foreach ($n in $noms) { if (_CtMateixNom $nom ([string]$n)) { return $null } }
+    return $ent
+}
+
 function _CtEmailProfessional([string]$email) {
     $e = _CtPla (_CtEmailNet $email)
     if ($e -eq '') { return $false }
@@ -102,10 +151,60 @@ function _CtIdentitatTitular($docs, $xl) {
     return ''
 }
 
+# Els titulars VINCULATS no son "diferents" (l'usuari, 2a ronda: empreses
+# germanes, el mateix propietari): comparteixen el representant legal de
+# l'Excel (el NIF o el nom) o el domini del correu. Nomes si el comparteixen
+# com a molt 3 titulars i no te res de tecnic: el cas mes frequent dels errors
+# de l'Excel es el TECNIC posat de representant legal a moltes activitats, i
+# aquell no ha de fer de pont. Torna titular -> arrel del seu grup. PURA.
+function _CtArrelGrup($pare, [string]$x) {
+    $r = $x
+    while ($pare.ContainsKey($r) -and [string]$pare[$r] -ne $r) { $r = [string]$pare[$r] }
+    return $r
+}
+
+function _CtGrupsTitulars($titPerGia, $excel, $tecnics) {
+    $pare = @{}
+    foreach ($t in @($titPerGia.Values)) { $pare[[string]$t] = [string]$t }
+    $perClau = @{}
+    $afegeix = { param([string]$k, [string]$t) if ($k -eq '') { return }; if (-not $perClau.ContainsKey($k)) { $perClau[$k] = @{} }; $perClau[$k][$t] = $true }
+    foreach ($g in @($titPerGia.Keys)) {
+        $xl = if ($null -ne $excel -and $excel.ContainsKey($g)) { $excel[$g] } else { $null }
+        if ($null -eq $xl) { continue }
+        $t = [string]$titPerGia[$g]
+        $rn = _CtNifNet ([string](_CtV $xl 'REP_NIF'))
+        if ((_CtTipusNif $rn) -eq 'fisica') { & $afegeix ('n:' + $rn) $t }
+        $rnom = [string](_CtV $xl 'REP_NOM')
+        $pw = @(_CtNomParaules $rnom)
+        if ($pw.Count -ge 2 -and @($pw | Where-Object { -not $Script:CtNomsPila.ContainsKey($_) }).Count -gt 0) {
+            $tecNom = $false
+            foreach ($n in @($tecnics.Noms)) { if (_CtMateixNom $rnom $n) { $tecNom = $true; break } }
+            if (-not $tecNom) { & $afegeix ('m:' + (_CtNomNorm $rnom)) $t }
+        }
+        foreach ($k in 'EMAIL', 'REP_EMAIL') {
+            $e = _CtEmailNet ([string](_CtV $xl $k))
+            $d = _CtDomini $e
+            if ($d -eq '' -or $Script:CtDominisComuns -contains $d -or (_CtEmailExclos $e) -or (_CtEmailProfessional $e) -or $tecnics.Emails.ContainsKey($e)) { continue }
+            if ($null -ne $tecnics.Dominis -and $tecnics.Dominis.ContainsKey($d)) { continue }
+            & $afegeix ('d:' + $d) $t
+        }
+    }
+    foreach ($k in @($perClau.Keys)) {
+        $ts = @($perClau[$k].Keys)
+        if ($ts.Count -lt 2 -or $ts.Count -gt 3) { continue }
+        $a = _CtArrelGrup $pare $ts[0]
+        for ($i = 1; $i -lt $ts.Count; $i++) { $b = _CtArrelGrup $pare $ts[$i]; if ($a -ne $b) { $pare[$b] = $a } }
+    }
+    $out = @{}
+    foreach ($t in @($pare.Keys)) { $out[$t] = _CtArrelGrup $pare $t }
+    return $out
+}
+
 function _CtContext($docsPerGia, $excel, $tecnics, $recintes = $null) {
     $ctx = @{
-        Tecnics = if ($null -ne $tecnics) { $tecnics } else { @{ Emails = @{}; Noms = @() } }
+        Tecnics = if ($null -ne $tecnics) { $tecnics } else { @{ Emails = @{}; Noms = @(); Dominis = @{} } }
         EmailTitulars = @{}; TelTitulars = @{}; NifTitulars = @{}; NomTitulars = @{}
+        EmailRol = @{}; TelRol = @{}; MemoDomini = @{}
         Recintes = @(if ($null -ne $recintes) { @($recintes | ForEach-Object { [string]$_ }) } else { $Script:CtRecintesDefecte })
     }
     $apunta = {
@@ -117,12 +216,20 @@ function _CtContext($docsPerGia, $excel, $tecnics, $recintes = $null) {
     $gies = @{}
     foreach ($g in @($docsPerGia.Keys)) { $gies[[string]$g] = $true }
     if ($null -ne $excel) { foreach ($g in @($excel.Keys)) { $gies[[string]$g] = $true } }
+    $titPerGia = @{}
     foreach ($g in @($gies.Keys)) {
         if ($ctx.Recintes -contains $g) { continue }
         $docs = if ($docsPerGia.ContainsKey($g)) { @($docsPerGia[$g]) } else { @() }
         $xl = if ($null -ne $excel -and $excel.ContainsKey($g)) { $excel[$g] } else { $null }
         $tit = _CtIdentitatTitular $docs $xl
         if ($tit -eq '') { $tit = 'GIA ' + $g }
+        $titPerGia[$g] = $tit
+    }
+    $grups = _CtGrupsTitulars $titPerGia $excel $ctx.Tecnics
+    foreach ($g in @($titPerGia.Keys)) {
+        $docs = if ($docsPerGia.ContainsKey($g)) { @($docsPerGia[$g]) } else { @() }
+        $xl = if ($null -ne $excel -and $excel.ContainsKey($g)) { $excel[$g] } else { $null }
+        $tit = [string]$grups[[string]$titPerGia[$g]]
         $persones = New-Object System.Collections.ArrayList
         $presenten = New-Object System.Collections.ArrayList
         foreach ($d in $docs) {
@@ -140,6 +247,8 @@ function _CtContext($docsPerGia, $excel, $tecnics, $recintes = $null) {
         # pel titular (el representant del tramit i l'autoritzat) es compta
         # tambe el NIF i el nom.
         foreach ($p in $presenten) {
+            & $apunta $ctx.EmailRol (_CtEmailNet ([string](_CtV $p 'email'))) $tit
+            foreach ($k in 'telefon', 'mobil') { & $apunta $ctx.TelRol (_CtTelefonNet ([string](_CtV $p $k))) $tit }
             & $apunta $ctx.NifTitulars (_CtNifNet ([string](_CtV $p 'nif'))) $tit
             $nom = [string](_CtV $p 'nom')
             if (@(_CtNomParaules $nom).Count -ge 2) { & $apunta $ctx.NomTitulars (_CtNomNorm $nom) $tit }
@@ -156,23 +265,42 @@ function _CtContext($docsPerGia, $excel, $tecnics, $recintes = $null) {
 # els senyals que no fallen (la llista i els titulars diferents). El correu
 # "professional" i el nom no serveixen per treure un correu al TITULAR: un
 # "estudi de dansa" o una "oficina" tambe poden ser el titular. PURA.
+# "Titulars diferents" (l'usuari, 2a ronda: "surt a 2 activitats es massa
+# poc"): 3 o mes, o 2 si hi ha un altre senyal. PURA.
+function _CtProuTitulars($mapa, [string]$k, [bool]$senyal) {
+    if ($k -eq '' -or $null -eq $mapa -or -not $mapa.ContainsKey($k)) { return 0 }
+    $n = $mapa[$k].Count
+    if ($n -ge 3 -or ($n -eq 2 -and $senyal)) { return $n }
+    return 0
+}
+
 function _CtMotiuTecnic($p, $ctx, [switch]$Fort) {
     if ($null -eq $p) { return '' }
     $e = _CtEmailNet ([string](_CtV $p 'email'))
-    if ($e -ne '' -and $ctx.Tecnics.Emails.ContainsKey($e)) { return "es a la llista de t$([char]0x00E8)cnics coneguts" }
-    if ($e -ne '' -and $ctx.EmailTitulars.ContainsKey($e) -and $ctx.EmailTitulars[$e].Count -ge 2) {
-        return ("el seu correu surt a " + $ctx.EmailTitulars[$e].Count + " activitats de titulars diferents")
+    # El correu de la llista que porta UNA ALTRA persona (la de la gestoria):
+    # no fa tecnic qui el porta.
+    $altri = ($null -ne (_CtCorreuTecnicAltri $p $ctx))
+    # (Ni el correu professional: es el de la gestoria, no el seu.)
+    $prof = (-not $altri) -and (_CtEmailProfessional $e)
+    if ($e -ne '' -and -not $altri) {
+        if ($ctx.Tecnics.Emails.ContainsKey($e)) { return "es a la llista de t$([char]0x00E8)cnics coneguts" }
+        $dt = _CtDominiTecnic $e $ctx
+        if ($dt -ne '') { return ("el domini del correu " + $(if ($dt -eq (_CtDomini $e)) { "es" } else { "s'assembla al" }) + " d'un t$([char]0x00E8)cnic de la llista (" + $dt + ")") }
+        $rol = ($null -ne $ctx.EmailRol -and $ctx.EmailRol.ContainsKey($e) -and $ctx.EmailRol[$e].Count -ge 2)
+        $n = _CtProuTitulars $ctx.EmailTitulars $e ($prof -or $rol)
+        if ($n -gt 0) { return ("el seu correu surt a " + $n + " activitats de titulars diferents") }
     }
     foreach ($k in 'mobil', 'telefon') {
         $t = _CtTelefonNet ([string](_CtV $p $k))
-        if ($t -ne '' -and $ctx.TelTitulars.ContainsKey($t) -and $ctx.TelTitulars[$t].Count -ge 2) {
-            return ("el seu tel$([char]0x00E8)fon surt a " + $ctx.TelTitulars[$t].Count + " activitats de titulars diferents")
-        }
+        if ($t -eq '') { continue }
+        $rol = ($null -ne $ctx.TelRol -and $ctx.TelRol.ContainsKey($t) -and $ctx.TelRol[$t].Count -ge 2)
+        $n = _CtProuTitulars $ctx.TelTitulars $t ($prof -or $rol)
+        if ($n -gt 0) { return ("el seu tel$([char]0x00E8)fon surt a " + $n + " activitats de titulars diferents") }
     }
     $mi = _CtMotiuTecnicIdentitat $p $ctx
     if ($mi -ne '') { return $mi }
     if ($Fort) { return '' }
-    if (_CtEmailProfessional $e) { return 'correu de professional' }
+    if ($prof) { return 'correu de professional' }
     $nom = [string](_CtV $p 'nom')
     foreach ($n in @($ctx.Tecnics.Noms)) { if (_CtMateixNom $nom $n) { return "es a la llista de t$([char]0x00E8)cnics coneguts" } }
     return ''
@@ -181,14 +309,19 @@ function _CtMotiuTecnic($p, $ctx, [switch]$Fort) {
 # El mateix NIF o el mateix nom presentant per a titulars diferents: es tecnic
 # (l'usuari: "compta tambe el NIF/DNI i el nom normalitzat del representant del
 # tramit"). '' si no. PURA.
+# 3 titulars o mes, o 2 amb un correu professional. Un nom ha de tenir un
+# cognom (B1: "MARIA JOSE" sol no es ningu).
 function _CtMotiuTecnicIdentitat($p, $ctx) {
     if ($null -eq $p -or $null -eq $ctx.NifTitulars) { return '' }
+    $prof = _CtEmailProfessional ([string](_CtV $p 'email'))
     $n = _CtNifNet ([string](_CtV $p 'nif'))
-    if ($n -ne '' -and $ctx.NifTitulars.ContainsKey($n) -and $ctx.NifTitulars[$n].Count -ge 2) { return ("el seu DNI presenta per a " + $ctx.NifTitulars[$n].Count + " titulars diferents") }
+    $c = _CtProuTitulars $ctx.NifTitulars $n $prof
+    if ($c -gt 0) { return ("el seu DNI presenta per a " + $c + " titulars diferents") }
     $nom = [string](_CtV $p 'nom')
-    if (@(_CtNomParaules $nom).Count -ge 2) {
-        $nn = _CtNomNorm $nom
-        if ($ctx.NomTitulars.ContainsKey($nn) -and $ctx.NomTitulars[$nn].Count -ge 2) { return ("el seu nom presenta per a " + $ctx.NomTitulars[$nn].Count + " titulars diferents") }
+    $pw = @(_CtNomParaules $nom)
+    if ($pw.Count -ge 2 -and @($pw | Where-Object { -not $Script:CtNomsPila.ContainsKey($_) }).Count -gt 0) {
+        $c = _CtProuTitulars $ctx.NomTitulars (_CtNomNorm $nom) $prof
+        if ($c -gt 0) { return ("el seu nom presenta per a " + $c + " titulars diferents") }
     }
     return ''
 }
@@ -212,10 +345,18 @@ function _CtPersonaSignant($sg, $e) {
     return $p
 }
 
-# L'interessat es una PERSONA FISICA que presenta en nom propi, per a un titular
-# que es una ENTITAT, amb el correu de l'empresa (l'usuari, GIA 293): es un
-# candidat a representant legal, no un canvi de titular. PURA.
-function _CtInteressatRepCandidat($e, [string]$tipusTit, $xl) {
+# L'interessat d'una instancia o d'un e-TRAM es una PERSONA FISICA i el titular
+# una ENTITAT (l'usuari, 2a ronda: GIA 17, GIA 293): candidat a representant
+# legal ("probable"; "segur" si ho confirma la signatura (R:CIF) o
+# l'autoritzacio, que ja passen al davant). PURA.
+function _CtInteressatRepCandidat($e, [string]$tipusTit) {
+    if ($tipusTit -ne 'juridica' -or [string](_CtV $e 'tipus') -eq 'autoritzacio') { return $false }
+    return ((_CtTipusNif ([string](_CtV (_CtV $e 'interessat') 'nif'))) -eq 'fisica')
+}
+
+# ...i si a mes presenta en nom propi amb el correu de l'empresa, no es un
+# canvi de titular (GIA 293). PURA.
+function _CtInteressatDeLEmpresa($e, [string]$tipusTit, $xl) {
     if ($tipusTit -ne 'juridica' -or $null -ne (_CtV $e 'representant') -or [string](_CtV $e 'tipus') -eq 'autoritzacio') { return $false }
     $i = _CtV $e 'interessat'
     if ((_CtTipusNif ([string](_CtV $i 'nif'))) -ne 'fisica') { return $false }
@@ -224,6 +365,42 @@ function _CtInteressatRepCandidat($e, [string]$tipusTit, $xl) {
     if ($em -eq (_CtEmailNet ([string](_CtV $xl 'EMAIL')))) { return $true }
     return ($Script:CtDominisComuns -notcontains (_CtDomini $em))
 }
+# ELS DOMINIS DEL TITULAR (l'usuari, 2a ronda: GIA 92, "@siemens.com"; GIA 154,
+# "@antala.com"): una dada amb un d'aquests dominis NO es del tecnic encara que
+# ell l'hagi posada. Compten: el domini dels correus de l'interessat-titular
+# als documents, el del correu de l'Excel (si no es d'un tecnic: es l'error mes
+# corrent de l'Excel) i qualsevol domini que porti una paraula del nom de
+# l'empresa. Mai un proveidor corrent (gmail...) ni un professional. PURA.
+function _CtDominisTitular($xl, $ord, [string]$nifTit, $ctx) {
+    $out = @{}
+    $bo = { param([string]$e)
+        $d = _CtDomini $e
+        if ($d -eq '' -or $Script:CtDominisComuns -contains $d -or (_CtEmailExclos $e) -or (_CtEmailProfessional $e)) { return '' }
+        if ($ctx.Tecnics.Emails.ContainsKey($e) -or (_CtDominiTecnic $e $ctx) -ne '') { return '' }
+        return $d
+    }
+    $paraules = @(_CtNomParaules ([string](_CtV $xl 'TITULAR')) | Where-Object { $_.Length -ge 4 })
+    foreach ($d in $ord) {
+        $e = _CtV $d 'extret'
+        if (_CtEsQueixa ([string](_CtV $e 'expedient')) ([string](_CtV $d 'ruta'))) { continue }
+        foreach ($k in 'interessat', 'representant') {
+            $q = _CtV $e $k
+            $em = _CtEmailNet ([string](_CtV $q 'email'))
+            $dd = & $bo $em
+            if ($dd -eq '') { continue }
+            $nq = _CtNifNet ([string](_CtV $q 'nif'))
+            $etiq = ($dd.Split('.')[0])
+            $porta = $false
+            foreach ($w in $paraules) { if ($etiq.Contains($w)) { $porta = $true; break } }
+            if ($porta -or ($k -eq 'interessat' -and $nifTit -ne '' -and $nq -eq $nifTit -and $null -eq (_CtV $e 'representant'))) { $out[$dd] = $true }
+        }
+    }
+    $ex = _CtEmailNet ([string](_CtV $xl 'EMAIL'))
+    $dx = & $bo $ex
+    if ($dx -ne '' -and (_CtProuTitulars $ctx.EmailTitulars $ex $true) -eq 0) { $out[$dx] = $true }
+    return $out
+}
+
 # Una dada amb el seu origen (regla 8).
 function _CtAmbOrigen($p, [string]$font, [string]$data, [string]$conf) {
     $o = [ordered]@{}
@@ -324,8 +501,24 @@ function Get-ContactesActivitat([string]$gia, $docs, $xl, $ctx, $man = $null) {
     }
     $tipusTit = _CtTipusNif $nifTit
     $titXl = [string](_CtV $xl 'TITULAR')
+    # Les dades que NO son del tecnic encara que les porti (B3 de la 2a ronda):
+    # el domini del titular, i les que l'interessat dona en un document SENSE
+    # tecnic (cap representant).
+    $dominisTit = _CtDominisTitular $xl $ord $nifTit $ctx
+    $act.dominis_titular = @($dominisTit.Keys | Sort-Object)
+    $dadesInt = @{}
+    foreach ($d in $ord) {
+        $e = _CtV $d 'extret'
+        if ($null -ne (_CtV $e 'representant') -or [string](_CtV $e 'tipus') -eq 'autoritzacio') { continue }
+        if (_CtEsQueixa ([string](_CtV $e 'expedient')) ([string](_CtV $d 'ruta'))) { continue }
+        $q = _CtV $e 'interessat'
+        foreach ($k in 'email', 'telefon', 'mobil') { $v = [string](_CtV $q $k); if ($v -ne '') { $dadesInt[$v] = $true } }
+    }
 
     # 1. LES PERSONES AUTORITZADES i els candidats a representant legal.
+    # El correu que el tecnic ha posat i que no es seu (es del client): va al
+    # titular si no en te cap altre.
+    $emailsClient = New-Object System.Collections.ArrayList
     $aut = [ordered]@{}
     $candRep = New-Object System.Collections.ArrayList
     $afegeixAut = {
@@ -333,6 +526,17 @@ function Get-ContactesActivitat([string]$gia, $docs, $xl, $ctx, $man = $null) {
         # Una entitat de control (ECA, OCA) o una administracio no es mai
         # persona autoritzada de l'activitat.
         if (_CtEmailExclos ([string](_CtV $p 'email'))) { return }
+        # El correu del domini del titular (i els telefons que porta amb ell) o
+        # el que l'interessat dona sense tecnic no son seus: van al titular.
+        $em0 = _CtEmailNet ([string](_CtV $p 'email'))
+        $delTit = ($em0 -ne '' -and $dominisTit.ContainsKey((_CtDomini $em0)))
+        $treu = @{}
+        if ($delTit -or ($em0 -ne '' -and $dadesInt.ContainsKey($em0))) { $treu['email'] = $true }
+        foreach ($c in 'telefon', 'mobil') { $v = [string](_CtV $p $c); if ($v -ne '' -and ($delTit -or $dadesInt.ContainsKey($v))) { $treu[$c] = $true } }
+        if ($treu.Count -gt 0) {
+            if ($treu.ContainsKey('email')) { [void]$emailsClient.Add(@{ Email = $em0; Font = $font; Data = $data }) }
+            $p = _CtPersona ([string](_CtV $p 'nom')) ([string](_CtV $p 'nif')) $(if ($treu.ContainsKey('email')) { '' } else { $em0 }) $(if ($treu.ContainsKey('telefon')) { '' } else { [string](_CtV $p 'telefon') }) $(if ($treu.ContainsKey('mobil')) { '' } else { [string](_CtV $p 'mobil') })
+        }
         $k = _CtClauPersona $p
         if ($k -eq '') { return }
         if ($aut.Contains($k)) {
@@ -350,12 +554,24 @@ function Get-ContactesActivitat([string]$gia, $docs, $xl, $ctx, $man = $null) {
         $o.motiu = $motiu
         $aut[$k] = $o
     }
-    # El correu que el tecnic ha posat i que no es seu (es del client): va al
-    # titular si no en te cap altre.
-    $emailsClient = New-Object System.Collections.ArrayList
+    # B2: el correu de la llista que porta una altra persona es de la gestoria
+    # (persona autoritzada); la persona, sense aquell correu, conserva el seu
+    # paper. Torna la persona sense el correu (o la mateixa).
+    $treuCorreuAltri = {
+        param($p, [string]$font, [string]$data)
+        $ent = _CtCorreuTecnicAltri $p $ctx
+        if ($null -eq $ent) { return $p }
+        $em = _CtEmailNet ([string](_CtV $p 'email'))
+        $nomG = [string](@(@($ent.noms) | Where-Object { [string]$_ -ne '' }) | Select-Object -First 1)
+        $rolG = if ([string]$ent.rol -ne '') { [string]$ent.rol } else { 'gestoria' }
+        & $afegeixAut (_CtPersona $nomG '' $em) $rolG $font $data 'segur' ("el correu es de la llista de t" + [char]0x00E8 + "cnics coneguts (" + $(if (@($ent.empresa).Count -gt 0) { [string]@($ent.empresa)[0] } else { $nomG }) + "), no d'aquesta persona")
+        return (_CtPersona ([string](_CtV $p 'nom')) ([string](_CtV $p 'nif')) '' ([string](_CtV $p 'telefon')) ([string](_CtV $p 'mobil')))
+    }
     foreach ($d in $ord) {
         $e = _CtV $d 'extret'; $font = [string](_CtV $d 'ruta'); $data = _CtDataDoc $d
         $queixa = _CtEsQueixa ([string](_CtV $e 'expedient')) $font
+        # Un document atribuit pel NIF (C2) i no per la carpeta: tot "probable".
+        $docProb = [bool](_CtV $d 'probable')
         # LA SIGNATURA DE REPRESENTANT (R:CIF), la font mes segura: del CIF del
         # titular, el representant legal; d'una altra entitat (una enginyeria,
         # una gestoria), persona autoritzada. Les de les administracions
@@ -364,7 +580,7 @@ function Get-ContactesActivitat([string]$gia, $docs, $xl, $ctx, $man = $null) {
             if ($null -eq $sg) { continue }
             $cif = _CtNifNet ([string](_CtV $sg 'cif'))
             $pS = _CtPersonaSignant $sg $e
-            if ($nifTit -ne '' -and $cif -eq $nifTit) { [void]$candRep.Add(@{ P = $pS; Font = $font; Data = $data; Conf = 'segur'; Via = 'signatura' }); continue }
+            if ($nifTit -ne '' -and $cif -eq $nifTit) { $pS = & $treuCorreuAltri $pS $font $data; [void]$candRep.Add(@{ P = $pS; Font = $font; Data = $data; Conf = $(if ($docProb) { 'probable' } else { 'segur' }); Via = 'signatura' }); continue }
             if ($queixa -or $cif -match '^[PQS]' -or $nifTit -eq '') { continue }
             & $afegeixAut $pS ("t" + [char]0x00E8 + "cnic") $font $data 'segur' ("signa com a representant d'una altra entitat (R:" + $cif + ")")
         }
@@ -372,14 +588,15 @@ function Get-ContactesActivitat([string]$gia, $docs, $xl, $ctx, $man = $null) {
         if ($null -ne $a -and -not $queixa) {
             foreach ($p in @(_CtV $a 'autoritzats')) { if ($null -ne $p) { & $afegeixAut $p 'autoritzat' $font $data 'segur' "l'autoritzaci$([char]0x00F3) l'autoritza" } }
             $sig = _CtV $a 'signant'
-            if ($null -ne $sig -and $null -ne (_CtV $a 'empresa')) { [void]$candRep.Add(@{ P = $sig; Font = $font; Data = $data; Conf = 'segur'; Via = 'autoritzacio' }) }
+            if ($null -ne $sig -and $null -ne (_CtV $a 'empresa')) { $sig = & $treuCorreuAltri $sig $font $data; [void]$candRep.Add(@{ P = $sig; Font = $font; Data = $data; Conf = $(if ($docProb) { 'probable' } else { 'segur' }); Via = 'autoritzacio' }) }
         }
-        # L'interessat persona fisica que presenta per l'empresa (GIA 293).
-        if (-not $queixa -and (_CtInteressatRepCandidat $e $tipusTit $xl)) {
-            $int = _CtV $e 'interessat'
+        # L'interessat persona fisica d'una entitat (A2 de la 2a ronda).
+        if (-not $queixa -and (_CtInteressatRepCandidat $e $tipusTit)) {
+            $int = & $treuCorreuAltri (_CtV $e 'interessat') $font $data
             if ((_CtMotiuTecnic $int $ctx) -eq '' -and -not (_CtManEsTecnic $man $int)) { [void]$candRep.Add(@{ P = $int; Font = $font; Data = $data; Conf = 'probable'; Via = 'interessat' }) }
         }
         $rep = _CtV $e 'representant'
+        if ($null -ne $rep -and -not $queixa) { $rep = & $treuCorreuAltri $rep $font $data }
         if ($null -ne $rep -and -not $queixa) {
             $motiu = _CtMotiuTecnic $rep $ctx
             $nifRep = _CtNifNet ([string](_CtV $rep 'nif'))
@@ -514,7 +731,7 @@ function Get-ContactesActivitat([string]$gia, $docs, $xl, $ctx, $man = $null) {
         if (& $interessatTecnic $i) { continue }
         if (_CtMateixNom ([string](_CtV $i 'nom')) $titXl) { break }
         if ($null -ne $repSig -and $n -eq [string]$repSig.P.nif) { break }
-        if (_CtInteressatRepCandidat $e $tipusTit $xl) { break }
+        if (_CtInteressatDeLEmpresa $e $tipusTit $xl) { break }
         $act.canvi_titular = [ordered]@{ nom = [string](_CtV $i 'nom'); nif = $n; font = [string](_CtV $d 'ruta'); data = (_CtDataDoc $d); confianca = 'segur' }
         break
     }
@@ -536,12 +753,14 @@ function Get-ContactesActivitat([string]$gia, $docs, $xl, $ctx, $man = $null) {
         # correu i el telefon SI son del titular, "probable" (l'usuari: "el
         # contacte de l'interessat nomes es feia servir quan el NIF casava").
         $altre = ($nifXl -ne '' -and $nifP -ne '' -and $nifP -ne $nifXl -and -not (_CtMateixNom ([string](_CtV $p 'nom')) $titXl))
-        $conf = if ([string](_CtV $e 'tipus') -eq 'autoritzacio' -or $altre) { 'probable' } else { 'segur' }
+        $conf = if ([string](_CtV $e 'tipus') -eq 'autoritzacio' -or $altre -or [bool](_CtV $d 'probable')) { 'probable' } else { 'segur' }
         $posat = $false
         foreach ($c in 'nom', 'nif', 'email', 'telefon', 'mobil') {
             $v = [string](_CtV $p $c)
             if ($v -eq '') { continue }
             if ($c -eq 'email' -and ((_CtEmailExclos $v) -or $tecEmails.ContainsKey($v) -or (_CtMotiuTecnic @{ email = $v } $ctx -Fort) -ne '')) { continue }
+            # B5: el correu d'una assessoria pel nom (i el titular no ho es).
+            if ($c -eq 'email' -and (_CtCorreuGestoriaPelNom $v ($titXl + ' ' + [string](_CtV $p 'nom')))) { continue }
             if (($c -eq 'telefon' -or $c -eq 'mobil') -and ($tecTels.ContainsKey($v) -or (_CtMotiuTecnic @{ $c = $v } $ctx -Fort) -ne '')) { continue }
             if ($altre -and ($c -eq 'nom' -or $c -eq 'nif')) {
                 [void]$hist.Add([ordered]@{ camp = $c; valor = $v; font = $font; data = $data; nota = 'un altre titular' })
@@ -561,7 +780,7 @@ function Get-ContactesActivitat([string]$gia, $docs, $xl, $ctx, $man = $null) {
     # El correu del client que havia posat el tecnic.
     if ([string]$tit.email -eq '') {
         foreach ($ce in $emailsClient) {
-            if ((_CtEmailExclos $ce.Email) -or $tecEmails.ContainsKey($ce.Email)) { continue }
+            if ((_CtEmailExclos $ce.Email) -or $tecEmails.ContainsKey($ce.Email) -or (_CtCorreuGestoriaPelNom $ce.Email $titXl)) { continue }
             $tit.email = $ce.Email
             if ($tit.font -eq '') { $tit.font = $ce.Font; $tit.data = $ce.Data }
             $tit.confianca = 'probable'
@@ -783,7 +1002,8 @@ function _CtAvisos($act, $xl, $ctx) {
         if ($vXl -ne '') {
             $o = _CtAutoritzatDe $act $c.Dada $vXl
             $mot = ''
-            if ($null -eq $o -and $c.Dada -eq 'email') { $mot = _CtMotiuTecnic @{ email = $vXl } $ctx -Fort }
+            # (B3: el correu del domini del titular no es mai del tecnic.)
+            if ($null -eq $o -and $c.Dada -eq 'email' -and @($act.dominis_titular) -notcontains (_CtDomini $vXl)) { $mot = _CtMotiuTecnic @{ email = $vXl } $ctx -Fort }
             if ($null -eq $o -and ($c.Dada -eq 'telefon' -or $c.Dada -eq 'mobil')) { $mot = _CtMotiuTecnic @{ mobil = (_CtTelefonNet $vXl) } $ctx -Fort }
             if ($null -eq $o -and $c.Dada -eq 'nom' -and $c.Qui -eq 'representant_legal') {
                 foreach ($n in @($ctx.Tecnics.Noms)) { if (_CtMateixNom $vXl $n) { $mot = "es a la llista de t$([char]0x00E8)cnics coneguts"; break } }

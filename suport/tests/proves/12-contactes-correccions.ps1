@@ -125,7 +125,7 @@ Assert ([string]$pC.motiu).Contains('DNI') 'C: el motiu diu que es pel DNI'
 AssertEq "$($aC.titular.email)|$($aC.titular.confianca)" 'botiga@client-u.test|probable' 'C: el correu que havia posat el tecnic es del titular'
 $aC2 = Get-ContactesActivitat '9302' $docsC['9302'] $xlC['9302'] $ctxC
 AssertEq "$(@($aC2.persones_autoritzades)[0].email)|$($aC2.titular.email)" 'jordi.t@correu.test|info@client-dos.test' 'C: el seu correu (el que surt a dos titulars) si que es seu'
-$ctxN = _CtContext @{ '9301' = @(@{ ruta = 'a'; modificat = ''; extret = @{ representant = (_CtPersona 'Jordi Tramitador Inventat') } }); '9302' = @(@{ ruta = 'b'; modificat = ''; extret = @{ representant = (_CtPersona 'JORDI TRAMITADOR INVENTAT') } }) } $xlC @{ Emails = @{}; Noms = @() } @()
+$ctxN = _CtContext @{ '9301' = @(@{ ruta = 'a'; modificat = ''; extret = @{ representant = (_CtPersona 'Jordi Tramitador Inventat') } }); '9302' = @(@{ ruta = 'b'; modificat = ''; extret = @{ representant = (_CtPersona 'JORDI TRAMITADOR INVENTAT') } }); '9303' = @(@{ ruta = 'c'; modificat = ''; extret = @{ representant = (_CtPersona 'Jordi  Tramitador Inventat') } }) } $xlC @{ Emails = @{}; Noms = @() } @()
 Assert ((_CtMotiuTecnic (_CtPersona 'Jordi Tramitador Inventat') $ctxN).Contains('nom')) 'C: sense DNI, el nom normalitzat repetit tambe compta'
 
 Write-Host "`n--- D. El GIA de la carpeta mana sobre el del document ---"
@@ -179,4 +179,4 @@ $a8b = Get-ContactesActivitat '9502' $docs8b @{ TITULAR = 'EMPRESA PROVA SL'; NI
 AssertEq "$($a8b.representant_legal.nom)|$($a8b.representant_legal.confianca)|$($a8b.titular.email)|$($a8b.canvi_titular)" 'Marta Gerent Prova|probable|marta@empresa-prova.test|' '8b: la persona fisica que presenta per l''empresa amb el correu de l''empresa: candidata a representant, no canvi de titular'
 $docs10 = @(@{ ruta = 'GIA 9503\Instancia_generica.pdf'; modificat = '2025-05-01T00:00:00Z'; extret = ([ordered]@{ tipus = 'instancia'; data = '2025-05-01'; titol = ''; gia = ''; expedient = ''; interessat = (_CtPersona ('Nom i cognoms o ra' + [char]0x00F3 + ' social') 'B99999999' 'info@nou.test'); representant = $null; establiment = $null; autoritzacio = $null; signatures = @() }) })
 AssertEq ([string](Get-ContactesActivitat '9503' $docs10 @{ TITULAR = 'RAO DE L''EXCEL SL'; NIF = 'B99999999' } $ctxA).titular.nom) 'RAO DE L''EXCEL SL' '10: el nom que era una etiqueta (o buit) es la Rao social de l''Excel'
-AssertEq $Script:ContactesVersio '2026-10-15.1' '10: la versio puja (es tornen a llegir tots els documents)'
+

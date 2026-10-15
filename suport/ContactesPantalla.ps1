@@ -188,7 +188,11 @@ function _CtDemanaValor([string]$titol, [string]$etiqueta, [string]$valor) {
 function Show-ContactesFinestra {
     $titol = 'Contactes de les activitats'
     $db = $null
-    try { $db = Read-ContactesDb } catch { $db = $null }
+    try { $db = Read-ContactesDb }
+    catch {
+        [System.Windows.Forms.MessageBox]::Show(("No s'ha pogut llegir la base de contactes (" + [string]$_.Exception.Message + ").`n`nTorna-ho a provar d'aqu" + [char]0x00ED + " a una estona."), $titol, 'OK', 'Warning') | Out-Null
+        return
+    }
     if ($null -eq $db) {
         [System.Windows.Forms.MessageBox]::Show("Encara no hi ha cap repas de contactes.`n`nFes 'Actualitzar base': al final repassa les dades de contacte de cada activitat.", $titol, 'OK', 'Information') | Out-Null
         return
@@ -329,7 +333,7 @@ function Show-ContactesFinestra {
             [System.Windows.Forms.MessageBox]::Show("No s'ha pogut desar (potser 'Actualitzar base' s'est" + [char]0x00E0 + " fent ara mateix). Torna-hi d'aqu" + [char]0x00ED + " a una estona.", $titol, 'OK', 'Warning') | Out-Null
             return
         }
-        $st.Db = Read-ContactesDb
+        try { $st.Db = Read-ContactesDb } catch { }
         $st.Acts = _CtMapaDe (_CtV $st.Db 'activitats')
         & $omplLlista
     }.GetNewClosure()

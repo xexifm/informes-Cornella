@@ -145,6 +145,7 @@ $vcSenseIgnorat = { param($e, $inf)
 # ---- 3. Informe a informe ---------------------------------------------------
 $vcDifInf = New-Object System.Collections.ArrayList
 $vcJudici = New-Object System.Collections.ArrayList
+$vcLlic = New-Object System.Collections.ArrayList
 $vcVistos = @{}
 $nDubte = 0; $nComparats = 0
 foreach ($act in @($vcDb.activitats)) {
@@ -155,8 +156,10 @@ foreach ($act in @($vcDb.activitats)) {
         $e = $vcBo[$clau]
         if (& $vcEsDubte $e) { $nDubte++; continue }
         $nComparats++
-        $okBreu = ([string]$e.conclusio_breu -eq [string]$inf.conclusio_breu)
+        $eqBreu = _BreuEquivalentRef ([string]$e.conclusio_breu) ([string]$inf.conclusio_breu)
+        $okBreu = ($eqBreu -ne 'diferent')
         $okIgn = (& $vcSenseIgnorat $e $inf) -or ([bool]$e.ignorat -eq [bool]$inf.ignorat)
+        if ($eqBreu -eq 'llicencia' -and $okIgn) { [void]$vcLlic.Add(('  ' + $clau + '   referencia: ' + [string]$e.conclusio_breu + '   ara: ' + [string]$inf.conclusio_breu)) }
         if ($okBreu -and $okIgn) { continue }
         $vcIgnTxt = -not (& $vcSenseIgnorat $e $inf)
         $t = ('  ' + $clau + "`n" +
@@ -181,7 +184,9 @@ $vcActivitatBona = { param($act, [bool]$ambJudici)
         $clau = _ClauInforme ([string]$inf.ruta) $vcArrel
         if ($vcBo.ContainsKey($clau) -and -not (& $vcEsDubte $vcBo[$clau]) -and ($ambJudici -or -not (& $vcEsJudici $vcBo[$clau]))) {
             $e = $vcBo[$clau]
-            $o.conclusio_breu = [string]$e.conclusio_breu
+            # El pre/post de llicencia contra el "Favorable" de la referencia: el
+            # d'ara (equivalent; abans tota l'activitat sortia diferent).
+            if ((_BreuEquivalentRef ([string]$e.conclusio_breu) ([string]$inf.conclusio_breu)) -ne 'llicencia') { $o.conclusio_breu = [string]$e.conclusio_breu }
             if (-not (& $vcSenseIgnorat $e $inf)) { $o.ignorat = [bool]$e.ignorat }
             $o.tipus = [string](_PropInf $e 'tipus')
         }
@@ -212,7 +217,7 @@ foreach ($act in @($vcDb.activitats)) {
 & $vcDiu ''
 & $vcDiu ('Informes escanejats: ' + $vcRes.NInformes + '   activitats: ' + $vcRes.NActivitats + '   a revisar: ' + $vcRes.NRevisar)
 & $vcDiu ('Entrades de la classificacio: ' + $vcEntrades.Count + '   comparades: ' + $nComparats + '   DUBTE (fora): ' + $nDubte + '   no trobades a la carpeta: ' + $vcNoTrobats.Count)
-& $vcDiu ('Discrepancies d''informe: ' + $vcDifInf.Count + '   (judici de l''usuari, a part: ' + $vcJudici.Count + ')')
+& $vcDiu ('Discrepancies d''informe: ' + $vcDifInf.Count + '   (judici de l''usuari, a part: ' + $vcJudici.Count + ';  favorables de llicencia pre/post contra "Favorable", equivalents: ' + $vcLlic.Count + ')')
 & $vcDiu ('Discrepancies d''ESTAT d''activitat: ' + $vcDifEstat.Count + '   (nomes per un informe JUDICI, a part: ' + $vcDifEstatJudici.Count + ')')
 & $vcDiu ''
 $vcGaNo = @($vcRes.GiaAssignatsNoTrobats)
@@ -233,6 +238,9 @@ foreach ($t in $vcDifInf) { & $vcDiu $t }
 & $vcDiu ''
 & $vcDiu '== Judici de l''usuari (no compten) =='
 foreach ($t in $vcJudici) { & $vcDiu $t }
+& $vcDiu ''
+& $vcDiu '== Favorables de llicencia: la referencia diu "Favorable", ara pre o post (equivalents, no compten) =='
+foreach ($t in $vcLlic) { & $vcDiu $t }
 & $vcDiu ''
 & $vcDiu '== ESTAT diferent NOMES per un informe JUDICI (no compten) =='
 foreach ($t in $vcDifEstatJudici) { & $vcDiu $t }

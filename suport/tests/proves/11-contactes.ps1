@@ -188,7 +188,10 @@ $xlCt = @{
 }
 try {
     $ctxCt = _CtContext $docsCt $xlCt @{ Emails = @{}; Noms = @() } @('28', '1324')
-    AssertEq $ctxCt.EmailTitulars['pere.prova@correu.test'].Count 3 'context: el correu del tecnic surt a 3 activitats de titulars diferents (comptat sobre tota la base, Excel inclos)'
+    # 9002 i 9003 tenen el mateix representant legal a l'Excel: son titulars
+    # VINCULATS i compten com un (2a ronda, B4). El tecnic surt a 2 grups i
+    # presenta com a representant als dos: tecnic igualment.
+    AssertEq $ctxCt.EmailTitulars['pere.prova@correu.test'].Count 2 'context: el correu del tecnic surt a 2 grups de titulars (9002 i 9003 comparteixen el representant de l''Excel; comptat sobre tota la base, Excel inclos)'
     $a1 = Get-ContactesActivitat '9001' $docsCt['9001'] $xlCt['9001'] $ctxCt
     $a2 = Get-ContactesActivitat '9002' $docsCt['9002'] $xlCt['9002'] $ctxCt
     AssertEq "$(@($a1.persones_autoritzades)[0].nom)|$($a1.representant_legal)" 'Pere Tecnic Inventat|' 'tecnic repetit: es persona autoritzada, no el representant legal'

@@ -584,8 +584,14 @@ function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock
     $prevArrel  = ''
     $generatEl  = (Get-Date).ToString('o')
     if (Test-Path -LiteralPath $outPath) {
+        # Si la base hi es i no es pot llegir, NO se'n comenca una de nova:
+        # es perdrien les correccions a ma sense cap avis (octubre 2026).
+        $prevDb = $null
+        try { $prevDb = Read-JsonFileStrict $outPath }
+        catch {
+            return @{ Ok = $false; Error = ("No s'ha pogut llegir la base d'informes i no s'ha tocat res (" + [string]$_.Exception.Message + "). Torna-ho a provar d'aqui a una estona; si continua, a la mateixa carpeta hi ha les copies (informes-db_*.bak).") }
+        }
         try {
-            $prevDb     = Read-JsonFile $outPath
             # Una base sense carpeta_arrel (no n'hi hauria d'haver cap) es
             # dona per feta amb la carpeta d'ara: si no, cap informe hi
             # casaria per la ruta relativa i es perdrien les correccions.
@@ -602,7 +608,9 @@ function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock
             if ($prevDb.PSObject.Properties['generat_el'] -and -not [string]::IsNullOrWhiteSpace([string]$prevDb.generat_el)) {
                 $generatEl = [string]$prevDb.generat_el
             }
-        } catch { $prevByRuta = @{}; $prevUtc = [datetime]::MinValue; $prevArrel = '' }
+        } catch {
+            return @{ Ok = $false; Error = ("La base d'informes no es pot fer servir i no s'ha tocat res (" + [string]$_.Exception.Message + "). A la mateixa carpeta hi ha les copies (informes-db_*.bak).") }
+        }
     }
 
     # 4. Recollir els fitxers candidats (.docx o .doc amb data al principi
@@ -737,6 +745,7 @@ function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock
         activitats           = $activitatsOrd
         a_revisar            = @($revisar)
     }
+    try { [void](Backup-JsonFile $outPath) } catch { }
     Write-JsonFile $outPath $outObj 8
 
     # Les assignacions que ja no troben l'informe (l'han mogut o reanomenat): no

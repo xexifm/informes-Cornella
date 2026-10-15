@@ -37,7 +37,7 @@
 
 # Si canvia el que es treu d'un document (els lectors de ContactesExtraccio),
 # puja-la: es tornen a llegir tots.
-$Script:ContactesVersio = '2026-10-15.1'
+$Script:ContactesVersio = '2026-10-15.2'
 
 function Get-ContactesDbPath {
     if ([string]::IsNullOrWhiteSpace($LocalActivitatsDir)) { return '' }
@@ -71,7 +71,7 @@ function Find-TecnicsConeguts {
 # Torna @{ Emails = email -> @{ noms; empresa; rol }; Noms; Fitxer; Error }.
 # Sense fitxer, buit (no es cap error: el repas va igual, amb menys senyals).
 function _CtTecnicsDe($obj) {
-    $r = @{ Emails = @{}; Noms = @() }
+    $r = @{ Emails = @{}; Noms = @(); Dominis = @{} }
     if ($null -eq $obj) { return $r }
     $noms = New-Object System.Collections.ArrayList
     foreach ($t in @(_CtV $obj 'tecnics')) {
@@ -81,6 +81,11 @@ function _CtTecnicsDe($obj) {
         foreach ($n in $ns) { if (@(_CtNomParaules $n).Count -ge 2) { [void]$noms.Add($n) } }
         if ($e -eq '') { continue }
         $r.Emails[$e] = @{ noms = $ns; empresa = @(@(_CtV $t 'empresa') | ForEach-Object { [string]$_ }); rol = [string](_CtV $t 'rol') }
+        # El domini d'una gestoria o d'una enginyeria (no el d'un proveidor
+        # corrent): un altre correu del mateix domini, o un d'escrit malament,
+        # tambe es seu (_CtDominiTecnic).
+        $d = $e.Substring($e.IndexOf('@') + 1)
+        if ($Script:CtDominisComuns -notcontains $d) { $r.Dominis[$d] = $e }
     }
     $r.Noms = $noms.ToArray()
     return $r
@@ -182,8 +187,8 @@ function Get-FitxersContactes([string]$dir) {
 # ----------------------------------------------------------------------------
 # DE QUIN GIA ES UN DOCUMENT: el de LA CARPETA MES PROPERA que ho digui
 # ----------------------------------------------------------------------------
-# Carpeta (ruta relativa) -> els GIA dels informes que hi ha (de
-# Get-InformeData o de _FlattenInformesDb: Ruta, Gia). PURA.
+# Carpeta (ruta relativa) -> GIA -> quants informes en te (de Get-InformeData
+# o de _FlattenInformesDb: Ruta, Gia). PURA.
 function _CtGiaPerCarpeta($informes, [string]$arrel) {
     $m = @{}
     foreach ($r in @($informes)) {
@@ -194,9 +199,34 @@ function _CtGiaPerCarpeta($informes, [string]$arrel) {
         if ($c.Count -eq 0) { continue }
         $k = [string]$c[0].Rel
         if (-not $m.ContainsKey($k)) { $m[$k] = @{} }
-        $m[$k][$g] = $true
+        $m[$k][$g] = [int]$m[$k][$g] + 1
     }
     return $m
+}
+
+# El GIA dels informes d'una carpeta: el seu si tots son del mateix, o el de
+# MES DE LA MEITAT (2a ronda, C1: carpetes d'activitat amb algun informe d'una
+# altra activitat deixaven sense GIA tots els documents de Firmadoc\). '' si
+# no n'hi ha cap que mani. PURA.
+function _CtGiaMajoritari($h) {
+    if ($null -eq $h -or $h.Count -eq 0) { return '' }
+    if ($h.Count -eq 1) { return [string]@($h.Keys)[0] }
+    $tot = 0; $mx = 0; $g = ''
+    foreach ($k in @($h.Keys)) { $n = [int]$h[$k]; $tot += $n; if ($n -gt $mx) { $mx = $n; $g = [string]$k } }
+    if ($mx * 2 -gt $tot) { return $g }
+    return ''
+}
+
+# Per que un document no te GIA (per a la validacio): els GIA dels informes de
+# les seves carpetes, o que no n'hi ha cap. PURA.
+function _CtMotiuSenseGia([string]$clau, $perCarpeta) {
+    foreach ($c in @(_CtCarpetesDe $clau)) {
+        if ($null -ne $perCarpeta -and $perCarpeta.ContainsKey($c.Rel)) {
+            $h = $perCarpeta[$c.Rel]
+            return ('informes de ' + $c.Nom + ': ' + ((@($h.Keys) | Sort-Object { _GiaNumeric $_ } | ForEach-Object { 'GIA ' + $_ + ' (' + [int]$h[$_] + ')' }) -join ', '))
+        }
+    }
+    return "cap informe a les carpetes de sobre ni GIA al nom"
 }
 
 # Un expedient -> el GIA de l'Excel. El document l'escriu "2025/3165/16" i la
@@ -228,7 +258,7 @@ function _CtGiaDocument([string]$clau, $extret, $perCarpeta, $conegut, $expToGia
     foreach ($c in @(_CtCarpetesDe $clau)) {
         $m = [regex]::Match([string]$c.Nom, '(?<![a-z])gia\s*(\d{1,6})(?!\d)', 'IgnoreCase')
         if ($m.Success) { return [string][int]$m.Groups[1].Value }
-        if ($null -ne $perCarpeta -and $perCarpeta.ContainsKey($c.Rel) -and $perCarpeta[$c.Rel].Count -eq 1) { return [string]@($perCarpeta[$c.Rel].Keys)[0] }
+        if ($null -ne $perCarpeta -and $perCarpeta.ContainsKey($c.Rel)) { $g = _CtGiaMajoritari $perCarpeta[$c.Rel]; if ($g -ne '') { return $g } }
         $g = _CtGiaDeExpedient (_CtExpedientDeCarpeta $c.Nom) $expToGia
         if ($g -ne '') { return $g }
     }
@@ -251,15 +281,17 @@ function _CtDocsPerGia($documents) {
         $g = [string](_CtV $d 'gia')
         if ($g -eq '' -or $null -eq (_CtV $d 'extret')) { continue }
         if (-not $per.ContainsKey($g)) { $per[$g] = New-Object System.Collections.ArrayList }
-        [void]$per[$g].Add(@{ ruta = [string]$k; modificat = (Read-JsonIso (_CtV $d 'modificat')); extret = (_CtV $d 'extret') })
+        [void]$per[$g].Add(@{ ruta = [string]$k; modificat = (Read-JsonIso (_CtV $d 'modificat')); extret = (_CtV $d 'extret'); probable = ([string](_CtV $d 'gia_via') -eq 'nif') })
     }
     return $per
 }
 
-function _CtCalculaActivitats($documents, $excel, $tecnics, $recintes, $correccions) {
+# $sortida (opcional): s'hi deixa el context (Ctx), per als recomptes.
+function _CtCalculaActivitats($documents, $excel, $tecnics, $recintes, $correccions, $sortida = $null) {
     $per = _CtDocsPerGia $documents
     if ($null -eq $excel) { $excel = @{} }
     $ctx = _CtContext $per $excel $tecnics $recintes
+    if ($null -ne $sortida) { $sortida.Ctx = $ctx }
     $out = [ordered]@{}
     foreach ($g in @($per.Keys | Sort-Object { _GiaNumeric $_ })) {
         $xl = if ($excel.ContainsKey($g)) { $excel[$g] } else { $null }
@@ -316,8 +348,8 @@ function _CtResumText($res) {
 # quants son de subcarpetes, noms que son etiquetes (ha de ser 0), persones
 # autoritzades d'una entitat de control (0) i representants legals que surten
 # de la signatura (R:CIF). $docs: clau -> document desat. PURA.
-function _CtEstadistiques($acts, $docs) {
-    $r = [ordered]@{ PerTipus = [ordered]@{}; NSubcarpetes = 0; NomsEtiqueta = 0; AutEca = 0; RepSignatura = 0 }
+function _CtEstadistiques($acts, $docs, $ctx = $null) {
+    $r = [ordered]@{ PerTipus = [ordered]@{}; NSubcarpetes = 0; NomsEtiqueta = 0; AutEca = 0; RepSignatura = 0; RepPerVia = [ordered]@{}; PerNif = 0; NomsMoltsTitulars = @() }
     foreach ($k in @($docs.Keys)) {
         $t = [string](_CtV $docs[$k] 'tipus')
         if (-not $r.PerTipus.Contains($t)) { $r.PerTipus[$t] = 0 }
@@ -328,7 +360,15 @@ function _CtEstadistiques($acts, $docs) {
         $ps = @((_CtV $a 'titular'), (_CtV $a 'representant_legal')) + @(_CtV $a 'persones_autoritzades')
         foreach ($p in $ps) { if ($null -ne $p -and (_CtNomEsEtiqueta ([string](_CtV $p 'nom')))) { $r.NomsEtiqueta++ } }
         foreach ($p in @(_CtV $a 'persones_autoritzades')) { if ($null -ne $p -and (_CtEmailExclos ([string](_CtV $p 'email')))) { $r.AutEca++ } }
-        if ([string](_CtV (_CtV $a 'representant_legal') 'via') -eq 'signatura') { $r.RepSignatura++ }
+        $via = [string](_CtV (_CtV $a 'representant_legal') 'via')
+        if ($via -eq 'signatura') { $r.RepSignatura++ }
+        if ($via -ne '') { if (-not $r.RepPerVia.Contains($via)) { $r.RepPerVia[$via] = 0 }; $r.RepPerVia[$via]++ }
+    }
+    foreach ($k in @($docs.Keys)) { if ([string](_CtV $docs[$k] 'gia_via') -eq 'nif') { $r.PerNif++ } }
+    # A5: cap nom no pot "presentar" per a mes de ~15 titulars si no es una
+    # etiqueta (o un tecnic de debo, que llavors es veu a la llista).
+    if ($null -ne $ctx -and $null -ne $ctx.NomTitulars) {
+        $r.NomsMoltsTitulars = @(@($ctx.NomTitulars.Keys) | Where-Object { $ctx.NomTitulars[$_].Count -gt 15 } | Sort-Object { - $ctx.NomTitulars[$_].Count } | ForEach-Object { $_ + ' (' + $ctx.NomTitulars[$_].Count + ')' })
     }
     return $r
 }
@@ -336,10 +376,12 @@ function _CtEstadistiques($acts, $docs) {
 # ----------------------------------------------------------------------------
 # LA BASE AL DISC
 # ----------------------------------------------------------------------------
+# $null si no hi es; si hi es i no es pot llegir, LLANCA (Read-JsonFileStrict):
+# el repas no pot comencar una base nova i perdre-hi les correccions a ma.
 function Read-ContactesDb([string]$path = '') {
     if ($path -eq '') { $path = Get-ContactesDbPath }
     if ($path -eq '' -or -not (Test-Path -LiteralPath $path)) { return $null }
-    return (Read-JsonFile $path)
+    return (Read-JsonFileStrict $path)
 }
 
 # Un objecte del JSON (documents, activitats, correccions) -> hashtable.
@@ -372,8 +414,9 @@ function _CtCorreccionsDe($db) {
 function Invoke-ContactesEscaneig([string]$dir, $informes, $cache, $expToGia, [scriptblock]$avisa = $null, [switch]$SenseCorreccions, [switch]$NoDesis, [switch]$SenseWord) {
     $diu = { param($t, $i, $n) if ($null -ne $avisa) { & $avisa $t $i $n } }
     $outPath = Get-ContactesDbPath
-    $prev = $null
-    try { $prev = Read-ContactesDb $outPath } catch { $prev = $null }
+    # Si la base hi es i no es pot llegir, s'atura (el crida un try que ho diu
+    # al resum): abans es feia una base nova i es perdien les correccions.
+    $prev = Read-ContactesDb $outPath
     $prevDocs = @{}; $prevActs = @{}; $corrs = @{}
     if ($null -ne $prev) {
         $corrs = _CtCorreccionsDe $prev
@@ -394,6 +437,14 @@ function Invoke-ContactesEscaneig([string]$dir, $informes, $cache, $expToGia, [s
     if ($null -ne $cache -and $null -ne $cache.PSObject.Properties['Contactes'] -and $null -ne $cache.Contactes) { $xlCt = $cache.Contactes }
     foreach ($g in @($xlCt.Keys)) { $gies[[string]$g] = $true }
     $conegut = { param($g) $gies.ContainsKey([string]$g) }.GetNewClosure()
+    $nifAGia = @{}
+    foreach ($g in @($xlCt.Keys)) {
+        $n = _CtNifNet ([string](_CtV $xlCt[$g] 'NIF'))
+        if ($n -eq '') { continue }
+        if (-not $nifAGia.ContainsKey($n)) { $nifAGia[$n] = @{} }
+        $nifAGia[$n][[string]$g] = $true
+    }
+    $senseGiaMotius = @{}
 
     $docs = @{}
     $noLlegibles = New-Object System.Collections.ArrayList
@@ -419,8 +470,15 @@ function Invoke-ContactesEscaneig([string]$dir, $informes, $cache, $expToGia, [s
             }
             # L'atribucio es refa sempre: depen dels informes d'ara.
             $e.gia = _CtGiaDocument $clau $e.extret $perCarpeta $conegut $expToGia
+            $e.gia_via = ''
+            # C2 (2a ronda): sense carpeta ni expedient, el NIF de l'interessat,
+            # si es el d'UNA SOLA activitat de l'Excel ("probable").
+            if ($e.gia -eq '' -and $null -ne $e.extret) {
+                $nI = _CtNifNet ([string](_CtV (_CtV $e.extret 'interessat') 'nif'))
+                if ($nI -ne '' -and $nifAGia.ContainsKey($nI) -and $nifAGia[$nI].Count -eq 1) { $e.gia = [string]@($nifAGia[$nI].Keys)[0]; $e.gia_via = 'nif' }
+            }
             if (-not $e.llegible) { [void]$noLlegibles.Add($clau) }
-            elseif ($e.gia -eq '' -and $null -ne $e.extret) { [void]$senseGia.Add($clau) }
+            elseif ($e.gia -eq '' -and $null -ne $e.extret) { [void]$senseGia.Add($clau); $senseGiaMotius[$clau] = _CtMotiuSenseGia $clau $perCarpeta }
             $docs[$clau] = $e
             if (($i % 10) -eq 0 -or $i -eq $total) { & $diu "Contactes: llegint documents... ($i de $total, $llegits de nous/modificats)" $i $total }
         }
@@ -428,7 +486,8 @@ function Invoke-ContactesEscaneig([string]$dir, $informes, $cache, $expToGia, [s
         if ($null -ne $word.App) { try { $word.App.Quit() } catch { } }
     }
 
-    $acts = _CtCalculaActivitats $docs $xlCt $tecnics $cfg.Recintes $corrs
+    $calc = @{ Ctx = $null }
+    $acts = _CtCalculaActivitats $docs $xlCt $tecnics $cfg.Recintes $corrs $calc
     $nNoves = 0
     foreach ($g in @($acts.Keys)) {
         $ant = if ($prevActs.ContainsKey($g)) { $prevActs[$g] } else { $null }
@@ -440,7 +499,8 @@ function Invoke-ContactesEscaneig([string]$dir, $informes, $cache, $expToGia, [s
         NNoLlegibles = $noLlegibles.Count; NDocs = $docs.Count; Llegits = $llegits; OutPath = $outPath
         Activitats = $acts; NoLlegibles = $noLlegibles.ToArray(); SenseGia = $senseGia.ToArray()
         TecnicsFitxer = [string]$tecnics.Fitxer; TecnicsError = [string]$tecnics.Error
-        Estadistiques = (_CtEstadistiques $acts $docs)
+        Estadistiques = (_CtEstadistiques $acts $docs $calc.Ctx)
+        SenseGiaMotius = $senseGiaMotius
     }
     $res.Text = _CtResumText $res
     if (-not $NoDesis -and $outPath -ne '') {
@@ -456,6 +516,7 @@ function Invoke-ContactesEscaneig([string]$dir, $informes, $cache, $expToGia, [s
             sense_gia      = $senseGia.ToArray()
             documents      = $docs
         }
+        try { [void](Backup-JsonFile $outPath) } catch { }
         Write-JsonFile $outPath $db 14
         _CtOblidaMemo
     }
@@ -485,7 +546,8 @@ function Set-ContactesCorreccio([string]$gia, $correccio, [int]$treuIndex = -1) 
     $caixa = @{ Ok = $false }
     $fet = Invoke-AmbMutexUnic $Script:BaseMutexNom {
         $path = Get-ContactesDbPath
-        $o = Read-ContactesDb $path
+        $o = $null
+        try { $o = Read-ContactesDb $path } catch { $o = $null }
         if ($null -eq $o) { return }
         $db = ConvertTo-Mapa $o
         $c = _CtMapaDe $db['correccions']
@@ -502,6 +564,7 @@ function Set-ContactesCorreccio([string]$gia, $correccio, [int]$treuIndex = -1) 
         if ($llista.Count -gt 0) { $c[$gia] = $llista.ToArray() } else { [void]$c.Remove($gia) }
         $db['correccions'] = $c
         $db = Update-ContactesActivitats ([pscustomobject]$db)
+        try { [void](Backup-JsonFile $path) } catch { }
         Write-JsonFile $path $db 14
         _CtOblidaMemo
         $caixa.Ok = $true

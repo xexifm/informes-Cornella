@@ -109,6 +109,10 @@ $vtEst = $vtRes.Estadistiques
 & $vtDiu ('Noms que son etiquetes (ha de ser 0): ' + $vtEst.NomsEtiqueta)
 & $vtDiu ('Persones autoritzades d''una entitat de control (ha de ser 0): ' + $vtEst.AutEca)
 & $vtDiu ('Representants legals de la signatura (R:CIF): ' + $vtEst.RepSignatura)
+& $vtDiu ('Representants legals per on surten: ' + ((@($vtEst.RepPerVia.Keys) | ForEach-Object { $_ + ' ' + $vtEst.RepPerVia[$_] }) -join ', ') + '   (signatura = (R:CIF), interessat = persona fisica de l''entitat, autoritzacio, tramit = representant del tramit)')
+& $vtDiu ('Documents atribuits pel NIF de l''interessat (probable): ' + $vtEst.PerNif)
+& $vtDiu ('Noms que presenten per a mes de 15 titulars (hauria de ser 0, o tecnics de debo): ' + @($vtEst.NomsMoltsTitulars).Count)
+foreach ($t in @($vtEst.NomsMoltsTitulars)) { & $vtDiu ('    ' + $t) }
 & $vtDiu ('Activitats a la referencia: ' + $vtRefActs.Count + '   comparades: ' + $nComp + '   sense cap document al repas: ' + $vtSenseDocs.Count)
 & $vtDiu ('Discrepancies en dades "segur": ' + $vtSegur.Count + '   (en dades "probable", a part: ' + $vtProb.Count + ')')
 & $vtDiu ''
@@ -127,7 +131,7 @@ if ($vtSenseDocs.Count -gt 0) {
 foreach ($k in @($vtRes.NoLlegibles)) { & $vtDiu ('  ' + $k) }
 & $vtDiu ''
 & $vtDiu '== Documents dels quals no se sap el GIA (carpeta de diverses activitats) =='
-foreach ($k in @($vtRes.SenseGia)) { & $vtDiu ('  ' + $k) }
+foreach ($k in @($vtRes.SenseGia)) { & $vtDiu ('  ' + $k + $(if ($vtRes.SenseGiaMotius.ContainsKey($k)) { "`n      " + [string]$vtRes.SenseGiaMotius[$k] } else { '' })) }
 [void](New-Item -ItemType Directory -Path (Split-Path -Parent $vtSortida) -Force)
 [System.IO.File]::WriteAllText($vtSortida, ($vtLinies -join "`r`n"), (New-Object System.Text.UTF8Encoding($true)))
 Write-Host ''

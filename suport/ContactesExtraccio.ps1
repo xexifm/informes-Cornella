@@ -82,18 +82,33 @@ function _CtNomParaules([string]$s) {
     return @((_CtNomNorm $s) -split ' ' | Where-Object { $_.Length -ge 2 -and $Script:CtNomBuides -notcontains $_ })
 }
 
-# Dos noms son de la mateixa persona? Les paraules del curt son totes al llarg
-# (i n'hi ha com a minim dues, o es el mateix nom sencer): "Maria Exemple" i
-# "MARIA EXEMPLE PROVA" si; "Maria" sola, no. PURA.
+# Els noms de pila corrents: sols no diuen qui es ningu (l'usuari, 2a ronda: la
+# representant legal del GIA 161 sortia com a "llista de tecnics coneguts"
+# nomes per compartir "MARIA" amb una tecnica).
+$Script:CtNomsPila = @{}
+foreach ($w in @('maria', 'mari', 'jose', 'josep', 'joan', 'juan', 'jordi', 'antonio', 'antoni', 'francisco', 'francesc', 'manuel', 'david', 'javier',
+    'xavier', 'carlos', 'carles', 'ana', 'anna', 'laura', 'marta', 'carmen', 'pere', 'pedro', 'jesus', 'luis', 'lluis', 'miguel', 'miquel', 'angel',
+    'rosa', 'isabel', 'montserrat', 'pilar', 'dolores', 'mar', 'mercedes', 'cristina', 'elena', 'sergio', 'sergi', 'daniel', 'alejandro', 'alex',
+    'pablo', 'pau', 'marc', 'albert', 'alberto', 'rafael', 'raul', 'fernando', 'ramon', 'enric', 'enrique', 'jaume', 'jaime', 'josefa', 'teresa',
+    'nuria', 'silvia', 'sara', 'paula', 'lucia', 'eva', 'raquel', 'mireia', 'sonia', 'alba', 'julia', 'jorge', 'oscar', 'ivan', 'ruben', 'adrian',
+    'victor', 'roberto', 'robert', 'andres', 'andreu', 'joaquin', 'joaquim', 'ignacio', 'ignasi', 'eduardo', 'eduard', 'mohamed', 'muhammad',
+    'ahmed', 'ali', 'li', 'wang', 'carmen', 'concepcion', 'josefina', 'antonia', 'francisca', 'manuela', 'angeles', 'lourdes', 'beatriz', 'patricia',
+    'monica', 'susana', 'yolanda', 'noelia', 'gemma', 'judit', 'meritxell', 'nerea', 'irene', 'andrea', 'clara', 'jose maria', 'juana', 'luisa')) { $Script:CtNomsPila[$w] = $true }
+
+# Dos noms son de la mateixa persona? Les paraules del curt son totes al llarg,
+# n'hi ha com a minim dues (o es el mateix nom sencer) i com a minim UNA no es
+# un nom de pila corrent (un cognom; l'usuari, 2a ronda): "Maria Exemple" i
+# "MARIA EXEMPLE PROVA" si; "Maria" sola, o "Maria del Mar" amb "Maria del Mar
+# Garcia", no. PURA.
 function _CtMateixNom([string]$a, [string]$b) {
     $pa = @(_CtNomParaules $a); $pb = @(_CtNomParaules $b)
     if ($pa.Count -eq 0 -or $pb.Count -eq 0) { return $false }
-    if ((_CtNomNorm $a) -eq (_CtNomNorm $b)) { return $true }
     $curt = $pa; $llarg = $pb
     if ($pa.Count -gt $pb.Count) { $curt = $pb; $llarg = $pa }
-    if ($curt.Count -lt 2) { return $false }
+    if ($curt.Count -lt 2 -and ($pa -join ' ') -ne ($pb -join ' ')) { return $false }
     foreach ($w in $curt) { if ($llarg -notcontains $w) { return $false } }
-    return $true
+    foreach ($w in $curt) { if (-not $Script:CtNomsPila.ContainsKey($w)) { return $true } }
+    return $false
 }
 
 function _CtEmailNet([string]$e) {
@@ -143,8 +158,9 @@ function _CtTroba([string]$text, [string]$re) {
 function _CtPersona([string]$nom = '', [string]$nif = '', [string]$email = '', [string]$telefon = '', [string]$mobil = '') {
     $p = [ordered]@{ nom = (_CtNetejaNom $nom); nif = (_CtNifNet $nif); email = (_CtEmailNet $email); telefon = ''; mobil = '' }
     if ((_CtTipusNif $p.nif) -eq '') { $p.nif = '' }
-    # Una etiqueta no es mai un nom ("Nombre y apellidos o razon social").
-    if (_CtNomEsEtiqueta $p.nom) { $p.nom = '' }
+    # Una etiqueta no es mai un nom ("Nombre y apellidos o razon social"), ni un
+    # tros de frase ("N.I. y N.I.F. numero ... INTERVIENE en su calidad de").
+    if ((_CtNomEsEtiqueta $p.nom) -or (_CtNomBrossa $p.nom $p.nif)) { $p.nom = '' }
     foreach ($t in @($mobil, $telefon)) { _CtPosaTelefon $p $t }
     return $p
 }
@@ -176,9 +192,12 @@ $Script:CtParaulesEtiquetaForts = @('nom', 'cognoms', 'cognom', 'rao', 'social',
     'passaport', 'pasaporte', 'adreca', 'postal', 'direccion', 'carrer', 'placa', 'av', 'avda', 'num', 'esc', 'pis', 'porta', 'calle', 'plaza', 'piso', 'puerta',
     'municipi', 'municipio', 'cp', 'codi', 'codigo', 'provincia', 'poblacio', 'poblacion', 'pais', 'telefon', 'fix', 'telefono', 'fijo', 'mobil', 'movil',
     'correu', 'electronic', 'correo', 'electronico', 'mail', 'email', 'representat', 'representado', 'segon', 'segundo', 'document', 'documento', 'numero',
-    'identificatiu', 'identificativo', 'denominacio', 'denominacion', 'domicili', 'domicilio', 'fax', 'tipus', 'tipo', 'nombres')
+    'identificatiu', 'identificativo', 'denominacio', 'denominacion', 'domicili', 'domicilio', 'fax', 'tipus', 'tipo', 'nombres',
+    'avinguda', 'avenida', 'escala', 'escalera', 'bloc', 'bloque', 'planta', 'via', 'km', 'lletra', 'letra', 'portal', 'localitat', 'localidad',
+    'comarca', 'notificacio', 'notificacion', 'mitja', 'medio', 'canal', 'electronica', 'paper', 'papel', 'preferent', 'preferente',
+    'urbanitzacio', 'urbanizacion', 'apartat', 'apartado', 'nacionalitat', 'nacionalidad', 'naixement', 'nacimiento', 'postals', 'telefons', 'telefonos')
 $Script:CtParaulesEtiqueta = @{}
-foreach ($w in @($Script:CtParaulesEtiquetaForts + @('i', 'y', 'o', 'e', 'per', 'por', 'de', 'del', 'la', 'el', 'primer'))) { $Script:CtParaulesEtiqueta[$w] = $true }
+foreach ($w in @($Script:CtParaulesEtiquetaForts + @('i', 'y', 'o', 'e', 'per', 'por', 'de', 'del', 'la', 'el', 'primer', 'a', 'en', 'persona', 'fisica', 'juridica', 'efectes', 'efectos', 'data', 'fecha', 'correus', 'correos'))) { $Script:CtParaulesEtiqueta[$w] = $true }
 $Script:CtParaulesEtiquetaFort = @{}
 foreach ($w in $Script:CtParaulesEtiquetaForts) { $Script:CtParaulesEtiquetaFort[$w] = $true }
 
@@ -187,16 +206,22 @@ function _CtParaulesAmbPos([string]$pla) {
     return @([regex]::Matches([string]$pla, '[a-z0-9]+') | ForEach-Object { @{ W = $_.Value; Pos = $_.Index } })
 }
 
-# Una linia que nomes te paraules d'etiqueta (i com a minim una). PURA.
+# Una linia que nomes te paraules d'etiqueta (i com a minim una forta). O
+# gairebe nomes (l'usuari, 2a ronda: "Adreca postal (carrer, placa, ...)
+# Direccion postal (...)" sortia de nom, i deia que "presentava per a 78
+# titulars"): amb tres paraules fortes o mes, n'hi ha prou amb el 80%. PURA.
 function _CtEsLiniaEtiqueta([string]$s) {
     $ws = @(_CtParaulesAmbPos (_CtPla $s))
     if ($ws.Count -eq 0) { return $false }
-    $fort = $false
+    $nFort = 0; $nEtiq = 0
     foreach ($w in $ws) {
-        if (-not $Script:CtParaulesEtiqueta.ContainsKey($w.W)) { return $false }
-        if ($Script:CtParaulesEtiquetaFort.ContainsKey($w.W)) { $fort = $true }
+        if (-not $Script:CtParaulesEtiqueta.ContainsKey($w.W)) { continue }
+        $nEtiq++
+        if ($Script:CtParaulesEtiquetaFort.ContainsKey($w.W)) { $nFort++ }
     }
-    return $fort
+    if ($nFort -eq 0) { return $false }
+    if ($nEtiq -eq $ws.Count) { return $true }
+    return ($nFort -ge 3 -and ($nEtiq / $ws.Count) -ge 0.8)
 }
 
 # El valor d'una linia que comenca amb etiquetes ("Nom i cognoms o rao social
@@ -220,8 +245,23 @@ function _CtSenseEtiquetes([string]$s) {
 function _CtNomEsEtiqueta([string]$nom) {
     if ([string]::IsNullOrWhiteSpace($nom)) { return $false }
     $p = _CtPla $nom
-    if ($p -match 'razon social|rao social|\brepresentado\b|\brepresentat\b|dni\s*/\s*nif|nombre y apellidos|nom i cognoms') { return $true }
+    if ($p -match 'razon social|rao social|\brepresentado\b|\brepresentat\b|dni\s*/\s*nif|nombre y apellidos|nom i cognoms|adreca postal|direccion postal|codi postal|codigo postal|mitja de notificacio|medio de notificacion|tipus de via|tipo de via|correu electronic|correo electronico|telefon mobil|telefono movil') { return $true }
     return (_CtEsLiniaEtiqueta $nom)
+}
+
+# Un "nom" que es un tros de frase (l'usuari, 2a ronda: "N.I. 478981881<",
+# "N.I. y N. I. F. numero ... INTERVIENE en su calidad de APODERADO"): comenca
+# per N.I, porta "interviene", "calidad", "qualitat", "numero", o xifres (les
+# xifres, nomes en una persona: "BAR 2000 SL" si que es un nom). PURA.
+function _CtNomBrossa([string]$nom, [string]$nif = '') {
+    if ([string]::IsNullOrWhiteSpace($nom)) { return $false }
+    $p = _CtPla $nom
+    if ($p -match '^\W*n\s*\.\s*i\b' -or $p -match '\b(interviene|interve|calidad|qualitat|numero)\b') { return $true }
+    if ($p -match '\d') {
+        $entitat = ((_CtTipusNif $nif) -eq 'juridica') -or ($p -match '\b(s\.?\s?l\.?u?|s\.?\s?a\.?u?|scp|sccl|c\.?\s?b|slne|sll)\W*$')
+        if (-not $entitat) { return $true }
+    }
+    return $false
 }
 
 # Un nom tret d'una frase: sense tractaments, sense "major d'edat" ni el DNI
@@ -234,8 +274,15 @@ function _CtNetejaNom([string]$s) {
         $m = [regex]::Match($pla, $re)
         if ($m.Success) { $t = $t.Substring(0, $m.Index); $pla = $pla.Substring(0, $m.Index) }
     }
-    $m = [regex]::Match($pla, '^(sr\.?|sra\.?|senyor|senyora|en|na|d\.?\s*/\s*dna\.?|d\.|dna\.|don|dona)\s+')
-    if ($m.Success) { $t = $t.Substring($m.Length); $pla = $pla.Substring($m.Length) }
+    # Els tractaments del davant ("Sr.", "D./Dna.", "Dona", "En", "/D>>"), amb la
+    # puntuacio del principi.
+    for ($k = 0; $k -lt 4; $k++) {
+        $m = [regex]::Match($pla, '^[^\p{L}\d]+')
+        if ($m.Success) { $t = $t.Substring($m.Length); $pla = $pla.Substring($m.Length) }
+        $m = [regex]::Match($pla, '^(?:sr|sra|senyor|senyora|en|na|d|dna|don|dona)(?:\s*[.\u00BB"''/]+\s*|\s+)(?=\S)')
+        if (-not $m.Success) { break }
+        $t = $t.Substring($m.Length); $pla = $pla.Substring($m.Length)
+    }
     # Mai un DNI dins d'un nom ("N.I. 00000000T en representacio de..."): el
     # nom s'acaba on comenca el document, i el que hi ha davant ("amb N.I.")
     # tampoc es del nom.
@@ -249,7 +296,7 @@ function _CtNetejaNom([string]$s) {
 # El nom del que signa (o del que s'autoritza) tret d'una frase: s'atura on
 # comenca el que ja no es el nom (l'usuari: sortia "<Nom> actuando como
 # representante legal de la empresa..."). PURA (sobre el text pla).
-$Script:CtReFiNom = '(?:,|;|\s+(?:amb|con)\s+(?:d\.?\s?n\.?\s?i|n\.?\s?i\.?\s?f|n\.?\s?i\.?\s?e|n\.\s?i\.|dni|nif|nie)|\s+actuant|\s+actuando|\s+en\s+representaci|\s+en\s+nom(?:bre)?\b|\s+com\s+a\s|\s+como\s|\s+en\s+qualitat|\s+en\s+calidad|\s+major\s+d.edat|\s+mayor\s+de\s+edad)'
+$Script:CtReFiNom = '(?:,|;|\s+(?:amb|con)\s+(?:d\.?\s?n\.?(?:\s?\(\s?i\s?\)|\s?i)?(?![a-z])|n\.?\s?i\.?\s?f|n\.?\s?i\.?\s?e|n\.\s?i\.|dni|nif|nie)|\s+actuant|\s+actuando|\s+en\s+representaci|\s+en\s+nom(?:bre)?\b|\s+com\s+a\s|\s+como\s|\s+en\s+qualitat|\s+en\s+calidad|\s+major\s+d.edat|\s+mayor\s+de\s+edad)'
 function _CtTallaNom([string]$nom) {
     $t = [string]$nom
     $m = [regex]::Match((_CtPla $t), $Script:CtReFiNom)
@@ -649,31 +696,56 @@ function Read-InstanciaText([string]$text) {
 # L'usuari (octubre 2026): "es la font mes segura". Els certificats de
 # representant d'entitat signen aixi:
 #   Firmado digitalmente por 00000000T MARIA EXEMPLE (R:B00000000)
-# i el text del PDF ho pot partir en linies ("00000000T" / "MARIA" / "EXEMPLE" /
-# "(R:B000000" / "00)"): s'ajunten les linies i el CIF tallat abans de buscar.
-# Qui signa amb (R:<CIF>) es el representant legal de l'entitat d'aquell CIF.
-# Torna @{ nom; nif; cif } per cada signant (sense repetir). PURA.
+#   MARIA EXEMPLE (R: B00000000) Firmado digitalmente por ...
+# La 2a ronda: la forma mes corrent porta un ESPAI despres dels dos punts, i al
+# caixeti el nom sol surt SENSE el DNI (abans es demanava el DNI just davant
+# del nom i en trobava 81 de 183). El text del PDF ho pot partir en linies i
+# tallar el CIF ("(R:B000000" / "00)"): s'ajunten abans de buscar. Per cada
+# "(R:CIF)" es mira el tros de davant (fins a "Firmado digitalmente por", un
+# altre ")" o 150 caracters): el DNI, si n'hi ha, i el nom (les paraules en
+# MAJUSCULES de just davant). Qui signa amb (R:<CIF>) es el representant
+# legal de l'entitat d'aquell CIF. Torna @{ nom; nif; cif } per cada signant
+# (sense repetir: la mateixa persona amb DNI i sense, una sola vegada). PURA.
+$Script:CtReSigR = '\(\s*R\s*:\s*([A-Za-z](?:\s*[0-9A-Za-z]){7,8})\s*\)'
+$Script:CtReSigFrontera = '(?i)(?:firmad[oa]\s+digitalmente\s+por|signat\s+digitalment\s+per|firmat\s+digitalment\s+per|firmado\s+por|signat\s+per|digitally\s+signed\s+by|por\s*:|per\s*:|\)|:)'
 function _CtSignaturesRep([string]$text) {
     $t = ([string]$text) -replace '\s+', ' '
     if ($t -notmatch '\(\s*R\s*:') { return @() }
-    $t = [regex]::Replace($t, '\(\s*R\s*:\s*([A-Za-z0-9 ]{8,20}?)\s*\)', { param($m) '(R:' + ($m.Groups[1].Value -replace ' ', '').ToUpperInvariant() + ')' })
-    $nomRe = "[\p{Lu}][\p{Lu}\p{M}'\u00B7.\- ]{2,80}?"
-    $res = @(
-        ('(?<![A-Za-z0-9])(?<nif>\d{8}[A-Z]|[XYZ]\d{7}[A-Z])\s*-?\s*(?<nom>' + $nomRe + ')\s*\(R:(?<cif>[A-Z]\d{7}[0-9A-J])\)'),
-        ('(?<nom>' + $nomRe + ')\s*-?\s*(?:DNI|NIF|NIE)?\s*(?<![A-Za-z0-9])(?<nif>\d{8}[A-Z]|[XYZ]\d{7}[A-Z])\s*\(R:(?<cif>[A-Z]\d{7}[0-9A-J])\)'))
-    $vist = @{}
-    $out = New-Object System.Collections.ArrayList
-    foreach ($re in $res) {
-        foreach ($m in [regex]::Matches($t, $re)) {
-            $nif = _CtNifNet $m.Groups['nif'].Value; $cif = _CtNifNet $m.Groups['cif'].Value
-            if ((_CtTipusNif $nif) -ne 'fisica' -or (_CtTipusNif $cif) -ne 'juridica') { continue }
-            $nom = _CtNetejaNom (($m.Groups['nom'].Value -replace '\b(DNI|NIF|NIE)\s*$', ''))
-            if ($vist.ContainsKey($nif + '|' + $cif)) { continue }
-            $vist[$nif + '|' + $cif] = $true
-            [void]$out.Add([ordered]@{ nom = $nom; nif = $nif; cif = $cif })
+    $t = [regex]::Replace($t, $Script:CtReSigR, { param($m) '(R:' + ($m.Groups[1].Value -replace ' ', '').ToUpperInvariant() + ')' })
+    $perClau = [ordered]@{}
+    foreach ($m in [regex]::Matches($t, '\(R:([A-Z]\d{7}[0-9A-J])\)')) {
+        $cif = _CtNifNet $m.Groups[1].Value
+        if ((_CtTipusNif $cif) -ne 'juridica') { continue }
+        $ini = [Math]::Max(0, $m.Index - 150)
+        $tros = $t.Substring($ini, $m.Index - $ini)
+        $fr = @([regex]::Matches($tros, $Script:CtReSigFrontera))
+        if ($fr.Count -gt 0) { $u = $fr[$fr.Count - 1]; $tros = $tros.Substring($u.Index + $u.Length) }
+        $nif = ''
+        $mn = [regex]::Match($tros, '(?<![A-Za-z0-9])(\d{8}\s?-?\s?[A-Z]|[XYZ]\s?\d{7}\s?[A-Z])(?![A-Za-z0-9])')
+        if ($mn.Success -and (_CtTipusNif $mn.Groups[1].Value) -eq 'fisica') { $nif = _CtNifNet $mn.Groups[1].Value; $tros = $tros.Remove($mn.Index, $mn.Length) }
+        # El nom: les paraules en majuscules del final del tros.
+        $ws = @(($tros -replace '\b(DNI|NIF|NIE)\b', ' ' -replace '[-,;]', ' ').Trim() -split '\s+' | Where-Object { $_ -ne '' })
+        $nomW = New-Object System.Collections.ArrayList
+        for ($k = $ws.Count - 1; $k -ge 0 -and $nomW.Count -lt 6; $k--) {
+            if ($ws[$k] -cmatch "^[\p{Lu}][\p{Lu}\p{M}'\u00B7.]*$") { [void]$nomW.Insert(0, $ws[$k]) } else { break }
         }
+        $nom = if ($nomW.Count -ge 2) { _CtNetejaNom ($nomW -join ' ') } else { '' }
+        if ($nom -eq '' -and $nif -eq '') { continue }
+        $clau = $(if ($nom -ne '') { _CtNomNorm $nom } else { $nif }) + '|' + $cif
+        if ($perClau.Contains($clau)) { if ([string]$perClau[$clau].nif -eq '') { $perClau[$clau].nif = $nif }; continue }
+        # El mateix DNI amb el nom escrit d'una altra manera, o sense nom.
+        $repetit = $false
+        foreach ($o in $perClau.Values) {
+            if ([string]$o.cif -ne $cif) { continue }
+            if (($nif -ne '' -and [string]$o.nif -eq $nif) -or ($nom -ne '' -and (_CtMateixNom $nom ([string]$o.nom)))) {
+                if ([string]$o.nif -eq '') { $o.nif = $nif }
+                if ([string]$o.nom -eq '') { $o.nom = $nom }
+                $repetit = $true; break
+            }
+        }
+        if (-not $repetit) { $perClau[$clau] = [ordered]@{ nom = $nom; nif = $nif; cif = $cif } }
     }
-    return $out.ToArray()
+    return @($perClau.Values)
 }
 
 # ----------------------------------------------------------------------------
@@ -689,17 +761,72 @@ $Script:CtReAutCa = "\bjo,?\s+(?<x>[^,]{3,90}?)\s*" + $Script:CtReFiNom
 $Script:CtReAutEs = "(?:^|[\s(])(?:d\.?\s*/\s*dna\.?|d\.\s*/\s*d\.?a\.?|dna\.|d\.|don|dona|sr\.|sra\.)\s*(?<x>[^,]{3,90}?)\s*" + $Script:CtReFiNom
 # Sense "Jo," ni tractament: el nom que va davant de "amb DNI" (l'ultim abans
 # de "en nom de"). Del que hi ha davant (el titol del document) se'n treu.
-$Script:CtReAutNomDni = "(?<x>[^,.;:()]{3,120}?)\s*,?\s+(?:amb|con)\s+(?:d\.?\s?n\.?\s?i|n\.?\s?i\.?\s?f|n\.?\s?i\.?\s?e|n\.\s?i\.|dni|nif|nie)"
+$Script:CtReAutNomDni = "(?<x>[^,.;:()]{3,120}?)\s*,?\s+(?:amb|con)\s+(?:d\.?\s?n\.?(?:\s?\(\s?i\s?\)|\s?i)?(?![a-z])|n\.?\s?i\.?\s?f|n\.?\s?i\.?\s?e|n\.\s?i\.|dni|nif|nie)"
 $Script:CtReTitolDoc = "^.*\b(?:autoritzacio|autorizacion|representacio|representacion|designacio|designacion|nomenament|nombramiento|sotasignat|sotasignada|subscriu|suscribe|firmante|declaro|declara)\b\s*"
 $Script:CtReEnNom = "(?:en\s+nom\s+i\s+representacio\s+de|en\s+representacio\s+de|en\s+qualitat\s+d.(?:administrador|administradora|apoderat|apoderada|representant\s+legal|gerent)[a-z]*\s+(?:unic\s+|solidari\s+|mancomunat\s+)?de|como\s+(?:administrador|administradora|apoderado|apoderada|representante\s+legal|gerente|consejero\s+delegado|presidente|presidenta)(?:\s+(?:unico|unica|solidario|solidaria|mancomunado|mancomunada))?\s+de|en\s+nombre\s+y\s+representacion\s+de)\s+(?:(?:l.empresa|la\s+societat|l.entitat|la\s+mercantil|la\s+empresa|la\s+sociedad|la\s+entidad|la\s+companyia|la\s+compania)\s+)?(?<y>[^,]{2,110}?)\s*(?:,|\s+amb\s+(?:nif|cif)|\s+con\s+(?:nif|cif)|\s+amb\s+domicili|\s+con\s+domicilio|\.\s)"
 # El verb: "autoritzo", i tambe (l'usuari) "designa", "nomena", "atorga la seva
 # representacio a", "otorga su representacion a", "apodera", "faculta". Amb "com
 # a tecnica responsable ... a Z", Z es el que va darrere de la "a".
 $Script:CtReVerbAut = "(?:autoritzo|autoritza|autorizo|autoriza|designo|designa|nomeno|nomena|nombra|apodero|apodera|faculto|faculta|(?:atorgo|atorga)\s+(?:la\s+)?(?:seva\s+|meva\s+)?representacio|(?:otorgo|otorga)\s+(?:(?:su|mi)\s+)?representacion)"
-$Script:CtReAutoritza = "\b" + $Script:CtReVerbAut + "\s+(?:(?:com\s+a|como)\s+[^,]{0,80}?\s+(?:a|al|a\s+la)\s+|(?:a\s+|al\s+|a\s+la\s+|a\s+favor\s+de\s+|en\s+favor\s+de\s+))?(?:(?:senyor|senyora|sr\.|sra\.|en|na|d\.?\s*/\s*dna\.?|d\.|dna\.|don|dona)\s+)?(?<z>[^,]{3,110}?)\s*(?:,|\s+amb\s+(?:dni|nif|nie|d\.n\.i)|\s+con\s+(?:dni|nif|nie|d\.n\.i)|\s+per\s|\s+perque\s|\s+para\s|\s+a\s+fi\s|\s+com\s+a\s|\s+como\s|\.\s|$)"
+$Script:CtReAutoritza = "\b" + $Script:CtReVerbAut + "\s+(?:(?:com\s+a|como)\s+[^,]{0,80}?\s+(?:a|al|a\s+la)\s+|(?:a\s+|al\s+|a\s+la\s+|a\s+favor\s+de\s+|en\s+favor\s+de\s+))?(?:(?:senyor|senyora|sr\.|sra\.|en|na|d\.?\s*/\s*dna\.?|d\.|dna\.|don|dona)\s+)?(?<z>[^,]{3,250}?)\s*(?:,|\s+amb\s+(?:dni|nif|nie|d\.n\.i)|\s+con\s+(?:dni|nif|nie|d\.n\.i)|\s+per\s|\s+perque\s|\s+para\s|\s+a\s+fi\s|\s+com\s+a\s|\s+como\s|\.\s|$)"
+
+# El text amb els espais junts, i on comencava cada linia (per saber on comenca
+# el nom del que signa quan no hi ha "Jo," ni tractament: al principi de la
+# seva linia). PURA.
+function _CtAjuntaLinies([string]$text) {
+    $sb = New-Object System.Text.StringBuilder
+    $salts = New-Object System.Collections.ArrayList
+    foreach ($tros in [regex]::Split(([string]$text).Trim(), '(\s+)')) {
+        if ($tros -eq '') { continue }
+        if ($tros -match '^\s+$') {
+            [void]$sb.Append(' ')
+            if ($tros -match '[\r\n]') { [void]$salts.Add($sb.Length) }
+        } else { [void]$sb.Append($tros) }
+    }
+    return @{ Text = $sb.ToString(); Salts = $salts.ToArray() }
+}
+
+# El nom del que signa sense "Jo," (2a ronda, GIA 5: "X amb DN(I): ..., en nom
+# i representacio de Y, ... designa ..."): del principi de la seva linia, sense
+# el titol del document; i si davant hi ha text en minuscules ("La sotasignada
+# MARIA EXEMPLE"), nomes les paraules en MAJUSCULES del final. PURA.
+function _CtNomSignantSenseJo([string]$orig, [string]$pla, [int]$ini, [int]$fi, $salts) {
+    foreach ($sl in @($salts)) { if ([int]$sl -gt $ini -and [int]$sl -lt $fi) { $ini = [int]$sl } }
+    $nom = $orig.Substring($ini, $fi - $ini)
+    $mt = [regex]::Match($pla.Substring($ini, $fi - $ini), $Script:CtReTitolDoc)
+    if ($mt.Success) { $nom = $nom.Substring($mt.Length) }
+    $ws = @($nom.Trim() -split '\s+' | Where-Object { $_ -ne '' })
+    $maj = New-Object System.Collections.ArrayList
+    for ($k = $ws.Count - 1; $k -ge 0; $k--) { if ($ws[$k] -cmatch "^[\p{Lu}][\p{Lu}\p{M}'\u00B7.\-]*$") { [void]$maj.Insert(0, $ws[$k]) } else { break } }
+    if ($maj.Count -ge 2 -and $maj.Count -lt $ws.Count) { $nom = $maj -join ' ' }
+    return $nom
+}
+
+# "designa com a Tecnica Responsable del projecte ... a Z, Enginyer": Z es el
+# que va darrere de l'ULTIMA " a " abans de la coma (o de "per", "amb DNI"...).
+# Abans la "a" s'havia de trobar en 80 caracters i, si no, l'autoritzat era
+# "com a Tecnica Responsable del projecte..." (2a ronda, GIA 5). Torna
+# @{ Ini; Fi } (posicions al text pla) o $null. PURA.
+function _CtZDespresDeCarrec([string]$pla, [int]$des) {
+    $m = [regex]::Match($pla.Substring($des), '^\s*(?:com\s+a|como)\s+')
+    if (-not $m.Success) { return $null }
+    $ini = $des + $m.Length
+    $resta = $pla.Substring($ini)
+    $mf = [regex]::Match($resta, ',|;|\.\s|\s+(?:per|perque|para|amb|con|a\s+fi)\s')
+    $seg = if ($mf.Success) { $resta.Substring(0, $mf.Index) } else { $resta }
+    $ma = @([regex]::Matches($seg, '\s(?:a|al)\s+'))
+    if ($ma.Count -eq 0) { return $null }
+    $u = $ma[$ma.Count - 1]
+    $zi = $u.Index + $u.Length
+    $mt = [regex]::Match($seg.Substring($zi), '^(?:la|el)\s+(?=(?:senyor|senyora|sra?\.?|d\.|dna|dona|don)\b)')
+    if ($mt.Success) { $zi += $mt.Length }
+    if ($seg.Length - $zi -lt 3) { return $null }
+    return @{ Ini = $ini + $zi; Fi = $ini + $seg.Length }
+}
 
 function Read-AutoritzacioText([string]$text) {
-    $orig = ([string]$text -replace '\s+', ' ').Trim()
+    $aj = _CtAjuntaLinies $text
+    $orig = [string]$aj.Text
     if ($orig -eq '') { return $null }
     $pla = _CtPla $orig
     $mz = [regex]::Match($pla, $Script:CtReAutoritza)
@@ -708,9 +835,10 @@ function Read-AutoritzacioText([string]$text) {
     $mx = [regex]::Match($abans, $Script:CtReAutCa)
     if (-not $mx.Success) { $mx = [regex]::Match($abans, $Script:CtReAutEs) }
     $my = [regex]::Match($abans, $Script:CtReEnNom)
+    $senseJo = $false
     if (-not $mx.Success -and $my.Success) {
         # L'ultim "<nom>, amb DNI" abans de "en nom de".
-        foreach ($c in [regex]::Matches($abans.Substring(0, $my.Index), $Script:CtReAutNomDni)) { $mx = $c }
+        foreach ($c in [regex]::Matches($abans.Substring(0, $my.Index), $Script:CtReAutNomDni)) { $mx = $c; $senseJo = $true }
     }
     # Sense qui signa ni en nom de qui, un "autoritza" qualsevol del text no fa
     # una autoritzacio.
@@ -725,9 +853,12 @@ function Read-AutoritzacioText([string]$text) {
     $signant = $null
     if ($mx.Success) {
         $gx = $mx.Groups['x']
-        $nomX = $orig.Substring($gx.Index, $gx.Length)
-        $mt = [regex]::Match($pla.Substring($gx.Index, $gx.Length), $Script:CtReTitolDoc)
-        if ($mt.Success) { $nomX = $nomX.Substring($mt.Length) }
+        if ($senseJo) { $nomX = _CtNomSignantSenseJo $orig $pla $gx.Index ($gx.Index + $gx.Length) $aj.Salts }
+        else {
+            $nomX = $orig.Substring($gx.Index, $gx.Length)
+            $mt = [regex]::Match($pla.Substring($gx.Index, $gx.Length), $Script:CtReTitolDoc)
+            if ($mt.Success) { $nomX = $nomX.Substring($mt.Length) }
+        }
         $signant = _CtPersona (_CtTallaNom $nomX) (& $primer $nifs ($gx.Index) $iniY)
     }
     $empresa = $null
@@ -736,8 +867,12 @@ function Read-AutoritzacioText([string]$text) {
         $empresa = _CtPersona ($orig.Substring($gy.Index, $gy.Length)) (& $primer $nifs ($gy.Index) $mz.Index)
     }
     $gz = $mz.Groups['z']
-    $aut = _CtPersona (_CtTallaNom ($orig.Substring($gz.Index, $gz.Length))) (& $primer $nifs ($gz.Index) $orig.Length) (& $primer $emails ($gz.Index) $orig.Length)
-    foreach ($t in $tels) { if ($t.Pos -ge $gz.Index) { _CtPosaTelefon $aut $t.Val } }
+    $zIni = $gz.Index; $zFi = $gz.Index + $gz.Length
+    $mv = [regex]::Match($pla.Substring($mz.Index), '^\b' + $Script:CtReVerbAut)
+    $zc = if ($mv.Success) { _CtZDespresDeCarrec $pla ($mz.Index + $mv.Length) } else { $null }
+    if ($null -ne $zc) { $zIni = $zc.Ini; $zFi = $zc.Fi }
+    $aut = _CtPersona (_CtTallaNom ($orig.Substring($zIni, $zFi - $zIni))) (& $primer $nifs $zIni $orig.Length) (& $primer $emails $zIni $orig.Length)
+    foreach ($t in $tels) { if ($t.Pos -ge $zIni) { _CtPosaTelefon $aut $t.Val } }
     $r.autoritzacio = [ordered]@{
         signant      = $signant
         empresa      = $empresa

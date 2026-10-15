@@ -972,6 +972,16 @@ cada vegada «s'està actualitzant sola ara mateix».
   n'hi ha cap) i el passa a `Invoke-InformesDbEscaneig` (`-GiaAssignats` per
   triar-ne un altre). La classificació de referència no canvia: és per informe.
   `powershell -NoProfile -ExecutionPolicy Bypass -File suport\ValidarClassificacio.ps1`
+  **Els dos favorables de llicència contra la referència** (`_BreuEquivalentRef`,
+  octubre 2026): la classificació del 10-08 és d'abans del «Favorable
+  pre-llicència (Requeriment)» i del «post-llicència (Favorable)» i hi diu
+  «Favorable». Ara són **equivalents**: no compten com a discrepància, ni a
+  l'informe ni a l'estat de l'activitat (es posa el d'ara en lloc del de la
+  referència), i es llisten a part. El classificador 2026-10-09.1 només va
+  partir el «Favorable» en pre i post: no pot fer d'un favorable un
+  «Requeriment». Un «Llicència favorable» que surt «Requeriment» o bé és un pre
+  (el seu estat es tracta com un requeriment, `_EstatEquivalent`) o bé era una
+  correcció a mà que es va perdre amb la base refeta de zero.
 - **Estats nous pendents de decidir amb l'usuari** (no fets): «Favorable pendent
   doc.» (el `favorable-pre` de llicència, que avui cau a `Favorable` i surt en
   verd al plànol amb l'expedient obert) i «Desfavorable». Si es fan, toquen
@@ -1527,6 +1537,84 @@ documents s'han llegit per tipus i quants són de subcarpetes, quants noms són
 etiquetes (ha de ser 0), quantes persones autoritzades són d'una entitat de
 control (0) i quants representants legals surten de la signatura `(R:CIF)`. Cal haver fet «Actualitzar base» abans
 (l'atribució al GIA és la de la base d'informes).
+
+També: els representants legals per on surten (`via`: `signatura`, `interessat`,
+`autoritzacio`, `tramit`), els documents atribuïts pel NIF, els noms que
+«presenten» per a més de 15 titulars (si n'hi ha cap, o és un tècnic de debò o
+una etiqueta que s'ha escapat) i, per cada document sense GIA, per què
+(`_CtMotiuSenseGia`: els GIA dels informes de les carpetes de sobre).
+
+### La 2a ronda (versió 2026-10-15.2)
+
+La primera validació a la feina va donar 0 noms-etiqueta, 0 ECA autoritzades i
+881 documents de subcarpetes llegits; el que quedava era el **representant
+legal** (la referència en té 187 i el repàs en trobava 71) i uns quants falsos
+«és el tècnic». El que es va canviar, i per què:
+
+- **La signatura `(R: CIF)`** (`_CtSignaturesRep`): la forma més corrent porta un
+  **espai** després dels dos punts i, al caixetí, el nom **sense el DNI**
+  («MARIA EXEMPLE (R: B00000000) Firmado digitalmente por…»). Abans es demanava
+  el DNI just davant del nom: se'n trobaven 81 de 183. Ara, per cada `(R:CIF)`,
+  el tros de davant fins a «Firmado digitalmente por», un altre `)` o 150
+  caràcters: el DNI si n'hi ha i les paraules en majúscules del final. La
+  mateixa persona amb DNI i sense, una sola vegada.
+- **L'interessat persona física d'una entitat** és candidat a representant legal
+  («probable», `via: interessat`), tingui el correu que tingui (GIA 17, 293).
+  Només no és canvi de titular si, a més, presenta en nom propi amb el correu
+  de l'empresa (`_CtInteressatDeLEmpresa`).
+- **L'autorització sense «Jo,»** («X amb DN(I): …, en nom i representació de Y…»):
+  el signant comença **a la seva línia** (`_CtAjuntaLinies` recorda on hi havia
+  salts) i, si al davant hi ha text en minúscules, són les paraules en
+  majúscules. A «designa com a Tècnica Responsable … a Z», Z és el que va
+  darrere de **l'última « a »** abans de la coma (`_CtZDespresDeCarrec`): abans
+  havia de ser en 80 caràcters i l'autoritzat sortia «com a Tècnica…».
+- **Noms brossa** (`_CtNomBrossa`): fora els que comencen per «N.I», els que
+  porten «interviene», «calidad», «qualitat», «número» i, en una persona, xifres
+  («BAR 2000 SL» sí que és un nom). Els tractaments del davant, amb la
+  puntuació («/D»», «D./Dña.»).
+- **Etiquetes**: més paraules (avinguda, escala, mitjà de notificació…), i una
+  línia amb tres paraules fortes o més i el 80% d'etiqueta també ho és (les de
+  l'adreça, plenes de parèntesis).
+- **`_CtMateixNom` demana un cognom**: les paraules del nom curt han de ser al
+  llarg i com a mínim una no ha de ser un nom de pila corrent
+  (`$Script:CtNomsPila`). «Maria del Mar» ja no és «Maria del Mar Garcia».
+- **El correu de la llista que porta una altra persona** (`_CtCorreuTecnicAltri`,
+  GIA 87): la persona conserva el seu paper i el correu és de la gestoria
+  (persona autoritzada amb el nom de la llista).
+- **El domini del titular no és del tècnic** (`_CtDominisTitular`, GIA 92 i 154):
+  una dada que el tècnic porta amb el domini de l'empresa (o que l'interessat
+  dona en un document sense tècnic) no és seva: no queda a la persona
+  autoritzada (ni els telèfons que porta amb aquell correu), va al titular, i
+  no fa cap avís «és el tècnic». El domini del correu de l'Excel només compta
+  si aquell correu no surt a d'altres titulars (és l'error més corrent de
+  l'Excel).
+- **Titulars diferents: 3**, o 2 amb un altre senyal (correu professional, o
+  presenta com a representant als dos) (`_CtProuTitulars`). I dos titulars que
+  comparteixen el representant legal de l'Excel (NIF o nom) o el domini del
+  correu són **un sol grup** (`_CtGrupsTitulars`), només si el comparteixen com
+  a molt tres titulars i no té res de tècnic: si no, el tècnic posat de
+  representant legal a moltes activitats (l'error més corrent) faria de pont.
+- **Correus de gestoria pel nom** (`_CtCorreuGestoriaPelNom`: «asesoria…@»
+  no és del titular, tret que el titular ho sigui) i **el domini d'un tècnic de
+  la llista**, igual o a 2 lletres (`_CtDominiTecnic`; mai gmail i companyia).
+- **Documents sense GIA**: el GIA dels informes de la carpeta és el de **més de
+  la meitat** (`_CtGiaMajoritari`; abans havien de ser tots del mateix), i si
+  cap carpeta no diu res, el **NIF de l'interessat** si és el d'una sola
+  activitat de l'Excel (`gia_via: nif`, dades «probable»).
+- **L'OCR dels escanejats** (punt D, opcional): no s'ha fet. A Linux no es pot
+  provar ni el `Windows.Media.Ocr` ni el `Windows.Data.Pdf` (WinRT), i un codi
+  sense provar dins d'«Actualitzar base» no hi pot anar.
+
+**Les bases no es tornen a fer de zero en silenci** (`Read-JsonFileStrict` i
+`Backup-JsonFile`, `Json.ps1`). A la feina, `informes-db.json` es va tornar a
+generar de zero (`generat_el` nou) i es van perdre les 170 correccions a mà: si
+la base hi era però no s'havia pogut llegir (el clone viu en una unitat de
+xarxa), `Read-JsonFile` tornava `$null` i l'escaneig ho prenia per «no hi ha
+base». Ara, si el fitxer hi és i no es pot llegir (tres intents), «Actualitzar
+base» s'atura amb un avís i no escriu res, i el repàs de contactes igual. I
+abans de sobreescriure `informes-db.json` o `contactes-db.json` (l'escaneig,
+l'editor de la base i les correccions de la finestra Contactes) se'n fa una
+còpia `<nom>_AAAAMMDD-HHMM.bak` al costat; se'n guarden les 5 últimes.
 
 Els dos `.bat` de `local\` els escriu la migració (`_BatsLocal`,
 `Invoke-MigracioLocal`): `local\` no es puja, o sigui que no poden anar al
