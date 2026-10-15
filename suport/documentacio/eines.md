@@ -2168,8 +2168,8 @@ tipus d'error (deixa'm marcar el tipus d'error que vull que s'exporti)».
 - **La tria es desa** a `local\base-dades-activitats\excel-errors.json` com a
   llista de **desmarcats**: així un tipus nou surt marcat.
 - **L'exportació** és `_NormativaXlsxBytes` (sense Excel): *ID Activitat*,
-  *Classificació general annex* de la base i *Tipus d'error* a les primeres
-  columnes (l'usuari va demanar l'annex al costat de l'ID i treure la raó
+  *Classificació general annex*, *Classificació general Apartat* de la base i
+  *Tipus d'error* a les primeres columnes (l'usuari va demanar l'annex al costat de l'ID i treure la raó
   social de l'Excel; a la graella de la finestra s'hi queda). La graella i
   l'exportació ordenen pel mateix lloc (`_ExTriats`); **l'Excel del GIA no s'obre mai
   per escriure** (guard).

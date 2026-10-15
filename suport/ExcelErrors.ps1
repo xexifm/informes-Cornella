@@ -268,7 +268,7 @@ function Get-ExcelErrorsFila($f, $col) {
 # $files: llista de @{ Id; Valors (hashtable per clau de columna) } en l'ordre
 # de l'Excel; $col: _ExColumnes; $contactes: GIA -> activitat de la base de
 # contactes (o $null si no n'hi ha). Torna una llista de [pscustomobject]
-# @{ Id; Titular; Annex; Tipus; TipusNom; Camp; Valor; Detall }.
+# @{ Id; Titular; Annex; Apartat; Tipus; TipusNom; Camp; Valor; Detall }.
 function Get-ExcelErrors($files, $col, $contactes) {
     $out = New-Object System.Collections.ArrayList
     $vistos = @{}
@@ -277,7 +277,7 @@ function Get-ExcelErrors($files, $col, $contactes) {
     $afegeix = {
         param($fl, $e)
         [void]$out.Add([pscustomobject]@{
-            Id = [string]$fl.Id; Titular = [string]$fl.Valors['RAO']; Annex = [string]$fl.Valors['ANNEX']; Tipus = [string]$e.Tipus
+            Id = [string]$fl.Id; Titular = [string]$fl.Valors['RAO']; Annex = [string]$fl.Valors['ANNEX']; Apartat = [string]$fl.Valors['APARTAT']; Tipus = [string]$e.Tipus
             TipusNom = [string]$Script:ExTipus[[string]$e.Tipus]; Camp = [string]$e.Camp; Valor = [string]$e.Valor; Detall = [string]$e.Detall
         })
     }
@@ -325,10 +325,11 @@ function _ExTriats($errors, $tipusTriats) {
 # "Classificacio general annex" de la base (l'usuari, octubre 2026: "afegeix una
 # columna despres de l'ID Activitat [...] Pots esborrar la columna Rao social";
 # la rao social es queda nomes a la graella de la finestra). PURA.
-$Script:ExExportCapcalera = @('ID Activitat', ('Classificaci' + [char]0x00F3 + ' general annex'), "Tipus d'error", 'Camp', "Valor a l'Excel", 'Detall')
-$Script:ExExportAmples = @(12, 16, 48, 28, 32, 70)
+# I a la dreta, la "Classificacio general Apartat" (l'usuari, la mateixa tarda).
+$Script:ExExportCapcalera = @('ID Activitat', ('Classificaci' + [char]0x00F3 + ' general annex'), ('Classificaci' + [char]0x00F3 + ' general Apartat'), "Tipus d'error", 'Camp', "Valor a l'Excel", 'Detall')
+$Script:ExExportAmples = @(12, 16, 16, 48, 28, 32, 70)
 function _ExFilesExport($errors, $tipusTriats) {
-    return @(_ExTriats $errors $tipusTriats | ForEach-Object { , @([string]$_.Id, [string]$_.Annex, [string]$_.TipusNom, [string]$_.Camp, [string]$_.Valor, [string]$_.Detall) })
+    return @(_ExTriats $errors $tipusTriats | ForEach-Object { , @([string]$_.Id, [string]$_.Annex, [string]$_.Apartat, [string]$_.TipusNom, [string]$_.Camp, [string]$_.Valor, [string]$_.Detall) })
 }
 
 function Export-ExcelErrors([string]$desti, $errors, $tipusTriats) {
@@ -459,7 +460,7 @@ function Show-ExcelErrorsFinestra($errors, [string]$peu, [string]$fileName) {
     $grid = New-Object System.Windows.Forms.DataGridView
     _StyleListGrid $grid
     $grid.ReadOnly = $true
-    foreach ($c in @(@{ H = 'ID Activitat'; W = 80 }, @{ H = 'Classif. annex'; W = 90 }, @{ H = ('Ra' + [char]0x00F3 + ' social'); W = 190 }, @{ H = "Tipus d'error"; W = 290 },
+    foreach ($c in @(@{ H = 'ID Activitat'; W = 80 }, @{ H = 'Classif. annex'; W = 90 }, @{ H = 'Classif. Apartat'; W = 100 }, @{ H = ('Ra' + [char]0x00F3 + ' social'); W = 190 }, @{ H = "Tipus d'error"; W = 290 },
                      @{ H = 'Camp'; W = 150 }, @{ H = "Valor a l'Excel"; W = 170 }, @{ H = 'Detall'; W = 380 })) {
         $col = New-Object System.Windows.Forms.DataGridViewTextBoxColumn
         $col.HeaderText = $c.H; $col.Width = $c.W; $col.SortMode = 'NotSortable'
@@ -487,7 +488,7 @@ function Show-ExcelErrorsFinestra($errors, [string]$peu, [string]$fileName) {
         $n = ([string]$txtCerca.Text).Trim().ToLower()
         $nf = 0
         foreach ($e in @(_ExTriats $errors $sel)) {
-            $fila = @([string]$e.Id, [string]$e.Annex, [string]$e.Titular, [string]$e.TipusNom, [string]$e.Camp, [string]$e.Valor, [string]$e.Detall)
+            $fila = @([string]$e.Id, [string]$e.Annex, [string]$e.Apartat, [string]$e.Titular, [string]$e.TipusNom, [string]$e.Camp, [string]$e.Valor, [string]$e.Detall)
             if ($n -ne '' -and -not (_TextMatches ($fila -join ' ') $n)) { continue }
             [void]$grid.Rows.Add($fila)
             $nf++

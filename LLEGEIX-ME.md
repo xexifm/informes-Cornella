@@ -682,8 +682,8 @@ corregir-les al GIA. **L'Excel no es toca mai.**
 
 A dalt **marques els tipus d'error que vols** (cada un diu quants n'hi ha) i a
 sota surten, amb una cerca. **Exportar a Excel** fa un `.xlsx` amb només els
-tipus marcats: *ID Activitat*, *Classificació general annex* (la de la base de
-dades), *Tipus d'error*, el camp, el valor que hi ha a l'Excel i el detall. A la
+tipus marcats: *ID Activitat*, *Classificació general annex* i *Classificació
+general Apartat* (les de la fulla *Estès*), *Tipus d'error*, el camp, el valor que hi ha a l'Excel i el detall. A la
 finestra hi surt també la raó social. El programa recorda què havies marcat.
 
 > Els dos tipus que surten dels documents (*Dades del tècnic* i *no quadra amb

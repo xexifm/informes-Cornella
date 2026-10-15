@@ -84,14 +84,15 @@ AssertEq @($exN.Keys).Count @($Script:ExTipus.Keys).Count 'Excel Errors: un comp
 
 Write-Host "`n--- Excel Errors: l'exportacio (nomes els tipus marcats) ---"
 $exExp = @(_ExFilesExport $exErr @('rao_social', 'id_duplicat'))
-AssertEq (@($exExp | ForEach-Object { $_[0] + '/' + $_[2] }) -join ' ; ') ('2/Falta la ra' + [char]0x00F3 + ' social ; 10/ID Activitat repetit') 'Excel Errors: nomes els tipus marcats, per ID (numeric) i amb el nom del tipus'
+AssertEq (@($exExp | ForEach-Object { $_[0] + '/' + $_[3] }) -join ' ; ') ('2/Falta la ra' + [char]0x00F3 + ' social ; 10/ID Activitat repetit') 'Excel Errors: nomes els tipus marcats, per ID (numeric) i amb el nom del tipus'
 AssertEq @(_ExFilesExport $exErr @()).Count 0 'Excel Errors: sense cap tipus marcat, res'
 AssertEq @(_ExFilesExport @($exErr | Select-Object -First 1) @('id_duplicat')).Count 1 'Excel Errors: una sola fila tambe es una fila'
 AssertEq $Script:ExExportCapcalera[0] 'ID Activitat' 'Excel Errors: la primera columna es l''ID Activitat'
-AssertEq ($Script:ExExportCapcalera -join '|') ('ID Activitat|Classificaci' + [char]0x00F3 + " general annex|Tipus d'error|Camp|Valor a l'Excel|Detall") 'Excel Errors: despres de l''ID, la classificacio general annex; sense la rao social'
+AssertEq ($Script:ExExportCapcalera -join '|') ('ID Activitat|Classificaci' + [char]0x00F3 + ' general annex|Classificaci' + [char]0x00F3 + " general Apartat|Tipus d'error|Camp|Valor a l'Excel|Detall") 'Excel Errors: despres de l''ID, la classificacio general annex i l''apartat; sense la rao social'
 AssertEq @($Script:ExExportAmples).Count @($Script:ExExportCapcalera).Count 'Excel Errors: una amplada per columna'
-AssertEq (@(_ExFilesExport $exErr @('tecnic'))[0] -join '|') ('2||' + $Script:ExTipus['tecnic'] + '|Representant legal|Joan Tecnic|es del tecnic') 'Excel Errors: la fila exportada (activitat sense annex: buit)'
+AssertEq (@(_ExFilesExport $exErr @('tecnic'))[0] -join '|') ('2|||' + $Script:ExTipus['tecnic'] + '|Representant legal|Joan Tecnic|es del tecnic') 'Excel Errors: la fila exportada (activitat sense annex: buit)'
 AssertEq @(_ExFilesExport $exErr @('id_duplicat'))[0][1] 'III' 'Excel Errors: la classificacio general annex de la base, a la segona columna'
+AssertEq @(_ExFilesExport $exErr @('id_duplicat'))[0][2] '12.25' 'Excel Errors: i la classificacio general Apartat, a la tercera'
 $exDir = Join-Path ([System.IO.Path]::GetTempPath()) ('exerr-' + [guid]::NewGuid().ToString('N'))
 [void](New-Item -ItemType Directory -Path $exDir -Force)
 try {
