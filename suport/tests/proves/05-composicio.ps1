@@ -1472,9 +1472,35 @@ AssertEq (@($blA | Where-Object { $_.T -eq 'titolbloc' } | ForEach-Object { [str
 $uAnt = @(@($blA | Where-Object { $_.T -eq 'unitat' })[0].Blocs)
 AssertEq (@($uAnt | ForEach-Object { [string]$_.T }) -join ',') 'cos,espai,cos' 'Anterior: l avis SENSE numero (no es una deficiencia) i el COPIAR a sota'
 Assert ([string]$uAnt[0].Text).Contains('S-2026-15199') 'Anterior: el registre de sortida, omplert'
-Assert ([string]$uAnt[2].Text).Contains('A1, A2') 'Anterior: el COPIAR porta el recordatori de l A1, A2'
+Assert ([string]$uAnt[2].Text).Contains('COPIAR REQUERIMENT') 'Anterior: el COPIAR a sota'
 $numsA = @(@($blA | Where-Object { $_.T -eq 'unitat' } | Select-Object -Skip 1) | ForEach-Object { [string]@($_.Blocs)[0].Num })
-AssertEq ($numsA -join ',') '1.,2.' 'Anterior: el requeriment actual comenca per l 1 (abans pel 2)'
+AssertEq ($numsA -join ',') '1.,2.' 'Anterior: sense dir quants punts tenia, el requeriment actual comenca per l 1 (abans pel 2)'
+
+Write-Host "`n--- REQUERIMENT ANTERIOR: quants punts tenia (la numeracio continua) ---"
+# L'usuari (octubre 2026): "si marco que tenia 4 requeriments, els seguents
+# comencaran per 5, 6, 7... en comptes de per 1, 2, 3".
+$secAntP = [pscustomobject]@{
+    Title = 'Requeriment pendent'
+    Items = @(
+        (_NouEl 'item' 'Anterior requeriment' @('S''ha de donar resposta a l''anterior requeriment amb Num. de registre: [CAMP: Registre sortida (S-202X-XXXX)].', 'COPIAR REQUERIMENT', 'Punts del requeriment anterior: [CAMP: Punts del requeriment anterior (p. ex. 4)]') @() $true)
+    )
+}
+$blP = @(Build-CatalegBlocs @($secAntP, $secP) ([ordered]@{ 'Registre sortida' = @{ Value = 'S-2026-15199' }; 'Punts del requeriment anterior' = @{ Value = '4' } }) $introAnt)
+$numsP = @(@($blP | Where-Object { $_.T -eq 'unitat' } | Select-Object -Skip 1) | ForEach-Object { [string]@($_.Blocs)[0].Num })
+AssertEq ($numsP -join ',') '5.,6.' 'Punts anterior: amb 4, els nous punts comencen pel 5'
+$uAntP = @(@($blP | Where-Object { $_.T -eq 'unitat' })[0].Blocs)
+AssertEq (@($uAntP | ForEach-Object { [string]$_.T }) -join ',') 'cos,espai,cos' 'Punts anterior: la linia dels punts NO surt al document'
+Assert (-not ((@($blP | ForEach-Object { [string]$_.Text }) -join ' ').Contains('Punts del requeriment'))) 'Punts anterior: enlloc'
+$blP0 = @(Build-CatalegBlocs @($secAntP, $secP) ([ordered]@{ 'Punts del requeriment anterior' = @{ Value = '' } }) $introAnt)
+AssertEq (@(@($blP0 | Where-Object { $_.T -eq 'unitat' } | Select-Object -Skip 1) | ForEach-Object { [string]@($_.Blocs)[0].Num }) -join ',') '1.,2.' 'Punts anterior: buit, es comenca per l 1'
+AssertEq (_PuntsAnteriorDeLinia 'Punts del requeriment anterior: 12 punts') 12 '_PuntsAnteriorDeLinia: el numero'
+AssertEq (_PuntsAnteriorDeLinia 'Punts del requeriment anterior:') 0 '_PuntsAnteriorDeLinia: buit = 0'
+AssertEq (_PuntsAnteriorDeLinia 'COPIAR REQUERIMENT') -1 '_PuntsAnteriorDeLinia: una altra linia, -1'
+# I al cataleg de debo: la linia dels punts, i ja no el recordatori de l'A1, A2.
+$req1P = Get-ParsedCataleg -path (Join-Path $Global:EstructuralsDir 'REQ1.json')
+$antP = @(@(@($req1P.Sections) | Where-Object { _EsSeccioReqAnterior $_ })[0].Items | Where-Object { [string]$_.Kind -eq 'item' })[0]
+Assert (@($antP.BodyLines | Where-Object { ([string]$_).StartsWith($Script:PrefixPuntsAnterior) -and ([string]$_).Contains('[CAMP: Punts del requeriment anterior') }).Count -eq 1) 'REQ1: l Anterior requeriment porta el camp dels punts'
+Assert (-not ((@($antP.BodyLines) -join ' ').Contains('A1, A2'))) 'REQ1: ja no hi ha el recordatori de canviar 1, 2, 3 per A1, A2, A3'
 # Nomes l'anterior: no hi ha REQUERIMENT ACTUAL buit.
 $blA2 = @(Build-CatalegBlocs @($secAnt) @{} $introAnt)
 AssertEq (@($blA2 | Where-Object { $_.T -eq 'titolbloc' }).Count) 1 'Anterior sol: sense REQUERIMENT ACTUAL buit'

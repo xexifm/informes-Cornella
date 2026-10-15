@@ -159,18 +159,30 @@
   // REQUERIMENT ANTERIOR / ACTUAL: la mateixa regla que Build-CatalegBlocs
   // (_EsSeccioReqAnterior, _BlocsReqAnterior, _BlocsReqActual).
   var MARCA_COPIAR = "COPIAR REQUERIMENT";
+  // Quants punts tenia l'anterior: la linia (ja resolta) que comenca pel
+  // prefix no surt i el seu numero fa continuar la numeracio
+  // (_PuntsAnteriorDeLinia).
+  var PREFIX_PUNTS = "Punts del requeriment anterior:";
+  function puntsAnteriorDeLinia(l) {
+    var t = String(l == null ? "" : l).trim();
+    if (t.substring(0, PREFIX_PUNTS.length).toLowerCase() !== PREFIX_PUNTS.toLowerCase()) return -1;
+    var m = /\d+/.exec(t.substring(PREFIX_PUNTS.length));
+    return m ? Math.min(999, parseInt(m[0], 10)) : 0;
+  }
   function esSeccioReqAnterior(sec) {
     return (sec.Items || []).some(function (el) {
       if (el.Kind === "subsection" || el.Kind === "intro") return false;
       return (el.BodyLines || []).some(function (l) { return String(l).indexOf(MARCA_COPIAR) >= 0; });
     });
   }
-  function blocsReqAnterior(sec, linies) {
+  function blocsReqAnterior(sec, linies, punts) {
     var out = [{ T: "titolbloc", Text: "Requeriment anterior" }, { T: "aire", Clau: "seccio" }];
     (sec.Items || []).forEach(function (el) {
       if (el.Kind === "subsection" || el.Kind === "intro" || !el.Selected) return;
       var u = [];
       linies(el).forEach(function (l) {
+        var pa = puntsAnteriorDeLinia(l);
+        if (pa >= 0) { if (punts && pa > punts.n) punts.n = pa; return; }
         var bl = blocsDeLinia(l, false);
         if (!bl.length) return;
         if (u.length) u.push({ T: "espai" });
@@ -188,7 +200,12 @@
   function blocsDeSeleccio(seccions, linies, intro) {
     var b = [], comptador = { n: 0 }, darrera = null, actualPendent = false;
     (seccions || []).forEach(function (sec) {
-      if (esSeccioReqAnterior(sec)) { b = b.concat(blocsReqAnterior(sec, linies)); actualPendent = true; darrera = null; return; }
+      if (esSeccioReqAnterior(sec)) {
+        var punts = { n: 0 };
+        b = b.concat(blocsReqAnterior(sec, linies, punts));
+        if (punts.n > comptador.n) comptador.n = punts.n;
+        actualPendent = true; darrera = null; return;
+      }
       if (actualPendent) { b = b.concat(blocsReqActual(intro)); actualPendent = false; }
       var titol = String(sec.Title || ""), k = titol.indexOf(" - ");
       if (k >= 0) {

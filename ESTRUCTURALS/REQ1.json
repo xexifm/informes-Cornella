@@ -41,7 +41,14 @@
                                                     {
                                                         "runs":  [
                                                                      {
-                                                                         "t":  "COPIAR REQUERIMENT (recorda canviar la numeració dels punts 1, 2, 3... per A1, A2, A3...)"
+                                                                         "t":  "COPIAR REQUERIMENT"
+                                                                     }
+                                                                 ]
+                                                    },
+                                                    {
+                                                        "runs":  [
+                                                                     {
+                                                                         "t":  "Punts del requeriment anterior: [CAMP: Punts del requeriment anterior (p. ex. 4: els nous punts comencen pel 5)]"
                                                                      }
                                                                  ]
                                                     }

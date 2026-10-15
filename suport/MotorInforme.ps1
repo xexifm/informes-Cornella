@@ -679,6 +679,31 @@ function _BlocsDItem($el, $fields, [ref]$num, [bool]$senseCamps = $false, [bool]
 # el mostra com qualsevol altra seccio.
 $Script:MarcaCopiarRequeriment = 'COPIAR REQUERIMENT'
 
+# QUANTS PUNTS TENIA L'ANTERIOR (octubre 2026). L'usuari: "vull poder indicar
+# [...] quants requeriments tenia l'anterior requeriment perque els nous
+# requeriments comencin la numeracio correctament. Si marco que tenia 4, els
+# seguents comencaran per 5, 6, 7...". Substitueix el recordatori de canviar 1,
+# 2, 3 per A1, A2, A3: el text enganxat es queda amb la seva numeracio i el
+# requeriment actual la continua.
+# Al cataleg es una linia de la seccio de l'anterior amb un [CAMP:]
+# ("Punts del requeriment anterior: [CAMP: ...]"), que surt a la pantalla de
+# "Text i opcions" com qualsevol camp. AL DOCUMENT NO HI VA: se'n treu el
+# numero i la linia es salta. Es reconeix pel PREFIX de la linia JA RESOLTA, i
+# no pel [CAMP:] cru, a posta: el correu del mobil (docs/correu.js) nomes veu
+# les linies resoltes, i la regla ha de ser la mateixa als dos llocs (prova
+# creuada). Buit o sense numero = 0: es comenca per l'1, com abans.
+$Script:PrefixPuntsAnterior = 'Punts del requeriment anterior:'
+
+# -1 si la linia no es la dels punts; si ho es, el numero (0 si no n'hi ha).
+# PURA.
+function _PuntsAnteriorDeLinia([string]$l) {
+    $t = ([string]$l).Trim()
+    if (-not $t.StartsWith($Script:PrefixPuntsAnterior, [System.StringComparison]::OrdinalIgnoreCase)) { return -1 }
+    $resta = $t.Substring($Script:PrefixPuntsAnterior.Length)
+    if ($resta -match '\d+') { return [Math]::Min(999, [int]$Matches[0]) }
+    return 0
+}
+
 function _EsSeccioReqAnterior($sec) {
     foreach ($el in @($sec.Items)) {
         if ([string]$el.Kind -eq 'subsection' -or [string]$el.Kind -eq 'intro') { continue }
@@ -689,7 +714,8 @@ function _EsSeccioReqAnterior($sec) {
     return $false
 }
 
-function _BlocsReqAnterior($sec, $fields) {
+# $punts (per referencia): quants punts tenia l'anterior (la linia dels punts).
+function _BlocsReqAnterior($sec, $fields, [ref]$punts) {
     $out = New-Object System.Collections.ArrayList
     [void]$out.Add(@{ T = 'titolbloc'; Text = 'Requeriment anterior' })
     [void]$out.Add(@{ T = 'aire'; Clau = 'seccio' })
@@ -698,6 +724,8 @@ function _BlocsReqAnterior($sec, $fields) {
         if (-not $el.Selected) { continue }
         $u = New-Object System.Collections.ArrayList
         foreach ($l in @(_LiniesDeNode $el $fields $false)) {
+            $pa = _PuntsAnteriorDeLinia ([string]$l)
+            if ($pa -ge 0) { if ($null -ne $punts -and $pa -gt $punts.Value) { $punts.Value = $pa }; continue }
             $bl = @(_BlocsDeLinia ([string]$l) $false)
             if ($bl.Count -eq 0) { continue }
             if ($u.Count -gt 0) { [void]$u.Add(@{ T = 'espai' }) }
@@ -752,7 +780,10 @@ function Build-CatalegBlocs($seccions, $fields, [string]$introText, [bool]$esCos
     $actualPendent = $false
     foreach ($sec in @($seccions)) {
         if (-not $sc -and (_EsSeccioReqAnterior $sec)) {
-            foreach ($x in @(_BlocsReqAnterior $sec $fields)) { [void]$b.Add($x) }
+            $puntsAnt = 0
+            foreach ($x in @(_BlocsReqAnterior $sec $fields ([ref]$puntsAnt))) { [void]$b.Add($x) }
+            # El requeriment actual continua la numeracio de l'anterior.
+            if ($puntsAnt -gt $num) { $num = $puntsAnt }
             $actualPendent = $true
             $darreraSeccio = $null
             continue

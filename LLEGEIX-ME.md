@@ -113,14 +113,20 @@ Anterior requeriment*. L'informe surt en dos blocs ben separats:
 
 - **REQUERIMENT ANTERIOR** (subratllat): l'avís «S'ha de donar resposta a
   l'anterior requeriment…», **sense número**, i a sota el text *COPIAR
-  REQUERIMENT*. Allà hi enganxes el text **literal** de l'anterior i en canvies
-  els números **1, 2, 3… per A1, A2, A3…** (el mateix *COPIAR REQUERIMENT* t'ho
-  recorda).
+  REQUERIMENT*. Allà hi enganxes el text **literal** de l'anterior, amb la
+  seva numeració.
 - **REQUERIMENT ACTUAL** (subratllat): la frase «S'han observat les següents
-  deficiències…» i els punts d'ara, numerats **des de l'1**.
+  deficiències…» i els punts d'ara, **que continuen la numeració de
+  l'anterior**.
 
-El **Seguiment** llegeix tant els A1, A2… com els 1, 2…, o sigui que podràs
-marcar també els punts de l'anterior.
+**Quants punts tenia l'anterior**: a la pantalla *Text i opcions* de les
+deficiències marcades, l'*Anterior requeriment* porta la casella **Punts del
+requeriment anterior**. Si hi poses 4, els punts nous surten com a **5, 6,
+7…**; si la deixes buida, comencen per l'1. Aquesta línia no surt a l'informe
+ni al correu.
+
+El **Seguiment** llegeix els punts numerats (i també els A1, A2… dels informes
+d'abans), o sigui que podràs marcar també els punts de l'anterior.
 
 ### Seguiment d'un informe
 

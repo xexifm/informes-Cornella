@@ -3,7 +3,7 @@ AIRE|introparagraf
 BLOC|Requeriment anterior
 AIRE|seccio
 BODY|S’ha de donar resposta a l’anterior requeriment amb Núm. de registre: .
-BODY|COPIAR REQUERIMENT (recorda canviar la numeració dels punts 1, 2, 3... per A1, A2, A3...)
+BODY|COPIAR REQUERIMENT
 AIRE|item
 BLOC|Requeriment actual
 AIRE|seccio

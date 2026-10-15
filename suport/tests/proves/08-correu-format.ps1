@@ -231,10 +231,12 @@ if ($null -eq $cfNode) {
         # al davant: el del cataleg porta un [CAMP:] i la tria de dalt el salta.
         $cfSel = @([pscustomobject]@{ Title = 'Requeriment pendent'; Items = @(
             [pscustomobject]@{ Kind = 'item'; Short = 'Anterior requeriment'; Children = @(); Selected = $true
-                               BodyLines = @('S''ha de donar resposta a l''anterior requeriment amb Num. de registre: S-2026-15199.', 'COPIAR REQUERIMENT (A1, A2...)') }) }) + $cfSel
+                               BodyLines = @('S''ha de donar resposta a l''anterior requeriment amb Num. de registre: S-2026-15199.', 'COPIAR REQUERIMENT', 'Punts del requeriment anterior: 4') }) }) + $cfSel
         $cfBlocsPc = @(Build-CatalegBlocs $cfSel @{} '')
         Assert ((_CorreuBlocsAHtml $cfBlocsPc $cfFmt).Contains('<u>REQUERIMENT ANTERIOR</u>')) 'creuat: el REQUERIMENT ANTERIOR, subratllat al correu'
         $cfHtmlPc = _CorreuBlocsAHtml $cfBlocsPc $cfFmt
+        AssertEq ([string](@($cfBlocsPc | Where-Object { $_.T -eq 'unitat' -and @($_.Blocs)[0].T -eq 'item' })[0].Blocs[0].Num)) '5.' 'creuat: amb 4 punts a l''anterior, l''actual comenca pel 5 (i el mobil ha de dir el mateix)'
+        Assert (-not $cfHtmlPc.Contains('Punts del requeriment')) 'creuat: la linia dels punts no surt al correu'
         $cfLinCap = @(@{ Etiqueta = 'ID GIA:'; Valor = '118' }, @{ Etiqueta = 'Objecte:'; Valor = ('Visita inspecci' + [char]0x00F3 + ' 29/09/2026') })
         $cfCapPc = _CorreuCapcaleraHtml $cfLinCap $cfFmt 'INFORME'
         $cfCosPc = _CorreuCosAHtml "{CAPCALERA}`n`nHola {X} !!vermell!!`n{REQUERIMENTS}`nhttps://seu.cat/a?b=1&c=2" { param($s) $s.Replace('{X}', 'Y') } 'CAP' 'REQ' $cfFmt

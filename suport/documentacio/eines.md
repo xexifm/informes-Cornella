@@ -220,6 +220,17 @@ copiaré el text literal i en comptes d'1 i 2 posaré A1 i A2»*.
 - El **catàleg** REQ1: el *COPIAR REQUERIMENT* porta el recordatori de canviar
   1, 2… per A1, A2…, i el «I a més a més, esmenar els següents punts:» ja no hi
   és (el substitueix el bloc REQUERIMENT ACTUAL).
+- **Quants punts tenia l'anterior** (octubre 2026, substitueix el recordatori
+  de l'A1, A2…). L'usuari: «si marco que tenia 4 requeriments, els següents
+  començaran per 5, 6, 7… en comptes de per 1, 2, 3». És un `[CAMP:]` normal
+  en una línia pròpia de l'*Anterior requeriment* («Punts del requeriment
+  anterior: [CAMP: …]»), o sigui que surt sol a la pantalla de *Text i
+  opcions* (PC i mòbil). El motor reconeix la línia **ja resolta** pel prefix
+  (`_PuntsAnteriorDeLinia`, `$Script:PrefixPuntsAnterior`), no la posa al
+  document i en fa començar el `$num` de `Build-CatalegBlocs`. Pel prefix i no
+  pel `[CAMP:]` cru a posta: `docs/correu.js` només veu les línies resoltes, i
+  la prova creuada hi passa una anterior amb 4 punts (l'actual ha de començar
+  pel 5 als dos costats). Llicència (punts amb lletres) també salta la línia.
 - **Seguiment** (`Seguiment.ps1`): `$SeguimentReqRegex` accepta `A1.`, `A2.`…
   (`Number` = `'A1'`, text; els numèrics continuen sent enters), i
   `_SeguimentParentTopic` i `_CorreuSenseNegretaSeguiment` també.

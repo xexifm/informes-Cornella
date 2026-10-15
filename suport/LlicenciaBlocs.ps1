@@ -87,6 +87,10 @@ function _LlicBlocsDePunt($punt, [string]$marca, $fields, [string]$estat, [bool]
     [void]$out.Add(@{ T = 'item'; Num = [string]$marca; Text = $p0.Text })
     foreach ($u in @($p0.Urls)) { & $enllac $u $false }
     for ($i = 1; $i -lt $linies.Count; $i++) {
+        # "Punts del requeriment anterior: N" (REQ1) diu on continua la
+        # numeracio d'un REQ1; a Llicencia els punts van amb lletres (A., B.) i
+        # la linia no hi te res a fer. Al document no hi va mai.
+        if ((_PuntsAnteriorDeLinia ([string]$linies[$i])) -ge 0) { continue }
         $pp = _SplitTextAndUrls ([string]$linies[$i])
         if (-not [string]::IsNullOrWhiteSpace($pp.Text)) { [void]$out.Add(@{ T = 'cos'; Text = $pp.Text }) }
         foreach ($u in @($pp.Urls)) { & $enllac $u $false }
