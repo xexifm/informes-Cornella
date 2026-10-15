@@ -542,6 +542,14 @@ i el «mètode sobre NULL» arribava tal qual al quadre «Error llegint l'inform
 que veu l'usuari. Ara tots quatre van amb `New-WordApp -Opcional` i **cada un es
 queda el seu missatge**, que és l'únic que difereix de debò.
 
+**I per LLEGIR un fitxer amb el Word, `Open-WordCopiaLocal` / `Close-WordCopiaLocal`
+(`Motor.ps1`)**: copia el fitxer al `%TEMP%` i obre la còpia. Un Word que llegeix
+de la unitat de xarxa hi escriu els seus `~WRS{…}.tmp` i, a la primera
+interrupció, ensenya «lectura doble» / «perdió datos» / «no puede abrir
+~WRS…», que el `DisplayAlerts` no treu i que deixen el procés esperant un clic
+(va passar a «Actualitzar base», amb els `.doc` i després amb els PDF
+escanejats). Hi ha guard als dos lectors (validat injectant l'obertura directa).
+
 ### El correu: `_CosAHtml` i `_OmpleVariables`
 
 `_RecCosHtml` (Recordatoris) i `_ControlsCpEmailHtml` (Controls periòdics) eren

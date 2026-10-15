@@ -34,35 +34,22 @@ function _ReadDocxParagraphs($docxPath) {
 # mandrosament nomes si cal); aqui nomes s'obre i es tanca el DOCUMENT (mai
 # l'aplicacio).
 #
-# S'OBRE UNA COPIA LOCAL, MAI L'ORIGINAL DE LA XARXA (octubre 2026). El Word
-# que llegia els .doc directament de la unitat I: escrivia els seus temporals
-# (~WRS{...}.tmp) a la mateixa carpeta de xarxa i, a la primera interrupcio,
-# ensenyava "Word no puede abrir el archivo ~WRS...", "Word ha realizado una
-# lectura doble..." o "Word perdio datos debido a una conexion de red..." --
-# finestres que NO treu el DisplayAlerts. En la passada automatica, sense
-# ningu davant, el proces s'hi quedava esperant amb la base agafada i el boto
-# deia cada vegada "s'esta actualitzant sola". Copiar el fitxer (una lectura
-# de xarxa, sense Word) i obrir la copia del %TEMP% ho evita. Les
-# contrasenyes de mentida ('x') fan que un .doc protegit doni un error en
-# lloc de demanar-la i esperar.
+# S'OBRE UNA COPIA LOCAL, MAI L'ORIGINAL DE LA XARXA (Open-WordCopiaLocal,
+# Motor.ps1: per que, alla). En la passada automatica, sense ningu davant, el
+# proces es quedava esperant un clic a "Word ha realizado una lectura doble..."
+# amb la base agafada, i el boto deia cada vegada "s'esta actualitzant sola".
 function _ReadDocParagraphsWord($wordApp, $docPath) {
-    $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ('informe-' + [guid]::NewGuid().ToString('N') + [System.IO.Path]::GetExtension([string]$docPath))
-    Copy-Item -LiteralPath $docPath -Destination $tmp -Force
+    $h = Open-WordCopiaLocal $wordApp ([string]$docPath)
     try {
-        $doc = $wordApp.Documents.Open($tmp, $false, $true, $false, 'x', '', $false, 'x', '')
-        try {
-            $out = New-Object System.Collections.ArrayList
-            foreach ($p in $doc.Paragraphs) {
-                $t = $p.Range.Text
-                if ($null -ne $t) { $t = $t.TrimEnd([char]13, [char]7) }
-                [void]$out.Add($t)
-            }
-            return $out.ToArray()
-        } finally {
-            $doc.Close($false)
+        $out = New-Object System.Collections.ArrayList
+        foreach ($p in $h.Doc.Paragraphs) {
+            $t = $p.Range.Text
+            if ($null -ne $t) { $t = $t.TrimEnd([char]13, [char]7) }
+            [void]$out.Add($t)
         }
+        return $out.ToArray()
     } finally {
-        try { Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue } catch { }
+        Close-WordCopiaLocal $h
     }
 }
 

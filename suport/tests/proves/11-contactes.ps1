@@ -43,6 +43,28 @@ AssertEq (_WordClauOpcions '15.0.4569') 'HKCU:\Software\Microsoft\Office\15.0\Wo
 AssertEq (_WordClauOpcions '') '' '_WordClauOpcions: sense versio, res'
 $srcPdfTxt = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'PdfText.ps1'))
 Assert ($srcPdfTxt.Contains("if (-not (_WordSenseAvisPdf `$wordApp)) { return '' }")) '_PdfTextWord: no obre cap PDF sense haver tret l''avis de la conversio'
+# Els "Word ha realizado una lectura doble de su archivo ~WRS..." (octubre
+# 2026): el Word no obre mai el PDF de la xarxa, sino una copia local.
+Assert ($srcPdfTxt.Contains('$h = Open-WordCopiaLocal $wordApp $pdf') -and -not $srcPdfTxt.Contains('Documents.Open(')) '_PdfTextWord: el Word obre una COPIA local del PDF (Open-WordCopiaLocal), mai el de la xarxa'
+$wcDir = Join-Path ([System.IO.Path]::GetTempPath()) ('wcopia-' + [guid]::NewGuid().ToString('N'))
+try {
+    [void](New-Item -ItemType Directory -Path $wcDir -Force)
+    $wcOrig = Join-Path $wcDir 'Instancia escanejada.pdf'
+    [System.IO.File]::WriteAllText($wcOrig, 'contingut')
+    $wcVist = @{ Path = ''; Text = ''; Tancat = $false }
+    $wcDocs = [pscustomobject]@{}
+    $wcDocs | Add-Member -MemberType ScriptMethod -Name Open -Value {
+        $wcVist.Path = [string]$args[0]; $wcVist.Text = [System.IO.File]::ReadAllText($args[0])
+        $d = [pscustomobject]@{}; $d | Add-Member -MemberType ScriptMethod -Name Close -Value { $wcVist.Tancat = $true }; return $d
+    }
+    $wcApp = [pscustomobject]@{ Documents = $wcDocs }
+    $wcH = Open-WordCopiaLocal $wcApp $wcOrig
+    AssertEq "$($wcVist.Path -ne $wcOrig)|$($wcVist.Path.StartsWith([System.IO.Path]::GetTempPath()))|$($wcVist.Text)|$([System.IO.Path]::GetExtension($wcVist.Path))" 'True|True|contingut|.pdf' 'Open-WordCopiaLocal: el Word rep una copia al %TEMP% (amb la mateixa extensio), no l''original'
+    Close-WordCopiaLocal $wcH
+    AssertEq "$($wcVist.Tancat)|$(Test-Path -LiteralPath $wcVist.Path)|$(Test-Path -LiteralPath $wcOrig)" 'True|False|True' 'Close-WordCopiaLocal: tanca el document i esborra la copia (l''original, intacte)'
+} catch {
+    Assert $false ('bloc Open-WordCopiaLocal: ' + $_.Exception.Message + ' @ ' + $_.InvocationInfo.ScriptLineNumber)
+} finally { Remove-Item -LiteralPath $wcDir -Recurse -Force -ErrorAction SilentlyContinue }
 $srcAutoB = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'InformesEscaneig.ps1'))
 Assert ($srcAutoB.Contains("Invoke-InformesDbEscaneig `$null `$null '' `$true `$false")) 'Actualitzar base automatic: el repas de contactes sense Word'
 

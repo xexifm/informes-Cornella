@@ -698,6 +698,34 @@ function New-WordApp {
     return $w
 }
 
+# EL WORD NO OBRE MAI UN FITXER DE LA XARXA PER LLEGIR-LO: n'obre una COPIA
+# LOCAL (%TEMP%). Un Word que llegeix de la unitat I: (o F:) hi escriu els seus
+# temporals (~WRS{...}.tmp) i, a la primera interrupcio de la xarxa, ensenya
+# "Word ha realizado una lectura doble de su archivo ~WRS...", "Word perdio
+# datos debido a una conexion de red incorrecta..." o "Word no puede abrir el
+# archivo ~WRS...": finestres que NO treu el DisplayAlerts i que deixen el proces
+# esperant un clic. Va passar primer amb els .doc antics de la base d'informes i
+# despres (octubre 2026, l'usuari: "em continuen sortint quan faig Actualitzar
+# base") amb els PDF escanejats del repas de contactes, que en llegir les
+# subcarpetes son molts mes. Copiar el fitxer es una lectura de xarxa sense
+# Word. Les contrasenyes de mentida ('x') fan que un document protegit doni un
+# error en lloc de demanar-la i esperar. Torna @{ Doc; Tmp }: el tanca i esborra
+# la copia Close-WordCopiaLocal (al finally de qui l'obre).
+function Open-WordCopiaLocal($wordApp, [string]$path) {
+    $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ('informes-word-' + [guid]::NewGuid().ToString('N') + [System.IO.Path]::GetExtension($path))
+    Copy-Item -LiteralPath $path -Destination $tmp -Force
+    $h = @{ Doc = $null; Tmp = [string]$tmp }
+    try { $h.Doc = $wordApp.Documents.Open($tmp, $false, $true, $false, 'x', '', $false, 'x', '') }
+    catch { Close-WordCopiaLocal $h; throw }
+    return $h
+}
+
+function Close-WordCopiaLocal($h) {
+    if ($null -eq $h) { return }
+    if ($null -ne $h.Doc) { try { $h.Doc.Close($false) } catch { }; $h.Doc = $null }
+    if ([string]$h.Tmp -ne '') { try { Remove-Item -LiteralPath $h.Tmp -Force -ErrorAction SilentlyContinue } catch { } }
+}
+
 # L'INFORME GENERAT, A L'USUARI: es tanca el Word del programa i el document
 # s'obre com si l'usuari hi hagues fet doble clic, en un Word SEU. Abans es feia
 # $word.Visible = $true i s'hi obria el document: l'usuari treballava al Word

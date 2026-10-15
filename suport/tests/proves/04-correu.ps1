@@ -1186,7 +1186,7 @@ Write-Host "`n--- InformesEscaneig.ps1: els .doc, sense el Word en automatic i l
 # l'automatic no obre mai el Word, el text d'un .doc es desa el primer cop, i un
 # .doc que no es pot llegir no es classifica en blanc.
 $srcEscD = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'InformesEscaneig.ps1'))
-Assert ($srcEscD.Contains('$doc = $wordApp.Documents.Open($tmp,') -and -not $srcEscD.Contains('Documents.Open($docPath')) '_ReadDocParagraphsWord: el Word obre una COPIA local, mai el .doc de la xarxa'
+Assert ($srcEscD.Contains('$h = Open-WordCopiaLocal $wordApp') -and -not $srcEscD.Contains('Documents.Open(')) '_ReadDocParagraphsWord: el Word obre una COPIA local (Open-WordCopiaLocal), mai el .doc de la xarxa'
 $dc = Join-Path ([System.IO.Path]::GetTempPath()) ('doc-text-' + [guid]::NewGuid().ToString('N'))
 $dcI = Join-Path $dc 'Informes'; $vellsDC = @{ Inf = $InformesDir; Loc = $LocalActivitatsDir; Act = $ActivitatsDir; App = $env:LOCALAPPDATA }
 try {

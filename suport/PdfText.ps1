@@ -611,16 +611,18 @@ function _WordSenseAvisPdf($wordApp) {
 # text. Lent: nomes per a aquests. $wordApp el porta qui crida (New-WordApp
 # -Opcional, amb la Quit() al seu finally); sense, torna ''. MAI amb un PDF
 # xifrat (demanaria la contrasenya i es quedaria esperant: ho evita qui crida)
-# ni sense haver tret l'avis de la conversio (_WordSenseAvisPdf).
+# ni sense haver tret l'avis de la conversio (_WordSenseAvisPdf). I mai el PDF
+# de la xarxa: una copia local (Open-WordCopiaLocal; sense, sortien els "Word
+# ha realizado una lectura doble de su archivo ~WRS..." en llegir les carpetes).
 function _PdfTextWord($wordApp, [string]$pdf) {
     if ($null -eq $wordApp) { return '' }
     if (-not (_WordSenseAvisPdf $wordApp)) { return '' }
-    $doc = $null
+    $h = $null
     try {
-        $doc = $wordApp.Documents.Open($pdf, $false, $true, $false)
-        return [string]$doc.Content.Text
+        $h = Open-WordCopiaLocal $wordApp $pdf
+        return [string]$h.Doc.Content.Text
     } catch { return '' }
-    finally { if ($null -ne $doc) { try { $doc.Close($false) } catch { } } }
+    finally { Close-WordCopiaLocal $h }
 }
 
 # Hi ha prou text per fer-ne res? Un escanejat pot portar quatre lletres d'una

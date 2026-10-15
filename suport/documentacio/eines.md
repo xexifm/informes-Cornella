@@ -1342,6 +1342,14 @@ això:
   (`_WordSenseAvisPdf`: és la casella «No volver a mostrar este mensaje»), i
   només si després s'hi llegeix;
 - els PDF **xifrats no van mai al Word** (demanaria la contrasenya);
+- **el Word no obre mai el PDF de la xarxa**, sinó una còpia al `%TEMP%`
+  (`Open-WordCopiaLocal`, `Motor.ps1`, el mateix que ja feien els `.doc` de la
+  base d'informes). Llegint de la unitat de xarxa, el Word hi escriu els seus
+  temporals `~WRS{…}.tmp` i a la primera interrupció ensenya «Word ha realizado
+  una lectura doble de su archivo», «Word perdió datos debido a una conexión de
+  red incorrecta» o «Word no puede abrir el archivo ~WRS…», que el
+  `DisplayAlerts` no treu (l'usuari, octubre 2026, en fer «Actualitzar base»:
+  amb les subcarpetes, molts més escanejats van al Word);
 - la passada **automàtica** (sense ningú davant) no fa servir el Word
   (`Invoke-ContactesEscaneig -SenseWord`): els que l'haurien necessitat queden
   `pendent_word` i els torna a llegir el pròxim «Actualitzar base» a mà, encara
