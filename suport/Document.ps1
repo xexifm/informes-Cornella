@@ -77,15 +77,24 @@ function _BlocsTancament($fields = $null) {
 
 # EL BLOC DE CONCLUSIONS en blocs (titol, conclusions i les frases de sempre).
 # PURA: la fan servir REQ1/TERMINI (_WriteConclusionsBlock) i MNS/Transmissio.
+#
+# SENSE CAP CONCLUSIO MARCADA, NI TITOL NI AIRE (octubre 2026, l'usuari: "si no
+# marco cap conclusio alhora de fer l'informe, no posis el titol CONCLUSIONS i
+# els espais corresponents al bloc"). Abans el titol sortia sempre que n'hi
+# havia, encara que a sota nomes hi anessin les frases de sempre ("Ho poso al
+# seu coneixement..."), i quedava un CONCLUSIONS buit amb dues linies en blanc
+# al damunt. Les frases de sempre surten igual, darrere del darrer punt (la
+# separacio de "Ho poso al seu coneixement" la decideix _BlocsConclusio).
 function _BlocsConclusions($headerText, $conclusions, $alwaysConclusions, $fields) {
-    $conclusions = @($conclusions); $alwaysConclusions = @($alwaysConclusions)
-    $hasBody = ($conclusions.Count -gt 0) -or ($alwaysConclusions.Count -gt 0)
+    $conclusions = @($conclusions | Where-Object { $null -ne $_ }); $alwaysConclusions = @($alwaysConclusions)
+    $hasBody = ($conclusions.Count -gt 0)
     $hasHead = -not [string]::IsNullOrWhiteSpace($headerText)
-    if (-not $hasBody -and -not $hasHead) { return @() }
 
     $b = New-Object System.Collections.ArrayList
-    [void]$b.Add(@{ T = 'aire'; Clau = 'conclusions' })
-    if ($hasHead) { [void]$b.Add(@{ T = 'conclusiocap'; Text = $headerText }) }
+    if ($hasBody) {
+        [void]$b.Add(@{ T = 'aire'; Clau = 'conclusions' })
+        if ($hasHead) { [void]$b.Add(@{ T = 'conclusiocap'; Text = $headerText }) }
+    }
     foreach ($c in $conclusions) {
         $txt = if ($c -is [string]) { $c } else { [string]$c.Body }
         foreach ($x in @(_BlocsConclusio (Apply-Fields -text $txt -fields $fields))) { [void]$b.Add($x) }

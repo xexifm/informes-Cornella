@@ -674,7 +674,9 @@ function _AppendConclusionParagraphsXml($xmlInfo, $headerText, $conclusions, $al
         if ($null -ne $sectPr) { [void]$body.InsertBefore($node, $sectPr) }
         else                   { [void]$body.AppendChild($node) }
     }
-    if (-not [string]::IsNullOrWhiteSpace($headerText)) {
+    # Sense cap conclusio marcada, sense titol CONCLUSIONS (la mateixa regla que
+    # _BlocsConclusions, Document.ps1): nomes les frases de sempre.
+    if (-not [string]::IsNullOrWhiteSpace($headerText) -and @($conclusions | Where-Object { $null -ne $_ }).Count -gt 0) {
         & $append (_MakeConclusionParagraphXml $xmlInfo $headerText $true)
     }
     foreach ($c in $conclusions) {

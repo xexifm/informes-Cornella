@@ -1272,6 +1272,15 @@ un si no és buit, i `_EsFraseTancament` (pura) reconeix la frase. Guard a
 `06-guards.ps1` sobre els fitxers d'or de **tots** els informes (validat traient
 la separació d'un).
 
+**Sense cap conclusió marcada, ni títol CONCLUSIONS ni l'aire del bloc**
+(octubre 2026, l'usuari amb dos informes del GIA 361: «si no marco cap
+conclusió… no posis el títol CONCLUSIONS i els espais corresponents»). Ho
+decideix `_BlocsConclusions` (`Document.ps1`, REQ1/TERMINI/MNS/Transmissió) i el
+mateix `_AppendConclusionParagraphsXml` del Seguiment: les frases de sempre
+(«Ho poso al seu coneixement…») surten igual, darrere del darrer punt. Els
+fitxers d'or de TERMINI i de Transmissió sense punts van perdre `AIRE|conclusions`
+(i TERMINI el `CONCLCAP`), i res més.
+
 ### `Format-Aire` i les banderes
 La clau és el **nom del bloc que s'acaba d'escriure** (`seccio`, `subseccio`,
 `item`, `intro`, `introparagraf`, `conclusions`) i `$Script:AireFlagPerClau` la

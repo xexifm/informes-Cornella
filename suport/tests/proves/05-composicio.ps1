@@ -2057,3 +2057,16 @@ AssertEq ([string]$bCon[3].Num) '1.' 'Build-ConclusionsVistaBlocs: cada conclusi
         AssertEq ([int]$selN.ParagraphFormat.OutlineLevel) $Script:WdOutlineBody 'Vista amb l''aire ences: l''espai torna el nivell a cos'
     } finally { $Script:ReportFormatConfig.SpacerAfterSection = $abansAire }
 }.Invoke() | Out-Null
+
+Write-Host "`n--- Sense cap conclusio marcada, ni titol CONCLUSIONS ni l'aire del bloc (octubre 2026) ---"
+# L'usuari, amb dos informes del GIA 361 al davant (un de bo i un de dolent):
+# "si no marco cap conclusio alhora de fer l'informe, no posis el titol
+# CONCLUSIONS i els espais corresponents al bloc".
+$bcSempre = @('Ho poso al seu coneixement als efectes oportuns,', ('Cornell' + [char]0x00E0 + ' de Llobregat,'))
+$bcSense = @(_BlocsConclusions 'CONCLUSIONS' @() $bcSempre @{})
+AssertEq (@($bcSense | ForEach-Object { [string]$_.T }) -join ',') 'separa,conclusio,conclusio' 'Conclusions: sense cap marcada, nomes les frases de sempre (sense aire ni titol)'
+$bcAmb = @(_BlocsConclusions 'CONCLUSIONS' @('Cal esmenar-ho.') $bcSempre @{})
+AssertEq (@($bcAmb | ForEach-Object { [string]$_.T }) -join ',') 'aire,conclusiocap,conclusio,separa,conclusio,conclusio' 'Conclusions: amb una de marcada, el bloc sencer (aire, titol, conclusio i les de sempre)'
+AssertEq @(_BlocsConclusions 'CONCLUSIONS' @() @() @{}).Count 0 'Conclusions: res de res, cap bloc'
+AssertEq (@(_BlocsConclusions 'CONCLUSIONS' @($null) $bcSempre @{}) | Where-Object { $_.T -eq 'conclusiocap' }).Count 0 'Conclusions: un $null a la llista no compta com a conclusio'
+Assert (([System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'Seguiment.ps1'))).Contains('-and @($conclusions | Where-Object { $null -ne $_ }).Count -gt 0) {')) 'Conclusions: el Seguiment fa el mateix (sense conclusions, sense titol)'
