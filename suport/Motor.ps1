@@ -42,6 +42,8 @@
     ExcelErrors.ps1     eina "Excel Errors" (les dades que falten o no son bones a l'Excel)
                         (+ ExcelErrorsLlistats.ps1, els tres llistats per correu;
                         ExcelErrorsPantalla.ps1, la finestra; ExcelErrorsAutomatic.ps1, A/M)
+    PlaVerificacio.ps1  eina "Pla verificacio" (indicadors de la Memoria del Pla;
+                        + PlaVerificacioPantalla.ps1, la finestra)
     Migracio.ps1        rutes de local\ i endrec de les carpetes velles
 
     -- eines del menu --
@@ -465,6 +467,10 @@ if (-not $Script:HeadlessTest) { [void](Invoke-MigracioLocal $RepoRoot) }
 # L'eina "Excel Errors" (fila GIA): els errors de la fulla Estes. Els tres
 # llistats per correu, la finestra i l'automatic, despres de CorreuEines.ps1.
 . (Join-Path $ScriptRoot 'ExcelErrors.ps1')
+# L'eina "Pla verificacio" (fila BASE D'INFORMES): els indicadors de la
+# Memoria anual, de l'Excel d'activitats i la base d'informes.
+. (Join-Path $ScriptRoot 'PlaVerificacio.ps1')
+. (Join-Path $ScriptRoot 'PlaVerificacioPantalla.ps1')
 
 # Lector dels ESTRUCTURALS en JSON (format estandard unic). Nomes defineix
 # funcions; segur en headless. Es carrega abans que s'usi (Get-ParsedCataleg/

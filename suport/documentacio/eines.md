@@ -2170,6 +2170,42 @@ inicial/verificació"».
   sol de la llista (`_CxFiltraDescartats`), i una visita **nova** té una altra
   clau: torna a avisar. **Recuperar descartats** els torna a ensenyar tots.
 
+## «Pla verificació» (fila BASE D'INFORMES, octubre 2026) — `PlaVerificacio.ps1`
+
+L'usuari, amb el Programa de verificació 2026 i la Memòria del 2025 al davant:
+«vull que l'eina mostri les següents taules (en relació a la base d'informes)»,
+amb la definició de cada indicador (vegeu la capçalera de `PlaVerificacio.ps1`
+i el `LLEGEIX-ME`). Abans del 2025 no hi ha programa.
+
+- **Tot el càlcul és pur** (`Get-PlaVerificacioIndicadors`): rep les files de la
+  fulla Estès (`_ReadPlaVerificacio`, amb `Read-FullaEstesa`), l'any, les
+  previstes i els informes per GIA (`_PvInformesPerGia`, sense els ignorats).
+  `$null` d'informes = sense base: les greus surten `-`, no un 0 que enganyi.
+- **Les columnes** (`_PvColumnes`): `Inspecció` ha de ser **exacta** (n'hi ha
+  d'altres que porten la paraula) i n'hi ha dues de *Classificació general
+  annex*: es pren la primera, com Excel Errors.
+- **Les dates de l'Excel nou són TEXT** («2025-07-25 00:00:00.0»): les llegeix
+  `_DataDeCella` (`Excel.ps1`, la poden fer servir els dos processos). Això va
+  destapar que **Excel Comprovar no en veia cap**: `_DatesDeCella` només
+  entenia dd/mm/aaaa i totes les visites sortien com a no apuntades. Ara també
+  passa per `_DataDeCella`.
+- **Greus**: de les del programa, el primer informe (no ignorat) amb conclusió
+  breu `Precinte / Cessament` del dia del control o de després
+  (`_PvInformePrecinte`). La llista ensenya quin.
+- **Previstes**: les dels programes signats a `$Script:PvPrevistesDefecte`
+  (2025 = 30, 2026 = 45); d'un any nou es posen a la finestra i es desen a
+  `local/base-dades-activitats/pla-verificacio.json` (`Read/Save-PvPrevistes`).
+  Quan hi hagi el programa signat, s'afegeix a `$Script:PvPrevistesDefecte`.
+- **Copiar les taules** posa al porta-retalls l'HTML de les dues taules amb el
+  format de la Memòria (`_PvTaulesHtml`) en format CF_HTML (`_PvCfHtml`: les
+  posicions són en **bytes**, per això l'HTML és ASCII i els accents van com a
+  entitats, `_PvHtmlEsc`) i el text tabulat de respatller.
+- Comprovat amb l'Excel real del 14/10/2026: el 2025 surten 8 del programa
+  (la Memòria en diu 10: 760, 425 i 311 no tenen la data de control del 2025 a
+  l'Excel, i hi surt la 546), 9 EC-PCA (la Memòria, 7) i 20 denúncies (21: hi
+  falta la 600). Les diferències són de l'Excel, no del càlcul.
+- Proves: `tests/proves/16-pla-verificacio.ps1`.
+
 ## «Excel Errors» (fila GIA, octubre 2026) — `ExcelErrors.ps1`
 
 L'usuari: «una nova eina que comprovi errors de la base de dades d'activitats

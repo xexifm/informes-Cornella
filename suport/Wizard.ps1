@@ -43,6 +43,7 @@ function Main {
             'recordatoris'   { Invoke-Recordatoris }    # avisos periodics als titulars amb tramits pendents
             'informesdb'     { Invoke-InformesDbScan }   # escaneja informes -> JSON; torna al menu
             'informesdbedit' { Invoke-InformesDbEdit }   # editor de la base d'informes
+            'plaverificacio' { Invoke-PlaVerificacio }   # indicadors de la Memoria del Pla de verificacio
             'copiarinformes' { Invoke-CopiarInformes }   # copia incremental dels Word a la carpeta de copia
             'comprovarexcel' { Invoke-ComprovarExcel }   # "Excel Comprovar": l'Excel reflecteix els precintes i les visites
             'excelerrors'    { Invoke-ExcelErrors }      # "Excel Errors": les dades que falten o no son bones a l'Excel

@@ -269,6 +269,30 @@ function Get-IdDeCella($cell) {
     return ([string]$cell).Trim()
 }
 
+# LA DATA d'una cel.la de data, com a [datetime] (o $null). L'Excel
+# ExportacioActivitats_*.xls (octubre 2026) porta les dates com a TEXT
+# "2025-07-25 00:00:00.0", no com a data d'Excel: un lector que nomes entengui
+# el numero o el dd/MM/aaaa no en veu cap. Accepta el numero (data d'Excel),
+# un [datetime], l'ISO (aaaa-mm-dd, amb hora o sense) i dd/mm/aaaa. PURA.
+function _DataDeCella($v) {
+    if ($null -eq $v) { return $null }
+    if ($v -is [datetime]) { return ([datetime]$v).Date }
+    if ($v -is [double]) { try { return [datetime]::FromOADate([double]$v).Date } catch { return $null } }
+    $s = ([string]$v).Trim()
+    $d = [datetime]::MinValue
+    $inv = [System.Globalization.CultureInfo]::InvariantCulture
+    if ($s -match '^(\d{4})-(\d{1,2})-(\d{1,2})(?!\d)') {
+        $t = ('{0:D4}-{1:D2}-{2:D2}' -f [int]$Matches[1], [int]$Matches[2], [int]$Matches[3])
+        if ([datetime]::TryParseExact($t, 'yyyy-MM-dd', $inv, [System.Globalization.DateTimeStyles]::None, [ref]$d)) { return $d }
+        return $null
+    }
+    if ($s -match '^(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{4})(?!\d)') {
+        $t = ('{0:D2}/{1:D2}/{2:D4}' -f [int]$Matches[1], [int]$Matches[2], [int]$Matches[3])
+        if ([datetime]::TryParseExact($t, 'dd/MM/yyyy', $inv, [System.Globalization.DateTimeStyles]::None, [ref]$d)) { return $d }
+    }
+    return $null
+}
+
 # ----------------------------------------------------------------------------
 # QUIN FITXER ES LA BASE: els noms de l'Excel d'activitats i d'establiments
 # ----------------------------------------------------------------------------

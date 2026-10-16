@@ -115,6 +115,11 @@ function _DatesDeCella($v) {
         try { return @([datetime]::FromOADate([double]$v).ToString('dd/MM/yyyy')) } catch { return @() }
     }
     if ($v -is [datetime]) { return @(([datetime]$v).ToString('dd/MM/yyyy')) }
+    # L'ExportacioActivitats_*.xls porta el text "2025-07-25 00:00:00.0"
+    # (octubre 2026): _DatesDelText nomes enten dd/mm/aaaa i no hi veia cap
+    # data, o sigui que totes les visites sortien com a no apuntades.
+    $iso = _DataDeCella $v
+    if ($null -ne $iso -and ([string]$v).Trim() -match '^\d{4}-') { return @($iso.ToString('dd/MM/yyyy')) }
     return @(_DatesDelText ([string]$v))
 }
 

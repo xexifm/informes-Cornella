@@ -499,6 +499,31 @@ doble clic a **`suport\rutes\Provar-Cadastre.bat`**: fa una sola consulta al
 Cadastre i et diu si el servei respon i quants portals n'ha entès. No obre res ni
 toca cap fitxer.
 
+### Pla verificació (fila BASE D'INFORMES)
+
+Botó **📈 Pla verificació**, entre *Editar base* i *Copiar informes*. Treu els
+indicadors de la **Memòria anual del Pla de verificació** d'un any (des del
+2025, que és el primer programa) amb les mateixes dues taules del programa:
+
+| Indicador | Com es compta |
+|---|---|
+| Verificacions previstes al Programa anual | 30 el 2025 i 45 el 2026 (les dels programes signats). D'un any nou, escriu-les a dalt de la finestra: es desen en aquest PC |
+| Verificacions realitzades (programa de verificació) | activitats amb **Data control inicial/verificació** d'aquell any i *Classificació general annex* que **no** és II ni III |
+| Grau d'execució del Programa anual | realitzades / previstes |
+| Verificacions realitzades per denúncies | activitats amb data d'**Inspecció** d'aquell any |
+| Verificacions realitzades per una EC-PCA (III) | *Data control inicial/verificació* d'aquell any i annex **III** |
+| Activitats amb discrepàncies greus | de les del programa, les que a la base d'informes tenen un informe amb conclusió **Precinte / Cessament** del dia del control o de després |
+| Percentatge respecte de les verificades | greus / realitzades |
+
+A sota hi ha la llista de les activitats que compten (com els annexos de la
+Memòria). **Copiar les taules** les copia amb el format del programa per
+enganxar-les al Word, i **Exportar la llista a Excel** en fa un Excel.
+
+> L'Excel d'activitats només guarda la **darrera** data de control de cada
+> activitat: si una activitat verificada el 2025 es torna a verificar el 2026,
+> ja només compta el 2026. Per això, la Memòria d'un any s'ha de fer com més
+> aviat millor.
+
 ### Word a PDF (i signar)
 
 Botó **📄 Word a PDF**. Per defecte hi surt **l'últim informe que has generat**;

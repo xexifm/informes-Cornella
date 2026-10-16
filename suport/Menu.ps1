@@ -140,6 +140,7 @@ $Script:AjudaEines = @{
     recordatoris      = "Envia recordatoris periòdics per correu als titulars que tenen un requeriment o un precinte pendent, segons la base d'informes."
     informesdb        = "Recorre la carpeta dels informes fets i n'actualitza la base: la data, l'ID GIA i la conclusió de cada un. L'interruptor A/M de sota ho fa sol [PROGRAMACIO]."
     informesdbedit    = "Mostra la base d'informes amb l'estat de cada activitat, amb filtres i exportació a CSV. Hi pots corregir la conclusió breu d'un informe o fer que s'ignori."
+    plaverificacio    = "Els indicadors de la Memòria del Pla de verificació d'un any (previstes, realitzades, denúncies, EC-PCA i greus), en el format del programa, per copiar-los al Word."
     copiarinformes    = "Copia els informes nous a la carpeta de còpia, tots junts, sense esborrar mai res. L'interruptor A/M de sota ho fa sol [PROGRAMACIO]."
     convertirpdf      = "Converteix un informe de Word (o una carpeta sencera) a PDF i, si ho marques, el signa amb AutoFirma."
     comprovarexcel    = "Comprova que les activitats que la base d'informes té en Precinte / Cessament també ho tinguin marcat a l'Excel d'activitats, i que hi consti la data de la darrera visita d'inspecció. Et llista les que no."
@@ -596,6 +597,7 @@ function Select-Mode {
     $tiLlibres = [System.Char]::ConvertFromUtf32(0x1F4DA) # 📚
     $tiLupa    = [System.Char]::ConvertFromUtf32(0x1F50D) # 🔍
     $tiCases   = [System.Char]::ConvertFromUtf32(0x1F3D8) # 🏘
+    $tiGrafic  = [System.Char]::ConvertFromUtf32(0x1F4C8) # 📈
     # CARRER: preparar la inspeccio i el que es porta del carrer amb el mobil.
     $carrer = @(
         @{ Emoji = $tiCases; Label = ('Pl' + [char]0x00E0 + 'nol activitats'); Kind = 'action'; Action = 'planol'; Interruptor = $true }
@@ -620,6 +622,7 @@ function Select-Mode {
         # $Script:ModesAuto a ModeAutomatic.ps1).
         @{ Emoji = $tiBox;   Label = 'Actualitzar base'; Kind = 'action'; Action = 'informesdb'; Interruptor = $true }
         @{ Emoji = $tiClip;  Label = 'Editar base';      Kind = 'action'; Action = 'informesdbedit' }
+        @{ Emoji = $tiGrafic; Label = ('Pla verificaci' + [char]0x00F3); Kind = 'action'; Action = 'plaverificacio' }
         @{ Emoji = $tiCopy;  Label = 'Copiar informes';  Kind = 'action'; Action = 'copiarinformes'; Interruptor = $true }
         @{ Emoji = $tiPdf;   Label = 'Word a PDF';       Kind = 'action'; Action = 'convertirpdf' }
     )
