@@ -898,7 +898,7 @@ function Invoke-SeguimentCorreuTextos {
 function Send-SeguimentCorreu($gen, [bool]$silenci, $ccoTriades = @()) {
     $cfgE = Get-CorreuEina 'seguiment'
     $to = [string]$cfgE.Fixes
-    if (-not $to) { return @{ Ok = $false; Text = ("No hi ha cap destinatari: posa'l a Configuraci" + [char]0x00F3 + " -> Correus de cada eina -> Seguiment (adreces fixes).") } }
+    if (-not $to) { return @{ Ok = $false; Text = ("No hi ha cap destinatari: posa'l a Configuraci" + [char]0x00F3 + " -> Configuraci" + [char]0x00F3 + " correu electr" + [char]0x00F2 + "nic -> Seguiment (adreces fixes).") } }
     $motiu = Test-CorreuViaLlest $cfgE.Via
     if ($motiu) { return @{ Ok = $false; Text = $motiu } }
     $t = _LoadSgCorreu

@@ -209,8 +209,22 @@ function Set-CorreuVia([string]$via) {
     return (Save-AppSettings (_SettingsAmbCorreuVia (Load-AppSettings) $via))
 }
 
+# Els valors del correu que hi ha ARA a settings.json (la via i el remitent),
+# afegits a uns overrides que reescriuran el fitxer sencer (el Desar de
+# Configuracio): sense, es perdrien. PURA.
+function _SettingsAmbCorreuDeAra($overrides, $ara) {
+    $o = _SettingsAmbCorreuVia $overrides (_CorreuViaValida ([string](_PropInf $ara 'CorreuVia')))
+    return (_SettingsAmbClau $o 'CorreuRemitent' ([string](_PropInf $ara 'CorreuRemitent')))
+}
+
 # EL REMITENT per defecte de l'Outlook ('' = el compte per defecte de l'Outlook).
 function Get-CorreuRemitent { return ([string](_PropInf (Load-AppSettings) 'CorreuRemitent')).Trim() }
+
+# Desa el remitent SENSE TOCAR la resta de settings.json. Torna $true si ha
+# pogut.
+function Set-CorreuRemitent([string]$remitent) {
+    return (Save-AppSettings (_SettingsAmbClau (Load-AppSettings) 'CorreuRemitent' $remitent))
+}
 
 # Una adreca de correu amb cara de ser-ho ('' tambe val: vol dir "la per
 # defecte"). PURA.

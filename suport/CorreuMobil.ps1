@@ -1,6 +1,10 @@
 ﻿#requires -Version 5.1
 <#
-  CorreuMobil.ps1 - "Correu del mobil" (des de Configuracio, octubre 2026).
+  CorreuMobil.ps1 - El correu de l'APP DEL MOBIL (octubre 2026): una fila mes
+  de la finestra Configuracio correu electronic (CorreuEinesPantalla.ps1).
+  Abans era una finestra a part ("Correu del mobil..."); l'usuari: "App del
+  mobil (web) no se per que te un boto, quan podria ser un apartat mes com la
+  resta". Aqui hi ha el que no es pantalla: llegir, comparar i desar.
 
   L'usuari: "Fes que es pugui configurar el tema de correus del mobil des del
   programa i es pugui enviar o generar un mini prompt per canviar la
@@ -17,11 +21,12 @@
       Publish-CorreuMobilCco), d'on les llegeix el mobil.
   Els textos ja tenen el seu editor (Textos del correu) i les claus d'EmailJS i
   el nom del remitent son a docs/config.js, que Actualitzar NO puja: per a tot
-  el que no es d'aquest fitxer, el boto "Copiar el prompt" fa un text per
-  enganxar a Claude amb la configuracio d'ara i el canvi que es vol.
+  el que no es d'aquest fitxer, el boto "Prompt..." fa un text per enganxar a
+  Claude amb la configuracio d'ara i el canvi que es vol.
 
-  "Publicar ara" desa i llanca Actualitzar (li arriba com a scriptblock des de
-  Configuracio: si el cridava directament hi hauria un cicle de dependencies).
+  Si canvia a qui va, s'ofereix publicar-ho (Actualitzar; li arriba com a
+  scriptblock des de Configuracio: si el cridava directament hi hauria un
+  cicle de dependencies).
 
   NOMES DEFINEIX FUNCIONS.
 #>
@@ -84,76 +89,54 @@ function _CorreuMobilPrompt($m, $cfgJs, [string]$canvi) {
         "Fes-ho, passa les proves (suport/tests/run-tests-all.ps1 i suport/tests/navegador/prova-mobil.mjs) i puja-ho a main.")
 }
 
-# La finestra. $publica: el que fa "Publicar ara" (Configuracio hi passa
-# Invoke-ActualitzarPrograma).
-function Show-CorreuMobilConfig([scriptblock]$publica = $null) {
-    try { $textos = _LoadEmailTextos } catch {
-        [System.Windows.Forms.MessageBox]::Show([string]$_.Exception.Message, 'Correu del m' + [char]0x00F2 + 'bil', 'OK', 'Error') | Out-Null
-        return
+# Si la pantalla diu una altra cosa que el que hi havia (a qui va, o la CCO
+# com a conjunt). Torna @{ Dest; Cco } (bool cada un). PURA.
+function _CorreuMobilCanvis($abans, $ara) {
+    $conj = { param($x) ((@(_CorreuLlistaAdreces ([string]$x)) | ForEach-Object { $_.ToLowerInvariant() } | Sort-Object) -join ';') }
+    $dA = (@(@($abans.Dest) | ForEach-Object { [string]$_ } | Sort-Object) -join ';')
+    $dB = (@(@($ara.Dest) | ForEach-Object { [string]$_ } | Sort-Object) -join ';')
+    $cco = ((& $conj $abans.Sempre) -ne (& $conj $ara.Sempre)) -or ((& $conj $abans.Tria) -ne (& $conj $ara.Tria))
+    return @{ Dest = ($dA -ne $dB); Cco = [bool]$cco }
+}
+
+# Desa el que diu la pantalla ($ara: @{ Sempre; Tria; Dest }), nomes el que ha
+# canviat respecte de $abans. A qui va, a email-textos.json (arriba al mobil
+# amb Actualitzar); la CCO, a aquest PC i al Drive. Torna @{ Dest (si ha
+# canviat a qui va); Text (que dir, '' si res) ; Ok }. Pot petar (el desa de
+# la finestra ho ensenya).
+function Save-CorreuMobilConfig($abans, $ara) {
+    $cv = _CorreuMobilCanvis $abans $ara
+    $r = @{ Dest = [bool]$cv.Dest; Text = ''; Ok = $true }
+    if ($cv.Cco) {
+        Save-CorreuMobilCco @(_CorreuCcoOpcions $ara.Sempre $ara.Tria)
+        $d = Publish-CorreuMobilCco
+        $r.Text = [string]$d.Text; $r.Ok = [bool]$d.Ok
     }
-    $m = _CorreuMobilLlegeix $textos
+    if ($cv.Dest) { _SaveEmailTextos (_CorreuMobilAplica (_LoadEmailTextos) $ara.Dest) }
+    return $r
+}
+
+# EL PROMPT per a la resta (EmailJS, el remitent, com s'envia): una finestreta
+# on s'escriu el canvi i es copia. $m: el que diu ara la pantalla.
+function Show-CorreuMobilPrompt($m) {
     $form = _NewForm
-    $form.Text = 'Correu del m' + [char]0x00F2 + 'bil'
-    $form.ClientSize = New-Object System.Drawing.Size(660, 520)
-    $mk = {
-        param($tipus, $text, $x, $y, $w, $h)
-        $c = New-Object ('System.Windows.Forms.' + $tipus)
-        if ($null -ne $text) { $c.Text = $text }
-        $c.Location = New-Object System.Drawing.Point($x, $y); $c.Size = New-Object System.Drawing.Size($w, $h)
-        [void]$form.Controls.Add($c)
-        return $c
-    }
-    [void](& $mk 'Label' 'A qui va el correu (el destinatari que surt escrit, es pot canviar):' 20 72 620 20)
-    $cbT = & $mk 'CheckBox' 'Titular' 36 96 140 22
-    $cbR = & $mk 'CheckBox' 'Representant legal' 186 96 200 22
-    $cbT.Checked = (@($m.Dest) -contains 'titular'); $cbR.Checked = (@($m.Dest) -contains 'representant')
-    [void](& $mk 'Label' 'CCO sempre (surten marcades):' 20 132 200 20)
-    $tbS = & $mk 'TextBox' $m.Sempre 222 129 418 24
-    [void](& $mk 'Label' 'CCO a triar (desmarcades):' 20 166 200 20)
-    $tbT = & $mk 'TextBox' $m.Tria 222 163 418 24
-    $nota = & $mk 'Label' ("Les adreces de CCO es desen en aquest PC i al teu Drive (mai al GitHub). A qui va arriba al m" + [char]0x00F2 + "bil amb Actualitzar. Els textos, a Textos del correu.") 20 196 620 34
-    $nota.ForeColor = [System.Drawing.Color]::FromArgb(90, 90, 90)
-    [void](& $mk 'Label' ("Per a la resta (EmailJS, el remitent, com funciona l'enviament): escriu el canvi i copia el prompt per enganxar-lo a Claude.") 20 240 620 34)
-    $tbCanvi = & $mk 'TextBox' '' 20 276 620 120
-    $tbCanvi.Multiline = $true; $tbCanvi.ScrollBars = 'Vertical'
-    $btnPrompt = & $mk 'Button' 'Copiar el prompt' 20 404 180 30
-    _StyleSecondaryButton $btnPrompt
-    $st = @{ Textos = $textos; S = $tbS; T = $tbT; Ti = $cbT; Re = $cbR; Canvi = $tbCanvi; Drive = @{ Ok = $true; Text = '' } }
-    $llegeixPantalla = {
-        $d = @(); if ($st.Ti.Checked) { $d += 'titular' }; if ($st.Re.Checked) { $d += 'representant' }
-        return @{ Sempre = (_CorreuNetejaAdreces ([string]$st.S.Text)); Tria = (_CorreuNetejaAdreces ([string]$st.T.Text)); Dest = $d }
-    }.GetNewClosure()
-    $desa = {
-        $p = & $llegeixPantalla
-        try {
-            Save-CorreuMobilCco @(_CorreuCcoOpcions $p.Sempre $p.Tria)
-            _SaveEmailTextos (_CorreuMobilAplica $st.Textos $p.Dest)
-            $st.Drive = Publish-CorreuMobilCco
-            return $true
-        } catch {
-            [System.Windows.Forms.MessageBox]::Show("No s'ha pogut desar:`n" + $_.Exception.Message, 'Correu del m' + [char]0x00F2 + 'bil', 'OK', 'Error') | Out-Null
-            return $false
-        }
-    }.GetNewClosure()
-    $btnPrompt.add_Click({
-        $p = & $llegeixPantalla
-        $txt = _CorreuMobilPrompt $p (Read-ConfigJs) ([string]$st.Canvi.Text)
+    $form.Text = 'Prompt per a Claude'
+    $form.ClientSize = New-Object System.Drawing.Size(620, 300)
+    $l = New-Object System.Windows.Forms.Label
+    $l.Text = ("Per a la resta del correu de l'app del m" + [char]0x00F2 + "bil (EmailJS, el remitent, com s'envia): escriu el canvi i copia el prompt per enganxar-lo a Claude.")
+    $l.Location = New-Object System.Drawing.Point(20, 70); $l.Size = New-Object System.Drawing.Size(580, 34)
+    $tb = New-Object System.Windows.Forms.TextBox
+    $tb.Multiline = $true; $tb.ScrollBars = 'Vertical'
+    $tb.Location = New-Object System.Drawing.Point(20, 108); $tb.Size = New-Object System.Drawing.Size(580, 120)
+    foreach ($c in @($l, $tb)) { [void]$form.Controls.Add($c) }
+    $peu = _AddPeuBotons $form @(@{ Nom = 'Tancar'; Text = 'Tancar'; Resultat = 'Cancel'; Esc = $true }) @(@{ Nom = 'Copiar'; Text = 'Copiar el prompt'; Estil = 'primari' }) 240
+    $peu.Copiar.add_Click({
+        $txt = _CorreuMobilPrompt $m (Read-ConfigJs) ([string]$tb.Text)
         try { [System.Windows.Forms.Clipboard]::SetText($txt) } catch { }
         [System.Windows.Forms.MessageBox]::Show(("Copiat. Enganxa'l a Claude (Claude Code, al repositori):`n`n" + $txt), 'Copiar el prompt', 'OK', 'Information') | Out-Null
+        $form.Close()
     }.GetNewClosure())
-    $dretaBotons = @(@{ Nom = 'Desar'; Text = 'Desar' })
-    if ($null -ne $publica) { $dretaBotons += @{ Nom = 'Publicar'; Text = 'Desar i publicar ara'; Estil = 'primari' } }
-    $peu = _AddPeuBotons $form @(@{ Nom = 'Tancar'; Text = 'Tancar'; Resultat = 'Cancel'; Esc = $true }) $dretaBotons 460
-    $peu.Desar.add_Click({
-        if (& $desa) {
-            [System.Windows.Forms.MessageBox]::Show(("Desat. " + [string]$st.Drive.Text + "`n`nA qui va arribar" + [char]0x00E0 + " al m" + [char]0x00F2 + "bil la propera vegada que facis Actualitzar."), 'Correu del m' + [char]0x00F2 + 'bil', 'OK', $(if ($st.Drive.Ok) { 'Information' } else { 'Warning' })) | Out-Null
-            $form.Close()
-        }
-    }.GetNewClosure())
-    if ($null -ne $publica) {
-        $peu.Publicar.add_Click({ if (& $desa) { & $publica } }.GetNewClosure())
-    }
-    [void](_AddBrandHeader $form ('Correu del m' + [char]0x00F2 + 'bil') ("A qui va i la CCO del correu que envia l'app del m" + [char]0x00F2 + 'bil') 56)
+    [void](_AddBrandHeader $form 'Prompt per a Claude' ("Canviar com envia el correu l'app del m" + [char]0x00F2 + 'bil') 56)
     [void]$form.ShowDialog()
     $form.Dispose()
 }

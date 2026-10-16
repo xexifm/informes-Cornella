@@ -79,7 +79,7 @@ $Script:ModesAuto['seguimentgia'] = @{
     # Sense destinataris l'automatic faria el PDF i no l'enviaria a ningu.
     Requisit  = {
         if ([string](Get-CorreuEina 'seguiment').Fixes) { return '' }
-        return ("Per enviar el seguiment sol cal dir a qui va.`n`nVes a Configuraci" + [char]0x00F3 + " -> Correus de cada eina -> Seguiment i posa-hi les adreces (Adreces fixes).")
+        return ("Per enviar el seguiment sol cal dir a qui va.`n`nVes a Configuraci" + [char]0x00F3 + " -> Configuraci" + [char]0x00F3 + " correu electr" + [char]0x00F2 + "nic -> Seguiment i posa-hi les adreces (Adreces fixes).")
     }
     TipA      = { Get-AutoTipText "es fa el PDF dels llistats i s'envia per correu" 'seguimentgia' }
     TipM      = ("Mode MANUAL: nom" + [char]0x00E9 + "s es fa quan cliques la rajola. Clica per posar-ho en autom" + [char]0x00E0 + "tic.")
@@ -90,26 +90,25 @@ $Script:ModesAuto['seguimentgia'] = @{
 $Script:CorreuProves['seguiment'] = {
     param($gia, $cache, $cfgE)
     $t = _LoadSgCorreu
-    # EL DARRER PDF I EL SEU RESUM DE DEBO (els desa _SgGeneraFitxer). Abans hi
-    # sortia "(n)" a cada llistat; si el darrer PDF es d'abans que es desses el
-    # resum, les linies de les dades no hi surten.
-    $est = _SgAutoEstat
-    $pdf = $null
-    if ([string]$est['ultim_pdf'] -and (Test-Path -LiteralPath ([string]$est['ultim_pdf']))) { $pdf = Get-Item -LiteralPath ([string]$est['ultim_pdf']) }
-    $ambDades = ($null -ne $pdf -and [string]$est['ultim_resum'])
-    if ($null -eq $pdf) {
-        try { $pdf = Get-ChildItem -LiteralPath (_SgCarpetaSortida) -Filter '*.pdf' -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1 } catch { }
-    }
+    # EL PDF ES FA ARA, com el de l'automatic: les dades del dia (l'usuari,
+    # octubre 2026: "s'envia l'ultim arxiu que jo he creat a ma, pero la
+    # gracia es que aquell document es faci abans de ser enviat i que estigui
+    # actualitzat del mateix dia"). Abans s'hi adjuntava el darrer PDF que hi
+    # hagues a la carpeta. Si no es pot fer, la prova surt sense adjunt i diu
+    # per que (mai un PDF vell).
+    $gen = $null
+    try { $gen = _SgGeneraFitxer 'pdf' @(_SgSeleccioAuto) } catch { $gen = @{ Ok = $false; Error = [string]$_.Exception.Message } }
+    $ok = ($null -ne $gen -and [bool]$gen.Ok)
     $ara = Get-Date
-    $cos = if ($ambDades) { [string]$t['cos'] } else { _SgCosSenseDades ([string]$t['cos']) }
-    $resum = if ($ambDades) { _SgResumDeText ([string]$est['ultim_resum']) } else { [ordered]@{} }
-    $html = _CosAHtml (_SgFillPh $cos $resum ([string]$est['ultim_origen']) $ara)
-    if ($null -eq $pdf) { $html = '<p><i>(Sense adjunt: encara no hi ha cap PDF de seguiment fet.)</i></p>' + $html }
+    $cos = if ($ok) { [string]$t['cos'] } else { _SgCosSenseDades ([string]$t['cos']) }
+    $resum = if ($ok) { $gen.Resum } else { [ordered]@{} }
+    $html = _CosAHtml (_SgFillPh $cos $resum $(if ($ok) { [string]$gen.Origen } else { '' }) $ara)
+    if (-not $ok) { $html = '<p><i>(Sense adjunt: no s''ha pogut fer el PDF. ' + [System.Net.WebUtility]::HtmlEncode(([string]$gen.Error -replace "`r?`n", ' ')) + ')</i></p>' + $html }
     return @{
         Assumpte = (_SgFillPh ([string]$t['assumpte']) $resum '' $ara)
         Html = $html
         Destinataris = @(_CorreuLlistaAdreces ([string]$cfgE.Fixes))
-        Adjunts = $(if ($null -ne $pdf) { @($pdf.FullName) } else { @() })
+        Adjunts = $(if ($ok) { @([string]$gen.Path) } else { @() })
         CcoAbans = ''
     }
 }

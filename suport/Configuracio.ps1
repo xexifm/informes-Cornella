@@ -32,15 +32,16 @@
 # menu principal (octubre 2026: l'usuari el fa servir molt i era dos clics
 # endins)-, perque el missatge i la manera de tancar no es puguin separar.
 # ON VA CADA GRUP de la finestra de Configuracio. PURA (es prova a Linux).
-# Esquerra: les carpetes (fins a FiCarp). Dreta, de dalt a baix: els correus
-# (l'usuari, octubre 2026: "posa la seccio correus sobre els automatismes, que
-# tot el relacionat amb correu electronic estigui a la part dreta"), els
-# automatismes (una fila per cada un; s'estira perque les dues columnes acabin
-# a la mateixa alcada) i el manteniment. Torna els rectangles i la mida.
+# Esquerra: les carpetes (fins a FiCarp). Dreta, de dalt a baix: el boto del
+# correu electronic (l'usuari, octubre 2026: "tot el bloc que hi ha sobre
+# Automatismes, que es converteixi en un boto Configuracio correu
+# electronic"), els automatismes (una fila per cada un; s'estira perque les
+# dues columnes acabin a la mateixa alcada) i el manteniment. Torna els
+# rectangles i la mida.
 function _ConfigGeometria([int]$nAuto) {
     $xEsq = 14; $xDre = 542; $amplCol = 514; $yTop = 66
     $fiCarp = 588
-    $hCorreu = 136; $hMant = 96; $sep = 8
+    $hCorreu = 44; $hMant = 96; $sep = 8
     $altAuto = 72 + 30 * $nAuto
     $yAuto = $yTop + $hCorreu + $sep
     $hAuto = [math]::Max(($altAuto - 8), ($fiCarp - $yAuto - $sep - $hMant))
@@ -53,6 +54,23 @@ function _ConfigGeometria([int]$nAuto) {
         Mant   = @{ X = $xDre; Y = $yMant; W = $amplCol; H = $hMant }
         Ample  = ($xDre + $amplCol + 14); Alt = ($fi + 12 + 52)
     }
+}
+
+# L'ORDRE DELS AUTOMATISMES a Configuracio: el mateix que les eines de la
+# finestra del correu (l'usuari, octubre 2026: "posa els Automatismes en el
+# mateix ordre que Correus de cada eina"), i despres els que no envien cap
+# correu, en l'ordre del registre. $autos: les claus de
+# $Script:ProgramacionsAuto; $correus: les de $Script:CorreuEines. PURA.
+function _ConfigOrdreAutomatismes($autos, $correus) {
+    $deCorreu = @{ 'rec-requeriments' = 'recordatoris'; 'rec-precintes' = 'recordatoris'; 'controls' = 'controlsperiodics'; 'seguiment' = 'seguimentgia'; 'excelerrors' = 'excelerrors' }
+    $tots = @(@($autos) | ForEach-Object { [string]$_ })
+    $out = New-Object System.Collections.ArrayList
+    foreach ($c in @($correus)) {
+        $a = [string]$deCorreu[[string]$c]
+        if ($a -and $tots -contains $a -and -not $out.Contains($a)) { [void]$out.Add($a) }
+    }
+    foreach ($a in $tots) { if (-not $out.Contains($a)) { [void]$out.Add($a) } }
+    return $out.ToArray()
 }
 
 function Invoke-ActualitzarPrograma {
@@ -133,86 +151,25 @@ function Invoke-ConfiguracioScreen {
     $r = _AddConfigRow $grpAddicionals $r.NextY "Carpeta on copiar els informes (copia de seguretat)" $effCopiaInformesDir
     $tbCopia = $r.TextBox
 
-    # ---- Correus d'aquest PC (octubre 2026, CorreuVia.ps1) ------------
-    # L'usuari: "poder triar entre EmailJS per no desfer-ho i Outlook per fer
-    # proves". La mateixa preferencia que el desplegable d'"Enviar correu".
-    # Des de l'octubre de 2026 la via es tria PER EINA (CorreuEines.ps1): aqui
-    # hi ha el boto que obre aquella finestra. La via de tot el PC
-    # ('CorreuVia') es queda com a valor per defecte de les eines encara no
-    # configurades, i el "Desar" d'aqui la conserva tal com era.
-    $effCorreuVia = _CorreuViaValida (_PropInf $current 'CorreuVia')
-    $grpCorreu = New-Object System.Windows.Forms.GroupBox
-    $grpCorreu.Text = "Correus que s'envien des d'aquest PC"
-    $grpCorreu.Location = New-Object System.Drawing.Point($geo.Correu.X, $geo.Correu.Y)
-    $grpCorreu.Size = New-Object System.Drawing.Size($geo.Correu.W, $geo.Correu.H)
-    $grpCorreu.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left
+    # ---- El correu electronic (octubre 2026) ---------------------------
+    # Abans aqui hi havia tot un grup (Correus de cada eina, el remitent i el
+    # correu del mobil). L'usuari: "tot el bloc que hi ha sobre Automatismes,
+    # que es converteixi en un boto Configuracio correu electronic": ara tot
+    # (el remitent i l'app del mobil inclosos) es a aquella finestra
+    # (CorreuEinesPantalla.ps1). "Publicar ara" es Actualitzar, que viu aqui.
     $btnCorreus = New-Object System.Windows.Forms.Button
-    $btnCorreus.Text = 'Correus de cada eina...'
-    $btnCorreus.Location = New-Object System.Drawing.Point(12, 20)
-    $btnCorreus.Size = New-Object System.Drawing.Size(250, 30)
+    $btnCorreus.Location = New-Object System.Drawing.Point($geo.Correu.X, ($geo.Correu.Y + 4))
+    $btnCorreus.Size = New-Object System.Drawing.Size(260, 34)
     _StyleSecondaryButton $btnCorreus
+    _PosaIcona $btnCorreus ([string][char]0x2709) ('Configuraci' + [char]0x00F3 + ' correu electr' + [char]0x00F2 + 'nic')
+    $btnCorreus.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left
     $btnCorreus.add_Click({ Show-CorreuEinesConfig { Invoke-ActualitzarPrograma } })
-    [void]$grpCorreu.Controls.Add($btnCorreus)
     $lblCorreuNota = New-Object System.Windows.Forms.Label
-    $lblCorreuNota.Text = ("Per on surt el correu de cada eina, a qui va, la CCO, el text i el correu de prova.")
-    $lblCorreuNota.Location = New-Object System.Drawing.Point(270, 20)
-    $lblCorreuNota.Size = New-Object System.Drawing.Size(236, 32)
+    $lblCorreuNota.Text = ("Des d'on surten, per on, a qui van, la CCO, el text i la prova de cada correu (tamb" + [char]0x00E9 + " l'app del m" + [char]0x00F2 + "bil).")
+    $lblCorreuNota.Location = New-Object System.Drawing.Point(($geo.Correu.X + 270), $geo.Correu.Y)
+    $lblCorreuNota.Size = New-Object System.Drawing.Size(($geo.Correu.W - 270), 42)
     $lblCorreuNota.ForeColor = [System.Drawing.Color]::FromArgb(90, 90, 90)
-    [void]$grpCorreu.Controls.Add($lblCorreuNota)
-    # EL REMITENT (l'usuari: "a la feina puc enviar des d'adreces diferents;
-    # com ho puc seleccionar per no haver de canviar-la a tots els correus?").
-    # Editable: una bustia compartida no surt als comptes i s'escriu a ma.
-    $lblRem = New-Object System.Windows.Forms.Label
-    $lblRem.Text = 'Des de (Outlook):'
-    $lblRem.Location = New-Object System.Drawing.Point(12, 63)
-    $lblRem.Size = New-Object System.Drawing.Size(104, 20)
-    [void]$grpCorreu.Controls.Add($lblRem)
-    $cbRem = New-Object System.Windows.Forms.ComboBox
-    $cbRem.DropDownStyle = 'DropDown'
-    $cbRem.Location = New-Object System.Drawing.Point(118, 60)
-    $cbRem.Size = New-Object System.Drawing.Size(222, 24)
-    $cbRem.Text = ([string](_PropInf $current 'CorreuRemitent')).Trim()
-    [void]$grpCorreu.Controls.Add($cbRem)
-    $btnComptes = New-Object System.Windows.Forms.Button
-    $btnComptes.Text = "Comptes de l'Outlook"
-    _StyleSecondaryButton $btnComptes
-    # Mesurat amb la lletra del boto (amb 140 fixos es tallava "Comptes de
-    # l'Outlo", octubre 2026), arrimat a la dreta del grup.
-    $wComptes = [Math]::Max(150, [System.Windows.Forms.TextRenderer]::MeasureText($btnComptes.Text, $btnComptes.Font).Width + 24)
-    $btnComptes.Size = New-Object System.Drawing.Size($wComptes, 28)
-    $btnComptes.Location = New-Object System.Drawing.Point(($amplCol - 12 - $wComptes), 58)
-    $cbRem.Size = New-Object System.Drawing.Size([Math]::Max(140, ($amplCol - 12 - $wComptes - 6 - 118)), 24)
-    $btnComptes.add_Click({
-        try { $comptes = Get-OutlookComptes } catch {
-            [System.Windows.Forms.MessageBox]::Show([string]$_.Exception.Message, 'Comptes de l''Outlook', 'OK', 'Warning') | Out-Null
-            return
-        }
-        $cbRem.Items.Clear()
-        foreach ($c in @($comptes)) { [void]$cbRem.Items.Add($c) }
-        if ($cbRem.Items.Count -eq 0) {
-            [System.Windows.Forms.MessageBox]::Show("L'Outlook no t" + [char]0x00E9 + " cap compte amb adre" + [char]0x00E7 + "a. Si envies des d'una b" + [char]0x00FA + "stia compartida, escriu-ne l'adre" + [char]0x00E7 + "a.", 'Comptes de l''Outlook', 'OK', 'Information') | Out-Null
-            return
-        }
-        $cbRem.DroppedDown = $true
-    }.GetNewClosure())
-    [void]$grpCorreu.Controls.Add($btnComptes)
-    # El correu de l'app del MOBIL (CorreuMobil.ps1): a qui va, la CCO, publicar
-    # i el prompt per a la resta. "Publicar ara" es Actualitzar, que viu aqui.
-    $btnMobil = New-Object System.Windows.Forms.Button
-    $btnMobil.Text = ('Correu del m' + [char]0x00F2 + 'bil...')
-    $btnMobil.Location = New-Object System.Drawing.Point(12, 96)
-    $btnMobil.Size = New-Object System.Drawing.Size(250, 30)
-    _StyleSecondaryButton $btnMobil
-    $btnMobil.add_Click({ Show-CorreuMobilConfig { Invoke-ActualitzarPrograma } })
-    [void]$grpCorreu.Controls.Add($btnMobil)
-    $lblMobilNota = New-Object System.Windows.Forms.Label
-    $lblMobilNota.Text = ("A qui va i la CCO de l'app del m" + [char]0x00F2 + "bil; publicar-ho, o un prompt per canviar la resta.")
-    $lblMobilNota.Location = New-Object System.Drawing.Point(270, 96)
-    $lblMobilNota.Size = New-Object System.Drawing.Size(236, 32)
-    $lblMobilNota.ForeColor = [System.Drawing.Color]::FromArgb(90, 90, 90)
-    [void]$grpCorreu.Controls.Add($lblMobilNota)
-    $ttRem = New-Object System.Windows.Forms.ToolTip
-    $ttRem.SetToolTip($cbRem, ("Buit = el compte per defecte de l'Outlook. Una b" + [char]0x00FA + "stia compartida s'escriu a m" + [char]0x00E0 + " (cal tenir-hi perm" + [char]0x00ED + "s). Amb EmailJS no compta."))
+    $lblCorreuNota.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left
 
     # ---- Automatismes (octubre 2026) ----------------------------------
     # L'usuari: "aquests automatismes, com son ja uns quants, haurien de ser
@@ -230,7 +187,7 @@ function Invoke-ConfiguracioScreen {
     $autoCtl = [ordered]@{}
     $dies = @('dilluns', 'dimarts', 'dimecres', 'dijous', 'divendres', 'dissabte', 'diumenge')
     $ya = 22
-    foreach ($k in @($Script:ProgramacionsAuto.Keys)) {
+    foreach ($k in @(_ConfigOrdreAutomatismes @($Script:ProgramacionsAuto.Keys) @($Script:CorreuEines.Keys))) {
         $def = $Script:ProgramacionsAuto[$k]
         $progDefs[$k] = $def
         $pr = Get-ProgramacioAuto $k $current
@@ -361,17 +318,11 @@ function Invoke-ConfiguracioScreen {
             $hm = ([string]$d.Hora).Split(':')
             $c.Hora.Value = (Get-Date).Date.AddHours([int]$hm[0]).AddMinutes([int]$hm[1])
         }
-        $cbRem.Text = ''
     }.GetNewClosure())
 
     $btnTancar.add_Click({ $form.Close() }.GetNewClosure())
 
     $btnDesar.add_Click({
-        $remitent = $cbRem.Text.Trim()
-        if (-not (_CorreuRemitentValid $remitent)) {
-            [System.Windows.Forms.MessageBox]::Show(("'" + $remitent + "' no " + [char]0x00E9 + "s una adre" + [char]0x00E7 + "a de correu. Deixa-ho en blanc per fer servir el compte per defecte de l'Outlook."), 'Configuracio', 'OK', 'Warning') | Out-Null
-            return
-        }
         $values = @{
             InformesDir      = $tbInformes.Text.Trim()
             ActivitatsDir    = $tbActivitats.Text.Trim()
@@ -390,10 +341,10 @@ function Invoke-ConfiguracioScreen {
         }
         $autoSet = ConvertTo-AutomatismesSettings $progs
         if ($autoSet.Count -gt 0) { $overrides['Automatismes'] = $autoSet }
-        # Aquest "Desar" reescriu settings.json sencer: la via dels correus hi
-        # ha de ser, si no es perdria (nomes si no es la per defecte).
-        $overrides = _SettingsAmbCorreuVia $overrides $effCorreuVia
-        $overrides = _SettingsAmbClau $overrides 'CorreuRemitent' $remitent
+        # Aquest "Desar" reescriu settings.json sencer: la via dels correus i
+        # el remitent hi han de ser, si no es perdrien. Es llegeixen ARA: s'han
+        # pogut canviar a la finestra del correu amb aquesta oberta.
+        $overrides = _SettingsAmbCorreuDeAra $overrides (Load-AppSettings)
         if (-not (Save-AppSettings $overrides)) {
             [System.Windows.Forms.MessageBox]::Show("No s'ha pogut desar la configuracio.", 'Configuracio', 'OK', 'Error') | Out-Null
             return
@@ -433,7 +384,8 @@ function Invoke-ConfiguracioScreen {
 
     [void]$form.Controls.Add($grpPrincipals)
     [void]$form.Controls.Add($grpAddicionals)
-    [void]$form.Controls.Add($grpCorreu)
+    [void]$form.Controls.Add($btnCorreus)
+    [void]$form.Controls.Add($lblCorreuNota)
     [void]$form.Controls.Add($grpAuto)
     [void]$form.Controls.Add($grpMant)
     [void]$form.Controls.Add($botPanel)

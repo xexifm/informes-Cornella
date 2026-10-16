@@ -878,7 +878,7 @@ function _RecTascaDesaActiu([bool]$on) {
                "aquella hora el PC estava apagat, s'enviaran en engegar-lo.`n`n" +
                "Tingues en compte que:`n" +
                " " + [char]0x00B7 + " Nom" + [char]0x00E9 + "s s'executa amb el PC engegat i la sessi" + [char]0x00F3 + " iniciada.`n" +
-               " " + [char]0x00B7 + " Cada campanya surt per la via que tingui a Configuraci" + [char]0x00F3 + " (Correus de cada eina): " + ((@(_RecCampanyes) | ForEach-Object { [string]$_.Nom + ' = ' + (_CorreuViaText (Get-CorreuEina ('rec-' + $_.Clau)).Via) }) -join '; ') + ". Els d'Esborranys, el programa t'avisa que els has d'enviar; els altres surten SENSE que ning" + [char]0x00FA + " els revisi.`n" +
+               " " + [char]0x00B7 + " Cada campanya surt per la via que tingui a Configuraci" + [char]0x00F3 + " (Configuraci" + [char]0x00F3 + " correu electr" + [char]0x00F2 + "nic): " + ((@(_RecCampanyes) | ForEach-Object { [string]$_.Nom + ' = ' + (_CorreuViaText (Get-CorreuEina ('rec-' + $_.Clau)).Via) }) -join '; ') + ". Els d'Esborranys, el programa t'avisa que els has d'enviar; els altres surten SENSE que ning" + [char]0x00FA + " els revisi.`n" +
                " " + [char]0x00B7 + " Si la base d'informes t" + [char]0x00E9 + " m" + [char]0x00E9 + "s de " + [string]$Script:RecMaxAntiguitatDbDies + " dies, no enviar" + [char]0x00E0 + " res."
         $r = [System.Windows.Forms.MessageBox]::Show($msg, 'Recordatoris autom' + [char]0x00E0 + 'tics', 'YesNo', 'Question')
         if ($r -ne [System.Windows.Forms.DialogResult]::Yes) { return $false }

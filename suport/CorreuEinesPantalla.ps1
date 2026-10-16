@@ -1,8 +1,9 @@
 ﻿#requires -Version 5.1
 <#
-  CorreuEinesPantalla.ps1 - La finestra "Correus de cada eina" (des de
-  Configuracio): per on surt el correu de cada eina, a qui va, les adreces
-  fixes, la CCO i el boto de prova. Tot el que decideix es a CorreuEines.ps1;
+  CorreuEinesPantalla.ps1 - La finestra "Configuracio correu electronic"
+  (abans "Correus de cada eina", des de Configuracio): des d'on surten (el
+  remitent), per on surt el correu de cada eina, a qui va, les adreces fixes,
+  la CCO, el text, el boto de prova i la fila de l'app del mobil. Tot el que decideix es a CorreuEines.ps1;
   aqui nomes la pantalla.
 
   NOMES DEFINEIX FUNCIONS.
@@ -42,7 +43,70 @@ function _CorreuFilaGeometria([int]$amplMin, [int[]]$amples) {
     return @{ Ampl = $ampl; X = $xs.ToArray(); BotoText = ($boto - 10 - 130); Boto = $boto; Fi = $x }
 }
 
-# $publica: el que fa "Publicar ara" a la finestra del correu del mobil
+# LA FILA DE L'APP DEL MOBIL (octubre 2026). L'usuari: "App del mobil (web) no
+# se per que te un boto, quan podria ser un apartat mes com la resta". Es EL
+# MATEIX CORREU que la fila 'mobil' (l'informe de visita al titular, amb el
+# mateix text), pero l'envia l'app web del mobil per EmailJS: no surt d'aquest
+# PC, i per aixo no te adreces fixes ni prova. A qui va i la CCO es
+# desen amb Save-CorreuMobilConfig (CorreuMobil.ps1). $m: _CorreuMobilLlegeix
+# ($null si no s'han pogut llegir els textos; $err diu per que). Torna els
+# controls.
+function _CorreuFilaAppMobil($form, [int]$y, [int]$ampl, [int]$alt, $amplesDest, $m, [string]$err) {
+    $g = New-Object System.Windows.Forms.GroupBox
+    $g.Text = ('Informe de visita ' + [char]0x00B7 + ' des del m' + [char]0x00F2 + 'bil (app web)')
+    $g.Location = New-Object System.Drawing.Point(14, $y)
+    $g.Size = New-Object System.Drawing.Size(($ampl - 28), ($alt - 6))
+    $mk = {
+        param($tipus, $text, $x, $yy, $w, $h)
+        $c = New-Object ('System.Windows.Forms.' + $tipus)
+        if ($null -ne $text) { $c.Text = $text }
+        $c.Location = New-Object System.Drawing.Point($x, $yy); $c.Size = New-Object System.Drawing.Size($w, $h)
+        [void]$g.Controls.Add($c)
+        return $c
+    }
+    [void](& $mk 'Label' 'Per:' 12 27 34 20)
+    [void](& $mk 'Label' ("EmailJS, des del m" + [char]0x00F2 + "bil") 48 27 256 20)
+    [void](& $mk 'Label' 'A qui:' 316 27 42 20)
+    $wT = [int]$amplesDest['titular']; $wR = [int]$amplesDest['representant']
+    $gm = _CorreuFilaGeometria $ampl ([int[]]@($wT, $wR))
+    $cbTi = & $mk 'CheckBox' ([string]$Script:CorreuDestNoms['titular']) ([int]$gm.X[0]) 25 $wT 22
+    $cbRe = & $mk 'CheckBox' ([string]$Script:CorreuDestNoms['representant']) ([int]$gm.X[1]) 25 $wR 22
+    $btnT = & $mk 'Button' 'Editar el text' ([int]$gm.BotoText) 20 130 28
+    $btnP = & $mk 'Button' 'Prompt...' ([int]$gm.Boto) 20 120 28
+    _StyleSecondaryButton $btnT; _StyleSecondaryButton $btnP
+    $lq = & $mk 'Label' ("El mateix correu i el mateix text que la fila de dalt, per" + [char]0x00F2 + " l'envia l'app del m" + [char]0x00F2 + "bil. A qui va hi arriba amb Actualitzar.") 12 56 450 32
+    [void](& $mk 'Label' 'CCO sempre:' 476 61 92 20)
+    $tbS = & $mk 'TextBox' '' 570 58 ($ampl - 28 - 570 - 16) 24
+    [void](& $mk 'Label' 'CCO a triar:' 476 95 92 20)
+    $tbT = & $mk 'TextBox' '' 570 92 ($ampl - 28 - 570 - 16) 24
+    $lh = & $mk 'Label' ("La CCO es desa en aquest PC i al teu Drive (mai al GitHub). Sempre: surten marcades al m" + [char]0x00F2 + "bil; a triar: desmarcades.") 12 88 450 32
+    foreach ($c in @($lq, $lh)) { $c.ForeColor = [System.Drawing.Color]::FromArgb(90, 90, 90) }
+    if ($null -ne $m) {
+        $cbTi.Checked = (@($m.Dest) -contains 'titular'); $cbRe.Checked = (@($m.Dest) -contains 'representant')
+        $tbS.Text = [string]$m.Sempre; $tbT.Text = [string]$m.Tria
+    } else {
+        foreach ($c in @($cbTi, $cbRe, $tbS, $tbT, $btnP)) { $c.Enabled = $false }
+        $lq.Text = ("No s'han pogut llegir els textos del m" + [char]0x00F2 + "bil: " + $err)
+        $lq.ForeColor = [System.Drawing.Color]::FromArgb(160, 40, 40)
+    }
+    [void]$form.Controls.Add($g)
+    # El que diu la pantalla, com _CorreuMobilLlegeix.
+    $llegeix = {
+        $d = @(); if ($cbTi.Checked) { $d += 'titular' }; if ($cbRe.Checked) { $d += 'representant' }
+        return @{ Sempre = (_CorreuNetejaAdreces ([string]$tbS.Text)); Tria = (_CorreuNetejaAdreces ([string]$tbT.Text)); Dest = $d }
+    }.GetNewClosure()
+    $btnP.add_Click({ Show-CorreuMobilPrompt (& $llegeix) }.GetNewClosure())
+    return @{ Llegeix = $llegeix; BtnText = $btnT }
+}
+
+# LA FILA DEL REMITENT i la del correu de prova, l'una al costat de l'altra.
+# PURA. Torna l'amplada de cada grup i on comenca el segon.
+function _CorreuCapGeometria([int]$ampl) {
+    $w = [int][Math]::Floor(($ampl - 28 - 12) / 2)
+    return @{ W = $w; X2 = (14 + $w + 12) }
+}
+
+# $publica: el que fa Actualitzar, per publicar a qui va el correu del mobil
 # (Configuracio hi passa Invoke-ActualitzarPrograma; aqui no es pot cridar
 # sense un cicle de dependencies).
 function Show-CorreuEinesConfig([scriptblock]$publica = $null) {
@@ -50,9 +114,14 @@ function Show-CorreuEinesConfig([scriptblock]$publica = $null) {
     $eines = $Script:CorreuEines
     $destNoms = $Script:CorreuDestNoms
     $vies = $Script:CorreuVies
+    $titol = ('Configuraci' + [char]0x00F3 + ' correu electr' + [char]0x00F2 + 'nic')
+    # L'app del mobil: el que hi ha ara (per desar nomes si canvia).
+    $mobAbans = $null; $mobErr = ''
+    try { $mobAbans = _CorreuMobilLlegeix (_LoadEmailTextos) } catch { $mobErr = [string]$_.Exception.Message }
+    $remAbans = Get-CorreuRemitent
 
     $form = _NewForm
-    $form.Text = 'Correus de cada eina'
+    $form.Text = $titol
     # L'amplada de cada casella, mesurada amb la lletra de la finestra.
     $amplesDest = @{}
     foreach ($d in @($destNoms.Keys)) { $amplesDest[[string]$d] = [System.Windows.Forms.TextRenderer]::MeasureText([string]$destNoms[$d], $form.Font).Width + 24 }
@@ -64,16 +133,64 @@ function Show-CorreuEinesConfig([scriptblock]$publica = $null) {
     $ampl = $amplNec
     # Tres linies per eina: via i a qui; fixes i CCO de sempre; CCO a triar.
     $altEina = 128
-    $yIni = 150
-    # + la fila de l'app del mobil (60) + el peu (60).
-    $form.ClientSize = New-Object System.Drawing.Size($ampl, ($yIni + $altEina * @($eines.Keys).Count + 60 + 60))
+    $altCap = 92
+    $yIni = 66 + $altCap + 10
+    # Una fila per eina + la de l'app del mobil + el peu (60). Si no hi cap,
+    # la finestra fa scroll (_NewForm).
+    $form.ClientSize = New-Object System.Drawing.Size($ampl, ($yIni + $altEina * (@($eines.Keys).Count + 1) + 60))
     $form.StartPosition = 'CenterScreen'
+    $cap = _CorreuCapGeometria $ampl
+    $gris = [System.Drawing.Color]::FromArgb(90, 90, 90)
+
+    # ---- DES D'ON surten (el remitent de l'Outlook) -----------------------
+    # Abans era a Configuracio (l'usuari, octubre 2026: "allà dins poses
+    # l'adreça des d'on s'envien els correus"). L'usuari: "a la feina puc
+    # enviar des d'adreces diferents": editable, una bustia compartida no surt
+    # als comptes i s'escriu a ma. Es desa a settings.json ('CorreuRemitent').
+    $grpR = New-Object System.Windows.Forms.GroupBox
+    $grpR.Text = ("Des d'on surten (Outlook)")
+    $grpR.Location = New-Object System.Drawing.Point(14, 66)
+    $grpR.Size = New-Object System.Drawing.Size($cap.W, $altCap)
+    $lblRem = New-Object System.Windows.Forms.Label
+    $lblRem.Text = 'Des de:'; $lblRem.Location = New-Object System.Drawing.Point(12, 30); $lblRem.Size = New-Object System.Drawing.Size(50, 20)
+    $btnComptes = New-Object System.Windows.Forms.Button
+    $btnComptes.Text = "Comptes de l'Outlook"
+    _StyleSecondaryButton $btnComptes
+    # Mesurat amb la lletra del boto (amb 140 fixos es tallava "Comptes de
+    # l'Outlo", octubre 2026), arrimat a la dreta del grup.
+    $wComptes = [Math]::Max(150, [System.Windows.Forms.TextRenderer]::MeasureText($btnComptes.Text, $btnComptes.Font).Width + 24)
+    $btnComptes.Size = New-Object System.Drawing.Size($wComptes, 28)
+    $btnComptes.Location = New-Object System.Drawing.Point(($cap.W - 12 - $wComptes), 25)
+    $cbRem = New-Object System.Windows.Forms.ComboBox
+    $cbRem.DropDownStyle = 'DropDown'
+    $cbRem.Location = New-Object System.Drawing.Point(64, 27)
+    $cbRem.Size = New-Object System.Drawing.Size([Math]::Max(140, ($cap.W - 12 - $wComptes - 6 - 64)), 24)
+    $cbRem.Text = $remAbans
+    $lRemNota = New-Object System.Windows.Forms.Label
+    $lRemNota.Text = ("Buit = el compte per defecte de l'Outlook. Una b" + [char]0x00FA + "stia compartida s'escriu a m" + [char]0x00E0 + " (cal tenir-hi perm" + [char]0x00ED + "s). Amb EmailJS no compta.")
+    $lRemNota.Location = New-Object System.Drawing.Point(12, 56); $lRemNota.Size = New-Object System.Drawing.Size(($cap.W - 24), 32)
+    $lRemNota.ForeColor = $gris
+    $btnComptes.add_Click({
+        try { $comptes = Get-OutlookComptes } catch {
+            [System.Windows.Forms.MessageBox]::Show([string]$_.Exception.Message, 'Comptes de l''Outlook', 'OK', 'Warning') | Out-Null
+            return
+        }
+        $cbRem.Items.Clear()
+        foreach ($c in @($comptes)) { [void]$cbRem.Items.Add($c) }
+        if ($cbRem.Items.Count -eq 0) {
+            [System.Windows.Forms.MessageBox]::Show("L'Outlook no t" + [char]0x00E9 + " cap compte amb adre" + [char]0x00E7 + "a. Si envies des d'una b" + [char]0x00FA + "stia compartida, escriu-ne l'adre" + [char]0x00E7 + "a.", 'Comptes de l''Outlook', 'OK', 'Information') | Out-Null
+            return
+        }
+        $cbRem.DroppedDown = $true
+    }.GetNewClosure())
+    foreach ($c in @($lblRem, $cbRem, $btnComptes, $lRemNota)) { [void]$grpR.Controls.Add($c) }
+    [void]$form.Controls.Add($grpR)
 
     # ---- El correu de prova (comu a totes les eines) ----------------------
     $grpP = New-Object System.Windows.Forms.GroupBox
     $grpP.Text = 'Correu de prova'
-    $grpP.Location = New-Object System.Drawing.Point(14, 66)
-    $grpP.Size = New-Object System.Drawing.Size(($ampl - 28), 74)
+    $grpP.Location = New-Object System.Drawing.Point($cap.X2, 66)
+    $grpP.Size = New-Object System.Drawing.Size($cap.W, $altCap)
     $l1 = New-Object System.Windows.Forms.Label
     $l1.Text = 'ID GIA de les dades:'; $l1.Location = New-Object System.Drawing.Point(12, 30); $l1.Size = New-Object System.Drawing.Size(120, 20)
     $tbGia = New-Object System.Windows.Forms.TextBox
@@ -82,17 +199,18 @@ function Show-CorreuEinesConfig([scriptblock]$publica = $null) {
     $l2 = New-Object System.Windows.Forms.Label
     $l2.Text = 'El rep:'; $l2.Location = New-Object System.Drawing.Point(222, 30); $l2.Size = New-Object System.Drawing.Size(48, 20)
     $tbDesti = New-Object System.Windows.Forms.TextBox
-    $tbDesti.Location = New-Object System.Drawing.Point(272, 27); $tbDesti.Size = New-Object System.Drawing.Size(270, 24)
+    $tbDesti.Location = New-Object System.Drawing.Point(272, 27); $tbDesti.Size = New-Object System.Drawing.Size(($cap.W - 272 - 12), 24)
     $tbDesti.Text = [string]$cfg.prova.desti
     $l3 = New-Object System.Windows.Forms.Label
     $l3.Text = ("La prova va NOM" + [char]0x00C9 + "S a aquesta adre" + [char]0x00E7 + "a (mai al titular ni a la CCO) i diu al davant a qui hauria anat de debo.")
-    $l3.Location = New-Object System.Drawing.Point(556, 22); $l3.Size = New-Object System.Drawing.Size(390, 40)
-    $l3.ForeColor = [System.Drawing.Color]::FromArgb(90, 90, 90)
+    $l3.Location = New-Object System.Drawing.Point(12, 56); $l3.Size = New-Object System.Drawing.Size(($cap.W - 24), 32)
+    $l3.ForeColor = $gris
     foreach ($c in @($l1, $tbGia, $l2, $tbDesti, $l3)) { [void]$grpP.Controls.Add($c) }
     [void]$form.Controls.Add($grpP)
 
     # ---- Una fila per eina -------------------------------------------------
     $ctl = [ordered]@{}
+    $mob = $null
     $y = $yIni
     foreach ($k in @($eines.Keys)) {
         $def = $eines[$k]
@@ -175,11 +293,27 @@ function Show-CorreuEinesConfig([scriptblock]$publica = $null) {
         [void]$form.Controls.Add($g)
         $ctl[$k] = @{ Via = $cbV; Dest = $chks; Fixes = $tbF; Cco = $tbC; CcoAbans = $ccoAbans; CcoTria = $tbT; CcoTriaAbans = $ccoTriaAbans; Btn = $btnP; BtnText = $btnT }
         $y += $altEina
+        # L'app del mobil just a sota d'"Enviar correu": es el mateix correu.
+        if ($k -eq 'mobil') {
+            $mob = _CorreuFilaAppMobil $form $y $ampl $altEina $amplesDest $mobAbans $mobErr
+            $y += $altEina
+        }
+    }
+    if ($null -eq $mob) {
+        $mob = _CorreuFilaAppMobil $form $y $ampl $altEina $amplesDest $mobAbans $mobErr
+        $y += $altEina
     }
 
-    # Llegeix la pantalla i ho desa. Torna $true si ha pogut.
-    $st = @{ Cfg = $cfg; Ctl = $ctl; Gia = $tbGia; Desti = $tbDesti }
+    # Llegeix la pantalla i ho desa tot: les eines (correus.json), el remitent
+    # (settings.json) i l'app del mobil (nomes si ha canviat). Torna $true si
+    # ha pogut.
+    $st = @{ Cfg = $cfg; Ctl = $ctl; Gia = $tbGia; Desti = $tbDesti; Rem = $cbRem; RemAbans = $remAbans; Mob = $mob; MobAbans = $mobAbans; MobDest = $false; MobText = ''; MobOk = $true; Titol = $titol }
     $desa = {
+        $rem = ([string]$st.Rem.Text).Trim()
+        if (-not (_CorreuRemitentValid $rem)) {
+            [System.Windows.Forms.MessageBox]::Show(("'" + $rem + "' no " + [char]0x00E9 + "s una adre" + [char]0x00E7 + "a de correu. Deixa-ho en blanc per fer servir el compte per defecte de l'Outlook."), $st.Titol, 'OK', 'Warning') | Out-Null
+            return $false
+        }
         $nou = @{ eines = @{}; prova = @{ gia = ([string]$st.Gia.Text).Trim(); desti = (_CorreuNetejaAdreces ([string]$st.Desti.Text)) } }
         foreach ($k in @($st.Ctl.Keys)) {
             $c = $st.Ctl[$k]
@@ -188,8 +322,22 @@ function Show-CorreuEinesConfig([scriptblock]$publica = $null) {
             $dest = @(@($c.Dest.Keys) | Where-Object { $c.Dest[$_].Checked })
             $nou.eines[$k] = _CorreuEinaDeLaPantalla $via $dest ([string]$c.Fixes.Text) ([string]$c.Cco.Text) ([string]$c.CcoAbans) ([string]$c.CcoTria.Text) ([string]$c.CcoTriaAbans)
         }
-        try { Save-CorreuEines $nou; $st.Cfg = $nou; return $true } catch {
-            [System.Windows.Forms.MessageBox]::Show("No s'ha pogut desar:`n" + $_.Exception.Message, 'Correus de cada eina', 'OK', 'Error') | Out-Null
+        try {
+            Save-CorreuEines $nou; $st.Cfg = $nou
+            if ($rem -ne [string]$st.RemAbans) {
+                if (-not (Set-CorreuRemitent $rem)) { throw "No s'ha pogut desar el remitent a settings.json." }
+                $st.RemAbans = $rem
+            }
+            if ($null -ne $st.MobAbans) {
+                $ara = & $st.Mob.Llegeix
+                $r = Save-CorreuMobilConfig $st.MobAbans $ara
+                $st.MobAbans = $ara
+                if ($r.Dest) { $st.MobDest = $true }
+                if ($r.Text) { $st.MobText = [string]$r.Text; $st.MobOk = [bool]$r.Ok }
+            }
+            return $true
+        } catch {
+            [System.Windows.Forms.MessageBox]::Show("No s'ha pogut desar:`n" + $_.Exception.Message, $st.Titol, 'OK', 'Error') | Out-Null
             return $false
         }
     }.GetNewClosure()
@@ -211,34 +359,31 @@ function Show-CorreuEinesConfig([scriptblock]$publica = $null) {
             [System.Windows.Forms.MessageBox]::Show([string]$r.Text, 'Correu de prova', 'OK', $(if ($r.Ok) { 'Information' } else { 'Warning' })) | Out-Null
         }.GetNewClosure())
     }
-
-    # ---- L'app del MOBIL (CorreuMobil.ps1): no surt d'aquest PC, pero tambe
-    # es correu: a qui va, la CCO, publicar-ho i el prompt per a la resta.
-    $gM = New-Object System.Windows.Forms.GroupBox
-    $gM.Text = ("App del m" + [char]0x00F2 + "bil (web)")
-    $gM.Location = New-Object System.Drawing.Point(14, $y)
-    $gM.Size = New-Object System.Drawing.Size(($ampl - 28), 54)
-    $btnM = New-Object System.Windows.Forms.Button
-    $btnM.Text = ('Correu del m' + [char]0x00F2 + 'bil...')
-    $btnM.Location = New-Object System.Drawing.Point(12, 18); $btnM.Size = New-Object System.Drawing.Size(200, 28)
-    _StyleSecondaryButton $btnM
-    $lM = New-Object System.Windows.Forms.Label
-    $lM.Text = ("A qui va i la CCO del correu que envia l'app del m" + [char]0x00F2 + "bil, publicar-ho i un prompt per canviar la resta. El text " + [char]0x00E9 + "s el d'Enviar correu (Editar el text, a dalt).")
-    $lM.Location = New-Object System.Drawing.Point(224, 18); $lM.Size = New-Object System.Drawing.Size(($ampl - 28 - 224 - 12), 30)
-    $lM.ForeColor = [System.Drawing.Color]::FromArgb(90, 90, 90)
-    $btnM.add_Click({ Show-CorreuMobilConfig $publica }.GetNewClosure())
-    foreach ($c in @($btnM, $lM)) { [void]$gM.Controls.Add($c) }
-    [void]$form.Controls.Add($gM)
-    $y += 60
+    # El text de l'app del mobil es el d'"Enviar correu" (el mateix editor).
+    $mob.BtnText.add_Click({
+        try { & $eds['mobil'].Obre } catch {
+            [System.Windows.Forms.MessageBox]::Show([string]$_.Exception.Message, 'Text del correu', 'OK', 'Error') | Out-Null
+        }
+    }.GetNewClosure())
 
     $peu = _AddPeuBotons $form @(@{ Nom = 'Tancar'; Text = 'Tancar'; Resultat = 'Cancel'; Esc = $true }) @(@{ Nom = 'Desar'; Text = 'Desar'; Estil = 'primari' }) ($y + 8)
     $peu.Desar.add_Click({
-        if (& $desa) {
-            [System.Windows.Forms.MessageBox]::Show("Desat en aquest ordinador. Ja ho fan servir totes les eines.", 'Correus de cada eina', 'OK', 'Information') | Out-Null
+        if (-not (& $desa)) { return }
+        $txt = "Desat en aquest ordinador. Ja ho fan servir totes les eines."
+        if ($st.MobText) { $txt += "`n`n" + [string]$st.MobText }
+        # A QUI VA el correu del mobil arriba a l'app amb Actualitzar (es a
+        # email-textos.json, que es publica): s'ofereix fer-ho ara.
+        if ($st.MobDest -and $null -ne $publica) {
+            $rr = [System.Windows.Forms.MessageBox]::Show(($txt + "`n`nA qui va el correu del m" + [char]0x00F2 + "bil ha canviat i hi arriba amb Actualitzar. Vols actualitzar ara?"), $st.Titol, 'YesNo', 'Question')
             $form.Close()
+            if ($rr -eq [System.Windows.Forms.DialogResult]::Yes) { & $publica }
+            return
         }
+        if ($st.MobDest) { $txt += "`n`nA qui va el correu del m" + [char]0x00F2 + "bil hi arribar" + [char]0x00E0 + " la propera vegada que facis Actualitzar." }
+        [System.Windows.Forms.MessageBox]::Show($txt, $st.Titol, 'OK', $(if ($st.MobOk) { 'Information' } else { 'Warning' })) | Out-Null
+        $form.Close()
     }.GetNewClosure())
-    [void](_AddBrandHeader $form 'Correus de cada eina' ('Per on surten, a qui van, la CCO i el text ' + [char]0x00B7 + ' nom' + [char]0x00E9 + 's en aquest ordinador') 56)
+    [void](_AddBrandHeader $form $titol ("Des d'on surten, per on, a qui van, la CCO i el text de cada correu " + [char]0x00B7 + ' nom' + [char]0x00E9 + 's en aquest ordinador') 56)
     [void]$form.ShowDialog()
     $form.Dispose()
 }

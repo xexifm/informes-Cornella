@@ -368,7 +368,7 @@ $sgVell = $env:LOCALAPPDATA
 try {
     $env:LOCALAPPDATA = $sgApp
     $sgE = Send-SeguimentCorreu @{ Path = 'x.pdf'; Resum = @{}; Origen = '' } $false
-    Assert (-not $sgE.Ok -and ([string]$sgE.Text).Contains('Correus de cada eina')) 'Send-SeguimentCorreu: sense destinataris no envia res i diu on posar-los'
+    Assert (-not $sgE.Ok -and ([string]$sgE.Text).Contains('correu electr')) 'Send-SeguimentCorreu: sense destinataris no envia res i diu on posar-los'
     Assert ((& $Script:ModesAuto['seguimentgia'].Requisit) -ne '') 'l''interruptor del Seguiment no s''engega sense destinataris'
     Save-CorreuEines @{ eines = @{ 'seguiment' = @{ via = 'outlook'; dest = @(); fixes = 'a@x.cat; b@x.cat' } }; prova = @{ gia = ''; desti = '' } }
     AssertEq ([string](& $Script:ModesAuto['seguimentgia'].Requisit)) '' '...amb destinataris, si'
@@ -1595,4 +1595,33 @@ Assert ($gC.Auto.H -ge (72 + 30 * 5 - 8)) 'Configuracio: hi caben les 5 files d'
 Assert ($gC.XEsq + $gC.AmplCol -le $gC.XDre) 'Configuracio: la columna de l''esquerra no entra a la de la dreta'
 Assert ($gC.Mant.Y + $gC.Mant.H + 64 -le $gC.Alt) 'Configuracio: el peu (Tancar / Desar) queda a sota de tot'
 $srcCfgG = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'Configuracio.ps1'))
-Assert ($srcCfgG.Contains('$grpCorreu.Location = New-Object System.Drawing.Point($geo.Correu.X, $geo.Correu.Y)')) 'Configuracio: el grup dels correus es col·loca amb _ConfigGeometria'
+Assert ($srcCfgG.Contains('$btnCorreus.Location = New-Object System.Drawing.Point($geo.Correu.X, ($geo.Correu.Y + 4))')) 'Configuracio: el boto del correu es col·loca amb _ConfigGeometria'
+# L'usuari (octubre 2026): "tot el bloc que hi ha sobre Automatismes, que es
+# converteixi en un boto Configuracio correu electronic". El remitent i l'app
+# del mobil ara son a la finestra del correu.
+Assert ($gC.Correu.H -le 50) 'Configuracio: del correu, nomes un boto (no tot un grup)'
+Assert (-not $srcCfgG.Contains('$cbRem') -and -not $srcCfgG.Contains('Show-CorreuMobilConfig')) 'Configuracio: el remitent i el correu del mobil ja no hi son (son a la finestra del correu)'
+# L'ordre dels automatismes: el de les eines de la finestra del correu.
+AssertEq ((_ConfigOrdreAutomatismes @('informesdb', 'copiarinformes', 'planol', 'controlsperiodics', 'seguimentgia', 'excelerrors', 'recordatoris') @('mobil', 'rec-requeriments', 'rec-precintes', 'controls', 'seguiment', 'excelerrors')) -join ',') 'recordatoris,controlsperiodics,seguimentgia,excelerrors,informesdb,copiarinformes,planol' '_ConfigOrdreAutomatismes: primer els del correu (en el seu ordre), despres la resta'
+AssertEq ((_ConfigOrdreAutomatismes @('planol', 'excelerrors') @('excelerrors', 'seguiment', 'inventada')) -join ',') 'excelerrors,planol' '_ConfigOrdreAutomatismes: nomes els automatismes que hi ha'
+AssertEq ((_ConfigOrdreAutomatismes @($Script:ProgramacionsAuto.Keys) @($Script:CorreuEines.Keys)) -join ',') 'recordatoris,controlsperiodics,seguimentgia,excelerrors,informesdb,copiarinformes,planol' 'Configuracio: els automatismes de debo, en l''ordre de la finestra del correu'
+Assert ($srcCfgG.Contains('foreach ($k in @(_ConfigOrdreAutomatismes @($Script:ProgramacionsAuto.Keys) @($Script:CorreuEines.Keys)))')) 'Configuracio: les files dels automatismes surten amb _ConfigOrdreAutomatismes'
+# El Desar de Configuracio reescriu settings.json: la via i el remitent s'hi
+# conserven tal com son ARA (es poden haver canviat a la finestra del correu).
+$cfgAra = _SettingsAmbCorreuDeAra @{ InformesDir = 'F:\x' } ([pscustomobject]@{ CorreuVia = 'outlook'; CorreuRemitent = 'act@x.cat'; InformesDir = 'G:\vell' })
+AssertEq "$($cfgAra['InformesDir'])|$($cfgAra['CorreuVia'])|$($cfgAra['CorreuRemitent'])" 'F:\x|outlook|act@x.cat' '_SettingsAmbCorreuDeAra: la via i el remitent d''ara, la resta la de la pantalla'
+$cfgAra = _SettingsAmbCorreuDeAra @{ InformesDir = 'F:\x' } ([pscustomobject]@{})
+Assert (-not $cfgAra.Contains('CorreuVia') -and -not $cfgAra.Contains('CorreuRemitent')) '_SettingsAmbCorreuDeAra: sense res, no s''hi escriu res'
+Assert ($srcCfgG.Contains('$overrides = _SettingsAmbCorreuDeAra $overrides (Load-AppSettings)')) 'Configuracio: el Desar conserva la via i el remitent d''ara'
+# La finestra del correu: el remitent i la prova, l'un al costat de l'altre.
+$capG = _CorreuCapGeometria 1100
+Assert (14 + $capG.W + 8 -le $capG.X2 -and $capG.X2 + $capG.W -le 1100 - 14) 'finestra del correu: el remitent i la prova no es trepitgen i hi caben'
+# L'app del mobil: nomes es desa el que canvia.
+$mbA = @{ Dest = @('titular'); Sempre = 'a@x.cat; b@x.cat'; Tria = '' }
+$mbC = _CorreuMobilCanvis $mbA @{ Dest = @('titular'); Sempre = 'B@x.cat;a@x.cat'; Tria = '' }
+AssertEq "$($mbC.Dest)|$($mbC.Cco)" 'False|False' '_CorreuMobilCanvis: les mateixes adreces en un altre ordre no son cap canvi'
+$mbC = _CorreuMobilCanvis $mbA @{ Dest = @('representant', 'titular'); Sempre = 'a@x.cat; b@x.cat'; Tria = 'c@x.cat' }
+AssertEq "$($mbC.Dest)|$($mbC.Cco)" 'True|True' '_CorreuMobilCanvis: a qui va i la CCO a triar, canviats'
+$cmPantS = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'CorreuEinesPantalla.ps1'))
+Assert ($cmPantS.Contains("if (`$k -eq 'mobil') {") -and $cmPantS.Contains('_CorreuFilaAppMobil $form $y')) 'finestra del correu: l''app del mobil es una fila mes, just sota d''Enviar correu'
+Assert ($cmPantS.Contains('Set-CorreuRemitent $rem')) 'finestra del correu: hi ha el remitent (Des de)'

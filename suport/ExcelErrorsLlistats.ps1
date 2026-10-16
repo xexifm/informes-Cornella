@@ -276,7 +276,7 @@ function Invoke-ExcelErrorsCorreuTextos {
 function Send-ExcelErrorsCorreu($gen, [bool]$silenci, $ccoTriades = @()) {
     $cfgE = Get-CorreuEina 'excelerrors'
     $to = [string]$cfgE.Fixes
-    if (-not $to) { return @{ Ok = $false; Text = ("No hi ha cap destinatari: posa'l a Configuraci" + [char]0x00F3 + " -> Correus de cada eina -> Excel Errors (adreces fixes).") } }
+    if (-not $to) { return @{ Ok = $false; Text = ("No hi ha cap destinatari: posa'l a Configuraci" + [char]0x00F3 + " -> Configuraci" + [char]0x00F3 + " correu electr" + [char]0x00F2 + "nic -> Excel Errors (adreces fixes).") } }
     $motiu = Test-CorreuViaLlest $cfgE.Via
     if ($motiu) { return @{ Ok = $false; Text = $motiu } }
     $t = _LoadExCorreu
@@ -320,19 +320,22 @@ function _ExAutoDesaEstat($canvis) { return (Save-EstatAuto (_ExAutoStatePath) $
 $Script:CorreuProves['excelerrors'] = {
     param($gia, $cache, $cfgE)
     $t = _LoadExCorreu
-    $adj = @()
-    try {
-        $dir = _ExLlistatsDir
-        if ($dir -and (Test-Path -LiteralPath $dir)) { $adj = @(Get-ChildItem -LiteralPath $dir -Filter '*.xlsx' -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 3 | ForEach-Object { $_.FullName }) }
-    } catch { $adj = @() }
+    # ELS TRES EXCELS ES FAN ARA, com els de l'automatic: les dades del dia
+    # (l'usuari, octubre 2026: "s'envia l'ultim arxiu que jo he creat a ma").
+    # Abans s'hi adjuntaven els tres darrers de la carpeta. Si no es poden fer,
+    # la prova surt sense adjunts i diu per que (mai uns de vells).
+    $gen = $null
+    try { $gen = Invoke-ExcelErrorsLlistats } catch { $gen = @{ Ok = $false; Error = [string]$_.Exception.Message } }
+    $ok = ($null -ne $gen -and [bool]$gen.Ok)
     $ara = Get-Date
-    $html = _CosAHtml (_ExFillPh ([string]$t['cos']) $null $ara)
-    if ($adj.Count -eq 0) { $html = '<p><i>(Sense adjunts: encara no s''han fet els llistats.)</i></p>' + $html }
+    $resum = if ($ok) { $gen.Resum } else { $null }
+    $html = _CosAHtml (_ExFillPh ([string]$t['cos']) $resum $ara)
+    if (-not $ok) { $html = '<p><i>(Sense adjunts: no s''han pogut fer els Excels. ' + [System.Net.WebUtility]::HtmlEncode(([string]$gen.Error -replace "`r?`n", ' ')) + ')</i></p>' + $html }
     return @{
-        Assumpte = (_ExFillPh ([string]$t['assumpte']) $null $ara)
+        Assumpte = (_ExFillPh ([string]$t['assumpte']) $resum $ara)
         Html = $html
         Destinataris = @(_CorreuLlistaAdreces ([string]$cfgE.Fixes))
-        Adjunts = $adj
+        Adjunts = $(if ($ok) { @($gen.Fitxers | ForEach-Object { [string]$_ }) } else { @() })
         CcoAbans = ''
     }
 }

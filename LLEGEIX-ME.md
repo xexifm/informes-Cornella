@@ -626,7 +626,7 @@ totes de cop). Al fitxer només hi haurà les pestanyes marcades.
 
 **Per correu, i sol cada dues setmanes.** El botó **PDF i enviar** fa el PDF de
 les pestanyes marcades i l'envia per l'Outlook a qui hagis posat a ⚙
-Configuració → *Correus de cada eina* → *Seguiment* (a **Adreces fixes**, i la
+Configuració → *Configuració correu electrònic* → *Seguiment* (a **Adreces fixes**, i la
 CCO si en vols). Amb l'interruptor **A / M** de la rajola en **A**, el programa
 ho fa sol **cada dues setmanes, el dilluns a les 13:00** (es canvia a
 Configuració → Automatismes): el PDF de tots els llistats **menys la fulla
@@ -705,8 +705,8 @@ classificació de la fulla *Estès*:
   titular desconegut…). Amb l'Excel del 14/10/2026 en són 9: 48, 235, 236, 237,
   241, 819, 997, 1081 i 1389.
 - **Enviar per correu** fa els tres Excels (`local\excel-errors\`) i els envia
-  per l'Outlook a qui hagis posat a ⚙ Configuració → *Correus de cada eina* →
-  *Excel Errors* (adreces fixes). Assumpte i text, a *Textos del correu*
+  per l'Outlook a qui hagis posat a ⚙ Configuració → *Configuració correu electrònic*
+  → *Excel Errors* (adreces fixes). Assumpte i text, a *Textos del correu*
   (per defecte, «Dades incorrectes GIA»).
 - Amb l'interruptor **A** de la rajola, ho fa sol **cada dues setmanes, el
   dilluns a les 13:00** (es canvia a Configuració → Automatismes), amb els tipus
@@ -757,15 +757,18 @@ pot transmetre l'activitat mentre hi hagi un expedient obert).
 > mai et quedis sense. El comptador de dalt de la finestra suma **tots** els
 > correus que surten del PC, també els de l'eina *Enviar correu*.
 
-> **EmailJS o l'Outlook, i a qui, per a CADA eina.** A **⚙ Configuració** →
-> **Correus de cada eina...** hi ha una fila per a cada eina que envia correus
-> (*Enviar correu*, els dos *Recordatoris*, *Controls periòdics* i *Seguiment*).
+> **Tot el correu, en un sol lloc.** A **⚙ Configuració**, el botó
+> **Configuració correu electrònic** obre la finestra on es tria tot el que té
+> a veure amb els correus. A dalt hi ha **des d'on surten** (l'adreça de
+> l'Outlook, vegeu més avall) i el **correu de prova**; a sota, una fila per a
+> cada eina que envia correus (*Informe de visita* des del PC i des del mòbil,
+> els dos *Recordatoris*, *Controls periòdics*, *Seguiment* i *Excel Errors*).
 > A cada una tries:
 > - **Per on surt:** **EmailJS** (com sempre), **Outlook: el deixa a
 >   Esborranys** (no s'envia res: el revises i l'envies tu) o **Outlook: envia
 >   el correu** (surt de la teva bústia, sense límit de 200). *Controls
->   periòdics* només deixa esborranys, i el *Seguiment* només va per l'Outlook,
->   perquè porta PDF adjunts.
+>   periòdics* només deixa esborranys, i el *Seguiment* i *Excel Errors* només
+>   van per l'Outlook, perquè porten adjunts.
 > - **A qui va:** el titular, el representant legal, les persones autoritzades
 >   (el tècnic), unes **adreces fixes** i la **CCO**, que en té dues caselles:
 >   - **CCO sempre:** van a tots els correus d'aquella eina (també als que
@@ -776,16 +779,28 @@ pot transmetre l'activitat mentre hi hagi un expedient obert).
 >     no s'hi posen mai.
 >
 > El botó **Editar el text** de cada fila obre el text d'aquell correu (el
-> mateix que *Textos del correu*). A baix, **Correu del mòbil…** tria a qui va
-> el correu de l'app del mòbil (titular i/o representant) i la seva CCO (sempre
-> o a triar). Les adreces de CCO es desen **en aquest PC i al teu Drive**, mai al
-> GitHub. **Desar i publicar ara** puja la resta amb Actualitzar, i **Copiar el
-> prompt** et fa un text per demanar a Claude qualsevol altre canvi del correu
-> del mòbil (el remitent, EmailJS…).
+> mateix que *Textos del correu*).
 >
+> **L'informe de visita: des del PC o des del mòbil.** És **el mateix correu**
+> (l'informe al titular, amb el mateix text), que pot sortir de dos llocs, i
+> per això té dues files:
+> - **Informe de visita · des del PC (Enviar correu)**: el que envies amb
+>   l'eina *Enviar correu* d'aquest programa. Aquí tries per on surt (EmailJS o
+>   l'Outlook), a qui va i la CCO, i té *Enviar prova*.
+> - **Informe de visita · des del mòbil (app web)**: el que envia l'app web del
+>   mòbil, sempre per EmailJS (no passa per aquest PC). Hi tries a qui va
+>   (titular i/o representant) i la CCO (sempre o a triar). Les adreces de CCO
+>   es desen **en aquest PC i al teu Drive**, mai al GitHub; a qui va arriba al
+>   mòbil amb **Actualitzar** (en desar, el programa t'ho ofereix). El botó
+>   **Prompt...** et fa un text per demanar a Claude qualsevol altre canvi del
+>   correu del mòbil (el remitent, EmailJS…).
+
 > El botó **Enviar prova** de cada fila envia el correu d'aquella eina amb les
 > dades de l'**ID GIA de prova** a l'adreça de prova que hi hagis posat a dalt.
 > Va **només** a aquella adreça, i al davant diu a qui hauria anat de debò. Les
+> proves del *Seguiment* i d'*Excel Errors* **fan el PDF i els Excels en aquell
+> moment**, amb l'Excel d'activitats més nou de la carpeta (com l'automàtic):
+> mai adjunten un fitxer d'un altre dia. Les
 > adreces es desen **només en aquest ordinador**, mai al GitHub.
 > El desplegable **Enviar amb:** de la finestra d'*Enviar correu* canvia la via
 > d'aquella eina.
@@ -805,7 +820,8 @@ pot transmetre l'activitat mentre hi hagi un expedient obert).
 > recordatori desat a Esborranys ja consta com a fet; si l'esborres sense
 > enviar-lo, aquell titular no el rebrà fins al període següent.
 >
-> **Des de quina adreça.** Al mateix requadre, a **Des de (Outlook)**, tria
+> **Des de quina adreça.** A dalt de la mateixa finestra, a **Des d'on surten
+> (Outlook)**, tria
 > l'adreça per defecte i ja no l'hauràs de canviar a cada correu. El botó
 > *Comptes de l'Outlook* et posa a la llista els comptes que tens a l'Outlook;
 > si envies des d'una bústia compartida (que no hi surt), escriu-ne l'adreça
@@ -1006,15 +1022,17 @@ i envies tu.
 - **Com a molt 20 per setmana**, i primer els que han vençut fa menys: la
   primera vegada hi pot haver molts controls vençuts de fa anys, i aquests
   els pots fer a mà des de la finestra.
-- A qui va i la CCO, com sempre: ⚙ Configuració → *Correus de cada eina* →
-  *Controls periòdics* (la CCO «a triar» només quan ho fas a mà).
+- A qui va i la CCO, com sempre: ⚙ Configuració → *Configuració correu electrònic*
+  → *Controls periòdics* (la CCO «a triar» només quan ho fas a mà).
 - Registre: `%LOCALAPPDATA%\InformesCornella\controls-periodics-log.txt`.
 
 ### Quan es fa cada cosa: ⚙ Configuració → Automatismes
 
 A **⚙ Configuració** hi ha el grup **Automatismes**, amb una fila per cada cosa
-que el programa fa sol (Copiar informes, Actualitzar base, Plànol activitats,
-Seguiment, Controls periòdics, Excel Errors i Recordatoris). A cada fila pots:
+que el programa fa sol. Primer els que envien correus, en el mateix ordre que a
+*Configuració correu electrònic* (Recordatoris, Controls periòdics, Seguiment i
+Excel Errors), i després la resta (Actualitzar base, Copiar informes i Plànol
+activitats). A cada fila pots:
 
 - **encendre-la o apagar-la** (és el mateix interruptor A/M del menú);
 - triar **cada dia** o **cada setmana**, i en aquest cas **quin dia**;

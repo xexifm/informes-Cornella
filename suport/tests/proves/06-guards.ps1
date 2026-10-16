@@ -1897,13 +1897,19 @@ Assert ($ccoSg.Contains('if (-not $silenci -and @($ccoTriades).Count -gt 0) { $c
 Write-Host "`n--- El correu del mobil es configura des del programa (guard) ---"
 $cmEt = _SenseComentaris (Join-Path $ccoDir 'EmailTextos.ps1')
 Assert ($cmEt.Contains("`$out['dest'] = [string[]]@(`$textos['dest'])")) 'Textos del correu: en desar els textos, no s''enduu a qui va el correu del mobil'
-Assert ((_SenseComentaris (Join-Path $ccoDir 'Configuracio.ps1')).Contains('Show-CorreuMobilConfig { Invoke-ActualitzarPrograma }')) 'Configuracio: hi ha el boto Correu del mobil, que publica amb Actualitzar'
+Assert ((_SenseComentaris (Join-Path $ccoDir 'Configuracio.ps1')).Contains('Show-CorreuEinesConfig { Invoke-ActualitzarPrograma }')) 'Configuracio: la finestra del correu (amb l''app del mobil) publica amb Actualitzar'
 $cmApp = [System.IO.File]::ReadAllText((Join-Path $rootRepo (Join-Path 'docs' 'app.js')))
 Assert ($cmApp.Contains('dest: obj.dest == null ? ["titular"] : asArray(obj.dest)')) 'mobil: llegeix a qui va de email-textos.json (sense la clau, el titular)'
 Assert ($cmApp.Contains('estat.header.EMAIL_REP = act.EMAIL_REP || "";') -and $cmApp.Contains('destinatariPerDefecte() ||')) 'mobil: el destinatari per defecte surt de dest (titular i/o representant)'
 $cmPant = _SenseComentaris (Join-Path $ccoDir 'CorreuEinesPantalla.ps1')
-Assert ($cmPant.Contains('try { & $eds[$clau].Obre }') -and $cmPant.Contains('Show-CorreuMobilConfig $publica')) 'Correus de cada eina: s''hi edita el text de cada correu i el correu del mobil'
-Assert ((_SenseComentaris (Join-Path $ccoDir 'Configuracio.ps1')).Contains('Show-CorreuEinesConfig { Invoke-ActualitzarPrograma }')) 'Configuracio: Correus de cada eina rep com publicar el mobil'
+Assert ($cmPant.Contains('try { & $eds[$clau].Obre }') -and $cmPant.Contains('$r = Save-CorreuMobilConfig $st.MobAbans $ara') -and $cmPant.Contains('if ($rr -eq [System.Windows.Forms.DialogResult]::Yes) { & $publica }')) 'finestra del correu: s''hi edita el text de cada correu i el correu del mobil, i es publica'
+# Les proves de Seguiment i Excel Errors fan el document ARA (l'usuari,
+# octubre 2026: "s'envia l'ultim arxiu que jo he creat a ma"), mai el darrer
+# de la carpeta.
+$cmSgA = _SenseComentaris (Join-Path $ccoDir 'SeguimentGiaAutomatic.ps1')
+Assert ($cmSgA.Contains("try { `$gen = _SgGeneraFitxer 'pdf' @(_SgSeleccioAuto) }") -and -not $cmSgA.Contains('ultim_pdf') -and -not $cmSgA.Contains('Get-ChildItem')) 'prova del Seguiment: fa el PDF del dia, no adjunta el darrer'
+$cmExL = _SenseComentaris (Join-Path $ccoDir 'ExcelErrorsLlistats.ps1')
+Assert ($cmExL.Contains('try { $gen = Invoke-ExcelErrorsLlistats }') -and -not $cmExL.Contains("-Filter '*.xlsx'")) 'prova d''Excel Errors: fa els tres Excels del dia, no adjunta els darrers'
 Assert ((_SenseComentaris (Join-Path $ccoDir 'UiFinestra.ps1')).Contains('$minim = _PeuAmpleMinim $amplesE $amplesD')) 'peu de botons: si no hi caben, la finestra s''eixampla (no es trepitgen)'
 
 Write-Host "`n--- Que el programa no deixi penjades les finestres dels altres (guard) ---"

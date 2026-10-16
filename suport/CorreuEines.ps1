@@ -42,7 +42,9 @@
 # $Script:CorreuDestNoms); DestDefecte = el que hi havia fins ara.
 $Script:CorreuEines = [ordered]@{
     'mobil' = [ordered]@{
-        Nom = ("Enviar correu (informe de visita d'inspecci" + [char]0x00F3 + ' / m' + [char]0x00F2 + 'bil)')
+        # El mateix correu el pot enviar l'app del mobil (EmailJS): a la
+        # finestra del correu en surt la fila just a sota (CorreuEinesPantalla).
+        Nom = ('Informe de visita ' + [char]0x00B7 + ' des del PC (Enviar correu)')
         Vies = @('emailjs', 'outlook-esborrany', 'outlook')
         Dest = @('titular', 'representant', 'autoritzats'); DestDefecte = @('titular', 'representant')
     }

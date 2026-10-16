@@ -66,7 +66,7 @@ $Script:ModesAuto['excelerrors'] = @{
     # Sense destinataris faria els Excels i no els enviaria a ningu.
     Requisit  = {
         if ([string](Get-CorreuEina 'excelerrors').Fixes) { return '' }
-        return ("Per enviar els errors sols cal dir a qui van.`n`nVes a Configuraci" + [char]0x00F3 + " -> Correus de cada eina -> Excel Errors i posa-hi les adreces (Adreces fixes).")
+        return ("Per enviar els errors sols cal dir a qui van.`n`nVes a Configuraci" + [char]0x00F3 + " -> Configuraci" + [char]0x00F3 + " correu electr" + [char]0x00F2 + "nic -> Excel Errors i posa-hi les adreces (Adreces fixes).")
     }
     TipA      = { Get-AutoTipText "es fan els tres Excels d'errors i s'envien per correu" 'excelerrors' }
     TipM      = ("Mode MANUAL: nom" + [char]0x00E9 + "s es fa quan cliques la rajola. Clica per posar-ho en autom" + [char]0x00E0 + "tic.")

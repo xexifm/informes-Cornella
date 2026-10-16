@@ -149,7 +149,7 @@ document adjunt per correu», «només els PDF, tot menys la fulla Estès».
   posa els missatges), amb tots els llistats **menys la fulla Estès**
   (`_SgSeleccioAuto`), i l'envia.
 - **El correu** (`Send-SeguimentCorreu`) va a les **adreces fixes** de l'eina
-  `seguiment` (Configuració → Correus de cada eina), **només per l'Outlook**,
+  `seguiment` (Configuració → Configuració correu electrònic), **només per l'Outlook**,
   perquè porta l'adjunt. Sense destinataris no s'envia res, i l'interruptor no
   s'engega (`Requisit`). Si va a Esborranys, el menú avisa com amb els
   recordatoris. El text es tria a *Textos del correu* i es desa a
@@ -414,7 +414,8 @@ viu a **`suport/CorreuVia.ps1`**. Tres vies (`$Script:CorreuVies`):
   apunta i el menú crida l'avís als dos llocs (validat traient-ne cada un).
 - **EL REMITENT** (l'usuari: *«a la feina puc enviar correus des d'adreces
   diferents; com ho puc seleccionar per no haver de canviar-la a tots els
-  correus?»*): una adreça per defecte a **⚙ Configuració** («Des de (Outlook)»,
+  correus?»*): una adreça per defecte a **⚙ Configuració → Configuració correu
+  electrònic** («Des d'on surten (Outlook)», `Set-CorreuRemitent`;
   `CorreuRemitent` als settings; buit = el compte per defecte de l'Outlook). El
   botó *Comptes de l'Outlook* omple el desplegable amb els comptes del perfil
   (`Get-OutlookComptes`); una **bústia compartida** no hi surt i s'escriu a mà.
@@ -458,7 +459,7 @@ cadascuna de les opcions per enviar un correu de prova».
 - **`correus.json` a `%LOCALAPPDATA%\InformesCornella`**, no `settings.json`:
   - el «Desar» de Configuració reescriu `settings.json` sencer;
   - **les adreces no poden anar mai al repositori**, que és públic. L'usuari
-    les omple un sol cop a Configuració → *Correus de cada eina*.
+    les omple un sol cop a Configuració → *Configuració correu electrònic*.
 
   Per eina hi ha `via`, `dest`, `fixes` i `cco`. La `cco` **només si s'ha
   configurat**: sense, l'eina fa servir la de sempre (email-textos.json per a
@@ -504,18 +505,45 @@ cadascuna de les opcions per enviar un correu de prova».
   poder configurar tot el correu des d'aquesta pantalla»). Cada fila té
   **Editar el text**, que obre el mateix editor que *Textos del correu*
   (`$Script:CorreuTextosEditors`; hi ha prova que totes les eines del registre en
-  tenen), i a baix hi ha **App del mòbil (web) → Correu del mòbil…**. Per fer
-  lloc als dos botons, la finestra fa 1.100 d'ample (`_CorreuFilaGeometria`).
-- **El correu del MÒBIL des del programa** (`CorreuMobil.ps1`, també des de
-  Configuració). El mòbil llegeix `docs/dades/email-textos.json`; s'hi tria
+  tenen). Per fer lloc als dos botons, la finestra fa 1.100 d'ample
+  (`_CorreuFilaGeometria`).
+- **UN SOL BOTÓ A CONFIGURACIÓ** (octubre 2026, l'usuari: «tot el bloc que hi
+  ha sobre Automatismes, que es converteixi en un botó "Configuració correu
+  electrònic". I allà dins poses l'adreça des d'on s'envien els correus»). La
+  finestra (abans *Correus de cada eina*) ara porta a dalt el **remitent**
+  (`_CorreuCapGeometria`: remitent i correu de prova l'un al costat de
+  l'altre) i el desa a `settings.json` amb `Set-CorreuRemitent`, sense tocar
+  la resta. Com que el «Desar» de Configuració reescriu `settings.json`
+  sencer, hi torna a posar la via i el remitent **tal com són en aquell
+  moment** (`_SettingsAmbCorreuDeAra`, llegint el fitxer), no com eren en obrir
+  la pantalla: s'han pogut canviar a la finestra del correu amb Configuració
+  oberta.
+- **L'APP DEL MÒBIL, UNA FILA MÉS** (l'usuari: «App del mòbil (web) no sé per
+  què té un botó, quan podria ser un apartat més com la resta. Tampoc sé la
+  diferència entre App del mòbil i Enviar correu»). És el **mateix correu** que
+  la fila `mobil` (l'informe de visita, el mateix text), però l'envia l'app web
+  per EmailJS; per això va just a sota (`_CorreuFilaAppMobil`) i les dues es
+  diuen *Informe de visita · des del PC (Enviar correu)* i *· des del mòbil
+  (app web)*. No té via ni adreces fixes ni prova; *Editar el text* obre el
+  mateix editor, i *Prompt...* la finestreta del prompt
+  (`Show-CorreuMobilPrompt`). En desar, `Save-CorreuMobilConfig` només toca el
+  que ha canviat (`_CorreuMobilCanvis`, pura: la CCO com a conjunt): la CCO, al
+  PC i al Drive; a qui va, a `email-textos.json` (relegit en aquell moment, per
+  no trepitjar el que s'hagi editat amb *Editar el text*), i llavors ofereix
+  Actualitzar.
+- **L'ORDRE DELS AUTOMATISMES** a Configuració és el de les eines d'aquesta
+  finestra (`_ConfigOrdreAutomatismes`, pura: clau de correu → automatisme) i
+  després els que no envien correus, en l'ordre del registre.
+- **El correu del MÒBIL des del programa** (`CorreuMobil.ps1`, la fila de
+  l'app a la finestra del correu). El mòbil llegeix `docs/dades/email-textos.json`; s'hi tria
   **a qui va** (clau nova `dest`: `titular` i/o `representant`; sense la clau, el
   titular, que és el que feia; `docs/app.js` → `destinatariPerDefecte`, amb
   l'`EMAIL_REP` de l'activitat) i la **CCO sempre / a triar** (la clau `bcc` de
-  sempre, amb el `def`). **Desar i publicar ara** desa i llança Actualitzar, que
-  committeja aquell fitxer; li arriba com a scriptblock des de Configuració
+  sempre, amb el `def`). En desar, si ha canviat a qui va, ofereix Actualitzar,
+  que committeja aquell fitxer; li arriba com a scriptblock des de Configuració
   (cridar-lo des d'aquí faria un cicle). Per al que viu a `docs/config.js`
-  (EmailJS, el remitent) —que Actualitzar **no** puja— o al codi, **Copiar el
-  prompt** (`_CorreuMobilPrompt`, pura) fa un text amb la configuració d'ara i
+  (EmailJS, el remitent) —que Actualitzar **no** puja— o al codi, **Prompt...**
+  (`_CorreuMobilPrompt`, pura) fa un text amb la configuració d'ara i
   el canvi que s'hi escriu, per enganxar a Claude. *Textos del correu* conserva
   `dest` en desar (guard).
 - **LES ADRECES DE CCO, FORA DEL GITHUB** (octubre 2026, l'usuari: «podem posar
@@ -526,7 +554,7 @@ cadascuna de les opcions per enviar un correu de prova».
     `bcc` de `_LoadEmailTextos` en surt, o sigui que *Enviar correu* i el
     destinatari buit (`_CorreuDestinatariBuit`) funcionen igual;
   - al mòbil, del **Drive privat** (`Dades/correu-mobil.json`, al costat
-    d'`activitats.json`): el PC l'hi puja en desar *Correu del mòbil* i a cada
+    d'`activitats.json`): el PC l'hi puja en desar la fila de l'app (si la CCO ha canviat) i a cada
     Actualitzar (`Publish-CorreuMobilCco`, pas 6); `docs/drive.js` →
     `llegirCorreuMobil`, `docs/app.js` → `muntarBcc`. Sense Drive, cap CCO.
   - **La migració és sola** (`_CorreuMobilCcoMigra`): si el fitxer del
@@ -537,12 +565,18 @@ cadascuna de les opcions per enviar un correu de prova».
   - Guard: cap `@aj-cornella.cat` ni al codi ni a cap `.json`/`.html` de `docs/`
     (validat injectant-ne una). **L'historial del git encara les té**: treure-les
     d'allà vol dir reescriure `main` amb un force-push, i no s'ha fet.
-- **La prova del Seguiment porta els nombres de debò** (o no en porta):
-  `_SgGeneraFitxer` desa a l'estat (`seguiment-auto.json`) el darrer PDF, el
-  resum i l'Excel (`ultim_pdf`, `ultim_resum`, `ultim_origen`), i la prova els
-  fa servir. Si el darrer PDF és d'abans que es desés el resum, les línies de
-  dades **no hi surten** (`_SgCosSenseDades`): abans hi sortia «(n)» a cada
-  llistat i «(Excel d'activitats)».
+- **La prova del Seguiment FA EL PDF EN AQUELL MOMENT** (octubre 2026,
+  l'usuari: «s'envia l'últim arxiu que jo he creat a mà, però la gràcia és que
+  aquell document es faci abans de ser enviat i que estigui actualitzat del
+  mateix dia»). Abans adjuntava el darrer PDF de l'estat (`ultim_pdf`) o de la
+  carpeta. Ara crida `_SgGeneraFitxer 'pdf' @(_SgSeleccioAuto)`, com
+  l'automàtic, i n'usa el resum i l'Excel d'origen. Si no es pot fer, surt
+  **sense adjunt** i diu per què, amb el cos sense les línies de dades
+  (`_SgCosSenseDades`): mai un PDF vell. El mateix per a **Excel Errors**
+  (`Invoke-ExcelErrorsLlistats`; abans, els tres `.xlsx` més nous de la
+  carpeta). Guard a `06-guards.ps1`. Les dades són les de l'Excel d'activitats
+  més nou de la carpeta (`Find-LatestActivitatsExcel`): el programa no el
+  baixa del GIA.
 
 ## El format del correu: el de REQ1, i el mateix al PC i al mòbil
 
