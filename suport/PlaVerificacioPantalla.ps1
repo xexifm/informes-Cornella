@@ -31,7 +31,8 @@ function _PvTaulaGraella($pare, [string]$titol, [string]$col, [int]$x, [int]$y, 
     return $grid
 }
 
-function Show-PlaVerificacioFinestra($files, $informes, [string]$fileName) {
+# $dades: Read-PvDades (els programes signats i les fotos dels anys tancats).
+function Show-PlaVerificacioFinestra($files, $informes, [string]$fileName, $dades) {
     $titol = ('Pla verificaci' + [char]0x00F3)
     $avui = Get-Date
     $anys = _PvAnys $avui $files
@@ -42,7 +43,7 @@ function Show-PlaVerificacioFinestra($files, $informes, [string]$fileName) {
     $grups = $Script:PvGrups
     $capLl = $Script:PvLlistaCapcalera
     $amplesLl = $Script:PvLlistaAmples
-    $st = @{ Ind = $null; Locals = (Read-PvPrevistes); Carregant = $false }
+    $st = @{ Ind = $null; Locals = (Read-PvPrevistes); Carregant = $false; Any = 0 }
 
     $form = _NewForm
     $form.Text = $titol
@@ -66,12 +67,24 @@ function Show-PlaVerificacioFinestra($files, $informes, [string]$fileName) {
     $nuPrev.Minimum = 0; $nuPrev.Maximum = 999
     $nuPrev.Location = New-Object System.Drawing.Point(408, 9); $nuPrev.Size = New-Object System.Drawing.Size(64, 24)
     $lPrevNota = New-Object System.Windows.Forms.Label
-    $lPrevNota.Text = ("Les del programa signat (30 el 2025, 45 el 2026). D'un any nou, posa-les aqu" + [char]0x00ED + ": es desen en aquest PC.")
+    $lPrevNota.Text = ("Les del programa signat. D'un any nou, posa-les aqu" + [char]0x00ED + ": es desen en aquest PC.")
     $lPrevNota.Location = New-Object System.Drawing.Point(484, 12); $lPrevNota.Size = New-Object System.Drawing.Size(660, 20)
     $lPrevNota.ForeColor = [System.Drawing.Color]::FromArgb(90, 90, 90)
     foreach ($c in @($lAny, $cbAny, $lPrev, $nuPrev, $lPrevNota)) { [void]$top.Controls.Add($c) }
     $gExec = _PvTaulaGraella $top $tExec 'Seguiment' 14 44 640 5
     $gAct = _PvTaulaGraella $top $tAct 'Resultat' 668 44 482 2
+    # El SEGUIMENT DEL PROGRAMA (l'usuari: "un boto per poder-ho veure, pero
+    # no com a cosa primordial"): sota la taula de les verificacions.
+    $btnSeg = New-Object System.Windows.Forms.Button
+    $btnSeg.Text = 'Activitats del programa...'
+    $btnSeg.Location = New-Object System.Drawing.Point(14, 246); $btnSeg.Size = New-Object System.Drawing.Size(210, 28)
+    _StyleSecondaryButton $btnSeg
+    # Un any TANCAT surt amb les dades de la seva Memoria (la foto); es pot
+    # comparar amb el que diria ara l'Excel.
+    $chkExcel = New-Object System.Windows.Forms.CheckBox
+    $chkExcel.Text = ("Calcular-ho amb l'Excel d'ara (en lloc de les dades de la Mem" + [char]0x00F2 + "ria)")
+    $chkExcel.Location = New-Object System.Drawing.Point(238, 249); $chkExcel.Size = New-Object System.Drawing.Size(416, 22)
+    foreach ($c in @($btnSeg, $chkExcel)) { [void]$top.Controls.Add($c) }
     # Com es compta cada indicador (l'usuari ho ha de poder comprovar).
     $lCrit = New-Object System.Windows.Forms.Label
     $lCrit.Location = New-Object System.Drawing.Point(668, 168); $lCrit.Size = New-Object System.Drawing.Size(482, 126)
@@ -80,8 +93,8 @@ function Show-PlaVerificacioFinestra($files, $informes, [string]$fileName) {
     $lCrit.Text = ("Com es compta (Excel " + $fileName + "):`n" +
         [char]0x00B7 + " Programa: 'Data control inicial/verificaci" + [char]0x00F3 + "' de l'any i annex que no " + [char]0x00E9 + "s II ni III.`n" +
         [char]0x00B7 + " Den" + [char]0x00FA + "ncies: data d''Inspecci" + [char]0x00F3 + "' de l'any.   " + [char]0x00B7 + " EC-PCA: control de l'any i annex III.`n" +
-        [char]0x00B7 + " Greus: del programa, amb un informe de Precinte / Cessament (base d'informes) del dia del control o despr" + [char]0x00E9 + "s.`n" +
-        "L'Excel nom" + [char]0x00E9 + "s guarda la darrera data de control de cada activitat.")
+        [char]0x00B7 + " Greus: del programa, amb un informe de visita d'inspecci" + [char]0x00F3 + " de l'any amb Precinte / Cessament (base d'informes).`n" +
+        "L'Excel nom" + [char]0x00E9 + "s guarda la darrera data de control: un any tancat surt amb les dades de la seva Mem" + [char]0x00F2 + "ria.")
     [void]$top.Controls.Add($lCrit)
 
     # ---- Al mig: les activitats que compten -------------------------------
@@ -105,10 +118,18 @@ function Show-PlaVerificacioFinestra($files, $informes, [string]$fileName) {
     $fill = {
         if ($cbAny.SelectedIndex -lt 0) { return }
         $any = [int]$anys[$cbAny.SelectedIndex]
-        $prev = _PvPrevistes $any $st.Locals
+        $prev = _PvPrevistes $any $st.Locals $dades
+        $foto = if ($dades.Fotos.Contains([string]$any)) { $dades.Fotos[[string]$any] } else { $null }
         $st.Carregant = $true
-        try { $nuPrev.Value = [decimal]$prev } finally { $st.Carregant = $false }
-        $ind = Get-PlaVerificacioIndicadors $files $any $prev $informes
+        try {
+            $nuPrev.Value = [decimal]$prev
+            # La casella nomes te sentit si l'any te foto; en canviar d'any, desmarcada.
+            if ($st.Any -ne $any) { $chkExcel.Checked = $false }
+            $chkExcel.Visible = ($null -ne $foto)
+        } finally { $st.Carregant = $false }
+        $st.Any = $any
+        $btnSeg.Enabled = $dades.Programes.Contains([string]$any)
+        $ind = if ($null -ne $foto -and -not $chkExcel.Checked) { Get-PvFotoIndicadors $foto $any $prev } else { Get-PlaVerificacioIndicadors $files $any $prev $informes }
         $st.Ind = $ind
         $gExec.Rows.Clear(); foreach ($f in @(_PvFilesExecucio $ind)) { [void]$gExec.Rows.Add(@([string]$f[0], [string]$f[1])) }
         $gAct.Rows.Clear(); foreach ($f in @(_PvFilesActivitats $ind)) { [void]$gAct.Rows.Add(@([string]$f[0], [string]$f[1])) }
@@ -120,10 +141,17 @@ function Show-PlaVerificacioFinestra($files, $informes, [string]$fileName) {
         }
         $perGrup = (@(@($grups.Keys) | ForEach-Object { $k = $_; [string]$grups[$k] + ' ' + @(@($ind.Llista) | Where-Object { [string]$_.Grup -eq $k }).Count })) -join ('  ' + [char]0x00B7 + '  ')
         $lLl.Text = ("Activitats que compten el " + $any + ": " + $perGrup +
-            $(if ($ind.SenseBase) { "   (sense base d'informes: les greus no es poden saber; fes Actualitzar base)" } else { '' }))
+            $(if ([bool]$ind.Foto) { "   (dades de la " + [string]$ind.Document + ")" } elseif ($ind.SenseBase) { "   (sense base d'informes: les greus no es poden saber; fes Actualitzar base)" } else { '' }))
     }.GetNewClosure()
 
     $cbAny.add_SelectedIndexChanged({ & $fill }.GetNewClosure())
+    $chkExcel.add_CheckedChanged({ if (-not $st.Carregant) { & $fill } }.GetNewClosure())
+    $btnSeg.add_Click({
+        $k = [string]$st.Any
+        if (-not $dades.Programes.Contains($k)) { return }
+        $foto = if ($dades.Fotos.Contains($k) -and -not $chkExcel.Checked) { $dades.Fotos[$k] } else { $null }
+        Show-PvSeguimentPrograma $dades.Programes[$k] $files ([int]$st.Any) $foto
+    }.GetNewClosure())
     # Les previstes d'un any: es desen en aquest PC en canviar-les.
     $nuPrev.add_ValueChanged({
         if ($st.Carregant -or $cbAny.SelectedIndex -lt 0) { return }
@@ -177,6 +205,65 @@ function Show-PlaVerificacioFinestra($files, $informes, [string]$fileName) {
 }
 
 # ----------------------------------------------------------------------------
+# EL SEGUIMENT DEL PROGRAMA (boto secundari de la finestra)
+# ----------------------------------------------------------------------------
+function Show-PvSeguimentPrograma($prog, $files, [int]$any, $foto) {
+    $titol = ('Seguiment del programa ' + $any)
+    $seg = Get-PvSeguimentPrograma $prog $files $any $foto
+    $cap = $Script:PvSegCapcalera
+    $amples = $Script:PvSegAmples
+    $f = _NewForm
+    $f.Text = $titol
+    $f.Size = New-Object System.Drawing.Size(1100, 720)
+    $f.MinimumSize = New-Object System.Drawing.Size(760, 480)
+    $mig = New-Object System.Windows.Forms.Panel
+    $mig.Dock = 'Fill'
+    $grid = New-Object System.Windows.Forms.DataGridView
+    _StyleListGrid $grid
+    $grid.ReadOnly = $true
+    for ($i = 0; $i -lt $cap.Count; $i++) {
+        $col = New-Object System.Windows.Forms.DataGridViewTextBoxColumn
+        $col.HeaderText = [string]$cap[$i]; $col.Width = [int]$amples[$i] * 6 + 20; $col.SortMode = 'NotSortable'
+        [void]$grid.Columns.Add($col)
+    }
+    foreach ($r in @($seg.Files)) {
+        $ix = $grid.Rows.Add([object[]]@(_PvFilaSeguiment $r))
+        if ([bool]$r.Feta) { $grid.Rows[$ix].DefaultCellStyle.ForeColor = [System.Drawing.Color]::FromArgb(30, 110, 50) }
+    }
+    $mig.Controls.Add($grid)
+    $l = New-Object System.Windows.Forms.Label
+    $l.Dock = 'Top'; $l.Height = 40
+    $l.Padding = New-Object System.Windows.Forms.Padding(14, 6, 0, 0)
+    $l.Text = ([string]$prog.Document + "`n" +
+        "Annex I (criticitat m" + [char]0x00E9 + "s alta): " + $seg.FetesI + ' de ' + $seg.TotalI + ' verificades' +
+        $(if ([int]$seg.TotalII -gt 0) { "   " + [char]0x00B7 + "   Annex II (aleat" + [char]0x00F2 + "ries): " + $seg.FetesII + ' de ' + $seg.TotalII } else { '' }) +
+        $(if ($null -ne $foto) { "   (segons la Mem" + [char]0x00F2 + "ria)" } else { "   (segons la 'Data control inicial/verificaci" + [char]0x00F3 + "' de l'Excel)" }))
+    $mig.Controls.Add($l)
+    $baix = New-Object System.Windows.Forms.Panel
+    $baix.Dock = 'Bottom'; $baix.Height = 60
+    [void](_AddPeuBotons $f @(
+        @{ Nom = 'Tancar'; Text = 'Tancar'; Clic = { $f.Close() }.GetNewClosure() }) @(
+        @{ Nom = 'Export'; Text = 'Exportar a Excel'; Estil = 'primari'; Clic = {
+            $dlg = New-Object System.Windows.Forms.SaveFileDialog
+            $dlg.Filter = 'Excel (*.xlsx)|*.xlsx'
+            $dlg.FileName = 'Seguiment programa verificacio ' + $any + ' (' + (Get-Date).ToString('yyyy-MM-dd') + ').xlsx'
+            try { $dlg.InitialDirectory = _ResolveOutputDir } catch { }
+            if ($dlg.ShowDialog() -ne 'OK') { return }
+            try {
+                $bytes = _NormativaXlsxBytes $cap @(@($seg.Files) | ForEach-Object { , @(_PvFilaSeguiment $_) }) $amples ('Programa ' + $any)
+                [System.IO.File]::WriteAllBytes($dlg.FileName, $bytes)
+                [void](Open-PerUsuari $dlg.FileName)
+            } catch { [System.Windows.Forms.MessageBox]::Show("No s'ha pogut exportar:`n" + $_.Exception.Message, $titol, 'OK', 'Error') | Out-Null }
+        }.GetNewClosure() }) 12 $baix)
+    $f.Controls.Add($mig)
+    $f.Controls.Add($baix)
+    [void](_AddBrandHeader $f $titol ("Les activitats previstes i si ja s'han verificat") 56)
+    _AjustaFinestraAPantalla $f
+    [void]$f.ShowDialog()
+    $f.Dispose()
+}
+
+# ----------------------------------------------------------------------------
 # Punt d'entrada (menu, fila BASE D'INFORMES)
 # ----------------------------------------------------------------------------
 function Invoke-PlaVerificacio {
@@ -199,6 +286,7 @@ function Invoke-PlaVerificacio {
 
     $res = $null; $inf = $null
     try { $res = _ReadPlaVerificacio; $inf = _ReadPvInformes } finally { try { $sp.Close() } catch { } }
+    $dades = Read-PvDades
     if ($null -eq $res -or -not [bool]$res.Ok) {
         $msg = if ($res) { [string]$res.Error } else { 'Error desconegut.' }
         [System.Windows.Forms.MessageBox]::Show("No s'ha pogut llegir la base d'activitats:`n$msg", $titol, 'OK', 'Error') | Out-Null
@@ -208,5 +296,5 @@ function Invoke-PlaVerificacio {
     if ($falten.Count -gt 0) {
         [System.Windows.Forms.MessageBox]::Show(("A la fulla Est" + [char]0x00E8 + "s de l'Excel (" + [string]$res.File + ") no hi ha: " + ($falten -join ', ') + ". Els indicadors que en depenen sortiran a 0."), $titol, 'OK', 'Warning') | Out-Null
     }
-    Show-PlaVerificacioFinestra @($res.Files) $inf ([string]$res.File)
+    Show-PlaVerificacioFinestra @($res.Files) $inf ([string]$res.File) $dades
 }

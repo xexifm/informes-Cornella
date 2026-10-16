@@ -2189,21 +2189,47 @@ i el `LLEGEIX-ME`). Abans del 2025 no hi ha programa.
   destapar que **Excel Comprovar no en veia cap**: `_DatesDeCella` només
   entenia dd/mm/aaaa i totes les visites sortien com a no apuntades. Ara també
   passa per `_DataDeCella`.
-- **Greus**: de les del programa, el primer informe (no ignorat) amb conclusió
-  breu `Precinte / Cessament` del dia del control o de després
-  (`_PvInformePrecinte`). La llista ensenya quin.
-- **Previstes**: les dels programes signats a `$Script:PvPrevistesDefecte`
-  (2025 = 30, 2026 = 45); d'un any nou es posen a la finestra i es desen a
-  `local/base-dades-activitats/pla-verificacio.json` (`Read/Save-PvPrevistes`).
-  Quan hi hagi el programa signat, s'afegeix a `$Script:PvPrevistesDefecte`.
+- **Greus**: de les del programa, el primer informe (no ignorat) **de visita
+  d'inspecció** (el camp `visita` de la base, de l'«Objecte: Visita inspecció»)
+  del mateix any que el control i amb conclusió breu `Precinte / Cessament`
+  (`_PvInformePrecinte`). L'usuari: «ha de tenir Precinte / Cessament però amb
+  l'objecte de visita d'inspecció». Un precinte d'una documentació aportada no
+  és una discrepància trobada a la verificació. La llista ensenya quin.
+- **`suport/pla-verificacio.json`** (`Read-PvDades` / `ConvertTo-PvDades`, que
+  el passa a hashtables): els **programes** signats (`previstes`, `annex1` = les
+  de criticitat més alta en l'ordre del PDF, `annex2` = les aleatòries) i les
+  **fotos** dels anys tancats (les dades de la Memòria). Són documents públics
+  signats i només porten IDs d'activitat: poden anar al GitHub. Un any nou
+  s'hi afegeix quan hi hagi el programa signat; mentrestant, les previstes es
+  posen a la finestra i es desen a `local/base-dades-activitats/pla-verificacio.json`
+  (`Read/Save-PvPrevistes`), que mana sobre el del repositori.
+  - Les llistes es van treure dels PDF amb `pypdf` (una fila comença després
+    de la criticitat de l'anterior; el peu de pàgina de Firmadoc s'ha de
+    saltar, si no hi surten IDs falsos com «1» o «2025») i es van comparar amb
+    les pàgines. Del 2025 només hi ha les 30 previstes («seran les 30 primeres
+    de la llista»); del 2026, les 30 de l'annex I i les 15 aleatòries.
+- **LA FOTO** (l'usuari: «de moment posa de foto del 2025 les dades de la
+  memòria 2025»). `Get-PvFotoIndicadors` dona la mateixa forma que
+  `Get-PlaVerificacioIndicadors` a partir de les llistes de la Memòria (els
+  comptes surten de les llistes: programa = annex no II/III, EC-PCA = III);
+  sense dates, i dins de cada grup en l'ordre de la Memòria (un `Sort-Object`
+  no és estable a PowerShell 5.1). La finestra ensenya la foto si l'any en té,
+  amb una casella per calcular-ho amb l'Excel d'ara.
+- **SEGUIMENT DEL PROGRAMA** (botó secundari *Activitats del programa...*;
+  l'usuari: «però no com a cosa primordial»): `Get-PvSeguimentPrograma`, per
+  cada activitat prevista: verificada (control de l'any), verificada un altre
+  any, pendent o *No és a l'Excel*; amb foto, el que diu la Memòria. El botó
+  no es diu «Seguiment…» a posta: el guard dels botons de peu fets a mà hi veu
+  un «Següent».
 - **Copiar les taules** posa al porta-retalls l'HTML de les dues taules amb el
   format de la Memòria (`_PvTaulesHtml`) en format CF_HTML (`_PvCfHtml`: les
   posicions són en **bytes**, per això l'HTML és ASCII i els accents van com a
   entitats, `_PvHtmlEsc`) i el text tabulat de respatller.
 - Comprovat amb l'Excel real del 14/10/2026: el 2025 surten 8 del programa
-  (la Memòria en diu 10: 760, 425 i 311 no tenen la data de control del 2025 a
-  l'Excel, i hi surt la 546), 9 EC-PCA (la Memòria, 7) i 20 denúncies (21: hi
-  falta la 600). Les diferències són de l'Excel, no del càlcul.
+  (la Memòria en diu 10: la 760 i la 425 tenen la data de control buida, la
+  311 ja no és a l'Excel, i hi surt la 546), 9 EC-PCA (la Memòria, 7: la 366
+  i la 1291 de més) i 20 denúncies (21: la 600 ja no és a l'Excel). Les
+  diferències són de l'Excel, no del càlcul; per això el 2025 surt amb la foto.
 - Proves: `tests/proves/16-pla-verificacio.ps1`.
 
 ## «Excel Errors» (fila GIA, octubre 2026) — `ExcelErrors.ps1`

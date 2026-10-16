@@ -512,7 +512,7 @@ indicadors de la **Memòria anual del Pla de verificació** d'un any (des del
 | Grau d'execució del Programa anual | realitzades / previstes |
 | Verificacions realitzades per denúncies | activitats amb data d'**Inspecció** d'aquell any |
 | Verificacions realitzades per una EC-PCA (III) | *Data control inicial/verificació* d'aquell any i annex **III** |
-| Activitats amb discrepàncies greus | de les del programa, les que a la base d'informes tenen un informe amb conclusió **Precinte / Cessament** del dia del control o de després |
+| Activitats amb discrepàncies greus | de les del programa, les que a la base d'informes tenen un informe de **visita d'inspecció** (Objecte: Visita inspecció) del mateix any amb conclusió **Precinte / Cessament** |
 | Percentatge respecte de les verificades | greus / realitzades |
 
 A sota hi ha la llista de les activitats que compten (com els annexos de la
@@ -521,8 +521,14 @@ enganxar-les al Word, i **Exportar la llista a Excel** en fa un Excel.
 
 > L'Excel d'activitats només guarda la **darrera** data de control de cada
 > activitat: si una activitat verificada el 2025 es torna a verificar el 2026,
-> ja només compta el 2026. Per això, la Memòria d'un any s'ha de fer com més
-> aviat millor.
+> ja només compta el 2026. Per això un **any tancat surt amb les dades de la
+> seva Memòria** (una «foto»: ara, el 2025). Amb la casella *Calcular-ho amb
+> l'Excel d'ara* veus què diria l'Excel avui.
+
+El botó **Activitats del programa...** (sota la primera taula) ensenya les
+activitats previstes del programa d'aquell any —les de criticitat més alta i, el
+2026, les 15 aleatòries— i quines ja s'han verificat (en verd). Les que surten
+*No és a l'Excel* ja no hi són (donades de baixa?).
 
 ### Word a PDF (i signar)
 

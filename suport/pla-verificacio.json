@@ -1,0 +1,247 @@
+{
+  "_llegeix_me": "Pla de verificacio (PlaVerificacio.ps1). 'programes': les activitats previstes de cada Programa anual signat (annex1 = les de criticitat mes alta, en l'ordre del programa; annex2 = les aleatories). 'fotos': les dades TANCADES d'un any (les de la Memoria), que l'eina ensenya en lloc de calcular-les amb l'Excel d'ara.",
+  "programes": {
+    "2025": {
+      "document": "Programa de verificació d'activitats 2025 (signat el 13/12/2024)",
+      "previstes": 30,
+      "annex1": [287, 291, 173, 284, 222, 170, 224, 195, 194, 311, 313, 316, 223, 317, 65, 71, 176, 282, 198, 144, 75, 187, 318, 288, 199, 124, 34, 225, 177, 33],
+      "annex2": []
+    },
+    "2026": {
+      "document": "Programa de verificació 2026 (signat el 10/07/2026)",
+      "previstes": 45,
+      "annex1": [632, 409, 1263, 1007, 822, 806, 631, 527, 453, 338, 91, 1125, 1117, 1094, 998, 633, 623, 1224, 1223, 874, 785, 735, 595, 571, 475, 471, 459, 308, 291, 99],
+      "annex2": [1298, 1246, 1183, 1127, 1054, 1003, 943, 621, 504, 455, 402, 347, 275, 216, 138]
+    }
+  },
+  "fotos": {
+    "2025": {
+      "document": "Memòria anual del Pla de verificació, execució del Programa 2025 (signada el 10/07/2026)",
+      "verificades": [
+        {
+          "id": 903,
+          "via": "C",
+          "carrer": "IGNASI IGLESIAS",
+          "numero": "13",
+          "activitat": "REPARACIO MAQUINARIA",
+          "annex": "III"
+        },
+        {
+          "id": 760,
+          "via": "C",
+          "carrer": "DOCTOR ARUS",
+          "numero": "9",
+          "activitat": "BAR",
+          "annex": "L18-Proj. i Cert."
+        },
+        {
+          "id": 655,
+          "via": "AV",
+          "carrer": "SALVADOR ALLENDE",
+          "numero": "31",
+          "activitat": "CENTRE URGENCIES ATENCIO PRIMARIA",
+          "annex": "III"
+        },
+        {
+          "id": 481,
+          "via": "C",
+          "carrer": "JOAN FERNANDEZ",
+          "numero": "35",
+          "activitat": "RESIDENCIA GENT GRAN",
+          "annex": "III"
+        },
+        {
+          "id": 427,
+          "via": "C",
+          "carrer": "RUBIO I ORS",
+          "numero": "134",
+          "activitat": "APARCAMENT",
+          "annex": "III"
+        },
+        {
+          "id": 425,
+          "via": "C",
+          "carrer": "FRANCESC LAYRET",
+          "numero": "48",
+          "activitat": "BAR",
+          "annex": "L18-Proj. i Cert."
+        },
+        {
+          "id": 397,
+          "via": "C",
+          "carrer": "BONVEI",
+          "numero": "46",
+          "activitat": "BAR",
+          "annex": "L18-Proj. i Cert."
+        },
+        {
+          "id": 317,
+          "via": "C",
+          "carrer": "JOAN MARAGALL",
+          "numero": "1",
+          "activitat": "FORN DE PA",
+          "annex": "L18-Proj. i Cert."
+        },
+        {
+          "id": 316,
+          "via": "C",
+          "carrer": "FREDERIC SOLER",
+          "numero": "49",
+          "activitat": "PASTISSERIA",
+          "annex": "L18-Proj. i Cert."
+        },
+        {
+          "id": 313,
+          "via": "AV",
+          "carrer": "SANT ILDEFONS",
+          "numero": "10",
+          "activitat": "BAR",
+          "annex": "L18-Proj. i Cert."
+        },
+        {
+          "id": 311,
+          "via": "AV",
+          "carrer": "PABLO PICASSO",
+          "numero": "8",
+          "activitat": "BAR RESTAURANT",
+          "annex": "L18-Proj. i Cert."
+        },
+        {
+          "id": 303,
+          "via": "CTRA",
+          "carrer": "HOSPITALET",
+          "numero": "147",
+          "activitat": "LABORATORI PRODUCTES QUIMICS",
+          "annex": "III"
+        },
+        {
+          "id": 290,
+          "via": "C",
+          "carrer": "MARQUES DE CORNELLA",
+          "numero": "84",
+          "activitat": "APARCAMENT",
+          "annex": "III"
+        },
+        {
+          "id": 287,
+          "via": "C",
+          "carrer": "EDUARD BAGARIA I PUIG",
+          "numero": "2",
+          "activitat": "BAR RESTAURANT",
+          "annex": "L18-Proj. i Cert."
+        },
+        {
+          "id": 284,
+          "via": "C",
+          "carrer": "BEDOLL",
+          "numero": "7",
+          "activitat": "BAR",
+          "annex": "L18-Proj. i Cert."
+        },
+        {
+          "id": 161,
+          "via": "C",
+          "carrer": "PIUS XII",
+          "numero": "6",
+          "activitat": "COMERÇ AL DETALL DE PRODUCTES ALIMENTARIS (SUPERMERCAT)",
+          "annex": "L18-Proj. i Cert."
+        },
+        {
+          "id": 88,
+          "via": "PG",
+          "carrer": "FERROCARRILS CATALANS",
+          "numero": "229",
+          "activitat": "FABRICACIO ARTICLES JOIERIA",
+          "annex": "III"
+        }
+      ],
+      "denuncies": [
+        {
+          "id": 1000,
+          "activitat": "RESTAURANT"
+        },
+        {
+          "id": 796,
+          "activitat": "OFICINA SERVEIS PUBLICITAT"
+        },
+        {
+          "id": 776,
+          "activitat": "BAR RESTAURANT"
+        },
+        {
+          "id": 688,
+          "activitat": "BAR"
+        },
+        {
+          "id": 641,
+          "activitat": "TALLER MECÀNIC"
+        },
+        {
+          "id": 600,
+          "activitat": "CLINICA DENTAL"
+        },
+        {
+          "id": 518,
+          "activitat": "TALLER MECÀNIC"
+        },
+        {
+          "id": 506,
+          "activitat": "BAR RESTAURANT"
+        },
+        {
+          "id": 453,
+          "activitat": "CENTRE DE CULTE"
+        },
+        {
+          "id": 419,
+          "activitat": "FONTANERIA"
+        },
+        {
+          "id": 410,
+          "activitat": "FERRETERIA"
+        },
+        {
+          "id": 394,
+          "activitat": "BAR"
+        },
+        {
+          "id": 390,
+          "activitat": "BAR RESTAURANT"
+        },
+        {
+          "id": 379,
+          "activitat": "SUPERMERCAT AMB VENDA DE PA"
+        },
+        {
+          "id": 342,
+          "activitat": "RESTAURANT"
+        },
+        {
+          "id": 282,
+          "activitat": "GIMNÀS"
+        },
+        {
+          "id": 230,
+          "activitat": "CAFETERIA"
+        },
+        {
+          "id": 224,
+          "activitat": "BAR"
+        },
+        {
+          "id": 202,
+          "activitat": "BAR RESTAURANT"
+        },
+        {
+          "id": 172,
+          "activitat": "PROVISIO DE MENJARS PREPARATS"
+        },
+        {
+          "id": 161,
+          "activitat": "COMERÇ AL DETALL DE PRODUCTES ALIMENTARIS (SUPERMERCAT)"
+        }
+      ],
+      "greus": []
+    }
+  }
+}

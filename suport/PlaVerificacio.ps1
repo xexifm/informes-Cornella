@@ -10,8 +10,9 @@
   del 2025 al davant. Els indicadors, tal com els va definir:
 
     AVALUACIO DE L'EXECUCIO DEL PLA
-    - Verificacions previstes al Programa anual: 30 el 2025, 45 el 2026 (el
-      programa; d'un any nou es posa a la finestra i es desa en aquest PC).
+    - Verificacions previstes al Programa anual: les del programa signat
+      (pla-verificacio.json: 30 el 2025, 45 el 2026); d'un any nou es posen a
+      la finestra i es desen en aquest PC.
     - Verificacions realitzades (programa de verificacio): activitats amb
       'Data control inicial/verificacio' d'aquell any i classificacio general
       annex que NO es II ni III.
@@ -23,23 +24,33 @@
     AVALUACIO DE LES ACTIVITATS VERIFICADES
     - Activitats amb discrepancies greus entre allo comunicat i la realitat:
       de les del programa, les que tenen a la base d'informes un informe (no
-      ignorat) amb la conclusio breu 'Precinte / Cessament' fet el dia del
-      control o despres.
+      ignorat) de VISITA D'INSPECCIO (Objecte: Visita inspeccio) del mateix
+      any que el control amb la conclusio breu 'Precinte / Cessament'
+      (l'usuari: "ha de tenir Precinte / Cessament pero amb l'objecte de
+      visita d'inspeccio").
     - Percentatge respecte de les verificades: greus / realitzades (%).
 
   Les dades son les de l'Excel d'activitats mes nou (fulla Estes) i la base
   d'informes (informes-db.json). L'Excel nomes guarda la DARRERA data de
   control de cada activitat: una activitat verificada el 2025 i tornada a
-  verificar el 2026 ja nomes compta el 2026.
+  verificar el 2026 ja nomes compta el 2026. Per aixo un any TANCAT es una
+  FOTO (pla-verificacio.json, 'fotos'): les dades de la seva Memoria, que
+  l'eina ensenya en lloc de calcular-les (l'usuari: "posa de foto del 2025
+  les dades de la memoria 2025").
+
+  SEGUIMENT DEL PROGRAMA (secundari, un boto): les activitats previstes de
+  cada programa signat ('programes': les de criticitat mes alta i les
+  aleatories) i si ja s'han verificat.
 
   Aqui hi ha el que no es pantalla (la finestra es a PlaVerificacioPantalla.ps1).
   NOMES DEFINEIX FUNCIONS.
 #>
 
 # El primer any amb programa ("abans del 2025 no hi ha programa de
-# verificacio") i les verificacions previstes de cada programa signat.
+# verificacio"). Les verificacions previstes, les activitats de cada programa
+# i les fotos dels anys tancats son a suport\pla-verificacio.json
+# (Read-PvDades): un any nou s'hi afegeix quan hi ha el programa signat.
 $Script:PvPrimerAny = 2025
-$Script:PvPrevistesDefecte = @{ 2025 = 30; 2026 = 45 }
 
 # Els titols i els textos dels indicadors, tal com surten a la Memoria.
 $Script:PvTitolExecucio = ('AVALUACI' + [char]0x00D3 + ' DE L' + [char]0x2019 + 'EXECUCI' + [char]0x00D3 + ' DEL PLA')
@@ -84,11 +95,12 @@ function _PvPercent([int]$num, [int]$den) {
 }
 
 # Les verificacions previstes d'un any: la de la finestra (aquest PC) si n'hi
-# ha, si no la del programa signat; 0 si no se'n sap res. PURA.
-function _PvPrevistes([int]$any, $locals) {
+# ha, si no la del programa signat ($dades: Read-PvDades); 0 si no se'n sap
+# res. PURA.
+function _PvPrevistes([int]$any, $locals, $dades) {
     $k = [string]$any
     if ($null -ne $locals -and $locals.Contains($k) -and [int]$locals[$k] -gt 0) { return [int]$locals[$k] }
-    if ($Script:PvPrevistesDefecte.ContainsKey($any)) { return [int]$Script:PvPrevistesDefecte[$any] }
+    if ($null -ne $dades -and $dades.Programes.Contains($k)) { return [int]$dades.Programes[$k].Previstes }
     return 0
 }
 
@@ -104,8 +116,10 @@ function _PvAnys([datetime]$avui, $files) {
     return ,($out.ToArray())
 }
 
-# Els informes de la base, per GIA: @{ gia -> @(@{ Data [datetime]; Breu }) },
-# sense els ignorats ni els que no tenen data. PURA.
+# Els informes de la base, per GIA: @{ gia -> @(@{ Data [datetime]; Breu;
+# Fitxer; Visita ([datetime] de la visita d'inspeccio de l'Objecte, o $null si
+# l'informe no es d'una visita) }), sense els ignorats ni els que no tenen
+# data. PURA.
 function _PvInformesPerGia($db) {
     $out = @{}
     if ($null -eq $db) { return $out }
@@ -119,21 +133,26 @@ function _PvInformesPerGia($db) {
             $dt = [datetime]::MinValue
             if ($s -notmatch '^(\d{4}-\d{2}-\d{2})' -or -not [datetime]::TryParseExact($Matches[1], 'yyyy-MM-dd', [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::None, [ref]$dt)) { continue }
             if (-not $out.ContainsKey($gia)) { $out[$gia] = New-Object System.Collections.ArrayList }
-            [void]$out[$gia].Add(@{ Data = $dt; Breu = [string](_PropInf $inf 'conclusio_breu'); Fitxer = [string](_PropInf $inf 'fitxer') })
+            $vis = $null
+            $vt = [datetime]::MinValue
+            if ([datetime]::TryParseExact(([string](_PropInf $inf 'visita')).Trim(), 'dd/MM/yyyy', [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::None, [ref]$vt)) { $vis = $vt }
+            [void]$out[$gia].Add(@{ Data = $dt; Breu = [string](_PropInf $inf 'conclusio_breu'); Fitxer = [string](_PropInf $inf 'fitxer'); Visita = $vis })
         }
     }
     return $out
 }
 
-# L'informe de precinte d'una verificacio: el primer informe (no ignorat) amb
-# la conclusio breu 'Precinte / Cessament' fet el dia del control o despres.
-# Torna el registre o $null. PURA.
+# L'informe de precinte d'una verificacio: el primer informe (no ignorat) de
+# VISITA D'INSPECCIO del mateix any que el control amb la conclusio breu
+# 'Precinte / Cessament'. Un precinte que surt d'una documentacio aportada no
+# es una discrepancia trobada a la verificacio. Torna el registre o $null.
+# PURA.
 function _PvInformePrecinte($informes, [datetime]$control) {
     $millor = $null
     foreach ($i in @($informes)) {
-        if ($null -eq $i -or [string]$i.Breu -ne $Script:EstatPrecinte) { continue }
-        if (([datetime]$i.Data).Date -lt $control.Date) { continue }
-        if ($null -eq $millor -or ([datetime]$i.Data) -lt ([datetime]$millor.Data)) { $millor = $i }
+        if ($null -eq $i -or [string]$i.Breu -ne $Script:EstatPrecinte -or -not ($i.Visita -is [datetime])) { continue }
+        if (([datetime]$i.Visita).Year -ne $control.Year) { continue }
+        if ($null -eq $millor -or ([datetime]$i.Visita) -lt ([datetime]$millor.Visita)) { $millor = $i }
     }
     return $millor
 }
@@ -184,7 +203,7 @@ function Get-PlaVerificacioIndicadors($files, [int]$any, [int]$previstes, $infor
 # data. PURA.
 function _PvOrdenaLlista($llista) {
     $ordre = @($Script:PvGrups.Keys)
-    return @(@($llista) | Sort-Object -Property @{ Expression = { [array]::IndexOf($ordre, [string]$_.Grup) } }, @{ Expression = { [datetime]$_.Data } }, @{ Expression = { [int]([string]$_.Fila.Id -replace '\D', '0') } })
+    return @(@($llista) | Sort-Object -Property @{ Expression = { [array]::IndexOf($ordre, [string]$_.Grup) } }, @{ Expression = { if ($_.Data -is [datetime]) { [datetime]$_.Data } else { [datetime]::MinValue } } }, @{ Expression = { [int]([string]$_.Fila.Id -replace '\D', '0') } })
 }
 
 # Les files de les dues taules, en text: @(@(indicador, valor)). PURA.
@@ -211,8 +230,141 @@ $Script:PvLlistaCapcalera = @('Indicador', 'ID Activitat', 'Data', 'Emp. Tipus v
 $Script:PvLlistaAmples = [int[]]@(26, 12, 12, 10, 28, 10, 40, 22, 40)
 function _PvFilaLlista($e) {
     $f = $e.Fila
-    $prec = if ($null -ne $e.Precinte) { ([datetime]$e.Precinte.Data).ToString('dd/MM/yyyy') + ' ' + [string]$e.Precinte.Fitxer } else { '' }
-    return @([string]$Script:PvGrups[[string]$e.Grup], [string]$f.Id, ([datetime]$e.Data).ToString('dd/MM/yyyy'), [string]$f.Via, [string]$f.Carrer, [string]$f.Numero, [string]$f.Activitat, [string]$f.Annex, $prec)
+    $prec = ''
+    if ($null -ne $e.Precinte) {
+        $dp = if ($e.Precinte.Visita -is [datetime]) { ([datetime]$e.Precinte.Visita).ToString('dd/MM/yyyy') + ' ' } else { '' }
+        $prec = ($dp + [string]$e.Precinte.Fitxer).Trim()
+    }
+    $data = if ($e.Data -is [datetime]) { ([datetime]$e.Data).ToString('dd/MM/yyyy') } else { '' }
+    return @([string]$Script:PvGrups[[string]$e.Grup], [string]$f.Id, $data, [string]$f.Via, [string]$f.Carrer, [string]$f.Numero, [string]$f.Activitat, [string]$f.Annex, $prec)
+}
+
+# ----------------------------------------------------------------------------
+# ELS PROGRAMES I LES FOTOS (suport\pla-verificacio.json)
+# ----------------------------------------------------------------------------
+# El fitxer, passat a estructures de PowerShell: @{ Programes = @{ 'AAAA' ->
+# @{ Document; Previstes; Annex1; Annex2 (ids, text) } }; Fotos = @{ 'AAAA' ->
+# @{ Document; Verificades (@{ Id; Via; Carrer; Numero; Activitat; Annex });
+# Denuncies (@{ Id; Activitat }); Greus (ids) } } }. $o: el ConvertFrom-Json.
+# PURA.
+function ConvertTo-PvDades($o) {
+    $prog = @{}; $fotos = @{}
+    $ids = { param($l) @(@($l) | Where-Object { $null -ne $_ } | ForEach-Object { ([string]$_).Trim() } | Where-Object { $_ }) }
+    $pp = _PropInf $o 'programes'
+    if ($null -ne $pp) {
+        foreach ($pr in @($pp.PSObject.Properties)) {
+            $v = $pr.Value
+            $prog[[string]$pr.Name] = @{ Document = [string](_PropInf $v 'document'); Previstes = [int](_PropInf $v 'previstes')
+                                          Annex1 = @(& $ids (_PropInf $v 'annex1')); Annex2 = @(& $ids (_PropInf $v 'annex2')) }
+        }
+    }
+    $pf = _PropInf $o 'fotos'
+    if ($null -ne $pf) {
+        foreach ($pr in @($pf.PSObject.Properties)) {
+            $v = $pr.Value
+            $ver = @(@(_PropInf $v 'verificades') | Where-Object { $null -ne $_ } | ForEach-Object {
+                @{ Id = [string](_PropInf $_ 'id'); Via = [string](_PropInf $_ 'via'); Carrer = [string](_PropInf $_ 'carrer'); Numero = [string](_PropInf $_ 'numero'); Activitat = [string](_PropInf $_ 'activitat'); Annex = [string](_PropInf $_ 'annex') } })
+            $den = @(@(_PropInf $v 'denuncies') | Where-Object { $null -ne $_ } | ForEach-Object { @{ Id = [string](_PropInf $_ 'id'); Activitat = [string](_PropInf $_ 'activitat') } })
+            $fotos[[string]$pr.Name] = @{ Document = [string](_PropInf $v 'document'); Verificades = $ver; Denuncies = $den; Greus = @(& $ids (_PropInf $v 'greus')) }
+        }
+    }
+    return @{ Programes = $prog; Fotos = $fotos }
+}
+
+function _PvDadesPath { return [string](Join-Path $ScriptRoot 'pla-verificacio.json') }
+
+# El fitxer del repositori. Sense (o espatllat), buit: l'eina segueix
+# calculant amb l'Excel. Mai peta.
+function Read-PvDades([string]$path = '') {
+    if (-not $path) { $path = _PvDadesPath }
+    $o = $null
+    try { $o = Read-JsonFile $path } catch { $o = $null }
+    return (ConvertTo-PvDades $o)
+}
+
+# ELS INDICADORS D'UN ANY TANCAT: els de la seva Memoria (la foto), amb la
+# mateixa forma que Get-PlaVerificacioIndicadors (+ Foto; Document). Les dates
+# no hi son (la Memoria no les dona). PURA.
+function Get-PvFotoIndicadors($foto, [int]$any, [int]$previstes) {
+    # Per grups, i dins de cada un en l'ordre de la Memoria (sense dates, un
+    # Sort-Object no el garanteix).
+    $per = @{ programa = (New-Object System.Collections.ArrayList); ecpca = (New-Object System.Collections.ArrayList); denuncies = (New-Object System.Collections.ArrayList) }
+    $greus = @($foto.Greus)
+    $nGreus = 0
+    foreach ($v in @($foto.Verificades)) {
+        $ii = _PvAnnexIIoIII ([string]$v.Annex)
+        if ($ii -eq 'II') { continue }
+        if ($ii -eq 'III') { [void]$per.ecpca.Add(@{ Grup = 'ecpca'; Fila = $v; Data = $null; Precinte = $null }); continue }
+        $prec = $null
+        if ($greus -contains [string]$v.Id) { $nGreus++; $prec = @{ Visita = $null; Fitxer = ('(Mem' + [char]0x00F2 + 'ria)') } }
+        [void]$per.programa.Add(@{ Grup = 'programa'; Fila = $v; Data = $null; Precinte = $prec })
+    }
+    foreach ($d in @($foto.Denuncies)) {
+        [void]$per.denuncies.Add(@{ Grup = 'denuncies'; Fila = @{ Id = [string]$d.Id; Activitat = [string]$d.Activitat; Via = ''; Carrer = ''; Numero = ''; Annex = '' }; Data = $null; Precinte = $null })
+    }
+    $nProg = $per.programa.Count; $nEc = $per.ecpca.Count
+    $llista = New-Object System.Collections.ArrayList
+    foreach ($g in @($Script:PvGrups.Keys)) { foreach ($e in $per[$g]) { [void]$llista.Add($e) } }
+    return @{
+        Any = $any; Previstes = $previstes
+        Programa = $nProg; Grau = (_PvPercent $nProg $previstes)
+        Denuncies = @($foto.Denuncies).Count; EcPca = $nEc
+        Greus = $nGreus; PctGreus = (_PvPercent $nGreus $nProg)
+        SenseBase = $false; Foto = $true; Document = [string]$foto.Document
+        Llista = $llista.ToArray()
+    }
+}
+
+# EL SEGUIMENT D'UN PROGRAMA: per cada activitat prevista (annex I en l'ordre
+# del programa i annex II), si ja s'ha verificat. Amb la FOTO de l'any, el que
+# diu la Memoria; si no, la 'Data control inicial/verificacio' de l'Excel.
+# Torna @{ Files (@{ Annex; Ordre; Id; Activitat; Adreca; Control; Inspeccio;
+# Estat; Feta }); FetesI; TotalI; FetesII; TotalII }. PURA.
+function Get-PvSeguimentPrograma($prog, $files, [int]$any, $foto = $null) {
+    $perId = @{}
+    foreach ($f in @($files)) { if ($null -ne $f -and -not $perId.ContainsKey([string]$f.Id)) { $perId[[string]$f.Id] = $f } }
+    $fotoIds = @{}
+    if ($null -ne $foto) { foreach ($v in @($foto.Verificades)) { $fotoIds[[string]$v.Id] = $v } }
+    $out = New-Object System.Collections.ArrayList
+    $n = @{ I = 0; II = 0 }
+    foreach ($annex in @('I', 'II')) {
+        $llista = if ($annex -eq 'I') { @($prog.Annex1) } else { @($prog.Annex2) }
+        $ordre = 0
+        foreach ($id in $llista) {
+            $ordre++
+            $f = $perId[[string]$id]
+            $act = ''; $adr = ''; $ctl = $null; $ins = $null
+            if ($null -ne $f) {
+                $act = [string]$f.Activitat
+                $adr = ((@([string]$f.Via, [string]$f.Carrer, [string]$f.Numero) | Where-Object { $_ }) -join ' ')
+                $ctl = $f.Control; $ins = $f.Inspeccio
+            }
+            if ($null -ne $foto) {
+                $feta = $fotoIds.ContainsKey([string]$id)
+                $estat = if ($feta) { ('Verificada (Mem' + [char]0x00F2 + 'ria)') } else { 'No verificada' }
+                if (-not $act -and $feta) { $act = [string]$fotoIds[[string]$id].Activitat }
+            } elseif ($null -eq $f) {
+                $feta = $false; $estat = ("No " + [char]0x00E9 + "s a l'Excel")
+            } elseif ($ctl -is [datetime] -and $ctl.Year -eq $any) {
+                $feta = $true; $estat = 'Verificada'
+            } elseif ($ctl -is [datetime] -and $ctl.Year -gt $any) {
+                $feta = $false; $estat = ('Verificada el ' + $ctl.Year)
+            } else {
+                $feta = $false; $estat = 'Pendent'
+            }
+            if ($feta) { $n[$annex]++ }
+            [void]$out.Add(@{ Annex = $annex; Ordre = $ordre; Id = [string]$id; Activitat = $act; Adreca = $adr; Control = $ctl; Inspeccio = $ins; Estat = $estat; Feta = $feta })
+        }
+    }
+    return @{ Files = $out.ToArray(); FetesI = $n.I; TotalI = @($prog.Annex1).Count; FetesII = $n.II; TotalII = @($prog.Annex2).Count }
+}
+
+# Una fila del seguiment, en text (la graella i l'Excel). PURA.
+$Script:PvSegCapcalera = @('Annex', 'Ordre', 'ID Activitat', 'Activitat principal', ('Adre' + [char]0x00E7 + 'a'), 'Data control', ('Data inspecci' + [char]0x00F3), 'Estat')
+$Script:PvSegAmples = [int[]]@(8, 8, 12, 40, 34, 13, 13, 22)
+function _PvFilaSeguiment($r) {
+    $d = { param($x) if ($x -is [datetime]) { ([datetime]$x).ToString('dd/MM/yyyy') } else { '' } }
+    return @([string]$r.Annex, [string]$r.Ordre, [string]$r.Id, [string]$r.Activitat, [string]$r.Adreca, (& $d $r.Control), (& $d $r.Inspeccio), [string]$r.Estat)
 }
 
 # ----------------------------------------------------------------------------
