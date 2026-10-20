@@ -1,8 +1,8 @@
 {
-    "GeneratedAt":  "2026-10-15T08:21:03.0488547+02:00",
-    "Font":  "ExportacioActivitats_20261014.xls",
-    "SourceDate":  "2026-10-14",
-    "Comptador":  17,
+    "GeneratedAt":  "2026-10-20T12:59:20.0752741+02:00",
+    "Font":  "ExportacioActivitats_20261016.xls",
+    "SourceDate":  "2026-10-16",
+    "Comptador":  15,
     "Activitats":  [
                        {
                            "id":  "1438",
@@ -40,25 +40,11 @@
                            "lon":  2.0760304512808609
                        },
                        {
-                           "id":  "410",
-                           "activitat":  "FERRETERIA",
-                           "adreca":  "C DOCTOR MARTI I JULIA 49",
-                           "lat":  41.353749403715362,
-                           "lon":  2.0664846308834095
-                       },
-                       {
                            "id":  "364",
                            "activitat":  "GIMNÀS",
                            "adreca":  "AV FAMA 12",
                            "lat":  41.353544975152218,
                            "lon":  2.0811062198226429
-                       },
-                       {
-                           "id":  "357",
-                           "activitat":  "GIMNÀS",
-                           "adreca":  "C JOAN MARAGALL 21",
-                           "lat":  41.358367612791639,
-                           "lon":  2.0709318373536072
                        },
                        {
                            "id":  "334",
