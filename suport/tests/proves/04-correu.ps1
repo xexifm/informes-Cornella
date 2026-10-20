@@ -1587,6 +1587,16 @@ foreach ($cas in @(@{ A = [int[]]@(67, 132, 192); N = 'lletra normal' }, @{ A = 
 }
 AssertEq ([int](_CorreuFilaGeometria 1100 ([int[]]@(67, 132, 192))).Ampl) 1100 'Correus de cada eina: amb la lletra normal, la finestra no s''eixampla'
 foreach ($k in @($Script:CorreuEines.Keys)) { Assert ($Script:CorreuTextosEditors.Contains($k)) ("Correus de cada eina: '" + $k + "' te el boto Editar el text amb el seu editor") }
+# La CCO del mobil al Drive: el que s'hi puja es el que el mobil sap llegir
+# (octubre 2026: el mobil deia "cap adreca" amb la CCO posada al PC).
+$cmJs = (_CorreuMobilCcoAJson @(_CorreuCcoOpcions 'a@x.cat' 'b@x.cat; c@x.cat')) | ConvertTo-Json -Depth 4
+AssertEq (_CorreuMobilCcoCompta $cmJs) 3 '_CorreuMobilCcoCompta: el JSON que es puja porta les tres adreces'
+$cmJo = $cmJs | ConvertFrom-Json
+AssertEq ((@($cmJo.bcc) | ForEach-Object { [string]$_.addr + ':' + [string]$_.def }) -join ',') 'a@x.cat:True,b@x.cat:False,c@x.cat:False' 'correu-mobil.json: addr i def en minuscula, la de sempre amb def'
+AssertEq (_CorreuMobilCcoCompta ((_CorreuMobilCcoAJson @(_CorreuCcoOpcions 'a@x.cat' '')) | ConvertTo-Json -Depth 4)) 1 '_CorreuMobilCcoCompta: amb una sola adreca, tambe'
+AssertEq "$(_CorreuMobilCcoCompta 'no es json')|$(_CorreuMobilCcoCompta '{}')" '-1|0' '_CorreuMobilCcoCompta: un text que no es JSON, -1; sense bcc, 0'
+$cmSrc = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'CorreuMobil.ps1'))
+Assert ($cmSrc -match '(?s)function Save-CorreuMobilConfig.*?\$d = Publish-CorreuMobilCco\s*\r?\n\s*\$r\.Text' -and $cmSrc.Contains('$nDrive = if ($id) { _CorreuMobilCcoCompta (Get-DriveFileText $id) }')) 'CCO del mobil: es puja a cada Desar (no nomes si canvia) i es comprova el que ha quedat al Drive'
 # Configuracio: els correus a la DRETA i a sobre dels automatismes (l'usuari).
 $gC = _ConfigGeometria 5
 AssertEq "$($gC.Correu.X)|$($gC.Auto.X)|$($gC.Mant.X)" "$($gC.XDre)|$($gC.XDre)|$($gC.XDre)" 'Configuracio: correus, automatismes i manteniment, tots a la columna de la dreta'

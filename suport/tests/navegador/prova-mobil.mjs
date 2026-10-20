@@ -153,6 +153,20 @@ try {
   }));
   check(ccoKo.t.includes("No s'ha pogut llegir la CCO") && ccoKo.t.includes('Tornar a carregar'), 'si el Drive no la dona, ho diu (no surt buit) i es pot tornar a provar');
   eq(ccoKo.despres, 3, '...i en tornar-ho a provar, surten les caselles');
+  const formes = await p.evaluate(() => [
+    Cco.llistaDe({ bcc: { value: [{ addr: 'a@x.cat', def: true }, { addr: 'b@x.cat', def: false }], Count: 2 } }),
+    Cco.llistaDe({ bcc: { addr: 'sol@x.cat', def: true } }),
+    Cco.llistaDe({ bcc: [{ Addr: 'maj@x.cat', Default: true }, null, { addr: '' }] }),
+    Cco.llistaDe({})].map((l) => l.map((e) => e.addr + ':' + e.def).join(',')));
+  eq(formes, ['a@x.cat:true,b@x.cat:false', 'sol@x.cat:true', 'maj@x.cat:true', ''], 'la CCO es llegeix encara que el fitxer vingui en una altra forma (value/Count, un sol objecte, majúscules)');
+  const buida = await p.evaluate(() => new Promise((ok) => {
+    const orig = Drive.llegirCorreuMobil;
+    Drive.llegirCorreuMobil = () => Promise.resolve({ bcc: [], __modificat: '2026-10-20T09:15:00Z' });
+    const c = document.createElement('div'); document.body.appendChild(c);
+    Cco.muntar(c, [], true);
+    setTimeout(() => { Drive.llegirCorreuMobil = orig; ok(c.textContent); }, 200);
+  }));
+  check(buida.includes('no porta cap adreça') && buida.includes('20/10/2026') && buida.includes('Desar'), 'si el fitxer del Drive és buit, diu de quan és i com tornar-lo a pujar');
   eq(new URL(p.url()).search, '', 'i l\'adreça ja no porta el ?gia (tornar a carregar no torna a cercar)');
 
   seccio('Al PC (fora de l\'app) no hi ha «Fer informe»');

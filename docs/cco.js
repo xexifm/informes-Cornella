@@ -38,6 +38,27 @@
     });
   }
 
+  // La llista del fitxer, tal com vingui: {bcc:[{addr,def}]} és el normal, però
+  // es tolera el que podria escriure un PowerShell 5.1 ({value:[...]}, un sol
+  // objecte, Addr/Default amb majúscula). Torna [{addr, def}].
+  function llistaDe(o) {
+    var l = o && (o.bcc || o.Bcc || o.BCC);
+    if (l && !Array.isArray(l) && Array.isArray(l.value)) l = l.value;
+    if (l && !Array.isArray(l)) l = [l];
+    return (l || []).map(function (e) {
+      if (typeof e === "string") return { addr: e, def: false };
+      return e ? { addr: String(e.addr || e.Addr || "").trim(), def: !!(e.def != null ? e.def : e.Default) } : null;
+    }).filter(function (e) { return e && e.addr; });
+  }
+
+  // "2026-10-20T09:15:00.000Z" -> "20/10/2026 11:15". PURA.
+  function quan(iso) {
+    var d = new Date(iso);
+    if (!iso || isNaN(d.getTime())) return "";
+    var z = function (n) { return (n < 10 ? "0" : "") + n; };
+    return z(d.getDate()) + "/" + z(d.getMonth() + 1) + "/" + d.getFullYear() + " " + z(d.getHours()) + ":" + z(d.getMinutes());
+  }
+
   // Pinta la llista ({addr, def}) o, si no n'hi ha, el missatge.
   function pintar(cont, llista, avis) {
     cont.innerHTML = "";
@@ -75,7 +96,10 @@
       if (!ok) throw new Error("Connecta el Drive (a la pantalla d'inici) per veure la CCO.");
       return D.llegirCorreuMobil();
     }).then(function (o) {
-      pintar(cont, (o && Array.isArray(o.bcc)) ? o.bcc : dj);
+      var l = llistaDe(o);
+      var q = quan(o && o.__modificat);
+      pintar(cont, l.length ? l : dj, "El fitxer de la CCO del Drive (correu-mobil.json" + (q ? ", actualitzat el " + q : "") +
+        ") no porta cap adreça. Al PC: Configuració → Configuració correu electrònic → Desar (la torna a pujar al Drive).");
     }).catch(function (e) {
       error(cont, "No s'ha pogut llegir la CCO: " + (e && e.message ? e.message : e), dj);
     }).then(function () { estat.carregant = false; });
@@ -90,5 +114,5 @@
     return out.join(",");
   }
 
-  window.Cco = { muntar: muntar, seleccionat: seleccionat };
+  window.Cco = { muntar: muntar, seleccionat: seleccionat, llistaDe: llistaDe };
 })();

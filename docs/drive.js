@@ -159,15 +159,23 @@
     return resp;
   }
 
+  // Quan es va modificar al Drive el darrer fitxer trobat de cada nom (per dir
+  // de quan son les dades que es fan servir).
+  var modificats = {};
+
   // Cerca un fitxer per nom dins d'una carpeta. Retorna l'id o null.
   function cercarFitxer(nom, folderId) {
     var q = "name='" + nom.replace(/'/g, "\\'") + "' and trashed=false";
     if (folderId) q += " and '" + folderId + "' in parents";
-    var url = "https://www.googleapis.com/drive/v3/files?orderBy=modifiedTime desc&pageSize=1&fields=files(id,name)&q=" +
+    var url = "https://www.googleapis.com/drive/v3/files?orderBy=modifiedTime desc&pageSize=1&fields=files(id,name,modifiedTime)&q=" +
       encodeURIComponent(q);
     return fetch(url, { headers: { Authorization: "Bearer " + accessToken } })
       .then(_check).then(function (r) { return r.json(); })
-      .then(function (d) { return (d.files && d.files.length) ? d.files[0].id : null; });
+      .then(function (d) {
+        if (!(d.files && d.files.length)) return null;
+        modificats[nom] = d.files[0].modifiedTime || "";
+        return d.files[0].id;
+      });
   }
 
   // Llegeix un fitxer de la carpeta Dades (privada) com a TEXT. siNoHiEs: el
@@ -199,7 +207,7 @@
   // Torna { bcc: [{addr, def}] }.
   function llegirCorreuMobil() {
     return llegirTextDades("correu-mobil.json", "Encara no hi ha la CCO del correu al Drive: desa-la al PC (Configuració → Configuració correu electrònic → «Informe de visita · des del mòbil») o fes Actualitzar.")
-      .then(function (t) { return JSON.parse(t); });
+      .then(function (t) { var o = JSON.parse(t); if (o && typeof o === "object") o.__modificat = modificats["correu-mobil.json"] || ""; return o; });
   }
 
   // Puja un objecte JSON com a fitxer nou a la carpeta Entrada.

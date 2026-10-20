@@ -566,6 +566,17 @@ cadascuna de les opcions per enviar un correu de prova».
     poden llegir, ho diu (on es configuren al PC) amb un enllaç per tornar-ho a
     provar. Prova a `navegador/prova-mobil.mjs`. Fora d'`app.js` també perquè
     aquell fitxer és a tocar del seu sostre de 1.250 línies.
+  - **«No hi ha cap adreça» amb la CCO posada al PC** (octubre 2026, amb
+    captures). No es va poder veure el fitxer del Drive de l'usuari, o sigui
+    que es va tancar per tots els costats: (1) el PC la **torna a pujar a cada
+    Desar** de *Configuració correu electrònic* (abans només si canviava o a
+    Actualitzar, i si aquell pas fallava no ho deia ningú) i, amb l'API del
+    Drive, **la torna a llegir** i diu quantes adreces hi ha quedat
+    (`_CorreuMobilCcoCompta`, pura); (2) el mòbil llegeix la llista en
+    qualsevol forma que hi pugui haver (`Cco.llistaDe`: `{value, Count}` d'un
+    PowerShell 5.1, un sol objecte, `Addr`/`Default`); (3) si la llista és
+    buida, diu **de quan és el fitxer** (`modifiedTime`, `drive.js`) i que cal
+    fer Desar al PC.
 - **EL REPLY-TO** (l'usuari: «Reply to ha de ser suport.activitats@…»): va al
   camp **Reply To de la plantilla d'EmailJS** (al panell d'EmailJS), no al
   codi. Una adreça @aj-cornella.cat no pot anar a `docs/` ni al codi (guard a

@@ -59,11 +59,27 @@ function _CorreuMobilAplica($textos, $dest) {
 function Publish-CorreuMobilCco {
     try {
         $json = ((_CorreuMobilCcoAJson @(Read-CorreuMobilCco)) | ConvertTo-Json -Depth 4)
+        $n = _CorreuMobilCcoCompta $json
         Save-ADadesDrive 'correu-mobil.json' $json 'application/json; charset=UTF-8'
-        return @{ Ok = $true; Text = "La CCO s'ha pujat al Drive: el m" + [char]0x00F2 + "bil ja la t" + [char]0x00E9 + "." }
+        # ES COMPROVA el que ha quedat al Drive, com ho llegira el mobil.
+        if (Test-DriveApiConfigured) {
+            $id = Find-DriveFileId 'correu-mobil.json' $DriveDadesId
+            $nDrive = if ($id) { _CorreuMobilCcoCompta (Get-DriveFileText $id) } else { -1 }
+            if ($nDrive -ne $n) { return @{ Ok = $false; Text = ("La CCO s'ha pujat al Drive, pero en tornar-la a llegir hi ha " + $nDrive + " adreces en lloc de " + $n + ".") } }
+            return @{ Ok = $true; Text = ("La CCO (" + $n + " adreces) s'ha pujat al Drive i s'ha comprovat: el m" + [char]0x00F2 + "bil ja la t" + [char]0x00E9 + ".") }
+        }
+        return @{ Ok = $true; Text = ("La CCO (" + $n + " adreces) s'ha desat a la carpeta del Drive d'aquest PC (" + $DriveDadesDir + "): arribara al m" + [char]0x00F2 + "bil quan el Drive de l'escriptori la sincronitzi.") }
     } catch {
         return @{ Ok = $false; Text = ("No s'ha pogut pujar la CCO al Drive (" + $_.Exception.Message + "). Es tornara a provar amb Actualitzar.") }
     }
+}
+
+# Quantes adreces porta un correu-mobil.json (el text), com el llegeix el
+# mobil (docs/cco.js): -1 si no es JSON. PURA.
+function _CorreuMobilCcoCompta([string]$json) {
+    try { $o = $json | ConvertFrom-Json } catch { return -1 }
+    if ($null -eq $o) { return -1 }
+    return @(@(_PropInf $o 'bcc') | Where-Object { $null -ne $_ -and -not [string]::IsNullOrWhiteSpace([string](_PropInf $_ 'addr')) }).Count
 }
 
 # EL MINI PROMPT: la configuracio d'ara i el canvi que es vol, per enganxar a
@@ -108,11 +124,12 @@ function _CorreuMobilCanvis($abans, $ara) {
 function Save-CorreuMobilConfig($abans, $ara) {
     $cv = _CorreuMobilCanvis $abans $ara
     $r = @{ Dest = [bool]$cv.Dest; Text = ''; Ok = $true }
-    if ($cv.Cco) {
-        Save-CorreuMobilCco @(_CorreuCcoOpcions $ara.Sempre $ara.Tria)
-        $d = Publish-CorreuMobilCco
-        $r.Text = [string]$d.Text; $r.Ok = [bool]$d.Ok
-    }
+    if ($cv.Cco) { Save-CorreuMobilCco @(_CorreuCcoOpcions $ara.Sempre $ara.Tria) }
+    # SEMPRE es torna a pujar, encara que no hagi canviat (octubre 2026: el
+    # mobil deia "cap adreca" amb la CCO ben posada al PC; nomes es pujava si
+    # canviava o a Actualitzar, i si aquell pas fallava no se'n sabia res).
+    $d = Publish-CorreuMobilCco
+    $r.Text = [string]$d.Text; $r.Ok = [bool]$d.Ok
     if ($cv.Dest) { _SaveEmailTextos (_CorreuMobilAplica (_LoadEmailTextos) $ara.Dest) }
     return $r
 }
