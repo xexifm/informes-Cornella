@@ -572,6 +572,23 @@ cadascuna de les opcions per enviar un correu de prova».
   `04-correu.ps1`: el repositori és públic), i un paràmetre `reply_to` igualment
   no faria res si la plantilla no el fes servir. Com que el PC i el mòbil fan
   servir la mateixa plantilla, val per als dos.
+- **MENYS INICIS DE SESSIÓ DE GOOGLE al mòbil** (`docs/drive.js`, octubre
+  2026, l'usuari: «em fa iniciar sessió a Google moltes vegades»). Google no
+  dóna *refresh tokens* a una app de navegador (el token dura ~1 h). El que ho
+  empitjorava, i ara no:
+  1. el token vivia a la memòria de la **pàgina**: del plànol a l'informe
+     («Fer informe»), enrere o recarregar el perdia, i la renovació de
+     l'arrencada no surt d'un toc (el mòbil bloqueja la finestra). Ara va a la
+     **sessionStorage** fins que caduca (menys 2 min de marge); no a la
+     localStorage, perquè no quedi al telèfon en tancar l'app;
+  2. si la renovació silenciosa fallava, es tornava a demanar amb
+     `prompt: "consent"` (la pantalla de permisos sencera). Ara una sola
+     petició amb `prompt: ""` des del toc, i `"none"` a l'arrencada;
+  3. amb més d'un compte al telèfon calia triar-lo cada vegada: es recorda
+     (`drive/v3/about`, localStorage `driveCompte`) i es passa com a `hint`.
+  Un 401 oblida el token. Prova amb el `drive.js` de debò i un Google simulat a
+  `navegador/prova-mobil.mjs`. Tancar l'app del tot o passar d'una hora encara
+  demana un toc.
 - **Següent sense confirmar el titular** (mòbil): el motiu surt en vermell
   **a sobre del botó Següent** (`#msg-nav`, `avisNav` a `app.js`), no sota l'ID
   GIA, que quedava fora de la pantalla; el de «cap deficiència» també (abans era

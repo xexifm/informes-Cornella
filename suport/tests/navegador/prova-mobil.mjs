@@ -180,6 +180,55 @@ try {
   const queden = await fg.evaluate(() => { let n = 0; map.eachLayer((l) => { if (l.options && l.options.fillColor === '#1a73e8') { n++; } }); return n; });
   eq(queden, 0, 'un altre toc l\'apaga i treu el punt');
 
+  seccio('Google: no tornar a iniciar sessió a cada pàgina (drive.js de debò)');
+  // Un Google simulat: cada petició de token s'apunta a window.__peticions.
+  const ctxG = await nav.newContext({ viewport: { width: 390, height: 800 }, isMobile: true, hasTouch: true });
+  await ctxG.route('https://accounts.google.com/gsi/client', (r) => r.fulfill({ status: 200, contentType: 'application/javascript', body: `
+    window.__peticions = window.__peticions || [];
+    window.google = { accounts: { oauth2: { initTokenClient: function (cfg) {
+      var c = { callback: null, error_callback: null, requestAccessToken: function (o) {
+        window.__peticions.push(o || {});
+        var self = this;
+        setTimeout(function () {
+          if (o && o.prompt === 'none' && window.__senseSessio) { self.error_callback({ type: 'popup_failed_to_open', message: 'bloquejada' }); return; }
+          self.callback({ access_token: 'tok' + window.__peticions.length, expires_in: 3599 });
+        }, 10);
+      } };
+      return c;
+    } } } };` }));
+  await ctxG.route(/googleapis\.com\/drive\/v3\/about/, (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ user: { emailAddress: 'jo@exemple.cat' } }) }));
+  await ctxG.route(/googleapis\.com\/drive\/v3\/files/, (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ files: [] }) }));
+  await ctxG.route(/emailjs/, (r) => r.abort());
+  const g = await ctxG.newPage();
+  g.on('pageerror', (e) => errors.push(String(e)));
+  await g.goto(BASE + 'index.html');
+  await g.waitForFunction(() => window.Drive && typeof Drive.connectar === 'function');
+  const primera = await g.evaluate(() => Drive.connectar().then(() => ({ ok: Drive.connectat(), p: window.__peticions })));
+  check(primera.ok, 'el primer toc connecta');
+  eq(primera.p.map((x) => x.prompt), [''], 'una sola petició, i sense forçar la pantalla de permisos (prompt "", no "consent")');
+  await g.waitForFunction(() => localStorage.getItem('driveCompte') === 'jo@exemple.cat', null, { timeout: 3000 }).catch(() => {});
+  eq(await g.evaluate(() => localStorage.getItem('driveCompte')), 'jo@exemple.cat', 'es recorda el compte');
+  await g.goto(BASE + 'index.html?gia=1447');
+  await g.waitForFunction(() => window.Drive && typeof Drive.connectat === 'function');
+  await g.waitForTimeout(300);
+  check(await g.evaluate(() => Drive.connectat()), 'en canviar de pàgina (com «Fer informe» des del plànol), segueix connectat');
+  eq(await g.evaluate(() => (window.__peticions || []).length), 0, '...sense tornar a demanar res a Google');
+  check(await g.evaluate(() => Drive.reconnectarSilenci()), 'i la reconnexió de l\'arrencada ho troba fet');
+  const caducat = await g.evaluate(() => {
+    sessionStorage.setItem('driveToken', JSON.stringify({ t: 'vell', exp: Date.now() + 30000 }));
+    return true;
+  });
+  // Sense sessio de Google, la reconnexio de l'arrencada (sense toc) no en pot treure cap.
+  await g.addInitScript(() => { window.__senseSessio = true; });
+  await g.goto(BASE + 'index.html');
+  await g.waitForFunction(() => window.Drive && typeof Drive.connectat === 'function');
+  await g.waitForTimeout(300);
+  check(caducat && !(await g.evaluate(() => Drive.connectat())), 'un token a punt de caducar no es fa servir');
+  eq(await g.evaluate(() => (window.__peticions || []).map((x) => x.prompt)), ['none'], 'i la reconnexió de l\'arrencada no ensenya res (prompt "none")');
+  const nova = await g.evaluate(() => { window.__peticions = []; return Drive.connectar().then(() => window.__peticions); });
+  eq(nova.map((x) => x.prompt + '|' + x.hint), ['|jo@exemple.cat'], 'en tornar a demanar-ne, es diu el compte (no cal triar-lo)');
+  await ctxG.close();
+
   seccio('Errors de JavaScript');
   eq(errors, [], 'cap error a les pàgines');
 } catch (e) {
