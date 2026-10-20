@@ -556,7 +556,26 @@ cadascuna de les opcions per enviar un correu de prova».
   - al mòbil, del **Drive privat** (`Dades/correu-mobil.json`, al costat
     d'`activitats.json`): el PC l'hi puja en desar la fila de l'app (si la CCO ha canviat) i a cada
     Actualitzar (`Publish-CorreuMobilCco`, pas 6); `docs/drive.js` →
-    `llegirCorreuMobil`, `docs/app.js` → `muntarBcc`. Sense Drive, cap CCO.
+    `llegirCorreuMobil`, **`docs/cco.js`** (`Cco.muntar` / `Cco.seleccionat`).
+  - **La CCO al mòbil, a `docs/cco.js`** (octubre 2026, l'usuari: «no em deixa
+    escollir el CCO, m'hauria de sortir el CCO sempre i els CCO a triar»).
+    Abans era a `app.js` i, si el Drive no responia o encara no hi havia el
+    fitxer, el quadre sortia **buit sense dir res**. Ara: dos grups («CCO
+    sempre», marcades i desmarcables; «CCO a triar», desmarcades); si el Drive
+    no està connectat prova `reconnectarSilenci`; i si no hi ha adreces o no es
+    poden llegir, ho diu (on es configuren al PC) amb un enllaç per tornar-ho a
+    provar. Prova a `navegador/prova-mobil.mjs`. Fora d'`app.js` també perquè
+    aquell fitxer és a tocar del seu sostre de 1.250 línies.
+- **EL REPLY-TO** (l'usuari: «Reply to ha de ser suport.activitats@…»): va al
+  camp **Reply To de la plantilla d'EmailJS** (al panell d'EmailJS), no al
+  codi. Una adreça @aj-cornella.cat no pot anar a `docs/` ni al codi (guard a
+  `04-correu.ps1`: el repositori és públic), i un paràmetre `reply_to` igualment
+  no faria res si la plantilla no el fes servir. Com que el PC i el mòbil fan
+  servir la mateixa plantilla, val per als dos.
+- **Següent sense confirmar el titular** (mòbil): el motiu surt en vermell
+  **a sobre del botó Següent** (`#msg-nav`, `avisNav` a `app.js`), no sota l'ID
+  GIA, que quedava fora de la pantalla; el de «cap deficiència» també (abans era
+  un `alert`). Se'n va en marcar la casella i en canviar de pas.
   - **La migració és sola** (`_CorreuMobilCcoMigra`): si el fitxer del
     repositori encara porta `bcc`, la copia al PC (si no n'hi ha) i la hi treu
     —també si el *Restore* d'Actualitzar l'hi torna a posar—; si ja ha baixat

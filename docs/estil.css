@@ -93,6 +93,8 @@ textarea { resize: vertical; }
 
 /* Caselles de Còpia Oculta (CCO/Bcc) */
 .bcc-opcions { margin: 4px 0 12px; }
+.bcc-grup { font-size: 12px; color: #667; margin: 6px 0 2px; }
+.bcc-reintent { font-size: 13px; }
 .bcc-item { display: flex; align-items: center; gap: 6px; font-size: 13px; margin: 2px 0; font-weight: normal; }
 .bcc-item input { width: auto; margin: 0; }
 
@@ -185,6 +187,10 @@ select.inline-camp { min-width: 110px; }
   box-shadow: 0 -2px 6px rgba(0,0,0,.06);
 }
 .nav button { min-width: 110px; }
+/* Per què no s'avança: en vermell, a sobre dels botons (buit, no ocupa res). */
+.nav { flex-wrap: wrap; }
+.msg-nav { flex-basis: 100%; margin: 0; color: var(--error); font-size: 13px; text-align: right; }
+.msg-nav:empty { display: none; }
 #pas-indicador { font-size: 13px; color: #667; }
 
 .ocult { display: none !important; }

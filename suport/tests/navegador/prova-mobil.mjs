@@ -43,7 +43,12 @@ window.Drive = {
   connectat: function () { return true; },
   llegirPlanol: function () { return fetch('/__planol.html').then(function (r) { return r.text(); }); },
   llegirActivitats: function () { return Promise.resolve({ Source: 'prova', ById: { '1447': { TITULAR: 'EL RACO SL', MOBIL: '600000000', EMAIL: 'raco@exemple.cat' } } }); },
-  pujarPaquet: function () { return Promise.resolve({}); }
+  pujarPaquet: function () { return Promise.resolve({}); },
+  // La CCO del Drive privat (correu-mobil.json); window.__ccoFalla la fa petar.
+  llegirCorreuMobil: function () {
+    if (window.__ccoFalla) { return Promise.reject(new Error('sense fitxer')); }
+    return Promise.resolve({ bcc: [{ addr: 'sempre@x.cat', def: true }, { addr: 'tria1@x.cat', def: false }, { addr: 'tria2@x.cat', def: false }] });
+  }
 };`;
 
 const nav = await chromium.launch({ headless: true });
@@ -117,6 +122,37 @@ try {
   await p.waitForFunction(() => document.getElementById('tit-rao').textContent === 'EL RACO SL', null, { timeout: 5000 });
   check(true, '...amb l\'ID 1447 ja cercat (les dades del titular, posades)');
   check(!(await p.isChecked('#chk-titular')), 'i les has de confirmar tu abans de prémer Següent');
+
+  seccio('Següent sense confirmar el titular: avís sobre el botó');
+  check(!(await p.isVisible('#msg-nav')), 'sense res a dir, no hi ha cap avís');
+  await p.click('#btn-seguent');
+  check(await p.isVisible('#pas-capcalera'), 'no avança...');
+  check(await p.isVisible('#msg-nav') && (await p.textContent('#msg-nav')).includes('Confirmo que les dades del titular'), '...i diu per què, a sobre del botó Següent');
+  const posAvis = await p.evaluate(() => [document.getElementById('msg-nav').getBoundingClientRect().bottom, document.getElementById('btn-seguent').getBoundingClientRect().top]);
+  check(posAvis[0] <= posAvis[1] + 1, 'l\'avís queda damunt del botó');
+  eq(await p.evaluate(() => getComputedStyle(document.getElementById('msg-nav')).color), 'rgb(192, 57, 43)', 'en vermell (el color d\'error de l\'app)');
+  await p.check('#chk-titular');
+  check(!(await p.isVisible('#msg-nav')), 'en marcar la casella, l\'avís se\'n va');
+
+  seccio('La CCO del mòbil: la de sempre marcada i les de triar, desmarcades');
+  const cco = await p.evaluate(() => new Promise((ok) => {
+    const c = document.createElement('div'); document.body.appendChild(c);
+    Cco.muntar(c, []);
+    setTimeout(() => ok({ grups: Array.from(c.querySelectorAll('.bcc-grup')).map((g) => g.textContent),
+      caselles: Array.from(c.querySelectorAll('input')).map((i) => i.value + ':' + i.checked), sel: Cco.seleccionat(c) }), 200);
+  }));
+  eq(cco.grups, ['CCO sempre (desmarca-la si no la vols):', 'CCO a triar:'], 'dos grups: CCO sempre i CCO a triar');
+  eq(cco.caselles, ['sempre@x.cat:true', 'tria1@x.cat:false', 'tria2@x.cat:false'], 'la de sempre marcada, les a triar desmarcades');
+  eq(cco.sel, 'sempre@x.cat', 'i se n\'envia la marcada');
+  const ccoKo = await p.evaluate(() => new Promise((ok) => {
+    window.__ccoFalla = true;
+    const c = document.createElement('div'); document.body.appendChild(c);
+    Cco.muntar(c, [], true);
+    setTimeout(() => { const t = c.textContent; window.__ccoFalla = false; c.querySelector('a.bcc-reintent').click();
+      setTimeout(() => ok({ t: t, despres: c.querySelectorAll('input').length }), 200); }, 200);
+  }));
+  check(ccoKo.t.includes("No s'ha pogut llegir la CCO") && ccoKo.t.includes('Tornar a carregar'), 'si el Drive no la dona, ho diu (no surt buit) i es pot tornar a provar');
+  eq(ccoKo.despres, 3, '...i en tornar-ho a provar, surten les caselles');
   eq(new URL(p.url()).search, '', 'i l\'adreça ja no porta el ?gia (tornar a carregar no torna a cercar)');
 
   seccio('Al PC (fora de l\'app) no hi ha «Fer informe»');

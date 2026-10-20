@@ -83,8 +83,9 @@ function _CorreuMobilPrompt($m, $cfgJs, [string]$canvi) {
         "- CCO sempre (marcades): " + $(if ($m.Sempre) { $m.Sempre } else { 'cap' }) + $nl +
         "- CCO a triar (desmarcades): " + $(if ($m.Tria) { $m.Tria } else { 'cap' }) + $nl +
         "- Envia per EmailJS; claus a docs/config.js: " + $ejsTxt + $nl +
-        "- Nom del remitent (EMAIL_FROM_NAME): " + (Get-ConfigJsValue $cfgJs 'EMAIL_FROM_NAME' '(buit)') + $nl + $nl +
-        "On viu: docs/dades/email-textos.json (textos i 'dest'), la CCO a correu-mobil.json (LOCALAPPDATA del PC i Dades del Drive; MAI al GitHub), docs/config.js (EmailJS i remitent), docs/app.js (enviarEmail, muntarBcc, destinatariPerDefecte), docs/drive.js i docs/email.js." + $nl + $nl +
+        "- Nom del remitent (EMAIL_FROM_NAME): " + (Get-ConfigJsValue $cfgJs 'EMAIL_FROM_NAME' '(buit)') + $nl +
+        "- Respondre a (Reply-To): el camp 'Reply To' de la plantilla d'EmailJS (no al codi: el repositori es public)" + $nl + $nl +
+        "On viu: docs/dades/email-textos.json (textos i 'dest'), la CCO a correu-mobil.json (LOCALAPPDATA del PC i Dades del Drive; MAI al GitHub), docs/config.js (EmailJS i remitent), docs/app.js (enviarEmail, destinatariPerDefecte), docs/cco.js (la CCO: sempre marcada, a triar desmarcada), docs/drive.js i docs/email.js." + $nl + $nl +
         "El que vull canviar:" + $nl + $c + $nl + $nl +
         "Fes-ho, passa les proves (suport/tests/run-tests-all.ps1 i suport/tests/navegador/prova-mobil.mjs) i puja-ho a main.")
 }

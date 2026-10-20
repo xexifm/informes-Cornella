@@ -145,10 +145,11 @@
   }
 
   // La CCO del correu (Dades/correu-mobil.json): les adreces NO son al GitHub,
-  // que es public; les hi deixa el PC (Configuracio -> Correu del mobil).
+  // que es public; les hi deixa el PC (Configuracio correu electronic, fila
+  // de l'app del mobil, i Actualitzar).
   // Torna { bcc: [{addr, def}] }.
   function llegirCorreuMobil() {
-    return llegirTextDades("correu-mobil.json", "Encara no hi ha la CCO del correu al Drive: desa-la al PC (Configuració → Correu del mòbil).")
+    return llegirTextDades("correu-mobil.json", "Encara no hi ha la CCO del correu al Drive: desa-la al PC (Configuració → Configuració correu electrònic → «Informe de visita · des del mòbil») o fes Actualitzar.")
       .then(function (t) { return JSON.parse(t); });
   }
 

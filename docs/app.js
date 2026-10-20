@@ -977,51 +977,10 @@
     return out.join(", ");
   }
 
-  // Pinta les caselles de Còpia Oculta (un sol cop): les 'def' marcades.
-  // LES ADRECES SURTEN DEL DRIVE PRIVAT (Dades/correu-mobil.json, octubre 2026):
-  // abans eren a email-textos.json, al GitHub, que es public. Si el Drive no hi
-  // es, les d'email-textos.json si encara n'hi ha (cap, des d'aleshores).
-  var bccDemanat = false;
-  function muntarBcc() {
-    var cont = $("bcc-opcions");
-    if (!cont || cont.childNodes.length || bccDemanat) return;
-    var pinta = function (llista) { pintarBcc(cont, llista); };
-    var delJson = asArray(emailTextos && emailTextos.bcc);
-    if (window.Drive && Drive.llegirCorreuMobil && Drive.connectat && Drive.connectat()) {
-      // Un sol cop per sessio (i sense el Drive, es torna a provar la propera).
-      bccDemanat = true;
-      Drive.llegirCorreuMobil().then(function (o) { pinta(asArray(o && o.bcc)); })
-        .catch(function () { pinta(delJson); });
-    } else {
-      pinta(delJson);
-    }
-  }
-
-  function pintarBcc(cont, llista) {
-    if (cont.childNodes.length) return;
-    asArray(llista).forEach(function (o) {
-      if (!o || !o.addr) return;
-      var lab = document.createElement("label");
-      lab.className = "bcc-item";
-      var cb = document.createElement("input");
-      cb.type = "checkbox";
-      cb.value = o.addr;
-      cb.checked = !!o.def;
-      lab.appendChild(cb);
-      lab.appendChild(document.createTextNode(" " + o.addr));
-      cont.appendChild(lab);
-    });
-  }
-
-  // Adreces CCO marcades, unides per coma (buit si cap).
-  function bccSeleccionat() {
-    var cont = $("bcc-opcions");
-    if (!cont) return "";
-    var addrs = [];
-    var cbs = cont.querySelectorAll("input[type=checkbox]");
-    for (var i = 0; i < cbs.length; i++) { if (cbs[i].checked) addrs.push(cbs[i].value); }
-    return addrs.join(",");
-  }
+  // La Còpia Oculta: docs/cco.js (CCO sempre marcada, a triar desmarcada; del
+  // Drive privat, mai del GitHub).
+  function muntarBcc() { if (window.Cco) Cco.muntar($("bcc-opcions"), asArray(emailTextos && emailTextos.bcc)); }
+  function bccSeleccionat() { return window.Cco ? Cco.seleccionat($("bcc-opcions")) : ""; }
 
   function assumpte() {
     return emailTextos ? fillPh(emailTextos.assumpte, estat.header || {}) : "";
@@ -1176,6 +1135,7 @@
       return anarA(i + (i >= passActual ? 1 : -1));
     }
     passActual = i;
+    avisNav("");
     PASSOS.forEach(function (p, idx) { mostrar($("pas-" + p), idx === i); });
     var abast = passosAbastables();
     var pos = abast.indexOf(i);
@@ -1187,24 +1147,19 @@
   function validarPas() {
     var p = PASSOS[passActual];
     if (p === "capcalera") {
-      if (!$("in-gia").value.trim()) {
-        $("msg-cerca").innerHTML = '<span class="error">Cal un ID GIA.</span>';
-        return false;
-      }
-      if (!$("chk-titular").checked) {
-        $("msg-cerca").innerHTML = '<span class="error">Has de confirmar les dades del titular.</span>';
-        return false;
-      }
+      // L'avís, just a sobre del botó Següent (l'usuari: «no avança però no
+      // em dona cap avís»; el de dalt, sota l'ID GIA, no es veia).
+      if (!$("in-gia").value.trim()) return avisNav("Cal un ID GIA.");
+      if (!$("chk-titular").checked) return avisNav("Marca «Confirmo que les dades del titular són correctes» per continuar.");
     }
     if (p === "deficiencies") {
       recollirKeysDelDOM();
-      if (estat.keys.size === 0) {
-        alert("Selecciona almenys una deficiència.");
-        return false;
-      }
+      if (estat.keys.size === 0) return avisNav("Selecciona almenys una deficiència per continuar.");
     }
-    return true;
+    return avisNav("") || true;
   }
+  // El motiu per què no s'avança, en vermell sobre el botó Següent ('' l'esborra).
+  function avisNav(t) { $("msg-nav").textContent = t || ""; return false; }
 
   function seguent() {
     if (!validarPas()) return;
@@ -1234,6 +1189,7 @@
   // ------- Arrencada ----------------------------------------------------------
   document.addEventListener("DOMContentLoaded", function () {
     $("btn-seguent").addEventListener("click", seguent);
+    $("chk-titular").addEventListener("change", function () { if (this.checked) avisNav(""); });
     $("btn-enrere").addEventListener("click", enrere);
     inici();
   });
