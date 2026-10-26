@@ -1600,11 +1600,16 @@ Assert ($cmSrc -match '(?s)function Save-CorreuMobilConfig.*?\$d = Publish-Corre
 # Configuracio: els correus a la DRETA i a sobre dels automatismes (l'usuari).
 $gC = _ConfigGeometria 5
 AssertEq "$($gC.Correu.X)|$($gC.Auto.X)|$($gC.Mant.X)" "$($gC.XDre)|$($gC.XDre)|$($gC.XDre)" 'Configuracio: correus, automatismes i manteniment, tots a la columna de la dreta'
-Assert ($gC.Correu.Y -eq $gC.YTop -and $gC.Correu.Y + $gC.Correu.H -le $gC.Auto.Y -and $gC.Auto.Y + $gC.Auto.H -le $gC.Mant.Y) 'Configuracio: de dalt a baix, correus -> automatismes -> manteniment, sense trepitjar-se'
+Assert ($gC.Correu.Y -eq $gC.YTop -and $gC.Correu.Y + $gC.Correu.H -le $gC.Informes.Y -and $gC.Informes.Y + $gC.Informes.H -le $gC.Auto.Y -and $gC.Auto.Y + $gC.Auto.H -le $gC.Mant.Y) 'Configuracio: de dalt a baix, correus -> informes programa -> automatismes -> manteniment, sense trepitjar-se'
+# "Informes programa": la finestra d'enviar correu en acabar un informe.
+AssertEq "$(_OferirCorreuInforme ([pscustomobject]@{}))|$(_OferirCorreuInforme ([pscustomobject]@{ OferirCorreuInforme = 'si' }))|$(_OferirCorreuInforme @{ OferirCorreuInforme = '' })|$(_OferirCorreuInforme $null)" 'False|True|False|False' '_OferirCorreuInforme: nomes si esta marcat (sense la clau, no surt)'
+$srcEnvC = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'EnviarCorreu.ps1'))
+Assert ($srcEnvC -match '(?s)function Offer-EnviarCorreu\(\$docxPath\) \{.*?if \(-not \(_OferirCorreuInforme \(Load-AppSettings\)\)\) \{ return \}') 'Offer-EnviarCorreu: sense l''opcio, no obre la finestra'
 Assert ($gC.Auto.H -ge (72 + 30 * 5 - 8)) 'Configuracio: hi caben les 5 files d''automatismes'
 Assert ($gC.XEsq + $gC.AmplCol -le $gC.XDre) 'Configuracio: la columna de l''esquerra no entra a la de la dreta'
 Assert ($gC.Mant.Y + $gC.Mant.H + 64 -le $gC.Alt) 'Configuracio: el peu (Tancar / Desar) queda a sota de tot'
 $srcCfgG = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'Configuracio.ps1'))
+Assert ($srcCfgG.Contains("`$overrides = _SettingsAmbClau `$overrides 'OferirCorreuInforme'")) 'Configuracio: el Desar desa l''opcio (reescriu settings.json sencer)'
 Assert ($srcCfgG.Contains('$btnCorreus.Location = New-Object System.Drawing.Point($geo.Correu.X, ($geo.Correu.Y + 4))')) 'Configuracio: el boto del correu es col·loca amb _ConfigGeometria'
 # L'usuari (octubre 2026): "tot el bloc que hi ha sobre Automatismes, que es
 # converteixi en un boto Configuracio correu electronic". El remitent i l'app

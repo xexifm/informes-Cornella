@@ -1,5 +1,3 @@
-BODY|S'han observat les següents deficiències que cal esmenar per poder exercir l'activitat:
-AIRE|introparagraf
 BLOC|Requeriment anterior
 AIRE|seccio
 BODY|S’ha de donar resposta a l’anterior requeriment amb Núm. de registre: .

@@ -770,7 +770,13 @@ function Build-CatalegBlocs($seccions, $fields, [string]$introText, [bool]$esCos
         return $b.ToArray()
     }
 
-    if (-not [string]::IsNullOrWhiteSpace($introText)) {
+    # Si l'informe COMENCA pel requeriment anterior, la frase d'intro ("S'han
+    # observat les seguents deficiencies...") no va a dalt: ja surt sota el
+    # REQUERIMENT ACTUAL (l'usuari, octubre 2026: "no ha de sortir, perque ja
+    # surt a sota REQUERIMENT ACTUAL").
+    $primeraSec = @($seccions | Where-Object { $null -ne $_ } | Select-Object -First 1)
+    $comencaAnterior = (-not $sc -and $primeraSec.Count -gt 0 -and (_EsSeccioReqAnterior $primeraSec[0]))
+    if (-not [string]::IsNullOrWhiteSpace($introText) -and -not $comencaAnterior) {
         [void]$b.Add(@{ T = 'cos'; Text = $introText })
         [void]$b.Add(@{ T = 'aire'; Clau = 'introparagraf' })
     }

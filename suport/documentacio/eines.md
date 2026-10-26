@@ -2347,3 +2347,20 @@ tipus d'error (deixa'm marcar el tipus d'error que vull que s'exporti)».
     Innòcues **llevat de** l'annex I i l'estat «sense llicència». Per això la
     lectura porta ara la columna «Estat de legalització de l'activitat» (`ESTAT`
     a `_ExColumnes`; no és cap comprovació). A tota la base, 9 a (cap).
+
+## Tres canvis petits (octubre 2026)
+
+- **Informes programa** (Configuració, sobre els Automatismes): la clau
+  `OferirCorreuInforme` (`'si'`) dels settings decideix si `Offer-EnviarCorreu`
+  obre la finestra d'enviar en acabar un informe (`_OferirCorreuInforme`,
+  pura). **Sense la clau, no surt**: l'usuari no envia correus mentre no
+  funcioni bé Actualitzar base («sempre cancel·lo»). L'informe ja s'ha obert al
+  Word abans; no cal cap altre avís.
+- **Generar ruta**: l'activitat (*Activitat principal*, per nom de capçalera
+  amb `Find-HeaderColumn`) surt sota l'adreça, més petita i en gris (`.act`), a
+  la llista i a la fitxa del punt.
+- **REQUERIMENT ANTERIOR**: si l'informe comença pel requeriment anterior, la
+  frase d'intro («S'han observat les següents deficiències…») ja no va a dalt:
+  surt només sota REQUERIMENT ACTUAL (`Build-CatalegBlocs`). El fitxer d'or de
+  REQ1 va perdre aquelles dues línies i res més. El correu del mòbil ja ho feia
+  així (el seu intro és el del correu).

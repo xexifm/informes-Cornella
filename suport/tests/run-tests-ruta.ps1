@@ -175,5 +175,15 @@ Assert ($html -match '1429') 'inclou l ID de la parada'
 Assert ($html -match 'QUINTANA I MILLAS') 'inclou l adreca'
 Assert ($html -match 'window.print') 'inclou el boto d imprimir'
 Assert ($html -match '5 km') 'mostra els km de la ruta'
+# L'ACTIVITAT sota l'adreca, mes petita i en gris (l'usuari, octubre 2026).
+$stopsA = @(
+    [pscustomobject]@{ Order=1; Id='1429'; Address='AV BAIX LLOBREGAT S/N'; Activitat='BAR & RESTAURANT'; Lat=41.347; Lon=2.077 }
+    [pscustomobject]@{ Order=2; Id='1427'; Address='C QUINTANA I MILLAS 7 9'; Activitat=''; Lat=41.356; Lon=2.081 }
+)
+$htmlA = Build-RouteHtml $stopsA $geom 5000 600 'xarxa' 'x.xls'
+Assert ($htmlA.Contains("AV BAIX LLOBREGAT S/N<div class='act'>BAR &amp; RESTAURANT</div>")) 'la llista porta l activitat sota l adreca (escapada)'
+Assert ($htmlA -match '\.act \{ font-size: 11px; color: #777;') 'l activitat, mes petita i en gris'
+Assert (-not $htmlA.Contains("MILLAS 7 9<div class='act'>")) 'sense activitat, res sota l adreca'
+Assert ($htmlA.Contains('"activitat":"BAR \u0026 RESTAURANT"') -or $htmlA.Contains('"activitat":"BAR & RESTAURANT"')) 'i va al JSON del mapa (la fitxa del punt)'
 
 exit (Write-TestSummary 'RESULTAT')

@@ -1467,7 +1467,12 @@ $secAnt = [pscustomobject]@{
 $introAnt = "S'han observat les seguents deficiencies:"
 $blA = @(Build-CatalegBlocs @($secAnt, $secP) ([ordered]@{ 'Registre sortida' = @{ Value = 'S-2026-15199' } }) $introAnt)
 $tipA = @($blA | ForEach-Object { [string]$_.T })
-AssertEq ($tipA -join ',') 'cos,aire,titolbloc,aire,unitat,titolbloc,aire,cos,aire,seccio,aire,subseccio,aire,unitat,unitat' 'Anterior: intro, REQUERIMENT ANTERIOR, el punt, REQUERIMENT ACTUAL + intro, i les seccions'
+AssertEq ($tipA -join ',') 'titolbloc,aire,unitat,titolbloc,aire,cos,aire,seccio,aire,subseccio,aire,unitat,unitat' 'Anterior: REQUERIMENT ANTERIOR (sense la frase d''intro a dalt), el punt, REQUERIMENT ACTUAL + intro, i les seccions'
+# L'usuari (octubre 2026): la frase "S'han observat les seguents deficiencies"
+# no ha de sortir sobre REQUERIMENT ANTERIOR: ja surt sota REQUERIMENT ACTUAL.
+AssertEq @($blA | Where-Object { $_.T -eq 'cos' -and [string]$_.Text -eq $introAnt }).Count 1 'Anterior: la frase d''intro, UN sol cop (sota REQUERIMENT ACTUAL)'
+$blSenseAnt = @(Build-CatalegBlocs @($secP) @{} $introAnt)
+AssertEq ([string]$blSenseAnt[0].T + '|' + [string]$blSenseAnt[0].Text) ('cos|' + $introAnt) 'sense requeriment anterior, la frase d''intro a dalt com sempre'
 AssertEq (@($blA | Where-Object { $_.T -eq 'titolbloc' } | ForEach-Object { [string]$_.Text }) -join '|') 'Requeriment anterior|Requeriment actual' 'Anterior: els dos titols de bloc (subratllats, com els de Llicencia)'
 $uAnt = @(@($blA | Where-Object { $_.T -eq 'unitat' })[0].Blocs)
 AssertEq (@($uAnt | ForEach-Object { [string]$_.T }) -join ',') 'cos,espai,cos' 'Anterior: l avis SENSE numero (no es una deficiencia) i el COPIAR a sota'

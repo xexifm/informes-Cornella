@@ -1057,6 +1057,14 @@ i envies tu.
   → *Controls periòdics* (la CCO «a triar» només quan ho fas a mà).
 - Registre: `%LOCALAPPDATA%\InformesCornella\controls-periodics-log.txt`.
 
+### Correu en acabar un informe: ⚙ Configuració → Informes programa
+
+Just a sobre dels Automatismes hi ha **Informes programa**, amb la casella
+**«En acabar un informe, obrir la finestra d'enviar-lo per correu»**. Desmarcada
+(com està ara), en acabar un informe només s'obre al Word; marcada, surt també
+la finestra d'enviar el correu, com abans. Quan vulguis enviar un informe
+igualment, tens l'eina **Enviar correu**.
+
 ### Quan es fa cada cosa: ⚙ Configuració → Automatismes
 
 A **⚙ Configuració** hi ha el grup **Automatismes**, amb una fila per cada cosa

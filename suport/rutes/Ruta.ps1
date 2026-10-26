@@ -343,6 +343,7 @@ function New-BaseStop([double]$lat, [double]$lon, [string]$label) {
     return [pscustomobject]@{
         Id      = 'BASE'
         Address = $label
+        Activitat = ''
         Lat     = $lat
         Lon     = $lon
     }
@@ -471,7 +472,7 @@ function Build-RouteHtml($stops, $geometry, [double]$distanceM, [double]$duratio
     # que l'HTML generat canvies sense que canviessin les dades (i que una
     # prova que mirava el text del JSON fallesses una vegada de cada sis).
     $stopsJson = ConvertTo-Json @($stops | ForEach-Object {
-        [ordered]@{ order = $_.Order; id = $_.Id; address = $_.Address; lat = $_.Lat; lon = $_.Lon }
+        [ordered]@{ order = $_.Order; id = $_.Id; address = $_.Address; activitat = [string]$_.Activitat; lat = $_.Lat; lon = $_.Lon }
     }) -Depth 5 -Compress
     # La llista de parades ha de ser una LLISTA sempre. Es mira la SORTIDA i no
     # el nombre de parades: donar per fet que ConvertTo-Json desembolcalla quan
@@ -498,6 +499,9 @@ function Build-RouteHtml($stops, $geometry, [double]$distanceM, [double]$duratio
     foreach ($s in $stops) {
         $addr = _HtmlEncode $s.Address
         if ([string]::IsNullOrWhiteSpace($addr)) { $addr = '<i>(sense adreca)</i>' }
+        # L'ACTIVITAT sota l'adreca, mes petita i en gris (l'usuari, octubre 2026).
+        $act = _HtmlEncode ([string]$s.Activitat)
+        if (-not [string]::IsNullOrWhiteSpace($act)) { $addr += "<div class='act'>$act</div>" }
         $rowClass = if ([string]$s.Id -eq 'BASE') { " class='base'" } else { '' }
         $rows += "<tr$rowClass><td class='num'>$($s.Order)</td><td class='id'>$(_HtmlEncode ([string]$s.Id))</td><td>$addr</td></tr>`n"
     }
@@ -538,6 +542,7 @@ $leafletCss
   tr.base td.num { background: #14365c; }  /* fila de la BASE (Parada 0) en blau */
   tr.base td.id { color: #14365c; font-weight: bold; }
   td.id { font-family: Consolas, monospace; color: #14365c; white-space: nowrap; }
+  .act { font-size: 11px; color: #777; margin-top: 2px; }
   #bar { padding: 8px 16px; border-top: 1px solid #ddd; display: flex; gap: 10px; align-items: center; }
   button { background: #14365c; color: #fff; border: 0; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 14px; }
   button:hover { background: #1d4d82; }
@@ -666,7 +671,7 @@ $fonsJs
       : '<b>Parada ' + s.order + '</b><br>ID ' + s.id;
     L.marker([displayLat, displayLon], { icon: icon })
      .addTo(map)
-     .bindPopup(title + '<br>' + addr + note);
+     .bindPopup(title + '<br>' + addr + (s.activitat ? '<br><span class="act">' + String(s.activitat).replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</span>' : '') + note);
     bounds.push([s.lat, s.lon]);
   });
 
@@ -768,6 +773,8 @@ function Read-ActivitatsForRoute($excelFile) {
         if ($null -eq $data) { return @{} }
         $C = $Script:RutaColumns
         $get = $x.Cel   # el lector de cel·la ve amb el context (Excel.ps1)
+        # L'activitat, pel NOM de la capcalera (0 = no hi es: res, com abans).
+        $colAct = Find-HeaderColumn $x.Headers 'Activitat principal'
         $byId = @{}
         for ($r = 2; $r -le $rows; $r++) {
             $cell = $data[$r, $C.ID]
@@ -779,6 +786,7 @@ function Read-ActivitatsForRoute($excelFile) {
             if ($id -eq '') { continue }
             $byId[$id] = [pscustomobject]@{
                 Id       = $id
+                Activitat = $(if ($colAct -gt 0) { ([string](& $get $r $colAct)).Trim() } else { '' })
                 UtmX     = & $get $r $C.UTMX
                 UtmY     = & $get $r $C.UTMY
                 TipusVia = & $get $r $C.TIPUS_VIA
@@ -1034,6 +1042,7 @@ function Invoke-RutaMain {
             [void]$points.Add([pscustomobject]@{
                 Id      = $id
                 Address = (Format-EmpAddress $rec.TipusVia $rec.Carrer $rec.Numero $rec.Lletra)
+                Activitat = [string]$rec.Activitat
                 Lat     = $ll.Lat
                 Lon     = $ll.Lon
             })
@@ -1128,6 +1137,7 @@ function Invoke-RutaMain {
             Order   = $n
             Id      = $p.Id
             Address = $p.Address
+            Activitat = [string]$p.Activitat
             Lat     = $p.Lat
             Lon     = $p.Lon
         })

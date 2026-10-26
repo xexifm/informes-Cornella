@@ -612,10 +612,21 @@ function Invoke-EnviarCorreu {
     Send-CorreuPerDocx $docx
 }
 
+# Si en acabar un informe s'obre la finestra d'enviar-lo per correu
+# (Configuracio -> Informes programa, clau 'OferirCorreuInforme' = 'si' dels
+# settings). Sense la clau, NO: l'usuari, octubre 2026, "ara mateix no vull que
+# estigui l'opcio activa perque sempre cancelo". PURA.
+function _OferirCorreuInforme($settings) {
+    return (([string](_PropInf $settings 'OferirCorreuInforme')).Trim() -eq 'si')
+}
+
 # Ofereix enviar el correu al final de generar un informe (normal o seguiment).
 # El diàleg d'enviament és la confirmació (ja fusionat amb "Informe generat"):
 # no es fa cap pregunta Sí/No prèvia. Si l'usuari no vol enviar, tanca el diàleg.
 function Offer-EnviarCorreu($docxPath) {
+    # Configuracio -> Informes programa: si no esta marcat, l'informe ja s'ha
+    # obert al Word i no surt res mes.
+    if (-not (_OferirCorreuInforme (Load-AppSettings))) { return }
     if ([string]::IsNullOrWhiteSpace([string]$docxPath) -or -not (Test-Path -LiteralPath $docxPath)) {
         $docxPath = _LatestDocx
     }

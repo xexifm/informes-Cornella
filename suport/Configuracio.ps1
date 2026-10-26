@@ -41,15 +41,18 @@
 function _ConfigGeometria([int]$nAuto) {
     $xEsq = 14; $xDre = 542; $amplCol = 514; $yTop = 66
     $fiCarp = 588
-    $hCorreu = 44; $hMant = 96; $sep = 8
+    $hCorreu = 44; $hInf = 54; $hMant = 96; $sep = 8
     $altAuto = 72 + 30 * $nAuto
-    $yAuto = $yTop + $hCorreu + $sep
+    # "Informes programa" (octubre 2026), entre el correu i els automatismes.
+    $yInf = $yTop + $hCorreu + $sep
+    $yAuto = $yInf + $hInf + $sep
     $hAuto = [math]::Max(($altAuto - 8), ($fiCarp - $yAuto - $sep - $hMant))
     $yMant = $yAuto + $hAuto + $sep
     $fi = [math]::Max($fiCarp, ($yMant + $hMant))
     return @{
         XEsq = $xEsq; XDre = $xDre; AmplCol = $amplCol; YTop = $yTop; FiCarp = $fiCarp
         Correu = @{ X = $xDre; Y = $yTop; W = $amplCol; H = $hCorreu }
+        Informes = @{ X = $xDre; Y = $yInf; W = $amplCol; H = $hInf }
         Auto   = @{ X = $xDre; Y = $yAuto; W = $amplCol; H = $hAuto }
         Mant   = @{ X = $xDre; Y = $yMant; W = $amplCol; H = $hMant }
         Ample  = ($xDre + $amplCol + 14); Alt = ($fi + 12 + 52)
@@ -170,6 +173,22 @@ function Invoke-ConfiguracioScreen {
     $lblCorreuNota.Size = New-Object System.Drawing.Size(($geo.Correu.W - 270), 42)
     $lblCorreuNota.ForeColor = [System.Drawing.Color]::FromArgb(90, 90, 90)
     $lblCorreuNota.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left
+
+    # ---- Informes programa (octubre 2026) ------------------------------
+    # L'usuari: "ara mateix no estic enviant correus [...] vull que es pugui
+    # marcar o no si vull que aparegui la finestra d'enviar correu al fer un
+    # informe. Ara mateix no vull que estigui l'opcio activa perque sempre
+    # cancelo". Sense la clau als settings, no surt (_OferirCorreuInforme).
+    $grpInf = New-Object System.Windows.Forms.GroupBox
+    $grpInf.Text = 'Informes programa'
+    $grpInf.Location = New-Object System.Drawing.Point($geo.Informes.X, $geo.Informes.Y)
+    $grpInf.Size = New-Object System.Drawing.Size($geo.Informes.W, $geo.Informes.H)
+    $grpInf.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left
+    $chkCorreuInf = New-Object System.Windows.Forms.CheckBox
+    $chkCorreuInf.Text = "En acabar un informe, obrir la finestra d'enviar-lo per correu"
+    $chkCorreuInf.Location = New-Object System.Drawing.Point(12, 22); $chkCorreuInf.Size = New-Object System.Drawing.Size(($geo.Informes.W - 24), 24)
+    $chkCorreuInf.Checked = (_OferirCorreuInforme $current)
+    [void]$grpInf.Controls.Add($chkCorreuInf)
 
     # ---- Automatismes (octubre 2026) ----------------------------------
     # L'usuari: "aquests automatismes, com son ja uns quants, haurien de ser
@@ -345,6 +364,7 @@ function Invoke-ConfiguracioScreen {
         # el remitent hi han de ser, si no es perdrien. Es llegeixen ARA: s'han
         # pogut canviar a la finestra del correu amb aquesta oberta.
         $overrides = _SettingsAmbCorreuDeAra $overrides (Load-AppSettings)
+        $overrides = _SettingsAmbClau $overrides 'OferirCorreuInforme' $(if ($chkCorreuInf.Checked) { 'si' } else { '' })
         if (-not (Save-AppSettings $overrides)) {
             [System.Windows.Forms.MessageBox]::Show("No s'ha pogut desar la configuracio.", 'Configuracio', 'OK', 'Error') | Out-Null
             return
@@ -386,6 +406,7 @@ function Invoke-ConfiguracioScreen {
     [void]$form.Controls.Add($grpAddicionals)
     [void]$form.Controls.Add($btnCorreus)
     [void]$form.Controls.Add($lblCorreuNota)
+    [void]$form.Controls.Add($grpInf)
     [void]$form.Controls.Add($grpAuto)
     [void]$form.Controls.Add($grpMant)
     [void]$form.Controls.Add($botPanel)
