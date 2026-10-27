@@ -92,7 +92,7 @@ seguirà sense icona i obrirà un segon botó.
 | Pas | Què fa |
 |-----|--------|
 | 1 | **Menú**: tries alhora QUÈ vols fer i, si és un informe nou, el catàleg. |
-| 2 | **Dades de la capçalera**. Si escrius un ID GIA que és a l'Excel, s'omple sol. |
+| 2 | **Dades de la capçalera**. Si escrius un ID GIA que és a l'Excel, s'omple sol. Amb **Visita d'inspecció** has de marcar el **motiu**: *Queixa*, *Pla de verificació* o totes dues (aprofitar una queixa per fer el control inicial). Surt a l'Objecte: `Visita inspecció 22/10/2026 - Queixa`, `… - Pla de verificació 2026` o `… - Queixa + Pla de verificació 2026` (l'any és el de la visita). Al mòbil és igual. |
 | 3 | **Marcar les deficiències** (arbre amb filtre). En marcar-ne una, el text surt a la dreta i, si té opcions o camps, els omples **allà mateix**. Els punts amb una **ⓘ** al davant porten fitxa d'ajuda: el punter es torna una mà quan hi passes per sobre; clica-la (o prem **F1**) i et diu si allò s'ha de requerir o no. |
 | 4 | **Triar les conclusions**, també amb els camps dins del propi text. |
 | 5 | **Fotos** (només si al Pas 2 has triat *Visita d'inspecció*): s'obre sol el diàleg a la *Carpeta on hi ha els informes ja generats* i tries les fotos; les pots treure i ordenar amb ↑ / ↓. Si no en vols cap, «Generar informe →» directament. |
@@ -684,6 +684,19 @@ estat *Precinte / Cessament* i comprova que a l'Excel hi tinguin el Camp Info
 **REQUERIT PER DECRET?** o **PRECINTE ACTIVITAT?** amb un valor que comenci per
 **SI**. Les que no, te les llista amb la data de l'informe que les va deixar en
 aquell estat, perquè puguis actualitzar l'Excel.
+
+També comprova la **darrera visita d'inspecció** de cada activitat, segons el
+motiu que diu l'Objecte de l'informe:
+
+| Motiu de la visita | La data ha de constar a la columna (fulla *Estès*) |
+|---|---|
+| Queixa | **Inspecció** |
+| Pla de verificació | **Data control inicial/verificació** |
+| Queixa + Pla de verificació | **totes dues** |
+| (informe d'abans, sense motiu) | qualsevol de les dues |
+
+Un avís que ja tens arreglat per una altra banda el pots **descartar**; una
+visita nova torna a avisar.
 
 > Compte, que no és el mateix criteri que el de **Seguiment**: aquí sí que es
 > demana el «SI», i allà no.

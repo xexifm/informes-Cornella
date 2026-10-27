@@ -97,7 +97,7 @@ function Invoke-GenerateFromPaquet($paquetPath) {
 
     # Capcalera: hashtable amb les claus que espera Apply-HeaderReplacements.
     $header = @{}
-    foreach ($k in 'ID_GIA','EXP_NUM','ADRECA','ACTIVITAT','TITULAR','ORIGEN_TIPUS','NUM_ANOTACIO','DATA_ANOTACIO','DATA_INSPECCIO') {
+    foreach ($k in 'ID_GIA','EXP_NUM','ADRECA','ACTIVITAT','TITULAR','ORIGEN_TIPUS','NUM_ANOTACIO','DATA_ANOTACIO','DATA_INSPECCIO','MOTIU_VISITA') {
         $val = ''
         if ($null -ne $pkg.Header -and ($pkg.Header.PSObject.Properties.Name -contains $k)) {
             $val = [string]$pkg.Header.$k

@@ -127,7 +127,26 @@ function _BuildHeaderForm($excelInfo) {
     [void](& $addRow "Num. d'anotacio (autom., editable)" 'NUM_ANOTACIO' 460 $yAnot)
     [void](& $addRow "Data d'inspeccio"                   'DATA_INSPECCIO' 460 $yAnot)
     $y = $yAnot + 38
-    [void](& $addRow "Data d'anotacio (autom., editable)"  'DATA_ANOTACIO' 460 $y); $y += 50
+    [void](& $addRow "Data d'anotacio (autom., editable)"  'DATA_ANOTACIO' 460 $y)
+    # EL MOTIU DE LA VISITA (octubre 2026), al lloc de la data d'anotacio:
+    # Queixa, Pla de verificacio o totes dues. Va a l'Objecte de l'informe
+    # (_MotiuVisitaText) i Excel Comprovar el mira a la columna que toca.
+    $lblMotiu = New-Object System.Windows.Forms.Label
+    $lblMotiu.Text = 'Motiu de la visita'
+    $lblMotiu.Location = New-Object System.Drawing.Point(15, $y)
+    $lblMotiu.Size = New-Object System.Drawing.Size(200, 22)
+    [void]$form.Controls.Add($lblMotiu)
+    $chkQueixa = New-Object System.Windows.Forms.CheckBox
+    $chkQueixa.Text = 'Queixa'
+    $chkQueixa.Location = New-Object System.Drawing.Point(220, ($y - 3)); $chkQueixa.Size = New-Object System.Drawing.Size(100, 24)
+    [void]$form.Controls.Add($chkQueixa)
+    $chkPla = New-Object System.Windows.Forms.CheckBox
+    $chkPla.Text = ('Pla de verificaci' + [char]0x00F3 + " (l'any de la visita)")
+    $chkPla.Location = New-Object System.Drawing.Point(330, ($y - 3)); $chkPla.Size = New-Object System.Drawing.Size(320, 24)
+    [void]$form.Controls.Add($chkPla)
+    $controls['_MOTIU_QUEIXA'] = $chkQueixa
+    $controls['_MOTIU_PLA'] = $chkPla
+    $y += 50
 
     # Mostra/amaga els camps segons l'origen triat.
     $applyOrigen = {
@@ -138,6 +157,7 @@ function _BuildHeaderForm($excelInfo) {
         }
         $controls['DATA_INSPECCIO'].Visible  = -not $isDoc
         $rowLabels['DATA_INSPECCIO'].Visible = -not $isDoc
+        foreach ($c in @($lblMotiu, $chkQueixa, $chkPla)) { $c.Visible = -not $isDoc }
     }.GetNewClosure()
     $rbDoc.add_CheckedChanged($applyOrigen)
     & $applyOrigen
@@ -169,7 +189,16 @@ function _ReadHeaderControls($controls) {
         NUM_ANOTACIO   = $controls['NUM_ANOTACIO'].Text.Trim()
         DATA_ANOTACIO  = $controls['DATA_ANOTACIO'].Text.Trim()
         DATA_INSPECCIO = $controls['DATA_INSPECCIO'].Text.Trim()
+        MOTIU_VISITA   = $(if ($tipus -eq 'insp') { _MotiuVisitaDeCaselles ([bool]$controls['_MOTIU_QUEIXA'].Checked) ([bool]$controls['_MOTIU_PLA'].Checked) } else { '' })
     }
+}
+
+# 'queixa', 'pla', 'queixa+pla' o '' segons les caselles. PURA.
+function _MotiuVisitaDeCaselles([bool]$queixa, [bool]$pla) {
+    if ($queixa -and $pla) { return 'queixa+pla' }
+    if ($queixa) { return 'queixa' }
+    if ($pla) { return 'pla' }
+    return ''
 }
 
 # Precarrega valors d'una capcalera anterior als controls del formulari.
@@ -197,6 +226,9 @@ function _PreloadHeaderControls($controls, $preload) {
         if ([string]$tipus -eq 'insp') { $controls['_ORIGEN_INSP'].Checked = $true }
         else                           { $controls['_ORIGEN_DOC'].Checked  = $true }
     }
+    $motiu = _MotiuVisitaNet ([string](& $getVal 'MOTIU_VISITA'))
+    if ($controls['_MOTIU_QUEIXA']) { $controls['_MOTIU_QUEIXA'].Checked = ($motiu -match 'queixa') }
+    if ($controls['_MOTIU_PLA']) { $controls['_MOTIU_PLA'].Checked = ($motiu -match 'pla') }
 }
 
 # -Cerca: en obrir la finestra, busca l'ID GIA precarregat a l'Excel (com si
@@ -325,6 +357,11 @@ function Get-HeaderData {
             [string]::IsNullOrWhiteSpace($controls['ADRECA'].Text) -or
             [string]::IsNullOrWhiteSpace($controls['ACTIVITAT'].Text)) {
             if (-not (& $doSearch)) { return }
+        }
+        # Una visita ha de dir per que es (l'Objecte i Excel Comprovar en depenen).
+        if ($controls['_ORIGEN_INSP'].Checked -and -not $controls['_MOTIU_QUEIXA'].Checked -and -not $controls['_MOTIU_PLA'].Checked) {
+            [System.Windows.Forms.MessageBox]::Show(("Marca el motiu de la visita: Queixa, Pla de verificaci" + [char]0x00F3 + " o totes dues."),'Falten dades','OK','Warning') | Out-Null
+            return
         }
         $script:_headerData = _ReadHeaderControls $controls
         $form.DialogResult = 'OK'

@@ -244,11 +244,25 @@
       return (valors && valors[k] != null) ? String(valors[k]) : "";
     });
   }
+  // _MotiuVisitaText (MotorInforme.ps1): "Queixa", "Pla de verificació 2026" o
+  // "Queixa + Pla de verificació 2026" (l'any, el de la data de la visita).
+  function motiuVisitaText(motiu, data, anyDefecte) {
+    var m = String(motiu || "").toLowerCase(), q = m.indexOf("queixa") >= 0, p = /\bpla\b/.test(m);
+    if (!q && !p) return "";
+    var a = /(\d{4})\s*$/.exec(String(data || ""));
+    var any = a ? a[1] : String(anyDefecte || new Date().getFullYear());
+    var parts = [];
+    if (q) parts.push("Queixa");
+    if (p) parts.push("Pla de verificació " + any);
+    return parts.join(" + ");
+  }
   // _BuildOrigenText: el text de la linia "Objecte:".
   function origenText(plantilles, h) {
     var tipus = (h && h.ORIGEN_TIPUS) || "doc";
     if (tipus === "cap") return "";
-    return omplePlantilla(tipus === "insp" ? plantilles.insp : plantilles.doc, h);
+    var t = omplePlantilla(tipus === "insp" ? plantilles.insp : plantilles.doc, h);
+    if (tipus === "insp") { var mt = motiuVisitaText(h.MOTIU_VISITA, h.DATA_INSPECCIO); if (mt) t += " - " + mt; }
+    return t;
   }
   // _CorreuCapcaleraHtml: les linies SENSE valor no surten; a sota, el titol
   // ("INFORME") centrat i en negreta.
@@ -290,7 +304,7 @@
     esc: esc, textHtml: textHtml, splitTextAndUrls: splitTextAndUrls,
     blocsAHtml: blocsAHtml, blocsDeSeleccio: blocsDeSeleccio,
     omplePlantilla: omplePlantilla, origenText: origenText, capcaleraHtml: capcaleraHtml,
-    intro: intro, cosAHtml: cosAHtml
+    intro: intro, cosAHtml: cosAHtml, motiuVisitaText: motiuVisitaText
   };
   if (typeof module !== "undefined" && module.exports) module.exports = Correu;
   else arrel.Correu = Correu;

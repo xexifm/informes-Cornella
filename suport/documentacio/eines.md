@@ -2211,11 +2211,45 @@ inicial/verificació"».
   la darrera, a posta: la columna és de *data de control* i en porta la més nova.
   Si la columna no hi és, es diu al peu i no s'avisa de res.
 - **Cada avís té una clau estable** (`precinte|GIA`, `visita|GIA|data`,
-  `notrobat|GIA`, `sensegia|carpeta`; `Get-ComprovacioExcelAvisos`, pura).
+  `visitaqueixa|GIA|data`, `notrobat|GIA`, `sensegia|carpeta`; `Get-ComprovacioExcelAvisos`, pura).
   **Descartar** desa les claus a `local/base-dades-activitats/comprovar-excel-descartats.json`
   (porta noms de titulars: mai al GitHub). Un descartat que ja no avisa es treu
   sol de la llista (`_CxFiltraDescartats`), i una visita **nova** té una altra
   clau: torna a avisar. **Recuperar descartats** els torna a ensenyar tots.
+
+### El MOTIU de la visita: Queixa / Pla de verificació (octubre 2026)
+
+L'usuari: «he de poder diferenciar […] si aquella visita és per una Queixa o pel
+Pla de verificació 2026 (l'any vinent serà 2027)», també totes dues
+(«aprofito la queixa per fer el control inicial»), i que Excel Comprovar miri
+**Queixa → columna `Inspecció`** i **Pla → `Data control inicial/verificació`**.
+
+- **Ha de constar a l'informe**, i és d'allà que es llegeix: l'Objecte porta
+  `Visita inspecció 22/10/2026 - Queixa`, `… - Pla de verificació 2026` o
+  `… - Queixa + Pla de verificació 2026`. **L'any és el de la data de la
+  visita**, no el d'avui (una visita del desembre redactada al gener).
+- **Un sol vocabulari**: `MOTIU_VISITA` de la capçalera = `queixa`, `pla`,
+  `queixa+pla` o `''`. `_MotiuVisitaNet` (MotorInforme.ps1) passa qualsevol
+  text a aquest valor (tolera majúscules i accents; `\bpla\b`, perquè «plaça» no
+  és el pla) i `_MotiuVisitaText` en fa el text; `_BuildOrigenText` el posa
+  darrere de la data. Al mòbil, `Correu.motiuVisitaText` / `origenText`
+  (`docs/correu.js`), amb **prova creuada** a `08-correu-format`.
+- **On es tria**: Pas 2 del PC (caselles *Queixa* / *Pla de verificació* al lloc
+  de la data d'anotació; `_MotiuVisitaDeCaselles`) i Pas 2 del mòbil
+  (`#motiu-queixa`, `#motiu-pla`). **Totes dues obliguen** a marcar-ne almenys
+  un: sense motiu, Excel Comprovar no sabria quina columna mirar. El paquet del
+  mòbil el porta (`HEADER_KEYS`, `Paquet.ps1`), i *Recuperar dades* el torna a
+  posar. Del correu, `_OrigenDesDeText` separa la data del motiu.
+- **La base d'informes** desa `visita_motiu` (`_ExtractVisitaMotiu` de la línia
+  Objecte, a `Get-InformeData`). La `visita` segueix sent **només la data**: el
+  «2026» del pla no és cap data.
+- **Excel Comprovar** (`_CxVisitesPerMotiu` + `Get-ComprovacioExcelAvisos`):
+  la darrera visita de **cada** motiu, a la seva columna. Grups i claus:
+  `visita|GIA|data` (Pla), `visitaqueixa|GIA|data` (Queixa) i `visitasense`
+  (informes d'abans, sense motiu: només si és la visita més nova, i val
+  qualsevol de les dues columnes). **La clau del Pla i de la de sense motiu és
+  la d'abans**, a posta: els avisos que l'usuari ja havia descartat segueixen
+  descartats. Si falta una columna, el seu motiu no avisa i es diu al peu.
 
 ## «Pla verificació» (fila BASE D'INFORMES, octubre 2026) — `PlaVerificacio.ps1`
 

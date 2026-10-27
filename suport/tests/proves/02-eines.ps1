@@ -408,9 +408,58 @@ $cxDb = [pscustomobject]@{ activitats = @(
 $cxRes = @{ Map = @{ '1415' = @(); '1416' = @(); '1417' = @(@{ Nom = 'PRECINTE ACTIVITAT?'; Valor = 'NO' }) }; DataControl = @{ '1415' = @('24/07/2026'); '1416' = @('01/09/2026') }; ColControl = $true }
 $cxAv = @(Get-ComprovacioExcelAvisos $cxDb $cxRes)
 AssertEq (($cxAv | ForEach-Object { $_.Clau }) -join ' ; ') 'visita|1416|30/07/2026 ; precinte|1417 ; notrobat|9999 ; sensegia|c5' 'Comprovar Excel: la darrera visita (sense els ignorats) ha de constar a l''Excel; i els precintes de sempre'
-Assert (([string]($cxAv | Where-Object { $_.Grup -eq 'visita' }).Text).Contains("hi diu: 01/09/2026")) 'Comprovar Excel: l''avis de la visita diu que hi ha a l''Excel'
+Assert (([string]($cxAv | Where-Object { $_.Grup -eq 'visitasense' }).Text).Contains("hi diu: 01/09/2026")) 'Comprovar Excel: l''avis de la visita diu que hi ha a l''Excel'
 $cxRes.ColControl = $false
-AssertEq @(@(Get-ComprovacioExcelAvisos $cxDb $cxRes) | Where-Object { $_.Grup -eq 'visita' }).Count 0 'Comprovar Excel: sense la columna, cap avis de visita (es diu al peu)'
+AssertEq @(@(Get-ComprovacioExcelAvisos $cxDb $cxRes) | Where-Object { $_.Grup -like 'visita*' }).Count 0 'Comprovar Excel: sense la columna, cap avis de visita (es diu al peu)'
+
+Write-Host "`n--- Comprovar Excel: el MOTIU de la visita (Queixa / Pla de verificacio) ---"
+# L'usuari (octubre 2026): Queixa -> columna 'Inspeccio'; Pla de verificacio ->
+# 'Data control inicial/verificacio'; totes dues -> a totes dues.
+$cxPla = 'Pla de verificaci' + [char]0x00F3
+AssertEq (_ExtractVisitaMotiu @(('Objecte: Visita inspecci' + [char]0x00F3 + ' 22/10/2026 - Queixa'))) 'queixa' '_ExtractVisitaMotiu: Queixa'
+AssertEq (_ExtractVisitaMotiu @(('Objecte: Visita inspecci' + [char]0x00F3 + ' 22/10/2026 - ' + $cxPla + ' 2026'))) 'pla' '_ExtractVisitaMotiu: Pla de verificacio'
+AssertEq (_ExtractVisitaMotiu @(('Objecte: Visita inspecci' + [char]0x00F3 + ' 22/10/2026 - Queixa + ' + $cxPla + ' 2026'))) 'queixa+pla' '_ExtractVisitaMotiu: totes dues'
+AssertEq (_ExtractVisitaMotiu @(('Objecte: Visita inspecci' + [char]0x00F3 + ' 22/10/2026'))) '' '_ExtractVisitaMotiu: un informe d''abans, sense motiu'
+AssertEq (_ExtractVisitaInspeccio @(('Objecte: Visita inspecci' + [char]0x00F3 + ' 22/10/2026 - Queixa + ' + $cxPla + ' 2026'))) '22/10/2026' '_ExtractVisitaInspeccio: amb motiu, la data segueix sent la de la visita (no l''any del pla)'
+$cxDbM = [pscustomobject]@{ activitats = @(
+    [pscustomobject]@{ id_gia = '2001'; titular = 'Q'; carpeta = 'q'; estat_actual = 'Requeriment'; informes = @(
+        [pscustomobject]@{ data = '2026-10-23'; fitxer = 'q.docx'; ignorat = $false; visita = '22/10/2026'; visita_motiu = 'queixa' }) },
+    [pscustomobject]@{ id_gia = '2002'; titular = 'P'; carpeta = 'p'; estat_actual = 'Requeriment'; informes = @(
+        [pscustomobject]@{ data = '2026-10-23'; fitxer = 'p.docx'; ignorat = $false; visita = '22/10/2026'; visita_motiu = 'pla' }) },
+    [pscustomobject]@{ id_gia = '2003'; titular = 'QP'; carpeta = 'qp'; estat_actual = 'Requeriment'; informes = @(
+        [pscustomobject]@{ data = '2026-10-23'; fitxer = 'qp.docx'; ignorat = $false; visita = '22/10/2026'; visita_motiu = 'queixa+pla' }) },
+    [pscustomobject]@{ id_gia = '2004'; titular = 'V'; carpeta = 'v'; estat_actual = 'Requeriment'; informes = @(
+        [pscustomobject]@{ data = '2026-03-01'; fitxer = 'vell.docx'; ignorat = $false; visita = '01/03/2026' },
+        [pscustomobject]@{ data = '2026-10-23'; fitxer = 'nou.docx'; ignorat = $false; visita = '22/10/2026'; visita_motiu = 'pla' }) }) }
+$cxM = @{ '2001' = @(); '2002' = @(); '2003' = @(); '2004' = @() }
+# Cada data a la columna que NO li toca: han d'avisar totes.
+$cxResM = @{ Map = $cxM; DataControl = @{ '2001' = @('22/10/2026') }; ColControl = $true; DataInspeccio = @{ '2002' = @('22/10/2026') }; ColInspeccio = $true }
+AssertEq ((@(Get-ComprovacioExcelAvisos $cxDbM $cxResM) | ForEach-Object { $_.Clau }) -join ' ; ') 'visitaqueixa|2001|22/10/2026 ; visita|2002|22/10/2026 ; visita|2003|22/10/2026 ; visitaqueixa|2003|22/10/2026 ; visita|2004|22/10/2026' 'Comprovar Excel: cada motiu, a la seva columna (la de l''altra no val)'
+# Cada data a la seva columna: cap avis (la visita vella sense motiu no compta).
+$cxResM = @{ Map = $cxM; DataControl = @{ '2002' = @('22/10/2026'); '2003' = @('22/10/2026'); '2004' = @('22/10/2026') }; ColControl = $true; DataInspeccio = @{ '2001' = @('22/10/2026'); '2003' = @('22/10/2026') }; ColInspeccio = $true }
+AssertEq @(Get-ComprovacioExcelAvisos $cxDbM $cxResM).Count 0 'Comprovar Excel: cada motiu a la seva columna -> cap avis; una visita vella sense motiu no torna a avisar'
+# Queixa + Pla nomes a una de les dues: avisa la que falta.
+$cxResM.DataInspeccio = @{ '2001' = @('22/10/2026') }
+AssertEq ((@(Get-ComprovacioExcelAvisos $cxDbM $cxResM) | ForEach-Object { $_.Clau }) -join ' ; ') 'visitaqueixa|2003|22/10/2026' 'Comprovar Excel: Queixa + Pla nomes al control -> falta a ''Inspeccio'''
+# Sense la columna 'Inspeccio', la Queixa no avisa (es diu al peu).
+$cxResM.ColInspeccio = $false
+AssertEq @(@(Get-ComprovacioExcelAvisos $cxDbM $cxResM) | Where-Object { $_.Grup -eq 'visitaqueixa' }).Count 0 'Comprovar Excel: sense la columna Inspeccio, cap avis de Queixa'
+# Un informe d'abans sense motiu, el mes nou: val qualsevol de les dues columnes.
+$cxDbS = [pscustomobject]@{ activitats = @([pscustomobject]@{ id_gia = '2005'; titular = 'S'; carpeta = 's'; estat_actual = 'Requeriment'; informes = @(
+    [pscustomobject]@{ data = '2026-07-25'; fitxer = 's.docx'; ignorat = $false; visita = '24/07/2026' }) }) }
+$cxResS = @{ Map = @{ '2005' = @() }; DataControl = @{}; ColControl = $true; DataInspeccio = @{ '2005' = @('24/07/2026') }; ColInspeccio = $true }
+AssertEq @(Get-ComprovacioExcelAvisos $cxDbS $cxResS).Count 0 'Comprovar Excel: visita sense motiu a la columna Inspeccio -> bé'
+$cxResS.DataInspeccio = @{}
+$cxAvS = @(Get-ComprovacioExcelAvisos $cxDbS $cxResS)
+AssertEq "$($cxAvS.Count)|$($cxAvS[0].Clau)|$($cxAvS[0].Grup)" '1|visita|2005|24/07/2026|visitasense' 'Comprovar Excel: visita sense motiu enlloc -> avisa (mateixa clau que abans: els descartats segueixen)'
+Assert ([string]$cxAvS[0].Text).Contains('hi diu: buit') 'Comprovar Excel: una columna sense res diu "buit"'
+$cxVm = _CxVisitesPerMotiu $cxDbM.activitats[3]
+AssertEq "$($cxVm.Pla.Data)|$($cxVm.Sense.Data)|$($null -eq $cxVm.Queixa)" '22/10/2026|01/03/2026|True' '_CxVisitesPerMotiu: la mes recent de cada motiu'
+# La base desa el motiu, i el torna a llegir.
+$cxJm = _InformeAJson ([pscustomobject]@{ Data = '2026-10-23'; Fitxer = 'f.docx'; Ruta = 'r'; Conclusio = ''; ConclusioBreu = ''; Tipus = ''; Modificat = ''; Ignorat = $false; Motius = @(); EditatAMa = $false; Visita = '22/10/2026'; VisitaMotiu = 'queixa+pla' })
+AssertEq ([string]$cxJm.visita_motiu) 'queixa+pla' '_InformeAJson: desa el motiu de la visita'
+$cxFm = _FlattenInformesDb ([pscustomobject]@{ carpeta_arrel = ''; activitats = @([pscustomobject]@{ id_gia = '1'; titular = 't'; carpeta = 'c'; expedient = ''; informes = @([pscustomobject]@{ ruta = 'a.docx'; data = '2026-01-01'; fitxer = 'a.docx'; visita = '22/10/2026'; visita_motiu = 'pla' }) }) })
+AssertEq ([string]@($cxFm.Values)[0].VisitaMotiu) 'pla' '_FlattenInformesDb: llegeix el motiu de la visita'
 $cxF = _CxFiltraDescartats $cxAv @(@{ Clau = 'precinte|1417'; Text = 't'; El = 'x' }, @{ Clau = 'visita|1416|01/01/2020'; Text = 'vell'; El = 'x' })
 AssertEq "$(@($cxF.Actius).Count)|$(@($cxF.Amagats).Count)|$((@($cxF.Descartats) | ForEach-Object { $_.Clau }) -join ',')" '3|1|precinte|1417' 'descartar: el descartat no surt, i el que ja no avisa es treu de la llista'
 $cxTmp = Join-Path ([System.IO.Path]::GetTempPath()) ('cxdesc-' + [guid]::NewGuid().ToString('N') + '.json')

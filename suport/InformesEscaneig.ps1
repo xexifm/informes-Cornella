@@ -242,6 +242,7 @@ function Get-InformeData($file, $expToGia, $cache, $wordApp = $null, $assignat =
     $giaCarpeta = _GiaFromFolderName $file.FullName
     $exp = _ExtractExpedient $lines
     $visita = _ExtractVisitaInspeccio $lines
+    $visitaMotiu = _ExtractVisitaMotiu $lines
     $font = 'document'
     $giaAssignat = if ($null -ne $assignat) { [string]$assignat.Gia } else { '' }
     if ($giaAssignat -ne '' -and ([bool]$assignat.Forcar -or [string]::IsNullOrWhiteSpace($gia))) {
@@ -294,6 +295,7 @@ function Get-InformeData($file, $expToGia, $cache, $wordApp = $null, $assignat =
         AutoIgnorat       = $false
         NoLlegit          = $false
         Visita            = $visita
+        VisitaMotiu       = $visitaMotiu
     }
 }
 
@@ -356,6 +358,8 @@ function _FlattenInformesDb($db) {
                 # $null = una base d'abans del camp (encara no s'ha mirat); ''
                 # = mirat, i l'informe no es d'una visita.
                 Visita            = $(if ($null -ne $inf.PSObject.Properties['visita']) { [string]$inf.visita } else { $null })
+                # El motiu (Queixa / Pla de verificacio): '' = no en diu cap.
+                VisitaMotiu       = [string](_PropInf $inf 'visita_motiu')
             }
         }
     }
@@ -416,6 +420,8 @@ function _InformeAJson($r) {
     # "mirat, i no es d'una visita" (sense el camp, la passada seguent el mira).
     $vis = _PropInf $r 'Visita'
     if ($null -ne $vis) { Add-Member -InputObject $o -NotePropertyName visita -NotePropertyValue ([string]$vis) }
+    $vm = [string](_PropInf $r 'VisitaMotiu')
+    if ($vm -ne '') { Add-Member -InputObject $o -NotePropertyName visita_motiu -NotePropertyValue $vm }
     $giaFont = [string](_PropInf $r 'GiaFont')
     if ($giaFont -ne '') { Add-Member -InputObject $o -NotePropertyName gia_font -NotePropertyValue $giaFont }
     if ([bool]$r.EditatAMa) {
@@ -679,9 +685,11 @@ function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock
                     try {
                         if ($f.Extension -ieq '.doc') {
                             $ldV = _LiniesDeDoc $f $clau $docCache $word $false
-                            if ($ldV.Llegit) { $r.Visita = _ExtractVisitaInspeccio @($ldV.Linies) }
+                            if ($ldV.Llegit) { $r.Visita = _ExtractVisitaInspeccio @($ldV.Linies); $r.VisitaMotiu = _ExtractVisitaMotiu @($ldV.Linies) }
                         } else {
-                            $r.Visita = _ExtractVisitaInspeccio @(_ReadInformeParagraphs $f $null)
+                            $lnV = @(_ReadInformeParagraphs $f $null)
+                            $r.Visita = _ExtractVisitaInspeccio $lnV
+                            $r.VisitaMotiu = _ExtractVisitaMotiu $lnV
                         }
                     } catch { }
                 }

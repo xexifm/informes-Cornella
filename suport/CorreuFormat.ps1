@@ -319,7 +319,7 @@ function _CorreuCapcaleraHtml($linies, $fmt, [string]$titol = '') {
 # dades, amb les MATEIXES plantilles que el munten ($Script:OrigenPlantilles,
 # MotorInforme.ps1). Un text que no encaixa amb cap torna ORIGEN_TIPUS = ''.
 function _OrigenDesDeText([string]$text) {
-    $res = @{ ORIGEN_TIPUS = ''; NUM_ANOTACIO = ''; DATA_ANOTACIO = ''; DATA_INSPECCIO = '' }
+    $res = @{ ORIGEN_TIPUS = ''; NUM_ANOTACIO = ''; DATA_ANOTACIO = ''; DATA_INSPECCIO = ''; MOTIU_VISITA = '' }
     $t = ([string]$text).Trim()
     if ([string]::IsNullOrWhiteSpace($t)) { return $res }
     foreach ($tipus in @('doc', 'insp')) {
@@ -335,6 +335,11 @@ function _OrigenDesDeText([string]$text) {
         $res.ORIGEN_TIPUS = $tipus
         foreach ($g in @('NUM_ANOTACIO', 'DATA_ANOTACIO', 'DATA_INSPECCIO')) {
             if ($mt.Groups[$g].Success) { $res[$g] = $mt.Groups[$g].Value.Trim() }
+        }
+        # "22/10/2026 - Queixa + Pla de verificacio 2026": la data i el motiu.
+        if ($tipus -eq 'insp') {
+            $parts = $res.DATA_INSPECCIO -split '\s+-\s+', 2
+            if ($parts.Count -eq 2) { $res.DATA_INSPECCIO = $parts[0].Trim(); $res.MOTIU_VISITA = _MotiuVisitaNet $parts[1] }
         }
         return $res
     }

@@ -408,7 +408,7 @@
     var o = {
       ORIGEN_TIPUS: h.ORIGEN_TIPUS || "insp",
       NUM_ANOTACIO: h.NUM_ANOTACIO || "", DATA_ANOTACIO: h.DATA_ANOTACIO || "",
-      DATA_INSPECCIO: h.DATA_INSPECCIO || avui
+      DATA_INSPECCIO: h.DATA_INSPECCIO || avui, MOTIU_VISITA: h.MOTIU_VISITA || ""
     };
     var valors = {};
     Object.keys(h).forEach(function (k) { valors[k] = h[k]; });
@@ -465,7 +465,7 @@
   var PASSOS = ["cataleg", "capcalera", "deficiencies", "conclusions", "final"];
   var passActual = 0;
 
-  var HEADER_KEYS = ["ID_GIA", "EXP_NUM", "TITULAR", "ADRECA", "ACTIVITAT", "ORIGEN_TIPUS", "NUM_ANOTACIO", "DATA_ANOTACIO", "DATA_INSPECCIO"];
+  var HEADER_KEYS = ["ID_GIA", "EXP_NUM", "TITULAR", "ADRECA", "ACTIVITAT", "ORIGEN_TIPUS", "NUM_ANOTACIO", "DATA_ANOTACIO", "DATA_INSPECCIO", "MOTIU_VISITA"];
 
   // Claus de capcalera que NO es mostren al bloc generic "opcional".
   //
@@ -477,7 +477,7 @@
   // Sense aixo el mobil pintava tres quadres de text que no anaven enlloc: el
   // que s'hi escrivia el trepitjava el PC en generar, o no s'usava mai.
   var HEADER_SKIP_GENERIC = {
-    ID_GIA: 1, ORIGEN_TIPUS: 1, NUM_ANOTACIO: 1, DATA_ANOTACIO: 1, DATA_INSPECCIO: 1,
+    ID_GIA: 1, ORIGEN_TIPUS: 1, NUM_ANOTACIO: 1, DATA_ANOTACIO: 1, DATA_INSPECCIO: 1, MOTIU_VISITA: 1,
     ORIGEN: 1, DATES: 1, CLASSIFICACIO: 1
   };
 
@@ -669,6 +669,22 @@
       cont.appendChild(lbl);
       cont.appendChild(inp);
     });
+    // EL MOTIU DE LA VISITA (Queixa, Pla de verificació o totes dues): va a
+    // l'Objecte i Excel Comprovar el mira (_MotiuVisitaText, MotorInforme.ps1).
+    if (estat.header.ORIGEN_TIPUS !== "doc") {
+      var m = String(estat.header.MOTIU_VISITA || "");
+      cont.appendChild(Object.assign(document.createElement("label"), { textContent: "Motiu de la visita" }));
+      [["queixa", "Queixa"], ["pla", "Pla de verificació (l'any de la visita)"]].forEach(function (o) {
+        var lab = document.createElement("label"), cb = document.createElement("input");
+        lab.className = "confirm"; cb.type = "checkbox"; cb.id = "motiu-" + o[0]; cb.checked = m.indexOf(o[0]) >= 0;
+        cb.addEventListener("change", function () {
+          var q = $("motiu-queixa").checked, p = $("motiu-pla").checked;
+          estat.header.MOTIU_VISITA = q && p ? "queixa+pla" : (q ? "queixa" : (p ? "pla" : ""));
+          if (q || p) avisNav("");
+        });
+        lab.appendChild(cb); lab.appendChild(document.createTextNode(" " + o[1])); cont.appendChild(lab);
+      });
+    }
   }
 
   function omplirCapcalera(act) {
@@ -1151,6 +1167,7 @@
       // em dona cap avís»; el de dalt, sota l'ID GIA, no es veia).
       if (!$("in-gia").value.trim()) return avisNav("Cal un ID GIA.");
       if (!$("chk-titular").checked) return avisNav("Marca «Confirmo que les dades del titular són correctes» per continuar.");
+      if (estat.header.ORIGEN_TIPUS !== "doc" && !estat.header.MOTIU_VISITA) return avisNav("Marca el motiu de la visita: Queixa, Pla de verificació o totes dues.");
     }
     if (p === "deficiencies") {
       recollirKeysDelDOM();

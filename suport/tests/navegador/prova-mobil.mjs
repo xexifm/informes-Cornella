@@ -134,6 +134,20 @@ try {
   await p.check('#chk-titular');
   check(!(await p.isVisible('#msg-nav')), 'en marcar la casella, l\'avís se\'n va');
 
+  seccio('Visita d\'inspecció: el motiu (Queixa / Pla de verificació)');
+  check(await p.isVisible('#motiu-queixa') && await p.isVisible('#motiu-pla'), 'amb Visita d\'inspecció, surten les caselles Queixa i Pla de verificació');
+  await p.click('#btn-seguent');
+  check(await p.isVisible('#pas-capcalera') && (await p.textContent('#msg-nav')).includes('Marca el motiu de la visita'), 'sense cap motiu no avança, i ho diu sobre el botó');
+  await p.check('#motiu-queixa');
+  check(!(await p.isVisible('#msg-nav')), 'en marcar-ne un, l\'avís se\'n va');
+  await p.check('#motiu-pla');
+  eq(await p.evaluate(() => Correu.origenText({ insp: 'Visita inspecció <<DATA_INSPECCIO>>' }, { ORIGEN_TIPUS: 'insp', DATA_INSPECCIO: '22/10/2026', MOTIU_VISITA: 'queixa+pla' })),
+    'Visita inspecció 22/10/2026 - Queixa + Pla de verificació 2026', 'l\'Objecte: «Visita inspecció 22/10/2026 - Queixa + Pla de verificació 2026»');
+  await p.check('input[name=origen][value=doc]');
+  check(!(await p.isVisible('#motiu-queixa')), 'amb Documentació aportada, no hi ha motiu');
+  await p.check('input[name=origen][value=insp]');
+  check(await p.isChecked('#motiu-queixa') && await p.isChecked('#motiu-pla'), 'en tornar a Visita, el motiu triat es conserva (queixa+pla)');
+
   seccio('La CCO del mòbil: la de sempre marcada i les de triar, desmarcades');
   const cco = await p.evaluate(() => new Promise((ok) => {
     const c = document.createElement('div'); document.body.appendChild(c);

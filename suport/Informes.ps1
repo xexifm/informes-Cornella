@@ -120,6 +120,21 @@ function _ExtractVisitaInspeccio($lines) {
     return ''
 }
 
+# El MOTIU de la visita, de la mateixa linia "Objecte: Visita inspeccio
+# 22/10/2026 - Queixa + Pla de verificacio 2026" (_MotiuVisitaText):
+# 'queixa', 'pla', 'queixa+pla', o '' si no en diu cap (els informes d'abans
+# d'octubre 2026). PURA.
+function _ExtractVisitaMotiu($lines) {
+    foreach ($ln in @($lines)) {
+        $nt = _NormalitzaText ([string]$ln)
+        if ($nt -notmatch '^objecte\b' -or $nt -notmatch 'visita') { continue }
+        $parts = ([string]$ln) -split '\s+-\s+', 2
+        if ($parts.Count -lt 2) { return '' }
+        return (_MotiuVisitaNet $parts[1])
+    }
+    return ''
+}
+
 # Totes les dates d'un text ('24/07/2026', '24-7-26', '1.10.2026'), com a
 # 'dd/MM/yyyy', en ordre i sense repetides; les impossibles (31/02) fora.
 # Array PLA. PURA.

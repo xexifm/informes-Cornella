@@ -351,6 +351,21 @@ AssertEq (_BuildOrigenText @{ NUM_ANOTACIO='A-9'; DATA_ANOTACIO='01/01/2026' }) 
 AssertEq (_BuildOrigenText @{ ORIGEN_TIPUS='insp'; DATA_INSPECCIO='' }) `
     ("Visita inspecci${oG} ") '_BuildOrigenText insp sense data -> nomes el prefix'
 AssertEq (_BuildOrigenText @{ ORIGEN_TIPUS='cap' }) '' '_BuildOrigenText cap -> buit (sense Objecte)'
+# El MOTIU de la visita (octubre 2026): darrere de la data, i el Pla porta
+# l'any de la visita (2026 ara; 2027 l'any vinent).
+$plaG = "Pla de verificaci${oG}"
+AssertEq (_BuildOrigenText @{ ORIGEN_TIPUS='insp'; DATA_INSPECCIO='22/10/2026'; MOTIU_VISITA='queixa' }) `
+    ("Visita inspecci${oG} 22/10/2026 - Queixa") '_BuildOrigenText insp + Queixa'
+AssertEq (_BuildOrigenText @{ ORIGEN_TIPUS='insp'; DATA_INSPECCIO='22/10/2026'; MOTIU_VISITA='pla' }) `
+    ("Visita inspecci${oG} 22/10/2026 - $plaG 2026") '_BuildOrigenText insp + Pla de verificacio (any de la visita)'
+AssertEq (_BuildOrigenText @{ ORIGEN_TIPUS='insp'; DATA_INSPECCIO='12/01/2027'; MOTIU_VISITA='queixa+pla' }) `
+    ("Visita inspecci${oG} 12/01/2027 - Queixa + $plaG 2027") '_BuildOrigenText insp + totes dues (l''any canvia amb la visita)'
+AssertEq (_BuildOrigenText @{ ORIGEN_TIPUS='doc'; NUM_ANOTACIO='A-1'; DATA_ANOTACIO='01/01/2026'; MOTIU_VISITA='queixa' }) `
+    ("Doc. aportada amb N${uG}m. d${apG}anotaci${oG} A-1 del 01/01/2026") '_BuildOrigenText doc: el motiu no hi surt'
+AssertEq (_MotiuVisitaText 'pla' '' 2031) "$plaG 2031" '_MotiuVisitaText: sense data, l''any per defecte'
+AssertEq (_MotiuVisitaText '' '22/10/2026') '' '_MotiuVisitaText: sense motiu, buit'
+AssertEq ((@('Queixa', "$plaG 2026", "queixa + $plaG 2026", 'QUEIXA+PLA', 'plaça', '') | ForEach-Object { _MotiuVisitaNet $_ }) -join ',') 'queixa,pla,queixa+pla,queixa+pla,,' '_MotiuVisitaNet: tolera majuscules i accents; "plaça" no es el pla'
+AssertEq ((@(@($true,$false), @($false,$true), @($true,$true), @($false,$false)) | ForEach-Object { _MotiuVisitaDeCaselles $_[0] $_[1] }) -join ',') 'queixa,pla,queixa+pla,' '_MotiuVisitaDeCaselles: les dues caselles del Pas 2'
 
 Write-Host "`n--- Camps detectats a conclusions (Add-FieldsFromConclusions) ---"
 $fc = [ordered]@{}

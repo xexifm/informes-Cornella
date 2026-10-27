@@ -75,13 +75,19 @@ function _ReadExcelCampInfoPerGia {
         return (Read-FullaEstesa $latest.File {
             param($x)
             $data = $x.Data; $rows = $x.Rows; $cols = $x.Cols; $headers = $x.Headers
-            if ($null -eq $data) { return @{ Ok = $true; Map = @{}; DataControl = @{}; ColControl = $false } }
+            if ($null -eq $data) { return @{ Ok = $true; Map = @{}; DataControl = @{}; ColControl = $false; DataInspeccio = @{}; ColInspeccio = $false } }
             $pairs = _FindCampInfoPairs $headers
             # La data del control (Excel Comprovar mira que hi consti la de la
             # visita d'inspeccio de l'informe). 0 si la columna no hi es.
             $colCtl = _FindColIndex $data $cols @('data control inicial') $null
+            # La de les QUEIXES: 'Inspeccio', EXACTA (n'hi ha d'altres que porten
+            # la paraula). 0 si no hi es.
+            $colIns = 0
+            $hdr = @($headers)
+            for ($ci = 0; $ci -lt $hdr.Count; $ci++) { if ((_NormalitzaText ([string]$hdr[$ci])).Trim() -eq 'inspeccio') { $colIns = $ci + 1; break } }
             $map = @{}
             $ctl = @{}
+            $ins = @{}
             for ($r = 2; $r -le $rows; $r++) {
                 $cell = $data[$r, 1]
                 if ($null -eq $cell) { continue }
@@ -98,8 +104,9 @@ function _ReadExcelCampInfoPerGia {
                 }
                 $map[$gia] = $list
                 if ($colCtl -gt 0) { $ctl[$gia] = @(_DatesDeCella $data[$r, $colCtl]) }
+                if ($colIns -gt 0) { $ins[$gia] = @(_DatesDeCella $data[$r, $colIns]) }
             }
-            return @{ Ok = $true; Map = $map; DataControl = $ctl; ColControl = ($colCtl -gt 0) }
+            return @{ Ok = $true; Map = $map; DataControl = $ctl; ColControl = ($colCtl -gt 0); DataInspeccio = $ins; ColInspeccio = ($colIns -gt 0) }
         })
     } catch {
         return @{ Ok = $false; Error = $_.Exception.Message }
@@ -123,19 +130,30 @@ function _DatesDeCella($v) {
     return @(_DatesDelText ([string]$v))
 }
 
-# La VISITA D'INSPECCIO mes recent d'una activitat de la base d'informes (de
-# 'informes', sense els ignorats): @{ Data; Fitxer } o $null. PURA.
-function _CxVisitaMesRecent($act) {
-    $millor = $null; $millorDt = [datetime]::MinValue
+# LES VISITES PER MOTIU (octubre 2026). L'usuari: la data d'una visita per una
+# QUEIXA ha de constar a la columna 'Inspeccio' de l'Excel, i la d'una visita
+# del PLA DE VERIFICACIO, a 'Data control inicial/verificacio'; si es per totes
+# dues, a totes dues. El motiu surt de l'Objecte de l'informe
+# (_ExtractVisitaMotiu, camp 'visita_motiu' de la base). Torna la mes recent de
+# cada: @{ Queixa; Pla; Sense } (@{ Data; Fitxer; Dt } o $null). 'Sense' = un
+# informe d'abans, que no diu el motiu. PURA.
+function _CxVisitesPerMotiu($act) {
+    $out = @{ Queixa = $null; Pla = $null; Sense = $null }
     foreach ($inf in @($act.informes)) {
         if ($null -eq $inf -or [bool](_PropInf $inf 'ignorat')) { continue }
         $v = [string](_PropInf $inf 'visita')
         if (-not $v) { continue }
         $dt = [datetime]::MinValue
         if (-not [datetime]::TryParseExact($v, 'dd/MM/yyyy', [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::None, [ref]$dt)) { continue }
-        if ($dt -gt $millorDt) { $millorDt = $dt; $millor = @{ Data = $v; Fitxer = [string]$inf.fitxer } }
+        $m = _MotiuVisitaNet ([string](_PropInf $inf 'visita_motiu'))
+        $vis = @{ Data = $v; Fitxer = [string]$inf.fitxer; Dt = $dt }
+        $quins = @()
+        if ($m -match 'queixa') { $quins += 'Queixa' }
+        if ($m -match 'pla') { $quins += 'Pla' }
+        if ($m -eq '') { $quins += 'Sense' }
+        foreach ($q in $quins) { if ($null -eq $out[$q] -or $dt -gt $out[$q].Dt) { $out[$q] = $vis } }
     }
-    return $millor
+    return $out
 }
 
 # TOTS ELS AVISOS de la comprovacio, cadascun amb una CLAU que no canvia d'una
@@ -145,15 +163,20 @@ function _CxVisitaMesRecent($act) {
 #   precinte  activitat en Precinte / Cessament sense el Camp Info amb SI
 #   notrobat  aquella activitat no es a l'Excel
 #   sensegia  aquella activitat no te GIA a la base
-#   visita    la data de la darrera visita d'inspeccio ("Objecte: Visita
-#             inspeccio 24/07/2026") no consta a 'Data control inicial/verificacio'
-#             (l'usuari, octubre 2026). Nomes la DARRERA: la columna es de data
-#             de control i en porta la mes nova; les visites d'abans no hi han de
-#             ser per forca. La clau porta la data: una visita nova torna a avisar.
+#   visita       la darrera visita del PLA DE VERIFICACIO ("Objecte: Visita
+#                inspeccio 24/07/2026 - Pla de verificacio 2026") no consta a
+#                'Data control inicial/verificacio'
+#   visitaqueixa la darrera visita per QUEIXA no consta a 'Inspeccio'
+#   visitasense  un informe d'abans (sense motiu), si es la visita mes nova:
+#                ha de constar a l'una o a l'altra columna
+#   Nomes la DARRERA de cada: les columnes porten la data mes nova; les visites
+#   d'abans no hi han de ser per forca. La clau porta la data: una visita nova
+#   torna a avisar.
 function Get-ComprovacioExcelAvisos($db, $res) {
     $out = New-Object System.Collections.ArrayList
     $map = $res.Map
     $ctl = $res.DataControl
+    $ins = if ($null -ne $res.DataInspeccio) { $res.DataInspeccio } else { @{} }
     foreach ($act in @($db.activitats)) {
         if ($null -eq $act) { continue }
         $gia = [string]$act.id_gia
@@ -171,13 +194,28 @@ function Get-ComprovacioExcelAvisos($db, $res) {
                 [void]$out.Add(@{ Clau = ('precinte|' + $gia); Grup = 'precinte'; Text = $t })
             }
         }
-        if ([string]::IsNullOrWhiteSpace($gia) -or -not [bool]$res.ColControl -or -not $map.ContainsKey($gia)) { continue }
-        $vis = _CxVisitaMesRecent $act
-        if ($null -eq $vis) { continue }
-        $dates = @($ctl[$gia])
-        if ($dates -contains [string]$vis.Data) { continue }
-        $hi = if ($dates.Count -gt 0) { $dates -join ', ' } else { 'buit' }
-        [void]$out.Add(@{ Clau = ('visita|' + $gia + '|' + [string]$vis.Data); Grup = 'visita'; Text = ($etiq + " - visita " + [string]$vis.Data + " (" + [string]$vis.Fitxer + "); a l'Excel hi diu: " + $hi) })
+        if ([string]::IsNullOrWhiteSpace($gia) -or -not $map.ContainsKey($gia)) { continue }
+        $vm = _CxVisitesPerMotiu $act
+        $ctlD = @(@($ctl[$gia]) | Where-Object { $_ }); $insD = @(@($ins[$gia]) | Where-Object { $_ })
+        $hiDiu = { param($d) if (@($d).Count -gt 0) { @($d) -join ', ' } else { 'buit' } }
+        $nomCtl = "'Data control inicial/verificaci" + [char]0x00F3 + "'"
+        $nomIns = "'Inspecci" + [char]0x00F3 + "'"
+        # Pla de verificacio -> 'Data control inicial/verificacio'.
+        if ($null -ne $vm.Pla -and [bool]$res.ColControl -and $ctlD -notcontains [string]$vm.Pla.Data) {
+            [void]$out.Add(@{ Clau = ('visita|' + $gia + '|' + [string]$vm.Pla.Data); Grup = 'visita'; Text = ($etiq + " - visita Pla de verificaci" + [char]0x00F3 + " " + [string]$vm.Pla.Data + " (" + [string]$vm.Pla.Fitxer + "); a " + $nomCtl + " hi diu: " + (& $hiDiu $ctlD)) })
+        }
+        # Queixa -> 'Inspeccio'.
+        if ($null -ne $vm.Queixa -and [bool]$res.ColInspeccio -and $insD -notcontains [string]$vm.Queixa.Data) {
+            [void]$out.Add(@{ Clau = ('visitaqueixa|' + $gia + '|' + [string]$vm.Queixa.Data); Grup = 'visitaqueixa'; Text = ($etiq + " - visita Queixa " + [string]$vm.Queixa.Data + " (" + [string]$vm.Queixa.Fitxer + "); a " + $nomIns + " hi diu: " + (& $hiDiu $insD)) })
+        }
+        # Un informe d'ABANS, sense motiu: nomes si es la visita mes nova, i val
+        # qualsevol de les dues columnes (no se sap quina li toca). Mateixa clau
+        # que abans: els avisos ja descartats segueixen descartats.
+        $s = $vm.Sense
+        $mesNova = ($null -ne $s) -and ($null -eq $vm.Pla -or $s.Dt -gt $vm.Pla.Dt) -and ($null -eq $vm.Queixa -or $s.Dt -gt $vm.Queixa.Dt)
+        if ($mesNova -and ([bool]$res.ColControl -or [bool]$res.ColInspeccio) -and $ctlD -notcontains [string]$s.Data -and $insD -notcontains [string]$s.Data) {
+            [void]$out.Add(@{ Clau = ('visita|' + $gia + '|' + [string]$s.Data); Grup = 'visitasense'; Text = ($etiq + " - visita " + [string]$s.Data + " (" + [string]$s.Fitxer + ", sense motiu); a " + $nomCtl + " hi diu: " + (& $hiDiu $ctlD) + $(if ([bool]$res.ColInspeccio) { "; a " + $nomIns + ": " + (& $hiDiu $insD) } else { '' })) })
+        }
     }
     return $out.ToArray()
 }
@@ -235,14 +273,16 @@ function _CxFiltraDescartats($avisos, $descartats) {
 # Els titols de cada grup, en l'ordre en que surten.
 $Script:CxGrups = [ordered]@{
     precinte = ("DESACTUALITZADES a l'Excel (precinte sense el Camp Info amb SI)")
-    visita   = ("VISITA D'INSPECCIO que no consta a 'Data control inicial/verificaci" + [char]0x00F3 + "'")
+    visita   = ("VISITA del PLA DE VERIFICACIO que no consta a 'Data control inicial/verificaci" + [char]0x00F3 + "'")
+    visitaqueixa = ("VISITA per una QUEIXA que no consta a 'Inspecci" + [char]0x00F3 + "'")
+    visitasense  = ("VISITA d'un informe sense motiu (d'abans) que no consta ni a 'Data control inicial/verificaci" + [char]0x00F3 + "' ni a 'Inspecci" + [char]0x00F3 + "'")
     notrobat = ("NO trobades a l'Excel (GIA inexistent a la fulla Est" + [char]0x00E8 + "s)")
     sensegia = ("NO verificables (activitat sense GIA a la base d'informes)")
 }
 
 # El text d'un avis a la llista: el grup al davant. PURA.
 function _CxTextLlista($a) {
-    $g = switch ([string]$a.Grup) { 'precinte' { 'Precinte' } 'visita' { 'Visita' } 'notrobat' { 'No trobada' } default { 'Sense GIA' } }
+    $g = switch ([string]$a.Grup) { 'precinte' { 'Precinte' } 'visita' { 'Visita (Pla)' } 'visitaqueixa' { 'Visita (Queixa)' } 'visitasense' { 'Visita' } 'notrobat' { 'No trobada' } default { 'Sense GIA' } }
     return ('[' + $g + '] ' + [string]$a.Text)
 }
 
@@ -351,11 +391,9 @@ function Invoke-ComprovarExcel {
     $nPrec = @($db.activitats | Where-Object { [string]$_.estat_actual -eq $Script:EstatPrecinte }).Count
     $sb = New-Object System.Text.StringBuilder
     [void]$sb.AppendLine(("Precintes: les {0} activitats en Estat '{1}' han de tenir a l'Excel un Camp Info {2} amb valor que comenci per SI." -f $nPrec, $Script:EstatPrecinte, (_ExcelPrecinteCampsText)))
-    if ([bool]$res.ColControl) {
-        [void]$sb.AppendLine("Visites: la data de la darrera 'Visita inspecci" + [char]0x00F3 + "' de cada activitat ha de constar a la columna 'Data control inicial/verificaci" + [char]0x00F3 + "'. (Els informes d'abans es miren a Actualitzar base.)")
-    } else {
-        [void]$sb.AppendLine("Visites: NO s'ha trobat la columna 'Data control inicial/verificaci" + [char]0x00F3 + "' a la fulla Est" + [char]0x00E8 + "s; no s'han pogut comprovar.")
-    }
+    [void]$sb.AppendLine("Visites: la darrera visita del Pla de verificaci" + [char]0x00F3 + " ha de constar a 'Data control inicial/verificaci" + [char]0x00F3 + "', i la darrera per una Queixa, a 'Inspecci" + [char]0x00F3 + "' (el motiu surt de l'Objecte de l'informe; els informes d'abans, sense motiu, valen a qualsevol de les dues).")
+    if (-not [bool]$res.ColControl) { [void]$sb.AppendLine("   NO s'ha trobat la columna 'Data control inicial/verificaci" + [char]0x00F3 + "' a la fulla Est" + [char]0x00E8 + "s.") }
+    if (-not [bool]$res.ColInspeccio) { [void]$sb.AppendLine("   NO s'ha trobat la columna 'Inspecci" + [char]0x00F3 + "' a la fulla Est" + [char]0x00E8 + "s.") }
     $campsExcel = @(_ExcelCampsPrecinteTrobats $res.Map)
     if ($campsExcel.Count -gt 0) {
         [void]$sb.AppendLine("Camps de l'Excel que parlen de precinte o decret (per si s'han reanomenat):")

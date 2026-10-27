@@ -137,6 +137,44 @@ $Script:OrigenPlantilles = [ordered]@{
     insp = ('Visita inspecci' + [char]0x00F3 + ' <<DATA_INSPECCIO>>')
 }
 
+# EL MOTIU DE LA VISITA (octubre 2026). L'usuari: "he de poder diferenciar si
+# aquella visita es per una Queixa o pel Pla de verificacio 2026 [...] tambe
+# hi ha d'haver l'opcio que sigui per totes dues (aprofito la queixa per fer el
+# control inicial)". Va a la capcalera (MOTIU_VISITA = 'queixa', 'pla' o
+# 'queixa+pla') i al text de l'Objecte:
+#   Visita inspeccio 22/10/2026 - Queixa
+#   Visita inspeccio 22/10/2026 - Pla de verificacio 2026
+#   Visita inspeccio 22/10/2026 - Queixa + Pla de verificacio 2026
+# Excel Comprovar el llegeix de l'informe: la queixa ha de constar a la columna
+# 'Inspeccio' de l'Excel i el pla, a 'Data control inicial/verificacio'.
+# L'any del pla es el de la data de la visita. La copia del mobil es
+# docs\correu.js (motiuVisitaText; prova creuada).
+$Script:MotiuVisitaTextos = [ordered]@{ queixa = 'Queixa'; pla = ('Pla de verificaci' + [char]0x00F3) }
+
+# 'queixa', 'pla', 'queixa+pla' o '' a partir de qualsevol text que en parli
+# (el valor desat, o el text de l'Objecte). PURA.
+function _MotiuVisitaNet([string]$m) {
+    $n = _NormalitzaText ([string]$m)
+    $q = $n -match 'queixa'
+    $p = ($n -match '\bpla\b')
+    if ($q -and $p) { return 'queixa+pla' }
+    if ($q) { return 'queixa' }
+    if ($p) { return 'pla' }
+    return ''
+}
+
+# El text del motiu ('' si no n'hi ha). $dataInsp: 'dd/MM/yyyy' (l'any del pla);
+# sense data, $anyDefecte. PURA.
+function _MotiuVisitaText([string]$motiu, [string]$dataInsp, [int]$anyDefecte = 0) {
+    $m = _MotiuVisitaNet $motiu
+    if ($m -eq '') { return '' }
+    $any = if ([string]$dataInsp -match '(\d{4})\s*$') { $Matches[1] } elseif ($anyDefecte -gt 0) { [string]$anyDefecte } else { [string](Get-Date).Year }
+    $parts = @()
+    if ($m -match 'queixa') { $parts += [string]$Script:MotiuVisitaTextos['queixa'] }
+    if ($m -match 'pla') { $parts += ([string]$Script:MotiuVisitaTextos['pla'] + ' ' + $any) }
+    return ($parts -join ' + ')
+}
+
 function _BuildOrigenText($header) {
     $get = {
         param($k)
@@ -148,7 +186,13 @@ function _BuildOrigenText($header) {
     $tipus = (& $get 'ORIGEN_TIPUS'); if ([string]::IsNullOrWhiteSpace($tipus)) { $tipus = 'doc' }
     if ($tipus -eq 'cap')  { return '' }
     $pl = if ($tipus -eq 'insp') { [string]$Script:OrigenPlantilles['insp'] } else { [string]$Script:OrigenPlantilles['doc'] }
-    return [regex]::Replace($pl, '<<([A-Za-z0-9_]+)>>', { param($m) (& $get $m.Groups[1].Value) })
+    $txt = [regex]::Replace($pl, '<<([A-Za-z0-9_]+)>>', { param($m) (& $get $m.Groups[1].Value) })
+    # El motiu, darrere de la data (nomes a les visites).
+    if ($tipus -eq 'insp') {
+        $mt = _MotiuVisitaText (& $get 'MOTIU_VISITA') (& $get 'DATA_INSPECCIO')
+        if ($mt -ne '') { $txt += ' - ' + $mt }
+    }
+    return $txt
 }
 
 function Apply-HeaderReplacements($doc, $header) {

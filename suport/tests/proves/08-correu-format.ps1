@@ -72,6 +72,8 @@ AssertEq "$($cfIns.ORIGEN_TIPUS)|$($cfIns.DATA_INSPECCIO)" 'insp|29/09/2026' '_O
 $cfApo = _OrigenDesDeText ("Doc. aportada amb N" + [char]0x00FA + "m. d'anotaci" + [char]0x00F3 + " 43294 del 07/09/2026")
 AssertEq $cfApo.NUM_ANOTACIO '43294' '_OrigenDesDeText: tambe amb l''apostrof recte (el Word el pot canviar)'
 AssertEq (_OrigenDesDeText 'Qualsevol altra cosa').ORIGEN_TIPUS '' '_OrigenDesDeText: un text que no encaixa no s''inventa l''origen'
+$cfMot = _OrigenDesDeText (_BuildOrigenText @{ ORIGEN_TIPUS = 'insp'; DATA_INSPECCIO = '22/10/2026'; MOTIU_VISITA = 'queixa+pla' })
+AssertEq "$($cfMot.ORIGEN_TIPUS)|$($cfMot.DATA_INSPECCIO)|$($cfMot.MOTIU_VISITA)" 'insp|22/10/2026|queixa+pla' '_OrigenDesDeText: la visita amb motiu torna la data neta i el motiu'
 $cfTx = @{ introDoc = 'D {NUM_ANOTACIO} {DATA_ANOTACIO}'; introDocSenseAnotacio = 'DS'; introInsp = 'V {DATA_INSPECCIO}' }
 AssertEq (_CorreuIntro $cfTx $cfDoc '01/01/2027') 'D 21327 30/04/2026' '_CorreuIntro: documentacio aportada, amb num. i data d''anotacio'
 AssertEq (_CorreuIntro $cfTx @{ ORIGEN_TIPUS = 'doc'; NUM_ANOTACIO = '' } '01/01/2027') 'DS' '_CorreuIntro: documentacio aportada sense anotacio'
@@ -241,9 +243,13 @@ if ($null -eq $cfNode) {
         $cfCapPc = _CorreuCapcaleraHtml $cfLinCap $cfFmt 'INFORME'
         $cfCosPc = _CorreuCosAHtml "{CAPCALERA}`n`nHola {X} !!vermell!!`n{REQUERIMENTS}`nhttps://seu.cat/a?b=1&c=2" { param($s) $s.Replace('{X}', 'Y') } 'CAP' 'REQ' $cfFmt
 
+        # L'Objecte amb el MOTIU de la visita (octubre 2026): el mateix al mobil i al PC.
+        $cfOrig = @(@{ ORIGEN_TIPUS = 'insp'; DATA_INSPECCIO = '22/10/2026'; MOTIU_VISITA = 'queixa' }, @{ ORIGEN_TIPUS = 'insp'; DATA_INSPECCIO = '22/10/2026'; MOTIU_VISITA = 'pla' },
+            @{ ORIGEN_TIPUS = 'insp'; DATA_INSPECCIO = '12/01/2027'; MOTIU_VISITA = 'queixa+pla' }, @{ ORIGEN_TIPUS = 'insp'; DATA_INSPECCIO = '22/10/2026'; MOTIU_VISITA = '' },
+            @{ ORIGEN_TIPUS = 'doc'; NUM_ANOTACIO = 'E/1'; DATA_ANOTACIO = '01/10/2026'; MOTIU_VISITA = 'queixa' })
         $cfTmp = Join-Path ([System.IO.Path]::GetTempPath()) ('correu-creuat-' + [Guid]::NewGuid().ToString('N'))
         New-Item -ItemType Directory -Path $cfTmp -Force | Out-Null
-        [System.IO.File]::WriteAllText((Join-Path $cfTmp 'in.json'), (([ordered]@{ Sel = $cfSel; Cap = $cfLinCap } | ConvertTo-Json -Depth 12)), (New-Object System.Text.UTF8Encoding($false)))
+        [System.IO.File]::WriteAllText((Join-Path $cfTmp 'in.json'), (([ordered]@{ Sel = $cfSel; Cap = $cfLinCap; Orig = $cfOrig; Plant = $Script:OrigenPlantilles } | ConvertTo-Json -Depth 12)), (New-Object System.Text.UTF8Encoding($false)))
         $cfJs = @"
 var C = require(process.argv[2]), fs = require('fs');
 var inp = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'));
@@ -256,7 +262,8 @@ var blocs = C.blocsDeSeleccio(sel, function (n) { return arr(n.BodyLines); });
 fs.writeFileSync(process.argv[5], JSON.stringify({
   req: C.blocsAHtml(blocs, fmt),
   cap: C.capcaleraHtml(arr(inp.Cap), fmt, 'INFORME'),
-  cos: C.cosAHtml('{CAPCALERA}\n\nHola {X} !!vermell!!\n{REQUERIMENTS}\nhttps://seu.cat/a?b=1&c=2', function (s) { return s.replace('{X}', 'Y'); }, 'CAP', 'REQ', fmt)
+  cos: C.cosAHtml('{CAPCALERA}\n\nHola {X} !!vermell!!\n{REQUERIMENTS}\nhttps://seu.cat/a?b=1&c=2', function (s) { return s.replace('{X}', 'Y'); }, 'CAP', 'REQ', fmt),
+  orig: arr(inp.Orig).map(function (h) { return C.origenText(inp.Plant, h); })
 }));
 "@
         [System.IO.File]::WriteAllText((Join-Path $cfTmp 't.js'), $cfJs, (New-Object System.Text.UTF8Encoding($false)))
@@ -269,6 +276,7 @@ fs.writeFileSync(process.argv[5], JSON.stringify({
         AssertEq ([string]$cfOut.req) $cfHtmlPc 'creuat: els requeriments, IGUALS al mobil i al PC'
         AssertEq ([string]$cfOut.cap) $cfCapPc 'creuat: la capcalera, IGUAL al mobil i al PC'
         AssertEq ([string]$cfOut.cos) $cfCosPc 'creuat: el cos del correu, IGUAL al mobil i al PC'
+        AssertEq ((@($cfOut.orig)) -join ' | ') ((@($cfOrig | ForEach-Object { _BuildOrigenText $_ })) -join ' | ') 'creuat: l''Objecte amb el motiu de la visita, IGUAL al mobil i al PC'
         Remove-Item -LiteralPath $cfTmp -Recurse -Force -ErrorAction SilentlyContinue
     } catch {
         Assert $false ('creuat: la prova ha petat: ' + $_.Exception.Message)
