@@ -67,6 +67,14 @@ AssertEq ((@($pvI.Llista) | ForEach-Object { [string]$_.Grup + ':' + [string]$_.
 AssertEq ((@($pvI.Llista) | Where-Object { $null -ne $_.Precinte } | ForEach-Object { [string]$_.Fila.Id + ' ' + [string]$_.Precinte.Fitxer }) -join ',') '284 a.docx' 'la greu: un informe de VISITA D''INSPECCIO de l''any amb Precinte (el de documentacio aportada, no; el d''una visita d''un altre any, no; l''ignorat, no)'
 AssertEq ((@($pvInf['284']) | ForEach-Object { if ($_.Visita -is [datetime]) { $_.Visita.ToString('dd/MM/yyyy') } else { '-' } }) -join ',') '02/05/2025,08/04/2025' '_PvInformesPerGia: la data de la visita de l''Objecte'
 AssertEq ((@($pvInf['287']) | ForEach-Object { if ($_.Visita -is [datetime]) { $_.Visita.ToString('dd/MM/yyyy') } else { '-' } }) -join ',') '-,10/12/2024,-' '_PvInformesPerGia: sense visita (buida o d''una base d''abans), $null'
+# EL MOTIU DE LA VISITA (octubre 2026): una Queixa sola no es del Pla; Pla i
+# Queixa + Pla, si; un informe d'abans sense motiu, com abans (si).
+$pvMot = { param($m) @{ Data = [datetime]'2025-05-04'; Breu = $Script:EstatPrecinte; Fitxer = "$m.docx"; Visita = [datetime]'2025-05-02'; Motiu = $m } }
+AssertEq ((@('queixa', 'pla', 'queixa+pla', '') | ForEach-Object { if ($null -ne (_PvInformePrecinte @(& $pvMot $_) ([datetime]'2025-04-08'))) { 'si' } else { 'no' } }) -join ',') 'no,si,si,si' '_PvInformePrecinte: Queixa sola no compta; Pla, Queixa + Pla i els d''abans (sense motiu), si'
+AssertEq ([string](_PvInformePrecinte @((& $pvMot 'queixa'), (& $pvMot 'pla')) ([datetime]'2025-04-08')).Fitxer) 'pla.docx' '_PvInformePrecinte: amb una Queixa i un Pla, compta el del Pla'
+$pvDbM = ('{"activitats":[{"id_gia":"284","informes":[{"data":"2025-05-04","conclusio_breu":"Precinte / Cessament","fitxer":"q.docx","visita":"02/05/2025","visita_motiu":"queixa"}]}]}') | ConvertFrom-Json
+$pvInfM = _PvInformesPerGia $pvDbM
+AssertEq "$(@($pvInfM['284'])[0].Motiu)|$((Get-PlaVerificacioIndicadors $pvFiles 2025 30 $pvInfM).Greus)" 'queixa|0' '_PvInformesPerGia llegeix el motiu, i un precinte d''una Queixa sola no es greu del programa'
 $pvI26 = Get-PlaVerificacioIndicadors $pvFiles 2026 45 $pvInf
 AssertEq "$($pvI26.Programa)|$($pvI26.Grau)|$($pvI26.Denuncies)|$($pvI26.EcPca)|$($pvI26.Greus)|$($pvI26.PctGreus)" '1|2,2%|0|0|0|0%' 'Get-PlaVerificacioIndicadors: un altre any, nomes el seu'
 $pvSense = Get-PlaVerificacioIndicadors $pvFiles 2025 0 $null

@@ -512,7 +512,7 @@ indicadors de la **Memòria anual del Pla de verificació** d'un any (des del
 | Grau d'execució del Programa anual | realitzades / previstes |
 | Verificacions realitzades per denúncies | activitats amb data d'**Inspecció** d'aquell any |
 | Verificacions realitzades per una EC-PCA (III) | *Data control inicial/verificació* d'aquell any i annex **III** |
-| Activitats amb discrepàncies greus | de les del programa, les que a la base d'informes tenen un informe de **visita d'inspecció** (Objecte: Visita inspecció) del mateix any amb conclusió **Precinte / Cessament** |
+| Activitats amb discrepàncies greus | de les del programa, les que a la base d'informes tenen un informe de **visita d'inspecció del Pla de verificació** (Objecte: `Visita inspecció … - Pla de verificació AAAA` o `… - Queixa + Pla de verificació AAAA`) del mateix any amb conclusió **Precinte / Cessament**. Una visita per una **Queixa** sola no compta; els informes d'abans, que no diuen el motiu, sí |
 | Percentatge respecte de les verificades | greus / realitzades |
 
 A sota hi ha la llista de les activitats que compten (com els annexos de la

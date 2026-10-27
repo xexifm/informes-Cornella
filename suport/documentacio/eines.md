@@ -2276,6 +2276,10 @@ i el `LLEGEIX-ME`). Abans del 2025 no hi ha programa.
   (`_PvInformePrecinte`). L'usuari: «ha de tenir Precinte / Cessament però amb
   l'objecte de visita d'inspecció». Un precinte d'una documentació aportada no
   és una discrepància trobada a la verificació. La llista ensenya quin.
+  **Des del motiu de la visita** (vegeu Excel Comprovar), una visita per una
+  **Queixa sola** tampoc no compta (`Motiu` de `_PvInformesPerGia`): no és una
+  verificació del programa. `Queixa + Pla` sí, i els informes d'abans sense
+  motiu també (no se sap; es fa com abans).
 - **`suport/pla-verificacio.json`** (`Read-PvDades` / `ConvertTo-PvDades`, que
   el passa a hashtables): els **programes** signats (`previstes`, `annex1` = les
   de criticitat més alta en l'ordre del PDF, `annex2` = les aleatòries) i les

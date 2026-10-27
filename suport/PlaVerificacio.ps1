@@ -27,7 +27,10 @@
       ignorat) de VISITA D'INSPECCIO (Objecte: Visita inspeccio) del mateix
       any que el control amb la conclusio breu 'Precinte / Cessament'
       (l'usuari: "ha de tenir Precinte / Cessament pero amb l'objecte de
-      visita d'inspeccio").
+      visita d'inspeccio"). I des de l'octubre 2026, nomes les visites del
+      PLA DE VERIFICACIO ('Pla de verificacio' o 'Queixa + Pla de
+      verificacio' a l'Objecte): una visita per una queixa sola no es una
+      verificacio del programa. Els informes d'abans, sense motiu, compten.
     - Percentatge respecte de les verificades: greus / realitzades (%).
 
   Les dades son les de l'Excel d'activitats mes nou (fulla Estes) i la base
@@ -118,7 +121,8 @@ function _PvAnys([datetime]$avui, $files) {
 
 # Els informes de la base, per GIA: @{ gia -> @(@{ Data [datetime]; Breu;
 # Fitxer; Visita ([datetime] de la visita d'inspeccio de l'Objecte, o $null si
-# l'informe no es d'una visita) }), sense els ignorats ni els que no tenen
+# l'informe no es d'una visita); Motiu ('queixa', 'pla', 'queixa+pla' o '' si
+# l'informe es d'abans i no el diu, _MotiuVisitaNet) }), sense els ignorats ni els que no tenen
 # data. PURA.
 function _PvInformesPerGia($db) {
     $out = @{}
@@ -136,7 +140,7 @@ function _PvInformesPerGia($db) {
             $vis = $null
             $vt = [datetime]::MinValue
             if ([datetime]::TryParseExact(([string](_PropInf $inf 'visita')).Trim(), 'dd/MM/yyyy', [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::None, [ref]$vt)) { $vis = $vt }
-            [void]$out[$gia].Add(@{ Data = $dt; Breu = [string](_PropInf $inf 'conclusio_breu'); Fitxer = [string](_PropInf $inf 'fitxer'); Visita = $vis })
+            [void]$out[$gia].Add(@{ Data = $dt; Breu = [string](_PropInf $inf 'conclusio_breu'); Fitxer = [string](_PropInf $inf 'fitxer'); Visita = $vis; Motiu = (_MotiuVisitaNet ([string](_PropInf $inf 'visita_motiu'))) })
         }
     }
     return $out
@@ -145,12 +149,15 @@ function _PvInformesPerGia($db) {
 # L'informe de precinte d'una verificacio: el primer informe (no ignorat) de
 # VISITA D'INSPECCIO del mateix any que el control amb la conclusio breu
 # 'Precinte / Cessament'. Un precinte que surt d'una documentacio aportada no
-# es una discrepancia trobada a la verificacio. Torna el registre o $null.
-# PURA.
+# es una discrepancia trobada a la verificacio, i el d'una visita per una
+# QUEIXA sola tampoc (l'usuari, octubre 2026: el motiu de la visita ja consta a
+# l'informe). 'Queixa + Pla' si, i els informes d'abans sense motiu, tambe (no
+# se sap: es fa com abans). Torna el registre o $null. PURA.
 function _PvInformePrecinte($informes, [datetime]$control) {
     $millor = $null
     foreach ($i in @($informes)) {
         if ($null -eq $i -or [string]$i.Breu -ne $Script:EstatPrecinte -or -not ($i.Visita -is [datetime])) { continue }
+        if ([string]$i.Motiu -eq 'queixa') { continue }
         if (([datetime]$i.Visita).Year -ne $control.Year) { continue }
         if ($null -eq $millor -or ([datetime]$i.Visita) -lt ([datetime]$millor.Visita)) { $millor = $i }
     }

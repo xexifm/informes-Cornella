@@ -93,7 +93,7 @@ function Show-PlaVerificacioFinestra($files, $informes, [string]$fileName, $dade
     $lCrit.Text = ("Com es compta (Excel " + $fileName + "):`n" +
         [char]0x00B7 + " Programa: 'Data control inicial/verificaci" + [char]0x00F3 + "' de l'any i annex que no " + [char]0x00E9 + "s II ni III.`n" +
         [char]0x00B7 + " Den" + [char]0x00FA + "ncies: data d''Inspecci" + [char]0x00F3 + "' de l'any.   " + [char]0x00B7 + " EC-PCA: control de l'any i annex III.`n" +
-        [char]0x00B7 + " Greus: del programa, amb un informe de visita d'inspecci" + [char]0x00F3 + " de l'any amb Precinte / Cessament (base d'informes).`n" +
+        [char]0x00B7 + " Greus: del programa, amb una visita del Pla de verificaci" + [char]0x00F3 + " de l'any amb Precinte / Cessament (no les de Queixa sola).`n" +
         "L'Excel nom" + [char]0x00E9 + "s guarda la darrera data de control: un any tancat surt amb les dades de la seva Mem" + [char]0x00F2 + "ria.")
     [void]$top.Controls.Add($lCrit)
 
