@@ -25,9 +25,41 @@ Write-Host "`n--- Excel Errors: les comprovacions d'una fila ---"
 $exBona = @{ RAO = 'BAR EXEMPLE SL'; NIF = 'B12345674'; EMAIL = 'bar@exemple.cat'; MOBIL = '612345678'; REP_NOM = 'Pere Prova Exemple'; REP_NIF = '12345678Z'
              REP_EMAIL = ''; VIA = 'C/'; CARRER = 'Major'; NUMERO = '1'; RC = '1234567DF2813C0001AB'; UTMX = 424456.0; UTMY = '4578205,5'
              ANNEX = 'III'; APARTAT = '12.25'; ACT = 'Bar'; EXP = '2020/1'; LLIC = '01/01/2020'; PERIOD = ''; PROPER = '' }
-AssertEq (@(Get-ExcelErrorsFila $exBona $exCol | ForEach-Object { $_.Tipus }) -join ',') 'control_periodic,control_periodic' 'Excel Errors: una fila bona nomes avisa del control periodic (annex III sense data prevista ni periodicitat)'
-$exBona.PERIOD = '4 anys'; $exBona.PROPER = '01/01/2028'
+AssertEq (@(Get-ExcelErrorsFila $exBona $exCol | ForEach-Object { $_.Tipus }) -join ',') 'control_periodic,cp_annex3' 'Excel Errors: una fila bona nomes avisa del control periodic (annex III sense data prevista; sense periodicitat, la regla de l''annex III)'
+$exBona.PERIOD = '8 anys'; $exBona.PROPER = '01/01/2028'
 AssertEq @(Get-ExcelErrorsFila $exBona $exCol).Count 0 'Excel Errors: i amb el control periodic, cap error'
+
+Write-Host "`n--- Excel Errors: superficie, data de registre i l'annex III cada 8 anys ---"
+# L'usuari (octubre 2026), amb un Excel d'errors fet a ma: "alguna de les dues
+# superficies" i la data de registre d'entrada; i "que els Annexos III tinguin
+# els controls periodics posats cada 8 anys".
+$exH2 = @('ID Activitat', 'Data registre entrada', ('N' + [char]0x00FA + 'm. registre entrada'), ('Classificaci' + [char]0x00F3 + ' general annex'), ('Classificaci' + [char]0x00F3 + ' general Apartat'),
+          'Periodicitat CP', 'Proper CP previst',
+          ('Superf' + [char]0x00ED + 'cie edificada'), ('Superf' + [char]0x00ED + 'cie ' + [char]0x00FA + 'til'), ('Superf' + [char]0x00ED + 'cie sala de venda'), ('Superf' + [char]0x00ED + 'cie ' + [char]0x00FA + 'til'))
+$exC2 = _ExColumnes $exH2
+AssertEq "$($exC2.REGISTRE)|$($exC2.SUP_EDIF)|$($exC2.SUP_UTIL)|$($exC2.PERIOD)|$($exC2.PROPER)" '2|8|9|6|7' 'Excel Errors: les columnes noves (la primera Superficie util, la del costat de l''edificada)'
+$exTip = { param($f) (@(Get-ExcelErrorsFila $f $exC2 | ForEach-Object { $_.Tipus }) -join ',') }
+$exF = { param($h) $b = @{ REGISTRE = '2020-01-01 00:00:00.0'; ANNEX = 'L18-Cert.'; APARTAT = '552'; SUP_EDIF = ''; SUP_UTIL = '49' }; foreach ($k in $h.Keys) { $b[$k] = $h[$k] }; $b }
+AssertEq (& $exTip (& $exF @{})) '' 'una fila amb la superficie util i la data de registre: cap error'
+AssertEq (& $exTip (& $exF @{ SUP_EDIF = '61,5'; SUP_UTIL = '' })) '' 'nomes amb la superficie edificada (amb coma): tambe'
+AssertEq (& $exTip (& $exF @{ SUP_UTIL = '' })) 'superficie' 'sense cap de les dues superficies: error'
+AssertEq (& $exTip (& $exF @{ SUP_EDIF = '0'; SUP_UTIL = '0' })) 'superficie' 'les dues a 0: tambe (un 0 es no tenir-la)'
+AssertEq (& $exTip (& $exF @{ REGISTRE = '  ' })) 'data_registre' 'sense data de registre d''entrada: error'
+# L'annex III: periodicitat 8 i no buida. El Proper CP previst no es mira (el
+# posa sol el GIA).
+$exIII = @{ ANNEX = 'III'; APARTAT = '12.46'; PERIOD = '8'; PROPER = '2026-05-10 00:00:00.0' }
+AssertEq (& $exTip (& $exF $exIII)) '' 'annex III amb periodicitat 8: cap error'
+$exIII2 = $exIII.Clone(); $exIII2.PERIOD = '8 anys'; $exIII2.PROPER = '2099-01-01 00:00:00.0'
+AssertEq (& $exTip (& $exF $exIII2)) '' 'annex III amb "8 anys": tambe; i el proper control, sigui quin sigui, no es mira'
+$exIII3 = $exIII.Clone(); $exIII3.PERIOD = '6'
+AssertEq (& $exTip (& $exF $exIII3)) 'cp_annex3' 'annex III amb periodicitat 6: error'
+$exIII4 = $exIII.Clone(); $exIII4.PERIOD = ''
+$exE4 = @(Get-ExcelErrorsFila (& $exF $exIII4) $exC2)
+AssertEq (@($exE4 | ForEach-Object { $_.Tipus }) -join ',') 'cp_annex3' 'annex III sense periodicitat: error de l''annex III (i no dues vegades)'
+Assert ([string]$exE4[0].Detall).Contains('8 anys') 'i diu que ha de ser cada 8 anys'
+$exII = @{ ANNEX = 'II'; APARTAT = '5.1'; PERIOD = '6'; PROPER = '2024-05-10 00:00:00.0' }
+AssertEq (& $exTip (& $exF $exII)) '' 'l''annex II (cada 6 anys) no passa per la regla dels 8'
+Assert ($Script:ExTipus.Contains('superficie') -and $Script:ExTipus.Contains('data_registre') -and $Script:ExTipus.Contains('cp_annex3')) 'els tres tipus nous es poden triar (i surten marcats: un tipus nou surt marcat)'
 $exFila = { param($canvis) $f = @{}; foreach ($k in $exBona.Keys) { $f[$k] = $exBona[$k] }; foreach ($k in $canvis.Keys) { $f[$k] = $canvis[$k] }; return @(Get-ExcelErrorsFila $f $exCol) }
 $exT = { param($canvis) (@(& $exFila $canvis) | ForEach-Object { $_.Tipus + ':' + $_.Detall }) -join ' | ' }
 AssertEq (& $exT @{ RAO = '' }) 'rao_social:buida' 'Excel Errors: falta la rao social'

@@ -2364,3 +2364,21 @@ tipus d'error (deixa'm marcar el tipus d'error que vull que s'exporti)».
   surt només sota REQUERIMENT ACTUAL (`Build-CatalegBlocs`). El fitxer d'or de
   REQ1 va perdre aquelles dues línies i res més. El correu del mòbil ja ho feia
   així (el seu intro és el del correu).
+
+## Excel Errors: tres tipus nous (octubre 2026)
+
+L'usuari, amb un Excel d'errors fet a mà («falten columnes»): la resta ja els
+trobava l'eina; faltaven aquests.
+- **`superficie`**: ni *Superfície edificada* ni *Superfície útil* (la primera,
+  la del costat de l'edificada: n'hi ha dues) no són un número més gran que 0.
+  Un 0 també és no tenir-la. A l'Excel del 14/10/2026: 91 activitats (les 83 de
+  la llista de l'usuari menys les que han canviat des d'aleshores).
+- **`data_registre`**: *Data registre entrada* buida (14, totes «sense
+  llicència o no comunicada»).
+- **`cp_annex3`**: si és **annex III**, la *Periodicitat CP* ha de ser **8** i
+  no buida (49 buides). Aquell cas ja no surt també com a `control_periodic`
+  (no es diu dues vegades). El *Proper CP previst* **no es mira**: el posa sol
+  el GIA a partir de la periodicitat (l'usuari). Una primera versió també
+  comprovava que fos el darrer control + 8 anys; es va treure.
+- Les diferències que queden amb la llista de l'usuari són activitats que han
+  canviat entre els dos Excels o que ja no hi són.

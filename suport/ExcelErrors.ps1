@@ -57,7 +57,10 @@ $Script:ExTipus = [ordered]@{
     activitat        = "Falta l'activitat principal"
     expedient        = "Falta el número d'expedient"
     data_llicencia   = 'Falta la data de llicència/comunicació'
+    data_registre    = "Falta la data de registre d'entrada"
+    superficie       = 'Falta la superfície (ni edificada ni útil)'
     control_periodic = 'Control periòdic sense data prevista o sense periodicitat'
+    cp_annex3        = 'Annex III: la periodicitat del control periòdic no és 8 anys'
     correu           = "Correu electrònic: no n'hi ha cap o és incorrecte"
     telefon          = 'Telèfon o mòbil incorrecte'
     documents        = "Contactes: l'Excel no quadra amb els documents"
@@ -90,6 +93,12 @@ function _ExColumnes($headers) {
         ACT      = (_ColumnaAmbTermes $h @('activitat principal') $null)
         EXP      = (_ColumnaAmbTermes $h @('expedient') $null)
         LLIC     = (_ColumnaAmbTermes $h @('data', 'llicencia') $null)
+        # L'usuari (octubre 2026, amb un Excel d'errors fet a ma): "alguna de
+        # les dues superficies" i la data de registre d'entrada. Hi ha dues
+        # columnes "Superficie util": la primera, la del costat de l'edificada.
+        REGISTRE = (_ColumnaAmbTermes $h @('data registre entrada') $null)
+        SUP_EDIF = (_ColumnaAmbTermes $h @('superficie edificada') $null)
+        SUP_UTIL = (_ColumnaAmbTermes $h @('superficie util') $null)
         PERIOD   = (_ColumnaAmbTermes $h @('periodicitat') $null)
         PROPER   = (_ColumnaAmbTermes $h @('proper', 'previst') $null)
         # No es cap comprovacio: decideix a quin llistat del correu va una
@@ -116,6 +125,7 @@ $Script:ExColumnesNoms = [ordered]@{
     VIA = 'Emp. Tipus via'; CARRER = 'Emp. Carrer'; NUMERO = 'Emp. Número'; RC = 'Ref. cadastral'
     UTMX = 'UTM X'; UTMY = 'UTM Y'; ANNEX = 'Classificació general annex'; APARTAT = 'Classificació general Apartat'
     ACT = 'Activitat principal'; EXP = 'Núm. expedient'; LLIC = 'Data llicència/comunicació'
+    REGISTRE = 'Data registre entrada'; SUP_EDIF = ('Superf' + [char]0x00ED + 'cie edificada'); SUP_UTIL = ('Superf' + [char]0x00ED + 'cie ' + [char]0x00FA + 'til')
     PERIOD = 'Periodicitat CP'; PROPER = 'Proper CP previst'; ESTAT = ("Estat de legalitzaci" + [char]0x00F3 + " de l'activitat"); EMAIL = 'Raó soc. E-mail'; REP_EMAIL = 'Rep. Leg. E-mail'
 }
 function _ExColumnesQueFalten($col) {
@@ -232,13 +242,33 @@ function Get-ExcelErrorsFila($f, $col) {
     if ((& $hi 'ACT') -and (& $v 'ACT') -eq '') { [void]$out.Add((_ExErr 'activitat' 'Activitat principal' '' 'buida')) }
     if ((& $hi 'EXP') -and (& $v 'EXP') -eq '') { [void]$out.Add((_ExErr 'expedient' ('N' + [char]0x00FA + 'm. expedient') '' 'buit')) }
     if ((& $hi 'LLIC') -and (& $v 'LLIC') -eq '') { [void]$out.Add((_ExErr 'data_llicencia' ('Data llic' + [char]0x00E8 + 'ncia/comunicaci' + [char]0x00F3) '' 'buida')) }
+    if ((& $hi 'REGISTRE') -and (& $v 'REGISTRE') -eq '') { [void]$out.Add((_ExErr 'data_registre' 'Data registre entrada' '' 'buida')) }
+    # LA SUPERFICIE: n'hi ha d'haver almenys una (l'edificada o l'util) que
+    # sigui un numero mes gran que 0. Un 0 tambe es no tenir-la.
+    if ((& $hi 'SUP_EDIF') -or (& $hi 'SUP_UTIL')) {
+        $se = _ExNumero $f['SUP_EDIF']; $su = _ExNumero $f['SUP_UTIL']
+        if (-not (($null -ne $se -and $se -gt 0) -or ($null -ne $su -and $su -gt 0))) {
+            $txt = (@((& $v 'SUP_EDIF'), (& $v 'SUP_UTIL')) | Where-Object { $_ -ne '' }) -join ' / '
+            $d = if ($txt -eq '') { 'buides les dues' } else { "cap no " + [char]0x00E9 + "s un n" + [char]0x00FA + "mero m" + [char]0x00E9 + "s gran que 0" }
+            [void]$out.Add((_ExErr 'superficie' ('Superf' + [char]0x00ED + 'cie edificada / ' + [char]0x00FA + 'til') $txt $d))
+        }
+    }
 
     # El control periodic (el criteri de l'eina Controls periodics).
     $cl = _ControlPeriodicClassify $annex $apart
     if ($cl.Qualifies) {
         $quin = (@($(if ($cl.IsII) { 'annex II' }), $(if ($cl.IsIII) { 'annex III' }), $(if ($cl.Is561) { 'apartat 561' })) | Where-Object { $_ }) -join ', '
         if ((& $hi 'PROPER') -and (& $v 'PROPER') -eq '') { [void]$out.Add((_ExErr 'control_periodic' 'Proper CP previst' '' ("buit, i en t" + [char]0x00E9 + " (" + $quin + ")"))) }
-        if ((& $hi 'PERIOD') -and (& $v 'PERIOD') -eq '') { [void]$out.Add((_ExErr 'control_periodic' 'Periodicitat CP' '' ("buida, i en t" + [char]0x00E9 + " (" + $quin + ")"))) }
+        # L'annex III te la seva regla (a sota): no es diu dues vegades.
+        if ((& $hi 'PERIOD') -and (& $v 'PERIOD') -eq '' -and -not $cl.IsIII) { [void]$out.Add((_ExErr 'control_periodic' 'Periodicitat CP' '' ("buida, i en t" + [char]0x00E9 + " (" + $quin + ")"))) }
+    }
+    # L'ANNEX III: la periodicitat del control periodic ha de ser 8 anys, i no
+    # buida (l'usuari, octubre 2026). El 'Proper CP previst' no es mira: el posa
+    # sol el GIA a partir de la periodicitat.
+    if ($cl.IsIII -and (& $hi 'PERIOD')) {
+        $per = & $v 'PERIOD'
+        if ($per -eq '') { [void]$out.Add((_ExErr 'cp_annex3' 'Periodicitat CP' '' ("buida (l'annex III " + [char]0x00E9 + "s cada 8 anys)"))) }
+        elseif ((_ExNumero ($per -replace '[^\d.,]', '')) -ne 8) { [void]$out.Add((_ExErr 'cp_annex3' 'Periodicitat CP' $per ("l'annex III " + [char]0x00E9 + "s cada 8 anys"))) }
     }
 
     # Els correus i els telefons (les regles del repas de contactes).
