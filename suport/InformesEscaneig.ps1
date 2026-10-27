@@ -166,7 +166,7 @@ function _GiaAssignatsMapa($obj) {
     foreach ($e in @(_PropInf $obj 'informes')) {
         if ($null -eq $e) { continue }
         $ruta = [string](_PropInf $e 'ruta_relativa')
-        $gia = ([string](_PropInf $e 'id_gia')).Trim()
+        $gia = _NormalitzaGia ([string](_PropInf $e 'id_gia'))
         if ([string]::IsNullOrWhiteSpace($ruta) -or $gia -eq '') { continue }
         $mapa[(_ClauInforme $ruta '').TrimStart('\')] = @{
             Gia = $gia; Forcar = [bool](_PropInf $e 'forcar'); Ruta = $ruta
@@ -256,6 +256,7 @@ function Get-InformeData($file, $expToGia, $cache, $wordApp = $null, $assignat =
         $key = _NormalitzaExpedient $exp
         if ($key -ne '' -and $expToGia.ContainsKey($key)) { $gia = $expToGia[$key]; $font = 'excel' }
     }
+    $gia = _NormalitzaGia $gia
 
     $cl = _ClassificaInforme $lines $file.Name $exp
 
@@ -299,16 +300,38 @@ function Get-InformeData($file, $expToGia, $cache, $wordApp = $null, $assignat =
     }
 }
 
-# Decideix (funcio PURA) si un informe s'ha de tornar a parsejar (obrir el .docx)
-# o si es pot reutilitzar l'entrada de l'escaneig anterior:
-#   - Si NO en teniem entrada -> cal parsejar (es nou).
-#   - Si en teniem i el fitxer s'ha modificat DESPRES de l'ultima actualitzacio
-#     -> cal parsejar.
-#   - Si en teniem i no s'ha tocat des de l'ultima actualitzacio -> reutilitzar.
-# $lwUtc i $prevUtc son [datetime] en UTC.
-function _HaDeReprocessar([datetime]$lwUtc, [datetime]$prevUtc, [bool]$teEntrada) {
+# Decideix (funcio PURA) si un informe s'ha de tornar a llegir o si es pot
+# reutilitzar l'entrada de l'escaneig anterior:
+#   - Si NO en teniem entrada -> llegir (es nou).
+#   - Si s'han de tornar a llegir tots ($prevUtc = MinValue: base sense data, o
+#     una altra versio del classificador o de les assignacions) -> llegir.
+#   - Si la data del fitxer NO es la que es va desar amb l'informe -> llegir.
+#   - Una base d'abans d'aquell camp (sense data desada): modificat despres de
+#     l'ultima actualitzacio.
+# ABANS es comparava sempre amb l'ultima actualitzacio, i aquesta es l'hora en
+# que ACABA la passada: un informe desat mentre la passada corria (a les 13:03,
+# en una de 13:00 a 13:06, despres d'haver-lo llegit) quedava mes vell que la
+# base i ja no es tornava a llegir mai (octubre 2026, mesurat). La data de cada
+# fitxer es el que ja feien els .doc (_LiniesDeDoc) i el repas de contactes.
+# $modActual i $modDesat: ISO (o el [datetime] que torna el pwsh 7 del JSON).
+function _HaDeReprocessar([string]$modActual, $modDesat, [datetime]$lwUtc, [datetime]$prevUtc, [bool]$teEntrada) {
     if (-not $teEntrada) { return $true }
-    return ($lwUtc -gt $prevUtc)
+    if ($prevUtc -eq [datetime]::MinValue) { return $true }
+    $desat = _IsoUtcTicks $modDesat
+    if ($desat -lt 0) { return ($lwUtc -gt $prevUtc) }
+    return ((_IsoUtcTicks $modActual) -ne $desat)
+}
+
+# Un instant ISO (o un [datetime]) en ticks UTC, per comparar-ne dos encara que
+# un vingui escrit amb 'Z' i l'altre amb '+00:00'; -1 si no ho es. PURA.
+function _IsoUtcTicks($v) {
+    if ($null -eq $v) { return -1 }
+    if ($v -is [datetime]) { return $v.ToUniversalTime().Ticks }
+    $d = [datetime]::MinValue
+    if ([datetime]::TryParse([string]$v, [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::RoundtripKind, [ref]$d)) {
+        return $d.ToUniversalTime().Ticks
+    }
+    return -1
 }
 
 # Aplana la base d'informes carregada (objecte de ConvertFrom-Json) en registres
@@ -339,7 +362,9 @@ function _FlattenInformesDb($db) {
                 Data          = [string]$inf.data
                 Gia           = [string]$act.id_gia
                 GiaFont       = [string](_PropInf $inf 'gia_font')
-                Expedient     = [string]$act.expedient
+                # El de l'informe (des de l'octubre de 2026 es desa a cada un);
+                # una base d'abans nomes portava el de l'activitat.
+                Expedient     = $(if ([string](_PropInf $inf 'expedient') -ne '') { [string]$inf.expedient } else { [string]$act.expedient })
                 Titular       = [string]$act.titular
                 Conclusio     = $conclusioText
                 ConclusioBreu = $conclusioBreu
@@ -347,7 +372,9 @@ function _FlattenInformesDb($db) {
                 Fitxer        = [string]$inf.fitxer
                 Ruta          = $ruta
                 Carpeta       = [string]$act.carpeta
-                Modificat     = if ($null -ne $inf.PSObject.Properties['modificat']) { [string]$inf.modificat } else { '' }
+                # Read-JsonIso: el pwsh 7 torna la data del JSON com a [datetime]
+                # i en text perdria els decimals (i _HaDeReprocessar la compara).
+                Modificat     = Read-JsonIso (_PropInf $inf 'modificat')
                 Ignorat       = $ign
                 Motius        = $motius
                 EditatAMa         = [bool](_PropInf $inf 'editat_a_ma')
@@ -424,6 +451,11 @@ function _InformeAJson($r) {
     if ($vm -ne '') { Add-Member -InputObject $o -NotePropertyName visita_motiu -NotePropertyValue $vm }
     $giaFont = [string](_PropInf $r 'GiaFont')
     if ($giaFont -ne '') { Add-Member -InputObject $o -NotePropertyName gia_font -NotePropertyValue $giaFont }
+    # L'expedient de l'INFORME: el de l'activitat es un de sol, i un informe
+    # reaprofitat que ha de tornar a buscar el GIA per l'expedient
+    # (_RefrescaGiaReaprofitat) necessita el seu.
+    $exp = [string](_PropInf $r 'Expedient')
+    if ($exp -ne '') { Add-Member -InputObject $o -NotePropertyName expedient -NotePropertyValue $exp }
     if ([bool]$r.EditatAMa) {
         Add-Member -InputObject $o -NotePropertyName auto_conclusio_breu -NotePropertyValue ([string]$r.AutoConclusioBreu)
         Add-Member -InputObject $o -NotePropertyName auto_ignorat -NotePropertyValue ([bool]$r.AutoIgnorat)
@@ -470,13 +502,44 @@ function _GiaDelsGermans($informes) {
     return $n
 }
 
+# Un informe REAPROFITAT (no s'ha tornat a llegir) amb el GIA que no surt del
+# seu text: el que ve de l'Excel per l'expedient i el dels germans es tornen a
+# buscar a cada passada, com si fos nou. Abans es quedaven com el primer dia:
+# un informe "sense ID GIA" no trobava mai el GIA que l'Excel ja tenia, i un
+# GIA de l'Excel que havia canviat no s'actualitzava (octubre 2026). El de
+# l'Excel nomes es torna a buscar si l'Excel s'ha pogut llegir ($expToGia): si
+# no, es queda el que hi havia. Els germans els torna a posar _GiaDelsGermans.
+# Toca el registre ($r: Gia, GiaFont, Expedient, Motius). PURA.
+function _RefrescaGiaReaprofitat($r, $expToGia) {
+    if ($null -eq $r) { return }
+    $font = [string]$r.GiaFont
+    if ($font -eq 'germans' -or ($font -eq 'excel' -and $null -ne $expToGia)) {
+        $r.Gia = ''; $r.GiaFont = ''
+        if (@($r.Motius) -notcontains 'sense ID GIA') { $r.Motius = @(@('sense ID GIA') + @($r.Motius)) }
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$r.Gia) -or $null -eq $expToGia) { return }
+    $key = _NormalitzaExpedient ([string]$r.Expedient)
+    if ($key -eq '' -or -not $expToGia.ContainsKey($key)) { return }
+    $r.Gia = _NormalitzaGia $expToGia[$key]
+    $r.GiaFont = 'excel'
+    $r.Motius = @(@($r.Motius) | Where-Object { $_ -ne 'sense ID GIA' })
+}
+
 # Agrupa els registres per activitat: per ID GIA quan n'hi ha; si NO en tenen,
 # per CARPETA (tots els informes d'una mateixa carpeta = una activitat). Torna
 # les activitats tal com es desen (informes per ordre, _OrdenaInformesActivitat,
 # i l'estat calculat), per ID GIA NUMERIC (com a text, '10' anava abans que '9').
-function _AgrupaInformes($informes) {
+#
+# L'expedient, el titular i la carpeta de l'activitat: els de l'Excel si en
+# te ($cache, l'expedient i el titular) i si no, els de l'informe MES RECENT que
+# en porti. Abans eren els del primer informe que tornava el disc, i el titular
+# d'un informe reaprofitat era el de l'Excel del dia que es va llegir: un canvi
+# de titular a l'Excel no arribava mai a la base (octubre 2026).
+function _AgrupaInformes($informes, $cache = $null) {
     $groups = [ordered]@{}
-    foreach ($r in @($informes)) {
+    $recents = @(@($informes) | Where-Object { $null -ne $_ } | Sort-Object -Descending -Property `
+        @{ Expression = { [string]$_.Data } }, @{ Expression = { [string]$_.Fitxer } }, @{ Expression = { [string]$_.Ruta } })
+    foreach ($r in $recents) {
         if ($null -eq $r) { continue }
         $key = if (-not [string]::IsNullOrWhiteSpace($r.Gia)) { "GIA:$($r.Gia)" }
                else { "DIR:$($r.Carpeta)" }
@@ -497,6 +560,14 @@ function _AgrupaInformes($informes) {
     }
     $activitats = New-Object System.Collections.ArrayList
     foreach ($g in $groups.Values) {
+        $xl = $null
+        if ($null -ne $cache -and $null -ne $cache.ById -and -not [string]::IsNullOrWhiteSpace([string]$g.id_gia) -and $cache.ById.ContainsKey([string]$g.id_gia)) {
+            $xl = $cache.ById[[string]$g.id_gia]
+        }
+        if ($null -ne $xl) {
+            if (-not [string]::IsNullOrWhiteSpace([string]$xl.TITULAR)) { $g.titular = [string]$xl.TITULAR }
+            if (-not [string]::IsNullOrWhiteSpace([string]$xl.EXP_NUM)) { $g.expedient = [string]$xl.EXP_NUM }
+        }
         $act = [pscustomobject]@{
             id_gia       = $g.id_gia
             expedient    = $g.expedient
@@ -526,6 +597,30 @@ function _AvisCanviArrel([string]$arrelBase, [string]$arrelAra, [int]$nBase, [in
     return ("La base d'informes " + [char]0x00E9 + "s de:`n" + $arrelBase + "`n`nAra s'escanejaria:`n" + $arrelAra +
             "`n`nNom" + [char]0x00E9 + "s hi casen " + $nCasats + " dels " + $nBase + " informes de la base: s'hi perdrien " +
             $nCorrPerdudes + " correccions fetes a m" + [char]0x00E0 + ".`n`nVols continuar igualment?")
+}
+
+# Informes de la base que AQUESTA passada no troba (a la mateixa carpeta). Una
+# carpeta que en un moment no es pot llistar (un tall de la xarxa) es veu
+# igual que una carpeta esborrada, i escriure la base els en treia: amb ells,
+# les correccions a ma, que no tornaven quan la carpeta tornava a sortir; i una
+# carpeta d'informes que sortia buida deixava la base amb 0 informes (octubre
+# 2026, mesurat). Es pregunta si s'hi perdria alguna correccio o si en falten
+# molts (5 o mes i almenys el 10% de la base); $mostra: les claus que falten
+# (es diuen les primeres). Torna el text de la pregunta o ''. PURA.
+function _AvisInformesDesapareguts([int]$nBase, [int]$nDesapareguts, [int]$nCorrPerdudes, $mostra = @()) {
+    if ($nBase -le 0 -or $nDesapareguts -le 0) { return '' }
+    $molts = ($nDesapareguts -ge 5 -and $nDesapareguts * 10 -ge $nBase)
+    if (-not $molts -and $nCorrPerdudes -le 0) { return '' }
+    $t = "Ja no es troben " + $nDesapareguts + " dels " + $nBase + " informes de la base d'informes"
+    if ($nCorrPerdudes -gt 0) { $t += ", i s'hi perdrien " + $nCorrPerdudes + " correccions fetes a m" + [char]0x00E0 }
+    $t += "."
+    $m = @(@($mostra) | Select-Object -First 5)
+    if ($m.Count -gt 0) {
+        $t += "`n`n" + (($m | ForEach-Object { '   ' + $_ }) -join "`n")
+        if ($nDesapareguts -gt $m.Count) { $t += "`n   ... i " + ($nDesapareguts - $m.Count) + " m" + [char]0x00E9 + "s" }
+    }
+    $t += "`n`nSi els has mogut, reanomenat o esborrat tu, continua. Si no, potser la xarxa ha fallat: digues que no i torna-hi d'aqu" + [char]0x00ED + " a una estona (la base no es tocar" + [char]0x00E0 + ")."
+    return ($t + "`n`nVols continuar igualment?")
 }
 
 # ----------------------------------------------------------------------------
@@ -563,15 +658,29 @@ function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock
 
     # 3. Carregar l'Excel d'activitats (opcional; per la cerca inversa i el
     #    titular). Si no hi ha Excel, es continua sense aquest fallback.
-    $cache = $null; $expToGia = $null
+    #    Sense l'Excel, la passada es fa igual pero ES DIU ($excelAvis, al resum
+    #    del boto i al registre de l'automatic): abans no ho deia enlloc, i els
+    #    informes nous es quedaven sense titular ni el GIA per l'expedient, i el
+    #    repas de contactes sortia amb 0 avisos com si tot estigues be.
+    $cache = $null; $expToGia = $null; $excelAvis = ''
     try {
         $excel = Find-LatestActivitatsExcel
         if ($null -ne $excel) {
             & $avisa "Llegint la base d'activitats (Excel)..." 0 0
             $cache = Initialize-ActivitatsCache $excel.File
-            $expToGia = Build-ExpedientToGiaMap $cache
+            if ($null -eq $cache -or $null -eq $cache.ById -or $cache.ById.Count -eq 0) {
+                $excelAvis = "l'Excel d'activitats (" + (Split-Path -Leaf ([string]$excel.File)) + ") no t" + [char]0x00E9 + " cap activitat"
+                $cache = $null
+            } else {
+                $expToGia = Build-ExpedientToGiaMap $cache
+            }
+        } else {
+            $excelAvis = "no s'ha trobat l'Excel d'activitats"
         }
-    } catch { $cache = $null; $expToGia = $null }
+    } catch {
+        $cache = $null; $expToGia = $null
+        $excelAvis = "no s'ha pogut llegir l'Excel d'activitats (" + [string]$_.Exception.Message + ")"
+    }
 
     # 3b. Carregar la base anterior (si existeix) per fer un escaneig
     #     INCREMENTAL: nomes es reobren els .docx modificats DESPRES de
@@ -628,7 +737,8 @@ function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock
     # llista amb coma, i passada directament per la canonada arribava al
     # Where-Object com UN SOL objecte (la llista sencera): el filtre deixava
     # passar TOTS els fitxers en cop que n'hi hagues un de bo (mesurat).
-    $primerNivell = Get-FitxersPrimerNivell $dir
+    $errLlistat = New-Object System.Collections.ArrayList
+    $primerNivell = Get-FitxersPrimerNivell $dir $errLlistat
     $allInformes = $primerNivell |
                    Where-Object {
                        $_.Name -notlike '~$*' -and
@@ -643,10 +753,44 @@ function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock
     $claus = @{}
     foreach ($f in $files) { $claus[(_ClauInforme $f.FullName $dir)] = $true }
     $nCasats = 0; $nCorrPerdudes = 0
+    $perduts = New-Object System.Collections.ArrayList; $perdutsCorr = New-Object System.Collections.ArrayList
     foreach ($kv in $prevByRuta.GetEnumerator()) {
-        if ($claus.ContainsKey($kv.Key)) { $nCasats++ } elseif ([bool]$kv.Value.EditatAMa) { $nCorrPerdudes++ }
+        if ($claus.ContainsKey($kv.Key)) { $nCasats++; continue }
+        [void]$perduts.Add([string]$kv.Key)
+        if ([bool]$kv.Value.EditatAMa) { $nCorrPerdudes++; [void]$perdutsCorr.Add([string]$kv.Key) }
     }
+
+    # 4a. ELS INFORMES QUE DESAPAREIXEN (octubre 2026). Una carpeta que la
+    #     xarxa no deixa llistar no pot treure informes de la base: s'atura
+    #     sense escriure res, el boto i l'automatic igual. Nomes si D'AQUELLA
+    #     carpeta falten informes de la base: un error que no ha fet perdre res
+    #     no ho atura. Si no, un sol fitxer amb la ruta massa llarga (el
+    #     PowerShell 5.1 en dona un error, i la resta de la carpeta la llista)
+    #     aturaria "Actualitzar base" per sempre; i una carpeta que no s'ha
+    #     pogut llistar mai no hi ha entrat mai.
+    $carpetesPerdudes = @{}
+    foreach ($k in $perduts) { $carpetesPerdudes[(([string]$k -replace '/', '\').Split('\')[0])] = $true }
+    $errBo = @($errLlistat | Where-Object { ([string]$_.Carpeta -eq '' -and $perduts.Count -gt 0) -or $carpetesPerdudes.ContainsKey([string]$_.Carpeta) })
+    if ($errBo.Count -gt 0) {
+        $e0 = $errBo[0]
+        $on = if ([string]$e0.Carpeta -eq '') { $dir } else { [string]$e0.Carpeta }
+        return @{ Ok = $false; Error = ("No s'ha pogut llistar " + $on + " (" + [string]$e0.Missatge + ")" +
+                  $(if ($errBo.Count -gt 1) { " ni " + ($errBo.Count - 1) + " carpetes m" + [char]0x00E9 + "s" } else { '' }) +
+                  ". No s'ha tocat la base: torna-hi d'aqu" + [char]0x00ED + " a una estona.") }
+    }
+    if ($files.Count -eq 0 -and $prevByRuta.Count -gt 0) {
+        return @{ Ok = $false; Error = ("No s'ha trobat cap informe a " + $dir + " i la base en t" + [char]0x00E9 + " " + $prevByRuta.Count +
+                  ". No s'ha tocat la base: si la xarxa ha fallat, torna-hi d'aqu" + [char]0x00ED + " a una estona.") }
+    }
+
+    # 4b. La base es d'una altra carpeta i no hi casa gairebe res, o en
+    #     desapareixen molts informes o alguna correccio a ma: PREGUNTAR abans
+    #     d'escriure (l'automatic, que no pot preguntar, no escriu). Les
+    #     correccions que es perdrien es diuen primer.
     $pregunta = _AvisCanviArrel $prevArrel $dir $prevByRuta.Count $nCasats $nCorrPerdudes
+    if ($pregunta -eq '') {
+        $pregunta = _AvisInformesDesapareguts $prevByRuta.Count $perduts.Count $nCorrPerdudes (@($perdutsCorr | Sort-Object) + @($perduts | Where-Object { $perdutsCorr -notcontains $_ } | Sort-Object))
+    }
     if ($pregunta -ne '' -and ($null -eq $onConfirma -or -not (& $onConfirma $pregunta))) {
         return @{ Ok = $false; Cancelat = $true; Error = ("No s'ha actualitzat la base. " + ($pregunta -replace "`n`nVols continuar igualment\?$", '')) }
     }
@@ -673,11 +817,14 @@ function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock
             $clau = _ClauInforme $f.FullName $dir
             $teEntrada = $prevByRuta.ContainsKey($clau)
             $pendent = $teEntrada -and [bool]$prevByRuta[$clau].NoLlegit
-            if (-not $pendent -and -not (_HaDeReprocessar $f.LastWriteTimeUtc $prevUtc $teEntrada)) {
+            $modDesat = if ($teEntrada) { $prevByRuta[$clau].Modificat } else { '' }
+            if (-not $pendent -and -not (_HaDeReprocessar $f.LastWriteTimeUtc.ToString('o') $modDesat $f.LastWriteTimeUtc $prevUtc $teEntrada)) {
                 # No s'ha tocat des de l'ultim escaneig: reutilitzem l'entrada
-                # (amb la ruta d'ara: la base pot ser d'una altra unitat).
+                # (amb la ruta d'ara: la base pot ser d'una altra unitat), i el
+                # GIA que no surt del text es torna a buscar.
                 $r = $prevByRuta[$clau]
                 $r.Ruta = $f.FullName
+                _RefrescaGiaReaprofitat $r $expToGia
                 # Una base d'abans del camp de la VISITA: es llegeix nomes la
                 # capcalera, sense tornar a classificar res (un .doc, de la
                 # memoria del text; si no hi es, la propera vegada).
@@ -699,6 +846,14 @@ function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock
                 if ($f.Extension -ieq '.doc') {
                     $ld = _LiniesDeDoc $f $clau $docCache $word $ambWord
                     if ($ld.Llegit) { $linies = @($ld.Linies) } else { $noLlegit = $true; $linies = @() }
+                } else {
+                    # Un .docx que no s'obre (un tall de xarxa, un fitxer a mig
+                    # copiar): el mateix que un .doc sense Word. Abans
+                    # Get-InformeData s'empassava l'error i el classificava en
+                    # blanc ("sense conclusio", i sense el GIA del document), i
+                    # com que el fitxer no canviava ja no es tornava a llegir
+                    # mai (octubre 2026, mesurat).
+                    try { $linies = @(_ReadDocxParagraphs $f.FullName) } catch { $noLlegit = $true; $linies = @() }
                 }
                 if ($noLlegit -and $teEntrada) {
                     $r = $prevByRuta[$clau]
@@ -710,7 +865,10 @@ function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock
                     # la resta, la mana el que acaba de sortir de l'informe
                     # (vegeu _AplicaEdicioPrevia).
                     if ($teEntrada) { $r = _AplicaEdicioPrevia $prevByRuta[$clau] $r }
-                    if ($noLlegit) { $r.NoLlegit = $true; $r.Motius = @(@($r.Motius) + @('.doc sense llegir (cal el Word: es llegira amb el boto)')) }
+                    if ($noLlegit) {
+                        $mNo = if ($f.Extension -ieq '.doc') { '.doc sense llegir (cal el Word: es llegira amb el boto)' } else { "no s'ha pogut obrir (es tornara a provar)" }
+                        $r.NoLlegit = $true; $r.Motius = @(@($r.Motius) + @($mNo))
+                    }
                 }
                 if ($noLlegit) { $noLlegits++ }
                 $reprocessats++
@@ -719,6 +877,15 @@ function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock
                 & $avisa "Analitzant informes... ($i de $total, $reprocessats de nous/modificats)" $i $total
             }
             [void]$informes.Add($r)
+        }
+        # El text desat dels .doc que ja no hi son (esborrats, moguts,
+        # reanomenats): abans no se'n treia mai cap. Nomes en una passada de la
+        # carpeta de debo: ValidarClassificacio fa servir aquest mateix fitxer
+        # i pot escanejar una altra carpeta (-Informes).
+        if ([string]::IsNullOrWhiteSpace($Script:DocTextCacheDir)) {
+            foreach ($k in @($docCache.Map.Keys)) {
+                if (-not $claus.ContainsKey([string]$k)) { [void]$docCache.Map.Remove($k); $docCache.Canviat = $true }
+            }
         }
     } finally {
         if ($null -ne $word.App) { try { $word.App.Quit() } catch { } }
@@ -729,7 +896,7 @@ function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock
     #    activitat; i el que s'ha de revisar (DESPRES dels germans: un GIA
     #    resolt ja no ho es).
     [void](_GiaDelsGermans $informes)
-    $activitatsOrd = @(_AgrupaInformes $informes)
+    $activitatsOrd = @(_AgrupaInformes $informes $cache)
     $revisar = New-Object System.Collections.ArrayList
     foreach ($r in $informes) {
         if (@($r.Motius).Count -gt 0) {
@@ -770,7 +937,7 @@ function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock
         catch { $contactes = @{ Ok = $false; Error = [string]$_.Exception.Message; Text = ('Contactes: no s''ha pogut fer el rep' + [char]0x00E0 + 's (' + [string]$_.Exception.Message + ')') } }
     }
 
-    return @{ Ok = $true; Error = ''; NInformes = $informes.Count; Reprocessats = $reprocessats
+    return @{ Ok = $true; Error = ''; NInformes = $informes.Count; Reprocessats = $reprocessats; ExcelAvis = $excelAvis
               Contactes = $contactes; NoLlegits = $noLlegits
               NActivitats = $activitatsOrd.Count; NRevisar = $revisar.Count; OutPath = $outPath
               GiaAssignatsFitxer = [string]$assignats.Fitxer; GiaAssignatsError = [string]$assignats.Error
@@ -865,7 +1032,8 @@ function Invoke-InformesDbScan {
            "Nous o modificats (reprocessats): $($res.Reprocessats)`n" +
            "Activitats: $($res.NActivitats)`n" +
            "A revisar: $($res.NRevisar)`n" +
-           $(if ([int]$res.NoLlegits -gt 0) { "Informes .doc que no s'han pogut llegir (sense Word): $($res.NoLlegits) (s'hi ha deixat el que ja se'n sabia)`n" } else { '' }) +
+           $(if ([int]$res.NoLlegits -gt 0) { "Informes que no s'han pogut llegir (els .doc sense Word, o un fitxer que no s'obre): $($res.NoLlegits) (s'hi ha deixat el que ja se'n sabia i es tornaran a provar)`n" } else { '' }) +
+           $(if ([string]$res.ExcelAvis) { "`nATENCI" + [char]0x00D3 + ": " + [string]$res.ExcelAvis + ". Els informes nous no tenen titular ni el GIA per l'expedient, i els contactes es comparen amb l'Excel de l'" + [char]0x00FA + "ltima passada.`n" } else { '' }) +
            $(if ([string]$res.GiaAssignatsError) { "`nATENCI" + [char]0x00D3 + ": " + [string]$res.GiaAssignatsError + "`n" } else { '' }) +
            $(if (@($res.GiaAssignatsNoTrobats).Count -gt 0) { "`nAssignacions de GIA que ja no troben l'informe: " + @($res.GiaAssignatsNoTrobats).Count + " (les llista ValidarClassificacio)`n" } else { '' }) +
            $(if ($null -ne $res.Contactes) { "`n" + [string]$res.Contactes.Text + "`n(per revisar-los: Editar base -> Contactes)`n" } else { '' }) +
@@ -944,8 +1112,9 @@ function Invoke-InformesDbAuto {
         return $res
     }
     [void](_BaseAutoDesaEstat @{ auto_el = $ini['auto_el']; mode = 'auto' })
-    _BaseAutoLog ("Passada automatica: informes=$($res.NInformes) reprocessats=$($res.Reprocessats) doc_pendents_del_Word=$($res.NoLlegits) " +
+    _BaseAutoLog ("Passada automatica: informes=$($res.NInformes) reprocessats=$($res.Reprocessats) no_llegits=$($res.NoLlegits) " +
                   "activitats=$($res.NActivitats) a_revisar=$($res.NRevisar)" +
+                  $(if ([string]$res.ExcelAvis) { ' AVIS: ' + [string]$res.ExcelAvis } else { '' }) +
                   $(if ([string]$res.GiaAssignatsError) { ' AVIS: ' + [string]$res.GiaAssignatsError } else { '' }) +
                   $(if (@($res.GiaAssignatsNoTrobats).Count -gt 0) { ' assignacions_GIA_no_trobades=' + @($res.GiaAssignatsNoTrobats).Count } else { '' }))
     if ($null -ne $res.Contactes) { _BaseAutoLog ([string]$res.Contactes.Text) }

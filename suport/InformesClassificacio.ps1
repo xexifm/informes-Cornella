@@ -28,7 +28,9 @@
 # nomes arribaria als informes que algu tornes a desar, i els 802 de la carpeta
 # es quedarien amb la classificacio vella per sempre. CANVIA-LA cada vegada que
 # canviis el que en surt (conclusio, conclusio breu, tipus).
-$Script:ClassificadorVersio = '2026-10-09.1'
+# 2026-10-27.1: l'ID GIA normalitzat ("ID GIA:" buit, "0361", "361.", la regla
+# de la carpeta) i l'expedient de cada informe desat a la base.
+$Script:ClassificadorVersio = '2026-10-27.1'
 
 # Una propietat d'un objecte de la base (o $null si no la te), sense petar amb
 # les bases d'abans que no porten els camps nous. La fan servir aquest fitxer,

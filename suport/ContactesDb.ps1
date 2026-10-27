@@ -256,8 +256,8 @@ function _CtGiaDeExpedient([string]$exp, $expToGia) {
 # $conegut: scriptblock (gia) -> bool. PURA.
 function _CtGiaDocument([string]$clau, $extret, $perCarpeta, $conegut, $expToGia) {
     foreach ($c in @(_CtCarpetesDe $clau)) {
-        $m = [regex]::Match([string]$c.Nom, '(?<![a-z])gia\s*(\d{1,6})(?!\d)', 'IgnoreCase')
-        if ($m.Success) { return [string][int]$m.Groups[1].Value }
+        $gN = _GiaDeNomCarpeta ([string]$c.Nom)
+        if ($gN -ne '') { return $gN }
         if ($null -ne $perCarpeta -and $perCarpeta.ContainsKey($c.Rel)) { $g = _CtGiaMajoritari $perCarpeta[$c.Rel]; if ($g -ne '') { return $g } }
         $g = _CtGiaDeExpedient (_CtExpedientDeCarpeta $c.Nom) $expToGia
         if ($g -ne '') { return $g }
@@ -341,6 +341,7 @@ function _CtResumText($res) {
     # (l'usuari: a la feina no hi era i "el programa ho hauria de dir").
     # (Sense el simbol: les finestres el pinten com un quadre.)
     if ([string]$res.TecnicsFitxer -eq '') { $t += ' ' + [char]0x00B7 + ' AV' + [char]0x00CD + "S: no hi ha llista de t" + [char]0x00E8 + "cnics coneguts" }
+    if ([bool]$res.ExcelAnterior) { $t += ' ' + [char]0x00B7 + " sense l'Excel d'activitats: comparat amb el de l'" + [char]0x00FA + "ltima passada" }
     return $t
 }
 
@@ -435,6 +436,15 @@ function Invoke-ContactesEscaneig([string]$dir, $informes, $cache, $expToGia, [s
     foreach ($c in @($perCarpeta.Values)) { foreach ($g in @($c.Keys)) { $gies[[string]$g] = $true } }
     $xlCt = @{}
     if ($null -ne $cache -and $null -ne $cache.PSObject.Properties['Contactes'] -and $null -ne $cache.Contactes) { $xlCt = $cache.Contactes }
+    # SENSE L'EXCEL (no s'ha trobat o no s'ha pogut llegir): la fila de l'Excel
+    # de cada activitat de la passada anterior, com fa la finestra en tornar a
+    # calcular (Update-ContactesActivitats). Abans sortien 0 avisos -sense fila
+    # no se'n fa cap- i es desava aixi, com si tot estigues be (octubre 2026).
+    $excelAnterior = $false
+    if ($xlCt.Count -eq 0) {
+        foreach ($g in @($prevActs.Keys)) { $x = _CtV $prevActs[$g] 'excel'; if ($null -ne $x) { $xlCt[[string]$g] = (ConvertTo-Mapa $x) } }
+        $excelAnterior = ($xlCt.Count -gt 0)
+    }
     foreach ($g in @($xlCt.Keys)) { $gies[[string]$g] = $true }
     $conegut = { param($g) $gies.ContainsKey([string]$g) }.GetNewClosure()
     $nifAGia = @{}
@@ -498,7 +508,7 @@ function Invoke-ContactesEscaneig([string]$dir, $informes, $cache, $expToGia, [s
         Ok = $true; Error = ''; NNoves = $nNoves; NAvisos = $ra.Total; PerTipus = $ra.PerTipus
         NNoLlegibles = $noLlegibles.Count; NDocs = $docs.Count; Llegits = $llegits; OutPath = $outPath
         Activitats = $acts; NoLlegibles = $noLlegibles.ToArray(); SenseGia = $senseGia.ToArray()
-        TecnicsFitxer = [string]$tecnics.Fitxer; TecnicsError = [string]$tecnics.Error
+        TecnicsFitxer = [string]$tecnics.Fitxer; TecnicsError = [string]$tecnics.Error; ExcelAnterior = $excelAnterior
         Estadistiques = (_CtEstadistiques $acts $docs $calc.Ctx)
         SenseGiaMotius = $senseGiaMotius
     }

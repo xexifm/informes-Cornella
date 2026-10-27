@@ -698,6 +698,81 @@ davant: el del PC i el del mòbil no s'assemblaven entre ells ni a l'informe.
 
 ## Base d'informes (informes-db.json)
 
+### L'auditoria del 27/10/2026: el que es perdia o es barrejava en silenci
+
+L'usuari va demanar si «Actualitzar base» llegeix bé els informes i els
+contactes. Es va **mesurar** cada sospita amb una passada de debò sobre `.docx`
+inventats abans de tocar res, i van sortir nou defectes. Tots tenen prova a
+**`tests/proves/17-base-informes.ps1`**, validada tornant a posar cada defecte
+(15 injeccions, totes en vermell). Classificador pujat a `2026-10-27.1`: la
+primera passada torna a llegir tots els informes.
+
+1. **Els informes que desapareixen** (el pitjor). Una carpeta que no sortia en
+   un llistat (`-ErrorAction SilentlyContinue`: un tall de xarxa) era igual que
+   una carpeta esborrada: els seus informes sortien de la base i **les
+   correccions a mà es perdien per sempre** (quan la carpeta tornava, els
+   informes entraven com a nous). Una carpeta d'informes que sortia buida deixava
+   la base amb 0 informes i `Ok`. Ara (decisió de l'usuari: aturar-se, no
+   conservar-los unes quantes passades):
+   - `Get-FitxersPrimerNivell $dir $errors` apunta les carpetes que no s'han
+     pogut llistar; si d'**aquella** carpeta falten informes de la base (o és
+     l'arrel i en falta algun), la passada **s'atura sense escriure**, el botó i
+     l'automàtic igual. Un error que no ha fet perdre res no ho atura: el
+     PowerShell 5.1 dona error per un sol fitxer amb la ruta massa llarga (i la
+     resta de la carpeta la llista), i amb el criteri «qualsevol error» un fitxer
+     així hauria aturat «Actualitzar base» per sempre.
+   - Cap informe trobat i la base en té: s'atura (ni preguntant).
+   - `_AvisInformesDesapareguts` (pura): si es perdria **alguna correcció a mà**
+     o en falten molts (5 o més i el 10% de la base), el botó **pregunta** (diu
+     quins) i l'automàtic **no escriu** i ho apunta al registre. És el mateix
+     camí que `_AvisCanviArrel`; si aquella ja pregunta, no se'n fa una segona.
+     **Compte**: mentre no es premi el botó i es digui que sí, l'automàtic no
+     actualitza (la data del menú es queda vella i el registre diu per què).
+2. **«ID GIA:» sense valor** (la plantilla és `ID GIA:<<ID_GIA>>` i el programa
+   deixa fer informes sense GIA) donava el GIA **«:»**: el `:?` de la regex
+   cedia el `:` al valor. Tots els informes sense GIA anaven a una sola
+   activitat «:». `_ExtractIdGia` ara demana que el valor comenci per una
+   lletra o una xifra.
+3. **Un `.docx` que no s'obria** (`Get-InformeData` s'empassava l'error) es
+   classificava en blanc, perdia el GIA del document i, com que el fitxer no
+   canviava, ja no es tornava a llegir. Ara té el tractament dels `.doc`: es
+   queda el que se'n sabia i `no_llegit` (motiu «no s'ha pogut obrir»).
+4. **Un informe desat durant la passada** (a les 13:03, en una de 13:00 a
+   13:06) quedava més vell que `actualitzat_el` (l'hora en què **acaba**) i ja
+   no es tornava a llegir mai. `_HaDeReprocessar` compara ara la data del fitxer
+   amb **la desada amb cada informe** (`modificat`), com ja feien els `.doc` i
+   els contactes; `_IsoUtcTicks` compara instants, perquè el pwsh 7 torna la
+   data del JSON com a `[datetime]` (i `_FlattenInformesDb` ja no la passa a
+   text, que en perdia els decimals).
+5. **Sense l'Excel d'activitats no es deia res.** El resultat porta `ExcelAvis`
+   (no trobat, buit o error), que surt al resum del botó i al registre. El repàs
+   de contactes, sense Excel, fa servir **la fila de l'Excel de la passada
+   anterior** (com la finestra, `Update-ContactesActivitats`): abans sortien 0
+   avisos i es desava així.
+6. **Dues regles per al GIA del nom de la carpeta**, i la de la base llegia
+   «ESTRATEGIA 2025 SL» com el GIA 2025 i «ENERGIA 3» com el 3. Ara n'hi ha una,
+   **`_GiaDeNomCarpeta`** (`Informes.ps1`; «GIA» ha de ser una paraula:
+   `(?<!\p{L})`, també amb accents), i **`_NormalitzaGia`** (zeros al davant,
+   puntuació del final: «0361», «361.» i «361» eren tres activitats) a tots els
+   GIA: document, carpeta, assignats i Excel.
+7. **Informes reaprofitats que no s'actualitzaven**: el GIA de l'Excel per
+   l'expedient i el dels germans es tornen a buscar a cada passada
+   (`_RefrescaGiaReaprofitat`; el de l'Excel, només si l'Excel s'ha pogut
+   llegir). Per això cada informe desa ara el **seu** `expedient`.
+8. **L'expedient i el titular de l'activitat** són els de l'Excel i, si no,
+   els de l'informe **més recent** (`_AgrupaInformes $informes $cache`). Abans,
+   els del primer informe que tornava el disc, i un canvi de titular a l'Excel
+   no arribava mai a la base.
+9. **`informes-doc-text.json`** es treu el text dels `.doc` que ja no hi són
+   (només en una passada de la carpeta de debò: `ValidarClassificacio` pot
+   escanejar-ne una altra amb el mateix fitxer).
+
+Una trampa de les proves que val per a tota la suite: **una definició
+`function X` dins d'un fitxer de proves existeix des del principi del fitxer**,
+no des de la línia on és (mesurat: el `Get-ChildItem` de mentida ja responia a
+la primera passada). Els dobles es posen amb `${function:X} = { … }` en temps
+d'execució, i es desen i restauren igual.
+
 ### Els `.doc` antics i el Word en segon pla (octubre 2026)
 
 **Què passava:** després de pujar la versió del classificador (que obliga a
@@ -1570,6 +1645,13 @@ el NIF).
 | `diferent` | els documents més recents diuen una altra cosa |
 | `error` | `gmailo.com`, `hotmal`, `holmail`, un domini a 1–2 lletres del dels documents, 10 xifres, un fix al mòbil, un correu al telèfon, la lletra del DNI, el CIF de l'empresa al NIF del representant |
 | `canvi_titular` | el document no-queixa més recent és d'un altre NIF, d'una entitat o persona que no és el tècnic (només avís: l'Excel pot ser més nou). No ho és el mateix nom de l'Excel amb un altre NIF (l'Excel el té malament), qui signa amb el certificat del titular, ni la persona física que presenta per l'empresa |
+
+**Sense l'Excel d'activitats** (no s'ha trobat o no s'ha pogut llegir), el
+repàs fa servir la fila de l'Excel que cada activitat tenia a la passada
+anterior (`ExcelAnterior`), i el resum ho diu. Abans sortien 0 avisos i es
+desava així, com si tot estigués bé. El GIA del nom de la carpeta el treu
+`_GiaDeNomCarpeta`, la mateixa regla que la base d'informes (vegeu
+l'auditoria del 27/10/2026, a la secció de la base).
 
 ### On es guarda i les correccions a mà
 

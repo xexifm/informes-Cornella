@@ -80,14 +80,46 @@ function _ExtractIdGia($lines) {
         if ($s -imatch 'ID\s*GIA\s*:?\s*(.+)$') {
             $val = $Matches[1].Trim()
             # Ens quedem nomes amb el primer "token" del valor (l'ID; evita
-            # arrossegar text si la linia porta res mes al darrere).
-            $token = $val
-            if ($val -match '^([\w./-]+)') { $token = $Matches[1] }
+            # arrossegar text si la linia porta res mes al darrere). Si el valor
+            # no comenca per una lletra o una xifra, no n'hi ha: "ID GIA:" sol
+            # (la capcalera d'un informe fet sense GIA, `ID GIA:<<ID_GIA>>` buit)
+            # deixava que el ':?' cedis i el ':' sortia com a ID. Tots els
+            # informes sense GIA anaven a parar a una mateixa activitat ":"
+            # (octubre 2026, mesurat).
+            if ($val -notmatch '^([\w./-]+)') { continue }
+            $token = $Matches[1]
             if (_EsGiaPlaceholder $token) { continue }
+            $token = _NormalitzaGia $token
+            if ($token -eq '') { continue }
             return $token
         }
     }
     return ''
+}
+
+# Un ID GIA tal com es compara i es desa: sense espais, sense la puntuacio del
+# final ("361." de la capcalera) i, si es numeric, sense zeros al davant ("GIA
+# 0361" a la carpeta). Sense aixo, "361.", "0361" i "361" eren tres activitats
+# (octubre 2026, mesurat). PURA.
+function _NormalitzaGia($g) {
+    $s = ([string]$g).Trim().TrimEnd('.', '-', '/', ',', ';', ':')
+    if ($s -match '^\d+$') {
+        $s = $s.TrimStart('0')
+        if ($s -eq '') { $s = '0' }
+    }
+    return $s
+}
+
+# L'ID GIA que diu el NOM d'una carpeta ("2025-1-2563 GIA 361 - BAR"), o ''.
+# UNA sola regla per a la base d'informes (_GiaFromFolderName) i el repas de
+# contactes (_CtGiaDocument): n'hi havia dues i no deien el mateix. La de la
+# base ('GIA\s*(\d+)') llegia "ESTRATEGIA 2025 SL" com el GIA 2025 i "ENERGIA 3"
+# com el 3 (mesurat): "GIA" ha de ser una paraula, no el final d'una altra
+# (tampoc d'una amb accent, "ESTRATÈGIA": per aixo \p{L} i no [a-z]). PURA.
+function _GiaDeNomCarpeta([string]$nom) {
+    $m = [regex]::Match([string]$nom, '(?<!\p{L})gia\s*(\d{1,6})(?!\d)', 'IgnoreCase')
+    if (-not $m.Success) { return '' }
+    return (_NormalitzaGia $m.Groups[1].Value)
 }
 
 # Numero d'expedient d'una llista de linies. Busca la linia que comenca per
@@ -240,10 +272,20 @@ function _ClauInforme([string]$ruta, [string]$arrel) {
 # decidir l'estat; abans un Get-ChildItem -Recurse els recorria tots. El fan
 # servir la base d'informes i el repas de contactes (per aixo es aqui i no a
 # InformesEscaneig.ps1: el repas de contactes no pot dependre del seu client).
-function Get-FitxersPrimerNivell([string]$dir) {
+#
+# $errors (opcional, una ArrayList): s'hi apunta cada carpeta que NO s'ha pogut
+# llistar, @{ Carpeta ('' = l'arrel); Missatge }. Sense, una carpeta que la
+# xarxa no deixava llistar era igual que una carpeta buida, i "Actualitzar
+# base" en treia els informes i les correccions a ma (octubre 2026).
+function Get-FitxersPrimerNivell([string]$dir, $errors = $null) {
     $out = New-Object System.Collections.ArrayList
-    foreach ($d in @(Get-ChildItem -LiteralPath $dir -Directory -ErrorAction SilentlyContinue)) {
-        foreach ($f in @(Get-ChildItem -LiteralPath $d.FullName -File -ErrorAction SilentlyContinue)) { [void]$out.Add($f) }
+    $ev = $null
+    $dirs = @(Get-ChildItem -LiteralPath $dir -Directory -ErrorAction SilentlyContinue -ErrorVariable ev)
+    if ($null -ne $errors) { foreach ($e in @($ev)) { [void]$errors.Add(@{ Carpeta = ''; Missatge = [string]$e.Exception.Message }) } }
+    foreach ($d in $dirs) {
+        $ev = $null
+        foreach ($f in @(Get-ChildItem -LiteralPath $d.FullName -File -ErrorAction SilentlyContinue -ErrorVariable ev)) { [void]$out.Add($f) }
+        if ($null -ne $errors) { foreach ($e in @($ev)) { [void]$errors.Add(@{ Carpeta = [string]$d.Name; Missatge = [string]$e.Exception.Message }) } }
     }
     return ,$out.ToArray()
 }
@@ -375,7 +417,8 @@ function _GiaFromFolderName($path) {
     $segs = ([string]$path) -split '[\\/]'
     # L'ultim segment es el nom del fitxer; recorrem les carpetes de dins enfora.
     for ($i = $segs.Count - 2; $i -ge 0; $i--) {
-        if ($segs[$i] -match 'GIA\s*(\d+)') { return $Matches[1] }
+        $g = _GiaDeNomCarpeta $segs[$i]
+        if ($g -ne '') { return $g }
     }
     return ''
 }

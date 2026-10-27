@@ -790,10 +790,22 @@ Assert ($e2g.ContainsKey('2024-2-10')) 'Build-ExpedientToGiaMap inclou totes les
 
 Write-Host "`n--- Informes.ps1: _HaDeReprocessar (escaneig incremental) ---"
 $prev = [datetime]'2026-07-01T10:00:00Z'
-Assert (_HaDeReprocessar ([datetime]'2026-07-05') $prev $false)            'sense entrada previa -> reprocessar (nou)'
-Assert (_HaDeReprocessar ([datetime]'2026-07-05') $prev $true)             'modificat despres de l''ultima actualitzacio -> reprocessar'
-Assert (-not (_HaDeReprocessar ([datetime]'2026-06-20') $prev $true))      'no tocat des de l''ultima actualitzacio -> reutilitzar'
-Assert (-not (_HaDeReprocessar $prev $prev $true))                          'mateixa data exacta -> reutilitzar'
+# Les bases d'abans del camp 'modificat' (sense data desada): l'ultima actualitzacio.
+Assert (_HaDeReprocessar '' '' ([datetime]'2026-07-05') $prev $false)            'sense entrada previa -> reprocessar (nou)'
+Assert (_HaDeReprocessar '' '' ([datetime]'2026-07-05') $prev $true)             'sense data desada: modificat despres de l''ultima actualitzacio -> reprocessar'
+Assert (-not (_HaDeReprocessar '' '' ([datetime]'2026-06-20') $prev $true))      'sense data desada: no tocat des de l''ultima actualitzacio -> reutilitzar'
+Assert (-not (_HaDeReprocessar '' '' $prev $prev $true))                          'sense data desada: mateixa data exacta -> reutilitzar'
+Assert (_HaDeReprocessar '' '' ([datetime]'2026-06-20') ([datetime]::MinValue) $true) 'tots de nou (versio del classificador) -> reprocessar'
+# Amb la data desada de l'informe, mana aquesta. El cas que ho va fer canviar:
+# una passada de 13:00 a 13:06 (actualitzat_el = 13:06) i l'informe desat a
+# les 13:03, despres de llegir-lo: es mes vell que la base, pero ha canviat.
+$fiPassada = [datetime]::new(2026, 10, 27, 13, 6, 0, [System.DateTimeKind]::Utc)
+$llegit = [datetime]::new(2026, 10, 27, 12, 0, 0, [System.DateTimeKind]::Utc).ToString('o')
+$desat13 = [datetime]::new(2026, 10, 27, 13, 3, 0, [System.DateTimeKind]::Utc)
+Assert (_HaDeReprocessar $desat13.ToString('o') $llegit $desat13 $fiPassada $true) 'desat DURANT la passada (13:03 < 13:06): la data no es la desada -> reprocessar'
+Assert (-not (_HaDeReprocessar $llegit $llegit ([datetime]$llegit) $fiPassada $true)) 'la mateixa data que la desada -> reutilitzar'
+Assert (-not (_HaDeReprocessar $llegit ([datetime]::Parse($llegit, [cultureinfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::RoundtripKind)) ([datetime]$llegit) $fiPassada $true)) 'la data desada com a [datetime] (el pwsh 7 la torna aixi del JSON) -> la mateixa'
+Assert (-not (_HaDeReprocessar '2026-10-27T12:00:00.0000000Z' '2026-10-27T13:00:00.0000000+01:00' ([datetime]$llegit) $fiPassada $true)) 'el mateix instant escrit amb Z i amb +01:00 -> el mateix'
 
 Write-Host "`n--- Informes.ps1: _FlattenInformesDb (aplanat + preservar ignorat) ---"
 $fakeDb = [pscustomobject]@{
