@@ -60,6 +60,28 @@ Assert ([string]$exE4[0].Detall).Contains('8 anys') 'i diu que ha de ser cada 8 
 $exII = @{ ANNEX = 'II'; APARTAT = '5.1'; PERIOD = '6'; PROPER = '2024-05-10 00:00:00.0' }
 AssertEq (& $exTip (& $exF $exII)) '' 'l''annex II (cada 6 anys) no passa per la regla dels 8'
 Assert ($Script:ExTipus.Contains('superficie') -and $Script:ExTipus.Contains('data_registre') -and $Script:ExTipus.Contains('cp_annex3')) 'els tres tipus nous es poden triar (i surten marcats: un tipus nou surt marcat)'
+# EL DECRET 112/2010 (l'usuari, novembre 2026): l'apartat 561 i les Recreatives
+# de cataleg, cada 4 anys. Les dades de l'Excel del 17/11/2026: 267 de 271
+# activitats 561 amb un 4, 4 buides; les 9 Recreatives, totes amb un 4.
+$ex112 = @{ ANNEX = 'L18-Proj. i Cert.'; APARTAT = '561'; PERIOD = '4'; PROPER = '2027-03-01 00:00:00.0' }
+AssertEq (& $exTip (& $exF $ex112)) '' 'D112: un bar (561) amb periodicitat 4: cap error'
+$ex112b = $ex112.Clone(); $ex112b.PERIOD = ''
+AssertEq (& $exTip (& $exF $ex112b)) 'cp_D112' 'D112: el 561 sense periodicitat: cp_D112 (i no tambe control_periodic)'
+$ex112c = $ex112.Clone(); $ex112c.PERIOD = '8'
+$ex112E = @(Get-ExcelErrorsFila (& $exF $ex112c) $exC2)
+AssertEq (@($ex112E | ForEach-Object { $_.Tipus }) -join ',') 'cp_D112' 'D112: el 561 amb periodicitat 8: error'
+Assert ([string]$ex112E[0].Detall).Contains('4 anys') 'D112: i diu que ha de ser cada 4 anys'
+$ex112d = @{ ANNEX = ('Recreativa cat' + [char]0x00E0 + 'leg'); APARTAT = 'Bar musical'; PERIOD = '' }
+AssertEq (& $exTip (& $exF $ex112d)) 'cp_D112' 'D112: una Recreativa de cataleg sense periodicitat: cp_D112'
+$ex112d.PERIOD = '4 anys'
+AssertEq (& $exTip (& $exF $ex112d)) '' 'D112: i amb "4 anys", cap error'
+AssertEq (& $exTip (& $exF @{ ANNEX = 'L18-Proj. i Cert.'; APARTAT = '1561'; PERIOD = '' })) '' 'D112: 1561 no es el 561 (criteri de Controls periodics)'
+AssertEq (& $exTip (& $exF @{ ANNEX = 'III'; APARTAT = '12.46'; PERIOD = '4'; PROPER = '2027-01-01 00:00:00.0' })) 'cp_annex3' 'D112: un annex III segueix sent cada 8 anys'
+Assert ((_ExEsD112 'L18-Proj. i Cert.' '5610') -and (_ExEsD112 'Recreativa cataleg' '') -and -not (_ExEsD112 'L18-Cert.' '855')) 'D112: _ExEsD112'
+AssertEq (_ExLlistatDe 'L18-Proj. i Cert.' '561') 'bars' 'D112: el 561 va a Bars i Restaurants'
+AssertEq (_ExLlistatDe ('Recreativa cat' + [char]0x00E0 + 'leg') 'Bar musical') 'bars' 'D112: les Recreatives de cataleg, tambe'
+$exTipusIdx = @($Script:ExTipus.Keys)
+AssertEq ([array]::IndexOf($exTipusIdx, 'cp_D112') - [array]::IndexOf($exTipusIdx, 'cp_annex3')) 1 'D112: el tipus surt just despres del de l''annex III'
 $exFila = { param($canvis) $f = @{}; foreach ($k in $exBona.Keys) { $f[$k] = $exBona[$k] }; foreach ($k in $canvis.Keys) { $f[$k] = $canvis[$k] }; return @(Get-ExcelErrorsFila $f $exCol) }
 $exT = { param($canvis) (@(& $exFila $canvis) | ForEach-Object { $_.Tipus + ':' + $_.Detall }) -join ' | ' }
 AssertEq (& $exT @{ RAO = '' }) 'rao_social:buida' 'Excel Errors: falta la rao social'
@@ -89,7 +111,7 @@ Assert ((& $exT @{ EMAIL = 'bar@gmailo.com' }).StartsWith('correu:domini mal esc
 AssertEq (@(& $exFila @{ EMAIL = 'a@b.cat; c@gmailo.com' }) | ForEach-Object { $_.Valor }) 'c@gmailo.com' 'Excel Errors: dos correus a la cel.la es miren un per un'
 Assert ((& $exT @{ MOBIL = '934567890' }).Contains('un fix a la columna del m')) 'Excel Errors: un fix al mobil'
 Assert ((& $exT @{ MOBIL = 'bar@exemple.cat' }).StartsWith('telefon:hi ha un correu')) 'Excel Errors: un correu al telefon'
-AssertEq (& $exT @{ APARTAT = '5610'; ANNEX = 'I'; PERIOD = ''; PROPER = '' }) ('control_periodic:buit, i en t' + [char]0x00E9 + ' (apartat 561) | control_periodic:buida, i en t' + [char]0x00E9 + ' (apartat 561)') 'Excel Errors: el control periodic amb el criteri de Controls periodics (561)'
+AssertEq (& $exT @{ APARTAT = '5610'; ANNEX = 'I'; PERIOD = ''; PROPER = '' }) ('control_periodic:buit, i en t' + [char]0x00E9 + ' (apartat 561) | cp_D112:buida (el Decret 112/2010 ' + [char]0x00E9 + 's cada 4 anys)') 'Excel Errors: el control periodic amb el criteri de Controls periodics (561); la periodicitat buida, amb la regla del Decret 112'
 # Sense la columna, no es mira (i no surt cap error fals).
 $exColSense = @{}; foreach ($k in $exCol.Keys) { $exColSense[$k] = $exCol[$k] }; $exColSense.RC = 0; $exColSense.UTMX = 0
 AssertEq (@(Get-ExcelErrorsFila @{ RAO = 'X'; RC = ''; UTMX = $null; UTMY = $null } $exColSense | Where-Object { $_.Tipus -eq 'cadastre' -or $_.Tipus -eq 'utm' })).Count 0 'Excel Errors: una columna que no hi es no fa saltar cap error'
@@ -239,9 +261,14 @@ AssertEq (_ExLlistatDe '' '' ('Activitat amb llic' + [char]0x00E8 + 'ncia penden
 AssertEq (_ExLlistatDe '' '') 'innocues' 'Llistats: sense annex ni estat -> Innocues'
 AssertEq (_ExLlistatDe 'L18-Cert.' '561') 'innocues' 'Llistats: L18-Cert. amb 561 -> Innocues'
 AssertEq (_ExLlistatDe 'Sectorial' '561' 'Activitat comunicada en tramit') 'innocues' 'Llistats: Sectorial amb 561 -> Innocues'
-AssertEq (_ExLlistatDe 'II' '12.3' $llSL) 'annexos' 'Llistats: l''estat nomes compta si la classificacio no la posa enlloc (II sense llicencia -> Annexos)'
-AssertEq (_ExLlistatDe 'L18-Proj. i Cert.' '561' $llSL) 'bars' 'Llistats: ...i L18 amb 561 sense llicencia -> Bars i Restaurants'
-AssertEq (_ExLlistatDe 'III' '' $llSL) 'annexos' 'Llistats: ...i III sense llicencia -> Annexos'
+# L'usuari (novembre 2026), amb les 9 i 1141 (annex III, sense llicencia) a
+# l'Excel dels Annexos: l'estat "sense llicencia" mana sobre la classificacio.
+AssertEq (_ExLlistatDe 'III' '12.46' $llSL) '' 'Llistats: III sense llicencia (la 9) -> cap'
+AssertEq (_ExLlistatDe 'III' '12.18.b' $llSL) '' 'Llistats: III sense llicencia (la 1141) -> cap'
+AssertEq (_ExLlistatDe 'II' '12.3' $llSL) '' 'Llistats: II sense llicencia -> cap'
+AssertEq (_ExLlistatDe 'L18-Proj. i Cert.' '561' $llSL) '' 'Llistats: L18 amb 561 sense llicencia -> cap'
+AssertEq (_ExLlistatDe 'L18-Proj. i Cert.' '521' $llSL) '' 'Llistats: L18 sense 561 i sense llicencia -> cap'
+AssertEq (_ExLlistatDe 'III' '12.46' ('Activitat comunicada en tr' + [char]0x00E0 + 'mit')) 'annexos' 'Llistats: III amb un altre estat -> Annexos'
 $llE = { param($id, $annex, $apartat, $tipus, $estat = '') [pscustomobject]@{ Id = $id; Titular = ('T' + $id); Annex = $annex; Apartat = $apartat; Estat = $estat; Tipus = $tipus; TipusNom = $Script:ExTipus[$tipus]; Camp = 'c'; Valor = 'v'; Detall = 'd' } }
 $llErr = @((& $llE '1' 'L18-Cert.' '855' 'cadastre'), (& $llE '2' 'L18-Proj. i Cert.' '561' 'cadastre'), (& $llE '3' 'II' '12.1' 'utm'),
            (& $llE '4' '' '' 'classificacio' $llSL), (& $llE '6' '' '' 'classificacio'), (& $llE '5' 'III' '3.2' 'cadastre'), (& $llE '1' 'L18-Cert.' '855' 'utm'))

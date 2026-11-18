@@ -61,6 +61,7 @@ $Script:ExTipus = [ordered]@{
     superficie       = 'Falta la superfície (ni edificada ni útil)'
     control_periodic = 'Control periòdic sense data prevista o sense periodicitat'
     cp_annex3        = 'Annex III: la periodicitat del control periòdic no és 8 anys'
+    cp_D112          = 'Decret 112/2010: la periodicitat del control periòdic no és 4 anys'
     correu           = "Correu electrònic: no n'hi ha cap o és incorrecte"
     telefon          = 'Telèfon o mòbil incorrecte'
     documents        = "Contactes: l'Excel no quadra amb els documents"
@@ -163,6 +164,24 @@ function _ExErr([string]$tipus, [string]$camp, [string]$valor, [string]$detall) 
     return @{ Tipus = $tipus; Camp = $camp; Valor = $valor; Detall = $detall }
 }
 
+# Una activitat del DECRET 112/2010 (espectacles publics i activitats
+# recreatives): l'apartat 561 amb el criteri de Controls periodics (com
+# _ControlCatalegKind, '112') o l'annex "Recreativa cataleg". Totes van al
+# llistat de Bars i Restaurants (_ExLlistatDe). PURA.
+function _ExEsD112([string]$annex, [string]$apartat) {
+    if ([bool](_ControlPeriodicClassify '' $apartat).Is561) { return $true }
+    return (((_NormalitzaText $annex) -replace '[^a-z0-9]', '') -like 'recreativacatal*')
+}
+
+# La 'Periodicitat CP' ha de ser $anys (i no buida). Nomes compta el numero:
+# "8 anys" val com "8". Torna l'error o $null. PURA.
+function _ExErrPeriodicitat([string]$tipus, [string]$per, [int]$anys, [string]$qui) {
+    $per = ([string]$per).Trim()
+    if ($per -eq '') { return (_ExErr $tipus 'Periodicitat CP' '' ("buida (" + $qui + " " + [char]0x00E9 + "s cada " + $anys + " anys)")) }
+    if ((_ExNumero ($per -replace '[^\d.,]', '')) -ne $anys) { return (_ExErr $tipus 'Periodicitat CP' $per ($qui + " " + [char]0x00E9 + "s cada " + $anys + " anys")) }
+    return $null
+}
+
 # Tots els errors d'UNA activitat. $f: els valors de la fila (claus de
 # _ExColumnes, ja com a text; UTMX/UTMY tal com venen); $col: les columnes (una
 # a 0 vol dir que no hi es i no es mira). Torna una llista de @{ Tipus; Camp;
@@ -256,19 +275,27 @@ function Get-ExcelErrorsFila($f, $col) {
 
     # El control periodic (el criteri de l'eina Controls periodics).
     $cl = _ControlPeriodicClassify $annex $apart
+    $esD112 = _ExEsD112 $annex $apart
     if ($cl.Qualifies) {
         $quin = (@($(if ($cl.IsII) { 'annex II' }), $(if ($cl.IsIII) { 'annex III' }), $(if ($cl.Is561) { 'apartat 561' })) | Where-Object { $_ }) -join ', '
         if ((& $hi 'PROPER') -and (& $v 'PROPER') -eq '') { [void]$out.Add((_ExErr 'control_periodic' 'Proper CP previst' '' ("buit, i en t" + [char]0x00E9 + " (" + $quin + ")"))) }
-        # L'annex III te la seva regla (a sota): no es diu dues vegades.
-        if ((& $hi 'PERIOD') -and (& $v 'PERIOD') -eq '' -and -not $cl.IsIII) { [void]$out.Add((_ExErr 'control_periodic' 'Periodicitat CP' '' ("buida, i en t" + [char]0x00E9 + " (" + $quin + ")"))) }
+        # L'annex III i el Decret 112 tenen la seva regla (a sota): no es diu
+        # dues vegades.
+        if ((& $hi 'PERIOD') -and (& $v 'PERIOD') -eq '' -and -not $cl.IsIII -and -not $esD112) { [void]$out.Add((_ExErr 'control_periodic' 'Periodicitat CP' '' ("buida, i en t" + [char]0x00E9 + " (" + $quin + ")"))) }
     }
     # L'ANNEX III: la periodicitat del control periodic ha de ser 8 anys, i no
     # buida (l'usuari, octubre 2026). El 'Proper CP previst' no es mira: el posa
     # sol el GIA a partir de la periodicitat.
     if ($cl.IsIII -and (& $hi 'PERIOD')) {
-        $per = & $v 'PERIOD'
-        if ($per -eq '') { [void]$out.Add((_ExErr 'cp_annex3' 'Periodicitat CP' '' ("buida (l'annex III " + [char]0x00E9 + "s cada 8 anys)"))) }
-        elseif ((_ExNumero ($per -replace '[^\d.,]', '')) -ne 8) { [void]$out.Add((_ExErr 'cp_annex3' 'Periodicitat CP' $per ("l'annex III " + [char]0x00E9 + "s cada 8 anys"))) }
+        $e = _ExErrPeriodicitat 'cp_annex3' (& $v 'PERIOD') 8 "l'annex III"
+        if ($null -ne $e) { [void]$out.Add($e) }
+    }
+    # EL DECRET 112/2010 (l'apartat 561 i les Recreatives de cataleg): cada 4
+    # anys (l'usuari, novembre 2026: "s'han de passar cada 4 anys"). Com l'annex
+    # III, el 'Proper CP previst' el segueix mirant control_periodic.
+    elseif ($esD112 -and (& $hi 'PERIOD')) {
+        $e = _ExErrPeriodicitat 'cp_D112' (& $v 'PERIOD') 4 'el Decret 112/2010'
+        if ($null -ne $e) { [void]$out.Add($e) }
     }
 
     # Els correus i els telefons (les regles del repas de contactes).

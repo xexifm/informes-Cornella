@@ -21,9 +21,9 @@
   a (cap) les 'Sense llicencia o no comunicada' i les autoritzacions
   ambientals. Les altres que ara mateix van a cap haurien d'anar a innocues":
     - l'annex I (I.1, I.2.a...: autoritzacions ambientals de la Generalitat);
-    - les activitats en estat "Activitat sense llicencia o no comunicada" que no
-      entren per la seva classificacio a cap dels tres (les de denuncia,
-      titular DESCONEGUT...).
+    - TOTES les activitats en estat "Activitat sense llicencia o no comunicada",
+      sigui quina sigui la classificacio (novembre 2026: abans les de l'annex
+      II/III o les L18 hi entraven per la classificacio).
   La resta que abans no tenia lloc (sense annex, L18-Cert. o Sectorial amb 561,
   un valor nou) va a Innocues.
 
@@ -52,10 +52,14 @@ $Script:ExLlistats = [ordered]@{
 # A quin llistat va una activitat, per la classificacio i l'estat de la fulla
 # Estes, o '' si a cap. Es compara sense accents, majuscules, espais ni signes:
 # "L18-Proj. i Cert." -> "l18projicert". L'apartat 561 amb el criteri de
-# Controls periodics (561, 5610...; no 1561). L'estat nomes compta per a les
-# que la classificacio no posa enlloc: una activitat de l'annex II sense
-# llicencia segueix anant als Annexos. PURA.
+# Controls periodics (561, 5610...; no 1561).
+# L'ESTAT "sense llicencia" mana sobre la classificacio: a cap, sigui quin
+# sigui l'annex. Abans nomes comptava per a les que la classificacio no posava
+# enlloc, i una de l'annex III sense llicencia anava als Annexos (l'usuari,
+# novembre 2026, amb les 9 i 1141: "s'estan posant a l'Excel Annexos II i
+# III"). PURA.
 function _ExLlistatDe([string]$annex, [string]$apartat, [string]$estat = '') {
+    if ((_NormalitzaText $estat) -match 'sense llicencia') { return '' }
     $a = (_NormalitzaText $annex) -replace '[^a-z0-9]', ''
     $es561 = [bool](_ControlPeriodicClassify '' $apartat).Is561
     if ($a -eq 'ii' -or $a -eq 'iii' -or $a -eq 'annexii' -or $a -eq 'annexiii') { return 'annexos' }
@@ -63,9 +67,8 @@ function _ExLlistatDe([string]$annex, [string]$apartat, [string]$estat = '') {
     $l18proj = ($a -like 'l18proj*')
     if ($l18proj -and $es561) { return 'bars' }
     if (($l18proj -or $a -eq 'l18cert' -or $a -eq 'sectorial') -and -not $es561) { return 'innocues' }
-    # Les autoritzacions ambientals (annex I) i les sense llicencia, a cap.
+    # Les autoritzacions ambientals (annex I), a cap.
     if ($a -match '^(annex)?i(\d|$)') { return '' }
-    if ((_NormalitzaText $estat) -match 'sense llicencia') { return '' }
     return 'innocues'
 }
 

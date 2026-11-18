@@ -2502,3 +2502,33 @@ trobava l'eina; faltaven aquests.
   comprovava que fos el darrer control + 8 anys; es va treure.
 - Les diferències que queden amb la llista de l'usuari són activitats que han
   canviat entre els dos Excels o que ja no hi són.
+
+## Excel Errors: el Decret 112 i les «sense llicència» (novembre 2026)
+
+L'usuari, amb l'Excel del 17/11/2026 i els tres Excels d'errors del 18/11:
+
+- **«`cp_annex3` no funciona: la 1212 és annex III sense periodicitat i no
+  surt.»** La regla **sí que salta** (passat el codi de debò per aquell Excel:
+  50 activitats amb `cp_annex3`, la 1212 entre elles). Els tres Excels de
+  l'usuari portaven **exactament** els errors de set tipus (raó social, adreça,
+  cadastre, UTM, classificació, activitat, data de llicència: 22 files, i el
+  recompte quadra tipus per tipus): la resta estaven **desmarcats** a la
+  finestra (`excel-errors.json`), i la tria val també per al correu i
+  l'automàtic. No es va tocar res: es va dir a l'usuari.
+- **`cp_D112`** (nou, just després de `cp_annex3`): les activitats del Decret
+  112/2010 s'han de passar **cada 4 anys**. Quines són, `_ExEsD112`: l'apartat
+  561 amb el criteri de Controls periòdics (el mateix «112» de
+  `_ControlCatalegKind`) **o** l'annex «Recreativa catàleg». Totes dues van al
+  llistat de **Bars i Restaurants**, que és on l'usuari el vol (a l'Excel del
+  17/11: les 271 del 561 són totes L18-Proj. i Cert.; 267 amb un 4 i 4 buides;
+  les 9 Recreatives, amb un 4). La periodicitat buida d'un 561 ja no surt també
+  com a `control_periodic` (no es diu dues vegades); el *Proper CP previst* sí
+  que el segueix mirant `control_periodic`. La regla de l'annex III i la del
+  Decret 112 són la mateixa funció, `_ExErrPeriodicitat` (anys, i «4 anys»
+  val com «4»).
+- **Les «Activitat sense llicència o no comunicada» anaven als Annexos** (la 9
+  i la 1141, totes dues annex III). Era a posta —l'estat només comptava si la
+  classificació no la posava enlloc—, però l'usuari ho vol al revés: **l'estat
+  mana**, i una activitat sense llicència va a «(cap)» sigui quin sigui
+  l'annex. `_ExLlistatDe` ho mira primer de tot. A l'Excel del 17/11: 11
+  activitats sense llicència, que ara no van a cap dels tres.
