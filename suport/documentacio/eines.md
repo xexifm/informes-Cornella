@@ -2532,3 +2532,29 @@ L'usuari, amb l'Excel del 17/11/2026 i els tres Excels d'errors del 18/11:
   mana**, i una activitat sense llicència va a «(cap)» sigui quin sigui
   l'annex. `_ExLlistatDe` ho mira primer de tot. A l'Excel del 17/11: 11
   activitats sense llicència, que ara no van a cap dels tres.
+
+## Activitats extraordinàries: «Cercar» i «No és una activitat extraordinària» (novembre 2026)
+
+- **Cercar per ID GIA** a *Dades de la capçalera*: omple **només l'adreça**
+  (`_ActExtrAdrecaDeGia`, `ActExtrDades.ps1`), que és l'única dada de
+  l'activitat del GIA que serveix per a l'extraordinària; titular, activitat i
+  expedient són de l'extraordinària i no es toquen. La base és la del Pas 2:
+  la lectura de l'Excel una sola vegada per sessió es va treure de
+  `Get-HeaderData` (`Capcalera.ps1`) a **`Get-ActivitatsCacheSessio`**
+  (`Activitats.ps1`), que fan servir tots dos; torna els avisos (còpia local,
+  capçaleres) perquè els ensenyi qui crida.
+- **«No és una activitat extraordinària»** (botó a l'esquerra de «Generar
+  requeriment»): l'informe del model de l'usuari (`Act_Extr_NOM`): la
+  capçalera ACT_EXTR de sempre i un cos **fix**, a la plantilla
+  **`ESTRUCTURALS/ACT_EXTR_NO.json`** (família `actextr`: s'edita des de
+  l'editor de catàlegs i en surt la vista en Word, com REQ i FAV). La munta
+  `Build-ActExtrNoBlocs` (pura): una línia en blanc entre paràgrafs (no entre
+  els pics d'una llista) i **cada secció a partir de la segona en una pàgina
+  nova** (els motius van «a continuació de la signatura»). El primer paràgraf
+  de la pàgina nova no deixa una línia en blanc al damunt: `Format-Body`
+  accepta ara `-DespresDeSalt`, com `Format-ConclusionHeader`. El títol
+  «INFORME» de la segona pàgina és un `capcalera` (centrat i en negreta, sense
+  les marques). Fitxer: `AAAA-MM-DD_ActExtr-NoExtr_GIA n_<activitat>.docx`; a
+  la llista, l'estat **NO EXTRAORDINARIA** (si després se'n fa un requeriment o
+  el favorable, l'estat es torna a calcular). Fitxers d'or:
+  `emit-actextr-no.txt` i `emit-vista-act-extr-no.txt`.

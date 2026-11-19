@@ -1938,6 +1938,52 @@ AssertEq ([regex]::Matches($wWiz, 'New-WordApp').Count) 1 'Requeriment: el Word 
 foreach ($wF in @('Wizard.ps1', 'Llicencia.ps1', 'ActExtr.ps1')) { Assert ((_SenseComentaris (Join-Path $wDir $wF)).Contains('Show-InformeAlUsuari $word')) ("$wF obre l'informe al Word de l'usuari") }
 Assert ((_SenseComentaris (Join-Path $wDir 'Seguiment.ps1')).Contains('[void](Open-PerUsuari $outPath)')) 'Seguiment obre l''informe des d''un altre proces'
 
+# 4. (novembre 2026, la mateixa queixa una altra vegada: "no puc treballar a la
+#    carpeta de Windows fins que no tanqui el programa"). Un Word o un Excel
+#    tancat nomes amb .Quit() es queda MIG MORT mentre el programa te
+#    referencies COM vives (documents, fulls, rangs), i penja l'explorador i el
+#    Word de l'usuari. Tots es tanquen per Close-AppOffice (OfficeProces.ps1):
+#    allibera, fa passar el recollidor i ESPERA que el proces surti.
+$wQuit = New-Object System.Collections.ArrayList
+foreach ($f in @(Get-ChildItem -LiteralPath $wDir -Recurse -Filter *.ps1 -File | Where-Object { $_.FullName -notlike '*tests*' -and $_.Name -ne 'OfficeProces.ps1' })) {
+    if ((_SenseComentaris $f.FullName) -match '\.Quit\(\)') { [void]$wQuit.Add($f.Name) }
+}
+AssertEq ($wQuit -join ', ') '' 'cap .Quit() fora d''OfficeProces.ps1 (el Word i l''Excel es tanquen amb Close-AppOffice)'
+$wOff = _SenseComentaris (Join-Path $wDir 'OfficeProces.ps1')
+Assert ($wOff.Contains('FinalReleaseComObject') -and $wOff.Contains('[System.GC]::WaitForPendingFinalizers()') -and $wOff.Contains('$p.WaitForExit(200)')) 'Close-AppOffice: allibera del tot, recull les referencies i espera que el proces surti'
+$wMotor = _SenseComentaris (Join-Path $wDir 'Motor.ps1')
+Assert ($wMotor.Contains('$w.Caption = (_OfficeTitolNou)')) 'New-WordApp posa el titol unic (per trobar-ne el proces en tancar-lo)'
+Assert ($wMotor.Contains("[void](Close-AppOffice `$word 'Word')")) 'Close-WordApp passa per Close-AppOffice'
+$wShow = [regex]::Match($wMotor, '(?s)function Show-InformeAlUsuari.*?\n}').Value
+Assert ($wShow.IndexOf('Close-WordApp') -ge 0 -and $wShow.IndexOf('Close-WordApp') -lt $wShow.IndexOf('Open-PerUsuari')) 'Show-InformeAlUsuari: primer tanca (i espera) el Word del programa, despres obre l''informe'
+Assert ((_SenseComentaris (Join-Path $wDir 'Excel.ps1')).Contains("[void](Close-AppOffice `$excel 'Excel')")) 'Read-FullaEstesa: l''Excel surt de debo (Close-AppOffice)'
+Assert ((_SenseComentaris (Join-Path $wDir (Join-Path 'rutes' 'Ruta.ps1'))).Contains("'OfficeProces.ps1'")) 'el proces de rutes tambe carrega OfficeProces.ps1 (hi llegeix l''Excel)'
+
+Write-Host "`n--- Close-AppOffice: tancar i ESPERAR el proces (amb processos de debo) ---"
+try {
+    $offDoble = [pscustomobject]@{ Caption = 'Microsoft Word' }
+    $offQuit = @{ N = 0 }
+    $offDoble | Add-Member ScriptMethod Quit { $offQuit.N++ }.GetNewClosure() -Force
+    AssertEq (Get-PidAppOffice $offDoble) 0 'Get-PidAppOffice: sense Hwnd ni el titol del programa, no se sap (0)'
+    AssertEq (Close-AppOffice $offDoble 'Word') $true 'Close-AppOffice: sense proces conegut, tanca i torna $true'
+    AssertEq $offQuit.N 1 'Close-AppOffice: fa el Quit'
+    Assert ((_OfficeTitolNou).StartsWith($Script:OfficeTitolPrefix) -and (_OfficeTitolNou) -ne (_OfficeTitolNou)) 'el titol del Word del programa es unic cada vegada'
+    $offExe = (Get-Process -Id $PID).Path
+    # Un proces que surt sol en 0,4 s: Close-AppOffice l'espera i torna $true.
+    $offP1 = Start-Process -FilePath $offExe -ArgumentList @('-NoProfile', '-Command', 'Start-Sleep -Milliseconds 400') -PassThru
+    $offT = [System.Diagnostics.Stopwatch]::StartNew()
+    AssertEq (Close-AppOffice $offDoble 'Word' $offP1.Id) $true 'Close-AppOffice: espera que el proces surti'
+    Assert ($offP1.HasExited) 'i quan torna, el proces ja ha sortit'
+    # Un que no surt: torna $false passat el temps (i no s'hi queda per sempre).
+    $offP2 = Start-Process -FilePath $offExe -ArgumentList @('-NoProfile', '-Command', 'Start-Sleep -Seconds 30') -PassThru
+    $offT.Restart()
+    AssertEq (Close-AppOffice $offDoble 'Word' $offP2.Id 600) $false 'Close-AppOffice: un proces que no surt -> $false'
+    Assert ($offT.ElapsedMilliseconds -lt 5000) ('i no espera mes del limit (' + $offT.ElapsedMilliseconds + ' ms)')
+    try { $offP2.Kill() } catch { }
+} catch {
+    Assert $false ("Close-AppOffice: excepcio no controlada: " + $_.Exception.Message + ' @ ' + $_.InvocationInfo.ScriptLineNumber)
+}
+
 Write-Host "`n--- Comprovar Excel: la visita d'inspeccio arriba a la base (guard) ---"
 $cxEsc = _SenseComentaris (Join-Path (Split-Path -Parent $TestsDir) 'InformesEscaneig.ps1')
 Assert ($cxEsc.Contains('$visita = _ExtractVisitaInspeccio $lines') -and $cxEsc.Contains('Visita            = $visita')) 'Actualitzar base: cada informe llegit porta la data de la visita'

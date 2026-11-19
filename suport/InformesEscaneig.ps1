@@ -113,7 +113,8 @@ function _LiniesDeDoc($file, [string]$clau, $docCache, $word, [bool]$ambWord) {
     $l = $null
     try { $l = @(_ReadDocParagraphsWord $word.App $file.FullName) }
     catch {
-        if (-not (_WordViu $word.App)) { try { $word.App.Quit() } catch { }; $word.App = $null }
+        # Un Word que ja no respon: es tanca sense esperar-lo.
+        if (-not (_WordViu $word.App)) { [void](Close-AppOffice $word.App 'Word' 0 0); $word.App = $null }
         return $no
     }
     $docCache.Map[$clau] = [ordered]@{ modificat = $mod; linies = $l }
@@ -888,7 +889,7 @@ function Invoke-InformesDbEscaneig([scriptblock]$onProgres = $null, [scriptblock
             }
         }
     } finally {
-        if ($null -ne $word.App) { try { $word.App.Quit() } catch { } }
+        if ($null -ne $word.App) { Close-WordApp $word.App; $word.App = $null }
         try { _DesaDocTextCache $docCache } catch { }
     }
 

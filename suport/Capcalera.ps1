@@ -238,7 +238,12 @@ function _PreloadHeaderControls($controls, $preload) {
 function Get-HeaderData {
     param($preload = $null, [switch]$Cerca)
 
-    $latest = Find-LatestActivitatsExcel
+    # La base, UNA sola vegada per sessio i per fitxer (Get-ActivitatsCacheSessio,
+    # Activitats.ps1): tornar al Pas 2 no reobre l'Excel. La fa servir tambe la
+    # capcalera de les activitats extraordinaries.
+    $cs = Get-ActivitatsCacheSessio
+    foreach ($av in @($cs.Avisos)) { [System.Windows.Forms.MessageBox]::Show([string]$av.Text, [string]$av.Titol, 'OK', 'Warning') | Out-Null }
+    $latest = $cs.Latest
     if ($null -eq $latest) {
         [System.Windows.Forms.MessageBox]::Show(
             ("No s'ha trobat cap fitxer " + (_ExcelBaseNomText 'ACTIVITATS') + " a cap de les ubicacions:`n`n") +
@@ -249,38 +254,11 @@ function Get-HeaderData {
             'Base de dades no trobada', 'OK', 'Error') | Out-Null
         exit 1
     }
-    # RENDIMENT: obrir l'Excel i llegir tota la base es la part mes lenta del
-    # Pas 2. Ho fem UNA sola vegada per sessio (i per fitxer): si es torna al
-    # Pas 2 (p.ex. Enrere des del Pas 3), reaprofitem la cache ja carregada i
-    # NO reobrim l'Excel ni refem l'export a Drive. Aixi el pas a pas es immediat.
-    $cacheKey = '{0}|{1}|{2}' -f $latest.File.FullName, $latest.File.Length, $latest.File.LastWriteTimeUtc.Ticks
-    if ($script:_sessionActKey -eq $cacheKey -and $null -ne $script:_sessionActCache) {
-        $actCache = $script:_sessionActCache
-    } else {
-        if ($latest.Source -eq 'fallback') {
-            # Avis explicit (un cop) perque l'usuari sapiga que treballa amb una
-            # copia local i no amb la xarxa de la feina.
-            [System.Windows.Forms.MessageBox]::Show(
-                "No s'ha trobat la base de dades a la xarxa.`n`n" +
-                "S'usa la copia LOCAL del clone:`n  $($latest.File.FullName)`n`n" +
-                "Comprova que sigui prou recent.",
-                'Base de dades: copia local (fallback)', 'OK', 'Warning') | Out-Null
-        }
-        # Precarrega TOTA la base de dades a memoria. A partir d'aqui les cerques
-        # son immediates (no cal reobrir Excel).
-        try {
-            $actCache = Initialize-ActivitatsCache -excelFile $latest.File
-        } catch {
-            [System.Windows.Forms.MessageBox]::Show("Error llegint l'Excel:`n$($_.Exception.Message)",'Error','OK','Error') | Out-Null
-            exit 1
-        }
-        if ($actCache.Warnings -and $actCache.Warnings.Count -gt 0) {
-            $msg = "Avisos de validacio de l'Excel (l'auto-fill podria fallar):`n`n" + ($actCache.Warnings -join "`n")
-            [System.Windows.Forms.MessageBox]::Show($msg,'Avisos','OK','Warning') | Out-Null
-        }
-        $script:_sessionActCache = $actCache
-        $script:_sessionActKey   = $cacheKey
+    if (-not $cs.Ok) {
+        [System.Windows.Forms.MessageBox]::Show("Error llegint l'Excel:`n$($cs.Error)",'Error','OK','Error') | Out-Null
+        exit 1
     }
+    $actCache = $cs.Cache
 
     # NOTA: NO refresquem la copia d'activitats al Drive aqui. Comprovar-ho i
     # pujar-ho feia que generar un informe (Pas 2) trigues molt (accedia a la

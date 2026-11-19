@@ -548,8 +548,7 @@ function Invoke-ExportarVistesWord([switch]$Force) {
             }
         }
     } finally {
-        try { $word.Quit() } catch { }
-        try { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($word) | Out-Null } catch { }
+        Close-WordApp $word
     }
     # Nomes donem la versio per bona si s'han pogut generar (si Word ha fallat,
     # la propera vegada ho tornara a intentar).

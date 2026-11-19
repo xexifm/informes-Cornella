@@ -230,6 +230,7 @@ només fa servir el codi nou no simplifica res.
 | una **pantalla** | `_NewForm`, `_AddBrandHeader`, `_StyleListGrid`, `_AddSearchBox` (`UiComuns.ps1`); els botons de baix, **sempre** amb `_AddPeuBotons` (sortir a l'esquerra, avançar a la dreta; hi ha guard); que hi capiga: `_AjustaFinestraAPantalla` (tots dos a `UiFinestra.ps1`) |
 | una **feina llarga** amb barra | `Show-ProgresCancel`; en segon pla, `Start-ScriptSegonPla` (`SegonPla.ps1`) |
 | **obrir un fitxer o una carpeta** per a l'usuari | `Open-PerUsuari` (`SegonPla.ps1`), mai `Invoke-Item` / `Start-Process <fitxer>`; un informe acabat de generar, `Show-InformeAlUsuari` (`Motor.ps1`); esperar un procés amb la sortida, `Wait-ProcesCapturat` (hi ha guard dels tres; vegeu «El programa no pot deixar penjades les finestres dels altres») |
+| **tancar el Word o l'Excel** que ha obert el programa | `Close-WordApp` / `Close-AppOffice` (`OfficeProces.ps1`): mai un `.Quit()` a pèl (hi ha guard; vegeu «El programa no pot deixar penjades les finestres dels altres») |
 | **trobar l'Excel** d'activitats o d'establiments | `Find-LatestBaseExcelIn` (`Excel.ps1`, la carreguen els dos processos): `ExportacioActivitats_AAAAMMDD.xls` / `ExportacioEstabliments_AAAAMMDD.xls` (octubre 2026) i els antics `AAAA-MM-DD ACTIVITATS.xls`; la data d'un `Source`/`Font`, `_ExcelBaseDataDeText`; els missatges, `_ExcelBaseNomText`. Mai un regex de nom a mà |
 | llegir o desar **JSON** | `Read-JsonFile` / `Write-JsonFile` (atòmic, sense BOM) i `ConvertTo-Mapa` per passar-lo a hashtable (`Json.ps1`). **Una base que no es pot perdre** (`informes-db.json`, `contactes-db.json`): `Read-JsonFileStrict` (llança si hi és i no es pot llegir: mai una base nova en silenci) i `Backup-JsonFile` abans de desar (les 5 últimes `.bak`) |
 | una **carpeta** dins de `local/` | una clau nova a `Get-LocalSubdir` (`Migracio.ps1`), no un `Join-Path` a mà |
@@ -1143,6 +1144,25 @@ totes tres tenen guard a `06-guards.ps1` (validat injectant-les):
    les finestres del programa (l'explorador, el Word) s'hi queda esperant.
    `Wait-ProcesCapturat` llegeix en segon pla i espera amb `WaitForExit(ms)`,
    que en un fil STA sí que atén els missatges enviats.
+4. **Un Word o un Excel MIG TANCAT** (novembre 2026: «segueix passant… no em
+   deixa fer res a la carpeta fins que no tanqui el programa»). El programa
+   feia `.Quit()` i alliberava NOMÉS l'aplicació; cada document, full, rang o
+   selecció que havia tocat el PowerShell és una referència COM més, i amb
+   referències vives l'`EXCEL.EXE` (documentat) i el `WINWORD.EXE` es queden
+   amagats i mig morts **fins que surt el procés del programa**. L'explorador,
+   en obrir un document, parla per DDE amb totes les finestres (SendMessage
+   sense límit de temps) i es queda esperant la que no contesta; i el Word que
+   ha d'obrir l'informe pot anar a parar a la instància mig morta. L'Excel es
+   llegeix a cada Pas 2: per això passava «quan s'ha generat un informe o
+   similar». Ara **tot** es tanca per `Close-AppOffice` (`OfficeProces.ps1`):
+   el PID abans de tancar (Excel: `Hwnd`; Word: un `Caption` únic que hi posa
+   `New-WordApp` i `FindWindow('OpusApp')`), `Quit`, `FinalReleaseComObject`,
+   el recollidor dues vegades i **esperar que el procés surti** (20 s com a
+   màxim, atenent missatges). `Show-InformeAlUsuari` obre l'informe DESPRÉS.
+   Cada tancament s'apunta a `%LOCALAPPDATA%\InformesCornella\office-log.txt`
+   («NO HA SORTIT» = aquest és el procés que penja). Guard: cap `.Quit()` fora
+   d'`OfficeProces.ps1` (validat injectant-ne un a `PdfSignar.ps1`), i proves
+   amb processos de debò (un que surt, un que no).
 
 ## Controls que es trepitgen: la tolerància
 `_TrobaSolapaments` avisava de pantalles que es veuen perfectament (una etiqueta

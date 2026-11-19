@@ -32,6 +32,9 @@ $script:ActExtrRegistryFile = 'activitats-extraordinaries.json'
 if ($EstructuralsDir) {
     $script:ActExtrReqTemplate = Join-Path $EstructuralsDir 'ACT_EXTR_REQ.json'
     $script:ActExtrFavTemplate = Join-Path $EstructuralsDir 'ACT_EXTR_FAV.json'
+    # L'informe "No es una activitat extraordinaria" (novembre 2026): text FIX,
+    # sense cap punt del Decret. Vegeu Build-ActExtrNoBlocs (ActExtrBlocs.ps1).
+    $script:ActExtrNoTemplate  = Join-Path $EstructuralsDir 'ACT_EXTR_NO.json'
 }
 
 # ----------------------------------------------------------------------------
@@ -527,6 +530,15 @@ function Test-ActExtrIncludeBlock([string]$blockKey, [string]$mode, $ctx) {
 # ----------------------------------------------------------------------------
 # Registre local (JSON, ignorat per git)
 # ----------------------------------------------------------------------------
+# L'adreca d'una activitat del GIA, per a la capcalera d'una activitat
+# extraordinaria (l'unica dada que s'hi recicla), o $null si l'ID no hi es.
+# PURA (rep la cache de Get-ActivitatsCacheSessio).
+function _ActExtrAdrecaDeGia($cache, [string]$idGia) {
+    $act = Get-ActivitatFromCache $cache ([string]$idGia).Trim()
+    if ($null -eq $act) { return $null }
+    return ([string]$act['ADRECA']).Trim()
+}
+
 function Get-ActExtrRegistryPath {
     return (Join-Path $script:ActExtrRegistryDir $script:ActExtrRegistryFile)
 }

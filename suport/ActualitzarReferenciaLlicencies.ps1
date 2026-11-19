@@ -86,7 +86,7 @@ try {
         [void]$arCanvis.Add(('  ' + $rel + "`n      Favorable -> " + $nou))
     }
 } finally {
-    if ($null -ne $arWord) { try { $arWord.Quit() } catch { } }
+    if ($null -ne $arWord) { Close-WordApp $arWord; $arWord = $null }
 }
 
 $arData = (Get-Date).ToString('yyyy-MM-dd')

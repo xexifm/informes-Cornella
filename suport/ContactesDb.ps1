@@ -493,7 +493,7 @@ function Invoke-ContactesEscaneig([string]$dir, $informes, $cache, $expToGia, [s
             if (($i % 10) -eq 0 -or $i -eq $total) { & $diu "Contactes: llegint documents... ($i de $total, $llegits de nous/modificats)" $i $total }
         }
     } finally {
-        if ($null -ne $word.App) { try { $word.App.Quit() } catch { } }
+        if ($null -ne $word.App) { Close-WordApp $word.App; $word.App = $null }
     }
 
     $calc = @{ Ctx = $null }

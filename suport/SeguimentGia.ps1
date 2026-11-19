@@ -660,7 +660,10 @@ function _SgConstruirLlibre($seleccio) {
         $wb.Sheets.Item(1).Activate()
         return @{ Ok=$true; Workbook=$wb; Excel=$excel; Resum=$resum; Origen=$latest.File.Name; Avisos=$avisos.ToArray() }
     } catch {
-        try { if ($null -ne $excel) { $excel.Quit() } } catch { }
+        try { if ($null -ne $wbOrig) { $wbOrig.Close($false) } } catch { }
+        $wbOrig = $null
+        if ($null -ne $excel) { [void](Close-AppOffice $excel 'Excel') }
+        $excel = $null
         return @{ Ok=$false; Error=(_SgTextError $_ $pas) }
     } finally {
         try { if ($null -ne $wbOrig) { $wbOrig.Close($false) } } catch { }
@@ -678,8 +681,8 @@ function _SgCarpetaSortida {
 # Tanca l'Excel que hem obert, passi el que passi.
 function _SgTancar($excel, $wb) {
     try { if ($null -ne $wb) { $wb.Close($false) } } catch { }
-    try { if ($null -ne $excel) { $excel.Quit() } } catch { }
-    try { if ($null -ne $excel) { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($excel) | Out-Null } } catch { }
+    $wb = $null
+    if ($null -ne $excel) { [void](Close-AppOffice $excel 'Excel') }
 }
 
 # Genera i DESA el fitxer, SENSE CAP FINESTRA (la fan servir el boto i el mode

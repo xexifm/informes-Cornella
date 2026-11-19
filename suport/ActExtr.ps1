@@ -106,10 +106,14 @@ function Invoke-ActExtrFlow {
                 $creatAt = if ($existing -and $existing.CreatAt) { [string]$existing.CreatAt } else { (Get-Date).ToString('o') }
 
                 $outPath = $null
-                if ($r.Action -in @('req','fav')) {
+                if ($r.Action -in @('req','fav','no')) {
                     if ($null -eq $word) { $word = New-WordApp }
                     $outPath = Build-ActExtrDocument $word $header $decret $delivered $r.Action
-                    $tipus = if ($r.Action -eq 'fav') { 'favorable' } else { 'requeriment' }
+                    $tipus = switch ($r.Action) { 'fav' { 'favorable' } 'no' { 'no extraordinaria' } default { 'requeriment' } }
+                    # "No es una activitat extraordinaria": l'expedient es tanca
+                    # aixi (no hi ha res a requerir). Si despres se'n fa un
+                    # requeriment o el favorable, l'estat es torna a calcular.
+                    if ($r.Action -eq 'no') { $estat = 'no extraordinaria' }
                     [void]$historial.Add([pscustomobject]@{
                         Data    = (Get-Date).ToString('o')
                         Tipus   = $tipus
@@ -130,7 +134,7 @@ function Invoke-ActExtrFlow {
                 $registry = Set-ActExtrActivity $registry $activity
                 Save-ActExtrRegistry $registry
 
-                if ($r.Action -in @('req','fav')) {
+                if ($r.Action -in @('req','fav','no')) {
                     Show-InformeAlUsuari $word $outPath
                     [System.Windows.Forms.MessageBox]::Show("Document generat:`n$outPath",'Finalitzat','OK','Information') | Out-Null
                     # En obrir Word per a l'usuari, no el tanquem; sortim al llistat.

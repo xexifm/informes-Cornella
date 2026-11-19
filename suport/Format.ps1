@@ -345,9 +345,13 @@ function Format-Item {
 # motiu que ja hi ha escrit a Format-Bullet -First: entre l'item i el comentari
 # hi pot haver linies de cos, sub-punts o un enllac, i llavors l'espai separaria
 # l'item del seu propi cos.
+#
+# -DespresDeSalt: el primer paragraf d'una pagina nova (Format-SaltPagina ja
+# deixa el cursor en un paragraf buit; fer-ne un altre deixaria una linia en
+# blanc damunt). El mateix que Format-ConclusionHeader.
 function Format-Body {
-    param($sel, [string]$text, [switch]$IsChild, [switch]$Bold, [switch]$Separat)
-    _NouParagraf $sel (_SagniaLinia $IsChild)
+    param($sel, [string]$text, [switch]$IsChild, [switch]$Bold, [switch]$Separat, [switch]$DespresDeSalt)
+    if ($DespresDeSalt) { _Apply-Indent $sel (_SagniaLinia $IsChild); _Reset-Char $sel } else { _NouParagraf $sel (_SagniaLinia $IsChild) }
     if ($Separat) {
         try { $sel.ParagraphFormat.SpaceBefore = [double]$Script:ReportFormatConfig.PrimerSubpuntSpaceBeforePt } catch { }
     }

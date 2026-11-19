@@ -124,6 +124,7 @@ if (Test-Path -LiteralPath $configPath) {
 # a %LOCALAPPDATA%, mai es puja a git). Es processos/scopes independents, aixi
 # que Ruta.ps1 llegeix l'override pel seu compte, igual que fa amb config.ps1.
 . (Join-Path $SuportDir 'Json.ps1')       # Settings.ps1 el fa servir
+. (Join-Path $SuportDir 'OfficeProces.ps1')  # Close-AppOffice (Excel.ps1 el fa servir)
 . (Join-Path $SuportDir 'Excel.ps1')      # Read-FullaEstesa + _NormalitzaText
 . (Join-Path $SuportDir 'Settings.ps1')
 # El fons dels mapes (Get-MapaFonsJs), comu a Ruta, Coordenades i Planol.

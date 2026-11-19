@@ -385,4 +385,43 @@ if (Test-Path -LiteralPath $script:ActExtrFavTemplate) {
     Assert ([bool](@($visF) | Where-Object { $_ -like 'LABEL|*' }))    'Vista ACT_EXTR fav: els ::LABEL:: son etiquetes'
 }
 
+try {
+Write-Host "`n--- 'No es una activitat extraordinaria' (novembre 2026) ---"
+# El model de l'usuari ("2026-11-19_Act_Extr_NOM.docx"): capcalera ACT_EXTR i un
+# text FIX, amb els motius en una pagina nova darrere de la signatura.
+Assert (Test-Path -LiteralPath $script:ActExtrNoTemplate) 'NO: la plantilla ACT_EXTR_NO.json hi es'
+$noBlocs = @(Parse-ActExtrTemplate $script:ActExtrNoTemplate)
+Assert ($noBlocs.Count -ge 10) ("NO: la plantilla te els seus blocs (" + $noBlocs.Count + ")")
+AssertEq (@($noBlocs | Where-Object { @($_.Contents).Count -eq 0 }).Count) 0 'NO: cap bloc sense text'
+AssertEq ((@($noBlocs | ForEach-Object { $_.Key }) | Sort-Object -Unique).Count) $noBlocs.Count 'NO: cap clau repetida'
+$no = @(Build-ActExtrNoBlocs $noBlocs)
+AssertEq (@($no | Where-Object { $_.T -eq 'saltpagina' }).Count) 1 'NO: un salt de pagina (els motius, darrere de la signatura)'
+$iSalt = [array]::IndexOf(@($no | ForEach-Object { $_.T }), 'saltpagina')
+AssertEq ([bool]$no[$iSalt + 1].DespresDeSalt) $true 'NO: el primer paragraf de la pagina nova no deixa una linia en blanc al damunt'
+AssertEq ([string]$no[0].T) 'cos' 'NO: el document comenca pel text (sense linia en blanc al davant)'
+Assert ([string]$no[0].Text).Contains('**no es considera extraordin') 'NO: el primer paragraf, amb la negreta del model'
+# Els pics seguits, sense espai entre ells; abans i despres de la llista, si.
+$tipusNo = @($no | ForEach-Object { $_.T })
+$picsSeguits = $true
+for ($i = 1; $i -lt $tipusNo.Count; $i++) { if ($tipusNo[$i] -eq 'espai' -and $tipusNo[$i - 1] -eq 'pic' -and $tipusNo[$i + 1] -eq 'pic') { $picsSeguits = $false } }
+Assert $picsSeguits 'NO: cap linia en blanc entre els pics d''una llista'
+AssertEq (@($no | Where-Object { $_.T -eq 'pic' }).Count) 7 'NO: els 7 pics del model (2 certificats, 3 normes, 2 certificats)'
+$capNo = @($no | Where-Object { $_.T -eq 'conclusiocap' })
+AssertEq (@($capNo | ForEach-Object { $_.Text }) -join '|') 'INFORME' 'NO: el titol INFORME de la segona pagina, sense les marques de negreta'
+AssertEq (@($no | Where-Object { $_.T -eq 'enllac' }).Count) 2 'NO: els dos enllacos del Portal Juridic'
+Assert (@($no | Where-Object { $_.T -eq 'separa' }).Count -ge 1) 'NO: "Ho poso al seu coneixement" separat'
+Assert (@($no | Where-Object { $_.T -eq 'cos' -and ([string]$_.Text).Contains('//DECRET 176/2009') }).Count -eq 1) 'NO: la cursiva del model (el Decret 176/2009)'
+# El mode 'no' passa per Build-ActExtrBlocs (el que fa servir el .docx).
+AssertEq (@(Build-ActExtrBlocs $noBlocs 'no' @{} @{}).Count) $no.Count 'NO: Build-ActExtrBlocs ''no'' = Build-ActExtrNoBlocs'
+AssertEq (_GetActExtrOutputFileName 'NoExtr' '28' 'Quina') ((Get-Date).ToString('yyyy-MM-dd') + '_ActExtr-NoExtr_GIA 28_Quina.docx') 'NO: el nom del fitxer'
+
+Write-Host "`n--- Capcalera: l'adreca per ID GIA (boto Cercar) ---"
+$cacheAdr = [pscustomobject]@{ ById = @{ '28' = @{ ADRECA = 'Parc Esportiu Llobregat '; TITULAR = 'X'; ACTIVITAT = 'Y' } } }
+AssertEq (_ActExtrAdrecaDeGia $cacheAdr ' 28 ') 'Parc Esportiu Llobregat' 'Cercar: torna l''adreca (i res mes)'
+AssertEq (_ActExtrAdrecaDeGia $cacheAdr '29') $null 'Cercar: un ID que no hi es -> $null'
+AssertEq (_ActExtrAdrecaDeGia $null '28') $null 'Cercar: sense base -> $null'
+} catch {
+    Assert $false ("NO: excepcio no controlada: " + $_.Exception.Message + ' @ ' + $_.InvocationInfo.ScriptLineNumber)
+}
+
 exit (Write-TestSummary 'RESULTAT ACT_EXTR')

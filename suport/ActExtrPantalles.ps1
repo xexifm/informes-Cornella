@@ -24,7 +24,7 @@ function Show-ActExtrList($registry) {
     $form.StartPosition = 'CenterScreen'
 
     $lbl = New-Object System.Windows.Forms.Label
-    $lbl.Text = 'Activitats extraordinaries. A la dreta hi ha l''estat (PENDENT si falta documentacio, TANCAT si tot esta lliurat).'
+    $lbl.Text = 'Activitats extraordinaries. A la dreta hi ha l''estat (PENDENT si falta documentacio, TANCAT si tot esta lliurat, NO EXTRAORDINARIA si se n''ha fet aquell informe).'
     $lbl.Location = New-Object System.Drawing.Point(15, 12)
     $lbl.Size = New-Object System.Drawing.Size(780, 20)
     $form.Controls.Add($lbl)
@@ -37,10 +37,10 @@ function Show-ActExtrList($registry) {
     $lv.MultiSelect = $false
     $lv.Anchor = 'Top, Bottom, Left, Right'
     [void]$lv.Columns.Add('ID GIA', 90)
-    [void]$lv.Columns.Add('Titular', 240)
-    [void]$lv.Columns.Add('Activitat', 230)
+    [void]$lv.Columns.Add('Titular', 220)
+    [void]$lv.Columns.Add('Activitat', 200)
     [void]$lv.Columns.Add('Dates', 120)
-    [void]$lv.Columns.Add('Estat', 90)
+    [void]$lv.Columns.Add('Estat', 150)
     foreach ($a in @($registry.Activitats)) {
         $h = $a.Header
         $it = New-Object System.Windows.Forms.ListViewItem([string]$a.IdGia)
@@ -135,6 +135,41 @@ function Get-ActExtrHeader {
     }
     if ($lockId) { $controls['ID_GIA'].ReadOnly = $true }
 
+    # CERCAR PER ID GIA (l'usuari, novembre 2026: "que quan es posi l'id GIA es
+    # busqui, com quan es fa un informe, i s'ompli l'adreca, que en aquest cas
+    # es l'unica dada que es pot reciclar"). La resta (titular, activitat,
+    # expedient) son de l'activitat EXTRAORDINARIA, no de la del GIA: no es
+    # toquen. La base es la mateixa del Pas 2 (Get-ActivitatsCacheSessio): si ja
+    # s'ha llegit en aquesta sessio, la cerca es immediata.
+    $btnCercar = New-Object System.Windows.Forms.Button
+    $btnCercar.Text = 'Cercar'
+    $btnCercar.Location = New-Object System.Drawing.Point(510, 16)
+    $btnCercar.Size = New-Object System.Drawing.Size(90, 28)
+    _StylePrimaryButton $btnCercar
+    [void]$form.Controls.Add($btnCercar)
+    $btnCercar.add_Click({
+        $idGia = $controls['ID_GIA'].Text.Trim()
+        if ([string]::IsNullOrWhiteSpace($idGia)) {
+            [System.Windows.Forms.MessageBox]::Show("Has d'introduir un ID GIA.",'Falta ID GIA','OK','Warning') | Out-Null
+            return
+        }
+        $form.UseWaitCursor = $true
+        [System.Windows.Forms.Application]::DoEvents()
+        try { $cs = Get-ActivitatsCacheSessio } finally { $form.UseWaitCursor = $false }
+        foreach ($av in @($cs.Avisos)) { [System.Windows.Forms.MessageBox]::Show([string]$av.Text, [string]$av.Titol, 'OK', 'Warning') | Out-Null }
+        if (-not $cs.Ok) {
+            $msg = if ($null -eq $cs.Latest) { "No s'ha trobat cap fitxer " + (_ExcelBaseNomText 'ACTIVITATS') + '.' } else { "Error llegint l'Excel:`n" + [string]$cs.Error }
+            [System.Windows.Forms.MessageBox]::Show($msg, 'Base de dades', 'OK', 'Error') | Out-Null
+            return
+        }
+        $adr = _ActExtrAdrecaDeGia $cs.Cache $idGia
+        if ($null -eq $adr) {
+            [System.Windows.Forms.MessageBox]::Show(("L'ID GIA '" + $idGia + "' no s'ha trobat a la base de dades`n(" + $cs.Latest.File.Name + ")."), 'Activitat no trobada', 'OK', 'Error') | Out-Null
+            return
+        }
+        $controls['ADRECA'].Text = $adr
+    })
+
     $peu = _AddPeuBotons $form @(@{ Nom = 'Enrere'; Text = (_TxtEnrere); Resultat = 'Retry' }) @(
         @{ Nom = 'Ok'; Text = (_TxtSeguent); Estil = 'primari'; Intro = $true }) $y
     $ok = $peu.Ok
@@ -171,7 +206,7 @@ function Get-ActExtrHeader {
 
 # Pas 3: comprovacio de la documentacio. Mostra les preguntes de classificacio
 # (esquerra) i, per cada punt, si APLICA i PER QUE + casella "lliurat" (dreta).
-# Retorna @{ Action='req'|'fav'|'save'|'back'; Answers=@{...}; Delivered=@{...} }
+# Retorna @{ Action='req'|'fav'|'no'|'save'|'back'; Answers=@{...}; Delivered=@{...} }
 function Edit-ActExtrDocumentacio {
     param($header, $answers = $null, $delivered = $null)
 
@@ -196,14 +231,17 @@ function Edit-ActExtrDocumentacio {
     $bottom.Height = 50
     $form.Controls.Add($bottom)
 
-    # Els dos informes son les dues sortides bones d'aquesta pantalla: tots dos
-    # en granat, a la dreta.
+    # Els informes son les sortides bones d'aquesta pantalla: tots en granat, a
+    # la dreta. "No es una activitat extraordinaria" (novembre 2026), a
+    # l'esquerra de "Generar requeriment", com va demanar l'usuari.
+    $txtNoExtr = ('No ' + [char]0x00E9 + 's una activitat extraordin' + [char]0x00E0 + 'ria')
     $peu = _AddPeuBotons $form @(
         @{ Nom = 'Enrere'; Text = (_TxtEnrere) },
         @{ Nom = 'Desar'; Text = 'Desar' }) @(
+        @{ Nom = 'NoExtr'; Text = $txtNoExtr; Estil = 'primari' },
         @{ Nom = 'Req'; Text = 'Generar requeriment'; Estil = 'primari' },
         @{ Nom = 'Fav'; Text = 'Generar informe favorable'; Estil = 'primari' }) 9 $bottom
-    $btnBack = $peu.Enrere; $btnSave = $peu.Desar; $btnReq = $peu.Req; $btnFav = $peu.Fav
+    $btnBack = $peu.Enrere; $btnSave = $peu.Desar; $btnReq = $peu.Req; $btnFav = $peu.Fav; $btnNoExtr = $peu.NoExtr
 
     # --- Esquerra: preguntes de classificacio (amb scroll propi) ---
     $gbQ = New-Object System.Windows.Forms.GroupBox
@@ -381,6 +419,13 @@ function Edit-ActExtrDocumentacio {
 
     $btnSave.add_Click({ & $script:_actExtrFinish 'save' })
     $btnReq.add_Click({ & $script:_actExtrFinish 'req' })
+    $btnNoExtr.add_Click({
+        $r = [System.Windows.Forms.MessageBox]::Show(
+            ("Es generara l'informe que diu que l'activitat NO " + [char]0x00E9 + "s extraordin" + [char]0x00E0 + "ria (text fix; nom" + [char]0x00E9 + "s canvien les dades de la capcalera).`n`nVols continuar?"),
+            $txtNoExtr, 'YesNo', 'Question')
+        if ($r -ne 'Yes') { return }
+        & $script:_actExtrFinish 'no'
+    })
     $btnFav.add_Click({
         $ans = & $script:_actExtrReadAnswers
         $decret = Build-ActExtrDecret $ans

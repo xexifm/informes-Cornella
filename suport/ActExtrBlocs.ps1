@@ -82,6 +82,7 @@ function _WriteActExtrBody($sel, $blocks, $mode, $ctx, $computed) {
 # no sigui un sub-punt, i el motor nomes ho sap fer amb blocs 'unitat'.
 function Build-ActExtrBlocs($blocks, $mode, $ctx, $computed) {
     if ($mode -eq 'fav') { return @(_ActExtrBlocsFav $blocks $ctx $computed) }
+    if ($mode -eq 'no')  { return @(Build-ActExtrNoBlocs $blocks) }
 
     # ---- REQUERIMENT ----
     $out = New-Object System.Collections.ArrayList
@@ -200,8 +201,73 @@ function _ActExtrBlocsFav($blocks, $ctx, $computed) {
     return $out.ToArray()
 }
 
-# Genera el document (requeriment o informe favorable) i retorna la ruta del
-# .docx. $mode = 'req' | 'fav'. Reutilitza la capcalera 0 CAPCALERA.docx
+# L'INFORME "NO ES UNA ACTIVITAT EXTRAORDINARIA" en blocs (l'usuari, novembre
+# 2026, amb el model "Act_Extr_NOM": "nomes canvien les dades abans de la
+# paraula INFORME, la resta es estatic"). La capcalera es la mateixa d'ACT_EXTR
+# (0 CAPCALERA, bloc ACT_EXTR); el cos, TOT el de la plantilla ACT_EXTR_NO.json,
+# sense cap regla del Decret. Funcio PURA.
+#   - Una linia en blanc entre paragrafs, menys entre els pics d'una mateixa
+#     llista (el model els porta seguits).
+#   - Cada SECCIO de la plantilla a partir de la segona comenca en una PAGINA
+#     NOVA: els motius van "a continuacio de la signatura electronica".
+#   - 'item' = pic; 'capcalera' = titol centrat en negreta (INFORME); 'text' =
+#     cos amb la seva **negreta** i //cursiva//; els enllacos, com a enllac.
+function Build-ActExtrNoBlocs($blocks) {
+    $out = New-Object System.Collections.ArrayList
+    $prev = ''          # el tipus del darrer paragraf escrit ('' = cap a la pagina)
+    $prevSection = $null
+    $despresDeSalt = $false
+    foreach ($block in @($blocks)) {
+        if ($null -eq $block) { continue }
+        $kind = [string]$block.Kind
+        if ($null -ne $prevSection -and [int]$block.Section -ne [int]$prevSection -and $prev -ne '') {
+            [void]$out.Add(@{ T = 'saltpagina' })
+            $prev = ''; $despresDeSalt = $true
+        }
+        $prevSection = [int]$block.Section
+        foreach ($c in @($block.Contents)) {
+            $txt = [string]$c.Text
+            if ($c.IsUrl) {
+                $u = $txt
+                if ($u.StartsWith('[[URL]] ')) { $u = $u.Substring('[[URL]] '.Length) }
+                $u = $u.Trim()
+                if ($u -eq '') { continue }
+                if ($prev -ne '') { [void]$out.Add(@{ T = 'espai' }) }
+                [void]$out.Add(@{ T = 'enllac'; Url = $u })
+                $prev = 'url'; $despresDeSalt = $false
+                continue
+            }
+            $parts = _SplitTextAndUrls $txt
+            if ([string]::IsNullOrWhiteSpace($parts.Text) -and @($parts.Urls).Count -eq 0) { continue }
+            # Els pics seguits, sense linia en blanc entre ells.
+            if ($prev -ne '' -and -not ($kind -eq 'item' -and $prev -eq 'item')) { [void]$out.Add(@{ T = 'espai' }) }
+            if (-not [string]::IsNullOrWhiteSpace($parts.Text)) {
+                switch ($kind) {
+                    'item'   { [void]$out.Add(@{ T = 'pic'; Text = $parts.Text; First = $false }) }
+                    'child'  { [void]$out.Add(@{ T = 'pic'; Text = $parts.Text; Fill = $true; First = $false }) }
+                    # El titol centrat ja va en negreta i s'escriu TAL QUAL
+                    # (Format-ConclusionHeader, -Pla): sense les marques, que
+                    # sortirien escrites ("**INFORME**").
+                    'header' { [void]$out.Add(@{ T = 'conclusiocap'; Text = ($parts.Text -replace '\*\*|//', ''); DespresDeSalt = $despresDeSalt }) }
+                    'note'   { [void]$out.Add(@{ T = 'nota'; Text = $parts.Text }) }
+                    'label'  { [void]$out.Add(@{ T = 'etiqueta'; Text = $parts.Text }) }
+                    'conc'   { [void]$out.Add(@{ T = 'conclusio'; Text = $parts.Text }) }
+                    default  {
+                        # "Ho poso al seu coneixement..." sempre separat (Format.ps1).
+                        if (_EsFraseTancament $parts.Text) { [void]$out.Add(@{ T = 'separa' }) }
+                        [void]$out.Add(@{ T = 'cos'; Text = $parts.Text; DespresDeSalt = $despresDeSalt })
+                    }
+                }
+            }
+            foreach ($x in @($parts.Urls)) { [void]$out.Add(@{ T = 'enllac'; Url = $x }) }
+            $prev = $kind; $despresDeSalt = $false
+        }
+    }
+    return $out.ToArray()
+}
+
+# Genera el document (requeriment, informe favorable o "no es una activitat
+# extraordinaria") i retorna la ruta del .docx. $mode = 'req' | 'fav' | 'no'. Reutilitza la capcalera 0 CAPCALERA.docx
 # (bloc ACT_EXTR) i el motor de format.
 function Build-ActExtrDocument($word, $header, $decret, $delivered, $mode) {
     $computed = Get-ActExtrComputed $decret
@@ -211,10 +277,10 @@ function Build-ActExtrDocument($word, $header, $decret, $delivered, $mode) {
     $defKeys = Get-ActExtrDeficiencies $decret $computed $delivered
     $ctx = @{ Decret=$decret; Computed=$computed; Delivered=$delivered; StatusByKey=$statusByKey; DefKeys=$defKeys }
 
-    $tplPath = if ($mode -eq 'fav') { $script:ActExtrFavTemplate } else { $script:ActExtrReqTemplate }
+    $tplPath = switch ($mode) { 'fav' { $script:ActExtrFavTemplate } 'no' { $script:ActExtrNoTemplate } default { $script:ActExtrReqTemplate } }
     $blocks  = Parse-ActExtrTemplate $tplPath
 
-    $tipus = if ($mode -eq 'fav') { 'Fav' } else { 'Req' }
+    $tipus = switch ($mode) { 'fav' { 'Fav' } 'no' { 'NoExtr' } default { 'Req' } }
     $gia = if ($header -is [System.Collections.IDictionary]) { [string]$header['ID_GIA'] } else { [string]$header.ID_GIA }
     $act = if ($header -is [System.Collections.IDictionary]) { [string]$header['ACTIVITAT'] } else { [string]$header.ACTIVITAT }
     $baseName  = _GetActExtrOutputFileName $tipus $gia $act

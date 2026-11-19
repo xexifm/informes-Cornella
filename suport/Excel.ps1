@@ -205,10 +205,11 @@ function Read-FullaEstesa($excelFile, [scriptblock]$cos, [switch]$Desa, [string]
         # es queda corrent invisible amb el fitxer agafat: es el defecte que
         # tenien les tres copies de rutes/.
         if ($null -ne $wb)    { try { $wb.Close($false) } catch { } }
-        if ($null -ne $excel) { try { $excel.Quit() } catch { } }
-        if ($null -ne $excel) {
-            try { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($excel) | Out-Null } catch { }
-        }
+        # I SURT DE DEBO (Close-AppOffice, OfficeProces.ps1): abans l'EXCEL.EXE
+        # es quedava mig tancat, amagat, fins que es tancava el programa, i
+        # penjava l'explorador en obrir un document.
+        $sh = $null; $wb = $null
+        if ($null -ne $excel) { [void](Close-AppOffice $excel 'Excel') }
     }
 }
 

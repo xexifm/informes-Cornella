@@ -66,7 +66,7 @@ if ($dpF.Extension -ieq '.xml') {
             $dpW = New-WordApp -Opcional
             if ($null -eq $dpW) { & $dpDiu '(no hi ha Word)' }
             else { $dpTxt = _PdfTextWord $dpW $dpF.FullName; & $dpDiu $dpTxt; & $dpDiu ('(hi ha prou text: ' + (_PdfTeText $dpTxt) + ')') }
-        } finally { if ($null -ne $dpW) { try { $dpW.Quit() } catch { } } }
+        } finally { if ($null -ne $dpW) { Close-WordApp $dpW; $dpW = $null } }
     }
     & $dpDiu ''
     & $dpDiu '== El que en treu el lector de la INSTANCIA =='

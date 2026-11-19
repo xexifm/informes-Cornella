@@ -513,8 +513,8 @@ function _WriteBlocs($sel, $blocs, $estat, [bool]$ambNivells) {
             'llista'       { Format-ListItem $sel ([string]$b.Text) -Pics:([bool]$b.Pics) }
             'continua'     { Format-Append $sel ([string]$b.Text) }
             'cos' {
-                if ($fill) { Format-Body $sel ([string]$b.Text) -IsChild -Bold:([bool]$b.Negreta) -Separat:([bool]$b.Separat) }
-                else       { Format-Body $sel ([string]$b.Text) -Bold:([bool]$b.Negreta) -Separat:([bool]$b.Separat) }
+                if ($fill) { Format-Body $sel ([string]$b.Text) -IsChild -Bold:([bool]$b.Negreta) -Separat:([bool]$b.Separat) -DespresDeSalt:([bool]$b.DespresDeSalt) }
+                else       { Format-Body $sel ([string]$b.Text) -Bold:([bool]$b.Negreta) -Separat:([bool]$b.Separat) -DespresDeSalt:([bool]$b.DespresDeSalt) }
             }
             'enllac' {
                 if ($fill) { Format-Url $sel ([string]$b.Url) -IsChild } else { Format-Url $sel ([string]$b.Url) }

@@ -79,8 +79,8 @@ foreach ($nomCat in @('REQ1', 'TERMINI')) {
 
 # ---------------------------------------------------------------------------
 Write-Host "`n--- Fitxers d'or: ACT_EXTR ---"
-foreach ($mode in @('req', 'fav')) {
-    $tpl = if ($mode -eq 'fav') { $script:ActExtrFavTemplate } else { $script:ActExtrReqTemplate }
+foreach ($mode in @('req', 'fav', 'no')) {
+    $tpl = switch ($mode) { 'fav' { $script:ActExtrFavTemplate } 'no' { $script:ActExtrNoTemplate } default { $script:ActExtrReqTemplate } }
     if (-not (Test-Path -LiteralPath $tpl)) { Assert $false "or: falta la plantilla ACT_EXTR $mode"; continue }
     $blocs = Parse-ActExtrTemplate $tpl
     # TOTS els blocs aplicables: aixi el fitxer d'or cobreix la plantilla sencera
@@ -97,7 +97,7 @@ foreach ($mode in @('req', 'fav')) {
 
 # ---------------------------------------------------------------------------
 Write-Host "`n--- Fitxers d'or: les VISTES dels catalegs ---"
-foreach ($nomV in @('REQ1', 'TERMINI', 'ACT_EXTR_REQ', 'ACT_EXTR_FAV', 'LLIC', 'MNSTRANS', '0 CONCLUSIONS')) {
+foreach ($nomV in @('REQ1', 'TERMINI', 'ACT_EXTR_REQ', 'ACT_EXTR_FAV', 'ACT_EXTR_NO', 'LLIC', 'MNSTRANS', '0 CONCLUSIONS')) {
     $jp = Join-Path $EstructuralsDir ($nomV + '.json')
     if (-not (Test-Path -LiteralPath $jp)) { continue }
     $o = _LoadEstructuralJson $jp

@@ -31,6 +31,7 @@
     -- dades --
     CatalegJson.ps1     lectura dels catalegs (ESTRUCTURALS\*.json)
     Activitats.ps1      Excel d'activitats: cache per ID GIA + pujada a Drive
+    OfficeProces.ps1    tancar DE DEBO el Word i l'Excel del programa (Close-AppOffice)
     InformesClassificacio.ps1 que diu cada informe (conclusio, tipus) i l'estat de l'activitat
     Informes.ps1        GIA/expedient del text, edicions a ma + editor de la base
     InformesEscaneig.ps1 "Actualitzar base": llegeix els informes i munta informes-db.json
@@ -190,6 +191,11 @@ $RepoRoot        = Split-Path -Parent $ScriptRoot
 # Lector de docs\config.js (les claus de servei del mobil). Va aqui perque el
 # bloc de configuracio de mes avall n'hi treu els IDs de les carpetes de Drive.
 . (Join-Path $ScriptRoot 'ConfigJs.ps1')
+
+# Tancar DE DEBO el Word i l'Excel del programa (Close-AppOffice): sense aixo
+# es quedaven mig tancats i penjaven l'explorador fins que es tancava el
+# programa. Nomes defineix funcions; el carrega tambe rutes\Ruta.ps1.
+. (Join-Path $ScriptRoot 'OfficeProces.ps1')
 
 # Lector de la fulla "Estes" de l'Excel d'activitats, i _NormalitzaText. Va TAN
 # AMUNT perque el fa servir mig programa i perque nomes defineix funcions: es el
@@ -715,6 +721,9 @@ function New-WordApp {
         exit 1
     }
     $w.Visible = $false
+    # Un titol unic: es com Close-AppOffice (OfficeProces.ps1) en troba el
+    # PROCES per esperar que surti de debo. Nomes dura la sessio.
+    try { $w.Caption = (_OfficeTitolNou) } catch { }
     $w.DisplayAlerts = 0  # wdAlertsNone
     # Evita que Word obri els fitxers de xarxa en "Vista protegida", que
     # bloqueja InsertParagraphAfter i altres operacions de modificacio.
@@ -762,11 +771,12 @@ function Show-InformeAlUsuari($word, [string]$path) {
     [void](Open-PerUsuari $path)
 }
 
+# Tanca el Word del programa I ESPERA QUE EL PROCES SURTI (Close-AppOffice,
+# OfficeProces.ps1). Abans nomes feia Quit + ReleaseComObject de l'aplicacio, i
+# un WINWORD.EXE mig tancat penjava l'explorador i el Word de l'usuari fins que
+# es tancava el programa. Show-InformeAlUsuari obre l'informe DESPRES d'aixo.
 function Close-WordApp($word) {
-    if ($null -ne $word) {
-        try { $word.Quit() } catch { }
-        [System.Runtime.InteropServices.Marshal]::ReleaseComObject($word) | Out-Null
-    }
+    if ($null -ne $word) { [void](Close-AppOffice $word 'Word') }
 }
 
 # ----------------------------------------------------------------------------

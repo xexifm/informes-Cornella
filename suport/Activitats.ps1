@@ -281,6 +281,40 @@ function Initialize-ActivitatsCache($excelFile) {
     })
 }
 
+# LA BASE D'ACTIVITATS DE LA SESSIO: es llegeix UNA sola vegada per sessio i
+# per fitxer (l'Excel es la part lenta). Abans vivia dins de Get-HeaderData
+# (Capcalera.ps1); ara la fan servir tambe la capcalera de les activitats
+# extraordinaries (boto Cercar) i Llicencia ($script:_sessionActCache).
+# Torna @{ Ok; Cache; Latest; Error; Avisos = @(@{ Titol; Text }) }. Els avisos
+# (copia local, capcaleres que no quadren) nomes surten la vegada que es llegeix
+# l'Excel: el cridador els ensenya. Latest = $null: no hi ha cap Excel.
+function Get-ActivitatsCacheSessio {
+    $avisos = New-Object System.Collections.ArrayList
+    $latest = Find-LatestActivitatsExcel
+    if ($null -eq $latest) { return @{ Ok = $false; Cache = $null; Latest = $null; Error = 'No hi ha cap Excel d''activitats.'; Avisos = @() } }
+    $cacheKey = '{0}|{1}|{2}' -f $latest.File.FullName, $latest.File.Length, $latest.File.LastWriteTimeUtc.Ticks
+    if ($script:_sessionActKey -eq $cacheKey -and $null -ne $script:_sessionActCache) {
+        return @{ Ok = $true; Cache = $script:_sessionActCache; Latest = $latest; Error = ''; Avisos = @() }
+    }
+    if ($latest.Source -eq 'fallback') {
+        [void]$avisos.Add(@{ Titol = 'Base de dades: copia local (fallback)'; Text = (
+            "No s'ha trobat la base de dades a la xarxa.`n`n" +
+            "S'usa la copia LOCAL del clone:`n  $($latest.File.FullName)`n`n" +
+            "Comprova que sigui prou recent.") })
+    }
+    try {
+        $actCache = Initialize-ActivitatsCache -excelFile $latest.File
+    } catch {
+        return @{ Ok = $false; Cache = $null; Latest = $latest; Error = [string]$_.Exception.Message; Avisos = $avisos.ToArray() }
+    }
+    if ($actCache.Warnings -and $actCache.Warnings.Count -gt 0) {
+        [void]$avisos.Add(@{ Titol = 'Avisos'; Text = ("Avisos de validacio de l'Excel (l'auto-fill podria fallar):`n`n" + ($actCache.Warnings -join "`n")) })
+    }
+    $script:_sessionActCache = $actCache
+    $script:_sessionActKey   = $cacheKey
+    return @{ Ok = $true; Cache = $actCache; Latest = $latest; Error = ''; Avisos = $avisos.ToArray() }
+}
+
 # Cerca una activitat per ID al cache precarregat. Retorna $null si no es troba.
 function Get-ActivitatFromCache($cache, $idGia) {
     if ($null -eq $cache -or $null -eq $cache.ById) { return $null }

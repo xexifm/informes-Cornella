@@ -1367,10 +1367,7 @@ function _RunConvertPdf($opts) {
             }
         }
     } finally {
-        if ($null -ne $word) {
-            try { $word.Quit() } catch { }
-            try { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($word) | Out-Null } catch { }
-        }
+        if ($null -ne $word) { Close-WordApp $word; $word = $null }
         $cancel.Running = $false
         $form.Close(); $form.Dispose()
     }
