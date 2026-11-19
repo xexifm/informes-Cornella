@@ -2558,3 +2558,15 @@ L'usuari, amb l'Excel del 17/11/2026 i els tres Excels d'errors del 18/11:
   la llista, l'estat **NO EXTRAORDINARIA** (si després se'n fa un requeriment o
   el favorable, l'estat es torna a calcular). Fitxers d'or:
   `emit-actextr-no.txt` i `emit-vista-act-extr-no.txt`.
+
+## Excel Errors: exportar un Excel o els tres (novembre 2026)
+
+L'usuari: «a "Exportar a Excel" vull que em deixi triar entre un sol Excel i els
+3 Excels que exportaria en cas d'enviar per correu». Dos botons al peu (amb un
+missatge emergent cadascun):
+- **Exportar 1 Excel**: el d'abans (`Export-ExcelErrors`, on es vulgui).
+- **Exportar 3 Excels**: **la mateixa** `New-ExcelErrorsLlistats` que el correu
+  i l'automàtic (mateix repartiment, mateixes tretes dels llistats), a la
+  carpeta que es tria (`_PickFolderModern`) i sense enviar res. Primer l'avís
+  (fitxers, resum i les activitats sense llistat) i després s'obre la carpeta:
+  un avís darrere de l'explorador només faria parpellejar el programa.

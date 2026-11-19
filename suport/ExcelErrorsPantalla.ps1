@@ -141,7 +141,7 @@ function Show-ExcelErrorsFinestra($errors, [string]$peu, [string]$fileName) {
     $tbPeu.BackColor = [System.Drawing.Color]::White
     $tbPeu.Text = $peu
     $baix.Controls.Add($tbPeu)
-    [void](_AddPeuBotons $form @(
+    $peuB = _AddPeuBotons $form @(
         @{ Nom = 'Tancar'; Text = 'Tancar'; Clic = { $form.Close() }.GetNewClosure() },
         # Les tretes dels llistats: es poden tornar a posar.
         @{ Nom = 'Exclosos'; Text = 'Tretes dels llistats...'; Clic = {
@@ -184,7 +184,31 @@ function Show-ExcelErrorsFinestra($errors, [string]$peu, [string]$fileName) {
                 [System.Windows.Forms.MessageBox]::Show($txt, $titol, 'OK', $(if ($e.Ok) { 'Information' } else { 'Warning' })) | Out-Null
             } finally { $form.Cursor = [System.Windows.Forms.Cursors]::Default }
         }.GetNewClosure() },
-        @{ Nom = 'Export'; Text = 'Exportar a Excel'; Estil = 'primari'; Clic = {
+        # DOS EXPORTACIONS (l'usuari, novembre 2026: "vull que em deixi triar
+        # entre un sol Excel i els 3 Excels que exportaria en cas d'enviar per
+        # correu"): els tres son EXACTAMENT els del correu (New-ExcelErrorsLlistats,
+        # el mateix repartiment i les mateixes tretes), pero a la carpeta que
+        # es tria i sense enviar res.
+        @{ Nom = 'Export3'; Text = 'Exportar 3 Excels'; Clic = {
+            $sel = & $triatsAra
+            if ($sel.Count -eq 0) { [System.Windows.Forms.MessageBox]::Show("Marca almenys un tipus d'error.", $titol, 'OK', 'Information') | Out-Null; return }
+            Save-ExTriats $sel
+            $ini = ''; try { $ini = [string](_ResolveOutputDir) } catch { }
+            $dir = _PickFolderModern $ini ("On deso els tres Excels (Inn" + [char]0x00F2 + "cues, Bars i Restaurants, Annexos II i III)?") $form
+            if ([string]::IsNullOrWhiteSpace($dir)) { return }
+            $form.Cursor = [System.Windows.Forms.Cursors]::WaitCursor
+            $g = $null
+            try { $g = New-ExcelErrorsLlistats $errors $sel $st.Excl $dir } finally { $form.Cursor = [System.Windows.Forms.Cursors]::Default }
+            if (-not $g.Ok) { [System.Windows.Forms.MessageBox]::Show("No s'han pogut fer els tres Excels:`n" + $g.Error, $titol, 'OK', 'Error') | Out-Null; return }
+            $txt = (@($g.Fitxers) | ForEach-Object { [System.IO.Path]::GetFileName([string]$_) }) -join "`n"
+            $txt += "`n`n" + ((@($g.Resum.Keys) | ForEach-Object { [string]$_ + ': ' + [string]$g.Resum[$_] }) -join "`n")
+            if (@($g.SenseLlistat).Count -gt 0) { $txt += "`n`nAmb errors i sense llistat (no surten a cap dels tres): " + ((@($g.SenseLlistat) | ForEach-Object { [string]$_.Id }) -join ', ') }
+            # Primer l'avis i despres la carpeta: un avis darrere de l'explorador
+            # nomes faria parpellejar el programa a la barra de tasques.
+            [System.Windows.Forms.MessageBox]::Show(("Tres Excels desats a:`n" + $dir + "`n`n" + $txt), $titol, 'OK', 'Information') | Out-Null
+            [void](Open-PerUsuari $dir)
+        }.GetNewClosure() },
+        @{ Nom = 'Export'; Text = 'Exportar 1 Excel'; Estil = 'primari'; Clic = {
             $sel = & $triatsAra
             if ($sel.Count -eq 0) { [System.Windows.Forms.MessageBox]::Show("Marca almenys un tipus d'error.", $titol, 'OK', 'Information') | Out-Null; return }
             Save-ExTriats $sel
@@ -198,7 +222,10 @@ function Show-ExcelErrorsFinestra($errors, [string]$peu, [string]$fileName) {
                 [void](Export-ExcelErrors $dlg.FileName @(@($errors) | Where-Object { -not $ex.ContainsKey([string]$_.Id) }) $sel)
                 [void](Open-PerUsuari $dlg.FileName)
             } catch { [System.Windows.Forms.MessageBox]::Show("No s'ha pogut exportar:`n" + $_.Exception.Message, $titol, 'OK', 'Error') | Out-Null }
-        }.GetNewClosure() }) 64 $baix)
+        }.GetNewClosure() }) 64 $baix
+    $ttExp = New-Object System.Windows.Forms.ToolTip
+    $ttExp.SetToolTip($peuB.Export, "Un sol Excel amb tots els errors dels tipus marcats (i on vulguis).")
+    $ttExp.SetToolTip($peuB.Export3, ("Els tres Excels del correu (Inn" + [char]0x00F2 + "cues, Bars i Restaurants, Annexos II i III), sense enviar-los: a la carpeta que triis."))
 
     # L'ordre compta (Dock): el que s'afegeix l'ultim es col·loca el primer.
     $form.Controls.Add($mig)

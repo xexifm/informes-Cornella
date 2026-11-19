@@ -279,6 +279,11 @@ AssertEq "$(@($llPer2.innocues).Count)|$(@($llPer2.annexos).Count)" '1|0' 'Llist
 AssertEq (_ExResumLlistat @($llPer.innocues)) '3 errors (2 activitats)' 'Llistats: el resum del correu'
 AssertEq (_ExNomFitxerLlistat 'bars' (New-Object datetime(2026, 10, 15))) 'Excel_errors_2026-10-15_Bars_i_Restaurants.xlsx' 'Llistats: el nom del fitxer, com els de l''usuari'
 AssertEq (_ExNomFitxerLlistat 'annexos' (New-Object datetime(2026, 10, 15))) 'Excel_errors_2026-10-15_Annexos_II_i_III.xlsx' 'Llistats: Annexos II i III'
+# "Exportar 3 Excels" (novembre 2026): els MATEIXOS tres del correu, a la
+# carpeta triada i sense enviar res.
+$exPant = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'ExcelErrorsPantalla.ps1'))
+Assert ($exPant.Contains("Text = 'Exportar 3 Excels'") -and $exPant.Contains("Text = 'Exportar 1 Excel'")) 'Excel Errors: dos exportacions (un Excel / els tres del correu)'
+Assert ($exPant.Contains('$g = New-ExcelErrorsLlistats $errors $sel $st.Excl $dir }')) 'Excel Errors: els tres Excels de l''exportacio son els del correu (mateixa funcio, mateixes tretes), a la carpeta triada'
 
 Write-Host "`n--- Excel Errors: els tres Excels i les tretes dels llistats (en disc) ---"
 $llDir = Join-Path ([System.IO.Path]::GetTempPath()) ('exll-' + [guid]::NewGuid().ToString('N'))
