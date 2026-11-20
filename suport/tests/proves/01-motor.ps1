@@ -583,6 +583,15 @@ $ptAcc = @('1. req', "CORNELLÀ DE LLOBREGAT,")
 AssertEq (_FindConclusionStartIndex $ptAcc 1 @('Cornella de Llobregat,')) 2 '_FindConclusionStartIndex insensible a accents/majuscules'
 $ptNone = @('1. req', 'res a veure aqui')
 AssertEq (_FindConclusionStartIndex $ptNone 1 $SeguimentConclusionPhrases) -1 '_FindConclusionStartIndex sense frase -> -1'
+# El titol CONCLUSIONS: s'agafa sol, sense preguntar (novembre 2026). El cas de
+# la captura de l'usuari: un enllac i un "S'aporta" abans del titol.
+# (Parentesis a les concatenacions: dins d'un @(...) la coma lliga mes que el +.)
+$ptCap = @('1. Requeriment', 'https://interior.gencat.cat/web/.content/bombers', ('09/03/2026: S' + [char]0x2019 + 'aporta.'), 'CONCLUSIONS', ('Vist l' + [char]0x2019 + 'anterior...'), 'Ho poso al seu coneixement als efectes oportuns,')
+AssertEq (_TitolConclusionsIndex $ptCap 1) 4 'Seguiment: el titol CONCLUSIONS es troba sol'
+AssertEq (_TitolConclusionsIndex @('1. R', 'Conclusions:') 1) 2 'Seguiment: "Conclusions:" (majuscules i dos punts) tambe'
+AssertEq (_TitolConclusionsIndex @('1. R', 'Vist les conclusions anteriors', 'Ho poso') 1) -1 'Seguiment: una frase que nomes conte la paraula no es el titol'
+AssertEq (_TitolConclusionsIndex @('CONCLUSIONS', '1. R') 1) -1 'Seguiment: nomes despres de l''ultim requeriment'
+AssertEq ([int](Confirm-ConclusionDeletion -paraTexts $ptCap -lastReqEndIndex 1 -detectedStart 5).StartIndex) 4 'Seguiment: amb el titol CONCLUSIONS no surt el selector (s''esborra des del titol)'
 
 Write-Host "`n--- Seguiment: _ValidateRoundDate ---"
 $vd1 = _ValidateRoundDate '01/06/2026'

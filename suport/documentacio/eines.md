@@ -2570,3 +2570,14 @@ missatge emergent cadascun):
   carpeta que es tria (`_PickFolderModern`) i sense enviar res. Primer l'avís
   (fitxers, resum i les activitats sense llistat) i després s'obre la carpeta:
   un avís darrere de l'explorador només faria parpellejar el programa.
+
+## «Requeriment - Seguiment»: el títol CONCLUSIONS ja no es pregunta (novembre 2026)
+
+`Confirm-ConclusionDeletion` (`Seguiment.ps1`) ensenyava SEMPRE la finestra «Tria
+el primer paràgraf a esborrar», encara que el document portés el títol
+CONCLUSIONS. L'usuari: «quan hi hagi una fila que sigui CONCLUSIONS, no cal
+preguntar i es pot seleccionar automàticament». Ara, si després de l'últim
+requeriment hi ha un paràgraf que és **només** el títol (`_TitolConclusionsIndex`,
+pura: sense accents, majúscules ni signes; «Conclusions:» també), s'esborra
+d'allà sense finestra. Una frase que només conté la paraula no compta. Sense
+títol, la finestra de sempre, amb la detecció per frases preseleccionada.

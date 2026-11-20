@@ -300,6 +300,18 @@ function _FindConclusionStartIndex($paraTexts, [int]$lastReqEndIndex, $phrases) 
     return -1
 }
 
+# El paragraf que es NOMES el titol "CONCLUSIONS" (sense accents ni
+# majuscules, i sense signes: "CONCLUSIONS:" tambe), despres de l'ultim
+# requeriment. Index 1-based, o -1. PURA.
+function _TitolConclusionsIndex($paraTexts, [int]$lastReqEndIndex) {
+    if ($null -eq $paraTexts) { return -1 }
+    $l = @($paraTexts)
+    for ($i = [math]::Max(0, $lastReqEndIndex); $i -lt $l.Count; $i++) {
+        if (((_NormalitzaText ([string]$l[$i])) -replace '[^a-z]', '') -eq 'conclusions') { return ($i + 1) }
+    }
+    return -1
+}
+
 # Valida/normalitza la data de la ronda. Buit -> avui. Retorna { Ok; Normalized }
 # sempre en dd/MM/yyyy. Rebutja dates impossibles (32/13/2026...).
 function _ValidateRoundDate($text) {
@@ -797,13 +809,19 @@ function Select-PreviousReport {
     return (Select-InformeDocx "Tria l'informe anterior amb els requeriments" -SenseUltim)
 }
 
-# Tria del bloc de conclusions a esborrar. SEMPRE mostra el selector MANUAL
-# (preferencia de l'usuari): es llisten els paragrafs a partir de l'ultim
-# requeriment enumerat i l'usuari tria el primer a esborrar. Si la deteccio
-# automatica ha trobat un punt d'inici, es preselecciona com a ajuda.
+# Tria del bloc de conclusions a esborrar.
+#   - Si despres de l'ultim requeriment hi ha un paragraf que es el titol
+#     CONCLUSIONS, s'esborra d'alla, SENSE PREGUNTAR (l'usuari, novembre 2026:
+#     "quan hi hagi una fila que sigui CONCLUSIONS, no cal preguntar i es pot
+#     seleccionar automaticament").
+#   - Si no n'hi ha, el selector MANUAL de sempre: es llisten els paragrafs a
+#     partir de l'ultim requeriment i l'usuari tria el primer a esborrar (amb
+#     el punt de la deteccio per frases preseleccionat, si n'hi ha).
 # Retorna { StartIndex } (1-based, o -1 per no esborrar); $null si cancel·la.
 function Confirm-ConclusionDeletion {
     param($paraTexts, [int]$lastReqEndIndex, [int]$detectedStart)
+    $titol = _TitolConclusionsIndex $paraTexts $lastReqEndIndex
+    if ($titol -ge 1) { return [pscustomobject]@{ StartIndex = $titol } }
     return (Select-ConclusionCutManually -paraTexts $paraTexts -lastReqEndIndex $lastReqEndIndex -preselectIndex $detectedStart)
 }
 
