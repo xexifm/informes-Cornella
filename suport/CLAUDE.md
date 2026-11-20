@@ -1163,6 +1163,22 @@ totes tres tenen guard a `06-guards.ps1` (validat injectant-les):
    («NO HA SORTIT» = aquest és el procés que penja). Guard: cap `.Quit()` fora
    d'`OfficeProces.ps1` (validat injectant-ne un a `PdfSignar.ps1`), i proves
    amb processos de debò (un que surt, un que no).
+5. **Una finestra del programa PENJADA de l'explorador** (novembre 2026, amb un
+   vídeo de l'usuari: clica la carpeta, s'activa un instant però queda DARRERE
+   del menú, i el menú torna a ser l'actiu en menys d'un quart de segon). És el
+   comportament d'una finestra amb **propietari** d'un altre procés: el Windows
+   la manté per sobre del propietari i els dos fils comparteixen l'entrada.
+   `ShowDialog()` i `MessageBox.Show()` sense propietari agafen la finestra
+   activa (`GetActiveWindow`), que amb l'entrada enganxada pot ser la de
+   l'explorador, i la cadena s'autoalimenta. **`_DesenganxaPropietariAlie`**
+   (`UiFinestra.ps1`), el primer que fa `_AjustaFinestraAPantalla` (el lloc per
+   on passen TOTES les finestres en obrir-se, també les de rutes): si el
+   propietari és d'un altre procés, `GWL_HWNDPARENT = 0` (i si l'havia deixat
+   desactivat, `EnableWindow`), i ho apunta a
+   `%LOCALAPPDATA%\InformesCornella\finestres-log.txt` amb el procés, la classe
+   i el títol de qui penjava. **No s'ha pogut veure d'on ve el primer enganxament**
+   (no hi ha Windows a les proves): el registre és per saber-ho. Guard validat
+   traient-ne la crida.
 
 ## Controls que es trepitgen: la tolerància
 `_TrobaSolapaments` avisava de pantalles que es veuen perfectament (una etiqueta

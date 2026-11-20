@@ -77,8 +77,87 @@ function _MidaFinestraDinsPantalla([int]$w, [int]$h, [int]$minW, [int]$minH,
 # ----------------------------------------------------------------------------
 # L'alcada de DISSENY es la que te la finestra en obrir-se, ABANS de retallar-la:
 # es la que ha de poder recorrer la barra de desplacament.
+# ----------------------------------------------------------------------------
+# CAP FINESTRA DEL PROGRAMA PENJADA D'UNA FINESTRA D'UN ALTRE PROGRAMA
+# ----------------------------------------------------------------------------
+# L'usuari (novembre 2026, amb un video): clica la carpeta de l'explorador i
+# aquesta s'activa un instant, pero es queda DARRERE del menu, i el menu torna a
+# ser l'actiu en menys d'un quart de segon; "no em deixa fer res a la carpeta
+# fins que no tanqui el programa" i el programa "ressalta en vermell" a la barra.
+# Es el comportament d'una finestra que te l'explorador com a PROPIETARI: el
+# Windows la manté sempre per sobre del seu propietari i els dos fils comparteixen
+# l'entrada (el teclat i el focus).
+# Com hi pot arribar: ShowDialog() i MessageBox.Show() sense propietari agafen
+# la FINESTRA ACTIVA del moment (GetActiveWindow). Normalment es una del mateix
+# programa o cap, pero si l'entrada del programa esta enganxada a la d'un altre
+# (una sola finestra penjada d'una altra n'hi ha prou), pot ser la de
+# l'explorador, i a partir d'aqui cada finestra nova s'hi torna a penjar.
+# El remei: en obrir-se, cada finestra mira el seu propietari i, si es d'un
+# altre proces, es DESPENJA (GWL_HWNDPARENT = 0). Sense cap finestra penjada,
+# l'entrada es desenganxa i la cadena es trenca. I s'apunta a
+# %LOCALAPPDATA%\InformesCornella\finestres-log.txt, amb el programa i la
+# finestra de qui penjava: si torna a passar, aquell fitxer diu d'on ve.
+function _FinestresWin32 {
+    if ('CornellaApp.Propietari' -as [type]) { return $true }
+    try {
+        Add-Type -Namespace CornellaApp -Name Propietari -MemberDefinition @"
+[System.Runtime.InteropServices.DllImport("user32.dll")] public static extern System.IntPtr GetWindow(System.IntPtr hWnd, uint uCmd);
+[System.Runtime.InteropServices.DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(System.IntPtr hWnd, out uint pid);
+[System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "SetWindowLong")] public static extern int SetWindowLong32(System.IntPtr hWnd, int nIndex, int dwNewLong);
+[System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "SetWindowLongPtr")] public static extern System.IntPtr SetWindowLongPtr64(System.IntPtr hWnd, int nIndex, System.IntPtr dwNewLong);
+[System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)] public static extern int GetWindowText(System.IntPtr hWnd, System.Text.StringBuilder s, int n);
+[System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)] public static extern int GetClassName(System.IntPtr hWnd, System.Text.StringBuilder s, int n);
+[System.Runtime.InteropServices.DllImport("user32.dll")] public static extern bool IsWindowEnabled(System.IntPtr hWnd);
+[System.Runtime.InteropServices.DllImport("user32.dll")] public static extern bool EnableWindow(System.IntPtr hWnd, bool enable);
+public static void Despenja(System.IntPtr h) {
+    if (System.IntPtr.Size == 8) { SetWindowLongPtr64(h, -8, System.IntPtr.Zero); } else { SetWindowLong32(h, -8, 0); }
+}
+"@ -ErrorAction Stop
+        return $true
+    } catch { return $false }
+}
+
+# Cal despenjar? Nomes si hi ha propietari i es d'un ALTRE proces. PURA.
+function _CalDespenjar([int64]$ownerHwnd, [int]$ownerPid, [int]$elMeuPid) {
+    return ($ownerHwnd -ne 0 -and $ownerPid -gt 0 -and $ownerPid -ne $elMeuPid)
+}
+
+function _DesenganxaPropietariAlie($f) {
+    if ($null -eq $f) { return }
+    try {
+        if (-not (_FinestresWin32)) { return }
+        $h = $f.Handle
+        $own = [CornellaApp.Propietari]::GetWindow($h, 4)   # GW_OWNER
+        if ($own -eq [System.IntPtr]::Zero) { return }
+        $p = [uint32]0
+        [void][CornellaApp.Propietari]::GetWindowThreadProcessId($own, [ref]$p)
+        if (-not (_CalDespenjar ([int64]$own) ([int]$p) $PID)) { return }
+        $tit = New-Object System.Text.StringBuilder 256; [void][CornellaApp.Propietari]::GetWindowText($own, $tit, 256)
+        $cls = New-Object System.Text.StringBuilder 256; [void][CornellaApp.Propietari]::GetClassName($own, $cls, 256)
+        $nom = ''; try { $nom = (Get-Process -Id ([int]$p) -ErrorAction Stop).ProcessName } catch { }
+        [CornellaApp.Propietari]::Despenja($h)
+        # Si el propietari havia quedat desactivat (un MessageBox penjat d'ell
+        # el desactiva), se li torna l'entrada: no es cap finestra del programa.
+        $desactivat = -not [CornellaApp.Propietari]::IsWindowEnabled($own)
+        if ($desactivat) { [void][CornellaApp.Propietari]::EnableWindow($own, $true) }
+        try {
+            $base = [string]$env:LOCALAPPDATA
+            if (-not [string]::IsNullOrWhiteSpace($base)) {
+                $dir = Join-Path $base 'InformesCornella'
+                if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+                Add-Content -LiteralPath (Join-Path $dir 'finestres-log.txt') -Encoding UTF8 -Value ('[' + (Get-Date).ToString('yyyy-MM-dd HH:mm:ss') + '] "' + [string]$f.Text + '" penjava de ' + $nom + ' (PID ' + $p + ', ' + $cls.ToString() + ' "' + $tit.ToString() + '")' + $(if ($desactivat) { '; estava DESACTIVADA i se li ha tornat' } else { '' }) + ': despenjada.')
+            }
+        } catch { }
+    } catch { }
+}
+
 function _AjustaFinestraAPantalla($f) {
     if ($null -eq $f) { return }
+    # El primer, abans de mides: cap finestra del programa penjada d'una
+    # finestra d'un altre programa (vegeu _DesenganxaPropietariAlie). Va aqui
+    # perque es l'unic lloc per on passen TOTES les finestres en obrir-se (les
+    # de _NewForm i les fetes a ma, tambe les del proces de rutes).
+    _DesenganxaPropietariAlie $f
     try {
         # L'alcada de DISSENY s'ha de llegir ABANS de tocar res.
         $altDisseny = [int]$f.ClientSize.Height

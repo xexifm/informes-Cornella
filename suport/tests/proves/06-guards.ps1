@@ -1959,6 +1959,18 @@ Assert ($wShow.IndexOf('Close-WordApp') -ge 0 -and $wShow.IndexOf('Close-WordApp
 Assert ((_SenseComentaris (Join-Path $wDir 'Excel.ps1')).Contains("[void](Close-AppOffice `$excel 'Excel')")) 'Read-FullaEstesa: l''Excel surt de debo (Close-AppOffice)'
 Assert ((_SenseComentaris (Join-Path $wDir (Join-Path 'rutes' 'Ruta.ps1'))).Contains("'OfficeProces.ps1'")) 'el proces de rutes tambe carrega OfficeProces.ps1 (hi llegeix l''Excel)'
 
+# 5. (novembre 2026, video de l'usuari) Cap finestra del programa penjada d'una
+#    finestra d'un ALTRE programa: el menu es quedava per sobre de l'explorador
+#    i li prenia el focus. Totes les finestres passen per _AjustaFinestraAPantalla
+#    en obrir-se, i aquesta comenca despenjant-les.
+$wFin = _SenseComentaris (Join-Path $wDir 'UiFinestra.ps1')
+$wAjusta = [regex]::Match($wFin, '(?s)function _AjustaFinestraAPantalla\(\$f\) \{.*?\n\}').Value
+Assert ($wAjusta -match '(?s)^function _AjustaFinestraAPantalla\(\$f\) \{\s*if \(\$null -eq \$f\) \{ return \}\s*_DesenganxaPropietariAlie \$f') 'en obrir-se, cada finestra es despenja d''un propietari d''un altre programa (_DesenganxaPropietariAlie, el primer)'
+Assert ($wFin.Contains('[CornellaApp.Propietari]::Despenja($h)') -and $wFin.Contains('finestres-log.txt')) '_DesenganxaPropietariAlie despenja i ho apunta (finestres-log.txt)'
+AssertEq (_CalDespenjar 0 0 100) $false 'sense propietari: res a fer'
+AssertEq (_CalDespenjar 12345 100 100) $false 'propietari del mateix programa: es queda'
+AssertEq (_CalDespenjar 12345 4321 100) $true 'propietari d''un altre programa (l''explorador): es despenja'
+
 Write-Host "`n--- Close-AppOffice: tancar i ESPERAR el proces (amb processos de debo) ---"
 try {
     $offDoble = [pscustomobject]@{ Caption = 'Microsoft Word' }
