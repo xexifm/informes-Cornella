@@ -810,6 +810,30 @@ main. Fes-ho sempre, no cal que em preguntis»): en acabar cada tanda de feina,
 amb les proves en verd, fes el push a `main` sense preguntar-ho. El model de
 desplegament de l'usuari depèn que la feina arribi a `main`.
 
+## Els NOMS dels fitxers que fa el programa (novembre 2026)
+
+Acordat amb l'usuari: **`AAAA-MM-DD_[Tipus_]ReqN_GIA n`**, la data sempre al
+principi i amb guió baix, perquè el seguiment en faci el `ReqN+1` i tot es
+llegeixi igual a la carpeta. Els requeriments normals no porten tipus.
+
+| Informe | Nom | On es decideix |
+|---|---|---|
+| Requeriment, Controls periòdics (lot) | `_Req1_GIA n` | `_GetOutputFileName` (`Document.ps1`) |
+| Seguiment | `ReqN` → `ReqN+1`; sense «Req» al nom: `[Tipus_]Req2_GIA n` amb el tipus i el GIA del **document** | `_SeguimentOutputName`, `_FamiliaSeguiment` (`SeguimentRegles.ps1`) |
+| Termini | `_Termini_GIA n` | `_GetOutputFileName` |
+| MNS / Transmissió | `_MNS_Req1` / `_MNS_Fav`, `_Trans_Req1` / `_Trans_Fav` (amb / sense observacions) | `_MnsNomFitxer` |
+| Llicència | `_Llic_Req1`, `_Llic_FavPre`, `_Llic_FavPost` | `_LlicNomFitxer` |
+| Activitat extraordinària | `_ActExtr_Req1_GIA n_Activitat` (Req2… segons l'historial), `_ActExtr_Fav_…`, `_ActExtr_NoExtr_…` | `_GetActExtrOutputFileName` |
+| Seguiment GIA, Excel Errors | `_SeguimentGIA.xlsx`, `_ExcelErrors[_Llistat].xlsx` | `_SgNomFitxer`, `_ExNomFitxerLlistat` |
+
+- **Del nom, el programa només en llegeix dues coses**: el GIA (`GIA[\s_-]*n`,
+  `_GiaDelNomFitxer`) i «act extr» (`_TipusInforme`). La resta (de quin
+  informe es tracta, l'estat) surt del **contingut**. Un canvi de nom que no
+  toqui aquestes dues coses no trenca la base d'informes ni el correu.
+- **El «Req» del seguiment només compta si no el segueix cap lletra**: abans el
+  «REQ» de «REQUERIMENT» d'un nom antic donava «Req2UERIMENT».
+- Els fitxers que ja hi havia **no es reanomenen** (l'usuari: «va bé així»).
+
 ## La marca `[LLISTA]` del catàleg: una llista buida per omplir a mà
 Un paràgraf del cos que sigui NOMÉS `[LLISTA]` (`$Script:MarcaLlista`,
 `_EsMarcaLlista`, MotorInforme.ps1) surt de `_BlocsDeLinia` com a bloc

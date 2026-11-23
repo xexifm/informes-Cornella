@@ -102,10 +102,11 @@ function _ExResumLlistat($errors) {
 }
 
 # El nom del fitxer de cada llistat, com els que feia l'usuari a ma
-# ("Excel_errors_2026-10-15_Bars_i_Restaurants.xlsx"). PURA.
+# ("2026-10-15_ExcelErrors_Bars_i_Restaurants.xlsx": la data al principi, com
+# la resta de fitxers del programa; abans "Excel_errors_2026-10-15_..."). PURA.
 $Script:ExLlistatsFitxer = @{ innocues = 'Innocues'; bars = 'Bars_i_Restaurants'; annexos = 'Annexos_II_i_III' }
 function _ExNomFitxerLlistat([string]$clau, [datetime]$data) {
-    return ('Excel_errors_' + $data.ToString('yyyy-MM-dd') + '_' + [string]$Script:ExLlistatsFitxer[$clau] + '.xlsx')
+    return ($data.ToString('yyyy-MM-dd') + '_ExcelErrors_' + [string]$Script:ExLlistatsFitxer[$clau] + '.xlsx')
 }
 
 # ----------------------------------------------------------------------------

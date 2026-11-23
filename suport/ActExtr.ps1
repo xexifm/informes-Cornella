@@ -108,7 +108,10 @@ function Invoke-ActExtrFlow {
                 $outPath = $null
                 if ($r.Action -in @('req','fav','no')) {
                     if ($null -eq $word) { $word = New-WordApp }
-                    $outPath = Build-ActExtrDocument $word $header $decret $delivered $r.Action
+                    # El numero del requeriment (Req1, Req2...): els que ja n'hi ha
+                    # a l'historial d'aquesta activitat, mes aquest.
+                    $ronda = 1 + @(@($historial) | Where-Object { [string]$_.Tipus -eq 'requeriment' }).Count
+                    $outPath = Build-ActExtrDocument $word $header $decret $delivered $r.Action $ronda
                     $tipus = switch ($r.Action) { 'fav' { 'favorable' } 'no' { 'no extraordinaria' } default { 'requeriment' } }
                     # "No es una activitat extraordinaria": l'expedient es tanca
                     # aixi (no hi ha res a requerir). Si despres se'n fa un

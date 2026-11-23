@@ -854,9 +854,9 @@ function _LlicTextDocumentacio([string]$tecnic, [string]$numCol, [string]$colleg
 # surt a la capcalera del document.
 function _LlicNomFitxer([datetime]$data, [string]$fase, [string]$idGia) {
     $curt = switch ($fase) {
-        'favorable-pre'  { 'LlicFavPre' }
-        'favorable-post' { 'LlicFavPost' }
-        default          { 'LlicReq' }
+        'favorable-pre'  { 'Llic_FavPre' }
+        'favorable-post' { 'Llic_FavPost' }
+        default          { 'Llic_Req1' }
     }
     return (_NomInformeFitxer $data $curt $idGia)
 }

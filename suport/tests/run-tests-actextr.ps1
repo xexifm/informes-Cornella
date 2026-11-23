@@ -413,7 +413,10 @@ Assert (@($no | Where-Object { $_.T -eq 'separa' }).Count -ge 1) 'NO: "Ho poso a
 Assert (@($no | Where-Object { $_.T -eq 'cos' -and ([string]$_.Text).Contains('//DECRET 176/2009') }).Count -eq 1) 'NO: la cursiva del model (el Decret 176/2009)'
 # El mode 'no' passa per Build-ActExtrBlocs (el que fa servir el .docx).
 AssertEq (@(Build-ActExtrBlocs $noBlocs 'no' @{} @{}).Count) $no.Count 'NO: Build-ActExtrBlocs ''no'' = Build-ActExtrNoBlocs'
-AssertEq (_GetActExtrOutputFileName 'NoExtr' '28' 'Quina') ((Get-Date).ToString('yyyy-MM-dd') + '_ActExtr-NoExtr_GIA 28_Quina.docx') 'NO: el nom del fitxer'
+AssertEq (_GetActExtrOutputFileName 'NoExtr' '28' 'Quina') ((Get-Date).ToString('yyyy-MM-dd') + '_ActExtr_NoExtr_GIA 28_Quina.docx') 'NO: el nom del fitxer'
+AssertEq (_GetActExtrOutputFileName 'Req2' '28' 'Quina') ((Get-Date).ToString('yyyy-MM-dd') + '_ActExtr_Req2_GIA 28_Quina.docx') 'ActExtr: el segon requeriment, Req2'
+Assert ([bool]((_GetActExtrOutputFileName 'Req1' '28' '') -match '(?i)(^|[^a-z])act[\s_-]?extr')) 'ActExtr: la base d''informes el segueix reconeixent pel nom'
+Assert ([string](Get-Command Build-ActExtrDocument).Parameters.Keys -match 'ronda') 'ActExtr: Build-ActExtrDocument rep la ronda'
 
 Write-Host "`n--- Capcalera: l'adreca per ID GIA (boto Cercar) ---"
 $cacheAdr = [pscustomobject]@{ ById = @{ '28' = @{ ADRECA = 'Parc Esportiu Llobregat '; TITULAR = 'X'; ACTIVITAT = 'Y' } } }

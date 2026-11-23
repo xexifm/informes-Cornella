@@ -636,7 +636,15 @@ $d = [datetime]'2026-06-05'
 AssertEq (_SeguimentOutputName '2026-05-29_Req1_GIA 1379' $d) '2026-06-05_Req2_GIA 1379.docx' '_SeguimentOutputName Req1 -> Req2, data avui'
 AssertEq (_SeguimentOutputName '2026-06-05_Req2_GIA 1379' $d) '2026-06-05_Req3_GIA 1379.docx' '_SeguimentOutputName Req2 -> Req3'
 AssertEq (_SeguimentOutputName '2026-05-15_Req_SELECTIUM CORNELLA' $d) '2026-06-05_Req2_SELECTIUM CORNELLA.docx' '_SeguimentOutputName Req sense numero -> Req2 (requeriment antic)'
-AssertEq (_SeguimentOutputName 'Informe antic fet a ma' $d) '2026-06-05_Seguiment_Informe antic fet a ma.docx' '_SeguimentOutputName sense Req -> prefix Seguiment'
+AssertEq (_SeguimentOutputName 'Informe antic fet a ma' $d) '2026-06-05_Seguiment_Informe antic fet a ma.docx' '_SeguimentOutputName sense Req ni GIA -> prefix Seguiment'
+# Novembre 2026: data_[Tipus_]ReqN_GIA n. El cas de l'usuari.
+AssertEq (_SeguimentOutputName '2026-07-01_D112_MNS_OK_JOSE_PEREZ_FERNANDEZ' ([datetime]'2026-11-23') 'MNS' '341') '2026-11-23_MNS_Req2_GIA 341.docx' '_SeguimentOutputName: una MNS antiga -> MNS_Req2_GIA 341'
+AssertEq (_SeguimentOutputName '2026-07-01_MNS_Req1_GIA 341' ([datetime]'2026-11-23') 'MNS' '341') '2026-11-23_MNS_Req2_GIA 341.docx' '_SeguimentOutputName: MNS_Req1 -> MNS_Req2'
+AssertEq (_SeguimentOutputName '2026-07-01_Llic_Req1_GIA 5' ([datetime]'2026-11-23') '' '5') '2026-11-23_Llic_Req2_GIA 5.docx' '_SeguimentOutputName: Llic_Req1 -> Llic_Req2'
+AssertEq (_SeguimentOutputName '2026-07-01_D112_REQUERIMENT_X' ([datetime]'2026-11-23') '' '77') '2026-11-23_Req2_GIA 77.docx' '_SeguimentOutputName: un requeriment antic amb GIA -> Req2_GIA'
+AssertEq (_FamiliaSeguiment $ptVella 6) 'MNS' '_FamiliaSeguiment: MNS'
+AssertEq (_FamiliaSeguiment @('INFORME', ('En relaci' + [char]0x00F3 + ' a la sol' + [char]0x00B7 + 'licitud de transmissi' + [char]0x00F3 + ' de la titularitat...'), '1. Neteja') 3) 'Trans' '_FamiliaSeguiment: Transmissio'
+AssertEq (_FamiliaSeguiment @('INFORME', 'S''han observat les seguents deficiencies:', '1. Neteja') 3) '' '_FamiliaSeguiment: un requeriment normal, sense prefix'
 AssertEq (_SeguimentOutputName 'a/b:c' $d) '2026-06-05_Seguiment_a_b_c.docx' '_SeguimentOutputName saneja caracters il-legals'
 
 Write-Host "`n--- Seguiment: _BuildSeguimentModel ---"

@@ -19,6 +19,7 @@
     Menu.ps1            Pas 1: la pantalla inicial (Select-Mode) i el segell
                         d'ultima execucio de cada eina
     Seguiment.ps1       l'informe de seguiment (anotacions sobre un d'anterior)
+    SeguimentRegles.ps1 ...on tallar les conclusions, que es mante, familia i nom (PURES)
     Paquet.ps1          generar sense assistent, des d'un paquet del mobil
 
     -- els passos de l'assistent --
@@ -302,6 +303,7 @@ function Start-EinaRutes([string]$fitxer, [string]$titol) {
 # carrega tambe en mode headless perque les seves funcions pures es puguin
 # provar des dels tests.
 . (Join-Path $ScriptRoot 'Seguiment.ps1')
+. (Join-Path $ScriptRoot 'SeguimentRegles.ps1')  # on tallar, que es mante, familia i nom del fitxer
 
 # El menu principal (Select-Mode, Pas 1) i el segell d'ultima execucio de les
 # eines. Vivia dins de Seguiment.ps1 i no hi tenia res a veure: es la primera

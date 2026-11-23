@@ -77,7 +77,7 @@ function _MnsFases {
             Clau = 'trans'
             Nom  = 'Transmissi' + [char]0x00F3
             Sub  = 'Transmissi' + [char]0x00F3 + ' de la titularitat de l' + [char]0x2019 + 'activitat'
-            Curt = 'TRANS'
+            Curt = 'Trans'
         }
     )
 }
@@ -200,10 +200,16 @@ function _MnsConclusions([string]$fase, [bool]$ambObservacions) {
 }
 
 # Nom del fitxer de sortida (mateix patro que la resta: data al principi).
-function _MnsNomFitxer([datetime]$data, [string]$fase, [string]$idGia) {
+#
+# ELS NOMS DELS FITXERS (l'usuari, novembre 2026): data_[Tipus_]ReqN_GIA n,
+# perque el seguiment en faci el ReqN+1 i tots es llegeixin igual a la carpeta.
+# Amb observacions (punts de REQ1) es un requeriment: MNS_Req1 / Trans_Req1, i
+# el seguiment en fara el Req2. Sense, un favorable: MNS_Fav / Trans_Fav.
+function _MnsNomFitxer([datetime]$data, [string]$fase, [string]$idGia, [bool]$ambObservacions = $false) {
     $curt = 'MNS'
     foreach ($f in @(_MnsFases)) { if ([string]$f.Clau -eq [string]$fase) { $curt = [string]$f.Curt } }
-    return (_NomInformeFitxer $data $curt $idGia)
+    $tipus = if ($ambObservacions) { 'Req1' } else { 'Fav' }
+    return (_NomInformeFitxer $data ($curt + '_' + $tipus) $idGia)
 }
 
 # ----------------------------------------------------------------------------
@@ -280,7 +286,9 @@ function Build-MnsBlocs($model) {
 
 function Build-MnsDocument($word, $model) {
     $header = $model.Header
-    $baseName = _MnsNomFitxer (Get-Date) ([string]$model.Fase) ([string]$header['ID_GIA'])
+    # Amb observacions = amb algun punt de REQ1 (la mateixa regla que Build-MnsBlocs).
+    $ambObs = (@(@($model.Punts) | Where-Object { $null -ne $_ }).Count -gt 0)
+    $baseName = _MnsNomFitxer (Get-Date) ([string]$model.Fase) ([string]$header['ID_GIA']) $ambObs
     $blocs = Build-MnsBlocs $model
     # LA MATEIXA CAPCALERA que la resta d'informes de Llicencia (porta la linia
     # "Classificacio:"), tal com va demanar l'usuari.

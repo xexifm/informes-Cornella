@@ -220,9 +220,9 @@ AssertEq (_LlicTextQuan 'Abans de tot.' 'requeriment') '(Quan: Abans de tot)' '_
 # Nom del fitxer: data al principi, com la resta d'informes (aixi "Actualitzar
 # base d'informes" el reconeix).
 $nf = _LlicNomFitxer ([datetime]'2026-08-03') 'requeriment' '1433'
-AssertEq $nf '2026-08-03_LlicReq_GIA 1433.docx' '_LlicNomFitxer: requeriment'
-Assert ([bool]((_LlicNomFitxer ([datetime]'2026-08-03') 'favorable-pre' '1') -like '*LlicFavPre*'))  '_LlicNomFitxer: favorable pre'
-Assert ([bool]((_LlicNomFitxer ([datetime]'2026-08-03') 'favorable-post' '1') -like '*LlicFavPost*')) '_LlicNomFitxer: favorable post'
+AssertEq $nf '2026-08-03_Llic_Req1_GIA 1433.docx' '_LlicNomFitxer: requeriment (Llic_Req1, novembre 2026: el seguiment en fa el Req2)'
+Assert ([bool]((_LlicNomFitxer ([datetime]'2026-08-03') 'favorable-pre' '1') -like '*_Llic_FavPre_*'))  '_LlicNomFitxer: favorable pre'
+Assert ([bool]((_LlicNomFitxer ([datetime]'2026-08-03') 'favorable-post' '1') -like '*_Llic_FavPost_*')) '_LlicNomFitxer: favorable post'
 Assert (-not ((_LlicNomFitxer ([datetime]'2026-08-03') 'requeriment' 'A/B:C') -match '[\\/:*?"<>|]')) '_LlicNomFitxer: fora els caracters que Windows no admet'
 AssertEq (_VistaActExtrTitol '[[INCENDIS]] Incendis') 'Incendis  [INCENDIS]' '_VistaActExtrTitol: etiqueta + clau'
 AssertEq (_VistaActExtrTitol '[[MEMORIA_A]] ::CHILD:: a) Identificacio') 'a) Identificacio  [MEMORIA_A]' '_VistaActExtrTitol: treu el token'
@@ -805,7 +805,7 @@ if (Test-Path -LiteralPath $llicPathX) {
 
 # El nom del fitxer NO porta el titular (l'usuari no el vol; ja surt a dins).
 $nfG = _LlicNomFitxer ([datetime]'2026-08-18') 'requeriment' '1457'
-AssertEq $nfG '2026-08-18_LlicReq_GIA 1457.docx' '_LlicNomFitxer: el nom no porta el titular'
+AssertEq $nfG '2026-08-18_Llic_Req1_GIA 1457.docx' '_LlicNomFitxer: el nom no porta el titular'
 
 Write-Host "`n--- PdfCms.ps1: refer la signatura de dins del PDF ---"
 # Els informes signats amb l'AutoFirma nomes es validaven a l'ordinador que

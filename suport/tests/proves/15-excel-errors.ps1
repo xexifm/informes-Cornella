@@ -277,8 +277,8 @@ AssertEq "$(@($llPer.innocues).Count)|$(@($llPer.bars).Count)|$(@($llPer.annexos
 $llPer2 = _ExPerLlistat $llErr @('cadastre') @(@{ Id = '5' })
 AssertEq "$(@($llPer2.innocues).Count)|$(@($llPer2.annexos).Count)" '1|0' 'Llistats: nomes els tipus marcats, i sense les activitats tretes'
 AssertEq (_ExResumLlistat @($llPer.innocues)) '3 errors (2 activitats)' 'Llistats: el resum del correu'
-AssertEq (_ExNomFitxerLlistat 'bars' (New-Object datetime(2026, 10, 15))) 'Excel_errors_2026-10-15_Bars_i_Restaurants.xlsx' 'Llistats: el nom del fitxer, com els de l''usuari'
-AssertEq (_ExNomFitxerLlistat 'annexos' (New-Object datetime(2026, 10, 15))) 'Excel_errors_2026-10-15_Annexos_II_i_III.xlsx' 'Llistats: Annexos II i III'
+AssertEq (_ExNomFitxerLlistat 'bars' (New-Object datetime(2026, 10, 15))) '2026-10-15_ExcelErrors_Bars_i_Restaurants.xlsx' 'Llistats: el nom del fitxer (la data al principi)'
+AssertEq (_ExNomFitxerLlistat 'annexos' (New-Object datetime(2026, 10, 15))) '2026-10-15_ExcelErrors_Annexos_II_i_III.xlsx' 'Llistats: Annexos II i III'
 # "Exportar 3 Excels" (novembre 2026): els MATEIXOS tres del correu, a la
 # carpeta triada i sense enviar res.
 $exPant = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'ExcelErrorsPantalla.ps1'))
@@ -290,7 +290,7 @@ $llDir = Join-Path ([System.IO.Path]::GetTempPath()) ('exll-' + [guid]::NewGuid(
 try {
     $llG = New-ExcelErrorsLlistats $llErr @('cadastre', 'utm') @() $llDir (New-Object datetime(2026, 10, 15))
     Assert ([bool]$llG.Ok) ('Llistats: es fan (' + [string]$llG.Error + ')')
-    AssertEq (@($llG.Fitxers) | ForEach-Object { Split-Path -Leaf $_ }) 'Excel_errors_2026-10-15_Innocues.xlsx Excel_errors_2026-10-15_Bars_i_Restaurants.xlsx Excel_errors_2026-10-15_Annexos_II_i_III.xlsx' 'Llistats: els tres Excels, en ordre'
+    AssertEq (@($llG.Fitxers) | ForEach-Object { Split-Path -Leaf $_ }) '2026-10-15_ExcelErrors_Innocues.xlsx 2026-10-15_ExcelErrors_Bars_i_Restaurants.xlsx 2026-10-15_ExcelErrors_Annexos_II_i_III.xlsx' 'Llistats: els tres Excels, en ordre'
     AssertEq ((@($llG.Resum.Keys)) -join '|') (('Inn' + [char]0x00F2 + 'cues') + '|Bars i Restaurants|Annexos II i III') 'Llistats: el resum, per llistat'
     $llZip = [System.IO.Compression.ZipFile]::OpenRead(@($llG.Fitxers)[1])
     try { $llSr = New-Object System.IO.StreamReader($llZip.GetEntry('xl/worksheets/sheet1.xml').Open()); $llXml = $llSr.ReadToEnd(); $llSr.Dispose() } finally { $llZip.Dispose() }

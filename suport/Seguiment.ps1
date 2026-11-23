@@ -300,64 +300,6 @@ function _FindConclusionStartIndex($paraTexts, [int]$lastReqEndIndex, $phrases) 
     return -1
 }
 
-# El paragraf que es NOMES el titol "CONCLUSIONS" (sense accents ni
-# majuscules, i sense signes: "CONCLUSIONS:" tambe), despres de l'ultim
-# requeriment. Index 1-based, o -1. PURA.
-function _TitolConclusionsIndex($paraTexts, [int]$lastReqEndIndex) {
-    if ($null -eq $paraTexts) { return -1 }
-    $l = @($paraTexts)
-    for ($i = [math]::Max(0, $lastReqEndIndex); $i -lt $l.Count; $i++) {
-        if (((_NormalitzaText ([string]$l[$i])) -replace '[^a-z]', '') -eq 'conclusions') { return ($i + 1) }
-    }
-    return -1
-}
-
-# LES CONCLUSIONS QUE ES MANTENEN EN UN SEGUIMENT. El seguiment esborra el
-# bloc de conclusions de l'informe i hi posa les seves; pero l'avis de l'article
-# 59.1.d d'una MNS ("aquestes Modificacions NO Substancials han de figurar a
-# les posteriors actes dels controls periodics") val igual despres (l'usuari,
-# novembre 2026: "haura de continuar constant"). Torna, en l'ordre del
-# document, els paragrafs del bloc esborrat que son alguna de $frases (sense
-# accents, majuscules ni signes). PURA.
-function _ConclusionsQueEsMantenen($paraTexts, [int]$startIndex, $frases) {
-    $out = New-Object System.Collections.ArrayList
-    if ($null -eq $paraTexts -or $startIndex -lt 1) { return @() }
-    $netes = @(@($frases) | ForEach-Object { (_NormalitzaText ([string]$_)) -replace '[^a-z0-9]', '' } | Where-Object { $_ -ne '' })
-    if ($netes.Count -eq 0) { return @() }
-    $l = @($paraTexts)
-    for ($i = $startIndex - 1; $i -lt $l.Count; $i++) {
-        $t = [string]$l[$i]
-        if ($netes -contains ((_NormalitzaText $t) -replace '[^a-z0-9]', '')) { [void]$out.Add($t.Trim()) }
-    }
-    return $out.ToArray()
-}
-
-# Es una MNS? Mira el text que hi ha ABANS del primer requeriment (la capcalera
-# "ASSUMPTE ... Modificacio NO Substancial" i el "En relacio a la sol.licitud de
-# Modificacio NO Substancial..."): una observacio que parli d'una MNS no compta.
-# Fa falta perque les MNS fetes abans del programa d'ara no porten el 59.1.d, i
-# el seguiment l'ha de posar igualment (l'usuari, novembre 2026, amb la MNS del
-# GIA 341 de juliol). $primerReq: index 1-based del primer requeriment (0 =
-# cap). PURA.
-function _EsInformeMns($paraTexts, [int]$primerReq) {
-    if ($null -eq $paraTexts) { return $false }
-    $l = @($paraTexts)
-    $fins = if ($primerReq -ge 1) { [math]::Min($primerReq - 1, $l.Count) } else { $l.Count }
-    for ($i = 0; $i -lt $fins; $i++) {
-        if ((_NormalitzaText ([string]$l[$i])) -match 'modificacio no substancial') { return $true }
-    }
-    return $false
-}
-
-# Les frases que es mantenen: les conclusions de la MNS del cataleg de
-# conclusions (avui, nomes el 59.1.d). No llanca.
-function _FrasesConclusioPermanents {
-    try {
-        $mns = Read-Conclusions $ConclusionsPath 'MNS'
-        return @(@($mns.Selectable) | ForEach-Object { [string]$_.Body } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
-    } catch { return @() }
-}
-
 # Valida/normalitza la data de la ronda. Buit -> avui. Retorna { Ok; Normalized }
 # sempre en dd/MM/yyyy. Rebutja dates impossibles (32/13/2026...).
 function _ValidateRoundDate($text) {
@@ -372,34 +314,6 @@ function _ValidateRoundDate($text) {
         return [pscustomobject]@{ Ok=$true; Normalized=$dt.ToString('dd/MM/yyyy') }
     }
     return [pscustomobject]@{ Ok=$false; Normalized=$s }
-}
-
-
-# Nom del fitxer de sortida del seguiment. La DATA es la d'AVUI (el dia que es
-# genera l'informe), no la de l'anotacio. S'incrementa el numero de ronda "Req":
-#   - "...Req1..."           -> "<avui>_...Req2...", "Req2"->"Req3"...
-#   - "...Req..." sense num   -> "<avui>_...Req2..." (requeriments antics fets
-#                                sense el programa, que nomes posen "Req").
-#   - sense "Req" enlloc      -> "<avui>_Seguiment_<nom>.docx".
-# Es treu la data inicial del nom origen i es preserva la resta (GIA, titular...).
-# Sempre s'ha de passar el resultat per _GetUniqueOutputPath (afegeix _2, _3...).
-function _SeguimentOutputName([string]$sourceBaseName, [datetime]$today) {
-    $day  = $today.ToString('yyyy-MM-dd')
-    # Treu una data inicial "YYYY-MM-DD" (amb "_" o espai darrere) del nom origen.
-    $rest = [regex]::Replace([string]$sourceBaseName, '^\s*\d{4}-\d{2}-\d{2}[_ ]+', '')
-    # Busca "Req" amb numero opcional i l'incrementa (sense numero -> 2).
-    $m = [regex]::Match($rest, '(?i)Req(\d*)')
-    if ($m.Success) {
-        $n = if ($m.Groups[1].Value -ne '') { [int]$m.Groups[1].Value + 1 } else { 2 }
-        $rest = $rest.Remove($m.Index, $m.Length).Insert($m.Index, "Req$n")
-        $name = '{0}_{1}' -f $day, $rest
-    } else {
-        $safe = $rest
-        if ([string]::IsNullOrWhiteSpace($safe)) { $safe = 'informe' }
-        $name = '{0}_Seguiment_{1}' -f $day, $safe
-    }
-    $name = ($name -replace '[\\/:*?"<>|]','_').Trim()
-    return ($name + '.docx')
 }
 
 
@@ -826,7 +740,8 @@ function Apply-SeguimentXml {
         $xmlInfo, $bodyParas, $model, [int]$conclusionStartIndex,
         $decisions, $dateStr,
         $conclHeaderText, $selectedConclusions, $alwaysConclusions, $fields,
-        $srcPath, [string]$sourceBaseName, [datetime]$roundDate
+        $srcPath, [string]$sourceBaseName, [datetime]$roundDate,
+        [string]$familia = '', [string]$gia = ''
     )
 
     _ApplySeguimentTransform -xmlInfo $xmlInfo -bodyParas $bodyParas -model $model `
@@ -835,7 +750,7 @@ function Apply-SeguimentXml {
         -alwaysConclusions $alwaysConclusions -fields $fields
 
     # La data del nom es la d'AVUI (dia de generacio), no la de l'anotacio.
-    $outName   = _SeguimentOutputName $sourceBaseName (Get-Date)
+    $outName   = _SeguimentOutputName $sourceBaseName (Get-Date) $familia $gia
     $targetDir = _ResolveOutputDir
     $outPath   = _GetUniqueOutputPath $targetDir $outName
     _SaveDocxXml $xmlInfo $srcPath $outPath
@@ -1171,13 +1086,20 @@ function Invoke-SeguimentFlow {
 
         $roundDt    = [datetime]::ParseExact($st.Date, 'dd/MM/yyyy', [System.Globalization.CultureInfo]::InvariantCulture)
         $sourceBase = [System.IO.Path]::GetFileNameWithoutExtension($sourcePath)
+        # Per al nom, si l'original no porta "Req": la familia i el GIA (el de la
+        # capcalera; si no, el del nom del fitxer).
+        $familiaSeg = _FamiliaSeguiment $paraTexts $primerReq
+        $giaSeg = ''
+        try { $giaSeg = [string](_ExtractIdGia $paraTexts) } catch { }
+        if ([string]::IsNullOrWhiteSpace($giaSeg)) { $giaSeg = _GiaDelNomFitxer $sourceBase }
 
         $outPath = Apply-SeguimentXml -xmlInfo $xmlInfo -bodyParas $bodyParas -model $model `
                        -conclusionStartIndex $conclusionStartIndex `
                        -decisions $st.Decisions -dateStr $st.Date `
                        -conclHeaderText $conclAll.HeaderText -selectedConclusions $conclFinals `
                        -alwaysConclusions $conclAll.Always -fields $st.Fields `
-                       -srcPath $sourcePath -sourceBaseName $sourceBase -roundDate $roundDt
+                       -srcPath $sourcePath -sourceBaseName $sourceBase -roundDate $roundDt `
+                       -familia $familiaSeg -gia $giaSeg
 
         # Obrir el resultat amb l'app per defecte (Word), sense COM i des
         # d'un altre proces (Open-PerUsuari, SegonPla.ps1).

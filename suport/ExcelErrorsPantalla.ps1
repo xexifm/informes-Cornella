@@ -214,7 +214,7 @@ function Show-ExcelErrorsFinestra($errors, [string]$peu, [string]$fileName) {
             Save-ExTriats $sel
             $dlg = New-Object System.Windows.Forms.SaveFileDialog
             $dlg.Filter = 'Excel (*.xlsx)|*.xlsx'
-            $dlg.FileName = 'Excel errors ' + (Get-Date).ToString('yyyy-MM-dd') + '.xlsx'
+            $dlg.FileName = (Get-Date).ToString('yyyy-MM-dd') + '_ExcelErrors.xlsx'
             try { $dlg.InitialDirectory = _ResolveOutputDir } catch { }
             if ($dlg.ShowDialog() -ne 'OK') { return }
             try {

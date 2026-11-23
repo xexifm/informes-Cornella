@@ -39,14 +39,18 @@ function _ActExtrHeaderMap($header) {
     }
 }
 
-# Nom del fitxer de sortida: YYYY-MM-DD_ActExtr-<Tipus>_GIA <id>_<Activitat>.docx
+# Nom del fitxer de sortida: YYYY-MM-DD_ActExtr_<Tipus>_GIA <id>_<Activitat>.docx,
+# amb <Tipus> = Req1, Req2... (el numero del requeriment d'aquella activitat),
+# Fav o NoExtr.
+# ELS NOMS DELS FITXERS (l'usuari, novembre 2026): data_[Tipus_]ReqN_GIA n,
+# perque el seguiment en faci el ReqN+1 i tots es llegeixin igual a la carpeta.
 # S'hi inclou el nom de l'ACTIVITAT perque en un mateix establiment (mateix GIA)
 # es poden fer diferents activitats extraordinaries i s'han de poder distingir.
 function _GetActExtrOutputFileName([string]$tipus, [string]$gia, [string]$activitat) {
     $today = (Get-Date).ToString('yyyy-MM-dd')
     if ([string]::IsNullOrWhiteSpace($gia)) { $gia = 's_n' }
     $gia = ($gia -replace '[\\/:*?"<>|]','_').Trim()
-    $name = "{0}_ActExtr-{1}_GIA {2}" -f $today, $tipus, $gia
+    $name = "{0}_ActExtr_{1}_GIA {2}" -f $today, $tipus, $gia
     $act = ([string]$activitat -replace '[\\/:*?"<>|]','_').Trim()
     if (-not [string]::IsNullOrWhiteSpace($act)) { $name += "_$act" }
     return ($name + '.docx')
@@ -269,7 +273,7 @@ function Build-ActExtrNoBlocs($blocks) {
 # Genera el document (requeriment, informe favorable o "no es una activitat
 # extraordinaria") i retorna la ruta del .docx. $mode = 'req' | 'fav' | 'no'. Reutilitza la capcalera 0 CAPCALERA.docx
 # (bloc ACT_EXTR) i el motor de format.
-function Build-ActExtrDocument($word, $header, $decret, $delivered, $mode) {
+function Build-ActExtrDocument($word, $header, $decret, $delivered, $mode, [int]$ronda = 1) {
     $computed = Get-ActExtrComputed $decret
     $status   = Get-ActExtrStatus $decret $computed $delivered
     $statusByKey = @{}
@@ -280,7 +284,7 @@ function Build-ActExtrDocument($word, $header, $decret, $delivered, $mode) {
     $tplPath = switch ($mode) { 'fav' { $script:ActExtrFavTemplate } 'no' { $script:ActExtrNoTemplate } default { $script:ActExtrReqTemplate } }
     $blocks  = Parse-ActExtrTemplate $tplPath
 
-    $tipus = switch ($mode) { 'fav' { 'Fav' } 'no' { 'NoExtr' } default { 'Req' } }
+    $tipus = switch ($mode) { 'fav' { 'Fav' } 'no' { 'NoExtr' } default { 'Req' + [math]::Max(1, $ronda) } }
     $gia = if ($header -is [System.Collections.IDictionary]) { [string]$header['ID_GIA'] } else { [string]$header.ID_GIA }
     $act = if ($header -is [System.Collections.IDictionary]) { [string]$header['ACTIVITAT'] } else { [string]$header.ACTIVITAT }
     $baseName  = _GetActExtrOutputFileName $tipus $gia $act

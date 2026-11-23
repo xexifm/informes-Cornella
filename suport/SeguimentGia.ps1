@@ -213,7 +213,9 @@ function _SgTitolFulla($def, [datetime]$data) {
 
 # Nom del fitxer de sortida (sense carpeta).
 function _SgNomFitxer([datetime]$data, [string]$ext = 'xlsx') {
-    return ($data.ToString('yyyy-MM-dd') + ' Seguiment GIA.' + $ext)
+    # Data al principi i amb guio baix, com la resta de fitxers del programa
+    # (novembre 2026; abans "2026-07-30 Seguiment GIA.xlsx").
+    return ($data.ToString('yyyy-MM-dd') + '_SeguimentGIA.' + $ext)
 }
 
 # EL COS DE L'EINA, i es PUR: a partir de la taula ja llegida de l'Excel, en

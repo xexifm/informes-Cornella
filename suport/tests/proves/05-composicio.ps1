@@ -105,8 +105,8 @@ AssertEq ([bool](_SgAnnexCoincideix 'ii' '  x ')) $true '_SgAnnexCoincideix: no 
 $sgData = Get-Date '2026-07-30'
 AssertEq (_SgTitolFulla $sgDefs[0] $sgData) 'ACTIVITAT PRECINTADA? 30/07/2026' '_SgTitolFulla: titol + data de la fila 1'
 AssertEq (_SgTitolFulla $sgDefs[4] $sgData) 'ANNEXOS II 30/07/2026' '_SgTitolFulla: ANNEX II te el seu propi titol'
-AssertEq (_SgNomFitxer $sgData) '2026-07-30 Seguiment GIA.xlsx' '_SgNomFitxer: xlsx per defecte'
-AssertEq (_SgNomFitxer $sgData 'pdf') '2026-07-30 Seguiment GIA.pdf' '_SgNomFitxer: pdf'
+AssertEq (_SgNomFitxer $sgData) '2026-07-30_SeguimentGIA.xlsx' '_SgNomFitxer: xlsx per defecte (data_ com la resta)'
+AssertEq (_SgNomFitxer $sgData 'pdf') '2026-07-30_SeguimentGIA.pdf' '_SgNomFitxer: pdf'
 # Missatge d'error: ha de dir el PAS i la LINIA, no nomes el missatge pelat. Amb
 # COM, un "Unable to cast object of type X to type Y" no diu on ha estat, i
 # aquesta eina nomes es pot provar amb l'Excel de debo.
@@ -454,8 +454,10 @@ Assert ([bool](_MnsNodeEntra 'sense-observacions' $false))  '_MnsNodeEntra: sens
 Assert (-not (_MnsNodeEntra 'sense-observacions' $true))    '_MnsNodeEntra: ...i no quan n''hi ha'
 Assert ([bool](_MnsNodeEntra ' AMB-OBSERVACIONS ' $true))   '_MnsNodeEntra: la clau, tolerant'
 
-AssertEq (_MnsNomFitxer ([datetime]'2026-08-21') 'mns' '1457') '2026-08-21_MNS_GIA 1457.docx' '_MnsNomFitxer: modificacio no substancial'
-AssertEq (_MnsNomFitxer ([datetime]'2026-08-21') 'trans' '1') '2026-08-21_TRANS_GIA 1.docx' '_MnsNomFitxer: transmissio (TRANS, sense "Llic": no es cap llicencia)'
+AssertEq (_MnsNomFitxer ([datetime]'2026-08-21') 'mns' '1457') '2026-08-21_MNS_Fav_GIA 1457.docx' '_MnsNomFitxer: MNS sense observacions -> MNS_Fav'
+AssertEq (_MnsNomFitxer ([datetime]'2026-07-01') 'mns' '341' $true) '2026-07-01_MNS_Req1_GIA 341.docx' '_MnsNomFitxer: MNS amb observacions -> MNS_Req1 (el seguiment en fa el Req2)'
+AssertEq (_MnsNomFitxer ([datetime]'2026-08-21') 'trans' '1') '2026-08-21_Trans_Fav_GIA 1.docx' '_MnsNomFitxer: transmissio (Trans, sense "Llic": no es cap llicencia)'
+AssertEq (_MnsNomFitxer ([datetime]'2026-08-21') 'trans' '1' $true) '2026-08-21_Trans_Req1_GIA 1.docx' '_MnsNomFitxer: transmissio amb observacions -> Trans_Req1'
 
 # QUINES CONCLUSIONS. Funcio PURA: es prova sense cataleg ni Word.
 $cMns  = @([pscustomobject]@{ Title = 'Actes dels controls periodics'; Body = '59.1.d...' })
