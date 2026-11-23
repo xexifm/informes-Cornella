@@ -642,6 +642,11 @@ AssertEq (_SeguimentOutputName '2026-07-01_D112_MNS_OK_JOSE_PEREZ_FERNANDEZ' ([d
 AssertEq (_SeguimentOutputName '2026-07-01_MNS_Req1_GIA 341' ([datetime]'2026-11-23') 'MNS' '341') '2026-11-23_MNS_Req2_GIA 341.docx' '_SeguimentOutputName: MNS_Req1 -> MNS_Req2'
 AssertEq (_SeguimentOutputName '2026-07-01_Llic_Req1_GIA 5' ([datetime]'2026-11-23') '' '5') '2026-11-23_Llic_Req2_GIA 5.docx' '_SeguimentOutputName: Llic_Req1 -> Llic_Req2'
 AssertEq (_SeguimentOutputName '2026-07-01_D112_REQUERIMENT_X' ([datetime]'2026-11-23') '' '77') '2026-11-23_Req2_GIA 77.docx' '_SeguimentOutputName: un requeriment antic amb GIA -> Req2_GIA'
+# El titular del final dels noms antics, substituit pel GIA (l'usuari, novembre 2026).
+AssertEq (_SeguimentOutputName '2026-04-01_Req_SERVICIOS Y DISTRIBUCIONES TECNICAS' ([datetime]'2026-11-23') '' '1234') '2026-11-23_Req2_GIA 1234.docx' '_SeguimentOutputName: Req_TITULAR -> Req2_GIA n'
+AssertEq (_SeguimentOutputName '2026-05-10_Req2_BAR EL RACO' ([datetime]'2026-11-23') '' '88') '2026-11-23_Req3_GIA 88.docx' '_SeguimentOutputName: Req2_TITULAR -> Req3_GIA n'
+AssertEq (_SeguimentOutputName '2026-05-29_Req1_GIA 1379_2' ([datetime]'2026-11-23') '' '1379') '2026-11-23_Req2_GIA 1379.docx' '_SeguimentOutputName: el _2 d''unicitat de l''original no passa al seguiment'
+AssertEq (_SeguimentOutputName '2026-04-01_Req_JOSE PEREZ' ([datetime]'2026-11-23') 'MNS' '341') '2026-11-23_MNS_Req2_GIA 341.docx' '_SeguimentOutputName: Req_TITULAR d''una MNS -> MNS_Req2_GIA n'
 AssertEq (_FamiliaSeguiment $ptVella 6) 'MNS' '_FamiliaSeguiment: MNS'
 AssertEq (_FamiliaSeguiment @('INFORME', ('En relaci' + [char]0x00F3 + ' a la sol' + [char]0x00B7 + 'licitud de transmissi' + [char]0x00F3 + ' de la titularitat...'), '1. Neteja') 3) 'Trans' '_FamiliaSeguiment: Transmissio'
 AssertEq (_FamiliaSeguiment @('INFORME', 'S''han observat les seguents deficiencies:', '1. Neteja') 3) '' '_FamiliaSeguiment: un requeriment normal, sense prefix'

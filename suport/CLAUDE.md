@@ -819,7 +819,7 @@ llegeixi igual a la carpeta. Els requeriments normals no porten tipus.
 | Informe | Nom | On es decideix |
 |---|---|---|
 | Requeriment, Controls periòdics (lot) | `_Req1_GIA n` | `_GetOutputFileName` (`Document.ps1`) |
-| Seguiment | `ReqN` → `ReqN+1`; sense «Req» al nom: `[Tipus_]Req2_GIA n` amb el tipus i el GIA del **document** | `_SeguimentOutputName`, `_FamiliaSeguiment` (`SeguimentRegles.ps1`) |
+| Seguiment | `ReqN` → `ReqN+1`, i el que va darrere (el titular dels noms antics, un `_2`) es torna `_GIA n` amb el GIA del **document**; sense «Req» al nom: `[Tipus_]Req2_GIA n` | `_SeguimentOutputName`, `_FamiliaSeguiment` (`SeguimentRegles.ps1`) |
 | Termini | `_Termini_GIA n` | `_GetOutputFileName` |
 | MNS / Transmissió | `_MNS_Req1` / `_MNS_Fav`, `_Trans_Req1` / `_Trans_Fav` (amb / sense observacions) | `_MnsNomFitxer` |
 | Llicència | `_Llic_Req1`, `_Llic_FavPre`, `_Llic_FavPost` | `_LlicNomFitxer` |

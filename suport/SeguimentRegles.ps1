@@ -87,6 +87,8 @@ function _FrasesConclusioPermanents {
 #   - "...Req1..."           -> "<avui>_...Req2...", "Req2"->"Req3"...
 #   - "...Req..." sense num   -> "<avui>_...Req2..." (requeriments antics fets
 #                                sense el programa, que nomes posen "Req").
+#   - amb el GIA ($gia), el que va DARRERE del Req (el titular dels noms antics)
+#     es torna "_GIA n": "Req_SERVICIOS Y ..." -> "Req2_GIA n".
 #   - sense "Req" enlloc, amb el GIA ($gia, de la capcalera del document) ->
 #     "<avui>_[<familia>_]Req2_GIA <n>.docx" (novembre 2026: el seguiment d'una
 #     MNS antiga "2026-07-01_D112_MNS_OK_JOSE_PEREZ" es "..._MNS_Req2_GIA 341").
@@ -103,8 +105,19 @@ function _SeguimentOutputName([string]$sourceBaseName, [datetime]$today, [string
     $m = [regex]::Match($rest, '(?i)Req(\d*)(?![a-z])')
     if ($m.Success) {
         $n = if ($m.Groups[1].Value -ne '') { [int]$m.Groups[1].Value + 1 } else { 2 }
-        $rest = $rest.Remove($m.Index, $m.Length).Insert($m.Index, "Req$n")
-        $name = '{0}_{1}' -f $day, $rest
+        if (-not [string]::IsNullOrWhiteSpace($gia)) {
+            # AMB EL GIA DEL DOCUMENT, el que va darrere del Req es substitueix
+            # per "_GIA n" (l'usuari, novembre 2026: els noms antics acaben en el
+            # titular, "2026-04-01_Req_SERVICIOS Y DISTRIBUCIONES TECNICAS", i el
+            # seguiment ha de ser "..._Req2_GIA n"). El que hi ha DAVANT del Req
+            # es conserva ("MNS_", "Llic_"); si no n'hi ha, el tipus del document.
+            $davant = $rest.Substring(0, $m.Index)
+            if ($davant.Trim() -eq '' -and -not [string]::IsNullOrWhiteSpace($familia)) { $davant = $familia.Trim() + '_' }
+            $name = '{0}_{1}Req{2}_GIA {3}' -f $day, $davant, $n, $gia.Trim()
+        } else {
+            $rest = $rest.Remove($m.Index, $m.Length).Insert($m.Index, "Req$n")
+            $name = '{0}_{1}' -f $day, $rest
+        }
     } elseif (-not [string]::IsNullOrWhiteSpace($gia)) {
         $pref = if ([string]::IsNullOrWhiteSpace($familia)) { '' } else { $familia.Trim() + '_' }
         $name = '{0}_{1}Req2_GIA {2}' -f $day, $pref, $gia.Trim()
