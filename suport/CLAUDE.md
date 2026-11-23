@@ -805,8 +805,10 @@ Per tant, **al final de cada sessió**:
    `git push origin <branca-de-la-sessio>:main`).
 3. Confirma a l'usuari que ja pot actualitzar amb `Actualitzar.bat`.
 
-Si tens dubtes sobre si pots fer push a `main`, pregunta-ho; però el model
-de desplegament de l'usuari depèn que la feina arribi a `main`.
+**L'usuari ho ha autoritzat de manera permanent** (novembre 2026: «push a
+main. Fes-ho sempre, no cal que em preguntis»): en acabar cada tanda de feina,
+amb les proves en verd, fes el push a `main` sense preguntar-ho. El model de
+desplegament de l'usuari depèn que la feina arribi a `main`.
 
 ## La marca `[LLISTA]` del catàleg: una llista buida per omplir a mà
 Un paràgraf del cos que sigui NOMÉS `[LLISTA]` (`$Script:MarcaLlista`,
