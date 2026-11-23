@@ -603,6 +603,15 @@ Assert ([string]$mant[0]).Contains('59.1.d') 'Seguiment: ...amb el text de l''in
 AssertEq (@(_ConclusionsQueEsMantenen $ptMns 6 $f591)).Count 0 'Seguiment: nomes del bloc que s''esborra'
 AssertEq (@(_ConclusionsQueEsMantenen $ptMns -1 $f591)).Count 0 'Seguiment: sense esborrar res, no cal mantenir res'
 AssertEq (@(_ConclusionsQueEsMantenen @('CONCLUSIONS', 'Vist l anterior') 1 $f591)).Count 0 'Seguiment: un informe que no es una MNS no en porta cap'
+# Una MNS d'ABANS del programa d'ara (la del GIA 341 de juliol): no porta el
+# 59.1.d, pero el seguiment l'ha de posar igualment.
+$ptVella = @('Activitats i Ordenances C' + [char]0x00ED + 'viques', ('ASSUMPTE Informe - Modificaci' + [char]0x00F3 + ' NO Substancial'), 'ID GIA:341', 'INFORME',
+             ('En relaci' + [char]0x00F3 + ' a la sol' + [char]0x00B7 + 'licitud de Modificaci' + [char]0x00F3 + ' NO Substancial presentada...'), 'Han habido pequenos cambios', '1. Neteja...', 'Ho poso al seu coneixement als efectes oportuns,')
+AssertEq (_EsInformeMns $ptVella 6) $true 'Seguiment: una MNS es reconeix pel text d''abans del primer requeriment'
+AssertEq (_EsInformeMns @('INFORME', 'S''han observat les seguents deficiencies:', ('1. Cal presentar una Modificaci' + [char]0x00F3 + ' NO Substancial')) 3) $false 'Seguiment: un requeriment que demana una MNS no es una MNS'
+AssertEq (@(_ConclusionsQueEsMantenen $ptVella 8 $f591)).Count 0 'Seguiment: la MNS vella no porta el 59.1.d (el posa el cataleg)'
+$segSrcMns = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'Seguiment.ps1'))
+Assert ($segSrcMns.Contains('if ($mantenir.Count -eq 0 -and (_EsInformeMns $paraTexts $primerReq)) { $mantenir = $frasesMns }')) 'Seguiment: si l''informe es una MNS i no porta el 59.1.d, es posa el del cataleg'
 $segSrc = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'Seguiment.ps1'))
 Assert ($segSrc.Contains('-selectedConclusions $conclFinals') -and $segSrc.Contains('$conclFinals = @($mantenir) + @($st.Conclusions')) 'Seguiment: el 59.1.d va el primer, davant de les conclusions del seguiment'
 # La llista de modificacions de la MNS, AMB PICS: el Seguiment llegeix com a

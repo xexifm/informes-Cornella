@@ -332,6 +332,23 @@ function _ConclusionsQueEsMantenen($paraTexts, [int]$startIndex, $frases) {
     return $out.ToArray()
 }
 
+# Es una MNS? Mira el text que hi ha ABANS del primer requeriment (la capcalera
+# "ASSUMPTE ... Modificacio NO Substancial" i el "En relacio a la sol.licitud de
+# Modificacio NO Substancial..."): una observacio que parli d'una MNS no compta.
+# Fa falta perque les MNS fetes abans del programa d'ara no porten el 59.1.d, i
+# el seguiment l'ha de posar igualment (l'usuari, novembre 2026, amb la MNS del
+# GIA 341 de juliol). $primerReq: index 1-based del primer requeriment (0 =
+# cap). PURA.
+function _EsInformeMns($paraTexts, [int]$primerReq) {
+    if ($null -eq $paraTexts) { return $false }
+    $l = @($paraTexts)
+    $fins = if ($primerReq -ge 1) { [math]::Min($primerReq - 1, $l.Count) } else { $l.Count }
+    for ($i = 0; $i -lt $fins; $i++) {
+        if ((_NormalitzaText ([string]$l[$i])) -match 'modificacio no substancial') { return $true }
+    }
+    return $false
+}
+
 # Les frases que es mantenen: les conclusions de la MNS del cataleg de
 # conclusions (avui, nomes el 59.1.d). No llanca.
 function _FrasesConclusioPermanents {
@@ -1143,8 +1160,13 @@ function Invoke-SeguimentFlow {
         }
 
         # L'avis del 59.1.d d'una MNS sobreviu al seguiment: va el PRIMER, com a
-        # la MNS, davant de les conclusions del seguiment.
-        $mantenir = @(_ConclusionsQueEsMantenen $paraTexts $conclusionStartIndex (_FrasesConclusioPermanents))
+        # la MNS, davant de les conclusions del seguiment. El de l'informe, si en
+        # porta; si no en porta (una MNS d'abans del programa d'ara), el del
+        # cataleg, sempre que l'informe sigui una MNS.
+        $frasesMns = @(_FrasesConclusioPermanents)
+        $mantenir = @(_ConclusionsQueEsMantenen $paraTexts $conclusionStartIndex $frasesMns)
+        $primerReq = if (@($model.Requirements).Count -gt 0) { [int]@($model.Requirements)[0].ParaIndex } else { 0 }
+        if ($mantenir.Count -eq 0 -and (_EsInformeMns $paraTexts $primerReq)) { $mantenir = $frasesMns }
         $conclFinals = @($mantenir) + @($st.Conclusions | Where-Object { $null -ne $_ })
 
         $roundDt    = [datetime]::ParseExact($st.Date, 'dd/MM/yyyy', [System.Globalization.CultureInfo]::InvariantCulture)

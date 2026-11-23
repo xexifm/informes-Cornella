@@ -778,3 +778,11 @@ pura) recull del bloc esborrat les conclusions de la MNS del catàleg
 primeres, davant de les del seguiment. Un informe que no és una MNS no en porta
 cap. Les MNS fetes abans d'aquest canvi encara tenen la llista numerada: el
 Seguiment hi seguirà preguntant fins que no es canviï a pics al Word.
+
+**…i també quan l'informe original no el porta** (l'usuari, amb la MNS del GIA
+341 de juliol, feta abans del programa d'ara: «ha de sortir el 59.1.d
+igualment»). Si al bloc esborrat no hi ha el 59.1.d però l'informe **és una
+MNS** (`_EsInformeMns`, pura: «Modificació NO Substancial» al text d'abans del
+primer requeriment, o sigui l'ASSUMPTE o l'«En relació a la sol·licitud de…»;
+una observació que parli d'una MNS no compta), es posa el del catàleg.
+Comprovat amb el `.docx` real de l'usuari.
