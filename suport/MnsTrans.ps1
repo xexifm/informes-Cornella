@@ -238,8 +238,13 @@ function Build-MnsBlocs($model) {
     # llista se la saltava i el "1." quedava enganxat al paragraf de sota.
     foreach ($p in @(_MnsParagrafs $model.Cataleg ([string]$model.Fase) $amb $ambCond)) {
         if ([string]$p.Tipus -eq 'llista') {
-            # El paragraf de llista va BUIT: l'omple l'usuari al Word.
-            [void]$b.Add(@{ T = 'llista'; Text = '' })
+            # El paragraf de llista va BUIT: l'omple l'usuari al Word. AMB PICS,
+            # no numerada (l'usuari, novembre 2026, amb l'informe MNS del GIA
+            # 341): el Seguiment llegeix com a REQUERIMENT qualsevol llista
+            # DECIMAL de nivell 0, i en fer el seguiment d'una MNS preguntava
+            # per les modificacions, que no son res a esmenar. La mateixa llista
+            # de pics que la marca [LLISTA] dels catalegs.
+            [void]$b.Add(@{ T = 'llista'; Text = ''; Pics = $true })
         } else {
             foreach ($l in @(Apply-FieldsToLines $p.Linies $fields)) {
                 foreach ($x in @(_BlocsDeLinia ([string]$l) $false)) { [void]$b.Add($x) }

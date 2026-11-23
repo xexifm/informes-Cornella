@@ -758,3 +758,23 @@ Transmissió.
   pel nom del `.docx`, com els dels favorables.
 - La vista en Word de `MNSTRANS.json` ensenya també les dues variants amb
   condicions.
+
+### La llista de modificacions de la MNS, AMB PICS (novembre 2026)
+
+L'usuari, amb la MNS favorable amb observacions del GIA 341: en fer-ne el
+**Seguiment**, li preguntava per cada modificació com si fos un requeriment
+(«Hola» a la finestra de comentaris). El Seguiment llegeix com a requeriment
+**qualsevol llista DECIMAL de nivell 0**, i la de les modificacions ho era
+(`Format-ListItem` → `ApplyNumberDefault`). Ara el bloc és
+`@{ T = 'llista'; Pics = $true }` → `ApplyBulletDefault`, la mateixa llista
+de pics que la marca `[LLISTA]` dels catàlegs. Els punts de REQ1 de les
+observacions («1. Neteja…») segueixen sent requeriments, que és el que s'ha de
+seguir. La vista de `MNSTRANS.json` ho diu (`VistaWordVersio` 13).
+
+**I l'avís del 59.1.d sobreviu al seguiment**: el Seguiment esborra el bloc de
+conclusions i hi posa les seves; `_ConclusionsQueEsMantenen` (`Seguiment.ps1`,
+pura) recull del bloc esborrat les conclusions de la MNS del catàleg
+(`_FrasesConclusioPermanents`: avui, només el 59.1.d) i les torna a posar les
+primeres, davant de les del seguiment. Un informe que no és una MNS no en porta
+cap. Les MNS fetes abans d'aquest canvi encara tenen la llista numerada: el
+Seguiment hi seguirà preguntant fins que no es canviï a pics al Word.

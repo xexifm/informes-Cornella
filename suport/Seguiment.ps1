@@ -312,6 +312,35 @@ function _TitolConclusionsIndex($paraTexts, [int]$lastReqEndIndex) {
     return -1
 }
 
+# LES CONCLUSIONS QUE ES MANTENEN EN UN SEGUIMENT. El seguiment esborra el
+# bloc de conclusions de l'informe i hi posa les seves; pero l'avis de l'article
+# 59.1.d d'una MNS ("aquestes Modificacions NO Substancials han de figurar a
+# les posteriors actes dels controls periodics") val igual despres (l'usuari,
+# novembre 2026: "haura de continuar constant"). Torna, en l'ordre del
+# document, els paragrafs del bloc esborrat que son alguna de $frases (sense
+# accents, majuscules ni signes). PURA.
+function _ConclusionsQueEsMantenen($paraTexts, [int]$startIndex, $frases) {
+    $out = New-Object System.Collections.ArrayList
+    if ($null -eq $paraTexts -or $startIndex -lt 1) { return @() }
+    $netes = @(@($frases) | ForEach-Object { (_NormalitzaText ([string]$_)) -replace '[^a-z0-9]', '' } | Where-Object { $_ -ne '' })
+    if ($netes.Count -eq 0) { return @() }
+    $l = @($paraTexts)
+    for ($i = $startIndex - 1; $i -lt $l.Count; $i++) {
+        $t = [string]$l[$i]
+        if ($netes -contains ((_NormalitzaText $t) -replace '[^a-z0-9]', '')) { [void]$out.Add($t.Trim()) }
+    }
+    return $out.ToArray()
+}
+
+# Les frases que es mantenen: les conclusions de la MNS del cataleg de
+# conclusions (avui, nomes el 59.1.d). No llanca.
+function _FrasesConclusioPermanents {
+    try {
+        $mns = Read-Conclusions $ConclusionsPath 'MNS'
+        return @(@($mns.Selectable) | ForEach-Object { [string]$_.Body } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    } catch { return @() }
+}
+
 # Valida/normalitza la data de la ronda. Buit -> avui. Retorna { Ok; Normalized }
 # sempre en dd/MM/yyyy. Rebutja dates impossibles (32/13/2026...).
 function _ValidateRoundDate($text) {
@@ -1113,13 +1142,18 @@ function Invoke-SeguimentFlow {
             }
         }
 
+        # L'avis del 59.1.d d'una MNS sobreviu al seguiment: va el PRIMER, com a
+        # la MNS, davant de les conclusions del seguiment.
+        $mantenir = @(_ConclusionsQueEsMantenen $paraTexts $conclusionStartIndex (_FrasesConclusioPermanents))
+        $conclFinals = @($mantenir) + @($st.Conclusions | Where-Object { $null -ne $_ })
+
         $roundDt    = [datetime]::ParseExact($st.Date, 'dd/MM/yyyy', [System.Globalization.CultureInfo]::InvariantCulture)
         $sourceBase = [System.IO.Path]::GetFileNameWithoutExtension($sourcePath)
 
         $outPath = Apply-SeguimentXml -xmlInfo $xmlInfo -bodyParas $bodyParas -model $model `
                        -conclusionStartIndex $conclusionStartIndex `
                        -decisions $st.Decisions -dateStr $st.Date `
-                       -conclHeaderText $conclAll.HeaderText -selectedConclusions $st.Conclusions `
+                       -conclHeaderText $conclAll.HeaderText -selectedConclusions $conclFinals `
                        -alwaysConclusions $conclAll.Always -fields $st.Fields `
                        -srcPath $sourcePath -sourceBaseName $sourceBase -roundDate $roundDt
 

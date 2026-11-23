@@ -677,6 +677,9 @@ public class W2Font {
 public class W2ListFormat {
     W2Doc d; public W2ListFormat(W2Doc x) { d = x; }
     public void ApplyNumberDefault() { d.P.Llista = true; d.CanviaEstil("List Paragraph"); d.P.LeftIndent = 36; d.P.FirstLineIndent = -18; }
+    // La llista de modificacions de la MNS va amb PICS (novembre 2026): el Word
+    // fa el mateix canvi d'estil i de sagnia que amb la numerada.
+    public void ApplyBulletDefault() { d.P.Llista = true; d.CanviaEstil("List Paragraph"); d.P.LeftIndent = 36; d.P.FirstLineIndent = -18; }
     public void RemoveNumbers() { if (!d.P.Llista) return; d.P.Llista = false; d.CanviaEstil("Normal"); d.P.LeftIndent = 0; d.P.FirstLineIndent = 0; }
 }
 public class W2Range {

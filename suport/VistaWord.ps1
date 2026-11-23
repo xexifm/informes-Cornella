@@ -81,7 +81,8 @@ function _VistaEsProtegit([string]$jsonPath) {
 #  11 -> la de LLIC en blocs (els enllacos surten com a enllacos)
 #  12 -> ACT_EXTR, MNS i conclusions tambe en blocs; amb l'aire apagat, els
 #        titols ja no perden el nivell d'esquema (sortien del panell)
-$Script:VistaWordVersio = 12
+#  13 -> la llista de modificacions de la MNS, amb PICS (no numerada)
+$Script:VistaWordVersio = 13
 
 function _VistaVersioPath {
     $base = [string]$env:LOCALAPPDATA
@@ -176,7 +177,7 @@ function Build-MnsVistaBlocs($cat) {
             }
             foreach ($p in $pars) {
                 if ([string]$p.Tipus -eq 'llista') {
-                    [void]$b.Add(@{ T = 'cos'; Text = '//(aqui hi va una llista de Word buida, per omplir-la a ma)//' })
+                    [void]$b.Add(@{ T = 'cos'; Text = '//(aqui hi va una llista de Word amb pics, buida, per omplir-la a ma)//' })
                     continue
                 }
                 # Nomes el TEXT: la vista d'aquests dos informes mai no ha

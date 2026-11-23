@@ -592,6 +592,22 @@ AssertEq (_TitolConclusionsIndex @('1. R', 'Conclusions:') 1) 2 'Seguiment: "Con
 AssertEq (_TitolConclusionsIndex @('1. R', 'Vist les conclusions anteriors', 'Ho poso') 1) -1 'Seguiment: una frase que nomes conte la paraula no es el titol'
 AssertEq (_TitolConclusionsIndex @('CONCLUSIONS', '1. R') 1) -1 'Seguiment: nomes despres de l''ultim requeriment'
 AssertEq ([int](Confirm-ConclusionDeletion -paraTexts $ptCap -lastReqEndIndex 1 -detectedStart 5).StartIndex) 4 'Seguiment: amb el titol CONCLUSIONS no surt el selector (s''esborra des del titol)'
+# L'avis del 59.1.d d'una MNS es MANTE en fer-ne el seguiment (novembre 2026).
+# El cas de l'informe de l'usuari (MNS del GIA 341).
+$f591 = @(_FrasesConclusioPermanents)
+Assert (@($f591 | Where-Object { $_ -like '*59.1.d*' }).Count -eq 1) 'Seguiment: la frase permanent es el 59.1.d de la MNS (del cataleg de conclusions)'
+$ptMns = @('INFORME', '1. Neteja. Segons l...', '', 'CONCLUSIONS', [string]$f591[0], ('Vist l' + [char]0x2019 + 'anterior, cal requerir l' + [char]0x2019 + 'esmena...'), '', 'Ho poso al seu coneixement als efectes oportuns,')
+$mant = @(_ConclusionsQueEsMantenen $ptMns 4 $f591)
+AssertEq $mant.Count 1 'Seguiment: del bloc esborrat es mante el 59.1.d (i res mes)'
+Assert ([string]$mant[0]).Contains('59.1.d') 'Seguiment: ...amb el text de l''informe'
+AssertEq (@(_ConclusionsQueEsMantenen $ptMns 6 $f591)).Count 0 'Seguiment: nomes del bloc que s''esborra'
+AssertEq (@(_ConclusionsQueEsMantenen $ptMns -1 $f591)).Count 0 'Seguiment: sense esborrar res, no cal mantenir res'
+AssertEq (@(_ConclusionsQueEsMantenen @('CONCLUSIONS', 'Vist l anterior') 1 $f591)).Count 0 'Seguiment: un informe que no es una MNS no en porta cap'
+$segSrc = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'Seguiment.ps1'))
+Assert ($segSrc.Contains('-selectedConclusions $conclFinals') -and $segSrc.Contains('$conclFinals = @($mantenir) + @($st.Conclusions')) 'Seguiment: el 59.1.d va el primer, davant de les conclusions del seguiment'
+# La llista de modificacions de la MNS, AMB PICS: el Seguiment llegeix com a
+# requeriment qualsevol llista DECIMAL de nivell 0.
+Assert (([System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'MnsTrans.ps1'))).Contains("@{ T = 'llista'; Text = ''; Pics = `$true }")) 'MNS: la llista de modificacions amb pics (no la llegeix el Seguiment)'
 
 Write-Host "`n--- Seguiment: _ValidateRoundDate ---"
 $vd1 = _ValidateRoundDate '01/06/2026'
