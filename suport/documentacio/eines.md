@@ -22,8 +22,9 @@ n'és la traducció literal:
   `CONTROL PERIODIC VTO. 27-04-2026…`. **`Invoke-ComprovarExcel` (Informes.ps1)
   fa servir un criteri DIFERENT**, allà sí que cal el SI: són dues coses
   distintes i no s'han d'unificar.
-- **ANNEX II**: `Classificació general annex` = `II` **i** `Descripció lliure`
-  amb contingut. Ull: la base de dades té aquesta capçalera **dues vegades**; la
+- **ANNEX II** (canviat el novembre de 2026, vegeu més avall): ara **totes** les
+  activitats amb `Classificació general annex` = `II`. Abans calia a més la
+  `Descripció lliure` amb contingut. Ull: la base de dades té aquesta capçalera **dues vegades**; la
   plantilla **mostra la primera** (CZ) i **filtra per la segona** (DG). A les
   dades reals les dues són idèntiques a totes 1.312 activitats, però
   `_SgFilesPerFulla` ho reprodueix igual (busca explícitament la 2a per al
@@ -2581,3 +2582,33 @@ requeriment hi ha un paràgraf que és **només** el títol (`_TitolConclusionsI
 pura: sense accents, majúscules ni signes; «Conclusions:» també), s'esborra
 d'allà sense finestra. Una frase que només conté la paraula no compta. Sense
 títol, la finestra de sempre, amb la detecció per frases preseleccionada.
+
+## Seguiment GIA: ANNEX II sencer, amb les dates vençudes en vermell (novembre 2026)
+
+L'usuari, sobre el PDF del Seguiment: «la pestanya Annexos II que apareguin
+tots» (només hi sortien els que tenien Descripció lliure: 49 de 71 a l'Excel del
+17/11/2026), i que es marquin en **vermell i negreta** les dates que toquen.
+
+- **Criteri**: `_SgAnnexCoincideix` només mira la classificació `II` (la segona
+  columna, com sempre). El paràmetre de la descripció es queda però no compta.
+- **Dues columnes noves**, al lloc que tenen a la fulla Estès: `Data registre
+  entrada` darrere de `Núm. expedient` i `Proper CP previst` darrere de `Data
+  control periòdic`. Totes dues com a data `dd/MM/aaaa`.
+- **Les marques** (`_SgMarquesAnnex`, pura; `_SgData` llegeix les dates sense
+  dependre de l'idioma del Windows):
+  - el **Proper CP previst** anterior al dia que es fa el fitxer;
+  - el **control inicial** si fa més de la **`Periodicitat CP`** de la fila
+    (res de 6 anys escrits al codi) **i no hi ha cap control periòdic
+    posterior**: el GIA calcula el proper a partir de l'últim control, o sigui
+    que amb un periòdic fet l'inicial ja no diu res (18 activitats a l'Excel del
+    17/11). Sense periodicitat no es marca;
+  - **`PENDENT`** a la cel·la del control inicial quan no n'hi ha i la `Data
+    registre entrada` fa més de dos anys.
+  `_SgFilesPerFulla` torna les cel·les a pintar en una llista (`$marques`) i
+  `_SgConstruirLlibre` les pinta **després** del format (que posa la lletra de
+  tota la taula), dins del seu `try`: si falla, avís i el fitxer surt igual.
+  Amb l'Excel del 17/11 i data 24/11/2026: 71 files, 26 propers vençuts, 20
+  inicials vençuts i 21 PENDENT.
+- **Columnes més estretes** (també a les pestanyes de Camp Info): ID 9, mòbils
+  10, tipus de via 6, número 6,5, apartat 8. Mai més estretes que la paraula més
+  llarga de la capçalera, que va en negreta i amb text ajustat i es partiria.

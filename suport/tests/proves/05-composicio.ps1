@@ -90,17 +90,59 @@ AssertEq $sgDen.Count 1 ('DEN' + [char]0x00DA + 'NCIES: troba el criteri a la 2a
 AssertEq ($sgDen[0][12]) 'SI, soroll' ('DEN' + [char]0x00DA + 'NCIES: valor de la 2a parella')
 $sgSon = @(_SgFilesPerFulla $sgDefs[3] $sgH $sgFiles $sgPairs)
 AssertEq $sgSon.Count 1 'SONOMETRIA: nomes l activitat 101'
-# ANNEX II: classificacio II (2a columna repetida) I descripcio lliure amb text.
+# ANNEX II: classificacio II (2a columna repetida), TINGUIN O NO descripcio
+# (novembre 2026, l'usuari: "que apareguin tots"; abans nomes la 100).
 $sgAnx = @(_SgFilesPerFulla $sgDefs[4] $sgH $sgFiles $sgPairs)
-AssertEq $sgAnx.Count 1 'ANNEX II: nomes la 100 (la 102 i la 103 son II pero sense descripcio; la 101 es III)'
-AssertEq ($sgAnx[0][11]) 'II' 'ANNEX II: mostra la PRIMERA columna de classificacio'
-AssertEq ($sgAnx[0][13]) '15/03/2019' 'ANNEX II: la data surt com a dd/MM/aaaa, no en cru'
-AssertEq ($sgAnx[0][14]) '08/07/2025' 'ANNEX II: la 2a data, igual'
-AssertEq ($sgAnx[0][16]) 'Text llarg de descripcio' ('ANNEX II: ultima columna = Descripci' + [char]0x00F3 + ' lliure')
+AssertEq $sgAnx.Count 3 'ANNEX II: la 100, la 102 i la 103 (totes les II, amb descripcio o sense; la 101 es III)'
+AssertEq (@($sgAnx | ForEach-Object { $_[1] }) -join ',') '100,102,103' 'ANNEX II: en l''ordre de la base'
+# Columnes: N, les 10 de l'activitat amb la 'Data registre entrada' darrere de
+# l'expedient (3), annex (12), apartat, inicial (14), periodic (15), proper (16),
+# activitat, descripcio (18).
+$sgColsAnx = @(@('N') + @($sgDefs[4].Cols))
+AssertEq ($sgColsAnx[3]) 'Data registre entrada' 'ANNEX II: la Data registre entrada, darrere de l''expedient (com a la fulla Estes)'
+AssertEq ($sgColsAnx[16]) 'Proper CP previst' 'ANNEX II: el Proper CP previst, darrere del control periodic (com a la fulla Estes)'
+AssertEq ($sgAnx[0][12]) 'II' 'ANNEX II: mostra la PRIMERA columna de classificacio'
+AssertEq ($sgAnx[0][14]) '15/03/2019' 'ANNEX II: la data surt com a dd/MM/aaaa, no en cru'
+AssertEq ($sgAnx[0][15]) '08/07/2025' 'ANNEX II: la 2a data, igual'
+AssertEq ($sgAnx[0][18]) 'Text llarg de descripcio' ('ANNEX II: ultima columna = Descripci' + [char]0x00F3 + ' lliure')
 AssertEq ([bool](_SgAnnexCoincideix 'II' 'text')) $true '_SgAnnexCoincideix: II + descripcio -> si'
-AssertEq ([bool](_SgAnnexCoincideix 'II' '')) $false '_SgAnnexCoincideix: sense descripcio -> no'
+AssertEq ([bool](_SgAnnexCoincideix 'II' '')) $true '_SgAnnexCoincideix: II sense descripcio -> TAMBE (novembre 2026)'
 AssertEq ([bool](_SgAnnexCoincideix 'III' 'text')) $false '_SgAnnexCoincideix: annex III -> no'
 AssertEq ([bool](_SgAnnexCoincideix 'ii' '  x ')) $true '_SgAnnexCoincideix: no distingeix majuscules'
+
+# LES MARQUES (vermell i negreta) d'ANNEX II. Avui: 24/11/2026.
+$sgAvui = [datetime]'2026-11-24'
+AssertEq (_SgData '2026-06-29 00:00:00.0') ([datetime]'2026-06-29') '_SgData: el format de la base'
+AssertEq (_SgData '29/06/2026') ([datetime]'2026-06-29') '_SgData: dd/MM/aaaa'
+AssertEq (_SgData ([double]46202)) ([datetime]::FromOADate(46202).Date) '_SgData: un numero OLE'
+AssertEq (_SgData '') $null '_SgData: buit -> $null'
+$mk = { param($ini, $per, $pcp, $prop, $reg) $m = _SgMarquesAnnex $ini $per $pcp $prop $reg $sgAvui; ('P' + [int]$m.Proper + 'I' + [int]$m.Inicial + 'X' + [int]$m.Pendent) }
+# Casos de l'Excel del 17/11/2026 (GIA 1343, 1372, 1271, 1484, 1242).
+AssertEq (& $mk '2002-07-24 00:00:00.0' '' '6' '2008-07-24 00:00:00.0' '2001-11-21 00:00:00.0') 'P1I1X0' 'marques: inicial del 2002 sense periodic i proper del 2008 -> els dos en vermell'
+AssertEq (& $mk '2007-11-21 00:00:00.0' '2020-12-22 00:00:00.0' '6' '2026-12-22 00:00:00.0' '1990-05-19 00:00:00.0') 'P0I0X0' 'marques: amb un control periodic despres, l''inicial ja no compta; el proper encara no ha passat'
+AssertEq (& $mk '2020-03-16 00:00:00.0' '' '6' '2026-03-16 00:00:00.0' '2019-04-30 00:00:00.0') 'P1I1X0' 'marques: el GIA 1271: proper del 16/03/2026 vencut, i l''inicial + 6 anys (16/03/2026) tambe'
+AssertEq (& $mk '2020-11-25 00:00:00.0' '' '6' '' '2019-01-01 00:00:00.0') 'P0I0X0' 'marques: inicial + 6 anys = 25/11/2026, encara no'
+AssertEq (& $mk '2020-11-23 00:00:00.0' '' '6' '' '2019-01-01 00:00:00.0') 'P0I1X0' 'marques: inicial + 6 anys = 23/11/2026, ja ha passat (sense proper: la periodicitat)'
+AssertEq (& $mk '2010-01-01 00:00:00.0' '' '' '' '2009-01-01 00:00:00.0') 'P0I0X0' 'marques: sense periodicitat no es marca (res de 6 anys a ma)'
+AssertEq (& $mk '2010-01-01 00:00:00.0' '' '8 anys' '' '') 'P0I1X0' 'marques: la periodicitat amb text ("8 anys") tambe val'
+AssertEq (& $mk '' '' '6' '' '2007-07-25 00:00:00.0') 'P0I0X1' 'marques: sense control inicial i registre de fa mes de 2 anys -> PENDENT'
+AssertEq (& $mk '' '' '6' '' '2026-06-29 00:00:00.0') 'P0I0X0' 'marques: sense control inicial pero registre recent -> res'
+AssertEq (& $mk '' '' '6' '' '') 'P0I0X0' 'marques: sense inicial ni registre -> res'
+# I a la pestanya: el PENDENT a la cel.la i les cel.les marcades.
+$sgH2 = @($sgH) + @('Data registre entrada', 'Periodicitat CP', 'Proper CP previst')
+$sgF2 = @(
+  @(@($sgFiles[0]) + @('2018-01-01 00:00:00.0', '6', '2025-07-08 00:00:00.0')),
+  @(@($sgFiles[2]) + @('2007-07-25 00:00:00.0', '6', ''))
+)
+$sgMq = New-Object System.Collections.ArrayList
+$sgAnx2 = @(_SgFilesPerFulla $sgDefs[4] $sgH2 $sgF2 $sgPairs $sgMq $sgAvui)
+AssertEq ($sgAnx2[0][3]) '01/01/2018' 'ANNEX II: la Data registre entrada surt, com a data'
+AssertEq ($sgAnx2[0][16]) '08/07/2025' 'ANNEX II: el Proper CP previst surt, com a data'
+AssertEq ($sgAnx2[1][14]) 'PENDENT' 'ANNEX II: sense control inicial i registre vell -> PENDENT a la cel.la'
+AssertEq ((@($sgMq) | ForEach-Object { [string]$_.Fila + ':' + [string]$_.Col }) -join ' ') '1:17 2:15' 'ANNEX II: es marquen el proper vencut de la 1a fila (col 17 = Q) i el PENDENT de la 2a (col 15 = O)'
+AssertEq (@(_SgFilesPerFulla $sgDefs[0] $sgH2 $sgF2 $sgPairs $sgMq $sgAvui)).Count 1 'les altres pestanyes no fan servir les marques'
+$sgSrc = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'SeguimentGia.ps1'))
+Assert ($sgSrc.Contains('$rows = @(_SgFilesPerFulla $def $headers $files $pairs $marques $ara)') -and $sgSrc.Contains('$cm.Font.Color = 255') -and $sgSrc.Contains('$cm.Font.Bold = $true')) 'ANNEX II: les marques es pinten en vermell i negreta al llibre'
 # Titols i nom del fitxer
 $sgData = Get-Date '2026-07-30'
 AssertEq (_SgTitolFulla $sgDefs[0] $sgData) 'ACTIVITAT PRECINTADA? 30/07/2026' '_SgTitolFulla: titol + data de la fila 1'

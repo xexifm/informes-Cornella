@@ -65,8 +65,16 @@ $Script:SgColsActivitat = @(
 # com a forat, perque si no totes les amplades seguents ballen una posicio (hi va
 # passar: la columna ampla del Valor es quedava sense amplada i les altres
 # s'aplicaven a la columna del costat).
-$Script:SgAmpladesCampInfo = @(3.57, 10.14, 12.86, 31.71, 10.86, 31.57, 0, 23.29, 13.14, 25.86, 12.71, 20.86, 58)
-$Script:SgAmpladesAnnex    = @(3.57, 10.14, 12.86, 31.71, 10.86, 31.57, 0, 23.29, 7.14, 20, 7.57, 7.14, 9.14, 10.14, 10.43, 39.57, 50.86)
+#
+# MES ESTRETES (l'usuari, novembre 2026: "fes mes estretes aquelles columnes que
+# ho permetin, ID Activitat, mobils, etc"): l'ID te 4 xifres, un mobil 9, la
+# via 2 lletres i el numero 3, pero la columna no pot ser mes estreta que la
+# paraula mes llarga de la capcalera (en negreta i amb text ajustat), o la
+# partiria pel mig: 'Activitat' 9, 'Tipus' 6, 'Numero' 6,5.
+$Script:SgAmpladesCampInfo = @(3.57, 9, 12.86, 31.71, 10, 31.57, 0, 23.29, 6, 25.86, 6.5, 20.86, 58)
+# ANNEX II porta a mes 'Data registre entrada' (darrere de l'expedient) i 'Proper
+# CP previst' (darrere del control periodic), al lloc que tenen a la fulla Estes.
+$Script:SgAmpladesAnnex    = @(3.57, 9, 12.86, 10.14, 31.71, 10, 31.57, 10, 23.29, 6, 20, 6.5, 7.14, 8, 10.14, 10.14, 10.14, 39.57, 50.86)
 
 # Les 5 pestanyes de llistat. Per cada una:
 #   Nom        nom de la pestanya
@@ -78,11 +86,19 @@ $Script:SgAmpladesAnnex    = @(3.57, 10.14, 12.86, 31.71, 10.86, 31.57, 0, 23.29
 #   DataCols   capceleres que s'han de mostrar com a data dd/MM/aaaa
 function _SgFullesDef {
     $ci = @($Script:SgColsActivitat) + @('Camp Info 1 - Nom', 'Camp Info 1 - Valor')
-    $an = @($Script:SgColsActivitat) + @(
+    # Les de l'activitat, amb la 'Data registre entrada' darrere de l'expedient
+    # (es on es a la fulla Estes: columnes 5 i 6).
+    $act = New-Object System.Collections.ArrayList
+    foreach ($c in @($Script:SgColsActivitat)) {
+        [void]$act.Add($c)
+        if ($c -eq ('N' + [char]0x00FA + 'm. expedient ')) { [void]$act.Add('Data registre entrada') }
+    }
+    $an = @($act.ToArray()) + @(
         ('Classificaci' + [char]0x00F3 + ' general annex')
         ('Classificaci' + [char]0x00F3 + ' general Apartat')
         ('Data control inicial/verificaci' + [char]0x00F3)
         ('Data control peri' + [char]0x00F2 + 'dic')
+        'Proper CP previst'
         'Activitat principal'
         ('Descripci' + [char]0x00F3 + ' lliure')
     )
@@ -92,7 +108,7 @@ function _SgFullesDef {
         [pscustomobject]@{ Nom='REQUERIT DECRET'; Titol='REQUERIT PER DECRET?';   Tipus='campinfo'; Camp='REQUERIT PER DECRET?';  Cols=$ci; Amplades=$Script:SgAmpladesCampInfo; DataCols=@() }
         [pscustomobject]@{ Nom='SONOMETRIA';      Titol='SONOMETRIA?';            Tipus='campinfo'; Camp='SONOMETRIA?';           Cols=$ci; Amplades=$Script:SgAmpladesCampInfo; DataCols=@() }
         [pscustomobject]@{ Nom='ANNEX II';        Titol='ANNEXOS II';             Tipus='annex';    Camp='';                      Cols=$an; Amplades=$Script:SgAmpladesAnnex;
-                           DataCols=@(('Data control inicial/verificaci' + [char]0x00F3), ('Data control peri' + [char]0x00F2 + 'dic')) }
+                           DataCols=@('Data registre entrada', ('Data control inicial/verificaci' + [char]0x00F3), ('Data control peri' + [char]0x00F2 + 'dic'), 'Proper CP previst') }
     )
 }
 
@@ -196,15 +212,62 @@ function _SgCampInfoCoincident($pairs, $fila, [string]$camp) {
     return $null
 }
 
-# Criteri de la pestanya ANNEX II: classificacio 'II' i descripcio lliure amb
-# contingut. A la plantilla la classificacio es llegeix de la SEGONA columna
-# 'Classificacio general annex' (DG) mentre que la que ES MOSTRA es la primera
-# (CZ). A les dades reals les dues son identiques a totes les activitats, o
-# sigui que no canvia res, pero es deixa dit.
-function _SgAnnexCoincideix([string]$classificacio, [string]$descripcio) {
-    if ([string]::IsNullOrWhiteSpace($descripcio)) { return $false }
+# Criteri de la pestanya ANNEX II: classificacio 'II', i PROU. La plantilla de
+# l'usuari demanava a mes la 'Descripcio lliure' amb contingut, i en quedaven
+# fora una tercera part (a l'Excel del 17/11/2026, 49 de 71); l'usuari (novembre
+# 2026): "que apareguin tots". $descripcio ja no compta (es deixa el parametre
+# perque la crida no canvia). La classificacio es llegeix de la SEGONA columna
+# 'Classificacio general annex' (DG) i ES MOSTRA la primera (CZ), com a la
+# plantilla; a les dades reals les dues son identiques.
+function _SgAnnexCoincideix([string]$classificacio, [string]$descripcio = '') {
     return ((_NormalitzaText $classificacio) -eq 'ii')
 }
+
+# Una data de l'Excel (un numero OLE, "2026-06-29 00:00:00.0", "2026-06-29" o
+# "29/06/2026"), o $null. PURA i sense dependre de l'idioma del Windows.
+function _SgData($v) {
+    if ($null -eq $v) { return $null }
+    if ($v -is [double]) { try { return ([DateTime]::FromOADate($v)).Date } catch { return $null } }
+    $s = ([string]$v).Trim()
+    if ($s -eq '') { return $null }
+    $s = $s -replace '\.\d+$', ''
+    $dt = [datetime]::MinValue
+    $ci = [System.Globalization.CultureInfo]::InvariantCulture
+    foreach ($f in @('yyyy-MM-dd HH:mm:ss', 'yyyy-MM-dd', 'dd/MM/yyyy', 'd/M/yyyy')) {
+        if ([datetime]::TryParseExact($s, $f, $ci, [System.Globalization.DateTimeStyles]::None, [ref]$dt)) { return $dt.Date }
+    }
+    return $null
+}
+
+# EL QUE ES MARCA A ANNEX II (l'usuari, novembre 2026), a partir dels valors de
+# la fila tal com venen de l'Excel. $avui: el dia que es fa el fitxer. PURA.
+# Torna @{ Proper; Inicial; Pendent } (booleans):
+#   Proper  el 'Proper CP previst' ja ha passat (es anterior a $avui).
+#   Inicial el control inicial s'ha fet fa mes de la 'Periodicitat CP' (anys) i
+#           NO hi ha cap control periodic despres: el GIA calcula el proper a
+#           partir de l'ULTIM control, o sigui que si n'hi ha un de periodic,
+#           l'inicial ja no diu res. Sense periodicitat, no es marca: res de
+#           posar 6 anys a ma.
+#   Pendent sense control inicial i amb la 'Data registre entrada' de fa mes de
+#           dos anys: a la cel.la del control inicial hi va "PENDENT".
+function _SgMarquesAnnex($inicial, $periodic, $periodicitat, $proper, $registre, [datetime]$avui) {
+    $avui = $avui.Date
+    $out = @{ Proper = $false; Inicial = $false; Pendent = $false }
+    $dProper = _SgData $proper
+    if ($null -ne $dProper -and $dProper -lt $avui) { $out.Proper = $true }
+    $dIni = _SgData $inicial
+    $dPer = _SgData $periodic
+    $anys = 0
+    $t = ([string]$periodicitat) -replace '[^\d]', ''
+    if ($t -ne '') { $anys = [int]$t }
+    if ($null -ne $dIni -and $anys -gt 0 -and ($null -eq $dPer -or $dPer -le $dIni) -and $dIni.AddYears($anys) -lt $avui) { $out.Inicial = $true }
+    $dReg = _SgData $registre
+    if ($null -eq $dIni -and $null -ne $dReg -and $dReg.AddYears(2) -lt $avui) { $out.Pendent = $true }
+    return $out
+}
+
+# El text que va a la cel.la del control inicial quan falta i toca (Pendent).
+$Script:SgTextPendent = 'PENDENT'
 
 # Titol de la fila 1: "ACTIVITAT PRECINTADA? 30/07/2026".
 function _SgTitolFulla($def, [datetime]$data) {
@@ -225,7 +288,11 @@ function _SgNomFitxer([datetime]$data, [string]$ext = 'xlsx') {
 #   $pairs    parelles Camp Info (_FindCampInfoPairs)
 # Retorna una llista d'arrays: [numero, ...columnes de $def.Cols...].
 # Les files surten en l'ORDRE de la base de dades, com a la plantilla.
-function _SgFilesPerFulla($def, $headers, $files, $pairs) {
+#   $marques  (opcional) llista on s'hi afegeixen les cel.les que s'han de pintar
+#             en vermell i negreta: @{ Fila (1 = la primera de dades); Col
+#             (1 = la 'N') }. Nomes a ANNEX II (_SgMarquesAnnex).
+#   $avui     el dia que es fa el fitxer (per a les marques).
+function _SgFilesPerFulla($def, $headers, $files, $pairs, $marques = $null, [datetime]$avui = (Get-Date)) {
     $out = New-Object System.Collections.ArrayList
     if ($null -eq $files) { return $out.ToArray() }
     # Punt d'entrada de les parelles: les aplanem aqui i prou (vegeu
@@ -254,6 +321,17 @@ function _SgFilesPerFulla($def, $headers, $files, $pairs) {
         }
         if ($iClassCrit -eq 0) { $iClassCrit = _SgColIndex $headers ('Classificaci' + [char]0x00F3 + ' general annex') }
         $iDescr = _SgColIndex $headers ('Descripci' + [char]0x00F3 + ' lliure')
+        # Les columnes de les marques (la periodicitat no es mostra, pero cal).
+        $nomIni = 'Data control inicial/verificaci' + [char]0x00F3
+        $nomPer = 'Data control peri' + [char]0x00F2 + 'dic'
+        $iIni = _SgColIndex $headers $nomIni
+        $iPer = _SgColIndex $headers $nomPer
+        $iPeriodicitat = _SgColIndex $headers 'Periodicitat CP'
+        $iProper = _SgColIndex $headers 'Proper CP previst'
+        $iReg = _SgColIndex $headers 'Data registre entrada'
+        $colsN = @(@($def.Cols) | ForEach-Object { _NormalitzaText $_ })
+        $oIni = [array]::IndexOf($colsN, (_NormalitzaText $nomIni))
+        $oProper = [array]::IndexOf($colsN, (_NormalitzaText 'Proper CP previst'))
     }
 
     $cel = {
@@ -288,6 +366,15 @@ function _SgFilesPerFulla($def, $headers, $files, $pairs) {
             $v = & $cel $fila $idx[$k]
             if ($esData.ContainsKey((_NormalitzaText $nomCol))) { $v = _FormatDateOnly $v }
             [void]$rec.Add($v)
+        }
+        if ($def.Tipus -eq 'annex') {
+            $mk = _SgMarquesAnnex (& $cel $fila $iIni) (& $cel $fila $iPer) (& $cel $fila $iPeriodicitat) (& $cel $fila $iProper) (& $cel $fila $iReg) $avui
+            # +1: la 'N' es la columna 0 de $rec (i la 1 de l'Excel).
+            if ($mk.Pendent -and $oIni -ge 0) { $rec[$oIni + 1] = $Script:SgTextPendent }
+            if ($null -ne $marques) {
+                if ($mk.Proper -and $oProper -ge 0) { [void]$marques.Add(@{ Fila = $n; Col = $oProper + 2 }) }
+                if (($mk.Inicial -or $mk.Pendent) -and $oIni -ge 0) { [void]$marques.Add(@{ Fila = $n; Col = $oIni + 2 }) }
+            }
         }
         [void]$out.Add($rec.ToArray())
     }
@@ -622,7 +709,8 @@ function _SgConstruirLlibre($seleccio) {
             $sh.Name = [string]$def.Nom
 
             $pas = ("triant les activitats de '" + [string]$def.Nom + "'")
-            $rows = @(_SgFilesPerFulla $def $headers $files $pairs)
+            $marques = New-Object System.Collections.ArrayList
+            $rows = @(_SgFilesPerFulla $def $headers $files $pairs $marques $ara)
             $resum[[string]$def.Nom] = $rows.Count
 
             $pas = ("escrivint el titol i les capceleres de '" + [string]$def.Nom + "'")
@@ -650,6 +738,20 @@ function _SgConstruirLlibre($seleccio) {
                 _SgFormatarFulla $sh $def $rows.Count $excel
             } catch {
                 [void]$avisos.Add((_SgTextError $_ $pas))
+            }
+            # Les dates fora de termini i els PENDENT, en vermell i negreta
+            # (ANNEX II). Despres del format, que posa la lletra de tota la taula.
+            if ($marques.Count -gt 0) {
+                $pas = ("marcant en vermell les dates de '" + [string]$def.Nom + "'")
+                try {
+                    foreach ($mq in @($marques)) {
+                        $cm = $sh.Cells.Item(2 + [int]$mq.Fila, [int]$mq.Col)
+                        $cm.Font.Color = 255                  # vermell (BGR)
+                        $cm.Font.Bold = $true
+                    }
+                } catch {
+                    [void]$avisos.Add((_SgTextError $_ $pas))
+                }
             }
         }
 
