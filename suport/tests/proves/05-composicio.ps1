@@ -3,7 +3,7 @@
 # Es DOT-SOURCE des de run-tests.ps1: mateix ambit, mateixes variables i el
 # mateix comptador d'asserts. No s'executa sol.
 
-Write-Host "`n--- SeguimentGia.ps1: els cinc llistats del GIA (funcions pures) ---"
+Write-Host "`n--- SeguimentGia.ps1: els sis llistats del GIA (funcions pures) ---"
 # Taula d'exemple amb la MATEIXA forma que la fulla Estes de la base de dades:
 # capceleres amb 'Classificacio general annex' REPETIDA (a la base hi surt dues
 # vegades: la 1a es la que es MOSTRA, la 2a la que fa de CRITERI a ANNEX II) i
@@ -51,16 +51,17 @@ $sgFiles = @(
   @('103','E-5','TITULAR C','604','','','BAR C','C','LLUNA','9','II','2.2','','','COM','II','','','','','')
 )
 $sgDefs = @(_SgFullesDef)
-AssertEq $sgDefs.Count 5 '_SgFullesDef: 5 pestanyes'
+AssertEq $sgDefs.Count 6 '_SgFullesDef: 6 pestanyes'
 
 # --- Tria de pestanyes (les caselles de la finestra) ---------------------------
 # La llista de caselles i el que construeix el llibre surten de la MATEIXA font,
 # _SgOpcionsExport, per no poder-se desincronitzar.
 $sgOps = @(_SgOpcionsExport)
-AssertEq $sgOps.Count 6 '_SgOpcionsExport: la copia de la base + els 5 llistats'
+AssertEq $sgOps.Count 7 '_SgOpcionsExport: la copia de la base + els 6 llistats'
 AssertEq $sgOps[0] (_SgNomEstes) '_SgOpcionsExport: la copia de la base va primer'
 AssertEq $sgOps[1] 'PRECINTES'   '_SgOpcionsExport: despres els llistats, en ordre'
-AssertEq $sgOps[5] 'ANNEX II'    '_SgOpcionsExport: l ultim es ANNEX II'
+AssertEq $sgOps[5] 'ANNEX II'    '_SgOpcionsExport: despres ANNEX II'
+AssertEq $sgOps[6] ('LLIC' + [char]0x00C8 + 'NCIES PROVISIONALS') '_SgOpcionsExport: l ultim es LLICENCIES PROVISIONALS'
 Assert (_SgSeleccioTeEstes @((_SgNomEstes), 'PRECINTES')) '_SgSeleccioTeEstes: la troba'
 Assert (_SgSeleccioTeEstes @('estes'))                    '_SgSeleccioTeEstes: sense accents i en minuscules tambe'
 Assert (-not (_SgSeleccioTeEstes @('PRECINTES')))         '_SgSeleccioTeEstes: si no hi es, no'
@@ -71,7 +72,7 @@ AssertEq @(_SgFullesTriades @('ANNEX II', 'PRECINTES'))[0].Nom 'PRECINTES' '_SgF
 AssertEq @(_SgFullesTriades @((_SgNomEstes))).Count 0 '_SgFullesTriades: la copia de la base no es cap llistat'
 AssertEq @(_SgFullesTriades @()).Count 0              '_SgFullesTriades: res triat -> cap llistat'
 AssertEq @(_SgFullesTriades $null).Count 0            '_SgFullesTriades: $null -> cap llistat'
-AssertEq @(_SgFullesTriades $sgOps).Count 5           '_SgFullesTriades: totes marcades -> els 5 llistats'
+AssertEq @(_SgFullesTriades $sgOps).Count 6           '_SgFullesTriades: totes marcades -> els 6 llistats'
 AssertEq @(_SgFullesTriades @('PRECINTES')).Count 1   '_SgFullesTriades: una sola tria no es desenrotlla'
 AssertEq ($sgDefs[0].Nom) 'PRECINTES' '_SgFullesDef: la primera es PRECINTES'
 $sgPre = @(_SgFilesPerFulla $sgDefs[0] $sgH $sgFiles $sgPairs)
@@ -142,6 +143,37 @@ AssertEq ($sgAnx2[1][14]) 'PENDENT' 'ANNEX II: sense control inicial i registre 
 AssertEq ((@($sgMq) | ForEach-Object { [string]$_.Fila + ':' + [string]$_.Col }) -join ' ') '1:17 2:15' 'ANNEX II: es marquen el proper vencut de la 1a fila (col 17 = Q) i el PENDENT de la 2a (col 15 = O)'
 AssertEq (@(_SgFilesPerFulla $sgDefs[0] $sgH2 $sgF2 $sgPairs $sgMq $sgAvui)).Count 1 'les altres pestanyes no fan servir les marques'
 $sgSrc = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'SeguimentGia.ps1'))
+# LLICENCIES PROVISIONALS: "LLIC PROV" davant de l'expedient; les columnes
+# d'ANNEX II; control inicial sempre i el periodic nomes als annexos II i III.
+$sgLp = $sgDefs[5]
+AssertEq $sgLp.Tipus 'llicprov' 'LLICENCIES PROVISIONALS: la 6a pestanya'
+AssertEq (@($sgLp.Cols) -join '|') (@($sgDefs[4].Cols) -join '|') 'LLICENCIES PROVISIONALS: les mateixes columnes que ANNEX II'
+AssertEq ([bool](_SgLlicProvCoincideix 'LLIC PROV 2024/123')) $true 'LLIC PROV: davant de l''expedient'
+AssertEq ([bool](_SgLlicProvCoincideix 'llic. prov. 2024/123')) $true 'LLIC PROV: amb punts i en minuscules'
+AssertEq ([bool](_SgLlicProvCoincideix '2024/123 LLIC PROV')) $true 'LLIC PROV: tambe al darrere'
+AssertEq ([bool](_SgLlicProvCoincideix '2024/123')) $false 'LLIC PROV: sense -> no'
+AssertEq ([bool](_SgLlicProvCoincideix ('LLIC' + [char]0x00C8 + 'NCIA 2024/123'))) $false 'LLIC PROV: "LLICENCIA" sola -> no'
+AssertEq ([bool](_SgAmbControlPeriodic 'II')) $true 'control periodic: annex II'
+AssertEq ([bool](_SgAmbControlPeriodic 'iii')) $true 'control periodic: annex III'
+AssertEq ([bool](_SgAmbControlPeriodic 'Annex III')) $true 'control periodic: "Annex III" tambe'
+AssertEq ([bool](_SgAmbControlPeriodic 'I')) $false 'control periodic: annex I -> nomes inicial'
+AssertEq ([bool](_SgAmbControlPeriodic '')) $false 'control periodic: sense classificacio -> nomes inicial'
+$sgLpRow = { param($exp, $cls, $ini, $per, $pcp, $prop, $reg)
+    $r = @(@($sgFiles[4]) + @($reg, $pcp, $prop)); $r[1] = $exp; $r[10] = $cls; $r[15] = $cls; $r[12] = $ini; $r[13] = $per; ,$r }
+$sgF3 = @(
+  (& $sgLpRow 'LLIC PROV E-7' 'II' '2015-01-01 00:00:00.0' '' '6' '2021-01-01 00:00:00.0' '2014-01-01 00:00:00.0'),
+  (& $sgLpRow 'E-8' 'II' '2015-01-01 00:00:00.0' '' '6' '2021-01-01 00:00:00.0' '2014-01-01 00:00:00.0'),
+  (& $sgLpRow 'LLIC. PROV. E-9' 'I' '' '2020-01-01 00:00:00.0' '4' '2024-01-01 00:00:00.0' '2020-01-01 00:00:00.0')
+)
+$sgMq3 = New-Object System.Collections.ArrayList
+$sgLpF = @(_SgFilesPerFulla $sgLp $sgH2 $sgF3 $sgPairs $sgMq3 $sgAvui)
+AssertEq $sgLpF.Count 2 'LLICENCIES PROVISIONALS: nomes les que porten LLIC PROV a l''expedient'
+AssertEq (@($sgLpF | ForEach-Object { $_[2] }) -join ',') 'LLIC PROV E-7,LLIC. PROV. E-9' 'LLICENCIES PROVISIONALS: en l''ordre de la base'
+AssertEq ($sgLpF[0][16]) '01/01/2021' 'LLICENCIES PROVISIONALS annex II: el proper CP hi surt'
+AssertEq ($sgLpF[1][15]) '' 'LLICENCIES PROVISIONALS annex I: sense control periodic'
+AssertEq ($sgLpF[1][16]) '' 'LLICENCIES PROVISIONALS annex I: sense proper CP'
+AssertEq ($sgLpF[1][14]) 'PENDENT' 'LLICENCIES PROVISIONALS annex I: el control inicial sempre (PENDENT si falta)'
+AssertEq ((@($sgMq3) | ForEach-Object { [string]$_.Fila + ':' + [string]$_.Col }) -join ' ') '1:17 1:15 2:15' 'LLICENCIES PROVISIONALS: l''annex II es marca com a ANNEX II; l''annex I nomes el control inicial'
 Assert ($sgSrc.Contains('$rows = @(_SgFilesPerFulla $def $headers $files $pairs $marques $ara)') -and $sgSrc.Contains('$cm.Font.Color = 255') -and $sgSrc.Contains('$cm.Font.Bold = $true')) 'ANNEX II: les marques es pinten en vermell i negreta al llibre'
 # Titols i nom del fitxer
 $sgData = Get-Date '2026-07-30'

@@ -2612,3 +2612,24 @@ tots» (només hi sortien els que tenien Descripció lliure: 49 de 71 a l'Excel 
 - **Columnes més estretes** (també a les pestanyes de Camp Info): ID 9, mòbils
   10, tipus de via 6, número 6,5, apartat 8. Mai més estretes que la paraula més
   llarga de la capçalera, que va en negreta i amb text ajustat i es partiria.
+
+## Seguiment GIA: pestanya LLICÈNCIES PROVISIONALS (novembre 2026)
+
+L'usuari: «afegeix LLICÈNCIES PROVISIONALS. Les columnes seran les mateixes que
+Annex II però només hi ha d'haver control inicial sempre o control inicial +
+periòdic en cas que sigui Annex III o Annex II».
+
+- **Criteri** (`_SgLlicProvCoincideix`, pura): al GIA **no hi ha cap camp** de
+  llicència provisional; l'administrativa escriu **`LLIC PROV` davant del `Núm.
+  expedient`**. S'accepta també `LLIC. PROV.`, minúscules i a qualsevol lloc del
+  text; «LLICÈNCIA» sola no compta.
+- **Columnes**: les d'ANNEX II (`Cols=$an`, mateixes amplades i dates), i les
+  mateixes marques en vermell i negreta (`_SgMarquesAnnex`).
+- **Controls** (`_SgAmbControlPeriodic`, pura): si la classificació (la 2a
+  columna, com a ANNEX II) és **II o III**, la fila es tracta igual que a ANNEX
+  II. Si no, **només el control inicial**: el `Data control periòdic` i el
+  `Proper CP previst` surten **en blanc** i no es marquen; el `PENDENT` (sense
+  inicial i registre de fa més de dos anys) sí.
+- És la **6a pestanya** i l'última de `_SgOpcionsExport`: surt a la finestra (la
+  llista s'ha fet 18 px més alta perquè hi càpiguen les set caselles) i a
+  l'automàtic (`_SgSeleccioAuto`, totes menys Estès), sense tocar res més.

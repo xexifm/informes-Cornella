@@ -19,7 +19,9 @@
     DENUNCIES          ... amb 'DENUNCIA?'
     REQUERIT DECRET    ... amb 'REQUERIT PER DECRET?'
     SONOMETRIA         ... amb 'SONOMETRIA?'
-    ANNEX II           'Classificacio general annex' = II amb 'Descripcio lliure'
+    ANNEX II           'Classificacio general annex' = II (totes, novembre 2026)
+    LLICENCIES PROV.   'LLIC PROV' davant del 'Num. expedient': control inicial
+                       sempre i, si es annex II o III, tambe el periodic
 
   EL CRITERI ES NOMES QUE L'ACTIVITAT TINGUI AQUELL CAMP INFO, digui el que
   digui el valor. NO es demana que comenci per "SI". Aixo es deliberat: es el
@@ -76,10 +78,10 @@ $Script:SgAmpladesCampInfo = @(3.57, 9, 12.86, 31.71, 10, 31.57, 0, 23.29, 6, 25
 # CP previst' (darrere del control periodic), al lloc que tenen a la fulla Estes.
 $Script:SgAmpladesAnnex    = @(3.57, 9, 12.86, 10.14, 31.71, 10, 31.57, 10, 23.29, 6, 20, 6.5, 7.14, 8, 10.14, 10.14, 10.14, 39.57, 50.86)
 
-# Les 5 pestanyes de llistat. Per cada una:
+# Les 6 pestanyes de llistat. Per cada una:
 #   Nom        nom de la pestanya
 #   Titol      text de la fila 1 (se li afegeix la data)
-#   Tipus      'campinfo' (busca un Camp Info) o 'annex'
+#   Tipus      'campinfo' (busca un Camp Info), 'annex' o 'llicprov'
 #   Camp       nom del Camp Info a buscar (nomes si Tipus='campinfo')
 #   Cols       capceleres de les columnes de dades (sense la 'N')
 #   Amplades   amplades, incloent-hi la de la 'N'
@@ -108,6 +110,9 @@ function _SgFullesDef {
         [pscustomobject]@{ Nom='REQUERIT DECRET'; Titol='REQUERIT PER DECRET?';   Tipus='campinfo'; Camp='REQUERIT PER DECRET?';  Cols=$ci; Amplades=$Script:SgAmpladesCampInfo; DataCols=@() }
         [pscustomobject]@{ Nom='SONOMETRIA';      Titol='SONOMETRIA?';            Tipus='campinfo'; Camp='SONOMETRIA?';           Cols=$ci; Amplades=$Script:SgAmpladesCampInfo; DataCols=@() }
         [pscustomobject]@{ Nom='ANNEX II';        Titol='ANNEXOS II';             Tipus='annex';    Camp='';                      Cols=$an; Amplades=$Script:SgAmpladesAnnex;
+                           DataCols=@('Data registre entrada', ('Data control inicial/verificaci' + [char]0x00F3), ('Data control peri' + [char]0x00F2 + 'dic'), 'Proper CP previst') }
+        # Les mateixes columnes que ANNEX II (l'usuari, novembre 2026).
+        [pscustomobject]@{ Nom=('LLIC' + [char]0x00C8 + 'NCIES PROVISIONALS'); Titol=('LLIC' + [char]0x00C8 + 'NCIES PROVISIONALS'); Tipus='llicprov'; Camp=''; Cols=$an; Amplades=$Script:SgAmpladesAnnex;
                            DataCols=@('Data registre entrada', ('Data control inicial/verificaci' + [char]0x00F3), ('Data control peri' + [char]0x00F2 + 'dic'), 'Proper CP previst') }
     )
 }
@@ -223,6 +228,23 @@ function _SgAnnexCoincideix([string]$classificacio, [string]$descripcio = '') {
     return ((_NormalitzaText $classificacio) -eq 'ii')
 }
 
+# Criteri de LLICENCIES PROVISIONALS: al GIA no hi ha cap camp per a la
+# llicencia provisional; l'administrativa posa "LLIC PROV" DAVANT del numero
+# d'expedient (l'usuari, novembre 2026). S'accepta tambe "LLIC. PROV." i
+# minuscules, i a qualsevol lloc del text. PURA.
+function _SgLlicProvCoincideix([string]$expedient) {
+    return ((_NormalitzaText $expedient) -match 'llic\.?\s*prov')
+}
+
+# Si una llicencia provisional porta control PERIODIC: nomes els annexos II i
+# III. La resta, nomes el control inicial (l'usuari, novembre 2026: "control
+# inicial sempre o control inicial + periodic en cas que sigui Annex III o
+# Annex II"). PURA.
+function _SgAmbControlPeriodic([string]$classificacio) {
+    $t = (_NormalitzaText $classificacio) -replace '^annex\s*', ''
+    return ($t -eq 'ii' -or $t -eq 'iii')
+}
+
 # Una data de l'Excel (un numero OLE, "2026-06-29 00:00:00.0", "2026-06-29" o
 # "29/06/2026"), o $null. PURA i sense dependre de l'idioma del Windows.
 function _SgData($v) {
@@ -290,7 +312,8 @@ function _SgNomFitxer([datetime]$data, [string]$ext = 'xlsx') {
 # Les files surten en l'ORDRE de la base de dades, com a la plantilla.
 #   $marques  (opcional) llista on s'hi afegeixen les cel.les que s'han de pintar
 #             en vermell i negreta: @{ Fila (1 = la primera de dades); Col
-#             (1 = la 'N') }. Nomes a ANNEX II (_SgMarquesAnnex).
+#             (1 = la 'N') }. Nomes a ANNEX II i LLICENCIES PROVISIONALS
+#             (_SgMarquesAnnex).
 #   $avui     el dia que es fa el fitxer (per a les marques).
 function _SgFilesPerFulla($def, $headers, $files, $pairs, $marques = $null, [datetime]$avui = (Get-Date)) {
     $out = New-Object System.Collections.ArrayList
@@ -307,9 +330,12 @@ function _SgFilesPerFulla($def, $headers, $files, $pairs, $marques = $null, [dat
     foreach ($d in @($def.DataCols)) { $esData[(_NormalitzaText $d)] = $true }
 
     # ANNEX II: la classificacio del CRITERI es la SEGONA columna amb aquest nom.
+    # LLICENCIES PROVISIONALS te les mateixes columnes i les mateixes marques.
     $iClassCrit = 0
     $iDescr = 0
-    if ($def.Tipus -eq 'annex') {
+    $ambControls = ($def.Tipus -eq 'annex' -or $def.Tipus -eq 'llicprov')
+    $iExp = _SgColIndex $headers ('N' + [char]0x00FA + 'm. expedient')
+    if ($ambControls) {
         $nomClass = _NormalitzaText ('Classificaci' + [char]0x00F3 + ' general annex')
         $vistes = 0
         $h = @($headers)
@@ -332,6 +358,7 @@ function _SgFilesPerFulla($def, $headers, $files, $pairs, $marques = $null, [dat
         $colsN = @(@($def.Cols) | ForEach-Object { _NormalitzaText $_ })
         $oIni = [array]::IndexOf($colsN, (_NormalitzaText $nomIni))
         $oProper = [array]::IndexOf($colsN, (_NormalitzaText 'Proper CP previst'))
+        $oPer = [array]::IndexOf($colsN, (_NormalitzaText $nomPer))
     }
 
     $cel = {
@@ -349,6 +376,8 @@ function _SgFilesPerFulla($def, $headers, $files, $pairs, $marques = $null, [dat
         $ciPair = $null
         if ($def.Tipus -eq 'annex') {
             if (-not (_SgAnnexCoincideix (& $cel $fila $iClassCrit) (& $cel $fila $iDescr))) { continue }
+        } elseif ($def.Tipus -eq 'llicprov') {
+            if (-not (_SgLlicProvCoincideix (& $cel $fila $iExp))) { continue }
         } else {
             $ciPair = _SgCampInfoCoincident $pairs $fila $def.Camp
             if ($null -eq $ciPair) { continue }
@@ -367,8 +396,16 @@ function _SgFilesPerFulla($def, $headers, $files, $pairs, $marques = $null, [dat
             if ($esData.ContainsKey((_NormalitzaText $nomCol))) { $v = _FormatDateOnly $v }
             [void]$rec.Add($v)
         }
-        if ($def.Tipus -eq 'annex') {
-            $mk = _SgMarquesAnnex (& $cel $fila $iIni) (& $cel $fila $iPer) (& $cel $fila $iPeriodicitat) (& $cel $fila $iProper) (& $cel $fila $iReg) $avui
+        if ($ambControls) {
+            $vPer = & $cel $fila $iPer; $vPeriodicitat = & $cel $fila $iPeriodicitat; $vProper = & $cel $fila $iProper
+            # Llicencia provisional que no es annex II ni III: nomes control
+            # inicial. El periodic i el proper no hi pinten res (ni es marquen).
+            if ($def.Tipus -eq 'llicprov' -and -not (_SgAmbControlPeriodic (& $cel $fila $iClassCrit))) {
+                $vPer = ''; $vPeriodicitat = ''; $vProper = ''
+                if ($oPer -ge 0) { $rec[$oPer + 1] = '' }
+                if ($oProper -ge 0) { $rec[$oProper + 1] = '' }
+            }
+            $mk = _SgMarquesAnnex (& $cel $fila $iIni) $vPer $vPeriodicitat $vProper (& $cel $fila $iReg) $avui
             # +1: la 'N' es la columna 0 de $rec (i la 1 de l'Excel).
             if ($mk.Pendent -and $oIni -ge 0) { $rec[$oIni + 1] = $Script:SgTextPendent }
             if ($null -ne $marques) {
@@ -740,7 +777,7 @@ function _SgConstruirLlibre($seleccio) {
                 [void]$avisos.Add((_SgTextError $_ $pas))
             }
             # Les dates fora de termini i els PENDENT, en vermell i negreta
-            # (ANNEX II). Despres del format, que posa la lletra de tota la taula.
+            # (ANNEX II i LLICENCIES PROVISIONALS). Despres del format, que posa la lletra de tota la taula.
             if ($marques.Count -gt 0) {
                 $pas = ("marcant en vermell les dates de '" + [string]$def.Nom + "'")
                 try {
@@ -1038,7 +1075,7 @@ function Send-SeguimentCorreu($gen, [bool]$silenci, $ccoTriades = @()) {
 function Invoke-SeguimentGia {
     $form = _NewForm
     $form.Text = 'Seguiment'
-    $form.ClientSize = New-Object System.Drawing.Size(470, 336)
+    $form.ClientSize = New-Object System.Drawing.Size(470, 354)
     $form.FormBorderStyle = 'FixedDialog'
     $form.MaximizeBox = $false
 
@@ -1056,7 +1093,7 @@ function Invoke-SeguimentGia {
     # nomes selecciona la fila), i es un embolic.
     $clb = New-Object System.Windows.Forms.CheckedListBox
     $clb.Location = New-Object System.Drawing.Point(20, 110)
-    $clb.Size = New-Object System.Drawing.Size(430, 112)
+    $clb.Size = New-Object System.Drawing.Size(430, 130)
     $clb.CheckOnClick = $true
     $clb.IntegralHeight = $false
     $clb.BorderStyle = 'FixedSingle'
@@ -1065,7 +1102,7 @@ function Invoke-SeguimentGia {
     [void]$form.Controls.Add($clb)
 
     $lnk = New-Object System.Windows.Forms.LinkLabel
-    $lnk.Location = New-Object System.Drawing.Point(20, 226)
+    $lnk.Location = New-Object System.Drawing.Point(20, 244)
     $lnk.Size = New-Object System.Drawing.Size(200, 18)
     $lnk.Text = 'Marcar-les / desmarcar-les totes'
     $lnk.Font = New-Object System.Drawing.Font('Segoe UI', 8)
@@ -1079,7 +1116,7 @@ function Invoke-SeguimentGia {
     [void]$form.Controls.Add($lnk)
 
     $lbl2 = New-Object System.Windows.Forms.Label
-    $lbl2.Location = New-Object System.Drawing.Point(20, 248)
+    $lbl2.Location = New-Object System.Drawing.Point(20, 266)
     $lbl2.Size = New-Object System.Drawing.Size(430, 42)
     $lbl2.ForeColor = [System.Drawing.Color]::FromArgb(120, 128, 138)
     $lbl2.Font = New-Object System.Drawing.Font('Segoe UI', 8)
@@ -1091,7 +1128,7 @@ function Invoke-SeguimentGia {
     $peu = _AddPeuBotons $form @(@{ Nom = 'Tanca'; Text = 'Tancar' }) @(
         @{ Nom = 'Env'; Text = 'PDF i enviar' },
         @{ Nom = 'Pdf'; Text = 'Exportar a PDF' },
-        @{ Nom = 'Xls'; Text = 'Exportar a Excel'; Estil = 'primari' }) 292
+        @{ Nom = 'Xls'; Text = 'Exportar a Excel'; Estil = 'primari' }) 310
     $btnXls = $peu.Xls; $btnPdf = $peu.Pdf; $btnTanca = $peu.Tanca; $btnEnv = $peu.Env
 
     $btnTanca.add_Click({ $form.Close() }.GetNewClosure())
