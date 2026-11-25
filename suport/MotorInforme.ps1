@@ -145,7 +145,7 @@ $Script:OrigenPlantilles = [ordered]@{
 #   Visita inspeccio 22/10/2026 - Queixa
 #   Visita inspeccio 22/10/2026 - Pla de verificacio 2026
 #   Visita inspeccio 22/10/2026 - Queixa + Pla de verificacio 2026
-# Excel Comprovar el llegeix de l'informe: la queixa ha de constar a la columna
+# Inf -> GIA Comprovar el llegeix de l'informe: la queixa ha de constar a la columna
 # 'Inspeccio' de l'Excel i el pla, a 'Data control inicial/verificacio'.
 # L'any del pla es el de la data de la visita. La copia del mobil es
 # docs\correu.js (motiuVisitaText; prova creuada).

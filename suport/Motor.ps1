@@ -40,7 +40,7 @@
                         cada document), Regles (de qui es cada dada, avisos), Db
                         (contactes-db.json, correccions a ma) i Pantalla
     CopiaInformes.ps1   eina "Copiar informes" (a ma i automatic)
-    ComprovarExcel.ps1  eina "Excel Comprovar" (precintes i visites contra l'Excel)
+    ComprovarExcel.ps1  eina "Inf -> GIA Comprovar" (precintes i visites contra l'Excel)
     ExcelErrors.ps1     eina "Excel Errors" (les dades que falten o no son bones a l'Excel)
                         (+ ExcelErrorsLlistats.ps1, els tres llistats per correu;
                         ExcelErrorsPantalla.ps1, la finestra; ExcelErrorsAutomatic.ps1, A/M)

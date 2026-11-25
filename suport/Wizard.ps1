@@ -45,7 +45,7 @@ function Main {
             'informesdbedit' { Invoke-InformesDbEdit }   # editor de la base d'informes
             'plaverificacio' { Invoke-PlaVerificacio }   # indicadors de la Memoria del Pla de verificacio
             'copiarinformes' { Invoke-CopiarInformes }   # copia incremental dels Word a la carpeta de copia
-            'comprovarexcel' { Invoke-ComprovarExcel }   # "Excel Comprovar": l'Excel reflecteix els precintes i les visites
+            'comprovarexcel' { Invoke-ComprovarExcel }   # "Inf -> GIA Comprovar": l'Excel reflecteix els precintes i les visites
             'excelerrors'    { Invoke-ExcelErrors }      # "Excel Errors": les dades que falten o no son bones a l'Excel
             'seguimentgia'   { Invoke-SeguimentGia }     # llistats de seguiment del GIA (Excel o PDF)
             'revisarmobil'   { Invoke-RevisarMobil }     # revisa el mobil un sol cop; torna al menu

@@ -188,8 +188,8 @@ try {
 Write-Host "`n--- Excel Errors: la rajola i el despatxador ---"
 $exMenu = _SenseComentaris (Join-Path (Split-Path -Parent $TestsDir) 'Menu.ps1')
 Assert ($exMenu.Contains("Label = 'Excel Errors';    Kind = 'action'; Action = 'excelerrors'")) 'menu: la rajola Excel Errors (fila GIA)'
-Assert ($exMenu.Contains("Label = 'Excel Comprovar'; Kind = 'action'; Action = 'comprovarexcel'")) 'menu: "Comprovar Excel" es diu ara "Excel Comprovar" (la mateixa accio: no perd el segell)'
-Assert (-not $exMenu.Contains("'Comprovar Excel'")) 'menu: el nom vell ja no hi es'
+Assert ($exMenu.Contains("Label = 'Inf -> GIA Comprovar'; Kind = 'action'; Action = 'comprovarexcel'")) 'menu: l''eina es diu "Inf -> GIA Comprovar" (la mateixa accio: no perd el segell)'
+Assert (-not $exMenu.Contains("'Comprovar Excel'") -and -not $exMenu.Contains("'Excel Comprovar'")) 'menu: cap dels noms vells ("Comprovar Excel", "Excel Comprovar")'
 Assert ((_SenseComentaris (Join-Path (Split-Path -Parent $TestsDir) 'Wizard.ps1')).Contains("'excelerrors'    { Invoke-ExcelErrors }")) 'despatxador: excelerrors obre l''eina'
 Assert ((_SenseComentaris (Join-Path (Split-Path -Parent $TestsDir) 'ExcelErrors.ps1')) -notmatch 'Workbooks\.Open|\.Save\(\)') 'Excel Errors: no obre l''Excel per escriure-hi (l''Excel del GIA no es toca mai)'
 

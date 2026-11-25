@@ -1170,7 +1170,7 @@ cada vegada «s'està actualitzant sola ara mateix».
     (`informesdbedit`), 📁 *Copiar informes* (`copiarinformes`), 📄 *Word a PDF*
     (`convertirpdf`).
   - **GIA | NORMATIVA** (comparteixen fila): 📊 *Seguiment* (`seguimentgia`),
-    ✅ *Excel Comprovar* (`comprovarexcel`; abans *Comprovar Excel*), ⚠ *Excel
+    ✅ *Inf -> GIA Comprovar* (`comprovarexcel`; abans *Excel Comprovar* i *Comprovar Excel*), ⚠ *Excel
     Errors* (`excelerrors`) | 📚 *Normativa* (`normativa`), 🔍
     *Revisar requeriments* (`revisio`).
   - **Per què així**: primer les eines anaven a sota dels informes (~980 px
@@ -2274,7 +2274,8 @@ què passa i on; canviar un requeriment es fa llegint la norma.
 ## «Excel Comprovar» (abans «Comprovar Excel»): visites d'inspecció i avisos descartats (octubre 2026)
 
 > **El nom.** L'usuari (octubre 2026) la va reanomenar «Excel Comprovar», al costat
-> de la nova «Excel Errors». **L'acció segueix sent `comprovarexcel`**, i és a
+> de la nova «Excel Errors», i al novembre de 2026, perquè el trobava ambigu, **«Inf
+> -> GIA Comprovar»** (comprova que el que diuen els informes consti al GIA). **L'acció segueix sent `comprovarexcel`**, i és a
 > posta: el segell d'«última vegada» del menú s'indexa per l'acció, i canviar-la
 > l'hauria deixat a «(mai)».
 

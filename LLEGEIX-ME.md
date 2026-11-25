@@ -677,9 +677,9 @@ per *Pàgina 1 de …* amb el total d'ANNEX II. Els fitxers es desen a
 > Necessita tenir l'Excel una estona treballant: amb tota la base de dades pot
 > trigar. Mentre ho fa, els botons queden desactivats.
 
-### Excel Comprovar (fila GIA)
+### Inf -> GIA Comprovar (fila GIA)
 
-Botó **✅ Excel Comprovar** (abans es deia *Comprovar Excel*). Agafa les activitats que la base d'informes té en
+Botó **✅ Inf -> GIA Comprovar** (abans es deia *Excel Comprovar* i, encara abans, *Comprovar Excel*): comprova que el que diuen els **informes** consti al **GIA**. Agafa les activitats que la base d'informes té en
 estat *Precinte / Cessament* i comprova que a l'Excel hi tinguin el Camp Info
 **REQUERIT PER DECRET?** o **PRECINTE ACTIVITAT?** amb un valor que comenci per
 **SI**. Les que no, te les llista amb la data de l'informe que les va deixar en
@@ -985,7 +985,7 @@ cliques, et diu en una o dues frases què fa aquella eina, **sense obrir-la**.
 
 A totes les eines del menú hi surt, en gris i lletra petita, **l'última vegada
 que la vas obrir** (o `(mai)`). Serveix per no haver de recordar si ja havies
-passat, per exemple, l'*Excel Comprovar* aquesta setmana. Es desa a
+passat, per exemple, l'*Inf -> GIA Comprovar* aquesta setmana. Es desa a
 `local/base-dades-activitats/eines-state.json` i no es puja mai.
 
 ### Copiar informes sol cada dia (l'interruptor **A** / **M**)
