@@ -630,7 +630,7 @@ function Select-Mode {
     # informes. Comparteix fila amb NORMATIVA.
     $gia = @(
         @{ Emoji = $tiList;  Label = 'Seguiment';       Kind = 'action'; Action = 'seguimentgia'; Interruptor = $true }
-        @{ Emoji = $tiCheck; Label = 'Inf -> GIA Comprovar'; Kind = 'action'; Action = 'comprovarexcel' }
+        @{ Emoji = $tiCheck; Label = (_CxNomEina); Kind = 'action'; Action = 'comprovarexcel' }
         @{ Emoji = $tiAvis;  Label = 'Excel Errors';    Kind = 'action'; Action = 'excelerrors'; Interruptor = $true }
     )
     # NORMATIVA: la normativa dels requeriments i mantenir-los al dia.

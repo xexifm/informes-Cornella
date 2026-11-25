@@ -1,7 +1,7 @@
 ﻿#requires -Version 5.1
 <#
 .SYNOPSIS
-  Eina "Inf -> GIA Comprovar" (abans "Inf -> GIA Comprovar" i, encara abans, "Comprovar Excel": l'usuari, novembre 2026, el trobava ambigu; menu, fila GIA): per cada activitat en estat
+  Eina "Inf → GIA Comprovar" (abans "Excel Comprovar" i, encara abans, "Comprovar Excel": l'usuari, novembre 2026, el trobava ambigu; menu, fila GIA): per cada activitat en estat
   "Precinte / Cessament" a la base d'informes, comprova que l'Excel d'activitats
   hi tingui el Camp Info corresponent amb un valor que comenci per SI.
   Criteri DIFERENT del de Seguiment (SeguimentGia.ps1), a posta: vegeu CLAUDE.md.
@@ -9,7 +9,7 @@
 #>
 
 # ----------------------------------------------------------------------------
-# Inf -> GIA Comprovar: noms de "Camp Info" que, a l'Excel d'activitats, marquen que
+# Inf → GIA Comprovar: noms de "Camp Info" que, a l'Excel d'activitats, marquen que
 # una activitat esta requerida per decret / precintada. La comprovacio es fa
 # sobre el NOM del camp (normalitzat, sense accents/majuscules; el '?' es
 # conserva) i, a mes, el VALOR ha de comencar per "SI".
@@ -62,7 +62,15 @@ function _ExcelActivitatActualitzada($pairs) {
 }
 
 # ============================================================================
-# Inf -> GIA Comprovar — eina INFORMES "Inf -> GIA Comprovar"
+# EL NOM DE L'EINA, en un sol lloc: el menu, el titol de la finestra i els
+# missatges el demanen aqui. Es una funcio i no una variable $Script: perque
+# alguns missatges son dins de closures, on $Script: no es veu (CLAUDE.md). La
+# fletxa amb [char]: res de caracters fora de l'ASCII al codi. L'usuari
+# (novembre 2026): "Excel Comprovar" era ambigu; "Inf → GIA Comprovar", amb
+# una fletxa de veritat.
+function _CxNomEina { return ('Inf ' + [char]0x2192 + ' GIA Comprovar') }
+
+# Inf → GIA Comprovar — eina INFORMES "Inf → GIA Comprovar"
 # ============================================================================
 # Llegeix els "Camp Info N - Nom/Valor" de la fulla "Estès" i els indexa per GIA
 # (columna 1). Retorna @{ Ok; Map = @{ gia -> @(@{Nom;Valor}) }; Error }.
@@ -77,7 +85,7 @@ function _ReadExcelCampInfoPerGia {
             $data = $x.Data; $rows = $x.Rows; $cols = $x.Cols; $headers = $x.Headers
             if ($null -eq $data) { return @{ Ok = $true; Map = @{}; DataControl = @{}; ColControl = $false; DataInspeccio = @{}; ColInspeccio = $false } }
             $pairs = _FindCampInfoPairs $headers
-            # La data del control (Inf -> GIA Comprovar mira que hi consti la de la
+            # La data del control (Inf → GIA Comprovar mira que hi consti la de la
             # visita d'inspeccio de l'informe). 0 si la columna no hi es.
             $colCtl = _FindColIndex $data $cols @('data control inicial') $null
             # La de les QUEIXES: 'Inspeccio', EXACTA (n'hi ha d'altres que porten
@@ -291,7 +299,7 @@ function _CxTextLlista($a) {
 function _CxFinestra($resultat, [string]$peu, [string]$descPath) {
     $st = @{ R = $resultat; Canvis = $false }
     $form = _NewForm
-    $form.Text = 'Inf -> GIA Comprovar'
+    $form.Text = (_CxNomEina)
     $form.ClientSize = New-Object System.Drawing.Size(860, 560)
     $form.MinimumSize = New-Object System.Drawing.Size(560, 420)
     $lbl = New-Object System.Windows.Forms.Label
@@ -328,7 +336,7 @@ function _CxFinestra($resultat, [string]$peu, [string]$descPath) {
         $ara = (Get-Date).ToString('o')
         $nous = @($st.R.Descartats) + @($idx | ForEach-Object { $a = $st.Ordre[$_]; @{ Clau = [string]$a.Clau; Text = [string]$a.Text; El = $ara } })
         try { Save-CxDescartats $nous $descPath } catch {
-            [System.Windows.Forms.MessageBox]::Show("No s'han pogut desar:`n" + $_.Exception.Message, 'Inf -> GIA Comprovar', 'OK', 'Error') | Out-Null
+            [System.Windows.Forms.MessageBox]::Show("No s'han pogut desar:`n" + $_.Exception.Message, (_CxNomEina), 'OK', 'Error') | Out-Null
             return
         }
         $tots = @(@($st.R.Actius) + @($st.R.Amagats))
@@ -337,11 +345,11 @@ function _CxFinestra($resultat, [string]$peu, [string]$descPath) {
     }.GetNewClosure())
     $peuB.Recup.add_Click({
         if (@($st.R.Amagats).Count -eq 0) {
-            [System.Windows.Forms.MessageBox]::Show("No hi ha cap av" + [char]0x00ED + "s descartat.", 'Inf -> GIA Comprovar', 'OK', 'Information') | Out-Null
+            [System.Windows.Forms.MessageBox]::Show("No hi ha cap av" + [char]0x00ED + "s descartat.", (_CxNomEina), 'OK', 'Information') | Out-Null
             return
         }
         $llista = (@($st.R.Amagats) | ForEach-Object { '  - ' + (_CxTextLlista $_) }) -join "`n"
-        $rr = [System.Windows.Forms.MessageBox]::Show(("Avisos descartats:`n`n" + $llista + "`n`nVols que tornin a sortir tots?"), 'Inf -> GIA Comprovar', 'YesNo', 'Question')
+        $rr = [System.Windows.Forms.MessageBox]::Show(("Avisos descartats:`n`n" + $llista + "`n`nVols que tornin a sortir tots?"), (_CxNomEina), 'YesNo', 'Question')
         if ($rr -ne [System.Windows.Forms.DialogResult]::Yes) { return }
         try { Save-CxDescartats @() $descPath } catch { return }
         $tots = @(@($st.R.Actius) + @($st.R.Amagats))
@@ -365,18 +373,18 @@ function Invoke-ComprovarExcel {
     if (-not (Test-Path -LiteralPath $outPath)) {
         [System.Windows.Forms.MessageBox]::Show(
             "Encara no hi ha cap base d'informes.`n`nExecuta primer 'Actualitzar base'.",
-            'Inf -> GIA Comprovar', 'OK', 'Information') | Out-Null
+            (_CxNomEina), 'OK', 'Information') | Out-Null
         return
     }
     try {
         $db = Read-JsonFile $outPath
     } catch {
-        [System.Windows.Forms.MessageBox]::Show("No s'ha pogut llegir la base d'informes:`n$($_.Exception.Message)", 'Inf -> GIA Comprovar', 'OK', 'Error') | Out-Null
+        [System.Windows.Forms.MessageBox]::Show("No s'ha pogut llegir la base d'informes:`n$($_.Exception.Message)", (_CxNomEina), 'OK', 'Error') | Out-Null
         return
     }
     $res = _ReadExcelCampInfoPerGia
     if (-not $res.Ok) {
-        [System.Windows.Forms.MessageBox]::Show("No s'ha pogut llegir l'Excel:`n$($res.Error)", 'Inf -> GIA Comprovar', 'OK', 'Error') | Out-Null
+        [System.Windows.Forms.MessageBox]::Show("No s'ha pogut llegir l'Excel:`n$($res.Error)", (_CxNomEina), 'OK', 'Error') | Out-Null
         return
     }
     $avisos = @(Get-ComprovacioExcelAvisos $db $res)

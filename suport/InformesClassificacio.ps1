@@ -2,7 +2,7 @@
 <#
 .SYNOPSIS
   Que diu cada informe i quin estat en surt per a l'activitat ("Actualitzar
-  base", "Editar base", Recordatoris, Inf -> GIA Comprovar, Planol activitats).
+  base", "Editar base", Recordatoris, Inf → GIA Comprovar, Planol activitats).
 
 .DESCRIPTION
   Vivia a Informes.ps1. El 7 d'octubre de 2026 es van llegir un per un els 802
@@ -545,7 +545,7 @@ function _OrdenaInformesActivitat($informes) {
 
 # L'informe que DECIDEIX l'estat d'una ACTIVITAT ($act: id_gia + informes). Es
 # la font unica: _EstatActualActivitat, Recordatoris (la data del recordatori) i
-# Inf -> GIA Comprovar (la data de l'INFORME ENGINYER) el demanen aqui, aixi no poden
+# Inf → GIA Comprovar (la data de l'INFORME ENGINYER) el demanen aqui, aixi no poden
 # discrepar mai sobre quin informe mana.
 #
 # Recorre els informes per ordre (_OrdenaInformesActivitat) i es queda amb

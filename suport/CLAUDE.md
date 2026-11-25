@@ -1227,7 +1227,7 @@ clavada al codi i ara surten del **peu real** de l'última etiqueta.
   - **insp** → camp `DATA_INSPECCIO`; Objecte: `Visita inspecció <DATA_INSPECCIO>`.
     I el **motiu** (`MOTIU_VISITA`: `queixa` / `pla` / `queixa+pla`, obligatori):
     `Visita inspecció 22/10/2026 - Queixa + Pla de verificació 2026` (l'any, el
-    de la visita). Inf -> GIA Comprovar (abans Excel Comprovar) en depèn; vegeu `documentacio/eines.md`.
+    de la visita). Inf → GIA Comprovar (abans Excel Comprovar) en depèn; vegeu `documentacio/eines.md`.
 - La línia "Objecte:" de `ESTRUCTURALS/0 CAPCALERA.docx` (bloc REQ1) és ara un
   únic placeholder **`<<ORIGEN>>`**, que `Apply-HeaderReplacements` substitueix
   pel text muntat per **`_BuildOrigenText`** (funció PURA, testejada) segons

@@ -130,7 +130,7 @@ function _BuildHeaderForm($excelInfo) {
     [void](& $addRow "Data d'anotacio (autom., editable)"  'DATA_ANOTACIO' 460 $y)
     # EL MOTIU DE LA VISITA (octubre 2026), al lloc de la data d'anotacio:
     # Queixa, Pla de verificacio o totes dues. Va a l'Objecte de l'informe
-    # (_MotiuVisitaText) i Inf -> GIA Comprovar el mira a la columna que toca.
+    # (_MotiuVisitaText) i Inf → GIA Comprovar el mira a la columna que toca.
     $lblMotiu = New-Object System.Windows.Forms.Label
     $lblMotiu.Text = 'Motiu de la visita'
     $lblMotiu.Location = New-Object System.Drawing.Point(15, $y)
@@ -336,7 +336,7 @@ function Get-HeaderData {
             [string]::IsNullOrWhiteSpace($controls['ACTIVITAT'].Text)) {
             if (-not (& $doSearch)) { return }
         }
-        # Una visita ha de dir per que es (l'Objecte i Inf -> GIA Comprovar en depenen).
+        # Una visita ha de dir per que es (l'Objecte i Inf → GIA Comprovar en depenen).
         if ($controls['_ORIGEN_INSP'].Checked -and -not $controls['_MOTIU_QUEIXA'].Checked -and -not $controls['_MOTIU_PLA'].Checked) {
             [System.Windows.Forms.MessageBox]::Show(("Marca el motiu de la visita: Queixa, Pla de verificaci" + [char]0x00F3 + " o totes dues."),'Falten dades','OK','Warning') | Out-Null
             return
