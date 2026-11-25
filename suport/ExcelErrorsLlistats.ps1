@@ -58,10 +58,14 @@ $Script:ExLlistats = [ordered]@{
 # enlloc, i una de l'annex III sense llicencia anava als Annexos (l'usuari,
 # novembre 2026, amb les 9 i 1141: "s'estan posant a l'Excel Annexos II i
 # III"). PURA.
-function _ExLlistatDe([string]$annex, [string]$apartat, [string]$estat = '') {
+# $aforament: un 561 amb aforament 0 (restauracio SENSE PUBLIC: rostisseries,
+# pizzeries per emportar) no es una recreativa i va a INNOCUES (l'usuari,
+# novembre 2026: "si una activitat 561 te aforament 0 va a l'Excel d'innocues,
+# no al de recreatives"). Ho decideix _ControlPeriodicClassify, com tot el 561.
+function _ExLlistatDe([string]$annex, [string]$apartat, [string]$estat = '', [string]$aforament = '') {
     if ((_NormalitzaText $estat) -match 'sense llicencia') { return '' }
     $a = (_NormalitzaText $annex) -replace '[^a-z0-9]', ''
-    $es561 = [bool](_ControlPeriodicClassify '' $apartat).Is561
+    $es561 = [bool](_ControlPeriodicClassify '' $apartat $aforament).Is561
     if ($a -eq 'ii' -or $a -eq 'iii' -or $a -eq 'annexii' -or $a -eq 'annexiii') { return 'annexos' }
     if ($a -like 'recreativacatal*') { return 'bars' }
     $l18proj = ($a -like 'l18proj*')
@@ -82,7 +86,7 @@ function _ExPerLlistat($errors, $tipusTriats, $exclosos) {
     foreach ($k in @($Script:ExLlistats.Keys)) { $out[$k] = New-Object System.Collections.ArrayList }
     $sense = [ordered]@{}
     foreach ($e in @(_ExTriats @($errors | Where-Object { $null -ne $_ -and -not $ex.ContainsKey([string]$_.Id) }) $tipusTriats)) {
-        $k = _ExLlistatDe ([string]$e.Annex) ([string]$e.Apartat) ([string]$e.Estat)
+        $k = _ExLlistatDe ([string]$e.Annex) ([string]$e.Apartat) ([string]$e.Estat) ([string]$e.Aforament)
         if ($k -eq '') {
             if (-not $sense.Contains([string]$e.Id)) { $sense[[string]$e.Id] = @{ Id = [string]$e.Id; Annex = [string]$e.Annex; Apartat = [string]$e.Apartat; Estat = [string]$e.Estat } }
             continue

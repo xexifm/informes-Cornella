@@ -96,6 +96,8 @@ AssertEq (& $exTip (& $exF $exSp)) '' 'sense public: un 561 amb aforament 0 i se
 $exSp.AFORAMENT = '35'
 AssertEq (& $exTip (& $exF $exSp)) 'control_periodic,cp_D112' 'sense public: amb aforament 35, el 561 torna a demanar el proper CP i els 4 anys'
 AssertEq (_ExLlistatDe 'L18-Proj. i Cert.' '561') 'bars' 'D112: el 561 va a Bars i Restaurants'
+AssertEq (_ExLlistatDe 'L18-Proj. i Cert.' '561' '' '0') 'innocues' 'sense public: el 561 amb aforament 0 va a Innocues, no a Bars i Restaurants'
+AssertEq (_ExLlistatDe 'L18-Proj. i Cert.' '561' '' '47') 'bars' 'sense public: amb aforament, a Bars i Restaurants com sempre'
 AssertEq (_ExLlistatDe ('Recreativa cat' + [char]0x00E0 + 'leg') 'Bar musical') 'bars' 'D112: les Recreatives de cataleg, tambe'
 $exTipusIdx = @($Script:ExTipus.Keys)
 AssertEq ([array]::IndexOf($exTipusIdx, 'cp_D112') - [array]::IndexOf($exTipusIdx, 'cp_annex3')) 1 'D112: el tipus surt just despres del de l''annex III'

@@ -343,7 +343,7 @@ function Get-ExcelErrors($files, $col, $contactes) {
     $afegeix = {
         param($fl, $e)
         [void]$out.Add([pscustomobject]@{
-            Id = [string]$fl.Id; Titular = [string]$fl.Valors['RAO']; Annex = [string]$fl.Valors['ANNEX']; Apartat = [string]$fl.Valors['APARTAT']; Estat = [string]$fl.Valors['ESTAT']; Tipus = [string]$e.Tipus
+            Id = [string]$fl.Id; Titular = [string]$fl.Valors['RAO']; Annex = [string]$fl.Valors['ANNEX']; Apartat = [string]$fl.Valors['APARTAT']; Estat = [string]$fl.Valors['ESTAT']; Aforament = [string]$fl.Valors['AFORAMENT']; Tipus = [string]$e.Tipus
             TipusNom = [string]$Script:ExTipus[[string]$e.Tipus]; Camp = [string]$e.Camp; Valor = [string]$e.Valor; Detall = [string]$e.Detall
         })
     }

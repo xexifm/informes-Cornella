@@ -2657,8 +2657,10 @@ inclosos; i un camp d'informació nou s'havia de crear a la llista del GIA).
   `SensePublic` diu per què. Un annex II/III segueix passant control igual.
 - **On s'aplica**:
   - **Excel errors** (`Get-ExcelErrorsFila`, `_ExEsD112`): ni `cp_D112` ni
-    `control_periodic` per a un 561 amb aforament 0. `_ExLlistatDe` no canvia:
-    els seus errors (si en té d'altres) segueixen anant a «Bars i Restaurants».
+    `control_periodic` per a un 561 amb aforament 0, i els seus errors van a
+    l'Excel d'**Innòcues**, no al de Bars i Restaurants (`_ExLlistatDe` rep
+    l'aforament; l'usuari: «si una activitat 561 té aforament 0 va a l'Excel
+    d'innòcues»). Cada error porta `Aforament` com porta `Estat`.
   - **Controls periòdics** (`_ReadControlsPeriodics`): no surten al llistat.
   - **Seguiment GIA** (llicències provisionals): **no**, i és a posta per ara: llegeix
     només Estès i un 561 sense públic amb LLIC PROV és un cas rar; mostraria
