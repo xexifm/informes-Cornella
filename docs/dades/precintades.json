@@ -1,8 +1,8 @@
 {
-    "GeneratedAt":  "2026-11-18T12:54:17.1095694+01:00",
-    "Font":  "ExportacioActivitats_20261117.xls",
-    "SourceDate":  "2026-11-17",
-    "Comptador":  15,
+    "GeneratedAt":  "2026-11-25T15:13:14.6314777+01:00",
+    "Font":  "ExportacioActivitats_20261125.xls",
+    "SourceDate":  "2026-11-25",
+    "Comptador":  13,
     "Activitats":  [
                        {
                            "id":  "1438",
@@ -87,20 +87,6 @@
                            "adreca":  "CAMI CAMP DE L\u0027EMPEDRAT 3",
                            "lat":  41.356019278624281,
                            "lon":  2.087595964502988
-                       },
-                       {
-                           "id":  "48",
-                           "activitat":  "",
-                           "adreca":  "PL ANGEL GUIMERA 9",
-                           "lat":  41.364487401245952,
-                           "lon":  2.0740484778614867
-                       },
-                       {
-                           "id":  "34",
-                           "activitat":  "EMMAGATZEMATGE",
-                           "adreca":  "RBLA SOLANES 46",
-                           "lat":  41.360951528784859,
-                           "lon":  2.0908049558715089
                        },
                        {
                            "id":  "29",
