@@ -21,7 +21,7 @@
     SONOMETRIA         ... amb 'SONOMETRIA?'
     ANNEX II           'Classificacio general annex' = II (totes, novembre 2026)
     LLICENCIES PROV.   'LLIC PROV' davant del 'Num. expedient': control inicial
-                       sempre i, si es annex II o III, tambe el periodic
+                       sempre i, si es annex II, III o recreativa, tambe el periodic
 
   EL CRITERI ES NOMES QUE L'ACTIVITAT TINGUI AQUELL CAMP INFO, digui el que
   digui el valor. NO es demana que comenci per "SI". Aixo es deliberat: es el
@@ -236,13 +236,15 @@ function _SgLlicProvCoincideix([string]$expedient) {
     return ((_NormalitzaText $expedient) -match 'llic\.?\s*prov')
 }
 
-# Si una llicencia provisional porta control PERIODIC: nomes els annexos II i
-# III. La resta, nomes el control inicial (l'usuari, novembre 2026: "control
-# inicial sempre o control inicial + periodic en cas que sigui Annex III o
-# Annex II"). PURA.
-function _SgAmbControlPeriodic([string]$classificacio) {
+# Si una llicencia provisional porta control PERIODIC: els annexos II i III i
+# les recreatives (Decret 112/2010: el mateix criteri que l'Excel errors,
+# _ExEsD112). La resta, nomes el control inicial (l'usuari, novembre 2026:
+# "control inicial sempre o control inicial + periodic en cas que sigui Annex
+# III o Annex II", i a la guia: "O Recreatives"). PURA.
+function _SgAmbControlPeriodic([string]$classificacio, [string]$apartat = '') {
     $t = (_NormalitzaText $classificacio) -replace '^annex\s*', ''
-    return ($t -eq 'ii' -or $t -eq 'iii')
+    if ($t -eq 'ii' -or $t -eq 'iii') { return $true }
+    return [bool](_ExEsD112 $classificacio $apartat)
 }
 
 # Una data de l'Excel (un numero OLE, "2026-06-29 00:00:00.0", "2026-06-29" o
@@ -353,6 +355,7 @@ function _SgFilesPerFulla($def, $headers, $files, $pairs, $marques = $null, [dat
         $iIni = _SgColIndex $headers $nomIni
         $iPer = _SgColIndex $headers $nomPer
         $iPeriodicitat = _SgColIndex $headers 'Periodicitat CP'
+        $iApart = _SgColIndex $headers ('Classificaci' + [char]0x00F3 + ' general Apartat')
         $iProper = _SgColIndex $headers 'Proper CP previst'
         $iReg = _SgColIndex $headers 'Data registre entrada'
         $colsN = @(@($def.Cols) | ForEach-Object { _NormalitzaText $_ })
@@ -398,9 +401,10 @@ function _SgFilesPerFulla($def, $headers, $files, $pairs, $marques = $null, [dat
         }
         if ($ambControls) {
             $vPer = & $cel $fila $iPer; $vPeriodicitat = & $cel $fila $iPeriodicitat; $vProper = & $cel $fila $iProper
-            # Llicencia provisional que no es annex II ni III: nomes control
-            # inicial. El periodic i el proper no hi pinten res (ni es marquen).
-            if ($def.Tipus -eq 'llicprov' -and -not (_SgAmbControlPeriodic (& $cel $fila $iClassCrit))) {
+            # Llicencia provisional que no es annex II, III ni recreativa: nomes
+            # control inicial. El periodic i el proper no hi pinten res (ni es
+            # marquen).
+            if ($def.Tipus -eq 'llicprov' -and -not (_SgAmbControlPeriodic (& $cel $fila $iClassCrit) (& $cel $fila $iApart))) {
                 $vPer = ''; $vPeriodicitat = ''; $vProper = ''
                 if ($oPer -ge 0) { $rec[$oPer + 1] = '' }
                 if ($oProper -ge 0) { $rec[$oProper + 1] = '' }

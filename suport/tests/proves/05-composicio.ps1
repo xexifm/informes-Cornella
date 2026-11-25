@@ -144,7 +144,8 @@ AssertEq ((@($sgMq) | ForEach-Object { [string]$_.Fila + ':' + [string]$_.Col })
 AssertEq (@(_SgFilesPerFulla $sgDefs[0] $sgH2 $sgF2 $sgPairs $sgMq $sgAvui)).Count 1 'les altres pestanyes no fan servir les marques'
 $sgSrc = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $TestsDir) 'SeguimentGia.ps1'))
 # LLICENCIES PROVISIONALS: "LLIC PROV" davant de l'expedient; les columnes
-# d'ANNEX II; control inicial sempre i el periodic nomes als annexos II i III.
+# d'ANNEX II; control inicial sempre i el periodic nomes als annexos II i III
+# i a les recreatives.
 $sgLp = $sgDefs[5]
 AssertEq $sgLp.Tipus 'llicprov' 'LLICENCIES PROVISIONALS: la 6a pestanya'
 AssertEq (@($sgLp.Cols) -join '|') (@($sgDefs[4].Cols) -join '|') 'LLICENCIES PROVISIONALS: les mateixes columnes que ANNEX II'
@@ -157,6 +158,8 @@ AssertEq ([bool](_SgAmbControlPeriodic 'II')) $true 'control periodic: annex II'
 AssertEq ([bool](_SgAmbControlPeriodic 'iii')) $true 'control periodic: annex III'
 AssertEq ([bool](_SgAmbControlPeriodic 'Annex III')) $true 'control periodic: "Annex III" tambe'
 AssertEq ([bool](_SgAmbControlPeriodic 'I')) $false 'control periodic: annex I -> nomes inicial'
+AssertEq ([bool](_SgAmbControlPeriodic 'I' '561')) $true 'control periodic: recreativa (apartat 561) -> tambe el periodic'
+AssertEq ([bool](_SgAmbControlPeriodic ('Recreativa cat' + [char]0x00E0 + 'leg') '')) $true 'control periodic: recreativa de cataleg -> tambe el periodic'
 AssertEq ([bool](_SgAmbControlPeriodic '')) $false 'control periodic: sense classificacio -> nomes inicial'
 $sgLpRow = { param($exp, $cls, $ini, $per, $pcp, $prop, $reg)
     $r = @(@($sgFiles[4]) + @($reg, $pcp, $prop)); $r[1] = $exp; $r[10] = $cls; $r[15] = $cls; $r[12] = $ini; $r[13] = $per; ,$r }

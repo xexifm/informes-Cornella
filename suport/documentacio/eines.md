@@ -2626,8 +2626,10 @@ periòdic en cas que sigui Annex III o Annex II».
 - **Columnes**: les d'ANNEX II (`Cols=$an`, mateixes amplades i dates), i les
   mateixes marques en vermell i negreta (`_SgMarquesAnnex`).
 - **Controls** (`_SgAmbControlPeriodic`, pura): si la classificació (la 2a
-  columna, com a ANNEX II) és **II o III**, la fila es tracta igual que a ANNEX
-  II. Si no, **només el control inicial**: el `Data control periòdic` i el
+  columna, com a ANNEX II) és **II o III**, o és una **recreativa** (Decret
+  112/2010, el mateix criteri que l'Excel errors, `_ExEsD112`: apartat 561 o
+  annex «Recreativa catàleg»; l'usuari a la guia: «O Recreatives»), la fila es
+  tracta igual que a ANNEX II. Si no, **només el control inicial**: el `Data control periòdic` i el
   `Proper CP previst` surten **en blanc** i no es marquen; el `PENDENT` (sense
   inicial i registre de fa més de dos anys) sí.
 - És la **6a pestanya** i l'última de `_SgOpcionsExport`: surt a la finestra (la
