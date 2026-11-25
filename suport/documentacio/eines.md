@@ -2635,3 +2635,34 @@ periòdic en cas que sigui Annex III o Annex II».
 - És la **6a pestanya** i l'última de `_SgOpcionsExport`: surt a la finestra (la
   llista s'ha fet 18 px més alta perquè hi càpiguen les set caselles) i a
   l'automàtic (`_SgSeleccioAuto`, totes menys Estès), sense tocar res més.
+
+## Restauració SENSE PÚBLIC: 561 amb aforament 0 (novembre 2026)
+
+Les rostisseries, les pizzeries per emportar i similars es classifiquen com a
+**561** al GIA, però **sense públic no entren al Decret 112/2010** i no passen
+control periòdic. L'usuari va triar com marcar-les: «es segueix posant 561 però
+a aforament es posa 0» (es va descartar la casella «Recreativa»: a l'Excel del
+17/11/2026, **240 de les 271** activitats 561 la tenien desmarcada, bars
+inclosos; i un camp d'informació nou s'havia de crear a la llista del GIA).
+
+- **L'aforament no és a la fulla Estès**, només a la fulla **«Recreatives»** de
+  la mateixa exportació (`Aforament recreatives`). `Get-AforamentsLlibre`
+  (`Excel.ps1`) el llegeix del **mateix llibre** que ja té obert
+  `Read-FullaEstesa` (`$x.Sheet.Parent`): ni una altra instància d'Excel ni un
+  altre fitxer. Si la fulla o la columna no hi són, torna buit i tot va com
+  abans. No llança mai. Provat amb un doble de COM (array 2D que comença per 1).
+- **La regla, en un sol lloc**: `_SensePublic` (només un **0 de debò**; buit no
+  vol dir res) i `_ControlPeriodicClassify $annex $apartat $aforament`
+  (`ControlsPeriodics.ps1`): amb aforament 0, **`Is561` és `$false`** i
+  `SensePublic` diu per què. Un annex II/III segueix passant control igual.
+- **On s'aplica**:
+  - **Excel errors** (`Get-ExcelErrorsFila`, `_ExEsD112`): ni `cp_D112` ni
+    `control_periodic` per a un 561 amb aforament 0. `_ExLlistatDe` no canvia:
+    els seus errors (si en té d'altres) segueixen anant a «Bars i Restaurants».
+  - **Controls periòdics** (`_ReadControlsPeriodics`): no surten al llistat.
+  - **Seguiment GIA** (llicències provisionals): **no**, i és a posta per ara: llegeix
+    només Estès i un 561 sense públic amb LLIC PROV és un cas rar; mostraria
+    les columnes del periòdic buides, sense marques.
+- Al GIA del 17/11/2026 cap 561 tenia aforament 0 (241 amb aforament i 30 de
+  buits, entre ells la ROSTISSERIA 1557 i la PIZZERIA PER EMPORTAR 874): fins
+  que no s'hi posi el 0, el programa les tracta com sempre.

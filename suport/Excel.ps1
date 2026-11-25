@@ -270,6 +270,39 @@ function Get-IdDeCella($cell) {
     return ([string]$cell).Trim()
 }
 
+# L'AFORAMENT de cada activitat: @{ 'ID' = 'aforament' }. Es a la fulla
+# "Recreatives" del MATEIX llibre (a Estes no hi es); $sh es la fulla Estes que
+# ja te oberta Read-FullaEstesa. Columnes pel nom ('ID Activitat' i la que
+# comenca per 'Aforament'). Si la fulla o la columna no hi son, torna buit (i
+# tot va com abans). No llanca mai.
+function Get-AforamentsLlibre($sh) {
+    $out = @{}
+    try {
+        $rs = $null
+        foreach ($w in @($sh.Parent.Worksheets)) {
+            if ((_NormalitzaText ([string]$w.Name)) -eq 'recreatives') { $rs = $w; break }
+        }
+        if ($null -eq $rs) { return $out }
+        $d = $rs.UsedRange.Value2
+        if ($null -eq $d) { return $out }
+        $nr = $d.GetLength(0); $nc = $d.GetLength(1)
+        $cId = 0; $cAf = 0
+        for ($c = 1; $c -le $nc; $c++) {
+            $h = _NormalitzaText ([string]$d[1, $c])
+            if ($cId -eq 0 -and $h -eq 'id activitat') { $cId = $c }
+            if ($cAf -eq 0 -and $h.StartsWith('aforament')) { $cAf = $c }
+        }
+        if ($cId -eq 0 -or $cAf -eq 0) { return $out }
+        for ($r = 2; $r -le $nr; $r++) {
+            $id = Get-IdDeCella $d[$r, $cId]
+            if ($id -eq '') { continue }
+            $v = $d[$r, $cAf]
+            $out[$id] = if ($null -eq $v) { '' } else { ([string]$v).Trim() }
+        }
+    } catch { }
+    return $out
+}
+
 # LA DATA d'una cel.la de data, com a [datetime] (o $null). L'Excel
 # ExportacioActivitats_*.xls (octubre 2026) porta les dates com a TEXT
 # "2025-07-25 00:00:00.0", no com a data d'Excel: un lector que nomes entengui

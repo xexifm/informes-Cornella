@@ -168,7 +168,11 @@ function _ExErr([string]$tipus, [string]$camp, [string]$valor, [string]$detall) 
 # recreatives): l'apartat 561 amb el criteri de Controls periodics (com
 # _ControlCatalegKind, '112') o l'annex "Recreativa cataleg". Totes van al
 # llistat de Bars i Restaurants (_ExLlistatDe). PURA.
-function _ExEsD112([string]$annex, [string]$apartat) {
+# $aforament: el de la fulla Recreatives. Aforament 0 = restauracio sense
+# public (rostisseria, pizzeria per emportar): FORA del Decret 112/2010, encara
+# que sigui 561 (_SensePublic).
+function _ExEsD112([string]$annex, [string]$apartat, [string]$aforament = '') {
+    if (_SensePublic $aforament) { return $false }
     if ([bool](_ControlPeriodicClassify '' $apartat).Is561) { return $true }
     return (((_NormalitzaText $annex) -replace '[^a-z0-9]', '') -like 'recreativacatal*')
 }
@@ -274,8 +278,10 @@ function Get-ExcelErrorsFila($f, $col) {
     }
 
     # El control periodic (el criteri de l'eina Controls periodics).
-    $cl = _ControlPeriodicClassify $annex $apart
-    $esD112 = _ExEsD112 $annex $apart
+    # AFORAMENT ve de la fulla Recreatives (_ReadExcelErrors): un 561 amb
+    # aforament 0 no passa control periodic i no en dona cap error.
+    $cl = _ControlPeriodicClassify $annex $apart (& $v 'AFORAMENT')
+    $esD112 = _ExEsD112 $annex $apart (& $v 'AFORAMENT')
     if ($cl.Qualifies) {
         $quin = (@($(if ($cl.IsII) { 'annex II' }), $(if ($cl.IsIII) { 'annex III' }), $(if ($cl.Is561) { 'apartat 561' })) | Where-Object { $_ }) -join ', '
         if ((& $hi 'PROPER') -and (& $v 'PROPER') -eq '') { [void]$out.Add((_ExErr 'control_periodic' 'Proper CP previst' '' ("buit, i en t" + [char]0x00E9 + " (" + $quin + ")"))) }
@@ -438,6 +444,7 @@ function _ReadExcelErrors {
             if ($null -eq $data) { return @{ Ok = $true; Files = @(); Col = (_ExColumnes @()); File = $latest.File.Name } }
             $col = _ExColumnes $x.Headers
             $get = $x.Cel
+            $afor = Get-AforamentsLlibre $x.Sheet
             $files = New-Object System.Collections.ArrayList
             for ($ri = 2; $ri -le $x.Rows; $ri++) {
                 $id = Get-IdDeCella $data[$ri, $col.ID]
@@ -448,6 +455,7 @@ function _ReadExcelErrors {
                     # Les coordenades, tal com venen (numero o text): _ExNumero.
                     $vals[$k] = if ($k -eq 'UTMX' -or $k -eq 'UTMY') { $data[$ri, $col[$k]] } else { & $get $ri $col[$k] }
                 }
+                $vals['AFORAMENT'] = [string]$afor[$id]
                 [void]$files.Add(@{ Id = $id; Valors = $vals })
             }
             return @{ Ok = $true; Files = $files.ToArray(); Col = $col; File = $latest.File.Name }

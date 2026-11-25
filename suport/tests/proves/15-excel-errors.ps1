@@ -78,6 +78,23 @@ AssertEq (& $exTip (& $exF $ex112d)) '' 'D112: i amb "4 anys", cap error'
 AssertEq (& $exTip (& $exF @{ ANNEX = 'L18-Proj. i Cert.'; APARTAT = '1561'; PERIOD = '' })) '' 'D112: 1561 no es el 561 (criteri de Controls periodics)'
 AssertEq (& $exTip (& $exF @{ ANNEX = 'III'; APARTAT = '12.46'; PERIOD = '4'; PROPER = '2027-01-01 00:00:00.0' })) 'cp_annex3' 'D112: un annex III segueix sent cada 8 anys'
 Assert ((_ExEsD112 'L18-Proj. i Cert.' '5610') -and (_ExEsD112 'Recreativa cataleg' '') -and -not (_ExEsD112 'L18-Cert.' '855')) 'D112: _ExEsD112'
+# RESTAURACIO SENSE PUBLIC (l'usuari, novembre 2026: rostisseries, pizzeries
+# per emportar): es segueix posant 561 pero amb AFORAMENT 0 a la pestanya
+# Recreatives. Fora del Decret 112/2010: ni cp_D112 ni control_periodic.
+AssertEq ([bool](_SensePublic '0')) $true 'sense public: aforament 0'
+AssertEq ([bool](_SensePublic '0.0')) $true 'sense public: 0.0 (numero de l''Excel)'
+AssertEq ([bool](_SensePublic '')) $false 'sense public: buit NO vol dir sense public'
+AssertEq ([bool](_SensePublic '47')) $false 'sense public: 47 persones, no'
+AssertEq ([bool](_SensePublic 'zero')) $false 'sense public: un text, no'
+AssertEq (_ControlPeriodicClassify 'L18-Proj. i Cert.' '561' '0').Is561 $false 'sense public: un 561 amb aforament 0 no passa control com a 561'
+AssertEq (_ControlPeriodicClassify 'L18-Proj. i Cert.' '561' '0').Qualifies $false 'sense public: i no surt a Controls periodics'
+AssertEq (_ControlPeriodicClassify 'L18-Proj. i Cert.' '561' '').Is561 $true 'sense public: amb l''aforament buit, com sempre'
+AssertEq (_ControlPeriodicClassify 'III' '561' '0').Qualifies $true 'sense public: un annex III segueix passant control'
+Assert (-not (_ExEsD112 'L18-Proj. i Cert.' '561' '0')) 'sense public: _ExEsD112 amb aforament 0 -> no'
+$exSp = @{ ANNEX = 'L18-Proj. i Cert.'; APARTAT = '561'; PERIOD = ''; PROPER = ''; AFORAMENT = '0' }
+AssertEq (& $exTip (& $exF $exSp)) '' 'sense public: un 561 amb aforament 0 i sense periodicitat: cap error'
+$exSp.AFORAMENT = '35'
+AssertEq (& $exTip (& $exF $exSp)) 'control_periodic,cp_D112' 'sense public: amb aforament 35, el 561 torna a demanar el proper CP i els 4 anys'
 AssertEq (_ExLlistatDe 'L18-Proj. i Cert.' '561') 'bars' 'D112: el 561 va a Bars i Restaurants'
 AssertEq (_ExLlistatDe ('Recreativa cat' + [char]0x00E0 + 'leg') 'Bar musical') 'bars' 'D112: les Recreatives de cataleg, tambe'
 $exTipusIdx = @($Script:ExTipus.Keys)
@@ -320,3 +337,20 @@ Assert ((_SenseComentaris (Join-Path $exSup 'ExcelErrorsPantalla.ps1')).Contains
 } catch {
     Assert $false ("15-excel-errors (llistats): excepcio no controlada: " + $_.Exception.Message + ' @ ' + $_.InvocationInfo.ScriptLineNumber)
 }
+
+Write-Host "`n--- Get-AforamentsLlibre: l'aforament de la fulla Recreatives (doble de COM) ---"
+# El Value2 d'un rang de COM es un array 2D que comenca per 1, com aquest.
+$afD = [Array]::CreateInstance([object], [int[]]@(4, 3), [int[]]@(1, 1))
+$afD[1, 1] = 'ID Activitat'; $afD[1, 2] = ('Ra' + [char]0x00F3 + ' social'); $afD[1, 3] = 'Aforament recreatives'
+$afD[2, 1] = [double]1557; $afD[2, 3] = [double]0
+$afD[3, 1] = [double]1559; $afD[3, 3] = '74'
+$afD[4, 1] = '1560'; $afD[4, 3] = $null
+$afRec = [pscustomobject]@{ Name = 'Recreatives'; UsedRange = [pscustomobject]@{ Value2 = $afD } }
+$afEst = [pscustomobject]@{ Name = ('Est' + [char]0x00E8 + 's') }
+$afSh = [pscustomobject]@{ Parent = [pscustomobject]@{ Worksheets = @($afEst, $afRec) } }
+$afM = Get-AforamentsLlibre $afSh
+AssertEq ([string]$afM['1557']) '0' 'Get-AforamentsLlibre: el 0 (numero de l''Excel) i l''ID sense decimals'
+AssertEq ([string]$afM['1559']) '74' 'Get-AforamentsLlibre: un aforament de text'
+AssertEq ([string]$afM['1560']) '' 'Get-AforamentsLlibre: una cel.la buida'
+AssertEq (@((Get-AforamentsLlibre ([pscustomobject]@{ Parent = [pscustomobject]@{ Worksheets = @($afEst) } })).Keys).Count) 0 'Get-AforamentsLlibre: sense fulla Recreatives -> buit (i tot com abans)'
+AssertEq (@((Get-AforamentsLlibre $null).Keys).Count) 0 'Get-AforamentsLlibre: no llanca mai'

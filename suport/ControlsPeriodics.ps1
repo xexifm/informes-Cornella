@@ -29,19 +29,38 @@
 # Qualifies (= compleix algun dels criteris de control periodic).
 #   annex  -> II / III (roma; s'accepta "Annex II", "II", etc. per paraula)
 #   apartat-> un numero que COMENCA per 561 (561, 5610, ...; no "1561")
-function _ControlPeriodicClassify([string]$annex, [string]$apartat) {
+#   aforament -> el de la fulla "Recreatives" (Get-AforamentsLlibre). Un 561
+#            amb aforament 0 es restauracio SENSE PUBLIC (rostisseria, pizzeria
+#            per emportar): fora del Decret 112/2010, sense control periodic.
+#            Llavors Is561 es $false (SensePublic diu per que). Buit o
+#            qualsevol altre numero: com sempre.
+function _ControlPeriodicClassify([string]$annex, [string]$apartat, [string]$aforament = '') {
     $a = ([string]$annex).ToUpper()
     $isII  = [bool]($a -match '\bII\b')
     $isIII = [bool]($a -match '\bIII\b')
     # Un numero que comenci per 561: "561" al principi de la cadena o precedit
     # per un caracter que NO es un digit (aixi "1561" queda exclos).
     $is561 = [bool]([string]$apartat -match '(^|\D)561')
+    $sensePublic = [bool](_SensePublic $aforament)
+    if ($sensePublic) { $is561 = $false }
     return [pscustomobject]@{
-        IsII      = $isII
-        IsIII     = $isIII
-        Is561     = $is561
-        Qualifies = ($isII -or $isIII -or $is561)
+        IsII        = $isII
+        IsIII       = $isIII
+        Is561       = $is561
+        SensePublic = $sensePublic
+        Qualifies   = ($isII -or $isIII -or $is561)
     }
+}
+
+# Restauracio SENSE PUBLIC: aforament 0 a la pestanya Recreatives del GIA
+# (l'usuari, novembre 2026: "Crec que es millor si se segueix posant 561 pero a
+# aforament es posa 0"). Nomes el 0 de debo: buit no vol dir res. PURA.
+function _SensePublic([string]$aforament) {
+    $t = ([string]$aforament).Trim() -replace ',', '.'
+    if ($t -eq '') { return $false }
+    $n = 0.0
+    if (-not [double]::TryParse($t, [System.Globalization.NumberStyles]::Float, [System.Globalization.CultureInfo]::InvariantCulture, [ref]$n)) { return $false }
+    return ($n -eq 0)
 }
 
 # Converteix una cel·la de data (double OLE o text) a [datetime], o $null si no
@@ -112,18 +131,21 @@ function _ReadControlsPeriodics {
                 return (_ParseCellDate $data[$r, $c])
             }
 
+            # L'aforament es a la fulla Recreatives (a Estes no hi es): un 561
+            # amb aforament 0 no passa control periodic (_ControlPeriodicClassify).
+            $afor = Get-AforamentsLlibre $x.Sheet
             $out = New-Object System.Collections.ArrayList
             for ($r = 2; $r -le $rows; $r++) {
-                $annex = & $get $r $cAnnex
-                $apart = & $get $r $cApart
-                $cl = _ControlPeriodicClassify $annex $apart
-                if (-not $cl.Qualifies) { continue }
-
                 $idCell = $data[$r, $cId]
                 $id = if ($idCell -is [double]) {
                     if ([math]::Floor($idCell) -eq $idCell) { [string][int]$idCell } else { [string]$idCell }
                 } else { ([string]$idCell).Trim() }
                 if ([string]::IsNullOrWhiteSpace($id)) { continue }
+
+                $annex = & $get $r $cAnnex
+                $apart = & $get $r $cApart
+                $cl = _ControlPeriodicClassify $annex $apart ([string]$afor[$id])
+                if (-not $cl.Qualifies) { continue }
 
                 $via = & $get $r $cVia; $car = & $get $r $cCar; $num = & $get $r $cNum; $lle = & $get $r $cLle
                 $adr = (@($via, $car, $num, $lle) | Where-Object { $_ -ne '' }) -join ' '
