@@ -669,9 +669,16 @@ function Select-Conclusions {
 
     # Retornem els objectes triats (no nomes el text), per preservar
     # Title i Body per al desat de sessio i l'emissio al document.
+    # SENSE COMA davant (,): el valor d'una propietat no passa pel pipeline i
+    # no es desenrotlla, o sigui que la coma NOMES hi afegia una capa. La llista
+    # arribava embolcallada (un element que les contenia totes): sense cap
+    # conclusio marcada, aquell element (una llista buida) comptava com una
+    # conclusio i sortia el titol CONCLUSIONS amb un paragraf buit (l'usuari,
+    # novembre 2026, GIA 1545); i amb dues, sortien enganxades en un sol
+    # paragraf. Mesurat amb les funcions de debo (_BlocsConclusions).
     $selected = New-Object System.Collections.ArrayList
     for ($i = 0; $i -lt $checks.Count; $i++) {
         if ($checks[$i].Checked) { [void]$selected.Add($checks[$i].Tag) }
     }
-    return [pscustomobject]@{ Nav='next'; Data=(,$selected.ToArray()) }
+    return [pscustomobject]@{ Nav='next'; Data=$selected.ToArray() }
 }

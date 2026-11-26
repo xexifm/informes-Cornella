@@ -2000,3 +2000,15 @@ Write-Host "`n--- Comprovar Excel: la visita d'inspeccio arriba a la base (guard
 $cxEsc = _SenseComentaris (Join-Path (Split-Path -Parent $TestsDir) 'InformesEscaneig.ps1')
 Assert ($cxEsc.Contains('$visita = _ExtractVisitaInspeccio $lines') -and $cxEsc.Contains('Visita            = $visita')) 'Actualitzar base: cada informe llegit porta la data de la visita'
 Assert ($cxEsc.Contains('if ($null -eq $r.Visita) {')) 'Actualitzar base: els informes de la base d''abans (sense el camp) la llegeixen sense reclassificar-se'
+
+Write-Host "`n--- Conclusions: la tria arriba SENSE embolcallar (guard + comportament) ---"
+# Select-Conclusions tornava Data=(,$llista): sense cap conclusio marcada sortia
+# el titol CONCLUSIONS amb un paragraf buit, i amb dues, enganxades (novembre
+# 2026, GIA 1545).
+$scSrc = _SenseComentaris (Join-Path (Split-Path -Parent $TestsDir) 'SeleccioItems.ps1')
+Assert ($scSrc.Contains("return [pscustomobject]@{ Nav='next'; Data=`$selected.ToArray() }")) 'Select-Conclusions: torna la llista tal qual'
+Assert (-not $scSrc.Contains('Data=(,')) 'Select-Conclusions: cap coma que embolcalli la llista'
+$scForma = { param($n) $l = New-Object System.Collections.ArrayList; for ($i = 0; $i -lt $n; $i++) { [void]$l.Add([pscustomobject]@{ Title = "t$i"; Body = "Conclusio $i" }) }; [pscustomobject]@{ Nav = 'next'; Data = $l.ToArray() } }
+$scBl = { param($r) (@(_BlocsConclusions 'CONCLUSIONS' @(_ConclusionsAmbFotos $r.Data @()) @('Ho poso al seu coneixement') @{}) | ForEach-Object { $_.T + ':' + $_.Text }) -join ' | ' }
+AssertEq (& $scBl (& $scForma 0)) 'separa: | conclusio:Ho poso al seu coneixement' 'Conclusions: cap marcada -> ni titol ni paragraf buit'
+AssertEq (& $scBl (& $scForma 2)) 'aire: | conclusiocap:CONCLUSIONS | conclusio:Conclusio 0 | conclusio:Conclusio 1 | separa: | conclusio:Ho poso al seu coneixement' 'Conclusions: dues marcades -> dos paragrafs'

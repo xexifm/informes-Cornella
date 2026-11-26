@@ -1346,6 +1346,17 @@ mateix `_AppendConclusionParagraphsXml` del Seguiment: les frases de sempre
 fitxers d'or de TERMINI i de Transmissió sense punts van perdre `AIRE|conclusions`
 (i TERMINI el `CONCLCAP`), i res més.
 
+**…i al novembre de 2026 va tornar a sortir** (GIA 1545), perquè la regla era
+bona però **la llista no hi arribava buida**: `Select-Conclusions` tornava
+`Data=(,$llista)`. El valor d'una propietat no passa pel pipeline, o sigui que
+la coma **només hi afegia una capa**: sense cap conclusió marcada arribava un
+element (una llista buida), que comptava com a conclusió → títol i paràgraf
+buit; i amb dues, sortien **enganxades** en un sol paràgraf. Ho afectava tot el
+que passa per l'assistent i el Seguiment; el mòbil (`Build-ConclusionsFromTitles`)
+no. Guard de font + prova de comportament a `06-guards.ps1` (validat tornant-hi
+a posar la coma). La lliçó de sempre: **mesurat** amb les funcions de debò, no
+deduït.
+
 ### `Format-Aire` i les banderes
 La clau és el **nom del bloc que s'acaba d'escriure** (`seccio`, `subseccio`,
 `item`, `intro`, `introparagraf`, `conclusions`) i `$Script:AireFlagPerClau` la
