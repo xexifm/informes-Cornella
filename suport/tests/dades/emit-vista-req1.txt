@@ -83,15 +83,15 @@ AJUDA|A qui s'aplica: Noves activitats, canvis de titularitat i modificacions.
 AJUDA|Competencia: Ajuntament (Salut Pública).
 AJUDA|Revisat: 2026-10
 AIRE|item
-ITEM|8.|Sanitat. L’activitat està inclosa dins l’Annex del Decret 151/2017, de 17 d'octubre, pel qual s'estableixen els requisits i les garanties tecnicosanitàries comunes dels centres i serveis sanitaris i els procediments per a la seva autorització i registre. S’ha d’obtenir l’Autorització de funcionament (Departament de Salut de la Generalitat de Catalunya).
+ITEM|8.|Sanitat. L’activitat està inclosa dins l’Annex del Decret 203/2026, de 3 de novembre, sobre els requisits comuns dels centres i serveis sanitaris i els procediments per a la seva autorització i registre. S’ha d’obtenir l’Autorització de funcionament (Departament de Salut de la Generalitat de Catalunya).
 URL|https://tramits.gencat.cat/ca/tramits/tramits-temes/Autoritzacio-de-centres-o-serveis-sanitaris
-AJUDA|Norma: Decret 151/2017, del 17 d’octubre, pel qual s’estableixen els requisits i les garanties tecnicosanitàries dels centres i serveis sanitaris, annex (classificació de centres i serveis sanitaris)
-URL|https://portaljuridic.gencat.cat/eli/es-ct/d/2017/10/17/151
-AJUDA|Criteri: Cal autorització si l’activitat encaixa en alguna categoria de l’annex. Els casos que surten: C.2.1 consultes mèdiques, C.2.2 consultes d’altres professionals sanitaris (podologia, fisioteràpia, logopèdia, psicologia clínica), C.2.5.1 clíniques dentals, C.2.5.10 centres de reconeixement i C.3 serveis sanitaris integrats en una organització no sanitària. NO hi entren els centres de bellesa i estètica sense acte mèdic, ni els gimnasos sense servei sanitari, ni les òptiques (tenen autorització pròpia). L’autorització és PRÈVIA al funcionament.
-AJUDA|Vigencia: Una sola vegada: no caduca. S’ha de refer si hi ha modificació substancial o canvi de titular.
+AJUDA|Norma: Decret 203/2026, de 3 de novembre, sobre els requisits comuns dels centres i serveis sanitaris i els procediments per a la seva autorització i registre, annex (classificació de centres i serveis sanitaris)
+URL|https://portaljuridic.gencat.cat/eli/es-ct/d/2026/11/03/203
+AJUDA|Criteri: Cal autorització si l’activitat encaixa en alguna categoria de l’annex. Els casos que surten: C.2.1 consultes mèdiques, C.2.2 consultes d’altres professionals sanitaris (podologia, fisioteràpia, logopèdia, psicologia clínica), C.2.5.1 clíniques dentals, C.2.5.10 centres de reconeixement i C.3 serveis sanitaris integrats en una organització no sanitària. Una consulta (C.2.1 o C.2.2) és d’una sola disciplina sanitària i té 100 m² útils com a màxim (art. 3). NO hi entren els centres de bellesa i estètica sense acte mèdic, ni els gimnasos sense servei sanitari, ni les òptiques (tenen autorització pròpia). L’autorització és PRÈVIA al funcionament.
+AJUDA|Vigencia: Cal renovar-la cada 10 anys amb una declaració responsable (art. 27). Per a les autoritzades abans del 25/11/2026, els 10 anys compten des d’aquesta data. Les modificacions substancials (canvi de titular, de l’oferta assistencial, obres majors, trasllat) necessiten autorització prèvia de modificació (art. 26).
 AJUDA|A qui s'aplica: Noves activitats, canvis de titularitat i modificacions de l’oferta de serveis.
 AJUDA|Competencia: Departament de Salut. L’Ajuntament comprova que es té i en dona trasllat.
-AJUDA|Revisat: 2026-09
+AJUDA|Revisat: 2026-11
 AIRE|item
 ITEM|9.|Educació. L’activitat està inclosa dins el Decret 122/2012, de 9 d'octubre, del procediment d'autorització i de comunicació prèvia per a l'obertura de centres educatius privats. S’ha d’obtenir l’Autorització d’obertura de centres educatius privats  (Departament d’Educació).
 URL|https://educacio.gencat.cat/ca/tramits/tramits-temes/autoritzacio-obertura-privats
@@ -857,23 +857,23 @@ AJUDA|Revisat: 2026-09
 AIRE|item
 ITEM|82.|Òptica. S’ha de sol·licitar l’Autorització dels establiments d’òptica o de les seccions d’òptica en oficines de farmàcia
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Autoritzacio-dels-establiments-doptica-o-de-les-seccions-doptica-en-oficines-de-farmacia
-AJUDA|Norma: Decret 151/2017, del 17 d’octubre, pel qual s’estableixen els requisits i les garanties tecnicosanitàries dels centres i serveis sanitaris, annex
-URL|https://portaljuridic.gencat.cat/eli/es-ct/d/2017/10/17/151
+AJUDA|Norma: Decret 203/2026, de 3 de novembre, sobre els requisits comuns dels centres i serveis sanitaris, capítol IV (inscripció al Registre de centres, serveis i establiments sanitaris). La resta del Decret no s’aplica als establiments d’òptica, ortopèdia i audiopròtesi (art. 2.3), que tenen normativa específica
+URL|https://portaljuridic.gencat.cat/eli/es-ct/d/2026/11/03/203
 AJUDA|Criteri: Autorització de l’establiment d’òptica o de la secció d’òptica dins d’una farmàcia. Una botiga que només ven ulleres de sol premuntades sense graduació NO és un establiment d’òptica.
 AJUDA|Vigencia: Inscripció: una sola vegada. S’ha d’actualitzar amb el canvi de titular, d’adreça o d’activitat.
 AJUDA|A qui s'aplica: Establiments d’òptica i seccions d’òptica en farmàcies.
 AJUDA|Competencia: Departament de Salut. L’Ajuntament comprova que el registre existeix i en dona trasllat; no és competència municipal.
-AJUDA|Revisat: 2026-09
+AJUDA|Revisat: 2026-11
 AIRE|item
 ITEM|83.|Ortopèdia i audiopròtesis. S’ha de sol·licitar l’Autorització dels establiments d'ortopèdia i d'audiopròtesis
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Autoritzacio-dels-establiments-dortopedia-i-daudioprotesis
-AJUDA|Norma: Decret 151/2017, del 17 d’octubre, pel qual s’estableixen els requisits i les garanties tecnicosanitàries dels centres i serveis sanitaris, annex
-URL|https://portaljuridic.gencat.cat/eli/es-ct/d/2017/10/17/151
+AJUDA|Norma: Decret 203/2026, de 3 de novembre, sobre els requisits comuns dels centres i serveis sanitaris, capítol IV (inscripció al Registre de centres, serveis i establiments sanitaris). La resta del Decret no s’aplica als establiments d’òptica, ortopèdia i audiopròtesi (art. 2.3), que tenen normativa específica
+URL|https://portaljuridic.gencat.cat/eli/es-ct/d/2026/11/03/203
 AJUDA|Criteri: Autorització sanitària d’establiment. Cal distingir-la de la comunicació de venda de productes sanitaris: un establiment d’ortopèdia sovint necessita TOTES DUES coses.
 AJUDA|Vigencia: Inscripció: una sola vegada. S’ha d’actualitzar amb el canvi de titular, d’adreça o d’activitat.
 AJUDA|A qui s'aplica: Establiments d’ortopèdia i audiopròtesis.
 AJUDA|Competencia: Departament de Salut. L’Ajuntament comprova que el registre existeix i en dona trasllat; no és competència municipal.
-AJUDA|Revisat: 2026-09
+AJUDA|Revisat: 2026-11
 AIRE|item
 ITEM|84.|Fabricació ortopèdics. S’ha de sol·licitar l’Autorització sanitària d'empreses fabricants de productes sanitaris ortoprotètics a mida
 URL|https://canalempresa.gencat.cat/ca/integraciodepartamentaltramit/tramit/PerTemes/Autoritzacio-sanitaria-dempreses-fabricants-de-productes-sanitaris-ortoprotetics-a-mida

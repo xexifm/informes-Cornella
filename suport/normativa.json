@@ -1126,14 +1126,25 @@
    "Derogada": true
   },
   {
-   "Id": "Decret 151/2017",
+   "Id": "Decret 203/2026",
    "Ambit": "Sanitat",
    "Tema": "",
    "Tipus": "Decret",
+   "Num": "203/2026",
+   "Any": "2026",
+   "Titol": "Requisits comuns dels centres i serveis sanitaris",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/d/2026/11/03/203"
+  },
+  {
+   "Id": "Decret 151/2017",
+   "Ambit": "Sanitat",
+   "Tema": "Antic",
+   "Tipus": "Decret",
    "Num": "151/2017",
    "Any": "2017",
-   "Titol": "Requisits tecnicosanitaris dels centres i serveis sanitaris",
-   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/d/2017/10/17/151"
+   "Titol": "Requisits tecnicosanitaris dels centres i serveis sanitaris (derogat pel Decret 203/2026)",
+   "Url": "https://portaljuridic.gencat.cat/eli/es-ct/d/2017/10/17/151",
+   "Derogada": true
   },
   {
    "Id": "RD 1277/2003",
